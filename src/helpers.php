@@ -1,15 +1,15 @@
 <?php
 
-use Digitalshopfront\VisualEditor\VisualEditor;
+use ArtisanPackUI\VisualEditor\VisualEditor;
 
 if ( !function_exists( 'visualEditor' ) ) {
-    /**
-     * Get the Eventy instance.
-     *
-     * @return VisualEditor
-     */
-    function visualEditor()
-    {
-        return app( 'visualEditor' );
-    }
+	/**
+	 * Get the Eventy instance.
+	 *
+	 * @return VisualEditor
+	 */
+	function visualEditor()
+	{
+		return app( 'visualEditor' );
+	}
 }

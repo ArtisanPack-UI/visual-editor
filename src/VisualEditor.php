@@ -1,6 +1,6 @@
 <?php
 
-namespace Digitalshopfront\VisualEditor;
+namespace ArtisanPackUI\VisualEditor;
 class VisualEditor
 {
 
