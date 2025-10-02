@@ -25,7 +25,8 @@
   ],
   "require": {
     "php": "^8.2",
-    "illuminate/support": ">=5.3"
+    "illuminate/support": ">=5.3",
+    "artisanpack-ui/core": "^1.0"
   },
   "require-dev": {
     "pestphp/pest": "^3.8",
