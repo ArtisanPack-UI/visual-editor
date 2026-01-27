@@ -126,17 +126,293 @@ class VersionHistoryModal extends Component
 
 ## AI Assistant
 
+AI settings are stored using the CMS Framework settings system, allowing administrators to configure providers and API keys through the admin interface.
+
+### AI Settings Registration
+
+```php
+// VisualEditorServiceProvider.php
+
+protected function registerAISettings(): void
+{
+    // Core AI settings
+    apRegisterSetting('visual_editor.ai.enabled', false, fn($v) => (bool) $v, 'boolean');
+    apRegisterSetting('visual_editor.ai.provider', 'openai', fn($v) => sanitizeText($v), 'string');
+
+    // Provider API keys (encrypted in database)
+    apRegisterSetting('visual_editor.ai.openai.api_key', '', fn($v) => encrypt($v), 'string');
+    apRegisterSetting('visual_editor.ai.openai.model', 'gpt-4', fn($v) => sanitizeText($v), 'string');
+    apRegisterSetting('visual_editor.ai.anthropic.api_key', '', fn($v) => encrypt($v), 'string');
+    apRegisterSetting('visual_editor.ai.anthropic.model', 'claude-3-sonnet', fn($v) => sanitizeText($v), 'string');
+
+    // Feature toggles
+    apRegisterSetting('visual_editor.ai.features.content_suggestions', true, fn($v) => (bool) $v, 'boolean');
+    apRegisterSetting('visual_editor.ai.features.alt_text', true, fn($v) => (bool) $v, 'boolean');
+    apRegisterSetting('visual_editor.ai.features.layout_suggestions', false, fn($v) => (bool) $v, 'boolean');
+    apRegisterSetting('visual_editor.ai.features.seo_suggestions', false, fn($v) => (bool) $v, 'boolean');
+
+    // Rate limits
+    apRegisterSetting('visual_editor.ai.rate_limits.requests_per_minute', 10, fn($v) => (int) $v, 'integer');
+    apRegisterSetting('visual_editor.ai.rate_limits.requests_per_day', 100, fn($v) => (int) $v, 'integer');
+}
+```
+
 ### AI Provider Interface
 
 ```php
 interface AIProviderInterface
 {
+    /**
+     * Get the provider's unique identifier.
+     */
+    public function getIdentifier(): string;
+
+    /**
+     * Get the provider's display name.
+     */
+    public function getName(): string;
+
+    /**
+     * Get available models for this provider.
+     *
+     * @return array<string, string> ['model-id' => 'Model Display Name']
+     */
+    public function getAvailableModels(): array;
+
+    /**
+     * Get the settings schema for admin configuration.
+     *
+     * @return array Schema definition for settings fields
+     */
+    public function getSettingsSchema(): array;
+
+    /**
+     * Check if the provider is properly configured.
+     */
+    public function isConfigured(): bool;
+
+    /**
+     * Generate text from a prompt.
+     */
     public function generateText(string $prompt, array $options = []): string;
+
+    /**
+     * Improve existing text based on instruction.
+     */
     public function improveText(string $text, string $instruction): string;
+
+    /**
+     * Generate alt text for an image.
+     */
     public function generateAltText(string $imageUrl): string;
+
+    /**
+     * Suggest headlines based on content.
+     */
     public function suggestHeadlines(string $content, int $count = 5): array;
+
+    /**
+     * Analyze content for SEO or other purposes.
+     */
     public function analyzeContent(string $content): array;
 }
+```
+
+### AI Provider Registry
+
+The provider registry allows developers to register custom AI providers using the hooks system:
+
+```php
+class AIProviderRegistry
+{
+    protected array $providers = [];
+
+    public function __construct()
+    {
+        // Register default providers
+        $this->register(new OpenAIProvider());
+        $this->register(new AnthropicProvider());
+
+        // Allow third-party providers via hook
+        $this->providers = applyFilters('ap.visualEditor.aiProvidersRegister', $this->providers);
+    }
+
+    public function register(AIProviderInterface $provider): void
+    {
+        $this->providers[$provider->getIdentifier()] = $provider;
+
+        // Register provider-specific settings
+        $this->registerProviderSettings($provider);
+
+        doAction('ap.visualEditor.aiProviderRegistered', $provider);
+    }
+
+    public function unregister(string $identifier): void
+    {
+        unset($this->providers[$identifier]);
+
+        doAction('ap.visualEditor.aiProviderUnregistered', $identifier);
+    }
+
+    public function get(string $identifier): ?AIProviderInterface
+    {
+        return $this->providers[$identifier] ?? null;
+    }
+
+    public function all(): array
+    {
+        return $this->providers;
+    }
+
+    public function getAvailableProviders(): array
+    {
+        return collect($this->providers)
+            ->map(fn($provider) => [
+                'identifier' => $provider->getIdentifier(),
+                'name' => $provider->getName(),
+                'models' => $provider->getAvailableModels(),
+                'configured' => $provider->isConfigured(),
+            ])
+            ->all();
+    }
+
+    protected function registerProviderSettings(AIProviderInterface $provider): void
+    {
+        $identifier = $provider->getIdentifier();
+        $schema = $provider->getSettingsSchema();
+
+        foreach ($schema as $key => $definition) {
+            $settingKey = "visual_editor.ai.{$identifier}.{$key}";
+            $default = $definition['default'] ?? null;
+            $type = $definition['type'] ?? 'string';
+
+            // Determine sanitization callback based on type
+            $callback = match($type) {
+                'boolean' => fn($v) => (bool) $v,
+                'integer' => fn($v) => (int) $v,
+                'encrypted' => fn($v) => $v ? encrypt($v) : '',
+                default => fn($v) => sanitizeText($v),
+            };
+
+            apRegisterSetting($settingKey, $default, $callback, $type === 'encrypted' ? 'string' : $type);
+        }
+    }
+}
+```
+
+### Registering Custom AI Providers
+
+Developers can register custom AI providers via the hook system:
+
+```php
+// In a service provider or plugin
+
+use ArtisanPackUI\VisualEditor\Contracts\AIProviderInterface;
+
+class GeminiProvider implements AIProviderInterface
+{
+    public function getIdentifier(): string
+    {
+        return 'gemini';
+    }
+
+    public function getName(): string
+    {
+        return 'Google Gemini';
+    }
+
+    public function getAvailableModels(): array
+    {
+        return [
+            'gemini-pro' => 'Gemini Pro',
+            'gemini-pro-vision' => 'Gemini Pro Vision',
+            'gemini-ultra' => 'Gemini Ultra',
+        ];
+    }
+
+    public function getSettingsSchema(): array
+    {
+        return [
+            'api_key' => [
+                'type' => 'encrypted',
+                'label' => __('API Key'),
+                'hint' => __('Your Google AI API key'),
+                'default' => '',
+            ],
+            'model' => [
+                'type' => 'string',
+                'label' => __('Model'),
+                'default' => 'gemini-pro',
+            ],
+        ];
+    }
+
+    public function isConfigured(): bool
+    {
+        $encryptedKey = apGetSetting('visual_editor.ai.gemini.api_key', '');
+        return !empty($encryptedKey);
+    }
+
+    public function generateText(string $prompt, array $options = []): string
+    {
+        $apiKey = decrypt(apGetSetting('visual_editor.ai.gemini.api_key', ''));
+        $model = apGetSetting('visual_editor.ai.gemini.model', 'gemini-pro');
+
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post("https://generativelanguage.googleapis.com/v1/models/{$model}:generateContent?key={$apiKey}", [
+            'contents' => [
+                ['parts' => [['text' => $prompt]]],
+            ],
+        ]);
+
+        return $response->json('candidates.0.content.parts.0.text', '');
+    }
+
+    public function improveText(string $text, string $instruction): string
+    {
+        return $this->generateText("{$instruction}:\n\n{$text}");
+    }
+
+    public function generateAltText(string $imageUrl): string
+    {
+        // Gemini Pro Vision can analyze images
+        $apiKey = decrypt(apGetSetting('visual_editor.ai.gemini.api_key', ''));
+
+        $response = Http::withHeaders([
+            'Content-Type' => 'application/json',
+        ])->post("https://generativelanguage.googleapis.com/v1/models/gemini-pro-vision:generateContent?key={$apiKey}", [
+            'contents' => [
+                [
+                    'parts' => [
+                        ['text' => 'Describe this image concisely for use as alt text for accessibility. Keep it under 125 characters.'],
+                        ['inlineData' => ['mimeType' => 'image/jpeg', 'data' => base64_encode(file_get_contents($imageUrl))]],
+                    ],
+                ],
+            ],
+        ]);
+
+        return $response->json('candidates.0.content.parts.0.text', '');
+    }
+
+    public function suggestHeadlines(string $content, int $count = 5): array
+    {
+        $response = $this->generateText("Generate {$count} headline suggestions for the following content. Return as a JSON array of strings:\n\n{$content}");
+        return json_decode($response, true) ?? [];
+    }
+
+    public function analyzeContent(string $content): array
+    {
+        $response = $this->generateText("Analyze this content for SEO. Return a JSON object with 'score', 'suggestions', and 'issues':\n\n{$content}");
+        return json_decode($response, true) ?? [];
+    }
+}
+
+// Register the provider via hook
+addFilter('ap.visualEditor.aiProvidersRegister', function (array $providers) {
+    $providers['gemini'] = new GeminiProvider();
+    return $providers;
+});
 ```
 
 ### AI Assistant Service
@@ -145,16 +421,24 @@ interface AIProviderInterface
 class AIAssistant
 {
     protected AIProviderInterface $provider;
+    protected AIProviderRegistry $registry;
 
-    public function __construct()
+    public function __construct(AIProviderRegistry $registry)
     {
-        $providerClass = match(config('visual-editor.ai.provider')) {
-            'openai' => OpenAIProvider::class,
-            'anthropic' => AnthropicProvider::class,
-            default => throw new \Exception('Invalid AI provider'),
-        };
+        $this->registry = $registry;
 
-        $this->provider = app($providerClass);
+        // Get provider from CMS Framework settings
+        $providerName = apGetSetting('visual_editor.ai.provider', 'openai');
+
+        $this->provider = $this->registry->get($providerName);
+
+        if (!$this->provider) {
+            throw new \Exception(__('Invalid AI provider: :provider', ['provider' => $providerName]));
+        }
+
+        if (!$this->provider->isConfigured()) {
+            throw new AIConfigurationException(__('AI provider :provider is not configured', ['provider' => $this->provider->getName()]));
+        }
     }
 
     public function suggestHeadline(string $content): array
@@ -207,45 +491,403 @@ class AIAssistant
 
     protected function isEnabled(string $feature): bool
     {
-        return config('visual-editor.ai.enabled', false) &&
-               config("visual-editor.ai.features.{$feature}", false);
+        // Uses CMS Framework settings
+        return apGetSetting('visual_editor.ai.enabled', false) &&
+               apGetSetting("visual_editor.ai.features.{$feature}", false);
     }
 }
 ```
 
-### AI Configuration
+### AI Provider Implementation
 
 ```php
-// config/visual-editor.php
+class OpenAIProvider implements AIProviderInterface
+{
+    protected string $apiKey;
+    protected string $model;
 
-'ai' => [
-    'enabled' => env('VISUAL_EDITOR_AI_ENABLED', false),
+    public function __construct()
+    {
+        // Get API key from CMS Framework settings (decrypted)
+        $encryptedKey = apGetSetting('visual_editor.ai.openai.api_key', '');
+        $this->apiKey = $encryptedKey ? decrypt($encryptedKey) : '';
+        $this->model = apGetSetting('visual_editor.ai.openai.model', 'gpt-4');
 
-    'provider' => env('VISUAL_EDITOR_AI_PROVIDER', 'openai'),
+        if (empty($this->apiKey)) {
+            throw new AIConfigurationException(__('OpenAI API key not configured'));
+        }
+    }
 
-    'openai' => [
-        'api_key' => env('OPENAI_API_KEY'),
-        'model' => 'gpt-4',
-    ],
+    public function generateText(string $prompt, array $options = []): string
+    {
+        $response = Http::withHeaders([
+            'Authorization' => "Bearer {$this->apiKey}",
+        ])->post('https://api.openai.com/v1/chat/completions', [
+            'model' => $this->model,
+            'messages' => [
+                ['role' => 'user', 'content' => $prompt],
+            ],
+            'max_tokens' => $options['max_tokens'] ?? 1000,
+        ]);
 
-    'anthropic' => [
-        'api_key' => env('ANTHROPIC_API_KEY'),
-        'model' => 'claude-3-sonnet',
-    ],
+        return $response->json('choices.0.message.content');
+    }
 
-    'features' => [
-        'content_suggestions' => true,
-        'alt_text' => true,
-        'layout_suggestions' => false,
-        'seo_suggestions' => false,
-    ],
+    // ... other methods
+}
 
-    'rate_limits' => [
-        'requests_per_minute' => 10,
-        'requests_per_day' => 100,
-    ],
-],
+class AnthropicProvider implements AIProviderInterface
+{
+    protected string $apiKey;
+    protected string $model;
+
+    public function __construct()
+    {
+        // Get API key from CMS Framework settings (decrypted)
+        $encryptedKey = apGetSetting('visual_editor.ai.anthropic.api_key', '');
+        $this->apiKey = $encryptedKey ? decrypt($encryptedKey) : '';
+        $this->model = apGetSetting('visual_editor.ai.anthropic.model', 'claude-3-sonnet');
+
+        if (empty($this->apiKey)) {
+            throw new AIConfigurationException(__('Anthropic API key not configured'));
+        }
+    }
+
+    // ... implementation
+}
 ```
+
+### AI Settings Admin Component
+
+The settings form dynamically renders fields for all registered providers:
+
+```php
+class AISettingsForm extends Component
+{
+    public bool $enabled = false;
+    public string $provider = 'openai';
+    public array $providerSettings = [];
+    public bool $contentSuggestions = true;
+    public bool $altText = true;
+    public bool $layoutSuggestions = false;
+    public bool $seoSuggestions = false;
+    public int $requestsPerMinute = 10;
+    public int $requestsPerDay = 100;
+
+    protected AIProviderRegistry $registry;
+
+    public function boot(AIProviderRegistry $registry): void
+    {
+        $this->registry = $registry;
+    }
+
+    public function mount(): void
+    {
+        // Check permission
+        if (!auth()->user()->hasPermissionTo('visual_editor.manage')) {
+            abort(403);
+        }
+
+        $this->enabled = apGetSetting('visual_editor.ai.enabled', false);
+        $this->provider = apGetSetting('visual_editor.ai.provider', 'openai');
+        $this->contentSuggestions = apGetSetting('visual_editor.ai.features.content_suggestions', true);
+        $this->altText = apGetSetting('visual_editor.ai.features.alt_text', true);
+        $this->layoutSuggestions = apGetSetting('visual_editor.ai.features.layout_suggestions', false);
+        $this->seoSuggestions = apGetSetting('visual_editor.ai.features.seo_suggestions', false);
+        $this->requestsPerMinute = apGetSetting('visual_editor.ai.rate_limits.requests_per_minute', 10);
+        $this->requestsPerDay = apGetSetting('visual_editor.ai.rate_limits.requests_per_day', 100);
+
+        // Load settings for all registered providers dynamically
+        $this->loadProviderSettings();
+    }
+
+    protected function loadProviderSettings(): void
+    {
+        foreach ($this->registry->all() as $identifier => $provider) {
+            $this->providerSettings[$identifier] = [];
+
+            foreach ($provider->getSettingsSchema() as $key => $definition) {
+                $settingKey = "visual_editor.ai.{$identifier}.{$key}";
+                $value = apGetSetting($settingKey, $definition['default'] ?? '');
+
+                // For encrypted fields (API keys), show placeholder if set
+                if (($definition['type'] ?? 'string') === 'encrypted' && !empty($value)) {
+                    $value = '••••••••';
+                }
+
+                $this->providerSettings[$identifier][$key] = $value;
+            }
+        }
+    }
+
+    public function getAvailableProvidersProperty(): array
+    {
+        return $this->registry->getAvailableProviders();
+    }
+
+    public function getProviderOptionsProperty(): array
+    {
+        return collect($this->registry->all())
+            ->map(fn($provider) => [
+                'value' => $provider->getIdentifier(),
+                'label' => $provider->getName(),
+            ])
+            ->values()
+            ->all();
+    }
+
+    public function save(): void
+    {
+        if (!auth()->user()->hasPermissionTo('visual_editor.manage')) {
+            abort(403);
+        }
+
+        // Validate that selected provider is registered
+        $validProviders = array_keys($this->registry->all());
+        $this->validate([
+            'provider' => 'required|in:' . implode(',', $validProviders),
+            'requestsPerMinute' => 'required|integer|min:1|max:100',
+            'requestsPerDay' => 'required|integer|min:1|max:10000',
+        ]);
+
+        // Save core settings via CMS Framework
+        apUpdateSetting('visual_editor.ai.enabled', $this->enabled);
+        apUpdateSetting('visual_editor.ai.provider', $this->provider);
+
+        // Save provider-specific settings dynamically
+        foreach ($this->registry->all() as $identifier => $provider) {
+            foreach ($provider->getSettingsSchema() as $key => $definition) {
+                $value = $this->providerSettings[$identifier][$key] ?? '';
+                $settingKey = "visual_editor.ai.{$identifier}.{$key}";
+
+                // Skip encrypted fields if unchanged (placeholder)
+                if (($definition['type'] ?? 'string') === 'encrypted' && $value === '••••••••') {
+                    continue;
+                }
+
+                apUpdateSetting($settingKey, $value);
+            }
+        }
+
+        // Save feature toggles
+        apUpdateSetting('visual_editor.ai.features.content_suggestions', $this->contentSuggestions);
+        apUpdateSetting('visual_editor.ai.features.alt_text', $this->altText);
+        apUpdateSetting('visual_editor.ai.features.layout_suggestions', $this->layoutSuggestions);
+        apUpdateSetting('visual_editor.ai.features.seo_suggestions', $this->seoSuggestions);
+        apUpdateSetting('visual_editor.ai.rate_limits.requests_per_minute', $this->requestsPerMinute);
+        apUpdateSetting('visual_editor.ai.rate_limits.requests_per_day', $this->requestsPerDay);
+
+        $this->dispatch('toast', message: __('AI settings saved successfully'));
+    }
+
+    public function testConnection(): void
+    {
+        try {
+            $assistant = app(AIAssistant::class);
+            $assistant->improveText('Test connection', 'brief');
+            $this->dispatch('toast', message: __('Connection successful!'), type: 'success');
+        } catch (\Exception $e) {
+            $this->dispatch('toast', message: __('Connection failed: :error', ['error' => $e->getMessage()]), type: 'error');
+        }
+    }
+}
+```
+
+### AI Settings Admin View
+
+The view dynamically renders settings fields for all registered providers:
+
+```blade
+<x-artisanpack-card>
+    <x-slot:header>
+        <h2 class="text-lg font-semibold">{{ __('AI Assistant Settings') }}</h2>
+    </x-slot:header>
+
+    <form wire:submit="save" class="space-y-6">
+        {{-- Enable/Disable --}}
+        <x-artisanpack-toggle
+            wire:model="enabled"
+            :label="__('Enable AI Assistant')"
+            :hint="__('Allow AI-powered features in the visual editor')"
+        />
+
+        @if($enabled)
+            {{-- Provider Selection (dynamically populated from registry) --}}
+            <x-artisanpack-select
+                wire:model.live="provider"
+                :label="__('AI Provider')"
+                :options="$this->providerOptions"
+            />
+
+            {{-- Dynamic Provider Settings --}}
+            @foreach($this->availableProviders as $providerInfo)
+                @if($provider === $providerInfo['identifier'])
+                    <div class="p-4 bg-base-200 rounded-lg space-y-4">
+                        <div class="flex items-center justify-between">
+                            <h3 class="font-medium">{{ $providerInfo['name'] }} {{ __('Configuration') }}</h3>
+                            @if($providerInfo['configured'])
+                                <x-artisanpack-badge color="success">{{ __('Configured') }}</x-artisanpack-badge>
+                            @else
+                                <x-artisanpack-badge color="warning">{{ __('Not Configured') }}</x-artisanpack-badge>
+                            @endif
+                        </div>
+
+                        {{-- Render fields from provider's settings schema --}}
+                        @php
+                            $providerInstance = app(AIProviderRegistry::class)->get($providerInfo['identifier']);
+                            $schema = $providerInstance->getSettingsSchema();
+                        @endphp
+
+                        @foreach($schema as $fieldKey => $fieldDef)
+                            @php
+                                $fieldType = $fieldDef['type'] ?? 'string';
+                                $wireModel = "providerSettings.{$providerInfo['identifier']}.{$fieldKey}";
+                            @endphp
+
+                            @if($fieldType === 'encrypted')
+                                <x-artisanpack-input
+                                    wire:model="{{ $wireModel }}"
+                                    type="password"
+                                    :label="$fieldDef['label'] ?? $fieldKey"
+                                    :hint="$fieldDef['hint'] ?? null"
+                                />
+                            @elseif($fieldKey === 'model' && !empty($providerInfo['models']))
+                                <x-artisanpack-select
+                                    wire:model="{{ $wireModel }}"
+                                    :label="$fieldDef['label'] ?? __('Model')"
+                                    :options="collect($providerInfo['models'])->map(fn($label, $value) => ['value' => $value, 'label' => $label])->values()->all()"
+                                />
+                            @else
+                                <x-artisanpack-input
+                                    wire:model="{{ $wireModel }}"
+                                    :label="$fieldDef['label'] ?? $fieldKey"
+                                    :hint="$fieldDef['hint'] ?? null"
+                                />
+                            @endif
+                        @endforeach
+                    </div>
+                @endif
+            @endforeach
+
+            {{-- Feature Toggles --}}
+            <div class="space-y-3">
+                <h3 class="font-medium">{{ __('Features') }}</h3>
+
+                <x-artisanpack-toggle
+                    wire:model="contentSuggestions"
+                    :label="__('Content Suggestions')"
+                    :hint="__('AI-powered headline and text improvements')"
+                />
+
+                <x-artisanpack-toggle
+                    wire:model="altText"
+                    :label="__('Alt Text Generation')"
+                    :hint="__('Auto-generate image descriptions')"
+                />
+
+                <x-artisanpack-toggle
+                    wire:model="layoutSuggestions"
+                    :label="__('Layout Suggestions')"
+                    :hint="__('AI-suggested page sections')"
+                />
+
+                <x-artisanpack-toggle
+                    wire:model="seoSuggestions"
+                    :label="__('SEO Suggestions')"
+                    :hint="__('AI-powered SEO analysis')"
+                />
+            </div>
+
+            {{-- Rate Limits --}}
+            <div class="grid grid-cols-2 gap-4">
+                <x-artisanpack-input
+                    wire:model="requestsPerMinute"
+                    type="number"
+                    :label="__('Requests per Minute')"
+                    min="1"
+                    max="100"
+                />
+
+                <x-artisanpack-input
+                    wire:model="requestsPerDay"
+                    type="number"
+                    :label="__('Requests per Day')"
+                    min="1"
+                    max="10000"
+                />
+            </div>
+        @endif
+
+        <div class="flex gap-3">
+            <x-artisanpack-button type="submit" color="primary">
+                {{ __('Save Settings') }}
+            </x-artisanpack-button>
+
+            @if($enabled)
+                <x-artisanpack-button type="button" wire:click="testConnection">
+                    {{ __('Test Connection') }}
+                </x-artisanpack-button>
+            @endif
+        </div>
+    </form>
+</x-artisanpack-card>
+```
+
+### AI Settings Summary
+
+#### Core Settings
+
+| Setting | Key | Type | Admin Editable |
+|---------|-----|------|----------------|
+| Enabled | `visual_editor.ai.enabled` | boolean | Yes |
+| Provider | `visual_editor.ai.provider` | string | Yes |
+| Content Suggestions | `visual_editor.ai.features.content_suggestions` | boolean | Yes |
+| Alt Text | `visual_editor.ai.features.alt_text` | boolean | Yes |
+| Layout Suggestions | `visual_editor.ai.features.layout_suggestions` | boolean | Yes |
+| SEO Suggestions | `visual_editor.ai.features.seo_suggestions` | boolean | Yes |
+| Requests/Minute | `visual_editor.ai.rate_limits.requests_per_minute` | integer | Yes |
+| Requests/Day | `visual_editor.ai.rate_limits.requests_per_day` | integer | Yes |
+
+#### Default Provider Settings
+
+| Setting | Key | Type | Admin Editable |
+|---------|-----|------|----------------|
+| OpenAI API Key | `visual_editor.ai.openai.api_key` | string (encrypted) | Yes |
+| OpenAI Model | `visual_editor.ai.openai.model` | string | Yes |
+| Anthropic API Key | `visual_editor.ai.anthropic.api_key` | string (encrypted) | Yes |
+| Anthropic Model | `visual_editor.ai.anthropic.model` | string | Yes |
+
+#### Custom Provider Settings
+
+Custom providers register their own settings using the `getSettingsSchema()` method. Settings follow the pattern:
+
+```
+visual_editor.ai.{provider_identifier}.{setting_key}
+```
+
+For example, the Gemini provider registers:
+- `visual_editor.ai.gemini.api_key` (encrypted)
+- `visual_editor.ai.gemini.model` (string)
+
+### AI Provider Extensibility Hooks
+
+| Hook | Type | Description |
+|------|------|-------------|
+| `ap.visualEditor.aiProvidersRegister` | Filter | Add custom AI providers to the registry |
+| `ap.visualEditor.aiProviderRegistered` | Action | Fired when a provider is registered |
+| `ap.visualEditor.aiProviderUnregistered` | Action | Fired when a provider is unregistered |
+
+#### Registering a Custom Provider
+
+```php
+// In your service provider boot() method
+addFilter('ap.visualEditor.aiProvidersRegister', function (array $providers) {
+    $providers['gemini'] = new GeminiProvider();
+    return $providers;
+});
+```
+
+See the `GeminiProvider` example above for a complete implementation reference
 
 ---
 

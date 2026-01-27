@@ -1,17 +1,67 @@
 # Visual Editor - Configuration Reference
 
+## Configuration Architecture
+
+The visual editor uses a hybrid configuration approach that integrates with `artisanpack-ui/cms-framework`:
+
+1. **Static Config** (`config/visual-editor.php`): Non-admin-configurable settings like routes and middleware
+2. **CMS Framework Settings** (`apGetSetting()` / `apUpdateSetting()`): Admin-configurable settings stored in database
+3. **CMS Framework Permissions** (`hasPermissionTo()`): Role-based access control via database
+
+This allows developers to set defaults while giving administrators the ability to customize settings through the admin interface.
+
+---
+
+## Settings Registration
+
+The visual editor registers its settings during service provider boot:
+
+```php
+// VisualEditorServiceProvider.php
+
+protected function registerSettings(): void
+{
+    // Block/section restrictions
+    apRegisterSetting('visual_editor.allowed_blocks', null, fn($v) => $v, 'json');
+    apRegisterSetting('visual_editor.disallowed_blocks', [], fn($v) => $v, 'json');
+    apRegisterSetting('visual_editor.allowed_sections', null, fn($v) => $v, 'json');
+    apRegisterSetting('visual_editor.disallowed_sections', [], fn($v) => $v, 'json');
+
+    // Feature toggles
+    apRegisterSetting('visual_editor.locking.enabled', true, fn($v) => (bool) $v, 'boolean');
+    apRegisterSetting('visual_editor.ai.enabled', false, fn($v) => (bool) $v, 'boolean');
+    apRegisterSetting('visual_editor.ab_testing.enabled', false, fn($v) => (bool) $v, 'boolean');
+
+    // Performance budgets
+    apRegisterSetting('visual_editor.performance.max_weight', 2097152, fn($v) => (int) $v, 'integer');
+    apRegisterSetting('visual_editor.performance.max_images', 20, fn($v) => (int) $v, 'integer');
+
+    // Accessibility settings
+    apRegisterSetting('visual_editor.accessibility.require_alt_text', true, fn($v) => (bool) $v, 'boolean');
+    apRegisterSetting('visual_editor.accessibility.check_contrast', true, fn($v) => (bool) $v, 'boolean');
+
+    // Versioning
+    apRegisterSetting('visual_editor.versioning.autosave_interval', 60, fn($v) => (int) $v, 'integer');
+    apRegisterSetting('visual_editor.versioning.max_autosave_revisions', 50, fn($v) => (int) $v, 'integer');
+}
+```
+
+---
+
 ## Complete Configuration File
 
 ```php
 <?php
 
 // config/visual-editor.php
+// This file contains STATIC configuration only.
+// Admin-configurable settings use CMS Framework's apGetSetting()/apUpdateSetting().
 
 return [
 
     /*
     |--------------------------------------------------------------------------
-    | General Settings
+    | General Settings (Static - not admin-configurable)
     |--------------------------------------------------------------------------
     */
 
@@ -232,110 +282,106 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | Permissions
+    | Permissions (CMS Framework Integration)
     |--------------------------------------------------------------------------
+    |
+    | Permissions are managed via artisanpack-ui/cms-framework.
+    | The visual editor registers permissions and roles during boot.
+    | See 07-permissions-locking.md for full permission documentation.
+    |
+    | Permissions are checked using: $user->hasPermissionTo('visual_editor.access')
+    | Roles can be managed via the CMS admin interface.
+    |
     */
 
-    'permissions' => [
-        // Template editing
-        'can_edit_templates' => true,
-        'can_create_templates' => true,
-        'can_delete_templates' => false,
-        'can_edit_template_parts' => true,
-
-        // Global styles
-        'can_edit_global_styles' => true,
-        'can_edit_colors' => true,
-        'can_edit_typography' => true,
-        'can_edit_spacing' => true,
-
-        // Advanced features
-        'can_add_custom_css' => false,
-        'can_add_custom_html' => false,
-        'can_add_custom_js' => false,
-        'can_view_code' => false,
-
-        // Sections
-        'can_create_sections' => true,
-        'can_delete_sections' => true,
-        'can_reorder_sections' => true,
-        'can_save_section_patterns' => true,
-
-        // Blocks
-        'can_add_blocks' => true,
-        'can_delete_blocks' => true,
-        'can_reorder_blocks' => true,
-
-        // Block restrictions
+    // Block/section restrictions are stored in CMS Framework settings
+    // and can be managed via admin interface. These are the defaults.
+    'defaults' => [
+        // Block restrictions (stored in apGetSetting('visual_editor.allowed_blocks'))
         'allowed_blocks' => null, // null = all blocks allowed
         'disallowed_blocks' => [], // Blocks to hide from inserter
 
-        // Section restrictions
+        // Section restrictions (stored in apGetSetting('visual_editor.allowed_sections'))
         'allowed_sections' => null,
         'disallowed_sections' => [],
-
-        // Content locking
-        'can_lock_content' => true,
-        'can_unlock_content' => true,
-
-        // Publishing
-        'can_publish' => true,
-        'can_schedule' => true,
-        'can_unpublish' => true,
-
-        // Versioning
-        'can_view_revisions' => true,
-        'can_restore_revisions' => true,
-        'can_create_named_versions' => true,
-
-        // AI features
-        'can_use_ai' => true,
-
-        // A/B testing
-        'can_create_experiments' => false,
     ],
 
-    // Permission presets for roles
-    'permission_presets' => [
-        'content_editor' => [
-            'can_edit_templates' => false,
-            'can_edit_global_styles' => false,
-            'can_add_custom_css' => false,
-            'can_add_custom_html' => false,
-            'can_create_sections' => false,
-            'can_delete_sections' => false,
-            'can_lock_content' => false,
-            'can_create_experiments' => false,
-            'disallowed_blocks' => ['html', 'code', 'shortcode'],
-        ],
-        'site_editor' => [
-            'can_edit_templates' => true,
-            'can_edit_global_styles' => true,
-            'can_add_custom_css' => false,
-            'can_add_custom_html' => false,
-            'can_lock_content' => true,
-            'disallowed_blocks' => ['html', 'code'],
-        ],
-        'developer' => [
-            'can_edit_templates' => true,
-            'can_edit_global_styles' => true,
-            'can_add_custom_css' => true,
-            'can_add_custom_html' => true,
-            'can_view_code' => true,
-            'can_lock_content' => true,
-            'can_unlock_content' => true,
-            'allowed_blocks' => null,
-            'disallowed_blocks' => [],
-        ],
-    ],
+    /*
+    |--------------------------------------------------------------------------
+    | Registered Permissions (Reference)
+    |--------------------------------------------------------------------------
+    |
+    | These permissions are registered via ap_register_permission() during boot.
+    | They are listed here for reference only - do not modify.
+    |
+    | Core Access:
+    |   - visual_editor.access          Access Visual Editor
+    |   - visual_editor.manage          Manage Visual Editor Settings
+    |
+    | Templates:
+    |   - visual_editor.templates.view      View Templates
+    |   - visual_editor.templates.create    Create Templates
+    |   - visual_editor.templates.edit      Edit Templates
+    |   - visual_editor.templates.delete    Delete Templates
+    |   - visual_editor.template_parts.edit Edit Template Parts
+    |
+    | Global Styles:
+    |   - visual_editor.styles.view     View Global Styles
+    |   - visual_editor.styles.edit     Edit Global Styles
+    |   - visual_editor.styles.colors   Edit Colors
+    |   - visual_editor.styles.typography Edit Typography
+    |   - visual_editor.styles.spacing  Edit Spacing
+    |
+    | Advanced Features:
+    |   - visual_editor.custom_css      Add Custom CSS
+    |   - visual_editor.custom_html     Add Custom HTML
+    |   - visual_editor.custom_js       Add Custom JavaScript
+    |   - visual_editor.view_code       View Generated Code
+    |
+    | Sections:
+    |   - visual_editor.sections.create     Create Sections
+    |   - visual_editor.sections.delete     Delete Sections
+    |   - visual_editor.sections.reorder    Reorder Sections
+    |   - visual_editor.sections.save_patterns Save Section Patterns
+    |
+    | Blocks:
+    |   - visual_editor.blocks.add      Add Blocks
+    |   - visual_editor.blocks.delete   Delete Blocks
+    |   - visual_editor.blocks.reorder  Reorder Blocks
+    |
+    | Content Locking:
+    |   - visual_editor.content.lock    Lock Content
+    |   - visual_editor.content.unlock  Unlock Content
+    |
+    | Publishing:
+    |   - visual_editor.content.publish     Publish Content
+    |   - visual_editor.content.schedule    Schedule Content
+    |   - visual_editor.content.unpublish   Unpublish Content
+    |
+    | Versioning:
+    |   - visual_editor.revisions.view      View Revisions
+    |   - visual_editor.revisions.restore   Restore Revisions
+    |   - visual_editor.versions.create     Create Named Versions
+    |
+    | Optional Features:
+    |   - visual_editor.ai.use              Use AI Assistant
+    |   - visual_editor.experiments.create  Create A/B Experiments
+    |
+    */
 
-    // Map user roles to permission presets
-    'role_permissions' => [
-        'admin' => 'developer',
-        'editor' => 'site_editor',
-        'author' => 'content_editor',
-        'contributor' => 'content_editor',
-    ],
+    /*
+    |--------------------------------------------------------------------------
+    | Default Roles (Reference)
+    |--------------------------------------------------------------------------
+    |
+    | These roles are registered via ap_register_role() during boot.
+    | They can be customized via the CMS admin interface.
+    |
+    | - visual_editor_content   Content Editor (limited access)
+    | - visual_editor_site      Site Editor (full editing, no code)
+    | - visual_editor_developer Editor Developer (full access)
+    |
+    */
 
     /*
     |--------------------------------------------------------------------------
@@ -386,34 +432,66 @@ return [
 
     /*
     |--------------------------------------------------------------------------
-    | AI Assistant
+    | AI Assistant (CMS Framework Settings)
     |--------------------------------------------------------------------------
+    |
+    | AI settings are stored in the CMS Framework settings system to allow
+    | administrators to configure providers and API keys through the admin
+    | interface. API keys are encrypted in the database for security.
+    |
+    | Settings are managed via:
+    |   - apGetSetting('visual_editor.ai.*')
+    |   - apUpdateSetting('visual_editor.ai.*', $value)
+    |
+    | The following settings are registered during package boot:
+    |
+    | Core Settings:
+    |   - visual_editor.ai.enabled                          (boolean)
+    |   - visual_editor.ai.provider                         (string: openai, anthropic, or custom)
+    |
+    | Default Provider Settings:
+    |   - visual_editor.ai.openai.api_key                   (string, encrypted)
+    |   - visual_editor.ai.openai.model                     (string)
+    |   - visual_editor.ai.anthropic.api_key                (string, encrypted)
+    |   - visual_editor.ai.anthropic.model                  (string)
+    |
+    | Custom Provider Settings:
+    |   - visual_editor.ai.{provider}.{key}                 (varies by provider)
+    |
+    | Feature Toggles:
+    |   - visual_editor.ai.features.content_suggestions     (boolean)
+    |   - visual_editor.ai.features.alt_text                (boolean)
+    |   - visual_editor.ai.features.layout_suggestions      (boolean)
+    |   - visual_editor.ai.features.seo_suggestions         (boolean)
+    |
+    | Rate Limits:
+    |   - visual_editor.ai.rate_limits.requests_per_minute  (integer)
+    |   - visual_editor.ai.rate_limits.requests_per_day     (integer)
+    |
+    | Extensibility:
+    | Developers can register custom AI providers (e.g., Google Gemini, Cohere)
+    | via the `ap.visualEditor.aiProvidersRegister` hook. Custom providers
+    | automatically have their settings registered based on their getSettingsSchema()
+    | method. See 08-additional-features.md for full implementation documentation.
+    |
     */
 
-    'ai' => [
-        'enabled' => env('VISUAL_EDITOR_AI_ENABLED', false),
-
-        'provider' => env('VISUAL_EDITOR_AI_PROVIDER', 'openai'),
-
+    // Default values for AI settings (used when registering settings)
+    'ai_defaults' => [
+        'enabled' => false,
+        'provider' => 'openai',
         'openai' => [
-            'api_key' => env('OPENAI_API_KEY'),
             'model' => 'gpt-4',
-            'max_tokens' => 1000,
         ],
-
         'anthropic' => [
-            'api_key' => env('ANTHROPIC_API_KEY'),
-            'model' => 'claude-3-sonnet-20240229',
-            'max_tokens' => 1000,
+            'model' => 'claude-3-sonnet',
         ],
-
         'features' => [
             'content_suggestions' => true,
             'alt_text' => true,
             'layout_suggestions' => false,
             'seo_suggestions' => false,
         ],
-
         'rate_limits' => [
             'requests_per_minute' => 10,
             'requests_per_day' => 100,
@@ -663,3 +741,111 @@ php artisan vendor:publish --tag=visual-editor-config
 ```
 
 This creates `config/visual-editor.php` in your application.
+
+---
+
+## CMS Framework Integration Summary
+
+### Configuration Sources
+
+The visual editor uses three configuration sources:
+
+| Source | Purpose | Admin Editable | Example |
+|--------|---------|----------------|---------|
+| **Config File** | Static settings (routes, middleware) | No | `config('visual-editor.route_prefix')` |
+| **CMS Settings** | Dynamic settings (features, limits) | Yes | `apGetSetting('visual_editor.ai.enabled')` |
+| **CMS Permissions** | User access control | Yes | `$user->hasPermissionTo('visual_editor.access')` |
+
+### Settings Stored in CMS Framework
+
+These settings are registered with `apRegisterSetting()` and can be changed via admin interface:
+
+```php
+// Feature toggles
+'visual_editor.locking.enabled'           // boolean
+'visual_editor.ai.enabled'                // boolean
+'visual_editor.ab_testing.enabled'        // boolean
+
+// Restrictions
+'visual_editor.allowed_blocks'            // json (array or null)
+'visual_editor.disallowed_blocks'         // json (array)
+'visual_editor.allowed_sections'          // json (array or null)
+'visual_editor.disallowed_sections'       // json (array)
+
+// Performance budgets
+'visual_editor.performance.max_weight'    // integer (bytes)
+'visual_editor.performance.max_images'    // integer
+
+// Accessibility
+'visual_editor.accessibility.require_alt_text'   // boolean
+'visual_editor.accessibility.check_contrast'     // boolean
+
+// Versioning
+'visual_editor.versioning.autosave_interval'     // integer (seconds)
+'visual_editor.versioning.max_autosave_revisions' // integer
+
+// AI Provider Settings (admin can configure provider and API keys)
+'visual_editor.ai.provider'                          // string (openai, anthropic, or custom)
+'visual_editor.ai.openai.api_key'                    // string (encrypted)
+'visual_editor.ai.openai.model'                      // string
+'visual_editor.ai.anthropic.api_key'                 // string (encrypted)
+'visual_editor.ai.anthropic.model'                   // string
+'visual_editor.ai.{custom_provider}.{key}'           // varies (custom providers)
+'visual_editor.ai.features.content_suggestions'      // boolean
+'visual_editor.ai.features.alt_text'                 // boolean
+'visual_editor.ai.features.layout_suggestions'       // boolean
+'visual_editor.ai.features.seo_suggestions'          // boolean
+'visual_editor.ai.rate_limits.requests_per_minute'   // integer
+'visual_editor.ai.rate_limits.requests_per_day'      // integer
+```
+
+### AI Provider Extensibility
+
+Developers can register custom AI providers using the hooks system:
+
+```php
+// Register a custom provider (e.g., Google Gemini)
+addFilter('ap.visualEditor.aiProvidersRegister', function (array $providers) {
+    $providers['gemini'] = new GeminiProvider();
+    return $providers;
+});
+```
+
+Custom providers must implement `AIProviderInterface` and provide:
+- `getIdentifier()`: Unique provider ID
+- `getName()`: Display name
+- `getAvailableModels()`: Available model options
+- `getSettingsSchema()`: Settings fields for admin UI
+- `isConfigured()`: Check if API key is set
+- AI methods: `generateText()`, `improveText()`, `generateAltText()`, etc.
+
+See `08-additional-features.md` for the complete `AIProviderInterface` and example implementation
+
+### Admin Menu Pages
+
+The visual editor registers these admin pages via CMS framework:
+
+| Page | Route | Capability Required |
+|------|-------|---------------------|
+| Editor | `/admin/visual-editor` | `visual_editor.access` |
+| Templates | `/admin/visual-editor-templates` | `visual_editor.templates.view` |
+| Global Styles | `/admin/visual-editor-styles` | `visual_editor.styles.view` |
+| Settings | `/admin/visual-editor-settings` | `visual_editor.manage` |
+| AI Settings | `/admin/visual-editor-ai` | `visual_editor.manage` |
+
+### Retrieving Settings
+
+```php
+// Get setting with fallback to default
+$enabled = apGetSetting('visual_editor.locking.enabled', true);
+
+// Update setting (typically from admin interface)
+apUpdateSetting('visual_editor.locking.enabled', false);
+
+// Check permission
+if (auth()->user()->hasPermissionTo('visual_editor.manage')) {
+    // Show admin settings page
+}
+```
+
+See `07-permissions-locking.md` for complete permission and role documentation.
