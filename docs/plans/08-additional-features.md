@@ -738,3 +738,375 @@ class PresenceManager
     }
 }
 ```
+
+---
+
+## Accessibility Scanner
+
+The accessibility scanner uses `artisanpack-ui/accessibility` to audit content for WCAG compliance.
+
+### Accessibility Scanner Service
+
+```php
+use ArtisanPackUI\Accessibility\Facades\A11y;
+
+class AccessibilityScanner
+{
+    public function scan(Content $content): AccessibilityScanResult
+    {
+        $issues = [];
+
+        // Scan for all accessibility issues
+        $issues = array_merge($issues, $this->scanAltText($content));
+        $issues = array_merge($issues, $this->scanHeadingHierarchy($content));
+        $issues = array_merge($issues, $this->scanColorContrast($content));
+        $issues = array_merge($issues, $this->scanLinkText($content));
+        $issues = array_merge($issues, $this->scanEmptyButtons($content));
+        $issues = array_merge($issues, $this->scanFormLabels($content));
+
+        // Allow custom checks via hook
+        $issues = applyFilters('ap.visualEditor.accessibilityCheck', $issues, $content);
+
+        return new AccessibilityScanResult($issues);
+    }
+
+    protected function scanColorContrast(Content $content): array
+    {
+        $issues = [];
+
+        foreach ($this->extractColorPairs($content) as $pair) {
+            $bgColor = $pair['background'];
+            $textColor = $pair['text'];
+            $linkColor = $pair['link'] ?? null;
+
+            // Check text contrast using accessibility package
+            if (!A11y::a11yCheckContrastColor($bgColor, $textColor)) {
+                $issues[] = [
+                    'type' => 'color_contrast',
+                    'severity' => 'error',
+                    'wcag' => '1.4.3',
+                    'message' => __('Text color does not have sufficient contrast with background'),
+                    'location' => $pair['location'],
+                    'current' => [
+                        'background' => $bgColor,
+                        'text' => $textColor,
+                    ],
+                    'suggestion' => A11y::a11yGetContrastColor($bgColor),
+                    'auto_fixable' => true,
+                ];
+            }
+
+            // Check link contrast if present
+            if ($linkColor && !A11y::a11yCheckContrastColor($bgColor, $linkColor)) {
+                $issues[] = [
+                    'type' => 'color_contrast',
+                    'severity' => 'error',
+                    'wcag' => '1.4.3',
+                    'message' => __('Link color does not have sufficient contrast with background'),
+                    'location' => $pair['location'],
+                    'current' => [
+                        'background' => $bgColor,
+                        'link' => $linkColor,
+                    ],
+                    'suggestion' => A11y::a11yGetContrastColor($bgColor),
+                    'auto_fixable' => true,
+                ];
+            }
+        }
+
+        return $issues;
+    }
+
+    protected function scanAltText(Content $content): array
+    {
+        $issues = [];
+
+        foreach ($content->getBlocksByType('image') as $block) {
+            if (empty($block['content']['alt'])) {
+                $issues[] = [
+                    'type' => 'missing_alt_text',
+                    'severity' => 'error',
+                    'wcag' => '1.1.1',
+                    'message' => __('Image is missing alt text'),
+                    'location' => $block['id'],
+                    'auto_fixable' => false, // Requires user input
+                ];
+            }
+        }
+
+        return $issues;
+    }
+
+    protected function scanHeadingHierarchy(Content $content): array
+    {
+        $issues = [];
+        $headings = $content->getBlocksByType('heading');
+        $lastLevel = 0;
+
+        foreach ($headings as $heading) {
+            $level = (int) substr($heading['content']['level'], 1); // h1 -> 1
+
+            // Check for skipped levels
+            if ($level > $lastLevel + 1 && $lastLevel > 0) {
+                $issues[] = [
+                    'type' => 'heading_hierarchy',
+                    'severity' => 'warning',
+                    'wcag' => '1.3.1',
+                    'message' => __('Heading level skipped from H:from to H:to', [
+                        'from' => $lastLevel,
+                        'to' => $level,
+                    ]),
+                    'location' => $heading['id'],
+                    'auto_fixable' => false,
+                ];
+            }
+
+            $lastLevel = $level;
+        }
+
+        // Check for multiple H1s
+        $h1Count = count(array_filter($headings, fn($h) => $h['content']['level'] === 'h1'));
+        if ($h1Count > 1) {
+            $issues[] = [
+                'type' => 'multiple_h1',
+                'severity' => 'warning',
+                'wcag' => '1.3.1',
+                'message' => __('Page has multiple H1 headings (:count found)', ['count' => $h1Count]),
+                'auto_fixable' => false,
+            ];
+        }
+
+        return $issues;
+    }
+
+    public function autoFix(Content $content, array $issue): bool
+    {
+        if (!$issue['auto_fixable']) {
+            return false;
+        }
+
+        switch ($issue['type']) {
+            case 'color_contrast':
+                return $this->fixColorContrast($content, $issue);
+            default:
+                return false;
+        }
+    }
+
+    protected function fixColorContrast(Content $content, array $issue): bool
+    {
+        $location = $issue['location'];
+        $suggestedColor = $issue['suggestion'];
+
+        // Apply the suggested accessible color
+        $content->updateBlockStyle($location, 'text_color', $suggestedColor);
+
+        doAction('ap.visualEditor.accessibilityAutoFixed', $issue, $content);
+
+        return true;
+    }
+}
+```
+
+### Accessibility Scanner Modal Component
+
+```php
+use Livewire\Component;
+
+class AccessibilityScannerModal extends Component
+{
+    public Content $content;
+    public array $scanResults = [];
+    public bool $isScanning = false;
+    public string $filterSeverity = 'all';
+
+    public function scan(): void
+    {
+        $this->isScanning = true;
+
+        $scanner = app(AccessibilityScanner::class);
+        $result = $scanner->scan($this->content);
+
+        $this->scanResults = $result->getIssues();
+        $this->isScanning = false;
+
+        doAction('ap.visualEditor.accessibilityScanCompleted', $this->scanResults, $this->content);
+    }
+
+    public function autoFixIssue(int $index): void
+    {
+        $issue = $this->scanResults[$index] ?? null;
+        if (!$issue || !$issue['auto_fixable']) {
+            return;
+        }
+
+        $scanner = app(AccessibilityScanner::class);
+        if ($scanner->autoFix($this->content, $issue)) {
+            // Remove from results and rescan
+            unset($this->scanResults[$index]);
+            $this->scanResults = array_values($this->scanResults);
+
+            $this->dispatch('notify', [
+                'type' => 'success',
+                'message' => __('Issue fixed automatically'),
+            ]);
+        }
+    }
+
+    public function autoFixAll(): void
+    {
+        $fixableIssues = array_filter($this->scanResults, fn($i) => $i['auto_fixable']);
+        $scanner = app(AccessibilityScanner::class);
+        $fixed = 0;
+
+        foreach ($fixableIssues as $issue) {
+            if ($scanner->autoFix($this->content, $issue)) {
+                $fixed++;
+            }
+        }
+
+        $this->scan(); // Rescan
+
+        $this->dispatch('notify', [
+            'type' => 'success',
+            'message' => __(':count issues fixed automatically', ['count' => $fixed]),
+        ]);
+    }
+
+    public function navigateToIssue(string $location): void
+    {
+        $this->dispatch('select-block', ['id' => $location]);
+        $this->dispatch('close-modal');
+    }
+
+    public function exportReport(string $format = 'pdf'): void
+    {
+        // Generate and download report
+        doAction('ap.visualEditor.accessibilityReportExported', $this->scanResults, $format);
+    }
+
+    public function getFilteredResultsProperty(): array
+    {
+        if ($this->filterSeverity === 'all') {
+            return $this->scanResults;
+        }
+
+        return array_filter($this->scanResults, fn($i) => $i['severity'] === $this->filterSeverity);
+    }
+
+    public function render()
+    {
+        return view('visual-editor::components.accessibility-scanner-modal');
+    }
+}
+```
+
+### Accessibility Scanner Blade Template
+
+```blade
+{{-- resources/views/components/accessibility-scanner-modal.blade.php --}}
+
+<x-artisanpack-modal wire:model="showScanner" title="{{ __('Accessibility Scanner') }}" size="lg">
+    <div class="space-y-4">
+        {{-- Scan button and filter --}}
+        <div class="flex items-center justify-between">
+            <x-artisanpack-button
+                wire:click="scan"
+                wire:loading.attr="disabled"
+                color="primary"
+            >
+                <span wire:loading.remove wire:target="scan">{{ __('Scan Content') }}</span>
+                <span wire:loading wire:target="scan">{{ __('Scanning...') }}</span>
+            </x-artisanpack-button>
+
+            <x-artisanpack-select
+                wire:model.live="filterSeverity"
+                :options="[
+                    'all' => __('All Issues'),
+                    'error' => __('Errors Only'),
+                    'warning' => __('Warnings Only'),
+                ]"
+            />
+        </div>
+
+        {{-- Results summary --}}
+        @if(count($scanResults) > 0)
+            <div class="flex gap-4">
+                <x-artisanpack-badge color="error">
+                    {{ count(array_filter($scanResults, fn($i) => $i['severity'] === 'error')) }} {{ __('Errors') }}
+                </x-artisanpack-badge>
+                <x-artisanpack-badge color="warning">
+                    {{ count(array_filter($scanResults, fn($i) => $i['severity'] === 'warning')) }} {{ __('Warnings') }}
+                </x-artisanpack-badge>
+
+                @if(count(array_filter($scanResults, fn($i) => $i['auto_fixable'])) > 0)
+                    <x-artisanpack-button wire:click="autoFixAll" size="sm" color="success">
+                        {{ __('Auto-fix All (:count)', ['count' => count(array_filter($scanResults, fn($i) => $i['auto_fixable']))]) }}
+                    </x-artisanpack-button>
+                @endif
+            </div>
+        @endif
+
+        {{-- Issues list --}}
+        <div class="space-y-2 max-h-96 overflow-y-auto">
+            @forelse($this->filteredResults as $index => $issue)
+                <x-artisanpack-card class="p-3">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <x-artisanpack-badge
+                                    :color="$issue['severity'] === 'error' ? 'error' : 'warning'"
+                                >
+                                    {{ strtoupper($issue['severity']) }}
+                                </x-artisanpack-badge>
+                                @if(isset($issue['wcag']))
+                                    <span class="text-xs text-gray-500">WCAG {{ $issue['wcag'] }}</span>
+                                @endif
+                            </div>
+                            <p class="mt-1">{{ $issue['message'] }}</p>
+                        </div>
+                        <div class="flex gap-2">
+                            @if($issue['auto_fixable'])
+                                <x-artisanpack-button
+                                    wire:click="autoFixIssue({{ $index }})"
+                                    size="xs"
+                                    color="success"
+                                >
+                                    {{ __('Fix') }}
+                                </x-artisanpack-button>
+                            @endif
+                            @if(isset($issue['location']))
+                                <x-artisanpack-button
+                                    wire:click="navigateToIssue('{{ $issue['location'] }}')"
+                                    size="xs"
+                                >
+                                    {{ __('Go to') }}
+                                </x-artisanpack-button>
+                            @endif
+                        </div>
+                    </div>
+                </x-artisanpack-card>
+            @empty
+                @if(count($scanResults) === 0 && !$isScanning)
+                    <x-artisanpack-alert type="info">
+                        {{ __('Click "Scan Content" to check for accessibility issues.') }}
+                    </x-artisanpack-alert>
+                @else
+                    <x-artisanpack-alert type="success">
+                        {{ __('No accessibility issues found!') }}
+                    </x-artisanpack-alert>
+                @endif
+            @endforelse
+        </div>
+    </div>
+
+    <x-slot:actions>
+        <x-artisanpack-button wire:click="exportReport('pdf')" color="secondary">
+            {{ __('Export PDF') }}
+        </x-artisanpack-button>
+        <x-artisanpack-button wire:click="$set('showScanner', false)">
+            {{ __('Close') }}
+        </x-artisanpack-button>
+    </x-slot:actions>
+</x-artisanpack-modal>
+```

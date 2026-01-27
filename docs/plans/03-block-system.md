@@ -606,9 +606,72 @@ public function boot()
 ### Via Hook
 
 ```php
-addFilter('visual_editor.blocks.register', function ($blocks) {
+addFilter('ap.visualEditor.blocksRegister', function (array $blocks) {
     $blocks['custom_block'] = new MyCustomBlock();
     return $blocks;
+});
+```
+
+---
+
+## Block Unregistration
+
+Developers can unregister blocks (including core blocks) to customize the editor.
+
+### Via Service Provider
+
+```php
+use ArtisanPackUI\VisualEditor\Facades\Blocks;
+
+public function boot()
+{
+    // Unregister a single block
+    Blocks::unregister('html');
+
+    // Unregister multiple blocks
+    Blocks::unregister(['html', 'code', 'shortcode']);
+
+    // Unregister all blocks in a category
+    Blocks::unregisterCategory('embeds');
+}
+```
+
+### Via Config
+
+```php
+// config/visual-editor.php
+
+'blocks' => [
+    'core' => [
+        'heading' => true,
+        'paragraph' => true,
+        'html' => false, // Disabled
+        'code' => false, // Disabled
+        // ...
+    ],
+
+    // Alternative: explicitly disable blocks
+    'disabled' => [
+        'html',
+        'code',
+        'shortcode',
+    ],
+],
+```
+
+### Via Hook
+
+```php
+// Unregister blocks via filter hook
+addFilter('ap.visualEditor.blocksRegister', function (array $blocks) {
+    unset($blocks['html']);
+    unset($blocks['code']);
+    return $blocks;
+});
+
+// Or use a dedicated action
+addAction('ap.visualEditor.blocksInit', function () {
+    Blocks::unregister(['html', 'code']);
 });
 ```
 

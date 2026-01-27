@@ -101,37 +101,57 @@ return [
     |--------------------------------------------------------------------------
     | Sections
     |--------------------------------------------------------------------------
+    |
+    | Sections are organized into granular, purpose-specific categories.
+    | All default sections use the "default_" prefix to distinguish them
+    | from developer or user-created sections.
+    |
     */
 
     'sections' => [
-        // Core sections
+        // Core sections (all use "default_" prefix)
         'core' => [
-            'hero' => true,
-            'hero_image' => true,
-            'features' => true,
-            'services' => true,
-            'testimonials' => true,
-            'team' => true,
-            'gallery' => true,
-            'cta' => true,
-            'contact' => true,
-            'faq' => true,
-            'pricing' => true,
-            'stats' => true,
-            'logo_cloud' => true,
-            'blog_posts' => true,
-            'text' => true,
-            'text_image' => true,
+            'default_hero' => true,
+            'default_hero_image' => true,
+            'default_features' => true,
+            'default_services' => true,
+            'default_testimonials' => true,
+            'default_team' => true,
+            'default_gallery' => true,
+            'default_cta' => true,
+            'default_contact' => true,
+            'default_faq' => true,
+            'default_pricing' => true,
+            'default_stats' => true,
+            'default_logo_cloud' => true,
+            'default_blog_posts' => true,
+            'default_text' => true,
+            'default_text_image' => true,
         ],
 
-        // Section categories
+        // Explicitly disabled sections (alternative to setting false above)
+        'disabled' => [
+            // 'default_pricing',
+            // 'default_stats',
+        ],
+
+        // Section categories (granular, purpose-specific)
         'categories' => [
-            'headers' => ['icon' => 'rectangle-group', 'label' => 'Headers'],
-            'content' => ['icon' => 'document-text', 'label' => 'Content'],
-            'social_proof' => ['icon' => 'star', 'label' => 'Social Proof'],
-            'conversion' => ['icon' => 'megaphone', 'label' => 'Conversion'],
-            'media' => ['icon' => 'photo', 'label' => 'Media'],
-            'utility' => ['icon' => 'wrench', 'label' => 'Utility'],
+            'hero' => ['icon' => 'rectangle-group', 'label' => 'Hero'],
+            'features' => ['icon' => 'squares-2x2', 'label' => 'Features'],
+            'services' => ['icon' => 'briefcase', 'label' => 'Services'],
+            'testimonials' => ['icon' => 'chat-bubble-left-right', 'label' => 'Testimonials'],
+            'team' => ['icon' => 'user-group', 'label' => 'Team'],
+            'gallery' => ['icon' => 'photo', 'label' => 'Gallery'],
+            'cta' => ['icon' => 'megaphone', 'label' => 'Call to Action'],
+            'contact' => ['icon' => 'envelope', 'label' => 'Contact'],
+            'faq' => ['icon' => 'question-mark-circle', 'label' => 'FAQ'],
+            'pricing' => ['icon' => 'currency-dollar', 'label' => 'Pricing'],
+            'stats' => ['icon' => 'chart-bar', 'label' => 'Statistics'],
+            'logos' => ['icon' => 'building-office', 'label' => 'Logo Cloud'],
+            'blog' => ['icon' => 'newspaper', 'label' => 'Blog'],
+            'text' => ['icon' => 'document-text', 'label' => 'Text'],
+            'custom' => ['icon' => 'cube', 'label' => 'Custom'],
         ],
 
         // Allow users to save custom sections
@@ -534,6 +554,10 @@ return [
     |--------------------------------------------------------------------------
     | Accessibility
     |--------------------------------------------------------------------------
+    |
+    | The artisanpack-ui/accessibility package is a required dependency.
+    | These settings control how accessibility features are used.
+    |
     */
 
     'accessibility' => [
@@ -544,8 +568,28 @@ return [
         // Check heading hierarchy
         'check_heading_hierarchy' => true,
 
-        // Check color contrast
+        // Color contrast checking (uses artisanpack-ui/accessibility)
         'check_contrast' => true,
+        'auto_suggest_accessible_colors' => true, // Suggest accessible text colors when bg changes
+        'contrast_ratio_threshold' => 4.5, // WCAG AA standard
+
+        // Accessibility scanner
+        'scanner' => [
+            'enabled' => true,
+            'show_in_toolbar' => true, // Show scan button in toolbar
+            'checks' => [
+                'alt_text' => true,
+                'heading_hierarchy' => true,
+                'color_contrast' => true,
+                'link_text' => true,
+                'empty_buttons' => true,
+                'form_labels' => true,
+            ],
+            'allow_export' => true, // Allow exporting scan results
+        ],
+
+        // Real-time contrast feedback in color pickers
+        'realtime_contrast_check' => true,
     ],
 
     /*

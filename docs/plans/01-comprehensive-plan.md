@@ -87,12 +87,17 @@ visual-editor
 ├── artisanpack-ui/core (required)
 ├── artisanpack-ui/cms-framework (required - content types, auth)
 ├── artisanpack-ui/media-library (required - media selection)
-├── artisanpack-ui/livewire-ui-components (required - UI components)
+├── artisanpack-ui/livewire-ui-components (required - UI components, use FIRST before custom)
 ├── artisanpack-ui/livewire-drag-and-drop (required - reordering)
-├── artisanpack-ui/hooks (required - extensibility)
-├── artisanpack-ui/seo (optional - SEO panel integration)
-└── artisanpack-ui/accessibility (optional - contrast checking)
+├── artisanpack-ui/hooks (required - extensibility, hooks use "ap.visualEditor." prefix)
+├── artisanpack-ui/accessibility (required - contrast checking, WCAG compliance)
+└── artisanpack-ui/seo (optional - SEO panel integration)
 ```
+
+**Important Guidelines:**
+- **livewire-ui-components**: Always use existing components from this package first. Only create custom components when no suitable component exists.
+- **hooks**: All hook names use the `ap.visualEditor.` prefix with camelCase (e.g., `ap.visualEditor.contentSaving`, `ap.visualEditor.blocksRegister`).
+- **accessibility**: This package is required (not optional) for contrast checking when users select colors.
 
 ### 3.2 High-Level Component Architecture
 
@@ -287,34 +292,75 @@ Developers can add blocks via:
 
 See `04-section-system.md` for detailed section specifications.
 
-### 6.1 Core Sections
+### 6.1 Section Categories
 
-| Section | Description | Default Blocks |
-|---------|-------------|----------------|
-| `hero` | Large hero with headline | heading, paragraph, button_group |
-| `hero_image` | Hero with side image | heading, paragraph, button_group, image |
-| `features` | Feature grid (3-4 items) | heading, feature_item ×3 |
-| `services` | Service cards | heading, service_card ×3 |
-| `testimonials` | Testimonial slider | heading, testimonial ×3 |
-| `team` | Team member grid | heading, team_member ×3 |
-| `gallery` | Image gallery | heading, gallery |
-| `cta` | Call to action banner | heading, paragraph, button_group |
-| `contact` | Contact section | heading, paragraph, form, contact_info |
-| `faq` | FAQ accordion | heading, accordion |
-| `pricing` | Pricing table | heading, pricing_card ×3 |
-| `stats` | Statistics display | stat_item ×4 |
-| `logo_cloud` | Partner logos | heading, logo_images |
-| `blog_posts` | Recent posts | heading, latest_posts |
-| `text` | Simple text content | heading, paragraph |
-| `text_image` | Text with image | heading, paragraph, image |
+Sections are organized into granular, purpose-specific categories:
 
-### 6.2 User-Created Sections
+| Category | Description |
+|----------|-------------|
+| `hero` | Hero/banner sections |
+| `features` | Feature highlight sections |
+| `services` | Service showcase sections |
+| `testimonials` | Customer testimonial sections |
+| `team` | Team member sections |
+| `gallery` | Image gallery sections |
+| `cta` | Call-to-action sections |
+| `contact` | Contact form sections |
+| `faq` | FAQ sections |
+| `pricing` | Pricing table sections |
+| `stats` | Statistics sections |
+| `logos` | Logo cloud/partner sections |
+| `blog` | Blog/post sections |
+| `text` | Text content sections |
+| `custom` | User-created sections |
+
+### 6.2 Core Sections (Default Prefix)
+
+All default sections are prefixed with "Default" to distinguish them from developer or user-created sections:
+
+| Section | Type | Category |
+|---------|------|----------|
+| Default Hero | `default_hero` | hero |
+| Default Hero with Image | `default_hero_image` | hero |
+| Default Features | `default_features` | features |
+| Default Services | `default_services` | services |
+| Default Testimonials | `default_testimonials` | testimonials |
+| Default Team | `default_team` | team |
+| Default Gallery | `default_gallery` | gallery |
+| Default CTA | `default_cta` | cta |
+| Default Contact | `default_contact` | contact |
+| Default FAQ | `default_faq` | faq |
+| Default Pricing | `default_pricing` | pricing |
+| Default Stats | `default_stats` | stats |
+| Default Logo Cloud | `default_logo_cloud` | logos |
+| Default Blog Posts | `default_blog_posts` | blog |
+| Default Text | `default_text` | text |
+| Default Text with Image | `default_text_image` | text |
+
+### 6.3 Section Registration & Unregistration
+
+Developers can register custom sections and unregister default sections:
+
+```php
+use ArtisanPackUI\VisualEditor\Facades\Sections;
+
+// Register a custom section
+Sections::register(new MyCustomHeroSection());
+
+// Unregister a default section
+Sections::unregister('default_hero_image');
+
+// Unregister all sections in a category
+Sections::unregisterCategory('pricing');
+```
+
+### 6.4 User-Created Sections
 
 Users can save any arrangement of blocks as a reusable section:
 
 1. Select blocks to include
 2. Click "Save as Section"
-3. Name and categorize
+3. Name and categorize (in `custom` category by default)
 4. Available in Section Library
 
 ---
@@ -585,6 +631,8 @@ If server has newer version:
 
 ## 16. Accessibility
 
+The `artisanpack-ui/accessibility` package is a **required dependency** and plays a central role in the visual editor.
+
 ### 16.1 Editor Accessibility
 
 - Full keyboard navigation
@@ -597,8 +645,124 @@ If server has newer version:
 
 - Alt text enforcement (warning)
 - Heading hierarchy validation
-- Color contrast checking
+- Color contrast checking (using `artisanpack-ui/accessibility`)
 - Link text quality check
+
+### 16.3 Color Contrast Integration
+
+The accessibility package's contrast checking functions are used throughout the editor:
+
+```php
+use ArtisanPackUI\Accessibility\Facades\A11y;
+
+// When user selects background color, automatically check text contrast
+$backgroundColor = '#3b82f6';
+$textColor = '#ffffff';
+
+// Check if contrast meets WCAG 2.0 AA standard (4.5:1 ratio)
+$hasGoodContrast = A11y::a11yCheckContrastColor($backgroundColor, $textColor);
+
+// Suggest accessible text color for a background
+$suggestedTextColor = A11y::a11yGetContrastColor($backgroundColor);
+
+// Generate tinted accessible text color (maintains visual harmony)
+$tintedTextColor = generateAccessibleTextColor($backgroundColor, true);
+```
+
+**Automatic Contrast Checking:**
+- When setting section background colors, automatically suggest accessible text colors
+- When setting button colors, verify text contrast meets WCAG standards
+- Show warnings in the editor when color combinations fail contrast checks
+- Provide one-click fix suggestions using the accessibility package
+
+### 16.4 Accessibility Scanner Modal
+
+A dedicated accessibility scanning modal/panel to audit content for issues:
+
+```php
+class AccessibilityScanner
+{
+    public function scan(Content $content): array
+    {
+        $issues = [];
+
+        // Image alt text audit
+        $issues = array_merge($issues, $this->scanAltText($content));
+
+        // Heading hierarchy check
+        $issues = array_merge($issues, $this->scanHeadingHierarchy($content));
+
+        // Color contrast check (for all color combinations)
+        $issues = array_merge($issues, $this->scanColorContrast($content));
+
+        // Link text quality
+        $issues = array_merge($issues, $this->scanLinkText($content));
+
+        // Empty buttons
+        $issues = array_merge($issues, $this->scanEmptyButtons($content));
+
+        return $issues;
+    }
+
+    protected function scanColorContrast(Content $content): array
+    {
+        $issues = [];
+
+        foreach ($content->getSectionsWithColors() as $section) {
+            $bgColor = $section['styles']['background_color'] ?? null;
+            $textColor = $section['styles']['text_color'] ?? null;
+
+            if ($bgColor && $textColor) {
+                if (!a11yCheckContrastColor($bgColor, $textColor)) {
+                    $issues[] = [
+                        'type' => 'contrast',
+                        'severity' => 'error',
+                        'message' => __('Text color does not have sufficient contrast with background'),
+                        'section_id' => $section['id'],
+                        'suggestion' => a11yGetContrastColor($bgColor),
+                    ];
+                }
+            }
+        }
+
+        return $issues;
+    }
+}
+```
+
+**Scanner Features:**
+- Scan button in toolbar opens accessibility audit modal
+- Lists all accessibility issues with severity levels (error, warning, info)
+- One-click navigation to problematic blocks/sections
+- One-click fix for issues that can be auto-resolved (e.g., contrast)
+- Export report as PDF or CSV
+- Hook for adding custom accessibility checks: `ap.visualEditor.accessibilityCheck`
+
+### 16.5 Accessibility Settings Panel
+
+Dedicated accessibility panel in right sidebar when editing colors:
+
+```blade
+{{-- Shows when user is editing colors --}}
+<x-artisanpack-card>
+    <x-slot:header>
+        <h3>{{ __('Accessibility') }}</h3>
+    </x-slot:header>
+
+    @if($contrastRatio >= 4.5)
+        <x-artisanpack-alert type="success">
+            {{ __('WCAG AA: Contrast ratio :ratio:1', ['ratio' => number_format($contrastRatio, 1)]) }}
+        </x-artisanpack-alert>
+    @else
+        <x-artisanpack-alert type="error">
+            {{ __('Insufficient contrast: :ratio:1 (minimum 4.5:1 required)', ['ratio' => number_format($contrastRatio, 1)]) }}
+        </x-artisanpack-alert>
+        <x-artisanpack-button wire:click="applySuggestedColor" size="sm">
+            {{ __('Apply suggested color') }}
+        </x-artisanpack-button>
+    @endif
+</x-artisanpack-card>
+```
 
 ---
 
@@ -623,7 +787,45 @@ Same editor adapts to mobile:
 
 ## 18. Developer Extensibility
 
-### 18.1 Adding Custom Blocks
+### 18.1 UI Component Usage
+
+**Critical Guideline:** Always use components from `artisanpack-ui/livewire-ui-components` first. Only create custom components when no suitable component exists.
+
+```blade
+{{-- CORRECT: Use existing ArtisanPack UI components --}}
+<x-artisanpack-button wire:click="save" color="primary">
+    {{ __('Save') }}
+</x-artisanpack-button>
+
+<x-artisanpack-input wire:model="title" label="{{ __('Title') }}" />
+
+<x-artisanpack-card>
+    <x-slot:header>{{ __('Settings') }}</x-slot:header>
+    {{-- content --}}
+</x-artisanpack-card>
+
+<x-artisanpack-modal wire:model="showModal" title="{{ __('Confirm') }}">
+    {{-- content --}}
+</x-artisanpack-modal>
+
+<x-artisanpack-alert type="warning">
+    {{ __('Contrast ratio is below WCAG AA standard') }}
+</x-artisanpack-alert>
+
+{{-- INCORRECT: Don't create custom when component exists --}}
+<button class="btn btn-primary">Save</button>
+<div class="modal">...</div>
+```
+
+Available component categories from `livewire-ui-components`:
+- **Form**: input, button, checkbox, select, datepicker, toggle, etc.
+- **Layout**: card, modal, tabs, accordion, drawer, dropdown
+- **Navigation**: menu, breadcrumbs, pagination, steps
+- **Data Display**: table, avatar, badge, progress, stat
+- **Feedback**: alert, toast, loading, skeleton
+- **Utility**: icon, tooltip, clipboard
+
+### 18.2 Adding Custom Blocks
 
 ```php
 // Via service provider
@@ -639,31 +841,76 @@ Blocks::register(new MyCustomBlock());
 ],
 ```
 
-### 18.2 Adding Custom Sections
+### 18.3 Adding Custom Sections
 
 ```php
 Sections::register(new MyCustomSection());
+
+// Unregister a default section
+Sections::unregister('default_hero_image');
 ```
 
-### 18.3 Hooks & Filters
+### 18.4 Hooks & Filters
+
+All hooks use the `ap.visualEditor.` prefix with camelCase naming (via `artisanpack-ui/hooks`):
 
 ```php
 // Add toolbar button
-addFilter('visual_editor.toolbar.items', function ($items) {
+addFilter('ap.visualEditor.toolbarItems', function (array $items) {
     $items[] = ['type' => 'button', 'label' => 'My Action'];
     return $items;
 });
 
 // Modify block output
-addFilter('visual_editor.block.render', function ($html, $block) {
+addFilter('ap.visualEditor.blockRender', function (string $html, array $block) {
     return $html;
 });
 
 // Before content save
-addAction('visual_editor.content.saving', function ($content) {
+addAction('ap.visualEditor.contentSaving', function ($content) {
     // Validate, transform, etc.
 });
+
+// Block/section registration
+addFilter('ap.visualEditor.blocksRegister', function (array $blocks) {
+    $blocks['my_block'] = new MyBlock();
+    return $blocks;
+});
+
+addFilter('ap.visualEditor.sectionsRegister', function (array $sections) {
+    $sections['my_section'] = new MySection();
+    return $sections;
+});
+
+// After content published
+addAction('ap.visualEditor.contentPublished', function ($content) {
+    // Notify, cache invalidation, etc.
+});
+
+// Style/color changes
+addFilter('ap.visualEditor.colorSelected', function (string $color, string $context) {
+    // Validate contrast, etc.
+    return $color;
+});
 ```
+
+**Available Hooks:**
+
+| Hook | Type | Description |
+|------|------|-------------|
+| `ap.visualEditor.blocksRegister` | Filter | Register/unregister blocks |
+| `ap.visualEditor.blocksInit` | Action | After blocks initialized |
+| `ap.visualEditor.sectionsRegister` | Filter | Register/unregister sections |
+| `ap.visualEditor.sectionsInit` | Action | After sections initialized |
+| `ap.visualEditor.contentSaving` | Action | Before content is saved |
+| `ap.visualEditor.contentSaved` | Action | After content is saved |
+| `ap.visualEditor.contentPublished` | Action | After content is published |
+| `ap.visualEditor.blockRender` | Filter | Modify block HTML output |
+| `ap.visualEditor.sectionRender` | Filter | Modify section HTML output |
+| `ap.visualEditor.toolbarItems` | Filter | Modify toolbar items |
+| `ap.visualEditor.sidebarPanels` | Filter | Modify sidebar panels |
+| `ap.visualEditor.colorSelected` | Filter | When a color is selected (for contrast checking) |
+| `ap.visualEditor.accessibilityCheck` | Filter | Add custom accessibility checks |
 
 ---
 

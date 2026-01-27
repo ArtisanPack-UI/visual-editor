@@ -414,37 +414,50 @@ class CtaSection extends BaseSection
 
 ## Section Categories
 
-| Category | Description | Sections |
-|----------|-------------|----------|
-| `headers` | Page header sections | hero, hero_image |
-| `content` | General content sections | features, services, text, text_image |
-| `social_proof` | Trust-building sections | testimonials, logo_cloud, stats |
-| `conversion` | Action-oriented sections | cta, pricing, contact |
-| `media` | Media-focused sections | gallery, team |
-| `utility` | Support sections | faq, blog_posts |
+Sections are organized into granular, purpose-specific categories. This makes it easier for users to find what they need and clearly separates default sections from custom ones.
+
+| Category | Description | Default Sections |
+|----------|-------------|------------------|
+| `hero` | Hero/banner sections | Default Hero, Default Hero with Image |
+| `features` | Feature highlight sections | Default Features |
+| `services` | Service showcase sections | Default Services |
+| `testimonials` | Customer testimonial sections | Default Testimonials |
+| `team` | Team member sections | Default Team |
+| `gallery` | Image gallery sections | Default Gallery |
+| `cta` | Call-to-action sections | Default CTA |
+| `contact` | Contact form sections | Default Contact |
+| `faq` | FAQ sections | Default FAQ |
+| `pricing` | Pricing table sections | Default Pricing |
+| `stats` | Statistics sections | Default Stats |
+| `logos` | Logo cloud/partner sections | Default Logo Cloud |
+| `blog` | Blog/post sections | Default Blog Posts |
+| `text` | Text content sections | Default Text, Default Text with Image |
+| `custom` | User-created sections | (User-defined) |
+
+**Naming Convention**: All default sections provided by the package are prefixed with "Default" (e.g., "Default Hero", "Default Features"). This clearly distinguishes package-provided sections from developer-added or user-created sections.
 
 ---
 
 ## Complete Section List
 
-| Section | Type | Category |
-|---------|------|----------|
-| Hero | `hero` | headers |
-| Hero with Image | `hero_image` | headers |
-| Features | `features` | content |
-| Services | `services` | content |
-| Text | `text` | content |
-| Text with Image | `text_image` | content |
-| Testimonials | `testimonials` | social_proof |
-| Logo Cloud | `logo_cloud` | social_proof |
-| Stats | `stats` | social_proof |
-| CTA | `cta` | conversion |
-| Pricing | `pricing` | conversion |
-| Contact | `contact` | conversion |
-| Gallery | `gallery` | media |
-| Team | `team` | media |
-| FAQ | `faq` | utility |
-| Blog Posts | `blog_posts` | utility |
+| Section | Type | Category | Source |
+|---------|------|----------|--------|
+| Default Hero | `default_hero` | hero | Core |
+| Default Hero with Image | `default_hero_image` | hero | Core |
+| Default Features | `default_features` | features | Core |
+| Default Services | `default_services` | services | Core |
+| Default Text | `default_text` | text | Core |
+| Default Text with Image | `default_text_image` | text | Core |
+| Default Testimonials | `default_testimonials` | testimonials | Core |
+| Default Logo Cloud | `default_logo_cloud` | logos | Core |
+| Default Stats | `default_stats` | stats | Core |
+| Default CTA | `default_cta` | cta | Core |
+| Default Pricing | `default_pricing` | pricing | Core |
+| Default Contact | `default_contact` | contact | Core |
+| Default Gallery | `default_gallery` | gallery | Core |
+| Default Team | `default_team` | team | Core |
+| Default FAQ | `default_faq` | faq | Core |
+| Default Blog Posts | `default_blog_posts` | blog | Core |
 
 ---
 
@@ -491,6 +504,7 @@ use ArtisanPackUI\VisualEditor\Facades\Sections;
 
 public function boot()
 {
+    // Register a custom section
     Sections::register(new MyCustomSection());
 }
 ```
@@ -512,6 +526,88 @@ public function boot()
     ],
 ],
 ```
+
+### Via Hook
+
+```php
+// Register a section via filter hook
+addFilter('ap.visualEditor.sectionsRegister', function (array $sections) {
+    $sections['my_custom_section'] = new MyCustomSection();
+    return $sections;
+});
+```
+
+---
+
+## Section Unregistration
+
+Developers can unregister sections (including default sections) to customize what's available in the editor.
+
+### Via Service Provider
+
+```php
+use ArtisanPackUI\VisualEditor\Facades\Sections;
+
+public function boot()
+{
+    // Unregister a single section
+    Sections::unregister('default_hero_image');
+
+    // Unregister multiple sections
+    Sections::unregister(['default_pricing', 'default_stats']);
+
+    // Unregister all sections in a category
+    Sections::unregisterCategory('testimonials');
+}
+```
+
+### Via Config
+
+```php
+// config/visual-editor.php
+
+'sections' => [
+    'core' => [
+        'default_hero' => true,
+        'default_hero_image' => false, // Disabled
+        'default_features' => true,
+        'default_pricing' => false, // Disabled
+        // ...
+    ],
+
+    // Alternative: explicitly disable sections
+    'disabled' => [
+        'default_hero_image',
+        'default_pricing',
+        'default_stats',
+    ],
+],
+```
+
+### Via Hook
+
+```php
+// Unregister sections via filter hook
+addFilter('ap.visualEditor.sectionsRegister', function (array $sections) {
+    // Remove default sections you don't want
+    unset($sections['default_hero_image']);
+    unset($sections['default_pricing']);
+
+    return $sections;
+});
+
+// Or use a dedicated action
+addAction('ap.visualEditor.sectionsInit', function () {
+    Sections::unregister('default_hero_image');
+});
+```
+
+### Use Cases for Unregistration
+
+1. **Simplify the editor**: Remove sections that aren't needed for a specific site type
+2. **Replace defaults**: Unregister a default section and register a custom one with the same purpose
+3. **Client restrictions**: Limit available sections to prevent design inconsistencies
+4. **Theme-specific**: A theme might provide its own hero sections and disable the defaults
 
 ---
 
