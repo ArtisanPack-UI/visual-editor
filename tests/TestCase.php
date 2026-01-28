@@ -38,8 +38,15 @@ abstract class TestCase extends BaseTestCase
 	{
 		parent::setUp();
 
-		// Register a stub for the artisanpack-icon component from livewire-ui-components.
+		// Register stubs for artisanpack-ui/livewire-ui-components used in views.
 		Blade::component( 'artisanpack-icon', Stubs\IconComponentStub::class );
+		Blade::component( 'artisanpack-button', Stubs\ButtonComponentStub::class );
+		Blade::component( 'artisanpack-badge', Stubs\BadgeComponentStub::class );
+		Blade::component( 'artisanpack-heading', Stubs\HeadingComponentStub::class );
+		Blade::component( 'artisanpack-input', Stubs\InputComponentStub::class );
+		Blade::component( 'artisanpack-separator', Stubs\SeparatorComponentStub::class );
+		Blade::component( 'artisanpack-drawer', Stubs\DrawerComponentStub::class );
+		Blade::component( 'artisanpack-alert', Stubs\AlertComponentStub::class );
 	}
 
 	/**
@@ -95,6 +102,7 @@ abstract class TestCase extends BaseTestCase
 			'foreign_key_constraints' => true,
 		] );
 		$app['config']->set( 'auth.providers.users.model', Models\User::class );
+		$app['config']->set( 'artisanpack.visual-editor.api.auth_guard', 'web' );
 	}
 
 	/**

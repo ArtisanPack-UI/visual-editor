@@ -6,7 +6,8 @@ declare( strict_types=1 );
  * Visual Editor - Toolbar
  *
  * Top toolbar component providing primary editor actions such as
- * save, publish, undo/redo, and preview.
+ * save, publish, undo/redo, and preview. Button labels adapt to
+ * the current content status.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Livewire
@@ -87,6 +88,18 @@ new class extends Component {
 	}
 
 	/**
+	 * Dispatch an unpublish event.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	public function unpublish(): void
+	{
+		$this->dispatch( 'editor-unpublish' );
+	}
+
+	/**
 	 * Dispatch an undo event.
 	 *
 	 * @since 1.0.0
@@ -126,39 +139,40 @@ new class extends Component {
 <div class="ve-toolbar flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2">
 	{{-- Left: Title --}}
 	<div class="flex items-center gap-3">
-		<h1 class="text-lg font-semibold text-gray-900">
+		<x-artisanpack-heading level="1" size="text-lg" semibold>
 			{{ $contentTitle ?: __( 'Untitled' ) }}
-		</h1>
-		<span class="rounded-full px-2 py-0.5 text-xs font-medium
-			{{ 'published' === $contentStatus ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' }}">
-			{{ ucfirst( $contentStatus ) }}
-		</span>
+		</x-artisanpack-heading>
+		@php
+			$statusColor = match ( $contentStatus ) {
+				'published' => 'success',
+				'scheduled' => 'info',
+				'pending'   => 'warning',
+				default     => 'warning',
+			};
+		@endphp
+		<x-artisanpack-badge :value="ucfirst( $contentStatus )" :color="$statusColor" />
 	</div>
 
 	{{-- Center: Undo / Redo --}}
 	<div class="flex items-center gap-1">
-		<button
+		<x-artisanpack-button
 			wire:click="undo"
-			class="rounded p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
-			@disabled(!$canUndo)
-			title="{{ __( 'Undo' ) }}"
-		>
-			<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h10a5 5 0 0 1 0 10H9" />
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 6L3 10l4 4" />
-			</svg>
-		</button>
-		<button
+			icon="o-arrow-uturn-left"
+			variant="ghost"
+			size="sm"
+			:tooltip="__( 'Undo' )"
+			:disabled="!$canUndo"
+			class="disabled:opacity-50"
+		/>
+		<x-artisanpack-button
 			wire:click="redo"
-			class="rounded p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-700 disabled:opacity-50"
-			@disabled(!$canRedo)
-			title="{{ __( 'Redo' ) }}"
-		>
-			<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 10H11a5 5 0 0 0 0 10h4" />
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 6l4 4-4 4" />
-			</svg>
-		</button>
+			icon="o-arrow-uturn-right"
+			variant="ghost"
+			size="sm"
+			:tooltip="__( 'Redo' )"
+			:disabled="!$canRedo"
+			class="disabled:opacity-50"
+		/>
 	</div>
 
 	{{-- Right: Actions --}}
@@ -168,30 +182,50 @@ new class extends Component {
 				{{ __( 'Saving...' ) }}
 			@elseif ( 'saved' === $saveStatus )
 				{{ __( 'Saved' ) }}
+			@elseif ( 'error' === $saveStatus )
+				<span class="text-red-500">{{ __( 'Save failed' ) }}</span>
 			@else
 				{{ __( 'Unsaved changes' ) }}
 			@endif
 		</span>
 
-		<button
+		<x-artisanpack-button
 			wire:click="preview"
-			class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-		>
-			{{ __( 'Preview' ) }}
-		</button>
+			:label="__( 'Preview' )"
+			icon="o-eye"
+			variant="outline"
+			size="sm"
+		/>
 
-		<button
+		<x-artisanpack-button
 			wire:click="save"
-			class="rounded-md border border-gray-300 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50"
-		>
-			{{ __( 'Save Draft' ) }}
-		</button>
+			:label="__( 'Save Draft' )"
+			variant="outline"
+			size="sm"
+			spinner="save"
+		/>
 
-		<button
-			wire:click="publish"
-			class="rounded-md bg-blue-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-blue-700"
-		>
-			{{ __( 'Publish' ) }}
-		</button>
+		@if ( 'published' === $contentStatus )
+			<x-artisanpack-button
+				wire:click="unpublish"
+				:label="__( 'Switch to Draft' )"
+				variant="outline"
+				size="sm"
+			/>
+
+			<x-artisanpack-button
+				wire:click="publish"
+				:label="__( 'Update' )"
+				color="primary"
+				size="sm"
+			/>
+		@else
+			<x-artisanpack-button
+				wire:click="publish"
+				:label="__( 'Publish' )"
+				color="primary"
+				size="sm"
+			/>
+		@endif
 	</div>
 </div>

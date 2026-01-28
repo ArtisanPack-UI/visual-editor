@@ -56,6 +56,8 @@ test( 'editor can set sidebar tab', function (): void {
 } );
 
 test( 'editor can save content', function (): void {
+	$this->actingAs( $this->user );
+
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
 		->call( 'save' )
 		->assertSet( 'saveStatus', 'saved' )
@@ -79,4 +81,119 @@ test( 'editor marks dirty on sections update', function (): void {
 		->dispatch( 'sections-updated', sections: $newSections )
 		->assertSet( 'isDirty', true )
 		->assertSet( 'saveStatus', 'unsaved' );
+} );
+
+// =========================================
+// Save/Publish Workflow Tests
+// =========================================
+
+test( 'editor save creates a manual revision', function (): void {
+	$this->actingAs( $this->user );
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->call( 'save' );
+
+	$revision = ArtisanPackUI\VisualEditor\Models\ContentRevision::where( 'content_id', $this->content->id )
+		->where( 'type', 'manual' )
+		->first();
+
+	expect( $revision )->not->toBeNull();
+} );
+
+test( 'editor save updates lastSaved', function (): void {
+	$this->actingAs( $this->user );
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->call( 'save' )
+		->assertSet( 'lastSaved', now()->format( 'g:i A' ) );
+} );
+
+test( 'editor publish handler opens pre-publish panel', function (): void {
+	$this->actingAs( $this->user );
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->assertSet( 'showPrePublishPanel', false )
+		->call( 'publish' )
+		->assertSet( 'showPrePublishPanel', true )
+		->assertNotSet( 'prePublishChecks', [] );
+} );
+
+test( 'editor confirmPublish changes content status to published', function (): void {
+	$this->actingAs( $this->user );
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->call( 'confirmPublish' );
+
+	$this->content->refresh();
+
+	expect( $this->content->status )->toBe( 'published' )
+		->and( $this->content->published_at )->not->toBeNull();
+} );
+
+test( 'editor unpublish changes content status to draft', function (): void {
+	$this->content->update( [
+		'status'       => 'published',
+		'published_at' => now(),
+	] );
+
+	$this->actingAs( $this->user );
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->call( 'unpublish' );
+
+	$this->content->refresh();
+
+	expect( $this->content->status )->toBe( 'draft' );
+} );
+
+test( 'editor autosave creates revision when dirty', function (): void {
+	$this->actingAs( $this->user );
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'isDirty', true )
+		->call( 'autosave' );
+
+	$revision = ArtisanPackUI\VisualEditor\Models\ContentRevision::where( 'content_id', $this->content->id )
+		->where( 'type', 'autosave' )
+		->first();
+
+	expect( $revision )->not->toBeNull();
+} );
+
+test( 'editor autosave skips when not dirty', function (): void {
+	$this->actingAs( $this->user );
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->assertSet( 'isDirty', false )
+		->call( 'autosave' );
+
+	$revision = ArtisanPackUI\VisualEditor\Models\ContentRevision::where( 'content_id', $this->content->id )
+		->where( 'type', 'autosave' )
+		->first();
+
+	expect( $revision )->toBeNull();
+} );
+
+test( 'editor closePrePublishPanel resets panel state', function (): void {
+	$this->actingAs( $this->user );
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showPrePublishPanel', true )
+		->set( 'scheduleDate', '2027-01-01' )
+		->set( 'scheduleTime', '10:00' )
+		->call( 'closePrePublishPanel' )
+		->assertSet( 'showPrePublishPanel', false )
+		->assertSet( 'scheduleDate', '' )
+		->assertSet( 'scheduleTime', '' );
+} );
+
+test( 'editor submitForReview changes status to pending', function (): void {
+	$this->actingAs( $this->user );
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->call( 'submitForReview' );
+
+	$this->content->refresh();
+
+	expect( $this->content->status )->toBe( 'pending' );
 } );

@@ -19,6 +19,7 @@ namespace ArtisanPackUI\VisualEditor;
 use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Registries\SectionRegistry;
 use ArtisanPackUI\VisualEditor\Registries\TemplateRegistry;
+use ArtisanPackUI\VisualEditor\Services\ContentService;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesManager;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
@@ -63,6 +64,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->app->singleton( TemplateRegistry::class );
 
 		// Register services as singletons
+		$this->app->singleton( ContentService::class );
 		$this->app->singleton( GlobalStylesManager::class );
 	}
 
@@ -174,10 +176,15 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 */
 	protected function registerRoutes(): void
 	{
-		$routesPath = __DIR__ . '/../routes/web.php';
+		$webRoutesPath = __DIR__ . '/../routes/web.php';
+		$apiRoutesPath = __DIR__ . '/../routes/api.php';
 
-		if ( file_exists( $routesPath ) ) {
-			$this->loadRoutesFrom( $routesPath );
+		if ( file_exists( $webRoutesPath ) ) {
+			$this->loadRoutesFrom( $webRoutesPath );
+		}
+
+		if ( file_exists( $apiRoutesPath ) ) {
+			$this->loadRoutesFrom( $apiRoutesPath );
 		}
 	}
 

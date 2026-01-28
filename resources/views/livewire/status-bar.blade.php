@@ -6,7 +6,7 @@ declare( strict_types=1 );
  * Visual Editor - Status Bar
  *
  * Bottom status bar showing editor state indicators such as
- * save status, word count, and content status.
+ * save status, word count, last saved time, and content status.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Livewire
@@ -64,6 +64,9 @@ new class extends Component {
 			@elseif ( 'saved' === $saveStatus )
 				<span class="h-2 w-2 rounded-full bg-green-400"></span>
 				{{ __( 'Saved' ) }}
+			@elseif ( 'error' === $saveStatus )
+				<span class="h-2 w-2 rounded-full bg-red-400"></span>
+				<span class="text-red-500">{{ __( 'Save failed' ) }}</span>
 			@else
 				<span class="h-2 w-2 rounded-full bg-orange-400"></span>
 				{{ __( 'Unsaved changes' ) }}
@@ -71,7 +74,7 @@ new class extends Component {
 		</span>
 
 		@if ( '' !== $lastSaved )
-			<span class="text-gray-400">|</span>
+			<x-artisanpack-separator vertical class="h-3 text-gray-400" />
 			<span>{{ __( 'Last saved: :time', [ 'time' => $lastSaved ] ) }}</span>
 		@endif
 	</div>
@@ -79,7 +82,7 @@ new class extends Component {
 	{{-- Right: Content Info --}}
 	<div class="flex items-center gap-3 text-xs text-gray-500">
 		<span>{{ trans_choice( ':count word|:count words', $wordCount, [ 'count' => $wordCount ] ) }}</span>
-		<span class="text-gray-400">|</span>
+		<x-artisanpack-separator vertical class="h-3 text-gray-400" />
 		<span>{{ ucfirst( $contentStatus ) }}</span>
 	</div>
 </div>
