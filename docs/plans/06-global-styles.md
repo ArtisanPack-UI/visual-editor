@@ -1,5 +1,11 @@
 # Visual Editor - Global Styles System
 
+> **Phase:** 4 (Global Styles) — Medium Priority
+>
+> Includes: Style editor UI, Tailwind integration, Design token system, Theme inheritance
+
+---
+
 ## Overview
 
 The global styles system provides Tailwind CSS integration with visual customization. Design tokens are managed through the editor and sync with Tailwind's configuration.

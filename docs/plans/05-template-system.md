@@ -1,5 +1,11 @@
 # Visual Editor - Template System
 
+> **Phase:** 3 (Template System) — Medium Priority
+>
+> Includes: Template hierarchy, Template parts editing, Template library, Theme integration
+
+---
+
 ## Overview
 
 The template system provides full site editing capabilities, allowing users to visually edit headers, footers, sidebars, and all template parts with a WordPress-style template hierarchy.

@@ -1,5 +1,11 @@
 # Visual Editor - Permissions & Locking System
 
+> **Phase:** 5 (Advanced Features) — Medium Priority
+>
+> Includes: CMS Framework permissions integration, UI-based content locking, Lock levels
+
+---
+
 ## Overview
 
 The permissions and locking system provides two layers of control:

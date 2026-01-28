@@ -1,5 +1,11 @@
 # Visual Editor - Block System
 
+> **Phases:** 1 (Core) & 2 (Full Library)
+> - **Phase 1**: Block Registry, Block Interface, Basic Text Blocks (heading, paragraph, list, quote, code)
+> - **Phase 2**: Media Blocks, Layout Blocks, Interactive Blocks, Embed Blocks, Dynamic Blocks, Additional Text Blocks
+
+---
+
 ## Block Interface
 
 ```php

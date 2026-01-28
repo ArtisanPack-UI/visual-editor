@@ -1,5 +1,11 @@
 # Visual Editor - Configuration Reference
 
+> **Phase:** 1 (Core Editor) — High Priority (Setup)
+>
+> Package configuration must be created alongside database migrations before feature development.
+
+---
+
 ## Configuration Architecture
 
 The visual editor uses a hybrid configuration approach that integrates with `artisanpack-ui/cms-framework`:

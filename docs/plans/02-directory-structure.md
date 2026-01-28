@@ -1,5 +1,9 @@
 # Visual Editor - Directory Structure
 
+> **Phases:** All (1-6) — This structure supports all phases of implementation
+
+---
+
 ## Package Structure
 
 ```

@@ -7,6 +7,21 @@
 
 ---
 
+## Phase Reference
+
+This document covers all phases of implementation. Each section below indicates which phase it belongs to:
+
+| Phase | Focus | Priority | Sections |
+|-------|-------|----------|----------|
+| **Phase 1** | Core Editor | High | §3-§6 (Architecture, Editor Interface, Block System basics, Section System), §19-§20 (Database, Config) |
+| **Phase 2** | Full Block Library | Medium | §5 (Complete all blocks) |
+| **Phase 3** | Template System | Medium | §7 (Templates) |
+| **Phase 4** | Global Styles | Medium | §8 (Global Styles) |
+| **Phase 5** | Advanced Features | Medium/Low | §9-§14 (Permissions, Versioning, AI, Performance, A/B Testing, SEO) |
+| **Phase 6** | Polish | Medium/Low | §15-§17 (Offline, Accessibility, Mobile) |
+
+---
+
 ## Table of Contents
 
 1. [Executive Summary](#1-executive-summary)
@@ -1041,53 +1056,66 @@ See `10-configuration.md` for complete config options.
 
 ## 21. Implementation Phases
 
-### Phase 1: Core Editor (Weeks 1-8)
+### Phase 1: Core Editor (High Priority)
 
-- [ ] Editor shell and layout
-- [ ] Canvas with iframe preview
-- [ ] Basic block system (10 core blocks)
-- [ ] Section system
-- [ ] Save/publish flow
-- [ ] Undo/redo
+**Infrastructure (must be first):**
+- [ ] #021 - Database Migrations
+- [ ] #022 - Package Configuration
 
-### Phase 2: Full Block Library (Weeks 9-12)
+**Core Features:**
+- [ ] #001 - Core Editor Shell
+- [ ] #002 - Canvas Component
+- [ ] #003 - Block Registry System
+- [ ] #004 - Basic Text Blocks (heading, paragraph, list, quote, code)
+- [ ] #005 - Section System
+- [ ] #006 - Save/Publish Workflow
+- [ ] #007 - Undo/Redo System
 
-- [ ] Complete all 26 blocks
-- [ ] Block settings panels
-- [ ] Inline editing
-- [ ] Drag and drop
+### Phase 2: Full Block Library (Medium Priority)
 
-### Phase 3: Template System (Weeks 13-16)
+- [ ] #008 - Media Blocks (image, gallery, video, audio, file)
+- [ ] #009 - Layout Blocks (columns, group, spacer, divider)
+- [ ] #010 - Interactive Blocks (button, button_group, tabs, accordion, form)
+- [ ] #011 - Embed Blocks (map, social, html, shortcode)
+- [ ] #012 - Dynamic Blocks (latest_posts, table_of_contents, global_content)
+- [ ] #025 - Additional Text Blocks (table, preformatted, verse)
 
-- [ ] Template hierarchy
-- [ ] Template parts editing
-- [ ] Template library
-- [ ] Theme integration
+### Phase 3: Template System (Medium Priority)
 
-### Phase 4: Global Styles (Weeks 17-20)
+- [ ] #013 - Template System (hierarchy, resolution, database schema)
+- [ ] #014 - Template Parts (header, footer, sidebar editing)
 
-- [ ] Style editor UI
-- [ ] Tailwind integration
-- [ ] Design token system
-- [ ] Theme inheritance
+### Phase 4: Global Styles (Medium Priority)
 
-### Phase 5: Advanced Features (Weeks 21-26)
+- [ ] #015 - Global Styles System (design tokens, Tailwind integration, style editor UI)
 
-- [ ] Permissions & locking
-- [ ] Versioning system
-- [ ] AI assistant
-- [ ] Performance budgets
-- [ ] A/B testing
-- [ ] SEO integration
+### Phase 5: Advanced Features (Medium/Low Priority)
 
-### Phase 6: Polish (Weeks 27-30)
+- [ ] #016 - Permissions & Locking (CMS Framework integration, lock levels)
+- [ ] #017 - Revision History (autosave, named versions, restore)
+- [ ] #018 - AI Assistant (provider registry, content suggestions)
+- [ ] #019 - A/B Testing (experiments, variants, tracking)
+- [ ] #023 - SEO Integration (meta fields, previews, auto-generation)
 
-- [ ] Accessibility audit
-- [ ] Mobile optimization
-- [ ] Offline support
-- [ ] Documentation
-- [ ] Testing suite
+### Phase 6: Polish (Medium/Low Priority)
+
+- [ ] #020 - Accessibility Scanner (audit modal, WCAG checks)
+- [ ] #024 - Presence Awareness (active users, heartbeat, notifications)
 
 ---
 
-*See additional documents for detailed specifications of each system.*
+### Recommended Implementation Order
+
+```
+#021 (Migrations) ──┬── #022 (Config) ──┬── #003 (Block Registry)
+                    │                   │
+                    │                   ├── #005 (Sections)
+                    │                   │
+                    │                   └── #001 (Editor Shell) ── #002 (Canvas)
+                    │
+                    └── All other features depend on migrations
+```
+
+---
+
+*See `/issues/README.md` for GitLab issue links and detailed specifications.*

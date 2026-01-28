@@ -1,5 +1,20 @@
 # Visual Editor - Additional Features
 
+> **Phases:** 5 & 6 (Advanced Features & Polish)
+>
+> | Feature | Phase | Priority |
+> |---------|-------|----------|
+> | Versioning & Revisions | 5 | Medium |
+> | AI Assistant | 5 | Low |
+> | Performance Budgets | 5 | Medium |
+> | A/B Testing | 5 | Low |
+> | SEO Integration | 5 | Medium |
+> | Offline Support | 6 | Low |
+> | Presence Awareness | 6 | Low |
+> | Accessibility Scanner | 6 | Medium |
+
+---
+
 ## Versioning & Revisions
 
 ### Auto-Save System

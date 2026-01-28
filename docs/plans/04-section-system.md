@@ -1,5 +1,11 @@
 # Visual Editor - Section System
 
+> **Phase:** 1 (Core Editor) — High Priority
+>
+> The section system is part of the core editor implementation.
+
+---
+
 ## Overview
 
 Sections are pre-designed layouts containing blocks. They provide a "guardrails" approach where users work with professionally designed patterns rather than pixel-level control.

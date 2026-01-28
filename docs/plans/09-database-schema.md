@@ -1,5 +1,11 @@
 # Visual Editor - Database Schema
 
+> **Phase:** 1 (Core Editor) — High Priority (Setup)
+>
+> Database migrations must be created first before any other implementation work.
+
+---
+
 ## Tables Overview
 
 | Table | Purpose |
