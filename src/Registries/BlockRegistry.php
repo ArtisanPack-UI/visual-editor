@@ -16,6 +16,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Registries;
 
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
 
 /**
  * Block Registry class.
@@ -69,6 +70,10 @@ class BlockRegistry
 				'name' => __( 'Layout' ),
 				'icon' => 'fas.table-cells',
 			],
+			'embed'       => [
+				'name' => __( 'Embed' ),
+				'icon' => 'fas.code',
+			],
 			'dynamic'     => [
 				'name' => __( 'Dynamic' ),
 				'icon' => 'fas.arrows-rotate',
@@ -79,22 +84,35 @@ class BlockRegistry
 	/**
 	 * Register a block type.
 	 *
+	 * Validates the block type and configuration before registering.
+	 * The type must be a non-empty string containing only alphanumeric
+	 * characters, hyphens, and underscores.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param string $type   The block type identifier.
 	 * @param array  $config The block configuration.
 	 *
+	 * @throws InvalidArgumentException If the type or configuration is invalid.
+	 *
 	 * @return self
 	 */
 	public function register( string $type, array $config ): self
 	{
+		$this->validateRegistration( $type, $config );
+
 		$this->blocks[ $type ] = array_merge( [
-			'name'            => $type,
-			'icon'            => 'fas.cube',
-			'category'        => 'text',
-			'content_schema'  => [],
-			'settings_schema' => [],
-			'supports'        => config( 'artisanpack.visual-editor.blocks.default_supports', [] ),
+			'name'             => $type,
+			'description'      => '',
+			'icon'             => 'fas.cube',
+			'category'         => 'text',
+			'keywords'         => [],
+			'content_schema'   => [],
+			'settings_schema'  => [],
+			'component'        => null,
+			'editor_component' => null,
+			'supports'         => config( 'artisanpack.visual-editor.blocks.default_supports', [] ),
+			'example'          => [],
 		], $config );
 
 		return $this;
@@ -392,5 +410,40 @@ class BlockRegistry
 				'format' => [ 'type' => 'select', 'options' => [ 'text', 'link', 'formatted' ] ],
 			],
 		] );
+	}
+
+	/**
+	 * Validate block registration parameters.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $type   The block type identifier.
+	 * @param array  $config The block configuration.
+	 *
+	 * @throws InvalidArgumentException If the type or configuration is invalid.
+	 *
+	 * @return void
+	 */
+	protected function validateRegistration( string $type, array $config ): void
+	{
+		if ( '' === trim( $type ) ) {
+			throw new InvalidArgumentException( __( 'Block type cannot be empty.' ) );
+		}
+
+		if ( !preg_match( '/^[a-zA-Z0-9_-]+$/', $type ) ) {
+			throw new InvalidArgumentException(
+				__( 'Block type ":type" contains invalid characters. Only alphanumeric characters, hyphens, and underscores are allowed.', [
+					'type' => $type,
+				] ),
+			);
+		}
+
+		if ( isset( $config['category'] ) && !isset( $this->categories[ $config['category'] ] ) ) {
+			throw new InvalidArgumentException(
+				__( 'Block category ":category" is not registered. Register it first with registerCategory().', [
+					'category' => $config['category'],
+				] ),
+			);
+		}
 	}
 }

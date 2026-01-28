@@ -173,6 +173,22 @@ if ( !function_exists( 'veIsFeatureEnabled' ) ) {
 	}
 }
 
+if ( !function_exists( 'veBlockExists' ) ) {
+	/**
+	 * Check if a block type is registered.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $type The block type identifier.
+	 *
+	 * @return bool
+	 */
+	function veBlockExists( string $type ): bool
+	{
+		return veBlocks()->has( $type );
+	}
+}
+
 if ( !function_exists( 'veGetBlock' ) ) {
 	/**
 	 * Get a block type configuration.

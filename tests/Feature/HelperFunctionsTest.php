@@ -61,7 +61,7 @@ test( 'veRegisterTemplate registers a template and returns registry', function (
 test( 'veGetBlock returns registered block config', function (): void {
 	veRegisterBlock( 'get-test-block', [
 		'label'    => 'Get Test Block',
-		'category' => 'test',
+		'category' => 'text',
 	] );
 
 	$block = veGetBlock( 'get-test-block' );
@@ -70,10 +70,18 @@ test( 'veGetBlock returns registered block config', function (): void {
 		->and( $block['label'] )->toBe( 'Get Test Block' );
 } );
 
+test( 'veBlockExists returns true for registered blocks', function (): void {
+	expect( veBlockExists( 'heading' ) )->toBeTrue();
+} );
+
+test( 'veBlockExists returns false for unregistered blocks', function (): void {
+	expect( veBlockExists( 'nonexistent-block' ) )->toBeFalse();
+} );
+
 test( 'veGetSection returns registered section config', function (): void {
 	veRegisterSection( 'get-test-section', [
 		'label'    => 'Get Test Section',
-		'category' => 'test',
+		'category' => 'content',
 	] );
 
 	$section = veGetSection( 'get-test-section' );

@@ -182,6 +182,11 @@ class VisualEditorServiceProvider extends ServiceProvider
 	/**
 	 * Boot the registries with default blocks, sections, and templates.
 	 *
+	 * After registering defaults, the `ve.blocks.register` hooks filter
+	 * is applied (when the artisanpack-ui/hooks package is installed)
+	 * to allow third-party packages and applications to register
+	 * additional blocks.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @return void
@@ -189,7 +194,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 	protected function bootRegistries(): void
 	{
 		// Register default blocks
-		$this->app->make( BlockRegistry::class )->registerDefaults();
+		$blockRegistry = $this->app->make( BlockRegistry::class );
+		$blockRegistry->registerDefaults();
+
+		// Allow third-party block registration via hooks filter
+		if ( function_exists( 'applyFilters' ) ) {
+			applyFilters( 've.blocks.register', $blockRegistry );
+		}
 
 		// Register default sections
 		$this->app->make( SectionRegistry::class )->registerDefaults();

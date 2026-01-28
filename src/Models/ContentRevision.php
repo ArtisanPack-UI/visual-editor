@@ -1,5 +1,7 @@
 <?php
 
+declare( strict_types=1 );
+
 /**
  * Content Revision model.
  *
@@ -11,8 +13,6 @@
  *
  * @since      1.0.0
  */
-
-declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Models;
 
