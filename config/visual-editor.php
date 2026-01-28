@@ -180,7 +180,7 @@ return [
 		'providers'        => [
 			'openai'    => [
 				'api_key' => env( 'OPENAI_API_KEY' ),
-				'model'   => env( 'VE_OPENAI_MODEL', 'gpt-4.1-mini' ), // Override via VE_OPENAI_MODEL
+				'model'   => env( 'VE_OPENAI_MODEL', 'gpt-4o-mini' ), // Override via VE_OPENAI_MODEL
 			],
 			'anthropic' => [
 				'api_key' => env( 'ANTHROPIC_API_KEY' ),

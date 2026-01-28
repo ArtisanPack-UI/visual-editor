@@ -287,7 +287,7 @@ class BlockRegistry
 
 		$this->register( 'text', [
 			'name'           => __( 'Text' ),
-			'icon'           => 'fas.align-left',
+			'icon'           => 'fas.file-lines',
 			'category'       => 'text',
 			'content_schema' => [
 				'text' => [ 'type' => 'richtext', 'label' => __( 'Content' ) ],

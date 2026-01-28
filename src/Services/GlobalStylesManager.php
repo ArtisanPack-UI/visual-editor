@@ -136,6 +136,7 @@ class GlobalStylesManager
 	public function set( string $key, mixed $value ): self
 	{
 		data_set( $this->styles, $key, $value );
+		$this->clearCache();
 
 		return $this;
 	}
@@ -152,6 +153,7 @@ class GlobalStylesManager
 	public function merge( array $styles ): self
 	{
 		$this->styles = array_replace_recursive( $this->styles, $styles );
+		$this->clearCache();
 
 		return $this;
 	}
@@ -392,6 +394,12 @@ CSS;
 
 		// Fallback: simple relative luminance calculation
 		$hex = ltrim( $bgColor, '#' );
+
+		// Validate hex format
+		if ( !preg_match( '/^[0-9A-Fa-f]{3}$|^[0-9A-Fa-f]{6}$/', $hex ) ) {
+			return '#ffffff'; // Safe default for invalid input
+		}
+
 		if ( 3 === strlen( $hex ) ) {
 			$hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
 		}

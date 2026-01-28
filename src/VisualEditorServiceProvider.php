@@ -21,6 +21,7 @@ use ArtisanPackUI\VisualEditor\Registries\SectionRegistry;
 use ArtisanPackUI\VisualEditor\Registries\TemplateRegistry;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesManager;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 /**
  * Service provider for the Visual Editor package.
@@ -82,6 +83,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerViews();
 		$this->loadMigrations();
 		$this->registerRoutes();
+		$this->registerLivewireComponents();
 		$this->bootRegistries();
 	}
 
@@ -176,6 +178,27 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		if ( file_exists( $routesPath ) ) {
 			$this->loadRoutesFrom( $routesPath );
+		}
+	}
+
+	/**
+	 * Registers the package's Livewire components.
+	 *
+	 * Components are registered using a namespace so they can be
+	 * referenced as `visual-editor::component-name` in Blade templates.
+	 * Components are only registered if Livewire is available.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerLivewireComponents(): void
+	{
+		if ( class_exists( Livewire::class ) ) {
+			Livewire::addNamespace(
+				namespace: 'visual-editor',
+				viewPath: __DIR__ . '/../resources/views/livewire',
+			);
 		}
 	}
 

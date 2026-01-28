@@ -16,6 +16,8 @@ declare( strict_types=1 );
 namespace Tests;
 
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
+use Illuminate\Support\Facades\Blade;
+use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
 /**
@@ -35,6 +37,9 @@ abstract class TestCase extends BaseTestCase
 	protected function setUp(): void
 	{
 		parent::setUp();
+
+		// Register a stub for the artisanpack-icon component from livewire-ui-components.
+		Blade::component( 'artisanpack-icon', Stubs\IconComponentStub::class );
 	}
 
 	/**
@@ -49,6 +54,7 @@ abstract class TestCase extends BaseTestCase
 	protected function getPackageProviders( $app ): array
 	{
 		return [
+			LivewireServiceProvider::class,
 			VisualEditorServiceProvider::class,
 		];
 	}

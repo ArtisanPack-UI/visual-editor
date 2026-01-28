@@ -1,0 +1,103 @@
+<?php
+
+declare( strict_types=1 );
+
+use Livewire\Livewire;
+
+test( 'toolbar component renders successfully', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+	] )->assertStatus( 200 );
+} );
+
+test( 'toolbar displays content title', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'My Test Page',
+		'contentStatus' => 'draft',
+	] )->assertSee( 'My Test Page' );
+} );
+
+test( 'toolbar displays content status', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'published',
+	] )->assertSee( 'Published' );
+} );
+
+test( 'toolbar displays save status text', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+	] )->assertSee( 'Saved' );
+} );
+
+test( 'toolbar displays saving status text', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saving',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+	] )->assertSee( 'Saving...' );
+} );
+
+test( 'toolbar displays unsaved status text', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'unsaved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+	] )->assertSee( 'Unsaved changes' );
+} );
+
+test( 'toolbar save dispatches editor-save event', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+	] )
+		->call( 'save' )
+		->assertDispatched( 'editor-save' );
+} );
+
+test( 'toolbar publish dispatches editor-publish event', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+	] )
+		->call( 'publish' )
+		->assertDispatched( 'editor-publish' );
+} );
+
+test( 'toolbar undo dispatches editor-undo event', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+	] )
+		->call( 'undo' )
+		->assertDispatched( 'editor-undo' );
+} );
+
+test( 'toolbar redo dispatches editor-redo event', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+	] )
+		->call( 'redo' )
+		->assertDispatched( 'editor-redo' );
+} );
+
+test( 'toolbar preview dispatches editor-preview event', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+	] )
+		->call( 'preview' )
+		->assertDispatched( 'editor-preview' );
+} );

@@ -199,6 +199,29 @@ test( 'content of type scope filters correctly', function (): void {
 	expect( Content::ofType( 'page' )->count() )->toBe( 1 );
 } );
 
+test( 'content generates slug from empty title', function (): void {
+	$content = Content::create( [
+		'title'     => '',
+		'sections'  => [],
+		'status'    => 'draft',
+		'author_id' => $this->user->id,
+	] );
+
+	expect( $content->slug )->not->toBeEmpty()
+		->and( $content->slug )->toStartWith( 'content-' );
+} );
+
+test( 'content generates slug when title is null', function (): void {
+	$content = Content::create( [
+		'sections'  => [],
+		'status'    => 'draft',
+		'author_id' => $this->user->id,
+	] );
+
+	expect( $content->slug )->not->toBeEmpty()
+		->and( $content->slug )->toStartWith( 'content-' );
+} );
+
 test( 'content supports soft deletes', function (): void {
 	$content = Content::create( [
 		'title'     => 'Soft Delete Test',

@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
 
 /**
@@ -215,6 +216,45 @@ class Content extends Model
 	}
 
 	/**
+	 * Creates a new content record with slug collision retry.
+	 *
+	 * Catches unique constraint violations on (slug, content_type) caused
+	 * by concurrent inserts and regenerates the slug with an incremented
+	 * suffix before retrying.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array $attributes The attributes for the new content.
+	 *
+	 * @return static
+	 */
+	public static function create( array $attributes = [] ): static
+	{
+		$maxAttempts = 3;
+
+		for ( $attempt = 1; $attempt <= $maxAttempts; $attempt++ ) {
+			try {
+				return static::query()->create( $attributes );
+			} catch ( QueryException $e ) {
+				$isDuplicate = 1062 === (int) $e->errorInfo[1]
+					|| str_contains( $e->getMessage(), 'UNIQUE constraint failed' );
+
+				if ( !$isDuplicate || $attempt >= $maxAttempts ) {
+					throw $e;
+				}
+
+				$title       = $attributes['title'] ?? '';
+				$contentType = $attributes['content_type'] ?? 'page';
+				$slug        = static::generateUniqueSlug( $title, $contentType );
+
+				$attributes['slug'] = $slug;
+			}
+		}
+
+		return static::query()->create( $attributes );
+	}
+
+	/**
 	 * Gets the attributes that should be cast.
 	 *
 	 * @since 1.0.0
@@ -253,6 +293,10 @@ class Content extends Model
 				$content->content_type = 'page';
 			}
 
+			if ( null === $content->title ) {
+				$content->title = '';
+			}
+
 			if ( empty( $content->slug ) ) {
 				$content->slug = static::generateUniqueSlug( $content->title, $content->content_type );
 			}
@@ -261,6 +305,11 @@ class Content extends Model
 
 	/**
 	 * Generates a unique slug from the given title within a content type.
+	 *
+	 * Falls back to a timestamp-based slug when the title produces an empty
+	 * slug, and enforces a maximum retry limit to prevent infinite loops.
+	 * The unique DB constraint on (slug, content_type) provides the final
+	 * guarantee of uniqueness.
 	 *
 	 * @since 1.0.0
 	 *
@@ -271,13 +320,25 @@ class Content extends Model
 	 */
 	protected static function generateUniqueSlug( string $title, string $contentType ): string
 	{
+		$maxRetries   = 100;
 		$slug         = Str::slug( $title );
+
+		if ( '' === $slug ) {
+			$slug = 'content-' . now()->format( 'Y-m-d-His' ) . '-' . Str::random( 6 );
+		}
+
 		$originalSlug = $slug;
 		$count        = 1;
 
 		while ( static::where( 'slug', $slug )->where( 'content_type', $contentType )->exists() ) {
 			$slug = $originalSlug . '-' . $count;
 			$count++;
+
+			if ( $count > $maxRetries ) {
+				$slug = $originalSlug . '-' . Str::random( 8 );
+
+				break;
+			}
 		}
 
 		return $slug;
