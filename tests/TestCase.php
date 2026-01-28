@@ -88,5 +88,22 @@ abstract class TestCase extends BaseTestCase
 			'prefix'                  => '',
 			'foreign_key_constraints' => true,
 		] );
+		$app['config']->set( 'auth.providers.users.model', Models\User::class );
+	}
+
+	/**
+	 * Define database migrations.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function defineDatabaseMigrations(): void
+	{
+		// Load testing migrations (users table - only for tests)
+		$this->loadMigrationsFrom( __DIR__ . '/../database/migrations/testing' );
+
+		// Load main package migrations (ve_* tables)
+		$this->loadMigrationsFrom( __DIR__ . '/../database/migrations' );
 	}
 }
