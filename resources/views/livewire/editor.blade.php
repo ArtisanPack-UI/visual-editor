@@ -69,6 +69,15 @@ new class extends Component {
 	public ?string $activeBlockId = null;
 
 	/**
+	 * The ID of the currently selected section.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @var string|null
+	 */
+	public ?string $selectedSectionId = null;
+
+	/**
 	 * Whether the content has unsaved changes.
 	 *
 	 * @since 1.0.0
@@ -347,7 +356,7 @@ new class extends Component {
 	}
 
 	/**
-	 * Deselect the active block.
+	 * Deselect the active block and section.
 	 *
 	 * @since 1.0.0
 	 *
@@ -355,7 +364,8 @@ new class extends Component {
 	 */
 	public function deselectBlock(): void
 	{
-		$this->activeBlockId = null;
+		$this->activeBlockId     = null;
+		$this->selectedSectionId = null;
 	}
 
 	/**
@@ -522,9 +532,12 @@ new class extends Component {
 	const interval = parseInt( $wire.$el.dataset.autosaveInterval, 10 ) || 60;
 	const autosaveTimer = setInterval( () => $wire.autosave(), interval * 1000 );
 
-	$cleanup( () => {
+	// Clean up event listeners and timers on navigation
+	const cleanup = () => {
 		document.removeEventListener( 'keydown', handler );
 		clearInterval( autosaveTimer );
-	} );
+	};
+
+	document.addEventListener( 'livewire:navigating', cleanup, { once: true } );
 </script>
 @endscript
