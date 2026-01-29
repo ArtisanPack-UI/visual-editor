@@ -63,6 +63,11 @@ class ContentApiController extends Controller
 	 */
 	public function save( Request $request, Content $content ): JsonResponse
 	{
+		$user = $request->user();
+		if ( !$user ) {
+			abort( 401, 'Unauthenticated' );
+		}
+
 		$validated = $request->validate( [
 			'title'              => 'sometimes|string|max:255',
 			'sections'           => 'sometimes|array',
@@ -79,7 +84,7 @@ class ContentApiController extends Controller
 		$content = $this->contentService->saveDraft(
 			$content,
 			$validated,
-			$request->user()->id,
+			$user->id,
 		);
 
 		return response()->json( [

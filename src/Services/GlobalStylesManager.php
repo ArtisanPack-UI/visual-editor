@@ -180,6 +180,7 @@ class GlobalStylesManager
 	public function reset(): self
 	{
 		$this->styles = $this->defaults;
+		$this->clearCache();
 
 		return $this;
 	}

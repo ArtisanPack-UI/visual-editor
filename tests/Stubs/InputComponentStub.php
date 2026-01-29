@@ -56,6 +56,6 @@ class InputComponentStub extends Component
 	 */
 	public function render(): string
 	{
-		return '<input type="{{ $type }}" class="input-stub" />';
+		return '<input type="' . $this->type . '" class="input-stub" />';
 	}
 }

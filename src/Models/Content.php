@@ -251,7 +251,10 @@ class Content extends Model
 			}
 		}
 
-		return static::query()->create( $attributes );
+		// Unreachable: loop always returns on success or throws on failure.
+		// @codeCoverageIgnoreStart
+		throw new \LogicException( 'Unreachable code in Content::create retry loop.' );
+		// @codeCoverageIgnoreEnd
 	}
 
 	/**

@@ -54,8 +54,20 @@ class DrawerComponentStub extends Component
 	 *
 	 * @return string
 	 */
-	public function render(): string
+	public function render(): \Illuminate\View\View|\Closure|string
 	{
-		return '<div class="drawer-stub">{{ $slot }}@isset($actions){{ $actions }}@endisset</div>';
+		return function ( array $data ) {
+			$slot    = $data['slot'] ?? '';
+			$actions = $data['actions'] ?? null;
+			$html    = '<div class="drawer-stub">' . e( $slot );
+
+			if ( null !== $actions ) {
+				$html .= e( $actions );
+			}
+
+			$html .= '</div>';
+
+			return $html;
+		};
 	}
 }

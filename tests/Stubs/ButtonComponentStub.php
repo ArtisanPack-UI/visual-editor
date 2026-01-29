@@ -106,8 +106,12 @@ class ButtonComponentStub extends Component
 	 *
 	 * @return string
 	 */
-	public function render(): string
+	public function render(): \Illuminate\View\View|\Closure|string
 	{
-		return '<button class="btn-stub">{{ $label ?? $slot }}</button>';
+		return function ( array $data ) {
+			$content = $data['label'] ?? $data['slot'] ?? '';
+
+			return '<button class="btn-stub">' . e( $content ) . '</button>';
+		};
 	}
 }

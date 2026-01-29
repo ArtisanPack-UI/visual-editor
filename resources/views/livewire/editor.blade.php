@@ -171,6 +171,7 @@ new class extends Component {
 			$this->isDirty    = false;
 			$this->lastSaved  = now()->format( 'g:i A' );
 		} catch ( \Throwable $e ) {
+			report( $e );
 			$this->saveStatus = 'error';
 			session()->flash( 'error', __( 'Failed to save content.' ) );
 		}
@@ -212,7 +213,12 @@ new class extends Component {
 			], auth()->id() );
 
 			if ( '' !== $this->scheduleDate && '' !== $this->scheduleTime ) {
-				$publishAt = Carbon::parse( $this->scheduleDate . ' ' . $this->scheduleTime );
+				try {
+					$publishAt = Carbon::parse( $this->scheduleDate . ' ' . $this->scheduleTime );
+				} catch ( \Exception $e ) {
+					session()->flash( 'error', __( 'Invalid schedule date or time.' ) );
+					return;
+				}
 				$service->schedule( $this->content, $publishAt, auth()->id() );
 			} else {
 				$service->publish( $this->content, auth()->id() );
@@ -227,6 +233,7 @@ new class extends Component {
 			$this->scheduleTime        = '';
 		} catch ( \Throwable $e ) {
 			$this->saveStatus = 'error';
+			report( $e );
 			session()->flash( 'error', __( 'Failed to publish content.' ) );
 		}
 	}

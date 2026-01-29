@@ -34,7 +34,7 @@ return new class extends Migration
         Schema::create('ve_experiments', function (Blueprint $table) {
             $table->id();
             $table->foreignId('content_id')->constrained('ve_contents')->cascadeOnDelete();
-            $table->foreignId('created_by')->constrained('users');
+            $table->foreignId('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('name');
             $table->text('description')->nullable();
             $table->enum('type', ['headline', 'section', 'full_page'])->default('headline');

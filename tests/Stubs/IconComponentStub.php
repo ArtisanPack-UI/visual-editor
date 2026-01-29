@@ -55,6 +55,6 @@ class IconComponentStub extends Component
 	 */
 	public function render(): string
 	{
-		return '<span class="icon-stub">{{ $name }}</span>';
+		return '<span class="icon-stub">' . e($this->name) . '</span>';
 	}
 }

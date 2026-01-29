@@ -34,7 +34,7 @@ return new class extends Migration
         Schema::create('ve_content_revisions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('content_id')->constrained('ve_contents')->cascadeOnDelete();
-            $table->foreignId('user_id')->constrained('users');
+            $table->foreignId('user_id')->nullable()->constrained('users')->nullOnDelete();
             $table->enum('type', ['autosave', 'manual', 'named', 'publish', 'pre_restore'])->default('autosave');
             $table->string('name')->nullable();
             $table->json('data');

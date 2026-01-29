@@ -103,9 +103,14 @@ test( 'editor save creates a manual revision', function (): void {
 test( 'editor save updates lastSaved', function (): void {
 	$this->actingAs( $this->user );
 
+	$now = now();
+	\Illuminate\Support\Carbon::setTestNow( $now );
+
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
 		->call( 'save' )
-		->assertSet( 'lastSaved', now()->format( 'g:i A' ) );
+		->assertSet( 'lastSaved', $now->format( 'g:i A' ) );
+
+	\Illuminate\Support\Carbon::setTestNow();
 } );
 
 test( 'editor publish handler opens pre-publish panel', function (): void {
