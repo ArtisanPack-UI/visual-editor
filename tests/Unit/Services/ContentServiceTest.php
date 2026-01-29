@@ -13,7 +13,7 @@ beforeEach( function (): void {
 	$this->content = Content::create( [
 		'title'     => 'Test Page',
 		'slug'      => 'test-page',
-		'sections'  => [ [ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ] ],
+		'blocks'    => [ [ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ] ],
 		'settings'  => [],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
@@ -27,13 +27,13 @@ beforeEach( function (): void {
 
 test( 'saveDraft updates content and creates manual revision', function (): void {
 	$result = $this->service->saveDraft( $this->content, [
-		'title'    => 'Updated Title',
-		'sections' => [ [ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ] ],
+		'title'  => 'Updated Title',
+		'blocks' => [ [ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ] ],
 	], $this->user->id );
 
 	expect( $result->title )->toBe( 'Updated Title' )
-		->and( $result->sections )->toHaveCount( 1 )
-		->and( $result->sections[0]['id'] )->toBe( 've-2' );
+		->and( $result->blocks )->toHaveCount( 1 )
+		->and( $result->blocks[0]['id'] )->toBe( 've-2' );
 
 	$revision = ContentRevision::where( 'content_id', $this->content->id )
 		->where( 'type', 'manual' )
@@ -62,6 +62,16 @@ test( 'saveDraft updates excerpt, template, and meta fields', function (): void 
 		->and( $this->content->og_image )->toBe( '/images/og.jpg' );
 } );
 
+test( 'saveDraft updates slug when provided', function (): void {
+	$this->service->saveDraft( $this->content, [
+		'slug' => 'updated-slug',
+	], $this->user->id );
+
+	$this->content->refresh();
+
+	expect( $this->content->slug )->toBe( 'updated-slug' );
+} );
+
 test( 'saveDraft only updates provided fields', function (): void {
 	$originalTitle = $this->content->title;
 
@@ -83,14 +93,14 @@ test( 'autosave creates autosave revision without modifying content', function (
 	$originalTitle = $this->content->title;
 
 	$revision = $this->service->autosave( $this->content, [
-		'sections' => [ [ 'id' => 've-99', 'type' => 'paragraph', 'data' => [], 'settings' => [] ] ],
+		'blocks' => [ [ 'id' => 've-99', 'type' => 'paragraph', 'data' => [], 'settings' => [] ] ],
 	], $this->user->id );
 
 	$this->content->refresh();
 
 	expect( $revision->type )->toBe( 'autosave' )
 		->and( $revision->content_id )->toBe( $this->content->id )
-		->and( $revision->data['sections'][0]['id'] )->toBe( 've-99' )
+		->and( $revision->data['blocks'][0]['id'] )->toBe( 've-99' )
 		->and( $this->content->title )->toBe( $originalTitle );
 } );
 
@@ -99,7 +109,7 @@ test( 'autosave prunes excess autosaves', function (): void {
 
 	for ( $i = 0; $i < 5; $i++ ) {
 		$this->service->autosave( $this->content, [
-			'sections' => [ [ 'id' => "ve-{$i}", 'type' => 'text', 'data' => [], 'settings' => [] ] ],
+			'blocks' => [ [ 'id' => "ve-{$i}", 'type' => 'text', 'data' => [], 'settings' => [] ] ],
 		], $this->user->id );
 	}
 

@@ -134,6 +134,18 @@ new class extends Component {
 	{
 		$this->dispatch( 'editor-preview' );
 	}
+
+	/**
+	 * Dispatch a toggle settings event.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @return void
+	 */
+	public function toggleSettings(): void
+	{
+		$this->dispatch( 'editor-toggle-settings' );
+	}
 }; ?>
 
 <div class="ve-toolbar flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2">
@@ -188,6 +200,14 @@ new class extends Component {
 				{{ __( 'Unsaved changes' ) }}
 			@endif
 		</span>
+
+		<x-artisanpack-button
+			wire:click="toggleSettings"
+			icon="o-cog-6-tooth"
+			variant="ghost"
+			size="sm"
+			:tooltip="__( 'Settings' )"
+		/>
 
 		<x-artisanpack-button
 			wire:click="preview"

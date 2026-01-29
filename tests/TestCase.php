@@ -47,6 +47,8 @@ abstract class TestCase extends BaseTestCase
 		Blade::component( 'artisanpack-separator', Stubs\SeparatorComponentStub::class );
 		Blade::component( 'artisanpack-drawer', Stubs\DrawerComponentStub::class );
 		Blade::component( 'artisanpack-alert', Stubs\AlertComponentStub::class );
+		Blade::component( 'artisanpack-select', Stubs\SelectComponentStub::class );
+		Blade::component( 'artisanpack-toggle', Stubs\ToggleComponentStub::class );
 	}
 
 	/**

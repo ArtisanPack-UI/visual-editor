@@ -12,7 +12,7 @@ beforeEach( function (): void {
 	$this->content = Content::create( [
 		'title'     => 'Test Content',
 		'slug'      => 'test-content',
-		'sections'  => [],
+		'blocks'    => [],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
 	] );
@@ -39,7 +39,7 @@ test( 'content revision casts data as array', function (): void {
 		'content_id' => $this->content->id,
 		'user_id'    => $this->user->id,
 		'type'       => 'manual',
-		'data'       => [ 'sections' => [] ],
+		'data'       => [ 'blocks' => [] ],
 		'created_at' => now(),
 	] );
 

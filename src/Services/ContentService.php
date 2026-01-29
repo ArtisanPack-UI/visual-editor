@@ -45,7 +45,8 @@ class ContentService
 	{
 		$fillableFields = [
 			'title',
-			'sections',
+			'slug',
+			'blocks',
 			'settings',
 			'excerpt',
 			'template',
@@ -260,7 +261,7 @@ class ContentService
 			'name'           => $name,
 			'data'           => [
 				'title'              => $content->title,
-				'sections'           => $content->sections,
+				'blocks'             => $content->blocks,
 				'settings'           => $content->settings,
 				'excerpt'            => $content->excerpt,
 				'template'           => $content->template,

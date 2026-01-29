@@ -48,7 +48,7 @@ test( 've_contents table has expected columns', function (): void {
 		->and( $columns )->toContain( 'content_type' )
 		->and( $columns )->toContain( 'title' )
 		->and( $columns )->toContain( 'slug' )
-		->and( $columns )->toContain( 'sections' )
+		->and( $columns )->toContain( 'blocks' )
 		->and( $columns )->toContain( 'status' )
 		->and( $columns )->toContain( 'author_id' )
 		->and( $columns )->toContain( 'deleted_at' );

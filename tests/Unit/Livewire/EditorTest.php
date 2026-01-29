@@ -11,7 +11,7 @@ beforeEach( function (): void {
 	$this->content = Content::create( [
 		'title'     => 'Test Page',
 		'slug'      => 'test-page',
-		'sections'  => [ [ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ] ],
+		'blocks'    => [ [ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ] ],
 		'settings'  => [],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
@@ -29,12 +29,19 @@ test( 'editor initializes with content data', function (): void {
 		->assertSet( 'sidebarTab', 'blocks' )
 		->assertSet( 'isDirty', false )
 		->assertSet( 'saveStatus', 'saved' )
-		->assertSet( 'activeBlockId', null );
+		->assertSet( 'activeBlockId', null )
+		->assertSet( 'showSettingsDrawer', false )
+		->assertSet( 'settingsDrawerTab', 'block' )
+		->assertSet( 'contentTitle', 'Test Page' )
+		->assertSet( 'contentSlug', $this->content->slug )
+		->assertSet( 'contentExcerpt', '' )
+		->assertSet( 'contentMetaTitle', '' )
+		->assertSet( 'contentMetaDescription', '' );
 } );
 
-test( 'editor loads sections from content', function (): void {
+test( 'editor loads blocks from content', function (): void {
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
-		->assertSet( 'sections', $this->content->sections );
+		->assertSet( 'blocks', $this->content->blocks );
 } );
 
 test( 'editor can toggle sidebar', function (): void {
@@ -71,14 +78,14 @@ test( 'editor can deselect active block', function (): void {
 		->assertSet( 'activeBlockId', null );
 } );
 
-test( 'editor marks dirty on sections update', function (): void {
-	$newSections = [
+test( 'editor marks dirty on blocks update', function (): void {
+	$newBlocks = [
 		[ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ],
 		[ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ],
 	];
 
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
-		->dispatch( 'sections-updated', sections: $newSections )
+		->dispatch( 'blocks-updated', blocks: $newBlocks )
 		->assertSet( 'isDirty', true )
 		->assertSet( 'saveStatus', 'unsaved' );
 } );
@@ -104,13 +111,13 @@ test( 'editor save updates lastSaved', function (): void {
 	$this->actingAs( $this->user );
 
 	$now = now();
-	\Illuminate\Support\Carbon::setTestNow( $now );
+	Illuminate\Support\Carbon::setTestNow( $now );
 
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
 		->call( 'save' )
 		->assertSet( 'lastSaved', $now->format( 'g:i A' ) );
 
-	\Illuminate\Support\Carbon::setTestNow();
+	Illuminate\Support\Carbon::setTestNow();
 } );
 
 test( 'editor publish handler opens pre-publish panel', function (): void {
@@ -201,4 +208,196 @@ test( 'editor submitForReview changes status to pending', function (): void {
 	$this->content->refresh();
 
 	expect( $this->content->status )->toBe( 'pending' );
+} );
+
+// =========================================
+// Settings Drawer Tests
+// =========================================
+
+test( 'editor can toggle settings drawer', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->assertSet( 'showSettingsDrawer', false )
+		->call( 'toggleSettingsDrawer' )
+		->assertSet( 'showSettingsDrawer', true )
+		->call( 'toggleSettingsDrawer' )
+		->assertSet( 'showSettingsDrawer', false );
+} );
+
+test( 'editor can set settings drawer tab', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->assertSet( 'settingsDrawerTab', 'block' )
+		->call( 'setSettingsDrawerTab', 'page' )
+		->assertSet( 'settingsDrawerTab', 'page' )
+		->call( 'setSettingsDrawerTab', 'block' )
+		->assertSet( 'settingsDrawerTab', 'block' );
+} );
+
+test( 'editor opens settings drawer on block selection', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->assertSet( 'showSettingsDrawer', false )
+		->dispatch( 'block-selected', blockId: 've-1' )
+		->assertSet( 'showSettingsDrawer', true )
+		->assertSet( 'activeBlockId', 've-1' )
+		->assertSet( 'settingsDrawerTab', 'block' );
+} );
+
+test( 'editor switches to page tab on block deselection', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'activeBlockId', 've-1' )
+		->set( 'settingsDrawerTab', 'block' )
+		->call( 'deselectBlock' )
+		->assertSet( 'activeBlockId', null )
+		->assertSet( 'settingsDrawerTab', 'page' );
+} );
+
+test( 'editor closes settings drawer when opening pre-publish panel', function (): void {
+	$this->actingAs( $this->user );
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showSettingsDrawer', true )
+		->call( 'publish' )
+		->assertSet( 'showSettingsDrawer', false )
+		->assertSet( 'showPrePublishPanel', true );
+} );
+
+test( 'editor closes pre-publish panel when opening settings drawer', function (): void {
+	$this->actingAs( $this->user );
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showPrePublishPanel', true )
+		->call( 'toggleSettingsDrawer' )
+		->assertSet( 'showSettingsDrawer', true )
+		->assertSet( 'showPrePublishPanel', false );
+} );
+
+test( 'editor handles toggle settings event from toolbar', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->assertSet( 'showSettingsDrawer', false )
+		->dispatch( 'editor-toggle-settings' )
+		->assertSet( 'showSettingsDrawer', true );
+} );
+
+test( 'editor shows block settings form for selected block', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showSettingsDrawer', true )
+		->set( 'settingsDrawerTab', 'block' )
+		->set( 'activeBlockId', 've-1' )
+		->assertSee( 'Alignment' )
+		->assertSee( 'Color' );
+} );
+
+test( 'editor shows no settings message for block without settings schema', function (): void {
+	$content = Content::create( [
+		'title'     => 'List Page',
+		'slug'      => 'list-page',
+		'blocks'    => [ [ 'id' => 've-10', 'type' => 'list', 'data' => [], 'settings' => [] ] ],
+		'settings'  => [],
+		'status'    => 'draft',
+		'author_id' => $this->user->id,
+	] );
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $content ] )
+		->set( 'showSettingsDrawer', true )
+		->set( 'settingsDrawerTab', 'block' )
+		->set( 'activeBlockId', 've-10' )
+		->assertSee( 'This block has no configurable settings.' );
+} );
+
+test( 'editor shows no block selected message when no block active', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showSettingsDrawer', true )
+		->set( 'settingsDrawerTab', 'block' )
+		->set( 'activeBlockId', null )
+		->assertSee( 'Select a block on the canvas to view its settings.' );
+} );
+
+test( 'editor shows page settings form on page tab', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showSettingsDrawer', true )
+		->set( 'settingsDrawerTab', 'page' )
+		->assertSee( 'Title' )
+		->assertSee( 'Slug' )
+		->assertSee( 'Excerpt' )
+		->assertSee( 'SEO' )
+		->assertSee( 'Meta Title' )
+		->assertSee( 'Meta Description' );
+} );
+
+// =========================================
+// Block Settings Tests
+// =========================================
+
+test( 'editor updateBlockSetting updates block settings', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'activeBlockId', 've-1' )
+		->call( 'updateBlockSetting', 'alignment', 'center' )
+		->assertSet( 'blocks.0.settings.alignment', 'center' );
+} );
+
+test( 'editor updateBlockSetting marks editor dirty', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'activeBlockId', 've-1' )
+		->call( 'updateBlockSetting', 'color', '#ff0000' )
+		->assertSet( 'isDirty', true )
+		->assertSet( 'saveStatus', 'unsaved' );
+} );
+
+test( 'editor updateBlockSetting does nothing without active block', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->assertSet( 'activeBlockId', null )
+		->call( 'updateBlockSetting', 'alignment', 'center' )
+		->assertSet( 'isDirty', false );
+} );
+
+test( 'editor getActiveBlockConfig returns config for active block', function (): void {
+	$component = Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'activeBlockId', 've-1' );
+
+	$config = $component->call( 'getActiveBlockConfig' )->get( 'getActiveBlockConfig' );
+
+	// The heading block should have a settings_schema with alignment and color.
+	// We test indirectly via the form rendering instead.
+	$component->set( 'showSettingsDrawer', true )
+		->set( 'settingsDrawerTab', 'block' )
+		->assertSee( 'Alignment' );
+} );
+
+// =========================================
+// Page Settings Tests
+// =========================================
+
+test( 'editor initializes page settings from content', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->assertSet( 'contentTitle', 'Test Page' )
+		->assertSet( 'contentSlug', $this->content->slug );
+} );
+
+test( 'editor save includes page settings', function (): void {
+	$this->actingAs( $this->user );
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'contentTitle', 'Updated Page Title' )
+		->set( 'contentMetaTitle', 'Updated Meta' )
+		->call( 'save' );
+
+	$this->content->refresh();
+
+	expect( $this->content->title )->toBe( 'Updated Page Title' )
+		->and( $this->content->meta_title )->toBe( 'Updated Meta' );
+} );
+
+test( 'editor marks dirty when content title changes', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->assertSet( 'isDirty', false )
+		->set( 'contentTitle', 'New Title' )
+		->assertSet( 'isDirty', true )
+		->assertSet( 'saveStatus', 'unsaved' );
+} );
+
+test( 'editor marks dirty when content slug changes', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->assertSet( 'isDirty', false )
+		->set( 'contentSlug', 'new-slug' )
+		->assertSet( 'isDirty', true )
+		->assertSet( 'saveStatus', 'unsaved' );
 } );

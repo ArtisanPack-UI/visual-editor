@@ -101,3 +101,13 @@ test( 'toolbar preview dispatches editor-preview event', function (): void {
 		->call( 'preview' )
 		->assertDispatched( 'editor-preview' );
 } );
+
+test( 'toolbar toggleSettings dispatches editor-toggle-settings event', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+	] )
+		->call( 'toggleSettings' )
+		->assertDispatched( 'editor-toggle-settings' );
+} );

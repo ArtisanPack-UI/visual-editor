@@ -50,6 +50,24 @@ new class extends Component {
 	public string $blockSearch = '';
 
 	/**
+	 * The content blocks for the layers tab.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @var array
+	 */
+	public array $blocks = [];
+
+	/**
+	 * The currently active block ID.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @var string|null
+	 */
+	public ?string $activeBlockId = null;
+
+	/**
 	 * Get blocks grouped by category, filtered by search.
 	 *
 	 * @since 1.0.0
@@ -133,6 +151,20 @@ new class extends Component {
 	{
 		$this->dispatch( 'block-insert', type: $blockType );
 	}
+
+	/**
+	 * Select a block from the layers tab.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param string $blockId The block ID to select.
+	 *
+	 * @return void
+	 */
+	public function selectLayerBlock( string $blockId ): void
+	{
+		$this->dispatch( 'block-selected', blockId: $blockId );
+	}
 }; ?>
 
 <div class="ve-sidebar flex w-72 flex-col border-r border-gray-200 bg-white"
@@ -144,7 +176,6 @@ new class extends Component {
 				'blocks'   => __( 'Blocks' ),
 				'sections' => __( 'Sections' ),
 				'layers'   => __( 'Layers' ),
-				'settings' => __( 'Settings' ),
 			];
 		@endphp
 		@foreach ( $tabs as $key => $label )
@@ -211,9 +242,28 @@ new class extends Component {
 				</div>
 			@endforeach
 		@elseif ( 'layers' === $activeTab )
-			<p class="text-sm text-gray-500">{{ __( 'Layer navigation will be available here.' ) }}</p>
-		@elseif ( 'settings' === $activeTab )
-			<p class="text-sm text-gray-500">{{ __( 'Content settings will be available here.' ) }}</p>
+			@if ( empty( $blocks ) )
+				<p class="text-sm text-gray-500">{{ __( 'No blocks on the canvas yet.' ) }}</p>
+			@else
+				<div class="space-y-1">
+					@foreach ( $blocks as $block )
+						@php
+							$blockConfig = app( BlockRegistry::class )->get( $block['type'] ?? '' );
+							$blockName   = $blockConfig['name'] ?? ucfirst( $block['type'] ?? __( 'Block' ) );
+							$blockIcon   = $blockConfig['icon'] ?? 'fas.cube';
+							$isActive    = ( $block['id'] ?? '' ) === $activeBlockId;
+						@endphp
+						<button
+							wire:click="selectLayerBlock( '{{ $block['id'] ?? '' }}' )"
+							class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors
+								{{ $isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}"
+						>
+							<x-artisanpack-icon name="{{ $blockIcon }}" class="h-4 w-4 shrink-0 {{ $isActive ? 'text-blue-500' : 'text-gray-400' }}" />
+							<span class="truncate">{{ $blockName }}</span>
+						</button>
+					@endforeach
+				</div>
+			@endif
 		@endif
 	</div>
 </div>

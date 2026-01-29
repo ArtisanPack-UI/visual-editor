@@ -11,7 +11,7 @@ beforeEach( function (): void {
 	$this->content = Content::create( [
 		'title'     => 'API Test Page',
 		'slug'      => 'api-test-page',
-		'sections'  => [ [ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ] ],
+		'blocks'    => [ [ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ] ],
 		'settings'  => [],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
@@ -24,8 +24,8 @@ test( 'save endpoint updates content and returns json', function (): void {
 	$response = $this->postJson(
 		route( 'visual-editor.api.save', $this->content ),
 		[
-			'title'    => 'Updated via API',
-			'sections' => [ [ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ] ],
+			'title'  => 'Updated via API',
+			'blocks' => [ [ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ] ],
 		],
 	);
 
@@ -43,7 +43,7 @@ test( 'autosave endpoint creates revision', function (): void {
 	$response = $this->postJson(
 		route( 'visual-editor.api.autosave', $this->content ),
 		[
-			'sections' => [ [ 'id' => 've-3', 'type' => 'text', 'data' => [], 'settings' => [] ] ],
+			'blocks' => [ [ 'id' => 've-3', 'type' => 'text', 'data' => [], 'settings' => [] ] ],
 		],
 	);
 

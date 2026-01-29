@@ -16,6 +16,7 @@ declare( strict_types=1 );
 
 namespace Tests\Stubs;
 
+use Closure;
 use Illuminate\View\Component;
 
 /**
@@ -54,15 +55,15 @@ class DrawerComponentStub extends Component
 	 *
 	 * @return string
 	 */
-	public function render(): \Illuminate\View\View|\Closure|string
+	public function render(): \Illuminate\View\View|Closure|string
 	{
 		return function ( array $data ) {
 			$slot    = $data['slot'] ?? '';
 			$actions = $data['actions'] ?? null;
-			$html    = '<div class="drawer-stub">' . e( $slot );
+			$html    = '<div class="drawer-stub">' . $slot;
 
 			if ( null !== $actions ) {
-				$html .= e( $actions );
+				$html .= $actions;
 			}
 
 			$html .= '</div>';

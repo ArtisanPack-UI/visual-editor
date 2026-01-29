@@ -60,6 +60,6 @@ class AlertComponentStub extends Component
 	 */
 	public function render(): string
 	{
-		return '<div class="alert-stub">' . ($this->title ?? '') . '</div>';
+		return '<div class="alert-stub">' . ( $this->title ?? '' ) . '</div>';
 	}
 }

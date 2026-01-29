@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Str;
+use LogicException;
 
 /**
  * Content model class.
@@ -38,7 +39,7 @@ use Illuminate\Support\Str;
  * @property string                          $title
  * @property string                          $slug
  * @property string|null                     $excerpt
- * @property array                           $sections
+ * @property array                           $blocks
  * @property array|null                      $settings
  * @property string|null                     $template
  * @property array|null                      $template_overrides
@@ -83,7 +84,7 @@ class Content extends Model
 		'title',
 		'slug',
 		'excerpt',
-		'sections',
+		'blocks',
 		'settings',
 		'template',
 		'template_overrides',
@@ -253,7 +254,7 @@ class Content extends Model
 
 		// Unreachable: loop always returns on success or throws on failure.
 		// @codeCoverageIgnoreStart
-		throw new \LogicException( 'Unreachable code in Content::create retry loop.' );
+		throw new LogicException( 'Unreachable code in Content::create retry loop.' );
 		// @codeCoverageIgnoreEnd
 	}
 
@@ -267,7 +268,7 @@ class Content extends Model
 	protected function casts(): array
 	{
 		return [
-			'sections'           => 'array',
+			'blocks'             => 'array',
 			'settings'           => 'array',
 			'template_overrides' => 'array',
 			'lock'               => 'array',

@@ -70,7 +70,7 @@ class ContentApiController extends Controller
 
 		$validated = $request->validate( [
 			'title'              => 'sometimes|string|max:255',
-			'sections'           => 'sometimes|array',
+			'blocks'             => 'sometimes|array',
 			'settings'           => 'sometimes|nullable|array',
 			'excerpt'            => 'sometimes|nullable|string',
 			'template'           => 'sometimes|nullable|string|max:255',
@@ -106,7 +106,7 @@ class ContentApiController extends Controller
 	public function autosave( Request $request, Content $content ): JsonResponse
 	{
 		$validated = $request->validate( [
-			'sections' => 'sometimes|array',
+			'blocks'   => 'sometimes|array',
 			'settings' => 'sometimes|nullable|array',
 		] );
 

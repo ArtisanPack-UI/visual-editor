@@ -24,7 +24,7 @@ test( 'content has correct fillable attributes', function (): void {
 	expect( $content->getFillable() )->toContain( 'uuid' )
 		->and( $content->getFillable() )->toContain( 'title' )
 		->and( $content->getFillable() )->toContain( 'slug' )
-		->and( $content->getFillable() )->toContain( 'sections' )
+		->and( $content->getFillable() )->toContain( 'blocks' )
 		->and( $content->getFillable() )->toContain( 'status' )
 		->and( $content->getFillable() )->toContain( 'author_id' );
 } );
@@ -33,7 +33,7 @@ test( 'content casts json fields correctly', function (): void {
 	$content = Content::create( [
 		'title'     => 'Test Content',
 		'slug'      => 'test-content',
-		'sections'  => [ [ 'type' => 'hero' ] ],
+		'blocks'    => [ [ 'type' => 'hero' ] ],
 		'settings'  => [ 'key' => 'value' ],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
@@ -41,7 +41,7 @@ test( 'content casts json fields correctly', function (): void {
 
 	$content->refresh();
 
-	expect( $content->sections )->toBeArray()
+	expect( $content->blocks )->toBeArray()
 		->and( $content->settings )->toBeArray();
 } );
 
@@ -49,7 +49,7 @@ test( 'content generates uuid on creation', function (): void {
 	$content = Content::create( [
 		'title'     => 'UUID Test',
 		'slug'      => 'uuid-test',
-		'sections'  => [],
+		'blocks'    => [],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
 	] );
@@ -61,7 +61,7 @@ test( 'content generates uuid on creation', function (): void {
 test( 'content generates slug from title on creation', function (): void {
 	$content = Content::create( [
 		'title'     => 'My Test Page',
-		'sections'  => [],
+		'blocks'    => [],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
 	] );
@@ -72,14 +72,14 @@ test( 'content generates slug from title on creation', function (): void {
 test( 'content generates unique slug when duplicate exists', function (): void {
 	Content::create( [
 		'title'     => 'Duplicate Title',
-		'sections'  => [],
+		'blocks'    => [],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
 	] );
 
 	$second = Content::create( [
 		'title'     => 'Duplicate Title',
-		'sections'  => [],
+		'blocks'    => [],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
 	] );
@@ -91,7 +91,7 @@ test( 'content allows same slug across different content types', function (): vo
 	Content::create( [
 		'title'        => 'Same Title',
 		'content_type' => 'page',
-		'sections'     => [],
+		'blocks'       => [],
 		'status'       => 'draft',
 		'author_id'    => $this->user->id,
 	] );
@@ -99,7 +99,7 @@ test( 'content allows same slug across different content types', function (): vo
 	$post = Content::create( [
 		'title'        => 'Same Title',
 		'content_type' => 'post',
-		'sections'     => [],
+		'blocks'       => [],
 		'status'       => 'draft',
 		'author_id'    => $this->user->id,
 	] );
@@ -141,7 +141,7 @@ test( 'content published scope filters correctly', function (): void {
 	Content::create( [
 		'title'     => 'Published',
 		'slug'      => 'published',
-		'sections'  => [],
+		'blocks'    => [],
 		'status'    => 'published',
 		'author_id' => $this->user->id,
 	] );
@@ -149,7 +149,7 @@ test( 'content published scope filters correctly', function (): void {
 	Content::create( [
 		'title'     => 'Draft',
 		'slug'      => 'draft',
-		'sections'  => [],
+		'blocks'    => [],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
 	] );
@@ -161,7 +161,7 @@ test( 'content draft scope filters correctly', function (): void {
 	Content::create( [
 		'title'     => 'Published',
 		'slug'      => 'published-2',
-		'sections'  => [],
+		'blocks'    => [],
 		'status'    => 'published',
 		'author_id' => $this->user->id,
 	] );
@@ -169,7 +169,7 @@ test( 'content draft scope filters correctly', function (): void {
 	Content::create( [
 		'title'     => 'Draft',
 		'slug'      => 'draft-2',
-		'sections'  => [],
+		'blocks'    => [],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
 	] );
@@ -181,7 +181,7 @@ test( 'content of type scope filters correctly', function (): void {
 	Content::create( [
 		'title'        => 'Page',
 		'slug'         => 'page-1',
-		'sections'     => [],
+		'blocks'       => [],
 		'content_type' => 'page',
 		'status'       => 'draft',
 		'author_id'    => $this->user->id,
@@ -190,7 +190,7 @@ test( 'content of type scope filters correctly', function (): void {
 	Content::create( [
 		'title'        => 'Post',
 		'slug'         => 'post-1',
-		'sections'     => [],
+		'blocks'       => [],
 		'content_type' => 'post',
 		'status'       => 'draft',
 		'author_id'    => $this->user->id,
@@ -202,7 +202,7 @@ test( 'content of type scope filters correctly', function (): void {
 test( 'content generates slug from empty title', function (): void {
 	$content = Content::create( [
 		'title'     => '',
-		'sections'  => [],
+		'blocks'    => [],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
 	] );
@@ -213,7 +213,7 @@ test( 'content generates slug from empty title', function (): void {
 
 test( 'content generates slug when title is null', function (): void {
 	$content = Content::create( [
-		'sections'  => [],
+		'blocks'    => [],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
 	] );
@@ -226,7 +226,7 @@ test( 'content supports soft deletes', function (): void {
 	$content = Content::create( [
 		'title'     => 'Soft Delete Test',
 		'slug'      => 'soft-delete',
-		'sections'  => [],
+		'blocks'    => [],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
 	] );

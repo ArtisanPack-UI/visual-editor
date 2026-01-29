@@ -35,6 +35,15 @@ class InputComponentStub extends Component
 	public string $type;
 
 	/**
+	 * The input label.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @var string|null
+	 */
+	public ?string $label;
+
+	/**
 	 * Create a new component instance.
 	 *
 	 * @since 1.0.0
@@ -44,7 +53,8 @@ class InputComponentStub extends Component
 	 */
 	public function __construct( string $type = 'text', ?string $label = null )
 	{
-		$this->type = $type;
+		$this->type  = $type;
+		$this->label = $label;
 	}
 
 	/**
@@ -56,6 +66,8 @@ class InputComponentStub extends Component
 	 */
 	public function render(): string
 	{
-		return '<input type="' . $this->type . '" class="input-stub" />';
+		$label = null !== $this->label ? '<label>' . e( $this->label ) . '</label>' : '';
+
+		return '<div>' . $label . '<input type="' . $this->type . '" class="input-stub" /></div>';
 	}
 }

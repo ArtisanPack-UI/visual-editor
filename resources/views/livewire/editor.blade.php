@@ -17,6 +17,7 @@ declare( strict_types=1 );
  */
 
 use ArtisanPackUI\VisualEditor\Models\Content;
+use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Services\ContentService;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\On;
@@ -33,13 +34,13 @@ new class extends Component {
 	public Content $content;
 
 	/**
-	 * The content sections data.
+	 * The content blocks data.
 	 *
-	 * @since 1.0.0
+	 * @since 1.1.0
 	 *
 	 * @var array
 	 */
-	public array $sections = [];
+	public array $blocks = [];
 
 	/**
 	 * Whether the sidebar panel is open.
@@ -69,15 +70,6 @@ new class extends Component {
 	public ?string $activeBlockId = null;
 
 	/**
-	 * The ID of the currently selected section.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @var string|null
-	 */
-	public ?string $selectedSectionId = null;
-
-	/**
 	 * Whether the content has unsaved changes.
 	 *
 	 * @since 1.0.0
@@ -103,6 +95,69 @@ new class extends Component {
 	 * @var string
 	 */
 	public string $lastSaved = '';
+
+	/**
+	 * Whether the settings drawer is visible.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @var bool
+	 */
+	public bool $showSettingsDrawer = false;
+
+	/**
+	 * The active tab within the settings drawer.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @var string
+	 */
+	public string $settingsDrawerTab = 'block';
+
+	/**
+	 * The content title for page settings.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @var string
+	 */
+	public string $contentTitle = '';
+
+	/**
+	 * The content slug for page settings.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @var string
+	 */
+	public string $contentSlug = '';
+
+	/**
+	 * The content excerpt for page settings.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @var string
+	 */
+	public string $contentExcerpt = '';
+
+	/**
+	 * The content meta title for page settings.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @var string
+	 */
+	public string $contentMetaTitle = '';
+
+	/**
+	 * The content meta description for page settings.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @var string
+	 */
+	public string $contentMetaDescription = '';
 
 	/**
 	 * Whether the pre-publish panel is visible.
@@ -151,8 +206,13 @@ new class extends Component {
 	 */
 	public function mount( Content $content ): void
 	{
-		$this->content  = $content;
-		$this->sections = $content->sections ?? [];
+		$this->content                = $content;
+		$this->blocks                 = $content->blocks ?? [];
+		$this->contentTitle           = $content->title ?? '';
+		$this->contentSlug            = $content->slug ?? '';
+		$this->contentExcerpt         = $content->excerpt ?? '';
+		$this->contentMetaTitle       = $content->meta_title ?? '';
+		$this->contentMetaDescription = $content->meta_description ?? '';
 	}
 
 	/**
@@ -171,7 +231,12 @@ new class extends Component {
 			$service = app( ContentService::class );
 
 			$service->saveDraft( $this->content, [
-				'sections' => $this->sections,
+				'title'            => $this->contentTitle,
+				'slug'             => $this->contentSlug,
+				'excerpt'          => $this->contentExcerpt,
+				'meta_title'       => $this->contentMetaTitle,
+				'meta_description' => $this->contentMetaDescription,
+				'blocks'           => $this->blocks,
 			], auth()->id() );
 
 			$this->content->refresh();
@@ -196,9 +261,10 @@ new class extends Component {
 	#[On( 'editor-publish' )]
 	public function publish(): void
 	{
-		$service                  = app( ContentService::class );
-		$this->prePublishChecks   = $service->runPrePublishChecks( $this->content );
+		$service                   = app( ContentService::class );
+		$this->prePublishChecks    = $service->runPrePublishChecks( $this->content );
 		$this->showPrePublishPanel = true;
+		$this->showSettingsDrawer  = false;
 	}
 
 	/**
@@ -216,9 +282,14 @@ new class extends Component {
 		try {
 			$service = app( ContentService::class );
 
-			// Save current sections first.
+			// Save current content first.
 			$service->saveDraft( $this->content, [
-				'sections' => $this->sections,
+				'title'            => $this->contentTitle,
+				'slug'             => $this->contentSlug,
+				'excerpt'          => $this->contentExcerpt,
+				'meta_title'       => $this->contentMetaTitle,
+				'meta_description' => $this->contentMetaDescription,
+				'blocks'           => $this->blocks,
 			], auth()->id() );
 
 			if ( '' !== $this->scheduleDate && '' !== $this->scheduleTime ) {
@@ -282,7 +353,7 @@ new class extends Component {
 		try {
 			$service = app( ContentService::class );
 			$service->autosave( $this->content, [
-				'sections' => $this->sections,
+				'blocks' => $this->blocks,
 			], auth()->id() );
 		} catch ( \Throwable $e ) {
 			// Autosave failures are silent to not disrupt editing.
@@ -302,7 +373,12 @@ new class extends Component {
 			$service = app( ContentService::class );
 
 			$service->saveDraft( $this->content, [
-				'sections' => $this->sections,
+				'title'            => $this->contentTitle,
+				'slug'             => $this->contentSlug,
+				'excerpt'          => $this->contentExcerpt,
+				'meta_title'       => $this->contentMetaTitle,
+				'meta_description' => $this->contentMetaDescription,
+				'blocks'           => $this->blocks,
 			], auth()->id() );
 
 			$service->submitForReview( $this->content, auth()->id() );
@@ -356,7 +432,7 @@ new class extends Component {
 	}
 
 	/**
-	 * Deselect the active block and section.
+	 * Deselect the active block.
 	 *
 	 * @since 1.0.0
 	 *
@@ -365,23 +441,209 @@ new class extends Component {
 	public function deselectBlock(): void
 	{
 		$this->activeBlockId     = null;
-		$this->selectedSectionId = null;
+		$this->settingsDrawerTab = 'page';
 	}
 
 	/**
-	 * Handle the sections being updated.
+	 * Handle the blocks being updated.
 	 *
-	 * @since 1.0.0
+	 * @since 1.1.0
 	 *
-	 * @param array $sections The updated sections data.
+	 * @param array $blocks The updated blocks data.
 	 *
 	 * @return void
 	 */
-	#[On( 'sections-updated' )]
-	public function onSectionsUpdated( array $sections ): void
+	#[On( 'blocks-updated' )]
+	public function onBlocksUpdated( array $blocks ): void
 	{
-		$this->sections = $sections;
-		$this->isDirty  = true;
+		$this->blocks     = $blocks;
+		$this->isDirty    = true;
+		$this->saveStatus = 'unsaved';
+	}
+
+	/**
+	 * Toggle the settings drawer open/closed.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @return void
+	 */
+	public function toggleSettingsDrawer(): void
+	{
+		$this->showSettingsDrawer = !$this->showSettingsDrawer;
+
+		if ( $this->showSettingsDrawer ) {
+			$this->showPrePublishPanel = false;
+		}
+	}
+
+	/**
+	 * Set the active settings drawer tab.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @param string $tab The tab to activate ('block' or 'page').
+	 *
+	 * @return void
+	 */
+	public function setSettingsDrawerTab( string $tab ): void
+	{
+		$this->settingsDrawerTab = $tab;
+	}
+
+	/**
+	 * Handle block selection from the canvas.
+	 *
+	 * Opens the settings drawer and switches to the block tab.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @param string $blockId The selected block ID.
+	 *
+	 * @return void
+	 */
+	#[On( 'block-selected' )]
+	public function onBlockSelected( string $blockId ): void
+	{
+		$this->activeBlockId      = $blockId;
+		$this->showSettingsDrawer = true;
+		$this->settingsDrawerTab  = 'block';
+
+		if ( $this->showPrePublishPanel ) {
+			$this->showPrePublishPanel = false;
+		}
+	}
+
+	/**
+	 * Handle the settings toggle event from the toolbar.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @return void
+	 */
+	#[On( 'editor-toggle-settings' )]
+	public function onToggleSettings(): void
+	{
+		$this->toggleSettingsDrawer();
+	}
+
+	/**
+	 * Get the active block's registry configuration.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return array|null
+	 */
+	public function getActiveBlockConfig(): ?array
+	{
+		if ( null === $this->activeBlockId ) {
+			return null;
+		}
+
+		$block = collect( $this->blocks )->firstWhere( 'id', $this->activeBlockId );
+
+		if ( null === $block ) {
+			return null;
+		}
+
+		return app( BlockRegistry::class )->get( $block['type'] ?? '' );
+	}
+
+	/**
+	 * Update a setting on the active block.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param string $key   The setting key.
+	 * @param mixed  $value The setting value.
+	 *
+	 * @return void
+	 */
+	public function updateBlockSetting( string $key, mixed $value ): void
+	{
+		if ( null === $this->activeBlockId ) {
+			return;
+		}
+
+		$blocks = $this->blocks;
+
+		foreach ( $blocks as $index => $block ) {
+			if ( ( $block['id'] ?? '' ) === $this->activeBlockId ) {
+				$blocks[ $index ]['settings'][ $key ] = $value;
+
+				break;
+			}
+		}
+
+		$this->blocks     = $blocks;
+		$this->isDirty    = true;
+		$this->saveStatus = 'unsaved';
+	}
+
+	/**
+	 * Handle page setting property updates and mark as dirty.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param string $property The property name that was updated.
+	 *
+	 * @return void
+	 */
+	public function updatedContentTitle(): void
+	{
+		$this->isDirty    = true;
+		$this->saveStatus = 'unsaved';
+	}
+
+	/**
+	 * Handle content slug updates and mark as dirty.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return void
+	 */
+	public function updatedContentSlug(): void
+	{
+		$this->isDirty    = true;
+		$this->saveStatus = 'unsaved';
+	}
+
+	/**
+	 * Handle content excerpt updates and mark as dirty.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return void
+	 */
+	public function updatedContentExcerpt(): void
+	{
+		$this->isDirty    = true;
+		$this->saveStatus = 'unsaved';
+	}
+
+	/**
+	 * Handle content meta title updates and mark as dirty.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return void
+	 */
+	public function updatedContentMetaTitle(): void
+	{
+		$this->isDirty    = true;
+		$this->saveStatus = 'unsaved';
+	}
+
+	/**
+	 * Handle content meta description updates and mark as dirty.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return void
+	 */
+	public function updatedContentMetaDescription(): void
+	{
+		$this->isDirty    = true;
 		$this->saveStatus = 'unsaved';
 	}
 }; ?>
@@ -401,13 +663,15 @@ new class extends Component {
 		@if ( $sidebarOpen )
 			<livewire:visual-editor::sidebar
 				:active-tab="$sidebarTab"
+				:blocks="$blocks"
+				:active-block-id="$activeBlockId"
 			/>
 		@endif
 
 		{{-- Canvas Area --}}
 		<div class="flex flex-1 flex-col overflow-hidden">
 			<livewire:visual-editor::canvas
-				:sections="$sections"
+				:blocks="$blocks"
 				:active-block-id="$activeBlockId"
 			/>
 
@@ -419,6 +683,183 @@ new class extends Component {
 			/>
 		</div>
 	</div>
+
+	{{-- Settings Drawer --}}
+	<x-artisanpack-drawer
+		wire:model="showSettingsDrawer"
+		right
+		:title="__( 'Settings' )"
+		separator
+		with-close-button
+		close-on-escape
+		class="z-40"
+	>
+		{{-- Settings Drawer Tabs --}}
+		<div class="-mx-4 -mt-4 mb-4 flex border-b border-gray-200">
+			@php
+				$settingsTabs = [
+					'block' => __( 'Block' ),
+					'page'  => __( 'Page' ),
+				];
+			@endphp
+			@foreach ( $settingsTabs as $key => $label )
+				<button
+					wire:click="setSettingsDrawerTab( '{{ $key }}' )"
+					class="flex-1 border-b-2 px-3 py-2 text-center text-xs font-medium transition-colors
+						{{ $settingsDrawerTab === $key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700' }}"
+				>
+					{{ $label }}
+				</button>
+			@endforeach
+		</div>
+
+		{{-- Tab Content --}}
+		@if ( 'block' === $settingsDrawerTab )
+			@if ( null !== $activeBlockId )
+				@php
+					$activeBlockConfig  = $this->getActiveBlockConfig();
+					$settingsSchema     = $activeBlockConfig['settings_schema'] ?? [];
+					$activeBlock        = collect( $blocks )->firstWhere( 'id', $activeBlockId );
+					$currentSettings    = $activeBlock['settings'] ?? [];
+				@endphp
+
+				@if ( empty( $settingsSchema ) )
+					<p class="text-sm text-gray-500">
+						{{ __( 'This block has no configurable settings.' ) }}
+					</p>
+				@else
+					<div class="space-y-4">
+						@foreach ( $settingsSchema as $settingKey => $schema )
+							@php
+								$fieldType    = $schema['type'] ?? 'text';
+								$fieldLabel   = $schema['label'] ?? ucfirst( str_replace( '_', ' ', $settingKey ) );
+								$fieldOptions = $schema['options'] ?? [];
+								$fieldDefault = $schema['default'] ?? '';
+								$fieldValue   = $currentSettings[ $settingKey ] ?? $fieldDefault;
+							@endphp
+
+							@if ( 'select' === $fieldType )
+								@php
+									$selectOptions = collect( $fieldOptions )->map( fn ( $opt ) => [
+										'id'   => $opt,
+										'name' => ucfirst( $opt ),
+									] )->all();
+								@endphp
+								<x-artisanpack-select
+									:label="__( $fieldLabel )"
+									:options="$selectOptions"
+									option-value="id"
+									option-label="name"
+									wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
+									:selected="$fieldValue"
+								/>
+							@elseif ( 'alignment' === $fieldType )
+								@php
+									$alignmentOptions = [
+										[ 'id' => 'left', 'name' => __( 'Left' ) ],
+										[ 'id' => 'center', 'name' => __( 'Center' ) ],
+										[ 'id' => 'right', 'name' => __( 'Right' ) ],
+									];
+								@endphp
+								<x-artisanpack-select
+									:label="__( $fieldLabel )"
+									:options="$alignmentOptions"
+									option-value="id"
+									option-label="name"
+									wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
+									:selected="$fieldValue"
+								/>
+							@elseif ( 'toggle' === $fieldType )
+								<x-artisanpack-toggle
+									:label="__( $fieldLabel )"
+									:checked="(bool) $fieldValue"
+									wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.checked )"
+								/>
+							@elseif ( 'color_picker' === $fieldType )
+								<x-artisanpack-input
+									type="color"
+									:label="__( $fieldLabel )"
+									:value="$fieldValue"
+									wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
+								/>
+							@elseif ( 'url' === $fieldType )
+								<x-artisanpack-input
+									type="url"
+									:label="__( $fieldLabel )"
+									:value="$fieldValue"
+									wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
+								/>
+							@elseif ( 'textarea' === $fieldType )
+								<div>
+									<label class="mb-1 block text-sm font-medium text-gray-700">{{ __( $fieldLabel ) }}</label>
+									<textarea
+										wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
+										class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+										rows="3"
+									>{{ $fieldValue }}</textarea>
+								</div>
+							@else
+								<x-artisanpack-input
+									:label="__( $fieldLabel )"
+									:value="$fieldValue"
+									wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
+								/>
+							@endif
+						@endforeach
+					</div>
+				@endif
+			@else
+				<p class="text-sm text-gray-500">
+					{{ __( 'Select a block on the canvas to view its settings.' ) }}
+				</p>
+			@endif
+		@elseif ( 'page' === $settingsDrawerTab )
+			<div class="space-y-4">
+				<x-artisanpack-input
+					wire:model.blur="contentTitle"
+					:label="__( 'Title' )"
+				/>
+
+				<x-artisanpack-input
+					wire:model.blur="contentSlug"
+					:label="__( 'Slug' )"
+				/>
+
+				<div>
+					<label class="mb-1 block text-sm font-medium text-gray-700">{{ __( 'Excerpt' ) }}</label>
+					<textarea
+						wire:model.blur="contentExcerpt"
+						class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+						rows="3"
+						placeholder="{{ __( 'A short summary of the content...' ) }}"
+					></textarea>
+				</div>
+
+				<div class="border-t border-gray-200 pt-4">
+					<x-artisanpack-heading level="3" size="text-sm" semibold class="mb-3">
+						{{ __( 'SEO' ) }}
+					</x-artisanpack-heading>
+
+					<div class="space-y-4">
+						<x-artisanpack-input
+							wire:model.blur="contentMetaTitle"
+							:label="__( 'Meta Title' )"
+						/>
+
+						<div>
+							<label class="mb-1 block text-sm font-medium text-gray-700">{{ __( 'Meta Description' ) }}</label>
+							<textarea
+								wire:model.blur="contentMetaDescription"
+								class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+								rows="3"
+								placeholder="{{ __( 'A description for search engines...' ) }}"
+							></textarea>
+						</div>
+					</div>
+				</div>
+			</div>
+		@endif
+	</x-artisanpack-drawer>
 
 	{{-- Pre-Publish Checklist Panel --}}
 	<x-artisanpack-drawer
@@ -519,6 +960,11 @@ new class extends Component {
 		if ( modKey && '\\' === event.key ) {
 			event.preventDefault();
 			$wire.toggleSidebar();
+		}
+
+		if ( modKey && event.shiftKey && ',' === event.key ) {
+			event.preventDefault();
+			$wire.toggleSettingsDrawer();
 		}
 
 		if ( 'Escape' === event.key ) {

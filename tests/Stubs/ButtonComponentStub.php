@@ -16,6 +16,7 @@ declare( strict_types=1 );
 
 namespace Tests\Stubs;
 
+use Closure;
 use Illuminate\View\Component;
 
 /**
@@ -106,7 +107,7 @@ class ButtonComponentStub extends Component
 	 *
 	 * @return string
 	 */
-	public function render(): \Illuminate\View\View|\Closure|string
+	public function render(): \Illuminate\View\View|Closure|string
 	{
 		return function ( array $data ) {
 			$content = $data['label'] ?? $data['slot'] ?? '';

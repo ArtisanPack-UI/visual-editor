@@ -13,7 +13,7 @@ beforeEach( function (): void {
 	$this->content = Content::create( [
 		'title'     => 'Test Content',
 		'slug'      => 'test-content',
-		'sections'  => [],
+		'blocks'    => [],
 		'status'    => 'draft',
 		'author_id' => $this->user->id,
 	] );

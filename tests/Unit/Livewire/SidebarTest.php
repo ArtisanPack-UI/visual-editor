@@ -31,9 +31,7 @@ test( 'sidebar can switch tabs', function (): void {
 		->call( 'setTab', 'sections' )
 		->assertSet( 'activeTab', 'sections' )
 		->call( 'setTab', 'layers' )
-		->assertSet( 'activeTab', 'layers' )
-		->call( 'setTab', 'settings' )
-		->assertSet( 'activeTab', 'settings' );
+		->assertSet( 'activeTab', 'layers' );
 } );
 
 test( 'sidebar displays blocks tab by default', function (): void {
@@ -41,7 +39,7 @@ test( 'sidebar displays blocks tab by default', function (): void {
 		->assertSee( 'Blocks' )
 		->assertSee( 'Sections' )
 		->assertSee( 'Layers' )
-		->assertSee( 'Settings' );
+		->assertDontSee( 'Settings' );
 } );
 
 test( 'sidebar shows block search input on blocks tab', function (): void {
@@ -60,14 +58,38 @@ test( 'sidebar can accept active tab prop', function (): void {
 		->assertSet( 'activeTab', 'sections' );
 } );
 
-test( 'sidebar shows layers placeholder on layers tab', function (): void {
+test( 'sidebar shows empty state on layers tab with no blocks', function (): void {
 	Livewire::test( 'visual-editor::sidebar' )
 		->call( 'setTab', 'layers' )
-		->assertSee( 'Layer navigation will be available here.' );
+		->assertSee( 'No blocks on the canvas yet.' );
 } );
 
-test( 'sidebar shows settings placeholder on settings tab', function (): void {
-	Livewire::test( 'visual-editor::sidebar' )
-		->call( 'setTab', 'settings' )
-		->assertSee( 'Content settings will be available here.' );
+test( 'sidebar shows layers list with blocks', function (): void {
+	$blocks = [
+		[ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ],
+		[ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::sidebar', [ 'blocks' => $blocks ] )
+		->call( 'setTab', 'layers' )
+		->assertSee( 'Heading' )
+		->assertSee( 'Text' )
+		->assertDontSee( 'No blocks on the canvas yet.' );
 } );
+
+test( 'sidebar selectLayerBlock dispatches block-selected event', function (): void {
+	Livewire::test( 'visual-editor::sidebar' )
+		->call( 'selectLayerBlock', 've-1' )
+		->assertDispatched( 'block-selected', blockId: 've-1' );
+} );
+
+test( 'sidebar layers shows block type name from registry', function (): void {
+	$blocks = [
+		[ 'id' => 've-1', 'type' => 'image', 'data' => [], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::sidebar', [ 'blocks' => $blocks ] )
+		->call( 'setTab', 'layers' )
+		->assertSee( 'Image' );
+} );
+
