@@ -401,3 +401,22 @@ test( 'editor marks dirty when content slug changes', function (): void {
 		->assertSet( 'isDirty', true )
 		->assertSet( 'saveStatus', 'unsaved' );
 } );
+
+// =========================================
+// Sidebar Toggle Event Tests
+// =========================================
+
+test( 'editor handles toggle sidebar event', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->assertSet( 'sidebarOpen', true )
+		->dispatch( 'editor-toggle-sidebar' )
+		->assertSet( 'sidebarOpen', false )
+		->dispatch( 'editor-toggle-sidebar' )
+		->assertSet( 'sidebarOpen', true );
+} );
+
+test( 'editor settings panel renders inline', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showSettingsDrawer', true )
+		->assertSeeHtml( 've-settings-panel' );
+} );

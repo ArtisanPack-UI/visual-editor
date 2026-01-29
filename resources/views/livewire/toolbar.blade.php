@@ -64,6 +64,24 @@ new class extends Component {
 	public bool $canRedo = false;
 
 	/**
+	 * Whether the left sidebar is open.
+	 *
+	 * @since 1.5.0
+	 *
+	 * @var bool
+	 */
+	public bool $sidebarOpen = true;
+
+	/**
+	 * Whether the right settings panel is open.
+	 *
+	 * @since 1.5.0
+	 *
+	 * @var bool
+	 */
+	public bool $settingsOpen = false;
+
+	/**
 	 * Dispatch a save event.
 	 *
 	 * @since 1.0.0
@@ -136,6 +154,18 @@ new class extends Component {
 	}
 
 	/**
+	 * Dispatch a toggle sidebar event.
+	 *
+	 * @since 1.5.0
+	 *
+	 * @return void
+	 */
+	public function toggleSidebar(): void
+	{
+		$this->dispatch( 'editor-toggle-sidebar' );
+	}
+
+	/**
 	 * Dispatch a toggle settings event.
 	 *
 	 * @since 1.3.0
@@ -149,8 +179,16 @@ new class extends Component {
 }; ?>
 
 <div class="ve-toolbar flex items-center justify-between border-b border-gray-200 bg-white px-4 py-2">
-	{{-- Left: Title --}}
+	{{-- Left: Title + Sidebar Toggle --}}
 	<div class="flex items-center gap-3">
+		<x-artisanpack-button
+			wire:click="toggleSidebar"
+			icon="o-bars-3-bottom-left"
+			variant="ghost"
+			size="sm"
+			:tooltip-bottom="__( 'Toggle Sidebar' )"
+			:class="$sidebarOpen ? 'text-blue-600 bg-blue-50' : ''"
+		/>
 		<x-artisanpack-heading level="1" size="text-lg" semibold>
 			{{ $contentTitle ?: __( 'Untitled' ) }}
 		</x-artisanpack-heading>
@@ -172,7 +210,7 @@ new class extends Component {
 			icon="o-arrow-uturn-left"
 			variant="ghost"
 			size="sm"
-			:tooltip="__( 'Undo' )"
+			:tooltip-bottom="__( 'Undo' )"
 			:disabled="!$canUndo"
 			class="disabled:opacity-50"
 		/>
@@ -181,7 +219,7 @@ new class extends Component {
 			icon="o-arrow-uturn-right"
 			variant="ghost"
 			size="sm"
-			:tooltip="__( 'Redo' )"
+			:tooltip-bottom="__( 'Redo' )"
 			:disabled="!$canRedo"
 			class="disabled:opacity-50"
 		/>
@@ -206,7 +244,8 @@ new class extends Component {
 			icon="o-cog-6-tooth"
 			variant="ghost"
 			size="sm"
-			:tooltip="__( 'Settings' )"
+			:tooltip-bottom="__( 'Settings' )"
+			:class="$settingsOpen ? 'text-blue-600 bg-blue-50' : ''"
 		/>
 
 		<x-artisanpack-button

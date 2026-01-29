@@ -50,3 +50,11 @@ expect()->extend( 'toBeOne', function () {
 | global functions to help you to reduce the number of lines of code in your test files.
 |
 */
+
+// Stub for kses() from artisanpack-ui/security (not a direct dependency).
+if ( ! function_exists( 'kses' ) ) {
+	function kses( string $content ): string
+	{
+		return strip_tags( $content, '<strong><em><b><i><u><s><a><br><p><span><div><ul><ol><li>' );
+	}
+}

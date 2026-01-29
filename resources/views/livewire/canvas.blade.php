@@ -267,6 +267,74 @@ new class extends Component {
 	}
 
 	/**
+	 * Save inline edit and navigate to an adjacent block.
+	 *
+	 * Combines content saving with navigation to prevent data loss
+	 * when moving between blocks via Tab or Arrow keys.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @param string $blockId   The block ID being edited.
+	 * @param string $content   The updated text content.
+	 * @param string $direction The navigation direction ('up' or 'down').
+	 *
+	 * @return void
+	 */
+	public function saveAndNavigate( string $blockId, string $content, string $direction ): void
+	{
+		$currentIndex = null;
+
+		foreach ( $this->blocks as $i => $block ) {
+			if ( ( $block['id'] ?? '' ) === $blockId ) {
+				$this->blocks[ $i ]['content']['text'] = $content;
+				$currentIndex                          = $i;
+				break;
+			}
+		}
+
+		if ( null === $currentIndex ) {
+			$this->editingBlockId = null;
+			$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+
+			return;
+		}
+
+		$lastIndex = count( $this->blocks ) - 1;
+
+		// At the last block going down: exit edit mode and focus typing area.
+		if ( 'down' === $direction && $currentIndex >= $lastIndex ) {
+			$this->editingBlockId = null;
+			$this->activeBlockId  = null;
+			$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+			$this->dispatch( 'focus-typing-area' );
+
+			return;
+		}
+
+		// At the first block going up: stay on the same block.
+		if ( 'up' === $direction && 0 === $currentIndex ) {
+			$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+
+			return;
+		}
+
+		$targetIndex   = 'up' === $direction ? $currentIndex - 1 : $currentIndex + 1;
+		$targetBlock   = $this->blocks[ $targetIndex ];
+		$targetBlockId = $targetBlock['id'] ?? '';
+
+		$this->activeBlockId  = $targetBlockId;
+		$this->editingBlockId = $this->isBlockEditable( $targetBlock['type'] ?? '' )
+			? $targetBlockId
+			: null;
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+
+		if ( null !== $this->editingBlockId ) {
+			$this->dispatch( 'focus-block', blockId: $this->editingBlockId );
+		}
+	}
+
+	/**
 	 * Handle keyboard navigation between blocks.
 	 *
 	 * @since 1.1.0
@@ -301,8 +369,15 @@ new class extends Component {
 			$targetIndex = min( count( $this->blocks ) - 1, $currentIndex + 1 );
 		}
 
-		$this->activeBlockId  = $this->blocks[ $targetIndex ]['id'] ?? '';
-		$this->editingBlockId = null;
+		$targetBlock          = $this->blocks[ $targetIndex ];
+		$this->activeBlockId  = $targetBlock['id'] ?? '';
+		$this->editingBlockId = $this->isBlockEditable( $targetBlock['type'] ?? '' )
+			? $this->activeBlockId
+			: null;
+
+		if ( null !== $this->editingBlockId ) {
+			$this->dispatch( 'focus-block', blockId: $this->editingBlockId );
+		}
 	}
 
 	/**
@@ -351,6 +426,52 @@ new class extends Component {
 	}
 
 	/**
+	 * Save current block content and insert a new text block after it.
+	 *
+	 * Triggered by pressing Enter inside an editable block. Saves the
+	 * current block's content, creates a new text block immediately
+	 * after it, and enters edit mode on the new block.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @param string $blockId The block ID being edited.
+	 * @param string $content The current block's text content.
+	 *
+	 * @return void
+	 */
+	public function insertBlockAfter( string $blockId, string $content ): void
+	{
+		$currentIndex = null;
+
+		foreach ( $this->blocks as $i => $block ) {
+			if ( ( $block['id'] ?? '' ) === $blockId ) {
+				$this->blocks[ $i ]['content']['text'] = $content;
+				$currentIndex                          = $i;
+				break;
+			}
+		}
+
+		if ( null === $currentIndex ) {
+			return;
+		}
+
+		$newBlock = [
+			'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
+			'type'     => 'text',
+			'content'  => [],
+			'settings' => [],
+		];
+
+		array_splice( $this->blocks, $currentIndex + 1, 0, [ $newBlock ] );
+
+		$this->activeBlockId  = $newBlock['id'];
+		$this->editingBlockId = $newBlock['id'];
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->dispatch( 'focus-block', blockId: $newBlock['id'] );
+	}
+
+	/**
 	 * Get available blocks grouped by category for the slash command menu.
 	 *
 	 * @since 1.2.0
@@ -377,6 +498,23 @@ new class extends Component {
 				} )->values()->toArray(),
 			];
 		} )->values()->toArray();
+	}
+
+	/**
+	 * Check whether a block type supports inline text editing.
+	 *
+	 * @since 1.5.0
+	 *
+	 * @param string $blockType The block type identifier.
+	 *
+	 * @return bool
+	 */
+	private function isBlockEditable( string $blockType ): bool
+	{
+		$config   = app( BlockRegistry::class )->get( $blockType );
+		$textType = $config['content_schema']['text']['type'] ?? null;
+
+		return in_array( $textType, [ 'text', 'textarea', 'richtext' ], true );
 	}
 }; ?>
 
@@ -478,62 +616,208 @@ new class extends Component {
 			{{-- Blocks with drag-and-drop --}}
 			<div
 				x-drag-context
-				@drag:end="$wire.reorderBlocks( $event.detail.orderedIds )"
+				@drag:end="$el._recentlyMovedKeys = []; $wire.reorderBlocks( $event.detail.orderedIds )"
 				class="space-y-2"
 				role="list"
 				aria-label="{{ __( 'Page blocks' ) }}"
 			>
 				@foreach ( $blocks as $blockIndex => $block )
+					@php
+						$blockConfig    = app( BlockRegistry::class )->get( $block['type'] ?? '' );
+						$contentSchema  = $blockConfig['content_schema'] ?? [];
+						$textFieldType  = $contentSchema['text']['type'] ?? null;
+						$isRichText     = 'richtext' === $textFieldType;
+						$isEditableText = in_array( $textFieldType, [ 'text', 'textarea', 'richtext' ], true );
+						$blockType      = $block['type'] ?? '';
+						$blockId        = $block['id'] ?? '';
+						$isActive       = $blockId === $activeBlockId;
+						$isEditing      = $blockId === $editingBlockId && $isEditableText;
+					@endphp
 					<div
-						x-drag-item="'{{ $block['id'] ?? $blockIndex }}'"
-						wire:key="block-{{ $block['id'] ?? $blockIndex }}"
-						@click.stop="$wire.selectBlock( '{{ $block['id'] ?? '' }}' )"
-						@dblclick.stop="$wire.startInlineEdit( '{{ $block['id'] ?? '' }}' )"
-						class="ve-canvas-block relative cursor-pointer rounded border bg-white p-3 shadow-sm transition-colors
-							{{ ( $block['id'] ?? '' ) === $activeBlockId ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200 hover:border-gray-300' }}"
+						x-drag-item="'{{ $blockId ?: $blockIndex }}'"
+						wire:key="block-{{ $blockId ?: $blockIndex }}"
+						@if ( $isEditableText )
+							@click.stop="$wire.startInlineEdit( '{{ $blockId }}' )"
+						@else
+							@click.stop="$wire.selectBlock( '{{ $blockId }}' )"
+						@endif
+						class="ve-canvas-block group relative rounded px-4 py-2 transition-colors
+							{{ $isActive ? 'ring-2 ring-blue-200' : '' }}"
 						role="listitem"
 					>
-						@if ( ( $block['id'] ?? '' ) === $editingBlockId && in_array( $block['type'] ?? '', [ 'heading', 'text', 'quote' ], true ) )
-							{{-- Inline Edit Mode --}}
-							<div
-								x-data="{ content: @js( $block['content']['text'] ?? '' ) }"
-								x-init="$nextTick( () => $refs.editor.focus() )"
+						{{-- Block Actions Overlay --}}
+						<div class="pointer-events-none absolute -left-10 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100
+							{{ $isActive ? 'pointer-events-auto opacity-100' : '' }}">
+							<span class="cursor-grab text-gray-400 hover:text-gray-600" aria-label="{{ __( 'Drag to reorder block' ) }}">
+								<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+								</svg>
+							</span>
+						</div>
+						@if ( $isActive )
+							<button
+								wire:click.stop="deleteBlock( '{{ $blockId }}' )"
+								class="absolute -right-10 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600"
+								title="{{ __( 'Delete Block' ) }}"
 							>
+								<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+								</svg>
+							</button>
+						@endif
+
+						{{-- Block Content --}}
+						@if ( $isEditing )
+							@if ( $isRichText )
+								{{-- Rich Text Edit Mode --}}
+								<div x-data="blockToolbar( { htmlContent: @js( $block['content']['text'] ?? '' ) } )">
+									@include( 'visual-editor::livewire.partials.block-toolbar' )
+									<div
+										x-ref="editor"
+										contenteditable="true"
+										x-init="$el.innerHTML = htmlContent; $nextTick( () => $el.focus() )"
+										@blur="if ( !window.veNavigating ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML ) }"
+										@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML )"
+										@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.innerHTML )"
+										@keydown.tab.prevent="window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, $event.shiftKey ? 'up' : 'down' )"
+										@keydown.arrow-up="if ( window.veAtTopOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, 'up' ) }"
+										@keydown.arrow-down="if ( window.veAtBottomOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, 'down' ) }"
+										@keydown.meta.b.prevent="format( 'bold' )"
+										@keydown.ctrl.b.prevent="format( 'bold' )"
+										@keydown.meta.i.prevent="format( 'italic' )"
+										@keydown.ctrl.i.prevent="format( 'italic' )"
+										@keydown.meta.u.prevent="format( 'underline' )"
+										@keydown.ctrl.u.prevent="format( 'underline' )"
+										class="prose prose-sm min-h-[1.5rem] max-w-none rounded px-1 outline-none ring-2 ring-blue-300"
+									></div>
+								</div>
+							@else
+								{{-- Plain Text Edit Mode --}}
+								@php
+									$editLevel   = $block['content']['level'] ?? 'h2';
+									$editTag     = 'heading' === $blockType ? ( in_array( $editLevel, [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ? $editLevel : 'h2' ) : 'div';
+									$editClasses = match ( $blockType ) {
+										'heading' => match ( $editTag ) {
+											'h1'    => 'text-4xl font-bold',
+											'h2'    => 'text-3xl font-bold',
+											'h3'    => 'text-2xl font-semibold',
+											'h4'    => 'text-xl font-semibold',
+											'h5'    => 'text-lg font-medium',
+											'h6'    => 'text-base font-medium',
+											default => 'text-3xl font-bold',
+										},
+										'quote' => 'border-l-4 border-gray-300 pl-4 italic text-gray-700',
+										default => '',
+									};
+								@endphp
 								<div
-									x-ref="editor"
-									contenteditable="true"
-									x-text="content"
-									@blur="$wire.saveInlineEdit( '{{ $block['id'] ?? '' }}', $el.textContent )"
-									@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $block['id'] ?? '' }}', $el.textContent )"
-									class="min-h-[1.5rem] rounded px-1 outline-none ring-2 ring-blue-300"
-								></div>
-							</div>
+									x-data="{ content: @js( $block['content']['text'] ?? '' ) }"
+									x-init="$nextTick( () => $refs.editor.focus() )"
+								>
+									<{{ $editTag }}
+										x-ref="editor"
+										contenteditable="true"
+										x-text="content"
+										@blur="if ( !window.veNavigating ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.textContent ) }"
+										@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.textContent )"
+										@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.textContent )"
+										@keydown.tab.prevent="window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.textContent, $event.shiftKey ? 'up' : 'down' )"
+										@keydown.arrow-up="if ( window.veAtTopOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.textContent, 'up' ) }"
+										@keydown.arrow-down="if ( window.veAtBottomOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.textContent, 'down' ) }"
+										class="{{ $editClasses }} min-h-[1.5rem] rounded px-1 outline-none ring-2 ring-blue-300"
+									></{{ $editTag }}>
+								</div>
+							@endif
 						@else
-							{{-- Display Mode --}}
-							<div class="flex items-center gap-2">
-								<span class="cursor-grab text-gray-400" aria-label="{{ __( 'Drag to reorder block' ) }}">
-									<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
-									</svg>
-								</span>
-								<span class="text-xs font-medium uppercase tracking-wider text-gray-400">
-									{{ ucfirst( $block['type'] ?? __( 'Block' ) ) }}
-								</span>
-								@if ( ( $block['id'] ?? '' ) === $activeBlockId )
-									<button
-										wire:click.stop="deleteBlock( '{{ $block['id'] ?? '' }}' )"
-										class="ml-auto text-red-400 hover:text-red-600"
-										title="{{ __( 'Delete Block' ) }}"
-									>
-										<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+							{{-- WYSIWYG Display Mode --}}
+							@switch ( $blockType )
+								@case ( 'heading' )
+									@php
+										$level          = $block['content']['level'] ?? 'h2';
+										$headingTag     = in_array( $level, [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ? $level : 'h2';
+										$headingClasses = match ( $headingTag ) {
+											'h1'    => 'text-4xl font-bold',
+											'h2'    => 'text-3xl font-bold',
+											'h3'    => 'text-2xl font-semibold',
+											'h4'    => 'text-xl font-semibold',
+											'h5'    => 'text-lg font-medium',
+											'h6'    => 'text-base font-medium',
+											default => 'text-3xl font-bold',
+										};
+									@endphp
+									<{{ $headingTag }} class="{{ $headingClasses }}">
+										@if ( '' !== ( $block['content']['text'] ?? '' ) )
+											{{ $block['content']['text'] }}
+										@else
+											<span class="italic text-gray-400">{{ __( 'Type heading...' ) }}</span>
+										@endif
+									</{{ $headingTag }}>
+									@break
+
+								@case ( 'text' )
+									<div class="prose prose-sm max-w-none">
+										@if ( '' !== ( $block['content']['text'] ?? '' ) )
+											{!! kses( $block['content']['text'] ) !!}
+										@else
+											<p class="italic text-gray-400">{{ __( 'Type text...' ) }}</p>
+										@endif
+									</div>
+									@break
+
+								@case ( 'quote' )
+									<blockquote class="border-l-4 border-gray-300 pl-4 italic text-gray-700">
+										@if ( '' !== ( $block['content']['text'] ?? '' ) )
+											{{ $block['content']['text'] }}
+										@else
+											<span class="not-italic text-gray-400">{{ __( 'Type quote...' ) }}</span>
+										@endif
+										@if ( '' !== ( $block['content']['citation'] ?? '' ) )
+											<cite class="mt-1 block text-sm not-italic text-gray-500">
+												&mdash; {{ $block['content']['citation'] }}
+											</cite>
+										@endif
+									</blockquote>
+									@break
+
+								@case ( 'divider' )
+									<hr class="my-2 border-gray-300" />
+									@break
+
+								@case ( 'spacer' )
+									@php
+										$spacerSize = match ( $block['settings']['size'] ?? 'medium' ) {
+											'small'  => 'h-4',
+											'medium' => 'h-8',
+											'large'  => 'h-16',
+											'xlarge' => 'h-24',
+											default  => 'h-8',
+										};
+									@endphp
+									<div class="{{ $spacerSize }}"></div>
+									@break
+
+								@case ( 'image' )
+									<div class="flex items-center justify-center rounded bg-gray-100 p-8 text-gray-400">
+										<svg class="mr-2 h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
 										</svg>
-									</button>
-								@endif
-							</div>
-							<div class="mt-1 text-sm text-gray-600">
-								{{ $block['content']['text'] ?? __( 'Block content area' ) }}
-							</div>
+										{{ __( 'Image block' ) }}
+									</div>
+									@break
+
+								@case ( 'button' )
+									<div class="py-1">
+										<span class="inline-block rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white">
+											{{ $block['content']['text'] ?? __( 'Button' ) }}
+										</span>
+									</div>
+									@break
+
+								@default
+									<div class="rounded bg-gray-50 p-3 text-sm text-gray-500">
+										<span class="font-medium">{{ ucfirst( $blockType ?: __( 'Block' ) ) }}</span>
+									</div>
+							@endswitch
 						@endif
 					</div>
 				@endforeach
@@ -613,23 +897,29 @@ new class extends Component {
 
 @script
 <script>
+	window.veNavigating = false
+
+	Livewire.hook( 'morphed', () => {
+		window.veNavigating = false
+	} )
+
 	const canvasHandler = ( event ) => {
 		// Skip when typing area or slash menu is active
 		if ( event.target.closest( '.ve-typing-area' ) ) {
 			return
 		}
 
-		if ( 'ArrowUp' === event.key || 'ArrowDown' === event.key ) {
+		if ( ( 'ArrowUp' === event.key || 'ArrowDown' === event.key ) && !event.target.isContentEditable ) {
 			event.preventDefault()
 			$wire.dispatch( 'canvas-navigate', { direction: 'ArrowUp' === event.key ? 'up' : 'down' } )
 		}
 
-		if ( 'Tab' === event.key && !event.ctrlKey && !event.metaKey ) {
+		if ( 'Tab' === event.key && !event.ctrlKey && !event.metaKey && !event.target.isContentEditable ) {
 			event.preventDefault()
 			$wire.dispatch( 'canvas-navigate', { direction: event.shiftKey ? 'up' : 'down' } )
 		}
 
-		if ( 'Escape' === event.key ) {
+		if ( 'Escape' === event.key && !event.target.isContentEditable ) {
 			$wire.deselectAll()
 		}
 
@@ -645,6 +935,76 @@ new class extends Component {
 	}
 
 	document.addEventListener( 'livewire:navigating', cleanup, { once: true } )
+
+	window.veAtTopOfElement = function( el ) {
+		let sel = window.getSelection()
+		if ( !sel || 0 === sel.rangeCount || !sel.isCollapsed ) return false
+		let range = sel.getRangeAt( 0 )
+		if ( 0 === range.startOffset && ( range.startContainer === el || range.startContainer === el.firstChild ) ) return true
+		let elRect = el.getBoundingClientRect()
+		let rangeRect = range.getBoundingClientRect()
+		return rangeRect.top - elRect.top < ( rangeRect.height || 16 )
+	}
+
+	window.veAtBottomOfElement = function( el ) {
+		let sel = window.getSelection()
+		if ( !sel || 0 === sel.rangeCount || !sel.isCollapsed ) return false
+		let range = sel.getRangeAt( 0 )
+		let elRect = el.getBoundingClientRect()
+		let rangeRect = range.getBoundingClientRect()
+		if ( 0 === rangeRect.height ) {
+			let tempRange = document.createRange()
+			tempRange.selectNodeContents( el )
+			tempRange.collapse( false )
+			return range.startContainer === tempRange.startContainer && range.startOffset === tempRange.startOffset
+		}
+		return elRect.bottom - rangeRect.bottom < ( rangeRect.height || 16 )
+	}
+
+	Livewire.on( 'focus-typing-area', () => {
+		setTimeout( () => {
+			window.veNavigating = false
+			let typingInput = document.querySelector( '.ve-typing-area input, .ve-typing-area [contenteditable]' )
+			if ( typingInput ) {
+				typingInput.focus()
+			}
+		}, 50 )
+	} )
+
+	Livewire.on( 'focus-block', ( { blockId } ) => {
+		setTimeout( () => {
+			window.veNavigating = false
+			let blockEl = document.querySelector( `[wire\\:key="block-${blockId}"] [contenteditable="true"]` )
+			if ( blockEl ) {
+				blockEl.focus()
+				let sel = window.getSelection()
+				let range = document.createRange()
+				range.selectNodeContents( blockEl )
+				range.collapse( false )
+				sel.removeAllRanges()
+				sel.addRange( range )
+			}
+		}, 50 )
+	} )
+
+	Alpine.data( 'blockToolbar', ( { htmlContent } ) => ( {
+		htmlContent: htmlContent || '',
+
+		format( command ) {
+			document.execCommand( command, false, null )
+		},
+
+		isActive( command ) {
+			return document.queryCommandState( command )
+		},
+
+		insertLink() {
+			let url = prompt( 'Enter URL:' )
+			if ( url ) {
+				document.execCommand( 'createLink', false, url )
+			}
+		},
+	} ) )
 
 	Alpine.data( 'slashCommandInput', ( { blocks } ) => ( {
 		allBlocks: blocks,
@@ -733,11 +1093,18 @@ new class extends Component {
 				event.preventDefault()
 				let text = this.$refs.typingInput.textContent.trim()
 				if ( '' !== text ) {
-					$wire.insertBlockWithContent( 'text', text )
 					this.$refs.typingInput.textContent = ''
-					this.$nextTick( () => {
-						this.$refs.typingInput.scrollIntoView( { behavior: 'smooth', block: 'nearest' } )
-					} )
+					let startTime = Date.now()
+					let refocusInterval = setInterval( () => {
+						let el = document.querySelector( '.ve-typing-area [contenteditable]' )
+						if ( el ) {
+							el.focus()
+						}
+						if ( Date.now() - startTime > 1500 ) {
+							clearInterval( refocusInterval )
+						}
+					}, 50 )
+					$wire.insertBlockWithContent( 'text', text )
 				}
 			}
 		},

@@ -111,3 +111,39 @@ test( 'toolbar toggleSettings dispatches editor-toggle-settings event', function
 		->call( 'toggleSettings' )
 		->assertDispatched( 'editor-toggle-settings' );
 } );
+
+// =========================================
+// Sidebar Toggle Tests
+// =========================================
+
+test( 'toolbar renders with sidebar state props', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+		'sidebarOpen'   => true,
+		'settingsOpen'  => false,
+	] )->assertStatus( 200 );
+} );
+
+test( 'toolbar toggleSidebar dispatches editor-toggle-sidebar event', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+	] )
+		->call( 'toggleSidebar' )
+		->assertDispatched( 'editor-toggle-sidebar' );
+} );
+
+test( 'toolbar accepts sidebar and settings open props', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+		'sidebarOpen'   => false,
+		'settingsOpen'  => true,
+	] )
+		->assertSet( 'sidebarOpen', false )
+		->assertSet( 'settingsOpen', true );
+} );

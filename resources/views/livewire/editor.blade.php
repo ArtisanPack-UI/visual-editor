@@ -515,6 +515,19 @@ new class extends Component {
 	}
 
 	/**
+	 * Handle the sidebar toggle event from the toolbar.
+	 *
+	 * @since 1.5.0
+	 *
+	 * @return void
+	 */
+	#[On( 'editor-toggle-sidebar' )]
+	public function onToggleSidebar(): void
+	{
+		$this->toggleSidebar();
+	}
+
+	/**
 	 * Handle the settings toggle event from the toolbar.
 	 *
 	 * @since 1.3.0
@@ -649,12 +662,15 @@ new class extends Component {
 }; ?>
 
 <div class="ve-editor flex h-screen flex-col overflow-hidden bg-gray-100"
+	 data-theme="light"
 	 data-autosave-interval="{{ config( 'artisanpack.visual-editor.editor.autosave_interval', 60 ) }}">
 	{{-- Top Toolbar --}}
 	<livewire:visual-editor::toolbar
 		:save-status="$saveStatus"
 		:content-title="$content->title"
 		:content-status="$content->status"
+		:sidebar-open="$sidebarOpen"
+		:settings-open="$showSettingsDrawer"
 	/>
 
 	{{-- Main Editor Area --}}
@@ -682,184 +698,180 @@ new class extends Component {
 				:last-saved="$lastSaved"
 			/>
 		</div>
-	</div>
 
-	{{-- Settings Drawer --}}
-	<x-artisanpack-drawer
-		wire:model="showSettingsDrawer"
-		right
-		:title="__( 'Settings' )"
-		separator
-		with-close-button
-		close-on-escape
-		class="z-40"
-	>
-		{{-- Settings Drawer Tabs --}}
-		<div class="-mx-4 -mt-4 mb-4 flex border-b border-gray-200">
-			@php
-				$settingsTabs = [
-					'block' => __( 'Block' ),
-					'page'  => __( 'Page' ),
-				];
-			@endphp
-			@foreach ( $settingsTabs as $key => $label )
-				<button
-					wire:click="setSettingsDrawerTab( '{{ $key }}' )"
-					class="flex-1 border-b-2 px-3 py-2 text-center text-xs font-medium transition-colors
-						{{ $settingsDrawerTab === $key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700' }}"
-				>
-					{{ $label }}
-				</button>
-			@endforeach
-		</div>
-
-		{{-- Tab Content --}}
-		@if ( 'block' === $settingsDrawerTab )
-			@if ( null !== $activeBlockId )
-				@php
-					$activeBlockConfig  = $this->getActiveBlockConfig();
-					$settingsSchema     = $activeBlockConfig['settings_schema'] ?? [];
-					$activeBlock        = collect( $blocks )->firstWhere( 'id', $activeBlockId );
-					$currentSettings    = $activeBlock['settings'] ?? [];
-				@endphp
-
-				@if ( empty( $settingsSchema ) )
-					<p class="text-sm text-gray-500">
-						{{ __( 'This block has no configurable settings.' ) }}
-					</p>
-				@else
-					<div class="space-y-4">
-						@foreach ( $settingsSchema as $settingKey => $schema )
-							@php
-								$fieldType    = $schema['type'] ?? 'text';
-								$fieldLabel   = $schema['label'] ?? ucfirst( str_replace( '_', ' ', $settingKey ) );
-								$fieldOptions = $schema['options'] ?? [];
-								$fieldDefault = $schema['default'] ?? '';
-								$fieldValue   = $currentSettings[ $settingKey ] ?? $fieldDefault;
-							@endphp
-
-							@if ( 'select' === $fieldType )
-								@php
-									$selectOptions = collect( $fieldOptions )->map( fn ( $opt ) => [
-										'id'   => $opt,
-										'name' => ucfirst( $opt ),
-									] )->all();
-								@endphp
-								<x-artisanpack-select
-									:label="__( $fieldLabel )"
-									:options="$selectOptions"
-									option-value="id"
-									option-label="name"
-									wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
-									:selected="$fieldValue"
-								/>
-							@elseif ( 'alignment' === $fieldType )
-								@php
-									$alignmentOptions = [
-										[ 'id' => 'left', 'name' => __( 'Left' ) ],
-										[ 'id' => 'center', 'name' => __( 'Center' ) ],
-										[ 'id' => 'right', 'name' => __( 'Right' ) ],
-									];
-								@endphp
-								<x-artisanpack-select
-									:label="__( $fieldLabel )"
-									:options="$alignmentOptions"
-									option-value="id"
-									option-label="name"
-									wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
-									:selected="$fieldValue"
-								/>
-							@elseif ( 'toggle' === $fieldType )
-								<x-artisanpack-toggle
-									:label="__( $fieldLabel )"
-									:checked="(bool) $fieldValue"
-									wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.checked )"
-								/>
-							@elseif ( 'color_picker' === $fieldType )
-								<x-artisanpack-input
-									type="color"
-									:label="__( $fieldLabel )"
-									:value="$fieldValue"
-									wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
-								/>
-							@elseif ( 'url' === $fieldType )
-								<x-artisanpack-input
-									type="url"
-									:label="__( $fieldLabel )"
-									:value="$fieldValue"
-									wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
-								/>
-							@elseif ( 'textarea' === $fieldType )
-								<div>
-									<label class="mb-1 block text-sm font-medium text-gray-700">{{ __( $fieldLabel ) }}</label>
-									<textarea
-										wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
-										class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-										rows="3"
-									>{{ $fieldValue }}</textarea>
-								</div>
-							@else
-								<x-artisanpack-input
-									:label="__( $fieldLabel )"
-									:value="$fieldValue"
-									wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
-								/>
-							@endif
-						@endforeach
-					</div>
-				@endif
-			@else
-				<p class="text-sm text-gray-500">
-					{{ __( 'Select a block on the canvas to view its settings.' ) }}
-				</p>
-			@endif
-		@elseif ( 'page' === $settingsDrawerTab )
-			<div class="space-y-4">
-				<x-artisanpack-input
-					wire:model.blur="contentTitle"
-					:label="__( 'Title' )"
-				/>
-
-				<x-artisanpack-input
-					wire:model.blur="contentSlug"
-					:label="__( 'Slug' )"
-				/>
-
-				<div>
-					<label class="mb-1 block text-sm font-medium text-gray-700">{{ __( 'Excerpt' ) }}</label>
-					<textarea
-						wire:model.blur="contentExcerpt"
-						class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-						rows="3"
-						placeholder="{{ __( 'A short summary of the content...' ) }}"
-					></textarea>
+		{{-- Right Settings Panel (inline) --}}
+		@if ( $showSettingsDrawer )
+			<div class="ve-settings-panel flex w-72 shrink-0 flex-col border-l border-gray-200 bg-white">
+				{{-- Settings Panel Tabs --}}
+				<div class="flex border-b border-gray-200">
+					@php
+						$settingsTabs = [
+							'block' => __( 'Block' ),
+							'page'  => __( 'Page' ),
+						];
+					@endphp
+					@foreach ( $settingsTabs as $key => $label )
+						<button
+							wire:click="setSettingsDrawerTab( '{{ $key }}' )"
+							class="flex-1 border-b-2 px-3 py-2 text-center text-xs font-medium transition-colors
+								{{ $settingsDrawerTab === $key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700' }}"
+						>
+							{{ $label }}
+						</button>
+					@endforeach
 				</div>
 
-				<div class="border-t border-gray-200 pt-4">
-					<x-artisanpack-heading level="3" size="text-sm" semibold class="mb-3">
-						{{ __( 'SEO' ) }}
-					</x-artisanpack-heading>
+				{{-- Tab Content --}}
+				<div class="flex-1 overflow-y-auto p-3">
+					@if ( 'block' === $settingsDrawerTab )
+						@if ( null !== $activeBlockId )
+							@php
+								$activeBlockConfig  = $this->getActiveBlockConfig();
+								$settingsSchema     = $activeBlockConfig['settings_schema'] ?? [];
+								$activeBlock        = collect( $blocks )->firstWhere( 'id', $activeBlockId );
+								$currentSettings    = $activeBlock['settings'] ?? [];
+							@endphp
 
-					<div class="space-y-4">
-						<x-artisanpack-input
-							wire:model.blur="contentMetaTitle"
-							:label="__( 'Meta Title' )"
-						/>
+							@if ( empty( $settingsSchema ) )
+								<p class="text-sm text-gray-500">
+									{{ __( 'This block has no configurable settings.' ) }}
+								</p>
+							@else
+								<div class="space-y-4">
+									@foreach ( $settingsSchema as $settingKey => $schema )
+										@php
+											$fieldType    = $schema['type'] ?? 'text';
+											$fieldLabel   = $schema['label'] ?? ucfirst( str_replace( '_', ' ', $settingKey ) );
+											$fieldOptions = $schema['options'] ?? [];
+											$fieldDefault = $schema['default'] ?? '';
+											$fieldValue   = $currentSettings[ $settingKey ] ?? $fieldDefault;
+										@endphp
 
-						<div>
-							<label class="mb-1 block text-sm font-medium text-gray-700">{{ __( 'Meta Description' ) }}</label>
-							<textarea
-								wire:model.blur="contentMetaDescription"
-								class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-								rows="3"
-								placeholder="{{ __( 'A description for search engines...' ) }}"
-							></textarea>
+										@if ( 'select' === $fieldType )
+											@php
+												$selectOptions = collect( $fieldOptions )->map( fn ( $opt ) => [
+													'id'   => $opt,
+													'name' => ucfirst( $opt ),
+												] )->all();
+											@endphp
+											<x-artisanpack-select
+												:label="__( $fieldLabel )"
+												:options="$selectOptions"
+												option-value="id"
+												option-label="name"
+												wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
+												:selected="$fieldValue"
+											/>
+										@elseif ( 'alignment' === $fieldType )
+											@php
+												$alignmentOptions = [
+													[ 'id' => 'left', 'name' => __( 'Left' ) ],
+													[ 'id' => 'center', 'name' => __( 'Center' ) ],
+													[ 'id' => 'right', 'name' => __( 'Right' ) ],
+												];
+											@endphp
+											<x-artisanpack-select
+												:label="__( $fieldLabel )"
+												:options="$alignmentOptions"
+												option-value="id"
+												option-label="name"
+												wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
+												:selected="$fieldValue"
+											/>
+										@elseif ( 'toggle' === $fieldType )
+											<x-artisanpack-toggle
+												:label="__( $fieldLabel )"
+												:checked="(bool) $fieldValue"
+												wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.checked )"
+											/>
+										@elseif ( 'color_picker' === $fieldType )
+											<x-artisanpack-input
+												type="color"
+												:label="__( $fieldLabel )"
+												:value="$fieldValue"
+												wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
+											/>
+										@elseif ( 'url' === $fieldType )
+											<x-artisanpack-input
+												type="url"
+												:label="__( $fieldLabel )"
+												:value="$fieldValue"
+												wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
+											/>
+										@elseif ( 'textarea' === $fieldType )
+											<div>
+												<label class="mb-1 block text-sm font-medium text-gray-700">{{ __( $fieldLabel ) }}</label>
+												<textarea
+													wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
+													class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+													rows="3"
+												>{{ $fieldValue }}</textarea>
+											</div>
+										@else
+											<x-artisanpack-input
+												:label="__( $fieldLabel )"
+												:value="$fieldValue"
+												wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
+											/>
+										@endif
+									@endforeach
+								</div>
+							@endif
+						@else
+							<p class="text-sm text-gray-500">
+								{{ __( 'Select a block on the canvas to view its settings.' ) }}
+							</p>
+						@endif
+					@elseif ( 'page' === $settingsDrawerTab )
+						<div class="space-y-4">
+							<x-artisanpack-input
+								wire:model.blur="contentTitle"
+								:label="__( 'Title' )"
+							/>
+
+							<x-artisanpack-input
+								wire:model.blur="contentSlug"
+								:label="__( 'Slug' )"
+							/>
+
+							<div>
+								<label class="mb-1 block text-sm font-medium text-gray-700">{{ __( 'Excerpt' ) }}</label>
+								<textarea
+									wire:model.blur="contentExcerpt"
+									class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+									rows="3"
+									placeholder="{{ __( 'A short summary of the content...' ) }}"
+								></textarea>
+							</div>
+
+							<div class="border-t border-gray-200 pt-4">
+								<x-artisanpack-heading level="3" size="text-sm" semibold class="mb-3">
+									{{ __( 'SEO' ) }}
+								</x-artisanpack-heading>
+
+								<div class="space-y-4">
+									<x-artisanpack-input
+										wire:model.blur="contentMetaTitle"
+										:label="__( 'Meta Title' )"
+									/>
+
+									<div>
+										<label class="mb-1 block text-sm font-medium text-gray-700">{{ __( 'Meta Description' ) }}</label>
+										<textarea
+											wire:model.blur="contentMetaDescription"
+											class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+											rows="3"
+											placeholder="{{ __( 'A description for search engines...' ) }}"
+										></textarea>
+									</div>
+								</div>
+							</div>
 						</div>
-					</div>
+					@endif
 				</div>
 			</div>
 		@endif
-	</x-artisanpack-drawer>
+	</div>
 
 	{{-- Pre-Publish Checklist Panel --}}
 	<x-artisanpack-drawer

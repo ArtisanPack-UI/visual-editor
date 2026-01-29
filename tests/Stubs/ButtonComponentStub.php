@@ -81,8 +81,11 @@ class ButtonComponentStub extends Component
 	 * @param string|null $variant The button variant.
 	 * @param string|null $color   The button color.
 	 * @param string|null $size    The button size.
-	 * @param string|null $spinner The spinner target.
-	 * @param string|null $tooltip The tooltip text.
+	 * @param string|null $spinner      The spinner target.
+	 * @param string|null $tooltip       The tooltip text.
+	 * @param string|null $tooltipBottom The bottom tooltip text.
+	 * @param string|null $tooltipLeft   The left tooltip text.
+	 * @param string|null $tooltipRight  The right tooltip text.
 	 */
 	public function __construct(
 		?string $label = null,
@@ -92,6 +95,9 @@ class ButtonComponentStub extends Component
 		?string $size = null,
 		?string $spinner = null,
 		?string $tooltip = null,
+		?string $tooltipBottom = null,
+		?string $tooltipLeft = null,
+		?string $tooltipRight = null,
 	) {
 		$this->label   = $label;
 		$this->icon    = $icon;
