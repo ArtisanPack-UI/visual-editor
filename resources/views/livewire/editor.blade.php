@@ -507,6 +507,26 @@ new class extends Component {
 	}
 
 	/**
+	 * Handle blocks reordered from the layers tab.
+	 *
+	 * Updates the editor state and syncs the new order to the canvas.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param array $blocks The reordered blocks data.
+	 *
+	 * @return void
+	 */
+	#[On( 'layers-reordered' )]
+	public function onLayersReordered( array $blocks ): void
+	{
+		$this->blocks     = $blocks;
+		$this->isDirty    = true;
+		$this->saveStatus = 'unsaved';
+		$this->dispatch( 'canvas-sync-blocks', blocks: $this->blocks );
+	}
+
+	/**
 	 * Toggle the settings drawer open/closed.
 	 *
 	 * @since 1.3.0

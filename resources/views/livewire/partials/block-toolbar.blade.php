@@ -33,7 +33,7 @@
 <div
 	class="ve-global-toolbar absolute bottom-full left-0 z-20 mb-1 flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-1.5 py-1 shadow-sm"
 	x-data="globalBlockToolbar()"
-	@mousedown.prevent
+	@mousedown.prevent.self
 	@click.stop
 >
 	{{-- Group 1: Universal Tools --}}
@@ -49,6 +49,7 @@
 
 	{{-- Drag Handle --}}
 	<span
+		draggable="true"
 		class="cursor-grab rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
 		title="{{ __( 'Drag to reorder' ) }}"
 		aria-label="{{ __( 'Drag to reorder block' ) }}"

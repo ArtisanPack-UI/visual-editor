@@ -84,6 +84,40 @@ new class extends Component {
 	}
 
 	/**
+	 * Handle block selection from external sources (e.g. layers tab).
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param string $blockId The block ID to select.
+	 *
+	 * @return void
+	 */
+	#[On( 'block-selected' )]
+	public function onBlockSelected( string $blockId ): void
+	{
+		$this->activeBlockId = $blockId;
+
+		if ( $this->editingBlockId !== $blockId ) {
+			$this->editingBlockId = null;
+		}
+	}
+
+	/**
+	 * Sync blocks from the editor (e.g. after layers reorder).
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param array $blocks The updated blocks array.
+	 *
+	 * @return void
+	 */
+	#[On( 'canvas-sync-blocks' )]
+	public function onCanvasSyncBlocks( array $blocks ): void
+	{
+		$this->blocks = $blocks;
+	}
+
+	/**
 	 * Deselect all blocks.
 	 *
 	 * @since 1.1.0
@@ -279,7 +313,7 @@ new class extends Component {
 	public function deleteBlock( string $blockId ): void
 	{
 		$this->blocks = array_values(
-			array_filter( $this->blocks, fn ( $b ) => ( $b['id'] ?? '' ) !== $blockId )
+			array_filter( $this->blocks, fn ( $b ) => ( $b['id'] ?? '' ) !== $blockId ),
 		);
 
 		if ( $this->activeBlockId === $blockId ) {
@@ -511,7 +545,12 @@ new class extends Component {
 		}
 
 		$this->blocks[] = $newBlock;
+
+		$this->activeBlockId  = $newBlock['id'];
+		$this->editingBlockId = $newBlock['id'];
+
 		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->dispatch( 'focus-block', blockId: $newBlock['id'] );
 	}
 
 	/**
@@ -1047,17 +1086,29 @@ new class extends Component {
 	} )
 
 	Livewire.on( 'focus-block', ( { blockId } ) => {
-		setTimeout( () => {
+		let startTime = Date.now()
+		let settled   = false
+		let focusInterval = setInterval( () => {
 			window.veNavigating = false
 			let blockEl = document.querySelector( `[wire\\:key="block-${blockId}"] [contenteditable="true"]` )
 			if ( blockEl ) {
-				blockEl.focus()
-				let sel = window.getSelection()
-				let range = document.createRange()
-				range.selectNodeContents( blockEl )
-				range.collapse( false )
-				sel.removeAllRanges()
-				sel.addRange( range )
+				if ( document.activeElement !== blockEl ) {
+					blockEl.focus()
+					let sel = window.getSelection()
+					let range = document.createRange()
+					range.selectNodeContents( blockEl )
+					range.collapse( false )
+					sel.removeAllRanges()
+					sel.addRange( range )
+					settled = false
+				} else if ( !settled ) {
+					settled = true
+				} else {
+					clearInterval( focusInterval )
+				}
+			}
+			if ( Date.now() - startTime > 2000 ) {
+				clearInterval( focusInterval )
 			}
 		}, 50 )
 	} )
@@ -1141,6 +1192,11 @@ new class extends Component {
 				}
 			} else if ( this.menuOpen ) {
 				this.closeMenu()
+			} else if ( '' !== text.trim() ) {
+				this.$refs.typingInput.textContent = ''
+				window.veNavigating = true
+				this.$refs.typingInput.blur()
+				$wire.insertBlockWithContent( 'text', text )
 			}
 		},
 
@@ -1168,21 +1224,6 @@ new class extends Component {
 
 			if ( 'Enter' === event.key && !event.shiftKey ) {
 				event.preventDefault()
-				let text = this.$refs.typingInput.textContent.trim()
-				if ( '' !== text ) {
-					this.$refs.typingInput.textContent = ''
-					let startTime = Date.now()
-					let refocusInterval = setInterval( () => {
-						let el = document.querySelector( '.ve-typing-area [contenteditable]' )
-						if ( el ) {
-							el.focus()
-						}
-						if ( Date.now() - startTime > 1500 ) {
-							clearInterval( refocusInterval )
-						}
-					}, 50 )
-					$wire.insertBlockWithContent( 'text', text )
-				}
 			}
 		},
 

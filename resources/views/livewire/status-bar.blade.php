@@ -14,6 +14,7 @@ declare( strict_types=1 );
  * @since      1.0.0
  */
 
+use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 new class extends Component {
@@ -24,6 +25,7 @@ new class extends Component {
 	 *
 	 * @var string
 	 */
+	#[Reactive]
 	public string $saveStatus = 'saved';
 
 	/**
@@ -42,6 +44,7 @@ new class extends Component {
 	 *
 	 * @var string
 	 */
+	#[Reactive]
 	public string $lastSaved = '';
 
 	/**
@@ -51,6 +54,7 @@ new class extends Component {
 	 *
 	 * @var string
 	 */
+	#[Reactive]
 	public string $contentStatus = 'draft';
 }; ?>
 

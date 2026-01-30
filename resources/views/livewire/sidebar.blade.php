@@ -19,6 +19,7 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Registries\SectionRegistry;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 new class extends Component {
@@ -56,6 +57,7 @@ new class extends Component {
 	 *
 	 * @var array
 	 */
+	#[Reactive]
 	public array $blocks = [];
 
 	/**
@@ -65,6 +67,7 @@ new class extends Component {
 	 *
 	 * @var string|null
 	 */
+	#[Reactive]
 	public ?string $activeBlockId = null;
 
 	/**
@@ -165,6 +168,29 @@ new class extends Component {
 	{
 		$this->dispatch( 'block-selected', blockId: $blockId );
 	}
+
+	/**
+	 * Reorder blocks from the layers tab via drag and drop.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param array $orderedIds The block IDs in their new order.
+	 *
+	 * @return void
+	 */
+	public function reorderLayerBlocks( array $orderedIds ): void
+	{
+		$indexed   = collect( $this->blocks )->keyBy( 'id' );
+		$reordered = [];
+
+		foreach ( $orderedIds as $id ) {
+			if ( $indexed->has( $id ) ) {
+				$reordered[] = $indexed->get( $id );
+			}
+		}
+
+		$this->dispatch( 'layers-reordered', blocks: $reordered );
+	}
 }; ?>
 
 <div class="ve-sidebar flex w-72 flex-col border-r border-gray-200 bg-white"
@@ -245,7 +271,13 @@ new class extends Component {
 			@if ( empty( $blocks ) )
 				<p class="text-sm text-gray-500">{{ __( 'No blocks on the canvas yet.' ) }}</p>
 			@else
-				<div class="space-y-1">
+				<div
+					x-drag-context
+					@drag:end="$wire.reorderLayerBlocks( $event.detail.orderedIds )"
+					class="space-y-1"
+					role="list"
+					aria-label="{{ __( 'Layer order' ) }}"
+				>
 					@foreach ( $blocks as $block )
 						@php
 							$blockConfig = app( BlockRegistry::class )->get( $block['type'] ?? '' );
@@ -253,14 +285,18 @@ new class extends Component {
 							$blockIcon   = $blockConfig['icon'] ?? 'fas.cube';
 							$isActive    = ( $block['id'] ?? '' ) === $activeBlockId;
 						@endphp
-						<button
+						<div
+							x-drag-item="'{{ $block['id'] ?? '' }}'"
+							wire:key="layer-{{ $block['id'] ?? '' }}"
 							wire:click="selectLayerBlock( '{{ $block['id'] ?? '' }}' )"
-							class="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors
+							class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors
 								{{ $isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}"
+							role="listitem"
 						>
+							<x-artisanpack-icon name="fas.grip-vertical" class="h-3 w-3 shrink-0 cursor-grab text-gray-300" />
 							<x-artisanpack-icon name="{{ $blockIcon }}" class="h-4 w-4 shrink-0 {{ $isActive ? 'text-blue-500' : 'text-gray-400' }}" />
 							<span class="truncate">{{ $blockName }}</span>
-						</button>
+						</div>
 					@endforeach
 				</div>
 			@endif
