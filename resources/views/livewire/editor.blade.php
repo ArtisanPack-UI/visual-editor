@@ -133,6 +133,33 @@ new class extends Component {
 	public string $activeState = 'default';
 
 	/**
+	 * The text color for the active block's current breakpoint/state.
+	 *
+	 * @since 1.8.0
+	 *
+	 * @var string
+	 */
+	public string $styleTextColor = '';
+
+	/**
+	 * The background color for the active block's current breakpoint/state.
+	 *
+	 * @since 1.8.0
+	 *
+	 * @var string
+	 */
+	public string $styleBackgroundColor = '';
+
+	/**
+	 * The border color for the active block's current breakpoint/state.
+	 *
+	 * @since 1.8.0
+	 *
+	 * @var string
+	 */
+	public string $styleBorderColor = '';
+
+	/**
 	 * The content title for page settings.
 	 *
 	 * @since 1.4.0
@@ -530,6 +557,8 @@ new class extends Component {
 		if ( $this->showPrePublishPanel ) {
 			$this->showPrePublishPanel = false;
 		}
+
+		$this->syncColorProperties();
 	}
 
 	/**
@@ -636,6 +665,85 @@ new class extends Component {
 		}
 
 		return (string) data_get( $block['settings'], "styles.{$breakpoint}.{$state}.{$section}.{$property}", '' );
+	}
+
+	/**
+	 * Sync color properties from the active block's settings.
+	 *
+	 * Reads the text, background, and border color values from the
+	 * active block at the current breakpoint and state, and sets
+	 * them on the dedicated Livewire properties so they can be used
+	 * with wire:model on colorpicker components.
+	 *
+	 * @since 1.8.0
+	 *
+	 * @return void
+	 */
+	protected function syncColorProperties(): void
+	{
+		$this->styleTextColor       = $this->getStyleValue( $this->activeBreakpoint, $this->activeState, 'colors', 'text_color' );
+		$this->styleBackgroundColor = $this->getStyleValue( $this->activeBreakpoint, $this->activeState, 'colors', 'background_color' );
+		$this->styleBorderColor     = $this->getStyleValue( $this->activeBreakpoint, $this->activeState, 'borders', 'border_color' );
+	}
+
+	/**
+	 * Handle active breakpoint updates by syncing color properties.
+	 *
+	 * @since 1.8.0
+	 *
+	 * @return void
+	 */
+	public function updatedActiveBreakpoint(): void
+	{
+		$this->syncColorProperties();
+	}
+
+	/**
+	 * Handle active state updates by syncing color properties.
+	 *
+	 * @since 1.8.0
+	 *
+	 * @return void
+	 */
+	public function updatedActiveState(): void
+	{
+		$this->syncColorProperties();
+	}
+
+	/**
+	 * Handle text color updates from the colorpicker.
+	 *
+	 * @since 1.8.0
+	 *
+	 * @return void
+	 */
+	public function updatedStyleTextColor(): void
+	{
+		$this->updateBlockSetting( "styles.{$this->activeBreakpoint}.{$this->activeState}.colors.text_color", $this->styleTextColor );
+	}
+
+	/**
+	 * Handle background color updates from the colorpicker.
+	 *
+	 * @since 1.8.0
+	 *
+	 * @return void
+	 */
+	public function updatedStyleBackgroundColor(): void
+	{
+		$this->updateBlockSetting( "styles.{$this->activeBreakpoint}.{$this->activeState}.colors.background_color", $this->styleBackgroundColor );
+	}
+
+	/**
+	 * Handle border color updates from the colorpicker.
+	 *
+	 * @since 1.8.0
+	 *
+	 * @return void
+	 */
+	public function updatedStyleBorderColor(): void
+	{
+		$this->updateBlockSetting( "styles.{$this->activeBreakpoint}.{$this->activeState}.borders.border_color", $this->styleBorderColor );
 	}
 
 	/**

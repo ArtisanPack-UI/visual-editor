@@ -280,10 +280,6 @@ class BlockRegistry
 				'text'  => [ 'type' => 'richtext', 'label' => __( 'Heading Text' ), 'required' => true ],
 				'level' => [ 'type' => 'select', 'label' => __( 'Heading Level' ), 'options' => [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], 'default' => 'h2' ],
 			],
-			'settings_schema' => [
-				'alignment' => [ 'type' => 'alignment' ],
-				'color'     => [ 'type' => 'color_picker' ],
-			],
 			'supports' => [ 'sizing', 'typography', 'colors' ],
 			'toolbar'  => [ 'align', 'richtext', 'heading_level' ],
 		] );
@@ -294,10 +290,6 @@ class BlockRegistry
 			'category'       => 'text',
 			'content_schema' => [
 				'text' => [ 'type' => 'richtext', 'label' => __( 'Content' ) ],
-			],
-			'settings_schema' => [
-				'alignment' => [ 'type' => 'alignment' ],
-				'size'      => [ 'type' => 'select', 'options' => [ 'small', 'base', 'large' ] ],
 			],
 			'supports' => [ 'sizing', 'typography', 'colors' ],
 			'toolbar'  => [ 'align', 'richtext' ],
@@ -336,9 +328,7 @@ class BlockRegistry
 				'caption'  => [ 'type' => 'text', 'label' => __( 'Caption' ) ],
 			],
 			'settings_schema' => [
-				'size'    => [ 'type' => 'select', 'options' => [ 'small', 'medium', 'large', 'full' ] ],
-				'rounded' => [ 'type' => 'toggle', 'label' => __( 'Rounded Corners' ) ],
-				'shadow'  => [ 'type' => 'toggle', 'label' => __( 'Drop Shadow' ) ],
+				'shadow' => [ 'type' => 'toggle', 'label' => __( 'Drop Shadow' ) ],
 			],
 			'supports' => [ 'sizing', 'borders' ],
 			'toolbar'  => [ 'align' ],
@@ -367,9 +357,7 @@ class BlockRegistry
 				'target' => [ 'type' => 'select', 'options' => [ '_self', '_blank' ], 'default' => '_self' ],
 			],
 			'settings_schema' => [
-				'style'      => [ 'type' => 'select', 'options' => [ 'primary', 'secondary', 'outline', 'ghost' ] ],
-				'size'       => [ 'type' => 'select', 'options' => [ 'small', 'medium', 'large' ] ],
-				'full_width' => [ 'type' => 'toggle' ],
+				'style' => [ 'type' => 'select', 'options' => [ 'primary', 'secondary', 'outline', 'ghost' ] ],
 			],
 			'supports' => [ 'sizing', 'typography', 'colors', 'borders' ],
 			'toolbar'  => [ 'align' ],
@@ -397,22 +385,16 @@ class BlockRegistry
 
 		// Layout blocks
 		$this->register( 'divider', [
-			'name'            => __( 'Divider' ),
-			'icon'            => 'fas.minus',
-			'category'        => 'layout',
-			'settings_schema' => [
-				'style' => [ 'type' => 'select', 'options' => [ 'solid', 'dashed', 'dotted' ] ],
-			],
+			'name'     => __( 'Divider' ),
+			'icon'     => 'fas.minus',
+			'category' => 'layout',
 			'supports' => [ 'sizing', 'colors', 'borders' ],
 		] );
 
 		$this->register( 'spacer', [
-			'name'            => __( 'Spacer' ),
-			'icon'            => 'fas.arrows-up-down',
-			'category'        => 'layout',
-			'settings_schema' => [
-				'size' => [ 'type' => 'select', 'options' => [ 'small', 'medium', 'large', 'xlarge' ] ],
-			],
+			'name'     => __( 'Spacer' ),
+			'icon'     => 'fas.arrows-up-down',
+			'category' => 'layout',
 			'supports' => [ 'sizing' ],
 		] );
 

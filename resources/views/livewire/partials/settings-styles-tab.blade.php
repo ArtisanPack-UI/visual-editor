@@ -67,18 +67,21 @@
 
 {{-- State Selector --}}
 <div class="border-b border-gray-200 px-3 py-2.5">
-	<label class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-500">
-		{{ __( 'State' ) }}
-	</label>
-	<select
+	@php
+		$stateOptions = [
+			[ 'id' => 'default', 'name' => __( 'Default' ) ],
+			[ 'id' => 'hover', 'name' => __( 'Hover' ) ],
+			[ 'id' => 'focus', 'name' => __( 'Focus' ) ],
+			[ 'id' => 'active', 'name' => __( 'Active' ) ],
+		];
+	@endphp
+	<x-artisanpack-select
+		:label="__( 'State' )"
+		:options="$stateOptions"
+		option-value="id"
+		option-label="name"
 		wire:model.live="activeState"
-		class="w-full rounded-md border border-gray-300 px-2.5 py-1.5 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-	>
-		<option value="default">{{ __( 'Default' ) }}</option>
-		<option value="hover">{{ __( 'Hover' ) }}</option>
-		<option value="focus">{{ __( 'Focus' ) }}</option>
-		<option value="active">{{ __( 'Active' ) }}</option>
-	</select>
+	/>
 </div>
 
 {{-- Sizing Section --}}
@@ -104,63 +107,79 @@
 			{{-- Padding --}}
 			<div>
 				<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Padding' ) }}</label>
-				<div class="grid grid-cols-4 gap-1.5">
-					@foreach ( [ 'top' => 'T', 'right' => 'R', 'bottom' => 'B', 'left' => 'L' ] as $side => $label )
-						<div>
-							<label class="mb-0.5 block text-center text-[10px] text-gray-400">{{ $label }}</label>
-							<input
-								type="text"
-								value="{{ $styleValue( 'sizing', 'padding_' . $side ) }}"
-								wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.sizing.padding_{{ $side }}', $event.target.value )"
-								class="w-full rounded border border-gray-300 px-1.5 py-1 text-center text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-								placeholder="0"
-							/>
-						</div>
-					@endforeach
+				<div class="grid grid-cols-2 gap-2">
+					<x-artisanpack-input
+						:label="__( 'Top' )"
+						:value="$styleValue( 'sizing', 'padding_top' )"
+						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.sizing.padding_top', $event.target.value )"
+						placeholder="0"
+					/>
+					<x-artisanpack-input
+						:label="__( 'Right' )"
+						:value="$styleValue( 'sizing', 'padding_right' )"
+						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.sizing.padding_right', $event.target.value )"
+						placeholder="0"
+					/>
+					<x-artisanpack-input
+						:label="__( 'Bottom' )"
+						:value="$styleValue( 'sizing', 'padding_bottom' )"
+						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.sizing.padding_bottom', $event.target.value )"
+						placeholder="0"
+					/>
+					<x-artisanpack-input
+						:label="__( 'Left' )"
+						:value="$styleValue( 'sizing', 'padding_left' )"
+						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.sizing.padding_left', $event.target.value )"
+						placeholder="0"
+					/>
 				</div>
 			</div>
 
 			{{-- Margin --}}
 			<div>
 				<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Margin' ) }}</label>
-				<div class="grid grid-cols-4 gap-1.5">
-					@foreach ( [ 'top' => 'T', 'right' => 'R', 'bottom' => 'B', 'left' => 'L' ] as $side => $label )
-						<div>
-							<label class="mb-0.5 block text-center text-[10px] text-gray-400">{{ $label }}</label>
-							<input
-								type="text"
-								value="{{ $styleValue( 'sizing', 'margin_' . $side ) }}"
-								wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.sizing.margin_{{ $side }}', $event.target.value )"
-								class="w-full rounded border border-gray-300 px-1.5 py-1 text-center text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-								placeholder="0"
-							/>
-						</div>
-					@endforeach
+				<div class="grid grid-cols-2 gap-2">
+					<x-artisanpack-input
+						:label="__( 'Top' )"
+						:value="$styleValue( 'sizing', 'margin_top' )"
+						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.sizing.margin_top', $event.target.value )"
+						placeholder="0"
+					/>
+					<x-artisanpack-input
+						:label="__( 'Right' )"
+						:value="$styleValue( 'sizing', 'margin_right' )"
+						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.sizing.margin_right', $event.target.value )"
+						placeholder="0"
+					/>
+					<x-artisanpack-input
+						:label="__( 'Bottom' )"
+						:value="$styleValue( 'sizing', 'margin_bottom' )"
+						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.sizing.margin_bottom', $event.target.value )"
+						placeholder="0"
+					/>
+					<x-artisanpack-input
+						:label="__( 'Left' )"
+						:value="$styleValue( 'sizing', 'margin_left' )"
+						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.sizing.margin_left', $event.target.value )"
+						placeholder="0"
+					/>
 				</div>
 			</div>
 
 			{{-- Width / Height --}}
 			<div class="grid grid-cols-2 gap-2">
-				<div>
-					<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Width' ) }}</label>
-					<input
-						type="text"
-						value="{{ $styleValue( 'sizing', 'width' ) }}"
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.sizing.width', $event.target.value )"
-						class="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-						placeholder="{{ __( 'auto' ) }}"
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Height' ) }}</label>
-					<input
-						type="text"
-						value="{{ $styleValue( 'sizing', 'height' ) }}"
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.sizing.height', $event.target.value )"
-						class="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-						placeholder="{{ __( 'auto' ) }}"
-					/>
-				</div>
+				<x-artisanpack-input
+					:label="__( 'Width' )"
+					:value="$styleValue( 'sizing', 'width' )"
+					wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.sizing.width', $event.target.value )"
+					:placeholder="__( 'auto' )"
+				/>
+				<x-artisanpack-input
+					:label="__( 'Height' )"
+					:value="$styleValue( 'sizing', 'height' )"
+					wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.sizing.height', $event.target.value )"
+					:placeholder="__( 'auto' )"
+				/>
 			</div>
 		</div>
 	</div>
@@ -187,48 +206,51 @@
 		</button>
 		<div x-show="open" x-collapse class="space-y-3 px-3 pb-3">
 			{{-- Font Family --}}
-			<div>
-				<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Font Family' ) }}</label>
-				<select
-					wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.typography.font_family', $event.target.value )"
-					class="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-				>
-					<option value="" @selected( '' === $styleValue( 'typography', 'font_family' ) )>{{ __( 'Default' ) }}</option>
-					<option value="sans-serif" @selected( 'sans-serif' === $styleValue( 'typography', 'font_family' ) )>Sans Serif</option>
-					<option value="serif" @selected( 'serif' === $styleValue( 'typography', 'font_family' ) )>Serif</option>
-					<option value="monospace" @selected( 'monospace' === $styleValue( 'typography', 'font_family' ) )>Monospace</option>
-				</select>
-			</div>
+			@php
+				$fontFamilyOptions = [
+					[ 'id' => '', 'name' => __( 'Default' ) ],
+					[ 'id' => 'sans-serif', 'name' => __( 'Sans Serif' ) ],
+					[ 'id' => 'serif', 'name' => __( 'Serif' ) ],
+					[ 'id' => 'monospace', 'name' => __( 'Monospace' ) ],
+				];
+			@endphp
+			<x-artisanpack-select
+				:label="__( 'Font Family' )"
+				:options="$fontFamilyOptions"
+				option-value="id"
+				option-label="name"
+				wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.typography.font_family', $event.target.value )"
+				:selected="$styleValue( 'typography', 'font_family' )"
+			/>
 
 			{{-- Font Size / Font Weight --}}
 			<div class="grid grid-cols-2 gap-2">
-				<div>
-					<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Font Size' ) }}</label>
-					<input
-						type="text"
-						value="{{ $styleValue( 'typography', 'font_size' ) }}"
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.typography.font_size', $event.target.value )"
-						class="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-						placeholder="16"
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Font Weight' ) }}</label>
-					@php $fontWeight = $styleValue( 'typography', 'font_weight' ); @endphp
-					<select
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.typography.font_weight', $event.target.value )"
-						class="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-					>
-						<option value="" @selected( '' === $fontWeight )>{{ __( 'Default' ) }}</option>
-						<option value="100" @selected( '100' === $fontWeight )>Thin</option>
-						<option value="300" @selected( '300' === $fontWeight )>Light</option>
-						<option value="400" @selected( '400' === $fontWeight )>Normal</option>
-						<option value="500" @selected( '500' === $fontWeight )>Medium</option>
-						<option value="600" @selected( '600' === $fontWeight )>Semibold</option>
-						<option value="700" @selected( '700' === $fontWeight )>Bold</option>
-						<option value="900" @selected( '900' === $fontWeight )>Black</option>
-					</select>
-				</div>
+				<x-artisanpack-input
+					:label="__( 'Font Size' )"
+					:value="$styleValue( 'typography', 'font_size' )"
+					wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.typography.font_size', $event.target.value )"
+					placeholder="16"
+				/>
+				@php
+					$fontWeightOptions = [
+						[ 'id' => '', 'name' => __( 'Default' ) ],
+						[ 'id' => '100', 'name' => __( 'Thin' ) ],
+						[ 'id' => '300', 'name' => __( 'Light' ) ],
+						[ 'id' => '400', 'name' => __( 'Normal' ) ],
+						[ 'id' => '500', 'name' => __( 'Medium' ) ],
+						[ 'id' => '600', 'name' => __( 'Semibold' ) ],
+						[ 'id' => '700', 'name' => __( 'Bold' ) ],
+						[ 'id' => '900', 'name' => __( 'Black' ) ],
+					];
+				@endphp
+				<x-artisanpack-select
+					:label="__( 'Font Weight' )"
+					:options="$fontWeightOptions"
+					option-value="id"
+					option-label="name"
+					wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.typography.font_weight', $event.target.value )"
+					:selected="$styleValue( 'typography', 'font_weight' )"
+				/>
 			</div>
 		</div>
 	</div>
@@ -255,67 +277,50 @@
 		</button>
 		<div x-show="open" x-collapse class="space-y-3 px-3 pb-3">
 			{{-- Position Type --}}
-			<div>
-				<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Position' ) }}</label>
-				@php $positionType = $styleValue( 'position', 'type' ); @endphp
-				<select
-					wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.position.type', $event.target.value )"
-					class="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-				>
-					<option value="" @selected( '' === $positionType )>{{ __( 'Default' ) }}</option>
-					<option value="relative" @selected( 'relative' === $positionType )>Relative</option>
-					<option value="absolute" @selected( 'absolute' === $positionType )>Absolute</option>
-					<option value="fixed" @selected( 'fixed' === $positionType )>Fixed</option>
-					<option value="sticky" @selected( 'sticky' === $positionType )>Sticky</option>
-				</select>
-			</div>
+			@php
+				$positionTypeOptions = [
+					[ 'id' => '', 'name' => __( 'Default' ) ],
+					[ 'id' => 'relative', 'name' => __( 'Relative' ) ],
+					[ 'id' => 'absolute', 'name' => __( 'Absolute' ) ],
+					[ 'id' => 'fixed', 'name' => __( 'Fixed' ) ],
+					[ 'id' => 'sticky', 'name' => __( 'Sticky' ) ],
+				];
+			@endphp
+			<x-artisanpack-select
+				:label="__( 'Position' )"
+				:options="$positionTypeOptions"
+				option-value="id"
+				option-label="name"
+				wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.position.type', $event.target.value )"
+				:selected="$styleValue( 'position', 'type' )"
+			/>
 
-			{{-- Top / Bottom --}}
+			{{-- Top / Right / Bottom / Left --}}
 			<div class="grid grid-cols-2 gap-2">
-				<div>
-					<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Top' ) }}</label>
-					<input
-						type="text"
-						value="{{ $styleValue( 'position', 'top' ) }}"
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.position.top', $event.target.value )"
-						class="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-						placeholder="{{ __( 'auto' ) }}"
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Bottom' ) }}</label>
-					<input
-						type="text"
-						value="{{ $styleValue( 'position', 'bottom' ) }}"
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.position.bottom', $event.target.value )"
-						class="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-						placeholder="{{ __( 'auto' ) }}"
-					/>
-				</div>
-			</div>
-
-			{{-- Left / Right --}}
-			<div class="grid grid-cols-2 gap-2">
-				<div>
-					<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Left' ) }}</label>
-					<input
-						type="text"
-						value="{{ $styleValue( 'position', 'left' ) }}"
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.position.left', $event.target.value )"
-						class="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-						placeholder="{{ __( 'auto' ) }}"
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Right' ) }}</label>
-					<input
-						type="text"
-						value="{{ $styleValue( 'position', 'right' ) }}"
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.position.right', $event.target.value )"
-						class="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-						placeholder="{{ __( 'auto' ) }}"
-					/>
-				</div>
+				<x-artisanpack-input
+					:label="__( 'Top' )"
+					:value="$styleValue( 'position', 'top' )"
+					wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.position.top', $event.target.value )"
+					:placeholder="__( 'auto' )"
+				/>
+				<x-artisanpack-input
+					:label="__( 'Right' )"
+					:value="$styleValue( 'position', 'right' )"
+					wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.position.right', $event.target.value )"
+					:placeholder="__( 'auto' )"
+				/>
+				<x-artisanpack-input
+					:label="__( 'Bottom' )"
+					:value="$styleValue( 'position', 'bottom' )"
+					wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.position.bottom', $event.target.value )"
+					:placeholder="__( 'auto' )"
+				/>
+				<x-artisanpack-input
+					:label="__( 'Left' )"
+					:value="$styleValue( 'position', 'left' )"
+					wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.position.left', $event.target.value )"
+					:placeholder="__( 'auto' )"
+				/>
 			</div>
 		</div>
 	</div>
@@ -342,46 +347,16 @@
 		</button>
 		<div x-show="open" x-collapse class="space-y-3 px-3 pb-3">
 			{{-- Text Color --}}
-			<div>
-				<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Text Color' ) }}</label>
-				@php $textColor = $styleValue( 'colors', 'text_color' ); @endphp
-				<div class="flex items-center gap-2">
-					<input
-						type="color"
-						value="{{ $textColor ?: '#000000' }}"
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.colors.text_color', $event.target.value )"
-						class="h-8 w-8 cursor-pointer rounded border border-gray-300"
-					/>
-					<input
-						type="text"
-						value="{{ $textColor }}"
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.colors.text_color', $event.target.value )"
-						class="flex-1 rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-						placeholder="#000000"
-					/>
-				</div>
-			</div>
+			<x-artisanpack-colorpicker
+				:label="__( 'Text Color' )"
+				wire:model.live="styleTextColor"
+			/>
 
 			{{-- Background Color --}}
-			<div>
-				<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Background Color' ) }}</label>
-				@php $bgColor = $styleValue( 'colors', 'background_color' ); @endphp
-				<div class="flex items-center gap-2">
-					<input
-						type="color"
-						value="{{ $bgColor ?: '#ffffff' }}"
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.colors.background_color', $event.target.value )"
-						class="h-8 w-8 cursor-pointer rounded border border-gray-300"
-					/>
-					<input
-						type="text"
-						value="{{ $bgColor }}"
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.colors.background_color', $event.target.value )"
-						class="flex-1 rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-						placeholder="#ffffff"
-					/>
-				</div>
-			</div>
+			<x-artisanpack-colorpicker
+				:label="__( 'Background Color' )"
+				wire:model.live="styleBackgroundColor"
+			/>
 		</div>
 	</div>
 @endif
@@ -407,64 +382,44 @@
 		</button>
 		<div x-show="open" x-collapse class="space-y-3 px-3 pb-3">
 			{{-- Border Color --}}
-			<div>
-				<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Border Color' ) }}</label>
-				@php $borderColor = $styleValue( 'borders', 'border_color' ); @endphp
-				<div class="flex items-center gap-2">
-					<input
-						type="color"
-						value="{{ $borderColor ?: '#000000' }}"
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.borders.border_color', $event.target.value )"
-						class="h-8 w-8 cursor-pointer rounded border border-gray-300"
-					/>
-					<input
-						type="text"
-						value="{{ $borderColor }}"
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.borders.border_color', $event.target.value )"
-						class="flex-1 rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-						placeholder="#000000"
-					/>
-				</div>
-			</div>
+			<x-artisanpack-colorpicker
+				:label="__( 'Border Color' )"
+				wire:model.live="styleBorderColor"
+			/>
 
 			{{-- Border Width --}}
-			<div>
-				<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Width' ) }}</label>
-				<input
-					type="text"
-					value="{{ $styleValue( 'borders', 'border_width' ) }}"
-					wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.borders.border_width', $event.target.value )"
-					class="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-					placeholder="0"
-				/>
-			</div>
+			<x-artisanpack-input
+				:label="__( 'Border Width' )"
+				:value="$styleValue( 'borders', 'border_width' )"
+				wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.borders.border_width', $event.target.value )"
+				placeholder="0"
+			/>
 
 			{{-- Radius / Style --}}
 			<div class="grid grid-cols-2 gap-2">
-				<div>
-					<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Radius' ) }}</label>
-					<input
-						type="text"
-						value="{{ $styleValue( 'borders', 'border_radius' ) }}"
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.borders.border_radius', $event.target.value )"
-						class="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-						placeholder="0"
-					/>
-				</div>
-				<div>
-					<label class="mb-1 block text-xs font-medium text-gray-600">{{ __( 'Style' ) }}</label>
-					@php $borderStyle = $styleValue( 'borders', 'border_style' ); @endphp
-					<select
-						wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.borders.border_style', $event.target.value )"
-						class="w-full rounded border border-gray-300 px-2 py-1 text-xs focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-					>
-						<option value="" @selected( '' === $borderStyle )>{{ __( 'Default' ) }}</option>
-						<option value="solid" @selected( 'solid' === $borderStyle )>{{ __( 'Solid' ) }}</option>
-						<option value="dashed" @selected( 'dashed' === $borderStyle )>{{ __( 'Dashed' ) }}</option>
-						<option value="dotted" @selected( 'dotted' === $borderStyle )>{{ __( 'Dotted' ) }}</option>
-						<option value="none" @selected( 'none' === $borderStyle )>{{ __( 'None' ) }}</option>
-					</select>
-				</div>
+				<x-artisanpack-input
+					:label="__( 'Radius' )"
+					:value="$styleValue( 'borders', 'border_radius' )"
+					wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.borders.border_radius', $event.target.value )"
+					placeholder="0"
+				/>
+				@php
+					$borderStyleOptions = [
+						[ 'id' => '', 'name' => __( 'Default' ) ],
+						[ 'id' => 'solid', 'name' => __( 'Solid' ) ],
+						[ 'id' => 'dashed', 'name' => __( 'Dashed' ) ],
+						[ 'id' => 'dotted', 'name' => __( 'Dotted' ) ],
+						[ 'id' => 'none', 'name' => __( 'None' ) ],
+					];
+				@endphp
+				<x-artisanpack-select
+					:label="__( 'Style' )"
+					:options="$borderStyleOptions"
+					option-value="id"
+					option-label="name"
+					wire:change="updateBlockSetting( 'styles.{{ $activeBreakpoint }}.{{ $activeState }}.borders.border_style', $event.target.value )"
+					:selected="$styleValue( 'borders', 'border_style' )"
+				/>
 			</div>
 		</div>
 	</div>

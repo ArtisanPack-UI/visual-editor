@@ -11,10 +11,9 @@ test( 'canvas component renders successfully', function (): void {
 		->assertStatus( 200 );
 } );
 
-test( 'canvas shows empty state when no blocks', function (): void {
+test( 'canvas does not show empty state when no blocks', function (): void {
 	Livewire::test( 'visual-editor::canvas', [ 'blocks' => [] ] )
-		->assertSee( 'Start building your page' )
-		->assertSee( 'Add blocks from the sidebar to begin creating content.' );
+		->assertDontSee( 'Start building your page' );
 } );
 
 test( 'canvas renders blocks when provided', function (): void {
@@ -24,7 +23,6 @@ test( 'canvas renders blocks when provided', function (): void {
 	];
 
 	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
-		->assertDontSee( 'Start building your page' )
 		->assertSee( 'Type heading...' )
 		->assertSee( 'Type text...' );
 } );
@@ -711,4 +709,60 @@ test( 'canvas changeHeadingLevel supports all valid levels', function (): void {
 		$updatedBlocks = $component->get( 'blocks' );
 		expect( $updatedBlocks[0]['content']['level'] )->toBe( $level );
 	}
+} );
+
+// --- Inline Edit Content Preservation ---
+
+test( 'canvas preserves rich text content in HTML when entering inline edit mode', function (): void {
+	$blocks = [
+		[ 'id' => 've-cp1', 'type' => 'text', 'content' => [ 'text' => 'Important content' ], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'startInlineEdit', 've-cp1' )
+		->assertSee( 'Important content' );
+} );
+
+test( 'canvas preserves heading content in HTML when entering inline edit mode', function (): void {
+	$blocks = [
+		[ 'id' => 've-cp2', 'type' => 'heading', 'content' => [ 'text' => 'My Heading', 'level' => 'h2' ], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'startInlineEdit', 've-cp2' )
+		->assertSee( 'My Heading' );
+} );
+
+test( 'canvas preserves plain text content in HTML when entering inline edit mode', function (): void {
+	$blocks = [
+		[ 'id' => 've-cp3', 'type' => 'quote', 'content' => [ 'text' => 'A famous quote' ], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'startInlineEdit', 've-cp3' )
+		->assertSee( 'A famous quote' );
+} );
+
+test( 'canvas preserves rich text HTML tags when entering inline edit mode', function (): void {
+	$blocks = [
+		[ 'id' => 've-cp4', 'type' => 'text', 'content' => [ 'text' => '<strong>Bold</strong> and <em>italic</em>' ], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'startInlineEdit', 've-cp4' )
+		->assertSeeHtml( '<strong>Bold</strong>' )
+		->assertSeeHtml( '<em>italic</em>' );
+} );
+
+test( 'canvas block content survives full inline edit cycle', function (): void {
+	$blocks = [
+		[ 'id' => 've-cp5', 'type' => 'text', 'content' => [ 'text' => 'Original content' ], 'settings' => [] ],
+	];
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'startInlineEdit', 've-cp5' )
+		->call( 'saveInlineEdit', 've-cp5', 'Original content' );
+
+	$updatedBlocks = $component->get( 'blocks' );
+	expect( $updatedBlocks[0]['content']['text'] )->toBe( 'Original content' );
 } );

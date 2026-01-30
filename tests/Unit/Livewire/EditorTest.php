@@ -280,12 +280,20 @@ test( 'editor handles toggle settings event from toolbar', function (): void {
 } );
 
 test( 'editor shows block settings form for selected block', function (): void {
-	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+	$content = Content::create( [
+		'title'     => 'Image Page',
+		'slug'      => 'image-page',
+		'blocks'    => [ [ 'id' => 've-img1', 'type' => 'image', 'data' => [], 'settings' => [] ] ],
+		'settings'  => [],
+		'status'    => 'draft',
+		'author_id' => $this->user->id,
+	] );
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $content ] )
 		->set( 'showSettingsDrawer', true )
 		->set( 'settingsDrawerTab', 'settings' )
-		->set( 'activeBlockId', 've-1' )
-		->assertSee( 'Alignment' )
-		->assertSee( 'Color' );
+		->set( 'activeBlockId', 've-img1' )
+		->assertSee( 'Drop Shadow' );
 } );
 
 test( 'editor shows no settings message for block without settings schema', function (): void {
@@ -357,11 +365,11 @@ test( 'editor getActiveBlockConfig returns config for active block', function ()
 
 	$config = $component->call( 'getActiveBlockConfig' )->get( 'getActiveBlockConfig' );
 
-	// The heading block should have a settings_schema with alignment and color.
-	// We test indirectly via the form rendering instead.
+	// The heading block has no settings_schema (alignment is in toolbar, color in styles).
+	// It should show the empty settings message.
 	$component->set( 'showSettingsDrawer', true )
 		->set( 'settingsDrawerTab', 'settings' )
-		->assertSee( 'Alignment' );
+		->assertSee( 'This block has no configurable settings.' );
 } );
 
 // =========================================

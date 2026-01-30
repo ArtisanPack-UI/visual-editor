@@ -689,20 +689,7 @@ new class extends Component {
 			></div>
 		@endif
 
-		@if ( empty( $blocks ) )
-			{{-- Empty State --}}
-			<div class="flex min-h-96 flex-col items-center justify-center rounded-lg border-2 border-dashed border-gray-300 bg-white p-12 text-center">
-				<svg class="mb-4 h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-				</svg>
-				<h3 class="mb-1 text-lg font-medium text-gray-900">
-					{{ __( 'Start building your page' ) }}
-				</h3>
-				<p class="text-sm text-gray-500">
-					{{ __( 'Add blocks from the sidebar to begin creating content.' ) }}
-				</p>
-			</div>
-		@else
+		@if ( !empty( $blocks ) )
 			{{-- Blocks with drag-and-drop --}}
 			<div
 				x-drag-context
@@ -778,7 +765,7 @@ new class extends Component {
 								<div
 									x-ref="editor"
 									contenteditable="true"
-									x-init="$el.innerHTML = {{ \Illuminate\Support\Js::from( $block['content']['text'] ?? '' ) }}; $nextTick( () => $el.focus() )"
+									x-init="$nextTick( () => $el.focus() )"
 									@blur="if ( !window.veNavigating ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML ) }"
 									@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML )"
 									@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.innerHTML )"
@@ -792,7 +779,7 @@ new class extends Component {
 									@keydown.meta.u.prevent="format( 'underline' )"
 									@keydown.ctrl.u.prevent="format( 'underline' )"
 									class="{{ $richTextClasses }}"
-								></div>
+								>{!! $block['content']['text'] ?? '' !!}</div>
 							@else
 								{{-- Plain Text Edit Mode --}}
 								@php
@@ -803,23 +790,18 @@ new class extends Component {
 										default => '',
 									};
 								@endphp
-								<div
-									x-data="{ content: @js( $block['content']['text'] ?? '' ) }"
-									x-init="$nextTick( () => $refs.editor.focus() )"
-								>
-									<{{ $editTag }}
-										x-ref="editor"
-										contenteditable="true"
-										x-text="content"
-										@blur="if ( !window.veNavigating ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.textContent ) }"
-										@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.textContent )"
-										@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.textContent )"
-										@keydown.tab.prevent="window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.textContent, $event.shiftKey ? 'up' : 'down' )"
-										@keydown.arrow-up="if ( window.veAtTopOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.textContent, 'up' ) }"
-										@keydown.arrow-down="if ( window.veAtBottomOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.textContent, 'down' ) }"
-										class="{{ $editClasses }} min-h-[1.5rem] rounded px-1 outline-none ring-2 ring-blue-300"
-									></{{ $editTag }}>
-								</div>
+								<{{ $editTag }}
+									x-ref="editor"
+									contenteditable="true"
+									x-init="$nextTick( () => $el.focus() )"
+									@blur="if ( !window.veNavigating ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.textContent ) }"
+									@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.textContent )"
+									@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.textContent )"
+									@keydown.tab.prevent="window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.textContent, $event.shiftKey ? 'up' : 'down' )"
+									@keydown.arrow-up="if ( window.veAtTopOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.textContent, 'up' ) }"
+									@keydown.arrow-down="if ( window.veAtBottomOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.textContent, 'down' ) }"
+									class="{{ $editClasses }} min-h-[1.5rem] rounded px-1 outline-none ring-2 ring-blue-300"
+								>{{ $block['content']['text'] ?? '' }}</{{ $editTag }}>
 							@endif
 						@else
 							{{-- WYSIWYG Display Mode --}}
@@ -1012,11 +994,11 @@ new class extends Component {
 			$wire.dispatch( 'canvas-navigate', { direction: event.shiftKey ? 'up' : 'down' } )
 		}
 
-		if ( 'Escape' === event.key && !event.target.isContentEditable ) {
+		if ( 'Escape' === event.key && !event.target.isContentEditable && ![ 'INPUT', 'TEXTAREA', 'SELECT' ].includes( event.target.tagName ) ) {
 			$wire.deselectAll()
 		}
 
-		if ( ( 'Delete' === event.key || 'Backspace' === event.key ) && !event.target.isContentEditable ) {
+		if ( ( 'Delete' === event.key || 'Backspace' === event.key ) && !event.target.isContentEditable && ![ 'INPUT', 'TEXTAREA', 'SELECT' ].includes( event.target.tagName ) ) {
 			$wire.dispatch( 'canvas-delete-selected' )
 		}
 	}
