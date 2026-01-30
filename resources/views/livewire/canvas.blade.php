@@ -180,6 +180,94 @@ new class extends Component {
 	}
 
 	/**
+	 * Move a block up by one position.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param string $blockId The block ID to move up.
+	 *
+	 * @return void
+	 */
+	public function moveBlockUp( string $blockId ): void
+	{
+		$index = null;
+
+		foreach ( $this->blocks as $i => $block ) {
+			if ( ( $block['id'] ?? '' ) === $blockId ) {
+				$index = $i;
+				break;
+			}
+		}
+
+		if ( null === $index || 0 === $index ) {
+			return;
+		}
+
+		$temp                         = $this->blocks[ $index - 1 ];
+		$this->blocks[ $index - 1 ]   = $this->blocks[ $index ];
+		$this->blocks[ $index ]       = $temp;
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Move a block down by one position.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param string $blockId The block ID to move down.
+	 *
+	 * @return void
+	 */
+	public function moveBlockDown( string $blockId ): void
+	{
+		$index = null;
+
+		foreach ( $this->blocks as $i => $block ) {
+			if ( ( $block['id'] ?? '' ) === $blockId ) {
+				$index = $i;
+				break;
+			}
+		}
+
+		if ( null === $index || $index >= count( $this->blocks ) - 1 ) {
+			return;
+		}
+
+		$temp                         = $this->blocks[ $index + 1 ];
+		$this->blocks[ $index + 1 ]   = $this->blocks[ $index ];
+		$this->blocks[ $index ]       = $temp;
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Change the heading level for a heading block.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param string $blockId The block ID to update.
+	 * @param string $level   The new heading level (h1-h6).
+	 *
+	 * @return void
+	 */
+	public function changeHeadingLevel( string $blockId, string $level ): void
+	{
+		if ( !in_array( $level, [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ) {
+			return;
+		}
+
+		foreach ( $this->blocks as &$block ) {
+			if ( ( $block['id'] ?? '' ) === $blockId ) {
+				$block['content']['level'] = $level;
+				break;
+			}
+		}
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
 	 * Delete a block from the canvas.
 	 *
 	 * @since 1.1.0
@@ -241,6 +329,7 @@ new class extends Component {
 	{
 		$this->editingBlockId = $blockId;
 		$this->activeBlockId  = $blockId;
+		$this->dispatch( 'block-selected', blockId: $blockId );
 	}
 
 	/**
@@ -544,6 +633,7 @@ new class extends Component {
 			this.isPanning = false;
 		},
 	}"
+	x-effect="if ( $refs.surface ) { $refs.surface.style.transform = 'scale(' + ( {{ $zoomLevel }} / 100 ) + ') translate(' + panX + 'px, ' + panY + 'px)'; $refs.surface.style.transformOrigin = 'top center'; }"
 	@mousedown="handlePanStart( $event )"
 	@mousemove.window="handlePanMove( $event )"
 	@mouseup.window="handlePanEnd()"
@@ -588,8 +678,8 @@ new class extends Component {
 
 	{{-- Canvas Surface --}}
 	<div
+		x-ref="surface"
 		class="relative mx-auto max-w-4xl transition-transform"
-		x-bind:style="'transform: scale(' + ( {{ $zoomLevel }} / 100 ) + ') translate(' + panX + 'px, ' + panY + 'px); transform-origin: top center;'"
 	>
 		{{-- Grid Overlay --}}
 		@if ( $showGrid )
@@ -644,55 +734,28 @@ new class extends Component {
 						class="ve-canvas-block group relative rounded px-4 py-2 transition-colors
 							{{ $isActive ? 'ring-2 ring-blue-200' : '' }}"
 						role="listitem"
+						@if ( $isEditing && $isRichText )
+							x-data="richTextEditor( { htmlContent: @js( $block['content']['text'] ?? '' ) } )"
+						@endif
 					>
-						{{-- Block Actions Overlay --}}
-						<div class="pointer-events-none absolute -left-10 top-1/2 -translate-y-1/2 opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100
-							{{ $isActive ? 'pointer-events-auto opacity-100' : '' }}">
-							<span class="cursor-grab text-gray-400 hover:text-gray-600" aria-label="{{ __( 'Drag to reorder block' ) }}">
-								<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
-								</svg>
-							</span>
-						</div>
+						{{-- Global Block Toolbar (shown for any selected block) --}}
 						@if ( $isActive )
-							<button
-								wire:click.stop="deleteBlock( '{{ $blockId }}' )"
-								class="absolute -right-10 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-600"
-								title="{{ __( 'Delete Block' ) }}"
-							>
-								<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-									<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-								</svg>
-							</button>
+							@include( 'visual-editor::livewire.partials.block-toolbar', [
+								'blockId'     => $blockId,
+								'blockType'   => $blockType,
+								'blockConfig' => $blockConfig,
+								'blockIndex'  => $blockIndex,
+								'totalBlocks' => count( $blocks ),
+								'isEditing'   => $isEditing,
+								'isRichText'  => $isRichText,
+								'block'       => $block,
+							] )
 						@endif
 
 						{{-- Block Content --}}
 						@if ( $isEditing )
 							@if ( $isRichText )
 								{{-- Rich Text Edit Mode --}}
-								<div x-data="blockToolbar( { htmlContent: @js( $block['content']['text'] ?? '' ) } )">
-									@include( 'visual-editor::livewire.partials.block-toolbar' )
-									<div
-										x-ref="editor"
-										contenteditable="true"
-										x-init="$el.innerHTML = htmlContent; $nextTick( () => $el.focus() )"
-										@blur="if ( !window.veNavigating ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML ) }"
-										@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML )"
-										@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.innerHTML )"
-										@keydown.tab.prevent="window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, $event.shiftKey ? 'up' : 'down' )"
-										@keydown.arrow-up="if ( window.veAtTopOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, 'up' ) }"
-										@keydown.arrow-down="if ( window.veAtBottomOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, 'down' ) }"
-										@keydown.meta.b.prevent="format( 'bold' )"
-										@keydown.ctrl.b.prevent="format( 'bold' )"
-										@keydown.meta.i.prevent="format( 'italic' )"
-										@keydown.ctrl.i.prevent="format( 'italic' )"
-										@keydown.meta.u.prevent="format( 'underline' )"
-										@keydown.ctrl.u.prevent="format( 'underline' )"
-										class="prose prose-sm min-h-[1.5rem] max-w-none rounded px-1 outline-none ring-2 ring-blue-300"
-									></div>
-								</div>
-							@else
-								{{-- Plain Text Edit Mode --}}
 								@php
 									$editLevel   = $block['content']['level'] ?? 'h2';
 									$editTag     = 'heading' === $blockType ? ( in_array( $editLevel, [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ? $editLevel : 'h2' ) : 'div';
@@ -706,6 +769,36 @@ new class extends Component {
 											'h6'    => 'text-base font-medium',
 											default => 'text-3xl font-bold',
 										},
+										default => '',
+									};
+									$richTextClasses = 'heading' === $blockType
+										? $editClasses . ' min-h-[1.5rem] rounded px-1 outline-none ring-2 ring-blue-300'
+										: 'prose prose-sm min-h-[1.5rem] max-w-none rounded px-1 outline-none ring-2 ring-blue-300';
+								@endphp
+								<div
+									x-ref="editor"
+									contenteditable="true"
+									x-init="$el.innerHTML = {{ \Illuminate\Support\Js::from( $block['content']['text'] ?? '' ) }}; $nextTick( () => $el.focus() )"
+									@blur="if ( !window.veNavigating ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML ) }"
+									@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML )"
+									@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.innerHTML )"
+									@keydown.tab.prevent="window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, $event.shiftKey ? 'up' : 'down' )"
+									@keydown.arrow-up="if ( window.veAtTopOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, 'up' ) }"
+									@keydown.arrow-down="if ( window.veAtBottomOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, 'down' ) }"
+									@keydown.meta.b.prevent="format( 'bold' )"
+									@keydown.ctrl.b.prevent="format( 'bold' )"
+									@keydown.meta.i.prevent="format( 'italic' )"
+									@keydown.ctrl.i.prevent="format( 'italic' )"
+									@keydown.meta.u.prevent="format( 'underline' )"
+									@keydown.ctrl.u.prevent="format( 'underline' )"
+									class="{{ $richTextClasses }}"
+								></div>
+							@else
+								{{-- Plain Text Edit Mode --}}
+								@php
+									$editLevel   = $block['content']['level'] ?? 'h2';
+									$editTag     = 'heading' === $blockType ? ( in_array( $editLevel, [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ? $editLevel : 'h2' ) : 'div';
+									$editClasses = match ( $blockType ) {
 										'quote' => 'border-l-4 border-gray-300 pl-4 italic text-gray-700',
 										default => '',
 									};
@@ -747,7 +840,7 @@ new class extends Component {
 									@endphp
 									<{{ $headingTag }} class="{{ $headingClasses }}">
 										@if ( '' !== ( $block['content']['text'] ?? '' ) )
-											{{ $block['content']['text'] }}
+											{!! kses( $block['content']['text'] ) !!}
 										@else
 											<span class="italic text-gray-400">{{ __( 'Type heading...' ) }}</span>
 										@endif
@@ -987,7 +1080,7 @@ new class extends Component {
 		}, 50 )
 	} )
 
-	Alpine.data( 'blockToolbar', ( { htmlContent } ) => ( {
+	Alpine.data( 'richTextEditor', ( { htmlContent } ) => ( {
 		htmlContent: htmlContent || '',
 
 		format( command ) {
@@ -1005,6 +1098,8 @@ new class extends Component {
 			}
 		},
 	} ) )
+
+	Alpine.data( 'globalBlockToolbar', () => ( {} ) )
 
 	Alpine.data( 'slashCommandInput', ( { blocks } ) => ( {
 		allBlocks: blocks,

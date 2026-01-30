@@ -378,24 +378,33 @@ test( 'canvas renders block content as HTML for richtext blocks', function (): v
 		->assertSee( 'Some rich content' );
 } );
 
-test( 'canvas shows block toolbar in edit mode for richtext blocks', function (): void {
+test( 'canvas shows global toolbar for any selected block', function (): void {
 	$blocks = [
 		[ 'id' => 've-rt3', 'type' => 'text', 'content' => [ 'text' => 'Editable' ], 'settings' => [] ],
 	];
 
 	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
-		->call( 'startInlineEdit', 've-rt3' )
-		->assertSeeHtml( 've-block-toolbar' );
+		->call( 'selectBlock', 've-rt3' )
+		->assertSeeHtml( 've-global-toolbar' );
 } );
 
-test( 'canvas does not show block toolbar for plain text blocks', function (): void {
+test( 'canvas shows global toolbar for heading blocks', function (): void {
 	$blocks = [
 		[ 'id' => 've-pt1', 'type' => 'heading', 'content' => [ 'text' => 'Heading' ], 'settings' => [] ],
 	];
 
 	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
-		->call( 'startInlineEdit', 've-pt1' )
-		->assertDontSeeHtml( 've-block-toolbar' );
+		->call( 'selectBlock', 've-pt1' )
+		->assertSeeHtml( 've-global-toolbar' );
+} );
+
+test( 'canvas does not show global toolbar for unselected blocks', function (): void {
+	$blocks = [
+		[ 'id' => 've-pt2', 'type' => 'text', 'content' => [ 'text' => 'Content' ], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertDontSeeHtml( 've-global-toolbar' );
 } );
 
 test( 'canvas shows empty state placeholder for blocks without content', function (): void {
@@ -599,4 +608,107 @@ test( 'canvas WYSIWYG quote renders as blockquote', function (): void {
 	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
 		->assertSeeHtml( '<blockquote' )
 		->assertSee( 'Famous quote' );
+} );
+
+// --- Move Block Up ---
+
+test( 'canvas moves block up by one position', function (): void {
+	$blocks = [
+		[ 'id' => 've-mu1', 'type' => 'heading', 'content' => [ 'text' => 'First' ], 'settings' => [] ],
+		[ 'id' => 've-mu2', 'type' => 'text', 'content' => [ 'text' => 'Second' ], 'settings' => [] ],
+	];
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'moveBlockUp', 've-mu2' )
+		->assertDispatched( 'blocks-updated' );
+
+	$updatedBlocks = $component->get( 'blocks' );
+	expect( $updatedBlocks[0]['id'] )->toBe( 've-mu2' )
+		->and( $updatedBlocks[1]['id'] )->toBe( 've-mu1' );
+} );
+
+test( 'canvas moveBlockUp does nothing for first block', function (): void {
+	$blocks = [
+		[ 'id' => 've-mu3', 'type' => 'heading', 'content' => [], 'settings' => [] ],
+		[ 'id' => 've-mu4', 'type' => 'text', 'content' => [], 'settings' => [] ],
+	];
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'moveBlockUp', 've-mu3' );
+
+	$updatedBlocks = $component->get( 'blocks' );
+	expect( $updatedBlocks[0]['id'] )->toBe( 've-mu3' )
+		->and( $updatedBlocks[1]['id'] )->toBe( 've-mu4' );
+} );
+
+// --- Move Block Down ---
+
+test( 'canvas moves block down by one position', function (): void {
+	$blocks = [
+		[ 'id' => 've-md1', 'type' => 'heading', 'content' => [ 'text' => 'First' ], 'settings' => [] ],
+		[ 'id' => 've-md2', 'type' => 'text', 'content' => [ 'text' => 'Second' ], 'settings' => [] ],
+	];
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'moveBlockDown', 've-md1' )
+		->assertDispatched( 'blocks-updated' );
+
+	$updatedBlocks = $component->get( 'blocks' );
+	expect( $updatedBlocks[0]['id'] )->toBe( 've-md2' )
+		->and( $updatedBlocks[1]['id'] )->toBe( 've-md1' );
+} );
+
+test( 'canvas moveBlockDown does nothing for last block', function (): void {
+	$blocks = [
+		[ 'id' => 've-md3', 'type' => 'heading', 'content' => [], 'settings' => [] ],
+		[ 'id' => 've-md4', 'type' => 'text', 'content' => [], 'settings' => [] ],
+	];
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'moveBlockDown', 've-md4' );
+
+	$updatedBlocks = $component->get( 'blocks' );
+	expect( $updatedBlocks[0]['id'] )->toBe( 've-md3' )
+		->and( $updatedBlocks[1]['id'] )->toBe( 've-md4' );
+} );
+
+// --- Change Heading Level ---
+
+test( 'canvas changes heading level', function (): void {
+	$blocks = [
+		[ 'id' => 've-hl1', 'type' => 'heading', 'content' => [ 'text' => 'Title', 'level' => 'h2' ], 'settings' => [] ],
+	];
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'changeHeadingLevel', 've-hl1', 'h3' )
+		->assertDispatched( 'blocks-updated' );
+
+	$updatedBlocks = $component->get( 'blocks' );
+	expect( $updatedBlocks[0]['content']['level'] )->toBe( 'h3' );
+} );
+
+test( 'canvas changeHeadingLevel rejects invalid levels', function (): void {
+	$blocks = [
+		[ 'id' => 've-hl2', 'type' => 'heading', 'content' => [ 'text' => 'Title', 'level' => 'h2' ], 'settings' => [] ],
+	];
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'changeHeadingLevel', 've-hl2', 'h7' );
+
+	$updatedBlocks = $component->get( 'blocks' );
+	expect( $updatedBlocks[0]['content']['level'] )->toBe( 'h2' );
+} );
+
+test( 'canvas changeHeadingLevel supports all valid levels', function (): void {
+	$blocks = [
+		[ 'id' => 've-hl3', 'type' => 'heading', 'content' => [ 'text' => 'Title', 'level' => 'h1' ], 'settings' => [] ],
+	];
+
+	foreach ( [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ] as $level ) {
+		$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+			->call( 'changeHeadingLevel', 've-hl3', $level );
+
+		$updatedBlocks = $component->get( 'blocks' );
+		expect( $updatedBlocks[0]['content']['level'] )->toBe( $level );
+	}
 } );

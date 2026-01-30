@@ -111,7 +111,8 @@ class BlockRegistry
 			'settings_schema'  => [],
 			'component'        => null,
 			'editor_component' => null,
-			'supports'         => config( 'artisanpack.visual-editor.blocks.default_supports', [] ),
+			'supports'         => [ 'sizing' ],
+			'toolbar'          => [],
 			'example'          => [],
 		], $config );
 
@@ -276,13 +277,15 @@ class BlockRegistry
 			'icon'           => 'fas.heading',
 			'category'       => 'text',
 			'content_schema' => [
-				'text'  => [ 'type' => 'text', 'label' => __( 'Heading Text' ), 'required' => true ],
+				'text'  => [ 'type' => 'richtext', 'label' => __( 'Heading Text' ), 'required' => true ],
 				'level' => [ 'type' => 'select', 'label' => __( 'Heading Level' ), 'options' => [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], 'default' => 'h2' ],
 			],
 			'settings_schema' => [
 				'alignment' => [ 'type' => 'alignment' ],
 				'color'     => [ 'type' => 'color_picker' ],
 			],
+			'supports' => [ 'sizing', 'typography', 'colors' ],
+			'toolbar'  => [ 'align', 'richtext', 'heading_level' ],
 		] );
 
 		$this->register( 'text', [
@@ -296,6 +299,8 @@ class BlockRegistry
 				'alignment' => [ 'type' => 'alignment' ],
 				'size'      => [ 'type' => 'select', 'options' => [ 'small', 'base', 'large' ] ],
 			],
+			'supports' => [ 'sizing', 'typography', 'colors' ],
+			'toolbar'  => [ 'align', 'richtext' ],
 		] );
 
 		$this->register( 'list', [
@@ -306,6 +311,7 @@ class BlockRegistry
 				'items' => [ 'type' => 'repeater', 'label' => __( 'List Items' ) ],
 				'style' => [ 'type' => 'select', 'options' => [ 'bullet', 'number', 'check' ], 'default' => 'bullet' ],
 			],
+			'supports' => [ 'sizing', 'typography', 'colors' ],
 		] );
 
 		$this->register( 'quote', [
@@ -316,6 +322,7 @@ class BlockRegistry
 				'text'     => [ 'type' => 'textarea', 'label' => __( 'Quote Text' ) ],
 				'citation' => [ 'type' => 'text', 'label' => __( 'Citation' ) ],
 			],
+			'supports' => [ 'sizing', 'typography', 'colors', 'borders' ],
 		] );
 
 		// Media blocks
@@ -333,6 +340,8 @@ class BlockRegistry
 				'rounded' => [ 'type' => 'toggle', 'label' => __( 'Rounded Corners' ) ],
 				'shadow'  => [ 'type' => 'toggle', 'label' => __( 'Drop Shadow' ) ],
 			],
+			'supports' => [ 'sizing', 'borders' ],
+			'toolbar'  => [ 'align' ],
 		] );
 
 		$this->register( 'video', [
@@ -344,6 +353,7 @@ class BlockRegistry
 				'autoplay' => [ 'type' => 'toggle', 'label' => __( 'Autoplay' ), 'default' => false ],
 				'loop'     => [ 'type' => 'toggle', 'label' => __( 'Loop' ), 'default' => false ],
 			],
+			'supports' => [ 'sizing', 'borders' ],
 		] );
 
 		// Interactive blocks
@@ -361,6 +371,8 @@ class BlockRegistry
 				'size'       => [ 'type' => 'select', 'options' => [ 'small', 'medium', 'large' ] ],
 				'full_width' => [ 'type' => 'toggle' ],
 			],
+			'supports' => [ 'sizing', 'typography', 'colors', 'borders' ],
+			'toolbar'  => [ 'align' ],
 		] );
 
 		$this->register( 'button_group', [
@@ -370,6 +382,7 @@ class BlockRegistry
 			'content_schema' => [
 				'buttons' => [ 'type' => 'repeater', 'label' => __( 'Buttons' ) ],
 			],
+			'supports' => [ 'sizing' ],
 		] );
 
 		$this->register( 'form', [
@@ -379,6 +392,7 @@ class BlockRegistry
 			'content_schema' => [
 				'form_id' => [ 'type' => 'form_select', 'label' => __( 'Select Form' ) ],
 			],
+			'supports' => [ 'sizing', 'borders' ],
 		] );
 
 		// Layout blocks
@@ -389,6 +403,7 @@ class BlockRegistry
 			'settings_schema' => [
 				'style' => [ 'type' => 'select', 'options' => [ 'solid', 'dashed', 'dotted' ] ],
 			],
+			'supports' => [ 'sizing', 'colors', 'borders' ],
 		] );
 
 		$this->register( 'spacer', [
@@ -398,6 +413,7 @@ class BlockRegistry
 			'settings_schema' => [
 				'size' => [ 'type' => 'select', 'options' => [ 'small', 'medium', 'large', 'xlarge' ] ],
 			],
+			'supports' => [ 'sizing' ],
 		] );
 
 		// Dynamic blocks
@@ -409,6 +425,7 @@ class BlockRegistry
 				'key'    => [ 'type' => 'global_content_select', 'label' => __( 'Content to Display' ) ],
 				'format' => [ 'type' => 'select', 'options' => [ 'text', 'link', 'formatted' ] ],
 			],
+			'supports' => [ 'sizing', 'typography', 'colors' ],
 		] );
 	}
 

@@ -31,7 +31,7 @@ test( 'editor initializes with content data', function (): void {
 		->assertSet( 'saveStatus', 'saved' )
 		->assertSet( 'activeBlockId', null )
 		->assertSet( 'showSettingsDrawer', false )
-		->assertSet( 'settingsDrawerTab', 'block' )
+		->assertSet( 'settingsDrawerTab', 'styles' )
 		->assertSet( 'contentTitle', 'Test Page' )
 		->assertSet( 'contentSlug', $this->content->slug )
 		->assertSet( 'contentExcerpt', '' )
@@ -225,11 +225,13 @@ test( 'editor can toggle settings drawer', function (): void {
 
 test( 'editor can set settings drawer tab', function (): void {
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
-		->assertSet( 'settingsDrawerTab', 'block' )
+		->assertSet( 'settingsDrawerTab', 'styles' )
+		->call( 'setSettingsDrawerTab', 'settings' )
+		->assertSet( 'settingsDrawerTab', 'settings' )
 		->call( 'setSettingsDrawerTab', 'page' )
 		->assertSet( 'settingsDrawerTab', 'page' )
-		->call( 'setSettingsDrawerTab', 'block' )
-		->assertSet( 'settingsDrawerTab', 'block' );
+		->call( 'setSettingsDrawerTab', 'styles' )
+		->assertSet( 'settingsDrawerTab', 'styles' );
 } );
 
 test( 'editor opens settings drawer on block selection', function (): void {
@@ -238,13 +240,13 @@ test( 'editor opens settings drawer on block selection', function (): void {
 		->dispatch( 'block-selected', blockId: 've-1' )
 		->assertSet( 'showSettingsDrawer', true )
 		->assertSet( 'activeBlockId', 've-1' )
-		->assertSet( 'settingsDrawerTab', 'block' );
+		->assertSet( 'settingsDrawerTab', 'styles' );
 } );
 
 test( 'editor switches to page tab on block deselection', function (): void {
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
 		->set( 'activeBlockId', 've-1' )
-		->set( 'settingsDrawerTab', 'block' )
+		->set( 'settingsDrawerTab', 'styles' )
 		->call( 'deselectBlock' )
 		->assertSet( 'activeBlockId', null )
 		->assertSet( 'settingsDrawerTab', 'page' );
@@ -280,7 +282,7 @@ test( 'editor handles toggle settings event from toolbar', function (): void {
 test( 'editor shows block settings form for selected block', function (): void {
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
 		->set( 'showSettingsDrawer', true )
-		->set( 'settingsDrawerTab', 'block' )
+		->set( 'settingsDrawerTab', 'settings' )
 		->set( 'activeBlockId', 've-1' )
 		->assertSee( 'Alignment' )
 		->assertSee( 'Color' );
@@ -298,7 +300,7 @@ test( 'editor shows no settings message for block without settings schema', func
 
 	Livewire::test( 'visual-editor::editor', [ 'content' => $content ] )
 		->set( 'showSettingsDrawer', true )
-		->set( 'settingsDrawerTab', 'block' )
+		->set( 'settingsDrawerTab', 'settings' )
 		->set( 'activeBlockId', 've-10' )
 		->assertSee( 'This block has no configurable settings.' );
 } );
@@ -306,7 +308,7 @@ test( 'editor shows no settings message for block without settings schema', func
 test( 'editor shows no block selected message when no block active', function (): void {
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
 		->set( 'showSettingsDrawer', true )
-		->set( 'settingsDrawerTab', 'block' )
+		->set( 'settingsDrawerTab', 'settings' )
 		->set( 'activeBlockId', null )
 		->assertSee( 'Select a block on the canvas to view its settings.' );
 } );
@@ -358,7 +360,7 @@ test( 'editor getActiveBlockConfig returns config for active block', function ()
 	// The heading block should have a settings_schema with alignment and color.
 	// We test indirectly via the form rendering instead.
 	$component->set( 'showSettingsDrawer', true )
-		->set( 'settingsDrawerTab', 'block' )
+		->set( 'settingsDrawerTab', 'settings' )
 		->assertSee( 'Alignment' );
 } );
 
@@ -419,4 +421,113 @@ test( 'editor settings panel renders inline', function (): void {
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
 		->set( 'showSettingsDrawer', true )
 		->assertSeeHtml( 've-settings-panel' );
+} );
+
+// =========================================
+// Styles Tab Tests
+// =========================================
+
+test( 'editor styles tab shows sizing section for heading block', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showSettingsDrawer', true )
+		->set( 'settingsDrawerTab', 'styles' )
+		->set( 'activeBlockId', 've-1' )
+		->assertSee( 'Sizing' )
+		->assertSee( 'Padding' )
+		->assertSee( 'Margin' );
+} );
+
+test( 'editor styles tab shows typography section for heading block', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showSettingsDrawer', true )
+		->set( 'settingsDrawerTab', 'styles' )
+		->set( 'activeBlockId', 've-1' )
+		->assertSee( 'Typography' )
+		->assertSee( 'Font Family' );
+} );
+
+test( 'editor styles tab shows colors section for heading block', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showSettingsDrawer', true )
+		->set( 'settingsDrawerTab', 'styles' )
+		->set( 'activeBlockId', 've-1' )
+		->assertSee( 'Colors' )
+		->assertSee( 'Text Color' )
+		->assertSee( 'Background Color' );
+} );
+
+test( 'editor styles tab shows screen size selector', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showSettingsDrawer', true )
+		->set( 'settingsDrawerTab', 'styles' )
+		->set( 'activeBlockId', 've-1' )
+		->assertSee( 'Screen Size' );
+} );
+
+test( 'editor styles tab shows state selector', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showSettingsDrawer', true )
+		->set( 'settingsDrawerTab', 'styles' )
+		->set( 'activeBlockId', 've-1' )
+		->assertSee( 'State' );
+} );
+
+test( 'editor styles tab shows no styles message when no block selected', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showSettingsDrawer', true )
+		->set( 'settingsDrawerTab', 'styles' )
+		->set( 'activeBlockId', null )
+		->assertSee( 'Select a block on the canvas to view its styles.' );
+} );
+
+test( 'editor settings panel has three tabs', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showSettingsDrawer', true )
+		->assertSee( 'Styles' )
+		->assertSee( 'Settings' )
+		->assertSee( 'Page' );
+} );
+
+test( 'editor settings panel has Edit Block header', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'showSettingsDrawer', true )
+		->assertSee( 'Edit Block' );
+} );
+
+// =========================================
+// Dot-Notation Block Settings Tests
+// =========================================
+
+test( 'editor updateBlockSetting supports dot-notation keys', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'activeBlockId', 've-1' )
+		->call( 'updateBlockSetting', 'styles.base.default.sizing.padding_top', '16' )
+		->assertSet( 'blocks.0.settings.styles.base.default.sizing.padding_top', '16' );
+} );
+
+test( 'editor updateBlockSetting stores nested style values correctly', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'activeBlockId', 've-1' )
+		->call( 'updateBlockSetting', 'styles.base.default.colors.text_color', '#ff0000' )
+		->assertSet( 'blocks.0.settings.styles.base.default.colors.text_color', '#ff0000' );
+} );
+
+test( 'editor updateBlockSetting stores multiple breakpoint styles independently', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'activeBlockId', 've-1' )
+		->call( 'updateBlockSetting', 'styles.base.default.sizing.padding_top', '8' )
+		->call( 'updateBlockSetting', 'styles.md.default.sizing.padding_top', '16' )
+		->call( 'updateBlockSetting', 'styles.lg.default.sizing.padding_top', '24' )
+		->assertSet( 'blocks.0.settings.styles.base.default.sizing.padding_top', '8' )
+		->assertSet( 'blocks.0.settings.styles.md.default.sizing.padding_top', '16' )
+		->assertSet( 'blocks.0.settings.styles.lg.default.sizing.padding_top', '24' );
+} );
+
+test( 'editor updateBlockSetting stores state-specific styles independently', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'activeBlockId', 've-1' )
+		->call( 'updateBlockSetting', 'styles.base.default.colors.text_color', '#000000' )
+		->call( 'updateBlockSetting', 'styles.base.hover.colors.text_color', '#0066cc' )
+		->assertSet( 'blocks.0.settings.styles.base.default.colors.text_color', '#000000' )
+		->assertSet( 'blocks.0.settings.styles.base.hover.colors.text_color', '#0066cc' );
 } );

@@ -185,6 +185,7 @@ test( 'registered block includes all default config fields', function (): void {
 		'component',
 		'editor_component',
 		'supports',
+		'toolbar',
 		'example',
 	] )
 		->and( $block['description'] )->toBe( '' )
@@ -241,4 +242,156 @@ test( 'it can register a custom category', function (): void {
 
 	expect( $categories )->toHaveKey( 'widgets' )
 		->and( $categories['widgets']['name'] )->toBe( 'Widgets' );
+} );
+
+// =========================================
+// Toolbar Configuration Tests
+// =========================================
+
+test( 'registered block includes toolbar field defaulting to empty array', function (): void {
+	$this->registry->register( 'no-toolbar-block', [
+		'name' => 'No Toolbar Block',
+	] );
+
+	$block = $this->registry->get( 'no-toolbar-block' );
+
+	expect( $block['toolbar'] )->toBe( [] );
+} );
+
+test( 'registered block preserves toolbar configuration', function (): void {
+	$this->registry->register( 'toolbar-block', [
+		'name'    => 'Toolbar Block',
+		'toolbar' => [ 'align', 'richtext' ],
+	] );
+
+	$block = $this->registry->get( 'toolbar-block' );
+
+	expect( $block['toolbar'] )->toBe( [ 'align', 'richtext' ] );
+} );
+
+test( 'default heading block has richtext align and heading_level toolbar tools', function (): void {
+	$this->registry->registerDefaults();
+
+	$heading = $this->registry->get( 'heading' );
+
+	expect( $heading['toolbar'] )->toContain( 'align' )
+		->and( $heading['toolbar'] )->toContain( 'richtext' )
+		->and( $heading['toolbar'] )->toContain( 'heading_level' );
+} );
+
+test( 'default text block has richtext and align toolbar tools', function (): void {
+	$this->registry->registerDefaults();
+
+	$text = $this->registry->get( 'text' );
+
+	expect( $text['toolbar'] )->toContain( 'align' )
+		->and( $text['toolbar'] )->toContain( 'richtext' );
+} );
+
+test( 'default heading block uses richtext content type', function (): void {
+	$this->registry->registerDefaults();
+
+	$heading = $this->registry->get( 'heading' );
+
+	expect( $heading['content_schema']['text']['type'] )->toBe( 'richtext' );
+} );
+
+test( 'default image block has align toolbar tool', function (): void {
+	$this->registry->registerDefaults();
+
+	$image = $this->registry->get( 'image' );
+
+	expect( $image['toolbar'] )->toContain( 'align' );
+} );
+
+test( 'default divider block has empty toolbar', function (): void {
+	$this->registry->registerDefaults();
+
+	$divider = $this->registry->get( 'divider' );
+
+	expect( $divider['toolbar'] )->toBe( [] );
+} );
+
+// =========================================
+// Supports Configuration Tests
+// =========================================
+
+test( 'registered block includes supports field defaulting to sizing', function (): void {
+	$this->registry->register( 'no-supports-block', [
+		'name' => 'No Supports Block',
+	] );
+
+	$block = $this->registry->get( 'no-supports-block' );
+
+	expect( $block['supports'] )->toBe( [ 'sizing' ] );
+} );
+
+test( 'registered block preserves supports configuration', function (): void {
+	$this->registry->register( 'supports-block', [
+		'name'     => 'Supports Block',
+		'supports' => [ 'sizing', 'typography', 'colors', 'borders' ],
+	] );
+
+	$block = $this->registry->get( 'supports-block' );
+
+	expect( $block['supports'] )->toBe( [ 'sizing', 'typography', 'colors', 'borders' ] );
+} );
+
+test( 'default heading block supports sizing typography and colors', function (): void {
+	$this->registry->registerDefaults();
+
+	$heading = $this->registry->get( 'heading' );
+
+	expect( $heading['supports'] )->toContain( 'sizing' )
+		->and( $heading['supports'] )->toContain( 'typography' )
+		->and( $heading['supports'] )->toContain( 'colors' );
+} );
+
+test( 'default text block supports sizing typography and colors', function (): void {
+	$this->registry->registerDefaults();
+
+	$text = $this->registry->get( 'text' );
+
+	expect( $text['supports'] )->toContain( 'sizing' )
+		->and( $text['supports'] )->toContain( 'typography' )
+		->and( $text['supports'] )->toContain( 'colors' );
+} );
+
+test( 'default image block supports sizing and borders', function (): void {
+	$this->registry->registerDefaults();
+
+	$image = $this->registry->get( 'image' );
+
+	expect( $image['supports'] )->toContain( 'sizing' )
+		->and( $image['supports'] )->toContain( 'borders' )
+		->and( $image['supports'] )->not->toContain( 'typography' );
+} );
+
+test( 'default button block supports sizing typography colors and borders', function (): void {
+	$this->registry->registerDefaults();
+
+	$button = $this->registry->get( 'button' );
+
+	expect( $button['supports'] )->toContain( 'sizing' )
+		->and( $button['supports'] )->toContain( 'typography' )
+		->and( $button['supports'] )->toContain( 'colors' )
+		->and( $button['supports'] )->toContain( 'borders' );
+} );
+
+test( 'default spacer block supports only sizing', function (): void {
+	$this->registry->registerDefaults();
+
+	$spacer = $this->registry->get( 'spacer' );
+
+	expect( $spacer['supports'] )->toBe( [ 'sizing' ] );
+} );
+
+test( 'default divider block supports sizing colors and borders', function (): void {
+	$this->registry->registerDefaults();
+
+	$divider = $this->registry->get( 'divider' );
+
+	expect( $divider['supports'] )->toContain( 'sizing' )
+		->and( $divider['supports'] )->toContain( 'colors' )
+		->and( $divider['supports'] )->toContain( 'borders' );
 } );
