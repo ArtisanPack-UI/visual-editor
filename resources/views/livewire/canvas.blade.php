@@ -522,7 +522,10 @@ new class extends Component {
 	 * Insert a block with optional initial text content.
 	 *
 	 * Used by the typing area to create blocks from typed text
-	 * or from the slash command menu.
+	 * or from the slash command menu. Does not dispatch blocks-updated
+	 * to avoid the editor re-render cascade that would destroy the
+	 * canvas component and lose editing state. The blocks-updated
+	 * event is deferred until saveInlineEdit or insertBlockAfter.
 	 *
 	 * @since 1.2.0
 	 *
@@ -549,7 +552,6 @@ new class extends Component {
 		$this->activeBlockId  = $newBlock['id'];
 		$this->editingBlockId = $newBlock['id'];
 
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
 		$this->dispatch( 'focus-block', blockId: $newBlock['id'] );
 	}
 
@@ -804,8 +806,8 @@ new class extends Component {
 								<div
 									x-ref="editor"
 									contenteditable="true"
-									x-init="$nextTick( () => $el.focus() )"
-									@blur="if ( !window.veNavigating ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML ) }"
+									x-init="$nextTick( () => { $el.focus(); let s = window.getSelection(), r = document.createRange(); r.selectNodeContents( $el ); r.collapse( false ); s.removeAllRanges(); s.addRange( r ) } )"
+									@blur="if ( !window.veNavigating && !window.veFocusingBlock ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML ) }"
 									@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML )"
 									@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.innerHTML )"
 									@keydown.tab.prevent="window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, $event.shiftKey ? 'up' : 'down' )"
@@ -832,8 +834,8 @@ new class extends Component {
 								<{{ $editTag }}
 									x-ref="editor"
 									contenteditable="true"
-									x-init="$nextTick( () => $el.focus() )"
-									@blur="if ( !window.veNavigating ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.textContent ) }"
+									x-init="$nextTick( () => { $el.focus(); let s = window.getSelection(), r = document.createRange(); r.selectNodeContents( $el ); r.collapse( false ); s.removeAllRanges(); s.addRange( r ) } )"
+									@blur="if ( !window.veNavigating && !window.veFocusingBlock ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.textContent ) }"
 									@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.textContent )"
 									@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.textContent )"
 									@keydown.tab.prevent="window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.textContent, $event.shiftKey ? 'up' : 'down' )"
@@ -1012,9 +1014,12 @@ new class extends Component {
 @script
 <script>
 	window.veNavigating = false
+	window.veFocusingBlock = false
 
 	Livewire.hook( 'morphed', () => {
-		window.veNavigating = false
+		if ( !window.veFocusingBlock ) {
+			window.veNavigating = false
+		}
 	} )
 
 	const canvasHandler = ( event ) => {
@@ -1086,8 +1091,9 @@ new class extends Component {
 	} )
 
 	Livewire.on( 'focus-block', ( { blockId } ) => {
-		let startTime = Date.now()
-		let settled   = false
+		let startTime  = Date.now()
+		let minRunTime = 800
+		window.veFocusingBlock = true
 		let focusInterval = setInterval( () => {
 			window.veNavigating = false
 			let blockEl = document.querySelector( `[wire\\:key="block-${blockId}"] [contenteditable="true"]` )
@@ -1100,14 +1106,13 @@ new class extends Component {
 					range.collapse( false )
 					sel.removeAllRanges()
 					sel.addRange( range )
-					settled = false
-				} else if ( !settled ) {
-					settled = true
-				} else {
+				} else if ( Date.now() - startTime >= minRunTime ) {
+					window.veFocusingBlock = false
 					clearInterval( focusInterval )
 				}
 			}
 			if ( Date.now() - startTime > 2000 ) {
+				window.veFocusingBlock = false
 				clearInterval( focusInterval )
 			}
 		}, 50 )
