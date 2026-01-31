@@ -536,7 +536,7 @@ class ColumnsBlock extends BaseBlock
 ## Complete Block List
 
 | Block | Type | Category | Has Children |
-|-------|------|----------|--------------|
+| ------- | ------ | ---------- | -------------- |
 | Heading | `heading` | text | No |
 | Paragraph | `paragraph` | text | No |
 | List | `list` | text | No |

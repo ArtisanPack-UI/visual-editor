@@ -438,7 +438,7 @@ Schema::create('ve_template_parts', function (Blueprint $table) {
     $table->string('name');
     $table->json('blocks');
     $table->json('styles')->nullable();
-    $table->boolean('is_locked')->default(false);
+    $table->json('lock')->nullable();
     $table->timestamps();
 });
 ```

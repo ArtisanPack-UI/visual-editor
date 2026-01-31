@@ -44,6 +44,14 @@ return new class extends Migration
             // Indexes
             $table->index(['experiment_id', 'is_control']);
         });
+
+        // Add foreign key for winner_variant_id now that the variants table exists.
+        Schema::table('ve_experiments', function (Blueprint $table) {
+            $table->foreign('winner_variant_id')
+                ->references('id')
+                ->on('ve_experiment_variants')
+                ->nullOnDelete();
+        });
     }
 
     /**
@@ -53,6 +61,10 @@ return new class extends Migration
      */
     public function down(): void
     {
+        Schema::table('ve_experiments', function (Blueprint $table) {
+            $table->dropForeign(['winner_variant_id']);
+        });
+
         Schema::dropIfExists('ve_experiment_variants');
     }
 };

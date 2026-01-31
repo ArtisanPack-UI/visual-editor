@@ -368,15 +368,37 @@ Schema::create('ve_editor_locks', function (Blueprint $table) {
 
 ```php
 // Performance indexes to add after table creation
+$driver = DB::connection()->getDriverName();
 
-// Content lookups
-DB::statement('CREATE INDEX ve_contents_search ON ve_contents USING gin(to_tsvector(\'english\', title || \' \' || COALESCE(excerpt, \'\')))');
+if ('pgsql' === $driver) {
+    // PostgreSQL: GIN index for full-text search
+    DB::statement('CREATE INDEX ve_contents_search ON ve_contents USING gin(to_tsvector(\'english\', title || \' \' || COALESCE(excerpt, \'\')))');
 
-// Revision cleanup
-DB::statement('CREATE INDEX ve_revisions_cleanup ON ve_content_revisions (content_id, type, created_at) WHERE type = \'autosave\'');
+    // PostgreSQL: Partial indexes for filtered queries
+    DB::statement('CREATE INDEX ve_revisions_cleanup ON ve_content_revisions (content_id, type, created_at) WHERE type = \'autosave\'');
+    DB::statement('CREATE INDEX ve_experiments_active ON ve_experiments (status, content_id) WHERE status = \'running\'');
+} elseif ('mysql' === $driver || 'mariadb' === $driver) {
+    // MySQL/MariaDB: Full-text index for content search
+    Schema::table('ve_contents', function (Blueprint $table) {
+        $table->fullText(['title', 'excerpt']);
+    });
 
-// Active experiments
-DB::statement('CREATE INDEX ve_experiments_active ON ve_experiments (status, content_id) WHERE status = \'running\'');
+    // Standard composite indexes (no partial index support)
+    Schema::table('ve_content_revisions', function (Blueprint $table) {
+        $table->index(['content_id', 'type', 'created_at'], 've_revisions_cleanup');
+    });
+    Schema::table('ve_experiments', function (Blueprint $table) {
+        $table->index(['status', 'content_id'], 've_experiments_active');
+    });
+} else {
+    // SQLite and others: Standard composite indexes
+    Schema::table('ve_content_revisions', function (Blueprint $table) {
+        $table->index(['content_id', 'type', 'created_at'], 've_revisions_cleanup');
+    });
+    Schema::table('ve_experiments', function (Blueprint $table) {
+        $table->index(['status', 'content_id'], 've_experiments_active');
+    });
+}
 ```
 
 ---
@@ -416,9 +438,15 @@ class Content extends Model
 // Template.php
 class Template extends Model
 {
-    public function parts(): BelongsToMany
+    /**
+     * Gets the template parts associated with this template.
+     *
+     * Uses an accessor since parts are stored as a JSON array of slugs
+     * rather than a pivot table.
+     */
+    public function getPartsAttribute(): Collection
     {
-        return TemplatePart::whereIn('slug', $this->template_parts)->get();
+        return TemplatePart::whereIn('slug', $this->template_parts ?? [])->get();
     }
 }
 
