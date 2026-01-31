@@ -18,6 +18,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers;
 
 use ArtisanPackUI\VisualEditor\Models\Content;
 use ArtisanPackUI\VisualEditor\Services\ContentService;
+use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -30,6 +31,8 @@ use Illuminate\Support\Carbon;
  */
 class ContentApiController extends Controller
 {
+	use AuthorizesRequests;
+
 	/**
 	 * The content service instance.
 	 *
@@ -67,6 +70,8 @@ class ContentApiController extends Controller
 		if ( !$user ) {
 			abort( 401, 'Unauthenticated' );
 		}
+
+		$this->authorize( 'update', $content );
 
 		$validated = $request->validate( [
 			'title'              => 'sometimes|string|max:255',
@@ -110,6 +115,8 @@ class ContentApiController extends Controller
 			abort( 401, 'Unauthenticated' );
 		}
 
+		$this->authorize( 'update', $content );
+
 		$validated = $request->validate( [
 			'blocks'   => 'sometimes|array',
 			'settings' => 'sometimes|nullable|array',
@@ -144,6 +151,8 @@ class ContentApiController extends Controller
 			abort( 401, 'Unauthenticated' );
 		}
 
+		$this->authorize( 'publish', $content );
+
 		$content = $this->contentService->publish(
 			$content,
 			$user->id,
@@ -172,6 +181,8 @@ class ContentApiController extends Controller
 			abort( 401, 'Unauthenticated' );
 		}
 
+		$this->authorize( 'unpublish', $content );
+
 		$content = $this->contentService->unpublish(
 			$content,
 			$user->id,
@@ -195,14 +206,16 @@ class ContentApiController extends Controller
 	 */
 	public function schedule( Request $request, Content $content ): JsonResponse
 	{
-		$validated = $request->validate( [
-			'scheduled_at' => 'required|date|after:now',
-		] );
-
 		$user = $request->user();
 		if ( !$user ) {
 			abort( 401, 'Unauthenticated' );
 		}
+
+		$this->authorize( 'schedule', $content );
+
+		$validated = $request->validate( [
+			'scheduled_at' => 'required|date|after:now',
+		] );
 
 		$content = $this->contentService->schedule(
 			$content,

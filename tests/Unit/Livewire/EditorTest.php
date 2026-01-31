@@ -539,3 +539,229 @@ test( 'editor updateBlockSetting stores state-specific styles independently', fu
 		->assertSet( 'blocks.0.settings.styles.base.default.colors.text_color', '#000000' )
 		->assertSet( 'blocks.0.settings.styles.base.hover.colors.text_color', '#0066cc' );
 } );
+
+// =========================================
+// Undo/Redo Tests
+// =========================================
+
+test( 'editor undo stack starts empty', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->assertSet( 'undoStack', [] );
+} );
+
+test( 'editor redo stack starts empty', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->assertSet( 'redoStack', [] );
+} );
+
+test( 'editor pushHistory adds to undo stack', function (): void {
+	$initialBlocks = [ [ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ] ];
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->call( 'pushHistory', $initialBlocks )
+		->assertSet( 'undoStack', [ $initialBlocks ] );
+} );
+
+test( 'editor pushHistory clears redo stack', function (): void {
+	$blocks = [ [ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ] ];
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'redoStack', [ $blocks ] )
+		->call( 'pushHistory', $blocks )
+		->assertSet( 'redoStack', [] );
+} );
+
+test( 'editor pushHistory caps at max_history_states', function (): void {
+	config()->set( 'artisanpack.visual-editor.editor.max_history_states', 3 );
+
+	$component = Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] );
+
+	for ( $i = 1; $i <= 5; $i++ ) {
+		$component->call( 'pushHistory', [ [ 'id' => "ve-{$i}", 'type' => 'text' ] ] );
+	}
+
+	$stack = $component->get( 'undoStack' );
+	expect( $stack )->toHaveCount( 3 )
+		->and( $stack[0][0]['id'] )->toBe( 've-3' )
+		->and( $stack[2][0]['id'] )->toBe( 've-5' );
+} );
+
+test( 'editor pushHistory dispatches undo-redo-state-changed', function (): void {
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->call( 'pushHistory', [ [ 'id' => 've-1', 'type' => 'heading' ] ] )
+		->assertDispatched( 'undo-redo-state-changed', canUndo: true, canRedo: false );
+} );
+
+test( 'editor undo restores previous block state', function (): void {
+	$originalBlocks = [ [ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ] ];
+	$newBlocks      = [
+		[ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ],
+		[ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->assertSet( 'blocks', $newBlocks )
+		->call( 'undo' )
+		->assertSet( 'blocks', $originalBlocks );
+} );
+
+test( 'editor undo pushes current state to redo stack', function (): void {
+	$newBlocks = [
+		[ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ],
+		[ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->call( 'undo' )
+		->assertSet( 'redoStack', [ $newBlocks ] );
+} );
+
+test( 'editor undo does nothing when stack is empty', function (): void {
+	$originalBlocks = $this->content->blocks;
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->call( 'undo' )
+		->assertSet( 'blocks', $originalBlocks )
+		->assertSet( 'redoStack', [] );
+} );
+
+test( 'editor undo dispatches canvas-sync-blocks', function (): void {
+	$newBlocks = [
+		[ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ],
+		[ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->call( 'undo' )
+		->assertDispatched( 'canvas-sync-blocks' );
+} );
+
+test( 'editor undo dispatches undo-redo-state-changed', function (): void {
+	$newBlocks = [
+		[ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ],
+		[ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->call( 'undo' )
+		->assertDispatched( 'undo-redo-state-changed', canUndo: false, canRedo: true );
+} );
+
+test( 'editor redo restores next block state', function (): void {
+	$newBlocks = [
+		[ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ],
+		[ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->call( 'undo' )
+		->call( 'redo' )
+		->assertSet( 'blocks', $newBlocks );
+} );
+
+test( 'editor redo pushes current state to undo stack', function (): void {
+	$originalBlocks = $this->content->blocks;
+	$newBlocks      = [
+		[ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ],
+		[ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ],
+	];
+
+	$component = Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->call( 'undo' )
+		->call( 'redo' );
+
+	$undoStack = $component->get( 'undoStack' );
+
+	// After blocks-updated → undo → redo, the undo stack should have the original blocks.
+	expect( $undoStack )->toHaveCount( 1 )
+		->and( $undoStack[0] )->toBe( $originalBlocks );
+} );
+
+test( 'editor redo does nothing when stack is empty', function (): void {
+	$originalBlocks = $this->content->blocks;
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->call( 'redo' )
+		->assertSet( 'blocks', $originalBlocks )
+		->assertSet( 'undoStack', [] );
+} );
+
+test( 'editor redo dispatches canvas-sync-blocks', function (): void {
+	$newBlocks = [
+		[ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ],
+		[ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->call( 'undo' )
+		->call( 'redo' )
+		->assertDispatched( 'canvas-sync-blocks' );
+} );
+
+test( 'editor redo dispatches undo-redo-state-changed', function (): void {
+	$newBlocks = [
+		[ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ],
+		[ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->call( 'undo' )
+		->call( 'redo' )
+		->assertDispatched( 'undo-redo-state-changed', canUndo: true, canRedo: false );
+} );
+
+test( 'editor onBlocksUpdated pushes history', function (): void {
+	$originalBlocks = $this->content->blocks;
+	$newBlocks      = [
+		[ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ],
+		[ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->assertSet( 'undoStack', [ $originalBlocks ] );
+} );
+
+test( 'editor onLayersReordered pushes history', function (): void {
+	$originalBlocks  = $this->content->blocks;
+	$reorderedBlocks = [
+		[ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ],
+		[ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->dispatch( 'layers-reordered', blocks: $reorderedBlocks )
+		->assertSet( 'undoStack', [ $originalBlocks ] );
+} );
+
+test( 'editor updateBlockSetting pushes history', function (): void {
+	$originalBlocks = $this->content->blocks;
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->set( 'activeBlockId', 've-1' )
+		->call( 'updateBlockSetting', 'alignment', 'center' )
+		->assertSet( 'undoStack', [ $originalBlocks ] );
+} );
+
+test( 'editor undo marks editor as dirty', function (): void {
+	$newBlocks = [
+		[ 'id' => 've-1', 'type' => 'heading', 'data' => [], 'settings' => [] ],
+		[ 'id' => 've-2', 'type' => 'text', 'data' => [], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
+		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->set( 'isDirty', false )
+		->set( 'saveStatus', 'saved' )
+		->call( 'undo' )
+		->assertSet( 'isDirty', true )
+		->assertSet( 'saveStatus', 'unsaved' );
+} );

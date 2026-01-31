@@ -241,6 +241,28 @@ new class extends Component {
 	public string $scheduleTime = '';
 
 	/**
+	 * The undo history stack.
+	 *
+	 * Stores previous block states as snapshots for undo operations.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @var array<int, array>
+	 */
+	public array $undoStack = [];
+
+	/**
+	 * The redo history stack.
+	 *
+	 * Stores forward block states as snapshots for redo operations.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @var array<int, array>
+	 */
+	public array $redoStack = [];
+
+	/**
 	 * Mount the component with the given content.
 	 *
 	 * @since 1.0.0
@@ -451,6 +473,96 @@ new class extends Component {
 	}
 
 	/**
+	 * Push the given blocks snapshot onto the undo stack.
+	 *
+	 * Clears the redo stack and caps the undo stack at the
+	 * configured max_history_states limit.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param array $blocks The blocks state to record.
+	 *
+	 * @return void
+	 */
+	public function pushHistory( array $blocks ): void
+	{
+		$this->undoStack[] = $blocks;
+		$this->redoStack   = [];
+
+		$max = (int) config( 'artisanpack.visual-editor.editor.max_history_states', 50 );
+
+		if ( count( $this->undoStack ) > $max ) {
+			$this->undoStack = array_slice( $this->undoStack, -$max );
+		}
+
+		$this->notifyToolbarUndoRedo();
+	}
+
+	/**
+	 * Undo the last block change.
+	 *
+	 * Pops the most recent snapshot from the undo stack, pushes
+	 * the current state onto the redo stack, and syncs the canvas.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @return void
+	 */
+	#[On( 'editor-undo' )]
+	public function undo(): void
+	{
+		if ( empty( $this->undoStack ) ) {
+			return;
+		}
+
+		$this->redoStack[] = $this->blocks;
+		$this->blocks      = array_pop( $this->undoStack );
+		$this->isDirty     = true;
+		$this->saveStatus  = 'unsaved';
+
+		$this->dispatch( 'canvas-sync-blocks', blocks: $this->blocks );
+		$this->notifyToolbarUndoRedo();
+	}
+
+	/**
+	 * Redo the last undone block change.
+	 *
+	 * Pops the most recent snapshot from the redo stack, pushes
+	 * the current state onto the undo stack, and syncs the canvas.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @return void
+	 */
+	#[On( 'editor-redo' )]
+	public function redo(): void
+	{
+		if ( empty( $this->redoStack ) ) {
+			return;
+		}
+
+		$this->undoStack[] = $this->blocks;
+		$this->blocks      = array_pop( $this->redoStack );
+		$this->isDirty     = true;
+		$this->saveStatus  = 'unsaved';
+
+		$this->dispatch( 'canvas-sync-blocks', blocks: $this->blocks );
+		$this->notifyToolbarUndoRedo();
+	}
+
+	/**
+	 * Notify the toolbar of the current undo/redo availability.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @return void
+	 */
+	public function notifyToolbarUndoRedo(): void
+	{
+		$this->dispatch( 'undo-redo-state-changed', canUndo: !empty( $this->undoStack ), canRedo: !empty( $this->redoStack ) );
+	}
+
+	/**
 	 * Toggle the sidebar open/closed.
 	 *
 	 * @since 1.0.0
@@ -501,6 +613,7 @@ new class extends Component {
 	#[On( 'blocks-updated' )]
 	public function onBlocksUpdated( array $blocks ): void
 	{
+		$this->pushHistory( $this->blocks );
 		$this->blocks     = $blocks;
 		$this->isDirty    = true;
 		$this->saveStatus = 'unsaved';
@@ -520,6 +633,7 @@ new class extends Component {
 	#[On( 'layers-reordered' )]
 	public function onLayersReordered( array $blocks ): void
 	{
+		$this->pushHistory( $this->blocks );
 		$this->blocks     = $blocks;
 		$this->isDirty    = true;
 		$this->saveStatus = 'unsaved';
@@ -644,6 +758,8 @@ new class extends Component {
 		if ( null === $this->activeBlockId ) {
 			return;
 		}
+
+		$this->pushHistory( $this->blocks );
 
 		$blocks = $this->blocks;
 

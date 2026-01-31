@@ -15,6 +15,7 @@ declare( strict_types=1 );
  * @since      1.0.0
  */
 
+use Livewire\Attributes\On;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
@@ -181,6 +182,23 @@ new class extends Component {
 	public function toggleSettings(): void
 	{
 		$this->dispatch( 'editor-toggle-settings' );
+	}
+
+	/**
+	 * Update undo/redo button states from the editor.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param bool $canUndo Whether undo is available.
+	 * @param bool $canRedo Whether redo is available.
+	 *
+	 * @return void
+	 */
+	#[On( 'undo-redo-state-changed' )]
+	public function onUndoRedoStateChanged( bool $canUndo, bool $canRedo ): void
+	{
+		$this->canUndo = $canUndo;
+		$this->canRedo = $canRedo;
 	}
 }; ?>
 

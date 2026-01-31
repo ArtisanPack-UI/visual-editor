@@ -115,3 +115,65 @@ test( 'unauthenticated requests return 401', function (): void {
 		[ 'title' => 'Should fail' ],
 	)->assertUnauthorized();
 } );
+
+// =========================================
+// Authorization (non-author)
+// =========================================
+
+test( 'save endpoint returns 403 for non-author', function (): void {
+	$otherUser = User::factory()->create();
+
+	$this->actingAs( $otherUser );
+
+	$this->postJson(
+		route( 'visual-editor.api.save', $this->content ),
+		[ 'title' => 'Unauthorized update' ],
+	)->assertForbidden();
+} );
+
+test( 'autosave endpoint returns 403 for non-author', function (): void {
+	$otherUser = User::factory()->create();
+
+	$this->actingAs( $otherUser );
+
+	$this->postJson(
+		route( 'visual-editor.api.autosave', $this->content ),
+		[ 'blocks' => [] ],
+	)->assertForbidden();
+} );
+
+test( 'publish endpoint returns 403 for non-author', function (): void {
+	$otherUser = User::factory()->create();
+
+	$this->actingAs( $otherUser );
+
+	$this->postJson(
+		route( 'visual-editor.api.publish', $this->content ),
+	)->assertForbidden();
+} );
+
+test( 'unpublish endpoint returns 403 for non-author', function (): void {
+	$this->content->update( [
+		'status'       => 'published',
+		'published_at' => now(),
+	] );
+
+	$otherUser = User::factory()->create();
+
+	$this->actingAs( $otherUser );
+
+	$this->postJson(
+		route( 'visual-editor.api.unpublish', $this->content ),
+	)->assertForbidden();
+} );
+
+test( 'schedule endpoint returns 403 for non-author', function (): void {
+	$otherUser = User::factory()->create();
+
+	$this->actingAs( $otherUser );
+
+	$this->postJson(
+		route( 'visual-editor.api.schedule', $this->content ),
+		[ 'scheduled_at' => '2027-06-15 10:00:00' ],
+	)->assertForbidden();
+} );

@@ -169,6 +169,10 @@ class EditorLock extends Model
 	{
 		$timeout = config( 'artisanpack.visual-editor.locking.lock_timeout', 120 );
 
+		if ( null === $this->last_heartbeat ) {
+			return true;
+		}
+
 		return $this->last_heartbeat->lt( Carbon::now()->subSeconds( $timeout ) );
 	}
 

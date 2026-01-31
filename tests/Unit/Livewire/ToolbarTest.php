@@ -147,3 +147,39 @@ test( 'toolbar accepts sidebar and settings open props', function (): void {
 		->assertSet( 'sidebarOpen', false )
 		->assertSet( 'settingsOpen', true );
 } );
+
+// =========================================
+// Undo/Redo State Tests
+// =========================================
+
+test( 'toolbar initializes with undo and redo disabled', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+	] )
+		->assertSet( 'canUndo', false )
+		->assertSet( 'canRedo', false );
+} );
+
+test( 'toolbar updates canUndo on undo-redo-state-changed event', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+	] )
+		->dispatch( 'undo-redo-state-changed', canUndo: true, canRedo: false )
+		->assertSet( 'canUndo', true )
+		->assertSet( 'canRedo', false );
+} );
+
+test( 'toolbar updates canRedo on undo-redo-state-changed event', function (): void {
+	Livewire::test( 'visual-editor::toolbar', [
+		'saveStatus'    => 'saved',
+		'contentTitle'  => 'Test Page',
+		'contentStatus' => 'draft',
+	] )
+		->dispatch( 'undo-redo-state-changed', canUndo: false, canRedo: true )
+		->assertSet( 'canUndo', false )
+		->assertSet( 'canRedo', true );
+} );

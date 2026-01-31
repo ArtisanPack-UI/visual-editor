@@ -176,6 +176,12 @@ test( 'schedule sets status to scheduled and scheduled_at', function (): void {
 		->and( $result->scheduled_at->toDateTimeString() )->toBe( '2026-06-15 10:00:00' );
 } );
 
+test( 'schedule rejects a date in the past', function (): void {
+	$pastDate = Carbon::parse( '2020-01-01 00:00:00' );
+
+	$this->service->schedule( $this->content, $pastDate, $this->user->id );
+} )->throws( InvalidArgumentException::class, 'The scheduled date must be in the future.' );
+
 // =========================================
 // submitForReview
 // =========================================

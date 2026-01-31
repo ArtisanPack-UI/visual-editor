@@ -16,11 +16,14 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor;
 
+use ArtisanPackUI\VisualEditor\Models\Content;
+use ArtisanPackUI\VisualEditor\Policies\ContentPolicy;
 use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Registries\SectionRegistry;
 use ArtisanPackUI\VisualEditor\Registries\TemplateRegistry;
 use ArtisanPackUI\VisualEditor\Services\ContentService;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesManager;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 
@@ -86,6 +89,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->loadMigrations();
 		$this->registerRoutes();
 		$this->registerLivewireComponents();
+		$this->registerPolicies();
 		$this->bootRegistries();
 	}
 
@@ -207,6 +211,18 @@ class VisualEditorServiceProvider extends ServiceProvider
 				viewPath: __DIR__ . '/../resources/views/livewire',
 			);
 		}
+	}
+
+	/**
+	 * Registers model policies for authorization.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerPolicies(): void
+	{
+		Gate::policy( Content::class, ContentPolicy::class );
 	}
 
 	/**

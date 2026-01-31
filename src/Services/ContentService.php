@@ -19,6 +19,7 @@ namespace ArtisanPackUI\VisualEditor\Services;
 use ArtisanPackUI\VisualEditor\Models\Content;
 use ArtisanPackUI\VisualEditor\Models\ContentRevision;
 use Illuminate\Support\Carbon;
+use InvalidArgumentException;
 
 /**
  * Content service class.
@@ -151,10 +152,16 @@ class ContentService
 	 * @param Carbon  $publishAt The date and time to publish.
 	 * @param int     $userId    The ID of the user scheduling.
 	 *
+	 * @throws InvalidArgumentException If the publish date is not in the future.
+	 *
 	 * @return Content
 	 */
 	public function schedule( Content $content, Carbon $publishAt, int $userId ): Content
 	{
+		if ( !$publishAt->isFuture() ) {
+			throw new InvalidArgumentException( __( 'The scheduled date must be in the future.' ) );
+		}
+
 		$content->status       = 'scheduled';
 		$content->scheduled_at = $publishAt;
 		$content->save();

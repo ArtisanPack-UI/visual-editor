@@ -196,7 +196,7 @@ return [
 			],
 			'anthropic' => [
 				'api_key' => env( 'ANTHROPIC_API_KEY' ),
-				'model'   => env( 'VE_ANTHROPIC_MODEL', 'claude-opus-4-20250514' ), // Override via VE_ANTHROPIC_MODEL
+				'model'   => env( 'VE_ANTHROPIC_MODEL', 'claude-opus-4' ), // Override via VE_ANTHROPIC_MODEL
 			],
 		],
 	],
