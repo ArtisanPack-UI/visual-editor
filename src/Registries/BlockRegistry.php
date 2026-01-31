@@ -280,6 +280,9 @@ class BlockRegistry
 				'text'  => [ 'type' => 'richtext', 'label' => __( 'Heading Text' ), 'required' => true ],
 				'level' => [ 'type' => 'select', 'label' => __( 'Heading Level' ), 'options' => [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], 'default' => 'h2' ],
 			],
+			'settings_schema' => [
+				'anchor' => [ 'type' => 'text', 'label' => __( 'HTML Anchor' ) ],
+			],
 			'supports' => [ 'sizing', 'typography', 'colors' ],
 			'toolbar'  => [ 'align', 'richtext', 'heading_level' ],
 		] );
@@ -291,6 +294,9 @@ class BlockRegistry
 			'content_schema' => [
 				'text' => [ 'type' => 'richtext', 'label' => __( 'Content' ) ],
 			],
+			'settings_schema' => [
+				'drop_cap' => [ 'type' => 'toggle', 'label' => __( 'Drop Cap' ), 'default' => false ],
+			],
 			'supports' => [ 'sizing', 'typography', 'colors' ],
 			'toolbar'  => [ 'align', 'richtext' ],
 		] );
@@ -300,10 +306,11 @@ class BlockRegistry
 			'icon'           => 'fas.list',
 			'category'       => 'text',
 			'content_schema' => [
-				'items' => [ 'type' => 'repeater', 'label' => __( 'List Items' ) ],
-				'style' => [ 'type' => 'select', 'options' => [ 'bullet', 'number', 'check' ], 'default' => 'bullet' ],
+				'text'  => [ 'type' => 'richtext', 'label' => __( 'List Content' ) ],
+				'style' => [ 'type' => 'select', 'label' => __( 'List Style' ), 'options' => [ 'bullet', 'number' ], 'default' => 'bullet' ],
 			],
 			'supports' => [ 'sizing', 'typography', 'colors' ],
+			'toolbar'  => [ 'align', 'richtext', 'list_style' ],
 		] );
 
 		$this->register( 'quote', [

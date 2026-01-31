@@ -365,11 +365,10 @@ test( 'editor getActiveBlockConfig returns config for active block', function ()
 
 	$config = $component->call( 'getActiveBlockConfig' )->get( 'getActiveBlockConfig' );
 
-	// The heading block has no settings_schema (alignment is in toolbar, color in styles).
-	// It should show the empty settings message.
+	// The heading block has an anchor setting in its settings_schema.
 	$component->set( 'showSettingsDrawer', true )
 		->set( 'settingsDrawerTab', 'settings' )
-		->assertSee( 'This block has no configurable settings.' );
+		->assertSee( 'HTML Anchor' );
 } );
 
 // =========================================

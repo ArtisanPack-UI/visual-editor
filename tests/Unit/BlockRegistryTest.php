@@ -395,3 +395,66 @@ test( 'default divider block supports sizing colors and borders', function (): v
 		->and( $divider['supports'] )->toContain( 'colors' )
 		->and( $divider['supports'] )->toContain( 'borders' );
 } );
+
+// =========================================
+// Text Block Registration Tests
+// =========================================
+
+test( 'default heading block has anchor setting in settings_schema', function (): void {
+	$this->registry->registerDefaults();
+
+	$heading = $this->registry->get( 'heading' );
+
+	expect( $heading['settings_schema'] )->toHaveKey( 'anchor' )
+		->and( $heading['settings_schema']['anchor']['type'] )->toBe( 'text' );
+} );
+
+test( 'default text block has drop_cap setting in settings_schema', function (): void {
+	$this->registry->registerDefaults();
+
+	$text = $this->registry->get( 'text' );
+
+	expect( $text['settings_schema'] )->toHaveKey( 'drop_cap' )
+		->and( $text['settings_schema']['drop_cap']['type'] )->toBe( 'toggle' )
+		->and( $text['settings_schema']['drop_cap']['default'] )->toBeFalse();
+} );
+
+test( 'default list block uses richtext text field', function (): void {
+	$this->registry->registerDefaults();
+
+	$list = $this->registry->get( 'list' );
+
+	expect( $list['content_schema'] )->toHaveKey( 'text' )
+		->and( $list['content_schema']['text']['type'] )->toBe( 'richtext' );
+} );
+
+test( 'default list block has style select field', function (): void {
+	$this->registry->registerDefaults();
+
+	$list = $this->registry->get( 'list' );
+
+	expect( $list['content_schema'] )->toHaveKey( 'style' )
+		->and( $list['content_schema']['style']['type'] )->toBe( 'select' )
+		->and( $list['content_schema']['style']['options'] )->toBe( [ 'bullet', 'number' ] )
+		->and( $list['content_schema']['style']['default'] )->toBe( 'bullet' );
+} );
+
+test( 'default list block has richtext align and list_style toolbar tools', function (): void {
+	$this->registry->registerDefaults();
+
+	$list = $this->registry->get( 'list' );
+
+	expect( $list['toolbar'] )->toContain( 'align' )
+		->and( $list['toolbar'] )->toContain( 'richtext' )
+		->and( $list['toolbar'] )->toContain( 'list_style' );
+} );
+
+test( 'default list block supports sizing typography and colors', function (): void {
+	$this->registry->registerDefaults();
+
+	$list = $this->registry->get( 'list' );
+
+	expect( $list['supports'] )->toContain( 'sizing' )
+		->and( $list['supports'] )->toContain( 'typography' )
+		->and( $list['supports'] )->toContain( 'colors' );
+} );

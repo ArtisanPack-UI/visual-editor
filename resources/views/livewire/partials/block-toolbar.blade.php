@@ -28,7 +28,9 @@
 	$hasAlign     = in_array( 'align', $toolbarTools, true );
 	$hasRichText  = in_array( 'richtext', $toolbarTools, true ) && $isEditing && $isRichText;
 	$hasHeadingLevel = in_array( 'heading_level', $toolbarTools, true );
-	$currentLevel = $block['content']['level'] ?? 'h2';
+	$hasListStyle    = in_array( 'list_style', $toolbarTools, true );
+	$currentLevel    = $block['content']['level'] ?? 'h2';
+	$currentStyle    = $block['content']['style'] ?? 'bullet';
 @endphp
 
 <div
@@ -134,6 +136,40 @@
 		</div>
 
 		{{-- Separator after heading level --}}
+		@if ( $hasAlign || $hasRichText )
+			<div class="mx-0.5 h-6 w-px bg-gray-200"></div>
+		@endif
+	@endif
+
+	{{-- List Style Toggle --}}
+	@if ( $hasListStyle )
+		<button
+			type="button"
+			@mousedown.prevent
+			@click.prevent="$wire.$parent.changeListStyle( '{{ $blockId }}', 'bullet' )"
+			class="rounded p-1.5 {{ 'bullet' === $currentStyle ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700' }}"
+			title="{{ __( 'Unordered List' ) }}"
+		>
+			<svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
+			</svg>
+		</button>
+		<button
+			type="button"
+			@mousedown.prevent
+			@click.prevent="$wire.$parent.changeListStyle( '{{ $blockId }}', 'number' )"
+			class="rounded p-1.5 {{ 'number' === $currentStyle ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700' }}"
+			title="{{ __( 'Ordered List' ) }}"
+		>
+			<svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 6h14M7 12h14M7 18h14" />
+				<text x="1" y="7" font-size="6" fill="currentColor" stroke="none" font-weight="bold">1</text>
+				<text x="1" y="13" font-size="6" fill="currentColor" stroke="none" font-weight="bold">2</text>
+				<text x="1" y="19" font-size="6" fill="currentColor" stroke="none" font-weight="bold">3</text>
+			</svg>
+		</button>
+
+		{{-- Separator after list style --}}
 		@if ( $hasAlign || $hasRichText )
 			<div class="mx-0.5 h-6 w-px bg-gray-200"></div>
 		@endif

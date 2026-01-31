@@ -88,9 +88,10 @@ class SelectComponentStub extends Component
 		$options = '';
 
 		foreach ( $this->options as $option ) {
-			$val  = e( $option['id'] ?? '' );
-			$name = e( $option['name'] ?? '' );
-			$options .= '<option value="' . $val . '">' . $name . '</option>';
+			$val      = e( $option['id'] ?? '' );
+			$name     = e( $option['name'] ?? '' );
+			$selected = null !== $this->selected && (string) ( $option['id'] ?? '' ) === $this->selected ? ' selected' : '';
+			$options .= '<option value="' . $val . '"' . $selected . '>' . $name . '</option>';
 		}
 
 		return '<div><label>' . $label . '</label><select class="select-stub">' . $options . '</select></div>';

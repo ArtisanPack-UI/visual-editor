@@ -45,7 +45,7 @@ class ContentPolicy
 	 */
 	public function update( Authenticatable $user, Content $content ): bool
 	{
-		return $user->getAuthIdentifier() === $content->author_id;
+		return (int) $user->getAuthIdentifier() === $content->author_id;
 	}
 
 	/**

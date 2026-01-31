@@ -769,3 +769,154 @@ test( 'canvas block content survives full inline edit cycle', function (): void 
 	$updatedBlocks = $component->get( 'blocks' );
 	expect( $updatedBlocks[0]['content']['text'] )->toBe( 'Original content' );
 } );
+
+// --- List Block Rendering ---
+
+test( 'canvas WYSIWYG list block renders as ul by default', function (): void {
+	$blocks = [
+		[ 'id' => 've-lb1', 'type' => 'list', 'content' => [ 'text' => '<li>Item one</li><li>Item two</li>', 'style' => 'bullet' ], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( '<ul' )
+		->assertSeeHtml( 'list-disc' )
+		->assertSee( 'Item one' );
+} );
+
+test( 'canvas WYSIWYG list block renders as ol for number style', function (): void {
+	$blocks = [
+		[ 'id' => 've-lb2', 'type' => 'list', 'content' => [ 'text' => '<li>First</li><li>Second</li>', 'style' => 'number' ], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( '<ol' )
+		->assertSeeHtml( 'list-decimal' )
+		->assertSee( 'First' );
+} );
+
+test( 'canvas WYSIWYG list block shows placeholder when empty', function (): void {
+	$blocks = [
+		[ 'id' => 've-lb3', 'type' => 'list', 'content' => [ 'text' => '', 'style' => 'bullet' ], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSee( 'Type list items...' );
+} );
+
+// --- Change List Style ---
+
+test( 'canvas changes list style from bullet to number', function (): void {
+	$blocks = [
+		[ 'id' => 've-ls1', 'type' => 'list', 'content' => [ 'text' => '<li>Item</li>', 'style' => 'bullet' ], 'settings' => [] ],
+	];
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'changeListStyle', 've-ls1', 'number' )
+		->assertDispatched( 'blocks-updated' );
+
+	$updatedBlocks = $component->get( 'blocks' );
+	expect( $updatedBlocks[0]['content']['style'] )->toBe( 'number' );
+} );
+
+test( 'canvas changes list style from number to bullet', function (): void {
+	$blocks = [
+		[ 'id' => 've-ls2', 'type' => 'list', 'content' => [ 'text' => '<li>Item</li>', 'style' => 'number' ], 'settings' => [] ],
+	];
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'changeListStyle', 've-ls2', 'bullet' )
+		->assertDispatched( 'blocks-updated' );
+
+	$updatedBlocks = $component->get( 'blocks' );
+	expect( $updatedBlocks[0]['content']['style'] )->toBe( 'bullet' );
+} );
+
+test( 'canvas changeListStyle rejects invalid style', function (): void {
+	$blocks = [
+		[ 'id' => 've-ls3', 'type' => 'list', 'content' => [ 'text' => '<li>Item</li>', 'style' => 'bullet' ], 'settings' => [] ],
+	];
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'changeListStyle', 've-ls3', 'invalid' );
+
+	$updatedBlocks = $component->get( 'blocks' );
+	expect( $updatedBlocks[0]['content']['style'] )->toBe( 'bullet' );
+} );
+
+// --- List Block Inline Editing ---
+
+test( 'canvas can start inline edit on list block', function (): void {
+	$blocks = [
+		[ 'id' => 've-le1', 'type' => 'list', 'content' => [ 'text' => '<li>Item</li>', 'style' => 'bullet' ], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'startInlineEdit', 've-le1' )
+		->assertSet( 'editingBlockId', 've-le1' )
+		->assertSet( 'activeBlockId', 've-le1' );
+} );
+
+test( 'canvas saves list block inline edit content', function (): void {
+	$blocks = [
+		[ 'id' => 've-le2', 'type' => 'list', 'content' => [ 'text' => '<li>Old</li>', 'style' => 'bullet' ], 'settings' => [] ],
+	];
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'startInlineEdit', 've-le2' )
+		->call( 'saveInlineEdit', 've-le2', '<li>New item</li><li>Another item</li>' )
+		->assertSet( 'editingBlockId', null )
+		->assertDispatched( 'blocks-updated' );
+
+	$updatedBlocks = $component->get( 'blocks' );
+	expect( $updatedBlocks[0]['content']['text'] )->toBe( '<li>New item</li><li>Another item</li>' );
+} );
+
+// --- Drop Cap Rendering ---
+
+test( 'canvas WYSIWYG text block renders drop cap classes when enabled', function (): void {
+	$blocks = [
+		[ 'id' => 've-dc1', 'type' => 'text', 'content' => [ 'text' => 'Some text with drop cap' ], 'settings' => [ 'drop_cap' => true ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'first-letter:float-left' )
+		->assertSeeHtml( 'first-letter:text-5xl' );
+} );
+
+test( 'canvas WYSIWYG text block does not render drop cap classes when disabled', function (): void {
+	$blocks = [
+		[ 'id' => 've-dc2', 'type' => 'text', 'content' => [ 'text' => 'Normal text' ], 'settings' => [ 'drop_cap' => false ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertDontSeeHtml( 'first-letter:float-left' );
+} );
+
+test( 'canvas WYSIWYG text block does not render drop cap by default', function (): void {
+	$blocks = [
+		[ 'id' => 've-dc3', 'type' => 'text', 'content' => [ 'text' => 'Default text' ], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertDontSeeHtml( 'first-letter:float-left' );
+} );
+
+// --- Heading Anchor Rendering ---
+
+test( 'canvas WYSIWYG heading renders id attribute when anchor is set', function (): void {
+	$blocks = [
+		[ 'id' => 've-ha1', 'type' => 'heading', 'content' => [ 'text' => 'Section Title', 'level' => 'h2' ], 'settings' => [ 'anchor' => 'section-title' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'id="section-title"' );
+} );
+
+test( 'canvas WYSIWYG heading does not render id attribute when anchor is empty', function (): void {
+	$blocks = [
+		[ 'id' => 've-ha2', 'type' => 'heading', 'content' => [ 'text' => 'No Anchor', 'level' => 'h2' ], 'settings' => [ 'anchor' => '' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertDontSeeHtml( '<h2 class="text-3xl font-bold" id="' );
+} );

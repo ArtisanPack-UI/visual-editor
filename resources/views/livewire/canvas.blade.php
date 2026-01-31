@@ -311,6 +311,32 @@ new class extends Component {
 	}
 
 	/**
+	 * Change the list style for a list block.
+	 *
+	 * @since 1.10.0
+	 *
+	 * @param string $blockId The block ID to update.
+	 * @param string $style   The new list style (bullet or number).
+	 *
+	 * @return void
+	 */
+	public function changeListStyle( string $blockId, string $style ): void
+	{
+		if ( !in_array( $style, [ 'bullet', 'number' ], true ) ) {
+			return;
+		}
+
+		foreach ( $this->blocks as &$block ) {
+			if ( ( $block['id'] ?? '' ) === $blockId ) {
+				$block['content']['style'] = $style;
+				break;
+			}
+		}
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
 	 * Delete a block from the canvas.
 	 *
 	 * @since 1.1.0
@@ -795,7 +821,11 @@ new class extends Component {
 								{{-- Rich Text Edit Mode --}}
 								@php
 									$editLevel   = $block['content']['level'] ?? 'h2';
-									$editTag     = 'heading' === $blockType ? ( in_array( $editLevel, [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ? $editLevel : 'h2' ) : 'div';
+									$editTag     = match ( $blockType ) {
+										'heading' => in_array( $editLevel, [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ? $editLevel : 'h2',
+										'list'    => 'number' === ( $block['content']['style'] ?? 'bullet' ) ? 'ol' : 'ul',
+										default   => 'div',
+									};
 									$editClasses = match ( $blockType ) {
 										'heading' => match ( $editTag ) {
 											'h1'    => 'text-4xl font-bold',
@@ -806,19 +836,31 @@ new class extends Component {
 											'h6'    => 'text-base font-medium',
 											default => 'text-3xl font-bold',
 										},
+										'list' => 'ol' === $editTag ? 'list-decimal list-inside' : 'list-disc list-inside',
 										default => '',
 									};
-									$richTextClasses = 'heading' === $blockType
-										? $editClasses . ' min-h-[1.5rem] rounded px-1 outline-none ring-2 ring-blue-300'
-										: 'prose prose-sm min-h-[1.5rem] max-w-none rounded px-1 outline-none ring-2 ring-blue-300';
+									$richTextClasses = match ( $blockType ) {
+										'heading' => $editClasses . ' min-h-[1.5rem] rounded px-1 outline-none ring-2 ring-blue-300',
+										'list'    => $editClasses . ' min-h-[1.5rem] rounded px-1 outline-none ring-2 ring-blue-300',
+										default   => 'prose prose-sm min-h-[1.5rem] max-w-none rounded px-1 outline-none ring-2 ring-blue-300',
+									};
+									$isListBlock = 'list' === $blockType;
+									$editContent = $block['content']['text'] ?? '';
 								@endphp
-								<div
+								<{{ $editTag }}
 									x-ref="editor"
 									contenteditable="true"
-									x-init="$nextTick( () => { $el.focus(); let s = window.getSelection(), r = document.createRange(); r.selectNodeContents( $el ); r.collapse( false ); s.removeAllRanges(); s.addRange( r ) } )"
+									x-init="$nextTick( () => {
+										@if ( $isListBlock && '' === trim( $editContent ) )
+											$el.innerHTML = '<li></li>';
+										@endif
+										$el.focus(); let s = window.getSelection(), r = document.createRange(); r.selectNodeContents( $el ); r.collapse( false ); s.removeAllRanges(); s.addRange( r )
+									} )"
 									@blur="if ( !window.veNavigating && !window.veFocusingBlock ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML ) }"
 									@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML )"
-									@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.innerHTML )"
+									@if ( ! $isListBlock )
+										@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.innerHTML )"
+									@endif
 									@keydown.tab.prevent="window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, $event.shiftKey ? 'up' : 'down' )"
 									@keydown.arrow-up="if ( window.veAtTopOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, 'up' ) }"
 									@keydown.arrow-down="if ( window.veAtBottomOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, 'down' ) }"
@@ -829,7 +871,7 @@ new class extends Component {
 									@keydown.meta.u.prevent="format( 'underline' )"
 									@keydown.ctrl.u.prevent="format( 'underline' )"
 									class="{{ $richTextClasses }}"
-								>{!! kses( $block['content']['text'] ?? '' ) !!}</div>
+								>{!! kses( $editContent ) !!}</{{ $editTag }}>
 							@else
 								{{-- Plain Text Edit Mode --}}
 								@php
@@ -869,8 +911,9 @@ new class extends Component {
 											'h6'    => 'text-base font-medium',
 											default => 'text-3xl font-bold',
 										};
+										$headingAnchor  = $block['settings']['anchor'] ?? '';
 									@endphp
-									<{{ $headingTag }} class="{{ $headingClasses }}">
+									<{{ $headingTag }} class="{{ $headingClasses }}"@if ( '' !== $headingAnchor ) id="{{ $headingAnchor }}"@endif>
 										@if ( '' !== ( $block['content']['text'] ?? '' ) )
 											{!! kses( $block['content']['text'] ) !!}
 										@else
@@ -880,13 +923,32 @@ new class extends Component {
 									@break
 
 								@case ( 'text' )
-									<div class="prose prose-sm max-w-none">
+									@php
+										$dropCap        = (bool) ( $block['settings']['drop_cap'] ?? false );
+										$dropCapClasses = $dropCap ? 'first-letter:float-left first-letter:mr-2 first-letter:text-5xl first-letter:font-bold first-letter:leading-none' : '';
+									@endphp
+									<div class="prose prose-sm max-w-none {{ $dropCapClasses }}">
 										@if ( '' !== ( $block['content']['text'] ?? '' ) )
 											{!! kses( $block['content']['text'] ) !!}
 										@else
 											<p class="italic text-gray-400">{{ __( 'Type text...' ) }}</p>
 										@endif
 									</div>
+									@break
+
+								@case ( 'list' )
+									@php
+										$listStyle   = $block['content']['style'] ?? 'bullet';
+										$listTag     = 'number' === $listStyle ? 'ol' : 'ul';
+										$listClasses = 'number' === $listStyle ? 'list-decimal list-inside' : 'list-disc list-inside';
+									@endphp
+									<{{ $listTag }} class="{{ $listClasses }}">
+										@if ( '' !== trim( $block['content']['text'] ?? '' ) )
+											{!! kses( $block['content']['text'] ) !!}
+										@else
+											<li class="italic text-gray-400">{{ __( 'Type list items...' ) }}</li>
+										@endif
+									</{{ $listTag }}>
 									@break
 
 								@case ( 'quote' )
