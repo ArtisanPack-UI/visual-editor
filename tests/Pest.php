@@ -1,5 +1,16 @@
 <?php
 
+declare( strict_types=1 );
+
+/**
+ * Pest Test Configuration
+ *
+ * @package    ArtisanPack_UI
+ * @subpackage VisualEditor\Tests
+ *
+ * @since      1.0.0
+ */
+
 /*
 |--------------------------------------------------------------------------
 | Test Case
@@ -11,9 +22,8 @@
 |
 */
 
-pest()->extend(Tests\TestCase::class)
- // ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
-    ->in('Feature');
+pest()->extend( Tests\TestCase::class )
+	->in( 'Feature', 'Unit' );
 
 /*
 |--------------------------------------------------------------------------
@@ -26,9 +36,9 @@ pest()->extend(Tests\TestCase::class)
 |
 */
 
-expect()->extend('toBeOne', function () {
-    return $this->toBe(1);
-});
+expect()->extend( 'toBeOne', function () {
+	return $this->toBe( 1 );
+} );
 
 /*
 |--------------------------------------------------------------------------
@@ -41,7 +51,10 @@ expect()->extend('toBeOne', function () {
 |
 */
 
-function something()
-{
-    // ..
+// Stub for kses() from artisanpack-ui/security (not a direct dependency).
+if ( ! function_exists( 'kses' ) ) {
+	function kses( string $content ): string
+	{
+		return strip_tags( $content, '<strong><em><b><i><u><s><a><br><p><span><div><ul><ol><li>' );
+	}
 }
