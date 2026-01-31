@@ -1031,3 +1031,505 @@ test( 'canvas saveBlocksAsSection aborts for unauthenticated users', function ()
 
 	expect( ArtisanPackUI\VisualEditor\Models\UserSection::count() )->toBe( 0 );
 } );
+
+// =========================================
+// Layout Block WYSIWYG Rendering Tests
+// =========================================
+
+test( 'canvas WYSIWYG columns renders column placeholders', function (): void {
+	$blocks = [
+		[ 'id' => 've-col1', 'type' => 'columns', 'content' => [], 'settings' => [ 'preset' => '50-50' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSee( 'Drop blocks here' );
+} );
+
+test( 'canvas WYSIWYG columns renders three columns for 33-33-33 preset', function (): void {
+	$blocks = [
+		[ 'id' => 've-col2', 'type' => 'columns', 'content' => [], 'settings' => [ 'preset' => '33-33-33' ] ],
+	];
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] );
+
+	$html = $component->html();
+	expect( substr_count( $html, 'flex: 0 0 33%;' ) )->toBe( 3 );
+} );
+
+test( 'canvas WYSIWYG columns applies gap class from settings', function (): void {
+	$blocks = [
+		[ 'id' => 've-col3', 'type' => 'columns', 'content' => [], 'settings' => [ 'preset' => '50-50', 'gap' => 'large' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'gap-8' );
+} );
+
+test( 'canvas WYSIWYG columns applies vertical alignment class', function (): void {
+	$blocks = [
+		[ 'id' => 've-col4', 'type' => 'columns', 'content' => [], 'settings' => [ 'preset' => '50-50', 'vertical_alignment' => 'center' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'items-center' );
+} );
+
+test( 'canvas WYSIWYG group renders container with padding', function (): void {
+	$blocks = [
+		[ 'id' => 've-grp1', 'type' => 'group', 'content' => [], 'settings' => [ 'padding' => 'large' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'p-8' )
+		->assertSee( 'Drop blocks here' );
+} );
+
+test( 'canvas WYSIWYG group applies shadow class', function (): void {
+	$blocks = [
+		[ 'id' => 've-grp2', 'type' => 'group', 'content' => [], 'settings' => [ 'shadow' => 'medium' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'shadow-md' );
+} );
+
+test( 'canvas WYSIWYG group applies background color style', function (): void {
+	$blocks = [
+		[ 'id' => 've-grp3', 'type' => 'group', 'content' => [], 'settings' => [ 'background_color' => '#ff0000' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'background-color: #ff0000;' );
+} );
+
+test( 'canvas WYSIWYG spacer renders with custom height in pixels', function (): void {
+	$blocks = [
+		[ 'id' => 've-sp1', 'type' => 'spacer', 'content' => [], 'settings' => [ 'height' => '60', 'unit' => 'px' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'height: 60px;' )
+		->assertSee( '60px' );
+} );
+
+test( 'canvas WYSIWYG spacer renders with custom height in rem', function (): void {
+	$blocks = [
+		[ 'id' => 've-sp2', 'type' => 'spacer', 'content' => [], 'settings' => [ 'height' => '3', 'unit' => 'rem' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'height: 3rem;' )
+		->assertSee( '3rem' );
+} );
+
+test( 'canvas WYSIWYG spacer defaults to 40px', function (): void {
+	$blocks = [
+		[ 'id' => 've-sp3', 'type' => 'spacer', 'content' => [], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'height: 40px;' );
+} );
+
+test( 'canvas WYSIWYG separator renders as hr', function (): void {
+	$blocks = [
+		[ 'id' => 've-sep1', 'type' => 'separator', 'content' => [], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( '<hr' );
+} );
+
+test( 'canvas WYSIWYG separator applies dashed style', function (): void {
+	$blocks = [
+		[ 'id' => 've-sep2', 'type' => 'separator', 'content' => [], 'settings' => [ 'style' => 'dashed' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'border-dashed' );
+} );
+
+test( 'canvas WYSIWYG separator applies narrow width class', function (): void {
+	$blocks = [
+		[ 'id' => 've-sep3', 'type' => 'separator', 'content' => [], 'settings' => [ 'width' => 'narrow' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'w-1/2' );
+} );
+
+test( 'canvas WYSIWYG separator applies custom color', function (): void {
+	$blocks = [
+		[ 'id' => 've-sep4', 'type' => 'separator', 'content' => [], 'settings' => [ 'color' => '#3b82f6' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'border-color: #3b82f6;' );
+} );
+
+test( 'canvas WYSIWYG separator applies wide line style', function (): void {
+	$blocks = [
+		[ 'id' => 've-sep5', 'type' => 'separator', 'content' => [], 'settings' => [ 'style' => 'wide' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'border-t-4' );
+} );
+
+test( 'canvas can insert columns block via sidebar event', function (): void {
+	Livewire::test( 'visual-editor::canvas' )
+		->dispatch( 'block-insert', type: 'columns' )
+		->assertDispatched( 'blocks-updated' );
+} );
+
+test( 'canvas can insert group block via sidebar event', function (): void {
+	Livewire::test( 'visual-editor::canvas' )
+		->dispatch( 'block-insert', type: 'group' )
+		->assertDispatched( 'blocks-updated' );
+} );
+
+test( 'canvas can insert separator block via sidebar event', function (): void {
+	Livewire::test( 'visual-editor::canvas' )
+		->dispatch( 'block-insert', type: 'separator' )
+		->assertDispatched( 'blocks-updated' );
+} );
+
+// =========================================
+// Grid Block Canvas Tests
+// =========================================
+
+test( 'canvas renders grid block with default 3 columns', function (): void {
+	$blocks = [
+		[ 'id' => 've-1', 'type' => 'grid', 'content' => [ 'items' => [] ], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'grid-template-columns: repeat(3, minmax(0, 1fr));' );
+} );
+
+test( 'canvas renders grid block with custom column count', function (): void {
+	$blocks = [
+		[ 'id' => 've-1', 'type' => 'grid', 'content' => [ 'items' => [] ], 'settings' => [ 'columns' => '4' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'grid-template-columns: repeat(4, minmax(0, 1fr));' );
+} );
+
+test( 'canvas renders grid block with unified gap class', function (): void {
+	$blocks = [
+		[ 'id' => 've-1', 'type' => 'grid', 'content' => [ 'items' => [] ], 'settings' => [ 'gap' => 'large' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'gap-8' );
+} );
+
+test( 'canvas renders grid block with directional gap classes', function (): void {
+	$blocks = [
+		[ 'id' => 've-1', 'type' => 'grid', 'content' => [ 'items' => [] ], 'settings' => [ 'gap_x' => 'small', 'gap_y' => 'large' ] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'gap-x-2' )
+		->assertSeeHtml( 'gap-y-8' );
+} );
+
+test( 'canvas renders grid block placeholder cells matching column count', function (): void {
+	$blocks = [
+		[ 'id' => 've-1', 'type' => 'grid', 'content' => [ 'items' => [] ], 'settings' => [ 'columns' => '2' ] ],
+	];
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] );
+
+	$html = $component->html();
+	expect( substr_count( $html, 'Drop blocks here' ) )->toBeGreaterThanOrEqual( 2 );
+} );
+
+test( 'canvas renders grid block with items showing grid item labels', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'grid',
+			'content'  => [ 'items' => [ [ 'id' => 'gi-1' ], [ 'id' => 'gi-2' ] ] ],
+			'settings' => [],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSee( 'Grid Item' );
+} );
+
+// =========================================
+// Grid Item Block Canvas Tests
+// =========================================
+
+test( 'canvas renders grid_item block with column and row span styles', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'grid_item',
+			'content'  => [ 'inner_blocks' => [] ],
+			'settings' => [ 'col_span' => '3', 'row_span' => '2' ],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'grid-column: span 3; grid-row: span 2;' );
+} );
+
+test( 'canvas renders grid_item block with flex direction row', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'grid_item',
+			'content'  => [ 'inner_blocks' => [] ],
+			'settings' => [ 'flex_direction' => 'row' ],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'flex-row' );
+} );
+
+test( 'canvas renders grid_item block with align items center', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'grid_item',
+			'content'  => [ 'inner_blocks' => [] ],
+			'settings' => [ 'align_items' => 'center' ],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'items-center' );
+} );
+
+test( 'canvas renders grid_item block with justify content between', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'grid_item',
+			'content'  => [ 'inner_blocks' => [] ],
+			'settings' => [ 'justify_content' => 'between' ],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'justify-between' );
+} );
+
+test( 'canvas renders grid_item block with inner blocks count', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'grid_item',
+			'content'  => [ 'inner_blocks' => [ [ 'id' => 'ib-1' ], [ 'id' => 'ib-2' ] ] ],
+			'settings' => [],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSee( '2 blocks' );
+} );
+
+// =========================================
+// Group Block Flex Alignment Canvas Tests
+// =========================================
+
+test( 'canvas renders group block with flex direction row', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'group',
+			'content'  => [ 'inner_blocks' => [] ],
+			'settings' => [ 'flex_direction' => 'row' ],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'flex-row' );
+} );
+
+test( 'canvas renders group block with align items center', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'group',
+			'content'  => [ 'inner_blocks' => [] ],
+			'settings' => [ 'align_items' => 'center' ],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'items-center' );
+} );
+
+test( 'canvas renders group block with justify content evenly', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'group',
+			'content'  => [ 'inner_blocks' => [] ],
+			'settings' => [ 'justify_content' => 'evenly' ],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'justify-evenly' );
+} );
+
+test( 'canvas renders group block with default flex classes', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'group',
+			'content'  => [ 'inner_blocks' => [] ],
+			'settings' => [],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'flex' )
+		->assertSeeHtml( 'flex-col' )
+		->assertSeeHtml( 'items-stretch' )
+		->assertSeeHtml( 'justify-start' );
+} );
+
+// =========================================
+// Grid Block Insertion Tests
+// =========================================
+
+test( 'canvas can insert grid block via sidebar event', function (): void {
+	Livewire::test( 'visual-editor::canvas' )
+		->dispatch( 'block-insert', type: 'grid' )
+		->assertDispatched( 'blocks-updated' );
+} );
+
+test( 'canvas can insert grid_item block via sidebar event', function (): void {
+	Livewire::test( 'visual-editor::canvas' )
+		->dispatch( 'block-insert', type: 'grid_item' )
+		->assertDispatched( 'blocks-updated' );
+} );
+
+// =========================================
+// Column Block Canvas Tests
+// =========================================
+
+test( 'canvas renders column block with flex alignment classes', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'column',
+			'content'  => [ 'inner_blocks' => [] ],
+			'settings' => [ 'flex_direction' => 'row', 'align_items' => 'center', 'justify_content' => 'between' ],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'flex-row' )
+		->assertSeeHtml( 'items-center' )
+		->assertSeeHtml( 'justify-between' );
+} );
+
+test( 'canvas renders column block with custom width style', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'column',
+			'content'  => [ 'inner_blocks' => [] ],
+			'settings' => [ 'width' => '50' ],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'flex: 0 0 50%' );
+} );
+
+test( 'canvas renders column block with inner blocks count', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'column',
+			'content'  => [ 'inner_blocks' => [ [ 'id' => 'ib-1' ], [ 'id' => 'ib-2' ], [ 'id' => 'ib-3' ] ] ],
+			'settings' => [],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSee( '3 blocks' );
+} );
+
+test( 'canvas renders column block with default flex classes', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'column',
+			'content'  => [ 'inner_blocks' => [] ],
+			'settings' => [],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSeeHtml( 'flex-col' )
+		->assertSeeHtml( 'items-stretch' )
+		->assertSeeHtml( 'justify-start' );
+} );
+
+test( 'canvas renders column block placeholder when empty', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'column',
+			'content'  => [ 'inner_blocks' => [] ],
+			'settings' => [],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSee( 'Drop blocks here' );
+} );
+
+test( 'canvas can insert column block via sidebar event', function (): void {
+	Livewire::test( 'visual-editor::canvas' )
+		->dispatch( 'block-insert', type: 'column' )
+		->assertDispatched( 'blocks-updated' );
+} );
+
+// =========================================
+// Columns Block Responsive Canvas Tests
+// =========================================
+
+test( 'canvas renders columns block responsive info when columns setting is set', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'columns',
+			'content'  => [ 'columns' => [] ],
+			'settings' => [ 'columns' => '3', 'columns_md' => '2' ],
+		],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->assertSee( 'MD: 2' );
+} );
+
+test( 'canvas does not render responsive info when no responsive columns set', function (): void {
+	$blocks = [
+		[
+			'id'       => 've-1',
+			'type'     => 'columns',
+			'content'  => [ 'columns' => [] ],
+			'settings' => [],
+		],
+	];
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] );
+
+	$html = $component->html();
+	expect( $html )->not->toContain( 'SM:' )
+		->and( $html )->not->toContain( 'MD:' )
+		->and( $html )->not->toContain( 'LG:' )
+		->and( $html )->not->toContain( 'XL:' );
+} );

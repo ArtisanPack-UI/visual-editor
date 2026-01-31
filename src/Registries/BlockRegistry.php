@@ -391,6 +391,320 @@ class BlockRegistry
 		] );
 
 		// Layout blocks
+		$this->register( 'columns', [
+			'name'            => __( 'Columns' ),
+			'description'     => __( 'Multi-column layout with adjustable widths' ),
+			'icon'            => 'fas.columns',
+			'category'        => 'layout',
+			'keywords'        => [ 'columns', 'grid', 'layout', 'multi-column', 'side by side' ],
+			'content_schema'  => [
+				'columns' => [ 'type' => 'repeater', 'label' => __( 'Columns' ) ],
+			],
+			'settings_schema' => [
+				'preset'             => [
+					'type'    => 'select',
+					'label'   => __( 'Column Layout' ),
+					'options' => [ '100', '50-50', '33-33-33', '25-25-25-25', '66-33', '33-66', '25-50-25' ],
+					'default' => '50-50',
+				],
+				'gap'                => [
+					'type'    => 'select',
+					'label'   => __( 'Gap' ),
+					'options' => [ 'none', 'small', 'medium', 'large' ],
+					'default' => 'medium',
+				],
+				'vertical_alignment' => [
+					'type'    => 'select',
+					'label'   => __( 'Vertical Alignment' ),
+					'options' => [ 'top', 'center', 'bottom', 'stretch' ],
+					'default' => 'top',
+				],
+				'stack_on_mobile'    => [
+					'type'    => 'toggle',
+					'label'   => __( 'Stack on Mobile' ),
+					'default' => true,
+				],
+				'columns'            => [
+					'type'    => 'select',
+					'label'   => __( 'Columns' ),
+					'options' => [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'columns_sm'         => [
+					'type'    => 'select',
+					'label'   => __( 'Columns (SM)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'columns_md'         => [
+					'type'    => 'select',
+					'label'   => __( 'Columns (MD)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'columns_lg'         => [
+					'type'    => 'select',
+					'label'   => __( 'Columns (LG)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'columns_xl'         => [
+					'type'    => 'select',
+					'label'   => __( 'Columns (XL)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+			],
+			'supports' => [ 'sizing', 'colors', 'borders' ],
+		] );
+
+		$this->register( 'column', [
+			'name'            => __( 'Column' ),
+			'description'     => __( 'Individual column within a columns layout' ),
+			'icon'            => 'fas.table-columns',
+			'category'        => 'layout',
+			'keywords'        => [ 'column', 'cell', 'layout', 'inner' ],
+			'content_schema'  => [
+				'inner_blocks' => [ 'type' => 'repeater', 'label' => __( 'Inner Blocks' ) ],
+			],
+			'settings_schema' => [
+				'width'           => [
+					'type'    => 'text',
+					'label'   => __( 'Width (%)' ),
+					'default' => '',
+				],
+				'flex_direction'  => [
+					'type'    => 'select',
+					'label'   => __( 'Direction' ),
+					'options' => [ 'column', 'row' ],
+					'default' => 'column',
+				],
+				'align_items'     => [
+					'type'    => 'select',
+					'label'   => __( 'Align Items' ),
+					'options' => [ 'stretch', 'start', 'center', 'end' ],
+					'default' => 'stretch',
+				],
+				'justify_content' => [
+					'type'    => 'select',
+					'label'   => __( 'Justify Content' ),
+					'options' => [ 'start', 'center', 'end', 'between', 'around', 'evenly' ],
+					'default' => 'start',
+				],
+			],
+			'supports' => [ 'sizing', 'colors', 'borders' ],
+		] );
+
+		$this->register( 'group', [
+			'name'            => __( 'Group' ),
+			'description'     => __( 'Container block with background, border, and shadow options' ),
+			'icon'            => 'fas.object-group',
+			'category'        => 'layout',
+			'keywords'        => [ 'group', 'container', 'wrapper', 'section', 'box' ],
+			'content_schema'  => [
+				'inner_blocks' => [ 'type' => 'repeater', 'label' => __( 'Inner Blocks' ) ],
+			],
+			'settings_schema' => [
+				'tag'              => [
+					'type'    => 'select',
+					'label'   => __( 'HTML Tag' ),
+					'options' => [ 'div', 'section', 'article', 'aside', 'main', 'header', 'footer' ],
+					'default' => 'div',
+				],
+				'background_color' => [ 'type' => 'color', 'label' => __( 'Background Color' ) ],
+				'padding'          => [
+					'type'    => 'select',
+					'label'   => __( 'Padding' ),
+					'options' => [ 'none', 'small', 'medium', 'large', 'xlarge' ],
+					'default' => 'medium',
+				],
+				'shadow'           => [
+					'type'    => 'select',
+					'label'   => __( 'Shadow' ),
+					'options' => [ 'none', 'small', 'medium', 'large' ],
+					'default' => 'none',
+				],
+				'constrained'      => [
+					'type'    => 'toggle',
+					'label'   => __( 'Constrained Width' ),
+					'default' => false,
+				],
+				'flex_direction'   => [
+					'type'    => 'select',
+					'label'   => __( 'Direction' ),
+					'options' => [ 'column', 'row' ],
+					'default' => 'column',
+				],
+				'align_items'      => [
+					'type'    => 'select',
+					'label'   => __( 'Align Items' ),
+					'options' => [ 'stretch', 'start', 'center', 'end' ],
+					'default' => 'stretch',
+				],
+				'justify_content'  => [
+					'type'    => 'select',
+					'label'   => __( 'Justify Content' ),
+					'options' => [ 'start', 'center', 'end', 'between', 'around', 'evenly' ],
+					'default' => 'start',
+				],
+			],
+			'supports' => [ 'sizing', 'colors', 'borders' ],
+		] );
+
+		$this->register( 'grid', [
+			'name'            => __( 'Grid' ),
+			'description'     => __( 'CSS Grid layout with responsive column control' ),
+			'icon'            => 'fas.table-cells',
+			'category'        => 'layout',
+			'keywords'        => [ 'grid', 'layout', 'responsive', 'columns', 'rows' ],
+			'content_schema'  => [
+				'items' => [ 'type' => 'repeater', 'label' => __( 'Grid Items' ) ],
+			],
+			'settings_schema' => [
+				'columns'    => [
+					'type'    => 'select',
+					'label'   => __( 'Columns' ),
+					'options' => [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '3',
+				],
+				'columns_sm' => [
+					'type'    => 'select',
+					'label'   => __( 'Columns (SM)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'columns_md' => [
+					'type'    => 'select',
+					'label'   => __( 'Columns (MD)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'columns_lg' => [
+					'type'    => 'select',
+					'label'   => __( 'Columns (LG)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'columns_xl' => [
+					'type'    => 'select',
+					'label'   => __( 'Columns (XL)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'gap'        => [
+					'type'    => 'select',
+					'label'   => __( 'Gap' ),
+					'options' => [ 'none', 'small', 'medium', 'large' ],
+					'default' => 'medium',
+				],
+				'gap_x'      => [
+					'type'    => 'select',
+					'label'   => __( 'Horizontal Gap' ),
+					'options' => [ '', 'none', 'small', 'medium', 'large' ],
+					'default' => '',
+				],
+				'gap_y'      => [
+					'type'    => 'select',
+					'label'   => __( 'Vertical Gap' ),
+					'options' => [ '', 'none', 'small', 'medium', 'large' ],
+					'default' => '',
+				],
+			],
+			'supports' => [ 'sizing', 'colors', 'borders' ],
+		] );
+
+		$this->register( 'grid_item', [
+			'name'            => __( 'Grid Item' ),
+			'description'     => __( 'Individual grid cell with span and alignment control' ),
+			'icon'            => 'fas.table-cells-large',
+			'category'        => 'layout',
+			'keywords'        => [ 'grid item', 'cell', 'column', 'span' ],
+			'content_schema'  => [
+				'inner_blocks' => [ 'type' => 'repeater', 'label' => __( 'Inner Blocks' ) ],
+			],
+			'settings_schema' => [
+				'col_span'        => [
+					'type'    => 'select',
+					'label'   => __( 'Column Span' ),
+					'options' => [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '1',
+				],
+				'col_span_sm'     => [
+					'type'    => 'select',
+					'label'   => __( 'Col Span (SM)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'col_span_md'     => [
+					'type'    => 'select',
+					'label'   => __( 'Col Span (MD)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'col_span_lg'     => [
+					'type'    => 'select',
+					'label'   => __( 'Col Span (LG)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'col_span_xl'     => [
+					'type'    => 'select',
+					'label'   => __( 'Col Span (XL)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'row_span'        => [
+					'type'    => 'select',
+					'label'   => __( 'Row Span' ),
+					'options' => [ '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '1',
+				],
+				'row_span_sm'     => [
+					'type'    => 'select',
+					'label'   => __( 'Row Span (SM)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'row_span_md'     => [
+					'type'    => 'select',
+					'label'   => __( 'Row Span (MD)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'row_span_lg'     => [
+					'type'    => 'select',
+					'label'   => __( 'Row Span (LG)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'row_span_xl'     => [
+					'type'    => 'select',
+					'label'   => __( 'Row Span (XL)' ),
+					'options' => [ '', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12' ],
+					'default' => '',
+				],
+				'flex_direction'  => [
+					'type'    => 'select',
+					'label'   => __( 'Direction' ),
+					'options' => [ 'column', 'row' ],
+					'default' => 'column',
+				],
+				'align_items'     => [
+					'type'    => 'select',
+					'label'   => __( 'Align Items' ),
+					'options' => [ 'stretch', 'start', 'center', 'end' ],
+					'default' => 'stretch',
+				],
+				'justify_content' => [
+					'type'    => 'select',
+					'label'   => __( 'Justify Content' ),
+					'options' => [ 'start', 'center', 'end', 'between', 'around', 'evenly' ],
+					'default' => 'start',
+				],
+			],
+			'supports' => [ 'sizing', 'colors', 'borders' ],
+		] );
+
 		$this->register( 'divider', [
 			'name'     => __( 'Divider' ),
 			'icon'     => 'fas.minus',
@@ -399,10 +713,54 @@ class BlockRegistry
 		] );
 
 		$this->register( 'spacer', [
-			'name'     => __( 'Spacer' ),
-			'icon'     => 'fas.arrows-up-down',
-			'category' => 'layout',
+			'name'            => __( 'Spacer' ),
+			'description'     => __( 'Adjustable vertical space between blocks' ),
+			'icon'            => 'fas.arrows-up-down',
+			'category'        => 'layout',
+			'keywords'        => [ 'spacer', 'space', 'gap', 'vertical', 'padding' ],
+			'settings_schema' => [
+				'height'    => [
+					'type'    => 'text',
+					'label'   => __( 'Height' ),
+					'default' => '40',
+				],
+				'unit'      => [
+					'type'    => 'select',
+					'label'   => __( 'Unit' ),
+					'options' => [ 'px', 'rem' ],
+					'default' => 'px',
+				],
+				'responsive' => [
+					'type'    => 'toggle',
+					'label'   => __( 'Reduce on Mobile' ),
+					'default' => false,
+				],
+			],
 			'supports' => [ 'sizing' ],
+		] );
+
+		$this->register( 'separator', [
+			'name'            => __( 'Separator' ),
+			'description'     => __( 'Horizontal line with customizable style, color, and width' ),
+			'icon'            => 'fas.grip-lines',
+			'category'        => 'layout',
+			'keywords'        => [ 'separator', 'line', 'divider', 'horizontal rule', 'hr' ],
+			'settings_schema' => [
+				'style' => [
+					'type'    => 'select',
+					'label'   => __( 'Line Style' ),
+					'options' => [ 'solid', 'dashed', 'dotted', 'wide' ],
+					'default' => 'solid',
+				],
+				'color' => [ 'type' => 'color', 'label' => __( 'Color' ) ],
+				'width' => [
+					'type'    => 'select',
+					'label'   => __( 'Width' ),
+					'options' => [ 'full', 'wide', 'narrow', 'short' ],
+					'default' => 'full',
+				],
+			],
+			'supports' => [ 'sizing', 'colors' ],
 		] );
 
 		// Dynamic blocks

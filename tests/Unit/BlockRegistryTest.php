@@ -458,3 +458,440 @@ test( 'default list block supports sizing typography and colors', function (): v
 		->and( $list['supports'] )->toContain( 'typography' )
 		->and( $list['supports'] )->toContain( 'colors' );
 } );
+
+// =========================================
+// Layout Block Registration Tests
+// =========================================
+
+test( 'default columns block is registered in layout category', function (): void {
+	$this->registry->registerDefaults();
+
+	$columns = $this->registry->get( 'columns' );
+
+	expect( $columns )->not->toBeNull()
+		->and( $columns['name'] )->toBe( 'Columns' )
+		->and( $columns['category'] )->toBe( 'layout' )
+		->and( $columns['icon'] )->toBe( 'fas.columns' );
+} );
+
+test( 'default columns block has preset setting with layout options', function (): void {
+	$this->registry->registerDefaults();
+
+	$columns = $this->registry->get( 'columns' );
+
+	expect( $columns['settings_schema'] )->toHaveKey( 'preset' )
+		->and( $columns['settings_schema']['preset']['type'] )->toBe( 'select' )
+		->and( $columns['settings_schema']['preset']['default'] )->toBe( '50-50' )
+		->and( $columns['settings_schema']['preset']['options'] )->toContain( '50-50' )
+		->and( $columns['settings_schema']['preset']['options'] )->toContain( '33-33-33' )
+		->and( $columns['settings_schema']['preset']['options'] )->toContain( '66-33' )
+		->and( $columns['settings_schema']['preset']['options'] )->toContain( '33-66' );
+} );
+
+test( 'default columns block has gap setting', function (): void {
+	$this->registry->registerDefaults();
+
+	$columns = $this->registry->get( 'columns' );
+
+	expect( $columns['settings_schema'] )->toHaveKey( 'gap' )
+		->and( $columns['settings_schema']['gap']['type'] )->toBe( 'select' )
+		->and( $columns['settings_schema']['gap']['default'] )->toBe( 'medium' )
+		->and( $columns['settings_schema']['gap']['options'] )->toBe( [ 'none', 'small', 'medium', 'large' ] );
+} );
+
+test( 'default columns block has vertical alignment setting', function (): void {
+	$this->registry->registerDefaults();
+
+	$columns = $this->registry->get( 'columns' );
+
+	expect( $columns['settings_schema'] )->toHaveKey( 'vertical_alignment' )
+		->and( $columns['settings_schema']['vertical_alignment']['type'] )->toBe( 'select' )
+		->and( $columns['settings_schema']['vertical_alignment']['default'] )->toBe( 'top' )
+		->and( $columns['settings_schema']['vertical_alignment']['options'] )->toBe( [ 'top', 'center', 'bottom', 'stretch' ] );
+} );
+
+test( 'default columns block has stack on mobile toggle', function (): void {
+	$this->registry->registerDefaults();
+
+	$columns = $this->registry->get( 'columns' );
+
+	expect( $columns['settings_schema'] )->toHaveKey( 'stack_on_mobile' )
+		->and( $columns['settings_schema']['stack_on_mobile']['type'] )->toBe( 'toggle' )
+		->and( $columns['settings_schema']['stack_on_mobile']['default'] )->toBeTrue();
+} );
+
+test( 'default columns block supports sizing colors and borders', function (): void {
+	$this->registry->registerDefaults();
+
+	$columns = $this->registry->get( 'columns' );
+
+	expect( $columns['supports'] )->toContain( 'sizing' )
+		->and( $columns['supports'] )->toContain( 'colors' )
+		->and( $columns['supports'] )->toContain( 'borders' );
+} );
+
+test( 'default columns block has responsive column count settings', function (): void {
+	$this->registry->registerDefaults();
+
+	$columns = $this->registry->get( 'columns' );
+
+	expect( $columns['settings_schema'] )->toHaveKey( 'columns' )
+		->and( $columns['settings_schema'] )->toHaveKey( 'columns_sm' )
+		->and( $columns['settings_schema'] )->toHaveKey( 'columns_md' )
+		->and( $columns['settings_schema'] )->toHaveKey( 'columns_lg' )
+		->and( $columns['settings_schema'] )->toHaveKey( 'columns_xl' )
+		->and( $columns['settings_schema']['columns']['options'] )->toHaveCount( 12 )
+		->and( $columns['settings_schema']['columns']['default'] )->toBe( '' )
+		->and( $columns['settings_schema']['columns_sm']['default'] )->toBe( '' )
+		->and( $columns['settings_schema']['columns_xl']['options'] )->toContain( '12' );
+} );
+
+// =========================================
+// Column Block Registration Tests
+// =========================================
+
+test( 'default column block is registered in layout category', function (): void {
+	$this->registry->registerDefaults();
+
+	$column = $this->registry->get( 'column' );
+
+	expect( $column )->not->toBeNull()
+		->and( $column['name'] )->toBe( 'Column' )
+		->and( $column['category'] )->toBe( 'layout' )
+		->and( $column['icon'] )->toBe( 'fas.table-columns' );
+} );
+
+test( 'default column block has width setting', function (): void {
+	$this->registry->registerDefaults();
+
+	$column = $this->registry->get( 'column' );
+
+	expect( $column['settings_schema'] )->toHaveKey( 'width' )
+		->and( $column['settings_schema']['width']['type'] )->toBe( 'text' )
+		->and( $column['settings_schema']['width']['default'] )->toBe( '' );
+} );
+
+test( 'default column block has flex alignment settings', function (): void {
+	$this->registry->registerDefaults();
+
+	$column = $this->registry->get( 'column' );
+
+	expect( $column['settings_schema'] )->toHaveKey( 'flex_direction' )
+		->and( $column['settings_schema'] )->toHaveKey( 'align_items' )
+		->and( $column['settings_schema'] )->toHaveKey( 'justify_content' )
+		->and( $column['settings_schema']['flex_direction']['default'] )->toBe( 'column' )
+		->and( $column['settings_schema']['align_items']['default'] )->toBe( 'stretch' )
+		->and( $column['settings_schema']['justify_content']['default'] )->toBe( 'start' );
+} );
+
+test( 'default column block has inner_blocks content schema', function (): void {
+	$this->registry->registerDefaults();
+
+	$column = $this->registry->get( 'column' );
+
+	expect( $column['content_schema'] )->toHaveKey( 'inner_blocks' )
+		->and( $column['content_schema']['inner_blocks']['type'] )->toBe( 'repeater' );
+} );
+
+test( 'default column block supports sizing colors and borders', function (): void {
+	$this->registry->registerDefaults();
+
+	$column = $this->registry->get( 'column' );
+
+	expect( $column['supports'] )->toBe( [ 'sizing', 'colors', 'borders' ] );
+} );
+
+test( 'default group block is registered in layout category', function (): void {
+	$this->registry->registerDefaults();
+
+	$group = $this->registry->get( 'group' );
+
+	expect( $group )->not->toBeNull()
+		->and( $group['name'] )->toBe( 'Group' )
+		->and( $group['category'] )->toBe( 'layout' )
+		->and( $group['icon'] )->toBe( 'fas.object-group' );
+} );
+
+test( 'default group block has html tag setting', function (): void {
+	$this->registry->registerDefaults();
+
+	$group = $this->registry->get( 'group' );
+
+	expect( $group['settings_schema'] )->toHaveKey( 'tag' )
+		->and( $group['settings_schema']['tag']['type'] )->toBe( 'select' )
+		->and( $group['settings_schema']['tag']['default'] )->toBe( 'div' )
+		->and( $group['settings_schema']['tag']['options'] )->toContain( 'div' )
+		->and( $group['settings_schema']['tag']['options'] )->toContain( 'section' )
+		->and( $group['settings_schema']['tag']['options'] )->toContain( 'article' );
+} );
+
+test( 'default group block has background color padding shadow and constrained settings', function (): void {
+	$this->registry->registerDefaults();
+
+	$group = $this->registry->get( 'group' );
+
+	expect( $group['settings_schema'] )->toHaveKey( 'background_color' )
+		->and( $group['settings_schema']['background_color']['type'] )->toBe( 'color' )
+		->and( $group['settings_schema'] )->toHaveKey( 'padding' )
+		->and( $group['settings_schema']['padding']['default'] )->toBe( 'medium' )
+		->and( $group['settings_schema'] )->toHaveKey( 'shadow' )
+		->and( $group['settings_schema']['shadow']['default'] )->toBe( 'none' )
+		->and( $group['settings_schema'] )->toHaveKey( 'constrained' )
+		->and( $group['settings_schema']['constrained']['default'] )->toBeFalse();
+} );
+
+test( 'default group block supports sizing colors and borders', function (): void {
+	$this->registry->registerDefaults();
+
+	$group = $this->registry->get( 'group' );
+
+	expect( $group['supports'] )->toContain( 'sizing' )
+		->and( $group['supports'] )->toContain( 'colors' )
+		->and( $group['supports'] )->toContain( 'borders' );
+} );
+
+test( 'default spacer block has height unit and responsive settings', function (): void {
+	$this->registry->registerDefaults();
+
+	$spacer = $this->registry->get( 'spacer' );
+
+	expect( $spacer['settings_schema'] )->toHaveKey( 'height' )
+		->and( $spacer['settings_schema']['height']['default'] )->toBe( '40' )
+		->and( $spacer['settings_schema'] )->toHaveKey( 'unit' )
+		->and( $spacer['settings_schema']['unit']['options'] )->toBe( [ 'px', 'rem' ] )
+		->and( $spacer['settings_schema']['unit']['default'] )->toBe( 'px' )
+		->and( $spacer['settings_schema'] )->toHaveKey( 'responsive' )
+		->and( $spacer['settings_schema']['responsive']['type'] )->toBe( 'toggle' )
+		->and( $spacer['settings_schema']['responsive']['default'] )->toBeFalse();
+} );
+
+test( 'default separator block is registered in layout category', function (): void {
+	$this->registry->registerDefaults();
+
+	$separator = $this->registry->get( 'separator' );
+
+	expect( $separator )->not->toBeNull()
+		->and( $separator['name'] )->toBe( 'Separator' )
+		->and( $separator['category'] )->toBe( 'layout' )
+		->and( $separator['icon'] )->toBe( 'fas.grip-lines' );
+} );
+
+test( 'default separator block has style color and width settings', function (): void {
+	$this->registry->registerDefaults();
+
+	$separator = $this->registry->get( 'separator' );
+
+	expect( $separator['settings_schema'] )->toHaveKey( 'style' )
+		->and( $separator['settings_schema']['style']['options'] )->toBe( [ 'solid', 'dashed', 'dotted', 'wide' ] )
+		->and( $separator['settings_schema']['style']['default'] )->toBe( 'solid' )
+		->and( $separator['settings_schema'] )->toHaveKey( 'color' )
+		->and( $separator['settings_schema']['color']['type'] )->toBe( 'color' )
+		->and( $separator['settings_schema'] )->toHaveKey( 'width' )
+		->and( $separator['settings_schema']['width']['options'] )->toBe( [ 'full', 'wide', 'narrow', 'short' ] )
+		->and( $separator['settings_schema']['width']['default'] )->toBe( 'full' );
+} );
+
+test( 'default separator block supports sizing and colors', function (): void {
+	$this->registry->registerDefaults();
+
+	$separator = $this->registry->get( 'separator' );
+
+	expect( $separator['supports'] )->toContain( 'sizing' )
+		->and( $separator['supports'] )->toContain( 'colors' );
+} );
+
+test( 'all layout blocks are registered after registerDefaults', function (): void {
+	$this->registry->registerDefaults();
+
+	expect( $this->registry->has( 'columns' ) )->toBeTrue()
+		->and( $this->registry->has( 'group' ) )->toBeTrue()
+		->and( $this->registry->has( 'divider' ) )->toBeTrue()
+		->and( $this->registry->has( 'spacer' ) )->toBeTrue()
+		->and( $this->registry->has( 'separator' ) )->toBeTrue();
+} );
+
+test( 'layout blocks appear in layout category when grouped', function (): void {
+	$this->registry->registerDefaults();
+
+	$grouped = $this->registry->getGroupedByCategory();
+
+	expect( $grouped )->toHaveKey( 'layout' );
+
+	$layoutBlocks = $grouped['layout']['blocks'];
+
+	expect( $layoutBlocks->has( 'columns' ) )->toBeTrue()
+		->and( $layoutBlocks->has( 'column' ) )->toBeTrue()
+		->and( $layoutBlocks->has( 'group' ) )->toBeTrue()
+		->and( $layoutBlocks->has( 'grid' ) )->toBeTrue()
+		->and( $layoutBlocks->has( 'grid_item' ) )->toBeTrue()
+		->and( $layoutBlocks->has( 'divider' ) )->toBeTrue()
+		->and( $layoutBlocks->has( 'spacer' ) )->toBeTrue()
+		->and( $layoutBlocks->has( 'separator' ) )->toBeTrue();
+} );
+
+// =========================================
+// Grid Block Registration Tests
+// =========================================
+
+test( 'default grid block is registered in layout category', function (): void {
+	$this->registry->registerDefaults();
+
+	$grid = $this->registry->get( 'grid' );
+
+	expect( $grid )->not->toBeNull()
+		->and( $grid['name'] )->toBe( 'Grid' )
+		->and( $grid['category'] )->toBe( 'layout' )
+		->and( $grid['icon'] )->toBe( 'fas.table-cells' );
+} );
+
+test( 'default grid block has columns setting with 1-12 options', function (): void {
+	$this->registry->registerDefaults();
+
+	$grid = $this->registry->get( 'grid' );
+
+	expect( $grid['settings_schema'] )->toHaveKey( 'columns' )
+		->and( $grid['settings_schema']['columns']['type'] )->toBe( 'select' )
+		->and( $grid['settings_schema']['columns']['default'] )->toBe( '3' )
+		->and( $grid['settings_schema']['columns']['options'] )->toHaveCount( 12 )
+		->and( $grid['settings_schema']['columns']['options'] )->toContain( '1' )
+		->and( $grid['settings_schema']['columns']['options'] )->toContain( '12' );
+} );
+
+test( 'default grid block has responsive column settings for sm md lg xl', function (): void {
+	$this->registry->registerDefaults();
+
+	$grid = $this->registry->get( 'grid' );
+
+	expect( $grid['settings_schema'] )->toHaveKey( 'columns_sm' )
+		->and( $grid['settings_schema'] )->toHaveKey( 'columns_md' )
+		->and( $grid['settings_schema'] )->toHaveKey( 'columns_lg' )
+		->and( $grid['settings_schema'] )->toHaveKey( 'columns_xl' )
+		->and( $grid['settings_schema']['columns_sm']['default'] )->toBe( '' )
+		->and( $grid['settings_schema']['columns_xl']['options'] )->toContain( '12' );
+} );
+
+test( 'default grid block has gap setting', function (): void {
+	$this->registry->registerDefaults();
+
+	$grid = $this->registry->get( 'grid' );
+
+	expect( $grid['settings_schema'] )->toHaveKey( 'gap' )
+		->and( $grid['settings_schema']['gap']['default'] )->toBe( 'medium' )
+		->and( $grid['settings_schema']['gap']['options'] )->toBe( [ 'none', 'small', 'medium', 'large' ] );
+} );
+
+test( 'default grid block has directional gap settings', function (): void {
+	$this->registry->registerDefaults();
+
+	$grid = $this->registry->get( 'grid' );
+
+	expect( $grid['settings_schema'] )->toHaveKey( 'gap_x' )
+		->and( $grid['settings_schema'] )->toHaveKey( 'gap_y' )
+		->and( $grid['settings_schema']['gap_x']['default'] )->toBe( '' )
+		->and( $grid['settings_schema']['gap_y']['default'] )->toBe( '' )
+		->and( $grid['settings_schema']['gap_x']['options'] )->toContain( 'large' );
+} );
+
+test( 'default grid block supports sizing colors and borders', function (): void {
+	$this->registry->registerDefaults();
+
+	$grid = $this->registry->get( 'grid' );
+
+	expect( $grid['supports'] )->toBe( [ 'sizing', 'colors', 'borders' ] );
+} );
+
+// =========================================
+// Grid Item Block Registration Tests
+// =========================================
+
+test( 'default grid_item block is registered in layout category', function (): void {
+	$this->registry->registerDefaults();
+
+	$gridItem = $this->registry->get( 'grid_item' );
+
+	expect( $gridItem )->not->toBeNull()
+		->and( $gridItem['name'] )->toBe( 'Grid Item' )
+		->and( $gridItem['category'] )->toBe( 'layout' )
+		->and( $gridItem['icon'] )->toBe( 'fas.table-cells-large' );
+} );
+
+test( 'default grid_item block has col_span setting with 1-12 options', function (): void {
+	$this->registry->registerDefaults();
+
+	$gridItem = $this->registry->get( 'grid_item' );
+
+	expect( $gridItem['settings_schema'] )->toHaveKey( 'col_span' )
+		->and( $gridItem['settings_schema']['col_span']['default'] )->toBe( '1' )
+		->and( $gridItem['settings_schema']['col_span']['options'] )->toHaveCount( 12 );
+} );
+
+test( 'default grid_item block has responsive col_span settings', function (): void {
+	$this->registry->registerDefaults();
+
+	$gridItem = $this->registry->get( 'grid_item' );
+
+	expect( $gridItem['settings_schema'] )->toHaveKey( 'col_span_sm' )
+		->and( $gridItem['settings_schema'] )->toHaveKey( 'col_span_md' )
+		->and( $gridItem['settings_schema'] )->toHaveKey( 'col_span_lg' )
+		->and( $gridItem['settings_schema'] )->toHaveKey( 'col_span_xl' )
+		->and( $gridItem['settings_schema']['col_span_sm']['default'] )->toBe( '' );
+} );
+
+test( 'default grid_item block has row_span setting with 1-12 options', function (): void {
+	$this->registry->registerDefaults();
+
+	$gridItem = $this->registry->get( 'grid_item' );
+
+	expect( $gridItem['settings_schema'] )->toHaveKey( 'row_span' )
+		->and( $gridItem['settings_schema']['row_span']['default'] )->toBe( '1' )
+		->and( $gridItem['settings_schema']['row_span']['options'] )->toHaveCount( 12 );
+} );
+
+test( 'default grid_item block has responsive row_span settings', function (): void {
+	$this->registry->registerDefaults();
+
+	$gridItem = $this->registry->get( 'grid_item' );
+
+	expect( $gridItem['settings_schema'] )->toHaveKey( 'row_span_sm' )
+		->and( $gridItem['settings_schema'] )->toHaveKey( 'row_span_md' )
+		->and( $gridItem['settings_schema'] )->toHaveKey( 'row_span_lg' )
+		->and( $gridItem['settings_schema'] )->toHaveKey( 'row_span_xl' );
+} );
+
+test( 'default grid_item block has flex alignment settings', function (): void {
+	$this->registry->registerDefaults();
+
+	$gridItem = $this->registry->get( 'grid_item' );
+
+	expect( $gridItem['settings_schema'] )->toHaveKey( 'flex_direction' )
+		->and( $gridItem['settings_schema'] )->toHaveKey( 'align_items' )
+		->and( $gridItem['settings_schema'] )->toHaveKey( 'justify_content' )
+		->and( $gridItem['settings_schema']['flex_direction']['default'] )->toBe( 'column' )
+		->and( $gridItem['settings_schema']['align_items']['default'] )->toBe( 'stretch' )
+		->and( $gridItem['settings_schema']['justify_content']['default'] )->toBe( 'start' );
+} );
+
+test( 'default grid_item block supports sizing colors and borders', function (): void {
+	$this->registry->registerDefaults();
+
+	$gridItem = $this->registry->get( 'grid_item' );
+
+	expect( $gridItem['supports'] )->toBe( [ 'sizing', 'colors', 'borders' ] );
+} );
+
+// =========================================
+// Group Block Flex Alignment Tests
+// =========================================
+
+test( 'default group block has flex alignment settings', function (): void {
+	$this->registry->registerDefaults();
+
+	$group = $this->registry->get( 'group' );
+
+	expect( $group['settings_schema'] )->toHaveKey( 'flex_direction' )
+		->and( $group['settings_schema'] )->toHaveKey( 'align_items' )
+		->and( $group['settings_schema'] )->toHaveKey( 'justify_content' )
+		->and( $group['settings_schema']['flex_direction']['options'] )->toBe( [ 'column', 'row' ] )
+		->and( $group['settings_schema']['align_items']['options'] )->toBe( [ 'stretch', 'start', 'center', 'end' ] )
+		->and( $group['settings_schema']['justify_content']['options'] )->toBe( [ 'start', 'center', 'end', 'between', 'around', 'evenly' ] );
+} );

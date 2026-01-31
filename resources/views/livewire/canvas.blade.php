@@ -1035,21 +1035,300 @@ new class extends Component {
 									</blockquote>
 									@break
 
+								@case ( 'columns' )
+									@php
+										$preset     = $block['settings']['preset'] ?? '50-50';
+										$gap        = $block['settings']['gap'] ?? 'medium';
+										$vAlign     = $block['settings']['vertical_alignment'] ?? 'top';
+										$colWidths  = explode( '-', $preset );
+										$gapClass   = match ( $gap ) {
+											'none'   => 'gap-0',
+											'small'  => 'gap-2',
+											'large'  => 'gap-8',
+											default  => 'gap-4',
+										};
+										$alignClass = match ( $vAlign ) {
+											'center'  => 'items-center',
+											'bottom'  => 'items-end',
+											'stretch' => 'items-stretch',
+											default   => 'items-start',
+										};
+										$columns    = $block['content']['columns'] ?? [];
+										$colCount   = $block['settings']['columns'] ?? '';
+										$colCountSm = $block['settings']['columns_sm'] ?? '';
+										$colCountMd = $block['settings']['columns_md'] ?? '';
+										$colCountLg = $block['settings']['columns_lg'] ?? '';
+										$colCountXl = $block['settings']['columns_xl'] ?? '';
+										$responsiveCols = array_filter( [
+											'' !== $colCount ? __( 'Base' ) . ': ' . $colCount : '',
+											'' !== $colCountSm ? 'SM: ' . $colCountSm : '',
+											'' !== $colCountMd ? 'MD: ' . $colCountMd : '',
+											'' !== $colCountLg ? 'LG: ' . $colCountLg : '',
+											'' !== $colCountXl ? 'XL: ' . $colCountXl : '',
+										] );
+									@endphp
+									<div class="flex {{ $gapClass }} {{ $alignClass }}">
+										@if ( !empty( $responsiveCols ) )
+											<div class="mb-1 w-full text-xs text-gray-400">
+												{{ implode( ' | ', $responsiveCols ) }}
+											</div>
+										@endif
+										@foreach ( $colWidths as $colIndex => $width )
+											<div
+												class="min-h-[3rem] rounded border border-dashed border-gray-300 bg-gray-50/50 p-2"
+												style="flex: 0 0 {{ $width }}%;"
+											>
+												@if ( !empty( $columns[ $colIndex ]['blocks'] ?? [] ) )
+													<span class="text-xs text-gray-500">
+														{{ trans_choice( ':count block|:count blocks', count( $columns[ $colIndex ]['blocks'] ), [ 'count' => count( $columns[ $colIndex ]['blocks'] ) ] ) }}
+													</span>
+												@else
+													<span class="text-xs italic text-gray-400">
+														{{ __( 'Drop blocks here' ) }}
+													</span>
+												@endif
+											</div>
+										@endforeach
+									</div>
+									@break
+
+								@case ( 'column' )
+									@php
+										$colWidth   = $block['settings']['width'] ?? '';
+										$colStyle   = '' !== $colWidth ? 'flex: 0 0 ' . max( 0, min( 100, (int) $colWidth ) ) . '%;' : '';
+
+										$colDir     = match ( $block['settings']['flex_direction'] ?? 'column' ) {
+											'row'   => 'flex-row',
+											default => 'flex-col',
+										};
+										$colAlign   = match ( $block['settings']['align_items'] ?? 'stretch' ) {
+											'start'  => 'items-start',
+											'center' => 'items-center',
+											'end'    => 'items-end',
+											default  => 'items-stretch',
+										};
+										$colJustify = match ( $block['settings']['justify_content'] ?? 'start' ) {
+											'center'  => 'justify-center',
+											'end'     => 'justify-end',
+											'between' => 'justify-between',
+											'around'  => 'justify-around',
+											'evenly'  => 'justify-evenly',
+											default   => 'justify-start',
+										};
+
+										$colInnerBlocks = $block['content']['inner_blocks'] ?? [];
+									@endphp
+									<div
+										class="flex {{ $colDir }} {{ $colAlign }} {{ $colJustify }} min-h-[3rem] rounded border border-dashed border-gray-300 bg-gray-50/50 p-2"
+										@if ( '' !== $colStyle ) style="{{ $colStyle }}" @endif
+									>
+										@if ( !empty( $colInnerBlocks ) )
+											<span class="text-xs text-gray-500">
+												{{ trans_choice( ':count block|:count blocks', count( $colInnerBlocks ), [ 'count' => count( $colInnerBlocks ) ] ) }}
+											</span>
+										@else
+											<span class="text-xs italic text-gray-400">
+												{{ __( 'Drop blocks here' ) }}
+											</span>
+										@endif
+									</div>
+									@break
+
+								@case ( 'group' )
+									@php
+										$groupTag     = $block['settings']['tag'] ?? 'div';
+										$groupBg      = $block['settings']['background_color'] ?? '';
+										$groupPadding = match ( $block['settings']['padding'] ?? 'medium' ) {
+											'none'   => 'p-0',
+											'small'  => 'p-2',
+											'large'  => 'p-8',
+											'xlarge' => 'p-12',
+											default  => 'p-4',
+										};
+										$groupShadow  = match ( $block['settings']['shadow'] ?? 'none' ) {
+											'small'  => 'shadow-sm',
+											'medium' => 'shadow-md',
+											'large'  => 'shadow-lg',
+											default  => '',
+										};
+										$groupStyle   = '' !== $groupBg ? 'background-color: ' . e( $groupBg ) . ';' : '';
+										$innerBlocks  = $block['content']['inner_blocks'] ?? [];
+										$allowedTags  = [ 'div', 'section', 'article', 'aside', 'main', 'header', 'footer' ];
+										$groupTag     = in_array( $groupTag, $allowedTags, true ) ? $groupTag : 'div';
+										$groupDir     = match ( $block['settings']['flex_direction'] ?? 'column' ) {
+											'row'   => 'flex-row',
+											default => 'flex-col',
+										};
+										$groupAlign   = match ( $block['settings']['align_items'] ?? 'stretch' ) {
+											'start'  => 'items-start',
+											'center' => 'items-center',
+											'end'    => 'items-end',
+											default  => 'items-stretch',
+										};
+										$groupJustify = match ( $block['settings']['justify_content'] ?? 'start' ) {
+											'center'  => 'justify-center',
+											'end'     => 'justify-end',
+											'between' => 'justify-between',
+											'around'  => 'justify-around',
+											'evenly'  => 'justify-evenly',
+											default   => 'justify-start',
+										};
+									@endphp
+									<{{ $groupTag }}
+										class="flex {{ $groupDir }} {{ $groupAlign }} {{ $groupJustify }} min-h-[3rem] rounded border border-dashed border-gray-300 {{ $groupPadding }} {{ $groupShadow }}"
+										@if ( '' !== $groupStyle ) style="{{ $groupStyle }}" @endif
+									>
+										@if ( !empty( $innerBlocks ) )
+											<span class="text-xs text-gray-500">
+												{{ trans_choice( ':count block|:count blocks', count( $innerBlocks ), [ 'count' => count( $innerBlocks ) ] ) }}
+											</span>
+										@else
+											<span class="text-xs italic text-gray-400">
+												{{ __( 'Drop blocks here' ) }}
+											</span>
+										@endif
+									</{{ $groupTag }}>
+									@break
+
 								@case ( 'divider' )
 									<hr class="my-2 border-gray-300" />
 									@break
 
 								@case ( 'spacer' )
 									@php
-										$spacerSize = match ( $block['settings']['size'] ?? 'medium' ) {
-											'small'  => 'h-4',
-											'medium' => 'h-8',
-											'large'  => 'h-16',
-											'xlarge' => 'h-24',
-											default  => 'h-8',
-										};
+										$spacerHeight = $block['settings']['height'] ?? '40';
+										$spacerUnit   = $block['settings']['unit'] ?? 'px';
+										$spacerValue  = max( 0, (int) $spacerHeight );
+
+										if ( 'rem' === $spacerUnit ) {
+											$spacerStyle = 'height: ' . $spacerValue . 'rem;';
+										} else {
+											$spacerStyle = 'height: ' . $spacerValue . 'px;';
+										}
 									@endphp
-									<div class="{{ $spacerSize }}"></div>
+									<div
+										class="relative bg-gray-100/50"
+										style="{{ $spacerStyle }}"
+									>
+										<span class="absolute inset-0 flex items-center justify-center text-xs text-gray-400">
+											{{ $spacerValue }}{{ $spacerUnit }}
+										</span>
+									</div>
+									@break
+
+								@case ( 'grid' )
+									@php
+										$gridCols = max( 1, min( 12, (int) ( $block['settings']['columns'] ?? '3' ) ) );
+										$gridGapX = $block['settings']['gap_x'] ?? '';
+										$gridGapY = $block['settings']['gap_y'] ?? '';
+										$gridGap  = $block['settings']['gap'] ?? 'medium';
+
+										$gapMap = [
+											'none'   => '0',
+											'small'  => '2',
+											'medium' => '4',
+											'large'  => '8',
+										];
+
+										if ( '' !== $gridGapX || '' !== $gridGapY ) {
+											$gapXVal      = $gapMap[ $gridGapX ] ?? $gapMap[ $gridGap ] ?? '4';
+											$gapYVal      = $gapMap[ $gridGapY ] ?? $gapMap[ $gridGap ] ?? '4';
+											$gridGapClass = 'gap-x-' . $gapXVal . ' gap-y-' . $gapYVal;
+										} else {
+											$gridGapClass = 'gap-' . ( $gapMap[ $gridGap ] ?? '4' );
+										}
+
+										$gridItems = $block['content']['items'] ?? [];
+									@endphp
+									<div
+										class="grid {{ $gridGapClass }}"
+										style="grid-template-columns: repeat({{ $gridCols }}, minmax(0, 1fr));"
+									>
+										@if ( !empty( $gridItems ) )
+											@foreach ( $gridItems as $gridItem )
+												<div class="min-h-[3rem] rounded border border-dashed border-gray-300 bg-gray-50/50 p-2">
+													<span class="text-xs text-gray-500">{{ __( 'Grid Item' ) }}</span>
+												</div>
+											@endforeach
+										@else
+											@for ( $gi = 0; $gi < $gridCols; $gi++ )
+												<div class="min-h-[3rem] rounded border border-dashed border-gray-300 bg-gray-50/50 p-2">
+													<span class="text-xs italic text-gray-400">{{ __( 'Drop blocks here' ) }}</span>
+												</div>
+											@endfor
+										@endif
+									</div>
+									@break
+
+								@case ( 'grid_item' )
+									@php
+										$giColSpan   = max( 1, min( 12, (int) ( $block['settings']['col_span'] ?? '1' ) ) );
+										$giRowSpan   = max( 1, min( 12, (int) ( $block['settings']['row_span'] ?? '1' ) ) );
+										$giSpanStyle = 'grid-column: span ' . $giColSpan . '; grid-row: span ' . $giRowSpan . ';';
+
+										$giDir     = match ( $block['settings']['flex_direction'] ?? 'column' ) {
+											'row'   => 'flex-row',
+											default => 'flex-col',
+										};
+										$giAlign   = match ( $block['settings']['align_items'] ?? 'stretch' ) {
+											'start'  => 'items-start',
+											'center' => 'items-center',
+											'end'    => 'items-end',
+											default  => 'items-stretch',
+										};
+										$giJustify = match ( $block['settings']['justify_content'] ?? 'start' ) {
+											'center'  => 'justify-center',
+											'end'     => 'justify-end',
+											'between' => 'justify-between',
+											'around'  => 'justify-around',
+											'evenly'  => 'justify-evenly',
+											default   => 'justify-start',
+										};
+
+										$giInnerBlocks = $block['content']['inner_blocks'] ?? [];
+									@endphp
+									<div
+										class="flex {{ $giDir }} {{ $giAlign }} {{ $giJustify }} min-h-[3rem] rounded border border-dashed border-gray-300 bg-gray-50/50 p-2"
+										style="{{ $giSpanStyle }}"
+									>
+										@if ( !empty( $giInnerBlocks ) )
+											<span class="text-xs text-gray-500">
+												{{ trans_choice( ':count block|:count blocks', count( $giInnerBlocks ), [ 'count' => count( $giInnerBlocks ) ] ) }}
+											</span>
+										@else
+											<span class="text-xs italic text-gray-400">
+												{{ __( 'Drop blocks here' ) }}
+											</span>
+										@endif
+									</div>
+									@break
+
+								@case ( 'separator' )
+									@php
+										$sepStyle = $block['settings']['style'] ?? 'solid';
+										$sepColor = $block['settings']['color'] ?? '';
+										$sepWidth = $block['settings']['width'] ?? 'full';
+
+										$sepWidthClass = match ( $sepWidth ) {
+											'wide'   => 'mx-auto w-3/4',
+											'narrow' => 'mx-auto w-1/2',
+											'short'  => 'mx-auto w-1/4',
+											default  => 'w-full',
+										};
+
+										$sepBorderStyle = match ( $sepStyle ) {
+											'dashed' => 'border-dashed',
+											'dotted' => 'border-dotted',
+											'wide'   => 'border-solid border-t-4',
+											default  => 'border-solid',
+										};
+
+										$sepInlineStyle = '' !== $sepColor ? 'border-color: ' . e( $sepColor ) . ';' : '';
+									@endphp
+									<hr
+										class="my-2 {{ $sepWidthClass }} {{ $sepBorderStyle }} {{ '' === $sepColor ? 'border-gray-300' : '' }}"
+										@if ( '' !== $sepInlineStyle ) style="{{ $sepInlineStyle }}" @endif
+									/>
 									@break
 
 								@case ( 'image' )
