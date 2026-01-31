@@ -1041,11 +1041,10 @@ See `09-database-schema.md` for complete schema.
 - `ve_content_revisions` - Revision history
 - `ve_templates` - Template definitions
 - `ve_template_parts` - Reusable template parts
-- `ve_sections` - User-created sections
+- `ve_user_sections` - User-created sections
 - `ve_global_styles` - Style customizations
 - `ve_experiments` - A/B test definitions
 - `ve_experiment_variants` - Test variants
-
 ---
 
 ## 20. Configuration Reference

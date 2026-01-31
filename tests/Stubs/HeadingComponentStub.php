@@ -16,6 +16,7 @@ declare( strict_types=1 );
 
 namespace Tests\Stubs;
 
+use Closure;
 use Illuminate\View\Component;
 
 /**
@@ -58,11 +59,15 @@ class HeadingComponentStub extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return string
+	 * @return Closure
 	 */
-	public function render(): string
+	public function render(): Closure
 	{
-		$level = e( $this->level );
-		return '<h' . $level . ' class="heading-stub"></h' . $level . '>';
+		return function ( array $data ) {
+			$level = e( $this->level );
+			$slot  = $data['slot'] ?? '';
+
+			return '<h' . $level . ' class="heading-stub">' . $slot . '</h' . $level . '>';
+		};
 	}
 }

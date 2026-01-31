@@ -45,7 +45,7 @@ class ContentPolicy
 	 */
 	public function update( Authenticatable $user, Content $content ): bool
 	{
-		return (int) $user->getAuthIdentifier() === $content->author_id;
+		return $this->isAuthor( $user, $content );
 	}
 
 	/**
@@ -60,7 +60,7 @@ class ContentPolicy
 	 */
 	public function publish( Authenticatable $user, Content $content ): bool
 	{
-		return $user->getAuthIdentifier() === $content->author_id;
+		return $this->isAuthor( $user, $content );
 	}
 
 	/**
@@ -75,7 +75,7 @@ class ContentPolicy
 	 */
 	public function unpublish( Authenticatable $user, Content $content ): bool
 	{
-		return $user->getAuthIdentifier() === $content->author_id;
+		return $this->isAuthor( $user, $content );
 	}
 
 	/**
@@ -90,6 +90,24 @@ class ContentPolicy
 	 */
 	public function schedule( Authenticatable $user, Content $content ): bool
 	{
-		return $user->getAuthIdentifier() === $content->author_id;
+		return $this->isAuthor( $user, $content );
+	}
+
+	/**
+	 * Checks whether the user is the author of the content.
+	 *
+	 * Normalizes both sides to int to ensure consistent comparison
+	 * regardless of the type returned by getAuthIdentifier().
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param Authenticatable $user    The authenticated user.
+	 * @param Content         $content The content to check.
+	 *
+	 * @return bool
+	 */
+	private function isAuthor( Authenticatable $user, Content $content ): bool
+	{
+		return (int) $user->getAuthIdentifier() === (int) $content->author_id;
 	}
 }

@@ -1,5 +1,7 @@
 <?php
 
+declare( strict_types=1 );
+
 /**
  * Content Service.
  *
@@ -12,7 +14,7 @@
  * @since      1.0.0
  */
 
-declare( strict_types=1 );
+namespace ArtisanPackUI\VisualEditor\Services;
 
 namespace ArtisanPackUI\VisualEditor\Services;
 

@@ -278,6 +278,8 @@ new class extends Component {
 			return;
 		}
 
+		abort_unless( auth()->check(), 403 );
+
 		UserSection::create( [
 			'user_id'     => auth()->id(),
 			'name'        => trim( $name ),

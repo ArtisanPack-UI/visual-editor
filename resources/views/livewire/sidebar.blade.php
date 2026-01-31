@@ -162,10 +162,11 @@ new class extends Component {
 			->orderBy( 'name' );
 
 		if ( '' !== $this->sectionSearch ) {
-			$search = $this->sectionSearch;
-			$query->where( function ( $q ) use ( $search ) {
-				$q->where( 'name', 'like', '%' . $search . '%' )
-					->orWhere( 'description', 'like', '%' . $search . '%' );
+			$search = str_replace( [ '\\', '%', '_' ], [ '\\\\', '\\%', '\\_' ], $this->sectionSearch );
+			$pattern = '%' . $search . '%';
+			$query->where( function ( $q ) use ( $pattern ) {
+				$q->whereRaw( 'name LIKE ? ESCAPE ?', [ $pattern, '\\' ] )
+					->orWhereRaw( 'description LIKE ? ESCAPE ?', [ $pattern, '\\' ] );
 			} );
 		}
 

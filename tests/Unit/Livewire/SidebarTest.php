@@ -126,3 +126,29 @@ test( 'sidebar initializes with empty section search', function (): void {
 	Livewire::test( 'visual-editor::sidebar' )
 		->assertSet( 'sectionSearch', '' );
 } );
+
+test( 'sidebar section search escapes SQL wildcard characters', function (): void {
+	$user  = Tests\Models\User::factory()->create();
+	$other = Tests\Models\User::factory()->create();
+	$this->actingAs( $user );
+
+	ArtisanPackUI\VisualEditor\Models\UserSection::factory()->create( [
+		'user_id'   => $other->id,
+		'name'      => '100% Off Sale',
+		'is_shared' => true,
+	] );
+
+	ArtisanPackUI\VisualEditor\Models\UserSection::factory()->create( [
+		'user_id'   => $other->id,
+		'name'      => 'Regular Section',
+		'is_shared' => true,
+	] );
+
+	$component = Livewire::test( 'visual-editor::sidebar', [ 'activeTab' => 'sections' ] );
+
+	$component->set( 'sectionSearch', '100%' );
+
+	$sections = $component->instance()->userSections;
+	expect( $sections )->toHaveCount( 1 )
+		->and( $sections->first()->name )->toBe( '100% Off Sale' );
+} );

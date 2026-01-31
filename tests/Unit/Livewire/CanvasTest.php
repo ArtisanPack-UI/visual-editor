@@ -1019,3 +1019,15 @@ test( 'canvas saveBlocksAsSection does nothing with empty blocks', function (): 
 
 	expect( ArtisanPackUI\VisualEditor\Models\UserSection::count() )->toBe( 0 );
 } );
+
+test( 'canvas saveBlocksAsSection aborts for unauthenticated users', function (): void {
+	$blocks = [
+		[ 'id' => 've-b1', 'type' => 'heading', 'content' => [ 'text' => 'Title' ], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'saveBlocksAsSection', 'My Pattern', null, null )
+		->assertForbidden();
+
+	expect( ArtisanPackUI\VisualEditor\Models\UserSection::count() )->toBe( 0 );
+} );
