@@ -105,6 +105,11 @@ class ContentApiController extends Controller
 	 */
 	public function autosave( Request $request, Content $content ): JsonResponse
 	{
+		$user = $request->user();
+		if ( !$user ) {
+			abort( 401, 'Unauthenticated' );
+		}
+
 		$validated = $request->validate( [
 			'blocks'   => 'sometimes|array',
 			'settings' => 'sometimes|nullable|array',
@@ -113,7 +118,7 @@ class ContentApiController extends Controller
 		$revision = $this->contentService->autosave(
 			$content,
 			$validated,
-			$request->user()->id,
+			$user->id,
 		);
 
 		return response()->json( [
@@ -134,9 +139,14 @@ class ContentApiController extends Controller
 	 */
 	public function publish( Request $request, Content $content ): JsonResponse
 	{
+		$user = $request->user();
+		if ( !$user ) {
+			abort( 401, 'Unauthenticated' );
+		}
+
 		$content = $this->contentService->publish(
 			$content,
-			$request->user()->id,
+			$user->id,
 		);
 
 		return response()->json( [
@@ -157,9 +167,14 @@ class ContentApiController extends Controller
 	 */
 	public function unpublish( Request $request, Content $content ): JsonResponse
 	{
+		$user = $request->user();
+		if ( !$user ) {
+			abort( 401, 'Unauthenticated' );
+		}
+
 		$content = $this->contentService->unpublish(
 			$content,
-			$request->user()->id,
+			$user->id,
 		);
 
 		return response()->json( [
@@ -184,10 +199,15 @@ class ContentApiController extends Controller
 			'scheduled_at' => 'required|date|after:now',
 		] );
 
+		$user = $request->user();
+		if ( !$user ) {
+			abort( 401, 'Unauthenticated' );
+		}
+
 		$content = $this->contentService->schedule(
 			$content,
 			Carbon::parse( $validated['scheduled_at'] ),
-			$request->user()->id,
+			$user->id,
 		);
 
 		return response()->json( [

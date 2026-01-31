@@ -142,7 +142,7 @@ Schema::create('ve_experiments', function (Blueprint $table) {
     $table->enum('status', ['draft', 'running', 'paused', 'ended'])->default('draft');
     $table->timestamp('started_at')->nullable();
     $table->timestamp('ended_at')->nullable();
-    $table->foreignId('winner_variant_id')->nullable();
+    $table->foreignId('winner_variant_id')->nullable()->constrained('ve_experiment_variants')->nullOnDelete();
     $table->timestamps();
     $table->index(['content_id', 'status']);
 });

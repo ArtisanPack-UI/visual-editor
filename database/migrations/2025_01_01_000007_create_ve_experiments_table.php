@@ -38,7 +38,7 @@ return new class extends Migration
             $table->string('name');
             $table->text('description')->nullable();
             $table->enum('type', ['headline', 'section', 'full_page'])->default('headline');
-            $table->integer('traffic_split')->default(50);
+            $table->unsignedTinyInteger('traffic_split')->default(50);
             $table->enum('goal_type', ['clicks', 'conversions', 'time_on_page', 'scroll_depth']);
             $table->string('goal_target')->nullable();
             $table->enum('status', ['draft', 'running', 'paused', 'ended'])->default('draft');

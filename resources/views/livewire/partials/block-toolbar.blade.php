@@ -10,6 +10,7 @@
  * @var string      $blockId       The block ID.
  * @var string      $blockType     The block type identifier.
  * @var array|null  $blockConfig   The block configuration from BlockRegistry.
+ * @var array       $block         The block data array (content, settings, etc.).
  * @var int         $blockIndex    The block's position in the blocks array (0-based).
  * @var int         $totalBlocks   The total number of blocks.
  * @var bool        $isEditing     Whether the block is in inline edit mode.

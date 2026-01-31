@@ -37,33 +37,43 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('ve_contents', function (Blueprint $table) {
-            $table->renameColumn('sections', 'blocks');
-        });
+        DB::beginTransaction();
 
-        // Transform existing data: flatten nested sections into flat blocks.
-        DB::table('ve_contents')->orderBy('id')->chunk(100, function ($rows) {
-            foreach ($rows as $row) {
-                $sections = json_decode($row->blocks, true);
+        try {
+            Schema::table('ve_contents', function (Blueprint $table) {
+                $table->renameColumn('sections', 'blocks');
+            });
 
-                if (!is_array($sections)) {
-                    continue;
-                }
+            // Transform existing data: flatten nested sections into flat blocks.
+            DB::table('ve_contents')->orderBy('id')->chunk(100, function ($rows) {
+                foreach ($rows as $row) {
+                    $sections = json_decode($row->blocks, true);
 
-                $flatBlocks = [];
-                foreach ($sections as $section) {
-                    if (isset($section['blocks']) && is_array($section['blocks'])) {
-                        foreach ($section['blocks'] as $block) {
-                            $flatBlocks[] = $block;
+                    if (!is_array($sections)) {
+                        Log::warning("Migration: Skipping row {$row->id} - invalid JSON");
+                        continue;
+                    }
+
+                    $flatBlocks = [];
+                    foreach ($sections as $section) {
+                        if (isset($section['blocks']) && is_array($section['blocks'])) {
+                            foreach ($section['blocks'] as $block) {
+                                $flatBlocks[] = $block;
+                            }
                         }
                     }
-                }
 
-                DB::table('ve_contents')
-                    ->where('id', $row->id)
-                    ->update(['blocks' => json_encode($flatBlocks)]);
-            }
-        });
+                    DB::table('ve_contents')
+                        ->where('id', $row->id)
+                        ->update(['blocks' => json_encode($flatBlocks, JSON_THROW_ON_ERROR)]);
+                }
+            });
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 
     /**
@@ -76,32 +86,41 @@ return new class extends Migration
      */
     public function down(): void
     {
-        // Transform data back: wrap flat blocks in generic sections.
-        DB::table('ve_contents')->orderBy('id')->chunk(100, function ($rows) {
-            foreach ($rows as $row) {
-                $blocks = json_decode($row->blocks, true);
+        DB::beginTransaction();
 
-                if (!is_array($blocks) || empty($blocks)) {
-                    continue;
+        try {
+            // Transform data back: wrap flat blocks in generic sections.
+            DB::table('ve_contents')->orderBy('id')->chunk(100, function ($rows) {
+                foreach ($rows as $row) {
+                    $blocks = json_decode($row->blocks, true);
+
+                    if (!is_array($blocks) || empty($blocks)) {
+                        continue;
+                    }
+
+                    $sections = [
+                        [
+                            'id'       => 've-section-' . uniqid(),
+                            'type'     => 'generic',
+                            'blocks'   => $blocks,
+                            'settings' => [],
+                        ],
+                    ];
+
+                    DB::table('ve_contents')
+                        ->where('id', $row->id)
+                        ->update(['blocks' => json_encode($sections, JSON_THROW_ON_ERROR)]);
                 }
+            });
 
-                $sections = [
-                    [
-                        'id'       => 've-section-' . uniqid(),
-                        'type'     => 'generic',
-                        'blocks'   => $blocks,
-                        'settings' => [],
-                    ],
-                ];
+            Schema::table('ve_contents', function (Blueprint $table) {
+                $table->renameColumn('blocks', 'sections');
+            });
 
-                DB::table('ve_contents')
-                    ->where('id', $row->id)
-                    ->update(['blocks' => json_encode($sections)]);
-            }
-        });
-
-        Schema::table('ve_contents', function (Blueprint $table) {
-            $table->renameColumn('blocks', 'sections');
-        });
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            throw $e;
+        }
     }
 };

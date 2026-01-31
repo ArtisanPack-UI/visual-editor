@@ -146,10 +146,19 @@ new class extends Component {
 	{
 		$indexed   = collect( $this->blocks )->keyBy( 'id' );
 		$reordered = [];
+		$seen      = [];
 
 		foreach ( $orderedIds as $id ) {
 			if ( $indexed->has( $id ) ) {
 				$reordered[] = $indexed->get( $id );
+				$seen[]      = $id;
+			}
+		}
+
+		// Append any blocks not in orderedIds to prevent data loss
+		foreach ( $this->blocks as $block ) {
+			if ( !in_array( $block['id'] ?? '', $seen, true ) ) {
+				$reordered[] = $block;
 			}
 		}
 
@@ -820,7 +829,7 @@ new class extends Component {
 									@keydown.meta.u.prevent="format( 'underline' )"
 									@keydown.ctrl.u.prevent="format( 'underline' )"
 									class="{{ $richTextClasses }}"
-								>{!! $block['content']['text'] ?? '' !!}</div>
+								>{!! kses( $block['content']['text'] ?? '' ) !!}</div>
 							@else
 								{{-- Plain Text Edit Mode --}}
 								@php

@@ -62,6 +62,7 @@ class HeadingComponentStub extends Component
 	 */
 	public function render(): string
 	{
-		return '<h{{ $level }} class="heading-stub">{{ $slot }}</h{{ $level }}>';
+		$level = e( $this->level );
+		return '<h' . $level . ' class="heading-stub"></h' . $level . '>';
 	}
 }

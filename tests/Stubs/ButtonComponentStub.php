@@ -111,7 +111,7 @@ class ButtonComponentStub extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return string
+	 * @return Closure|\Illuminate\View\View|string
 	 */
 	public function render(): \Illuminate\View\View|Closure|string
 	{

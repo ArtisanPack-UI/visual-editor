@@ -66,6 +66,6 @@ class BadgeComponentStub extends Component
 	 */
 	public function render(): string
 	{
-		return '<span class="badge-stub">{{ $value }}</span>';
+		return '<span class="badge-stub">' . e( $this->value ?? '' ) . '</span>';
 	}
 }
