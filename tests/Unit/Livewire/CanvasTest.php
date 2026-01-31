@@ -920,3 +920,102 @@ test( 'canvas WYSIWYG heading does not render id attribute when anchor is empty'
 	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
 		->assertDontSeeHtml( '<h2 class="text-3xl font-bold" id="' );
 } );
+
+// =========================================
+// User Section Tests
+// =========================================
+
+test( 'canvas insertUserSection adds blocks from user section', function (): void {
+	$user = Tests\Models\User::factory()->create();
+	$this->actingAs( $user );
+
+	$userSection = ArtisanPackUI\VisualEditor\Models\UserSection::create( [
+		'user_id' => $user->id,
+		'name'    => 'My Pattern',
+		'blocks'  => [
+			[ 'id' => 've-us1', 'type' => 'heading', 'content' => [ 'text' => 'Hello' ], 'settings' => [] ],
+			[ 'id' => 've-us2', 'type' => 'text', 'content' => [ 'text' => 'World' ], 'settings' => [] ],
+		],
+	] );
+
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => [] ] )
+		->dispatch( 'user-section-insert', userSectionId: $userSection->id )
+		->assertDispatched( 'blocks-updated' );
+
+	$blocks = $component->get( 'blocks' );
+	expect( $blocks )->toHaveCount( 2 )
+		->and( $blocks[0]['type'] )->toBe( 'heading' )
+		->and( $blocks[1]['type'] )->toBe( 'text' );
+} );
+
+test( 'canvas insertUserSection increments use count', function (): void {
+	$user = Tests\Models\User::factory()->create();
+	$this->actingAs( $user );
+
+	$userSection = ArtisanPackUI\VisualEditor\Models\UserSection::create( [
+		'user_id'   => $user->id,
+		'name'      => 'My Pattern',
+		'blocks'    => [
+			[ 'id' => 've-us1', 'type' => 'text', 'content' => [ 'text' => 'Test' ], 'settings' => [] ],
+		],
+		'use_count' => 0,
+	] );
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => [] ] )
+		->dispatch( 'user-section-insert', userSectionId: $userSection->id );
+
+	expect( $userSection->fresh()->use_count )->toBe( 1 );
+} );
+
+test( 'canvas insertUserSection ignores non-existent user section', function (): void {
+	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => [] ] )
+		->dispatch( 'user-section-insert', userSectionId: 99999 );
+
+	$blocks = $component->get( 'blocks' );
+	expect( $blocks )->toHaveCount( 0 );
+} );
+
+test( 'canvas saveBlocksAsSection creates a UserSection record', function (): void {
+	$user = Tests\Models\User::factory()->create();
+	$this->actingAs( $user );
+
+	$blocks = [
+		[ 'id' => 've-b1', 'type' => 'heading', 'content' => [ 'text' => 'Title' ], 'settings' => [] ],
+		[ 'id' => 've-b2', 'type' => 'text', 'content' => [ 'text' => 'Body' ], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'saveBlocksAsSection', 'My Pattern', 'A description', 'content' )
+		->assertDispatched( 'section-saved' );
+
+	$saved = ArtisanPackUI\VisualEditor\Models\UserSection::where( 'name', 'My Pattern' )->first();
+	expect( $saved )->not->toBeNull()
+		->and( $saved->user_id )->toBe( $user->id )
+		->and( $saved->description )->toBe( 'A description' )
+		->and( $saved->category )->toBe( 'content' )
+		->and( $saved->blocks )->toHaveCount( 2 );
+} );
+
+test( 'canvas saveBlocksAsSection does nothing with empty name', function (): void {
+	$user = Tests\Models\User::factory()->create();
+	$this->actingAs( $user );
+
+	$blocks = [
+		[ 'id' => 've-b1', 'type' => 'heading', 'content' => [ 'text' => 'Title' ], 'settings' => [] ],
+	];
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
+		->call( 'saveBlocksAsSection', '', null, null );
+
+	expect( ArtisanPackUI\VisualEditor\Models\UserSection::count() )->toBe( 0 );
+} );
+
+test( 'canvas saveBlocksAsSection does nothing with empty blocks', function (): void {
+	$user = Tests\Models\User::factory()->create();
+	$this->actingAs( $user );
+
+	Livewire::test( 'visual-editor::canvas', [ 'blocks' => [] ] )
+		->call( 'saveBlocksAsSection', 'My Pattern', null, null );
+
+	expect( ArtisanPackUI\VisualEditor\Models\UserSection::count() )->toBe( 0 );
+} );

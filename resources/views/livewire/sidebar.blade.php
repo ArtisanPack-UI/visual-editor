@@ -15,6 +15,7 @@ declare( strict_types=1 );
  * @since      1.0.0
  */
 
+use ArtisanPackUI\VisualEditor\Models\UserSection;
 use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Registries\SectionRegistry;
 use Illuminate\Support\Collection;
@@ -49,6 +50,15 @@ new class extends Component {
 	 * @var string
 	 */
 	public string $blockSearch = '';
+
+	/**
+	 * The section search query.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @var string
+	 */
+	public string $sectionSearch = '';
 
 	/**
 	 * The content blocks for the layers tab.
@@ -103,16 +113,63 @@ new class extends Component {
 	}
 
 	/**
-	 * Get sections grouped by category.
+	 * Get sections grouped by category, filtered by search.
 	 *
-	 * @since 1.0.0
+	 * @since 1.1.0
 	 *
 	 * @return Collection
 	 */
 	#[Computed]
 	public function groupedSections(): Collection
 	{
-		return app( SectionRegistry::class )->getGroupedByCategory();
+		$grouped = app( SectionRegistry::class )->getGroupedByCategory();
+
+		if ( '' === $this->sectionSearch ) {
+			return $grouped;
+		}
+
+		$search = strtolower( $this->sectionSearch );
+
+		return $grouped->map( function ( $category ) use ( $search ) {
+			$filtered = $category['sections']->filter( function ( $section ) use ( $search ) {
+				$name        = strtolower( $section['name'] ?? '' );
+				$description = strtolower( $section['description'] ?? '' );
+
+				return str_contains( $name, $search ) || str_contains( $description, $search );
+			} );
+
+			return array_merge( $category, [ 'sections' => $filtered ] );
+		} )->filter( fn ( $category ) => $category['sections']->isNotEmpty() );
+	}
+
+	/**
+	 * Get user-created section patterns.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return Collection
+	 */
+	#[Computed]
+	public function userSections(): Collection
+	{
+		if ( null === auth()->id() ) {
+			return collect();
+		}
+
+		$query = UserSection::query()
+			->where( 'user_id', auth()->id() )
+			->orWhere( 'is_shared', true )
+			->orderBy( 'name' );
+
+		if ( '' !== $this->sectionSearch ) {
+			$search = $this->sectionSearch;
+			$query->where( function ( $q ) use ( $search ) {
+				$q->where( 'name', 'like', '%' . $search . '%' )
+					->orWhere( 'description', 'like', '%' . $search . '%' );
+			} );
+		}
+
+		return $query->get();
 	}
 
 	/**
@@ -248,6 +305,16 @@ new class extends Component {
 				</div>
 			@endforeach
 		@elseif ( 'sections' === $activeTab )
+			{{-- Section Search --}}
+			<div class="mb-3">
+				<input
+					wire:model.live.debounce.300ms="sectionSearch"
+					type="text"
+					class="w-full rounded-md border border-gray-300 px-3 py-1.5 text-sm placeholder-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+					placeholder="{{ __( 'Search sections...' ) }}"
+				/>
+			</div>
+
 			{{-- Sections by Category --}}
 			@foreach ( $this->groupedSections as $categoryKey => $category )
 				<div class="mb-4">
@@ -258,15 +325,45 @@ new class extends Component {
 						@foreach ( $category['sections'] as $sectionType => $section )
 							<button
 								wire:click="$dispatch( 'section-insert', { type: '{{ $sectionType }}' } )"
-								class="flex w-full items-center gap-2 rounded-md border border-gray-200 p-2 text-left text-sm text-gray-700 hover:border-blue-300 hover:bg-blue-50"
+								class="flex w-full items-start gap-2 rounded-md border border-gray-200 p-2 text-left text-sm text-gray-700 hover:border-blue-300 hover:bg-blue-50"
 							>
-								<x-artisanpack-icon name="{{ $section['icon'] ?? 'fas.layer-group' }}" class="w-5 h-5 text-gray-400" />
-								<span>{{ $section['name'] }}</span>
+								<x-artisanpack-icon name="{{ $section['icon'] ?? 'fas.layer-group' }}" class="mt-0.5 w-5 h-5 shrink-0 text-gray-400" />
+								<div class="min-w-0">
+									<span class="block font-medium">{{ $section['name'] }}</span>
+									@if ( !empty( $section['description'] ) )
+										<span class="block truncate text-xs text-gray-400">{{ $section['description'] }}</span>
+									@endif
+								</div>
 							</button>
 						@endforeach
 					</div>
 				</div>
 			@endforeach
+
+			{{-- User Sections (My Patterns) --}}
+			@if ( $this->userSections->isNotEmpty() )
+				<div class="mb-4 mt-6 border-t border-gray-200 pt-4">
+					<h3 class="mb-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+						{{ __( 'My Patterns' ) }}
+					</h3>
+					<div class="space-y-2">
+						@foreach ( $this->userSections as $userSection )
+							<button
+								wire:click="$dispatch( 'user-section-insert', { userSectionId: {{ $userSection->id }} } )"
+								class="flex w-full items-start gap-2 rounded-md border border-gray-200 p-2 text-left text-sm text-gray-700 hover:border-blue-300 hover:bg-blue-50"
+							>
+								<x-artisanpack-icon name="fas.puzzle-piece" class="mt-0.5 w-5 h-5 shrink-0 text-gray-400" />
+								<div class="min-w-0">
+									<span class="block font-medium">{{ $userSection->name }}</span>
+									@if ( !empty( $userSection->description ) )
+										<span class="block truncate text-xs text-gray-400">{{ $userSection->description }}</span>
+									@endif
+								</div>
+							</button>
+						@endforeach
+					</div>
+				</div>
+			@endif
 		@elseif ( 'layers' === $activeTab )
 			@if ( empty( $blocks ) )
 				<p class="text-sm text-gray-500">{{ __( 'No blocks on the canvas yet.' ) }}</p>

@@ -34,6 +34,33 @@ new class extends Component {
 	public Content $content;
 
 	/**
+	 * Whether the save-as-pattern modal is open.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @var bool
+	 */
+	public bool $showSavePatternModal = false;
+
+	/**
+	 * The pattern name for saving.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @var string
+	 */
+	public string $patternName = '';
+
+	/**
+	 * The pattern description for saving.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @var string
+	 */
+	public string $patternDescription = '';
+
+	/**
 	 * The content blocks data.
 	 *
 	 * @since 1.1.0
@@ -948,6 +975,37 @@ new class extends Component {
 		$this->isDirty    = true;
 		$this->saveStatus = 'unsaved';
 	}
+
+	/**
+	 * Open the save-as-pattern modal.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return void
+	 */
+	#[On( 'open-save-pattern-modal' )]
+	public function openSavePatternModal(): void
+	{
+		$this->patternName          = '';
+		$this->patternDescription   = '';
+		$this->showSavePatternModal = true;
+	}
+
+	/**
+	 * Save the current blocks as a pattern.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return void
+	 */
+	public function confirmSavePattern(): void
+	{
+		$this->dispatch( 'save-blocks-as-section', name: $this->patternName, description: $this->patternDescription );
+
+		$this->showSavePatternModal = false;
+		$this->patternName          = '';
+		$this->patternDescription   = '';
+	}
 }; ?>
 
 <div class="ve-editor flex h-screen flex-col overflow-hidden bg-gray-100"
@@ -987,6 +1045,47 @@ new class extends Component {
 				:last-saved="$lastSaved"
 			/>
 		</div>
+
+		{{-- Save as Pattern Modal --}}
+		@if ( $showSavePatternModal )
+			<div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" @click.self="$set( 'showSavePatternModal', false )">
+				<div class="w-96 rounded-lg bg-white p-6 shadow-xl">
+					<h3 class="mb-4 text-lg font-semibold text-gray-900">{{ __( 'Save as Pattern' ) }}</h3>
+					<div class="mb-3">
+						<label class="mb-1 block text-sm font-medium text-gray-700">{{ __( 'Name' ) }}</label>
+						<input
+							wire:model="patternName"
+							type="text"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+							placeholder="{{ __( 'Pattern name...' ) }}"
+						/>
+					</div>
+					<div class="mb-4">
+						<label class="mb-1 block text-sm font-medium text-gray-700">{{ __( 'Description' ) }}</label>
+						<textarea
+							wire:model="patternDescription"
+							class="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+							rows="2"
+							placeholder="{{ __( 'Optional description...' ) }}"
+						></textarea>
+					</div>
+					<div class="flex justify-end gap-2">
+						<x-artisanpack-button
+							wire:click="$set( 'showSavePatternModal', false )"
+							:label="__( 'Cancel' )"
+							variant="outline"
+							size="sm"
+						/>
+						<x-artisanpack-button
+							wire:click="confirmSavePattern"
+							:label="__( 'Save Pattern' )"
+							color="primary"
+							size="sm"
+						/>
+					</div>
+				</div>
+			</div>
+		@endif
 
 		{{-- Right Settings Panel (inline) --}}
 		@if ( $showSettingsDrawer )

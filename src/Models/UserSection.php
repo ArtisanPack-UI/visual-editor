@@ -123,6 +123,18 @@ class UserSection extends Model
 	}
 
 	/**
+	 * Create a new factory instance for the model.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return \Tests\Factories\UserSectionFactory
+	 */
+	protected static function newFactory(): \Tests\Factories\UserSectionFactory
+	{
+		return \Tests\Factories\UserSectionFactory::new();
+	}
+
+	/**
 	 * Gets the attributes that should be cast.
 	 *
 	 * @since 1.0.0

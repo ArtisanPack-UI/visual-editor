@@ -16,6 +16,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Registries;
 
 use Illuminate\Support\Collection;
+use InvalidArgumentException;
 
 /**
  * Section Registry class.
@@ -88,10 +89,14 @@ class SectionRegistry
 	 * @param string $type   The section type identifier.
 	 * @param array  $config The section configuration.
 	 *
+	 * @throws InvalidArgumentException If the type or configuration is invalid.
+	 *
 	 * @return self
 	 */
 	public function register( string $type, array $config ): self
 	{
+		$this->validateRegistration( $type, $config );
+
 		$this->sections[ $type ] = array_merge( [
 			'name'             => $type,
 			'description'      => '',
@@ -477,5 +482,40 @@ class SectionRegistry
 				'padding'    => 'large',
 			],
 		] );
+	}
+
+	/**
+	 * Validate section registration parameters.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param string $type   The section type identifier.
+	 * @param array  $config The section configuration.
+	 *
+	 * @throws InvalidArgumentException If the type or configuration is invalid.
+	 *
+	 * @return void
+	 */
+	protected function validateRegistration( string $type, array $config ): void
+	{
+		if ( '' === trim( $type ) ) {
+			throw new InvalidArgumentException( __( 'Section type cannot be empty.' ) );
+		}
+
+		if ( !preg_match( '/^[a-zA-Z0-9_-]+$/', $type ) ) {
+			throw new InvalidArgumentException(
+				__( 'Section type ":type" contains invalid characters. Only alphanumeric characters, hyphens, and underscores are allowed.', [
+					'type' => $type,
+				] ),
+			);
+		}
+
+		if ( isset( $config['category'] ) && !isset( $this->categories[ $config['category'] ] ) ) {
+			throw new InvalidArgumentException(
+				__( 'Section category ":category" is not registered. Register it first with registerCategory().', [
+					'category' => $config['category'],
+				] ),
+			);
+		}
 	}
 }

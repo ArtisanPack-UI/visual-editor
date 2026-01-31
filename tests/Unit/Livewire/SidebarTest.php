@@ -93,3 +93,36 @@ test( 'sidebar layers shows block type name from registry', function (): void {
 		->assertSee( 'Image' );
 } );
 
+// =========================================
+// Section Tab Tests
+// =========================================
+
+test( 'sidebar sections tab displays grouped sections', function (): void {
+	Livewire::test( 'visual-editor::sidebar', [ 'activeTab' => 'sections' ] )
+		->assertSee( 'Headers' )
+		->assertSee( 'Content' )
+		->assertSee( 'Hero' );
+} );
+
+test( 'sidebar sections tab shows section descriptions', function (): void {
+	Livewire::test( 'visual-editor::sidebar', [ 'activeTab' => 'sections' ] )
+		->assertSee( 'Large hero section with headline and call to action' );
+} );
+
+test( 'sidebar sections tab shows search input', function (): void {
+	Livewire::test( 'visual-editor::sidebar', [ 'activeTab' => 'sections' ] )
+		->assertSeeHtml( 'placeholder="Search sections..."' );
+} );
+
+test( 'sidebar section search filters sections by name', function (): void {
+	$component = Livewire::test( 'visual-editor::sidebar', [ 'activeTab' => 'sections' ] )
+		->set( 'sectionSearch', 'hero' );
+
+	$component->assertSee( 'Hero' )
+		->assertDontSee( 'Statistics' );
+} );
+
+test( 'sidebar initializes with empty section search', function (): void {
+	Livewire::test( 'visual-editor::sidebar' )
+		->assertSet( 'sectionSearch', '' );
+} );

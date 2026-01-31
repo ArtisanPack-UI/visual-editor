@@ -272,6 +272,31 @@ new class extends Component {
 			:class="$settingsOpen ? 'text-blue-600 bg-blue-50' : ''"
 		/>
 
+		{{-- More Options Dropdown --}}
+		<div x-data="{ open: false }" class="relative">
+			<x-artisanpack-button
+				@click="open = !open"
+				icon="o-ellipsis-vertical"
+				variant="ghost"
+				size="sm"
+				:tooltip-bottom="__( 'More Options' )"
+			/>
+			<div
+				x-show="open"
+				@click.away="open = false"
+				x-transition
+				class="absolute right-0 top-full z-50 mt-1 w-48 rounded-md border border-gray-200 bg-white py-1 shadow-lg"
+			>
+				<button
+					@click="open = false; $dispatch( 'open-save-pattern-modal' )"
+					class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+				>
+					<x-artisanpack-icon name="fas.puzzle-piece" class="h-4 w-4 text-gray-400" />
+					{{ __( 'Save as Pattern' ) }}
+				</button>
+			</div>
+		</div>
+
 		<x-artisanpack-button
 			wire:click="preview"
 			:label="__( 'Preview' )"

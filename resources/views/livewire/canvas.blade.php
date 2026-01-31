@@ -15,6 +15,7 @@ declare( strict_types=1 );
  * @since      1.0.0
  */
 
+use ArtisanPackUI\VisualEditor\Models\UserSection;
 use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Registries\SectionRegistry;
 use Livewire\Attributes\Computed;
@@ -220,6 +221,72 @@ new class extends Component {
 		}
 
 		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Insert a user-created section pattern.
+	 *
+	 * Loads blocks from a UserSection record and inserts them
+	 * flat into the blocks list.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param int $userSectionId The UserSection ID to insert.
+	 *
+	 * @return void
+	 */
+	#[On( 'user-section-insert' )]
+	public function insertUserSection( int $userSectionId ): void
+	{
+		$userSection = UserSection::find( $userSectionId );
+
+		if ( null === $userSection || empty( $userSection->blocks ) ) {
+			return;
+		}
+
+		foreach ( $userSection->blocks as $blockDef ) {
+			$this->blocks[] = [
+				'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
+				'type'     => $blockDef['type'] ?? 'text',
+				'content'  => $blockDef['content'] ?? [],
+				'settings' => $blockDef['settings'] ?? [],
+			];
+		}
+
+		$userSection->increment( 'use_count' );
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Save current blocks as a user section pattern.
+	 *
+	 * Creates a new UserSection record from the current blocks array.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param string      $name        The section name.
+	 * @param string|null $description Optional section description.
+	 * @param string|null $category    Optional section category.
+	 *
+	 * @return void
+	 */
+	#[On( 'save-blocks-as-section' )]
+	public function saveBlocksAsSection( string $name, ?string $description = null, ?string $category = null ): void
+	{
+		if ( '' === trim( $name ) || empty( $this->blocks ) ) {
+			return;
+		}
+
+		UserSection::create( [
+			'user_id'     => auth()->id(),
+			'name'        => trim( $name ),
+			'description' => $description,
+			'category'    => $category,
+			'blocks'      => $this->blocks,
+		] );
+
+		$this->dispatch( 'section-saved' );
 	}
 
 	/**
