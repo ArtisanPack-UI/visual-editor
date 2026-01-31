@@ -14,7 +14,7 @@ The template system provides full site editing capabilities, allowing users to v
 
 The template hierarchy determines which template is used for a given request:
 
-```
+```text
 Request Type              Template Chain (first match wins)
 ─────────────────────────────────────────────────────────────
 Single Post               single-{type}-{slug} → single-{type} → single → index
@@ -564,22 +564,16 @@ Themes can also provide template part variations:
 // config/visual-editor.php
 
 'templates' => [
-    // Available template parts
-    'parts' => ['header', 'footer', 'sidebar'],
-
-    // Default template for new pages
-    'default_page_template' => 'page',
-
-    // Default template for new posts
-    'default_post_template' => 'single',
-
     // Allow users to create custom templates
-    'allow_custom_templates' => true,
+    'enable_custom_templates' => true,
 
-    // Restrict editing of certain templates
-    'locked_templates' => ['index'],
+    // Allow editing of existing templates
+    'enable_template_editing' => true,
 
-    // Restrict editing of certain template parts
-    'locked_parts' => [],
+    // Default template parts included in new templates
+    'default_template_parts' => ['header', 'footer'],
+
+    // Directory for template part view files
+    'template_parts_directory' => 'template-parts',
 ],
 ```
