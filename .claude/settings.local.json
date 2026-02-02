@@ -3,7 +3,8 @@
     "allow": [
       "Bash(git remote:*)",
       "mcp__plugin_gitlab_gitlab__search",
-      "mcp__plugin_gitlab_gitlab__create_merge_request"
+      "mcp__plugin_gitlab_gitlab__create_merge_request",
+      "Bash(./vendor/bin/pest:*)"
     ]
   }
 }
