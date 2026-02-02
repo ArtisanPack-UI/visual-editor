@@ -1,0 +1,66 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    name: Test
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
+          coverage: none
+
+      - name: Install dependencies
+        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+
+      - name: Run tests
+        run: chmod +x ./vendor/bin/pest && ./vendor/bin/pest --ci
+
+  release:
+    needs: test
+    runs-on: ubuntu-latest
+    name: Create Release
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract release notes from CHANGELOG
+        id: changelog
+        run: |
+          VERSION=${GITHUB_REF#refs/tags/v}
+          echo "Extracting notes for version $VERSION"
+
+          if [ -f "CHANGELOG.md" ]; then
+            # Extract section for this version
+            NOTES=$(sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '1d;$d' | sed '/^$/d')
+            if [ -z "$NOTES" ]; then
+              NOTES="Release $VERSION. See CHANGELOG.md for details."
+            fi
+          else
+            NOTES="Release $VERSION"
+          fi
+
+          # Save to file for multi-line support
+          echo "$NOTES" > release_notes.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release_notes.txt
+          generate_release_notes: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
