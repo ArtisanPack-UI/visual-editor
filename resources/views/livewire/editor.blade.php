@@ -761,7 +761,7 @@ new class extends Component {
 			return null;
 		}
 
-		$block = collect( $this->blocks )->firstWhere( 'id', $this->activeBlockId );
+		$block = $this->findBlockRecursive( $this->activeBlockId, $this->blocks );
 
 		if ( null === $block ) {
 			return null;
@@ -786,17 +786,16 @@ new class extends Component {
 			return;
 		}
 
+		$path = $this->findBlockPath( $this->activeBlockId, $this->blocks );
+
+		if ( null === $path ) {
+			return;
+		}
+
 		$this->pushHistory( $this->blocks );
 
 		$blocks = $this->blocks;
-
-		foreach ( $blocks as $index => $block ) {
-			if ( ( $block['id'] ?? '' ) === $this->activeBlockId ) {
-				data_set( $blocks[ $index ]['settings'], $key, $value );
-
-				break;
-			}
-		}
+		data_set( $blocks, $path . '.settings.' . $key, $value );
 
 		$this->blocks     = $blocks;
 		$this->isDirty    = true;
@@ -821,7 +820,7 @@ new class extends Component {
 			return '';
 		}
 
-		$block = collect( $this->blocks )->firstWhere( 'id', $this->activeBlockId );
+		$block = $this->findBlockRecursive( $this->activeBlockId, $this->blocks );
 
 		if ( null === $block ) {
 			return '';
@@ -1006,6 +1005,148 @@ new class extends Component {
 		$this->patternName          = '';
 		$this->patternDescription   = '';
 	}
+
+	/**
+	 * Recursively find a block by ID anywhere in the block tree.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $blockId The block ID to find.
+	 * @param array  $blocks  The blocks array to search.
+	 *
+	 * @return array|null The block data or null.
+	 */
+	private function findBlockRecursive( string $blockId, array $blocks ): ?array
+	{
+		foreach ( $blocks as $block ) {
+			if ( ( $block['id'] ?? '' ) === $blockId ) {
+				return $block;
+			}
+
+			$found = $this->searchInnerBlocks( $blockId, $block );
+
+			if ( null !== $found ) {
+				return $found;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Search within a single block's inner containers for a block ID.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $blockId The block ID to find.
+	 * @param array  $block   The parent block to search within.
+	 *
+	 * @return array|null The found block or null.
+	 */
+	private function searchInnerBlocks( string $blockId, array $block ): ?array
+	{
+		$innerBlocks = $block['content']['inner_blocks'] ?? [];
+
+		if ( !empty( $innerBlocks ) ) {
+			$found = $this->findBlockRecursive( $blockId, $innerBlocks );
+
+			if ( null !== $found ) {
+				return $found;
+			}
+		}
+
+		$columns = $block['content']['columns'] ?? [];
+
+		foreach ( $columns as $column ) {
+			$colBlocks = $column['blocks'] ?? [];
+
+			if ( !empty( $colBlocks ) ) {
+				$found = $this->findBlockRecursive( $blockId, $colBlocks );
+
+				if ( null !== $found ) {
+					return $found;
+				}
+			}
+		}
+
+		$items = $block['content']['items'] ?? [];
+
+		foreach ( $items as $item ) {
+			$itemBlocks = $item['inner_blocks'] ?? [];
+
+			if ( !empty( $itemBlocks ) ) {
+				$found = $this->findBlockRecursive( $blockId, $itemBlocks );
+
+				if ( null !== $found ) {
+					return $found;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Find the dot-notation path to a block in the tree.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $blockId The block ID to find.
+	 * @param array  $blocks  The blocks array to search.
+	 * @param string $prefix  The current path prefix.
+	 *
+	 * @return string|null The dot-notation path or null.
+	 */
+	private function findBlockPath( string $blockId, array $blocks, string $prefix = '' ): ?string
+	{
+		foreach ( $blocks as $index => $block ) {
+			$currentPath = '' === $prefix ? (string) $index : $prefix . '.' . $index;
+
+			if ( ( $block['id'] ?? '' ) === $blockId ) {
+				return $currentPath;
+			}
+
+			$innerBlocks = $block['content']['inner_blocks'] ?? [];
+
+			if ( !empty( $innerBlocks ) ) {
+				$found = $this->findBlockPath( $blockId, $innerBlocks, $currentPath . '.content.inner_blocks' );
+
+				if ( null !== $found ) {
+					return $found;
+				}
+			}
+
+			$columns = $block['content']['columns'] ?? [];
+
+			foreach ( $columns as $colIndex => $column ) {
+				$colBlocks = $column['blocks'] ?? [];
+
+				if ( !empty( $colBlocks ) ) {
+					$found = $this->findBlockPath( $blockId, $colBlocks, $currentPath . '.content.columns.' . $colIndex . '.blocks' );
+
+					if ( null !== $found ) {
+						return $found;
+					}
+				}
+			}
+
+			$items = $block['content']['items'] ?? [];
+
+			foreach ( $items as $itemIndex => $item ) {
+				$itemBlocks = $item['inner_blocks'] ?? [];
+
+				if ( !empty( $itemBlocks ) ) {
+					$found = $this->findBlockPath( $blockId, $itemBlocks, $currentPath . '.content.items.' . $itemIndex . '.inner_blocks' );
+
+					if ( null !== $found ) {
+						return $found;
+					}
+				}
+			}
+		}
+
+		return null;
+	}
 }; ?>
 
 <div class="ve-editor flex h-screen flex-col overflow-hidden bg-gray-100"
@@ -1125,7 +1266,7 @@ new class extends Component {
 						@if ( null !== $activeBlockId )
 							@php
 								$activeBlockConfig = $this->getActiveBlockConfig();
-								$activeBlock       = collect( $blocks )->firstWhere( 'id', $activeBlockId );
+								$activeBlock       = $this->findBlockRecursive( $activeBlockId, $blocks );
 								$currentSettings   = $activeBlock['settings'] ?? [];
 							@endphp
 
@@ -1148,7 +1289,7 @@ new class extends Component {
 								@php
 									$activeBlockConfig = $this->getActiveBlockConfig();
 									$settingsSchema    = $activeBlockConfig['settings_schema'] ?? [];
-									$activeBlock       = collect( $blocks )->firstWhere( 'id', $activeBlockId );
+									$activeBlock       = $this->findBlockRecursive( $activeBlockId, $blocks );
 									$currentSettings   = $activeBlock['settings'] ?? [];
 								@endphp
 

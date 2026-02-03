@@ -102,18 +102,20 @@ class BlockRegistry
 		$this->validateRegistration( $type, $config );
 
 		$this->blocks[ $type ] = array_merge( [
-			'name'             => $type,
-			'description'      => '',
-			'icon'             => 'fas.cube',
-			'category'         => 'text',
-			'keywords'         => [],
-			'content_schema'   => [],
-			'settings_schema'  => [],
-			'component'        => null,
-			'editor_component' => null,
-			'supports'         => [ 'sizing' ],
-			'toolbar'          => [],
-			'example'          => [],
+			'name'                 => $type,
+			'description'          => '',
+			'icon'                 => 'fas.cube',
+			'category'             => 'text',
+			'keywords'             => [],
+			'content_schema'       => [],
+			'settings_schema'      => [],
+			'component'            => null,
+			'editor_component'     => null,
+			'supports'             => [ 'sizing' ],
+			'toolbar'              => [],
+			'example'              => [],
+			'inner_blocks'         => false,
+			'allowed_inner_blocks' => null,
 		], $config );
 
 		return $this;
@@ -161,6 +163,26 @@ class BlockRegistry
 	public function get( string $type ): ?array
 	{
 		return $this->blocks[ $type ] ?? null;
+	}
+
+	/**
+	 * Check if a block type is a container that supports inner blocks.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $type The block type identifier.
+	 *
+	 * @return bool
+	 */
+	public function isContainer( string $type ): bool
+	{
+		$config = $this->blocks[ $type ] ?? null;
+
+		if ( null === $config ) {
+			return false;
+		}
+
+		return (bool) ( $config['inner_blocks'] ?? false );
 	}
 
 	/**
@@ -396,6 +418,7 @@ class BlockRegistry
 			'description'     => __( 'Multi-column layout with adjustable widths' ),
 			'icon'            => 'fas.columns',
 			'category'        => 'layout',
+			'inner_blocks'    => true,
 			'keywords'        => [ 'columns', 'grid', 'layout', 'multi-column', 'side by side' ],
 			'content_schema'  => [
 				'columns' => [ 'type' => 'repeater', 'label' => __( 'Columns' ) ],
@@ -463,6 +486,7 @@ class BlockRegistry
 			'description'     => __( 'Individual column within a columns layout' ),
 			'icon'            => 'fas.table-columns',
 			'category'        => 'layout',
+			'inner_blocks'    => true,
 			'keywords'        => [ 'column', 'cell', 'layout', 'inner' ],
 			'content_schema'  => [
 				'inner_blocks' => [ 'type' => 'repeater', 'label' => __( 'Inner Blocks' ) ],
@@ -500,6 +524,7 @@ class BlockRegistry
 			'description'     => __( 'Container block with background, border, and shadow options' ),
 			'icon'            => 'fas.object-group',
 			'category'        => 'layout',
+			'inner_blocks'    => true,
 			'keywords'        => [ 'group', 'container', 'wrapper', 'section', 'box' ],
 			'content_schema'  => [
 				'inner_blocks' => [ 'type' => 'repeater', 'label' => __( 'Inner Blocks' ) ],
@@ -556,6 +581,7 @@ class BlockRegistry
 			'description'     => __( 'CSS Grid layout with responsive column control' ),
 			'icon'            => 'fas.table-cells',
 			'category'        => 'layout',
+			'inner_blocks'    => true,
 			'keywords'        => [ 'grid', 'layout', 'responsive', 'columns', 'rows' ],
 			'content_schema'  => [
 				'items' => [ 'type' => 'repeater', 'label' => __( 'Grid Items' ) ],
@@ -618,6 +644,7 @@ class BlockRegistry
 			'description'     => __( 'Individual grid cell with span and alignment control' ),
 			'icon'            => 'fas.table-cells-large',
 			'category'        => 'layout',
+			'inner_blocks'    => true,
 			'keywords'        => [ 'grid item', 'cell', 'column', 'span' ],
 			'content_schema'  => [
 				'inner_blocks' => [ 'type' => 'repeater', 'label' => __( 'Inner Blocks' ) ],

@@ -377,24 +377,11 @@ new class extends Component {
 					aria-label="{{ __( 'Layer order' ) }}"
 				>
 					@foreach ( $blocks as $block )
-						@php
-							$blockConfig = app( BlockRegistry::class )->get( $block['type'] ?? '' );
-							$blockName   = $blockConfig['name'] ?? ucfirst( $block['type'] ?? __( 'Block' ) );
-							$blockIcon   = $blockConfig['icon'] ?? 'fas.cube';
-							$isActive    = ( $block['id'] ?? '' ) === $activeBlockId;
-						@endphp
-						<div
-							x-drag-item="'{{ $block['id'] ?? '' }}'"
-							wire:key="layer-{{ $block['id'] ?? '' }}"
-							wire:click="selectLayerBlock( '{{ $block['id'] ?? '' }}' )"
-							class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors
-								{{ $isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}"
-							role="listitem"
-						>
-							<x-artisanpack-icon name="fas.grip-vertical" class="h-3 w-3 shrink-0 cursor-grab text-gray-300" />
-							<x-artisanpack-icon name="{{ $blockIcon }}" class="h-4 w-4 shrink-0 {{ $isActive ? 'text-blue-500' : 'text-gray-400' }}" />
-							<span class="truncate">{{ $blockName }}</span>
-						</div>
+						@include( 'visual-editor::livewire.partials.layer-item', [
+							'block'         => $block,
+							'activeBlockId' => $activeBlockId,
+							'depth'         => 0,
+						] )
 					@endforeach
 				</div>
 			@endif

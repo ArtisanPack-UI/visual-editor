@@ -68,6 +68,284 @@ new class extends Component {
 	 */
 	public ?string $editingBlockId = null;
 
+	// ──────────────────────────────────────────────────────────
+	// Recursive Block Helpers
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * Recursively find a block by ID anywhere in the block tree.
+	 *
+	 * Searches top-level blocks and descends into container blocks
+	 * (inner_blocks, columns[].blocks, items[].inner_blocks).
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $blockId The block ID to find.
+	 * @param array  $blocks  The blocks array to search within.
+	 *
+	 * @return array|null The block data, or null if not found.
+	 */
+	private function findBlockRecursive( string $blockId, array $blocks ): ?array
+	{
+		foreach ( $blocks as $block ) {
+			if ( ( $block['id'] ?? '' ) === $blockId ) {
+				return $block;
+			}
+
+			$found = $this->searchInnerBlocks( $blockId, $block );
+
+			if ( null !== $found ) {
+				return $found;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Search within a single block's inner block containers.
+	 *
+	 * Checks content.inner_blocks, content.columns[].blocks,
+	 * and content.items[].inner_blocks recursively.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $blockId The block ID to find.
+	 * @param array  $block   The parent block to search within.
+	 *
+	 * @return array|null The found block data, or null.
+	 */
+	private function searchInnerBlocks( string $blockId, array $block ): ?array
+	{
+		// Check content.inner_blocks (group, column, grid_item)
+		if ( !empty( $block['content']['inner_blocks'] ) ) {
+			$found = $this->findBlockRecursive( $blockId, $block['content']['inner_blocks'] );
+
+			if ( null !== $found ) {
+				return $found;
+			}
+		}
+
+		// Check content.columns[].blocks (columns block)
+		if ( !empty( $block['content']['columns'] ) ) {
+			foreach ( $block['content']['columns'] as $column ) {
+				if ( !empty( $column['blocks'] ) ) {
+					$found = $this->findBlockRecursive( $blockId, $column['blocks'] );
+
+					if ( null !== $found ) {
+						return $found;
+					}
+				}
+			}
+		}
+
+		// Check content.items[].inner_blocks (grid items within grid)
+		if ( !empty( $block['content']['items'] ) ) {
+			foreach ( $block['content']['items'] as $item ) {
+				if ( !empty( $item['inner_blocks'] ) ) {
+					$found = $this->findBlockRecursive( $blockId, $item['inner_blocks'] );
+
+					if ( null !== $found ) {
+						return $found;
+					}
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Recursively find the dot-notation path to a block by ID.
+	 *
+	 * Returns a path string like "1" for top-level or
+	 * "0.content.inner_blocks.2" for a nested block.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $blockId The block ID to find.
+	 * @param array  $blocks  The blocks array to search within.
+	 * @param string $prefix  The current path prefix (for recursion).
+	 *
+	 * @return string|null The dot-notation path, or null if not found.
+	 */
+	private function findBlockPath( string $blockId, array $blocks, string $prefix = '' ): ?string
+	{
+		foreach ( $blocks as $index => $block ) {
+			$currentPath = '' === $prefix ? (string) $index : $prefix . '.' . $index;
+
+			if ( ( $block['id'] ?? '' ) === $blockId ) {
+				return $currentPath;
+			}
+
+			// Check content.inner_blocks (group, column, grid_item)
+			if ( !empty( $block['content']['inner_blocks'] ) ) {
+				$innerPath = $this->findBlockPath( $blockId, $block['content']['inner_blocks'], $currentPath . '.content.inner_blocks' );
+
+				if ( null !== $innerPath ) {
+					return $innerPath;
+				}
+			}
+
+			// Check content.columns[].blocks (columns block)
+			if ( !empty( $block['content']['columns'] ) ) {
+				foreach ( $block['content']['columns'] as $colIndex => $column ) {
+					if ( !empty( $column['blocks'] ) ) {
+						$colPath = $this->findBlockPath( $blockId, $column['blocks'], $currentPath . '.content.columns.' . $colIndex . '.blocks' );
+
+						if ( null !== $colPath ) {
+							return $colPath;
+						}
+					}
+				}
+			}
+
+			// Check content.items[].inner_blocks (grid items within grid)
+			if ( !empty( $block['content']['items'] ) ) {
+				foreach ( $block['content']['items'] as $itemIndex => $item ) {
+					if ( !empty( $item['inner_blocks'] ) ) {
+						$itemPath = $this->findBlockPath( $blockId, $item['inner_blocks'], $currentPath . '.content.items.' . $itemIndex . '.inner_blocks' );
+
+						if ( null !== $itemPath ) {
+							return $itemPath;
+						}
+					}
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Get the parent array path and index for a block.
+	 *
+	 * Returns an array with 'parentPath' (dot-notation to the siblings array)
+	 * and 'index' (the block's index within that array), or null if not found.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $blockId The block ID to locate.
+	 *
+	 * @return array{parentPath: string, index: int}|null
+	 */
+	private function getBlockLocation( string $blockId ): ?array
+	{
+		$path = $this->findBlockPath( $blockId, $this->blocks );
+
+		if ( null === $path ) {
+			return null;
+		}
+
+		$lastDot = strrpos( $path, '.' );
+
+		if ( false === $lastDot ) {
+			return [
+				'parentPath' => '',
+				'index'      => (int) $path,
+			];
+		}
+
+		return [
+			'parentPath' => substr( $path, 0, $lastDot ),
+			'index'      => (int) substr( $path, $lastDot + 1 ),
+		];
+	}
+
+	/**
+	 * Get a reference to the siblings array for a block.
+	 *
+	 * Returns the array containing the block (top-level or nested).
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $parentPath The dot-notation path to the parent array.
+	 *
+	 * @return array
+	 */
+	private function getSiblingsArray( string $parentPath ): array
+	{
+		if ( '' === $parentPath ) {
+			return $this->blocks;
+		}
+
+		return data_get( $this->blocks, $parentPath, [] );
+	}
+
+	/**
+	 * Set a siblings array at the given parent path.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $parentPath The dot-notation path to the parent array.
+	 * @param array  $siblings   The new siblings array.
+	 *
+	 * @return void
+	 */
+	private function setSiblingsArray( string $parentPath, array $siblings ): void
+	{
+		if ( '' === $parentPath ) {
+			$this->blocks = $siblings;
+
+			return;
+		}
+
+		$blocks = $this->blocks;
+		data_set( $blocks, $parentPath, $siblings );
+		$this->blocks = $blocks;
+	}
+
+	/**
+	 * Build a depth-first flat navigation list of block IDs.
+	 *
+	 * Walks the entire block tree in document order so keyboard
+	 * navigation can move through all visible blocks including
+	 * those nested inside containers.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array $blocks The blocks array to walk.
+	 *
+	 * @return array<string> Flat list of block IDs in document order.
+	 */
+	private function buildFlatNavigationList( array $blocks ): array
+	{
+		$list = [];
+
+		foreach ( $blocks as $block ) {
+			$list[] = $block['id'] ?? '';
+
+			// Descend into inner_blocks (group, column, grid_item)
+			if ( !empty( $block['content']['inner_blocks'] ) ) {
+				$list = array_merge( $list, $this->buildFlatNavigationList( $block['content']['inner_blocks'] ) );
+			}
+
+			// Descend into columns[].blocks (columns block)
+			if ( !empty( $block['content']['columns'] ) ) {
+				foreach ( $block['content']['columns'] as $column ) {
+					if ( !empty( $column['blocks'] ) ) {
+						$list = array_merge( $list, $this->buildFlatNavigationList( $column['blocks'] ) );
+					}
+				}
+			}
+
+			// Descend into items[].inner_blocks (grid items within grid)
+			if ( !empty( $block['content']['items'] ) ) {
+				foreach ( $block['content']['items'] as $item ) {
+					if ( !empty( $item['inner_blocks'] ) ) {
+						$list = array_merge( $list, $this->buildFlatNavigationList( $item['inner_blocks'] ) );
+					}
+				}
+			}
+		}
+
+		return $list;
+	}
+
+	// ──────────────────────────────────────────────────────────
+	// Block Selection
+	// ──────────────────────────────────────────────────────────
+
 	/**
 	 * Select a block in the canvas.
 	 *
@@ -131,20 +409,34 @@ new class extends Component {
 		$this->editingBlockId = null;
 	}
 
+	// ──────────────────────────────────────────────────────────
+	// Block Reordering
+	// ──────────────────────────────────────────────────────────
+
 	/**
 	 * Handle drag-and-drop reordering of blocks.
 	 *
 	 * Accepts an array of block IDs in the new order,
 	 * as provided by the x-drag-context drag:end event.
+	 * When parentBlockId is provided, reorders within that
+	 * container's inner blocks rather than the top-level array.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array $orderedIds The new block ID order.
+	 * @param array       $orderedIds    The new block ID order.
+	 * @param string|null $parentBlockId Optional parent container block ID.
+	 * @param int         $slotIndex     Column slot index for columns blocks (-1 for non-columns).
 	 *
 	 * @return void
 	 */
-	public function reorderBlocks( array $orderedIds ): void
+	public function reorderBlocks( array $orderedIds, ?string $parentBlockId = null, int $slotIndex = -1 ): void
 	{
+		if ( null !== $parentBlockId ) {
+			$this->reorderInnerBlocks( $orderedIds, $parentBlockId, $slotIndex );
+
+			return;
+		}
+
 		$indexed   = collect( $this->blocks )->keyBy( 'id' );
 		$reordered = [];
 		$seen      = [];
@@ -168,6 +460,61 @@ new class extends Component {
 	}
 
 	/**
+	 * Reorder inner blocks within a container.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array  $orderedIds    The new block ID order.
+	 * @param string $parentBlockId The parent container block ID.
+	 * @param int    $slotIndex     Column slot index for columns blocks (-1 for non-columns).
+	 *
+	 * @return void
+	 */
+	private function reorderInnerBlocks( array $orderedIds, string $parentBlockId, int $slotIndex ): void
+	{
+		$parentPath = $this->findBlockPath( $parentBlockId, $this->blocks );
+
+		if ( null === $parentPath ) {
+			return;
+		}
+
+		$blocks     = $this->blocks;
+		$parentBlock = data_get( $blocks, $parentPath );
+
+		if ( $slotIndex >= 0 ) {
+			$innerKey = $parentPath . '.content.columns.' . $slotIndex . '.blocks';
+		} else {
+			$innerKey = $parentPath . '.content.inner_blocks';
+		}
+
+		$currentInner = data_get( $blocks, $innerKey, [] );
+		$indexed      = collect( $currentInner )->keyBy( 'id' );
+		$reordered    = [];
+		$seen         = [];
+
+		foreach ( $orderedIds as $id ) {
+			if ( $indexed->has( $id ) ) {
+				$reordered[] = $indexed->get( $id );
+				$seen[]      = $id;
+			}
+		}
+
+		foreach ( $currentInner as $innerBlock ) {
+			if ( !in_array( $innerBlock['id'] ?? '', $seen, true ) ) {
+				$reordered[] = $innerBlock;
+			}
+		}
+
+		data_set( $blocks, $innerKey, $reordered );
+		$this->blocks = $blocks;
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	// ──────────────────────────────────────────────────────────
+	// Block Insertion
+	// ──────────────────────────────────────────────────────────
+
+	/**
 	 * Handle a block insert event from the sidebar.
 	 *
 	 * Appends a new block directly to the flat blocks list.
@@ -188,6 +535,56 @@ new class extends Component {
 			'settings' => [],
 		];
 
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Insert a block into a container's inner blocks.
+	 *
+	 * Creates a new block and appends it to the specified parent
+	 * container's inner blocks array. For columns blocks, the
+	 * slotIndex specifies which column to insert into.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $type          The block type to insert.
+	 * @param string $parentBlockId The parent container block ID.
+	 * @param int    $slotIndex     Column slot index for columns blocks (-1 for non-columns).
+	 *
+	 * @return void
+	 */
+	public function insertBlockIntoContainer( string $type, string $parentBlockId, int $slotIndex = -1 ): void
+	{
+		$parentPath = $this->findBlockPath( $parentBlockId, $this->blocks );
+
+		if ( null === $parentPath ) {
+			return;
+		}
+
+		$newBlock = [
+			'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
+			'type'     => $type,
+			'content'  => [],
+			'settings' => [],
+		];
+
+		$blocks = $this->blocks;
+
+		if ( $slotIndex >= 0 ) {
+			$innerKey     = $parentPath . '.content.columns.' . $slotIndex . '.blocks';
+			$currentInner = data_get( $blocks, $innerKey, [] );
+
+			$currentInner[] = $newBlock;
+			data_set( $blocks, $innerKey, $currentInner );
+		} else {
+			$innerKey     = $parentPath . '.content.inner_blocks';
+			$currentInner = data_get( $blocks, $innerKey, [] );
+
+			$currentInner[] = $newBlock;
+			data_set( $blocks, $innerKey, $currentInner );
+		}
+
+		$this->blocks = $blocks;
 		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
 	}
 
@@ -291,8 +688,15 @@ new class extends Component {
 		$this->dispatch( 'section-saved' );
 	}
 
+	// ──────────────────────────────────────────────────────────
+	// Block Move / Delete
+	// ──────────────────────────────────────────────────────────
+
 	/**
-	 * Move a block up by one position.
+	 * Move a block up by one position within its sibling array.
+	 *
+	 * Works for both top-level and nested blocks by using
+	 * recursive block location.
 	 *
 	 * @since 1.7.0
 	 *
@@ -302,28 +706,28 @@ new class extends Component {
 	 */
 	public function moveBlockUp( string $blockId ): void
 	{
-		$index = null;
+		$location = $this->getBlockLocation( $blockId );
 
-		foreach ( $this->blocks as $i => $block ) {
-			if ( ( $block['id'] ?? '' ) === $blockId ) {
-				$index = $i;
-				break;
-			}
-		}
-
-		if ( null === $index || 0 === $index ) {
+		if ( null === $location || 0 === $location['index'] ) {
 			return;
 		}
 
-		$temp                         = $this->blocks[ $index - 1 ];
-		$this->blocks[ $index - 1 ]   = $this->blocks[ $index ];
-		$this->blocks[ $index ]       = $temp;
+		$siblings = $this->getSiblingsArray( $location['parentPath'] );
+		$index    = $location['index'];
 
+		$temp                = $siblings[ $index - 1 ];
+		$siblings[ $index - 1 ] = $siblings[ $index ];
+		$siblings[ $index ]     = $temp;
+
+		$this->setSiblingsArray( $location['parentPath'], $siblings );
 		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
 	}
 
 	/**
-	 * Move a block down by one position.
+	 * Move a block down by one position within its sibling array.
+	 *
+	 * Works for both top-level and nested blocks by using
+	 * recursive block location.
 	 *
 	 * @since 1.7.0
 	 *
@@ -333,28 +737,31 @@ new class extends Component {
 	 */
 	public function moveBlockDown( string $blockId ): void
 	{
-		$index = null;
+		$location = $this->getBlockLocation( $blockId );
 
-		foreach ( $this->blocks as $i => $block ) {
-			if ( ( $block['id'] ?? '' ) === $blockId ) {
-				$index = $i;
-				break;
-			}
-		}
-
-		if ( null === $index || $index >= count( $this->blocks ) - 1 ) {
+		if ( null === $location ) {
 			return;
 		}
 
-		$temp                         = $this->blocks[ $index + 1 ];
-		$this->blocks[ $index + 1 ]   = $this->blocks[ $index ];
-		$this->blocks[ $index ]       = $temp;
+		$siblings = $this->getSiblingsArray( $location['parentPath'] );
+		$index    = $location['index'];
 
+		if ( $index >= count( $siblings ) - 1 ) {
+			return;
+		}
+
+		$temp                   = $siblings[ $index + 1 ];
+		$siblings[ $index + 1 ] = $siblings[ $index ];
+		$siblings[ $index ]     = $temp;
+
+		$this->setSiblingsArray( $location['parentPath'], $siblings );
 		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
 	}
 
 	/**
 	 * Change the heading level for a heading block.
+	 *
+	 * Searches recursively to support nested heading blocks.
 	 *
 	 * @since 1.7.0
 	 *
@@ -369,18 +776,23 @@ new class extends Component {
 			return;
 		}
 
-		foreach ( $this->blocks as &$block ) {
-			if ( ( $block['id'] ?? '' ) === $blockId ) {
-				$block['content']['level'] = $level;
-				break;
-			}
+		$path = $this->findBlockPath( $blockId, $this->blocks );
+
+		if ( null === $path ) {
+			return;
 		}
+
+		$blocks = $this->blocks;
+		data_set( $blocks, $path . '.content.level', $level );
+		$this->blocks = $blocks;
 
 		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
 	}
 
 	/**
 	 * Change the list style for a list block.
+	 *
+	 * Searches recursively to support nested list blocks.
 	 *
 	 * @since 1.10.0
 	 *
@@ -395,18 +807,24 @@ new class extends Component {
 			return;
 		}
 
-		foreach ( $this->blocks as &$block ) {
-			if ( ( $block['id'] ?? '' ) === $blockId ) {
-				$block['content']['style'] = $style;
-				break;
-			}
+		$path = $this->findBlockPath( $blockId, $this->blocks );
+
+		if ( null === $path ) {
+			return;
 		}
+
+		$blocks = $this->blocks;
+		data_set( $blocks, $path . '.content.style', $style );
+		$this->blocks = $blocks;
 
 		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
 	}
 
 	/**
 	 * Delete a block from the canvas.
+	 *
+	 * Searches recursively to support deleting nested blocks
+	 * from within their parent containers.
 	 *
 	 * @since 1.1.0
 	 *
@@ -416,9 +834,15 @@ new class extends Component {
 	 */
 	public function deleteBlock( string $blockId ): void
 	{
-		$this->blocks = array_values(
-			array_filter( $this->blocks, fn ( $b ) => ( $b['id'] ?? '' ) !== $blockId ),
-		);
+		$location = $this->getBlockLocation( $blockId );
+
+		if ( null === $location ) {
+			return;
+		}
+
+		$siblings = $this->getSiblingsArray( $location['parentPath'] );
+		array_splice( $siblings, $location['index'], 1 );
+		$this->setSiblingsArray( $location['parentPath'], array_values( $siblings ) );
 
 		if ( $this->activeBlockId === $blockId ) {
 			$this->activeBlockId  = null;
@@ -427,6 +851,10 @@ new class extends Component {
 
 		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
 	}
+
+	// ──────────────────────────────────────────────────────────
+	// Zoom & Grid
+	// ──────────────────────────────────────────────────────────
 
 	/**
 	 * Set the canvas zoom level.
@@ -454,6 +882,10 @@ new class extends Component {
 		$this->showGrid = !$this->showGrid;
 	}
 
+	// ──────────────────────────────────────────────────────────
+	// Inline Editing
+	// ──────────────────────────────────────────────────────────
+
 	/**
 	 * Enter inline edit mode for a text block.
 	 *
@@ -473,6 +905,8 @@ new class extends Component {
 	/**
 	 * Save inline edit and exit edit mode.
 	 *
+	 * Searches recursively to support nested block editing.
+	 *
 	 * @since 1.1.0
 	 *
 	 * @param string $blockId The block ID being edited.
@@ -482,11 +916,12 @@ new class extends Component {
 	 */
 	public function saveInlineEdit( string $blockId, string $content ): void
 	{
-		foreach ( $this->blocks as &$block ) {
-			if ( ( $block['id'] ?? '' ) === $blockId ) {
-				$block['content']['text'] = $content;
-				break;
-			}
+		$path = $this->findBlockPath( $blockId, $this->blocks );
+
+		if ( null !== $path ) {
+			$blocks = $this->blocks;
+			data_set( $blocks, $path . '.content.text', $content );
+			$this->blocks = $blocks;
 		}
 
 		$this->editingBlockId = null;
@@ -497,7 +932,8 @@ new class extends Component {
 	 * Save inline edit and navigate to an adjacent block.
 	 *
 	 * Combines content saving with navigation to prevent data loss
-	 * when moving between blocks via Tab or Arrow keys.
+	 * when moving between blocks via Tab or Arrow keys. Uses
+	 * depth-first traversal for navigation order.
 	 *
 	 * @since 1.6.0
 	 *
@@ -509,24 +945,27 @@ new class extends Component {
 	 */
 	public function saveAndNavigate( string $blockId, string $content, string $direction ): void
 	{
-		$currentIndex = null;
+		// Save the current block's content
+		$path = $this->findBlockPath( $blockId, $this->blocks );
 
-		foreach ( $this->blocks as $i => $block ) {
-			if ( ( $block['id'] ?? '' ) === $blockId ) {
-				$this->blocks[ $i ]['content']['text'] = $content;
-				$currentIndex                          = $i;
-				break;
-			}
+		if ( null !== $path ) {
+			$blocks = $this->blocks;
+			data_set( $blocks, $path . '.content.text', $content );
+			$this->blocks = $blocks;
 		}
 
-		if ( null === $currentIndex ) {
+		// Build flat navigation list and find current position
+		$navList      = $this->buildFlatNavigationList( $this->blocks );
+		$currentIndex = array_search( $blockId, $navList, true );
+
+		if ( false === $currentIndex ) {
 			$this->editingBlockId = null;
 			$this->dispatch( 'blocks-updated', blocks: $this->blocks );
 
 			return;
 		}
 
-		$lastIndex = count( $this->blocks ) - 1;
+		$lastIndex = count( $navList ) - 1;
 
 		// At the last block going down: exit edit mode and focus typing area.
 		if ( 'down' === $direction && $currentIndex >= $lastIndex ) {
@@ -546,11 +985,11 @@ new class extends Component {
 		}
 
 		$targetIndex   = 'up' === $direction ? $currentIndex - 1 : $currentIndex + 1;
-		$targetBlock   = $this->blocks[ $targetIndex ];
-		$targetBlockId = $targetBlock['id'] ?? '';
+		$targetBlockId = $navList[ $targetIndex ] ?? '';
+		$targetBlock   = $this->findBlockRecursive( $targetBlockId, $this->blocks );
 
 		$this->activeBlockId  = $targetBlockId;
-		$this->editingBlockId = $this->isBlockEditable( $targetBlock['type'] ?? '' )
+		$this->editingBlockId = null !== $targetBlock && $this->isBlockEditable( $targetBlock['type'] ?? '' )
 			? $targetBlockId
 			: null;
 
@@ -561,8 +1000,15 @@ new class extends Component {
 		}
 	}
 
+	// ──────────────────────────────────────────────────────────
+	// Keyboard Navigation
+	// ──────────────────────────────────────────────────────────
+
 	/**
 	 * Handle keyboard navigation between blocks.
+	 *
+	 * Uses depth-first traversal to navigate through all blocks
+	 * including those nested inside containers.
 	 *
 	 * @since 1.1.0
 	 *
@@ -577,28 +1023,32 @@ new class extends Component {
 			return;
 		}
 
+		$navList      = $this->buildFlatNavigationList( $this->blocks );
 		$currentIndex = null;
 
-		foreach ( $this->blocks as $i => $block ) {
-			if ( ( $block['id'] ?? '' ) === $this->activeBlockId ) {
-				$currentIndex = $i;
-				break;
+		if ( null !== $this->activeBlockId ) {
+			$currentIndex = array_search( $this->activeBlockId, $navList, true );
+
+			if ( false === $currentIndex ) {
+				$currentIndex = null;
 			}
 		}
 
 		if ( null === $currentIndex ) {
 			$targetIndex = 'up' === $direction
-				? count( $this->blocks ) - 1
+				? count( $navList ) - 1
 				: 0;
 		} elseif ( 'up' === $direction ) {
 			$targetIndex = max( 0, $currentIndex - 1 );
 		} else {
-			$targetIndex = min( count( $this->blocks ) - 1, $currentIndex + 1 );
+			$targetIndex = min( count( $navList ) - 1, $currentIndex + 1 );
 		}
 
-		$targetBlock          = $this->blocks[ $targetIndex ];
-		$this->activeBlockId  = $targetBlock['id'] ?? '';
-		$this->editingBlockId = $this->isBlockEditable( $targetBlock['type'] ?? '' )
+		$targetBlockId = $navList[ $targetIndex ] ?? '';
+		$targetBlock   = $this->findBlockRecursive( $targetBlockId, $this->blocks );
+
+		$this->activeBlockId  = $targetBlockId;
+		$this->editingBlockId = null !== $targetBlock && $this->isBlockEditable( $targetBlock['type'] ?? '' )
 			? $this->activeBlockId
 			: null;
 
@@ -621,6 +1071,10 @@ new class extends Component {
 			$this->deleteBlock( $this->activeBlockId );
 		}
 	}
+
+	// ──────────────────────────────────────────────────────────
+	// Block Creation Helpers
+	// ──────────────────────────────────────────────────────────
 
 	/**
 	 * Insert a block with optional initial text content.
@@ -664,7 +1118,8 @@ new class extends Component {
 	 *
 	 * Triggered by pressing Enter inside an editable block. Saves the
 	 * current block's content, creates a new text block immediately
-	 * after it, and enters edit mode on the new block.
+	 * after it within the same sibling array, and enters edit mode
+	 * on the new block. Works for both top-level and nested blocks.
 	 *
 	 * @since 1.6.0
 	 *
@@ -675,20 +1130,19 @@ new class extends Component {
 	 */
 	public function insertBlockAfter( string $blockId, string $content ): void
 	{
-		$currentIndex = null;
+		$location = $this->getBlockLocation( $blockId );
 
-		foreach ( $this->blocks as $i => $block ) {
-			if ( ( $block['id'] ?? '' ) === $blockId ) {
-				$this->blocks[ $i ]['content']['text'] = $content;
-				$currentIndex                          = $i;
-				break;
-			}
-		}
-
-		if ( null === $currentIndex ) {
+		if ( null === $location ) {
 			return;
 		}
 
+		// Save the current block's content
+		$path   = $this->findBlockPath( $blockId, $this->blocks );
+		$blocks = $this->blocks;
+		data_set( $blocks, $path . '.content.text', $content );
+		$this->blocks = $blocks;
+
+		// Create new block and insert after current within same sibling array
 		$newBlock = [
 			'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
 			'type'     => 'text',
@@ -696,7 +1150,9 @@ new class extends Component {
 			'settings' => [],
 		];
 
-		array_splice( $this->blocks, $currentIndex + 1, 0, [ $newBlock ] );
+		$siblings = $this->getSiblingsArray( $location['parentPath'] );
+		array_splice( $siblings, $location['index'] + 1, 0, [ $newBlock ] );
+		$this->setSiblingsArray( $location['parentPath'], $siblings );
 
 		$this->activeBlockId  = $newBlock['id'];
 		$this->editingBlockId = $newBlock['id'];
@@ -704,6 +1160,10 @@ new class extends Component {
 		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
 		$this->dispatch( 'focus-block', blockId: $newBlock['id'] );
 	}
+
+	// ──────────────────────────────────────────────────────────
+	// Computed Properties & Helpers
+	// ──────────────────────────────────────────────────────────
 
 	/**
 	 * Get available blocks grouped by category for the slash command menu.
@@ -844,517 +1304,16 @@ new class extends Component {
 				aria-label="{{ __( 'Page blocks' ) }}"
 			>
 				@foreach ( $blocks as $blockIndex => $block )
-					@php
-						$blockConfig    = app( BlockRegistry::class )->get( $block['type'] ?? '' );
-						$contentSchema  = $blockConfig['content_schema'] ?? [];
-						$textFieldType  = $contentSchema['text']['type'] ?? null;
-						$isRichText     = 'richtext' === $textFieldType;
-						$isEditableText = in_array( $textFieldType, [ 'text', 'textarea', 'richtext' ], true );
-						$blockType      = $block['type'] ?? '';
-						$blockId        = $block['id'] ?? '';
-						$isActive       = $blockId === $activeBlockId;
-						$isEditing      = $blockId === $editingBlockId && $isEditableText;
-					@endphp
-					<div
-						x-drag-item="'{{ $blockId ?: $blockIndex }}'"
-						wire:key="block-{{ $blockId ?: $blockIndex }}"
-						@if ( $isEditableText )
-							@click.stop="$wire.startInlineEdit( '{{ $blockId }}' )"
-						@else
-							@click.stop="$wire.selectBlock( '{{ $blockId }}' )"
-						@endif
-						class="ve-canvas-block group relative rounded px-4 py-2 transition-colors
-							{{ $isActive ? 'ring-2 ring-blue-200' : '' }}"
-						role="listitem"
-						@if ( $isEditing && $isRichText )
-							x-data="richTextEditor( { htmlContent: @js( $block['content']['text'] ?? '' ) } )"
-						@endif
-					>
-						{{-- Global Block Toolbar (shown for any selected block) --}}
-						@if ( $isActive )
-							@include( 'visual-editor::livewire.partials.block-toolbar', [
-								'blockId'     => $blockId,
-								'blockType'   => $blockType,
-								'blockConfig' => $blockConfig,
-								'blockIndex'  => $blockIndex,
-								'totalBlocks' => count( $blocks ),
-								'isEditing'   => $isEditing,
-								'isRichText'  => $isRichText,
-								'block'       => $block,
-							] )
-						@endif
-
-						{{-- Block Content --}}
-						@if ( $isEditing )
-							@if ( $isRichText )
-								{{-- Rich Text Edit Mode --}}
-								@php
-									$editLevel   = $block['content']['level'] ?? 'h2';
-									$editTag     = match ( $blockType ) {
-										'heading' => in_array( $editLevel, [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ? $editLevel : 'h2',
-										'list'    => 'number' === ( $block['content']['style'] ?? 'bullet' ) ? 'ol' : 'ul',
-										default   => 'div',
-									};
-									$editClasses = match ( $blockType ) {
-										'heading' => match ( $editTag ) {
-											'h1'    => 'text-4xl font-bold',
-											'h2'    => 'text-3xl font-bold',
-											'h3'    => 'text-2xl font-semibold',
-											'h4'    => 'text-xl font-semibold',
-											'h5'    => 'text-lg font-medium',
-											'h6'    => 'text-base font-medium',
-											default => 'text-3xl font-bold',
-										},
-										'list' => 'ol' === $editTag ? 'list-decimal list-inside' : 'list-disc list-inside',
-										default => '',
-									};
-									$richTextClasses = match ( $blockType ) {
-										'heading' => $editClasses . ' min-h-[1.5rem] rounded px-1 outline-none ring-2 ring-blue-300',
-										'list'    => $editClasses . ' min-h-[1.5rem] rounded px-1 outline-none ring-2 ring-blue-300',
-										default   => 'prose prose-sm min-h-[1.5rem] max-w-none rounded px-1 outline-none ring-2 ring-blue-300',
-									};
-									$isListBlock = 'list' === $blockType;
-									$editContent = $block['content']['text'] ?? '';
-								@endphp
-								<{{ $editTag }}
-									x-ref="editor"
-									contenteditable="true"
-									x-init="$nextTick( () => {
-										@if ( $isListBlock && '' === trim( $editContent ) )
-											$el.innerHTML = '<li></li>';
-										@endif
-										$el.focus(); let s = window.getSelection(), r = document.createRange(); r.selectNodeContents( $el ); r.collapse( false ); s.removeAllRanges(); s.addRange( r )
-									} )"
-									@blur="if ( !window.veNavigating && !window.veFocusingBlock ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML ) }"
-									@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML )"
-									@if ( ! $isListBlock )
-										@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.innerHTML )"
-									@endif
-									@keydown.tab.prevent="window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, $event.shiftKey ? 'up' : 'down' )"
-									@keydown.arrow-up="if ( window.veAtTopOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, 'up' ) }"
-									@keydown.arrow-down="if ( window.veAtBottomOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, 'down' ) }"
-									@keydown.meta.b.prevent="format( 'bold' )"
-									@keydown.ctrl.b.prevent="format( 'bold' )"
-									@keydown.meta.i.prevent="format( 'italic' )"
-									@keydown.ctrl.i.prevent="format( 'italic' )"
-									@keydown.meta.u.prevent="format( 'underline' )"
-									@keydown.ctrl.u.prevent="format( 'underline' )"
-									class="{{ $richTextClasses }}"
-								>{!! kses( $editContent ) !!}</{{ $editTag }}>
-							@else
-								{{-- Plain Text Edit Mode --}}
-								@php
-									$editLevel   = $block['content']['level'] ?? 'h2';
-									$editTag     = 'heading' === $blockType ? ( in_array( $editLevel, [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ? $editLevel : 'h2' ) : 'div';
-									$editClasses = match ( $blockType ) {
-										'quote' => 'border-l-4 border-gray-300 pl-4 italic text-gray-700',
-										default => '',
-									};
-								@endphp
-								<{{ $editTag }}
-									x-ref="editor"
-									contenteditable="true"
-									x-init="$nextTick( () => { $el.focus(); let s = window.getSelection(), r = document.createRange(); r.selectNodeContents( $el ); r.collapse( false ); s.removeAllRanges(); s.addRange( r ) } )"
-									@blur="if ( !window.veNavigating && !window.veFocusingBlock ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.textContent ) }"
-									@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.textContent )"
-									@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.textContent )"
-									@keydown.tab.prevent="window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.textContent, $event.shiftKey ? 'up' : 'down' )"
-									@keydown.arrow-up="if ( window.veAtTopOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.textContent, 'up' ) }"
-									@keydown.arrow-down="if ( window.veAtBottomOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.textContent, 'down' ) }"
-									class="{{ $editClasses }} min-h-[1.5rem] rounded px-1 outline-none ring-2 ring-blue-300"
-								>{{ $block['content']['text'] ?? '' }}</{{ $editTag }}>
-							@endif
-						@else
-							{{-- WYSIWYG Display Mode --}}
-							@switch ( $blockType )
-								@case ( 'heading' )
-									@php
-										$level          = $block['content']['level'] ?? 'h2';
-										$headingTag     = in_array( $level, [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ? $level : 'h2';
-										$headingClasses = match ( $headingTag ) {
-											'h1'    => 'text-4xl font-bold',
-											'h2'    => 'text-3xl font-bold',
-											'h3'    => 'text-2xl font-semibold',
-											'h4'    => 'text-xl font-semibold',
-											'h5'    => 'text-lg font-medium',
-											'h6'    => 'text-base font-medium',
-											default => 'text-3xl font-bold',
-										};
-										$headingAnchor  = $block['settings']['anchor'] ?? '';
-									@endphp
-									<{{ $headingTag }} class="{{ $headingClasses }}"@if ( '' !== $headingAnchor ) id="{{ $headingAnchor }}"@endif>
-										@if ( '' !== ( $block['content']['text'] ?? '' ) )
-											{!! kses( $block['content']['text'] ) !!}
-										@else
-											<span class="italic text-gray-400">{{ __( 'Type heading...' ) }}</span>
-										@endif
-									</{{ $headingTag }}>
-									@break
-
-								@case ( 'text' )
-									@php
-										$dropCap        = (bool) ( $block['settings']['drop_cap'] ?? false );
-										$dropCapClasses = $dropCap ? 'first-letter:float-left first-letter:mr-2 first-letter:text-5xl first-letter:font-bold first-letter:leading-none' : '';
-									@endphp
-									<div class="prose prose-sm max-w-none {{ $dropCapClasses }}">
-										@if ( '' !== ( $block['content']['text'] ?? '' ) )
-											{!! kses( $block['content']['text'] ) !!}
-										@else
-											<p class="italic text-gray-400">{{ __( 'Type text...' ) }}</p>
-										@endif
-									</div>
-									@break
-
-								@case ( 'list' )
-									@php
-										$listStyle   = $block['content']['style'] ?? 'bullet';
-										$listTag     = 'number' === $listStyle ? 'ol' : 'ul';
-										$listClasses = 'number' === $listStyle ? 'list-decimal list-inside' : 'list-disc list-inside';
-									@endphp
-									<{{ $listTag }} class="{{ $listClasses }}">
-										@if ( '' !== trim( $block['content']['text'] ?? '' ) )
-											{!! kses( $block['content']['text'] ) !!}
-										@else
-											<li class="italic text-gray-400">{{ __( 'Type list items...' ) }}</li>
-										@endif
-									</{{ $listTag }}>
-									@break
-
-								@case ( 'quote' )
-									<blockquote class="border-l-4 border-gray-300 pl-4 italic text-gray-700">
-										@if ( '' !== ( $block['content']['text'] ?? '' ) )
-											{{ $block['content']['text'] }}
-										@else
-											<span class="not-italic text-gray-400">{{ __( 'Type quote...' ) }}</span>
-										@endif
-										@if ( '' !== ( $block['content']['citation'] ?? '' ) )
-											<cite class="mt-1 block text-sm not-italic text-gray-500">
-												&mdash; {{ $block['content']['citation'] }}
-											</cite>
-										@endif
-									</blockquote>
-									@break
-
-								@case ( 'columns' )
-									@php
-										$preset     = $block['settings']['preset'] ?? '50-50';
-										$gap        = $block['settings']['gap'] ?? 'medium';
-										$vAlign     = $block['settings']['vertical_alignment'] ?? 'top';
-										$colWidths  = explode( '-', $preset );
-										$gapClass   = match ( $gap ) {
-											'none'   => 'gap-0',
-											'small'  => 'gap-2',
-											'large'  => 'gap-8',
-											default  => 'gap-4',
-										};
-										$alignClass = match ( $vAlign ) {
-											'center'  => 'items-center',
-											'bottom'  => 'items-end',
-											'stretch' => 'items-stretch',
-											default   => 'items-start',
-										};
-										$columns    = $block['content']['columns'] ?? [];
-										$colCount   = $block['settings']['columns'] ?? '';
-										$colCountSm = $block['settings']['columns_sm'] ?? '';
-										$colCountMd = $block['settings']['columns_md'] ?? '';
-										$colCountLg = $block['settings']['columns_lg'] ?? '';
-										$colCountXl = $block['settings']['columns_xl'] ?? '';
-										$responsiveCols = array_filter( [
-											'' !== $colCount ? __( 'Base' ) . ': ' . $colCount : '',
-											'' !== $colCountSm ? 'SM: ' . $colCountSm : '',
-											'' !== $colCountMd ? 'MD: ' . $colCountMd : '',
-											'' !== $colCountLg ? 'LG: ' . $colCountLg : '',
-											'' !== $colCountXl ? 'XL: ' . $colCountXl : '',
-										] );
-									@endphp
-									<div class="flex {{ $gapClass }} {{ $alignClass }}">
-										@if ( !empty( $responsiveCols ) )
-											<div class="mb-1 w-full text-xs text-gray-400">
-												{{ implode( ' | ', $responsiveCols ) }}
-											</div>
-										@endif
-										@foreach ( $colWidths as $colIndex => $width )
-											<div
-												class="min-h-[3rem] rounded border border-dashed border-gray-300 bg-gray-50/50 p-2"
-												style="flex: 0 0 {{ $width }}%;"
-											>
-												@if ( !empty( $columns[ $colIndex ]['blocks'] ?? [] ) )
-													<span class="text-xs text-gray-500">
-														{{ trans_choice( ':count block|:count blocks', count( $columns[ $colIndex ]['blocks'] ), [ 'count' => count( $columns[ $colIndex ]['blocks'] ) ] ) }}
-													</span>
-												@else
-													<span class="text-xs italic text-gray-400">
-														{{ __( 'Drop blocks here' ) }}
-													</span>
-												@endif
-											</div>
-										@endforeach
-									</div>
-									@break
-
-								@case ( 'column' )
-									@php
-										$colWidth   = $block['settings']['width'] ?? '';
-										$colStyle   = '' !== $colWidth ? 'flex: 0 0 ' . max( 0, min( 100, (int) $colWidth ) ) . '%;' : '';
-
-										$colDir     = match ( $block['settings']['flex_direction'] ?? 'column' ) {
-											'row'   => 'flex-row',
-											default => 'flex-col',
-										};
-										$colAlign   = match ( $block['settings']['align_items'] ?? 'stretch' ) {
-											'start'  => 'items-start',
-											'center' => 'items-center',
-											'end'    => 'items-end',
-											default  => 'items-stretch',
-										};
-										$colJustify = match ( $block['settings']['justify_content'] ?? 'start' ) {
-											'center'  => 'justify-center',
-											'end'     => 'justify-end',
-											'between' => 'justify-between',
-											'around'  => 'justify-around',
-											'evenly'  => 'justify-evenly',
-											default   => 'justify-start',
-										};
-
-										$colInnerBlocks = $block['content']['inner_blocks'] ?? [];
-									@endphp
-									<div
-										class="flex {{ $colDir }} {{ $colAlign }} {{ $colJustify }} min-h-[3rem] rounded border border-dashed border-gray-300 bg-gray-50/50 p-2"
-										@if ( '' !== $colStyle ) style="{{ $colStyle }}" @endif
-									>
-										@if ( !empty( $colInnerBlocks ) )
-											<span class="text-xs text-gray-500">
-												{{ trans_choice( ':count block|:count blocks', count( $colInnerBlocks ), [ 'count' => count( $colInnerBlocks ) ] ) }}
-											</span>
-										@else
-											<span class="text-xs italic text-gray-400">
-												{{ __( 'Drop blocks here' ) }}
-											</span>
-										@endif
-									</div>
-									@break
-
-								@case ( 'group' )
-									@php
-										$groupTag     = $block['settings']['tag'] ?? 'div';
-										$groupBg      = $block['settings']['background_color'] ?? '';
-										$groupPadding = match ( $block['settings']['padding'] ?? 'medium' ) {
-											'none'   => 'p-0',
-											'small'  => 'p-2',
-											'large'  => 'p-8',
-											'xlarge' => 'p-12',
-											default  => 'p-4',
-										};
-										$groupShadow  = match ( $block['settings']['shadow'] ?? 'none' ) {
-											'small'  => 'shadow-sm',
-											'medium' => 'shadow-md',
-											'large'  => 'shadow-lg',
-											default  => '',
-										};
-										$groupStyle   = '' !== $groupBg ? 'background-color: ' . e( $groupBg ) . ';' : '';
-										$innerBlocks  = $block['content']['inner_blocks'] ?? [];
-										$allowedTags  = [ 'div', 'section', 'article', 'aside', 'main', 'header', 'footer' ];
-										$groupTag     = in_array( $groupTag, $allowedTags, true ) ? $groupTag : 'div';
-										$groupDir     = match ( $block['settings']['flex_direction'] ?? 'column' ) {
-											'row'   => 'flex-row',
-											default => 'flex-col',
-										};
-										$groupAlign   = match ( $block['settings']['align_items'] ?? 'stretch' ) {
-											'start'  => 'items-start',
-											'center' => 'items-center',
-											'end'    => 'items-end',
-											default  => 'items-stretch',
-										};
-										$groupJustify = match ( $block['settings']['justify_content'] ?? 'start' ) {
-											'center'  => 'justify-center',
-											'end'     => 'justify-end',
-											'between' => 'justify-between',
-											'around'  => 'justify-around',
-											'evenly'  => 'justify-evenly',
-											default   => 'justify-start',
-										};
-									@endphp
-									<{{ $groupTag }}
-										class="flex {{ $groupDir }} {{ $groupAlign }} {{ $groupJustify }} min-h-[3rem] rounded border border-dashed border-gray-300 {{ $groupPadding }} {{ $groupShadow }}"
-										@if ( '' !== $groupStyle ) style="{{ $groupStyle }}" @endif
-									>
-										@if ( !empty( $innerBlocks ) )
-											<span class="text-xs text-gray-500">
-												{{ trans_choice( ':count block|:count blocks', count( $innerBlocks ), [ 'count' => count( $innerBlocks ) ] ) }}
-											</span>
-										@else
-											<span class="text-xs italic text-gray-400">
-												{{ __( 'Drop blocks here' ) }}
-											</span>
-										@endif
-									</{{ $groupTag }}>
-									@break
-
-								@case ( 'divider' )
-									<hr class="my-2 border-gray-300" />
-									@break
-
-								@case ( 'spacer' )
-									@php
-										$spacerHeight = $block['settings']['height'] ?? '40';
-										$spacerUnit   = $block['settings']['unit'] ?? 'px';
-										$spacerValue  = max( 0, (int) $spacerHeight );
-
-										if ( 'rem' === $spacerUnit ) {
-											$spacerStyle = 'height: ' . $spacerValue . 'rem;';
-										} else {
-											$spacerStyle = 'height: ' . $spacerValue . 'px;';
-										}
-									@endphp
-									<div
-										class="relative bg-gray-100/50"
-										style="{{ $spacerStyle }}"
-									>
-										<span class="absolute inset-0 flex items-center justify-center text-xs text-gray-400">
-											{{ $spacerValue }}{{ $spacerUnit }}
-										</span>
-									</div>
-									@break
-
-								@case ( 'grid' )
-									@php
-										$gridCols = max( 1, min( 12, (int) ( $block['settings']['columns'] ?? '3' ) ) );
-										$gridGapX = $block['settings']['gap_x'] ?? '';
-										$gridGapY = $block['settings']['gap_y'] ?? '';
-										$gridGap  = $block['settings']['gap'] ?? 'medium';
-
-										$gapMap = [
-											'none'   => '0',
-											'small'  => '2',
-											'medium' => '4',
-											'large'  => '8',
-										];
-
-										if ( '' !== $gridGapX || '' !== $gridGapY ) {
-											$gapXVal      = $gapMap[ $gridGapX ] ?? $gapMap[ $gridGap ] ?? '4';
-											$gapYVal      = $gapMap[ $gridGapY ] ?? $gapMap[ $gridGap ] ?? '4';
-											$gridGapClass = 'gap-x-' . $gapXVal . ' gap-y-' . $gapYVal;
-										} else {
-											$gridGapClass = 'gap-' . ( $gapMap[ $gridGap ] ?? '4' );
-										}
-
-										$gridItems = $block['content']['items'] ?? [];
-									@endphp
-									<div
-										class="grid {{ $gridGapClass }}"
-										style="grid-template-columns: repeat({{ $gridCols }}, minmax(0, 1fr));"
-									>
-										@if ( !empty( $gridItems ) )
-											@foreach ( $gridItems as $gridItem )
-												<div class="min-h-[3rem] rounded border border-dashed border-gray-300 bg-gray-50/50 p-2">
-													<span class="text-xs text-gray-500">{{ __( 'Grid Item' ) }}</span>
-												</div>
-											@endforeach
-										@else
-											@for ( $gi = 0; $gi < $gridCols; $gi++ )
-												<div class="min-h-[3rem] rounded border border-dashed border-gray-300 bg-gray-50/50 p-2">
-													<span class="text-xs italic text-gray-400">{{ __( 'Drop blocks here' ) }}</span>
-												</div>
-											@endfor
-										@endif
-									</div>
-									@break
-
-								@case ( 'grid_item' )
-									@php
-										$giColSpan   = max( 1, min( 12, (int) ( $block['settings']['col_span'] ?? '1' ) ) );
-										$giRowSpan   = max( 1, min( 12, (int) ( $block['settings']['row_span'] ?? '1' ) ) );
-										$giSpanStyle = 'grid-column: span ' . $giColSpan . '; grid-row: span ' . $giRowSpan . ';';
-
-										$giDir     = match ( $block['settings']['flex_direction'] ?? 'column' ) {
-											'row'   => 'flex-row',
-											default => 'flex-col',
-										};
-										$giAlign   = match ( $block['settings']['align_items'] ?? 'stretch' ) {
-											'start'  => 'items-start',
-											'center' => 'items-center',
-											'end'    => 'items-end',
-											default  => 'items-stretch',
-										};
-										$giJustify = match ( $block['settings']['justify_content'] ?? 'start' ) {
-											'center'  => 'justify-center',
-											'end'     => 'justify-end',
-											'between' => 'justify-between',
-											'around'  => 'justify-around',
-											'evenly'  => 'justify-evenly',
-											default   => 'justify-start',
-										};
-
-										$giInnerBlocks = $block['content']['inner_blocks'] ?? [];
-									@endphp
-									<div
-										class="flex {{ $giDir }} {{ $giAlign }} {{ $giJustify }} min-h-[3rem] rounded border border-dashed border-gray-300 bg-gray-50/50 p-2"
-										style="{{ $giSpanStyle }}"
-									>
-										@if ( !empty( $giInnerBlocks ) )
-											<span class="text-xs text-gray-500">
-												{{ trans_choice( ':count block|:count blocks', count( $giInnerBlocks ), [ 'count' => count( $giInnerBlocks ) ] ) }}
-											</span>
-										@else
-											<span class="text-xs italic text-gray-400">
-												{{ __( 'Drop blocks here' ) }}
-											</span>
-										@endif
-									</div>
-									@break
-
-								@case ( 'separator' )
-									@php
-										$sepStyle = $block['settings']['style'] ?? 'solid';
-										$sepColor = $block['settings']['color'] ?? '';
-										$sepWidth = $block['settings']['width'] ?? 'full';
-
-										$sepWidthClass = match ( $sepWidth ) {
-											'wide'   => 'mx-auto w-3/4',
-											'narrow' => 'mx-auto w-1/2',
-											'short'  => 'mx-auto w-1/4',
-											default  => 'w-full',
-										};
-
-										$sepBorderStyle = match ( $sepStyle ) {
-											'dashed' => 'border-dashed',
-											'dotted' => 'border-dotted',
-											'wide'   => 'border-solid border-t-4',
-											default  => 'border-solid',
-										};
-
-										$sepInlineStyle = '' !== $sepColor ? 'border-color: ' . e( $sepColor ) . ';' : '';
-									@endphp
-									<hr
-										class="my-2 {{ $sepWidthClass }} {{ $sepBorderStyle }} {{ '' === $sepColor ? 'border-gray-300' : '' }}"
-										@if ( '' !== $sepInlineStyle ) style="{{ $sepInlineStyle }}" @endif
-									/>
-									@break
-
-								@case ( 'image' )
-									<div class="flex items-center justify-center rounded bg-gray-100 p-8 text-gray-400">
-										<svg class="mr-2 h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-											<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-										</svg>
-										{{ __( 'Image block' ) }}
-									</div>
-									@break
-
-								@case ( 'button' )
-									<div class="py-1">
-										<span class="inline-block rounded bg-blue-600 px-4 py-2 text-sm font-medium text-white">
-											{{ $block['content']['text'] ?? __( 'Button' ) }}
-										</span>
-									</div>
-									@break
-
-								@default
-									<div class="rounded bg-gray-50 p-3 text-sm text-gray-500">
-										<span class="font-medium">{{ ucfirst( $blockType ?: __( 'Block' ) ) }}</span>
-									</div>
-							@endswitch
-						@endif
-					</div>
+					@include( 'visual-editor::livewire.partials.block-renderer', [
+						'block'          => $block,
+						'blockIndex'     => $blockIndex,
+						'totalBlocks'    => count( $blocks ),
+						'activeBlockId'  => $activeBlockId,
+						'editingBlockId' => $editingBlockId,
+						'depth'          => 0,
+						'parentBlockId'  => null,
+						'slotIndex'      => null,
+					] )
 				@endforeach
 			</div>
 		@endif

@@ -1042,7 +1042,7 @@ test( 'canvas WYSIWYG columns renders column placeholders', function (): void {
 	];
 
 	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
-		->assertSee( 'Drop blocks here' );
+		->assertSee( 'Add block' );
 } );
 
 test( 'canvas WYSIWYG columns renders three columns for 33-33-33 preset', function (): void {
@@ -1081,7 +1081,7 @@ test( 'canvas WYSIWYG group renders container with padding', function (): void {
 
 	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
 		->assertSeeHtml( 'p-8' )
-		->assertSee( 'Drop blocks here' );
+		->assertSee( 'Add block' );
 } );
 
 test( 'canvas WYSIWYG group applies shadow class', function (): void {
@@ -1243,7 +1243,7 @@ test( 'canvas renders grid block placeholder cells matching column count', funct
 	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] );
 
 	$html = $component->html();
-	expect( substr_count( $html, 'Drop blocks here' ) )->toBeGreaterThanOrEqual( 2 );
+	expect( substr_count( $html, 'Add block' ) )->toBeGreaterThanOrEqual( 2 );
 } );
 
 test( 'canvas renders grid block with items showing grid item labels', function (): void {
@@ -1320,18 +1320,23 @@ test( 'canvas renders grid_item block with justify content between', function ()
 		->assertSeeHtml( 'justify-between' );
 } );
 
-test( 'canvas renders grid_item block with inner blocks count', function (): void {
+test( 'canvas renders grid_item block with inner blocks rendered recursively', function (): void {
 	$blocks = [
 		[
 			'id'       => 've-1',
 			'type'     => 'grid_item',
-			'content'  => [ 'inner_blocks' => [ [ 'id' => 'ib-1' ], [ 'id' => 'ib-2' ] ] ],
+			'content'  => [ 'inner_blocks' => [
+				[ 'id' => 'ib-1', 'type' => 'heading', 'content' => [ 'text' => 'Inner Heading', 'level' => 'h2' ], 'settings' => [] ],
+				[ 'id' => 'ib-2', 'type' => 'text', 'content' => [ 'text' => 'Inner text content' ], 'settings' => [] ],
+			] ],
 			'settings' => [],
 		],
 	];
 
 	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
-		->assertSee( '2 blocks' );
+		->assertSee( 'Inner Heading' )
+		->assertSee( 'Inner text content' )
+		->assertSee( 'Add block' );
 } );
 
 // =========================================
@@ -1447,18 +1452,23 @@ test( 'canvas renders column block with custom width style', function (): void {
 		->assertSeeHtml( 'flex: 0 0 50%' );
 } );
 
-test( 'canvas renders column block with inner blocks count', function (): void {
+test( 'canvas renders column block with inner blocks rendered recursively', function (): void {
 	$blocks = [
 		[
 			'id'       => 've-1',
 			'type'     => 'column',
-			'content'  => [ 'inner_blocks' => [ [ 'id' => 'ib-1' ], [ 'id' => 'ib-2' ], [ 'id' => 'ib-3' ] ] ],
+			'content'  => [ 'inner_blocks' => [
+				[ 'id' => 'ib-1', 'type' => 'heading', 'content' => [ 'text' => 'Column Heading', 'level' => 'h3' ], 'settings' => [] ],
+				[ 'id' => 'ib-2', 'type' => 'text', 'content' => [ 'text' => 'Column text content' ], 'settings' => [] ],
+			] ],
 			'settings' => [],
 		],
 	];
 
 	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
-		->assertSee( '3 blocks' );
+		->assertSee( 'Column Heading' )
+		->assertSee( 'Column text content' )
+		->assertSee( 'Add block' );
 } );
 
 test( 'canvas renders column block with default flex classes', function (): void {
@@ -1488,7 +1498,7 @@ test( 'canvas renders column block placeholder when empty', function (): void {
 	];
 
 	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
-		->assertSee( 'Drop blocks here' );
+		->assertSee( 'Add block' );
 } );
 
 test( 'canvas can insert column block via sidebar event', function (): void {
