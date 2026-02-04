@@ -612,32 +612,22 @@ test( 'default group block is registered in layout category', function (): void 
 		->and( $group['icon'] )->toBe( 'fas.object-group' );
 } );
 
-test( 'default group block has html tag setting', function (): void {
+
+test( 'default group block has flex layout settings', function (): void {
 	$this->registry->registerDefaults();
 
 	$group = $this->registry->get( 'group' );
 
-	expect( $group['settings_schema'] )->toHaveKey( 'tag' )
-		->and( $group['settings_schema']['tag']['type'] )->toBe( 'select' )
-		->and( $group['settings_schema']['tag']['default'] )->toBe( 'div' )
-		->and( $group['settings_schema']['tag']['options'] )->toContain( 'div' )
-		->and( $group['settings_schema']['tag']['options'] )->toContain( 'section' )
-		->and( $group['settings_schema']['tag']['options'] )->toContain( 'article' );
-} );
-
-test( 'default group block has background color padding shadow and constrained settings', function (): void {
-	$this->registry->registerDefaults();
-
-	$group = $this->registry->get( 'group' );
-
-	expect( $group['settings_schema'] )->toHaveKey( 'background_color' )
-		->and( $group['settings_schema']['background_color']['type'] )->toBe( 'color' )
-		->and( $group['settings_schema'] )->toHaveKey( 'padding' )
-		->and( $group['settings_schema']['padding']['default'] )->toBe( 'medium' )
-		->and( $group['settings_schema'] )->toHaveKey( 'shadow' )
-		->and( $group['settings_schema']['shadow']['default'] )->toBe( 'none' )
-		->and( $group['settings_schema'] )->toHaveKey( 'constrained' )
-		->and( $group['settings_schema']['constrained']['default'] )->toBeFalse();
+	expect( $group['settings_schema'] )->toHaveKey( 'constrained' )
+		->and( $group['settings_schema']['constrained']['default'] )->toBeFalse()
+		->and( $group['settings_schema'] )->toHaveKey( 'flex_direction' )
+		->and( $group['settings_schema']['flex_direction']['default'] )->toBe( 'column' )
+		->and( $group['settings_schema'] )->toHaveKey( 'flex_wrap' )
+		->and( $group['settings_schema']['flex_wrap']['default'] )->toBe( 'nowrap' )
+		->and( $group['settings_schema'] )->toHaveKey( 'align_items' )
+		->and( $group['settings_schema']['align_items']['default'] )->toBe( 'stretch' )
+		->and( $group['settings_schema'] )->toHaveKey( 'justify_content' )
+		->and( $group['settings_schema']['justify_content']['default'] )->toBe( 'start' );
 } );
 
 test( 'default group block supports sizing colors and borders', function (): void {
@@ -894,4 +884,252 @@ test( 'default group block has flex alignment settings', function (): void {
 		->and( $group['settings_schema']['flex_direction']['options'] )->toBe( [ 'column', 'row' ] )
 		->and( $group['settings_schema']['align_items']['options'] )->toBe( [ 'stretch', 'start', 'center', 'end' ] )
 		->and( $group['settings_schema']['justify_content']['options'] )->toBe( [ 'start', 'center', 'end', 'between', 'around', 'evenly' ] );
+} );
+
+// =========================================
+// Block Variations Tests
+// =========================================
+
+test( 'it can register a variation for a block', function (): void {
+	$this->registry->register( 'test-block', [
+		'name'     => 'Test Block',
+		'category' => 'text',
+	] );
+
+	$this->registry->registerVariation( 'test-block', 'variation-one', [
+		'title'       => 'Variation One',
+		'description' => 'First variation',
+		'icon'        => 'fas.star',
+		'attributes'  => [
+			'settings' => [
+				'color' => 'blue',
+			],
+		],
+	] );
+
+	expect( $this->registry->hasVariations( 'test-block' ) )->toBeTrue();
+} );
+
+test( 'it can get all variations for a block', function (): void {
+	$this->registry->register( 'test-block', [
+		'name'     => 'Test Block',
+		'category' => 'text',
+	] );
+
+	$this->registry->registerVariation( 'test-block', 'var-one', [
+		'title' => 'Variation One',
+	] );
+
+	$this->registry->registerVariation( 'test-block', 'var-two', [
+		'title' => 'Variation Two',
+	] );
+
+	$variations = $this->registry->getVariations( 'test-block' );
+
+	expect( $variations )->toHaveCount( 2 )
+		->and( $variations )->toHaveKeys( [ 'var-one', 'var-two' ] )
+		->and( $variations['var-one']['title'] )->toBe( 'Variation One' );
+} );
+
+test( 'it can get a specific variation', function (): void {
+	$this->registry->register( 'test-block', [
+		'name'     => 'Test Block',
+		'category' => 'text',
+	] );
+
+	$this->registry->registerVariation( 'test-block', 'special', [
+		'title'       => 'Special Variation',
+		'description' => 'A special one',
+		'icon'        => 'fas.magic',
+	] );
+
+	$variation = $this->registry->getVariation( 'test-block', 'special' );
+
+	expect( $variation )->not->toBeNull()
+		->and( $variation['title'] )->toBe( 'Special Variation' )
+		->and( $variation['description'] )->toBe( 'A special one' )
+		->and( $variation['icon'] )->toBe( 'fas.magic' );
+} );
+
+test( 'it returns null for non-existent variation', function (): void {
+	$this->registry->register( 'test-block', [
+		'name'     => 'Test Block',
+		'category' => 'text',
+	] );
+
+	expect( $this->registry->getVariation( 'test-block', 'nonexistent' ) )->toBeNull();
+} );
+
+test( 'it returns empty array for block with no variations', function (): void {
+	$this->registry->register( 'test-block', [
+		'name'     => 'Test Block',
+		'category' => 'text',
+	] );
+
+	expect( $this->registry->getVariations( 'test-block' ) )->toBe( [] )
+		->and( $this->registry->hasVariations( 'test-block' ) )->toBeFalse();
+} );
+
+test( 'variation includes all default fields', function (): void {
+	$this->registry->register( 'test-block', [
+		'name'     => 'Test Block',
+		'category' => 'text',
+	] );
+
+	$this->registry->registerVariation( 'test-block', 'test-var', [
+		'title' => 'Test Variation',
+	] );
+
+	$variation = $this->registry->getVariation( 'test-block', 'test-var' );
+
+	expect( $variation )->toHaveKeys( [
+		'name',
+		'title',
+		'description',
+		'icon',
+		'isDefault',
+		'attributes',
+		'innerBlocks',
+		'scope',
+	] )
+		->and( $variation['name'] )->toBe( 'test-var' )
+		->and( $variation['description'] )->toBe( '' )
+		->and( $variation['icon'] )->toBeNull()
+		->and( $variation['isDefault'] )->toBeFalse()
+		->and( $variation['attributes'] )->toBe( [] )
+		->and( $variation['innerBlocks'] )->toBe( [] )
+		->and( $variation['scope'] )->toBe( [ 'block', 'inserter', 'transform' ] );
+} );
+
+test( 'variation config values override defaults', function (): void {
+	$this->registry->register( 'test-block', [
+		'name'     => 'Test Block',
+		'category' => 'text',
+	] );
+
+	$this->registry->registerVariation( 'test-block', 'custom-var', [
+		'title'       => 'Custom Variation',
+		'description' => 'A custom variation',
+		'icon'        => 'fas.star',
+		'isDefault'   => true,
+		'attributes'  => [
+			'settings' => [
+				'color' => 'red',
+			],
+		],
+		'innerBlocks' => [
+			[ 'name' => 'text', 'attributes' => [] ],
+		],
+		'scope' => [ 'inserter' ],
+	] );
+
+	$variation = $this->registry->getVariation( 'test-block', 'custom-var' );
+
+	expect( $variation['title'] )->toBe( 'Custom Variation' )
+		->and( $variation['description'] )->toBe( 'A custom variation' )
+		->and( $variation['icon'] )->toBe( 'fas.star' )
+		->and( $variation['isDefault'] )->toBeTrue()
+		->and( $variation['attributes'] )->toHaveKey( 'settings' )
+		->and( $variation['attributes']['settings']['color'] )->toBe( 'red' )
+		->and( $variation['innerBlocks'] )->toHaveCount( 1 )
+		->and( $variation['scope'] )->toBe( [ 'inserter' ] );
+} );
+
+test( 'it throws exception when registering variation for non-existent block', function (): void {
+	$this->registry->registerVariation( 'nonexistent-block', 'test-var', [
+		'title' => 'Test Variation',
+	] );
+} )->throws( InvalidArgumentException::class, 'Cannot register variation for unregistered block type' );
+
+test( 'it throws exception for empty variation name', function (): void {
+	$this->registry->register( 'test-block', [
+		'name'     => 'Test Block',
+		'category' => 'text',
+	] );
+
+	$this->registry->registerVariation( 'test-block', '', [
+		'title' => 'Test Variation',
+	] );
+} )->throws( InvalidArgumentException::class, 'Variation name cannot be empty' );
+
+test( 'registerVariation returns self for chaining', function (): void {
+	$this->registry->register( 'test-block', [
+		'name'     => 'Test Block',
+		'category' => 'text',
+	] );
+
+	$result = $this->registry->registerVariation( 'test-block', 'test-var', [
+		'title' => 'Test Variation',
+	] );
+
+	expect( $result )->toBeInstanceOf( BlockRegistry::class );
+} );
+
+test( 'default group block has row stack and grid variations', function (): void {
+	$this->registry->registerDefaults();
+
+	expect( $this->registry->hasVariations( 'group' ) )->toBeTrue();
+
+	$variations = $this->registry->getVariations( 'group' );
+
+	expect( $variations )->toHaveKeys( [ 'group', 'row', 'stack', 'grid' ] )
+		->and( $variations['group']['isDefault'] )->toBeTrue()
+		->and( $variations['row']['isDefault'] )->toBeFalse()
+		->and( $variations['stack']['isDefault'] )->toBeFalse()
+		->and( $variations['grid']['isDefault'] )->toBeFalse();
+} );
+
+test( 'group block row variation has correct attributes', function (): void {
+	$this->registry->registerDefaults();
+
+	$row = $this->registry->getVariation( 'group', 'row' );
+
+	expect( $row )->not->toBeNull()
+		->and( $row['title'] )->toBe( 'Row' )
+		->and( $row['description'] )->toBe( 'Arrange blocks horizontally.' )
+		->and( $row['icon'] )->toBe( 'fas.grip-lines' )
+		->and( $row['attributes']['settings']['flex_direction'] )->toBe( 'row' )
+		->and( $row['attributes']['settings']['flex_wrap'] )->toBe( 'nowrap' )
+		->and( $row['attributes']['settings']['align_items'] )->toBe( 'center' );
+} );
+
+test( 'group block stack variation has correct attributes', function (): void {
+	$this->registry->registerDefaults();
+
+	$stack = $this->registry->getVariation( 'group', 'stack' );
+
+	expect( $stack )->not->toBeNull()
+		->and( $stack['title'] )->toBe( 'Stack' )
+		->and( $stack['description'] )->toBe( 'Arrange blocks vertically.' )
+		->and( $stack['icon'] )->toBe( 'fas.grip-lines-vertical' )
+		->and( $stack['attributes']['settings']['flex_direction'] )->toBe( 'column' )
+		->and( $stack['attributes']['settings']['flex_wrap'] )->toBe( 'nowrap' )
+		->and( $stack['attributes']['settings']['align_items'] )->toBe( 'stretch' );
+} );
+
+test( 'group block grid variation has correct attributes', function (): void {
+	$this->registry->registerDefaults();
+
+	$grid = $this->registry->getVariation( 'group', 'grid' );
+
+	expect( $grid )->not->toBeNull()
+		->and( $grid['title'] )->toBe( 'Grid' )
+		->and( $grid['description'] )->toBe( 'Arrange blocks in a grid.' )
+		->and( $grid['icon'] )->toBe( 'fas.table-cells' )
+		->and( $grid['attributes']['settings']['flex_direction'] )->toBe( 'row' )
+		->and( $grid['attributes']['settings']['flex_wrap'] )->toBe( 'wrap' );
+} );
+
+test( 'group block default variation has correct attributes', function (): void {
+	$this->registry->registerDefaults();
+
+	$default = $this->registry->getVariation( 'group', 'group' );
+
+	expect( $default )->not->toBeNull()
+		->and( $default['title'] )->toBe( 'Group' )
+		->and( $default['description'] )->toBe( 'Gather blocks in a container.' )
+		->and( $default['icon'] )->toBe( 'fas.object-group' )
+		->and( $default['isDefault'] )->toBeTrue()
+		->and( $default['attributes']['settings']['flex_direction'] )->toBe( 'column' )
+		->and( $default['attributes']['settings']['flex_wrap'] )->toBe( 'nowrap' );
 } );

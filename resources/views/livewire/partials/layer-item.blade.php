@@ -23,7 +23,7 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 ?>
 
 @php
-	$blockConfig = app( BlockRegistry::class )->get( $block['type'] ?? '' );
+	$blockConfig = veBlocks()->get( $block['type'] ?? '' );
 	$blockName   = $blockConfig['name'] ?? ucfirst( $block['type'] ?? __( 'Block' ) );
 	$blockIcon   = $blockConfig['icon'] ?? 'fas.cube';
 	$blockId     = $block['id'] ?? '';

@@ -338,7 +338,7 @@ new class extends Component {
 			$this->saveStatus = 'saved';
 			$this->isDirty    = false;
 			$this->lastSaved  = now()->format( 'g:i A' );
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			report( $e );
 			$this->saveStatus = 'error';
 			session()->flash( 'error', __( 'Failed to save content.' ) );
@@ -389,7 +389,7 @@ new class extends Component {
 			if ( '' !== $this->scheduleDate && '' !== $this->scheduleTime ) {
 				try {
 					$publishAt = Carbon::parse( $this->scheduleDate . ' ' . $this->scheduleTime );
-				} catch ( \Exception $e ) {
+				} catch ( Exception $e ) {
 					session()->flash( 'error', __( 'Invalid schedule date or time.' ) );
 					return;
 				}
@@ -405,7 +405,7 @@ new class extends Component {
 			$this->lastSaved           = now()->format( 'g:i A' );
 			$this->scheduleDate        = '';
 			$this->scheduleTime        = '';
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			$this->saveStatus = 'error';
 			report( $e );
 			session()->flash( 'error', __( 'Failed to publish content.' ) );
@@ -426,7 +426,7 @@ new class extends Component {
 			$service = app( ContentService::class );
 			$service->unpublish( $this->content, auth()->id() );
 			$this->content->refresh();
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			session()->flash( 'error', __( 'Failed to unpublish content.' ) );
 		}
 	}
@@ -449,7 +449,7 @@ new class extends Component {
 			$service->autosave( $this->content, [
 				'blocks' => $this->blocks,
 			], auth()->id() );
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			// Autosave failures are silent to not disrupt editing.
 		}
 	}
@@ -477,10 +477,10 @@ new class extends Component {
 
 			$service->submitForReview( $this->content, auth()->id() );
 			$this->content->refresh();
-			$this->isDirty   = false;
+			$this->isDirty    = false;
 			$this->saveStatus = 'saved';
 			$this->lastSaved  = now()->format( 'g:i A' );
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			session()->flash( 'error', __( 'Failed to submit for review.' ) );
 		}
 	}
@@ -767,7 +767,7 @@ new class extends Component {
 			return null;
 		}
 
-		return app( BlockRegistry::class )->get( $block['type'] ?? '' );
+		return veBlocks()->get( $block['type'] ?? '' );
 	}
 
 	/**
@@ -803,6 +803,58 @@ new class extends Component {
 	}
 
 	/**
+	 * Apply a block variation to the active block.
+	 *
+	 * Updates the block's settings to match the selected variation's defaults.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $blockType     The block type identifier.
+	 * @param string $variationName The variation name to apply.
+	 *
+	 * @return void
+	 */
+	public function applyBlockVariation( string $blockType, string $variationName ): void
+	{
+		if ( null === $this->activeBlockId ) {
+			return;
+		}
+
+		$variation = veBlocks()->getVariation( $blockType, $variationName );
+
+		if ( null === $variation ) {
+			return;
+		}
+
+		$path = $this->findBlockPath( $this->activeBlockId, $this->blocks );
+
+		if ( null === $path ) {
+			return;
+		}
+
+		$this->pushHistory( $this->blocks );
+
+		$blocks = $this->blocks;
+
+		// Store the selected variation
+		data_set( $blocks, $path . '.settings._variation', $variationName );
+
+		// Apply variation attributes to block settings
+		if ( isset( $variation['attributes']['settings'] ) && is_array( $variation['attributes']['settings'] ) ) {
+			foreach ( $variation['attributes']['settings'] as $key => $value ) {
+				data_set( $blocks, $path . '.settings.' . $key, $value );
+			}
+		}
+
+		$this->blocks     = $blocks;
+		$this->isDirty    = true;
+		$this->saveStatus = 'unsaved';
+
+		// Sync the updated block to the canvas
+		$this->dispatch( 'canvas-sync-blocks', blocks: $this->blocks );
+	}
+
+	/**
 	 * Get a style value for the active block at a specific breakpoint, state, section, and property.
 	 *
 	 * @since 1.8.0
@@ -827,25 +879,6 @@ new class extends Component {
 		}
 
 		return (string) data_get( $block['settings'], "styles.{$breakpoint}.{$state}.{$section}.{$property}", '' );
-	}
-
-	/**
-	 * Sync color properties from the active block's settings.
-	 *
-	 * Reads the text, background, and border color values from the
-	 * active block at the current breakpoint and state, and sets
-	 * them on the dedicated Livewire properties so they can be used
-	 * with wire:model on colorpicker components.
-	 *
-	 * @since 1.8.0
-	 *
-	 * @return void
-	 */
-	protected function syncColorProperties(): void
-	{
-		$this->styleTextColor       = $this->getStyleValue( $this->activeBreakpoint, $this->activeState, 'colors', 'text_color' );
-		$this->styleBackgroundColor = $this->getStyleValue( $this->activeBreakpoint, $this->activeState, 'colors', 'background_color' );
-		$this->styleBorderColor     = $this->getStyleValue( $this->activeBreakpoint, $this->activeState, 'borders', 'border_color' );
 	}
 
 	/**
@@ -1004,6 +1037,25 @@ new class extends Component {
 		$this->showSavePatternModal = false;
 		$this->patternName          = '';
 		$this->patternDescription   = '';
+	}
+
+	/**
+	 * Sync color properties from the active block's settings.
+	 *
+	 * Reads the text, background, and border color values from the
+	 * active block at the current breakpoint and state, and sets
+	 * them on the dedicated Livewire properties so they can be used
+	 * with wire:model on colorpicker components.
+	 *
+	 * @since 1.8.0
+	 *
+	 * @return void
+	 */
+	protected function syncColorProperties(): void
+	{
+		$this->styleTextColor       = $this->getStyleValue( $this->activeBreakpoint, $this->activeState, 'colors', 'text_color' );
+		$this->styleBackgroundColor = $this->getStyleValue( $this->activeBreakpoint, $this->activeState, 'colors', 'background_color' );
+		$this->styleBorderColor     = $this->getStyleValue( $this->activeBreakpoint, $this->activeState, 'borders', 'border_color' );
 	}
 
 	/**
@@ -1291,7 +1343,48 @@ new class extends Component {
 									$settingsSchema    = $activeBlockConfig['settings_schema'] ?? [];
 									$activeBlock       = $this->findBlockRecursive( $activeBlockId, $blocks );
 									$currentSettings   = $activeBlock['settings'] ?? [];
+									$blockType         = $activeBlock['type'] ?? $activeBlock['name'] ?? '';
+									$hasVariations     = veBlocks()->hasVariations( $blockType );
+									$variations        = $hasVariations ? veBlocks()->getVariations( $blockType ) : [];
+									$currentVariation  = $currentSettings['_variation'] ?? '';
 								@endphp
+
+								{{-- Block Variation Selector --}}
+								@if ( $hasVariations )
+									<div class="mb-4 rounded-md border border-blue-200 bg-blue-50 p-3">
+										<label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-blue-900">
+											{{ __( 'Block Variation' ) }}
+										</label>
+										@php
+											$variationOptions = collect( $variations )->map( function ( $variation, $key ) {
+												return [
+													'id'          => $key,
+													'name'        => $variation['title'] ?? ucfirst( $key ),
+													'description' => $variation['description'] ?? '',
+												];
+											} )->values()->all();
+										@endphp
+										<select
+											wire:change="applyBlockVariation( '{{ $blockType }}', $event.target.value )"
+											class="w-full rounded-md border border-blue-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+										>
+											@foreach ( $variationOptions as $option )
+												<option
+													value="{{ $option['id'] }}"
+													@if ( $option['id'] === $currentVariation ) selected @endif
+												>
+													{{ $option['name'] }}
+													@if ( ! empty( $option['description'] ) )
+														- {{ $option['description'] }}
+													@endif
+												</option>
+											@endforeach
+										</select>
+										<p class="mt-1.5 text-xs text-blue-700">
+											{{ __( 'Changing the variation will update block settings to match the selected layout.' ) }}
+										</p>
+									</div>
+								@endif
 
 								@if ( empty( $settingsSchema ) )
 									<p class="text-sm text-gray-500">

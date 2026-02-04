@@ -23,12 +23,10 @@ declare( strict_types=1 );
  * @var int|null    $slotIndex      Slot index for columns-type containers.
  */
 
-use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
-
 ?>
 
 @php
-	$blockConfig    = app( BlockRegistry::class )->get( $block['type'] ?? '' );
+	$blockConfig    = veBlocks()->get( $block['type'] ?? '' );
 	$contentSchema  = $blockConfig['content_schema'] ?? [];
 	$textFieldType  = $contentSchema['text']['type'] ?? null;
 	$isRichText     = 'richtext' === $textFieldType;
@@ -292,6 +290,7 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 							@endif
 							@include( 'visual-editor::livewire.partials.inner-block-appender', [
 								'parentBlockId' => $blockId,
+				'parentBlockType' => $blockType,
 								'slotIndex'     => $colIdx,
 								'depth'         => $depth + 1,
 							] )
@@ -354,6 +353,7 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 					@endif
 					@include( 'visual-editor::livewire.partials.inner-block-appender', [
 						'parentBlockId' => $blockId,
+				'parentBlockType' => $blockType,
 						'slotIndex'     => null,
 						'depth'         => $depth + 1,
 					] )
@@ -362,36 +362,23 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 
 			@case ( 'group' )
 				@php
-					$groupTag     = $block['settings']['tag'] ?? 'div';
-					$groupBg      = $block['settings']['background_color'] ?? '';
-					$groupPadding = match ( $block['settings']['padding'] ?? 'medium' ) {
-						'none'   => 'p-0',
-						'small'  => 'p-2',
-						'large'  => 'p-8',
-						'xlarge' => 'p-12',
-						default  => 'p-4',
-					};
-					$groupShadow  = match ( $block['settings']['shadow'] ?? 'none' ) {
-						'small'  => 'shadow-sm',
-						'medium' => 'shadow-md',
-						'large'  => 'shadow-lg',
-						default  => '',
-					};
-					$groupStyle   = '' !== $groupBg ? 'background-color: ' . e( $groupBg ) . ';' : '';
-					$innerBlocks  = $block['content']['inner_blocks'] ?? [];
-					$allowedTags  = [ 'div', 'section', 'article', 'aside', 'main', 'header', 'footer' ];
-					$groupTag     = in_array( $groupTag, $allowedTags, true ) ? $groupTag : 'div';
-					$groupDir     = match ( $block['settings']['flex_direction'] ?? 'column' ) {
+					$innerBlocks    = $block['content']['inner_blocks'] ?? [];
+					$groupDir       = match ( $block['settings']['flex_direction'] ?? 'column' ) {
 						'row'   => 'flex-row',
 						default => 'flex-col',
 					};
-					$groupAlign   = match ( $block['settings']['align_items'] ?? 'stretch' ) {
+					$groupWrap      = match ( $block['settings']['flex_wrap'] ?? 'nowrap' ) {
+						'wrap'         => 'flex-wrap',
+						'wrap-reverse' => 'flex-wrap-reverse',
+						default        => 'flex-nowrap',
+					};
+					$groupAlign     = match ( $block['settings']['align_items'] ?? 'stretch' ) {
 						'start'  => 'items-start',
 						'center' => 'items-center',
 						'end'    => 'items-end',
 						default  => 'items-stretch',
 					};
-					$groupJustify = match ( $block['settings']['justify_content'] ?? 'start' ) {
+					$groupJustify   = match ( $block['settings']['justify_content'] ?? 'start' ) {
 						'center'  => 'justify-center',
 						'end'     => 'justify-end',
 						'between' => 'justify-between',
@@ -399,12 +386,22 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 						'evenly'  => 'justify-evenly',
 						default   => 'justify-start',
 					};
+					$groupVariation        = $block['settings']['_variation'] ?? 'group';
+					$hasVariations         = veBlocks()->hasVariations( 'group' );
+					$variations            = $hasVariations ? veBlocks()->getVariations( 'group' ) : [];
+					$variationNotSelected  = ! isset( $block['settings']['_variation'] );
+					$showVariationPicker   = empty( $innerBlocks ) && $hasVariations && $variationNotSelected;
 				@endphp
-				<{{ $groupTag }}
-					class="flex {{ $groupDir }} {{ $groupAlign }} {{ $groupJustify }} min-h-[3rem] rounded border border-dashed border-gray-300 {{ $groupPadding }} {{ $groupShadow }}"
-					@if ( '' !== $groupStyle ) style="{{ $groupStyle }}" @endif
-				>
-					@if ( !empty( $innerBlocks ) )
+				<div class="flex {{ $groupDir }} {{ $groupWrap }} {{ $groupAlign }} {{ $groupJustify }} min-h-[8rem] rounded border border-dashed border-gray-300 bg-gray-50/30 p-4">
+					@if ( $showVariationPicker )
+						{{-- Variation Placeholder (shown when block is empty and no variation selected) --}}
+						@include( 'visual-editor::livewire.partials.variation-picker', [
+							'blockType'        => 'group',
+							'blockId'          => $blockId,
+							'variations'       => $variations,
+							'currentVariation' => $groupVariation,
+						] )
+					@elseif ( !empty( $innerBlocks ) )
 						<div
 							x-drag-context
 							@drag:end="$wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}' )"
@@ -428,10 +425,11 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 					@endif
 					@include( 'visual-editor::livewire.partials.inner-block-appender', [
 						'parentBlockId' => $blockId,
+				'parentBlockType' => $blockType,
 						'slotIndex'     => null,
 						'depth'         => $depth + 1,
 					] )
-				</{{ $groupTag }}>
+				</div>
 				@break
 
 			@case ( 'divider' )
@@ -518,6 +516,7 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 								@endif
 								@include( 'visual-editor::livewire.partials.inner-block-appender', [
 									'parentBlockId' => $blockId,
+				'parentBlockType' => $blockType,
 									'slotIndex'     => $gridItemIndex,
 									'depth'         => $depth + 1,
 								] )
@@ -528,6 +527,7 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 							<div class="min-h-[3rem] rounded border border-dashed border-gray-300 bg-gray-50/50 p-2">
 								@include( 'visual-editor::livewire.partials.inner-block-appender', [
 									'parentBlockId' => $blockId,
+				'parentBlockType' => $blockType,
 									'slotIndex'     => $gi,
 									'depth'         => $depth + 1,
 								] )
@@ -592,6 +592,7 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 					@endif
 					@include( 'visual-editor::livewire.partials.inner-block-appender', [
 						'parentBlockId' => $blockId,
+				'parentBlockType' => $blockType,
 						'slotIndex'     => null,
 						'depth'         => $depth + 1,
 					] )

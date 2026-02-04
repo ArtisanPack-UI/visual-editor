@@ -47,6 +47,15 @@ class BlockRegistry
 	protected array $categories = [];
 
 	/**
+	 * The block variations.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @var array<string, array<string, array>>
+	 */
+	protected array $variations = [];
+
+	/**
 	 * Create a new BlockRegistry instance.
 	 *
 	 * @since 1.0.0
@@ -486,6 +495,7 @@ class BlockRegistry
 			'description'     => __( 'Individual column within a columns layout' ),
 			'icon'            => 'fas.table-columns',
 			'category'        => 'layout',
+			'parent'          => [ 'columns' ],
 			'inner_blocks'    => true,
 			'keywords'        => [ 'column', 'cell', 'layout', 'inner' ],
 			'content_schema'  => [
@@ -530,43 +540,30 @@ class BlockRegistry
 				'inner_blocks' => [ 'type' => 'repeater', 'label' => __( 'Inner Blocks' ) ],
 			],
 			'settings_schema' => [
-				'tag'              => [
-					'type'    => 'select',
-					'label'   => __( 'HTML Tag' ),
-					'options' => [ 'div', 'section', 'article', 'aside', 'main', 'header', 'footer' ],
-					'default' => 'div',
-				],
-				'background_color' => [ 'type' => 'color', 'label' => __( 'Background Color' ) ],
-				'padding'          => [
-					'type'    => 'select',
-					'label'   => __( 'Padding' ),
-					'options' => [ 'none', 'small', 'medium', 'large', 'xlarge' ],
-					'default' => 'medium',
-				],
-				'shadow'           => [
-					'type'    => 'select',
-					'label'   => __( 'Shadow' ),
-					'options' => [ 'none', 'small', 'medium', 'large' ],
-					'default' => 'none',
-				],
-				'constrained'      => [
+				'constrained'     => [
 					'type'    => 'toggle',
 					'label'   => __( 'Constrained Width' ),
 					'default' => false,
 				],
-				'flex_direction'   => [
+				'flex_direction'  => [
 					'type'    => 'select',
 					'label'   => __( 'Direction' ),
 					'options' => [ 'column', 'row' ],
 					'default' => 'column',
 				],
-				'align_items'      => [
+				'flex_wrap'       => [
+					'type'    => 'select',
+					'label'   => __( 'Flex Wrap' ),
+					'options' => [ 'nowrap', 'wrap', 'wrap-reverse' ],
+					'default' => 'nowrap',
+				],
+				'align_items'     => [
 					'type'    => 'select',
 					'label'   => __( 'Align Items' ),
 					'options' => [ 'stretch', 'start', 'center', 'end' ],
 					'default' => 'stretch',
 				],
-				'justify_content'  => [
+				'justify_content' => [
 					'type'    => 'select',
 					'label'   => __( 'Justify Content' ),
 					'options' => [ 'start', 'center', 'end', 'between', 'around', 'evenly' ],
@@ -574,6 +571,67 @@ class BlockRegistry
 				],
 			],
 			'supports' => [ 'sizing', 'colors', 'borders' ],
+		] );
+
+		// Register group block variations
+		$this->registerVariation( 'group', 'group', [
+			'title'       => __( 'Group' ),
+			'description' => __( 'Gather blocks in a container.' ),
+			'icon'        => 'fas.object-group',
+			'isDefault'   => true,
+			'attributes'  => [
+				'settings' => [
+					'flex_direction'  => 'column',
+					'flex_wrap'       => 'nowrap',
+					'align_items'     => 'stretch',
+					'justify_content' => 'start',
+				],
+			],
+		] );
+
+		$this->registerVariation( 'group', 'row', [
+			'title'       => __( 'Row' ),
+			'description' => __( 'Arrange blocks horizontally.' ),
+			'icon'        => 'fas.grip-lines',
+			'isDefault'   => false,
+			'attributes'  => [
+				'settings' => [
+					'flex_direction'  => 'row',
+					'flex_wrap'       => 'nowrap',
+					'align_items'     => 'center',
+					'justify_content' => 'start',
+				],
+			],
+		] );
+
+		$this->registerVariation( 'group', 'stack', [
+			'title'       => __( 'Stack' ),
+			'description' => __( 'Arrange blocks vertically.' ),
+			'icon'        => 'fas.grip-lines-vertical',
+			'isDefault'   => false,
+			'attributes'  => [
+				'settings' => [
+					'flex_direction'  => 'column',
+					'flex_wrap'       => 'nowrap',
+					'align_items'     => 'stretch',
+					'justify_content' => 'start',
+				],
+			],
+		] );
+
+		$this->registerVariation( 'group', 'grid', [
+			'title'       => __( 'Grid' ),
+			'description' => __( 'Arrange blocks in a grid.' ),
+			'icon'        => 'fas.table-cells',
+			'isDefault'   => false,
+			'attributes'  => [
+				'settings' => [
+					'flex_direction'  => 'row',
+					'flex_wrap'       => 'wrap',
+					'align_items'     => 'start',
+					'justify_content' => 'start',
+				],
+			],
 		] );
 
 		$this->register( 'grid', [
@@ -644,6 +702,7 @@ class BlockRegistry
 			'description'     => __( 'Individual grid cell with span and alignment control' ),
 			'icon'            => 'fas.table-cells-large',
 			'category'        => 'layout',
+			'parent'          => [ 'grid' ],
 			'inner_blocks'    => true,
 			'keywords'        => [ 'grid item', 'cell', 'column', 'span' ],
 			'content_schema'  => [
@@ -801,6 +860,94 @@ class BlockRegistry
 			],
 			'supports' => [ 'sizing', 'typography', 'colors' ],
 		] );
+	}
+
+	/**
+	 * Register a variation for a block type.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $blockType     The block type identifier.
+	 * @param string $variationName The variation name identifier.
+	 * @param array  $config        The variation configuration.
+	 *
+	 * @throws InvalidArgumentException If the block type doesn't exist or variation is invalid.
+	 *
+	 * @return self
+	 */
+	public function registerVariation( string $blockType, string $variationName, array $config ): self
+	{
+		if ( !$this->has( $blockType ) ) {
+			throw new InvalidArgumentException(
+				__( 'Cannot register variation for unregistered block type ":type".', [
+					'type' => $blockType,
+				] ),
+			);
+		}
+
+		if ( '' === trim( $variationName ) ) {
+			throw new InvalidArgumentException( __( 'Variation name cannot be empty.' ) );
+		}
+
+		if ( !isset( $this->variations[ $blockType ] ) ) {
+			$this->variations[ $blockType ] = [];
+		}
+
+		$this->variations[ $blockType ][ $variationName ] = array_merge( [
+			'name'        => $variationName,
+			'title'       => $variationName,
+			'description' => '',
+			'icon'        => null,
+			'isDefault'   => false,
+			'attributes'  => [],
+			'innerBlocks' => [],
+			'scope'       => [ 'block', 'inserter', 'transform' ],
+		], $config );
+
+		return $this;
+	}
+
+	/**
+	 * Get all variations for a block type.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $blockType The block type identifier.
+	 *
+	 * @return array
+	 */
+	public function getVariations( string $blockType ): array
+	{
+		return $this->variations[ $blockType ] ?? [];
+	}
+
+	/**
+	 * Check if a block type has variations.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $blockType The block type identifier.
+	 *
+	 * @return bool
+	 */
+	public function hasVariations( string $blockType ): bool
+	{
+		return isset( $this->variations[ $blockType ] ) && !empty( $this->variations[ $blockType ] );
+	}
+
+	/**
+	 * Get a specific variation for a block type.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $blockType     The block type identifier.
+	 * @param string $variationName The variation name identifier.
+	 *
+	 * @return array|null
+	 */
+	public function getVariation( string $blockType, string $variationName ): ?array
+	{
+		return $this->variations[ $blockType ][ $variationName ] ?? null;
 	}
 
 	/**

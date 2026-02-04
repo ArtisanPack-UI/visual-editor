@@ -1074,32 +1074,14 @@ test( 'canvas WYSIWYG columns applies vertical alignment class', function (): vo
 		->assertSeeHtml( 'items-center' );
 } );
 
-test( 'canvas WYSIWYG group renders container with padding', function (): void {
+test( 'canvas WYSIWYG group renders variation placeholder when empty', function (): void {
 	$blocks = [
-		[ 'id' => 've-grp1', 'type' => 'group', 'content' => [], 'settings' => [ 'padding' => 'large' ] ],
+		[ 'id' => 've-grp1', 'type' => 'group', 'content' => [], 'settings' => [] ],
 	];
 
 	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
-		->assertSeeHtml( 'p-8' )
-		->assertSee( 'Add block' );
-} );
-
-test( 'canvas WYSIWYG group applies shadow class', function (): void {
-	$blocks = [
-		[ 'id' => 've-grp2', 'type' => 'group', 'content' => [], 'settings' => [ 'shadow' => 'medium' ] ],
-	];
-
-	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
-		->assertSeeHtml( 'shadow-md' );
-} );
-
-test( 'canvas WYSIWYG group applies background color style', function (): void {
-	$blocks = [
-		[ 'id' => 've-grp3', 'type' => 'group', 'content' => [], 'settings' => [ 'background_color' => '#ff0000' ] ],
-	];
-
-	Livewire::test( 'visual-editor::canvas', [ 'blocks' => $blocks ] )
-		->assertSeeHtml( 'background-color: #ff0000;' );
+		->assertSee( 'Choose a variation:' )
+		->assertSee( 'Or add blocks below' );
 } );
 
 test( 'canvas WYSIWYG spacer renders with custom height in pixels', function (): void {

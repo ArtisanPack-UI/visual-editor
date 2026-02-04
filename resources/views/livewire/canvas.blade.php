@@ -69,6 +69,914 @@ new class extends Component {
 	public ?string $editingBlockId = null;
 
 	// ──────────────────────────────────────────────────────────
+	// Block Selection
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * Select a block in the canvas.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $blockId The block ID to select.
+	 *
+	 * @return void
+	 */
+	public function selectBlock( string $blockId ): void
+	{
+		$this->activeBlockId  = $blockId;
+		$this->editingBlockId = null;
+		$this->dispatch( 'block-selected', blockId: $blockId );
+	}
+
+	/**
+	 * Handle block selection from external sources (e.g. layers tab).
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param string $blockId The block ID to select.
+	 *
+	 * @return void
+	 */
+	#[On( 'block-selected' )]
+	public function onBlockSelected( string $blockId ): void
+	{
+		$this->activeBlockId = $blockId;
+
+		if ( $this->editingBlockId !== $blockId ) {
+			$this->editingBlockId = null;
+		}
+	}
+
+	/**
+	 * Sync blocks from the editor (e.g. after layers reorder).
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param array $blocks The updated blocks array.
+	 *
+	 * @return void
+	 */
+	#[On( 'canvas-sync-blocks' )]
+	public function onCanvasSyncBlocks( array $blocks ): void
+	{
+		$this->blocks = $blocks;
+	}
+
+	/**
+	 * Deselect all blocks.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return void
+	 */
+	public function deselectAll(): void
+	{
+		$this->activeBlockId  = null;
+		$this->editingBlockId = null;
+	}
+
+	// ──────────────────────────────────────────────────────────
+	// Block Reordering
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * Handle drag-and-drop reordering of blocks.
+	 *
+	 * Accepts an array of block IDs in the new order,
+	 * as provided by the x-drag-context drag:end event.
+	 * When parentBlockId is provided, reorders within that
+	 * container's inner blocks rather than the top-level array.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array       $orderedIds    The new block ID order.
+	 * @param string|null $parentBlockId Optional parent container block ID.
+	 * @param int         $slotIndex     Column slot index for columns blocks (-1 for non-columns).
+	 *
+	 * @return void
+	 */
+	public function reorderBlocks( array $orderedIds, ?string $parentBlockId = null, int $slotIndex = -1 ): void
+	{
+		if ( null !== $parentBlockId ) {
+			$this->reorderInnerBlocks( $orderedIds, $parentBlockId, $slotIndex );
+
+			return;
+		}
+
+		$indexed   = collect( $this->blocks )->keyBy( 'id' );
+		$reordered = [];
+		$seen      = [];
+
+		foreach ( $orderedIds as $id ) {
+			if ( $indexed->has( $id ) ) {
+				$reordered[] = $indexed->get( $id );
+				$seen[]      = $id;
+			}
+		}
+
+		// Append any blocks not in orderedIds to prevent data loss
+		foreach ( $this->blocks as $block ) {
+			if ( !in_array( $block['id'] ?? '', $seen, true ) ) {
+				$reordered[] = $block;
+			}
+		}
+
+		$this->blocks = $reordered;
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	// ──────────────────────────────────────────────────────────
+	// Block Insertion
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * Handle a block insert event from the sidebar.
+	 *
+	 * Appends a new block directly to the flat blocks list. If a variation
+	 * is specified, applies the variation's default settings to the block.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string      $type      The block type to insert.
+	 * @param string|null $variation The variation name to apply (optional).
+	 *
+	 * @return void
+	 */
+	#[On( 'block-insert' )]
+	public function insertBlock( string $type, ?string $variation = null ): void
+	{
+		$settings = [];
+
+		// Apply variation settings if specified
+		if ( null !== $variation ) {
+			$variationConfig = veBlocks()->getVariation( $type, $variation );
+
+			if ( null !== $variationConfig ) {
+				// Store the variation name
+				$settings['_variation'] = $variation;
+
+				// Apply variation attributes
+				if ( isset( $variationConfig['attributes']['settings'] ) && is_array( $variationConfig['attributes']['settings'] ) ) {
+					$settings = array_merge( $settings, $variationConfig['attributes']['settings'] );
+				}
+			}
+		}
+
+		$this->blocks[] = [
+			'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
+			'type'     => $type,
+			'name'     => $type,
+			'content'  => [],
+			'settings' => $settings,
+		];
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Insert a block into a container's inner blocks.
+	 *
+	 * Creates a new block and appends it to the specified parent
+	 * container's inner blocks array. For columns blocks, the
+	 * slotIndex specifies which column to insert into.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $type          The block type to insert.
+	 * @param string $parentBlockId The parent container block ID.
+	 * @param int    $slotIndex     Column slot index for columns blocks (-1 for non-columns).
+	 *
+	 * @return void
+	 */
+	public function insertBlockIntoContainer( string $type, string $parentBlockId, int $slotIndex = -1 ): void
+	{
+		$parentPath = $this->findBlockPath( $parentBlockId, $this->blocks );
+
+		if ( null === $parentPath ) {
+			return;
+		}
+
+		$newBlock = [
+			'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
+			'type'     => $type,
+			'content'  => [],
+			'settings' => [],
+		];
+
+		$blocks = $this->blocks;
+
+		if ( $slotIndex >= 0 ) {
+			$innerKey     = $parentPath . '.content.columns.' . $slotIndex . '.blocks';
+			$currentInner = data_get( $blocks, $innerKey, [] );
+
+			$currentInner[] = $newBlock;
+			data_set( $blocks, $innerKey, $currentInner );
+		} else {
+			$innerKey     = $parentPath . '.content.inner_blocks';
+			$currentInner = data_get( $blocks, $innerKey, [] );
+
+			$currentInner[] = $newBlock;
+			data_set( $blocks, $innerKey, $currentInner );
+		}
+
+		$this->blocks = $blocks;
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Handle a section insert event from the sidebar.
+	 *
+	 * Inserts the section's default blocks directly into the
+	 * flat blocks list without a section wrapper.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param string $type The section type to insert.
+	 *
+	 * @return void
+	 */
+	#[On( 'section-insert' )]
+	public function insertSection( string $type ): void
+	{
+		$registry = app( SectionRegistry::class );
+		$config   = $registry->get( $type );
+
+		if ( null !== $config ) {
+			foreach ( $config['default_blocks'] ?? [] as $blockDef ) {
+				$this->blocks[] = [
+					'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
+					'type'     => $blockDef['type'] ?? 'text',
+					'content'  => $blockDef['content'] ?? [],
+					'settings' => [],
+				];
+			}
+		}
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Insert a user-created section pattern.
+	 *
+	 * Loads blocks from a UserSection record and inserts them
+	 * flat into the blocks list.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param int $userSectionId The UserSection ID to insert.
+	 *
+	 * @return void
+	 */
+	#[On( 'user-section-insert' )]
+	public function insertUserSection( int $userSectionId ): void
+	{
+		$userSection = UserSection::find( $userSectionId );
+
+		if ( null === $userSection || empty( $userSection->blocks ) ) {
+			return;
+		}
+
+		foreach ( $userSection->blocks as $blockDef ) {
+			$this->blocks[] = [
+				'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
+				'type'     => $blockDef['type'] ?? 'text',
+				'content'  => $blockDef['content'] ?? [],
+				'settings' => $blockDef['settings'] ?? [],
+			];
+		}
+
+		$userSection->increment( 'use_count' );
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Save current blocks as a user section pattern.
+	 *
+	 * Creates a new UserSection record from the current blocks array.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param string      $name        The section name.
+	 * @param string|null $description Optional section description.
+	 * @param string|null $category    Optional section category.
+	 *
+	 * @return void
+	 */
+	#[On( 'save-blocks-as-section' )]
+	public function saveBlocksAsSection( string $name, ?string $description = null, ?string $category = null ): void
+	{
+		if ( '' === trim( $name ) || empty( $this->blocks ) ) {
+			return;
+		}
+
+		abort_unless( auth()->check(), 403 );
+
+		UserSection::create( [
+			'user_id'     => auth()->id(),
+			'name'        => trim( $name ),
+			'description' => $description,
+			'category'    => $category,
+			'blocks'      => $this->blocks,
+		] );
+
+		$this->dispatch( 'section-saved' );
+	}
+
+	// ──────────────────────────────────────────────────────────
+	// Block Move / Delete
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * Move a block up by one position within its sibling array.
+	 *
+	 * Works for both top-level and nested blocks by using
+	 * recursive block location.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param string $blockId The block ID to move up.
+	 *
+	 * @return void
+	 */
+	public function moveBlockUp( string $blockId ): void
+	{
+		$location = $this->getBlockLocation( $blockId );
+
+		if ( null === $location || 0 === $location['index'] ) {
+			return;
+		}
+
+		$siblings = $this->getSiblingsArray( $location['parentPath'] );
+		$index    = $location['index'];
+
+		$temp                   = $siblings[ $index - 1 ];
+		$siblings[ $index - 1 ] = $siblings[ $index ];
+		$siblings[ $index ]     = $temp;
+
+		$this->setSiblingsArray( $location['parentPath'], $siblings );
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Move a block down by one position within its sibling array.
+	 *
+	 * Works for both top-level and nested blocks by using
+	 * recursive block location.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param string $blockId The block ID to move down.
+	 *
+	 * @return void
+	 */
+	public function moveBlockDown( string $blockId ): void
+	{
+		$location = $this->getBlockLocation( $blockId );
+
+		if ( null === $location ) {
+			return;
+		}
+
+		$siblings = $this->getSiblingsArray( $location['parentPath'] );
+		$index    = $location['index'];
+
+		if ( $index >= count( $siblings ) - 1 ) {
+			return;
+		}
+
+		$temp                   = $siblings[ $index + 1 ];
+		$siblings[ $index + 1 ] = $siblings[ $index ];
+		$siblings[ $index ]     = $temp;
+
+		$this->setSiblingsArray( $location['parentPath'], $siblings );
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Change the heading level for a heading block.
+	 *
+	 * Searches recursively to support nested heading blocks.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param string $blockId The block ID to update.
+	 * @param string $level   The new heading level (h1-h6).
+	 *
+	 * @return void
+	 */
+	public function changeHeadingLevel( string $blockId, string $level ): void
+	{
+		if ( !in_array( $level, [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ) {
+			return;
+		}
+
+		$path = $this->findBlockPath( $blockId, $this->blocks );
+
+		if ( null === $path ) {
+			return;
+		}
+
+		$blocks = $this->blocks;
+		data_set( $blocks, $path . '.content.level', $level );
+		$this->blocks = $blocks;
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Change the list style for a list block.
+	 *
+	 * Searches recursively to support nested list blocks.
+	 *
+	 * @since 1.10.0
+	 *
+	 * @param string $blockId The block ID to update.
+	 * @param string $style   The new list style (bullet or number).
+	 *
+	 * @return void
+	 */
+	public function changeListStyle( string $blockId, string $style ): void
+	{
+		if ( !in_array( $style, [ 'bullet', 'number' ], true ) ) {
+			return;
+		}
+
+		$path = $this->findBlockPath( $blockId, $this->blocks );
+
+		if ( null === $path ) {
+			return;
+		}
+
+		$blocks = $this->blocks;
+		data_set( $blocks, $path . '.content.style', $style );
+		$this->blocks = $blocks;
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Delete a block from the canvas.
+	 *
+	 * Searches recursively to support deleting nested blocks
+	 * from within their parent containers.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param string $blockId The block ID to delete.
+	 *
+	 * @return void
+	 */
+	public function deleteBlock( string $blockId ): void
+	{
+		$location = $this->getBlockLocation( $blockId );
+
+		if ( null === $location ) {
+			return;
+		}
+
+		$siblings = $this->getSiblingsArray( $location['parentPath'] );
+		array_splice( $siblings, $location['index'], 1 );
+		$this->setSiblingsArray( $location['parentPath'], array_values( $siblings ) );
+
+		if ( $this->activeBlockId === $blockId ) {
+			$this->activeBlockId  = null;
+			$this->editingBlockId = null;
+		}
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Apply a block variation to the active block.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $blockType     The block type.
+	 * @param string $variationName The variation name.
+	 *
+	 * @return void
+	 */
+	public function applyBlockVariation( string $blockType, string $variationName ): void
+	{
+		if ( null === $this->activeBlockId ) {
+			return;
+		}
+
+		$path     = $this->findBlockPath( $this->activeBlockId, $this->blocks );
+		$blocks   = $this->blocks;
+		$registry = veBlocks();
+
+		if ( null === $path || !$registry->hasVariations( $blockType ) ) {
+			return;
+		}
+
+		$variation = $registry->getVariation( $blockType, $variationName );
+
+		if ( null === $variation ) {
+			return;
+		}
+
+		// Store the variation name
+		data_set( $blocks, $path . '.settings._variation', $variationName );
+
+		// Apply variation attributes
+		if ( isset( $variation['attributes']['settings'] ) ) {
+			foreach ( $variation['attributes']['settings'] as $key => $value ) {
+				data_set( $blocks, $path . '.settings.' . $key, $value );
+			}
+		}
+
+		$this->blocks = $blocks;
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->dispatch( 'block-selected', blockId: $this->activeBlockId );
+	}
+
+	// ──────────────────────────────────────────────────────────
+	// Zoom & Grid
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * Set the canvas zoom level.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param int $level The zoom level as a percentage (50-200).
+	 *
+	 * @return void
+	 */
+	public function setZoomLevel( int $level ): void
+	{
+		$this->zoomLevel = max( 50, min( 200, $level ) );
+	}
+
+	/**
+	 * Toggle the alignment grid overlay.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return void
+	 */
+	public function toggleGrid(): void
+	{
+		$this->showGrid = !$this->showGrid;
+	}
+
+	// ──────────────────────────────────────────────────────────
+	// Inline Editing
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * Enter inline edit mode for a text block.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param string $blockId The block ID to edit inline.
+	 *
+	 * @return void
+	 */
+	public function startInlineEdit( string $blockId ): void
+	{
+		$this->editingBlockId = $blockId;
+		$this->activeBlockId  = $blockId;
+		$this->dispatch( 'block-selected', blockId: $blockId );
+	}
+
+	/**
+	 * Save inline edit and exit edit mode.
+	 *
+	 * Searches recursively to support nested block editing.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param string $blockId The block ID being edited.
+	 * @param string $content The updated text content.
+	 *
+	 * @return void
+	 */
+	public function saveInlineEdit( string $blockId, string $content ): void
+	{
+		$path = $this->findBlockPath( $blockId, $this->blocks );
+
+		if ( null !== $path ) {
+			$blocks = $this->blocks;
+			data_set( $blocks, $path . '.content.text', $content );
+			$this->blocks = $blocks;
+		}
+
+		$this->editingBlockId = null;
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+	}
+
+	/**
+	 * Save inline edit and navigate to an adjacent block.
+	 *
+	 * Combines content saving with navigation to prevent data loss
+	 * when moving between blocks via Tab or Arrow keys. Uses
+	 * depth-first traversal for navigation order.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @param string $blockId   The block ID being edited.
+	 * @param string $content   The updated text content.
+	 * @param string $direction The navigation direction ('up' or 'down').
+	 *
+	 * @return void
+	 */
+	public function saveAndNavigate( string $blockId, string $content, string $direction ): void
+	{
+		// Save the current block's content
+		$path = $this->findBlockPath( $blockId, $this->blocks );
+
+		if ( null !== $path ) {
+			$blocks = $this->blocks;
+			data_set( $blocks, $path . '.content.text', $content );
+			$this->blocks = $blocks;
+		}
+
+		// Build flat navigation list and find current position
+		$navList      = $this->buildFlatNavigationList( $this->blocks );
+		$currentIndex = array_search( $blockId, $navList, true );
+
+		if ( false === $currentIndex ) {
+			$this->editingBlockId = null;
+			$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+
+			return;
+		}
+
+		$lastIndex = count( $navList ) - 1;
+
+		// At the last block going down: exit edit mode and focus typing area.
+		if ( 'down' === $direction && $currentIndex >= $lastIndex ) {
+			$this->editingBlockId = null;
+			$this->activeBlockId  = null;
+			$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+			$this->dispatch( 'focus-typing-area' );
+
+			return;
+		}
+
+		// At the first block going up: stay on the same block.
+		if ( 'up' === $direction && 0 === $currentIndex ) {
+			$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+
+			return;
+		}
+
+		$targetIndex   = 'up' === $direction ? $currentIndex - 1 : $currentIndex + 1;
+		$targetBlockId = $navList[ $targetIndex ] ?? '';
+		$targetBlock   = $this->findBlockRecursive( $targetBlockId, $this->blocks );
+
+		$this->activeBlockId  = $targetBlockId;
+		$this->editingBlockId = null !== $targetBlock && $this->isBlockEditable( $targetBlock['type'] ?? '' )
+			? $targetBlockId
+			: null;
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+
+		if ( null !== $this->editingBlockId ) {
+			$this->dispatch( 'focus-block', blockId: $this->editingBlockId );
+		}
+	}
+
+	// ──────────────────────────────────────────────────────────
+	// Keyboard Navigation
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * Handle keyboard navigation between blocks.
+	 *
+	 * Uses depth-first traversal to navigate through all blocks
+	 * including those nested inside containers.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param string $direction The navigation direction ('up' or 'down').
+	 *
+	 * @return void
+	 */
+	#[On( 'canvas-navigate' )]
+	public function navigateBlocks( string $direction ): void
+	{
+		if ( empty( $this->blocks ) ) {
+			return;
+		}
+
+		$navList      = $this->buildFlatNavigationList( $this->blocks );
+		$currentIndex = null;
+
+		if ( null !== $this->activeBlockId ) {
+			$currentIndex = array_search( $this->activeBlockId, $navList, true );
+
+			if ( false === $currentIndex ) {
+				$currentIndex = null;
+			}
+		}
+
+		if ( null === $currentIndex ) {
+			$targetIndex = 'up' === $direction
+				? count( $navList ) - 1
+				: 0;
+		} elseif ( 'up' === $direction ) {
+			$targetIndex = max( 0, $currentIndex - 1 );
+		} else {
+			$targetIndex = min( count( $navList ) - 1, $currentIndex + 1 );
+		}
+
+		$targetBlockId = $navList[ $targetIndex ] ?? '';
+		$targetBlock   = $this->findBlockRecursive( $targetBlockId, $this->blocks );
+
+		$this->activeBlockId  = $targetBlockId;
+		$this->editingBlockId = null !== $targetBlock && $this->isBlockEditable( $targetBlock['type'] ?? '' )
+			? $this->activeBlockId
+			: null;
+
+		if ( null !== $this->editingBlockId ) {
+			$this->dispatch( 'focus-block', blockId: $this->editingBlockId );
+		}
+	}
+
+	/**
+	 * Handle keyboard deletion of selected block.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return void
+	 */
+	#[On( 'canvas-delete-selected' )]
+	public function deleteSelected(): void
+	{
+		if ( null !== $this->activeBlockId ) {
+			$this->deleteBlock( $this->activeBlockId );
+		}
+	}
+
+	// ──────────────────────────────────────────────────────────
+	// Block Creation Helpers
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * Insert a block with optional initial text content.
+	 *
+	 * Used by the typing area to create blocks from typed text
+	 * or from the slash command menu. Does not dispatch blocks-updated
+	 * to avoid the editor re-render cascade that would destroy the
+	 * canvas component and lose editing state. The blocks-updated
+	 * event is deferred until saveInlineEdit or insertBlockAfter.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param string $type    The block type to insert.
+	 * @param string $content Optional initial text content.
+	 *
+	 * @return void
+	 */
+	public function insertBlockWithContent( string $type, string $content = '', ?string $variation = null ): void
+	{
+		$newBlock = [
+			'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
+			'type'     => $type,
+			'content'  => [],
+			'settings' => [],
+		];
+
+		if ( '' !== $content ) {
+			$newBlock['content']['text'] = $content;
+		}
+
+		// Apply variation if provided
+		if ( null !== $variation ) {
+			$registry        = veBlocks();
+			$variationConfig = $registry->getVariation( $type, $variation );
+
+			if ( null !== $variationConfig ) {
+				$newBlock['settings']['_variation'] = $variation;
+
+				if ( isset( $variationConfig['attributes']['settings'] ) ) {
+					foreach ( $variationConfig['attributes']['settings'] as $key => $value ) {
+						$newBlock['settings'][ $key ] = $value;
+					}
+				}
+			}
+		}
+
+		$this->blocks[] = $newBlock;
+
+		$this->activeBlockId  = $newBlock['id'];
+		$this->editingBlockId = $newBlock['id'];
+
+		$this->dispatch( 'focus-block', blockId: $newBlock['id'] );
+	}
+
+	/**
+	 * Save current block content and insert a new text block after it.
+	 *
+	 * Triggered by pressing Enter inside an editable block. Saves the
+	 * current block's content, creates a new text block immediately
+	 * after it within the same sibling array, and enters edit mode
+	 * on the new block. Works for both top-level and nested blocks.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @param string $blockId The block ID being edited.
+	 * @param string $content The current block's text content.
+	 *
+	 * @return void
+	 */
+	public function insertBlockAfter( string $blockId, string $content ): void
+	{
+		$location = $this->getBlockLocation( $blockId );
+
+		if ( null === $location ) {
+			return;
+		}
+
+		// Save the current block's content
+		$path   = $this->findBlockPath( $blockId, $this->blocks );
+		$blocks = $this->blocks;
+		data_set( $blocks, $path . '.content.text', $content );
+		$this->blocks = $blocks;
+
+		// Create new block and insert after current within same sibling array
+		$newBlock = [
+			'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
+			'type'     => 'text',
+			'content'  => [],
+			'settings' => [],
+		];
+
+		$siblings = $this->getSiblingsArray( $location['parentPath'] );
+		array_splice( $siblings, $location['index'] + 1, 0, [ $newBlock ] );
+		$this->setSiblingsArray( $location['parentPath'], $siblings );
+
+		$this->activeBlockId  = $newBlock['id'];
+		$this->editingBlockId = $newBlock['id'];
+
+		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->dispatch( 'focus-block', blockId: $newBlock['id'] );
+	}
+
+	// ──────────────────────────────────────────────────────────
+	// Computed Properties & Helpers
+	// ──────────────────────────────────────────────────────────
+
+	/**
+	 * Get available blocks grouped by category for the slash command menu.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @return array
+	 */
+	#[Computed]
+	public function slashMenuBlocks(): array
+	{
+		$registry = veBlocks();
+
+		return $registry->getGroupedByCategory()->map( function ( $category, $key ) use ( $registry ) {
+			$expandedBlocks = collect();
+
+			foreach ( $category['blocks'] as $blockType => $block ) {
+				// Skip blocks that have parent constraints (only allowed inside specific blocks)
+				if ( ! empty( $block['parent'] ) ) {
+					continue;
+				}
+
+				if ( $registry->hasVariations( $blockType ) ) {
+					// Add each variation as a separate entry
+					$variations = $registry->getVariations( $blockType );
+
+					foreach ( $variations as $variationName => $variation ) {
+						$expandedBlocks->push( [
+							'type'       => $blockType,
+							'variation'  => $variationName,
+							'name'       => $variation['title'] ?? $block['name'],
+							'icon'       => $variation['icon'] ?? $block['icon'] ?? 'fas.cube',
+							'keywords'   => $block['keywords'] ?? [],
+						] );
+					}
+				} else {
+					// Keep regular blocks as-is
+					$expandedBlocks->push( [
+						'type'       => $blockType,
+						'variation'  => null,
+						'name'       => $block['name'],
+						'icon'       => $block['icon'] ?? 'fas.cube',
+						'keywords'   => $block['keywords'] ?? [],
+					] );
+				}
+			}
+
+			return [
+				'key'    => $key,
+				'name'   => $category['name'],
+				'icon'   => $category['icon'],
+				'blocks' => $expandedBlocks->toArray(),
+			];
+		} )->values()->toArray();
+	}
+
+	// ──────────────────────────────────────────────────────────
 	// Recursive Block Helpers
 	// ──────────────────────────────────────────────────────────
 
@@ -342,123 +1250,6 @@ new class extends Component {
 		return $list;
 	}
 
-	// ──────────────────────────────────────────────────────────
-	// Block Selection
-	// ──────────────────────────────────────────────────────────
-
-	/**
-	 * Select a block in the canvas.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param string $blockId The block ID to select.
-	 *
-	 * @return void
-	 */
-	public function selectBlock( string $blockId ): void
-	{
-		$this->activeBlockId  = $blockId;
-		$this->editingBlockId = null;
-		$this->dispatch( 'block-selected', blockId: $blockId );
-	}
-
-	/**
-	 * Handle block selection from external sources (e.g. layers tab).
-	 *
-	 * @since 1.4.0
-	 *
-	 * @param string $blockId The block ID to select.
-	 *
-	 * @return void
-	 */
-	#[On( 'block-selected' )]
-	public function onBlockSelected( string $blockId ): void
-	{
-		$this->activeBlockId = $blockId;
-
-		if ( $this->editingBlockId !== $blockId ) {
-			$this->editingBlockId = null;
-		}
-	}
-
-	/**
-	 * Sync blocks from the editor (e.g. after layers reorder).
-	 *
-	 * @since 1.4.0
-	 *
-	 * @param array $blocks The updated blocks array.
-	 *
-	 * @return void
-	 */
-	#[On( 'canvas-sync-blocks' )]
-	public function onCanvasSyncBlocks( array $blocks ): void
-	{
-		$this->blocks = $blocks;
-	}
-
-	/**
-	 * Deselect all blocks.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @return void
-	 */
-	public function deselectAll(): void
-	{
-		$this->activeBlockId  = null;
-		$this->editingBlockId = null;
-	}
-
-	// ──────────────────────────────────────────────────────────
-	// Block Reordering
-	// ──────────────────────────────────────────────────────────
-
-	/**
-	 * Handle drag-and-drop reordering of blocks.
-	 *
-	 * Accepts an array of block IDs in the new order,
-	 * as provided by the x-drag-context drag:end event.
-	 * When parentBlockId is provided, reorders within that
-	 * container's inner blocks rather than the top-level array.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param array       $orderedIds    The new block ID order.
-	 * @param string|null $parentBlockId Optional parent container block ID.
-	 * @param int         $slotIndex     Column slot index for columns blocks (-1 for non-columns).
-	 *
-	 * @return void
-	 */
-	public function reorderBlocks( array $orderedIds, ?string $parentBlockId = null, int $slotIndex = -1 ): void
-	{
-		if ( null !== $parentBlockId ) {
-			$this->reorderInnerBlocks( $orderedIds, $parentBlockId, $slotIndex );
-
-			return;
-		}
-
-		$indexed   = collect( $this->blocks )->keyBy( 'id' );
-		$reordered = [];
-		$seen      = [];
-
-		foreach ( $orderedIds as $id ) {
-			if ( $indexed->has( $id ) ) {
-				$reordered[] = $indexed->get( $id );
-				$seen[]      = $id;
-			}
-		}
-
-		// Append any blocks not in orderedIds to prevent data loss
-		foreach ( $this->blocks as $block ) {
-			if ( !in_array( $block['id'] ?? '', $seen, true ) ) {
-				$reordered[] = $block;
-			}
-		}
-
-		$this->blocks = $reordered;
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-	}
-
 	/**
 	 * Reorder inner blocks within a container.
 	 *
@@ -478,7 +1269,7 @@ new class extends Component {
 			return;
 		}
 
-		$blocks     = $this->blocks;
+		$blocks      = $this->blocks;
 		$parentBlock = data_get( $blocks, $parentPath );
 
 		if ( $slotIndex >= 0 ) {
@@ -510,690 +1301,6 @@ new class extends Component {
 		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
 	}
 
-	// ──────────────────────────────────────────────────────────
-	// Block Insertion
-	// ──────────────────────────────────────────────────────────
-
-	/**
-	 * Handle a block insert event from the sidebar.
-	 *
-	 * Appends a new block directly to the flat blocks list.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param string $type The block type to insert.
-	 *
-	 * @return void
-	 */
-	#[On( 'block-insert' )]
-	public function insertBlock( string $type ): void
-	{
-		$this->blocks[] = [
-			'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
-			'type'     => $type,
-			'content'  => [],
-			'settings' => [],
-		];
-
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-	}
-
-	/**
-	 * Insert a block into a container's inner blocks.
-	 *
-	 * Creates a new block and appends it to the specified parent
-	 * container's inner blocks array. For columns blocks, the
-	 * slotIndex specifies which column to insert into.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param string $type          The block type to insert.
-	 * @param string $parentBlockId The parent container block ID.
-	 * @param int    $slotIndex     Column slot index for columns blocks (-1 for non-columns).
-	 *
-	 * @return void
-	 */
-	public function insertBlockIntoContainer( string $type, string $parentBlockId, int $slotIndex = -1 ): void
-	{
-		$parentPath = $this->findBlockPath( $parentBlockId, $this->blocks );
-
-		if ( null === $parentPath ) {
-			return;
-		}
-
-		$newBlock = [
-			'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
-			'type'     => $type,
-			'content'  => [],
-			'settings' => [],
-		];
-
-		$blocks = $this->blocks;
-
-		if ( $slotIndex >= 0 ) {
-			$innerKey     = $parentPath . '.content.columns.' . $slotIndex . '.blocks';
-			$currentInner = data_get( $blocks, $innerKey, [] );
-
-			$currentInner[] = $newBlock;
-			data_set( $blocks, $innerKey, $currentInner );
-		} else {
-			$innerKey     = $parentPath . '.content.inner_blocks';
-			$currentInner = data_get( $blocks, $innerKey, [] );
-
-			$currentInner[] = $newBlock;
-			data_set( $blocks, $innerKey, $currentInner );
-		}
-
-		$this->blocks = $blocks;
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-	}
-
-	/**
-	 * Handle a section insert event from the sidebar.
-	 *
-	 * Inserts the section's default blocks directly into the
-	 * flat blocks list without a section wrapper.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @param string $type The section type to insert.
-	 *
-	 * @return void
-	 */
-	#[On( 'section-insert' )]
-	public function insertSection( string $type ): void
-	{
-		$registry = app( SectionRegistry::class );
-		$config   = $registry->get( $type );
-
-		if ( null !== $config ) {
-			foreach ( $config['default_blocks'] ?? [] as $blockDef ) {
-				$this->blocks[] = [
-					'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
-					'type'     => $blockDef['type'] ?? 'text',
-					'content'  => $blockDef['content'] ?? [],
-					'settings' => [],
-				];
-			}
-		}
-
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-	}
-
-	/**
-	 * Insert a user-created section pattern.
-	 *
-	 * Loads blocks from a UserSection record and inserts them
-	 * flat into the blocks list.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @param int $userSectionId The UserSection ID to insert.
-	 *
-	 * @return void
-	 */
-	#[On( 'user-section-insert' )]
-	public function insertUserSection( int $userSectionId ): void
-	{
-		$userSection = UserSection::find( $userSectionId );
-
-		if ( null === $userSection || empty( $userSection->blocks ) ) {
-			return;
-		}
-
-		foreach ( $userSection->blocks as $blockDef ) {
-			$this->blocks[] = [
-				'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
-				'type'     => $blockDef['type'] ?? 'text',
-				'content'  => $blockDef['content'] ?? [],
-				'settings' => $blockDef['settings'] ?? [],
-			];
-		}
-
-		$userSection->increment( 'use_count' );
-
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-	}
-
-	/**
-	 * Save current blocks as a user section pattern.
-	 *
-	 * Creates a new UserSection record from the current blocks array.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @param string      $name        The section name.
-	 * @param string|null $description Optional section description.
-	 * @param string|null $category    Optional section category.
-	 *
-	 * @return void
-	 */
-	#[On( 'save-blocks-as-section' )]
-	public function saveBlocksAsSection( string $name, ?string $description = null, ?string $category = null ): void
-	{
-		if ( '' === trim( $name ) || empty( $this->blocks ) ) {
-			return;
-		}
-
-		abort_unless( auth()->check(), 403 );
-
-		UserSection::create( [
-			'user_id'     => auth()->id(),
-			'name'        => trim( $name ),
-			'description' => $description,
-			'category'    => $category,
-			'blocks'      => $this->blocks,
-		] );
-
-		$this->dispatch( 'section-saved' );
-	}
-
-	// ──────────────────────────────────────────────────────────
-	// Block Move / Delete
-	// ──────────────────────────────────────────────────────────
-
-	/**
-	 * Move a block up by one position within its sibling array.
-	 *
-	 * Works for both top-level and nested blocks by using
-	 * recursive block location.
-	 *
-	 * @since 1.7.0
-	 *
-	 * @param string $blockId The block ID to move up.
-	 *
-	 * @return void
-	 */
-	public function moveBlockUp( string $blockId ): void
-	{
-		$location = $this->getBlockLocation( $blockId );
-
-		if ( null === $location || 0 === $location['index'] ) {
-			return;
-		}
-
-		$siblings = $this->getSiblingsArray( $location['parentPath'] );
-		$index    = $location['index'];
-
-		$temp                = $siblings[ $index - 1 ];
-		$siblings[ $index - 1 ] = $siblings[ $index ];
-		$siblings[ $index ]     = $temp;
-
-		$this->setSiblingsArray( $location['parentPath'], $siblings );
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-	}
-
-	/**
-	 * Move a block down by one position within its sibling array.
-	 *
-	 * Works for both top-level and nested blocks by using
-	 * recursive block location.
-	 *
-	 * @since 1.7.0
-	 *
-	 * @param string $blockId The block ID to move down.
-	 *
-	 * @return void
-	 */
-	public function moveBlockDown( string $blockId ): void
-	{
-		$location = $this->getBlockLocation( $blockId );
-
-		if ( null === $location ) {
-			return;
-		}
-
-		$siblings = $this->getSiblingsArray( $location['parentPath'] );
-		$index    = $location['index'];
-
-		if ( $index >= count( $siblings ) - 1 ) {
-			return;
-		}
-
-		$temp                   = $siblings[ $index + 1 ];
-		$siblings[ $index + 1 ] = $siblings[ $index ];
-		$siblings[ $index ]     = $temp;
-
-		$this->setSiblingsArray( $location['parentPath'], $siblings );
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-	}
-
-	/**
-	 * Change the heading level for a heading block.
-	 *
-	 * Searches recursively to support nested heading blocks.
-	 *
-	 * @since 1.7.0
-	 *
-	 * @param string $blockId The block ID to update.
-	 * @param string $level   The new heading level (h1-h6).
-	 *
-	 * @return void
-	 */
-	public function changeHeadingLevel( string $blockId, string $level ): void
-	{
-		if ( !in_array( $level, [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ) {
-			return;
-		}
-
-		$path = $this->findBlockPath( $blockId, $this->blocks );
-
-		if ( null === $path ) {
-			return;
-		}
-
-		$blocks = $this->blocks;
-		data_set( $blocks, $path . '.content.level', $level );
-		$this->blocks = $blocks;
-
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-	}
-
-	/**
-	 * Change the list style for a list block.
-	 *
-	 * Searches recursively to support nested list blocks.
-	 *
-	 * @since 1.10.0
-	 *
-	 * @param string $blockId The block ID to update.
-	 * @param string $style   The new list style (bullet or number).
-	 *
-	 * @return void
-	 */
-	public function changeListStyle( string $blockId, string $style ): void
-	{
-		if ( !in_array( $style, [ 'bullet', 'number' ], true ) ) {
-			return;
-		}
-
-		$path = $this->findBlockPath( $blockId, $this->blocks );
-
-		if ( null === $path ) {
-			return;
-		}
-
-		$blocks = $this->blocks;
-		data_set( $blocks, $path . '.content.style', $style );
-		$this->blocks = $blocks;
-
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-	}
-
-	/**
-	 * Delete a block from the canvas.
-	 *
-	 * Searches recursively to support deleting nested blocks
-	 * from within their parent containers.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @param string $blockId The block ID to delete.
-	 *
-	 * @return void
-	 */
-	public function deleteBlock( string $blockId ): void
-	{
-		$location = $this->getBlockLocation( $blockId );
-
-		if ( null === $location ) {
-			return;
-		}
-
-		$siblings = $this->getSiblingsArray( $location['parentPath'] );
-		array_splice( $siblings, $location['index'], 1 );
-		$this->setSiblingsArray( $location['parentPath'], array_values( $siblings ) );
-
-		if ( $this->activeBlockId === $blockId ) {
-			$this->activeBlockId  = null;
-			$this->editingBlockId = null;
-		}
-
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-	}
-
-	// ──────────────────────────────────────────────────────────
-	// Zoom & Grid
-	// ──────────────────────────────────────────────────────────
-
-	/**
-	 * Set the canvas zoom level.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @param int $level The zoom level as a percentage (50-200).
-	 *
-	 * @return void
-	 */
-	public function setZoomLevel( int $level ): void
-	{
-		$this->zoomLevel = max( 50, min( 200, $level ) );
-	}
-
-	/**
-	 * Toggle the alignment grid overlay.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @return void
-	 */
-	public function toggleGrid(): void
-	{
-		$this->showGrid = !$this->showGrid;
-	}
-
-	// ──────────────────────────────────────────────────────────
-	// Inline Editing
-	// ──────────────────────────────────────────────────────────
-
-	/**
-	 * Enter inline edit mode for a text block.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @param string $blockId The block ID to edit inline.
-	 *
-	 * @return void
-	 */
-	public function startInlineEdit( string $blockId ): void
-	{
-		$this->editingBlockId = $blockId;
-		$this->activeBlockId  = $blockId;
-		$this->dispatch( 'block-selected', blockId: $blockId );
-	}
-
-	/**
-	 * Save inline edit and exit edit mode.
-	 *
-	 * Searches recursively to support nested block editing.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @param string $blockId The block ID being edited.
-	 * @param string $content The updated text content.
-	 *
-	 * @return void
-	 */
-	public function saveInlineEdit( string $blockId, string $content ): void
-	{
-		$path = $this->findBlockPath( $blockId, $this->blocks );
-
-		if ( null !== $path ) {
-			$blocks = $this->blocks;
-			data_set( $blocks, $path . '.content.text', $content );
-			$this->blocks = $blocks;
-		}
-
-		$this->editingBlockId = null;
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-	}
-
-	/**
-	 * Save inline edit and navigate to an adjacent block.
-	 *
-	 * Combines content saving with navigation to prevent data loss
-	 * when moving between blocks via Tab or Arrow keys. Uses
-	 * depth-first traversal for navigation order.
-	 *
-	 * @since 1.6.0
-	 *
-	 * @param string $blockId   The block ID being edited.
-	 * @param string $content   The updated text content.
-	 * @param string $direction The navigation direction ('up' or 'down').
-	 *
-	 * @return void
-	 */
-	public function saveAndNavigate( string $blockId, string $content, string $direction ): void
-	{
-		// Save the current block's content
-		$path = $this->findBlockPath( $blockId, $this->blocks );
-
-		if ( null !== $path ) {
-			$blocks = $this->blocks;
-			data_set( $blocks, $path . '.content.text', $content );
-			$this->blocks = $blocks;
-		}
-
-		// Build flat navigation list and find current position
-		$navList      = $this->buildFlatNavigationList( $this->blocks );
-		$currentIndex = array_search( $blockId, $navList, true );
-
-		if ( false === $currentIndex ) {
-			$this->editingBlockId = null;
-			$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-
-			return;
-		}
-
-		$lastIndex = count( $navList ) - 1;
-
-		// At the last block going down: exit edit mode and focus typing area.
-		if ( 'down' === $direction && $currentIndex >= $lastIndex ) {
-			$this->editingBlockId = null;
-			$this->activeBlockId  = null;
-			$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-			$this->dispatch( 'focus-typing-area' );
-
-			return;
-		}
-
-		// At the first block going up: stay on the same block.
-		if ( 'up' === $direction && 0 === $currentIndex ) {
-			$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-
-			return;
-		}
-
-		$targetIndex   = 'up' === $direction ? $currentIndex - 1 : $currentIndex + 1;
-		$targetBlockId = $navList[ $targetIndex ] ?? '';
-		$targetBlock   = $this->findBlockRecursive( $targetBlockId, $this->blocks );
-
-		$this->activeBlockId  = $targetBlockId;
-		$this->editingBlockId = null !== $targetBlock && $this->isBlockEditable( $targetBlock['type'] ?? '' )
-			? $targetBlockId
-			: null;
-
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-
-		if ( null !== $this->editingBlockId ) {
-			$this->dispatch( 'focus-block', blockId: $this->editingBlockId );
-		}
-	}
-
-	// ──────────────────────────────────────────────────────────
-	// Keyboard Navigation
-	// ──────────────────────────────────────────────────────────
-
-	/**
-	 * Handle keyboard navigation between blocks.
-	 *
-	 * Uses depth-first traversal to navigate through all blocks
-	 * including those nested inside containers.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @param string $direction The navigation direction ('up' or 'down').
-	 *
-	 * @return void
-	 */
-	#[On( 'canvas-navigate' )]
-	public function navigateBlocks( string $direction ): void
-	{
-		if ( empty( $this->blocks ) ) {
-			return;
-		}
-
-		$navList      = $this->buildFlatNavigationList( $this->blocks );
-		$currentIndex = null;
-
-		if ( null !== $this->activeBlockId ) {
-			$currentIndex = array_search( $this->activeBlockId, $navList, true );
-
-			if ( false === $currentIndex ) {
-				$currentIndex = null;
-			}
-		}
-
-		if ( null === $currentIndex ) {
-			$targetIndex = 'up' === $direction
-				? count( $navList ) - 1
-				: 0;
-		} elseif ( 'up' === $direction ) {
-			$targetIndex = max( 0, $currentIndex - 1 );
-		} else {
-			$targetIndex = min( count( $navList ) - 1, $currentIndex + 1 );
-		}
-
-		$targetBlockId = $navList[ $targetIndex ] ?? '';
-		$targetBlock   = $this->findBlockRecursive( $targetBlockId, $this->blocks );
-
-		$this->activeBlockId  = $targetBlockId;
-		$this->editingBlockId = null !== $targetBlock && $this->isBlockEditable( $targetBlock['type'] ?? '' )
-			? $this->activeBlockId
-			: null;
-
-		if ( null !== $this->editingBlockId ) {
-			$this->dispatch( 'focus-block', blockId: $this->editingBlockId );
-		}
-	}
-
-	/**
-	 * Handle keyboard deletion of selected block.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @return void
-	 */
-	#[On( 'canvas-delete-selected' )]
-	public function deleteSelected(): void
-	{
-		if ( null !== $this->activeBlockId ) {
-			$this->deleteBlock( $this->activeBlockId );
-		}
-	}
-
-	// ──────────────────────────────────────────────────────────
-	// Block Creation Helpers
-	// ──────────────────────────────────────────────────────────
-
-	/**
-	 * Insert a block with optional initial text content.
-	 *
-	 * Used by the typing area to create blocks from typed text
-	 * or from the slash command menu. Does not dispatch blocks-updated
-	 * to avoid the editor re-render cascade that would destroy the
-	 * canvas component and lose editing state. The blocks-updated
-	 * event is deferred until saveInlineEdit or insertBlockAfter.
-	 *
-	 * @since 1.2.0
-	 *
-	 * @param string $type    The block type to insert.
-	 * @param string $content Optional initial text content.
-	 *
-	 * @return void
-	 */
-	public function insertBlockWithContent( string $type, string $content = '' ): void
-	{
-		$newBlock = [
-			'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
-			'type'     => $type,
-			'content'  => [],
-			'settings' => [],
-		];
-
-		if ( '' !== $content ) {
-			$newBlock['content']['text'] = $content;
-		}
-
-		$this->blocks[] = $newBlock;
-
-		$this->activeBlockId  = $newBlock['id'];
-		$this->editingBlockId = $newBlock['id'];
-
-		$this->dispatch( 'focus-block', blockId: $newBlock['id'] );
-	}
-
-	/**
-	 * Save current block content and insert a new text block after it.
-	 *
-	 * Triggered by pressing Enter inside an editable block. Saves the
-	 * current block's content, creates a new text block immediately
-	 * after it within the same sibling array, and enters edit mode
-	 * on the new block. Works for both top-level and nested blocks.
-	 *
-	 * @since 1.6.0
-	 *
-	 * @param string $blockId The block ID being edited.
-	 * @param string $content The current block's text content.
-	 *
-	 * @return void
-	 */
-	public function insertBlockAfter( string $blockId, string $content ): void
-	{
-		$location = $this->getBlockLocation( $blockId );
-
-		if ( null === $location ) {
-			return;
-		}
-
-		// Save the current block's content
-		$path   = $this->findBlockPath( $blockId, $this->blocks );
-		$blocks = $this->blocks;
-		data_set( $blocks, $path . '.content.text', $content );
-		$this->blocks = $blocks;
-
-		// Create new block and insert after current within same sibling array
-		$newBlock = [
-			'id'       => str_replace( '.', '-', uniqid( 've-block-', true ) ),
-			'type'     => 'text',
-			'content'  => [],
-			'settings' => [],
-		];
-
-		$siblings = $this->getSiblingsArray( $location['parentPath'] );
-		array_splice( $siblings, $location['index'] + 1, 0, [ $newBlock ] );
-		$this->setSiblingsArray( $location['parentPath'], $siblings );
-
-		$this->activeBlockId  = $newBlock['id'];
-		$this->editingBlockId = $newBlock['id'];
-
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
-		$this->dispatch( 'focus-block', blockId: $newBlock['id'] );
-	}
-
-	// ──────────────────────────────────────────────────────────
-	// Computed Properties & Helpers
-	// ──────────────────────────────────────────────────────────
-
-	/**
-	 * Get available blocks grouped by category for the slash command menu.
-	 *
-	 * @since 1.2.0
-	 *
-	 * @return array
-	 */
-	#[Computed]
-	public function slashMenuBlocks(): array
-	{
-		$registry = app( BlockRegistry::class );
-
-		return $registry->getGroupedByCategory()->map( function ( $category, $key ) {
-			return [
-				'key'    => $key,
-				'name'   => $category['name'],
-				'icon'   => $category['icon'],
-				'blocks' => $category['blocks']->map( function ( $block, $type ) {
-					return [
-						'type'     => $type,
-						'name'     => $block['name'],
-						'icon'     => $block['icon'] ?? 'fas.cube',
-						'keywords' => $block['keywords'] ?? [],
-					];
-				} )->values()->toArray(),
-			];
-		} )->values()->toArray();
-	}
-
 	/**
 	 * Check whether a block type supports inline text editing.
 	 *
@@ -1205,7 +1312,7 @@ new class extends Component {
 	 */
 	private function isBlockEditable( string $blockType ): bool
 	{
-		$config   = app( BlockRegistry::class )->get( $blockType );
+		$config   = veBlocks()->get( $blockType );
 		$textType = $config['content_schema']['text']['type'] ?? null;
 
 		return in_array( $textType, [ 'text', 'textarea', 'richtext' ], true );
@@ -1348,7 +1455,7 @@ new class extends Component {
 						<template x-for="( block, blockIdx ) in category.blocks" :key="block.type">
 							<button
 								type="button"
-								@click="selectBlock( block.type )"
+								@click="selectBlock( block )"
 								@mouseenter="setActiveIndex( getFlatIndex( catIdx, blockIdx ) )"
 								:class="{ 'bg-blue-50 text-blue-700': activeIndex === getFlatIndex( catIdx, blockIdx ) }"
 								class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-blue-50"
@@ -1547,7 +1654,12 @@ new class extends Component {
 			this.flatItems = []
 			categories.forEach( ( cat, catIdx ) => {
 				cat.blocks.forEach( ( block, blockIdx ) => {
-					this.flatItems.push( { catIdx, blockIdx, type: block.type } )
+					this.flatItems.push( {
+					catIdx,
+					blockIdx,
+					type: block.type,
+					variation: block.variation || null
+				} )
 				} )
 			} )
 
@@ -1597,7 +1709,7 @@ new class extends Component {
 				} else if ( 'Enter' === event.key ) {
 					event.preventDefault()
 					if ( this.flatItems.length > 0 ) {
-						this.selectBlock( this.flatItems[ this.activeIndex ].type )
+						this.selectBlock( this.flatItems[ this.activeIndex ] )
 					}
 				} else if ( 'Escape' === event.key ) {
 					this.closeMenu()
@@ -1610,8 +1722,8 @@ new class extends Component {
 			}
 		},
 
-		selectBlock( type ) {
-			$wire.insertBlockWithContent( type, '' )
+		selectBlock( block ) {
+			$wire.insertBlockWithContent( block.type, '', block.variation )
 			this.closeMenu()
 			this.$refs.typingInput.textContent = ''
 			this.$nextTick( () => {

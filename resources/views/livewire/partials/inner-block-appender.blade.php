@@ -23,8 +23,28 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 ?>
 
 @php
-	$appenderBlocks = app( BlockRegistry::class )->getGroupedByCategory();
-	$appenderId     = 'appender-' . $parentBlockId . ( null !== $slotIndex ? '-' . $slotIndex : '' );
+	$registry   = veBlocks();
+	$allBlocks  = $registry->getGroupedByCategory();
+	$appenderId = 'appender-' . $parentBlockId . ( null !== $slotIndex ? '-' . $slotIndex : '' );
+
+	// Filter blocks based on parent context
+	$appenderBlocks = $allBlocks->map( function ( $category ) use ( $parentBlockType ) {
+		$filteredBlocks = $category['blocks']->filter( function ( $block, $blockType ) use ( $parentBlockType ) {
+			// If block has no parent constraint, it can go anywhere
+			if ( empty( $block['parent'] ) ) {
+				return true;
+			}
+
+			// If block has parent constraint, only show if current parent matches
+			if ( null !== $parentBlockType && in_array( $parentBlockType, $block['parent'], true ) ) {
+				return true;
+			}
+
+			return false;
+		} );
+
+		return array_merge( $category, [ 'blocks' => $filteredBlocks ] );
+	} )->filter( fn ( $category ) => $category['blocks']->isNotEmpty() );
 @endphp
 
 <div

@@ -81,6 +81,15 @@ new class extends Component {
 	public ?string $activeBlockId = null;
 
 	/**
+	 * The block type for the variation picker.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @var string|null
+	 */
+	public ?string $variationPickerBlock = null;
+
+	/**
 	 * Get blocks grouped by category, filtered by search.
 	 *
 	 * @since 1.0.0
@@ -90,8 +99,46 @@ new class extends Component {
 	#[Computed]
 	public function groupedBlocks(): Collection
 	{
-		$registry = app( BlockRegistry::class );
+		$registry = veBlocks();
 		$grouped  = $registry->getGroupedByCategory();
+
+		// Expand blocks with variations into separate entries and filter out blocks with parent constraints
+		$grouped = $grouped->map( function ( $category ) use ( $registry ) {
+			$expandedBlocks = collect();
+
+			foreach ( $category['blocks'] as $blockType => $block ) {
+				// Skip blocks that have parent constraints (only allowed inside specific blocks)
+				if ( ! empty( $block['parent'] ) ) {
+					continue;
+				}
+
+				if ( $registry->hasVariations( $blockType ) ) {
+					// Add each variation as a separate block entry
+					$variations = $registry->getVariations( $blockType );
+
+					foreach ( $variations as $variationName => $variation ) {
+						$expandedBlocks->put( $blockType . ':' . $variationName, [
+							'name'         => $variation['title'] ?? $block['name'],
+							'description'  => $variation['description'] ?? $block['description'],
+							'icon'         => $variation['icon'] ?? $block['icon'],
+							'keywords'     => $block['keywords'] ?? [],
+							'blockType'    => $blockType,
+							'variation'    => $variationName,
+							'isVariation'  => true,
+						] );
+					}
+				} else {
+					// Keep regular blocks as-is
+					$expandedBlocks->put( $blockType, array_merge( $block, [
+						'blockType'   => $blockType,
+						'variation'   => null,
+						'isVariation' => false,
+					] ) );
+				}
+			}
+
+			return array_merge( $category, [ 'blocks' => $expandedBlocks ] );
+		} );
 
 		if ( '' === $this->blockSearch ) {
 			return $grouped;
@@ -162,9 +209,9 @@ new class extends Component {
 			->orderBy( 'name' );
 
 		if ( '' !== $this->sectionSearch ) {
-			$search = str_replace( [ '\\', '%', '_' ], [ '\\\\', '\\%', '\\_' ], $this->sectionSearch );
+			$search  = str_replace( [ '\\', '%', '_' ], [ '\\\\', '\\%', '\\_' ], $this->sectionSearch );
 			$pattern = '%' . $search . '%';
-			$query->where( function ( $q ) use ( $pattern ) {
+			$query->where( function ( $q ) use ( $pattern ): void {
 				$q->whereRaw( 'name LIKE ? ESCAPE ?', [ $pattern, '\\' ] )
 					->orWhereRaw( 'description LIKE ? ESCAPE ?', [ $pattern, '\\' ] );
 			} );
@@ -204,13 +251,41 @@ new class extends Component {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $blockType The block type to insert.
+	 * @param string      $blockType The block type to insert.
+	 * @param string|null $variation The variation name to use (optional).
 	 *
 	 * @return void
 	 */
-	public function insertBlock( string $blockType ): void
+	public function insertBlock( string $blockType, ?string $variation = null ): void
 	{
-		$this->dispatch( 'block-insert', type: $blockType );
+		$this->dispatch( 'block-insert', type: $blockType, variation: $variation );
+		$this->variationPickerBlock = null;
+	}
+
+	/**
+	 * Show the variation picker for a block.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $blockType The block type to show variations for.
+	 *
+	 * @return void
+	 */
+	public function showVariationPicker( string $blockType ): void
+	{
+		$this->variationPickerBlock = $blockType;
+	}
+
+	/**
+	 * Close the variation picker.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	public function closeVariationPicker(): void
+	{
+		$this->variationPickerBlock = null;
 	}
 
 	/**
@@ -293,10 +368,10 @@ new class extends Component {
 						{{ $category['name'] }}
 					</h3>
 					<div class="grid grid-cols-2 gap-2">
-						@foreach ( $category['blocks'] as $blockType => $block )
+						@foreach ( $category['blocks'] as $blockKey => $block )
 							<button
-								wire:click="insertBlock( '{{ $blockType }}' )"
-								class="flex flex-col items-center gap-1 rounded-md border border-gray-200 p-2 text-center text-xs text-gray-700 hover:border-blue-300 hover:bg-blue-50"
+								wire:click="insertBlock( '{{ $block['blockType'] }}', {{ $block['variation'] ? "'" . $block['variation'] . "'" : 'null' }} )"
+								class="flex flex-col items-center gap-1 rounded-md border border-gray-200 p-2 text-center text-xs text-gray-700 hover:border-blue-300 hover:bg-blue-50 relative"
 							>
 								<x-artisanpack-icon name="{{ $block['icon'] ?? 'fas.cube' }}" class="w-5 h-5 text-gray-400" />
 								<span>{{ $block['name'] }}</span>
@@ -388,3 +463,53 @@ new class extends Component {
 		@endif
 	</div>
 </div>
+
+{{-- Variation Picker Modal --}}
+@if ( $variationPickerBlock )
+	@php
+		$blockConfig = veBlocks()->get( $variationPickerBlock );
+		$variations  = veBlocks()->getVariations( $variationPickerBlock );
+	@endphp
+	<div
+		class="fixed inset-0 z-[9999] flex items-center justify-center bg-black bg-opacity-50"
+		style="position: fixed !important;"
+		wire:click.self="closeVariationPicker()"
+	>
+		<div class="w-full max-w-md rounded-lg bg-white p-6 shadow-xl">
+			<div class="mb-4 flex items-center justify-between">
+				<h3 class="text-lg font-semibold text-gray-900">
+					{{ __( 'Choose a variation' ) }}
+				</h3>
+				<button
+					wire:click="closeVariationPicker()"
+					class="text-gray-400 hover:text-gray-600"
+					aria-label="{{ __( 'Close' ) }}"
+				>
+					<x-artisanpack-icon name="fas.times" class="h-5 w-5" />
+				</button>
+			</div>
+
+			<div class="space-y-2">
+				@foreach ( $variations as $variationName => $variation )
+					<button
+						wire:click="insertBlock( '{{ $variationPickerBlock }}', '{{ $variationName }}' )"
+						class="flex w-full items-start gap-3 rounded-md border border-gray-200 p-3 text-left hover:border-blue-300 hover:bg-blue-50"
+					>
+						<div class="mt-0.5 shrink-0">
+							<x-artisanpack-icon
+								name="{{ $variation['icon'] ?? $blockConfig['icon'] ?? 'fas.cube' }}"
+								class="h-6 w-6 text-gray-400"
+							/>
+						</div>
+						<div class="min-w-0">
+							<div class="font-medium text-gray-900">{{ $variation['title'] }}</div>
+							@if ( !empty( $variation['description'] ) )
+								<div class="mt-0.5 text-sm text-gray-500">{{ $variation['description'] }}</div>
+							@endif
+						</div>
+					</button>
+				@endforeach
+			</div>
+		</div>
+	</div>
+@endif
