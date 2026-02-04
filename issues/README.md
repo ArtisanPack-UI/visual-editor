@@ -28,21 +28,29 @@ This directory contains issue files ready to be uploaded to GitLab for the `arti
 | 011 | [Embed Blocks](011-embed-blocks.md) | Feature | Frontend |
 | 012 | [Dynamic Blocks](012-dynamic-blocks.md) | Feature | Backend |
 | 025 | [Additional Text Blocks](025-additional-text-blocks.md) | Feature | Frontend |
+| 026 | [Advanced Content Display Blocks](026-advanced-content-display-blocks.md) | Feature | Backend |
+| 027 | [Query Enhancement Blocks](027-query-enhancement-blocks.md) | Feature | Backend |
+| 028 | [Additional Layout Blocks](028-additional-layout-blocks.md) | Feature | Frontend |
+| 029 | [Search & User Blocks](029-search-user-blocks.md) | Feature | Frontend |
 
-### Phase 3: Template System (Priority: Medium)
+### Phase 3: Site-Editing & Templates (Priority: Medium)
 
 | # | Issue | Type | Area |
 |---|-------|------|------|
 | 013 | [Template System](013-template-system.md) | Feature | Backend |
 | 014 | [Template Parts](014-template-parts.md) | Feature | Frontend |
+| 030 | [Navigation & Breadcrumbs](030-navigation-breadcrumbs.md) | Feature | Frontend |
+| 031 | [Comment System](031-comment-system.md) | Feature | Frontend |
+| 032 | [Taxonomy Blocks](032-taxonomy-blocks.md) | Feature | Backend |
 
-### Phase 4: Global Styles (Priority: Medium)
+### Phase 4: Global Styles & Special Blocks (Priority: Medium/Low)
 
 | # | Issue | Type | Area |
 |---|-------|------|------|
 | 015 | [Global Styles System](015-global-styles-system.md) | Feature | Frontend |
+| 033 | [Special Purpose Blocks](033-special-purpose-blocks.md) | Feature | Frontend |
 
-### Phase 5: Advanced Features (Priority: Medium/Low)
+### Phase 5: Advanced Features (Priority: Low)
 
 | # | Issue | Type | Area |
 |---|-------|------|------|
@@ -52,7 +60,7 @@ This directory contains issue files ready to be uploaded to GitLab for the `arti
 | 019 | [A/B Testing](019-ab-testing.md) | Feature | Backend |
 | 023 | [SEO Integration](023-seo-integration.md) | Feature | Backend |
 
-### Phase 6: Polish (Priority: Medium/Low)
+### Phase 6: User Experience & Polish (Priority: Medium/Low)
 
 | # | Issue | Type | Area |
 |---|-------|------|------|
@@ -153,13 +161,21 @@ The issues use the following labels (create them in GitLab first):
    - 010 - Interactive Blocks
    - 011 - Embed Blocks
    - 012 - Dynamic Blocks
+   - 026 - Advanced Content Display Blocks
+   - 027 - Query Enhancement Blocks
+   - 028 - Additional Layout Blocks
+   - 029 - Search & User Blocks
 
-4. **Templates (Phase 3):**
+4. **Site-Editing & Templates (Phase 3):**
    - 013 - Template System
    - 014 - Template Parts
+   - 030 - Navigation & Breadcrumbs
+   - 031 - Comment System
+   - 032 - Taxonomy Blocks
 
-5. **Styling (Phase 4):**
+5. **Styling & Special Blocks (Phase 4):**
    - 015 - Global Styles System
+   - 033 - Special Purpose Blocks
 
 6. **Advanced (Phase 5):**
    - 016 - Permissions & Locking
@@ -168,7 +184,7 @@ The issues use the following labels (create them in GitLab first):
    - 018 - AI Assistant
    - 019 - A/B Testing
 
-7. **Polish (Phase 6):**
+6. **User Experience & Polish (Phase 6):**
    - 020 - Accessibility Scanner
    - 024 - Presence Awareness
 
