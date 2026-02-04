@@ -27,15 +27,21 @@
 	$blockName    = $blockConfig['name'] ?? ucfirst( $blockType );
 	$hasAlign     = in_array( 'align', $toolbarTools, true );
 	$hasRichText  = in_array( 'richtext', $toolbarTools, true ) && $isEditing && $isRichText;
-	$hasHeadingLevel = in_array( 'heading_level', $toolbarTools, true );
-	$hasListStyle    = in_array( 'list_style', $toolbarTools, true );
+	$hasHeadingLevel     = in_array( 'heading_level', $toolbarTools, true );
+	$hasListStyle        = in_array( 'list_style', $toolbarTools, true );
+	$hasConstrainedWidth = in_array( 'constrained_width', $toolbarTools, true );
+	$hasAlignItems       = in_array( 'align_items', $toolbarTools, true );
+	$hasJustifyContent   = in_array( 'justify_content', $toolbarTools, true );
 	$currentLevel    = $block['content']['level'] ?? 'h2';
 	$currentStyle    = $block['content']['style'] ?? 'bullet';
+	$isConstrained   = $block['settings']['constrained'] ?? false;
+	$currentAlignItems     = $block['settings']['align_items'] ?? 'stretch';
+	$currentJustifyContent = $block['settings']['justify_content'] ?? 'start';
 @endphp
 
 <div
 	class="ve-global-toolbar absolute bottom-full left-0 z-20 mb-1 flex items-center gap-1 rounded-lg border border-gray-200 bg-white px-1.5 py-1 shadow-sm"
-	x-data="globalBlockToolbar()"
+	x-data="{ openDropdown: null, ...globalBlockToolbar() }"
 	@mousedown.prevent.self
 	@click.stop
 >
@@ -100,13 +106,10 @@
 
 	{{-- Heading Level Selector --}}
 	@if ( $hasHeadingLevel )
-		<div class="relative"
-			x-data="{ levelMenuOpen: false }"
-			x-effect="$refs.levelMenu && ( levelMenuOpen ? $refs.levelMenu.removeAttribute( 'hidden' ) : $refs.levelMenu.setAttribute( 'hidden', '' ) )"
-		>
+		<div class="relative">
 			<button
 				type="button"
-				@click="levelMenuOpen = !levelMenuOpen"
+				@click="openDropdown = (openDropdown === 'level' ? null : 'level')"
 				class="flex items-center gap-1 rounded px-2 py-1 text-sm font-semibold text-gray-600 hover:bg-gray-100"
 				title="{{ __( 'Change heading level' ) }}"
 			>
@@ -116,16 +119,16 @@
 				</svg>
 			</button>
 			<div
-				x-ref="levelMenu"
-				hidden
-				@click.outside="levelMenuOpen = false"
+				x-show="openDropdown === 'level'"
+				@click.outside="openDropdown = null"
+				x-transition
 				class="absolute left-0 top-full z-30 mt-1 rounded border border-gray-200 bg-white py-1 shadow-lg"
 			>
 				@foreach ( [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ] as $level )
 					<button
 						type="button"
 						wire:click.stop="changeHeadingLevel( '{{ $blockId }}', '{{ $level }}' )"
-						@click="levelMenuOpen = false"
+						@click="openDropdown = null"
 						class="flex w-full items-center px-3 py-1.5 text-left text-sm hover:bg-blue-50
 							{{ $currentLevel === $level ? 'bg-blue-50 font-semibold text-blue-700' : 'text-gray-700' }}"
 					>
@@ -136,7 +139,158 @@
 		</div>
 
 		{{-- Separator after heading level --}}
-		@if ( $hasAlign || $hasRichText )
+		@if ( $hasConstrainedWidth || $hasAlignItems || $hasJustifyContent || $hasListStyle || $hasAlign || $hasRichText )
+			<div class="mx-0.5 h-6 w-px bg-gray-200"></div>
+		@endif
+	@endif
+
+	{{-- Constrained Width Toggle --}}
+	@if ( $hasConstrainedWidth )
+		<button
+			type="button"
+			@mousedown.prevent
+			wire:click.stop="updateToolbarBlockSetting( '{{ $blockId }}', 'constrained', {{ $isConstrained ? 'false' : 'true' }} )"
+			class="rounded p-1.5 {{ $isConstrained ? 'bg-blue-100 text-blue-700' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-700' }}"
+			title="{{ $isConstrained ? __( 'Remove Constrained Width' ) : __( 'Apply Constrained Width' ) }}"
+		>
+			<svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16" />
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 4v16M15 4v16" opacity="{{ $isConstrained ? '1' : '0.3' }}" />
+			</svg>
+		</button>
+
+		{{-- Separator after constrained width --}}
+		@if ( $hasAlignItems || $hasJustifyContent || $hasListStyle || $hasAlign || $hasRichText )
+			<div class="mx-0.5 h-6 w-px bg-gray-200"></div>
+		@endif
+	@endif
+
+	{{-- Align Items Selector --}}
+	@if ( $hasAlignItems )
+		<div class="relative">
+			<button
+				type="button"
+				@click="openDropdown = (openDropdown === 'alignItems' ? null : 'alignItems')"
+				class="flex items-center gap-1 rounded px-2 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100"
+				title="{{ __( 'Change align items' ) }}"
+			>
+				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					@if ( 'stretch' === $currentAlignItems )
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16M4 20h16M8 8h8v8H8z" />
+					@elseif ( 'start' === $currentAlignItems )
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16M8 8h8v4H8z" />
+					@elseif ( 'center' === $currentAlignItems )
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8v4H8z" />
+					@elseif ( 'end' === $currentAlignItems )
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20h16M8 12h8v4H8z" />
+					@endif
+				</svg>
+				<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+				</svg>
+			</button>
+			<div
+				x-show="openDropdown === 'alignItems'"
+				@click.outside="openDropdown = null"
+				x-transition
+				class="absolute left-0 top-full z-30 mt-1 w-44 rounded border border-gray-200 bg-white py-1 shadow-lg"
+			>
+				@foreach ( [ 'stretch' => __( 'Stretch' ), 'start' => __( 'Align Start' ), 'center' => __( 'Align Center' ), 'end' => __( 'Align End' ) ] as $value => $label )
+					<button
+						type="button"
+						wire:click.stop="updateToolbarBlockSetting( '{{ $blockId }}', 'align_items', '{{ $value }}' )"
+						@click="openDropdown = null"
+						class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-blue-50
+							{{ $currentAlignItems === $value ? 'bg-blue-50 font-semibold text-blue-700' : 'text-gray-700' }}"
+					>
+						<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							@if ( 'stretch' === $value )
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16M4 20h16M8 8h8v8H8z" />
+							@elseif ( 'start' === $value )
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h16M8 8h8v4H8z" />
+							@elseif ( 'center' === $value )
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h8v4H8z" />
+							@elseif ( 'end' === $value )
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 20h16M8 12h8v4H8z" />
+							@endif
+						</svg>
+						{{ $label }}
+					</button>
+				@endforeach
+			</div>
+		</div>
+
+		{{-- Separator after align items --}}
+		@if ( $hasJustifyContent || $hasListStyle || $hasAlign || $hasRichText )
+			<div class="mx-0.5 h-6 w-px bg-gray-200"></div>
+		@endif
+	@endif
+
+	{{-- Justify Content Selector --}}
+	@if ( $hasJustifyContent )
+		<div class="relative">
+			<button
+				type="button"
+				@click="openDropdown = (openDropdown === 'justifyContent' ? null : 'justifyContent')"
+				class="flex items-center gap-1 rounded px-2 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100"
+				title="{{ __( 'Change justify content' ) }}"
+			>
+				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					@if ( 'start' === $currentJustifyContent )
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h4m0 0v12m0-12h4v12H8z" />
+					@elseif ( 'center' === $currentJustifyContent )
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h4m0 0v12m0-12h4v12h-4z" />
+					@elseif ( 'end' === $currentJustifyContent )
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6h4m0 0v12m0-12h4v12h-4z" />
+					@elseif ( 'between' === $currentJustifyContent )
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h4v12H4zM16 6h4v12h-4z" />
+					@elseif ( 'around' === $currentJustifyContent )
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h4v12H3zM10 6h4v12h-4zM17 6h4v12h-4z" />
+					@elseif ( 'evenly' === $currentJustifyContent )
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 6h4v12H2zM10 6h4v12h-4zM18 6h4v12h-4z" />
+					@endif
+				</svg>
+				<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+				</svg>
+			</button>
+			<div
+				x-show="openDropdown === 'justifyContent'"
+				@click.outside="openDropdown = null"
+				x-transition
+				class="absolute left-0 top-full z-30 mt-1 w-48 rounded border border-gray-200 bg-white py-1 shadow-lg"
+			>
+				@foreach ( [ 'start' => __( 'Justify Start' ), 'center' => __( 'Justify Center' ), 'end' => __( 'Justify End' ), 'between' => __( 'Space Between' ), 'around' => __( 'Space Around' ), 'evenly' => __( 'Space Evenly' ) ] as $value => $label )
+					<button
+						type="button"
+						wire:click.stop="updateToolbarBlockSetting( '{{ $blockId }}', 'justify_content', '{{ $value }}' )"
+						@click="openDropdown = null"
+						class="flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm hover:bg-blue-50
+							{{ $currentJustifyContent === $value ? 'bg-blue-50 font-semibold text-blue-700' : 'text-gray-700' }}"
+					>
+						<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							@if ( 'start' === $value )
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h4m0 0v12m0-12h4v12H8z" />
+							@elseif ( 'center' === $value )
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 6h4m0 0v12m0-12h4v12h-4z" />
+							@elseif ( 'end' === $value )
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6h4m0 0v12m0-12h4v12h-4z" />
+							@elseif ( 'between' === $value )
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h4v12H4zM16 6h4v12h-4z" />
+							@elseif ( 'around' === $value )
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h4v12H3zM10 6h4v12h-4zM17 6h4v12h-4z" />
+							@elseif ( 'evenly' === $value )
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 6h4v12H2zM10 6h4v12h-4zM18 6h4v12h-4z" />
+							@endif
+						</svg>
+						{{ $label }}
+					</button>
+				@endforeach
+			</div>
+		</div>
+
+		{{-- Separator after justify content --}}
+		@if ( $hasListStyle || $hasAlign || $hasRichText )
 			<div class="mx-0.5 h-6 w-px bg-gray-200"></div>
 		@endif
 	@endif
@@ -254,13 +408,10 @@
 	<div class="mx-0.5 h-6 w-px bg-gray-200"></div>
 
 	{{-- Group 3: More Options --}}
-	<div class="relative"
-		x-data="{ moreMenuOpen: false }"
-		x-effect="$refs.moreMenu && ( moreMenuOpen ? $refs.moreMenu.removeAttribute( 'hidden' ) : $refs.moreMenu.setAttribute( 'hidden', '' ) )"
-	>
+	<div class="relative">
 		<button
 			type="button"
-			@click="moreMenuOpen = !moreMenuOpen"
+			@click="openDropdown = (openDropdown === 'more' ? null : 'more')"
 			class="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
 			title="{{ __( 'More options' ) }}"
 		>
@@ -271,15 +422,15 @@
 			</svg>
 		</button>
 		<div
-			x-ref="moreMenu"
-			hidden
-			@click.outside="moreMenuOpen = false"
+			x-show="openDropdown === 'more'"
+			@click.outside="openDropdown = null"
+			x-transition
 			class="absolute right-0 top-full z-30 mt-1 w-44 rounded border border-gray-200 bg-white py-1 shadow-lg"
 		>
 			<button
 				type="button"
 				wire:click.stop="deleteBlock( '{{ $blockId }}' )"
-				@click="moreMenuOpen = false"
+				@click="openDropdown = null"
 				class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
 			>
 				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

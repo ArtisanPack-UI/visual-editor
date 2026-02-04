@@ -85,7 +85,7 @@ test( 'editor marks dirty on blocks update', function (): void {
 	];
 
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
-		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->dispatch( 'editor-sync-state', blocks: $newBlocks )
 		->assertSet( 'isDirty', true )
 		->assertSet( 'saveStatus', 'unsaved' );
 } );
@@ -599,7 +599,7 @@ test( 'editor undo restores previous block state', function (): void {
 	];
 
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
-		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->dispatch( 'editor-sync-state', blocks: $newBlocks )
 		->assertSet( 'blocks', $newBlocks )
 		->call( 'undo' )
 		->assertSet( 'blocks', $originalBlocks );
@@ -612,7 +612,7 @@ test( 'editor undo pushes current state to redo stack', function (): void {
 	];
 
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
-		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->dispatch( 'editor-sync-state', blocks: $newBlocks )
 		->call( 'undo' )
 		->assertSet( 'redoStack', [ $newBlocks ] );
 } );
@@ -633,7 +633,7 @@ test( 'editor undo dispatches canvas-sync-blocks', function (): void {
 	];
 
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
-		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->dispatch( 'editor-sync-state', blocks: $newBlocks )
 		->call( 'undo' )
 		->assertDispatched( 'canvas-sync-blocks' );
 } );
@@ -645,7 +645,7 @@ test( 'editor undo dispatches undo-redo-state-changed', function (): void {
 	];
 
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
-		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->dispatch( 'editor-sync-state', blocks: $newBlocks )
 		->call( 'undo' )
 		->assertDispatched( 'undo-redo-state-changed', canUndo: false, canRedo: true );
 } );
@@ -657,7 +657,7 @@ test( 'editor redo restores next block state', function (): void {
 	];
 
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
-		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->dispatch( 'editor-sync-state', blocks: $newBlocks )
 		->call( 'undo' )
 		->call( 'redo' )
 		->assertSet( 'blocks', $newBlocks );
@@ -671,7 +671,7 @@ test( 'editor redo pushes current state to undo stack', function (): void {
 	];
 
 	$component = Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
-		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->dispatch( 'editor-sync-state', blocks: $newBlocks )
 		->call( 'undo' )
 		->call( 'redo' );
 
@@ -698,7 +698,7 @@ test( 'editor redo dispatches canvas-sync-blocks', function (): void {
 	];
 
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
-		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->dispatch( 'editor-sync-state', blocks: $newBlocks )
 		->call( 'undo' )
 		->call( 'redo' )
 		->assertDispatched( 'canvas-sync-blocks' );
@@ -711,7 +711,7 @@ test( 'editor redo dispatches undo-redo-state-changed', function (): void {
 	];
 
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
-		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->dispatch( 'editor-sync-state', blocks: $newBlocks )
 		->call( 'undo' )
 		->call( 'redo' )
 		->assertDispatched( 'undo-redo-state-changed', canUndo: true, canRedo: false );
@@ -725,7 +725,7 @@ test( 'editor onBlocksUpdated pushes history', function (): void {
 	];
 
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
-		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->dispatch( 'editor-sync-state', blocks: $newBlocks )
 		->assertSet( 'undoStack', [ $originalBlocks ] );
 } );
 
@@ -757,7 +757,7 @@ test( 'editor undo marks editor as dirty', function (): void {
 	];
 
 	Livewire::test( 'visual-editor::editor', [ 'content' => $this->content ] )
-		->dispatch( 'blocks-updated', blocks: $newBlocks )
+		->dispatch( 'editor-sync-state', blocks: $newBlocks )
 		->set( 'isDirty', false )
 		->set( 'saveStatus', 'saved' )
 		->call( 'undo' )

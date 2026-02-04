@@ -20,6 +20,7 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Registries\SectionRegistry;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
@@ -41,6 +42,21 @@ new class extends Component {
 	 * @var string
 	 */
 	public string $activeTab = 'blocks';
+
+	/**
+	 * Initialize the component.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $activeTab Initial active tab from parent.
+	 *
+	 * @return void
+	 */
+	public function mount( string $activeTab = 'blocks' ): void
+	{
+		// Store initial tab in Alpine-managed state
+		$this->activeTab = $activeTab;
+	}
 
 	/**
 	 * The block search query.
@@ -327,6 +343,7 @@ new class extends Component {
 }; ?>
 
 <div class="ve-sidebar flex w-72 flex-col border-r border-gray-200 bg-white"
+	 x-data="{ sidebarTab: $persist('{{ $activeTab }}').as('ve-sidebar-tab') }"
 	 @if ( !$isOpen ) style="display: none;" @endif>
 	{{-- Sidebar Tabs --}}
 	<div class="flex border-b border-gray-200">
@@ -339,9 +356,9 @@ new class extends Component {
 		@endphp
 		@foreach ( $tabs as $key => $label )
 			<button
-				wire:click="setTab( '{{ $key }}' )"
-				class="flex-1 border-b-2 px-3 py-2 text-center text-xs font-medium transition-colors
-					{{ $activeTab === $key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700' }}"
+				@click="sidebarTab = '{{ $key }}'"
+				:class="sidebarTab === '{{ $key }}' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'"
+				class="flex-1 border-b-2 px-3 py-2 text-center text-xs font-medium transition-colors"
 			>
 				{{ $label }}
 			</button>
@@ -350,7 +367,7 @@ new class extends Component {
 
 	{{-- Tab Content --}}
 	<div class="flex-1 overflow-y-auto p-3">
-		@if ( 'blocks' === $activeTab )
+		<div x-show="sidebarTab === 'blocks'">
 			{{-- Block Search --}}
 			<div class="mb-3">
 				<input
@@ -380,7 +397,9 @@ new class extends Component {
 					</div>
 				</div>
 			@endforeach
-		@elseif ( 'sections' === $activeTab )
+		</div>
+
+		<div x-show="sidebarTab === 'sections'">
 			{{-- Section Search --}}
 			<div class="mb-3">
 				<input
@@ -440,7 +459,9 @@ new class extends Component {
 					</div>
 				</div>
 			@endif
-		@elseif ( 'layers' === $activeTab )
+		</div>
+
+		<div x-show="sidebarTab === 'layers'">
 			@if ( empty( $blocks ) )
 				<p class="text-sm text-gray-500">{{ __( 'No blocks on the canvas yet.' ) }}</p>
 			@else
@@ -460,7 +481,7 @@ new class extends Component {
 					@endforeach
 				</div>
 			@endif
-		@endif
+		</div>
 	</div>
 </div>
 
@@ -513,3 +534,34 @@ new class extends Component {
 		</div>
 	</div>
 @endif
+
+<script>
+	// Preserve focus during Livewire updates to prevent layer items from stealing focus
+	document.addEventListener( 'livewire:init', () => {
+		let savedActiveElement = null
+
+		Livewire.hook( 'morph.updating', ( { component } ) => {
+			// Only preserve focus for sidebar component updates
+			if ( component.name === 'visual-editor::sidebar' ) {
+				savedActiveElement = document.activeElement
+			}
+		} )
+
+		Livewire.hook( 'morph.updated', ( { component } ) => {
+			// Restore focus after sidebar updates
+			if ( component.name === 'visual-editor::sidebar' && savedActiveElement ) {
+				// Only restore if focus was in canvas or a contenteditable element
+				if ( savedActiveElement.isContentEditable || savedActiveElement.closest( '.ve-canvas' ) ) {
+					setTimeout( () => {
+						if ( savedActiveElement && document.contains( savedActiveElement ) ) {
+							savedActiveElement.focus()
+						}
+						savedActiveElement = null
+					}, 0 )
+				} else {
+					savedActiveElement = null
+				}
+			}
+		} )
+	} )
+</script>

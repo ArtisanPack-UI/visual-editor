@@ -16,10 +16,10 @@ declare( strict_types=1 );
  */
 
 use ArtisanPackUI\VisualEditor\Models\UserSection;
-use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Registries\SectionRegistry;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\On;
+use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
 new class extends Component {
@@ -182,7 +182,7 @@ new class extends Component {
 		}
 
 		$this->blocks = $reordered;
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->notifyBlocksUpdated();
 	}
 
 	// ──────────────────────────────────────────────────────────
@@ -230,7 +230,7 @@ new class extends Component {
 			'settings' => $settings,
 		];
 
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->notifyBlocksUpdated();
 	}
 
 	/**
@@ -280,7 +280,7 @@ new class extends Component {
 		}
 
 		$this->blocks = $blocks;
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->notifyBlocksUpdated();
 	}
 
 	/**
@@ -312,7 +312,7 @@ new class extends Component {
 			}
 		}
 
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->notifyBlocksUpdated();
 	}
 
 	/**
@@ -347,7 +347,7 @@ new class extends Component {
 
 		$userSection->increment( 'use_count' );
 
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->notifyBlocksUpdated();
 	}
 
 	/**
@@ -415,7 +415,7 @@ new class extends Component {
 		$siblings[ $index ]     = $temp;
 
 		$this->setSiblingsArray( $location['parentPath'], $siblings );
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->notifyBlocksUpdated();
 	}
 
 	/**
@@ -450,7 +450,7 @@ new class extends Component {
 		$siblings[ $index ]     = $temp;
 
 		$this->setSiblingsArray( $location['parentPath'], $siblings );
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->notifyBlocksUpdated();
 	}
 
 	/**
@@ -481,7 +481,7 @@ new class extends Component {
 		data_set( $blocks, $path . '.content.level', $level );
 		$this->blocks = $blocks;
 
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->notifyBlocksUpdated();
 	}
 
 	/**
@@ -512,7 +512,35 @@ new class extends Component {
 		data_set( $blocks, $path . '.content.style', $style );
 		$this->blocks = $blocks;
 
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->notifyBlocksUpdated();
+	}
+
+	/**
+	 * Update a block setting from the toolbar.
+	 *
+	 * @since 1.11.0
+	 *
+	 * @param string $blockId The block ID to update.
+	 * @param string $key     The setting key to update.
+	 * @param mixed  $value   The new value.
+	 *
+	 * @return void
+	 */
+	public function updateToolbarBlockSetting( string $blockId, string $key, mixed $value ): void
+	{
+		$path = $this->findBlockPath( $blockId, $this->blocks );
+
+		if ( null === $path ) {
+			return;
+		}
+
+		$blocks = $this->blocks;
+		data_set( $blocks, $path . '.settings.' . $key, $value );
+		$this->blocks = $blocks;
+
+		// Notify parent editor component that blocks have been updated
+		$this->dispatch( 'toolbar-setting-updated', blockId: $blockId, key: $key, value: $value )->to( 'visual-editor::editor' );
+		$this->notifyBlocksUpdated();
 	}
 
 	/**
@@ -544,7 +572,7 @@ new class extends Component {
 			$this->editingBlockId = null;
 		}
 
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->notifyBlocksUpdated();
 	}
 
 	/**
@@ -588,7 +616,7 @@ new class extends Component {
 		}
 
 		$this->blocks = $blocks;
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->notifyBlocksUpdated();
 		$this->dispatch( 'block-selected', blockId: $this->activeBlockId );
 	}
 
@@ -665,7 +693,7 @@ new class extends Component {
 		}
 
 		$this->editingBlockId = null;
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->notifyBlocksUpdated();
 	}
 
 	/**
@@ -700,7 +728,7 @@ new class extends Component {
 
 		if ( false === $currentIndex ) {
 			$this->editingBlockId = null;
-			$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+			$this->notifyBlocksUpdated();
 
 			return;
 		}
@@ -711,7 +739,7 @@ new class extends Component {
 		if ( 'down' === $direction && $currentIndex >= $lastIndex ) {
 			$this->editingBlockId = null;
 			$this->activeBlockId  = null;
-			$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+			$this->notifyBlocksUpdated();
 			$this->dispatch( 'focus-typing-area' );
 
 			return;
@@ -719,7 +747,7 @@ new class extends Component {
 
 		// At the first block going up: stay on the same block.
 		if ( 'up' === $direction && 0 === $currentIndex ) {
-			$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+			$this->notifyBlocksUpdated();
 
 			return;
 		}
@@ -733,7 +761,7 @@ new class extends Component {
 			? $targetBlockId
 			: null;
 
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->notifyBlocksUpdated();
 
 		if ( null !== $this->editingBlockId ) {
 			$this->dispatch( 'focus-block', blockId: $this->editingBlockId );
@@ -866,6 +894,8 @@ new class extends Component {
 		$this->activeBlockId  = $newBlock['id'];
 		$this->editingBlockId = $newBlock['id'];
 
+		$this->notifyBlocksUpdated();
+		$this->dispatch( 'block-selected', blockId: $newBlock['id'] );
 		$this->dispatch( 'focus-block', blockId: $newBlock['id'] );
 	}
 
@@ -913,7 +943,7 @@ new class extends Component {
 		$this->activeBlockId  = $newBlock['id'];
 		$this->editingBlockId = $newBlock['id'];
 
-		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->notifyBlocksUpdated();
 		$this->dispatch( 'focus-block', blockId: $newBlock['id'] );
 	}
 
@@ -1298,7 +1328,20 @@ new class extends Component {
 
 		data_set( $blocks, $innerKey, $reordered );
 		$this->blocks = $blocks;
+		$this->notifyBlocksUpdated();
+	}
+
+	/**
+	 * Notify editor and sidebar that blocks have been updated.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	private function notifyBlocksUpdated(): void
+	{
 		$this->dispatch( 'blocks-updated', blocks: $this->blocks );
+		$this->dispatch( 'editor-sync-state', blocks: $this->blocks )->to( 'visual-editor::editor' );
 	}
 
 	/**
@@ -1452,7 +1495,7 @@ new class extends Component {
 							class="sticky top-0 bg-gray-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500"
 							x-text="category.name"
 						></div>
-						<template x-for="( block, blockIdx ) in category.blocks" :key="block.type">
+						<template x-for="( block, blockIdx ) in category.blocks" :key="`${category.key}-${blockIdx}`">
 							<button
 								type="button"
 								@click="selectBlock( block )"
@@ -1576,31 +1619,34 @@ new class extends Component {
 	} )
 
 	Livewire.on( 'focus-block', ( { blockId } ) => {
-		let startTime  = Date.now()
-		let minRunTime = 800
-		window.veFocusingBlock = true
-		let focusInterval = setInterval( () => {
-			window.veNavigating = false
-			let blockEl = document.querySelector( `[wire\\:key="block-${blockId}"] [contenteditable="true"]` )
-			if ( blockEl ) {
-				if ( document.activeElement !== blockEl ) {
-					blockEl.focus()
-					let sel = window.getSelection()
-					let range = document.createRange()
-					range.selectNodeContents( blockEl )
-					range.collapse( false )
-					sel.removeAllRanges()
-					sel.addRange( range )
-				} else if ( Date.now() - startTime >= minRunTime ) {
+		// Add small delay to allow sidebar to update first
+		setTimeout( () => {
+			let startTime  = Date.now()
+			let minRunTime = 800
+			window.veFocusingBlock = true
+			let focusInterval = setInterval( () => {
+				window.veNavigating = false
+				let blockEl = document.querySelector( `[wire\\:key="block-${blockId}"] [contenteditable="true"]` )
+				if ( blockEl ) {
+					if ( document.activeElement !== blockEl ) {
+						blockEl.focus()
+						let sel = window.getSelection()
+						let range = document.createRange()
+						range.selectNodeContents( blockEl )
+						range.collapse( false )
+						sel.removeAllRanges()
+						sel.addRange( range )
+					} else if ( Date.now() - startTime >= minRunTime ) {
+						window.veFocusingBlock = false
+						clearInterval( focusInterval )
+					}
+				}
+				if ( Date.now() - startTime > 2000 ) {
 					window.veFocusingBlock = false
 					clearInterval( focusInterval )
 				}
-			}
-			if ( Date.now() - startTime > 2000 ) {
-				window.veFocusingBlock = false
-				clearInterval( focusInterval )
-			}
-		}, 50 )
+			}, 50 )
+		}, 150 )
 	} )
 
 	Alpine.data( 'richTextEditor', ( { htmlContent } ) => ( {
@@ -1622,7 +1668,22 @@ new class extends Component {
 		},
 	} ) )
 
-	Alpine.data( 'globalBlockToolbar', () => ( {} ) )
+	Alpine.data( 'globalBlockToolbar', () => ( {
+		format( command ) {
+			document.execCommand( command, false, null )
+		},
+
+		isActive( command ) {
+			return document.queryCommandState( command )
+		},
+
+		insertLink() {
+			let url = prompt( 'Enter URL:' )
+			if ( url ) {
+				document.execCommand( 'createLink', false, url )
+			}
+		},
+	} ) )
 
 	Alpine.data( 'slashCommandInput', ( { blocks } ) => ( {
 		allBlocks: blocks,

@@ -41,6 +41,7 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 	x-drag-item="'{{ $blockId }}'"
 	wire:key="layer-{{ $blockId }}"
 	wire:click="selectLayerBlock( '{{ $blockId }}' )"
+	tabindex="-1"
 	class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors
 		{{ $isActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}"
 	role="listitem"

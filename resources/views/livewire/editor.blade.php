@@ -17,7 +17,6 @@ declare( strict_types=1 );
  */
 
 use ArtisanPackUI\VisualEditor\Models\Content;
-use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Services\ContentService;
 use Illuminate\Support\Carbon;
 use Livewire\Attributes\On;
@@ -637,8 +636,8 @@ new class extends Component {
 	 *
 	 * @return void
 	 */
-	#[On( 'blocks-updated' )]
-	public function onBlocksUpdated( array $blocks ): void
+	#[On( 'editor-sync-state' )]
+	public function onEditorSyncState( array $blocks ): void
 	{
 		$this->pushHistory( $this->blocks );
 		$this->blocks     = $blocks;
@@ -800,6 +799,9 @@ new class extends Component {
 		$this->blocks     = $blocks;
 		$this->isDirty    = true;
 		$this->saveStatus = 'unsaved';
+
+		// Notify canvas component to sync the updated blocks
+		$this->dispatch( 'canvas-sync-blocks', blocks: $this->blocks );
 	}
 
 	/**
@@ -1303,6 +1305,7 @@ new class extends Component {
 					@endphp
 					@foreach ( $settingsTabs as $key => $label )
 						<button
+							wire:key="settings-tab-{{ $key }}"
 							wire:click="setSettingsDrawerTab( '{{ $key }}' )"
 							class="flex-1 border-b-2 px-3 py-2 text-center text-xs font-medium transition-colors
 								{{ $settingsDrawerTab === $key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700' }}"
@@ -1318,7 +1321,7 @@ new class extends Component {
 						@if ( null !== $activeBlockId )
 							@php
 								$activeBlockConfig = $this->getActiveBlockConfig();
-								$activeBlock       = $this->findBlockRecursive( $activeBlockId, $blocks );
+								$activeBlock       = $this->findBlockRecursive( $activeBlockId, $this->blocks );
 								$currentSettings   = $activeBlock['settings'] ?? [];
 							@endphp
 
@@ -1341,7 +1344,7 @@ new class extends Component {
 								@php
 									$activeBlockConfig = $this->getActiveBlockConfig();
 									$settingsSchema    = $activeBlockConfig['settings_schema'] ?? [];
-									$activeBlock       = $this->findBlockRecursive( $activeBlockId, $blocks );
+									$activeBlock       = $this->findBlockRecursive( $activeBlockId, $this->blocks );
 									$currentSettings   = $activeBlock['settings'] ?? [];
 									$blockType         = $activeBlock['type'] ?? $activeBlock['name'] ?? '';
 									$hasVariations     = veBlocks()->hasVariations( $blockType );
@@ -1352,34 +1355,26 @@ new class extends Component {
 								{{-- Block Variation Selector --}}
 								@if ( $hasVariations )
 									<div class="mb-4 rounded-md border border-blue-200 bg-blue-50 p-3">
-										<label class="mb-2 block text-xs font-semibold uppercase tracking-wide text-blue-900">
-											{{ __( 'Block Variation' ) }}
-										</label>
 										@php
-											$variationOptions = collect( $variations )->map( function ( $variation, $key ) {
+											$variationOptions = collect( $variations )->map( function ( $variation, $key ) use ( $currentVariation ) {
+												$title = $variation['title'] ?? ucfirst( $key );
+												$description = $variation['description'] ?? '';
+												$displayName = $description ? "{$title} - {$description}" : $title;
+
 												return [
-													'id'          => $key,
-													'name'        => $variation['title'] ?? ucfirst( $key ),
-													'description' => $variation['description'] ?? '',
+													'id'       => $key,
+													'name'     => $displayName,
+													'selected' => $key === $currentVariation,
 												];
 											} )->values()->all();
 										@endphp
-										<select
+										<x-artisanpack-select
+											:label="__( 'Block Variation' )"
+											:options="$variationOptions"
+											option-value="id"
+											option-label="name"
 											wire:change="applyBlockVariation( '{{ $blockType }}', $event.target.value )"
-											class="w-full rounded-md border border-blue-300 bg-white px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-										>
-											@foreach ( $variationOptions as $option )
-												<option
-													value="{{ $option['id'] }}"
-													@if ( $option['id'] === $currentVariation ) selected @endif
-												>
-													{{ $option['name'] }}
-													@if ( ! empty( $option['description'] ) )
-														- {{ $option['description'] }}
-													@endif
-												</option>
-											@endforeach
-										</select>
+										/>
 										<p class="mt-1.5 text-xs text-blue-700">
 											{{ __( 'Changing the variation will update block settings to match the selected layout.' ) }}
 										</p>
@@ -1400,12 +1395,14 @@ new class extends Component {
 												$fieldDefault = $schema['default'] ?? '';
 												$fieldValue   = $currentSettings[ $settingKey ] ?? $fieldDefault;
 											@endphp
+											<div>
 
 											@if ( 'select' === $fieldType )
 												@php
 													$selectOptions = collect( $fieldOptions )->map( fn ( $opt ) => [
-														'id'   => $opt,
-														'name' => ucfirst( $opt ),
+														'id'       => $opt,
+														'name'     => ucfirst( $opt ),
+														'selected' => $opt === $fieldValue,
 													] )->all();
 												@endphp
 												<x-artisanpack-select
@@ -1414,7 +1411,6 @@ new class extends Component {
 													option-value="id"
 													option-label="name"
 													wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
-													:selected="$fieldValue"
 												/>
 											@elseif ( 'alignment' === $fieldType )
 												@php
@@ -1468,6 +1464,7 @@ new class extends Component {
 													wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
 												/>
 											@endif
+											</div>
 										@endforeach
 									</div>
 								@endif
@@ -1541,7 +1538,7 @@ new class extends Component {
 		{{-- Checklist Items --}}
 		<div class="space-y-3">
 			@foreach ( $prePublishChecks as $check )
-				<div class="flex items-start gap-3 rounded-md border border-gray-200 p-3">
+				<div wire:key="check-{{ $loop->index }}" class="flex items-start gap-3 rounded-md border border-gray-200 p-3">
 					@if ( 'pass' === $check['status'] )
 						<x-artisanpack-icon name="o-check-circle" class="mt-0.5 h-5 w-5 shrink-0 text-green-500" />
 					@elseif ( 'fail' === $check['status'] )

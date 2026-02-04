@@ -273,7 +273,7 @@ test( 'canvas deleteSelected does nothing when nothing is selected', function ()
 test( 'canvas inserts block with initial text content', function (): void {
 	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => [] ] )
 		->call( 'insertBlockWithContent', 'text', 'Hello from typing area' )
-		->assertNotDispatched( 'blocks-updated' )
+		->assertDispatched( 'blocks-updated' )
 		->assertDispatched( 'focus-block' );
 
 	$blocks = $component->get( 'blocks' );
@@ -285,7 +285,7 @@ test( 'canvas inserts block with initial text content', function (): void {
 test( 'canvas inserts block without content when empty string provided', function (): void {
 	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => [] ] )
 		->call( 'insertBlockWithContent', 'heading', '' )
-		->assertNotDispatched( 'blocks-updated' )
+		->assertDispatched( 'blocks-updated' )
 		->assertDispatched( 'focus-block' );
 
 	$blocks = $component->get( 'blocks' );
@@ -301,7 +301,7 @@ test( 'canvas appends typed block after existing blocks', function (): void {
 
 	$component = Livewire::test( 'visual-editor::canvas', [ 'blocks' => $existingBlocks ] )
 		->call( 'insertBlockWithContent', 'text', 'New paragraph' )
-		->assertNotDispatched( 'blocks-updated' )
+		->assertDispatched( 'blocks-updated' )
 		->assertDispatched( 'focus-block' );
 
 	$blocks = $component->get( 'blocks' );
