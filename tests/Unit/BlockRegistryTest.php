@@ -612,7 +612,6 @@ test( 'default group block is registered in layout category', function (): void 
 		->and( $group['icon'] )->toBe( 'fas.object-group' );
 } );
 
-
 test( 'default group block has flex layout settings', function (): void {
 	$this->registry->registerDefaults();
 
@@ -620,10 +619,6 @@ test( 'default group block has flex layout settings', function (): void {
 
 	expect( $group['settings_schema'] )->toHaveKey( 'constrained' )
 		->and( $group['settings_schema']['constrained']['default'] )->toBeFalse()
-		->and( $group['settings_schema'] )->toHaveKey( 'flex_direction' )
-		->and( $group['settings_schema']['flex_direction']['default'] )->toBe( 'column' )
-		->and( $group['settings_schema'] )->toHaveKey( 'flex_wrap' )
-		->and( $group['settings_schema']['flex_wrap']['default'] )->toBe( 'nowrap' )
 		->and( $group['settings_schema'] )->toHaveKey( 'align_items' )
 		->and( $group['settings_schema']['align_items']['default'] )->toBe( 'stretch' )
 		->and( $group['settings_schema'] )->toHaveKey( 'justify_content' )
@@ -878,10 +873,8 @@ test( 'default group block has flex alignment settings', function (): void {
 
 	$group = $this->registry->get( 'group' );
 
-	expect( $group['settings_schema'] )->toHaveKey( 'flex_direction' )
-		->and( $group['settings_schema'] )->toHaveKey( 'align_items' )
+	expect( $group['settings_schema'] )->toHaveKey( 'align_items' )
 		->and( $group['settings_schema'] )->toHaveKey( 'justify_content' )
-		->and( $group['settings_schema']['flex_direction']['options'] )->toBe( [ 'column', 'row' ] )
 		->and( $group['settings_schema']['align_items']['options'] )->toBe( [ 'stretch', 'start', 'center', 'end' ] )
 		->and( $group['settings_schema']['justify_content']['options'] )->toBe( [ 'start', 'center', 'end', 'between', 'around', 'evenly' ] );
 } );
@@ -1065,18 +1058,17 @@ test( 'registerVariation returns self for chaining', function (): void {
 	expect( $result )->toBeInstanceOf( BlockRegistry::class );
 } );
 
-test( 'default group block has row stack and grid variations', function (): void {
+test( 'default group block has row and stack variations', function (): void {
 	$this->registry->registerDefaults();
 
 	expect( $this->registry->hasVariations( 'group' ) )->toBeTrue();
 
 	$variations = $this->registry->getVariations( 'group' );
 
-	expect( $variations )->toHaveKeys( [ 'group', 'row', 'stack', 'grid' ] )
+	expect( $variations )->toHaveKeys( [ 'group', 'row', 'stack' ] )
 		->and( $variations['group']['isDefault'] )->toBeTrue()
 		->and( $variations['row']['isDefault'] )->toBeFalse()
-		->and( $variations['stack']['isDefault'] )->toBeFalse()
-		->and( $variations['grid']['isDefault'] )->toBeFalse();
+		->and( $variations['stack']['isDefault'] )->toBeFalse();
 } );
 
 test( 'group block row variation has correct attributes', function (): void {
@@ -1088,8 +1080,6 @@ test( 'group block row variation has correct attributes', function (): void {
 		->and( $row['title'] )->toBe( 'Row' )
 		->and( $row['description'] )->toBe( 'Arrange blocks horizontally.' )
 		->and( $row['icon'] )->toBe( 'fas.grip-lines' )
-		->and( $row['attributes']['settings']['flex_direction'] )->toBe( 'row' )
-		->and( $row['attributes']['settings']['flex_wrap'] )->toBe( 'nowrap' )
 		->and( $row['attributes']['settings']['align_items'] )->toBe( 'center' );
 } );
 
@@ -1102,22 +1092,7 @@ test( 'group block stack variation has correct attributes', function (): void {
 		->and( $stack['title'] )->toBe( 'Stack' )
 		->and( $stack['description'] )->toBe( 'Arrange blocks vertically.' )
 		->and( $stack['icon'] )->toBe( 'fas.grip-lines-vertical' )
-		->and( $stack['attributes']['settings']['flex_direction'] )->toBe( 'column' )
-		->and( $stack['attributes']['settings']['flex_wrap'] )->toBe( 'nowrap' )
 		->and( $stack['attributes']['settings']['align_items'] )->toBe( 'stretch' );
-} );
-
-test( 'group block grid variation has correct attributes', function (): void {
-	$this->registry->registerDefaults();
-
-	$grid = $this->registry->getVariation( 'group', 'grid' );
-
-	expect( $grid )->not->toBeNull()
-		->and( $grid['title'] )->toBe( 'Grid' )
-		->and( $grid['description'] )->toBe( 'Arrange blocks in a grid.' )
-		->and( $grid['icon'] )->toBe( 'fas.table-cells' )
-		->and( $grid['attributes']['settings']['flex_direction'] )->toBe( 'row' )
-		->and( $grid['attributes']['settings']['flex_wrap'] )->toBe( 'wrap' );
 } );
 
 test( 'group block default variation has correct attributes', function (): void {
@@ -1130,6 +1105,5 @@ test( 'group block default variation has correct attributes', function (): void 
 		->and( $default['description'] )->toBe( 'Gather blocks in a container.' )
 		->and( $default['icon'] )->toBe( 'fas.object-group' )
 		->and( $default['isDefault'] )->toBeTrue()
-		->and( $default['attributes']['settings']['flex_direction'] )->toBe( 'column' )
-		->and( $default['attributes']['settings']['flex_wrap'] )->toBe( 'nowrap' );
+		->and( $default['attributes']['settings']['align_items'] )->toBe( 'stretch' );
 } );

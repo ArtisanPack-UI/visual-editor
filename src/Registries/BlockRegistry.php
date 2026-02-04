@@ -545,18 +545,6 @@ class BlockRegistry
 					'label'   => __( 'Constrained Width' ),
 					'default' => false,
 				],
-				'flex_direction'  => [
-					'type'    => 'select',
-					'label'   => __( 'Direction' ),
-					'options' => [ 'column', 'row' ],
-					'default' => 'column',
-				],
-				'flex_wrap'       => [
-					'type'    => 'select',
-					'label'   => __( 'Flex Wrap' ),
-					'options' => [ 'nowrap', 'wrap', 'wrap-reverse' ],
-					'default' => 'nowrap',
-				],
 				'align_items'     => [
 					'type'    => 'select',
 					'label'   => __( 'Align Items' ),
@@ -581,8 +569,6 @@ class BlockRegistry
 			'isDefault'   => true,
 			'attributes'  => [
 				'settings' => [
-					'flex_direction'  => 'column',
-					'flex_wrap'       => 'nowrap',
 					'align_items'     => 'stretch',
 					'justify_content' => 'start',
 				],
@@ -596,8 +582,6 @@ class BlockRegistry
 			'isDefault'   => false,
 			'attributes'  => [
 				'settings' => [
-					'flex_direction'  => 'row',
-					'flex_wrap'       => 'nowrap',
 					'align_items'     => 'center',
 					'justify_content' => 'start',
 				],
@@ -611,24 +595,7 @@ class BlockRegistry
 			'isDefault'   => false,
 			'attributes'  => [
 				'settings' => [
-					'flex_direction'  => 'column',
-					'flex_wrap'       => 'nowrap',
 					'align_items'     => 'stretch',
-					'justify_content' => 'start',
-				],
-			],
-		] );
-
-		$this->registerVariation( 'group', 'grid', [
-			'title'       => __( 'Grid' ),
-			'description' => __( 'Arrange blocks in a grid.' ),
-			'icon'        => 'fas.table-cells',
-			'isDefault'   => false,
-			'attributes'  => [
-				'settings' => [
-					'flex_direction'  => 'row',
-					'flex_wrap'       => 'wrap',
-					'align_items'     => 'start',
 					'justify_content' => 'start',
 				],
 			],
