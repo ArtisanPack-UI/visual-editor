@@ -68,16 +68,6 @@ new class extends Component {
 	 */
 	public ?string $editingBlockId = null;
 
-	/**
-	 * Flag to indicate we're focusing a newly added block.
-	 * Prevents blur handlers from clearing editingBlockId prematurely.
-	 *
-	 * @since 1.6.0
-	 *
-	 * @var bool
-	 */
-	public bool $focusingNewBlock = false;
-
 	// ──────────────────────────────────────────────────────────
 	// Block Selection
 	// ──────────────────────────────────────────────────────────
@@ -112,8 +102,7 @@ new class extends Component {
 	{
 		$this->activeBlockId = $blockId;
 
-		// Don't clear editingBlockId if we're focusing a newly added block
-		if ( ! $this->focusingNewBlock && $this->editingBlockId !== $blockId ) {
+		if ( $this->editingBlockId !== $blockId ) {
 			$this->editingBlockId = null;
 		}
 	}
@@ -703,12 +692,7 @@ new class extends Component {
 			$this->blocks = $blocks;
 		}
 
-		// Only clear editingBlockId if we're NOT focusing a newly added block
-		// This prevents the contenteditable from disappearing during focus operations
-		if ( ! $this->focusingNewBlock ) {
-			$this->editingBlockId = null;
-		}
-
+		$this->editingBlockId = null;
 		$this->notifyBlocksUpdated();
 	}
 
@@ -910,37 +894,9 @@ new class extends Component {
 		$this->activeBlockId  = $newBlock['id'];
 		$this->editingBlockId = $newBlock['id'];
 
-		// CRITICAL: Set flag to prevent saveInlineEdit from clearing editingBlockId
-		// during morphs and focus operations
-		$this->focusingNewBlock = true;
-
-		// Dispatch prepare-focus event
-		$this->dispatch( 'prepare-focus', blockId: $newBlock['id'] );
-
-		// Dispatch blocks-updated and editor-sync-state immediately
-		// Canvas has wire:key which preserves editingBlockId through editor morphs
 		$this->notifyBlocksUpdated();
-
-		// Don't auto-select in layers tab - let natural focus work
-		// $this->dispatch( 'block-selected', blockId: $newBlock['id'] );
+		$this->dispatch( 'block-selected', blockId: $newBlock['id'] );
 		$this->dispatch( 'focus-block', blockId: $newBlock['id'] );
-	}
-
-	/**
-	 * Clear the focusing new block flag.
-	 *
-	 * Called from JavaScript after focus is successfully established
-	 * on a newly added block, allowing normal blur behavior to resume.
-	 *
-	 * @since 1.6.0
-	 *
-	 * @return void
-	 */
-	#[On( 'clear-focus-flag' )]
-	public function clearFocusFlag(): void
-	{
-		$this->focusingNewBlock = false;
-		// Editor already synced immediately in insertBlockWithContent
 	}
 
 	/**
@@ -1662,57 +1618,83 @@ new class extends Component {
 		}, 50 )
 	} )
 
-	// Set flag immediately before morphs happen
-	Livewire.on( 'prepare-focus', function( event ) {
+	Livewire.on( 'focus-block', ( { blockId } ) => {
+		console.log( `🎯 [FOCUS-BLOCK] Event received for block: ${blockId}` )
 		window.veFocusingBlock = true
-		window.veFocusBlockId = event.blockId
-	} )
 
-	Livewire.on( 'focus-block', function( event ) {
-		let blockId = event.blockId
-		window.veFocusingBlock = true
-		window.veFocusBlockId = blockId
+		// Wait for the next Livewire morph to complete before trying to focus
+		let removeMorphHook = null
+		let morphedHandler = () => {
+			console.log( `⏰ [FOCUS-BLOCK] Livewire morphed, waiting for Alpine initialization for: ${blockId}` )
 
-		// Function to focus the element
-		const focusElement = function() {
-			let selector = '[wire\\:key="block-' + blockId + '"] [contenteditable="true"]'
-			let el = document.querySelector( selector )
+			// Wait for Alpine to fully initialize the element (x-init needs to run)
+			// Use Alpine.nextTick to synchronize with Alpine's lifecycle, then add extra delay
+			Alpine.nextTick( () => {
+				console.log( `   🎨 [ALPINE READY] Alpine nextTick complete, waiting additional time for x-init` )
 
-			if ( el && document.contains( el ) ) {
-				el.focus()
-				let sel = window.getSelection()
-				let range = document.createRange()
-				range.selectNodeContents( el )
-				range.collapse( false )
-				sel.removeAllRanges()
-				sel.addRange( range )
-				return true
-			}
-			return false
+				// Additional delay to ensure x-init has fully completed
+				setTimeout( () => {
+					console.log( `   ⏰ [STARTING FOCUS] Beginning focus attempts for: ${blockId}` )
+					let startTime  = Date.now()
+					let minRunTime = 800
+					let attemptCount = 0
+
+					let focusInterval = setInterval( () => {
+						attemptCount++
+						window.veNavigating = false
+
+						// Try multiple selectors to find the contenteditable element
+						let blockEl = document.querySelector( `[wire\\:key="block-${blockId}"] [contenteditable="true"]` )
+						let blockContainer = document.querySelector( `[wire\\:key="block-${blockId}"]` )
+
+						if ( !blockEl && blockContainer ) {
+							// Try finding contenteditable child directly
+							blockEl = blockContainer.querySelector( '[contenteditable="true"]' )
+							if ( !blockEl ) {
+								// Maybe the contenteditable is on the container itself
+								blockEl = blockContainer.hasAttribute('contenteditable') ? blockContainer : null
+							}
+						}
+
+					console.log( `   [Attempt ${attemptCount}] Element found:`, !!blockEl, "Container found:", !!blockContainer )
+						if ( !blockEl && blockContainer && attemptCount === 1 ) {
+						console.log( `      Block container exists: true` )
+						if ( attemptCount === 1 ) { console.log( '      Container innerHTML:', blockContainer.innerHTML ); }
+						} else if ( !blockEl && !blockContainer ) {
+							console.log( `      Block container NOT FOUND with wire:key="block-${blockId}"` )
+						}
+
+						if ( blockEl ) {
+							if ( document.activeElement !== blockEl ) {
+								console.log( `   🔥 [FOCUSING] Setting focus on block element` )
+								blockEl.focus()
+								let sel = window.getSelection()
+								let range = document.createRange()
+								range.selectNodeContents( blockEl )
+								range.collapse( false )
+								sel.removeAllRanges()
+								sel.addRange( range )
+								console.log( `   ✓ [FOCUSED] Focus set, current activeElement:`, document.activeElement?.tagName )
+							} else if ( Date.now() - startTime >= minRunTime ) {
+								console.log( `   ✅ [SUCCESS] Focus maintained for ${minRunTime}ms, clearing interval` )
+								window.veFocusingBlock = false
+								clearInterval( focusInterval )
+								if ( removeMorphHook ) removeMorphHook()
+							}
+						}
+						if ( Date.now() - startTime > 2000 ) {
+							console.log( `   ⏱️ [TIMEOUT] 2 second timeout reached, stopping attempts` )
+							window.veFocusingBlock = false
+							clearInterval( focusInterval )
+							if ( removeMorphHook ) removeMorphHook()
+						}
+					}, 50 )
+				}, 150 )  // Additional delay after Alpine.nextTick for x-init to complete
+			} )
 		}
 
-		// Initial focus attempt with polling
-		let attempts = 0
-		let maxAttempts = 30
-		let pollInterval = setInterval( function() {
-			attempts++
-
-			if ( focusElement() ) {
-				clearInterval( pollInterval )
-
-				// Keep flag true for 1 second to maintain focus through morphs
-				setTimeout( function() {
-					window.veFocusingBlock = false
-					window.veFocusBlockId = null
-					Livewire.dispatch( 'clear-focus-flag' )
-				}, 1000 )
-			} else if ( attempts >= maxAttempts ) {
-				clearInterval( pollInterval )
-				window.veFocusingBlock = false
-				window.veFocusBlockId = null
-				Livewire.dispatch( 'clear-focus-flag' )
-			}
-		}, 100 )
+		// Listen for the next morph
+		removeMorphHook = Livewire.hook( 'morphed', morphedHandler )
 	} )
 
 	Alpine.data( 'richTextEditor', ( { htmlContent } ) => ( {
@@ -1855,13 +1837,12 @@ new class extends Component {
 			if ( this.$refs.typingInput ) {
 				this.$refs.typingInput.textContent = ''
 			}
-			// Don't refocus typing input - let the new block get focus naturally
-			// this.$nextTick( () => {
-			// 	if ( this.$refs.typingInput ) {
-			// 		this.$refs.typingInput.focus()
-			// 		this.$refs.typingInput.scrollIntoView( { behavior: 'smooth', block: 'nearest' } )
-			// 	}
-			// } )
+			this.$nextTick( () => {
+				if ( this.$refs.typingInput ) {
+					this.$refs.typingInput.focus()
+					this.$refs.typingInput.scrollIntoView( { behavior: 'smooth', block: 'nearest' } )
+				}
+			} )
 		},
 
 		closeMenu() {

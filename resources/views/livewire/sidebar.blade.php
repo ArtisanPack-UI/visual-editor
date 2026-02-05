@@ -544,114 +544,46 @@ new class extends Component {
 </script>
 
 <script>
-	console.log( '🚀 [INIT] Focus preservation script loaded' )
-
 	// Preserve focus during Livewire updates to prevent layer items from stealing focus
 	const setupFocusPreservation = () => {
-		console.log( '✨ [LIVEWIRE] Setting up hooks, Livewire object:', typeof Livewire )
-
-		let savedActiveElement = null
-		let updatesPending = new Set()
-		let guardTimeout = null
-		let updateCounter = 0
+		let savedElementSelector = null
 
 		Livewire.hook( 'morph.updating', ( { component } ) => {
-			console.log( '🔍 [DEBUG] morph.updating fired for:', component.name )
-
-			// Track which components are updating
 			if ( component.name && component.name.startsWith( 'visual-editor::' ) ) {
-				updatesPending.add( component.name )
-				console.log( '🔄 [UPDATE] Component updating:', component.name, 'Pending:', Array.from( updatesPending ) )
-
-				// Save focus if it's a contenteditable in the canvas
 				const activeEl = document.activeElement
-				console.log( '👁️ [FOCUS] Current focus:', activeEl?.tagName, activeEl?.className?.substring( 0, 50 ), 'isContentEditable:', activeEl?.isContentEditable )
 
-				// Don't save focus if it's on the typing input (slash command area)
-				// We want focus to naturally move to the newly created block's editor
+				// Don't save focus if on typing input (slash command area)
 				const isTypingInput = activeEl?.classList?.contains( 'min-h-[2.5rem]' ) &&
 				                      activeEl?.classList?.contains( 'border-dashed' )
 
 				if ( activeEl && activeEl.isContentEditable && activeEl.closest( '.ve-canvas' ) && !isTypingInput ) {
-					savedActiveElement = activeEl
-					console.log( '💾 [SAVE] Saved contenteditable element:', activeEl )
-				} else {
-					if ( isTypingInput ) {
-						// Clear saved element so we don't restore to a previous block
-						savedActiveElement = null
-						console.log( '⏭️ [SKIP] Not saving focus (typing input - let new block get focus)' )
-					} else {
-						console.log( '⏭️ [SKIP] Not saving focus (not contenteditable in canvas)' )
+					const blockContainer = activeEl.closest( '[wire\\:key^="block-"]' )
+					if ( blockContainer ) {
+						const wireKey = blockContainer.getAttribute( 'wire:key' )
+						savedElementSelector = `[wire\\:key="${wireKey}"] [contenteditable="true"]`
 					}
+				} else {
+					savedElementSelector = null
 				}
 			}
 		} )
 
 		Livewire.hook( 'morph.updated', ( { component } ) => {
-			console.log( '🔍 [DEBUG] morph.updated fired for:', component.name )
+			if ( component.name && component.name.startsWith( 'visual-editor::' ) && savedElementSelector ) {
+				const elementToRestore = document.querySelector( savedElementSelector )
 
-			// Remove from pending updates
-			if ( component.name && component.name.startsWith( 'visual-editor::' ) ) {
-				updatesPending.delete( component.name )
-				console.log( '✅ [DONE] Component updated:', component.name, 'Remaining:', Array.from( updatesPending ) )
-
-				// Only restore focus when ALL visual editor components are done updating
-				if ( updatesPending.size === 0 && savedActiveElement ) {
-					updateCounter++
-					const elementToGuard = savedActiveElement
-					console.log( `🎯 [RESTORE #${updateCounter}] All updates complete, attempting restore...` )
-					console.log( '   Target element:', elementToGuard )
-					console.log( '   Current focus:', document.activeElement?.tagName, document.activeElement?.className?.substring( 0, 50 ) )
-
-					// Immediate restore
-					if ( document.activeElement !== elementToGuard ) {
-						console.log( '⚡ [IMMEDIATE] Restoring focus now' )
-						elementToGuard.focus()
-						console.log( '   Focus after restore:', document.activeElement?.tagName, document.activeElement?.className?.substring( 0, 50 ) )
-					} else {
-						console.log( '✓ [SKIP] Focus already on target element' )
-					}
-
-					// Clear any existing guard
-					if ( guardTimeout ) {
-						clearTimeout( guardTimeout )
-						console.log( '🧹 [GUARD] Cleared previous guard timeout' )
-					}
-
-					// Set up a guard to catch delayed focus stealing (like from layer items)
-					guardTimeout = setTimeout( () => {
-						console.log( `⏰ [GUARD #${updateCounter}] 200ms guard check...` )
-						if ( elementToGuard && document.contains( elementToGuard ) ) {
-							const currentFocus = document.activeElement
-							console.log( '   Current focus:', currentFocus?.tagName, currentFocus?.className?.substring( 0, 50 ) )
-							console.log( '   Is in sidebar?:', currentFocus?.closest( '.ve-sidebar' ) ? 'YES' : 'NO' )
-
-							// If focus has been stolen by a sidebar element, take it back
-							if ( currentFocus && currentFocus.closest( '.ve-sidebar' ) ) {
-								console.log( '🔙 [RECLAIM] Focus was stolen by sidebar, taking it back!' )
-								elementToGuard.focus()
-								console.log( '   Focus after reclaim:', document.activeElement?.tagName )
-							} else {
-								console.log( '✓ [OK] Focus is safe' )
-							}
-						}
-						guardTimeout = null
-					}, 200 )
-
-					savedActiveElement = null
-				} else if ( updatesPending.size === 0 ) {
-					console.log( '⚠️ [NO SAVE] All updates complete but no element was saved' )
+				if ( elementToRestore && document.activeElement !== elementToRestore && !window.veFocusingBlock ) {
+					elementToRestore.focus()
 				}
+
+				savedElementSelector = null
 			}
 		} )
 	}
 
-	// Call setup function immediately if Livewire is ready, or wait for init event
 	if ( typeof Livewire !== 'undefined' ) {
-		console.log( '⚡ [READY] Livewire already loaded, setting up immediately' )
 		setupFocusPreservation()
 	} else {
-		console.log( '⏳ [WAIT] Waiting for livewire:init event' )
 		document.addEventListener( 'livewire:init', setupFocusPreservation )
 	}
 </script>

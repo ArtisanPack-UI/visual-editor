@@ -1229,6 +1229,7 @@ new class extends Component {
 		{{-- Canvas Area --}}
 		<div class="flex flex-1 flex-col overflow-hidden">
 			<livewire:visual-editor::canvas
+				wire:key="editor-canvas"
 				:blocks="$blocks"
 				:active-block-id="$activeBlockId"
 			/>

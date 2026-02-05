@@ -108,7 +108,10 @@ declare( strict_types=1 );
 					@if ( $isListBlock && '' === trim( $editContent ) )
 						$el.innerHTML = '<li></li>';
 					@endif
-					$el.focus(); let s = window.getSelection(), r = document.createRange(); r.selectNodeContents( $el ); r.collapse( false ); s.removeAllRanges(); s.addRange( r )
+					// Only auto-focus if NOT being programmatically focused
+					if ( !window.veFocusingBlock ) {
+						$el.focus(); let s = window.getSelection(), r = document.createRange(); r.selectNodeContents( $el ); r.collapse( false ); s.removeAllRanges(); s.addRange( r )
+					}
 				} )"
 				@blur="if ( !window.veNavigating && !window.veFocusingBlock ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML ) }"
 				@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML )"
