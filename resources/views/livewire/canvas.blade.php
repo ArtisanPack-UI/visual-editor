@@ -1786,10 +1786,14 @@ new class extends Component {
 		selectBlock( block ) {
 			$wire.insertBlockWithContent( block.type, '', block.variation )
 			this.closeMenu()
-			this.$refs.typingInput.textContent = ''
+			if ( this.$refs.typingInput ) {
+				this.$refs.typingInput.textContent = ''
+			}
 			this.$nextTick( () => {
-				this.$refs.typingInput.focus()
-				this.$refs.typingInput.scrollIntoView( { behavior: 'smooth', block: 'nearest' } )
+				if ( this.$refs.typingInput ) {
+					this.$refs.typingInput.focus()
+					this.$refs.typingInput.scrollIntoView( { behavior: 'smooth', block: 'nearest' } )
+				}
 			} )
 		},
 
