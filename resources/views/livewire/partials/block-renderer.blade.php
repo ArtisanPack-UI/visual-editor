@@ -1,6 +1,6 @@
 <?php
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 /**
  * Visual Editor - Block Renderer Partial
@@ -8,21 +8,18 @@ declare( strict_types=1 );
  * Renders a single block (display or editing mode) with its toolbar.
  * Designed to be called recursively for container blocks with inner blocks.
  *
- * @package    ArtisanPack_UI
- * @subpackage VisualEditor\Livewire\Partials
  *
  * @since      2.0.0
  *
- * @var array       $block          The block data array.
- * @var int         $blockIndex     The index within the parent array.
- * @var int         $totalBlocks    Total siblings in the parent array.
+ * @var array $block          The block data array.
+ * @var int $blockIndex     The index within the parent array.
+ * @var int $totalBlocks    Total siblings in the parent array.
  * @var string|null $activeBlockId  Currently active (selected) block ID.
  * @var string|null $editingBlockId Currently editing block ID.
- * @var int         $depth          Nesting depth (0 = top level).
+ * @var int $depth          Nesting depth (0 = top level).
  * @var string|null $parentBlockId  Parent container block ID (null for top level).
- * @var int|null    $slotIndex      Slot index for columns-type containers.
+ * @var int|null $slotIndex      Slot index for columns-type containers.
  */
-
 ?>
 
 @php
@@ -101,34 +98,82 @@ declare( strict_types=1 );
 				$isListBlock = 'list' === $blockType;
 				$editContent = $block['content']['text'] ?? '';
 			@endphp
-			<{{ $editTag }}
-				x-ref="editor"
-				contenteditable="true"
-				x-init="$nextTick( () => {
-					@if ( $isListBlock && '' === trim( $editContent ) )
-						$el.innerHTML = '<li></li>';
+			<div
+				x-data="inlineSlashCommands( { blocks: @js( $this->slashMenuBlocks ), blockId: '{{ $blockId }}' } )"
+				class="relative"
+			>
+				{{-- Slash Command Menu (positioned below by default, above if near bottom) --}}
+				<div
+					x-show="menuOpen"
+					x-transition:enter="transition ease-out duration-150"
+					x-transition:enter-start="opacity-0 translate-y-1"
+					x-transition:enter-end="opacity-100 translate-y-0"
+					x-transition:leave="transition ease-in duration-100"
+					x-transition:leave-start="opacity-100 translate-y-0"
+					x-transition:leave-end="opacity-0 translate-y-1"
+					@click.outside="closeMenu()"
+					x-cloak
+					:class="menuPositionAbove ? 'absolute bottom-full left-0 z-50 mb-1 max-h-72 w-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg' : 'absolute top-full left-0 z-50 mt-1 max-h-72 w-72 overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-lg'"
+					role="listbox"
+					aria-label="{{ __( 'Block types' ) }}"
+				>
+					<template x-for="( category, catIdx ) in filteredBlocks" :key="category.key">
+						<div>
+							<div
+								class="sticky top-0 bg-gray-50 px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-gray-500"
+								x-text="category.name"
+							></div>
+							<template x-for="( block, blockIdx ) in category.blocks" :key="`${category.key}-${blockIdx}`">
+								<button
+									type="button"
+									@click="selectBlock( block, $refs.editor )"
+									@mouseenter="setActiveIndex( getFlatIndex( block ) )"
+									:class="{ 'bg-blue-50 text-blue-700': activeIndex === getFlatIndex( block ) }"
+									class="flex w-full items-center gap-2 px-3 py-2 text-left text-sm text-gray-700 hover:bg-blue-50"
+									role="option"
+									:aria-selected="activeIndex === getFlatIndex( block )"
+								>
+									<span x-text="block.name"></span>
+								</button>
+							</template>
+						</div>
+					</template>
+					<div x-show="0 === flatItems.length" class="px-3 py-4 text-center text-sm text-gray-400">
+						{{ __( 'No matching blocks found' ) }}
+					</div>
+				</div>
+
+				<{{ $editTag }}
+					x-ref="editor"
+					contenteditable="true"
+					x-init="$nextTick( () => {
+						@if ( $isListBlock && '' === trim( $editContent ) )
+							$el.innerHTML = '<li></li>';
+						@endif
+						// Only auto-focus if NOT being programmatically focused
+						if ( !window.veFocusingBlock ) {
+							$el.focus(); let s = window.getSelection(), r = document.createRange(); r.selectNodeContents( $el ); r.collapse( false ); s.removeAllRanges(); s.addRange( r )
+						}
+					} )"
+					@blur="if ( !window.veNavigating && !window.veFocusingBlock ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML ) }"
+					@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML )"
+					@if ( ! $isListBlock )
+						@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.innerHTML )"
 					@endif
-					// Only auto-focus if NOT being programmatically focused
-					if ( !window.veFocusingBlock ) {
-						$el.focus(); let s = window.getSelection(), r = document.createRange(); r.selectNodeContents( $el ); r.collapse( false ); s.removeAllRanges(); s.addRange( r )
-					}
-				} )"
-				@blur="if ( !window.veNavigating && !window.veFocusingBlock ) { $wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML ) }"
-				@keydown.escape.prevent="$wire.saveInlineEdit( '{{ $blockId }}', $el.innerHTML )"
-				@if ( ! $isListBlock )
-					@keydown.enter.prevent="window.veNavigating = true; $wire.insertBlockAfter( '{{ $blockId }}', $el.innerHTML )"
-				@endif
-				@keydown.tab.prevent="window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, $event.shiftKey ? 'up' : 'down' )"
-				@keydown.arrow-up="if ( window.veAtTopOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, 'up' ) }"
-				@keydown.arrow-down="if ( window.veAtBottomOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, 'down' ) }"
-				@keydown.meta.b.prevent="format( 'bold' )"
-				@keydown.ctrl.b.prevent="format( 'bold' )"
-				@keydown.meta.i.prevent="format( 'italic' )"
-				@keydown.ctrl.i.prevent="format( 'italic' )"
-				@keydown.meta.u.prevent="format( 'underline' )"
-				@keydown.ctrl.u.prevent="format( 'underline' )"
-				class="{{ $richTextClasses }}"
-			>{!! kses( $editContent ) !!}</{{ $editTag }}>
+					@keydown.tab.prevent="window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, $event.shiftKey ? 'up' : 'down' )"
+					@keydown.arrow-up="if ( window.veAtTopOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, 'up' ) }"
+					@keydown.arrow-down="if ( window.veAtBottomOfElement( $el ) ) { $event.preventDefault(); window.veNavigating = true; $wire.saveAndNavigate( '{{ $blockId }}', $el.innerHTML, 'down' ) }"
+					@keydown.meta.b.prevent="format( 'bold' )"
+					@keydown.ctrl.b.prevent="format( 'bold' )"
+					@keydown.meta.i.prevent="format( 'italic' )"
+					@keydown.ctrl.i.prevent="format( 'italic' )"
+					@keydown.meta.u.prevent="format( 'underline' )"
+					@keydown.ctrl.u.prevent="format( 'underline' )"
+					@input="handleInput( $event, $el )"
+					@keydown="handleKeydown( $event, $el )"
+					class="{{ $richTextClasses }}"
+				>{!! kses( $editContent ) !!}</{{ $editTag }}>
+			</div>
 		@else
 			{{-- Plain Text Edit Mode --}}
 			@php
@@ -183,14 +228,40 @@ declare( strict_types=1 );
 				@php
 					$dropCap        = (bool) ( $block['settings']['drop_cap'] ?? false );
 					$dropCapClasses = $dropCap ? 'first-letter:float-left first-letter:mr-2 first-letter:text-5xl first-letter:font-bold first-letter:leading-none' : '';
+					$isEmpty        = '' === ( $block['content']['text'] ?? '' );
 				@endphp
-				<div class="prose prose-sm max-w-none {{ $dropCapClasses }}">
-					@if ( '' !== ( $block['content']['text'] ?? '' ) )
-						{!! kses( $block['content']['text'] ) !!}
-					@else
-						<p class="italic text-gray-400">{{ __( 'Type text...' ) }}</p>
-					@endif
-				</div>
+				@if ( $isActive && $isEmpty && !$isEditing )
+					<div
+						x-data="{ showInserter: false }"
+						@mouseenter="showInserter = true"
+						@mouseleave="showInserter = false"
+						class="flex gap-2"
+					>
+						<div class="prose prose-sm max-w-none {{ $dropCapClasses }} flex-1">
+							<p class="italic text-gray-400">{{ __( 'Type / to choose a block' ) }}</p>
+						</div>
+						<button
+							x-show="showInserter"
+							x-cloak
+							@click.stop="$wire.startInlineEdit( '{{ $blockId }}' ); $nextTick( () => { const el = $refs.editor || document.querySelector( '[x-ref=editor]' ); if ( el ) { el.focus() } } )"
+							class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded bg-blue-600 text-white hover:bg-blue-700"
+							type="button"
+							aria-label="{{ __( 'Start editing' ) }}"
+						>
+							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+							</svg>
+						</button>
+					</div>
+				@else
+					<div class="prose prose-sm max-w-none {{ $dropCapClasses }}">
+						@if ( '' !== ( $block['content']['text'] ?? '' ) )
+							{!! kses( $block['content']['text'] ) !!}
+						@else
+							<p class="italic text-gray-400">{{ __( 'Type text...' ) }}</p>
+						@endif
+					</div>
+				@endif
 				@break
 
 			@case ( 'list' )
