@@ -114,6 +114,20 @@ new class extends Component
     }
 
     /**
+     * Handle block reordering from the layers tab.
+     *
+     * @since 2.1.0
+     *
+     * @param  array  $blocks  The reordered blocks array.
+     */
+    #[On('layers-reordered')]
+    public function onLayersReordered(array $blocks): void
+    {
+        $this->blocks = $blocks;
+        $this->notifyBlocksUpdated();
+    }
+
+    /**
      * Deselect all blocks.
      *
      * @since 1.1.0
@@ -170,6 +184,161 @@ new class extends Component
 
         $this->blocks = $reordered;
         $this->notifyBlocksUpdated();
+    }
+
+    /**
+     * Handle cross-context drag-and-drop operations.
+     *
+     * Called when a block is dragged from one container to another within the same drag group.
+     * Updates the backend state to match the DOM changes made by the drag-and-drop.
+     *
+     * @since 2.1.0
+     *
+     * @param  array  $detail  The event detail containing itemId, source/target info and ordered IDs.
+     */
+    public function handleCrossContextDrop( array $detail ): void
+    {
+        $itemId = $detail['itemId'] ?? null;
+        $source = $detail['source'] ?? null;
+        $target = $detail['target'] ?? null;
+        $sourceOrderedIds = $detail['sourceOrderedIds'] ?? [];
+        $targetOrderedIds = $detail['targetOrderedIds'] ?? [];
+
+        \Log::info( 'handleCrossContextDrop called', compact( 'itemId', 'source', 'target', 'sourceOrderedIds', 'targetOrderedIds' ) );
+
+        if ( ! $itemId || ! $source || ! $target ) {
+            \Log::warning( 'Cross-context drop: missing required data' );
+
+            return;
+        }
+
+        // Find the block being moved
+        $movedBlock = $this->findBlockById( $itemId );
+        if ( ! $movedBlock ) {
+            \Log::warning( 'Cross-context drop: block not found', [ 'itemId' => $itemId ] );
+
+            return;
+        }
+
+        \Log::info( 'Found moved block', [
+            'blockType' => $movedBlock['type'] ?? 'unknown',
+            'blockId' => $itemId
+        ] );
+
+        // Get the parent blocks
+        $sourceParent = $this->findBlockById( $source['parentBlockId'] );
+        $targetParent = $this->findBlockById( $target['parentBlockId'] );
+
+        if ( ! $sourceParent || ! $targetParent ) {
+            \Log::warning( 'Cross-context drop: parent blocks not found' );
+
+            return;
+        }
+
+        \Log::info( 'Found parent blocks', [
+            'sourceParentId' => $source['parentBlockId'],
+            'targetParentId' => $target['parentBlockId'],
+            'sameParent' => $source['parentBlockId'] === $target['parentBlockId']
+        ] );
+
+        // Get the column blocks arrays
+        $sourceColumns = $sourceParent['content']['columns'] ?? [];
+        $targetColumns = $targetParent['content']['columns'] ?? [];
+
+        $sourceColIdx = $source['slotIndex'];
+        $targetColIdx = $target['slotIndex'];
+
+        \Log::info( 'Column indexes', [
+            'sourceColIdx' => $sourceColIdx,
+            'targetColIdx' => $targetColIdx,
+            'sourceColumnsCount' => count( $sourceColumns ),
+            'targetColumnsCount' => count( $targetColumns )
+        ] );
+
+        if ( ! isset( $sourceColumns[ $sourceColIdx ] ) || ! isset( $targetColumns[ $targetColIdx ] ) ) {
+            \Log::warning( 'Cross-context drop: column indexes invalid' );
+
+            return;
+        }
+
+        // Remove block from source column
+        $sourceBlocks = $sourceColumns[ $sourceColIdx ]['blocks'] ?? [];
+        \Log::info( 'Source blocks before remove', [
+            'count' => count( $sourceBlocks ),
+            'blockIds' => array_map( fn( $b ) => $b['id'] ?? 'no-id', $sourceBlocks )
+        ] );
+
+        $sourceBlocks = array_values( array_filter( $sourceBlocks, fn( $b ) => ( $b['id'] ?? '' ) !== $itemId ) );
+
+        \Log::info( 'Source blocks after remove', [
+            'count' => count( $sourceBlocks ),
+            'blockIds' => array_map( fn( $b ) => $b['id'] ?? 'no-id', $sourceBlocks )
+        ] );
+
+        // Find position in target based on targetOrderedIds
+        $targetBlocks = $targetColumns[ $targetColIdx ]['blocks'] ?? [];
+        \Log::info( 'Target blocks before insert', [
+            'count' => count( $targetBlocks ),
+            'blockIds' => array_map( fn( $b ) => $b['id'] ?? 'no-id', $targetBlocks )
+        ] );
+
+        $targetPosition = array_search( $itemId, $targetOrderedIds, true );
+
+        if ( false === $targetPosition ) {
+            $targetPosition = count( $targetBlocks );
+        }
+
+        \Log::info( 'Insert position', [ 'targetPosition' => $targetPosition ] );
+
+        // Insert block at the correct position in target
+        array_splice( $targetBlocks, $targetPosition, 0, [ $movedBlock ] );
+
+        \Log::info( 'Target blocks after insert', [
+            'count' => count( $targetBlocks ),
+            'blockIds' => array_map( fn( $b ) => $b['id'] ?? 'no-id', $targetBlocks )
+        ] );
+
+        // Update both columns
+        $sourceColumns[ $sourceColIdx ]['blocks'] = $sourceBlocks;
+        $targetColumns[ $targetColIdx ]['blocks'] = $targetBlocks;
+
+        // If moving within same parent, we need to update both columns in one go
+        if ( $source['parentBlockId'] === $target['parentBlockId'] ) {
+            $sourceParent['content']['columns'] = $sourceColumns;
+            $this->updateBlockById( $source['parentBlockId'], $sourceParent );
+            \Log::info( 'Updated same parent with both columns' );
+        } else {
+            // Different parents - update each separately
+            $sourceParent['content']['columns'] = $sourceColumns;
+            $targetParent['content']['columns'] = $targetColumns;
+
+            $this->updateBlockById( $source['parentBlockId'], $sourceParent );
+            $this->updateBlockById( $target['parentBlockId'], $targetParent );
+            \Log::info( 'Updated different parents' );
+        }
+
+        $this->notifyBlocksUpdated();
+    }
+
+    /**
+     * Reorder blocks by a list of IDs, removing any blocks not in the list.
+     *
+     * @since 1.0.0
+     *
+     * @param  array  $orderedIds  The ordered list of block IDs.
+     */
+    private function reorderBlocksByIds( array $orderedIds ): void
+    {
+        $indexed = collect( $this->blocks )->keyBy( 'id' );
+        $reordered = [];
+
+        foreach ( $orderedIds as $id ) {
+            if ( $indexed->has( $id ) ) {
+                $reordered[] = $indexed->get( $id );
+            }
+        }
+
+        $this->blocks = $reordered;
     }
 
     // ──────────────────────────────────────────────────────────
@@ -920,9 +1089,9 @@ new class extends Component
 
         // Replace the block in the same position
         $blocks = $this->blocks;
-        $parentPath = $location['parent_path'];
+        $parentPath = $location['parentPath'];
 
-        if ($parentPath !== null) {
+        if ($parentPath !== '') {
             $siblings = data_get($blocks, $parentPath);
         } else {
             $siblings = $blocks;
@@ -930,7 +1099,7 @@ new class extends Component
 
         $siblings[$location['index']] = $newBlock;
 
-        if ($parentPath !== null) {
+        if ($parentPath !== '') {
             data_set($blocks, $parentPath, $siblings);
         } else {
             $blocks = $siblings;
@@ -1316,6 +1485,63 @@ new class extends Component
     }
 
     /**
+     * Find a block by ID anywhere in the block tree.
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $blockId  The block ID to find.
+     * @return array|null The block data, or null if not found.
+     */
+    private function findBlockById( string $blockId ): ?array
+    {
+        return $this->findBlockRecursive( $blockId, $this->blocks );
+    }
+
+    /**
+     * Remove a block by ID from anywhere in the block tree.
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $blockId  The block ID to remove.
+     */
+    private function removeBlockById( string $blockId ): void
+    {
+        $location = $this->getBlockLocation( $blockId );
+
+        if ( ! $location ) {
+            return;
+        }
+
+        $siblings = $this->getSiblingsArray( $location['parentPath'] );
+        unset( $siblings[ $location['index'] ] );
+        $siblings = array_values( $siblings ); // Re-index
+
+        $this->setSiblingsArray( $location['parentPath'], $siblings );
+    }
+
+    /**
+     * Update a block by ID with new data.
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $blockId  The block ID to update.
+     * @param  array  $blockData  The new block data.
+     */
+    private function updateBlockById( string $blockId, array $blockData ): void
+    {
+        $location = $this->getBlockLocation( $blockId );
+
+        if ( ! $location ) {
+            return;
+        }
+
+        $siblings = $this->getSiblingsArray( $location['parentPath'] );
+        $siblings[ $location['index'] ] = $blockData;
+
+        $this->setSiblingsArray( $location['parentPath'], $siblings );
+    }
+
+    /**
      * Reorder inner blocks within a container.
      *
      * @since 2.0.0
@@ -1326,9 +1552,16 @@ new class extends Component
      */
     private function reorderInnerBlocks(array $orderedIds, string $parentBlockId, int $slotIndex): void
     {
+        \Log::info('reorderInnerBlocks called', [
+            'orderedIds' => $orderedIds,
+            'parentBlockId' => $parentBlockId,
+            'slotIndex' => $slotIndex,
+        ]);
+
         $parentPath = $this->findBlockPath($parentBlockId, $this->blocks);
 
         if ($parentPath === null) {
+            \Log::error('Parent block not found', ['parentBlockId' => $parentBlockId]);
             return;
         }
 
@@ -1341,7 +1574,17 @@ new class extends Component
             $innerKey = $parentPath.'.content.inner_blocks';
         }
 
+        \Log::info('Reordering inner blocks', [
+            'innerKey' => $innerKey,
+            'parentPath' => $parentPath,
+        ]);
+
         $currentInner = data_get($blocks, $innerKey, []);
+        \Log::info('Current inner blocks', [
+            'count' => count($currentInner),
+            'ids' => array_column($currentInner, 'id'),
+        ]);
+
         $indexed = collect($currentInner)->keyBy('id');
         $reordered = [];
         $seen = [];
@@ -1359,9 +1602,16 @@ new class extends Component
             }
         }
 
+        \Log::info('Reordered blocks', [
+            'count' => count($reordered),
+            'ids' => array_column($reordered, 'id'),
+        ]);
+
         data_set($blocks, $innerKey, $reordered);
         $this->blocks = $blocks;
         $this->notifyBlocksUpdated();
+
+        \Log::info('Blocks updated successfully');
     }
 
     /**
@@ -1499,18 +1749,10 @@ new class extends Component
 
 		{{-- Typing Area with Slash Command Menu --}}
 		<div
-			x-data="{
-				...slashCommandInput( { blocks: @js( $this->slashMenuBlocks ) } ),
-			isVisible: false,
-			get shouldBeVisible() {
-				const hasBlocks = $wire.blocks && $wire.blocks.length > 0;
-				return !hasBlocks || this.isVisible;
-			}
-			}"
-		:class="shouldBeVisible ? 'opacity-100' : 'opacity-0'"
+			x-data="slashCommandInput( { blocks: @js( $this->slashMenuBlocks ) } )"
+			:class="shouldBeVisible ? 'opacity-100' : 'opacity-0'"
 			@focus-typing-area.window="isVisible = true; setTimeout(() => $refs.typingInput?.focus(), 50)"
-		
-		@click.self="isVisible = true"
+			@click.self="isVisible = true"
 			wire:ignore
 			class="ve-typing-area ve-canvas-block group relative rounded px-4 py-2 transition-all mt-2 hover:ring-2 hover:ring-blue-200 cursor-text"
 		>
@@ -1771,6 +2013,13 @@ new class extends Component
 		flatItems: [],
 		filteredBlocks: [],
 		menuPositionAbove: false,
+		isVisible: false,
+
+		get shouldBeVisible() {
+			const hasBlocks = this.$wire.blocks && this.$wire.blocks.length > 0;
+			return !hasBlocks || this.isVisible;
+		},
+
 		init() {
 			// Initialize filteredBlocks
 
@@ -1782,7 +2031,7 @@ new class extends Component
 			}
 		})
 			this.updateFilteredBlocks()
-			
+
 			// Watch for slashQuery changes and update filteredBlocks
 			this.$watch( 'slashQuery', () => {
 				console.log( '🔍 slashQuery changed to:', this.slashQuery )
@@ -1881,12 +2130,8 @@ new class extends Component
 				}
 			} else if ( this.menuOpen ) {
 				this.closeMenu()
-			} else if ( '' !== text.trim() ) {
-				this.$refs.typingInput.textContent = ''
-				window.veNavigating = true
-				this.$refs.typingInput.blur()
-				$wire.insertBlockWithContent( 'text', text )
 			}
+			// Don't auto-create block on input - wait for Enter key
 		},
 
 		handleKeydown( event ) {
@@ -1922,6 +2167,14 @@ new class extends Component
 
 			if ( 'Enter' === event.key && !event.shiftKey ) {
 				event.preventDefault()
+				let text = this.$refs.typingInput.textContent.trim()
+				if ( '' !== text ) {
+					this.$refs.typingInput.textContent = ''
+					window.veNavigating = true
+					this.$refs.typingInput.blur()
+					this.isVisible = false
+					$wire.insertBlockWithContent( 'text', text )
+				}
 			}
 		},
 

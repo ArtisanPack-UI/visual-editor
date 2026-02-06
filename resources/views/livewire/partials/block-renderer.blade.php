@@ -342,8 +342,33 @@ declare(strict_types=1);
 						>
 							@if ( !empty( $colBlocks ) )
 								<div
+									wire:key="drag-container-{{ $blockId }}-{{ $colIdx }}"
 									x-drag-context
-									@drag:end="$wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}', {{ $colIdx }} )"
+									x-drag-group="visual-editor-blocks"
+									x-data="{
+										parseWireKey(el) {
+											const wireKey = el.getAttribute('wire:key');
+											// Format: drag-container-{parentBlockId}-{columnIndex}
+											const match = wireKey.match(/^drag-container-(.+)-(\d+)$/);
+											if (match) {
+												return { parentBlockId: match[1], slotIndex: parseInt(match[2]) };
+											}
+											return null;
+										}
+									}"
+									@drag:end="console.log('Drag end:', $event.detail.orderedIds, '{{ $blockId }}', {{ $colIdx }}); $wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}', {{ $colIdx }} )"
+									@drag:cross-context="
+										const source = parseWireKey($event.detail.sourceContext);
+										const target = parseWireKey($event.detail.targetContext);
+										console.log('Cross-context drag:', { itemId: $event.detail.itemId, source, target, sourceOrderedIds: $event.detail.sourceOrderedIds, targetOrderedIds: $event.detail.targetOrderedIds });
+										$wire.handleCrossContextDrop({
+											itemId: $event.detail.itemId,
+											source: source,
+											target: target,
+											sourceOrderedIds: $event.detail.sourceOrderedIds,
+											targetOrderedIds: $event.detail.targetOrderedIds
+										})
+									"
 									class="space-y-2"
 									role="list"
 									aria-label="{{ __( 'Column :index blocks', [ 'index' => $colIdx + 1 ] ) }}"
@@ -405,8 +430,11 @@ declare(strict_types=1);
 				>
 					@if ( !empty( $colInnerBlocks ) )
 						<div
+							wire:key="drag-container-{{ $blockId }}"
 							x-drag-context
-							@drag:end="$wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}' )"
+							x-drag-group="visual-editor-blocks"
+							@drag:end="console.log('Drag end (column):', $event.detail.orderedIds, '{{ $blockId }}'); $wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}' )"
+							@drag:cross-context="console.log('Cross-context drag:', $event.detail); $wire.handleCrossContextDrop( $event.detail )"
 							class="w-full space-y-2"
 							role="list"
 							aria-label="{{ __( 'Column blocks' ) }}"
@@ -477,8 +505,11 @@ declare(strict_types=1);
 						] )
 					@elseif ( !empty( $innerBlocks ) )
 						<div
+							wire:key="drag-container-{{ $blockId }}"
 							x-drag-context
-							@drag:end="$wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}' )"
+							x-drag-group="visual-editor-blocks"
+							@drag:end="console.log('Drag end (group):',$event.detail.orderedIds,'{{ $blockId }}'); $wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}' )"
+							@drag:cross-context="console.log('Cross-context drag:', $event.detail); $wire.handleCrossContextDrop( $event.detail )"
 							class="w-full space-y-2"
 							role="list"
 							aria-label="{{ __( 'Group blocks' ) }}"
@@ -568,8 +599,11 @@ declare(strict_types=1);
 							<div class="min-h-[3rem] rounded border border-dashed border-gray-300 bg-gray-50/50 p-2">
 								@if ( !empty( $giInner ) )
 									<div
+										wire:key="drag-container-{{ $blockId }}-{{ $gridItemIndex }}"
 										x-drag-context
-										@drag:end="$wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}', {{ $gridItemIndex }} )"
+										x-drag-group="visual-editor-blocks"
+										@drag:end="console.log('Drag end (grid):', $event.detail.orderedIds, '{{ $blockId }}', {{ $gridItemIndex }}); $wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}', {{ $gridItemIndex }} )"
+										@drag:cross-context="console.log('Cross-context drag:', $event.detail); $wire.handleCrossContextDrop( $event.detail )"
 										class="space-y-2"
 										role="list"
 										aria-label="{{ __( 'Grid item :index blocks', [ 'index' => $gridItemIndex + 1 ] ) }}"
@@ -644,8 +678,11 @@ declare(strict_types=1);
 				>
 					@if ( !empty( $giInnerBlocks ) )
 						<div
+							wire:key="drag-container-{{ $blockId }}"
 							x-drag-context
-							@drag:end="$wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}' )"
+							x-drag-group="visual-editor-blocks"
+							@drag:end="console.log('Drag end (grid_item):', $event.detail.orderedIds, '{{ $blockId }}'); $wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}' )"
+							@drag:cross-context="console.log('Cross-context drag:', $event.detail); $wire.handleCrossContextDrop( $event.detail )"
 							class="w-full space-y-2"
 							role="list"
 							aria-label="{{ __( 'Grid item blocks' ) }}"
