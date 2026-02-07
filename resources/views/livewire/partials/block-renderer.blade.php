@@ -326,7 +326,51 @@ declare(strict_types=1);
 						'' !== $colCountXl ? 'XL: ' . $colCountXl : '',
 					] );
 				@endphp
-				<div class="flex {{ $gapClass }} {{ $alignClass }}">
+				<div
+					wire:key="columns-drag-container-{{ $blockId }}"
+					x-drag-context
+					x-drag-group="visual-editor-columns"
+					x-data="{ draggingColumn: false }"
+					@dragstart.capture="draggingColumn = true"
+					@dragend.capture="draggingColumn = false"
+					@drag:end="
+						console.log('Canvas: Column drag ended:', $event.detail);
+						console.log('Canvas: Raw orderedIds:', $event.detail.orderedIds);
+						const orderedIds = $event.detail.orderedIds;
+						// Filter to only include column IDs (format: blockId-col-N)
+						const columnIds = orderedIds.filter(id => id.includes('-col-') && id.split('-col-').length === 2);
+						console.log('Canvas: Filtered column IDs:', columnIds);
+
+						// Count occurrences of each column ID
+						const counts = {};
+						columnIds.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+						console.log('Canvas: Column ID counts:', counts);
+
+						// Find the dragged column (appears more than once)
+						const draggedColumnId = Object.keys(counts).find(id => counts[id] > 1);
+						console.log('Canvas: Dragged column (from duplicates):', draggedColumnId);
+
+						// Remove first occurrence of dragged column, keep all others
+						const uniqueColumnIds = [];
+						let removedFirst = false;
+						for (const id of columnIds) {
+							if (id === draggedColumnId && !removedFirst) {
+								removedFirst = true; // Skip the first occurrence of dragged item
+								continue;
+							}
+							if (!uniqueColumnIds.includes(id)) {
+								uniqueColumnIds.push(id);
+							}
+						}
+
+						const newOrder = uniqueColumnIds.map(id => parseInt(id.split('-col-')[1]));
+						console.log('Canvas: Unique column IDs:', uniqueColumnIds);
+						console.log('Canvas: New column order:', newOrder);
+						$wire.reorderColumns('{{ $blockId }}', newOrder);
+						draggingColumn = false;
+					"
+					class="flex {{ $gapClass }} {{ $alignClass }}"
+				>
 					@if ( !empty( $responsiveCols ) )
 						<div class="mb-1 w-full text-xs text-gray-400">
 							{{ implode( ' | ', $responsiveCols ) }}
@@ -335,16 +379,34 @@ declare(strict_types=1);
 					@foreach ( $colWidths as $colIdx => $width )
 						@php
 							$colBlocks = $columns[ $colIdx ]['blocks'] ?? [];
+							$columnId = "{$blockId}-col-{$colIdx}";
+							$isColumnActive = $columnId === $activeColumnId;
 						@endphp
 						<div
-							class="min-h-[3rem] rounded border border-dashed border-gray-300 bg-gray-50/50 p-2"
+							x-drag-item="'{{ $columnId }}'"
+							wire:key="column-{{ $columnId }}"
+							x-data="{ isDragging: false }"
+							@dragstart="isDragging = true"
+							@dragend="isDragging = false"
+							@click.stop="if (!isDragging) { $wire.selectColumn( '{{ $blockId }}', {{ $colIdx }} ) }"
+							class="ve-column-container group relative min-h-[3rem] rounded border border-dashed p-2 transition-colors
+								{{ $isColumnActive ? 'border-blue-400 bg-blue-50/50' : 'border-gray-300 bg-gray-50/50 hover:border-gray-400' }}"
 							style="flex: 0 0 {{ $width }}%;"
 						>
+							{{-- Column Toolbar --}}
+							@if ( $isColumnActive )
+								@include( 'visual-editor::livewire.partials.column-toolbar', [
+									'parentBlockId' => $blockId,
+									'columnIndex'   => $colIdx,
+									'totalColumns'  => count( $colWidths ),
+								] )
+							@endif
 							@if ( !empty( $colBlocks ) )
 								<div
 									wire:key="drag-container-{{ $blockId }}-{{ $colIdx }}"
 									x-drag-context
 									x-drag-group="visual-editor-blocks"
+									:style="draggingColumn ? 'pointer-events: none;' : ''"
 									x-data="{
 										parseWireKey(el) {
 											const wireKey = el.getAttribute('wire:key');
@@ -375,14 +437,15 @@ declare(strict_types=1);
 								>
 									@foreach ( $colBlocks as $innerIndex => $innerBlock )
 										@include( 'visual-editor::livewire.partials.block-renderer', [
-											'block'          => $innerBlock,
-											'blockIndex'     => $innerIndex,
-											'totalBlocks'    => count( $colBlocks ),
-											'activeBlockId'  => $activeBlockId,
-											'editingBlockId' => $editingBlockId,
-											'depth'          => $depth + 1,
-											'parentBlockId'  => $blockId,
-											'slotIndex'      => $colIdx,
+											'block'           => $innerBlock,
+											'blockIndex'      => $innerIndex,
+											'totalBlocks'     => count( $colBlocks ),
+											'activeBlockId'   => $activeBlockId,
+											'activeColumnId'  => $activeColumnId,
+											'editingBlockId'  => $editingBlockId,
+											'depth'           => $depth + 1,
+											'parentBlockId'   => $blockId,
+											'slotIndex'       => $colIdx,
 										] )
 									@endforeach
 								</div>
@@ -444,8 +507,9 @@ declare(strict_types=1);
 									'block'          => $innerBlock,
 									'blockIndex'     => $innerIndex,
 									'totalBlocks'    => count( $colInnerBlocks ),
-									'activeBlockId'  => $activeBlockId,
-									'editingBlockId' => $editingBlockId,
+									'activeBlockId'   => $activeBlockId,
+									'activeColumnId'  => $activeColumnId,
+									'editingBlockId'  => $editingBlockId,
 									'depth'          => $depth + 1,
 									'parentBlockId'  => $blockId,
 									'slotIndex'      => null,
@@ -519,8 +583,9 @@ declare(strict_types=1);
 									'block'          => $innerBlock,
 									'blockIndex'     => $innerIndex,
 									'totalBlocks'    => count( $innerBlocks ),
-									'activeBlockId'  => $activeBlockId,
-									'editingBlockId' => $editingBlockId,
+									'activeBlockId'   => $activeBlockId,
+									'activeColumnId'  => $activeColumnId,
+									'editingBlockId'  => $editingBlockId,
 									'depth'          => $depth + 1,
 									'parentBlockId'  => $blockId,
 									'slotIndex'      => null,
@@ -610,14 +675,15 @@ declare(strict_types=1);
 									>
 										@foreach ( $giInner as $innerIndex => $innerBlock )
 											@include( 'visual-editor::livewire.partials.block-renderer', [
-												'block'          => $innerBlock,
-												'blockIndex'     => $innerIndex,
-												'totalBlocks'    => count( $giInner ),
-												'activeBlockId'  => $activeBlockId,
-												'editingBlockId' => $editingBlockId,
-												'depth'          => $depth + 1,
-												'parentBlockId'  => $blockId,
-												'slotIndex'      => $gridItemIndex,
+												'block'           => $innerBlock,
+												'blockIndex'      => $innerIndex,
+												'totalBlocks'     => count( $giInner ),
+												'activeBlockId'   => $activeBlockId,
+												'activeColumnId'  => $activeColumnId,
+												'editingBlockId'  => $editingBlockId,
+												'depth'           => $depth + 1,
+												'parentBlockId'   => $blockId,
+												'slotIndex'       => $gridItemIndex,
 											] )
 										@endforeach
 									</div>
@@ -692,8 +758,9 @@ declare(strict_types=1);
 									'block'          => $innerBlock,
 									'blockIndex'     => $innerIndex,
 									'totalBlocks'    => count( $giInnerBlocks ),
-									'activeBlockId'  => $activeBlockId,
-									'editingBlockId' => $editingBlockId,
+									'activeBlockId'   => $activeBlockId,
+									'activeColumnId'  => $activeColumnId,
+									'editingBlockId'  => $editingBlockId,
 									'depth'          => $depth + 1,
 									'parentBlockId'  => $blockId,
 									'slotIndex'      => null,

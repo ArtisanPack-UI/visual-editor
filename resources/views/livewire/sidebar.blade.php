@@ -340,6 +340,35 @@ new class extends Component {
 
 		$this->dispatch( 'layers-reordered', blocks: $reordered );
 	}
+
+	/**
+	 * Dispatch cross-context drop event from layers panel to canvas.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param array $detail The cross-context drop detail.
+	 *
+	 * @return void
+	 */
+	public function dispatchCrossContextDrop( array $detail ): void
+	{
+		$this->dispatch( 'layers-cross-context-drop', detail: $detail );
+	}
+
+	/**
+	 * Dispatch column reorder event from layers panel to canvas.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param string $parentBlockId The parent block ID.
+	 * @param array  $newOrder      The new column order.
+	 *
+	 * @return void
+	 */
+	public function dispatchColumnReorder( string $parentBlockId, array $newOrder ): void
+	{
+		$this->dispatch( 'layers-column-reorder', parentBlockId: $parentBlockId, newOrder: $newOrder );
+	}
 }; ?>
 
 <div class="ve-sidebar flex w-72 flex-col border-r border-gray-200 bg-white"
@@ -467,7 +496,9 @@ new class extends Component {
 			@else
 				<div
 					x-drag-context
+					x-drag-group="visual-editor-blocks"
 					@drag:end="$wire.reorderLayerBlocks( $event.detail.orderedIds )"
+					@drag:cross-context="console.log('Top-level layers cross-context:', $event.detail); $wire.dispatchCrossContextDrop( $event.detail )"
 					class="space-y-1"
 					role="list"
 					aria-label="{{ __( 'Layer order' ) }}"

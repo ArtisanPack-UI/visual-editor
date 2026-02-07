@@ -88,39 +88,119 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 @endif
 
 @if ( $columnCount > 0 )
-	@for ( $colIndex = 0; $colIndex < $columnCount; $colIndex++ )
-		@php
-			$column    = $columns[ $colIndex ] ?? [];
-			$colBlocks = $column['blocks'] ?? [];
-			$columnId  = $column['id'] ?? '';
-		@endphp
+	{{-- Columns drag context with pointer-events management --}}
+	<div
+		wire:key="layer-columns-drag-container-{{ $blockId }}"
+		x-drag-context
+		x-drag-group="visual-editor-columns"
+		x-data="{ draggingColumn: false }"
+		@dragstart.capture="draggingColumn = true"
+		@dragend.capture="draggingColumn = false"
+		@drag:end="
+			console.log('Layers: Column drag ended:', $event.detail);
+			console.log('Layers: Raw orderedIds:', $event.detail.orderedIds);
+			const orderedIds = $event.detail.orderedIds;
+			// Filter to only include column IDs (format: blockId-col-N)
+			const columnIds = orderedIds.filter(id => id.includes('-col-') && id.split('-col-').length === 2);
+			console.log('Layers: Filtered column IDs:', columnIds);
 
-		{{-- Show column container as a layer item --}}
-		<div
-			x-drag-item="'{{ $columnId ?: $blockId . '-col-' . $colIndex }}'"
-			wire:key="layer-col-{{ $blockId }}-{{ $colIndex }}"
-			@if ( $columnId ) wire:click="selectLayerBlock( '{{ $columnId }}' )" @endif
-			class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors text-gray-700 hover:bg-gray-100"
-			role="listitem"
-			style="padding-left: {{ ( $depth + 1 ) * 1.25 }}rem;"
-		>
-			<x-artisanpack-icon name="fas.grip-vertical" class="h-3 w-3 shrink-0 cursor-grab text-gray-300" />
-			<x-artisanpack-icon name="fas.table-columns" class="h-4 w-4 shrink-0 text-gray-400" />
-			<span class="truncate">{{ __( 'Column :index', [ 'index' => $colIndex + 1 ] ) }}</span>
+			// Count occurrences of each column ID
+			const counts = {};
+			columnIds.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
+			console.log('Layers: Column ID counts:', counts);
+
+			// Find the dragged column (appears more than once)
+			const draggedColumnId = Object.keys(counts).find(id => counts[id] > 1);
+			console.log('Layers: Dragged column (from duplicates):', draggedColumnId);
+
+			// Remove first occurrence of dragged column, keep all others
+			const uniqueColumnIds = [];
+			let removedFirst = false;
+			for (const id of columnIds) {
+				if (id === draggedColumnId && !removedFirst) {
+					removedFirst = true; // Skip the first occurrence of dragged item
+					continue;
+				}
+				if (!uniqueColumnIds.includes(id)) {
+					uniqueColumnIds.push(id);
+				}
+			}
+
+			const newOrder = uniqueColumnIds.map(id => parseInt(id.split('-col-')[1]));
+			console.log('Layers: Unique column IDs:', uniqueColumnIds);
+			console.log('Layers: New column order:', newOrder);
+			$wire.dispatchColumnReorder('{{ $blockId }}', newOrder);
+			draggingColumn = false;
+		"
+		@drag:cross-context="console.log('Layers: Column cross-context (should not happen):', $event.detail)"
+	>
+		@for ( $colIndex = 0; $colIndex < $columnCount; $colIndex++ )
+			@php
+				$column    = $columns[ $colIndex ] ?? [];
+				$colBlocks = $column['blocks'] ?? [];
+				$columnId  = $column['id'] ?? '';
+			@endphp
+
+			{{-- Column item - draggable for reordering --}}
+			<div
+				x-drag-item="'{{ $columnId ?: $blockId . '-col-' . $colIndex }}'"
+				wire:key="layer-col-{{ $blockId }}-{{ $colIndex }}"
+				wire:click="selectColumn( '{{ $blockId }}', {{ $colIndex }} )"
+				class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors text-gray-700 hover:bg-gray-100"
+				role="listitem"
+				style="padding-left: {{ ( $depth + 1 ) * 1.25 }}rem;"
+			>
+				<x-artisanpack-icon name="fas.grip-vertical" class="h-3 w-3 shrink-0 cursor-grab text-gray-300" />
+				<x-artisanpack-icon name="fas.table-columns" class="h-4 w-4 shrink-0 text-gray-400" />
+				<span class="truncate">{{ __( 'Column :index', [ 'index' => $colIndex + 1 ] ) }}</span>
+				@if ( !empty( $colBlocks ) )
+					<span class="ml-auto text-xs text-gray-400">{{ count( $colBlocks ) }}</span>
+				@endif
+			</div>
+
+			{{-- Show blocks inside this column with drag context --}}
 			@if ( !empty( $colBlocks ) )
-				<span class="ml-auto text-xs text-gray-400">{{ count( $colBlocks ) }}</span>
+				<div
+					wire:key="drag-container-{{ $blockId }}-{{ $colIndex }}"
+					x-drag-context
+					x-drag-group="visual-editor-blocks"
+					:style="draggingColumn ? 'pointer-events: none;' : ''"
+					x-data="{
+						parseWireKey(el) {
+							const wireKey = el.getAttribute('wire:key');
+							// Format: drag-container-{parentBlockId}-{columnIndex}
+							const match = wireKey.match(/^drag-container-(.+)-(\d+)$/);
+							if (match) {
+								return { parentBlockId: match[1], slotIndex: parseInt(match[2]) };
+							}
+							return null;
+						}
+					}"
+					@drag:end="$wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}', {{ $colIndex }} )"
+					@drag:cross-context="
+						const source = parseWireKey($event.detail.sourceContext);
+						const target = parseWireKey($event.detail.targetContext);
+						console.log('Layers cross-context drag:', { itemId: $event.detail.itemId, source, target, sourceOrderedIds: $event.detail.sourceOrderedIds, targetOrderedIds: $event.detail.targetOrderedIds });
+						$wire.dispatchCrossContextDrop({
+							itemId: $event.detail.itemId,
+							source: source,
+							target: target,
+							sourceOrderedIds: $event.detail.sourceOrderedIds,
+							targetOrderedIds: $event.detail.targetOrderedIds
+						})
+					"
+				>
+					@foreach ( $colBlocks as $childBlock )
+						@include( 'visual-editor::livewire.partials.layer-item', [
+							'block'         => $childBlock,
+							'activeBlockId' => $activeBlockId,
+							'depth'         => $depth + 2,
+						] )
+					@endforeach
+				</div>
 			@endif
-		</div>
-
-		{{-- Show blocks inside this column --}}
-		@foreach ( $colBlocks as $childBlock )
-			@include( 'visual-editor::livewire.partials.layer-item', [
-				'block'         => $childBlock,
-				'activeBlockId' => $activeBlockId,
-				'depth'         => $depth + 2,
-			] )
-		@endforeach
-	@endfor
+		@endfor
+	</div>
 @endif
 
 @if ( $itemCount > 0 )
@@ -148,13 +228,45 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 			@endif
 		</div>
 
-		{{-- Show blocks inside this grid item --}}
-		@foreach ( $itemBlocks as $childBlock )
-			@include( 'visual-editor::livewire.partials.layer-item', [
-				'block'         => $childBlock,
-				'activeBlockId' => $activeBlockId,
-				'depth'         => $depth + 2,
-			] )
-		@endforeach
+		{{-- Show blocks inside this grid item with drag context --}}
+		@if ( !empty( $itemBlocks ) )
+			<div
+				wire:key="drag-container-{{ $blockId }}-{{ $itemIndex }}"
+				x-drag-context
+				x-drag-group="visual-editor-blocks"
+				x-data="{
+					parseWireKey(el) {
+						const wireKey = el.getAttribute('wire:key');
+						// Format: drag-container-{parentBlockId}-{itemIndex}
+						const match = wireKey.match(/^drag-container-(.+)-(\d+)$/);
+						if (match) {
+							return { parentBlockId: match[1], slotIndex: parseInt(match[2]) };
+						}
+						return null;
+					}
+				}"
+				@drag:end="$wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}', {{ $itemIndex }} )"
+				@drag:cross-context="
+					const source = parseWireKey($event.detail.sourceContext);
+					const target = parseWireKey($event.detail.targetContext);
+					console.log('Layers grid cross-context drag:', { itemId: $event.detail.itemId, source, target, sourceOrderedIds: $event.detail.sourceOrderedIds, targetOrderedIds: $event.detail.targetOrderedIds });
+					$wire.dispatchCrossContextDrop({
+						itemId: $event.detail.itemId,
+						source: source,
+						target: target,
+						sourceOrderedIds: $event.detail.sourceOrderedIds,
+						targetOrderedIds: $event.detail.targetOrderedIds
+					})
+				"
+			>
+				@foreach ( $itemBlocks as $childBlock )
+					@include( 'visual-editor::livewire.partials.layer-item', [
+						'block'         => $childBlock,
+						'activeBlockId' => $activeBlockId,
+						'depth'         => $depth + 2,
+					] )
+				@endforeach
+			</div>
+		@endif
 	@endfor
 @endif
