@@ -313,6 +313,17 @@ declare(strict_types=1);
 						default   => 'items-start',
 					};
 					$columns = $block['content']['columns'] ?? [];
+
+					// Check if layout picker should be shown
+					$layoutSelected = $block['settings']['_layout_selected'] ?? false;
+					$allColumnsEmpty = true;
+					foreach ( $columns as $col ) {
+						if ( ! empty( $col['blocks'] ?? [] ) ) {
+							$allColumnsEmpty = false;
+							break;
+						}
+					}
+					$showLayoutPicker = ! $layoutSelected && $allColumnsEmpty;
 				@endphp
 				<div
 					wire:key="columns-drag-container-{{ $blockId }}"
@@ -521,9 +532,15 @@ declare(strict_types=1);
 						);
 						})()
 					"
-					class="flex {{ $gapClass }} {{ $alignClass }}"
+					class="flex {{ $gapClass }} {{ $alignClass }} min-h-[12rem]"
 				>
-					@foreach ( $colWidths as $colIdx => $width )
+					@if ( $showLayoutPicker )
+						{{-- Layout Picker (shown when block is empty and no layout selected) --}}
+						@include( 'visual-editor::livewire.partials.columns-layout-picker', [
+							'blockId' => $blockId,
+						] )
+					@else
+						@foreach ( $colWidths as $colIdx => $width )
 						@php
 							$column = $columns[ $colIdx ] ?? [];
 							$colBlocks = $column['blocks'] ?? [];
@@ -608,6 +625,7 @@ declare(strict_types=1);
 							] )
 						</div>
 					@endforeach
+					@endif
 				</div>
 				@break
 

@@ -1231,6 +1231,88 @@ new class extends Component
         $this->dispatch('block-selected', blockId: $this->activeBlockId);
     }
 
+    /**
+     * Apply a columns layout preset.
+     *
+     * @since 2.0.0
+     *
+     * @param  string  $blockId  The block ID.
+     * @param  string  $preset   The preset to apply (e.g., '50-50', '33-67', etc.).
+     */
+    public function applyColumnsLayout(string $blockId, string $preset): void
+    {
+        $path = $this->findBlockPath($blockId, $this->blocks);
+
+        if ($path === null) {
+            return;
+        }
+
+        $blocks = $this->blocks;
+        $block = data_get($blocks, $path);
+
+        if ($block['type'] !== 'columns') {
+            return;
+        }
+
+        // Parse preset to determine number of columns
+        $colWidths = explode('-', $preset);
+        $columnCount = count($colWidths);
+
+        // Create columns array with empty blocks
+        $columns = [];
+        for ($i = 0; $i < $columnCount; $i++) {
+            $columns[] = [
+                'id' => 've-col-'.uniqid().'-'.$i,
+                'blocks' => [],
+            ];
+        }
+
+        // Update block data
+        data_set($blocks, $path.'.content.columns', $columns);
+        data_set($blocks, $path.'.settings.preset', $preset);
+        data_set($blocks, $path.'.settings.columns', (string) $columnCount);
+        data_set($blocks, $path.'.settings._layout_selected', true);
+
+        // If responsive columns is off, sync responsive values
+        $responsiveEnabled = $block['settings']['responsive_columns'] ?? false;
+
+        if (! $responsiveEnabled) {
+            data_set($blocks, $path.'.settings.columns_sm', (string) $columnCount);
+            data_set($blocks, $path.'.settings.columns_md', (string) $columnCount);
+            data_set($blocks, $path.'.settings.columns_lg', (string) $columnCount);
+            data_set($blocks, $path.'.settings.columns_xl', (string) $columnCount);
+        }
+
+        $this->blocks = $blocks;
+        $this->notifyBlocksUpdated();
+        $this->selectBlock($blockId);
+    }
+
+    /**
+     * Skip the columns layout picker.
+     *
+     * @since 2.0.0
+     *
+     * @param  string  $blockId  The block ID.
+     */
+    public function skipColumnsLayoutPicker(string $blockId): void
+    {
+        $path = $this->findBlockPath($blockId, $this->blocks);
+
+        if ($path === null) {
+            return;
+        }
+
+        $blocks = $this->blocks;
+
+        // Just mark that the layout picker was dismissed
+        data_set($blocks, $path.'.settings._layout_selected', true);
+
+        $this->blocks = $blocks;
+        $this->notifyBlocksUpdated();
+        $this->selectBlock($blockId);
+    }
+
     // ──────────────────────────────────────────────────────────
     // Zoom & Grid
     // ──────────────────────────────────────────────────────────
