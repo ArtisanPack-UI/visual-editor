@@ -1,6 +1,6 @@
 <?php
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 /**
  * Visual Editor - Sidebar
@@ -9,366 +9,405 @@ declare( strict_types=1 );
  * layers, and settings. Provides block/section insertion
  * and navigation capabilities.
  *
- * @package    ArtisanPack_UI
- * @subpackage VisualEditor\Livewire
  *
  * @since      1.0.0
  */
 
 use ArtisanPackUI\VisualEditor\Models\UserSection;
-use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Registries\SectionRegistry;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
-use Livewire\Attributes\Locked;
 use Livewire\Attributes\Reactive;
 use Livewire\Component;
 
-new class extends Component {
-	/**
-	 * Whether the sidebar is open.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var bool
-	 */
-	public bool $isOpen = true;
+new class extends Component
+{
+    /**
+     * Whether the sidebar is open.
+     *
+     * @since 1.0.0
+     */
+    public bool $isOpen = true;
 
-	/**
-	 * The active sidebar tab.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var string
-	 */
-	public string $activeTab = 'blocks';
+    /**
+     * The active sidebar tab.
+     *
+     * @since 1.0.0
+     */
+    public string $activeTab = 'blocks';
 
-	/**
-	 * Initialize the component.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param string $activeTab Initial active tab from parent.
-	 *
-	 * @return void
-	 */
-	public function mount( string $activeTab = 'blocks' ): void
-	{
-		// Store initial tab in Alpine-managed state
-		$this->activeTab = $activeTab;
-	}
+    /**
+     * Initialize the component.
+     *
+     * @since 2.0.0
+     *
+     * @param  string  $activeTab  Initial active tab from parent.
+     */
+    public function mount(string $activeTab = 'blocks'): void
+    {
+        // Store initial tab in Alpine-managed state
+        $this->activeTab = $activeTab;
+    }
 
-	/**
-	 * The block search query.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var string
-	 */
-	public string $blockSearch = '';
+    /**
+     * The block search query.
+     *
+     * @since 1.0.0
+     */
+    public string $blockSearch = '';
 
-	/**
-	 * The section search query.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @var string
-	 */
-	public string $sectionSearch = '';
+    /**
+     * The section search query.
+     *
+     * @since 1.1.0
+     */
+    public string $sectionSearch = '';
 
-	/**
-	 * The content blocks for the layers tab.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @var array
-	 */
-	#[Reactive]
-	public array $blocks = [];
+    /**
+     * The content blocks for the layers tab.
+     *
+     * @since 1.4.0
+     */
+    #[Reactive]
+    public array $blocks = [];
 
-	/**
-	 * The currently active block ID.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @var string|null
-	 */
-	#[Reactive]
-	public ?string $activeBlockId = null;
+    /**
+     * The currently active block ID.
+     *
+     * @since 1.4.0
+     */
+    #[Reactive]
+    public ?string $activeBlockId = null;
 
-	/**
-	 * The block type for the variation picker.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @var string|null
-	 */
-	public ?string $variationPickerBlock = null;
+    /**
+     * The currently active column ID.
+     *
+     * @since 2.1.0
+     */
+    #[Reactive]
+    public ?string $activeColumnId = null;
 
-	/**
-	 * Get blocks grouped by category, filtered by search.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return Collection
-	 */
-	#[Computed]
-	public function groupedBlocks(): Collection
-	{
-		$registry = veBlocks();
-		$grouped  = $registry->getGroupedByCategory();
+    /**
+     * The block type for the variation picker.
+     *
+     * @since 2.0.0
+     */
+    public ?string $variationPickerBlock = null;
 
-		// Expand blocks with variations into separate entries and filter out blocks with parent constraints
-		$grouped = $grouped->map( function ( $category ) use ( $registry ) {
-			$expandedBlocks = collect();
+    /**
+     * Get blocks grouped by category, filtered by search.
+     *
+     * @since 1.0.0
+     */
+    #[Computed]
+    public function groupedBlocks(): Collection
+    {
+        $registry = veBlocks();
+        $grouped = $registry->getGroupedByCategory();
 
-			foreach ( $category['blocks'] as $blockType => $block ) {
-				// Skip blocks that have parent constraints (only allowed inside specific blocks)
-				if ( ! empty( $block['parent'] ) ) {
-					continue;
-				}
+        // Expand blocks with variations into separate entries and filter out blocks with parent constraints
+        $grouped = $grouped->map(function ($category) use ($registry) {
+            $expandedBlocks = collect();
 
-				if ( $registry->hasVariations( $blockType ) ) {
-					// Add each variation as a separate block entry
-					$variations = $registry->getVariations( $blockType );
+            foreach ($category['blocks'] as $blockType => $block) {
+                // Skip blocks that have parent constraints (only allowed inside specific blocks)
+                if (! empty($block['parent'])) {
+                    continue;
+                }
 
-					foreach ( $variations as $variationName => $variation ) {
-						$expandedBlocks->put( $blockType . ':' . $variationName, [
-							'name'         => $variation['title'] ?? $block['name'],
-							'description'  => $variation['description'] ?? $block['description'],
-							'icon'         => $variation['icon'] ?? $block['icon'],
-							'keywords'     => $block['keywords'] ?? [],
-							'blockType'    => $blockType,
-							'variation'    => $variationName,
-							'isVariation'  => true,
-						] );
-					}
-				} else {
-					// Keep regular blocks as-is
-					$expandedBlocks->put( $blockType, array_merge( $block, [
-						'blockType'   => $blockType,
-						'variation'   => null,
-						'isVariation' => false,
-					] ) );
-				}
-			}
+                if ($registry->hasVariations($blockType)) {
+                    // Add each variation as a separate block entry
+                    $variations = $registry->getVariations($blockType);
 
-			return array_merge( $category, [ 'blocks' => $expandedBlocks ] );
-		} );
+                    foreach ($variations as $variationName => $variation) {
+                        $expandedBlocks->put($blockType.':'.$variationName, [
+                            'name' => $variation['title'] ?? $block['name'],
+                            'description' => $variation['description'] ?? $block['description'],
+                            'icon' => $variation['icon'] ?? $block['icon'],
+                            'keywords' => $block['keywords'] ?? [],
+                            'blockType' => $blockType,
+                            'variation' => $variationName,
+                            'isVariation' => true,
+                        ]);
+                    }
+                } else {
+                    // Keep regular blocks as-is
+                    $expandedBlocks->put($blockType, array_merge($block, [
+                        'blockType' => $blockType,
+                        'variation' => null,
+                        'isVariation' => false,
+                    ]));
+                }
+            }
 
-		if ( '' === $this->blockSearch ) {
-			return $grouped;
-		}
+            return array_merge($category, ['blocks' => $expandedBlocks]);
+        });
 
-		$search = strtolower( $this->blockSearch );
+        if ($this->blockSearch === '') {
+            return $grouped;
+        }
 
-		return $grouped->map( function ( $category ) use ( $search ) {
-			$filtered = $category['blocks']->filter( function ( $block ) use ( $search ) {
-				$name     = strtolower( $block['name'] ?? '' );
-				$keywords = array_map( 'strtolower', $block['keywords'] ?? [] );
+        $search = strtolower($this->blockSearch);
 
-				return str_contains( $name, $search )
-					|| collect( $keywords )->contains( fn ( $kw ) => str_contains( $kw, $search ) );
-			} );
+        return $grouped->map(function ($category) use ($search) {
+            $filtered = $category['blocks']->filter(function ($block) use ($search) {
+                $name = strtolower($block['name'] ?? '');
+                $keywords = array_map('strtolower', $block['keywords'] ?? []);
 
-			return array_merge( $category, [ 'blocks' => $filtered ] );
-		} )->filter( fn ( $category ) => $category['blocks']->isNotEmpty() );
-	}
+                return str_contains($name, $search)
+                    || collect($keywords)->contains(fn ($kw) => str_contains($kw, $search));
+            });
 
-	/**
-	 * Get sections grouped by category, filtered by search.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @return Collection
-	 */
-	#[Computed]
-	public function groupedSections(): Collection
-	{
-		$grouped = app( SectionRegistry::class )->getGroupedByCategory();
+            return array_merge($category, ['blocks' => $filtered]);
+        })->filter(fn ($category) => $category['blocks']->isNotEmpty());
+    }
 
-		if ( '' === $this->sectionSearch ) {
-			return $grouped;
-		}
+    /**
+     * Get sections grouped by category, filtered by search.
+     *
+     * @since 1.1.0
+     */
+    #[Computed]
+    public function groupedSections(): Collection
+    {
+        $grouped = app(SectionRegistry::class)->getGroupedByCategory();
 
-		$search = strtolower( $this->sectionSearch );
+        if ($this->sectionSearch === '') {
+            return $grouped;
+        }
 
-		return $grouped->map( function ( $category ) use ( $search ) {
-			$filtered = $category['sections']->filter( function ( $section ) use ( $search ) {
-				$name        = strtolower( $section['name'] ?? '' );
-				$description = strtolower( $section['description'] ?? '' );
+        $search = strtolower($this->sectionSearch);
 
-				return str_contains( $name, $search ) || str_contains( $description, $search );
-			} );
+        return $grouped->map(function ($category) use ($search) {
+            $filtered = $category['sections']->filter(function ($section) use ($search) {
+                $name = strtolower($section['name'] ?? '');
+                $description = strtolower($section['description'] ?? '');
 
-			return array_merge( $category, [ 'sections' => $filtered ] );
-		} )->filter( fn ( $category ) => $category['sections']->isNotEmpty() );
-	}
+                return str_contains($name, $search) || str_contains($description, $search);
+            });
 
-	/**
-	 * Get user-created section patterns.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @return Collection
-	 */
-	#[Computed]
-	public function userSections(): Collection
-	{
-		if ( null === auth()->id() ) {
-			return collect();
-		}
+            return array_merge($category, ['sections' => $filtered]);
+        })->filter(fn ($category) => $category['sections']->isNotEmpty());
+    }
 
-		$query = UserSection::query()
-			->where( 'user_id', auth()->id() )
-			->orWhere( 'is_shared', true )
-			->orderBy( 'name' );
+    /**
+     * Get user-created section patterns.
+     *
+     * @since 1.1.0
+     */
+    #[Computed]
+    public function userSections(): Collection
+    {
+        if (auth()->id() === null) {
+            return collect();
+        }
 
-		if ( '' !== $this->sectionSearch ) {
-			$search  = str_replace( [ '\\', '%', '_' ], [ '\\\\', '\\%', '\\_' ], $this->sectionSearch );
-			$pattern = '%' . $search . '%';
-			$query->where( function ( $q ) use ( $pattern ): void {
-				$q->whereRaw( 'name LIKE ? ESCAPE ?', [ $pattern, '\\' ] )
-					->orWhereRaw( 'description LIKE ? ESCAPE ?', [ $pattern, '\\' ] );
-			} );
-		}
+        $query = UserSection::query()
+            ->where('user_id', auth()->id())
+            ->orWhere('is_shared', true)
+            ->orderBy('name');
 
-		return $query->get();
-	}
+        if ($this->sectionSearch !== '') {
+            $search = str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $this->sectionSearch);
+            $pattern = '%'.$search.'%';
+            $query->where(function ($q) use ($pattern): void {
+                $q->whereRaw('name LIKE ? ESCAPE ?', [$pattern, '\\'])
+                    ->orWhereRaw('description LIKE ? ESCAPE ?', [$pattern, '\\']);
+            });
+        }
 
-	/**
-	 * Toggle the sidebar open/closed.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return void
-	 */
-	public function toggle(): void
-	{
-		$this->isOpen = !$this->isOpen;
-	}
+        return $query->get();
+    }
 
-	/**
-	 * Set the active tab.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param string $tab The tab to activate.
-	 *
-	 * @return void
-	 */
-	public function setTab( string $tab ): void
-	{
-		$this->activeTab = $tab;
-	}
+    /**
+     * Toggle the sidebar open/closed.
+     *
+     * @since 1.0.0
+     */
+    public function toggle(): void
+    {
+        $this->isOpen = ! $this->isOpen;
+    }
 
-	/**
-	 * Insert a block into the canvas.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param string      $blockType The block type to insert.
-	 * @param string|null $variation The variation name to use (optional).
-	 *
-	 * @return void
-	 */
-	public function insertBlock( string $blockType, ?string $variation = null ): void
-	{
-		$this->dispatch( 'block-insert', type: $blockType, variation: $variation );
-		$this->variationPickerBlock = null;
-	}
+    /**
+     * Set the active tab.
+     *
+     * @since 1.0.0
+     *
+     * @param  string  $tab  The tab to activate.
+     */
+    public function setTab(string $tab): void
+    {
+        $this->activeTab = $tab;
+    }
 
-	/**
-	 * Show the variation picker for a block.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param string $blockType The block type to show variations for.
-	 *
-	 * @return void
-	 */
-	public function showVariationPicker( string $blockType ): void
-	{
-		$this->variationPickerBlock = $blockType;
-	}
+    /**
+     * Insert a block into the canvas.
+     *
+     * @since 1.0.0
+     *
+     * @param  string  $blockType  The block type to insert.
+     * @param  string|null  $variation  The variation name to use (optional).
+     */
+    public function insertBlock(string $blockType, ?string $variation = null): void
+    {
+        $this->dispatch('block-insert', type: $blockType, variation: $variation);
+        $this->variationPickerBlock = null;
+    }
 
-	/**
-	 * Close the variation picker.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @return void
-	 */
-	public function closeVariationPicker(): void
-	{
-		$this->variationPickerBlock = null;
-	}
+    /**
+     * Show the variation picker for a block.
+     *
+     * @since 2.0.0
+     *
+     * @param  string  $blockType  The block type to show variations for.
+     */
+    public function showVariationPicker(string $blockType): void
+    {
+        $this->variationPickerBlock = $blockType;
+    }
 
-	/**
-	 * Select a block from the layers tab.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @param string $blockId The block ID to select.
-	 *
-	 * @return void
-	 */
-	public function selectLayerBlock( string $blockId ): void
-	{
-		$this->dispatch( 'block-selected', blockId: $blockId );
-	}
+    /**
+     * Close the variation picker.
+     *
+     * @since 2.0.0
+     */
+    public function closeVariationPicker(): void
+    {
+        $this->variationPickerBlock = null;
+    }
 
-	/**
-	 * Reorder blocks from the layers tab via drag and drop.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @param array $orderedIds The block IDs in their new order.
-	 *
-	 * @return void
-	 */
-	public function reorderLayerBlocks( array $orderedIds ): void
-	{
-		$indexed   = collect( $this->blocks )->keyBy( 'id' );
-		$reordered = [];
+    /**
+     * Select a block from the layers tab.
+     *
+     * @since 1.4.0
+     *
+     * @param  string  $blockId  The block ID to select.
+     */
+    public function selectLayerBlock(string $blockId): void
+    {
+        $this->dispatch('block-selected', blockId: $blockId);
+    }
 
-		foreach ( $orderedIds as $id ) {
-			if ( $indexed->has( $id ) ) {
-				$reordered[] = $indexed->get( $id );
-			}
-		}
+    /**
+     * Select a column container from the layers tab.
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $parentBlockId  The parent columns block ID.
+     * @param  int  $columnIndex  The column index.
+     */
+    public function selectColumn(string $parentBlockId, int $columnIndex): void
+    {
+        $columnId = "{$parentBlockId}-col-{$columnIndex}";
+        $this->dispatch('column-selected', columnId: $columnId);
+    }
 
-		$this->dispatch( 'layers-reordered', blocks: $reordered );
-	}
+    /**
+     * Reorder blocks from the layers tab via drag and drop.
+     *
+     * @since 1.4.0
+     *
+     * @param  array  $orderedIds  The block IDs in their new order.
+     */
+    public function reorderLayerBlocks(array $orderedIds): void
+    {
+        \Log::info('reorderLayerBlocks called', [
+            'orderedIds' => $orderedIds,
+            'blocksCount' => count($this->blocks),
+        ]);
 
-	/**
-	 * Dispatch cross-context drop event from layers panel to canvas.
-	 *
-	 * @since 2.1.0
-	 *
-	 * @param array $detail The cross-context drop detail.
-	 *
-	 * @return void
-	 */
-	public function dispatchCrossContextDrop( array $detail ): void
-	{
-		$this->dispatch( 'layers-cross-context-drop', detail: $detail );
-	}
+        $indexed = collect($this->blocks)->keyBy('id');
+        $reordered = [];
 
-	/**
-	 * Dispatch column reorder event from layers panel to canvas.
-	 *
-	 * @since 2.1.0
-	 *
-	 * @param string $parentBlockId The parent block ID.
-	 * @param array  $newOrder      The new column order.
-	 *
-	 * @return void
-	 */
-	public function dispatchColumnReorder( string $parentBlockId, array $newOrder ): void
-	{
-		$this->dispatch( 'layers-column-reorder', parentBlockId: $parentBlockId, newOrder: $newOrder );
-	}
+        // Filter out column IDs (they contain '-col-') and only keep actual block IDs
+        $blockIds = array_filter($orderedIds, function ($id) {
+            return is_string($id) && ! str_contains($id, '-col-') && ! str_contains($id, '-item-');
+        });
+
+        \Log::info('Filtered block IDs', [
+            'originalCount' => count($orderedIds),
+            'filteredCount' => count($blockIds),
+            'blockIds' => array_values($blockIds),
+        ]);
+
+        foreach ($blockIds as $id) {
+            if ($indexed->has($id)) {
+                $reordered[] = $indexed->get($id);
+            }
+        }
+
+        // Only dispatch if we actually have blocks to reorder
+        // If $reordered is empty, it means we received column/item IDs, not block IDs - ignore
+        if (! empty($reordered) && count($reordered) === count($indexed)) {
+            \Log::info('Dispatching layers-reordered', ['count' => count($reordered)]);
+            $this->dispatch('layers-reordered', blocks: $reordered);
+        } else {
+            \Log::info('Skipping layers-reordered dispatch', [
+                'reorderedCount' => count($reordered),
+                'expectedCount' => count($indexed),
+                'reason' => count($reordered) === 0 ? 'no valid block IDs' : 'count mismatch',
+            ]);
+        }
+    }
+
+    /**
+     * Dispatch cross-context drop event from layers panel to canvas.
+     *
+     * @since 2.1.0
+     *
+     * @param  array  $detail  The cross-context drop detail.
+     */
+    public function dispatchCrossContextDrop(array $detail): void
+    {
+        $this->dispatch('layers-cross-context-drop', detail: $detail);
+    }
+
+    /**
+     * Dispatch column reorder event from layers panel to canvas.
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $parentBlockId  The parent block ID.
+     * @param  array  $newOrder  The new column order.
+     */
+    public function dispatchColumnReorder(string $parentBlockId, array $newOrder): void
+    {
+        $this->dispatch('layers-column-reorder', parentBlockId: $parentBlockId, newOrder: $newOrder);
+    }
+
+    /**
+     * Dispatch cross-context column move event from layers panel.
+     *
+     * @since 2.0.0
+     *
+     * @param  string  $sourceParentId  Source columns block ID.
+     * @param  int  $sourceColumnIndex  Index of column in source.
+     * @param  string  $targetParentId  Target columns block ID.
+     * @param  int  $targetColumnIndex  Index where column should be inserted in target.
+     */
+    public function dispatchCrossContextColumnMove(
+        string $sourceParentId,
+        int $sourceColumnIndex,
+        string $targetParentId,
+        int $targetColumnIndex
+    ): void {
+        \Log::info('🟣 LAYERS: dispatchCrossContextColumnMove CALLED', [
+            'sourceParentId' => $sourceParentId,
+            'sourceColumnIndex' => $sourceColumnIndex,
+            'targetParentId' => $targetParentId,
+            'targetColumnIndex' => $targetColumnIndex,
+        ]);
+
+        $this->dispatch('layers-cross-context-column-move',
+            sourceParentId: $sourceParentId,
+            sourceColumnIndex: $sourceColumnIndex,
+            targetParentId: $targetParentId,
+            targetColumnIndex: $targetColumnIndex
+        );
+
+        \Log::info('🟣 LAYERS: Event dispatched');
+    }
 }; ?>
 
 <div class="ve-sidebar flex w-72 flex-col border-r border-gray-200 bg-white"
@@ -498,16 +537,25 @@ new class extends Component {
 					x-drag-context
 					x-drag-group="visual-editor-blocks"
 					@drag:end="$wire.reorderLayerBlocks( $event.detail.orderedIds )"
-					@drag:cross-context="console.log('Top-level layers cross-context:', $event.detail); $wire.dispatchCrossContextDrop( $event.detail )"
+					@drag:cross-context="
+					// Skip if this is a column drag (handled by column-specific handler)
+					if ($event.detail.itemId && $event.detail.itemId.includes('-col-')) {
+						console.log('Top-level layers: Skipping column drag');
+						return;
+					}
+					console.log('Top-level layers cross-context:', $event.detail);
+					$wire.dispatchCrossContextDrop( $event.detail )
+				"
 					class="space-y-1"
 					role="list"
 					aria-label="{{ __( 'Layer order' ) }}"
 				>
 					@foreach ( $blocks as $block )
 						@include( 'visual-editor::livewire.partials.layer-item', [
-							'block'         => $block,
-							'activeBlockId' => $activeBlockId,
-							'depth'         => 0,
+							'block'           => $block,
+							'activeBlockId'   => $activeBlockId,
+							'activeColumnId'  => $activeColumnId,
+							'depth'           => 0,
 						] )
 					@endforeach
 				</div>

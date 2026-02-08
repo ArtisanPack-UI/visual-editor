@@ -73,6 +73,92 @@ new class extends Component
     public bool $focusingNewBlock = false;
 
     // ──────────────────────────────────────────────────────────
+    // Lifecycle Methods
+    // ──────────────────────────────────────────────────────────
+
+    /**
+     * Initialize the component.
+     *
+     * @since 2.1.0
+     */
+    public function mount(): void
+    {
+        $hadMissingIds = $this->ensureColumnIds();
+
+        // If we added any column/item IDs, sync them back to the editor
+        if ($hadMissingIds) {
+            \Log::info('Canvas mount: Column/item IDs were added, syncing to editor');
+            $this->dispatch('editor-sync-state', blocks: $this->blocks)->to('visual-editor::editor');
+        }
+    }
+
+    /**
+     * Ensure all columns have unique IDs for proper Livewire tracking.
+     *
+     * @since 2.1.0
+     *
+     * @return bool True if any IDs were added, false otherwise.
+     */
+    private function ensureColumnIds(): bool
+    {
+        $hadMissingIds = false;
+        $this->blocks = $this->addColumnIdsRecursive($this->blocks, $hadMissingIds);
+
+        return $hadMissingIds;
+    }
+
+    /**
+     * Recursively add IDs to columns and grid items.
+     *
+     * @since 2.1.0
+     *
+     * @param  array  $blocks  The blocks to process.
+     * @param  bool  &$hadMissingIds  Reference to track if any IDs were added.
+     * @return array The blocks with column/item IDs added.
+     */
+    private function addColumnIdsRecursive(array $blocks, bool &$hadMissingIds = false): array
+    {
+        foreach ($blocks as $key => $block) {
+            // If this is a columns block, ensure each column has an ID
+            if (($block['type'] ?? '') === 'columns' && isset($block['content']['columns'])) {
+                foreach ($block['content']['columns'] as $colIdx => $column) {
+                    if (empty($column['id'])) {
+                        $blocks[$key]['content']['columns'][$colIdx]['id'] = 've-col-'.uniqid().'-'.$colIdx;
+                        $hadMissingIds = true;
+                    }
+                    // Recursively process blocks within this column
+                    if (! empty($column['blocks'])) {
+                        $blocks[$key]['content']['columns'][$colIdx]['blocks'] =
+                            $this->addColumnIdsRecursive($column['blocks'], $hadMissingIds);
+                    }
+                }
+            }
+
+            // Recursively process inner blocks
+            if (! empty($block['content']['inner_blocks'])) {
+                $blocks[$key]['content']['inner_blocks'] =
+                    $this->addColumnIdsRecursive($block['content']['inner_blocks'], $hadMissingIds);
+            }
+
+            // Recursively process grid items
+            if (($block['type'] ?? '') === 'grid' && isset($block['content']['items'])) {
+                foreach ($block['content']['items'] as $itemIdx => $item) {
+                    if (empty($item['id'])) {
+                        $blocks[$key]['content']['items'][$itemIdx]['id'] = 've-item-'.uniqid().'-'.$itemIdx;
+                        $hadMissingIds = true;
+                    }
+                    if (! empty($item['inner_blocks'])) {
+                        $blocks[$key]['content']['items'][$itemIdx]['inner_blocks'] =
+                            $this->addColumnIdsRecursive($item['inner_blocks'], $hadMissingIds);
+                    }
+                }
+            }
+        }
+
+        return $blocks;
+    }
+
+    // ──────────────────────────────────────────────────────────
     // Block Selection
     // ──────────────────────────────────────────────────────────
 
@@ -86,6 +172,7 @@ new class extends Component
     public function selectBlock(string $blockId): void
     {
         $this->activeBlockId = $blockId;
+        $this->activeColumnId = null;
         $this->editingBlockId = null;
         $this->dispatch('block-selected', blockId: $blockId);
     }
@@ -101,11 +188,26 @@ new class extends Component
     public function onBlockSelected(string $blockId): void
     {
         $this->activeBlockId = $blockId;
+        $this->activeColumnId = null;
 
         // Don't clear editingBlockId if we're focusing a newly added block
         if (! $this->focusingNewBlock && $this->editingBlockId !== $blockId) {
             $this->editingBlockId = null;
         }
+    }
+
+    /**
+     * Handle column selection from external sources (e.g. layers tab).
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $columnId  The column ID to select.
+     */
+    #[On('column-selected')]
+    public function onColumnSelected(string $columnId): void
+    {
+        $this->activeColumnId = $columnId;
+        $this->activeBlockId = null;
     }
 
     /**
@@ -154,12 +256,39 @@ new class extends Component
      * @since 2.1.0
      *
      * @param  string  $parentBlockId  The parent block ID.
-     * @param  array   $newOrder       The new column order.
+     * @param  array  $newOrder  The new column order.
      */
     #[On('layers-column-reorder')]
     public function onLayersColumnReorder(string $parentBlockId, array $newOrder): void
     {
         $this->reorderColumns($parentBlockId, $newOrder);
+    }
+
+    /**
+     * Handle cross-context column move event from layers panel.
+     *
+     * @since 2.0.0
+     *
+     * @param  string  $sourceParentId  Source columns block ID.
+     * @param  int  $sourceColumnIndex  Index of column in source.
+     * @param  string  $targetParentId  Target columns block ID.
+     * @param  int  $targetColumnIndex  Index where column should be inserted in target.
+     */
+    #[On('layers-cross-context-column-move')]
+    public function onLayersCrossContextColumnMove(
+        string $sourceParentId,
+        int $sourceColumnIndex,
+        string $targetParentId,
+        int $targetColumnIndex
+    ): void {
+        \Log::info('🟣 CANVAS: onLayersCrossContextColumnMove RECEIVED', [
+            'sourceParentId' => $sourceParentId,
+            'sourceColumnIndex' => $sourceColumnIndex,
+            'targetParentId' => $targetParentId,
+            'targetColumnIndex' => $targetColumnIndex,
+        ]);
+
+        $this->moveColumnBetweenBlocks($sourceParentId, $sourceColumnIndex, $targetParentId, $targetColumnIndex);
     }
 
     /**
@@ -248,7 +377,7 @@ new class extends Component
      *
      * @param  array  $detail  The event detail containing itemId, source/target info and ordered IDs.
      */
-    public function handleCrossContextDrop( array $detail ): void
+    public function handleCrossContextDrop(array $detail): void
     {
         $itemId = $detail['itemId'] ?? null;
         $source = $detail['source'] ?? null;
@@ -256,42 +385,42 @@ new class extends Component
         $sourceOrderedIds = $detail['sourceOrderedIds'] ?? [];
         $targetOrderedIds = $detail['targetOrderedIds'] ?? [];
 
-        \Log::info( 'handleCrossContextDrop called', compact( 'itemId', 'source', 'target', 'sourceOrderedIds', 'targetOrderedIds' ) );
+        \Log::info('handleCrossContextDrop called', compact('itemId', 'source', 'target', 'sourceOrderedIds', 'targetOrderedIds'));
 
-        if ( ! $itemId || ! $source || ! $target ) {
-            \Log::warning( 'Cross-context drop: missing required data' );
+        if (! $itemId || ! $source || ! $target) {
+            \Log::warning('Cross-context drop: missing required data');
 
             return;
         }
 
         // Find the block being moved
-        $movedBlock = $this->findBlockById( $itemId );
-        if ( ! $movedBlock ) {
-            \Log::warning( 'Cross-context drop: block not found', [ 'itemId' => $itemId ] );
+        $movedBlock = $this->findBlockById($itemId);
+        if (! $movedBlock) {
+            \Log::warning('Cross-context drop: block not found', ['itemId' => $itemId]);
 
             return;
         }
 
-        \Log::info( 'Found moved block', [
+        \Log::info('Found moved block', [
             'blockType' => $movedBlock['type'] ?? 'unknown',
-            'blockId' => $itemId
-        ] );
+            'blockId' => $itemId,
+        ]);
 
         // Get the parent blocks
-        $sourceParent = $this->findBlockById( $source['parentBlockId'] );
-        $targetParent = $this->findBlockById( $target['parentBlockId'] );
+        $sourceParent = $this->findBlockById($source['parentBlockId']);
+        $targetParent = $this->findBlockById($target['parentBlockId']);
 
-        if ( ! $sourceParent || ! $targetParent ) {
-            \Log::warning( 'Cross-context drop: parent blocks not found' );
+        if (! $sourceParent || ! $targetParent) {
+            \Log::warning('Cross-context drop: parent blocks not found');
 
             return;
         }
 
-        \Log::info( 'Found parent blocks', [
+        \Log::info('Found parent blocks', [
             'sourceParentId' => $source['parentBlockId'],
             'targetParentId' => $target['parentBlockId'],
-            'sameParent' => $source['parentBlockId'] === $target['parentBlockId']
-        ] );
+            'sameParent' => $source['parentBlockId'] === $target['parentBlockId'],
+        ]);
 
         // Get the column blocks arrays
         $sourceColumns = $sourceParent['content']['columns'] ?? [];
@@ -300,108 +429,108 @@ new class extends Component
         $sourceColIdx = $source['slotIndex'];
         $targetColIdx = $target['slotIndex'];
 
-        \Log::info( 'Column indexes', [
+        \Log::info('Column indexes', [
             'sourceColIdx' => $sourceColIdx,
             'targetColIdx' => $targetColIdx,
-            'sourceColumnsCount' => count( $sourceColumns ),
-            'targetColumnsCount' => count( $targetColumns )
-        ] );
+            'sourceColumnsCount' => count($sourceColumns),
+            'targetColumnsCount' => count($targetColumns),
+        ]);
 
-        if ( ! isset( $sourceColumns[ $sourceColIdx ] ) || ! isset( $targetColumns[ $targetColIdx ] ) ) {
-            \Log::warning( 'Cross-context drop: column indexes invalid' );
+        if (! isset($sourceColumns[$sourceColIdx]) || ! isset($targetColumns[$targetColIdx])) {
+            \Log::warning('Cross-context drop: column indexes invalid');
 
             return;
         }
 
         // Remove block from source column
-        $sourceBlocks = $sourceColumns[ $sourceColIdx ]['blocks'] ?? [];
-        \Log::info( 'Source blocks before remove', [
-            'count' => count( $sourceBlocks ),
-            'blockIds' => array_map( fn( $b ) => $b['id'] ?? 'no-id', $sourceBlocks )
-        ] );
+        $sourceBlocks = $sourceColumns[$sourceColIdx]['blocks'] ?? [];
+        \Log::info('Source blocks before remove', [
+            'count' => count($sourceBlocks),
+            'blockIds' => array_map(fn ($b) => $b['id'] ?? 'no-id', $sourceBlocks),
+        ]);
 
-        $sourceBlocks = array_values( array_filter( $sourceBlocks, fn( $b ) => ( $b['id'] ?? '' ) !== $itemId ) );
+        $sourceBlocks = array_values(array_filter($sourceBlocks, fn ($b) => ($b['id'] ?? '') !== $itemId));
 
-        \Log::info( 'Source blocks after remove', [
-            'count' => count( $sourceBlocks ),
-            'blockIds' => array_map( fn( $b ) => $b['id'] ?? 'no-id', $sourceBlocks )
-        ] );
+        \Log::info('Source blocks after remove', [
+            'count' => count($sourceBlocks),
+            'blockIds' => array_map(fn ($b) => $b['id'] ?? 'no-id', $sourceBlocks),
+        ]);
 
         // Find position in target based on targetOrderedIds
-        $targetBlocks = $targetColumns[ $targetColIdx ]['blocks'] ?? [];
-        \Log::info( 'Target blocks before insert', [
-            'count' => count( $targetBlocks ),
-            'blockIds' => array_map( fn( $b ) => $b['id'] ?? 'no-id', $targetBlocks )
-        ] );
+        $targetBlocks = $targetColumns[$targetColIdx]['blocks'] ?? [];
+        \Log::info('Target blocks before insert', [
+            'count' => count($targetBlocks),
+            'blockIds' => array_map(fn ($b) => $b['id'] ?? 'no-id', $targetBlocks),
+        ]);
 
-        $targetPosition = array_search( $itemId, $targetOrderedIds, true );
+        $targetPosition = array_search($itemId, $targetOrderedIds, true);
 
-        if ( false === $targetPosition ) {
-            $targetPosition = count( $targetBlocks );
+        if ($targetPosition === false) {
+            $targetPosition = count($targetBlocks);
         }
 
-        \Log::info( 'Insert position', [ 'targetPosition' => $targetPosition ] );
+        \Log::info('Insert position', ['targetPosition' => $targetPosition]);
 
         // Insert block at the correct position in target
-        array_splice( $targetBlocks, $targetPosition, 0, [ $movedBlock ] );
+        array_splice($targetBlocks, $targetPosition, 0, [$movedBlock]);
 
-        \Log::info( 'Target blocks after insert', [
-            'count' => count( $targetBlocks ),
-            'blockIds' => array_map( fn( $b ) => $b['id'] ?? 'no-id', $targetBlocks )
-        ] );
+        \Log::info('Target blocks after insert', [
+            'count' => count($targetBlocks),
+            'blockIds' => array_map(fn ($b) => $b['id'] ?? 'no-id', $targetBlocks),
+        ]);
 
         // If moving within same parent, we need to update both columns in one go
-        if ( $source['parentBlockId'] === $target['parentBlockId'] ) {
+        if ($source['parentBlockId'] === $target['parentBlockId']) {
             // Update both columns in the SAME array to avoid losing changes
-            $sourceColumns[ $sourceColIdx ]['blocks'] = $sourceBlocks;
-            $sourceColumns[ $targetColIdx ]['blocks'] = $targetBlocks;
+            $sourceColumns[$sourceColIdx]['blocks'] = $sourceBlocks;
+            $sourceColumns[$targetColIdx]['blocks'] = $targetBlocks;
 
             $sourceParent['content']['columns'] = $sourceColumns;
-            $this->updateBlockById( $source['parentBlockId'], $sourceParent );
-            \Log::info( 'Updated same parent with both columns' );
+            $this->updateBlockById($source['parentBlockId'], $sourceParent);
+            \Log::info('Updated same parent with both columns');
 
             // Verify the update
-            $verifyParent = $this->findBlockById( $source['parentBlockId'] );
-            \Log::info( 'VERIFY: Parent block after update', [
+            $verifyParent = $this->findBlockById($source['parentBlockId']);
+            \Log::info('VERIFY: Parent block after update', [
                 'parentId' => $source['parentBlockId'],
                 'sourceColumn' => [
                     'index' => $sourceColIdx,
-                    'blockCount' => count( $verifyParent['content']['columns'][ $sourceColIdx ]['blocks'] ?? [] ),
-                    'blockIds' => array_map( fn( $b ) => $b['id'] ?? 'no-id', $verifyParent['content']['columns'][ $sourceColIdx ]['blocks'] ?? [] ),
+                    'blockCount' => count($verifyParent['content']['columns'][$sourceColIdx]['blocks'] ?? []),
+                    'blockIds' => array_map(fn ($b) => $b['id'] ?? 'no-id', $verifyParent['content']['columns'][$sourceColIdx]['blocks'] ?? []),
                 ],
                 'targetColumn' => [
                     'index' => $targetColIdx,
-                    'blockCount' => count( $verifyParent['content']['columns'][ $targetColIdx ]['blocks'] ?? [] ),
-                    'blockIds' => array_map( fn( $b ) => $b['id'] ?? 'no-id', $verifyParent['content']['columns'][ $targetColIdx ]['blocks'] ?? [] ),
+                    'blockCount' => count($verifyParent['content']['columns'][$targetColIdx]['blocks'] ?? []),
+                    'blockIds' => array_map(fn ($b) => $b['id'] ?? 'no-id', $verifyParent['content']['columns'][$targetColIdx]['blocks'] ?? []),
                 ],
-            ] );
+            ]);
         } else {
             // Different parents - update each separately
-            $sourceColumns[ $sourceColIdx ]['blocks'] = $sourceBlocks;
-            $targetColumns[ $targetColIdx ]['blocks'] = $targetBlocks;
+            $sourceColumns[$sourceColIdx]['blocks'] = $sourceBlocks;
+            $targetColumns[$targetColIdx]['blocks'] = $targetBlocks;
 
             $sourceParent['content']['columns'] = $sourceColumns;
             $targetParent['content']['columns'] = $targetColumns;
 
-            $this->updateBlockById( $source['parentBlockId'], $sourceParent );
-            $this->updateBlockById( $target['parentBlockId'], $targetParent );
-            \Log::info( 'Updated different parents' );
+            $this->updateBlockById($source['parentBlockId'], $sourceParent);
+            $this->updateBlockById($target['parentBlockId'], $targetParent);
+            \Log::info('Updated different parents');
 
             // Verify the updates
-            $verifySource = $this->findBlockById( $source['parentBlockId'] );
-            $verifyTarget = $this->findBlockById( $target['parentBlockId'] );
-            \Log::info( 'VERIFY: Source parent after update', [
+            $verifySource = $this->findBlockById($source['parentBlockId']);
+            $verifyTarget = $this->findBlockById($target['parentBlockId']);
+            \Log::info('VERIFY: Source parent after update', [
                 'parentId' => $source['parentBlockId'],
                 'columnIndex' => $sourceColIdx,
-                'blockCount' => count( $verifySource['content']['columns'][ $sourceColIdx ]['blocks'] ?? [] ),
-                'blockIds' => array_map( fn( $b ) => $b['id'] ?? 'no-id', $verifySource['content']['columns'][ $sourceColIdx ]['blocks'] ?? [] ),
-            ] );
-            \Log::info( 'VERIFY: Target parent after update', [
+                'blockCount' => count($verifySource['content']['columns'][$sourceColIdx]['blocks'] ?? []),
+                'blockIds' => array_map(fn ($b) => $b['id'] ?? 'no-id', $verifySource['content']['columns'][$sourceColIdx]['blocks'] ?? []),
+            ]);
+            \Log::info('VERIFY: Target parent after update', [
                 'parentId' => $target['parentBlockId'],
                 'columnIndex' => $targetColIdx,
-                'blockCount' => count( $verifyTarget['content']['columns'][ $targetColIdx ]['blocks'] ?? [] ),
-                'blockIds' => array_map( fn( $b ) => $b['id'] ?? 'no-id', $verifyTarget['content']['columns'][ $targetColIdx ]['blocks'] ?? [] ),
-            ] );
+                'blockCount' => count($verifyTarget['content']['columns'][$targetColIdx]['blocks'] ?? []),
+                'blockIds' => array_map(fn ($b) => $b['id'] ?? 'no-id', $verifyTarget['content']['columns'][$targetColIdx]['blocks'] ?? []),
+            ]);
         }
 
         $this->notifyBlocksUpdated();
@@ -414,14 +543,14 @@ new class extends Component
      *
      * @param  array  $orderedIds  The ordered list of block IDs.
      */
-    private function reorderBlocksByIds( array $orderedIds ): void
+    private function reorderBlocksByIds(array $orderedIds): void
     {
-        $indexed = collect( $this->blocks )->keyBy( 'id' );
+        $indexed = collect($this->blocks)->keyBy('id');
         $reordered = [];
 
-        foreach ( $orderedIds as $id ) {
-            if ( $indexed->has( $id ) ) {
-                $reordered[] = $indexed->get( $id );
+        foreach ($orderedIds as $id) {
+            if ($indexed->has($id)) {
+                $reordered[] = $indexed->get($id);
             }
         }
 
@@ -815,7 +944,7 @@ new class extends Component
         }
 
         $parentBlock = $this->findBlockById($parentBlockId);
-        if (!$parentBlock) {
+        if (! $parentBlock) {
             return;
         }
 
@@ -828,7 +957,7 @@ new class extends Component
         $this->updateBlockById($parentBlockId, $parentBlock);
 
         // Update active column ID to follow the moved column
-        $this->activeColumnId = "{$parentBlockId}-col-" . ($columnIndex - 1);
+        $this->activeColumnId = "{$parentBlockId}-col-".($columnIndex - 1);
 
         $this->notifyBlocksUpdated();
     }
@@ -844,7 +973,7 @@ new class extends Component
     public function moveColumnRight(string $parentBlockId, int $columnIndex): void
     {
         $parentBlock = $this->findBlockById($parentBlockId);
-        if (!$parentBlock) {
+        if (! $parentBlock) {
             return;
         }
 
@@ -861,7 +990,7 @@ new class extends Component
         $this->updateBlockById($parentBlockId, $parentBlock);
 
         // Update active column ID to follow the moved column
-        $this->activeColumnId = "{$parentBlockId}-col-" . ($columnIndex + 1);
+        $this->activeColumnId = "{$parentBlockId}-col-".($columnIndex + 1);
 
         $this->notifyBlocksUpdated();
     }
@@ -877,7 +1006,7 @@ new class extends Component
     public function deleteColumn(string $parentBlockId, int $columnIndex): void
     {
         $parentBlock = $this->findBlockById($parentBlockId);
-        if (!$parentBlock) {
+        if (! $parentBlock) {
             return;
         }
 
@@ -903,20 +1032,30 @@ new class extends Component
      */
     public function reorderColumns(string $parentBlockId, array $newOrder): void
     {
-        \Log::info('reorderColumns called', compact('parentBlockId', 'newOrder'));
-
         $parentBlock = $this->findBlockById($parentBlockId);
-        if (!$parentBlock) {
-            \Log::warning('Parent block not found', ['parentBlockId' => $parentBlockId]);
+        if (! $parentBlock) {
             return;
         }
 
         $columns = $parentBlock['content']['columns'] ?? [];
-        \Log::info('Current columns', [
-            'count' => count($columns),
-            'columnIndexes' => array_keys($columns)
-        ]);
+        $columnCount = count($columns);
 
+        // Validate that newOrder contains all column indexes
+        $expectedIndexes = range(0, $columnCount - 1);
+        $receivedIndexes = array_values($newOrder);
+        sort($receivedIndexes);
+
+        if ($receivedIndexes !== $expectedIndexes) {
+            \Log::error('Invalid column reorder - missing or extra indexes', [
+                'expected' => $expectedIndexes,
+                'received' => $receivedIndexes,
+                'originalCount' => $columnCount,
+            ]);
+
+            return;
+        }
+
+        // Reorder columns based on newOrder
         $reordered = [];
         foreach ($newOrder as $index) {
             if (isset($columns[$index])) {
@@ -924,22 +1063,104 @@ new class extends Component
             }
         }
 
-        \Log::info('Reordered columns', [
-            'originalCount' => count($columns),
-            'reorderedCount' => count($reordered)
-        ]);
-
         $parentBlock['content']['columns'] = $reordered;
         $this->updateBlockById($parentBlockId, $parentBlock);
+        $this->notifyBlocksUpdated();
+    }
 
-        // Verify the update
-        $verifyParent = $this->findBlockById($parentBlockId);
-        \Log::info('VERIFY: Columns after reorder', [
-            'parentId' => $parentBlockId,
-            'columnsCount' => count($verifyParent['content']['columns'] ?? [])
+    /**
+     * Move a column from one columns block to another.
+     *
+     * @since 2.0.0
+     *
+     * @param  string  $sourceParentId  Source columns block ID.
+     * @param  int  $sourceColumnIndex  Index of column in source.
+     * @param  string  $targetParentId  Target columns block ID.
+     * @param  int  $targetColumnIndex  Index where column should be inserted in target.
+     */
+    public function moveColumnBetweenBlocks(
+        string $sourceParentId,
+        int $sourceColumnIndex,
+        string $targetParentId,
+        int $targetColumnIndex
+    ): void {
+        \Log::info('🟦 moveColumnBetweenBlocks CALLED', [
+            'sourceParentId' => $sourceParentId,
+            'sourceColumnIndex' => $sourceColumnIndex,
+            'targetParentId' => $targetParentId,
+            'targetColumnIndex' => $targetColumnIndex,
         ]);
 
+        $sourceParent = $this->findBlockById($sourceParentId);
+        $targetParent = $this->findBlockById($targetParentId);
+
+        if (! $sourceParent || ! $targetParent) {
+            \Log::error('🔴 moveColumnBetweenBlocks: Parent blocks not found', [
+                'sourceParentId' => $sourceParentId,
+                'targetParentId' => $targetParentId,
+                'sourceParentFound' => $sourceParent !== null,
+                'targetParentFound' => $targetParent !== null,
+            ]);
+
+            return;
+        }
+
+        \Log::info('🟢 Found both parent blocks', [
+            'sourceParentType' => $sourceParent['type'] ?? 'unknown',
+            'targetParentType' => $targetParent['type'] ?? 'unknown',
+        ]);
+
+        $sourceColumns = $sourceParent['content']['columns'] ?? [];
+        $targetColumns = $targetParent['content']['columns'] ?? [];
+
+        \Log::info('🟡 Column counts', [
+            'sourceColumnsCount' => count($sourceColumns),
+            'targetColumnsCount' => count($targetColumns),
+        ]);
+
+        // Validate source column exists
+        if (! isset($sourceColumns[$sourceColumnIndex])) {
+            \Log::error('🔴 moveColumnBetweenBlocks: Source column not found', [
+                'sourceColumnIndex' => $sourceColumnIndex,
+                'sourceColumnsCount' => count($sourceColumns),
+            ]);
+
+            return;
+        }
+
+        \Log::info('🟢 Source column exists, proceeding with move');
+
+        // Get the column data
+        $movedColumn = $sourceColumns[$sourceColumnIndex];
+
+        \Log::info('🟡 Column data to move', [
+            'columnHasBlocks' => isset($movedColumn['blocks']),
+            'columnBlocksCount' => count($movedColumn['blocks'] ?? []),
+        ]);
+
+        // Remove from source
+        array_splice($sourceColumns, $sourceColumnIndex, 1);
+
+        // Insert into target at specified position
+        array_splice($targetColumns, $targetColumnIndex, 0, [$movedColumn]);
+
+        \Log::info('🟢 Arrays spliced', [
+            'newSourceCount' => count($sourceColumns),
+            'newTargetCount' => count($targetColumns),
+        ]);
+
+        // Update both blocks
+        $sourceParent['content']['columns'] = $sourceColumns;
+        $targetParent['content']['columns'] = $targetColumns;
+
+        $this->updateBlockById($sourceParentId, $sourceParent);
+        $this->updateBlockById($targetParentId, $targetParent);
+
+        \Log::info('🟢 Blocks updated, calling notifyBlocksUpdated');
+
         $this->notifyBlocksUpdated();
+
+        \Log::info('✅ moveColumnBetweenBlocks COMPLETED');
     }
 
     /**
@@ -1725,9 +1946,9 @@ new class extends Component
      * @param  string  $blockId  The block ID to find.
      * @return array|null The block data, or null if not found.
      */
-    private function findBlockById( string $blockId ): ?array
+    private function findBlockById(string $blockId): ?array
     {
-        return $this->findBlockRecursive( $blockId, $this->blocks );
+        return $this->findBlockRecursive($blockId, $this->blocks);
     }
 
     /**
@@ -1737,19 +1958,19 @@ new class extends Component
      *
      * @param  string  $blockId  The block ID to remove.
      */
-    private function removeBlockById( string $blockId ): void
+    private function removeBlockById(string $blockId): void
     {
-        $location = $this->getBlockLocation( $blockId );
+        $location = $this->getBlockLocation($blockId);
 
-        if ( ! $location ) {
+        if (! $location) {
             return;
         }
 
-        $siblings = $this->getSiblingsArray( $location['parentPath'] );
-        unset( $siblings[ $location['index'] ] );
-        $siblings = array_values( $siblings ); // Re-index
+        $siblings = $this->getSiblingsArray($location['parentPath']);
+        unset($siblings[$location['index']]);
+        $siblings = array_values($siblings); // Re-index
 
-        $this->setSiblingsArray( $location['parentPath'], $siblings );
+        $this->setSiblingsArray($location['parentPath'], $siblings);
     }
 
     /**
@@ -1760,18 +1981,18 @@ new class extends Component
      * @param  string  $blockId  The block ID to update.
      * @param  array  $blockData  The new block data.
      */
-    private function updateBlockById( string $blockId, array $blockData ): void
+    private function updateBlockById(string $blockId, array $blockData): void
     {
-        $location = $this->getBlockLocation( $blockId );
+        $location = $this->getBlockLocation($blockId);
 
-        if ( ! $location ) {
+        if (! $location) {
             return;
         }
 
-        $siblings = $this->getSiblingsArray( $location['parentPath'] );
-        $siblings[ $location['index'] ] = $blockData;
+        $siblings = $this->getSiblingsArray($location['parentPath']);
+        $siblings[$location['index']] = $blockData;
 
-        $this->setSiblingsArray( $location['parentPath'], $siblings );
+        $this->setSiblingsArray($location['parentPath'], $siblings);
     }
 
     /**
@@ -1795,6 +2016,7 @@ new class extends Component
 
         if ($parentPath === null) {
             \Log::error('Parent block not found', ['parentBlockId' => $parentBlockId]);
+
             return;
         }
 
@@ -1854,8 +2076,13 @@ new class extends Component
      */
     private function notifyBlocksUpdated(): void
     {
+        \Log::info('notifyBlocksUpdated called', [
+            'blocksCount' => count($this->blocks),
+            'dispatchingEvents' => true,
+        ]);
         $this->dispatch('blocks-updated', blocks: $this->blocks);
         $this->dispatch('editor-sync-state', blocks: $this->blocks)->to('visual-editor::editor');
+        \Log::info('Events dispatched successfully');
     }
 
     /**

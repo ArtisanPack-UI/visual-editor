@@ -1,6 +1,6 @@
 <?php
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 /**
  * Visual Editor - Layer Item Partial
@@ -8,18 +8,13 @@ declare( strict_types=1 );
  * Renders a single block in the layers panel with nested children.
  * Calls itself recursively for container blocks.
  *
- * @package    ArtisanPack_UI
- * @subpackage VisualEditor\Livewire\Partials
  *
  * @since      2.0.0
  *
- * @var array       $block         The block data array.
+ * @var array $block         The block data array.
  * @var string|null $activeBlockId Currently active block ID.
- * @var int         $depth         Nesting depth (0 = top level).
+ * @var int $depth         Nesting depth (0 = top level).
  */
-
-use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
-
 ?>
 
 @php
@@ -80,78 +75,243 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 @if ( !empty( $innerBlocks ) )
 	@foreach ( $innerBlocks as $childBlock )
 		@include( 'visual-editor::livewire.partials.layer-item', [
-			'block'         => $childBlock,
-			'activeBlockId' => $activeBlockId,
-			'depth'         => $depth + 1,
+			'block'          => $childBlock,
+			'activeBlockId'  => $activeBlockId,
+			'activeColumnId' => $activeColumnId ?? null,
+			'depth'          => $depth + 1,
 		] )
 	@endforeach
 @endif
 
 @if ( $columnCount > 0 )
-	{{-- Columns drag context with pointer-events management --}}
+	{{-- Columns drag context with lifecycle management --}}
 	<div
 		wire:key="layer-columns-drag-container-{{ $blockId }}"
 		x-drag-context
 		x-drag-group="visual-editor-columns"
-		x-data="{ draggingColumn: false }"
-		@dragstart.capture="draggingColumn = true"
-		@dragend.capture="draggingColumn = false"
+		x-data="{
+			draggingColumn: false,
+			isDragging: false,
+			init() {
+				// Prevent Livewire morphing during active drags
+				Livewire.hook('morph', ({ component, cleanup }) => {
+					if (this.isDragging) {
+						console.log('Layers: Preventing morph during drag');
+						return false;
+					}
+				});
+
+				console.log('Layers: Column drag context initialized for {{ $blockId }}');
+			}
+		}"
+		@dragstart.capture="
+			draggingColumn = true;
+			isDragging = true;
+		"
+		@dragend.capture="
+			draggingColumn = false;
+			// Small delay to ensure drag:end fires first
+			setTimeout(() => {
+				isDragging = false;
+			}, 100);
+		"
 		@drag:end="
-			console.log('Layers: Column drag ended:', $event.detail);
-			console.log('Layers: Raw orderedIds:', $event.detail.orderedIds);
 			const orderedIds = $event.detail.orderedIds;
-			// Filter to only include column IDs (format: blockId-col-N)
-			const columnIds = orderedIds.filter(id => id.includes('-col-') && id.split('-col-').length === 2);
-			console.log('Layers: Filtered column IDs:', columnIds);
 
-			// Count occurrences of each column ID
-			const counts = {};
-			columnIds.forEach(id => { counts[id] = (counts[id] || 0) + 1; });
-			console.log('Layers: Column ID counts:', counts);
+			// Filter to only include column IDs for this specific columns block
+			const blockIdPrefix = '{{ $blockId }}-col-';
 
-			// Find the dragged column (appears more than once)
-			const draggedColumnId = Object.keys(counts).find(id => counts[id] > 1);
-			console.log('Layers: Dragged column (from duplicates):', draggedColumnId);
+			// Helper to check if an ID is a column ID
+			const isColumnId = (id) => {
+				return typeof id === 'string' &&
+					id.startsWith(blockIdPrefix) &&
+					id.split('-col-').length === 2;
+			};
 
-			// Remove first occurrence of dragged column, keep all others
-			const uniqueColumnIds = [];
-			let removedFirst = false;
-			for (const id of columnIds) {
-				if (id === draggedColumnId && !removedFirst) {
-					removedFirst = true; // Skip the first occurrence of dragged item
-					continue;
+			// Determine drop position by analyzing the orderedIds pattern
+			let sortedColumns;
+			const lastIndex = orderedIds.length - 1;
+
+			// If position 1 is a column ID, the column at position 0 was dragged to first position
+			if (orderedIds.length > 1 && isColumnId(orderedIds[1])) {
+				const draggedColumn = orderedIds[0];
+				const otherColumns = [];
+
+				orderedIds.forEach(id => {
+					if (isColumnId(id) && id !== draggedColumn && !otherColumns.includes(id)) {
+						otherColumns.push(id);
+					}
+				});
+
+				sortedColumns = [draggedColumn, ...otherColumns];
+			}
+			// If the last element is a column ID, that column was dragged to last position
+			else if (isColumnId(orderedIds[lastIndex])) {
+				const draggedColumn = orderedIds[lastIndex];
+				const otherColumns = [];
+
+				orderedIds.forEach(id => {
+					if (isColumnId(id) && id !== draggedColumn && !otherColumns.includes(id)) {
+						otherColumns.push(id);
+					}
+				});
+
+				sortedColumns = [...otherColumns, draggedColumn];
+			}
+			// Fallback: Filter to only column IDs, detect dragged column
+			else {
+				// Filter to only column IDs
+				const columnIds = orderedIds.filter(id => isColumnId(id));
+
+				// Detect which column was dragged (appears more than once)
+				const columnCounts = {};
+				columnIds.forEach(id => {
+					columnCounts[id] = (columnCounts[id] || 0) + 1;
+				});
+
+				let draggedColumnId = null;
+				for (const id in columnCounts) {
+					if (columnCounts[id] > 1) {
+						draggedColumnId = id;
+						break;
+					}
 				}
-				if (!uniqueColumnIds.includes(id)) {
-					uniqueColumnIds.push(id);
+
+				// If a column was dragged, move it to the end (assume left-to-right)
+				if (draggedColumnId) {
+					const otherColumns = [];
+					const seenDragged = new Set();
+
+					columnIds.forEach(id => {
+						if (id !== draggedColumnId && !otherColumns.includes(id)) {
+							otherColumns.push(id);
+						}
+					});
+
+					sortedColumns = [...otherColumns, draggedColumnId];
+				} else {
+					// No duplicates, just use order as-is
+					sortedColumns = [...new Set(columnIds)];
 				}
 			}
 
-			const newOrder = uniqueColumnIds.map(id => parseInt(id.split('-col-')[1]));
-			console.log('Layers: Unique column IDs:', uniqueColumnIds);
-			console.log('Layers: New column order:', newOrder);
-			$wire.dispatchColumnReorder('{{ $blockId }}', newOrder);
-			draggingColumn = false;
+			// Extract column indexes from sorted IDs
+			const newOrder = sortedColumns.map(id => {
+				const parts = id.split('-col-');
+				return parseInt(parts[parts.length - 1], 10);
+			});
+
+			// Only dispatch if we have a valid reorder
+			if (newOrder.length > 0 && newOrder.every(idx => !isNaN(idx))) {
+				$wire.dispatchColumnReorder('{{ $blockId }}', newOrder);
+			} else {
+				console.warn('Layers: Invalid column order, skipping reorder:', newOrder);
+			}
 		"
-		@drag:cross-context="console.log('Layers: Column cross-context (should not happen):', $event.detail)"
+		@drag:cross-context="
+			console.log('🔵 LAYERS: Cross-context handler FIRED', {
+				sourceContext: $event.detail.sourceContext.getAttribute('wire:key'),
+				targetContext: $event.detail.targetContext.getAttribute('wire:key'),
+				itemId: $event.detail.itemId
+			});
+
+			const sourceContext = $event.detail.sourceContext;
+			const targetContext = $event.detail.targetContext;
+			const itemId = $event.detail.itemId;
+
+			// Extract source and target parent block IDs from wire:key attributes
+			const sourceKey = sourceContext.getAttribute('wire:key');
+			const targetKey = targetContext.getAttribute('wire:key');
+
+			const sourceMatch = sourceKey.match(/^layer-columns-drag-container-(.+)$/);
+			const targetMatch = targetKey.match(/^layer-columns-drag-container-(.+)$/);
+
+			if (!sourceMatch || !targetMatch) {
+				console.warn('🔴 Could not parse source/target from wire:key');
+				return;
+			}
+
+			const sourceParentId = sourceMatch[1];
+			const targetParentId = targetMatch[1];
+
+			console.log('🟢 Parsed parent IDs:', { sourceParentId, targetParentId });
+
+			// Extract column index from itemId (format: blockId-col-index)
+			const colMatch = itemId.match(/-col-(\\d+)$/);
+			if (!colMatch) {
+				console.warn('🔴 Could not extract column index from itemId:', itemId);
+				return;
+			}
+
+			const sourceColumnIndex = parseInt(colMatch[1], 10);
+
+			// Determine target column index from targetOrderedIds
+			const targetOrderedIds = $event.detail.targetOrderedIds;
+
+			// Find position of dragged column in targetOrderedIds
+			const draggedIndex = targetOrderedIds.findIndex(id => id === itemId);
+
+			if (draggedIndex === -1) {
+				console.warn('🔴 Dragged column not found in targetOrderedIds');
+				return;
+			}
+
+			// Count how many target block columns appear before the dragged column
+			// This tells us where to insert in the target columns array
+			const targetBlockPrefix = targetParentId + '-col-';
+			let movedColumnIndex = 0;
+			for (let i = 0; i < draggedIndex; i++) {
+				const id = targetOrderedIds[i];
+				if (typeof id === 'string' && id.startsWith(targetBlockPrefix)) {
+					movedColumnIndex++;
+				}
+			}
+
+			console.log('🟡 Calculated indices:', {
+				sourceColumnIndex,
+				movedColumnIndex,
+				draggedIndex,
+				targetOrderedIds
+			});
+
+			console.log('🚀 Calling $wire.dispatchCrossContextColumnMove with:', {
+				sourceParentId,
+				sourceColumnIndex,
+				targetParentId,
+				movedColumnIndex
+			});
+
+			$wire.dispatchCrossContextColumnMove(
+				sourceParentId,
+				sourceColumnIndex,
+				targetParentId,
+				movedColumnIndex
+			);
+		"
 	>
 		@for ( $colIndex = 0; $colIndex < $columnCount; $colIndex++ )
 			@php
-				$column    = $columns[ $colIndex ] ?? [];
-				$colBlocks = $column['blocks'] ?? [];
-				$columnId  = $column['id'] ?? '';
+				$column         = $columns[ $colIndex ] ?? [];
+				$colBlocks      = $column['blocks'] ?? [];
+				// Always use index-based ID for drag-drop matching
+				$columnId       = $blockId . '-col-' . $colIndex;
+				// Fallback for wire:key if column doesn't have an ID yet
+				$wireKey        = $column['id'] ?? $columnId;
+				$isColumnActive = $columnId === ( $activeColumnId ?? null );
 			@endphp
 
 			{{-- Column item - draggable for reordering --}}
 			<div
-				x-drag-item="'{{ $columnId ?: $blockId . '-col-' . $colIndex }}'"
-				wire:key="layer-col-{{ $blockId }}-{{ $colIndex }}"
+				x-drag-item="'{{ $columnId }}'"
+				wire:key="layer-col-{{ $wireKey }}"
 				wire:click="selectColumn( '{{ $blockId }}', {{ $colIndex }} )"
-				class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors text-gray-700 hover:bg-gray-100"
+				class="flex w-full cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors
+					{{ $isColumnActive ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700 hover:bg-gray-100' }}"
 				role="listitem"
 				style="padding-left: {{ ( $depth + 1 ) * 1.25 }}rem;"
 			>
 				<x-artisanpack-icon name="fas.grip-vertical" class="h-3 w-3 shrink-0 cursor-grab text-gray-300" />
-				<x-artisanpack-icon name="fas.table-columns" class="h-4 w-4 shrink-0 text-gray-400" />
+				<x-artisanpack-icon name="fas.table-columns" class="h-4 w-4 shrink-0 {{ $isColumnActive ? 'text-blue-500' : 'text-gray-400' }}" />
 				<span class="truncate">{{ __( 'Column :index', [ 'index' => $colIndex + 1 ] ) }}</span>
 				@if ( !empty( $colBlocks ) )
 					<span class="ml-auto text-xs text-gray-400">{{ count( $colBlocks ) }}</span>
@@ -192,9 +352,10 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 				>
 					@foreach ( $colBlocks as $childBlock )
 						@include( 'visual-editor::livewire.partials.layer-item', [
-							'block'         => $childBlock,
-							'activeBlockId' => $activeBlockId,
-							'depth'         => $depth + 2,
+							'block'          => $childBlock,
+							'activeBlockId'  => $activeBlockId,
+							'activeColumnId' => $activeColumnId ?? null,
+							'depth'          => $depth + 2,
 						] )
 					@endforeach
 				</div>
@@ -247,6 +408,13 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 				}"
 				@drag:end="$wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}', {{ $itemIndex }} )"
 				@drag:cross-context="
+					// Skip if this is a column drag (handled by column-specific handler)
+					const itemId = $event.detail.itemId;
+					if (itemId && itemId.includes('-col-')) {
+						console.log('Layers: Skipping column drag in block handler');
+						return;
+					}
+
 					const source = parseWireKey($event.detail.sourceContext);
 					const target = parseWireKey($event.detail.targetContext);
 					console.log('Layers grid cross-context drag:', { itemId: $event.detail.itemId, source, target, sourceOrderedIds: $event.detail.sourceOrderedIds, targetOrderedIds: $event.detail.targetOrderedIds });
@@ -261,9 +429,10 @@ use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 			>
 				@foreach ( $itemBlocks as $childBlock )
 					@include( 'visual-editor::livewire.partials.layer-item', [
-						'block'         => $childBlock,
-						'activeBlockId' => $activeBlockId,
-						'depth'         => $depth + 2,
+						'block'          => $childBlock,
+						'activeBlockId'  => $activeBlockId,
+						'activeColumnId' => $activeColumnId ?? null,
+						'depth'          => $depth + 2,
 					] )
 				@endforeach
 			</div>

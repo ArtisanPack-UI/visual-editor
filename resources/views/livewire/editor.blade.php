@@ -96,6 +96,15 @@ new class extends Component {
 	public ?string $activeBlockId = null;
 
 	/**
+	 * The ID of the currently active column.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @var string|null
+	 */
+	public ?string $activeColumnId = null;
+
+	/**
 	 * Whether the content has unsaved changes.
 	 *
 	 * @since 1.0.0
@@ -306,6 +315,67 @@ new class extends Component {
 		$this->contentExcerpt         = $content->excerpt ?? '';
 		$this->contentMetaTitle       = $content->meta_title ?? '';
 		$this->contentMetaDescription = $content->meta_description ?? '';
+
+		// Ensure all columns have unique IDs for proper Livewire tracking
+		$this->ensureColumnIds();
+	}
+
+	/**
+	 * Ensure all columns have unique IDs for proper Livewire tracking.
+	 *
+	 * @since 2.1.0
+	 */
+	private function ensureColumnIds(): void
+	{
+		$this->blocks = $this->addColumnIdsRecursive( $this->blocks );
+	}
+
+	/**
+	 * Recursively add IDs to columns and grid items.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param  array  $blocks  The blocks to process.
+	 * @return array The blocks with column/item IDs added.
+	 */
+	private function addColumnIdsRecursive( array $blocks ): array
+	{
+		foreach ( $blocks as $key => $block ) {
+			// If this is a columns block, ensure each column has an ID
+			if ( ( $block['type'] ?? '' ) === 'columns' && isset( $block['content']['columns'] ) ) {
+				foreach ( $block['content']['columns'] as $colIdx => $column ) {
+					if ( empty( $column['id'] ) ) {
+						$blocks[ $key ]['content']['columns'][ $colIdx ]['id'] = 've-col-' . uniqid() . '-' . $colIdx;
+					}
+					// Recursively process blocks within this column
+					if ( ! empty( $column['blocks'] ) ) {
+						$blocks[ $key ]['content']['columns'][ $colIdx ]['blocks'] =
+							$this->addColumnIdsRecursive( $column['blocks'] );
+					}
+				}
+			}
+
+			// Recursively process inner blocks
+			if ( ! empty( $block['content']['inner_blocks'] ) ) {
+				$blocks[ $key ]['content']['inner_blocks'] =
+					$this->addColumnIdsRecursive( $block['content']['inner_blocks'] );
+			}
+
+			// Recursively process grid items
+			if ( ( $block['type'] ?? '' ) === 'grid' && isset( $block['content']['items'] ) ) {
+				foreach ( $block['content']['items'] as $itemIdx => $item ) {
+					if ( empty( $item['id'] ) ) {
+						$blocks[ $key ]['content']['items'][ $itemIdx ]['id'] = 've-item-' . uniqid() . '-' . $itemIdx;
+					}
+					if ( ! empty( $item['inner_blocks'] ) ) {
+						$blocks[ $key ]['content']['items'][ $itemIdx ]['inner_blocks'] =
+							$this->addColumnIdsRecursive( $item['inner_blocks'] );
+					}
+				}
+			}
+		}
+
+		return $blocks;
 	}
 
 	/**
@@ -643,6 +713,7 @@ new class extends Component {
 		$this->blocks     = $blocks;
 		$this->isDirty    = true;
 		$this->saveStatus = 'unsaved';
+		$this->dispatch( 'canvas-sync-blocks', blocks: $this->blocks );
 	}
 
 	/**
@@ -711,6 +782,7 @@ new class extends Component {
 	public function onBlockSelected( string $blockId ): void
 	{
 		$this->activeBlockId      = $blockId;
+		$this->activeColumnId     = null;
 		$this->showSettingsDrawer = true;
 		$this->settingsDrawerTab  = 'styles';
 
@@ -719,6 +791,28 @@ new class extends Component {
 		}
 
 		$this->syncColorProperties();
+	}
+
+	/**
+	 * Handle column selection from the canvas or layers panel.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param string $columnId The column ID (format: parentBlockId-col-index).
+	 *
+	 * @return void
+	 */
+	#[On( 'column-selected' )]
+	public function onColumnSelected( string $columnId ): void
+	{
+		$this->activeColumnId     = $columnId;
+		$this->activeBlockId      = null;
+		$this->showSettingsDrawer = true;
+		$this->settingsDrawerTab  = 'styles';
+
+		if ( $this->showPrePublishPanel ) {
+			$this->showPrePublishPanel = false;
+		}
 	}
 
 	/**
@@ -1223,6 +1317,7 @@ new class extends Component {
 				:active-tab="$sidebarTab"
 				:blocks="$blocks"
 				:active-block-id="$activeBlockId"
+				:active-column-id="$activeColumnId"
 			/>
 		@endif
 
@@ -1231,7 +1326,6 @@ new class extends Component {
 			<livewire:visual-editor::canvas
 				wire:key="editor-canvas"
 				:blocks="$blocks"
-				:active-block-id="$activeBlockId"
 			/>
 
 			{{-- Status Bar --}}
