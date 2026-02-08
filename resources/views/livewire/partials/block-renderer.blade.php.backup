@@ -850,120 +850,45 @@ declare(strict_types=1);
 							isDragging = false;
 						}, 100);
 					"
-				@drag:end="
-					(() => {
-						const orderedIds = $event.detail.orderedIds;
-						const blockIdPrefix = '{{ $blockId }}-item-';
+					@drag:end="
+						(() => {
+							const orderedIds = $event.detail.orderedIds;
+							const blockIdPrefix = '{{ $blockId }}-item-';
 
-						console.log('🔵 Canvas: drag:end fired', {
-							blockId: '{{ $blockId }}',
-							orderedIds: orderedIds,
-							blockIdPrefix: blockIdPrefix
-						});
-
-						// Helper to check if an ID is a grid item ID for this block
-						const isGridItemId = (id) => {
-							return typeof id === 'string' &&
-								id.startsWith(blockIdPrefix) &&
-								id.split('-item-').length === 2;
-						};
-
-						// Determine drop position by analyzing the orderedIds pattern
-						let sortedGridItems;
-						const lastIndex = orderedIds.length - 1;
-
-						// If position 1 is a grid item ID, the item at position 0 was dragged to first position
-						if (orderedIds.length > 1 && isGridItemId(orderedIds[1])) {
-							const draggedItem = orderedIds[0];
-							const otherItems = [];
-
-							orderedIds.forEach(id => {
-								if (isGridItemId(id) && id !== draggedItem && !otherItems.includes(id)) {
-									otherItems.push(id);
-								}
+							console.log('🔵 Canvas: drag:end fired', {
+								blockId: '{{ $blockId }}',
+								orderedIds: orderedIds,
+								blockIdPrefix: blockIdPrefix
 							});
 
-							sortedGridItems = [draggedItem, ...otherItems];
-							console.log('🟡 Canvas: Detected drag to FIRST position', { draggedItem, sortedGridItems });
-						}
-						// If the last element is a grid item ID, that item was dragged to last position
-						else if (isGridItemId(orderedIds[lastIndex])) {
-							const draggedItem = orderedIds[lastIndex];
-							const otherItems = [];
-
-							orderedIds.forEach(id => {
-								if (isGridItemId(id) && id !== draggedItem && !otherItems.includes(id)) {
-									otherItems.push(id);
-								}
+							// Filter to only include grid item IDs for this specific grid block
+							const gridItemIds = orderedIds.filter(id => {
+								return typeof id === 'string' && id.startsWith(blockIdPrefix);
 							});
 
-							sortedGridItems = [...otherItems, draggedItem];
-							console.log('🟡 Canvas: Detected drag to LAST position', { draggedItem, sortedGridItems });
-						}
-						// Fallback: Filter to only grid item IDs, detect dragged item
-						else {
-							// Filter to only grid item IDs
-							const gridItemIds = orderedIds.filter(id => isGridItemId(id));
+							console.log('🟡 Canvas: Filtered grid item IDs', gridItemIds);
 
-							// Detect which item was dragged (appears more than once)
-							const itemCounts = {};
-							gridItemIds.forEach(id => {
-								itemCounts[id] = (itemCounts[id] || 0) + 1;
+							// Remove duplicates (dragged item might appear twice)
+							const uniqueGridItemIds = [...new Set(gridItemIds)];
+
+							console.log('🟢 Canvas: Unique grid item IDs', uniqueGridItemIds);
+
+							// Extract grid item indexes from IDs
+							const newOrder = uniqueGridItemIds.map(id => {
+								const parts = id.split('-item-');
+								return parseInt(parts[parts.length - 1], 10);
 							});
 
-							let draggedItemId = null;
-							for (const id in itemCounts) {
-								if (itemCounts[id] > 1) {
-									draggedItemId = id;
-									break;
-								}
-							}
+							console.log('🚀 Canvas: Final newOrder to send', newOrder);
 
-							// If an item was dragged, reconstruct the order
-							if (draggedItemId) {
-								const firstOccurrenceIndex = gridItemIds.indexOf(draggedItemId);
-								const lastOccurrenceIndex = gridItemIds.lastIndexOf(draggedItemId);
-								const otherItems = [];
-
-								gridItemIds.forEach((id, idx) => {
-									if (id !== draggedItemId && !otherItems.includes(id)) {
-										otherItems.push(id);
-									}
-								});
-
-								// Insert dragged item at the position of its last occurrence
-								sortedGridItems = [...otherItems];
-								sortedGridItems.splice(lastOccurrenceIndex, 0, draggedItemId);
-
-								console.log('🟡 Canvas: Detected drag via DUPLICATE', {
-									draggedItemId,
-									firstOccurrenceIndex,
-									lastOccurrenceIndex,
-									sortedGridItems
-								});
+							// Only dispatch if we have a valid reorder
+							if (newOrder.length > 0 && newOrder.every(idx => !isNaN(idx))) {
+								$wire.reorderGridItems('{{ $blockId }}', newOrder);
 							} else {
-								// No duplicates, just use order as-is
-								sortedGridItems = [...new Set(gridItemIds)];
-								console.log('🟡 Canvas: No duplicates detected, using filtered order', sortedGridItems);
+								console.warn('❌ Canvas: Invalid grid item order, skipping reorder:', newOrder);
 							}
-						}
-
-						// Extract grid item indexes from sorted IDs
-						const newOrder = sortedGridItems.map(id => {
-							const parts = id.split('-item-');
-							return parseInt(parts[parts.length - 1], 10);
-						});
-
-						console.log('🚀 Canvas: Final newOrder to send', newOrder);
-
-						// Only dispatch if we have a valid reorder
-						if (newOrder.length > 0 && newOrder.every(idx => !isNaN(idx))) {
-							$wire.reorderGridItems('{{ $blockId }}', newOrder);
-						} else {
-							console.warn('❌ Canvas: Invalid grid item order, skipping reorder:', newOrder);
-						}
-					})()
-				"
+						})()
+					"
 					@drag:cross-context="
 						(() => {
 							console.log('🔵 CANVAS: Cross-context handler FIRED (grid)', {

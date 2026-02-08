@@ -290,17 +290,75 @@ new class extends Component
     }
 
     /**
-     * Select a column container from the layers tab.
+     * Select a column container or grid item from the layers tab.
      *
      * @since 2.1.0
      *
-     * @param  string  $parentBlockId  The parent columns block ID.
-     * @param  int  $columnIndex  The column index.
+     * @param  string  $parentBlockId  The parent block ID (columns or grid).
+     * @param  int  $columnIndex  The column/item index.
      */
     public function selectColumn(string $parentBlockId, int $columnIndex): void
     {
-        $columnId = "{$parentBlockId}-col-{$columnIndex}";
+        // Find the parent block to determine its type
+        $parentBlock = $this->findBlockRecursive($parentBlockId, $this->blocks);
+        $parentType = $parentBlock['type'] ?? '';
+
+        // Use appropriate suffix based on block type
+        $suffix = ($parentType === 'grid') ? 'item' : 'col';
+        $columnId = "{$parentBlockId}-{$suffix}-{$columnIndex}";
         $this->dispatch('column-selected', columnId: $columnId);
+    }
+
+    /**
+     * Find a block by ID in the blocks tree.
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $blockId  The block ID to find.
+     * @param  array  $blocks  The blocks array to search.
+     * @return array|null The block data or null.
+     */
+    private function findBlockRecursive(string $blockId, array $blocks): ?array
+    {
+        foreach ($blocks as $block) {
+            if (($block['id'] ?? '') === $blockId) {
+                return $block;
+            }
+
+            // Check inner_blocks
+            if (!empty($block['content']['inner_blocks'])) {
+                $found = $this->findBlockRecursive($blockId, $block['content']['inner_blocks']);
+                if ($found !== null) {
+                    return $found;
+                }
+            }
+
+            // Check columns
+            if (!empty($block['content']['columns'])) {
+                foreach ($block['content']['columns'] as $column) {
+                    if (!empty($column['blocks'])) {
+                        $found = $this->findBlockRecursive($blockId, $column['blocks']);
+                        if ($found !== null) {
+                            return $found;
+                        }
+                    }
+                }
+            }
+
+            // Check grid items
+            if (!empty($block['content']['items'])) {
+                foreach ($block['content']['items'] as $item) {
+                    if (!empty($item['inner_blocks'])) {
+                        $found = $this->findBlockRecursive($blockId, $item['inner_blocks']);
+                        if ($found !== null) {
+                            return $found;
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -404,6 +462,52 @@ new class extends Component
             sourceColumnIndex: $sourceColumnIndex,
             targetParentId: $targetParentId,
             targetColumnIndex: $targetColumnIndex
+        );
+
+        \Log::info('🟣 LAYERS: Event dispatched');
+    }
+
+    /**
+     * Dispatch grid item reorder event from layers panel.
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $parentBlockId  Parent grid block ID.
+     * @param  array  $newOrder  Array of grid item indexes in new order.
+     */
+    public function dispatchGridItemReorder(string $parentBlockId, array $newOrder): void
+    {
+        $this->dispatch('layers-grid-item-reorder', parentBlockId: $parentBlockId, newOrder: $newOrder);
+    }
+
+    /**
+     * Dispatch cross-context grid item move event from layers panel.
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $sourceParentId  Source grid block ID.
+     * @param  int  $sourceItemIndex  Source grid item index.
+     * @param  string  $targetParentId  Target grid block ID.
+     * @param  int  $targetItemIndex  Target grid item index.
+     */
+    public function dispatchCrossContextGridItemMove(
+        string $sourceParentId,
+        int $sourceItemIndex,
+        string $targetParentId,
+        int $targetItemIndex
+    ): void {
+        \Log::info('🟣 LAYERS: dispatchCrossContextGridItemMove CALLED', [
+            'sourceParentId' => $sourceParentId,
+            'sourceItemIndex' => $sourceItemIndex,
+            'targetParentId' => $targetParentId,
+            'targetItemIndex' => $targetItemIndex,
+        ]);
+
+        $this->dispatch('layers-cross-context-grid-item-move',
+            sourceParentId: $sourceParentId,
+            sourceItemIndex: $sourceItemIndex,
+            targetParentId: $targetParentId,
+            targetItemIndex: $targetItemIndex
         );
 
         \Log::info('🟣 LAYERS: Event dispatched');

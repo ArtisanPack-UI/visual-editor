@@ -83,11 +83,20 @@ new class extends Component
      */
     public function mount(): void
     {
+        // Initialize grid items for any grid blocks missing them
+        $hadMissingItems = false;
+        $originalBlocks = $this->blocks;
+        $this->blocks = $this->initializeGridItems($this->blocks);
+
+        if ($this->blocks !== $originalBlocks) {
+            $hadMissingItems = true;
+        }
+
         $hadMissingIds = $this->ensureColumnIds();
 
-        // If we added any column/item IDs, sync them back to the editor
-        if ($hadMissingIds) {
-            \Log::info('Canvas mount: Column/item IDs were added, syncing to editor');
+        // If we added any column/item IDs or initialized grid items, sync them back to the editor
+        if ($hadMissingIds || $hadMissingItems) {
+            \Log::info('Canvas mount: Column/item IDs or grid items were added, syncing to editor');
             $this->dispatch('editor-sync-state', blocks: $this->blocks)->to('visual-editor::editor');
         }
     }
@@ -220,7 +229,52 @@ new class extends Component
     #[On('canvas-sync-blocks')]
     public function onCanvasSyncBlocks(array $blocks): void
     {
-        $this->blocks = $blocks;
+        // Initialize grid items for any grid blocks missing them
+        $this->blocks = $this->initializeGridItems($blocks);
+    }
+
+    /**
+     * Initialize grid items for grid blocks that don't have them.
+     *
+     * @since 2.0.0
+     *
+     * @param  array  $blocks  The blocks array.
+     *
+     * @return array The blocks array with initialized grid items.
+     */
+    private function initializeGridItems(array $blocks): array
+    {
+        foreach ($blocks as $key => $block) {
+            if ('grid' === ($block['type'] ?? '')) {
+                // Ensure items array exists (but don't auto-populate it)
+                if (!isset($block['content']['items'])) {
+                    $blocks[$key]['content']['items'] = [];
+                }
+            }
+
+            // Recursively initialize grid items in nested blocks
+            if (isset($block['content']['inner_blocks'])) {
+                $blocks[$key]['content']['inner_blocks'] = $this->initializeGridItems($block['content']['inner_blocks']);
+            }
+
+            if (isset($block['content']['columns'])) {
+                foreach ($block['content']['columns'] as $colIdx => $column) {
+                    if (isset($column['blocks'])) {
+                        $blocks[$key]['content']['columns'][$colIdx]['blocks'] = $this->initializeGridItems($column['blocks']);
+                    }
+                }
+            }
+
+            if (isset($block['content']['items'])) {
+                foreach ($block['content']['items'] as $itemIdx => $item) {
+                    if (isset($item['inner_blocks'])) {
+                        $blocks[$key]['content']['items'][$itemIdx]['inner_blocks'] = $this->initializeGridItems($item['inner_blocks']);
+                    }
+                }
+            }
+        }
+
+        return $blocks;
     }
 
     /**
@@ -292,6 +346,47 @@ new class extends Component
     }
 
     /**
+     * Handle grid item reorder event from layers panel.
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $parentBlockId  The parent grid block ID.
+     * @param  array  $newOrder  The new grid item order.
+     */
+    #[On('layers-grid-item-reorder')]
+    public function onLayersGridItemReorder(string $parentBlockId, array $newOrder): void
+    {
+        $this->reorderGridItems($parentBlockId, $newOrder);
+    }
+
+    /**
+     * Handle cross-context grid item move event from layers panel.
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $sourceParentId  The source grid block ID.
+     * @param  int  $sourceItemIndex  Index of the grid item to move.
+     * @param  string  $targetParentId  The target grid block ID.
+     * @param  int  $targetItemIndex  Index where grid item should be inserted in target.
+     */
+    #[On('layers-cross-context-grid-item-move')]
+    public function onLayersCrossContextGridItemMove(
+        string $sourceParentId,
+        int $sourceItemIndex,
+        string $targetParentId,
+        int $targetItemIndex
+    ): void {
+        \Log::info('🟣 CANVAS: onLayersCrossContextGridItemMove RECEIVED', [
+            'sourceParentId' => $sourceParentId,
+            'sourceItemIndex' => $sourceItemIndex,
+            'targetParentId' => $targetParentId,
+            'targetItemIndex' => $targetItemIndex,
+        ]);
+
+        $this->moveGridItemBetweenBlocks($sourceParentId, $sourceItemIndex, $targetParentId, $targetItemIndex);
+    }
+
+    /**
      * Deselect all blocks.
      *
      * @since 1.1.0
@@ -304,16 +399,22 @@ new class extends Component
     }
 
     /**
-     * Select a column container.
+     * Select a column container or grid item.
      *
      * @since 2.1.0
      *
-     * @param  string  $parentBlockId  The parent columns block ID.
-     * @param  int  $columnIndex  The column index.
+     * @param  string  $parentBlockId  The parent block ID (columns or grid).
+     * @param  int  $columnIndex  The column/item index.
      */
     public function selectColumn(string $parentBlockId, int $columnIndex): void
     {
-        $this->activeColumnId = "{$parentBlockId}-col-{$columnIndex}";
+        // Find the parent block to determine its type
+        $parentBlock = $this->findBlockRecursive($parentBlockId, $this->blocks);
+        $parentType = $parentBlock['type'] ?? '';
+
+        // Use appropriate suffix based on block type
+        $suffix = ($parentType === 'grid') ? 'item' : 'col';
+        $this->activeColumnId = "{$parentBlockId}-{$suffix}-{$columnIndex}";
         $this->activeBlockId = null;
         $this->editingBlockId = null;
         $this->dispatch('column-selected', columnId: $this->activeColumnId);
@@ -592,11 +693,18 @@ new class extends Component
             }
         }
 
+        $content = [];
+
+        // Initialize grid blocks with empty items array (user will add items manually)
+        if ( 'grid' === $type ) {
+            $content['items'] = [];
+        }
+
         $this->blocks[] = [
             'id' => str_replace('.', '-', uniqid('ve-block-', true)),
             'type' => $type,
             'name' => $type,
-            'content' => [],
+            'content' => $content,
             'settings' => $settings,
         ];
 
@@ -634,9 +742,35 @@ new class extends Component
         $blocks = $this->blocks;
 
         if ($slotIndex >= 0) {
-            $innerKey = $parentPath.'.content.columns.'.$slotIndex.'.blocks';
-            $currentInner = data_get($blocks, $innerKey, []);
+            // Determine if parent is a columns block or grid block
+            $parentBlock = data_get($blocks, $parentPath);
+            $parentType = $parentBlock['type'] ?? '';
 
+            if ($parentType === 'grid') {
+                // Initialize grid item if it doesn't exist
+                $itemsKey = $parentPath.'.content.items';
+                $items = data_get($blocks, $itemsKey, []);
+
+                // Ensure we have enough items
+                while (count($items) <= $slotIndex) {
+                    $items[] = [
+                        'id' => 've-item-'.uniqid().'-'.count($items),
+                        'inner_blocks' => [],
+                        'settings' => [
+                            'col_span' => '1',
+                            'row_span' => '1',
+                        ],
+                    ];
+                }
+
+                data_set($blocks, $itemsKey, $items);
+                $innerKey = $itemsKey.'.'.$slotIndex.'.inner_blocks';
+            } else {
+                // Default to columns block
+                $innerKey = $parentPath.'.content.columns.'.$slotIndex.'.blocks';
+            }
+
+            $currentInner = data_get($blocks, $innerKey, []);
             $currentInner[] = $newBlock;
             data_set($blocks, $innerKey, $currentInner);
         } else {
@@ -647,6 +781,40 @@ new class extends Component
             data_set($blocks, $innerKey, $currentInner);
         }
 
+        $this->blocks = $blocks;
+        $this->notifyBlocksUpdated();
+    }
+
+    /**
+     * Add a new empty grid item to a grid block.
+     *
+     * @since 2.0.0
+     *
+     * @param  string  $gridBlockId  The grid block ID to add an item to.
+     */
+    public function addGridItem(string $gridBlockId): void
+    {
+        $parentPath = $this->findBlockPath($gridBlockId, $this->blocks);
+
+        if ($parentPath === null) {
+            return;
+        }
+
+        $blocks = $this->blocks;
+        $itemsKey = $parentPath.'.content.items';
+        $items = data_get($blocks, $itemsKey, []);
+
+        // Add a new empty grid item
+        $items[] = [
+            'id' => 've-item-'.uniqid().'-'.count($items),
+            'inner_blocks' => [],
+            'settings' => [
+                'col_span' => '1',
+                'row_span' => '1',
+            ],
+        ];
+
+        data_set($blocks, $itemsKey, $items);
         $this->blocks = $blocks;
         $this->notifyBlocksUpdated();
     }
@@ -1186,6 +1354,259 @@ new class extends Component
         $this->notifyBlocksUpdated();
 
         \Log::info('✅ moveColumnBetweenBlocks COMPLETED');
+    }
+
+    /**
+     * Reorder grid items within a grid block.
+     *
+     * @since 2.0.0
+     *
+     * @param  string  $parentBlockId  The parent grid block ID.
+     * @param  array  $newOrder  Array of grid item indexes in new order.
+     */
+    public function reorderGridItems(string $parentBlockId, array $newOrder): void
+    {
+        \Log::info('🟦 reorderGridItems CALLED', [
+            'parentBlockId' => $parentBlockId,
+            'newOrder' => $newOrder,
+        ]);
+
+        $parentBlock = $this->findBlockById($parentBlockId);
+        if (! $parentBlock) {
+            \Log::error('🔴 Parent block not found', ['parentBlockId' => $parentBlockId]);
+
+            return;
+        }
+
+        $items = $parentBlock['content']['items'] ?? [];
+        $itemCount = count($items);
+
+        \Log::info('🟡 Current state', [
+            'itemCount' => $itemCount,
+            'newOrderCount' => count($newOrder),
+        ]);
+
+        // Validate that newOrder contains all item indexes
+        $expectedIndexes = range(0, $itemCount - 1);
+        $receivedIndexes = array_values($newOrder);
+        sort($receivedIndexes);
+
+        if ($receivedIndexes !== $expectedIndexes) {
+            \Log::error('🔴 Invalid grid item reorder - missing or extra indexes', [
+                'expected' => $expectedIndexes,
+                'received' => $receivedIndexes,
+                'newOrder' => $newOrder,
+                'originalCount' => $itemCount,
+            ]);
+
+            return;
+        }
+
+        \Log::info('🟢 Validation passed, reordering items');
+
+        // Reorder grid items based on newOrder
+        $reordered = [];
+        foreach ($newOrder as $index) {
+            if (isset($items[$index])) {
+                $reordered[] = $items[$index];
+            }
+        }
+
+        // Update the parent block
+        $parentBlock['content']['items'] = $reordered;
+        $this->updateBlockById($parentBlockId, $parentBlock);
+        $this->notifyBlocksUpdated();
+
+        \Log::info('✅ reorderGridItems COMPLETED');
+    }
+
+    /**
+     * Move a grid item from one grid block to another.
+     *
+     * @since 2.0.0
+     *
+     * @param  string  $sourceParentId  The source grid block ID.
+     * @param  int  $sourceItemIndex  Index of the grid item to move.
+     * @param  string  $targetParentId  The target grid block ID.
+     * @param  int  $targetItemIndex  Index where grid item should be inserted in target.
+     */
+    public function moveGridItemBetweenBlocks(
+        string $sourceParentId,
+        int $sourceItemIndex,
+        string $targetParentId,
+        int $targetItemIndex
+    ): void {
+        \Log::info('🟦 moveGridItemBetweenBlocks CALLED', [
+            'sourceParentId' => $sourceParentId,
+            'sourceItemIndex' => $sourceItemIndex,
+            'targetParentId' => $targetParentId,
+            'targetItemIndex' => $targetItemIndex,
+        ]);
+
+        $sourceParent = $this->findBlockById($sourceParentId);
+        $targetParent = $this->findBlockById($targetParentId);
+
+        if (! $sourceParent || ! $targetParent) {
+            \Log::error('🔴 moveGridItemBetweenBlocks: Parent blocks not found', [
+                'sourceParentId' => $sourceParentId,
+                'targetParentId' => $targetParentId,
+                'sourceParentFound' => $sourceParent !== null,
+                'targetParentFound' => $targetParent !== null,
+            ]);
+
+            return;
+        }
+
+        \Log::info('🟢 Found both parent blocks', [
+            'sourceParentType' => $sourceParent['type'] ?? 'unknown',
+            'targetParentType' => $targetParent['type'] ?? 'unknown',
+        ]);
+
+        $sourceItems = $sourceParent['content']['items'] ?? [];
+        $targetItems = $targetParent['content']['items'] ?? [];
+
+        \Log::info('🟡 Grid item counts', [
+            'sourceItemsCount' => count($sourceItems),
+            'targetItemsCount' => count($targetItems),
+        ]);
+
+        // Validate source item exists
+        if (! isset($sourceItems[$sourceItemIndex])) {
+            \Log::error('🔴 moveGridItemBetweenBlocks: Source grid item not found', [
+                'sourceItemIndex' => $sourceItemIndex,
+                'sourceItemsCount' => count($sourceItems),
+            ]);
+
+            return;
+        }
+
+        \Log::info('🟢 Source grid item exists, proceeding with move');
+
+        // Get the grid item data
+        $movedItem = $sourceItems[$sourceItemIndex];
+
+        \Log::info('🟡 Grid item data to move', [
+            'itemHasInnerBlocks' => isset($movedItem['inner_blocks']),
+            'itemInnerBlocksCount' => count($movedItem['inner_blocks'] ?? []),
+        ]);
+
+        // Remove from source
+        array_splice($sourceItems, $sourceItemIndex, 1);
+
+        // Insert into target at specified position
+        array_splice($targetItems, $targetItemIndex, 0, [$movedItem]);
+
+        \Log::info('🟢 Arrays spliced', [
+            'newSourceCount' => count($sourceItems),
+            'newTargetCount' => count($targetItems),
+        ]);
+
+        // Update both blocks
+        $sourceParent['content']['items'] = $sourceItems;
+        $targetParent['content']['items'] = $targetItems;
+
+        $this->updateBlockById($sourceParentId, $sourceParent);
+        $this->updateBlockById($targetParentId, $targetParent);
+
+        \Log::info('🟢 Blocks updated, calling notifyBlocksUpdated');
+
+        $this->notifyBlocksUpdated();
+
+        \Log::info('✅ moveGridItemBetweenBlocks COMPLETED');
+    }
+
+    /**
+     * Move a grid item left within its parent grid block.
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $parentBlockId  The parent grid block ID.
+     * @param  int  $gridItemIndex  The grid item index.
+     */
+    public function moveGridItemLeft(string $parentBlockId, int $gridItemIndex): void
+    {
+        if ($gridItemIndex <= 0) {
+            return;
+        }
+
+        $parentBlock = $this->findBlockById($parentBlockId);
+        if (! $parentBlock) {
+            return;
+        }
+
+        $items = $parentBlock['content']['items'] ?? [];
+        $temp = $items[$gridItemIndex];
+        $items[$gridItemIndex] = $items[$gridItemIndex - 1];
+        $items[$gridItemIndex - 1] = $temp;
+
+        $parentBlock['content']['items'] = $items;
+        $this->updateBlockById($parentBlockId, $parentBlock);
+
+        // Update active column ID to follow the moved grid item
+        $this->activeColumnId = "{$parentBlockId}-item-".($gridItemIndex - 1);
+
+        $this->notifyBlocksUpdated();
+    }
+
+    /**
+     * Move a grid item right within its parent grid block.
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $parentBlockId  The parent grid block ID.
+     * @param  int  $gridItemIndex  The grid item index.
+     */
+    public function moveGridItemRight(string $parentBlockId, int $gridItemIndex): void
+    {
+        $parentBlock = $this->findBlockById($parentBlockId);
+        if (! $parentBlock) {
+            return;
+        }
+
+        $items = $parentBlock['content']['items'] ?? [];
+        if ($gridItemIndex >= count($items) - 1) {
+            return;
+        }
+
+        $temp = $items[$gridItemIndex];
+        $items[$gridItemIndex] = $items[$gridItemIndex + 1];
+        $items[$gridItemIndex + 1] = $temp;
+
+        $parentBlock['content']['items'] = $items;
+        $this->updateBlockById($parentBlockId, $parentBlock);
+
+        // Update active column ID to follow the moved grid item
+        $this->activeColumnId = "{$parentBlockId}-item-".($gridItemIndex + 1);
+
+        $this->notifyBlocksUpdated();
+    }
+
+    /**
+     * Delete a grid item from a grid block.
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $parentBlockId  The parent grid block ID.
+     * @param  int  $gridItemIndex  The grid item index.
+     */
+    public function deleteGridItem(string $parentBlockId, int $gridItemIndex): void
+    {
+        $parentBlock = $this->findBlockById($parentBlockId);
+        if (! $parentBlock) {
+            return;
+        }
+
+        $items = $parentBlock['content']['items'] ?? [];
+        array_splice($items, $gridItemIndex, 1);
+
+        $parentBlock['content']['items'] = $items;
+
+        $this->updateBlockById($parentBlockId, $parentBlock);
+
+        // Deselect the grid item
+        $this->activeColumnId = null;
+
+        $this->notifyBlocksUpdated();
     }
 
     /**

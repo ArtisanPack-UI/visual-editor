@@ -760,7 +760,7 @@ new class extends Component
     }
 
     /**
-     * Update a setting on the active block.
+     * Update a setting on the active block, column, or grid item.
      *
      * @since 1.4.0
      *
@@ -769,19 +769,51 @@ new class extends Component
      */
     public function updateBlockSetting(string $key, mixed $value): void
     {
-        if ($this->activeBlockId === null) {
+        if ($this->activeBlockId === null && $this->activeColumnId === null) {
             return;
         }
 
+        $this->pushHistory($this->blocks);
+        $blocks = $this->blocks;
+
+        // Handle column or grid item settings
+        if ($this->activeColumnId !== null) {
+            preg_match('/^(.+)-(col|item)-(\d+)$/', $this->activeColumnId, $matches);
+            $parentBlockId = $matches[1] ?? '';
+            $containerType = $matches[2] ?? 'col';
+            $containerIndex = (int) ($matches[3] ?? 0);
+
+            $parentPath = $this->findBlockPath($parentBlockId, $this->blocks);
+
+            if ($parentPath === null) {
+                return;
+            }
+
+            if ($containerType === 'col') {
+                $settingsPath = "{$parentPath}.content.columns.{$containerIndex}.settings.{$key}";
+            } else {
+                $settingsPath = "{$parentPath}.content.items.{$containerIndex}.settings.{$key}";
+            }
+
+            data_set($blocks, $settingsPath, $value);
+
+            $this->blocks = $blocks;
+            $this->isDirty = true;
+            $this->saveStatus = 'unsaved';
+
+            // Notify canvas component to sync the updated blocks
+            $this->dispatch('canvas-sync-blocks', blocks: $this->blocks);
+
+            return;
+        }
+
+        // Handle regular block settings
         $path = $this->findBlockPath($this->activeBlockId, $this->blocks);
 
         if ($path === null) {
             return;
         }
 
-        $this->pushHistory($this->blocks);
-
-        $blocks = $this->blocks;
         $block = data_get($blocks, $path);
 
         // Special handling for columns blocks
@@ -850,6 +882,70 @@ new class extends Component
             } else {
                 // Normal setting update
                 data_set($blocks, $path.'.settings.'.$key, $value);
+            }
+        } elseif ( 'grid' === ( $block['type'] ?? '' ) ) {
+            // Special handling for grid blocks
+            if ( 'columns' === $key ) {
+                $targetCount  = max( 1, min( 12, (int) $value ) );
+                $currentItems = $block['content']['items'] ?? [];
+                $currentCount = count( $currentItems );
+
+                if ( $targetCount !== $currentCount ) {
+                    // Add or remove grid items to match target count
+                    if ( $targetCount > $currentCount ) {
+                        // Add items
+                        for ( $i = $currentCount; $i < $targetCount; $i++ ) {
+                            $currentItems[] = [
+                                'id'           => 've-item-' . uniqid() . '-' . $i,
+                                'inner_blocks' => [],
+                                'settings'     => [
+                                    'col_span' => '1',
+                                    'row_span' => '1',
+                                ],
+                            ];
+                        }
+                    } else {
+                        // Remove items from the end
+                        $currentItems = array_slice( $currentItems, 0, $targetCount );
+                    }
+
+                    // Update items array
+                    data_set( $blocks, $path . '.content.items', $currentItems );
+
+                    // Update columns setting
+                    data_set( $blocks, $path . '.settings.columns', (string) $targetCount );
+
+                    // If responsive columns is off, sync responsive values
+                    $responsiveEnabled = $block['settings']['responsive_columns'] ?? false;
+
+                    if ( ! $responsiveEnabled ) {
+                        data_set( $blocks, $path . '.settings.columns_sm', (string) $targetCount );
+                        data_set( $blocks, $path . '.settings.columns_md', (string) $targetCount );
+                        data_set( $blocks, $path . '.settings.columns_lg', (string) $targetCount );
+                        data_set( $blocks, $path . '.settings.columns_xl', (string) $targetCount );
+                    }
+                }
+            } elseif ( 'responsive_columns' === $key ) {
+                // Toggle responsive columns - sync values if turning off
+                data_set( $blocks, $path . '.settings.' . $key, $value );
+
+                if ( ! $value ) {
+                    // Turning off - sync all responsive values to main columns value
+                    $currentItems = $block['content']['items'] ?? [];
+                    $currentCount = (string) count( $currentItems );
+
+                    data_set( $blocks, $path . '.settings.columns_sm', $currentCount );
+                    data_set( $blocks, $path . '.settings.columns_md', $currentCount );
+                    data_set( $blocks, $path . '.settings.columns_lg', $currentCount );
+                    data_set( $blocks, $path . '.settings.columns_xl', $currentCount );
+                }
+            } elseif ( in_array( $key, [ 'columns_sm', 'columns_md', 'columns_lg', 'columns_xl' ], true ) ) {
+                // Responsive column count change - just update the setting
+                $targetCount = max( 1, min( 12, (int) $value ) );
+                data_set( $blocks, $path . '.settings.' . $key, (string) $targetCount );
+            } else {
+                // Normal setting update
+                data_set( $blocks, $path . '.settings.' . $key, $value );
             }
         } else {
             // Normal setting update for non-columns blocks
@@ -1346,10 +1442,32 @@ new class extends Component
 				{{-- Tab Content --}}
 				<div class="flex-1 overflow-y-auto">
 					@if ( 'styles' === $settingsDrawerTab )
-						@if ( null !== $activeBlockId )
+						@if ( null !== $activeBlockId || null !== $activeColumnId )
 							@php
-								$activeBlockConfig = $this->getActiveBlockConfig();
-								$activeBlock       = $this->findBlockRecursive( $activeBlockId, $this->blocks );
+								if ( null !== $activeColumnId ) {
+									// Parse column/grid item ID
+									preg_match( '/^(.+)-(col|item)-(\d+)$/', $activeColumnId, $matches );
+									$parentBlockId = $matches[1] ?? '';
+									$containerType = $matches[2] ?? 'col';
+									$containerIndex = (int) ( $matches[3] ?? 0 );
+
+									$parentBlock = $this->findBlockRecursive( $parentBlockId, $this->blocks );
+									$blockType = ( 'col' === $containerType ) ? 'column' : 'grid_item';
+
+									if ( 'col' === $containerType ) {
+										$container = $parentBlock['content']['columns'][ $containerIndex ] ?? [];
+										$activeBlock = [ 'type' => 'column', 'settings' => $container['settings'] ?? [] ];
+									} else {
+										$container = $parentBlock['content']['items'][ $containerIndex ] ?? [];
+										$activeBlock = [ 'type' => 'grid_item', 'settings' => $container['settings'] ?? [] ];
+									}
+
+									$activeBlockConfig = veBlocks()->get( $blockType );
+								} else {
+									$activeBlockConfig = $this->getActiveBlockConfig();
+									$activeBlock       = $this->findBlockRecursive( $activeBlockId, $this->blocks );
+								}
+
 								$currentSettings   = $activeBlock['settings'] ?? [];
 							@endphp
 
@@ -1368,13 +1486,35 @@ new class extends Component
 						@endif
 					@elseif ( 'settings' === $settingsDrawerTab )
 						<div class="p-3">
-							@if ( null !== $activeBlockId )
+							@if ( null !== $activeBlockId || null !== $activeColumnId )
 								@php
-									$activeBlockConfig = $this->getActiveBlockConfig();
+									if ( null !== $activeColumnId ) {
+										// Parse column/grid item ID
+										preg_match( '/^(.+)-(col|item)-(\d+)$/', $activeColumnId, $matches );
+										$parentBlockId = $matches[1] ?? '';
+										$containerType = $matches[2] ?? 'col';
+										$containerIndex = (int) ( $matches[3] ?? 0 );
+
+										$parentBlock = $this->findBlockRecursive( $parentBlockId, $this->blocks );
+										$blockType = ( 'col' === $containerType ) ? 'column' : 'grid_item';
+
+										if ( 'col' === $containerType ) {
+											$container = $parentBlock['content']['columns'][ $containerIndex ] ?? [];
+											$activeBlock = [ 'type' => 'column', 'settings' => $container['settings'] ?? [] ];
+										} else {
+											$container = $parentBlock['content']['items'][ $containerIndex ] ?? [];
+											$activeBlock = [ 'type' => 'grid_item', 'settings' => $container['settings'] ?? [] ];
+										}
+
+										$activeBlockConfig = veBlocks()->get( $blockType );
+									} else {
+										$activeBlockConfig = $this->getActiveBlockConfig();
+										$activeBlock       = $this->findBlockRecursive( $activeBlockId, $this->blocks );
+										$blockType         = $activeBlock['type'] ?? $activeBlock['name'] ?? '';
+									}
+
 									$settingsSchema    = $activeBlockConfig['settings_schema'] ?? [];
-									$activeBlock       = $this->findBlockRecursive( $activeBlockId, $this->blocks );
 									$currentSettings   = $activeBlock['settings'] ?? [];
-									$blockType         = $activeBlock['type'] ?? $activeBlock['name'] ?? '';
 									$hasVariations     = veBlocks()->hasVariations( $blockType );
 									$variations        = $hasVariations ? veBlocks()->getVariations( $blockType ) : [];
 									$currentVariation  = $currentSettings['_variation'] ?? '';
@@ -1447,6 +1587,18 @@ new class extends Component
 													$responsiveEnabled = $currentSettings['responsive_columns'] ?? false;
 													$shouldSkipField   = ! $responsiveEnabled;
 												}
+
+												// Skip responsive col_span fields if responsive_col_span toggle is off
+												if ( 'grid_item' === $blockType && in_array( $settingKey, [ 'col_span_sm', 'col_span_md', 'col_span_lg', 'col_span_xl' ], true ) ) {
+													$responsiveColSpanEnabled = $currentSettings['responsive_col_span'] ?? false;
+													$shouldSkipField          = ! $responsiveColSpanEnabled;
+												}
+
+												// Skip responsive row_span fields if responsive_row_span toggle is off
+												if ( 'grid_item' === $blockType && in_array( $settingKey, [ 'row_span_sm', 'row_span_md', 'row_span_lg', 'row_span_xl' ], true ) ) {
+													$responsiveRowSpanEnabled = $currentSettings['responsive_row_span'] ?? false;
+													$shouldSkipField          = ! $responsiveRowSpanEnabled;
+												}
 											@endphp
 											@if ( ! $shouldSkipField )
 											<div>
@@ -1517,19 +1669,20 @@ new class extends Component
 													$rangeMax  = $schema['max'] ?? 100;
 													$rangeStep = $schema['step'] ?? 1;
 												@endphp
-												<div class="flex items-center gap-3">
+												<div class="flex items-center gap-3" x-data="{ value: {{ $fieldValue }} }">
 													<div class="flex-1">
-														<x-artisanpack-range
-															:label="__( $fieldLabel )"
-															:value="$fieldValue"
-															:min="$rangeMin"
-															:max="$rangeMax"
-															:step="$rangeStep"
-															wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
+														<label class="mb-1 block text-sm font-medium text-gray-700">{{ __( $fieldLabel ) }}</label>
+														<input
+															type="range"
+															x-model="value"
+															@change="console.log('Range changed:', '{{ $settingKey }}', value); $wire.updateBlockSetting( '{{ $settingKey }}', parseInt(value) )"
+															min="{{ $rangeMin }}"
+															max="{{ $rangeMax }}"
+															step="{{ $rangeStep }}"
+															class="w-full"
 														/>
 													</div>
-													<div class="flex-shrink-0 rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700">
-														{{ $fieldValue }}
+													<div class="flex-shrink-0 rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700" x-text="value">
 													</div>
 												</div>
 											@else
