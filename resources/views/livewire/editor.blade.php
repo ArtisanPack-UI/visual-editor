@@ -1443,7 +1443,7 @@ new class extends Component
 
 												// Skip responsive column fields if responsive_columns toggle is off
 												$shouldSkipField = false;
-												if ( 'columns' === $blockType && in_array( $settingKey, [ 'columns_sm', 'columns_md', 'columns_lg', 'columns_xl' ], true ) ) {
+												if ( in_array( $blockType, [ 'columns', 'grid' ], true ) && in_array( $settingKey, [ 'columns_sm', 'columns_md', 'columns_lg', 'columns_xl' ], true ) ) {
 													$responsiveEnabled = $currentSettings['responsive_columns'] ?? false;
 													$shouldSkipField   = ! $responsiveEnabled;
 												}
