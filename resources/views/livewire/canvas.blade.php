@@ -1014,6 +1014,13 @@ new class extends Component
         array_splice($columns, $columnIndex, 1);
 
         $parentBlock['content']['columns'] = $columns;
+
+        // Update preset and columns setting to match new column count
+        $newColumnCount = count($columns);
+        $newPreset = $this->generatePresetForColumnCount($newColumnCount);
+        $parentBlock['settings']['preset'] = $newPreset;
+        $parentBlock['settings']['columns'] = (string) $newColumnCount;
+
         $this->updateBlockById($parentBlockId, $parentBlock);
 
         // Deselect the column
@@ -1152,6 +1159,24 @@ new class extends Component
         // Update both blocks
         $sourceParent['content']['columns'] = $sourceColumns;
         $targetParent['content']['columns'] = $targetColumns;
+
+        // Update preset and columns settings to match the new column counts
+        $sourceColumnCount = count($sourceColumns);
+        $targetColumnCount = count($targetColumns);
+        $sourcePreset = $this->generatePresetForColumnCount($sourceColumnCount);
+        $targetPreset = $this->generatePresetForColumnCount($targetColumnCount);
+
+        $sourceParent['settings']['preset'] = $sourcePreset;
+        $targetParent['settings']['preset'] = $targetPreset;
+        $sourceParent['settings']['columns'] = (string) $sourceColumnCount;
+        $targetParent['settings']['columns'] = (string) $targetColumnCount;
+
+        \Log::info('🟢 Updated preset and columns settings', [
+            'sourcePreset' => $sourcePreset,
+            'targetPreset' => $targetPreset,
+            'sourceColumnCount' => $sourceColumnCount,
+            'targetColumnCount' => $targetColumnCount,
+        ]);
 
         $this->updateBlockById($sourceParentId, $sourceParent);
         $this->updateBlockById($targetParentId, $targetParent);
@@ -2067,6 +2092,29 @@ new class extends Component
         $this->notifyBlocksUpdated();
 
         \Log::info('Blocks updated successfully');
+    }
+
+    /**
+     * Generate a preset string based on column count with equal widths.
+     *
+     * @since 2.0.0
+     *
+     * @param  int  $columnCount  Number of columns.
+     * @return string Preset string (e.g., "50-50", "33-33-33").
+     */
+    private function generatePresetForColumnCount(int $columnCount): string
+    {
+        if ($columnCount <= 0) {
+            return '100';
+        }
+
+        // Calculate equal width percentage for each column
+        $width = (int) floor(100 / $columnCount);
+
+        // Generate preset string with equal widths
+        $widths = array_fill(0, $columnCount, $width);
+
+        return implode('-', $widths);
     }
 
     /**

@@ -116,10 +116,11 @@ declare(strict_types=1);
 			}, 100);
 		"
 		@drag:end="
-			const orderedIds = $event.detail.orderedIds;
+			(() => {
+				const orderedIds = $event.detail.orderedIds;
 
-			// Filter to only include column IDs for this specific columns block
-			const blockIdPrefix = '{{ $blockId }}-col-';
+				// Filter to only include column IDs for this specific columns block
+				const blockIdPrefix = '{{ $blockId }}-col-';
 
 			// Helper to check if an ID is a column ID
 			const isColumnId = (id) => {
@@ -207,86 +208,89 @@ declare(strict_types=1);
 			} else {
 				console.warn('Layers: Invalid column order, skipping reorder:', newOrder);
 			}
+			})()
 		"
 		@drag:cross-context="
-			console.log('🔵 LAYERS: Cross-context handler FIRED', {
-				sourceContext: $event.detail.sourceContext.getAttribute('wire:key'),
-				targetContext: $event.detail.targetContext.getAttribute('wire:key'),
-				itemId: $event.detail.itemId
-			});
+			(() => {
+				console.log('🔵 LAYERS: Cross-context handler FIRED', {
+					sourceContext: $event.detail.sourceContext.getAttribute('wire:key'),
+					targetContext: $event.detail.targetContext.getAttribute('wire:key'),
+					itemId: $event.detail.itemId
+				});
 
-			const sourceContext = $event.detail.sourceContext;
-			const targetContext = $event.detail.targetContext;
-			const itemId = $event.detail.itemId;
+				const sourceContext = $event.detail.sourceContext;
+				const targetContext = $event.detail.targetContext;
+				const itemId = $event.detail.itemId;
 
-			// Extract source and target parent block IDs from wire:key attributes
-			const sourceKey = sourceContext.getAttribute('wire:key');
-			const targetKey = targetContext.getAttribute('wire:key');
+				// Extract source and target parent block IDs from wire:key attributes
+				const sourceKey = sourceContext.getAttribute('wire:key');
+				const targetKey = targetContext.getAttribute('wire:key');
 
-			const sourceMatch = sourceKey.match(/^layer-columns-drag-container-(.+)$/);
-			const targetMatch = targetKey.match(/^layer-columns-drag-container-(.+)$/);
+				const sourceMatch = sourceKey.match(/^layer-columns-drag-container-(.+)$/);
+				const targetMatch = targetKey.match(/^layer-columns-drag-container-(.+)$/);
 
-			if (!sourceMatch || !targetMatch) {
-				console.warn('🔴 Could not parse source/target from wire:key');
-				return;
-			}
-
-			const sourceParentId = sourceMatch[1];
-			const targetParentId = targetMatch[1];
-
-			console.log('🟢 Parsed parent IDs:', { sourceParentId, targetParentId });
-
-			// Extract column index from itemId (format: blockId-col-index)
-			const colMatch = itemId.match(/-col-(\\d+)$/);
-			if (!colMatch) {
-				console.warn('🔴 Could not extract column index from itemId:', itemId);
-				return;
-			}
-
-			const sourceColumnIndex = parseInt(colMatch[1], 10);
-
-			// Determine target column index from targetOrderedIds
-			const targetOrderedIds = $event.detail.targetOrderedIds;
-
-			// Find position of dragged column in targetOrderedIds
-			const draggedIndex = targetOrderedIds.findIndex(id => id === itemId);
-
-			if (draggedIndex === -1) {
-				console.warn('🔴 Dragged column not found in targetOrderedIds');
-				return;
-			}
-
-			// Count how many target block columns appear before the dragged column
-			// This tells us where to insert in the target columns array
-			const targetBlockPrefix = targetParentId + '-col-';
-			let movedColumnIndex = 0;
-			for (let i = 0; i < draggedIndex; i++) {
-				const id = targetOrderedIds[i];
-				if (typeof id === 'string' && id.startsWith(targetBlockPrefix)) {
-					movedColumnIndex++;
+				if (!sourceMatch || !targetMatch) {
+					console.warn('🔴 Could not parse source/target from wire:key');
+					return;
 				}
-			}
 
-			console.log('🟡 Calculated indices:', {
-				sourceColumnIndex,
-				movedColumnIndex,
-				draggedIndex,
-				targetOrderedIds
-			});
+				const sourceParentId = sourceMatch[1];
+				const targetParentId = targetMatch[1];
 
-			console.log('🚀 Calling $wire.dispatchCrossContextColumnMove with:', {
-				sourceParentId,
-				sourceColumnIndex,
-				targetParentId,
-				movedColumnIndex
-			});
+				console.log('🟢 Parsed parent IDs:', { sourceParentId, targetParentId });
 
-			$wire.dispatchCrossContextColumnMove(
-				sourceParentId,
-				sourceColumnIndex,
-				targetParentId,
-				movedColumnIndex
-			);
+				// Extract column index from itemId (format: blockId-col-index)
+				const colMatch = itemId.match(/-col-(\d+)$/);
+				if (!colMatch) {
+					console.warn('🔴 Could not extract column index from itemId:', itemId);
+					return;
+				}
+
+				const sourceColumnIndex = parseInt(colMatch[1], 10);
+
+				// Determine target column index from targetOrderedIds
+				const targetOrderedIds = $event.detail.targetOrderedIds;
+
+				// Find position of dragged column in targetOrderedIds
+				const draggedIndex = targetOrderedIds.findIndex(id => id === itemId);
+
+				if (draggedIndex === -1) {
+					console.warn('🔴 Dragged column not found in targetOrderedIds');
+					return;
+				}
+
+				// Count how many target block columns appear before the dragged column
+				// This tells us where to insert in the target columns array
+				const targetBlockPrefix = targetParentId + '-col-';
+				let movedColumnIndex = 0;
+				for (let i = 0; i < draggedIndex; i++) {
+					const id = targetOrderedIds[i];
+					if (typeof id === 'string' && id.startsWith(targetBlockPrefix)) {
+						movedColumnIndex++;
+					}
+				}
+
+				console.log('🟡 Calculated indices:', {
+					sourceColumnIndex,
+					movedColumnIndex,
+					draggedIndex,
+					targetOrderedIds
+				});
+
+				console.log('🚀 Calling $wire.dispatchCrossContextColumnMove with:', {
+					sourceParentId,
+					sourceColumnIndex,
+					targetParentId,
+					movedColumnIndex
+				});
+
+				$wire.dispatchCrossContextColumnMove(
+					sourceParentId,
+					sourceColumnIndex,
+					targetParentId,
+					movedColumnIndex
+				);
+			})()
 		"
 	>
 		@for ( $colIndex = 0; $colIndex < $columnCount; $colIndex++ )
@@ -338,16 +342,18 @@ declare(strict_types=1);
 					}"
 					@drag:end="$wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}', {{ $colIndex }} )"
 					@drag:cross-context="
-						const source = parseWireKey($event.detail.sourceContext);
-						const target = parseWireKey($event.detail.targetContext);
-						console.log('Layers cross-context drag:', { itemId: $event.detail.itemId, source, target, sourceOrderedIds: $event.detail.sourceOrderedIds, targetOrderedIds: $event.detail.targetOrderedIds });
-						$wire.dispatchCrossContextDrop({
-							itemId: $event.detail.itemId,
-							source: source,
-							target: target,
-							sourceOrderedIds: $event.detail.sourceOrderedIds,
-							targetOrderedIds: $event.detail.targetOrderedIds
-						})
+						(() => {
+							const source = parseWireKey($event.detail.sourceContext);
+							const target = parseWireKey($event.detail.targetContext);
+							console.log('Layers cross-context drag:', { itemId: $event.detail.itemId, source, target, sourceOrderedIds: $event.detail.sourceOrderedIds, targetOrderedIds: $event.detail.targetOrderedIds });
+							$wire.dispatchCrossContextDrop({
+								itemId: $event.detail.itemId,
+								source: source,
+								target: target,
+								sourceOrderedIds: $event.detail.sourceOrderedIds,
+								targetOrderedIds: $event.detail.targetOrderedIds
+							});
+						})()
 					"
 				>
 					@foreach ( $colBlocks as $childBlock )

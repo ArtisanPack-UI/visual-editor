@@ -538,13 +538,15 @@ new class extends Component
 					x-drag-group="visual-editor-blocks"
 					@drag:end="$wire.reorderLayerBlocks( $event.detail.orderedIds )"
 					@drag:cross-context="
-					// Skip if this is a column drag (handled by column-specific handler)
-					if ($event.detail.itemId && $event.detail.itemId.includes('-col-')) {
-						console.log('Top-level layers: Skipping column drag');
-						return;
-					}
-					console.log('Top-level layers cross-context:', $event.detail);
-					$wire.dispatchCrossContextDrop( $event.detail )
+					(() => {
+						// Skip if this is a column drag (handled by column-specific handler)
+						if ($event.detail.itemId && $event.detail.itemId.includes('-col-')) {
+							console.log('Top-level layers: Skipping column drag');
+							return;
+						}
+						console.log('Top-level layers cross-context:', $event.detail);
+						$wire.dispatchCrossContextDrop( $event.detail );
+					})()
 				"
 					class="space-y-1"
 					role="list"

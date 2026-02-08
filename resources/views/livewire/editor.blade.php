@@ -1,6 +1,6 @@
 <?php
 
-declare( strict_types=1 );
+declare(strict_types=1);
 
 /**
  * Visual Editor - Main Editor Shell
@@ -10,8 +10,6 @@ declare( strict_types=1 );
  * and status bar. Manages save, publish, autosave, and scheduling
  * workflows.
  *
- * @package    ArtisanPack_UI
- * @subpackage VisualEditor\Livewire
  *
  * @since      1.0.0
  */
@@ -22,1279 +20,1214 @@ use Illuminate\Support\Carbon;
 use Livewire\Attributes\On;
 use Livewire\Component;
 
-new class extends Component {
-	/**
-	 * The content being edited.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var Content
-	 */
-	public Content $content;
-
-	/**
-	 * Whether the save-as-pattern modal is open.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @var bool
-	 */
-	public bool $showSavePatternModal = false;
-
-	/**
-	 * The pattern name for saving.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @var string
-	 */
-	public string $patternName = '';
-
-	/**
-	 * The pattern description for saving.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @var string
-	 */
-	public string $patternDescription = '';
-
-	/**
-	 * The content blocks data.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @var array
-	 */
-	public array $blocks = [];
-
-	/**
-	 * Whether the sidebar panel is open.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var bool
-	 */
-	public bool $sidebarOpen = true;
-
-	/**
-	 * The active sidebar tab.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var string
-	 */
-	public string $sidebarTab = 'blocks';
-
-	/**
-	 * The ID of the currently active block.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var string|null
-	 */
-	public ?string $activeBlockId = null;
-
-	/**
-	 * The ID of the currently active column.
-	 *
-	 * @since 2.1.0
-	 *
-	 * @var string|null
-	 */
-	public ?string $activeColumnId = null;
-
-	/**
-	 * Whether the content has unsaved changes.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var bool
-	 */
-	public bool $isDirty = false;
-
-	/**
-	 * The current save status.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var string
-	 */
-	public string $saveStatus = 'saved';
-
-	/**
-	 * The last saved time as a human-readable string.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var string
-	 */
-	public string $lastSaved = '';
-
-	/**
-	 * Whether the settings drawer is visible.
-	 *
-	 * @since 1.3.0
-	 *
-	 * @var bool
-	 */
-	public bool $showSettingsDrawer = false;
-
-	/**
-	 * The active tab within the settings drawer.
-	 *
-	 * @since 1.3.0
-	 *
-	 * @var string
-	 */
-	public string $settingsDrawerTab = 'styles';
-
-	/**
-	 * The active responsive breakpoint for styles.
-	 *
-	 * @since 1.8.0
-	 *
-	 * @var string
-	 */
-	public string $activeBreakpoint = 'base';
-
-	/**
-	 * The active interaction state for styles.
-	 *
-	 * @since 1.8.0
-	 *
-	 * @var string
-	 */
-	public string $activeState = 'default';
-
-	/**
-	 * The text color for the active block's current breakpoint/state.
-	 *
-	 * @since 1.8.0
-	 *
-	 * @var string
-	 */
-	public string $styleTextColor = '';
-
-	/**
-	 * The background color for the active block's current breakpoint/state.
-	 *
-	 * @since 1.8.0
-	 *
-	 * @var string
-	 */
-	public string $styleBackgroundColor = '';
-
-	/**
-	 * The border color for the active block's current breakpoint/state.
-	 *
-	 * @since 1.8.0
-	 *
-	 * @var string
-	 */
-	public string $styleBorderColor = '';
-
-	/**
-	 * The content title for page settings.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @var string
-	 */
-	public string $contentTitle = '';
-
-	/**
-	 * The content slug for page settings.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @var string
-	 */
-	public string $contentSlug = '';
-
-	/**
-	 * The content excerpt for page settings.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @var string
-	 */
-	public string $contentExcerpt = '';
-
-	/**
-	 * The content meta title for page settings.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @var string
-	 */
-	public string $contentMetaTitle = '';
-
-	/**
-	 * The content meta description for page settings.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @var string
-	 */
-	public string $contentMetaDescription = '';
-
-	/**
-	 * Whether the pre-publish panel is visible.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var bool
-	 */
-	public bool $showPrePublishPanel = false;
-
-	/**
-	 * The pre-publish check results.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var array
-	 */
-	public array $prePublishChecks = [];
-
-	/**
-	 * The scheduled publish date.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var string
-	 */
-	public string $scheduleDate = '';
-
-	/**
-	 * The scheduled publish time.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var string
-	 */
-	public string $scheduleTime = '';
-
-	/**
-	 * The undo history stack.
-	 *
-	 * Stores previous block states as snapshots for undo operations.
-	 *
-	 * @since 1.9.0
-	 *
-	 * @var array<int, array>
-	 */
-	public array $undoStack = [];
-
-	/**
-	 * The redo history stack.
-	 *
-	 * Stores forward block states as snapshots for redo operations.
-	 *
-	 * @since 1.9.0
-	 *
-	 * @var array<int, array>
-	 */
-	public array $redoStack = [];
-
-	/**
-	 * Mount the component with the given content.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param Content $content The content to edit.
-	 *
-	 * @return void
-	 */
-	public function mount( Content $content ): void
-	{
-		$this->content                = $content;
-		$this->blocks                 = $content->blocks ?? [];
-		$this->contentTitle           = $content->title ?? '';
-		$this->contentSlug            = $content->slug ?? '';
-		$this->contentExcerpt         = $content->excerpt ?? '';
-		$this->contentMetaTitle       = $content->meta_title ?? '';
-		$this->contentMetaDescription = $content->meta_description ?? '';
-
-		// Ensure all columns have unique IDs for proper Livewire tracking
-		$this->ensureColumnIds();
-	}
-
-	/**
-	 * Ensure all columns have unique IDs for proper Livewire tracking.
-	 *
-	 * @since 2.1.0
-	 */
-	private function ensureColumnIds(): void
-	{
-		$this->blocks = $this->addColumnIdsRecursive( $this->blocks );
-	}
-
-	/**
-	 * Recursively add IDs to columns and grid items.
-	 *
-	 * @since 2.1.0
-	 *
-	 * @param  array  $blocks  The blocks to process.
-	 * @return array The blocks with column/item IDs added.
-	 */
-	private function addColumnIdsRecursive( array $blocks ): array
-	{
-		foreach ( $blocks as $key => $block ) {
-			// If this is a columns block, ensure each column has an ID
-			if ( ( $block['type'] ?? '' ) === 'columns' && isset( $block['content']['columns'] ) ) {
-				foreach ( $block['content']['columns'] as $colIdx => $column ) {
-					if ( empty( $column['id'] ) ) {
-						$blocks[ $key ]['content']['columns'][ $colIdx ]['id'] = 've-col-' . uniqid() . '-' . $colIdx;
-					}
-					// Recursively process blocks within this column
-					if ( ! empty( $column['blocks'] ) ) {
-						$blocks[ $key ]['content']['columns'][ $colIdx ]['blocks'] =
-							$this->addColumnIdsRecursive( $column['blocks'] );
-					}
-				}
-			}
-
-			// Recursively process inner blocks
-			if ( ! empty( $block['content']['inner_blocks'] ) ) {
-				$blocks[ $key ]['content']['inner_blocks'] =
-					$this->addColumnIdsRecursive( $block['content']['inner_blocks'] );
-			}
-
-			// Recursively process grid items
-			if ( ( $block['type'] ?? '' ) === 'grid' && isset( $block['content']['items'] ) ) {
-				foreach ( $block['content']['items'] as $itemIdx => $item ) {
-					if ( empty( $item['id'] ) ) {
-						$blocks[ $key ]['content']['items'][ $itemIdx ]['id'] = 've-item-' . uniqid() . '-' . $itemIdx;
-					}
-					if ( ! empty( $item['inner_blocks'] ) ) {
-						$blocks[ $key ]['content']['items'][ $itemIdx ]['inner_blocks'] =
-							$this->addColumnIdsRecursive( $item['inner_blocks'] );
-					}
-				}
-			}
-		}
-
-		return $blocks;
-	}
-
-	/**
-	 * Save the content as a draft.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return void
-	 */
-	#[On( 'editor-save' )]
-	public function save(): void
-	{
-		$this->saveStatus = 'saving';
-
-		try {
-			$service = app( ContentService::class );
-
-			$service->saveDraft( $this->content, [
-				'title'            => $this->contentTitle,
-				'slug'             => $this->contentSlug,
-				'excerpt'          => $this->contentExcerpt,
-				'meta_title'       => $this->contentMetaTitle,
-				'meta_description' => $this->contentMetaDescription,
-				'blocks'           => $this->blocks,
-			], auth()->id() );
-
-			$this->content->refresh();
-
-			$this->saveStatus = 'saved';
-			$this->isDirty    = false;
-			$this->lastSaved  = now()->format( 'g:i A' );
-		} catch ( Throwable $e ) {
-			report( $e );
-			$this->saveStatus = 'error';
-			session()->flash( 'error', __( 'Failed to save content.' ) );
-		}
-	}
-
-	/**
-	 * Opens the pre-publish checklist panel.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return void
-	 */
-	#[On( 'editor-publish' )]
-	public function publish(): void
-	{
-		$service                   = app( ContentService::class );
-		$this->prePublishChecks    = $service->runPrePublishChecks( $this->content );
-		$this->showPrePublishPanel = true;
-		$this->showSettingsDrawer  = false;
-	}
-
-	/**
-	 * Confirms publishing after the pre-publish checklist.
-	 *
-	 * If schedule date and time are set, schedules instead of
-	 * publishing immediately.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return void
-	 */
-	public function confirmPublish(): void
-	{
-		try {
-			$service = app( ContentService::class );
-
-			// Save current content first.
-			$service->saveDraft( $this->content, [
-				'title'            => $this->contentTitle,
-				'slug'             => $this->contentSlug,
-				'excerpt'          => $this->contentExcerpt,
-				'meta_title'       => $this->contentMetaTitle,
-				'meta_description' => $this->contentMetaDescription,
-				'blocks'           => $this->blocks,
-			], auth()->id() );
-
-			if ( '' !== $this->scheduleDate && '' !== $this->scheduleTime ) {
-				try {
-					$publishAt = Carbon::parse( $this->scheduleDate . ' ' . $this->scheduleTime );
-				} catch ( Exception $e ) {
-					session()->flash( 'error', __( 'Invalid schedule date or time.' ) );
-					return;
-				}
-				$service->schedule( $this->content, $publishAt, auth()->id() );
-			} else {
-				$service->publish( $this->content, auth()->id() );
-			}
-
-			$this->content->refresh();
-			$this->showPrePublishPanel = false;
-			$this->isDirty             = false;
-			$this->saveStatus          = 'saved';
-			$this->lastSaved           = now()->format( 'g:i A' );
-			$this->scheduleDate        = '';
-			$this->scheduleTime        = '';
-		} catch ( Throwable $e ) {
-			$this->saveStatus = 'error';
-			report( $e );
-			session()->flash( 'error', __( 'Failed to publish content.' ) );
-		}
-	}
-
-	/**
-	 * Unpublishes content by reverting to draft status.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return void
-	 */
-	#[On( 'editor-unpublish' )]
-	public function unpublish(): void
-	{
-		try {
-			$service = app( ContentService::class );
-			$service->unpublish( $this->content, auth()->id() );
-			$this->content->refresh();
-		} catch ( Throwable $e ) {
-			session()->flash( 'error', __( 'Failed to unpublish content.' ) );
-		}
-	}
-
-	/**
-	 * Autosaves the current editor state if dirty.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return void
-	 */
-	public function autosave(): void
-	{
-		if ( !$this->isDirty ) {
-			return;
-		}
-
-		try {
-			$service = app( ContentService::class );
-			$service->autosave( $this->content, [
-				'blocks' => $this->blocks,
-			], auth()->id() );
-		} catch ( Throwable $e ) {
-			// Autosave failures are silent to not disrupt editing.
-		}
-	}
-
-	/**
-	 * Submits content for review.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return void
-	 */
-	public function submitForReview(): void
-	{
-		try {
-			$service = app( ContentService::class );
-
-			$service->saveDraft( $this->content, [
-				'title'            => $this->contentTitle,
-				'slug'             => $this->contentSlug,
-				'excerpt'          => $this->contentExcerpt,
-				'meta_title'       => $this->contentMetaTitle,
-				'meta_description' => $this->contentMetaDescription,
-				'blocks'           => $this->blocks,
-			], auth()->id() );
-
-			$service->submitForReview( $this->content, auth()->id() );
-			$this->content->refresh();
-			$this->isDirty    = false;
-			$this->saveStatus = 'saved';
-			$this->lastSaved  = now()->format( 'g:i A' );
-		} catch ( Throwable $e ) {
-			session()->flash( 'error', __( 'Failed to submit for review.' ) );
-		}
-	}
-
-	/**
-	 * Closes the pre-publish checklist panel.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return void
-	 */
-	public function closePrePublishPanel(): void
-	{
-		$this->showPrePublishPanel = false;
-		$this->scheduleDate        = '';
-		$this->scheduleTime        = '';
-	}
-
-	/**
-	 * Push the given blocks snapshot onto the undo stack.
-	 *
-	 * Clears the redo stack and caps the undo stack at the
-	 * configured max_history_states limit.
-	 *
-	 * @since 1.9.0
-	 *
-	 * @param array $blocks The blocks state to record.
-	 *
-	 * @return void
-	 */
-	public function pushHistory( array $blocks ): void
-	{
-		$this->undoStack[] = $blocks;
-		$this->redoStack   = [];
-
-		$max = (int) config( 'artisanpack.visual-editor.editor.max_history_states', 50 );
-
-		if ( count( $this->undoStack ) > $max ) {
-			$this->undoStack = array_slice( $this->undoStack, -$max );
-		}
-
-		$this->notifyToolbarUndoRedo();
-	}
-
-	/**
-	 * Undo the last block change.
-	 *
-	 * Pops the most recent snapshot from the undo stack, pushes
-	 * the current state onto the redo stack, and syncs the canvas.
-	 *
-	 * @since 1.9.0
-	 *
-	 * @return void
-	 */
-	#[On( 'editor-undo' )]
-	public function undo(): void
-	{
-		if ( empty( $this->undoStack ) ) {
-			return;
-		}
-
-		$this->redoStack[] = $this->blocks;
-		$this->blocks      = array_pop( $this->undoStack );
-		$this->isDirty     = true;
-		$this->saveStatus  = 'unsaved';
-
-		$this->dispatch( 'canvas-sync-blocks', blocks: $this->blocks );
-		$this->notifyToolbarUndoRedo();
-	}
-
-	/**
-	 * Redo the last undone block change.
-	 *
-	 * Pops the most recent snapshot from the redo stack, pushes
-	 * the current state onto the undo stack, and syncs the canvas.
-	 *
-	 * @since 1.9.0
-	 *
-	 * @return void
-	 */
-	#[On( 'editor-redo' )]
-	public function redo(): void
-	{
-		if ( empty( $this->redoStack ) ) {
-			return;
-		}
-
-		$this->undoStack[] = $this->blocks;
-		$this->blocks      = array_pop( $this->redoStack );
-		$this->isDirty     = true;
-		$this->saveStatus  = 'unsaved';
-
-		$this->dispatch( 'canvas-sync-blocks', blocks: $this->blocks );
-		$this->notifyToolbarUndoRedo();
-	}
-
-	/**
-	 * Notify the toolbar of the current undo/redo availability.
-	 *
-	 * @since 1.9.0
-	 *
-	 * @return void
-	 */
-	public function notifyToolbarUndoRedo(): void
-	{
-		$this->dispatch( 'undo-redo-state-changed', canUndo: !empty( $this->undoStack ), canRedo: !empty( $this->redoStack ) );
-	}
-
-	/**
-	 * Toggle the sidebar open/closed.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return void
-	 */
-	public function toggleSidebar(): void
-	{
-		$this->sidebarOpen = !$this->sidebarOpen;
-	}
-
-	/**
-	 * Set the active sidebar tab.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param string $tab The tab to activate.
-	 *
-	 * @return void
-	 */
-	public function setSidebarTab( string $tab ): void
-	{
-		$this->sidebarTab = $tab;
-	}
-
-	/**
-	 * Deselect the active block.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return void
-	 */
-	public function deselectBlock(): void
-	{
-		$this->activeBlockId     = null;
-		$this->settingsDrawerTab = 'page';
-	}
-
-	/**
-	 * Handle the blocks being updated.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @param array $blocks The updated blocks data.
-	 *
-	 * @return void
-	 */
-	#[On( 'editor-sync-state' )]
-	public function onEditorSyncState( array $blocks ): void
-	{
-		$this->pushHistory( $this->blocks );
-		$this->blocks     = $blocks;
-		$this->isDirty    = true;
-		$this->saveStatus = 'unsaved';
-		$this->dispatch( 'canvas-sync-blocks', blocks: $this->blocks );
-	}
-
-	/**
-	 * Handle blocks reordered from the layers tab.
-	 *
-	 * Updates the editor state and syncs the new order to the canvas.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @param array $blocks The reordered blocks data.
-	 *
-	 * @return void
-	 */
-	#[On( 'layers-reordered' )]
-	public function onLayersReordered( array $blocks ): void
-	{
-		$this->pushHistory( $this->blocks );
-		$this->blocks     = $blocks;
-		$this->isDirty    = true;
-		$this->saveStatus = 'unsaved';
-		$this->dispatch( 'canvas-sync-blocks', blocks: $this->blocks );
-	}
-
-	/**
-	 * Toggle the settings drawer open/closed.
-	 *
-	 * @since 1.3.0
-	 *
-	 * @return void
-	 */
-	public function toggleSettingsDrawer(): void
-	{
-		$this->showSettingsDrawer = !$this->showSettingsDrawer;
-
-		if ( $this->showSettingsDrawer ) {
-			$this->showPrePublishPanel = false;
-		}
-	}
-
-	/**
-	 * Set the active settings drawer tab.
-	 *
-	 * @since 1.3.0
-	 *
-	 * @param string $tab The tab to activate ('block' or 'page').
-	 *
-	 * @return void
-	 */
-	public function setSettingsDrawerTab( string $tab ): void
-	{
-		$this->settingsDrawerTab = $tab;
-	}
-
-	/**
-	 * Handle block selection from the canvas.
-	 *
-	 * Opens the settings drawer and switches to the block tab.
-	 *
-	 * @since 1.3.0
-	 *
-	 * @param string $blockId The selected block ID.
-	 *
-	 * @return void
-	 */
-	#[On( 'block-selected' )]
-	public function onBlockSelected( string $blockId ): void
-	{
-		$this->activeBlockId      = $blockId;
-		$this->activeColumnId     = null;
-		$this->showSettingsDrawer = true;
-		$this->settingsDrawerTab  = 'styles';
-
-		if ( $this->showPrePublishPanel ) {
-			$this->showPrePublishPanel = false;
-		}
-
-		$this->syncColorProperties();
-	}
-
-	/**
-	 * Handle column selection from the canvas or layers panel.
-	 *
-	 * @since 2.1.0
-	 *
-	 * @param string $columnId The column ID (format: parentBlockId-col-index).
-	 *
-	 * @return void
-	 */
-	#[On( 'column-selected' )]
-	public function onColumnSelected( string $columnId ): void
-	{
-		$this->activeColumnId     = $columnId;
-		$this->activeBlockId      = null;
-		$this->showSettingsDrawer = true;
-		$this->settingsDrawerTab  = 'styles';
-
-		if ( $this->showPrePublishPanel ) {
-			$this->showPrePublishPanel = false;
-		}
-	}
-
-	/**
-	 * Handle the sidebar toggle event from the toolbar.
-	 *
-	 * @since 1.5.0
-	 *
-	 * @return void
-	 */
-	#[On( 'editor-toggle-sidebar' )]
-	public function onToggleSidebar(): void
-	{
-		$this->toggleSidebar();
-	}
-
-	/**
-	 * Handle the settings toggle event from the toolbar.
-	 *
-	 * @since 1.3.0
-	 *
-	 * @return void
-	 */
-	#[On( 'editor-toggle-settings' )]
-	public function onToggleSettings(): void
-	{
-		$this->toggleSettingsDrawer();
-	}
-
-	/**
-	 * Get the active block's registry configuration.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @return array|null
-	 */
-	public function getActiveBlockConfig(): ?array
-	{
-		if ( null === $this->activeBlockId ) {
-			return null;
-		}
-
-		$block = $this->findBlockRecursive( $this->activeBlockId, $this->blocks );
-
-		if ( null === $block ) {
-			return null;
-		}
-
-		return veBlocks()->get( $block['type'] ?? '' );
-	}
-
-	/**
-	 * Update a setting on the active block.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @param string $key   The setting key.
-	 * @param mixed  $value The setting value.
-	 *
-	 * @return void
-	 */
-	public function updateBlockSetting( string $key, mixed $value ): void
-	{
-		if ( null === $this->activeBlockId ) {
-			return;
-		}
-
-		$path = $this->findBlockPath( $this->activeBlockId, $this->blocks );
-
-		if ( null === $path ) {
-			return;
-		}
-
-		$this->pushHistory( $this->blocks );
-
-		$blocks = $this->blocks;
-		data_set( $blocks, $path . '.settings.' . $key, $value );
-
-		$this->blocks     = $blocks;
-		$this->isDirty    = true;
-		$this->saveStatus = 'unsaved';
-
-		// Notify canvas component to sync the updated blocks
-		$this->dispatch( 'canvas-sync-blocks', blocks: $this->blocks );
-	}
-
-	/**
-	 * Apply a block variation to the active block.
-	 *
-	 * Updates the block's settings to match the selected variation's defaults.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param string $blockType     The block type identifier.
-	 * @param string $variationName The variation name to apply.
-	 *
-	 * @return void
-	 */
-	public function applyBlockVariation( string $blockType, string $variationName ): void
-	{
-		if ( null === $this->activeBlockId ) {
-			return;
-		}
-
-		$variation = veBlocks()->getVariation( $blockType, $variationName );
-
-		if ( null === $variation ) {
-			return;
-		}
-
-		$path = $this->findBlockPath( $this->activeBlockId, $this->blocks );
-
-		if ( null === $path ) {
-			return;
-		}
-
-		$this->pushHistory( $this->blocks );
-
-		$blocks = $this->blocks;
-
-		// Store the selected variation
-		data_set( $blocks, $path . '.settings._variation', $variationName );
-
-		// Apply variation attributes to block settings
-		if ( isset( $variation['attributes']['settings'] ) && is_array( $variation['attributes']['settings'] ) ) {
-			foreach ( $variation['attributes']['settings'] as $key => $value ) {
-				data_set( $blocks, $path . '.settings.' . $key, $value );
-			}
-		}
-
-		$this->blocks     = $blocks;
-		$this->isDirty    = true;
-		$this->saveStatus = 'unsaved';
-
-		// Sync the updated block to the canvas
-		$this->dispatch( 'canvas-sync-blocks', blocks: $this->blocks );
-	}
-
-	/**
-	 * Get a style value for the active block at a specific breakpoint, state, section, and property.
-	 *
-	 * @since 1.8.0
-	 *
-	 * @param string $breakpoint The breakpoint key (base, md, lg).
-	 * @param string $state      The state key (default, hover, focus, active).
-	 * @param string $section    The section key (sizing, typography, etc.).
-	 * @param string $property   The property key (padding_top, font_size, etc.).
-	 *
-	 * @return string
-	 */
-	public function getStyleValue( string $breakpoint, string $state, string $section, string $property ): string
-	{
-		if ( null === $this->activeBlockId ) {
-			return '';
-		}
-
-		$block = $this->findBlockRecursive( $this->activeBlockId, $this->blocks );
-
-		if ( null === $block ) {
-			return '';
-		}
-
-		return (string) data_get( $block['settings'], "styles.{$breakpoint}.{$state}.{$section}.{$property}", '' );
-	}
-
-	/**
-	 * Handle active breakpoint updates by syncing color properties.
-	 *
-	 * @since 1.8.0
-	 *
-	 * @return void
-	 */
-	public function updatedActiveBreakpoint(): void
-	{
-		$this->syncColorProperties();
-	}
-
-	/**
-	 * Handle active state updates by syncing color properties.
-	 *
-	 * @since 1.8.0
-	 *
-	 * @return void
-	 */
-	public function updatedActiveState(): void
-	{
-		$this->syncColorProperties();
-	}
-
-	/**
-	 * Handle text color updates from the colorpicker.
-	 *
-	 * @since 1.8.0
-	 *
-	 * @return void
-	 */
-	public function updatedStyleTextColor(): void
-	{
-		$this->updateBlockSetting( "styles.{$this->activeBreakpoint}.{$this->activeState}.colors.text_color", $this->styleTextColor );
-	}
-
-	/**
-	 * Handle background color updates from the colorpicker.
-	 *
-	 * @since 1.8.0
-	 *
-	 * @return void
-	 */
-	public function updatedStyleBackgroundColor(): void
-	{
-		$this->updateBlockSetting( "styles.{$this->activeBreakpoint}.{$this->activeState}.colors.background_color", $this->styleBackgroundColor );
-	}
-
-	/**
-	 * Handle border color updates from the colorpicker.
-	 *
-	 * @since 1.8.0
-	 *
-	 * @return void
-	 */
-	public function updatedStyleBorderColor(): void
-	{
-		$this->updateBlockSetting( "styles.{$this->activeBreakpoint}.{$this->activeState}.borders.border_color", $this->styleBorderColor );
-	}
-
-	/**
-	 * Handle page setting property updates and mark as dirty.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @param string $property The property name that was updated.
-	 *
-	 * @return void
-	 */
-	public function updatedContentTitle(): void
-	{
-		$this->isDirty    = true;
-		$this->saveStatus = 'unsaved';
-	}
-
-	/**
-	 * Handle content slug updates and mark as dirty.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @return void
-	 */
-	public function updatedContentSlug(): void
-	{
-		$this->isDirty    = true;
-		$this->saveStatus = 'unsaved';
-	}
-
-	/**
-	 * Handle content excerpt updates and mark as dirty.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @return void
-	 */
-	public function updatedContentExcerpt(): void
-	{
-		$this->isDirty    = true;
-		$this->saveStatus = 'unsaved';
-	}
-
-	/**
-	 * Handle content meta title updates and mark as dirty.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @return void
-	 */
-	public function updatedContentMetaTitle(): void
-	{
-		$this->isDirty    = true;
-		$this->saveStatus = 'unsaved';
-	}
-
-	/**
-	 * Handle content meta description updates and mark as dirty.
-	 *
-	 * @since 1.4.0
-	 *
-	 * @return void
-	 */
-	public function updatedContentMetaDescription(): void
-	{
-		$this->isDirty    = true;
-		$this->saveStatus = 'unsaved';
-	}
-
-	/**
-	 * Open the save-as-pattern modal.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @return void
-	 */
-	#[On( 'open-save-pattern-modal' )]
-	public function openSavePatternModal(): void
-	{
-		$this->patternName          = '';
-		$this->patternDescription   = '';
-		$this->showSavePatternModal = true;
-	}
-
-	/**
-	 * Save the current blocks as a pattern.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @return void
-	 */
-	public function confirmSavePattern(): void
-	{
-		$this->dispatch( 'save-blocks-as-section', name: $this->patternName, description: $this->patternDescription );
-
-		$this->showSavePatternModal = false;
-		$this->patternName          = '';
-		$this->patternDescription   = '';
-	}
-
-	/**
-	 * Sync color properties from the active block's settings.
-	 *
-	 * Reads the text, background, and border color values from the
-	 * active block at the current breakpoint and state, and sets
-	 * them on the dedicated Livewire properties so they can be used
-	 * with wire:model on colorpicker components.
-	 *
-	 * @since 1.8.0
-	 *
-	 * @return void
-	 */
-	protected function syncColorProperties(): void
-	{
-		$this->styleTextColor       = $this->getStyleValue( $this->activeBreakpoint, $this->activeState, 'colors', 'text_color' );
-		$this->styleBackgroundColor = $this->getStyleValue( $this->activeBreakpoint, $this->activeState, 'colors', 'background_color' );
-		$this->styleBorderColor     = $this->getStyleValue( $this->activeBreakpoint, $this->activeState, 'borders', 'border_color' );
-	}
-
-	/**
-	 * Recursively find a block by ID anywhere in the block tree.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param string $blockId The block ID to find.
-	 * @param array  $blocks  The blocks array to search.
-	 *
-	 * @return array|null The block data or null.
-	 */
-	private function findBlockRecursive( string $blockId, array $blocks ): ?array
-	{
-		foreach ( $blocks as $block ) {
-			if ( ( $block['id'] ?? '' ) === $blockId ) {
-				return $block;
-			}
-
-			$found = $this->searchInnerBlocks( $blockId, $block );
-
-			if ( null !== $found ) {
-				return $found;
-			}
-		}
-
-		return null;
-	}
-
-	/**
-	 * Search within a single block's inner containers for a block ID.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param string $blockId The block ID to find.
-	 * @param array  $block   The parent block to search within.
-	 *
-	 * @return array|null The found block or null.
-	 */
-	private function searchInnerBlocks( string $blockId, array $block ): ?array
-	{
-		$innerBlocks = $block['content']['inner_blocks'] ?? [];
-
-		if ( !empty( $innerBlocks ) ) {
-			$found = $this->findBlockRecursive( $blockId, $innerBlocks );
-
-			if ( null !== $found ) {
-				return $found;
-			}
-		}
-
-		$columns = $block['content']['columns'] ?? [];
-
-		foreach ( $columns as $column ) {
-			$colBlocks = $column['blocks'] ?? [];
-
-			if ( !empty( $colBlocks ) ) {
-				$found = $this->findBlockRecursive( $blockId, $colBlocks );
-
-				if ( null !== $found ) {
-					return $found;
-				}
-			}
-		}
-
-		$items = $block['content']['items'] ?? [];
-
-		foreach ( $items as $item ) {
-			$itemBlocks = $item['inner_blocks'] ?? [];
-
-			if ( !empty( $itemBlocks ) ) {
-				$found = $this->findBlockRecursive( $blockId, $itemBlocks );
-
-				if ( null !== $found ) {
-					return $found;
-				}
-			}
-		}
-
-		return null;
-	}
-
-	/**
-	 * Find the dot-notation path to a block in the tree.
-	 *
-	 * @since 2.0.0
-	 *
-	 * @param string $blockId The block ID to find.
-	 * @param array  $blocks  The blocks array to search.
-	 * @param string $prefix  The current path prefix.
-	 *
-	 * @return string|null The dot-notation path or null.
-	 */
-	private function findBlockPath( string $blockId, array $blocks, string $prefix = '' ): ?string
-	{
-		foreach ( $blocks as $index => $block ) {
-			$currentPath = '' === $prefix ? (string) $index : $prefix . '.' . $index;
-
-			if ( ( $block['id'] ?? '' ) === $blockId ) {
-				return $currentPath;
-			}
-
-			$innerBlocks = $block['content']['inner_blocks'] ?? [];
-
-			if ( !empty( $innerBlocks ) ) {
-				$found = $this->findBlockPath( $blockId, $innerBlocks, $currentPath . '.content.inner_blocks' );
-
-				if ( null !== $found ) {
-					return $found;
-				}
-			}
-
-			$columns = $block['content']['columns'] ?? [];
-
-			foreach ( $columns as $colIndex => $column ) {
-				$colBlocks = $column['blocks'] ?? [];
-
-				if ( !empty( $colBlocks ) ) {
-					$found = $this->findBlockPath( $blockId, $colBlocks, $currentPath . '.content.columns.' . $colIndex . '.blocks' );
-
-					if ( null !== $found ) {
-						return $found;
-					}
-				}
-			}
-
-			$items = $block['content']['items'] ?? [];
-
-			foreach ( $items as $itemIndex => $item ) {
-				$itemBlocks = $item['inner_blocks'] ?? [];
-
-				if ( !empty( $itemBlocks ) ) {
-					$found = $this->findBlockPath( $blockId, $itemBlocks, $currentPath . '.content.items.' . $itemIndex . '.inner_blocks' );
-
-					if ( null !== $found ) {
-						return $found;
-					}
-				}
-			}
-		}
-
-		return null;
-	}
+new class extends Component
+{
+    /**
+     * The content being edited.
+     *
+     * @since 1.0.0
+     */
+    public Content $content;
+
+    /**
+     * Whether the save-as-pattern modal is open.
+     *
+     * @since 1.1.0
+     */
+    public bool $showSavePatternModal = false;
+
+    /**
+     * The pattern name for saving.
+     *
+     * @since 1.1.0
+     */
+    public string $patternName = '';
+
+    /**
+     * The pattern description for saving.
+     *
+     * @since 1.1.0
+     */
+    public string $patternDescription = '';
+
+    /**
+     * The content blocks data.
+     *
+     * @since 1.1.0
+     */
+    public array $blocks = [];
+
+    /**
+     * Whether the sidebar panel is open.
+     *
+     * @since 1.0.0
+     */
+    public bool $sidebarOpen = true;
+
+    /**
+     * The active sidebar tab.
+     *
+     * @since 1.0.0
+     */
+    public string $sidebarTab = 'blocks';
+
+    /**
+     * The ID of the currently active block.
+     *
+     * @since 1.0.0
+     */
+    public ?string $activeBlockId = null;
+
+    /**
+     * The ID of the currently active column.
+     *
+     * @since 2.1.0
+     */
+    public ?string $activeColumnId = null;
+
+    /**
+     * Whether the content has unsaved changes.
+     *
+     * @since 1.0.0
+     */
+    public bool $isDirty = false;
+
+    /**
+     * The current save status.
+     *
+     * @since 1.0.0
+     */
+    public string $saveStatus = 'saved';
+
+    /**
+     * The last saved time as a human-readable string.
+     *
+     * @since 1.0.0
+     */
+    public string $lastSaved = '';
+
+    /**
+     * Whether the settings drawer is visible.
+     *
+     * @since 1.3.0
+     */
+    public bool $showSettingsDrawer = false;
+
+    /**
+     * The active tab within the settings drawer.
+     *
+     * @since 1.3.0
+     */
+    public string $settingsDrawerTab = 'styles';
+
+    /**
+     * The active responsive breakpoint for styles.
+     *
+     * @since 1.8.0
+     */
+    public string $activeBreakpoint = 'base';
+
+    /**
+     * The active interaction state for styles.
+     *
+     * @since 1.8.0
+     */
+    public string $activeState = 'default';
+
+    /**
+     * The text color for the active block's current breakpoint/state.
+     *
+     * @since 1.8.0
+     */
+    public string $styleTextColor = '';
+
+    /**
+     * The background color for the active block's current breakpoint/state.
+     *
+     * @since 1.8.0
+     */
+    public string $styleBackgroundColor = '';
+
+    /**
+     * The border color for the active block's current breakpoint/state.
+     *
+     * @since 1.8.0
+     */
+    public string $styleBorderColor = '';
+
+    /**
+     * The content title for page settings.
+     *
+     * @since 1.4.0
+     */
+    public string $contentTitle = '';
+
+    /**
+     * The content slug for page settings.
+     *
+     * @since 1.4.0
+     */
+    public string $contentSlug = '';
+
+    /**
+     * The content excerpt for page settings.
+     *
+     * @since 1.4.0
+     */
+    public string $contentExcerpt = '';
+
+    /**
+     * The content meta title for page settings.
+     *
+     * @since 1.4.0
+     */
+    public string $contentMetaTitle = '';
+
+    /**
+     * The content meta description for page settings.
+     *
+     * @since 1.4.0
+     */
+    public string $contentMetaDescription = '';
+
+    /**
+     * Whether the pre-publish panel is visible.
+     *
+     * @since 1.0.0
+     */
+    public bool $showPrePublishPanel = false;
+
+    /**
+     * The pre-publish check results.
+     *
+     * @since 1.0.0
+     */
+    public array $prePublishChecks = [];
+
+    /**
+     * The scheduled publish date.
+     *
+     * @since 1.0.0
+     */
+    public string $scheduleDate = '';
+
+    /**
+     * The scheduled publish time.
+     *
+     * @since 1.0.0
+     */
+    public string $scheduleTime = '';
+
+    /**
+     * The undo history stack.
+     *
+     * Stores previous block states as snapshots for undo operations.
+     *
+     * @since 1.9.0
+     *
+     * @var array<int, array>
+     */
+    public array $undoStack = [];
+
+    /**
+     * The redo history stack.
+     *
+     * Stores forward block states as snapshots for redo operations.
+     *
+     * @since 1.9.0
+     *
+     * @var array<int, array>
+     */
+    public array $redoStack = [];
+
+    /**
+     * Mount the component with the given content.
+     *
+     * @since 1.0.0
+     *
+     * @param  Content  $content  The content to edit.
+     */
+    public function mount(Content $content): void
+    {
+        $this->content = $content;
+        $this->blocks = $content->blocks ?? [];
+        $this->contentTitle = $content->title ?? '';
+        $this->contentSlug = $content->slug ?? '';
+        $this->contentExcerpt = $content->excerpt ?? '';
+        $this->contentMetaTitle = $content->meta_title ?? '';
+        $this->contentMetaDescription = $content->meta_description ?? '';
+
+        // Ensure all columns have unique IDs for proper Livewire tracking
+        $this->ensureColumnIds();
+    }
+
+    /**
+     * Ensure all columns have unique IDs for proper Livewire tracking.
+     *
+     * @since 2.1.0
+     */
+    private function ensureColumnIds(): void
+    {
+        $this->blocks = $this->addColumnIdsRecursive($this->blocks);
+    }
+
+    /**
+     * Recursively add IDs to columns and grid items.
+     *
+     * @since 2.1.0
+     *
+     * @param  array  $blocks  The blocks to process.
+     * @return array The blocks with column/item IDs added.
+     */
+    private function addColumnIdsRecursive(array $blocks): array
+    {
+        foreach ($blocks as $key => $block) {
+            // If this is a columns block, ensure each column has an ID
+            if (($block['type'] ?? '') === 'columns' && isset($block['content']['columns'])) {
+                foreach ($block['content']['columns'] as $colIdx => $column) {
+                    if (empty($column['id'])) {
+                        $blocks[$key]['content']['columns'][$colIdx]['id'] = 've-col-'.uniqid().'-'.$colIdx;
+                    }
+                    // Recursively process blocks within this column
+                    if (! empty($column['blocks'])) {
+                        $blocks[$key]['content']['columns'][$colIdx]['blocks'] =
+                            $this->addColumnIdsRecursive($column['blocks']);
+                    }
+                }
+            }
+
+            // Recursively process inner blocks
+            if (! empty($block['content']['inner_blocks'])) {
+                $blocks[$key]['content']['inner_blocks'] =
+                    $this->addColumnIdsRecursive($block['content']['inner_blocks']);
+            }
+
+            // Recursively process grid items
+            if (($block['type'] ?? '') === 'grid' && isset($block['content']['items'])) {
+                foreach ($block['content']['items'] as $itemIdx => $item) {
+                    if (empty($item['id'])) {
+                        $blocks[$key]['content']['items'][$itemIdx]['id'] = 've-item-'.uniqid().'-'.$itemIdx;
+                    }
+                    if (! empty($item['inner_blocks'])) {
+                        $blocks[$key]['content']['items'][$itemIdx]['inner_blocks'] =
+                            $this->addColumnIdsRecursive($item['inner_blocks']);
+                    }
+                }
+            }
+        }
+
+        return $blocks;
+    }
+
+    /**
+     * Save the content as a draft.
+     *
+     * @since 1.0.0
+     */
+    #[On('editor-save')]
+    public function save(): void
+    {
+        $this->saveStatus = 'saving';
+
+        try {
+            $service = app(ContentService::class);
+
+            $service->saveDraft($this->content, [
+                'title' => $this->contentTitle,
+                'slug' => $this->contentSlug,
+                'excerpt' => $this->contentExcerpt,
+                'meta_title' => $this->contentMetaTitle,
+                'meta_description' => $this->contentMetaDescription,
+                'blocks' => $this->blocks,
+            ], auth()->id());
+
+            $this->content->refresh();
+
+            $this->saveStatus = 'saved';
+            $this->isDirty = false;
+            $this->lastSaved = now()->format('g:i A');
+        } catch (Throwable $e) {
+            report($e);
+            $this->saveStatus = 'error';
+            session()->flash('error', __('Failed to save content.'));
+        }
+    }
+
+    /**
+     * Opens the pre-publish checklist panel.
+     *
+     * @since 1.0.0
+     */
+    #[On('editor-publish')]
+    public function publish(): void
+    {
+        $service = app(ContentService::class);
+        $this->prePublishChecks = $service->runPrePublishChecks($this->content);
+        $this->showPrePublishPanel = true;
+        $this->showSettingsDrawer = false;
+    }
+
+    /**
+     * Confirms publishing after the pre-publish checklist.
+     *
+     * If schedule date and time are set, schedules instead of
+     * publishing immediately.
+     *
+     * @since 1.0.0
+     */
+    public function confirmPublish(): void
+    {
+        try {
+            $service = app(ContentService::class);
+
+            // Save current content first.
+            $service->saveDraft($this->content, [
+                'title' => $this->contentTitle,
+                'slug' => $this->contentSlug,
+                'excerpt' => $this->contentExcerpt,
+                'meta_title' => $this->contentMetaTitle,
+                'meta_description' => $this->contentMetaDescription,
+                'blocks' => $this->blocks,
+            ], auth()->id());
+
+            if ($this->scheduleDate !== '' && $this->scheduleTime !== '') {
+                try {
+                    $publishAt = Carbon::parse($this->scheduleDate.' '.$this->scheduleTime);
+                } catch (Exception $e) {
+                    session()->flash('error', __('Invalid schedule date or time.'));
+
+                    return;
+                }
+                $service->schedule($this->content, $publishAt, auth()->id());
+            } else {
+                $service->publish($this->content, auth()->id());
+            }
+
+            $this->content->refresh();
+            $this->showPrePublishPanel = false;
+            $this->isDirty = false;
+            $this->saveStatus = 'saved';
+            $this->lastSaved = now()->format('g:i A');
+            $this->scheduleDate = '';
+            $this->scheduleTime = '';
+        } catch (Throwable $e) {
+            $this->saveStatus = 'error';
+            report($e);
+            session()->flash('error', __('Failed to publish content.'));
+        }
+    }
+
+    /**
+     * Unpublishes content by reverting to draft status.
+     *
+     * @since 1.0.0
+     */
+    #[On('editor-unpublish')]
+    public function unpublish(): void
+    {
+        try {
+            $service = app(ContentService::class);
+            $service->unpublish($this->content, auth()->id());
+            $this->content->refresh();
+        } catch (Throwable $e) {
+            session()->flash('error', __('Failed to unpublish content.'));
+        }
+    }
+
+    /**
+     * Autosaves the current editor state if dirty.
+     *
+     * @since 1.0.0
+     */
+    public function autosave(): void
+    {
+        if (! $this->isDirty) {
+            return;
+        }
+
+        try {
+            $service = app(ContentService::class);
+            $service->autosave($this->content, [
+                'blocks' => $this->blocks,
+            ], auth()->id());
+        } catch (Throwable $e) {
+            // Autosave failures are silent to not disrupt editing.
+        }
+    }
+
+    /**
+     * Submits content for review.
+     *
+     * @since 1.0.0
+     */
+    public function submitForReview(): void
+    {
+        try {
+            $service = app(ContentService::class);
+
+            $service->saveDraft($this->content, [
+                'title' => $this->contentTitle,
+                'slug' => $this->contentSlug,
+                'excerpt' => $this->contentExcerpt,
+                'meta_title' => $this->contentMetaTitle,
+                'meta_description' => $this->contentMetaDescription,
+                'blocks' => $this->blocks,
+            ], auth()->id());
+
+            $service->submitForReview($this->content, auth()->id());
+            $this->content->refresh();
+            $this->isDirty = false;
+            $this->saveStatus = 'saved';
+            $this->lastSaved = now()->format('g:i A');
+        } catch (Throwable $e) {
+            session()->flash('error', __('Failed to submit for review.'));
+        }
+    }
+
+    /**
+     * Closes the pre-publish checklist panel.
+     *
+     * @since 1.0.0
+     */
+    public function closePrePublishPanel(): void
+    {
+        $this->showPrePublishPanel = false;
+        $this->scheduleDate = '';
+        $this->scheduleTime = '';
+    }
+
+    /**
+     * Push the given blocks snapshot onto the undo stack.
+     *
+     * Clears the redo stack and caps the undo stack at the
+     * configured max_history_states limit.
+     *
+     * @since 1.9.0
+     *
+     * @param  array  $blocks  The blocks state to record.
+     */
+    public function pushHistory(array $blocks): void
+    {
+        $this->undoStack[] = $blocks;
+        $this->redoStack = [];
+
+        $max = (int) config('artisanpack.visual-editor.editor.max_history_states', 50);
+
+        if (count($this->undoStack) > $max) {
+            $this->undoStack = array_slice($this->undoStack, -$max);
+        }
+
+        $this->notifyToolbarUndoRedo();
+    }
+
+    /**
+     * Undo the last block change.
+     *
+     * Pops the most recent snapshot from the undo stack, pushes
+     * the current state onto the redo stack, and syncs the canvas.
+     *
+     * @since 1.9.0
+     */
+    #[On('editor-undo')]
+    public function undo(): void
+    {
+        if (empty($this->undoStack)) {
+            return;
+        }
+
+        $this->redoStack[] = $this->blocks;
+        $this->blocks = array_pop($this->undoStack);
+        $this->isDirty = true;
+        $this->saveStatus = 'unsaved';
+
+        $this->dispatch('canvas-sync-blocks', blocks: $this->blocks);
+        $this->notifyToolbarUndoRedo();
+    }
+
+    /**
+     * Redo the last undone block change.
+     *
+     * Pops the most recent snapshot from the redo stack, pushes
+     * the current state onto the undo stack, and syncs the canvas.
+     *
+     * @since 1.9.0
+     */
+    #[On('editor-redo')]
+    public function redo(): void
+    {
+        if (empty($this->redoStack)) {
+            return;
+        }
+
+        $this->undoStack[] = $this->blocks;
+        $this->blocks = array_pop($this->redoStack);
+        $this->isDirty = true;
+        $this->saveStatus = 'unsaved';
+
+        $this->dispatch('canvas-sync-blocks', blocks: $this->blocks);
+        $this->notifyToolbarUndoRedo();
+    }
+
+    /**
+     * Notify the toolbar of the current undo/redo availability.
+     *
+     * @since 1.9.0
+     */
+    public function notifyToolbarUndoRedo(): void
+    {
+        $this->dispatch('undo-redo-state-changed', canUndo: ! empty($this->undoStack), canRedo: ! empty($this->redoStack));
+    }
+
+    /**
+     * Toggle the sidebar open/closed.
+     *
+     * @since 1.0.0
+     */
+    public function toggleSidebar(): void
+    {
+        $this->sidebarOpen = ! $this->sidebarOpen;
+    }
+
+    /**
+     * Set the active sidebar tab.
+     *
+     * @since 1.0.0
+     *
+     * @param  string  $tab  The tab to activate.
+     */
+    public function setSidebarTab(string $tab): void
+    {
+        $this->sidebarTab = $tab;
+    }
+
+    /**
+     * Deselect the active block.
+     *
+     * @since 1.0.0
+     */
+    public function deselectBlock(): void
+    {
+        $this->activeBlockId = null;
+        $this->settingsDrawerTab = 'page';
+    }
+
+    /**
+     * Handle the blocks being updated.
+     *
+     * @since 1.1.0
+     *
+     * @param  array  $blocks  The updated blocks data.
+     */
+    #[On('editor-sync-state')]
+    public function onEditorSyncState(array $blocks): void
+    {
+        $this->pushHistory($this->blocks);
+        $this->blocks = $blocks;
+        $this->isDirty = true;
+        $this->saveStatus = 'unsaved';
+        $this->dispatch('canvas-sync-blocks', blocks: $this->blocks);
+    }
+
+    /**
+     * Handle blocks reordered from the layers tab.
+     *
+     * Updates the editor state and syncs the new order to the canvas.
+     *
+     * @since 1.4.0
+     *
+     * @param  array  $blocks  The reordered blocks data.
+     */
+    #[On('layers-reordered')]
+    public function onLayersReordered(array $blocks): void
+    {
+        $this->pushHistory($this->blocks);
+        $this->blocks = $blocks;
+        $this->isDirty = true;
+        $this->saveStatus = 'unsaved';
+        $this->dispatch('canvas-sync-blocks', blocks: $this->blocks);
+    }
+
+    /**
+     * Toggle the settings drawer open/closed.
+     *
+     * @since 1.3.0
+     */
+    public function toggleSettingsDrawer(): void
+    {
+        $this->showSettingsDrawer = ! $this->showSettingsDrawer;
+
+        if ($this->showSettingsDrawer) {
+            $this->showPrePublishPanel = false;
+        }
+    }
+
+    /**
+     * Set the active settings drawer tab.
+     *
+     * @since 1.3.0
+     *
+     * @param  string  $tab  The tab to activate ('block' or 'page').
+     */
+    public function setSettingsDrawerTab(string $tab): void
+    {
+        $this->settingsDrawerTab = $tab;
+    }
+
+    /**
+     * Handle block selection from the canvas.
+     *
+     * Opens the settings drawer and switches to the block tab.
+     *
+     * @since 1.3.0
+     *
+     * @param  string  $blockId  The selected block ID.
+     */
+    #[On('block-selected')]
+    public function onBlockSelected(string $blockId): void
+    {
+        $this->activeBlockId = $blockId;
+        $this->activeColumnId = null;
+        $this->showSettingsDrawer = true;
+        $this->settingsDrawerTab = 'styles';
+
+        if ($this->showPrePublishPanel) {
+            $this->showPrePublishPanel = false;
+        }
+
+        $this->syncColorProperties();
+    }
+
+    /**
+     * Handle column selection from the canvas or layers panel.
+     *
+     * @since 2.1.0
+     *
+     * @param  string  $columnId  The column ID (format: parentBlockId-col-index).
+     */
+    #[On('column-selected')]
+    public function onColumnSelected(string $columnId): void
+    {
+        $this->activeColumnId = $columnId;
+        $this->activeBlockId = null;
+        $this->showSettingsDrawer = true;
+        $this->settingsDrawerTab = 'styles';
+
+        if ($this->showPrePublishPanel) {
+            $this->showPrePublishPanel = false;
+        }
+    }
+
+    /**
+     * Handle the sidebar toggle event from the toolbar.
+     *
+     * @since 1.5.0
+     */
+    #[On('editor-toggle-sidebar')]
+    public function onToggleSidebar(): void
+    {
+        $this->toggleSidebar();
+    }
+
+    /**
+     * Handle the settings toggle event from the toolbar.
+     *
+     * @since 1.3.0
+     */
+    #[On('editor-toggle-settings')]
+    public function onToggleSettings(): void
+    {
+        $this->toggleSettingsDrawer();
+    }
+
+    /**
+     * Get the active block's registry configuration.
+     *
+     * @since 1.4.0
+     */
+    public function getActiveBlockConfig(): ?array
+    {
+        if ($this->activeBlockId === null) {
+            return null;
+        }
+
+        $block = $this->findBlockRecursive($this->activeBlockId, $this->blocks);
+
+        if ($block === null) {
+            return null;
+        }
+
+        return veBlocks()->get($block['type'] ?? '');
+    }
+
+    /**
+     * Update a setting on the active block.
+     *
+     * @since 1.4.0
+     *
+     * @param  string  $key  The setting key.
+     * @param  mixed  $value  The setting value.
+     */
+    public function updateBlockSetting(string $key, mixed $value): void
+    {
+        if ($this->activeBlockId === null) {
+            return;
+        }
+
+        $path = $this->findBlockPath($this->activeBlockId, $this->blocks);
+
+        if ($path === null) {
+            return;
+        }
+
+        $this->pushHistory($this->blocks);
+
+        $blocks = $this->blocks;
+        $block = data_get($blocks, $path);
+
+        // Special handling for columns blocks
+        if ('columns' === ($block['type'] ?? '')) {
+            // Main columns count change - add/remove actual columns
+            if ($key === 'columns') {
+                $targetCount = max(1, min(12, (int) $value));
+                $currentCols = $block['content']['columns'] ?? [];
+                $currentCount = count($currentCols);
+
+                if ($targetCount !== $currentCount) {
+                    // Add or remove columns to match target count
+                    if ($targetCount > $currentCount) {
+                        // Add columns
+                        for ($i = $currentCount; $i < $targetCount; $i++) {
+                            $currentCols[] = [
+                                'id' => 've-col-'.uniqid().'-'.$i,
+                                'blocks' => [],
+                            ];
+                        }
+                    } else {
+                        // Remove columns from the end
+                        $currentCols = array_slice($currentCols, 0, $targetCount);
+                    }
+
+                    // Update columns array
+                    data_set($blocks, $path.'.content.columns', $currentCols);
+
+                    // Generate equal-width preset
+                    $width = (int) floor(100 / $targetCount);
+                    $widths = array_fill(0, $targetCount, $width);
+                    $preset = implode('-', $widths);
+
+                    // Update preset and columns settings
+                    data_set($blocks, $path.'.settings.preset', $preset);
+                    data_set($blocks, $path.'.settings.columns', (string) $targetCount);
+
+                    // If responsive columns is off, sync responsive values
+                    $responsiveEnabled = $block['settings']['responsive_columns'] ?? false;
+
+                    if (! $responsiveEnabled) {
+                        data_set($blocks, $path.'.settings.columns_sm', (string) $targetCount);
+                        data_set($blocks, $path.'.settings.columns_md', (string) $targetCount);
+                        data_set($blocks, $path.'.settings.columns_lg', (string) $targetCount);
+                        data_set($blocks, $path.'.settings.columns_xl', (string) $targetCount);
+                    }
+                }
+            } elseif ($key === 'responsive_columns') {
+                // Toggle responsive columns - sync values if turning off
+                data_set($blocks, $path.'.settings.'.$key, $value);
+
+                if (! $value) {
+                    // Turning off - sync all responsive values to main columns value
+                    $currentCols = $block['content']['columns'] ?? [];
+                    $currentCount = (string) count($currentCols);
+
+                    data_set($blocks, $path.'.settings.columns_sm', $currentCount);
+                    data_set($blocks, $path.'.settings.columns_md', $currentCount);
+                    data_set($blocks, $path.'.settings.columns_lg', $currentCount);
+                    data_set($blocks, $path.'.settings.columns_xl', $currentCount);
+                }
+            } elseif (in_array($key, ['columns_sm', 'columns_md', 'columns_lg', 'columns_xl'], true)) {
+                // Responsive column count change - just update the setting
+                $targetCount = max(1, min(12, (int) $value));
+                data_set($blocks, $path.'.settings.'.$key, (string) $targetCount);
+            } else {
+                // Normal setting update
+                data_set($blocks, $path.'.settings.'.$key, $value);
+            }
+        } else {
+            // Normal setting update for non-columns blocks
+            data_set($blocks, $path.'.settings.'.$key, $value);
+        }
+
+        $this->blocks = $blocks;
+        $this->isDirty = true;
+        $this->saveStatus = 'unsaved';
+
+        // Notify canvas component to sync the updated blocks
+        $this->dispatch('canvas-sync-blocks', blocks: $this->blocks);
+    }
+
+    /**
+     * Apply a block variation to the active block.
+     *
+     * Updates the block's settings to match the selected variation's defaults.
+     *
+     * @since 2.0.0
+     *
+     * @param  string  $blockType  The block type identifier.
+     * @param  string  $variationName  The variation name to apply.
+     */
+    public function applyBlockVariation(string $blockType, string $variationName): void
+    {
+        if ($this->activeBlockId === null) {
+            return;
+        }
+
+        $variation = veBlocks()->getVariation($blockType, $variationName);
+
+        if ($variation === null) {
+            return;
+        }
+
+        $path = $this->findBlockPath($this->activeBlockId, $this->blocks);
+
+        if ($path === null) {
+            return;
+        }
+
+        $this->pushHistory($this->blocks);
+
+        $blocks = $this->blocks;
+
+        // Store the selected variation
+        data_set($blocks, $path.'.settings._variation', $variationName);
+
+        // Apply variation attributes to block settings
+        if (isset($variation['attributes']['settings']) && is_array($variation['attributes']['settings'])) {
+            foreach ($variation['attributes']['settings'] as $key => $value) {
+                data_set($blocks, $path.'.settings.'.$key, $value);
+            }
+        }
+
+        $this->blocks = $blocks;
+        $this->isDirty = true;
+        $this->saveStatus = 'unsaved';
+
+        // Sync the updated block to the canvas
+        $this->dispatch('canvas-sync-blocks', blocks: $this->blocks);
+    }
+
+    /**
+     * Get a style value for the active block at a specific breakpoint, state, section, and property.
+     *
+     * @since 1.8.0
+     *
+     * @param  string  $breakpoint  The breakpoint key (base, md, lg).
+     * @param  string  $state  The state key (default, hover, focus, active).
+     * @param  string  $section  The section key (sizing, typography, etc.).
+     * @param  string  $property  The property key (padding_top, font_size, etc.).
+     */
+    public function getStyleValue(string $breakpoint, string $state, string $section, string $property): string
+    {
+        if ($this->activeBlockId === null) {
+            return '';
+        }
+
+        $block = $this->findBlockRecursive($this->activeBlockId, $this->blocks);
+
+        if ($block === null) {
+            return '';
+        }
+
+        return (string) data_get($block['settings'], "styles.{$breakpoint}.{$state}.{$section}.{$property}", '');
+    }
+
+    /**
+     * Handle active breakpoint updates by syncing color properties.
+     *
+     * @since 1.8.0
+     */
+    public function updatedActiveBreakpoint(): void
+    {
+        $this->syncColorProperties();
+    }
+
+    /**
+     * Handle active state updates by syncing color properties.
+     *
+     * @since 1.8.0
+     */
+    public function updatedActiveState(): void
+    {
+        $this->syncColorProperties();
+    }
+
+    /**
+     * Handle text color updates from the colorpicker.
+     *
+     * @since 1.8.0
+     */
+    public function updatedStyleTextColor(): void
+    {
+        $this->updateBlockSetting("styles.{$this->activeBreakpoint}.{$this->activeState}.colors.text_color", $this->styleTextColor);
+    }
+
+    /**
+     * Handle background color updates from the colorpicker.
+     *
+     * @since 1.8.0
+     */
+    public function updatedStyleBackgroundColor(): void
+    {
+        $this->updateBlockSetting("styles.{$this->activeBreakpoint}.{$this->activeState}.colors.background_color", $this->styleBackgroundColor);
+    }
+
+    /**
+     * Handle border color updates from the colorpicker.
+     *
+     * @since 1.8.0
+     */
+    public function updatedStyleBorderColor(): void
+    {
+        $this->updateBlockSetting("styles.{$this->activeBreakpoint}.{$this->activeState}.borders.border_color", $this->styleBorderColor);
+    }
+
+    /**
+     * Handle page setting property updates and mark as dirty.
+     *
+     * @since 1.4.0
+     *
+     * @param  string  $property  The property name that was updated.
+     */
+    public function updatedContentTitle(): void
+    {
+        $this->isDirty = true;
+        $this->saveStatus = 'unsaved';
+    }
+
+    /**
+     * Handle content slug updates and mark as dirty.
+     *
+     * @since 1.4.0
+     */
+    public function updatedContentSlug(): void
+    {
+        $this->isDirty = true;
+        $this->saveStatus = 'unsaved';
+    }
+
+    /**
+     * Handle content excerpt updates and mark as dirty.
+     *
+     * @since 1.4.0
+     */
+    public function updatedContentExcerpt(): void
+    {
+        $this->isDirty = true;
+        $this->saveStatus = 'unsaved';
+    }
+
+    /**
+     * Handle content meta title updates and mark as dirty.
+     *
+     * @since 1.4.0
+     */
+    public function updatedContentMetaTitle(): void
+    {
+        $this->isDirty = true;
+        $this->saveStatus = 'unsaved';
+    }
+
+    /**
+     * Handle content meta description updates and mark as dirty.
+     *
+     * @since 1.4.0
+     */
+    public function updatedContentMetaDescription(): void
+    {
+        $this->isDirty = true;
+        $this->saveStatus = 'unsaved';
+    }
+
+    /**
+     * Open the save-as-pattern modal.
+     *
+     * @since 1.1.0
+     */
+    #[On('open-save-pattern-modal')]
+    public function openSavePatternModal(): void
+    {
+        $this->patternName = '';
+        $this->patternDescription = '';
+        $this->showSavePatternModal = true;
+    }
+
+    /**
+     * Save the current blocks as a pattern.
+     *
+     * @since 1.1.0
+     */
+    public function confirmSavePattern(): void
+    {
+        $this->dispatch('save-blocks-as-section', name: $this->patternName, description: $this->patternDescription);
+
+        $this->showSavePatternModal = false;
+        $this->patternName = '';
+        $this->patternDescription = '';
+    }
+
+    /**
+     * Sync color properties from the active block's settings.
+     *
+     * Reads the text, background, and border color values from the
+     * active block at the current breakpoint and state, and sets
+     * them on the dedicated Livewire properties so they can be used
+     * with wire:model on colorpicker components.
+     *
+     * @since 1.8.0
+     */
+    protected function syncColorProperties(): void
+    {
+        $this->styleTextColor = $this->getStyleValue($this->activeBreakpoint, $this->activeState, 'colors', 'text_color');
+        $this->styleBackgroundColor = $this->getStyleValue($this->activeBreakpoint, $this->activeState, 'colors', 'background_color');
+        $this->styleBorderColor = $this->getStyleValue($this->activeBreakpoint, $this->activeState, 'borders', 'border_color');
+    }
+
+    /**
+     * Recursively find a block by ID anywhere in the block tree.
+     *
+     * @since 2.0.0
+     *
+     * @param  string  $blockId  The block ID to find.
+     * @param  array  $blocks  The blocks array to search.
+     * @return array|null The block data or null.
+     */
+    private function findBlockRecursive(string $blockId, array $blocks): ?array
+    {
+        foreach ($blocks as $block) {
+            if (($block['id'] ?? '') === $blockId) {
+                return $block;
+            }
+
+            $found = $this->searchInnerBlocks($blockId, $block);
+
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Search within a single block's inner containers for a block ID.
+     *
+     * @since 2.0.0
+     *
+     * @param  string  $blockId  The block ID to find.
+     * @param  array  $block  The parent block to search within.
+     * @return array|null The found block or null.
+     */
+    private function searchInnerBlocks(string $blockId, array $block): ?array
+    {
+        $innerBlocks = $block['content']['inner_blocks'] ?? [];
+
+        if (! empty($innerBlocks)) {
+            $found = $this->findBlockRecursive($blockId, $innerBlocks);
+
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        $columns = $block['content']['columns'] ?? [];
+
+        foreach ($columns as $column) {
+            $colBlocks = $column['blocks'] ?? [];
+
+            if (! empty($colBlocks)) {
+                $found = $this->findBlockRecursive($blockId, $colBlocks);
+
+                if ($found !== null) {
+                    return $found;
+                }
+            }
+        }
+
+        $items = $block['content']['items'] ?? [];
+
+        foreach ($items as $item) {
+            $itemBlocks = $item['inner_blocks'] ?? [];
+
+            if (! empty($itemBlocks)) {
+                $found = $this->findBlockRecursive($blockId, $itemBlocks);
+
+                if ($found !== null) {
+                    return $found;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Find the dot-notation path to a block in the tree.
+     *
+     * @since 2.0.0
+     *
+     * @param  string  $blockId  The block ID to find.
+     * @param  array  $blocks  The blocks array to search.
+     * @param  string  $prefix  The current path prefix.
+     * @return string|null The dot-notation path or null.
+     */
+    private function findBlockPath(string $blockId, array $blocks, string $prefix = ''): ?string
+    {
+        foreach ($blocks as $index => $block) {
+            $currentPath = $prefix === '' ? (string) $index : $prefix.'.'.$index;
+
+            if (($block['id'] ?? '') === $blockId) {
+                return $currentPath;
+            }
+
+            $innerBlocks = $block['content']['inner_blocks'] ?? [];
+
+            if (! empty($innerBlocks)) {
+                $found = $this->findBlockPath($blockId, $innerBlocks, $currentPath.'.content.inner_blocks');
+
+                if ($found !== null) {
+                    return $found;
+                }
+            }
+
+            $columns = $block['content']['columns'] ?? [];
+
+            foreach ($columns as $colIndex => $column) {
+                $colBlocks = $column['blocks'] ?? [];
+
+                if (! empty($colBlocks)) {
+                    $found = $this->findBlockPath($blockId, $colBlocks, $currentPath.'.content.columns.'.$colIndex.'.blocks');
+
+                    if ($found !== null) {
+                        return $found;
+                    }
+                }
+            }
+
+            $items = $block['content']['items'] ?? [];
+
+            foreach ($items as $itemIndex => $item) {
+                $itemBlocks = $item['inner_blocks'] ?? [];
+
+                if (! empty($itemBlocks)) {
+                    $found = $this->findBlockPath($blockId, $itemBlocks, $currentPath.'.content.items.'.$itemIndex.'.inner_blocks');
+
+                    if ($found !== null) {
+                        return $found;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
 }; ?>
 
 <div class="ve-editor flex h-screen flex-col overflow-hidden bg-gray-100"
@@ -1489,7 +1422,33 @@ new class extends Component {
 												$fieldOptions = $schema['options'] ?? [];
 												$fieldDefault = $schema['default'] ?? '';
 												$fieldValue   = $currentSettings[ $settingKey ] ?? $fieldDefault;
+
+												// For columns setting, compute from actual columns array
+												if ( 'columns' === $blockType ) {
+													$actualColumns = $activeBlock['content']['columns'] ?? [];
+													$actualCount   = count( $actualColumns );
+
+													if ( 'columns' === $settingKey ) {
+														$fieldValue = (string) $actualCount;
+													}
+
+													// For responsive column settings, use actual count if responsive_columns is off
+													if ( in_array( $settingKey, [ 'columns_sm', 'columns_md', 'columns_lg', 'columns_xl' ], true ) ) {
+														$responsiveEnabled = $currentSettings['responsive_columns'] ?? false;
+														if ( ! $responsiveEnabled || '' === $fieldValue ) {
+															$fieldValue = (string) $actualCount;
+														}
+													}
+												}
+
+												// Skip responsive column fields if responsive_columns toggle is off
+												$shouldSkipField = false;
+												if ( 'columns' === $blockType && in_array( $settingKey, [ 'columns_sm', 'columns_md', 'columns_lg', 'columns_xl' ], true ) ) {
+													$responsiveEnabled = $currentSettings['responsive_columns'] ?? false;
+													$shouldSkipField   = ! $responsiveEnabled;
+												}
 											@endphp
+											@if ( ! $shouldSkipField )
 											<div>
 
 											@if ( 'select' === $fieldType )
@@ -1552,6 +1511,27 @@ new class extends Component {
 														rows="3"
 													>{{ $fieldValue }}</textarea>
 												</div>
+											@elseif ( 'range' === $fieldType )
+												@php
+													$rangeMin  = $schema['min'] ?? 0;
+													$rangeMax  = $schema['max'] ?? 100;
+													$rangeStep = $schema['step'] ?? 1;
+												@endphp
+												<div class="flex items-center gap-3">
+													<div class="flex-1">
+														<x-artisanpack-range
+															:label="__( $fieldLabel )"
+															:value="$fieldValue"
+															:min="$rangeMin"
+															:max="$rangeMax"
+															:step="$rangeStep"
+															wire:change="updateBlockSetting( '{{ $settingKey }}', $event.target.value )"
+														/>
+													</div>
+													<div class="flex-shrink-0 rounded-md bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700">
+														{{ $fieldValue }}
+													</div>
+												</div>
 											@else
 												<x-artisanpack-input
 													:label="__( $fieldLabel )"
@@ -1560,6 +1540,7 @@ new class extends Component {
 												/>
 											@endif
 											</div>
+											@endif
 										@endforeach
 									</div>
 								@endif

@@ -312,19 +312,7 @@ declare(strict_types=1);
 						'stretch' => 'items-stretch',
 						default   => 'items-start',
 					};
-					$columns    = $block['content']['columns'] ?? [];
-					$colCount   = $block['settings']['columns'] ?? '';
-					$colCountSm = $block['settings']['columns_sm'] ?? '';
-					$colCountMd = $block['settings']['columns_md'] ?? '';
-					$colCountLg = $block['settings']['columns_lg'] ?? '';
-					$colCountXl = $block['settings']['columns_xl'] ?? '';
-					$responsiveCols = array_filter( [
-						'' !== $colCount ? __( 'Base' ) . ': ' . $colCount : '',
-						'' !== $colCountSm ? 'SM: ' . $colCountSm : '',
-						'' !== $colCountMd ? 'MD: ' . $colCountMd : '',
-						'' !== $colCountLg ? 'LG: ' . $colCountLg : '',
-						'' !== $colCountXl ? 'XL: ' . $colCountXl : '',
-					] );
+					$columns = $block['content']['columns'] ?? [];
 				@endphp
 				<div
 					wire:key="columns-drag-container-{{ $blockId }}"
@@ -357,10 +345,11 @@ declare(strict_types=1);
 						}, 100);
 					"
 					@drag:end="
-						const orderedIds = $event.detail.orderedIds;
+						(() => {
+							const orderedIds = $event.detail.orderedIds;
 
-						// Filter to only include column IDs for this specific columns block
-						const blockIdPrefix = '{{ $blockId }}-col-';
+							// Filter to only include column IDs for this specific columns block
+							const blockIdPrefix = '{{ $blockId }}-col-';
 
 						// Helper to check if an ID is a column ID
 						const isColumnId = (id) => {
@@ -448,9 +437,11 @@ declare(strict_types=1);
 						} else {
 							console.warn('Canvas: Invalid column order, skipping reorder:', newOrder);
 						}
+						})()
 					"
 					@drag:cross-context="
-						console.log('🔵 CANVAS: Cross-context handler FIRED', {
+						(() => {
+							console.log('🔵 CANVAS: Cross-context handler FIRED', {
 							sourceContext: $event.detail.sourceContext.getAttribute('wire:key'),
 							targetContext: $event.detail.targetContext.getAttribute('wire:key'),
 							itemId: $event.detail.itemId
@@ -478,7 +469,7 @@ declare(strict_types=1);
 						console.log('🟢 Parsed parent IDs:', { sourceParentId, targetParentId });
 
 						// Extract column index from itemId (format: blockId-col-index)
-						const colMatch = itemId.match(/-col-(\\d+)$/);
+						const colMatch = itemId.match(/-col-(\d+)$/);
 						if (!colMatch) {
 							console.warn('🔴 Could not extract column index from itemId:', itemId);
 							return;
@@ -528,14 +519,10 @@ declare(strict_types=1);
 							targetParentId,
 							movedColumnIndex
 						);
+						})()
 					"
 					class="flex {{ $gapClass }} {{ $alignClass }}"
 				>
-					@if ( !empty( $responsiveCols ) )
-						<div class="mb-1 w-full text-xs text-gray-400">
-							{{ implode( ' | ', $responsiveCols ) }}
-						</div>
-					@endif
 					@foreach ( $colWidths as $colIdx => $width )
 						@php
 							$column = $columns[ $colIdx ] ?? [];
