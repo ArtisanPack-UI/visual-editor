@@ -288,8 +288,11 @@ class BlockRegistry
             ],
             'settings_schema' => [
                 'anchor' => ['type' => 'text', 'label' => __('HTML Anchor')],
+                'align' => ['type' => 'select', 'label' => __('Width Alignment'), 'options' => ['', 'wide', 'full'], 'default' => ''],
+                'align_horizontal' => ['type' => 'select', 'label' => __('Horizontal Alignment'), 'options' => ['', 'left', 'center', 'right'], 'default' => ''],
+                'custom_wide_width' => ['type' => 'number', 'label' => __('Custom Wide Width (px)'), 'default' => null],
             ],
-            'supports' => ['sizing', 'typography', 'colors'],
+            'supports' => ['sizing', 'typography', 'colors', 'alignment'],
             'toolbar' => ['align', 'richtext', 'heading_level'],
             'transforms' => [
                 'to' => ['text', 'list', 'quote'],
@@ -306,8 +309,11 @@ class BlockRegistry
             ],
             'settings_schema' => [
                 'drop_cap' => ['type' => 'toggle', 'label' => __('Drop Cap'), 'default' => false],
+                'align' => ['type' => 'select', 'label' => __('Width Alignment'), 'options' => ['', 'wide', 'full'], 'default' => ''],
+                'align_horizontal' => ['type' => 'select', 'label' => __('Horizontal Alignment'), 'options' => ['', 'left', 'center', 'right'], 'default' => ''],
+                'custom_wide_width' => ['type' => 'number', 'label' => __('Custom Wide Width (px)'), 'default' => null],
             ],
-            'supports' => ['sizing', 'typography', 'colors'],
+            'supports' => ['sizing', 'typography', 'colors', 'alignment'],
             'toolbar' => ['align', 'richtext'],
             'transforms' => [
                 'to' => ['heading', 'list', 'quote'],
@@ -323,7 +329,12 @@ class BlockRegistry
                 'text' => ['type' => 'richtext', 'label' => __('List Content')],
                 'style' => ['type' => 'select', 'label' => __('List Style'), 'options' => ['bullet', 'number'], 'default' => 'bullet'],
             ],
-            'supports' => ['sizing', 'typography', 'colors'],
+            'settings_schema' => [
+                'align' => ['type' => 'select', 'label' => __('Width Alignment'), 'options' => ['', 'wide', 'full'], 'default' => ''],
+                'align_horizontal' => ['type' => 'select', 'label' => __('Horizontal Alignment'), 'options' => ['', 'left', 'center', 'right'], 'default' => ''],
+                'custom_wide_width' => ['type' => 'number', 'label' => __('Custom Wide Width (px)'), 'default' => null],
+            ],
+            'supports' => ['sizing', 'typography', 'colors', 'alignment'],
             'toolbar' => ['align', 'richtext', 'list_style'],
             'transforms' => [
                 'to' => ['text', 'heading', 'quote'],
@@ -339,7 +350,12 @@ class BlockRegistry
                 'text' => ['type' => 'textarea', 'label' => __('Quote Text')],
                 'citation' => ['type' => 'text', 'label' => __('Citation')],
             ],
-            'supports' => ['sizing', 'typography', 'colors', 'borders'],
+            'settings_schema' => [
+                'align' => ['type' => 'select', 'label' => __('Width Alignment'), 'options' => ['', 'wide', 'full'], 'default' => ''],
+                'align_horizontal' => ['type' => 'select', 'label' => __('Horizontal Alignment'), 'options' => ['', 'left', 'center', 'right'], 'default' => ''],
+                'custom_wide_width' => ['type' => 'number', 'label' => __('Custom Wide Width (px)'), 'default' => null],
+            ],
+            'supports' => ['sizing', 'typography', 'colors', 'borders', 'alignment'],
             'transforms' => [
                 'to' => ['text', 'heading', 'list'],
                 'from' => ['text', 'heading', 'list'],
@@ -358,8 +374,11 @@ class BlockRegistry
             ],
             'settings_schema' => [
                 'shadow' => ['type' => 'toggle', 'label' => __('Drop Shadow')],
+                'align' => ['type' => 'select', 'label' => __('Width Alignment'), 'options' => ['', 'wide', 'full'], 'default' => ''],
+                'align_horizontal' => ['type' => 'select', 'label' => __('Horizontal Alignment'), 'options' => ['', 'left', 'center', 'right'], 'default' => ''],
+                'custom_wide_width' => ['type' => 'number', 'label' => __('Custom Wide Width (px)'), 'default' => null],
             ],
-            'supports' => ['sizing', 'borders'],
+            'supports' => ['sizing', 'borders', 'alignment'],
             'toolbar' => ['align'],
         ]);
 
@@ -372,7 +391,12 @@ class BlockRegistry
                 'autoplay' => ['type' => 'toggle', 'label' => __('Autoplay'), 'default' => false],
                 'loop' => ['type' => 'toggle', 'label' => __('Loop'), 'default' => false],
             ],
-            'supports' => ['sizing', 'borders'],
+            'settings_schema' => [
+                'align' => ['type' => 'select', 'label' => __('Width Alignment'), 'options' => ['', 'wide', 'full'], 'default' => ''],
+                'align_horizontal' => ['type' => 'select', 'label' => __('Horizontal Alignment'), 'options' => ['', 'left', 'center', 'right'], 'default' => ''],
+                'custom_wide_width' => ['type' => 'number', 'label' => __('Custom Wide Width (px)'), 'default' => null],
+            ],
+            'supports' => ['sizing', 'borders', 'alignment'],
         ]);
 
         // Interactive blocks
@@ -500,8 +524,11 @@ class BlockRegistry
                     'step' => 1,
                     'default' => '',
                 ],
+                'align' => ['type' => 'select', 'label' => __('Width Alignment'), 'options' => ['', 'wide', 'full'], 'default' => ''],
+                'align_horizontal' => ['type' => 'select', 'label' => __('Horizontal Alignment'), 'options' => ['', 'left', 'center', 'right'], 'default' => ''],
+                'custom_wide_width' => ['type' => 'number', 'label' => __('Custom Wide Width (px)'), 'default' => null],
             ],
-            'supports' => ['sizing', 'colors', 'borders'],
+            'supports' => ['sizing', 'colors', 'borders', 'alignment'],
             'transforms' => [
                 'to' => ['group', 'grid'],
                 'from' => ['group', 'grid'],
@@ -575,9 +602,12 @@ class BlockRegistry
                     'options' => ['start', 'center', 'end', 'between', 'around', 'evenly'],
                     'default' => 'start',
                 ],
+                'align' => ['type' => 'select', 'label' => __('Width Alignment'), 'options' => ['', 'wide', 'full'], 'default' => ''],
+                'align_horizontal' => ['type' => 'select', 'label' => __('Horizontal Alignment'), 'options' => ['', 'left', 'center', 'right'], 'default' => ''],
+                'custom_wide_width' => ['type' => 'number', 'label' => __('Custom Wide Width (px)'), 'default' => null],
             ],
             'toolbar' => ['constrained_width', 'align_items', 'justify_content'],
-            'supports' => ['sizing', 'colors', 'borders'],
+            'supports' => ['sizing', 'colors', 'borders', 'alignment'],
             'transforms' => [
                 'to' => ['columns'],
                 'from' => ['columns'],
@@ -698,8 +728,11 @@ class BlockRegistry
                     'options' => ['', 'none', 'small', 'medium', 'large'],
                     'default' => '',
                 ],
+                'align' => ['type' => 'select', 'label' => __('Width Alignment'), 'options' => ['', 'wide', 'full'], 'default' => ''],
+                'align_horizontal' => ['type' => 'select', 'label' => __('Horizontal Alignment'), 'options' => ['', 'left', 'center', 'right'], 'default' => ''],
+                'custom_wide_width' => ['type' => 'number', 'label' => __('Custom Wide Width (px)'), 'default' => null],
             ],
-            'supports' => ['sizing', 'colors', 'borders'],
+            'supports' => ['sizing', 'colors', 'borders', 'alignment'],
             'transforms' => [
                 'to' => ['columns'],
                 'from' => ['columns'],

@@ -78,6 +78,22 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Alignment Settings
+	|--------------------------------------------------------------------------
+	|
+	| Configuration for block alignment, including content width and wide
+	| width breakpoints. These settings control how blocks can break out
+	| of the default content container.
+	|
+	*/
+	'alignment' => [
+		'enabled'       => true,
+		'content_width' => env( 'VE_CONTENT_WIDTH', 1200 ), // px
+		'wide_width'    => env( 'VE_WIDE_WIDTH', 1400 ),    // px
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Section Settings
 	|--------------------------------------------------------------------------
 	|

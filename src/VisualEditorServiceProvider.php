@@ -21,6 +21,7 @@ use ArtisanPackUI\VisualEditor\Policies\ContentPolicy;
 use ArtisanPackUI\VisualEditor\Registries\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Registries\SectionRegistry;
 use ArtisanPackUI\VisualEditor\Registries\TemplateRegistry;
+use ArtisanPackUI\VisualEditor\Services\AlignmentSettingsService;
 use ArtisanPackUI\VisualEditor\Services\ContentService;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesManager;
 use Illuminate\Support\Facades\Gate;
@@ -69,6 +70,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// Register services as singletons
 		$this->app->singleton( ContentService::class );
 		$this->app->singleton( GlobalStylesManager::class );
+		$this->app->singleton( AlignmentSettingsService::class );
 	}
 
 	/**

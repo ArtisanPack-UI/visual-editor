@@ -2194,6 +2194,28 @@ new class extends Component
     // ──────────────────────────────────────────────────────────
 
     /**
+     * Get the content width for alignment.
+     *
+     * @since 1.9.0
+     */
+    #[Computed]
+    public function contentWidth(): int
+    {
+        return (int) config('artisanpack.visual-editor.alignment.content_width', 1200);
+    }
+
+    /**
+     * Get the wide width for alignment.
+     *
+     * @since 1.9.0
+     */
+    #[Computed]
+    public function wideWidth(): int
+    {
+        return (int) config('artisanpack.visual-editor.alignment.wide_width', 1400);
+    }
+
+    /**
      * Get available blocks grouped by category for the slash command menu.
      *
      * @since 1.2.0
@@ -2887,10 +2909,67 @@ new class extends Component
 </div>
 
 <style>
+	:root {
+		--ve-content-width: {{ $contentWidth ?? 1200 }}px;
+		--ve-wide-width: {{ $wideWidth ?? 1400 }}px;
+	}
+
 	[contenteditable][data-placeholder]:empty::before {
 		content: attr( data-placeholder );
 		color: #9ca3af;
 		pointer-events: none;
+	}
+
+	/* Alignment Styles */
+	.ve-canvas-content {
+		max-width: var( --ve-content-width );
+		margin-left: auto;
+		margin-right: auto;
+		padding-left: 1rem;
+		padding-right: 1rem;
+	}
+
+	.ve-block {
+		max-width: 100%;
+	}
+
+	/* Width Alignment */
+	.ve-block--align-wide {
+		max-width: var( --ve-wide-width );
+		margin-left: calc( 50% - var( --ve-wide-width ) / 2 );
+		margin-right: calc( 50% - var( --ve-wide-width ) / 2 );
+	}
+
+	.ve-block--align-full {
+		max-width: 100vw;
+		margin-left: calc( 50% - 50vw );
+		margin-right: calc( 50% - 50vw );
+		width: 100vw;
+	}
+
+	/* Horizontal Alignment */
+	.ve-block--align-left {
+		margin-right: auto;
+	}
+
+	.ve-block--align-center {
+		margin-left: auto;
+		margin-right: auto;
+	}
+
+	.ve-block--align-right {
+		margin-left: auto;
+	}
+
+	/* Custom wide width override */
+	.ve-block[data-custom-wide-width] {
+		--ve-custom-wide-width: attr( data-custom-wide-width px );
+	}
+
+	.ve-block[data-custom-wide-width].ve-block--align-wide {
+		max-width: var( --ve-custom-wide-width, var( --ve-wide-width ) );
+		margin-left: calc( 50% - var( --ve-custom-wide-width, var( --ve-wide-width ) ) / 2 );
+		margin-right: calc( 50% - var( --ve-custom-wide-width, var( --ve-wide-width ) ) / 2 );
 	}
 </style>
 

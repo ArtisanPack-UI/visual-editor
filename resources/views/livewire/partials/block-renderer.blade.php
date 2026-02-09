@@ -35,6 +35,23 @@ declare(strict_types=1);
 	$depth          = $depth ?? 0;
 	$parentBlockId  = $parentBlockId ?? null;
 	$slotIndex      = $slotIndex ?? null;
+
+	// Build alignment classes
+	$alignClasses = [];
+	$settings = $block['settings'] ?? [];
+
+	// Width alignment (wide/full)
+	if ( isset( $settings['align'] ) && '' !== $settings['align'] ) {
+		$alignClasses[] = 've-block--align-' . $settings['align'];
+	}
+
+	// Horizontal alignment (left/center/right)
+	if ( isset( $settings['align_horizontal'] ) && '' !== $settings['align_horizontal'] ) {
+		$alignClasses[] = 've-block--align-' . $settings['align_horizontal'];
+	}
+
+	$alignClassString = implode( ' ', $alignClasses );
+	$customWideWidth = $settings['custom_wide_width'] ?? null;
 @endphp
 
 <div
@@ -46,7 +63,11 @@ declare(strict_types=1);
 		@click.stop="$wire.selectBlock( '{{ $blockId }}' )"
 	@endif
 	class="ve-canvas-block group relative rounded px-4 py-2 transition-colors
-		{{ $isActive ? 'ring-2 ring-blue-200' : '' }}"
+		{{ $isActive ? 'ring-2 ring-blue-200' : '' }}
+		{{ $alignClassString }}"
+	@if ( $customWideWidth )
+		data-custom-wide-width="{{ $customWideWidth }}"
+	@endif
 	role="listitem"
 	@if ( $isEditing && $isRichText )
 		x-data="richTextEditor( { htmlContent: @js( $block['content']['text'] ?? '' ) } )"
