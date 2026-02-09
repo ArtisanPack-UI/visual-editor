@@ -477,6 +477,11 @@ new class extends Component
      */
     public function dispatchGridItemReorder(string $parentBlockId, array $newOrder): void
     {
+        \Log::info('🟣 SIDEBAR: dispatchGridItemReorder CALLED', [
+            'parentBlockId' => $parentBlockId,
+            'newOrder' => $newOrder,
+        ]);
+
         $this->dispatch('layers-grid-item-reorder', parentBlockId: $parentBlockId, newOrder: $newOrder);
     }
 

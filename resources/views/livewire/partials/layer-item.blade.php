@@ -413,51 +413,61 @@ declare(strict_types=1);
 				blockIdPrefix: blockIdPrefix
 			});
 
-			// Helper to check if an ID is a grid item ID for this block
 			const isGridItemId = (id) => {
 				return typeof id === 'string' &&
 					id.startsWith(blockIdPrefix) &&
 					id.split('-item-').length === 2;
 			};
 
-			// Determine drop position by analyzing the orderedIds pattern
 			let sortedGridItems;
-			const lastIndex = orderedIds.length - 1;
 
-			// If position 1 is a grid item ID, the item at position 0 was dragged to first position
-			if (orderedIds.length > 1 && isGridItemId(orderedIds[1])) {
-				const draggedItem = orderedIds[0];
+			// Find LAST grid item in array (not necessarily the last element due to nested blocks)
+			let lastGridItemIdx = -1;
+			for (let i = orderedIds.length - 1; i >= 0; i--) {
+				if (isGridItemId(orderedIds[i])) {
+					lastGridItemIdx = i;
+					break;
+				}
+			}
+
+			// Find FIRST grid item in array (position 0 might be a nested block container)
+			let firstGridItemIdx = -1;
+			for (let i = 0; i < orderedIds.length; i++) {
+				if (isGridItemId(orderedIds[i])) {
+					firstGridItemIdx = i;
+					break;
+				}
+			}
+
+			// If we found a first grid item and position 1 is also a grid item, item at first position was dragged to first
+			if (firstGridItemIdx >= 0 && orderedIds.length > 1 && isGridItemId(orderedIds[1])) {
+				const draggedItem = orderedIds[firstGridItemIdx];
+
 				const otherItems = [];
-
 				orderedIds.forEach(id => {
 					if (isGridItemId(id) && id !== draggedItem && !otherItems.includes(id)) {
 						otherItems.push(id);
 					}
 				});
-
 				sortedGridItems = [draggedItem, ...otherItems];
-				console.log('🟡 LAYERS: Detected drag to FIRST position', { draggedItem, sortedGridItems });
+				console.log('🟡 LAYERS: Detected drag to FIRST position', { draggedItem, sortedGridItems, firstGridItemIdx });
 			}
-			// If the last element is a grid item ID, that item was dragged to last position
-			else if (isGridItemId(orderedIds[lastIndex])) {
-				const draggedItem = orderedIds[lastIndex];
-				const otherItems = [];
+			// If last grid item in array is at the very end, that item was dragged to last
+			else if (lastGridItemIdx === orderedIds.length - 1 && isGridItemId(orderedIds[lastGridItemIdx])) {
+				const draggedItem = orderedIds[lastGridItemIdx];
 
+				const otherItems = [];
 				orderedIds.forEach(id => {
 					if (isGridItemId(id) && id !== draggedItem && !otherItems.includes(id)) {
 						otherItems.push(id);
 					}
 				});
-
 				sortedGridItems = [...otherItems, draggedItem];
-				console.log('🟡 LAYERS: Detected drag to LAST position', { draggedItem, sortedGridItems });
+				console.log('🟡 LAYERS: Detected drag to LAST position', { draggedItem, sortedGridItems, lastGridItemIdx, arrayLength: orderedIds.length });
 			}
-			// Fallback: Filter to only grid item IDs, detect dragged item
+			// Fallback: Filter to grid items, detect dragged item
 			else {
-				// Filter to only grid item IDs
 				const gridItemIds = orderedIds.filter(id => isGridItemId(id));
-
-				// Detect which item was dragged (appears more than once)
 				const itemCounts = {};
 				gridItemIds.forEach(id => {
 					itemCounts[id] = (itemCounts[id] || 0) + 1;
@@ -471,36 +481,23 @@ declare(strict_types=1);
 					}
 				}
 
-				// If an item was dragged, reconstruct the order
 				if (draggedItemId) {
-					const firstOccurrenceIndex = gridItemIds.indexOf(draggedItemId);
-					const lastOccurrenceIndex = gridItemIds.lastIndexOf(draggedItemId);
+					const lastOccIdx = gridItemIds.lastIndexOf(draggedItemId);
 					const otherItems = [];
-
 					gridItemIds.forEach((id, idx) => {
 						if (id !== draggedItemId && !otherItems.includes(id)) {
 							otherItems.push(id);
 						}
 					});
-
-					// Insert dragged item at the position of its last occurrence
 					sortedGridItems = [...otherItems];
-					sortedGridItems.splice(lastOccurrenceIndex, 0, draggedItemId);
-
-					console.log('🟡 LAYERS: Detected drag via DUPLICATE', {
-						draggedItemId,
-						firstOccurrenceIndex,
-						lastOccurrenceIndex,
-						sortedGridItems
-					});
+					sortedGridItems.splice(lastOccIdx, 0, draggedItemId);
+					console.log('🟡 LAYERS: Detected drag via DUPLICATE', { draggedItemId, lastOccIdx, sortedGridItems });
 				} else {
-					// No duplicates, just use order as-is
 					sortedGridItems = [...new Set(gridItemIds)];
 					console.log('🟡 LAYERS: No duplicates detected, using filtered order', sortedGridItems);
 				}
 			}
 
-			// Extract grid item indexes from sorted IDs
 			const newOrder = sortedGridItems.map(id => {
 				const parts = id.split('-item-');
 				return parseInt(parts[parts.length - 1], 10);
@@ -508,7 +505,6 @@ declare(strict_types=1);
 
 			console.log('🚀 LAYERS: Final newOrder to send', newOrder);
 
-			// Only dispatch if we have a valid reorder
 			if (newOrder.length > 0 && newOrder.every(idx => !isNaN(idx))) {
 				$wire.dispatchGridItemReorder('{{ $blockId }}', newOrder);
 			} else {
@@ -645,23 +641,25 @@ declare(strict_types=1);
 				}"
 				@drag:end="$wire.reorderBlocks( $event.detail.orderedIds, '{{ $blockId }}', {{ $itemIndex }} )"
 				@drag:cross-context="
-					// Skip if this is a column drag (handled by column-specific handler)
-					const itemId = $event.detail.itemId;
-					if (itemId && itemId.includes('-col-')) {
-						console.log('Layers: Skipping column drag in block handler');
-						return;
-					}
+					(() => {
+						// Skip if this is a column drag (handled by column-specific handler)
+						const itemId = $event.detail.itemId;
+						if (itemId && itemId.includes('-col-')) {
+							console.log('Layers: Skipping column drag in block handler');
+							return;
+						}
 
-					const source = parseWireKey($event.detail.sourceContext);
-					const target = parseWireKey($event.detail.targetContext);
-					console.log('Layers grid cross-context drag:', { itemId: $event.detail.itemId, source, target, sourceOrderedIds: $event.detail.sourceOrderedIds, targetOrderedIds: $event.detail.targetOrderedIds });
-					$wire.dispatchCrossContextDrop({
-						itemId: $event.detail.itemId,
-						source: source,
-						target: target,
-						sourceOrderedIds: $event.detail.sourceOrderedIds,
-						targetOrderedIds: $event.detail.targetOrderedIds
-					})
+						const source = parseWireKey($event.detail.sourceContext);
+						const target = parseWireKey($event.detail.targetContext);
+						console.log('Layers grid cross-context drag:', { itemId: $event.detail.itemId, source, target, sourceOrderedIds: $event.detail.sourceOrderedIds, targetOrderedIds: $event.detail.targetOrderedIds });
+						$wire.dispatchCrossContextDrop({
+							itemId: $event.detail.itemId,
+							source: source,
+							target: target,
+							sourceOrderedIds: $event.detail.sourceOrderedIds,
+							targetOrderedIds: $event.detail.targetOrderedIds
+						});
+					})()
 				"
 			>
 				@foreach ( $itemBlocks as $childBlock )
