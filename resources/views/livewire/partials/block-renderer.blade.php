@@ -540,9 +540,9 @@ declare(strict_types=1);
 							'blockId' => $blockId,
 						] )
 					@else
-						@foreach ( $colWidths as $colIdx => $width )
+						@foreach ( $columns as $colIdx => $column )
 						@php
-							$column = $columns[ $colIdx ] ?? [];
+							$width = $colWidths[ $colIdx ] ?? '100';
 							$colBlocks = $column['blocks'] ?? [];
 							$columnId = "{$blockId}-col-{$colIdx}";
 							$isColumnActive = $columnId === $activeColumnId;

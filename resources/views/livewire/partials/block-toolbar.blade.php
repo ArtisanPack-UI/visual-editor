@@ -37,6 +37,8 @@
 	$isConstrained   = $block['settings']['constrained'] ?? false;
 	$currentAlignItems     = $block['settings']['align_items'] ?? 'stretch';
 	$currentJustifyContent = $block['settings']['justify_content'] ?? 'start';
+	$availableTransforms = app( \ArtisanPackUI\VisualEditor\Registries\BlockRegistry::class )->getTransforms( $blockType );
+	$hasTransforms       = ! empty( $availableTransforms );
 @endphp
 
 <div
@@ -46,15 +48,59 @@
 	@click.stop
 >
 	{{-- Group 1: Universal Tools --}}
-	{{-- Block Type Indicator --}}
-	<span
-		class="flex items-center gap-1 rounded px-1.5 py-1 text-sm font-medium text-gray-500"
-		title="{{ $blockName }}"
-	>
-		<svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-			<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
-		</svg>
-	</span>
+	{{-- Block Type Indicator with Transform Dropdown --}}
+	@if ( $hasTransforms )
+		<div class="relative">
+			<button
+				type="button"
+				@click="openDropdown = (openDropdown === 'transform' ? null : 'transform')"
+				class="flex items-center gap-1 rounded px-1.5 py-1 text-sm font-medium text-gray-500 hover:bg-gray-100"
+				title="{{ __( 'Transform to...' ) }}"
+			>
+				<x-artisanpack-icon name="{{ $blockConfig['icon'] ?? 'fas.cube' }}" class="h-4.5 w-4.5" />
+				<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+				</svg>
+			</button>
+
+			{{-- Transform Dropdown --}}
+			<div
+				x-show="openDropdown === 'transform'"
+				@click.outside="openDropdown = null"
+				x-transition
+				class="absolute left-0 top-full z-30 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+			>
+				<div class="px-3 py-2 text-xs font-semibold text-gray-400 uppercase">
+					{{ __( 'Transform to' ) }}
+				</div>
+				@foreach ( $availableTransforms as $transformType )
+					@php
+						$transformConfig = app( \ArtisanPackUI\VisualEditor\Registries\BlockRegistry::class )->get( $transformType );
+					@endphp
+					<button
+						type="button"
+						wire:click="transformBlock( '{{ $blockId }}', '{{ $transformType }}' )"
+						@click="openDropdown = null"
+						class="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-gray-700 hover:bg-blue-50"
+					>
+						<x-artisanpack-icon
+							name="{{ $transformConfig['icon'] ?? 'fas.cube' }}"
+							class="h-4 w-4 text-gray-400"
+						/>
+						<span>{{ $transformConfig['name'] ?? ucfirst( $transformType ) }}</span>
+					</button>
+				@endforeach
+			</div>
+		</div>
+	@else
+		{{-- No transforms available - static icon --}}
+		<span
+			class="flex items-center gap-1 rounded px-1.5 py-1 text-sm font-medium text-gray-500"
+			title="{{ $blockName }}"
+		>
+			<x-artisanpack-icon name="{{ $blockConfig['icon'] ?? 'fas.cube' }}" class="h-4.5 w-4.5" />
+		</span>
+	@endif
 
 	{{-- Drag Handle --}}
 	<span

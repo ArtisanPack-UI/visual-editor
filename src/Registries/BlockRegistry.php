@@ -121,6 +121,7 @@ class BlockRegistry
             'example' => [],
             'inner_blocks' => false,
             'allowed_inner_blocks' => null,
+            'transforms' => ['to' => [], 'from' => []],
         ], $config);
 
         return $this;
@@ -290,6 +291,10 @@ class BlockRegistry
             ],
             'supports' => ['sizing', 'typography', 'colors'],
             'toolbar' => ['align', 'richtext', 'heading_level'],
+            'transforms' => [
+                'to' => ['text', 'list', 'quote'],
+                'from' => ['text', 'list', 'quote'],
+            ],
         ]);
 
         $this->register('text', [
@@ -304,6 +309,10 @@ class BlockRegistry
             ],
             'supports' => ['sizing', 'typography', 'colors'],
             'toolbar' => ['align', 'richtext'],
+            'transforms' => [
+                'to' => ['heading', 'list', 'quote'],
+                'from' => ['heading', 'list', 'quote'],
+            ],
         ]);
 
         $this->register('list', [
@@ -316,6 +325,10 @@ class BlockRegistry
             ],
             'supports' => ['sizing', 'typography', 'colors'],
             'toolbar' => ['align', 'richtext', 'list_style'],
+            'transforms' => [
+                'to' => ['text', 'heading', 'quote'],
+                'from' => ['text', 'heading', 'quote'],
+            ],
         ]);
 
         $this->register('quote', [
@@ -327,6 +340,10 @@ class BlockRegistry
                 'citation' => ['type' => 'text', 'label' => __('Citation')],
             ],
             'supports' => ['sizing', 'typography', 'colors', 'borders'],
+            'transforms' => [
+                'to' => ['text', 'heading', 'list'],
+                'from' => ['text', 'heading', 'list'],
+            ],
         ]);
 
         // Media blocks
@@ -373,6 +390,10 @@ class BlockRegistry
             ],
             'supports' => ['sizing', 'typography', 'colors', 'borders'],
             'toolbar' => ['align'],
+            'transforms' => [
+                'to' => ['button_group'],
+                'from' => ['button_group'],
+            ],
         ]);
 
         $this->register('button_group', [
@@ -383,6 +404,10 @@ class BlockRegistry
                 'buttons' => ['type' => 'repeater', 'label' => __('Buttons')],
             ],
             'supports' => ['sizing'],
+            'transforms' => [
+                'to' => ['button'],
+                'from' => ['button'],
+            ],
         ]);
 
         $this->register('form', [
@@ -477,6 +502,10 @@ class BlockRegistry
                 ],
             ],
             'supports' => ['sizing', 'colors', 'borders'],
+            'transforms' => [
+                'to' => ['group', 'grid'],
+                'from' => ['group', 'grid'],
+            ],
         ]);
 
         $this->register('column', [
@@ -549,6 +578,10 @@ class BlockRegistry
             ],
             'toolbar' => ['constrained_width', 'align_items', 'justify_content'],
             'supports' => ['sizing', 'colors', 'borders'],
+            'transforms' => [
+                'to' => ['columns'],
+                'from' => ['columns'],
+            ],
         ]);
 
         // Register group block variations
@@ -667,6 +700,10 @@ class BlockRegistry
                 ],
             ],
             'supports' => ['sizing', 'colors', 'borders'],
+            'transforms' => [
+                'to' => ['columns'],
+                'from' => ['columns'],
+            ],
         ]);
 
         $this->register('grid_item', [
@@ -942,6 +979,37 @@ class BlockRegistry
     public function getVariation(string $blockType, string $variationName): ?array
     {
         return $this->variations[$blockType][$variationName] ?? null;
+    }
+
+    /**
+     * Get available transformations for a block type.
+     *
+     * @since 1.9.0
+     *
+     * @param  string  $blockType  The source block type.
+     * @return array Array of block types this block can transform to.
+     */
+    public function getTransforms(string $blockType): array
+    {
+        $config = $this->get($blockType);
+
+        return $config['transforms']['to'] ?? [];
+    }
+
+    /**
+     * Check if a block can transform to another type.
+     *
+     * @since 1.9.0
+     *
+     * @param  string  $fromType  Source block type.
+     * @param  string  $toType  Target block type.
+     * @return bool True if transformation is allowed.
+     */
+    public function canTransformTo(string $fromType, string $toType): bool
+    {
+        $transforms = $this->getTransforms($fromType);
+
+        return in_array($toType, $transforms, true);
     }
 
     /**

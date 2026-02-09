@@ -883,22 +883,22 @@ new class extends Component
                 // Normal setting update
                 data_set($blocks, $path.'.settings.'.$key, $value);
             }
-        } elseif ( 'grid' === ( $block['type'] ?? '' ) ) {
+        } elseif ('grid' === ($block['type'] ?? '')) {
             // Special handling for grid blocks
-            if ( 'columns' === $key ) {
-                $targetCount  = max( 1, min( 12, (int) $value ) );
+            if ($key === 'columns') {
+                $targetCount = max(1, min(12, (int) $value));
                 $currentItems = $block['content']['items'] ?? [];
-                $currentCount = count( $currentItems );
+                $currentCount = count($currentItems);
 
-                if ( $targetCount !== $currentCount ) {
+                if ($targetCount !== $currentCount) {
                     // Add or remove grid items to match target count
-                    if ( $targetCount > $currentCount ) {
+                    if ($targetCount > $currentCount) {
                         // Add items
-                        for ( $i = $currentCount; $i < $targetCount; $i++ ) {
+                        for ($i = $currentCount; $i < $targetCount; $i++) {
                             $currentItems[] = [
-                                'id'           => 've-item-' . uniqid() . '-' . $i,
+                                'id' => 've-item-'.uniqid().'-'.$i,
                                 'inner_blocks' => [],
-                                'settings'     => [
+                                'settings' => [
                                     'col_span' => '1',
                                     'row_span' => '1',
                                 ],
@@ -906,46 +906,46 @@ new class extends Component
                         }
                     } else {
                         // Remove items from the end
-                        $currentItems = array_slice( $currentItems, 0, $targetCount );
+                        $currentItems = array_slice($currentItems, 0, $targetCount);
                     }
 
                     // Update items array
-                    data_set( $blocks, $path . '.content.items', $currentItems );
+                    data_set($blocks, $path.'.content.items', $currentItems);
 
                     // Update columns setting
-                    data_set( $blocks, $path . '.settings.columns', (string) $targetCount );
+                    data_set($blocks, $path.'.settings.columns', (string) $targetCount);
 
                     // If responsive columns is off, sync responsive values
                     $responsiveEnabled = $block['settings']['responsive_columns'] ?? false;
 
-                    if ( ! $responsiveEnabled ) {
-                        data_set( $blocks, $path . '.settings.columns_sm', (string) $targetCount );
-                        data_set( $blocks, $path . '.settings.columns_md', (string) $targetCount );
-                        data_set( $blocks, $path . '.settings.columns_lg', (string) $targetCount );
-                        data_set( $blocks, $path . '.settings.columns_xl', (string) $targetCount );
+                    if (! $responsiveEnabled) {
+                        data_set($blocks, $path.'.settings.columns_sm', (string) $targetCount);
+                        data_set($blocks, $path.'.settings.columns_md', (string) $targetCount);
+                        data_set($blocks, $path.'.settings.columns_lg', (string) $targetCount);
+                        data_set($blocks, $path.'.settings.columns_xl', (string) $targetCount);
                     }
                 }
-            } elseif ( 'responsive_columns' === $key ) {
+            } elseif ($key === 'responsive_columns') {
                 // Toggle responsive columns - sync values if turning off
-                data_set( $blocks, $path . '.settings.' . $key, $value );
+                data_set($blocks, $path.'.settings.'.$key, $value);
 
-                if ( ! $value ) {
+                if (! $value) {
                     // Turning off - sync all responsive values to main columns value
                     $currentItems = $block['content']['items'] ?? [];
-                    $currentCount = (string) count( $currentItems );
+                    $currentCount = (string) count($currentItems);
 
-                    data_set( $blocks, $path . '.settings.columns_sm', $currentCount );
-                    data_set( $blocks, $path . '.settings.columns_md', $currentCount );
-                    data_set( $blocks, $path . '.settings.columns_lg', $currentCount );
-                    data_set( $blocks, $path . '.settings.columns_xl', $currentCount );
+                    data_set($blocks, $path.'.settings.columns_sm', $currentCount);
+                    data_set($blocks, $path.'.settings.columns_md', $currentCount);
+                    data_set($blocks, $path.'.settings.columns_lg', $currentCount);
+                    data_set($blocks, $path.'.settings.columns_xl', $currentCount);
                 }
-            } elseif ( in_array( $key, [ 'columns_sm', 'columns_md', 'columns_lg', 'columns_xl' ], true ) ) {
+            } elseif (in_array($key, ['columns_sm', 'columns_md', 'columns_lg', 'columns_xl'], true)) {
                 // Responsive column count change - just update the setting
-                $targetCount = max( 1, min( 12, (int) $value ) );
-                data_set( $blocks, $path . '.settings.' . $key, (string) $targetCount );
+                $targetCount = max(1, min(12, (int) $value));
+                data_set($blocks, $path.'.settings.'.$key, (string) $targetCount);
             } else {
                 // Normal setting update
-                data_set( $blocks, $path . '.settings.' . $key, $value );
+                data_set($blocks, $path.'.settings.'.$key, $value);
             }
         } else {
             // Normal setting update for non-columns blocks
@@ -1167,6 +1167,76 @@ new class extends Component
         $this->showSavePatternModal = false;
         $this->patternName = '';
         $this->patternDescription = '';
+    }
+
+    /**
+     * Transform a block to a different type.
+     *
+     * @since 1.9.0
+     *
+     * @param  string  $blockId  The block ID to transform.
+     * @param  string  $toType  The target block type.
+     */
+    public function transformBlock(string $blockId, string $toType): void
+    {
+        $transformService = app(\ArtisanPackUI\VisualEditor\Services\BlockTransformService::class);
+
+        // Find the block
+        $blockIndex = $this->findBlockIndex($blockId);
+
+        if ($blockIndex === null) {
+            $this->dispatch('transform-error', [
+                'message' => __('Block not found.'),
+            ]);
+
+            return;
+        }
+
+        $block = $this->blocks[$blockIndex];
+
+        try {
+            // Transform the block
+            $transformed = $transformService->transform($block, $toType);
+
+            // Replace in blocks array
+            $this->blocks[$blockIndex] = $transformed;
+
+            // Mark as dirty
+            $this->isDirty = true;
+
+            // Push to history
+            $this->pushHistory($this->blocks);
+
+            // Dispatch success event
+            $this->dispatch('block-transformed', [
+                'blockId' => $blockId,
+                'fromType' => $block['type'],
+                'toType' => $toType,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            $this->dispatch('transform-error', [
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
+     * Find block index by ID in the top-level blocks array.
+     *
+     * @since 1.9.0
+     *
+     * @param  string  $blockId  The block ID to find.
+     * @return int|null The block index or null if not found.
+     */
+    protected function findBlockIndex(string $blockId): ?int
+    {
+        foreach ($this->blocks as $index => $block) {
+            if (($block['id'] ?? '') === $blockId) {
+                return $index;
+            }
+        }
+
+        return null;
     }
 
     /**

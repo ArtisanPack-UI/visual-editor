@@ -239,7 +239,6 @@ new class extends Component
      * @since 2.0.0
      *
      * @param  array  $blocks  The blocks array.
-     *
      * @return array The blocks array with initialized grid items.
      */
     private function initializeGridItems(array $blocks): array
@@ -247,7 +246,7 @@ new class extends Component
         foreach ($blocks as $key => $block) {
             if ('grid' === ($block['type'] ?? '')) {
                 // Ensure items array exists (but don't auto-populate it)
-                if (!isset($block['content']['items'])) {
+                if (! isset($block['content']['items'])) {
                     $blocks[$key]['content']['items'] = [];
                 }
             }
@@ -696,7 +695,7 @@ new class extends Component
         $content = [];
 
         // Initialize grid blocks with empty items array (user will add items manually)
-        if ( 'grid' === $type ) {
+        if ($type === 'grid') {
             $content['items'] = [];
         }
 
@@ -1091,6 +1090,52 @@ new class extends Component
         }
 
         $this->notifyBlocksUpdated();
+    }
+
+    /**
+     * Transform a block to a different type.
+     *
+     * @since 1.9.0
+     *
+     * @param  string  $blockId  The block ID to transform.
+     * @param  string  $toType  The target block type.
+     */
+    public function transformBlock(string $blockId, string $toType): void
+    {
+        $transformService = app(\ArtisanPackUI\VisualEditor\Services\BlockTransformService::class);
+
+        // Find the block
+        $block = $this->findBlockById($blockId);
+
+        if (! $block) {
+            $this->dispatch('transform-error', [
+                'message' => __('Block not found.'),
+            ]);
+
+            return;
+        }
+
+        try {
+            // Transform the block
+            $transformed = $transformService->transform($block, $toType);
+
+            // Update the block in place using existing method
+            $this->updateBlockById($blockId, $transformed);
+
+            // Notify blocks updated
+            $this->notifyBlocksUpdated();
+
+            // Dispatch success event
+            $this->dispatch('block-transformed', [
+                'blockId' => $blockId,
+                'fromType' => $block['type'],
+                'toType' => $toType,
+            ]);
+        } catch (\InvalidArgumentException $e) {
+            $this->dispatch('transform-error', [
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 
     // ──────────────────────────────────────────────────────────
@@ -1658,7 +1703,7 @@ new class extends Component
      * @since 2.0.0
      *
      * @param  string  $blockId  The block ID.
-     * @param  string  $preset   The preset to apply (e.g., '50-50', '33-67', etc.).
+     * @param  string  $preset  The preset to apply (e.g., '50-50', '33-67', etc.).
      */
     public function applyColumnsLayout(string $blockId, string $preset): void
     {
