@@ -529,6 +529,7 @@ class BlockRegistry
                 'custom_wide_width' => ['type' => 'number', 'label' => __('Custom Wide Width (px)'), 'default' => null],
             ],
             'supports' => ['sizing', 'colors', 'borders', 'alignment'],
+            'toolbar' => ['align'],
             'transforms' => [
                 'to' => ['group', 'grid'],
                 'from' => ['group', 'grid'],
@@ -606,7 +607,7 @@ class BlockRegistry
                 'align_horizontal' => ['type' => 'select', 'label' => __('Horizontal Alignment'), 'options' => ['', 'left', 'center', 'right'], 'default' => ''],
                 'custom_wide_width' => ['type' => 'number', 'label' => __('Custom Wide Width (px)'), 'default' => null],
             ],
-            'toolbar' => ['constrained_width', 'align_items', 'justify_content'],
+            'toolbar' => ['align', 'constrained_width', 'align_items', 'justify_content'],
             'supports' => ['sizing', 'colors', 'borders', 'alignment'],
             'transforms' => [
                 'to' => ['columns'],
@@ -733,6 +734,7 @@ class BlockRegistry
                 'custom_wide_width' => ['type' => 'number', 'label' => __('Custom Wide Width (px)'), 'default' => null],
             ],
             'supports' => ['sizing', 'colors', 'borders', 'alignment'],
+            'toolbar' => ['align'],
             'transforms' => [
                 'to' => ['columns'],
                 'from' => ['columns'],

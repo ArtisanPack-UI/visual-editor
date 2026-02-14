@@ -375,41 +375,164 @@
 		@endif
 	@endif
 
-	{{-- Alignment Tools --}}
+	{{-- Alignment Dropdown (Width & Horizontal) --}}
 	@if ( $hasAlign )
-		<button
-			type="button"
-			@mousedown.prevent
-			@click.prevent="$wire.$parent.updateBlockSetting( 'alignment', 'left' )"
-			class="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-			title="{{ __( 'Align Left' ) }}"
-		>
-			<svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M3 12h12M3 18h18" />
-			</svg>
-		</button>
-		<button
-			type="button"
-			@mousedown.prevent
-			@click.prevent="$wire.$parent.updateBlockSetting( 'alignment', 'center' )"
-			class="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-			title="{{ __( 'Align Center' ) }}"
-		>
-			<svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M6 12h12M3 18h18" />
-			</svg>
-		</button>
-		<button
-			type="button"
-			@mousedown.prevent
-			@click.prevent="$wire.$parent.updateBlockSetting( 'alignment', 'right' )"
-			class="rounded p-1.5 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
-			title="{{ __( 'Align Right' ) }}"
-		>
-			<svg class="h-4.5 w-4.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M9 12h12M3 18h18" />
-			</svg>
-		</button>
+		@php
+			$currentAlign           = $block['settings']['align'] ?? '';
+			$currentAlignHorizontal = $block['settings']['align_horizontal'] ?? '';
+
+			// Determine the current active alignment for display
+			if ( '' !== $currentAlign ) {
+				$activeAlignLabel = match ( $currentAlign ) {
+					'wide' => __( 'Wide width' ),
+					'full' => __( 'Full width' ),
+					default => __( 'None' ),
+				};
+			} elseif ( '' !== $currentAlignHorizontal ) {
+				$activeAlignLabel = match ( $currentAlignHorizontal ) {
+					'left'   => __( 'Align left' ),
+					'center' => __( 'Align center' ),
+					'right'  => __( 'Align right' ),
+					default  => __( 'None' ),
+				};
+			} else {
+				$activeAlignLabel = __( 'None' );
+			}
+		@endphp
+		<div class="relative">
+			<button
+				type="button"
+				@click="openDropdown = (openDropdown === 'alignment' ? null : 'alignment')"
+				class="flex items-center gap-1 rounded px-2 py-1 text-sm font-medium text-gray-600 hover:bg-gray-100"
+				title="{{ __( 'Change alignment' ) }}"
+			>
+				{{-- Icon representing current alignment --}}
+				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					@if ( 'wide' === $currentAlign )
+						{{-- Wide width icon --}}
+						<rect x="2" y="6" width="20" height="12" stroke-width="2" rx="2" />
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6V18M18 6V18" />
+					@elseif ( 'full' === $currentAlign )
+						{{-- Full width icon --}}
+						<rect x="2" y="6" width="20" height="12" stroke-width="2" rx="2" fill="currentColor" opacity="0.1" />
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 6h20M2 18h20" />
+					@elseif ( 'left' === $currentAlignHorizontal )
+						{{-- Align left icon --}}
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M3 12h12M3 18h18" />
+					@elseif ( 'center' === $currentAlignHorizontal )
+						{{-- Align center icon --}}
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M6 12h12M3 18h18" />
+					@elseif ( 'right' === $currentAlignHorizontal )
+						{{-- Align right icon --}}
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M9 12h12M3 18h18" />
+					@else
+						{{-- Default/None icon --}}
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+					@endif
+				</svg>
+				<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+				</svg>
+			</button>
+
+			{{-- Alignment Dropdown --}}
+			<div
+				x-show="openDropdown === 'alignment'"
+				@click.outside="openDropdown = null"
+				x-transition
+				class="absolute left-0 top-full z-30 mt-1 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg"
+			>
+				{{-- Width Alignment Options --}}
+				<div class="px-3 py-2 text-xs font-semibold uppercase tracking-wide text-gray-400">
+					{{ __( 'Width' ) }}
+				</div>
+				<button
+					type="button"
+					wire:click.stop="$wire.$parent.updateBlockSetting( 'align', '' ); $wire.$parent.updateBlockSetting( 'align_horizontal', '' )"
+					@click="openDropdown = null"
+					class="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-blue-50
+						{{ '' === $currentAlign && '' === $currentAlignHorizontal ? 'bg-blue-50 font-semibold text-blue-700' : 'text-gray-700' }}"
+				>
+					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+					</svg>
+					<div>
+						<div class="font-medium">{{ __( 'None' ) }}</div>
+						<div class="text-xs text-gray-500">{{ __( 'Max 50rem wide' ) }}</div>
+					</div>
+				</button>
+				<button
+					type="button"
+					wire:click.stop="$wire.$parent.updateBlockSetting( 'align', 'wide' ); $wire.$parent.updateBlockSetting( 'align_horizontal', '' )"
+					@click="openDropdown = null"
+					class="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-blue-50
+						{{ 'wide' === $currentAlign ? 'bg-blue-50 font-semibold text-blue-700' : 'text-gray-700' }}"
+				>
+					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<rect x="2" y="6" width="20" height="12" stroke-width="2" rx="2" />
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 6V18M18 6V18" />
+					</svg>
+					<div>
+						<div class="font-medium">{{ __( 'Wide width' ) }}</div>
+						<div class="text-xs text-gray-500">{{ __( 'Max 75rem wide' ) }}</div>
+					</div>
+				</button>
+				<button
+					type="button"
+					wire:click.stop="$wire.$parent.updateBlockSetting( 'align', 'full' ); $wire.$parent.updateBlockSetting( 'align_horizontal', '' )"
+					@click="openDropdown = null"
+					class="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-blue-50
+						{{ 'full' === $currentAlign ? 'bg-blue-50 font-semibold text-blue-700' : 'text-gray-700' }}"
+				>
+					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<rect x="2" y="6" width="20" height="12" stroke-width="2" rx="2" fill="currentColor" opacity="0.1" />
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2 6h20M2 18h20" />
+					</svg>
+					<div class="font-medium">{{ __( 'Full width' ) }}</div>
+				</button>
+
+				{{-- Divider --}}
+				<div class="my-1 h-px bg-gray-200"></div>
+
+				{{-- Horizontal Alignment Options --}}
+				<button
+					type="button"
+					wire:click.stop="$wire.$parent.updateBlockSetting( 'align', '' ); $wire.$parent.updateBlockSetting( 'align_horizontal', 'left' )"
+					@click="openDropdown = null"
+					class="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-blue-50
+						{{ 'left' === $currentAlignHorizontal ? 'bg-blue-50 font-semibold text-blue-700' : 'text-gray-700' }}"
+				>
+					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M3 12h12M3 18h18" />
+					</svg>
+					<div class="font-medium">{{ __( 'Align left' ) }}</div>
+				</button>
+				<button
+					type="button"
+					wire:click.stop="$wire.$parent.updateBlockSetting( 'align', '' ); $wire.$parent.updateBlockSetting( 'align_horizontal', 'center' )"
+					@click="openDropdown = null"
+					class="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-blue-50
+						{{ 'center' === $currentAlignHorizontal ? 'bg-blue-50 font-semibold text-blue-700' : 'text-gray-700' }}"
+				>
+					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M6 12h12M3 18h18" />
+					</svg>
+					<div class="font-medium">{{ __( 'Align center' ) }}</div>
+				</button>
+				<button
+					type="button"
+					wire:click.stop="$wire.$parent.updateBlockSetting( 'align', '' ); $wire.$parent.updateBlockSetting( 'align_horizontal', 'right' )"
+					@click="openDropdown = null"
+					class="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-blue-50
+						{{ 'right' === $currentAlignHorizontal ? 'bg-blue-50 font-semibold text-blue-700' : 'text-gray-700' }}"
+				>
+					<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6h18M9 12h12M3 18h18" />
+					</svg>
+					<div class="font-medium">{{ __( 'Align right' ) }}</div>
+				</button>
+			</div>
+		</div>
 
 		{{-- Separator after alignment --}}
 		@if ( $hasRichText )

@@ -1669,6 +1669,12 @@ new class extends Component
 													$responsiveRowSpanEnabled = $currentSettings['responsive_row_span'] ?? false;
 													$shouldSkipField          = ! $responsiveRowSpanEnabled;
 												}
+
+												// Skip alignment settings if block has alignment toolbar
+												$blockToolbar = $blockConfig['toolbar'] ?? [];
+												if ( in_array( 'align', $blockToolbar, true ) && in_array( $settingKey, [ 'align', 'align_horizontal' ], true ) ) {
+													$shouldSkipField = true;
+												}
 											@endphp
 											@if ( ! $shouldSkipField )
 											<div>
