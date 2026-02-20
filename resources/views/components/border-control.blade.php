@@ -14,26 +14,26 @@
 <div
 	id="{{ $uuid }}"
 	x-data="{
-		width: '{{ $width }}',
-		widthUnit: '{{ $widthUnit }}',
-		style: '{{ $style }}',
-		color: '{{ $color }}',
-		perSide: {{ $perSide ? 'true' : 'false' }},
+		width: {{ Js::from( $width ) }},
+		widthUnit: {{ Js::from( $widthUnit ) }},
+		style: {{ Js::from( $style ) }},
+		color: {{ Js::from( $color ) }},
+		perSide: {{ Js::from( $perSide ) }},
 		sides: {
-			top:    { width: '{{ $width }}', widthUnit: '{{ $widthUnit }}', style: '{{ $style }}', color: '{{ $color }}' },
-			right:  { width: '{{ $width }}', widthUnit: '{{ $widthUnit }}', style: '{{ $style }}', color: '{{ $color }}' },
-			bottom: { width: '{{ $width }}', widthUnit: '{{ $widthUnit }}', style: '{{ $style }}', color: '{{ $color }}' },
-			left:   { width: '{{ $width }}', widthUnit: '{{ $widthUnit }}', style: '{{ $style }}', color: '{{ $color }}' }
+			top:    { width: {{ Js::from( $width ) }}, widthUnit: {{ Js::from( $widthUnit ) }}, style: {{ Js::from( $style ) }}, color: {{ Js::from( $color ) }} },
+			right:  { width: {{ Js::from( $width ) }}, widthUnit: {{ Js::from( $widthUnit ) }}, style: {{ Js::from( $style ) }}, color: {{ Js::from( $color ) }} },
+			bottom: { width: {{ Js::from( $width ) }}, widthUnit: {{ Js::from( $widthUnit ) }}, style: {{ Js::from( $style ) }}, color: {{ Js::from( $color ) }} },
+			left:   { width: {{ Js::from( $width ) }}, widthUnit: {{ Js::from( $widthUnit ) }}, style: {{ Js::from( $style ) }}, color: {{ Js::from( $color ) }} }
 		},
 		activeSide: 'top',
-		radius: '{{ $radius }}',
-		radiusUnit: '{{ $radiusUnit }}',
-		perCorner: {{ $perCorner ? 'true' : 'false' }},
+		radius: {{ Js::from( $radius ) }},
+		radiusUnit: {{ Js::from( $radiusUnit ) }},
+		perCorner: {{ Js::from( $perCorner ) }},
 		corners: {
-			topLeft:     { radius: '{{ $radius }}', radiusUnit: '{{ $radiusUnit }}' },
-			topRight:    { radius: '{{ $radius }}', radiusUnit: '{{ $radiusUnit }}' },
-			bottomRight: { radius: '{{ $radius }}', radiusUnit: '{{ $radiusUnit }}' },
-			bottomLeft:  { radius: '{{ $radius }}', radiusUnit: '{{ $radiusUnit }}' }
+			topLeft:     { radius: {{ Js::from( $radius ) }}, radiusUnit: {{ Js::from( $radiusUnit ) }} },
+			topRight:    { radius: {{ Js::from( $radius ) }}, radiusUnit: {{ Js::from( $radiusUnit ) }} },
+			bottomRight: { radius: {{ Js::from( $radius ) }}, radiusUnit: {{ Js::from( $radiusUnit ) }} },
+			bottomLeft:  { radius: {{ Js::from( $radius ) }}, radiusUnit: {{ Js::from( $radiusUnit ) }} }
 		},
 		togglePerSide() {
 			this.perSide = !this.perSide

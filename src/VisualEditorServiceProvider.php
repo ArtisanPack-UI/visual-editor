@@ -99,6 +99,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$mergedConfig    = array_replace_recursive( $packageDefaults, $userConfig );
 
 		config( [ 'artisanpack.visual-editor' => $mergedConfig ] );
+		config( [ 'artisanpack-visual-editor-temp' => null ] );
 	}
 
 	/**

@@ -13,13 +13,13 @@
 <div
 	id="{{ $uuid }}"
 	x-data="{
-		color: '{{ $value ?? '' }}',
+		color: {{ Js::from( $value ?? '' ) }},
 		tab: 'color',
 		showCustomInput: false,
-		customColor: '{{ $value ?? '' }}',
+		customColor: {{ Js::from( $value ? ltrim( $value, '#' ) : '' ) }},
 		select( value ) {
 			this.color = value
-			this.customColor = value
+			this.customColor = value.replace( /^#/, '' )
 			$dispatch( 've-color-change', { color: value } )
 		},
 		clear() {
@@ -28,13 +28,13 @@
 			$dispatch( 've-color-change', { color: '' } )
 		},
 		onCustomInput() {
-			if ( /^#[0-9A-Fa-f]{6}$/.test( this.customColor ) ) {
-				this.color = this.customColor
-				$dispatch( 've-color-change', { color: this.customColor } )
+			if ( /^[0-9A-Fa-f]{6}$/.test( this.customColor ) ) {
+				this.color = '#' + this.customColor
+				$dispatch( 've-color-change', { color: this.color } )
 			}
 		},
 		onNativePickerInput() {
-			this.customColor = this.color
+			this.customColor = this.color.replace( /^#/, '' )
 			$dispatch( 've-color-change', { color: this.color } )
 		}
 	}"

@@ -48,8 +48,8 @@ test( 'font size picker returns null for null value', function (): void {
 } );
 
 test( 'font size picker renders', function (): void {
-	$view = $this->blade( '<x-ve-font-size-picker />' );
-	expect( $view )->not->toBeNull();
+	$this->blade( '<x-ve-font-size-picker />' )
+		->assertSee( 'radiogroup', false );
 } );
 
 test( 'font size picker renders preset buttons', function (): void {

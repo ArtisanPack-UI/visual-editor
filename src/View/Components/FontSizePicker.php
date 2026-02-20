@@ -19,6 +19,7 @@ namespace ArtisanPackUI\VisualEditor\View\Components;
 
 use Closure;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Str;
 use Illuminate\View\Component;
 
 /**
@@ -81,7 +82,7 @@ class FontSizePicker extends Component
 		public ?string $hint = null,
 		public ?string $hintClass = 'fieldset-label',
 	) {
-		$this->uuid = 've-' . md5( serialize( $this ) ) . $id;
+		$this->uuid = 've-' . Str::random( 8 ) . $id;
 
 		if ( null === $this->presets ) {
 			$this->presets = self::DEFAULT_PRESETS;

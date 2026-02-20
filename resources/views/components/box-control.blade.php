@@ -13,11 +13,11 @@
 <div
 	id="{{ $uuid }}"
 	x-data="{
-		top: '{{ $top ?? '' }}',
-		right: '{{ $right ?? '' }}',
-		bottom: '{{ $bottom ?? '' }}',
-		left: '{{ $left ?? '' }}',
-		linked: {{ $linked ? 'true' : 'false' }},
+		top: {{ Js::from( $top ?? '' ) }},
+		right: {{ Js::from( $right ?? '' ) }},
+		bottom: {{ Js::from( $bottom ?? '' ) }},
+		left: {{ Js::from( $left ?? '' ) }},
+		linked: {{ Js::from( $linked ) }},
 		onInput( side, value ) {
 			this[side] = value
 			if ( this.linked ) {

@@ -19,6 +19,7 @@ namespace ArtisanPackUI\VisualEditor\View\Components;
 
 use Closure;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Str;
 use Illuminate\View\Component;
 
 /**
@@ -77,7 +78,7 @@ class AlignmentControl extends Component
 		public string $mode = 'horizontal',
 		public ?array $options = null,
 	) {
-		$this->uuid = 've-' . md5( serialize( $this ) ) . $id;
+		$this->uuid = 've-' . Str::random( 8 ) . $id;
 	}
 
 	/**

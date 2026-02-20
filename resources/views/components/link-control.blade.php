@@ -14,9 +14,9 @@
 	x-data="{
 		url: {{ Js::from( $url ?? '' ) }},
 		text: {{ Js::from( $text ?? '' ) }},
-		newTab: {{ $newTab ? 'true' : 'false' }},
-		nofollow: {{ $nofollow ? 'true' : 'false' }},
-		expanded: {{ $expanded ? 'true' : 'false' }},
+		newTab: {{ Js::from( $newTab ) }},
+		nofollow: {{ Js::from( $nofollow ) }},
+		expanded: {{ Js::from( $expanded ) }},
 		dispatch() {
 			$dispatch( 've-link-change', {
 				url: this.url,

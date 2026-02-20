@@ -19,6 +19,7 @@ namespace ArtisanPackUI\VisualEditor\View\Components;
 
 use Closure;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Str;
 use Illuminate\View\Component;
 
 /**
@@ -74,7 +75,7 @@ class UnitControl extends Component
 		public ?string $errorClass = 'text-error',
 		public ?bool $omitError = false,
 	) {
-		$this->uuid = 've-' . md5( serialize( $this ) ) . $id;
+		$this->uuid = 've-' . Str::random( 8 ) . $id;
 	}
 
 	/**

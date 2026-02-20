@@ -29,14 +29,17 @@ test( 'range control accepts custom props', function (): void {
 
 	expect( $component->label )->toBe( 'Opacity' );
 	expect( $component->value )->toBe( 50 );
+	expect( $component->min )->toBe( 0 );
+	expect( $component->max )->toBe( 100 );
+	expect( $component->step )->toBe( 5 );
 	expect( $component->defaultValue )->toBe( 100 );
 	expect( $component->showInput )->toBeFalse();
 	expect( $component->showReset )->toBeFalse();
 } );
 
 test( 'range control renders', function (): void {
-	$view = $this->blade( '<x-ve-range-control />' );
-	expect( $view )->not->toBeNull();
+	$this->blade( '<x-ve-range-control />' )
+		->assertSee( 've-range-change', false );
 } );
 
 test( 'range control renders with label', function (): void {

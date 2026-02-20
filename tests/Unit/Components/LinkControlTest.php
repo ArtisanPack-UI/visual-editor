@@ -32,8 +32,8 @@ test( 'link control accepts custom props', function (): void {
 } );
 
 test( 'link control renders', function (): void {
-	$view = $this->blade( '<x-ve-link-control />' );
-	expect( $view )->not->toBeNull();
+	$this->blade( '<x-ve-link-control />' )
+		->assertSee( 'Link options', false );
 } );
 
 test( 'link control renders with label', function (): void {

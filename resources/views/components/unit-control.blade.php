@@ -12,8 +12,8 @@
 <div
 	id="{{ $uuid }}"
 	x-data="{
-		value: {{ null !== $value ? $value : 'null' }},
-		unit: '{{ $unit }}',
+		value: {{ Js::from( $value ) }},
+		unit: {{ Js::from( $unit ) }},
 		dispatch() {
 			$dispatch( 've-unit-change', { value: this.value, unit: this.unit } )
 		}

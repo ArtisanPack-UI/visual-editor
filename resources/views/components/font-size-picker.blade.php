@@ -12,10 +12,10 @@
 <div
 	id="{{ $uuid }}"
 	x-data="{
-		value: '{{ $value ?? '' }}',
-		mode: '{{ null !== $activePreset() ? 'preset' : ( $value ? 'custom' : 'preset' ) }}',
+		value: {{ Js::from( $value ?? '' ) }},
+		mode: {{ Js::from( null !== $activePreset() ? 'preset' : ( $value ? 'custom' : 'preset' ) ) }},
 		customValue: '',
-		customUnit: '{{ $unit }}',
+		customUnit: {{ Js::from( $unit ) }},
 		presets: {{ Js::from( $presets ) }},
 		selectPreset( key ) {
 			this.value = this.presets[key]

@@ -29,8 +29,8 @@ test( 'angle control accepts custom props', function (): void {
 } );
 
 test( 'angle control renders', function (): void {
-	$view = $this->blade( '<x-ve-angle-control />' );
-	expect( $view )->not->toBeNull();
+	$this->blade( '<x-ve-angle-control />' )
+		->assertSee( 'slider', false );
 } );
 
 test( 'angle control renders with label', function (): void {
