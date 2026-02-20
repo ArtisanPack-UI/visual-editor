@@ -40,15 +40,37 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 * @var array<string, class-string>
 	 */
 	protected array $bladeComponents = [
-		'unit-control'      => Components\UnitControl::class,
-		'box-control'       => Components\BoxControl::class,
-		'alignment-control' => Components\AlignmentControl::class,
-		'color-system'      => Components\ColorSystem::class,
-		'link-control'      => Components\LinkControl::class,
-		'range-control'     => Components\RangeControl::class,
-		'angle-control'     => Components\AngleControl::class,
-		'font-size-picker'  => Components\FontSizePicker::class,
-		'border-control'    => Components\BorderControl::class,
+		// Phase 1: Primitive Controls
+		'unit-control'       => Components\UnitControl::class,
+		'box-control'        => Components\BoxControl::class,
+		'alignment-control'  => Components\AlignmentControl::class,
+		'color-system'       => Components\ColorSystem::class,
+		'link-control'       => Components\LinkControl::class,
+		'range-control'      => Components\RangeControl::class,
+		'angle-control'      => Components\AngleControl::class,
+		'font-size-picker'   => Components\FontSizePicker::class,
+		'border-control'     => Components\BorderControl::class,
+
+		'color-picker'       => Components\ColorPicker::class,
+
+		// Phase 2: Editor Infrastructure
+		'animate-presence'   => Components\AnimatePresence::class,
+		'aria-live-region'   => Components\AriaLiveRegion::class,
+		'focus-trap'         => Components\FocusTrap::class,
+		'keyboard-shortcuts' => Components\KeyboardShortcuts::class,
+		'popover'            => Components\Popover::class,
+		'panel'              => Components\Panel::class,
+		'panel-header'       => Components\PanelHeader::class,
+		'panel-body'         => Components\PanelBody::class,
+		'panel-row'          => Components\PanelRow::class,
+		'toolbar'            => Components\Toolbar::class,
+		'toolbar-group'      => Components\ToolbarGroup::class,
+		'toolbar-button'     => Components\ToolbarButton::class,
+		'toolbar-dropdown'   => Components\ToolbarDropdown::class,
+		'slot-container'     => Components\SlotContainer::class,
+		'fill'               => Components\Fill::class,
+		'drop-zone'          => Components\DropZone::class,
+		'selection-manager'  => Components\SelectionManager::class,
 	];
 
 	/**

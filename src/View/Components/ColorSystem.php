@@ -67,6 +67,7 @@ class ColorSystem extends Component
 	 * @param bool        $showCustom         Whether to show custom color input.
 	 * @param bool        $showContrast       Whether to show contrast indicator.
 	 * @param string      $contrastBackground Background color for contrast checking.
+	 * @param bool        $compact            Whether to show compact mode with popover.
 	 * @param string|null $hint               Hint text.
 	 * @param string|null $hintClass          CSS class for hint.
 	 */
@@ -78,6 +79,7 @@ class ColorSystem extends Component
 		public bool $showCustom = true,
 		public bool $showContrast = false,
 		public string $contrastBackground = '#ffffff',
+		public bool $compact = true,
 		public ?string $hint = null,
 		public ?string $hintClass = 'fieldset-label',
 	) {
