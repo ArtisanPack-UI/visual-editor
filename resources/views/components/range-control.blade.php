@@ -65,7 +65,7 @@
 				:max="$max"
 				:step="$step"
 				size="sm"
-				aria-valuenow="value"
+				x-bind:aria-valuenow="value"
 				:aria-valuemin="$min"
 				:aria-valuemax="$max"
 				:aria-label="$label ?? __( 'Range' )"

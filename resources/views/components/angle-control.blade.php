@@ -59,6 +59,8 @@
 		}
 	}"
 	{{ $attributes->merge( [ 'class' => 'flex flex-col gap-1' ] ) }}
+	x-on:angle-drag-move.window="onDrag( $event.detail )"
+	x-on:angle-drag-end.window="stopDrag()"
 >
 	@if ( $label )
 		<label class="text-xs font-medium text-gray-600">

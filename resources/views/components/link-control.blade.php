@@ -12,8 +12,8 @@
 <div
 	id="{{ $uuid }}"
 	x-data="{
-		url: '{{ $url ?? '' }}',
-		text: '{{ $text ?? '' }}',
+		url: {{ Js::from( $url ?? '' ) }},
+		text: {{ Js::from( $text ?? '' ) }},
 		newTab: {{ $newTab ? 'true' : 'false' }},
 		nofollow: {{ $nofollow ? 'true' : 'false' }},
 		expanded: {{ $expanded ? 'true' : 'false' }},
@@ -51,7 +51,7 @@
 			x-on:click="expanded = !expanded"
 			size="sm"
 			color="ghost"
-			:aria-expanded="'expanded'"
+			x-bind:aria-expanded="expanded ? 'true' : 'false'"
 			aria-controls="{{ $uuid }}-options"
 			:title="__( 'Link options' )"
 		>
