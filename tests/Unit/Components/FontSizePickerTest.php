@@ -54,7 +54,7 @@ test( 'font size picker renders', function (): void {
 
 test( 'font size picker renders preset buttons', function (): void {
 	$this->blade( '<x-ve-font-size-picker />' )
-		->assertSee( 'radiogroup', false );
+		->assertSeeInOrder( [ 'S', 'M', 'L', 'XL' ] );
 } );
 
 test( 'font size picker renders with label', function (): void {

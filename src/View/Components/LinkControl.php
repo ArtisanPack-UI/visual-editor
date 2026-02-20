@@ -67,7 +67,7 @@ class LinkControl extends Component
 		public ?string $hint = null,
 		public ?string $hintClass = 'fieldset-label',
 	) {
-		$this->uuid = 've-' . Str::random( 8 ) . $id;
+		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 	}
 
 	/**

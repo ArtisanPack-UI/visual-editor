@@ -78,7 +78,7 @@ class AlignmentControl extends Component
 		public string $mode = 'horizontal',
 		public ?array $options = null,
 	) {
-		$this->uuid = 've-' . Str::random( 8 ) . $id;
+		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 	}
 
 	/**

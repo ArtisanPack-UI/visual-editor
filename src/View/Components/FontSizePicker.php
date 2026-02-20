@@ -82,7 +82,7 @@ class FontSizePicker extends Component
 		public ?string $hint = null,
 		public ?string $hintClass = 'fieldset-label',
 	) {
-		$this->uuid = 've-' . Str::random( 8 ) . $id;
+		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
 		if ( null === $this->presets ) {
 			$this->presets = self::DEFAULT_PRESETS;

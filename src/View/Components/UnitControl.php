@@ -75,7 +75,7 @@ class UnitControl extends Component
 		public ?string $errorClass = 'text-error',
 		public ?bool $omitError = false,
 	) {
-		$this->uuid = 've-' . Str::random( 8 ) . $id;
+		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 	}
 
 	/**

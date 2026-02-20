@@ -124,27 +124,29 @@
 		aria-label="{{ $label }}"
 	@endif
 >
-	@if ( $label )
-		<div class="flex items-center justify-between">
+	<div class="flex items-center justify-between">
+		@if ( $label )
 			<label class="text-xs font-medium text-base-content/60">
 				{{ $label }}
 			</label>
+		@else
+			<span></span>
+		@endif
 
-			<button
-				type="button"
-				x-on:click="togglePerSide()"
-				:class="perSide ? 'text-primary bg-primary/10' : 'text-base-content/30 hover:text-base-content/60'"
-				class="p-1.5 rounded-md transition-colors"
-				aria-label="{{ __( 'Configure per side' ) }}"
-				:aria-pressed="perSide ? 'true' : 'false'"
-				title="{{ __( 'Per side' ) }}"
-			>
-				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
-				</svg>
-			</button>
-		</div>
-	@endif
+		<button
+			type="button"
+			x-on:click="togglePerSide()"
+			:class="perSide ? 'text-primary bg-primary/10' : 'text-base-content/30 hover:text-base-content/60'"
+			class="p-1.5 rounded-md transition-colors"
+			aria-label="{{ __( 'Configure per side' ) }}"
+			:aria-pressed="perSide ? 'true' : 'false'"
+			title="{{ __( 'Per side' ) }}"
+		>
+			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
+			</svg>
+		</button>
+	</div>
 
 	{{-- Uniform controls (shown when perSide is false) --}}
 	<div x-show="!perSide" class="flex flex-col gap-3">

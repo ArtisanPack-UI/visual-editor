@@ -87,7 +87,7 @@ class BorderControl extends Component
 		public ?string $hint = null,
 		public ?string $hintClass = 'fieldset-label',
 	) {
-		$this->uuid = 've-' . Str::random( 8 ) . $id;
+		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
 		if ( null === $this->styles ) {
 			$this->styles = self::DEFAULT_STYLES;

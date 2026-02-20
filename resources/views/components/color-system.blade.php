@@ -125,7 +125,7 @@
 						<div
 							class="h-7 w-7 rounded-full ring-1 ring-base-300 hover:ring-base-content/30 transition-all"
 							:class="showCustomInput && 'ring-2 ring-primary ring-offset-2 ring-offset-base-100'"
-							:style="customColor ? `background-color: ${customColor}` : 'background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red)'"
+							:style="customColor ? `background-color: #${customColor}` : 'background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red)'"
 						></div>
 						<input
 							type="color"
