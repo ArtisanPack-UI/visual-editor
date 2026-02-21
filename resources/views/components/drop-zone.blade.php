@@ -28,7 +28,13 @@
 		handleDragOver( event ) {
 			if ( {{ Js::from( $disabled ) }} ) return;
 			event.preventDefault();
-			event.dataTransfer.dropEffect = this.isValid ? 'move' : 'none';
+			if ( ! this.isValid ) {
+				event.dataTransfer.dropEffect = 'none';
+			} else if ( event.dataTransfer.types.includes( 'Files' ) ) {
+				event.dataTransfer.dropEffect = 'copy';
+			} else {
+				event.dataTransfer.dropEffect = 'move';
+			}
 
 			@if ( $showInsertionLine )
 				const rect = this.$el.getBoundingClientRect();
@@ -69,7 +75,7 @@
 						if ( acceptTypes.length > 0 ) {
 							const typeMatch = acceptTypes.some( ( type ) => {
 								if ( type.endsWith( '/*' ) ) {
-									return file.type.startsWith( type.replace( '/*', '' ) );
+									return file.type.startsWith( type.replace( '/*', '/' ) );
 								}
 								return file.type === type;
 							} );

@@ -177,14 +177,15 @@
 				}
 			} );
 
-			@if ( $enableClipboard )
-				{{-- Register keyboard shortcuts if the shortcuts store exists --}}
-				let shortcutsRegistered = false;
-				const registerShortcuts = () => {
-					if ( shortcutsRegistered ) return;
-					if ( ! Alpine.store( 'shortcuts' ) ) return;
-					shortcutsRegistered = true;
-					const sel = Alpine.store( 'selection' );
+			{{-- Register keyboard shortcuts if the shortcuts store exists --}}
+			let shortcutsRegistered = false;
+			const registerShortcuts = () => {
+				if ( shortcutsRegistered ) return;
+				if ( ! Alpine.store( 'shortcuts' ) ) return;
+				shortcutsRegistered = true;
+				const sel = Alpine.store( 'selection' );
+
+				@if ( $enableClipboard )
 					Alpine.store( 'shortcuts' ).register( 'selection/copy', {
 						keys: 'mod+c',
 						description: {!! Js::from( __( 'visual-editor::ve.copy_block' ) ) !!},
@@ -213,22 +214,23 @@
 						context: 'block',
 						callback: () => sel.duplicate(),
 					} );
-					Alpine.store( 'shortcuts' ).register( 'selection/deselect', {
-						keys: 'escape',
-						description: {!! Js::from( __( 'visual-editor::ve.deselect' ) ) !!},
-						category: 'selection',
-						context: 'block',
-						callback: () => sel.clearSelection(),
-					} );
-				};
+				@endif
 
-				{{-- Try immediately, and also listen for alpine:initialized (fires after all components are initialized) in case shortcuts store is created later --}}
-				if ( Alpine.store( 'shortcuts' ) ) {
-					registerShortcuts();
-				} else {
-					document.addEventListener( 'alpine:initialized', () => registerShortcuts(), { once: true } );
-				}
-			@endif
+				Alpine.store( 'shortcuts' ).register( 'selection/deselect', {
+					keys: 'escape',
+					description: {!! Js::from( __( 'visual-editor::ve.deselect' ) ) !!},
+					category: 'selection',
+					context: 'block',
+					callback: () => sel.clearSelection(),
+				} );
+			};
+
+			{{-- Try immediately, and also listen for alpine:initialized (fires after all components are initialized) in case shortcuts store is created later --}}
+			if ( Alpine.store( 'shortcuts' ) ) {
+				registerShortcuts();
+			} else {
+				document.addEventListener( 'alpine:initialized', () => registerShortcuts(), { once: true } );
+			}
 		} else {
 			const store = _existingStore;
 			store.multiSelect = {{ Js::from( $multiSelect ) }};
