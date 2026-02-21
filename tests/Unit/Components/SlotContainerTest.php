@@ -5,11 +5,15 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\View\Components\SlotContainer;
 
 test( 'slot container can be instantiated with defaults', function (): void {
-	$component = new SlotContainer();
+	$component = new SlotContainer( name: 'test-slot' );
 
 	expect( $component->uuid )->toStartWith( 've-' );
-	expect( $component->name )->toBe( '' );
+	expect( $component->name )->toBe( 'test-slot' );
 } );
+
+test( 'slot container throws exception when name is empty', function (): void {
+	new SlotContainer();
+} )->throws( InvalidArgumentException::class, 'SlotContainer requires a non-empty name for slot-fill matching.' );
 
 test( 'slot container accepts custom props', function (): void {
 	$component = new SlotContainer(
