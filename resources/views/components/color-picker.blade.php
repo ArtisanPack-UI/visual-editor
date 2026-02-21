@@ -28,7 +28,7 @@
 		x-on:touchstart.prevent="onCanvasTouchStart( $event )"
 		x-on:keydown="onCanvasKeyDown( $event )"
 	>
-		<canvas x-ref="canvas" class="w-full h-full block"></canvas>
+		<canvas x-ref="canvas" class="w-full h-full block" aria-hidden="true"></canvas>
 		{{-- Thumb --}}
 		<div
 			class="absolute w-4 h-4 rounded-full border-2 border-white shadow-[0_0_0_1px_rgba(0,0,0,0.3)] pointer-events-none -translate-x-1/2 -translate-y-1/2"
@@ -99,7 +99,6 @@
 		@if ( $showFormatToggle )
 			<select
 				x-model="format"
-				x-on:change="updateInputValue()"
 				class="select select-xs border-base-300 bg-base-100 text-xs font-medium min-h-0 h-7 pr-6"
 				aria-label="{{ __( 'visual-editor::ve.color_format' ) }}"
 			>
@@ -378,6 +377,7 @@
 					const canvas = this.$refs.canvas;
 					if ( ! canvas ) { return; }
 					const wrap = this.$refs.canvasWrap;
+					if ( ! wrap || 0 === wrap.offsetWidth || 0 === wrap.offsetHeight ) { return; }
 					canvas.width  = wrap.offsetWidth;
 					canvas.height = wrap.offsetHeight;
 					const ctx = canvas.getContext( '2d' );
@@ -427,13 +427,15 @@
 						ev.preventDefault();
 						this.updateCanvasFromEvent( ev.touches[0] );
 					};
-					const onEnd = () => {
+					const cleanup = () => {
 						this.dragging = null;
 						document.removeEventListener( 'touchmove', onMove );
-						document.removeEventListener( 'touchend', onEnd );
+						document.removeEventListener( 'touchend', cleanup );
+						document.removeEventListener( 'touchcancel', cleanup );
 					};
 					document.addEventListener( 'touchmove', onMove, { passive: false } );
-					document.addEventListener( 'touchend', onEnd );
+					document.addEventListener( 'touchend', cleanup );
+					document.addEventListener( 'touchcancel', cleanup );
 				},
 
 				updateCanvasFromEvent( e ) {
@@ -520,6 +522,7 @@
 						const hex = val.startsWith( '#' ) ? val : '#' + val;
 						if ( this.hexToRgb( hex ) ) {
 							this.updateFromHex( hex );
+							this.updateInputValue();
 							this.drawCanvas();
 							this.dispatchChange();
 							return;
@@ -534,6 +537,7 @@
 						const b = parseInt( rgbMatch[3], 10 );
 						if ( r <= 255 && g <= 255 && b <= 255 ) {
 							this.updateFromHex( this.rgbToHex( r, g, b ) );
+							this.updateInputValue();
 							this.drawCanvas();
 							this.dispatchChange();
 							return;
@@ -577,11 +581,11 @@
 
 				/* ---- Copy ---- */
 				copyToClipboard() {
-					if ( navigator.clipboard ) {
-						navigator.clipboard.writeText( this.inputValue );
-					}
-					this.copied = true;
-					setTimeout( () => { this.copied = false; }, 1500 );
+					if ( ! navigator.clipboard ) { return; }
+					navigator.clipboard.writeText( this.inputValue ).then( () => {
+						this.copied = true;
+						setTimeout( () => { this.copied = false; }, 1500 );
+					} ).catch( () => {} );
 				},
 			} ) );
 		}

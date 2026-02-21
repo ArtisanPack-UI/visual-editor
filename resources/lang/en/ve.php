@@ -80,8 +80,10 @@ return [
 	'gradient_options_coming'   => 'Gradient options coming soon.',
 
 	// Drop Zone
-	'files_dropped' => '1 file dropped|:count files dropped',
-	'block_dropped' => 'Block dropped',
+	'files_dropped'  => '1 file dropped|:count files dropped',
+	'block_dropped'  => 'Block dropped',
+	'html_dropped'   => 'HTML content dropped',
+	'files_rejected' => 'Dropped files were not accepted',
 
 	// Font Size Picker
 	'font_size'              => 'Font size',
@@ -119,5 +121,6 @@ return [
 	'cut_block'         => 'Cut block',
 	'paste_block'       => 'Paste block',
 	'duplicate_block'   => 'Duplicate block',
-	'deselect'          => 'Deselect',
+	'deselect'            => 'Deselect',
+	'selection_cleared'   => 'Selection cleared',
 ];

@@ -14,7 +14,8 @@
 	id="{{ $uuid }}"
 	x-data
 	x-init="
-		if ( ! Alpine.store( 'selection' ) ) {
+		const _existingStore = Alpine.store( 'selection' );
+		if ( ! _existingStore ) {
 			Alpine.store( 'selection', {
 				selected: [],
 				focused: null,
@@ -57,6 +58,7 @@
 				selectAll( blockIds ) {
 					if ( ! this.multiSelect ) return;
 					this.selected = [ ...blockIds ];
+					this.focused = blockIds.length > 0 ? blockIds[ 0 ] : null;
 					this._announce();
 					this._dispatch();
 				},
@@ -64,6 +66,9 @@
 				clearSelection() {
 					this.selected = [];
 					this.focused = null;
+					if ( Alpine.store( 'announcer' ) ) {
+						Alpine.store( 'announcer' ).announce( {!! Js::from( __( 'visual-editor::ve.selection_cleared' ) ) !!} );
+					}
 					this._dispatch();
 				},
 
@@ -131,7 +136,7 @@
 					if ( count === 0 ) return;
 					const msg = count === 1
 						? {!! Js::from( trans_choice( 'visual-editor::ve.blocks_selected', 1 ) ) !!}
-						: {!! Js::from( trans_choice( 'visual-editor::ve.blocks_selected', 2, [ 'count' => '__COUNT__' ] ) ) !!}.replace( '__COUNT__', count );
+						: {!! Js::from( trans_choice( 'visual-editor::ve.blocks_selected', 2, [ 'count' => '__COUNT__' ] ) ) !!}.replaceAll( '__COUNT__', count );
 					Alpine.store( 'announcer' ).announce( msg );
 				},
 
@@ -150,13 +155,10 @@
 						pasted: {!! Js::from( trans_choice( 'visual-editor::ve.blocks_pasted', 2, [ 'count' => '__COUNT__' ] ) ) !!},
 						duplicated: {!! Js::from( trans_choice( 'visual-editor::ve.blocks_duplicated', 2, [ 'count' => '__COUNT__' ] ) ) !!},
 					};
-					const msgs = {
-						copied: count === 1 ? singular.copied : plural.copied.replace( '__COUNT__', count ),
-						cut: count === 1 ? singular.cut : plural.cut.replace( '__COUNT__', count ),
-						pasted: count === 1 ? singular.pasted : plural.pasted.replace( '__COUNT__', count ),
-						duplicated: count === 1 ? singular.duplicated : plural.duplicated.replace( '__COUNT__', count ),
-					};
-					Alpine.store( 'announcer' ).announce( msgs[ action ] || '' );
+					const msg = 1 === count
+						? ( singular[ action ] || '' )
+						: ( plural[ action ] || '' ).replaceAll( '__COUNT__', count );
+					Alpine.store( 'announcer' ).announce( msg );
 				},
 
 				_dispatch() {
@@ -215,11 +217,23 @@
 					} );
 				};
 
-				{{-- Try immediately, and also listen for alpine:init in case shortcuts store is created later --}}
+				{{-- Try immediately, and also listen for alpine:initialized (fires after all components are initialized) in case shortcuts store is created later --}}
 				if ( Alpine.store( 'shortcuts' ) ) {
 					registerShortcuts();
 				} else {
 					document.addEventListener( 'alpine:initialized', () => registerShortcuts(), { once: true } );
+				}
+			@endif
+		} else {
+			const store = _existingStore;
+			store.multiSelect = {{ Js::from( $multiSelect ) }};
+			store.selectionClass = {{ Js::from( $selectionClass ) }};
+			store.multiSelectionClass = {{ Js::from( $multiSelectionClass ) }};
+			store.cutClass = {{ Js::from( $cutClass ) }};
+
+			@if ( $enableClipboard )
+				if ( typeof store.copy !== 'function' ) {
+					console.warn( 'SelectionManager: clipboard methods not registered on existing store. Ensure enableClipboard is consistent across instances.' );
 				}
 			@endif
 		}

@@ -93,9 +93,11 @@
 						if ( Alpine.store( 'announcer' ) ) {
 							const msg = validFiles.length === 1
 								? {!! Js::from( trans_choice( 'visual-editor::ve.files_dropped', 1 ) ) !!}
-								: {!! Js::from( trans_choice( 'visual-editor::ve.files_dropped', 2, [ 'count' => '__COUNT__' ] ) ) !!}.replace( '__COUNT__', validFiles.length );
+								: {!! Js::from( trans_choice( 'visual-editor::ve.files_dropped', 2, [ 'count' => '__COUNT__' ] ) ) !!}.replaceAll( '__COUNT__', validFiles.length );
 							Alpine.store( 'announcer' ).announce( msg );
 						}
+					} else if ( Alpine.store( 'announcer' ) ) {
+						Alpine.store( 'announcer' ).announce( {!! Js::from( __( 'visual-editor::ve.files_rejected' ) ) !!} );
 					}
 
 					this.insertPosition = null;
@@ -138,6 +140,10 @@
 						position: this.insertPosition,
 						zoneId: '{{ $uuid }}',
 					} );
+
+					if ( Alpine.store( 'announcer' ) ) {
+						Alpine.store( 'announcer' ).announce( {!! Js::from( __( 'visual-editor::ve.html_dropped' ) ) !!} );
+					}
 
 					this.insertPosition = null;
 					return;
@@ -197,7 +203,7 @@
 	<div class="p-4">
 		@if ( $emptyMessage && $slot->isEmpty() )
 			<div class="flex flex-col items-center justify-center py-8 text-base-content/40">
-				<svg class="w-8 h-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
+				<svg class="w-8 h-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
 				</svg>
 				<p class="text-sm">{{ $emptyMessage }}</p>

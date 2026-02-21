@@ -106,10 +106,20 @@
 
 						if ( ! mainKey ) return false;
 
-						const eventKey = event.key.toLowerCase();
+						let eventKey = event.key.toLowerCase();
+						const keyAliases = {
+							arrowup: 'up',
+							arrowdown: 'down',
+							arrowleft: 'left',
+							arrowright: 'right',
+						};
+						if ( keyAliases[ eventKey ] ) {
+							eventKey = keyAliases[ eventKey ];
+						}
 						if ( mainKey === eventKey ) return true;
-						if ( mainKey === 'delete' && ( eventKey === 'delete' || eventKey === 'backspace' ) ) return true;
+						if ( mainKey === 'esc' && eventKey === 'escape' ) return true;
 						if ( mainKey === 'escape' && eventKey === 'escape' ) return true;
+						if ( mainKey === 'delete' && ( eventKey === 'delete' || eventKey === 'backspace' ) ) return true;
 						if ( mainKey === '?' && eventKey === '?' ) return true;
 
 						return false;

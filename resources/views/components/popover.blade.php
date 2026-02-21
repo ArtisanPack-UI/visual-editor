@@ -16,6 +16,7 @@
 		open: false,
 		placement: {{ Js::from( $placement ) }},
 		currentPlacement: {{ Js::from( $placement ) }},
+		popoverWidth: {{ Js::from( $width ) }},
 		popoverStyle: { position: 'fixed', top: '-9999px', left: '-9999px', zIndex: 50 },
 		arrowStyle: {},
 		_resizeObserver: null,
@@ -55,7 +56,7 @@
 
 			const triggerRect = trigger.getBoundingClientRect();
 			const popoverRect = popover.getBoundingClientRect();
-			const offset = {{ $offset }};
+			const offset = {{ Js::from( $offset ) }};
 			const viewportW = window.innerWidth;
 			const viewportH = window.innerHeight;
 
@@ -143,12 +144,16 @@
 				if ( top + popoverRect.height > viewportH - pad ) top = viewportH - popoverRect.height - pad;
 			@endif
 
-			this.popoverStyle = {
+			const style = {
 				position: 'fixed',
 				top: top + 'px',
 				left: left + 'px',
 				zIndex: 50,
 			};
+			if ( this.popoverWidth ) {
+				style.width = this.popoverWidth;
+			}
+			this.popoverStyle = style;
 
 			{{-- Arrow positioning --}}
 			@if ( $arrow )
@@ -161,18 +166,18 @@
 				switch ( currentBase ) {
 					case 'bottom':
 						arrowTop = '-' + arrowSize + 'px';
-						arrowLeft = ( popoverRect.width / 2 - arrowSize ) + 'px';
+						arrowLeft = ( triggerRect.left + triggerRect.width / 2 - left - arrowSize ) + 'px';
 						break;
 					case 'top':
 						arrowTop = ( popoverRect.height - arrowSize ) + 'px';
-						arrowLeft = ( popoverRect.width / 2 - arrowSize ) + 'px';
+						arrowLeft = ( triggerRect.left + triggerRect.width / 2 - left - arrowSize ) + 'px';
 						break;
 					case 'left':
-						arrowTop = ( popoverRect.height / 2 - arrowSize ) + 'px';
+						arrowTop = ( triggerRect.top + triggerRect.height / 2 - top - arrowSize ) + 'px';
 						arrowLeft = ( popoverRect.width - arrowSize ) + 'px';
 						break;
 					case 'right':
-						arrowTop = ( popoverRect.height / 2 - arrowSize ) + 'px';
+						arrowTop = ( triggerRect.top + triggerRect.height / 2 - top - arrowSize ) + 'px';
 						arrowLeft = '-' + arrowSize + 'px';
 						break;
 				}
@@ -232,12 +237,12 @@
 		@elseif ( 'hover' === $triggerOn )
 			x-on:mouseenter="openPopover()"
 			x-on:mouseleave="close()"
-			x-on:focus="openPopover()"
-			x-on:blur="handleBlur( $event )"
+			x-on:focusin="openPopover()"
+			x-on:focusout="handleBlur( $event )"
 		@endif
 		:aria-expanded="open"
-		:aria-controls="open ? '{{ $uuid }}-content' : null"
-		aria-haspopup="true"
+		aria-controls="{{ $uuid }}-content"
+		aria-haspopup="dialog"
 	>
 		{{ $trigger ?? '' }}
 	</div>
@@ -265,7 +270,6 @@
 		@endif
 		:style="popoverStyle"
 		class="rounded-lg border border-base-300 bg-base-100 shadow-lg"
-		@if ( $width ) style="width: {{ $width }}" @endif
 		role="dialog"
 		:aria-hidden="! open"
 		@if ( $ariaLabel )
