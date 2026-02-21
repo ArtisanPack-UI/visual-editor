@@ -58,8 +58,9 @@
 
 				selectAll( blockIds ) {
 					if ( ! this.multiSelect ) return;
-					this.selected = [ ...blockIds ];
-					this.focused = blockIds.length > 0 ? blockIds[ 0 ] : null;
+					const ids = blockIds || [];
+					this.selected = [ ...ids ];
+					this.focused = ids.length > 0 ? ids[ 0 ] : null;
 					this._announce();
 					this._dispatch();
 				},
@@ -119,6 +120,7 @@
 						if ( this.clipboardAction === 'cut' ) {
 							this.clipboard = [];
 							this.clipboardAction = null;
+							this._dispatch();
 						}
 					},
 
