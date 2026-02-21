@@ -80,9 +80,8 @@ return [
 	'gradient_options_coming'   => 'Gradient options coming soon.',
 
 	// Drop Zone
-	'one_file_dropped' => '1 file dropped',
-	'files_dropped'    => 'files dropped',
-	'block_dropped'    => 'Block dropped',
+	'files_dropped' => '1 file dropped|:count files dropped',
+	'block_dropped' => 'Block dropped',
 
 	// Font Size Picker
 	'font_size'              => 'Font size',
@@ -111,16 +110,11 @@ return [
 	'range' => 'Range',
 
 	// Selection Manager
-	'block_selected'    => 'Block selected',
-	'blocks_selected'   => 'blocks selected',
-	'block_copied'      => 'Block copied',
-	'blocks_copied'     => 'blocks copied',
-	'block_cut'         => 'Block cut',
-	'blocks_cut'        => 'blocks cut',
-	'block_pasted'      => 'Block pasted',
-	'blocks_pasted'     => 'blocks pasted',
-	'block_duplicated'  => 'Block duplicated',
-	'blocks_duplicated' => 'blocks duplicated',
+	'blocks_selected'   => '1 block selected|:count blocks selected',
+	'blocks_copied'     => '1 block copied|:count blocks copied',
+	'blocks_cut'        => '1 block cut|:count blocks cut',
+	'blocks_pasted'     => '1 block pasted|:count blocks pasted',
+	'blocks_duplicated' => '1 block duplicated|:count blocks duplicated',
 	'copy_block'        => 'Copy block',
 	'cut_block'         => 'Cut block',
 	'paste_block'       => 'Paste block',

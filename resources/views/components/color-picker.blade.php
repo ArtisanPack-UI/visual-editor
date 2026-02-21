@@ -119,7 +119,7 @@
 				x-on:click="copyToClipboard()"
 				class="btn btn-xs btn-ghost min-h-0 h-7 w-7 p-0"
 				aria-label="{{ __( 'visual-editor::ve.copy_color_value' ) }}"
-				:title="copied ? '{{ __( 'visual-editor::ve.copied' ) }}' : '{{ __( 'visual-editor::ve.copy_to_clipboard' ) }}'"
+				:title="copied ? {!! Js::from( __( 'visual-editor::ve.copied' ) ) !!} : {!! Js::from( __( 'visual-editor::ve.copy_to_clipboard' ) ) !!}"
 			>
 				<template x-if="!copied">
 					<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -242,6 +242,7 @@
 </style>
 @endonce
 
+@once
 <script>
 	document.addEventListener( 'alpine:init', () => {
 		if ( Alpine.data && ! Alpine._veColorPickerRegistered ) {
@@ -586,3 +587,4 @@
 		}
 	} );
 </script>
+@endonce

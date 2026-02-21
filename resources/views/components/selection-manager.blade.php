@@ -95,7 +95,7 @@
 						this._dispatch();
 					},
 
-					paste() {
+					paste( silent = false ) {
 						if ( this.clipboard.length === 0 ) return;
 						const event = new CustomEvent( 've-clipboard-paste', {
 							bubbles: true,
@@ -106,7 +106,9 @@
 							}
 						} );
 						document.dispatchEvent( event );
-						this._announceClipboard( 'pasted' );
+						if ( ! silent ) {
+							this._announceClipboard( 'pasted' );
+						}
 
 						if ( this.clipboardAction === 'cut' ) {
 							this.clipboard = [];
@@ -118,7 +120,7 @@
 						if ( this.selected.length === 0 ) return;
 						this.clipboard = this.selected.map( ( id ) => ( { id } ) );
 						this.clipboardAction = 'copy';
-						this.paste();
+						this.paste( true );
 						this._announceClipboard( 'duplicated' );
 					},
 				@endif
@@ -128,19 +130,31 @@
 					const count = this.selected.length;
 					if ( count === 0 ) return;
 					const msg = count === 1
-						? {!! Js::from( __( 'visual-editor::ve.block_selected' ) ) !!}
-						: count + ' ' + {!! Js::from( __( 'visual-editor::ve.blocks_selected' ) ) !!};
+						? {!! Js::from( trans_choice( 'visual-editor::ve.blocks_selected', 1 ) ) !!}
+						: {!! Js::from( trans_choice( 'visual-editor::ve.blocks_selected', 2, [ 'count' => '__COUNT__' ] ) ) !!}.replace( '__COUNT__', count );
 					Alpine.store( 'announcer' ).announce( msg );
 				},
 
 				_announceClipboard( action ) {
 					if ( ! Alpine.store( 'announcer' ) ) return;
 					const count = this.clipboard.length;
+					const singular = {
+						copied: {!! Js::from( trans_choice( 'visual-editor::ve.blocks_copied', 1 ) ) !!},
+						cut: {!! Js::from( trans_choice( 'visual-editor::ve.blocks_cut', 1 ) ) !!},
+						pasted: {!! Js::from( trans_choice( 'visual-editor::ve.blocks_pasted', 1 ) ) !!},
+						duplicated: {!! Js::from( trans_choice( 'visual-editor::ve.blocks_duplicated', 1 ) ) !!},
+					};
+					const plural = {
+						copied: {!! Js::from( trans_choice( 'visual-editor::ve.blocks_copied', 2, [ 'count' => '__COUNT__' ] ) ) !!},
+						cut: {!! Js::from( trans_choice( 'visual-editor::ve.blocks_cut', 2, [ 'count' => '__COUNT__' ] ) ) !!},
+						pasted: {!! Js::from( trans_choice( 'visual-editor::ve.blocks_pasted', 2, [ 'count' => '__COUNT__' ] ) ) !!},
+						duplicated: {!! Js::from( trans_choice( 'visual-editor::ve.blocks_duplicated', 2, [ 'count' => '__COUNT__' ] ) ) !!},
+					};
 					const msgs = {
-						copied: count === 1 ? {!! Js::from( __( 'visual-editor::ve.block_copied' ) ) !!} : count + ' ' + {!! Js::from( __( 'visual-editor::ve.blocks_copied' ) ) !!},
-						cut: count === 1 ? {!! Js::from( __( 'visual-editor::ve.block_cut' ) ) !!} : count + ' ' + {!! Js::from( __( 'visual-editor::ve.blocks_cut' ) ) !!},
-						pasted: count === 1 ? {!! Js::from( __( 'visual-editor::ve.block_pasted' ) ) !!} : count + ' ' + {!! Js::from( __( 'visual-editor::ve.blocks_pasted' ) ) !!},
-						duplicated: count === 1 ? {!! Js::from( __( 'visual-editor::ve.block_duplicated' ) ) !!} : count + ' ' + {!! Js::from( __( 'visual-editor::ve.blocks_duplicated' ) ) !!},
+						copied: count === 1 ? singular.copied : plural.copied.replace( '__COUNT__', count ),
+						cut: count === 1 ? singular.cut : plural.cut.replace( '__COUNT__', count ),
+						pasted: count === 1 ? singular.pasted : plural.pasted.replace( '__COUNT__', count ),
+						duplicated: count === 1 ? singular.duplicated : plural.duplicated.replace( '__COUNT__', count ),
 					};
 					Alpine.store( 'announcer' ).announce( msgs[ action ] || '' );
 				},

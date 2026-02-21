@@ -179,7 +179,7 @@
 			:title="$title"
 		>
 			<div
-				x-data="{ categories: Alpine.store( 'shortcuts' )?.getByCategory() || {} }"
+				x-data="{ get categories() { return Alpine.store( 'shortcuts' )?.getByCategory() || {} } }"
 				class="space-y-4"
 			>
 				<template x-for="( shortcuts, category ) in categories" :key="category">

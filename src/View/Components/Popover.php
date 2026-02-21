@@ -81,6 +81,7 @@ class Popover extends Component
 	 * @param bool        $trapFocus          Whether to trap focus within popover.
 	 * @param string      $animation          Animation preset.
 	 * @param string|null $width              CSS width for the popover.
+	 * @param string|null $ariaLabel          Accessible label for the popover dialog.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -95,6 +96,7 @@ class Popover extends Component
 		public bool $trapFocus = false,
 		public string $animation = 'fade',
 		public ?string $width = null,
+		public ?string $ariaLabel = null,
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 

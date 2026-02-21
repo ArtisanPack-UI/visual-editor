@@ -189,7 +189,14 @@
 		},
 
 		startObserving() {
-			this._scrollHandler = () => this.position();
+			let rafId = null;
+			this._scrollHandler = () => {
+				if ( rafId ) return;
+				rafId = requestAnimationFrame( () => {
+					this.position();
+					rafId = null;
+				} );
+			};
 			window.addEventListener( 'scroll', this._scrollHandler, true );
 			window.addEventListener( 'resize', this._scrollHandler );
 
@@ -229,6 +236,7 @@
 			x-on:blur="handleBlur( $event )"
 		@endif
 		:aria-expanded="open"
+		:aria-controls="open ? '{{ $uuid }}-content' : null"
 		aria-haspopup="true"
 	>
 		{{ $trigger ?? '' }}
@@ -236,6 +244,7 @@
 
 	{{-- Popover Content --}}
 	<div
+		id="{{ $uuid }}-content"
 		x-ref="popover"
 		x-show="open"
 		x-transition:enter="ve-enter-{{ $animation }}"
@@ -248,9 +257,10 @@
 			x-on:click.outside="close()"
 		@endif
 		@if ( $closeOnEscape )
-			x-on:keydown.escape.window="close()"
+			x-on:keydown.escape.window="if ( open ) close()"
 		@endif
 		@if ( $trapFocus )
+			{{-- Requires @alpinejs/focus plugin to be installed and registered --}}
 			x-trap="open"
 		@endif
 		:style="popoverStyle"
@@ -258,6 +268,9 @@
 		@if ( $width ) style="width: {{ $width }}" @endif
 		role="dialog"
 		:aria-hidden="! open"
+		@if ( $ariaLabel )
+			aria-label="{{ $ariaLabel }}"
+		@endif
 	>
 		@if ( $arrow )
 			<div

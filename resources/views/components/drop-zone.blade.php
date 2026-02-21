@@ -83,7 +83,7 @@
 					} );
 
 					if ( validFiles.length > 0 ) {
-						$dispatch( 've-drop-zone-drop', {
+						this.$dispatch( 've-drop-zone-drop', {
 							type: 'file',
 							files: validFiles,
 							position: this.insertPosition,
@@ -92,8 +92,8 @@
 
 						if ( Alpine.store( 'announcer' ) ) {
 							const msg = validFiles.length === 1
-								? {!! Js::from( __( 'visual-editor::ve.one_file_dropped' ) ) !!}
-								: validFiles.length + ' ' + {!! Js::from( __( 'visual-editor::ve.files_dropped' ) ) !!};
+								? {!! Js::from( trans_choice( 'visual-editor::ve.files_dropped', 1 ) ) !!}
+								: {!! Js::from( trans_choice( 'visual-editor::ve.files_dropped', 2, [ 'count' => '__COUNT__' ] ) ) !!}.replace( '__COUNT__', validFiles.length );
 							Alpine.store( 'announcer' ).announce( msg );
 						}
 					}
@@ -109,7 +109,7 @@
 				if ( blockData ) {
 					try {
 						const block = JSON.parse( blockData );
-						$dispatch( 've-drop-zone-drop', {
+						this.$dispatch( 've-drop-zone-drop', {
 							type: 'block',
 							data: block,
 							position: this.insertPosition,
@@ -132,7 +132,7 @@
 			@if ( $allowHtml )
 				const html = event.dataTransfer.getData( 'text/html' );
 				if ( html ) {
-					$dispatch( 've-drop-zone-drop', {
+					this.$dispatch( 've-drop-zone-drop', {
 						type: 'html',
 						data: html,
 						position: this.insertPosition,
@@ -174,24 +174,28 @@
 	}"
 	@if ( $label )
 		aria-label="{{ $label }}"
+		role="region"
+	@else
+		role="group"
 	@endif
-	role="region"
 >
 	{{-- Insertion line indicator --}}
 	@if ( $showInsertionLine )
 		<div
 			x-show="isDragging && isValid && insertPosition === 'above'"
 			class="absolute top-0 left-2 right-2 h-0.5 bg-primary rounded -translate-y-px"
+			aria-hidden="true"
 		></div>
 		<div
 			x-show="isDragging && isValid && insertPosition === 'below'"
 			class="absolute bottom-0 left-2 right-2 h-0.5 bg-primary rounded translate-y-px"
+			aria-hidden="true"
 		></div>
 	@endif
 
 	{{-- Content --}}
 	<div class="p-4">
-		@if ( $emptyMessage && ! $slot->isNotEmpty() )
+		@if ( $emptyMessage && $slot->isEmpty() )
 			<div class="flex flex-col items-center justify-center py-8 text-base-content/40">
 				<svg class="w-8 h-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />

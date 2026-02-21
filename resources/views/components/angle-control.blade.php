@@ -80,7 +80,7 @@
 			:aria-valuenow="angle"
 			aria-valuemin="{{ $min }}"
 			aria-valuemax="{{ $max }}"
-			:aria-label="'{{ $label ?? __( 'visual-editor::ve.angle' ) }}'"
+			aria-label="{{ $label ?? __( 'visual-editor::ve.angle' ) }}"
 			tabindex="0"
 			x-on:mousedown.prevent="startDrag( $event )"
 			x-on:touchstart.prevent="startDrag( $event )"
