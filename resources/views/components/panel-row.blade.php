@@ -20,7 +20,10 @@
 	@else
 		<div class="flex items-center justify-between gap-4">
 			@if ( $label )
-				<label class="text-xs font-medium text-base-content/60 shrink-0">
+				<label
+					class="text-xs font-medium text-base-content/60 shrink-0"
+					@if ( $for ) for="{{ $for }}" @endif
+				>
 					{{ $label }}
 				</label>
 			@endif

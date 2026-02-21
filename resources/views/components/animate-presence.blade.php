@@ -96,7 +96,7 @@
 	@else
 		<div
 			x-show="visible"
-			style="--tw-duration: {{ $duration }}ms"
+			style="transition-duration: {{ $duration }}ms"
 			x-transition:enter="{{ $transitionClasses['enter'] }}"
 			x-transition:enter-start="{{ $transitionClasses['enter-start'] }}"
 			x-transition:enter-end="{{ $transitionClasses['enter-end'] }}"
@@ -108,3 +108,13 @@
 		</div>
 	@endif
 </div>
+
+@once
+<style>
+	@media ( prefers-reduced-motion: reduce ) {
+		[data-ve-animate] > div {
+			transition-duration: 0ms !important;
+		}
+	}
+</style>
+@endonce

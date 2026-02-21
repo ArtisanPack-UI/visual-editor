@@ -78,7 +78,7 @@ class KeyboardShortcuts extends Component
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
 		if ( null === $this->title ) {
-			$this->title = __( 'Keyboard Shortcuts' );
+			$this->title = __( 'visual-editor::ve.keyboard_shortcuts' );
 		}
 	}
 

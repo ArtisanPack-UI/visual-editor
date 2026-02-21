@@ -13,7 +13,6 @@
 <div
 	id="{{ $uuid }}"
 	x-data="veColorPicker( {{ Js::from( $value ) }}, {{ Js::from( $showAlpha ) }} )"
-	x-init="init()"
 	{{ $attributes->merge( [ 'class' => 'flex flex-col gap-3', 'style' => 'width: ' . $width ] ) }}
 >
 	{{-- Saturation/Brightness Canvas --}}
@@ -22,8 +21,8 @@
 		style="height: 150px"
 		x-ref="canvasWrap"
 		role="application"
-		aria-label="{{ __( 'Color saturation and brightness picker' ) }}"
-		aria-roledescription="{{ __( 'Two-dimensional slider' ) }}"
+		aria-label="{{ __( 'visual-editor::ve.color_saturation_brightness_picker' ) }}"
+		aria-roledescription="{{ __( 'visual-editor::ve.two_dimensional_slider' ) }}"
 		tabindex="0"
 		x-on:mousedown.prevent="onCanvasMouseDown( $event )"
 		x-on:touchstart.prevent="onCanvasTouchStart( $event )"
@@ -53,7 +52,7 @@
 			x-model.number="hue"
 			x-on:input="onHueChange()"
 			class="ve-color-picker-hue-slider w-full h-3 rounded-full appearance-none cursor-pointer"
-			aria-label="{{ __( 'Hue' ) }}"
+			aria-label="{{ __( 'visual-editor::ve.hue' ) }}"
 			:aria-valuenow="hue"
 			aria-valuemin="0"
 			aria-valuemax="360"
@@ -86,7 +85,7 @@
 					x-on:input="onAlphaChange()"
 					class="ve-color-picker-alpha-slider relative w-full h-3 rounded-full appearance-none cursor-pointer"
 					:style="`--picker-alpha-color: ${hex}`"
-					aria-label="{{ __( 'Opacity' ) }}"
+					aria-label="{{ __( 'visual-editor::ve.opacity' ) }}"
 					:aria-valuenow="alphaPercent"
 					aria-valuemin="0"
 					aria-valuemax="100"
@@ -102,7 +101,7 @@
 				x-model="format"
 				x-on:change="updateInputValue()"
 				class="select select-xs border-base-300 bg-base-100 text-xs font-medium min-h-0 h-7 pr-6"
-				aria-label="{{ __( 'Color format' ) }}"
+				aria-label="{{ __( 'visual-editor::ve.color_format' ) }}"
 			>
 				<option value="hex">Hex</option>
 				<option value="rgb">RGB</option>
@@ -119,8 +118,8 @@
 				type="button"
 				x-on:click="copyToClipboard()"
 				class="btn btn-xs btn-ghost min-h-0 h-7 w-7 p-0"
-				aria-label="{{ __( 'Copy color value' ) }}"
-				:title="copied ? '{{ __( 'Copied!' ) }}' : '{{ __( 'Copy to clipboard' ) }}'"
+				aria-label="{{ __( 'visual-editor::ve.copy_color_value' ) }}"
+				:title="copied ? '{{ __( 'visual-editor::ve.copied' ) }}' : '{{ __( 'visual-editor::ve.copy_to_clipboard' ) }}'"
 			>
 				<template x-if="!copied">
 					<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -149,7 +148,7 @@
 			x-on:change="onInputChange()"
 			x-on:keydown.enter.prevent="onInputChange()"
 			class="input input-xs input-bordered w-full font-mono text-xs min-h-0 h-7"
-			aria-label="{{ __( 'Color value' ) }}"
+			aria-label="{{ __( 'visual-editor::ve.color_value' ) }}"
 		/>
 	</div>
 
@@ -158,6 +157,7 @@
 	@endif
 </div>
 
+@once
 <style>
 	/* Hue slider - rainbow gradient */
 	.ve-color-picker-hue-slider {
@@ -240,6 +240,7 @@
 		background: transparent;
 	}
 </style>
+@endonce
 
 <script>
 	document.addEventListener( 'alpine:init', () => {
@@ -257,6 +258,7 @@
 				inputValue: '',
 				dragging: null,
 				copied: false,
+				_resizeObserver: null,
 
 				init() {
 					this.updateFromHex( this.hex );
@@ -266,13 +268,20 @@
 					this.$watch( 'format', () => this.updateInputValue() );
 
 					/* Redraw canvas when it becomes visible (e.g. inside a hidden dropdown) */
-					const observer = new ResizeObserver( () => {
+					this._resizeObserver = new ResizeObserver( () => {
 						const wrap = this.$refs.canvasWrap;
 						if ( wrap && wrap.offsetWidth > 0 && wrap.offsetHeight > 0 ) {
 							this.drawCanvas();
 						}
 					} );
-					observer.observe( this.$refs.canvasWrap );
+					this._resizeObserver.observe( this.$refs.canvasWrap );
+				},
+
+				destroy() {
+					if ( this._resizeObserver ) {
+						this._resizeObserver.disconnect();
+						this._resizeObserver = null;
+					}
 				},
 
 				/* ---- Color Math ---- */

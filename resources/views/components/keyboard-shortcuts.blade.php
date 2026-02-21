@@ -207,14 +207,14 @@
 
 				<template x-if="Object.keys( categories ).length === 0">
 					<p class="text-sm text-base-content/50 text-center py-4">
-						{{ __( 'No shortcuts registered.' ) }}
+						{{ __( 'visual-editor::ve.no_shortcuts_registered' ) }}
 					</p>
 				</template>
 			</div>
 
 			<x-slot:actions>
 				<x-artisanpack-button x-on:click="showHelp = false">
-					{{ __( 'Close' ) }}
+					{{ __( 'visual-editor::ve.close' ) }}
 				</x-artisanpack-button>
 			</x-slot:actions>
 		</x-artisanpack-modal>

@@ -30,9 +30,12 @@
 >
 	@if ( $compact )
 		{{-- Compact trigger --}}
-		<button
-			type="button"
+		<div
+			role="button"
+			tabindex="0"
 			x-on:click="open = ! open"
+			x-on:keydown.enter="open = ! open"
+			x-on:keydown.space.prevent="open = ! open"
 			:aria-expanded="open"
 			class="flex items-center justify-between gap-3 w-full cursor-pointer border border-base-300 rounded-lg px-3 py-2 hover:bg-base-200/50 transition-colors"
 		>
@@ -45,18 +48,17 @@
 					:class="! color && 'bg-[repeating-conic-gradient(#d1d5db_0%_25%,transparent_0%_50%)] bg-[length:8px_8px]'"
 					:style="color ? 'background-color: ' + color : ''"
 				></div>
-				<span
-					role="button"
-					tabindex="0"
+				<button
+					type="button"
 					x-show="color"
 					x-on:click.stop="clear()"
 					x-on:keydown.enter.stop="clear()"
 					x-on:keydown.space.stop.prevent="clear()"
 					class="text-base-content/40 hover:text-base-content/70 transition-colors text-lg leading-none cursor-pointer"
-					aria-label="{{ __( 'Clear color' ) }}"
-				>&ndash;</span>
+					aria-label="{{ __( 'visual-editor::ve.clear_color' ) }}"
+				>&ndash;</button>
 			</div>
-		</button>
+		</div>
 
 		{{-- Dropdown panel --}}
 		<div
@@ -89,7 +91,7 @@
 		@endphp
 		@if ( null !== $contrastResult )
 			<x-artisanpack-badge
-				:value="$contrastResult ? __( 'Pass' ) : __( 'Fail' )"
+				:value="$contrastResult ? __( 'visual-editor::ve.pass' ) : __( 'visual-editor::ve.fail' )"
 				:color="$contrastResult ? 'success' : 'error'"
 				size="sm"
 			/>

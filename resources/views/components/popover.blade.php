@@ -254,7 +254,8 @@
 			x-trap="open"
 		@endif
 		:style="popoverStyle"
-		class="rounded-lg border border-base-300 bg-base-100 shadow-lg {{ $width ? 'w-[' . $width . ']' : '' }}"
+		class="rounded-lg border border-base-300 bg-base-100 shadow-lg"
+		@if ( $width ) style="width: {{ $width }}" @endif
 		role="dialog"
 		:aria-hidden="! open"
 	>

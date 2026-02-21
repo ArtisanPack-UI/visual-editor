@@ -48,12 +48,14 @@ class PanelRow extends Component
 	 *
 	 * @param string|null $id        Optional custom ID.
 	 * @param string|null $label     Label text for the control.
+	 * @param string|null $for       The ID of the associated form control.
 	 * @param string|null $help      Help text below the control.
 	 * @param bool        $fullWidth Whether the control takes full width (no label).
 	 */
 	public function __construct(
 		public ?string $id = null,
 		public ?string $label = null,
+		public ?string $for = null,
 		public ?string $help = null,
 		public bool $fullWidth = false,
 	) {

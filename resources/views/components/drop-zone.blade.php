@@ -92,8 +92,8 @@
 
 						if ( Alpine.store( 'announcer' ) ) {
 							const msg = validFiles.length === 1
-								? '{{ __( '1 file dropped' ) }}'
-								: validFiles.length + ' {{ __( 'files dropped' ) }}';
+								? {!! Js::from( __( 'visual-editor::ve.one_file_dropped' ) ) !!}
+								: validFiles.length + ' ' + {!! Js::from( __( 'visual-editor::ve.files_dropped' ) ) !!};
 							Alpine.store( 'announcer' ).announce( msg );
 						}
 					}
@@ -117,7 +117,7 @@
 						} );
 
 						if ( Alpine.store( 'announcer' ) ) {
-							Alpine.store( 'announcer' ).announce( '{{ __( 'Block dropped' ) }}' );
+							Alpine.store( 'announcer' ).announce( {!! Js::from( __( 'visual-editor::ve.block_dropped' ) ) !!} );
 						}
 					} catch ( e ) {
 						console.error( 'Invalid block data', e );
@@ -148,16 +148,17 @@
 		},
 
 		validateDrop( event ) {
-			this.isValid = true;
+			const types = event.dataTransfer.types;
+			this.isValid = false;
 
-			if ( event.dataTransfer.types.includes( 'Files' ) && ! {{ Js::from( $allowFiles ) }} ) {
-				this.isValid = false;
+			if ( types.includes( 'Files' ) && {{ Js::from( $allowFiles ) }} ) {
+				this.isValid = true;
 			}
-			if ( event.dataTransfer.types.includes( 'application/ve-block' ) && ! {{ Js::from( $allowBlocks ) }} ) {
-				this.isValid = false;
+			if ( types.includes( 'application/ve-block' ) && {{ Js::from( $allowBlocks ) }} ) {
+				this.isValid = true;
 			}
-			if ( event.dataTransfer.types.includes( 'text/html' ) && ! {{ Js::from( $allowHtml ) }} ) {
-				this.isValid = false;
+			if ( types.includes( 'text/html' ) && {{ Js::from( $allowHtml ) }} ) {
+				this.isValid = true;
 			}
 		}
 	}"

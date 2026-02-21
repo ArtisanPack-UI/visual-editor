@@ -103,6 +103,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	{
 		$this->mergeConfiguration();
 		$this->publishConfiguration();
+		$this->registerTranslations();
 		$this->registerViews();
 		$this->registerBladeComponents();
 	}
@@ -137,6 +138,24 @@ class VisualEditorServiceProvider extends ServiceProvider
 			$this->publishes( [
 				__DIR__ . '/../config/visual-editor.php' => config_path( 'artisanpack/visual-editor.php' ),
 			], 'artisanpack-visual-editor-config' );
+		}
+	}
+
+	/**
+	 * Register the package translations.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerTranslations(): void
+	{
+		$this->loadTranslationsFrom( __DIR__ . '/../resources/lang', 'visual-editor' );
+
+		if ( $this->app->runningInConsole() ) {
+			$this->publishes( [
+				__DIR__ . '/../resources/lang' => $this->app->langPath( 'vendor/visual-editor' ),
+			], 'visual-editor-lang' );
 		}
 	}
 

@@ -40,7 +40,7 @@
 				:max="$max"
 				:step="$step"
 				size="sm"
-				:aria-label="$label ? $label . ' ' . __( 'value' ) : __( 'Value' )"
+				:aria-label="$label ? $label . ' ' . __( 'visual-editor::ve.value_lowercase' ) : __( 'visual-editor::ve.value' )"
 			/>
 		</div>
 
@@ -52,7 +52,7 @@
 				x-model="unit"
 				x-on:change="dispatch()"
 				size="sm"
-				:aria-label="__( 'Unit' )"
+				:aria-label="__( 'visual-editor::ve.unit' )"
 			/>
 		</div>
 	</div>

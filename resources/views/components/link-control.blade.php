@@ -41,9 +41,9 @@
 				type="url"
 				x-model="url"
 				x-on:input="dispatch()"
-				:placeholder="__( 'https://example.com' )"
+				:placeholder="__( 'visual-editor::ve.url_placeholder' )"
 				size="sm"
-				:aria-label="__( 'URL' )"
+				:aria-label="__( 'visual-editor::ve.url' )"
 			/>
 		</div>
 
@@ -53,7 +53,7 @@
 			color="ghost"
 			x-bind:aria-expanded="expanded ? 'true' : 'false'"
 			aria-controls="{{ $uuid }}-options"
-			:title="__( 'Link options' )"
+			:title="__( 'visual-editor::ve.link_options' )"
 		>
 			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -72,21 +72,21 @@
 		<x-artisanpack-input
 			x-model="text"
 			x-on:input="dispatch()"
-			:label="__( 'Link text' )"
-			:placeholder="__( 'Enter link text...' )"
+			:label="__( 'visual-editor::ve.link_text' )"
+			:placeholder="__( 'visual-editor::ve.enter_link_text' )"
 			size="sm"
 		/>
 
 		<x-artisanpack-toggle
 			x-model="newTab"
 			x-on:change="dispatch()"
-			:label="__( 'Open in new tab' )"
+			:label="__( 'visual-editor::ve.open_in_new_tab' )"
 		/>
 
 		<x-artisanpack-toggle
 			x-model="nofollow"
 			x-on:change="dispatch()"
-			:label="__( 'Add nofollow' )"
+			:label="__( 'visual-editor::ve.add_nofollow' )"
 		/>
 	</div>
 

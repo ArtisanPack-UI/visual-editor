@@ -17,7 +17,7 @@
 		:class="tab === 'color' ? 'border-primary text-primary font-medium' : 'border-transparent text-base-content/50 hover:text-base-content/70'"
 		class="px-4 py-2 text-sm border-b-2 -mb-px transition-colors"
 	>
-		{{ __( 'Color' ) }}
+		{{ __( 'visual-editor::ve.color' ) }}
 	</button>
 	<button
 		type="button"
@@ -25,7 +25,7 @@
 		:class="tab === 'gradient' ? 'border-primary text-primary font-medium' : 'border-transparent text-base-content/50 hover:text-base-content/70'"
 		class="px-4 py-2 text-sm border-b-2 -mb-px transition-colors"
 	>
-		{{ __( 'Gradient' ) }}
+		{{ __( 'visual-editor::ve.gradient' ) }}
 	</button>
 </div>
 
@@ -38,18 +38,18 @@
 			:class="!color && 'bg-[repeating-conic-gradient(#d1d5db_0%_25%,transparent_0%_50%)] bg-[length:12px_12px]'"
 			:style="color ? `background-color: ${color}` : ''"
 		></div>
-		<div class="text-sm text-base-content/60" x-text="color || '{{ __( 'No color selected' ) }}'"></div>
+		<div class="text-sm text-base-content/60" x-text="color || '{{ __( 'visual-editor::ve.no_color_selected' ) }}'"></div>
 	</div>
 
 	{{-- Theme Palette --}}
 	<div>
 		<div class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-2">
-			{{ __( 'Theme' ) }}
+			{{ __( 'visual-editor::ve.theme' ) }}
 		</div>
 		<div
 			class="flex flex-wrap gap-2"
 			role="listbox"
-			aria-label="{{ $label ?? __( 'Color palette' ) }}"
+			aria-label="{{ $label ?? __( 'visual-editor::ve.color_palette' ) }}"
 		>
 			@foreach ( $palette as $paletteColor )
 				<button
@@ -60,7 +60,7 @@
 					style="background-color: {{ $paletteColor }}"
 					role="option"
 					:aria-selected="color === '{{ $paletteColor }}' ? 'true' : 'false'"
-					aria-label="{{ __( 'Select color' ) }} {{ $paletteColor }}"
+					aria-label="{{ __( 'visual-editor::ve.select_color' ) }} {{ $paletteColor }}"
 				>
 					<span
 						x-show="color === '{{ $paletteColor }}'"
@@ -79,7 +79,7 @@
 		{{-- Custom Color Picker --}}
 		<div>
 			<div class="text-[10px] font-semibold uppercase tracking-wider text-base-content/40 mb-2">
-				{{ __( 'Custom' ) }}
+				{{ __( 'visual-editor::ve.custom' ) }}
 			</div>
 
 			{{-- Swatch button that toggles the full picker --}}
@@ -89,7 +89,7 @@
 				class="h-7 w-7 rounded-full ring-1 transition-all cursor-pointer"
 				:class="showPicker ? 'ring-2 ring-primary ring-offset-2 ring-offset-base-100' : 'ring-base-300 hover:ring-base-content/30'"
 				:style="color ? `background-color: ${color}` : 'background: conic-gradient(red, yellow, lime, aqua, blue, magenta, red)'"
-				aria-label="{{ __( 'Open custom color picker' ) }}"
+				aria-label="{{ __( 'visual-editor::ve.open_custom_color_picker' ) }}"
 			></button>
 
 			{{-- Full color picker (shown when swatch is clicked) --}}
@@ -110,12 +110,12 @@
 			x-show="color"
 			class="text-sm text-base-content/50 hover:text-base-content/80 transition-colors"
 		>
-			{{ __( 'Clear' ) }}
+			{{ __( 'visual-editor::ve.clear' ) }}
 		</button>
 	</div>
 </div>
 
 {{-- Gradient Tab Content (placeholder for future) --}}
 <div x-show="tab === 'gradient'" class="py-6 text-center text-sm text-base-content/40">
-	{{ __( 'Gradient options coming soon.' ) }}
+	{{ __( 'visual-editor::ve.gradient_options_coming' ) }}
 </div>

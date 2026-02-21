@@ -128,8 +128,8 @@
 					const count = this.selected.length;
 					if ( count === 0 ) return;
 					const msg = count === 1
-						? '{{ __( 'Block selected' ) }}'
-						: count + ' {{ __( 'blocks selected' ) }}';
+						? {!! Js::from( __( 'visual-editor::ve.block_selected' ) ) !!}
+						: count + ' ' + {!! Js::from( __( 'visual-editor::ve.blocks_selected' ) ) !!};
 					Alpine.store( 'announcer' ).announce( msg );
 				},
 
@@ -137,10 +137,10 @@
 					if ( ! Alpine.store( 'announcer' ) ) return;
 					const count = this.clipboard.length;
 					const msgs = {
-						copied: count === 1 ? '{{ __( 'Block copied' ) }}' : count + ' {{ __( 'blocks copied' ) }}',
-						cut: count === 1 ? '{{ __( 'Block cut' ) }}' : count + ' {{ __( 'blocks cut' ) }}',
-						pasted: count === 1 ? '{{ __( 'Block pasted' ) }}' : count + ' {{ __( 'blocks pasted' ) }}',
-						duplicated: count === 1 ? '{{ __( 'Block duplicated' ) }}' : count + ' {{ __( 'blocks duplicated' ) }}',
+						copied: count === 1 ? {!! Js::from( __( 'visual-editor::ve.block_copied' ) ) !!} : count + ' ' + {!! Js::from( __( 'visual-editor::ve.blocks_copied' ) ) !!},
+						cut: count === 1 ? {!! Js::from( __( 'visual-editor::ve.block_cut' ) ) !!} : count + ' ' + {!! Js::from( __( 'visual-editor::ve.blocks_cut' ) ) !!},
+						pasted: count === 1 ? {!! Js::from( __( 'visual-editor::ve.block_pasted' ) ) !!} : count + ' ' + {!! Js::from( __( 'visual-editor::ve.blocks_pasted' ) ) !!},
+						duplicated: count === 1 ? {!! Js::from( __( 'visual-editor::ve.block_duplicated' ) ) !!} : count + ' ' + {!! Js::from( __( 'visual-editor::ve.blocks_duplicated' ) ) !!},
 					};
 					Alpine.store( 'announcer' ).announce( msgs[ action ] || '' );
 				},
@@ -166,35 +166,35 @@
 					const sel = Alpine.store( 'selection' );
 					Alpine.store( 'shortcuts' ).register( 'selection/copy', {
 						keys: 'mod+c',
-						description: '{{ __( 'Copy block' ) }}',
+						description: {!! Js::from( __( 'visual-editor::ve.copy_block' ) ) !!},
 						category: 'selection',
 						context: 'block',
 						callback: () => sel.copy(),
 					} );
 					Alpine.store( 'shortcuts' ).register( 'selection/cut', {
 						keys: 'mod+x',
-						description: '{{ __( 'Cut block' ) }}',
+						description: {!! Js::from( __( 'visual-editor::ve.cut_block' ) ) !!},
 						category: 'selection',
 						context: 'block',
 						callback: () => sel.cut(),
 					} );
 					Alpine.store( 'shortcuts' ).register( 'selection/paste', {
 						keys: 'mod+v',
-						description: '{{ __( 'Paste block' ) }}',
+						description: {!! Js::from( __( 'visual-editor::ve.paste_block' ) ) !!},
 						category: 'selection',
 						context: 'block',
 						callback: () => sel.paste(),
 					} );
 					Alpine.store( 'shortcuts' ).register( 'selection/duplicate', {
 						keys: 'mod+d',
-						description: '{{ __( 'Duplicate block' ) }}',
+						description: {!! Js::from( __( 'visual-editor::ve.duplicate_block' ) ) !!},
 						category: 'selection',
 						context: 'block',
 						callback: () => sel.duplicate(),
 					} );
 					Alpine.store( 'shortcuts' ).register( 'selection/deselect', {
 						keys: 'escape',
-						description: '{{ __( 'Deselect' ) }}',
+						description: {!! Js::from( __( 'visual-editor::ve.deselect' ) ) !!},
 						category: 'selection',
 						context: 'block',
 						callback: () => sel.clearSelection(),

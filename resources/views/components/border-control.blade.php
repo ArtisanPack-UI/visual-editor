@@ -138,9 +138,9 @@
 			x-on:click="togglePerSide()"
 			:class="perSide ? 'text-primary bg-primary/10' : 'text-base-content/30 hover:text-base-content/60'"
 			class="p-1.5 rounded-md transition-colors"
-			aria-label="{{ __( 'Configure per side' ) }}"
+			aria-label="{{ __( 'visual-editor::ve.configure_per_side' ) }}"
 			:aria-pressed="perSide ? 'true' : 'false'"
-			title="{{ __( 'Per side' ) }}"
+			title="{{ __( 'visual-editor::ve.per_side' ) }}"
 		>
 			<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 				<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5a1 1 0 011-1h14a1 1 0 011 1v14a1 1 0 01-1 1H5a1 1 0 01-1-1V5z" />
@@ -152,7 +152,7 @@
 	<div x-show="!perSide" class="flex flex-col gap-3">
 		{{-- Border Width --}}
 		<x-ve-unit-control
-			:label="__( 'Width' )"
+			:label="__( 'visual-editor::ve.width' )"
 			x-on:ve-unit-change.stop="width = $event.detail.value; widthUnit = $event.detail.unit; dispatch()"
 			:value="$width"
 			:unit="$widthUnit"
@@ -164,7 +164,7 @@
 		{{-- Border Style --}}
 		<div class="flex flex-col gap-1">
 			<label class="text-xs font-medium text-base-content/60">
-				{{ __( 'Style' ) }}
+				{{ __( 'visual-editor::ve.style' ) }}
 			</label>
 			<x-artisanpack-select
 				:options="$styleOptions()"
@@ -173,13 +173,13 @@
 				x-model="style"
 				x-on:change="dispatch()"
 				size="sm"
-				:aria-label="__( 'Border style' )"
+				:aria-label="__( 'visual-editor::ve.border_style' )"
 			/>
 		</div>
 
 		{{-- Border Color --}}
 		<x-ve-color-system
-			:label="__( 'Color' )"
+			:label="__( 'visual-editor::ve.color' )"
 			:value="$color"
 			:palette="$palette"
 			x-on:ve-color-change.stop="color = $event.detail.color; dispatch()"
@@ -197,7 +197,7 @@
 					:class="activeSide === '{{ $side }}' ? 'bg-primary text-primary-content shadow-sm' : 'text-base-content/50 hover:text-base-content/80 hover:bg-base-300'"
 					class="flex-1 py-1.5 px-2 text-xs font-medium rounded-md transition-all text-center capitalize"
 				>
-					{{ __( ucfirst( $side ) ) }}
+					{{ __( 'visual-editor::ve.' . $side ) }}
 				</button>
 			@endforeach
 		</div>
@@ -205,7 +205,7 @@
 		{{-- Per-side width --}}
 		<div class="flex flex-col gap-1">
 			<label class="text-xs font-medium text-base-content/60">
-				{{ __( 'Width' ) }}
+				{{ __( 'visual-editor::ve.width' ) }}
 			</label>
 			<div class="flex items-stretch gap-1">
 				<div class="flex-1">
@@ -216,7 +216,7 @@
 						min="0"
 						max="100"
 						size="sm"
-						:aria-label="__( 'Border width' )"
+						:aria-label="__( 'visual-editor::ve.border_width' )"
 					/>
 				</div>
 				<div class="w-20">
@@ -227,7 +227,7 @@
 						x-model="sides[activeSide].widthUnit"
 						x-on:change="dispatch()"
 						size="sm"
-						:aria-label="__( 'Unit' )"
+						:aria-label="__( 'visual-editor::ve.unit' )"
 					/>
 				</div>
 			</div>
@@ -236,7 +236,7 @@
 		{{-- Per-side style --}}
 		<div class="flex flex-col gap-1">
 			<label class="text-xs font-medium text-base-content/60">
-				{{ __( 'Style' ) }}
+				{{ __( 'visual-editor::ve.style' ) }}
 			</label>
 			<x-artisanpack-select
 				:options="$styleOptions()"
@@ -245,14 +245,14 @@
 				x-model="sides[activeSide].style"
 				x-on:change="dispatch()"
 				size="sm"
-				:aria-label="__( 'Border style' )"
+				:aria-label="__( 'visual-editor::ve.border_style' )"
 			/>
 		</div>
 
 		{{-- Per-side color --}}
 		<div class="flex flex-col gap-2">
 			<label class="text-xs font-medium text-base-content/60">
-				{{ __( 'Color' ) }}
+				{{ __( 'visual-editor::ve.color' ) }}
 			</label>
 			<div class="flex items-center gap-2">
 				<label class="relative cursor-pointer">
@@ -265,7 +265,7 @@
 						x-model="sides[activeSide].color"
 						x-on:input="dispatch()"
 						class="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-						aria-label="{{ __( 'Border color' ) }}"
+						aria-label="{{ __( 'visual-editor::ve.border_color' ) }}"
 					/>
 				</label>
 				<x-artisanpack-input
@@ -274,7 +274,7 @@
 					placeholder="#000000"
 					size="sm"
 					class="font-mono flex-1"
-					:aria-label="__( 'Hex color value' )"
+					:aria-label="__( 'visual-editor::ve.hex_color_value' )"
 				/>
 			</div>
 		</div>
@@ -284,7 +284,7 @@
 	<div class="flex flex-col gap-3">
 		<div class="flex items-center justify-between">
 			<label class="text-xs font-medium text-base-content/60">
-				{{ __( 'Radius' ) }}
+				{{ __( 'visual-editor::ve.radius' ) }}
 			</label>
 
 			<button
@@ -292,9 +292,9 @@
 				x-on:click="togglePerCorner()"
 				:class="perCorner ? 'text-primary bg-primary/10' : 'text-base-content/30 hover:text-base-content/60'"
 				class="p-1.5 rounded-md transition-colors"
-				aria-label="{{ __( 'Configure per corner' ) }}"
+				aria-label="{{ __( 'visual-editor::ve.configure_per_corner' ) }}"
 				:aria-pressed="perCorner ? 'true' : 'false'"
-				title="{{ __( 'Per corner' ) }}"
+				title="{{ __( 'visual-editor::ve.per_corner' ) }}"
 			>
 				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V6a2 2 0 012-2h2M16 4h2a2 2 0 012 2v2M20 16v2a2 2 0 01-2 2h-2M8 20H6a2 2 0 01-2-2v-2" />
@@ -317,7 +317,7 @@
 		{{-- Per-corner radius (shown when perCorner is true) --}}
 		<div x-show="perCorner" x-collapse class="flex flex-col gap-2">
 			<div class="grid grid-cols-2 gap-2">
-				@foreach ( [ 'topLeft' => __( 'Top Left' ), 'topRight' => __( 'Top Right' ), 'bottomLeft' => __( 'Bottom Left' ), 'bottomRight' => __( 'Bottom Right' ) ] as $corner => $cornerLabel )
+				@foreach ( [ 'topLeft' => __( 'visual-editor::ve.top_left' ), 'topRight' => __( 'visual-editor::ve.top_right' ), 'bottomLeft' => __( 'visual-editor::ve.bottom_left' ), 'bottomRight' => __( 'visual-editor::ve.bottom_right' ) ] as $corner => $cornerLabel )
 					<div class="flex flex-col gap-0.5">
 						<span class="text-[10px] font-medium uppercase tracking-wider text-base-content/40 text-center">
 							{{ $cornerLabel }}
@@ -331,7 +331,7 @@
 									min="0"
 									max="999"
 									size="sm"
-									:aria-label="$cornerLabel . ' ' . __( 'radius' )"
+									:aria-label="$cornerLabel . ' ' . __( 'visual-editor::ve.radius_lowercase' )"
 								/>
 							</div>
 							<div class="w-16">
@@ -342,7 +342,7 @@
 									x-model="corners.{{ $corner }}.radiusUnit"
 									x-on:change="dispatch()"
 									size="sm"
-									:aria-label="__( 'Unit' )"
+									:aria-label="__( 'visual-editor::ve.unit' )"
 								/>
 							</div>
 						</div>
@@ -355,7 +355,7 @@
 	{{-- Preview --}}
 	<div class="flex flex-col gap-1">
 		<span class="text-[10px] font-medium uppercase tracking-wider text-base-content/40">
-			{{ __( 'Preview' ) }}
+			{{ __( 'visual-editor::ve.preview' ) }}
 		</span>
 		<div
 			class="h-10 w-full bg-base-200"

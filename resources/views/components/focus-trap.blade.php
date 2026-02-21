@@ -57,7 +57,7 @@
 	x-trap{{ $inert ? '.inert' : '' }}{{ ! $autoFocus ? '.noautofocus' : '' }}="active"
 	{{ $attributes->merge( [ 'class' => '' ] ) }}
 	role="region"
-	:aria-label="active ? '{{ __( 'Focus trapped region' ) }}' : null"
+	:aria-label="active ? '{{ __( 'visual-editor::ve.focus_trapped_region' ) }}' : null"
 >
 	{{ $slot }}
 </div>
