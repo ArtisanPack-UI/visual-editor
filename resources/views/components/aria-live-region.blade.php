@@ -31,10 +31,10 @@
 					this._debounceTimer = setTimeout( () => {
 						if ( prio === 'assertive' ) {
 							this.assertiveMessage = '';
-							this.$nextTick( () => { this.assertiveMessage = message } );
+							Alpine.nextTick( () => { this.assertiveMessage = message } );
 						} else {
 							this.politeMessage = '';
-							this.$nextTick( () => { this.politeMessage = message } );
+							Alpine.nextTick( () => { this.politeMessage = message } );
 						}
 
 						if ( clearMs > 0 ) {

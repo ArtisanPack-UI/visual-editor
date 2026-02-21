@@ -16,7 +16,7 @@
 		open: false,
 		placement: {{ Js::from( $placement ) }},
 		currentPlacement: {{ Js::from( $placement ) }},
-		popoverStyle: {},
+		popoverStyle: { position: 'fixed', top: '-9999px', left: '-9999px', zIndex: 50 },
 		arrowStyle: {},
 		_resizeObserver: null,
 		_scrollHandler: null,

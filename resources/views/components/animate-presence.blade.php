@@ -10,162 +10,79 @@
  * @since      1.0.0
  --}}
 
-<style>
-	[data-ve-animate] {
-		--ve-duration: {{ $duration }}ms;
-		--ve-easing: {{ $easing }};
-	}
+@php
+	$easingMap = [
+		'ease-in-out' => 'ease-in-out',
+		'ease-in'     => 'ease-in',
+		'ease-out'    => 'ease-out',
+		'linear'      => 'ease-linear',
+	];
+	$easingClass = $easingMap[ $easing ] ?? 'ease-in-out';
 
-	@media ( prefers-reduced-motion: reduce ) {
-		[data-ve-animate] {
-			--ve-duration: 0ms !important;
-		}
-	}
-
-	/* Fade */
-	.ve-enter-fade {
-		transition: opacity var(--ve-duration) var(--ve-easing);
-	}
-	.ve-enter-fade-from {
-		opacity: 0;
-	}
-	.ve-enter-fade-to {
-		opacity: 1;
-	}
-	.ve-leave-fade {
-		transition: opacity var(--ve-duration) var(--ve-easing);
-	}
-	.ve-leave-fade-from {
-		opacity: 1;
-	}
-	.ve-leave-fade-to {
-		opacity: 0;
-	}
-
-	/* Slide Up */
-	.ve-enter-slide-up {
-		transition: opacity var(--ve-duration) var(--ve-easing), transform var(--ve-duration) var(--ve-easing);
-	}
-	.ve-enter-slide-up-from {
-		opacity: 0;
-		transform: translateY(0.5rem);
-	}
-	.ve-enter-slide-up-to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-	.ve-leave-slide-up {
-		transition: opacity var(--ve-duration) var(--ve-easing), transform var(--ve-duration) var(--ve-easing);
-	}
-	.ve-leave-slide-up-from {
-		opacity: 1;
-		transform: translateY(0);
-	}
-	.ve-leave-slide-up-to {
-		opacity: 0;
-		transform: translateY(0.5rem);
-	}
-
-	/* Slide Down */
-	.ve-enter-slide-down {
-		transition: opacity var(--ve-duration) var(--ve-easing), transform var(--ve-duration) var(--ve-easing);
-	}
-	.ve-enter-slide-down-from {
-		opacity: 0;
-		transform: translateY(-0.5rem);
-	}
-	.ve-enter-slide-down-to {
-		opacity: 1;
-		transform: translateY(0);
-	}
-	.ve-leave-slide-down {
-		transition: opacity var(--ve-duration) var(--ve-easing), transform var(--ve-duration) var(--ve-easing);
-	}
-	.ve-leave-slide-down-from {
-		opacity: 1;
-		transform: translateY(0);
-	}
-	.ve-leave-slide-down-to {
-		opacity: 0;
-		transform: translateY(-0.5rem);
-	}
-
-	/* Slide Left */
-	.ve-enter-slide-left {
-		transition: opacity var(--ve-duration) var(--ve-easing), transform var(--ve-duration) var(--ve-easing);
-	}
-	.ve-enter-slide-left-from {
-		opacity: 0;
-		transform: translateX(-0.5rem);
-	}
-	.ve-enter-slide-left-to {
-		opacity: 1;
-		transform: translateX(0);
-	}
-	.ve-leave-slide-left {
-		transition: opacity var(--ve-duration) var(--ve-easing), transform var(--ve-duration) var(--ve-easing);
-	}
-	.ve-leave-slide-left-from {
-		opacity: 1;
-		transform: translateX(0);
-	}
-	.ve-leave-slide-left-to {
-		opacity: 0;
-		transform: translateX(-0.5rem);
-	}
-
-	/* Slide Right */
-	.ve-enter-slide-right {
-		transition: opacity var(--ve-duration) var(--ve-easing), transform var(--ve-duration) var(--ve-easing);
-	}
-	.ve-enter-slide-right-from {
-		opacity: 0;
-		transform: translateX(0.5rem);
-	}
-	.ve-enter-slide-right-to {
-		opacity: 1;
-		transform: translateX(0);
-	}
-	.ve-leave-slide-right {
-		transition: opacity var(--ve-duration) var(--ve-easing), transform var(--ve-duration) var(--ve-easing);
-	}
-	.ve-leave-slide-right-from {
-		opacity: 1;
-		transform: translateX(0);
-	}
-	.ve-leave-slide-right-to {
-		opacity: 0;
-		transform: translateX(0.5rem);
-	}
-
-	/* Scale */
-	.ve-enter-scale {
-		transition: opacity var(--ve-duration) var(--ve-easing), transform var(--ve-duration) var(--ve-easing);
-	}
-	.ve-enter-scale-from {
-		opacity: 0;
-		transform: scale(0.95);
-	}
-	.ve-enter-scale-to {
-		opacity: 1;
-		transform: scale(1);
-	}
-	.ve-leave-scale {
-		transition: opacity var(--ve-duration) var(--ve-easing), transform var(--ve-duration) var(--ve-easing);
-	}
-	.ve-leave-scale-from {
-		opacity: 1;
-		transform: scale(1);
-	}
-	.ve-leave-scale-to {
-		opacity: 0;
-		transform: scale(0.95);
-	}
-</style>
+	$transitionClasses = match ( $animation ) {
+		'fade' => [
+			'enter'       => "transition-opacity {$easingClass}",
+			'enter-start' => 'opacity-0',
+			'enter-end'   => 'opacity-100',
+			'leave'       => "transition-opacity {$easingClass}",
+			'leave-start' => 'opacity-100',
+			'leave-end'   => 'opacity-0',
+		],
+		'slide-up' => [
+			'enter'       => "transition {$easingClass}",
+			'enter-start' => 'opacity-0 translate-y-2',
+			'enter-end'   => 'opacity-100 translate-y-0',
+			'leave'       => "transition {$easingClass}",
+			'leave-start' => 'opacity-100 translate-y-0',
+			'leave-end'   => 'opacity-0 translate-y-2',
+		],
+		'slide-down' => [
+			'enter'       => "transition {$easingClass}",
+			'enter-start' => 'opacity-0 -translate-y-2',
+			'enter-end'   => 'opacity-100 translate-y-0',
+			'leave'       => "transition {$easingClass}",
+			'leave-start' => 'opacity-100 translate-y-0',
+			'leave-end'   => 'opacity-0 -translate-y-2',
+		],
+		'slide-left' => [
+			'enter'       => "transition {$easingClass}",
+			'enter-start' => 'opacity-0 -translate-x-2',
+			'enter-end'   => 'opacity-100 translate-x-0',
+			'leave'       => "transition {$easingClass}",
+			'leave-start' => 'opacity-100 translate-x-0',
+			'leave-end'   => 'opacity-0 -translate-x-2',
+		],
+		'slide-right' => [
+			'enter'       => "transition {$easingClass}",
+			'enter-start' => 'opacity-0 translate-x-2',
+			'enter-end'   => 'opacity-100 translate-x-0',
+			'leave'       => "transition {$easingClass}",
+			'leave-start' => 'opacity-100 translate-x-0',
+			'leave-end'   => 'opacity-0 translate-x-2',
+		],
+		'scale' => [
+			'enter'       => "transition {$easingClass}",
+			'enter-start' => 'opacity-0 scale-95',
+			'enter-end'   => 'opacity-100 scale-100',
+			'leave'       => "transition {$easingClass}",
+			'leave-start' => 'opacity-100 scale-100',
+			'leave-end'   => 'opacity-0 scale-95',
+		],
+		default => [
+			'enter'       => "transition-opacity {$easingClass}",
+			'enter-start' => 'opacity-0',
+			'enter-end'   => 'opacity-100',
+			'leave'       => "transition-opacity {$easingClass}",
+			'leave-start' => 'opacity-100',
+			'leave-end'   => 'opacity-0',
+		],
+	};
+@endphp
 
 <div
 	id="{{ $uuid }}"
 	x-data="{ visible: {{ Js::from( $show ) }} }"
+	x-modelable="visible"
 	data-ve-animate="{{ $animation }}"
 	{{ $attributes->merge( [ 'class' => '' ] ) }}
 >
@@ -179,12 +96,13 @@
 	@else
 		<div
 			x-show="visible"
-			x-transition:enter="ve-enter-{{ $animation }}"
-			x-transition:enter-start="ve-enter-{{ $animation }}-from"
-			x-transition:enter-end="ve-enter-{{ $animation }}-to"
-			x-transition:leave="ve-leave-{{ $animation }}"
-			x-transition:leave-start="ve-leave-{{ $animation }}-from"
-			x-transition:leave-end="ve-leave-{{ $animation }}-to"
+			style="--tw-duration: {{ $duration }}ms"
+			x-transition:enter="{{ $transitionClasses['enter'] }}"
+			x-transition:enter-start="{{ $transitionClasses['enter-start'] }}"
+			x-transition:enter-end="{{ $transitionClasses['enter-end'] }}"
+			x-transition:leave="{{ $transitionClasses['leave'] }}"
+			x-transition:leave-start="{{ $transitionClasses['leave-start'] }}"
+			x-transition:leave-end="{{ $transitionClasses['leave-end'] }}"
 		>
 			{{ $slot }}
 		</div>
