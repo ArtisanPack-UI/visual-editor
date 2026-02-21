@@ -1,0 +1,78 @@
+<?php
+
+/**
+ * Fill Component.
+ *
+ * Registers content to be rendered in a named SlotContainer
+ * from anywhere in the component tree.
+ *
+ * @package    ArtisanPack_UI
+ * @subpackage VisualEditor\View\Components
+ *
+ * @author     Jacob Martella <me@jacobmartella.com>
+ *
+ * @since      1.0.0
+ */
+
+declare( strict_types=1 );
+
+namespace ArtisanPackUI\VisualEditor\View\Components;
+
+use Closure;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Str;
+use Illuminate\View\Component;
+use InvalidArgumentException;
+
+/**
+ * Fill component for injecting content into named slots.
+ *
+ * @package    ArtisanPack_UI
+ * @subpackage VisualEditor\View\Components
+ *
+ * @since      1.0.0
+ */
+class Fill extends Component
+{
+	/**
+	 * Unique identifier for this component instance.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var string
+	 */
+	public string $uuid;
+
+	/**
+	 * Create a new component instance.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string|null $id       Optional custom ID.
+	 * @param string      $slotName Target slot name.
+	 * @param int         $priority Sort order (lower = first).
+	 */
+	public function __construct(
+		public ?string $id = null,
+		public string $slotName = '',
+		public int $priority = 10,
+	) {
+		if ( '' === trim( $this->slotName ) ) {
+			throw new InvalidArgumentException( 'Fill requires a non-empty slotName to target a SlotContainer.' );
+		}
+
+		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
+	}
+
+	/**
+	 * Get the view that represents the component.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return Closure|string|View
+	 */
+	public function render(): View|Closure|string
+	{
+		return view( 'visual-editor::components.fill' );
+	}
+}

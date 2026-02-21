@@ -80,7 +80,7 @@
 			:aria-valuenow="angle"
 			aria-valuemin="{{ $min }}"
 			aria-valuemax="{{ $max }}"
-			:aria-label="'{{ $label ?? __( 'Angle' ) }}'"
+			aria-label="{{ $label ?? __( 'visual-editor::ve.angle' ) }}"
 			tabindex="0"
 			x-on:mousedown.prevent="startDrag( $event )"
 			x-on:touchstart.prevent="startDrag( $event )"
@@ -127,7 +127,7 @@
 					:max="$max - 1"
 					:step="$step"
 					size="sm"
-					:aria-label="$label ? $label . ' ' . __( 'degrees' ) : __( 'Angle in degrees' )"
+					:aria-label="$label ? $label . ' ' . __( 'visual-editor::ve.degrees' ) : __( 'visual-editor::ve.angle_in_degrees' )"
 				/>
 			</div>
 			<span class="text-xs text-gray-500">&deg;</span>

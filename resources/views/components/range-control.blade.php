@@ -45,8 +45,8 @@
 					x-on:click="reset()"
 					size="xs"
 					color="ghost"
-					:title="__( 'Reset to default' )"
-					:aria-label="__( 'Reset to default' )"
+					:title="__( 'visual-editor::ve.reset_to_default' )"
+					:aria-label="__( 'visual-editor::ve.reset_to_default' )"
 				>
 					<svg class="h-3 w-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 						<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -68,7 +68,7 @@
 				x-bind:aria-valuenow="value"
 				:aria-valuemin="$min"
 				:aria-valuemax="$max"
-				:aria-label="$label ?? __( 'Range' )"
+				:aria-label="$label ?? __( 'visual-editor::ve.range' )"
 			/>
 		</div>
 
@@ -82,7 +82,7 @@
 					:max="$max"
 					:step="$step"
 					size="sm"
-					:aria-label="$label ? $label . ' ' . __( 'value' ) : __( 'Value' )"
+					:aria-label="$label ? $label . ' ' . __( 'visual-editor::ve.value_lowercase' ) : __( 'visual-editor::ve.value' )"
 				/>
 			</div>
 		@endif

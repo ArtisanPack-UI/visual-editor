@@ -12,6 +12,7 @@ test( 'color system can be instantiated with defaults', function (): void {
 	expect( $component->showCustom )->toBeTrue();
 	expect( $component->showContrast )->toBeFalse();
 	expect( $component->contrastBackground )->toBe( '#ffffff' );
+	expect( $component->compact )->toBeTrue();
 } );
 
 test( 'color system accepts custom palette', function (): void {
@@ -46,16 +47,28 @@ test( 'color system renders with label', function (): void {
 } );
 
 test( 'color system renders palette swatches', function (): void {
-	$this->blade( '<x-ve-color-system />' )
+	$this->blade( '<x-ve-color-system :compact="false" />' )
 		->assertSee( 'listbox', false );
 } );
 
 test( 'color system renders custom section', function (): void {
-	$this->blade( '<x-ve-color-system />' )
-		->assertSee( 'Color picker', false );
+	$this->blade( '<x-ve-color-system :compact="false" />' )
+		->assertSee( 'Custom' );
 } );
 
 test( 'color system hides custom section when disabled', function (): void {
-	$this->blade( '<x-ve-color-system :showCustom="false" />' )
-		->assertDontSee( 'Color picker', false );
+	$this->blade( '<x-ve-color-system :showCustom="false" :compact="false" />' )
+		->assertDontSee( 'Custom' );
+} );
+
+test( 'color system compact defaults to true', function (): void {
+	$component = new ColorSystem();
+
+	expect( $component->compact )->toBeTrue();
+} );
+
+test( 'color system compact can be set to false', function (): void {
+	$component = new ColorSystem( compact: false );
+
+	expect( $component->compact )->toBeFalse();
 } );

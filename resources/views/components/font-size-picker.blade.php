@@ -46,7 +46,7 @@
 		<div
 			class="inline-flex rounded-lg border border-base-300 bg-base-200 p-1"
 			role="radiogroup"
-			aria-label="{{ $label ?? __( 'Font size' ) }}"
+			aria-label="{{ $label ?? __( 'visual-editor::ve.font_size' ) }}"
 		>
 			@foreach ( $presets as $presetKey => $presetValue )
 				<button
@@ -56,7 +56,7 @@
 					class="flex items-center justify-center min-w-[2.25rem] h-9 px-3 rounded-md text-sm font-medium transition-all"
 					role="radio"
 					:aria-checked="isActivePreset( '{{ $presetKey }}' ) ? 'true' : 'false'"
-					aria-label="{{ __( 'Font size' ) }} {{ $presetKey }}"
+					aria-label="{{ __( 'visual-editor::ve.font_size' ) }} {{ $presetKey }}"
 					title="{{ $presetValue }}"
 				>
 					{{ $presetKey }}
@@ -71,8 +71,8 @@
 				x-on:click="toggleCustom()"
 				:class="mode === 'custom' ? 'text-primary' : 'text-base-content/40 hover:text-base-content/70'"
 				class="flex items-center justify-center h-9 w-9 rounded-md transition-colors"
-				aria-label="{{ __( 'Custom size' ) }}"
-				title="{{ __( 'Custom size' ) }}"
+				aria-label="{{ __( 'visual-editor::ve.custom_size' ) }}"
+				title="{{ __( 'visual-editor::ve.custom_size' ) }}"
 			>
 				<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 					<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -93,9 +93,9 @@
 					type="number"
 					x-model="customValue"
 					x-on:input="onCustomInput()"
-					:placeholder="__( 'Size' )"
+					:placeholder="__( 'visual-editor::ve.size' )"
 					size="sm"
-					:aria-label="__( 'Custom font size value' )"
+					:aria-label="__( 'visual-editor::ve.custom_font_size_value' )"
 				/>
 			</div>
 			<div class="w-16">
@@ -106,7 +106,7 @@
 					x-model="customUnit"
 					x-on:change="onCustomInput()"
 					size="sm"
-					:aria-label="__( 'Font size unit' )"
+					:aria-label="__( 'visual-editor::ve.font_size_unit' )"
 				/>
 			</div>
 		</div>

@@ -31,7 +31,7 @@
 		<div
 			class="inline-grid grid-cols-3 gap-1 rounded-lg border border-base-300 bg-base-200 p-2"
 			role="radiogroup"
-			aria-label="{{ $label ?? __( 'Alignment' ) }}"
+			aria-label="{{ $label ?? __( 'visual-editor::ve.alignment' ) }}"
 		>
 			@foreach ( $matrixOptions() as $option )
 				<button
@@ -54,7 +54,7 @@
 		<div
 			class="inline-flex rounded-lg border border-base-300 bg-base-200 p-1"
 			role="radiogroup"
-			aria-label="{{ $label ?? __( 'Alignment' ) }}"
+			aria-label="{{ $label ?? __( 'visual-editor::ve.alignment' ) }}"
 		>
 			@foreach ( $resolvedOptions() as $option )
 				<button

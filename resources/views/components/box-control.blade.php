@@ -65,7 +65,7 @@
 				x-on:click="toggleLinked()"
 				:class="linked ? 'text-primary' : 'text-base-content/30 hover:text-base-content/60'"
 				class="p-1 rounded transition-colors"
-				aria-label="{{ __( 'Link sides' ) }}"
+				aria-label="{{ __( 'visual-editor::ve.link_sides' ) }}"
 				:aria-pressed="linked ? 'true' : 'false'"
 			>
 				<svg x-show="linked" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -84,7 +84,7 @@
 		{{-- Top --}}
 		<div class="flex flex-col gap-0.5">
 			<span class="text-[10px] font-medium uppercase tracking-wider text-base-content/40 text-center">
-				{{ __( 'Top' ) }}
+				{{ __( 'visual-editor::ve.top' ) }}
 			</span>
 			<x-artisanpack-input
 				type="number"
@@ -94,14 +94,14 @@
 				:max="$max"
 				:step="$step"
 				size="sm"
-				:aria-label="__( 'Top' )"
+				:aria-label="__( 'visual-editor::ve.top' )"
 			/>
 		</div>
 
 		{{-- Right --}}
 		<div class="flex flex-col gap-0.5">
 			<span class="text-[10px] font-medium uppercase tracking-wider text-base-content/40 text-center">
-				{{ __( 'Right' ) }}
+				{{ __( 'visual-editor::ve.right' ) }}
 			</span>
 			<x-artisanpack-input
 				type="number"
@@ -111,14 +111,14 @@
 				:max="$max"
 				:step="$step"
 				size="sm"
-				:aria-label="__( 'Right' )"
+				:aria-label="__( 'visual-editor::ve.right' )"
 			/>
 		</div>
 
 		{{-- Bottom --}}
 		<div class="flex flex-col gap-0.5">
 			<span class="text-[10px] font-medium uppercase tracking-wider text-base-content/40 text-center">
-				{{ __( 'Bottom' ) }}
+				{{ __( 'visual-editor::ve.bottom' ) }}
 			</span>
 			<x-artisanpack-input
 				type="number"
@@ -128,14 +128,14 @@
 				:max="$max"
 				:step="$step"
 				size="sm"
-				:aria-label="__( 'Bottom' )"
+				:aria-label="__( 'visual-editor::ve.bottom' )"
 			/>
 		</div>
 
 		{{-- Left --}}
 		<div class="flex flex-col gap-0.5">
 			<span class="text-[10px] font-medium uppercase tracking-wider text-base-content/40 text-center">
-				{{ __( 'Left' ) }}
+				{{ __( 'visual-editor::ve.left' ) }}
 			</span>
 			<x-artisanpack-input
 				type="number"
@@ -145,7 +145,7 @@
 				:max="$max"
 				:step="$step"
 				size="sm"
-				:aria-label="__( 'Left' )"
+				:aria-label="__( 'visual-editor::ve.left' )"
 			/>
 		</div>
 	</div>
