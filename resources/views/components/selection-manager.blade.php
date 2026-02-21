@@ -158,46 +158,55 @@
 
 			@if ( $enableClipboard )
 				{{-- Register keyboard shortcuts if the shortcuts store exists --}}
-				document.addEventListener( 'alpine:initialized', () => {
-					if ( Alpine.store( 'shortcuts' ) ) {
-						const sel = Alpine.store( 'selection' );
-						Alpine.store( 'shortcuts' ).register( 'selection/copy', {
-							keys: 'mod+c',
-							description: '{{ __( 'Copy block' ) }}',
-							category: 'selection',
-							context: 'block',
-							callback: () => sel.copy(),
-						} );
-						Alpine.store( 'shortcuts' ).register( 'selection/cut', {
-							keys: 'mod+x',
-							description: '{{ __( 'Cut block' ) }}',
-							category: 'selection',
-							context: 'block',
-							callback: () => sel.cut(),
-						} );
-						Alpine.store( 'shortcuts' ).register( 'selection/paste', {
-							keys: 'mod+v',
-							description: '{{ __( 'Paste block' ) }}',
-							category: 'selection',
-							context: 'block',
-							callback: () => sel.paste(),
-						} );
-						Alpine.store( 'shortcuts' ).register( 'selection/duplicate', {
-							keys: 'mod+d',
-							description: '{{ __( 'Duplicate block' ) }}',
-							category: 'selection',
-							context: 'block',
-							callback: () => sel.duplicate(),
-						} );
-						Alpine.store( 'shortcuts' ).register( 'selection/deselect', {
-							keys: 'escape',
-							description: '{{ __( 'Deselect' ) }}',
-							category: 'selection',
-							context: 'block',
-							callback: () => sel.clearSelection(),
-						} );
-					}
-				} );
+				let shortcutsRegistered = false;
+				const registerShortcuts = () => {
+					if ( shortcutsRegistered ) return;
+					if ( ! Alpine.store( 'shortcuts' ) ) return;
+					shortcutsRegistered = true;
+					const sel = Alpine.store( 'selection' );
+					Alpine.store( 'shortcuts' ).register( 'selection/copy', {
+						keys: 'mod+c',
+						description: '{{ __( 'Copy block' ) }}',
+						category: 'selection',
+						context: 'block',
+						callback: () => sel.copy(),
+					} );
+					Alpine.store( 'shortcuts' ).register( 'selection/cut', {
+						keys: 'mod+x',
+						description: '{{ __( 'Cut block' ) }}',
+						category: 'selection',
+						context: 'block',
+						callback: () => sel.cut(),
+					} );
+					Alpine.store( 'shortcuts' ).register( 'selection/paste', {
+						keys: 'mod+v',
+						description: '{{ __( 'Paste block' ) }}',
+						category: 'selection',
+						context: 'block',
+						callback: () => sel.paste(),
+					} );
+					Alpine.store( 'shortcuts' ).register( 'selection/duplicate', {
+						keys: 'mod+d',
+						description: '{{ __( 'Duplicate block' ) }}',
+						category: 'selection',
+						context: 'block',
+						callback: () => sel.duplicate(),
+					} );
+					Alpine.store( 'shortcuts' ).register( 'selection/deselect', {
+						keys: 'escape',
+						description: '{{ __( 'Deselect' ) }}',
+						category: 'selection',
+						context: 'block',
+						callback: () => sel.clearSelection(),
+					} );
+				};
+
+				{{-- Try immediately, and also listen for alpine:init in case shortcuts store is created later --}}
+				if ( Alpine.store( 'shortcuts' ) ) {
+					registerShortcuts();
+				} else {
+					document.addEventListener( 'alpine:initialized', () => registerShortcuts(), { once: true } );
+				}
 			@endif
 		}
 	"

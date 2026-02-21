@@ -22,6 +22,7 @@ use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
 use Illuminate\View\Component;
+use InvalidArgumentException;
 
 /**
  * Slot Container component for extensible UI injection.
@@ -54,6 +55,10 @@ class SlotContainer extends Component
 		public ?string $id = null,
 		public string $name = '',
 	) {
+		if ( '' === trim( $this->name ) ) {
+			throw new InvalidArgumentException( 'SlotContainer requires a non-empty name for slot-fill matching.' );
+		}
+
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 	}
 

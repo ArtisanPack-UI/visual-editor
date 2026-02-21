@@ -156,6 +156,9 @@
 			if ( event.dataTransfer.types.includes( 'application/ve-block' ) && ! {{ Js::from( $allowBlocks ) }} ) {
 				this.isValid = false;
 			}
+			if ( event.dataTransfer.types.includes( 'text/html' ) && ! {{ Js::from( $allowHtml ) }} ) {
+				this.isValid = false;
+			}
 		}
 	}"
 	x-on:dragenter="handleDragEnter( $event )"

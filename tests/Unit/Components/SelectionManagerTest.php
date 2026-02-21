@@ -29,6 +29,7 @@ test( 'selection manager accepts custom props', function (): void {
 	expect( $component->multiSelect )->toBeFalse();
 	expect( $component->enableClipboard )->toBeFalse();
 	expect( $component->selectionClass )->toBe( 'border-2 border-blue-500' );
+	expect( $component->multiSelectionClass )->toBe( 'border-2 border-blue-300' );
 	expect( $component->cutClass )->toBe( 'opacity-30' );
 } );
 

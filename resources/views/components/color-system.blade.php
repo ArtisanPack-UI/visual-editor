@@ -30,8 +30,10 @@
 >
 	@if ( $compact )
 		{{-- Compact trigger --}}
-		<div
+		<button
+			type="button"
 			x-on:click="open = ! open"
+			:aria-expanded="open"
 			class="flex items-center justify-between gap-3 w-full cursor-pointer border border-base-300 rounded-lg px-3 py-2 hover:bg-base-200/50 transition-colors"
 		>
 			@if ( $label )
@@ -43,15 +45,18 @@
 					:class="! color && 'bg-[repeating-conic-gradient(#d1d5db_0%_25%,transparent_0%_50%)] bg-[length:8px_8px]'"
 					:style="color ? 'background-color: ' + color : ''"
 				></div>
-				<button
-					type="button"
+				<span
+					role="button"
+					tabindex="0"
 					x-show="color"
 					x-on:click.stop="clear()"
-					class="text-base-content/40 hover:text-base-content/70 transition-colors text-lg leading-none"
+					x-on:keydown.enter.stop="clear()"
+					x-on:keydown.space.stop.prevent="clear()"
+					class="text-base-content/40 hover:text-base-content/70 transition-colors text-lg leading-none cursor-pointer"
 					aria-label="{{ __( 'Clear color' ) }}"
-				>&ndash;</button>
+				>&ndash;</span>
 			</div>
-		</div>
+		</button>
 
 		{{-- Dropdown panel --}}
 		<div

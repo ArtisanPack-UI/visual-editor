@@ -31,13 +31,21 @@
 				this.position();
 				this.startObserving();
 			} );
-			$dispatch( 've-popover-open', { id: '{{ $uuid }}' } );
+			this.$dispatch( 've-popover-open', { id: '{{ $uuid }}' } );
 		},
 
 		close() {
 			this.open = false;
 			this.stopObserving();
-			$dispatch( 've-popover-close', { id: '{{ $uuid }}' } );
+			this.$dispatch( 've-popover-close', { id: '{{ $uuid }}' } );
+		},
+
+		handleBlur( event ) {
+			const related = event.relatedTarget;
+			if ( related && ( this.$refs.popover?.contains( related ) || this.$refs.trigger?.contains( related ) ) ) {
+				return;
+			}
+			this.close();
 		},
 
 		position() {
@@ -218,7 +226,7 @@
 			x-on:mouseenter="openPopover()"
 			x-on:mouseleave="close()"
 			x-on:focus="openPopover()"
-			x-on:blur="close()"
+			x-on:blur="handleBlur( $event )"
 		@endif
 		:aria-expanded="open"
 		aria-haspopup="true"

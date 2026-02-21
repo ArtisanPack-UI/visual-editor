@@ -22,6 +22,7 @@ use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
 use Illuminate\View\Component;
+use InvalidArgumentException;
 
 /**
  * Fill component for injecting content into named slots.
@@ -56,6 +57,10 @@ class Fill extends Component
 		public string $slotName = '',
 		public int $priority = 10,
 	) {
+		if ( '' === trim( $this->slotName ) ) {
+			throw new InvalidArgumentException( 'Fill requires a non-empty slotName to target a SlotContainer.' );
+		}
+
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 	}
 

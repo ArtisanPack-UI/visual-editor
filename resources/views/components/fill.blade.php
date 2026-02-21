@@ -12,17 +12,18 @@
 
 <div
 	id="{{ $uuid }}"
-	x-data
-	x-init="
-		if ( $store.slotFills ) {
-			$store.slotFills.register( '{{ $slotName }}', '{{ $uuid }}', {{ $priority }} );
+	x-data="{
+		init() {
+			if ( $store.slotFills ) {
+				$store.slotFills.register( '{{ $slotName }}', '{{ $uuid }}', {{ $priority }} );
+			}
+		},
+		destroy() {
+			if ( $store.slotFills ) {
+				$store.slotFills.unregister( '{{ $slotName }}', '{{ $uuid }}' );
+			}
 		}
-	"
-	x-on:unmount.window="
-		if ( $store.slotFills ) {
-			$store.slotFills.unregister( '{{ $slotName }}', '{{ $uuid }}' );
-		}
-	"
+	}"
 	{{ $attributes->merge( [ 'class' => '' ] ) }}
 >
 	<template x-teleport="[data-ve-slot-target='{{ $slotName }}']">

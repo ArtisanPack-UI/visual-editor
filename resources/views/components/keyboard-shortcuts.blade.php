@@ -18,7 +18,7 @@
 			if ( ! Alpine.store( 'shortcuts' ) ) {
 				Alpine.store( 'shortcuts', {
 					registered: {},
-					isMac: navigator.platform.toUpperCase().indexOf( 'MAC' ) >= 0,
+					isMac: ( navigator.userAgentData?.platform || navigator.platform || '' ).toUpperCase().indexOf( 'MAC' ) >= 0,
 					showHelp: false,
 
 					register( name, config ) {
@@ -158,13 +158,13 @@
 				if ( store.matchesEvent( shortcut.keys, event ) ) {
 					{{-- Context check --}}
 					if ( shortcut.context === 'input' && ! store.isInputFocused() ) continue;
-					if ( shortcut.context === 'global' && store.isInputFocused() ) continue;
+					if ( ( shortcut.context === 'global' || shortcut.context === 'block' ) && store.isInputFocused() ) continue;
 
 					event.preventDefault();
 					if ( shortcut.callback ) {
 						shortcut.callback();
 					}
-					$dispatch( 've-shortcut-' + name, { name, keys: shortcut.keys } );
+					this.$dispatch( 've-shortcut-' + name, { name, keys: shortcut.keys } );
 					return;
 				}
 			}
@@ -175,7 +175,6 @@
 >
 	@if ( $showHelpModal )
 		<x-artisanpack-modal
-			wire:model="showHelp"
 			x-model="showHelp"
 			:title="$title"
 		>

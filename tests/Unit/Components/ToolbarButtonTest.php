@@ -34,6 +34,7 @@ test( 'toolbar button accepts custom props', function (): void {
 	expect( $component->active )->toBeTrue();
 	expect( $component->tooltip )->toBe( 'Toggle bold' );
 	expect( $component->shortcut )->toBe( 'Ctrl+B' );
+	expect( $component->variant )->toBe( 'active' );
 } );
 
 test( 'toolbar button falls back to default for invalid variant', function (): void {

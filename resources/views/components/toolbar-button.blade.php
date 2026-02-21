@@ -40,7 +40,7 @@
 	@else
 		aria-pressed="false"
 	@endif
-	@if ( $tooltip || $label )
+	@if ( $tooltip || $shortcut || $label )
 		x-on:mouseenter="showTooltip = true"
 		x-on:mouseleave="showTooltip = false"
 		x-on:focus="showTooltip = true"

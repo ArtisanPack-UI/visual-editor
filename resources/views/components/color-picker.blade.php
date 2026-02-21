@@ -530,12 +530,20 @@
 						}
 					}
 
-					/* Try hsl() */
+					/* Try hsl() — convert HSL to HSV before assigning */
 					const hslMatch = val.match( /^hsl\(\s*(\d+)\s*,\s*(\d+)%?\s*,\s*(\d+)%?\s*\)$/i );
 					if ( hslMatch ) {
-						this.hue        = parseInt( hslMatch[1], 10 ) % 360;
-						this.saturation = Math.min( 100, parseInt( hslMatch[2], 10 ) );
-						this.brightness = Math.min( 100, parseInt( hslMatch[3], 10 ) );
+						const h  = parseInt( hslMatch[1], 10 ) % 360;
+						const sH = Math.min( 100, parseInt( hslMatch[2], 10 ) ) / 100;
+						const l  = Math.min( 100, parseInt( hslMatch[3], 10 ) ) / 100;
+
+						/* HSL -> HSV conversion */
+						const v  = l + sH * Math.min( l, 1 - l );
+						const sV = 0 === v ? 0 : 2 * ( 1 - l / v );
+
+						this.hue        = h;
+						this.saturation = Math.round( sV * 100 );
+						this.brightness = Math.round( v * 100 );
 						this.updateHex();
 						this.drawCanvas();
 						return;
