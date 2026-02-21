@@ -122,6 +122,7 @@
 	{{-- Block list container --}}
 	<div
 		x-ref="blockList"
+		x-show="! isEmpty"
 		@if ( $enableDragReorder )
 			x-on:dragstart="handleDragStart( $event )"
 			x-on:dragover.prevent

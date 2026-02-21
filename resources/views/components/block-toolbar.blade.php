@@ -29,6 +29,7 @@
 						this.$nextTick( () => this._anchorToBlock( blockId ) );
 					} else {
 						this.visible = false;
+						this._removePositionListeners();
 					}
 				}
 			);
@@ -38,12 +39,40 @@
 			const el = document.querySelector( '[data-block-id=\"' + blockId + '\"]' );
 			if ( ! el ) {
 				this.visible = false;
+				this._removePositionListeners();
 				return;
 			}
 
 			this.anchorEl = el;
 			this.visible  = true;
 			this._position();
+			this._addPositionListeners();
+		},
+
+		_positionHandler: null,
+
+		_addPositionListeners() {
+			this._removePositionListeners();
+			let rafId = null;
+			this._positionHandler = () => {
+				if ( rafId ) return;
+				rafId = requestAnimationFrame( () => {
+					rafId = null;
+					if ( this.visible && this.anchorEl && this.$refs.toolbar ) {
+						this._position();
+					}
+				} );
+			};
+			window.addEventListener( 'scroll', this._positionHandler, true );
+			window.addEventListener( 'resize', this._positionHandler );
+		},
+
+		_removePositionListeners() {
+			if ( this._positionHandler ) {
+				window.removeEventListener( 'scroll', this._positionHandler, true );
+				window.removeEventListener( 'resize', this._positionHandler );
+				this._positionHandler = null;
+			}
 		},
 
 		_position() {

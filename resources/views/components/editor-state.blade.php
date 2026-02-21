@@ -21,7 +21,6 @@
 
 				history: {
 					past: [],
-					present: null,
 					future: [],
 				},
 				maxHistorySize: {{ Js::from( $maxHistorySize ) }},
@@ -31,6 +30,7 @@
 				showInserter: {{ Js::from( $showInserter ) }},
 				devicePreview: {{ Js::from( $devicePreview ) }},
 				saveStatus: {{ Js::from( $saveStatus ) }},
+				lastSavedAt: null,
 				autosave: {{ Js::from( $autosave ) }},
 				autosaveInterval: {{ Js::from( $autosaveInterval ) }},
 				_autosaveTimer: null,
@@ -44,8 +44,6 @@
 				{{-- ── Initialization ─────────────────────────────────── --}}
 
 				init() {
-					this.history.present = JSON.parse( JSON.stringify( this.blocks ) );
-
 					if ( this.autosave ) {
 						this._startAutosave();
 					}
@@ -251,10 +249,8 @@
 				{{-- ── Undo / Redo ────────────────────────────────────── --}}
 
 				_pushHistory() {
-					const snapshot = JSON.parse( JSON.stringify( this.blocks ) );
-					this.history.past.push( this.history.present );
-					this.history.present = snapshot;
-					this.history.future  = [];
+					this.history.past.push( JSON.parse( JSON.stringify( this.blocks ) ) );
+					this.history.future = [];
 
 					if ( this.history.past.length > this.maxHistorySize ) {
 						this.history.past.shift();
@@ -267,9 +263,8 @@
 						return;
 					}
 
-					this.history.future.push( this.history.present );
-					this.history.present = this.history.past.pop();
-					this.blocks          = JSON.parse( JSON.stringify( this.history.present ) );
+					this.history.future.push( JSON.parse( JSON.stringify( this.blocks ) ) );
+					this.blocks = JSON.parse( JSON.stringify( this.history.past.pop() ) );
 					this.markDirty();
 					this._announceAction( {{ Js::from( __( 'visual-editor::ve.action_undone' ) ) }} );
 					this._dispatchChange();
@@ -281,9 +276,8 @@
 						return;
 					}
 
-					this.history.past.push( this.history.present );
-					this.history.present = this.history.future.pop();
-					this.blocks          = JSON.parse( JSON.stringify( this.history.present ) );
+					this.history.past.push( JSON.parse( JSON.stringify( this.blocks ) ) );
+					this.blocks = JSON.parse( JSON.stringify( this.history.future.pop() ) );
 					this.markDirty();
 					this._announceAction( {{ Js::from( __( 'visual-editor::ve.action_redone' ) ) }} );
 					this._dispatchChange();
@@ -309,6 +303,7 @@
 
 				markSaved() {
 					this.saveStatus = 'saved';
+					this.lastSavedAt = new Date();
 				},
 
 				markError() {
@@ -477,9 +472,8 @@
 			store.scheduledDate    = {{ Js::from( $scheduledDate ) }};
 			store.patterns         = {{ Js::from( $patterns ) }};
 
-			store.history.past    = [];
-			store.history.present = JSON.parse( JSON.stringify( store.blocks ) );
-			store.history.future  = [];
+			store.history.past   = [];
+			store.history.future = [];
 
 			store._stopAutosave();
 			if ( store.autosave ) {

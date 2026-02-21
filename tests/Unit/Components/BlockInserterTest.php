@@ -70,9 +70,9 @@ test( 'block inserter renders with region role', function (): void {
 		->assertSee( 'role="region"', false );
 } );
 
-test( 'block inserter renders with listbox', function (): void {
+test( 'block inserter renders with list role', function (): void {
 	$this->blade( '<x-ve-block-inserter />' )
-		->assertSee( 'role="listbox"', false );
+		->assertSee( 'role="list"', false );
 } );
 
 test( 'block inserter renders search by default', function (): void {

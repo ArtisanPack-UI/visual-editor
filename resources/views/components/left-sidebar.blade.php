@@ -33,12 +33,12 @@
 >
 	{{-- Header with tabs and close button --}}
 	<div class="flex items-center border-b border-base-300">
-		<div class="flex flex-1" role="tablist">
+		<div class="flex flex-1 gap-1 px-2 pt-2 pb-0" role="tablist">
 			@foreach ( $tabs as $tab )
 				<button
 					type="button"
-					class="flex-1 px-3 py-2 text-sm font-medium text-center transition-colors"
-					:class="'{{ $tab['slug'] }}' === activeTab ? 'text-primary border-b-2 border-primary' : 'text-base-content/60 hover:text-base-content'"
+					class="flex-1 px-3 py-1.5 text-xs font-medium text-center rounded-t-lg transition-colors"
+					:class="'{{ $tab['slug'] }}' === activeTab ? 'bg-base-200 text-base-content border-b-2 border-primary' : 'text-base-content/50 hover:text-base-content/80 hover:bg-base-200/50'"
 					x-on:click="activeTab = '{{ $tab['slug'] }}'"
 					role="tab"
 					:aria-selected="'{{ $tab['slug'] }}' === activeTab"

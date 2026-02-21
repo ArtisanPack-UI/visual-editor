@@ -117,7 +117,7 @@
 			Alpine.store( 'announcer' ).announce( msg );
 		},
 	}"
-	x-on:ve-block-inserter-select.window="insertBlock( $event.detail.type, $event.detail.label )"
+	x-on:ve-block-inserter-select.window="if ( $event?.detail?.type ) { insertBlock( $event.detail.type, $event.detail.label || $event.detail.type ); }"
 	{{ $attributes->merge( [ 'class' => 'flex flex-col' ] ) }}
 	role="region"
 	aria-label="{{ __( 'visual-editor::ve.block_inserter' ) }}"
@@ -146,7 +146,7 @@
 	<div
 		id="{{ $uuid }}-results"
 		class="flex-1 overflow-y-auto px-3 py-2"
-		role="listbox"
+		role="list"
 		aria-label="{{ __( 'visual-editor::ve.block_inserter' ) }}"
 	>
 		{{-- Recently used --}}
@@ -173,7 +173,7 @@
 								<template x-if="blocks.find( b => b.name === blockType )">
 									<div
 										class="flex flex-col items-center gap-1 p-2 rounded-lg cursor-pointer hover:bg-base-200 transition-colors text-center"
-										role="option"
+										role="listitem"
 										tabindex="0"
 										x-on:click="insertBlock( blockType, blocks.find( b => b.name === blockType )?.label || blockType )"
 										x-on:keydown.enter="insertBlock( blockType, blocks.find( b => b.name === blockType )?.label || blockType )"
@@ -213,7 +213,7 @@
 						<template x-for="block in categoryBlocks" :key="block.name">
 							<div
 								class="flex flex-col items-center gap-1 p-2 rounded-lg cursor-pointer hover:bg-base-200 transition-colors text-center"
-								role="option"
+								role="listitem"
 								tabindex="0"
 								@if ( $enableDragToInsert )
 									draggable="true"

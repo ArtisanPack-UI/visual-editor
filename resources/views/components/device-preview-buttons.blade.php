@@ -17,9 +17,18 @@
 			return Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).devicePreview : 'desktop';
 		},
 
-		setDevice( device ) {
+		devices: [ 'desktop', 'tablet', 'mobile' ],
+
+		setDevice( device, focusButton = false ) {
 			if ( Alpine.store( 'editor' ) ) {
 				Alpine.store( 'editor' ).devicePreview = device;
+
+				if ( focusButton ) {
+					this.$nextTick( () => {
+						const btn = this.$el.querySelector( '[data-device=\"' + device + '\"]' );
+						if ( btn ) btn.focus();
+					} );
+				}
 
 				if ( Alpine.store( 'announcer' ) ) {
 					const labels = {
@@ -33,6 +42,13 @@
 				}
 			}
 		},
+
+		handleArrowKey( direction ) {
+			const idx = this.devices.indexOf( this.currentDevice );
+			if ( -1 === idx ) return;
+			const next = ( idx + direction + this.devices.length ) % this.devices.length;
+			this.setDevice( this.devices[ next ], true );
+		},
 	}"
 	{{ $attributes->merge( [ 'class' => 'flex items-center gap-0.5' ] ) }}
 	role="radiogroup"
@@ -44,8 +60,14 @@
 		class="btn btn-ghost btn-xs btn-square"
 		:class="'desktop' === currentDevice ? 'btn-active' : ''"
 		x-on:click="setDevice( 'desktop' )"
+		x-on:keydown.arrow-left.prevent="handleArrowKey( -1 )"
+		x-on:keydown.arrow-up.prevent="handleArrowKey( -1 )"
+		x-on:keydown.arrow-right.prevent="handleArrowKey( 1 )"
+		x-on:keydown.arrow-down.prevent="handleArrowKey( 1 )"
 		role="radio"
 		:aria-checked="'desktop' === currentDevice"
+		:tabindex="'desktop' === currentDevice ? 0 : -1"
+		data-device="desktop"
 		aria-label="{{ __( 'visual-editor::ve.device_desktop' ) }}"
 	>
 		<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
@@ -59,8 +81,14 @@
 		class="btn btn-ghost btn-xs btn-square"
 		:class="'tablet' === currentDevice ? 'btn-active' : ''"
 		x-on:click="setDevice( 'tablet' )"
+		x-on:keydown.arrow-left.prevent="handleArrowKey( -1 )"
+		x-on:keydown.arrow-up.prevent="handleArrowKey( -1 )"
+		x-on:keydown.arrow-right.prevent="handleArrowKey( 1 )"
+		x-on:keydown.arrow-down.prevent="handleArrowKey( 1 )"
 		role="radio"
 		:aria-checked="'tablet' === currentDevice"
+		:tabindex="'tablet' === currentDevice ? 0 : -1"
+		data-device="tablet"
 		aria-label="{{ __( 'visual-editor::ve.device_tablet' ) }}"
 	>
 		<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
@@ -74,8 +102,14 @@
 		class="btn btn-ghost btn-xs btn-square"
 		:class="'mobile' === currentDevice ? 'btn-active' : ''"
 		x-on:click="setDevice( 'mobile' )"
+		x-on:keydown.arrow-left.prevent="handleArrowKey( -1 )"
+		x-on:keydown.arrow-up.prevent="handleArrowKey( -1 )"
+		x-on:keydown.arrow-right.prevent="handleArrowKey( 1 )"
+		x-on:keydown.arrow-down.prevent="handleArrowKey( 1 )"
 		role="radio"
 		:aria-checked="'mobile' === currentDevice"
+		:tabindex="'mobile' === currentDevice ? 0 : -1"
+		data-device="mobile"
 		aria-label="{{ __( 'visual-editor::ve.device_mobile' ) }}"
 	>
 		<svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">

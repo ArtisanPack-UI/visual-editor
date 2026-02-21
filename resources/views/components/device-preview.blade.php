@@ -90,7 +90,7 @@
 
 	{{-- Zoom controls --}}
 	@if ( $showZoomControls )
-		<div class="flex items-center gap-1 mt-2" role="group" aria-label="{{ __( 'visual-editor::ve.zoom_level', [ 'level' => '' ] ) }}">
+		<div class="flex items-center gap-1 mt-2" role="group" aria-label="{{ __( 'visual-editor::ve.zoom_controls' ) }}">
 			<button
 				type="button"
 				class="btn btn-ghost btn-xs btn-square"

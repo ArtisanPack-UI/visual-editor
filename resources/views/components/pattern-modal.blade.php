@@ -57,6 +57,7 @@
 		},
 	}"
 	x-on:ve-open-pattern-modal.window="openModal()"
+	x-on:close="open = false"
 	{{ $attributes->merge( [ 'class' => 'modal' ] ) }}
 	aria-label="{{ __( 'visual-editor::ve.pattern_modal_title' ) }}"
 >
@@ -70,6 +71,7 @@
 					class="input input-sm w-64"
 					x-model.debounce.300ms="search"
 					placeholder="{{ __( 'visual-editor::ve.search_patterns' ) }}"
+					aria-label="{{ __( 'visual-editor::ve.search_patterns' ) }}"
 				/>
 				<button
 					type="button"
@@ -109,7 +111,7 @@
 			<div class="flex-1 overflow-y-auto p-6">
 				<template x-if="filteredPatterns.length > 0">
 					<div class="grid grid-cols-2 lg:grid-cols-3 gap-4">
-						<template x-for="pattern in filteredPatterns" :key="pattern.category + '-' + pattern.name">
+						<template x-for="( pattern, patternIndex ) in filteredPatterns" :key="pattern.category + '-' + pattern.name + '-' + patternIndex">
 							<button
 								type="button"
 								class="text-left rounded-lg border border-base-300 overflow-hidden hover:border-primary/40 hover:shadow-md transition-all group cursor-pointer"

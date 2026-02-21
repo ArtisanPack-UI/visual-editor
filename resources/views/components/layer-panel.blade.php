@@ -14,6 +14,11 @@
 	id="{{ $uuid }}"
 	x-data="{
 		activeView: {{ Js::from( $activeView ) }},
+		fallbackLabels: {
+			heading: {{ Js::from( __( 'visual-editor::ve.block_type_heading' ) ) }},
+			paragraph: {{ Js::from( __( 'visual-editor::ve.block_type_paragraph' ) ) }},
+			image: {{ Js::from( __( 'visual-editor::ve.block_type_image' ) ) }},
+		},
 
 		get blocks() {
 			return Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).blocks : [];
@@ -59,16 +64,16 @@
 		getBlockLabel( block ) {
 			if ( 'heading' === block.type ) {
 				const content = ( block.attributes?.content || '' ).replace( /<[^>]*>/g, '' );
-				return content || 'Heading';
+				return content || this.fallbackLabels.heading;
 			}
 			if ( 'paragraph' === block.type ) {
 				const content = ( block.attributes?.content || '' ).replace( /<[^>]*>/g, '' );
-				return content.length > 40 ? content.substring( 0, 40 ) + '…' : content || 'Paragraph';
+				return content.length > 40 ? content.substring( 0, 40 ) + '…' : content || this.fallbackLabels.paragraph;
 			}
 			if ( 'image' === block.type ) {
-				return block.attributes?.alt || 'Image';
+				return block.attributes?.alt || this.fallbackLabels.image;
 			}
-			return block.type.charAt( 0 ).toUpperCase() + block.type.slice( 1 );
+			return this.fallbackLabels[ block.type ] || block.type.charAt( 0 ).toUpperCase() + block.type.slice( 1 );
 		},
 
 		getBlockIcon( block ) {
@@ -89,25 +94,37 @@
 	aria-label="{{ $label ?? __( 'visual-editor::ve.layer_panel' ) }}"
 >
 	{{-- Sub-tab switcher --}}
-	<div class="flex border-b border-base-300" role="tablist">
+	<div class="flex border-b border-base-300" role="tablist" aria-label="{{ $label ?? __( 'visual-editor::ve.layer_panel' ) }}">
 		<button
 			type="button"
+			id="{{ $uuid }}-list-tab"
 			class="flex-1 px-3 py-2 text-xs font-medium text-center transition-colors"
 			:class="'list' === activeView ? 'text-primary border-b-2 border-primary' : 'text-base-content/60 hover:text-base-content'"
-			x-on:click="activeView = 'list'"
+			x-on:click="activeView = 'list'; $nextTick( () => $el.focus() )"
+			x-on:keydown.arrow-right.prevent="activeView = 'outline'; $nextTick( () => document.getElementById( '{{ $uuid }}-outline-tab' ).focus() )"
+			x-on:keydown.arrow-left.prevent="activeView = 'outline'; $nextTick( () => document.getElementById( '{{ $uuid }}-outline-tab' ).focus() )"
+			x-on:keydown.home.prevent="activeView = 'list'; $nextTick( () => $el.focus() )"
+			x-on:keydown.end.prevent="activeView = 'outline'; $nextTick( () => document.getElementById( '{{ $uuid }}-outline-tab' ).focus() )"
 			role="tab"
 			:aria-selected="'list' === activeView"
+			:tabindex="'list' === activeView ? 0 : -1"
 			aria-controls="{{ $uuid }}-list-panel"
 		>
 			{{ __( 'visual-editor::ve.list_view' ) }}
 		</button>
 		<button
 			type="button"
+			id="{{ $uuid }}-outline-tab"
 			class="flex-1 px-3 py-2 text-xs font-medium text-center transition-colors"
 			:class="'outline' === activeView ? 'text-primary border-b-2 border-primary' : 'text-base-content/60 hover:text-base-content'"
-			x-on:click="activeView = 'outline'"
+			x-on:click="activeView = 'outline'; $nextTick( () => $el.focus() )"
+			x-on:keydown.arrow-left.prevent="activeView = 'list'; $nextTick( () => document.getElementById( '{{ $uuid }}-list-tab' ).focus() )"
+			x-on:keydown.arrow-right.prevent="activeView = 'list'; $nextTick( () => document.getElementById( '{{ $uuid }}-list-tab' ).focus() )"
+			x-on:keydown.home.prevent="activeView = 'list'; $nextTick( () => document.getElementById( '{{ $uuid }}-list-tab' ).focus() )"
+			x-on:keydown.end.prevent="activeView = 'outline'; $nextTick( () => $el.focus() )"
 			role="tab"
 			:aria-selected="'outline' === activeView"
+			:tabindex="'outline' === activeView ? 0 : -1"
 			aria-controls="{{ $uuid }}-outline-panel"
 		>
 			{{ __( 'visual-editor::ve.outline' ) }}
@@ -120,7 +137,8 @@
 		x-show="'list' === activeView"
 		class="flex-1 overflow-y-auto"
 		role="tabpanel"
-		aria-label="{{ __( 'visual-editor::ve.list_view' ) }}"
+		tabindex="0"
+		aria-labelledby="{{ $uuid }}-list-tab"
 	>
 		<div class="py-1">
 			<template x-for="( block, index ) in blocks" :key="block.id">
@@ -143,7 +161,8 @@
 		x-show="'outline' === activeView"
 		class="flex-1 overflow-y-auto"
 		role="tabpanel"
-		aria-label="{{ __( 'visual-editor::ve.outline' ) }}"
+		tabindex="0"
+		aria-labelledby="{{ $uuid }}-outline-tab"
 	>
 		{{-- Heading list --}}
 		<div class="py-1">

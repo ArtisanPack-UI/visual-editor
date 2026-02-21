@@ -25,6 +25,18 @@
 			return Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).saveStatus : 'saved';
 		},
 
+		get lastSavedAt() {
+			return Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).lastSavedAt : null;
+		},
+
+		get lastSavedLabel() {
+			if ( ! this.lastSavedAt ) return '';
+			const time = this.lastSavedAt;
+			const hours   = String( time.getHours() ).padStart( 2, '0' );
+			const minutes = String( time.getMinutes() ).padStart( 2, '0' );
+			return {{ Js::from( __( 'visual-editor::ve.last_saved', [ 'time' => '__TIME__' ] ) ) }}.replaceAll( '__TIME__', hours + ':' + minutes );
+		},
+
 		get saveStatusLabel() {
 			const labels = {
 				saved: {{ Js::from( __( 'visual-editor::ve.saved' ) ) }},
@@ -64,6 +76,10 @@
 
 	{{-- Right: save status --}}
 	<div class="flex items-center gap-3">
+		@if ( $showLastSaved )
+			<span x-show="lastSavedAt" x-text="lastSavedLabel"></span>
+		@endif
+
 		@if ( $showSaveStatus )
 			<span
 				:class="{

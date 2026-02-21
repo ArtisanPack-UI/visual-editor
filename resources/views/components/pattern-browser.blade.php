@@ -115,7 +115,7 @@
 						</button>
 						<div x-show="! isCategoryCollapsed( categorySlug )" x-collapse>
 							<div class="space-y-1.5 pb-2">
-								<template x-for="pattern in categoryPatterns" :key="pattern.category + '-' + pattern.name">
+								<template x-for="( pattern, patternIndex ) in categoryPatterns" :key="pattern.category + '-' + pattern.name + '-' + patternIndex">
 									<button
 										type="button"
 										class="w-full text-left p-3 rounded-lg border border-base-300 hover:border-primary/40 hover:bg-base-200 transition-colors"
