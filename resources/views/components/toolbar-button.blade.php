@@ -12,12 +12,14 @@
 
 @php
 	$baseClasses   = 'relative flex items-center justify-center rounded px-2 py-1.5 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary';
-	$activeClasses = $active
-		? 'bg-primary/10 text-primary'
-		: 'text-base-content/70 hover:bg-base-200 hover:text-base-content';
-
 	if ( 'destructive' === $variant ) {
-		$activeClasses = 'text-error/70 hover:bg-error/10 hover:text-error';
+		$activeClasses = $active
+			? 'bg-error/10 text-error'
+			: 'text-error/70 hover:bg-error/10 hover:text-error';
+	} else {
+		$activeClasses = $active
+			? 'bg-primary/10 text-primary'
+			: 'text-base-content/70 hover:bg-base-200 hover:text-base-content';
 	}
 
 	$disabledClasses = $disabled ? 'opacity-40 cursor-not-allowed' : 'cursor-pointer';

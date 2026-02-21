@@ -7,6 +7,7 @@ use ArtisanPackUI\VisualEditor\View\Components\AnimatePresence;
 test( 'animate presence can be instantiated with defaults', function (): void {
 	$component = new AnimatePresence();
 
+	expect( $component->id )->toBeNull();
 	expect( $component->uuid )->toStartWith( 've-' );
 	expect( $component->animation )->toBe( 'fade' );
 	expect( $component->duration )->toBe( 200 );

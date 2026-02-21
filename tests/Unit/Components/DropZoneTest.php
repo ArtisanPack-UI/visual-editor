@@ -36,9 +36,12 @@ test( 'drop zone accepts custom props', function (): void {
 	expect( $component->uuid )->toContain( 'image-upload' );
 	expect( $component->label )->toBe( 'Upload images' );
 	expect( $component->acceptTypes )->toBe( [ 'image/*' ] );
+	expect( $component->allowFiles )->toBeTrue();
 	expect( $component->allowBlocks )->toBeFalse();
+	expect( $component->allowHtml )->toBeFalse();
 	expect( $component->maxFileSize )->toBe( 5120 );
 	expect( $component->emptyMessage )->toBe( 'Drop images here' );
+	expect( $component->showInsertionLine )->toBeFalse();
 	expect( $component->disabled )->toBeTrue();
 } );
 
