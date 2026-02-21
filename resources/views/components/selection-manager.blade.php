@@ -44,6 +44,7 @@
 					if ( this.focused === blockId ) {
 						this.focused = this.selected.length > 0 ? this.selected[ this.selected.length - 1 ] : null;
 					}
+					this._announce();
 					this._dispatch();
 				},
 
@@ -123,10 +124,14 @@
 
 					duplicate() {
 						if ( this.selected.length === 0 ) return;
+						const prevClipboard = this.clipboard;
+						const prevAction    = this.clipboardAction;
 						this.clipboard = this.selected.map( ( id ) => ( { id } ) );
 						this.clipboardAction = 'copy';
 						this.paste( true );
 						this._announceClipboard( 'duplicated' );
+						this.clipboard       = prevClipboard;
+						this.clipboardAction = prevAction;
 					},
 				@endif
 

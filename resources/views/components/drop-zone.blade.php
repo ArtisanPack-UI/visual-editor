@@ -38,7 +38,6 @@
 		},
 
 		handleDragLeave( event ) {
-			event.preventDefault();
 			this.dragCounter--;
 			if ( this.dragCounter <= 0 ) {
 				this.dragCounter = 0;
@@ -58,8 +57,6 @@
 				this.insertPosition = null;
 				return;
 			}
-
-			const data = {};
 
 			{{-- Handle file drops --}}
 			@if ( $allowFiles )
@@ -91,6 +88,7 @@
 						} );
 
 						if ( Alpine.store( 'announcer' ) ) {
+							{{-- Note: trans_choice with count=2 selects the plural form server-side. This supports English and most European languages. Languages with complex plural rules (e.g. Russian, Arabic) would need client-side CLDR pluralization. --}}
 							const msg = validFiles.length === 1
 								? {!! Js::from( trans_choice( 'visual-editor::ve.files_dropped', 1 ) ) !!}
 								: {!! Js::from( trans_choice( 'visual-editor::ve.files_dropped', 2, [ 'count' => '__COUNT__' ] ) ) !!}.replaceAll( '__COUNT__', validFiles.length );
