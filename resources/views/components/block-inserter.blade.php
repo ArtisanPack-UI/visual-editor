@@ -37,7 +37,7 @@
 	x-data="{
 		search: '',
 		recentlyUsed: (() => { try { return JSON.parse( localStorage.getItem( 'veRecentBlocks' ) || '[]' ); } catch { return []; } })(),
-		collapsedCategories: {},
+		collapsedCategories: Object.create( null ),
 		blocks: {{ Js::from( $blocks ) }},
 		categories: {{ Js::from( $categories ) }},
 		recentlyUsedMax: {{ Js::from( $recentlyUsedMax ) }},
@@ -96,7 +96,7 @@
 
 				if ( Alpine.store( 'announcer' ) ) {
 					Alpine.store( 'announcer' ).announce(
-						{{ Js::from( __( 'visual-editor::ve.block_inserted', [ 'block' => '__BLOCK__' ] ) ) }}.replaceAll( '__BLOCK__', blockLabel )
+						{{ Js::from( __( 'visual-editor::ve.block_inserted', [ 'block' => '__BLOCK__' ] ) ) }}.replaceAll( '__BLOCK__', () => blockLabel )
 					);
 				}
 			}
