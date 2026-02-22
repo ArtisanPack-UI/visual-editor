@@ -6,7 +6,8 @@
       "mcp__plugin_gitlab_gitlab__create_merge_request",
       "Bash(./vendor/bin/pest:*)",
       "Bash(gh pr create:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(cd \"/Users/jacobmartella/Desktop/ArtisanPack UI Packages/visual-editor\" && gh pr list --head add/phase-two --json number,title,state,url 2>&1)"
     ]
   }
 }

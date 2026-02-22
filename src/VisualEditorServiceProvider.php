@@ -71,6 +71,29 @@ class VisualEditorServiceProvider extends ServiceProvider
 		'fill'               => Components\Fill::class,
 		'drop-zone'          => Components\DropZone::class,
 		'selection-manager'  => Components\SelectionManager::class,
+
+		// Phase 3: Editor Shell Assembly
+		'editor-state'            => Components\EditorState::class,
+		'canvas-empty-state'      => Components\CanvasEmptyState::class,
+		'insertion-point'         => Components\InsertionPoint::class,
+		'device-preview'          => Components\DevicePreview::class,
+		'editor-canvas'           => Components\EditorCanvas::class,
+		'block-inserter-category' => Components\BlockInserterCategory::class,
+		'block-inserter-item'     => Components\BlockInserterItem::class,
+		'block-inserter'          => Components\BlockInserter::class,
+		'device-preview-buttons'  => Components\DevicePreviewButtons::class,
+		'status-bar'              => Components\StatusBar::class,
+		'block-toolbar'           => Components\BlockToolbar::class,
+		'top-toolbar'             => Components\TopToolbar::class,
+		'editor-sidebar'          => Components\EditorSidebar::class,
+		'editor-layout'           => Components\EditorLayout::class,
+
+		// Phase 4: Left Sidebar, Patterns, Layers & Hooks
+		'left-sidebar'     => Components\LeftSidebar::class,
+		'pattern-browser'  => Components\PatternBrowser::class,
+		'pattern-modal'    => Components\PatternModal::class,
+		'layer-panel'      => Components\LayerPanel::class,
+		'document-status'  => Components\DocumentStatus::class,
 	];
 
 	/**

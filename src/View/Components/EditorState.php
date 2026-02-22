@@ -1,0 +1,170 @@
+<?php
+
+/**
+ * Editor State Component.
+ *
+ * Initializes the central Alpine.js editor store that manages
+ * block tree state, undo/redo history, editor mode, and save status.
+ *
+ * @package    ArtisanPack_UI
+ * @subpackage VisualEditor\View\Components
+ *
+ * @author     Jacob Martella <me@jacobmartella.com>
+ *
+ * @since      1.0.0
+ */
+
+declare( strict_types=1 );
+
+namespace ArtisanPackUI\VisualEditor\View\Components;
+
+use Closure;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Str;
+use Illuminate\View\Component;
+
+/**
+ * Editor State component for managing all editor state via Alpine.js store.
+ *
+ * @package    ArtisanPack_UI
+ * @subpackage VisualEditor\View\Components
+ *
+ * @since      1.0.0
+ */
+class EditorState extends Component
+{
+	/**
+	 * Valid editor modes.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<int, string>
+	 */
+	public const MODES = [
+		'visual',
+		'code',
+	];
+
+	/**
+	 * Valid device preview options.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<int, string>
+	 */
+	public const DEVICES = [
+		'desktop',
+		'tablet',
+		'mobile',
+	];
+
+	/**
+	 * Valid save statuses.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<int, string>
+	 */
+	public const SAVE_STATUSES = [
+		'saved',
+		'unsaved',
+		'saving',
+		'error',
+	];
+
+	/**
+	 * Valid document statuses.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<int, string>
+	 */
+	public const DOCUMENT_STATUSES = [
+		'draft',
+		'published',
+		'scheduled',
+		'pending',
+	];
+
+	/**
+	 * Unique identifier for this component instance.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var string
+	 */
+	public string $uuid;
+
+	/**
+	 * Create a new component instance.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string|null  $id               Optional custom ID.
+	 * @param array<mixed> $initialBlocks    Pre-populated block tree.
+	 * @param int          $maxHistorySize   Maximum undo/redo history states.
+	 * @param string       $mode             Editor mode: visual or code.
+	 * @param bool         $showSidebar      Whether sidebar is initially visible.
+	 * @param bool         $showInserter     Whether inserter is initially visible.
+	 * @param string       $devicePreview    Initial device preview: desktop, tablet, or mobile.
+	 * @param string       $saveStatus       Initial save status.
+	 * @param bool         $autosave         Whether autosave is enabled.
+	 * @param int          $autosaveInterval Seconds between autosaves.
+	 * @param string       $documentStatus   Initial document status: draft, published, scheduled, or pending.
+	 * @param string|null  $scheduledDate    Date/time string for scheduled publishing.
+	 * @param array<mixed> $patterns         Available patterns for the pattern browser.
+	 */
+	public function __construct(
+		public ?string $id = null,
+		public array $initialBlocks = [],
+		public int $maxHistorySize = 50,
+		public string $mode = 'visual',
+		public bool $showSidebar = true,
+		public bool $showInserter = false,
+		public string $devicePreview = 'desktop',
+		public string $saveStatus = 'saved',
+		public bool $autosave = true,
+		public int $autosaveInterval = 60,
+		public string $documentStatus = 'draft',
+		public ?string $scheduledDate = null,
+		public array $patterns = [],
+	) {
+		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
+
+		if ( ! in_array( $this->mode, self::MODES, true ) ) {
+			$this->mode = 'visual';
+		}
+
+		if ( ! in_array( $this->devicePreview, self::DEVICES, true ) ) {
+			$this->devicePreview = 'desktop';
+		}
+
+		if ( ! in_array( $this->saveStatus, self::SAVE_STATUSES, true ) ) {
+			$this->saveStatus = 'saved';
+		}
+
+		if ( ! in_array( $this->documentStatus, self::DOCUMENT_STATUSES, true ) ) {
+			$this->documentStatus = 'draft';
+		}
+
+		if ( $this->maxHistorySize < 1 ) {
+			$this->maxHistorySize = 50;
+		}
+
+		if ( $this->autosaveInterval < 1 ) {
+			$this->autosaveInterval = 60;
+		}
+	}
+
+	/**
+	 * Get the view that represents the component.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return Closure|string|View
+	 */
+	public function render(): View|Closure|string
+	{
+		return view( 'visual-editor::components.editor-state' );
+	}
+}
