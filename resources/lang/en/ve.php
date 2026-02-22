@@ -240,7 +240,7 @@ return [
 	'words_count'            => '1 word|:count words',
 	'words_count_label'      => 'word|words',
 	'reading_time'           => '1 min read|:count min read',
-	'reading_time_label'     => 'min read|min read',
+	'reading_time_label'     => 'min read|mins read',
 
 	// Document Status
 	'document_status'    => 'Document status',

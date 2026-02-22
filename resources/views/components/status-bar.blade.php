@@ -60,7 +60,7 @@
 		},
 	}"
 	{{ $attributes->merge( [ 'class' => 'flex items-center justify-between px-4 py-1.5 border-t border-base-300 bg-base-100 text-xs text-base-content/60' ] ) }}
-	role="status"
+	role="region"
 	aria-label="{{ __( 'visual-editor::ve.status_bar' ) }}"
 >
 	{{-- Left: counts --}}
@@ -82,6 +82,7 @@
 
 		@if ( $showSaveStatus )
 			<span
+				role="status"
 				:class="{
 					'text-success': 'saved' === saveStatus,
 					'text-warning': 'unsaved' === saveStatus,

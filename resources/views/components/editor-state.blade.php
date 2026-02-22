@@ -182,7 +182,7 @@
 
 				{{-- ── Batch Operations ───────────────────────────────── --}}
 
-				batchUpdate( operations ) {
+				batchUpdate( operations, options = {} ) {
 					if ( ! operations || 0 === operations.length ) return;
 
 					this._pushHistory();
@@ -205,7 +205,9 @@
 					} );
 
 					this.markDirty();
-					this._announceAction( {{ Js::from( __( 'visual-editor::ve.blocks_reordered' ) ) }} );
+					if ( ! options.silent ) {
+						this._announceAction( {{ Js::from( __( 'visual-editor::ve.blocks_reordered' ) ) }} );
+					}
 					this._dispatchChange();
 				},
 
@@ -347,7 +349,7 @@
 						index: this.blocks.length + index,
 					} ) );
 
-					this.batchUpdate( operations );
+					this.batchUpdate( operations, { silent: true } );
 					this._announceAction(
 						{{ Js::from( __( 'visual-editor::ve.pattern_inserted' ) ) }}.replace( ':pattern', pattern.name || 'Pattern' )
 					);
@@ -414,7 +416,7 @@
 					document.dispatchEvent( new CustomEvent( 've-editor-change', {
 						bubbles: true,
 						detail: {
-							blocks: this.blocks,
+							blocks: JSON.parse( JSON.stringify( this.blocks ) ),
 							blockCount: this.getBlockCount(),
 							wordCount: this.getWordCount(),
 							saveStatus: this.saveStatus,
@@ -466,6 +468,7 @@
 			store.showInserter    = {{ Js::from( $showInserter ) }};
 			store.devicePreview   = {{ Js::from( $devicePreview ) }};
 			store.saveStatus      = {{ Js::from( $saveStatus ) }};
+			store.lastSavedAt     = null;
 			store.autosave        = {{ Js::from( $autosave ) }};
 			store.autosaveInterval = {{ Js::from( $autosaveInterval ) }};
 			store.documentStatus   = {{ Js::from( $documentStatus ) }};

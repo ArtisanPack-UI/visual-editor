@@ -37,7 +37,7 @@
 						mobile: {{ Js::from( __( 'visual-editor::ve.device_mobile' ) ) }},
 					};
 					Alpine.store( 'announcer' ).announce(
-						{{ Js::from( __( 'visual-editor::ve.switched_to_device', [ 'device' => '__DEVICE__' ] ) ) }}.replaceAll( '__DEVICE__', labels[ device ] || device )
+						{{ Js::from( __( 'visual-editor::ve.switched_to_device', [ 'device' => '__DEVICE__' ] ) ) }}.replace( '__DEVICE__', labels[ device ] || device )
 					);
 				}
 			}
@@ -53,6 +53,10 @@
 	{{ $attributes->merge( [ 'class' => 'flex items-center gap-0.5' ] ) }}
 	role="radiogroup"
 	aria-label="{{ $label ?? __( 'visual-editor::ve.device_preview' ) }}"
+	x-on:keydown.arrow-left.prevent="handleArrowKey( -1 )"
+	x-on:keydown.arrow-up.prevent="handleArrowKey( -1 )"
+	x-on:keydown.arrow-right.prevent="handleArrowKey( 1 )"
+	x-on:keydown.arrow-down.prevent="handleArrowKey( 1 )"
 >
 	{{-- Desktop --}}
 	<button
@@ -60,10 +64,6 @@
 		class="btn btn-ghost btn-xs btn-square"
 		:class="'desktop' === currentDevice ? 'btn-active' : ''"
 		x-on:click="setDevice( 'desktop' )"
-		x-on:keydown.arrow-left.prevent="handleArrowKey( -1 )"
-		x-on:keydown.arrow-up.prevent="handleArrowKey( -1 )"
-		x-on:keydown.arrow-right.prevent="handleArrowKey( 1 )"
-		x-on:keydown.arrow-down.prevent="handleArrowKey( 1 )"
 		role="radio"
 		:aria-checked="'desktop' === currentDevice"
 		:tabindex="'desktop' === currentDevice ? 0 : -1"
@@ -81,10 +81,6 @@
 		class="btn btn-ghost btn-xs btn-square"
 		:class="'tablet' === currentDevice ? 'btn-active' : ''"
 		x-on:click="setDevice( 'tablet' )"
-		x-on:keydown.arrow-left.prevent="handleArrowKey( -1 )"
-		x-on:keydown.arrow-up.prevent="handleArrowKey( -1 )"
-		x-on:keydown.arrow-right.prevent="handleArrowKey( 1 )"
-		x-on:keydown.arrow-down.prevent="handleArrowKey( 1 )"
 		role="radio"
 		:aria-checked="'tablet' === currentDevice"
 		:tabindex="'tablet' === currentDevice ? 0 : -1"
@@ -102,10 +98,6 @@
 		class="btn btn-ghost btn-xs btn-square"
 		:class="'mobile' === currentDevice ? 'btn-active' : ''"
 		x-on:click="setDevice( 'mobile' )"
-		x-on:keydown.arrow-left.prevent="handleArrowKey( -1 )"
-		x-on:keydown.arrow-up.prevent="handleArrowKey( -1 )"
-		x-on:keydown.arrow-right.prevent="handleArrowKey( 1 )"
-		x-on:keydown.arrow-down.prevent="handleArrowKey( 1 )"
 		role="radio"
 		:aria-checked="'mobile' === currentDevice"
 		:tabindex="'mobile' === currentDevice ? 0 : -1"

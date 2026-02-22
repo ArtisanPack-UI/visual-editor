@@ -36,7 +36,7 @@
 	id="{{ $uuid }}"
 	x-data="{
 		search: '',
-		recentlyUsed: [],
+		recentlyUsed: JSON.parse( localStorage.getItem( 'veRecentBlocks' ) || '[]' ),
 		collapsedCategories: {},
 		blocks: {{ Js::from( $blocks ) }},
 		categories: {{ Js::from( $categories ) }},
@@ -63,7 +63,7 @@
 		},
 
 		get groupedBlocks() {
-			const groups = {};
+			const groups = Object.create( null );
 			this.filteredBlocks.forEach( ( block ) => {
 				const cat = block.category || 'text';
 				if ( ! groups[ cat ] ) {
@@ -86,10 +86,12 @@
 			return this.blockIcons[ blockType ] || this.blockIcons['_default'];
 		},
 
+		insertAt: {{ Js::from( $insertAt ) }},
+
 		insertBlock( blockType, blockLabel ) {
 			if ( Alpine.store( 'editor' ) ) {
-				const insertAt = {{ Js::from( $insertAt ) }};
-				Alpine.store( 'editor' ).addBlock( { type: blockType }, insertAt );
+				const position = this.insertAt ?? {{ Js::from( $insertAt ) }};
+				Alpine.store( 'editor' ).addBlock( { type: blockType }, position );
 				this._addToRecent( blockType );
 
 				if ( Alpine.store( 'announcer' ) ) {
@@ -106,6 +108,7 @@
 			if ( this.recentlyUsed.length > this.recentlyUsedMax ) {
 				this.recentlyUsed = this.recentlyUsed.slice( 0, this.recentlyUsedMax );
 			}
+			localStorage.setItem( 'veRecentBlocks', JSON.stringify( this.recentlyUsed ) );
 		},
 
 		_announceResults() {
@@ -117,6 +120,7 @@
 			Alpine.store( 'announcer' ).announce( msg );
 		},
 	}"
+	x-effect="if ( search.trim().length > 0 ) { _announceResults(); }"
 	x-on:ve-block-inserter-select.window="if ( $event?.detail?.type ) { insertBlock( $event.detail.type, $event.detail.label || $event.detail.type ); }"
 	{{ $attributes->merge( [ 'class' => 'flex flex-col' ] ) }}
 	role="region"
@@ -132,7 +136,6 @@
 				<input
 					type="search"
 					x-model.debounce.300ms="search"
-					x-on:input.debounce.300ms="_announceResults()"
 					placeholder="{{ __( 'visual-editor::ve.search_blocks' ) }}"
 					class="input input-sm input-bordered w-full pl-8"
 					aria-controls="{{ $uuid }}-results"
@@ -157,6 +160,7 @@
 						type="button"
 						class="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs font-semibold text-base-content/60 uppercase tracking-wide hover:text-base-content transition-colors"
 						x-on:click="toggleCategory( '_recent' )"
+						:aria-expanded="! isCategoryCollapsed( '_recent' )"
 					>
 						<svg
 							class="w-3.5 h-3.5 transition-transform"
@@ -198,6 +202,7 @@
 					type="button"
 					class="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs font-semibold text-base-content/60 uppercase tracking-wide hover:text-base-content transition-colors"
 					x-on:click="toggleCategory( categoryName )"
+					:aria-expanded="! isCategoryCollapsed( categoryName )"
 				>
 					<svg
 						class="w-3.5 h-3.5 transition-transform"

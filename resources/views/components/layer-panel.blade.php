@@ -177,7 +177,7 @@
 							:style="'padding-left: ' + ( ( ( heading.attributes?.level || 1 ) - 1 ) * 12 + 12 ) + 'px'"
 						>
 							<span class="badge badge-xs badge-outline shrink-0" x-text="'H' + ( heading.attributes?.level || 1 )"></span>
-							<span class="truncate" x-text="( heading.attributes?.content || '' ).replace( /<[^>]*>/g, '' ) || 'Heading'"></span>
+							<span class="truncate" x-text="( heading.attributes?.content || '' ).replace( /<[^>]*>/g, '' ) || fallbackLabels.heading"></span>
 						</button>
 					</template>
 				</div>

@@ -111,7 +111,7 @@
 		@endif
 	}"
 	{{ $attributes->merge( [ 'class' => 'relative min-h-[200px] p-4' ] ) }}
-	role="main"
+	role="region"
 	aria-label="{{ $label ?? __( 'visual-editor::ve.editor_canvas' ) }}"
 	@if ( $enableArrowNavigation )
 		x-on:keydown="handleKeydown( $event )"
