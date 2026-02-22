@@ -214,7 +214,7 @@ return [
 	'search_patterns'              => 'Search patterns...',
 	'explore_all_patterns'         => 'Explore all patterns',
 	'no_patterns_found'            => 'No patterns found.',
-	'pattern_inserted'             => '__PATTERN__ pattern inserted',
+	'pattern_inserted'             => ':pattern pattern inserted',
 	'all_pattern_categories'       => 'All',
 	'pattern_category_text'        => 'Text',
 	'pattern_category_header'      => 'Header',
@@ -229,7 +229,7 @@ return [
 
 	// Layer Panel
 	'layer_panel'            => 'Layer panel',
-	'list_view'              => 'List View',
+	'list_view'              => 'List view',
 	'outline'                => 'Outline',
 	'no_headings_found'      => 'No headings found.',
 	'block_type_heading'     => 'Heading',

@@ -150,7 +150,6 @@
 		id="{{ $uuid }}-results"
 		class="flex-1 overflow-y-auto px-3 py-2"
 		role="list"
-		aria-label="{{ __( 'visual-editor::ve.block_inserter' ) }}"
 	>
 		{{-- Recently used --}}
 		@if ( $showRecentlyUsed )
@@ -197,7 +196,7 @@
 
 		{{-- Categorized blocks --}}
 		<template x-for="( categoryBlocks, categoryName ) in groupedBlocks" :key="categoryName">
-			<div class="mb-1" role="group" :aria-label="categoryName">
+			<div class="mb-1" :aria-label="categoryName">
 				<button
 					type="button"
 					class="flex items-center gap-1.5 w-full px-2 py-1.5 text-xs font-semibold text-base-content/60 uppercase tracking-wide hover:text-base-content transition-colors"

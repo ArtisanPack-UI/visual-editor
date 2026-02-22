@@ -162,6 +162,7 @@
 					}
 
 					this.markDirty();
+					this._announceAction( {{ Js::from( __( 'visual-editor::ve.block_added' ) ) }} );
 					this._dispatchChange();
 
 					return newBlock;
@@ -177,6 +178,7 @@
 					this._pushHistory();
 					parent.innerBlocks.splice( index, 1 );
 					this.markDirty();
+					this._announceAction( {{ Js::from( __( 'visual-editor::ve.block_removed' ) ) }} );
 					this._dispatchChange();
 				},
 
@@ -351,7 +353,7 @@
 
 					this.batchUpdate( operations, { silent: true } );
 					this._announceAction(
-						{{ Js::from( __( 'visual-editor::ve.pattern_inserted' ) ) }}.replace( '__PATTERN__', pattern.name || 'Pattern' )
+						{{ Js::from( __( 'visual-editor::ve.pattern_inserted', [ 'pattern' => '__PATTERN__' ] ) ) }}.replace( '__PATTERN__', () => pattern.name || 'Pattern' )
 					);
 				},
 
@@ -385,6 +387,7 @@
 
 				_startAutosave() {
 					this._stopAutosave();
+					if ( ! this.autosaveInterval || this.autosaveInterval <= 0 ) return;
 					this._autosaveTimer = setInterval( () => {
 						if ( 'unsaved' === this.saveStatus ) {
 							document.dispatchEvent( new CustomEvent( 've-autosave', {
@@ -474,6 +477,8 @@
 			store.documentStatus   = {{ Js::from( $documentStatus ) }};
 			store.scheduledDate    = {{ Js::from( $scheduledDate ) }};
 			store.patterns         = {{ Js::from( $patterns ) }};
+			store.showPatternModal = false;
+			store.leftSidebarTab   = 'blocks';
 
 			store.history.past   = [];
 			store.history.future = [];
