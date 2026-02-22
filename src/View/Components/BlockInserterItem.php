@@ -47,13 +47,14 @@ class BlockInserterItem extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string|null $id          Optional custom ID.
-	 * @param string      $name        Block type name.
-	 * @param string|null $label       Display label for the block.
-	 * @param string|null $description Block description text.
-	 * @param string|null $icon        Icon name or SVG reference.
-	 * @param string      $category    Category slug this block belongs to.
-	 * @param bool        $draggable   Whether this item can be dragged to the canvas.
+	 * @param string|null $id           Optional custom ID.
+	 * @param string      $name         Block type name.
+	 * @param string|null $label        Display label for the block.
+	 * @param string|null $description  Block description text.
+	 * @param string|null $icon         Icon name or SVG reference.
+	 * @param string      $category     Category slug this block belongs to.
+	 * @param bool        $draggable    Whether this item can be dragged to the canvas.
+	 * @param string|null $renderedIcon Pre-rendered icon HTML. Takes priority over $icon.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -63,6 +64,7 @@ class BlockInserterItem extends Component
 		public ?string $icon = null,
 		public string $category = 'text',
 		public bool $draggable = true,
+		public ?string $renderedIcon = null,
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 	}

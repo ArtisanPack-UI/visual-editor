@@ -46,11 +46,12 @@ class BlockInserterCategory extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string|null $id    Optional custom ID.
-	 * @param string      $name  Category slug.
-	 * @param string|null $label Display label. Defaults to translation.
-	 * @param string|null $icon  Optional category icon name.
-	 * @param int         $count Number of blocks in this category.
+	 * @param string|null $id           Optional custom ID.
+	 * @param string      $name         Category slug.
+	 * @param string|null $label        Display label. Defaults to translation.
+	 * @param string|null $icon         Optional category icon name.
+	 * @param int         $count        Number of blocks in this category.
+	 * @param string|null $renderedIcon Pre-rendered icon HTML. Takes priority over $icon.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -58,6 +59,7 @@ class BlockInserterCategory extends Component
 		public ?string $label = null,
 		public ?string $icon = null,
 		public int $count = 0,
+		public ?string $renderedIcon = null,
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 	}

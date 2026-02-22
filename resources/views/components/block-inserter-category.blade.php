@@ -17,9 +17,9 @@
 >
 	{{-- Category header --}}
 	<h3 class="text-xs font-semibold text-base-content/60 uppercase tracking-wide px-2 mb-1.5">
-		@if ( $icon )
+		@if ( $renderedIcon )
 			<span class="inline-flex items-center gap-1.5">
-				<x-artisanpack-icon :name="$icon" class="w-3.5 h-3.5" />
+				{!! $renderedIcon !!}
 				{{ $label ?? $name }}
 			</span>
 		@else

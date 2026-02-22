@@ -46,8 +46,8 @@
 >
 	{{-- Block icon --}}
 	<div class="w-10 h-10 flex items-center justify-center rounded bg-base-200 text-base-content/60">
-		@if ( $icon )
-			<x-artisanpack-icon :name="$icon" class="w-5 h-5" />
+		@if ( $renderedIcon )
+			{!! $renderedIcon !!}
 		@else
 			<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 016 3.75h2.25A2.25 2.25 0 0110.5 6v2.25a2.25 2.25 0 01-2.25 2.25H6a2.25 2.25 0 01-2.25-2.25V6z" />

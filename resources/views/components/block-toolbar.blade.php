@@ -36,7 +36,7 @@
 		},
 
 		_anchorToBlock( blockId ) {
-			const el = document.querySelector( '[data-block-id=\"' + blockId + '\"]' );
+			const el = document.querySelector( '[data-block-id=' + blockId + ']' );
 			if ( ! el ) {
 				this.visible = false;
 				this._removePositionListeners();

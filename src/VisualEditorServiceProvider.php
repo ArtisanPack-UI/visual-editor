@@ -18,6 +18,8 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor;
 
+use ArtisanPackUI\VisualEditor\Blocks\BlockRegistry;
+use ArtisanPackUI\VisualEditor\Blocks\BlockTransformService;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -113,6 +115,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->app->singleton( 'visual-editor', function () {
 			return new VisualEditor();
 		} );
+
+		$this->app->singleton( 'visual-editor.blocks', function () {
+			return new BlockRegistry();
+		} );
+
+		$this->app->singleton( BlockTransformService::class, function ( $app ) {
+			return new BlockTransformService( $app->make( 'visual-editor.blocks' ) );
+		} );
 	}
 
 	/**
@@ -129,6 +139,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerTranslations();
 		$this->registerViews();
 		$this->registerBladeComponents();
+		$this->registerCoreBlocks();
 	}
 
 	/**
@@ -213,6 +224,57 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		foreach ( $this->bladeComponents as $alias => $class ) {
 			Blade::component( $class, $prefix . '-' . $alias );
+		}
+	}
+
+	/**
+	 * Register all core block types with the block registry.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerCoreBlocks(): void
+	{
+		$registry   = $this->app->make( 'visual-editor.blocks' );
+		$coreConfig = config( 'artisanpack.visual-editor.blocks.core', [] );
+		$disabled   = config( 'artisanpack.visual-editor.blocks.disabled', [] );
+
+		$coreBlocks = [
+			'heading'   => Blocks\Text\HeadingBlock::class,
+			'paragraph' => Blocks\Text\ParagraphBlock::class,
+			'list'      => Blocks\Text\ListBlock::class,
+			'quote'     => Blocks\Text\QuoteBlock::class,
+			'image'     => Blocks\Media\ImageBlock::class,
+			'gallery'   => Blocks\Media\GalleryBlock::class,
+			'video'     => Blocks\Media\VideoBlock::class,
+			'audio'     => Blocks\Media\AudioBlock::class,
+			'file'      => Blocks\Media\FileBlock::class,
+			'columns'   => Blocks\Layout\ColumnsBlock::class,
+			'column'    => Blocks\Layout\ColumnBlock::class,
+			'group'     => Blocks\Layout\GroupBlock::class,
+			'spacer'    => Blocks\Layout\SpacerBlock::class,
+			'divider'   => Blocks\Layout\DividerBlock::class,
+			'button'    => Blocks\Interactive\ButtonBlock::class,
+			'code'      => Blocks\Interactive\CodeBlock::class,
+		];
+
+		foreach ( $coreBlocks as $type => $class ) {
+			if ( false === ( $coreConfig[ $type ] ?? true ) ) {
+				continue;
+			}
+
+			if ( in_array( $type, $disabled, true ) ) {
+				continue;
+			}
+
+			if ( class_exists( $class ) ) {
+				$registry->register( new $class() );
+			}
+		}
+
+		if ( function_exists( 'doAction' ) ) {
+			doAction( 'ap.visualEditor.blocksInit' );
 		}
 	}
 }

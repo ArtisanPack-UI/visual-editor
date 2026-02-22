@@ -25,7 +25,7 @@
 
 				if ( focusButton ) {
 					this.$nextTick( () => {
-						const btn = this.$el.querySelector( '[data-device=\"' + device + '\"]' );
+						const btn = this.$el.querySelector( '[data-device=' + device + ']' );
 						if ( btn ) btn.focus();
 					} );
 				}
