@@ -36,7 +36,7 @@
 	id="{{ $uuid }}"
 	x-data="{
 		search: '',
-		recentlyUsed: JSON.parse( localStorage.getItem( 'veRecentBlocks' ) || '[]' ),
+		recentlyUsed: (() => { try { return JSON.parse( localStorage.getItem( 'veRecentBlocks' ) || '[]' ); } catch { return []; } })(),
 		collapsedCategories: {},
 		blocks: {{ Js::from( $blocks ) }},
 		categories: {{ Js::from( $categories ) }},
@@ -90,7 +90,7 @@
 
 		insertBlock( blockType, blockLabel ) {
 			if ( Alpine.store( 'editor' ) ) {
-				const position = this.insertAt ?? {{ Js::from( $insertAt ) }};
+				const position = this.insertAt;
 				Alpine.store( 'editor' ).addBlock( { type: blockType }, position );
 				this._addToRecent( blockType );
 
@@ -108,7 +108,7 @@
 			if ( this.recentlyUsed.length > this.recentlyUsedMax ) {
 				this.recentlyUsed = this.recentlyUsed.slice( 0, this.recentlyUsedMax );
 			}
-			localStorage.setItem( 'veRecentBlocks', JSON.stringify( this.recentlyUsed ) );
+			try { localStorage.setItem( 'veRecentBlocks', JSON.stringify( this.recentlyUsed ) ); } catch {}
 		},
 
 		_announceResults() {

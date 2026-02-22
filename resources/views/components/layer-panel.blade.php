@@ -62,18 +62,22 @@
 		},
 
 		getBlockLabel( block ) {
-			if ( 'heading' === block.type ) {
+			const type = 'string' === typeof block?.type && block.type.length > 0 ? block.type : '';
+			if ( 'heading' === type ) {
 				const content = ( block.attributes?.content || '' ).replace( /<[^>]*>/g, '' );
 				return content || this.fallbackLabels.heading;
 			}
-			if ( 'paragraph' === block.type ) {
+			if ( 'paragraph' === type ) {
 				const content = ( block.attributes?.content || '' ).replace( /<[^>]*>/g, '' );
 				return content.length > 40 ? content.substring( 0, 40 ) + '…' : content || this.fallbackLabels.paragraph;
 			}
-			if ( 'image' === block.type ) {
+			if ( 'image' === type ) {
 				return block.attributes?.alt || this.fallbackLabels.image;
 			}
-			return this.fallbackLabels[ block.type ] || block.type.charAt( 0 ).toUpperCase() + block.type.slice( 1 );
+			if ( '' === type ) {
+				return this.fallbackLabels.paragraph;
+			}
+			return this.fallbackLabels[ type ] || type.charAt( 0 ).toUpperCase() + type.slice( 1 );
 		},
 
 		getBlockIcon( block ) {

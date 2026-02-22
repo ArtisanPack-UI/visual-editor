@@ -31,10 +31,8 @@
 
 		get lastSavedLabel() {
 			if ( ! this.lastSavedAt ) return '';
-			const time = this.lastSavedAt;
-			const hours   = String( time.getHours() ).padStart( 2, '0' );
-			const minutes = String( time.getMinutes() ).padStart( 2, '0' );
-			return {{ Js::from( __( 'visual-editor::ve.last_saved', [ 'time' => '__TIME__' ] ) ) }}.replaceAll( '__TIME__', hours + ':' + minutes );
+			const formatted = this.lastSavedAt.toLocaleTimeString( navigator.language || 'en', { hour: '2-digit', minute: '2-digit' } );
+			return {{ Js::from( __( 'visual-editor::ve.last_saved', [ 'time' => '__TIME__' ] ) ) }}.replace( '__TIME__', formatted );
 		},
 
 		get saveStatusLabel() {

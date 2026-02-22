@@ -351,7 +351,7 @@
 
 					this.batchUpdate( operations, { silent: true } );
 					this._announceAction(
-						{{ Js::from( __( 'visual-editor::ve.pattern_inserted' ) ) }}.replace( ':pattern', pattern.name || 'Pattern' )
+						{{ Js::from( __( 'visual-editor::ve.pattern_inserted' ) ) }}.replace( '__PATTERN__', pattern.name || 'Pattern' )
 					);
 				},
 

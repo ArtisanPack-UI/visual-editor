@@ -214,7 +214,7 @@ return [
 	'search_patterns'              => 'Search patterns...',
 	'explore_all_patterns'         => 'Explore all patterns',
 	'no_patterns_found'            => 'No patterns found.',
-	'pattern_inserted'             => ':pattern pattern inserted',
+	'pattern_inserted'             => '__PATTERN__ pattern inserted',
 	'all_pattern_categories'       => 'All',
 	'pattern_category_text'        => 'Text',
 	'pattern_category_header'      => 'Header',
