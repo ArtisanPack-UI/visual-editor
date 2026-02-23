@@ -146,6 +146,23 @@ interface BlockInterface
 	public function getAllowedChildren(): ?array;
 
 	/**
+	 * Get available block variations.
+	 *
+	 * Each variation is an associative array with keys:
+	 * - name: string — unique variation identifier
+	 * - label: string — human-readable label
+	 * - description: string — short description
+	 * - icon: string — icon identifier
+	 * - attributes: array — default attribute overrides
+	 * - isDefault: bool — whether this is the default variation
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getVariations(): array;
+
+	/**
 	 * Get available block transforms.
 	 *
 	 * @since 1.0.0

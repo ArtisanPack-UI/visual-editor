@@ -6,8 +6,11 @@
 	$loop     = $styles['loop'] ?? false;
 	$muted    = $styles['muted'] ?? false;
 	$controls = $styles['controls'] ?? true;
-	$anchor   = $content['anchor'] ?? null;
+	$anchor    = $content['anchor'] ?? null;
+	$htmlId    = $content['htmlId'] ?? null;
 	$className = $content['className'] ?? '';
+
+	$elementId = $htmlId ?: $anchor;
 
 	$isYouTube = str_contains( $url, 'youtube.com' ) || str_contains( $url, 'youtu.be' );
 	$isVimeo   = str_contains( $url, 'vimeo.com' );
@@ -20,7 +23,7 @@
 
 <figure
 	class="{{ $classes }}"
-	@if ( $anchor ) id="{{ $anchor }}" @endif
+	@if ( $elementId ) id="{{ $elementId }}" @endif
 >
 	@if ( $isYouTube || $isVimeo )
 		<div class="ve-block-video__embed" style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden;">

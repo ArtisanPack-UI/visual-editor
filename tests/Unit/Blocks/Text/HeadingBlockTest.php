@@ -102,3 +102,10 @@ test( 'heading block has keywords', function (): void {
 	expect( $block->getKeywords() )->toContain( 'title' );
 	expect( $block->getKeywords() )->toContain( 'h1' );
 } );
+
+test( 'heading block editor has enter new block attribute', function (): void {
+	$block  = new HeadingBlock();
+	$output = $block->renderEditor( [ 'text' => 'Hello', 'level' => 'h2' ], [ 'alignment' => 'left' ] );
+
+	expect( $output )->toContain( 'data-ve-enter-new-block' );
+} );

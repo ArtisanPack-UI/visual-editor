@@ -28,4 +28,6 @@
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
 	contenteditable="true"
 	data-placeholder="{{ __( 'visual-editor::ve.block_paragraph_placeholder' ) }}"
+	data-ve-enter-new-block="true"
+	data-ve-slash-command="true"
 >{!! $text !!}</p>

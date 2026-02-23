@@ -10,7 +10,10 @@
 	$shadow    = $styles['shadow'] ?? false;
 	$objectFit = $styles['objectFit'] ?? 'cover';
 	$anchor    = $content['anchor'] ?? null;
+	$htmlId    = $content['htmlId'] ?? null;
 	$className = $content['className'] ?? '';
+
+	$elementId = $htmlId ?: $anchor;
 
 	$classes = "ve-block ve-block-image ve-block-image--{$size} text-{$alignment}";
 	if ( $rounded ) {
@@ -28,7 +31,7 @@
 
 <figure
 	class="{{ $classes }}"
-	@if ( $anchor ) id="{{ $anchor }}" @endif
+	@if ( $elementId ) id="{{ $elementId }}" @endif
 >
 	@if ( $url )
 		@if ( $link )

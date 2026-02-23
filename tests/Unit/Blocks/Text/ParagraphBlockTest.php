@@ -63,3 +63,17 @@ test( 'paragraph block renders with drop cap class', function (): void {
 
 	expect( $output )->toContain( 've-drop-cap' );
 } );
+
+test( 'paragraph block editor has enter new block attribute', function (): void {
+	$block  = new ParagraphBlock();
+	$output = $block->renderEditor( [ 'text' => 'Hello' ], [ 'alignment' => 'left' ] );
+
+	expect( $output )->toContain( 'data-ve-enter-new-block' );
+} );
+
+test( 'paragraph block editor has slash command attribute', function (): void {
+	$block  = new ParagraphBlock();
+	$output = $block->renderEditor( [ 'text' => 'Hello' ], [ 'alignment' => 'left' ] );
+
+	expect( $output )->toContain( 'data-ve-slash-command' );
+} );

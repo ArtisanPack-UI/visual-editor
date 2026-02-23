@@ -6,7 +6,10 @@
 	$fontSize  = $styles['fontSize'] ?? null;
 	$dropCap   = $styles['dropCap'] ?? false;
 	$anchor    = $content['anchor'] ?? null;
+	$htmlId    = $content['htmlId'] ?? null;
 	$className = $content['className'] ?? '';
+
+	$elementId = $htmlId ?: $anchor;
 
 	$inlineStyles = '';
 	if ( $textColor ) {
@@ -31,5 +34,5 @@
 <p
 	class="{{ $classes }}"
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
-	@if ( $anchor ) id="{{ $anchor }}" @endif
+	@if ( $elementId ) id="{{ $elementId }}" @endif
 >{!! $text !!}</p>

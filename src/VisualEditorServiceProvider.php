@@ -96,6 +96,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 		'pattern-modal'    => Components\PatternModal::class,
 		'layer-panel'      => Components\LayerPanel::class,
 		'document-status'  => Components\DocumentStatus::class,
+
+		// Phase 5: Inspector & Block Enhancements
+		'inspector-field'          => Components\InspectorField::class,
+		'slash-command-inserter'   => Components\SlashCommandInserter::class,
 	];
 
 	/**

@@ -27,4 +27,5 @@
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
 	contenteditable="true"
 	data-placeholder="{{ __( 'visual-editor::ve.block_heading_placeholder' ) }}"
+	data-ve-enter-new-block="true"
 >{!! $text !!}</{{ $tag }}>

@@ -50,5 +50,6 @@ test( 'get supports returns full supports array', function (): void {
 	expect( $supports )->toHaveKey( 'spacing' );
 	expect( $supports )->toHaveKey( 'border' );
 	expect( $supports )->toHaveKey( 'anchor' );
+	expect( $supports )->toHaveKey( 'htmlId' );
 	expect( $supports )->toHaveKey( 'className' );
 } );

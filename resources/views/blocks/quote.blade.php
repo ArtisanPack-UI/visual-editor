@@ -6,7 +6,10 @@
 	$textColor = $styles['textColor'] ?? null;
 	$bgColor   = $styles['backgroundColor'] ?? null;
 	$anchor    = $content['anchor'] ?? null;
+	$htmlId    = $content['htmlId'] ?? null;
 	$className = $content['className'] ?? '';
+
+	$elementId = $htmlId ?: $anchor;
 
 	$inlineStyles = '';
 	if ( $textColor ) {
@@ -25,7 +28,7 @@
 <blockquote
 	class="{{ $classes }}"
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
-	@if ( $anchor ) id="{{ $anchor }}" @endif
+	@if ( $elementId ) id="{{ $elementId }}" @endif
 >
 	<p>{!! $text !!}</p>
 	@if ( $citation )

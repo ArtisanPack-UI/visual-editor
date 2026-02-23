@@ -68,3 +68,8 @@ test( 'block toolbar hides move controls when disabled', function (): void {
 	$this->blade( '<x-ve-block-toolbar :show-move-controls="false">Controls</x-ve-block-toolbar>' )
 		->assertDontSee( 'Move up' );
 } );
+
+test( 'block toolbar renders transform dropdown when block type is set', function (): void {
+	$this->blade( '<x-ve-block-toolbar block-type="Paragraph">Controls</x-ve-block-toolbar>' )
+		->assertSee( 'Transform block' );
+} );

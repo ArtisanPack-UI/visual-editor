@@ -5,8 +5,11 @@
 	$verticalAlign    = $styles['verticalAlignment'] ?? 'top';
 	$stackOnMobile    = $styles['stackOnMobile'] ?? true;
 	$anchor           = $content['anchor'] ?? null;
+	$htmlId           = $content['htmlId'] ?? null;
 	$className        = $content['className'] ?? '';
 	$innerBlocks      = $innerBlocks ?? [];
+
+	$elementId = $htmlId ?: $anchor;
 
 	$gapMap = [
 		'none'   => '0',
@@ -43,7 +46,7 @@
 <div
 	class="{{ $classes }}"
 	style="{{ $inlineStyles }}"
-	@if ( $anchor ) id="{{ $anchor }}" @endif
+	@if ( $elementId ) id="{{ $elementId }}" @endif
 	data-columns="{{ $columnCount }}"
 	data-layout="{{ $layout }}"
 >

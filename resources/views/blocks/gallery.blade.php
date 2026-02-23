@@ -5,7 +5,10 @@
 	$captionDisplay = $styles['captionDisplay'] ?? 'below';
 	$crop           = $styles['crop'] ?? true;
 	$anchor         = $content['anchor'] ?? null;
+	$htmlId         = $content['htmlId'] ?? null;
 	$className      = $content['className'] ?? '';
+
+	$elementId = $htmlId ?: $anchor;
 
 	$gapMap = [ 'none' => '0', 'small' => '0.5rem', 'medium' => '1rem', 'large' => '1.5rem' ];
 	$gapValue = $gapMap[ $gap ] ?? '1rem';
@@ -21,7 +24,7 @@
 
 <figure
 	class="{{ $classes }}"
-	@if ( $anchor ) id="{{ $anchor }}" @endif
+	@if ( $elementId ) id="{{ $elementId }}" @endif
 >
 	<div
 		class="ve-block-gallery__grid"

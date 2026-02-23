@@ -55,6 +55,7 @@ trait HasBlockSupports
 			],
 			'border'     => false,
 			'anchor'     => true,
+			'htmlId'     => true,
 			'className'  => true,
 		];
 	}

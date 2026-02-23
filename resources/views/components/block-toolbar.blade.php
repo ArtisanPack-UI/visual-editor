@@ -121,9 +121,46 @@
 		aria-label="{{ $label ?? __( 'visual-editor::ve.block_toolbar' ) }}"
 		aria-orientation="horizontal"
 	>
-		{{-- Block type indicator --}}
+		{{-- Block type indicator with transform dropdown --}}
 		@if ( $blockType )
-			<span class="text-xs font-medium text-base-content/60 px-1.5">{{ $blockType }}</span>
+			<div x-data="{ transformOpen: false }" class="relative flex items-center">
+				<button
+					type="button"
+					class="text-xs font-medium text-base-content/60 px-1.5 hover:text-base-content transition-colors flex items-center gap-1"
+					x-on:click="transformOpen = ! transformOpen"
+					:aria-expanded="transformOpen"
+					aria-label="{{ __( 'visual-editor::ve.transform_block' ) }}"
+				>
+					{{ $blockType }}
+					<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+						<path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+					</svg>
+				</button>
+
+				<div
+					x-show="transformOpen"
+					x-on:click.outside="transformOpen = false"
+					x-transition
+					class="absolute left-0 top-full mt-1 w-48 rounded-lg border border-base-300 bg-base-100 shadow-lg py-1 z-50"
+					role="menu"
+					aria-label="{{ __( 'visual-editor::ve.transform_to' ) }}"
+				>
+					<template x-if="Alpine.store( 'editor' ) && focusedBlockId">
+						<template x-for="targetType in Alpine.store( 'editor' ).getTransformsForBlock( Alpine.store( 'editor' ).getBlock( focusedBlockId )?.type || '' )" :key="targetType">
+							<button
+								type="button"
+								class="w-full text-left px-3 py-1.5 text-sm hover:bg-base-200"
+								x-on:click="
+									Alpine.store( 'editor' ).transformBlock( focusedBlockId, targetType );
+									transformOpen = false;
+								"
+								role="menuitem"
+								x-text="targetType"
+							></button>
+						</template>
+					</template>
+				</div>
+			</div>
 			<div class="w-px h-4 bg-base-300" aria-hidden="true"></div>
 		@endif
 

@@ -73,6 +73,12 @@ test( 'base block returns null for allowed children by default', function (): vo
 	expect( $block->getAllowedChildren() )->toBeNull();
 } );
 
+test( 'base block returns empty variations by default', function (): void {
+	$block = new StubBlock();
+
+	expect( $block->getVariations() )->toBe( [] );
+} );
+
 test( 'base block returns transforms', function (): void {
 	$block = new StubBlock();
 
@@ -104,4 +110,12 @@ test( 'base block advanced schema includes anchor and className', function (): v
 
 	expect( $schema )->toHaveKey( 'anchor' );
 	expect( $schema )->toHaveKey( 'className' );
+} );
+
+test( 'base block advanced schema includes htmlId', function (): void {
+	$block  = new StubBlock();
+	$schema = $block->getAdvancedSchema();
+
+	expect( $schema )->toHaveKey( 'htmlId' );
+	expect( $schema['htmlId']['type'] )->toBe( 'text' );
 } );

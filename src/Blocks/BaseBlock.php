@@ -188,6 +188,15 @@ abstract class BaseBlock implements BlockInterface
 			];
 		}
 
+		if ( $this->supportsFeature( 'htmlId' ) ) {
+			$schema['htmlId'] = [
+				'type'        => 'text',
+				'label'       => __( 'visual-editor::ve.html_id' ),
+				'placeholder' => __( 'visual-editor::ve.html_id_placeholder' ),
+				'default'     => '',
+			];
+		}
+
 		if ( $this->supportsFeature( 'className' ) ) {
 			$schema['className'] = [
 				'type'        => 'text',
@@ -246,6 +255,18 @@ abstract class BaseBlock implements BlockInterface
 	public function getAllowedChildren(): ?array
 	{
 		return null;
+	}
+
+	/**
+	 * Get available block variations.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getVariations(): array
+	{
+		return [];
 	}
 
 	/**

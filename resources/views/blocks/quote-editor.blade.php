@@ -24,6 +24,7 @@
 	<p
 		contenteditable="true"
 		data-placeholder="{{ __( 'visual-editor::ve.block_quote_placeholder' ) }}"
+		data-ve-enter-new-block="true"
 	>{!! $text !!}</p>
 	<cite
 		contenteditable="true"

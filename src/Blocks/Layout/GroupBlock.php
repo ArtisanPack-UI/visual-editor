@@ -52,7 +52,7 @@ class GroupBlock extends BaseBlock
 	public function getContentSchema(): array
 	{
 		return [
-			'tag' => [
+			'tag'           => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.html_tag' ),
 				'options' => [
@@ -63,6 +63,70 @@ class GroupBlock extends BaseBlock
 					'main'    => 'main',
 				],
 				'default' => 'div',
+			],
+			'flexDirection' => [
+				'type'    => 'select',
+				'label'   => __( 'visual-editor::ve.flex_direction' ),
+				'options' => [
+					'column' => __( 'visual-editor::ve.flex_column' ),
+					'row'    => __( 'visual-editor::ve.flex_row' ),
+				],
+				'default' => 'column',
+			],
+			'flexWrap'      => [
+				'type'    => 'select',
+				'label'   => __( 'visual-editor::ve.flex_wrap' ),
+				'options' => [
+					'nowrap' => __( 'visual-editor::ve.no_wrap' ),
+					'wrap'   => __( 'visual-editor::ve.wrap' ),
+				],
+				'default' => 'nowrap',
+			],
+		];
+	}
+
+	/**
+	 * Get available block variations.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getVariations(): array
+	{
+		return [
+			[
+				'name'        => 'group',
+				'label'       => __( 'visual-editor::ve.variation_group' ),
+				'description' => __( 'visual-editor::ve.variation_group_desc' ),
+				'icon'        => 'rectangle-group',
+				'attributes'  => [
+					'flexDirection' => 'column',
+					'flexWrap'      => 'nowrap',
+				],
+				'isDefault'   => true,
+			],
+			[
+				'name'        => 'row',
+				'label'       => __( 'visual-editor::ve.variation_row' ),
+				'description' => __( 'visual-editor::ve.variation_row_desc' ),
+				'icon'        => 'bars-3',
+				'attributes'  => [
+					'flexDirection' => 'row',
+					'flexWrap'      => 'nowrap',
+				],
+				'isDefault'   => false,
+			],
+			[
+				'name'        => 'stack',
+				'label'       => __( 'visual-editor::ve.variation_stack' ),
+				'description' => __( 'visual-editor::ve.variation_stack_desc' ),
+				'icon'        => 'bars-3-bottom-left',
+				'attributes'  => [
+					'flexDirection' => 'column',
+					'flexWrap'      => 'nowrap',
+				],
+				'isDefault'   => false,
 			],
 		];
 	}
@@ -95,14 +159,18 @@ class GroupBlock extends BaseBlock
 				'default' => null,
 			],
 			'border'            => [
-				'type'    => 'toggle',
+				'type'    => 'border',
 				'label'   => __( 'visual-editor::ve.border' ),
-				'default' => false,
-			],
-			'borderRadius'      => [
-				'type'    => 'text',
-				'label'   => __( 'visual-editor::ve.border_radius' ),
-				'default' => '',
+				'default' => [
+					'width'      => '0',
+					'widthUnit'  => 'px',
+					'style'      => 'none',
+					'color'      => '#000000',
+					'radius'     => '0',
+					'radiusUnit' => 'px',
+					'perSide'    => false,
+					'perCorner'  => false,
+				],
 			],
 			'minHeight'         => [
 				'type'    => 'text',

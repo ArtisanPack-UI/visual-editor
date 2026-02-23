@@ -38,6 +38,8 @@
 				documentStatus: {{ Js::from( $documentStatus ) }},
 				scheduledDate: {{ Js::from( $scheduledDate ) }},
 				patterns: {{ Js::from( $patterns ) }},
+				blockTransforms: {{ Js::from( $blockTransforms ) }},
+				blockVariations: {{ Js::from( $blockVariations ) }},
 				showPatternModal: false,
 				leftSidebarTab: 'blocks',
 
@@ -357,6 +359,68 @@
 					);
 				},
 
+				{{-- ── Block Transforms ────────────────────────────────── --}}
+
+				transformBlock( blockId, targetType ) {
+					const block = this.getBlock( blockId );
+					if ( ! block ) return;
+
+					const transforms = this.blockTransforms[ block.type ] || {};
+					const mapping    = transforms[ targetType ];
+					if ( ! mapping ) return;
+
+					this._pushHistory();
+
+					const newAttributes = {};
+					Object.keys( mapping ).forEach( ( targetField ) => {
+						const sourceField = mapping[ targetField ];
+						if ( block.attributes && undefined !== block.attributes[ sourceField ] ) {
+							newAttributes[ targetField ] = block.attributes[ sourceField ];
+						}
+					} );
+
+					block.type       = targetType;
+					block.attributes = newAttributes;
+
+					this.markDirty();
+					this._announceAction( {{ Js::from( __( 'visual-editor::ve.block_transformed' ) ) }} );
+					this._dispatchChange();
+				},
+
+				getTransformsForBlock( blockType ) {
+					const transforms = this.blockTransforms[ blockType ];
+					if ( ! transforms ) return [];
+					return Object.keys( transforms );
+				},
+
+				{{-- ── Block After / Replace ──────────────────────────── --}}
+
+				addBlockAfter( afterBlockId, block = {} ) {
+					const index = this.getBlockIndex( afterBlockId );
+					if ( -1 === index ) return null;
+
+					return this.addBlock(
+						{ type: block.type || 'paragraph', attributes: block.attributes || {}, innerBlocks: block.innerBlocks || [] },
+						index + 1,
+					);
+				},
+
+				replaceBlock( blockId, newBlockData ) {
+					const index = this.getBlockIndex( blockId );
+					if ( -1 === index ) return;
+
+					this._pushHistory();
+					this.blocks.splice( index, 1, {
+						id: newBlockData.id || this._generateId(),
+						type: newBlockData.type || 'paragraph',
+						attributes: newBlockData.attributes || {},
+						innerBlocks: newBlockData.innerBlocks || [],
+					} );
+
+					this.markDirty();
+					this._dispatchChange();
+				},
+
 				getWordCount() {
 					let count = 0;
 					const countWords = ( blocks ) => {
@@ -477,6 +541,8 @@
 			store.documentStatus   = {{ Js::from( $documentStatus ) }};
 			store.scheduledDate    = {{ Js::from( $scheduledDate ) }};
 			store.patterns         = {{ Js::from( $patterns ) }};
+			store.blockTransforms  = {{ Js::from( $blockTransforms ) }};
+			store.blockVariations  = {{ Js::from( $blockVariations ) }};
 			store.showPatternModal = false;
 			store.leftSidebarTab   = 'blocks';
 

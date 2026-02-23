@@ -4,8 +4,11 @@
 	$autoplay = $styles['autoplay'] ?? false;
 	$loop     = $styles['loop'] ?? false;
 	$preload  = $styles['preload'] ?? 'metadata';
-	$anchor   = $content['anchor'] ?? null;
+	$anchor    = $content['anchor'] ?? null;
+	$htmlId    = $content['htmlId'] ?? null;
 	$className = $content['className'] ?? '';
+
+	$elementId = $htmlId ?: $anchor;
 
 	$classes = 've-block ve-block-audio';
 	if ( $className ) {
@@ -15,7 +18,7 @@
 
 <figure
 	class="{{ $classes }}"
-	@if ( $anchor ) id="{{ $anchor }}" @endif
+	@if ( $elementId ) id="{{ $elementId }}" @endif
 >
 	@if ( $url )
 		<audio

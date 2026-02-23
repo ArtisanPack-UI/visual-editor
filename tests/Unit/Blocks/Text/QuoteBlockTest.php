@@ -77,3 +77,10 @@ test( 'quote block renders style variant class', function (): void {
 	expect( $output )->toContain( 've-block-quote--large' );
 	expect( $output )->toContain( 'text-center' );
 } );
+
+test( 'quote block editor has enter new block attribute', function (): void {
+	$block  = new QuoteBlock();
+	$output = $block->renderEditor( [ 'text' => 'Hello' ], [ 'alignment' => 'left', 'style' => 'default' ] );
+
+	expect( $output )->toContain( 'data-ve-enter-new-block' );
+} );

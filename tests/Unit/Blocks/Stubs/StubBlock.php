@@ -121,6 +121,7 @@ class StubBlock extends BaseBlock
 			],
 			'border'     => false,
 			'anchor'     => true,
+			'htmlId'     => true,
 			'className'  => true,
 		];
 	}

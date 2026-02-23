@@ -399,4 +399,45 @@ return [
 	'highlight_lines'  => 'Highlight lines',
 	'show_copy_button' => 'Show copy button',
 	'copy'             => 'Copy',
+
+	// Block Variations
+	'block_variation'       => 'Block variation',
+	'variation_group'       => 'Group',
+	'variation_group_desc'  => 'Gather blocks in a container',
+	'variation_row'         => 'Row',
+	'variation_row_desc'    => 'Arrange blocks horizontally in a row',
+	'variation_stack'       => 'Stack',
+	'variation_stack_desc'  => 'Arrange blocks vertically in a stack',
+	'flex_direction'        => 'Flex direction',
+	'flex_column'           => 'Column',
+	'flex_row'              => 'Row',
+	'flex_wrap'             => 'Flex wrap',
+	'no_wrap'               => 'No wrap',
+	'wrap'                  => 'Wrap',
+
+	// Enter Key / New Block
+	'new_paragraph_added' => 'New paragraph added',
+
+	// Block Transforms
+	'transform_to'       => 'Transform to',
+	'transform_block'    => 'Transform block',
+	'block_transformed'  => 'Block transformed',
+
+	// Inspector Sub-tabs
+	'settings_tab' => 'Settings',
+	'styles_tab'   => 'Styles',
+	'advanced_tab' => 'Advanced',
+
+	// Slash Commands
+	'slash_command_hint'     => 'Type / to insert a block',
+	'slash_command_no_match' => 'No matching blocks found.',
+	'slash_command_insert'   => 'Insert block',
+
+	// Advanced Schema
+	'html_anchor'                      => 'HTML Anchor',
+	'html_anchor_placeholder'          => 'Add an anchor...',
+	'html_id'                          => 'HTML ID',
+	'html_id_placeholder'              => 'Enter a unique ID...',
+	'additional_css_classes'            => 'Additional CSS class(es)',
+	'additional_css_classes_placeholder' => 'Add CSS classes...',
 ];

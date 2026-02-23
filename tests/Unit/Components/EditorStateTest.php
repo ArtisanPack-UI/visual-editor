@@ -20,6 +20,8 @@ test( 'editor state can be instantiated with defaults', function (): void {
 	expect( $component->documentStatus )->toBe( 'draft' );
 	expect( $component->scheduledDate )->toBeNull();
 	expect( $component->patterns )->toBe( [] );
+	expect( $component->blockTransforms )->toBe( [] );
+	expect( $component->blockVariations )->toBe( [] );
 } );
 
 test( 'editor state accepts custom props', function (): void {
@@ -29,7 +31,13 @@ test( 'editor state accepts custom props', function (): void {
 	$patterns  = [
 		[ 'name' => 'Hero', 'category' => 'header', 'blocks' => [] ],
 	];
-	$component = new EditorState(
+	$transforms = [
+		'paragraph' => [ 'heading' => [ 'content' => 'content' ] ],
+	];
+	$variations = [
+		'group' => [ [ 'name' => 'row', 'label' => 'Row' ] ],
+	];
+	$component  = new EditorState(
 		id: 'main-editor',
 		initialBlocks: $blocks,
 		maxHistorySize: 100,
@@ -43,6 +51,8 @@ test( 'editor state accepts custom props', function (): void {
 		documentStatus: 'scheduled',
 		scheduledDate: '2026-03-01 10:00',
 		patterns: $patterns,
+		blockTransforms: $transforms,
+		blockVariations: $variations,
 	);
 
 	expect( $component->uuid )->toContain( 'main-editor' );
@@ -58,6 +68,8 @@ test( 'editor state accepts custom props', function (): void {
 	expect( $component->documentStatus )->toBe( 'scheduled' );
 	expect( $component->scheduledDate )->toBe( '2026-03-01 10:00' );
 	expect( $component->patterns )->toBe( $patterns );
+	expect( $component->blockTransforms )->toBe( $transforms );
+	expect( $component->blockVariations )->toBe( $variations );
 } );
 
 test( 'editor state falls back to visual for invalid mode', function (): void {

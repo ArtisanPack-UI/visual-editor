@@ -117,6 +117,47 @@
 		x-on:keydown="handleKeydown( $event )"
 	@endif
 	x-on:click="handleBlockClick( $event )"
+	x-on:input="
+		const target = $event.target;
+		if ( target.hasAttribute( 'data-ve-slash-command' ) ) {
+			const text = target.textContent || '';
+			if ( text.startsWith( '/' ) ) {
+				const blockEl = target.closest( '[data-block-id]' );
+				const rect    = target.getBoundingClientRect();
+				document.dispatchEvent( new CustomEvent( 've-slash-command-open', {
+					bubbles: true,
+					detail: {
+						blockId: blockEl ? blockEl.getAttribute( 'data-block-id' ) : null,
+						query: text.substring( 1 ),
+						rect: { top: rect.top, left: rect.left, bottom: rect.bottom, right: rect.right },
+					},
+				} ) );
+			} else {
+				document.dispatchEvent( new CustomEvent( 've-slash-command-close', { bubbles: true } ) );
+			}
+		}
+	"
+	x-on:ve-slash-command-select.window="
+		if ( $event.detail && $event.detail.blockId && $event.detail.blockType && Alpine.store( 'editor' ) ) {
+			Alpine.store( 'editor' ).replaceBlock( $event.detail.blockId, { type: $event.detail.blockType } );
+		}
+	"
+	x-on:keydown.enter="
+		if ( ! $event.shiftKey && $event.target.hasAttribute( 'data-ve-enter-new-block' ) ) {
+			$event.preventDefault();
+			const blockEl = $event.target.closest( '[data-block-id]' );
+			if ( blockEl && Alpine.store( 'editor' ) ) {
+				const blockId  = blockEl.getAttribute( 'data-block-id' );
+				const newBlock = Alpine.store( 'editor' ).addBlockAfter( blockId );
+				if ( newBlock ) {
+					$nextTick( () => {
+						const newEl = document.querySelector( '[data-block-id=' + newBlock.id + '] [contenteditable]' );
+						if ( newEl ) { newEl.focus(); }
+					} );
+				}
+			}
+		}
+	"
 	tabindex="0"
 >
 	{{-- Block list container --}}

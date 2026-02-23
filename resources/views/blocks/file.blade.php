@@ -4,7 +4,10 @@
 	$fileSize           = $content['fileSize'] ?? '';
 	$showDownloadButton = $styles['showDownloadButton'] ?? true;
 	$anchor             = $content['anchor'] ?? null;
+	$htmlId             = $content['htmlId'] ?? null;
 	$className          = $content['className'] ?? '';
+
+	$elementId = $htmlId ?: $anchor;
 
 	$classes = 've-block ve-block-file';
 	if ( $className ) {
@@ -14,7 +17,7 @@
 
 <div
 	class="{{ $classes }}"
-	@if ( $anchor ) id="{{ $anchor }}" @endif
+	@if ( $elementId ) id="{{ $elementId }}" @endif
 >
 	<div class="ve-block-file__content">
 		<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" width="24" height="24">

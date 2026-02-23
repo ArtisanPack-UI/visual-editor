@@ -6,7 +6,10 @@
 	$textColor = $styles['textColor'] ?? null;
 	$fontSize  = $styles['fontSize'] ?? null;
 	$anchor    = $content['anchor'] ?? null;
+	$htmlId    = $content['htmlId'] ?? null;
 	$className = $content['className'] ?? '';
+
+	$elementId = $htmlId ?: $anchor;
 
 	$tag = 'ordered' === $type ? 'ol' : 'ul';
 
@@ -27,7 +30,7 @@
 <{{ $tag }}
 	class="{{ $classes }}"
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
-	@if ( $anchor ) id="{{ $anchor }}" @endif
+	@if ( $elementId ) id="{{ $elementId }}" @endif
 	@if ( 'ordered' === $type && '1' !== $start ) start="{{ $start }}" @endif
 	@if ( 'ordered' === $type && $reversed ) reversed @endif
 >
