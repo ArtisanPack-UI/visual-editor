@@ -93,8 +93,49 @@
 			};
 			return icons[ block.type ] || '◻';
 		},
+
+		{{-- Drag-and-drop state for the List View --}}
+		layerDraggingId: null,
+		layerDragOverId: null,
+
+		handleLayerDragStart( event, block ) {
+			this.layerDraggingId = block.id;
+			event.dataTransfer.setData( 'text/plain', block.id );
+			event.dataTransfer.effectAllowed = 'move';
+
+			{{-- Delay adding drag class for visual feedback --}}
+			requestAnimationFrame( () => {
+				event.target.classList.add( 'opacity-50' );
+			} );
+		},
+
+		handleLayerDragEnd( event ) {
+			event.target.classList.remove( 'opacity-50' );
+			this.layerDraggingId = null;
+			this.layerDragOverId = null;
+		},
+
+		handleLayerDragOver( event, block ) {
+			event.preventDefault();
+			event.dataTransfer.dropEffect = 'move';
+			this.layerDragOverId = block.id;
+		},
+
+		handleLayerDrop( event, block ) {
+			event.preventDefault();
+			this.layerDragOverId = null;
+
+			if ( ! this.layerDraggingId || this.layerDraggingId === block.id ) return;
+			if ( ! Alpine.store( 'editor' ) ) return;
+
+			const targetIndex = Alpine.store( 'editor' ).getBlockIndex( block.id );
+			if ( -1 !== targetIndex ) {
+				Alpine.store( 'editor' ).moveBlock( this.layerDraggingId, targetIndex );
+			}
+			this.layerDraggingId = null;
+		},
 	}"
-	{{ $attributes->merge( [ 'class' => 'flex flex-col h-full' ] ) }}
+	{{ $attributes->merge( [ 'class' => 've-layer-panel flex flex-col h-full' ] ) }}
 	aria-label="{{ $label ?? __( 'visual-editor::ve.layer_panel' ) }}"
 >
 	{{-- Sub-tab switcher --}}
@@ -146,15 +187,27 @@
 	>
 		<div class="py-1">
 			<template x-for="( block, index ) in blocks" :key="block.id">
-				<button
-					type="button"
-					class="w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm hover:bg-base-200 transition-colors"
-					:class="Alpine.store( 'selection' )?.focused === block.id ? 'bg-primary/10 text-primary' : 'text-base-content/70'"
+				<div
+					draggable="true"
+					style="-webkit-user-drag: element; user-select: none;"
+					class="w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm hover:bg-base-200 transition-colors cursor-grab active:cursor-grabbing"
+					:class="{
+						'bg-primary/10 text-primary': Alpine.store( 'selection' )?.focused === block.id,
+						'text-base-content/70': Alpine.store( 'selection' )?.focused !== block.id,
+						'border-t-2 border-primary': layerDragOverId === block.id && layerDraggingId !== block.id,
+					}"
 					x-on:click="selectBlock( block.id )"
+					x-on:dragstart="handleLayerDragStart( $event, block )"
+					x-on:dragend="handleLayerDragEnd( $event )"
+					x-on:dragover="handleLayerDragOver( $event, block )"
+					x-on:dragleave="layerDragOverId = null"
+					x-on:drop="handleLayerDrop( $event, block )"
+					role="button"
+					tabindex="0"
 				>
-					<span class="w-5 text-center text-xs opacity-50 shrink-0" x-text="getBlockIcon( block )"></span>
-					<span class="truncate" x-text="getBlockLabel( block )"></span>
-				</button>
+					<span class="w-5 text-center text-xs opacity-50 shrink-0 pointer-events-none" x-text="getBlockIcon( block )"></span>
+					<span class="truncate pointer-events-none" x-text="getBlockLabel( block )"></span>
+				</div>
 			</template>
 		</div>
 	</div>
