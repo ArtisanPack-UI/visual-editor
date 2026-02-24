@@ -15,6 +15,7 @@
 	id="{{ $uuid }}"
 	x-data="{
 		focusedIndex: -1,
+		slashCommandOpen: false,
 
 		get blocks() {
 			return Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).blocks : [];
@@ -122,6 +123,7 @@
 		if ( target.hasAttribute( 'data-ve-slash-command' ) ) {
 			const text = target.textContent || '';
 			if ( text.startsWith( '/' ) ) {
+				slashCommandOpen = true;
 				const blockEl = target.closest( '[data-block-id]' );
 				const rect    = target.getBoundingClientRect();
 				document.dispatchEvent( new CustomEvent( 've-slash-command-open', {
@@ -133,17 +135,31 @@
 					},
 				} ) );
 			} else {
+				slashCommandOpen = false;
 				document.dispatchEvent( new CustomEvent( 've-slash-command-close', { bubbles: true } ) );
 			}
 		}
 	"
 	x-on:ve-slash-command-select.window="
+		slashCommandOpen = false;
 		if ( $event.detail && $event.detail.blockId && $event.detail.blockType && Alpine.store( 'editor' ) ) {
+			const idx = Alpine.store( 'editor' ).getBlockIndex( $event.detail.blockId );
 			Alpine.store( 'editor' ).replaceBlock( $event.detail.blockId, { type: $event.detail.blockType } );
+			const newBlock = ( -1 !== idx ) ? Alpine.store( 'editor' ).blocks[ idx ] : null;
+			if ( newBlock ) {
+				$nextTick( () => {
+					const el = document.querySelector( '[data-block-id=' + newBlock.id + '] [contenteditable]' );
+					if ( el ) { el.focus(); }
+					if ( Alpine.store( 'selection' ) ) {
+						Alpine.store( 'selection' ).select( newBlock.id, false );
+					}
+				} );
+			}
 		}
 	"
+	x-on:ve-slash-command-close.window="slashCommandOpen = false"
 	x-on:keydown.enter="
-		if ( ! $event.shiftKey && $event.target.hasAttribute( 'data-ve-enter-new-block' ) ) {
+		if ( ! slashCommandOpen && ! $event.shiftKey && $event.target.hasAttribute( 'data-ve-enter-new-block' ) ) {
 			$event.preventDefault();
 			const blockEl = $event.target.closest( '[data-block-id]' );
 			if ( blockEl && Alpine.store( 'editor' ) ) {
@@ -153,6 +169,9 @@
 					$nextTick( () => {
 						const newEl = document.querySelector( '[data-block-id=' + newBlock.id + '] [contenteditable]' );
 						if ( newEl ) { newEl.focus(); }
+						if ( Alpine.store( 'selection' ) ) {
+							Alpine.store( 'selection' ).select( newBlock.id, false );
+						}
 					} );
 				}
 			}

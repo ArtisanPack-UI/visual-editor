@@ -81,8 +81,18 @@
 		insertBlock( blockType, blockLabel ) {
 			if ( Alpine.store( 'editor' ) ) {
 				const position = this.insertAt;
-				Alpine.store( 'editor' ).addBlock( { type: blockType }, position );
+				const newBlock = Alpine.store( 'editor' ).addBlock( { type: blockType }, position );
 				this._addToRecent( blockType );
+
+				if ( newBlock ) {
+					this.$nextTick( () => {
+						const el = document.querySelector( '[data-block-id=' + newBlock.id + '] [contenteditable]' );
+						if ( el ) { el.focus(); }
+						if ( Alpine.store( 'selection' ) ) {
+							Alpine.store( 'selection' ).select( newBlock.id, false );
+						}
+					} );
+				}
 
 				if ( Alpine.store( 'announcer' ) ) {
 					Alpine.store( 'announcer' ).announce(
