@@ -18,6 +18,9 @@ use ArtisanPackUI\VisualEditor\Blocks\BaseBlock;
 /**
  * A concrete stub block for testing BaseBlock functionality.
  *
+ * This block does not have a block.json and relies on class properties
+ * for backward compatibility testing.
+ *
  * @since 1.0.0
  */
 class StubBlock extends BaseBlock

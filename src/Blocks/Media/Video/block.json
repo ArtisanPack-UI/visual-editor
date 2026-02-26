@@ -1,0 +1,55 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "video",
+	"name": "Video",
+	"description": "Embed a video from YouTube, Vimeo, or upload",
+	"icon": "video-camera",
+	"category": "media",
+	"keywords": ["movie", "film", "youtube", "vimeo"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"url": {
+			"type": "url",
+			"source": "content",
+			"default": ""
+		},
+		"caption": {
+			"type": "rich_text",
+			"source": "content",
+			"default": ""
+		},
+		"poster": {
+			"type": "url",
+			"source": "content",
+			"default": ""
+		},
+		"autoplay": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"loop": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"muted": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"controls": {
+			"type": "boolean",
+			"source": "style",
+			"default": true
+		}
+	},
+	"supports": {
+		"align": ["wide", "full"],
+		"anchor": true,
+		"className": true
+	}
+}

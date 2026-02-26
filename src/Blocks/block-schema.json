@@ -1,0 +1,159 @@
+{
+	"$schema": "https://json-schema.org/draft-07/schema#",
+	"title": "ArtisanPack Visual Editor Block Metadata",
+	"description": "Schema for block.json metadata files used by the visual editor.",
+	"type": "object",
+	"required": ["type", "name", "category"],
+	"properties": {
+		"type": {
+			"type": "string",
+			"description": "Unique block type identifier (e.g. 'heading', 'paragraph').",
+			"pattern": "^[a-z][a-z0-9-]*$"
+		},
+		"name": {
+			"type": "string",
+			"description": "Human-readable block name."
+		},
+		"description": {
+			"type": "string",
+			"description": "Short description of the block's purpose.",
+			"default": ""
+		},
+		"icon": {
+			"type": "string",
+			"description": "Icon identifier for the block.",
+			"default": ""
+		},
+		"category": {
+			"type": "string",
+			"description": "Block category for inserter grouping.",
+			"enum": ["text", "media", "layout", "interactive", "embed", "dynamic"]
+		},
+		"keywords": {
+			"type": "array",
+			"description": "Searchable keywords for the block inserter.",
+			"items": {
+				"type": "string"
+			},
+			"default": []
+		},
+		"version": {
+			"type": "integer",
+			"description": "Schema version for migration support.",
+			"minimum": 1,
+			"default": 1
+		},
+		"public": {
+			"type": "boolean",
+			"description": "Whether the block appears in the block inserter.",
+			"default": true
+		},
+		"parent": {
+			"type": ["array", "null"],
+			"description": "Allowed parent block types, or null for no restriction.",
+			"items": {
+				"type": "string"
+			},
+			"default": null
+		},
+		"allowedChildren": {
+			"type": ["array", "null"],
+			"description": "Allowed child block types, or null for no restriction.",
+			"items": {
+				"type": "string"
+			},
+			"default": null
+		},
+		"attributes": {
+			"type": "object",
+			"description": "Block attribute declarations defining data shape, types, sources, and defaults.",
+			"additionalProperties": {
+				"type": "object",
+				"required": ["type", "source"],
+				"properties": {
+					"type": {
+						"type": "string",
+						"description": "Data type of the attribute.",
+						"enum": ["string", "integer", "boolean", "array", "object", "rich_text", "url"]
+					},
+					"source": {
+						"type": "string",
+						"description": "Maps to content or style, maintaining the existing separation.",
+						"enum": ["content", "style"]
+					},
+					"default": {
+						"description": "Default value used when creating a new block instance."
+					}
+				}
+			},
+			"default": {}
+		},
+		"supports": {
+			"type": "object",
+			"description": "Feature support declarations for the block.",
+			"properties": {
+				"align": {
+					"oneOf": [
+						{ "type": "boolean" },
+						{
+							"type": "array",
+							"items": {
+								"type": "string",
+								"enum": ["left", "center", "right", "wide", "full"]
+							}
+						}
+					],
+					"default": false
+				},
+				"color": {
+					"type": "object",
+					"properties": {
+						"text": { "type": "boolean", "default": false },
+						"background": { "type": "boolean", "default": false }
+					},
+					"default": {}
+				},
+				"typography": {
+					"type": "object",
+					"properties": {
+						"fontSize": { "type": "boolean", "default": false },
+						"fontFamily": { "type": "boolean", "default": false }
+					},
+					"default": {}
+				},
+				"spacing": {
+					"type": "object",
+					"properties": {
+						"margin": { "type": "boolean", "default": false },
+						"padding": { "type": "boolean", "default": false }
+					},
+					"default": {}
+				},
+				"border": { "type": "boolean", "default": false },
+				"shadow": { "type": "boolean", "default": false },
+				"dimensions": {
+					"type": "object",
+					"properties": {
+						"aspectRatio": { "type": "boolean", "default": false },
+						"minHeight": { "type": "boolean", "default": false }
+					},
+					"default": {}
+				},
+				"background": {
+					"type": "object",
+					"properties": {
+						"backgroundImage": { "type": "boolean", "default": false },
+						"backgroundSize": { "type": "boolean", "default": false },
+						"backgroundPosition": { "type": "boolean", "default": false },
+						"backgroundGradient": { "type": "boolean", "default": false }
+					},
+					"default": {}
+				},
+				"anchor": { "type": "boolean", "default": true },
+				"htmlId": { "type": "boolean", "default": true },
+				"className": { "type": "boolean", "default": true }
+			},
+			"default": {}
+		}
+	}
+}

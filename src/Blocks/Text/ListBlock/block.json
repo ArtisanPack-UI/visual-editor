@@ -1,0 +1,55 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "list",
+	"name": "List",
+	"description": "Create a bulleted or numbered list",
+	"icon": "list-bullet",
+	"category": "text",
+	"keywords": ["bullet", "ordered", "unordered", "ol", "ul"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"type": {
+			"type": "string",
+			"source": "content",
+			"default": "unordered"
+		},
+		"items": {
+			"type": "array",
+			"source": "content",
+			"default": []
+		},
+		"start": {
+			"type": "string",
+			"source": "content",
+			"default": "1"
+		},
+		"reversed": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontSize": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"color": {
+			"text": true
+		},
+		"typography": {
+			"fontSize": true
+		},
+		"anchor": true,
+		"className": true
+	}
+}

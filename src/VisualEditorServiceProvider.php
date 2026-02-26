@@ -20,6 +20,8 @@ namespace ArtisanPackUI\VisualEditor;
 
 use ArtisanPackUI\VisualEditor\Blocks\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Blocks\BlockTransformService;
+use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
+use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -100,6 +102,12 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// Phase 5: Inspector & Block Enhancements
 		'inspector-field'          => Components\InspectorField::class,
 		'slash-command-inserter'   => Components\SlashCommandInserter::class,
+
+		// Phase 6: Inspector Controls & New Support Controls
+		'inspector-controls' => Components\InspectorControls::class,
+		'inspector-section'  => Components\InspectorSection::class,
+		'shadow-control'     => Components\ShadowControl::class,
+		'background-control' => Components\BackgroundControl::class,
 	];
 
 	/**
@@ -127,6 +135,17 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->app->singleton( BlockTransformService::class, function ( $app ) {
 			return new BlockTransformService( $app->make( 'visual-editor.blocks' ) );
 		} );
+
+		$this->app->singleton( SupportsPanelRegistry::class, function () {
+			return new SupportsPanelRegistry();
+		} );
+
+		$this->app->singleton( BlockMetadataService::class, function ( $app ) {
+			return new BlockMetadataService(
+				$app->make( 'visual-editor.blocks' ),
+				$app->make( SupportsPanelRegistry::class ),
+			);
+		} );
 	}
 
 	/**
@@ -142,6 +161,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->publishConfiguration();
 		$this->registerTranslations();
 		$this->registerViews();
+		$this->registerBlockViews();
 		$this->registerBladeComponents();
 		$this->registerCoreBlocks();
 	}
@@ -216,6 +236,62 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
+	 * Register co-located block views as namespaced view directories.
+	 *
+	 * Scans block directories for views/ subdirectories and registers
+	 * each as namespace visual-editor-block-{type}.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerBlockViews(): void
+	{
+		$blocksDir  = __DIR__ . '/Blocks';
+		$categories = [ 'Text', 'Media', 'Layout', 'Interactive' ];
+
+		foreach ( $categories as $category ) {
+			$categoryDir = $blocksDir . '/' . $category;
+
+			if ( ! is_dir( $categoryDir ) ) {
+				continue;
+			}
+
+			$entries = scandir( $categoryDir );
+
+			if ( false === $entries ) {
+				continue;
+			}
+
+			foreach ( $entries as $entry ) {
+				if ( '.' === $entry || '..' === $entry ) {
+					continue;
+				}
+
+				$viewsDir = $categoryDir . '/' . $entry . '/views';
+
+				if ( ! is_dir( $viewsDir ) ) {
+					continue;
+				}
+
+				$blockJsonPath = $categoryDir . '/' . $entry . '/block.json';
+				$type          = null;
+
+				if ( file_exists( $blockJsonPath ) ) {
+					$json = json_decode( (string) file_get_contents( $blockJsonPath ), true );
+					$type = $json['type'] ?? null;
+				}
+
+				if ( null === $type ) {
+					$type = strtolower( preg_replace( '/([a-z])([A-Z])/', '$1-$2', $entry ) ?? $entry );
+				}
+
+				$this->loadViewsFrom( $viewsDir, 'visual-editor-block-' . $type );
+			}
+		}
+	}
+
+	/**
 	 * Register all Blade components with the ve- prefix.
 	 *
 	 * @since 1.0.0
@@ -245,22 +321,22 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$disabled   = config( 'artisanpack.visual-editor.blocks.disabled', [] );
 
 		$coreBlocks = [
-			'heading'   => Blocks\Text\HeadingBlock::class,
-			'paragraph' => Blocks\Text\ParagraphBlock::class,
-			'list'      => Blocks\Text\ListBlock::class,
-			'quote'     => Blocks\Text\QuoteBlock::class,
+			'heading'   => Blocks\Text\Heading\HeadingBlock::class,
+			'paragraph' => Blocks\Text\Paragraph\ParagraphBlock::class,
+			'list'      => Blocks\Text\ListBlock\ListBlock::class,
+			'quote'     => Blocks\Text\Quote\QuoteBlock::class,
 			'image'     => Blocks\Media\ImageBlock::class,
 			'gallery'   => Blocks\Media\GalleryBlock::class,
 			'video'     => Blocks\Media\VideoBlock::class,
-			'audio'     => Blocks\Media\AudioBlock::class,
+			'audio'     => Blocks\Media\Audio\AudioBlock::class,
 			'file'      => Blocks\Media\FileBlock::class,
 			'columns'   => Blocks\Layout\ColumnsBlock::class,
 			'column'    => Blocks\Layout\ColumnBlock::class,
 			'group'     => Blocks\Layout\GroupBlock::class,
-			'spacer'    => Blocks\Layout\SpacerBlock::class,
-			'divider'   => Blocks\Layout\DividerBlock::class,
-			'button'    => Blocks\Interactive\ButtonBlock::class,
-			'code'      => Blocks\Interactive\CodeBlock::class,
+			'spacer'    => Blocks\Layout\Spacer\SpacerBlock::class,
+			'divider'   => Blocks\Layout\Divider\DividerBlock::class,
+			'button'    => Blocks\Interactive\Button\ButtonBlock::class,
+			'code'      => Blocks\Interactive\Code\CodeBlock::class,
 		];
 
 		foreach ( $coreBlocks as $type => $class ) {

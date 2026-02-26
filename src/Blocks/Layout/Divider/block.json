@@ -1,0 +1,40 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "divider",
+	"name": "Divider",
+	"description": "Add a horizontal line between blocks",
+	"icon": "minus",
+	"category": "layout",
+	"keywords": ["separator", "line", "hr", "rule"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"style": {
+			"type": "string",
+			"source": "style",
+			"default": "solid"
+		},
+		"width": {
+			"type": "string",
+			"source": "style",
+			"default": "full"
+		},
+		"color": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"thickness": {
+			"type": "string",
+			"source": "style",
+			"default": "1px"
+		}
+	},
+	"supports": {
+		"anchor": true,
+		"htmlId": true,
+		"className": true
+	}
+}

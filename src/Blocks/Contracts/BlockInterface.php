@@ -83,6 +83,18 @@ interface BlockInterface
 	public function getKeywords(): array;
 
 	/**
+	 * Get the block attributes from block.json.
+	 *
+	 * Returns the raw attribute declarations including type, source,
+	 * and default for each attribute.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function getAttributes(): array;
+
+	/**
 	 * Get the content field schema.
 	 *
 	 * @since 1.0.0
@@ -226,4 +238,65 @@ interface BlockInterface
 	 * @return bool
 	 */
 	public function isPublic(): bool;
+
+	/**
+	 * Get toolbar control declarations for the block.
+	 *
+	 * Returns an array of control groups with their controls
+	 * for rendering in the block toolbar.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getToolbarControls(): array;
+
+	/**
+	 * Get a flat list of active style-related supports.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<int, string>
+	 */
+	public function getActiveStyleSupports(): array;
+
+	/**
+	 * Check whether this block has a custom inspector view.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return bool
+	 */
+	public function hasCustomInspector(): bool;
+
+	/**
+	 * Render the custom inspector view for this block.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $data Data to pass to the inspector view.
+	 *
+	 * @return string
+	 */
+	public function renderInspector( array $data = [] ): string;
+
+	/**
+	 * Check whether this block has a custom toolbar view.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return bool
+	 */
+	public function hasCustomToolbar(): bool;
+
+	/**
+	 * Render the custom toolbar view for this block.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $data Data to pass to the toolbar view.
+	 *
+	 * @return string
+	 */
+	public function renderToolbar( array $data = [] ): string;
 }

@@ -1,0 +1,54 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "quote",
+	"name": "Quote",
+	"description": "Add a quotation",
+	"icon": "chat-bubble-bottom-center-text",
+	"category": "text",
+	"keywords": ["blockquote", "cite", "quotation"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"text": {
+			"type": "rich_text",
+			"source": "content",
+			"default": ""
+		},
+		"citation": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"alignment": {
+			"type": "string",
+			"source": "style",
+			"default": "left"
+		},
+		"style": {
+			"type": "string",
+			"source": "style",
+			"default": "default"
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"align": ["left", "center", "right", "wide"],
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"anchor": true,
+		"className": true
+	}
+}

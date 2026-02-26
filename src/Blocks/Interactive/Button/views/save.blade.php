@@ -1,0 +1,56 @@
+@php
+	$text         = $content['text'] ?? '';
+	$url          = $content['url'] ?? '';
+	$linkTarget   = $content['linkTarget'] ?? '_self';
+	$icon         = $content['icon'] ?? '';
+	$iconPosition = $content['iconPosition'] ?? 'left';
+	$color        = $styles['color'] ?? null;
+	$bgColor      = $styles['backgroundColor'] ?? null;
+	$size         = $styles['size'] ?? 'md';
+	$variant      = $styles['variant'] ?? 'filled';
+	$borderRadius = $styles['borderRadius'] ?? '';
+	$width        = $styles['width'] ?? 'auto';
+	$anchor       = $content['anchor'] ?? null;
+	$htmlId       = $content['htmlId'] ?? null;
+	$className    = $content['className'] ?? '';
+
+	$elementId = $htmlId ?: $anchor;
+
+	$inlineStyles = '';
+	if ( $color ) {
+		$inlineStyles .= "color: {$color};";
+	}
+	if ( $bgColor ) {
+		$inlineStyles .= "background-color: {$bgColor};";
+	}
+	if ( $borderRadius ) {
+		$inlineStyles .= "border-radius: {$borderRadius};";
+	}
+
+	$classes = "ve-block ve-block-button ve-button-{$size} ve-button-{$variant}";
+	if ( 'full' === $width ) {
+		$classes .= ' ve-button-full';
+	}
+	if ( $className ) {
+		$classes .= " {$className}";
+	}
+
+	$relAttr = '_blank' === $linkTarget ? 'noopener noreferrer' : null;
+@endphp
+
+<a
+	class="{{ $classes }}"
+	@if ( $url ) href="{{ $url }}" @endif
+	@if ( '_blank' === $linkTarget ) target="_blank" @endif
+	@if ( $relAttr ) rel="{{ $relAttr }}" @endif
+	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
+	@if ( $elementId ) id="{{ $elementId }}" @endif
+>
+	@if ( $icon && 'left' === $iconPosition )
+		<span class="ve-button-icon ve-button-icon-left">{{ $icon }}</span>
+	@endif
+	<span class="ve-button-text">{{ $text }}</span>
+	@if ( $icon && 'right' === $iconPosition )
+		<span class="ve-button-icon ve-button-icon-right">{{ $icon }}</span>
+	@endif
+</a>

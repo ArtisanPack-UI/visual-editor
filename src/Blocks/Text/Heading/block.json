@@ -1,0 +1,63 @@
+{
+	"$schema": "../block-schema.json",
+	"type": "heading",
+	"name": "Heading",
+	"description": "Add a heading to your content",
+	"icon": "h1",
+	"category": "text",
+	"keywords": ["title", "h1", "h2", "h3", "header"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"text": {
+			"type": "rich_text",
+			"source": "content",
+			"default": ""
+		},
+		"level": {
+			"type": "string",
+			"source": "content",
+			"default": "h2"
+		},
+		"alignment": {
+			"type": "string",
+			"source": "style",
+			"default": "left"
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontSize": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"align": ["left", "center", "right", "wide", "full"],
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"typography": {
+			"fontSize": true,
+			"fontFamily": false
+		},
+		"spacing": {
+			"margin": false,
+			"padding": false
+		},
+		"border": false,
+		"anchor": true,
+		"className": true
+	}
+}

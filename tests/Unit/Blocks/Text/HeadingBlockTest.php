@@ -2,7 +2,8 @@
 
 declare( strict_types=1 );
 
-use ArtisanPackUI\VisualEditor\Blocks\Text\HeadingBlock;
+use ArtisanPackUI\VisualEditor\Blocks\Text\Heading\HeadingBlock;
+use ArtisanPackUI\VisualEditor\Blocks\Text\HeadingBlock as LegacyHeadingBlock;
 
 test( 'heading block has correct type', function (): void {
 	$block = new HeadingBlock();
@@ -108,4 +109,88 @@ test( 'heading block editor has enter new block attribute', function (): void {
 	$output = $block->renderEditor( [ 'text' => 'Hello', 'level' => 'h2' ], [ 'alignment' => 'left' ] );
 
 	expect( $output )->toContain( 'data-ve-enter-new-block' );
+} );
+
+test( 'heading block loads metadata from block.json', function (): void {
+	$block    = new HeadingBlock();
+	$metadata = $block->getMetadata();
+
+	expect( $metadata )->not->toBeNull();
+	expect( $metadata['type'] )->toBe( 'heading' );
+	expect( $metadata['name'] )->toBe( 'Heading' );
+	expect( $metadata['category'] )->toBe( 'text' );
+} );
+
+test( 'heading block has attributes from block.json', function (): void {
+	$block      = new HeadingBlock();
+	$attributes = $block->getAttributes();
+
+	expect( $attributes )->toHaveKey( 'text' );
+	expect( $attributes )->toHaveKey( 'level' );
+	expect( $attributes )->toHaveKey( 'alignment' );
+	expect( $attributes )->toHaveKey( 'textColor' );
+	expect( $attributes )->toHaveKey( 'backgroundColor' );
+	expect( $attributes )->toHaveKey( 'fontSize' );
+
+	expect( $attributes['text']['type'] )->toBe( 'rich_text' );
+	expect( $attributes['text']['source'] )->toBe( 'content' );
+	expect( $attributes['level']['source'] )->toBe( 'content' );
+	expect( $attributes['alignment']['source'] )->toBe( 'style' );
+} );
+
+test( 'heading block has translation-aware name', function (): void {
+	$block = new HeadingBlock();
+
+	expect( $block->getName() )->toBe( 'Heading' );
+} );
+
+test( 'heading block has translation-aware description', function (): void {
+	$block = new HeadingBlock();
+
+	expect( $block->getDescription() )->toBe( 'Add a heading to your content' );
+} );
+
+test( 'heading block has custom toolbar', function (): void {
+	$block = new HeadingBlock();
+
+	expect( $block->hasCustomToolbar() )->toBeTrue();
+} );
+
+test( 'heading block does not have custom inspector', function (): void {
+	$block = new HeadingBlock();
+
+	expect( $block->hasCustomInspector() )->toBeFalse();
+} );
+
+test( 'heading block view resolution falls back correctly', function (): void {
+	$block  = new HeadingBlock();
+	$output = $block->render( [ 'text' => 'Fallback', 'level' => 'h2' ], [ 'alignment' => 'left' ] );
+
+	expect( $output )->toContain( 'Fallback' );
+	expect( $output )->toContain( '<h2' );
+} );
+
+test( 'heading block supports from block.json', function (): void {
+	$block    = new HeadingBlock();
+	$supports = $block->getSupports();
+
+	expect( $supports['align'] )->toBe( [ 'left', 'center', 'right', 'wide', 'full' ] );
+	expect( $supports['color']['text'] )->toBeTrue();
+	expect( $supports['color']['background'] )->toBeTrue();
+	expect( $supports['typography']['fontSize'] )->toBeTrue();
+	expect( $supports['anchor'] )->toBeTrue();
+	expect( $supports['className'] )->toBeTrue();
+} );
+
+test( 'legacy namespace alias works', function (): void {
+	$block = new LegacyHeadingBlock();
+
+	expect( $block->getType() )->toBe( 'heading' );
+	expect( $block )->toBeInstanceOf( HeadingBlock::class );
+} );
+
+test( 'heading block version comes from block.json', function (): void {
+	$block = new HeadingBlock();
+
+	expect( $block->getVersion() )->toBe( 1 );
 } );

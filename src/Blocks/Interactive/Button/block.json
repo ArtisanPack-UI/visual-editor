@@ -1,0 +1,78 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "button",
+	"name": "Button",
+	"description": "Add a call-to-action button",
+	"icon": "cursor-arrow-rays",
+	"category": "interactive",
+	"keywords": ["button", "link", "cta", "action"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"text": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"url": {
+			"type": "url",
+			"source": "content",
+			"default": ""
+		},
+		"linkTarget": {
+			"type": "string",
+			"source": "content",
+			"default": "_self"
+		},
+		"icon": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"iconPosition": {
+			"type": "string",
+			"source": "content",
+			"default": "left"
+		},
+		"color": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"size": {
+			"type": "string",
+			"source": "style",
+			"default": "md"
+		},
+		"variant": {
+			"type": "string",
+			"source": "style",
+			"default": "filled"
+		},
+		"borderRadius": {
+			"type": "string",
+			"source": "style",
+			"default": ""
+		},
+		"width": {
+			"type": "string",
+			"source": "style",
+			"default": "auto"
+		}
+	},
+	"supports": {
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"anchor": true,
+		"className": true
+	}
+}
