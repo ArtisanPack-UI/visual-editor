@@ -1001,3 +1001,144 @@ protected function loadMetadata(): array
     });
 }
 ```
+
+---
+---
+
+# Review & Finalized Implementation Plan
+
+*Reviewed: 2026-02-26*
+
+## Decisions Made
+
+- **View co-location:** Approach A (true co-location — views in `src/Blocks/{Cat}/{Block}/views/`)
+- **Livewire:** Drop Livewire 3 support (`^3.6`), adopt Livewire 4 (`^4.0`) with SFCs for server-interactive components
+- **Migration strategy:** Pilot with HeadingBlock only through all phases before touching remaining 15 blocks
+
+---
+
+## Problems Found in Original Plan
+
+### 1. View Registration Mismatch (Bug)
+
+Approach A registers views as `visual-editor-block-{type}` namespace but `resolveView()` looks for `visual-editor::blocks.{type}.{name}`. These don't match — co-located views would never be found.
+
+**Fix:** Use `resolveView()` with the correct per-block namespace: `"visual-editor-block-{$type}::{$name}"`
+
+### 2. Namespace Breaking Change
+
+Moving `Blocks\Text\HeadingBlock` to `Blocks\Text\Heading\HeadingBlock` changes the fully qualified class name. Any consumers who extend, type-hint, or reference blocks directly will break.
+
+**Fix:** Add class aliases in the service provider for old namespaces during a deprecation period.
+
+### 3. `block.json` Strings Not Translatable
+
+`name` and `description` in JSON can't use `__()` translation helpers. These are user-facing strings shown in the block inserter.
+
+**Fix:** Use `block.json` values as translation key suffixes. In getters: `__('visual-editor::ve.block_' . $this->metadata['type'] . '_name')` with `block.json` value as fallback when no translation exists.
+
+### 4. ReflectionClass Overhead
+
+`new \ReflectionClass(static::class)` in every block constructor means 16 reflection calls per request during registration.
+
+**Fix:** Use a static cache keyed by `static::class`:
+```php
+protected static array $resolvedDirs = [];
+
+protected function resolveBlockDirectory(): string
+{
+    return static::$resolvedDirs[static::class] ??= dirname(
+        ( new \ReflectionClass( static::class ) )->getFileName()
+    );
+}
+```
+
+### 5. Directory Scanning on Every Boot
+
+Auto-discovery uses `DirectoryIterator` + `file_get_contents` + `json_decode` for 16+ block directories per request.
+
+**Fix:** Add `artisan ve:cache` / `ve:clear` commands for production caching, similar to `route:cache`.
+
+### 6. Silent Failure on Malformed JSON
+
+`loadMetadata()` returns `[]` for invalid JSON, making broken `block.json` files hard to debug.
+
+**Fix:** Throw `\RuntimeException` in non-production environments when JSON exists but is invalid.
+
+### 7. `vendor:publish` Complexity
+
+Publishing views from scattered `src/Blocks/*/views/` directories requires collecting paths from multiple locations.
+
+**Fix:** In the service provider, collect all block view directories and publish them into a unified `views/vendor/visual-editor/blocks/{type}/` structure.
+
+---
+
+## Finalized Implementation Plan
+
+### Phase 0: Pilot with HeadingBlock Only
+
+Do ALL steps with just the Heading block. This catches structural issues before touching 15 other blocks.
+
+1. **Update `composer.json`** — Change `livewire/livewire` to `^4.0`, remove `livewire/volt` if present
+2. **Create `block.json` schema** — `src/Blocks/block-schema.json` for IDE support
+3. **Create Heading `block.json`** — `src/Blocks/Text/Heading/block.json`
+4. **Update `BaseBlock`** — Add `$metadata`, `loadMetadata()`, `resolveBlockDirectory()` with static cache, JSON validation, translation-aware getters
+5. **Restructure HeadingBlock** — Move to `src/Blocks/Text/Heading/HeadingBlock.php`, update namespace, add class alias
+6. **Move blade views** — `heading.blade.php` → `src/Blocks/Text/Heading/views/save.blade.php`, `heading-editor.blade.php` → `edit.blade.php`
+7. **Update view resolution** — Add `resolveView()` to BaseBlock, update service provider to register co-located views
+8. **Add inspector/toolbar support** — `hasCustomInspector()`, `renderInspector()`, `hasCustomToolbar()`, `renderToolbar()` on BaseBlock
+9. **Update service provider** — Update HeadingBlock class reference in `$coreBlocks` (keep manual array for now)
+10. **Add translation keys** — `block_heading_name`, `block_heading_description` in `resources/lang/en/ve.php`
+11. **Run tests + write new tests** — All existing tests must pass, add tests for `block.json` loading, view resolution, translated getters
+12. **Verify in dev app** — Test at `/components/heading` route
+
+### Phase 1: Migrate Remaining Blocks
+
+After Phase 0 passes, migrate remaining blocks in this order:
+1. Paragraph, List, Quote (Text — similar to Heading)
+2. Spacer, Divider (Layout — minimal schemas)
+3. Button, Code (Interactive)
+4. Image, Video, Audio, File (Media — may need custom inspector templates)
+5. Gallery (Media — complex, custom inspector)
+6. Columns, Column, Group (Layout — parent/child relationships)
+
+### Phase 2: Auto-Discovery
+
+Replace the manual `$coreBlocks` array with directory scanning. Add `artisan ve:cache` / `ve:clear` commands.
+
+### Phase 3: Strip Legacy Properties
+
+Remove `$type`, `$name`, `$description`, `$icon`, `$category`, `$keywords` properties and `getSupports()` overrides from block classes. All metadata now comes from `block.json`.
+
+### Phase 4: Livewire 4 SFC Components
+
+**Good candidates for SFC (need server interaction):**
+- Document save/load/autosave handler
+- Media library integration (image upload, gallery management)
+- Pattern storage/retrieval
+- Editor state persistence
+
+**Stay as Blade components (pure Alpine.js):**
+- All 44 existing `<x-ve-*>` components
+
+**Package registration** (SFCs are NOT auto-discovered in packages):
+```php
+// In VisualEditorServiceProvider::boot()
+Livewire::addNamespace( 'visual-editor', __DIR__ . '/Livewire' );
+```
+
+**Usage:** `<livewire:visual-editor::document-saver />`
+**Testing:** `Livewire::test('visual-editor::document-saver')`
+
+### Phase 5: vendor:publish Update
+
+Collect all co-located block views and publish into a unified structure.
+
+---
+
+## Verification Checklist (After Each Phase)
+
+- [ ] `./vendor/bin/pest` — all tests pass
+- [ ] `./vendor/bin/php-cs-fixer fix --dry-run --diff` — code style clean
+- [ ] Manual test in dev app at `/components` routes
+- [ ] `vendor:publish` works correctly
