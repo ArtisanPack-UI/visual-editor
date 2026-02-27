@@ -55,7 +55,6 @@ class EditorSidebar extends Component
 	public const BLOCK_SUB_TABS = [
 		'settings',
 		'styles',
-		'advanced',
 	];
 
 	/**

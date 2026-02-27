@@ -22,23 +22,21 @@ test( 'image block content schema has url alt caption link fields', function ():
 	expect( $schema )->toHaveKey( 'linkTarget' );
 } );
 
-test( 'image block style schema has size alignment rounded shadow fields', function (): void {
+test( 'image block style schema has size rounded shadow and object fit fields', function (): void {
 	$block  = new ImageBlock();
 	$schema = $block->getStyleSchema();
 
 	expect( $schema )->toHaveKey( 'size' );
-	expect( $schema )->toHaveKey( 'alignment' );
 	expect( $schema )->toHaveKey( 'rounded' );
 	expect( $schema )->toHaveKey( 'shadow' );
 	expect( $schema )->toHaveKey( 'objectFit' );
 } );
 
-test( 'image block defaults to large size and center alignment', function (): void {
+test( 'image block defaults to large size', function (): void {
 	$block    = new ImageBlock();
 	$defaults = $block->getDefaultStyles();
 
 	expect( $defaults['size'] )->toBe( 'large' );
-	expect( $defaults['alignment'] )->toBe( 'center' );
 } );
 
 test( 'image block renders figure with img', function (): void {

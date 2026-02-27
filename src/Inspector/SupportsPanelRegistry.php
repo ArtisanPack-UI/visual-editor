@@ -55,7 +55,7 @@ class SupportsPanelRegistry
 			];
 		}
 
-		if ( $this->hasAnySupport( $activeSupports, [ 'typography.fontSize', 'typography.fontFamily' ] ) ) {
+		if ( $this->hasAnySupport( $activeSupports, [ 'typography.fontSize', 'typography.fontFamily', 'typography.dropCap' ] ) ) {
 			$panels[] = [
 				'key'      => 'typography',
 				'label'    => __( 'visual-editor::ve.typography' ),
@@ -183,6 +183,14 @@ class SupportsPanelRegistry
 				'type'  => 'select',
 				'field' => 'fontFamily',
 				'label' => __( 'visual-editor::ve.font_family' ),
+			];
+		}
+
+		if ( in_array( 'typography.dropCap', $activeSupports, true ) ) {
+			$controls[] = [
+				'type'  => 'toggle',
+				'field' => 'dropCap',
+				'label' => __( 'visual-editor::ve.drop_cap' ),
 			];
 		}
 

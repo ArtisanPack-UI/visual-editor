@@ -16,6 +16,7 @@
 	$fieldPlaceholder = $fieldPlaceholder();
 	$fieldOptions     = $fieldOptions();
 	$fieldDefault     = $fieldDefault();
+	$fieldHint        = $fieldHint();
 	$currentValue     = $value ?? $fieldDefault;
 @endphp
 
@@ -180,6 +181,9 @@
 					x-model="value"
 					x-on:change="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: value } )"
 				/>
+				@if ( $fieldHint )
+					<p class="text-xs text-base-content/50 mt-1">{{ $fieldHint }}</p>
+				@endif
 			</div>
 	@endswitch
 </div>

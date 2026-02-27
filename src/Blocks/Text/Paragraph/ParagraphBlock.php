@@ -47,15 +47,7 @@ class ParagraphBlock extends BaseBlock
 	 */
 	public function getContentSchema(): array
 	{
-		return [
-			'text' => [
-				'type'        => 'rich_text',
-				'label'       => __( 'visual-editor::ve.block_paragraph_placeholder' ),
-				'placeholder' => __( 'visual-editor::ve.block_paragraph_placeholder' ),
-				'toolbar'     => [ 'bold', 'italic', 'underline', 'strikethrough', 'link', 'code' ],
-				'default'     => '',
-			],
-		];
+		return [];
 	}
 
 	/**
@@ -68,11 +60,6 @@ class ParagraphBlock extends BaseBlock
 	public function getStyleSchema(): array
 	{
 		return [
-			'alignment'       => [
-				'type'    => 'alignment',
-				'label'   => __( 'visual-editor::ve.text_alignment' ),
-				'default' => 'left',
-			],
 			'textColor'       => [
 				'type'    => 'color',
 				'label'   => __( 'visual-editor::ve.text_color' ),
@@ -93,11 +80,6 @@ class ParagraphBlock extends BaseBlock
 					'xl'    => __( 'visual-editor::ve.extra_large' ),
 				],
 				'default' => null,
-			],
-			'dropCap'         => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.drop_cap' ),
-				'default' => false,
 			],
 		];
 	}

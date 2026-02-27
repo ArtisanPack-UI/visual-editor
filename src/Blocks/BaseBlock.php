@@ -269,20 +269,12 @@ abstract class BaseBlock implements BlockInterface
 	{
 		$schema = [];
 
-		if ( $this->supportsFeature( 'anchor' ) ) {
+		if ( $this->supportsFeature( 'anchor' ) || $this->supportsFeature( 'htmlId' ) ) {
 			$schema['anchor'] = [
 				'type'        => 'text',
 				'label'       => __( 'visual-editor::ve.html_anchor' ),
 				'placeholder' => __( 'visual-editor::ve.html_anchor_placeholder' ),
-				'default'     => '',
-			];
-		}
-
-		if ( $this->supportsFeature( 'htmlId' ) ) {
-			$schema['htmlId'] = [
-				'type'        => 'text',
-				'label'       => __( 'visual-editor::ve.html_id' ),
-				'placeholder' => __( 'visual-editor::ve.html_id_placeholder' ),
+				'hint'        => __( 'visual-editor::ve.html_anchor_hint' ),
 				'default'     => '',
 			];
 		}

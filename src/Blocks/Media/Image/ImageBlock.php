@@ -102,12 +102,6 @@ class ImageBlock extends BaseBlock
 				],
 				'default' => 'large',
 			],
-			'alignment' => [
-				'type'    => 'alignment',
-				'label'   => __( 'visual-editor::ve.text_alignment' ),
-				'options' => [ 'left', 'center', 'right' ],
-				'default' => 'center',
-			],
 			'rounded'   => [
 				'type'    => 'toggle',
 				'label'   => __( 'visual-editor::ve.rounded_corners' ),

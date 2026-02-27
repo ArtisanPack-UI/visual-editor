@@ -16,11 +16,10 @@ test( 'quote block has correct category', function (): void {
 	expect( $block->getCategory() )->toBe( 'text' );
 } );
 
-test( 'quote block content schema has text and citation', function (): void {
+test( 'quote block content schema has citation field', function (): void {
 	$block  = new QuoteBlock();
 	$schema = $block->getContentSchema();
 
-	expect( $schema )->toHaveKey( 'text' );
 	expect( $schema )->toHaveKey( 'citation' );
 } );
 

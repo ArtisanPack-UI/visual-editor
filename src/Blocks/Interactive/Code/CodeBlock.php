@@ -46,11 +46,6 @@ class CodeBlock extends BaseBlock
 	public function getContentSchema(): array
 	{
 		return [
-			'content'  => [
-				'type'    => 'text',
-				'label'   => __( 'visual-editor::ve.code_content' ),
-				'default' => '',
-			],
 			'language' => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.code_language' ),

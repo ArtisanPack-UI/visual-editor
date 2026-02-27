@@ -70,7 +70,7 @@
 		tabindex="0"
 		aria-labelledby="{{ $uuid }}-block-tab"
 	>
-		{{-- Block sub-tab switcher: Settings / Styles / Advanced --}}
+		{{-- Block sub-tab switcher: Settings / Styles --}}
 		<div class="flex border-b border-base-300" role="tablist" aria-label="{{ __( 'visual-editor::ve.block_settings' ) }}">
 			<button
 				type="button"
@@ -79,9 +79,9 @@
 				:class="'settings' === activeBlockSubTab ? 'text-primary border-b-2 border-primary' : 'text-base-content/60 hover:text-base-content'"
 				x-on:click="activeBlockSubTab = 'settings'; $nextTick( () => $el.focus() )"
 				x-on:keydown.arrow-right.prevent="activeBlockSubTab = 'styles'; $nextTick( () => document.getElementById( '{{ $uuid }}-styles-subtab' ).focus() )"
-				x-on:keydown.arrow-left.prevent="activeBlockSubTab = 'advanced'; $nextTick( () => document.getElementById( '{{ $uuid }}-advanced-subtab' ).focus() )"
+				x-on:keydown.arrow-left.prevent="activeBlockSubTab = 'styles'; $nextTick( () => document.getElementById( '{{ $uuid }}-styles-subtab' ).focus() )"
 				x-on:keydown.home.prevent="activeBlockSubTab = 'settings'; $nextTick( () => $el.focus() )"
-				x-on:keydown.end.prevent="activeBlockSubTab = 'advanced'; $nextTick( () => document.getElementById( '{{ $uuid }}-advanced-subtab' ).focus() )"
+				x-on:keydown.end.prevent="activeBlockSubTab = 'styles'; $nextTick( () => document.getElementById( '{{ $uuid }}-styles-subtab' ).focus() )"
 				role="tab"
 				:aria-selected="'settings' === activeBlockSubTab"
 				:tabindex="'settings' === activeBlockSubTab ? 0 : -1"
@@ -95,10 +95,10 @@
 				class="flex-1 px-3 py-1.5 text-xs font-medium text-center transition-colors"
 				:class="'styles' === activeBlockSubTab ? 'text-primary border-b-2 border-primary' : 'text-base-content/60 hover:text-base-content'"
 				x-on:click="activeBlockSubTab = 'styles'; $nextTick( () => $el.focus() )"
-				x-on:keydown.arrow-right.prevent="activeBlockSubTab = 'advanced'; $nextTick( () => document.getElementById( '{{ $uuid }}-advanced-subtab' ).focus() )"
+				x-on:keydown.arrow-right.prevent="activeBlockSubTab = 'settings'; $nextTick( () => document.getElementById( '{{ $uuid }}-settings-subtab' ).focus() )"
 				x-on:keydown.arrow-left.prevent="activeBlockSubTab = 'settings'; $nextTick( () => document.getElementById( '{{ $uuid }}-settings-subtab' ).focus() )"
 				x-on:keydown.home.prevent="activeBlockSubTab = 'settings'; $nextTick( () => document.getElementById( '{{ $uuid }}-settings-subtab' ).focus() )"
-				x-on:keydown.end.prevent="activeBlockSubTab = 'advanced'; $nextTick( () => document.getElementById( '{{ $uuid }}-advanced-subtab' ).focus() )"
+				x-on:keydown.end.prevent="activeBlockSubTab = 'styles'; $nextTick( () => $el.focus() )"
 				role="tab"
 				:aria-selected="'styles' === activeBlockSubTab"
 				:tabindex="'styles' === activeBlockSubTab ? 0 : -1"
@@ -106,30 +106,13 @@
 			>
 				{{ __( 'visual-editor::ve.styles_tab' ) }}
 			</button>
-			<button
-				type="button"
-				id="{{ $uuid }}-advanced-subtab"
-				class="flex-1 px-3 py-1.5 text-xs font-medium text-center transition-colors"
-				:class="'advanced' === activeBlockSubTab ? 'text-primary border-b-2 border-primary' : 'text-base-content/60 hover:text-base-content'"
-				x-on:click="activeBlockSubTab = 'advanced'; $nextTick( () => $el.focus() )"
-				x-on:keydown.arrow-right.prevent="activeBlockSubTab = 'settings'; $nextTick( () => document.getElementById( '{{ $uuid }}-settings-subtab' ).focus() )"
-				x-on:keydown.arrow-left.prevent="activeBlockSubTab = 'styles'; $nextTick( () => document.getElementById( '{{ $uuid }}-styles-subtab' ).focus() )"
-				x-on:keydown.home.prevent="activeBlockSubTab = 'settings'; $nextTick( () => document.getElementById( '{{ $uuid }}-settings-subtab' ).focus() )"
-				x-on:keydown.end.prevent="activeBlockSubTab = 'advanced'; $nextTick( () => $el.focus() )"
-				role="tab"
-				:aria-selected="'advanced' === activeBlockSubTab"
-				:tabindex="'advanced' === activeBlockSubTab ? 0 : -1"
-				aria-controls="{{ $uuid }}-advanced-subpanel"
-			>
-				{{ __( 'visual-editor::ve.advanced_tab' ) }}
-			</button>
 		</div>
 
 		{{-- Settings sub-panel --}}
 		<div
 			id="{{ $uuid }}-settings-subpanel"
 			x-show="'settings' === activeBlockSubTab"
-			class="flex-1 overflow-y-auto p-3"
+			class="flex-1 overflow-y-auto"
 			role="tabpanel"
 			tabindex="0"
 			aria-labelledby="{{ $uuid }}-settings-subtab"
@@ -141,24 +124,12 @@
 		<div
 			id="{{ $uuid }}-styles-subpanel"
 			x-show="'styles' === activeBlockSubTab"
-			class="flex-1 overflow-y-auto p-3"
+			class="flex-1 overflow-y-auto"
 			role="tabpanel"
 			tabindex="0"
 			aria-labelledby="{{ $uuid }}-styles-subtab"
 		>
 			{{ $stylesPanel ?? '' }}
-		</div>
-
-		{{-- Advanced sub-panel --}}
-		<div
-			id="{{ $uuid }}-advanced-subpanel"
-			x-show="'advanced' === activeBlockSubTab"
-			class="flex-1 overflow-y-auto p-3"
-			role="tabpanel"
-			tabindex="0"
-			aria-labelledby="{{ $uuid }}-advanced-subtab"
-		>
-			{{ $advancedPanel ?? '' }}
 		</div>
 	</div>
 

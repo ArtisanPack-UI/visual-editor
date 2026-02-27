@@ -3,7 +3,7 @@
 	"type": "heading",
 	"name": "Heading",
 	"description": "Add a heading to your content",
-	"icon": "h1",
+	"icon": "heading",
 	"category": "text",
 	"keywords": ["title", "h1", "h2", "h3", "header"],
 	"version": 1,

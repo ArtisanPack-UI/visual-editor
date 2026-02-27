@@ -20,24 +20,20 @@ test( 'heading block has correct category', function (): void {
 test( 'heading block has correct icon', function (): void {
 	$block = new HeadingBlock();
 
-	expect( $block->getIcon() )->toBe( 'h1' );
+	expect( $block->getIcon() )->toBe( 'heading' );
 } );
 
-test( 'heading block content schema has text and level fields', function (): void {
+test( 'heading block content schema is empty for inline editing', function (): void {
 	$block  = new HeadingBlock();
 	$schema = $block->getContentSchema();
 
-	expect( $schema )->toHaveKey( 'text' );
-	expect( $schema )->toHaveKey( 'level' );
-	expect( $schema['text']['type'] )->toBe( 'rich_text' );
-	expect( $schema['level']['type'] )->toBe( 'select' );
+	expect( $schema )->toBeEmpty();
 } );
 
-test( 'heading block style schema has alignment and color fields', function (): void {
+test( 'heading block style schema has color and font size fields', function (): void {
 	$block  = new HeadingBlock();
 	$schema = $block->getStyleSchema();
 
-	expect( $schema )->toHaveKey( 'alignment' );
 	expect( $schema )->toHaveKey( 'textColor' );
 	expect( $schema )->toHaveKey( 'backgroundColor' );
 	expect( $schema )->toHaveKey( 'fontSize' );

@@ -26,12 +26,187 @@
 		},
 
 		@if ( $enableArrowNavigation )
+			/**
+			 * Walk up the DOM from the given element to find a contenteditable ancestor
+			 * that is still inside this canvas.
+			 */
+			_getEditableAncestor( el ) {
+				while ( el && el !== this.$el ) {
+					if ( el.isContentEditable ) return el;
+					el = el.parentElement;
+				}
+				return null;
+			},
+
+			/**
+			 * Check whether the collapsed cursor is at the very start of the editable's text.
+			 */
+			_isCursorAtContentStart( el ) {
+				const sel = window.getSelection();
+				if ( ! sel.rangeCount ) return false;
+				const range = sel.getRangeAt( 0 );
+				if ( ! range.collapsed ) return false;
+				const pre = document.createRange();
+				pre.selectNodeContents( el );
+				pre.setEnd( range.startContainer, range.startOffset );
+				return 0 === pre.toString().length;
+			},
+
+			/**
+			 * Check whether the collapsed cursor is at the very end of the editable's text.
+			 */
+			_isCursorAtContentEnd( el ) {
+				const sel = window.getSelection();
+				if ( ! sel.rangeCount ) return false;
+				const range = sel.getRangeAt( 0 );
+				if ( ! range.collapsed ) return false;
+				const post = document.createRange();
+				post.selectNodeContents( el );
+				post.setStart( range.endContainer, range.endOffset );
+				return 0 === post.toString().length;
+			},
+
+			/**
+			 * Check whether the cursor sits on the first visual line of the editable
+			 * by comparing the cursor rect's top with the element's first character rect.
+			 */
+			_isCursorOnFirstLine( el ) {
+				if ( this._isCursorAtContentStart( el ) ) return true;
+				const sel = window.getSelection();
+				if ( ! sel.rangeCount ) return true;
+				const cursorRange = sel.getRangeAt( 0 ).cloneRange();
+				cursorRange.collapse( true );
+				const cursorRect = cursorRange.getBoundingClientRect();
+				if ( ! cursorRect.height ) return true;
+
+				const startRange = document.createRange();
+				startRange.selectNodeContents( el );
+				startRange.collapse( true );
+				const startRect = startRange.getBoundingClientRect();
+				if ( ! startRect.height ) return true;
+
+				return Math.abs( cursorRect.top - startRect.top ) < 2;
+			},
+
+			/**
+			 * Check whether the cursor sits on the last visual line of the editable
+			 * by comparing the cursor rect's bottom with the element's last character rect.
+			 */
+			_isCursorOnLastLine( el ) {
+				if ( this._isCursorAtContentEnd( el ) ) return true;
+				const sel = window.getSelection();
+				if ( ! sel.rangeCount ) return true;
+				const cursorRange = sel.getRangeAt( 0 ).cloneRange();
+				cursorRange.collapse( false );
+				const cursorRect = cursorRange.getBoundingClientRect();
+				if ( ! cursorRect.height ) return true;
+
+				const endRange = document.createRange();
+				endRange.selectNodeContents( el );
+				endRange.collapse( false );
+				const endRect = endRange.getBoundingClientRect();
+				if ( ! endRect.height ) return true;
+
+				return Math.abs( cursorRect.bottom - endRect.bottom ) < 2;
+			},
+
+			/**
+			 * Get the current cursor's X coordinate from its bounding rect.
+			 */
+			_getCursorX() {
+				const sel = window.getSelection();
+				if ( ! sel.rangeCount ) return null;
+				const range = sel.getRangeAt( 0 ).cloneRange();
+				range.collapse( true );
+				const rect = range.getBoundingClientRect();
+				if ( rect.height ) return rect.x;
+
+				// The caret rect can be zero immediately after a cross-block jump
+				// because the browser hasn't painted yet. Walk up to the nearest
+				// contenteditable and use its left edge as a reasonable fallback.
+				let node = range.startContainer;
+				while ( node ) {
+					if ( 1 === node.nodeType && node.isContentEditable ) {
+						return node.getBoundingClientRect().left;
+					}
+					node = node.parentElement;
+				}
+				return null;
+			},
+
 			handleKeydown( event ) {
 				if ( this.isEmpty ) return;
+
+				const activeEl = document.activeElement;
+
+				// For standard form controls, let the browser handle everything.
+				if ( activeEl ) {
+					const tag = activeEl.tagName.toLowerCase();
+					if ( 'input' === tag || 'textarea' === tag || 'select' === tag ) {
+						return;
+					}
+				}
 
 				const blockEls = [ ...this.$refs.blockList.querySelectorAll( '[data-block-id]' ) ];
 				if ( 0 === blockEls.length ) return;
 
+				const editableEl = this._getEditableAncestor( activeEl );
+
+				// ── Inside a contenteditable: boundary-aware navigation ──
+				if ( editableEl ) {
+					const blockEl      = editableEl.closest( '[data-block-id]' );
+					const currentIndex = blockEl ? blockEls.indexOf( blockEl ) : -1;
+
+					if ( 'ArrowUp' === event.key && this._isCursorOnFirstLine( editableEl ) ) {
+						if ( currentIndex > 0 ) {
+							const savedX = this._getCursorX();
+							event.preventDefault();
+							this.focusedIndex = currentIndex - 1;
+							this._focusBlockEditable( blockEls[ this.focusedIndex ], 'end', savedX );
+						}
+						return;
+					}
+
+					if ( 'ArrowDown' === event.key && this._isCursorOnLastLine( editableEl ) ) {
+						if ( currentIndex < blockEls.length - 1 ) {
+							const savedX = this._getCursorX();
+							event.preventDefault();
+							this.focusedIndex = currentIndex + 1;
+							this._focusBlockEditable( blockEls[ this.focusedIndex ], 'start', savedX );
+						}
+						return;
+					}
+
+					if ( 'ArrowLeft' === event.key && this._isCursorAtContentStart( editableEl ) ) {
+						if ( currentIndex > 0 ) {
+							event.preventDefault();
+							this.focusedIndex = currentIndex - 1;
+							this._focusBlockEditable( blockEls[ this.focusedIndex ], 'end' );
+						}
+						return;
+					}
+
+					if ( 'ArrowRight' === event.key && this._isCursorAtContentEnd( editableEl ) ) {
+						if ( currentIndex < blockEls.length - 1 ) {
+							event.preventDefault();
+							this.focusedIndex = currentIndex + 1;
+							this._focusBlockEditable( blockEls[ this.focusedIndex ], 'start' );
+						}
+						return;
+					}
+
+					if ( 'Escape' === event.key ) {
+						event.preventDefault();
+						editableEl.blur();
+						if ( blockEl ) blockEl.focus();
+						return;
+					}
+
+					// Not at a boundary — let the browser move the cursor normally.
+					return;
+				}
+
+				// ── Not inside editable content: block-level navigation ──
 				if ( 'ArrowDown' === event.key || 'ArrowRight' === event.key ) {
 					event.preventDefault();
 					this.focusedIndex = Math.min( this.focusedIndex + 1, blockEls.length - 1 );
@@ -49,9 +224,82 @@
 				}
 			},
 
+			/**
+			 * Focus a block wrapper element (block-level navigation mode).
+			 */
 			_focusBlock( el ) {
 				if ( ! el ) return;
 				el.focus();
+				this._selectAndAnnounce( el );
+			},
+
+			/**
+			 * Focus the contenteditable inside a block and place the cursor.
+			 *
+			 * When savedX is provided (ArrowUp / ArrowDown), the cursor is placed
+			 * at the character position on the target line closest to that X
+			 * coordinate — matching Google Docs behaviour. Falls back to
+			 * start / end placement when the hit-test is unavailable.
+			 */
+			_focusBlockEditable( blockEl, position, savedX ) {
+				if ( ! blockEl ) return;
+				const editable = blockEl.querySelector( '[contenteditable]' );
+				if ( ! editable ) {
+					blockEl.focus();
+					this._selectAndAnnounce( blockEl );
+					return;
+				}
+
+				editable.focus();
+				const sel = window.getSelection();
+
+				// Place cursor at the target line edge (start or end of content).
+				const placementRange = document.createRange();
+				if ( editable.childNodes.length ) {
+					placementRange.selectNodeContents( editable );
+				} else {
+					placementRange.setStart( editable, 0 );
+					placementRange.setEnd( editable, 0 );
+				}
+				placementRange.collapse( 'start' === position );
+				sel.removeAllRanges();
+				sel.addRange( placementRange );
+
+				// If we have a saved X, try to hit-test the closest character.
+				if ( null !== savedX && undefined !== savedX && document.caretRangeFromPoint ) {
+					const elRect = editable.getBoundingClientRect();
+
+					// Clamp X inside the editable's content area so the hit-test
+					// can't land on padding, margins or a sibling element.
+					const clampedX = Math.max( elRect.left + 1, Math.min( savedX, elRect.right - 1 ) );
+
+					// Determine the Y midpoint of the target line. The caret rect
+					// is usually zero right after focus(), so fall back to the
+					// element's edge.
+					let targetY;
+					const caretRect = sel.getRangeAt( 0 ).getBoundingClientRect();
+					if ( caretRect.height ) {
+						targetY = caretRect.top + ( caretRect.height / 2 );
+					} else if ( 'start' === position ) {
+						targetY = elRect.top + Math.min( 10, elRect.height / 2 );
+					} else {
+						targetY = elRect.bottom - Math.min( 10, elRect.height / 2 );
+					}
+
+					const hitRange = document.caretRangeFromPoint( clampedX, targetY );
+					if ( hitRange && editable.contains( hitRange.startContainer ) ) {
+						sel.removeAllRanges();
+						sel.addRange( hitRange );
+					}
+				}
+
+				this._selectAndAnnounce( blockEl );
+			},
+
+			/**
+			 * Select a block in the store and announce its position.
+			 */
+			_selectAndAnnounce( el ) {
 				const blockId = el.getAttribute( 'data-block-id' );
 				if ( blockId && Alpine.store( 'selection' ) ) {
 					Alpine.store( 'selection' ).select( blockId, false );

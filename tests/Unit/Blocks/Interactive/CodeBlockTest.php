@@ -11,11 +11,10 @@ test( 'code block has correct type and category', function (): void {
 	expect( $block->getCategory() )->toBe( 'interactive' );
 } );
 
-test( 'code block content schema has content language and filename fields', function (): void {
+test( 'code block content schema has language and filename fields', function (): void {
 	$block  = new CodeBlock();
 	$schema = $block->getContentSchema();
 
-	expect( $schema )->toHaveKey( 'content' );
 	expect( $schema )->toHaveKey( 'language' );
 	expect( $schema )->toHaveKey( 'filename' );
 	expect( $schema['language']['type'] )->toBe( 'select' );

@@ -112,10 +112,10 @@ test( 'base block advanced schema includes anchor and className', function (): v
 	expect( $schema )->toHaveKey( 'className' );
 } );
 
-test( 'base block advanced schema includes htmlId', function (): void {
+test( 'base block advanced schema maps htmlId support to anchor key', function (): void {
 	$block  = new StubBlock();
 	$schema = $block->getAdvancedSchema();
 
-	expect( $schema )->toHaveKey( 'htmlId' );
-	expect( $schema['htmlId']['type'] )->toBe( 'text' );
+	expect( $schema )->toHaveKey( 'anchor' );
+	expect( $schema['anchor']['type'] )->toBe( 'text' );
 } );

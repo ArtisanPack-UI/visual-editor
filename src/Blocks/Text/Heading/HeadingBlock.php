@@ -43,28 +43,7 @@ class HeadingBlock extends BaseBlock
 	 */
 	public function getContentSchema(): array
 	{
-		return [
-			'text'  => [
-				'type'        => 'rich_text',
-				'label'       => __( 'visual-editor::ve.block_heading_placeholder' ),
-				'placeholder' => __( 'visual-editor::ve.block_heading_placeholder' ),
-				'toolbar'     => [ 'bold', 'italic', 'link' ],
-				'default'     => '',
-			],
-			'level' => [
-				'type'    => 'select',
-				'label'   => __( 'visual-editor::ve.heading_level' ),
-				'options' => [
-					'h1' => 'H1',
-					'h2' => 'H2',
-					'h3' => 'H3',
-					'h4' => 'H4',
-					'h5' => 'H5',
-					'h6' => 'H6',
-				],
-				'default' => 'h2',
-			],
-		];
+		return [];
 	}
 
 	/**
@@ -77,12 +56,6 @@ class HeadingBlock extends BaseBlock
 	public function getStyleSchema(): array
 	{
 		return [
-			'alignment'       => [
-				'type'    => 'alignment',
-				'label'   => __( 'visual-editor::ve.text_alignment' ),
-				'options' => [ 'left', 'center', 'right' ],
-				'default' => 'left',
-			],
 			'textColor'       => [
 				'type'    => 'color',
 				'label'   => __( 'visual-editor::ve.text_color' ),

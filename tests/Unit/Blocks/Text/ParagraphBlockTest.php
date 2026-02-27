@@ -16,20 +16,20 @@ test( 'paragraph block has correct category', function (): void {
 	expect( $block->getCategory() )->toBe( 'text' );
 } );
 
-test( 'paragraph block content schema has text field', function (): void {
+test( 'paragraph block content schema is empty for inline editing', function (): void {
 	$block  = new ParagraphBlock();
 	$schema = $block->getContentSchema();
 
-	expect( $schema )->toHaveKey( 'text' );
-	expect( $schema['text']['type'] )->toBe( 'rich_text' );
+	expect( $schema )->toBeEmpty();
 } );
 
-test( 'paragraph block style schema has drop cap field', function (): void {
+test( 'paragraph block style schema has color and font size fields', function (): void {
 	$block  = new ParagraphBlock();
 	$schema = $block->getStyleSchema();
 
-	expect( $schema )->toHaveKey( 'dropCap' );
-	expect( $schema['dropCap']['type'] )->toBe( 'toggle' );
+	expect( $schema )->toHaveKey( 'textColor' );
+	expect( $schema )->toHaveKey( 'backgroundColor' );
+	expect( $schema )->toHaveKey( 'fontSize' );
 } );
 
 test( 'paragraph block default styles include drop cap false', function (): void {

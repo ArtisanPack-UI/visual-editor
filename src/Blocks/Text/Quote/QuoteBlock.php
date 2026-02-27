@@ -48,13 +48,6 @@ class QuoteBlock extends BaseBlock
 	public function getContentSchema(): array
 	{
 		return [
-			'text'     => [
-				'type'        => 'rich_text',
-				'label'       => __( 'visual-editor::ve.block_quote_placeholder' ),
-				'placeholder' => __( 'visual-editor::ve.block_quote_placeholder' ),
-				'toolbar'     => [ 'bold', 'italic', 'link' ],
-				'default'     => '',
-			],
 			'citation' => [
 				'type'        => 'text',
 				'label'       => __( 'visual-editor::ve.citation' ),
@@ -74,12 +67,6 @@ class QuoteBlock extends BaseBlock
 	public function getStyleSchema(): array
 	{
 		return [
-			'alignment'       => [
-				'type'    => 'alignment',
-				'label'   => __( 'visual-editor::ve.text_alignment' ),
-				'options' => [ 'left', 'center', 'right' ],
-				'default' => 'left',
-			],
 			'style'           => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.quote_style' ),

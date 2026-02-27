@@ -62,7 +62,6 @@ test( 'editor sidebar renders block sub-tabs', function (): void {
 
 	$view->assertSee( 'Settings' );
 	$view->assertSee( 'Styles' );
-	$view->assertSee( 'Advanced' );
 } );
 
 test( 'editor sidebar renders block panel slot in settings sub-tab', function (): void {
@@ -92,13 +91,9 @@ test( 'editor sidebar renders styles panel slot', function (): void {
 		->assertSee( 'Styles Panel Content' );
 } );
 
-test( 'editor sidebar renders advanced panel slot', function (): void {
-	$this->blade( '
-		<x-ve-editor-sidebar>
-			<x-slot:advancedPanel>Advanced Panel Content</x-slot:advancedPanel>
-		</x-ve-editor-sidebar>
-	' )
-		->assertSee( 'Advanced Panel Content' );
+test( 'editor sidebar does not render advanced sub-tab', function (): void {
+	$this->blade( '<x-ve-editor-sidebar />' )
+		->assertDontSee( 'Advanced' );
 } );
 
 test( 'editor sidebar renders document panel slot', function (): void {

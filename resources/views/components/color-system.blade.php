@@ -17,6 +17,7 @@
 		tab: 'color',
 		open: false,
 		showPicker: false,
+		dropdownStyle: '',
 		select( value ) {
 			this.color = value
 			$dispatch( 've-color-change', { color: value } )
@@ -25,17 +26,41 @@
 			this.color = ''
 			$dispatch( 've-color-change', { color: '' } )
 		},
+		positionDropdown() {
+			const trigger = this.$refs.trigger;
+			if ( ! trigger ) return;
+			const rect   = trigger.getBoundingClientRect();
+			const dropW  = 288;
+			const margin = 8;
+
+			let top  = rect.bottom + 4;
+			let left = rect.right - dropW;
+
+			if ( left < margin ) {
+				left = margin;
+			}
+
+			if ( top + 400 > window.innerHeight ) {
+				top = rect.top - 400 - 4;
+				if ( top < margin ) {
+					top = margin;
+				}
+			}
+
+			this.dropdownStyle = 'top: ' + top + 'px; left: ' + left + 'px;';
+		},
 	}"
 	{{ $attributes->merge( [ 'class' => $compact ? 'relative' : 'flex flex-col gap-3' ] ) }}
 >
 	@if ( $compact )
 		{{-- Compact trigger --}}
 		<div
+			x-ref="trigger"
 			role="button"
 			tabindex="0"
-			x-on:click="open = ! open"
-			x-on:keydown.enter="open = ! open"
-			x-on:keydown.space.prevent="open = ! open"
+			x-on:click="open = ! open; if ( open ) { $nextTick( () => positionDropdown() ) }"
+			x-on:keydown.enter="open = ! open; if ( open ) { $nextTick( () => positionDropdown() ) }"
+			x-on:keydown.space.prevent="open = ! open; if ( open ) { $nextTick( () => positionDropdown() ) }"
 			:aria-expanded="open"
 			class="flex items-center justify-between gap-3 w-full cursor-pointer border border-base-300 rounded-lg px-3 py-2 hover:bg-base-200/50 transition-colors"
 		>
@@ -60,21 +85,25 @@
 			</div>
 		</div>
 
-		{{-- Dropdown panel --}}
-		<div
-			x-show="open"
-			x-on:click.outside="open = false"
-			x-on:keydown.escape.window="open = false"
-			x-transition:enter="transition ease-out duration-100"
-			x-transition:enter-start="opacity-0 scale-95"
-			x-transition:enter-end="opacity-100 scale-100"
-			x-transition:leave="transition ease-in duration-75"
-			x-transition:leave-start="opacity-100 scale-100"
-			x-transition:leave-end="opacity-0 scale-95"
-			class="absolute right-0 z-50 mt-1 w-72 rounded-lg border border-base-300 bg-base-100 shadow-lg p-4 flex flex-col gap-3"
-		>
-			@include( 'visual-editor::components._color-picker-content' )
-		</div>
+		{{-- Dropdown panel (teleported to body to escape overflow-hidden ancestors) --}}
+		<template x-teleport="body">
+			<div
+				x-show="open"
+				x-on:click.outside="open = false"
+				x-on:keydown.escape.window="open = false"
+				x-transition:enter="transition ease-out duration-100"
+				x-transition:enter-start="opacity-0 scale-95"
+				x-transition:enter-end="opacity-100 scale-100"
+				x-transition:leave="transition ease-in duration-75"
+				x-transition:leave-start="opacity-100 scale-100"
+				x-transition:leave-end="opacity-0 scale-95"
+				x-ref="dropdown"
+				class="fixed z-[9999] w-72 rounded-lg border border-base-300 bg-base-100 shadow-lg p-4 flex flex-col gap-3"
+				:style="dropdownStyle"
+			>
+				@include( 'visual-editor::components._color-picker-content' )
+			</div>
+		</template>
 	@else
 		@if ( $label )
 			<label class="text-xs font-medium text-base-content/60">

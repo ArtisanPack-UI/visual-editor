@@ -124,6 +124,18 @@ class InspectorField extends Component
 	}
 
 	/**
+	 * Get the field hint/description from the schema.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return string
+	 */
+	public function fieldHint(): string
+	{
+		return $this->schema['hint'] ?? '';
+	}
+
+	/**
 	 * Get the view that represents the component.
 	 *
 	 * @since 1.0.0

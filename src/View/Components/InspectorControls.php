@@ -56,6 +56,7 @@ class InspectorControls extends Component
 		public ?string $blockType = null,
 		public ?string $blockId = null,
 		public ?string $id = null,
+		public ?string $tab = null,
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 	}
@@ -96,6 +97,31 @@ class InspectorControls extends Component
 		$panelRegistry = app( SupportsPanelRegistry::class );
 
 		return $panelRegistry->getPanelsForBlock( $block );
+	}
+
+	/**
+	 * Get field names already covered by supports panels.
+	 *
+	 * Used to filter out style schema fields that would otherwise
+	 * be rendered twice in the Styles tab.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<int, string>
+	 */
+	public function supportsCoveredFields(): array
+	{
+		$covered = [];
+
+		foreach ( $this->supportsPanels() as $panel ) {
+			foreach ( $panel['controls'] as $control ) {
+				if ( isset( $control['field'] ) ) {
+					$covered[] = $control['field'];
+				}
+			}
+		}
+
+		return $covered;
 	}
 
 	/**

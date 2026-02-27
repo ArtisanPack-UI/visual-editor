@@ -48,7 +48,8 @@
 			"background": true
 		},
 		"typography": {
-			"fontSize": true
+			"fontSize": true,
+			"dropCap": true
 		},
 		"anchor": true,
 		"className": true

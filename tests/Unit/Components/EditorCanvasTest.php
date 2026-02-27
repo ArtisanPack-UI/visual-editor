@@ -38,9 +38,9 @@ test( 'editor canvas renders', function (): void {
 	expect( $view )->not->toBeNull();
 } );
 
-test( 'editor canvas renders with main role', function (): void {
+test( 'editor canvas renders with region role', function (): void {
 	$this->blade( '<x-ve-editor-canvas>Content</x-ve-editor-canvas>' )
-		->assertSee( 'role="main"', false );
+		->assertSee( 'role="region"', false );
 } );
 
 test( 'editor canvas renders with slot content', function (): void {

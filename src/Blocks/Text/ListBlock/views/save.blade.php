@@ -1,8 +1,8 @@
 @php
 	$type      = $content['type'] ?? 'unordered';
-	$items     = $content['items'] ?? [];
 	$start     = $content['start'] ?? '1';
 	$reversed  = $content['reversed'] ?? false;
+	$innerHTML = $content['innerHTML'] ?? '<li></li>';
 	$textColor = $styles['textColor'] ?? null;
 	$fontSize  = $styles['fontSize'] ?? null;
 	$anchor    = $content['anchor'] ?? null;
@@ -18,7 +18,8 @@
 		$inlineStyles .= "color: {$textColor};";
 	}
 
-	$classes = "ve-block ve-block-list ve-list-{$type}";
+	$listStyleClass = 'ordered' === $type ? 'list-decimal' : 'list-disc';
+	$classes        = "ve-block ve-block-list ve-list-{$type} {$listStyleClass} pl-6";
 	if ( $fontSize ) {
 		$classes .= " text-{$fontSize}";
 	}
@@ -34,7 +35,5 @@
 	@if ( 'ordered' === $type && '1' !== $start ) start="{{ $start }}" @endif
 	@if ( 'ordered' === $type && $reversed ) reversed @endif
 >
-	@foreach ( $items as $item )
-		<li>{!! $item['text'] ?? '' !!}</li>
-	@endforeach
+	{!! $innerHTML !!}
 </{{ $tag }}>

@@ -16,11 +16,6 @@
 			"source": "content",
 			"default": "unordered"
 		},
-		"items": {
-			"type": "array",
-			"source": "content",
-			"default": []
-		},
 		"start": {
 			"type": "string",
 			"source": "content",

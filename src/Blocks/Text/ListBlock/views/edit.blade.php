@@ -1,6 +1,5 @@
 @php
 	$type      = $content['type'] ?? 'unordered';
-	$items     = $content['items'] ?? [];
 	$start     = $content['start'] ?? '1';
 	$reversed  = $content['reversed'] ?? false;
 	$textColor = $styles['textColor'] ?? null;
@@ -13,7 +12,8 @@
 		$inlineStyles .= "color: {$textColor};";
 	}
 
-	$classes = "ve-block ve-block-list ve-block-editing ve-list-{$type}";
+	$listStyleClass = 'ordered' === $type ? 'list-decimal' : 'list-disc';
+	$classes        = "ve-block ve-block-list ve-block-editing ve-list-{$type} {$listStyleClass} pl-6";
 	if ( $fontSize ) {
 		$classes .= " text-{$fontSize}";
 	}
@@ -25,12 +25,6 @@
 	@if ( 'ordered' === $type && '1' !== $start ) start="{{ $start }}" @endif
 	@if ( 'ordered' === $type && $reversed ) reversed @endif
 	contenteditable="true"
-	data-placeholder="{{ __( 'visual-editor::ve.list_item_text' ) }}"
 >
-	@foreach ( $items as $item )
-		<li>{!! $item['text'] ?? '' !!}</li>
-	@endforeach
-	@if ( empty( $items ) )
-		<li></li>
-	@endif
+	<li data-placeholder="{{ __( 'visual-editor::ve.list_placeholder' ) }}"></li>
 </{{ $tag }}>

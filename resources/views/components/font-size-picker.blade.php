@@ -53,7 +53,7 @@
 					type="button"
 					x-on:click="selectPreset( '{{ $presetKey }}' )"
 					:class="isActivePreset( '{{ $presetKey }}' ) ? 'bg-primary text-primary-content shadow-sm' : 'text-base-content/50 hover:text-base-content/80 hover:bg-base-300'"
-					class="flex items-center justify-center min-w-[2.25rem] h-9 px-3 rounded-md text-sm font-medium transition-all"
+					class="flex items-center justify-center min-w-[1.75rem] h-7 px-2 rounded-md text-xs font-medium transition-all"
 					role="radio"
 					:aria-checked="isActivePreset( '{{ $presetKey }}' ) ? 'true' : 'false'"
 					aria-label="{{ __( 'visual-editor::ve.font_size' ) }} {{ $presetKey }}"
@@ -70,7 +70,7 @@
 				type="button"
 				x-on:click="toggleCustom()"
 				:class="mode === 'custom' ? 'text-primary' : 'text-base-content/40 hover:text-base-content/70'"
-				class="flex items-center justify-center h-9 w-9 rounded-md transition-colors"
+				class="flex items-center justify-center h-7 w-7 rounded-md transition-colors"
 				aria-label="{{ __( 'visual-editor::ve.custom_size' ) }}"
 				title="{{ __( 'visual-editor::ve.custom_size' ) }}"
 			>
