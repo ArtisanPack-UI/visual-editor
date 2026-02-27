@@ -127,6 +127,18 @@ abstract class BaseBlock implements BlockInterface
 	private static array $resolvedDirs = [];
 
 	/**
+	 * Cached manifest data from the production cache file.
+	 *
+	 * Uses false as the "not yet loaded" sentinel to distinguish
+	 * from null (loaded but no manifest file found).
+	 *
+	 * @since 2.0.0
+	 *
+	 * @var array<int, array{type: string, class: class-string, dir: string, metadata: array<string, mixed>}>|false|null
+	 */
+	private static array|null|false $cachedManifest = false;
+
+	/**
 	 * Create a new block instance.
 	 *
 	 * @since 2.0.0
@@ -599,6 +611,18 @@ abstract class BaseBlock implements BlockInterface
 	}
 
 	/**
+	 * Reset the cached manifest (used in testing).
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	public static function resetCachedManifest(): void
+	{
+		self::$cachedManifest = false;
+	}
+
+	/**
 	 * Resolve the directory containing this block class.
 	 *
 	 * @since 2.0.0
@@ -621,7 +645,10 @@ abstract class BaseBlock implements BlockInterface
 	}
 
 	/**
-	 * Load block.json metadata from the block directory.
+	 * Load block.json metadata from cache or disk.
+	 *
+	 * Checks the production manifest cache first (matched by FQCN),
+	 * then falls back to reading block.json from disk.
 	 *
 	 * @since 2.0.0
 	 *
@@ -629,6 +656,20 @@ abstract class BaseBlock implements BlockInterface
 	 */
 	protected function loadMetadata(): void
 	{
+		$manifest = self::getCachedManifest();
+
+		if ( null !== $manifest ) {
+			$class = static::class;
+
+			foreach ( $manifest as $entry ) {
+				if ( $entry['class'] === $class ) {
+					$this->metadata = $entry['metadata'];
+
+					return;
+				}
+			}
+		}
+
 		if ( null === $this->blockDir ) {
 			return;
 		}
@@ -741,5 +782,30 @@ abstract class BaseBlock implements BlockInterface
 		}
 
 		return $defaults;
+	}
+
+	/**
+	 * Get the cached manifest, loading it on first access.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<int, array{type: string, class: class-string, dir: string, metadata: array<string, mixed>}>|null
+	 */
+	private static function getCachedManifest(): ?array
+	{
+		if ( false !== self::$cachedManifest ) {
+			return self::$cachedManifest;
+		}
+
+		$path = app()->bootstrapPath( 'cache/visual-editor-blocks.php' );
+
+		if ( file_exists( $path ) ) {
+			$data                 = require $path;
+			self::$cachedManifest = is_array( $data ) ? $data : null;
+		} else {
+			self::$cachedManifest = null;
+		}
+
+		return self::$cachedManifest;
 	}
 }

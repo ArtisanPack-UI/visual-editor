@@ -64,6 +64,24 @@
 	},
 	"supports": {
 		"align": true,
+		"color": {
+			"text": false,
+			"background": false
+		},
+		"typography": {
+			"fontSize": false,
+			"fontFamily": false
+		},
+		"spacing": {
+			"margin": false,
+			"padding": false
+		},
+		"border": false,
+		"shadow": true,
+		"dimensions": {
+			"aspectRatio": true,
+			"minHeight": false
+		},
 		"anchor": true,
 		"className": true
 	}

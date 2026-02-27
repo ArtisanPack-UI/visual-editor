@@ -49,6 +49,23 @@
 	},
 	"supports": {
 		"align": ["wide", "full"],
+		"color": {
+			"text": false,
+			"background": false
+		},
+		"typography": {
+			"fontSize": false,
+			"fontFamily": false
+		},
+		"spacing": {
+			"margin": false,
+			"padding": false
+		},
+		"border": false,
+		"dimensions": {
+			"aspectRatio": true,
+			"minHeight": true
+		},
 		"anchor": true,
 		"className": true
 	}

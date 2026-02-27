@@ -49,6 +49,8 @@
 					if ( this.autosave ) {
 						this._startAutosave();
 					}
+
+					this._registerLivewireBridge();
 				},
 
 				{{-- ── Block CRUD ─────────────────────────────────────── --}}
@@ -469,6 +471,48 @@
 						clearInterval( this._autosaveTimer );
 						this._autosaveTimer = null;
 					}
+				},
+
+				{{-- ── Livewire Bridge ───────────────────────────── --}}
+
+				_registerLivewireBridge() {
+					document.addEventListener( 've-document-saved', ( e ) => {
+						this.markSaved();
+						this._announceAction( {{ Js::from( __( 'visual-editor::ve.document_saved' ) ) }} );
+					} );
+
+					document.addEventListener( 've-document-error', ( e ) => {
+						this.markError();
+						this._announceAction( {{ Js::from( __( 'visual-editor::ve.document_save_error' ) ) }} );
+					} );
+
+					document.addEventListener( 've-draft-restored', ( e ) => {
+						if ( e.detail && e.detail.blocks ) {
+							this._pushHistory();
+							this.blocks = e.detail.blocks;
+							this.markDirty();
+							this._announceAction( {{ Js::from( __( 'visual-editor::ve.draft_restored' ) ) }} );
+						}
+					} );
+
+					document.addEventListener( 've-pattern-loaded', ( e ) => {
+						if ( e.detail && e.detail.blocks ) {
+							this.insertPattern( { name: e.detail.name, blocks: e.detail.blocks } );
+						}
+					} );
+
+					document.addEventListener( 've-revision-restored', ( e ) => {
+						if ( e.detail && e.detail.blocks ) {
+							this._pushHistory();
+							this.blocks = e.detail.blocks;
+							this.markDirty();
+							this._announceAction( {{ Js::from( __( 'visual-editor::ve.revision_restored' ) ) }} );
+						}
+					} );
+
+					document.addEventListener( 've-media-selected', ( e ) => {
+						{{-- Passes media data through for block-level handling --}}
+					} );
 				},
 
 				{{-- ── Internal Helpers ───────────────────────────────── --}}

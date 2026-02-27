@@ -73,3 +73,22 @@ test( 'button block has keywords', function (): void {
 	expect( $block->getKeywords() )->toContain( 'button' );
 	expect( $block->getKeywords() )->toContain( 'cta' );
 } );
+
+test( 'button block supports shadow but not dimensions or background', function (): void {
+	$block = new ButtonBlock();
+
+	expect( $block->supportsFeature( 'shadow' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'dimensions.aspectRatio' ) )->toBeFalse();
+	expect( $block->supportsFeature( 'dimensions.minHeight' ) )->toBeFalse();
+	expect( $block->supportsFeature( 'background.backgroundImage' ) )->toBeFalse();
+} );
+
+test( 'button block active style supports include shadow', function (): void {
+	$block  = new ButtonBlock();
+	$active = $block->getActiveStyleSupports();
+
+	expect( $active )->toContain( 'shadow' );
+	expect( $active )->not->toContain( 'dimensions.aspectRatio' );
+	expect( $active )->not->toContain( 'dimensions.minHeight' );
+	expect( $active )->not->toContain( 'background.backgroundImage' );
+} );

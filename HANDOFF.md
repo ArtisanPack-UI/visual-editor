@@ -26,9 +26,9 @@ Implementing a 6-phase combined plan to restructure the visual editor package. T
 - Added translation keys for all new controls
 - All tests passing
 
-### Phase 3: Migrate Remaining 15 Blocks (IN PROGRESS - 8 of 15 done)
+### Phase 3: Migrate Remaining 15 Blocks (DONE)
 
-**Completed blocks (8):**
+**Completed blocks (15/15):**
 1. Paragraph → `src/Blocks/Text/Paragraph/`
 2. Quote → `src/Blocks/Text/Quote/`
 3. ListBlock → `src/Blocks/Text/ListBlock/` (directory "ListBlock" because "List" is reserved)
@@ -37,6 +37,13 @@ Implementing a 6-phase combined plan to restructure the visual editor package. T
 6. Button → `src/Blocks/Interactive/Button/`
 7. Code → `src/Blocks/Interactive/Code/`
 8. Audio → `src/Blocks/Media/Audio/`
+9. File → `src/Blocks/Media/File/`
+10. Video → `src/Blocks/Media/Video/`
+11. Image → `src/Blocks/Media/Image/`
+12. Gallery → `src/Blocks/Media/Gallery/`
+13. Columns → `src/Blocks/Layout/Columns/` (allowedChildren: ['column'])
+14. Column → `src/Blocks/Layout/Column/` (public: false, parent: ['columns'])
+15. Group → `src/Blocks/Layout/Group/` (3 variations: group/row/stack)
 
 Each migrated block got:
 - New directory under `src/Blocks/{Category}/{BlockName}/`
@@ -45,50 +52,12 @@ Each migrated block got:
 - Alias file at the old location (extends new class, overrides `resolveBlockDirectory()`)
 - Blade views copied to `views/save.blade.php` and `views/edit.blade.php`
 
-Service provider `registerCoreBlocks()` was updated for these 8 blocks.
+Service provider `registerCoreBlocks()` updated to reference all new namespaced classes.
+All tests passing (541 passed, 2 pre-existing failures).
 
 ## What Needs to Be Done
 
-### Phase 3 Remaining: 7 blocks to migrate
-
-These blocks still need migration following the exact same pattern:
-
-1. **FileBlock** (`src/Blocks/Media/FileBlock.php`) → `src/Blocks/Media/File/`
-2. **VideoBlock** (`src/Blocks/Media/VideoBlock.php`) → `src/Blocks/Media/Video/`
-3. **ImageBlock** (`src/Blocks/Media/ImageBlock.php`) → `src/Blocks/Media/Image/`
-4. **GalleryBlock** (`src/Blocks/Media/GalleryBlock.php`) → `src/Blocks/Media/Gallery/`
-5. **ColumnsBlock** (`src/Blocks/Layout/ColumnsBlock.php`) → `src/Blocks/Layout/Columns/`
-6. **ColumnBlock** (`src/Blocks/Layout/ColumnBlock.php`) → `src/Blocks/Layout/Column/`
-7. **GroupBlock** (`src/Blocks/Layout/GroupBlock.php`) → `src/Blocks/Layout/Group/`
-
-**Per-block migration steps:**
-1. Read the existing PHP class to extract: type, name, description, icon, category, keywords, supports, content/style schemas, transforms, defaults
-2. Create directory: `src/Blocks/{Category}/{BlockName}/`
-3. Create `block.json` with metadata + attributes (derived from schemas) + supports
-4. Create new namespaced PHP class keeping only `getContentSchema()`, `getStyleSchema()`, `getTransforms()`
-5. Convert old PHP file to alias: extend new class, override `resolveBlockDirectory()` to `__DIR__ . '/{BlockName}'`
-6. Copy blade views from `resources/views/blocks/{type}.blade.php` → `views/save.blade.php` and `{type}-editor.blade.php` → `views/edit.blade.php`
-7. Update service provider `registerCoreBlocks()` references
-
-**After all 7 are done**, update service provider references:
-```php
-'image'   => Blocks\Media\Image\ImageBlock::class,
-'gallery' => Blocks\Media\Gallery\GalleryBlock::class,
-'video'   => Blocks\Media\Video\VideoBlock::class,
-'file'    => Blocks\Media\File\FileBlock::class,
-'columns' => Blocks\Layout\Columns\ColumnsBlock::class,
-'column'  => Blocks\Layout\Column\ColumnBlock::class,
-'group'   => Blocks\Layout\Group\GroupBlock::class,
-```
-
-**Special notes for specific blocks:**
-- **ImageBlock**: Should get a custom `inspector.blade.php` for upload/focal point UI (per plan)
-- **GalleryBlock**: Complex — has images repeater, should get custom `inspector.blade.php`
-- **ColumnsBlock**: Has `allowedChildren: ['column']` in block.json
-- **ColumnBlock**: Has `public: false` and `allowedParents: ['columns']` in block.json (not insertable standalone)
-- **GroupBlock**: Has 3 variations (group/row/stack) and the most supports of any block
-
-### Phase 4: Auto-Discovery + Production Caching (blocked by Phase 3)
+### Phase 4: Auto-Discovery + Production Caching
 
 **4.1 Auto-discovery in service provider:**
 - Scan `src/Blocks/{Text,Media,Layout,Interactive}/*/block.json`

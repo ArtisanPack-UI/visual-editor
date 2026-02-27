@@ -34,7 +34,6 @@
 	},
 	"supports": {
 		"anchor": true,
-		"htmlId": true,
 		"className": true
 	}
 }

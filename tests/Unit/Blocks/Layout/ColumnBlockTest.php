@@ -53,3 +53,26 @@ test( 'column block renders with flex 1 when no width set', function (): void {
 
 	expect( $output )->toContain( 'flex: 1' );
 } );
+
+test( 'column block supports all background sub-keys but not shadow or dimensions', function (): void {
+	$block = new ColumnBlock();
+
+	expect( $block->supportsFeature( 'background.backgroundImage' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'background.backgroundSize' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'background.backgroundPosition' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'background.backgroundGradient' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'shadow' ) )->toBeFalse();
+	expect( $block->supportsFeature( 'dimensions.aspectRatio' ) )->toBeFalse();
+	expect( $block->supportsFeature( 'dimensions.minHeight' ) )->toBeFalse();
+} );
+
+test( 'column block active style supports include background sub-keys', function (): void {
+	$block  = new ColumnBlock();
+	$active = $block->getActiveStyleSupports();
+
+	expect( $active )->toContain( 'background.backgroundImage' );
+	expect( $active )->toContain( 'background.backgroundSize' );
+	expect( $active )->toContain( 'background.backgroundPosition' );
+	expect( $active )->toContain( 'background.backgroundGradient' );
+	expect( $active )->not->toContain( 'shadow' );
+} );

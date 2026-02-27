@@ -480,6 +480,47 @@ return [
 	'background_position'  => 'Background position',
 	'background_gradient'  => 'Background gradient',
 
+	// Block Caching
+	'caching_block_metadata' => 'Caching block metadata...',
+	'block_metadata_cached'  => 'Block metadata cached successfully (:count blocks).',
+	'block_cache_cleared'    => 'Block metadata cache cleared.',
+
+	// Document Saver
+	'document_saved'       => 'Document saved',
+	'document_save_error'  => 'Error saving document',
+	'document_loading'     => 'Loading document...',
+	'autosave_draft_saved' => 'Autosave draft saved',
+
+	// Media Picker
+	'select_media'       => 'Select media',
+	'media_selected'     => 'Media selected',
+	'open_media_picker'  => 'Open media picker',
+
+	// Pattern Store
+	'pattern_saved'    => 'Pattern saved',
+	'pattern_deleted'  => 'Pattern deleted',
+	'pattern_loaded'   => 'Pattern loaded',
+	'save_as_pattern'  => 'Save as pattern',
+	'pattern_name'     => 'Pattern name',
+	'pattern_category' => 'Pattern category',
+
+	// Editor Persistence
+	'draft_saved'     => 'Draft saved',
+	'draft_restored'  => 'Draft restored',
+	'draft_discarded' => 'Draft discarded',
+	'draft_found'     => 'Draft found',
+	'restore_draft'   => 'Restore draft',
+	'discard_draft'   => 'Discard draft',
+
+	// Revision History
+	'revision_created'  => 'Revision created',
+	'revision_restored' => 'Revision restored',
+	'revision_deleted'  => 'Revision deleted',
+	'revision_history'  => 'Revision history',
+	'restore_revision'  => 'Restore revision',
+	'delete_revision'   => 'Delete revision',
+	'no_revisions'      => 'No revisions yet.',
+
 	// Advanced Schema
 	'html_anchor'                      => 'HTML Anchor',
 	'html_anchor_placeholder'          => 'Add an anchor...',

@@ -1,0 +1,35 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "column",
+	"name": "Column",
+	"description": "A single column within a columns layout",
+	"icon": "view-columns",
+	"category": "layout",
+	"keywords": [],
+	"version": 1,
+	"public": false,
+	"parent": ["columns"],
+	"allowedChildren": null,
+	"attributes": {
+		"width": {
+			"type": "string",
+			"source": "style",
+			"default": ""
+		},
+		"verticalAlignment": {
+			"type": "string",
+			"source": "style",
+			"default": "top"
+		}
+	},
+	"supports": {
+		"background": {
+			"backgroundImage": true,
+			"backgroundSize": true,
+			"backgroundPosition": true,
+			"backgroundGradient": true
+		},
+		"anchor": false,
+		"className": false
+	}
+}

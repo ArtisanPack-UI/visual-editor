@@ -1,0 +1,68 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "columns",
+	"name": "Columns",
+	"description": "Create multi-column layouts",
+	"icon": "view-columns",
+	"category": "layout",
+	"keywords": ["grid", "layout", "row", "columns"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": ["column"],
+	"attributes": {
+		"columns": {
+			"type": "string",
+			"source": "content",
+			"default": "2"
+		},
+		"layout": {
+			"type": "string",
+			"source": "content",
+			"default": "equal"
+		},
+		"gap": {
+			"type": "string",
+			"source": "style",
+			"default": "medium"
+		},
+		"verticalAlignment": {
+			"type": "string",
+			"source": "style",
+			"default": "top"
+		},
+		"stackOnMobile": {
+			"type": "boolean",
+			"source": "style",
+			"default": true
+		}
+	},
+	"supports": {
+		"align": ["wide", "full"],
+		"color": {
+			"text": false,
+			"background": false
+		},
+		"typography": {
+			"fontSize": false,
+			"fontFamily": false
+		},
+		"spacing": {
+			"margin": false,
+			"padding": false
+		},
+		"border": false,
+		"dimensions": {
+			"aspectRatio": false,
+			"minHeight": true
+		},
+		"background": {
+			"backgroundImage": true,
+			"backgroundSize": true,
+			"backgroundPosition": true,
+			"backgroundGradient": true
+		},
+		"anchor": true,
+		"className": true
+	}
+}

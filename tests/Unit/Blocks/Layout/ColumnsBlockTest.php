@@ -75,3 +75,26 @@ test( 'columns block has keywords', function (): void {
 	expect( $block->getKeywords() )->toContain( 'grid' );
 	expect( $block->getKeywords() )->toContain( 'columns' );
 } );
+
+test( 'columns block supports min height and all background sub-keys', function (): void {
+	$block = new ColumnsBlock();
+
+	expect( $block->supportsFeature( 'dimensions.minHeight' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'dimensions.aspectRatio' ) )->toBeFalse();
+	expect( $block->supportsFeature( 'background.backgroundImage' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'background.backgroundSize' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'background.backgroundPosition' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'background.backgroundGradient' ) )->toBeTrue();
+} );
+
+test( 'columns block active style supports include dimensions and background', function (): void {
+	$block  = new ColumnsBlock();
+	$active = $block->getActiveStyleSupports();
+
+	expect( $active )->toContain( 'dimensions.minHeight' );
+	expect( $active )->not->toContain( 'dimensions.aspectRatio' );
+	expect( $active )->toContain( 'background.backgroundImage' );
+	expect( $active )->toContain( 'background.backgroundSize' );
+	expect( $active )->toContain( 'background.backgroundPosition' );
+	expect( $active )->toContain( 'background.backgroundGradient' );
+} );

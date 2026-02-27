@@ -1,0 +1,127 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "group",
+	"name": "Group",
+	"description": "Group blocks together with shared settings",
+	"icon": "rectangle-group",
+	"category": "layout",
+	"keywords": ["container", "section", "wrapper", "group"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"variations": [
+		{
+			"name": "group",
+			"icon": "rectangle-group",
+			"isDefault": true,
+			"attributes": {
+				"flexDirection": "column",
+				"flexWrap": "nowrap"
+			}
+		},
+		{
+			"name": "row",
+			"icon": "bars-3",
+			"isDefault": false,
+			"attributes": {
+				"flexDirection": "row",
+				"flexWrap": "nowrap"
+			}
+		},
+		{
+			"name": "stack",
+			"icon": "bars-3-bottom-left",
+			"isDefault": false,
+			"attributes": {
+				"flexDirection": "column",
+				"flexWrap": "nowrap"
+			}
+		}
+	],
+	"attributes": {
+		"tag": {
+			"type": "string",
+			"source": "content",
+			"default": "div"
+		},
+		"flexDirection": {
+			"type": "string",
+			"source": "content",
+			"default": "column"
+		},
+		"flexWrap": {
+			"type": "string",
+			"source": "content",
+			"default": "nowrap"
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"border": {
+			"type": "object",
+			"source": "style",
+			"default": {
+				"width": "0",
+				"widthUnit": "px",
+				"style": "none",
+				"color": "#000000",
+				"radius": "0",
+				"radiusUnit": "px",
+				"perSide": false,
+				"perCorner": false
+			}
+		},
+		"minHeight": {
+			"type": "string",
+			"source": "style",
+			"default": ""
+		},
+		"verticalAlignment": {
+			"type": "string",
+			"source": "style",
+			"default": "top"
+		}
+	},
+	"supports": {
+		"align": ["wide", "full"],
+		"color": {
+			"text": false,
+			"background": true
+		},
+		"typography": {
+			"fontSize": false,
+			"fontFamily": false
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"border": true,
+		"shadow": true,
+		"dimensions": {
+			"aspectRatio": false,
+			"minHeight": true
+		},
+		"background": {
+			"backgroundImage": true,
+			"backgroundSize": true,
+			"backgroundPosition": true,
+			"backgroundGradient": true
+		},
+		"anchor": true,
+		"className": true
+	}
+}

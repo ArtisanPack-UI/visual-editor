@@ -66,3 +66,20 @@ test( 'image block supports alignment', function (): void {
 
 	expect( $block->supportsFeature( 'align' ) )->toBeTrue();
 } );
+
+test( 'image block supports shadow and aspect ratio but not min height', function (): void {
+	$block = new ImageBlock();
+
+	expect( $block->supportsFeature( 'shadow' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'dimensions.aspectRatio' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'dimensions.minHeight' ) )->toBeFalse();
+} );
+
+test( 'image block active style supports include shadow and dimensions aspect ratio', function (): void {
+	$block   = new ImageBlock();
+	$active  = $block->getActiveStyleSupports();
+
+	expect( $active )->toContain( 'shadow' );
+	expect( $active )->toContain( 'dimensions.aspectRatio' );
+	expect( $active )->not->toContain( 'dimensions.minHeight' );
+} );

@@ -72,6 +72,7 @@
 			"text": true,
 			"background": true
 		},
+		"shadow": true,
 		"anchor": true,
 		"className": true
 	}

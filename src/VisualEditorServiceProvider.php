@@ -18,13 +18,17 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor;
 
+use ArtisanPackUI\VisualEditor\Blocks\BlockDiscoveryService;
 use ArtisanPackUI\VisualEditor\Blocks\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Blocks\BlockTransformService;
+use ArtisanPackUI\VisualEditor\Console\Commands\BlockCacheCommand;
+use ArtisanPackUI\VisualEditor\Console\Commands\BlockClearCommand;
 use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
+use Livewire\Livewire;
 
 /**
  * Service provider for the Visual Editor package.
@@ -146,6 +150,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 				$app->make( SupportsPanelRegistry::class ),
 			);
 		} );
+
+		$this->app->singleton( BlockDiscoveryService::class, function () {
+			return new BlockDiscoveryService();
+		} );
 	}
 
 	/**
@@ -163,7 +171,11 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerViews();
 		$this->registerBlockViews();
 		$this->registerBladeComponents();
+		$this->registerLivewireComponents();
+		$this->registerMigrations();
 		$this->registerCoreBlocks();
+		$this->registerConsoleCommands();
+		$this->publishBlockViews();
 	}
 
 	/**
@@ -286,8 +298,52 @@ class VisualEditorServiceProvider extends ServiceProvider
 					$type = strtolower( preg_replace( '/([a-z])([A-Z])/', '$1-$2', $entry ) ?? $entry );
 				}
 
-				$this->loadViewsFrom( $viewsDir, 'visual-editor-block-' . $type );
+				$namespace    = 'visual-editor-block-' . $type;
+				$publishedDir = resource_path( 'views/vendor/visual-editor/blocks/' . $type );
+
+				if ( is_dir( $publishedDir ) ) {
+					$this->loadViewsFrom( $publishedDir, $namespace );
+				}
+
+				$this->loadViewsFrom( $viewsDir, $namespace );
 			}
+		}
+	}
+
+	/**
+	 * Register Livewire single-file components from the package.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerLivewireComponents(): void
+	{
+		if ( ! $this->app->bound( 'livewire' ) ) {
+			return;
+		}
+
+		Livewire::addNamespace(
+			namespace: 'visual-editor',
+			viewPath: __DIR__ . '/../resources/views/livewire',
+		);
+	}
+
+	/**
+	 * Register and publish database migrations.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerMigrations(): void
+	{
+		$this->loadMigrationsFrom( __DIR__ . '/../database/migrations' );
+
+		if ( $this->app->runningInConsole() ) {
+			$this->publishes( [
+				__DIR__ . '/../database/migrations' => database_path( 'migrations' ),
+			], 'visual-editor-migrations' );
 		}
 	}
 
@@ -317,29 +373,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 	protected function registerCoreBlocks(): void
 	{
 		$registry   = $this->app->make( 'visual-editor.blocks' );
+		$discovery  = $this->app->make( BlockDiscoveryService::class );
 		$coreConfig = config( 'artisanpack.visual-editor.blocks.core', [] );
 		$disabled   = config( 'artisanpack.visual-editor.blocks.disabled', [] );
 
-		$coreBlocks = [
-			'heading'   => Blocks\Text\Heading\HeadingBlock::class,
-			'paragraph' => Blocks\Text\Paragraph\ParagraphBlock::class,
-			'list'      => Blocks\Text\ListBlock\ListBlock::class,
-			'quote'     => Blocks\Text\Quote\QuoteBlock::class,
-			'image'     => Blocks\Media\ImageBlock::class,
-			'gallery'   => Blocks\Media\GalleryBlock::class,
-			'video'     => Blocks\Media\VideoBlock::class,
-			'audio'     => Blocks\Media\Audio\AudioBlock::class,
-			'file'      => Blocks\Media\FileBlock::class,
-			'columns'   => Blocks\Layout\ColumnsBlock::class,
-			'column'    => Blocks\Layout\ColumnBlock::class,
-			'group'     => Blocks\Layout\GroupBlock::class,
-			'spacer'    => Blocks\Layout\Spacer\SpacerBlock::class,
-			'divider'   => Blocks\Layout\Divider\DividerBlock::class,
-			'button'    => Blocks\Interactive\Button\ButtonBlock::class,
-			'code'      => Blocks\Interactive\Code\CodeBlock::class,
-		];
+		$blocks = $discovery->loadManifest() ?? $discovery->discover();
 
-		foreach ( $coreBlocks as $type => $class ) {
+		foreach ( $blocks as $entry ) {
+			$type  = $entry['type'];
+			$class = $entry['class'];
+
 			if ( false === ( $coreConfig[ $type ] ?? true ) ) {
 				continue;
 			}
@@ -355,6 +398,88 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		if ( function_exists( 'doAction' ) ) {
 			doAction( 'ap.visualEditor.blocksInit' );
+		}
+	}
+
+	/**
+	 * Register console commands for the package.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerConsoleCommands(): void
+	{
+		if ( $this->app->runningInConsole() ) {
+			$this->commands( [
+				BlockCacheCommand::class,
+				BlockClearCommand::class,
+			] );
+		}
+	}
+
+	/**
+	 * Publish co-located block views for customization.
+	 *
+	 * Collects all co-located view directories and publishes them
+	 * to resources/views/vendor/visual-editor/blocks/{type}/.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	protected function publishBlockViews(): void
+	{
+		if ( ! $this->app->runningInConsole() ) {
+			return;
+		}
+
+		$blocksDir  = __DIR__ . '/Blocks';
+		$categories = [ 'Text', 'Media', 'Layout', 'Interactive' ];
+		$publishMap = [];
+
+		foreach ( $categories as $category ) {
+			$categoryDir = $blocksDir . '/' . $category;
+
+			if ( ! is_dir( $categoryDir ) ) {
+				continue;
+			}
+
+			$entries = scandir( $categoryDir );
+
+			if ( false === $entries ) {
+				continue;
+			}
+
+			foreach ( $entries as $entry ) {
+				if ( '.' === $entry || '..' === $entry ) {
+					continue;
+				}
+
+				$viewsDir = $categoryDir . '/' . $entry . '/views';
+
+				if ( ! is_dir( $viewsDir ) ) {
+					continue;
+				}
+
+				$blockJsonPath = $categoryDir . '/' . $entry . '/block.json';
+				$type          = null;
+
+				if ( file_exists( $blockJsonPath ) ) {
+					$json = json_decode( (string) file_get_contents( $blockJsonPath ), true );
+					$type = $json['type'] ?? null;
+				}
+
+				if ( null === $type ) {
+					$type = strtolower( preg_replace( '/([a-z])([A-Z])/', '$1-$2', $entry ) ?? $entry );
+				}
+
+				$publishMap[ $viewsDir ] = resource_path( 'views/vendor/visual-editor/blocks/' . $type );
+			}
+		}
+
+		if ( ! empty( $publishMap ) ) {
+			$this->publishes( $publishMap, 'visual-editor-block-views' );
 		}
 	}
 }

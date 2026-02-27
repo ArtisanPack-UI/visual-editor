@@ -46,3 +46,20 @@ test( 'video block renders video element', function (): void {
 	expect( $output )->toContain( 'video.mp4' );
 	expect( $output )->toContain( 'controls' );
 } );
+
+test( 'video block supports dimensions but not shadow', function (): void {
+	$block = new VideoBlock();
+
+	expect( $block->supportsFeature( 'dimensions.aspectRatio' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'dimensions.minHeight' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'shadow' ) )->toBeFalse();
+} );
+
+test( 'video block active style supports include dimensions', function (): void {
+	$block  = new VideoBlock();
+	$active = $block->getActiveStyleSupports();
+
+	expect( $active )->toContain( 'dimensions.aspectRatio' );
+	expect( $active )->toContain( 'dimensions.minHeight' );
+	expect( $active )->not->toContain( 'shadow' );
+} );
