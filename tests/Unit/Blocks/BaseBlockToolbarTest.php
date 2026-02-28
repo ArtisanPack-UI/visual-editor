@@ -11,7 +11,7 @@ test( 'heading block returns toolbar controls with alignment', function (): void
 
 	expect( $controls )->not->toBeEmpty();
 	expect( $controls[0]['group'] )->toBe( 'block' );
-	expect( $controls[0]['controls'][0]['type'] )->toBe( 'alignment' );
+	expect( $controls[0]['controls'][0]['type'] )->toBe( 'block-alignment' );
 	expect( $controls[0]['controls'][0]['options'] )->toContain( 'left' );
 	expect( $controls[0]['controls'][0]['options'] )->toContain( 'center' );
 } );

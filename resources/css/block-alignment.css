@@ -1,0 +1,51 @@
+/**
+ * Block-level alignment styles for the visual editor canvas.
+ *
+ * These classes control how blocks are positioned within the canvas layout.
+ * Wide/full blocks break out of the content column, left/right float the block.
+ *
+ * @package    ArtisanPack_UI
+ * @subpackage VisualEditor
+ *
+ * @since      2.0.0
+ */
+
+/* Block-level alignment — editor canvas */
+.ve-canvas-block.alignwide {
+	margin-left: -60px;
+	margin-right: -60px;
+	max-width: calc(100% + 120px);
+	width: calc(100% + 120px);
+}
+
+.ve-canvas-block.alignfull {
+	margin-left: calc(-1 * var(--ve-canvas-padding, 1rem));
+	margin-right: calc(-1 * var(--ve-canvas-padding, 1rem));
+	max-width: calc(100% + 2 * var(--ve-canvas-padding, 1rem));
+	width: calc(100% + 2 * var(--ve-canvas-padding, 1rem));
+}
+
+.ve-canvas-block.alignleft {
+	float: left;
+	margin-right: 1rem;
+	margin-bottom: 0.5rem;
+	max-width: 50%;
+}
+
+.ve-canvas-block.alignright {
+	float: right;
+	margin-left: 1rem;
+	margin-bottom: 0.5rem;
+	max-width: 50%;
+}
+
+.ve-canvas-block.aligncenter {
+	margin-left: auto;
+	margin-right: auto;
+}
+
+/* Clear floats after float-aligned blocks */
+.ve-canvas-block.alignleft + .ve-canvas-block:not(.alignleft):not(.alignright),
+.ve-canvas-block.alignright + .ve-canvas-block:not(.alignleft):not(.alignright) {
+	clear: both;
+}

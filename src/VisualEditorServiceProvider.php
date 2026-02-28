@@ -51,7 +51,8 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// Phase 1: Primitive Controls
 		'unit-control'       => Components\UnitControl::class,
 		'box-control'        => Components\BoxControl::class,
-		'alignment-control'  => Components\AlignmentControl::class,
+		'alignment-control'       => Components\AlignmentControl::class,
+		'block-alignment-control' => Components\BlockAlignmentControl::class,
 		'color-system'       => Components\ColorSystem::class,
 		'link-control'       => Components\LinkControl::class,
 		'range-control'      => Components\RangeControl::class,

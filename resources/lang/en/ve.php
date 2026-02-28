@@ -41,6 +41,16 @@ return [
 	// Alignment
 	'alignment' => 'Alignment',
 
+	// Block Alignment
+	'block_alignment'         => 'Block alignment',
+	'align_none'              => 'None',
+	'align_left'              => 'Align left',
+	'align_center'            => 'Align center',
+	'align_right'             => 'Align right',
+	'align_wide'              => 'Wide width',
+	'align_full'              => 'Full width',
+	'block_alignment_changed' => 'Block alignment changed to :alignment',
+
 	// Angle
 	'angle'            => 'Angle',
 	'degrees'          => 'degrees',

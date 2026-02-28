@@ -40,6 +40,11 @@
 			"type": "boolean",
 			"source": "style",
 			"default": true
+		},
+		"align": {
+			"type": "string",
+			"source": "style",
+			"default": "none"
 		}
 	},
 	"supports": {

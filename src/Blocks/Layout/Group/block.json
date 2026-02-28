@@ -93,6 +93,11 @@
 			"type": "string",
 			"source": "style",
 			"default": "top"
+		},
+		"align": {
+			"type": "string",
+			"source": "style",
+			"default": "none"
 		}
 	},
 	"supports": {

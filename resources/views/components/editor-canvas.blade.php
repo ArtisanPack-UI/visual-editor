@@ -359,7 +359,7 @@
 			},
 		@endif
 	}"
-	{{ $attributes->merge( [ 'class' => 'relative min-h-[200px] p-4' ] ) }}
+	{{ $attributes->merge( [ 'class' => 'relative min-h-[200px] p-4', 'style' => '--ve-canvas-padding: 1rem;' ] ) }}
 	role="region"
 	aria-label="{{ $label ?? __( 'visual-editor::ve.editor_canvas' ) }}"
 	@if ( $enableArrowNavigation )
@@ -391,9 +391,7 @@
 	x-on:ve-slash-command-select.window="
 		slashCommandOpen = false;
 		if ( $event.detail && $event.detail.blockId && $event.detail.blockType && Alpine.store( 'editor' ) ) {
-			const idx = Alpine.store( 'editor' ).getBlockIndex( $event.detail.blockId );
-			Alpine.store( 'editor' ).replaceBlock( $event.detail.blockId, { type: $event.detail.blockType } );
-			const newBlock = ( -1 !== idx ) ? Alpine.store( 'editor' ).blocks[ idx ] : null;
+			const newBlock = Alpine.store( 'editor' ).replaceBlock( $event.detail.blockId, { type: $event.detail.blockType } );
 			if ( newBlock ) {
 				$nextTick( () => {
 					const el = document.querySelector( '[data-block-id=' + newBlock.id + '] [contenteditable]' );
@@ -409,9 +407,45 @@
 	x-on:keydown.enter="
 		if ( ! slashCommandOpen && ! $event.shiftKey && $event.target.hasAttribute( 'data-ve-enter-new-block' ) ) {
 			$event.preventDefault();
+			const innerBlocksContainer = $event.target.closest( '[data-ve-inner-blocks]' );
 			const blockEl = $event.target.closest( '[data-block-id]' );
-			if ( blockEl && Alpine.store( 'editor' ) ) {
-				const blockId  = blockEl.getAttribute( 'data-block-id' );
+			if ( ! blockEl || ! Alpine.store( 'editor' ) ) return;
+
+			const blockId = blockEl.getAttribute( 'data-block-id' );
+
+			if ( innerBlocksContainer ) {
+				const parentId = innerBlocksContainer.getAttribute( 'data-parent-id' ) || blockId;
+				const innerBlockEl = $event.target.closest( '[data-inner-block-id]' );
+
+				// Sync current inner block content to store before structural
+				// change so the history snapshot includes the latest text.
+				if ( innerBlockEl ) {
+					const curId      = innerBlockEl.getAttribute( 'data-inner-block-id' );
+					const curBlock   = Alpine.store( 'editor' ).getBlock( curId );
+					const contentEl  = innerBlockEl.querySelector( '[contenteditable]' ) || innerBlockEl;
+					if ( curBlock ) {
+						curBlock.attributes = { ...curBlock.attributes, text: contentEl.innerHTML };
+					}
+				}
+
+				let newBlock;
+				if ( innerBlockEl ) {
+					const innerBlockId = innerBlockEl.getAttribute( 'data-inner-block-id' );
+					newBlock = Alpine.store( 'editor' ).addInnerBlockAfter( innerBlockId );
+				} else {
+					newBlock = Alpine.store( 'editor' ).addInnerBlock( parentId, { type: 'paragraph' } );
+				}
+
+				if ( newBlock ) {
+					$nextTick( () => {
+						const wrapper = document.querySelector( '[data-inner-block-id=\'' + newBlock.id + '\']' );
+						if ( wrapper ) {
+							const editable = wrapper.querySelector( '[contenteditable]' ) || wrapper;
+							editable.focus();
+						}
+					} );
+				}
+			} else {
 				const newBlock = Alpine.store( 'editor' ).addBlockAfter( blockId );
 				if ( newBlock ) {
 					$nextTick( () => {

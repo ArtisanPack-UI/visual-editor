@@ -404,8 +404,8 @@ abstract class BaseBlock implements BlockInterface
 				'group'    => 'block',
 				'controls' => [
 					[
-						'type'    => 'alignment',
-						'field'   => 'alignment',
+						'type'    => 'block-alignment',
+						'field'   => 'align',
 						'options' => $alignments,
 					],
 				],

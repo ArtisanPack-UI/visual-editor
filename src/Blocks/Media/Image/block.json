@@ -60,6 +60,11 @@
 			"type": "string",
 			"source": "style",
 			"default": "cover"
+		},
+		"align": {
+			"type": "string",
+			"source": "style",
+			"default": "none"
 		}
 	},
 	"supports": {
