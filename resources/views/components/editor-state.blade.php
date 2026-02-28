@@ -112,14 +112,34 @@
 
 				moveBlockUp( blockId ) {
 					const index = this.getBlockIndex( blockId );
-					if ( index <= 0 ) return;
-					this.moveBlock( blockId, index - 1 );
+					if ( -1 !== index ) {
+						if ( index <= 0 ) return;
+						this.moveBlock( blockId, index - 1 );
+						return;
+					}
+
+					// Inner block: move within parent's innerBlocks.
+					const parent = this.getParentBlock( blockId );
+					if ( ! parent || ! parent.innerBlocks ) return;
+					const innerIndex = parent.innerBlocks.findIndex( ( b ) => b.id === blockId );
+					if ( innerIndex <= 0 ) return;
+					this.moveInnerBlock( parent.id, blockId, innerIndex - 1 );
 				},
 
 				moveBlockDown( blockId ) {
 					const index = this.getBlockIndex( blockId );
-					if ( -1 === index || index >= this.blocks.length - 1 ) return;
-					this.moveBlock( blockId, index + 2 );
+					if ( -1 !== index ) {
+						if ( index >= this.blocks.length - 1 ) return;
+						this.moveBlock( blockId, index + 2 );
+						return;
+					}
+
+					// Inner block: move within parent's innerBlocks.
+					const parent = this.getParentBlock( blockId );
+					if ( ! parent || ! parent.innerBlocks ) return;
+					const innerIndex = parent.innerBlocks.findIndex( ( b ) => b.id === blockId );
+					if ( -1 === innerIndex || innerIndex >= parent.innerBlocks.length - 1 ) return;
+					this.moveInnerBlock( parent.id, blockId, innerIndex + 2 );
 				},
 
 				duplicateBlock( blockId ) {
@@ -134,11 +154,45 @@
 				},
 
 				getBlock( blockId ) {
-					return this.blocks.find( ( b ) => b.id === blockId ) || null;
+					const findBlock = ( blocks ) => {
+						for ( const block of blocks ) {
+							if ( block.id === blockId ) return block;
+							if ( block.innerBlocks?.length ) {
+								const found = findBlock( block.innerBlocks );
+								if ( found ) return found;
+							}
+						}
+						return null;
+					};
+					return findBlock( this.blocks );
 				},
 
 				getBlockIndex( blockId ) {
 					return this.blocks.findIndex( ( b ) => b.id === blockId );
+				},
+
+				getParentBlock( blockId ) {
+					const findParent = ( blocks, parent ) => {
+						for ( const block of blocks ) {
+							if ( block.id === blockId ) return parent;
+							if ( block.innerBlocks?.length ) {
+								const found = findParent( block.innerBlocks, block );
+								if ( found ) return found;
+							}
+						}
+						return null;
+					};
+					return findParent( this.blocks, null );
+				},
+
+				addInnerBlockAfter( afterBlockId, block = {} ) {
+					const parent = this.getParentBlock( afterBlockId );
+					if ( ! parent ) return null;
+
+					const index = parent.innerBlocks.findIndex( ( b ) => b.id === afterBlockId );
+					if ( -1 === index ) return null;
+
+					return this.addInnerBlock( parent.id, block, index + 1 );
 				},
 
 				{{-- ── Nested Block Operations ────────────────────────── --}}
@@ -148,9 +202,7 @@
 					if ( ! parent ) return;
 
 					this._pushHistory();
-					if ( ! parent.innerBlocks ) {
-						parent.innerBlocks = [];
-					}
+					const current = parent.innerBlocks || [];
 
 					const newBlock = {
 						id: block.id || this._generateId(),
@@ -159,17 +211,39 @@
 						innerBlocks: block.innerBlocks || [],
 					};
 
-					if ( null === index || index >= parent.innerBlocks.length ) {
-						parent.innerBlocks.push( newBlock );
+					const updated = [ ...current ];
+					if ( null === index || index >= updated.length ) {
+						updated.push( newBlock );
 					} else {
-						parent.innerBlocks.splice( index, 0, newBlock );
+						updated.splice( index, 0, newBlock );
 					}
+
+					// Replace array reference to ensure Alpine reactivity.
+					parent.innerBlocks = updated;
 
 					this.markDirty();
 					this._announceAction( {{ Js::from( __( 'visual-editor::ve.block_added' ) ) }} );
 					this._dispatchChange();
 
 					return newBlock;
+				},
+
+				moveInnerBlock( parentId, blockId, newIndex ) {
+					const parent = this.getBlock( parentId );
+					if ( ! parent || ! parent.innerBlocks ) return;
+
+					const oldIndex = parent.innerBlocks.findIndex( ( b ) => b.id === blockId );
+					if ( -1 === oldIndex || oldIndex === newIndex ) return;
+
+					this._pushHistory();
+					const updated   = [ ...parent.innerBlocks ];
+					const [ block ] = updated.splice( oldIndex, 1 );
+					updated.splice( newIndex > oldIndex ? newIndex - 1 : newIndex, 0, block );
+					parent.innerBlocks = updated;
+
+					this.markDirty();
+					this._announceAction( {{ Js::from( __( 'visual-editor::ve.block_moved' ) ) }} );
+					this._dispatchChange();
 				},
 
 				removeInnerBlock( parentId, blockId ) {
@@ -180,7 +254,10 @@
 					if ( -1 === index ) return;
 
 					this._pushHistory();
-					parent.innerBlocks.splice( index, 1 );
+
+					// Replace array reference to ensure Alpine reactivity.
+					parent.innerBlocks = parent.innerBlocks.filter( ( b ) => b.id !== blockId );
+
 					this.markDirty();
 					this._announceAction( {{ Js::from( __( 'visual-editor::ve.block_removed' ) ) }} );
 					this._dispatchChange();
@@ -408,19 +485,36 @@
 				},
 
 				replaceBlock( blockId, newBlockData ) {
-					const index = this.getBlockIndex( blockId );
-					if ( -1 === index ) return;
-
-					this._pushHistory();
-					this.blocks.splice( index, 1, {
+					const newBlock = {
 						id: newBlockData.id || this._generateId(),
 						type: newBlockData.type || 'paragraph',
 						attributes: newBlockData.attributes || {},
 						innerBlocks: newBlockData.innerBlocks || [],
-					} );
+					};
 
+					const topIndex = this.getBlockIndex( blockId );
+					if ( -1 !== topIndex ) {
+						this._pushHistory();
+						this.blocks.splice( topIndex, 1, newBlock );
+						this.markDirty();
+						this._dispatchChange();
+						return newBlock;
+					}
+
+					// Inner block replacement.
+					const parent = this.getParentBlock( blockId );
+					if ( ! parent ) return null;
+
+					const innerIdx = parent.innerBlocks.findIndex( ( b ) => b.id === blockId );
+					if ( -1 === innerIdx ) return null;
+
+					this._pushHistory();
+					const updated = [ ...parent.innerBlocks ];
+					updated.splice( innerIdx, 1, newBlock );
+					parent.innerBlocks = updated;
 					this.markDirty();
 					this._dispatchChange();
+					return newBlock;
 				},
 
 				getWordCount() {

@@ -64,11 +64,11 @@
 		getBlockLabel( block ) {
 			const type = 'string' === typeof block?.type && block.type.length > 0 ? block.type : '';
 			if ( 'heading' === type ) {
-				const content = ( block.attributes?.content || '' ).replace( /<[^>]*>/g, '' );
+				const content = ( block.attributes?.content || block.attributes?.text || '' ).replace( /<[^>]*>/g, '' );
 				return content || this.fallbackLabels.heading;
 			}
 			if ( 'paragraph' === type ) {
-				const content = ( block.attributes?.content || '' ).replace( /<[^>]*>/g, '' );
+				const content = ( block.attributes?.content || block.attributes?.text || '' ).replace( /<[^>]*>/g, '' );
 				return content.length > 40 ? content.substring( 0, 40 ) + '…' : content || this.fallbackLabels.paragraph;
 			}
 			if ( 'image' === type ) {
@@ -97,9 +97,11 @@
 		{{-- Drag-and-drop state for the List View --}}
 		layerDraggingId: null,
 		layerDragOverId: null,
+		layerDraggingParentId: null,
 
-		handleLayerDragStart( event, block ) {
+		handleLayerDragStart( event, block, parentId ) {
 			this.layerDraggingId = block.id;
+			this.layerDraggingParentId = parentId || null;
 			event.dataTransfer.setData( 'text/plain', block.id );
 			event.dataTransfer.effectAllowed = 'move';
 
@@ -113,6 +115,7 @@
 			event.target.classList.remove( 'opacity-50' );
 			this.layerDraggingId = null;
 			this.layerDragOverId = null;
+			this.layerDraggingParentId = null;
 		},
 
 		handleLayerDragOver( event, block ) {
@@ -121,18 +124,55 @@
 			this.layerDragOverId = block.id;
 		},
 
-		handleLayerDrop( event, block ) {
+		handleLayerDrop( event, targetBlock, targetParentId ) {
 			event.preventDefault();
 			this.layerDragOverId = null;
 
-			if ( ! this.layerDraggingId || this.layerDraggingId === block.id ) return;
-			if ( ! Alpine.store( 'editor' ) ) return;
+			if ( ! this.layerDraggingId || this.layerDraggingId === targetBlock.id ) return;
 
-			const targetIndex = Alpine.store( 'editor' ).getBlockIndex( block.id );
-			if ( -1 !== targetIndex ) {
-				Alpine.store( 'editor' ).moveBlock( this.layerDraggingId, targetIndex );
+			const store = Alpine.store( 'editor' );
+			if ( ! store ) return;
+
+			const dragParentId   = this.layerDraggingParentId;
+			targetParentId       = targetParentId || null;
+
+			if ( dragParentId && targetParentId && dragParentId === targetParentId ) {
+				{{-- Same parent: reorder within inner blocks --}}
+				const parent    = store.getBlock( dragParentId );
+				const targetIdx = parent?.innerBlocks?.findIndex( ( b ) => b.id === targetBlock.id ) ?? -1;
+				if ( -1 !== targetIdx ) {
+					store.moveInnerBlock( dragParentId, this.layerDraggingId, targetIdx );
+				}
+			} else if ( ! dragParentId && ! targetParentId ) {
+				{{-- Both top-level: reorder top-level blocks --}}
+				const targetIndex = store.getBlockIndex( targetBlock.id );
+				if ( -1 !== targetIndex ) {
+					store.moveBlock( this.layerDraggingId, targetIndex );
+				}
+			} else {
+				{{-- Cross-context: move between top-level and inner blocks --}}
+				const dragBlock = store.getBlock( this.layerDraggingId );
+				if ( ! dragBlock ) { this.layerDraggingId = null; return; }
+				const blockData = JSON.parse( JSON.stringify( dragBlock ) );
+
+				if ( dragParentId ) {
+					store.removeInnerBlock( dragParentId, this.layerDraggingId );
+				} else {
+					store.removeBlock( this.layerDraggingId );
+				}
+
+				if ( targetParentId ) {
+					const parent    = store.getBlock( targetParentId );
+					const targetIdx = parent?.innerBlocks?.findIndex( ( b ) => b.id === targetBlock.id ) ?? -1;
+					store.addInnerBlock( targetParentId, { type: blockData.type, attributes: blockData.attributes, innerBlocks: blockData.innerBlocks || [] }, -1 !== targetIdx ? targetIdx : null );
+				} else {
+					const targetIndex = store.getBlockIndex( targetBlock.id );
+					store.addBlock( { type: blockData.type, attributes: blockData.attributes, innerBlocks: blockData.innerBlocks || [] }, -1 !== targetIndex ? targetIndex : null );
+				}
 			}
+
 			this.layerDraggingId = null;
+			this.layerDraggingParentId = null;
 		},
 	}"
 	{{ $attributes->merge( [ 'class' => 've-layer-panel flex flex-col h-full' ] ) }}
@@ -187,26 +227,57 @@
 	>
 		<div class="py-1">
 			<template x-for="( block, index ) in blocks" :key="block.id">
-				<div
-					draggable="true"
-					style="-webkit-user-drag: element; user-select: none;"
-					class="w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm hover:bg-base-200 transition-colors cursor-grab active:cursor-grabbing"
-					:class="{
-						'bg-primary/10 text-primary': Alpine.store( 'selection' )?.focused === block.id,
-						'text-base-content/70': Alpine.store( 'selection' )?.focused !== block.id,
-						'border-t-2 border-primary': layerDragOverId === block.id && layerDraggingId !== block.id,
-					}"
-					x-on:click="selectBlock( block.id )"
-					x-on:dragstart="handleLayerDragStart( $event, block )"
-					x-on:dragend="handleLayerDragEnd( $event )"
-					x-on:dragover="handleLayerDragOver( $event, block )"
-					x-on:dragleave="layerDragOverId = null"
-					x-on:drop="handleLayerDrop( $event, block )"
-					role="button"
-					tabindex="0"
-				>
-					<span class="w-5 text-center text-xs opacity-50 shrink-0 pointer-events-none" x-text="getBlockIcon( block )"></span>
-					<span class="truncate pointer-events-none" x-text="getBlockLabel( block )"></span>
+				<div>
+					<div
+						draggable="true"
+						style="-webkit-user-drag: element; user-select: none;"
+						class="w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm hover:bg-base-200 transition-colors cursor-grab active:cursor-grabbing"
+						:class="{
+							'bg-primary/10 text-primary': Alpine.store( 'selection' )?.focused === block.id,
+							'text-base-content/70': Alpine.store( 'selection' )?.focused !== block.id,
+							'border-t-2 border-primary': layerDragOverId === block.id && layerDraggingId !== block.id,
+						}"
+						x-on:click="selectBlock( block.id )"
+						x-on:dragstart="handleLayerDragStart( $event, block, null )"
+						x-on:dragend="handleLayerDragEnd( $event )"
+						x-on:dragover="handleLayerDragOver( $event, block )"
+						x-on:dragleave="layerDragOverId = null"
+						x-on:drop="handleLayerDrop( $event, block, null )"
+						role="button"
+						tabindex="0"
+					>
+						<span class="w-5 text-center text-xs opacity-50 shrink-0 pointer-events-none" x-text="getBlockIcon( block )"></span>
+						<span class="truncate pointer-events-none" x-text="getBlockLabel( block )"></span>
+					</div>
+
+					{{-- Nested inner blocks --}}
+					<template x-if="block.innerBlocks && block.innerBlocks.length > 0">
+						<div>
+							<template x-for="innerBlock in block.innerBlocks" :key="innerBlock.id">
+								<div
+									draggable="true"
+									style="-webkit-user-drag: element; user-select: none;"
+									class="w-full text-left pl-8 pr-3 py-1.5 flex items-center gap-2 text-sm hover:bg-base-200 transition-colors cursor-grab active:cursor-grabbing"
+									:class="{
+										'bg-primary/10 text-primary': Alpine.store( 'selection' )?.focused === innerBlock.id,
+										'text-base-content/70': Alpine.store( 'selection' )?.focused !== innerBlock.id,
+										'border-t-2 border-primary': layerDragOverId === innerBlock.id && layerDraggingId !== innerBlock.id,
+									}"
+									x-on:click="selectBlock( innerBlock.id )"
+									x-on:dragstart.stop="handleLayerDragStart( $event, innerBlock, block.id )"
+									x-on:dragend="handleLayerDragEnd( $event )"
+									x-on:dragover="handleLayerDragOver( $event, innerBlock )"
+									x-on:dragleave="layerDragOverId = null"
+									x-on:drop="handleLayerDrop( $event, innerBlock, block.id )"
+									role="button"
+									tabindex="0"
+								>
+									<span class="w-5 text-center text-xs opacity-50 shrink-0 pointer-events-none" x-text="getBlockIcon( innerBlock )"></span>
+									<span class="truncate pointer-events-none" x-text="getBlockLabel( innerBlock )"></span>
+								</div>
+							</template>
+						</div>
+					</template>
 				</div>
 			</template>
 		</div>
