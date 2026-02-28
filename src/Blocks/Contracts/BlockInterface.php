@@ -188,26 +188,28 @@ interface BlockInterface
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array<string, mixed> $content The block content values.
-	 * @param array<string, mixed> $styles  The block style values.
-	 * @param array<string, mixed> $context Additional rendering context.
+	 * @param array<string, mixed> $content     The block content values.
+	 * @param array<string, mixed> $styles      The block style values.
+	 * @param array<string, mixed> $context     Additional rendering context.
+	 * @param array<int, string>   $innerBlocks Pre-rendered inner block HTML strings.
 	 *
 	 * @return string
 	 */
-	public function render( array $content, array $styles, array $context = [] ): string;
+	public function render( array $content, array $styles, array $context = [], array $innerBlocks = [] ): string;
 
 	/**
 	 * Render the block for the editor.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array<string, mixed> $content The block content values.
-	 * @param array<string, mixed> $styles  The block style values.
-	 * @param array<string, mixed> $context Additional rendering context.
+	 * @param array<string, mixed> $content     The block content values.
+	 * @param array<string, mixed> $styles      The block style values.
+	 * @param array<string, mixed> $context     Additional rendering context.
+	 * @param array<int, string>   $innerBlocks Pre-rendered inner block HTML strings.
 	 *
 	 * @return string
 	 */
-	public function renderEditor( array $content, array $styles, array $context = [] ): string;
+	public function renderEditor( array $content, array $styles, array $context = [], array $innerBlocks = [] ): string;
 
 	/**
 	 * Get the block schema version.

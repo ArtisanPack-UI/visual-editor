@@ -1,13 +1,13 @@
 @php
-	$text      = $content['text'] ?? '';
-	$citation  = $content['citation'] ?? '';
-	$alignment = $styles['alignment'] ?? 'left';
-	$style     = $styles['style'] ?? 'default';
-	$textColor = $styles['textColor'] ?? null;
-	$bgColor   = $styles['backgroundColor'] ?? null;
-	$anchor    = $content['anchor'] ?? null;
-	$htmlId    = $content['htmlId'] ?? null;
-	$className = $content['className'] ?? '';
+	$text         = $content['text'] ?? '';
+	$citation     = $content['citation'] ?? '';
+	$showCitation = $content['showCitation'] ?? false;
+	$alignment    = $styles['alignment'] ?? 'left';
+	$textColor    = $styles['textColor'] ?? null;
+	$bgColor      = $styles['backgroundColor'] ?? null;
+	$anchor       = $content['anchor'] ?? null;
+	$htmlId       = $content['htmlId'] ?? null;
+	$className    = $content['className'] ?? '';
 
 	$elementId = $htmlId ?: $anchor;
 
@@ -19,10 +19,12 @@
 		$inlineStyles .= "background-color: {$bgColor};";
 	}
 
-	$classes = "ve-block ve-block-quote ve-block-quote--{$style} text-{$alignment}";
+	$classes = "ve-block ve-block-quote text-{$alignment}";
 	if ( $className ) {
 		$classes .= " {$className}";
 	}
+
+	$hasInnerBlocks = ! empty( $innerBlocks ?? [] );
 @endphp
 
 <blockquote
@@ -30,8 +32,17 @@
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
 	@if ( $elementId ) id="{{ $elementId }}" @endif
 >
-	<div class="ve-quote-text">{!! $text !!}</div>
-	@if ( $citation )
-		<cite>{{ $citation }}</cite>
+	@if ( $hasInnerBlocks )
+		<div class="ve-quote-text">
+			@foreach ( $innerBlocks as $innerBlock )
+				{!! $innerBlock !!}
+			@endforeach
+		</div>
+	@else
+		<div class="ve-quote-text">{!! $text !!}</div>
+	@endif
+
+	@if ( $showCitation && $citation )
+		<cite class="ve-quote-citation">{!! $citation !!}</cite>
 	@endif
 </blockquote>

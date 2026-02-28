@@ -5,6 +5,7 @@
  *
  * Renders a blockquote with optional citation, alignment,
  * and style variants (default, large, pull-left, pull-right).
+ * Supports inner blocks for rich quote content.
  *
  * Metadata, attributes, and supports are declared in block.json.
  * This class provides content/style schemas for UI presentation
@@ -47,14 +48,7 @@ class QuoteBlock extends BaseBlock
 	 */
 	public function getContentSchema(): array
 	{
-		return [
-			'citation' => [
-				'type'        => 'text',
-				'label'       => __( 'visual-editor::ve.citation' ),
-				'placeholder' => __( 'visual-editor::ve.citation_placeholder' ),
-				'default'     => '',
-			],
-		];
+		return [];
 	}
 
 	/**
@@ -67,17 +61,6 @@ class QuoteBlock extends BaseBlock
 	public function getStyleSchema(): array
 	{
 		return [
-			'style'           => [
-				'type'    => 'select',
-				'label'   => __( 'visual-editor::ve.quote_style' ),
-				'options' => [
-					'default'    => __( 'visual-editor::ve.default' ),
-					'large'      => __( 'visual-editor::ve.large' ),
-					'pull-left'  => __( 'visual-editor::ve.pull_left' ),
-					'pull-right' => __( 'visual-editor::ve.pull_right' ),
-				],
-				'default' => 'default',
-			],
 			'textColor'       => [
 				'type'    => 'color',
 				'label'   => __( 'visual-editor::ve.text_color' ),
@@ -89,6 +72,33 @@ class QuoteBlock extends BaseBlock
 				'default' => null,
 			],
 		];
+	}
+
+	/**
+	 * Get toolbar control declarations for the block.
+	 *
+	 * Adds a citation toggle control to the block toolbar.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getToolbarControls(): array
+	{
+		$controls = parent::getToolbarControls();
+
+		$controls[] = [
+			'group'    => 'quote',
+			'controls' => [
+				[
+					'type'  => 'toggle',
+					'field' => 'showCitation',
+					'label' => __( 'visual-editor::ve.citation' ),
+				],
+			],
+		];
+
+		return $controls;
 	}
 
 	/**

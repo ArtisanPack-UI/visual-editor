@@ -17,19 +17,19 @@
 			"default": ""
 		},
 		"citation": {
-			"type": "string",
+			"type": "rich_text",
 			"source": "content",
 			"default": ""
+		},
+		"showCitation": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
 		},
 		"alignment": {
 			"type": "string",
 			"source": "style",
 			"default": "left"
-		},
-		"style": {
-			"type": "string",
-			"source": "style",
-			"default": "default"
 		},
 		"textColor": {
 			"type": "string",

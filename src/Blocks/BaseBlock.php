@@ -420,21 +420,23 @@ abstract class BaseBlock implements BlockInterface
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array<string, mixed> $content The block content values.
-	 * @param array<string, mixed> $styles  The block style values.
-	 * @param array<string, mixed> $context Additional rendering context.
+	 * @param array<string, mixed> $content     The block content values.
+	 * @param array<string, mixed> $styles      The block style values.
+	 * @param array<string, mixed> $context     Additional rendering context.
+	 * @param array<int, string>   $innerBlocks Pre-rendered inner block HTML strings.
 	 *
 	 * @return string
 	 */
-	public function render( array $content, array $styles, array $context = [] ): string
+	public function render( array $content, array $styles, array $context = [], array $innerBlocks = [] ): string
 	{
 		$viewName = $this->resolveView( 'save' );
 
 		return view( $viewName, [
-			'content' => $content,
-			'styles'  => $styles,
-			'context' => $context,
-			'block'   => $this,
+			'content'     => $content,
+			'styles'      => $styles,
+			'context'     => $context,
+			'block'       => $this,
+			'innerBlocks' => $innerBlocks,
 		] )->render();
 	}
 
@@ -443,21 +445,23 @@ abstract class BaseBlock implements BlockInterface
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array<string, mixed> $content The block content values.
-	 * @param array<string, mixed> $styles  The block style values.
-	 * @param array<string, mixed> $context Additional rendering context.
+	 * @param array<string, mixed> $content     The block content values.
+	 * @param array<string, mixed> $styles      The block style values.
+	 * @param array<string, mixed> $context     Additional rendering context.
+	 * @param array<int, string>   $innerBlocks Pre-rendered inner block HTML strings.
 	 *
 	 * @return string
 	 */
-	public function renderEditor( array $content, array $styles, array $context = [] ): string
+	public function renderEditor( array $content, array $styles, array $context = [], array $innerBlocks = [] ): string
 	{
 		$viewName = $this->resolveView( 'edit' );
 
 		return view( $viewName, [
-			'content' => $content,
-			'styles'  => $styles,
-			'context' => $context,
-			'block'   => $this,
+			'content'     => $content,
+			'styles'      => $styles,
+			'context'     => $context,
+			'block'       => $this,
+			'innerBlocks' => $innerBlocks,
 		] )->render();
 	}
 

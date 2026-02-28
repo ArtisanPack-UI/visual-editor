@@ -112,6 +112,9 @@ class VisualEditorServiceProvider extends ServiceProvider
 		'inspector-section'  => Components\InspectorSection::class,
 		'shadow-control'     => Components\ShadowControl::class,
 		'background-control' => Components\BackgroundControl::class,
+
+		// Phase 7: Inner Blocks
+		'inner-blocks' => Components\InnerBlocks::class,
 	];
 
 	/**

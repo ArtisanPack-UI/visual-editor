@@ -526,6 +526,12 @@ return [
 	'delete_revision'   => 'Delete revision',
 	'no_revisions'      => 'No revisions yet.',
 
+	// Inner Blocks
+	'inner_blocks_placeholder' => 'Type / to choose a block',
+	'add_citation'             => 'Add citation',
+	'remove_citation'          => 'Remove citation',
+	'citation_placeholder'     => 'Add citation',
+
 	// Advanced Schema
 	'html_anchor'                      => 'HTML Anchor',
 	'html_anchor_placeholder'          => 'Add an anchor...',
