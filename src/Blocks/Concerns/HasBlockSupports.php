@@ -149,8 +149,9 @@ trait HasBlockSupports
 				'fontFamily' => false,
 			],
 			'spacing'    => [
-				'margin'  => false,
-				'padding' => false,
+				'margin'       => false,
+				'padding'      => false,
+				'blockSpacing' => false,
 			],
 			'border'      => false,
 			'shadow'      => false,

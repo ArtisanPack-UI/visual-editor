@@ -49,16 +49,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 */
 	protected array $bladeComponents = [
 		// Phase 1: Primitive Controls
-		'unit-control'       => Components\UnitControl::class,
-		'box-control'        => Components\BoxControl::class,
+		'unit-control'            => Components\UnitControl::class,
+		'box-control'             => Components\BoxControl::class,
 		'alignment-control'       => Components\AlignmentControl::class,
 		'block-alignment-control' => Components\BlockAlignmentControl::class,
-		'color-system'       => Components\ColorSystem::class,
-		'link-control'       => Components\LinkControl::class,
-		'range-control'      => Components\RangeControl::class,
-		'angle-control'      => Components\AngleControl::class,
-		'font-size-picker'   => Components\FontSizePicker::class,
-		'border-control'     => Components\BorderControl::class,
+		'color-system'            => Components\ColorSystem::class,
+		'link-control'            => Components\LinkControl::class,
+		'range-control'           => Components\RangeControl::class,
+		'angle-control'           => Components\AngleControl::class,
+		'font-size-picker'        => Components\FontSizePicker::class,
+		'border-control'          => Components\BorderControl::class,
 
 		'color-picker'       => Components\ColorPicker::class,
 

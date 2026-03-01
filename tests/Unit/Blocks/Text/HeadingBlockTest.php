@@ -81,7 +81,7 @@ test( 'heading block renders with padding and margin styles', function (): void 
 			'alignment' => 'left',
 			'padding'   => [ 'top' => '10px', 'right' => '20px', 'bottom' => '10px', 'left' => '20px' ],
 			'margin'    => [ 'top' => '5px', 'bottom' => '15px' ],
-		]
+		],
 	);
 
 	expect( $output )->toContain( 'padding: 10px 20px 10px 20px' );

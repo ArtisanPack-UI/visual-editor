@@ -7,6 +7,7 @@
 	$fontSize  = $styles['fontSize'] ?? null;
 	$padding   = $styles['padding'] ?? null;
 	$margin    = $styles['margin'] ?? null;
+	$border    = $styles['border'] ?? [];
 
 	$tag = in_array( $level, [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ] ) ? $level : 'h2';
 
@@ -30,6 +31,19 @@
 		$top    = $margin['top'] ?? '0';
 		$bottom = $margin['bottom'] ?? '0';
 		$inlineStyles .= " margin-top: {$top}; margin-bottom: {$bottom};";
+	}
+
+	if ( is_array( $border ) && 'none' !== ( $border['style'] ?? 'none' ) ) {
+		$bWidth = ( $border['width'] ?? '0' ) . ( $border['widthUnit'] ?? 'px' );
+		$bStyle = $border['style'] ?? 'solid';
+		$bColor = $border['color'] ?? 'currentColor';
+		$inlineStyles .= " border: {$bWidth} {$bStyle} {$bColor};";
+
+		$bRadius = $border['radius'] ?? '0';
+		if ( $bRadius && '0' !== $bRadius ) {
+			$bRadiusUnit = $border['radiusUnit'] ?? 'px';
+			$inlineStyles .= " border-radius: {$bRadius}{$bRadiusUnit};";
+		}
 	}
 
 	$classes = "ve-block ve-block-heading ve-block-editing text-{$alignment}";

@@ -81,4 +81,9 @@
 	<div class="shrink-0">
 		{{ $statusbar ?? '' }}
 	</div>
+
+	{{-- Media picker bridge (connects inspector fields to the media library modal) --}}
+	@if ( class_exists( \ArtisanPackUI\MediaLibrary\Livewire\Components\MediaModal::class ) )
+		@livewire( 'visual-editor::media-picker' )
+	@endif
 </div>

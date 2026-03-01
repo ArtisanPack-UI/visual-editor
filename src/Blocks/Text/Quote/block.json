@@ -41,6 +41,55 @@
 			"source": "style",
 			"default": null
 		},
+		"fontSize": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"blockSpacing": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"border": {
+			"type": "object",
+			"source": "style",
+			"default": {
+				"width": "0",
+				"widthUnit": "px",
+				"style": "none",
+				"color": "#000000",
+				"radius": "0",
+				"radiusUnit": "px",
+				"perSide": false,
+				"perCorner": false
+			}
+		},
+		"backgroundImage": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundSize": {
+			"type": "string",
+			"source": "style",
+			"default": "cover"
+		},
+		"backgroundPosition": {
+			"type": "string",
+			"source": "style",
+			"default": "center center"
+		},
 		"align": {
 			"type": "string",
 			"source": "style",
@@ -52,6 +101,20 @@
 		"color": {
 			"text": true,
 			"background": true
+		},
+		"typography": {
+			"fontSize": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true,
+			"blockSpacing": true
+		},
+		"border": true,
+		"background": {
+			"backgroundImage": true,
+			"backgroundSize": true,
+			"backgroundPosition": true
 		},
 		"anchor": true,
 		"className": true

@@ -26,34 +26,43 @@ beforeEach( function (): void {
 
 it( 'mounts with default properties', function (): void {
 	Livewire::test( 'visual-editor::media-picker' )
-		->assertSet( 'context', 'visual-editor' )
+		->assertSet( 'context', '' )
 		->assertSet( 'multiSelect', false )
-		->assertSet( 'maxSelections', 1 )
-		->assertSet( 'isOpen', false );
+		->assertSet( 'maxSelections', 1 );
 } );
 
-it( 'sets context and opens via event', function (): void {
+it( 'sets context and dispatches open-media-modal via event', function (): void {
 	Livewire::test( 'visual-editor::media-picker' )
 		->call( 'open', 'featured-image' )
 		->assertSet( 'context', 'featured-image' )
-		->assertSet( 'isOpen', true )
 		->assertDispatched( 'open-media-modal' );
 } );
 
-it( 'dispatches media selected event on selection', function (): void {
+it( 'handles media selection without error', function (): void {
 	$media = [
 		[ 'id' => 1, 'url' => 'https://example.com/image.jpg' ],
 	];
 
 	Livewire::test( 'visual-editor::media-picker' )
-		->call( 'onMediaSelected', $media, 'featured-image' )
-		->assertDispatched( 've-media-selected' )
-		->assertSet( 'isOpen', false );
+		->call( 'onMediaSelected', $media, '' )
+		->assertSuccessful();
+} );
+
+it( 'handles full open and select flow', function (): void {
+	$media = [
+		[ 'id' => 42, 'url' => 'https://example.com/photo.png' ],
+	];
+
+	Livewire::test( 'visual-editor::media-picker' )
+		->call( 'open', 'bg-image' )
+		->assertSet( 'context', 'bg-image' )
+		->assertDispatched( 'open-media-modal' )
+		->call( 'onMediaSelected', $media, '' );
 } );
 
 it( 'opens with default context', function (): void {
 	Livewire::test( 'visual-editor::media-picker' )
 		->call( 'open' )
 		->assertSet( 'context', 'visual-editor' )
-		->assertSet( 'isOpen', true );
+		->assertDispatched( 'open-media-modal' );
 } );

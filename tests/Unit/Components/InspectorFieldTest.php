@@ -107,6 +107,30 @@ test( 'inspector field renders for toggle type', function (): void {
 	expect( $view )->not->toBeNull();
 } );
 
+test( 'inspector field renders for media_picker type', function (): void {
+	$view = $this->blade(
+		'<x-ve-inspector-field name="backgroundImage" :schema="$schema" :value="$value" />',
+		[
+			'schema' => [ 'type' => 'media_picker', 'label' => 'Background Image' ],
+			'value'  => '',
+		],
+	);
+
+	expect( $view )->not->toBeNull();
+} );
+
+test( 'inspector field renders media_picker with existing value', function (): void {
+	$view = $this->blade(
+		'<x-ve-inspector-field name="backgroundImage" :schema="$schema" :value="$value" />',
+		[
+			'schema' => [ 'type' => 'media_picker', 'label' => 'Background Image' ],
+			'value'  => 'https://example.com/image.jpg',
+		],
+	);
+
+	expect( $view )->not->toBeNull();
+} );
+
 test( 'inspector field renders for text type', function (): void {
 	$view = $this->blade(
 		'<x-ve-inspector-field name="anchor" :schema="$schema" :value="$value" />',

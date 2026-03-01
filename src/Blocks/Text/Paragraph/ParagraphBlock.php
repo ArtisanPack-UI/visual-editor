@@ -93,6 +93,20 @@ class ParagraphBlock extends BaseBlock
 				'sides'   => [ 'top', 'bottom' ],
 				'default' => null,
 			],
+			'border'          => [
+				'type'    => 'border',
+				'label'   => __( 'visual-editor::ve.border' ),
+				'default' => [
+					'width'      => '0',
+					'widthUnit'  => 'px',
+					'style'      => 'none',
+					'color'      => '#000000',
+					'radius'     => '0',
+					'radiusUnit' => 'px',
+					'perSide'    => false,
+					'perCorner'  => false,
+				],
+			],
 		];
 	}
 

@@ -18,17 +18,50 @@
 	<label class="text-sm font-medium">{{ $label }}</label>
 
 	@if ( $hasControl( 'backgroundImage' ) )
-		<div>
+		<div
+			x-data="{
+				bgImage: values.backgroundImage ?? '',
+				bgContext: '{{ $blockId }}:backgroundImage',
+				selectBgMedia() {
+					Livewire.dispatch( 'open-ve-media-picker', { context: this.bgContext } );
+				},
+				removeBgMedia() {
+					this.bgImage = '';
+					updateField( 'backgroundImage', '' );
+				}
+			}"
+			x-on:ve-media-selected.window="
+				if ( $event.detail.context === bgContext && $event.detail.media && $event.detail.media.length ) {
+					bgImage = $event.detail.media[0].url ?? $event.detail.media[0].path ?? '';
+					updateField( 'backgroundImage', bgImage );
+				}
+			"
+		>
 			<label class="mb-1 block text-xs text-base-content/60">
 				{{ __( 'visual-editor::ve.background_image' ) }}
 			</label>
-			<input
-				type="url"
-				class="input input-bordered input-sm w-full"
-				:value="values.backgroundImage ?? ''"
-				x-on:change="updateField( 'backgroundImage', $el.value )"
-				placeholder="https://..."
-			/>
+
+			<template x-if="bgImage">
+				<div class="space-y-2">
+					<div class="relative rounded-lg overflow-hidden border border-base-300">
+						<img :src="bgImage" alt="" class="w-full h-32 object-cover" />
+					</div>
+					<div class="flex gap-2">
+						<button type="button" class="btn btn-sm btn-ghost flex-1" x-on:click="selectBgMedia()">
+							{{ __( 'visual-editor::ve.replace_image' ) }}
+						</button>
+						<button type="button" class="btn btn-sm btn-ghost text-error flex-1" x-on:click="removeBgMedia()">
+							{{ __( 'visual-editor::ve.remove_image' ) }}
+						</button>
+					</div>
+				</div>
+			</template>
+
+			<template x-if="! bgImage">
+				<button type="button" class="btn btn-sm btn-outline w-full" x-on:click="selectBgMedia()">
+					{{ __( 'visual-editor::ve.select_media' ) }}
+				</button>
+			</template>
 		</div>
 	@endif
 

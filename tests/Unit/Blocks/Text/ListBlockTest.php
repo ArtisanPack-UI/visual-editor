@@ -43,7 +43,7 @@ test( 'list block renders with padding and margin styles', function (): void {
 		[
 			'padding' => [ 'top' => '6px', 'right' => '12px', 'bottom' => '6px', 'left' => '12px' ],
 			'margin'  => [ 'top' => '8px', 'bottom' => '8px' ],
-		]
+		],
 	);
 
 	expect( $output )->toContain( 'padding: 6px 12px 6px 12px' );

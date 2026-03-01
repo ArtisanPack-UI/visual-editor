@@ -29,6 +29,14 @@ test( 'quote block style schema has color fields', function (): void {
 
 	expect( $schema )->toHaveKey( 'textColor' );
 	expect( $schema )->toHaveKey( 'backgroundColor' );
+	expect( $schema )->toHaveKey( 'fontSize' );
+	expect( $schema )->toHaveKey( 'padding' );
+	expect( $schema )->toHaveKey( 'margin' );
+	expect( $schema )->toHaveKey( 'blockSpacing' );
+	expect( $schema )->toHaveKey( 'border' );
+	expect( $schema )->toHaveKey( 'backgroundImage' );
+	expect( $schema )->toHaveKey( 'backgroundSize' );
+	expect( $schema )->toHaveKey( 'backgroundPosition' );
 	expect( $schema )->not->toHaveKey( 'style' );
 } );
 
@@ -163,4 +171,137 @@ test( 'quote block editor renders citation when showCitation is true', function 
 
 	expect( $output )->toContain( '<cite' );
 	expect( $output )->toContain( 'Someone' );
+} );
+
+test( 'quote block renders with font size class', function (): void {
+	$block  = new QuoteBlock();
+	$output = $block->render(
+		[ 'text' => 'Styled quote' ],
+		[ 'alignment' => 'left', 'fontSize' => 'large' ],
+	);
+
+	expect( $output )->toContain( 'text-large' );
+} );
+
+test( 'quote block renders with padding', function (): void {
+	$block  = new QuoteBlock();
+	$output = $block->render(
+		[ 'text' => 'Padded quote' ],
+		[
+			'alignment' => 'left',
+			'padding'   => [ 'top' => '10px', 'right' => '20px', 'bottom' => '10px', 'left' => '20px' ],
+		],
+	);
+
+	expect( $output )->toContain( 'padding: 10px 20px 10px 20px' );
+} );
+
+test( 'quote block renders with margin', function (): void {
+	$block  = new QuoteBlock();
+	$output = $block->render(
+		[ 'text' => 'Margin quote' ],
+		[
+			'alignment' => 'left',
+			'margin'    => [ 'top' => '2rem', 'bottom' => '2rem' ],
+		],
+	);
+
+	expect( $output )->toContain( 'margin-top: 2rem' );
+	expect( $output )->toContain( 'margin-bottom: 2rem' );
+} );
+
+test( 'quote block renders with border', function (): void {
+	$block  = new QuoteBlock();
+	$output = $block->render(
+		[ 'text' => 'Bordered quote' ],
+		[
+			'alignment' => 'left',
+			'border'    => [
+				'width'      => '2',
+				'widthUnit'  => 'px',
+				'style'      => 'solid',
+				'color'      => '#333333',
+				'radius'     => '8',
+				'radiusUnit' => 'px',
+			],
+		],
+	);
+
+	expect( $output )->toContain( 'border: 2px solid #333333' );
+	expect( $output )->toContain( 'border-radius: 8px' );
+} );
+
+test( 'quote block renders with background image', function (): void {
+	$block  = new QuoteBlock();
+	$output = $block->render(
+		[ 'text' => 'Background quote' ],
+		[
+			'alignment'          => 'left',
+			'backgroundImage'    => 'https://example.com/image.jpg',
+			'backgroundSize'     => 'cover',
+			'backgroundPosition' => 'top left',
+		],
+	);
+
+	expect( $output )->toContain( 'background-image: url(' );
+	expect( $output )->toContain( 'https://example.com/image.jpg' );
+	expect( $output )->toContain( 'background-size: cover' );
+	expect( $output )->toContain( 'background-position: top left' );
+} );
+
+test( 'quote block renders block spacing on inner blocks wrapper', function (): void {
+	$block  = new QuoteBlock();
+	$output = $block->render(
+		[ 'text' => 'Spaced quote' ],
+		[
+			'alignment'    => 'left',
+			'blockSpacing' => '1.5rem',
+		],
+	);
+
+	expect( $output )->toContain( 'gap: 1.5rem' );
+	expect( $output )->toContain( 'display: flex' );
+	expect( $output )->toContain( 'flex-direction: column' );
+} );
+
+test( 'quote block editor renders with border styles', function (): void {
+	$block  = new QuoteBlock();
+	$output = $block->renderEditor(
+		[ 'text' => 'Bordered quote' ],
+		[
+			'alignment' => 'left',
+			'border'    => [
+				'width'     => '1',
+				'widthUnit' => 'px',
+				'style'     => 'dashed',
+				'color'     => '#ff0000',
+			],
+		],
+	);
+
+	expect( $output )->toContain( 'border: 1px dashed #ff0000' );
+} );
+
+test( 'quote block editor renders with background image', function (): void {
+	$block  = new QuoteBlock();
+	$output = $block->renderEditor(
+		[ 'text' => 'BG quote' ],
+		[
+			'alignment'       => 'left',
+			'backgroundImage' => 'https://example.com/bg.png',
+		],
+	);
+
+	expect( $output )->toContain( 'background-image: url(' );
+	expect( $output )->toContain( 'https://example.com/bg.png' );
+} );
+
+test( 'quote block editor renders with font size class', function (): void {
+	$block  = new QuoteBlock();
+	$output = $block->renderEditor(
+		[ 'text' => 'Large quote' ],
+		[ 'alignment' => 'left', 'fontSize' => 'xl' ],
+	);
+
+	expect( $output )->toContain( 'text-xl' );
 } );

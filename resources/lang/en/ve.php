@@ -487,6 +487,7 @@ return [
 	'typography'           => 'Typography',
 	'font_family'          => 'Font family',
 	'spacing'              => 'Spacing',
+	'block_spacing'        => 'Block spacing',
 	'dimensions'           => 'Dimensions',
 	'aspect_ratio'         => 'Aspect ratio',
 	'background'           => 'Background',
@@ -510,6 +511,8 @@ return [
 	'select_media'       => 'Select media',
 	'media_selected'     => 'Media selected',
 	'open_media_picker'  => 'Open media picker',
+	'replace_image'      => 'Replace',
+	'remove_image'       => 'Remove',
 
 	// Pattern Store
 	'pattern_saved'    => 'Pattern saved',

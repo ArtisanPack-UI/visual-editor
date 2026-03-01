@@ -605,7 +605,45 @@
 					} );
 
 					document.addEventListener( 've-media-selected', ( e ) => {
-						{{-- Passes media data through for block-level handling --}}
+						if ( e.detail && e.detail.media && e.detail.media.length ) {
+							this._announceAction( {{ Js::from( __( 'visual-editor::ve.media_selected' ) ) }} );
+						}
+					} );
+
+					Livewire.on( 'media-selected', ( ...args ) => {
+						let media = [];
+						if ( args[0] && Array.isArray( args[0].media ) ) {
+							media = args[0].media;
+						} else if ( Array.isArray( args[0] ) ) {
+							media = args[0];
+						}
+
+						const context = window.__veMediaPickerContext || '';
+
+						if ( media.length ) {
+							window.__veMediaPickerContext = '';
+							window.dispatchEvent( new CustomEvent( 've-media-selected', {
+								detail: { media: media, context: context },
+							} ) );
+						}
+					} );
+
+					document.addEventListener( 've-field-change', ( e ) => {
+						if ( ! e.detail ) return;
+						let blockId = e.detail.blockId;
+						const field = e.detail.field;
+						const value = e.detail.value;
+
+						if ( ! field ) return;
+
+						// Resolve 'dynamic' blockId to the currently focused block.
+						if ( 'dynamic' === blockId || ! blockId ) {
+							blockId = Alpine.store( 'selection' )?.focused ?? null;
+						}
+
+						if ( blockId ) {
+							this.updateBlock( blockId, { [field]: value } );
+						}
 					} );
 				},
 

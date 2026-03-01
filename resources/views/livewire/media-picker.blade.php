@@ -12,7 +12,7 @@ new class extends Component
 	 *
 	 * @var string
 	 */
-	public string $context = 'visual-editor';
+	public string $context = '';
 
 	/**
 	 * Whether multiple items can be selected.
@@ -33,16 +33,11 @@ new class extends Component
 	public int $maxSelections = 1;
 
 	/**
-	 * Whether the media modal is currently open.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var bool
-	 */
-	public bool $isOpen = false;
-
-	/**
 	 * Open the media picker with a given context.
+	 *
+	 * Stores the context in JavaScript before dispatching the
+	 * Livewire event so the MediaModal (mounted with empty
+	 * context) will accept the open request.
 	 *
 	 * @since 1.0.0
 	 *
@@ -54,13 +49,19 @@ new class extends Component
 	public function open( string $context = 'visual-editor' ): void
 	{
 		$this->context = $context;
-		$this->isOpen  = true;
 
-		$this->dispatch( 'open-media-modal', context: $this->context );
+		$contextJson = json_encode( $context );
+		$this->js( "window.__veMediaPickerContext = {$contextJson}" );
+
+		$this->dispatch( 'open-media-modal', context: '' );
 	}
 
 	/**
 	 * Handle media selection from the media library modal.
+	 *
+	 * Re-dispatches the selection as a browser CustomEvent so
+	 * Alpine listeners (x-on:ve-media-selected.window) can
+	 * receive the data with the original request context.
 	 *
 	 * @since 1.0.0
 	 *
@@ -72,18 +73,22 @@ new class extends Component
 	#[On( 'media-selected' )]
 	public function onMediaSelected( array $media, string $context = '' ): void
 	{
-		$this->isOpen = false;
+		$mediaJson = json_encode( $media );
 
-		$this->dispatch( 've-media-selected', media: $media, context: $context );
+		$this->js( "
+			const ctx = window.__veMediaPickerContext || '';
+			window.__veMediaPickerContext = '';
+			window.dispatchEvent( new CustomEvent( 've-media-selected', {
+				detail: { media: {$mediaJson}, context: ctx }
+			} ) );
+		" );
 	}
 }; ?>
 
 <div>
-	@if ( $isOpen )
-		<livewire:media::media-modal
-			:multi-select="$multiSelect"
-			:max-selections="$maxSelections"
-			:context="$context"
-		/>
-	@endif
+	<livewire:media::media-modal
+		:multi-select="$multiSelect"
+		:max-selections="$maxSelections"
+		context=""
+	/>
 </div>

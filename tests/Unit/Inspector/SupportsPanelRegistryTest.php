@@ -60,7 +60,7 @@ test( 'returns panels in correct order', function (): void {
 	$panels = $registry->getPanelsForBlock( $block );
 	$keys   = array_column( $panels, 'key' );
 
-	expect( $keys )->toBe( [ 'color', 'typography', 'spacing' ] );
+	expect( $keys )->toBe( [ 'color', 'typography', 'spacing', 'border' ] );
 } );
 
 test( 'stub block returns color panel with text only', function (): void {

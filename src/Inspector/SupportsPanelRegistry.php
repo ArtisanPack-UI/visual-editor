@@ -63,7 +63,7 @@ class SupportsPanelRegistry
 			];
 		}
 
-		if ( $this->hasAnySupport( $activeSupports, [ 'spacing.margin', 'spacing.padding' ] ) ) {
+		if ( $this->hasAnySupport( $activeSupports, [ 'spacing.margin', 'spacing.padding', 'spacing.blockSpacing' ] ) ) {
 			$panels[] = [
 				'key'      => 'spacing',
 				'label'    => __( 'visual-editor::ve.spacing' ),
@@ -226,6 +226,14 @@ class SupportsPanelRegistry
 			];
 		}
 
+		if ( in_array( 'spacing.blockSpacing', $activeSupports, true ) ) {
+			$controls[] = [
+				'type'  => 'spacing',
+				'field' => 'blockSpacing',
+				'label' => __( 'visual-editor::ve.block_spacing' ),
+			];
+		}
+
 		return $controls;
 	}
 
@@ -276,7 +284,7 @@ class SupportsPanelRegistry
 
 		if ( in_array( 'background.backgroundImage', $activeSupports, true ) ) {
 			$controls[] = [
-				'type'  => 'url',
+				'type'  => 'media_picker',
 				'field' => 'backgroundImage',
 				'label' => __( 'visual-editor::ve.background_image' ),
 			];

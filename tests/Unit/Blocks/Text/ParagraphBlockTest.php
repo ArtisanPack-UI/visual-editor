@@ -44,7 +44,7 @@ test( 'paragraph block renders with padding and margin styles', function (): voi
 			'alignment' => 'left',
 			'padding'   => [ 'top' => '8px', 'right' => '16px', 'bottom' => '8px', 'left' => '16px' ],
 			'margin'    => [ 'top' => '4px', 'bottom' => '12px' ],
-		]
+		],
 	);
 
 	expect( $output )->toContain( 'padding: 8px 16px 8px 16px' );

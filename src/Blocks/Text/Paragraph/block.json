@@ -50,6 +50,20 @@
 			"type": "object",
 			"source": "style",
 			"default": null
+		},
+		"border": {
+			"type": "object",
+			"source": "style",
+			"default": {
+				"width": "0",
+				"widthUnit": "px",
+				"style": "none",
+				"color": "#000000",
+				"radius": "0",
+				"radiusUnit": "px",
+				"perSide": false,
+				"perCorner": false
+			}
 		}
 	},
 	"supports": {
@@ -65,6 +79,7 @@
 			"margin": true,
 			"padding": true
 		},
+		"border": true,
 		"anchor": true,
 		"className": true
 	}

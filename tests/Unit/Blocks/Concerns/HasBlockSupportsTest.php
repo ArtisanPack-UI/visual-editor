@@ -21,9 +21,9 @@ test( 'getActiveStyleSupports excludes disabled supports', function (): void {
 	$active = $block->getActiveStyleSupports();
 
 	expect( $active )->not->toContain( 'typography.fontFamily' );
-	expect( $active )->not->toContain( 'spacing.margin' );
-	expect( $active )->not->toContain( 'spacing.padding' );
-	expect( $active )->not->toContain( 'border' );
+	expect( $active )->toContain( 'spacing.margin' );
+	expect( $active )->toContain( 'spacing.padding' );
+	expect( $active )->toContain( 'border' );
 	expect( $active )->not->toContain( 'shadow' );
 } );
 
@@ -48,4 +48,5 @@ test( 'heading block supports from block.json include new default types', functi
 	expect( $supports['dimensions']['aspectRatio'] )->toBeFalse();
 	expect( $supports['dimensions']['minHeight'] )->toBeFalse();
 	expect( $supports['background']['backgroundImage'] )->toBeFalse();
+	expect( $supports['spacing']['blockSpacing'] )->toBeFalse();
 } );

@@ -149,6 +149,55 @@
 			</div>
 			@break
 
+		@case ( 'media_picker' )
+			<div
+				class="ve-inspector-field-media-picker"
+				x-data="{
+					value: {{ Js::from( $currentValue ?? '' ) }},
+					context: {{ Js::from( $blockId . ':' . $name ) }},
+					selectMedia() {
+						Livewire.dispatch( 'open-ve-media-picker', { context: this.context } );
+					},
+					removeMedia() {
+						this.value = '';
+						$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: '' } );
+					}
+				}"
+				x-on:ve-media-selected.window="
+					if ( $event.detail.context === context && $event.detail.media && $event.detail.media.length ) {
+						value = $event.detail.media[0].url ?? $event.detail.media[0].path ?? '';
+						$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: value } );
+					}
+				"
+			>
+				<label class="text-sm font-medium text-base-content/80 block mb-1">
+					{{ $fieldLabel }}
+				</label>
+
+				<template x-if="value">
+					<div class="space-y-2">
+						<div class="relative rounded-lg overflow-hidden border border-base-300">
+							<img :src="value" alt="" class="w-full h-32 object-cover" />
+						</div>
+						<div class="flex gap-2">
+							<button type="button" class="btn btn-sm btn-ghost flex-1" x-on:click="selectMedia()">
+								{{ __( 'visual-editor::ve.replace_image' ) }}
+							</button>
+							<button type="button" class="btn btn-sm btn-ghost text-error flex-1" x-on:click="removeMedia()">
+								{{ __( 'visual-editor::ve.remove_image' ) }}
+							</button>
+						</div>
+					</div>
+				</template>
+
+				<template x-if="! value">
+					<button type="button" class="btn btn-sm btn-outline w-full" x-on:click="selectMedia()">
+						{{ __( 'visual-editor::ve.select_media' ) }}
+					</button>
+				</template>
+			</div>
+			@break
+
 		@case ( 'url' )
 			<div class="ve-inspector-field-url">
 				<label class="text-sm font-medium text-base-content/80 block mb-1" for="{{ $uuid }}-url">
