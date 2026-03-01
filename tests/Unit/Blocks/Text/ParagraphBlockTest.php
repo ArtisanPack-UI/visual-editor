@@ -23,13 +23,33 @@ test( 'paragraph block content schema is empty for inline editing', function ():
 	expect( $schema )->toBeEmpty();
 } );
 
-test( 'paragraph block style schema has color and font size fields', function (): void {
+test( 'paragraph block style schema has color, font size, padding and margin fields', function (): void {
 	$block  = new ParagraphBlock();
 	$schema = $block->getStyleSchema();
 
 	expect( $schema )->toHaveKey( 'textColor' );
 	expect( $schema )->toHaveKey( 'backgroundColor' );
 	expect( $schema )->toHaveKey( 'fontSize' );
+	expect( $schema )->toHaveKey( 'padding' );
+	expect( $schema )->toHaveKey( 'margin' );
+	expect( $schema['padding']['type'] )->toBe( 'spacing' );
+	expect( $schema['margin']['type'] )->toBe( 'spacing' );
+} );
+
+test( 'paragraph block renders with padding and margin styles', function (): void {
+	$block  = new ParagraphBlock();
+	$output = $block->render(
+		[ 'text' => 'Spaced paragraph' ],
+		[
+			'alignment' => 'left',
+			'padding'   => [ 'top' => '8px', 'right' => '16px', 'bottom' => '8px', 'left' => '16px' ],
+			'margin'    => [ 'top' => '4px', 'bottom' => '12px' ],
+		]
+	);
+
+	expect( $output )->toContain( 'padding: 8px 16px 8px 16px' );
+	expect( $output )->toContain( 'margin-top: 4px' );
+	expect( $output )->toContain( 'margin-bottom: 12px' );
 } );
 
 test( 'paragraph block default styles include drop cap false', function (): void {

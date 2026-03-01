@@ -30,13 +30,17 @@ test( 'heading block content schema is empty for inline editing', function (): v
 	expect( $schema )->toBeEmpty();
 } );
 
-test( 'heading block style schema has color and font size fields', function (): void {
+test( 'heading block style schema has color, font size, padding and margin fields', function (): void {
 	$block  = new HeadingBlock();
 	$schema = $block->getStyleSchema();
 
 	expect( $schema )->toHaveKey( 'textColor' );
 	expect( $schema )->toHaveKey( 'backgroundColor' );
 	expect( $schema )->toHaveKey( 'fontSize' );
+	expect( $schema )->toHaveKey( 'padding' );
+	expect( $schema )->toHaveKey( 'margin' );
+	expect( $schema['padding']['type'] )->toBe( 'spacing' );
+	expect( $schema['margin']['type'] )->toBe( 'spacing' );
 } );
 
 test( 'heading block default content has h2 level', function (): void {
@@ -60,6 +64,29 @@ test( 'heading block transforms to paragraph and quote', function (): void {
 
 	expect( $transforms )->toHaveKey( 'paragraph' );
 	expect( $transforms )->toHaveKey( 'quote' );
+} );
+
+test( 'heading block supports spacing', function (): void {
+	$block = new HeadingBlock();
+
+	expect( $block->supportsFeature( 'spacing.margin' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'spacing.padding' ) )->toBeTrue();
+} );
+
+test( 'heading block renders with padding and margin styles', function (): void {
+	$block  = new HeadingBlock();
+	$output = $block->render(
+		[ 'text' => 'Spaced Heading', 'level' => 'h2' ],
+		[
+			'alignment' => 'left',
+			'padding'   => [ 'top' => '10px', 'right' => '20px', 'bottom' => '10px', 'left' => '20px' ],
+			'margin'    => [ 'top' => '5px', 'bottom' => '15px' ],
+		]
+	);
+
+	expect( $output )->toContain( 'padding: 10px 20px 10px 20px' );
+	expect( $output )->toContain( 'margin-top: 5px' );
+	expect( $output )->toContain( 'margin-bottom: 15px' );
 } );
 
 test( 'heading block supports color and typography', function (): void {

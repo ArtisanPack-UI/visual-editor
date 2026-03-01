@@ -77,6 +77,18 @@ class HeadingBlock extends BaseBlock
 				],
 				'default' => null,
 			],
+			'padding'         => [
+				'type'    => 'spacing',
+				'label'   => __( 'visual-editor::ve.padding' ),
+				'sides'   => [ 'top', 'right', 'bottom', 'left' ],
+				'default' => null,
+			],
+			'margin'          => [
+				'type'    => 'spacing',
+				'label'   => __( 'visual-editor::ve.margin' ),
+				'sides'   => [ 'top', 'bottom' ],
+				'default' => null,
+			],
 		];
 	}
 

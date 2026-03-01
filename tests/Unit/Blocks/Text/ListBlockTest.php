@@ -26,11 +26,29 @@ test( 'list block content schema has start and reversed fields', function (): vo
 	expect( $schema )->not->toHaveKey( 'type' );
 } );
 
-test( 'list block style schema is empty', function (): void {
+test( 'list block style schema has padding and margin fields', function (): void {
 	$block  = new ListBlock();
 	$schema = $block->getStyleSchema();
 
-	expect( $schema )->toBeEmpty();
+	expect( $schema )->toHaveKey( 'padding' );
+	expect( $schema )->toHaveKey( 'margin' );
+	expect( $schema['padding']['type'] )->toBe( 'spacing' );
+	expect( $schema['margin']['type'] )->toBe( 'spacing' );
+} );
+
+test( 'list block renders with padding and margin styles', function (): void {
+	$block  = new ListBlock();
+	$output = $block->render(
+		[ 'type' => 'unordered' ],
+		[
+			'padding' => [ 'top' => '6px', 'right' => '12px', 'bottom' => '6px', 'left' => '12px' ],
+			'margin'  => [ 'top' => '8px', 'bottom' => '8px' ],
+		]
+	);
+
+	expect( $output )->toContain( 'padding: 6px 12px 6px 12px' );
+	expect( $output )->toContain( 'margin-top: 8px' );
+	expect( $output )->toContain( 'margin-bottom: 8px' );
 } );
 
 test( 'list block transforms to paragraph', function (): void {

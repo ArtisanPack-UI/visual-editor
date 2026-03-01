@@ -40,6 +40,16 @@
 			"type": "boolean",
 			"source": "style",
 			"default": false
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
 		}
 	},
 	"supports": {
@@ -50,6 +60,10 @@
 		"typography": {
 			"fontSize": true,
 			"dropCap": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
 		},
 		"anchor": true,
 		"className": true

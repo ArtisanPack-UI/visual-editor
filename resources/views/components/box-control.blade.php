@@ -79,8 +79,8 @@
 		</div>
 	@endif
 
-	{{-- Box inputs in a cross/visual layout --}}
-	<div class="grid grid-cols-4 gap-2">
+	{{-- Box inputs in a 2x2 grid layout --}}
+	<div class="grid grid-cols-2 gap-2">
 		{{-- Top --}}
 		<div class="flex flex-col gap-0.5">
 			<span class="text-[10px] font-medium uppercase tracking-wider text-base-content/40 text-center">

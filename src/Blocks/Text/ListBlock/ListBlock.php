@@ -74,7 +74,20 @@ class ListBlock extends BaseBlock
 	 */
 	public function getStyleSchema(): array
 	{
-		return [];
+		return [
+			'padding' => [
+				'type'    => 'spacing',
+				'label'   => __( 'visual-editor::ve.padding' ),
+				'sides'   => [ 'top', 'right', 'bottom', 'left' ],
+				'default' => null,
+			],
+			'margin'  => [
+				'type'    => 'spacing',
+				'label'   => __( 'visual-editor::ve.margin' ),
+				'sides'   => [ 'top', 'bottom' ],
+				'default' => null,
+			],
+		];
 	}
 
 	/**

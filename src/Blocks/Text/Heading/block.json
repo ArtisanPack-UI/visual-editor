@@ -41,6 +41,16 @@
 			"source": "style",
 			"default": null
 		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
 		"align": {
 			"type": "string",
 			"source": "style",
@@ -58,8 +68,8 @@
 			"fontFamily": false
 		},
 		"spacing": {
-			"margin": false,
-			"padding": false
+			"margin": true,
+			"padding": true
 		},
 		"border": false,
 		"anchor": true,

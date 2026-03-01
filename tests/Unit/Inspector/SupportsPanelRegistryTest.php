@@ -30,7 +30,7 @@ test( 'returns typography panel for blocks with typography support', function ()
 	expect( $typographyPanel['controls'] )->not->toBeEmpty();
 } );
 
-test( 'does not return spacing panel for blocks without spacing support', function (): void {
+test( 'returns spacing panel for blocks with spacing support', function (): void {
 	$registry = new SupportsPanelRegistry();
 	$block    = new HeadingBlock();
 
@@ -38,7 +38,8 @@ test( 'does not return spacing panel for blocks without spacing support', functi
 
 	$spacingPanel = collect( $panels )->firstWhere( 'key', 'spacing' );
 
-	expect( $spacingPanel )->toBeNull();
+	expect( $spacingPanel )->not->toBeNull();
+	expect( $spacingPanel['controls'] )->toHaveCount( 2 );
 } );
 
 test( 'does not return shadow panel when not supported', function (): void {
@@ -59,7 +60,7 @@ test( 'returns panels in correct order', function (): void {
 	$panels = $registry->getPanelsForBlock( $block );
 	$keys   = array_column( $panels, 'key' );
 
-	expect( $keys )->toBe( [ 'color', 'typography' ] );
+	expect( $keys )->toBe( [ 'color', 'typography', 'spacing' ] );
 } );
 
 test( 'stub block returns color panel with text only', function (): void {

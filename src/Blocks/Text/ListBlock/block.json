@@ -35,6 +35,16 @@
 			"type": "string",
 			"source": "style",
 			"default": null
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
 		}
 	},
 	"supports": {
@@ -43,6 +53,10 @@
 		},
 		"typography": {
 			"fontSize": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
 		},
 		"anchor": true,
 		"className": true
