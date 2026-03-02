@@ -21,16 +21,16 @@ new class extends Component
 	 *
 	 * @var bool
 	 */
-	public bool $multiSelect = false;
+	public bool $multiSelect = true;
 
 	/**
-	 * Maximum number of selections allowed.
+	 * Maximum number of selections allowed (0 = unlimited).
 	 *
 	 * @since 1.0.0
 	 *
 	 * @var int
 	 */
-	public int $maxSelections = 1;
+	public int $maxSelections = 0;
 
 	/**
 	 * Open the media picker with a given context.
@@ -55,34 +55,6 @@ new class extends Component
 
 		$this->dispatch( 'open-media-modal', context: '' );
 	}
-
-	/**
-	 * Handle media selection from the media library modal.
-	 *
-	 * Re-dispatches the selection as a browser CustomEvent so
-	 * Alpine listeners (x-on:ve-media-selected.window) can
-	 * receive the data with the original request context.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param array<int, array<string, mixed>> $media   The selected media items.
-	 * @param string                           $context The context of the selection.
-	 *
-	 * @return void
-	 */
-	#[On( 'media-selected' )]
-	public function onMediaSelected( array $media, string $context = '' ): void
-	{
-		$mediaJson = json_encode( $media );
-
-		$this->js( "
-			const ctx = window.__veMediaPickerContext || '';
-			window.__veMediaPickerContext = '';
-			window.dispatchEvent( new CustomEvent( 've-media-selected', {
-				detail: { media: {$mediaJson}, context: ctx }
-			} ) );
-		" );
-	}
 }; ?>
 
 <div>
@@ -92,3 +64,26 @@ new class extends Component
 		context=""
 	/>
 </div>
+
+<script>
+	function __veRegisterMediaListener() {
+		Livewire.on( 'media-selected', ( data ) => {
+			// Ignore toggle events from MediaItem (payload is { mediaId, selected }).
+			if ( ! data || ! data.media || ! Array.isArray( data.media ) || ! data.media.length ) {
+				return;
+			}
+
+			const ctx = window.__veMediaPickerContext || '';
+			window.__veMediaPickerContext = '';
+			window.dispatchEvent( new CustomEvent( 've-media-selected', {
+				detail: { media: data.media, context: ctx }
+			} ) );
+		} );
+	}
+
+	if ( typeof Livewire !== 'undefined' ) {
+		__veRegisterMediaListener();
+	} else {
+		document.addEventListener( 'livewire:init', __veRegisterMediaListener );
+	}
+</script>

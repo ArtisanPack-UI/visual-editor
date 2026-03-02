@@ -126,6 +126,25 @@
 			/>
 			@break
 
+		@case ( 'responsive_range' )
+			@php
+				$rrMin    = $schema['min'] ?? 0;
+				$rrMax    = $schema['max'] ?? 100;
+				$rrStep   = $schema['step'] ?? 1;
+				$rrValues = is_array( $currentValue )
+				? array_merge( [ 'mode' => 'global', 'global' => $currentValue['desktop'] ?? $rrMin ], $currentValue )
+				: [ 'mode' => 'global', 'global' => $currentValue ?? $rrMin, 'desktop' => $currentValue ?? $rrMin, 'tablet' => $currentValue ?? $rrMin, 'mobile' => $currentValue ?? $rrMin ];
+			@endphp
+			<x-ve-responsive-range-control
+				:label="$fieldLabel"
+				:value="$rrValues"
+				:min="$rrMin"
+				:max="$rrMax"
+				:step="$rrStep"
+				x-on:ve-responsive-range-change.stop="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: $event.detail.values } )"
+			/>
+			@break
+
 		@case ( 'font_size' )
 			<x-ve-font-size-picker
 				:label="$fieldLabel"
@@ -195,6 +214,26 @@
 						{{ __( 'visual-editor::ve.select_media' ) }}
 					</button>
 				</template>
+			</div>
+			@break
+
+		@case ( 'textarea' )
+			<div class="ve-inspector-field-textarea">
+				<label class="text-sm font-medium text-base-content/80 block mb-1" for="{{ $uuid }}-textarea">
+					{{ $fieldLabel }}
+				</label>
+				<textarea
+					id="{{ $uuid }}-textarea"
+					class="textarea textarea-bordered textarea-sm w-full"
+					placeholder="{{ $fieldPlaceholder }}"
+					rows="3"
+					x-data="{ value: {{ Js::from( $currentValue ?? '' ) }} }"
+					x-model="value"
+					x-on:change="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: value } )"
+				>{{ $currentValue ?? '' }}</textarea>
+				@if ( $fieldHint )
+					<p class="text-xs text-base-content/50 mt-1">{{ $fieldHint }}</p>
+				@endif
 			</div>
 			@break
 

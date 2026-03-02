@@ -25,7 +25,7 @@
 	{{-- Single-tab mode: render only the requested tab content without tab bar or padding wrapper --}}
 	@if ( $block )
 		@if ( 'settings' === $tab )
-			<div class="space-y-3">
+			<div class="space-y-3 p-1">
 				@if ( $block->hasCustomInspector() )
 					{!! $block->renderInspector( [ 'content' => [], 'styles' => [] ] ) !!}
 				@endif
@@ -67,7 +67,7 @@
 				</x-ve-panel-body>
 			@endif
 		@elseif ( 'styles' === $tab )
-			<div class="space-y-3">
+			<div class="space-y-3 p-1">
 				@foreach ( $supportsPanels as $panel )
 					<x-ve-panel-body :title="$panel['label']">
 						@foreach ( $panel['controls'] as $control )

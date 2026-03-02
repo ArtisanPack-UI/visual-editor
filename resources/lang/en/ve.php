@@ -166,6 +166,11 @@ return [
 	'zoom_reset'               => 'Reset zoom',
 	'zoom_level'               => 'Zoom: :level%',
 	'zoom_controls'            => 'Zoom controls',
+	'desktop'                  => 'Desktop',
+	'tablet'                   => 'Tablet',
+	'mobile'                   => 'Mobile',
+	'use_responsive'           => 'Use responsive values',
+	'use_global'               => 'Use global value',
 	'device_desktop'           => 'Desktop',
 	'device_tablet'            => 'Tablet',
 	'device_mobile'            => 'Mobile',
@@ -321,6 +326,10 @@ return [
 	'block_code_placeholder'      => 'Write code...',
 	'block_column_placeholder'    => 'Add blocks here...',
 	'block_group_placeholder'     => 'Add blocks here...',
+	'block_image_placeholder'     => 'Add an image',
+	'block_video_placeholder'     => 'Add a video',
+	'block_gallery_placeholder'   => 'Add images',
+	'caption_placeholder'         => 'Add caption...',
 
 	// Text Block Fields
 	'heading_level'   => 'Heading level',
@@ -350,8 +359,10 @@ return [
 	// Media Block Fields
 	'image_url'       => 'Image URL',
 	'alt_text'        => 'Alt text',
+	'alt_text_help'   => 'Describe the purpose of the image. Leave empty if decorative.',
 	'caption'         => 'Caption',
 	'link'            => 'Link',
+	'link_url'        => 'Link URL',
 	'link_target'     => 'Link target',
 	'same_window'     => 'Same window',
 	'new_window'      => 'New window',
@@ -377,7 +388,13 @@ return [
 	'caption_none'    => 'None',
 	'caption_below'   => 'Below image',
 	'caption_overlay' => 'Overlay',
-	'crop_images'     => 'Crop images',
+	'crop_images'        => 'Crop images',
+	'crop_images_to_fit' => 'Crop images to fit',
+	'randomize_order'    => 'Randomize order',
+	'resolution_hint'    => 'Select the size of the source images.',
+	'aspect_ratio_hint'  => 'Set a consistent aspect ratio for all images in the gallery.',
+	'add_images'         => 'Add',
+	'gallery_add_images' => 'Add images',
 	'video_url'       => 'Video URL',
 	'poster_image'    => 'Poster image',
 	'autoplay'        => 'Autoplay',
@@ -506,6 +523,29 @@ return [
 	'document_save_error'  => 'Error saving document',
 	'document_loading'     => 'Loading document...',
 	'autosave_draft_saved' => 'Autosave draft saved',
+
+	// Block Placeholder
+	'placeholder_upload'        => 'Upload',
+	'placeholder_media_library' => 'Media Library',
+	'placeholder_insert_url'    => 'Insert from URL',
+	'image_placeholder_desc'    => 'Upload an image, pick one from your media library, or add one with a URL.',
+	'video_placeholder_desc'    => 'Upload a video, pick one from your media library, or add one with a URL.',
+	'audio_placeholder_desc'    => 'Upload an audio file, pick one from your media library, or add one with a URL.',
+	'gallery_placeholder_desc'  => 'Upload images, pick from your media library, or add with URLs.',
+
+	// Image Block Dimensions
+	'original'    => 'Original',
+	'full_size'   => 'Full Size',
+	'thumbnail'   => 'Thumbnail',
+	'height'      => 'Height',
+	'resolution'  => 'Resolution',
+
+	// Image Block Toolbar
+	'add_link'    => 'Add link',
+	'edit_link'   => 'Edit link',
+	'remove_link' => 'Remove link',
+	'apply'       => 'Apply',
+	'cancel'      => 'Cancel',
 
 	// Media Picker
 	'select_media'       => 'Select media',

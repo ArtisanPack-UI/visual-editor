@@ -5,41 +5,63 @@
 	"description": "Display multiple images in a grid",
 	"icon": "squares-2x2",
 	"category": "media",
-	"keywords": ["images", "photos", "grid"],
+	"keywords": [
+		"images",
+		"photos",
+		"grid"
+	],
 	"version": 1,
 	"public": true,
 	"parent": null,
-	"allowedChildren": null,
+	"allowedChildren": [
+		"image"
+	],
 	"attributes": {
-		"images": {
-			"type": "array",
-			"source": "content",
-			"default": []
-		},
 		"linkBehavior": {
 			"type": "string",
 			"source": "content",
 			"default": "none"
 		},
 		"columns": {
-			"type": "string",
-			"source": "style",
-			"default": "3"
+			"type": "object",
+			"source": "content",
+			"default": {
+				"mode": "global",
+				"global": 3,
+				"desktop": 3,
+				"tablet": 2,
+				"mobile": 1
+			}
 		},
 		"gap": {
-			"type": "string",
-			"source": "style",
-			"default": "medium"
+			"type": "number",
+			"source": "content",
+			"default": 1
 		},
-		"captionDisplay": {
+		"resolution": {
 			"type": "string",
-			"source": "style",
-			"default": "below"
+			"source": "content",
+			"default": "full"
 		},
 		"crop": {
 			"type": "boolean",
-			"source": "style",
+			"source": "content",
 			"default": true
+		},
+		"randomizeOrder": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"openInNewTab": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"aspectRatio": {
+			"type": "string",
+			"source": "content",
+			"default": "original"
 		},
 		"align": {
 			"type": "string",
@@ -48,7 +70,10 @@
 		}
 	},
 	"supports": {
-		"align": ["wide", "full"],
+		"align": [
+			"wide",
+			"full"
+		],
 		"color": {
 			"text": false,
 			"background": false

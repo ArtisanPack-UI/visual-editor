@@ -1,17 +1,20 @@
 @php
-	$url       = $content['url'] ?? '';
-	$alt       = $content['alt'] ?? '';
-	$caption   = $content['caption'] ?? '';
-	$link      = $content['link'] ?? '';
-	$target    = $content['linkTarget'] ?? '_self';
-	$size      = $styles['size'] ?? 'large';
-	$alignment = $styles['alignment'] ?? 'center';
-	$rounded   = $styles['rounded'] ?? false;
-	$shadow    = $styles['shadow'] ?? false;
-	$objectFit = $styles['objectFit'] ?? 'cover';
-	$anchor    = $content['anchor'] ?? null;
-	$htmlId    = $content['htmlId'] ?? null;
-	$className = $content['className'] ?? '';
+	$url         = $content['url'] ?? '';
+	$alt         = $content['alt'] ?? '';
+	$caption     = $content['caption'] ?? '';
+	$link        = $content['link'] ?? '';
+	$target      = $content['linkTarget'] ?? '_self';
+	$size        = $styles['size'] ?? 'large';
+	$alignment   = $styles['alignment'] ?? 'center';
+	$rounded     = $styles['rounded'] ?? false;
+	$shadow      = $styles['shadow'] ?? false;
+	$objectFit   = $styles['objectFit'] ?? 'cover';
+	$aspectRatio = $styles['aspectRatio'] ?? 'original';
+	$imgWidth    = $styles['width'] ?? '';
+	$imgHeight   = $styles['height'] ?? '';
+	$anchor      = $content['anchor'] ?? null;
+	$htmlId      = $content['htmlId'] ?? null;
+	$className   = $content['className'] ?? '';
 
 	$elementId = $htmlId ?: $anchor;
 
@@ -27,6 +30,15 @@
 	}
 
 	$imgStyle = "object-fit: {$objectFit};";
+	if ( 'original' !== $aspectRatio ) {
+		$imgStyle .= " aspect-ratio: {$aspectRatio};";
+	}
+	if ( $imgWidth ) {
+		$imgStyle .= ' width: ' . ( is_numeric( $imgWidth ) ? $imgWidth . 'px' : $imgWidth ) . ';';
+	}
+	if ( $imgHeight ) {
+		$imgStyle .= ' height: ' . ( is_numeric( $imgHeight ) ? $imgHeight . 'px' : $imgHeight ) . ';';
+	}
 @endphp
 
 <figure

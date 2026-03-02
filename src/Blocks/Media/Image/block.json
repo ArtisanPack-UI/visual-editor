@@ -46,6 +46,26 @@
 			"source": "style",
 			"default": "center"
 		},
+		"aspectRatio": {
+			"type": "string",
+			"source": "style",
+			"default": "original"
+		},
+		"width": {
+			"type": "string",
+			"source": "style",
+			"default": ""
+		},
+		"height": {
+			"type": "string",
+			"source": "style",
+			"default": ""
+		},
+		"resolution": {
+			"type": "string",
+			"source": "style",
+			"default": "full"
+		},
 		"rounded": {
 			"type": "boolean",
 			"source": "style",

@@ -112,7 +112,7 @@
 		<div
 			id="{{ $uuid }}-settings-subpanel"
 			x-show="'settings' === activeBlockSubTab"
-			class="flex-1 overflow-y-auto"
+			class="flex-1 overflow-y-auto p-2"
 			role="tabpanel"
 			tabindex="0"
 			aria-labelledby="{{ $uuid }}-settings-subtab"
@@ -124,7 +124,7 @@
 		<div
 			id="{{ $uuid }}-styles-subpanel"
 			x-show="'styles' === activeBlockSubTab"
-			class="flex-1 overflow-y-auto"
+			class="flex-1 overflow-y-auto p-2"
 			role="tabpanel"
 			tabindex="0"
 			aria-labelledby="{{ $uuid }}-styles-subtab"
@@ -137,7 +137,7 @@
 	<div
 		id="{{ $uuid }}-document-panel"
 		x-show="'document' === activeTab"
-		class="flex-1 overflow-y-auto"
+		class="flex-1 overflow-y-auto p-2"
 		role="tabpanel"
 		tabindex="0"
 		aria-labelledby="{{ $uuid }}-document-tab"

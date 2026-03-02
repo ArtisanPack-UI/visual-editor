@@ -604,29 +604,54 @@
 						}
 					} );
 
-					document.addEventListener( 've-media-selected', ( e ) => {
+					if ( ! window.__veMediaSelectedRegistered ) {
+					window.__veMediaSelectedRegistered = true;
+					window.addEventListener( 've-media-selected', ( e ) => {
 						if ( e.detail && e.detail.media && e.detail.media.length ) {
 							this._announceAction( {{ Js::from( __( 'visual-editor::ve.media_selected' ) ) }} );
 						}
-					} );
 
-					Livewire.on( 'media-selected', ( ...args ) => {
-						let media = [];
-						if ( args[0] && Array.isArray( args[0].media ) ) {
-							media = args[0].media;
-						} else if ( Array.isArray( args[0] ) ) {
-							media = args[0];
+						// The media-picker Livewire component bridges
+						// Livewire 'media-selected' → window 've-media-selected'.
+						// This handler routes the event to the correct block field.
+						if ( ! e.detail || ! e.detail.context || ! e.detail.media?.length ) return;
+
+						const parts = e.detail.context.split( ':' );
+						if ( parts.length < 2 ) return;
+						const blockId   = parts[0];
+						const fieldSuffix = parts.slice( 1 ).join( ':' );
+
+						// Map known context suffixes to block fields.
+						const fieldMap = {
+							'image-url': 'url',
+							'video-url': 'url',
+							'audio-url': 'url',
+							'toolbar-replace': 'url',
+						};
+
+						// Gallery-add context: create inner image blocks instead of updating a field.
+						if ( 'gallery-add' === fieldSuffix && blockId ) {
+							e.detail.media.forEach( ( m ) => {
+								this.addInnerBlock( blockId, {
+									type: 'image',
+									attributes: {
+										url: m.url ?? m.path ?? '',
+										alt: m.alt ?? '',
+									},
+								} );
+							} );
+							return;
 						}
 
-						const context = window.__veMediaPickerContext || '';
-
-						if ( media.length ) {
-							window.__veMediaPickerContext = '';
-							window.dispatchEvent( new CustomEvent( 've-media-selected', {
-								detail: { media: media, context: context },
-							} ) );
+						const field = fieldMap[ fieldSuffix ];
+						if ( field && blockId ) {
+							const url = e.detail.media[0].url ?? e.detail.media[0].path ?? '';
+							if ( url ) {
+								this.updateBlock( blockId, { [field]: url } );
+							}
 						}
 					} );
+					} // end guard
 
 					document.addEventListener( 've-field-change', ( e ) => {
 						if ( ! e.detail ) return;
