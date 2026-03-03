@@ -2,10 +2,12 @@
 	$url      = $content['url'] ?? '';
 	$caption  = $content['caption'] ?? '';
 	$poster   = $content['poster'] ?? '';
-	$autoplay = $styles['autoplay'] ?? false;
-	$loop     = $styles['loop'] ?? false;
-	$muted    = $styles['muted'] ?? false;
-	$controls = $styles['controls'] ?? true;
+	$autoplay   = $content['autoplay'] ?? false;
+	$loop       = $content['loop'] ?? false;
+	$muted      = $content['muted'] ?? false;
+	$controls   = $content['controls'] ?? true;
+	$preload    = $content['preload'] ?? 'metadata';
+	$playInline = $content['playInline'] ?? false;
 	$anchor    = $content['anchor'] ?? null;
 	$htmlId    = $content['htmlId'] ?? null;
 	$className = $content['className'] ?? '';
@@ -42,6 +44,8 @@
 			@if ( $loop ) loop @endif
 			@if ( $muted ) muted @endif
 			@if ( $controls ) controls @endif
+			preload="{{ $preload }}"
+			@if ( $playInline ) playsinline @endif
 			style="width: 100%;"
 		></video>
 	@endif

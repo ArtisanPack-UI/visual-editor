@@ -46,21 +46,64 @@ class VideoBlock extends BaseBlock
 	public function getContentSchema(): array
 	{
 		return [
-			'url'     => [
-				'type'    => 'url',
+			'url'        => [
+				'type'    => 'media_picker',
 				'label'   => __( 'visual-editor::ve.video_url' ),
 				'default' => '',
 			],
-			'caption' => [
+			'caption'    => [
 				'type'    => 'rich_text',
 				'label'   => __( 'visual-editor::ve.caption' ),
 				'toolbar' => [ 'bold', 'italic', 'link' ],
 				'default' => '',
 			],
-			'poster'  => [
-				'type'    => 'url',
+			'autoplay'   => [
+				'type'    => 'toggle',
+				'label'   => __( 'visual-editor::ve.autoplay' ),
+				'default' => false,
+				'panel'   => __( 'visual-editor::ve.settings_tab' ),
+			],
+			'loop'       => [
+				'type'    => 'toggle',
+				'label'   => __( 'visual-editor::ve.loop' ),
+				'default' => false,
+				'panel'   => __( 'visual-editor::ve.settings_tab' ),
+			],
+			'muted'      => [
+				'type'    => 'toggle',
+				'label'   => __( 'visual-editor::ve.muted' ),
+				'default' => false,
+				'panel'   => __( 'visual-editor::ve.settings_tab' ),
+			],
+			'controls'   => [
+				'type'    => 'toggle',
+				'label'   => __( 'visual-editor::ve.playback_controls' ),
+				'default' => true,
+				'panel'   => __( 'visual-editor::ve.settings_tab' ),
+			],
+			'playInline' => [
+				'type'    => 'toggle',
+				'label'   => __( 'visual-editor::ve.play_inline' ),
+				'hint'    => __( 'visual-editor::ve.play_inline_hint' ),
+				'default' => false,
+				'panel'   => __( 'visual-editor::ve.settings_tab' ),
+			],
+			'preload'    => [
+				'type'    => 'select',
+				'label'   => __( 'visual-editor::ve.preload' ),
+				'options' => [
+					'auto'     => __( 'visual-editor::ve.preload_auto' ),
+					'metadata' => __( 'visual-editor::ve.preload_metadata' ),
+					'none'     => __( 'visual-editor::ve.preload_none' ),
+				],
+				'default' => 'metadata',
+				'panel'   => __( 'visual-editor::ve.settings_tab' ),
+			],
+			'poster'     => [
+				'type'    => 'media_picker',
 				'label'   => __( 'visual-editor::ve.poster_image' ),
 				'default' => '',
+				'panel'   => __( 'visual-editor::ve.settings_tab' ),
 			],
 		];
 	}
@@ -74,27 +117,6 @@ class VideoBlock extends BaseBlock
 	 */
 	public function getStyleSchema(): array
 	{
-		return [
-			'autoplay' => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.autoplay' ),
-				'default' => false,
-			],
-			'loop'     => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.loop' ),
-				'default' => false,
-			],
-			'muted'    => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.muted' ),
-				'default' => false,
-			],
-			'controls' => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.controls' ),
-				'default' => true,
-			],
-		];
+		return [];
 	}
 }

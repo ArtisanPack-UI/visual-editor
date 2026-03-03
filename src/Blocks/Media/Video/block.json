@@ -28,23 +28,33 @@
 		},
 		"autoplay": {
 			"type": "boolean",
-			"source": "style",
+			"source": "content",
 			"default": false
 		},
 		"loop": {
 			"type": "boolean",
-			"source": "style",
+			"source": "content",
 			"default": false
 		},
 		"muted": {
 			"type": "boolean",
-			"source": "style",
+			"source": "content",
 			"default": false
 		},
 		"controls": {
 			"type": "boolean",
-			"source": "style",
+			"source": "content",
 			"default": true
+		},
+		"preload": {
+			"type": "string",
+			"source": "content",
+			"default": "metadata"
+		},
+		"playInline": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
 		},
 		"align": {
 			"type": "string",
