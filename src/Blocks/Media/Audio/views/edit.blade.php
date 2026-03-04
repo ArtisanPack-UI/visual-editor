@@ -1,7 +1,9 @@
 @php
-	$url     = $content['url'] ?? '';
-	$caption = $content['caption'] ?? '';
-	$preload = $styles['preload'] ?? 'metadata';
+	$url      = $content['url'] ?? '';
+	$caption  = $content['caption'] ?? '';
+	$autoplay = $content['autoplay'] ?? false;
+	$loop     = $content['loop'] ?? false;
+	$preload  = $content['preload'] ?? '';
 
 	$classes  = 've-block ve-block-audio ve-block-editing';
 	$blockId  = $blockId ?? 'audio-' . uniqid();
@@ -51,9 +53,17 @@
 	"
 >
 	<template x-if="mode === 'audio'">
-		<audio controls preload="{{ $preload }}">
-			<source src="{{ $url }}">
-		</audio>
+		<div class="ve-block-audio__preview" style="position:relative;">
+			<audio
+				controls
+				src="{{ $url }}"
+				@if ( $preload ) preload="{{ $preload }}" @endif
+				@if ( $autoplay ) autoplay @endif
+				@if ( $loop ) loop @endif
+				style="width:100%;display:block;"
+			></audio>
+			<div style="position:absolute;inset:0;cursor:default;" aria-hidden="true"></div>
+		</div>
 	</template>
 
 	<template x-if="mode === 'placeholder'">

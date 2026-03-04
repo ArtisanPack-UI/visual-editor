@@ -23,22 +23,23 @@
 		},
 		"autoplay": {
 			"type": "boolean",
-			"source": "style",
+			"source": "content",
 			"default": false
 		},
 		"loop": {
 			"type": "boolean",
-			"source": "style",
+			"source": "content",
 			"default": false
 		},
 		"preload": {
 			"type": "string",
-			"source": "style",
-			"default": "metadata"
+			"source": "content",
+			"default": ""
 		}
 	},
 	"supports": {
 		"anchor": true,
-		"className": true
+		"className": true,
+		"align": ["wide", "full"]
 	}
 }

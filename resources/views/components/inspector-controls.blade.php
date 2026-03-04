@@ -10,9 +10,14 @@
 	$styleSchema = array_diff_key( $styleSchema, array_flip( $supportsCoveredFields ) );
 
 	// Group content schema fields by their optional 'panel' key.
+	// Fields with 'inspector' => false are managed in the edit view and excluded here.
 	$panelGroups     = [];
 	$ungroupedFields = [];
 	foreach ( $contentSchema as $fieldName => $fieldSchema ) {
+		if ( isset( $fieldSchema['inspector'] ) && false === $fieldSchema['inspector'] ) {
+			continue;
+		}
+
 		if ( isset( $fieldSchema['panel'] ) ) {
 			$panelGroups[ $fieldSchema['panel'] ][ $fieldName ] = $fieldSchema;
 		} else {

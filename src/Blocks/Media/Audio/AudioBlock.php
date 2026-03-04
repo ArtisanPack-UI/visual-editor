@@ -45,16 +45,43 @@ class AudioBlock extends BaseBlock
 	public function getContentSchema(): array
 	{
 		return [
-			'url'     => [
-				'type'    => 'url',
-				'label'   => __( 'visual-editor::ve.audio_url' ),
-				'default' => '',
+			'url'      => [
+				'type'      => 'url',
+				'label'     => __( 'visual-editor::ve.audio_url' ),
+				'default'   => '',
+				'inspector' => false,
 			],
-			'caption' => [
-				'type'    => 'rich_text',
-				'label'   => __( 'visual-editor::ve.caption' ),
-				'toolbar' => [ 'bold', 'italic', 'link' ],
+			'caption'  => [
+				'type'      => 'rich_text',
+				'label'     => __( 'visual-editor::ve.caption' ),
+				'toolbar'   => [ 'bold', 'italic', 'link' ],
+				'default'   => '',
+				'inspector' => false,
+			],
+			'autoplay' => [
+				'type'    => 'toggle',
+				'label'   => __( 'visual-editor::ve.autoplay' ),
+				'hint'    => __( 'visual-editor::ve.autoplay_hint' ),
+				'default' => false,
+				'panel'   => __( 'visual-editor::ve.settings_tab' ),
+			],
+			'loop'     => [
+				'type'    => 'toggle',
+				'label'   => __( 'visual-editor::ve.loop' ),
+				'default' => false,
+				'panel'   => __( 'visual-editor::ve.settings_tab' ),
+			],
+			'preload'  => [
+				'type'    => 'select',
+				'label'   => __( 'visual-editor::ve.preload' ),
+				'options' => [
+					''         => __( 'visual-editor::ve.preload_browser_default' ),
+					'auto'     => __( 'visual-editor::ve.preload_auto' ),
+					'metadata' => __( 'visual-editor::ve.preload_metadata' ),
+					'none'     => __( 'visual-editor::ve.preload_none' ),
+				],
 				'default' => '',
+				'panel'   => __( 'visual-editor::ve.settings_tab' ),
 			],
 		];
 	}
@@ -68,27 +95,6 @@ class AudioBlock extends BaseBlock
 	 */
 	public function getStyleSchema(): array
 	{
-		return [
-			'autoplay' => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.autoplay' ),
-				'default' => false,
-			],
-			'loop'     => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.loop' ),
-				'default' => false,
-			],
-			'preload'  => [
-				'type'    => 'select',
-				'label'   => __( 'visual-editor::ve.preload' ),
-				'options' => [
-					'auto'     => 'Auto',
-					'metadata' => 'Metadata',
-					'none'     => __( 'visual-editor::ve.none' ),
-				],
-				'default' => 'metadata',
-			],
-		];
+		return [];
 	}
 }

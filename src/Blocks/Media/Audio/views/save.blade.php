@@ -1,9 +1,9 @@
 @php
 	$url       = $content['url'] ?? '';
 	$caption   = $content['caption'] ?? '';
-	$autoplay  = $styles['autoplay'] ?? false;
-	$loop      = $styles['loop'] ?? false;
-	$preload   = $styles['preload'] ?? 'metadata';
+	$autoplay  = $content['autoplay'] ?? false;
+	$loop      = $content['loop'] ?? false;
+	$preload   = $content['preload'] ?? '';
 	$anchor    = $content['anchor'] ?? null;
 	$htmlId    = $content['htmlId'] ?? null;
 	$className = $content['className'] ?? '';
@@ -23,12 +23,11 @@
 	@if ( $url )
 		<audio
 			controls
-			preload="{{ $preload }}"
+			src="{{ $url }}"
+			@if ( $preload ) preload="{{ $preload }}" @endif
 			@if ( $autoplay ) autoplay @endif
 			@if ( $loop ) loop @endif
-		>
-			<source src="{{ $url }}">
-		</audio>
+		></audio>
 	@endif
 	@if ( $caption )
 		<figcaption class="ve-audio-caption">{!! $caption !!}</figcaption>
