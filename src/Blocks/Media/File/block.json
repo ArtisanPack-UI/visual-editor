@@ -26,10 +26,30 @@
 			"source": "content",
 			"default": ""
 		},
+		"downloadButtonText": {
+			"type": "string",
+			"source": "content",
+			"default": "Download"
+		},
 		"showDownloadButton": {
 			"type": "boolean",
 			"source": "style",
 			"default": true
+		},
+		"openInNewTab": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"displayPreview": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"previewHeight": {
+			"type": "integer",
+			"source": "style",
+			"default": 600
 		}
 	},
 	"supports": {

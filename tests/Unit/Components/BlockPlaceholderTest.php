@@ -40,11 +40,12 @@ test( 'block placeholder icon svg falls back to photo for unknown icon', functio
 	expect( $component->iconSvg() )->toBe( BlockPlaceholder::ICON_MAP['photo'] );
 } );
 
-test( 'block placeholder icon map has photo video music and images keys', function (): void {
+test( 'block placeholder icon map has photo video music images and document keys', function (): void {
 	expect( BlockPlaceholder::ICON_MAP )->toHaveKey( 'photo' );
 	expect( BlockPlaceholder::ICON_MAP )->toHaveKey( 'video' );
 	expect( BlockPlaceholder::ICON_MAP )->toHaveKey( 'music' );
 	expect( BlockPlaceholder::ICON_MAP )->toHaveKey( 'images' );
+	expect( BlockPlaceholder::ICON_MAP )->toHaveKey( 'document' );
 } );
 
 test( 'block placeholder generates unique uuid', function (): void {

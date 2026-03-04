@@ -643,6 +643,39 @@
 							return;
 						}
 
+						// File blocks: also populate filename and fileSize from the media item.
+						if ( 'file-url' === fieldSuffix && blockId ) {
+							const m   = e.detail.media[0];
+							const url = m.url ?? m.path ?? '';
+							if ( url ) {
+								const attrs = { url: url };
+
+								// Derive filename from media item or URL.
+								if ( m.file_name ) {
+									attrs.filename = m.file_name;
+								} else if ( m.title ) {
+									attrs.filename = m.title;
+								} else {
+									attrs.filename = url.split( '/' ).pop().split( '?' )[0] || '';
+								}
+
+								// Human-readable file size from bytes.
+								if ( m.file_size ) {
+									const bytes = parseInt( m.file_size, 10 );
+									if ( bytes >= 1048576 ) {
+										attrs.fileSize = ( bytes / 1048576 ).toFixed( 1 ) + ' MB';
+									} else if ( bytes >= 1024 ) {
+										attrs.fileSize = ( bytes / 1024 ).toFixed( 0 ) + ' KB';
+									} else {
+										attrs.fileSize = bytes + ' B';
+									}
+								}
+
+								this.updateBlock( blockId, attrs );
+							}
+							return;
+						}
+
 						const field = fieldMap[ fieldSuffix ];
 						if ( field && blockId ) {
 							const url = e.detail.media[0].url ?? e.detail.media[0].path ?? '';

@@ -45,20 +45,43 @@ class FileBlock extends BaseBlock
 	public function getContentSchema(): array
 	{
 		return [
-			'url'      => [
-				'type'    => 'url',
+			'url'                => [
+				'type'    => 'media_picker',
 				'label'   => __( 'visual-editor::ve.file_url' ),
 				'default' => '',
 			],
-			'filename' => [
+			'downloadButtonText' => [
 				'type'    => 'text',
-				'label'   => __( 'visual-editor::ve.filename' ),
-				'default' => '',
+				'label'   => __( 'visual-editor::ve.download_button_text' ),
+				'default' => 'Download',
 			],
-			'fileSize' => [
-				'type'    => 'text',
-				'label'   => __( 'visual-editor::ve.file_size' ),
-				'default' => '',
+			'showDownloadButton' => [
+				'type'    => 'toggle',
+				'label'   => __( 'visual-editor::ve.show_download' ),
+				'default' => true,
+				'panel'   => __( 'visual-editor::ve.settings_tab' ),
+			],
+			'openInNewTab'       => [
+				'type'    => 'toggle',
+				'label'   => __( 'visual-editor::ve.open_in_new_tab' ),
+				'default' => false,
+				'panel'   => __( 'visual-editor::ve.settings_tab' ),
+			],
+			'displayPreview'     => [
+				'type'    => 'toggle',
+				'label'   => __( 'visual-editor::ve.display_pdf_preview' ),
+				'default' => false,
+				'panel'   => __( 'visual-editor::ve.settings_tab' ),
+			],
+			'previewHeight'      => [
+				'type'    => 'range',
+				'label'   => __( 'visual-editor::ve.pdf_preview_height' ),
+				'hint'    => __( 'visual-editor::ve.pdf_preview_height_hint' ),
+				'default' => 600,
+				'min'     => 200,
+				'max'     => 2000,
+				'step'    => 10,
+				'panel'   => __( 'visual-editor::ve.settings_tab' ),
 			],
 		];
 	}
@@ -72,12 +95,6 @@ class FileBlock extends BaseBlock
 	 */
 	public function getStyleSchema(): array
 	{
-		return [
-			'showDownloadButton' => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.show_download' ),
-				'default' => true,
-			],
-		];
+		return [];
 	}
 }

@@ -412,8 +412,12 @@ return [
 	'file_url'        => 'File URL',
 	'filename'        => 'Filename',
 	'file_size_label' => 'File size',
-	'show_download'   => 'Show download button',
-	'download'        => 'Download',
+	'show_download'        => 'Show download button',
+	'download'             => 'Download',
+	'download_button_text' => 'Download button text',
+	'display_pdf_preview'  => 'Show inline embed',
+	'pdf_preview_height'   => 'Height in pixels',
+	'pdf_preview_height_hint' => 'Height of the inline PDF preview embed.',
 
 	// Layout Block Fields
 	'number_of_columns'    => 'Number of columns',
@@ -535,6 +539,8 @@ return [
 	'video_placeholder_desc'    => 'Upload a video, pick one from your media library, or add one with a URL.',
 	'audio_placeholder_desc'    => 'Upload an audio file, pick one from your media library, or add one with a URL.',
 	'gallery_placeholder_desc'  => 'Upload images, pick from your media library, or add with URLs.',
+	'file_placeholder_desc'     => 'Upload a file, pick one from your media library, or add one with a URL.',
+	'filename_placeholder'      => 'Add filename...',
 
 	// Image Block Dimensions
 	'original'    => 'Original',
