@@ -11,7 +11,7 @@ test( 'group block has correct type and category', function (): void {
 	expect( $block->getCategory() )->toBe( 'layout' );
 } );
 
-test( 'group block content schema has tag field', function (): void {
+test( 'group block content schema has tag field with header and footer options', function (): void {
 	$block  = new GroupBlock();
 	$schema = $block->getContentSchema();
 
@@ -19,24 +19,72 @@ test( 'group block content schema has tag field', function (): void {
 	expect( $schema['tag']['type'] )->toBe( 'select' );
 	expect( $schema['tag']['options'] )->toHaveKey( 'div' );
 	expect( $schema['tag']['options'] )->toHaveKey( 'section' );
+	expect( $schema['tag']['options'] )->toHaveKey( 'header' );
+	expect( $schema['tag']['options'] )->toHaveKey( 'footer' );
 } );
 
-test( 'group block content schema has flexDirection field', function (): void {
+test( 'group block content schema has flexDirection field with inspector false', function (): void {
 	$block  = new GroupBlock();
 	$schema = $block->getContentSchema();
 
 	expect( $schema )->toHaveKey( 'flexDirection' );
 	expect( $schema['flexDirection']['type'] )->toBe( 'select' );
 	expect( $schema['flexDirection']['default'] )->toBe( 'column' );
+	expect( $schema['flexDirection']['inspector'] )->toBeFalse();
 } );
 
-test( 'group block content schema has flexWrap field', function (): void {
+test( 'group block content schema has flexWrap field with inspector false', function (): void {
 	$block  = new GroupBlock();
 	$schema = $block->getContentSchema();
 
 	expect( $schema )->toHaveKey( 'flexWrap' );
 	expect( $schema['flexWrap']['type'] )->toBe( 'select' );
 	expect( $schema['flexWrap']['default'] )->toBe( 'nowrap' );
+	expect( $schema['flexWrap']['inspector'] )->toBeFalse();
+} );
+
+test( 'group block content schema has justifyContent field with inspector false', function (): void {
+	$block  = new GroupBlock();
+	$schema = $block->getContentSchema();
+
+	expect( $schema )->toHaveKey( 'justifyContent' );
+	expect( $schema['justifyContent']['type'] )->toBe( 'select' );
+	expect( $schema['justifyContent']['default'] )->toBe( 'flex-start' );
+	expect( $schema['justifyContent']['options'] )->toHaveKey( 'flex-start' );
+	expect( $schema['justifyContent']['options'] )->toHaveKey( 'center' );
+	expect( $schema['justifyContent']['options'] )->toHaveKey( 'flex-end' );
+	expect( $schema['justifyContent']['options'] )->toHaveKey( 'space-between' );
+	expect( $schema['justifyContent']['inspector'] )->toBeFalse();
+} );
+
+test( 'group block content schema has useContentWidth field', function (): void {
+	$block  = new GroupBlock();
+	$schema = $block->getContentSchema();
+
+	expect( $schema )->toHaveKey( 'useContentWidth' );
+	expect( $schema['useContentWidth']['type'] )->toBe( 'toggle' );
+	expect( $schema['useContentWidth']['default'] )->toBeFalse();
+	expect( $schema['useContentWidth']['inspector'] )->toBeFalse();
+} );
+
+test( 'group block content schema has contentWidth field', function (): void {
+	$block  = new GroupBlock();
+	$schema = $block->getContentSchema();
+
+	expect( $schema )->toHaveKey( 'contentWidth' );
+	expect( $schema['contentWidth']['type'] )->toBe( 'text' );
+	expect( $schema['contentWidth']['default'] )->toBe( '' );
+	expect( $schema['contentWidth']['inspector'] )->toBeFalse();
+} );
+
+test( 'group block content schema has wideWidth field', function (): void {
+	$block  = new GroupBlock();
+	$schema = $block->getContentSchema();
+
+	expect( $schema )->toHaveKey( 'wideWidth' );
+	expect( $schema['wideWidth']['type'] )->toBe( 'text' );
+	expect( $schema['wideWidth']['default'] )->toBe( '' );
+	expect( $schema['wideWidth']['inspector'] )->toBeFalse();
 } );
 
 test( 'group block style schema has all expected fields', function (): void {
@@ -50,6 +98,36 @@ test( 'group block style schema has all expected fields', function (): void {
 	expect( $schema['border']['type'] )->toBe( 'border' );
 	expect( $schema )->toHaveKey( 'minHeight' );
 	expect( $schema )->toHaveKey( 'verticalAlignment' );
+} );
+
+test( 'group block style schema has useFlexbox field', function (): void {
+	$block  = new GroupBlock();
+	$schema = $block->getStyleSchema();
+
+	expect( $schema )->toHaveKey( 'useFlexbox' );
+	expect( $schema['useFlexbox']['type'] )->toBe( 'toggle' );
+	expect( $schema['useFlexbox']['default'] )->toBeFalse();
+	expect( $schema['useFlexbox']['inspector'] )->toBeFalse();
+} );
+
+test( 'group block style schema has fillHeight field', function (): void {
+	$block  = new GroupBlock();
+	$schema = $block->getStyleSchema();
+
+	expect( $schema )->toHaveKey( 'fillHeight' );
+	expect( $schema['fillHeight']['type'] )->toBe( 'toggle' );
+	expect( $schema['fillHeight']['default'] )->toBeFalse();
+	expect( $schema['fillHeight']['inspector'] )->toBeFalse();
+} );
+
+test( 'group block style schema has innerSpacing field', function (): void {
+	$block  = new GroupBlock();
+	$schema = $block->getStyleSchema();
+
+	expect( $schema )->toHaveKey( 'innerSpacing' );
+	expect( $schema['innerSpacing']['type'] )->toBe( 'select' );
+	expect( $schema['innerSpacing']['default'] )->toBe( 'normal' );
+	expect( $schema['innerSpacing']['inspector'] )->toBeFalse();
 } );
 
 test( 'group block defaults to div tag', function (): void {
@@ -127,6 +205,91 @@ test( 'group block row variation has row flex direction', function (): void {
 	expect( $row['attributes']['flexDirection'] )->toBe( 'row' );
 } );
 
+test( 'group block style schema has textColor field', function (): void {
+	$block  = new GroupBlock();
+	$schema = $block->getStyleSchema();
+
+	expect( $schema )->toHaveKey( 'textColor' );
+	expect( $schema['textColor']['type'] )->toBe( 'color' );
+	expect( $schema['textColor']['default'] )->toBeNull();
+} );
+
+test( 'group block style schema has gap field', function (): void {
+	$block  = new GroupBlock();
+	$schema = $block->getStyleSchema();
+
+	expect( $schema )->toHaveKey( 'gap' );
+	expect( $schema['gap']['type'] )->toBe( 'text' );
+	expect( $schema['gap']['default'] )->toBeNull();
+} );
+
+test( 'group block renders with text color', function (): void {
+	$block  = new GroupBlock();
+	$output = $block->render(
+		[ 'tag' => 'div' ],
+		[ 'textColor' => '#333333', 'verticalAlignment' => 'top' ],
+	);
+
+	expect( $output )->toContain( 'color: #333333' );
+} );
+
+test( 'group block renders with justify content', function (): void {
+	$block  = new GroupBlock();
+	$output = $block->render(
+		[ 'tag' => 'div', 'flexDirection' => 'row', 'justifyContent' => 'center' ],
+		[ 'verticalAlignment' => 'top' ],
+	);
+
+	expect( $output )->toContain( 'justify-content: center' );
+} );
+
+test( 'group block renders with gap', function (): void {
+	$block  = new GroupBlock();
+	$output = $block->render(
+		[ 'tag' => 'div' ],
+		[ 'gap' => '1rem', 'verticalAlignment' => 'top' ],
+	);
+
+	expect( $output )->toContain( 'gap: 1rem' );
+} );
+
+test( 'group block supports color text', function (): void {
+	$block = new GroupBlock();
+
+	expect( $block->supportsFeature( 'color.text' ) )->toBeTrue();
+} );
+
+test( 'group block supports spacing block gap', function (): void {
+	$block = new GroupBlock();
+
+	expect( $block->supportsFeature( 'spacing.blockGap' ) )->toBeTrue();
+} );
+
+test( 'group block row variation includes justify content', function (): void {
+	$block      = new GroupBlock();
+	$variations = $block->getVariations();
+	$row        = array_values( array_filter( $variations, fn ( $v ) => 'row' === $v['name'] ) )[0];
+
+	expect( $row['attributes'] )->toHaveKey( 'justifyContent' );
+	expect( $row['attributes']['justifyContent'] )->toBe( 'flex-start' );
+} );
+
+test( 'group block renders with header tag', function (): void {
+	$block  = new GroupBlock();
+	$output = $block->render( [ 'tag' => 'header' ], [ 'verticalAlignment' => 'top' ] );
+
+	expect( $output )->toContain( '<header' );
+	expect( $output )->toContain( '</header>' );
+} );
+
+test( 'group block renders with footer tag', function (): void {
+	$block  = new GroupBlock();
+	$output = $block->render( [ 'tag' => 'footer' ], [ 'verticalAlignment' => 'top' ] );
+
+	expect( $output )->toContain( '<footer' );
+	expect( $output )->toContain( '</footer>' );
+} );
+
 test( 'group block has keywords', function (): void {
 	$block = new GroupBlock();
 
@@ -157,4 +320,34 @@ test( 'group block active style supports include shadow dimensions and backgroun
 	expect( $active )->toContain( 'background.backgroundSize' );
 	expect( $active )->toContain( 'background.backgroundPosition' );
 	expect( $active )->toContain( 'background.backgroundGradient' );
+} );
+
+test( 'group block renders with fill height', function (): void {
+	$block  = new GroupBlock();
+	$output = $block->render(
+		[ 'tag' => 'div' ],
+		[ 'verticalAlignment' => 'top', 'fillHeight' => true ],
+	);
+
+	expect( $output )->toContain( 'height: 100%' );
+} );
+
+test( 'group block renders with useFlexbox and innerSpacing large', function (): void {
+	$block  = new GroupBlock();
+	$output = $block->render(
+		[ 'tag' => 'div' ],
+		[ 'verticalAlignment' => 'top', 'useFlexbox' => true, 'innerSpacing' => 'large' ],
+	);
+
+	expect( $output )->toContain( 'gap: 2rem' );
+} );
+
+test( 'group block renders with useFlexbox and innerSpacing none', function (): void {
+	$block  = new GroupBlock();
+	$output = $block->render(
+		[ 'tag' => 'div' ],
+		[ 'verticalAlignment' => 'top', 'useFlexbox' => true, 'innerSpacing' => 'none' ],
+	);
+
+	expect( $output )->toContain( 'gap: 0' );
 } );

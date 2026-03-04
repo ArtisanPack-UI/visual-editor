@@ -26,7 +26,8 @@
 			"isDefault": false,
 			"attributes": {
 				"flexDirection": "row",
-				"flexWrap": "nowrap"
+				"flexWrap": "nowrap",
+				"justifyContent": "flex-start"
 			}
 		},
 		{
@@ -54,6 +55,31 @@
 			"type": "string",
 			"source": "content",
 			"default": "nowrap"
+		},
+		"justifyContent": {
+			"type": "string",
+			"source": "content",
+			"default": "flex-start"
+		},
+		"useContentWidth": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"contentWidth": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"wideWidth": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
 		},
 		"backgroundColor": {
 			"type": "string",
@@ -94,16 +120,36 @@
 			"source": "style",
 			"default": "top"
 		},
+		"gap": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
 		"align": {
 			"type": "string",
 			"source": "style",
 			"default": "none"
+		},
+		"useFlexbox": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"fillHeight": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"innerSpacing": {
+			"type": "string",
+			"source": "style",
+			"default": "normal"
 		}
 	},
 	"supports": {
 		"align": ["wide", "full"],
 		"color": {
-			"text": false,
+			"text": true,
 			"background": true
 		},
 		"typography": {
@@ -112,7 +158,8 @@
 		},
 		"spacing": {
 			"margin": true,
-			"padding": true
+			"padding": true,
+			"blockGap": true
 		},
 		"border": true,
 		"shadow": true,

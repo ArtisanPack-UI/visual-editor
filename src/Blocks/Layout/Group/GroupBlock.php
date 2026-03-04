@@ -46,7 +46,7 @@ class GroupBlock extends BaseBlock
 	public function getContentSchema(): array
 	{
 		return [
-			'tag'           => [
+			'tag'              => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.html_tag' ),
 				'options' => [
@@ -55,26 +55,61 @@ class GroupBlock extends BaseBlock
 					'article' => 'article',
 					'aside'   => 'aside',
 					'main'    => 'main',
+					'header'  => 'header',
+					'footer'  => 'footer',
 				],
 				'default' => 'div',
 			],
-			'flexDirection' => [
-				'type'    => 'select',
-				'label'   => __( 'visual-editor::ve.flex_direction' ),
-				'options' => [
+			'flexDirection'    => [
+				'type'      => 'select',
+				'label'     => __( 'visual-editor::ve.flex_direction' ),
+				'options'   => [
 					'column' => __( 'visual-editor::ve.flex_column' ),
 					'row'    => __( 'visual-editor::ve.flex_row' ),
 				],
-				'default' => 'column',
+				'default'   => 'column',
+				'inspector' => false,
 			],
-			'flexWrap'      => [
-				'type'    => 'select',
-				'label'   => __( 'visual-editor::ve.flex_wrap' ),
-				'options' => [
+			'flexWrap'         => [
+				'type'      => 'select',
+				'label'     => __( 'visual-editor::ve.flex_wrap' ),
+				'options'   => [
 					'nowrap' => __( 'visual-editor::ve.no_wrap' ),
 					'wrap'   => __( 'visual-editor::ve.wrap' ),
 				],
-				'default' => 'nowrap',
+				'default'   => 'nowrap',
+				'inspector' => false,
+			],
+			'justifyContent'   => [
+				'type'      => 'select',
+				'label'     => __( 'visual-editor::ve.justify_content' ),
+				'options'   => [
+					'flex-start'    => __( 'visual-editor::ve.justify_start' ),
+					'center'        => __( 'visual-editor::ve.justify_center' ),
+					'flex-end'      => __( 'visual-editor::ve.justify_end' ),
+					'space-between' => __( 'visual-editor::ve.justify_space_between' ),
+				],
+				'default'   => 'flex-start',
+				'inspector' => false,
+			],
+			'useContentWidth'  => [
+				'type'      => 'toggle',
+				'label'     => __( 'visual-editor::ve.use_content_width' ),
+				'hint'      => __( 'visual-editor::ve.use_content_width_hint' ),
+				'default'   => false,
+				'inspector' => false,
+			],
+			'contentWidth'     => [
+				'type'      => 'text',
+				'label'     => __( 'visual-editor::ve.content_width' ),
+				'default'   => '',
+				'inspector' => false,
+			],
+			'wideWidth'        => [
+				'type'      => 'text',
+				'label'     => __( 'visual-editor::ve.wide_width_label' ),
+				'default'   => '',
+				'inspector' => false,
 			],
 		];
 	}
@@ -106,8 +141,9 @@ class GroupBlock extends BaseBlock
 				'description' => __( 'visual-editor::ve.variation_row_desc' ),
 				'icon'        => 'bars-3',
 				'attributes'  => [
-					'flexDirection' => 'row',
-					'flexWrap'      => 'nowrap',
+					'flexDirection'  => 'row',
+					'flexWrap'       => 'nowrap',
+					'justifyContent' => 'flex-start',
 				],
 				'isDefault'   => false,
 			],
@@ -135,6 +171,11 @@ class GroupBlock extends BaseBlock
 	public function getStyleSchema(): array
 	{
 		return [
+			'textColor'         => [
+				'type'    => 'color',
+				'label'   => __( 'visual-editor::ve.text_color' ),
+				'default' => null,
+			],
 			'backgroundColor'   => [
 				'type'    => 'color',
 				'label'   => __( 'visual-editor::ve.background_color' ),
@@ -181,6 +222,36 @@ class GroupBlock extends BaseBlock
 					'stretch' => __( 'visual-editor::ve.stretch' ),
 				],
 				'default' => 'top',
+			],
+			'gap'               => [
+				'type'    => 'text',
+				'label'   => __( 'visual-editor::ve.block_spacing' ),
+				'default' => null,
+			],
+			'useFlexbox'        => [
+				'type'      => 'toggle',
+				'label'     => __( 'visual-editor::ve.use_flexbox' ),
+				'default'   => false,
+				'inspector' => false,
+			],
+			'fillHeight'        => [
+				'type'      => 'toggle',
+				'label'     => __( 'visual-editor::ve.fill_height' ),
+				'default'   => false,
+				'inspector' => false,
+			],
+			'innerSpacing'      => [
+				'type'      => 'select',
+				'label'     => __( 'visual-editor::ve.inner_spacing' ),
+				'options'   => [
+					'none'   => __( 'visual-editor::ve.none' ),
+					'small'  => __( 'visual-editor::ve.small' ),
+					'normal' => __( 'visual-editor::ve.normal_spacing' ),
+					'medium' => __( 'visual-editor::ve.medium' ),
+					'large'  => __( 'visual-editor::ve.large' ),
+				],
+				'default'   => 'normal',
+				'inspector' => false,
 			],
 		];
 	}

@@ -9,6 +9,11 @@
 	// Remove style fields already rendered by supports panels to avoid duplication.
 	$styleSchema = array_diff_key( $styleSchema, array_flip( $supportsCoveredFields ) );
 
+	// Remove style fields with 'inspector' => false (managed in custom panels).
+	$styleSchema = array_filter( $styleSchema, function ( $field ) {
+		return ! ( isset( $field['inspector'] ) && false === $field['inspector'] );
+	} );
+
 	// Group content schema fields by their optional 'panel' key.
 	// Fields with 'inspector' => false are managed in the edit view and excluded here.
 	$panelGroups     = [];
