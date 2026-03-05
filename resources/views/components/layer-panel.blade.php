@@ -24,6 +24,26 @@
 			return Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).blocks : [];
 		},
 
+		/**
+		 * Flatten the block tree into a list with depth information.
+		 * This avoids Alpine.js deep reactivity issues with nested
+		 * x-for / x-if templates that don't re-evaluate when deeply
+		 * nested innerBlocks change.
+		 */
+		get flatBlocks() {
+			const list = [];
+			const walk = ( blocks, depth, parentId ) => {
+				blocks.forEach( ( block ) => {
+					list.push( { block, depth, parentId } );
+					if ( block.innerBlocks && block.innerBlocks.length > 0 ) {
+						walk( block.innerBlocks, depth + 1, block.id );
+					}
+				} );
+			};
+			walk( this.blocks, 0, null );
+			return list;
+		},
+
 		get headings() {
 			return this.blocks.filter( ( b ) => 'heading' === b.type );
 		},
@@ -90,6 +110,9 @@
 				code: '</>',
 				table: '▦',
 				separator: '—',
+				columns: '▥',
+				column: '▐',
+				group: '☐',
 			};
 			return icons[ block.type ] || '◻';
 		},
@@ -226,58 +249,28 @@
 		aria-labelledby="{{ $uuid }}-list-tab"
 	>
 		<div class="py-1">
-			<template x-for="( block, index ) in blocks" :key="block.id">
-				<div>
-					<div
-						draggable="true"
-						style="-webkit-user-drag: element; user-select: none;"
-						class="w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm hover:bg-base-200 transition-colors cursor-grab active:cursor-grabbing"
-						:class="{
-							'bg-primary/10 text-primary': Alpine.store( 'selection' )?.focused === block.id,
-							'text-base-content/70': Alpine.store( 'selection' )?.focused !== block.id,
-							'border-t-2 border-primary': layerDragOverId === block.id && layerDraggingId !== block.id,
-						}"
-						x-on:click="selectBlock( block.id )"
-						x-on:dragstart="handleLayerDragStart( $event, block, null )"
-						x-on:dragend="handleLayerDragEnd( $event )"
-						x-on:dragover="handleLayerDragOver( $event, block )"
-						x-on:dragleave="layerDragOverId = null"
-						x-on:drop="handleLayerDrop( $event, block, null )"
-						role="button"
-						tabindex="0"
-					>
-						<span class="w-5 text-center text-xs opacity-50 shrink-0 pointer-events-none" x-text="getBlockIcon( block )"></span>
-						<span class="truncate pointer-events-none" x-text="getBlockLabel( block )"></span>
-					</div>
-
-					{{-- Nested inner blocks --}}
-					<template x-if="block.innerBlocks && block.innerBlocks.length > 0">
-						<div>
-							<template x-for="innerBlock in block.innerBlocks" :key="innerBlock.id">
-								<div
-									draggable="true"
-									style="-webkit-user-drag: element; user-select: none;"
-									class="w-full text-left pl-8 pr-3 py-1.5 flex items-center gap-2 text-sm hover:bg-base-200 transition-colors cursor-grab active:cursor-grabbing"
-									:class="{
-										'bg-primary/10 text-primary': Alpine.store( 'selection' )?.focused === innerBlock.id,
-										'text-base-content/70': Alpine.store( 'selection' )?.focused !== innerBlock.id,
-										'border-t-2 border-primary': layerDragOverId === innerBlock.id && layerDraggingId !== innerBlock.id,
-									}"
-									x-on:click="selectBlock( innerBlock.id )"
-									x-on:dragstart.stop="handleLayerDragStart( $event, innerBlock, block.id )"
-									x-on:dragend="handleLayerDragEnd( $event )"
-									x-on:dragover="handleLayerDragOver( $event, innerBlock )"
-									x-on:dragleave="layerDragOverId = null"
-									x-on:drop="handleLayerDrop( $event, innerBlock, block.id )"
-									role="button"
-									tabindex="0"
-								>
-									<span class="w-5 text-center text-xs opacity-50 shrink-0 pointer-events-none" x-text="getBlockIcon( innerBlock )"></span>
-									<span class="truncate pointer-events-none" x-text="getBlockLabel( innerBlock )"></span>
-								</div>
-							</template>
-						</div>
-					</template>
+			<template x-for="entry in flatBlocks" :key="entry.block.id">
+				<div
+					draggable="true"
+					style="-webkit-user-drag: element; user-select: none;"
+					class="w-full text-left pr-3 py-1.5 flex items-center gap-2 text-sm hover:bg-base-200 transition-colors cursor-grab active:cursor-grabbing"
+					:style="'padding-left: ' + ( 0.75 + entry.depth * 1.25 ) + 'rem'"
+					:class="{
+						'bg-primary/10 text-primary': Alpine.store( 'selection' )?.focused === entry.block.id,
+						'text-base-content/70': Alpine.store( 'selection' )?.focused !== entry.block.id,
+						'border-t-2 border-primary': layerDragOverId === entry.block.id && layerDraggingId !== entry.block.id,
+					}"
+					x-on:click="selectBlock( entry.block.id )"
+					x-on:dragstart.stop="handleLayerDragStart( $event, entry.block, entry.parentId )"
+					x-on:dragend="handleLayerDragEnd( $event )"
+					x-on:dragover="handleLayerDragOver( $event, entry.block )"
+					x-on:dragleave="layerDragOverId = null"
+					x-on:drop="handleLayerDrop( $event, entry.block, entry.parentId )"
+					role="button"
+					tabindex="0"
+				>
+					<span class="w-5 text-center text-xs opacity-50 shrink-0 pointer-events-none" x-text="getBlockIcon( entry.block )"></span>
+					<span class="truncate pointer-events-none" x-text="getBlockLabel( entry.block )"></span>
 				</div>
 			</template>
 		</div>
