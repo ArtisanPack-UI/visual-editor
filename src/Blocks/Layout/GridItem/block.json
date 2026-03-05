@@ -1,0 +1,52 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "grid-item",
+	"name": "Grid Item",
+	"description": "A single item within a grid layout",
+	"icon": "square-2-stack",
+	"category": "layout",
+	"keywords": [],
+	"version": 1,
+	"public": false,
+	"parent": ["grid"],
+	"allowedChildren": null,
+	"attributes": {
+		"columnSpan": {
+			"type": "object",
+			"source": "style",
+			"default": {
+				"mode": "global",
+				"global": 1,
+				"desktop": 1,
+				"tablet": 1,
+				"mobile": 1
+			}
+		},
+		"rowSpan": {
+			"type": "object",
+			"source": "style",
+			"default": {
+				"mode": "global",
+				"global": 1,
+				"desktop": 1,
+				"tablet": 1,
+				"mobile": 1
+			}
+		},
+		"verticalAlignment": {
+			"type": "string",
+			"source": "style",
+			"default": "stretch"
+		}
+	},
+	"supports": {
+		"background": {
+			"backgroundImage": true,
+			"backgroundSize": true,
+			"backgroundPosition": true,
+			"backgroundGradient": true
+		},
+		"anchor": false,
+		"className": false
+	}
+}

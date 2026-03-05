@@ -1,0 +1,84 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "grid",
+	"name": "Grid",
+	"description": "Arrange blocks in a CSS Grid layout",
+	"icon": "squares-2x2",
+	"category": "layout",
+	"keywords": ["grid", "layout", "responsive", "css grid"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": ["grid-item"],
+	"attributes": {
+		"columns": {
+			"type": "object",
+			"source": "content",
+			"default": {
+				"mode": "global",
+				"global": 3,
+				"desktop": 3,
+				"tablet": 2,
+				"mobile": 1
+			}
+		},
+		"templateRows": {
+			"type": "string",
+			"source": "content",
+			"default": "auto"
+		},
+		"gap": {
+			"type": "string",
+			"source": "style",
+			"default": "medium"
+		},
+		"rowGap": {
+			"type": "string",
+			"source": "style",
+			"default": ""
+		},
+		"alignItems": {
+			"type": "string",
+			"source": "style",
+			"default": "stretch"
+		},
+		"justifyItems": {
+			"type": "string",
+			"source": "style",
+			"default": "stretch"
+		},
+		"align": {
+			"type": "string",
+			"source": "style",
+			"default": "none"
+		}
+	},
+	"supports": {
+		"align": ["wide", "full"],
+		"color": {
+			"text": false,
+			"background": false
+		},
+		"typography": {
+			"fontSize": false,
+			"fontFamily": false
+		},
+		"spacing": {
+			"margin": false,
+			"padding": false
+		},
+		"border": false,
+		"dimensions": {
+			"aspectRatio": false,
+			"minHeight": true
+		},
+		"background": {
+			"backgroundImage": true,
+			"backgroundSize": true,
+			"backgroundPosition": true,
+			"backgroundGradient": true
+		},
+		"anchor": true,
+		"className": true
+	}
+}

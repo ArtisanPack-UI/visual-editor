@@ -30,6 +30,8 @@ return [
 			'file'      => true,
 			'columns'   => true,
 			'column'    => true,
+			'grid'      => true,
+			'grid-item' => true,
 			'group'     => true,
 			'spacer'    => true,
 			'divider'   => true,
