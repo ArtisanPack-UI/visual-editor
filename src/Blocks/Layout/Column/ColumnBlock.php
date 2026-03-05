@@ -57,23 +57,6 @@ class ColumnBlock extends BaseBlock
 	 */
 	public function getStyleSchema(): array
 	{
-		return [
-			'width'             => [
-				'type'    => 'text',
-				'label'   => __( 'visual-editor::ve.column_width' ),
-				'default' => '',
-			],
-			'verticalAlignment' => [
-				'type'    => 'select',
-				'label'   => __( 'visual-editor::ve.vertical_alignment' ),
-				'options' => [
-					'top'     => __( 'visual-editor::ve.top' ),
-					'center'  => __( 'visual-editor::ve.center' ),
-					'bottom'  => __( 'visual-editor::ve.bottom' ),
-					'stretch' => __( 'visual-editor::ve.stretch' ),
-				],
-				'default' => 'top',
-			],
-		];
+		return [];
 	}
 }

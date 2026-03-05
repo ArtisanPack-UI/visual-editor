@@ -18,12 +18,11 @@ test( 'column block has empty content schema', function (): void {
 	expect( $schema )->toBeEmpty();
 } );
 
-test( 'column block style schema has width and vertical alignment fields', function (): void {
+test( 'column block style schema is empty since width and alignment are in settings and toolbar', function (): void {
 	$block  = new ColumnBlock();
 	$schema = $block->getStyleSchema();
 
-	expect( $schema )->toHaveKey( 'width' );
-	expect( $schema )->toHaveKey( 'verticalAlignment' );
+	expect( $schema )->toBeEmpty();
 } );
 
 test( 'column block only allows columns parent', function (): void {

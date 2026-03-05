@@ -11,14 +11,21 @@ test( 'columns block has correct type and category', function (): void {
 	expect( $block->getCategory() )->toBe( 'layout' );
 } );
 
-test( 'columns block content schema has columns and layout fields', function (): void {
+test( 'columns block content schema has columns layout and isStacked fields', function (): void {
 	$block  = new ColumnsBlock();
 	$schema = $block->getContentSchema();
 
 	expect( $schema )->toHaveKey( 'columns' );
 	expect( $schema )->toHaveKey( 'layout' );
-	expect( $schema['columns']['type'] )->toBe( 'select' );
+	expect( $schema )->toHaveKey( 'isStacked' );
+	expect( $schema['columns']['type'] )->toBe( 'range' );
+	expect( $schema['columns']['min'] )->toBe( 1 );
+	expect( $schema['columns']['max'] )->toBe( 6 );
+	expect( $schema['columns']['step'] )->toBe( 1 );
 	expect( $schema['layout']['type'] )->toBe( 'select' );
+	expect( $schema['layout']['inspector'] )->toBeFalse();
+	expect( $schema['isStacked']['type'] )->toBe( 'toggle' );
+	expect( $schema['isStacked']['inspector'] )->toBeFalse();
 } );
 
 test( 'columns block style schema has gap vertical alignment and stack fields', function (): void {
@@ -34,8 +41,9 @@ test( 'columns block defaults to 2 columns with equal layout', function (): void
 	$block    = new ColumnsBlock();
 	$defaults = $block->getDefaultContent();
 
-	expect( $defaults['columns'] )->toBe( '2' );
+	expect( $defaults['columns'] )->toBe( 2 );
 	expect( $defaults['layout'] )->toBe( 'equal' );
+	expect( $defaults['isStacked'] )->toBeFalse();
 } );
 
 test( 'columns block defaults to medium gap and stack on mobile', function (): void {

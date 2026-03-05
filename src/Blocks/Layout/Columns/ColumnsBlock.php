@@ -46,28 +46,31 @@ class ColumnsBlock extends BaseBlock
 	public function getContentSchema(): array
 	{
 		return [
-			'columns' => [
-				'type'    => 'select',
+			'columns'   => [
+				'type'    => 'range',
 				'label'   => __( 'visual-editor::ve.number_of_columns' ),
-				'options' => [
-					'2' => '2',
-					'3' => '3',
-					'4' => '4',
-					'5' => '5',
-					'6' => '6',
-				],
-				'default' => '2',
+				'min'     => 1,
+				'max'     => 6,
+				'step'    => 1,
+				'default' => 2,
 			],
-			'layout'  => [
-				'type'    => 'select',
-				'label'   => __( 'visual-editor::ve.column_layout' ),
-				'options' => [
+			'layout'    => [
+				'type'      => 'select',
+				'label'     => __( 'visual-editor::ve.column_layout' ),
+				'options'   => [
 					'equal' => __( 'visual-editor::ve.equal_width' ),
 					'2-1'   => '66% / 33%',
 					'1-2'   => '33% / 66%',
 					'1-2-1' => '25% / 50% / 25%',
 				],
-				'default' => 'equal',
+				'default'   => 'equal',
+				'inspector' => false,
+			],
+			'isStacked' => [
+				'type'      => 'toggle',
+				'label'     => __( 'visual-editor::ve.orientation' ),
+				'default'   => false,
+				'inspector' => false,
 			],
 		];
 	}

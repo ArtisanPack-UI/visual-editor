@@ -12,14 +12,19 @@
 	"allowedChildren": ["column"],
 	"attributes": {
 		"columns": {
-			"type": "string",
+			"type": "integer",
 			"source": "content",
-			"default": "2"
+			"default": 2
 		},
 		"layout": {
 			"type": "string",
 			"source": "content",
 			"default": "equal"
+		},
+		"isStacked": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
 		},
 		"gap": {
 			"type": "string",
