@@ -153,6 +153,7 @@ test( 'editor skips malformed initial blocks', function (): void {
 		[ 'id'   => 'no-type' ],
 		[ 'type' => 'no-id' ],
 		[ 'id'   => 'ok', 'type' => 123 ],
+		[ 'id'   => 456, 'type' => 'paragraph' ],
 	];
 
 	$component = new Editor( initialBlocks: $blocks );
@@ -180,6 +181,27 @@ test( 'editor builds patterns with previews', function (): void {
 	expect( $component->patternsWithPreviews )->toBeArray();
 	expect( $component->patternsWithPreviews )->toHaveCount( 1 );
 	expect( $component->patternsWithPreviews[0] )->toHaveKey( 'preview' );
+} );
+
+test( 'editor handles malformed patterns gracefully', function (): void {
+	$this->app->singleton( 'visual-editor.blocks', function () {
+		return new BlockRegistry();
+	} );
+
+	$patterns = [
+		'not-an-array',
+		[
+			'name'   => 'valid-pattern',
+			'title'  => 'Valid',
+			'blocks' => [],
+		],
+	];
+
+	$component = new Editor( patterns: $patterns );
+
+	expect( $component->patternsWithPreviews )->toBeArray()->toHaveCount( 2 );
+	expect( $component->patternsWithPreviews[0] )->toBe( [] );
+	expect( $component->patternsWithPreviews[1] )->toHaveKey( 'preview' );
 } );
 
 test( 'editor renders view name', function (): void {

@@ -329,7 +329,7 @@ class Editor extends Component
 		$dynamicBlockTypes    = array_keys( $registry->getDynamicBlocks() );
 
 		foreach ( $this->initialBlocks as $block ) {
-			if ( ! is_array( $block ) || ! isset( $block['id'], $block['type'] ) || ! is_string( $block['type'] ) ) {
+			if ( ! is_array( $block ) || ! isset( $block['id'], $block['type'] ) || ! is_string( $block['id'] ) || ! is_string( $block['type'] ) ) {
 				continue;
 			}
 
@@ -513,7 +513,11 @@ class Editor extends Component
 	 */
 	protected function buildPatternsWithPreviews(): void
 	{
-		$this->patternsWithPreviews = array_map( function ( array $pattern ): array {
+		$this->patternsWithPreviews = array_map( function ( $pattern ): array {
+			if ( ! is_array( $pattern ) ) {
+				return [];
+			}
+
 			if ( ! isset( $pattern['preview'] ) ) {
 				$name               = e( $pattern['name'] ?? '' );
 				$pattern['preview'] = 'data:image/svg+xml,' . rawurlencode(
