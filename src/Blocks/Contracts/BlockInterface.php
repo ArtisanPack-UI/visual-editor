@@ -237,4 +237,13 @@ interface BlockInterface
      * @return array<string, mixed>
      */
     public function migrate(array $content, int $fromVersion): array;
+
+    /**
+     * Get block metadata as an array for serialization.
+     *
+     * @since 1.0.0
+     *
+     * @return array<string, mixed>
+     */
+    public function toArray(): array;
 }

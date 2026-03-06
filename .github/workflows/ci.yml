@@ -7,8 +7,10 @@ on:
     branches: [main]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+
+    name: Test
 
     steps:
       - uses: actions/checkout@v4
@@ -34,35 +36,6 @@ jobs:
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --optimize-autoloader
 
-      - name: Upload vendor directory
-        uses: actions/upload-artifact@v4
-        with:
-          name: vendor
-          path: vendor/
-          retention-days: 1
-
-  test:
-    needs: build
-    runs-on: ubuntu-latest
-
-    name: Test
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
-          coverage: none
-
-      - name: Download vendor directory
-        uses: actions/download-artifact@v4
-        with:
-          name: vendor
-          path: vendor/
-
       - name: Run tests
-        run: chmod +x ./vendor/bin/pest && ./vendor/bin/pest --ci
+        run: ./vendor/bin/pest --ci
 
