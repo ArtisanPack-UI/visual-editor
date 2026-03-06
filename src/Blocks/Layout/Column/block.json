@@ -10,6 +10,9 @@
 	"public": false,
 	"parent": ["columns"],
 	"allowedChildren": null,
+	"supportsInnerBlocks": true,
+	"hasJsRenderer": true,
+	"innerBlocksOrientation": "vertical",
 	"attributes": {
 		"width": {
 			"type": "string",
