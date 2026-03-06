@@ -1372,9 +1372,7 @@
 			</script>
 
 			{{-- Dynamic canvas: renders blocks from the Alpine store reactively --}}
-			<x-ve-editor-canvas :enable-drag-reorder="true">
-				@include( 'visual-editor::components._editor-canvas-content' )
-			</x-ve-editor-canvas>
+			@include( 'visual-editor::components._editor-canvas-content' )
 		</x-slot:canvas>
 
 		{{-- ============================================================ --}}

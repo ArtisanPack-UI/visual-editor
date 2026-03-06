@@ -266,8 +266,8 @@
 								{{-- Orientation toggle --}}
 								<x-ve-panel-row :label="__( 'visual-editor::ve.orientation' )">
 									<div class="flex items-center gap-0.5" role="group">
-										<button type="button" class="btn btn-ghost btn-xs btn-square" :class="'row' === flexDirection ? 'bg-base-200' : ''" x-on:click="updateAttr( { flexDirection: 'row' } )" title="{{ __( 'visual-editor::ve.orientation_horizontal' ) }}"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg></button>
-										<button type="button" class="btn btn-ghost btn-xs btn-square" :class="'column' === flexDirection ? 'bg-base-200' : ''" x-on:click="updateAttr( { flexDirection: 'column' } )" title="{{ __( 'visual-editor::ve.orientation_vertical' ) }}"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" /></svg></button>
+										<button type="button" class="btn btn-ghost btn-xs btn-square" :class="'row' === flexDirection ? 'bg-base-200' : ''" x-on:click="updateAttr( { flexDirection: 'row', _groupVariation: 'row' } )" title="{{ __( 'visual-editor::ve.orientation_horizontal' ) }}"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" /></svg></button>
+										<button type="button" class="btn btn-ghost btn-xs btn-square" :class="'column' === flexDirection ? 'bg-base-200' : ''" x-on:click="updateAttr( { flexDirection: 'column', _groupVariation: 'stack' } )" title="{{ __( 'visual-editor::ve.orientation_vertical' ) }}"><svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" /></svg></button>
 									</div>
 								</x-ve-panel-row>
 

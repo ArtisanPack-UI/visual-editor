@@ -55,12 +55,21 @@
 							}
 						},
 
+						destroy() {
+							if ( this._onDragStart ) {
+								document.removeEventListener( 'dragstart', this._onDragStart );
+							}
+							if ( this._onDragEnd ) {
+								document.removeEventListener( 'dragend', this._onDragEnd );
+							}
+						},
+
 						init() {
 							// Capture dragstart from the toolbar drag handle (which is
 							// outside this x-data scope) via a document-level listener.
 							// Ignore drags originating from the layer panel — it handles
 							// its own drag-and-drop internally.
-							document.addEventListener( 'dragstart', ( e ) => {
+							this._onDragStart = ( e ) => {
 								if ( e.target.closest( '.ve-layer-panel' ) ) {
 									return;
 								}
@@ -100,9 +109,9 @@
 										}
 									}
 								}
-							} );
+							};
 
-							document.addEventListener( 'dragend', () => {
+							this._onDragEnd = () => {
 								this.draggingBlockId = null;
 								// Clean up opacity and drop indicators for all container
 								// child blocks generically (column, grid-item, etc.).
@@ -110,7 +119,10 @@
 									el.style.opacity = '';
 									el.classList.remove( 've-col-drop-before', 've-col-drop-after', 've-grid-item-drop-before', 've-grid-item-drop-after', 've-child-drop-before', 've-child-drop-after' );
 								} );
-							} );
+							};
+
+							document.addEventListener( 'dragstart', this._onDragStart );
+							document.addEventListener( 'dragend', this._onDragEnd );
 
 							// Mark empty contenteditable elements so CSS placeholders
 							// show when the block has no content and is not focused.
