@@ -31,7 +31,7 @@
 		>
 			<span class="flex items-center gap-2">
 				@if ( $icon )
-					<x-artisanpack-icon :name="$icon" class="w-4 h-4 text-base-content/60" />
+					<x-ve-icon :name="$icon" class="w-4 h-4 text-base-content/60" />
 				@endif
 				<span class="text-sm font-medium text-base-content">
 					{{ $title }}
@@ -54,7 +54,7 @@
 			class="flex items-center gap-2 px-4 py-3"
 		>
 			@if ( $icon )
-				<x-artisanpack-icon :name="$icon" class="w-4 h-4 text-base-content/60" />
+				<x-ve-icon :name="$icon" class="w-4 h-4 text-base-content/60" />
 			@endif
 			<span class="text-sm font-medium text-base-content">
 				{{ $title }}
