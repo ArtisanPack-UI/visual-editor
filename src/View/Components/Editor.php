@@ -279,6 +279,12 @@ class Editor extends Component
 				return str_replace( '<svg ', '<svg class="w-5 h-5" ', $svgMap[ $iconName ] );
 			}
 
+			// Try without common prefixes (o-, s-, fa-).
+			$stripped = (string) preg_replace( '/^(o-|s-|fa-)/', '', $iconName );
+			if ( $stripped !== $iconName && isset( $svgMap[ $stripped ] ) ) {
+				return str_replace( '<svg ', '<svg class="w-5 h-5" ', $svgMap[ $stripped ] );
+			}
+
 			return $fallback;
 		};
 	}
@@ -323,6 +329,10 @@ class Editor extends Component
 		$dynamicBlockTypes    = array_keys( $registry->getDynamicBlocks() );
 
 		foreach ( $this->initialBlocks as $block ) {
+			if ( ! is_array( $block ) || ! isset( $block['id'], $block['type'] ) || ! is_string( $block['type'] ) ) {
+				continue;
+			}
+
 			if ( in_array( $block['type'], $dynamicBlockTypes, true ) ) {
 				continue;
 			}
@@ -505,7 +515,13 @@ class Editor extends Component
 	{
 		$this->patternsWithPreviews = array_map( function ( array $pattern ): array {
 			if ( ! isset( $pattern['preview'] ) ) {
-				$pattern['preview'] = 'https://placehold.co/400x200/e2e8f0/64748b?text=' . urlencode( $pattern['name'] ?? '' );
+				$name               = e( $pattern['name'] ?? '' );
+				$pattern['preview'] = 'data:image/svg+xml,' . rawurlencode(
+					'<svg xmlns="http://www.w3.org/2000/svg" width="400" height="200">'
+					. '<rect width="400" height="200" fill="#e2e8f0"/>'
+					. '<text x="200" y="105" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="#64748b">' . $name . '</text>'
+					. '</svg>',
+				);
 			}
 
 			return $pattern;

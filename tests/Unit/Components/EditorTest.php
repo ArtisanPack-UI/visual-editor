@@ -143,6 +143,23 @@ test( 'editor builds rendered blocks from initial blocks', function (): void {
 	expect( $component->renderedBlocks )->toBeArray();
 } );
 
+test( 'editor skips malformed initial blocks', function (): void {
+	$this->app->singleton( 'visual-editor.blocks', function () {
+		return new BlockRegistry();
+	} );
+
+	$blocks = [
+		'not-an-array',
+		[ 'id'   => 'no-type' ],
+		[ 'type' => 'no-id' ],
+		[ 'id'   => 'ok', 'type' => 123 ],
+	];
+
+	$component = new Editor( initialBlocks: $blocks );
+
+	expect( $component->renderedBlocks )->toBeArray()->toBeEmpty();
+} );
+
 test( 'editor builds patterns with previews', function (): void {
 	$this->app->singleton( 'visual-editor.blocks', function () {
 		return new BlockRegistry();

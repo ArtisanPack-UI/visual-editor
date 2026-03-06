@@ -476,21 +476,21 @@
 
 						{{-- Justification buttons --}}
 						<div class="flex items-center" role="group" aria-label="{{ __( 'visual-editor::ve.justify_content' ) }}">
-							<button type="button" class="btn btn-ghost btn-xs btn-square" :class="justifyContent === 'flex-start' ? 'bg-base-200' : ''" x-on:click="setJustify( 'flex-start' )" :title="'{{ __( 'visual-editor::ve.justify_start' ) }}'">
+							<button type="button" class="btn btn-ghost btn-xs btn-square" :class="justifyContent === 'flex-start' ? 'bg-base-200' : ''" x-on:click="setJustify( 'flex-start' )" :aria-pressed="( justifyContent === 'flex-start' ).toString()" aria-label="{{ __( 'visual-editor::ve.justify_start' ) }}">
 								<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 									<line x1="4" y1="4" x2="4" y2="20" />
 									<rect x="8" y="6" width="4" height="12" rx="1" fill="currentColor" stroke="none" />
 									<rect x="14" y="8" width="4" height="8" rx="1" fill="currentColor" stroke="none" />
 								</svg>
 							</button>
-							<button type="button" class="btn btn-ghost btn-xs btn-square" :class="justifyContent === 'center' ? 'bg-base-200' : ''" x-on:click="setJustify( 'center' )" :title="'{{ __( 'visual-editor::ve.justify_center' ) }}'">
+							<button type="button" class="btn btn-ghost btn-xs btn-square" :class="justifyContent === 'center' ? 'bg-base-200' : ''" x-on:click="setJustify( 'center' )" :aria-pressed="( justifyContent === 'center' ).toString()" aria-label="{{ __( 'visual-editor::ve.justify_center' ) }}">
 								<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 									<line x1="12" y1="4" x2="12" y2="20" stroke-dasharray="2 2" />
 									<rect x="5" y="6" width="4" height="12" rx="1" fill="currentColor" stroke="none" />
 									<rect x="15" y="8" width="4" height="8" rx="1" fill="currentColor" stroke="none" />
 								</svg>
 							</button>
-							<button type="button" class="btn btn-ghost btn-xs btn-square" :class="justifyContent === 'flex-end' ? 'bg-base-200' : ''" x-on:click="setJustify( 'flex-end' )" :title="'{{ __( 'visual-editor::ve.justify_end' ) }}'">
+							<button type="button" class="btn btn-ghost btn-xs btn-square" :class="justifyContent === 'flex-end' ? 'bg-base-200' : ''" x-on:click="setJustify( 'flex-end' )" :aria-pressed="( justifyContent === 'flex-end' ).toString()" aria-label="{{ __( 'visual-editor::ve.justify_end' ) }}">
 								<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 									<line x1="20" y1="4" x2="20" y2="20" />
 									<rect x="6" y="8" width="4" height="8" rx="1" fill="currentColor" stroke="none" />
@@ -499,7 +499,7 @@
 							</button>
 							{{-- Space-between: only for Row/Stack --}}
 							<template x-if="'row' === flexDirection || ( 'column' === flexDirection && block?.attributes?.flexWrap === 'nowrap' && block?.innerBlocks?.length > 0 )">
-								<button type="button" class="btn btn-ghost btn-xs btn-square" :class="justifyContent === 'space-between' ? 'bg-base-200' : ''" x-on:click="setJustify( 'space-between' )" :title="'{{ __( 'visual-editor::ve.justify_space_between' ) }}'">
+								<button type="button" class="btn btn-ghost btn-xs btn-square" :class="justifyContent === 'space-between' ? 'bg-base-200' : ''" x-on:click="setJustify( 'space-between' )" :aria-pressed="( justifyContent === 'space-between' ).toString()" aria-label="{{ __( 'visual-editor::ve.justify_space_between' ) }}">
 									<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 										<line x1="4" y1="4" x2="4" y2="20" />
 										<line x1="20" y1="4" x2="20" y2="20" />
@@ -1007,6 +1007,7 @@
 							const innerRendererStore = Alpine.store( 'blockRenderers' );
 							if ( innerRendererStore && innerRendererStore.hasRenderer( inner.type ) ) {
 								html += innerRendererStore.getHtml( inner, context );
+								html += '</div>';
 							} else if ( 'heading' === inner.type ) {
 								const innerLevel = inner.attributes?.level || 'h2';
 								const innerTag   = [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].includes( innerLevel ) ? innerLevel : 'h2';
