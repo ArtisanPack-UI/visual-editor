@@ -206,16 +206,16 @@
 				>
 					{{-- Variation Switcher Row --}}
 					<div class="flex items-center gap-1 px-4 py-2 border-b border-base-300">
-						<button type="button" class="btn btn-ghost btn-xs btn-square" :class="getActiveVariation() === 'group' ? 'bg-primary text-primary-content' : ''" x-on:click="setVariation( 'group' )" title="{{ __( 'visual-editor::ve.variation_group' ) }}">
+						<button type="button" class="btn btn-ghost btn-xs btn-square" :class="getActiveVariation() === 'group' ? 'bg-primary text-primary-content' : ''" x-on:click="setVariation( 'group' )" title="{{ __( 'visual-editor::ve.variation_group' ) }}" aria-label="{{ __( 'visual-editor::ve.variation_group' ) }}" :aria-pressed="( getActiveVariation() === 'group' ).toString()">
 							<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="9" x2="21" y2="9" /><line x1="3" y1="15" x2="21" y2="15" /></svg>
 						</button>
-						<button type="button" class="btn btn-ghost btn-xs btn-square" :class="getActiveVariation() === 'row' ? 'bg-primary text-primary-content' : ''" x-on:click="setVariation( 'row' )" title="{{ __( 'visual-editor::ve.variation_row' ) }}">
+						<button type="button" class="btn btn-ghost btn-xs btn-square" :class="getActiveVariation() === 'row' ? 'bg-primary text-primary-content' : ''" x-on:click="setVariation( 'row' )" title="{{ __( 'visual-editor::ve.variation_row' ) }}" aria-label="{{ __( 'visual-editor::ve.variation_row' ) }}" :aria-pressed="( getActiveVariation() === 'row' ).toString()">
 							<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="9" y1="3" x2="9" y2="21" /><line x1="15" y1="3" x2="15" y2="21" /></svg>
 						</button>
-						<button type="button" class="btn btn-ghost btn-xs btn-square" :class="getActiveVariation() === 'stack' ? 'bg-primary text-primary-content' : ''" x-on:click="setVariation( 'stack' )" title="{{ __( 'visual-editor::ve.variation_stack' ) }}">
+						<button type="button" class="btn btn-ghost btn-xs btn-square" :class="getActiveVariation() === 'stack' ? 'bg-primary text-primary-content' : ''" x-on:click="setVariation( 'stack' )" title="{{ __( 'visual-editor::ve.variation_stack' ) }}" aria-label="{{ __( 'visual-editor::ve.variation_stack' ) }}" :aria-pressed="( getActiveVariation() === 'stack' ).toString()">
 							<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="8" x2="21" y2="8" /><line x1="3" y1="13" x2="21" y2="13" /><line x1="3" y1="18" x2="21" y2="18" /></svg>
 						</button>
-						<button type="button" class="btn btn-ghost btn-xs btn-square opacity-40 cursor-not-allowed" disabled title="{{ __( 'visual-editor::ve.variation_grid' ) }}">
+						<button type="button" class="btn btn-ghost btn-xs btn-square opacity-40 cursor-not-allowed" disabled title="{{ __( 'visual-editor::ve.variation_grid' ) }}" aria-label="{{ __( 'visual-editor::ve.variation_grid' ) }}" aria-disabled="true">
 							<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" /><line x1="3" y1="12" x2="21" y2="12" /><line x1="12" y1="3" x2="12" y2="21" /></svg>
 						</button>
 					</div>

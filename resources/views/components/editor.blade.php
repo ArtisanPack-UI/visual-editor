@@ -514,12 +514,12 @@
 						<template x-if="block?.innerBlocks?.length > 0">
 							<div class="flex items-center" role="group" aria-label="{{ __( 'visual-editor::ve.orientation' ) }}">
 								<div class="w-px h-4 bg-base-300 mx-0.5" aria-hidden="true"></div>
-								<button type="button" class="btn btn-ghost btn-xs btn-square" :class="'row' === flexDirection ? 'bg-base-200' : ''" x-on:click="setDirection( 'row' )" :title="'{{ __( 'visual-editor::ve.orientation_horizontal' ) }}'">
+								<button type="button" class="btn btn-ghost btn-xs btn-square" :class="'row' === flexDirection ? 'bg-base-200' : ''" x-on:click="setDirection( 'row' )" :title="'{{ __( 'visual-editor::ve.orientation_horizontal' ) }}'" aria-label="{{ __( 'visual-editor::ve.orientation_horizontal' ) }}" :aria-pressed="( 'row' === flexDirection ).toString()">
 									<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 										<path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
 									</svg>
 								</button>
-								<button type="button" class="btn btn-ghost btn-xs btn-square" :class="'column' === flexDirection ? 'bg-base-200' : ''" x-on:click="setDirection( 'column' )" :title="'{{ __( 'visual-editor::ve.orientation_vertical' ) }}'">
+								<button type="button" class="btn btn-ghost btn-xs btn-square" :class="'column' === flexDirection ? 'bg-base-200' : ''" x-on:click="setDirection( 'column' )" :title="'{{ __( 'visual-editor::ve.orientation_vertical' ) }}'" aria-label="{{ __( 'visual-editor::ve.orientation_vertical' ) }}" :aria-pressed="( 'column' === flexDirection ).toString()">
 									<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 										<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 13.5L12 21m0 0l-7.5-7.5M12 21V3" />
 									</svg>
@@ -553,16 +553,16 @@
 						<div class="w-px h-4 bg-base-300 mx-0.5" aria-hidden="true"></div>
 
 						<div class="flex items-center" role="group" aria-label="{{ __( 'visual-editor::ve.vertical_alignment' ) }}">
-							<button type="button" class="btn btn-ghost btn-xs btn-square" :class="vAlign === 'top' ? 'bg-base-200' : ''" x-on:click="setVAlign( 'top' )" title="{{ __( 'visual-editor::ve.top' ) }}">
+							<button type="button" class="btn btn-ghost btn-xs btn-square" :class="vAlign === 'top' ? 'bg-base-200' : ''" x-on:click="setVAlign( 'top' )" title="{{ __( 'visual-editor::ve.top' ) }}" aria-label="{{ __( 'visual-editor::ve.top' ) }}" :aria-pressed="( vAlign === 'top' ).toString()">
 								<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="4" y1="4" x2="20" y2="4" /><rect x="8" y="7" width="8" height="4" rx="1" fill="currentColor" stroke="none" /></svg>
 							</button>
-							<button type="button" class="btn btn-ghost btn-xs btn-square" :class="vAlign === 'center' ? 'bg-base-200' : ''" x-on:click="setVAlign( 'center' )" title="{{ __( 'visual-editor::ve.center' ) }}">
+							<button type="button" class="btn btn-ghost btn-xs btn-square" :class="vAlign === 'center' ? 'bg-base-200' : ''" x-on:click="setVAlign( 'center' )" title="{{ __( 'visual-editor::ve.center' ) }}" aria-label="{{ __( 'visual-editor::ve.center' ) }}" :aria-pressed="( vAlign === 'center' ).toString()">
 								<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="4" y1="12" x2="20" y2="12" stroke-dasharray="2 2" /><rect x="8" y="10" width="8" height="4" rx="1" fill="currentColor" stroke="none" /></svg>
 							</button>
-							<button type="button" class="btn btn-ghost btn-xs btn-square" :class="vAlign === 'bottom' ? 'bg-base-200' : ''" x-on:click="setVAlign( 'bottom' )" title="{{ __( 'visual-editor::ve.bottom' ) }}">
+							<button type="button" class="btn btn-ghost btn-xs btn-square" :class="vAlign === 'bottom' ? 'bg-base-200' : ''" x-on:click="setVAlign( 'bottom' )" title="{{ __( 'visual-editor::ve.bottom' ) }}" aria-label="{{ __( 'visual-editor::ve.bottom' ) }}" :aria-pressed="( vAlign === 'bottom' ).toString()">
 								<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="4" y1="20" x2="20" y2="20" /><rect x="8" y="13" width="8" height="4" rx="1" fill="currentColor" stroke="none" /></svg>
 							</button>
-							<button type="button" class="btn btn-ghost btn-xs btn-square" :class="vAlign === 'stretch' ? 'bg-base-200' : ''" x-on:click="setVAlign( 'stretch' )" title="{{ __( 'visual-editor::ve.stretch' ) }}">
+							<button type="button" class="btn btn-ghost btn-xs btn-square" :class="vAlign === 'stretch' ? 'bg-base-200' : ''" x-on:click="setVAlign( 'stretch' )" title="{{ __( 'visual-editor::ve.stretch' ) }}" aria-label="{{ __( 'visual-editor::ve.stretch' ) }}" :aria-pressed="( vAlign === 'stretch' ).toString()">
 								<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="4" y1="4" x2="20" y2="4" /><line x1="4" y1="20" x2="20" y2="20" /><rect x="8" y="7" width="8" height="10" rx="1" fill="currentColor" stroke="none" /></svg>
 							</button>
 						</div>
@@ -601,6 +601,7 @@
 							x-on:change="updateAttr( { width: $event.target.value } )"
 							placeholder="auto"
 							title="{{ __( 'visual-editor::ve.column_width' ) }}"
+							aria-label="{{ __( 'visual-editor::ve.column_width' ) }}"
 						/>
 
 						<div class="w-px h-4 bg-base-300 mx-0.5" aria-hidden="true"></div>
