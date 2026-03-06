@@ -43,6 +43,14 @@ class StubContainerBlock extends BaseBlock
 	/**
 	 * @inheritDoc
 	 */
+	public function getStyleSchema(): array
+	{
+		return [];
+	}
+
+	/**
+	 * @inheritDoc
+	 */
 	public function supportsInnerBlocks(): bool
 	{
 		return true;

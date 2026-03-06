@@ -112,10 +112,20 @@ test( 'registry get categories returns unique categories', function (): void {
 
 test( 'registry rejects blocks with empty type', function (): void {
 	$registry = new BlockRegistry();
-	$block    = new class extends \ArtisanPackUI\VisualEditor\Blocks\BaseBlock {};
+	$block    = new class extends ArtisanPackUI\VisualEditor\Blocks\BaseBlock {
+		public function getContentSchema(): array
+		{
+		return [];
+		}
+
+		public function getStyleSchema(): array
+		{
+		return [];
+		}
+	};
 
 	$registry->register( $block );
-} )->throws( \InvalidArgumentException::class, 'Block type must be a non-empty string.' );
+} )->throws( InvalidArgumentException::class, 'Block type must be a non-empty string.' );
 
 test( 'registry clear removes all blocks', function (): void {
 	$registry = new BlockRegistry();

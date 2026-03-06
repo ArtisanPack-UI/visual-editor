@@ -53,7 +53,7 @@
 	@endif
 >
 	@if ( $icon )
-		<x-artisanpack-icon :name="$icon" class="w-4 h-4" />
+		<x-ve-icon :name="$icon" class="w-4 h-4" />
 	@endif
 
 	@if ( $label && ! $icon )
