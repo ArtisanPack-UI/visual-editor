@@ -10,6 +10,9 @@
 	"public": false,
 	"parent": ["grid"],
 	"allowedChildren": null,
+	"supportsInnerBlocks": true,
+	"hasJsRenderer": true,
+	"innerBlocksOrientation": "vertical",
 	"attributes": {
 		"columnSpan": {
 			"type": "object",

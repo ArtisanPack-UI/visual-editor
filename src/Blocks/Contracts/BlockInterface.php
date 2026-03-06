@@ -301,4 +301,40 @@ interface BlockInterface
 	 * @return string
 	 */
 	public function renderToolbar( array $data = [] ): string;
+
+	/**
+	 * Whether this block supports inner blocks.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return bool
+	 */
+	public function supportsInnerBlocks(): bool;
+
+	/**
+	 * Get the inner blocks orientation for container blocks.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return string 'vertical' or 'horizontal'
+	 */
+	public function getInnerBlocksOrientation(): string;
+
+	/**
+	 * Whether this block has a custom JavaScript renderer.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return bool
+	 */
+	public function hasJsRenderer(): bool;
+
+	/**
+	 * Get block metadata as an array for serialization.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function toArray(): array;
 }

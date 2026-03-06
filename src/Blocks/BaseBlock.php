@@ -583,6 +583,78 @@ abstract class BaseBlock implements BlockInterface
 	}
 
 	/**
+	 * Whether this block supports inner blocks.
+	 *
+	 * Reads from block.json metadata when available, defaults to false.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return bool
+	 */
+	public function supportsInnerBlocks(): bool
+	{
+		return $this->metadata['supportsInnerBlocks'] ?? false;
+	}
+
+	/**
+	 * Get the inner blocks orientation for container blocks.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return string 'vertical' or 'horizontal'
+	 */
+	public function getInnerBlocksOrientation(): string
+	{
+		return $this->metadata['innerBlocksOrientation'] ?? 'vertical';
+	}
+
+	/**
+	 * Whether this block has a custom JavaScript renderer.
+	 *
+	 * Blocks with inner blocks or custom editor rendering should
+	 * return true so the editor delegates rendering to JavaScript.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return bool
+	 */
+	public function hasJsRenderer(): bool
+	{
+		return $this->metadata['hasJsRenderer'] ?? false;
+	}
+
+	/**
+	 * Get block metadata as an array for serialization.
+	 *
+	 * Used by BlockRegistry::toArray() to pass block metadata
+	 * to the JavaScript editor.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function toArray(): array
+	{
+		return [
+			'type'                   => $this->getType(),
+			'name'                   => $this->getName(),
+			'description'            => $this->getDescription(),
+			'icon'                   => $this->getIcon(),
+			'category'               => $this->getCategory(),
+			'keywords'               => $this->getKeywords(),
+			'public'                 => $this->isPublic(),
+			'supportsInnerBlocks'    => $this->supportsInnerBlocks(),
+			'innerBlocksOrientation' => $this->getInnerBlocksOrientation(),
+			'allowedChildren'        => $this->getAllowedChildren(),
+			'allowedParents'         => $this->getAllowedParents(),
+			'hasJsRenderer'          => $this->hasJsRenderer(),
+			'hasCustomInspector'     => $this->hasCustomInspector(),
+			'hasCustomToolbar'       => $this->hasCustomToolbar(),
+			'alignments'             => $this->getSupportedAlignments(),
+		];
+	}
+
+	/**
 	 * Get the block directory path.
 	 *
 	 * @since 2.0.0
