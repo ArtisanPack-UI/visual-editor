@@ -135,6 +135,11 @@ abstract class BaseBlock implements BlockInterface
         return $this->keywords;
     }
 
+    public function getContentSchema(): array
+    {
+        return [];
+    }
+
     public function getStyleSchema(): array
     {
         return [];

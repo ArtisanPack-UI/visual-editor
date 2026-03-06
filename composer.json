@@ -29,6 +29,7 @@
     "artisanpack-ui/core": "^1.0"
   },
   "require-dev": {
+    "orchestra/testbench": "^10.0",
     "pestphp/pest": "^3.8",
     "pestphp/pest-plugin-laravel": "^3.1"
   },

@@ -9,7 +9,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        $this->app->singleton('package', function ($app) {
+        $this->app->singleton('visualEditor', function ($app) {
             return new VisualEditor;
         });
 

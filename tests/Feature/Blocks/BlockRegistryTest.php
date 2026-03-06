@@ -9,6 +9,11 @@ use Tests\Stubs\StubCustomUiBlock;
 
 beforeEach(function () {
     $this->registry = app(BlockRegistry::class);
+    $this->registry->clear();
+});
+
+afterEach(function () {
+    $this->registry->clear();
 });
 
 it('can be resolved from the container', function () {
@@ -120,6 +125,23 @@ it('includes custom UI blocks in toArray with correct flags', function () {
         ->and($array['stub']['hasCustomInspector'])->toBeFalse()
         ->and($array['stub-custom-ui']['hasCustomToolbar'])->toBeTrue()
         ->and($array['stub-custom-ui']['hasCustomInspector'])->toBeTrue();
+});
+
+it('rejects blocks with empty type', function () {
+    $block = new class extends \ArtisanPackUI\VisualEditor\Blocks\BaseBlock {};
+
+    $this->registry->register($block);
+})->throws(\InvalidArgumentException::class, 'Block type must be a non-empty string.');
+
+it('clears all registered blocks', function () {
+    $this->registry->register(new StubBlock);
+    $this->registry->register(new StubContainerBlock);
+
+    expect($this->registry->all())->toHaveCount(2);
+
+    $this->registry->clear();
+
+    expect($this->registry->all())->toBeEmpty();
 });
 
 it('serializes to array', function () {

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace ArtisanPackUI\VisualEditor\Blocks;
 
 use ArtisanPackUI\VisualEditor\Blocks\Contracts\BlockInterface;
+use InvalidArgumentException;
 
 class BlockRegistry
 {
@@ -35,7 +36,13 @@ class BlockRegistry
      */
     public function register(BlockInterface $block): void
     {
-        $this->blocks[$block->getType()] = $block;
+        $type = $block->getType();
+
+        if ('' === $type) {
+            throw new InvalidArgumentException('Block type must be a non-empty string.');
+        }
+
+        $this->blocks[$type] = $block;
     }
 
     /**
@@ -90,6 +97,16 @@ class BlockRegistry
     public function has(string $type): bool
     {
         return isset($this->blocks[$type]);
+    }
+
+    /**
+     * Remove all registered blocks.
+     *
+     * @since 1.0.0
+     */
+    public function clear(): void
+    {
+        $this->blocks = [];
     }
 
     /**
