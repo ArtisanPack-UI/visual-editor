@@ -41,7 +41,8 @@
 		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
 		"laravel/pint": "^1.26",
 		"orchestra/testbench": "^10.2",
-		"friendsofphp/php-cs-fixer": "^3.75"
+		"friendsofphp/php-cs-fixer": "^3.75",
+		"blade-ui-kit/blade-icons": "^1.9"
 	},
 	"config": {
 		"allow-plugins": {

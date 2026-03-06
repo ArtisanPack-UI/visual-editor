@@ -120,6 +120,9 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		// Phase 8: Block Placeholder
 		'block-placeholder' => Components\BlockPlaceholder::class,
+
+		// Phase 9: Editor Assembly
+		'editor' => Components\Editor::class,
 	];
 
 	/**
