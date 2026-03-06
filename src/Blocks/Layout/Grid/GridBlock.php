@@ -46,7 +46,7 @@ class GridBlock extends BaseBlock
 				'type'    => 'responsive_range',
 				'label'   => __( 'visual-editor::ve.grid_columns' ),
 				'min'     => 1,
-				'max'     => 6,
+				'max'     => 12,
 				'step'    => 1,
 				'default' => [ 'mode' => 'global', 'global' => 3, 'desktop' => 3, 'tablet' => 2, 'mobile' => 1 ],
 			],
