@@ -112,3 +112,9 @@ test( 'columns block has custom toolbar', function (): void {
 
 	expect( $block->hasCustomToolbar() )->toBeTrue();
 } );
+
+test( 'columns block has custom inspector', function (): void {
+	$block = new ColumnsBlock();
+
+	expect( $block->hasCustomInspector() )->toBeTrue();
+} );

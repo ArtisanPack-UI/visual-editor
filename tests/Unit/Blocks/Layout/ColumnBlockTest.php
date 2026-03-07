@@ -81,3 +81,9 @@ test( 'column block has custom toolbar', function (): void {
 
 	expect( $block->hasCustomToolbar() )->toBeTrue();
 } );
+
+test( 'column block has custom inspector', function (): void {
+	$block = new ColumnBlock();
+
+	expect( $block->hasCustomInspector() )->toBeTrue();
+} );
