@@ -13,10 +13,7 @@
 @php
 	use ArtisanPackUI\VisualEditor\View\Components\EditorState;
 
-	$documentStatusConstants = array_combine(
-		array_map( 'strtoupper', EditorState::DOCUMENT_STATUSES ),
-		EditorState::DOCUMENT_STATUSES,
-	);
+	$documentStatusConstants = EditorState::documentStatusMap();
 
 	$statuses = [
 		$documentStatusConstants['DRAFT']     => __( 'visual-editor::ve.status_draft' ),

@@ -12,10 +12,7 @@
 @php
 	use ArtisanPackUI\VisualEditor\View\Components\EditorState;
 
-	$savingStatus = array_combine(
-		array_map( 'strtoupper', EditorState::SAVE_STATUSES ),
-		EditorState::SAVE_STATUSES,
-	)['SAVING'];
+	$savingStatus = EditorState::saveStatusMap()['SAVING'];
 @endphp
 
 <div

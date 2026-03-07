@@ -108,6 +108,28 @@ test( 'editor state enforces minimum autosave interval', function (): void {
 	expect( $component->autosaveInterval )->toBe( 60 );
 } );
 
+test( 'save status map returns uppercase-keyed map', function (): void {
+	$map = EditorState::saveStatusMap();
+
+	expect( $map )->toBe( [
+		'SAVED'   => 'saved',
+		'UNSAVED' => 'unsaved',
+		'SAVING'  => 'saving',
+		'ERROR'   => 'error',
+	] );
+} );
+
+test( 'document status map returns uppercase-keyed map', function (): void {
+	$map = EditorState::documentStatusMap();
+
+	expect( $map )->toBe( [
+		'DRAFT'     => 'draft',
+		'PUBLISHED' => 'published',
+		'SCHEDULED' => 'scheduled',
+		'PENDING'   => 'pending',
+	] );
+} );
+
 test( 'editor state renders', function (): void {
 	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
 	expect( $view )->not->toBeNull();
@@ -130,6 +152,7 @@ test( 'editor state renders save status constants as frozen object', function ()
 	$view->assertSee( 'SAVED', false );
 	$view->assertSee( 'UNSAVED', false );
 	$view->assertSee( 'SAVING', false );
+	$view->assertSee( 'ERROR', false );
 } );
 
 test( 'editor state renders document status constants as frozen object', function (): void {

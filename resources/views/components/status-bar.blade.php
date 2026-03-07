@@ -13,10 +13,7 @@
 @php
 	use ArtisanPackUI\VisualEditor\View\Components\EditorState;
 
-	$saveStatusConstants = array_combine(
-		array_map( 'strtoupper', EditorState::SAVE_STATUSES ),
-		EditorState::SAVE_STATUSES,
-	);
+	$saveStatusConstants = EditorState::saveStatusMap();
 @endphp
 
 <div
