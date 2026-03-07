@@ -78,13 +78,15 @@ class ColumnsBlock extends BaseBlock
 	/**
 	 * Get the style field schema.
 	 *
+	 * Merges auto-generated supports fields with custom Columns-specific fields.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */
 	public function getStyleSchema(): array
 	{
-		return [
+		return array_merge( parent::getStyleSchema(), [
 			'gap'               => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.gap' ),
@@ -112,6 +114,6 @@ class ColumnsBlock extends BaseBlock
 				'label'   => __( 'visual-editor::ve.stack_on_mobile' ),
 				'default' => true,
 			],
-		];
+		] );
 	}
 }

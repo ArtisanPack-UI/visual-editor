@@ -32,27 +32,4 @@ use ArtisanPackUI\VisualEditor\Blocks\BaseBlock;
  */
 class GridItemBlock extends BaseBlock
 {
-	/**
-	 * Get the content schema for the Grid Item block.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	public function getContentSchema(): array
-	{
-		return [];
-	}
-
-	/**
-	 * Get the style schema for the Grid Item block.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	public function getStyleSchema(): array
-	{
-		return [];
-	}
 }

@@ -36,27 +36,4 @@ use ArtisanPackUI\VisualEditor\Blocks\BaseBlock;
  */
 class ColumnBlock extends BaseBlock
 {
-	/**
-	 * Get the content field schema.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	public function getContentSchema(): array
-	{
-		return [];
-	}
-
-	/**
-	 * Get the style field schema.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	public function getStyleSchema(): array
-	{
-		return [];
-	}
 }

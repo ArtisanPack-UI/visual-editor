@@ -37,19 +37,9 @@ use ArtisanPackUI\VisualEditor\Blocks\BaseBlock;
 class DividerBlock extends BaseBlock
 {
 	/**
-	 * Get the content field schema.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	public function getContentSchema(): array
-	{
-		return [];
-	}
-
-	/**
 	 * Get the style field schema.
+	 *
+	 * Merges auto-generated supports fields with custom Divider-specific fields.
 	 *
 	 * @since 1.0.0
 	 *
@@ -57,7 +47,7 @@ class DividerBlock extends BaseBlock
 	 */
 	public function getStyleSchema(): array
 	{
-		return [
+		return array_merge( parent::getStyleSchema(), [
 			'style'     => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.divider_style' ),
@@ -89,6 +79,6 @@ class DividerBlock extends BaseBlock
 				'label'   => __( 'visual-editor::ve.divider_thickness' ),
 				'default' => '1px',
 			],
-		];
+		] );
 	}
 }
