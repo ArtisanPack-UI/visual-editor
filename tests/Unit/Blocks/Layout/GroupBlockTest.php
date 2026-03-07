@@ -351,3 +351,9 @@ test( 'group block renders with useFlexbox and innerSpacing none', function (): 
 
 	expect( $output )->toContain( 'gap: 0' );
 } );
+
+test( 'group block has custom toolbar', function (): void {
+	$block = new GroupBlock();
+
+	expect( $block->hasCustomToolbar() )->toBeTrue();
+} );

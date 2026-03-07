@@ -87,3 +87,9 @@ test( 'grid item block active style supports include background sub-keys', funct
 	expect( $active )->toContain( 'background.backgroundPosition' );
 	expect( $active )->toContain( 'background.backgroundGradient' );
 } );
+
+test( 'grid item block has custom toolbar', function (): void {
+	$block = new GridItemBlock();
+
+	expect( $block->hasCustomToolbar() )->toBeTrue();
+} );

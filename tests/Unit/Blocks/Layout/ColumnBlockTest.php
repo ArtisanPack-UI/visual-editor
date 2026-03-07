@@ -75,3 +75,9 @@ test( 'column block active style supports include background sub-keys', function
 	expect( $active )->toContain( 'background.backgroundGradient' );
 	expect( $active )->not->toContain( 'shadow' );
 } );
+
+test( 'column block has custom toolbar', function (): void {
+	$block = new ColumnBlock();
+
+	expect( $block->hasCustomToolbar() )->toBeTrue();
+} );

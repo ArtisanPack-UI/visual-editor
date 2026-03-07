@@ -96,3 +96,9 @@ test( 'list block renders editor template with contenteditable', function (): vo
 	expect( $output )->toContain( 'contenteditable="true"' );
 	expect( $output )->toContain( 'data-placeholder' );
 } );
+
+test( 'list block has custom toolbar', function (): void {
+	$block = new ListBlock();
+
+	expect( $block->hasCustomToolbar() )->toBeTrue();
+} );
