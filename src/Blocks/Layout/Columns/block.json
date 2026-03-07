@@ -75,6 +75,7 @@
 			"backgroundPosition": true,
 			"backgroundGradient": true
 		},
+		"htmlId": true,
 		"anchor": true,
 		"className": true
 	}

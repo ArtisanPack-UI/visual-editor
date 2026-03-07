@@ -81,6 +81,7 @@
 			"aspectRatio": true,
 			"minHeight": true
 		},
+		"htmlId": true,
 		"anchor": true,
 		"className": true
 	}

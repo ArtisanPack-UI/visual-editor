@@ -53,6 +53,7 @@
 		}
 	},
 	"supports": {
+		"htmlId": true,
 		"anchor": true,
 		"className": true
 	}

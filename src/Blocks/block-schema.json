@@ -149,9 +149,9 @@
 					},
 					"default": {}
 				},
-				"anchor": { "type": "boolean", "default": true },
-				"htmlId": { "type": "boolean", "default": true },
-				"className": { "type": "boolean", "default": true }
+				"anchor": { "type": "boolean", "default": false },
+				"htmlId": { "type": "boolean", "default": false },
+				"className": { "type": "boolean", "default": false }
 			},
 			"default": {}
 		}

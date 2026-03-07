@@ -87,6 +87,7 @@
 			"padding": false
 		},
 		"border": false,
+		"htmlId": true,
 		"anchor": true,
 		"className": true
 	}
