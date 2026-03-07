@@ -9,6 +9,12 @@
  * @since      1.0.0
  --}}
 
+@php
+	use ArtisanPackUI\VisualEditor\View\Components\EditorState;
+
+	$savingStatus = EditorState::saveStatusMap()['SAVING'];
+@endphp
+
 <div
 	id="{{ $uuid }}"
 	x-data
@@ -77,13 +83,13 @@
 				type="button"
 				class="btn btn-primary btn-sm"
 				x-on:click="$dispatch( 've-save-request' )"
-				:disabled="Alpine.store( 'editor' ) && 'saving' === Alpine.store( 'editor' ).saveStatus"
+				:disabled="Alpine.store( 'editor' ) && {{ Js::from( $savingStatus ) }} === Alpine.store( 'editor' ).saveStatus"
 			>
 				<span
-					x-show="! ( Alpine.store( 'editor' ) && 'saving' === Alpine.store( 'editor' ).saveStatus )"
+					x-show="! ( Alpine.store( 'editor' ) && {{ Js::from( $savingStatus ) }} === Alpine.store( 'editor' ).saveStatus )"
 				>{{ __( 'visual-editor::ve.save' ) }}</span>
 				<span
-					x-show="Alpine.store( 'editor' ) && 'saving' === Alpine.store( 'editor' ).saveStatus"
+					x-show="Alpine.store( 'editor' ) && {{ Js::from( $savingStatus ) }} === Alpine.store( 'editor' ).saveStatus"
 					x-cloak
 				>{{ __( 'visual-editor::ve.saving' ) }}</span>
 			</button>

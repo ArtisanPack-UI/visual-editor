@@ -108,6 +108,28 @@ test( 'editor state enforces minimum autosave interval', function (): void {
 	expect( $component->autosaveInterval )->toBe( 60 );
 } );
 
+test( 'save status map returns uppercase-keyed map', function (): void {
+	$map = EditorState::saveStatusMap();
+
+	expect( $map )->toBe( [
+		'SAVED'   => 'saved',
+		'UNSAVED' => 'unsaved',
+		'SAVING'  => 'saving',
+		'ERROR'   => 'error',
+	] );
+} );
+
+test( 'document status map returns uppercase-keyed map', function (): void {
+	$map = EditorState::documentStatusMap();
+
+	expect( $map )->toBe( [
+		'DRAFT'     => 'draft',
+		'PUBLISHED' => 'published',
+		'SCHEDULED' => 'scheduled',
+		'PENDING'   => 'pending',
+	] );
+} );
+
 test( 'editor state renders', function (): void {
 	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
 	expect( $view )->not->toBeNull();
@@ -121,4 +143,39 @@ test( 'editor state renders with slot content', function (): void {
 test( 'editor state renders with alpine store initialization', function (): void {
 	$this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' )
 		->assertSee( "Alpine.store( 'editor'", false );
+} );
+
+test( 'editor state renders save status constants as frozen object', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'SAVE_STATUS: Object.freeze(', false );
+	$view->assertSee( 'SAVED', false );
+	$view->assertSee( 'UNSAVED', false );
+	$view->assertSee( 'SAVING', false );
+	$view->assertSee( 'ERROR', false );
+} );
+
+test( 'editor state renders document status constants as frozen object', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'DOCUMENT_STATUS: Object.freeze(', false );
+	$view->assertSee( 'DRAFT', false );
+	$view->assertSee( 'PUBLISHED', false );
+	$view->assertSee( 'SCHEDULED', false );
+	$view->assertSee( 'PENDING', false );
+} );
+
+test( 'editor state uses save status constants instead of magic strings', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this.SAVE_STATUS.UNSAVED', false );
+	$view->assertSee( 'this.SAVE_STATUS.SAVING', false );
+	$view->assertSee( 'this.SAVE_STATUS.SAVED', false );
+	$view->assertSee( 'this.SAVE_STATUS.ERROR', false );
+} );
+
+test( 'editor state uses document status constants instead of magic strings', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this.DOCUMENT_STATUS.SCHEDULED', false );
 } );

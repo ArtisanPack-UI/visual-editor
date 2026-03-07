@@ -161,6 +161,36 @@ class EditorState extends Component
 	}
 
 	/**
+	 * Get the save statuses as an uppercase-keyed map for JavaScript.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, string>
+	 */
+	public static function saveStatusMap(): array
+	{
+		return array_combine(
+			array_map( 'strtoupper', self::SAVE_STATUSES ),
+			self::SAVE_STATUSES,
+		);
+	}
+
+	/**
+	 * Get the document statuses as an uppercase-keyed map for JavaScript.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, string>
+	 */
+	public static function documentStatusMap(): array
+	{
+		return array_combine(
+			array_map( 'strtoupper', self::DOCUMENT_STATUSES ),
+			self::DOCUMENT_STATUSES,
+		);
+	}
+
+	/**
 	 * Get the view that represents the component.
 	 *
 	 * @since 1.0.0
