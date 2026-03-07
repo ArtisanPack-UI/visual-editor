@@ -443,6 +443,24 @@
 					return this.blocks.length;
 				},
 
+				{{-- ── Sidebar / Inserter Toggles ────────────────────── --}}
+
+				toggleSidebar() {
+					this.showSidebar = ! this.showSidebar;
+				},
+
+				toggleInserter() {
+					this.showInserter = ! this.showInserter;
+				},
+
+				openInserter() {
+					this.showInserter = true;
+				},
+
+				closeInserter() {
+					this.showInserter = false;
+				},
+
 				{{-- ── Document Status ────────────────────────────────── --}}
 
 				setDocumentStatus( status ) {

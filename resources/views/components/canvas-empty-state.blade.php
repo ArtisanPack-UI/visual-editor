@@ -39,7 +39,7 @@
 	<button
 		type="button"
 		class="btn btn-primary btn-sm gap-2"
-		x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).showInserter = true; }"
+		x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).openInserter(); }"
 		aria-label="{{ $buttonLabel ?? __( 'visual-editor::ve.add_block' ) }}"
 	>
 		@if ( $icon )

@@ -251,6 +251,32 @@ test( 'editor state markSaved flushes pendingDirty to unsaved', function (): voi
 	$view->assertSee( 'if ( this._pendingDirty )', false );
 } );
 
+test( 'editor state renders toggleSidebar method', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'toggleSidebar()', false );
+	$view->assertSee( 'this.showSidebar = ! this.showSidebar', false );
+} );
+
+test( 'editor state renders toggleInserter method', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'toggleInserter()', false );
+	$view->assertSee( 'this.showInserter = ! this.showInserter', false );
+} );
+
+test( 'editor state renders openInserter method', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'openInserter()', false );
+} );
+
+test( 'editor state renders closeInserter method', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'closeInserter()', false );
+} );
+
 test( 'editor state re-initialization resets pendingDirty', function (): void {
 	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
 
