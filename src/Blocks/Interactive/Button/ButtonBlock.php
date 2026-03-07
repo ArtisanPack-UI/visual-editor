@@ -85,24 +85,23 @@ class ButtonBlock extends BaseBlock
 	/**
 	 * Get the style field schema.
 	 *
+	 * Merges auto-generated supports fields with custom Button-specific fields.
+	 * The 'color' field uses a non-standard name (not 'textColor') for the
+	 * text color, so it is declared as a custom field.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */
 	public function getStyleSchema(): array
 	{
-		return [
-			'color'           => [
+		return array_merge( parent::getStyleSchema(), [
+			'color'        => [
 				'type'    => 'color',
 				'label'   => __( 'visual-editor::ve.text_color' ),
 				'default' => null,
 			],
-			'backgroundColor' => [
-				'type'    => 'color',
-				'label'   => __( 'visual-editor::ve.background_color' ),
-				'default' => null,
-			],
-			'size'            => [
+			'size'         => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.button_size' ),
 				'options' => [
@@ -113,7 +112,7 @@ class ButtonBlock extends BaseBlock
 				],
 				'default' => 'md',
 			],
-			'variant'         => [
+			'variant'      => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.button_variant' ),
 				'options' => [
@@ -123,12 +122,12 @@ class ButtonBlock extends BaseBlock
 				],
 				'default' => 'filled',
 			],
-			'borderRadius'    => [
+			'borderRadius' => [
 				'type'    => 'text',
 				'label'   => __( 'visual-editor::ve.border_radius' ),
 				'default' => '',
 			],
-			'width'           => [
+			'width'        => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.button_width' ),
 				'options' => [
@@ -137,6 +136,6 @@ class ButtonBlock extends BaseBlock
 				],
 				'default' => 'auto',
 			],
-		];
+		] );
 	}
 }

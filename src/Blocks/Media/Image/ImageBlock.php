@@ -84,14 +84,18 @@ class ImageBlock extends BaseBlock
 	/**
 	 * Get the style field schema.
 	 *
+	 * Merges auto-generated supports fields with custom Image-specific fields.
+	 * Overrides auto-generated 'aspectRatio' and 'shadow' with image-specific
+	 * versions that have custom options and control types.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */
 	public function getStyleSchema(): array
 	{
-		return [
-			'size'       => [
+		return array_merge( parent::getStyleSchema(), [
+			'size'        => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.image_size' ),
 				'options' => [
@@ -115,19 +119,19 @@ class ImageBlock extends BaseBlock
 				],
 				'default' => 'original',
 			],
-			'width'      => [
+			'width'       => [
 				'type'        => 'text',
 				'label'       => __( 'visual-editor::ve.width' ),
 				'placeholder' => __( 'visual-editor::ve.auto' ),
 				'default'     => '',
 			],
-			'height'     => [
+			'height'      => [
 				'type'        => 'text',
 				'label'       => __( 'visual-editor::ve.height' ),
 				'placeholder' => __( 'visual-editor::ve.auto' ),
 				'default'     => '',
 			],
-			'resolution' => [
+			'resolution'  => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.resolution' ),
 				'options' => [
@@ -138,17 +142,17 @@ class ImageBlock extends BaseBlock
 				],
 				'default' => 'full',
 			],
-			'rounded'    => [
+			'rounded'     => [
 				'type'    => 'toggle',
 				'label'   => __( 'visual-editor::ve.rounded_corners' ),
 				'default' => false,
 			],
-			'shadow'     => [
+			'shadow'      => [
 				'type'    => 'toggle',
 				'label'   => __( 'visual-editor::ve.drop_shadow' ),
 				'default' => false,
 			],
-			'objectFit'  => [
+			'objectFit'   => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.object_fit' ),
 				'options' => [
@@ -159,7 +163,7 @@ class ImageBlock extends BaseBlock
 				],
 				'default' => 'cover',
 			],
-		];
+		] );
 	}
 
 	/**

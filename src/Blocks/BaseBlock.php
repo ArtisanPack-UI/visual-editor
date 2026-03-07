@@ -693,6 +693,36 @@ abstract class BaseBlock implements BlockInterface
 	}
 
 	/**
+	 * Get the style field schema.
+	 *
+	 * Auto-generates schema entries from block.json supports so that
+	 * subclasses only need to declare custom (non-supports) fields.
+	 * Override in subclasses and merge with parent to add custom fields.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function getStyleSchema(): array
+	{
+		return $this->generateSupportsStyleSchema();
+	}
+
+	/**
+	 * Get the content field schema.
+	 *
+	 * Override in subclasses to declare content fields.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function getContentSchema(): array
+	{
+		return [];
+	}
+
+	/**
 	 * Resolve the directory containing this block class.
 	 *
 	 * @since 2.0.0
@@ -807,6 +837,190 @@ abstract class BaseBlock implements BlockInterface
 		}
 
 		return $colocated;
+	}
+
+	/**
+	 * Generate style schema entries from block.json supports.
+	 *
+	 * Maps active supports to schema field definitions, using
+	 * block.json attribute defaults where available. This provides
+	 * a single source of truth for supports-driven style fields.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	protected function generateSupportsStyleSchema(): array
+	{
+		$schema         = [];
+		$activeSupports = $this->getActiveStyleSupports();
+		$attributes     = $this->getAttributes();
+
+		if ( in_array( 'color.text', $activeSupports, true ) ) {
+			$schema['textColor'] = [
+				'type'    => 'color',
+				'label'   => __( 'visual-editor::ve.text_color' ),
+				'default' => $attributes['textColor']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'color.background', $activeSupports, true ) ) {
+			$schema['backgroundColor'] = [
+				'type'    => 'color',
+				'label'   => __( 'visual-editor::ve.background_color' ),
+				'default' => $attributes['backgroundColor']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'typography.fontSize', $activeSupports, true ) ) {
+			$schema['fontSize'] = [
+				'type'    => 'font_size',
+				'label'   => __( 'visual-editor::ve.font_size' ),
+				'default' => $attributes['fontSize']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'typography.dropCap', $activeSupports, true ) ) {
+			$schema['dropCap'] = [
+				'type'    => 'toggle',
+				'label'   => __( 'visual-editor::ve.drop_cap' ),
+				'default' => $attributes['dropCap']['default'] ?? false,
+			];
+		}
+
+		if ( in_array( 'spacing.padding', $activeSupports, true ) ) {
+			$schema['padding'] = [
+				'type'    => 'spacing',
+				'label'   => __( 'visual-editor::ve.padding' ),
+				'sides'   => [ 'top', 'right', 'bottom', 'left' ],
+				'default' => $attributes['padding']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'spacing.margin', $activeSupports, true ) ) {
+			$schema['margin'] = [
+				'type'    => 'spacing',
+				'label'   => __( 'visual-editor::ve.margin' ),
+				'sides'   => [ 'top', 'bottom' ],
+				'default' => $attributes['margin']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'spacing.blockSpacing', $activeSupports, true ) ) {
+			$schema['blockSpacing'] = [
+				'type'    => 'spacing',
+				'label'   => __( 'visual-editor::ve.block_spacing' ),
+				'default' => $attributes['blockSpacing']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'border', $activeSupports, true ) ) {
+			$schema['border'] = [
+				'type'    => 'border',
+				'label'   => __( 'visual-editor::ve.border' ),
+				'default' => $attributes['border']['default'] ?? [
+					'width'      => '0',
+					'widthUnit'  => 'px',
+					'style'      => 'none',
+					'color'      => '#000000',
+					'radius'     => '0',
+					'radiusUnit' => 'px',
+					'perSide'    => false,
+					'perCorner'  => false,
+				],
+			];
+		}
+
+		if ( in_array( 'shadow', $activeSupports, true ) ) {
+			$schema['shadow'] = [
+				'type'    => 'shadow',
+				'label'   => __( 'visual-editor::ve.shadow' ),
+				'default' => $attributes['shadow']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'dimensions.aspectRatio', $activeSupports, true ) ) {
+			$schema['aspectRatio'] = [
+				'type'    => 'select',
+				'label'   => __( 'visual-editor::ve.aspect_ratio' ),
+				'default' => $attributes['aspectRatio']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'dimensions.minHeight', $activeSupports, true ) ) {
+			$schema['minHeight'] = [
+				'type'    => 'unit',
+				'label'   => __( 'visual-editor::ve.min_height' ),
+				'default' => $attributes['minHeight']['default'] ?? '',
+			];
+		}
+
+		if ( in_array( 'background.backgroundImage', $activeSupports, true ) ) {
+			$schema['backgroundImage'] = [
+				'type'    => 'media_picker',
+				'label'   => __( 'visual-editor::ve.background_image' ),
+				'default' => $attributes['backgroundImage']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'background.backgroundSize', $activeSupports, true ) ) {
+			$schema['backgroundSize'] = [
+				'type'    => 'select',
+				'label'   => __( 'visual-editor::ve.background_size' ),
+				'default' => $attributes['backgroundSize']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'background.backgroundPosition', $activeSupports, true ) ) {
+			$schema['backgroundPosition'] = [
+				'type'    => 'select',
+				'label'   => __( 'visual-editor::ve.background_position' ),
+				'default' => $attributes['backgroundPosition']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'background.backgroundGradient', $activeSupports, true ) ) {
+			$schema['backgroundGradient'] = [
+				'type'    => 'text',
+				'label'   => __( 'visual-editor::ve.background_gradient' ),
+				'default' => $attributes['backgroundGradient']['default'] ?? null,
+			];
+		}
+
+		return $schema;
+	}
+
+	/**
+	 * Validate that a subclass style schema does not overlap with
+	 * auto-generated supports fields.
+	 *
+	 * Only runs in non-production environments.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, array<string, mixed>> $customSchema The custom schema to validate.
+	 *
+	 * @return void
+	 */
+	protected function validateStyleSchemaOverlap( array $customSchema ): void
+	{
+		if ( 'production' === app()->environment() ) {
+			return;
+		}
+
+		$supportsSchema = $this->generateSupportsStyleSchema();
+		$overlap        = array_intersect_key( $customSchema, $supportsSchema );
+
+		if ( ! empty( $overlap ) ) {
+			$type   = $this->getType();
+			$fields = implode( ', ', array_keys( $overlap ) );
+
+			trigger_error(
+				"Block '{$type}' getStyleSchema() declares fields already covered by supports: {$fields}. "
+				. 'Remove these from getStyleSchema() — they are auto-generated from block.json supports.',
+				E_USER_NOTICE,
+			);
+		}
 	}
 
 	/**

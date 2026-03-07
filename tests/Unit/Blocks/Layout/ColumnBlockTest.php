@@ -18,11 +18,16 @@ test( 'column block has empty content schema', function (): void {
 	expect( $schema )->toBeEmpty();
 } );
 
-test( 'column block style schema is empty since width and alignment are in settings and toolbar', function (): void {
+test( 'column block style schema has auto-generated background fields from supports', function (): void {
 	$block  = new ColumnBlock();
 	$schema = $block->getStyleSchema();
 
-	expect( $schema )->toBeEmpty();
+	expect( $schema )->toHaveKey( 'backgroundImage' );
+	expect( $schema )->toHaveKey( 'backgroundSize' );
+	expect( $schema )->toHaveKey( 'backgroundPosition' );
+	expect( $schema )->toHaveKey( 'backgroundGradient' );
+	expect( $schema )->not->toHaveKey( 'textColor' );
+	expect( $schema )->not->toHaveKey( 'padding' );
 } );
 
 test( 'column block only allows columns parent', function (): void {

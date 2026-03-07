@@ -119,18 +119,6 @@ class GalleryBlock extends BaseBlock
 	}
 
 	/**
-	 * Get the style field schema.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	public function getStyleSchema(): array
-	{
-		return [];
-	}
-
-	/**
 	 * Get toolbar control declarations for the block.
 	 *
 	 * Adds an Add button to the block toolbar for adding images.

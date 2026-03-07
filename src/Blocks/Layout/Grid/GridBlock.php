@@ -61,14 +61,16 @@ class GridBlock extends BaseBlock
 	/**
 	 * Get the style schema for the Grid block.
 	 *
+	 * Merges auto-generated supports fields with custom Grid-specific fields.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */
 	public function getStyleSchema(): array
 	{
-		return [
-			'gap' => [
+		return array_merge( parent::getStyleSchema(), [
+			'gap'          => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.gap' ),
 				'options' => [
@@ -79,7 +81,7 @@ class GridBlock extends BaseBlock
 				],
 				'default' => 'medium',
 			],
-			'rowGap' => [
+			'rowGap'       => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.row_gap' ),
 				'options' => [
@@ -91,7 +93,7 @@ class GridBlock extends BaseBlock
 				],
 				'default' => '',
 			],
-			'alignItems' => [
+			'alignItems'   => [
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.align_items' ),
 				'options' => [
@@ -113,6 +115,6 @@ class GridBlock extends BaseBlock
 				],
 				'default' => 'stretch',
 			],
-		];
+		] );
 	}
 }

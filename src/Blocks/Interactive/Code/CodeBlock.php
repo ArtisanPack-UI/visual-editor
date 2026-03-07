@@ -78,13 +78,15 @@ class CodeBlock extends BaseBlock
 	/**
 	 * Get the style field schema.
 	 *
+	 * Merges auto-generated supports fields with custom Code-specific fields.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @return array<string, array<string, mixed>>
 	 */
 	public function getStyleSchema(): array
 	{
-		return [
+		return array_merge( parent::getStyleSchema(), [
 			'showLineNumbers' => [
 				'type'    => 'toggle',
 				'label'   => __( 'visual-editor::ve.show_line_numbers' ),
@@ -100,6 +102,6 @@ class CodeBlock extends BaseBlock
 				'label'   => __( 'visual-editor::ve.show_copy_button' ),
 				'default' => true,
 			],
-		];
+		] );
 	}
 }

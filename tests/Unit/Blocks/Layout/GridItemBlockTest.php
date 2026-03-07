@@ -18,11 +18,15 @@ test( 'grid item block has empty content schema', function (): void {
 	expect( $schema )->toBeEmpty();
 } );
 
-test( 'grid item block has empty style schema', function (): void {
+test( 'grid item block has auto-generated background fields from supports', function (): void {
 	$block  = new GridItemBlock();
 	$schema = $block->getStyleSchema();
 
-	expect( $schema )->toBeEmpty();
+	expect( $schema )->toHaveKey( 'backgroundImage' );
+	expect( $schema )->toHaveKey( 'backgroundSize' );
+	expect( $schema )->toHaveKey( 'backgroundPosition' );
+	expect( $schema )->toHaveKey( 'backgroundGradient' );
+	expect( $schema )->not->toHaveKey( 'textColor' );
 } );
 
 test( 'grid item block attributes include columnSpan rowSpan and verticalAlignment', function (): void {

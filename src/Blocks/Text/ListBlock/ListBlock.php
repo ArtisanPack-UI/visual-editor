@@ -66,45 +66,6 @@ class ListBlock extends BaseBlock
 	}
 
 	/**
-	 * Get the style field schema.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	public function getStyleSchema(): array
-	{
-		return [
-			'padding' => [
-				'type'    => 'spacing',
-				'label'   => __( 'visual-editor::ve.padding' ),
-				'sides'   => [ 'top', 'right', 'bottom', 'left' ],
-				'default' => null,
-			],
-			'margin'  => [
-				'type'    => 'spacing',
-				'label'   => __( 'visual-editor::ve.margin' ),
-				'sides'   => [ 'top', 'bottom' ],
-				'default' => null,
-			],
-			'border'  => [
-				'type'    => 'border',
-				'label'   => __( 'visual-editor::ve.border' ),
-				'default' => [
-					'width'      => '0',
-					'widthUnit'  => 'px',
-					'style'      => 'none',
-					'color'      => '#000000',
-					'radius'     => '0',
-					'radiusUnit' => 'px',
-					'perSide'    => false,
-					'perCorner'  => false,
-				],
-			],
-		];
-	}
-
-	/**
 	 * Get available block transforms.
 	 *
 	 * @since 1.0.0
