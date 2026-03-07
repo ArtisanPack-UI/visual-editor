@@ -15,6 +15,18 @@
 		linkOpen: false,
 		linkUrl: '',
 		linkTarget: '_self',
+		_lastBlockId: null,
+
+		init() {
+			this.$watch( () => Alpine.store( 'selection' )?.focused, ( id ) => {
+				if ( id !== this._lastBlockId ) {
+					this.linkOpen   = false;
+					this.linkUrl    = '';
+					this.linkTarget = '_self';
+					this._lastBlockId = id;
+				}
+			} );
+		},
 
 		get block() {
 			const blockId = Alpine.store( 'selection' )?.focused;
@@ -93,8 +105,8 @@
 		class="btn btn-ghost btn-xs btn-square"
 		:class="hasLink ? 'bg-base-200 text-base-content' : ''"
 		x-on:click="toggleLink()"
-		:aria-label="hasLink ? '{{ __( 'visual-editor::ve.edit_link' ) }}' : '{{ __( 'visual-editor::ve.add_link' ) }}'"
-		:title="hasLink ? '{{ __( 'visual-editor::ve.edit_link' ) }}' : '{{ __( 'visual-editor::ve.add_link' ) }}'"
+		:aria-label="hasLink ? {{ Js::from( __( 'visual-editor::ve.edit_link' ) ) }} : {{ Js::from( __( 'visual-editor::ve.add_link' ) ) }}"
+		:title="hasLink ? {{ Js::from( __( 'visual-editor::ve.edit_link' ) ) }} : {{ Js::from( __( 'visual-editor::ve.add_link' ) ) }}"
 	>
 		<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
 			<path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
