@@ -93,3 +93,9 @@ test( 'grid item block has custom toolbar', function (): void {
 
 	expect( $block->hasCustomToolbar() )->toBeTrue();
 } );
+
+test( 'grid item block has custom inspector', function (): void {
+	$block = new GridItemBlock();
+
+	expect( $block->hasCustomInspector() )->toBeTrue();
+} );

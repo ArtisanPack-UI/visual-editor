@@ -357,3 +357,9 @@ test( 'group block has custom toolbar', function (): void {
 
 	expect( $block->hasCustomToolbar() )->toBeTrue();
 } );
+
+test( 'group block has custom inspector', function (): void {
+	$block = new GroupBlock();
+
+	expect( $block->hasCustomInspector() )->toBeTrue();
+} );
