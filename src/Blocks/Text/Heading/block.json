@@ -80,8 +80,7 @@
 			"background": true
 		},
 		"typography": {
-			"fontSize": true,
-			"fontFamily": false
+			"fontSize": true
 		},
 		"spacing": {
 			"margin": true,
