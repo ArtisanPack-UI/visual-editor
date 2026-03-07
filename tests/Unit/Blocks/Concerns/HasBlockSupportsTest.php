@@ -44,9 +44,35 @@ test( 'heading block supports from block.json include new default types', functi
 	expect( $supports )->toHaveKey( 'shadow' );
 	expect( $supports )->toHaveKey( 'dimensions' );
 	expect( $supports )->toHaveKey( 'background' );
+	expect( $supports )->toHaveKey( 'textAlignment' );
+	expect( $supports )->toHaveKey( 'textFormatting' );
 	expect( $supports['shadow'] )->toBeFalse();
 	expect( $supports['dimensions']['aspectRatio'] )->toBeFalse();
 	expect( $supports['dimensions']['minHeight'] )->toBeFalse();
 	expect( $supports['background']['backgroundImage'] )->toBeFalse();
 	expect( $supports['spacing']['blockSpacing'] )->toBeFalse();
+} );
+
+test( 'heading block supports textAlignment and textFormatting', function (): void {
+	$block = new HeadingBlock();
+
+	expect( $block->supportsFeature( 'textAlignment' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'textFormatting' ) )->toBeTrue();
+} );
+
+test( 'stub block does not support textAlignment or textFormatting by default', function (): void {
+	$block = new StubBlock();
+
+	expect( $block->supportsFeature( 'textAlignment' ) )->toBeFalse();
+	expect( $block->supportsFeature( 'textFormatting' ) )->toBeFalse();
+} );
+
+test( 'toArray exposes textAlignment and textFormatting', function (): void {
+	$headingBlock = new HeadingBlock();
+	$stubBlock    = new StubBlock();
+
+	expect( $headingBlock->toArray()['textAlignment'] )->toBeTrue();
+	expect( $headingBlock->toArray()['textFormatting'] )->toBeTrue();
+	expect( $stubBlock->toArray()['textAlignment'] )->toBeFalse();
+	expect( $stubBlock->toArray()['textFormatting'] )->toBeFalse();
 } );

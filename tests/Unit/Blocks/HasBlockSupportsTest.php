@@ -45,6 +45,8 @@ test( 'get supports returns full supports array', function (): void {
 	$supports = $block->getSupports();
 
 	expect( $supports )->toHaveKey( 'align' );
+	expect( $supports )->toHaveKey( 'textAlignment' );
+	expect( $supports )->toHaveKey( 'textFormatting' );
 	expect( $supports )->toHaveKey( 'color' );
 	expect( $supports )->toHaveKey( 'typography' );
 	expect( $supports )->toHaveKey( 'spacing' );

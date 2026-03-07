@@ -651,6 +651,8 @@ abstract class BaseBlock implements BlockInterface
 			'hasCustomInspector'     => $this->hasCustomInspector(),
 			'hasCustomToolbar'       => $this->hasCustomToolbar(),
 			'alignments'             => $this->getSupportedAlignments(),
+			'textAlignment'          => $this->supportsFeature( 'textAlignment' ),
+			'textFormatting'         => $this->supportsFeature( 'textFormatting' ),
 		];
 	}
 

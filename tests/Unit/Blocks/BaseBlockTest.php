@@ -156,7 +156,8 @@ test( 'base block serializes to array', function (): void {
 		'keywords', 'public', 'supportsInnerBlocks',
 		'innerBlocksOrientation', 'allowedChildren',
 		'allowedParents', 'hasJsRenderer', 'hasCustomInspector',
-		'hasCustomToolbar', 'alignments',
+		'hasCustomToolbar', 'alignments', 'textAlignment',
+		'textFormatting',
 	] )
 		->and( $array['type'] )->toBe( 'stub' )
 		->and( $array['supportsInnerBlocks'] )->toBeFalse()

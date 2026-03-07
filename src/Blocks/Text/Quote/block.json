@@ -98,6 +98,8 @@
 	},
 	"supports": {
 		"align": ["left", "center", "right", "wide"],
+		"textAlignment": true,
+		"textFormatting": true,
 		"color": {
 			"text": true,
 			"background": true

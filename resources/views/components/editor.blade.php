@@ -766,16 +766,17 @@
 					</div>
 				</template>
 
-				{{-- Text alignment and formatting controls (hidden for container blocks) --}}
+				{{-- Text alignment controls (shown for blocks that declare textAlignment support) --}}
 				<template x-if="(() => {
 					if ( ! Alpine.store( 'selection' )?.focused || ! Alpine.store( 'editor' ) ) return false;
 					const block = Alpine.store( 'editor' ).getBlock( Alpine.store( 'selection' ).focused );
-					return block && ! [ 'columns', 'column', 'group', 'gallery', 'image', 'video', 'file', 'audio' ].includes( block.type );
+					if ( ! block ) return false;
+					const meta = Alpine.store( 'blockRenderers' ).getMeta( block.type );
+					return meta?.textAlignment === true;
 				})()">
 					<div class="contents">
 						<div class="w-px h-4 bg-base-300" aria-hidden="true"></div>
 
-						{{-- Text alignment controls --}}
 						<div
 							x-data="{
 								get currentAlignment() {
@@ -829,10 +830,20 @@
 								</svg>
 							</button>
 						</div>
+					</div>
+				</template>
 
+				{{-- Text formatting controls (shown for blocks that declare textFormatting support) --}}
+				<template x-if="(() => {
+					if ( ! Alpine.store( 'selection' )?.focused || ! Alpine.store( 'editor' ) ) return false;
+					const block = Alpine.store( 'editor' ).getBlock( Alpine.store( 'selection' ).focused );
+					if ( ! block ) return false;
+					const meta = Alpine.store( 'blockRenderers' ).getMeta( block.type );
+					return meta?.textFormatting === true;
+				})()">
+					<div class="contents">
 						<div class="w-px h-4 bg-base-300" aria-hidden="true"></div>
 
-						{{-- Text formatting controls --}}
 						<x-ve-toolbar-button
 							:label="__( 'Bold' )"
 							icon="o-bold"

@@ -8,7 +8,7 @@ test( 'discovery finds all 16 core blocks', function (): void {
 	$service = new BlockDiscoveryService();
 	$blocks  = $service->discover();
 
-	expect( $blocks )->toHaveCount( 16 );
+	expect( $blocks )->toHaveCount( 18 );
 } );
 
 test( 'discovery returns correct structure for each block', function (): void {
@@ -33,7 +33,7 @@ test( 'discovery returns all expected block types', function (): void {
 	$expected = [
 		'heading', 'paragraph', 'list', 'quote',
 		'image', 'gallery', 'video', 'audio', 'file',
-		'columns', 'column', 'group', 'spacer', 'divider',
+		'columns', 'column', 'group', 'grid', 'grid-item', 'spacer', 'divider',
 		'button', 'code',
 	];
 

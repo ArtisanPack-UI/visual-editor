@@ -18,18 +18,23 @@ test( 'grid item block has empty content schema', function (): void {
 	expect( $schema )->toBeEmpty();
 } );
 
-test( 'grid item block style schema has columnSpan rowSpan and verticalAlignment', function (): void {
+test( 'grid item block has empty style schema', function (): void {
 	$block  = new GridItemBlock();
 	$schema = $block->getStyleSchema();
 
-	expect( $schema )->toHaveKey( 'columnSpan' );
-	expect( $schema )->toHaveKey( 'rowSpan' );
-	expect( $schema )->toHaveKey( 'verticalAlignment' );
-	expect( $schema['columnSpan']['type'] )->toBe( 'responsive_range' );
-	expect( $schema['columnSpan']['min'] )->toBe( 1 );
-	expect( $schema['columnSpan']['max'] )->toBe( 6 );
-	expect( $schema['rowSpan']['type'] )->toBe( 'responsive_range' );
-	expect( $schema['verticalAlignment']['type'] )->toBe( 'select' );
+	expect( $schema )->toBeEmpty();
+} );
+
+test( 'grid item block attributes include columnSpan rowSpan and verticalAlignment', function (): void {
+	$block      = new GridItemBlock();
+	$attributes = $block->getAttributes();
+
+	expect( $attributes )->toHaveKey( 'columnSpan' );
+	expect( $attributes )->toHaveKey( 'rowSpan' );
+	expect( $attributes )->toHaveKey( 'verticalAlignment' );
+	expect( $attributes['columnSpan']['source'] )->toBe( 'style' );
+	expect( $attributes['rowSpan']['source'] )->toBe( 'style' );
+	expect( $attributes['verticalAlignment']['source'] )->toBe( 'style' );
 } );
 
 test( 'grid item block only allows grid parent', function (): void {

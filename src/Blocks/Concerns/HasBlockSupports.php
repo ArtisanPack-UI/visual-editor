@@ -139,35 +139,37 @@ trait HasBlockSupports
 	protected function getDefaultSupports(): array
 	{
 		return [
-			'align'      => false,
-			'color'      => [
+			'align'          => false,
+			'textAlignment'  => false,
+			'textFormatting' => false,
+			'color'          => [
 				'text'       => false,
 				'background' => false,
 			],
-			'typography' => [
+			'typography'     => [
 				'fontSize'   => false,
 				'fontFamily' => false,
 			],
-			'spacing'    => [
+			'spacing'        => [
 				'margin'       => false,
 				'padding'      => false,
 				'blockSpacing' => false,
 			],
-			'border'      => false,
-			'shadow'      => false,
-			'dimensions'  => [
+			'border'         => false,
+			'shadow'         => false,
+			'dimensions'     => [
 				'aspectRatio' => false,
 				'minHeight'   => false,
 			],
-			'background'  => [
+			'background'     => [
 				'backgroundImage'    => false,
 				'backgroundSize'     => false,
 				'backgroundPosition' => false,
 				'backgroundGradient' => false,
 			],
-			'anchor'     => true,
-			'htmlId'     => true,
-			'className'  => true,
+			'anchor'         => true,
+			'htmlId'         => true,
+			'className'      => true,
 		];
 	}
 

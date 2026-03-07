@@ -19,7 +19,7 @@ test( 'grid block content schema has columns and templateRows fields', function 
 	expect( $schema )->toHaveKey( 'templateRows' );
 	expect( $schema['columns']['type'] )->toBe( 'responsive_range' );
 	expect( $schema['columns']['min'] )->toBe( 1 );
-	expect( $schema['columns']['max'] )->toBe( 6 );
+	expect( $schema['columns']['max'] )->toBe( 12 );
 	expect( $schema['columns']['step'] )->toBe( 1 );
 	expect( $schema['templateRows']['type'] )->toBe( 'text' );
 } );

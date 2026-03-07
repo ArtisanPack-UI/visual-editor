@@ -109,23 +109,25 @@ class StubBlock extends BaseBlock
 	public function getSupports(): array
 	{
 		return [
-			'align'      => true,
-			'color'      => [
+			'align'          => true,
+			'textAlignment'  => false,
+			'textFormatting' => false,
+			'color'          => [
 				'text'       => true,
 				'background' => false,
 			],
-			'typography' => [
+			'typography'     => [
 				'fontSize'   => true,
 				'fontFamily' => false,
 			],
-			'spacing'    => [
+			'spacing'        => [
 				'margin'  => false,
 				'padding' => false,
 			],
-			'border'     => false,
-			'anchor'     => true,
-			'htmlId'     => true,
-			'className'  => true,
+			'border'         => false,
+			'anchor'         => true,
+			'htmlId'         => true,
+			'className'      => true,
 		];
 	}
 }
