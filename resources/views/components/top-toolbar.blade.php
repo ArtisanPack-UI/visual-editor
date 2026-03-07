@@ -29,7 +29,7 @@
 			<button
 				type="button"
 				class="btn btn-ghost btn-sm btn-square"
-				x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).showInserter = ! Alpine.store( 'editor' ).showInserter; }"
+				x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).toggleInserter(); }"
 				aria-label="{{ __( 'visual-editor::ve.toggle_inserter' ) }}"
 				:aria-pressed="Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).showInserter : false"
 			>
@@ -99,7 +99,7 @@
 			<button
 				type="button"
 				class="btn btn-ghost btn-sm btn-square"
-				x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).showSidebar = ! Alpine.store( 'editor' ).showSidebar; }"
+				x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).toggleSidebar(); }"
 				aria-label="{{ __( 'visual-editor::ve.toggle_sidebar' ) }}"
 				:aria-pressed="Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).showSidebar : false"
 			>

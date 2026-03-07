@@ -53,7 +53,7 @@
 		<button
 			type="button"
 			class="btn btn-ghost btn-sm btn-square mr-1"
-			x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).showInserter = false; }"
+			x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).closeInserter(); }"
 			:aria-label="{{ Js::from( __( 'visual-editor::ve.close_sidebar' ) ) }}"
 		>
 			<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>

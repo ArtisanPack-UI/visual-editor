@@ -2051,7 +2051,7 @@
 											<button
 												type="button"
 												class="w-full text-sm text-primary hover:text-primary-focus font-medium text-center py-1 rounded hover:bg-base-200 transition-colors"
-												x-on:click="inserterPopover.open = false; if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).showInserter = true; }"
+												x-on:click="inserterPopover.open = false; if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).openInserter(); }"
 											>
 												{{ __( 'Browse all' ) }}
 											</button>
@@ -2140,7 +2140,7 @@
 								<button
 									type="button"
 									class="w-full text-sm text-primary hover:text-primary-focus font-medium text-center py-1 rounded hover:bg-base-200 transition-colors"
-									x-on:click="innerInserterPopover.open = false; if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).showInserter = true; }"
+									x-on:click="innerInserterPopover.open = false; if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).openInserter(); }"
 								>
 									{{ __( 'Browse all' ) }}
 								</button>
@@ -2203,7 +2203,7 @@
 									<button
 										type="button"
 										class="w-full text-sm text-primary hover:text-primary-focus font-medium text-center py-1 rounded hover:bg-base-200 transition-colors"
-										x-on:click="inserterPopover.open = false; if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).showInserter = true; }"
+										x-on:click="inserterPopover.open = false; if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).openInserter(); }"
 									>
 										{{ __( 'Browse all' ) }}
 									</button>
