@@ -20,7 +20,8 @@
 			"isDefault": true,
 			"attributes": {
 				"flexDirection": "column",
-				"flexWrap": "nowrap"
+				"flexWrap": "nowrap",
+				"_groupVariation": "group"
 			}
 		},
 		{
@@ -30,7 +31,8 @@
 			"attributes": {
 				"flexDirection": "row",
 				"flexWrap": "nowrap",
-				"justifyContent": "flex-start"
+				"justifyContent": "flex-start",
+				"_groupVariation": "row"
 			}
 		},
 		{
@@ -39,7 +41,8 @@
 			"isDefault": false,
 			"attributes": {
 				"flexDirection": "column",
-				"flexWrap": "nowrap"
+				"flexWrap": "nowrap",
+				"_groupVariation": "stack"
 			}
 		}
 	],

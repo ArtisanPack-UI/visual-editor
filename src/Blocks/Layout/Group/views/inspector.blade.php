@@ -37,10 +37,7 @@
 			this.updateAttr( map[ name ] || map.group );
 		},
 		getActiveVariation() {
-			const stored = this.block?.attributes?._groupVariation;
-			if ( stored ) return stored;
-			if ( 'row' === this.flexDirection ) return 'row';
-			return 'group';
+			return this.block?.attributes?._groupVariation || 'group';
 		},
 	}"
 >

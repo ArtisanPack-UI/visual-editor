@@ -205,6 +205,16 @@ test( 'group block row variation has row flex direction', function (): void {
 	expect( $row['attributes']['flexDirection'] )->toBe( 'row' );
 } );
 
+test( 'group block variations include _groupVariation attribute matching their name', function (): void {
+	$block      = new GroupBlock();
+	$variations = $block->getVariations();
+
+	foreach ( $variations as $variation ) {
+		expect( $variation['attributes'] )->toHaveKey( '_groupVariation' );
+		expect( $variation['attributes']['_groupVariation'] )->toBe( $variation['name'] );
+	}
+} );
+
 test( 'group block style schema has textColor field', function (): void {
 	$block  = new GroupBlock();
 	$schema = $block->getStyleSchema();

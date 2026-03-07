@@ -646,7 +646,8 @@
 							}
 							if ( fillHeight ) { inlineStyle += 'height:100%;'; }
 
-							const hasExplicitVariation = bgColor || textColor || 'column' !== flexDirection;
+							const groupVariation       = block.attributes?._groupVariation || null;
+							const hasExplicitVariation = groupVariation || bgColor || textColor;
 							const showVariationPicker  = ( ! block.innerBlocks || 0 === block.innerBlocks.length ) && ! hasExplicitVariation;
 
 							if ( showVariationPicker ) {
