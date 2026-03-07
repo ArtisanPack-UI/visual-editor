@@ -107,6 +107,7 @@
 			"aspectRatio": true,
 			"minHeight": false
 		},
+		"htmlId": true,
 		"anchor": true,
 		"className": true
 	}

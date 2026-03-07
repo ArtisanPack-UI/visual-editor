@@ -118,6 +118,7 @@
 			"backgroundSize": true,
 			"backgroundPosition": true
 		},
+		"htmlId": true,
 		"anchor": true,
 		"className": true
 	}

@@ -73,6 +73,7 @@
 			"background": true
 		},
 		"shadow": true,
+		"htmlId": true,
 		"anchor": true,
 		"className": true
 	}

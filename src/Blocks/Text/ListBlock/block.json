@@ -74,6 +74,7 @@
 			"padding": true
 		},
 		"border": true,
+		"htmlId": true,
 		"anchor": true,
 		"className": true
 	}
