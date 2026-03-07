@@ -122,3 +122,37 @@ test( 'editor state renders with alpine store initialization', function (): void
 	$this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' )
 		->assertSee( "Alpine.store( 'editor'", false );
 } );
+
+test( 'editor state renders save status constants as frozen object', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'SAVE_STATUS: Object.freeze(', false );
+	$view->assertSee( 'SAVED', false );
+	$view->assertSee( 'UNSAVED', false );
+	$view->assertSee( 'SAVING', false );
+} );
+
+test( 'editor state renders document status constants as frozen object', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'DOCUMENT_STATUS: Object.freeze(', false );
+	$view->assertSee( 'DRAFT', false );
+	$view->assertSee( 'PUBLISHED', false );
+	$view->assertSee( 'SCHEDULED', false );
+	$view->assertSee( 'PENDING', false );
+} );
+
+test( 'editor state uses save status constants instead of magic strings', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this.SAVE_STATUS.UNSAVED', false );
+	$view->assertSee( 'this.SAVE_STATUS.SAVING', false );
+	$view->assertSee( 'this.SAVE_STATUS.SAVED', false );
+	$view->assertSee( 'this.SAVE_STATUS.ERROR', false );
+} );
+
+test( 'editor state uses document status constants instead of magic strings', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this.DOCUMENT_STATUS.SCHEDULED', false );
+} );

@@ -63,3 +63,12 @@ test( 'document status renders label', function (): void {
 	$this->blade( '<x-ve-document-status />' )
 		->assertSee( 'Document status' );
 } );
+
+test( 'document status uses PHP constants for status keys', function (): void {
+	$view = $this->blade( '<x-ve-document-status />' );
+
+	$view->assertSee( 'value="draft"', false );
+	$view->assertSee( 'value="published"', false );
+	$view->assertSee( 'value="scheduled"', false );
+	$view->assertSee( 'value="pending"', false );
+} );

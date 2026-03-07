@@ -10,9 +10,20 @@
  * @since      1.0.0
  --}}
 
+@php
+	use ArtisanPackUI\VisualEditor\View\Components\EditorState;
+
+	$saveStatusConstants = array_combine(
+		array_map( 'strtoupper', EditorState::SAVE_STATUSES ),
+		EditorState::SAVE_STATUSES,
+	);
+@endphp
+
 <div
 	id="{{ $uuid }}"
 	x-data="{
+		SAVE_STATUS: Object.freeze( {{ Js::from( $saveStatusConstants ) }} ),
+
 		get blockCount() {
 			return Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).getBlockCount() : 0;
 		},
@@ -22,7 +33,7 @@
 		},
 
 		get saveStatus() {
-			return Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).saveStatus : 'saved';
+			return Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).saveStatus : this.SAVE_STATUS.SAVED;
 		},
 
 		get lastSavedAt() {
@@ -37,10 +48,10 @@
 
 		get saveStatusLabel() {
 			const labels = {
-				saved: {{ Js::from( __( 'visual-editor::ve.saved' ) ) }},
-				unsaved: {{ Js::from( __( 'visual-editor::ve.unsaved_changes' ) ) }},
-				saving: {{ Js::from( __( 'visual-editor::ve.saving' ) ) }},
-				error: {{ Js::from( __( 'visual-editor::ve.save_error' ) ) }},
+				[this.SAVE_STATUS.SAVED]: {{ Js::from( __( 'visual-editor::ve.saved' ) ) }},
+				[this.SAVE_STATUS.UNSAVED]: {{ Js::from( __( 'visual-editor::ve.unsaved_changes' ) ) }},
+				[this.SAVE_STATUS.SAVING]: {{ Js::from( __( 'visual-editor::ve.saving' ) ) }},
+				[this.SAVE_STATUS.ERROR]: {{ Js::from( __( 'visual-editor::ve.save_error' ) ) }},
 			};
 			return labels[ this.saveStatus ] || '';
 		},
@@ -82,10 +93,10 @@
 			<span
 				role="status"
 				:class="{
-					'text-success': 'saved' === saveStatus,
-					'text-warning': 'unsaved' === saveStatus,
-					'text-info': 'saving' === saveStatus,
-					'text-error': 'error' === saveStatus,
+					'text-success': SAVE_STATUS.SAVED === saveStatus,
+					'text-warning': SAVE_STATUS.UNSAVED === saveStatus,
+					'text-info': SAVE_STATUS.SAVING === saveStatus,
+					'text-error': SAVE_STATUS.ERROR === saveStatus,
 				}"
 				x-text="saveStatusLabel"
 			></span>

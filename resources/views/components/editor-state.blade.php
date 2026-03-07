@@ -10,6 +10,20 @@
  * @since      1.0.0
  --}}
 
+@php
+	use ArtisanPackUI\VisualEditor\View\Components\EditorState;
+
+	$saveStatusConstants = array_combine(
+		array_map( 'strtoupper', EditorState::SAVE_STATUSES ),
+		EditorState::SAVE_STATUSES,
+	);
+
+	$documentStatusConstants = array_combine(
+		array_map( 'strtoupper', EditorState::DOCUMENT_STATUSES ),
+		EditorState::DOCUMENT_STATUSES,
+	);
+@endphp
+
 <div
 	id="{{ $uuid }}"
 	x-data
@@ -42,6 +56,9 @@
 				blockVariations: {{ Js::from( $blockVariations ) }},
 				showPatternModal: false,
 				leftSidebarTab: 'blocks',
+
+				SAVE_STATUS: Object.freeze( {{ Js::from( $saveStatusConstants ) }} ),
+				DOCUMENT_STATUS: Object.freeze( {{ Js::from( $documentStatusConstants ) }} ),
 
 				{{-- ── Initialization ─────────────────────────────────── --}}
 
@@ -381,20 +398,20 @@
 				{{-- ── Save Status ────────────────────────────────────── --}}
 
 				markDirty() {
-					this.saveStatus = 'unsaved';
+					this.saveStatus = this.SAVE_STATUS.UNSAVED;
 				},
 
 				markSaving() {
-					this.saveStatus = 'saving';
+					this.saveStatus = this.SAVE_STATUS.SAVING;
 				},
 
 				markSaved() {
-					this.saveStatus = 'saved';
+					this.saveStatus = this.SAVE_STATUS.SAVED;
 					this.lastSavedAt = new Date();
 				},
 
 				markError() {
-					this.saveStatus = 'error';
+					this.saveStatus = this.SAVE_STATUS.ERROR;
 				},
 
 				{{-- ── Utility ────────────────────────────────────────── --}}
@@ -407,7 +424,7 @@
 
 				setDocumentStatus( status ) {
 					this.documentStatus = status;
-					if ( 'scheduled' !== status ) {
+					if ( this.DOCUMENT_STATUS.SCHEDULED !== status ) {
 						this.scheduledDate = null;
 					}
 					this.markDirty();
@@ -571,7 +588,7 @@
 					this._stopAutosave();
 					if ( ! this.autosaveInterval || this.autosaveInterval <= 0 ) return;
 					this._autosaveTimer = setInterval( () => {
-						if ( 'unsaved' === this.saveStatus ) {
+						if ( this.SAVE_STATUS.UNSAVED === this.saveStatus ) {
 							document.dispatchEvent( new CustomEvent( 've-autosave', {
 								bubbles: true,
 								detail: {
