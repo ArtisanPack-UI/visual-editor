@@ -35,7 +35,6 @@
 			// Add columns if needed.
 			for ( let i = current; i < count; i++ ) {
 				Alpine.store( 'editor' ).addInnerBlock( blockId, {
-					id: 'block-' + Date.now() + '-col-' + i,
 					type: 'column',
 					attributes: { width: '', verticalAlignment: 'top' },
 					innerBlocks: [],
