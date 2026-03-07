@@ -19,15 +19,14 @@
 		},
 		get flexDirection() { return this.block?.attributes?.flexDirection || 'column'; },
 		get justifyContent() { return this.block?.attributes?.justifyContent || 'flex-start'; },
+		get activeVariation() {
+			return this.block?.attributes?._groupVariation || 'group';
+		},
 		get isRowOrStack() {
-			const v = this.block?.attributes?._groupVariation;
-			if ( v ) return 'row' === v || 'stack' === v;
-			return 'row' === this.flexDirection;
+			return 'row' === this.activeVariation || 'stack' === this.activeVariation;
 		},
 		get isGroupVariation() {
-			const v = this.block?.attributes?._groupVariation;
-			if ( v ) return 'group' === v;
-			return 'column' === this.flexDirection && 'nowrap' === ( this.block?.attributes?.flexWrap || 'nowrap' );
+			return 'group' === this.activeVariation;
 		},
 		setJustify( value ) {
 			const blockId = Alpine.store( 'selection' )?.focused;
@@ -35,7 +34,12 @@
 		},
 		setDirection( value ) {
 			const blockId = Alpine.store( 'selection' )?.focused;
-			if ( blockId ) Alpine.store( 'editor' ).updateBlock( blockId, { flexDirection: value } );
+			if ( ! blockId ) return;
+			const attrs = { flexDirection: value };
+			if ( this.isRowOrStack ) {
+				attrs._groupVariation = 'row' === value ? 'row' : 'stack';
+			}
+			Alpine.store( 'editor' ).updateBlock( blockId, attrs );
 		},
 	}"
 	class="relative flex items-center"

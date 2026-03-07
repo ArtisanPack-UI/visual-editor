@@ -103,7 +103,8 @@
 		$inlineStyles .= " min-height: {$minHeight};";
 	}
 
-	$hasExplicitVariation = $bgColor || $textColor || 'column' !== $flexDirection;
+	$groupVariation       = $content['_groupVariation'] ?? null;
+	$hasExplicitVariation = $groupVariation || $bgColor || $textColor;
 	$showVariationPicker  = empty( $innerBlocks ) && ! $hasExplicitVariation;
 	$orientation          = 'row' === $flexDirection ? 'horizontal' : 'vertical';
 @endphp

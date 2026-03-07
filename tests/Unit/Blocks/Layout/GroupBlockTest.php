@@ -205,6 +205,44 @@ test( 'group block row variation has row flex direction', function (): void {
 	expect( $row['attributes']['flexDirection'] )->toBe( 'row' );
 } );
 
+test( 'group block variations include _groupVariation attribute matching their name', function (): void {
+	$block      = new GroupBlock();
+	$variations = $block->getVariations();
+
+	foreach ( $variations as $variation ) {
+		expect( $variation['attributes'] )->toHaveKey( '_groupVariation' );
+		expect( $variation['attributes']['_groupVariation'] )->toBe( $variation['name'] );
+	}
+} );
+
+test( 'group block attributes schema includes _groupVariation', function (): void {
+	$block      = new GroupBlock();
+	$attributes = $block->getAttributes();
+
+	expect( $attributes )->toHaveKey( '_groupVariation' );
+	expect( $attributes['_groupVariation']['type'] )->toBe( 'string' );
+	expect( $attributes['_groupVariation']['source'] )->toBe( 'content' );
+	expect( $attributes['_groupVariation']['default'] )->toBe( 'group' );
+} );
+
+test( 'group block default content includes _groupVariation', function (): void {
+	$block    = new GroupBlock();
+	$defaults = $block->getDefaultContent();
+
+	expect( $defaults )->toHaveKey( '_groupVariation' );
+	expect( $defaults['_groupVariation'] )->toBe( 'group' );
+} );
+
+test( 'legacy group block without _groupVariation renders correctly', function (): void {
+	$block = new GroupBlock();
+
+	$legacyRowContent = [ 'tag' => 'div', 'flexDirection' => 'row', 'flexWrap' => 'nowrap' ];
+	$output           = $block->render( $legacyRowContent, [ 'verticalAlignment' => 'top' ] );
+
+	expect( $output )->toContain( 'flex-direction: row' );
+	expect( $output )->toContain( 've-block-group' );
+} );
+
 test( 'group block style schema has textColor field', function (): void {
 	$block  = new GroupBlock();
 	$schema = $block->getStyleSchema();
