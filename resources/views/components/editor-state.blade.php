@@ -38,6 +38,7 @@
 				devicePreview: {{ Js::from( $devicePreview ) }},
 				saveStatus: {{ Js::from( $saveStatus ) }},
 				lastSavedAt: null,
+				_pendingDirty: false,
 				autosave: {{ Js::from( $autosave ) }},
 				autosaveInterval: {{ Js::from( $autosaveInterval ) }},
 				_autosaveTimer: null,
@@ -390,21 +391,50 @@
 
 				{{-- ── Save Status ────────────────────────────────────── --}}
 
+				_saveTransitions: {
+					saved: [ 'unsaved' ],
+					unsaved: [ 'unsaved', 'saving' ],
+					saving: [ 'saved', 'error' ],
+					error: [ 'unsaved', 'saving' ],
+				},
+
+				_canTransitionTo( target ) {
+					const allowed = this._saveTransitions[ this.saveStatus ];
+					return allowed && allowed.includes( target );
+				},
+
 				markDirty() {
+					if ( this.SAVE_STATUS.SAVING === this.saveStatus ) {
+						this._pendingDirty = true;
+						return true;
+					}
+					if ( ! this._canTransitionTo( this.SAVE_STATUS.UNSAVED ) ) return false;
 					this.saveStatus = this.SAVE_STATUS.UNSAVED;
+					return true;
 				},
 
 				markSaving() {
+					if ( ! this._canTransitionTo( this.SAVE_STATUS.SAVING ) ) return false;
+					this._pendingDirty = false;
 					this.saveStatus = this.SAVE_STATUS.SAVING;
+					return true;
 				},
 
 				markSaved() {
+					if ( ! this._canTransitionTo( this.SAVE_STATUS.SAVED ) ) return false;
 					this.saveStatus = this.SAVE_STATUS.SAVED;
 					this.lastSavedAt = new Date();
+					if ( this._pendingDirty ) {
+						this._pendingDirty = false;
+						this.saveStatus = this.SAVE_STATUS.UNSAVED;
+					}
+					return true;
 				},
 
 				markError() {
+					if ( ! this._canTransitionTo( this.SAVE_STATUS.ERROR ) ) return false;
 					this.saveStatus = this.SAVE_STATUS.ERROR;
+					return true;
 				},
 
 				{{-- ── Utility ────────────────────────────────────────── --}}
@@ -803,6 +833,7 @@
 			store.devicePreview   = {{ Js::from( $devicePreview ) }};
 			store.saveStatus      = {{ Js::from( $saveStatus ) }};
 			store.lastSavedAt     = null;
+			store._pendingDirty   = false;
 			store.autosave        = {{ Js::from( $autosave ) }};
 			store.autosaveInterval = {{ Js::from( $autosaveInterval ) }};
 			store.documentStatus   = {{ Js::from( $documentStatus ) }};

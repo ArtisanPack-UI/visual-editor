@@ -179,3 +179,80 @@ test( 'editor state uses document status constants instead of magic strings', fu
 
 	$view->assertSee( 'this.DOCUMENT_STATUS.SCHEDULED', false );
 } );
+
+test( 'editor state renders save status transition map', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( '_saveTransitions:', false );
+	$view->assertSee( '_canTransitionTo(', false );
+} );
+
+test( 'editor state transition guards protect markDirty', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'markDirty()', false );
+	$view->assertSee( 'this._canTransitionTo( this.SAVE_STATUS.UNSAVED )', false );
+} );
+
+test( 'editor state transition guards protect markSaving', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this._canTransitionTo( this.SAVE_STATUS.SAVING )', false );
+} );
+
+test( 'editor state transition guards protect markSaved', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this._canTransitionTo( this.SAVE_STATUS.SAVED )', false );
+} );
+
+test( 'editor state transition guards protect markError', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this._canTransitionTo( this.SAVE_STATUS.ERROR )', false );
+} );
+
+test( 'editor state transition map allows unsaved to unsaved for idempotent markDirty', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( "unsaved: [ 'unsaved', 'saving' ]", false );
+} );
+
+test( 'editor state transition map blocks saving to unsaved', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	// saving should only allow transitions to saved or error, not unsaved
+	$view->assertSee( "saving: [ 'saved', 'error' ]", false );
+} );
+
+test( 'editor state initializes pendingDirty flag', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( '_pendingDirty: false', false );
+} );
+
+test( 'editor state markDirty sets pendingDirty when saving', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this.SAVE_STATUS.SAVING === this.saveStatus', false );
+	$view->assertSee( 'this._pendingDirty = true', false );
+} );
+
+test( 'editor state markSaving clears pendingDirty', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'markSaving()', false );
+	$view->assertSee( 'this._pendingDirty = false', false );
+} );
+
+test( 'editor state markSaved flushes pendingDirty to unsaved', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'if ( this._pendingDirty )', false );
+} );
+
+test( 'editor state re-initialization resets pendingDirty', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'store._pendingDirty', false );
+} );
