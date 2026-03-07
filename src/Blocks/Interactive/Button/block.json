@@ -69,7 +69,6 @@
 	},
 	"supports": {
 		"color": {
-			"text": true,
 			"background": true
 		},
 		"shadow": true,
