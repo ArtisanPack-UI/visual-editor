@@ -24,7 +24,6 @@
 	},
 	"supports": {
 		"dimensions": {
-			"aspectRatio": false,
 			"minHeight": true
 		},
 		"anchor": true,

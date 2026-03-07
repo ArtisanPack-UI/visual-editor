@@ -58,21 +58,7 @@
 	},
 	"supports": {
 		"align": ["wide", "full"],
-		"color": {
-			"text": false,
-			"background": false
-		},
-		"typography": {
-			"fontSize": false,
-			"fontFamily": false
-		},
-		"spacing": {
-			"margin": false,
-			"padding": false
-		},
-		"border": false,
 		"dimensions": {
-			"aspectRatio": false,
 			"minHeight": true
 		},
 		"background": {

@@ -163,10 +163,6 @@
 			"text": true,
 			"background": true
 		},
-		"typography": {
-			"fontSize": false,
-			"fontFamily": false
-		},
 		"spacing": {
 			"margin": true,
 			"padding": true,
@@ -175,7 +171,6 @@
 		"border": true,
 		"shadow": true,
 		"dimensions": {
-			"aspectRatio": false,
 			"minHeight": true
 		},
 		"background": {
