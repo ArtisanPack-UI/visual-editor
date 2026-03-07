@@ -46,6 +46,8 @@
 				{{-- ── Initialization ─────────────────────────────────── --}}
 
 				init() {
+					this._migrateGroupVariations( this.blocks );
+
 					if ( this.autosave ) {
 						this._startAutosave();
 					}
@@ -543,6 +545,26 @@
 					return 'block-' + Date.now().toString( 36 ) + '-' + Math.random().toString( 36 ).substring( 2, 8 );
 				},
 
+				/**
+				 * Backfill _groupVariation on legacy group blocks that lack it.
+				 * Infers the correct variation from flexDirection so that blocks
+				 * created before _groupVariation became the single source of
+				 * truth are normalized on load.
+				 */
+				_migrateGroupVariations( blocks ) {
+					for ( const block of blocks ) {
+						if ( 'group' === block.type && ! block.attributes?._groupVariation ) {
+							if ( ! block.attributes ) {
+								block.attributes = {};
+							}
+							block.attributes._groupVariation = 'row' === block.attributes.flexDirection ? 'row' : 'group';
+						}
+						if ( block.innerBlocks?.length ) {
+							this._migrateGroupVariations( block.innerBlocks );
+						}
+					}
+				},
+
 				{{-- ── Autosave ───────────────────────────────────────── --}}
 
 				_startAutosave() {
@@ -763,6 +785,7 @@
 		} else {
 			const store = _existingStore;
 			store.blocks          = {{ Js::from( $initialBlocks ) }};
+			store._migrateGroupVariations( store.blocks );
 			store.maxHistorySize  = {{ Js::from( $maxHistorySize ) }};
 			store.mode            = {{ Js::from( $mode ) }};
 			store.showSidebar     = {{ Js::from( $showSidebar ) }};

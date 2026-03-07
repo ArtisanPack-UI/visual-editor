@@ -34,7 +34,12 @@
 		},
 		setDirection( value ) {
 			const blockId = Alpine.store( 'selection' )?.focused;
-			if ( blockId ) Alpine.store( 'editor' ).updateBlock( blockId, { flexDirection: value, _groupVariation: 'row' === value ? 'row' : 'stack' } );
+			if ( ! blockId ) return;
+			const attrs = { flexDirection: value };
+			if ( this.isRowOrStack ) {
+				attrs._groupVariation = 'row' === value ? 'row' : 'stack';
+			}
+			Alpine.store( 'editor' ).updateBlock( blockId, attrs );
 		},
 	}"
 	class="relative flex items-center"

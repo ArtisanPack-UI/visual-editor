@@ -82,6 +82,11 @@
 			"source": "content",
 			"default": ""
 		},
+		"_groupVariation": {
+			"type": "string",
+			"source": "content",
+			"default": "group"
+		},
 		"textColor": {
 			"type": "string",
 			"source": "style",
