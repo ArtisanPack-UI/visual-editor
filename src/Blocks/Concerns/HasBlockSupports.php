@@ -167,9 +167,9 @@ trait HasBlockSupports
 				'backgroundPosition' => false,
 				'backgroundGradient' => false,
 			],
-			'anchor'         => true,
-			'htmlId'         => true,
-			'className'      => true,
+			'anchor'         => false,
+			'htmlId'         => false,
+			'className'      => false,
 		];
 	}
 

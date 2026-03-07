@@ -31,8 +31,6 @@
 			"backgroundSize": true,
 			"backgroundPosition": true,
 			"backgroundGradient": true
-		},
-		"anchor": false,
-		"className": false
+		}
 	}
 }
