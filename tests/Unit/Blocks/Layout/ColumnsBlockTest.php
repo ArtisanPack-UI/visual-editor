@@ -106,3 +106,9 @@ test( 'columns block active style supports include dimensions and background', f
 	expect( $active )->toContain( 'background.backgroundPosition' );
 	expect( $active )->toContain( 'background.backgroundGradient' );
 } );
+
+test( 'columns block has custom toolbar', function (): void {
+	$block = new ColumnsBlock();
+
+	expect( $block->hasCustomToolbar() )->toBeTrue();
+} );
