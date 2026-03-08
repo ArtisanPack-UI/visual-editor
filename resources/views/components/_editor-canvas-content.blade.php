@@ -171,10 +171,10 @@
 								const attrs = variationMap[ variation ] || variationMap.group;
 								store.updateBlock( blockId, attrs );
 
-								// Add an empty inner paragraph so the placeholder appears.
+								// Add an empty inner block so the placeholder appears.
 								const newInner = {
 									id: 'block-' + Date.now(),
-									type: 'paragraph',
+									type: Alpine.store( 'editor' ).defaultBlockType,
 									attributes: { text: '' },
 									innerBlocks: [],
 								};
@@ -227,7 +227,7 @@
 										innerBlocks: [
 											{
 												id: 'block-' + Date.now() + '-col-' + idx + '-p',
-												type: 'paragraph',
+												type: Alpine.store( 'editor' ).defaultBlockType,
 												attributes: { text: '' },
 												innerBlocks: [],
 											},
@@ -258,7 +258,7 @@
 									innerBlocks: [
 										{
 											id: 'block-' + Date.now() + '-col-p',
-											type: 'paragraph',
+											type: Alpine.store( 'editor' ).defaultBlockType,
 											attributes: { text: '' },
 											innerBlocks: [],
 										},
@@ -327,7 +327,7 @@
 										innerBlocks: [
 											{
 												id: 'block-' + Date.now() + '-gi-' + i + '-p',
-												type: 'paragraph',
+												type: Alpine.store( 'editor' ).defaultBlockType,
 												attributes: { text: '' },
 												innerBlocks: [],
 											},
@@ -362,7 +362,7 @@
 									innerBlocks: [
 										{
 											id: 'block-' + Date.now() + '-gi-p',
-											type: 'paragraph',
+											type: Alpine.store( 'editor' ).defaultBlockType,
 											attributes: { text: '' },
 											innerBlocks: [],
 										},
@@ -726,9 +726,9 @@
 											Alpine.store( 'editor' ).removeBlock( blockId );
 										}
 
-										// Add a new paragraph block after the list
+										// Add a new default block after the list
 										const newBlock = Alpine.store( 'editor' ).addBlock(
-											{ type: 'paragraph' },
+											{ type: Alpine.store( 'editor' ).defaultBlockType },
 											0 === listItems.length ? blockIndex : blockIndex + 1,
 										);
 										if ( newBlock ) {
@@ -942,7 +942,7 @@
 												+ ' data-ve-slash-command=\'true\''
 												+ '>' + innerText + '</' + innerTag + '></div>';
 										} else {
-											innerHtml += '<div class=\'ve-inner-block-content ve-block ve-block-' + ( inner.type || 'paragraph' ) + ' ve-block-editing\''
+											innerHtml += '<div class=\'ve-inner-block-content ve-block ve-block-' + ( inner.type || Alpine.store( 'editor' ).defaultBlockType ) + ' ve-block-editing\''
 												+ ' contenteditable=\'true\''
 												+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.block_paragraph_placeholder' ) ) }} + '\''
 												+ ' data-ve-enter-new-block=\'true\''
@@ -1363,7 +1363,7 @@
 											+ ' data-ve-slash-command=\'true\''
 											+ '>' + innerText + '</' + innerTag + '></div>';
 									} else {
-										innerHtml += '<div class=\'ve-inner-block-content ve-block ve-block-' + ( inner.type || 'paragraph' ) + ' ve-block-editing\''
+										innerHtml += '<div class=\'ve-inner-block-content ve-block ve-block-' + ( inner.type || Alpine.store( 'editor' ).defaultBlockType ) + ' ve-block-editing\''
 											+ ' contenteditable=\'true\''
 											+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.block_paragraph_placeholder' ) ) }} + '\''
 											+ ' data-ve-enter-new-block=\'true\''
@@ -1565,7 +1565,7 @@
 											+ ' data-ve-slash-command=\'true\''
 											+ '>' + innerText + '</' + innerTag + '></div>';
 									} else {
-										innerHtml += '<div class=\'ve-inner-block-content ve-block ve-block-' + ( inner.type || 'paragraph' ) + ' ve-block-editing\''
+										innerHtml += '<div class=\'ve-inner-block-content ve-block ve-block-' + ( inner.type || Alpine.store( 'editor' ).defaultBlockType ) + ' ve-block-editing\''
 											+ ' contenteditable=\'true\''
 											+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.block_paragraph_placeholder' ) ) }} + '\''
 											+ ' data-ve-enter-new-block=\'true\''
@@ -1808,7 +1808,7 @@
 											+ ' data-ve-slash-command=\'true\''
 											+ '>' + innerText + '</' + innerTag + '></div>';
 									} else {
-										innerHtml += '<div class=\'ve-inner-block-content ve-block ve-block-' + ( inner.type || 'paragraph' ) + ' ve-block-editing\''
+										innerHtml += '<div class=\'ve-inner-block-content ve-block ve-block-' + ( inner.type || Alpine.store( 'editor' ).defaultBlockType ) + ' ve-block-editing\''
 											+ ' contenteditable=\'true\''
 											+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.block_paragraph_placeholder' ) ) }} + '\''
 											+ ' data-ve-enter-new-block=\'true\''
@@ -1980,7 +1980,7 @@
 					"
 					x-on:ve-insertion-point-click="
 						if ( Alpine.store( 'editor' ) && $event.detail ) {
-							const newBlock = Alpine.store( 'editor' ).addBlock( { type: 'paragraph' }, $event.detail.index );
+							const newBlock = Alpine.store( 'editor' ).addBlock( { type: Alpine.store( 'editor' ).defaultBlockType }, $event.detail.index );
 							if ( newBlock ) {
 								$nextTick( () => {
 									const el = document.querySelector( '[data-block-id=' + newBlock.id + '] [contenteditable]' );
@@ -2216,7 +2216,7 @@
 							class="min-h-[150px] cursor-text"
 							x-on:click="
 								if ( Alpine.store( 'editor' ) ) {
-									const newBlock = Alpine.store( 'editor' ).addBlock( { type: 'paragraph' } );
+									const newBlock = Alpine.store( 'editor' ).addBlock( { type: Alpine.store( 'editor' ).defaultBlockType } );
 									if ( newBlock ) {
 										$nextTick( () => {
 											const el = document.querySelector( '[data-block-id=' + newBlock.id + '] [contenteditable]' );

@@ -22,6 +22,7 @@ test( 'editor state can be instantiated with defaults', function (): void {
 	expect( $component->patterns )->toBe( [] );
 	expect( $component->blockTransforms )->toBe( [] );
 	expect( $component->blockVariations )->toBe( [] );
+	expect( $component->defaultBlockType )->toBe( 'paragraph' );
 } );
 
 test( 'editor state accepts custom props', function (): void {
@@ -53,6 +54,7 @@ test( 'editor state accepts custom props', function (): void {
 		patterns: $patterns,
 		blockTransforms: $transforms,
 		blockVariations: $variations,
+		defaultBlockType: 'heading',
 	);
 
 	expect( $component->uuid )->toContain( 'main-editor' );
@@ -70,6 +72,19 @@ test( 'editor state accepts custom props', function (): void {
 	expect( $component->patterns )->toBe( $patterns );
 	expect( $component->blockTransforms )->toBe( $transforms );
 	expect( $component->blockVariations )->toBe( $variations );
+	expect( $component->defaultBlockType )->toBe( 'heading' );
+} );
+
+test( 'editor state falls back to paragraph for empty default block type', function (): void {
+	$component = new EditorState( defaultBlockType: '' );
+
+	expect( $component->defaultBlockType )->toBe( 'paragraph' );
+} );
+
+test( 'editor state falls back to paragraph for whitespace-only default block type', function (): void {
+	$component = new EditorState( defaultBlockType: '   ' );
+
+	expect( $component->defaultBlockType )->toBe( 'paragraph' );
 } );
 
 test( 'editor state falls back to visual for invalid mode', function (): void {
@@ -277,8 +292,32 @@ test( 'editor state renders closeInserter method', function (): void {
 	$view->assertSee( 'closeInserter()', false );
 } );
 
+test( 'editor state renders defaultBlockType in store', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'defaultBlockType:', false );
+} );
+
+test( 'editor state renders custom defaultBlockType in store', function (): void {
+	$view = $this->blade( '<x-ve-editor-state default-block-type="heading">Content</x-ve-editor-state>' );
+
+	$view->assertSee( "defaultBlockType: 'heading'", false );
+} );
+
+test( 'editor state uses defaultBlockType instead of hardcoded paragraph in addBlock', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'type: block.type || this.defaultBlockType', false );
+} );
+
 test( 'editor state re-initialization resets pendingDirty', function (): void {
 	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
 
 	$view->assertSee( 'store._pendingDirty', false );
+} );
+
+test( 'editor state re-initialization updates defaultBlockType', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'store.defaultBlockType', false );
 } );

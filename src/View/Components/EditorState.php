@@ -115,6 +115,7 @@ class EditorState extends Component
 	 * @param array<mixed> $patterns         Available patterns for the pattern browser.
 	 * @param array<mixed> $blockTransforms  Map of block type to available transform targets.
 	 * @param array<mixed> $blockVariations  Map of block type to available variations.
+	 * @param string       $defaultBlockType The default block type used when adding blocks without an explicit type.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -132,6 +133,7 @@ class EditorState extends Component
 		public array $patterns = [],
 		public array $blockTransforms = [],
 		public array $blockVariations = [],
+		public string $defaultBlockType = 'paragraph',
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
@@ -157,6 +159,10 @@ class EditorState extends Component
 
 		if ( $this->autosaveInterval < 1 ) {
 			$this->autosaveInterval = 60;
+		}
+
+		if ( '' === trim( $this->defaultBlockType ) ) {
+			$this->defaultBlockType = 'paragraph';
 		}
 	}
 
