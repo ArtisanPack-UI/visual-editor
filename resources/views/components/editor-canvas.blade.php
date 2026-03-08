@@ -433,7 +433,7 @@
 					const innerBlockId = innerBlockEl.getAttribute( 'data-inner-block-id' );
 					newBlock = Alpine.store( 'editor' ).addInnerBlockAfter( innerBlockId );
 				} else {
-					newBlock = Alpine.store( 'editor' ).addInnerBlock( parentId, { type: 'paragraph' } );
+					newBlock = Alpine.store( 'editor' ).addInnerBlock( parentId, { type: Alpine.store( 'editor' ).defaultBlockType } );
 				}
 
 				if ( newBlock ) {

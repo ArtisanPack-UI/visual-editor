@@ -606,7 +606,7 @@
 									+ ' data-ve-slash-command=\'true\''
 									+ '>' + innerText + '</' + innerTag + '></div>';
 							} else {
-								html += '<div class=\'ve-inner-block-content ve-block ve-block-' + ( inner.type || 'paragraph' ) + ' ve-block-editing\''
+								html += '<div class=\'ve-inner-block-content ve-block ve-block-' + ( inner.type || Alpine.store( 'editor' ).defaultBlockType ) + ' ve-block-editing\''
 									+ ' contenteditable=\'true\''
 									+ ' data-placeholder=\'' + ( context.paragraphPlaceholder || '' ) + '\''
 									+ ' data-ve-enter-new-block=\'true\''

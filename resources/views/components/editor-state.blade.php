@@ -48,6 +48,7 @@
 				patterns: {{ Js::from( $patterns ) }},
 				blockTransforms: {{ Js::from( $blockTransforms ) }},
 				blockVariations: {{ Js::from( $blockVariations ) }},
+				defaultBlockType: {{ Js::from( $defaultBlockType ) }},
 				showPatternModal: false,
 				leftSidebarTab: 'blocks',
 
@@ -72,7 +73,7 @@
 					this._pushHistory();
 					const newBlock = {
 						id: block.id || this._generateId(),
-						type: block.type || 'paragraph',
+						type: block.type || this.defaultBlockType,
 						attributes: block.attributes || {},
 						innerBlocks: block.innerBlocks || [],
 					};
@@ -219,7 +220,7 @@
 
 					const newBlock = {
 						id: block.id || this._generateId(),
-						type: block.type || 'paragraph',
+						type: block.type || this.defaultBlockType,
 						attributes: block.attributes || {},
 						innerBlocks: block.innerBlocks || [],
 					};
@@ -310,7 +311,7 @@
 				_addBlockSilent( block, index = null ) {
 					const newBlock = {
 						id: block.id || this._generateId(),
-						type: block.type || 'paragraph',
+						type: block.type || this.defaultBlockType,
 						attributes: block.attributes || {},
 						innerBlocks: block.innerBlocks || [],
 					};
@@ -539,7 +540,7 @@
 					if ( -1 === index ) return null;
 
 					return this.addBlock(
-						{ type: block.type || 'paragraph', attributes: block.attributes || {}, innerBlocks: block.innerBlocks || [] },
+						{ type: block.type || this.defaultBlockType, attributes: block.attributes || {}, innerBlocks: block.innerBlocks || [] },
 						index + 1,
 					);
 				},
@@ -547,7 +548,7 @@
 				replaceBlock( blockId, newBlockData ) {
 					const newBlock = {
 						id: newBlockData.id || this._generateId(),
-						type: newBlockData.type || 'paragraph',
+						type: newBlockData.type || this.defaultBlockType,
 						attributes: newBlockData.attributes || {},
 						innerBlocks: newBlockData.innerBlocks || [],
 					};
@@ -859,6 +860,7 @@
 			store.patterns         = {{ Js::from( $patterns ) }};
 			store.blockTransforms  = {{ Js::from( $blockTransforms ) }};
 			store.blockVariations  = {{ Js::from( $blockVariations ) }};
+			store.defaultBlockType = {{ Js::from( $defaultBlockType ) }};
 			store.showPatternModal = false;
 			store.leftSidebarTab   = 'blocks';
 
