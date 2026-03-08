@@ -134,6 +134,7 @@ class EditorState extends Component
 		public array $blockTransforms = [],
 		public array $blockVariations = [],
 		public string $defaultBlockType = 'paragraph',
+		public array $defaultInnerBlocksMap = [],
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 

@@ -21,7 +21,9 @@
 
 						insertFromPopover( blockType ) {
 							if ( ! Alpine.store( 'editor' ) ) return;
-							const newBlock = Alpine.store( 'editor' ).addBlock( { type: blockType }, this.inserterPopover.index );
+							const blockDef     = this.inserterBlocks.find( ( b ) => b.name === blockType );
+							const defaultInner = ( blockDef && blockDef.defaultInnerBlocks ) ? blockDef.defaultInnerBlocks : [];
+							const newBlock = Alpine.store( 'editor' ).addBlock( { type: blockType, innerBlocks: defaultInner }, this.inserterPopover.index );
 							this.inserterPopover.open = false;
 							if ( newBlock ) {
 								this.$nextTick( () => {
@@ -370,6 +372,31 @@
 								};
 
 								store.addInnerBlock( parentId, newItem );
+							} );
+
+							// Add inner block button: append a new block of the specified type to a container.
+							el.addEventListener( 'click', ( e ) => {
+								const addBtn = e.target.closest( '[data-ve-add-inner-block]' );
+								if ( ! addBtn ) return;
+
+								const parentId  = addBtn.getAttribute( 'data-parent-id' );
+								const blockType = addBtn.getAttribute( 'data-block-type' );
+								if ( ! parentId || ! blockType ) return;
+
+								const store = Alpine.store( 'editor' );
+								if ( ! store ) return;
+
+								const block = store.getBlock( parentId );
+								if ( ! block ) return;
+
+								const newBlock = {
+									id: 'block-' + Date.now() + '-' + blockType + '-' + ( ( block.innerBlocks || [] ).length ),
+									type: blockType,
+									attributes: {},
+									innerBlocks: [],
+								};
+
+								store.addInnerBlock( parentId, newBlock );
 							} );
 
 							// Inner block drag handle: start dragging an inner block.

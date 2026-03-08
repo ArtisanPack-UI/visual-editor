@@ -7,8 +7,8 @@
 	"category": "interactive",
 	"keywords": ["button", "link", "cta", "action"],
 	"version": 1,
-	"public": true,
-	"parent": null,
+	"public": false,
+	"parent": ["buttons"],
 	"allowedChildren": null,
 	"attributes": {
 		"text": {

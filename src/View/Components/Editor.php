@@ -181,6 +181,18 @@ class Editor extends Component
 	public array $patternsWithPreviews;
 
 	/**
+	 * Default inner blocks keyed by block type.
+	 *
+	 * Allows the editor store to auto-populate inner blocks
+	 * when a block is added from any insertion path.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<string, array<int, array<string, mixed>>>
+	 */
+	public array $defaultInnerBlocksMap;
+
+	/**
 	 * Icon renderer closure for block icons.
 	 *
 	 * @since 1.0.0
@@ -303,14 +315,20 @@ class Editor extends Component
 		$this->inserterBlocks = collect( $registry->all() )
 			->filter( fn ( $block ) => $block->isPublic() )
 			->map( fn ( $block ) => [
-				'name'        => $block->getType(),
-				'label'       => $block->getName(),
-				'icon'        => $block->getIcon(),
-				'category'    => $block->getCategory(),
-				'description' => $block->getDescription(),
-				'keywords'    => $block->getKeywords(),
+				'name'               => $block->getType(),
+				'label'              => $block->getName(),
+				'icon'               => $block->getIcon(),
+				'category'           => $block->getCategory(),
+				'description'        => $block->getDescription(),
+				'keywords'           => $block->getKeywords(),
+				'defaultInnerBlocks' => $block->getDefaultInnerBlocks(),
 			] )
 			->values()
+			->all();
+
+		$this->defaultInnerBlocksMap = collect( $registry->all() )
+			->filter( fn ( $block ) => [] !== $block->getDefaultInnerBlocks() )
+			->mapWithKeys( fn ( $block ) => [ $block->getType() => $block->getDefaultInnerBlocks() ] )
 			->all();
 	}
 

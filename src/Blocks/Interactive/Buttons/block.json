@@ -1,0 +1,42 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "buttons",
+	"name": "Buttons",
+	"description": "Add a group of button blocks",
+	"icon": "cursor-arrow-rays",
+	"category": "interactive",
+	"keywords": ["button", "buttons", "link", "cta", "action", "group"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": ["button"],
+	"supportsInnerBlocks": true,
+	"hasJsRenderer": true,
+	"innerBlocksOrientation": "horizontal",
+	"attributes": {
+		"justification": {
+			"type": "string",
+			"source": "content",
+			"default": "left"
+		},
+		"orientation": {
+			"type": "string",
+			"source": "content",
+			"default": "horizontal"
+		},
+		"flexWrap": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		}
+	},
+	"supports": {
+		"align": ["wide", "full"],
+		"spacing": {
+			"blockSpacing": true
+		},
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

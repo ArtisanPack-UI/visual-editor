@@ -81,7 +81,9 @@
 		insertBlock( blockType, blockLabel ) {
 			if ( Alpine.store( 'editor' ) ) {
 				const position = this.insertAt;
-				const newBlock = Alpine.store( 'editor' ).addBlock( { type: blockType }, position );
+				const blockDef = this.blocks.find( ( b ) => b.name === blockType );
+				const defaultInner = ( blockDef && blockDef.defaultInnerBlocks ) ? blockDef.defaultInnerBlocks : [];
+				const newBlock = Alpine.store( 'editor' ).addBlock( { type: blockType, innerBlocks: defaultInner }, position );
 				this._addToRecent( blockType );
 
 				if ( newBlock ) {
@@ -225,7 +227,7 @@
 										$event.dataTransfer.setData( 'application/ve-block', JSON.stringify( {
 											type: block.name,
 											attributes: {},
-											innerBlocks: [],
+											innerBlocks: block.defaultInnerBlocks || [],
 										} ) );
 										$event.dataTransfer.effectAllowed = 'copy';
 									"

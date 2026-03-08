@@ -49,6 +49,7 @@
 				blockTransforms: {{ Js::from( $blockTransforms ) }},
 				blockVariations: {{ Js::from( $blockVariations ) }},
 				defaultBlockType: {{ Js::from( $defaultBlockType ) }},
+				defaultInnerBlocksMap: {{ Js::from( $defaultInnerBlocksMap ) }},
 				showPatternModal: false,
 				leftSidebarTab: 'blocks',
 
@@ -71,11 +72,21 @@
 
 				addBlock( block, index = null ) {
 					this._pushHistory();
+					const blockType   = block.type || this.defaultBlockType;
+					let rawInner      = block.innerBlocks || [];
+					if ( 0 === rawInner.length && this.defaultInnerBlocksMap[ blockType ] ) {
+						rawInner = this.defaultInnerBlocksMap[ blockType ];
+					}
 					const newBlock = {
 						id: block.id || this._generateId(),
-						type: block.type || this.defaultBlockType,
+						type: blockType,
 						attributes: block.attributes || {},
-						innerBlocks: block.innerBlocks || [],
+						innerBlocks: rawInner.map( ( inner ) => ( {
+							id: inner.id || this._generateId(),
+							type: inner.type || this.defaultBlockType,
+							attributes: inner.attributes || {},
+							innerBlocks: inner.innerBlocks || [],
+						} ) ),
 					};
 
 					if ( null === index || index >= this.blocks.length ) {
@@ -546,11 +557,21 @@
 				},
 
 				replaceBlock( blockId, newBlockData ) {
+					const blockType = newBlockData.type || this.defaultBlockType;
+					let rawInner    = newBlockData.innerBlocks || [];
+					if ( 0 === rawInner.length && this.defaultInnerBlocksMap[ blockType ] ) {
+						rawInner = this.defaultInnerBlocksMap[ blockType ];
+					}
 					const newBlock = {
 						id: newBlockData.id || this._generateId(),
-						type: newBlockData.type || this.defaultBlockType,
+						type: blockType,
 						attributes: newBlockData.attributes || {},
-						innerBlocks: newBlockData.innerBlocks || [],
+						innerBlocks: rawInner.map( ( inner ) => ( {
+							id: inner.id || this._generateId(),
+							type: inner.type || this.defaultBlockType,
+							attributes: inner.attributes || {},
+							innerBlocks: inner.innerBlocks || [],
+						} ) ),
 					};
 
 					const topIndex = this.getBlockIndex( blockId );

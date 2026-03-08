@@ -20,10 +20,18 @@
 		$inlineStyles .= "border-radius: {$borderRadius};";
 	}
 
-	$classes = "ve-block ve-block-button ve-block-editing ve-button-{$size} ve-button-{$variant}";
-	if ( 'full' === $width ) {
-		$classes .= ' ve-button-full';
+	$widthMap = [
+		'25'  => '25%',
+		'50'  => '50%',
+		'75'  => '75%',
+		'100' => '100%',
+	];
+
+	if ( isset( $widthMap[ $width ] ) ) {
+		$inlineStyles .= "width: {$widthMap[ $width ]};";
 	}
+
+	$classes = "ve-block ve-block-button ve-block-editing ve-button-{$size} ve-button-{$variant}";
 @endphp
 
 <div

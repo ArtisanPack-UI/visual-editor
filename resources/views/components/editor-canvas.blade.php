@@ -394,11 +394,17 @@
 			const newBlock = Alpine.store( 'editor' ).replaceBlock( $event.detail.blockId, { type: $event.detail.blockType } );
 			if ( newBlock ) {
 				$nextTick( () => {
-					const el = document.querySelector( '[data-block-id=' + newBlock.id + '] [contenteditable]' );
-					if ( el ) { el.focus(); }
-					if ( Alpine.store( 'selection' ) ) {
-						Alpine.store( 'selection' ).select( newBlock.id, false );
-					}
+					setTimeout( () => {
+						const wrapper = document.querySelector( '[data-block-id=\'' + newBlock.id + '\']' );
+						const el = wrapper ? wrapper.querySelector( '[contenteditable]' ) : null;
+						if ( el ) { el.focus(); }
+						const selectId = ( newBlock.innerBlocks && newBlock.innerBlocks.length > 0 )
+							? newBlock.innerBlocks[ 0 ].id
+							: newBlock.id;
+						if ( Alpine.store( 'selection' ) ) {
+							Alpine.store( 'selection' ).select( selectId, false );
+						}
+					}, 50 );
 				} );
 			}
 		}

@@ -38,6 +38,22 @@
 		pointer-events: none;
 	}
 
+	/* Contenteditable placeholder — show when block is empty and not focused */
+	[data-placeholder].ve-is-empty:not(:focus)::before {
+		content: attr(data-placeholder);
+		opacity: 0.4;
+		font-style: italic;
+		pointer-events: none;
+	}
+
+	/* Contenteditable placeholder for nested elements (e.g. li inside contenteditable ul/ol) */
+	[contenteditable] > [data-placeholder].ve-is-empty::before {
+		content: attr(data-placeholder);
+		opacity: 0.4;
+		font-style: italic;
+		pointer-events: none;
+	}
+
 	/* Block-level alignment */
 	.ve-canvas-block.alignwide {
 		margin-left: -60px;
@@ -101,6 +117,7 @@
 	:document-status="$documentStatus"
 	:show-sidebar="$showSidebar"
 	:mode="$mode"
+	:default-inner-blocks-map="$defaultInnerBlocksMap"
 />
 <x-ve-selection-manager />
 <x-ve-aria-live-region />
@@ -951,6 +968,95 @@
 								+ ' tabindex=\'-1\''
 								+ '>'
 								+ innerHtml
+								+ '</div>';
+						},
+					} );
+
+					br.register( 'buttons', {
+						render( block, context ) {
+							const justification = block.attributes?.justification || 'left';
+							const orientation   = block.attributes?.orientation || 'horizontal';
+							const flexWrap      = block.attributes?.flexWrap !== false;
+
+							const justifyMap = { left: 'flex-start', center: 'center', right: 'flex-end', 'space-between': 'space-between' };
+							const direction  = 'vertical' === orientation ? 'column' : 'row';
+
+							let inlineStyle = 'display:flex;flex-direction:' + direction + ';justify-content:' + ( justifyMap[ justification ] || 'flex-start' ) + ';gap:0.5rem;';
+							if ( flexWrap && 'horizontal' === orientation ) {
+								inlineStyle += 'flex-wrap:wrap;';
+							}
+
+							let innerHtml = '<div class=\'ve-inner-blocks flex\' style=\'' + inlineStyle + '\' data-ve-inner-blocks data-parent-id=\'' + block.id + '\' data-orientation=\'' + ( 'vertical' === orientation ? 'vertical' : 'horizontal' ) + '\'>';
+
+							if ( block.innerBlocks && block.innerBlocks.length > 0 ) {
+								block.innerBlocks.forEach( ( inner ) => {
+									if ( br.hasRenderer( inner.type ) ) {
+										innerHtml += br.getHtml( { ...inner, attributes: { ...inner.attributes, _parentId: block.id } }, context );
+									}
+								} );
+							}
+
+							innerHtml += '<button type=\'button\''
+								+ ' class=\'ve-add-button-btn flex items-center justify-center rounded-lg border-2 border-dashed border-base-300 hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer\''
+								+ ' style=\'min-width:40px;min-height:36px;padding:0 12px;align-self:stretch;\''
+								+ ' data-ve-add-inner-block'
+								+ ' data-parent-id=\'' + block.id + '\''
+								+ ' data-block-type=\'button\''
+								+ ' title=\'' + {{ Js::from( __( 'visual-editor::ve.add_block' ) ) }} + '\''
+								+ '>'
+								+ '<svg class=\'w-4 h-4 text-base-content/40\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'>'
+								+ '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M12 4.5v15m7.5-7.5h-15\' />'
+								+ '</svg>'
+								+ '</button>';
+
+							innerHtml += '</div>';
+
+							return '<div class=\'ve-block ve-block-buttons ve-block-editing\' data-justification=\'' + justification + '\' data-orientation=\'' + orientation + '\'>'
+								+ innerHtml
+								+ '</div>';
+						},
+					} );
+
+					br.register( 'button', {
+						render( block, context ) {
+							const text         = block.attributes?.text || '';
+							const icon         = block.attributes?.icon || '';
+							const iconPosition = block.attributes?.iconPosition || 'left';
+							const color        = block.attributes?.color || '';
+							const bgColor      = block.attributes?.backgroundColor || '';
+							const size         = block.attributes?.size || 'md';
+							const variant      = block.attributes?.variant || 'filled';
+							const borderRadius = block.attributes?.borderRadius || '';
+							const width        = block.attributes?.width || 'auto';
+							const pid          = block.attributes?._parentId || '';
+
+							let inlineStyle = '';
+							if ( color ) { inlineStyle += 'color:' + color + ';'; }
+							if ( bgColor ) { inlineStyle += 'background-color:' + bgColor + ';'; }
+							if ( borderRadius ) { inlineStyle += 'border-radius:' + borderRadius + ';'; }
+
+							const widthMap = { '25': '25%', '50': '50%', '75': '75%', '100': '100%' };
+							if ( widthMap[ width ] ) { inlineStyle += 'width:' + widthMap[ width ] + ';'; }
+
+							let classes = 've-block ve-block-button ve-block-editing ve-button-' + size + ' ve-button-' + variant;
+
+							let iconHtml = '';
+							if ( icon ) {
+								iconHtml = '<span class=\'ve-button-icon ve-button-icon-' + iconPosition + '\'>' + icon + '</span>';
+							}
+
+							return '<div class=\'' + classes + '\''
+								+ ( inlineStyle ? ' style=\'' + inlineStyle + '\'' : '' )
+								+ ' data-block-id=\'' + block.id + '\''
+								+ ( pid ? ' data-parent-id=\'' + pid + '\'' : '' )
+								+ ' tabindex=\'-1\''
+								+ '>'
+								+ ( icon && 'left' === iconPosition ? iconHtml : '' )
+								+ '<span class=\'ve-button-text\''
+								+ ' contenteditable=\'true\''
+								+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.button_text' ) ) }} + '\''
+								+ '>' + text + '</span>'
+								+ ( icon && 'right' === iconPosition ? iconHtml : '' )
 								+ '</div>';
 						},
 					} );

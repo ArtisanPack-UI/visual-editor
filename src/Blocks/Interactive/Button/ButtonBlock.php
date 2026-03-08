@@ -132,7 +132,10 @@ class ButtonBlock extends BaseBlock
 				'label'   => __( 'visual-editor::ve.button_width' ),
 				'options' => [
 					'auto' => __( 'visual-editor::ve.auto' ),
-					'full' => __( 'visual-editor::ve.full_width' ),
+					'25'   => '25%',
+					'50'   => '50%',
+					'75'   => '75%',
+					'100'  => '100%',
 				],
 				'default' => 'auto',
 			],

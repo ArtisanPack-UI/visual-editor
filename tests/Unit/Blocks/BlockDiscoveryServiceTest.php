@@ -8,7 +8,7 @@ test( 'discovery finds all 16 core blocks', function (): void {
 	$service = new BlockDiscoveryService();
 	$blocks  = $service->discover();
 
-	expect( $blocks )->toHaveCount( 18 );
+	expect( $blocks )->toHaveCount( 19 );
 } );
 
 test( 'discovery returns correct structure for each block', function (): void {

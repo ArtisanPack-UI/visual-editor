@@ -609,6 +609,21 @@ abstract class BaseBlock implements BlockInterface
 	}
 
 	/**
+	 * Get the default inner blocks for new instances.
+	 *
+	 * Override in subclasses to pre-populate container blocks
+	 * with child blocks when they are first inserted.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getDefaultInnerBlocks(): array
+	{
+		return [];
+	}
+
+	/**
 	 * Whether this block has a custom JavaScript renderer.
 	 *
 	 * Blocks with inner blocks or custom editor rendering should
@@ -653,6 +668,7 @@ abstract class BaseBlock implements BlockInterface
 			'alignments'             => $this->getSupportedAlignments(),
 			'textAlignment'          => $this->supportsFeature( 'textAlignment' ),
 			'textFormatting'         => $this->supportsFeature( 'textFormatting' ),
+			'defaultInnerBlocks'     => $this->getDefaultInnerBlocks(),
 		];
 	}
 

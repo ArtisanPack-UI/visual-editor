@@ -92,3 +92,41 @@ test( 'button block active style supports include shadow', function (): void {
 	expect( $active )->not->toContain( 'dimensions.minHeight' );
 	expect( $active )->not->toContain( 'background.backgroundImage' );
 } );
+
+test( 'button block is not public and requires buttons parent', function (): void {
+	$block = new ButtonBlock();
+
+	expect( $block->isPublic() )->toBeFalse();
+	expect( $block->getAllowedParents() )->toBe( [ 'buttons' ] );
+} );
+
+test( 'button block width options include percentage values', function (): void {
+	$block  = new ButtonBlock();
+	$schema = $block->getStyleSchema();
+
+	expect( $schema['width']['options'] )->toHaveKey( 'auto' );
+	expect( $schema['width']['options'] )->toHaveKey( '25' );
+	expect( $schema['width']['options'] )->toHaveKey( '50' );
+	expect( $schema['width']['options'] )->toHaveKey( '75' );
+	expect( $schema['width']['options'] )->toHaveKey( '100' );
+} );
+
+test( 'button block renders with percentage width', function (): void {
+	$block  = new ButtonBlock();
+	$output = $block->render(
+		[ 'text' => 'Wide Button', 'url' => '#', 'linkTarget' => '_self' ],
+		[ 'size' => 'md', 'variant' => 'filled', 'width' => '50' ],
+	);
+
+	expect( $output )->toContain( 'width: 50%' );
+} );
+
+test( 'button block does not render width style when auto', function (): void {
+	$block  = new ButtonBlock();
+	$output = $block->render(
+		[ 'text' => 'Normal Button', 'url' => '#', 'linkTarget' => '_self' ],
+		[ 'size' => 'md', 'variant' => 'filled', 'width' => 'auto' ],
+	);
+
+	expect( $output )->not->toContain( 'width:' );
+} );
