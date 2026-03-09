@@ -15,9 +15,15 @@
 	"innerBlocksOrientation": "horizontal",
 	"attributes": {
 		"columns": {
-			"type": "integer",
+			"type": "object",
 			"source": "content",
-			"default": 2
+			"default": {
+				"mode": "global",
+				"global": 2,
+				"desktop": 2,
+				"tablet": 2,
+				"mobile": 1
+			}
 		},
 		"layout": {
 			"type": "string",

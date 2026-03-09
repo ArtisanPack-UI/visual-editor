@@ -18,12 +18,7 @@
 				</div>
 			@endforeach
 
-			{{-- Custom inspector HTML from blocks that declare hasCustomInspector() (styles tab) --}}
-			@foreach ( $customInspectorHtml as $ciType => $ciHtml )
-				<div x-show="blockType === {{ Js::from( $ciType ) }}" x-cloak>
-					{!! $ciHtml !!}
-				</div>
-			@endforeach
+			{{-- Custom inspector HTML is rendered by inspector-controls component via renderInspector() --}}
 
 			{{-- Group block: Group Spacing panel in styles tab --}}
 			<div x-show="blockType === 'group'" x-cloak>

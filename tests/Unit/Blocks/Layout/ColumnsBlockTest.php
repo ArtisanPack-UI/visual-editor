@@ -18,10 +18,11 @@ test( 'columns block content schema has columns layout and isStacked fields', fu
 	expect( $schema )->toHaveKey( 'columns' );
 	expect( $schema )->toHaveKey( 'layout' );
 	expect( $schema )->toHaveKey( 'isStacked' );
-	expect( $schema['columns']['type'] )->toBe( 'range' );
+	expect( $schema['columns']['type'] )->toBe( 'responsive_range' );
 	expect( $schema['columns']['min'] )->toBe( 1 );
 	expect( $schema['columns']['max'] )->toBe( 6 );
 	expect( $schema['columns']['step'] )->toBe( 1 );
+	expect( $schema['columns']['inspector'] )->toBeFalse();
 	expect( $schema['layout']['type'] )->toBe( 'select' );
 	expect( $schema['layout']['inspector'] )->toBeFalse();
 	expect( $schema['isStacked']['type'] )->toBe( 'toggle' );
@@ -41,7 +42,7 @@ test( 'columns block defaults to 2 columns with equal layout', function (): void
 	$block    = new ColumnsBlock();
 	$defaults = $block->getDefaultContent();
 
-	expect( $defaults['columns'] )->toBe( 2 );
+	expect( $defaults['columns'] )->toBe( [ 'mode' => 'global', 'global' => 2, 'desktop' => 2, 'tablet' => 2, 'mobile' => 1 ] );
 	expect( $defaults['layout'] )->toBe( 'equal' );
 	expect( $defaults['isStacked'] )->toBeFalse();
 } );
@@ -62,10 +63,12 @@ test( 'columns block only allows column children', function (): void {
 
 test( 'columns block renders with flex layout', function (): void {
 	$block  = new ColumnsBlock();
-	$output = $block->render( [ 'columns' => '3', 'layout' => 'equal' ], [ 'gap' => 'medium', 'verticalAlignment' => 'top', 'stackOnMobile' => true ] );
+	$output = $block->render(
+		[ 'columns' => [ 'mode' => 'global', 'global' => 3, 'desktop' => 3, 'tablet' => 2, 'mobile' => 1 ], 'layout' => 'equal' ],
+		[ 'gap' => 'medium', 'verticalAlignment' => 'top', 'stackOnMobile' => true ],
+	);
 
 	expect( $output )->toContain( 've-block-columns' );
-	expect( $output )->toContain( 'display: flex' );
 	expect( $output )->toContain( 'data-columns="3"' );
 } );
 

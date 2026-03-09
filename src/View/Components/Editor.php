@@ -163,15 +163,6 @@ class Editor extends Component
 	public array $customToolbarHtml;
 
 	/**
-	 * Pre-rendered custom inspector HTML keyed by block type.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var array<string, string>
-	 */
-	public array $customInspectorHtml;
-
-	/**
 	 * Default keyboard shortcuts for the editor.
 	 *
 	 * @since 1.0.0
@@ -487,7 +478,10 @@ class Editor extends Component
 	}
 
 	/**
-	 * Build custom toolbar and inspector HTML from blocks.
+	 * Build custom toolbar HTML from blocks.
+	 *
+	 * Custom inspector HTML is rendered directly by the inspector-controls
+	 * component via renderInspector(), so it does not need pre-rendering here.
 	 *
 	 * @since 1.0.0
 	 *
@@ -497,16 +491,11 @@ class Editor extends Component
 	 */
 	protected function buildCustomPanels( BlockRegistry $registry ): void
 	{
-		$this->customToolbarHtml   = [];
-		$this->customInspectorHtml = [];
+		$this->customToolbarHtml = [];
 
 		foreach ( $registry->all() as $type => $block ) {
 			if ( $block->hasCustomToolbar() ) {
 				$this->customToolbarHtml[ $type ] = $block->renderToolbar();
-			}
-
-			if ( $block->hasCustomInspector() ) {
-				$this->customInspectorHtml[ $type ] = $block->renderInspector();
 			}
 		}
 	}

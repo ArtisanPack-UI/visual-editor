@@ -67,7 +67,6 @@ test( 'editor builds empty data when registry is empty', function (): void {
 	expect( $component->transformableBlocks )->toBeArray()->toBeEmpty();
 	expect( $component->blockAlignSupports )->toBeArray()->toBeEmpty();
 	expect( $component->customToolbarHtml )->toBeArray()->toBeEmpty();
-	expect( $component->customInspectorHtml )->toBeArray()->toBeEmpty();
 } );
 
 test( 'editor builds editor shortcuts', function (): void {

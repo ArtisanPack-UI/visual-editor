@@ -1,5 +1,8 @@
 @php
-	$columnCount   = $content['columns'] ?? '2';
+	$columnsData   = $content['columns'] ?? [ 'mode' => 'global', 'global' => 2 ];
+	$columnCount   = is_array( $columnsData )
+		? ( $columnsData['global'] ?? $columnsData['desktop'] ?? 2 )
+		: ( (int) $columnsData ?: 2 );
 	$layout        = $content['layout'] ?? 'equal';
 	$gap           = $styles['gap'] ?? 'medium';
 	$verticalAlign = $styles['verticalAlignment'] ?? 'top';

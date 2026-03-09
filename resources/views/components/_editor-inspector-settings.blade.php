@@ -29,12 +29,7 @@
 				</div>
 			@endforeach
 
-			{{-- Custom inspector HTML from blocks that declare hasCustomInspector() --}}
-			@foreach ( $customInspectorHtml as $ciType => $ciHtml )
-				<div x-show="blockType === {{ Js::from( $ciType ) }}" x-cloak>
-					{!! $ciHtml !!}
-				</div>
-			@endforeach
+			{{-- Custom inspector HTML is rendered by inspector-controls component via renderInspector() --}}
 		</div>
 	</template>
 </div>

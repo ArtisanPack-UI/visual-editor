@@ -207,15 +207,21 @@
 
 								let widths;
 								if ( 'skip' === layout ) {
-									const block = store.getBlock( blockId );
-									const count = parseInt( block?.attributes?.columns ) || 2;
+									const block  = store.getBlock( blockId );
+									const colVal = block?.attributes?.columns;
+									const count  = typeof colVal === 'object' ? ( colVal.global ?? colVal.desktop ?? 2 ) : ( parseInt( colVal ) || 2 );
 									widths = Array( count ).fill( '' );
 								} else {
 									widths = layoutMap[ layout ] || [ '50%', '50%' ];
 								}
 
 								// Update columns count to match the layout.
-								store.updateBlock( blockId, { columns: widths.length } );
+								const block     = store.getBlock( blockId );
+								const curColVal = block?.attributes?.columns;
+								const colObj    = typeof curColVal === 'object'
+									? { ...curColVal, global: widths.length, desktop: widths.length }
+									: { mode: 'global', global: widths.length, desktop: widths.length, tablet: Math.min( widths.length, 2 ), mobile: 1 };
+								store.updateBlock( blockId, { columns: colObj } );
 
 								// Create column child blocks with appropriate widths.
 								// Each column starts with a paragraph inner block
@@ -268,7 +274,12 @@
 								};
 
 								store.addInnerBlock( parentId, newCol );
-								store.updateBlock( parentId, { columns: ( block.innerBlocks || [] ).length } );
+								const newCount   = ( block.innerBlocks || [] ).length;
+								const curColData = block?.attributes?.columns;
+								const updatedCol = typeof curColData === 'object'
+									? { ...curColData, global: newCount, desktop: newCount }
+									: { mode: 'global', global: newCount, desktop: newCount, tablet: Math.min( newCount, 2 ), mobile: 1 };
+								store.updateBlock( parentId, { columns: updatedCol } );
 
 								// Clear all sibling column widths so they redistribute equally via flex: 1.
 								( block.innerBlocks || [] ).forEach( ( col ) => {
@@ -549,7 +560,12 @@
 
 													// Update the source container count if it tracks columns.
 													if ( 'columns' === draggedParent.type ) {
-														store.updateBlock( draggedParent.id, { columns: draggedParent.innerBlocks.length } );
+														const srcColData = draggedParent.attributes?.columns;
+														const srcCount   = draggedParent.innerBlocks.length;
+														const srcUpdated = typeof srcColData === 'object'
+															? { ...srcColData, global: srcCount, desktop: srcCount }
+															: { mode: 'global', global: srcCount, desktop: srcCount, tablet: Math.min( srcCount, 2 ), mobile: 1 };
+														store.updateBlock( draggedParent.id, { columns: srcUpdated } );
 													}
 
 													store.addInnerBlock( targetChildParent.id, {
@@ -560,7 +576,12 @@
 
 													// Update the target container count if it tracks columns.
 													if ( 'columns' === targetChildParent.type ) {
-														store.updateBlock( targetChildParent.id, { columns: targetChildParent.innerBlocks.length } );
+														const tgtColData = targetChildParent.attributes?.columns;
+														const tgtCount   = targetChildParent.innerBlocks.length;
+														const tgtUpdated = typeof tgtColData === 'object'
+															? { ...tgtColData, global: tgtCount, desktop: tgtCount }
+															: { mode: 'global', global: tgtCount, desktop: tgtCount, tablet: Math.min( tgtCount, 2 ), mobile: 1 };
+														store.updateBlock( targetChildParent.id, { columns: tgtUpdated } );
 													}
 												}
 
@@ -1433,7 +1454,8 @@
 							const gap            = block.attributes?.gap || 'medium';
 							const vAlign         = block.attributes?.verticalAlignment || 'top';
 							const isStacked      = block.attributes?.isStacked || false;
-							const columnsCount   = parseInt( block.attributes?.columns ) || 2;
+							const colData        = block.attributes?.columns || { mode: 'global', global: 2 };
+							const columnsCount   = typeof colData === 'object' ? ( colData.global ?? colData.desktop ?? 2 ) : ( parseInt( colData ) || 2 );
 
 							const gapMap    = { none: '0', small: '0.5rem', medium: '1rem', large: '2rem' };
 							const alignMap  = { top: 'flex-start', center: 'center', bottom: 'flex-end', stretch: 'stretch' };

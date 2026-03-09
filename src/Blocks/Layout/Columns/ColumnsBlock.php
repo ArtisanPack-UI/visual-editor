@@ -47,12 +47,13 @@ class ColumnsBlock extends BaseBlock
 	{
 		return [
 			'columns'   => [
-				'type'    => 'range',
-				'label'   => __( 'visual-editor::ve.number_of_columns' ),
-				'min'     => 1,
-				'max'     => 6,
-				'step'    => 1,
-				'default' => 2,
+				'type'      => 'responsive_range',
+				'label'     => __( 'visual-editor::ve.number_of_columns' ),
+				'min'       => 1,
+				'max'       => 6,
+				'step'      => 1,
+				'default'   => [ 'mode' => 'global', 'global' => 2, 'desktop' => 2, 'tablet' => 2, 'mobile' => 1 ],
+				'inspector' => false,
 			],
 			'layout'    => [
 				'type'      => 'select',
