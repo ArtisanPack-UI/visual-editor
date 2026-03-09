@@ -33,6 +33,21 @@
 					}
 				}
 			);
+
+			// Re-position when sidebars open/close so the toolbar tracks the block.
+			this.$watch(
+				() => Alpine.store( 'editor' ) ? [ Alpine.store( 'editor' ).showInserter, Alpine.store( 'editor' ).showSidebar ] : [],
+				() => {
+					if ( this.visible && this.anchorEl ) {
+						// Delay to allow the sidebar transition and flex reflow to settle.
+						setTimeout( () => {
+							if ( this.visible && this.anchorEl && this.$refs.toolbar ) {
+								this._position();
+							}
+						}, 220 );
+					}
+				}
+			);
 		},
 
 		_anchorToBlock( blockId ) {
@@ -47,9 +62,18 @@
 			this.visible  = true;
 			this._position();
 			this._addPositionListeners();
+
+			// Re-position after the enter transition completes so the toolbar
+			// dimensions are final and it doesn't overlap the block.
+			setTimeout( () => {
+				if ( this.visible && this.anchorEl && this.$refs.toolbar ) {
+					this._position();
+				}
+			}, 160 );
 		},
 
 		_positionHandler: null,
+		_resizeObserver: null,
 
 		_addPositionListeners() {
 			this._removePositionListeners();
@@ -65,6 +89,18 @@
 			};
 			window.addEventListener( 'scroll', this._positionHandler, true );
 			window.addEventListener( 'resize', this._positionHandler );
+
+			// Watch for layout changes (e.g. sidebar open/close) via ResizeObserver.
+			// The offset parent (canvas with position:relative) sits inside a flex
+			// wrapper that actually changes size when a sidebar toggles, so observe
+			// both the offset parent and its parent to catch all reflows.
+			this._resizeObserver = new ResizeObserver( this._positionHandler );
+			if ( this.$el.offsetParent ) {
+				this._resizeObserver.observe( this.$el.offsetParent );
+				if ( this.$el.offsetParent.parentElement ) {
+					this._resizeObserver.observe( this.$el.offsetParent.parentElement );
+				}
+			}
 		},
 
 		_removePositionListeners() {
@@ -72,6 +108,10 @@
 				window.removeEventListener( 'scroll', this._positionHandler, true );
 				window.removeEventListener( 'resize', this._positionHandler );
 				this._positionHandler = null;
+			}
+			if ( this._resizeObserver ) {
+				this._resizeObserver.disconnect();
+				this._resizeObserver = null;
 			}
 		},
 
