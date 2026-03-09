@@ -19,7 +19,7 @@
 		type="button"
 		x-on:click="open = ! open"
 		{{ $attributes->merge( [
-			'class' => 'flex items-center justify-center gap-1 rounded px-2 py-1.5 text-sm text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary' . ( $disabled ? ' opacity-40 cursor-not-allowed' : ' cursor-pointer' ),
+			'class' => 'flex items-center justify-center gap-1 rounded px-2.5 py-1.5 text-sm text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary' . ( $disabled ? ' opacity-40 cursor-not-allowed' : ' cursor-pointer' ),
 		] ) }}
 		data-ve-toolbar-item
 		:aria-expanded="open"
@@ -33,7 +33,7 @@
 		@endif
 	>
 		@if ( $icon )
-			<x-ve-icon :name="$icon" class="w-4 h-4" />
+			<x-ve-icon :name="$icon" class="w-6 h-6" />
 		@endif
 		@if ( $label )
 			<span>{{ $label }}</span>

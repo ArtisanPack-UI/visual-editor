@@ -84,17 +84,17 @@
 	"
 	class="relative flex items-center"
 >
-	<div class="w-px h-4 bg-base-300 mx-0.5" aria-hidden="true"></div>
+	<div class="w-px h-5 bg-base-300 mx-0.5" aria-hidden="true"></div>
 
 	{{-- Replace button --}}
 	<button
 		type="button"
-		class="btn btn-ghost btn-xs btn-square"
+		class="flex items-center justify-center rounded px-2.5 py-1.5 text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors"
 		x-on:click="replaceImage()"
 		aria-label="{{ __( 'visual-editor::ve.replace_image' ) }}"
 		title="{{ __( 'visual-editor::ve.replace_image' ) }}"
 	>
-		<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+		<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
 			<path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182" />
 		</svg>
 	</button>
@@ -102,13 +102,13 @@
 	{{-- Link button --}}
 	<button
 		type="button"
-		class="btn btn-ghost btn-xs btn-square"
+		class="flex items-center justify-center rounded px-2.5 py-1.5 text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors"
 		:class="hasLink ? 'bg-base-200 text-base-content' : ''"
 		x-on:click="toggleLink()"
 		:aria-label="hasLink ? {{ Js::from( __( 'visual-editor::ve.edit_link' ) ) }} : {{ Js::from( __( 'visual-editor::ve.add_link' ) ) }}"
 		:title="hasLink ? {{ Js::from( __( 'visual-editor::ve.edit_link' ) ) }} : {{ Js::from( __( 'visual-editor::ve.add_link' ) ) }}"
 	>
-		<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+		<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
 			<path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
 		</svg>
 	</button>

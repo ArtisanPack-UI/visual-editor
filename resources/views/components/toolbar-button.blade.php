@@ -11,7 +11,7 @@
  --}}
 
 @php
-	$baseClasses   = 'relative flex items-center justify-center rounded px-2 py-1.5 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary';
+	$baseClasses   = 'relative flex items-center justify-center rounded px-2.5 py-1.5 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary';
 	if ( 'destructive' === $variant ) {
 		$activeClasses = $active
 			? 'bg-error/10 text-error'
@@ -53,7 +53,7 @@
 	@endif
 >
 	@if ( $icon )
-		<x-ve-icon :name="$icon" class="w-4 h-4" />
+		<x-ve-icon :name="$icon" class="w-6 h-6" />
 	@endif
 
 	@if ( $label && ! $icon )

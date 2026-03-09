@@ -31,11 +31,11 @@
 	}"
 	class="relative flex items-center"
 >
-	<div class="w-px h-4 bg-base-300 mx-0.5" aria-hidden="true"></div>
+	<div class="w-px h-5 bg-base-300 mx-0.5" aria-hidden="true"></div>
 
 	<button
 		type="button"
-		class="btn btn-ghost btn-xs gap-0.5 px-1.5 font-bold"
+		class="flex items-center justify-center rounded px-2.5 py-1.5 text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors gap-0.5 font-bold text-sm"
 		x-on:click="levelOpen = ! levelOpen"
 		:aria-expanded="levelOpen"
 		aria-label="{{ __( 'Change heading level' ) }}"

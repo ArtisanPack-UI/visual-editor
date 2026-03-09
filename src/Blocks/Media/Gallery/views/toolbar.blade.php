@@ -36,19 +36,19 @@
 	"
 	class="relative flex items-center"
 >
-	<div class="w-px h-4 bg-base-300 mx-0.5" aria-hidden="true"></div>
+	<div class="w-px h-5 bg-base-300 mx-0.5" aria-hidden="true"></div>
 
 	{{-- Add images button --}}
 	<button
 		type="button"
-		class="btn btn-ghost btn-xs gap-1 px-1.5"
+		class="flex items-center justify-center rounded px-2.5 py-1.5 text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors gap-1"
 		x-on:click="addImages()"
 		aria-label="{{ __( 'visual-editor::ve.gallery_add_images' ) }}"
 		title="{{ __( 'visual-editor::ve.gallery_add_images' ) }}"
 	>
-		<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
+		<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
 			<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
 		</svg>
-		<span class="text-xs">{{ __( 'visual-editor::ve.add_images' ) }}</span>
+		<span class="text-sm">{{ __( 'visual-editor::ve.add_images' ) }}</span>
 	</button>
 </div>

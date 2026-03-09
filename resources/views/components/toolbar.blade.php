@@ -63,7 +63,7 @@
 	}"
 	x-on:keydown="handleKeydown( $event )"
 	{{ $attributes->merge( [
-		'class' => 'flex items-center gap-0.5 rounded-lg border border-base-300 bg-base-100 p-1 shadow-sm ' .
+		'class' => 'flex items-center gap-0.5 rounded-lg border border-base-300 bg-base-100 p-1.5 shadow-sm ' .
 			( 'vertical' === $orientation ? 'flex-col' : 'flex-row' ),
 	] ) }}
 	role="toolbar"

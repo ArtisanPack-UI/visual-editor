@@ -27,29 +27,29 @@
 	}"
 	class="relative flex items-center"
 >
-	<div class="w-px h-4 bg-base-300 mx-0.5" aria-hidden="true"></div>
+	<div class="w-px h-5 bg-base-300 mx-0.5" aria-hidden="true"></div>
 
 	<button
 		type="button"
-		class="btn btn-ghost btn-xs btn-square"
+		class="flex items-center justify-center rounded px-2.5 py-1.5 text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors"
 		:class="currentListType === 'unordered' ? 'bg-base-200 text-base-content' : ''"
 		x-on:click="if ( 'unordered' !== currentListType ) toggleListType()"
 		aria-label="{{ __( 'Unordered list' ) }}"
 		title="{{ __( 'Unordered list' ) }}"
 	>
-		<svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+		<svg class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 			<path stroke-linecap="round" d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01" />
 		</svg>
 	</button>
 	<button
 		type="button"
-		class="btn btn-ghost btn-xs btn-square"
+		class="flex items-center justify-center rounded px-2.5 py-1.5 text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors"
 		:class="currentListType === 'ordered' ? 'bg-base-200 text-base-content' : ''"
 		x-on:click="if ( 'ordered' !== currentListType ) toggleListType()"
 		aria-label="{{ __( 'Ordered list' ) }}"
 		title="{{ __( 'Ordered list' ) }}"
 	>
-		<svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+		<svg class="w-6 h-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
 			<text x="2" y="8" font-size="7" font-family="system-ui, sans-serif" font-weight="600">1.</text>
 			<line x1="10" y1="6" x2="22" y2="6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
 			<text x="2" y="15" font-size="7" font-family="system-ui, sans-serif" font-weight="600">2.</text>
