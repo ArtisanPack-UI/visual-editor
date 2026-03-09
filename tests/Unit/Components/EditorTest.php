@@ -63,6 +63,7 @@ test( 'editor builds empty data when registry is empty', function (): void {
 	expect( $component->inspectorBlockDescriptions )->toBeArray()->toBeEmpty();
 	expect( $component->inspectorBlockTypes )->toBeArray()->toBeEmpty();
 	expect( $component->toolbarBlockIcons )->toBeArray()->toBeEmpty();
+	expect( $component->blockNames )->toBeArray()->toBeEmpty();
 	expect( $component->transformableBlocks )->toBeArray()->toBeEmpty();
 	expect( $component->blockAlignSupports )->toBeArray()->toBeEmpty();
 	expect( $component->customToolbarHtml )->toBeArray()->toBeEmpty();

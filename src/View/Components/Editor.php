@@ -136,6 +136,15 @@ class Editor extends Component
 	public array $transformableBlocks;
 
 	/**
+	 * All block display names keyed by block type.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<string, string>
+	 */
+	public array $blockNames;
+
+	/**
 	 * Block alignment support map keyed by block type.
 	 *
 	 * @since 1.0.0
@@ -443,10 +452,12 @@ class Editor extends Component
 	{
 		$this->toolbarBlockIcons   = [];
 		$this->transformableBlocks = [];
+		$this->blockNames          = [];
 		$iconRenderer              = $this->iconRenderer;
 
 		foreach ( $registry->all() as $type => $block ) {
 			$this->toolbarBlockIcons[ $type ] = $iconRenderer( $block->getIcon() );
+			$this->blockNames[ $type ]        = $block->getName();
 
 			if ( $block->isPublic() ) {
 				$this->transformableBlocks[ $type ] = $block->getName();

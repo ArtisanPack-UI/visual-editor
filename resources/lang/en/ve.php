@@ -545,6 +545,9 @@ return [
 	// Enter Key / New Block
 	'new_paragraph_added' => 'New paragraph added',
 
+	// Parent Block Navigation
+	'select_parent_block' => 'Select parent block (:name)',
+
 	// Block Transforms
 	'transform_to'       => 'Transform to',
 	'transform_block'    => 'Transform block',

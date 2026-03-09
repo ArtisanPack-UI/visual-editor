@@ -237,6 +237,43 @@
 		<x-slot:canvas>
 			{{-- Block toolbar - floats above selected block --}}
 			<x-ve-block-toolbar :show-move-controls="false">
+				{{-- Parent block navigation (visible only for child blocks) --}}
+				<template x-if="(() => {
+					if ( ! Alpine.store( 'selection' )?.focused || ! Alpine.store( 'editor' ) ) return false;
+					return !! Alpine.store( 'editor' ).getParentBlock( Alpine.store( 'selection' ).focused );
+				})()">
+					<div
+						x-data="{
+							parentBlockIcons: {{ Js::from( $toolbarBlockIcons ) }},
+							parentBlockNames: {{ Js::from( $blockNames ) }},
+
+							get parentBlock() {
+								const blockId = Alpine.store( 'selection' )?.focused;
+								if ( ! blockId || ! Alpine.store( 'editor' ) ) return null;
+								return Alpine.store( 'editor' ).getParentBlock( blockId );
+							},
+
+							selectParent() {
+								if ( this.parentBlock ) {
+									Alpine.store( 'selection' ).select( this.parentBlock.id );
+								}
+							},
+						}"
+						class="flex items-center"
+					>
+						<button
+							type="button"
+							class="btn btn-ghost btn-xs btn-square"
+							x-on:click="selectParent()"
+							:aria-label="'{{ __( 'visual-editor::ve.select_parent_block', [ 'name' => ':name' ] ) }}'.replace( ':name', parentBlockNames[ parentBlock?.type ] || parentBlock?.type || '' )"
+							:title="parentBlockNames[ parentBlock?.type ] || parentBlock?.type || ''"
+						>
+							<span class="w-4 h-4 flex items-center justify-center" x-html="parentBlockIcons[ parentBlock?.type ] || ''"></span>
+						</button>
+						<div class="w-px h-4 bg-base-300 mx-0.5" aria-hidden="true"></div>
+					</div>
+				</template>
+
 				{{-- Drag handle (6-dot grip) --}}
 				<button
 					type="button"
