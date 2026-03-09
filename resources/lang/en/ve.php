@@ -131,6 +131,7 @@ return [
 	'cut_block'           => 'Cut block',
 	'paste_block'         => 'Paste block',
 	'duplicate_block'     => 'Duplicate block',
+	'delete_block'        => 'Delete block',
 	'deselect'            => 'Deselect',
 	'selection_cleared'   => 'Selection cleared',
 

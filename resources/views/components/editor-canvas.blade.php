@@ -202,6 +202,118 @@
 						return;
 					}
 
+					// Backspace / Delete on empty contenteditable: remove block and focus previous.
+					if ( ( 'Backspace' === event.key || 'Delete' === event.key ) && blockEl ) {
+						const editor    = Alpine.store( 'editor' );
+						const selection = Alpine.store( 'selection' );
+						if ( ! editor ) return;
+
+						// Check if we are inside an inner block.
+						const innerWrapper = editableEl.closest( '[data-inner-block-id]' );
+						if ( innerWrapper ) {
+							const innerBlockId = innerWrapper.getAttribute( 'data-inner-block-id' );
+							const innerBlock   = editor.getBlock( innerBlockId );
+							if ( ! innerBlock ) return;
+
+							const textTypes = [ 'paragraph', 'heading' ];
+							if ( ! textTypes.includes( innerBlock.type ) ) return;
+
+							const text = ( editableEl.textContent || '' ).trim();
+							if ( 0 !== text.length ) return;
+
+							event.preventDefault();
+
+							const parent = editor.getParentBlock( innerBlockId );
+							if ( ! parent ) return;
+
+							// Find previous sibling inner block for focus.
+							const innerIndex   = parent.innerBlocks.findIndex( ( b ) => b.id === innerBlockId );
+							let prevInnerBlock = null;
+							if ( innerIndex > 0 ) {
+								prevInnerBlock = parent.innerBlocks[ innerIndex - 1 ];
+							}
+
+							editor.removeInnerBlock( parent.id, innerBlockId );
+
+							if ( selection ) {
+								selection.clearSelection();
+							}
+
+							if ( prevInnerBlock ) {
+								this.$nextTick( () => {
+									const prevEl = document.querySelector( '[data-inner-block-id=\'' + prevInnerBlock.id + '\']' );
+									if ( ! prevEl ) return;
+									const prevEditable = prevEl.querySelector( '[contenteditable]' ) || prevEl;
+									if ( prevEditable ) {
+										prevEditable.focus();
+										const range = document.createRange();
+										range.selectNodeContents( prevEditable );
+										range.collapse( false );
+										const s = window.getSelection();
+										s.removeAllRanges();
+										s.addRange( range );
+									}
+									if ( selection ) {
+										selection.select( prevInnerBlock.id, false );
+									}
+								} );
+							}
+							return;
+						}
+
+						// Top-level block handling.
+						const blockId = blockEl.getAttribute( 'data-block-id' );
+						const block   = editor.getBlock( blockId );
+						if ( ! block ) return;
+
+						// Only handle text-based top-level blocks (paragraph, heading).
+						// List blocks have their own empty-enter handler.
+						const textTypes = [ 'paragraph', 'heading' ];
+						if ( ! textTypes.includes( block.type ) ) return;
+
+						const text = ( editableEl.textContent || '' ).trim();
+						if ( 0 !== text.length ) return;
+
+						// Content is empty — delete this block.
+						event.preventDefault();
+
+						// Find the previous block to focus.
+						let prevBlockId = null;
+						if ( currentIndex > 0 ) {
+							prevBlockId = blockEls[ currentIndex - 1 ].getAttribute( 'data-block-id' );
+						}
+
+						editor.removeBlock( blockId );
+
+						if ( selection ) {
+							selection.clearSelection();
+						}
+
+						if ( prevBlockId ) {
+							this.$nextTick( () => {
+								const prevEl = document.querySelector( '[data-block-id=\'' + prevBlockId + '\']' );
+								if ( ! prevEl ) return;
+								const prevEditable = prevEl.querySelector( '[contenteditable]' );
+								if ( prevEditable ) {
+									prevEditable.focus();
+									// Place cursor at end.
+									const range = document.createRange();
+									range.selectNodeContents( prevEditable );
+									range.collapse( false );
+									const s = window.getSelection();
+									s.removeAllRanges();
+									s.addRange( range );
+								} else {
+									prevEl.focus();
+								}
+								if ( selection ) {
+									selection.select( prevBlockId, false );
+								}
+							} );
+						}
+						return;
+					}
+
 					// Not at a boundary — let the browser move the cursor normally.
 					return;
 				}
