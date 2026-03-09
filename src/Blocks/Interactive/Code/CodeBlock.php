@@ -37,6 +37,22 @@ use ArtisanPackUI\VisualEditor\Blocks\BaseBlock;
 class CodeBlock extends BaseBlock
 {
 	/**
+	 * Get available block transforms.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, array<string, string>>
+	 */
+	public function getTransforms(): array
+	{
+		return [
+			'paragraph' => [
+				'code' => 'text',
+			],
+		];
+	}
+
+	/**
 	 * Get the content field schema.
 	 *
 	 * @since 1.0.0

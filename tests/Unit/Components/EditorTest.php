@@ -204,6 +204,38 @@ test( 'editor handles malformed patterns gracefully', function (): void {
 	expect( $component->patternsWithPreviews[1] )->toHaveKey( 'preview' );
 } );
 
+test( 'editor auto-populates blockTransforms from registry', function (): void {
+	// Use the real registry with all core blocks registered
+	// (the service provider registers core blocks on boot).
+	$component = new Editor();
+
+	// Core blocks define transforms — at minimum, paragraph has transforms.
+	expect( $component->blockTransforms )->toBeArray();
+	expect( $component->blockTransforms )->toHaveKey( 'paragraph' );
+	expect( $component->blockTransforms['paragraph'] )->toHaveKey( 'heading' );
+	expect( $component->blockTransforms['paragraph'] )->toHaveKey( 'list' );
+	expect( $component->blockTransforms['paragraph'] )->toHaveKey( 'quote' );
+
+	// Heading block should have transforms to paragraph and quote.
+	expect( $component->blockTransforms )->toHaveKey( 'heading' );
+	expect( $component->blockTransforms['heading'] )->toHaveKey( 'paragraph' );
+
+	// Blocks without transforms should NOT appear.
+	expect( $component->blockTransforms )->not->toHaveKey( 'image' );
+	expect( $component->blockTransforms )->not->toHaveKey( 'spacer' );
+} );
+
+test( 'editor blockTransforms does not include blocks without transforms', function (): void {
+	$this->app->singleton( 'visual-editor.blocks', function () {
+		return new BlockRegistry();
+	} );
+
+	$component = new Editor();
+
+	// Empty registry means no transforms.
+	expect( $component->blockTransforms )->toBeArray()->toBeEmpty();
+} );
+
 test( 'editor renders view name', function (): void {
 	$this->app->singleton( 'visual-editor.blocks', function () {
 		return new BlockRegistry();

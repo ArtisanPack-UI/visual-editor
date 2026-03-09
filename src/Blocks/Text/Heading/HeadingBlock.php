@@ -47,6 +47,9 @@ class HeadingBlock extends BaseBlock
 			'paragraph' => [
 				'text' => 'text',
 			],
+			'list'      => [
+				'text' => 'text',
+			],
 			'quote'     => [
 				'text' => 'text',
 			],

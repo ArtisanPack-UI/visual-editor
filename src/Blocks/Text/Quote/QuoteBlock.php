@@ -82,6 +82,9 @@ class QuoteBlock extends BaseBlock
 			'heading'   => [
 				'text' => 'text',
 			],
+			'list'      => [
+				'text' => 'text',
+			],
 		];
 	}
 }

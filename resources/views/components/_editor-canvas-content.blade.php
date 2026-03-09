@@ -871,6 +871,10 @@
 								let innerHtml = '<li data-placeholder=\'' + placeholder + '\'></li>';
 								if ( existingEl ) {
 									innerHtml = existingEl.innerHTML;
+								} else if ( block.attributes?._transformedContent ) {
+									// Content injected by transformBlock() from another block type.
+									innerHtml = block.attributes._transformedContent;
+									delete block.attributes._transformedContent;
 								} else {
 									// Check if we have pre-rendered HTML for a different tag type
 									const altTag = 'ol' === tag ? 'ul' : 'ol';

@@ -289,37 +289,46 @@
 						const block = Alpine.store( 'editor' ).getBlock( Alpine.store( 'selection' ).focused );
 						return block?.type ?? null;
 					},
+
+					get availableTransforms() {
+						if ( ! this.currentType || ! Alpine.store( 'editor' ) ) return [];
+						return Alpine.store( 'editor' ).getTransformsForBlock( this.currentType );
+					},
 				}" class="relative">
 					<button
 						type="button"
 						class="btn btn-ghost btn-xs gap-1 px-1.5"
-						x-on:click="transformOpen = ! transformOpen"
+						x-on:click="if ( availableTransforms.length > 0 ) { transformOpen = ! transformOpen; }"
 						:aria-expanded="transformOpen"
+						:disabled="availableTransforms.length === 0"
 						aria-label="{{ __( 'Change block type' ) }}"
 					>
 						<span class="w-4 h-4 flex items-center justify-center" x-html="blockIcons[ currentType ] || blockIcons[ Object.keys( blockIcons )[ 0 ] ]"></span>
-						<svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+						<svg x-show="availableTransforms.length > 0" class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
 							<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
 						</svg>
 					</button>
 
 					<div
-						x-show="transformOpen"
+						x-show="transformOpen && availableTransforms.length > 0"
 						x-on:click.outside="transformOpen = false"
 						x-transition
 						class="absolute left-0 top-full mt-1 w-48 rounded-lg border border-base-300 bg-base-100 shadow-lg py-1 z-50 max-h-64 overflow-y-auto"
 						role="menu"
 					>
-						<template x-for="( name, type ) in blockNames" :key="type">
+						<template x-for="targetType in availableTransforms" :key="targetType">
 							<button
 								type="button"
 								class="flex w-full items-center gap-2 px-3 py-1.5 text-sm hover:bg-base-200"
-								:class="type === currentType ? 'bg-primary/10 text-primary' : ''"
+								:class="targetType === currentType ? 'bg-primary/10 text-primary' : ''"
 								role="menuitem"
-								x-on:click="transformOpen = false"
+								x-on:click="
+									Alpine.store( 'editor' ).transformBlock( Alpine.store( 'selection' ).focused, targetType );
+									transformOpen = false;
+								"
 							>
-								<span class="w-4 h-4 flex items-center justify-center shrink-0" x-html="blockIcons[ type ]"></span>
-								<span x-text="name"></span>
+								<span class="w-4 h-4 flex items-center justify-center shrink-0" x-html="blockIcons[ targetType ]"></span>
+								<span x-text="blockNames[ targetType ] || targetType"></span>
 							</button>
 						</template>
 					</div>

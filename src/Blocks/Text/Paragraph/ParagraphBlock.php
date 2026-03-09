@@ -57,6 +57,9 @@ class ParagraphBlock extends BaseBlock
 			'quote'   => [
 				'text' => 'text',
 			],
+			'code'    => [
+				'text' => 'code',
+			],
 		];
 	}
 }

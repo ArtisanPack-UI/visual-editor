@@ -248,6 +248,7 @@ class Editor extends Component
 		$this->buildCustomPanels( $registry );
 		$this->buildEditorShortcuts();
 		$this->buildPatternsWithPreviews();
+		$this->buildBlockTransforms( $registry );
 	}
 
 	/**
@@ -520,6 +521,32 @@ class Editor extends Component
 			[ 'name' => 'deselect', 'keys' => 'escape', 'description' => __( 'visual-editor::ve.deselect' ), 'category' => 'selection' ],
 			[ 'name' => 'toggle-inserter', 'keys' => 'mod+/', 'description' => __( 'visual-editor::ve.toggle_inserter' ), 'category' => 'navigation' ],
 		];
+	}
+
+	/**
+	 * Build block transforms from the registry.
+	 *
+	 * Collects transform mappings defined by each block's getTransforms()
+	 * method and merges them with any externally provided transforms.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param BlockRegistry $registry The block registry instance.
+	 *
+	 * @return void
+	 */
+	protected function buildBlockTransforms( BlockRegistry $registry ): void
+	{
+		$registryTransforms = [];
+
+		foreach ( $registry->all() as $type => $block ) {
+			$transforms = $block->getTransforms();
+			if ( ! empty( $transforms ) ) {
+				$registryTransforms[ $type ] = $transforms;
+			}
+		}
+
+		$this->blockTransforms = array_merge( $registryTransforms, $this->blockTransforms );
 	}
 
 	/**

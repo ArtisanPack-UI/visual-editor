@@ -518,9 +518,14 @@
 
 					const transforms = this.blockTransforms[ block.type ] || {};
 					const mapping    = transforms[ targetType ];
-					if ( ! mapping ) return;
+					if ( undefined === mapping ) return;
 
 					this._pushHistory();
+
+					// Resolve source text from the block. For blocks whose content
+					// lives in the DOM (list, quote with inner blocks), read it
+					// from the DOM element rather than from the attributes alone.
+					const sourceText = this._resolveTransformText( block );
 
 					const newAttributes = {};
 					Object.keys( mapping ).forEach( ( targetField ) => {
@@ -530,12 +535,78 @@
 						}
 					} );
 
+					// Handle list target: text becomes a list item.
+					if ( 'list' === targetType && sourceText ) {
+						newAttributes._transformedContent = '<li>' + sourceText + '</li>';
+					}
+
+					// Handle quote target: text becomes an inner paragraph block.
+					if ( 'quote' === targetType && sourceText ) {
+						block.innerBlocks = [ {
+							id: this._generateId(),
+							type: this.defaultBlockType,
+							attributes: { text: sourceText },
+							innerBlocks: [],
+						} ];
+					} else if ( 'quote' !== targetType ) {
+						// When leaving a container block (e.g. quote → paragraph),
+						// clear inner blocks so the new type doesn't inherit them.
+						block.innerBlocks = [];
+					}
+
+					// Handle text source from list DOM or quote inner blocks into
+					// the target text attribute when the mapping is empty.
+					if ( sourceText && 0 === Object.keys( mapping ).length ) {
+						newAttributes.text = sourceText;
+					}
+
 					block.type       = targetType;
 					block.attributes = newAttributes;
 
 					this.markDirty();
 					this._announceAction( {{ Js::from( __( 'visual-editor::ve.block_transformed' ) ) }} );
 					this._dispatchChange();
+				},
+
+				/**
+				 * Resolve the text content from a block for transformation.
+				 *
+				 * For blocks whose content lives in the DOM during editing
+				 * (list, quote with inner blocks), reads from the DOM element.
+				 */
+				_resolveTransformText( block ) {
+					// Paragraph / heading: text lives in attributes.
+					if ( block.attributes?.text ) {
+						return block.attributes.text;
+					}
+
+					// List: content lives in the DOM as <li> elements.
+					if ( 'list' === block.type ) {
+						const listEl = document.querySelector( '[data-block-id=' + block.id + '] [contenteditable]' );
+						if ( listEl ) {
+							const items = listEl.querySelectorAll( 'li' );
+							const texts = [];
+							items.forEach( ( li ) => {
+								const t = li.innerHTML.trim();
+								if ( t ) {
+									texts.push( t );
+								}
+							} );
+							return texts.join( '<br>' );
+						}
+					}
+
+					// Quote: text comes from inner blocks.
+					if ( 'quote' === block.type && block.innerBlocks && block.innerBlocks.length > 0 ) {
+						// Read from DOM if available (more current than store).
+						const innerEl = document.querySelector( '[data-inner-block-id=' + block.innerBlocks[0].id + '] [contenteditable]' );
+						if ( innerEl ) {
+							return innerEl.innerHTML;
+						}
+						return block.innerBlocks[0].attributes?.text || '';
+					}
+
+					return '';
 				},
 
 				getTransformsForBlock( blockType ) {

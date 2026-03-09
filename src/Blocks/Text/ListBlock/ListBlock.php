@@ -76,6 +76,8 @@ class ListBlock extends BaseBlock
 	{
 		return [
 			'paragraph' => [],
+			'heading'   => [],
+			'quote'     => [],
 		];
 	}
 }
