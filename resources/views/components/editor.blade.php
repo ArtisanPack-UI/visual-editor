@@ -88,6 +88,75 @@
 		clear: both;
 	}
 
+	/* Button block canvas styles */
+	.ve-block-button.ve-block-editing {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.5rem;
+		border-radius: 0.375rem;
+		font-weight: 500;
+		line-height: 1.25;
+		cursor: text;
+		text-decoration: none;
+		transition: box-shadow 0.15s ease;
+		min-height: 2.25rem;
+	}
+
+	/* Button size variants */
+	.ve-block-editing.ve-button-sm { padding: 0.375rem 0.75rem; font-size: 0.875rem; }
+	.ve-block-editing.ve-button-md { padding: 0.5rem 1rem; font-size: 1rem; }
+	.ve-block-editing.ve-button-lg { padding: 0.625rem 1.25rem; font-size: 1.125rem; }
+	.ve-block-editing.ve-button-xl { padding: 0.75rem 1.5rem; font-size: 1.25rem; }
+
+	/* Button variant styles */
+	.ve-block-editing.ve-button-filled {
+		background-color: oklch(var(--p));
+		color: oklch(var(--pc));
+	}
+	.ve-block-editing.ve-button-outline {
+		background-color: transparent;
+		border: 2px solid oklch(var(--p));
+		color: oklch(var(--p));
+	}
+	.ve-block-editing.ve-button-ghost {
+		background-color: transparent;
+		color: oklch(var(--bc));
+		border: 1px dashed oklch(var(--bc) / 0.3);
+	}
+
+	/* Button text contenteditable — always show a visible area */
+	.ve-block-button.ve-block-editing .ve-button-text {
+		outline: none;
+		min-width: 4rem;
+		display: inline-block;
+	}
+
+	/* Focus ring on the button text span */
+	.ve-block-button.ve-block-editing .ve-button-text:focus {
+		outline: 2px solid oklch(var(--pc) / 0.6);
+		outline-offset: 2px;
+		border-radius: 2px;
+	}
+	.ve-block-editing.ve-button-outline .ve-button-text:focus,
+	.ve-block-editing.ve-button-ghost .ve-button-text:focus {
+		outline-color: oklch(var(--p) / 0.6);
+	}
+
+	/* Button text placeholder — show when empty */
+	.ve-block-button.ve-block-editing .ve-button-text:empty::before {
+		content: attr(data-placeholder);
+		opacity: 0.6;
+		font-style: italic;
+		pointer-events: none;
+	}
+
+	/* Button icon styling */
+	.ve-button-icon {
+		display: inline-flex;
+		align-items: center;
+		flex-shrink: 0;
+	}
+
 	/* Column drag-and-drop drop indicators (inset box-shadow avoids overflow clipping) */
 	.ve-block-column.ve-col-drop-before {
 		box-shadow: inset 3px 0 0 0 oklch(var(--p));
@@ -1019,7 +1088,13 @@
 
 					br.register( 'button', {
 						render( block, context ) {
-							const text         = block.attributes?.text || '';
+							// Read text from existing DOM element if present (preserves
+							// user's typed content without creating a reactive dependency).
+							let text = block.attributes?.text || '';
+							const existingEl = document.querySelector( '[data-block-id=\'' + block.id + '\'] .ve-button-text' );
+							if ( existingEl ) {
+								text = existingEl.innerHTML;
+							}
 							const icon         = block.attributes?.icon || '';
 							const iconPosition = block.attributes?.iconPosition || 'left';
 							const color        = block.attributes?.color || '';
