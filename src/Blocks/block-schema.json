@@ -3,7 +3,11 @@
 	"title": "ArtisanPack Visual Editor Block Metadata",
 	"description": "Schema for block.json metadata files used by the visual editor.",
 	"type": "object",
-	"required": ["type", "name", "category"],
+	"required": [
+		"type",
+		"name",
+		"category"
+	],
 	"properties": {
 		"type": {
 			"type": "string",
@@ -27,7 +31,14 @@
 		"category": {
 			"type": "string",
 			"description": "Block category for inserter grouping.",
-			"enum": ["text", "media", "layout", "interactive", "embed", "dynamic"]
+			"enum": [
+				"text",
+				"media",
+				"layout",
+				"interactive",
+				"embed",
+				"dynamic"
+			]
 		},
 		"keywords": {
 			"type": "array",
@@ -49,7 +60,10 @@
 			"default": true
 		},
 		"parent": {
-			"type": ["array", "null"],
+			"type": [
+				"array",
+				"null"
+			],
 			"description": "Allowed parent block types, or null for no restriction.",
 			"items": {
 				"type": "string"
@@ -57,7 +71,10 @@
 			"default": null
 		},
 		"allowedChildren": {
-			"type": ["array", "null"],
+			"type": [
+				"array",
+				"null"
+			],
 			"description": "Allowed child block types, or null for no restriction.",
 			"items": {
 				"type": "string"
@@ -69,17 +86,31 @@
 			"description": "Block attribute declarations defining data shape, types, sources, and defaults.",
 			"additionalProperties": {
 				"type": "object",
-				"required": ["type", "source"],
+				"required": [
+					"type",
+					"source"
+				],
 				"properties": {
 					"type": {
 						"type": "string",
 						"description": "Data type of the attribute.",
-						"enum": ["string", "integer", "boolean", "array", "object", "rich_text", "url"]
+						"enum": [
+							"string",
+							"integer",
+							"boolean",
+							"array",
+							"object",
+							"rich_text",
+							"url"
+						]
 					},
 					"source": {
 						"type": "string",
 						"description": "Maps to content or style, maintaining the existing separation.",
-						"enum": ["content", "style"]
+						"enum": [
+							"content",
+							"style"
+						]
 					},
 					"default": {
 						"description": "Default value used when creating a new block instance."
@@ -94,12 +125,20 @@
 			"properties": {
 				"align": {
 					"oneOf": [
-						{ "type": "boolean" },
+						{
+							"type": "boolean"
+						},
 						{
 							"type": "array",
 							"items": {
 								"type": "string",
-								"enum": ["left", "center", "right", "wide", "full"]
+								"enum": [
+									"left",
+									"center",
+									"right",
+									"wide",
+									"full"
+								]
 							}
 						}
 					],
@@ -108,50 +147,105 @@
 				"color": {
 					"type": "object",
 					"properties": {
-						"text": { "type": "boolean", "default": false },
-						"background": { "type": "boolean", "default": false }
+						"text": {
+							"type": "boolean",
+							"default": false
+						},
+						"background": {
+							"type": "boolean",
+							"default": false
+						}
 					},
 					"default": {}
 				},
 				"typography": {
 					"type": "object",
 					"properties": {
-						"fontSize": { "type": "boolean", "default": false },
-						"fontFamily": { "type": "boolean", "default": false }
+						"fontSize": {
+							"type": "boolean",
+							"default": false
+						},
+						"fontFamily": {
+							"type": "boolean",
+							"default": false
+						}
 					},
 					"default": {}
 				},
 				"spacing": {
 					"type": "object",
 					"properties": {
-						"margin": { "type": "boolean", "default": false },
-						"padding": { "type": "boolean", "default": false }
+						"margin": {
+							"type": "boolean",
+							"default": false
+						},
+						"padding": {
+							"type": "boolean",
+							"default": false
+						},
+						"blockSpacing": {
+							"type": "boolean",
+							"default": false
+						}
 					},
 					"default": {}
 				},
-				"border": { "type": "boolean", "default": false },
-				"shadow": { "type": "boolean", "default": false },
+				"border": {
+					"type": "boolean",
+					"default": false
+				},
+				"shadow": {
+					"type": "boolean",
+					"default": false
+				},
 				"dimensions": {
 					"type": "object",
 					"properties": {
-						"aspectRatio": { "type": "boolean", "default": false },
-						"minHeight": { "type": "boolean", "default": false }
+						"aspectRatio": {
+							"type": "boolean",
+							"default": false
+						},
+						"minHeight": {
+							"type": "boolean",
+							"default": false
+						}
 					},
 					"default": {}
 				},
 				"background": {
 					"type": "object",
 					"properties": {
-						"backgroundImage": { "type": "boolean", "default": false },
-						"backgroundSize": { "type": "boolean", "default": false },
-						"backgroundPosition": { "type": "boolean", "default": false },
-						"backgroundGradient": { "type": "boolean", "default": false }
+						"backgroundImage": {
+							"type": "boolean",
+							"default": false
+						},
+						"backgroundSize": {
+							"type": "boolean",
+							"default": false
+						},
+						"backgroundPosition": {
+							"type": "boolean",
+							"default": false
+						},
+						"backgroundGradient": {
+							"type": "boolean",
+							"default": false
+						}
 					},
 					"default": {}
 				},
-				"anchor": { "type": "boolean", "default": false },
-				"htmlId": { "type": "boolean", "default": false },
-				"className": { "type": "boolean", "default": false }
+				"anchor": {
+					"type": "boolean",
+					"default": false
+				},
+				"htmlId": {
+					"type": "boolean",
+					"default": false
+				},
+				"className": {
+					"type": "boolean",
+					"default": false
+				}
 			},
 			"default": {}
 		}

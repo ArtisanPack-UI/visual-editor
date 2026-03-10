@@ -13,9 +13,9 @@
 			this.dispatch();
 		},
 		dispatch() {
-			if ( '{{ $blockId }}' ) {
+			if ( {{ Js::from( $blockId ) }} ) {
 				$dispatch( 've-field-change', {
-					blockId: '{{ $blockId }}',
+					blockId: {{ Js::from( $blockId ) }},
 					field: 'shadow',
 					value: this.value
 				} );

@@ -7,7 +7,7 @@
 	$className     = $content['className'] ?? '';
 	$innerBlocks   = $innerBlocks ?? [];
 
-	$elementId = $htmlId ?: $anchor;
+	$elementId = veSanitizeHtmlId( $htmlId ?: $anchor );
 
 	$justifyMap = [
 		'left'          => 'flex-start',

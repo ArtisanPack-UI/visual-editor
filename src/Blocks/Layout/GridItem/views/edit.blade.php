@@ -1,20 +1,20 @@
 @php
 	$columnSpanData = $styles['columnSpan'] ?? [ 'mode' => 'global', 'global' => 1, 'desktop' => 1, 'tablet' => 1, 'mobile' => 1 ];
 	if ( is_array( $columnSpanData ) ) {
-		$columnSpan = ( 'responsive' === ( $columnSpanData['mode'] ?? 'global' ) )
+		$columnSpan = (int) ( ( 'responsive' === ( $columnSpanData['mode'] ?? 'global' ) )
 			? ( $columnSpanData['desktop'] ?? 1 )
-			: ( $columnSpanData['global'] ?? $columnSpanData['desktop'] ?? 1 );
+			: ( $columnSpanData['global'] ?? $columnSpanData['desktop'] ?? 1 ) );
 	} else {
-		$columnSpan = $columnSpanData;
+		$columnSpan = (int) $columnSpanData;
 	}
 
 	$rowSpanData = $styles['rowSpan'] ?? [ 'mode' => 'global', 'global' => 1, 'desktop' => 1, 'tablet' => 1, 'mobile' => 1 ];
 	if ( is_array( $rowSpanData ) ) {
-		$rowSpan = ( 'responsive' === ( $rowSpanData['mode'] ?? 'global' ) )
+		$rowSpan = (int) ( ( 'responsive' === ( $rowSpanData['mode'] ?? 'global' ) )
 			? ( $rowSpanData['desktop'] ?? 1 )
-			: ( $rowSpanData['global'] ?? $rowSpanData['desktop'] ?? 1 );
+			: ( $rowSpanData['global'] ?? $rowSpanData['desktop'] ?? 1 ) );
 	} else {
-		$rowSpan = $rowSpanData;
+		$rowSpan = (int) $rowSpanData;
 	}
 
 	$verticalAlignment    = $styles['verticalAlignment'] ?? 'stretch';

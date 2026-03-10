@@ -22,7 +22,7 @@
 	$className      = $content['className'] ?? '';
 	$innerBlocks    = $innerBlocks ?? [];
 
-	$elementId = $htmlId ?: $anchor;
+	$elementId = veSanitizeHtmlId( $htmlId ?: $anchor );
 	$styleId   = $elementId ?: $galleryId;
 
 	$gapValue = $gap . 'rem';

@@ -41,7 +41,7 @@
 
 		cancelUrl() {
 			this.urlInput = '';
-			this.mode = 'placeholder';
+			this.mode = {{ $url ? Js::from( 'file' ) : Js::from( 'placeholder' ) }};
 		},
 
 		isPdf( url ) {

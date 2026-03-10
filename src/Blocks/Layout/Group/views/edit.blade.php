@@ -52,10 +52,6 @@
 		$inlineStyles .= " background-color: {$bgColor};";
 	}
 
-	if ( $gap ) {
-		$inlineStyles .= " gap: {$gap};";
-	}
-
 	if ( $useFlexbox ) {
 		$spacingMap = [
 			'none'   => '0',
@@ -66,6 +62,8 @@
 		];
 		$gapValue    = $spacingMap[ $innerSpacing ] ?? '1rem';
 		$inlineStyles .= " gap: {$gapValue};";
+	} elseif ( $gap ) {
+		$inlineStyles .= " gap: {$gap};";
 	}
 
 	if ( $fillHeight ) {

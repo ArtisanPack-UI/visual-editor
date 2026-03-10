@@ -12,7 +12,7 @@
 	$htmlId    = $content['htmlId'] ?? null;
 	$className = $content['className'] ?? '';
 
-	$elementId = $htmlId ?: $anchor;
+	$elementId = veSanitizeHtmlId( $htmlId ?: $anchor );
 
 	$isYouTube = str_contains( $url, 'youtube.com' ) || str_contains( $url, 'youtu.be' );
 	$isVimeo   = str_contains( $url, 'vimeo.com' );

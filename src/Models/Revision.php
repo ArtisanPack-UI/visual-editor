@@ -104,6 +104,10 @@ class Revision extends Model
 	 */
 	public function scopeByUser( Builder $query, ?int $userId ): Builder
 	{
+		if ( null === $userId ) {
+			return $query->whereNull( 'user_id' );
+		}
+
 		return $query->where( 'user_id', $userId );
 	}
 

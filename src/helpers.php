@@ -75,3 +75,142 @@ if ( ! function_exists( 'veGetBlock' ) ) {
 		return app( 'visual-editor.blocks' )->get( $type );
 	}
 }
+
+if ( ! function_exists( 'veSanitizeCssColor' ) ) {
+	/**
+	 * Sanitize a CSS color value.
+	 *
+	 * Accepts hex (#fff, #ffffff), rgb/rgba/hsl/hsla functions,
+	 * named CSS colors, and special keywords like currentColor, transparent,
+	 * inherit, initial, unset.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string|null $value   The color value to sanitize.
+	 * @param string|null $default The default value if sanitization fails.
+	 *
+	 * @return string|null The sanitized color or default.
+	 */
+	function veSanitizeCssColor( ?string $value, ?string $default = null ): ?string
+	{
+		if ( null === $value || '' === $value ) {
+			return $default;
+		}
+
+		$value   = trim( $value );
+		$pattern = '/^(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgb|rgba|hsl|hsla)\([^)]+\)|[a-zA-Z\-]+)$/';
+
+		return preg_match( $pattern, $value ) ? $value : $default;
+	}
+}
+
+if ( ! function_exists( 'veSanitizeCssDimension' ) ) {
+	/**
+	 * Sanitize a CSS dimension value (e.g., "10px", "1.5rem", "50%", "0").
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string|null $value   The dimension value to sanitize.
+	 * @param string      $default The default value if sanitization fails.
+	 *
+	 * @return string The sanitized dimension or default.
+	 */
+	function veSanitizeCssDimension( ?string $value, string $default = '0' ): string
+	{
+		if ( null === $value || '' === $value ) {
+			return $default;
+		}
+
+		$value   = trim( $value );
+		$pattern = '/^-?\d+(\.\d+)?(px|em|rem|%|vh|vw|vmin|vmax|ch|ex|cm|mm|in|pt|pc)?$/';
+
+		if ( preg_match( $pattern, $value ) ) {
+			return $value;
+		}
+
+		if ( in_array( $value, [ 'auto', 'inherit', 'initial', 'unset', '0' ], true ) ) {
+			return $value;
+		}
+
+		return $default;
+	}
+}
+
+if ( ! function_exists( 'veSanitizeCssUnit' ) ) {
+	/**
+	 * Sanitize a CSS unit string, falling back to a default if empty or invalid.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string|null $value   The unit to sanitize.
+	 * @param string      $default The default unit.
+	 *
+	 * @return string The sanitized unit.
+	 */
+	function veSanitizeCssUnit( ?string $value, string $default = 'px' ): string
+	{
+		$allowed = [ 'px', 'em', 'rem', '%', 'vh', 'vw', 'vmin', 'vmax', 'ch', 'ex', 'cm', 'mm', 'in', 'pt', 'pc' ];
+
+		if ( null === $value || '' === $value || ! in_array( $value, $allowed, true ) ) {
+			return $default;
+		}
+
+		return $value;
+	}
+}
+
+if ( ! function_exists( 'veSanitizeBorderStyle' ) ) {
+	/**
+	 * Sanitize a CSS border-style value.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string|null $value   The border style to sanitize.
+	 * @param string      $default The default border style.
+	 *
+	 * @return string The sanitized border style.
+	 */
+	function veSanitizeBorderStyle( ?string $value, string $default = 'solid' ): string
+	{
+		$allowed = [ 'none', 'solid', 'dashed', 'dotted', 'double', 'groove', 'ridge', 'inset', 'outset', 'hidden' ];
+
+		if ( null === $value || '' === $value || ! in_array( $value, $allowed, true ) ) {
+			return $default;
+		}
+
+		return $value;
+	}
+}
+
+if ( ! function_exists( 'veSanitizeHtmlId' ) ) {
+	/**
+	 * Sanitize a value for use as an HTML id attribute.
+	 *
+	 * Strips characters not valid in HTML IDs, ensures it doesn't start
+	 * with a digit.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string|null $value The ID value to sanitize.
+	 *
+	 * @return string|null The sanitized ID or null if empty after sanitization.
+	 */
+	function veSanitizeHtmlId( ?string $value ): ?string
+	{
+		if ( null === $value || '' === $value ) {
+			return null;
+		}
+
+		$sanitized = preg_replace( '/[^a-zA-Z0-9_\-]/', '', $value );
+
+		if ( '' === $sanitized ) {
+			return null;
+		}
+
+		if ( preg_match( '/^\d/', $sanitized ) ) {
+			$sanitized = 'id-' . $sanitized;
+		}
+
+		return $sanitized;
+	}
+}

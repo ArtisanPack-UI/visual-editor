@@ -151,7 +151,7 @@ class Icon extends Component
 		$key = $map[ $name ] ?? null;
 
 		if ( null === $key ) {
-			$stripped = preg_replace( '/^(o-|s-|fa-)/', '', $name );
+			$stripped = preg_replace( '/^(o-|s-|fa-)/', '', $name ) ?? $name;
 			$key      = $map[ $stripped ] ?? null;
 		}
 

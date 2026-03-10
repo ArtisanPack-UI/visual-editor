@@ -267,8 +267,16 @@
 						} else if ( -1 !== focusedTopIndex ) {
 							// Top-level block.
 							if ( focusedTopIndex > 0 ) {
-								nextFocusId = editor.blocks[ focusedTopIndex - 1 ].id;
-							} else if ( editor.blocks.length > blockIds.length ) {
+								// Find nearest prior block not in the deletion set.
+								for ( let i = focusedTopIndex - 1; i >= 0; i-- ) {
+									if ( ! blockIds.includes( editor.blocks[ i ].id ) ) {
+										nextFocusId = editor.blocks[ i ].id;
+										break;
+									}
+								}
+							}
+							// If no prior non-deleted block found, search forward.
+							if ( ! nextFocusId && editor.blocks.length > blockIds.length ) {
 								for ( let i = focusedTopIndex + 1; i < editor.blocks.length; i++ ) {
 									if ( ! blockIds.includes( editor.blocks[ i ].id ) ) {
 										nextFocusId = editor.blocks[ i ].id;
@@ -333,8 +341,10 @@
 										range.selectNodeContents( editable );
 										range.collapse( false );
 										const s = window.getSelection();
-										s.removeAllRanges();
-										s.addRange( range );
+										if ( s ) {
+											s.removeAllRanges();
+											s.addRange( range );
+										}
 									} else {
 										el.focus();
 									}

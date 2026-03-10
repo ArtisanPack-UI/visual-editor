@@ -126,7 +126,7 @@ class InspectorField extends Component
 	/**
 	 * Get the field hint/description from the schema.
 	 *
-	 * @since 2.0.0
+	 * @since 1.0.0
 	 *
 	 * @return string
 	 */

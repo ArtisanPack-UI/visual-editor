@@ -16,7 +16,7 @@
 	$htmlId      = $content['htmlId'] ?? null;
 	$className   = $content['className'] ?? '';
 
-	$elementId = $htmlId ?: $anchor;
+	$elementId = veSanitizeHtmlId( $htmlId ?: $anchor );
 
 	$classes = "ve-block ve-block-image ve-block-image--{$size} text-{$alignment}";
 	if ( $rounded ) {
@@ -29,15 +29,19 @@
 		$classes .= " {$className}";
 	}
 
-	$imgStyle = "object-fit: {$objectFit};";
-	if ( 'original' !== $aspectRatio ) {
-		$imgStyle .= " aspect-ratio: {$aspectRatio};";
+	$allowedObjectFit   = [ 'cover', 'contain', 'fill', 'none', 'scale-down' ];
+	$safeObjectFit      = in_array( $objectFit, $allowedObjectFit, true ) ? $objectFit : 'cover';
+	$safeAspectRatio    = preg_match( '/^\d+\s*\/\s*\d+$/', (string) $aspectRatio ) ? $aspectRatio : 'original';
+
+	$imgStyle = "object-fit: {$safeObjectFit};";
+	if ( 'original' !== $safeAspectRatio ) {
+		$imgStyle .= " aspect-ratio: {$safeAspectRatio};";
 	}
 	if ( $imgWidth ) {
-		$imgStyle .= ' width: ' . ( is_numeric( $imgWidth ) ? $imgWidth . 'px' : $imgWidth ) . ';';
+		$imgStyle .= ' width: ' . ( is_numeric( $imgWidth ) ? $imgWidth . 'px' : veSanitizeCssDimension( (string) $imgWidth, '' ) ) . ';';
 	}
 	if ( $imgHeight ) {
-		$imgStyle .= ' height: ' . ( is_numeric( $imgHeight ) ? $imgHeight . 'px' : $imgHeight ) . ';';
+		$imgStyle .= ' height: ' . ( is_numeric( $imgHeight ) ? $imgHeight . 'px' : veSanitizeCssDimension( (string) $imgHeight, '' ) ) . ';';
 	}
 @endphp
 

@@ -61,7 +61,6 @@
 				x-on:click="toggleMode()"
 				:title="mode === 'global' ? '{{ __( 'visual-editor::ve.use_responsive' ) }}' : '{{ __( 'visual-editor::ve.use_global' ) }}'"
 				:aria-label="mode === 'global' ? '{{ __( 'visual-editor::ve.use_responsive' ) }}' : '{{ __( 'visual-editor::ve.use_global' ) }}'"
-				aria-pressed="false"
 				:aria-pressed="mode === 'responsive' ? 'true' : 'false'"
 			>
 				{!! $responsiveSvg !!}

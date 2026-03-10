@@ -143,10 +143,12 @@ new class extends Component
 		$count = Revision::forDocument( $this->documentType, $this->documentId )->count();
 
 		if ( $count > $maxRevisions ) {
-			Revision::forDocument( $this->documentType, $this->documentId )
+			$idsToDelete = Revision::forDocument( $this->documentType, $this->documentId )
 				->orderBy( 'created_at' )
 				->limit( $count - $maxRevisions )
-				->delete();
+				->pluck( 'id' );
+
+			Revision::whereIn( 'id', $idsToDelete )->delete();
 		}
 	}
 }; ?>

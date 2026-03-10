@@ -708,13 +708,15 @@
 								const text = sel.toString() || detail.url;
 								const safe = detail.url.replace( /&/g, '&amp;' ).replace( /"/g, '&quot;' );
 
-								let attrs = 'href="' + safe + '"';
-								if ( detail.newTab ) attrs += ' target="_blank"';
-								if ( rel ) attrs += ' rel="' + rel + '"';
+								const a       = document.createElement( 'a' );
+								a.href        = detail.url;
+								a.textContent = text;
+								if ( detail.newTab ) a.target = '_blank';
+								if ( rel ) a.rel = rel;
 
 								document.execCommand(
 									'insertHTML', false,
-									'<a ' + attrs + '>' + text + '</a>',
+									a.outerHTML,
 								);
 							}
 						},

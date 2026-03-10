@@ -18,7 +18,7 @@
 	$htmlId         = $content['htmlId'] ?? null;
 	$className      = $content['className'] ?? '';
 
-	$elementId   = $htmlId ?: $anchor;
+	$elementId   = veSanitizeHtmlId( $htmlId ?: $anchor );
 	$innerBlocks = $innerBlocks ?? [];
 
 	$allowedTags = [ 'div', 'section', 'article', 'aside', 'main', 'header', 'footer' ];
@@ -49,10 +49,8 @@
 		$inlineStyles .= " align-items: " . ( $alignMap[ $verticalAlign ] ?? 'flex-start' ) . ";";
 	}
 
-	// Validate CSS color values to prevent injection.
-	$colorPattern = '/^(#[0-9a-fA-F]{3,8}|rgba?\(\s*[\d\s,.%]+\)|hsla?\(\s*[\d\s,.%deg]+\)|[a-zA-Z]+)$/';
-	$textColor    = $textColor && preg_match( $colorPattern, $textColor ) ? $textColor : null;
-	$bgColor      = $bgColor && preg_match( $colorPattern, $bgColor ) ? $bgColor : null;
+	$textColor = $textColor ? veSanitizeCssColor( $textColor ) : null;
+	$bgColor   = $bgColor ? veSanitizeCssColor( $bgColor ) : null;
 
 	if ( $textColor ) {
 		$inlineStyles .= " color: {$textColor};";
@@ -73,7 +71,8 @@
 		];
 		$gapValue    = $spacingMap[ $innerSpacing ] ?? '1rem';
 		$inlineStyles .= " gap: {$gapValue};";
-	} elseif ( $gap && preg_match( '/^[\d.]+(px|rem|em|%|vh|vw)?$/', $gap ) ) {
+	} elseif ( $gap ) {
+		$gap = veSanitizeCssDimension( $gap );
 		$inlineStyles .= " gap: {$gap};";
 	}
 
@@ -82,33 +81,36 @@
 	}
 
 	if ( is_array( $padding ) ) {
-		$top    = $padding['top'] ?? '0';
-		$right  = $padding['right'] ?? '0';
-		$bottom = $padding['bottom'] ?? '0';
-		$left   = $padding['left'] ?? '0';
+		$top    = veSanitizeCssDimension( $padding['top'] ?? '0' );
+		$right  = veSanitizeCssDimension( $padding['right'] ?? '0' );
+		$bottom = veSanitizeCssDimension( $padding['bottom'] ?? '0' );
+		$left   = veSanitizeCssDimension( $padding['left'] ?? '0' );
 		$inlineStyles .= " padding: {$top} {$right} {$bottom} {$left};";
 	}
 
 	if ( is_array( $margin ) ) {
-		$top    = $margin['top'] ?? '0';
-		$bottom = $margin['bottom'] ?? '0';
+		$top    = veSanitizeCssDimension( $margin['top'] ?? '0' );
+		$bottom = veSanitizeCssDimension( $margin['bottom'] ?? '0' );
 		$inlineStyles .= " margin-top: {$top}; margin-bottom: {$bottom};";
 	}
 
 	if ( is_array( $border ) && 'none' !== ( $border['style'] ?? 'none' ) ) {
-		$bWidth = ( $border['width'] ?? '0' ) . ( $border['widthUnit'] ?? 'px' );
-		$bStyle = $border['style'] ?? 'solid';
-		$bColor = $border['color'] ?? 'currentColor';
-		$inlineStyles .= " border: {$bWidth} {$bStyle} {$bColor};";
+		$bWidth     = veSanitizeCssDimension( $border['width'] ?? '0' );
+		$bWidthUnit = veSanitizeCssUnit( $border['widthUnit'] ?? 'px' );
+		$bStyle     = veSanitizeBorderStyle( $border['style'] ?? 'solid' );
+		$bColor     = veSanitizeCssColor( $border['color'] ?? 'currentColor', 'currentColor' );
+		$inlineStyles .= " border: {$bWidth}{$bWidthUnit} {$bStyle} {$bColor};";
 
 		$bRadius = $border['radius'] ?? '0';
 		if ( $bRadius && '0' !== $bRadius ) {
-			$bRadiusUnit = $border['radiusUnit'] ?? 'px';
+			$bRadius     = veSanitizeCssDimension( $bRadius );
+			$bRadiusUnit = veSanitizeCssUnit( $border['radiusUnit'] ?? 'px' );
 			$inlineStyles .= " border-radius: {$bRadius}{$bRadiusUnit};";
 		}
 	}
 
-	if ( $minHeight && preg_match( '/^[\d.]+(px|rem|em|%|vh|vw)?$/', $minHeight ) ) {
+	if ( $minHeight ) {
+		$minHeight = veSanitizeCssDimension( $minHeight );
 		$inlineStyles .= " min-height: {$minHeight};";
 	}
 

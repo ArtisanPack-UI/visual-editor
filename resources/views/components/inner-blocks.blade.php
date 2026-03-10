@@ -24,7 +24,7 @@
 		class="ve-inner-blocks {{ $orientationClass }}"
 		data-ve-inner-blocks
 		@if ( $parentId ) data-parent-id="{{ $parentId }}" @endif
-		@if ( $allowedBlocks ) data-allowed-blocks="{{ json_encode( $allowedBlocks ) }}" @endif
+		@if ( $allowedBlocks ) data-allowed-blocks="{{ e( json_encode( $allowedBlocks ) ) }}" @endif
 		data-orientation="{{ $orientation }}"
 	>
 		@if ( $hasBlocks )

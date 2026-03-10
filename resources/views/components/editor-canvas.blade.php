@@ -378,7 +378,7 @@
 				sel.addRange( placementRange );
 
 				// If we have a saved X, try to hit-test the closest character.
-				if ( null !== savedX && undefined !== savedX && document.caretRangeFromPoint ) {
+				if ( null !== savedX && undefined !== savedX ) {
 					const elRect = editable.getBoundingClientRect();
 
 					// Clamp X inside the editable's content area so the hit-test
@@ -398,7 +398,18 @@
 						targetY = elRect.bottom - Math.min( 10, elRect.height / 2 );
 					}
 
-					const hitRange = document.caretRangeFromPoint( clampedX, targetY );
+					let hitRange = null;
+					if ( document.caretPositionFromPoint ) {
+						const pos = document.caretPositionFromPoint( clampedX, targetY );
+						if ( pos ) {
+							hitRange = document.createRange();
+							hitRange.setStart( pos.offsetNode, pos.offset );
+							hitRange.setEnd( pos.offsetNode, pos.offset );
+						}
+					} else if ( document.caretRangeFromPoint ) {
+						hitRange = document.caretRangeFromPoint( clampedX, targetY );
+					}
+
 					if ( hitRange && editable.contains( hitRange.startContainer ) ) {
 						sel.removeAllRanges();
 						sel.addRange( hitRange );

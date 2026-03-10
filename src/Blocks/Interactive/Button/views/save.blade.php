@@ -16,13 +16,18 @@
 
 	$elementId = $htmlId ?: $anchor;
 
+	$elementId = veSanitizeHtmlId( $elementId );
+
 	$inlineStyles = '';
+	$color = veSanitizeCssColor( $color );
 	if ( $color ) {
 		$inlineStyles .= "color: {$color};";
 	}
+	$bgColor = veSanitizeCssColor( $bgColor );
 	if ( $bgColor ) {
 		$inlineStyles .= "background-color: {$bgColor};";
 	}
+	$borderRadius = veSanitizeCssDimension( $borderRadius, '' );
 	if ( $borderRadius ) {
 		$inlineStyles .= "border-radius: {$borderRadius};";
 	}

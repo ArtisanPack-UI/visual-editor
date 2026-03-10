@@ -7,7 +7,7 @@
 	$htmlId    = $content['htmlId'] ?? null;
 	$className = $content['className'] ?? '';
 
-	$elementId = $htmlId ?: $anchor;
+	$elementId = veSanitizeHtmlId( $htmlId ?: $anchor );
 
 	$widthMap = [
 		'full'   => '100%',
@@ -15,6 +15,8 @@
 		'narrow' => '50%',
 	];
 	$widthValue = $widthMap[ $width ] ?? '100%';
+
+	$color = veSanitizeCssColor( $color );
 
 	$inlineStyles = "border-top-style: {$style}; border-top-width: {$thickness}; width: {$widthValue};";
 	if ( $color ) {

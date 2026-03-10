@@ -33,22 +33,22 @@
 		},
 		"showDownloadButton": {
 			"type": "boolean",
-			"source": "style",
+			"source": "content",
 			"default": true
 		},
 		"openInNewTab": {
 			"type": "boolean",
-			"source": "style",
+			"source": "content",
 			"default": false
 		},
 		"displayPreview": {
 			"type": "boolean",
-			"source": "style",
+			"source": "content",
 			"default": false
 		},
 		"previewHeight": {
 			"type": "integer",
-			"source": "style",
+			"source": "content",
 			"default": 600
 		}
 	},

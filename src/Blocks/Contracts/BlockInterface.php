@@ -233,6 +233,18 @@ interface BlockInterface
 	public function migrate( array $content, int $fromVersion ): array;
 
 	/**
+	 * Get default inner blocks for this block type.
+	 *
+	 * Returns an array of inner block definitions that should be
+	 * automatically created when this block is inserted.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getDefaultInnerBlocks(): array;
+
+	/**
 	 * Whether this block should appear in the block inserter.
 	 *
 	 * @since 1.0.0

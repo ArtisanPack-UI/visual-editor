@@ -1,5 +1,5 @@
 {
-	"$schema": "../block-schema.json",
+	"$schema": "../../block-schema.json",
 	"type": "heading",
 	"name": "Heading",
 	"description": "Add a heading to your content",

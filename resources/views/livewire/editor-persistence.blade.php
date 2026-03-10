@@ -107,7 +107,7 @@ new class extends Component
 	 */
 	private function getCacheKey(): string
 	{
-		$userId = auth()->id() ?? 'guest';
+		$userId = auth()->id() ?? 'guest-' . session()->getId();
 
 		return 've-draft-' . $userId . '-' . $this->documentId;
 	}

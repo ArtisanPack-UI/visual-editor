@@ -261,6 +261,8 @@
 						'border-t-2 border-primary': layerDragOverId === entry.block.id && layerDraggingId !== entry.block.id,
 					}"
 					x-on:click="selectBlock( entry.block.id )"
+					x-on:keydown.enter="selectBlock( entry.block.id )"
+					x-on:keydown.space.prevent="selectBlock( entry.block.id )"
 					x-on:dragstart.stop="handleLayerDragStart( $event, entry.block, entry.parentId )"
 					x-on:dragend="handleLayerDragEnd( $event )"
 					x-on:dragover="handleLayerDragOver( $event, entry.block )"
@@ -298,7 +300,7 @@
 							:style="'padding-left: ' + ( ( ( heading.attributes?.level || 1 ) - 1 ) * 12 + 12 ) + 'px'"
 						>
 							<span class="badge badge-xs badge-outline shrink-0" x-text="'H' + ( heading.attributes?.level || 1 )"></span>
-							<span class="truncate" x-text="( heading.attributes?.content || '' ).replace( /<[^>]*>/g, '' ) || fallbackLabels.heading"></span>
+							<span class="truncate" x-text="( heading.attributes?.content || heading.attributes?.text || '' ).replace( /<[^>]*>/g, '' ) || fallbackLabels.heading"></span>
 						</button>
 					</template>
 				</div>

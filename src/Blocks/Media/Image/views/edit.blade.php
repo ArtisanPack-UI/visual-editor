@@ -128,6 +128,7 @@
 			<figcaption
 				contenteditable="true"
 				data-placeholder="{{ __( 'visual-editor::ve.caption_placeholder' ) }}"
+				x-on:blur="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: 'caption', value: $el.textContent.trim() } )"
 			>{!! $caption !!}</figcaption>
 		</div>
 	</template>

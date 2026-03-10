@@ -8,7 +8,7 @@
 	$htmlId    = $content['htmlId'] ?? null;
 	$className = $content['className'] ?? '';
 
-	$elementId = $htmlId ?: $anchor;
+	$elementId = veSanitizeHtmlId( $htmlId ?: $anchor );
 
 	$classes = 've-block ve-block-audio';
 	if ( $className ) {

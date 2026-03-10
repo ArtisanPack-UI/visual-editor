@@ -943,7 +943,7 @@
 									// Content injected by transformBlock() from another block type.
 									innerHtml = block.attributes._transformedContent;
 									const { _transformedContent, ...cleanAttrs } = block.attributes;
-									store.updateBlock( block.id, cleanAttrs );
+									Alpine.store( 'editor' ).updateBlock( block.id, cleanAttrs );
 								} else {
 									// Check if we have pre-rendered HTML for a different tag type
 									const altTag = 'ol' === tag ? 'ul' : 'ol';
@@ -1198,7 +1198,7 @@
 									+ '</figure>';
 							}
 
-							const safeAlt = alt.replace( /'/g, '\u0026#39;' );
+							const safeAlt = alt.replace( /&/g, '&amp;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' ).replace( /"/g, '&quot;' ).replace( /'/g, '&#39;' );
 							return '<figure class=\'' + figClasses + '\'>'
 								+ '<img src=\'' + url + '\' alt=\'' + safeAlt + '\' style=\'' + imgStyle + '\' />'
 								+ '<figcaption contenteditable=\'true\' data-placeholder=\'' + this.captionPlaceholder + '\'>' + caption + '</figcaption>'

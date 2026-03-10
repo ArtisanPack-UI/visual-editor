@@ -9,7 +9,6 @@
 	}
 	$gap         = $content['gap'] ?? 1;
 	$crop        = $content['crop'] ?? true;
-	$aspectRatio = $content['aspectRatio'] ?? 'original';
 	$innerBlocks = $innerBlocks ?? [];
 
 	$gapValue = $gap . 'rem';

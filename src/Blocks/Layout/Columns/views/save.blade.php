@@ -9,7 +9,7 @@
 	$className        = $content['className'] ?? '';
 	$innerBlocks      = $innerBlocks ?? [];
 
-	$elementId = $htmlId ?: $anchor;
+	$elementId = veSanitizeHtmlId( $htmlId ?: $anchor );
 
 	// Parse responsive columns data.
 	if ( is_array( $columnsData ) ) {
