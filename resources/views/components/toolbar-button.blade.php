@@ -72,7 +72,7 @@
 			x-transition:leave="transition ease-in duration-75"
 			x-transition:leave-start="opacity-100 scale-100"
 			x-transition:leave-end="opacity-0 scale-95"
-			class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none"
+			class="absolute {{ 'bottom' === $tooltipPosition ? 'top-full mt-2' : 'bottom-full mb-2' }} left-1/2 -translate-x-1/2 z-50 pointer-events-none"
 		>
 			<div class="rounded bg-neutral text-neutral-content text-xs px-2 py-1 whitespace-nowrap shadow-lg">
 				@if ( $tooltip )
