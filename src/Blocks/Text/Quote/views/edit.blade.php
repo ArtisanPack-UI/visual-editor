@@ -78,6 +78,6 @@
 			class="ve-quote-citation block mt-2 text-sm not-italic text-base-content/70"
 			contenteditable="true"
 			data-placeholder="{{ __( 'visual-editor::ve.citation_placeholder' ) }}"
-		>{!! $citation !!}</cite>
+		>{{ $citation }}</cite>
 	@endif
 </blockquote>

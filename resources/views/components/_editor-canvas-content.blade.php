@@ -175,7 +175,7 @@
 
 								// Add an empty inner block so the placeholder appears.
 								const newInner = {
-									id: 'block-' + Date.now(),
+									id: Alpine.store( 'editor' ).generateBlockId(),
 									type: Alpine.store( 'editor' ).defaultBlockType,
 									attributes: { text: '' },
 									innerBlocks: [],
@@ -229,12 +229,12 @@
 								// (same pattern as the group variation picker).
 								widths.forEach( ( w, idx ) => {
 									const colBlock = {
-										id: 'block-' + Date.now() + '-col-' + idx,
+										id: Alpine.store( 'editor' ).generateBlockId() + '-col-' + idx,
 										type: 'column',
 										attributes: { width: w, verticalAlignment: 'top' },
 										innerBlocks: [
 											{
-												id: 'block-' + Date.now() + '-col-' + idx + '-p',
+												id: Alpine.store( 'editor' ).generateBlockId() + '-col-' + idx + '-p',
 												type: Alpine.store( 'editor' ).defaultBlockType,
 												attributes: { text: '' },
 												innerBlocks: [],
@@ -260,12 +260,12 @@
 								if ( ! block ) return;
 
 								const newCol = {
-									id: 'block-' + Date.now() + '-col-' + ( ( block.innerBlocks || [] ).length ),
+									id: Alpine.store( 'editor' ).generateBlockId() + '-col-' + ( ( block.innerBlocks || [] ).length ),
 									type: 'column',
 									attributes: { width: '', verticalAlignment: 'top' },
 									innerBlocks: [
 										{
-											id: 'block-' + Date.now() + '-col-p',
+											id: Alpine.store( 'editor' ).generateBlockId() + '-col-p',
 											type: Alpine.store( 'editor' ).defaultBlockType,
 											attributes: { text: '' },
 											innerBlocks: [],
@@ -330,7 +330,7 @@
 								// Create grid-item child blocks, each with an empty paragraph.
 								for ( let i = 0; i < preset.count; i++ ) {
 									const itemBlock = {
-										id: 'block-' + Date.now() + '-gi-' + i,
+										id: Alpine.store( 'editor' ).generateBlockId() + '-gi-' + i,
 										type: 'grid-item',
 										attributes: {
 											columnSpan: { mode: 'global', global: 1, desktop: 1, tablet: 1, mobile: 1 },
@@ -339,7 +339,7 @@
 										},
 										innerBlocks: [
 											{
-												id: 'block-' + Date.now() + '-gi-' + i + '-p',
+												id: Alpine.store( 'editor' ).generateBlockId() + '-gi-' + i + '-p',
 												type: Alpine.store( 'editor' ).defaultBlockType,
 												attributes: { text: '' },
 												innerBlocks: [],
@@ -365,7 +365,7 @@
 								if ( ! block ) return;
 
 								const newItem = {
-									id: 'block-' + Date.now() + '-gi-' + ( ( block.innerBlocks || [] ).length ),
+									id: Alpine.store( 'editor' ).generateBlockId() + '-gi-' + ( ( block.innerBlocks || [] ).length ),
 									type: 'grid-item',
 									attributes: {
 										columnSpan: { mode: 'global', global: 1, desktop: 1, tablet: 1, mobile: 1 },
@@ -374,7 +374,7 @@
 									},
 									innerBlocks: [
 										{
-											id: 'block-' + Date.now() + '-gi-p',
+											id: Alpine.store( 'editor' ).generateBlockId() + '-gi-p',
 											type: Alpine.store( 'editor' ).defaultBlockType,
 											attributes: { text: '' },
 											innerBlocks: [],
@@ -401,7 +401,7 @@
 								if ( ! block ) return;
 
 								const newBlock = {
-									id: 'block-' + Date.now() + '-' + blockType + '-' + ( ( block.innerBlocks || [] ).length ),
+									id: Alpine.store( 'editor' ).generateBlockId() + '-' + blockType + '-' + ( ( block.innerBlocks || [] ).length ),
 									type: blockType,
 									attributes: {},
 									innerBlocks: [],
@@ -935,18 +935,19 @@
 								}
 
 								// Preserve existing content from the DOM if available.
-								const existingEl = document.querySelector( '[data-block-id=' + block.id + '] ' + tag );
+								const existingEl = document.querySelector( '[data-block-id="' + CSS.escape( block.id ) + '"] ' + tag );
 								let innerHtml = '<li data-placeholder=\'' + placeholder + '\'></li>';
 								if ( existingEl ) {
 									innerHtml = existingEl.innerHTML;
 								} else if ( block.attributes?._transformedContent ) {
 									// Content injected by transformBlock() from another block type.
 									innerHtml = block.attributes._transformedContent;
-									delete block.attributes._transformedContent;
+									const { _transformedContent, ...cleanAttrs } = block.attributes;
+									store.updateBlock( block.id, cleanAttrs );
 								} else {
 									// Check if we have pre-rendered HTML for a different tag type
 									const altTag = 'ol' === tag ? 'ul' : 'ol';
-									const altEl  = document.querySelector( '[data-block-id=' + block.id + '] ' + altTag );
+									const altEl  = document.querySelector( '[data-block-id="' + CSS.escape( block.id ) + '"] ' + altTag );
 									if ( altEl ) {
 										innerHtml = altEl.innerHTML;
 									}
@@ -982,7 +983,7 @@
 								// Read citation from DOM if element exists, else fall back to store.
 								let citationText = '';
 								if ( showCitation ) {
-									const existingCite = document.querySelector( '[data-block-id=' + block.id + '] .ve-quote-citation' );
+									const existingCite = document.querySelector( '[data-block-id="' + CSS.escape( block.id ) + '"] .ve-quote-citation' );
 									citationText = existingCite ? existingCite.innerHTML : ( block.attributes?.citation || '' );
 								}
 

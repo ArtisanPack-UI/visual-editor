@@ -1,6 +1,6 @@
 @php
 	$type      = $content['type'] ?? 'unordered';
-	$start     = $content['start'] ?? '1';
+	$start     = (int) ( $content['start'] ?? 1 );
 	$reversed  = $content['reversed'] ?? false;
 	$innerHTML = $content['innerHTML'] ?? '<li></li>';
 	$textColor = $styles['textColor'] ?? null;
@@ -62,7 +62,7 @@
 	class="{{ $classes }}"
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
 	@if ( $elementId ) id="{{ $elementId }}" @endif
-	@if ( 'ordered' === $type && '1' !== $start ) start="{{ $start }}" @endif
+	@if ( 'ordered' === $type && 1 !== $start ) start="{{ $start }}" @endif
 	@if ( 'ordered' === $type && $reversed ) reversed @endif
 >
 	{!! $innerHTML !!}

@@ -115,7 +115,8 @@ class EditorState extends Component
 	 * @param array<mixed> $patterns         Available patterns for the pattern browser.
 	 * @param array<mixed> $blockTransforms  Map of block type to available transform targets.
 	 * @param array<mixed> $blockVariations  Map of block type to available variations.
-	 * @param string       $defaultBlockType The default block type used when adding blocks without an explicit type.
+	 * @param string       $defaultBlockType     The default block type used when adding blocks without an explicit type.
+	 * @param array<mixed> $defaultInnerBlocksMap Map of block type to default inner blocks created on insertion.
 	 */
 	public function __construct(
 		public ?string $id = null,

@@ -32,7 +32,7 @@
 
 		applyUrl() {
 			if ( this.urlInput.trim() ) {
-				$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: 'url', value: this.urlInput.trim() } );
+				this.$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: 'url', value: this.urlInput.trim() } );
 				this.mode = 'audio';
 			}
 		},
@@ -46,7 +46,7 @@
 		if ( $event.detail.context === mediaContext && $event.detail.media?.length ) {
 			const url = $event.detail.media[0].url ?? $event.detail.media[0].path ?? '';
 			if ( url ) {
-				$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: 'url', value: url } );
+				this.$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: 'url', value: url } );
 				mode = 'audio';
 			}
 		}

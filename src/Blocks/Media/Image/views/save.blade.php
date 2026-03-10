@@ -47,7 +47,7 @@
 >
 	@if ( $url )
 		@if ( $link )
-			<a href="{{ $link }}" target="{{ $target }}">
+			<a href="{{ $link }}" target="{{ $target }}"@if ( '_blank' === $target ) rel="noopener noreferrer"@endif>
 				<img src="{{ $url }}" alt="{{ $alt }}" style="{{ $imgStyle }}" />
 			</a>
 		@else

@@ -52,7 +52,7 @@
 
 	// Generate a unique ID for responsive CSS if responsive mode is used.
 	$needsResponsiveCss = 'responsive' === $colMode || $stackOnMobile;
-	$cssId              = $elementId ?: 've-columns-' . md5( serialize( $columnsData ) . microtime() );
+	$cssId              = $elementId ?: 've-columns-' . md5( serialize( $columnsData ) );
 
 	$classes = 've-block ve-block-columns';
 	if ( $stackOnMobile ) {

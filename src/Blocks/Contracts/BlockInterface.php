@@ -254,6 +254,15 @@ interface BlockInterface
 	public function getToolbarControls(): array;
 
 	/**
+	 * Get the supports configuration for this block.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function getSupports(): array;
+
+	/**
 	 * Get a flat list of active style-related supports.
 	 *
 	 * @since 2.0.0

@@ -88,7 +88,7 @@
 
 				if ( newBlock ) {
 					this.$nextTick( () => {
-						const el = document.querySelector( '[data-block-id=' + newBlock.id + '] [contenteditable]' );
+						const el = document.querySelector( '[data-block-id="' + CSS.escape( newBlock.id ) + '"] [contenteditable]' );
 						if ( el ) { el.focus(); }
 						if ( Alpine.store( 'selection' ) ) {
 							Alpine.store( 'selection' ).select( newBlock.id, false );

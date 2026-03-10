@@ -18,7 +18,6 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Livewire\Forms;
 
-use Livewire\Attributes\Validate;
 use Livewire\Form;
 
 /**
@@ -47,7 +46,6 @@ class DocumentForm extends Form
 	 *
 	 * @var array<int, array<string, mixed>>
 	 */
-	#[Validate( 'required|array' )]
 	public array $blocks = [];
 
 	/**
@@ -57,7 +55,6 @@ class DocumentForm extends Form
 	 *
 	 * @var string
 	 */
-	#[Validate( 'required|in:draft,published,scheduled,pending' )]
 	public string $documentStatus = 'draft';
 
 	/**
@@ -67,6 +64,23 @@ class DocumentForm extends Form
 	 *
 	 * @var string|null
 	 */
-	#[Validate( 'nullable|date' )]
 	public ?string $scheduledDate = null;
+
+	/**
+	 * Get validation rules with conditional scheduledDate requirement.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, string>
+	 */
+	public function rules(): array
+	{
+		return [
+			'blocks'         => 'required|array',
+			'documentStatus' => 'required|in:draft,published,scheduled,pending',
+			'scheduledDate'  => 'scheduled' === $this->documentStatus
+				? 'required|date|after:now'
+				: 'nullable|date',
+		];
+	}
 }

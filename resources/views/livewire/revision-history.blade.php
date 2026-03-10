@@ -79,7 +79,7 @@ new class extends Component
 			'document_type' => $this->documentType,
 			'document_id'   => $this->documentId,
 			'blocks'        => $blocks,
-			'user_id'       => auth()->id(),
+			'user_id'       => auth()->id() ?? null,
 			'created_at'    => now(),
 		] );
 
@@ -101,7 +101,9 @@ new class extends Component
 	 */
 	public function restoreRevision( int $id ): void
 	{
-		$revision = Revision::findOrFail( $id );
+		$revision = Revision::forDocument( $this->documentType, $this->documentId )
+			->where( 'id', $id )
+			->firstOrFail();
 
 		$this->dispatch( 've-revision-restored', blocks: $revision->blocks );
 	}
@@ -117,7 +119,10 @@ new class extends Component
 	 */
 	public function deleteRevision( int $id ): void
 	{
-		Revision::findOrFail( $id )->delete();
+		Revision::forDocument( $this->documentType, $this->documentId )
+			->where( 'id', $id )
+			->firstOrFail()
+			->delete();
 
 		unset( $this->revisions );
 

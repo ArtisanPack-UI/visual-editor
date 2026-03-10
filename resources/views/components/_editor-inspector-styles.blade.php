@@ -8,7 +8,7 @@
 	get blockType() { return this.selectedBlock?.type ?? null },
 }">
 	<template x-if="! selectedBlockId">
-		<p class="text-sm text-base-content/40 italic px-4 py-3">{{ __( 'Select a block to view its styles.' ) }}</p>
+		<p class="text-sm text-base-content/40 italic px-4 py-3">{{ __( 'visual-editor::ve.select_block_for_styles' ) }}</p>
 	</template>
 	<template x-if="selectedBlockId && blockType">
 		<div>

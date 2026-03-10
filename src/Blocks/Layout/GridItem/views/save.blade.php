@@ -26,8 +26,10 @@
 		$mobileRowSpan  = $rowSpanData;
 	}
 
-	$verticalAlignment = $styles['verticalAlignment'] ?? 'stretch';
-	$innerBlocks       = $innerBlocks ?? [];
+	$verticalAlignment    = $styles['verticalAlignment'] ?? 'stretch';
+	$allowedAlignSelf     = [ 'auto', 'flex-start', 'flex-end', 'center', 'baseline', 'stretch' ];
+	$verticalAlignment    = in_array( $verticalAlignment, $allowedAlignSelf, true ) ? $verticalAlignment : 'stretch';
+	$innerBlocks          = $innerBlocks ?? [];
 
 	$needsResponsiveStyles = ( $desktopColSpan !== $tabletColSpan || $desktopColSpan !== $mobileColSpan
 		|| $desktopRowSpan !== $tabletRowSpan || $desktopRowSpan !== $mobileRowSpan );

@@ -49,6 +49,11 @@
 		$inlineStyles .= " align-items: " . ( $alignMap[ $verticalAlign ] ?? 'flex-start' ) . ";";
 	}
 
+	// Validate CSS color values to prevent injection.
+	$colorPattern = '/^(#[0-9a-fA-F]{3,8}|rgba?\(\s*[\d\s,.%]+\)|hsla?\(\s*[\d\s,.%deg]+\)|[a-zA-Z]+)$/';
+	$textColor    = $textColor && preg_match( $colorPattern, $textColor ) ? $textColor : null;
+	$bgColor      = $bgColor && preg_match( $colorPattern, $bgColor ) ? $bgColor : null;
+
 	if ( $textColor ) {
 		$inlineStyles .= " color: {$textColor};";
 	}
@@ -57,10 +62,7 @@
 		$inlineStyles .= " background-color: {$bgColor};";
 	}
 
-	if ( $gap ) {
-		$inlineStyles .= " gap: {$gap};";
-	}
-
+	// Determine gap: prefer useFlexbox spacing map over raw gap.
 	if ( $useFlexbox ) {
 		$spacingMap = [
 			'none'   => '0',
@@ -71,6 +73,8 @@
 		];
 		$gapValue    = $spacingMap[ $innerSpacing ] ?? '1rem';
 		$inlineStyles .= " gap: {$gapValue};";
+	} elseif ( $gap && preg_match( '/^[\d.]+(px|rem|em|%|vh|vw)?$/', $gap ) ) {
+		$inlineStyles .= " gap: {$gap};";
 	}
 
 	if ( $fillHeight ) {
@@ -104,7 +108,7 @@
 		}
 	}
 
-	if ( $minHeight ) {
+	if ( $minHeight && preg_match( '/^[\d.]+(px|rem|em|%|vh|vw)?$/', $minHeight ) ) {
 		$inlineStyles .= " min-height: {$minHeight};";
 	}
 

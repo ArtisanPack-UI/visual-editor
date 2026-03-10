@@ -21,12 +21,6 @@
 
 	$blockId      = $blockId ?? 'gallery-' . uniqid();
 	$mediaContext = $blockId . ':gallery-add';
-
-	$cellStyle = '';
-	if ( $crop ) {
-		$arValue   = 'original' !== $aspectRatio ? $aspectRatio : '1/1';
-		$cellStyle = 'object-fit: cover; aspect-ratio: ' . $arValue . ';';
-	}
 @endphp
 
 <figure class="{{ $classes }}">

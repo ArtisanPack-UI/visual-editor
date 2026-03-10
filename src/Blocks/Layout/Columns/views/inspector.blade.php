@@ -37,7 +37,7 @@
 			const blockId = Alpine.store( 'selection' )?.focused;
 			if ( ! blockId ) return;
 			const store = Alpine.store( 'editor' );
-			const block = store.getBlock( blockId );
+			let block = store.getBlock( blockId );
 			if ( ! block ) return;
 
 			// Determine the maximum column count across all breakpoints.
@@ -51,6 +51,10 @@
 			// Update the columns attribute.
 			store.updateBlock( blockId, { columns: values } );
 
+			// Re-fetch the block after the store update to get fresh innerBlocks.
+			block = store.getBlock( blockId );
+			if ( ! block ) return;
+
 			// Add inner blocks if we need more columns.
 			const current = ( block.innerBlocks || [] ).length;
 			for ( let i = current; i < maxCount; i++ ) {
@@ -62,7 +66,10 @@
 			}
 
 			// Remove extra columns from the end.
-			for ( let i = current - 1; i >= maxCount; i-- ) {
+			// Re-fetch again since addInnerBlock may have mutated the block.
+			block = store.getBlock( blockId );
+			if ( ! block ) return;
+			for ( let i = ( block.innerBlocks || [] ).length - 1; i >= maxCount; i-- ) {
 				const inner = block.innerBlocks[ i ];
 				if ( inner ) store.removeInnerBlock( blockId, inner.id );
 			}

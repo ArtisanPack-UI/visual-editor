@@ -75,7 +75,7 @@ class EditorSidebar extends Component
 	 * @param string|null $label             Accessible label. Defaults to translation.
 	 * @param string      $activeTab         Initially active tab: block or document.
 	 * @param bool        $showTabs          Whether to show block/document tab switcher.
-	 * @param string      $activeBlockSubTab Initially active block sub-tab: settings, styles, or advanced.
+	 * @param string      $activeBlockSubTab Initially active block sub-tab: settings or styles.
 	 */
 	public function __construct(
 		public ?string $id = null,

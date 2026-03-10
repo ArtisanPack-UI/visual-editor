@@ -496,7 +496,6 @@ return [
 	'extra_large'       => 'Extra large',
 	'button_variant'    => 'Variant',
 	'filled'            => 'Filled',
-	'outline'           => 'Outline',
 	'ghost'             => 'Ghost',
 	'button_width'      => 'Width',
 	'auto'              => 'Auto',
@@ -519,9 +518,6 @@ return [
 	'variation_stack_desc'         => 'Arrange blocks vertically in a stack',
 	'variation_picker_instruction' => 'Group blocks together. Select a layout:',
 	'justify_content'              => 'Justification',
-	'justify_start'                => 'Start',
-	'justify_center'               => 'Center',
-	'justify_end'                  => 'End',
 	'justify_space_between'        => 'Space between',
 	'flex_direction'               => 'Flex direction',
 	'flex_column'                  => 'Column',
@@ -661,4 +657,7 @@ return [
 	'html_anchor_hint'                   => 'Enter a word or two — without spaces — to make a unique web address for this block, known as an "anchor." It also serves as the HTML ID attribute.',
 	'additional_css_classes'             => 'Additional CSS class(es)',
 	'additional_css_classes_placeholder' => 'Add CSS classes...',
+
+	// Inspector
+	'select_block_for_styles' => 'Select a block to view its styles.',
 ];

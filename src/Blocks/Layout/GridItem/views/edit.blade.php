@@ -17,8 +17,10 @@
 		$rowSpan = $rowSpanData;
 	}
 
-	$verticalAlignment = $styles['verticalAlignment'] ?? 'stretch';
-	$innerBlocks       = $innerBlocks ?? [];
+	$verticalAlignment    = $styles['verticalAlignment'] ?? 'stretch';
+	$allowedAlignSelf     = [ 'auto', 'flex-start', 'flex-end', 'center', 'baseline', 'stretch' ];
+	$safeVerticalAlignment = in_array( $verticalAlignment, $allowedAlignSelf, true ) ? $verticalAlignment : 'stretch';
+	$innerBlocks          = $innerBlocks ?? [];
 
 	$inlineStyles = '';
 	if ( $columnSpan > 1 ) {
@@ -27,8 +29,8 @@
 	if ( $rowSpan > 1 ) {
 		$inlineStyles .= " grid-row: span {$rowSpan};";
 	}
-	if ( 'stretch' !== $verticalAlignment ) {
-		$inlineStyles .= " align-self: {$verticalAlignment};";
+	if ( 'stretch' !== $safeVerticalAlignment ) {
+		$inlineStyles .= " align-self: {$safeVerticalAlignment};";
 	}
 @endphp
 

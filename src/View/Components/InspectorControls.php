@@ -114,7 +114,7 @@ class InspectorControls extends Component
 		$covered = [];
 
 		foreach ( $this->supportsPanels() as $panel ) {
-			foreach ( $panel['controls'] as $control ) {
+			foreach ( $panel['controls'] ?? [] as $control ) {
 				if ( isset( $control['field'] ) ) {
 					$covered[] = $control['field'];
 				}

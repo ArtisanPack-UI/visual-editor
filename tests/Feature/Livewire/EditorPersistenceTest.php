@@ -20,6 +20,11 @@ it( 'mounts with document ID', function (): void {
 		->assertSet( 'hasDraft', false );
 } );
 
+it( 'rejects empty document ID', function (): void {
+	$this->expectException( Illuminate\View\ViewException::class );
+	Livewire::test( 'visual-editor::editor-persistence', [ 'documentId' => '' ] );
+} );
+
 it( 'saves draft to cache', function (): void {
 	$blocks = [
 		[ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Draft content' ] ],
@@ -30,7 +35,7 @@ it( 'saves draft to cache', function (): void {
 		->assertSet( 'hasDraft', true )
 		->assertDispatched( 've-draft-saved' );
 
-	expect( Cache::has( 've-draft-test-doc' ) )->toBeTrue();
+	expect( Cache::has( 've-draft-guest-test-doc' ) )->toBeTrue();
 } );
 
 it( 'restores draft and dispatches event', function (): void {
@@ -38,7 +43,7 @@ it( 'restores draft and dispatches event', function (): void {
 		[ 'type' => 'heading', 'attributes' => [ 'content' => 'Restored' ] ],
 	];
 
-	Cache::put( 've-draft-restore-doc', $blocks, 86400 );
+	Cache::put( 've-draft-guest-restore-doc', $blocks, 86400 );
 
 	Livewire::test( 'visual-editor::editor-persistence', [ 'documentId' => 'restore-doc' ] )
 		->assertSet( 'hasDraft', true )
@@ -47,7 +52,7 @@ it( 'restores draft and dispatches event', function (): void {
 } );
 
 it( 'discards draft and clears cache', function (): void {
-	Cache::put( 've-draft-discard-doc', [ [ 'type' => 'paragraph' ] ], 86400 );
+	Cache::put( 've-draft-guest-discard-doc', [ [ 'type' => 'paragraph' ] ], 86400 );
 
 	Livewire::test( 'visual-editor::editor-persistence', [ 'documentId' => 'discard-doc' ] )
 		->assertSet( 'hasDraft', true )
@@ -55,7 +60,7 @@ it( 'discards draft and clears cache', function (): void {
 		->assertSet( 'hasDraft', false )
 		->assertDispatched( 've-draft-discarded' );
 
-	expect( Cache::has( 've-draft-discard-doc' ) )->toBeFalse();
+	expect( Cache::has( 've-draft-guest-discard-doc' ) )->toBeFalse();
 } );
 
 it( 'does not dispatch when no draft exists', function (): void {
@@ -76,5 +81,5 @@ it( 'respects config TTL', function (): void {
 		->dispatch( 've-autosave', blocks: $blocks )
 		->assertDispatched( 've-draft-saved' );
 
-	expect( Cache::has( 've-draft-ttl-doc' ) )->toBeTrue();
+	expect( Cache::has( 've-draft-guest-ttl-doc' ) )->toBeTrue();
 } );

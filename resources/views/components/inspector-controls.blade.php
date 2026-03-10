@@ -49,9 +49,7 @@
 					/>
 				@endforeach
 
-				</div>
-
-			@foreach ( $panelGroups as $panelLabel => $panelFields )
+				@foreach ( $panelGroups as $panelLabel => $panelFields )
 				<x-ve-panel-body :title="$panelLabel" :collapsible="true">
 					@foreach ( $panelFields as $fieldName => $fieldSchema )
 						<x-ve-inspector-field
@@ -76,6 +74,7 @@
 					@endforeach
 				</x-ve-panel-body>
 			@endif
+			</div>
 		@elseif ( 'styles' === $tab )
 			<div class="space-y-3 p-1">
 				@foreach ( $supportsPanels as $panel )

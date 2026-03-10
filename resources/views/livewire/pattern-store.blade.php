@@ -61,6 +61,10 @@ new class extends Component
 	#[On( 've-save-pattern' )]
 	public function savePattern( array $blocks ): void
 	{
+		if ( ! auth()->check() ) {
+			return;
+		}
+
 		$this->validate( [
 			'name' => 'required|string|max:255',
 		] );

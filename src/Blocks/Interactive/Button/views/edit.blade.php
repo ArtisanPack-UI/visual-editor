@@ -9,6 +9,14 @@
 	$borderRadius = $styles['borderRadius'] ?? '';
 	$width        = $styles['width'] ?? 'auto';
 
+	// Validate CSS color values to prevent injection.
+	$colorPattern = '/^(#[0-9a-fA-F]{3,8}|rgba?\(\s*[\d\s,.%]+\)|hsla?\(\s*[\d\s,.%deg]+\)|[a-zA-Z]+)$/';
+	$color        = $color && preg_match( $colorPattern, $color ) ? $color : null;
+	$bgColor      = $bgColor && preg_match( $colorPattern, $bgColor ) ? $bgColor : null;
+
+	// Validate border radius (numeric value with optional unit).
+	$borderRadius = preg_match( '/^[\d.]+(px|rem|em|%)?$/', $borderRadius ) ? $borderRadius : '';
+
 	$inlineStyles = '';
 	if ( $color ) {
 		$inlineStyles .= "color: {$color};";

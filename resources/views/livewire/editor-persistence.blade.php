@@ -35,7 +35,11 @@ new class extends Component
 	 */
 	public function mount( string $documentId = '' ): void
 	{
-		$this->documentId = $documentId;
+		if ( '' === trim( $documentId ) ) {
+			throw new \InvalidArgumentException( 'A document ID is required for editor persistence.' );
+		}
+
+		$this->documentId = trim( $documentId );
 		$this->hasDraft   = Cache::has( $this->getCacheKey() );
 	}
 
@@ -103,7 +107,9 @@ new class extends Component
 	 */
 	private function getCacheKey(): string
 	{
-		return 've-draft-' . $this->documentId;
+		$userId = auth()->id() ?? 'guest';
+
+		return 've-draft-' . $userId . '-' . $this->documentId;
 	}
 }; ?>
 

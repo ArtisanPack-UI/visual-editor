@@ -34,7 +34,7 @@
 
 		applyUrl() {
 			if ( this.urlInput.trim() ) {
-				$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: 'url', value: this.urlInput.trim() } );
+				this.$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: 'url', value: this.urlInput.trim() } );
 				this.mode = 'file';
 			}
 		},
@@ -128,6 +128,7 @@
 						class="ve-block-file__name"
 						contenteditable="true"
 						data-placeholder="{{ __( 'visual-editor::ve.filename_placeholder' ) }}"
+						x-on:blur="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: 'filename', value: $el.innerText } )"
 					>{{ $filename }}</span>
 					@if ( $fileSize )
 						<span class="ve-block-file__size">{{ $fileSize }}</span>
@@ -138,6 +139,7 @@
 						class="ve-block-file__download"
 						contenteditable="true"
 						data-placeholder="{{ __( 'visual-editor::ve.download' ) }}"
+						x-on:blur="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: 'downloadButtonText', value: $el.innerText } )"
 					>{{ $downloadButtonText }}</span>
 				@endif
 			</div>

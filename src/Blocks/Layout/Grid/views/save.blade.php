@@ -12,11 +12,12 @@
 		$tabletCols  = $columnsData;
 		$mobileCols  = $columnsData;
 	}
-	$templateRows  = $content['templateRows'] ?? 'auto';
+	$allowedAlignJustify = [ 'stretch', 'start', 'center', 'end', 'baseline' ];
+	$templateRows  = preg_match( '/^[a-zA-Z0-9\s\.\-%()\/ ]+$/', $content['templateRows'] ?? 'auto' ) ? $content['templateRows'] : 'auto';
 	$gap           = $styles['gap'] ?? 'medium';
 	$rowGap        = $styles['rowGap'] ?? '';
-	$alignItems    = $styles['alignItems'] ?? 'stretch';
-	$justifyItems  = $styles['justifyItems'] ?? 'stretch';
+	$alignItems    = in_array( $styles['alignItems'] ?? 'stretch', $allowedAlignJustify, true ) ? $styles['alignItems'] : 'stretch';
+	$justifyItems  = in_array( $styles['justifyItems'] ?? 'stretch', $allowedAlignJustify, true ) ? $styles['justifyItems'] : 'stretch';
 	$anchor        = $content['anchor'] ?? null;
 	$htmlId        = $content['htmlId'] ?? null;
 	$className     = $content['className'] ?? '';

@@ -67,11 +67,17 @@ class BlockCacheCommand extends Command
 
 		$dir = dirname( $path );
 
-		if ( ! is_dir( $dir ) ) {
-			mkdir( $dir, 0755, true );
+		if ( ! is_dir( $dir ) && ! mkdir( $dir, 0755, true ) ) {
+			$this->components->error( "Failed to create cache directory: {$dir}" );
+
+			return self::FAILURE;
 		}
 
-		file_put_contents( $path, $manifest );
+		if ( false === file_put_contents( $path, $manifest ) ) {
+			$this->components->error( "Failed to write manifest file: {$path}" );
+
+			return self::FAILURE;
+		}
 
 		$this->components->info(
 			__( 'visual-editor::ve.block_metadata_cached', [ 'count' => count( $blocks ) ] ),

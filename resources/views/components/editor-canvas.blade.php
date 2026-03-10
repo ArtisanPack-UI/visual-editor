@@ -567,7 +567,7 @@
 				const newBlock = Alpine.store( 'editor' ).addBlockAfter( blockId );
 				if ( newBlock ) {
 					$nextTick( () => {
-						const newEl = document.querySelector( '[data-block-id=' + newBlock.id + '] [contenteditable]' );
+						const newEl = document.querySelector( '[data-block-id=\"' + newBlock.id + '\"] [contenteditable]' );
 						if ( newEl ) { newEl.focus(); }
 						if ( Alpine.store( 'selection' ) ) {
 							Alpine.store( 'selection' ).select( newBlock.id, false );

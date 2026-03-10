@@ -50,7 +50,7 @@ new class extends Component
 	{
 		$this->context = $context;
 
-		$contextJson = json_encode( $context );
+		$contextJson = json_encode( $context, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR );
 		$this->js( "window.__veMediaPickerContext = {$contextJson}" );
 
 		$this->dispatch( 'open-media-modal', context: '' );

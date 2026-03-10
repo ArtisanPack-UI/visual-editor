@@ -56,10 +56,22 @@ it( 'accepts valid document statuses', function ( string $status ): void {
 		[ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Test' ] ],
 	];
 
+	$scheduledDate = 'scheduled' === $status ? now()->addDay()->toDateTimeString() : null;
+
 	Livewire::test( 'visual-editor::document-saver', [ 'documentId' => 1 ] )
-		->call( 'save', $blocks, $status )
+		->call( 'save', $blocks, $status, $scheduledDate )
 		->assertHasNoErrors();
 } )->with( [ 'draft', 'published', 'scheduled', 'pending' ] );
+
+it( 'requires scheduled date when status is scheduled', function (): void {
+	$blocks = [
+		[ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Test' ] ],
+	];
+
+	Livewire::test( 'visual-editor::document-saver', [ 'documentId' => 1 ] )
+		->call( 'save', $blocks, 'scheduled' )
+		->assertHasErrors( [ 'form.scheduledDate' ] );
+} );
 
 it( 'handles autosave event', function (): void {
 	$blocks = [
