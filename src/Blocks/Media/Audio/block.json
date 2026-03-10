@@ -1,0 +1,46 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "audio",
+	"name": "Audio",
+	"description": "Embed an audio file",
+	"icon": "musical-note",
+	"category": "media",
+	"keywords": ["music", "sound", "podcast"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"url": {
+			"type": "url",
+			"source": "content",
+			"default": ""
+		},
+		"caption": {
+			"type": "rich_text",
+			"source": "content",
+			"default": ""
+		},
+		"autoplay": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"loop": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"preload": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		}
+	},
+	"supports": {
+		"htmlId": true,
+		"anchor": true,
+		"className": true,
+		"align": ["wide", "full"]
+	}
+}

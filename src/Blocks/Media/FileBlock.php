@@ -1,9 +1,10 @@
 <?php
 
 /**
- * File Block.
+ * File Block Alias.
  *
- * Displays a downloadable file with filename, size, and download button.
+ * Maintains backward compatibility for the old namespace.
+ * Use ArtisanPackUI\VisualEditor\Blocks\Media\File\FileBlock instead.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Blocks\Media
@@ -11,79 +12,34 @@
  * @author     Jacob Martella <me@jacobmartella.com>
  *
  * @since      1.0.0
+ * @deprecated 2.0.0 Use ArtisanPackUI\VisualEditor\Blocks\Media\File\FileBlock instead.
  */
 
 declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Blocks\Media;
 
-use ArtisanPackUI\VisualEditor\Blocks\BaseBlock;
+use ArtisanPackUI\VisualEditor\Blocks\Media\File\FileBlock as NewFileBlock;
 
 /**
- * File block for the visual editor.
+ * Backward-compatible alias for FileBlock.
  *
- * @package    ArtisanPack_UI
- * @subpackage VisualEditor\Blocks\Media
+ * Overrides resolveBlockDirectory to point to the new co-located directory.
  *
  * @since      1.0.0
+ * @deprecated 2.0.0
  */
-class FileBlock extends BaseBlock
+class FileBlock extends NewFileBlock
 {
-	protected string $type = 'file';
-
-	protected string $name = 'File';
-
-	protected string $description = 'Add a downloadable file';
-
-	protected string $icon = 'document';
-
-	protected string $category = 'media';
-
-	protected array $keywords = [ 'download', 'attachment', 'pdf' ];
-
 	/**
-	 * Get the content field schema.
+	 * Resolve the block directory to the new co-located location.
 	 *
-	 * @since 1.0.0
+	 * @since 2.0.0
 	 *
-	 * @return array<string, array<string, mixed>>
+	 * @return string
 	 */
-	public function getContentSchema(): array
+	protected function resolveBlockDirectory(): string
 	{
-		return [
-			'url'      => [
-				'type'    => 'url',
-				'label'   => __( 'visual-editor::ve.file_url' ),
-				'default' => '',
-			],
-			'filename' => [
-				'type'    => 'text',
-				'label'   => __( 'visual-editor::ve.filename' ),
-				'default' => '',
-			],
-			'fileSize' => [
-				'type'    => 'text',
-				'label'   => __( 'visual-editor::ve.file_size' ),
-				'default' => '',
-			],
-		];
-	}
-
-	/**
-	 * Get the style field schema.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	public function getStyleSchema(): array
-	{
-		return [
-			'showDownloadButton' => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.show_download' ),
-				'default' => true,
-			],
-		];
+		return __DIR__ . '/File';
 	}
 }

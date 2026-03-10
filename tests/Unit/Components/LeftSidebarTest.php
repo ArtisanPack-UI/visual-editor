@@ -85,5 +85,5 @@ test( 'left sidebar renders layers panel slot', function (): void {
 
 test( 'left sidebar renders close button', function (): void {
 	$this->blade( '<x-ve-left-sidebar />' )
-		->assertSee( 'showInserter = false', false );
+		->assertSee( 'closeInserter()', false );
 } );

@@ -25,11 +25,12 @@
 	],
 	"require": {
 		"php": "^8.2",
-		"illuminate/support": "^10.0|^11.0|^12.0",
+		"illuminate/support": "^11.0|^12.0",
 		"artisanpack-ui/core": "^1.0",
 		"artisanpack-ui/hooks": "^1.0",
 		"artisanpack-ui/livewire-ui-components": "^2.0",
-		"livewire/livewire": "^3.6|^4.0",
+		"artisanpack-ui/media-library": "^1.0",
+		"livewire/livewire": "^4.0",
 		"owenvoke/blade-fontawesome": "^2.0"
 	},
 	"require-dev": {
@@ -40,7 +41,8 @@
 		"dealerdirect/phpcodesniffer-composer-installer": "^1.0",
 		"laravel/pint": "^1.26",
 		"orchestra/testbench": "^10.2",
-		"friendsofphp/php-cs-fixer": "^3.75"
+		"friendsofphp/php-cs-fixer": "^3.75",
+		"blade-ui-kit/blade-icons": "^1.9"
 	},
 	"config": {
 		"allow-plugins": {

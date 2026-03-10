@@ -3,6 +3,17 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\View\Components\EditorLayout;
+use Livewire\Livewire;
+
+beforeEach( function (): void {
+	// Override the media namespace to point to our test stubs.
+	// The real MediaModal requires icon assets (FontAwesome) that aren't
+	// available in the package test environment.
+	Livewire::addNamespace(
+		'media',
+		classNamespace: 'Tests\\Stubs',
+	);
+} );
 
 test( 'editor layout can be instantiated with defaults', function (): void {
 	$component = new EditorLayout();

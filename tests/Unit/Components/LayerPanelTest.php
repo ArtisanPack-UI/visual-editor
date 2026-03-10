@@ -38,7 +38,7 @@ test( 'layer panel renders', function (): void {
 test( 'layer panel renders sub-tab switcher', function (): void {
 	$view = $this->blade( '<x-ve-layer-panel />' );
 
-	$view->assertSee( 'List View' );
+	$view->assertSee( 'List view' );
 	$view->assertSee( 'Outline' );
 } );
 

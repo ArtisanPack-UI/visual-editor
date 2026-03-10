@@ -1,0 +1,60 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "file",
+	"name": "File",
+	"description": "Add a downloadable file",
+	"icon": "document",
+	"category": "media",
+	"keywords": ["download", "attachment", "pdf"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"url": {
+			"type": "url",
+			"source": "content",
+			"default": ""
+		},
+		"filename": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"fileSize": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"downloadButtonText": {
+			"type": "string",
+			"source": "content",
+			"default": "Download"
+		},
+		"showDownloadButton": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"openInNewTab": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"displayPreview": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"previewHeight": {
+			"type": "integer",
+			"source": "content",
+			"default": 600
+		}
+	},
+	"supports": {
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

@@ -5,9 +5,17 @@
       "mcp__plugin_gitlab_gitlab__search",
       "mcp__plugin_gitlab_gitlab__create_merge_request",
       "Bash(./vendor/bin/pest:*)",
+<<<<<<< Updated upstream
       "Bash(gh pr create:*)",
       "Bash(git push:*)",
       "Bash(cd \"/Users/jacobmartella/Desktop/ArtisanPack UI Packages/visual-editor\" && gh pr list --head add/phase-two --json number,title,state,url 2>&1)"
+=======
+      "Bash(git status:*)",
+      "Bash(echo:*)",
+      "Bash(git checkout:*)",
+      "Bash(git cherry-pick:*)",
+      "Bash(git stash:*)"
+>>>>>>> Stashed changes
     ]
   }
 }

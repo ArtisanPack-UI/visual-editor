@@ -10,6 +10,13 @@
  * @since      1.0.0
  --}}
 
+@php
+	use ArtisanPackUI\VisualEditor\View\Components\EditorState;
+
+	$saveStatusConstants    = EditorState::saveStatusMap();
+	$documentStatusConstants = EditorState::documentStatusMap();
+@endphp
+
 <div
 	id="{{ $uuid }}"
 	x-data
@@ -31,6 +38,7 @@
 				devicePreview: {{ Js::from( $devicePreview ) }},
 				saveStatus: {{ Js::from( $saveStatus ) }},
 				lastSavedAt: null,
+				_pendingDirty: false,
 				autosave: {{ Js::from( $autosave ) }},
 				autosaveInterval: {{ Js::from( $autosaveInterval ) }},
 				_autosaveTimer: null,
@@ -38,26 +46,47 @@
 				documentStatus: {{ Js::from( $documentStatus ) }},
 				scheduledDate: {{ Js::from( $scheduledDate ) }},
 				patterns: {{ Js::from( $patterns ) }},
+				blockTransforms: {{ Js::from( $blockTransforms ) }},
+				blockVariations: {{ Js::from( $blockVariations ) }},
+				defaultBlockType: {{ Js::from( $defaultBlockType ) }},
+				defaultInnerBlocksMap: {{ Js::from( $defaultInnerBlocksMap ) }},
 				showPatternModal: false,
 				leftSidebarTab: 'blocks',
+
+				SAVE_STATUS: Object.freeze( {{ Js::from( $saveStatusConstants ) }} ),
+				DOCUMENT_STATUS: Object.freeze( {{ Js::from( $documentStatusConstants ) }} ),
 
 				{{-- ── Initialization ─────────────────────────────────── --}}
 
 				init() {
+					this._migrateGroupVariations( this.blocks );
+
 					if ( this.autosave ) {
 						this._startAutosave();
 					}
+
+					this._registerLivewireBridge();
 				},
 
 				{{-- ── Block CRUD ─────────────────────────────────────── --}}
 
 				addBlock( block, index = null ) {
 					this._pushHistory();
+					const blockType   = block.type || this.defaultBlockType;
+					let rawInner      = block.innerBlocks || [];
+					if ( 0 === rawInner.length && this.defaultInnerBlocksMap[ blockType ] ) {
+						rawInner = this.defaultInnerBlocksMap[ blockType ];
+					}
 					const newBlock = {
 						id: block.id || this._generateId(),
-						type: block.type || 'paragraph',
+						type: blockType,
 						attributes: block.attributes || {},
-						innerBlocks: block.innerBlocks || [],
+						innerBlocks: rawInner.map( ( inner ) => ( {
+							id: inner.id || this._generateId(),
+							type: inner.type || this.defaultBlockType,
+							attributes: inner.attributes || {},
+							innerBlocks: inner.innerBlocks || [],
+						} ) ),
 					};
 
 					if ( null === index || index >= this.blocks.length ) {
@@ -108,14 +137,34 @@
 
 				moveBlockUp( blockId ) {
 					const index = this.getBlockIndex( blockId );
-					if ( index <= 0 ) return;
-					this.moveBlock( blockId, index - 1 );
+					if ( -1 !== index ) {
+						if ( index <= 0 ) return;
+						this.moveBlock( blockId, index - 1 );
+						return;
+					}
+
+					// Inner block: move within parent's innerBlocks.
+					const parent = this.getParentBlock( blockId );
+					if ( ! parent || ! parent.innerBlocks ) return;
+					const innerIndex = parent.innerBlocks.findIndex( ( b ) => b.id === blockId );
+					if ( innerIndex <= 0 ) return;
+					this.moveInnerBlock( parent.id, blockId, innerIndex - 1 );
 				},
 
 				moveBlockDown( blockId ) {
 					const index = this.getBlockIndex( blockId );
-					if ( -1 === index || index >= this.blocks.length - 1 ) return;
-					this.moveBlock( blockId, index + 2 );
+					if ( -1 !== index ) {
+						if ( index >= this.blocks.length - 1 ) return;
+						this.moveBlock( blockId, index + 2 );
+						return;
+					}
+
+					// Inner block: move within parent's innerBlocks.
+					const parent = this.getParentBlock( blockId );
+					if ( ! parent || ! parent.innerBlocks ) return;
+					const innerIndex = parent.innerBlocks.findIndex( ( b ) => b.id === blockId );
+					if ( -1 === innerIndex || innerIndex >= parent.innerBlocks.length - 1 ) return;
+					this.moveInnerBlock( parent.id, blockId, innerIndex + 2 );
 				},
 
 				duplicateBlock( blockId ) {
@@ -130,11 +179,45 @@
 				},
 
 				getBlock( blockId ) {
-					return this.blocks.find( ( b ) => b.id === blockId ) || null;
+					const findBlock = ( blocks ) => {
+						for ( const block of blocks ) {
+							if ( block.id === blockId ) return block;
+							if ( block.innerBlocks?.length ) {
+								const found = findBlock( block.innerBlocks );
+								if ( found ) return found;
+							}
+						}
+						return null;
+					};
+					return findBlock( this.blocks );
 				},
 
 				getBlockIndex( blockId ) {
 					return this.blocks.findIndex( ( b ) => b.id === blockId );
+				},
+
+				getParentBlock( blockId ) {
+					const findParent = ( blocks, parent ) => {
+						for ( const block of blocks ) {
+							if ( block.id === blockId ) return parent;
+							if ( block.innerBlocks?.length ) {
+								const found = findParent( block.innerBlocks, block );
+								if ( found ) return found;
+							}
+						}
+						return null;
+					};
+					return findParent( this.blocks, null );
+				},
+
+				addInnerBlockAfter( afterBlockId, block = {} ) {
+					const parent = this.getParentBlock( afterBlockId );
+					if ( ! parent ) return null;
+
+					const index = parent.innerBlocks.findIndex( ( b ) => b.id === afterBlockId );
+					if ( -1 === index ) return null;
+
+					return this.addInnerBlock( parent.id, block, index + 1 );
 				},
 
 				{{-- ── Nested Block Operations ────────────────────────── --}}
@@ -144,28 +227,48 @@
 					if ( ! parent ) return;
 
 					this._pushHistory();
-					if ( ! parent.innerBlocks ) {
-						parent.innerBlocks = [];
-					}
+					const current = parent.innerBlocks || [];
 
 					const newBlock = {
 						id: block.id || this._generateId(),
-						type: block.type || 'paragraph',
+						type: block.type || this.defaultBlockType,
 						attributes: block.attributes || {},
 						innerBlocks: block.innerBlocks || [],
 					};
 
-					if ( null === index || index >= parent.innerBlocks.length ) {
-						parent.innerBlocks.push( newBlock );
+					const updated = [ ...current ];
+					if ( null === index || index >= updated.length ) {
+						updated.push( newBlock );
 					} else {
-						parent.innerBlocks.splice( index, 0, newBlock );
+						updated.splice( index, 0, newBlock );
 					}
+
+					// Replace array reference to ensure Alpine reactivity.
+					parent.innerBlocks = updated;
 
 					this.markDirty();
 					this._announceAction( {{ Js::from( __( 'visual-editor::ve.block_added' ) ) }} );
 					this._dispatchChange();
 
 					return newBlock;
+				},
+
+				moveInnerBlock( parentId, blockId, newIndex ) {
+					const parent = this.getBlock( parentId );
+					if ( ! parent || ! parent.innerBlocks ) return;
+
+					const oldIndex = parent.innerBlocks.findIndex( ( b ) => b.id === blockId );
+					if ( -1 === oldIndex || oldIndex === newIndex ) return;
+
+					this._pushHistory();
+					const updated   = [ ...parent.innerBlocks ];
+					const [ block ] = updated.splice( oldIndex, 1 );
+					updated.splice( newIndex > oldIndex ? newIndex - 1 : newIndex, 0, block );
+					parent.innerBlocks = updated;
+
+					this.markDirty();
+					this._announceAction( {{ Js::from( __( 'visual-editor::ve.block_moved' ) ) }} );
+					this._dispatchChange();
 				},
 
 				removeInnerBlock( parentId, blockId ) {
@@ -176,7 +279,10 @@
 					if ( -1 === index ) return;
 
 					this._pushHistory();
-					parent.innerBlocks.splice( index, 1 );
+
+					// Replace array reference to ensure Alpine reactivity.
+					parent.innerBlocks = parent.innerBlocks.filter( ( b ) => b.id !== blockId );
+
 					this.markDirty();
 					this._announceAction( {{ Js::from( __( 'visual-editor::ve.block_removed' ) ) }} );
 					this._dispatchChange();
@@ -216,7 +322,7 @@
 				_addBlockSilent( block, index = null ) {
 					const newBlock = {
 						id: block.id || this._generateId(),
-						type: block.type || 'paragraph',
+						type: block.type || this.defaultBlockType,
 						attributes: block.attributes || {},
 						innerBlocks: block.innerBlocks || [],
 					};
@@ -297,21 +403,50 @@
 
 				{{-- ── Save Status ────────────────────────────────────── --}}
 
+				_saveTransitions: {
+					saved: [ 'unsaved' ],
+					unsaved: [ 'unsaved', 'saving' ],
+					saving: [ 'saved', 'error' ],
+					error: [ 'unsaved', 'saving' ],
+				},
+
+				_canTransitionTo( target ) {
+					const allowed = this._saveTransitions[ this.saveStatus ];
+					return allowed && allowed.includes( target );
+				},
+
 				markDirty() {
-					this.saveStatus = 'unsaved';
+					if ( this.SAVE_STATUS.SAVING === this.saveStatus ) {
+						this._pendingDirty = true;
+						return true;
+					}
+					if ( ! this._canTransitionTo( this.SAVE_STATUS.UNSAVED ) ) return false;
+					this.saveStatus = this.SAVE_STATUS.UNSAVED;
+					return true;
 				},
 
 				markSaving() {
-					this.saveStatus = 'saving';
+					if ( ! this._canTransitionTo( this.SAVE_STATUS.SAVING ) ) return false;
+					this._pendingDirty = false;
+					this.saveStatus = this.SAVE_STATUS.SAVING;
+					return true;
 				},
 
 				markSaved() {
-					this.saveStatus = 'saved';
+					if ( ! this._canTransitionTo( this.SAVE_STATUS.SAVED ) ) return false;
+					this.saveStatus = this.SAVE_STATUS.SAVED;
 					this.lastSavedAt = new Date();
+					if ( this._pendingDirty ) {
+						this._pendingDirty = false;
+						this.saveStatus = this.SAVE_STATUS.UNSAVED;
+					}
+					return true;
 				},
 
 				markError() {
-					this.saveStatus = 'error';
+					if ( ! this._canTransitionTo( this.SAVE_STATUS.ERROR ) ) return false;
+					this.saveStatus = this.SAVE_STATUS.ERROR;
+					return true;
 				},
 
 				{{-- ── Utility ────────────────────────────────────────── --}}
@@ -320,11 +455,34 @@
 					return this.blocks.length;
 				},
 
+				{{-- ── Sidebar / Inserter Toggles ────────────────────── --}}
+
+				toggleSidebar() {
+					this.showSidebar = ! this.showSidebar;
+				},
+
+				toggleInserter() {
+					this.showInserter = ! this.showInserter;
+				},
+
+				openInserter() {
+					this.showInserter = true;
+				},
+
+				closeInserter() {
+					this.showInserter = false;
+				},
+
+				openLayers() {
+					this.leftSidebarTab = 'layers';
+					this.showInserter   = true;
+				},
+
 				{{-- ── Document Status ────────────────────────────────── --}}
 
 				setDocumentStatus( status ) {
 					this.documentStatus = status;
-					if ( 'scheduled' !== status ) {
+					if ( this.DOCUMENT_STATUS.SCHEDULED !== status ) {
 						this.scheduledDate = null;
 					}
 					this.markDirty();
@@ -357,6 +515,166 @@
 					);
 				},
 
+				{{-- ── Block Transforms ────────────────────────────────── --}}
+
+				transformBlock( blockId, targetType ) {
+					const block = this.getBlock( blockId );
+					if ( ! block ) return;
+
+					const transforms = this.blockTransforms[ block.type ] || {};
+					const mapping    = transforms[ targetType ];
+					if ( undefined === mapping ) return;
+
+					this._pushHistory();
+
+					// Resolve source text from the block. For blocks whose content
+					// lives in the DOM (list, quote with inner blocks), read it
+					// from the DOM element rather than from the attributes alone.
+					const sourceText = this._resolveTransformText( block );
+
+					const newAttributes = {};
+					Object.keys( mapping ).forEach( ( targetField ) => {
+						const sourceField = mapping[ targetField ];
+						if ( block.attributes && undefined !== block.attributes[ sourceField ] ) {
+							newAttributes[ targetField ] = block.attributes[ sourceField ];
+						}
+					} );
+
+					// Handle list target: text becomes a list item.
+					if ( 'list' === targetType && sourceText ) {
+						newAttributes._transformedContent = '<li>' + sourceText + '</li>';
+					}
+
+					// Handle quote target: text becomes an inner paragraph block.
+					if ( 'quote' === targetType && sourceText ) {
+						block.innerBlocks = [ {
+							id: this._generateId(),
+							type: this.defaultBlockType,
+							attributes: { text: sourceText },
+							innerBlocks: [],
+						} ];
+					} else if ( 'quote' !== targetType ) {
+						// When leaving a container block (e.g. quote → paragraph),
+						// clear inner blocks so the new type doesn't inherit them.
+						block.innerBlocks = [];
+					}
+
+					// Handle text source from list DOM or quote inner blocks into
+					// the target text attribute when the mapping is empty.
+					if ( sourceText && 0 === Object.keys( mapping ).length ) {
+						newAttributes.text = sourceText;
+					}
+
+					block.type       = targetType;
+					block.attributes = newAttributes;
+
+					this.markDirty();
+					this._announceAction( {{ Js::from( __( 'visual-editor::ve.block_transformed' ) ) }} );
+					this._dispatchChange();
+				},
+
+				/**
+				 * Resolve the text content from a block for transformation.
+				 *
+				 * For blocks whose content lives in the DOM during editing
+				 * (list, quote with inner blocks), reads from the DOM element.
+				 */
+				_resolveTransformText( block ) {
+					// Paragraph / heading: text lives in attributes.
+					if ( block.attributes?.text ) {
+						return block.attributes.text;
+					}
+
+					// List: content lives in the DOM as <li> elements.
+					if ( 'list' === block.type ) {
+						const listEl = document.querySelector( '[data-block-id=' + block.id + '] [contenteditable]' );
+						if ( listEl ) {
+							const items = listEl.querySelectorAll( 'li' );
+							const texts = [];
+							items.forEach( ( li ) => {
+								const t = li.innerHTML.trim();
+								if ( t ) {
+									texts.push( t );
+								}
+							} );
+							return texts.join( '<br>' );
+						}
+					}
+
+					// Quote: text comes from inner blocks.
+					if ( 'quote' === block.type && block.innerBlocks && block.innerBlocks.length > 0 ) {
+						// Read from DOM if available (more current than store).
+						const innerEl = document.querySelector( '[data-inner-block-id=' + block.innerBlocks[0].id + '] [contenteditable]' );
+						if ( innerEl ) {
+							return innerEl.innerHTML;
+						}
+						return block.innerBlocks[0].attributes?.text || '';
+					}
+
+					return '';
+				},
+
+				getTransformsForBlock( blockType ) {
+					const transforms = this.blockTransforms[ blockType ];
+					if ( ! transforms ) return [];
+					return Object.keys( transforms );
+				},
+
+				{{-- ── Block After / Replace ──────────────────────────── --}}
+
+				addBlockAfter( afterBlockId, block = {} ) {
+					const index = this.getBlockIndex( afterBlockId );
+					if ( -1 === index ) return null;
+
+					return this.addBlock(
+						{ type: block.type || this.defaultBlockType, attributes: block.attributes || {}, innerBlocks: block.innerBlocks || [] },
+						index + 1,
+					);
+				},
+
+				replaceBlock( blockId, newBlockData ) {
+					const blockType = newBlockData.type || this.defaultBlockType;
+					let rawInner    = newBlockData.innerBlocks || [];
+					if ( 0 === rawInner.length && this.defaultInnerBlocksMap[ blockType ] ) {
+						rawInner = this.defaultInnerBlocksMap[ blockType ];
+					}
+					const newBlock = {
+						id: newBlockData.id || this._generateId(),
+						type: blockType,
+						attributes: newBlockData.attributes || {},
+						innerBlocks: rawInner.map( ( inner ) => ( {
+							id: inner.id || this._generateId(),
+							type: inner.type || this.defaultBlockType,
+							attributes: inner.attributes || {},
+							innerBlocks: inner.innerBlocks || [],
+						} ) ),
+					};
+
+					const topIndex = this.getBlockIndex( blockId );
+					if ( -1 !== topIndex ) {
+						this._pushHistory();
+						this.blocks.splice( topIndex, 1, newBlock );
+						this.markDirty();
+						this._dispatchChange();
+						return newBlock;
+					}
+
+					// Inner block replacement.
+					const parent = this.getParentBlock( blockId );
+					if ( ! parent ) return null;
+
+					const innerIdx = parent.innerBlocks.findIndex( ( b ) => b.id === blockId );
+					if ( -1 === innerIdx ) return null;
+
+					this._pushHistory();
+					const updated = [ ...parent.innerBlocks ];
+					updated.splice( innerIdx, 1, newBlock );
+					parent.innerBlocks = updated;
+					this.markDirty();
+					this._dispatchChange();
+					return newBlock;
+				},
+
 				getWordCount() {
 					let count = 0;
 					const countWords = ( blocks ) => {
@@ -383,13 +701,33 @@
 					return 'block-' + Date.now().toString( 36 ) + '-' + Math.random().toString( 36 ).substring( 2, 8 );
 				},
 
+				/**
+				 * Backfill _groupVariation on legacy group blocks that lack it.
+				 * Infers the correct variation from flexDirection so that blocks
+				 * created before _groupVariation became the single source of
+				 * truth are normalized on load.
+				 */
+				_migrateGroupVariations( blocks ) {
+					for ( const block of blocks ) {
+						if ( 'group' === block.type && ! block.attributes?._groupVariation ) {
+							if ( ! block.attributes ) {
+								block.attributes = {};
+							}
+							block.attributes._groupVariation = 'row' === block.attributes.flexDirection ? 'row' : 'group';
+						}
+						if ( block.innerBlocks?.length ) {
+							this._migrateGroupVariations( block.innerBlocks );
+						}
+					}
+				},
+
 				{{-- ── Autosave ───────────────────────────────────────── --}}
 
 				_startAutosave() {
 					this._stopAutosave();
 					if ( ! this.autosaveInterval || this.autosaveInterval <= 0 ) return;
 					this._autosaveTimer = setInterval( () => {
-						if ( 'unsaved' === this.saveStatus ) {
+						if ( this.SAVE_STATUS.UNSAVED === this.saveStatus ) {
 							document.dispatchEvent( new CustomEvent( 've-autosave', {
 								bubbles: true,
 								detail: {
@@ -405,6 +743,144 @@
 						clearInterval( this._autosaveTimer );
 						this._autosaveTimer = null;
 					}
+				},
+
+				{{-- ── Livewire Bridge ───────────────────────────── --}}
+
+				_registerLivewireBridge() {
+					document.addEventListener( 've-document-saved', ( e ) => {
+						this.markSaved();
+						this._announceAction( {{ Js::from( __( 'visual-editor::ve.document_saved' ) ) }} );
+					} );
+
+					document.addEventListener( 've-document-error', ( e ) => {
+						this.markError();
+						this._announceAction( {{ Js::from( __( 'visual-editor::ve.document_save_error' ) ) }} );
+					} );
+
+					document.addEventListener( 've-draft-restored', ( e ) => {
+						if ( e.detail && e.detail.blocks ) {
+							this._pushHistory();
+							this.blocks = e.detail.blocks;
+							this.markDirty();
+							this._announceAction( {{ Js::from( __( 'visual-editor::ve.draft_restored' ) ) }} );
+						}
+					} );
+
+					document.addEventListener( 've-pattern-loaded', ( e ) => {
+						if ( e.detail && e.detail.blocks ) {
+							this.insertPattern( { name: e.detail.name, blocks: e.detail.blocks } );
+						}
+					} );
+
+					document.addEventListener( 've-revision-restored', ( e ) => {
+						if ( e.detail && e.detail.blocks ) {
+							this._pushHistory();
+							this.blocks = e.detail.blocks;
+							this.markDirty();
+							this._announceAction( {{ Js::from( __( 'visual-editor::ve.revision_restored' ) ) }} );
+						}
+					} );
+
+					if ( ! window.__veMediaSelectedRegistered ) {
+					window.__veMediaSelectedRegistered = true;
+					window.addEventListener( 've-media-selected', ( e ) => {
+						if ( e.detail && e.detail.media && e.detail.media.length ) {
+							this._announceAction( {{ Js::from( __( 'visual-editor::ve.media_selected' ) ) }} );
+						}
+
+						// The media-picker Livewire component bridges
+						// Livewire 'media-selected' → window 've-media-selected'.
+						// This handler routes the event to the correct block field.
+						if ( ! e.detail || ! e.detail.context || ! e.detail.media?.length ) return;
+
+						const parts = e.detail.context.split( ':' );
+						if ( parts.length < 2 ) return;
+						const blockId   = parts[0];
+						const fieldSuffix = parts.slice( 1 ).join( ':' );
+
+						// Map known context suffixes to block fields.
+						const fieldMap = {
+							'image-url': 'url',
+							'video-url': 'url',
+							'audio-url': 'url',
+							'toolbar-replace': 'url',
+						};
+
+						// Gallery-add context: create inner image blocks instead of updating a field.
+						if ( 'gallery-add' === fieldSuffix && blockId ) {
+							e.detail.media.forEach( ( m ) => {
+								this.addInnerBlock( blockId, {
+									type: 'image',
+									attributes: {
+										url: m.url ?? m.path ?? '',
+										alt: m.alt ?? '',
+									},
+								} );
+							} );
+							return;
+						}
+
+						// File blocks: also populate filename and fileSize from the media item.
+						if ( 'file-url' === fieldSuffix && blockId ) {
+							const m   = e.detail.media[0];
+							const url = m.url ?? m.path ?? '';
+							if ( url ) {
+								const attrs = { url: url };
+
+								// Derive filename from media item or URL.
+								if ( m.file_name ) {
+									attrs.filename = m.file_name;
+								} else if ( m.title ) {
+									attrs.filename = m.title;
+								} else {
+									attrs.filename = url.split( '/' ).pop().split( '?' )[0] || '';
+								}
+
+								// Human-readable file size from bytes.
+								if ( m.file_size ) {
+									const bytes = parseInt( m.file_size, 10 );
+									if ( bytes >= 1048576 ) {
+										attrs.fileSize = ( bytes / 1048576 ).toFixed( 1 ) + ' MB';
+									} else if ( bytes >= 1024 ) {
+										attrs.fileSize = ( bytes / 1024 ).toFixed( 0 ) + ' KB';
+									} else {
+										attrs.fileSize = bytes + ' B';
+									}
+								}
+
+								this.updateBlock( blockId, attrs );
+							}
+							return;
+						}
+
+						const field = fieldMap[ fieldSuffix ];
+						if ( field && blockId ) {
+							const url = e.detail.media[0].url ?? e.detail.media[0].path ?? '';
+							if ( url ) {
+								this.updateBlock( blockId, { [field]: url } );
+							}
+						}
+					} );
+					} // end guard
+
+					document.addEventListener( 've-field-change', ( e ) => {
+						if ( ! e.detail ) return;
+						let blockId = e.detail.blockId;
+						const field = e.detail.field;
+						const value = e.detail.value;
+
+						if ( ! field ) return;
+
+						// Resolve 'dynamic' blockId to the currently focused block.
+						if ( 'dynamic' === blockId || ! blockId ) {
+							blockId = Alpine.store( 'selection' )?.focused ?? null;
+						}
+
+						if ( blockId ) {
+							this.updateBlock( blockId, { [field]: value } );
+						}
+					} );
 				},
 
 				{{-- ── Internal Helpers ───────────────────────────────── --}}
@@ -465,6 +941,7 @@
 		} else {
 			const store = _existingStore;
 			store.blocks          = {{ Js::from( $initialBlocks ) }};
+			store._migrateGroupVariations( store.blocks );
 			store.maxHistorySize  = {{ Js::from( $maxHistorySize ) }};
 			store.mode            = {{ Js::from( $mode ) }};
 			store.showSidebar     = {{ Js::from( $showSidebar ) }};
@@ -472,11 +949,15 @@
 			store.devicePreview   = {{ Js::from( $devicePreview ) }};
 			store.saveStatus      = {{ Js::from( $saveStatus ) }};
 			store.lastSavedAt     = null;
+			store._pendingDirty   = false;
 			store.autosave        = {{ Js::from( $autosave ) }};
 			store.autosaveInterval = {{ Js::from( $autosaveInterval ) }};
 			store.documentStatus   = {{ Js::from( $documentStatus ) }};
 			store.scheduledDate    = {{ Js::from( $scheduledDate ) }};
 			store.patterns         = {{ Js::from( $patterns ) }};
+			store.blockTransforms  = {{ Js::from( $blockTransforms ) }};
+			store.blockVariations  = {{ Js::from( $blockVariations ) }};
+			store.defaultBlockType = {{ Js::from( $defaultBlockType ) }};
 			store.showPatternModal = false;
 			store.leftSidebarTab   = 'blocks';
 

@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Column Block.
+ * Column Block Alias.
  *
- * Internal child block used within the Columns block.
- * Acts as a container for other blocks within a column layout.
+ * Maintains backward compatibility for the old namespace.
+ * Use ArtisanPackUI\VisualEditor\Blocks\Layout\Column\ColumnBlock instead.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Blocks\Layout
@@ -12,98 +12,34 @@
  * @author     Jacob Martella <me@jacobmartella.com>
  *
  * @since      1.0.0
+ * @deprecated 2.0.0 Use ArtisanPackUI\VisualEditor\Blocks\Layout\Column\ColumnBlock instead.
  */
 
 declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Blocks\Layout;
 
-use ArtisanPackUI\VisualEditor\Blocks\BaseBlock;
+use ArtisanPackUI\VisualEditor\Blocks\Layout\Column\ColumnBlock as NewColumnBlock;
 
 /**
- * Column block (internal child of Columns block).
+ * Backward-compatible alias for ColumnBlock.
  *
- * @package    ArtisanPack_UI
- * @subpackage VisualEditor\Blocks\Layout
+ * Overrides resolveBlockDirectory to point to the new co-located directory.
  *
  * @since      1.0.0
+ * @deprecated 2.0.0
  */
-class ColumnBlock extends BaseBlock
+class ColumnBlock extends NewColumnBlock
 {
-	protected string $type = 'column';
-
-	protected string $name = 'Column';
-
-	protected string $description = 'A single column within a columns layout';
-
-	protected string $icon = 'view-columns';
-
-	protected string $category = 'layout';
-
-	protected array $keywords = [];
-
 	/**
-	 * Get the content field schema.
+	 * Resolve the block directory to the new co-located location.
 	 *
-	 * @since 1.0.0
+	 * @since 2.0.0
 	 *
-	 * @return array<string, array<string, mixed>>
+	 * @return string
 	 */
-	public function getContentSchema(): array
+	protected function resolveBlockDirectory(): string
 	{
-		return [];
-	}
-
-	/**
-	 * Get the style field schema.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	public function getStyleSchema(): array
-	{
-		return [
-			'width'             => [
-				'type'    => 'text',
-				'label'   => __( 'visual-editor::ve.column_width' ),
-				'default' => '',
-			],
-			'verticalAlignment' => [
-				'type'    => 'select',
-				'label'   => __( 'visual-editor::ve.vertical_alignment' ),
-				'options' => [
-					'top'     => __( 'visual-editor::ve.top' ),
-					'center'  => __( 'visual-editor::ve.center' ),
-					'bottom'  => __( 'visual-editor::ve.bottom' ),
-					'stretch' => __( 'visual-editor::ve.stretch' ),
-				],
-				'default' => 'top',
-			],
-		];
-	}
-
-	/**
-	 * Get allowed parent block types.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<int, string>|null
-	 */
-	public function getAllowedParents(): ?array
-	{
-		return [ 'columns' ];
-	}
-
-	/**
-	 * Whether this block should appear in the block inserter.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return bool
-	 */
-	public function isPublic(): bool
-	{
-		return false;
+		return __DIR__ . '/Column';
 	}
 }

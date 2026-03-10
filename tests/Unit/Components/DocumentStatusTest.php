@@ -3,6 +3,7 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\View\Components\DocumentStatus;
+use ArtisanPackUI\VisualEditor\View\Components\EditorState;
 
 test( 'document status can be instantiated with defaults', function (): void {
 	$component = new DocumentStatus();
@@ -62,4 +63,12 @@ test( 'document status renders date hint', function (): void {
 test( 'document status renders label', function (): void {
 	$this->blade( '<x-ve-document-status />' )
 		->assertSee( 'Document status' );
+} );
+
+test( 'document status uses PHP constants for status keys', function (): void {
+	$view = $this->blade( '<x-ve-document-status />' );
+
+	foreach ( EditorState::DOCUMENT_STATUSES as $status ) {
+		$view->assertSee( 'value="' . $status . '"', false );
+	}
 } );

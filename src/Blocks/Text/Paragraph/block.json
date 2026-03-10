@@ -1,0 +1,89 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "paragraph",
+	"name": "Paragraph",
+	"description": "Add a paragraph of text",
+	"icon": "bars-3-bottom-left",
+	"category": "text",
+	"keywords": ["text", "content", "body"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"text": {
+			"type": "rich_text",
+			"source": "content",
+			"default": ""
+		},
+		"alignment": {
+			"type": "string",
+			"source": "style",
+			"default": "left"
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontSize": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"dropCap": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"border": {
+			"type": "object",
+			"source": "style",
+			"default": {
+				"width": "0",
+				"widthUnit": "px",
+				"style": "none",
+				"color": "#000000",
+				"radius": "0",
+				"radiusUnit": "px",
+				"perSide": false,
+				"perCorner": false
+			}
+		}
+	},
+	"supports": {
+		"textAlignment": true,
+		"textFormatting": true,
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"typography": {
+			"fontSize": true,
+			"dropCap": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"border": true,
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

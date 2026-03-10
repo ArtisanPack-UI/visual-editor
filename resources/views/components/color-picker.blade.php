@@ -156,7 +156,7 @@
 	@endif
 </div>
 
-@once
+@pushOnce( 'scripts' )
 <style>
 	/* Hue slider - rainbow gradient */
 	.ve-color-picker-hue-slider {
@@ -239,9 +239,9 @@
 		background: transparent;
 	}
 </style>
-@endonce
+@endPushOnce
 
-@once
+@pushOnce( 'scripts' )
 <script>
 	document.addEventListener( 'alpine:init', () => {
 		if ( Alpine.data && ! Alpine._veColorPickerRegistered ) {
@@ -591,4 +591,4 @@
 		}
 	} );
 </script>
-@endonce
+@endPushOnce

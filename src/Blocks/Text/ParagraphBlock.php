@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Paragraph Block.
+ * Paragraph Block Alias.
  *
- * Renders a paragraph of text with rich text editing, alignment,
- * colors, typography, and drop cap support.
+ * Maintains backward compatibility for the old namespace.
+ * Use ArtisanPackUI\VisualEditor\Blocks\Text\Paragraph\ParagraphBlock instead.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Blocks\Text
@@ -12,148 +12,34 @@
  * @author     Jacob Martella <me@jacobmartella.com>
  *
  * @since      1.0.0
+ * @deprecated 2.0.0 Use ArtisanPackUI\VisualEditor\Blocks\Text\Paragraph\ParagraphBlock instead.
  */
 
 declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Blocks\Text;
 
-use ArtisanPackUI\VisualEditor\Blocks\BaseBlock;
+use ArtisanPackUI\VisualEditor\Blocks\Text\Paragraph\ParagraphBlock as NewParagraphBlock;
 
 /**
- * Paragraph block for the visual editor.
+ * Backward-compatible alias for ParagraphBlock.
  *
- * @package    ArtisanPack_UI
- * @subpackage VisualEditor\Blocks\Text
+ * Overrides resolveBlockDirectory to point to the new co-located directory.
  *
  * @since      1.0.0
+ * @deprecated 2.0.0
  */
-class ParagraphBlock extends BaseBlock
+class ParagraphBlock extends NewParagraphBlock
 {
-	protected string $type = 'paragraph';
-
-	protected string $name = 'Paragraph';
-
-	protected string $description = 'Add a paragraph of text';
-
-	protected string $icon = 'bars-3-bottom-left';
-
-	protected string $category = 'text';
-
-	protected array $keywords = [ 'text', 'content', 'body' ];
-
 	/**
-	 * Get the content field schema.
+	 * Resolve the block directory to the new co-located location.
 	 *
-	 * @since 1.0.0
+	 * @since 2.0.0
 	 *
-	 * @return array<string, array<string, mixed>>
+	 * @return string
 	 */
-	public function getContentSchema(): array
+	protected function resolveBlockDirectory(): string
 	{
-		return [
-			'text' => [
-				'type'        => 'rich_text',
-				'label'       => __( 'visual-editor::ve.block_paragraph_placeholder' ),
-				'placeholder' => __( 'visual-editor::ve.block_paragraph_placeholder' ),
-				'toolbar'     => [ 'bold', 'italic', 'underline', 'strikethrough', 'link', 'code' ],
-				'default'     => '',
-			],
-		];
-	}
-
-	/**
-	 * Get the style field schema.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	public function getStyleSchema(): array
-	{
-		return [
-			'alignment'       => [
-				'type'    => 'alignment',
-				'label'   => __( 'visual-editor::ve.text_alignment' ),
-				'default' => 'left',
-			],
-			'textColor'       => [
-				'type'    => 'color',
-				'label'   => __( 'visual-editor::ve.text_color' ),
-				'default' => null,
-			],
-			'backgroundColor' => [
-				'type'    => 'color',
-				'label'   => __( 'visual-editor::ve.background_color' ),
-				'default' => null,
-			],
-			'fontSize'        => [
-				'type'    => 'select',
-				'label'   => __( 'visual-editor::ve.font_size' ),
-				'options' => [
-					'small' => __( 'visual-editor::ve.small' ),
-					'base'  => __( 'visual-editor::ve.normal' ),
-					'large' => __( 'visual-editor::ve.large' ),
-					'xl'    => __( 'visual-editor::ve.extra_large' ),
-				],
-				'default' => null,
-			],
-			'dropCap'         => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.drop_cap' ),
-				'default' => false,
-			],
-		];
-	}
-
-	/**
-	 * Get available block transforms.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, array<string, string>>
-	 */
-	public function getTransforms(): array
-	{
-		return [
-			'heading' => [
-				'text' => 'text',
-			],
-			'list'    => [
-				'text' => 'text',
-			],
-			'quote'   => [
-				'text' => 'text',
-			],
-		];
-	}
-
-	/**
-	 * Get the block's supported features.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, mixed>
-	 */
-	public function getSupports(): array
-	{
-		return [
-			'align'      => false,
-			'color'      => [
-				'text'       => true,
-				'background' => true,
-			],
-			'typography' => [
-				'fontSize'   => true,
-				'fontFamily' => false,
-			],
-			'spacing'    => [
-				'margin'  => false,
-				'padding' => false,
-			],
-			'border'     => false,
-			'anchor'     => true,
-			'className'  => true,
-		];
+		return __DIR__ . '/Paragraph';
 	}
 }

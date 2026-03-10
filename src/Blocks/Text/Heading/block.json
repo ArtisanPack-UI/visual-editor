@@ -1,0 +1,94 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "heading",
+	"name": "Heading",
+	"description": "Add a heading to your content",
+	"icon": "heading",
+	"category": "text",
+	"keywords": ["title", "h1", "h2", "h3", "header"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"text": {
+			"type": "rich_text",
+			"source": "content",
+			"default": ""
+		},
+		"level": {
+			"type": "string",
+			"source": "content",
+			"default": "h2"
+		},
+		"alignment": {
+			"type": "string",
+			"source": "style",
+			"default": "left"
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontSize": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"align": {
+			"type": "string",
+			"source": "style",
+			"default": "none"
+		},
+		"border": {
+			"type": "object",
+			"source": "style",
+			"default": {
+				"width": "0",
+				"widthUnit": "px",
+				"style": "none",
+				"color": "#000000",
+				"radius": "0",
+				"radiusUnit": "px",
+				"perSide": false,
+				"perCorner": false
+			}
+		}
+	},
+	"supports": {
+		"align": ["left", "center", "right", "wide", "full"],
+		"textAlignment": true,
+		"textFormatting": true,
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"typography": {
+			"fontSize": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"border": true,
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

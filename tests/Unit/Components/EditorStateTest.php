@@ -20,6 +20,9 @@ test( 'editor state can be instantiated with defaults', function (): void {
 	expect( $component->documentStatus )->toBe( 'draft' );
 	expect( $component->scheduledDate )->toBeNull();
 	expect( $component->patterns )->toBe( [] );
+	expect( $component->blockTransforms )->toBe( [] );
+	expect( $component->blockVariations )->toBe( [] );
+	expect( $component->defaultBlockType )->toBe( 'paragraph' );
 } );
 
 test( 'editor state accepts custom props', function (): void {
@@ -29,7 +32,13 @@ test( 'editor state accepts custom props', function (): void {
 	$patterns  = [
 		[ 'name' => 'Hero', 'category' => 'header', 'blocks' => [] ],
 	];
-	$component = new EditorState(
+	$transforms = [
+		'paragraph' => [ 'heading' => [ 'content' => 'content' ] ],
+	];
+	$variations = [
+		'group' => [ [ 'name' => 'row', 'label' => 'Row' ] ],
+	];
+	$component  = new EditorState(
 		id: 'main-editor',
 		initialBlocks: $blocks,
 		maxHistorySize: 100,
@@ -43,6 +52,9 @@ test( 'editor state accepts custom props', function (): void {
 		documentStatus: 'scheduled',
 		scheduledDate: '2026-03-01 10:00',
 		patterns: $patterns,
+		blockTransforms: $transforms,
+		blockVariations: $variations,
+		defaultBlockType: 'heading',
 	);
 
 	expect( $component->uuid )->toContain( 'main-editor' );
@@ -58,6 +70,21 @@ test( 'editor state accepts custom props', function (): void {
 	expect( $component->documentStatus )->toBe( 'scheduled' );
 	expect( $component->scheduledDate )->toBe( '2026-03-01 10:00' );
 	expect( $component->patterns )->toBe( $patterns );
+	expect( $component->blockTransforms )->toBe( $transforms );
+	expect( $component->blockVariations )->toBe( $variations );
+	expect( $component->defaultBlockType )->toBe( 'heading' );
+} );
+
+test( 'editor state falls back to paragraph for empty default block type', function (): void {
+	$component = new EditorState( defaultBlockType: '' );
+
+	expect( $component->defaultBlockType )->toBe( 'paragraph' );
+} );
+
+test( 'editor state falls back to paragraph for whitespace-only default block type', function (): void {
+	$component = new EditorState( defaultBlockType: '   ' );
+
+	expect( $component->defaultBlockType )->toBe( 'paragraph' );
 } );
 
 test( 'editor state falls back to visual for invalid mode', function (): void {
@@ -96,6 +123,28 @@ test( 'editor state enforces minimum autosave interval', function (): void {
 	expect( $component->autosaveInterval )->toBe( 60 );
 } );
 
+test( 'save status map returns uppercase-keyed map', function (): void {
+	$map = EditorState::saveStatusMap();
+
+	expect( $map )->toBe( [
+		'SAVED'   => 'saved',
+		'UNSAVED' => 'unsaved',
+		'SAVING'  => 'saving',
+		'ERROR'   => 'error',
+	] );
+} );
+
+test( 'document status map returns uppercase-keyed map', function (): void {
+	$map = EditorState::documentStatusMap();
+
+	expect( $map )->toBe( [
+		'DRAFT'     => 'draft',
+		'PUBLISHED' => 'published',
+		'SCHEDULED' => 'scheduled',
+		'PENDING'   => 'pending',
+	] );
+} );
+
 test( 'editor state renders', function (): void {
 	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
 	expect( $view )->not->toBeNull();
@@ -109,4 +158,166 @@ test( 'editor state renders with slot content', function (): void {
 test( 'editor state renders with alpine store initialization', function (): void {
 	$this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' )
 		->assertSee( "Alpine.store( 'editor'", false );
+} );
+
+test( 'editor state renders save status constants as frozen object', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'SAVE_STATUS: Object.freeze(', false );
+	$view->assertSee( 'SAVED', false );
+	$view->assertSee( 'UNSAVED', false );
+	$view->assertSee( 'SAVING', false );
+	$view->assertSee( 'ERROR', false );
+} );
+
+test( 'editor state renders document status constants as frozen object', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'DOCUMENT_STATUS: Object.freeze(', false );
+	$view->assertSee( 'DRAFT', false );
+	$view->assertSee( 'PUBLISHED', false );
+	$view->assertSee( 'SCHEDULED', false );
+	$view->assertSee( 'PENDING', false );
+} );
+
+test( 'editor state uses save status constants instead of magic strings', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this.SAVE_STATUS.UNSAVED', false );
+	$view->assertSee( 'this.SAVE_STATUS.SAVING', false );
+	$view->assertSee( 'this.SAVE_STATUS.SAVED', false );
+	$view->assertSee( 'this.SAVE_STATUS.ERROR', false );
+} );
+
+test( 'editor state uses document status constants instead of magic strings', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this.DOCUMENT_STATUS.SCHEDULED', false );
+} );
+
+test( 'editor state renders save status transition map', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( '_saveTransitions:', false );
+	$view->assertSee( '_canTransitionTo(', false );
+} );
+
+test( 'editor state transition guards protect markDirty', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'markDirty()', false );
+	$view->assertSee( 'this._canTransitionTo( this.SAVE_STATUS.UNSAVED )', false );
+} );
+
+test( 'editor state transition guards protect markSaving', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this._canTransitionTo( this.SAVE_STATUS.SAVING )', false );
+} );
+
+test( 'editor state transition guards protect markSaved', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this._canTransitionTo( this.SAVE_STATUS.SAVED )', false );
+} );
+
+test( 'editor state transition guards protect markError', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this._canTransitionTo( this.SAVE_STATUS.ERROR )', false );
+} );
+
+test( 'editor state transition map allows unsaved to unsaved for idempotent markDirty', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( "unsaved: [ 'unsaved', 'saving' ]", false );
+} );
+
+test( 'editor state transition map blocks saving to unsaved', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	// saving should only allow transitions to saved or error, not unsaved
+	$view->assertSee( "saving: [ 'saved', 'error' ]", false );
+} );
+
+test( 'editor state initializes pendingDirty flag', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( '_pendingDirty: false', false );
+} );
+
+test( 'editor state markDirty sets pendingDirty when saving', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this.SAVE_STATUS.SAVING === this.saveStatus', false );
+	$view->assertSee( 'this._pendingDirty = true', false );
+} );
+
+test( 'editor state markSaving clears pendingDirty', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'markSaving()', false );
+	$view->assertSee( 'this._pendingDirty = false', false );
+} );
+
+test( 'editor state markSaved flushes pendingDirty to unsaved', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'if ( this._pendingDirty )', false );
+} );
+
+test( 'editor state renders toggleSidebar method', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'toggleSidebar()', false );
+	$view->assertSee( 'this.showSidebar = ! this.showSidebar', false );
+} );
+
+test( 'editor state renders toggleInserter method', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'toggleInserter()', false );
+	$view->assertSee( 'this.showInserter = ! this.showInserter', false );
+} );
+
+test( 'editor state renders openInserter method', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'openInserter()', false );
+} );
+
+test( 'editor state renders closeInserter method', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'closeInserter()', false );
+} );
+
+test( 'editor state renders defaultBlockType in store', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'defaultBlockType:', false );
+} );
+
+test( 'editor state renders custom defaultBlockType in store', function (): void {
+	$view = $this->blade( '<x-ve-editor-state default-block-type="heading">Content</x-ve-editor-state>' );
+
+	$view->assertSee( "defaultBlockType: 'heading'", false );
+} );
+
+test( 'editor state uses defaultBlockType instead of hardcoded paragraph in addBlock', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'type: block.type || this.defaultBlockType', false );
+} );
+
+test( 'editor state re-initialization resets pendingDirty', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'store._pendingDirty', false );
+} );
+
+test( 'editor state re-initialization updates defaultBlockType', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'store.defaultBlockType', false );
 } );

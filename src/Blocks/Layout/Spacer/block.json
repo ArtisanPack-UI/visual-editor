@@ -1,0 +1,33 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "spacer",
+	"name": "Spacer",
+	"description": "Add vertical space between blocks",
+	"icon": "arrows-up-down",
+	"category": "layout",
+	"keywords": ["space", "gap", "separator"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"height": {
+			"type": "string",
+			"source": "content",
+			"default": "40"
+		},
+		"unit": {
+			"type": "string",
+			"source": "content",
+			"default": "px"
+		}
+	},
+	"supports": {
+		"dimensions": {
+			"minHeight": true
+		},
+		"anchor": true,
+		"htmlId": true,
+		"className": true
+	}
+}

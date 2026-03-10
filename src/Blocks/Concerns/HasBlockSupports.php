@@ -31,7 +31,8 @@ trait HasBlockSupports
 	/**
 	 * Get the block's supported features.
 	 *
-	 * Override in subclasses to customize supported features.
+	 * Reads from block.json metadata when available, falls back
+	 * to default supports. Override in subclasses to customize.
 	 *
 	 * @since 1.0.0
 	 *
@@ -39,24 +40,11 @@ trait HasBlockSupports
 	 */
 	public function getSupports(): array
 	{
-		return [
-			'align'      => false,
-			'color'      => [
-				'text'       => false,
-				'background' => false,
-			],
-			'typography' => [
-				'fontSize'   => false,
-				'fontFamily' => false,
-			],
-			'spacing'    => [
-				'margin'  => false,
-				'padding' => false,
-			],
-			'border'     => false,
-			'anchor'     => true,
-			'className'  => true,
-		];
+		if ( property_exists( $this, 'metadata' ) && null !== $this->metadata && isset( $this->metadata['supports'] ) ) {
+			return $this->mergeSupportsWithDefaults( $this->metadata['supports'] );
+		}
+
+		return $this->getDefaultSupports();
 	}
 
 	/**
@@ -104,5 +92,100 @@ trait HasBlockSupports
 		}
 
 		return [];
+	}
+
+	/**
+	 * Get a flat list of active style-related supports using dot-path notation.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<int, string>
+	 */
+	public function getActiveStyleSupports(): array
+	{
+		$supports = $this->getSupports();
+		$active   = [];
+
+		$styleKeys = [ 'color', 'typography', 'spacing', 'border', 'shadow', 'dimensions', 'background' ];
+
+		foreach ( $styleKeys as $key ) {
+			if ( ! isset( $supports[ $key ] ) ) {
+				continue;
+			}
+
+			$value = $supports[ $key ];
+
+			if ( is_bool( $value ) && $value ) {
+				$active[] = $key;
+			} elseif ( is_array( $value ) ) {
+				foreach ( $value as $subKey => $subValue ) {
+					if ( $subValue ) {
+						$active[] = $key . '.' . $subKey;
+					}
+				}
+			}
+		}
+
+		return $active;
+	}
+
+	/**
+	 * Get the default supports array.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function getDefaultSupports(): array
+	{
+		return [
+			'align'          => false,
+			'textAlignment'  => false,
+			'textFormatting' => false,
+			'color'          => [
+				'text'       => false,
+				'background' => false,
+			],
+			'typography'     => [
+				'fontSize'   => false,
+				'fontFamily' => false,
+			],
+			'spacing'        => [
+				'margin'       => false,
+				'padding'      => false,
+				'blockSpacing' => false,
+			],
+			'border'         => false,
+			'shadow'         => false,
+			'dimensions'     => [
+				'aspectRatio' => false,
+				'minHeight'   => false,
+			],
+			'background'     => [
+				'backgroundImage'    => false,
+				'backgroundSize'     => false,
+				'backgroundPosition' => false,
+				'backgroundGradient' => false,
+			],
+			'anchor'         => false,
+			'htmlId'         => false,
+			'className'      => false,
+		];
+	}
+
+	/**
+	 * Merge block.json supports with defaults.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $supports The supports from block.json.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function mergeSupportsWithDefaults( array $supports ): array
+	{
+		$defaults = $this->getDefaultSupports();
+
+		return array_replace_recursive( $defaults, $supports );
 	}
 }

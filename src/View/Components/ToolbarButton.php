@@ -47,14 +47,15 @@ class ToolbarButton extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string|null $id       Optional custom ID.
-	 * @param string|null $label    Button label text.
-	 * @param string|null $icon     Icon name.
-	 * @param bool        $active   Whether the button is in active/pressed state.
-	 * @param bool        $disabled Whether the button is disabled.
-	 * @param string|null $tooltip  Tooltip text.
-	 * @param string|null $shortcut Keyboard shortcut display hint.
-	 * @param string      $variant  Button variant: default, active, destructive.
+	 * @param string|null $id              Optional custom ID.
+	 * @param string|null $label           Button label text.
+	 * @param string|null $icon            Icon name.
+	 * @param bool        $active          Whether the button is in active/pressed state.
+	 * @param bool        $disabled        Whether the button is disabled.
+	 * @param string|null $tooltip         Tooltip text.
+	 * @param string|null $shortcut        Keyboard shortcut display hint.
+	 * @param string      $variant         Button variant: default, active, destructive.
+	 * @param string      $tooltipPosition Tooltip position: top or bottom.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -65,11 +66,16 @@ class ToolbarButton extends Component
 		public ?string $tooltip = null,
 		public ?string $shortcut = null,
 		public string $variant = 'default',
+		public string $tooltipPosition = 'top',
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
 		if ( ! in_array( $this->variant, [ 'default', 'active', 'destructive' ], true ) ) {
 			$this->variant = 'default';
+		}
+
+		if ( ! in_array( $this->tooltipPosition, [ 'top', 'bottom' ], true ) ) {
+			$this->tooltipPosition = 'top';
 		}
 	}
 

@@ -218,6 +218,143 @@
 					} );
 				@endif
 
+				Alpine.store( 'shortcuts' ).register( 'selection/delete', {
+					keys: 'delete',
+					description: {!! Js::from( __( 'visual-editor::ve.delete_block' ) ) !!},
+					category: 'selection',
+					context: 'block',
+					callback: () => {
+						if ( sel.selected.length === 0 ) return;
+						const editor = Alpine.store( 'editor' );
+						if ( ! editor ) return;
+
+						const blockIds  = [ ...sel.selected ];
+						const focusedId = sel.focused;
+
+						// Determine whether the focused block is top-level or an inner block.
+						const focusedTopIndex = editor.getBlockIndex( focusedId );
+						const focusedParent   = editor.getParentBlock( focusedId );
+						let nextFocusId       = null;
+						let nextFocusIsInner  = false;
+
+						if ( focusedParent ) {
+							// Inner block: find previous sibling within the same parent.
+							const innerIndex = focusedParent.innerBlocks.findIndex( ( b ) => b.id === focusedId );
+							if ( innerIndex > 0 ) {
+								// Walk backwards to find a sibling not being deleted.
+								for ( let i = innerIndex - 1; i >= 0; i-- ) {
+									if ( ! blockIds.includes( focusedParent.innerBlocks[ i ].id ) ) {
+										nextFocusId      = focusedParent.innerBlocks[ i ].id;
+										nextFocusIsInner = true;
+										break;
+									}
+								}
+							}
+							if ( ! nextFocusId ) {
+								// No previous sibling — try next sibling.
+								for ( let i = innerIndex + 1; i < focusedParent.innerBlocks.length; i++ ) {
+									if ( ! blockIds.includes( focusedParent.innerBlocks[ i ].id ) ) {
+										nextFocusId      = focusedParent.innerBlocks[ i ].id;
+										nextFocusIsInner = true;
+										break;
+									}
+								}
+							}
+							if ( ! nextFocusId ) {
+								// All siblings deleted — focus the parent container.
+								nextFocusId = focusedParent.id;
+							}
+						} else if ( -1 !== focusedTopIndex ) {
+							// Top-level block.
+							if ( focusedTopIndex > 0 ) {
+								// Find nearest prior block not in the deletion set.
+								for ( let i = focusedTopIndex - 1; i >= 0; i-- ) {
+									if ( ! blockIds.includes( editor.blocks[ i ].id ) ) {
+										nextFocusId = editor.blocks[ i ].id;
+										break;
+									}
+								}
+							}
+							// If no prior non-deleted block found, search forward.
+							if ( ! nextFocusId && editor.blocks.length > blockIds.length ) {
+								for ( let i = focusedTopIndex + 1; i < editor.blocks.length; i++ ) {
+									if ( ! blockIds.includes( editor.blocks[ i ].id ) ) {
+										nextFocusId = editor.blocks[ i ].id;
+										break;
+									}
+								}
+							}
+						}
+
+						// Separate blocks into top-level and inner-block removals.
+						const topLevelIndices = [];
+						const innerRemovals   = [];
+
+						blockIds.forEach( ( id ) => {
+							const topIdx = editor.getBlockIndex( id );
+							if ( -1 !== topIdx ) {
+								topLevelIndices.push( topIdx );
+							} else {
+								const parent = editor.getParentBlock( id );
+								if ( parent ) {
+									innerRemovals.push( { parentId: parent.id, blockId: id } );
+								}
+							}
+						} );
+
+						if ( 0 === topLevelIndices.length && 0 === innerRemovals.length ) return;
+
+						editor._pushHistory();
+
+						// Remove inner blocks first (no index shifting concerns across parents).
+						innerRemovals.forEach( ( { parentId, blockId } ) => {
+							const parent = editor.getBlock( parentId );
+							if ( parent && parent.innerBlocks ) {
+								parent.innerBlocks = parent.innerBlocks.filter( ( b ) => b.id !== blockId );
+							}
+						} );
+
+						// Remove top-level blocks in reverse index order.
+						topLevelIndices.sort( ( a, b ) => b - a ).forEach( ( i ) => {
+							editor.blocks.splice( i, 1 );
+						} );
+
+						editor.markDirty();
+						editor._announceAction( {!! Js::from( __( 'visual-editor::ve.block_removed' ) ) !!} );
+						editor._dispatchChange();
+
+						sel.clearSelection();
+
+						// Move focus to the determined block.
+						if ( nextFocusId ) {
+							setTimeout( () => {
+								const selector = nextFocusIsInner
+									? '[data-inner-block-id=\'' + nextFocusId + '\']'
+									: '[data-block-id=\'' + nextFocusId + '\']';
+								const el = document.querySelector( selector );
+								if ( el ) {
+									const editable = el.querySelector( '[contenteditable]' );
+									if ( editable ) {
+										editable.focus();
+										// Place cursor at end.
+										const range = document.createRange();
+										range.selectNodeContents( editable );
+										range.collapse( false );
+										const s = window.getSelection();
+										if ( s ) {
+											s.removeAllRanges();
+											s.addRange( range );
+										}
+									} else {
+										el.focus();
+									}
+									sel.select( nextFocusId, false );
+								}
+							}, 50 );
+						}
+					},
+				} );
+
 				Alpine.store( 'shortcuts' ).register( 'selection/deselect', {
 					keys: 'escape',
 					description: {!! Js::from( __( 'visual-editor::ve.deselect' ) ) !!},

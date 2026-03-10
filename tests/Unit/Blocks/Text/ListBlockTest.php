@@ -16,21 +16,39 @@ test( 'list block has correct category', function (): void {
 	expect( $block->getCategory() )->toBe( 'text' );
 } );
 
-test( 'list block content schema has type and items fields', function (): void {
+test( 'list block content schema has start and reversed fields', function (): void {
 	$block  = new ListBlock();
 	$schema = $block->getContentSchema();
 
-	expect( $schema )->toHaveKey( 'type' );
-	expect( $schema )->toHaveKey( 'items' );
 	expect( $schema )->toHaveKey( 'start' );
 	expect( $schema )->toHaveKey( 'reversed' );
+	expect( $schema )->not->toHaveKey( 'items' );
+	expect( $schema )->not->toHaveKey( 'type' );
 } );
 
-test( 'list block defaults to unordered type', function (): void {
-	$block    = new ListBlock();
-	$defaults = $block->getDefaultContent();
+test( 'list block style schema has padding and margin fields', function (): void {
+	$block  = new ListBlock();
+	$schema = $block->getStyleSchema();
 
-	expect( $defaults['type'] )->toBe( 'unordered' );
+	expect( $schema )->toHaveKey( 'padding' );
+	expect( $schema )->toHaveKey( 'margin' );
+	expect( $schema['padding']['type'] )->toBe( 'spacing' );
+	expect( $schema['margin']['type'] )->toBe( 'spacing' );
+} );
+
+test( 'list block renders with padding and margin styles', function (): void {
+	$block  = new ListBlock();
+	$output = $block->render(
+		[ 'type' => 'unordered' ],
+		[
+			'padding' => [ 'top' => '6px', 'right' => '12px', 'bottom' => '6px', 'left' => '12px' ],
+			'margin'  => [ 'top' => '8px', 'bottom' => '8px' ],
+		],
+	);
+
+	expect( $output )->toContain( 'padding: 6px 12px 6px 12px' );
+	expect( $output )->toContain( 'margin-top: 8px' );
+	expect( $output )->toContain( 'margin-bottom: 8px' );
 } );
 
 test( 'list block transforms to paragraph', function (): void {
@@ -42,30 +60,45 @@ test( 'list block transforms to paragraph', function (): void {
 
 test( 'list block renders unordered list', function (): void {
 	$block  = new ListBlock();
-	$items  = [
-		[ 'text' => 'Item 1' ],
-		[ 'text' => 'Item 2' ],
-	];
-	$output = $block->render( [ 'type' => 'unordered', 'items' => $items ], [] );
+	$output = $block->render( [ 'type' => 'unordered' ], [] );
 
 	expect( $output )->toContain( '<ul' );
 	expect( $output )->toContain( '<li>' );
-	expect( $output )->toContain( 'Item 1' );
-	expect( $output )->toContain( 'Item 2' );
+	expect( $output )->toContain( 'list-disc' );
 } );
 
 test( 'list block renders ordered list', function (): void {
 	$block  = new ListBlock();
-	$items  = [ [ 'text' => 'First' ] ];
-	$output = $block->render( [ 'type' => 'ordered', 'items' => $items, 'start' => '1' ], [] );
+	$output = $block->render( [ 'type' => 'ordered', 'start' => '1' ], [] );
 
 	expect( $output )->toContain( '<ol' );
+	expect( $output )->toContain( 'list-decimal' );
 } );
 
 test( 'list block renders reversed ordered list', function (): void {
 	$block  = new ListBlock();
-	$items  = [ [ 'text' => 'Last' ] ];
-	$output = $block->render( [ 'type' => 'ordered', 'items' => $items, 'start' => '1', 'reversed' => true ], [] );
+	$output = $block->render( [ 'type' => 'ordered', 'start' => '1', 'reversed' => true ], [] );
 
 	expect( $output )->toContain( 'reversed' );
+} );
+
+test( 'list block renders with start number', function (): void {
+	$block  = new ListBlock();
+	$output = $block->render( [ 'type' => 'ordered', 'start' => '5' ], [] );
+
+	expect( $output )->toContain( 'start="5"' );
+} );
+
+test( 'list block renders editor template with contenteditable', function (): void {
+	$block  = new ListBlock();
+	$output = $block->renderEditor( [ 'type' => 'unordered' ], [] );
+
+	expect( $output )->toContain( 'contenteditable="true"' );
+	expect( $output )->toContain( 'data-placeholder' );
+} );
+
+test( 'list block has custom toolbar', function (): void {
+	$block = new ListBlock();
+
+	expect( $block->hasCustomToolbar() )->toBeTrue();
 } );

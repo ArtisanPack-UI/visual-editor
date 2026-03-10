@@ -1,0 +1,81 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "gallery",
+	"name": "Gallery",
+	"description": "Display multiple images in a grid",
+	"icon": "squares-2x2",
+	"category": "media",
+	"keywords": [
+		"images",
+		"photos",
+		"grid"
+	],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": [
+		"image"
+	],
+	"attributes": {
+		"linkBehavior": {
+			"type": "string",
+			"source": "content",
+			"default": "none"
+		},
+		"columns": {
+			"type": "object",
+			"source": "content",
+			"default": {
+				"mode": "global",
+				"global": 3,
+				"desktop": 3,
+				"tablet": 2,
+				"mobile": 1
+			}
+		},
+		"gap": {
+			"type": "number",
+			"source": "content",
+			"default": 1
+		},
+		"resolution": {
+			"type": "string",
+			"source": "content",
+			"default": "full"
+		},
+		"crop": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"randomizeOrder": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"openInNewTab": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"aspectRatio": {
+			"type": "string",
+			"source": "content",
+			"default": "original"
+		},
+		"align": {
+			"type": "string",
+			"source": "style",
+			"default": "none"
+		}
+	},
+	"supports": {
+		"align": [
+			"wide",
+			"full"
+		],
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

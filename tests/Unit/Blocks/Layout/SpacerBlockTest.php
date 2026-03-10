@@ -20,11 +20,13 @@ test( 'spacer block content schema has height and unit fields', function (): voi
 	expect( $schema['unit']['type'] )->toBe( 'select' );
 } );
 
-test( 'spacer block has empty style schema', function (): void {
+test( 'spacer block has auto-generated minHeight from supports', function (): void {
 	$block  = new SpacerBlock();
 	$schema = $block->getStyleSchema();
 
-	expect( $schema )->toBeEmpty();
+	expect( $schema )->toHaveKey( 'minHeight' );
+	expect( $schema['minHeight']['type'] )->toBe( 'unit' );
+	expect( $schema )->not->toHaveKey( 'textColor' );
 } );
 
 test( 'spacer block defaults to 40px height', function (): void {
@@ -56,4 +58,19 @@ test( 'spacer block has keywords', function (): void {
 
 	expect( $block->getKeywords() )->toContain( 'space' );
 	expect( $block->getKeywords() )->toContain( 'gap' );
+} );
+
+test( 'spacer block supports min height but not aspect ratio', function (): void {
+	$block = new SpacerBlock();
+
+	expect( $block->supportsFeature( 'dimensions.minHeight' ) )->toBeTrue();
+	expect( $block->supportsFeature( 'dimensions.aspectRatio' ) )->toBeFalse();
+} );
+
+test( 'spacer block active style supports include dimensions min height', function (): void {
+	$block  = new SpacerBlock();
+	$active = $block->getActiveStyleSupports();
+
+	expect( $active )->toContain( 'dimensions.minHeight' );
+	expect( $active )->not->toContain( 'dimensions.aspectRatio' );
 } );

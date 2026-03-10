@@ -3,6 +3,7 @@
 declare( strict_types=1 );
 
 use Tests\Unit\Blocks\Stubs\StubBlock;
+use Tests\Unit\Blocks\Stubs\StubContainerBlock;
 
 test( 'base block returns correct type', function (): void {
 	$block = new StubBlock();
@@ -73,6 +74,12 @@ test( 'base block returns null for allowed children by default', function (): vo
 	expect( $block->getAllowedChildren() )->toBeNull();
 } );
 
+test( 'base block returns empty variations by default', function (): void {
+	$block = new StubBlock();
+
+	expect( $block->getVariations() )->toBe( [] );
+} );
+
 test( 'base block returns transforms', function (): void {
 	$block = new StubBlock();
 
@@ -104,4 +111,65 @@ test( 'base block advanced schema includes anchor and className', function (): v
 
 	expect( $schema )->toHaveKey( 'anchor' );
 	expect( $schema )->toHaveKey( 'className' );
+} );
+
+test( 'base block advanced schema maps htmlId support to anchor key', function (): void {
+	$block  = new StubBlock();
+	$schema = $block->getAdvancedSchema();
+
+	expect( $schema )->toHaveKey( 'anchor' );
+	expect( $schema['anchor']['type'] )->toBe( 'text' );
+} );
+
+test( 'base block does not support inner blocks by default', function (): void {
+	$block = new StubBlock();
+
+	expect( $block->supportsInnerBlocks() )->toBeFalse();
+} );
+
+test( 'base block returns vertical inner blocks orientation by default', function (): void {
+	$block = new StubBlock();
+
+	expect( $block->getInnerBlocksOrientation() )->toBe( 'vertical' );
+} );
+
+test( 'base block does not have JS renderer by default', function (): void {
+	$block = new StubBlock();
+
+	expect( $block->hasJsRenderer() )->toBeFalse();
+} );
+
+test( 'container block supports inner blocks', function (): void {
+	$block = new StubContainerBlock();
+
+	expect( $block->supportsInnerBlocks() )->toBeTrue()
+		->and( $block->hasJsRenderer() )->toBeTrue()
+		->and( $block->getInnerBlocksOrientation() )->toBe( 'horizontal' );
+} );
+
+test( 'base block serializes to array', function (): void {
+	$block = new StubBlock();
+	$array = $block->toArray();
+
+	expect( $array )->toHaveKeys( [
+		'type', 'name', 'description', 'icon', 'category',
+		'keywords', 'public', 'supportsInnerBlocks',
+		'innerBlocksOrientation', 'allowedChildren',
+		'allowedParents', 'hasJsRenderer', 'hasCustomInspector',
+		'hasCustomToolbar', 'alignments', 'textAlignment',
+		'textFormatting',
+	] )
+		->and( $array['type'] )->toBe( 'stub' )
+		->and( $array['supportsInnerBlocks'] )->toBeFalse()
+		->and( $array['hasJsRenderer'] )->toBeFalse();
+} );
+
+test( 'container block toArray includes inner blocks metadata', function (): void {
+	$block = new StubContainerBlock();
+	$array = $block->toArray();
+
+	expect( $array['supportsInnerBlocks'] )->toBeTrue()
+		->and( $array['hasJsRenderer'] )->toBeTrue()
+		->and( $array['innerBlocksOrientation'] )->toBe( 'horizontal' )
+		->and( $array['allowedChildren'] )->toBe( [ 'stub', 'paragraph' ] );
 } );

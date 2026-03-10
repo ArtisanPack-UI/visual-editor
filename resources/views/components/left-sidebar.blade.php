@@ -25,8 +25,13 @@
 <div
 	id="{{ $uuid }}"
 	x-data="{
-		activeTab: {{ Js::from( $activeTab ) }},
+		activeTab: Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).leftSidebarTab : {{ Js::from( $activeTab ) }},
 	}"
+	x-effect="
+		if ( Alpine.store( 'editor' ) ) {
+			activeTab = Alpine.store( 'editor' ).leftSidebarTab;
+		}
+	"
 	{{ $attributes->merge( [ 'class' => 'flex flex-col h-full bg-base-100 overflow-hidden' ] ) }}
 	role="complementary"
 	aria-label="{{ $label ?? __( 'visual-editor::ve.left_sidebar' ) }}"
@@ -39,7 +44,7 @@
 					type="button"
 					class="flex-1 px-3 py-1.5 text-xs font-medium text-center rounded-t-lg transition-colors"
 					:class="'{{ $tab['slug'] }}' === activeTab ? 'bg-base-200 text-base-content border-b-2 border-primary' : 'text-base-content/50 hover:text-base-content/80 hover:bg-base-200/50'"
-					x-on:click="activeTab = '{{ $tab['slug'] }}'"
+					x-on:click="activeTab = '{{ $tab['slug'] }}'; if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).leftSidebarTab = '{{ $tab['slug'] }}'; }"
 					role="tab"
 					:aria-selected="'{{ $tab['slug'] }}' === activeTab"
 					aria-controls="{{ $uuid }}-{{ $tab['slug'] }}-panel"
@@ -53,7 +58,7 @@
 		<button
 			type="button"
 			class="btn btn-ghost btn-sm btn-square mr-1"
-			x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).showInserter = false; }"
+			x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).closeInserter(); }"
 			:aria-label="{{ Js::from( __( 'visual-editor::ve.close_sidebar' ) ) }}"
 		>
 			<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>

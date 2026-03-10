@@ -76,8 +76,18 @@ class BoxControl extends Component
 		public string|int|float $step = 1,
 		public ?string $hint = null,
 		public ?string $hintClass = 'fieldset-label',
+		public array $sides = [ 'top', 'right', 'bottom', 'left' ],
+		public array $values = [],
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
+
+		// Populate individual sides from the values array if provided.
+		if ( [] !== $values ) {
+			$this->top    = $values['top'] ?? $this->top;
+			$this->right  = $values['right'] ?? $this->right;
+			$this->bottom = $values['bottom'] ?? $this->bottom;
+			$this->left   = $values['left'] ?? $this->left;
+		}
 	}
 
 	/**

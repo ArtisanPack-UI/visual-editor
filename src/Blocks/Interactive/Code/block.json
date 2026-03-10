@@ -1,0 +1,50 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "code",
+	"name": "Code",
+	"description": "Display code with syntax highlighting",
+	"icon": "code-bracket",
+	"category": "interactive",
+	"keywords": ["code", "snippet", "programming", "syntax"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"content": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"language": {
+			"type": "string",
+			"source": "content",
+			"default": "plain"
+		},
+		"filename": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"showLineNumbers": {
+			"type": "boolean",
+			"source": "style",
+			"default": true
+		},
+		"highlightLines": {
+			"type": "string",
+			"source": "style",
+			"default": ""
+		},
+		"showCopyButton": {
+			"type": "boolean",
+			"source": "style",
+			"default": true
+		}
+	},
+	"supports": {
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

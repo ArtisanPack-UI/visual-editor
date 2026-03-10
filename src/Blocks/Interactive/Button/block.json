@@ -1,0 +1,89 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "button",
+	"name": "Button",
+	"description": "Add a call-to-action button",
+	"icon": "cursor-arrow-rays",
+	"category": "interactive",
+	"keywords": ["button", "link", "cta", "action"],
+	"version": 1,
+	"public": false,
+	"parent": ["buttons"],
+	"allowedChildren": null,
+	"attributes": {
+		"text": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"url": {
+			"type": "url",
+			"source": "content",
+			"default": ""
+		},
+		"linkTarget": {
+			"type": "string",
+			"source": "content",
+			"default": "_self"
+		},
+		"nofollow": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"sponsored": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"icon": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"iconPosition": {
+			"type": "string",
+			"source": "content",
+			"default": "left"
+		},
+		"color": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"size": {
+			"type": "string",
+			"source": "style",
+			"default": "md"
+		},
+		"variant": {
+			"type": "string",
+			"source": "style",
+			"default": "filled"
+		},
+		"borderRadius": {
+			"type": "string",
+			"source": "style",
+			"default": ""
+		},
+		"width": {
+			"type": "string",
+			"source": "style",
+			"default": "auto"
+		}
+	},
+	"supports": {
+		"color": {
+			"background": true
+		},
+		"shadow": true,
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

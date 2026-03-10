@@ -3,6 +3,7 @@
  *
  * The right-hand sidebar shell that hosts the block inserter panel
  * and block inspector panels with block/document tabs.
+ * The block panel includes sub-tabs for Settings, Styles, and Advanced.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Views\Components
@@ -14,6 +15,7 @@
 	id="{{ $uuid }}"
 	x-data="{
 		activeTab: {{ Js::from( $activeTab ) }},
+		activeBlockSubTab: {{ Js::from( $activeBlockSubTab ) }},
 	}"
 	{{ $attributes->merge( [ 'class' => 'flex flex-col h-full border-l border-base-300 bg-base-100 overflow-hidden' ] ) }}
 	role="complementary"
@@ -63,19 +65,79 @@
 	<div
 		id="{{ $uuid }}-block-panel"
 		x-show="'block' === activeTab"
-		class="flex-1 overflow-y-auto"
+		class="flex-1 flex flex-col overflow-hidden"
 		role="tabpanel"
 		tabindex="0"
 		aria-labelledby="{{ $uuid }}-block-tab"
 	>
-		{{ $blockPanel ?? '' }}
+		{{-- Block sub-tab switcher: Settings / Styles --}}
+		<div class="flex border-b border-base-300" role="tablist" aria-label="{{ __( 'visual-editor::ve.block_settings' ) }}">
+			<button
+				type="button"
+				id="{{ $uuid }}-settings-subtab"
+				class="flex-1 px-3 py-1.5 text-xs font-medium text-center transition-colors"
+				:class="'settings' === activeBlockSubTab ? 'text-primary border-b-2 border-primary' : 'text-base-content/60 hover:text-base-content'"
+				x-on:click="activeBlockSubTab = 'settings'; $nextTick( () => $el.focus() )"
+				x-on:keydown.arrow-right.prevent="activeBlockSubTab = 'styles'; $nextTick( () => document.getElementById( '{{ $uuid }}-styles-subtab' ).focus() )"
+				x-on:keydown.arrow-left.prevent="activeBlockSubTab = 'styles'; $nextTick( () => document.getElementById( '{{ $uuid }}-styles-subtab' ).focus() )"
+				x-on:keydown.home.prevent="activeBlockSubTab = 'settings'; $nextTick( () => $el.focus() )"
+				x-on:keydown.end.prevent="activeBlockSubTab = 'styles'; $nextTick( () => document.getElementById( '{{ $uuid }}-styles-subtab' ).focus() )"
+				role="tab"
+				:aria-selected="'settings' === activeBlockSubTab"
+				:tabindex="'settings' === activeBlockSubTab ? 0 : -1"
+				aria-controls="{{ $uuid }}-settings-subpanel"
+			>
+				{{ __( 'visual-editor::ve.settings_tab' ) }}
+			</button>
+			<button
+				type="button"
+				id="{{ $uuid }}-styles-subtab"
+				class="flex-1 px-3 py-1.5 text-xs font-medium text-center transition-colors"
+				:class="'styles' === activeBlockSubTab ? 'text-primary border-b-2 border-primary' : 'text-base-content/60 hover:text-base-content'"
+				x-on:click="activeBlockSubTab = 'styles'; $nextTick( () => $el.focus() )"
+				x-on:keydown.arrow-right.prevent="activeBlockSubTab = 'settings'; $nextTick( () => document.getElementById( '{{ $uuid }}-settings-subtab' ).focus() )"
+				x-on:keydown.arrow-left.prevent="activeBlockSubTab = 'settings'; $nextTick( () => document.getElementById( '{{ $uuid }}-settings-subtab' ).focus() )"
+				x-on:keydown.home.prevent="activeBlockSubTab = 'settings'; $nextTick( () => document.getElementById( '{{ $uuid }}-settings-subtab' ).focus() )"
+				x-on:keydown.end.prevent="activeBlockSubTab = 'styles'; $nextTick( () => $el.focus() )"
+				role="tab"
+				:aria-selected="'styles' === activeBlockSubTab"
+				:tabindex="'styles' === activeBlockSubTab ? 0 : -1"
+				aria-controls="{{ $uuid }}-styles-subpanel"
+			>
+				{{ __( 'visual-editor::ve.styles_tab' ) }}
+			</button>
+		</div>
+
+		{{-- Settings sub-panel --}}
+		<div
+			id="{{ $uuid }}-settings-subpanel"
+			x-show="'settings' === activeBlockSubTab"
+			class="flex-1 overflow-y-auto p-2"
+			role="tabpanel"
+			tabindex="0"
+			aria-labelledby="{{ $uuid }}-settings-subtab"
+		>
+			{{ $settingsPanel ?? $blockPanel ?? '' }}
+		</div>
+
+		{{-- Styles sub-panel --}}
+		<div
+			id="{{ $uuid }}-styles-subpanel"
+			x-show="'styles' === activeBlockSubTab"
+			class="flex-1 overflow-y-auto p-2"
+			role="tabpanel"
+			tabindex="0"
+			aria-labelledby="{{ $uuid }}-styles-subtab"
+		>
+			{{ $stylesPanel ?? '' }}
+		</div>
 	</div>
 
 	{{-- Document settings panel --}}
 	<div
 		id="{{ $uuid }}-document-panel"
 		x-show="'document' === activeTab"
-		class="flex-1 overflow-y-auto"
+		class="flex-1 overflow-y-auto p-2"
 		role="tabpanel"
 		tabindex="0"
 		aria-labelledby="{{ $uuid }}-document-tab"

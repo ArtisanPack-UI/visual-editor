@@ -1,0 +1,74 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "columns",
+	"name": "Columns",
+	"description": "Create multi-column layouts",
+	"icon": "view-columns",
+	"category": "layout",
+	"keywords": ["grid", "layout", "row", "columns"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": ["column"],
+	"supportsInnerBlocks": true,
+	"hasJsRenderer": true,
+	"innerBlocksOrientation": "horizontal",
+	"attributes": {
+		"columns": {
+			"type": "object",
+			"source": "content",
+			"default": {
+				"mode": "global",
+				"global": 2,
+				"desktop": 2,
+				"tablet": 2,
+				"mobile": 1
+			}
+		},
+		"layout": {
+			"type": "string",
+			"source": "content",
+			"default": "equal"
+		},
+		"isStacked": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"gap": {
+			"type": "string",
+			"source": "style",
+			"default": "medium"
+		},
+		"verticalAlignment": {
+			"type": "string",
+			"source": "style",
+			"default": "top"
+		},
+		"stackOnMobile": {
+			"type": "boolean",
+			"source": "style",
+			"default": true
+		},
+		"align": {
+			"type": "string",
+			"source": "style",
+			"default": "none"
+		}
+	},
+	"supports": {
+		"align": ["wide", "full"],
+		"dimensions": {
+			"minHeight": true
+		},
+		"background": {
+			"backgroundImage": true,
+			"backgroundSize": true,
+			"backgroundPosition": true,
+			"backgroundGradient": true
+		},
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

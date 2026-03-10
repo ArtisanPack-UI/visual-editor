@@ -81,8 +81,20 @@
 		insertBlock( blockType, blockLabel ) {
 			if ( Alpine.store( 'editor' ) ) {
 				const position = this.insertAt;
-				Alpine.store( 'editor' ).addBlock( { type: blockType }, position );
+				const blockDef = this.blocks.find( ( b ) => b.name === blockType );
+				const defaultInner = ( blockDef && blockDef.defaultInnerBlocks ) ? blockDef.defaultInnerBlocks : [];
+				const newBlock = Alpine.store( 'editor' ).addBlock( { type: blockType, innerBlocks: defaultInner }, position );
 				this._addToRecent( blockType );
+
+				if ( newBlock ) {
+					this.$nextTick( () => {
+						const el = document.querySelector( '[data-block-id="' + CSS.escape( newBlock.id ) + '"] [contenteditable]' );
+						if ( el ) { el.focus(); }
+						if ( Alpine.store( 'selection' ) ) {
+							Alpine.store( 'selection' ).select( newBlock.id, false );
+						}
+					} );
+				}
 
 				if ( Alpine.store( 'announcer' ) ) {
 					Alpine.store( 'announcer' ).announce(
@@ -215,7 +227,7 @@
 										$event.dataTransfer.setData( 'application/ve-block', JSON.stringify( {
 											type: block.name,
 											attributes: {},
-											innerBlocks: [],
+											innerBlocks: block.defaultInnerBlocks || [],
 										} ) );
 										$event.dataTransfer.effectAllowed = 'copy';
 									"

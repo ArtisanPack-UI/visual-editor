@@ -83,6 +83,18 @@ interface BlockInterface
 	public function getKeywords(): array;
 
 	/**
+	 * Get the block attributes from block.json.
+	 *
+	 * Returns the raw attribute declarations including type, source,
+	 * and default for each attribute.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function getAttributes(): array;
+
+	/**
 	 * Get the content field schema.
 	 *
 	 * @since 1.0.0
@@ -146,6 +158,23 @@ interface BlockInterface
 	public function getAllowedChildren(): ?array;
 
 	/**
+	 * Get available block variations.
+	 *
+	 * Each variation is an associative array with keys:
+	 * - name: string — unique variation identifier
+	 * - label: string — human-readable label
+	 * - description: string — short description
+	 * - icon: string — icon identifier
+	 * - attributes: array — default attribute overrides
+	 * - isDefault: bool — whether this is the default variation
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getVariations(): array;
+
+	/**
 	 * Get available block transforms.
 	 *
 	 * @since 1.0.0
@@ -159,26 +188,28 @@ interface BlockInterface
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array<string, mixed> $content The block content values.
-	 * @param array<string, mixed> $styles  The block style values.
-	 * @param array<string, mixed> $context Additional rendering context.
+	 * @param array<string, mixed> $content     The block content values.
+	 * @param array<string, mixed> $styles      The block style values.
+	 * @param array<string, mixed> $context     Additional rendering context.
+	 * @param array<int, string>   $innerBlocks Pre-rendered inner block HTML strings.
 	 *
 	 * @return string
 	 */
-	public function render( array $content, array $styles, array $context = [] ): string;
+	public function render( array $content, array $styles, array $context = [], array $innerBlocks = [] ): string;
 
 	/**
 	 * Render the block for the editor.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array<string, mixed> $content The block content values.
-	 * @param array<string, mixed> $styles  The block style values.
-	 * @param array<string, mixed> $context Additional rendering context.
+	 * @param array<string, mixed> $content     The block content values.
+	 * @param array<string, mixed> $styles      The block style values.
+	 * @param array<string, mixed> $context     Additional rendering context.
+	 * @param array<int, string>   $innerBlocks Pre-rendered inner block HTML strings.
 	 *
 	 * @return string
 	 */
-	public function renderEditor( array $content, array $styles, array $context = [] ): string;
+	public function renderEditor( array $content, array $styles, array $context = [], array $innerBlocks = [] ): string;
 
 	/**
 	 * Get the block schema version.
@@ -202,6 +233,18 @@ interface BlockInterface
 	public function migrate( array $content, int $fromVersion ): array;
 
 	/**
+	 * Get default inner blocks for this block type.
+	 *
+	 * Returns an array of inner block definitions that should be
+	 * automatically created when this block is inserted.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getDefaultInnerBlocks(): array;
+
+	/**
 	 * Whether this block should appear in the block inserter.
 	 *
 	 * @since 1.0.0
@@ -209,4 +252,110 @@ interface BlockInterface
 	 * @return bool
 	 */
 	public function isPublic(): bool;
+
+	/**
+	 * Get toolbar control declarations for the block.
+	 *
+	 * Returns an array of control groups with their controls
+	 * for rendering in the block toolbar.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getToolbarControls(): array;
+
+	/**
+	 * Get the supports configuration for this block.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function getSupports(): array;
+
+	/**
+	 * Get a flat list of active style-related supports.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<int, string>
+	 */
+	public function getActiveStyleSupports(): array;
+
+	/**
+	 * Check whether this block has a custom inspector view.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return bool
+	 */
+	public function hasCustomInspector(): bool;
+
+	/**
+	 * Render the custom inspector view for this block.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $data Data to pass to the inspector view.
+	 *
+	 * @return string
+	 */
+	public function renderInspector( array $data = [] ): string;
+
+	/**
+	 * Check whether this block has a custom toolbar view.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return bool
+	 */
+	public function hasCustomToolbar(): bool;
+
+	/**
+	 * Render the custom toolbar view for this block.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $data Data to pass to the toolbar view.
+	 *
+	 * @return string
+	 */
+	public function renderToolbar( array $data = [] ): string;
+
+	/**
+	 * Whether this block supports inner blocks.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return bool
+	 */
+	public function supportsInnerBlocks(): bool;
+
+	/**
+	 * Get the inner blocks orientation for container blocks.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return string 'vertical' or 'horizontal'
+	 */
+	public function getInnerBlocksOrientation(): string;
+
+	/**
+	 * Whether this block has a custom JavaScript renderer.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return bool
+	 */
+	public function hasJsRenderer(): bool;
+
+	/**
+	 * Get block metadata as an array for serialization.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function toArray(): array;
 }

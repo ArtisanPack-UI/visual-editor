@@ -9,6 +9,12 @@
  * @since      1.0.0
  --}}
 
+@php
+	use ArtisanPackUI\VisualEditor\View\Components\EditorState;
+
+	$savingStatus = EditorState::saveStatusMap()['SAVING'];
+@endphp
+
 <div
 	id="{{ $uuid }}"
 	x-data
@@ -23,12 +29,24 @@
 			<button
 				type="button"
 				class="btn btn-ghost btn-sm btn-square"
-				x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).showInserter = ! Alpine.store( 'editor' ).showInserter; }"
+				x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).leftSidebarTab = 'blocks'; Alpine.store( 'editor' ).toggleInserter(); }"
 				aria-label="{{ __( 'visual-editor::ve.toggle_inserter' ) }}"
 				:aria-pressed="Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).showInserter : false"
 			>
 				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true" focusable="false">
 					<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+				</svg>
+			</button>
+
+			<button
+				type="button"
+				class="btn btn-ghost btn-sm btn-square"
+				x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).openLayers(); }"
+				aria-label="{{ __( 'visual-editor::ve.open_layers' ) }}"
+				x-bind:class="Alpine.store( 'editor' ) && Alpine.store( 'editor' ).showInserter && 'layers' === Alpine.store( 'editor' ).leftSidebarTab ? 'bg-base-200' : ''"
+			>
+				<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true" focusable="false">
+					<path stroke-linecap="round" stroke-linejoin="round" d="M6.429 9.75 2.25 12l4.179 2.25m0-4.5 5.571 3 5.571-3m-11.142 0L2.25 7.5 12 2.25l9.75 5.25-4.179 2.25m0 0L12 12.75l-5.571-3m11.142 0 4.179 2.25L12 17.25l-9.75-5.25 4.179-2.25m11.142 0 4.179 2.25L12 22.5l-9.75-5.25 4.179-2.25" />
 				</svg>
 			</button>
 		@endif
@@ -77,13 +95,13 @@
 				type="button"
 				class="btn btn-primary btn-sm"
 				x-on:click="$dispatch( 've-save-request' )"
-				:disabled="Alpine.store( 'editor' ) && 'saving' === Alpine.store( 'editor' ).saveStatus"
+				:disabled="Alpine.store( 'editor' ) && {{ Js::from( $savingStatus ) }} === Alpine.store( 'editor' ).saveStatus"
 			>
 				<span
-					x-show="! ( Alpine.store( 'editor' ) && 'saving' === Alpine.store( 'editor' ).saveStatus )"
+					x-show="! ( Alpine.store( 'editor' ) && {{ Js::from( $savingStatus ) }} === Alpine.store( 'editor' ).saveStatus )"
 				>{{ __( 'visual-editor::ve.save' ) }}</span>
 				<span
-					x-show="Alpine.store( 'editor' ) && 'saving' === Alpine.store( 'editor' ).saveStatus"
+					x-show="Alpine.store( 'editor' ) && {{ Js::from( $savingStatus ) }} === Alpine.store( 'editor' ).saveStatus"
 					x-cloak
 				>{{ __( 'visual-editor::ve.saving' ) }}</span>
 			</button>
@@ -93,7 +111,7 @@
 			<button
 				type="button"
 				class="btn btn-ghost btn-sm btn-square"
-				x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).showSidebar = ! Alpine.store( 'editor' ).showSidebar; }"
+				x-on:click="if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).toggleSidebar(); }"
 				aria-label="{{ __( 'visual-editor::ve.toggle_sidebar' ) }}"
 				:aria-pressed="Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).showSidebar : false"
 			>

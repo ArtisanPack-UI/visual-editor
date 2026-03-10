@@ -10,6 +10,13 @@
  */
 
 return [
+	'persistence' => [
+		'draft_ttl'      => 86400,
+		'max_revisions'  => 50,
+	],
+
+	'user_model' => 'App\\Models\\User',
+
 	'blocks' => [
 		'core'     => [
 			'heading'   => true,
@@ -23,6 +30,8 @@ return [
 			'file'      => true,
 			'columns'   => true,
 			'column'    => true,
+			'grid'      => true,
+			'grid-item' => true,
 			'group'     => true,
 			'spacer'    => true,
 			'divider'   => true,

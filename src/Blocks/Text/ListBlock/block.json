@@ -1,0 +1,81 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "list",
+	"name": "List",
+	"description": "Create a bulleted or numbered list",
+	"icon": "list-bullet",
+	"category": "text",
+	"keywords": ["bullet", "ordered", "unordered", "ol", "ul"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"type": {
+			"type": "string",
+			"source": "content",
+			"default": "unordered"
+		},
+		"start": {
+			"type": "string",
+			"source": "content",
+			"default": "1"
+		},
+		"reversed": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontSize": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"border": {
+			"type": "object",
+			"source": "style",
+			"default": {
+				"width": "0",
+				"widthUnit": "px",
+				"style": "none",
+				"color": "#000000",
+				"radius": "0",
+				"radiusUnit": "px",
+				"perSide": false,
+				"perCorner": false
+			}
+		}
+	},
+	"supports": {
+		"textFormatting": true,
+		"color": {
+			"text": true
+		},
+		"typography": {
+			"fontSize": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"border": true,
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

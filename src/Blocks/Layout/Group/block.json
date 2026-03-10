@@ -1,0 +1,186 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "group",
+	"name": "Group",
+	"description": "Group blocks together with shared settings",
+	"icon": "rectangle-group",
+	"category": "layout",
+	"keywords": ["container", "section", "wrapper", "group"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"supportsInnerBlocks": true,
+	"hasJsRenderer": true,
+	"innerBlocksOrientation": "vertical",
+	"variations": [
+		{
+			"name": "group",
+			"icon": "rectangle-group",
+			"isDefault": true,
+			"attributes": {
+				"flexDirection": "column",
+				"flexWrap": "nowrap",
+				"_groupVariation": "group"
+			}
+		},
+		{
+			"name": "row",
+			"icon": "bars-3",
+			"isDefault": false,
+			"attributes": {
+				"flexDirection": "row",
+				"flexWrap": "nowrap",
+				"justifyContent": "flex-start",
+				"_groupVariation": "row"
+			}
+		},
+		{
+			"name": "stack",
+			"icon": "bars-3-bottom-left",
+			"isDefault": false,
+			"attributes": {
+				"flexDirection": "column",
+				"flexWrap": "nowrap",
+				"_groupVariation": "stack"
+			}
+		}
+	],
+	"attributes": {
+		"tag": {
+			"type": "string",
+			"source": "content",
+			"default": "div"
+		},
+		"flexDirection": {
+			"type": "string",
+			"source": "content",
+			"default": "column"
+		},
+		"flexWrap": {
+			"type": "string",
+			"source": "content",
+			"default": "nowrap"
+		},
+		"justifyContent": {
+			"type": "string",
+			"source": "content",
+			"default": "flex-start"
+		},
+		"useContentWidth": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"contentWidth": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"wideWidth": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"_groupVariation": {
+			"type": "string",
+			"source": "content",
+			"default": "group"
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"border": {
+			"type": "object",
+			"source": "style",
+			"default": {
+				"width": "0",
+				"widthUnit": "px",
+				"style": "none",
+				"color": "#000000",
+				"radius": "0",
+				"radiusUnit": "px",
+				"perSide": false,
+				"perCorner": false
+			}
+		},
+		"minHeight": {
+			"type": "string",
+			"source": "style",
+			"default": ""
+		},
+		"verticalAlignment": {
+			"type": "string",
+			"source": "style",
+			"default": "top"
+		},
+		"gap": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"align": {
+			"type": "string",
+			"source": "style",
+			"default": "none"
+		},
+		"useFlexbox": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"fillHeight": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"innerSpacing": {
+			"type": "string",
+			"source": "style",
+			"default": "normal"
+		}
+	},
+	"supports": {
+		"align": ["wide", "full"],
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true,
+			"blockGap": true
+		},
+		"border": true,
+		"shadow": true,
+		"dimensions": {
+			"minHeight": true
+		},
+		"background": {
+			"backgroundImage": true,
+			"backgroundSize": true,
+			"backgroundPosition": true,
+			"backgroundGradient": true
+		},
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

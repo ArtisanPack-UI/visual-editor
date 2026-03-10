@@ -61,7 +61,7 @@
 					type="button"
 					x-on:click="select( '{{ $option }}' )"
 					:class="selected === '{{ $option }}' ? 'bg-primary text-primary-content shadow-sm' : 'text-base-content/50 hover:text-base-content/80 hover:bg-base-300'"
-					class="relative flex items-center justify-center w-10 h-10 rounded-md transition-all"
+					class="relative flex items-center justify-center w-8 h-8 rounded-md transition-all"
 					role="radio"
 					:aria-checked="selected === '{{ $option }}' ? 'true' : 'false'"
 					aria-label="{{ ucfirst( $option ) }}"

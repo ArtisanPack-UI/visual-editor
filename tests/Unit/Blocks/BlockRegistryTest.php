@@ -4,6 +4,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Blocks\BlockRegistry;
 use Tests\Unit\Blocks\Stubs\StubBlock;
+use Tests\Unit\Blocks\Stubs\StubContainerBlock;
 
 test( 'registry can register a block', function (): void {
 	$registry = new BlockRegistry();
@@ -107,4 +108,74 @@ test( 'registry get categories returns unique categories', function (): void {
 
 	expect( $categories )->toContain( 'text' );
 	expect( $categories )->toHaveCount( 1 );
+} );
+
+test( 'registry rejects blocks with empty type', function (): void {
+	$registry = new BlockRegistry();
+	$block    = new class extends ArtisanPackUI\VisualEditor\Blocks\BaseBlock {
+		public function getContentSchema(): array
+		{
+		return [];
+		}
+
+		public function getStyleSchema(): array
+		{
+		return [];
+		}
+	};
+
+	$registry->register( $block );
+} )->throws( InvalidArgumentException::class, 'Block type must be a non-empty string.' );
+
+test( 'registry clear removes all blocks', function (): void {
+	$registry = new BlockRegistry();
+
+	$registry->register( new StubBlock() );
+	$registry->register( new StubContainerBlock() );
+
+	expect( $registry->all() )->toHaveCount( 2 );
+
+	$registry->clear();
+
+	expect( $registry->all() )->toBeEmpty();
+} );
+
+test( 'registry get container blocks filters correctly', function (): void {
+	$registry = new BlockRegistry();
+
+	$registry->register( new StubBlock() );
+	$registry->register( new StubContainerBlock() );
+
+	$containers = $registry->getContainerBlocks();
+
+	expect( $containers )->toHaveCount( 1 )
+		->and( $containers )->toHaveKey( 'stub-container' );
+} );
+
+test( 'registry get dynamic blocks filters correctly', function (): void {
+	$registry = new BlockRegistry();
+
+	$registry->register( new StubBlock() );
+	$registry->register( new StubContainerBlock() );
+
+	$dynamic = $registry->getDynamicBlocks();
+
+	expect( $dynamic )->toHaveCount( 1 )
+		->and( $dynamic )->toHaveKey( 'stub-container' );
+} );
+
+test( 'registry to array serializes all blocks', function (): void {
+	$registry = new BlockRegistry();
+
+	$registry->register( new StubBlock() );
+	$registry->register( new StubContainerBlock() );
+
+	$array = $registry->toArray();
+
+	expect( $array )->toHaveKeys( [ 'stub', 'stub-container' ] )
+		->and( $array['stub']['type'] )->toBe( 'stub' )
+		->and( $array['stub']['supportsInnerBlocks'] )->toBeFalse()
+		->and( $array['stub-container']['supportsInnerBlocks'] )->toBeTrue()
+		->and( $array['stub-container']['hasJsRenderer'] )->toBeTrue()
+		->and( $array['stub-container']['innerBlocksOrientation'] )->toBe( 'horizontal' );
 } );

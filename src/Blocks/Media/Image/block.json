@@ -1,0 +1,100 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "image",
+	"name": "Image",
+	"description": "Add an image to your content",
+	"icon": "photo",
+	"category": "media",
+	"keywords": ["photo", "picture", "img"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"url": {
+			"type": "url",
+			"source": "content",
+			"default": ""
+		},
+		"alt": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"caption": {
+			"type": "rich_text",
+			"source": "content",
+			"default": ""
+		},
+		"link": {
+			"type": "url",
+			"source": "content",
+			"default": ""
+		},
+		"linkTarget": {
+			"type": "string",
+			"source": "content",
+			"default": "_self"
+		},
+		"size": {
+			"type": "string",
+			"source": "style",
+			"default": "large"
+		},
+		"alignment": {
+			"type": "string",
+			"source": "style",
+			"default": "center"
+		},
+		"aspectRatio": {
+			"type": "string",
+			"source": "style",
+			"default": "original"
+		},
+		"width": {
+			"type": "string",
+			"source": "style",
+			"default": ""
+		},
+		"height": {
+			"type": "string",
+			"source": "style",
+			"default": ""
+		},
+		"resolution": {
+			"type": "string",
+			"source": "style",
+			"default": "full"
+		},
+		"rounded": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"shadow": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"objectFit": {
+			"type": "string",
+			"source": "style",
+			"default": "cover"
+		},
+		"align": {
+			"type": "string",
+			"source": "style",
+			"default": "none"
+		}
+	},
+	"supports": {
+		"align": true,
+		"shadow": true,
+		"dimensions": {
+			"aspectRatio": true
+		},
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

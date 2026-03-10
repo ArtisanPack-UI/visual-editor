@@ -113,6 +113,10 @@ class EditorState extends Component
 	 * @param string       $documentStatus   Initial document status: draft, published, scheduled, or pending.
 	 * @param string|null  $scheduledDate    Date/time string for scheduled publishing.
 	 * @param array<mixed> $patterns         Available patterns for the pattern browser.
+	 * @param array<mixed> $blockTransforms  Map of block type to available transform targets.
+	 * @param array<mixed> $blockVariations  Map of block type to available variations.
+	 * @param string       $defaultBlockType     The default block type used when adding blocks without an explicit type.
+	 * @param array<mixed> $defaultInnerBlocksMap Map of block type to default inner blocks created on insertion.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -128,6 +132,10 @@ class EditorState extends Component
 		public string $documentStatus = 'draft',
 		public ?string $scheduledDate = null,
 		public array $patterns = [],
+		public array $blockTransforms = [],
+		public array $blockVariations = [],
+		public string $defaultBlockType = 'paragraph',
+		public array $defaultInnerBlocksMap = [],
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
@@ -154,6 +162,40 @@ class EditorState extends Component
 		if ( $this->autosaveInterval < 1 ) {
 			$this->autosaveInterval = 60;
 		}
+
+		if ( '' === trim( $this->defaultBlockType ) ) {
+			$this->defaultBlockType = 'paragraph';
+		}
+	}
+
+	/**
+	 * Get the save statuses as an uppercase-keyed map for JavaScript.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, string>
+	 */
+	public static function saveStatusMap(): array
+	{
+		return array_combine(
+			array_map( 'strtoupper', self::SAVE_STATUSES ),
+			self::SAVE_STATUSES,
+		);
+	}
+
+	/**
+	 * Get the document statuses as an uppercase-keyed map for JavaScript.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, string>
+	 */
+	public static function documentStatusMap(): array
+	{
+		return array_combine(
+			array_map( 'strtoupper', self::DOCUMENT_STATUSES ),
+			self::DOCUMENT_STATUSES,
+		);
 	}
 
 	/**

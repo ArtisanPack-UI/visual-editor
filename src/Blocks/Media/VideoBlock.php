@@ -1,10 +1,10 @@
 <?php
 
 /**
- * Video Block.
+ * Video Block Alias.
  *
- * Embeds a video from YouTube, Vimeo, or self-hosted sources
- * with playback controls and responsive aspect ratio.
+ * Maintains backward compatibility for the old namespace.
+ * Use ArtisanPackUI\VisualEditor\Blocks\Media\Video\VideoBlock instead.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Blocks\Media
@@ -12,124 +12,34 @@
  * @author     Jacob Martella <me@jacobmartella.com>
  *
  * @since      1.0.0
+ * @deprecated 2.0.0 Use ArtisanPackUI\VisualEditor\Blocks\Media\Video\VideoBlock instead.
  */
 
 declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Blocks\Media;
 
-use ArtisanPackUI\VisualEditor\Blocks\BaseBlock;
+use ArtisanPackUI\VisualEditor\Blocks\Media\Video\VideoBlock as NewVideoBlock;
 
 /**
- * Video block for the visual editor.
+ * Backward-compatible alias for VideoBlock.
  *
- * @package    ArtisanPack_UI
- * @subpackage VisualEditor\Blocks\Media
+ * Overrides resolveBlockDirectory to point to the new co-located directory.
  *
  * @since      1.0.0
+ * @deprecated 2.0.0
  */
-class VideoBlock extends BaseBlock
+class VideoBlock extends NewVideoBlock
 {
-	protected string $type = 'video';
-
-	protected string $name = 'Video';
-
-	protected string $description = 'Embed a video from YouTube, Vimeo, or upload';
-
-	protected string $icon = 'video-camera';
-
-	protected string $category = 'media';
-
-	protected array $keywords = [ 'movie', 'film', 'youtube', 'vimeo' ];
-
 	/**
-	 * Get the content field schema.
+	 * Resolve the block directory to the new co-located location.
 	 *
-	 * @since 1.0.0
+	 * @since 2.0.0
 	 *
-	 * @return array<string, array<string, mixed>>
+	 * @return string
 	 */
-	public function getContentSchema(): array
+	protected function resolveBlockDirectory(): string
 	{
-		return [
-			'url'     => [
-				'type'    => 'url',
-				'label'   => __( 'visual-editor::ve.video_url' ),
-				'default' => '',
-			],
-			'caption' => [
-				'type'    => 'rich_text',
-				'label'   => __( 'visual-editor::ve.caption' ),
-				'toolbar' => [ 'bold', 'italic', 'link' ],
-				'default' => '',
-			],
-			'poster'  => [
-				'type'    => 'url',
-				'label'   => __( 'visual-editor::ve.poster_image' ),
-				'default' => '',
-			],
-		];
-	}
-
-	/**
-	 * Get the style field schema.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	public function getStyleSchema(): array
-	{
-		return [
-			'autoplay' => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.autoplay' ),
-				'default' => false,
-			],
-			'loop'     => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.loop' ),
-				'default' => false,
-			],
-			'muted'    => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.muted' ),
-				'default' => false,
-			],
-			'controls' => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.controls' ),
-				'default' => true,
-			],
-		];
-	}
-
-	/**
-	 * Get the block's supported features.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, mixed>
-	 */
-	public function getSupports(): array
-	{
-		return [
-			'align'      => [ 'wide', 'full' ],
-			'color'      => [
-				'text'       => false,
-				'background' => false,
-			],
-			'typography' => [
-				'fontSize'   => false,
-				'fontFamily' => false,
-			],
-			'spacing'    => [
-				'margin'  => false,
-				'padding' => false,
-			],
-			'border'     => false,
-			'anchor'     => true,
-			'className'  => true,
-		];
+		return __DIR__ . '/Video';
 	}
 }

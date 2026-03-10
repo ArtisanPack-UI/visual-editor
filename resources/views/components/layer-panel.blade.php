@@ -24,6 +24,26 @@
 			return Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).blocks : [];
 		},
 
+		/**
+		 * Flatten the block tree into a list with depth information.
+		 * This avoids Alpine.js deep reactivity issues with nested
+		 * x-for / x-if templates that don't re-evaluate when deeply
+		 * nested innerBlocks change.
+		 */
+		get flatBlocks() {
+			const list = [];
+			const walk = ( blocks, depth, parentId ) => {
+				blocks.forEach( ( block ) => {
+					list.push( { block, depth, parentId } );
+					if ( block.innerBlocks && block.innerBlocks.length > 0 ) {
+						walk( block.innerBlocks, depth + 1, block.id );
+					}
+				} );
+			};
+			walk( this.blocks, 0, null );
+			return list;
+		},
+
 		get headings() {
 			return this.blocks.filter( ( b ) => 'heading' === b.type );
 		},
@@ -64,11 +84,11 @@
 		getBlockLabel( block ) {
 			const type = 'string' === typeof block?.type && block.type.length > 0 ? block.type : '';
 			if ( 'heading' === type ) {
-				const content = ( block.attributes?.content || '' ).replace( /<[^>]*>/g, '' );
+				const content = ( block.attributes?.content || block.attributes?.text || '' ).replace( /<[^>]*>/g, '' );
 				return content || this.fallbackLabels.heading;
 			}
 			if ( 'paragraph' === type ) {
-				const content = ( block.attributes?.content || '' ).replace( /<[^>]*>/g, '' );
+				const content = ( block.attributes?.content || block.attributes?.text || '' ).replace( /<[^>]*>/g, '' );
 				return content.length > 40 ? content.substring( 0, 40 ) + '…' : content || this.fallbackLabels.paragraph;
 			}
 			if ( 'image' === type ) {
@@ -90,11 +110,95 @@
 				code: '</>',
 				table: '▦',
 				separator: '—',
+				columns: '▥',
+				column: '▐',
+				group: '☐',
 			};
 			return icons[ block.type ] || '◻';
 		},
+
+		{{-- Drag-and-drop state for the List View --}}
+		layerDraggingId: null,
+		layerDragOverId: null,
+		layerDraggingParentId: null,
+
+		handleLayerDragStart( event, block, parentId ) {
+			this.layerDraggingId = block.id;
+			this.layerDraggingParentId = parentId || null;
+			event.dataTransfer.setData( 'text/plain', block.id );
+			event.dataTransfer.effectAllowed = 'move';
+
+			{{-- Delay adding drag class for visual feedback --}}
+			requestAnimationFrame( () => {
+				event.target.classList.add( 'opacity-50' );
+			} );
+		},
+
+		handleLayerDragEnd( event ) {
+			event.target.classList.remove( 'opacity-50' );
+			this.layerDraggingId = null;
+			this.layerDragOverId = null;
+			this.layerDraggingParentId = null;
+		},
+
+		handleLayerDragOver( event, block ) {
+			event.preventDefault();
+			event.dataTransfer.dropEffect = 'move';
+			this.layerDragOverId = block.id;
+		},
+
+		handleLayerDrop( event, targetBlock, targetParentId ) {
+			event.preventDefault();
+			this.layerDragOverId = null;
+
+			if ( ! this.layerDraggingId || this.layerDraggingId === targetBlock.id ) return;
+
+			const store = Alpine.store( 'editor' );
+			if ( ! store ) return;
+
+			const dragParentId   = this.layerDraggingParentId;
+			targetParentId       = targetParentId || null;
+
+			if ( dragParentId && targetParentId && dragParentId === targetParentId ) {
+				{{-- Same parent: reorder within inner blocks --}}
+				const parent    = store.getBlock( dragParentId );
+				const targetIdx = parent?.innerBlocks?.findIndex( ( b ) => b.id === targetBlock.id ) ?? -1;
+				if ( -1 !== targetIdx ) {
+					store.moveInnerBlock( dragParentId, this.layerDraggingId, targetIdx );
+				}
+			} else if ( ! dragParentId && ! targetParentId ) {
+				{{-- Both top-level: reorder top-level blocks --}}
+				const targetIndex = store.getBlockIndex( targetBlock.id );
+				if ( -1 !== targetIndex ) {
+					store.moveBlock( this.layerDraggingId, targetIndex );
+				}
+			} else {
+				{{-- Cross-context: move between top-level and inner blocks --}}
+				const dragBlock = store.getBlock( this.layerDraggingId );
+				if ( ! dragBlock ) { this.layerDraggingId = null; return; }
+				const blockData = JSON.parse( JSON.stringify( dragBlock ) );
+
+				if ( dragParentId ) {
+					store.removeInnerBlock( dragParentId, this.layerDraggingId );
+				} else {
+					store.removeBlock( this.layerDraggingId );
+				}
+
+				if ( targetParentId ) {
+					const parent    = store.getBlock( targetParentId );
+					const targetIdx = parent?.innerBlocks?.findIndex( ( b ) => b.id === targetBlock.id ) ?? -1;
+					store.addInnerBlock( targetParentId, { type: blockData.type, attributes: blockData.attributes, innerBlocks: blockData.innerBlocks || [] }, -1 !== targetIdx ? targetIdx : null );
+				} else {
+					const targetIndex = store.getBlockIndex( targetBlock.id );
+					store.addBlock( { type: blockData.type, attributes: blockData.attributes, innerBlocks: blockData.innerBlocks || [] }, -1 !== targetIndex ? targetIndex : null );
+				}
+			}
+
+			this.layerDraggingId = null;
+			this.layerDraggingParentId = null;
+		},
 	}"
-	{{ $attributes->merge( [ 'class' => 'flex flex-col h-full' ] ) }}
+	{{ $attributes->merge( [ 'class' => 've-layer-panel flex flex-col h-full' ] ) }}
 	aria-label="{{ $label ?? __( 'visual-editor::ve.layer_panel' ) }}"
 >
 	{{-- Sub-tab switcher --}}
@@ -145,16 +249,31 @@
 		aria-labelledby="{{ $uuid }}-list-tab"
 	>
 		<div class="py-1">
-			<template x-for="( block, index ) in blocks" :key="block.id">
-				<button
-					type="button"
-					class="w-full text-left px-3 py-1.5 flex items-center gap-2 text-sm hover:bg-base-200 transition-colors"
-					:class="Alpine.store( 'selection' )?.focused === block.id ? 'bg-primary/10 text-primary' : 'text-base-content/70'"
-					x-on:click="selectBlock( block.id )"
+			<template x-for="entry in flatBlocks" :key="entry.block.id">
+				<div
+					draggable="true"
+					style="-webkit-user-drag: element; user-select: none;"
+					class="w-full text-left pr-3 py-1.5 flex items-center gap-2 text-sm hover:bg-base-200 transition-colors cursor-grab active:cursor-grabbing"
+					:style="'padding-left: ' + ( 0.75 + entry.depth * 1.25 ) + 'rem'"
+					:class="{
+						'bg-primary/10 text-primary': Alpine.store( 'selection' )?.focused === entry.block.id,
+						'text-base-content/70': Alpine.store( 'selection' )?.focused !== entry.block.id,
+						'border-t-2 border-primary': layerDragOverId === entry.block.id && layerDraggingId !== entry.block.id,
+					}"
+					x-on:click="selectBlock( entry.block.id )"
+					x-on:keydown.enter="selectBlock( entry.block.id )"
+					x-on:keydown.space.prevent="selectBlock( entry.block.id )"
+					x-on:dragstart.stop="handleLayerDragStart( $event, entry.block, entry.parentId )"
+					x-on:dragend="handleLayerDragEnd( $event )"
+					x-on:dragover="handleLayerDragOver( $event, entry.block )"
+					x-on:dragleave="layerDragOverId = null"
+					x-on:drop="handleLayerDrop( $event, entry.block, entry.parentId )"
+					role="button"
+					tabindex="0"
 				>
-					<span class="w-5 text-center text-xs opacity-50 shrink-0" x-text="getBlockIcon( block )"></span>
-					<span class="truncate" x-text="getBlockLabel( block )"></span>
-				</button>
+					<span class="w-5 text-center text-xs opacity-50 shrink-0 pointer-events-none" x-text="getBlockIcon( entry.block )"></span>
+					<span class="truncate pointer-events-none" x-text="getBlockLabel( entry.block )"></span>
+				</div>
 			</template>
 		</div>
 	</div>
@@ -181,7 +300,7 @@
 							:style="'padding-left: ' + ( ( ( heading.attributes?.level || 1 ) - 1 ) * 12 + 12 ) + 'px'"
 						>
 							<span class="badge badge-xs badge-outline shrink-0" x-text="'H' + ( heading.attributes?.level || 1 )"></span>
-							<span class="truncate" x-text="( heading.attributes?.content || '' ).replace( /<[^>]*>/g, '' ) || fallbackLabels.heading"></span>
+							<span class="truncate" x-text="( heading.attributes?.content || heading.attributes?.text || '' ).replace( /<[^>]*>/g, '' ) || fallbackLabels.heading"></span>
 						</button>
 					</template>
 				</div>

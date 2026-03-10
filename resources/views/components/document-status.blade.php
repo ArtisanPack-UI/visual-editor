@@ -11,11 +11,15 @@
  --}}
 
 @php
+	use ArtisanPackUI\VisualEditor\View\Components\EditorState;
+
+	$documentStatusConstants = EditorState::documentStatusMap();
+
 	$statuses = [
-		'draft'     => __( 'visual-editor::ve.status_draft' ),
-		'published' => __( 'visual-editor::ve.status_published' ),
-		'scheduled' => __( 'visual-editor::ve.status_scheduled' ),
-		'pending'   => __( 'visual-editor::ve.status_pending' ),
+		$documentStatusConstants['DRAFT']     => __( 'visual-editor::ve.status_draft' ),
+		$documentStatusConstants['PUBLISHED'] => __( 'visual-editor::ve.status_published' ),
+		$documentStatusConstants['SCHEDULED'] => __( 'visual-editor::ve.status_scheduled' ),
+		$documentStatusConstants['PENDING']   => __( 'visual-editor::ve.status_pending' ),
 	];
 
 	$statuses = function_exists( 'applyFilters' )
@@ -62,7 +66,7 @@
 	</div>
 
 	{{-- Conditional date/time picker for scheduled status --}}
-	<div x-show="'scheduled' === status" x-transition>
+	<div x-show="{{ Js::from( $documentStatusConstants['SCHEDULED'] ) }} === status" x-transition>
 		<label class="text-xs font-medium text-base-content/60">
 			{{ __( 'visual-editor::ve.schedule_date' ) }}
 		</label>

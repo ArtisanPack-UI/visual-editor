@@ -1,9 +1,10 @@
 <?php
 
 /**
- * Spacer Block.
+ * Spacer Block Alias.
  *
- * Adds vertical space between blocks with configurable height and unit.
+ * Maintains backward compatibility for the old namespace.
+ * Use ArtisanPackUI\VisualEditor\Blocks\Layout\Spacer\SpacerBlock instead.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Blocks\Layout
@@ -11,74 +12,34 @@
  * @author     Jacob Martella <me@jacobmartella.com>
  *
  * @since      1.0.0
+ * @deprecated 2.0.0 Use ArtisanPackUI\VisualEditor\Blocks\Layout\Spacer\SpacerBlock instead.
  */
 
 declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Blocks\Layout;
 
-use ArtisanPackUI\VisualEditor\Blocks\BaseBlock;
+use ArtisanPackUI\VisualEditor\Blocks\Layout\Spacer\SpacerBlock as NewSpacerBlock;
 
 /**
- * Spacer block for the visual editor.
+ * Backward-compatible alias for SpacerBlock.
  *
- * @package    ArtisanPack_UI
- * @subpackage VisualEditor\Blocks\Layout
+ * Overrides resolveBlockDirectory to point to the new co-located directory.
  *
  * @since      1.0.0
+ * @deprecated 2.0.0
  */
-class SpacerBlock extends BaseBlock
+class SpacerBlock extends NewSpacerBlock
 {
-	protected string $type = 'spacer';
-
-	protected string $name = 'Spacer';
-
-	protected string $description = 'Add vertical space between blocks';
-
-	protected string $icon = 'arrows-up-down';
-
-	protected string $category = 'layout';
-
-	protected array $keywords = [ 'space', 'gap', 'separator' ];
-
 	/**
-	 * Get the content field schema.
+	 * Resolve the block directory to the new co-located location.
 	 *
-	 * @since 1.0.0
+	 * @since 2.0.0
 	 *
-	 * @return array<string, array<string, mixed>>
+	 * @return string
 	 */
-	public function getContentSchema(): array
+	protected function resolveBlockDirectory(): string
 	{
-		return [
-			'height' => [
-				'type'    => 'text',
-				'label'   => __( 'visual-editor::ve.spacer_height' ),
-				'default' => '40',
-			],
-			'unit'   => [
-				'type'    => 'select',
-				'label'   => __( 'visual-editor::ve.unit' ),
-				'options' => [
-					'px'  => 'px',
-					'em'  => 'em',
-					'rem' => 'rem',
-					'vh'  => 'vh',
-				],
-				'default' => 'px',
-			],
-		];
-	}
-
-	/**
-	 * Get the style field schema.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<string, array<string, mixed>>
-	 */
-	public function getStyleSchema(): array
-	{
-		return [];
+		return __DIR__ . '/Spacer';
 	}
 }

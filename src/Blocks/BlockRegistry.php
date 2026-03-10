@@ -19,6 +19,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Blocks;
 
 use ArtisanPackUI\VisualEditor\Blocks\Contracts\BlockInterface;
+use InvalidArgumentException;
 
 /**
  * Registry for visual editor block types.
@@ -50,7 +51,13 @@ class BlockRegistry
 	 */
 	public function register( BlockInterface $block ): void
 	{
-		$this->blocks[ $block->getType() ] = $block;
+		$type = $block->getType();
+
+		if ( '' === $type ) {
+			throw new InvalidArgumentException( 'Block type must be a non-empty string.' );
+		}
+
+		$this->blocks[ $type ] = $block;
 
 		if ( function_exists( 'doAction' ) ) {
 			doAction( 'ap.visualEditor.block.registered', $block );
@@ -172,5 +179,65 @@ class BlockRegistry
 		);
 
 		return array_values( array_unique( $categories ) );
+	}
+
+	/**
+	 * Remove all registered blocks.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	public function clear(): void
+	{
+		$this->blocks = [];
+	}
+
+	/**
+	 * Get all blocks that support inner blocks (container blocks).
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<string, BlockInterface>
+	 */
+	public function getContainerBlocks(): array
+	{
+		return array_filter(
+			$this->all(),
+			fn ( BlockInterface $block ) => $block->supportsInnerBlocks(),
+		);
+	}
+
+	/**
+	 * Get all blocks that have a custom JavaScript renderer.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<string, BlockInterface>
+	 */
+	public function getDynamicBlocks(): array
+	{
+		return array_filter(
+			$this->all(),
+			fn ( BlockInterface $block ) => $block->hasJsRenderer(),
+		);
+	}
+
+	/**
+	 * Get block metadata as arrays for passing to JavaScript.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function toArray(): array
+	{
+		$result = [];
+
+		foreach ( $this->all() as $type => $block ) {
+			$result[ $type ] = $block->toArray();
+		}
+
+		return $result;
 	}
 }

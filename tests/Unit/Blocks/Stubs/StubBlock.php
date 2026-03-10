@@ -18,6 +18,9 @@ use ArtisanPackUI\VisualEditor\Blocks\BaseBlock;
 /**
  * A concrete stub block for testing BaseBlock functionality.
  *
+ * This block does not have a block.json and relies on class properties
+ * for backward compatibility testing.
+ *
  * @since 1.0.0
  */
 class StubBlock extends BaseBlock
@@ -106,22 +109,25 @@ class StubBlock extends BaseBlock
 	public function getSupports(): array
 	{
 		return [
-			'align'      => true,
-			'color'      => [
+			'align'          => true,
+			'textAlignment'  => false,
+			'textFormatting' => false,
+			'color'          => [
 				'text'       => true,
 				'background' => false,
 			],
-			'typography' => [
+			'typography'     => [
 				'fontSize'   => true,
 				'fontFamily' => false,
 			],
-			'spacing'    => [
+			'spacing'        => [
 				'margin'  => false,
 				'padding' => false,
 			],
-			'border'     => false,
-			'anchor'     => true,
-			'className'  => true,
+			'border'         => false,
+			'anchor'         => true,
+			'htmlId'         => true,
+			'className'      => true,
 		];
 	}
 }

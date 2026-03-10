@@ -16,20 +16,40 @@ test( 'paragraph block has correct category', function (): void {
 	expect( $block->getCategory() )->toBe( 'text' );
 } );
 
-test( 'paragraph block content schema has text field', function (): void {
+test( 'paragraph block content schema is empty for inline editing', function (): void {
 	$block  = new ParagraphBlock();
 	$schema = $block->getContentSchema();
 
-	expect( $schema )->toHaveKey( 'text' );
-	expect( $schema['text']['type'] )->toBe( 'rich_text' );
+	expect( $schema )->toBeEmpty();
 } );
 
-test( 'paragraph block style schema has drop cap field', function (): void {
+test( 'paragraph block style schema has color, font size, padding and margin fields', function (): void {
 	$block  = new ParagraphBlock();
 	$schema = $block->getStyleSchema();
 
-	expect( $schema )->toHaveKey( 'dropCap' );
-	expect( $schema['dropCap']['type'] )->toBe( 'toggle' );
+	expect( $schema )->toHaveKey( 'textColor' );
+	expect( $schema )->toHaveKey( 'backgroundColor' );
+	expect( $schema )->toHaveKey( 'fontSize' );
+	expect( $schema )->toHaveKey( 'padding' );
+	expect( $schema )->toHaveKey( 'margin' );
+	expect( $schema['padding']['type'] )->toBe( 'spacing' );
+	expect( $schema['margin']['type'] )->toBe( 'spacing' );
+} );
+
+test( 'paragraph block renders with padding and margin styles', function (): void {
+	$block  = new ParagraphBlock();
+	$output = $block->render(
+		[ 'text' => 'Spaced paragraph' ],
+		[
+			'alignment' => 'left',
+			'padding'   => [ 'top' => '8px', 'right' => '16px', 'bottom' => '8px', 'left' => '16px' ],
+			'margin'    => [ 'top' => '4px', 'bottom' => '12px' ],
+		],
+	);
+
+	expect( $output )->toContain( 'padding: 8px 16px 8px 16px' );
+	expect( $output )->toContain( 'margin-top: 4px' );
+	expect( $output )->toContain( 'margin-bottom: 12px' );
 } );
 
 test( 'paragraph block default styles include drop cap false', function (): void {
@@ -62,4 +82,18 @@ test( 'paragraph block renders with drop cap class', function (): void {
 	$output = $block->render( [ 'text' => 'Drop cap text' ], [ 'alignment' => 'left', 'dropCap' => true ] );
 
 	expect( $output )->toContain( 've-drop-cap' );
+} );
+
+test( 'paragraph block editor has enter new block attribute', function (): void {
+	$block  = new ParagraphBlock();
+	$output = $block->renderEditor( [ 'text' => 'Hello' ], [ 'alignment' => 'left' ] );
+
+	expect( $output )->toContain( 'data-ve-enter-new-block' );
+} );
+
+test( 'paragraph block editor has slash command attribute', function (): void {
+	$block  = new ParagraphBlock();
+	$output = $block->renderEditor( [ 'text' => 'Hello' ], [ 'alignment' => 'left' ] );
+
+	expect( $output )->toContain( 'data-ve-slash-command' );
 } );

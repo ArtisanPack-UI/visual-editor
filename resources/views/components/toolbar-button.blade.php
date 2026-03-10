@@ -11,7 +11,7 @@
  --}}
 
 @php
-	$baseClasses   = 'relative flex items-center justify-center rounded px-2 py-1.5 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary';
+	$baseClasses   = 'relative flex items-center justify-center rounded px-2.5 py-1.5 text-sm transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-primary';
 	if ( 'destructive' === $variant ) {
 		$activeClasses = $active
 			? 'bg-error/10 text-error'
@@ -53,7 +53,7 @@
 	@endif
 >
 	@if ( $icon )
-		<x-artisanpack-icon :name="$icon" class="w-4 h-4" />
+		<x-ve-icon :name="$icon" class="w-6 h-6" />
 	@endif
 
 	@if ( $label && ! $icon )
@@ -72,7 +72,7 @@
 			x-transition:leave="transition ease-in duration-75"
 			x-transition:leave-start="opacity-100 scale-100"
 			x-transition:leave-end="opacity-0 scale-95"
-			class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 z-50 pointer-events-none"
+			class="absolute {{ 'bottom' === $tooltipPosition ? 'top-full mt-2' : 'bottom-full mb-2' }} left-1/2 -translate-x-1/2 z-50 pointer-events-none"
 		>
 			<div class="rounded bg-neutral text-neutral-content text-xs px-2 py-1 whitespace-nowrap shadow-lg">
 				@if ( $tooltip )
