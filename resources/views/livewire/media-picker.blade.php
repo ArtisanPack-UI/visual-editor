@@ -65,6 +65,12 @@ new class extends Component
 	/>
 </div>
 
+<style>
+	.media-library-modal .modal-box {
+		max-width: 75rem;
+	}
+</style>
+
 <script>
 	function __veRegisterMediaListener() {
 		Livewire.on( 'media-selected', ( data ) => {
