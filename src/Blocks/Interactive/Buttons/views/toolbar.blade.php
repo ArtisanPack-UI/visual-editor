@@ -20,11 +20,11 @@
 		get justification() { return this.block?.attributes?.justification || 'left'; },
 		setJustification( value ) {
 			const blockId = Alpine.store( 'selection' )?.focused;
-			if ( blockId ) Alpine.store( 'editor' ).updateBlock( blockId, { justification: value } );
+			if ( blockId && Alpine.store( 'editor' ) ) Alpine.store( 'editor' ).updateBlock( blockId, { justification: value } );
 		},
 		addButton() {
 			const blockId = Alpine.store( 'selection' )?.focused;
-			if ( blockId ) Alpine.store( 'editor' ).addInnerBlock( blockId, { type: 'button' } );
+			if ( blockId && Alpine.store( 'editor' ) ) Alpine.store( 'editor' ).addInnerBlock( blockId, { type: 'button' } );
 		},
 	}"
 	class="relative flex items-center"

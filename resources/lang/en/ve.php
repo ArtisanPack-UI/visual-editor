@@ -581,6 +581,8 @@ return [
 	'caching_block_metadata' => 'Caching block metadata...',
 	'block_metadata_cached'  => 'Block metadata cached successfully (:count blocks).',
 	'block_cache_cleared'    => 'Block metadata cache cleared.',
+	'cache_dir_failed'       => 'Failed to create cache directory: :dir',
+	'cache_write_failed'     => 'Failed to write manifest file: :path',
 
 	// Document Saver
 	'document_saved'       => 'Document saved',

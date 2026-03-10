@@ -12,6 +12,7 @@
 
 <div
 	x-data="{
+		_uid: 've-img-link-' + Math.random().toString( 36 ).slice( 2, 10 ),
 		linkOpen: false,
 		linkUrl: '',
 		linkTarget: '_self',
@@ -122,11 +123,11 @@
 	>
 		<div class="space-y-2">
 			<div>
-				<label class="text-xs font-medium text-base-content/80 block mb-1" for="image-link-url">
+				<label class="text-xs font-medium text-base-content/80 block mb-1" :for="_uid + '-url'">
 					{{ __( 'visual-editor::ve.url' ) }}
 				</label>
 				<input
-					id="image-link-url"
+					:id="_uid + '-url'"
 					type="url"
 					class="input input-bordered input-sm w-full"
 					placeholder="{{ __( 'visual-editor::ve.url_placeholder' ) }}"
@@ -134,11 +135,11 @@
 				/>
 			</div>
 			<div>
-				<label class="text-xs font-medium text-base-content/80 block mb-1" for="image-link-target">
+				<label class="text-xs font-medium text-base-content/80 block mb-1" :for="_uid + '-target'">
 					{{ __( 'visual-editor::ve.link_target' ) }}
 				</label>
 				<select
-					id="image-link-target"
+					:id="_uid + '-target'"
 					class="select select-bordered select-sm w-full"
 					x-model="linkTarget"
 				>

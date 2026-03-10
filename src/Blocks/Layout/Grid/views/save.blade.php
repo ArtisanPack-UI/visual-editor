@@ -3,14 +3,14 @@
 	$columnsData = $content['columns'] ?? [ 'mode' => 'global', 'global' => 3, 'desktop' => 3, 'tablet' => 2, 'mobile' => 1 ];
 	if ( is_array( $columnsData ) ) {
 		$colMode     = $columnsData['mode'] ?? 'global';
-		$globalCols  = $columnsData['global'] ?? $columnsData['desktop'] ?? 3;
-		$desktopCols = ( 'responsive' === $colMode ) ? ( $columnsData['desktop'] ?? 3 ) : $globalCols;
-		$tabletCols  = ( 'responsive' === $colMode ) ? ( $columnsData['tablet'] ?? 2 ) : $globalCols;
-		$mobileCols  = ( 'responsive' === $colMode ) ? ( $columnsData['mobile'] ?? 1 ) : $globalCols;
+		$globalCols  = max( 1, min( 12, (int) ( $columnsData['global'] ?? $columnsData['desktop'] ?? 3 ) ) );
+		$desktopCols = ( 'responsive' === $colMode ) ? max( 1, min( 12, (int) ( $columnsData['desktop'] ?? 3 ) ) ) : $globalCols;
+		$tabletCols  = ( 'responsive' === $colMode ) ? max( 1, min( 12, (int) ( $columnsData['tablet'] ?? 2 ) ) ) : $globalCols;
+		$mobileCols  = ( 'responsive' === $colMode ) ? max( 1, min( 12, (int) ( $columnsData['mobile'] ?? 1 ) ) ) : $globalCols;
 	} else {
-		$desktopCols = $columnsData;
-		$tabletCols  = $columnsData;
-		$mobileCols  = $columnsData;
+		$desktopCols = max( 1, min( 12, (int) $columnsData ) );
+		$tabletCols  = $desktopCols;
+		$mobileCols  = $desktopCols;
 	}
 	$allowedAlignJustify = [ 'stretch', 'start', 'center', 'end', 'baseline' ];
 	$templateRows  = preg_match( '/^[a-zA-Z0-9\s\.\-%()\/ ]+$/', $content['templateRows'] ?? 'auto' ) ? $content['templateRows'] : 'auto';
@@ -23,7 +23,7 @@
 	$className     = $content['className'] ?? '';
 	$innerBlocks   = $innerBlocks ?? [];
 
-	$elementId = $htmlId ?: $anchor;
+	$elementId = veSanitizeHtmlId( $htmlId ?: $anchor );
 	$styleId   = $elementId ?: $gridId;
 
 	$gapMap = [

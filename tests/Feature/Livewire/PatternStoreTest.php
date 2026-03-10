@@ -74,6 +74,7 @@ it( 'does not save pattern for unauthenticated user', function (): void {
 } );
 
 it( 'loads a pattern and dispatches event', function (): void {
+	$user   = createTestUser();
 	$blocks = [
 		[ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Loaded' ] ],
 	];
@@ -84,23 +85,77 @@ it( 'loads a pattern and dispatches event', function (): void {
 		'blocks' => $blocks,
 	] );
 
-	Livewire::test( 'visual-editor::pattern-store' )
+	Livewire::actingAs( $user )
+		->test( 'visual-editor::pattern-store' )
 		->call( 'loadPattern', $pattern->id )
 		->assertDispatched( 've-pattern-loaded' );
 } );
 
-it( 'deletes a pattern and removes record', function (): void {
+it( 'does not load a pattern without auth', function (): void {
 	$pattern = Pattern::create( [
-		'name'   => 'Delete Me',
-		'slug'   => 'delete-me',
+		'name'   => 'Test Pattern',
+		'slug'   => 'test-pattern',
+		'blocks' => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Loaded' ] ] ],
+	] );
+
+	Livewire::test( 'visual-editor::pattern-store' )
+		->call( 'loadPattern', $pattern->id )
+		->assertNotDispatched( 've-pattern-loaded' );
+} );
+
+it( 'deletes a pattern and removes record', function (): void {
+	$user = createTestUser();
+
+	$pattern = Pattern::create( [
+		'name'    => 'Delete Me',
+		'slug'    => 'delete-me',
+		'blocks'  => [],
+		'user_id' => $user->id,
+	] );
+
+	Livewire::actingAs( $user )
+		->test( 'visual-editor::pattern-store' )
+		->call( 'deletePattern', $pattern->id )
+		->assertDispatched( 've-pattern-deleted' );
+
+	expect( Pattern::find( $pattern->id ) )->toBeNull();
+} );
+
+it( 'does not delete pattern for unauthenticated user', function (): void {
+	$pattern = Pattern::create( [
+		'name'   => 'Protected',
+		'slug'   => 'protected',
 		'blocks' => [],
 	] );
 
 	Livewire::test( 'visual-editor::pattern-store' )
 		->call( 'deletePattern', $pattern->id )
-		->assertDispatched( 've-pattern-deleted' );
+		->assertNotDispatched( 've-pattern-deleted' );
 
-	expect( Pattern::find( $pattern->id ) )->toBeNull();
+	expect( Pattern::find( $pattern->id ) )->not->toBeNull();
+} );
+
+it( 'does not delete pattern owned by another user', function (): void {
+	$user = createTestUser();
+
+	$otherUserId = DB::table( 'users' )->insertGetId( [
+		'name'       => 'Other User',
+		'email'      => 'other@example.com',
+		'created_at' => now(),
+		'updated_at' => now(),
+	] );
+
+	$pattern = Pattern::create( [
+		'name'    => 'Other User Pattern',
+		'slug'    => 'other-user-pattern',
+		'blocks'  => [],
+		'user_id' => $otherUserId,
+	] );
+
+	Livewire::actingAs( $user )
+		->test( 'visual-editor::pattern-store' )
+		->call( 'deletePattern', $pattern->id )
+		->assertForbidden();
 } );
 
 it( 'validates pattern name is required', function (): void {
@@ -126,7 +181,8 @@ it( 'returns computed patterns collection', function (): void {
 		'blocks' => [],
 	] );
 
-	Livewire::test( 'visual-editor::pattern-store' );
+	$component = Livewire::test( 'visual-editor::pattern-store' );
 
 	expect( Pattern::count() )->toBe( 2 );
+	expect( Pattern::orderBy( 'name' )->pluck( 'slug' )->toArray() )->toBe( [ 'pattern-a', 'pattern-b' ] );
 } );

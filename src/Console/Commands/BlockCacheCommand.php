@@ -68,13 +68,13 @@ class BlockCacheCommand extends Command
 		$dir = dirname( $path );
 
 		if ( ! is_dir( $dir ) && ! mkdir( $dir, 0755, true ) ) {
-			$this->components->error( "Failed to create cache directory: {$dir}" );
+			$this->components->error( __( 'visual-editor::ve.cache_dir_failed', [ 'dir' => $dir ] ) );
 
 			return self::FAILURE;
 		}
 
 		if ( false === file_put_contents( $path, $manifest ) ) {
-			$this->components->error( "Failed to write manifest file: {$path}" );
+			$this->components->error( __( 'visual-editor::ve.cache_write_failed', [ 'path' => $path ] ) );
 
 			return self::FAILURE;
 		}

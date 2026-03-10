@@ -17,51 +17,59 @@
 	$htmlId             = $content['htmlId'] ?? null;
 	$className          = $content['className'] ?? '';
 
-	$elementId = $htmlId ?: $anchor;
+	$elementId = veSanitizeHtmlId( $htmlId ?: $anchor );
 
 	$inlineStyles = '';
 	if ( $textColor ) {
+		$textColor = veSanitizeCssColor( $textColor );
 		$inlineStyles .= "color: {$textColor};";
 	}
 	if ( $bgColor ) {
+		$bgColor = veSanitizeCssColor( $bgColor );
 		$inlineStyles .= "background-color: {$bgColor};";
 	}
 
 	if ( is_array( $padding ) ) {
-		$top    = $padding['top'] ?? '0';
-		$right  = $padding['right'] ?? '0';
-		$bottom = $padding['bottom'] ?? '0';
-		$left   = $padding['left'] ?? '0';
+		$top    = veSanitizeCssDimension( $padding['top'] ?? '0' );
+		$right  = veSanitizeCssDimension( $padding['right'] ?? '0' );
+		$bottom = veSanitizeCssDimension( $padding['bottom'] ?? '0' );
+		$left   = veSanitizeCssDimension( $padding['left'] ?? '0' );
 		$inlineStyles .= " padding: {$top} {$right} {$bottom} {$left};";
 	}
 
 	if ( is_array( $margin ) ) {
-		$top    = $margin['top'] ?? '0';
-		$bottom = $margin['bottom'] ?? '0';
+		$top    = veSanitizeCssDimension( $margin['top'] ?? '0' );
+		$bottom = veSanitizeCssDimension( $margin['bottom'] ?? '0' );
 		$inlineStyles .= " margin-top: {$top}; margin-bottom: {$bottom};";
 	}
 
 	if ( is_array( $border ) && 'none' !== ( $border['style'] ?? 'none' ) ) {
-		$bWidth = ( $border['width'] ?? '0' ) . ( $border['widthUnit'] ?? 'px' );
-		$bStyle = $border['style'] ?? 'solid';
-		$bColor = $border['color'] ?? 'currentColor';
-		$inlineStyles .= " border: {$bWidth} {$bStyle} {$bColor};";
+		$bWidth     = veSanitizeCssDimension( $border['width'] ?? '0' );
+		$bWidthUnit = veSanitizeCssUnit( $border['widthUnit'] ?? 'px' );
+		$bStyle     = veSanitizeBorderStyle( $border['style'] ?? 'solid' );
+		$bColor     = veSanitizeCssColor( $border['color'] ?? 'currentColor', 'currentColor' );
+		$inlineStyles .= " border: {$bWidth}{$bWidthUnit} {$bStyle} {$bColor};";
 
 		$bRadius = $border['radius'] ?? '0';
 		if ( $bRadius && '0' !== $bRadius ) {
-			$bRadiusUnit = $border['radiusUnit'] ?? 'px';
+			$bRadius     = veSanitizeCssDimension( $bRadius );
+			$bRadiusUnit = veSanitizeCssUnit( $border['radiusUnit'] ?? 'px' );
 			$inlineStyles .= " border-radius: {$bRadius}{$bRadiusUnit};";
 		}
 	}
 
 	if ( $backgroundImage ) {
 		$inlineStyles .= " background-image: url('{$backgroundImage}');";
+		$allowedBgSizes = [ 'cover', 'contain', 'auto', 'inherit', 'initial', 'unset' ];
+		$backgroundSize = in_array( $backgroundSize, $allowedBgSizes, true ) ? $backgroundSize : veSanitizeCssDimension( $backgroundSize, 'cover' );
 		$inlineStyles .= " background-size: {$backgroundSize};";
+		$backgroundPosition = preg_match( '/^[a-zA-Z0-9\s%]+$/', $backgroundPosition ) ? $backgroundPosition : 'center center';
 		$inlineStyles .= " background-position: {$backgroundPosition};";
 	}
 
 	$quoteTextStyles = '';
 	if ( $blockSpacing ) {
+		$blockSpacing    = veSanitizeCssDimension( $blockSpacing );
 		$quoteTextStyles = "display: flex; flex-direction: column; gap: {$blockSpacing};";
 	}
 

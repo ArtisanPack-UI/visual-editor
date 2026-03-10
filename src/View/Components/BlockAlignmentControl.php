@@ -99,11 +99,8 @@ class BlockAlignmentControl extends Component
 	 */
 	protected function resolveOptions(): array
 	{
-		$options = $this->options;
-
-		if ( ! in_array( 'none', $options, true ) ) {
-			array_unshift( $options, 'none' );
-		}
+		$options = array_values( array_filter( $this->options, fn ( $opt ) => 'none' !== $opt ) );
+		array_unshift( $options, 'none' );
 
 		return $options;
 	}

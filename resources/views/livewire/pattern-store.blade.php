@@ -96,6 +96,10 @@ new class extends Component
 	 */
 	public function loadPattern( int $id ): void
 	{
+		if ( ! auth()->check() ) {
+			return;
+		}
+
 		$pattern = Pattern::findOrFail( $id );
 
 		$this->dispatch( 've-pattern-loaded', blocks: $pattern->blocks, name: $pattern->name );
@@ -112,7 +116,17 @@ new class extends Component
 	 */
 	public function deletePattern( int $id ): void
 	{
-		Pattern::findOrFail( $id )->delete();
+		if ( ! auth()->check() ) {
+			return;
+		}
+
+		$pattern = Pattern::findOrFail( $id );
+
+		if ( null !== $pattern->user_id && (int) $pattern->user_id !== (int) auth()->id() ) {
+			abort( 403 );
+		}
+
+		$pattern->delete();
 
 		unset( $this->patterns );
 
