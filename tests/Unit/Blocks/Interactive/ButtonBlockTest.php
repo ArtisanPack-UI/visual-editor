@@ -11,15 +11,15 @@ test( 'button block has correct type and category', function (): void {
 	expect( $block->getCategory() )->toBe( 'interactive' );
 } );
 
-test( 'button block content schema has text url and link fields', function (): void {
+test( 'button block content schema has icon fields only', function (): void {
 	$block  = new ButtonBlock();
 	$schema = $block->getContentSchema();
 
-	expect( $schema )->toHaveKey( 'text' );
-	expect( $schema )->toHaveKey( 'url' );
-	expect( $schema )->toHaveKey( 'linkTarget' );
 	expect( $schema )->toHaveKey( 'icon' );
 	expect( $schema )->toHaveKey( 'iconPosition' );
+	expect( $schema )->not->toHaveKey( 'text' );
+	expect( $schema )->not->toHaveKey( 'url' );
+	expect( $schema )->not->toHaveKey( 'linkTarget' );
 } );
 
 test( 'button block style schema has size variant and color fields', function (): void {
@@ -64,7 +64,28 @@ test( 'button block renders blank target with noopener', function (): void {
 	);
 
 	expect( $output )->toContain( 'target="_blank"' );
-	expect( $output )->toContain( 'rel="noopener noreferrer"' );
+	expect( $output )->toContain( 'rel="noopener"' );
+} );
+
+test( 'button block renders nofollow and sponsored rel attributes', function (): void {
+	$block  = new ButtonBlock();
+	$output = $block->render(
+		[ 'text' => 'Sponsored', 'url' => 'https://example.com', 'linkTarget' => '_blank', 'nofollow' => true, 'sponsored' => true ],
+		[ 'size' => 'md', 'variant' => 'filled' ],
+	);
+
+	expect( $output )->toContain( 'rel="noopener nofollow sponsored"' );
+} );
+
+test( 'button block renders nofollow without blank target', function (): void {
+	$block  = new ButtonBlock();
+	$output = $block->render(
+		[ 'text' => 'Nofollow', 'url' => 'https://example.com', 'linkTarget' => '_self', 'nofollow' => true ],
+		[ 'size' => 'md', 'variant' => 'filled' ],
+	);
+
+	expect( $output )->toContain( 'rel="nofollow"' );
+	expect( $output )->not->toContain( 'target=' );
 } );
 
 test( 'button block has keywords', function (): void {

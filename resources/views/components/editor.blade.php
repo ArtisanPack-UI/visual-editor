@@ -549,7 +549,11 @@
 					const meta = Alpine.store( 'blockRenderers' ).getMeta( block.type );
 					return meta?.textFormatting === true;
 				})()">
-					<div class="contents">
+					<div
+						class="contents"
+						x-data="veInlineLinkControl"
+						x-on:ve-inline-link-apply.stop="applyInlineLink( $event.detail )"
+					>
 						<div class="w-px h-4 bg-base-300" aria-hidden="true"></div>
 
 						<x-ve-toolbar-button
@@ -566,16 +570,17 @@
 							shortcut="Ctrl+I"
 							x-on:click="document.execCommand( 'italic', false, null )"
 						/>
-						<x-ve-toolbar-button
-							:label="__( 'Link' )"
-							icon="o-link"
-							:tooltip="__( 'Link' )"
-							shortcut="Ctrl+K"
-							x-on:click="
-								const url = prompt( '{{ __( 'Enter URL:' ) }}' );
-								if ( url ) { document.execCommand( 'createLink', false, url ); }
-							"
-						/>
+
+						<div class="relative">
+							<x-ve-toolbar-button
+								:label="__( 'Link' )"
+								icon="o-link"
+								:tooltip="__( 'Link' )"
+								shortcut="Ctrl+K"
+								x-on:click="openLinkPopover()"
+							/>
+							<x-ve-link-popover event-name="ve-inline-link-apply" />
+						</div>
 					</div>
 				</template>
 
@@ -597,6 +602,124 @@
 			{{-- Block renderer registry Alpine store --}}
 			<script>
 				document.addEventListener( 'alpine:init', () => {
+
+					/**
+					 * Inline link control for the text-formatting toolbar.
+					 *
+					 * Registered as Alpine.data so the complex logic (regex,
+					 * HTML string building) lives in a script tag instead of
+					 * an x-data attribute where it breaks the HTML parser.
+					 */
+					Alpine.data( 'veInlineLinkControl', () => ( {
+						linkPopoverOpen: false,
+						linkPopoverUrl: '',
+						linkPopoverNewTab: false,
+						linkPopoverNofollow: false,
+						linkPopoverSponsored: false,
+						_savedSelection: null,
+
+						_saveSelection() {
+							const sel = window.getSelection();
+							if ( sel && sel.rangeCount > 0 ) {
+								this._savedSelection = sel.getRangeAt( 0 ).cloneRange();
+							}
+						},
+
+						_restoreSelection() {
+							if ( ! this._savedSelection ) return;
+							const sel = window.getSelection();
+							sel.removeAllRanges();
+							sel.addRange( this._savedSelection );
+						},
+
+						_getActiveLink() {
+							const sel = window.getSelection();
+							if ( ! sel || ! sel.rangeCount ) return null;
+							let node = sel.anchorNode;
+							while ( node && node.nodeName !== 'A' ) {
+								node = node.parentElement;
+							}
+							return node;
+						},
+
+						openLinkPopover() {
+							this._saveSelection();
+							const existingLink = this._getActiveLink();
+							if ( existingLink ) {
+								this.linkPopoverUrl       = existingLink.href || '';
+								this.linkPopoverNewTab    = existingLink.target === '_blank';
+								const rel                 = ( existingLink.rel || '' ).toLowerCase();
+								this.linkPopoverNofollow  = rel.includes( 'nofollow' );
+								this.linkPopoverSponsored = rel.includes( 'sponsored' );
+							} else {
+								this.linkPopoverUrl       = '';
+								this.linkPopoverNewTab    = false;
+								this.linkPopoverNofollow  = false;
+								this.linkPopoverSponsored = false;
+							}
+							this.linkPopoverOpen = true;
+						},
+
+						_buildRelString( detail ) {
+							const parts = [];
+							if ( detail.newTab ) parts.push( 'noopener' );
+							if ( detail.nofollow ) parts.push( 'nofollow' );
+							if ( detail.sponsored ) parts.push( 'sponsored' );
+							return parts.join( ' ' );
+						},
+
+						_syncContentToStore( el ) {
+							const contentEl = el.closest( '[contenteditable]' );
+							const blockEl   = el.closest( '[data-block-id]' );
+							if ( contentEl && blockEl ) {
+								Alpine.store( 'editor' ).updateBlock(
+									blockEl.getAttribute( 'data-block-id' ),
+									{ text: contentEl.innerHTML },
+								);
+							}
+						},
+
+						applyInlineLink( detail ) {
+							this._restoreSelection();
+
+							if ( ! detail.url ) {
+								document.execCommand( 'unlink', false, null );
+								return;
+							}
+
+							const rel          = this._buildRelString( detail );
+							const existingLink = this._getActiveLink();
+
+							if ( existingLink ) {
+								existingLink.href = detail.url;
+								if ( detail.newTab ) {
+									existingLink.target = '_blank';
+								} else {
+									existingLink.removeAttribute( 'target' );
+								}
+								if ( rel ) {
+									existingLink.rel = rel;
+								} else {
+									existingLink.removeAttribute( 'rel' );
+								}
+								this._syncContentToStore( existingLink );
+							} else {
+								const sel  = window.getSelection();
+								const text = sel.toString() || detail.url;
+								const safe = detail.url.replace( /&/g, '&amp;' ).replace( /"/g, '&quot;' );
+
+								let attrs = 'href="' + safe + '"';
+								if ( detail.newTab ) attrs += ' target="_blank"';
+								if ( rel ) attrs += ' rel="' + rel + '"';
+
+								document.execCommand(
+									'insertHTML', false,
+									'<a ' + attrs + '>' + text + '</a>',
+								);
+							}
+						},
+					} ) );
+
 					Alpine.store( 'blockRenderers', {
 						renderers: {},
 						metadata: {{ Js::from( $blockMetadata ) }},

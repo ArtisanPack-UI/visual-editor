@@ -46,25 +46,6 @@ class ButtonBlock extends BaseBlock
 	public function getContentSchema(): array
 	{
 		return [
-			'text'         => [
-				'type'    => 'text',
-				'label'   => __( 'visual-editor::ve.button_text' ),
-				'default' => '',
-			],
-			'url'          => [
-				'type'    => 'url',
-				'label'   => __( 'visual-editor::ve.button_url' ),
-				'default' => '',
-			],
-			'linkTarget'   => [
-				'type'    => 'select',
-				'label'   => __( 'visual-editor::ve.link_target' ),
-				'options' => [
-					'_self'  => __( 'visual-editor::ve.same_window' ),
-					'_blank' => __( 'visual-editor::ve.new_window' ),
-				],
-				'default' => '_self',
-			],
 			'icon'         => [
 				'type'    => 'text',
 				'label'   => __( 'visual-editor::ve.button_icon' ),

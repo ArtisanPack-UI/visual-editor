@@ -792,6 +792,53 @@
 								}
 							} );
 
+							// Paste-as-link: when pasting a URL with text selected
+							// inside a contenteditable, wrap the selection in a link
+							// instead of replacing it. For button blocks, set the
+							// block's url attribute regardless of text selection.
+							el.addEventListener( 'paste', ( e ) => {
+								const text = ( e.clipboardData || window.clipboardData ).getData( 'text/plain' ).trim();
+								if ( ! text ) return;
+
+								// Quick URL check.
+								try { new URL( text ); } catch { return; }
+
+								const blockEl = e.target.closest( '[data-block-id]' );
+								if ( ! blockEl ) return;
+
+								const store   = Alpine.store( 'editor' );
+								const blockId = blockEl.getAttribute( 'data-block-id' );
+								const block   = store ? store.getBlock( blockId ) : null;
+								if ( ! block ) return;
+
+								// Button block: always set the url attribute.
+								if ( 'button' === block.type ) {
+									e.preventDefault();
+									store.updateBlock( blockId, { url: text } );
+									return;
+								}
+
+								// Inner button block (child of buttons container).
+								const innerWrapper = e.target.closest( '[data-inner-block-id]' );
+								if ( innerWrapper ) {
+									const innerBlockId = innerWrapper.getAttribute( 'data-inner-block-id' );
+									const innerBlock   = store.getBlock( innerBlockId );
+									if ( innerBlock && 'button' === innerBlock.type ) {
+										e.preventDefault();
+										store.updateBlock( innerBlockId, { url: text } );
+										return;
+									}
+								}
+
+								// Text blocks: only convert when there is a non-collapsed selection.
+								if ( ! e.target.hasAttribute( 'contenteditable' ) ) return;
+								const sel = window.getSelection();
+								if ( ! sel || sel.isCollapsed ) return;
+
+								e.preventDefault();
+								document.execCommand( 'createLink', false, text );
+							} );
+
 						},
 
 						/**

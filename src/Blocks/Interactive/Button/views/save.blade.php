@@ -43,7 +43,20 @@
 		$classes .= " {$className}";
 	}
 
-	$relAttr = '_blank' === $linkTarget ? 'noopener noreferrer' : null;
+	$nofollow  = $content['nofollow'] ?? false;
+	$sponsored = $content['sponsored'] ?? false;
+
+	$relParts = [];
+	if ( '_blank' === $linkTarget ) {
+		$relParts[] = 'noopener';
+	}
+	if ( $nofollow ) {
+		$relParts[] = 'nofollow';
+	}
+	if ( $sponsored ) {
+		$relParts[] = 'sponsored';
+	}
+	$relAttr = ! empty( $relParts ) ? implode( ' ', $relParts ) : null;
 @endphp
 
 <a

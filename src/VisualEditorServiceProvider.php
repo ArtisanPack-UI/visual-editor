@@ -55,6 +55,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		'block-alignment-control'  => Components\BlockAlignmentControl::class,
 		'color-system'             => Components\ColorSystem::class,
 		'link-control'             => Components\LinkControl::class,
+		'link-popover'             => Components\LinkPopover::class,
 		'range-control'            => Components\RangeControl::class,
 		'responsive-range-control' => Components\ResponsiveRangeControl::class,
 		'angle-control'            => Components\AngleControl::class,

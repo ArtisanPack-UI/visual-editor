@@ -110,13 +110,16 @@ return [
 	'no_shortcuts_registered'  => 'No shortcuts registered.',
 
 	// Link Control
-	'url_placeholder' => 'https://example.com',
-	'url'             => 'URL',
-	'link_options'    => 'Link options',
-	'link_text'       => 'Link text',
-	'enter_link_text' => 'Enter link text...',
-	'open_in_new_tab' => 'Open in new tab',
-	'add_nofollow'    => 'Add nofollow',
+	'url_placeholder'        => 'https://example.com',
+	'url'                    => 'URL',
+	'link_options'           => 'Link options',
+	'link_text'              => 'Link text',
+	'enter_link_text'        => 'Enter link text...',
+	'open_in_new_tab'        => 'Open in new tab',
+	'add_nofollow'           => 'Add nofollow',
+	'advanced'               => 'Advanced',
+	'search_engines_nofollow' => 'Search engines should ignore this link (mark as :tag)',
+	'sponsored_link'         => 'This is a sponsored link or advert (mark as :tag)',
 
 	// Range Control
 	'range' => 'Range',

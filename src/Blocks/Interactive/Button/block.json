@@ -26,6 +26,16 @@
 			"source": "content",
 			"default": "_self"
 		},
+		"nofollow": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"sponsored": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
 		"icon": {
 			"type": "string",
 			"source": "content",
