@@ -25,8 +25,13 @@
 <div
 	id="{{ $uuid }}"
 	x-data="{
-		activeTab: {{ Js::from( $activeTab ) }},
+		activeTab: Alpine.store( 'editor' ) ? Alpine.store( 'editor' ).leftSidebarTab : {{ Js::from( $activeTab ) }},
 	}"
+	x-effect="
+		if ( Alpine.store( 'editor' ) ) {
+			activeTab = Alpine.store( 'editor' ).leftSidebarTab;
+		}
+	"
 	{{ $attributes->merge( [ 'class' => 'flex flex-col h-full bg-base-100 overflow-hidden' ] ) }}
 	role="complementary"
 	aria-label="{{ $label ?? __( 'visual-editor::ve.left_sidebar' ) }}"
@@ -39,7 +44,7 @@
 					type="button"
 					class="flex-1 px-3 py-1.5 text-xs font-medium text-center rounded-t-lg transition-colors"
 					:class="'{{ $tab['slug'] }}' === activeTab ? 'bg-base-200 text-base-content border-b-2 border-primary' : 'text-base-content/50 hover:text-base-content/80 hover:bg-base-200/50'"
-					x-on:click="activeTab = '{{ $tab['slug'] }}'"
+					x-on:click="activeTab = '{{ $tab['slug'] }}'; if ( Alpine.store( 'editor' ) ) { Alpine.store( 'editor' ).leftSidebarTab = '{{ $tab['slug'] }}'; }"
 					role="tab"
 					:aria-selected="'{{ $tab['slug'] }}' === activeTab"
 					aria-controls="{{ $uuid }}-{{ $tab['slug'] }}-panel"

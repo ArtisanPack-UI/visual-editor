@@ -473,6 +473,11 @@
 					this.showInserter = false;
 				},
 
+				openLayers() {
+					this.leftSidebarTab = 'layers';
+					this.showInserter   = true;
+				},
+
 				{{-- ── Document Status ────────────────────────────────── --}}
 
 				setDocumentStatus( status ) {

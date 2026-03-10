@@ -195,6 +195,7 @@ return [
 	'click_to_insert'      => 'Click to insert :block',
 	'block_inserted'       => ':block block inserted',
 	'toggle_inserter'      => 'Toggle block inserter',
+	'open_layers'          => 'Open layers',
 
 	// Editor Layout / Toolbars / Status Bar
 	'visual_editor'     => 'Visual editor',
