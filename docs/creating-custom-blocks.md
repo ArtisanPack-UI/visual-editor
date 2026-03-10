@@ -83,6 +83,8 @@ Blocks are organized into these categories:
 | `media` | `Media/` | Media blocks (Image, Video, Audio, File, Gallery) |
 | `layout` | `Layout/` | Layout/container blocks (Group, Columns, Grid, Spacer) |
 | `interactive` | `Interactive/` | Interactive blocks (Button, Code) |
+| `embed` | `Embed/` | Embedded content blocks |
+| `dynamic` | `Dynamic/` | Dynamic/server-rendered blocks |
 
 You can use any of these existing categories or define your own category string.
 
@@ -102,6 +104,7 @@ The `block.json` file is the single source of truth for your block's identity, a
 
 ```json
 {
+    "$schema": "../../block-schema.json",
     "type": "alert",
     "name": "Alert",
     "description": "Display an alert or notice message",
@@ -135,6 +138,7 @@ The `block.json` file is the single source of truth for your block's identity, a
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
+| `$schema` | `string` | No | Path to the JSON schema for IDE validation (e.g., `"../../block-schema.json"`). |
 | `type` | `string` | Yes | Unique block type identifier (kebab-case). Used as the registry key. |
 | `name` | `string` | Yes | Human-readable block name shown in the inserter. |
 | `description` | `string` | Yes | Short description shown in the inserter tooltip. |
@@ -200,20 +204,10 @@ class AlertBlock extends BaseBlock
             ],
         ];
     }
-
-    /**
-     * Get the style field schema.
-     *
-     * @since 1.0.0
-     *
-     * @return array<string, array<string, mixed>>
-     */
-    public function getStyleSchema(): array
-    {
-        return [];
-    }
 }
 ```
+
+> **Note:** You do **not** need to override `getStyleSchema()` if your block only uses supports-driven style fields (colors, spacing, border, etc.). `BaseBlock` auto-generates the style schema from your `block.json` supports. Only override `getStyleSchema()` when you need custom style fields that go beyond what supports provide. See [Content & Style Schemas](#content--style-schemas) for details.
 
 ### What BaseBlock Provides For Free
 
@@ -230,10 +224,11 @@ This means `getType()`, `getName()`, `getDescription()`, `getIcon()`, `getCatego
 | Method | When to Override |
 |--------|-----------------|
 | `getContentSchema()` | **Always** -- defines the inspector panel content fields |
-| `getStyleSchema()` | **Always** -- defines the inspector panel style fields (return `[]` if none) |
+| `getStyleSchema()` | Only when you need **custom** style fields beyond what supports auto-generates. The base implementation auto-generates style schema from your `block.json` supports (colors, spacing, border, shadow, dimensions, background). If you override, merge with `parent::getStyleSchema()` to keep auto-generated fields. |
 | `getToolbarControls()` | When adding custom toolbar buttons beyond the default alignment control |
 | `getVariations()` | When offering preset configurations (e.g., Group vs Row vs Stack) |
 | `getTransforms()` | When allowing conversion to/from other block types |
+| `getDefaultInnerBlocks()` | When a container block should be pre-populated with child blocks on insertion |
 | `migrate()` | When you bump the schema version and need to migrate old content |
 
 ### Methods You Rarely Need to Override
@@ -243,6 +238,7 @@ This means `getType()`, `getName()`, `getDescription()`, `getIcon()`, `getCatego
 | `getType()` | Reads `type` from `block.json` |
 | `getName()` | Reads `name` from `block.json` (with translation key fallback) |
 | `getDescription()` | Reads `description` from `block.json` (with translation key fallback) |
+| `getStyleSchema()` | Auto-generates style fields from `block.json` supports via `generateSupportsStyleSchema()` |
 | `render()` | Renders the `save.blade.php` view |
 | `renderEditor()` | Renders the `edit.blade.php` view |
 | `getAdvancedSchema()` | Auto-generates anchor/className fields based on supports |
@@ -573,7 +569,50 @@ This separation allows the inspector panel to organize fields into logical tabs.
 
 ## Content & Style Schemas
 
-Schemas define how the inspector panel renders controls for editing block attributes. The `getContentSchema()` and `getStyleSchema()` methods return arrays of field definitions.
+Schemas define how the inspector panel renders controls for editing block attributes. The `getContentSchema()` method returns content field definitions, while `getStyleSchema()` returns style field definitions.
+
+### Style Schema Auto-Generation
+
+**Important:** `BaseBlock` automatically generates style schema entries from your `block.json` supports. When you enable a support like `color.text`, `spacing.padding`, or `border`, the corresponding inspector controls are auto-generated -- you do **not** need to manually define them in `getStyleSchema()`.
+
+For example, if your `block.json` has:
+
+```json
+{
+    "supports": {
+        "color": { "text": true, "background": true },
+        "spacing": { "padding": true }
+    }
+}
+```
+
+Then `getStyleSchema()` will automatically return textColor, backgroundColor, and padding fields without any code in your block class.
+
+**Only override `getStyleSchema()` when you need custom style fields** that go beyond what supports provide. When you do override, merge with the parent to preserve auto-generated fields:
+
+```php
+public function getStyleSchema(): array
+{
+    // Start with auto-generated fields from supports
+    $schema = parent::getStyleSchema();
+
+    // Add custom fields not covered by supports
+    $schema['customShadow'] = [
+        'type'    => 'select',
+        'label'   => __( 'Shadow Style' ),
+        'options' => [
+            'none' => __( 'None' ),
+            'sm'   => __( 'Small' ),
+            'lg'   => __( 'Large' ),
+        ],
+        'default' => 'none',
+    ];
+
+    return $schema;
+}
+```
+
+> **Warning:** If you define style schema fields that duplicate auto-generated supports fields, `BaseBlock` will trigger an `E_USER_NOTICE` in non-production environments. Remove duplicated fields from `getStyleSchema()` and let supports handle them.
 
 ### Schema Field Structure
 
@@ -800,7 +839,7 @@ Supports declare which built-in editor features your block enables. They are def
 
 ### Default Supports
 
-All blocks start with these defaults (most features disabled):
+All blocks start with these defaults (**all features disabled**). You must explicitly opt in to each feature:
 
 ```json
 {
@@ -814,7 +853,8 @@ All blocks start with these defaults (most features disabled):
         },
         "typography": {
             "fontSize": false,
-            "fontFamily": false
+            "fontFamily": false,
+            "dropCap": false
         },
         "spacing": {
             "margin": false,
@@ -833,8 +873,9 @@ All blocks start with these defaults (most features disabled):
             "backgroundPosition": false,
             "backgroundGradient": false
         },
-        "anchor": true,
-        "className": true
+        "anchor": false,
+        "htmlId": false,
+        "className": false
     }
 }
 ```
@@ -885,33 +926,27 @@ Enables text and/or background color controls in the inspector:
 
 #### Typography (`typography`)
 
-Enables font size and/or font family controls:
+Enables font size, font family, and/or drop cap controls:
 
 ```json
 "typography": {
     "fontSize": true,
-    "fontFamily": true
-}
-```
-
-Some blocks support additional typography features like `dropCap`:
-
-```json
-"typography": {
-    "fontSize": true,
+    "fontFamily": true,
     "dropCap": true
 }
 ```
 
+The `dropCap` option adds a toggle in the inspector for enabling a large first letter on text blocks.
+
 #### Spacing (`spacing`)
 
-Enables margin, padding, and/or block gap controls:
+Enables margin, padding, and/or block spacing controls:
 
 ```json
 "spacing": {
     "margin": true,
     "padding": true,
-    "blockGap": true
+    "blockSpacing": true
 }
 ```
 
@@ -1469,6 +1504,7 @@ src/Blocks/Interactive/Alert/
 
 ```json
 {
+    "$schema": "../../block-schema.json",
     "type": "alert",
     "name": "Alert",
     "description": "Display an alert or notice message",
@@ -1568,28 +1604,9 @@ class AlertBlock extends BaseBlock
         ];
     }
 
-    public function getStyleSchema(): array
-    {
-        return [
-            'textColor' => [
-                'type'    => 'color',
-                'label'   => __( 'Text Color' ),
-                'default' => null,
-            ],
-            'padding'   => [
-                'type'    => 'spacing',
-                'label'   => __( 'Padding' ),
-                'sides'   => [ 'top', 'right', 'bottom', 'left' ],
-                'default' => null,
-            ],
-            'margin'    => [
-                'type'    => 'spacing',
-                'label'   => __( 'Margin' ),
-                'sides'   => [ 'top', 'bottom' ],
-                'default' => null,
-            ],
-        ];
-    }
+    // No need to override getStyleSchema() -- the textColor, padding,
+    // and margin style fields are auto-generated from the block.json
+    // supports (color.text, spacing.padding, spacing.margin).
 
     public function getTransforms(): array
     {
@@ -1724,6 +1741,7 @@ A container block that wraps child blocks in a card layout.
 
 ```json
 {
+    "$schema": "../../block-schema.json",
     "type": "card",
     "name": "Card",
     "description": "A card container with header and footer slots",
@@ -1817,43 +1835,35 @@ class CardBlock extends BaseBlock
 
     public function getStyleSchema(): array
     {
+        // Start with auto-generated fields from supports
+        // (backgroundColor, padding, border, shadow are auto-generated)
+        $schema = parent::getStyleSchema();
+
+        // Add a custom shadow select that goes beyond the default
+        // shadow support control (which is a simple toggle)
+        $schema['shadowSize'] = [
+            'type'    => 'select',
+            'label'   => __( 'Shadow Size' ),
+            'options' => [
+                'none' => __( 'None' ),
+                'sm'   => __( 'Small' ),
+                'md'   => __( 'Medium' ),
+                'lg'   => __( 'Large' ),
+                'xl'   => __( 'Extra Large' ),
+            ],
+            'default' => 'md',
+        ];
+
+        return $schema;
+    }
+
+    public function getDefaultInnerBlocks(): array
+    {
         return [
-            'backgroundColor' => [
-                'type'    => 'color',
-                'label'   => __( 'Background Color' ),
-                'default' => null,
-            ],
-            'shadow'          => [
-                'type'    => 'select',
-                'label'   => __( 'Shadow' ),
-                'options' => [
-                    'none' => __( 'None' ),
-                    'sm'   => __( 'Small' ),
-                    'md'   => __( 'Medium' ),
-                    'lg'   => __( 'Large' ),
-                    'xl'   => __( 'Extra Large' ),
-                ],
-                'default' => 'md',
-            ],
-            'padding'         => [
-                'type'    => 'spacing',
-                'label'   => __( 'Padding' ),
-                'sides'   => [ 'top', 'right', 'bottom', 'left' ],
-                'default' => null,
-            ],
-            'border'          => [
-                'type'    => 'border',
-                'label'   => __( 'Border' ),
-                'default' => [
-                    'width'      => '1',
-                    'widthUnit'  => 'px',
-                    'style'      => 'solid',
-                    'color'      => '#e5e7eb',
-                    'radius'     => '8',
-                    'radiusUnit' => 'px',
-                    'perSide'    => false,
-                    'perCorner'  => false,
-                ],
+            [
+                'type'    => 'paragraph',
+                'content' => [ 'text' => '' ],
+                'styles'  => [],
             ],
         ];
     }
@@ -2039,21 +2049,32 @@ For package blocks, use the translation namespace:
 'label' => __( 'visual-editor::ve.button_text' ),
 ```
 
-### 7. Support Anchor and className
+### 7. Enable Anchor and className Supports
 
-Unless you have a specific reason not to, enable `anchor` and `className` supports so users can set HTML IDs and add custom CSS classes.
+All supports default to `false`, including `anchor` and `className`. Unless you have a specific reason not to, explicitly enable them in your `block.json` so users can set HTML IDs and add custom CSS classes:
 
-### 8. Follow CSS Class Conventions
+```json
+"supports": {
+    "anchor": true,
+    "className": true
+}
+```
+
+### 8. Let Supports Drive Style Schema
+
+Do not manually define style schema fields for features covered by supports. If you enable `color.text` in `block.json`, the `textColor` inspector control is auto-generated. Duplicating it in `getStyleSchema()` will trigger a warning. Only override `getStyleSchema()` for custom fields not covered by supports, and merge with `parent::getStyleSchema()`.
+
+### 9. Follow CSS Class Conventions
 
 - Root element: `ve-block ve-block-{type}`
 - Editor views: add `ve-block-editing`
 - Modifier classes: `ve-{type}-{modifier}` (e.g., `ve-button-sm`, `ve-button-filled`)
 
-### 9. Handle Inner Blocks Safely
+### 10. Handle Inner Blocks Safely
 
 For container blocks, always check if `$innerBlocks` is empty and provide meaningful placeholder content.
 
-### 10. Add Accessibility Attributes
+### 11. Add Accessibility Attributes
 
 In save views, include appropriate ARIA attributes:
 
@@ -2061,7 +2082,7 @@ In save views, include appropriate ARIA attributes:
 <div role="alert" aria-live="polite">
 ```
 
-### 11. Use `noopener noreferrer` for External Links
+### 12. Use `noopener noreferrer` for External Links
 
 When rendering links that open in new tabs:
 
@@ -2091,11 +2112,11 @@ $relAttr = '_blank' === $linkTarget ? 'noopener noreferrer' : null;
 
 The view resolution order is:
 
-1. Published views: `resources/views/vendor/visual-editor/blocks/{type}/`
-2. Co-located views: `{blockDir}/views/`
-3. Package namespace: `visual-editor::blocks.{type}`
+1. Co-located view: `visual-editor-block-{type}::{name}` (e.g., `visual-editor-block-alert::edit`)
+2. Reorganized: `visual-editor::blocks.{type}.{name}` (e.g., `visual-editor::blocks.alert.edit`)
+3. Legacy flat: `visual-editor::blocks.{type}` for save views, `visual-editor::blocks.{type}-editor` for edit views
 
-Ensure your views are in `views/edit.blade.php` and `views/save.blade.php` relative to your block class.
+Ensure your views are in `views/edit.blade.php` and `views/save.blade.php` relative to your block class. Co-located views are the recommended approach and are automatically registered by the service provider.
 
 ### Inspector Fields Not Showing
 
