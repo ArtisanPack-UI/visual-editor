@@ -1,0 +1,83 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "preformatted",
+	"name": "Preformatted",
+	"description": "Add text that respects spacing and tabs",
+	"icon": "document-text",
+	"category": "text",
+	"keywords": ["preformatted", "pre", "whitespace", "monospace", "plain"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"content": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"fontFamily": {
+			"type": "string",
+			"source": "style",
+			"default": "monospace"
+		},
+		"fontSize": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"showLineNumbers": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"border": {
+			"type": "object",
+			"source": "style",
+			"default": {
+				"width": "0",
+				"widthUnit": "px",
+				"style": "none",
+				"color": "#000000",
+				"radius": "0",
+				"radiusUnit": "px",
+				"perSide": false,
+				"perCorner": false
+			}
+		}
+	},
+	"supports": {
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"border": true,
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

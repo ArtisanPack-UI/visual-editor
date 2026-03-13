@@ -306,8 +306,14 @@ return [
 	'block_divider_description'   => 'Create a break between ideas or sections',
 	'block_button_name'           => 'Button',
 	'block_button_description'    => 'Prompt visitors to take action with a button',
-	'block_code_name'             => 'Code',
-	'block_code_description'      => 'Display code snippets that respect your spacing and tabs',
+	'block_code_name'                => 'Code',
+	'block_code_description'         => 'Display code snippets that respect your spacing and tabs',
+	'block_table_name'               => 'Table',
+	'block_table_description'        => 'Add a table with rows and columns',
+	'block_preformatted_name'        => 'Preformatted',
+	'block_preformatted_description' => 'Add text that respects spacing and tabs',
+	'block_details_name'             => 'Details',
+	'block_details_description'      => 'Add collapsible content with a summary',
 
 	// Block Names (legacy short keys, kept for backward compat)
 	'block_heading'     => 'Heading',
@@ -327,7 +333,10 @@ return [
 	'block_spacer'      => 'Spacer',
 	'block_divider'     => 'Divider',
 	'block_button'      => 'Button',
-	'block_code'        => 'Code',
+	'block_code'         => 'Code',
+	'block_table'        => 'Table',
+	'block_preformatted' => 'Preformatted',
+	'block_details'      => 'Details',
 
 	// Block Placeholders
 	'block_heading_placeholder'   => 'Write heading...',
@@ -341,7 +350,10 @@ return [
 	'block_image_placeholder'     => 'Add an image',
 	'block_video_placeholder'     => 'Add a video',
 	'block_gallery_placeholder'   => 'Add images',
-	'caption_placeholder'         => 'Add caption...',
+	'caption_placeholder'                   => 'Add caption...',
+	'block_preformatted_placeholder'        => 'Write preformatted text...',
+	'block_details_summary_placeholder'     => 'Write summary...',
+	'block_details_content_placeholder'     => 'Add content...',
 
 	// Text Block Fields
 	'heading_level'    => 'Heading level',
@@ -507,6 +519,42 @@ return [
 	'highlight_lines'   => 'Highlight lines',
 	'show_copy_button'  => 'Show copy button',
 	'copy'              => 'Copy',
+
+	// Table Block Fields
+	'table_header_row'          => 'Header row',
+	'table_header_column'       => 'Header column',
+	'table_footer_row'          => 'Footer row',
+	'table_striped'             => 'Striped rows',
+	'table_bordered'            => 'Bordered',
+	'table_fixed_layout'        => 'Fixed width table cells',
+	'table_header_background'   => 'Header background',
+	'table_stripe_color'        => 'Stripe color',
+	'table_border_color'        => 'Table border color',
+	'table_cell_placeholder'    => 'Cell',
+	'table_caption_placeholder' => 'Add caption...',
+	'table_insert_row_above'    => 'Insert row above',
+	'table_insert_row_below'    => 'Insert row below',
+	'table_delete_row'          => 'Delete row',
+	'table_insert_column_left'  => 'Insert column left',
+	'table_insert_column_right' => 'Insert column right',
+	'table_delete_column'       => 'Delete column',
+
+	// Preformatted Block Fields
+	'preformatted_font_family' => 'Font family',
+	'font_monospace'           => 'Monospace',
+	'font_ui_monospace'        => 'UI Monospace',
+
+	// Details Block Fields
+	'details_open_by_default'      => 'Open by default',
+	'details_icon'                 => 'Icon style',
+	'details_icon_chevron'         => 'Chevron',
+	'details_icon_plus_minus'      => 'Plus/minus',
+	'details_border_style'         => 'Style',
+	'details_style_card'           => 'Card',
+	'details_style_minimal'        => 'Minimal',
+	'details_style_borderless'     => 'Borderless',
+	'details_summary_background'   => 'Summary background',
+	'details_content_background'   => 'Content background',
 
 	// Block Variations
 	'block_variation'              => 'Block variation',
