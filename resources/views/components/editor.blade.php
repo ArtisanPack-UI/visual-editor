@@ -185,13 +185,19 @@
 		border-bottom: 1px solid oklch(var(--bc) / 0.2);
 		border-radius: 0;
 	}
-	.ve-block-details .ve-details-summary {
+	.ve-block-details .ve-details-summary-row {
 		display: flex;
 		align-items: center;
 		gap: 0.5rem;
 		padding: 0.75rem 1rem;
 		cursor: pointer;
 		font-weight: 600;
+		list-style: none;
+	}
+	.ve-block-details .ve-details-summary-row::-webkit-details-marker {
+		display: none;
+	}
+	.ve-block-details .ve-details-summary {
 		outline: none;
 		user-select: text;
 	}
@@ -1506,7 +1512,9 @@
 							const isOpen      = block.attributes?.isOpenByDefault || false;
 							const icon        = block.attributes?.icon || 'chevron';
 							const iconPos     = block.attributes?.iconPosition || 'left';
-							const borderStyle = block.attributes?.borderStyle || 'default';
+							const borderStyleRaw    = block.attributes?.borderStyle || 'default';
+							const allowedBorderStyles = [ 'default', 'card', 'minimal', 'borderless' ];
+							const borderStyle = allowedBorderStyles.includes( borderStyleRaw ) ? borderStyleRaw : 'default';
 							const summaryBg   = veSanitizeCssColor( block.attributes?.summaryBackgroundColor || '' );
 							const contentBg   = veSanitizeCssColor( block.attributes?.contentBackgroundColor || '' );
 							const textColor   = veSanitizeCssColor( block.attributes?.textColor || '' );
@@ -1727,7 +1735,8 @@
 							const renderCell = ( rowIdx, colIdx, cell, isHeader, scope ) => {
 								const key       = rowIdx + '-' + colIdx;
 								const cellText  = existingCells.hasOwnProperty( key ) ? existingCells[ key ] : ( cell.content || '' );
-								const cellAlign = cell.alignment || 'left';
+								const cellAlignRaw = cell.alignment || 'left';
+								const cellAlign = [ 'left', 'center', 'right', 'justify' ].includes( cellAlignRaw ) ? cellAlignRaw : 'left';
 								const colSpan   = cell.colSpan || 1;
 								const rowSpan   = cell.rowSpan || 1;
 								const tag       = isHeader ? 'th' : 'td';
