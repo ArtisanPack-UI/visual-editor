@@ -109,9 +109,10 @@
 		overflow: visible;
 		position: relative;
 	}
-	.ve-table-col-actions-row th.ve-table-gutter {
+	.ve-table-col-actions-row {
+		display: flex;
 		height: 0;
-		padding: 0 !important;
+		padding: 0;
 		line-height: 0;
 	}
 	.ve-table-col-actions {
@@ -1525,12 +1526,13 @@
 
 							let borderClass = 've-details-' + borderStyle;
 
-							let html = '<div class=\'ve-block ve-block-details ve-block-editing ' + borderClass + '\''
+							let html = '<details class=\'ve-block ve-block-details ve-block-editing ' + borderClass + '\''
+								+ ( isOpen ? ' open' : '' )
 								+ ( wrapperStyle ? ' style=\'' + wrapperStyle + '\'' : '' )
 								+ '>';
 
-							// Summary row
-							html += '<div class=\'ve-details-summary-row\''
+							// Summary element
+							html += '<summary class=\'ve-details-summary-row\''
 								+ ( summaryStyle ? ' style=\'' + summaryStyle + '\'' : '' )
 								+ '>';
 
@@ -1547,7 +1549,7 @@
 								html += iconSvg;
 							}
 
-							html += '</div>';
+							html += '</summary>';
 
 							// Content area with inner blocks
 							html += '<div class=\'ve-details-content\''
@@ -1561,7 +1563,7 @@
 							} );
 
 							html += '</div>';
-							html += '</div>';
+							html += '</details>';
 
 							return html;
 						},
@@ -1706,16 +1708,21 @@
 							const numCols   = rows[ 0 ] ? rows[ 0 ].length : 2;
 
 							// Helper: render a single cell.
-							const renderCell = ( rowIdx, colIdx, cell, isHeader ) => {
+							const renderCell = ( rowIdx, colIdx, cell, isHeader, scope ) => {
 								const key       = rowIdx + '-' + colIdx;
 								const cellText  = existingCells.hasOwnProperty( key ) ? existingCells[ key ] : ( cell.content || '' );
 								const cellAlign = cell.alignment || 'left';
+								const colSpan   = cell.colSpan || 1;
+								const rowSpan   = cell.rowSpan || 1;
 								const tag       = isHeader ? 'th' : 'td';
-								return '<' + tag + ' contenteditable=\'true\''
+								let attrs       = ' contenteditable=\'true\''
 									+ ' data-row=\'' + rowIdx + '\' data-col=\'' + colIdx + '\''
 									+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.table_cell_placeholder' ) ) }} + '\''
-									+ ' style=\'text-align:' + cellAlign + ';\''
-									+ '>' + cellText + '</' + tag + '>';
+									+ ' style=\'text-align:' + cellAlign + ';\'';
+								if ( scope ) { attrs += ' scope=\'' + scope + '\''; }
+								if ( colSpan > 1 ) { attrs += ' colspan=\'' + colSpan + '\''; }
+								if ( rowSpan > 1 ) { attrs += ' rowspan=\'' + rowSpan + '\''; }
+								return '<' + tag + attrs + '>' + cellText + '</' + tag + '>';
 							};
 
 							// Helper: render a delete-row button in the gutter.
@@ -1735,22 +1742,26 @@
 								+ ( tableStyle ? ' style=\'' + tableStyle + '\'' : '' )
 								+ '>';
 
-							html += '<table>';
-
-							// Column action header row (insert/delete column buttons)
-							html += '<thead class=\'ve-table-col-actions-row\'><tr>';
+							// Column action controls (outside table for valid HTML)
+							html += '<div class=\'ve-table-col-actions-row\' contenteditable=\'false\'>';
 							for ( let c = 0; c < numCols; c++ ) {
-								html += '<th class=\'ve-table-gutter\' contenteditable=\'false\'>'
-									+ '<div class=\'ve-table-col-actions\'>'
+								html += '<div class=\'ve-table-col-actions\'>'
 									+ '<button type=\'button\' class=\'ve-table-action-btn\' data-ve-table-action=\'insert-col-left\' data-action-col=\'' + c + '\' title=\'' + {{ Js::from( __( 'visual-editor::ve.table_insert_column_left' ) ) }} + '\'>'
 									+ '<svg viewBox=\'0 0 20 20\' fill=\'currentColor\' class=\'w-3 h-3\'><path d=\'M10 5a.75.75 0 0 1 .75.75v3.5h3.5a.75.75 0 0 1 0 1.5h-3.5v3.5a.75.75 0 0 1-1.5 0v-3.5h-3.5a.75.75 0 0 1 0-1.5h3.5v-3.5A.75.75 0 0 1 10 5Z\'/></svg>'
 									+ '</button>'
 									+ ( numCols > 1 ? '<button type=\'button\' class=\'ve-table-action-btn ve-table-action-btn-danger\' data-ve-table-action=\'delete-col\' data-action-col=\'' + c + '\' title=\'' + {{ Js::from( __( 'visual-editor::ve.table_delete_column' ) ) }} + '\'>'
 									+ '<svg viewBox=\'0 0 20 20\' fill=\'currentColor\' class=\'w-3 h-3\'><path d=\'M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z\'/></svg>'
 									+ '</button>' : '' )
-									+ '</div></th>';
+									+ '</div>';
 							}
-							html += '<th class=\'ve-table-gutter\'></th></tr></thead>';
+							html += '</div>';
+
+							html += '<table>';
+
+							// Caption (must be first child of table per HTML spec)
+							html += '<caption contenteditable=\'true\''
+								+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.table_caption_placeholder' ) ) }} + '\''
+								+ '>' + captionText + '</caption>';
 
 							// Header row (row index 0 when hasHeaderRow is true)
 							if ( hasHeaderRow && totalRows > 0 ) {
@@ -1760,7 +1771,7 @@
 								const row = rows[ 0 ];
 								if ( row ) {
 									row.forEach( ( cell, colIdx ) => {
-										html += renderCell( 0, colIdx, cell, true );
+										html += renderCell( 0, colIdx, cell, true, 'col' );
 									} );
 								}
 								html += renderRowBtn( 0, 'header' );
@@ -1776,7 +1787,8 @@
 								const row = rows[ rowIdx ];
 								if ( row ) {
 									row.forEach( ( cell, colIdx ) => {
-										html += renderCell( rowIdx, colIdx, cell, hasHeaderCol && 0 === colIdx );
+										const isHdrCol = hasHeaderCol && 0 === colIdx;
+										html += renderCell( rowIdx, colIdx, cell, isHdrCol, isHdrCol ? 'row' : null );
 									} );
 								}
 								html += renderRowBtn( rowIdx, 'body' );
@@ -1791,17 +1803,13 @@
 								const row = rows[ footerRowIdx ];
 								if ( row ) {
 									row.forEach( ( cell, colIdx ) => {
-										html += renderCell( footerRowIdx, colIdx, cell, hasHeaderCol && 0 === colIdx );
+										const isHdrCol = hasHeaderCol && 0 === colIdx;
+										html += renderCell( footerRowIdx, colIdx, cell, isHdrCol, isHdrCol ? 'row' : null );
 									} );
 								}
 								html += renderRowBtn( footerRowIdx, 'footer' );
 								html += '</tr></tfoot>';
 							}
-
-							// Caption
-							html += '<caption contenteditable=\'true\''
-								+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.table_caption_placeholder' ) ) }} + '\''
-								+ '>' + captionText + '</caption>';
 
 							html += '</table>';
 
