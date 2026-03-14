@@ -1,5 +1,6 @@
 @php
-	$tag       = in_array( $tag ?? 'td', [ 'td', 'th' ], true ) ? $tag : 'td';
+	$candidate = $tag ?? 'td';
+	$tag       = in_array( $candidate, [ 'td', 'th' ], true ) ? $candidate : 'td';
 	$scope     = $scope ?? null;
 	$alignment = $cell['alignment'] ?? 'left';
 	$validAlign = in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left';

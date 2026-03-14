@@ -137,7 +137,9 @@
 		transition: opacity 0.15s;
 	}
 	tr:hover > .ve-table-gutter .ve-table-row-actions,
-	.ve-block-table:hover .ve-table-row-actions {
+	tr:focus-within > .ve-table-gutter .ve-table-row-actions,
+	.ve-block-table:hover .ve-table-row-actions,
+	.ve-block-table:focus-within .ve-table-row-actions {
 		opacity: 1;
 	}
 	.ve-table-action-btn {
@@ -1054,14 +1056,28 @@
 
 					const br = Alpine.store( 'blockRenderers' );
 
+					// JS-side CSS sanitizers matching the PHP-side veSanitizeCssColor/veSanitizeCssDimension.
+					const veSanitizeCssColor = ( value ) => {
+						if ( ! value ) { return ''; }
+						return /^(#(?:[0-9a-fA-F]{3,8})|(?:rgb|rgba|hsl|hsla)\([^)]+\)|[a-zA-Z-]+)$/.test( value.trim() ) ? value.trim() : '';
+					};
+					const veSanitizeCssDimension = ( value ) => {
+						if ( ! value ) { return ''; }
+						return /^-?\d+(\.\d+)?(px|em|rem|%|vh|vw|vmin|vmax|ch|ex|cm|mm|in|pt|pc)?$/.test( value.trim() ) ? value.trim() : '';
+					};
+					const veSanitizeCssValue = ( value ) => {
+						if ( ! value ) { return ''; }
+						return /^[a-zA-Z0-9\s.\-%()/]+$/.test( value.trim() ) ? value.trim() : '';
+					};
+
 					br.register( 'group', {
 						render( block, context ) {
 							const flexDirection  = block.attributes?.flexDirection || 'column';
 							const flexWrap       = block.attributes?.flexWrap || 'nowrap';
 							const justifyContent = block.attributes?.justifyContent || 'flex-start';
-							const textColor      = block.attributes?.textColor || '';
-							const bgColor        = block.attributes?.backgroundColor || '';
-							const gap            = block.attributes?.gap || '';
+							const textColor      = veSanitizeCssColor( block.attributes?.textColor || '' );
+							const bgColor        = veSanitizeCssColor( block.attributes?.backgroundColor || '' );
+							const gap            = veSanitizeCssDimension( block.attributes?.gap || '' );
 							const tag            = block.attributes?.tag || 'div';
 							const useFlexbox     = block.attributes?.useFlexbox || false;
 							const fillHeight     = block.attributes?.fillHeight || false;
@@ -1445,11 +1461,11 @@
 							}
 							const icon         = block.attributes?.icon || '';
 							const iconPosition = block.attributes?.iconPosition || 'left';
-							const color        = block.attributes?.color || '';
-							const bgColor      = block.attributes?.backgroundColor || '';
+							const color        = veSanitizeCssColor( block.attributes?.color || '' );
+							const bgColor      = veSanitizeCssColor( block.attributes?.backgroundColor || '' );
 							const size         = block.attributes?.size || 'md';
 							const variant      = block.attributes?.variant || 'filled';
-							const borderRadius = block.attributes?.borderRadius || '';
+							const borderRadius = veSanitizeCssDimension( block.attributes?.borderRadius || '' );
 							const width        = block.attributes?.width || 'auto';
 							const pid          = block.attributes?._parentId || '';
 
@@ -1491,11 +1507,11 @@
 							const icon        = block.attributes?.icon || 'chevron';
 							const iconPos     = block.attributes?.iconPosition || 'left';
 							const borderStyle = block.attributes?.borderStyle || 'default';
-							const summaryBg   = block.attributes?.summaryBackgroundColor || '';
-							const contentBg   = block.attributes?.contentBackgroundColor || '';
-							const textColor   = block.attributes?.textColor || '';
-							const bgColor     = block.attributes?.backgroundColor || '';
-							const fontSize    = block.attributes?.fontSize || '';
+							const summaryBg   = veSanitizeCssColor( block.attributes?.summaryBackgroundColor || '' );
+							const contentBg   = veSanitizeCssColor( block.attributes?.contentBackgroundColor || '' );
+							const textColor   = veSanitizeCssColor( block.attributes?.textColor || '' );
+							const bgColor     = veSanitizeCssColor( block.attributes?.backgroundColor || '' );
+							const fontSize    = veSanitizeCssDimension( block.attributes?.fontSize || '' );
 
 							// Preserve summary text from DOM to avoid losing focus.
 							const existingSummary = document.querySelector( '[data-block-id=\'' + CSS.escape( block.id ) + '\'] .ve-details-summary' );
@@ -1579,11 +1595,11 @@
 							const striped       = block.attributes?.striped || false;
 							const bordered      = block.attributes?.bordered !== false;
 							const fixedLayout   = block.attributes?.fixedLayout || false;
-							const headerBg      = block.attributes?.headerBackgroundColor || '';
-							const stripeBg      = block.attributes?.stripeColor || '';
-							const borderColor   = block.attributes?.borderColor || '';
-							const textColor     = block.attributes?.textColor || '';
-							const bgColor       = block.attributes?.backgroundColor || '';
+							const headerBg      = veSanitizeCssColor( block.attributes?.headerBackgroundColor || '' );
+							const stripeBg      = veSanitizeCssColor( block.attributes?.stripeColor || '' );
+							const borderColor   = veSanitizeCssColor( block.attributes?.borderColor || '' );
+							const textColor     = veSanitizeCssColor( block.attributes?.textColor || '' );
+							const bgColor       = veSanitizeCssColor( block.attributes?.backgroundColor || '' );
 
 							// === Layout picker (shown when rows is null) ===
 							if ( ! rows ) {
