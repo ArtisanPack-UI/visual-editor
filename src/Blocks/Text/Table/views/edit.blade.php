@@ -8,6 +8,7 @@
 	$bordered        = $styles['bordered'] ?? true;
 	$fixedLayout     = $styles['fixedLayout'] ?? false;
 	$headerBgColor   = $styles['headerBackgroundColor'] ?? null;
+	$stripeColor     = $styles['stripeColor'] ?? null;
 	$borderColor     = $styles['borderColor'] ?? null;
 
 	$classes = 've-block ve-block-table ve-block-editing';
@@ -27,6 +28,11 @@
 		$inlineStyles .= "--ve-table-border-color: {$borderColor};";
 	}
 
+	$stripeColor = veSanitizeCssColor( $stripeColor );
+	if ( $stripeColor ) {
+		$inlineStyles .= " --ve-table-stripe-color: {$stripeColor};";
+	}
+
 	$totalRows       = count( $rows );
 	$headerRows      = $hasHeaderRow ? [ $rows[0] ?? [] ] : [];
 	$footerRows      = $hasFooterRow && $totalRows > 1 ? [ $rows[ $totalRows - 1 ] ] : [];
@@ -38,12 +44,10 @@
 <div class="{{ $classes }}" @if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif>
 	<div class="ve-table-responsive">
 		<table>
-			@if ( $caption )
-				<caption
-					contenteditable="true"
-					data-placeholder="{{ __( 'visual-editor::ve.table_caption_placeholder' ) }}"
-				>{{ $caption }}</caption>
-			@endif
+			<caption
+				contenteditable="true"
+				data-placeholder="{{ __( 'visual-editor::ve.table_caption_placeholder' ) }}"
+			>{{ $caption }}</caption>
 
 			@php $sanitizedHeaderBgColor = veSanitizeCssColor( $headerBgColor ); @endphp
 			@if ( ! empty( $headerRows ) )
@@ -54,6 +58,8 @@
 								<th
 									scope="col"
 									contenteditable="true"
+									data-row="0"
+									data-col="{{ $cellIndex }}"
 									data-placeholder="{{ __( 'visual-editor::ve.table_cell_placeholder' ) }}"
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
@@ -69,11 +75,14 @@
 			<tbody>
 				@foreach ( $bodyRows as $rowIndex => $row )
 					<tr>
+						@php $absoluteRowIndex = $rowIndex + $bodyStartIndex; @endphp
 						@foreach ( $row as $cellIndex => $cell )
 							@if ( $hasHeaderColumn && 0 === $cellIndex )
 								<th
 									scope="row"
 									contenteditable="true"
+									data-row="{{ $absoluteRowIndex }}"
+									data-col="{{ $cellIndex }}"
 									data-placeholder="{{ __( 'visual-editor::ve.table_cell_placeholder' ) }}"
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
@@ -83,6 +92,8 @@
 							@else
 								<td
 									contenteditable="true"
+									data-row="{{ $absoluteRowIndex }}"
+									data-col="{{ $cellIndex }}"
 									data-placeholder="{{ __( 'visual-editor::ve.table_cell_placeholder' ) }}"
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
@@ -102,6 +113,8 @@
 							@foreach ( $row as $cellIndex => $cell )
 								<td
 									contenteditable="true"
+									data-row="{{ $totalRows - 1 }}"
+									data-col="{{ $cellIndex }}"
 									data-placeholder="{{ __( 'visual-editor::ve.table_cell_placeholder' ) }}"
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif

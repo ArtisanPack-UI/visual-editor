@@ -30,7 +30,7 @@
 	$classes .= " ve-details-icon-{$icon}";
 	$classes .= " ve-details-icon-{$iconPosition}";
 	if ( $className ) {
-		$classes .= " {$className}";
+		$classes .= ' ' . preg_replace( '/[^a-zA-Z0-9\s\-_]/', '', $className );
 	}
 
 	$inlineStyles = '';
