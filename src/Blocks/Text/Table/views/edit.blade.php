@@ -45,8 +45,9 @@
 				>{{ $caption }}</caption>
 			@endif
 
+			@php $sanitizedHeaderBgColor = veSanitizeCssColor( $headerBgColor ); @endphp
 			@if ( ! empty( $headerRows ) )
-				<thead @if ( $headerBgColor ) style="background-color: {{ veSanitizeCssColor( $headerBgColor ) }};" @endif>
+				<thead @if ( $sanitizedHeaderBgColor ) style="background-color: {{ $sanitizedHeaderBgColor }};" @endif>
 					@foreach ( $headerRows as $row )
 						<tr>
 							@foreach ( $row as $cellIndex => $cell )

@@ -1,9 +1,9 @@
 @php
 	$summary         = $content['summary'] ?? '';
 	$isOpen          = $content['isOpenByDefault'] ?? false;
-	$allowedIcons         = [ 'chevron', 'arrow', 'plus-minus', 'caret', 'none' ];
+	$allowedIcons         = [ 'chevron', 'plus-minus', 'none' ];
 	$allowedIconPositions = [ 'left', 'right' ];
-	$allowedBorderStyles  = [ 'default', 'card', 'minimal', 'accent', 'none' ];
+	$allowedBorderStyles  = [ 'default', 'card', 'minimal', 'borderless' ];
 	$icon            = in_array( $styles['icon'] ?? 'chevron', $allowedIcons, true ) ? $styles['icon'] : 'chevron';
 	$iconPosition    = in_array( $styles['iconPosition'] ?? 'left', $allowedIconPositions, true ) ? $styles['iconPosition'] : 'left';
 	$borderStyle     = in_array( $styles['borderStyle'] ?? 'default', $allowedBorderStyles, true ) ? $styles['borderStyle'] : 'default';
@@ -65,10 +65,11 @@
 	@if ( $isOpen ) open @endif
 >
 	<summary
+		class="ve-details-summary"
 		@if ( $summaryStyles ) style="{{ $summaryStyles }}" @endif
 		contenteditable="true"
 		data-placeholder="{{ __( 'visual-editor::ve.block_details_summary_placeholder' ) }}"
-	>{!! $summary !!}</summary>
+	>{!! kses( $summary ) !!}</summary>
 	<div
 		class="ve-details-content"
 		@if ( $contentStyles ) style="{{ $contentStyles }}" @endif
