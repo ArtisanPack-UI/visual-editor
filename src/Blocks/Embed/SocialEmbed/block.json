@@ -8,6 +8,7 @@
 	"keywords": ["social", "twitter", "instagram", "facebook", "tiktok", "reddit", "bluesky", "post"],
 	"version": 1,
 	"public": true,
+	"hasJsRenderer": true,
 	"attributes": {
 		"url": {
 			"type": "string",

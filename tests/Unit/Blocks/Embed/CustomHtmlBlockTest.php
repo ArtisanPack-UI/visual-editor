@@ -11,14 +11,13 @@ test( 'custom html block has correct type and category', function (): void {
 	expect( $block->getCategory() )->toBe( 'embed' );
 } );
 
-test( 'custom html block content schema has preview sanitize and css class fields', function (): void {
+test( 'custom html block content schema has sanitize and css class fields', function (): void {
 	$block  = new CustomHtmlBlock();
 	$schema = $block->getContentSchema();
 
-	expect( $schema )->toHaveKey( 'preview' );
 	expect( $schema )->toHaveKey( 'sanitize' );
 	expect( $schema )->toHaveKey( 'cssClass' );
-	expect( $schema['preview']['type'] )->toBe( 'toggle' );
+	expect( $schema )->not->toHaveKey( 'preview' );
 	expect( $schema['sanitize']['type'] )->toBe( 'toggle' );
 } );
 
@@ -90,6 +89,12 @@ test( 'custom html block is public', function (): void {
 	$block = new CustomHtmlBlock();
 
 	expect( $block->isPublic() )->toBeTrue();
+} );
+
+test( 'custom html block has custom toolbar', function (): void {
+	$block = new CustomHtmlBlock();
+
+	expect( $block->hasCustomToolbar() )->toBeTrue();
 } );
 
 test( 'custom html block has no transforms', function (): void {

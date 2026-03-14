@@ -47,11 +47,6 @@ class CustomHtmlBlock extends BaseBlock
 	public function getContentSchema(): array
 	{
 		return [
-			'preview'  => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.custom_html_preview' ),
-				'default' => false,
-			],
 			'sanitize' => [
 				'type'    => 'toggle',
 				'label'   => __( 'visual-editor::ve.custom_html_sanitize' ),

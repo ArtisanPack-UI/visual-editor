@@ -8,6 +8,7 @@
 	"keywords": ["html", "code", "custom", "raw", "script", "embed"],
 	"version": 1,
 	"public": true,
+	"hasJsRenderer": true,
 	"attributes": {
 		"content": {
 			"type": "string",

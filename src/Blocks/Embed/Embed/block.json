@@ -8,6 +8,7 @@
 	"keywords": ["embed", "oembed", "youtube", "vimeo", "spotify", "video", "audio"],
 	"version": 1,
 	"public": true,
+	"hasJsRenderer": true,
 	"attributes": {
 		"url": {
 			"type": "string",

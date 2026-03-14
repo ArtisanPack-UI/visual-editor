@@ -781,4 +781,5 @@ return [
 	'custom_html_editor_label'        => 'Custom HTML editor',
 	'custom_html_preview_title'       => 'Custom HTML preview',
 	'custom_html_unsanitized_warning' => 'This block contains unsanitized HTML.',
+	'custom_html_edit_mode'           => 'Edit HTML',
 ];

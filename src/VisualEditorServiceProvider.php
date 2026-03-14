@@ -191,9 +191,22 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerBladeComponents();
 		$this->registerLivewireComponents();
 		$this->registerMigrations();
+		$this->registerRoutes();
 		$this->registerCoreBlocks();
 		$this->registerConsoleCommands();
 		$this->publishBlockViews();
+	}
+
+	/**
+	 * Register package routes.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerRoutes(): void
+	{
+		$this->loadRoutesFrom( __DIR__ . '/../routes/api.php' );
 	}
 
 	/**

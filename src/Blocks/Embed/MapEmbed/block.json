@@ -8,6 +8,7 @@
 	"keywords": ["map", "google", "openstreetmap", "location", "address", "geo"],
 	"version": 1,
 	"public": true,
+	"hasJsRenderer": true,
 	"attributes": {
 		"provider": {
 			"type": "string",

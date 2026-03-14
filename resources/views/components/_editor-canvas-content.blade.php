@@ -410,6 +410,109 @@
 								store.addInnerBlock( parentId, newBlock );
 							} );
 
+							// Embed / Social resolve button: fetch oEmbed via API.
+							el.addEventListener( 'click', ( e ) => {
+								const resolveBtn = e.target.closest( '[data-ve-resolve-embed]' );
+								if ( ! resolveBtn ) return;
+
+								const blockId = resolveBtn.getAttribute( 'data-ve-resolve-embed' );
+								const wrapper = resolveBtn.closest( '.ve-block' );
+								const input   = wrapper?.querySelector( '[data-ve-url-input]' );
+								if ( ! input || ! input.value.trim() ) return;
+
+								resolveBtn.disabled = true;
+								const spinner = resolveBtn.querySelector( '.ve-resolve-spinner' );
+								const label   = resolveBtn.querySelector( '.ve-resolve-label' );
+								if ( spinner ) spinner.style.display = '';
+								if ( label ) label.style.display = 'none';
+
+								fetch( '/api/visual-editor/embed/resolve', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+									body: JSON.stringify( { url: input.value.trim() } ),
+								} )
+								.then( ( r ) => r.json() )
+								.then( ( j ) => {
+									if ( j.success && j.data && Alpine.store( 'editor' ) ) {
+										Alpine.store( 'editor' ).updateBlock( blockId, {
+											url:          input.value.trim(),
+											html:         j.data.html || '',
+											title:        j.data.title || '',
+											description:  j.data.description || '',
+											thumbnailUrl: j.data.thumbnailUrl || j.data.thumbnail_url || '',
+											providerName: j.data.provider_name || j.data.providerName || '',
+											_source:      j.data._source || '',
+											platform:     j.platform || '',
+										} );
+									} else {
+										const msg  = wrapper?.querySelector( '.ve-resolve-error' );
+										const hint = wrapper?.querySelector( '.ve-resolve-hint' );
+										if ( msg ) msg.style.display = '';
+										if ( hint ) hint.style.display = 'none';
+									}
+								} )
+								.catch( () => {
+									const msg  = wrapper?.querySelector( '.ve-resolve-error' );
+									const hint = wrapper?.querySelector( '.ve-resolve-hint' );
+									if ( msg ) msg.style.display = '';
+									if ( hint ) hint.style.display = 'none';
+								} )
+								.finally( () => {
+									resolveBtn.disabled = false;
+									if ( spinner ) spinner.style.display = 'none';
+									if ( label ) label.style.display = '';
+								} );
+							} );
+
+							// Map search button: geocode via Nominatim.
+							el.addEventListener( 'click', ( e ) => {
+								const mapBtn = e.target.closest( '[data-ve-map-search]' );
+								if ( ! mapBtn ) return;
+
+								const blockId = mapBtn.getAttribute( 'data-ve-map-search' );
+								const wrapper = mapBtn.closest( '.ve-block' );
+								const input   = wrapper?.querySelector( '[data-ve-map-address]' );
+								if ( ! input || ! input.value.trim() ) return;
+
+								mapBtn.disabled = true;
+								const spinner = mapBtn.querySelector( '.ve-resolve-spinner' );
+								const label   = mapBtn.querySelector( '.ve-resolve-label' );
+								if ( spinner ) spinner.style.display = '';
+								if ( label ) label.style.display = 'none';
+
+								fetch( 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent( input.value.trim() ), { headers: { 'Accept': 'application/json' } } )
+									.then( ( r ) => r.json() )
+									.then( ( results ) => {
+										if ( results.length > 0 && Alpine.store( 'editor' ) ) {
+											Alpine.store( 'editor' ).updateBlock( blockId, {
+												address:   results[0].display_name || input.value.trim(),
+												latitude:  results[0].lat,
+												longitude: results[0].lon,
+											} );
+										}
+									} )
+									.catch( () => {} )
+									.finally( () => {
+										mapBtn.disabled = false;
+										if ( spinner ) spinner.style.display = 'none';
+										if ( label ) label.style.display = '';
+									} );
+							} );
+
+							// Map manual coordinates button.
+							el.addEventListener( 'click', ( e ) => {
+								const coordBtn = e.target.closest( '[data-ve-map-set-coords]' );
+								if ( ! coordBtn ) return;
+
+								const blockId = coordBtn.getAttribute( 'data-ve-map-set-coords' );
+								const wrapper = coordBtn.closest( '.ve-block' );
+								const latIn   = wrapper?.querySelector( '[data-ve-map-lat]' );
+								const lngIn   = wrapper?.querySelector( '[data-ve-map-lng]' );
+								if ( latIn?.value?.trim() && lngIn?.value?.trim() && Alpine.store( 'editor' ) ) {
+									Alpine.store( 'editor' ).updateBlock( blockId, { latitude: latIn.value.trim(), longitude: lngIn.value.trim() } );
+								}
+							} );
+
 							// Inner block drag handle: start dragging an inner block.
 							el.addEventListener( 'dragstart', ( e ) => {
 								const handle = e.target.closest( '[data-ve-inner-drag-handle]' );
@@ -2262,6 +2365,9 @@
 								}
 							}
 						}
+
+						// Embed, map, and coordinate buttons are handled in init()
+						// via el.addEventListener('click', ...) to avoid scoping issues.
 					"
 					x-on:ve-insertion-point-click="
 						if ( Alpine.store( 'editor' ) && $event.detail ) {

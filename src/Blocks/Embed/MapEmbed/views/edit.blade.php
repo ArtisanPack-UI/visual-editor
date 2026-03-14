@@ -18,17 +18,17 @@
 
 	$zoom = max( 1, min( 20, $zoom ) );
 
+	$mapTypeMap = [
+		'roadmap'   => 'm',
+		'satellite' => 'k',
+		'terrain'   => 'p',
+		'hybrid'    => 'h',
+	];
+
 	$iframeSrc = '';
 	if ( $hasCoordinates ) {
 		$lat = (float) $latitude;
 		$lng = (float) $longitude;
-
-		$mapTypeMap = [
-			'roadmap'   => 'm',
-			'satellite' => 'k',
-			'terrain'   => 'p',
-			'hybrid'    => 'h',
-		];
 
 		if ( 'openstreetmap' === $provider ) {
 			$marker    = "mlat={$lat}&mlon={$lng}";
@@ -41,7 +41,60 @@
 	}
 @endphp
 
-<div class="ve-block ve-block-map-embed ve-block-editing">
+<div
+	class="ve-block ve-block-map-embed ve-block-editing"
+	x-data="{
+		mapAddress: '',
+		mapLat: '',
+		mapLng: '',
+		loading: false,
+		getBlockId() {
+			return Alpine.store( 'selection' )?.focused;
+		},
+		async searchAddress() {
+			const query = this.mapAddress.trim();
+			if ( ! query ) return;
+
+			this.loading = true;
+
+			try {
+				const response = await fetch(
+					'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent( query ),
+					{ headers: { 'Accept': 'application/json' } }
+				);
+				const results = await response.json();
+
+				if ( results.length > 0 ) {
+					const blockId = this.getBlockId();
+					if ( blockId ) {
+						Alpine.store( 'editor' ).updateBlock( blockId, {
+							address:   results[0].display_name || query,
+							latitude:  results[0].lat,
+							longitude: results[0].lon,
+						} );
+					}
+				}
+			} catch ( e ) {
+				// Geocoding failed silently.
+			}
+
+			this.loading = false;
+		},
+		setCoordinates() {
+			const lat = this.mapLat.trim();
+			const lng = this.mapLng.trim();
+			if ( ! lat || ! lng ) return;
+
+			const blockId = this.getBlockId();
+			if ( blockId ) {
+				Alpine.store( 'editor' ).updateBlock( blockId, {
+					latitude:  lat,
+					longitude: lng,
+				} );
+			}
+		},
+	}"
+>
 	@if ( ! $hasCoordinates )
 		<div class="ve-map-placeholder flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-base-300 bg-base-200/50 px-6 py-10" style="min-height: {{ $height }};">
 			<svg class="w-10 h-10 text-base-content/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
@@ -55,13 +108,43 @@
 					class="input input-bordered input-sm flex-1"
 					placeholder="{{ __( 'visual-editor::ve.map_address_placeholder' ) }}"
 					aria-label="{{ __( 'visual-editor::ve.map_address' ) }}"
-					data-ve-map-address-input
+					x-model="mapAddress"
+					x-on:keydown.enter.prevent="searchAddress()"
 				/>
 				<button
 					type="button"
 					class="btn btn-primary btn-sm"
-					data-ve-map-search
-				>{{ __( 'visual-editor::ve.map_search' ) }}</button>
+					x-on:click="searchAddress()"
+					:disabled="loading"
+				>
+					<span x-show="! loading">{{ __( 'visual-editor::ve.map_search' ) }}</span>
+					<span x-show="loading" x-cloak class="loading loading-spinner loading-xs"></span>
+				</button>
+			</div>
+			<div class="flex w-full max-w-md gap-2 mt-1">
+				<input
+					type="text"
+					class="input input-bordered input-sm flex-1"
+					placeholder="{{ __( 'visual-editor::ve.map_latitude' ) }}"
+					aria-label="{{ __( 'visual-editor::ve.map_latitude' ) }}"
+					x-model="mapLat"
+				/>
+				<input
+					type="text"
+					class="input input-bordered input-sm flex-1"
+					placeholder="{{ __( 'visual-editor::ve.map_longitude' ) }}"
+					aria-label="{{ __( 'visual-editor::ve.map_longitude' ) }}"
+					x-model="mapLng"
+				/>
+				<button
+					type="button"
+					class="btn btn-ghost btn-sm"
+					x-on:click="setCoordinates()"
+				>
+					<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+						<path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+					</svg>
+				</button>
 			</div>
 		</div>
 	@else

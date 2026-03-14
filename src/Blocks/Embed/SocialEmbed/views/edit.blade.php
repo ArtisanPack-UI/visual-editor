@@ -36,26 +36,83 @@
 	$platformLabel = $platformLabels[ $platform ] ?? '';
 @endphp
 
-<div class="ve-block ve-block-social-embed ve-block-editing flex flex-col {{ $alignClass }}">
+<div
+	class="ve-block ve-block-social-embed ve-block-editing flex flex-col {{ $alignClass }}"
+	x-data="{
+		socialUrl: '',
+		loading: false,
+		error: false,
+		getBlockId() {
+			return Alpine.store( 'selection' )?.focused;
+		},
+		async resolveEmbed() {
+			const url = this.socialUrl.trim();
+			if ( ! url ) return;
+
+			this.loading = true;
+			this.error   = false;
+
+			try {
+				const response = await fetch( '/api/visual-editor/embed/resolve', {
+					method: 'POST',
+					headers: {
+						'Content-Type': 'application/json',
+						'Accept': 'application/json',
+					},
+					body: JSON.stringify( { url } ),
+				} );
+
+				const json = await response.json();
+
+				if ( json.success && json.data ) {
+					const blockId = this.getBlockId();
+					if ( blockId ) {
+						Alpine.store( 'editor' ).updateBlock( blockId, {
+							url:          url,
+							platform:     json.platform || '',
+							html:         json.data.html || '',
+							title:        json.data.title || '',
+							description:  json.data.description || '',
+							thumbnailUrl: json.data.thumbnailUrl || json.data.thumbnail_url || '',
+							_source:      json.data._source || '',
+						} );
+					}
+				} else {
+					this.error = true;
+				}
+			} catch ( e ) {
+				this.error = true;
+			}
+
+			this.loading = false;
+		},
+	}"
+>
 	@if ( $isEmpty )
 		<div class="ve-social-placeholder flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-base-300 bg-base-200/50 px-6 py-10 w-full">
 			<svg class="w-10 h-10 text-base-content/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
 				<path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
 			</svg>
-			<p class="text-sm text-base-content/60">{{ __( 'visual-editor::ve.social_placeholder' ) }}</p>
+			<p class="text-sm text-base-content/60" x-show="! error">{{ __( 'visual-editor::ve.social_placeholder' ) }}</p>
+			<p class="text-sm text-warning" x-show="error" x-cloak>{{ __( 'visual-editor::ve.embed_resolve_failed' ) }}</p>
 			<div class="ve-social-url-input flex w-full max-w-md gap-2">
 				<input
 					type="url"
 					class="input input-bordered input-sm flex-1"
 					placeholder="{{ __( 'visual-editor::ve.social_url_placeholder' ) }}"
 					aria-label="{{ __( 'visual-editor::ve.social_embed_url' ) }}"
-					data-ve-social-url-input
+					x-model="socialUrl"
+					x-on:keydown.enter.prevent="resolveEmbed()"
 				/>
 				<button
 					type="button"
 					class="btn btn-primary btn-sm"
-					data-ve-social-resolve
-				>{{ __( 'visual-editor::ve.embed_resolve' ) }}</button>
+					x-on:click="resolveEmbed()"
+					:disabled="loading"
+				>
+					<span x-show="! loading">{{ __( 'visual-editor::ve.embed_resolve' ) }}</span>
+					<span x-show="loading" x-cloak class="loading loading-spinner loading-xs"></span>
+				</button>
 			</div>
 		</div>
 	@elseif ( $hasEmbed )
