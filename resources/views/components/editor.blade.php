@@ -1076,11 +1076,11 @@
 					// JS-side CSS sanitizers matching the PHP-side veSanitizeCssColor/veSanitizeCssDimension.
 					const veSanitizeCssColor = ( value ) => {
 						if ( ! value ) { return ''; }
-						return /^(#(?:[0-9a-fA-F]{3,8})|(?:rgb|rgba|hsl|hsla)\([\d\s,./%]+\)|[a-zA-Z-]+)$/.test( value.trim() ) ? value.trim() : '';
+						return /^(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgb|rgba|hsl|hsla)\([\d\s,./%]+\)|[a-zA-Z-]+)$/.test( value.trim() ) ? value.trim() : '';
 					};
 					const veSanitizeCssDimension = ( value ) => {
 						if ( ! value ) { return ''; }
-						return /^-?\d+(\.\d+)?(px|em|rem|%|vh|vw|vmin|vmax|ch|ex|cm|mm|in|pt|pc)?$/.test( value.trim() ) ? value.trim() : '';
+						return /^(-?\d+(\.\d+)?(px|em|rem|%|vh|vw|vmin|vmax|ch|ex|cm|mm|in|pt|pc)?|auto|inherit|initial|unset)$/.test( value.trim() ) ? value.trim() : '';
 					};
 					const veSanitizeCssValue = ( value ) => {
 						if ( ! value ) { return ''; }
