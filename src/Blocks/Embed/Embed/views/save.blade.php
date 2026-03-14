@@ -24,6 +24,10 @@
 	$hasEmbed    = ! empty( $html ) && 'oembed' === $source;
 	$hasFallback = ! empty( $title ) && 'opengraph' === $source;
 
+	// Validate URL scheme to prevent javascript: or other unsafe schemes.
+	$urlScheme = parse_url( $url, PHP_URL_SCHEME );
+	$safeUrl   = in_array( $urlScheme, [ 'http', 'https' ], true ) ? $url : '';
+
 	$classes = 've-block ve-block-embed';
 	if ( $className ) {
 		$classes .= " {$className}";
@@ -44,7 +48,7 @@
 			>
 				<iframe
 					srcdoc="{{ e( $html ) }}"
-					sandbox="allow-scripts allow-same-origin allow-popups"
+					sandbox="allow-scripts allow-popups"
 					class="ve-embed-iframe"
 					title="{{ $title ?: __( 'visual-editor::ve.embedded_content' ) }}"
 					aria-label="{{ $title ? __( 'visual-editor::ve.embed_content_from', ['provider' => $title] ) : __( 'visual-editor::ve.embedded_content' ) }}"
@@ -61,7 +65,7 @@
 			@endif
 		</figure>
 	@elseif ( $hasFallback )
-		<a href="{{ $url }}" class="ve-embed-fallback-card" target="_blank" rel="noopener noreferrer">
+		<a @if ( $safeUrl ) href="{{ $safeUrl }}" @endif class="ve-embed-fallback-card" target="_blank" rel="noopener noreferrer">
 			@if ( $thumbnailUrl )
 				<div class="ve-embed-thumbnail">
 					<img src="{{ $thumbnailUrl }}" alt="{{ $title }}" loading="lazy" />

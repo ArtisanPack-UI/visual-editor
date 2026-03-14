@@ -52,7 +52,8 @@ test( 'social embed block renders oembed content in sandboxed iframe', function 
 	);
 
 	expect( $output )->toContain( 've-block-social-embed' );
-	expect( $output )->toContain( 'sandbox="allow-scripts allow-same-origin allow-popups"' );
+	expect( $output )->toContain( 'sandbox="allow-scripts allow-popups"' );
+	expect( $output )->not->toContain( 'allow-same-origin' );
 	expect( $output )->toContain( 'iframe' );
 } );
 

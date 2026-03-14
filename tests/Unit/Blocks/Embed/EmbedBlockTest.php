@@ -51,7 +51,8 @@ test( 'embed block renders oembed content in sandboxed iframe', function (): voi
 		[ 'aspectRatio' => '16:9', 'responsive' => true ],
 	);
 
-	expect( $output )->toContain( 'sandbox="allow-scripts allow-same-origin allow-popups"' );
+	expect( $output )->toContain( 'sandbox="allow-scripts allow-popups"' );
+	expect( $output )->not->toContain( 'allow-same-origin' );
 	expect( $output )->toContain( 've-block-embed' );
 	expect( $output )->toContain( 'iframe' );
 } );
@@ -127,5 +128,5 @@ test( 'embed block aspect ratio options include standard ratios', function (): v
 	expect( $options )->toHaveKey( '16:9' );
 	expect( $options )->toHaveKey( '4:3' );
 	expect( $options )->toHaveKey( '1:1' );
-	expect( $options )->toHaveKey( 'custom' );
+	expect( $options )->not->toHaveKey( 'custom' );
 } );

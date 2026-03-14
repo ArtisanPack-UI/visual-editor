@@ -133,7 +133,7 @@ class MapEmbedBlock extends BaseBlock
 	{
 		return [
 			'embed' => [
-				'_mapUrl' => 'url',
+				'url' => '_mapUrl',
 			],
 		];
 	}

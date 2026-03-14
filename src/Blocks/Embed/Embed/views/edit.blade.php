@@ -53,7 +53,7 @@
 			>
 				<iframe
 					srcdoc="{{ e( $html ) }}"
-					sandbox="allow-scripts allow-same-origin allow-popups"
+					sandbox="allow-scripts allow-popups"
 					class="ve-embed-iframe"
 					title="{{ $title ?: __( 'visual-editor::ve.embed_iframe_title' ) }}"
 					aria-label="{{ $title ? __( 'visual-editor::ve.embed_content_from', ['provider' => $title] ) : __( 'visual-editor::ve.embedded_content' ) }}"
@@ -89,9 +89,12 @@
 			</div>
 		</div>
 	@else
-		<div class="ve-embed-loading flex items-center justify-center gap-2 rounded-lg border border-base-300 bg-base-200/50 px-6 py-10">
-			<span class="loading loading-spinner loading-sm"></span>
-			<span class="text-sm text-base-content/60">{{ __( 'visual-editor::ve.embed_resolving' ) }}</span>
+		<div class="ve-embed-error flex flex-col items-center justify-center gap-3 rounded-lg border border-warning/30 bg-warning/5 px-6 py-10">
+			<svg class="w-8 h-8 text-warning" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+			</svg>
+			<p class="text-sm text-base-content/60">{{ __( 'visual-editor::ve.embed_resolve_failed' ) }}</p>
+			<p class="text-xs text-base-content/40 truncate max-w-md">{{ $url }}</p>
 		</div>
 	@endif
 </div>

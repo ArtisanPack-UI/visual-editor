@@ -83,6 +83,7 @@
 	@if ( $hasCoordinates && $interactive && $iframeSrc )
 		<iframe
 			src="{{ $iframeSrc }}"
+			sandbox="allow-scripts allow-same-origin"
 			class="ve-map-iframe"
 			title="{{ $markerLabel ?: __( 'visual-editor::ve.map_iframe_title' ) }}"
 			aria-label="{{ $ariaLabel }}"
@@ -91,6 +92,10 @@
 		></iframe>
 	@elseif ( $hasCoordinates )
 		<div class="ve-map-static" role="img" aria-label="{{ $ariaLabel }}">
+			<p class="ve-map-static-label">{{ $address ?: "{$latitude}, {$longitude}" }}</p>
+			@if ( $markerLabel )
+				<p class="ve-map-static-marker">{{ $markerLabel }}</p>
+			@endif
 			<noscript>
 				<p>{{ $address ?: "{$latitude}, {$longitude}" }}</p>
 			</noscript>

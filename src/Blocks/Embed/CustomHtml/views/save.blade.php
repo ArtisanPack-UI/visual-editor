@@ -16,13 +16,14 @@
 		$classes .= " {$className}";
 	}
 
-	// Sanitize content when enabled: prefer kses() from artisanpack-ui/security,
-	// fall back to strip_tags() to ensure no unsanitized HTML is emitted.
+	// Sanitize content when enabled: prefer kses() from artisanpack-ui/security.
+	// If kses() is unavailable, force the sandboxed iframe path instead
+	// of strip_tags() which cannot prevent attribute-based XSS.
 	if ( $sanitize ) {
 		if ( function_exists( 'kses' ) ) {
 			$htmlContent = kses( $htmlContent );
 		} else {
-			$htmlContent = strip_tags( $htmlContent, '<p><br><strong><em><ul><ol><li><a><h1><h2><h3><h4><h5><h6><blockquote><code><pre><span><div><table><thead><tbody><tr><th><td><img><hr>' );
+			$sanitize = false;
 		}
 	}
 @endphp

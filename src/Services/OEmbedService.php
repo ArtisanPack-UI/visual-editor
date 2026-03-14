@@ -248,6 +248,7 @@ class OEmbedService
 
 		try {
 			$response = Http::timeout( $this->timeout )
+				->withoutRedirecting()
 				->withHeaders( [
 					'User-Agent' => 'ArtisanPackUI VisualEditor/1.0',
 				] )
@@ -283,7 +284,6 @@ class OEmbedService
 			'instagram'  => [ 'instagram.com' ],
 			'facebook'   => [ 'facebook.com', 'fb.com' ],
 			'tiktok'     => [ 'tiktok.com' ],
-			'linkedin'   => [ 'linkedin.com' ],
 			'reddit'     => [ 'reddit.com' ],
 			'bluesky'    => [ 'bsky.app' ],
 			'youtube'    => [ 'youtube.com', 'youtu.be' ],
@@ -331,7 +331,7 @@ class OEmbedService
 	 */
 	public function getSocialPlatforms(): array
 	{
-		return [ 'twitter', 'instagram', 'facebook', 'tiktok', 'linkedin', 'reddit', 'bluesky' ];
+		return [ 'twitter', 'instagram', 'facebook', 'tiktok', 'reddit', 'bluesky' ];
 	}
 
 	/**
@@ -439,7 +439,19 @@ class OEmbedService
 			return null;
 		}
 
-		return $data;
+		// Normalize OG/twitter keys to the embed block contract field names.
+		$normalized = [
+			'_source'      => $data['_source'],
+			'_url'         => $data['_url'],
+			'type'         => $data['type'],
+			'title'        => $data['title'] ?? null,
+			'description'  => $data['description'] ?? null,
+			'thumbnailUrl' => $data['image'] ?? $data['image:url'] ?? null,
+			'providerName' => $data['site_name'] ?? null,
+			'providerUrl'  => $data['url'] ?? $url,
+		];
+
+		return array_filter( $normalized, fn ( $v ) => null !== $v );
 	}
 
 	/**

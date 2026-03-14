@@ -67,7 +67,7 @@
 			@endif
 			<iframe
 				srcdoc="{{ e( $html ) }}"
-				sandbox="allow-scripts allow-same-origin allow-popups"
+				sandbox="allow-scripts allow-popups"
 				class="ve-social-iframe"
 				title="{{ __( 'visual-editor::ve.social_post_from', ['platform' => $platformLabel ?: __( 'visual-editor::ve.social_media' )] ) }}"
 				aria-label="{{ __( 'visual-editor::ve.social_post_from', ['platform' => $platformLabel ?: __( 'visual-editor::ve.social_media' )] ) }}"

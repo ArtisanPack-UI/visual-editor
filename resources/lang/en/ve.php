@@ -739,6 +739,7 @@ return [
 	'embed_iframe_title'      => 'Embedded content',
 	'embed_content_from'      => 'Embedded content from :provider',
 	'embedded_content'        => 'Embedded content',
+	'embed_resolve_failed'    => 'This URL could not be embedded. Try a different URL.',
 
 	// Map Embed Block
 	'map_provider'             => 'Map Provider',

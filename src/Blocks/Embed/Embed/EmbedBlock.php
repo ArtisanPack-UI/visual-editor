@@ -77,10 +77,9 @@ class EmbedBlock extends BaseBlock
 				'type'    => 'select',
 				'label'   => __( 'visual-editor::ve.embed_aspect_ratio' ),
 				'options' => [
-					'16:9'   => '16:9',
-					'4:3'    => '4:3',
-					'1:1'    => '1:1',
-					'custom' => __( 'visual-editor::ve.custom' ),
+					'16:9' => '16:9',
+					'4:3'  => '4:3',
+					'1:1'  => '1:1',
 				],
 				'default' => '16:9',
 			],

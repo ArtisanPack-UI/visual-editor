@@ -18,6 +18,10 @@
 	$hasEmbed    = ! empty( $html ) && 'oembed' === $source;
 	$hasFallback = ! empty( $title ) && 'opengraph' === $source;
 
+	// Validate URL scheme to prevent javascript: or other unsafe schemes.
+	$urlScheme = parse_url( $url, PHP_URL_SCHEME );
+	$safeUrl   = in_array( $urlScheme, [ 'http', 'https' ], true ) ? $url : '';
+
 	$alignMap = [
 		'left'   => 'flex-start',
 		'center' => 'center',
@@ -50,7 +54,7 @@
 	@if ( $hasEmbed )
 		<iframe
 			srcdoc="{{ e( $html ) }}"
-			sandbox="allow-scripts allow-same-origin allow-popups"
+			sandbox="allow-scripts allow-popups"
 			class="ve-social-iframe"
 			title="{{ __( 'visual-editor::ve.social_post_from', ['platform' => $platformLabel] ) }}"
 			aria-label="{{ __( 'visual-editor::ve.social_post_from', ['platform' => $platformLabel] ) }}"
@@ -58,7 +62,7 @@
 			loading="lazy"
 		></iframe>
 	@elseif ( $hasFallback )
-		<a href="{{ $url }}" class="ve-social-fallback-card" style="max-width: {{ $maxWidth }}; width: 100%;" target="_blank" rel="noopener noreferrer">
+		<a @if ( $safeUrl ) href="{{ $safeUrl }}" @endif class="ve-social-fallback-card" style="max-width: {{ $maxWidth }}; width: 100%;" target="_blank" rel="noopener noreferrer">
 			@if ( $thumbnailUrl )
 				<div class="ve-social-thumbnail">
 					<img src="{{ $thumbnailUrl }}" alt="{{ $title }}" loading="lazy" />
