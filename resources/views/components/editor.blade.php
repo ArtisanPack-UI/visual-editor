@@ -60,6 +60,8 @@
 	}
 	.ve-block-table th {
 		font-weight: 600;
+	}
+	.ve-block-table thead:not([style*="background-color"]) th {
 		background-color: oklch(var(--bc) / 0.06);
 	}
 	.ve-block-table caption {
@@ -213,6 +215,15 @@
 		height: 1rem;
 		color: oklch(var(--bc) / 0.5);
 		transition: transform 0.2s;
+	}
+	.ve-block-details[open] .ve-details-icon-chevron {
+		transform: rotate(90deg);
+	}
+	.ve-block-details .ve-plus-vertical {
+		transition: opacity 0.2s;
+	}
+	.ve-block-details[open] .ve-plus-vertical {
+		opacity: 0;
 	}
 	.ve-block-details .ve-details-content {
 		padding: 0 1rem 0.75rem;
@@ -1065,7 +1076,7 @@
 					// JS-side CSS sanitizers matching the PHP-side veSanitizeCssColor/veSanitizeCssDimension.
 					const veSanitizeCssColor = ( value ) => {
 						if ( ! value ) { return ''; }
-						return /^(#(?:[0-9a-fA-F]{3,8})|(?:rgb|rgba|hsl|hsla)\([^)]+\)|[a-zA-Z-]+)$/.test( value.trim() ) ? value.trim() : '';
+						return /^(#(?:[0-9a-fA-F]{3,8})|(?:rgb|rgba|hsl|hsla)\([\d\s,./%]+\)|[a-zA-Z-]+)$/.test( value.trim() ) ? value.trim() : '';
 					};
 					const veSanitizeCssDimension = ( value ) => {
 						if ( ! value ) { return ''; }
@@ -1539,12 +1550,13 @@
 							// Icon SVG
 							let iconSvg = '';
 							if ( 'chevron' === icon ) {
-								iconSvg = '<svg class=\'ve-details-icon\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'>'
+								iconSvg = '<svg class=\'ve-details-icon ve-details-icon-chevron\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'>'
 									+ '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'m9 5 7 7-7 7\'/>'
 									+ '</svg>';
 							} else if ( 'plus-minus' === icon ) {
-								iconSvg = '<svg class=\'ve-details-icon\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'>'
-									+ '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M12 4v16m8-8H4\'/>'
+								iconSvg = '<svg class=\'ve-details-icon ve-details-icon-plus-minus\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'>'
+									+ '<path class=\'ve-plus-vertical\' stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M12 4v16\'/>'
+									+ '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M4 12h16\'/>'
 									+ '</svg>';
 							}
 
@@ -1708,12 +1720,16 @@
 							if ( striped ) { tableClasses += ' ve-table-striped'; }
 							if ( bordered ) { tableClasses += ' ve-table-bordered'; }
 
-							let tableStyle = '';
-							if ( fixedLayout ) { tableStyle += 'table-layout:fixed;'; }
-							if ( textColor ) { tableStyle += 'color:' + textColor + ';'; }
-							if ( bgColor ) { tableStyle += 'background-color:' + bgColor + ';'; }
-							if ( borderColor ) { tableStyle += '--ve-table-border-color:' + borderColor + ';'; }
-							if ( stripeBg ) { tableStyle += '--ve-table-stripe-color:' + stripeBg + ';'; }
+							// Wrapper div styles (CSS custom properties, color, background).
+							let wrapperStyle = '';
+							if ( textColor ) { wrapperStyle += 'color:' + textColor + ';'; }
+							if ( bgColor ) { wrapperStyle += 'background-color:' + bgColor + ';'; }
+							if ( borderColor ) { wrapperStyle += '--ve-table-border-color:' + borderColor + ';'; }
+							if ( stripeBg ) { wrapperStyle += '--ve-table-stripe-color:' + stripeBg + ';'; }
+
+							// Actual <table> element styles (table-layout only works on <table>).
+							let tableElStyle = '';
+							if ( fixedLayout ) { tableElStyle += 'table-layout:fixed;'; }
 
 							// Preserve existing cell content from DOM to avoid losing focus.
 							const existingTable = document.querySelector( '[data-block-id=\'' + CSS.escape( block.id ) + '\'] table' );
@@ -1764,7 +1780,7 @@
 							};
 
 							let html = '<div class=\'' + tableClasses + '\''
-								+ ( tableStyle ? ' style=\'' + tableStyle + '\'' : '' )
+								+ ( wrapperStyle ? ' style=\'' + wrapperStyle + '\'' : '' )
 								+ '>';
 
 							// Column action controls (outside table for valid HTML)
@@ -1781,7 +1797,7 @@
 							}
 							html += '</div>';
 
-							html += '<table>';
+							html += '<table' + ( tableElStyle ? ' style=\'' + tableElStyle + '\'' : '' ) + '>';
 
 							// Caption (must be first child of table per HTML spec)
 							html += '<caption contenteditable=\'true\''
