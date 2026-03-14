@@ -134,6 +134,41 @@
 				return null;
 			},
 
+			/**
+			 * Focus a table cell and place the caret at a given position.
+			 * @param {HTMLElement} cell   The th/td element to focus.
+			 * @param {string}     pos    'start' or 'end'.
+			 */
+			_focusTableCell( cell, pos ) {
+				if ( ! cell ) return;
+				cell.focus();
+				const range = document.createRange();
+				const sel   = window.getSelection();
+				if ( cell.childNodes.length > 0 ) {
+					range.selectNodeContents( cell );
+					range.collapse( 'start' === pos );
+				} else {
+					range.setStart( cell, 0 );
+					range.collapse( true );
+				}
+				sel.removeAllRanges();
+				sel.addRange( range );
+			},
+
+			/**
+			 * Get an ordered list of editable cells in a table block.
+			 */
+			_getTableCells( tableEl ) {
+				return tableEl ? Array.from( tableEl.querySelectorAll( '[data-row][data-col][contenteditable]' ) ) : [];
+			},
+
+			/**
+			 * Get the cell at a specific row/col within a table element.
+			 */
+			_getTableCellAt( tableEl, row, col ) {
+				return tableEl ? tableEl.querySelector( '[data-row=\'' + row + '\'][data-col=\'' + col + '\']' ) : null;
+			},
+
 			handleKeydown( event ) {
 				if ( this.isEmpty ) return;
 
@@ -156,6 +191,78 @@
 				if ( editableEl ) {
 					const blockEl      = editableEl.closest( '[data-block-id]' );
 					const currentIndex = blockEl ? blockEls.indexOf( blockEl ) : -1;
+
+					// ── Table cell navigation ──
+					// Tab/Shift+Tab, and arrow keys at cell boundaries.
+					const isTableCell = editableEl.hasAttribute( 'data-row' ) && editableEl.hasAttribute( 'data-col' );
+					if ( isTableCell ) {
+						const tableEl = editableEl.closest( 'table' );
+						const cells   = this._getTableCells( tableEl );
+						const cellIdx = cells.indexOf( editableEl );
+						const row     = parseInt( editableEl.getAttribute( 'data-row' ) );
+						const col     = parseInt( editableEl.getAttribute( 'data-col' ) );
+
+						// Tab / Shift+Tab: move to next/previous cell.
+						if ( 'Tab' === event.key ) {
+							event.preventDefault();
+							event.stopPropagation();
+							let nextIdx;
+							if ( event.shiftKey ) {
+								nextIdx = cellIdx > 0 ? cellIdx - 1 : cells.length - 1;
+							} else {
+								nextIdx = cellIdx < cells.length - 1 ? cellIdx + 1 : 0;
+							}
+							this._focusTableCell( cells[ nextIdx ], event.shiftKey ? 'end' : 'start' );
+							return;
+						}
+
+						// ArrowRight at end of cell content: move to next cell.
+						if ( 'ArrowRight' === event.key && this._isCursorAtContentEnd( editableEl ) ) {
+							const nextCell = cellIdx < cells.length - 1 ? cells[ cellIdx + 1 ] : null;
+							if ( nextCell ) {
+								event.preventDefault();
+								this._focusTableCell( nextCell, 'start' );
+							}
+							return;
+						}
+
+						// ArrowLeft at start of cell content: move to previous cell.
+						if ( 'ArrowLeft' === event.key && this._isCursorAtContentStart( editableEl ) ) {
+							const prevCell = cellIdx > 0 ? cells[ cellIdx - 1 ] : null;
+							if ( prevCell ) {
+								event.preventDefault();
+								this._focusTableCell( prevCell, 'end' );
+							}
+							return;
+						}
+
+						// ArrowDown at last line of cell: move to cell below.
+						if ( 'ArrowDown' === event.key && this._isCursorOnLastLine( editableEl ) ) {
+							const belowCell = this._getTableCellAt( tableEl, row + 1, col );
+							if ( belowCell ) {
+								event.preventDefault();
+								this._focusTableCell( belowCell, 'start' );
+							}
+							// If no cell below, don't leave the table — just stay.
+							return;
+						}
+
+						// ArrowUp at first line of cell: move to cell above.
+						if ( 'ArrowUp' === event.key && this._isCursorOnFirstLine( editableEl ) ) {
+							const aboveCell = this._getTableCellAt( tableEl, row - 1, col );
+							if ( aboveCell ) {
+								event.preventDefault();
+								this._focusTableCell( aboveCell, 'end' );
+							}
+							// If no cell above, don't leave the table — just stay.
+							return;
+						}
+
+						// For all other keys inside a table cell (Enter, Backspace,
+						// typing, etc.), let the browser handle them normally.
+						// Do NOT fall through to block-level navigation.
+						return;
+					}
 
 					if ( 'ArrowUp' === event.key && this._isCursorOnFirstLine( editableEl ) ) {
 						if ( currentIndex > 0 ) {
@@ -578,7 +685,7 @@
 				const newBlock = Alpine.store( 'editor' ).addBlockAfter( blockId );
 				if ( newBlock ) {
 					$nextTick( () => {
-						const newEl = document.querySelector( '[data-block-id=\"' + newBlock.id + '\"] [contenteditable]' );
+						const newEl = document.querySelector( '[data-block-id=\'' + newBlock.id + '\'] [contenteditable]' );
 						if ( newEl ) { newEl.focus(); }
 						if ( Alpine.store( 'selection' ) ) {
 							Alpine.store( 'selection' ).select( newBlock.id, false );

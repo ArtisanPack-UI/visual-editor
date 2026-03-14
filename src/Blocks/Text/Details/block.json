@@ -1,0 +1,109 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "details",
+	"name": "Details",
+	"description": "Add collapsible content with a summary",
+	"icon": "chevron-down",
+	"category": "text",
+	"keywords": ["details", "accordion", "collapsible", "disclosure", "faq", "toggle"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"supportsInnerBlocks": true,
+	"hasJsRenderer": true,
+	"innerBlocksOrientation": "vertical",
+	"attributes": {
+		"summary": {
+			"type": "rich_text",
+			"source": "content",
+			"default": ""
+		},
+		"isOpenByDefault": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"icon": {
+			"type": "string",
+			"source": "style",
+			"default": "chevron"
+		},
+		"iconPosition": {
+			"type": "string",
+			"source": "style",
+			"default": "left"
+		},
+		"borderStyle": {
+			"type": "string",
+			"source": "style",
+			"default": "default"
+		},
+		"summaryBackgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"contentBackgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontSize": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"border": {
+			"type": "object",
+			"source": "style",
+			"default": {
+				"width": "1",
+				"widthUnit": "px",
+				"style": "solid",
+				"color": "#d1d5db",
+				"radius": "4",
+				"radiusUnit": "px",
+				"perSide": false,
+				"perCorner": false
+			}
+		}
+	},
+	"supports": {
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"typography": {
+			"fontSize": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"border": true,
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

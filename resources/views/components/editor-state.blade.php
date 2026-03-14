@@ -878,6 +878,57 @@
 						}
 
 						if ( blockId ) {
+							// Special handling for table header/footer toggles:
+							// add or remove dedicated rows instead of converting existing ones.
+							const block = this.getBlock( blockId );
+							if ( block && 'table' === block.type && block.attributes?.rows ) {
+								const newCell = () => ( { content: '', colSpan: 1, rowSpan: 1, alignment: 'left' } );
+								const numCols = block.attributes.rows[0] ? block.attributes.rows[0].length : 2;
+
+								if ( 'hasHeaderRow' === field ) {
+									// Sync cell content from DOM before modifying.
+									const tableEl = document.querySelector( '[data-block-id=\'' + CSS.escape( blockId ) + '\'] table' );
+									const rows = JSON.parse( JSON.stringify( block.attributes.rows ) );
+									if ( tableEl ) {
+										tableEl.querySelectorAll( '[data-row][data-col]' ).forEach( ( cell ) => {
+											const r = parseInt( cell.getAttribute( 'data-row' ) );
+											const c = parseInt( cell.getAttribute( 'data-col' ) );
+											if ( rows[ r ] && rows[ r ][ c ] ) { rows[ r ][ c ].content = cell.innerHTML; }
+										} );
+									}
+									if ( value ) {
+										// Add new header row at position 0.
+										rows.unshift( Array.from( { length: numCols }, newCell ) );
+									} else {
+										// Remove the header row (first row).
+										rows.shift();
+									}
+									this.updateBlock( blockId, { rows: rows, hasHeaderRow: value } );
+									return;
+								}
+
+								if ( 'hasFooterRow' === field ) {
+									const tableEl = document.querySelector( '[data-block-id=\'' + CSS.escape( blockId ) + '\'] table' );
+									const rows = JSON.parse( JSON.stringify( block.attributes.rows ) );
+									if ( tableEl ) {
+										tableEl.querySelectorAll( '[data-row][data-col]' ).forEach( ( cell ) => {
+											const r = parseInt( cell.getAttribute( 'data-row' ) );
+											const c = parseInt( cell.getAttribute( 'data-col' ) );
+											if ( rows[ r ] && rows[ r ][ c ] ) { rows[ r ][ c ].content = cell.innerHTML; }
+										} );
+									}
+									if ( value ) {
+										// Add new footer row at end.
+										rows.push( Array.from( { length: numCols }, newCell ) );
+									} else {
+										// Remove the footer row (last row).
+										rows.pop();
+									}
+									this.updateBlock( blockId, { rows: rows, hasFooterRow: value } );
+									return;
+								}
+							}
+
 							this.updateBlock( blockId, { [field]: value } );
 						}
 					} );

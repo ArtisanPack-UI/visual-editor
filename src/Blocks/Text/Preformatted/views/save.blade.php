@@ -1,22 +1,45 @@
 @php
-	$text      = $content['text'] ?? '';
-	$alignment = $styles['alignment'] ?? 'left';
-	$textColor = $styles['textColor'] ?? null;
-	$bgColor   = $styles['backgroundColor'] ?? null;
-	$fontSize  = $styles['fontSize'] ?? null;
-	$dropCap   = $styles['dropCap'] ?? false;
-	$padding   = $styles['padding'] ?? null;
-	$margin    = $styles['margin'] ?? null;
-	$border    = $styles['border'] ?? [];
+	$preContent      = $content['content'] ?? '';
+	$fontFamily      = $styles['fontFamily'] ?? 'monospace';
+	$fontSize        = $styles['fontSize'] ?? null;
+	$textColor       = $styles['textColor'] ?? null;
+	$bgColor         = $styles['backgroundColor'] ?? null;
+	$showLineNumbers = $styles['showLineNumbers'] ?? false;
+	$padding         = $styles['padding'] ?? null;
+	$margin          = $styles['margin'] ?? null;
+	$border          = $styles['border'] ?? [];
+	$anchor          = $content['anchor'] ?? null;
+	$htmlId          = $content['htmlId'] ?? null;
+	$className       = $content['className'] ?? '';
 
-	$inlineStyles = '';
+	$elementId = veSanitizeHtmlId( $htmlId ?: $anchor );
+
+	$allowedFonts = [ 'monospace', 'ui-monospace', 'Courier New', 'Consolas', 'Menlo', 'Source Code Pro' ];
+	$fontFamily   = in_array( $fontFamily, $allowedFonts, true ) ? $fontFamily : 'monospace';
+
+	$classes = 've-block ve-block-preformatted';
+	if ( $showLineNumbers ) {
+		$classes .= ' ve-pre-line-numbers';
+	}
+	if ( $className ) {
+		$classes .= ' ' . preg_replace( '/[^a-zA-Z0-9\s\-_]/', '', $className );
+	}
+
+	$inlineStyles = "font-family: {$fontFamily}, monospace;";
+
 	$textColor = veSanitizeCssColor( $textColor );
 	if ( $textColor ) {
-		$inlineStyles .= "color: {$textColor};";
+		$inlineStyles .= " color: {$textColor};";
 	}
+
 	$bgColor = veSanitizeCssColor( $bgColor );
 	if ( $bgColor ) {
-		$inlineStyles .= "background-color: {$bgColor};";
+		$inlineStyles .= " background-color: {$bgColor};";
+	}
+
+	if ( $fontSize ) {
+		$fontSize = veSanitizeCssDimension( $fontSize );
+		$inlineStyles .= " font-size: {$fontSize};";
 	}
 
 	if ( is_array( $padding ) ) {
@@ -47,21 +70,11 @@
 			$inlineStyles .= " border-radius: {$bRadius}{$bRadiusUnit};";
 		}
 	}
-
-	$classes = "ve-block ve-block-paragraph ve-block-editing text-{$alignment}";
-	if ( $fontSize ) {
-		$classes .= " text-{$fontSize}";
-	}
-	if ( $dropCap ) {
-		$classes .= ' ve-drop-cap';
-	}
 @endphp
 
-<p
+<div
 	class="{{ $classes }}"
-	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
-	contenteditable="true"
-	data-placeholder="{{ __( 'visual-editor::ve.block_paragraph_placeholder' ) }}"
-	data-ve-enter-new-block="true"
-	data-ve-slash-command="true"
->{!! $text !!}</p>
+	@if ( $elementId ) id="{{ $elementId }}" @endif
+>
+	<pre style="{{ $inlineStyles }}">{{ $preContent }}</pre>
+</div>

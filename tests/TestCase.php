@@ -17,6 +17,7 @@ namespace Tests;
 
 use ArtisanPack\LivewireUiComponents\LivewireUiComponentsServiceProvider;
 use ArtisanPackUI\MediaLibrary\MediaLibraryServiceProvider;
+use ArtisanPackUI\Security\SecurityServiceProvider;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 use BladeUI\Icons\BladeIconsServiceProvider;
 use Illuminate\Database\Schema\Blueprint;
@@ -74,6 +75,7 @@ abstract class TestCase extends BaseTestCase
 			LivewireServiceProvider::class,
 			LivewireUiComponentsServiceProvider::class,
 			MediaLibraryServiceProvider::class,
+			SecurityServiceProvider::class,
 			VisualEditorServiceProvider::class,
 		];
 	}
