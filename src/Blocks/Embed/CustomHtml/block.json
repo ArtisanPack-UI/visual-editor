@@ -1,0 +1,41 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "custom-html",
+	"name": "Custom HTML",
+	"description": "Add custom HTML code with optional sanitization",
+	"icon": "code-bracket",
+	"category": "embed",
+	"keywords": ["html", "code", "custom", "raw", "script", "embed"],
+	"version": 1,
+	"public": true,
+	"attributes": {
+		"content": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"preview": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"sanitize": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"cssClass": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		}
+	},
+	"supports": {
+		"spacing": {
+			"margin": true
+		},
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

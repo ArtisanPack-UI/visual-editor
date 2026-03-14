@@ -725,4 +725,59 @@ return [
 
 	// Inspector
 	'select_block_for_styles' => 'Select a block to view its styles.',
+
+	// Embed Block
+	'embed_url'               => 'Embed URL',
+	'embed_url_placeholder'   => 'Enter a URL to embed...',
+	'embed_caption'           => 'Caption',
+	'embed_caption_placeholder' => 'Add a caption...',
+	'embed_aspect_ratio'      => 'Aspect Ratio',
+	'embed_responsive'        => 'Responsive',
+	'embed_placeholder'       => 'Embed external content from any supported service.',
+	'embed_resolve'           => 'Embed',
+	'embed_resolving'         => 'Resolving embed...',
+	'embed_iframe_title'      => 'Embedded content',
+	'embed_content_from'      => 'Embedded content from :provider',
+	'embedded_content'        => 'Embedded content',
+
+	// Map Embed Block
+	'map_provider'             => 'Map Provider',
+	'map_address'              => 'Address',
+	'map_address_placeholder'  => 'Enter an address or place name...',
+	'map_latitude'             => 'Latitude',
+	'map_longitude'            => 'Longitude',
+	'map_zoom'                 => 'Zoom Level',
+	'map_type'                 => 'Map Type',
+	'map_type_roadmap'         => 'Roadmap',
+	'map_type_satellite'       => 'Satellite',
+	'map_type_terrain'         => 'Terrain',
+	'map_type_hybrid'          => 'Hybrid',
+	'map_marker_label'         => 'Marker Label',
+	'map_interactive'          => 'Interactive Map',
+	'map_height'               => 'Height',
+	'map_placeholder'          => 'Add a map by entering an address or coordinates.',
+	'map_search'               => 'Search',
+	'map_iframe_title'         => 'Map',
+	'map_showing_location'     => 'Map showing :address',
+	'map_showing_coordinates'  => 'Map at coordinates :lat, :lng',
+
+	// Social Embed Block
+	'social_embed_url'         => 'Post URL',
+	'social_url_placeholder'   => 'Paste a social media post URL...',
+	'social_placeholder'       => 'Embed a post from social media.',
+	'social_hide_conversation' => 'Hide Conversation',
+	'social_hide_media'        => 'Hide Media',
+	'social_max_width'         => 'Max Width',
+	'social_alignment'         => 'Alignment',
+	'social_post_from'         => 'Social post from :platform',
+	'social_media'             => 'social media',
+
+	// Custom HTML Block
+	'custom_html_preview'             => 'Preview',
+	'custom_html_sanitize'            => 'Sanitize HTML',
+	'custom_html_css_class'           => 'CSS Class Wrapper',
+	'custom_html_placeholder'         => 'Write HTML...',
+	'custom_html_editor_label'        => 'Custom HTML editor',
+	'custom_html_preview_title'       => 'Custom HTML preview',
+	'custom_html_unsanitized_warning' => 'This block contains unsanitized HTML.',
 ];

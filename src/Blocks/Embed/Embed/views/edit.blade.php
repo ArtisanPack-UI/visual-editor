@@ -1,0 +1,97 @@
+@php
+	$url          = $content['url'] ?? '';
+	$html         = $content['html'] ?? '';
+	$caption      = $content['caption'] ?? '';
+	$title        = $content['title'] ?? '';
+	$description  = $content['description'] ?? '';
+	$thumbnailUrl = $content['thumbnailUrl'] ?? '';
+	$source       = $content['_source'] ?? '';
+	$aspectRatio  = $styles['aspectRatio'] ?? '16:9';
+	$responsive   = $styles['responsive'] ?? true;
+
+	$aspectMap = [
+		'16:9' => '56.25%',
+		'4:3'  => '75%',
+		'1:1'  => '100%',
+	];
+	$paddingTop = $aspectMap[ $aspectRatio ] ?? '56.25%';
+
+	$hasEmbed    = ! empty( $html ) && 'oembed' === $source;
+	$hasFallback = ! empty( $title ) && 'opengraph' === $source;
+	$isEmpty     = empty( $url );
+@endphp
+
+<div class="ve-block ve-block-embed ve-block-editing">
+	@if ( $isEmpty )
+		<div class="ve-embed-placeholder flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-base-300 bg-base-200/50 px-6 py-10">
+			<svg class="w-10 h-10 text-base-content/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true">
+				<path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+			</svg>
+			<p class="text-sm text-base-content/60">{{ __( 'visual-editor::ve.embed_placeholder' ) }}</p>
+			<div class="ve-embed-url-input flex w-full max-w-md gap-2">
+				<input
+					type="url"
+					class="input input-bordered input-sm flex-1"
+					placeholder="{{ __( 'visual-editor::ve.embed_url_placeholder' ) }}"
+					aria-label="{{ __( 'visual-editor::ve.embed_url' ) }}"
+					data-ve-embed-url-input
+				/>
+				<button
+					type="button"
+					class="btn btn-primary btn-sm"
+					data-ve-embed-resolve
+				>{{ __( 'visual-editor::ve.embed_resolve' ) }}</button>
+			</div>
+		</div>
+	@elseif ( $hasEmbed )
+		<figure class="ve-embed-figure">
+			<div
+				class="ve-embed-responsive-wrapper"
+				@if ( $responsive )
+					style="position: relative; padding-top: {{ $paddingTop }}; overflow: hidden;"
+				@endif
+			>
+				<iframe
+					srcdoc="{{ e( $html ) }}"
+					sandbox="allow-scripts allow-same-origin allow-popups"
+					class="ve-embed-iframe"
+					title="{{ $title ?: __( 'visual-editor::ve.embed_iframe_title' ) }}"
+					aria-label="{{ $title ? __( 'visual-editor::ve.embed_content_from', ['provider' => $title] ) : __( 'visual-editor::ve.embedded_content' ) }}"
+					@if ( $responsive )
+						style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;"
+					@else
+						style="width: 100%; height: 300px; border: 0;"
+					@endif
+					loading="lazy"
+				></iframe>
+			</div>
+			@if ( $caption )
+				<figcaption
+					class="ve-embed-caption text-center text-sm text-base-content/60 mt-2"
+					contenteditable="true"
+					data-placeholder="{{ __( 'visual-editor::ve.embed_caption_placeholder' ) }}"
+				>{{ $caption }}</figcaption>
+			@endif
+		</figure>
+	@elseif ( $hasFallback )
+		<div class="ve-embed-fallback-card rounded-lg border border-base-300 bg-base-100 overflow-hidden">
+			@if ( $thumbnailUrl )
+				<div class="ve-embed-thumbnail aspect-video bg-base-200 overflow-hidden">
+					<img src="{{ $thumbnailUrl }}" alt="{{ $title }}" class="w-full h-full object-cover" loading="lazy" />
+				</div>
+			@endif
+			<div class="p-4">
+				<h4 class="font-semibold text-sm">{{ $title }}</h4>
+				@if ( $description )
+					<p class="text-xs text-base-content/60 mt-1 line-clamp-2">{{ $description }}</p>
+				@endif
+				<p class="text-xs text-base-content/40 mt-2 truncate">{{ $url }}</p>
+			</div>
+		</div>
+	@else
+		<div class="ve-embed-loading flex items-center justify-center gap-2 rounded-lg border border-base-300 bg-base-200/50 px-6 py-10">
+			<span class="loading loading-spinner loading-sm"></span>
+			<span class="text-sm text-base-content/60">{{ __( 'visual-editor::ve.embed_resolving' ) }}</span>
+		</div>
+	@endif
+</div>

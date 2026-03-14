@@ -1,0 +1,69 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "map-embed",
+	"name": "Map",
+	"description": "Embed an interactive or static map",
+	"icon": "map-pin",
+	"category": "embed",
+	"keywords": ["map", "google", "openstreetmap", "location", "address", "geo"],
+	"version": 1,
+	"public": true,
+	"attributes": {
+		"provider": {
+			"type": "string",
+			"source": "content",
+			"default": "openstreetmap"
+		},
+		"latitude": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"longitude": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"zoom": {
+			"type": "integer",
+			"source": "content",
+			"default": 13
+		},
+		"mapType": {
+			"type": "string",
+			"source": "content",
+			"default": "roadmap"
+		},
+		"address": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"markerLabel": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"interactive": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"height": {
+			"type": "string",
+			"source": "style",
+			"default": "400px"
+		}
+	},
+	"supports": {
+		"align": ["wide", "full"],
+		"spacing": {
+			"margin": true
+		},
+		"border": true,
+		"shadow": true,
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}
