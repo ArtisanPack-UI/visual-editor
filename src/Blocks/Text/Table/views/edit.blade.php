@@ -57,7 +57,8 @@
 									data-placeholder="{{ __( 'visual-editor::ve.table_cell_placeholder' ) }}"
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
-									@if ( 'left' !== ( $cell['alignment'] ?? 'left' ) ) style="text-align: {{ in_array( $cell['alignment'], [ 'left', 'center', 'right', 'justify' ], true ) ? $cell['alignment'] : 'left' }};" @endif
+									@php $alignment = $cell['alignment'] ?? 'left'; @endphp
+									@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
 								>{!! kses( $cell['content'] ?? '' ) !!}</th>
 							@endforeach
 						</tr>
@@ -76,7 +77,8 @@
 									data-placeholder="{{ __( 'visual-editor::ve.table_cell_placeholder' ) }}"
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
-									@if ( 'left' !== ( $cell['alignment'] ?? 'left' ) ) style="text-align: {{ in_array( $cell['alignment'], [ 'left', 'center', 'right', 'justify' ], true ) ? $cell['alignment'] : 'left' }};" @endif
+									@php $alignment = $cell['alignment'] ?? 'left'; @endphp
+									@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
 								>{!! kses( $cell['content'] ?? '' ) !!}</th>
 							@else
 								<td
@@ -84,7 +86,8 @@
 									data-placeholder="{{ __( 'visual-editor::ve.table_cell_placeholder' ) }}"
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
-									@if ( 'left' !== ( $cell['alignment'] ?? 'left' ) ) style="text-align: {{ in_array( $cell['alignment'], [ 'left', 'center', 'right', 'justify' ], true ) ? $cell['alignment'] : 'left' }};" @endif
+									@php $alignment = $cell['alignment'] ?? 'left'; @endphp
+									@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
 								>{!! kses( $cell['content'] ?? '' ) !!}</td>
 							@endif
 						@endforeach
@@ -102,7 +105,8 @@
 									data-placeholder="{{ __( 'visual-editor::ve.table_cell_placeholder' ) }}"
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
-									@if ( 'left' !== ( $cell['alignment'] ?? 'left' ) ) style="text-align: {{ in_array( $cell['alignment'], [ 'left', 'center', 'right', 'justify' ], true ) ? $cell['alignment'] : 'left' }};" @endif
+									@php $alignment = $cell['alignment'] ?? 'left'; @endphp
+									@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
 								>{!! kses( $cell['content'] ?? '' ) !!}</td>
 							@endforeach
 						</tr>

@@ -115,7 +115,8 @@
 									scope="col"
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
-									@if ( 'left' !== ( $cell['alignment'] ?? 'left' ) ) style="text-align: {{ in_array( $cell['alignment'], [ 'left', 'center', 'right', 'justify' ], true ) ? $cell['alignment'] : 'left' }};" @endif
+									@php $alignment = $cell['alignment'] ?? 'left'; @endphp
+									@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
 								>{!! kses( $cell['content'] ?? '' ) !!}</th>
 							@endforeach
 						</tr>
@@ -132,13 +133,15 @@
 									scope="row"
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
-									@if ( 'left' !== ( $cell['alignment'] ?? 'left' ) ) style="text-align: {{ in_array( $cell['alignment'], [ 'left', 'center', 'right', 'justify' ], true ) ? $cell['alignment'] : 'left' }};" @endif
+									@php $alignment = $cell['alignment'] ?? 'left'; @endphp
+									@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
 								>{!! kses( $cell['content'] ?? '' ) !!}</th>
 							@else
 								<td
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
-									@if ( 'left' !== ( $cell['alignment'] ?? 'left' ) ) style="text-align: {{ in_array( $cell['alignment'], [ 'left', 'center', 'right', 'justify' ], true ) ? $cell['alignment'] : 'left' }};" @endif
+									@php $alignment = $cell['alignment'] ?? 'left'; @endphp
+									@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
 								>{!! kses( $cell['content'] ?? '' ) !!}</td>
 							@endif
 						@endforeach
@@ -154,7 +157,8 @@
 								<td
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
-									@if ( 'left' !== ( $cell['alignment'] ?? 'left' ) ) style="text-align: {{ in_array( $cell['alignment'], [ 'left', 'center', 'right', 'justify' ], true ) ? $cell['alignment'] : 'left' }};" @endif
+									@php $alignment = $cell['alignment'] ?? 'left'; @endphp
+									@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
 								>{!! kses( $cell['content'] ?? '' ) !!}</td>
 							@endforeach
 						</tr>

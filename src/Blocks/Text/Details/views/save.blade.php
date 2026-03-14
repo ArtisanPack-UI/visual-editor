@@ -4,9 +4,12 @@
 	$allowedIcons         = [ 'chevron', 'plus-minus', 'none' ];
 	$allowedIconPositions = [ 'left', 'right' ];
 	$allowedBorderStyles  = [ 'default', 'card', 'minimal', 'borderless' ];
-	$icon            = in_array( $styles['icon'] ?? 'chevron', $allowedIcons, true ) ? $styles['icon'] : 'chevron';
-	$iconPosition    = in_array( $styles['iconPosition'] ?? 'left', $allowedIconPositions, true ) ? $styles['iconPosition'] : 'left';
-	$borderStyle     = in_array( $styles['borderStyle'] ?? 'default', $allowedBorderStyles, true ) ? $styles['borderStyle'] : 'default';
+	$iconCandidate        = $styles['icon'] ?? 'chevron';
+	$iconPosCandidate     = $styles['iconPosition'] ?? 'left';
+	$borderStyleCandidate = $styles['borderStyle'] ?? 'default';
+	$icon            = in_array( $iconCandidate, $allowedIcons, true ) ? $iconCandidate : 'chevron';
+	$iconPosition    = in_array( $iconPosCandidate, $allowedIconPositions, true ) ? $iconPosCandidate : 'left';
+	$borderStyle     = in_array( $borderStyleCandidate, $allowedBorderStyles, true ) ? $borderStyleCandidate : 'default';
 	$summaryBgColor  = $styles['summaryBackgroundColor'] ?? null;
 	$contentBgColor  = $styles['contentBackgroundColor'] ?? null;
 	$textColor       = $styles['textColor'] ?? null;
