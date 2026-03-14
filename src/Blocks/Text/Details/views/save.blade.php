@@ -1,9 +1,12 @@
 @php
 	$summary         = $content['summary'] ?? '';
 	$isOpen          = $content['isOpenByDefault'] ?? false;
-	$icon            = $styles['icon'] ?? 'chevron';
-	$iconPosition    = $styles['iconPosition'] ?? 'left';
-	$borderStyle     = $styles['borderStyle'] ?? 'default';
+	$allowedIcons         = [ 'chevron', 'arrow', 'plus-minus', 'caret', 'none' ];
+	$allowedIconPositions = [ 'left', 'right' ];
+	$allowedBorderStyles  = [ 'default', 'card', 'minimal', 'accent', 'none' ];
+	$icon            = in_array( $styles['icon'] ?? 'chevron', $allowedIcons, true ) ? $styles['icon'] : 'chevron';
+	$iconPosition    = in_array( $styles['iconPosition'] ?? 'left', $allowedIconPositions, true ) ? $styles['iconPosition'] : 'left';
+	$borderStyle     = in_array( $styles['borderStyle'] ?? 'default', $allowedBorderStyles, true ) ? $styles['borderStyle'] : 'default';
 	$summaryBgColor  = $styles['summaryBackgroundColor'] ?? null;
 	$contentBgColor  = $styles['contentBackgroundColor'] ?? null;
 	$textColor       = $styles['textColor'] ?? null;

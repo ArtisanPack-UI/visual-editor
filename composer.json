@@ -30,6 +30,7 @@
 		"artisanpack-ui/hooks": "^1.0",
 		"artisanpack-ui/livewire-ui-components": "^2.0",
 		"artisanpack-ui/media-library": "^1.0",
+		"artisanpack-ui/security": "^1.0",
 		"livewire/livewire": "^4.0",
 		"owenvoke/blade-fontawesome": "^2.0"
 	},

@@ -38,6 +38,182 @@
 		pointer-events: none;
 	}
 
+	/* Table block canvas styles */
+	.ve-block-table table {
+		width: 100%;
+		border-collapse: collapse;
+	}
+	.ve-block-table th,
+	.ve-block-table td {
+		padding: 0.5rem 0.75rem;
+		min-width: 3rem;
+		min-height: 1.5rem;
+		vertical-align: top;
+		outline: none;
+	}
+	.ve-block-table.ve-table-bordered th,
+	.ve-block-table.ve-table-bordered td {
+		border: 1px solid oklch(var(--bc) / 0.2);
+	}
+	.ve-block-table.ve-table-striped tbody tr:nth-child(even) {
+		background-color: oklch(var(--bc) / 0.04);
+	}
+	.ve-block-table th {
+		font-weight: 600;
+		background-color: oklch(var(--bc) / 0.06);
+	}
+	.ve-block-table caption {
+		caption-side: bottom;
+		padding: 0.5rem;
+		font-size: 0.875rem;
+		color: oklch(var(--bc) / 0.6);
+	}
+	.ve-block-table caption:empty::before {
+		content: attr(data-placeholder);
+		color: oklch(var(--bc) / 0.4);
+		pointer-events: none;
+	}
+	.ve-block-table [contenteditable]:empty::before {
+		content: attr(data-placeholder);
+		color: oklch(var(--bc) / 0.3);
+		pointer-events: none;
+	}
+	.ve-table-toolbar {
+		display: flex;
+		gap: 0.5rem;
+		padding: 0.5rem 0;
+		justify-content: center;
+	}
+	.ve-table-toolbar button {
+		display: inline-flex;
+		align-items: center;
+		gap: 0.25rem;
+		font-size: 0.75rem;
+		padding: 0.25rem 0.75rem;
+		border-radius: 0.25rem;
+		border: 1px solid oklch(var(--bc) / 0.2);
+		background: oklch(var(--b1));
+		cursor: pointer;
+		transition: background-color 0.15s;
+	}
+	.ve-table-toolbar button:hover {
+		background: oklch(var(--bc) / 0.05);
+	}
+
+	/* Table gutter (row/column action buttons) */
+	.ve-table-gutter {
+		padding: 0 !important;
+		border: none !important;
+		background: transparent !important;
+		width: 0;
+		overflow: visible;
+		position: relative;
+	}
+	.ve-table-col-actions-row th.ve-table-gutter {
+		height: 0;
+		padding: 0 !important;
+		line-height: 0;
+	}
+	.ve-table-col-actions {
+		display: flex;
+		justify-content: center;
+		gap: 2px;
+		padding-bottom: 4px;
+		opacity: 0;
+		transition: opacity 0.15s;
+	}
+	.ve-block-table:hover .ve-table-col-actions,
+	.ve-block-table:focus-within .ve-table-col-actions {
+		opacity: 1;
+	}
+	.ve-table-row-actions {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 2px;
+		padding-left: 4px;
+		opacity: 0;
+		transition: opacity 0.15s;
+	}
+	tr:hover > .ve-table-gutter .ve-table-row-actions,
+	.ve-block-table:hover .ve-table-row-actions {
+		opacity: 1;
+	}
+	.ve-table-action-btn {
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		width: 18px;
+		height: 18px;
+		border-radius: 3px;
+		border: 1px solid oklch(var(--bc) / 0.15);
+		background: oklch(var(--b1));
+		color: oklch(var(--bc) / 0.5);
+		cursor: pointer;
+		transition: all 0.15s;
+		padding: 0;
+	}
+	.ve-table-action-btn:hover {
+		background: oklch(var(--p) / 0.1);
+		border-color: oklch(var(--p) / 0.3);
+		color: oklch(var(--p));
+	}
+	.ve-table-action-btn-danger:hover {
+		background: oklch(var(--er) / 0.1);
+		border-color: oklch(var(--er) / 0.3);
+		color: oklch(var(--er));
+	}
+
+	/* Table layout picker */
+	.ve-table-layout-picker {
+		min-height: 200px;
+	}
+
+	/* Details block canvas styles */
+	.ve-block-details {
+		border: 1px solid oklch(var(--bc) / 0.2);
+		border-radius: 0.25rem;
+	}
+	.ve-block-details.ve-details-borderless {
+		border: none;
+	}
+	.ve-block-details.ve-details-minimal {
+		border: none;
+		border-bottom: 1px solid oklch(var(--bc) / 0.2);
+		border-radius: 0;
+	}
+	.ve-block-details .ve-details-summary {
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		padding: 0.75rem 1rem;
+		cursor: pointer;
+		font-weight: 600;
+		outline: none;
+		user-select: text;
+	}
+	.ve-block-details .ve-details-summary:empty::before {
+		content: attr(data-placeholder);
+		color: oklch(var(--bc) / 0.4);
+		pointer-events: none;
+		font-weight: normal;
+	}
+	.ve-block-details .ve-details-icon {
+		flex-shrink: 0;
+		width: 1rem;
+		height: 1rem;
+		color: oklch(var(--bc) / 0.5);
+		transition: transform 0.2s;
+	}
+	.ve-block-details .ve-details-content {
+		padding: 0 1rem 0.75rem;
+	}
+	.ve-block-details .ve-details-content .ve-inner-blocks-placeholder:empty::before {
+		content: attr(data-placeholder);
+		color: oklch(var(--bc) / 0.4);
+		pointer-events: none;
+	}
+
 	/* Contenteditable placeholder — show when block is empty and not focused */
 	[data-placeholder].ve-is-empty:not(:focus)::before {
 		content: attr(data-placeholder);
@@ -1304,6 +1480,346 @@
 								+ '>' + text + '</span>'
 								+ ( icon && 'right' === iconPosition ? iconHtml : '' )
 								+ '</div>';
+						},
+					} );
+
+					br.register( 'details', {
+						render( block, context ) {
+							const summary     = block.attributes?.summary || '';
+							const isOpen      = block.attributes?.isOpenByDefault || false;
+							const icon        = block.attributes?.icon || 'chevron';
+							const iconPos     = block.attributes?.iconPosition || 'left';
+							const borderStyle = block.attributes?.borderStyle || 'default';
+							const summaryBg   = block.attributes?.summaryBackgroundColor || '';
+							const contentBg   = block.attributes?.contentBackgroundColor || '';
+							const textColor   = block.attributes?.textColor || '';
+							const bgColor     = block.attributes?.backgroundColor || '';
+							const fontSize    = block.attributes?.fontSize || '';
+
+							// Preserve summary text from DOM to avoid losing focus.
+							const existingSummary = document.querySelector( '[data-block-id=\'' + CSS.escape( block.id ) + '\'] .ve-details-summary' );
+							const summaryText     = existingSummary ? existingSummary.innerHTML : summary;
+
+							let wrapperStyle = '';
+							if ( textColor ) { wrapperStyle += 'color:' + textColor + ';'; }
+							if ( bgColor ) { wrapperStyle += 'background-color:' + bgColor + ';'; }
+							if ( fontSize ) { wrapperStyle += 'font-size:' + fontSize + ';'; }
+
+							let summaryStyle = '';
+							if ( summaryBg ) { summaryStyle += 'background-color:' + summaryBg + ';'; }
+
+							let contentStyle = '';
+							if ( contentBg ) { contentStyle += 'background-color:' + contentBg + ';'; }
+
+							// Icon SVG
+							let iconSvg = '';
+							if ( 'chevron' === icon ) {
+								iconSvg = '<svg class=\'ve-details-icon\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'>'
+									+ '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'m9 5 7 7-7 7\'/>'
+									+ '</svg>';
+							} else if ( 'plus-minus' === icon ) {
+								iconSvg = '<svg class=\'ve-details-icon\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'>'
+									+ '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M12 4v16m8-8H4\'/>'
+									+ '</svg>';
+							}
+
+							let borderClass = 've-details-' + borderStyle;
+
+							let html = '<div class=\'ve-block ve-block-details ve-block-editing ' + borderClass + '\''
+								+ ( wrapperStyle ? ' style=\'' + wrapperStyle + '\'' : '' )
+								+ '>';
+
+							// Summary row
+							html += '<div class=\'ve-details-summary-row\''
+								+ ( summaryStyle ? ' style=\'' + summaryStyle + '\'' : '' )
+								+ '>';
+
+							if ( iconSvg && 'left' === iconPos ) {
+								html += iconSvg;
+							}
+
+							html += '<span class=\'ve-details-summary flex-1\''
+								+ ' contenteditable=\'true\''
+								+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.block_details_summary_placeholder' ) ) }} + '\''
+								+ '>' + summaryText + '</span>';
+
+							if ( iconSvg && 'right' === iconPos ) {
+								html += iconSvg;
+							}
+
+							html += '</div>';
+
+							// Content area with inner blocks
+							html += '<div class=\'ve-details-content\''
+								+ ( contentStyle ? ' style=\'' + contentStyle + '\'' : '' )
+								+ '>';
+
+							html += br.renderInnerBlocks( block, {
+								orientation: 'vertical',
+								placeholder: {{ Js::from( __( 'visual-editor::ve.block_details_content_placeholder' ) ) }},
+								context: context,
+							} );
+
+							html += '</div>';
+							html += '</div>';
+
+							return html;
+						},
+					} );
+
+					br.register( 'table', {
+						render( block, context ) {
+							const rows          = block.attributes?.rows || null;
+							const hasHeaderRow  = block.attributes?.hasHeaderRow || false;
+							const hasHeaderCol  = block.attributes?.hasHeaderColumn || false;
+							const hasFooterRow  = block.attributes?.hasFooterRow || false;
+							const caption       = block.attributes?.caption || '';
+							const striped       = block.attributes?.striped || false;
+							const bordered      = block.attributes?.bordered !== false;
+							const fixedLayout   = block.attributes?.fixedLayout || false;
+							const headerBg      = block.attributes?.headerBackgroundColor || '';
+							const stripeBg      = block.attributes?.stripeColor || '';
+							const borderColor   = block.attributes?.borderColor || '';
+							const textColor     = block.attributes?.textColor || '';
+							const bgColor       = block.attributes?.backgroundColor || '';
+
+							// === Layout picker (shown when rows is null) ===
+							if ( ! rows ) {
+								const newCell = () => ( { content: '', colSpan: 1, rowSpan: 1, alignment: 'left' } );
+								const makeRow = ( cols ) => Array.from( { length: cols }, newCell );
+
+								const presets = [
+									{ key: '2x2', label: {{ Js::from( __( 'visual-editor::ve.table_layout_2x2' ) ) }}, bodyRows: 2, cols: 2, header: false, footer: false,
+									  visual: '<div class=\'grid gap-px\' style=\'grid-template-columns:1fr 1fr;width:100%;\'>'
+										+ '<div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div>'
+										+ '<div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div>'
+										+ '</div>' },
+									{ key: '3x3', label: {{ Js::from( __( 'visual-editor::ve.table_layout_3x3' ) ) }}, bodyRows: 3, cols: 3, header: false, footer: false,
+									  visual: '<div class=\'grid gap-px\' style=\'grid-template-columns:1fr 1fr 1fr;width:100%;\'>'
+										+ '<div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div>'
+										+ '<div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div>'
+										+ '<div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div>'
+										+ '</div>' },
+									{ key: '4x4', label: {{ Js::from( __( 'visual-editor::ve.table_layout_4x4' ) ) }}, bodyRows: 4, cols: 4, header: false, footer: false,
+									  visual: '<div class=\'grid gap-px\' style=\'grid-template-columns:1fr 1fr 1fr 1fr;width:100%;\'>'
+										+ '<div class=\'h-2.5 bg-base-content/20 rounded-sm\'></div>'.repeat( 16 )
+										+ '</div>' },
+									{ key: '2x3h', label: {{ Js::from( __( 'visual-editor::ve.table_layout_2x3_header' ) ) }}, bodyRows: 2, cols: 3, header: true, footer: false,
+									  visual: '<div class=\'grid gap-px\' style=\'grid-template-columns:1fr 1fr 1fr;width:100%;\'>'
+										+ '<div class=\'h-3 bg-base-content/40 rounded-sm\'></div><div class=\'h-3 bg-base-content/40 rounded-sm\'></div><div class=\'h-3 bg-base-content/40 rounded-sm\'></div>'
+										+ '<div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div>'
+										+ '<div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div>'
+										+ '</div>' },
+									{ key: '3x3h', label: {{ Js::from( __( 'visual-editor::ve.table_layout_3x3_header' ) ) }}, bodyRows: 3, cols: 3, header: true, footer: false,
+									  visual: '<div class=\'grid gap-px\' style=\'grid-template-columns:1fr 1fr 1fr;width:100%;\'>'
+										+ '<div class=\'h-3 bg-base-content/40 rounded-sm\'></div><div class=\'h-3 bg-base-content/40 rounded-sm\'></div><div class=\'h-3 bg-base-content/40 rounded-sm\'></div>'
+										+ '<div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div>'
+										+ '<div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div>'
+										+ '<div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div><div class=\'h-3 bg-base-content/20 rounded-sm\'></div>'
+										+ '</div>' },
+									{ key: '3x4hf', label: {{ Js::from( __( 'visual-editor::ve.table_layout_3x4_hf' ) ) }}, bodyRows: 3, cols: 4, header: true, footer: true,
+									  visual: '<div class=\'grid gap-px\' style=\'grid-template-columns:1fr 1fr 1fr 1fr;width:100%;\'>'
+										+ '<div class=\'h-2.5 bg-base-content/40 rounded-sm\'></div>'.repeat( 4 )
+										+ '<div class=\'h-2.5 bg-base-content/20 rounded-sm\'></div>'.repeat( 12 )
+										+ '<div class=\'h-2.5 bg-base-content/30 rounded-sm\'></div>'.repeat( 4 )
+										+ '</div>' },
+								];
+
+								let html = '<div class=\'ve-block ve-block-table ve-block-editing\'>'
+									+ '<div class=\'ve-table-layout-picker flex flex-col items-center justify-center gap-4 py-8 px-4 w-full\'>'
+									+ '<p class=\'text-sm text-base-content/60\'>' + {{ Js::from( __( 'visual-editor::ve.table_layout_picker' ) ) }} + '</p>'
+									+ '<div class=\'grid grid-cols-3 gap-2 w-full max-w-md\'>';
+
+								presets.forEach( ( preset ) => {
+									html += '<button type=\'button\' class=\'ve-layout-btn flex flex-col items-center gap-1.5 rounded-lg border border-base-300 px-3 py-3 hover:border-primary hover:bg-primary/5 transition-colors\''
+										+ ' data-ve-set-table-layout=\'' + preset.key + '\''
+										+ ' data-body-rows=\'' + preset.bodyRows + '\''
+										+ ' data-cols=\'' + preset.cols + '\''
+										+ ' data-header=\'' + ( preset.header ? '1' : '0' ) + '\''
+										+ ' data-footer=\'' + ( preset.footer ? '1' : '0' ) + '\''
+										+ '>'
+										+ preset.visual
+										+ '<span class=\'text-xs font-medium\'>' + preset.label + '</span>'
+										+ '</button>';
+								} );
+
+								html += '</div>';
+
+								// Custom table builder
+								html += '<div class=\'ve-table-custom-builder flex flex-col items-center gap-3 w-full max-w-md pt-2 border-t border-base-300\'>'
+									+ '<p class=\'text-xs font-medium text-base-content/60\'>' + {{ Js::from( __( 'visual-editor::ve.table_layout_custom' ) ) }} + '</p>'
+									+ '<div class=\'flex items-center gap-4\'>'
+									+ '<label class=\'flex items-center gap-2 text-xs\'>'
+									+ '<span>' + {{ Js::from( __( 'visual-editor::ve.table_custom_columns' ) ) }} + '</span>'
+									+ '<input type=\'number\' min=\'1\' max=\'20\' value=\'3\' class=\'input input-bordered input-xs w-16 text-center\' data-ve-table-custom-cols />'
+									+ '</label>'
+									+ '<label class=\'flex items-center gap-2 text-xs\'>'
+									+ '<span>' + {{ Js::from( __( 'visual-editor::ve.table_custom_rows' ) ) }} + '</span>'
+									+ '<input type=\'number\' min=\'1\' max=\'50\' value=\'3\' class=\'input input-bordered input-xs w-16 text-center\' data-ve-table-custom-rows />'
+									+ '</label>'
+									+ '</div>'
+									+ '<div class=\'flex items-center gap-4\'>'
+									+ '<label class=\'flex items-center gap-2 text-xs cursor-pointer\'>'
+									+ '<input type=\'checkbox\' class=\'checkbox checkbox-xs\' data-ve-table-custom-header />'
+									+ '<span>' + {{ Js::from( __( 'visual-editor::ve.table_custom_header_row' ) ) }} + '</span>'
+									+ '</label>'
+									+ '<label class=\'flex items-center gap-2 text-xs cursor-pointer\'>'
+									+ '<input type=\'checkbox\' class=\'checkbox checkbox-xs\' data-ve-table-custom-footer />'
+									+ '<span>' + {{ Js::from( __( 'visual-editor::ve.table_custom_footer_row' ) ) }} + '</span>'
+									+ '</label>'
+									+ '</div>'
+									+ '<button type=\'button\' class=\'btn btn-primary btn-xs\' data-ve-set-table-layout=\'custom\'>'
+									+ {{ Js::from( __( 'visual-editor::ve.table_custom_create' ) ) }}
+									+ '</button>'
+									+ '</div>';
+
+								html += '</div></div>';
+								return html;
+							}
+
+							// === Table rendering ===
+							let tableClasses = 've-block ve-block-table ve-block-editing';
+							if ( striped ) { tableClasses += ' ve-table-striped'; }
+							if ( bordered ) { tableClasses += ' ve-table-bordered'; }
+
+							let tableStyle = '';
+							if ( fixedLayout ) { tableStyle += 'table-layout:fixed;'; }
+							if ( textColor ) { tableStyle += 'color:' + textColor + ';'; }
+							if ( bgColor ) { tableStyle += 'background-color:' + bgColor + ';'; }
+							if ( borderColor ) { tableStyle += '--ve-table-border-color:' + borderColor + ';'; }
+							if ( stripeBg ) { tableStyle += '--ve-table-stripe-color:' + stripeBg + ';'; }
+
+							// Preserve existing cell content from DOM to avoid losing focus.
+							const existingTable = document.querySelector( '[data-block-id=\'' + CSS.escape( block.id ) + '\'] table' );
+							const existingCells = {};
+							if ( existingTable ) {
+								existingTable.querySelectorAll( '[data-row][data-col]' ).forEach( ( cell ) => {
+									existingCells[ cell.getAttribute( 'data-row' ) + '-' + cell.getAttribute( 'data-col' ) ] = cell.innerHTML;
+								} );
+							}
+
+							// Preserve caption from DOM.
+							const existingCaption = document.querySelector( '[data-block-id=\'' + CSS.escape( block.id ) + '\'] caption' );
+							const captionText     = existingCaption ? existingCaption.innerHTML : caption;
+
+							const totalRows = rows.length;
+							const numCols   = rows[ 0 ] ? rows[ 0 ].length : 2;
+
+							// Helper: render a single cell.
+							const renderCell = ( rowIdx, colIdx, cell, isHeader ) => {
+								const key       = rowIdx + '-' + colIdx;
+								const cellText  = existingCells.hasOwnProperty( key ) ? existingCells[ key ] : ( cell.content || '' );
+								const cellAlign = cell.alignment || 'left';
+								const tag       = isHeader ? 'th' : 'td';
+								return '<' + tag + ' contenteditable=\'true\''
+									+ ' data-row=\'' + rowIdx + '\' data-col=\'' + colIdx + '\''
+									+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.table_cell_placeholder' ) ) }} + '\''
+									+ ' style=\'text-align:' + cellAlign + ';\''
+									+ '>' + cellText + '</' + tag + '>';
+							};
+
+							// Helper: render a delete-row button in the gutter.
+							const renderRowBtn = ( rowIdx, section ) => {
+								return '<td class=\'ve-table-gutter\' contenteditable=\'false\'>'
+									+ '<div class=\'ve-table-row-actions\'>'
+									+ '<button type=\'button\' class=\'ve-table-action-btn\' data-ve-table-action=\'insert-row-above\' data-action-row=\'' + rowIdx + '\' data-action-section=\'' + section + '\' title=\'' + {{ Js::from( __( 'visual-editor::ve.table_insert_row_above' ) ) }} + '\'>'
+									+ '<svg viewBox=\'0 0 20 20\' fill=\'currentColor\' class=\'w-3 h-3\'><path d=\'M10 5a.75.75 0 0 1 .75.75v3.5h3.5a.75.75 0 0 1 0 1.5h-3.5v3.5a.75.75 0 0 1-1.5 0v-3.5h-3.5a.75.75 0 0 1 0-1.5h3.5v-3.5A.75.75 0 0 1 10 5Z\'/></svg>'
+									+ '</button>'
+									+ ( totalRows > 1 ? '<button type=\'button\' class=\'ve-table-action-btn ve-table-action-btn-danger\' data-ve-table-action=\'delete-row\' data-action-row=\'' + rowIdx + '\' title=\'' + {{ Js::from( __( 'visual-editor::ve.table_delete_row' ) ) }} + '\'>'
+									+ '<svg viewBox=\'0 0 20 20\' fill=\'currentColor\' class=\'w-3 h-3\'><path d=\'M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z\'/></svg>'
+									+ '</button>' : '' )
+									+ '</div></td>';
+							};
+
+							let html = '<div class=\'' + tableClasses + '\''
+								+ ( tableStyle ? ' style=\'' + tableStyle + '\'' : '' )
+								+ '>';
+
+							html += '<table>';
+
+							// Column action header row (insert/delete column buttons)
+							html += '<thead class=\'ve-table-col-actions-row\'><tr>';
+							for ( let c = 0; c < numCols; c++ ) {
+								html += '<th class=\'ve-table-gutter\' contenteditable=\'false\'>'
+									+ '<div class=\'ve-table-col-actions\'>'
+									+ '<button type=\'button\' class=\'ve-table-action-btn\' data-ve-table-action=\'insert-col-left\' data-action-col=\'' + c + '\' title=\'' + {{ Js::from( __( 'visual-editor::ve.table_insert_column_left' ) ) }} + '\'>'
+									+ '<svg viewBox=\'0 0 20 20\' fill=\'currentColor\' class=\'w-3 h-3\'><path d=\'M10 5a.75.75 0 0 1 .75.75v3.5h3.5a.75.75 0 0 1 0 1.5h-3.5v3.5a.75.75 0 0 1-1.5 0v-3.5h-3.5a.75.75 0 0 1 0-1.5h3.5v-3.5A.75.75 0 0 1 10 5Z\'/></svg>'
+									+ '</button>'
+									+ ( numCols > 1 ? '<button type=\'button\' class=\'ve-table-action-btn ve-table-action-btn-danger\' data-ve-table-action=\'delete-col\' data-action-col=\'' + c + '\' title=\'' + {{ Js::from( __( 'visual-editor::ve.table_delete_column' ) ) }} + '\'>'
+									+ '<svg viewBox=\'0 0 20 20\' fill=\'currentColor\' class=\'w-3 h-3\'><path d=\'M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z\'/></svg>'
+									+ '</button>' : '' )
+									+ '</div></th>';
+							}
+							html += '<th class=\'ve-table-gutter\'></th></tr></thead>';
+
+							// Header row (row index 0 when hasHeaderRow is true)
+							if ( hasHeaderRow && totalRows > 0 ) {
+								let headStyle = '';
+								if ( headerBg ) { headStyle = ' style=\'background-color:' + headerBg + ';\''; }
+								html += '<thead class=\'ve-table-header\'' + headStyle + '><tr>';
+								const row = rows[ 0 ];
+								if ( row ) {
+									row.forEach( ( cell, colIdx ) => {
+										html += renderCell( 0, colIdx, cell, true );
+									} );
+								}
+								html += renderRowBtn( 0, 'header' );
+								html += '</tr></thead>';
+							}
+
+							// Tbody
+							html += '<tbody>';
+							const bodyStart = hasHeaderRow ? 1 : 0;
+							const bodyEnd   = hasFooterRow && totalRows > 1 ? totalRows - 1 : totalRows;
+							for ( let rowIdx = bodyStart; rowIdx < bodyEnd; rowIdx++ ) {
+								html += '<tr>';
+								const row = rows[ rowIdx ];
+								if ( row ) {
+									row.forEach( ( cell, colIdx ) => {
+										html += renderCell( rowIdx, colIdx, cell, hasHeaderCol && 0 === colIdx );
+									} );
+								}
+								html += renderRowBtn( rowIdx, 'body' );
+								html += '</tr>';
+							}
+							html += '</tbody>';
+
+							// Footer row (last row when hasFooterRow is true)
+							if ( hasFooterRow && totalRows > 1 ) {
+								const footerRowIdx = totalRows - 1;
+								html += '<tfoot><tr>';
+								const row = rows[ footerRowIdx ];
+								if ( row ) {
+									row.forEach( ( cell, colIdx ) => {
+										html += renderCell( footerRowIdx, colIdx, cell, hasHeaderCol && 0 === colIdx );
+									} );
+								}
+								html += renderRowBtn( footerRowIdx, 'footer' );
+								html += '</tr></tfoot>';
+							}
+
+							// Caption
+							html += '<caption contenteditable=\'true\''
+								+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.table_caption_placeholder' ) ) }} + '\''
+								+ '>' + captionText + '</caption>';
+
+							html += '</table>';
+
+							// Bottom toolbar for quick add row/column
+							html += '<div class=\'ve-table-toolbar\'>'
+								+ '<button type=\'button\' data-ve-table-action=\'add-row\'>'
+								+ '<svg viewBox=\'0 0 20 20\' fill=\'currentColor\' class=\'w-3.5 h-3.5\'><path d=\'M10 5a.75.75 0 0 1 .75.75v3.5h3.5a.75.75 0 0 1 0 1.5h-3.5v3.5a.75.75 0 0 1-1.5 0v-3.5h-3.5a.75.75 0 0 1 0-1.5h3.5v-3.5A.75.75 0 0 1 10 5Z\'/></svg> '
+								+ {{ Js::from( __( 'visual-editor::ve.table_add_row' ) ) }}
+								+ '</button>'
+								+ '<button type=\'button\' data-ve-table-action=\'add-column\'>'
+								+ '<svg viewBox=\'0 0 20 20\' fill=\'currentColor\' class=\'w-3.5 h-3.5\'><path d=\'M10 5a.75.75 0 0 1 .75.75v3.5h3.5a.75.75 0 0 1 0 1.5h-3.5v3.5a.75.75 0 0 1-1.5 0v-3.5h-3.5a.75.75 0 0 1 0-1.5h3.5v-3.5A.75.75 0 0 1 10 5Z\'/></svg> '
+								+ {{ Js::from( __( 'visual-editor::ve.table_add_column' ) ) }}
+								+ '</button>'
+								+ '</div>';
+
+							html += '</div>';
+
+							return html;
 						},
 					} );
 				} );

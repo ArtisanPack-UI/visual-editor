@@ -65,9 +65,10 @@ class TableBlock extends BaseBlock
 				'default' => false,
 			],
 			'caption'         => [
-				'type'    => 'text',
-				'label'   => __( 'visual-editor::ve.caption' ),
-				'default' => '',
+				'type'      => 'text',
+				'label'     => __( 'visual-editor::ve.caption' ),
+				'default'   => '',
+				'inspector' => false,
 			],
 		];
 	}

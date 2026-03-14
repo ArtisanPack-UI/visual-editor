@@ -8,22 +8,14 @@
 	"keywords": ["table", "grid", "data", "rows", "columns", "cells"],
 	"version": 1,
 	"public": true,
+	"hasJsRenderer": true,
 	"parent": null,
 	"allowedChildren": null,
 	"attributes": {
 		"rows": {
 			"type": "array",
 			"source": "content",
-			"default": [
-				[
-					{"content": "", "colSpan": 1, "rowSpan": 1, "alignment": "left"},
-					{"content": "", "colSpan": 1, "rowSpan": 1, "alignment": "left"}
-				],
-				[
-					{"content": "", "colSpan": 1, "rowSpan": 1, "alignment": "left"},
-					{"content": "", "colSpan": 1, "rowSpan": 1, "alignment": "left"}
-				]
-			]
+			"default": null
 		},
 		"hasHeaderRow": {
 			"type": "boolean",

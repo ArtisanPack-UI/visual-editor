@@ -105,8 +105,9 @@
 				<caption>{{ $caption }}</caption>
 			@endif
 
+			@php $sanitizedHeaderBgColor = veSanitizeCssColor( $headerBgColor ); @endphp
 			@if ( ! empty( $headerRows ) )
-				<thead @if ( $headerBgColor ) style="background-color: {{ veSanitizeCssColor( $headerBgColor ) }};" @endif>
+				<thead @if ( $sanitizedHeaderBgColor ) style="background-color: {{ $sanitizedHeaderBgColor }};" @endif>
 					@foreach ( $headerRows as $row )
 						<tr>
 							@foreach ( $row as $cell )
@@ -115,7 +116,7 @@
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
 									@if ( 'left' !== ( $cell['alignment'] ?? 'left' ) ) style="text-align: {{ in_array( $cell['alignment'], [ 'left', 'center', 'right', 'justify' ], true ) ? $cell['alignment'] : 'left' }};" @endif
-								>{!! $cell['content'] ?? '' !!}</th>
+								>{!! kses( $cell['content'] ?? '' ) !!}</th>
 							@endforeach
 						</tr>
 					@endforeach
@@ -132,13 +133,13 @@
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
 									@if ( 'left' !== ( $cell['alignment'] ?? 'left' ) ) style="text-align: {{ in_array( $cell['alignment'], [ 'left', 'center', 'right', 'justify' ], true ) ? $cell['alignment'] : 'left' }};" @endif
-								>{!! $cell['content'] ?? '' !!}</th>
+								>{!! kses( $cell['content'] ?? '' ) !!}</th>
 							@else
 								<td
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
 									@if ( 'left' !== ( $cell['alignment'] ?? 'left' ) ) style="text-align: {{ in_array( $cell['alignment'], [ 'left', 'center', 'right', 'justify' ], true ) ? $cell['alignment'] : 'left' }};" @endif
-								>{!! $cell['content'] ?? '' !!}</td>
+								>{!! kses( $cell['content'] ?? '' ) !!}</td>
 							@endif
 						@endforeach
 					</tr>
@@ -154,7 +155,7 @@
 									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
 									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
 									@if ( 'left' !== ( $cell['alignment'] ?? 'left' ) ) style="text-align: {{ in_array( $cell['alignment'], [ 'left', 'center', 'right', 'justify' ], true ) ? $cell['alignment'] : 'left' }};" @endif
-								>{!! $cell['content'] ?? '' !!}</td>
+								>{!! kses( $cell['content'] ?? '' ) !!}</td>
 							@endforeach
 						</tr>
 					@endforeach

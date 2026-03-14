@@ -721,6 +721,47 @@
 										store.updateBlock( blockId, { citation: e.target.innerHTML } );
 									}
 								}
+
+								// Sync details summary text to store on blur.
+								if ( e.target.classList.contains( 've-details-summary' ) ) {
+									const blockEl = e.target.closest( '[data-block-id]' );
+									if ( blockEl ) {
+										const blockId = blockEl.getAttribute( 'data-block-id' );
+										store.updateBlock( blockId, { summary: e.target.innerHTML } );
+									}
+								}
+
+								// Sync table cell content to store on blur.
+								// Skip if focus is moving to another cell or caption
+								// in the same table — updating the store would re-render
+								// the table via x-html and destroy the newly focused cell.
+								if ( e.target.hasAttribute( 'data-row' ) && e.target.hasAttribute( 'data-col' ) ) {
+									const related = e.relatedTarget;
+									const sameTable = related && e.target.closest( '.ve-block-table' ) === related.closest( '.ve-block-table' );
+									const movingToCell = sameTable && ( related.hasAttribute( 'data-row' ) || 'CAPTION' === related.tagName );
+									if ( ! movingToCell ) {
+										const blockEl = e.target.closest( '[data-block-id]' );
+										if ( blockEl ) {
+											const blockId = blockEl.getAttribute( 'data-block-id' );
+											this._syncTableCellsToStore( store, blockEl, blockId );
+										}
+									}
+								}
+
+								// Sync table caption to store on blur.
+								// Same guard: skip if moving to a cell in the same table.
+								if ( 'CAPTION' === e.target.tagName && e.target.closest( '.ve-block-table' ) ) {
+									const related = e.relatedTarget;
+									const sameTable = related && e.target.closest( '.ve-block-table' ) === related.closest( '.ve-block-table' );
+									const movingToCell = sameTable && ( related.hasAttribute( 'data-row' ) || 'CAPTION' === related.tagName );
+									if ( ! movingToCell ) {
+										const blockEl = e.target.closest( '[data-block-id]' );
+										if ( blockEl ) {
+											const blockId = blockEl.getAttribute( 'data-block-id' );
+											this._syncTableCellsToStore( store, blockEl, blockId );
+										}
+									}
+								}
 							} );
 
 							// Expose for use in handleInput.
@@ -935,7 +976,7 @@
 								}
 
 								// Preserve existing content from the DOM if available.
-								const existingEl = document.querySelector( '[data-block-id="' + CSS.escape( block.id ) + '"] ' + tag );
+								const existingEl = document.querySelector( '[data-block-id=\'' + CSS.escape( block.id ) + '\'] ' + tag );
 								let innerHtml = '<li data-placeholder=\'' + placeholder + '\'></li>';
 								if ( existingEl ) {
 									innerHtml = existingEl.innerHTML;
@@ -947,7 +988,7 @@
 								} else {
 									// Check if we have pre-rendered HTML for a different tag type
 									const altTag = 'ol' === tag ? 'ul' : 'ol';
-									const altEl  = document.querySelector( '[data-block-id="' + CSS.escape( block.id ) + '"] ' + altTag );
+									const altEl  = document.querySelector( '[data-block-id=\'' + CSS.escape( block.id ) + '\'] ' + altTag );
 									if ( altEl ) {
 										innerHtml = altEl.innerHTML;
 									}
@@ -975,7 +1016,7 @@
 								if ( textColor ) { inlineStyle += 'color:' + textColor + ';'; }
 								if ( bgColor ) { inlineStyle += 'background-color:' + bgColor + ';'; }
 								if ( bgImage ) {
-									inlineStyle += 'background-image:url(&quot;' + bgImage + '&quot;);';
+									inlineStyle += 'background-image:url(\x27' + bgImage + '\x27);';
 									inlineStyle += 'background-size:' + bgSize + ';';
 									inlineStyle += 'background-position:' + bgPosition + ';';
 								}
@@ -983,7 +1024,7 @@
 								// Read citation from DOM if element exists, else fall back to store.
 								let citationText = '';
 								if ( showCitation ) {
-									const existingCite = document.querySelector( '[data-block-id="' + CSS.escape( block.id ) + '"] .ve-quote-citation' );
+									const existingCite = document.querySelector( '[data-block-id=\'' + CSS.escape( block.id ) + '\'] .ve-quote-citation' );
 									citationText = existingCite ? existingCite.innerHTML : ( block.attributes?.citation || '' );
 								}
 
@@ -1198,7 +1239,7 @@
 									+ '</figure>';
 							}
 
-							const safeAlt = alt.replace( /&/g, '&amp;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' ).replace( /"/g, '&quot;' ).replace( /'/g, '&#39;' );
+							const safeAlt = alt.replace( /&/g, '\x26amp;' ).replace( /</g, '\x26lt;' ).replace( />/g, '\x26gt;' ).replace( /\u0022/g, '\x26quot;' ).replace( /\x27/g, '\x26#39;' );
 							return '<figure class=\'' + figClasses + '\'>'
 								+ '<img src=\'' + url + '\' alt=\'' + safeAlt + '\' style=\'' + imgStyle + '\' />'
 								+ '<figcaption contenteditable=\'true\' data-placeholder=\'' + this.captionPlaceholder + '\'>' + caption + '</figcaption>'
@@ -2051,6 +2092,16 @@
 							if ( target.classList.contains( 've-quote-citation' ) ) {
 								return;
 							}
+							// Table cell and details summary content lives in DOM during editing.
+							if ( target.hasAttribute( 'data-row' ) && target.hasAttribute( 'data-col' ) ) {
+								return;
+							}
+							if ( target.classList.contains( 've-details-summary' ) ) {
+								return;
+							}
+							if ( target.tagName === 'CAPTION' && target.closest( '.ve-block-table' ) ) {
+								return;
+							}
 
 							const blockEl = target.closest( '[data-block-id]' );
 							if ( ! blockEl ) return;
@@ -2071,12 +2122,145 @@
 							}
 							// List blocks: no attribute update needed — content lives in the DOM.
 						},
+
+						/**
+						 * Sync all table cell content and caption from the DOM
+						 * into the store in a single updateBlock call.
+						 */
+						_syncTableCellsToStore( store, blockEl, blockId ) {
+							const block = store.getBlock( blockId );
+							if ( ! block || ! block.attributes?.rows ) return;
+
+							const tableEl = blockEl.querySelector( 'table' );
+							if ( ! tableEl ) return;
+
+							const rows = JSON.parse( JSON.stringify( block.attributes.rows ) );
+							tableEl.querySelectorAll( '[data-row][data-col]' ).forEach( ( cell ) => {
+								const r = parseInt( cell.getAttribute( 'data-row' ) );
+								const c = parseInt( cell.getAttribute( 'data-col' ) );
+								if ( rows[ r ] && rows[ r ][ c ] ) {
+									rows[ r ][ c ].content = cell.innerHTML;
+								}
+							} );
+
+							const updates = { rows: rows };
+							const captionEl = tableEl.querySelector( 'caption' );
+							if ( captionEl ) {
+								updates.caption = captionEl.innerHTML;
+							}
+							store.updateBlock( blockId, updates );
+						},
 					}"
 					x-on:input="handleInput( $event )"
 					x-on:click="
 						const mediaBtn = $event.target.closest( '[data-ve-media-context]' );
 						if ( mediaBtn ) {
 							Livewire.dispatch( 'open-ve-media-picker', { context: mediaBtn.getAttribute( 'data-ve-media-context' ) } );
+						}
+
+						// Table layout picker: create table from preset or custom config.
+						const tableLayoutBtn = $event.target.closest( '[data-ve-set-table-layout]' );
+						if ( tableLayoutBtn ) {
+							const layout  = tableLayoutBtn.getAttribute( 'data-ve-set-table-layout' );
+							const blockEl = tableLayoutBtn.closest( '[data-block-id]' );
+							if ( ! blockEl ) return;
+
+							const blockId = blockEl.getAttribute( 'data-block-id' );
+							const store   = Alpine.store( 'editor' );
+							if ( ! store ) return;
+
+							const newCell = () => ( { content: '', colSpan: 1, rowSpan: 1, alignment: 'left' } );
+							const makeRow = ( cols ) => Array.from( { length: cols }, newCell );
+							let bodyRows, cols, hasHeader, hasFooter;
+
+							if ( 'custom' === layout ) {
+								const picker   = blockEl.querySelector( '.ve-table-custom-builder' );
+								const colInput = picker ? picker.querySelector( '[data-ve-table-custom-cols]' ) : null;
+								const rowInput = picker ? picker.querySelector( '[data-ve-table-custom-rows]' ) : null;
+								const headerCb = picker ? picker.querySelector( '[data-ve-table-custom-header]' ) : null;
+								const footerCb = picker ? picker.querySelector( '[data-ve-table-custom-footer]' ) : null;
+								cols      = Math.max( 1, Math.min( 20, parseInt( colInput?.value ) || 3 ) );
+								bodyRows  = Math.max( 1, Math.min( 50, parseInt( rowInput?.value ) || 3 ) );
+								hasHeader = headerCb ? headerCb.checked : false;
+								hasFooter = footerCb ? footerCb.checked : false;
+							} else {
+								bodyRows  = parseInt( tableLayoutBtn.getAttribute( 'data-body-rows' ) ) || 2;
+								cols      = parseInt( tableLayoutBtn.getAttribute( 'data-cols' ) ) || 2;
+								hasHeader = '1' === tableLayoutBtn.getAttribute( 'data-header' );
+								hasFooter = '1' === tableLayoutBtn.getAttribute( 'data-footer' );
+							}
+
+							const rows = [];
+							if ( hasHeader ) { rows.push( makeRow( cols ) ); }
+							for ( let i = 0; i < bodyRows; i++ ) { rows.push( makeRow( cols ) ); }
+							if ( hasFooter ) { rows.push( makeRow( cols ) ); }
+
+							store.updateBlock( blockId, {
+								rows: rows,
+								hasHeaderRow: hasHeader,
+								hasFooterRow: hasFooter,
+							} );
+						}
+
+						// Table actions: add/insert/delete rows and columns.
+						const tableAction = $event.target.closest( '[data-ve-table-action]' );
+						if ( tableAction ) {
+							const action  = tableAction.getAttribute( 'data-ve-table-action' );
+							const blockEl = tableAction.closest( '[data-block-id]' );
+							if ( ! blockEl ) return;
+
+							const blockId = blockEl.getAttribute( 'data-block-id' );
+							const store   = Alpine.store( 'editor' );
+							if ( ! store ) return;
+							const block = store.getBlock( blockId );
+							if ( ! block || ! block.attributes?.rows ) return;
+
+							// Sync all cell content from DOM before modifying rows.
+							this._syncTableCellsToStore( store, blockEl, blockId );
+
+							const rows    = JSON.parse( JSON.stringify( store.getBlock( blockId ).attributes.rows ) );
+							const numCols = rows[ 0 ] ? rows[ 0 ].length : 2;
+							const newCell = () => ( { content: '', colSpan: 1, rowSpan: 1, alignment: 'left' } );
+							const makeRow = ( cols ) => Array.from( { length: cols }, newCell );
+
+							if ( 'add-row' === action ) {
+								const hasFooter = block.attributes?.hasFooterRow || false;
+								const insertIdx = hasFooter && rows.length > 1 ? rows.length - 1 : rows.length;
+								rows.splice( insertIdx, 0, makeRow( numCols ) );
+								store.updateBlock( blockId, { rows: rows } );
+							} else if ( 'add-column' === action ) {
+								rows.forEach( ( row ) => { row.push( newCell() ); } );
+								store.updateBlock( blockId, { rows: rows } );
+							} else if ( 'insert-row-above' === action ) {
+								const rowIdx = parseInt( tableAction.getAttribute( 'data-action-row' ) );
+								rows.splice( rowIdx, 0, makeRow( numCols ) );
+								store.updateBlock( blockId, { rows: rows } );
+							} else if ( 'delete-row' === action ) {
+								const rowIdx = parseInt( tableAction.getAttribute( 'data-action-row' ) );
+								if ( rows.length > 1 ) {
+									rows.splice( rowIdx, 1 );
+									const updates = { rows: rows };
+									// If we deleted the header row (index 0) and header was on, turn it off.
+									if ( 0 === rowIdx && block.attributes?.hasHeaderRow ) {
+										updates.hasHeaderRow = false;
+									}
+									// If we deleted the footer row (last index) and footer was on, turn it off.
+									if ( rowIdx === rows.length && block.attributes?.hasFooterRow ) {
+										updates.hasFooterRow = false;
+									}
+									store.updateBlock( blockId, updates );
+								}
+							} else if ( 'insert-col-left' === action ) {
+								const colIdx = parseInt( tableAction.getAttribute( 'data-action-col' ) );
+								rows.forEach( ( row ) => { row.splice( colIdx, 0, newCell() ); } );
+								store.updateBlock( blockId, { rows: rows } );
+							} else if ( 'delete-col' === action ) {
+								const colIdx = parseInt( tableAction.getAttribute( 'data-action-col' ) );
+								if ( numCols > 1 ) {
+									rows.forEach( ( row ) => { row.splice( colIdx, 1 ); } );
+									store.updateBlock( blockId, { rows: rows } );
+								}
+							}
 						}
 					"
 					x-on:ve-insertion-point-click="
