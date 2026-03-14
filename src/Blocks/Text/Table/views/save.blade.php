@@ -72,7 +72,7 @@
 	}
 
 	if ( is_array( $border ) && 'none' !== ( $border['style'] ?? 'none' ) ) {
-		$bWidth     = veSanitizeCssDimension( $border['width'] ?? '0' );
+		$bWidth     = veSanitizeCssNumber( $border['width'] ?? '0' );
 		$bWidthUnit = veSanitizeCssUnit( $border['widthUnit'] ?? 'px' );
 		$bStyle     = veSanitizeBorderStyle( $border['style'] ?? 'solid' );
 		$bColor     = veSanitizeCssColor( $border['color'] ?? 'currentColor', 'currentColor' );
@@ -80,7 +80,7 @@
 
 		$bRadius = $border['radius'] ?? '0';
 		if ( $bRadius && '0' !== $bRadius ) {
-			$bRadius     = veSanitizeCssDimension( $bRadius );
+			$bRadius     = veSanitizeCssNumber( $bRadius );
 			$bRadiusUnit = veSanitizeCssUnit( $border['radiusUnit'] ?? 'px' );
 			$inlineStyles .= " border-radius: {$bRadius}{$bRadiusUnit};";
 		}
@@ -111,13 +111,7 @@
 					@foreach ( $headerRows as $row )
 						<tr>
 							@foreach ( $row as $cell )
-								<th
-									scope="col"
-									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
-									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
-									@php $alignment = $cell['alignment'] ?? 'left'; @endphp
-									@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
-								>{!! kses( $cell['content'] ?? '' ) !!}</th>
+								@include( 'visual-editor-block-table::_cell', [ 'cell' => $cell, 'tag' => 'th', 'scope' => 'col' ] )
 							@endforeach
 						</tr>
 					@endforeach
@@ -129,20 +123,9 @@
 					<tr>
 						@foreach ( $row as $cellIndex => $cell )
 							@if ( $hasHeaderColumn && 0 === $cellIndex )
-								<th
-									scope="row"
-									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
-									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
-									@php $alignment = $cell['alignment'] ?? 'left'; @endphp
-									@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
-								>{!! kses( $cell['content'] ?? '' ) !!}</th>
+								@include( 'visual-editor-block-table::_cell', [ 'cell' => $cell, 'tag' => 'th', 'scope' => 'row' ] )
 							@else
-								<td
-									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
-									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
-									@php $alignment = $cell['alignment'] ?? 'left'; @endphp
-									@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
-								>{!! kses( $cell['content'] ?? '' ) !!}</td>
+								@include( 'visual-editor-block-table::_cell', [ 'cell' => $cell, 'tag' => 'td' ] )
 							@endif
 						@endforeach
 					</tr>
@@ -154,12 +137,7 @@
 					@foreach ( $footerRows as $row )
 						<tr>
 							@foreach ( $row as $cell )
-								<td
-									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
-									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
-									@php $alignment = $cell['alignment'] ?? 'left'; @endphp
-									@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
-								>{!! kses( $cell['content'] ?? '' ) !!}</td>
+								@include( 'visual-editor-block-table::_cell', [ 'cell' => $cell, 'tag' => 'td' ] )
 							@endforeach
 						</tr>
 					@endforeach

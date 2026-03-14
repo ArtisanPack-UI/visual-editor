@@ -35,7 +35,7 @@
 	}
 
 	if ( is_array( $border ) && 'none' !== ( $border['style'] ?? 'none' ) ) {
-		$bWidth     = veSanitizeCssDimension( $border['width'] ?? '0' );
+		$bWidth     = veSanitizeCssNumber( $border['width'] ?? '0' );
 		$bWidthUnit = veSanitizeCssUnit( $border['widthUnit'] ?? 'px' );
 		$bStyle     = veSanitizeBorderStyle( $border['style'] ?? 'solid' );
 		$bColor     = veSanitizeCssColor( $border['color'] ?? 'currentColor', 'currentColor' );
@@ -43,7 +43,7 @@
 
 		$bRadius = $border['radius'] ?? '0';
 		if ( $bRadius && '0' !== $bRadius ) {
-			$bRadius     = veSanitizeCssDimension( $bRadius );
+			$bRadius     = veSanitizeCssNumber( $bRadius );
 			$bRadiusUnit = veSanitizeCssUnit( $border['radiusUnit'] ?? 'px' );
 			$inlineStyles .= " border-radius: {$bRadius}{$bRadiusUnit};";
 		}

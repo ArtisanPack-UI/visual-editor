@@ -53,10 +53,10 @@
 	}
 	.ve-block-table.ve-table-bordered th,
 	.ve-block-table.ve-table-bordered td {
-		border: 1px solid oklch(var(--bc) / 0.2);
+		border: 1px solid var(--ve-table-border-color, oklch(var(--bc) / 0.2));
 	}
 	.ve-block-table.ve-table-striped tbody tr:nth-child(even) {
-		background-color: oklch(var(--bc) / 0.04);
+		background-color: var(--ve-table-stripe-color, oklch(var(--bc) / 0.04));
 	}
 	.ve-block-table th {
 		font-weight: 600;
