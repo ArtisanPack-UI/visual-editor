@@ -145,7 +145,7 @@ class MapEmbedBlock extends BaseBlock
 	{
 		return [
 			'embed' => [
-				'url' => '_mapUrl',
+				'url' => 'address',
 			],
 		];
 	}

@@ -35,7 +35,7 @@
 			$bbox = ( $lng - $span ) . ',' . ( $lat - $span / 2 ) . ',' . ( $lng + $span ) . ',' . ( $lat + $span / 2 );
 			$iframeSrc = "https://www.openstreetmap.org/export/embed.html?bbox={$bbox}&layer=mapnik&marker={$lat},{$lng}";
 		} else {
-			$query        = $address ?: "{$lat},{$lng}";
+			$query        = "{$lat},{$lng}";
 			$mapTypeParam = $mapTypeMap[ $mapType ] ?? 'm';
 			$iframeSrc    = "https://maps.google.com/maps?q=" . urlencode( $query ) . "&z={$zoom}&output=embed&t={$mapTypeParam}";
 		}
@@ -53,8 +53,9 @@
 			return Alpine.store( 'selection' )?.focused;
 		},
 		async searchAddress() {
-			const query = this.mapAddress.trim();
-			if ( ! query ) return;
+			const query   = this.mapAddress.trim();
+			const blockId = this.getBlockId();
+			if ( ! query || ! blockId ) return;
 
 			this.loading = true;
 
@@ -66,14 +67,11 @@
 				const j = await response.json();
 
 				if ( j.success && j.results && j.results.length > 0 ) {
-					const blockId = this.getBlockId();
-					if ( blockId ) {
-						Alpine.store( 'editor' ).updateBlock( blockId, {
-							address:   j.results[0].display_name || query,
-							latitude:  j.results[0].lat,
-							longitude: j.results[0].lon,
-						} );
-					}
+					Alpine.store( 'editor' ).updateBlock( blockId, {
+						address:   j.results[0].display_name || query,
+						latitude:  j.results[0].lat,
+						longitude: j.results[0].lon,
+					} );
 				}
 			} catch ( e ) {
 				console.error( 'Geocoding failed:', e );

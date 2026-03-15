@@ -94,14 +94,24 @@ class EmbedController extends Controller
 
 		$query = $request->input( 'q' );
 
-		$response = Http::withHeaders( [
-			'Accept'     => 'application/json',
-			'User-Agent' => 'ArtisanPackUI-VisualEditor/1.0 (geocoding proxy)',
-		] )->get( 'https://nominatim.openstreetmap.org/search', [
-			'format' => 'json',
-			'limit'  => 1,
-			'q'      => $query,
-		] );
+		try {
+			$response = Http::withHeaders( [
+				'Accept'     => 'application/json',
+				'User-Agent' => 'ArtisanPackUI-VisualEditor/1.0 (geocoding proxy)',
+			] )
+				->timeout( 5 )
+				->connectTimeout( 2 )
+				->get( 'https://nominatim.openstreetmap.org/search', [
+					'format' => 'json',
+					'limit'  => 1,
+					'q'      => $query,
+				] );
+		} catch ( \Throwable $e ) {
+			return response()->json( [
+				'success' => false,
+				'results' => [],
+			], 504 );
+		}
 
 		if ( ! $response->successful() ) {
 			return response()->json( [

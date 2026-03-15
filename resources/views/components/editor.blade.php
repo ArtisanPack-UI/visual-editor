@@ -1936,14 +1936,16 @@
 						}
 					} );
 
-					// Custom HTML textarea input handler
-					let veHtmlDebounce = null;
+					// Custom HTML textarea input handler (per-block debounce).
+					const veHtmlTimers = {};
 					document.addEventListener( 'input', ( e ) => {
 						const textarea = e.target.closest( '.ve-custom-html-textarea[data-ve-block-id]' );
 						if ( ! textarea ) return;
-						clearTimeout( veHtmlDebounce );
-						veHtmlDebounce = setTimeout( () => {
-							Alpine.store( 'editor' ).updateBlock( textarea.getAttribute( 'data-ve-block-id' ), { content: textarea.value } );
+						const bid = textarea.getAttribute( 'data-ve-block-id' );
+						clearTimeout( veHtmlTimers[ bid ] );
+						veHtmlTimers[ bid ] = setTimeout( () => {
+							delete veHtmlTimers[ bid ];
+							Alpine.store( 'editor' ).updateBlock( bid, { content: textarea.value } );
 						}, 500 );
 					} );
 
@@ -2140,7 +2142,7 @@
 								iframeSrc = 'https://www.openstreetmap.org/export/embed.html?bbox=' + bbox + '&layer=mapnik&marker=' + lat + ',' + lng;
 							} else {
 								const typeMap = { roadmap: 'm', satellite: 'k', terrain: 'p', hybrid: 'h' };
-								const query = address || ( lat + ',' + lng );
+								const query = lat + ',' + lng;
 								iframeSrc = 'https://maps.google.com/maps?q=' + encodeURIComponent( query ) + '&z=' + zoom + '&output=embed&t=' + ( typeMap[ mapType ] || 'm' );
 							}
 

@@ -415,10 +415,11 @@
 								const resolveBtn = e.target.closest( '[data-ve-resolve-embed]' );
 								if ( ! resolveBtn ) return;
 
-								const blockId = resolveBtn.getAttribute( 'data-ve-resolve-embed' );
-								const wrapper = resolveBtn.closest( '.ve-block' );
-								const input   = wrapper?.querySelector( '[data-ve-url-input]' );
-								if ( ! input || ! input.value.trim() ) return;
+								const blockId      = resolveBtn.getAttribute( 'data-ve-resolve-embed' );
+								const wrapper      = resolveBtn.closest( '.ve-block' );
+								const input        = wrapper?.querySelector( '[data-ve-url-input]' );
+								const requestedUrl = ( input?.value || '' ).trim();
+								if ( ! requestedUrl ) return;
 
 								resolveBtn.disabled = true;
 								const spinner = resolveBtn.querySelector( '.ve-resolve-spinner' );
@@ -429,13 +430,13 @@
 								fetch( '/api/visual-editor/embed/resolve', {
 									method: 'POST',
 									headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-									body: JSON.stringify( { url: input.value.trim() } ),
+									body: JSON.stringify( { url: requestedUrl } ),
 								} )
 								.then( ( r ) => r.json() )
 								.then( ( j ) => {
 									if ( j.success && j.data && Alpine.store( 'editor' ) ) {
 										Alpine.store( 'editor' ).updateBlock( blockId, {
-											url:          input.value.trim(),
+											url:          requestedUrl,
 											html:         j.data.html || '',
 											title:        j.data.title || '',
 											description:  j.data.description || '',

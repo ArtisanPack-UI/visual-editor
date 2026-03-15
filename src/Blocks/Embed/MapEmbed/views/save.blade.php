@@ -39,7 +39,7 @@
 			$bbox = ( $lng - $span ) . ',' . ( $lat - $span / 2 ) . ',' . ( $lng + $span ) . ',' . ( $lat + $span / 2 );
 			$iframeSrc = "https://www.openstreetmap.org/export/embed.html?bbox={$bbox}&layer=mapnik&marker={$lat},{$lng}";
 		} else {
-			$query        = $address ?: "{$lat},{$lng}";
+			$query        = "{$lat},{$lng}";
 			$mapTypeParam = $mapTypeMap[ $mapType ] ?? 'm';
 			$iframeSrc    = "https://maps.google.com/maps?q=" . urlencode( $query ) . "&z={$zoom}&output=embed&t={$mapTypeParam}";
 		}

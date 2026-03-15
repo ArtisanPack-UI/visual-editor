@@ -931,18 +931,27 @@
 
 							// Embed / Social Embed: changing the URL should
 							// trigger a fresh oEmbed resolve so the preview updates.
-							if ( 'url' === field && block && ( 'embed' === block.type || 'social-embed' === block.type ) && value ) {
-								this.updateBlock( blockId, { url: value, html: '', _source: '', title: '', description: '', thumbnailUrl: '', providerName: '', platform: '' } );
+							if ( 'url' === field && block && ( 'embed' === block.type || 'social-embed' === block.type ) ) {
+								// Clear derived metadata immediately (handles empty URL too).
+								this.updateBlock( blockId, { url: value || '', html: '', _source: '', title: '', description: '', thumbnailUrl: '', providerName: '', platform: '' } );
+								if ( ! value ) return;
+
+								const requestedUrl = value;
+								const _store       = this;
 								fetch( '/api/visual-editor/embed/resolve', {
 									method: 'POST',
 									headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-									body: JSON.stringify( { url: value } ),
+									body: JSON.stringify( { url: requestedUrl } ),
 								} )
 								.then( ( r ) => r.json() )
 								.then( ( j ) => {
+									// Guard against stale responses: only apply if the
+									// block still exists and its URL matches what we requested.
+									const current = _store.getBlock( blockId );
+									if ( ! current || current.attributes?.url !== requestedUrl ) return;
 									if ( j.success && j.data ) {
-										this.updateBlock( blockId, {
-											url:          value,
+										_store.updateBlock( blockId, {
+											url:          requestedUrl,
 											html:         j.data.html || '',
 											title:        j.data.title || '',
 											description:  j.data.description || '',
@@ -960,16 +969,20 @@
 							// Map Embed: changing the address should trigger
 							// a geocode to update the coordinates.
 							if ( 'address' === field && block && 'map-embed' === block.type && value ) {
-								const _store = this;
+								const requestedAddress = value;
+								const _store           = this;
 								this.updateBlock( blockId, { address: value } );
-								fetch( '/api/visual-editor/geocode?q=' + encodeURIComponent( value ), {
+								fetch( '/api/visual-editor/geocode?q=' + encodeURIComponent( requestedAddress ), {
 									headers: { 'Accept': 'application/json' },
 								} )
 								.then( ( r ) => r.json() )
 								.then( ( j ) => {
+									// Guard against stale responses.
+									const current = _store.getBlock( blockId );
+									if ( ! current || current.attributes?.address !== requestedAddress ) return;
 									if ( j.success && j.results && j.results.length > 0 ) {
 										_store.updateBlock( blockId, {
-											address:   j.results[0].display_name || value,
+											address:   j.results[0].display_name || requestedAddress,
 											latitude:  j.results[0].lat,
 											longitude: j.results[0].lon,
 										} );
