@@ -25,6 +25,7 @@ use ArtisanPackUI\VisualEditor\Console\Commands\BlockCacheCommand;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockClearCommand;
 use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
+use ArtisanPackUI\VisualEditor\Services\OEmbedService;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -167,6 +168,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->app->singleton( BlockDiscoveryService::class, function () {
 			return new BlockDiscoveryService();
 		} );
+
+		$this->app->singleton( OEmbedService::class, function () {
+			return new OEmbedService();
+		} );
 	}
 
 	/**
@@ -186,9 +191,22 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerBladeComponents();
 		$this->registerLivewireComponents();
 		$this->registerMigrations();
+		$this->registerRoutes();
 		$this->registerCoreBlocks();
 		$this->registerConsoleCommands();
 		$this->publishBlockViews();
+	}
+
+	/**
+	 * Register package routes.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerRoutes(): void
+	{
+		$this->loadRoutesFrom( __DIR__ . '/../routes/api.php' );
 	}
 
 	/**
@@ -273,7 +291,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	protected function registerBlockViews(): void
 	{
 		$blocksDir  = __DIR__ . '/Blocks';
-		$categories = [ 'Text', 'Media', 'Layout', 'Interactive' ];
+		$categories = [ 'Text', 'Media', 'Layout', 'Interactive', 'Embed' ];
 
 		foreach ( $categories as $category ) {
 			$categoryDir = $blocksDir . '/' . $category;
@@ -448,7 +466,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		}
 
 		$blocksDir  = __DIR__ . '/Blocks';
-		$categories = [ 'Text', 'Media', 'Layout', 'Interactive' ];
+		$categories = [ 'Text', 'Media', 'Layout', 'Interactive', 'Embed' ];
 		$publishMap = [];
 
 		foreach ( $categories as $category ) {

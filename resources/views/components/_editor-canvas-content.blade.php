@@ -410,6 +410,188 @@
 								store.addInnerBlock( parentId, newBlock );
 							} );
 
+							// Embed / Social resolve button: fetch oEmbed via API.
+							el.addEventListener( 'click', ( e ) => {
+								const resolveBtn = e.target.closest( '[data-ve-resolve-embed]' );
+								if ( ! resolveBtn ) return;
+
+								const blockId      = resolveBtn.getAttribute( 'data-ve-resolve-embed' );
+								const wrapper      = resolveBtn.closest( '.ve-block' );
+								const input        = wrapper?.querySelector( '[data-ve-url-input]' );
+								const requestedUrl = ( input?.value || '' ).trim();
+								if ( ! requestedUrl ) return;
+
+								resolveBtn.disabled = true;
+								const spinner = resolveBtn.querySelector( '.ve-resolve-spinner' );
+								const label   = resolveBtn.querySelector( '.ve-resolve-label' );
+								if ( spinner ) spinner.style.display = '';
+								if ( label ) label.style.display = 'none';
+
+								fetch( '/api/visual-editor/embed/resolve', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+									body: JSON.stringify( { url: requestedUrl } ),
+								} )
+								.then( ( r ) => r.json() )
+								.then( ( j ) => {
+									// Guard against stale responses: bail if the block
+									// no longer exists, its stored URL changed, or the
+									// user typed a different URL into the input since
+									// the request was fired.
+									const current = Alpine.store( 'editor' )?.getBlock( blockId );
+									if ( ! current ) return;
+									if ( current.attributes?.url && current.attributes.url !== requestedUrl ) return;
+									const latestInput = ( input?.value || '' ).trim();
+									if ( latestInput && latestInput !== requestedUrl ) return;
+									if ( j.success && j.data ) {
+										Alpine.store( 'editor' ).updateBlock( blockId, {
+											url:          requestedUrl,
+											html:         j.data.html || '',
+											title:        j.data.title || '',
+											description:  j.data.description || '',
+											thumbnailUrl: j.data.thumbnailUrl || j.data.thumbnail_url || '',
+											providerName: j.data.provider_name || j.data.providerName || '',
+											providerUrl:  j.data.provider_url || j.data.providerUrl || '',
+											_source:      j.data._source || '',
+											platform:     j.platform || '',
+										} );
+									} else {
+										const msg  = wrapper?.querySelector( '.ve-resolve-error' );
+										const hint = wrapper?.querySelector( '.ve-resolve-hint' );
+										if ( msg ) msg.style.display = '';
+										if ( hint ) hint.style.display = 'none';
+									}
+								} )
+								.catch( () => {
+									const msg  = wrapper?.querySelector( '.ve-resolve-error' );
+									const hint = wrapper?.querySelector( '.ve-resolve-hint' );
+									if ( msg ) msg.style.display = '';
+									if ( hint ) hint.style.display = 'none';
+								} )
+								.finally( () => {
+									resolveBtn.disabled = false;
+									if ( spinner ) spinner.style.display = 'none';
+									if ( label ) label.style.display = '';
+								} );
+							} );
+
+							// Track map input values outside the DOM so they survive
+							// x-html re-renders that replace the input elements.
+							const _mapDraft = {};
+							el.addEventListener( 'input', ( e ) => {
+								const addrIn = e.target.closest( '[data-ve-map-address]' );
+								if ( addrIn ) {
+									const btn = addrIn.closest( '.ve-block' )?.querySelector( '[data-ve-map-search]' );
+									if ( btn ) {
+										const id = btn.getAttribute( 'data-ve-map-search' );
+										if ( ! _mapDraft[ id ] ) _mapDraft[ id ] = {};
+										_mapDraft[ id ].address = addrIn.value;
+									}
+									return;
+								}
+								const latIn = e.target.closest( '[data-ve-map-lat]' );
+								if ( latIn ) {
+									const btn = latIn.closest( '.ve-block' )?.querySelector( '[data-ve-map-set-coords]' );
+									if ( btn ) {
+										const id = btn.getAttribute( 'data-ve-map-set-coords' );
+										if ( ! _mapDraft[ id ] ) _mapDraft[ id ] = {};
+										_mapDraft[ id ].lat = latIn.value;
+									}
+									return;
+								}
+								const lngIn = e.target.closest( '[data-ve-map-lng]' );
+								if ( lngIn ) {
+									const btn = lngIn.closest( '.ve-block' )?.querySelector( '[data-ve-map-set-coords]' );
+									if ( btn ) {
+										const id = btn.getAttribute( 'data-ve-map-set-coords' );
+										if ( ! _mapDraft[ id ] ) _mapDraft[ id ] = {};
+										_mapDraft[ id ].lng = lngIn.value;
+									}
+								}
+							} );
+
+							// Map search button: geocode via Nominatim.
+							el.addEventListener( 'click', ( e ) => {
+								const mapBtn = e.target.closest( '[data-ve-map-search]' );
+								if ( ! mapBtn ) return;
+
+								const blockId = mapBtn.getAttribute( 'data-ve-map-search' );
+								const wrapper = mapBtn.closest( '.ve-block' );
+								const input   = wrapper?.querySelector( '[data-ve-map-address]' );
+
+								// Read from DOM first, fall back to tracked draft value.
+								const requestedAddress = ( input?.value || _mapDraft[ blockId ]?.address || '' ).trim();
+								if ( ! requestedAddress ) return;
+
+								// Clean up draft value for this block.
+								delete _mapDraft[ blockId ];
+
+								// Hide any previous error, show spinner.
+								const errorEl = wrapper?.querySelector( '.ve-map-error' );
+								if ( errorEl ) errorEl.style.display = 'none';
+
+								mapBtn.disabled = true;
+								const spinner = mapBtn.querySelector( '.ve-resolve-spinner' );
+								const label   = mapBtn.querySelector( '.ve-resolve-label' );
+								if ( spinner ) spinner.style.display = '';
+								if ( label ) label.style.display = 'none';
+
+								fetch( '/api/visual-editor/geocode?q=' + encodeURIComponent( requestedAddress ), {
+									headers: { 'Accept': 'application/json' },
+								} )
+									.then( ( r ) => r.json() )
+									.then( ( j ) => {
+										if ( j.success && j.results && j.results.length > 0 && Alpine.store( 'editor' ) ) {
+											// Skip if the user changed the address while the
+											// request was in flight, or if the user manually
+											// entered coordinates and the address is unchanged.
+											const blk = Alpine.store( 'editor' ).getBlock( blockId );
+											const currentAddress = ( input?.value || _mapDraft[ blockId ]?.address || '' ).trim();
+											if ( currentAddress && currentAddress !== requestedAddress ) return;
+											if ( blk && blk.attributes?.latitude && blk.attributes?.longitude && ( ! currentAddress || currentAddress === blk.attributes?.address ) ) return;
+											Alpine.store( 'editor' ).updateBlock( blockId, {
+												address:   j.results[0].display_name || requestedAddress,
+												latitude:  j.results[0].lat,
+												longitude: j.results[0].lon,
+											} );
+										} else if ( errorEl ) {
+											errorEl.style.display = '';
+										}
+									} )
+									.catch( () => {
+										if ( errorEl ) errorEl.style.display = '';
+									} )
+									.finally( () => {
+										mapBtn.disabled = false;
+										if ( spinner ) spinner.style.display = 'none';
+										if ( label ) label.style.display = '';
+									} );
+							} );
+
+							// Map manual coordinates button.
+							el.addEventListener( 'click', ( e ) => {
+								const coordBtn = e.target.closest( '[data-ve-map-set-coords]' );
+								if ( ! coordBtn ) return;
+
+								const blockId = coordBtn.getAttribute( 'data-ve-map-set-coords' );
+								const wrapper = coordBtn.closest( '.ve-block' );
+								const latIn   = wrapper?.querySelector( '[data-ve-map-lat]' );
+								const lngIn   = wrapper?.querySelector( '[data-ve-map-lng]' );
+
+								// Read from DOM first, fall back to tracked draft values.
+								// Validate as finite numbers within valid coordinate ranges.
+								const latNum = parseFloat( ( latIn?.value || _mapDraft[ blockId ]?.lat || '' ).trim() );
+								const lngNum = parseFloat( ( lngIn?.value || _mapDraft[ blockId ]?.lng || '' ).trim() );
+
+								if ( Number.isFinite( latNum ) && Number.isFinite( lngNum )
+									&& latNum >= -90 && latNum <= 90
+									&& lngNum >= -180 && lngNum <= 180
+									&& Alpine.store( 'editor' ) ) {
+									delete _mapDraft[ blockId ];
+									Alpine.store( 'editor' ).updateBlock( blockId, { latitude: String( latNum ), longitude: String( lngNum ) } );
+								}
+							} );
+
 							// Inner block drag handle: start dragging an inner block.
 							el.addEventListener( 'dragstart', ( e ) => {
 								const handle = e.target.closest( '[data-ve-inner-drag-handle]' );
@@ -2262,6 +2444,9 @@
 								}
 							}
 						}
+
+						// Embed, map, and coordinate buttons are handled in init()
+						// via el.addEventListener('click', ...) to avoid scoping issues.
 					"
 					x-on:ve-insertion-point-click="
 						if ( Alpine.store( 'editor' ) && $event.detail ) {

@@ -1,0 +1,78 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "embed",
+	"name": "Embed",
+	"description": "Embed external content from any oEmbed-compatible service",
+	"icon": "code-bracket-square",
+	"category": "embed",
+	"keywords": ["embed", "oembed", "youtube", "vimeo", "spotify", "video", "audio"],
+	"version": 1,
+	"public": true,
+	"hasJsRenderer": true,
+	"attributes": {
+		"url": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"providerName": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"providerUrl": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"html": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"caption": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"title": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"description": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"thumbnailUrl": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"_source": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"aspectRatio": {
+			"type": "string",
+			"source": "style",
+			"default": "16:9"
+		},
+		"responsive": {
+			"type": "boolean",
+			"source": "style",
+			"default": true
+		}
+	},
+	"supports": {
+		"align": ["wide", "full"],
+		"spacing": {
+			"margin": true
+		},
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

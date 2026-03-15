@@ -1,0 +1,77 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "social-embed",
+	"name": "Social Embed",
+	"description": "Embed a social media post",
+	"icon": "chat-bubble-left-right",
+	"category": "embed",
+	"keywords": ["social", "twitter", "instagram", "facebook", "tiktok", "reddit", "bluesky", "post"],
+	"version": 1,
+	"public": true,
+	"hasJsRenderer": true,
+	"attributes": {
+		"url": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"platform": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"html": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"title": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"description": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"thumbnailUrl": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"_source": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"hideConversation": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"hideMedia": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"maxWidth": {
+			"type": "string",
+			"source": "style",
+			"default": "550px"
+		},
+		"align": {
+			"type": "string",
+			"source": "style",
+			"default": "center"
+		}
+	},
+	"supports": {
+		"spacing": {
+			"margin": true
+		},
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

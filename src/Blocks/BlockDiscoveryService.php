@@ -45,7 +45,7 @@ class BlockDiscoveryService
 	 *
 	 * @var array<int, string>
 	 */
-	protected array $categories = [ 'Text', 'Media', 'Layout', 'Interactive' ];
+	protected array $categories = [ 'Text', 'Media', 'Layout', 'Interactive', 'Embed' ];
 
 	/**
 	 * Discover all block types by scanning the filesystem.

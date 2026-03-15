@@ -1086,6 +1086,16 @@
 						if ( ! value ) { return ''; }
 						return /^[a-zA-Z0-9\s.\-%()/]+$/.test( value.trim() ) ? value.trim() : '';
 					};
+					// Escape a string for safe insertion into HTML attribute or text contexts.
+					const veEscapeHtml = ( value ) => {
+						if ( ! value ) { return ''; }
+						return String( value )
+							.replace( /&/g, '&amp;' )
+							.replace( /"/g, '&quot;' )
+							.replace( /'/g, '&#x27;' )
+							.replace( /</g, '&lt;' )
+							.replace( />/g, '&gt;' );
+					};
 
 					br.register( 'group', {
 						render( block, context ) {
@@ -1869,6 +1879,343 @@
 							html += '</div>';
 
 							return html;
+						},
+					} );
+
+					// ── Shared: extract iframe src from oEmbed HTML ──
+					const veExtractIframeSrc = ( html, url ) => {
+						// Standard iframe src extraction.
+						const iframeMatch = html.match( /<iframe[^>]+src=["']([^"']+)["']/ );
+						if ( iframeMatch ) return iframeMatch[1];
+
+						// Bluesky: extract AT URI from data-bluesky-uri and build embed URL.
+						const bskyMatch = html.match( /data-bluesky-uri=["']at:\/\/([^"']+)["']/ );
+						if ( bskyMatch ) return 'https://embed.bsky.app/embed/' + encodeURIComponent( bskyMatch[1] );
+
+						// Fallback: try to construct embed URL from the original URL for known platforms.
+						if ( url ) {
+							const bskyUrl = url.match( /bsky\.app\/profile\/([^/]+)\/post\/([^/?]+)/ );
+							if ( bskyUrl ) return 'https://embed.bsky.app/embed/' + encodeURIComponent( bskyUrl[1] ) + '/app.bsky.feed.post/' + encodeURIComponent( bskyUrl[2] );
+						}
+
+						return null;
+					};
+
+					// ── Shared: resolve embed via API ─────────────────
+					const veResolveEmbed = async ( blockId, url, extraAttrs = {} ) => {
+						try {
+							const r = await fetch( '/api/visual-editor/embed/resolve', {
+								method: 'POST',
+								headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+								body: JSON.stringify( { url } ),
+							} );
+							const j = await r.json();
+							if ( j.success && j.data ) {
+								// Guard against stale responses: only apply if the
+								// block still exists and its URL hasn't changed.
+								const current = Alpine.store( 'editor' )?.getBlock( blockId );
+								if ( ! current ) return false;
+								if ( current.attributes?.url && current.attributes.url !== url ) return false;
+								Alpine.store( 'editor' ).updateBlock( blockId, Object.assign( {
+									url:          url,
+									html:         j.data.html || '',
+									title:        j.data.title || '',
+									description:  j.data.description || '',
+									thumbnailUrl: j.data.thumbnailUrl || j.data.thumbnail_url || '',
+									providerName: j.data.provider_name || j.data.providerName || '',
+									providerUrl:  j.data.provider_url || j.data.providerUrl || '',
+									_source:      j.data._source || '',
+									platform:     j.platform || '',
+								}, extraAttrs ) );
+								return true;
+							}
+						} catch ( e ) { /* resolve failed */ }
+						return false;
+					};
+
+					// Enter key handler for embed URL inputs
+					document.addEventListener( 'keydown', async ( e ) => {
+						if ( 'Enter' !== e.key ) return;
+						const input = e.target.closest( '[data-ve-url-input]' );
+						if ( input ) {
+							e.preventDefault();
+							const wrapper = input.closest( '.ve-block' );
+							const btn = wrapper?.querySelector( '[data-ve-resolve-embed]' );
+							if ( btn ) btn.click();
+							return;
+						}
+						const mapInput = e.target.closest( '[data-ve-map-address]' );
+						if ( mapInput ) {
+							e.preventDefault();
+							const wrapper = mapInput.closest( '.ve-block' );
+							const btn = wrapper?.querySelector( '[data-ve-map-search]' );
+							if ( btn ) btn.click();
+						}
+					} );
+
+					// Custom HTML textarea input handler (per-block debounce).
+					const veHtmlTimers = {};
+					document.addEventListener( 'input', ( e ) => {
+						const textarea = e.target.closest( '.ve-custom-html-textarea[data-ve-block-id]' );
+						if ( ! textarea ) return;
+						const bid = textarea.getAttribute( 'data-ve-block-id' );
+						clearTimeout( veHtmlTimers[ bid ] );
+						veHtmlTimers[ bid ] = setTimeout( () => {
+							delete veHtmlTimers[ bid ];
+							Alpine.store( 'editor' ).updateBlock( bid, { content: textarea.value } );
+						}, 500 );
+					} );
+
+					// ── Embed block renderer ──────────────────────────
+					br.register( 'embed', {
+						render( block ) {
+							const url          = block.attributes?.url || '';
+							const html         = block.attributes?.html || '';
+							const source       = block.attributes?._source || '';
+							const title        = block.attributes?.title || '';
+							const description  = block.attributes?.description || '';
+							const thumbnailUrl = block.attributes?.thumbnailUrl || '';
+							const caption      = block.attributes?.caption || '';
+							const aspectRatio  = block.attributes?.aspectRatio || '16:9';
+							const responsive   = block.attributes?.responsive !== false;
+
+							const aspectMap  = { '16:9': '56.25%', '4:3': '75%', '1:1': '100%' };
+							const paddingTop = aspectMap[ aspectRatio ] || '56.25%';
+							const blockId    = block.id;
+
+							if ( ! url ) {
+								return '<div class="ve-block ve-block-embed ve-block-editing">'
+									+ '<div class="ve-embed-placeholder flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-base-300 bg-base-200/50 px-6 py-10">'
+									+ '<svg class="w-10 h-10 text-base-content/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" /></svg>'
+									+ '<p class="ve-resolve-hint text-sm text-base-content/60">' + {{ Js::from( __( 'visual-editor::ve.embed_placeholder' ) ) }} + '</p>'
+									+ '<p class="ve-resolve-error text-sm text-warning" style="display:none">' + {{ Js::from( __( 'visual-editor::ve.embed_resolve_failed' ) ) }} + '</p>'
+									+ '<div class="flex w-full max-w-md gap-2">'
+									+ '<input type="url" class="input input-bordered input-sm flex-1" data-ve-url-input placeholder="' + {{ Js::from( __( 'visual-editor::ve.embed_url_placeholder' ) ) }} + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.embed_url_placeholder' ) ) }} + '" />'
+									+ '<button type="button" class="btn btn-primary btn-sm" data-ve-resolve-embed="' + blockId + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.embed_resolve' ) ) }} + '">'
+									+ '<span class="ve-resolve-label">' + {{ Js::from( __( 'visual-editor::ve.embed_resolve' ) ) }} + '</span>'
+									+ '<span class="ve-resolve-spinner loading loading-spinner loading-xs" style="display:none"></span>'
+									+ '</button></div></div></div>';
+							}
+
+							if ( html && 'oembed' === source ) {
+								// Extract iframe src from oEmbed HTML to render directly (avoids sandbox issues).
+								const iframeSrc = veExtractIframeSrc( html, url );
+								let iframeStyle = responsive
+									? 'position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: 0;'
+									: 'width: 100%; height: 300px; border: 0;';
+								let wrapperStyle = responsive
+									? 'position: relative; padding-top: ' + paddingTop + '; overflow: hidden;'
+									: '';
+
+								let iframeTag;
+								if ( iframeSrc ) {
+									iframeTag = '<iframe src="' + iframeSrc + '" class="ve-embed-iframe" title="' + veEscapeHtml( title || 'Embedded content' ) + '" style="' + iframeStyle + '" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>';
+								} else {
+									// Non-iframe embeds (blockquotes, tweets, etc.) are rendered
+									// via srcdoc inside a sandboxed iframe.  allow-scripts and
+									// allow-same-origin are both required so the provider's JS
+									// (e.g. Twitter widget) can execute and resize the frame.
+									// allow-popups lets links open in a new tab.  Server-side
+									// OEmbedService validates providers and the HTML is escaped
+									// into the srcdoc attribute to prevent injection.
+									const escapedHtml = html.replace( /&/g, '&amp;' ).replace( /"/g, '&quot;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' );
+									iframeTag = '<iframe srcdoc="' + escapedHtml + '" sandbox="allow-scripts allow-same-origin allow-popups" class="ve-embed-iframe" title="' + veEscapeHtml( title || 'Embedded content' ) + '" style="' + iframeStyle + '" loading="lazy"></iframe>';
+								}
+
+								return '<div class="ve-block ve-block-embed ve-block-editing"><figure class="ve-embed-figure">'
+									+ '<div class="ve-embed-responsive-wrapper" style="' + wrapperStyle + '">'
+									+ iframeTag
+									+ '</div>'
+									+ ( caption ? '<figcaption class="ve-embed-caption text-center text-sm text-base-content/60 mt-2">' + veEscapeHtml( caption ) + '</figcaption>' : '' )
+									+ '</figure></div>';
+							}
+
+							if ( title && 'opengraph' === source ) {
+								return '<div class="ve-block ve-block-embed ve-block-editing">'
+									+ '<div class="ve-embed-fallback-card rounded-lg border border-base-300 bg-base-100 overflow-hidden">'
+									+ ( thumbnailUrl ? '<div class="ve-embed-thumbnail aspect-video bg-base-200 overflow-hidden"><img src="' + veEscapeHtml( thumbnailUrl ) + '" alt="' + veEscapeHtml( title ) + '" class="w-full h-full object-cover" loading="lazy" /></div>' : '' )
+									+ '<div class="p-4"><h4 class="font-semibold text-sm">' + veEscapeHtml( title ) + '</h4>'
+									+ ( description ? '<p class="text-xs text-base-content/60 mt-1 line-clamp-2">' + veEscapeHtml( description ) + '</p>' : '' )
+									+ '<p class="text-xs text-base-content/40 mt-2 truncate">' + veEscapeHtml( url ) + '</p></div></div></div>';
+							}
+
+							return '<div class="ve-block ve-block-embed ve-block-editing">'
+								+ '<div class="ve-embed-error flex flex-col items-center justify-center gap-3 rounded-lg border border-warning/30 bg-warning/5 px-6 py-10">'
+								+ '<p class="text-sm text-base-content/60">' + {{ Js::from( __( 'visual-editor::ve.embed_resolve_failed' ) ) }} + '</p>'
+								+ '<p class="text-xs text-base-content/40 truncate max-w-md">' + veEscapeHtml( url ) + '</p></div></div>';
+						},
+					} );
+
+					// ── Social Embed block renderer ───────────────────
+					br.register( 'social-embed', {
+						render( block ) {
+							const url          = block.attributes?.url || '';
+							const html         = block.attributes?.html || '';
+							const source       = block.attributes?._source || '';
+							const platform     = block.attributes?.platform || '';
+							const title        = block.attributes?.title || '';
+							const description  = block.attributes?.description || '';
+							const thumbnailUrl = block.attributes?.thumbnailUrl || '';
+							const maxWidth     = block.attributes?.maxWidth || '550px';
+							const align        = block.attributes?.align || 'center';
+							const blockId      = block.id;
+
+							const alignMap  = { left: 'items-start', center: 'items-center', right: 'items-end' };
+							const alignCls  = alignMap[ align ] || 'items-center';
+							const platforms = { twitter: 'Twitter/X', instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', reddit: 'Reddit', bluesky: 'Bluesky' };
+							const label     = platforms[ platform ] || '';
+
+							if ( ! url ) {
+								return '<div class="ve-block ve-block-social-embed ve-block-editing flex flex-col ' + alignCls + '">'
+									+ '<div class="ve-social-placeholder flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-base-300 bg-base-200/50 px-6 py-10 w-full">'
+									+ '<svg class="w-10 h-10 text-base-content/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 0 1 1.037-.443 48.282 48.282 0 0 0 5.68-.494c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" /></svg>'
+									+ '<p class="ve-resolve-hint text-sm text-base-content/60">' + {{ Js::from( __( 'visual-editor::ve.social_placeholder' ) ) }} + '</p>'
+									+ '<p class="ve-resolve-error text-sm text-warning" style="display:none">' + {{ Js::from( __( 'visual-editor::ve.embed_resolve_failed' ) ) }} + '</p>'
+									+ '<div class="flex w-full max-w-md gap-2">'
+									+ '<input type="url" class="input input-bordered input-sm flex-1" data-ve-url-input placeholder="' + {{ Js::from( __( 'visual-editor::ve.social_url_placeholder' ) ) }} + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.social_url_placeholder' ) ) }} + '" />'
+									+ '<button type="button" class="btn btn-primary btn-sm" data-ve-resolve-embed="' + blockId + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.embed_resolve' ) ) }} + '">'
+									+ '<span class="ve-resolve-label">' + {{ Js::from( __( 'visual-editor::ve.embed_resolve' ) ) }} + '</span>'
+									+ '<span class="ve-resolve-spinner loading loading-spinner loading-xs" style="display:none"></span>'
+									+ '</button></div></div></div>';
+							}
+
+							if ( html && 'oembed' === source ) {
+								const iframeSrc = veExtractIframeSrc( html, url );
+								let iframeTag;
+								if ( iframeSrc ) {
+									iframeTag = '<iframe src="' + iframeSrc + '" class="ve-social-iframe" title="Social post from ' + veEscapeHtml( label || 'social media' ) + '" style="width: 100%; border: 0; min-height: 200px;" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>';
+								} else {
+									const escapedHtml = html.replace( /&/g, '&amp;' ).replace( /"/g, '&quot;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' );
+									iframeTag = '<iframe srcdoc="' + escapedHtml + '" sandbox="allow-scripts allow-same-origin allow-popups" class="ve-social-iframe" title="Social post from ' + veEscapeHtml( label || 'social media' ) + '" style="width: 100%; border: 0; min-height: 200px;" loading="lazy"></iframe>';
+								}
+								return '<div class="ve-block ve-block-social-embed ve-block-editing flex flex-col ' + alignCls + '">'
+									+ '<div style="max-width: ' + veSanitizeCssDimension( maxWidth ) + '; width: 100%;">'
+									+ ( label ? '<div class="inline-flex items-center gap-1 rounded-full bg-base-200 px-2 py-0.5 text-xs font-medium text-base-content/70 mb-2">' + veEscapeHtml( label ) + '</div>' : '' )
+									+ iframeTag
+									+ '</div></div>';
+							}
+
+							if ( title && 'opengraph' === source ) {
+								return '<div class="ve-block ve-block-social-embed ve-block-editing flex flex-col ' + alignCls + '">'
+									+ '<div class="rounded-lg border border-base-300 bg-base-100 overflow-hidden" style="max-width: ' + veSanitizeCssDimension( maxWidth ) + '; width: 100%;">'
+									+ ( label ? '<div class="flex items-center gap-2 px-4 py-2 border-b border-base-200"><span class="text-xs font-medium text-base-content/70">' + veEscapeHtml( label ) + '</span></div>' : '' )
+									+ ( thumbnailUrl ? '<div class="aspect-video bg-base-200 overflow-hidden"><img src="' + veEscapeHtml( thumbnailUrl ) + '" alt="' + veEscapeHtml( title ) + '" class="w-full h-full object-cover" loading="lazy" /></div>' : '' )
+									+ '<div class="p-4"><h4 class="font-semibold text-sm">' + veEscapeHtml( title ) + '</h4>'
+									+ ( description ? '<p class="text-xs text-base-content/60 mt-1 line-clamp-3">' + veEscapeHtml( description ) + '</p>' : '' )
+									+ '<p class="text-xs text-base-content/40 mt-2 truncate">' + veEscapeHtml( url ) + '</p></div></div></div>';
+							}
+
+							return '<div class="ve-block ve-block-social-embed ve-block-editing flex flex-col ' + alignCls + '">'
+								+ '<div class="flex items-center justify-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-6 py-10 w-full">'
+								+ '<p class="text-sm text-base-content/60">' + {{ Js::from( __( 'visual-editor::ve.embed_resolve_failed' ) ) }} + '</p></div></div>';
+						},
+					} );
+
+					// ── Map Embed block renderer ──────────────────────
+					br.register( 'map-embed', {
+						render( block ) {
+							const provider    = block.attributes?.provider || 'openstreetmap';
+							const latitude    = block.attributes?.latitude || '';
+							const longitude   = block.attributes?.longitude || '';
+							const zoom        = Math.max( 1, Math.min( 20, parseInt( block.attributes?.zoom ) || 13 ) );
+							const mapType     = block.attributes?.mapType || 'roadmap';
+							const address     = block.attributes?.address || '';
+							const markerLabel = block.attributes?.markerLabel || '';
+							const interactive = block.attributes?.interactive !== false;
+							const height      = block.attributes?.height || '400px';
+							const blockId     = block.id;
+
+							const hasCoords = '' !== latitude && '' !== longitude && ! isNaN( parseFloat( latitude ) ) && ! isNaN( parseFloat( longitude ) );
+
+							if ( ! hasCoords ) {
+								return '<div class="ve-block ve-block-map-embed ve-block-editing">'
+									+ '<div class="ve-map-placeholder flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-base-300 bg-base-200/50 px-6 py-10" style="min-height: ' + veSanitizeCssDimension( height ) + ';">'
+									+ '<svg class="w-10 h-10 text-base-content/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>'
+									+ '<p class="text-sm text-base-content/60">' + {{ Js::from( __( 'visual-editor::ve.map_placeholder' ) ) }} + '</p>'
+									+ '<p class="ve-map-error text-sm text-warning" style="display:none">' + {{ Js::from( __( 'visual-editor::ve.map_not_found' ) ) }} + '</p>'
+									+ '<div class="flex w-full max-w-md gap-2">'
+									+ '<input type="text" class="input input-bordered input-sm flex-1" data-ve-map-address placeholder="' + {{ Js::from( __( 'visual-editor::ve.map_address_placeholder' ) ) }} + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.map_address_placeholder' ) ) }} + '" />'
+									+ '<button type="button" class="btn btn-primary btn-sm" data-ve-map-search="' + blockId + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.map_search' ) ) }} + '">'
+									+ '<span class="ve-resolve-label">' + {{ Js::from( __( 'visual-editor::ve.map_search' ) ) }} + '</span>'
+									+ '<span class="ve-resolve-spinner loading loading-spinner loading-xs" style="display:none"></span>'
+									+ '</button></div>'
+									+ '<div class="flex w-full max-w-md gap-2 mt-1">'
+									+ '<input type="text" class="input input-bordered input-sm flex-1" data-ve-map-lat placeholder="' + {{ Js::from( __( 'visual-editor::ve.map_latitude' ) ) }} + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.map_latitude' ) ) }} + '" />'
+									+ '<input type="text" class="input input-bordered input-sm flex-1" data-ve-map-lng placeholder="' + {{ Js::from( __( 'visual-editor::ve.map_longitude' ) ) }} + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.map_longitude' ) ) }} + '" />'
+									+ '<button type="button" class="btn btn-ghost btn-sm" data-ve-map-set-coords="' + blockId + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.map_apply_coordinates' ) ) }} + '">'
+									+ '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>'
+									+ '</button></div></div></div>';
+							}
+
+							const lat = parseFloat( latitude );
+							const lng = parseFloat( longitude );
+							let iframeSrc = '';
+
+							if ( 'openstreetmap' === provider ) {
+								// Calculate a bounding box from center + zoom.
+								// At zoom 13 the span is ~0.05 degrees; halve per zoom level.
+								const span = 180 / Math.pow( 2, zoom );
+								const bbox = ( lng - span ) + ',' + ( lat - span / 2 ) + ',' + ( lng + span ) + ',' + ( lat + span / 2 );
+								iframeSrc = 'https://www.openstreetmap.org/export/embed.html?bbox=' + bbox + '&layer=mapnik&marker=' + lat + ',' + lng;
+							} else {
+								const typeMap = { roadmap: 'm', satellite: 'k', terrain: 'p', hybrid: 'h' };
+								const query = lat + ',' + lng;
+								iframeSrc = 'https://maps.google.com/maps?q=' + encodeURIComponent( query ) + '&z=' + zoom + '&output=embed&t=' + ( typeMap[ mapType ] || 'm' );
+							}
+
+							if ( interactive && iframeSrc ) {
+								// Use a unique name based on coordinates so the browser
+								// treats each coordinate change as a new iframe context.
+								const iframeKey = 've-map-' + lat + '-' + lng + '-' + zoom;
+								return '<div class="ve-block ve-block-map-embed ve-block-editing" style="height: ' + veSanitizeCssDimension( height ) + '; overflow: hidden;">'
+									+ '<iframe src="' + iframeSrc + '" name="' + iframeKey + '" sandbox="allow-scripts allow-same-origin" class="ve-map-iframe" title="' + veEscapeHtml( markerLabel || 'Map' ) + '" style="width: 100%; height: 100%; border: 0;"></iframe></div>';
+							}
+
+							return '<div class="ve-block ve-block-map-embed ve-block-editing" style="height: ' + veSanitizeCssDimension( height ) + '; overflow: hidden;">'
+								+ '<div class="ve-map-static flex items-center justify-center bg-base-200 w-full h-full rounded"><div class="text-center">'
+								+ '<p class="text-xs text-base-content/60">' + veEscapeHtml( address || ( latitude + ', ' + longitude ) ) + '</p>'
+								+ ( markerLabel ? '<p class="text-xs font-medium text-base-content/80 mt-1">' + veEscapeHtml( markerLabel ) + '</p>' : '' )
+								+ '</div></div></div>';
+						},
+					} );
+
+					// ── Custom HTML block renderer ────────────────────
+					br.register( 'custom-html', {
+						render( block ) {
+							const htmlContent = block.attributes?.content || '';
+							const preview     = block.attributes?.preview || false;
+							const sanitize    = block.attributes?.sanitize !== false;
+							const blockId     = block.id;
+
+							let warning = '';
+							if ( ! sanitize ) {
+								warning = '<div class="ve-custom-html-warning flex items-center gap-2 rounded-t-lg bg-warning/10 border border-warning/30 px-3 py-2" role="alert">'
+									+ '<svg class="w-4 h-4 text-warning shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" /></svg>'
+									+ '<span class="text-xs text-warning">' + {{ Js::from( __( 'visual-editor::ve.custom_html_unsanitized_warning' ) ) }} + '</span></div>';
+							}
+
+							const borderTopFix = ! sanitize ? ' rounded-t-none border-t-0' : '';
+
+							if ( preview ) {
+								const escapedHtml = htmlContent.replace( /&/g, '&amp;' ).replace( /"/g, '&quot;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' );
+								return '<div class="ve-block ve-block-custom-html ve-block-editing">'
+									+ warning
+									+ '<div class="ve-custom-html-preview rounded-lg border border-base-300 overflow-hidden' + borderTopFix + '">'
+									+ '<div class="flex items-center justify-between bg-base-200 px-3 py-1 border-b border-base-300"><span class="text-xs font-medium text-base-content/60">' + {{ Js::from( __( 'visual-editor::ve.custom_html_preview' ) ) }} + '</span></div>'
+									+ '<iframe srcdoc="' + escapedHtml + '" sandbox="allow-scripts" class="ve-custom-html-iframe" title="' + {{ Js::from( __( 'visual-editor::ve.custom_html_preview_title' ) ) }} + '" style="width: 100%; min-height: 150px; border: 0;" loading="lazy"></iframe>'
+									+ '</div></div>';
+							}
+
+							const escapedForAttr = htmlContent.replace( /&/g, '&amp;' ).replace( /"/g, '&quot;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' );
+							return '<div class="ve-block ve-block-custom-html ve-block-editing">'
+								+ warning
+								+ '<div class="ve-custom-html-editor rounded-lg border border-base-300 overflow-hidden' + borderTopFix + '">'
+								+ '<div class="flex items-center justify-between bg-base-200 px-3 py-1 border-b border-base-300"><span class="text-xs font-medium text-base-content/60">HTML</span></div>'
+								+ '<textarea class="ve-custom-html-textarea w-full font-mono text-sm p-3 bg-base-100 min-h-[150px] resize-y focus:outline-none" data-ve-block-id="' + blockId + '"'
+								+ ' aria-label="' + {{ Js::from( __( 'visual-editor::ve.custom_html_editor_label' ) ) }} + '"'
+								+ ' placeholder="' + {{ Js::from( __( 'visual-editor::ve.custom_html_placeholder' ) ) }} + '"'
+								+ ' spellcheck="false"'
+								+ '>' + escapedForAttr + '</textarea></div></div>';
 						},
 					} );
 				} );
