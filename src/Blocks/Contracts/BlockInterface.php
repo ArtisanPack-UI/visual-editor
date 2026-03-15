@@ -342,6 +342,18 @@ interface BlockInterface
 	public function getInnerBlocksOrientation(): string;
 
 	/**
+	 * Whether this block is a dynamic (server-rendered) block.
+	 *
+	 * Dynamic blocks are rendered server-side via Livewire components
+	 * instead of storing static content.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return bool
+	 */
+	public function isDynamic(): bool;
+
+	/**
 	 * Whether this block has a custom JavaScript renderer.
 	 *
 	 * @since 2.0.0

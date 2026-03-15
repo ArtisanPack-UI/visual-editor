@@ -291,7 +291,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	protected function registerBlockViews(): void
 	{
 		$blocksDir  = __DIR__ . '/Blocks';
-		$categories = [ 'Text', 'Media', 'Layout', 'Interactive', 'Embed' ];
+		$categories = [ 'Text', 'Media', 'Layout', 'Interactive', 'Embed', 'Dynamic' ];
 
 		foreach ( $categories as $category ) {
 			$categoryDir = $blocksDir . '/' . $category;
@@ -357,6 +357,21 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Livewire::addNamespace(
 			namespace: 'visual-editor',
 			viewPath: __DIR__ . '/../resources/views/livewire',
+		);
+
+		Livewire::component(
+			'visual-editor.blocks.latest-posts-block-component',
+			\ArtisanPackUI\VisualEditor\Livewire\Blocks\LatestPostsBlockComponent::class,
+		);
+
+		Livewire::component(
+			'visual-editor.blocks.table-of-contents-block-component',
+			\ArtisanPackUI\VisualEditor\Livewire\Blocks\TableOfContentsBlockComponent::class,
+		);
+
+		Livewire::component(
+			'visual-editor.blocks.search-block-component',
+			\ArtisanPackUI\VisualEditor\Livewire\Blocks\SearchBlockComponent::class,
 		);
 	}
 
@@ -466,7 +481,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		}
 
 		$blocksDir  = __DIR__ . '/Blocks';
-		$categories = [ 'Text', 'Media', 'Layout', 'Interactive', 'Embed' ];
+		$categories = [ 'Text', 'Media', 'Layout', 'Interactive', 'Embed', 'Dynamic' ];
 		$publishMap = [];
 
 		foreach ( $categories as $category ) {

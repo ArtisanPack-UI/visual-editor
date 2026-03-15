@@ -1,0 +1,112 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "latest-posts",
+	"name": "Latest Posts",
+	"description": "Display a list of recent posts with configurable query and display options",
+	"icon": "document-text",
+	"category": "dynamic",
+	"keywords": ["posts", "recent", "query", "blog", "articles", "latest"],
+	"version": 1,
+	"dynamic": true,
+	"attributes": {
+		"postType": {
+			"type": "string",
+			"source": "content",
+			"default": "post"
+		},
+		"numberOfPosts": {
+			"type": "integer",
+			"source": "content",
+			"default": 5
+		},
+		"orderBy": {
+			"type": "string",
+			"source": "content",
+			"default": "date"
+		},
+		"order": {
+			"type": "string",
+			"source": "content",
+			"default": "desc"
+		},
+		"categories": {
+			"type": "array",
+			"source": "content",
+			"default": []
+		},
+		"tags": {
+			"type": "array",
+			"source": "content",
+			"default": []
+		},
+		"displayTemplate": {
+			"type": "string",
+			"source": "content",
+			"default": "list"
+		},
+		"showFeaturedImage": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"showExcerpt": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"showDate": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"showAuthor": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"excerptLength": {
+			"type": "integer",
+			"source": "content",
+			"default": 25
+		},
+		"columns": {
+			"type": "object",
+			"source": "content",
+			"default": {
+				"mode": "global",
+				"global": 3,
+				"desktop": 3,
+				"tablet": 2,
+				"mobile": 1
+			}
+		},
+		"offset": {
+			"type": "integer",
+			"source": "content",
+			"default": 0
+		},
+		"excludeCurrentPost": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"gap": {
+			"type": "string",
+			"source": "style",
+			"default": "1rem"
+		},
+		"imageAspectRatio": {
+			"type": "string",
+			"source": "style",
+			"default": "16/9"
+		}
+	},
+	"supports": {
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"htmlId": true,
+		"className": true
+	}
+}

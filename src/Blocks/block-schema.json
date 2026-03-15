@@ -119,6 +119,15 @@
 			},
 			"default": {}
 		},
+		"dynamic": {
+			"type": "boolean",
+			"description": "Whether this block is a dynamic (server-rendered) block using a Livewire component.",
+			"default": false
+		},
+		"component": {
+			"type": "string",
+			"description": "Fully-qualified Livewire component class name for dynamic blocks."
+		},
 		"supports": {
 			"type": "object",
 			"description": "Feature support declarations for the block.",

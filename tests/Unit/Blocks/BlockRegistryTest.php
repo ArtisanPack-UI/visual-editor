@@ -5,6 +5,7 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Blocks\BlockRegistry;
 use Tests\Unit\Blocks\Stubs\StubBlock;
 use Tests\Unit\Blocks\Stubs\StubContainerBlock;
+use Tests\Unit\Blocks\Stubs\StubDynamicBlock;
 
 test( 'registry can register a block', function (): void {
 	$registry = new BlockRegistry();
@@ -157,11 +158,25 @@ test( 'registry get dynamic blocks filters correctly', function (): void {
 
 	$registry->register( new StubBlock() );
 	$registry->register( new StubContainerBlock() );
+	$registry->register( new StubDynamicBlock() );
 
 	$dynamic = $registry->getDynamicBlocks();
 
 	expect( $dynamic )->toHaveCount( 1 )
-		->and( $dynamic )->toHaveKey( 'stub-container' );
+		->and( $dynamic )->toHaveKey( 'stub-dynamic' );
+} );
+
+test( 'registry get js renderer blocks filters correctly', function (): void {
+	$registry = new BlockRegistry();
+
+	$registry->register( new StubBlock() );
+	$registry->register( new StubContainerBlock() );
+	$registry->register( new StubDynamicBlock() );
+
+	$jsRendered = $registry->getJsRendererBlocks();
+
+	expect( $jsRendered )->toHaveCount( 1 )
+		->and( $jsRendered )->toHaveKey( 'stub-container' );
 } );
 
 test( 'registry to array serializes all blocks', function (): void {

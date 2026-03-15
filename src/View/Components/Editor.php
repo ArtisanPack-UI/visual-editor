@@ -345,14 +345,9 @@ class Editor extends Component
 	protected function buildRenderedBlocks( BlockRegistry $registry ): void
 	{
 		$this->renderedBlocks = [];
-		$dynamicBlockTypes    = array_keys( $registry->getDynamicBlocks() );
 
 		foreach ( $this->initialBlocks as $block ) {
 			if ( ! is_array( $block ) || ! isset( $block['id'], $block['type'] ) || ! is_string( $block['id'] ) || ! is_string( $block['type'] ) ) {
-				continue;
-			}
-
-			if ( in_array( $block['type'], $dynamicBlockTypes, true ) ) {
 				continue;
 			}
 
@@ -378,13 +373,8 @@ class Editor extends Component
 	protected function buildDefaultBlockTemplates( BlockRegistry $registry ): void
 	{
 		$this->defaultBlockTemplates = [];
-		$dynamicBlockTypes           = array_keys( $registry->getDynamicBlocks() );
 
 		foreach ( $registry->all() as $type => $block ) {
-			if ( in_array( $type, $dynamicBlockTypes, true ) ) {
-				continue;
-			}
-
 			$defaultContent = [];
 			foreach ( $block->getContentSchema() as $key => $field ) {
 				$defaultContent[ $key ] = $field['default'] ?? '';
