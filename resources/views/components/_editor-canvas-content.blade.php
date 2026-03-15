@@ -449,6 +449,7 @@
 											description:  j.data.description || '',
 											thumbnailUrl: j.data.thumbnailUrl || j.data.thumbnail_url || '',
 											providerName: j.data.provider_name || j.data.providerName || '',
+											providerUrl:  j.data.provider_url || j.data.providerUrl || '',
 											_source:      j.data._source || '',
 											platform:     j.platform || '',
 										} );
