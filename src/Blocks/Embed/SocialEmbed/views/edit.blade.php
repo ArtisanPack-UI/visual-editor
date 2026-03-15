@@ -153,9 +153,10 @@
 			</div>
 		</div>
 	@else
-		<div class="ve-social-loading flex items-center justify-center gap-2 rounded-lg border border-base-300 bg-base-200/50 px-6 py-10 w-full">
-			<span class="loading loading-spinner loading-sm"></span>
-			<span class="text-sm text-base-content/60">{{ __( 'visual-editor::ve.embed_resolving' ) }}</span>
+		{{-- URL present but resolution produced neither oEmbed nor OpenGraph data --}}
+		<div class="ve-social-error flex flex-col items-center justify-center gap-2 rounded-lg border border-warning/30 bg-warning/5 px-6 py-10 w-full">
+			<p class="text-sm text-base-content/60">{{ __( 'visual-editor::ve.embed_resolve_failed' ) }}</p>
+			<p class="text-xs text-base-content/40 truncate max-w-md">{{ $url }}</p>
 		</div>
 	@endif
 </div>

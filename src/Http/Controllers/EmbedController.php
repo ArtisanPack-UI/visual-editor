@@ -22,6 +22,7 @@ use ArtisanPackUI\VisualEditor\Services\OEmbedService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Http;
 
 /**
  * Controller for embed block server-side operations.
@@ -70,6 +71,48 @@ class EmbedController extends Controller
 			'success'  => true,
 			'data'     => $result,
 			'platform' => $platform,
+		] );
+	}
+
+	/**
+	 * Geocode an address via Nominatim (server-side proxy).
+	 *
+	 * Nominatim requires a proper User-Agent header which
+	 * browser fetch requests may not provide reliably.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param Request $request The HTTP request.
+	 *
+	 * @return JsonResponse
+	 */
+	public function geocode( Request $request ): JsonResponse
+	{
+		$request->validate( [
+			'q' => 'required|string|max:500',
+		] );
+
+		$query = $request->input( 'q' );
+
+		$response = Http::withHeaders( [
+			'Accept'     => 'application/json',
+			'User-Agent' => 'ArtisanPackUI-VisualEditor/1.0 (geocoding proxy)',
+		] )->get( 'https://nominatim.openstreetmap.org/search', [
+			'format' => 'json',
+			'limit'  => 1,
+			'q'      => $query,
+		] );
+
+		if ( ! $response->successful() ) {
+			return response()->json( [
+				'success' => false,
+				'results' => [],
+			], 422 );
+		}
+
+		return response()->json( [
+			'success' => true,
+			'results' => $response->json(),
 		] );
 	}
 }

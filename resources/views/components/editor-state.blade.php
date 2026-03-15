@@ -929,6 +929,56 @@
 								}
 							}
 
+							// Embed / Social Embed: changing the URL should
+							// trigger a fresh oEmbed resolve so the preview updates.
+							if ( 'url' === field && block && ( 'embed' === block.type || 'social-embed' === block.type ) && value ) {
+								this.updateBlock( blockId, { url: value, html: '', _source: '', title: '', description: '', thumbnailUrl: '', providerName: '', platform: '' } );
+								fetch( '/api/visual-editor/embed/resolve', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+									body: JSON.stringify( { url: value } ),
+								} )
+								.then( ( r ) => r.json() )
+								.then( ( j ) => {
+									if ( j.success && j.data ) {
+										this.updateBlock( blockId, {
+											url:          value,
+											html:         j.data.html || '',
+											title:        j.data.title || '',
+											description:  j.data.description || '',
+											thumbnailUrl: j.data.thumbnailUrl || j.data.thumbnail_url || '',
+											providerName: j.data.provider_name || j.data.providerName || '',
+											_source:      j.data._source || '',
+											platform:     j.platform || '',
+										} );
+									}
+								} )
+								.catch( () => {} );
+								return;
+							}
+
+							// Map Embed: changing the address should trigger
+							// a geocode to update the coordinates.
+							if ( 'address' === field && block && 'map-embed' === block.type && value ) {
+								const _store = this;
+								this.updateBlock( blockId, { address: value } );
+								fetch( '/api/visual-editor/geocode?q=' + encodeURIComponent( value ), {
+									headers: { 'Accept': 'application/json' },
+								} )
+								.then( ( r ) => r.json() )
+								.then( ( j ) => {
+									if ( j.success && j.results && j.results.length > 0 ) {
+										_store.updateBlock( blockId, {
+											address:   j.results[0].display_name || value,
+											latitude:  j.results[0].lat,
+											longitude: j.results[0].lon,
+										} );
+									}
+								} )
+								.catch( () => {} );
+								return;
+							}
+
 							this.updateBlock( blockId, { [field]: value } );
 						}
 					} );

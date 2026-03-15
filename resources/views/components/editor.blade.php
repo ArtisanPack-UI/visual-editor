@@ -1992,7 +1992,13 @@
 								if ( iframeSrc ) {
 									iframeTag = '<iframe src="' + iframeSrc + '" class="ve-embed-iframe" title="' + ( title || 'Embedded content' ) + '" style="' + iframeStyle + '" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
 								} else {
-									// Non-iframe embeds (blockquotes etc): use srcdoc with allow-same-origin for scripts.
+									// Non-iframe embeds (blockquotes, tweets, etc.) are rendered
+									// via srcdoc inside a sandboxed iframe.  allow-scripts and
+									// allow-same-origin are both required so the provider's JS
+									// (e.g. Twitter widget) can execute and resize the frame.
+									// allow-popups lets links open in a new tab.  Server-side
+									// OEmbedService validates providers and the HTML is escaped
+									// into the srcdoc attribute to prevent injection.
 									const escapedHtml = html.replace( /&/g, '&amp;' ).replace( /"/g, '&quot;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' );
 									iframeTag = '<iframe srcdoc="' + escapedHtml + '" sandbox="allow-scripts allow-same-origin allow-popups" class="ve-embed-iframe" title="' + ( title || 'Embedded content' ) + '" style="' + iframeStyle + '" loading="lazy"></iframe>';
 								}
@@ -2107,6 +2113,7 @@
 									+ '<div class="ve-map-placeholder flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-base-300 bg-base-200/50 px-6 py-10" style="min-height: ' + height + ';">'
 									+ '<svg class="w-10 h-10 text-base-content/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>'
 									+ '<p class="text-sm text-base-content/60">' + {{ Js::from( __( 'visual-editor::ve.map_placeholder' ) ) }} + '</p>'
+									+ '<p class="ve-map-error text-sm text-warning" style="display:none">' + {{ Js::from( __( 'visual-editor::ve.map_not_found' ) ) }} + '</p>'
 									+ '<div class="flex w-full max-w-md gap-2">'
 									+ '<input type="text" class="input input-bordered input-sm flex-1" data-ve-map-address placeholder="' + {{ Js::from( __( 'visual-editor::ve.map_address_placeholder' ) ) }} + '" />'
 									+ '<button type="button" class="btn btn-primary btn-sm" data-ve-map-search="' + blockId + '">'
@@ -2126,7 +2133,11 @@
 							let iframeSrc = '';
 
 							if ( 'openstreetmap' === provider ) {
-								iframeSrc = 'https://www.openstreetmap.org/export/embed.html?mlat=' + lat + '&mlon=' + lng + '&zoom=' + zoom + '&layers=mapnik';
+								// Calculate a bounding box from center + zoom.
+								// At zoom 13 the span is ~0.05 degrees; halve per zoom level.
+								const span = 180 / Math.pow( 2, zoom );
+								const bbox = ( lng - span ) + ',' + ( lat - span / 2 ) + ',' + ( lng + span ) + ',' + ( lat + span / 2 );
+								iframeSrc = 'https://www.openstreetmap.org/export/embed.html?bbox=' + bbox + '&layer=mapnik&marker=' + lat + ',' + lng;
 							} else {
 								const typeMap = { roadmap: 'm', satellite: 'k', terrain: 'p', hybrid: 'h' };
 								const query = address || ( lat + ',' + lng );
@@ -2134,8 +2145,11 @@
 							}
 
 							if ( interactive && iframeSrc ) {
+								// Use a unique name based on coordinates so the browser
+								// treats each coordinate change as a new iframe context.
+								const iframeKey = 've-map-' + lat + '-' + lng + '-' + zoom;
 								return '<div class="ve-block ve-block-map-embed ve-block-editing" style="height: ' + height + '; overflow: hidden;">'
-									+ '<iframe src="' + iframeSrc + '" sandbox="allow-scripts allow-same-origin" class="ve-map-iframe" title="' + ( markerLabel || 'Map' ) + '" style="width: 100%; height: 100%; border: 0;" loading="lazy"></iframe></div>';
+									+ '<iframe src="' + iframeSrc + '" name="' + iframeKey + '" sandbox="allow-scripts allow-same-origin" class="ve-map-iframe" title="' + ( markerLabel || 'Map' ) + '" style="width: 100%; height: 100%; border: 0;"></iframe></div>';
 							}
 
 							return '<div class="ve-block ve-block-map-embed ve-block-editing" style="height: ' + height + '; overflow: hidden;">'

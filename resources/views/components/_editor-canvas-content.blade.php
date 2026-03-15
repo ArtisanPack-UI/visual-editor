@@ -464,6 +464,41 @@
 								} );
 							} );
 
+							// Track map input values outside the DOM so they survive
+							// x-html re-renders that replace the input elements.
+							const _mapDraft = {};
+							el.addEventListener( 'input', ( e ) => {
+								const addrIn = e.target.closest( '[data-ve-map-address]' );
+								if ( addrIn ) {
+									const btn = addrIn.closest( '.ve-block' )?.querySelector( '[data-ve-map-search]' );
+									if ( btn ) {
+										const id = btn.getAttribute( 'data-ve-map-search' );
+										if ( ! _mapDraft[ id ] ) _mapDraft[ id ] = {};
+										_mapDraft[ id ].address = addrIn.value;
+									}
+									return;
+								}
+								const latIn = e.target.closest( '[data-ve-map-lat]' );
+								if ( latIn ) {
+									const btn = latIn.closest( '.ve-block' )?.querySelector( '[data-ve-map-set-coords]' );
+									if ( btn ) {
+										const id = btn.getAttribute( 'data-ve-map-set-coords' );
+										if ( ! _mapDraft[ id ] ) _mapDraft[ id ] = {};
+										_mapDraft[ id ].lat = latIn.value;
+									}
+									return;
+								}
+								const lngIn = e.target.closest( '[data-ve-map-lng]' );
+								if ( lngIn ) {
+									const btn = lngIn.closest( '.ve-block' )?.querySelector( '[data-ve-map-set-coords]' );
+									if ( btn ) {
+										const id = btn.getAttribute( 'data-ve-map-set-coords' );
+										if ( ! _mapDraft[ id ] ) _mapDraft[ id ] = {};
+										_mapDraft[ id ].lng = lngIn.value;
+									}
+								}
+							} );
+
 							// Map search button: geocode via Nominatim.
 							el.addEventListener( 'click', ( e ) => {
 								const mapBtn = e.target.closest( '[data-ve-map-search]' );
@@ -472,7 +507,17 @@
 								const blockId = mapBtn.getAttribute( 'data-ve-map-search' );
 								const wrapper = mapBtn.closest( '.ve-block' );
 								const input   = wrapper?.querySelector( '[data-ve-map-address]' );
-								if ( ! input || ! input.value.trim() ) return;
+
+								// Read from DOM first, fall back to tracked draft value.
+								const address = ( input?.value || _mapDraft[ blockId ]?.address || '' ).trim();
+								if ( ! address ) return;
+
+								// Clean up draft value for this block.
+								delete _mapDraft[ blockId ];
+
+								// Hide any previous error, show spinner.
+								const errorEl = wrapper?.querySelector( '.ve-map-error' );
+								if ( errorEl ) errorEl.style.display = 'none';
 
 								mapBtn.disabled = true;
 								const spinner = mapBtn.querySelector( '.ve-resolve-spinner' );
@@ -480,18 +525,24 @@
 								if ( spinner ) spinner.style.display = '';
 								if ( label ) label.style.display = 'none';
 
-								fetch( 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent( input.value.trim() ), { headers: { 'Accept': 'application/json' } } )
+								fetch( '/api/visual-editor/geocode?q=' + encodeURIComponent( address ), {
+									headers: { 'Accept': 'application/json' },
+								} )
 									.then( ( r ) => r.json() )
-									.then( ( results ) => {
-										if ( results.length > 0 && Alpine.store( 'editor' ) ) {
+									.then( ( j ) => {
+										if ( j.success && j.results && j.results.length > 0 && Alpine.store( 'editor' ) ) {
 											Alpine.store( 'editor' ).updateBlock( blockId, {
-												address:   results[0].display_name || input.value.trim(),
-												latitude:  results[0].lat,
-												longitude: results[0].lon,
+												address:   j.results[0].display_name || address,
+												latitude:  j.results[0].lat,
+												longitude: j.results[0].lon,
 											} );
+										} else if ( errorEl ) {
+											errorEl.style.display = '';
 										}
 									} )
-									.catch( () => {} )
+									.catch( () => {
+										if ( errorEl ) errorEl.style.display = '';
+									} )
 									.finally( () => {
 										mapBtn.disabled = false;
 										if ( spinner ) spinner.style.display = 'none';
@@ -508,8 +559,14 @@
 								const wrapper = coordBtn.closest( '.ve-block' );
 								const latIn   = wrapper?.querySelector( '[data-ve-map-lat]' );
 								const lngIn   = wrapper?.querySelector( '[data-ve-map-lng]' );
-								if ( latIn?.value?.trim() && lngIn?.value?.trim() && Alpine.store( 'editor' ) ) {
-									Alpine.store( 'editor' ).updateBlock( blockId, { latitude: latIn.value.trim(), longitude: lngIn.value.trim() } );
+
+								// Read from DOM first, fall back to tracked draft values.
+								const lat = ( latIn?.value || _mapDraft[ blockId ]?.lat || '' ).trim();
+								const lng = ( lngIn?.value || _mapDraft[ blockId ]?.lng || '' ).trim();
+
+								if ( lat && lng && Alpine.store( 'editor' ) ) {
+									delete _mapDraft[ blockId ];
+									Alpine.store( 'editor' ).updateBlock( blockId, { latitude: lat, longitude: lng } );
 								}
 							} );
 

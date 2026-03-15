@@ -35,8 +35,9 @@
 		];
 
 		if ( 'openstreetmap' === $provider ) {
-			$marker    = "mlat={$lat}&mlon={$lng}";
-			$iframeSrc = "https://www.openstreetmap.org/export/embed.html?{$marker}&zoom={$zoom}&layers=mapnik";
+			$span = 180 / pow( 2, $zoom );
+			$bbox = ( $lng - $span ) . ',' . ( $lat - $span / 2 ) . ',' . ( $lng + $span ) . ',' . ( $lat + $span / 2 );
+			$iframeSrc = "https://www.openstreetmap.org/export/embed.html?bbox={$bbox}&layer=mapnik&marker={$lat},{$lng}";
 		} else {
 			$query        = $address ?: "{$lat},{$lng}";
 			$mapTypeParam = $mapTypeMap[ $mapType ] ?? 'm';

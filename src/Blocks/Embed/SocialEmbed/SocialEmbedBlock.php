@@ -52,6 +52,12 @@ class SocialEmbedBlock extends BaseBlock
 				'label'   => __( 'visual-editor::ve.social_embed_url' ),
 				'default' => '',
 			],
+			'platform'         => [
+				'type'      => 'text',
+				'label'     => __( 'visual-editor::ve.social_platform' ),
+				'default'   => '',
+				'inspector' => false,
+			],
 			'hideConversation' => [
 				'type'    => 'toggle',
 				'label'   => __( 'visual-editor::ve.social_hide_conversation' ),

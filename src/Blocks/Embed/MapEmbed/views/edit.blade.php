@@ -31,8 +31,9 @@
 		$lng = (float) $longitude;
 
 		if ( 'openstreetmap' === $provider ) {
-			$marker    = "mlat={$lat}&mlon={$lng}";
-			$iframeSrc = "https://www.openstreetmap.org/export/embed.html?{$marker}&zoom={$zoom}&layers=mapnik";
+			$span = 180 / pow( 2, $zoom );
+			$bbox = ( $lng - $span ) . ',' . ( $lat - $span / 2 ) . ',' . ( $lng + $span ) . ',' . ( $lat + $span / 2 );
+			$iframeSrc = "https://www.openstreetmap.org/export/embed.html?bbox={$bbox}&layer=mapnik&marker={$lat},{$lng}";
 		} else {
 			$query        = $address ?: "{$lat},{$lng}";
 			$mapTypeParam = $mapTypeMap[ $mapType ] ?? 'm';
@@ -59,37 +60,38 @@
 
 			try {
 				const response = await fetch(
-					'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent( query ),
+					'/api/visual-editor/geocode?q=' + encodeURIComponent( query ),
 					{ headers: { 'Accept': 'application/json' } }
 				);
-				const results = await response.json();
+				const j = await response.json();
 
-				if ( results.length > 0 ) {
+				if ( j.success && j.results && j.results.length > 0 ) {
 					const blockId = this.getBlockId();
 					if ( blockId ) {
 						Alpine.store( 'editor' ).updateBlock( blockId, {
-							address:   results[0].display_name || query,
-							latitude:  results[0].lat,
-							longitude: results[0].lon,
+							address:   j.results[0].display_name || query,
+							latitude:  j.results[0].lat,
+							longitude: j.results[0].lon,
 						} );
 					}
 				}
 			} catch ( e ) {
-				// Geocoding failed silently.
+				console.error( 'Geocoding failed:', e );
 			}
 
 			this.loading = false;
 		},
 		setCoordinates() {
-			const lat = this.mapLat.trim();
-			const lng = this.mapLng.trim();
-			if ( ! lat || ! lng ) return;
+			const lat = parseFloat( this.mapLat.trim() );
+			const lng = parseFloat( this.mapLng.trim() );
+			if ( ! Number.isFinite( lat ) || ! Number.isFinite( lng ) ) return;
+			if ( lat < -90 || lat > 90 || lng < -180 || lng > 180 ) return;
 
 			const blockId = this.getBlockId();
 			if ( blockId ) {
 				Alpine.store( 'editor' ).updateBlock( blockId, {
-					latitude:  lat,
-					longitude: lng,
+					latitude:  String( lat ),
+					longitude: String( lng ),
 				} );
 			}
 		},
