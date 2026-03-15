@@ -2100,7 +2100,7 @@
 							const provider    = block.attributes?.provider || 'openstreetmap';
 							const latitude    = block.attributes?.latitude || '';
 							const longitude   = block.attributes?.longitude || '';
-							const zoom        = parseInt( block.attributes?.zoom || 13 );
+							const zoom        = Math.max( 1, Math.min( 20, parseInt( block.attributes?.zoom ) || 13 ) );
 							const mapType     = block.attributes?.mapType || 'roadmap';
 							const address     = block.attributes?.address || '';
 							const markerLabel = block.attributes?.markerLabel || '';

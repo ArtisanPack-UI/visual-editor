@@ -434,7 +434,11 @@
 								} )
 								.then( ( r ) => r.json() )
 								.then( ( j ) => {
-									if ( j.success && j.data && Alpine.store( 'editor' ) ) {
+									// Guard against stale responses: only apply if the
+									// block still exists and its URL matches what we requested.
+									const current = Alpine.store( 'editor' )?.getBlock( blockId );
+									if ( ! current || current.attributes?.url !== requestedUrl ) return;
+									if ( j.success && j.data ) {
 										Alpine.store( 'editor' ).updateBlock( blockId, {
 											url:          requestedUrl,
 											html:         j.data.html || '',
@@ -562,12 +566,16 @@
 								const lngIn   = wrapper?.querySelector( '[data-ve-map-lng]' );
 
 								// Read from DOM first, fall back to tracked draft values.
-								const lat = ( latIn?.value || _mapDraft[ blockId ]?.lat || '' ).trim();
-								const lng = ( lngIn?.value || _mapDraft[ blockId ]?.lng || '' ).trim();
+								// Validate as finite numbers within valid coordinate ranges.
+								const latNum = parseFloat( ( latIn?.value || _mapDraft[ blockId ]?.lat || '' ).trim() );
+								const lngNum = parseFloat( ( lngIn?.value || _mapDraft[ blockId ]?.lng || '' ).trim() );
 
-								if ( lat && lng && Alpine.store( 'editor' ) ) {
+								if ( Number.isFinite( latNum ) && Number.isFinite( lngNum )
+									&& latNum >= -90 && latNum <= 90
+									&& lngNum >= -180 && lngNum <= 180
+									&& Alpine.store( 'editor' ) ) {
 									delete _mapDraft[ blockId ];
-									Alpine.store( 'editor' ).updateBlock( blockId, { latitude: lat, longitude: lng } );
+									Alpine.store( 'editor' ).updateBlock( blockId, { latitude: String( latNum ), longitude: String( lngNum ) } );
 								}
 							} );
 
