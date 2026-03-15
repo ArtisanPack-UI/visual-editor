@@ -1086,6 +1086,16 @@
 						if ( ! value ) { return ''; }
 						return /^[a-zA-Z0-9\s.\-%()/]+$/.test( value.trim() ) ? value.trim() : '';
 					};
+					// Escape a string for safe insertion into HTML attribute or text contexts.
+					const veEscapeHtml = ( value ) => {
+						if ( ! value ) { return ''; }
+						return String( value )
+							.replace( /&/g, '&amp;' )
+							.replace( /"/g, '&quot;' )
+							.replace( /'/g, '&#x27;' )
+							.replace( /</g, '&lt;' )
+							.replace( />/g, '&gt;' );
+					};
 
 					br.register( 'group', {
 						render( block, context ) {
@@ -1992,7 +2002,7 @@
 
 								let iframeTag;
 								if ( iframeSrc ) {
-									iframeTag = '<iframe src="' + iframeSrc + '" class="ve-embed-iframe" title="' + ( title || 'Embedded content' ) + '" style="' + iframeStyle + '" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+									iframeTag = '<iframe src="' + iframeSrc + '" class="ve-embed-iframe" title="' + veEscapeHtml( title || 'Embedded content' ) + '" style="' + iframeStyle + '" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>';
 								} else {
 									// Non-iframe embeds (blockquotes, tweets, etc.) are rendered
 									// via srcdoc inside a sandboxed iframe.  allow-scripts and
@@ -2002,30 +2012,30 @@
 									// OEmbedService validates providers and the HTML is escaped
 									// into the srcdoc attribute to prevent injection.
 									const escapedHtml = html.replace( /&/g, '&amp;' ).replace( /"/g, '&quot;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' );
-									iframeTag = '<iframe srcdoc="' + escapedHtml + '" sandbox="allow-scripts allow-same-origin allow-popups" class="ve-embed-iframe" title="' + ( title || 'Embedded content' ) + '" style="' + iframeStyle + '" loading="lazy"></iframe>';
+									iframeTag = '<iframe srcdoc="' + escapedHtml + '" sandbox="allow-scripts allow-same-origin allow-popups" class="ve-embed-iframe" title="' + veEscapeHtml( title || 'Embedded content' ) + '" style="' + iframeStyle + '" loading="lazy"></iframe>';
 								}
 
 								return '<div class="ve-block ve-block-embed ve-block-editing"><figure class="ve-embed-figure">'
 									+ '<div class="ve-embed-responsive-wrapper" style="' + wrapperStyle + '">'
 									+ iframeTag
 									+ '</div>'
-									+ ( caption ? '<figcaption class="ve-embed-caption text-center text-sm text-base-content/60 mt-2">' + caption + '</figcaption>' : '' )
+									+ ( caption ? '<figcaption class="ve-embed-caption text-center text-sm text-base-content/60 mt-2">' + veEscapeHtml( caption ) + '</figcaption>' : '' )
 									+ '</figure></div>';
 							}
 
 							if ( title && 'opengraph' === source ) {
 								return '<div class="ve-block ve-block-embed ve-block-editing">'
 									+ '<div class="ve-embed-fallback-card rounded-lg border border-base-300 bg-base-100 overflow-hidden">'
-									+ ( thumbnailUrl ? '<div class="ve-embed-thumbnail aspect-video bg-base-200 overflow-hidden"><img src="' + thumbnailUrl + '" alt="' + title + '" class="w-full h-full object-cover" loading="lazy" /></div>' : '' )
-									+ '<div class="p-4"><h4 class="font-semibold text-sm">' + title + '</h4>'
-									+ ( description ? '<p class="text-xs text-base-content/60 mt-1 line-clamp-2">' + description + '</p>' : '' )
-									+ '<p class="text-xs text-base-content/40 mt-2 truncate">' + url + '</p></div></div></div>';
+									+ ( thumbnailUrl ? '<div class="ve-embed-thumbnail aspect-video bg-base-200 overflow-hidden"><img src="' + veEscapeHtml( thumbnailUrl ) + '" alt="' + veEscapeHtml( title ) + '" class="w-full h-full object-cover" loading="lazy" /></div>' : '' )
+									+ '<div class="p-4"><h4 class="font-semibold text-sm">' + veEscapeHtml( title ) + '</h4>'
+									+ ( description ? '<p class="text-xs text-base-content/60 mt-1 line-clamp-2">' + veEscapeHtml( description ) + '</p>' : '' )
+									+ '<p class="text-xs text-base-content/40 mt-2 truncate">' + veEscapeHtml( url ) + '</p></div></div></div>';
 							}
 
 							return '<div class="ve-block ve-block-embed ve-block-editing">'
 								+ '<div class="ve-embed-error flex flex-col items-center justify-center gap-3 rounded-lg border border-warning/30 bg-warning/5 px-6 py-10">'
 								+ '<p class="text-sm text-base-content/60">' + {{ Js::from( __( 'visual-editor::ve.embed_resolve_failed' ) ) }} + '</p>'
-								+ '<p class="text-xs text-base-content/40 truncate max-w-md">' + url + '</p></div></div>';
+								+ '<p class="text-xs text-base-content/40 truncate max-w-md">' + veEscapeHtml( url ) + '</p></div></div>';
 						},
 					} );
 
@@ -2066,26 +2076,26 @@
 								const iframeSrc = veExtractIframeSrc( html, url );
 								let iframeTag;
 								if ( iframeSrc ) {
-									iframeTag = '<iframe src="' + iframeSrc + '" class="ve-social-iframe" title="Social post from ' + ( label || 'social media' ) + '" style="width: 100%; border: 0; min-height: 200px;" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>';
+									iframeTag = '<iframe src="' + iframeSrc + '" class="ve-social-iframe" title="Social post from ' + veEscapeHtml( label || 'social media' ) + '" style="width: 100%; border: 0; min-height: 200px;" loading="lazy" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen sandbox="allow-scripts allow-same-origin allow-popups allow-forms"></iframe>';
 								} else {
 									const escapedHtml = html.replace( /&/g, '&amp;' ).replace( /"/g, '&quot;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' );
-									iframeTag = '<iframe srcdoc="' + escapedHtml + '" sandbox="allow-scripts allow-same-origin allow-popups" class="ve-social-iframe" title="Social post from ' + ( label || 'social media' ) + '" style="width: 100%; border: 0; min-height: 200px;" loading="lazy"></iframe>';
+									iframeTag = '<iframe srcdoc="' + escapedHtml + '" sandbox="allow-scripts allow-same-origin allow-popups" class="ve-social-iframe" title="Social post from ' + veEscapeHtml( label || 'social media' ) + '" style="width: 100%; border: 0; min-height: 200px;" loading="lazy"></iframe>';
 								}
 								return '<div class="ve-block ve-block-social-embed ve-block-editing flex flex-col ' + alignCls + '">'
-									+ '<div style="max-width: ' + maxWidth + '; width: 100%;">'
-									+ ( label ? '<div class="inline-flex items-center gap-1 rounded-full bg-base-200 px-2 py-0.5 text-xs font-medium text-base-content/70 mb-2">' + label + '</div>' : '' )
+									+ '<div style="max-width: ' + veSanitizeCssDimension( maxWidth ) + '; width: 100%;">'
+									+ ( label ? '<div class="inline-flex items-center gap-1 rounded-full bg-base-200 px-2 py-0.5 text-xs font-medium text-base-content/70 mb-2">' + veEscapeHtml( label ) + '</div>' : '' )
 									+ iframeTag
 									+ '</div></div>';
 							}
 
 							if ( title && 'opengraph' === source ) {
 								return '<div class="ve-block ve-block-social-embed ve-block-editing flex flex-col ' + alignCls + '">'
-									+ '<div class="rounded-lg border border-base-300 bg-base-100 overflow-hidden" style="max-width: ' + maxWidth + '; width: 100%;">'
-									+ ( label ? '<div class="flex items-center gap-2 px-4 py-2 border-b border-base-200"><span class="text-xs font-medium text-base-content/70">' + label + '</span></div>' : '' )
-									+ ( thumbnailUrl ? '<div class="aspect-video bg-base-200 overflow-hidden"><img src="' + thumbnailUrl + '" alt="' + title + '" class="w-full h-full object-cover" loading="lazy" /></div>' : '' )
-									+ '<div class="p-4"><h4 class="font-semibold text-sm">' + title + '</h4>'
-									+ ( description ? '<p class="text-xs text-base-content/60 mt-1 line-clamp-3">' + description + '</p>' : '' )
-									+ '<p class="text-xs text-base-content/40 mt-2 truncate">' + url + '</p></div></div></div>';
+									+ '<div class="rounded-lg border border-base-300 bg-base-100 overflow-hidden" style="max-width: ' + veSanitizeCssDimension( maxWidth ) + '; width: 100%;">'
+									+ ( label ? '<div class="flex items-center gap-2 px-4 py-2 border-b border-base-200"><span class="text-xs font-medium text-base-content/70">' + veEscapeHtml( label ) + '</span></div>' : '' )
+									+ ( thumbnailUrl ? '<div class="aspect-video bg-base-200 overflow-hidden"><img src="' + veEscapeHtml( thumbnailUrl ) + '" alt="' + veEscapeHtml( title ) + '" class="w-full h-full object-cover" loading="lazy" /></div>' : '' )
+									+ '<div class="p-4"><h4 class="font-semibold text-sm">' + veEscapeHtml( title ) + '</h4>'
+									+ ( description ? '<p class="text-xs text-base-content/60 mt-1 line-clamp-3">' + veEscapeHtml( description ) + '</p>' : '' )
+									+ '<p class="text-xs text-base-content/40 mt-2 truncate">' + veEscapeHtml( url ) + '</p></div></div></div>';
 							}
 
 							return '<div class="ve-block ve-block-social-embed ve-block-editing flex flex-col ' + alignCls + '">'
@@ -2112,7 +2122,7 @@
 
 							if ( ! hasCoords ) {
 								return '<div class="ve-block ve-block-map-embed ve-block-editing">'
-									+ '<div class="ve-map-placeholder flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-base-300 bg-base-200/50 px-6 py-10" style="min-height: ' + height + ';">'
+									+ '<div class="ve-map-placeholder flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed border-base-300 bg-base-200/50 px-6 py-10" style="min-height: ' + veSanitizeCssDimension( height ) + ';">'
 									+ '<svg class="w-10 h-10 text-base-content/40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path stroke-linecap="round" stroke-linejoin="round" d="M15 10.5a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" /><path stroke-linecap="round" stroke-linejoin="round" d="M19.5 10.5c0 7.142-7.5 11.25-7.5 11.25S4.5 17.642 4.5 10.5a7.5 7.5 0 1 1 15 0Z" /></svg>'
 									+ '<p class="text-sm text-base-content/60">' + {{ Js::from( __( 'visual-editor::ve.map_placeholder' ) ) }} + '</p>'
 									+ '<p class="ve-map-error text-sm text-warning" style="display:none">' + {{ Js::from( __( 'visual-editor::ve.map_not_found' ) ) }} + '</p>'
@@ -2150,14 +2160,14 @@
 								// Use a unique name based on coordinates so the browser
 								// treats each coordinate change as a new iframe context.
 								const iframeKey = 've-map-' + lat + '-' + lng + '-' + zoom;
-								return '<div class="ve-block ve-block-map-embed ve-block-editing" style="height: ' + height + '; overflow: hidden;">'
-									+ '<iframe src="' + iframeSrc + '" name="' + iframeKey + '" sandbox="allow-scripts allow-same-origin" class="ve-map-iframe" title="' + ( markerLabel || 'Map' ) + '" style="width: 100%; height: 100%; border: 0;"></iframe></div>';
+								return '<div class="ve-block ve-block-map-embed ve-block-editing" style="height: ' + veSanitizeCssDimension( height ) + '; overflow: hidden;">'
+									+ '<iframe src="' + iframeSrc + '" name="' + iframeKey + '" sandbox="allow-scripts allow-same-origin" class="ve-map-iframe" title="' + veEscapeHtml( markerLabel || 'Map' ) + '" style="width: 100%; height: 100%; border: 0;"></iframe></div>';
 							}
 
-							return '<div class="ve-block ve-block-map-embed ve-block-editing" style="height: ' + height + '; overflow: hidden;">'
+							return '<div class="ve-block ve-block-map-embed ve-block-editing" style="height: ' + veSanitizeCssDimension( height ) + '; overflow: hidden;">'
 								+ '<div class="ve-map-static flex items-center justify-center bg-base-200 w-full h-full rounded"><div class="text-center">'
-								+ '<p class="text-xs text-base-content/60">' + ( address || ( latitude + ', ' + longitude ) ) + '</p>'
-								+ ( markerLabel ? '<p class="text-xs font-medium text-base-content/80 mt-1">' + markerLabel + '</p>' : '' )
+								+ '<p class="text-xs text-base-content/60">' + veEscapeHtml( address || ( latitude + ', ' + longitude ) ) + '</p>'
+								+ ( markerLabel ? '<p class="text-xs font-medium text-base-content/80 mt-1">' + veEscapeHtml( markerLabel ) + '</p>' : '' )
 								+ '</div></div></div>';
 						},
 					} );

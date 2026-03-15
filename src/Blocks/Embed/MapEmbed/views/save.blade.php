@@ -69,10 +69,14 @@
 		}
 	}
 
-	$ariaLabel = $address
-		? __( 'visual-editor::ve.map_showing_location', [ 'address' => $address ] )
-		: ( $hasCoordinates
-			? __( 'visual-editor::ve.map_showing_coordinates', [ 'lat' => $latitude, 'lng' => $longitude ] )
+	// Prioritise coordinates when they exist because the iframe always renders
+	// the coordinate-based map.  The address may be stale (e.g. the user edited
+	// lat/lng directly after a geocode search), so we only fall back to the
+	// address label when no coordinates are available.
+	$ariaLabel = $hasCoordinates
+		? __( 'visual-editor::ve.map_showing_coordinates', [ 'lat' => $latitude, 'lng' => $longitude ] )
+		: ( $address
+			? __( 'visual-editor::ve.map_showing_location', [ 'address' => $address ] )
 			: __( 'visual-editor::ve.map_iframe_title' ) );
 @endphp
 

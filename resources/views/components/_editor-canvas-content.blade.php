@@ -435,9 +435,12 @@
 								.then( ( r ) => r.json() )
 								.then( ( j ) => {
 									// Guard against stale responses: only apply if the
-									// block still exists and its URL matches what we requested.
+									// block still exists and has not already been set to a
+									// *different* URL.  When a block has no URL yet (first-time
+									// resolve) we must still allow the update through.
 									const current = Alpine.store( 'editor' )?.getBlock( blockId );
-									if ( ! current || current.attributes?.url !== requestedUrl ) return;
+									if ( ! current ) return;
+									if ( current.attributes?.url && current.attributes.url !== requestedUrl ) return;
 									if ( j.success && j.data ) {
 										Alpine.store( 'editor' ).updateBlock( blockId, {
 											url:          requestedUrl,
@@ -536,6 +539,11 @@
 									.then( ( r ) => r.json() )
 									.then( ( j ) => {
 										if ( j.success && j.results && j.results.length > 0 && Alpine.store( 'editor' ) ) {
+											// Only write geocoded coordinates if the user has not
+											// already manually entered different coordinates while
+											// the request was in flight.
+											const blk = Alpine.store( 'editor' ).getBlock( blockId );
+											if ( blk && blk.attributes?.latitude && blk.attributes?.longitude ) return;
 											Alpine.store( 'editor' ).updateBlock( blockId, {
 												address:   j.results[0].display_name || address,
 												latitude:  j.results[0].lat,
