@@ -195,6 +195,20 @@ class LatestPostsBlockComponent extends Component
 	public bool $isEditor = false;
 
 	/**
+	 * Initialize and validate component properties.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return void
+	 */
+	public function mount(): void
+	{
+		$this->numberOfPosts = max( 1, min( 50, (int) $this->numberOfPosts ) );
+		$this->excerptLength = max( 0, min( 500, (int) $this->excerptLength ) );
+		$this->offset        = max( 0, min( 1000, (int) $this->offset ) );
+	}
+
+	/**
 	 * Render the component.
 	 *
 	 * @since 2.0.0

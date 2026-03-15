@@ -61,7 +61,7 @@
 	}
 
 	$samplePosts = array_slice( $allPosts, $offset, $numberOfPosts );
-	$gridId      = 've-latest-posts-' . uniqid();
+	$gridId      = 've-latest-posts-' . Illuminate\Support\Str::uuid()->toString();
 @endphp
 
 <div class="ve-block ve-block-latest-posts ve-block-editing ve-block-dynamic-preview">
@@ -79,7 +79,7 @@
 							<span style="font-weight: 600; font-size: 1.1em;">{{ $post['title'] }}</span>
 							@if ( $showDate || $showAuthor )
 								<div style="font-size: 0.85em; color: #6b7280; margin-top: 0.25rem;">
-									@if ( $showDate ) <time>{{ $post['dateStr'] }}</time> @endif
+									@if ( $showDate ) <time datetime="{{ $post['date']->toIso8601String() }}">{{ $post['dateStr'] }}</time> @endif
 									@if ( $showDate && $showAuthor ) · @endif
 									@if ( $showAuthor ) <span>{{ $post['author'] }}</span> @endif
 								</div>
@@ -107,7 +107,7 @@
 							<span style="font-weight: 600; display: block;">{{ $post['title'] }}</span>
 							@if ( $showDate || $showAuthor )
 								<div style="font-size: 0.85em; color: #6b7280; margin-top: 0.25rem;">
-									@if ( $showDate ) <time>{{ $post['dateStr'] }}</time> @endif
+									@if ( $showDate ) <time datetime="{{ $post['date']->toIso8601String() }}">{{ $post['dateStr'] }}</time> @endif
 									@if ( $showDate && $showAuthor ) · @endif
 									@if ( $showAuthor ) <span>{{ $post['author'] }}</span> @endif
 								</div>
