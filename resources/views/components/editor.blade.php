@@ -2180,6 +2180,289 @@
 					} );
 
 					// ── Custom HTML block renderer ────────────────────
+					{{-- Dynamic blocks: Latest Posts, Table of Contents, Search --}}
+
+					br.register( 'latest-posts', {
+						render( block ) {
+							const displayTemplate   = block.attributes?.displayTemplate || 'list';
+							const numberOfPosts     = parseInt( block.attributes?.numberOfPosts || 5, 10 );
+							const orderBy           = block.attributes?.orderBy || 'date';
+							const order             = block.attributes?.order || 'desc';
+							const offset            = parseInt( block.attributes?.offset || 0, 10 );
+							const showFeaturedImage = block.attributes?.showFeaturedImage !== false;
+							const showExcerpt       = block.attributes?.showExcerpt !== false;
+							const showDate          = block.attributes?.showDate !== false;
+							const showAuthor        = block.attributes?.showAuthor === true;
+							const excerptLength     = parseInt( block.attributes?.excerptLength || 25, 10 );
+							const gap               = veSanitizeCssDimension( block.attributes?.gap || '1rem' ) || '1rem';
+							const imageAspectRatio  = block.attributes?.imageAspectRatio || '16/9';
+
+							const colData = block.attributes?.columns || { mode: 'global', global: 3 };
+							const desktopCols = ( 'responsive' === colData.mode )
+								? ( colData.desktop || 3 )
+								: ( colData.global || colData.desktop || 3 );
+							const tabletCols  = ( 'responsive' === colData.mode ) ? ( colData.tablet || 2 ) : desktopCols;
+							const mobileCols  = ( 'responsive' === colData.mode ) ? ( colData.mobile || 1 ) : desktopCols;
+
+							const sampleExcerpt = {{ Js::from( __( 'visual-editor::ve.sample_post_excerpt' ) ) }};
+							const sampleAuthor  = {{ Js::from( __( 'visual-editor::ve.sample_author' ) ) }};
+							const postTitleBase = {{ Js::from( __( 'visual-editor::ve.sample_post_title', [ 'number' => '__NUM__' ] ) ) }};
+
+							const sampleTitles = [
+								'Getting Started with Laravel',
+								'Advanced Eloquent Techniques',
+								'Building APIs with Sanctum',
+								'Tailwind CSS Best Practices',
+								'Livewire Components Deep Dive',
+								'Testing with Pest',
+								'Database Migrations Guide',
+								'Queue Workers Explained',
+								'Blade Templates Mastery',
+								'Deploy to Production',
+							];
+
+							const totalSamplePosts = numberOfPosts + offset;
+							let allPosts = [];
+							for ( let i = 1; i <= totalSamplePosts; i++ ) {
+								const d = new Date();
+								d.setDate( d.getDate() - i );
+								allPosts.push( {
+									num: i,
+									title: sampleTitles[ ( i - 1 ) % sampleTitles.length ] || postTitleBase.replace( '__NUM__', i ),
+									excerpt: sampleExcerpt.split( ' ' ).slice( 0, excerptLength ).join( ' ' ),
+									date: d,
+									dateStr: d.toLocaleDateString( 'en-US', { month: 'short', day: 'numeric', year: 'numeric' } ),
+									author: sampleAuthor,
+								} );
+							}
+
+							if ( 'title' === orderBy ) {
+								allPosts.sort( ( a, b ) => a.title.localeCompare( b.title ) );
+							} else if ( 'modified' === orderBy ) {
+								allPosts.sort( ( a, b ) => b.date - a.date );
+							} else if ( 'random' === orderBy ) {
+								for ( let i = allPosts.length - 1; i > 0; i-- ) {
+									const j = Math.floor( Math.random() * ( i + 1 ) );
+									[ allPosts[ i ], allPosts[ j ] ] = [ allPosts[ j ], allPosts[ i ] ];
+								}
+							} else {
+								allPosts.sort( ( a, b ) => b.date - a.date );
+							}
+
+							if ( 'asc' === order && 'random' !== orderBy ) {
+								allPosts.reverse();
+							}
+
+							const posts = allPosts.slice( offset, offset + numberOfPosts );
+
+							if ( 0 === posts.length ) {
+								return '<div class="ve-block ve-block-latest-posts ve-block-editing ve-block-dynamic-preview">'
+									+ '<p style="color:#9ca3af;text-align:center;padding:2rem;">' + {{ Js::from( __( 'visual-editor::ve.no_posts_found' ) ) }} + '</p></div>';
+							}
+
+							const metaHtml = ( post ) => {
+								let parts = [];
+								if ( showDate ) { parts.push( '<time>' + veEscapeHtml( post.dateStr ) + '</time>' ); }
+								if ( showAuthor ) { parts.push( '<span>' + veEscapeHtml( post.author ) + '</span>' ); }
+								return ( showDate || showAuthor )
+									? '<div style="font-size:0.85em;color:#6b7280;margin-top:0.25rem;">' + parts.join( ' · ' ) + '</div>'
+									: '';
+							};
+
+							const excerptHtml = ( post ) => {
+								return showExcerpt
+									? '<p style="margin:0.5rem 0 0;color:#374151;font-size:0.9em;line-height:1.5;">' + veEscapeHtml( post.excerpt ) + '</p>'
+									: '';
+							};
+
+							const imageHtml = ( style ) => {
+								return showFeaturedImage
+									? '<div style="aspect-ratio:' + imageAspectRatio + ';background:#e5e7eb;border-radius:4px;' + style + '"></div>'
+									: '';
+							};
+
+							const safeBlockId = block.id.replace( /[^a-zA-Z0-9_-]/g, '' );
+							const gridId = 've-latest-posts-' + safeBlockId;
+
+							let itemsHtml = '';
+
+							if ( 'list' === displayTemplate ) {
+								posts.forEach( ( post ) => {
+									itemsHtml += '<li style="display:flex;gap:1rem;align-items:flex-start;">'
+										+ imageHtml( 'width:150px;min-width:150px;' )
+										+ '<div>'
+										+ '<span style="font-weight:600;font-size:1.1em;">' + veEscapeHtml( post.title ) + '</span>'
+										+ metaHtml( post )
+										+ excerptHtml( post )
+										+ '</div></li>';
+								} );
+								return '<div class="ve-block ve-block-latest-posts ve-block-editing ve-block-dynamic-preview">'
+									+ '<nav aria-label="' + {{ Js::from( __( 'visual-editor::ve.latest_posts' ) ) }} + '">'
+									+ '<ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:' + gap + ';">'
+									+ itemsHtml + '</ul></nav></div>';
+							}
+
+							if ( 'grid' === displayTemplate || 'cards' === displayTemplate ) {
+								posts.forEach( ( post ) => {
+									const cardStyle = 'cards' === displayTemplate ? 'border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;' : '';
+									const bodyPad   = 'cards' === displayTemplate ? 'padding:1rem;' : '';
+									const imgMb     = 'grid' === displayTemplate ? 'margin-bottom:0.75rem;' : '';
+
+									itemsHtml += '<article style="' + cardStyle + '">'
+										+ imageHtml( imgMb )
+										+ '<div style="' + bodyPad + '">'
+										+ '<span style="font-weight:600;display:block;">' + veEscapeHtml( post.title ) + '</span>'
+										+ metaHtml( post )
+										+ excerptHtml( post )
+										+ '</div></article>';
+								} );
+
+								const responsiveCss = '<style>'
+									+ '#' + gridId + '{display:grid;grid-template-columns:repeat(' + desktopCols + ',1fr);gap:' + gap + ';}'
+									+ '@media(max-width:1024px){#' + gridId + '{grid-template-columns:repeat(' + tabletCols + ',1fr);}}'
+									+ '@media(max-width:640px){#' + gridId + '{grid-template-columns:repeat(' + mobileCols + ',1fr);}}'
+									+ '</style>';
+
+								return '<div class="ve-block ve-block-latest-posts ve-block-editing ve-block-dynamic-preview">'
+									+ '<nav aria-label="' + {{ Js::from( __( 'visual-editor::ve.latest_posts' ) ) }} + '">'
+									+ responsiveCss
+									+ '<div id="' + gridId + '">'
+									+ itemsHtml + '</div></nav></div>';
+							}
+
+							return '<div class="ve-block ve-block-latest-posts ve-block-editing ve-block-dynamic-preview">'
+								+ '<p style="color:#9ca3af;text-align:center;padding:2rem;">' + {{ Js::from( __( 'visual-editor::ve.latest_posts' ) ) }} + '</p></div>';
+						},
+					} );
+
+					br.register( 'table-of-contents', {
+						render( block ) {
+							const headingLevels = block.attributes?.headingLevels || [ 2, 3 ];
+							const listStyle     = block.attributes?.listStyle || 'numbered';
+							const hierarchical  = block.attributes?.hierarchical !== false;
+							const tocTitle      = block.attributes?.title ?? {{ Js::from( __( 'visual-editor::ve.table_of_contents' ) ) }};
+							const collapsible   = block.attributes?.collapsible === true;
+
+							const editorBlocks = Alpine.store( 'editor' )?.blocks || [];
+
+							const collectHeadings = ( blocks ) => {
+								let headings = [];
+								blocks.forEach( ( b ) => {
+									if ( 'heading' === b.type ) {
+										const levelStr = b.attributes?.level || 'h2';
+										const level    = parseInt( levelStr.replace( 'h', '' ), 10 ) || 2;
+										const text     = b.attributes?.text || '';
+										if ( text && headingLevels.includes( level ) ) {
+											const id = text.toLowerCase().replace( /[^a-z0-9]+/g, '-' ).replace( /^-|-$/g, '' );
+											headings.push( { level, text, id } );
+										}
+									}
+									if ( b.innerBlocks && b.innerBlocks.length > 0 ) {
+										headings = headings.concat( collectHeadings( b.innerBlocks ) );
+									}
+								} );
+								return headings;
+							};
+
+							let headings = collectHeadings( editorBlocks );
+
+							if ( 0 === headings.length ) {
+								headings = [
+									{ level: 2, text: {{ Js::from( __( 'visual-editor::ve.sample_heading_introduction' ) ) }}, id: 'introduction' },
+									{ level: 3, text: {{ Js::from( __( 'visual-editor::ve.sample_heading_overview' ) ) }}, id: 'overview' },
+									{ level: 3, text: {{ Js::from( __( 'visual-editor::ve.sample_heading_getting_started' ) ) }}, id: 'getting-started' },
+									{ level: 2, text: {{ Js::from( __( 'visual-editor::ve.sample_heading_features' ) ) }}, id: 'features' },
+									{ level: 3, text: {{ Js::from( __( 'visual-editor::ve.sample_heading_configuration' ) ) }}, id: 'configuration' },
+									{ level: 2, text: {{ Js::from( __( 'visual-editor::ve.sample_heading_conclusion' ) ) }}, id: 'conclusion' },
+								].filter( ( h ) => headingLevels.includes( h.level ) );
+							}
+
+							const tag       = 'numbered' === listStyle ? 'ol' : 'ul';
+							const listCss   = 'plain' === listStyle ? 'list-style:none;padding-left:0;' : 'padding-left:1.5rem;';
+							const minLevel  = headings.length > 0 ? Math.min( ...headings.map( ( h ) => h.level ) ) : 2;
+
+							let listItems = '';
+							headings.forEach( ( h ) => {
+								const indent = hierarchical ? ( h.level - minLevel ) * 1.5 : 0;
+								const ml     = indent > 0 ? 'margin-left:' + indent + 'rem;' : '';
+								listItems += '<li style="' + ml + '">'
+									+ '<a href="#' + h.id + '" style="color:#2563eb;text-decoration:none;">' + veEscapeHtml( h.text ) + '</a>'
+									+ '</li>';
+							} );
+
+							let titleHtml = '';
+							if ( tocTitle ) {
+								titleHtml = collapsible
+									? '<summary style="font-weight:600;font-size:1.1em;cursor:pointer;margin-bottom:0.75rem;">' + veEscapeHtml( tocTitle ) + '</summary>'
+									: '<h2 style="font-weight:600;font-size:1.1em;margin:0 0 0.75rem;">' + veEscapeHtml( tocTitle ) + '</h2>';
+							}
+
+							const innerHtml = titleHtml + '<' + tag + ' style="' + listCss + '">' + listItems + '</' + tag + '>';
+
+							const wrapStart = collapsible ? '<details open>' : '';
+							const wrapEnd   = collapsible ? '</details>' : '';
+
+							return '<div class="ve-block ve-block-table-of-contents ve-block-editing ve-block-dynamic-preview">'
+								+ '<nav aria-label="' + {{ Js::from( __( 'visual-editor::ve.table_of_contents' ) ) }} + '" style="border:1px solid #e5e7eb;border-radius:8px;padding:1.25rem;">'
+								+ wrapStart + innerHtml + wrapEnd
+								+ '</nav></div>';
+						},
+					} );
+
+					br.register( 'search', {
+						render( block ) {
+							const placeholder    = veEscapeHtml( block.attributes?.placeholder || {{ Js::from( __( 'visual-editor::ve.search_placeholder' ) ) }} );
+							const buttonText     = veEscapeHtml( block.attributes?.buttonText || {{ Js::from( __( 'visual-editor::ve.search' ) ) }} );
+							const buttonPosition = block.attributes?.buttonPosition || 'outside';
+							const showLabel      = block.attributes?.showLabel !== false;
+							const label          = veEscapeHtml( block.attributes?.label || {{ Js::from( __( 'visual-editor::ve.search' ) ) }} );
+							const displayStyle   = block.attributes?.displayStyle || 'inline';
+							const isInline       = 'inline' === displayStyle;
+							const hasButton      = 'none' !== buttonPosition;
+							const isInside       = 'inside' === buttonPosition;
+
+							let labelHtml = '';
+							if ( showLabel ) {
+								labelHtml = '<label style="display:block;font-weight:500;margin-bottom:0.5rem;font-size:0.9em;">' + label + '</label>';
+							}
+
+							const inputRadius = isInside && hasButton
+								? '6px'
+								: ( isInline && hasButton ? '6px 0 0 6px' : '6px' );
+							const inputHtml = '<input type="search" placeholder="' + placeholder + '" disabled'
+								+ ' style="width:100%;padding:0.625rem 0.875rem;border:1px solid #d1d5db;border-radius:' + inputRadius + ';font-size:0.95em;background:#fff;color:#374151;outline:none;box-sizing:border-box;"'
+								+ ( ! showLabel ? ' aria-label="' + label + '"' : '' )
+								+ ' />';
+
+							let insideBtnHtml = '';
+							if ( isInside && hasButton ) {
+								insideBtnHtml = '<button type="button" disabled'
+									+ ' style="position:absolute;right:4px;top:50%;transform:translateY(-50%);padding:0.375rem 0.75rem;background:#2563eb;color:#fff;border:none;border-radius:4px;font-size:0.85em;cursor:default;"'
+									+ '>' + buttonText + '</button>';
+							}
+
+							let outsideBtnHtml = '';
+							if ( ! isInside && hasButton ) {
+								const btnRadius = isInline ? '0 6px 6px 0' : '6px';
+								outsideBtnHtml = '<button type="button" disabled'
+									+ ' style="padding:0.625rem 1.25rem;background:#2563eb;color:#fff;border:none;border-radius:' + btnRadius + ';font-size:0.95em;cursor:default;white-space:nowrap;"'
+									+ '>' + buttonText + '</button>';
+							}
+
+							const wrapperStyle = isInline
+								? 'display:flex;align-items:stretch;'
+								: 'display:flex;flex-direction:column;gap:0.5rem;';
+
+							return '<div class="ve-block ve-block-search ve-block-editing ve-block-dynamic-preview">'
+								+ '<div role="search" aria-label="' + label + '" style="max-width:600px;">'
+								+ labelHtml
+								+ '<div style="' + wrapperStyle + '">'
+								+ '<div style="position:relative;flex:1;">' + inputHtml + insideBtnHtml + '</div>'
+								+ outsideBtnHtml
+								+ '</div></div></div>';
+						},
+					} );
+
 					br.register( 'custom-html', {
 						render( block ) {
 							const htmlContent = block.attributes?.content || '';

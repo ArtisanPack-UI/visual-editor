@@ -1,0 +1,70 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "search",
+	"name": "Search",
+	"description": "Add a configurable search form",
+	"icon": "magnifying-glass",
+	"category": "dynamic",
+	"keywords": ["search", "find", "query", "form"],
+	"version": 1,
+	"dynamic": true,
+	"attributes": {
+		"placeholder": {
+			"type": "string",
+			"source": "content",
+			"default": "Search\u2026"
+		},
+		"buttonText": {
+			"type": "string",
+			"source": "content",
+			"default": "Search"
+		},
+		"buttonPosition": {
+			"type": "string",
+			"source": "content",
+			"default": "outside"
+		},
+		"buttonIcon": {
+			"type": "string",
+			"source": "content",
+			"default": "magnifying-glass"
+		},
+		"showLabel": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"label": {
+			"type": "string",
+			"source": "content",
+			"default": "Search"
+		},
+		"resultsPerPage": {
+			"type": "integer",
+			"source": "content",
+			"default": 10
+		},
+		"searchScope": {
+			"type": "string",
+			"source": "content",
+			"default": "all"
+		},
+		"displayStyle": {
+			"type": "string",
+			"source": "content",
+			"default": "inline"
+		}
+	},
+	"supports": {
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"color": {
+			"background": true
+		},
+		"border": true,
+		"htmlId": true,
+		"className": true
+	}
+}

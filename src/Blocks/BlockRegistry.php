@@ -209,13 +209,28 @@ class BlockRegistry
 	}
 
 	/**
-	 * Get all blocks that have a custom JavaScript renderer.
+	 * Get all blocks that are dynamic (server-rendered via Livewire).
 	 *
 	 * @since 2.0.0
 	 *
 	 * @return array<string, BlockInterface>
 	 */
 	public function getDynamicBlocks(): array
+	{
+		return array_filter(
+			$this->all(),
+			fn ( BlockInterface $block ) => $block->isDynamic(),
+		);
+	}
+
+	/**
+	 * Get all blocks that have a custom JavaScript renderer.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<string, BlockInterface>
+	 */
+	public function getJsRendererBlocks(): array
 	{
 		return array_filter(
 			$this->all(),

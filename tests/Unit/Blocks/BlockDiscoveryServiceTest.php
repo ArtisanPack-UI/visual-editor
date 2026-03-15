@@ -4,11 +4,11 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Blocks\BlockDiscoveryService;
 
-test( 'discovery finds all 26 core blocks', function (): void {
+test( 'discovery finds all 29 core blocks', function (): void {
 	$service = new BlockDiscoveryService();
 	$blocks  = $service->discover();
 
-	expect( $blocks )->toHaveCount( 26 );
+	expect( $blocks )->toHaveCount( 29 );
 } );
 
 test( 'discovery returns correct structure for each block', function (): void {
@@ -35,6 +35,7 @@ test( 'discovery returns all expected block types', function (): void {
 		'image', 'gallery', 'video', 'audio', 'file',
 		'columns', 'column', 'group', 'grid', 'grid-item', 'spacer', 'divider',
 		'button', 'buttons', 'code',
+		'latest-posts', 'table-of-contents', 'search',
 	];
 
 	foreach ( $expected as $type ) {

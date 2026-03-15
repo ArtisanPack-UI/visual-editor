@@ -23,6 +23,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Http;
+use Throwable;
 
 /**
  * Controller for embed block server-side operations.
@@ -106,7 +107,7 @@ class EmbedController extends Controller
 					'limit'  => 1,
 					'q'      => $query,
 				] );
-		} catch ( \Throwable $e ) {
+		} catch ( Throwable $e ) {
 			return response()->json( [
 				'success' => false,
 				'results' => [],
