@@ -2281,7 +2281,8 @@
 									: '';
 							};
 
-							const gridId = 've-latest-posts-' + block.id;
+							const safeBlockId = block.id.replace( /[^a-zA-Z0-9_-]/g, '' );
+							const gridId = 've-latest-posts-' + safeBlockId;
 
 							let itemsHtml = '';
 

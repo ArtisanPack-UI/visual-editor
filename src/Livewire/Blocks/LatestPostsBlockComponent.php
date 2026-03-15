@@ -254,12 +254,14 @@ class LatestPostsBlockComponent extends Component
 		$posts = [];
 
 		for ( $i = 1; $i <= $this->numberOfPosts; $i++ ) {
-			$posts[] = [
+			$postDate = now()->subDays( $i );
+			$posts[]  = [
 				'id'             => $i,
 				'title'          => __( 'visual-editor::ve.sample_post_title', [ 'number' => $i ] ),
 				'excerpt'        => __( 'visual-editor::ve.sample_post_excerpt' ),
 				'url'            => '#',
-				'date'           => now()->subDays( $i )->format( 'M j, Y' ),
+				'date'           => $postDate->format( 'M j, Y' ),
+				'date_iso'       => $postDate->toIso8601String(),
 				'author'         => __( 'visual-editor::ve.sample_author' ),
 				'featured_image' => null,
 			];

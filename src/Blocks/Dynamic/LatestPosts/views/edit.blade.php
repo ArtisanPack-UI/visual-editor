@@ -1,14 +1,14 @@
 @php
 	$displayTemplate   = $content['displayTemplate'] ?? 'list';
-	$numberOfPosts     = $content['numberOfPosts'] ?? 5;
+	$numberOfPosts     = max( 1, min( 100, (int) ( $content['numberOfPosts'] ?? 5 ) ) );
 	$orderBy           = $content['orderBy'] ?? 'date';
 	$order             = $content['order'] ?? 'desc';
-	$offset            = $content['offset'] ?? 0;
+	$offset            = max( 0, (int) ( $content['offset'] ?? 0 ) );
 	$showFeaturedImage = $content['showFeaturedImage'] ?? true;
 	$showExcerpt       = $content['showExcerpt'] ?? true;
 	$showDate          = $content['showDate'] ?? true;
 	$showAuthor        = $content['showAuthor'] ?? false;
-	$excerptLength     = $content['excerptLength'] ?? 25;
+	$excerptLength     = max( 0, (int) ( $content['excerptLength'] ?? 25 ) );
 	$gap               = $styles['gap'] ?? '1rem';
 	$imageAspectRatio  = $styles['imageAspectRatio'] ?? '16/9';
 
@@ -49,12 +49,14 @@
 		];
 	}
 
-	if ( 'title' === $orderBy ) {
+	if ( 'random' === $orderBy ) {
+		shuffle( $allPosts );
+	} elseif ( 'title' === $orderBy ) {
 		usort( $allPosts, fn ( $a, $b ) => strcmp( $a['title'], $b['title'] ) );
 		if ( 'desc' === $order ) {
 			$allPosts = array_reverse( $allPosts );
 		}
-	} elseif ( 'random' !== $orderBy && 'asc' === $order ) {
+	} elseif ( 'asc' === $order ) {
 		$allPosts = array_reverse( $allPosts );
 	}
 

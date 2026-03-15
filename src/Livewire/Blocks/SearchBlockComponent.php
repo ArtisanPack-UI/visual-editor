@@ -140,7 +140,7 @@ class SearchBlockComponent extends Component
 	 */
 	public function mount(): void
 	{
-		$this->inputId = 've-search-input-' . uniqid();
+		$this->inputId = 've-search-input-' . (string) \Illuminate\Support\Str::uuid();
 	}
 
 	/**

@@ -6,22 +6,26 @@
 	$label          = $content['label'] ?? __( 'visual-editor::ve.search' );
 	$displayStyle   = $content['displayStyle'] ?? 'inline';
 
-	$isInline  = 'inline' === $displayStyle;
-	$isInside  = 'inside' === $buttonPosition;
-	$hasButton = 'none' !== $buttonPosition;
+	$isInline   = 'inline' === $displayStyle;
+	$isInside   = 'inside' === $buttonPosition;
+	$hasButton  = 'none' !== $buttonPosition;
+	$inputId    = 've-search-' . uniqid();
+	$ariaLabel  = $label ?: $placeholder ?: __( 'visual-editor::ve.search' );
 @endphp
 
 <div class="ve-block ve-block-search ve-block-editing ve-block-dynamic-preview">
-	<div role="search" aria-label="{{ $label }}" style="max-width: 600px;">
+	<div role="search" aria-label="{{ $ariaLabel }}" style="max-width: 600px;">
 		@if ( $showLabel )
-			<label style="display: block; font-weight: 500; margin-bottom: 0.5rem; font-size: 0.9em;">{{ $label }}</label>
+			<label for="{{ $inputId }}" style="display: block; font-weight: 500; margin-bottom: 0.5rem; font-size: 0.9em;">{{ $label }}</label>
 		@endif
 
 		<div style="{{ $isInline ? 'display: flex; align-items: stretch;' : 'display: flex; flex-direction: column; gap: 0.5rem;' }}">
 			<div style="position: relative; flex: 1;">
 				<input
 					type="search"
+					id="{{ $inputId }}"
 					placeholder="{{ $placeholder }}"
+					aria-label="{{ $ariaLabel }}"
 					disabled
 					style="width: 100%; padding: 0.625rem 0.875rem; border: 1px solid #d1d5db; border-radius: {{ $isInside && $hasButton ? '6px' : ( $isInline && $hasButton ? '6px 0 0 6px' : '6px' ) }}; font-size: 0.95em; background: #fff; color: #374151; outline: none; box-sizing: border-box;"
 				/>

@@ -1,5 +1,8 @@
 @php
-	$headingLevels = $content['headingLevels'] ?? [ 2, 3 ];
+	$headingLevels = array_map( 'intval', $content['headingLevels'] ?? [ 2, 3 ] );
+	$maxDepth      = max( 1, min( 6, (int) ( $content['maxDepth'] ?? 6 ) ) );
+	$headingLevels = array_filter( $headingLevels, fn ( $l ) => $l >= 1 && $l <= $maxDepth );
+	$headingLevels = array_values( $headingLevels );
 	$listStyle     = $content['listStyle'] ?? 'numbered';
 	$hierarchical  = $content['hierarchical'] ?? true;
 	$tocTitle      = $content['title'] ?? __( 'visual-editor::ve.table_of_contents' );
@@ -25,7 +28,7 @@
 	<nav aria-label="{{ __( 'visual-editor::ve.table_of_contents' ) }}" style="border: 1px solid #e5e7eb; border-radius: 8px; padding: 1.25rem;">
 		@if ( $collapsible )
 			<details open>
-				<summary style="font-weight: 600; font-size: 1.1em; cursor: pointer; margin-bottom: 0.75rem;">{{ $tocTitle }}</summary>
+				<summary style="font-weight: 600; font-size: 1.1em; cursor: pointer; margin-bottom: 0.75rem;">{{ $tocTitle ?: __( 'visual-editor::ve.table_of_contents' ) }}</summary>
 		@else
 			@if ( $tocTitle )
 				<h2 style="font-weight: 600; font-size: 1.1em; margin: 0 0 0.75rem;">{{ $tocTitle }}</h2>

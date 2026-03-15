@@ -6,7 +6,7 @@
 			action="{{ $actionUrl }}"
 			method="GET"
 		@endif
-		aria-label="{{ $label }}"
+		aria-label="{{ $label ?: $placeholder ?: __( 'visual-editor::ve.search' ) }}"
 	>
 		@if ( $showLabel )
 			<label for="{{ $inputId }}" class="ve-block-search-label">
@@ -21,9 +21,7 @@
 				name="q"
 				class="ve-block-search-input"
 				placeholder="{{ $placeholder }}"
-				@if ( ! $showLabel )
-					aria-label="{{ $label }}"
-				@endif
+				aria-label="{{ $label ?: $placeholder ?: __( 'visual-editor::ve.search' ) }}"
 				@if ( $isEditor )
 					disabled
 				@endif

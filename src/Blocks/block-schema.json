@@ -258,5 +258,15 @@
 			},
 			"default": {}
 		}
+	},
+	"if": {
+		"properties": {
+			"dynamic": {
+				"const": true
+			}
+		}
+	},
+	"then": {
+		"required": ["component"]
 	}
 }

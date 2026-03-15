@@ -1,5 +1,5 @@
 <div>
-	<nav aria-label="{{ __( 'visual-editor::ve.latest_posts' ) }}" class="ve-block ve-block-latest-posts">
+	<section aria-label="{{ __( 'visual-editor::ve.latest_posts' ) }}" class="ve-block ve-block-latest-posts">
 		@if ( empty( $posts ) )
 			<p class="ve-block-latest-posts-empty">
 				{{ __( 'visual-editor::ve.no_posts_found' ) }}
@@ -25,7 +25,7 @@
 								@if ( $showDate || $showAuthor )
 									<div class="ve-block-latest-posts-meta">
 										@if ( $showDate )
-											<time>{{ $post['date'] }}</time>
+											<time datetime="{{ $post['date_iso'] ?? '' }}">{{ $post['date'] }}</time>
 										@endif
 										@if ( $showAuthor )
 											<span class="ve-block-latest-posts-author">{{ $post['author'] }}</span>
@@ -62,7 +62,7 @@
 								@if ( $showDate || $showAuthor )
 									<div class="ve-block-latest-posts-meta">
 										@if ( $showDate )
-											<time>{{ $post['date'] }}</time>
+											<time datetime="{{ $post['date_iso'] ?? '' }}">{{ $post['date'] }}</time>
 										@endif
 										@if ( $showAuthor )
 											<span class="ve-block-latest-posts-author">{{ $post['author'] }}</span>
@@ -99,7 +99,7 @@
 								@if ( $showDate || $showAuthor )
 									<div class="ve-block-latest-posts-meta">
 										@if ( $showDate )
-											<time>{{ $post['date'] }}</time>
+											<time datetime="{{ $post['date_iso'] ?? '' }}">{{ $post['date'] }}</time>
 										@endif
 										@if ( $showAuthor )
 											<span class="ve-block-latest-posts-author">{{ $post['author'] }}</span>
@@ -117,5 +117,5 @@
 				</div>
 			@endif
 		@endif
-	</nav>
+	</section>
 </div>

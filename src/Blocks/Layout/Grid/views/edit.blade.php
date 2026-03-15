@@ -8,11 +8,14 @@
 		$columns = $columnsData;
 	}
 	$allowedAlignJustify = [ 'stretch', 'start', 'center', 'end', 'baseline' ];
-	$templateRows  = preg_match( '/^[a-zA-Z0-9\s\.\-%()\/ ]+$/', $content['templateRows'] ?? 'auto' ) ? ( $content['templateRows'] ?? 'auto' ) : 'auto';
+	$templateRowsInput  = $content['templateRows'] ?? 'auto';
+	$alignItemsInput    = $styles['alignItems'] ?? 'stretch';
+	$justifyItemsInput  = $styles['justifyItems'] ?? 'stretch';
+	$templateRows  = preg_match( '/^[a-zA-Z0-9\s\.\-%()\/ ]+$/', $templateRowsInput ) ? $templateRowsInput : 'auto';
 	$gap           = $styles['gap'] ?? 'medium';
 	$rowGap        = $styles['rowGap'] ?? '';
-	$alignItems    = in_array( $styles['alignItems'] ?? 'stretch', $allowedAlignJustify, true ) ? ( $styles['alignItems'] ?? 'stretch' ) : 'stretch';
-	$justifyItems  = in_array( $styles['justifyItems'] ?? 'stretch', $allowedAlignJustify, true ) ? ( $styles['justifyItems'] ?? 'stretch' ) : 'stretch';
+	$alignItems    = in_array( $alignItemsInput, $allowedAlignJustify, true ) ? $alignItemsInput : 'stretch';
+	$justifyItems  = in_array( $justifyItemsInput, $allowedAlignJustify, true ) ? $justifyItemsInput : 'stretch';
 	$innerBlocks   = $innerBlocks ?? [];
 
 	$gapMap = [
