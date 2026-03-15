@@ -1890,12 +1890,12 @@
 
 						// Bluesky: extract AT URI from data-bluesky-uri and build embed URL.
 						const bskyMatch = html.match( /data-bluesky-uri=["']at:\/\/([^"']+)["']/ );
-						if ( bskyMatch ) return 'https://embed.bsky.app/embed/' + bskyMatch[1];
+						if ( bskyMatch ) return 'https://embed.bsky.app/embed/' + encodeURIComponent( bskyMatch[1] );
 
 						// Fallback: try to construct embed URL from the original URL for known platforms.
 						if ( url ) {
 							const bskyUrl = url.match( /bsky\.app\/profile\/([^/]+)\/post\/([^/?]+)/ );
-							if ( bskyUrl ) return 'https://embed.bsky.app/embed/' + bskyUrl[1] + '/app.bsky.feed.post/' + bskyUrl[2];
+							if ( bskyUrl ) return 'https://embed.bsky.app/embed/' + encodeURIComponent( bskyUrl[1] ) + '/app.bsky.feed.post/' + encodeURIComponent( bskyUrl[2] );
 						}
 
 						return null;

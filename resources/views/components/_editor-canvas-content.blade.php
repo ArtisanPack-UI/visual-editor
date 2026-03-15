@@ -434,13 +434,15 @@
 								} )
 								.then( ( r ) => r.json() )
 								.then( ( j ) => {
-									// Guard against stale responses: only apply if the
-									// block still exists and has not already been set to a
-									// *different* URL.  When a block has no URL yet (first-time
-									// resolve) we must still allow the update through.
+									// Guard against stale responses: bail if the block
+									// no longer exists, its stored URL changed, or the
+									// user typed a different URL into the input since
+									// the request was fired.
 									const current = Alpine.store( 'editor' )?.getBlock( blockId );
 									if ( ! current ) return;
 									if ( current.attributes?.url && current.attributes.url !== requestedUrl ) return;
+									const latestInput = ( input?.value || '' ).trim();
+									if ( latestInput && latestInput !== requestedUrl ) return;
 									if ( j.success && j.data ) {
 										Alpine.store( 'editor' ).updateBlock( blockId, {
 											url:          requestedUrl,
@@ -540,12 +542,13 @@
 									.then( ( r ) => r.json() )
 									.then( ( j ) => {
 										if ( j.success && j.results && j.results.length > 0 && Alpine.store( 'editor' ) ) {
-											// Skip if the user changed the address or manually
-											// entered coordinates while the request was in flight.
+											// Skip if the user changed the address while the
+											// request was in flight, or if the user manually
+											// entered coordinates and the address is unchanged.
 											const blk = Alpine.store( 'editor' ).getBlock( blockId );
-											if ( blk && blk.attributes?.latitude && blk.attributes?.longitude ) return;
 											const currentAddress = ( input?.value || _mapDraft[ blockId ]?.address || '' ).trim();
 											if ( currentAddress && currentAddress !== requestedAddress ) return;
+											if ( blk && blk.attributes?.latitude && blk.attributes?.longitude && ( ! currentAddress || currentAddress === blk.attributes?.address ) ) return;
 											Alpine.store( 'editor' ).updateBlock( blockId, {
 												address:   j.results[0].display_name || requestedAddress,
 												latitude:  j.results[0].lat,
