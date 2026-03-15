@@ -518,8 +518,8 @@
 								const input   = wrapper?.querySelector( '[data-ve-map-address]' );
 
 								// Read from DOM first, fall back to tracked draft value.
-								const address = ( input?.value || _mapDraft[ blockId ]?.address || '' ).trim();
-								if ( ! address ) return;
+								const requestedAddress = ( input?.value || _mapDraft[ blockId ]?.address || '' ).trim();
+								if ( ! requestedAddress ) return;
 
 								// Clean up draft value for this block.
 								delete _mapDraft[ blockId ];
@@ -534,19 +534,20 @@
 								if ( spinner ) spinner.style.display = '';
 								if ( label ) label.style.display = 'none';
 
-								fetch( '/api/visual-editor/geocode?q=' + encodeURIComponent( address ), {
+								fetch( '/api/visual-editor/geocode?q=' + encodeURIComponent( requestedAddress ), {
 									headers: { 'Accept': 'application/json' },
 								} )
 									.then( ( r ) => r.json() )
 									.then( ( j ) => {
 										if ( j.success && j.results && j.results.length > 0 && Alpine.store( 'editor' ) ) {
-											// Only write geocoded coordinates if the user has not
-											// already manually entered different coordinates while
-											// the request was in flight.
+											// Skip if the user changed the address or manually
+											// entered coordinates while the request was in flight.
 											const blk = Alpine.store( 'editor' ).getBlock( blockId );
 											if ( blk && blk.attributes?.latitude && blk.attributes?.longitude ) return;
+											const currentAddress = ( input?.value || _mapDraft[ blockId ]?.address || '' ).trim();
+											if ( currentAddress && currentAddress !== requestedAddress ) return;
 											Alpine.store( 'editor' ).updateBlock( blockId, {
-												address:   j.results[0].display_name || address,
+												address:   j.results[0].display_name || requestedAddress,
 												latitude:  j.results[0].lat,
 												longitude: j.results[0].lon,
 											} );

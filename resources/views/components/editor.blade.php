@@ -1911,6 +1911,11 @@
 							} );
 							const j = await r.json();
 							if ( j.success && j.data ) {
+								// Guard against stale responses: only apply if the
+								// block still exists and its URL hasn't changed.
+								const current = Alpine.store( 'editor' )?.getBlock( blockId );
+								if ( ! current ) return false;
+								if ( current.attributes?.url && current.attributes.url !== url ) return false;
 								Alpine.store( 'editor' ).updateBlock( blockId, Object.assign( {
 									url:          url,
 									html:         j.data.html || '',
@@ -1920,7 +1925,8 @@
 									providerName: j.data.provider_name || j.data.providerName || '',
 									providerUrl:  j.data.provider_url || j.data.providerUrl || '',
 									_source:      j.data._source || '',
-								}, extraAttrs, j.platform ? { platform: j.platform } : {} ) );
+									platform:     j.platform || '',
+								}, extraAttrs ) );
 								return true;
 							}
 						} catch ( e ) { /* resolve failed */ }
@@ -1984,8 +1990,8 @@
 									+ '<p class="ve-resolve-hint text-sm text-base-content/60">' + {{ Js::from( __( 'visual-editor::ve.embed_placeholder' ) ) }} + '</p>'
 									+ '<p class="ve-resolve-error text-sm text-warning" style="display:none">' + {{ Js::from( __( 'visual-editor::ve.embed_resolve_failed' ) ) }} + '</p>'
 									+ '<div class="flex w-full max-w-md gap-2">'
-									+ '<input type="url" class="input input-bordered input-sm flex-1" data-ve-url-input placeholder="' + {{ Js::from( __( 'visual-editor::ve.embed_url_placeholder' ) ) }} + '" />'
-									+ '<button type="button" class="btn btn-primary btn-sm" data-ve-resolve-embed="' + blockId + '">'
+									+ '<input type="url" class="input input-bordered input-sm flex-1" data-ve-url-input placeholder="' + {{ Js::from( __( 'visual-editor::ve.embed_url_placeholder' ) ) }} + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.embed_url_placeholder' ) ) }} + '" />'
+									+ '<button type="button" class="btn btn-primary btn-sm" data-ve-resolve-embed="' + blockId + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.embed_resolve' ) ) }} + '">'
 									+ '<span class="ve-resolve-label">' + {{ Js::from( __( 'visual-editor::ve.embed_resolve' ) ) }} + '</span>'
 									+ '<span class="ve-resolve-spinner loading loading-spinner loading-xs" style="display:none"></span>'
 									+ '</button></div></div></div>';
@@ -2066,8 +2072,8 @@
 									+ '<p class="ve-resolve-hint text-sm text-base-content/60">' + {{ Js::from( __( 'visual-editor::ve.social_placeholder' ) ) }} + '</p>'
 									+ '<p class="ve-resolve-error text-sm text-warning" style="display:none">' + {{ Js::from( __( 'visual-editor::ve.embed_resolve_failed' ) ) }} + '</p>'
 									+ '<div class="flex w-full max-w-md gap-2">'
-									+ '<input type="url" class="input input-bordered input-sm flex-1" data-ve-url-input placeholder="' + {{ Js::from( __( 'visual-editor::ve.social_url_placeholder' ) ) }} + '" />'
-									+ '<button type="button" class="btn btn-primary btn-sm" data-ve-resolve-embed="' + blockId + '">'
+									+ '<input type="url" class="input input-bordered input-sm flex-1" data-ve-url-input placeholder="' + {{ Js::from( __( 'visual-editor::ve.social_url_placeholder' ) ) }} + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.social_url_placeholder' ) ) }} + '" />'
+									+ '<button type="button" class="btn btn-primary btn-sm" data-ve-resolve-embed="' + blockId + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.embed_resolve' ) ) }} + '">'
 									+ '<span class="ve-resolve-label">' + {{ Js::from( __( 'visual-editor::ve.embed_resolve' ) ) }} + '</span>'
 									+ '<span class="ve-resolve-spinner loading loading-spinner loading-xs" style="display:none"></span>'
 									+ '</button></div></div></div>';
@@ -2128,15 +2134,15 @@
 									+ '<p class="text-sm text-base-content/60">' + {{ Js::from( __( 'visual-editor::ve.map_placeholder' ) ) }} + '</p>'
 									+ '<p class="ve-map-error text-sm text-warning" style="display:none">' + {{ Js::from( __( 'visual-editor::ve.map_not_found' ) ) }} + '</p>'
 									+ '<div class="flex w-full max-w-md gap-2">'
-									+ '<input type="text" class="input input-bordered input-sm flex-1" data-ve-map-address placeholder="' + {{ Js::from( __( 'visual-editor::ve.map_address_placeholder' ) ) }} + '" />'
-									+ '<button type="button" class="btn btn-primary btn-sm" data-ve-map-search="' + blockId + '">'
+									+ '<input type="text" class="input input-bordered input-sm flex-1" data-ve-map-address placeholder="' + {{ Js::from( __( 'visual-editor::ve.map_address_placeholder' ) ) }} + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.map_address_placeholder' ) ) }} + '" />'
+									+ '<button type="button" class="btn btn-primary btn-sm" data-ve-map-search="' + blockId + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.map_search' ) ) }} + '">'
 									+ '<span class="ve-resolve-label">' + {{ Js::from( __( 'visual-editor::ve.map_search' ) ) }} + '</span>'
 									+ '<span class="ve-resolve-spinner loading loading-spinner loading-xs" style="display:none"></span>'
 									+ '</button></div>'
 									+ '<div class="flex w-full max-w-md gap-2 mt-1">'
-									+ '<input type="text" class="input input-bordered input-sm flex-1" data-ve-map-lat placeholder="' + {{ Js::from( __( 'visual-editor::ve.map_latitude' ) ) }} + '" />'
-									+ '<input type="text" class="input input-bordered input-sm flex-1" data-ve-map-lng placeholder="' + {{ Js::from( __( 'visual-editor::ve.map_longitude' ) ) }} + '" />'
-									+ '<button type="button" class="btn btn-ghost btn-sm" data-ve-map-set-coords="' + blockId + '">'
+									+ '<input type="text" class="input input-bordered input-sm flex-1" data-ve-map-lat placeholder="' + {{ Js::from( __( 'visual-editor::ve.map_latitude' ) ) }} + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.map_latitude' ) ) }} + '" />'
+									+ '<input type="text" class="input input-bordered input-sm flex-1" data-ve-map-lng placeholder="' + {{ Js::from( __( 'visual-editor::ve.map_longitude' ) ) }} + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.map_longitude' ) ) }} + '" />'
+									+ '<button type="button" class="btn btn-ghost btn-sm" data-ve-map-set-coords="' + blockId + '" aria-label="' + {{ Js::from( __( 'visual-editor::ve.map_apply_coordinates' ) ) }} + '">'
 									+ '<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>'
 									+ '</button></div></div></div>';
 							}
