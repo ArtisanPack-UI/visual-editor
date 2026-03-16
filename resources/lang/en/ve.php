@@ -1043,6 +1043,7 @@ return [
 	'form_submitting'                       => 'Submitting…',
 	'form_submission_success'               => 'Thank you! Your form has been submitted successfully.',
 	'form_submission_error'                 => 'An error occurred while submitting the form. Please try again.',
+	'form_rate_limited'                     => 'Too many submissions. Please wait a moment and try again.',
 	'form_package_required'                 => 'Forms package required',
 	'form_package_required_hint'            => 'Install artisanpack-ui/forms to use the Form block.',
 	'form_select_form'                      => 'Select a form',

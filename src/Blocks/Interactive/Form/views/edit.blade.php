@@ -3,7 +3,7 @@
 	$displayStyle = $content['displayStyle'] ?? 'embedded';
 	$showLabels   = $content['showLabels'] ?? true;
 	$layout       = $content['layout'] ?? 'stacked';
-	$columns      = (int) ( $content['columns'] ?? 2 );
+	$columns      = max( 1, min( 4, (int) ( $content['columns'] ?? 2 ) ) );
 	$fieldSpacing = veSanitizeCssDimension( $styles['fieldSpacing'] ?? '1rem', '1rem' );
 
 	$formsInstalled = class_exists( \ArtisanPackUI\Forms\Models\Form::class );
@@ -202,6 +202,7 @@
 								<select
 									id="{{ $fieldId }}"
 									disabled
+									@if ( 'select_multiple' === $field->type ) multiple @endif
 									style="width: 100%; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; border-radius: 6px; font-size: 0.95em; background: #fff; color: #374151; box-sizing: border-box;"
 								>
 									<option>{{ $field->placeholder ?: __( 'visual-editor::ve.form_select_option' ) }}</option>

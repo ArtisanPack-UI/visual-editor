@@ -65,7 +65,9 @@
 			@endif
 
 			<form
-				wire:submit{{ $useAjax ? '.prevent' : '' }}="submitForm"
+				@if ( $useAjax )
+					wire:submit.prevent="submitForm"
+				@endif
 				id="{{ $formElementId }}"
 				class="ve-block-form-form {{ $customClass }}"
 				aria-label="{{ $form->name }}"
@@ -140,7 +142,7 @@
 								class="ve-block-form-field {{ $hasError ? 've-block-form-field-error' : '' }}"
 								style="{{ $widthStyle }}"
 							>
-								@if ( $field->label )
+								@if ( $field->label && ! in_array( $field->type, [ 'radio', 'checkbox_group' ], true ) )
 									<label for="{{ $fieldId }}" class="ve-block-form-label{{ ! $showLabels ? ' sr-only' : '' }}">
 										{{ $field->label }}
 										@if ( $field->is_required )

@@ -23,6 +23,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Livewire\Blocks;
 
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\Str;
 use Livewire\Component;
 use Livewire\WithFileUploads;
@@ -269,13 +270,21 @@ class FormBlockComponent extends Component
 			return null;
 		}
 
+		$rateLimitKey = 've-form-submit:' . request()->ip() . ':' . $this->formId;
+		if ( RateLimiter::tooManyAttempts( $rateLimitKey, 5 ) ) {
+			$this->addError( 'formData', __( 'visual-editor::ve.form_rate_limited' ) );
+
+			return null;
+		}
+		RateLimiter::hit( $rateLimitKey, 60 );
+
 		$form = $this->getForm();
 
 		if ( ! $form ) {
 			return null;
 		}
 
-		$fields = $this->resolvedFields;
+		$fields = $this->getEffectiveFields();
 
 		$rules    = [];
 		$messages = [];
@@ -419,11 +428,7 @@ class FormBlockComponent extends Component
 	public function render(): View
 	{
 		$form   = $this->getForm();
-		$fields = $this->resolvedFields;
-
-		if ( function_exists( 'applyFilters' ) && ! empty( $fields ) ) {
-			$fields = applyFilters( 've.form-block.fields', collect( $fields ) );
-		}
+		$fields = $this->getEffectiveFields();
 
 		$formsInstalled = class_exists( \ArtisanPackUI\Forms\Models\Form::class );
 
@@ -433,5 +438,26 @@ class FormBlockComponent extends Component
 			'formsInstalled'  => $formsInstalled,
 			'submitText'      => $this->getSubmitText(),
 		] );
+	}
+
+	/**
+	 * Get the effective fields after applying filters.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array
+	 */
+	protected function getEffectiveFields(): array
+	{
+		$fields = collect( $this->resolvedFields );
+
+		if ( function_exists( 'applyFilters' ) ) {
+			$filtered = applyFilters( 've.form-block.fields', $fields );
+			if ( is_iterable( $filtered ) ) {
+				$fields = collect( $filtered );
+			}
+		}
+
+		return $fields->all();
 	}
 }
