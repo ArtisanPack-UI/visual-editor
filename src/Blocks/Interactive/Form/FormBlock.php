@@ -163,6 +163,12 @@ class FormBlock extends DynamicBlock
 				'default' => true,
 				'panel'   => __( 'visual-editor::ve.form_panel_advanced' ),
 			],
+			'prefillViaUrl'     => [
+				'type'    => 'toggle',
+				'label'   => __( 'visual-editor::ve.form_prefill_via_url' ),
+				'default' => false,
+				'panel'   => __( 'visual-editor::ve.form_panel_advanced' ),
+			],
 			'customClass'       => [
 				'type'        => 'text',
 				'label'       => __( 'visual-editor::ve.form_custom_class' ),
@@ -213,6 +219,17 @@ class FormBlock extends DynamicBlock
 							[ 'value' => 'modal', 'label' => __( 'visual-editor::ve.form_style_modal' ) ],
 							[ 'value' => 'slide-over', 'label' => __( 'visual-editor::ve.form_style_slide_over' ) ],
 						],
+					],
+				],
+			],
+			[
+				'group'    => 'form-actions',
+				'controls' => [
+					[
+						'type'  => 'button',
+						'field' => 'editForm',
+						'label' => __( 'visual-editor::ve.form_edit_form' ),
+						'icon'  => 'pencil-square',
 					],
 				],
 			],

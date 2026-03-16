@@ -37,7 +37,7 @@ test( 'form block has content schema with form fields', function (): void {
 		'formId', 'displayStyle', 'submitButtonText',
 		'submitButtonColor', 'submitButtonSize', 'successMessage',
 		'redirectUrl', 'showLabels', 'layout', 'columns',
-		'useAjax', 'enableHoneypot', 'customClass',
+		'useAjax', 'enableHoneypot', 'prefillViaUrl', 'customClass',
 	] );
 } );
 
@@ -68,8 +68,10 @@ test( 'form block has toolbar controls', function (): void {
 	$block    = new FormBlock();
 	$controls = $block->getToolbarControls();
 
-	expect( $controls )->toHaveCount( 1 )
-		->and( $controls[0]['controls'][0]['field'] )->toBe( 'displayStyle' );
+	expect( $controls )->toHaveCount( 2 )
+		->and( $controls[0]['controls'][0]['field'] )->toBe( 'displayStyle' )
+		->and( $controls[1]['group'] )->toBe( 'form-actions' )
+		->and( $controls[1]['controls'][0]['field'] )->toBe( 'editForm' );
 } );
 
 test( 'form block toArray includes dynamic metadata', function (): void {

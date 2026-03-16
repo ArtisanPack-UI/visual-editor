@@ -75,6 +75,11 @@
 			"source": "style",
 			"default": "1rem"
 		},
+		"prefillViaUrl": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
 		"customClass": {
 			"type": "string",
 			"source": "content",

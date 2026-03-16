@@ -21,9 +21,14 @@
 		}
 
 		if ( $formId ) {
-			$form = \ArtisanPackUI\Forms\Models\Form::find( (int) $formId );
-			if ( $form ) {
-				$fields = $form->fields()->orderBy( 'sort_order' )->get();
+			try {
+				$form = \ArtisanPackUI\Forms\Models\Form::find( (int) $formId );
+				if ( $form ) {
+					$fields = $form->fields()->orderBy( 'sort_order' )->get();
+				}
+			} catch ( \Throwable $e ) {
+				$form   = null;
+				$fields = [];
 			}
 		}
 	}
@@ -152,9 +157,9 @@
 							$widthStyle = '';
 							if ( $isGrid ) {
 								$widthStyle = match ( $field->width ) {
-									'half'       => 'grid-column: span 1;',
-									'third'      => 'grid-column: span 1;',
-									'two-thirds' => 'grid-column: span 2;',
+									'half'       => 'grid-column: span ' . max( 1, (int) round( $columns * 0.5 ) ) . ';',
+									'third'      => 'grid-column: span ' . max( 1, (int) round( $columns / 3 ) ) . ';',
+									'two-thirds' => 'grid-column: span ' . max( 1, (int) round( $columns * 2 / 3 ) ) . ';',
 									default      => 'grid-column: 1 / -1;',
 								};
 							} elseif ( $isInline ) {

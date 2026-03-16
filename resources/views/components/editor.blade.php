@@ -2858,7 +2858,7 @@
 
 								let widthStyle = '';
 								if ( isGrid ) {
-									widthStyle = 'full' === field.width ? 'grid-column:1/-1;' : ( 'two-thirds' === field.width ? 'grid-column:span 2;' : 'grid-column:span 1;' );
+									widthStyle = 'full' === field.width ? 'grid-column:1/-1;' : ( 'half' === field.width ? 'grid-column:span ' + Math.max( 1, Math.round( columns * 0.5 ) ) + ';' : ( 'third' === field.width ? 'grid-column:span ' + Math.max( 1, Math.round( columns / 3 ) ) + ';' : ( 'two-thirds' === field.width ? 'grid-column:span ' + Math.max( 1, Math.round( columns * 2 / 3 ) ) + ';' : 'grid-column:1/-1;' ) ) );
 								} else if ( isInline ) {
 									widthStyle = 'full' === field.width ? 'flex:1 1 100%;' : ( 'half' === field.width ? 'flex:0 0 calc(50% - ' + fieldSpacing + ');' : ( 'third' === field.width ? 'flex:0 0 calc(33.333% - ' + fieldSpacing + ');' : ( 'two-thirds' === field.width ? 'flex:0 0 calc(66.666% - ' + fieldSpacing + ');' : 'flex:1 1 100%;' ) ) );
 								}

@@ -118,9 +118,9 @@
 								$widthStyle = '';
 								if ( $isGrid ) {
 									$widthStyle = match ( $field->width ) {
-										'half'       => 'grid-column: span 1;',
-										'third'      => 'grid-column: span 1;',
-										'two-thirds' => 'grid-column: span 2;',
+										'half'       => 'grid-column: span ' . max( 1, (int) round( $columns * 0.5 ) ) . ';',
+										'third'      => 'grid-column: span ' . max( 1, (int) round( $columns / 3 ) ) . ';',
+										'two-thirds' => 'grid-column: span ' . max( 1, (int) round( $columns * 2 / 3 ) ) . ';',
 										default      => 'grid-column: 1 / -1;',
 									};
 								} elseif ( $isInline ) {
@@ -140,8 +140,8 @@
 								class="ve-block-form-field {{ $hasError ? 've-block-form-field-error' : '' }}"
 								style="{{ $widthStyle }}"
 							>
-								@if ( $showLabels && $field->label )
-									<label for="{{ $fieldId }}" class="ve-block-form-label">
+								@if ( $field->label )
+									<label for="{{ $fieldId }}" class="ve-block-form-label{{ ! $showLabels ? ' sr-only' : '' }}">
 										{{ $field->label }}
 										@if ( $field->is_required )
 											<span class="ve-block-form-required" aria-hidden="true">*</span>
@@ -210,6 +210,14 @@
 										class="ve-block-form-fieldset"
 										@if ( $hasError ) aria-describedby="{{ $fieldId }}-error" @endif
 									>
+										@if ( $field->label )
+											<legend class="ve-block-form-label{{ ! $showLabels ? ' sr-only' : '' }}">
+												{{ $field->label }}
+												@if ( $field->is_required )
+													<span class="ve-block-form-required" aria-hidden="true">*</span>
+												@endif
+											</legend>
+										@endif
 										@foreach ( $field->options ?? [] as $index => $option )
 											<div class="ve-block-form-checkbox-wrapper">
 												<input
@@ -228,6 +236,14 @@
 										class="ve-block-form-fieldset"
 										@if ( $hasError ) aria-describedby="{{ $fieldId }}-error" @endif
 									>
+										@if ( $field->label )
+											<legend class="ve-block-form-label{{ ! $showLabels ? ' sr-only' : '' }}">
+												{{ $field->label }}
+												@if ( $field->is_required )
+													<span class="ve-block-form-required" aria-hidden="true">*</span>
+												@endif
+											</legend>
+										@endif
 										@foreach ( $field->options ?? [] as $index => $option )
 											<div class="ve-block-form-radio-wrapper">
 												<input

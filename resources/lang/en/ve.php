@@ -1062,6 +1062,8 @@ return [
 	'form_panel_display'                    => 'Display',
 	'form_panel_submission'                 => 'Submission',
 	'form_panel_advanced'                   => 'Advanced',
+	'form_prefill_via_url'                  => 'Pre-fill fields via URL parameters',
+	'form_edit_form'                        => 'Edit form',
 	'primary'                               => 'Primary',
 	'secondary'                             => 'Secondary',
 	'accent'                                => 'Accent',

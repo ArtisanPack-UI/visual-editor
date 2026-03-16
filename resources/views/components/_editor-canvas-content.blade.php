@@ -2800,10 +2800,10 @@
 						if ( formSelectBtn ) {
 							const fBlockId = formSelectBtn.getAttribute( 'data-ve-form-select-btn' );
 							const fSelect  = formSelectBtn.parentElement?.querySelector( 'select[data-ve-form-select]' );
-							if ( fSelect && fSelect.value ) {
+							if ( fSelect ) {
 								const store = Alpine.store( 'editor' );
 								if ( store ) {
-									store.updateBlock( fBlockId, { formId: parseInt( fSelect.value, 10 ) } );
+									store.updateBlock( fBlockId, { formId: fSelect.value ? parseInt( fSelect.value, 10 ) : null } );
 								}
 							}
 						}

@@ -24,7 +24,8 @@ test( 'form component has default property values', function (): void {
 		->and( $component->isEditor )->toBeFalse()
 		->and( $component->submitted )->toBeFalse()
 		->and( $component->showOverlay )->toBeFalse()
-		->and( $component->honeypot )->toBe( '' );
+		->and( $component->honeypot )->toBe( '' )
+		->and( $component->resolvedFields )->toBe( [] );
 } );
 
 test( 'form component get form returns null for nonexistent form id', function (): void {

@@ -25,6 +25,7 @@ namespace ArtisanPackUI\VisualEditor\Livewire\Blocks;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
 use Livewire\Component;
+use Livewire\WithFileUploads;
 use Throwable;
 
 /**
@@ -37,6 +38,8 @@ use Throwable;
  */
 class FormBlockComponent extends Component
 {
+	use WithFileUploads;
+
 	/**
 	 * The form ID from artisanpack-ui/forms.
 	 *
@@ -218,6 +221,15 @@ class FormBlockComponent extends Component
 	public string $formElementId = '';
 
 	/**
+	 * Resolved form fields.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<int, object>
+	 */
+	public array $resolvedFields = [];
+
+	/**
 	 * Initialize the component.
 	 *
 	 * @since 1.0.0
@@ -239,6 +251,8 @@ class FormBlockComponent extends Component
 					$this->formData[ $field->name ] = $field->default_value ?? '';
 				}
 			}
+
+			$this->resolvedFields = $fields->all();
 		}
 	}
 
@@ -261,7 +275,7 @@ class FormBlockComponent extends Component
 			return null;
 		}
 
-		$fields = $form->fields()->orderBy( 'sort_order' )->get();
+		$fields = $this->resolvedFields;
 
 		$rules    = [];
 		$messages = [];
@@ -366,7 +380,11 @@ class FormBlockComponent extends Component
 			return null;
 		}
 
-		return \ArtisanPackUI\Forms\Models\Form::find( $this->formId );
+		try {
+			return \ArtisanPackUI\Forms\Models\Form::find( $this->formId );
+		} catch ( Throwable $e ) {
+			return null;
+		}
 	}
 
 	/**
@@ -401,14 +419,10 @@ class FormBlockComponent extends Component
 	public function render(): View
 	{
 		$form   = $this->getForm();
-		$fields = [];
+		$fields = $this->resolvedFields;
 
-		if ( $form ) {
-			$fields = $form->fields()->orderBy( 'sort_order' )->get();
-
-			if ( function_exists( 'applyFilters' ) ) {
-				$fields = applyFilters( 've.form-block.fields', $fields );
-			}
+		if ( function_exists( 'applyFilters' ) && ! empty( $fields ) ) {
+			$fields = applyFilters( 've.form-block.fields', collect( $fields ) );
 		}
 
 		$formsInstalled = class_exists( \ArtisanPackUI\Forms\Models\Form::class );
