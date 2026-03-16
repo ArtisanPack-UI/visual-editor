@@ -28,6 +28,31 @@
 			"type": "boolean",
 			"source": "content",
 			"default": true
+		},
+		"gap": {
+			"type": "string",
+			"source": "style",
+			"default": "0.5rem"
+		},
+		"stackOnMobile": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"bulkColor": {
+			"type": "string",
+			"source": "content",
+			"default": null
+		},
+		"bulkSize": {
+			"type": "string",
+			"source": "content",
+			"default": null
+		},
+		"bulkVariant": {
+			"type": "string",
+			"source": "content",
+			"default": null
 		}
 	},
 	"supports": {

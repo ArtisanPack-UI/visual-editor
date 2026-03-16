@@ -401,13 +401,62 @@
 								if ( ! block ) return;
 
 								const newBlock = {
-									id: Alpine.store( 'editor' ).generateBlockId() + '-' + blockType + '-' + ( ( block.innerBlocks || [] ).length ),
 									type: blockType,
 									attributes: {},
 									innerBlocks: [],
 								};
 
 								store.addInnerBlock( parentId, newBlock );
+							} );
+
+							// Generic panel switcher: show one panel, hide siblings.
+							// Trigger: data-ve-show-panel, Container: data-ve-panel-group, Panels: data-ve-panel.
+							el.addEventListener( 'click', ( e ) => {
+								const trigger = e.target.closest( '[data-ve-show-panel]' );
+								if ( ! trigger ) return;
+
+								// Don't switch panels when clicking editable labels inside the trigger.
+								if ( e.target.hasAttribute( 'contenteditable' ) ) return;
+
+								const idx   = parseInt( trigger.getAttribute( 'data-ve-show-panel' ), 10 );
+								const group = trigger.closest( '[data-ve-panel-group]' );
+								if ( ! group ) return;
+
+								// Toggle panels.
+								group.querySelectorAll( '[data-ve-panel]' ).forEach( ( panel ) => {
+									panel.style.display = parseInt( panel.getAttribute( 'data-ve-panel' ), 10 ) === idx ? '' : 'none';
+								} );
+
+								// Toggle active class on triggers.
+								group.querySelectorAll( '[data-ve-show-panel]' ).forEach( ( btn ) => {
+									btn.classList.toggle( 'tab-active', parseInt( btn.getAttribute( 'data-ve-show-panel' ), 10 ) === idx );
+								} );
+							} );
+
+							// Generic section toggler: toggle content visibility.
+							// Trigger: data-ve-toggle-section, Section: data-ve-section, Content: data-ve-section-content.
+							el.addEventListener( 'click', ( e ) => {
+								const trigger = e.target.closest( '[data-ve-toggle-section]' );
+								if ( ! trigger ) return;
+
+								// Don't toggle when clicking editable titles inside the trigger.
+								if ( e.target.hasAttribute( 'contenteditable' ) ) return;
+
+								const section = trigger.closest( '[data-ve-section]' );
+								if ( ! section ) return;
+
+								const content = section.querySelector( '[data-ve-section-content]' );
+								if ( ! content ) return;
+
+								const isHidden = 'none' === content.style.display;
+								content.style.display = isHidden ? '' : 'none';
+								trigger.setAttribute( 'aria-expanded', isHidden ? 'true' : 'false' );
+
+								// Rotate icon if present.
+								const icon = trigger.querySelector( '.ve-accordion-icon' );
+								if ( icon ) {
+									icon.style.transform = isHidden ? 'rotate(90deg)' : '';
+								}
 							} );
 
 							// Embed / Social resolve button: fetch oEmbed via API.
@@ -901,6 +950,25 @@
 									if ( blockEl ) {
 										const blockId = blockEl.getAttribute( 'data-block-id' );
 										store.updateBlock( blockId, { citation: e.target.innerHTML } );
+									}
+								}
+
+								// Generic: sync contenteditable text into a parent block array attribute.
+								// Uses: data-ve-sync-parent-array, data-parent-id, data-attr-name, data-attr-index, data-attr-field.
+								if ( e.target.hasAttribute( 'data-ve-sync-parent-array' ) ) {
+									const parentId  = e.target.getAttribute( 'data-parent-id' );
+									const attrName  = e.target.getAttribute( 'data-attr-name' );
+									const attrIndex = parseInt( e.target.getAttribute( 'data-attr-index' ), 10 );
+									const attrField = e.target.getAttribute( 'data-attr-field' );
+									if ( parentId && attrName && attrField && ! isNaN( attrIndex ) ) {
+										const block = store.getBlock( parentId );
+										if ( block ) {
+											const arr = [ ...( block.attributes?.[ attrName ] || [] ) ];
+											if ( arr[ attrIndex ] ) {
+												arr[ attrIndex ] = { ...arr[ attrIndex ], [ attrField ]: e.target.textContent.trim() };
+												store.updateBlock( parentId, { [ attrName ]: arr } );
+											}
+										}
 									}
 								}
 

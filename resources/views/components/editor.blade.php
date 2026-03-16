@@ -1527,6 +1527,281 @@
 						},
 					} );
 
+					br.register( 'tabs', {
+						render( block, context ) {
+							let tabs           = block.attributes?.tabs || [];
+							const tabPosition  = block.attributes?.tabPosition || 'top';
+							const tabStyle     = block.attributes?.tabStyle || 'default';
+							const tabSize      = block.attributes?.tabSize || 'md';
+							const fullWidth    = block.attributes?.fullWidth || false;
+							const tabTextColor = veSanitizeCssColor( block.attributes?.tabTextColor || '' );
+							const activeColor  = veSanitizeCssColor( block.attributes?.activeTabColor || '' );
+							const contentBg    = veSanitizeCssColor( block.attributes?.contentBackground || '' );
+							const innerBlocks  = block.innerBlocks || [];
+
+							// Auto-populate tabs metadata from inner blocks if empty or mismatched.
+							if ( tabs.length < innerBlocks.length ) {
+								const store = Alpine.store( 'editor' );
+								const newTabs = [ ...tabs ];
+								for ( let i = tabs.length; i < innerBlocks.length; i++ ) {
+									newTabs.push( { id: i, label: {{ Js::from( __( 'visual-editor::ve.tabs_tab_label_placeholder' ) ) }} + ' ' + ( i + 1 ), icon: '' } );
+								}
+								tabs = newTabs;
+								if ( store ) { store.updateBlock( block.id, { tabs: newTabs } ); }
+							} else if ( tabs.length > innerBlocks.length ) {
+								const store = Alpine.store( 'editor' );
+								tabs = tabs.slice( 0, innerBlocks.length );
+								if ( store ) { store.updateBlock( block.id, { tabs } ); }
+							}
+
+							const isVertical = [ 'left', 'right' ].includes( tabPosition );
+
+							let wrapperClasses = 've-block ve-block-tabs ve-block-editing';
+							if ( isVertical ) {
+								wrapperClasses += ' ve-tabs-vertical ve-tabs-' + tabPosition;
+							}
+
+							let wrapperStyle = '';
+							if ( isVertical ) {
+								wrapperStyle += 'display:flex;';
+								if ( 'right' === tabPosition ) { wrapperStyle += 'flex-direction:row-reverse;'; }
+							}
+
+							let tabStyleClass = 'default' !== tabStyle ? 'tabs-' + tabStyle : '';
+							let tabSizeClass  = 'md' !== tabSize ? 'tabs-' + tabSize : '';
+							let tabsClasses   = ( 'tabs ' + tabStyleClass + ' ' + tabSizeClass ).trim();
+							if ( fullWidth ) { tabsClasses += ' w-full'; }
+							if ( isVertical ) { tabsClasses += ' flex-col'; }
+
+							let tabListStyle = '';
+							if ( tabTextColor ) { tabListStyle += 'color:' + tabTextColor + ';'; }
+							if ( activeColor ) { tabListStyle += '--ve-tabs-active-color:' + activeColor + ';'; }
+
+							let contentStyle = 'flex:1;';
+							if ( contentBg ) { contentStyle += 'background-color:' + contentBg + ';'; }
+
+							// Tab buttons — use generic data-ve-show-panel for switching
+							let tabButtons = '';
+							tabs.forEach( ( tab, idx ) => {
+								const label = tab.label || ( {{ Js::from( __( 'visual-editor::ve.tabs_tab_label_placeholder' ) ) }} + ' ' + ( idx + 1 ) );
+								const icon  = tab.icon || '';
+								const isActive = 0 === idx;
+
+								// Preserve label from DOM.
+								const existingLabel = document.querySelector( '[data-block-id=\'' + CSS.escape( block.id ) + '\'] .ve-tab-label-editable[data-attr-index=\'' + idx + '\']' );
+								const labelText = existingLabel ? existingLabel.innerHTML : label;
+
+								tabButtons += '<button type=\'button\' class=\'tab' + ( isActive ? ' tab-active' : '' ) + '\''
+									+ ' data-ve-show-panel=\'' + idx + '\''
+									+ ' role=\'tab\''
+									+ '>'
+									+ ( icon ? '<span class=\'ve-tab-icon\'>' + icon + '</span>' : '' )
+									+ '<span class=\'ve-tab-label-editable\' contenteditable=\'true\''
+									+ ' data-ve-sync-parent-array'
+									+ ' data-parent-id=\'' + block.id + '\''
+									+ ' data-attr-name=\'tabs\''
+									+ ' data-attr-index=\'' + idx + '\''
+									+ ' data-attr-field=\'label\''
+									+ '>' + labelText + '</span>'
+									+ '</button>';
+							} );
+
+							// Add tab button — uses existing generic data-ve-add-inner-block
+							tabButtons += '<button type=\'button\''
+								+ ' class=\'tab text-base-content/40 hover:text-base-content transition-colors\''
+								+ ' data-ve-add-inner-block'
+								+ ' data-parent-id=\'' + block.id + '\''
+								+ ' data-block-type=\'tab-panel\''
+								+ ' title=\'' + {{ Js::from( __( 'visual-editor::ve.tabs_add_tab' ) ) }} + '\''
+								+ '>'
+								+ '<svg class=\'w-4 h-4\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'>'
+								+ '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M12 4.5v15m7.5-7.5h-15\' />'
+								+ '</svg>'
+								+ '</button>';
+
+							// Tab panels — use generic data-ve-panel for switching
+							let panelsHtml = '<div class=\'ve-tabs-content\' style=\'' + contentStyle + '\'>';
+
+							innerBlocks.forEach( ( inner, idx ) => {
+								const isActive = 0 === idx;
+								panelsHtml += '<div data-ve-panel=\'' + idx + '\'' + ( ! isActive ? ' style=\'display:none;\'' : '' ) + '>';
+								panelsHtml += br.getHtml( { ...inner, attributes: { ...inner.attributes, _parentId: block.id } }, context );
+								panelsHtml += '</div>';
+							} );
+
+							panelsHtml += '</div>';
+
+							// data-ve-panel-group enables the generic panel switcher
+							return '<div class=\'' + wrapperClasses + '\'' + ( wrapperStyle ? ' style=\'' + wrapperStyle + '\'' : '' ) + ' data-ve-panel-group data-tab-position=\'' + tabPosition + '\'>'
+								+ '<div class=\'' + tabsClasses + '\' role=\'tablist\'' + ( tabListStyle ? ' style=\'' + tabListStyle + '\'' : '' ) + '>'
+								+ tabButtons
+								+ '</div>'
+								+ panelsHtml
+								+ '</div>';
+						},
+					} );
+
+					br.register( 'tab-panel', {
+						render( block, context ) {
+							const pid = block.attributes?._parentId || '';
+
+							const innerHtml = br.renderInnerBlocks( block, {
+								orientation: 'vertical',
+								placeholder: {{ Js::from( __( 'visual-editor::ve.tabs_tab_placeholder' ) ) }},
+								context: context,
+							} );
+
+							return '<div class=\'ve-block ve-block-tab-panel ve-block-editing\''
+								+ ' data-block-id=\'' + block.id + '\''
+								+ ( pid ? ' data-parent-id=\'' + pid + '\'' : '' )
+								+ ' tabindex=\'-1\''
+								+ '>'
+								+ innerHtml
+								+ '</div>';
+						},
+					} );
+
+					br.register( 'accordion', {
+						render( block, context ) {
+							let sections        = block.attributes?.sections || [];
+							const allowMultiple = block.attributes?.allowMultiple || false;
+							const iconStyle     = block.attributes?.iconStyle || 'chevron';
+							const iconPosition  = block.attributes?.iconPosition || 'right';
+							const bordered      = block.attributes?.bordered !== false;
+							const accStyle      = block.attributes?.accordionStyle || 'default';
+							const headerBg      = veSanitizeCssColor( block.attributes?.headerBackground || '' );
+							const contentBg     = veSanitizeCssColor( block.attributes?.contentBackground || '' );
+							const borderColor   = veSanitizeCssColor( block.attributes?.borderColor || '' );
+							const activeHdr     = veSanitizeCssColor( block.attributes?.activeHeaderColor || '' );
+							const innerBlocks   = block.innerBlocks || [];
+
+							// Auto-populate sections metadata from inner blocks if empty or mismatched.
+							if ( sections.length < innerBlocks.length ) {
+								const store = Alpine.store( 'editor' );
+								const newSections = [ ...sections ];
+								for ( let i = sections.length; i < innerBlocks.length; i++ ) {
+									newSections.push( { id: i, title: {{ Js::from( __( 'visual-editor::ve.accordion_section_title_placeholder' ) ) }} + ' ' + ( i + 1 ), isOpen: 0 === i, headingLevel: 'h3' } );
+								}
+								sections = newSections;
+								if ( store ) { store.updateBlock( block.id, { sections: newSections } ); }
+							}
+
+							let classes = 've-block ve-block-accordion ve-block-editing'
+								+ ' ve-accordion-' + accStyle
+								+ ' ve-accordion-icon-' + iconStyle
+								+ ' ve-accordion-icon-' + iconPosition;
+							if ( bordered ) { classes += ' ve-accordion-bordered'; }
+
+							let cssVars = '';
+							if ( headerBg ) { cssVars += '--ve-accordion-header-bg:' + headerBg + ';'; }
+							if ( contentBg ) { cssVars += '--ve-accordion-content-bg:' + contentBg + ';'; }
+							if ( borderColor ) { cssVars += '--ve-accordion-border-color:' + borderColor + ';'; }
+							if ( activeHdr ) { cssVars += '--ve-accordion-active-header-color:' + activeHdr + ';'; }
+
+							// Icon SVG
+							let iconSvg = '';
+							if ( 'chevron' === iconStyle ) {
+								iconSvg = '<svg class=\'ve-accordion-icon w-4 h-4 shrink-0 transition-transform\' style=\'transform:rotate(90deg);\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'>'
+									+ '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'m9 5 7 7-7 7\'/>'
+									+ '</svg>';
+							} else if ( 'plus-minus' === iconStyle ) {
+								iconSvg = '<svg class=\'ve-accordion-icon w-4 h-4 shrink-0\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'>'
+									+ '<path class=\'ve-plus-vertical\' stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M12 4v16\'/>'
+									+ '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M4 12h16\'/>'
+									+ '</svg>';
+							} else if ( 'caret' === iconStyle ) {
+								iconSvg = '<svg class=\'ve-accordion-icon w-4 h-4 shrink-0 transition-transform\' style=\'transform:rotate(90deg);\' viewBox=\'0 0 24 24\' fill=\'currentColor\'>'
+									+ '<path d=\'M7 10l5 5 5-5z\'/>'
+									+ '</svg>';
+							}
+
+							let html = '<div class=\'' + classes + '\'' + ( cssVars ? ' style=\'' + cssVars + '\'' : '' ) + '>';
+
+							innerBlocks.forEach( ( inner, idx ) => {
+								const section  = sections[ idx ] || {};
+								const title    = section.title || ( {{ Js::from( __( 'visual-editor::ve.accordion_section_title_placeholder' ) ) }} + ' ' + ( idx + 1 ) );
+								const hLevel   = section.headingLevel || 'h3';
+								const hTag     = [ 'h2', 'h3', 'h4', 'h5', 'h6' ].includes( hLevel ) ? hLevel : 'h3';
+
+								// Preserve title from DOM.
+								const existingTitle = document.querySelector( '[data-block-id=\'' + CSS.escape( block.id ) + '\'] .ve-accordion-title-editable[data-attr-index=\'' + idx + '\']' );
+								const titleText = existingTitle ? existingTitle.innerHTML : title;
+
+								let headerStyle = 'cursor:pointer;padding:0.75rem 1rem;';
+								if ( headerBg ) { headerStyle += 'background-color:' + headerBg + ';'; }
+								if ( bordered ) { headerStyle += 'border:1px solid ' + ( borderColor || 'oklch(var(--bc)/0.2)' ) + ';'; }
+
+								let contentStyle = 'padding:0.75rem 1rem;';
+								if ( contentBg ) { contentStyle += 'background-color:' + contentBg + ';'; }
+								if ( bordered ) { contentStyle += 'border:1px solid ' + ( borderColor || 'oklch(var(--bc)/0.2)' ) + ';border-top:none;'; }
+
+								// Use generic data-ve-section / data-ve-toggle-section / data-ve-section-content
+								html += '<div class=\'ve-accordion-section\' data-ve-section>';
+
+								// Header with icon — uses generic data-ve-toggle-section
+								const sectionIsOpen = section.isOpen !== false;
+								html += '<' + hTag + ' class=\'ve-accordion-header flex items-center gap-2\''
+									+ ' style=\'' + headerStyle + '\''
+									+ ' role=\'button\' tabindex=\'0\''
+									+ ' aria-expanded=\'' + ( sectionIsOpen ? 'true' : 'false' ) + '\''
+									+ ' data-ve-toggle-section'
+									+ '>';
+								if ( iconSvg && 'left' === iconPosition ) { html += sectionIsOpen ? iconSvg : iconSvg.replace( "transform:rotate(90deg);", "transform:none;" ); }
+								html += '<span class=\'ve-accordion-title-editable flex-1\' contenteditable=\'true\''
+									+ ' data-ve-sync-parent-array'
+									+ ' data-parent-id=\'' + block.id + '\''
+									+ ' data-attr-name=\'sections\''
+									+ ' data-attr-index=\'' + idx + '\''
+									+ ' data-attr-field=\'title\''
+									+ '>' + titleText + '</span>';
+								if ( iconSvg && 'right' === iconPosition ) { html += sectionIsOpen ? iconSvg : iconSvg.replace( "transform:rotate(90deg);", "transform:none;" ); }
+								html += '</' + hTag + '>';
+
+								// Content with inner blocks — uses generic data-ve-section-content
+								html += '<div class=\'ve-accordion-content\' style=\'' + contentStyle + ( sectionIsOpen ? '' : 'display:none;' ) + '\' role=\'region\' data-ve-section-content>';
+								html += br.getHtml( { ...inner, attributes: { ...inner.attributes, _parentId: block.id } }, context );
+								html += '</div>';
+								html += '</div>';
+							} );
+
+							// Add section button — uses existing generic data-ve-add-inner-block
+							html += '<button type=\'button\''
+								+ ' class=\'flex items-center justify-center w-full rounded-lg border-2 border-dashed border-base-300 hover:border-primary hover:bg-primary/5 transition-colors cursor-pointer py-3\''
+								+ ' data-ve-add-inner-block'
+								+ ' data-parent-id=\'' + block.id + '\''
+								+ ' data-block-type=\'accordion-section\''
+								+ ' title=\'' + {{ Js::from( __( 'visual-editor::ve.accordion_add_section' ) ) }} + '\''
+								+ '>'
+								+ '<svg class=\'w-4 h-4 text-base-content/40\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'2\'>'
+								+ '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M12 4.5v15m7.5-7.5h-15\' />'
+								+ '</svg>'
+								+ '</button>';
+
+							html += '</div>';
+							return html;
+						},
+					} );
+
+					br.register( 'accordion-section', {
+						render( block, context ) {
+							const pid = block.attributes?._parentId || '';
+
+							const innerHtml = br.renderInnerBlocks( block, {
+								orientation: 'vertical',
+								placeholder: {{ Js::from( __( 'visual-editor::ve.accordion_section_placeholder' ) ) }},
+								context: context,
+							} );
+
+							return '<div class=\'ve-block ve-block-accordion-section ve-block-editing\''
+								+ ' data-block-id=\'' + block.id + '\''
+								+ ( pid ? ' data-parent-id=\'' + pid + '\'' : '' )
+								+ ' tabindex=\'-1\''
+								+ '>'
+								+ innerHtml
+								+ '</div>';
+						},
+					} );
+
 					br.register( 'details', {
 						render( block, context ) {
 							const summary     = block.attributes?.summary || '';

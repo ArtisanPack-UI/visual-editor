@@ -1,0 +1,37 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "tab-panel",
+	"name": "Tab Panel",
+	"description": "A single tab panel within a tabs block",
+	"icon": "rectangle-stack",
+	"category": "interactive",
+	"keywords": [],
+	"version": 1,
+	"public": false,
+	"parent": ["tabs"],
+	"allowedChildren": null,
+	"supportsInnerBlocks": true,
+	"hasJsRenderer": true,
+	"innerBlocksOrientation": "vertical",
+	"attributes": {
+		"label": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"icon": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		}
+	},
+	"supports": {
+		"color": {
+			"background": true
+		},
+		"spacing": {
+			"padding": true
+		},
+		"className": true
+	}
+}

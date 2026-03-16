@@ -1,0 +1,78 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "accordion",
+	"name": "Accordion",
+	"description": "Organize content into collapsible sections",
+	"icon": "bars-3-bottom-left",
+	"category": "interactive",
+	"keywords": ["accordion", "collapse", "collapsible", "expandable", "sections", "faq"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": ["accordion-section"],
+	"supportsInnerBlocks": true,
+	"hasJsRenderer": true,
+	"innerBlocksOrientation": "vertical",
+	"attributes": {
+		"sections": {
+			"type": "array",
+			"source": "content",
+			"default": []
+		},
+		"allowMultiple": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"iconStyle": {
+			"type": "string",
+			"source": "style",
+			"default": "chevron"
+		},
+		"iconPosition": {
+			"type": "string",
+			"source": "style",
+			"default": "right"
+		},
+		"bordered": {
+			"type": "boolean",
+			"source": "style",
+			"default": true
+		},
+		"accordionStyle": {
+			"type": "string",
+			"source": "style",
+			"default": "default"
+		},
+		"headerBackground": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"contentBackground": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"borderColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"activeHeaderColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"align": ["wide", "full"],
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}
