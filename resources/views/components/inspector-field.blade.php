@@ -200,6 +200,31 @@
 			</div>
 			@break
 
+		@case ( 'unit' )
+			@php
+				$unitCurrentValue = $currentValue ?? '';
+				$unitNumeric      = '';
+				$unitSuffix       = 'px';
+
+				if ( is_numeric( $unitCurrentValue ) ) {
+					$unitNumeric = (string) $unitCurrentValue;
+				} elseif ( is_string( $unitCurrentValue ) && '' !== $unitCurrentValue ) {
+					if ( preg_match( '/^([\d.]+)\s*([a-z%]+)$/i', $unitCurrentValue, $m ) ) {
+						$unitNumeric = $m[1];
+						$unitSuffix  = $m[2];
+					} else {
+						$unitNumeric = $unitCurrentValue;
+					}
+				}
+			@endphp
+			<x-ve-unit-control
+				:label="$fieldLabel"
+				:value="$unitNumeric"
+				:unit="$unitSuffix"
+				x-on:ve-unit-change.stop="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: $event.detail.value ? ( $event.detail.value + $event.detail.unit ) : '' } )"
+			/>
+			@break
+
 		@case ( 'media_picker' )
 			@php
 				$mediaStoreSync = 'dynamic' === $blockId

@@ -1,0 +1,97 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "form",
+	"name": "Form",
+	"description": "Embed a configurable form from artisanpack-ui/forms",
+	"icon": "document-text",
+	"category": "interactive",
+	"keywords": ["form", "contact", "survey", "input", "submit", "fields"],
+	"version": 1,
+	"dynamic": true,
+	"hasJsRenderer": true,
+	"attributes": {
+		"formId": {
+			"type": "integer",
+			"source": "content",
+			"default": null
+		},
+		"displayStyle": {
+			"type": "string",
+			"source": "content",
+			"default": "embedded"
+		},
+		"submitButtonText": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"submitButtonColor": {
+			"type": "string",
+			"source": "content",
+			"default": "primary"
+		},
+		"submitButtonSize": {
+			"type": "string",
+			"source": "content",
+			"default": "md"
+		},
+		"successMessage": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"redirectUrl": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"showLabels": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"layout": {
+			"type": "string",
+			"source": "content",
+			"default": "stacked"
+		},
+		"columns": {
+			"type": "integer",
+			"source": "content",
+			"default": 2
+		},
+		"useAjax": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"enableHoneypot": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"fieldSpacing": {
+			"type": "string",
+			"source": "style",
+			"default": "1rem"
+		},
+		"customClass": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		}
+	},
+	"supports": {
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"color": {
+			"background": true
+		},
+		"border": true,
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

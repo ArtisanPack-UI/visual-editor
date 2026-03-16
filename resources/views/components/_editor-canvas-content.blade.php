@@ -2795,6 +2795,19 @@
 							}
 						}
 
+						// Form block: select a form from the placeholder dropdown.
+						const formSelectBtn = $event.target.closest( '[data-ve-form-select-btn]' );
+						if ( formSelectBtn ) {
+							const fBlockId = formSelectBtn.getAttribute( 'data-ve-form-select-btn' );
+							const fSelect  = formSelectBtn.parentElement?.querySelector( 'select[data-ve-form-select]' );
+							if ( fSelect && fSelect.value ) {
+								const store = Alpine.store( 'editor' );
+								if ( store ) {
+									store.updateBlock( fBlockId, { formId: parseInt( fSelect.value, 10 ) } );
+								}
+							}
+						}
+
 						// Table layout picker: create table from preset or custom config.
 						const tableLayoutBtn = $event.target.closest( '[data-ve-set-table-layout]' );
 						if ( tableLayoutBtn ) {
