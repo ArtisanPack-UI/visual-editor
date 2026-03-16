@@ -28,7 +28,9 @@
 		},
 		get contentAlignment() { return this.block?.attributes?.contentAlignment || 'center'; },
 		get isFullHeight() {
-			return this.block?.attributes?.minHeight === '100vh' || this.block?.attributes?.minHeightUnit === 'vh' && parseFloat( this.block?.attributes?.minHeight ) === 100;
+			const mh = this.block?.attributes?.minHeight || '';
+			const mu = this.block?.attributes?.minHeightUnit || 'px';
+			return mh === '100vh' || ( 'vh' === mu && 100 === parseFloat( mh ) );
 		},
 		setPosition( value ) {
 			const blockId = Alpine.store( 'selection' )?.focused;

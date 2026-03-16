@@ -201,7 +201,7 @@ class MediaTextBlock extends BaseBlock
 				[
 					'type'  => 'button',
 					'field' => 'replace',
-					'label' => __( 'visual-editor::ve.replace_image' ),
+					'label' => __( 'visual-editor::ve.replace_media' ),
 					'icon'  => 'arrow-path',
 				],
 			],
