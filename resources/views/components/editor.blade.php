@@ -2738,6 +2738,222 @@
 						},
 					} );
 
+					@php
+						$veFormData = [];
+						if ( class_exists( \ArtisanPackUI\Forms\Models\Form::class ) ) {
+							try {
+								$veForms = \ArtisanPackUI\Forms\Models\Form::with( 'fields' )
+									->orderBy( 'name' )
+									->get();
+								foreach ( $veForms as $veForm ) {
+									$veFormData[ (string) $veForm->id ] = [
+										'name'             => $veForm->name,
+										'submitButtonText' => $veForm->submit_button_text ?: __( 'visual-editor::ve.form_submit_default' ),
+										'fields'           => $veForm->fields->sortBy( 'sort_order' )->map( fn ( $f ) => [
+											'type'        => $f->type,
+											'label'       => $f->label,
+											'placeholder' => $f->placeholder ?? '',
+											'helpText'    => $f->help_text ?? '',
+											'isRequired'  => (bool) $f->is_required,
+											'width'       => $f->width ?? 'full',
+											'options'     => $f->options ?? [],
+											'isLayout'    => $f->isLayoutField(),
+										] )->values()->all(),
+									];
+								}
+							} catch ( \Throwable $e ) {
+								// Table may not exist.
+							}
+						}
+					@endphp
+					br.register( 'form', {
+						render( block ) {
+							const formId       = block.attributes?.formId || '';
+							const displayStyle = block.attributes?.displayStyle || 'embedded';
+							const showLabels   = block.attributes?.showLabels !== false;
+							const layout       = block.attributes?.layout || 'stacked';
+							const columns      = Math.max( 1, Math.min( 4, parseInt( block.attributes?.columns ) || 2 ) );
+							const rawSpacing   = block.attributes?.fieldSpacing || '1rem';
+							const fieldSpacing = /^\d+(\.\d+)?\s*(px|rem|em|%|vh|vw)$/.test( rawSpacing ) ? rawSpacing : '1rem';
+							const blockId      = block.id;
+
+							const allForms    = {{ Js::from( $veFormData ) }};
+							const formData    = formId ? allForms[ String( formId ) ] : null;
+
+							if ( ! formId || ! formData ) {
+								let optionsHtml = '<option value="">' + {{ Js::from( __( 'visual-editor::ve.form_select_a_form' ) ) }} + '</option>';
+								Object.keys( allForms ).forEach( ( key ) => {
+									optionsHtml += '<option value="' + veEscapeHtml( key ) + '">' + veEscapeHtml( allForms[ key ].name ) + '</option>';
+								} );
+
+								return '<div class="ve-block ve-block-form ve-block-editing ve-block-dynamic-preview">'
+									+ '<div style="padding:2rem;text-align:center;background:#f3f4f6;border:1px dashed #9ca3af;border-radius:8px;color:#6b7280;">'
+									+ '<svg style="width:2rem;height:2rem;margin:0 auto 0.5rem;" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">'
+									+ '<path stroke-linecap="round" stroke-linejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m0 12.75h7.5m-7.5 3H12M10.5 2.25H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />'
+									+ '</svg>'
+									+ '<p style="font-weight:600;margin:0 0 0.75rem;">' + {{ Js::from( __( 'visual-editor::ve.form_select_form' ) ) }} + '</p>'
+									+ '<div style="display:flex;gap:0.5rem;justify-content:center;align-items:stretch;max-width:400px;margin:0 auto;">'
+									+ '<select data-ve-form-select style="flex:1;padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.9em;background:#fff;color:#374151;box-sizing:border-box;">'
+									+ optionsHtml
+									+ '</select>'
+									+ '<button type="button" data-ve-form-select-btn="' + veEscapeHtml( blockId ) + '"'
+									+ ' style="padding:0.5rem 1rem;background:#2563eb;color:#fff;border:none;border-radius:6px;font-size:0.9em;font-weight:500;cursor:pointer;white-space:nowrap;">'
+									+ {{ Js::from( __( 'visual-editor::ve.form_select_button' ) ) }}
+									+ '</button>'
+									+ '</div></div></div>';
+							}
+
+							// Build static form preview.
+							const isGrid   = 'grid' === layout;
+							const isInline = 'inline' === layout;
+							const isModal  = 'modal' === displayStyle;
+							const isSlide  = 'slide-over' === displayStyle;
+
+							const submitText  = block.attributes?.submitButtonText || formData.submitButtonText;
+							const btnColor    = block.attributes?.submitButtonColor || 'primary';
+							const btnSize     = block.attributes?.submitButtonSize || 'md';
+
+							const colorMap = {
+								primary: 'background:#2563eb;color:#fff;',
+								secondary: 'background:#6b7280;color:#fff;',
+								accent: 'background:#8b5cf6;color:#fff;',
+								success: 'background:#16a34a;color:#fff;',
+								warning: 'background:#d97706;color:#fff;',
+								error: 'background:#dc2626;color:#fff;',
+								info: 'background:#0891b2;color:#fff;',
+							};
+							const sizeMap = {
+								sm: 'padding:0.375rem 0.75rem;font-size:0.85em;',
+								md: 'padding:0.625rem 1.25rem;font-size:0.95em;',
+								lg: 'padding:0.75rem 1.5rem;font-size:1.05em;',
+							};
+							const btnStyle = ( colorMap[ btnColor ] || colorMap.primary )
+								+ ( sizeMap[ btnSize ] || sizeMap.md )
+								+ 'border:none;border-radius:6px;cursor:default;font-weight:500;';
+
+							let containerStyle;
+							if ( isGrid ) {
+								containerStyle = 'display:grid;grid-template-columns:repeat(' + columns + ',1fr);gap:' + fieldSpacing + ';';
+							} else if ( isInline ) {
+								containerStyle = 'display:flex;flex-wrap:wrap;gap:' + fieldSpacing + ';align-items:flex-end;';
+							} else {
+								containerStyle = 'display:flex;flex-direction:column;gap:' + fieldSpacing + ';';
+							}
+
+							let fieldsHtml = '';
+							const inputStyle = 'width:100%;padding:0.5rem 0.75rem;border:1px solid #d1d5db;border-radius:6px;font-size:0.95em;background:#fff;color:#374151;box-sizing:border-box;';
+
+							formData.fields.forEach( ( field ) => {
+								if ( field.isLayout ) {
+									const spanStyle = isGrid ? 'grid-column:1/-1;' : ( isInline ? 'flex-basis:100%;' : '' );
+									if ( 'heading' === field.type ) {
+										fieldsHtml += '<div style="' + spanStyle + '"><h3 style="font-weight:600;font-size:1.1em;margin:0;">' + veEscapeHtml( field.label ) + '</h3></div>';
+									} else if ( 'divider' === field.type ) {
+										fieldsHtml += '<div style="' + spanStyle + '"><hr style="border:none;border-top:1px solid #e5e7eb;margin:0.5rem 0;" /></div>';
+									} else if ( 'paragraph' === field.type ) {
+										fieldsHtml += '<div style="' + spanStyle + '"><p style="font-size:0.9em;color:#6b7280;margin:0;">' + veEscapeHtml( field.helpText || field.label ) + '</p></div>';
+									}
+									return;
+								}
+
+								let widthStyle = '';
+								if ( isGrid ) {
+									widthStyle = 'full' === field.width ? 'grid-column:1/-1;' : ( 'half' === field.width ? 'grid-column:span ' + Math.max( 1, Math.round( columns * 0.5 ) ) + ';' : ( 'third' === field.width ? 'grid-column:span ' + Math.max( 1, Math.round( columns / 3 ) ) + ';' : ( 'two-thirds' === field.width ? 'grid-column:span ' + Math.max( 1, Math.round( columns * 2 / 3 ) ) + ';' : 'grid-column:1/-1;' ) ) );
+								} else if ( isInline ) {
+									widthStyle = 'full' === field.width ? 'flex:1 1 100%;' : ( 'half' === field.width ? 'flex:0 0 calc(50% - ' + fieldSpacing + ');' : ( 'third' === field.width ? 'flex:0 0 calc(33.333% - ' + fieldSpacing + ');' : ( 'two-thirds' === field.width ? 'flex:0 0 calc(66.666% - ' + fieldSpacing + ');' : 'flex:1 1 100%;' ) ) );
+								}
+
+								let labelHtml = '';
+								if ( showLabels && field.label ) {
+									labelHtml = '<label style="display:block;font-weight:500;margin-bottom:0.375rem;font-size:0.9em;">'
+										+ veEscapeHtml( field.label )
+										+ ( field.isRequired ? ' <span style="color:#dc2626;">*</span>' : '' )
+										+ '</label>';
+								}
+
+								let inputHtml = '';
+								const ph = veEscapeHtml( field.placeholder );
+
+								if ( [ 'text', 'email', 'phone', 'number', 'url', 'date', 'time' ].indexOf( field.type ) !== -1 ) {
+									inputHtml = '<input type="' + field.type + '" placeholder="' + ph + '" disabled style="' + inputStyle + '" />';
+								} else if ( 'textarea' === field.type ) {
+									inputHtml = '<textarea rows="3" placeholder="' + ph + '" disabled style="' + inputStyle + 'resize:vertical;"></textarea>';
+								} else if ( 'select' === field.type || 'select_multiple' === field.type ) {
+									let opts = '<option>' + ( ph || {{ Js::from( __( 'visual-editor::ve.form_select_option' ) ) }} ) + '</option>';
+									( field.options || [] ).forEach( ( o ) => { opts += '<option>' + veEscapeHtml( o.label || o ) + '</option>'; } );
+									const multiAttr = 'select_multiple' === field.type ? ' multiple' : '';
+									inputHtml = '<select disabled' + multiAttr + ' style="' + inputStyle + '">' + opts + '</select>';
+								} else if ( 'checkbox' === field.type || 'toggle' === field.type ) {
+									inputHtml = '<div style="display:flex;align-items:center;gap:0.5rem;">'
+										+ '<input type="checkbox" disabled style="width:1rem;height:1rem;" />'
+										+ ( field.helpText ? '<span style="font-size:0.9em;color:#374151;">' + veEscapeHtml( field.helpText ) + '</span>' : '' )
+										+ '</div>';
+								} else if ( 'checkbox_group' === field.type ) {
+									let cbs = '';
+									( field.options || [] ).forEach( ( o ) => {
+										cbs += '<div style="display:flex;align-items:center;gap:0.5rem;">'
+											+ '<input type="checkbox" disabled style="width:1rem;height:1rem;" />'
+											+ '<span style="font-size:0.9em;">' + veEscapeHtml( o.label || o ) + '</span></div>';
+									} );
+									inputHtml = '<div style="display:flex;flex-direction:column;gap:0.375rem;">' + cbs + '</div>';
+								} else if ( 'radio' === field.type ) {
+									let rbs = '';
+									( field.options || [] ).forEach( ( o ) => {
+										rbs += '<div style="display:flex;align-items:center;gap:0.5rem;">'
+											+ '<input type="radio" disabled style="width:1rem;height:1rem;" />'
+											+ '<span style="font-size:0.9em;">' + veEscapeHtml( o.label || o ) + '</span></div>';
+									} );
+									inputHtml = '<div style="display:flex;flex-direction:column;gap:0.375rem;">' + rbs + '</div>';
+								} else if ( 'file' === field.type ) {
+									inputHtml = '<div style="padding:1rem;border:1px dashed #d1d5db;border-radius:6px;text-align:center;color:#9ca3af;font-size:0.9em;">'
+										+ {{ Js::from( __( 'visual-editor::ve.form_file_upload_placeholder' ) ) }} + '</div>';
+								} else {
+									inputHtml = '<input type="text" placeholder="' + ph + '" disabled style="' + inputStyle + '" />';
+								}
+
+								let helpHtml = '';
+								if ( field.helpText && [ 'checkbox', 'toggle' ].indexOf( field.type ) === -1 ) {
+									helpHtml = '<p style="font-size:0.8em;color:#9ca3af;margin:0.25rem 0 0;">' + veEscapeHtml( field.helpText ) + '</p>';
+								}
+
+								fieldsHtml += '<div style="' + widthStyle + '">' + labelHtml + inputHtml + helpHtml + '</div>';
+							} );
+
+							let html = '';
+
+							if ( isModal || isSlide ) {
+								const triggerLabel = isModal
+									? {{ Js::from( __( 'visual-editor::ve.form_modal_trigger_preview' ) ) }}
+									: {{ Js::from( __( 'visual-editor::ve.form_slide_over_trigger_preview' ) ) }};
+								html += '<div style="text-align:center;padding:1.5rem;">'
+									+ '<p style="font-size:0.85em;color:#6b7280;margin:0 0 0.75rem;">' + triggerLabel + '</p>'
+									+ '<button type="button" disabled style="' + btnStyle + '">' + veEscapeHtml( submitText ) + '</button>'
+									+ '</div>';
+							}
+
+							const wrapStyle = ( isModal || isSlide )
+								? 'border:1px dashed #d1d5db;border-radius:8px;padding:1rem;margin-top:0.5rem;'
+								: '';
+
+							let contentLabel = '';
+							if ( isModal || isSlide ) {
+								const clabel = isModal
+									? {{ Js::from( __( 'visual-editor::ve.form_modal_content_label' ) ) }}
+									: {{ Js::from( __( 'visual-editor::ve.form_slide_over_content_label' ) ) }};
+								contentLabel = '<p style="font-size:0.75em;color:#9ca3af;text-transform:uppercase;letter-spacing:0.05em;margin:0 0 0.75rem;">' + clabel + '</p>';
+							}
+
+							html += '<div style="' + wrapStyle + '">'
+								+ contentLabel
+								+ '<div style="' + containerStyle + '">' + fieldsHtml + '</div>'
+								+ '<div style="margin-top:' + fieldSpacing + ';">'
+								+ '<button type="button" disabled style="' + btnStyle + '">' + veEscapeHtml( submitText ) + '</button>'
+								+ '</div></div>';
+
+							return '<div class="ve-block ve-block-form ve-block-editing ve-block-dynamic-preview">' + html + '</div>';
+						},
+					} );
+
 					br.register( 'custom-html', {
 						render( block ) {
 							const htmlContent = block.attributes?.content || '';

@@ -373,6 +373,11 @@ class VisualEditorServiceProvider extends ServiceProvider
 			'visual-editor.blocks.search-block-component',
 			\ArtisanPackUI\VisualEditor\Livewire\Blocks\SearchBlockComponent::class,
 		);
+
+		Livewire::component(
+			'visual-editor.blocks.form-block-component',
+			\ArtisanPackUI\VisualEditor\Livewire\Blocks\FormBlockComponent::class,
+		);
 	}
 
 	/**
