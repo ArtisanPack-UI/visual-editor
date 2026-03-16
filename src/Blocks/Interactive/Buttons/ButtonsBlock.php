@@ -39,8 +39,8 @@ class ButtonsBlock extends BaseBlock
 	/**
 	 * Get the content field schema.
 	 *
-	 * Layout settings (justification, orientation, wrapping) appear
-	 * in the Settings tab of the inspector.
+	 * Layout settings (justification, orientation, wrapping) and
+	 * bulk styling options appear in the Settings tab of the inspector.
 	 *
 	 * @since 1.0.0
 	 *
@@ -74,11 +74,51 @@ class ButtonsBlock extends BaseBlock
 				'label'   => __( 'visual-editor::ve.allow_wrap' ),
 				'default' => true,
 			],
+			'bulkColor'     => [
+				'type'    => 'select',
+				'label'   => __( 'visual-editor::ve.button_group_bulk_color' ),
+				'options' => [
+					''          => __( 'visual-editor::ve.none' ),
+					'primary'   => __( 'visual-editor::ve.color_primary' ),
+					'secondary' => __( 'visual-editor::ve.color_secondary' ),
+					'accent'    => __( 'visual-editor::ve.color_accent' ),
+					'success'   => __( 'visual-editor::ve.color_success' ),
+					'warning'   => __( 'visual-editor::ve.color_warning' ),
+					'error'     => __( 'visual-editor::ve.color_error' ),
+					'info'      => __( 'visual-editor::ve.color_info' ),
+				],
+				'default' => null,
+			],
+			'bulkSize'      => [
+				'type'    => 'select',
+				'label'   => __( 'visual-editor::ve.button_group_bulk_size' ),
+				'options' => [
+					''   => __( 'visual-editor::ve.none' ),
+					'sm' => __( 'visual-editor::ve.small' ),
+					'md' => __( 'visual-editor::ve.medium' ),
+					'lg' => __( 'visual-editor::ve.large' ),
+					'xl' => __( 'visual-editor::ve.extra_large' ),
+				],
+				'default' => null,
+			],
+			'bulkVariant'   => [
+				'type'    => 'select',
+				'label'   => __( 'visual-editor::ve.button_group_bulk_variant' ),
+				'options' => [
+					''        => __( 'visual-editor::ve.none' ),
+					'filled'  => __( 'visual-editor::ve.filled' ),
+					'outline' => __( 'visual-editor::ve.outline' ),
+					'ghost'   => __( 'visual-editor::ve.ghost' ),
+				],
+				'default' => null,
+			],
 		];
 	}
 
 	/**
 	 * Get the style field schema.
+	 *
+	 * Merges auto-generated supports fields with custom Buttons-specific fields.
 	 *
 	 * @since 1.0.0
 	 *
@@ -86,13 +126,32 @@ class ButtonsBlock extends BaseBlock
 	 */
 	public function getStyleSchema(): array
 	{
-		return parent::getStyleSchema();
+		return array_merge( parent::getStyleSchema(), [
+			'gap'            => [
+				'type'    => 'select',
+				'label'   => __( 'visual-editor::ve.button_group_gap' ),
+				'options' => [
+					'0'       => __( 'visual-editor::ve.none' ),
+					'0.25rem' => 'XS',
+					'0.5rem'  => __( 'visual-editor::ve.small' ),
+					'0.75rem' => __( 'visual-editor::ve.medium' ),
+					'1rem'    => __( 'visual-editor::ve.large' ),
+					'1.5rem'  => 'XL',
+				],
+				'default' => '0.5rem',
+			],
+			'stackOnMobile'  => [
+				'type'    => 'toggle',
+				'label'   => __( 'visual-editor::ve.button_group_stack_on_mobile' ),
+				'default' => false,
+			],
+		] );
 	}
 
 	/**
 	 * Get the default inner blocks for new instances.
 	 *
-	 * Returns one empty button block so the Buttons container
+	 * Returns two empty button blocks so the Buttons container
 	 * is pre-populated when first inserted.
 	 *
 	 * @since 1.0.0
@@ -102,6 +161,10 @@ class ButtonsBlock extends BaseBlock
 	public function getDefaultInnerBlocks(): array
 	{
 		return [
+			[
+				'type'       => 'button',
+				'attributes' => [],
+			],
 			[
 				'type'       => 'button',
 				'attributes' => [],

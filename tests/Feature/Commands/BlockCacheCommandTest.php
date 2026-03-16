@@ -30,7 +30,7 @@ test( 've:cache creates manifest file', function (): void {
 	expect( file_exists( $service->manifestPath() ) )->toBeTrue();
 } );
 
-test( 've:cache manifest contains all 29 blocks', function (): void {
+test( 've:cache manifest contains all 33 blocks', function (): void {
 	$service = app( BlockDiscoveryService::class );
 
 	$this->artisan( 've:cache' )->assertSuccessful();
@@ -38,7 +38,7 @@ test( 've:cache manifest contains all 29 blocks', function (): void {
 	$manifest = $service->loadManifest();
 
 	expect( $manifest )->toBeArray();
-	expect( $manifest )->toHaveCount( 29 );
+	expect( $manifest )->toHaveCount( 33 );
 } );
 
 test( 've:cache manifest entries have correct structure', function (): void {

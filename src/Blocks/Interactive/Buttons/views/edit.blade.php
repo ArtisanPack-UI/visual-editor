@@ -1,8 +1,10 @@
 @php
-	$justification = $content['justification'] ?? 'left';
-	$orientation   = $content['orientation'] ?? 'horizontal';
-	$flexWrap      = $content['flexWrap'] ?? true;
-	$innerBlocks   = $innerBlocks ?? [];
+	$justification  = $content['justification'] ?? 'left';
+	$orientation    = $content['orientation'] ?? 'horizontal';
+	$flexWrap       = $content['flexWrap'] ?? true;
+	$gap            = $styles['gap'] ?? '0.5rem';
+	$stackOnMobile  = $styles['stackOnMobile'] ?? false;
+	$innerBlocks    = $innerBlocks ?? [];
 
 	$justifyMap = [
 		'left'          => 'flex-start',
@@ -11,18 +13,27 @@
 		'space-between' => 'space-between',
 	];
 
-	$justifyValue  = $justifyMap[ $justification ] ?? 'flex-start';
+	$justifyValue   = $justifyMap[ $justification ] ?? 'flex-start';
 	$directionValue = 'vertical' === $orientation ? 'column' : 'row';
 
-	$inlineStyles = "display: flex; flex-direction: {$directionValue}; justify-content: {$justifyValue}; gap: 0.5rem;";
+	$gapValue = veSanitizeCssDimension( $gap, '0.5rem' );
+
+	$inlineStyles = "display: flex; flex-direction: {$directionValue}; justify-content: {$justifyValue}; gap: {$gapValue};";
 	if ( $flexWrap && 'horizontal' === $orientation ) {
 		$inlineStyles .= ' flex-wrap: wrap;';
+	}
+
+	$classes = 've-block ve-block-buttons ve-block-editing';
+	if ( $stackOnMobile ) {
+		$classes .= ' ve-buttons-stack-mobile';
 	}
 @endphp
 
 <div
-	class="ve-block ve-block-buttons ve-block-editing"
+	class="{{ $classes }}"
 	style="{{ $inlineStyles }}"
+	role="group"
+	aria-label="{{ __( 'visual-editor::ve.block_button-group_name' ) }}"
 	data-justification="{{ $justification }}"
 	data-orientation="{{ $orientation }}"
 >
