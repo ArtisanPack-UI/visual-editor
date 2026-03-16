@@ -10,6 +10,8 @@
 	$gridGap         = $styles['gridGap'] ?? '0';
 	$contentPadding  = $styles['contentPadding'] ?? '1rem';
 	$contentBgColor  = $styles['contentBackgroundColor'] ?? null;
+	$isStackedOnMobile = $styles['isStackedOnMobile'] ?? true;
+	$mediaBorderRadius = $styles['mediaBorderRadius'] ?? '0';
 
 	$blockId      = $blockId ?? 'media-text-' . uniqid();
 	$mediaContext = $blockId . ':media-text-url';

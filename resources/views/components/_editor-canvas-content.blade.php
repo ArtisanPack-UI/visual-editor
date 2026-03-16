@@ -1655,11 +1655,13 @@
 							const alt              = block.attributes?.alt || '';
 							const focalPoint       = block.attributes?.focalPoint || { x: 0.5, y: 0.5 };
 							const hasParallax      = block.attributes?.hasParallax || false;
+							const isRepeated       = block.attributes?.isRepeated || false;
 							const overlayColor     = block.attributes?.overlayColor || '#000000';
 							const overlayOpacity   = Math.max( 0, Math.min( 100, parseInt( block.attributes?.overlayOpacity ?? 50, 10 ) ) );
 							const minHeight        = block.attributes?.minHeight || '430px';
 							const contentAlignment = block.attributes?.contentAlignment || 'center';
 							const textColor        = block.attributes?.textColor || '';
+							const safeUrl = ( /^(https?:\/\/|data:|\/)/i.test( mediaUrl ) ) ? mediaUrl.replace( /'/g, '%27' ).replace( /\\/g, '%5C' ) : '';
 
 							const focalX = Math.max( 0, Math.min( 1, parseFloat( focalPoint.x ?? 0.5 ) ) );
 							const focalY = Math.max( 0, Math.min( 1, parseFloat( focalPoint.y ?? 0.5 ) ) );
@@ -1682,15 +1684,18 @@
 							if ( textColor ) { containerStyle += 'color:' + textColor + ';'; }
 
 							let bgHtml = '';
-							if ( 'image' === mediaType && mediaUrl ) {
+							if ( 'image' === mediaType && safeUrl ) {
 								if ( hasParallax ) {
-									bgHtml = '<div style=\'position:absolute;inset:0;background-image:url(' + mediaUrl + ');background-position:' + objPos + ';background-attachment:fixed;background-size:cover;background-repeat:no-repeat;\' aria-hidden=\'true\'></div>';
+									const bgRepeat = isRepeated ? 'background-repeat:repeat;background-size:auto;' : 'background-repeat:no-repeat;';
+									bgHtml = '<div style=\'position:absolute;inset:0;background-image:url(' + safeUrl + ');background-position:' + objPos + ';background-attachment:fixed;background-size:cover;' + bgRepeat + '\' aria-hidden=\'true\'></div>';
+								} else if ( isRepeated ) {
+									bgHtml = '<div style=\'position:absolute;inset:0;background-image:url(' + safeUrl + ');background-repeat:repeat;background-size:auto;\' aria-hidden=\'true\'></div>';
 								} else {
 									const ariaAttr = alt ? '' : ' aria-hidden=\'true\'';
-									bgHtml = '<img src=\'' + mediaUrl + '\' alt=\'' + ( alt || '' ).replace( /&/g, '\x26amp;' ).replace( /</g, '\x26lt;' ).replace( />/g, '\x26gt;' ).replace( /\u0022/g, '\x26quot;' ).replace( /\x27/g, '\x26#39;' ) + '\' style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + objPos + ';\'' + ariaAttr + ' />';
+									bgHtml = '<img src=\'' + safeUrl + '\' alt=\'' + ( alt || '' ).replace( /&/g, '\x26amp;' ).replace( /</g, '\x26lt;' ).replace( />/g, '\x26gt;' ).replace( /\u0022/g, '\x26quot;' ).replace( /\x27/g, '\x26#39;' ) + '\' style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + objPos + ';\'' + ariaAttr + ' />';
 								}
-							} else if ( 'video' === mediaType && mediaUrl ) {
-								bgHtml = '<video src=\'' + mediaUrl + '\' autoplay muted loop playsinline style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + objPos + ';\' aria-hidden=\'true\'></video>';
+							} else if ( 'video' === mediaType && safeUrl ) {
+								bgHtml = '<video src=\'' + safeUrl + '\' autoplay muted loop playsinline style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + objPos + ';\' aria-hidden=\'true\'></video>';
 							}
 
 							const overlayHtml = '<div class=\'ve-block-cover__overlay\' style=\'position:absolute;inset:0;background-color:' + overlayColor + ';opacity:' + ( overlayOpacity / 100 ) + ';\' aria-hidden=\'true\'></div>';
@@ -1846,6 +1851,7 @@
 							const gridGap            = block.attributes?.gridGap || '0';
 							const contentPadding     = block.attributes?.contentPadding || '1rem';
 							const contentBgColor     = block.attributes?.contentBackgroundColor || '';
+							const safeUrl = ( /^(https?:\/\/|data:|\/)/i.test( mediaUrl ) ) ? mediaUrl.replace( /'/g, '%27' ).replace( /\\/g, '%5C' ) : '';
 
 							const contentWidth = 100 - mediaWidth;
 
@@ -1892,12 +1898,12 @@
 							} else if ( 'image' === mediaType ) {
 								const safeAlt = ( mediaAlt || '' ).replace( /&/g, '\x26amp;' ).replace( /</g, '\x26lt;' ).replace( />/g, '\x26gt;' ).replace( /\u0022/g, '\x26quot;' ).replace( /\x27/g, '\x26#39;' );
 								if ( imageFill ) {
-									mediaSideHtml = '<img src=\'' + mediaUrl + '\' alt=\'' + safeAlt + '\' style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + objPos + ';\' />';
+									mediaSideHtml = '<img src=\'' + safeUrl + '\' alt=\'' + safeAlt + '\' style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + objPos + ';\' />';
 								} else {
-									mediaSideHtml = '<img src=\'' + mediaUrl + '\' alt=\'' + safeAlt + '\' style=\'width:100%;height:auto;display:block;\' />';
+									mediaSideHtml = '<img src=\'' + safeUrl + '\' alt=\'' + safeAlt + '\' style=\'width:100%;height:auto;display:block;\' />';
 								}
 							} else if ( 'video' === mediaType ) {
-								mediaSideHtml = '<video src=\'' + mediaUrl + '\' autoplay muted loop playsinline style=\'width:100%;height:100%;object-fit:cover;display:block;\' aria-hidden=\'true\'></video>';
+								mediaSideHtml = '<video src=\'' + safeUrl + '\' autoplay muted loop playsinline style=\'width:100%;height:100%;object-fit:cover;display:block;\' aria-hidden=\'true\'></video>';
 							}
 
 							// Inner blocks content side.

@@ -47,7 +47,8 @@
 	$borderRadius = veSanitizeCssDimension( $borderRadius, '0' );
 	$contentPadding = veSanitizeCssDimension( $contentPadding, '1rem' );
 
-	$styleId = 've-mt-' . ( $elementId ?: substr( md5( uniqid() ), 0, 8 ) );
+	$styleId    = 've-mt-' . ( $elementId ?: substr( md5( uniqid() ), 0, 8 ) );
+	$renderedId = $elementId ?: $styleId;
 
 	$containerStyles = "display: grid; grid-template-columns: {$mediaWidth}% {$contentWidth}%; align-items: {$alignItemsValue}; gap: {$gridGap};";
 	if ( 'right' === $mediaPosition ) {
@@ -87,13 +88,13 @@
 @if ( $isStackedMobile )
 <style>
 	@@media (max-width: 600px) {
-		#{{ $styleId }}.ve-media-text--stacked-mobile {
+		#{{ $renderedId }}.ve-media-text--stacked-mobile {
 			grid-template-columns: 1fr !important;
 		}
-		#{{ $styleId }}.ve-media-text--stacked-mobile .ve-media-text__media {
+		#{{ $renderedId }}.ve-media-text--stacked-mobile .ve-media-text__media {
 			order: 0 !important;
 		}
-		#{{ $styleId }}.ve-media-text--stacked-mobile .ve-media-text__content {
+		#{{ $renderedId }}.ve-media-text--stacked-mobile .ve-media-text__content {
 			order: 1 !important;
 		}
 	}
@@ -103,7 +104,7 @@
 <div
 	class="{{ $classes }}"
 	style="{{ $containerStyles }}"
-	id="{{ $elementId ?: $styleId }}"
+	id="{{ $renderedId }}"
 >
 	{{-- Media side --}}
 	<div

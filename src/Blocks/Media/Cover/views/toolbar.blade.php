@@ -126,9 +126,9 @@
 		type="button"
 		class="flex items-center justify-center rounded px-2 py-1.5 text-xs font-medium text-base-content/70 hover:bg-base-200 hover:text-base-content transition-colors"
 		x-on:click="openMediaReplace()"
-		title="{{ __( 'visual-editor::ve.replace_image' ) }}"
-		aria-label="{{ __( 'visual-editor::ve.replace_image' ) }}"
+		title="{{ __( 'visual-editor::ve.replace_media' ) }}"
+		aria-label="{{ __( 'visual-editor::ve.replace_media' ) }}"
 	>
-		{{ __( 'visual-editor::ve.replace_image' ) }}
+		{{ __( 'visual-editor::ve.replace_media' ) }}
 	</button>
 </div>

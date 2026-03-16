@@ -63,6 +63,8 @@
 	<div
 		x-data="{
 			dragging: false,
+			tempFocalX: 50,
+			tempFocalY: 50,
 			get block() {
 				const blockId = Alpine.store( 'selection' )?.focused;
 				if ( ! blockId || ! Alpine.store( 'editor' ) ) return null;
@@ -84,9 +86,12 @@
 				const rect = target.getBoundingClientRect();
 				const x = Math.max( 0, Math.min( 100, Math.round( ( ( e.clientX - rect.left ) / rect.width ) * 100 ) ) );
 				const y = Math.max( 0, Math.min( 100, Math.round( ( ( e.clientY - rect.top ) / rect.height ) * 100 ) ) );
-				this.updateFocal( x, y );
+				this.tempFocalX = x;
+				this.tempFocalY = y;
 			},
 			startDrag( e ) {
+				this.tempFocalX = this.focalX;
+				this.tempFocalY = this.focalY;
 				this.dragging = true;
 				this.setFocalFromEvent( e );
 			},
@@ -96,6 +101,9 @@
 				this.setFocalFromEvent( e );
 			},
 			stopDrag() {
+				if ( this.dragging ) {
+					this.updateFocal( this.tempFocalX, this.tempFocalY );
+				}
 				this.dragging = false;
 			},
 			updateFocal( x, y ) {
@@ -128,7 +136,7 @@
 					<div
 						class="absolute w-5 h-5 border-2 border-white rounded-full pointer-events-none"
 						style="transform: translate(-50%, -50%); box-shadow: 0 0 0 1px rgba(0,0,0,0.3), 0 2px 4px rgba(0,0,0,0.3);"
-						:style="{ left: focalX + '%', top: focalY + '%' }"
+						:style="{ left: ( dragging ? tempFocalX : focalX ) + '%', top: ( dragging ? tempFocalY : focalY ) + '%' }"
 					></div>
 				</div>
 
@@ -144,7 +152,7 @@
 							min="0"
 							max="100"
 							:value="focalX"
-							x-on:change="const v = parseInt( $el.value, 10 ); updateFocal( Number.isNaN( v ) ? 50 : v, focalY )"
+							x-on:change="const v = Math.max( 0, Math.min( 100, parseInt( $el.value, 10 ) ) ); updateFocal( Number.isNaN( parseInt( $el.value, 10 ) ) ? 50 : v, focalY )"
 						/>
 					</div>
 					<div class="flex-1">
@@ -157,7 +165,7 @@
 							min="0"
 							max="100"
 							:value="focalY"
-							x-on:change="const v = parseInt( $el.value, 10 ); updateFocal( focalX, Number.isNaN( v ) ? 50 : v )"
+							x-on:change="const v = Math.max( 0, Math.min( 100, parseInt( $el.value, 10 ) ) ); updateFocal( focalX, Number.isNaN( parseInt( $el.value, 10 ) ) ? 50 : v )"
 						/>
 					</div>
 				</div>

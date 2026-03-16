@@ -184,8 +184,8 @@ test( 'cover block supports text color and spacing', function (): void {
 test( 'cover block renders with image background', function (): void {
 	$block  = new CoverBlock();
 	$output = $block->render(
-		[ 'mediaType' => 'image', 'mediaUrl' => 'test.jpg', 'alt' => 'Test image', 'focalPoint' => [ 'x' => 0.5, 'y' => 0.5 ], 'overlayColor' => '#000000', 'overlayOpacity' => 50 ],
-		[ 'minHeight' => '430px', 'contentAlignment' => 'center' ],
+		[ 'mediaType' => 'image', 'mediaUrl' => 'test.jpg', 'alt' => 'Test image', 'focalPoint' => [ 'x' => 0.5, 'y' => 0.5 ] ],
+		[ 'minHeight' => '430px', 'contentAlignment' => 'center', 'overlayColor' => '#000000', 'overlayOpacity' => 50 ],
 	);
 
 	expect( $output )->toContain( 've-block-cover' );
@@ -197,8 +197,8 @@ test( 'cover block renders with image background', function (): void {
 test( 'cover block renders with video background', function (): void {
 	$block  = new CoverBlock();
 	$output = $block->render(
-		[ 'mediaType' => 'video', 'mediaUrl' => 'test.mp4', 'overlayColor' => '#000000', 'overlayOpacity' => 50 ],
-		[ 'minHeight' => '430px', 'contentAlignment' => 'center' ],
+		[ 'mediaType' => 'video', 'mediaUrl' => 'test.mp4' ],
+		[ 'minHeight' => '430px', 'contentAlignment' => 'center', 'overlayColor' => '#000000', 'overlayOpacity' => 50 ],
 	);
 
 	expect( $output )->toContain( '<video' );
@@ -212,8 +212,8 @@ test( 'cover block renders with video background', function (): void {
 test( 'cover block renders color only mode without media elements', function (): void {
 	$block  = new CoverBlock();
 	$output = $block->render(
-		[ 'mediaType' => 'color', 'overlayColor' => '#ff0000', 'overlayOpacity' => 80 ],
-		[ 'minHeight' => '300px', 'contentAlignment' => 'center' ],
+		[ 'mediaType' => 'color' ],
+		[ 'minHeight' => '300px', 'contentAlignment' => 'center', 'overlayColor' => '#ff0000', 'overlayOpacity' => 80 ],
 	);
 
 	expect( $output )->toContain( 've-block-cover' );
@@ -225,8 +225,8 @@ test( 'cover block renders color only mode without media elements', function ():
 test( 'cover block renders parallax background style', function (): void {
 	$block  = new CoverBlock();
 	$output = $block->render(
-		[ 'mediaType' => 'image', 'mediaUrl' => 'test.jpg', 'hasParallax' => true, 'focalPoint' => [ 'x' => 0.3, 'y' => 0.7 ], 'overlayColor' => '#000000', 'overlayOpacity' => 50 ],
-		[ 'minHeight' => '430px', 'contentAlignment' => 'center' ],
+		[ 'mediaType' => 'image', 'mediaUrl' => 'test.jpg', 'hasParallax' => true, 'focalPoint' => [ 'x' => 0.3, 'y' => 0.7 ] ],
+		[ 'minHeight' => '430px', 'contentAlignment' => 'center', 'overlayColor' => '#000000', 'overlayOpacity' => 50 ],
 	);
 
 	expect( $output )->toContain( 'background-attachment: fixed' );
@@ -236,8 +236,8 @@ test( 'cover block renders parallax background style', function (): void {
 test( 'cover block renders inner blocks content area', function (): void {
 	$block  = new CoverBlock();
 	$output = $block->render(
-		[ 'mediaType' => 'image', 'mediaUrl' => 'test.jpg', 'overlayColor' => '#000000', 'overlayOpacity' => 50 ],
-		[ 'minHeight' => '430px', 'contentAlignment' => 'center' ],
+		[ 'mediaType' => 'image', 'mediaUrl' => 'test.jpg' ],
+		[ 'minHeight' => '430px', 'contentAlignment' => 'center', 'overlayColor' => '#000000', 'overlayOpacity' => 50 ],
 		[],
 		[ '<h2>Hello World</h2>', '<p>Test content</p>' ],
 	);
@@ -250,8 +250,8 @@ test( 'cover block renders inner blocks content area', function (): void {
 test( 'cover block renders content alignment correctly', function (): void {
 	$block  = new CoverBlock();
 	$output = $block->render(
-		[ 'mediaType' => 'image', 'mediaUrl' => 'test.jpg', 'overlayColor' => '#000000', 'overlayOpacity' => 50 ],
-		[ 'minHeight' => '430px', 'contentAlignment' => 'bottom-right' ],
+		[ 'mediaType' => 'image', 'mediaUrl' => 'test.jpg' ],
+		[ 'minHeight' => '430px', 'contentAlignment' => 'bottom-right', 'overlayColor' => '#000000', 'overlayOpacity' => 50 ],
 	);
 
 	expect( $output )->toContain( 'justify-content: flex-end' );
@@ -261,8 +261,8 @@ test( 'cover block renders content alignment correctly', function (): void {
 test( 'cover block decorative images have aria hidden', function (): void {
 	$block  = new CoverBlock();
 	$output = $block->render(
-		[ 'mediaType' => 'image', 'mediaUrl' => 'test.jpg', 'alt' => '', 'overlayColor' => '#000000', 'overlayOpacity' => 50 ],
-		[ 'minHeight' => '430px', 'contentAlignment' => 'center' ],
+		[ 'mediaType' => 'image', 'mediaUrl' => 'test.jpg', 'alt' => '' ],
+		[ 'minHeight' => '430px', 'contentAlignment' => 'center', 'overlayColor' => '#000000', 'overlayOpacity' => 50 ],
 	);
 
 	expect( $output )->toContain( 'aria-hidden="true"' );
@@ -271,8 +271,8 @@ test( 'cover block decorative images have aria hidden', function (): void {
 test( 'cover block renders content max width when use content width is enabled', function (): void {
 	$block  = new CoverBlock();
 	$output = $block->render(
-		[ 'mediaType' => 'color', 'overlayColor' => '#000000', 'overlayOpacity' => 50, 'useContentWidth' => true, 'contentMaxWidth' => '800px' ],
-		[ 'minHeight' => '430px', 'contentAlignment' => 'center' ],
+		[ 'mediaType' => 'color', 'useContentWidth' => true, 'contentMaxWidth' => '800px' ],
+		[ 'minHeight' => '430px', 'contentAlignment' => 'center', 'overlayColor' => '#000000', 'overlayOpacity' => 50 ],
 	);
 
 	expect( $output )->toContain( 'max-width: 800px' );

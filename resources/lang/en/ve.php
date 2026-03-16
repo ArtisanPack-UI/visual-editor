@@ -764,6 +764,7 @@ return [
 	'media_selected'     => 'Media selected',
 	'open_media_picker'  => 'Open media picker',
 	'replace_image'      => 'Replace',
+	'replace_media'      => 'Replace',
 	'remove_image'       => 'Remove',
 
 	// Pattern Store

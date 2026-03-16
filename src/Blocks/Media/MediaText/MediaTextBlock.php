@@ -239,7 +239,11 @@ class MediaTextBlock extends BaseBlock
 	public function getTransforms(): array
 	{
 		return [
-			'cover'   => [],
+			'cover'   => [
+				'mediaUrl'  => 'mediaUrl',
+				'mediaAlt'  => 'alt',
+				'mediaType' => 'mediaType',
+			],
 			'columns' => [],
 		];
 	}

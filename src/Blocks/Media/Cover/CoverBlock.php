@@ -275,7 +275,10 @@ class CoverBlock extends BaseBlock
 	public function getTransforms(): array
 	{
 		return [
-			'image' => [],
+			'image' => [
+				'mediaUrl' => 'url',
+				'alt'      => 'alt',
+			],
 			'group' => [],
 		];
 	}

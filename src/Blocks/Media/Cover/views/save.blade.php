@@ -63,7 +63,7 @@
 	$bgStyles = 'position: absolute; inset: 0;';
 	if ( 'image' === $mediaType && $mediaUrl ) {
 		if ( $hasParallax ) {
-			$bgStyles .= " background-image: url('" . e( $mediaUrl ) . "'); background-position: {$objectPosition}; background-attachment: fixed; background-size: cover;";
+			$bgStyles .= " background-image: url('" . $mediaUrl . "'); background-position: {$objectPosition}; background-attachment: fixed; background-size: cover;";
 			if ( $isRepeated ) {
 				$bgStyles .= ' background-repeat: repeat; background-size: auto;';
 			} else {
@@ -98,7 +98,13 @@
 	@if ( $elementId ) id="{{ $elementId }}" @endif
 >
 	{{-- Background layer --}}
-	@if ( 'image' === $mediaType && $mediaUrl && ! $hasParallax )
+	@if ( 'image' === $mediaType && $mediaUrl && ! $hasParallax && $isRepeated )
+		<div
+			class="ve-block-cover__background"
+			style="position: absolute; inset: 0; background-image: url('{{ $mediaUrl }}'); background-repeat: repeat; background-size: auto;"
+			aria-hidden="true"
+		></div>
+	@elseif ( 'image' === $mediaType && $mediaUrl && ! $hasParallax )
 		<img
 			class="ve-block-cover__image"
 			src="{{ $mediaUrl }}"
