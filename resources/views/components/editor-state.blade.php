@@ -805,6 +805,8 @@
 							'video-url': 'url',
 							'audio-url': 'url',
 							'toolbar-replace': 'url',
+							'cover-media': 'mediaUrl',
+							'media-text-url': 'mediaUrl',
 						};
 
 						// Gallery-add context: create inner image blocks instead of updating a field.

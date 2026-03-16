@@ -4,6 +4,7 @@
 						preRendered: {{ Js::from( $renderedBlocks ) }},
 						defaultTemplates: {{ Js::from( $defaultBlockTemplates ) }},
 						blockNames: {{ Js::from( $transformableBlocks ) }},
+						featuredImageUrl: {{ Js::from( $featuredImageUrl ?? '' ) }},
 						draggingBlockId: null,
 						blockAlignSupports: {{ Js::from( $blockAlignSupports ) }},
 						inserterBlocks: {{ Js::from( $inserterBlocks ) }},
@@ -1410,6 +1411,18 @@
 								return this.getFileBlockHtml( block );
 							}
 
+							// Cover blocks are rendered dynamically so inner blocks
+							// and media/overlay settings react to changes.
+							if ( 'cover' === block.type ) {
+								return this.getCoverBlockHtml( block );
+							}
+
+							// Media & Text blocks are rendered dynamically so inner
+							// blocks, media, and layout settings react to changes.
+							if ( 'media-text' === block.type ) {
+								return this.getMediaTextBlockHtml( block );
+							}
+
 							// Group blocks are rendered dynamically so inner blocks
 							// and variation picker react to structural changes.
 							if ( 'group' === block.type ) {
@@ -1634,6 +1647,352 @@
 
 							html += '</div></div>';
 							return html;
+						},
+
+						getCoverBlockHtml( block ) {
+							const mediaType        = block.attributes?.mediaType || 'image';
+							const mediaUrl         = block.attributes?.mediaUrl || '';
+							const alt              = block.attributes?.alt || '';
+							const focalPoint       = block.attributes?.focalPoint || { x: 0.5, y: 0.5 };
+							const hasParallax      = block.attributes?.hasParallax || false;
+							const isRepeated       = block.attributes?.isRepeated || false;
+							const overlayColor     = block.attributes?.overlayColor || '#000000';
+							const overlayOpacity   = Math.max( 0, Math.min( 100, parseInt( block.attributes?.overlayOpacity ?? 50, 10 ) ) );
+							const minHeight        = block.attributes?.minHeight || '430px';
+							const contentAlignment = block.attributes?.contentAlignment || 'center';
+							const textColor        = block.attributes?.textColor || '';
+							const safeUrl = ( /^(https?:\/\/|data:|\/)/i.test( mediaUrl ) ) ? mediaUrl.replace( /'/g, '%27' ).replace( /\\/g, '%5C' ).replace( /\(/g, '%28' ).replace( /\)/g, '%29' ) : '';
+
+							const focalX = Math.max( 0, Math.min( 1, parseFloat( focalPoint.x ?? 0.5 ) ) );
+							const focalY = Math.max( 0, Math.min( 1, parseFloat( focalPoint.y ?? 0.5 ) ) );
+							const objPos = Math.round( focalX * 100 ) + '% ' + Math.round( focalY * 100 ) + '%';
+
+							const alignMap = {
+								'top-left':      [ 'flex-start', 'flex-start' ],
+								'top-center':    [ 'flex-start', 'center' ],
+								'top-right':     [ 'flex-start', 'flex-end' ],
+								'center-left':   [ 'center', 'flex-start' ],
+								'center':        [ 'center', 'center' ],
+								'center-right':  [ 'center', 'flex-end' ],
+								'bottom-left':   [ 'flex-end', 'flex-start' ],
+								'bottom-center': [ 'flex-end', 'center' ],
+								'bottom-right':  [ 'flex-end', 'flex-end' ],
+							};
+							const align = alignMap[ contentAlignment ] || [ 'center', 'center' ];
+
+							let containerStyle = 'position:relative;display:flex;flex-direction:column;justify-content:' + align[0] + ';align-items:' + align[1] + ';min-height:' + minHeight + ';overflow:hidden;';
+							if ( textColor ) { containerStyle += 'color:' + textColor + ';'; }
+
+							let bgHtml = '';
+							if ( 'image' === mediaType && safeUrl ) {
+								if ( hasParallax ) {
+									const bgRepeat = isRepeated ? 'background-repeat:repeat;background-size:auto;' : 'background-repeat:no-repeat;';
+									bgHtml = '<div style=\'position:absolute;inset:0;background-image:url(' + safeUrl + ');background-position:' + objPos + ';background-attachment:fixed;background-size:cover;' + bgRepeat + '\' aria-hidden=\'true\'></div>';
+								} else if ( isRepeated ) {
+									bgHtml = '<div style=\'position:absolute;inset:0;background-image:url(' + safeUrl + ');background-repeat:repeat;background-size:auto;\' aria-hidden=\'true\'></div>';
+								} else {
+									const ariaAttr = alt ? '' : ' aria-hidden=\'true\'';
+									bgHtml = '<img src=\'' + safeUrl + '\' alt=\'' + ( alt || '' ).replace( /&/g, '\x26amp;' ).replace( /</g, '\x26lt;' ).replace( />/g, '\x26gt;' ).replace( /\u0022/g, '\x26quot;' ).replace( /\x27/g, '\x26#39;' ) + '\' style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + objPos + ';\'' + ariaAttr + ' />';
+								}
+							} else if ( 'video' === mediaType && safeUrl ) {
+								bgHtml = '<video src=\'' + safeUrl + '\' autoplay muted loop playsinline style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + objPos + ';\' aria-hidden=\'true\'></video>';
+							}
+
+							const overlayHtml = '<div class=\'ve-block-cover__overlay\' style=\'position:absolute;inset:0;background-color:' + overlayColor + ';opacity:' + ( overlayOpacity / 100 ) + ';\' aria-hidden=\'true\'></div>';
+
+							// Inner blocks content.
+							let innerHtml = '';
+							if ( block.innerBlocks && block.innerBlocks.length > 0 ) {
+								innerHtml += '<div class=\'ve-inner-blocks flex flex-col\' data-ve-inner-blocks data-parent-id=\'' + block.id + '\'>';
+								block.innerBlocks.forEach( ( inner, idx ) => {
+									innerHtml += '<div class=\'ve-inner-insertion-point relative group/inner-insert py-0.5\'>'
+										+ '<div class=\'flex justify-center\'>'
+										+ '<button type=\'button\''
+										+ ' class=\'w-5 h-5 rounded-full bg-primary text-primary-content flex items-center justify-center opacity-0 group-hover/inner-insert:opacity-100 transition-opacity text-xs\''
+										+ ' data-ve-inner-insert'
+										+ ' data-parent-id=\'' + block.id + '\''
+										+ ' data-insert-index=\'' + idx + '\''
+										+ '>+</button>'
+										+ '</div></div>';
+
+									const existingWrapper = document.querySelector( '[data-inner-block-id=\'' + inner.id + '\']' );
+									let innerText = inner.attributes?.text || inner.attributes?.content || '';
+									if ( existingWrapper ) {
+										const contentEl = existingWrapper.querySelector( '[contenteditable]' ) || existingWrapper;
+										innerText = contentEl.innerHTML;
+									}
+
+									innerHtml += '<div class=\'ve-inner-block-wrapper relative group/inner-block\''
+										+ ' data-block-id=\'' + inner.id + '\''
+										+ ' data-inner-block-id=\'' + inner.id + '\''
+										+ ' data-parent-id=\'' + block.id + '\''
+										+ ' tabindex=\'-1\''
+										+ '>'
+										+ '<div class=\'ve-inner-block-drag-handle absolute -left-6 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover/inner-block:opacity-50 hover:!opacity-100 transition-opacity\''
+										+ ' draggable=\'true\''
+										+ ' data-ve-inner-drag-handle'
+										+ ' data-inner-drag-id=\'' + inner.id + '\''
+										+ ' data-parent-id=\'' + block.id + '\''
+										+ '>'
+										+ '<svg class=\'w-3 h-3\' viewBox=\'0 0 24 24\' fill=\'currentColor\'>'
+										+ '<circle cx=\'9\' cy=\'7\' r=\'1.5\'/><circle cx=\'15\' cy=\'7\' r=\'1.5\'/>'
+										+ '<circle cx=\'9\' cy=\'12\' r=\'1.5\'/><circle cx=\'15\' cy=\'12\' r=\'1.5\'/>'
+										+ '<circle cx=\'9\' cy=\'17\' r=\'1.5\'/><circle cx=\'15\' cy=\'17\' r=\'1.5\'/>'
+										+ '</svg></div>';
+
+									if ( 'heading' === inner.type ) {
+										const innerLevel = inner.attributes?.level || 'h2';
+										const innerTag   = [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].includes( innerLevel ) ? innerLevel : 'h2';
+										const innerSize  = this.headingSizeClasses[ innerTag ] || this.headingSizeClasses.h2;
+										innerHtml += '<' + innerTag
+											+ ' class=\'ve-inner-block-content ve-block ve-block-heading ve-block-editing ' + innerSize + '\''
+											+ ' contenteditable=\'true\''
+											+ ' data-placeholder=\'' + this.headingPlaceholder + '\''
+											+ ' data-ve-enter-new-block=\'true\''
+											+ ' data-ve-slash-command=\'true\''
+											+ '>' + innerText + '</' + innerTag + '></div>';
+									} else {
+										innerHtml += '<div class=\'ve-inner-block-content ve-block ve-block-' + ( inner.type || Alpine.store( 'editor' ).defaultBlockType ) + ' ve-block-editing\''
+											+ ' contenteditable=\'true\''
+											+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.block_paragraph_placeholder' ) ) }} + '\''
+											+ ' data-ve-enter-new-block=\'true\''
+											+ ' data-ve-slash-command=\'true\''
+											+ '>' + innerText + '</div></div>';
+									}
+								} );
+
+								innerHtml += '<div class=\'ve-inner-insertion-point relative group/inner-insert py-0.5\'>'
+									+ '<div class=\'flex justify-center\'>'
+									+ '<button type=\'button\''
+									+ ' class=\'w-5 h-5 rounded-full bg-primary text-primary-content flex items-center justify-center opacity-0 group-hover/inner-insert:opacity-100 transition-opacity text-xs\''
+									+ ' data-ve-inner-insert'
+									+ ' data-parent-id=\'' + block.id + '\''
+									+ ' data-insert-index=\'' + block.innerBlocks.length + '\''
+									+ '>+</button>'
+									+ '</div></div>';
+
+								innerHtml += '</div>';
+							} else {
+								innerHtml += '<div class=\'ve-inner-blocks flex flex-col\' data-ve-inner-blocks data-parent-id=\'' + block.id + '\'>'
+									+ '<div class=\'ve-inner-blocks-placeholder\''
+									+ ' contenteditable=\'true\''
+									+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.block_group_placeholder' ) ) }} + '\''
+									+ ' data-ve-enter-new-block=\'true\''
+									+ '></div></div>';
+							}
+
+							const hasMedia = ( 'color' !== mediaType && mediaUrl ) || 'color' === mediaType;
+
+							if ( ! hasMedia && 'color' !== mediaType ) {
+								// Show placeholder for media selection with color swatches.
+								const ctx = block.id + ':cover-media';
+								const coverColors = [
+									{ color: '#000000', label: 'Black' },
+									{ color: '#FFFFFF', label: 'White' },
+									{ color: '#0ea5e9', label: 'Sky' },
+									{ color: '#3b82f6', label: 'Blue' },
+									{ color: '#1e3a5f', label: 'Navy' },
+									{ color: '#6366f1', label: 'Indigo' },
+									{ color: '#6b7280', label: 'Gray' },
+									{ color: '#059669', label: 'Emerald' },
+									{ color: '#dc2626', label: 'Red' },
+									{ color: '#d97706', label: 'Amber' },
+								];
+								let swatchHtml = '<div class=\'flex gap-2 flex-wrap justify-center\'>';
+								coverColors.forEach( ( c ) => {
+									const borderStyle = '#FFFFFF' === c.color ? 'border:1px solid oklch(var(--bc)/0.2);' : '';
+									swatchHtml += '<button type=\'button\''
+										+ ' class=\'w-7 h-7 rounded-full cursor-pointer hover:ring-2 hover:ring-primary hover:ring-offset-2 transition-shadow\''
+										+ ' style=\'background-color:' + c.color + ';' + borderStyle + '\''
+										+ ' data-ve-cover-color=\'' + c.color + '\''
+										+ ' title=\'' + c.label + '\''
+										+ '></button>';
+								} );
+								swatchHtml += '</div>';
+
+								return '<div class=\'ve-block ve-block-cover ve-block-editing\' style=\'' + containerStyle + '\'>'
+									+ '<div class=\'ve-block-placeholder flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-base-300 rounded-lg bg-base-300/50 text-base-content w-full\'>'
+									+ '<div class=\'ve-block-placeholder__icon text-base-content/70\'>'
+									+ '<svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke-width=\'1.5\' stroke=\'currentColor\' width=\'48\' height=\'48\'>'
+									+ '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m0 0a2.246 2.246 0 0 0-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0 1 21 12v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6c0-1.007.66-1.862 1.572-2.149Z\' />'
+									+ '</svg>'
+									+ '</div>'
+									+ '<p class=\'ve-block-placeholder__name font-medium text-base-content\'>' + {{ Js::from( __( 'visual-editor::ve.block_cover_name' ) ) }} + '</p>'
+									+ '<p class=\'ve-block-placeholder__description text-sm text-base-content/70\'>' + {{ Js::from( __( 'visual-editor::ve.cover_placeholder_desc' ) ) }} + '</p>'
+									+ '<div class=\'ve-block-placeholder__actions flex gap-2 flex-wrap justify-center\'>'
+									+ '<button type=\'button\' class=\'btn btn-sm btn-primary\' data-ve-media-context=\'' + ctx + '\'>' + this.imageUpload + '</button>'
+									+ '<button type=\'button\' class=\'btn btn-sm btn-outline\' data-ve-media-context=\'' + ctx + '\'>' + this.imageMediaLib + '</button>'
+									+ ( this.featuredImageUrl ? '<button type=\'button\' class=\'btn btn-sm btn-outline\' data-ve-cover-featured-image=\'' + this.featuredImageUrl + '\'>' + {{ Js::from( __( 'visual-editor::ve.cover_use_featured_image' ) ) }} + '</button>' : '' )
+									+ '</div>'
+									+ swatchHtml
+									+ '</div>'
+									+ '</div>';
+							}
+
+							return '<div class=\'ve-block ve-block-cover ve-block-editing\' style=\'' + containerStyle + '\'>'
+								+ bgHtml
+								+ overlayHtml
+								+ '<div class=\'ve-block-cover__content\' style=\'position:relative;z-index:1;padding:2rem;width:100%;\'>'
+								+ innerHtml
+								+ '</div>'
+								+ '</div>';
+						},
+
+						getMediaTextBlockHtml( block ) {
+							const mediaType          = block.attributes?.mediaType || 'image';
+							const mediaUrl           = block.attributes?.mediaUrl || '';
+							const mediaAlt           = block.attributes?.mediaAlt || '';
+							const focalPoint         = block.attributes?.focalPoint || { x: 0.5, y: 0.5 };
+							const mediaPosition      = block.attributes?.mediaPosition || 'left';
+							const mediaWidth         = Math.max( 25, Math.min( 75, parseInt( block.attributes?.mediaWidth ?? 50, 10 ) ) );
+							const verticalAlign      = block.attributes?.verticalAlignment || 'top';
+							const imageFill          = block.attributes?.imageFill || false;
+							const isStackedOnMobile  = block.attributes?.isStackedOnMobile !== false;
+							const gridGap            = block.attributes?.gridGap || '0';
+							const contentPadding     = block.attributes?.contentPadding || '1rem';
+							const contentBgColor     = block.attributes?.contentBackgroundColor || '';
+							const safeUrl = ( /^(https?:\/\/|data:|\/)/i.test( mediaUrl ) ) ? mediaUrl.replace( /'/g, '%27' ).replace( /\\/g, '%5C' ).replace( /\(/g, '%28' ).replace( /\)/g, '%29' ) : '';
+
+							const contentWidth = 100 - mediaWidth;
+
+							const focalX = Math.max( 0, Math.min( 1, parseFloat( focalPoint.x ?? 0.5 ) ) );
+							const focalY = Math.max( 0, Math.min( 1, parseFloat( focalPoint.y ?? 0.5 ) ) );
+							const objPos = Math.round( focalX * 100 ) + '% ' + Math.round( focalY * 100 ) + '%';
+
+							const alignMap = { top: 'flex-start', center: 'center', bottom: 'flex-end' };
+							const alignItems = alignMap[ verticalAlign ] || 'flex-start';
+
+							const gridCols = 'right' === mediaPosition
+								? contentWidth + '% ' + mediaWidth + '%'
+								: mediaWidth + '% ' + contentWidth + '%';
+
+							const containerStyle = 'display:grid;grid-template-columns:' + gridCols + ';align-items:' + alignItems + ';gap:' + gridGap + ';min-height:200px;';
+
+							const mediaOrder = 'right' === mediaPosition ? 'order:1;' : 'order:0;';
+							const contentOrder = 'right' === mediaPosition ? 'order:0;' : 'order:1;';
+
+							let mediaStyle = mediaOrder;
+							if ( imageFill && 'image' === mediaType ) {
+								mediaStyle += 'position:relative;min-height:250px;';
+							}
+
+							let contentStyle = 'padding:' + contentPadding + ';' + contentOrder;
+							if ( contentBgColor ) { contentStyle += 'background-color:' + contentBgColor + ';'; }
+
+							// Media side.
+							let mediaSideHtml = '';
+							if ( ! mediaUrl ) {
+								const ctx = block.id + ':media-text-url';
+								mediaSideHtml = '<div class=\'ve-block-placeholder flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-base-300 rounded-lg bg-base-300/50 text-base-content h-full\'>'
+									+ '<div class=\'ve-block-placeholder__icon text-base-content/70\'>'
+									+ '<svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke-width=\'1.5\' stroke=\'currentColor\' width=\'48\' height=\'48\'>'
+									+ '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z\' />'
+									+ '</svg>'
+									+ '</div>'
+									+ '<p class=\'ve-block-placeholder__name font-medium text-base-content\'>' + {{ Js::from( __( 'visual-editor::ve.block_media-text_name' ) ) }} + '</p>'
+									+ '<div class=\'ve-block-placeholder__actions flex gap-2\'>'
+									+ '<button type=\'button\' class=\'btn btn-sm btn-primary\' data-ve-media-context=\'' + ctx + '\'>' + this.imageUpload + '</button>'
+									+ '<button type=\'button\' class=\'btn btn-sm btn-outline\' data-ve-media-context=\'' + ctx + '\'>' + this.imageMediaLib + '</button>'
+									+ '</div>'
+									+ '</div>';
+							} else if ( 'image' === mediaType ) {
+								const safeAlt = ( mediaAlt || '' ).replace( /&/g, '\x26amp;' ).replace( /</g, '\x26lt;' ).replace( />/g, '\x26gt;' ).replace( /\u0022/g, '\x26quot;' ).replace( /\x27/g, '\x26#39;' );
+								if ( imageFill ) {
+									mediaSideHtml = '<img src=\'' + safeUrl + '\' alt=\'' + safeAlt + '\' style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + objPos + ';\' />';
+								} else {
+									mediaSideHtml = '<img src=\'' + safeUrl + '\' alt=\'' + safeAlt + '\' style=\'width:100%;height:auto;display:block;\' />';
+								}
+							} else if ( 'video' === mediaType ) {
+								mediaSideHtml = '<video src=\'' + safeUrl + '\' autoplay muted loop playsinline style=\'width:100%;height:100%;object-fit:cover;display:block;\' aria-hidden=\'true\'></video>';
+							}
+
+							// Inner blocks content side.
+							let innerHtml = '';
+							if ( block.innerBlocks && block.innerBlocks.length > 0 ) {
+								innerHtml += '<div class=\'ve-inner-blocks flex flex-col\' data-ve-inner-blocks data-parent-id=\'' + block.id + '\'>';
+								block.innerBlocks.forEach( ( inner, idx ) => {
+									innerHtml += '<div class=\'ve-inner-insertion-point relative group/inner-insert py-0.5\'>'
+										+ '<div class=\'flex justify-center\'>'
+										+ '<button type=\'button\''
+										+ ' class=\'w-5 h-5 rounded-full bg-primary text-primary-content flex items-center justify-center opacity-0 group-hover/inner-insert:opacity-100 transition-opacity text-xs\''
+										+ ' data-ve-inner-insert'
+										+ ' data-parent-id=\'' + block.id + '\''
+										+ ' data-insert-index=\'' + idx + '\''
+										+ '>+</button>'
+										+ '</div></div>';
+
+									const existingWrapper = document.querySelector( '[data-inner-block-id=\'' + inner.id + '\']' );
+									let innerText = inner.attributes?.text || inner.attributes?.content || '';
+									if ( existingWrapper ) {
+										const contentEl = existingWrapper.querySelector( '[contenteditable]' ) || existingWrapper;
+										innerText = contentEl.innerHTML;
+									}
+
+									innerHtml += '<div class=\'ve-inner-block-wrapper relative group/inner-block\''
+										+ ' data-block-id=\'' + inner.id + '\''
+										+ ' data-inner-block-id=\'' + inner.id + '\''
+										+ ' data-parent-id=\'' + block.id + '\''
+										+ ' tabindex=\'-1\''
+										+ '>'
+										+ '<div class=\'ve-inner-block-drag-handle absolute -left-6 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover/inner-block:opacity-50 hover:!opacity-100 transition-opacity\''
+										+ ' draggable=\'true\''
+										+ ' data-ve-inner-drag-handle'
+										+ ' data-inner-drag-id=\'' + inner.id + '\''
+										+ ' data-parent-id=\'' + block.id + '\''
+										+ '>'
+										+ '<svg class=\'w-3 h-3\' viewBox=\'0 0 24 24\' fill=\'currentColor\'>'
+										+ '<circle cx=\'9\' cy=\'7\' r=\'1.5\'/><circle cx=\'15\' cy=\'7\' r=\'1.5\'/>'
+										+ '<circle cx=\'9\' cy=\'12\' r=\'1.5\'/><circle cx=\'15\' cy=\'12\' r=\'1.5\'/>'
+										+ '<circle cx=\'9\' cy=\'17\' r=\'1.5\'/><circle cx=\'15\' cy=\'17\' r=\'1.5\'/>'
+										+ '</svg></div>';
+
+									if ( 'heading' === inner.type ) {
+										const innerLevel = inner.attributes?.level || 'h2';
+										const innerTag   = [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].includes( innerLevel ) ? innerLevel : 'h2';
+										const innerSize  = this.headingSizeClasses[ innerTag ] || this.headingSizeClasses.h2;
+										innerHtml += '<' + innerTag
+											+ ' class=\'ve-inner-block-content ve-block ve-block-heading ve-block-editing ' + innerSize + '\''
+											+ ' contenteditable=\'true\''
+											+ ' data-placeholder=\'' + this.headingPlaceholder + '\''
+											+ ' data-ve-enter-new-block=\'true\''
+											+ ' data-ve-slash-command=\'true\''
+											+ '>' + innerText + '</' + innerTag + '></div>';
+									} else {
+										innerHtml += '<div class=\'ve-inner-block-content ve-block ve-block-' + ( inner.type || Alpine.store( 'editor' ).defaultBlockType ) + ' ve-block-editing\''
+											+ ' contenteditable=\'true\''
+											+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.block_paragraph_placeholder' ) ) }} + '\''
+											+ ' data-ve-enter-new-block=\'true\''
+											+ ' data-ve-slash-command=\'true\''
+											+ '>' + innerText + '</div></div>';
+									}
+								} );
+
+								innerHtml += '<div class=\'ve-inner-insertion-point relative group/inner-insert py-0.5\'>'
+									+ '<div class=\'flex justify-center\'>'
+									+ '<button type=\'button\''
+									+ ' class=\'w-5 h-5 rounded-full bg-primary text-primary-content flex items-center justify-center opacity-0 group-hover/inner-insert:opacity-100 transition-opacity text-xs\''
+									+ ' data-ve-inner-insert'
+									+ ' data-parent-id=\'' + block.id + '\''
+									+ ' data-insert-index=\'' + block.innerBlocks.length + '\''
+									+ '>+</button>'
+									+ '</div></div>';
+
+								innerHtml += '</div>';
+							} else {
+								innerHtml += '<div class=\'ve-inner-blocks flex flex-col\' data-ve-inner-blocks data-parent-id=\'' + block.id + '\'>'
+									+ '<div class=\'ve-inner-blocks-placeholder\''
+									+ ' contenteditable=\'true\''
+									+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.block_group_placeholder' ) ) }} + '\''
+									+ ' data-ve-enter-new-block=\'true\''
+									+ '></div></div>';
+							}
+
+							const stackedClass = isStackedOnMobile ? ' ve-media-text--stacked-mobile' : '';
+
+							return '<div class=\'ve-block ve-block-media-text ve-block-editing' + stackedClass + '\' style=\'' + containerStyle + '\'>'
+								+ '<div class=\'ve-media-text__media\' style=\'' + mediaStyle + '\'>' + mediaSideHtml + '</div>'
+								+ '<div class=\'ve-media-text__content\' style=\'' + contentStyle + '\'>' + innerHtml + '</div>'
+								+ '</div>';
 						},
 
 						getGroupBlockHtml( block ) {
@@ -2406,6 +2765,34 @@
 						const mediaBtn = $event.target.closest( '[data-ve-media-context]' );
 						if ( mediaBtn ) {
 							Livewire.dispatch( 'open-ve-media-picker', { context: mediaBtn.getAttribute( 'data-ve-media-context' ) } );
+						}
+
+						// Cover block color swatch: set color-only mode with selected overlay color.
+						const coverColorBtn = $event.target.closest( '[data-ve-cover-color]' );
+						if ( coverColorBtn ) {
+							const color   = coverColorBtn.getAttribute( 'data-ve-cover-color' );
+							const blockEl = coverColorBtn.closest( '[data-block-id]' );
+							if ( blockEl ) {
+								const blockId = blockEl.getAttribute( 'data-block-id' );
+								const store   = Alpine.store( 'editor' );
+								if ( store ) {
+									store.updateBlock( blockId, { mediaType: 'color', overlayColor: color, overlayOpacity: 100 } );
+								}
+							}
+						}
+
+						// Cover block featured image: use the provided featured image URL.
+						const coverFeaturedBtn = $event.target.closest( '[data-ve-cover-featured-image]' );
+						if ( coverFeaturedBtn ) {
+							const url     = coverFeaturedBtn.getAttribute( 'data-ve-cover-featured-image' );
+							const blockEl = coverFeaturedBtn.closest( '[data-block-id]' );
+							if ( blockEl && url ) {
+								const blockId = blockEl.getAttribute( 'data-block-id' );
+								const store   = Alpine.store( 'editor' );
+								if ( store ) {
+									store.updateBlock( blockId, { mediaType: 'image', mediaUrl: url, overlayOpacity: 50 } );
+								}
+							}
 						}
 
 						// Table layout picker: create table from preset or custom config.
