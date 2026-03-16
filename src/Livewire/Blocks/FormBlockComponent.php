@@ -132,15 +132,6 @@ class FormBlockComponent extends Component
 	public int $columns = 2;
 
 	/**
-	 * Whether to use AJAX submission.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var bool
-	 */
-	public bool $useAjax = true;
-
-	/**
 	 * Whether honeypot spam protection is enabled.
 	 *
 	 * @since 1.0.0
@@ -166,6 +157,15 @@ class FormBlockComponent extends Component
 	 * @var string
 	 */
 	public string $customClass = '';
+
+	/**
+	 * Whether to pre-fill fields from URL query parameters.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var bool
+	 */
+	public bool $prefillViaUrl = false;
 
 	/**
 	 * Whether this is being rendered in the editor.
@@ -254,6 +254,15 @@ class FormBlockComponent extends Component
 			}
 
 			$this->resolvedFields = $fields->all();
+
+			if ( $this->prefillViaUrl ) {
+				$query = request()->query();
+				foreach ( $fields as $field ) {
+					if ( ! $field->isLayoutField() && isset( $query[ $field->name ] ) ) {
+						$this->formData[ $field->name ] = $query[ $field->name ];
+					}
+				}
+			}
 		}
 	}
 

@@ -1034,7 +1034,6 @@ return [
 	'form_layout_inline'                    => 'Inline',
 	'form_layout_grid'                      => 'Grid',
 	'form_columns'                          => 'Columns',
-	'form_use_ajax'                         => 'AJAX submission',
 	'form_enable_honeypot'                  => 'Honeypot spam protection',
 	'form_custom_class'                     => 'Custom CSS class',
 	'form_custom_class_placeholder'         => 'my-custom-form',

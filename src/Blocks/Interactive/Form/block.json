@@ -60,11 +60,6 @@
 			"source": "content",
 			"default": 2
 		},
-		"useAjax": {
-			"type": "boolean",
-			"source": "content",
-			"default": true
-		},
 		"enableHoneypot": {
 			"type": "boolean",
 			"source": "content",

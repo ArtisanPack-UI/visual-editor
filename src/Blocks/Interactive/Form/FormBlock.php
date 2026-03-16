@@ -151,12 +151,6 @@ class FormBlock extends DynamicBlock
 				'default'     => '',
 				'panel'       => __( 'visual-editor::ve.form_panel_submission' ),
 			],
-			'useAjax'           => [
-				'type'    => 'toggle',
-				'label'   => __( 'visual-editor::ve.form_use_ajax' ),
-				'default' => true,
-				'panel'   => __( 'visual-editor::ve.form_panel_advanced' ),
-			],
 			'enableHoneypot'    => [
 				'type'    => 'toggle',
 				'label'   => __( 'visual-editor::ve.form_enable_honeypot' ),

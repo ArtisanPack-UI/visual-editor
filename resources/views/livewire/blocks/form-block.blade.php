@@ -65,9 +65,7 @@
 			@endif
 
 			<form
-				@if ( $useAjax )
-					wire:submit.prevent="submitForm"
-				@endif
+				wire:submit.prevent="submitForm"
 				id="{{ $formElementId }}"
 				class="ve-block-form-form {{ $customClass }}"
 				aria-label="{{ $form->name }}"

@@ -26,8 +26,8 @@
 		:show-labels="$content['showLabels'] ?? true"
 		:layout="$content['layout'] ?? 'stacked'"
 		:columns="$content['columns'] ?? 2"
-		:use-ajax="$content['useAjax'] ?? true"
 		:enable-honeypot="$content['enableHoneypot'] ?? true"
+		:prefill-via-url="$content['prefillViaUrl'] ?? false"
 		:field-spacing="$styles['fieldSpacing'] ?? '1rem'"
 		:custom-class="$content['customClass'] ?? ''"
 	/>

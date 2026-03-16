@@ -37,7 +37,7 @@ test( 'form block has content schema with form fields', function (): void {
 		'formId', 'displayStyle', 'submitButtonText',
 		'submitButtonColor', 'submitButtonSize', 'successMessage',
 		'redirectUrl', 'showLabels', 'layout', 'columns',
-		'useAjax', 'enableHoneypot', 'prefillViaUrl', 'customClass',
+		'enableHoneypot', 'prefillViaUrl', 'customClass',
 	] );
 } );
 
@@ -51,8 +51,8 @@ test( 'form block default content has correct values', function (): void {
 		->and( $defaults['showLabels'] )->toBeTrue()
 		->and( $defaults['layout'] )->toBe( 'stacked' )
 		->and( $defaults['columns'] )->toBe( 2 )
-		->and( $defaults['useAjax'] )->toBeTrue()
-		->and( $defaults['enableHoneypot'] )->toBeTrue();
+		->and( $defaults['enableHoneypot'] )->toBeTrue()
+		->and( $defaults['prefillViaUrl'] )->toBeFalse();
 } );
 
 test( 'form block has style schema with field spacing', function (): void {
