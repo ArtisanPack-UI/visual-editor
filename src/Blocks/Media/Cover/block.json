@@ -1,0 +1,114 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "cover",
+	"name": "Cover",
+	"description": "Add an image or video with a text overlay",
+	"icon": "rectangle-stack",
+	"category": "media",
+	"keywords": ["banner", "hero", "cover", "background", "overlay"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"supportsInnerBlocks": true,
+	"hasJsRenderer": true,
+	"innerBlocksOrientation": "vertical",
+	"attributes": {
+		"mediaType": {
+			"type": "string",
+			"source": "content",
+			"default": "image"
+		},
+		"mediaId": {
+			"type": "integer",
+			"source": "content",
+			"default": 0
+		},
+		"mediaUrl": {
+			"type": "url",
+			"source": "content",
+			"default": ""
+		},
+		"alt": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"focalPoint": {
+			"type": "object",
+			"source": "content",
+			"default": {
+				"x": 0.5,
+				"y": 0.5
+			}
+		},
+		"hasParallax": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"isRepeated": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"overlayColor": {
+			"type": "string",
+			"source": "style",
+			"default": "#000000"
+		},
+		"overlayOpacity": {
+			"type": "integer",
+			"source": "style",
+			"default": 50
+		},
+		"useContentWidth": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"contentMaxWidth": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"minHeight": {
+			"type": "string",
+			"source": "style",
+			"default": "430px"
+		},
+		"minHeightUnit": {
+			"type": "string",
+			"source": "style",
+			"default": "px"
+		},
+		"contentAlignment": {
+			"type": "string",
+			"source": "style",
+			"default": "center"
+		},
+		"fullWidth": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"align": {
+			"type": "string",
+			"source": "style",
+			"default": "none"
+		}
+	},
+	"supports": {
+		"align": ["wide", "full"],
+		"color": {
+			"text": true
+		},
+		"spacing": {
+			"padding": true,
+			"margin": true
+		},
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

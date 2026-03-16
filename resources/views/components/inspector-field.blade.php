@@ -201,6 +201,11 @@
 			@break
 
 		@case ( 'media_picker' )
+			@php
+				$mediaStoreSync = 'dynamic' === $blockId
+					? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); value = _b?.attributes?.' . $name . ' || \'\'; const _fid = $store.selection?.focused || \'dynamic\'; context = _fid + \':\' + ' . Js::from( $name ) . ';'
+					: '';
+			@endphp
 			<div
 				class="ve-inspector-field-media-picker"
 				x-data="{
@@ -214,6 +219,7 @@
 						$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: '' } );
 					}
 				}"
+				@if ( $mediaStoreSync ) x-effect="{{ $mediaStoreSync }}" @endif
 				x-on:ve-media-selected.window="
 					if ( $event.detail.context === context && $event.detail.media && $event.detail.media.length ) {
 						value = $event.detail.media[0].url ?? $event.detail.media[0].path ?? '';

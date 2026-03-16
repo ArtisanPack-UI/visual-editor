@@ -216,7 +216,8 @@ class Editor extends Component
 	 * @param string       $documentStatus   Initial document status.
 	 * @param bool         $showSidebar      Show sidebar by default.
 	 * @param string       $mode             Editor mode (visual/code).
-	 * @param Closure|null $customIconRenderer Optional custom icon renderer.
+	 * @param Closure|null $customIconRenderer  Optional custom icon renderer.
+	 * @param string       $featuredImageUrl    Optional featured image URL for the Cover block placeholder.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -230,8 +231,14 @@ class Editor extends Component
 		public bool $showSidebar = true,
 		public string $mode = 'visual',
 		?Closure $customIconRenderer = null,
+		public string $featuredImageUrl = '',
 	) {
 		$this->uuid = 've-editor-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
+
+		// Resolve featured image URL via hook if not explicitly provided.
+		if ( '' === $this->featuredImageUrl && function_exists( 'applyFilters' ) ) {
+			$this->featuredImageUrl = (string) applyFilters( 've.editor.featured_image_url', '' );
+		}
 
 		/** @var BlockRegistry $registry */
 		$registry = app( 'visual-editor.blocks' );
