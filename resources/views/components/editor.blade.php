@@ -1548,6 +1548,10 @@
 								}
 								tabs = newTabs;
 								if ( store ) { store.updateBlock( block.id, { tabs: newTabs } ); }
+							} else if ( tabs.length > innerBlocks.length ) {
+								const store = Alpine.store( 'editor' );
+								tabs = tabs.slice( 0, innerBlocks.length );
+								if ( store ) { store.updateBlock( block.id, { tabs } ); }
 							}
 
 							const isVertical = [ 'left', 'right' ].includes( tabPosition );
@@ -1742,7 +1746,7 @@
 									+ ' aria-expanded=\'' + ( sectionIsOpen ? 'true' : 'false' ) + '\''
 									+ ' data-ve-toggle-section'
 									+ '>';
-								if ( iconSvg && 'left' === iconPosition ) { html += iconSvg; }
+								if ( iconSvg && 'left' === iconPosition ) { html += sectionIsOpen ? iconSvg : iconSvg.replace( "transform:rotate(90deg);", "transform:none;" ); }
 								html += '<span class=\'ve-accordion-title-editable flex-1\' contenteditable=\'true\''
 									+ ' data-ve-sync-parent-array'
 									+ ' data-parent-id=\'' + block.id + '\''
@@ -1750,11 +1754,11 @@
 									+ ' data-attr-index=\'' + idx + '\''
 									+ ' data-attr-field=\'title\''
 									+ '>' + titleText + '</span>';
-								if ( iconSvg && 'right' === iconPosition ) { html += iconSvg; }
+								if ( iconSvg && 'right' === iconPosition ) { html += sectionIsOpen ? iconSvg : iconSvg.replace( "transform:rotate(90deg);", "transform:none;" ); }
 								html += '</' + hTag + '>';
 
 								// Content with inner blocks — uses generic data-ve-section-content
-								html += '<div class=\'ve-accordion-content\' style=\'' + contentStyle + '\' role=\'region\' data-ve-section-content>';
+								html += '<div class=\'ve-accordion-content\' style=\'' + contentStyle + ( sectionIsOpen ? '' : 'display:none;' ) + '\' role=\'region\' data-ve-section-content>';
 								html += br.getHtml( { ...inner, attributes: { ...inner.attributes, _parentId: block.id } }, context );
 								html += '</div>';
 								html += '</div>';

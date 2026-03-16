@@ -72,7 +72,8 @@
 			if ( this.storageKey ) {
 				const saved = localStorage.getItem( 've-tabs-' + this.storageKey );
 				if ( saved !== null ) {
-					this.activeTab = parseInt( saved, 10 );
+					const parsed = parseInt( saved, 10 );
+					this.activeTab = ( !isNaN( parsed ) && parsed >= 0 && parsed <= {{ $lastTabIndex }} ) ? parsed : 0;
 				}
 			}
 		},
@@ -85,6 +86,8 @@
 	}"
 	x-on:keydown.arrow-right.prevent="setTab( Math.min( activeTab + 1, {{ $lastTabIndex }} ) )"
 	x-on:keydown.arrow-left.prevent="setTab( Math.max( activeTab - 1, 0 ) )"
+	x-on:keydown.arrow-down.prevent="setTab( Math.min( activeTab + 1, {{ $lastTabIndex }} ) )"
+	x-on:keydown.arrow-up.prevent="setTab( Math.max( activeTab - 1, 0 ) )"
 	x-on:keydown.home.prevent="setTab( 0 )"
 	x-on:keydown.end.prevent="setTab( {{ $lastTabIndex }} )"
 >

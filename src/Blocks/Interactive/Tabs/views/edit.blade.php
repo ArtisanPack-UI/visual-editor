@@ -45,6 +45,9 @@
 	if ( $activeTabColor ) {
 		$activeStyles = "--ve-tabs-active-color: {$activeTabColor};";
 	}
+
+	$editTabsId   = 've-edit-tabs-' . substr( md5( serialize( $tabs ) ), 0, 8 );
+	$lastTabIndex = max( count( $tabs ) - 1, 0 );
 @endphp
 
 <div
@@ -53,6 +56,10 @@
 	data-tab-position="{{ $tabPosition }}"
 	data-tab-style="{{ $tabStyle }}"
 	x-data="{ activeTab: 0 }"
+	x-on:keydown.arrow-right.prevent="activeTab = Math.min( activeTab + 1, {{ $lastTabIndex }} )"
+	x-on:keydown.arrow-left.prevent="activeTab = Math.max( activeTab - 1, 0 )"
+	x-on:keydown.home.prevent="activeTab = 0"
+	x-on:keydown.end.prevent="activeTab = {{ $lastTabIndex }}"
 >
 	<div
 		class="{{ $tabsClasses }}"
@@ -63,13 +70,17 @@
 		@foreach ( $tabs as $index => $tab )
 			@php
 				$tabLabel = $tab['label'] ?? __( 'visual-editor::ve.tabs_tab_label_placeholder' ) . ' ' . ( $index + 1 );
+				$tabId    = $tab['id'] ?? $index;
 			@endphp
 			<button
 				type="button"
 				class="tab"
 				:class="activeTab === {{ $index }} ? 'tab-active' : ''"
 				role="tab"
+				id="ve-edit-tab-{{ $editTabsId }}-{{ $tabId }}"
+				aria-controls="ve-edit-tabpanel-{{ $editTabsId }}-{{ $tabId }}"
 				:aria-selected="( activeTab === {{ $index }} ).toString()"
+				:tabindex="activeTab === {{ $index }} ? '0' : '-1'"
 				x-on:click="activeTab = {{ $index }}"
 			>
 				<span contenteditable="true" class="ve-tab-label-editable">{{ $tabLabel }}</span>
@@ -79,9 +90,15 @@
 
 	<div class="ve-tabs-content" @if ( $contentStyles ) style="{{ $contentStyles }}" @endif>
 		@foreach ( $innerBlocks as $index => $innerBlock )
+			@php
+				$panelTabId = $tabs[ $index ]['id'] ?? $index;
+			@endphp
 			<div
 				role="tabpanel"
+				id="ve-edit-tabpanel-{{ $editTabsId }}-{{ $panelTabId }}"
+				aria-labelledby="ve-edit-tab-{{ $editTabsId }}-{{ $panelTabId }}"
 				x-show="activeTab === {{ $index }}"
+				tabindex="0"
 			>
 				{!! $innerBlock !!}
 			</div>

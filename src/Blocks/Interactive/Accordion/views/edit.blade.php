@@ -58,14 +58,20 @@
 				class="ve-accordion-header collapse-title"
 				role="button"
 				tabindex="0"
+				id="ve-accordion-header-{{ $index }}"
+				aria-controls="ve-accordion-content-{{ $index }}"
 				:aria-expanded="open.includes( {{ $index }} ).toString()"
-				x-on:click="open.includes( {{ $index }} ) ? open = open.filter( i => i !== {{ $index }} ) : open = [ ...open, {{ $index }} ]"
+				x-on:click="open.includes( {{ $index }} ) ? open = open.filter( i => i !== {{ $index }} ) : {{ $allowMultiple ? "open = [ ...open, {$index} ]" : "open = [ {$index} ]" }}"
+				x-on:keydown.enter.prevent="open.includes( {{ $index }} ) ? open = open.filter( i => i !== {{ $index }} ) : {{ $allowMultiple ? "open = [ ...open, {$index} ]" : "open = [ {$index} ]" }}"
+				x-on:keydown.space.prevent="open.includes( {{ $index }} ) ? open = open.filter( i => i !== {{ $index }} ) : {{ $allowMultiple ? "open = [ ...open, {$index} ]" : "open = [ {$index} ]" }}"
 			>
 				<span contenteditable="true" class="ve-accordion-title-editable">{{ $sectionTitle }}</span>
 			</{{ $headingTag }}>
 			<div
 				class="ve-accordion-content collapse-content"
 				role="region"
+				id="ve-accordion-content-{{ $index }}"
+				aria-labelledby="ve-accordion-header-{{ $index }}"
 				data-placeholder="{{ __( 'visual-editor::ve.accordion_section_placeholder' ) }}"
 				x-show="open.includes( {{ $index }} )"
 			>
