@@ -4,11 +4,11 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Blocks\BlockDiscoveryService;
 
-test( 'discovery finds all 35 core blocks', function (): void {
+test( 'discovery finds all 36 core blocks', function (): void {
 	$service = new BlockDiscoveryService();
 	$blocks  = $service->discover();
 
-	expect( $blocks )->toHaveCount( 35 );
+	expect( $blocks )->toHaveCount( 36 );
 } );
 
 test( 'discovery returns correct structure for each block', function (): void {
@@ -83,4 +83,28 @@ test( 'load manifest returns null when no manifest exists', function (): void {
 	}
 
 	expect( $service->loadManifest() )->toBeNull();
+} );
+
+test( 'addDiscoveryPath registers additional paths for discovery', function (): void {
+	$service = new BlockDiscoveryService();
+
+	$service->addDiscoveryPath( '/fake/path', 'App\\Blocks' );
+
+	$blocks = $service->discover();
+
+	expect( $blocks )->toHaveCount( 36 );
+} );
+
+test( 'discovery applies ap.visualEditor.discoveryPaths filter', function (): void {
+	$service = new BlockDiscoveryService();
+
+	addFilter( 'ap.visualEditor.discoveryPaths', function ( array $paths ) {
+		return $paths;
+	} );
+
+	$blocks = $service->discover();
+
+	expect( $blocks )->toHaveCount( 36 );
+
+	removeAllFilters( 'ap.visualEditor.discoveryPaths' );
 } );

@@ -236,8 +236,8 @@ class Editor extends Component
 		$this->uuid = 've-editor-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
 		// Resolve featured image URL via hook if not explicitly provided.
-		if ( '' === $this->featuredImageUrl && function_exists( 'applyFilters' ) ) {
-			$this->featuredImageUrl = (string) applyFilters( 've.editor.featured_image_url', '' );
+		if ( '' === $this->featuredImageUrl ) {
+			$this->featuredImageUrl = (string) veApplyFilters( 've.editor.featured_image_url', '' );
 		}
 
 		/** @var BlockRegistry $registry */
@@ -362,7 +362,7 @@ class Editor extends Component
 			if ( $blockType ) {
 				$this->renderedBlocks[ $block['id'] ] = $blockType->renderEditor(
 					$block['attributes'] ?? [],
-					[],
+					$block['styles'] ?? [],
 				);
 			}
 		}

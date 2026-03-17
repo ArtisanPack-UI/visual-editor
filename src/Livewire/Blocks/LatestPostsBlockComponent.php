@@ -250,9 +250,17 @@ class LatestPostsBlockComponent extends Component
 			return $this->getSamplePosts();
 		}
 
-		// TODO: Implement real database query for frontend rendering.
-		// The consuming application should override this component or use
-		// the ve.latest-posts.query filter hook to provide real post data.
+		$posts = veApplyFilters( 've.latest-posts.query', null, [
+			'postType'      => $this->postType,
+			'numberOfPosts' => $this->numberOfPosts,
+			'orderBy'       => $this->orderBy,
+			'categories'    => $this->categories,
+		] );
+
+		if ( is_array( $posts ) ) {
+			return $posts;
+		}
+
 		return $this->getSamplePosts();
 	}
 

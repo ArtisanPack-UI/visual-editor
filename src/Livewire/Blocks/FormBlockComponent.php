@@ -339,9 +339,7 @@ class FormBlockComponent extends Component
 			return null;
 		}
 
-		if ( function_exists( 'doAction' ) ) {
-			doAction( 've.form-block.submitted', $form, $formData );
-		}
+		veDoAction( 've.form-block.submitted', $form, $formData );
 
 		$this->submitted = true;
 
@@ -466,11 +464,9 @@ class FormBlockComponent extends Component
 	{
 		$fields = collect( $this->resolvedFields );
 
-		if ( function_exists( 'applyFilters' ) ) {
-			$filtered = applyFilters( 've.form-block.fields', $fields );
-			if ( is_iterable( $filtered ) ) {
-				$fields = collect( $filtered );
-			}
+		$filtered = veApplyFilters( 've.form-block.fields', $fields );
+		if ( is_iterable( $filtered ) ) {
+			$fields = collect( $filtered );
 		}
 
 		return $fields->all();

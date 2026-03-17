@@ -726,6 +726,18 @@ abstract class BaseBlock implements BlockInterface
 	}
 
 	/**
+	 * Reset the resolved directory cache (used in testing).
+	 *
+	 * @since 2.1.0
+	 *
+	 * @return void
+	 */
+	public static function resetResolvedDirs(): void
+	{
+		self::$resolvedDirs = [];
+	}
+
+	/**
 	 * Get the style field schema.
 	 *
 	 * Auto-generates schema entries from block.json supports so that

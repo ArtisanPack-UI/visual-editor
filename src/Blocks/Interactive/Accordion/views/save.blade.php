@@ -74,22 +74,19 @@
 >
 	@foreach ( $innerBlocks as $index => $innerBlock )
 		@php
-			$section        = $sections[ $index ] ?? [];
-			$sectionTitle   = $section['title'] ?? __( 'visual-editor::ve.accordion_section_title_placeholder' ) . ' ' . ( $index + 1 );
-			$headingLevel   = $section['headingLevel'] ?? 'h3';
-			$headingTag     = in_array( $headingLevel, [ 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ? $headingLevel : 'h3';
-			$sectionId      = $section['id'] ?? $index;
-			$sectionClasses = 've-accordion-section collapse';
-			if ( 'joined' === $accordionStyle ) {
-				$sectionClasses .= ' collapse-' . ( 'plus-minus' === $iconStyle ? 'plus' : 'arrow' );
-			}
+			$section      = $sections[ $index ] ?? [];
+			$sectionTitle = $section['title'] ?? __( 'visual-editor::ve.accordion_section_title_placeholder' ) . ' ' . ( $index + 1 );
+			$headingLevel = $section['headingLevel'] ?? 'h3';
+			$headingTag   = in_array( $headingLevel, [ 'h2', 'h3', 'h4', 'h5', 'h6' ], true ) ? $headingLevel : 'h3';
+			$sectionId    = $section['id'] ?? $index;
 		@endphp
 		<div
-			class="{{ $sectionClasses }}"
-			:class="isOpen( {{ $index }} ) ? 'collapse-open' : 'collapse-close'"
+			class="ve-accordion-section"
+			:class="isOpen( {{ $index }} ) ? 've-accordion-section-open' : 've-accordion-section-closed'"
 		>
 			<{{ $headingTag }}
-				class="ve-accordion-header collapse-title"
+				class="ve-accordion-header"
+				style="cursor: pointer;"
 				role="button"
 				tabindex="0"
 				id="ve-accordion-header-{{ $elementId }}-{{ $sectionId }}"
@@ -102,14 +99,12 @@
 				{{ $sectionTitle }}
 			</{{ $headingTag }}>
 			<div
-				class="ve-accordion-content collapse-content"
+				class="ve-accordion-content"
 				role="region"
 				id="ve-accordion-content-{{ $elementId }}-{{ $sectionId }}"
 				aria-labelledby="ve-accordion-header-{{ $elementId }}-{{ $sectionId }}"
 				x-show="isOpen( {{ $index }} )"
-				x-transition:enter="transition ease-out duration-200"
-				x-transition:enter-start="opacity-0 -translate-y-1"
-				x-transition:enter-end="opacity-100 translate-y-0"
+				x-collapse
 			>
 				{!! $innerBlock !!}
 			</div>

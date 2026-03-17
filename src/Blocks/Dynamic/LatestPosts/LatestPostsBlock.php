@@ -55,9 +55,7 @@ class LatestPostsBlock extends DynamicBlock
 	{
 		$postTypes = [ 'post' => __( 'visual-editor::ve.post' ) ];
 
-		if ( function_exists( 'applyFilters' ) ) {
-			$postTypes = applyFilters( 've.latest-posts.post-types', $postTypes );
-		}
+		$postTypes = veApplyFilters( 've.latest-posts.post-types', $postTypes );
 
 		return [
 			'postType'           => [

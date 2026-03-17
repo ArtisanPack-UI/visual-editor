@@ -157,11 +157,9 @@ class SearchBlockComponent extends Component
 	{
 		$url = '/search';
 
-		if ( function_exists( 'applyFilters' ) ) {
-			$filtered = applyFilters( 've.search.action-url', $url );
-			if ( is_string( $filtered ) ) {
-				$url = $filtered;
-			}
+		$filtered = veApplyFilters( 've.search.action-url', $url );
+		if ( is_string( $filtered ) ) {
+			$url = $filtered;
 		}
 
 		return $url;

@@ -32,6 +32,40 @@ test( 'visualEditor helper returns VisualEditor instance', function (): void {
 	expect( visualEditor() )->toBeInstanceOf( ArtisanPackUI\VisualEditor\VisualEditor::class );
 } );
 
+// --- Hook Helpers ---
+
+test( 'veDoAction fires action when hooks package is available', function (): void {
+	$fired = false;
+
+	addAction( 'test.ve.do.action', function () use ( &$fired ): void {
+		$fired = true;
+	} );
+
+	veDoAction( 'test.ve.do.action' );
+
+	expect( $fired )->toBeTrue();
+
+	removeAllActions( 'test.ve.do.action' );
+} );
+
+test( 'veApplyFilters returns filtered value', function (): void {
+	addFilter( 'test.ve.apply.filters', function ( string $value ) {
+		return $value . '-filtered';
+	} );
+
+	$result = veApplyFilters( 'test.ve.apply.filters', 'original' );
+
+	expect( $result )->toBe( 'original-filtered' );
+
+	removeAllFilters( 'test.ve.apply.filters' );
+} );
+
+test( 'veApplyFilters returns original value when no filter registered', function (): void {
+	$result = veApplyFilters( 'test.ve.unregistered.filter', 'original' );
+
+	expect( $result )->toBe( 'original' );
+} );
+
 // --- CSS Sanitization Helpers ---
 
 test( 'veSanitizeCssColor accepts valid hex colors', function (): void {

@@ -254,11 +254,9 @@ class FormBlock extends DynamicBlock
 				->orderBy( 'name' )
 				->get();
 
-			if ( function_exists( 'applyFilters' ) ) {
-				$filtered = applyFilters( 've.form-block.available-forms', $forms );
-				if ( is_iterable( $filtered ) ) {
-					$forms = $filtered;
-				}
+			$filtered = veApplyFilters( 've.form-block.available-forms', $forms );
+			if ( is_iterable( $filtered ) ) {
+				$forms = $filtered;
 			}
 
 			foreach ( $forms as $form ) {
