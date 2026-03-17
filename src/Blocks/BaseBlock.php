@@ -624,6 +624,22 @@ abstract class BaseBlock implements BlockInterface
 	}
 
 	/**
+	 * Whether this block is a dynamic (server-rendered) block.
+	 *
+	 * Dynamic blocks are rendered server-side via Livewire components
+	 * instead of storing static content. Returns false by default;
+	 * DynamicBlock subclass overrides this to return true.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return bool
+	 */
+	public function isDynamic(): bool
+	{
+		return $this->metadata['dynamic'] ?? false;
+	}
+
+	/**
 	 * Whether this block has a custom JavaScript renderer.
 	 *
 	 * Blocks with inner blocks or custom editor rendering should
@@ -658,6 +674,7 @@ abstract class BaseBlock implements BlockInterface
 			'category'               => $this->getCategory(),
 			'keywords'               => $this->getKeywords(),
 			'public'                 => $this->isPublic(),
+			'dynamic'                => $this->isDynamic(),
 			'supportsInnerBlocks'    => $this->supportsInnerBlocks(),
 			'innerBlocksOrientation' => $this->getInnerBlocksOrientation(),
 			'allowedChildren'        => $this->getAllowedChildren(),
@@ -706,6 +723,18 @@ abstract class BaseBlock implements BlockInterface
 	public static function resetCachedManifest(): void
 	{
 		self::$cachedManifest = false;
+	}
+
+	/**
+	 * Reset the resolved directory cache (used in testing).
+	 *
+	 * @since 2.1.0
+	 *
+	 * @return void
+	 */
+	public static function resetResolvedDirs(): void
+	{
+		self::$resolvedDirs = [];
 	}
 
 	/**

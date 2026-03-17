@@ -805,6 +805,8 @@
 							'video-url': 'url',
 							'audio-url': 'url',
 							'toolbar-replace': 'url',
+							'cover-media': 'mediaUrl',
+							'media-text-url': 'mediaUrl',
 						};
 
 						// Gallery-add context: create inner image blocks instead of updating a field.
@@ -878,6 +880,120 @@
 						}
 
 						if ( blockId ) {
+							// Special handling for table header/footer toggles:
+							// add or remove dedicated rows instead of converting existing ones.
+							const block = this.getBlock( blockId );
+							if ( block && 'table' === block.type && block.attributes?.rows ) {
+								const newCell = () => ( { content: '', colSpan: 1, rowSpan: 1, alignment: 'left' } );
+								const numCols = block.attributes.rows[0] ? block.attributes.rows[0].length : 2;
+
+								if ( 'hasHeaderRow' === field ) {
+									// Sync cell content from DOM before modifying.
+									const tableEl = document.querySelector( '[data-block-id=\'' + CSS.escape( blockId ) + '\'] table' );
+									const rows = JSON.parse( JSON.stringify( block.attributes.rows ) );
+									if ( tableEl ) {
+										tableEl.querySelectorAll( '[data-row][data-col]' ).forEach( ( cell ) => {
+											const r = parseInt( cell.getAttribute( 'data-row' ) );
+											const c = parseInt( cell.getAttribute( 'data-col' ) );
+											if ( rows[ r ] && rows[ r ][ c ] ) { rows[ r ][ c ].content = cell.innerHTML; }
+										} );
+									}
+									if ( value ) {
+										// Add new header row at position 0.
+										rows.unshift( Array.from( { length: numCols }, newCell ) );
+									} else {
+										// Remove the header row (first row).
+										rows.shift();
+									}
+									this.updateBlock( blockId, { rows: rows, hasHeaderRow: value } );
+									return;
+								}
+
+								if ( 'hasFooterRow' === field ) {
+									const tableEl = document.querySelector( '[data-block-id=\'' + CSS.escape( blockId ) + '\'] table' );
+									const rows = JSON.parse( JSON.stringify( block.attributes.rows ) );
+									if ( tableEl ) {
+										tableEl.querySelectorAll( '[data-row][data-col]' ).forEach( ( cell ) => {
+											const r = parseInt( cell.getAttribute( 'data-row' ) );
+											const c = parseInt( cell.getAttribute( 'data-col' ) );
+											if ( rows[ r ] && rows[ r ][ c ] ) { rows[ r ][ c ].content = cell.innerHTML; }
+										} );
+									}
+									if ( value ) {
+										// Add new footer row at end.
+										rows.push( Array.from( { length: numCols }, newCell ) );
+									} else {
+										// Remove the footer row (last row).
+										rows.pop();
+									}
+									this.updateBlock( blockId, { rows: rows, hasFooterRow: value } );
+									return;
+								}
+							}
+
+							// Embed / Social Embed: changing the URL should
+							// trigger a fresh oEmbed resolve so the preview updates.
+							if ( 'url' === field && block && ( 'embed' === block.type || 'social-embed' === block.type ) ) {
+								// Clear derived metadata immediately (handles empty URL too).
+								this.updateBlock( blockId, { url: value || '', html: '', _source: '', title: '', description: '', thumbnailUrl: '', providerName: '', platform: '' } );
+								if ( ! value ) return;
+
+								const requestedUrl = value;
+								const _store       = this;
+								fetch( '/api/visual-editor/embed/resolve', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+									body: JSON.stringify( { url: requestedUrl } ),
+								} )
+								.then( ( r ) => r.json() )
+								.then( ( j ) => {
+									// Guard against stale responses: only apply if the
+									// block still exists and its URL matches what we requested.
+									const current = _store.getBlock( blockId );
+									if ( ! current || current.attributes?.url !== requestedUrl ) return;
+									if ( j.success && j.data ) {
+										_store.updateBlock( blockId, {
+											url:          requestedUrl,
+											html:         j.data.html || '',
+											title:        j.data.title || '',
+											description:  j.data.description || '',
+											thumbnailUrl: j.data.thumbnailUrl || j.data.thumbnail_url || '',
+											providerName: j.data.provider_name || j.data.providerName || '',
+											_source:      j.data._source || '',
+											platform:     j.platform || '',
+										} );
+									}
+								} )
+								.catch( () => {} );
+								return;
+							}
+
+							// Map Embed: changing the address should trigger
+							// a geocode to update the coordinates.
+							if ( 'address' === field && block && 'map-embed' === block.type && value ) {
+								const requestedAddress = value;
+								const _store           = this;
+								this.updateBlock( blockId, { address: value } );
+								fetch( '/api/visual-editor/geocode?q=' + encodeURIComponent( requestedAddress ), {
+									headers: { 'Accept': 'application/json' },
+								} )
+								.then( ( r ) => r.json() )
+								.then( ( j ) => {
+									// Guard against stale responses.
+									const current = _store.getBlock( blockId );
+									if ( ! current || current.attributes?.address !== requestedAddress ) return;
+									if ( j.success && j.results && j.results.length > 0 ) {
+										_store.updateBlock( blockId, {
+											address:   j.results[0].display_name || requestedAddress,
+											latitude:  j.results[0].lat,
+											longitude: j.results[0].lon,
+										} );
+									}
+								} )
+								.catch( () => {} );
+								return;
+							}
+
 							this.updateBlock( blockId, { [field]: value } );
 						}
 					} );

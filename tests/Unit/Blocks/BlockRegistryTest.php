@@ -5,6 +5,7 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Blocks\BlockRegistry;
 use Tests\Unit\Blocks\Stubs\StubBlock;
 use Tests\Unit\Blocks\Stubs\StubContainerBlock;
+use Tests\Unit\Blocks\Stubs\StubDynamicBlock;
 
 test( 'registry can register a block', function (): void {
 	$registry = new BlockRegistry();
@@ -157,11 +158,25 @@ test( 'registry get dynamic blocks filters correctly', function (): void {
 
 	$registry->register( new StubBlock() );
 	$registry->register( new StubContainerBlock() );
+	$registry->register( new StubDynamicBlock() );
 
 	$dynamic = $registry->getDynamicBlocks();
 
 	expect( $dynamic )->toHaveCount( 1 )
-		->and( $dynamic )->toHaveKey( 'stub-container' );
+		->and( $dynamic )->toHaveKey( 'stub-dynamic' );
+} );
+
+test( 'registry get js renderer blocks filters correctly', function (): void {
+	$registry = new BlockRegistry();
+
+	$registry->register( new StubBlock() );
+	$registry->register( new StubContainerBlock() );
+	$registry->register( new StubDynamicBlock() );
+
+	$jsRendered = $registry->getJsRendererBlocks();
+
+	expect( $jsRendered )->toHaveCount( 1 )
+		->and( $jsRendered )->toHaveKey( 'stub-container' );
 } );
 
 test( 'registry to array serializes all blocks', function (): void {
@@ -178,4 +193,74 @@ test( 'registry to array serializes all blocks', function (): void {
 		->and( $array['stub-container']['supportsInnerBlocks'] )->toBeTrue()
 		->and( $array['stub-container']['hasJsRenderer'] )->toBeTrue()
 		->and( $array['stub-container']['innerBlocksOrientation'] )->toBe( 'horizontal' );
+} );
+
+test( 'registry all applies ap.visualEditor.blocks filter', function (): void {
+	$registry = new BlockRegistry();
+	$block    = new StubBlock();
+
+	$registry->register( $block );
+
+	addFilter( 'ap.visualEditor.blocks', function ( array $blocks ) {
+		unset( $blocks['stub'] );
+
+		return $blocks;
+	} );
+
+	expect( $registry->all() )->toBeEmpty();
+
+	removeAllFilters( 'ap.visualEditor.blocks' );
+} );
+
+test( 'registry all allows adding blocks via filter', function (): void {
+	$registry = new BlockRegistry();
+	$block    = new StubBlock();
+
+	addFilter( 'ap.visualEditor.blocks', function ( array $blocks ) use ( $block ) {
+		$blocks['stub'] = $block;
+
+		return $blocks;
+	} );
+
+	$all = $registry->all();
+
+	expect( $all )->toHaveKey( 'stub' );
+	expect( $all['stub'] )->toBe( $block );
+
+	removeAllFilters( 'ap.visualEditor.blocks' );
+} );
+
+test( 'registry getCategories applies ap.visualEditor.blockCategories filter', function (): void {
+	$registry = new BlockRegistry();
+
+	$registry->register( new StubBlock() );
+
+	addFilter( 'ap.visualEditor.blockCategories', function ( array $categories ) {
+		$categories[] = 'custom';
+
+		return $categories;
+	} );
+
+	$categories = $registry->getCategories();
+
+	expect( $categories )->toContain( 'text' );
+	expect( $categories )->toContain( 'custom' );
+
+	removeAllFilters( 'ap.visualEditor.blockCategories' );
+} );
+
+test( 'registry register fires ap.visualEditor.block.registered action', function (): void {
+	$registry = new BlockRegistry();
+	$block    = new StubBlock();
+	$fired    = false;
+
+	addAction( 'ap.visualEditor.block.registered', function () use ( &$fired ): void {
+		$fired = true;
+	} );
+
+	$registry->register( $block );
+
+	expect( $fired )->toBeTrue();
+
+	removeAllActions( 'ap.visualEditor.block.registered' );
 } );

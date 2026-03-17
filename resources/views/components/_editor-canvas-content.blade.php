@@ -4,6 +4,7 @@
 						preRendered: {{ Js::from( $renderedBlocks ) }},
 						defaultTemplates: {{ Js::from( $defaultBlockTemplates ) }},
 						blockNames: {{ Js::from( $transformableBlocks ) }},
+						featuredImageUrl: {{ Js::from( $featuredImageUrl ?? '' ) }},
 						draggingBlockId: null,
 						blockAlignSupports: {{ Js::from( $blockAlignSupports ) }},
 						inserterBlocks: {{ Js::from( $inserterBlocks ) }},
@@ -401,13 +402,244 @@
 								if ( ! block ) return;
 
 								const newBlock = {
-									id: Alpine.store( 'editor' ).generateBlockId() + '-' + blockType + '-' + ( ( block.innerBlocks || [] ).length ),
 									type: blockType,
 									attributes: {},
 									innerBlocks: [],
 								};
 
 								store.addInnerBlock( parentId, newBlock );
+							} );
+
+							// Generic panel switcher: show one panel, hide siblings.
+							// Trigger: data-ve-show-panel, Container: data-ve-panel-group, Panels: data-ve-panel.
+							el.addEventListener( 'click', ( e ) => {
+								const trigger = e.target.closest( '[data-ve-show-panel]' );
+								if ( ! trigger ) return;
+
+								// Don't switch panels when clicking editable labels inside the trigger.
+								if ( e.target.hasAttribute( 'contenteditable' ) ) return;
+
+								const idx   = parseInt( trigger.getAttribute( 'data-ve-show-panel' ), 10 );
+								const group = trigger.closest( '[data-ve-panel-group]' );
+								if ( ! group ) return;
+
+								// Toggle panels.
+								group.querySelectorAll( '[data-ve-panel]' ).forEach( ( panel ) => {
+									panel.style.display = parseInt( panel.getAttribute( 'data-ve-panel' ), 10 ) === idx ? '' : 'none';
+								} );
+
+								// Toggle active class on triggers.
+								group.querySelectorAll( '[data-ve-show-panel]' ).forEach( ( btn ) => {
+									btn.classList.toggle( 'tab-active', parseInt( btn.getAttribute( 'data-ve-show-panel' ), 10 ) === idx );
+								} );
+							} );
+
+							// Generic section toggler: toggle content visibility.
+							// Trigger: data-ve-toggle-section, Section: data-ve-section, Content: data-ve-section-content.
+							el.addEventListener( 'click', ( e ) => {
+								const trigger = e.target.closest( '[data-ve-toggle-section]' );
+								if ( ! trigger ) return;
+
+								// Don't toggle when clicking editable titles inside the trigger.
+								if ( e.target.hasAttribute( 'contenteditable' ) ) return;
+
+								const section = trigger.closest( '[data-ve-section]' );
+								if ( ! section ) return;
+
+								const content = section.querySelector( '[data-ve-section-content]' );
+								if ( ! content ) return;
+
+								const isHidden = 'none' === content.style.display;
+								content.style.display = isHidden ? '' : 'none';
+								trigger.setAttribute( 'aria-expanded', isHidden ? 'true' : 'false' );
+
+								// Rotate icon if present.
+								const icon = trigger.querySelector( '.ve-accordion-icon' );
+								if ( icon ) {
+									icon.style.transform = isHidden ? 'rotate(90deg)' : '';
+								}
+							} );
+
+							// Embed / Social resolve button: fetch oEmbed via API.
+							el.addEventListener( 'click', ( e ) => {
+								const resolveBtn = e.target.closest( '[data-ve-resolve-embed]' );
+								if ( ! resolveBtn ) return;
+
+								const blockId      = resolveBtn.getAttribute( 'data-ve-resolve-embed' );
+								const wrapper      = resolveBtn.closest( '.ve-block' );
+								const input        = wrapper?.querySelector( '[data-ve-url-input]' );
+								const requestedUrl = ( input?.value || '' ).trim();
+								if ( ! requestedUrl ) return;
+
+								resolveBtn.disabled = true;
+								const spinner = resolveBtn.querySelector( '.ve-resolve-spinner' );
+								const label   = resolveBtn.querySelector( '.ve-resolve-label' );
+								if ( spinner ) spinner.style.display = '';
+								if ( label ) label.style.display = 'none';
+
+								fetch( '/api/visual-editor/embed/resolve', {
+									method: 'POST',
+									headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+									body: JSON.stringify( { url: requestedUrl } ),
+								} )
+								.then( ( r ) => r.json() )
+								.then( ( j ) => {
+									// Guard against stale responses: bail if the block
+									// no longer exists, its stored URL changed, or the
+									// user typed a different URL into the input since
+									// the request was fired.
+									const current = Alpine.store( 'editor' )?.getBlock( blockId );
+									if ( ! current ) return;
+									if ( current.attributes?.url && current.attributes.url !== requestedUrl ) return;
+									const latestInput = ( input?.value || '' ).trim();
+									if ( latestInput && latestInput !== requestedUrl ) return;
+									if ( j.success && j.data ) {
+										Alpine.store( 'editor' ).updateBlock( blockId, {
+											url:          requestedUrl,
+											html:         j.data.html || '',
+											title:        j.data.title || '',
+											description:  j.data.description || '',
+											thumbnailUrl: j.data.thumbnailUrl || j.data.thumbnail_url || '',
+											providerName: j.data.provider_name || j.data.providerName || '',
+											providerUrl:  j.data.provider_url || j.data.providerUrl || '',
+											_source:      j.data._source || '',
+											platform:     j.platform || '',
+										} );
+									} else {
+										const msg  = wrapper?.querySelector( '.ve-resolve-error' );
+										const hint = wrapper?.querySelector( '.ve-resolve-hint' );
+										if ( msg ) msg.style.display = '';
+										if ( hint ) hint.style.display = 'none';
+									}
+								} )
+								.catch( () => {
+									const msg  = wrapper?.querySelector( '.ve-resolve-error' );
+									const hint = wrapper?.querySelector( '.ve-resolve-hint' );
+									if ( msg ) msg.style.display = '';
+									if ( hint ) hint.style.display = 'none';
+								} )
+								.finally( () => {
+									resolveBtn.disabled = false;
+									if ( spinner ) spinner.style.display = 'none';
+									if ( label ) label.style.display = '';
+								} );
+							} );
+
+							// Track map input values outside the DOM so they survive
+							// x-html re-renders that replace the input elements.
+							const _mapDraft = {};
+							el.addEventListener( 'input', ( e ) => {
+								const addrIn = e.target.closest( '[data-ve-map-address]' );
+								if ( addrIn ) {
+									const btn = addrIn.closest( '.ve-block' )?.querySelector( '[data-ve-map-search]' );
+									if ( btn ) {
+										const id = btn.getAttribute( 'data-ve-map-search' );
+										if ( ! _mapDraft[ id ] ) _mapDraft[ id ] = {};
+										_mapDraft[ id ].address = addrIn.value;
+									}
+									return;
+								}
+								const latIn = e.target.closest( '[data-ve-map-lat]' );
+								if ( latIn ) {
+									const btn = latIn.closest( '.ve-block' )?.querySelector( '[data-ve-map-set-coords]' );
+									if ( btn ) {
+										const id = btn.getAttribute( 'data-ve-map-set-coords' );
+										if ( ! _mapDraft[ id ] ) _mapDraft[ id ] = {};
+										_mapDraft[ id ].lat = latIn.value;
+									}
+									return;
+								}
+								const lngIn = e.target.closest( '[data-ve-map-lng]' );
+								if ( lngIn ) {
+									const btn = lngIn.closest( '.ve-block' )?.querySelector( '[data-ve-map-set-coords]' );
+									if ( btn ) {
+										const id = btn.getAttribute( 'data-ve-map-set-coords' );
+										if ( ! _mapDraft[ id ] ) _mapDraft[ id ] = {};
+										_mapDraft[ id ].lng = lngIn.value;
+									}
+								}
+							} );
+
+							// Map search button: geocode via Nominatim.
+							el.addEventListener( 'click', ( e ) => {
+								const mapBtn = e.target.closest( '[data-ve-map-search]' );
+								if ( ! mapBtn ) return;
+
+								const blockId = mapBtn.getAttribute( 'data-ve-map-search' );
+								const wrapper = mapBtn.closest( '.ve-block' );
+								const input   = wrapper?.querySelector( '[data-ve-map-address]' );
+
+								// Read from DOM first, fall back to tracked draft value.
+								const requestedAddress = ( input?.value || _mapDraft[ blockId ]?.address || '' ).trim();
+								if ( ! requestedAddress ) return;
+
+								// Clean up draft value for this block.
+								delete _mapDraft[ blockId ];
+
+								// Hide any previous error, show spinner.
+								const errorEl = wrapper?.querySelector( '.ve-map-error' );
+								if ( errorEl ) errorEl.style.display = 'none';
+
+								mapBtn.disabled = true;
+								const spinner = mapBtn.querySelector( '.ve-resolve-spinner' );
+								const label   = mapBtn.querySelector( '.ve-resolve-label' );
+								if ( spinner ) spinner.style.display = '';
+								if ( label ) label.style.display = 'none';
+
+								fetch( '/api/visual-editor/geocode?q=' + encodeURIComponent( requestedAddress ), {
+									headers: { 'Accept': 'application/json' },
+								} )
+									.then( ( r ) => r.json() )
+									.then( ( j ) => {
+										if ( j.success && j.results && j.results.length > 0 && Alpine.store( 'editor' ) ) {
+											// Skip if the user changed the address while the
+											// request was in flight, or if the user manually
+											// entered coordinates and the address is unchanged.
+											const blk = Alpine.store( 'editor' ).getBlock( blockId );
+											const currentAddress = ( input?.value || _mapDraft[ blockId ]?.address || '' ).trim();
+											if ( currentAddress && currentAddress !== requestedAddress ) return;
+											if ( blk && blk.attributes?.latitude && blk.attributes?.longitude && ( ! currentAddress || currentAddress === blk.attributes?.address ) ) return;
+											Alpine.store( 'editor' ).updateBlock( blockId, {
+												address:   j.results[0].display_name || requestedAddress,
+												latitude:  j.results[0].lat,
+												longitude: j.results[0].lon,
+											} );
+										} else if ( errorEl ) {
+											errorEl.style.display = '';
+										}
+									} )
+									.catch( () => {
+										if ( errorEl ) errorEl.style.display = '';
+									} )
+									.finally( () => {
+										mapBtn.disabled = false;
+										if ( spinner ) spinner.style.display = 'none';
+										if ( label ) label.style.display = '';
+									} );
+							} );
+
+							// Map manual coordinates button.
+							el.addEventListener( 'click', ( e ) => {
+								const coordBtn = e.target.closest( '[data-ve-map-set-coords]' );
+								if ( ! coordBtn ) return;
+
+								const blockId = coordBtn.getAttribute( 'data-ve-map-set-coords' );
+								const wrapper = coordBtn.closest( '.ve-block' );
+								const latIn   = wrapper?.querySelector( '[data-ve-map-lat]' );
+								const lngIn   = wrapper?.querySelector( '[data-ve-map-lng]' );
+
+								// Read from DOM first, fall back to tracked draft values.
+								// Validate as finite numbers within valid coordinate ranges.
+								const latNum = parseFloat( ( latIn?.value || _mapDraft[ blockId ]?.lat || '' ).trim() );
+								const lngNum = parseFloat( ( lngIn?.value || _mapDraft[ blockId ]?.lng || '' ).trim() );
+
+								if ( Number.isFinite( latNum ) && Number.isFinite( lngNum )
+									&& latNum >= -90 && latNum <= 90
+									&& lngNum >= -180 && lngNum <= 180
+									&& Alpine.store( 'editor' ) ) {
+									delete _mapDraft[ blockId ];
+									Alpine.store( 'editor' ).updateBlock( blockId, { latitude: String( latNum ), longitude: String( lngNum ) } );
+								}
 							} );
 
 							// Inner block drag handle: start dragging an inner block.
@@ -721,6 +953,66 @@
 										store.updateBlock( blockId, { citation: e.target.innerHTML } );
 									}
 								}
+
+								// Generic: sync contenteditable text into a parent block array attribute.
+								// Uses: data-ve-sync-parent-array, data-parent-id, data-attr-name, data-attr-index, data-attr-field.
+								if ( e.target.hasAttribute( 'data-ve-sync-parent-array' ) ) {
+									const parentId  = e.target.getAttribute( 'data-parent-id' );
+									const attrName  = e.target.getAttribute( 'data-attr-name' );
+									const attrIndex = parseInt( e.target.getAttribute( 'data-attr-index' ), 10 );
+									const attrField = e.target.getAttribute( 'data-attr-field' );
+									if ( parentId && attrName && attrField && ! isNaN( attrIndex ) ) {
+										const block = store.getBlock( parentId );
+										if ( block ) {
+											const arr = [ ...( block.attributes?.[ attrName ] || [] ) ];
+											if ( arr[ attrIndex ] ) {
+												arr[ attrIndex ] = { ...arr[ attrIndex ], [ attrField ]: e.target.textContent.trim() };
+												store.updateBlock( parentId, { [ attrName ]: arr } );
+											}
+										}
+									}
+								}
+
+								// Sync details summary text to store on blur.
+								if ( e.target.classList.contains( 've-details-summary' ) ) {
+									const blockEl = e.target.closest( '[data-block-id]' );
+									if ( blockEl ) {
+										const blockId = blockEl.getAttribute( 'data-block-id' );
+										store.updateBlock( blockId, { summary: e.target.innerHTML } );
+									}
+								}
+
+								// Sync table cell content to store on blur.
+								// Skip if focus is moving to another cell or caption
+								// in the same table — updating the store would re-render
+								// the table via x-html and destroy the newly focused cell.
+								if ( e.target.hasAttribute( 'data-row' ) && e.target.hasAttribute( 'data-col' ) ) {
+									const related = e.relatedTarget;
+									const sameTable = related && e.target.closest( '.ve-block-table' ) === related.closest( '.ve-block-table' );
+									const movingToCell = sameTable && ( related.hasAttribute( 'data-row' ) || 'CAPTION' === related.tagName );
+									if ( ! movingToCell ) {
+										const blockEl = e.target.closest( '[data-block-id]' );
+										if ( blockEl ) {
+											const blockId = blockEl.getAttribute( 'data-block-id' );
+											this._syncTableCellsToStore( store, blockEl, blockId );
+										}
+									}
+								}
+
+								// Sync table caption to store on blur.
+								// Same guard: skip if moving to a cell in the same table.
+								if ( 'CAPTION' === e.target.tagName && e.target.closest( '.ve-block-table' ) ) {
+									const related = e.relatedTarget;
+									const sameTable = related && e.target.closest( '.ve-block-table' ) === related.closest( '.ve-block-table' );
+									const movingToCell = sameTable && ( related.hasAttribute( 'data-row' ) || 'CAPTION' === related.tagName );
+									if ( ! movingToCell ) {
+										const blockEl = e.target.closest( '[data-block-id]' );
+										if ( blockEl ) {
+											const blockId = blockEl.getAttribute( 'data-block-id' );
+											this._syncTableCellsToStore( store, blockEl, blockId );
+										}
+									}
+								}
 							} );
 
 							// Expose for use in handleInput.
@@ -935,7 +1227,7 @@
 								}
 
 								// Preserve existing content from the DOM if available.
-								const existingEl = document.querySelector( '[data-block-id="' + CSS.escape( block.id ) + '"] ' + tag );
+								const existingEl = document.querySelector( '[data-block-id=\'' + CSS.escape( block.id ) + '\'] ' + tag );
 								let innerHtml = '<li data-placeholder=\'' + placeholder + '\'></li>';
 								if ( existingEl ) {
 									innerHtml = existingEl.innerHTML;
@@ -947,7 +1239,7 @@
 								} else {
 									// Check if we have pre-rendered HTML for a different tag type
 									const altTag = 'ol' === tag ? 'ul' : 'ol';
-									const altEl  = document.querySelector( '[data-block-id="' + CSS.escape( block.id ) + '"] ' + altTag );
+									const altEl  = document.querySelector( '[data-block-id=\'' + CSS.escape( block.id ) + '\'] ' + altTag );
 									if ( altEl ) {
 										innerHtml = altEl.innerHTML;
 									}
@@ -975,7 +1267,7 @@
 								if ( textColor ) { inlineStyle += 'color:' + textColor + ';'; }
 								if ( bgColor ) { inlineStyle += 'background-color:' + bgColor + ';'; }
 								if ( bgImage ) {
-									inlineStyle += 'background-image:url(&quot;' + bgImage + '&quot;);';
+									inlineStyle += 'background-image:url(\x27' + bgImage + '\x27);';
 									inlineStyle += 'background-size:' + bgSize + ';';
 									inlineStyle += 'background-position:' + bgPosition + ';';
 								}
@@ -983,7 +1275,7 @@
 								// Read citation from DOM if element exists, else fall back to store.
 								let citationText = '';
 								if ( showCitation ) {
-									const existingCite = document.querySelector( '[data-block-id="' + CSS.escape( block.id ) + '"] .ve-quote-citation' );
+									const existingCite = document.querySelector( '[data-block-id=\'' + CSS.escape( block.id ) + '\'] .ve-quote-citation' );
 									citationText = existingCite ? existingCite.innerHTML : ( block.attributes?.citation || '' );
 								}
 
@@ -1119,6 +1411,18 @@
 								return this.getFileBlockHtml( block );
 							}
 
+							// Cover blocks are rendered dynamically so inner blocks
+							// and media/overlay settings react to changes.
+							if ( 'cover' === block.type ) {
+								return this.getCoverBlockHtml( block );
+							}
+
+							// Media & Text blocks are rendered dynamically so inner
+							// blocks, media, and layout settings react to changes.
+							if ( 'media-text' === block.type ) {
+								return this.getMediaTextBlockHtml( block );
+							}
+
 							// Group blocks are rendered dynamically so inner blocks
 							// and variation picker react to structural changes.
 							if ( 'group' === block.type ) {
@@ -1198,7 +1502,7 @@
 									+ '</figure>';
 							}
 
-							const safeAlt = alt.replace( /&/g, '&amp;' ).replace( /</g, '&lt;' ).replace( />/g, '&gt;' ).replace( /"/g, '&quot;' ).replace( /'/g, '&#39;' );
+							const safeAlt = alt.replace( /&/g, '\x26amp;' ).replace( /</g, '\x26lt;' ).replace( />/g, '\x26gt;' ).replace( /\u0022/g, '\x26quot;' ).replace( /\x27/g, '\x26#39;' );
 							return '<figure class=\'' + figClasses + '\'>'
 								+ '<img src=\'' + url + '\' alt=\'' + safeAlt + '\' style=\'' + imgStyle + '\' />'
 								+ '<figcaption contenteditable=\'true\' data-placeholder=\'' + this.captionPlaceholder + '\'>' + caption + '</figcaption>'
@@ -1343,6 +1647,352 @@
 
 							html += '</div></div>';
 							return html;
+						},
+
+						getCoverBlockHtml( block ) {
+							const mediaType        = block.attributes?.mediaType || 'image';
+							const mediaUrl         = block.attributes?.mediaUrl || '';
+							const alt              = block.attributes?.alt || '';
+							const focalPoint       = block.attributes?.focalPoint || { x: 0.5, y: 0.5 };
+							const hasParallax      = block.attributes?.hasParallax || false;
+							const isRepeated       = block.attributes?.isRepeated || false;
+							const overlayColor     = block.attributes?.overlayColor || '#000000';
+							const overlayOpacity   = Math.max( 0, Math.min( 100, parseInt( block.attributes?.overlayOpacity ?? 50, 10 ) ) );
+							const minHeight        = block.attributes?.minHeight || '430px';
+							const contentAlignment = block.attributes?.contentAlignment || 'center';
+							const textColor        = block.attributes?.textColor || '';
+							const safeUrl = ( /^(https?:\/\/|\/(?!\/)|data:image\/(png|jpeg|gif|webp|svg\+xml)(;base64)?,[^\s]+$)/i.test( mediaUrl ) ) ? mediaUrl.replace( /'/g, '%27' ).replace( /\\/g, '%5C' ).replace( /\(/g, '%28' ).replace( /\)/g, '%29' ) : '';
+
+							const focalX = Math.max( 0, Math.min( 1, parseFloat( focalPoint.x ?? 0.5 ) ) );
+							const focalY = Math.max( 0, Math.min( 1, parseFloat( focalPoint.y ?? 0.5 ) ) );
+							const objPos = Math.round( focalX * 100 ) + '% ' + Math.round( focalY * 100 ) + '%';
+
+							const alignMap = {
+								'top-left':      [ 'flex-start', 'flex-start' ],
+								'top-center':    [ 'flex-start', 'center' ],
+								'top-right':     [ 'flex-start', 'flex-end' ],
+								'center-left':   [ 'center', 'flex-start' ],
+								'center':        [ 'center', 'center' ],
+								'center-right':  [ 'center', 'flex-end' ],
+								'bottom-left':   [ 'flex-end', 'flex-start' ],
+								'bottom-center': [ 'flex-end', 'center' ],
+								'bottom-right':  [ 'flex-end', 'flex-end' ],
+							};
+							const align = alignMap[ contentAlignment ] || [ 'center', 'center' ];
+
+							let containerStyle = 'position:relative;display:flex;flex-direction:column;justify-content:' + align[0] + ';align-items:' + align[1] + ';min-height:' + minHeight + ';overflow:hidden;';
+							if ( textColor ) { containerStyle += 'color:' + textColor + ';'; }
+
+							let bgHtml = '';
+							if ( 'image' === mediaType && safeUrl ) {
+								if ( hasParallax ) {
+									const bgRepeat = isRepeated ? 'background-repeat:repeat;background-size:auto;' : 'background-repeat:no-repeat;';
+									bgHtml = '<div style=\'position:absolute;inset:0;background-image:url(' + safeUrl + ');background-position:' + objPos + ';background-attachment:fixed;background-size:cover;' + bgRepeat + '\' aria-hidden=\'true\'></div>';
+								} else if ( isRepeated ) {
+									bgHtml = '<div style=\'position:absolute;inset:0;background-image:url(' + safeUrl + ');background-repeat:repeat;background-size:auto;\' aria-hidden=\'true\'></div>';
+								} else {
+									const ariaAttr = alt ? '' : ' aria-hidden=\'true\'';
+									bgHtml = '<img src=\'' + safeUrl + '\' alt=\'' + ( alt || '' ).replace( /&/g, '\x26amp;' ).replace( /</g, '\x26lt;' ).replace( />/g, '\x26gt;' ).replace( /\u0022/g, '\x26quot;' ).replace( /\x27/g, '\x26#39;' ) + '\' style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + objPos + ';\'' + ariaAttr + ' />';
+								}
+							} else if ( 'video' === mediaType && safeUrl ) {
+								bgHtml = '<video src=\'' + safeUrl + '\' autoplay muted loop playsinline style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + objPos + ';\' aria-hidden=\'true\'></video>';
+							}
+
+							const overlayHtml = '<div class=\'ve-block-cover__overlay\' style=\'position:absolute;inset:0;background-color:' + overlayColor + ';opacity:' + ( overlayOpacity / 100 ) + ';\' aria-hidden=\'true\'></div>';
+
+							// Inner blocks content.
+							let innerHtml = '';
+							if ( block.innerBlocks && block.innerBlocks.length > 0 ) {
+								innerHtml += '<div class=\'ve-inner-blocks flex flex-col\' data-ve-inner-blocks data-parent-id=\'' + block.id + '\'>';
+								block.innerBlocks.forEach( ( inner, idx ) => {
+									innerHtml += '<div class=\'ve-inner-insertion-point relative group/inner-insert py-0.5\'>'
+										+ '<div class=\'flex justify-center\'>'
+										+ '<button type=\'button\''
+										+ ' class=\'w-5 h-5 rounded-full bg-primary text-primary-content flex items-center justify-center opacity-0 group-hover/inner-insert:opacity-100 transition-opacity text-xs\''
+										+ ' data-ve-inner-insert'
+										+ ' data-parent-id=\'' + block.id + '\''
+										+ ' data-insert-index=\'' + idx + '\''
+										+ '>+</button>'
+										+ '</div></div>';
+
+									const existingWrapper = document.querySelector( '[data-inner-block-id=\'' + inner.id + '\']' );
+									let innerText = inner.attributes?.text || inner.attributes?.content || '';
+									if ( existingWrapper ) {
+										const contentEl = existingWrapper.querySelector( '[contenteditable]' ) || existingWrapper;
+										innerText = contentEl.innerHTML;
+									}
+
+									innerHtml += '<div class=\'ve-inner-block-wrapper relative group/inner-block\''
+										+ ' data-block-id=\'' + inner.id + '\''
+										+ ' data-inner-block-id=\'' + inner.id + '\''
+										+ ' data-parent-id=\'' + block.id + '\''
+										+ ' tabindex=\'-1\''
+										+ '>'
+										+ '<div class=\'ve-inner-block-drag-handle absolute -left-6 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover/inner-block:opacity-50 hover:!opacity-100 transition-opacity\''
+										+ ' draggable=\'true\''
+										+ ' data-ve-inner-drag-handle'
+										+ ' data-inner-drag-id=\'' + inner.id + '\''
+										+ ' data-parent-id=\'' + block.id + '\''
+										+ '>'
+										+ '<svg class=\'w-3 h-3\' viewBox=\'0 0 24 24\' fill=\'currentColor\'>'
+										+ '<circle cx=\'9\' cy=\'7\' r=\'1.5\'/><circle cx=\'15\' cy=\'7\' r=\'1.5\'/>'
+										+ '<circle cx=\'9\' cy=\'12\' r=\'1.5\'/><circle cx=\'15\' cy=\'12\' r=\'1.5\'/>'
+										+ '<circle cx=\'9\' cy=\'17\' r=\'1.5\'/><circle cx=\'15\' cy=\'17\' r=\'1.5\'/>'
+										+ '</svg></div>';
+
+									if ( 'heading' === inner.type ) {
+										const innerLevel = inner.attributes?.level || 'h2';
+										const innerTag   = [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].includes( innerLevel ) ? innerLevel : 'h2';
+										const innerSize  = this.headingSizeClasses[ innerTag ] || this.headingSizeClasses.h2;
+										innerHtml += '<' + innerTag
+											+ ' class=\'ve-inner-block-content ve-block ve-block-heading ve-block-editing ' + innerSize + '\''
+											+ ' contenteditable=\'true\''
+											+ ' data-placeholder=\'' + this.headingPlaceholder + '\''
+											+ ' data-ve-enter-new-block=\'true\''
+											+ ' data-ve-slash-command=\'true\''
+											+ '>' + innerText + '</' + innerTag + '></div>';
+									} else {
+										innerHtml += '<div class=\'ve-inner-block-content ve-block ve-block-' + ( inner.type || Alpine.store( 'editor' ).defaultBlockType ) + ' ve-block-editing\''
+											+ ' contenteditable=\'true\''
+											+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.block_paragraph_placeholder' ) ) }} + '\''
+											+ ' data-ve-enter-new-block=\'true\''
+											+ ' data-ve-slash-command=\'true\''
+											+ '>' + innerText + '</div></div>';
+									}
+								} );
+
+								innerHtml += '<div class=\'ve-inner-insertion-point relative group/inner-insert py-0.5\'>'
+									+ '<div class=\'flex justify-center\'>'
+									+ '<button type=\'button\''
+									+ ' class=\'w-5 h-5 rounded-full bg-primary text-primary-content flex items-center justify-center opacity-0 group-hover/inner-insert:opacity-100 transition-opacity text-xs\''
+									+ ' data-ve-inner-insert'
+									+ ' data-parent-id=\'' + block.id + '\''
+									+ ' data-insert-index=\'' + block.innerBlocks.length + '\''
+									+ '>+</button>'
+									+ '</div></div>';
+
+								innerHtml += '</div>';
+							} else {
+								innerHtml += '<div class=\'ve-inner-blocks flex flex-col\' data-ve-inner-blocks data-parent-id=\'' + block.id + '\'>'
+									+ '<div class=\'ve-inner-blocks-placeholder\''
+									+ ' contenteditable=\'true\''
+									+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.block_group_placeholder' ) ) }} + '\''
+									+ ' data-ve-enter-new-block=\'true\''
+									+ '></div></div>';
+							}
+
+							const hasMedia = ( 'color' !== mediaType && mediaUrl ) || 'color' === mediaType;
+
+							if ( ! hasMedia && 'color' !== mediaType ) {
+								// Show placeholder for media selection with color swatches.
+								const ctx = block.id + ':cover-media';
+								const coverColors = [
+									{ color: '#000000', label: 'Black' },
+									{ color: '#FFFFFF', label: 'White' },
+									{ color: '#0ea5e9', label: 'Sky' },
+									{ color: '#3b82f6', label: 'Blue' },
+									{ color: '#1e3a5f', label: 'Navy' },
+									{ color: '#6366f1', label: 'Indigo' },
+									{ color: '#6b7280', label: 'Gray' },
+									{ color: '#059669', label: 'Emerald' },
+									{ color: '#dc2626', label: 'Red' },
+									{ color: '#d97706', label: 'Amber' },
+								];
+								let swatchHtml = '<div class=\'flex gap-2 flex-wrap justify-center\'>';
+								coverColors.forEach( ( c ) => {
+									const borderStyle = '#FFFFFF' === c.color ? 'border:1px solid oklch(var(--bc)/0.2);' : '';
+									swatchHtml += '<button type=\'button\''
+										+ ' class=\'w-7 h-7 rounded-full cursor-pointer hover:ring-2 hover:ring-primary hover:ring-offset-2 transition-shadow\''
+										+ ' style=\'background-color:' + c.color + ';' + borderStyle + '\''
+										+ ' data-ve-cover-color=\'' + c.color + '\''
+										+ ' title=\'' + c.label + '\''
+										+ '></button>';
+								} );
+								swatchHtml += '</div>';
+
+								return '<div class=\'ve-block ve-block-cover ve-block-editing\' style=\'' + containerStyle + '\'>'
+									+ '<div class=\'ve-block-placeholder flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-base-300 rounded-lg bg-base-300/50 text-base-content w-full\'>'
+									+ '<div class=\'ve-block-placeholder__icon text-base-content/70\'>'
+									+ '<svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke-width=\'1.5\' stroke=\'currentColor\' width=\'48\' height=\'48\'>'
+									+ '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'M6 6.878V6a2.25 2.25 0 0 1 2.25-2.25h7.5A2.25 2.25 0 0 1 18 6v.878m-12 0c.235-.083.487-.128.75-.128h10.5c.263 0 .515.045.75.128m-12 0A2.25 2.25 0 0 0 4.5 9v.878m13.5-3A2.25 2.25 0 0 1 19.5 9v.878m0 0a2.246 2.246 0 0 0-.75-.128H5.25c-.263 0-.515.045-.75.128m15 0A2.25 2.25 0 0 1 21 12v6a2.25 2.25 0 0 1-2.25 2.25H5.25A2.25 2.25 0 0 1 3 18v-6c0-1.007.66-1.862 1.572-2.149Z\' />'
+									+ '</svg>'
+									+ '</div>'
+									+ '<p class=\'ve-block-placeholder__name font-medium text-base-content\'>' + {{ Js::from( __( 'visual-editor::ve.block_cover_name' ) ) }} + '</p>'
+									+ '<p class=\'ve-block-placeholder__description text-sm text-base-content/70\'>' + {{ Js::from( __( 'visual-editor::ve.cover_placeholder_desc' ) ) }} + '</p>'
+									+ '<div class=\'ve-block-placeholder__actions flex gap-2 flex-wrap justify-center\'>'
+									+ '<button type=\'button\' class=\'btn btn-sm btn-primary\' data-ve-media-context=\'' + ctx + '\'>' + this.imageUpload + '</button>'
+									+ '<button type=\'button\' class=\'btn btn-sm btn-outline\' data-ve-media-context=\'' + ctx + '\'>' + this.imageMediaLib + '</button>'
+									+ ( this.featuredImageUrl ? '<button type=\'button\' class=\'btn btn-sm btn-outline\' data-ve-cover-featured-image=\'' + this.featuredImageUrl + '\'>' + {{ Js::from( __( 'visual-editor::ve.cover_use_featured_image' ) ) }} + '</button>' : '' )
+									+ '</div>'
+									+ swatchHtml
+									+ '</div>'
+									+ '</div>';
+							}
+
+							return '<div class=\'ve-block ve-block-cover ve-block-editing\' style=\'' + containerStyle + '\'>'
+								+ bgHtml
+								+ overlayHtml
+								+ '<div class=\'ve-block-cover__content\' style=\'position:relative;z-index:1;padding:2rem;width:100%;\'>'
+								+ innerHtml
+								+ '</div>'
+								+ '</div>';
+						},
+
+						getMediaTextBlockHtml( block ) {
+							const mediaType          = block.attributes?.mediaType || 'image';
+							const mediaUrl           = block.attributes?.mediaUrl || '';
+							const mediaAlt           = block.attributes?.mediaAlt || '';
+							const focalPoint         = block.attributes?.focalPoint || { x: 0.5, y: 0.5 };
+							const mediaPosition      = block.attributes?.mediaPosition || 'left';
+							const mediaWidth         = Math.max( 25, Math.min( 75, parseInt( block.attributes?.mediaWidth ?? 50, 10 ) ) );
+							const verticalAlign      = block.attributes?.verticalAlignment || 'top';
+							const imageFill          = block.attributes?.imageFill || false;
+							const isStackedOnMobile  = block.attributes?.isStackedOnMobile !== false;
+							const gridGap            = block.attributes?.gridGap || '0';
+							const contentPadding     = block.attributes?.contentPadding || '1rem';
+							const contentBgColor     = block.attributes?.contentBackgroundColor || '';
+							const safeUrl = ( /^(https?:\/\/|\/(?!\/)|data:image\/(png|jpeg|gif|webp|svg\+xml)(;base64)?,[^\s]+$)/i.test( mediaUrl ) ) ? mediaUrl.replace( /'/g, '%27' ).replace( /\\/g, '%5C' ).replace( /\(/g, '%28' ).replace( /\)/g, '%29' ) : '';
+
+							const contentWidth = 100 - mediaWidth;
+
+							const focalX = Math.max( 0, Math.min( 1, parseFloat( focalPoint.x ?? 0.5 ) ) );
+							const focalY = Math.max( 0, Math.min( 1, parseFloat( focalPoint.y ?? 0.5 ) ) );
+							const objPos = Math.round( focalX * 100 ) + '% ' + Math.round( focalY * 100 ) + '%';
+
+							const alignMap = { top: 'flex-start', center: 'center', bottom: 'flex-end' };
+							const alignItems = alignMap[ verticalAlign ] || 'flex-start';
+
+							const gridCols = 'right' === mediaPosition
+								? contentWidth + '% ' + mediaWidth + '%'
+								: mediaWidth + '% ' + contentWidth + '%';
+
+							const containerStyle = 'display:grid;grid-template-columns:' + gridCols + ';align-items:' + alignItems + ';gap:' + gridGap + ';min-height:200px;';
+
+							const mediaOrder = 'right' === mediaPosition ? 'order:1;' : 'order:0;';
+							const contentOrder = 'right' === mediaPosition ? 'order:0;' : 'order:1;';
+
+							let mediaStyle = mediaOrder;
+							if ( imageFill && 'image' === mediaType ) {
+								mediaStyle += 'position:relative;min-height:250px;';
+							}
+
+							let contentStyle = 'padding:' + contentPadding + ';' + contentOrder;
+							if ( contentBgColor ) { contentStyle += 'background-color:' + contentBgColor + ';'; }
+
+							// Media side.
+							let mediaSideHtml = '';
+							if ( ! mediaUrl ) {
+								const ctx = block.id + ':media-text-url';
+								mediaSideHtml = '<div class=\'ve-block-placeholder flex flex-col items-center justify-center gap-3 p-8 border-2 border-dashed border-base-300 rounded-lg bg-base-300/50 text-base-content h-full\'>'
+									+ '<div class=\'ve-block-placeholder__icon text-base-content/70\'>'
+									+ '<svg xmlns=\'http://www.w3.org/2000/svg\' fill=\'none\' viewBox=\'0 0 24 24\' stroke-width=\'1.5\' stroke=\'currentColor\' width=\'48\' height=\'48\'>'
+									+ '<path stroke-linecap=\'round\' stroke-linejoin=\'round\' d=\'m2.25 15.75 5.159-5.159a2.25 2.25 0 0 1 3.182 0l5.159 5.159m-1.5-1.5 1.409-1.409a2.25 2.25 0 0 1 3.182 0l2.909 2.909M3.75 21h16.5A2.25 2.25 0 0 0 22.5 18.75V5.25A2.25 2.25 0 0 0 20.25 3H3.75A2.25 2.25 0 0 0 1.5 5.25v13.5A2.25 2.25 0 0 0 3.75 21Z\' />'
+									+ '</svg>'
+									+ '</div>'
+									+ '<p class=\'ve-block-placeholder__name font-medium text-base-content\'>' + {{ Js::from( __( 'visual-editor::ve.block_media-text_name' ) ) }} + '</p>'
+									+ '<div class=\'ve-block-placeholder__actions flex gap-2\'>'
+									+ '<button type=\'button\' class=\'btn btn-sm btn-primary\' data-ve-media-context=\'' + ctx + '\'>' + this.imageUpload + '</button>'
+									+ '<button type=\'button\' class=\'btn btn-sm btn-outline\' data-ve-media-context=\'' + ctx + '\'>' + this.imageMediaLib + '</button>'
+									+ '</div>'
+									+ '</div>';
+							} else if ( 'image' === mediaType ) {
+								const safeAlt = ( mediaAlt || '' ).replace( /&/g, '\x26amp;' ).replace( /</g, '\x26lt;' ).replace( />/g, '\x26gt;' ).replace( /\u0022/g, '\x26quot;' ).replace( /\x27/g, '\x26#39;' );
+								if ( imageFill ) {
+									mediaSideHtml = '<img src=\'' + safeUrl + '\' alt=\'' + safeAlt + '\' style=\'position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:' + objPos + ';\' />';
+								} else {
+									mediaSideHtml = '<img src=\'' + safeUrl + '\' alt=\'' + safeAlt + '\' style=\'width:100%;height:auto;display:block;\' />';
+								}
+							} else if ( 'video' === mediaType ) {
+								mediaSideHtml = '<video src=\'' + safeUrl + '\' autoplay muted loop playsinline style=\'width:100%;height:100%;object-fit:cover;display:block;\' aria-hidden=\'true\'></video>';
+							}
+
+							// Inner blocks content side.
+							let innerHtml = '';
+							if ( block.innerBlocks && block.innerBlocks.length > 0 ) {
+								innerHtml += '<div class=\'ve-inner-blocks flex flex-col\' data-ve-inner-blocks data-parent-id=\'' + block.id + '\'>';
+								block.innerBlocks.forEach( ( inner, idx ) => {
+									innerHtml += '<div class=\'ve-inner-insertion-point relative group/inner-insert py-0.5\'>'
+										+ '<div class=\'flex justify-center\'>'
+										+ '<button type=\'button\''
+										+ ' class=\'w-5 h-5 rounded-full bg-primary text-primary-content flex items-center justify-center opacity-0 group-hover/inner-insert:opacity-100 transition-opacity text-xs\''
+										+ ' data-ve-inner-insert'
+										+ ' data-parent-id=\'' + block.id + '\''
+										+ ' data-insert-index=\'' + idx + '\''
+										+ '>+</button>'
+										+ '</div></div>';
+
+									const existingWrapper = document.querySelector( '[data-inner-block-id=\'' + inner.id + '\']' );
+									let innerText = inner.attributes?.text || inner.attributes?.content || '';
+									if ( existingWrapper ) {
+										const contentEl = existingWrapper.querySelector( '[contenteditable]' ) || existingWrapper;
+										innerText = contentEl.innerHTML;
+									}
+
+									innerHtml += '<div class=\'ve-inner-block-wrapper relative group/inner-block\''
+										+ ' data-block-id=\'' + inner.id + '\''
+										+ ' data-inner-block-id=\'' + inner.id + '\''
+										+ ' data-parent-id=\'' + block.id + '\''
+										+ ' tabindex=\'-1\''
+										+ '>'
+										+ '<div class=\'ve-inner-block-drag-handle absolute -left-6 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover/inner-block:opacity-50 hover:!opacity-100 transition-opacity\''
+										+ ' draggable=\'true\''
+										+ ' data-ve-inner-drag-handle'
+										+ ' data-inner-drag-id=\'' + inner.id + '\''
+										+ ' data-parent-id=\'' + block.id + '\''
+										+ '>'
+										+ '<svg class=\'w-3 h-3\' viewBox=\'0 0 24 24\' fill=\'currentColor\'>'
+										+ '<circle cx=\'9\' cy=\'7\' r=\'1.5\'/><circle cx=\'15\' cy=\'7\' r=\'1.5\'/>'
+										+ '<circle cx=\'9\' cy=\'12\' r=\'1.5\'/><circle cx=\'15\' cy=\'12\' r=\'1.5\'/>'
+										+ '<circle cx=\'9\' cy=\'17\' r=\'1.5\'/><circle cx=\'15\' cy=\'17\' r=\'1.5\'/>'
+										+ '</svg></div>';
+
+									if ( 'heading' === inner.type ) {
+										const innerLevel = inner.attributes?.level || 'h2';
+										const innerTag   = [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].includes( innerLevel ) ? innerLevel : 'h2';
+										const innerSize  = this.headingSizeClasses[ innerTag ] || this.headingSizeClasses.h2;
+										innerHtml += '<' + innerTag
+											+ ' class=\'ve-inner-block-content ve-block ve-block-heading ve-block-editing ' + innerSize + '\''
+											+ ' contenteditable=\'true\''
+											+ ' data-placeholder=\'' + this.headingPlaceholder + '\''
+											+ ' data-ve-enter-new-block=\'true\''
+											+ ' data-ve-slash-command=\'true\''
+											+ '>' + innerText + '</' + innerTag + '></div>';
+									} else {
+										innerHtml += '<div class=\'ve-inner-block-content ve-block ve-block-' + ( inner.type || Alpine.store( 'editor' ).defaultBlockType ) + ' ve-block-editing\''
+											+ ' contenteditable=\'true\''
+											+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.block_paragraph_placeholder' ) ) }} + '\''
+											+ ' data-ve-enter-new-block=\'true\''
+											+ ' data-ve-slash-command=\'true\''
+											+ '>' + innerText + '</div></div>';
+									}
+								} );
+
+								innerHtml += '<div class=\'ve-inner-insertion-point relative group/inner-insert py-0.5\'>'
+									+ '<div class=\'flex justify-center\'>'
+									+ '<button type=\'button\''
+									+ ' class=\'w-5 h-5 rounded-full bg-primary text-primary-content flex items-center justify-center opacity-0 group-hover/inner-insert:opacity-100 transition-opacity text-xs\''
+									+ ' data-ve-inner-insert'
+									+ ' data-parent-id=\'' + block.id + '\''
+									+ ' data-insert-index=\'' + block.innerBlocks.length + '\''
+									+ '>+</button>'
+									+ '</div></div>';
+
+								innerHtml += '</div>';
+							} else {
+								innerHtml += '<div class=\'ve-inner-blocks flex flex-col\' data-ve-inner-blocks data-parent-id=\'' + block.id + '\'>'
+									+ '<div class=\'ve-inner-blocks-placeholder\''
+									+ ' contenteditable=\'true\''
+									+ ' data-placeholder=\'' + {{ Js::from( __( 'visual-editor::ve.block_group_placeholder' ) ) }} + '\''
+									+ ' data-ve-enter-new-block=\'true\''
+									+ '></div></div>';
+							}
+
+							const stackedClass = isStackedOnMobile ? ' ve-media-text--stacked-mobile' : '';
+
+							return '<div class=\'ve-block ve-block-media-text ve-block-editing' + stackedClass + '\' style=\'' + containerStyle + '\'>'
+								+ '<div class=\'ve-media-text__media\' style=\'' + mediaStyle + '\'>' + mediaSideHtml + '</div>'
+								+ '<div class=\'ve-media-text__content\' style=\'' + contentStyle + '\'>' + innerHtml + '</div>'
+								+ '</div>';
 						},
 
 						getGroupBlockHtml( block ) {
@@ -2051,6 +2701,16 @@
 							if ( target.classList.contains( 've-quote-citation' ) ) {
 								return;
 							}
+							// Table cell and details summary content lives in DOM during editing.
+							if ( target.hasAttribute( 'data-row' ) && target.hasAttribute( 'data-col' ) ) {
+								return;
+							}
+							if ( target.classList.contains( 've-details-summary' ) ) {
+								return;
+							}
+							if ( target.tagName === 'CAPTION' && target.closest( '.ve-block-table' ) ) {
+								return;
+							}
 
 							const blockEl = target.closest( '[data-block-id]' );
 							if ( ! blockEl ) return;
@@ -2071,6 +2731,34 @@
 							}
 							// List blocks: no attribute update needed — content lives in the DOM.
 						},
+
+						/**
+						 * Sync all table cell content and caption from the DOM
+						 * into the store in a single updateBlock call.
+						 */
+						_syncTableCellsToStore( store, blockEl, blockId ) {
+							const block = store.getBlock( blockId );
+							if ( ! block || ! block.attributes?.rows ) return;
+
+							const tableEl = blockEl.querySelector( 'table' );
+							if ( ! tableEl ) return;
+
+							const rows = JSON.parse( JSON.stringify( block.attributes.rows ) );
+							tableEl.querySelectorAll( '[data-row][data-col]' ).forEach( ( cell ) => {
+								const r = parseInt( cell.getAttribute( 'data-row' ) );
+								const c = parseInt( cell.getAttribute( 'data-col' ) );
+								if ( rows[ r ] && rows[ r ][ c ] ) {
+									rows[ r ][ c ].content = cell.innerHTML;
+								}
+							} );
+
+							const updates = { rows: rows };
+							const captionEl = tableEl.querySelector( 'caption' );
+							if ( captionEl ) {
+								updates.caption = captionEl.innerHTML;
+							}
+							store.updateBlock( blockId, updates );
+						},
 					}"
 					x-on:input="handleInput( $event )"
 					x-on:click="
@@ -2078,6 +2766,155 @@
 						if ( mediaBtn ) {
 							Livewire.dispatch( 'open-ve-media-picker', { context: mediaBtn.getAttribute( 'data-ve-media-context' ) } );
 						}
+
+						// Cover block color swatch: set color-only mode with selected overlay color.
+						const coverColorBtn = $event.target.closest( '[data-ve-cover-color]' );
+						if ( coverColorBtn ) {
+							const color   = coverColorBtn.getAttribute( 'data-ve-cover-color' );
+							const blockEl = coverColorBtn.closest( '[data-block-id]' );
+							if ( blockEl ) {
+								const blockId = blockEl.getAttribute( 'data-block-id' );
+								const store   = Alpine.store( 'editor' );
+								if ( store ) {
+									store.updateBlock( blockId, { mediaType: 'color', overlayColor: color, overlayOpacity: 100 } );
+								}
+							}
+						}
+
+						// Cover block featured image: use the provided featured image URL.
+						const coverFeaturedBtn = $event.target.closest( '[data-ve-cover-featured-image]' );
+						if ( coverFeaturedBtn ) {
+							const url     = coverFeaturedBtn.getAttribute( 'data-ve-cover-featured-image' );
+							const blockEl = coverFeaturedBtn.closest( '[data-block-id]' );
+							if ( blockEl && url ) {
+								const blockId = blockEl.getAttribute( 'data-block-id' );
+								const store   = Alpine.store( 'editor' );
+								if ( store ) {
+									store.updateBlock( blockId, { mediaType: 'image', mediaUrl: url, overlayOpacity: 50 } );
+								}
+							}
+						}
+
+						// Form block: select a form from the placeholder dropdown.
+						const formSelectBtn = $event.target.closest( '[data-ve-form-select-btn]' );
+						if ( formSelectBtn ) {
+							const fBlockId = formSelectBtn.getAttribute( 'data-ve-form-select-btn' );
+							const fSelect  = formSelectBtn.parentElement?.querySelector( 'select[data-ve-form-select]' );
+							if ( fSelect ) {
+								const store = Alpine.store( 'editor' );
+								if ( store ) {
+									store.updateBlock( fBlockId, { formId: fSelect.value ? parseInt( fSelect.value, 10 ) : null } );
+								}
+							}
+						}
+
+						// Table layout picker: create table from preset or custom config.
+						const tableLayoutBtn = $event.target.closest( '[data-ve-set-table-layout]' );
+						if ( tableLayoutBtn ) {
+							const layout  = tableLayoutBtn.getAttribute( 'data-ve-set-table-layout' );
+							const blockEl = tableLayoutBtn.closest( '[data-block-id]' );
+							if ( ! blockEl ) return;
+
+							const blockId = blockEl.getAttribute( 'data-block-id' );
+							const store   = Alpine.store( 'editor' );
+							if ( ! store ) return;
+
+							const newCell = () => ( { content: '', colSpan: 1, rowSpan: 1, alignment: 'left' } );
+							const makeRow = ( cols ) => Array.from( { length: cols }, newCell );
+							let bodyRows, cols, hasHeader, hasFooter;
+
+							if ( 'custom' === layout ) {
+								const picker   = blockEl.querySelector( '.ve-table-custom-builder' );
+								const colInput = picker ? picker.querySelector( '[data-ve-table-custom-cols]' ) : null;
+								const rowInput = picker ? picker.querySelector( '[data-ve-table-custom-rows]' ) : null;
+								const headerCb = picker ? picker.querySelector( '[data-ve-table-custom-header]' ) : null;
+								const footerCb = picker ? picker.querySelector( '[data-ve-table-custom-footer]' ) : null;
+								cols      = Math.max( 1, Math.min( 20, parseInt( colInput?.value ) || 3 ) );
+								bodyRows  = Math.max( 1, Math.min( 50, parseInt( rowInput?.value ) || 3 ) );
+								hasHeader = headerCb ? headerCb.checked : false;
+								hasFooter = footerCb ? footerCb.checked : false;
+							} else {
+								bodyRows  = parseInt( tableLayoutBtn.getAttribute( 'data-body-rows' ) ) || 2;
+								cols      = parseInt( tableLayoutBtn.getAttribute( 'data-cols' ) ) || 2;
+								hasHeader = '1' === tableLayoutBtn.getAttribute( 'data-header' );
+								hasFooter = '1' === tableLayoutBtn.getAttribute( 'data-footer' );
+							}
+
+							const rows = [];
+							if ( hasHeader ) { rows.push( makeRow( cols ) ); }
+							for ( let i = 0; i < bodyRows; i++ ) { rows.push( makeRow( cols ) ); }
+							if ( hasFooter ) { rows.push( makeRow( cols ) ); }
+
+							store.updateBlock( blockId, {
+								rows: rows,
+								hasHeaderRow: hasHeader,
+								hasFooterRow: hasFooter,
+							} );
+						}
+
+						// Table actions: add/insert/delete rows and columns.
+						const tableAction = $event.target.closest( '[data-ve-table-action]' );
+						if ( tableAction ) {
+							const action  = tableAction.getAttribute( 'data-ve-table-action' );
+							const blockEl = tableAction.closest( '[data-block-id]' );
+							if ( ! blockEl ) return;
+
+							const blockId = blockEl.getAttribute( 'data-block-id' );
+							const store   = Alpine.store( 'editor' );
+							if ( ! store ) return;
+							const block = store.getBlock( blockId );
+							if ( ! block || ! block.attributes?.rows ) return;
+
+							// Sync all cell content from DOM before modifying rows.
+							this._syncTableCellsToStore( store, blockEl, blockId );
+
+							const rows    = JSON.parse( JSON.stringify( store.getBlock( blockId ).attributes.rows ) );
+							const numCols = rows[ 0 ] ? rows[ 0 ].length : 2;
+							const newCell = () => ( { content: '', colSpan: 1, rowSpan: 1, alignment: 'left' } );
+							const makeRow = ( cols ) => Array.from( { length: cols }, newCell );
+
+							if ( 'add-row' === action ) {
+								const hasFooter = block.attributes?.hasFooterRow || false;
+								const insertIdx = hasFooter && rows.length > 1 ? rows.length - 1 : rows.length;
+								rows.splice( insertIdx, 0, makeRow( numCols ) );
+								store.updateBlock( blockId, { rows: rows } );
+							} else if ( 'add-column' === action ) {
+								rows.forEach( ( row ) => { row.push( newCell() ); } );
+								store.updateBlock( blockId, { rows: rows } );
+							} else if ( 'insert-row-above' === action ) {
+								const rowIdx = parseInt( tableAction.getAttribute( 'data-action-row' ) );
+								rows.splice( rowIdx, 0, makeRow( numCols ) );
+								store.updateBlock( blockId, { rows: rows } );
+							} else if ( 'delete-row' === action ) {
+								const rowIdx = parseInt( tableAction.getAttribute( 'data-action-row' ) );
+								if ( rows.length > 1 ) {
+									rows.splice( rowIdx, 1 );
+									const updates = { rows: rows };
+									// If we deleted the header row (index 0) and header was on, turn it off.
+									if ( 0 === rowIdx && block.attributes?.hasHeaderRow ) {
+										updates.hasHeaderRow = false;
+									}
+									// If we deleted the footer row (last index) and footer was on, turn it off.
+									if ( rowIdx === rows.length && block.attributes?.hasFooterRow ) {
+										updates.hasFooterRow = false;
+									}
+									store.updateBlock( blockId, updates );
+								}
+							} else if ( 'insert-col-left' === action ) {
+								const colIdx = parseInt( tableAction.getAttribute( 'data-action-col' ) );
+								rows.forEach( ( row ) => { row.splice( colIdx, 0, newCell() ); } );
+								store.updateBlock( blockId, { rows: rows } );
+							} else if ( 'delete-col' === action ) {
+								const colIdx = parseInt( tableAction.getAttribute( 'data-action-col' ) );
+								if ( numCols > 1 ) {
+									rows.forEach( ( row ) => { row.splice( colIdx, 1 ); } );
+									store.updateBlock( blockId, { rows: rows } );
+								}
+							}
+						}
+
+						// Embed, map, and coordinate buttons are handled in init()
+						// via el.addEventListener('click', ...) to avoid scoping issues.
 					"
 					x-on:ve-insertion-point-click="
 						if ( Alpine.store( 'editor' ) && $event.detail ) {

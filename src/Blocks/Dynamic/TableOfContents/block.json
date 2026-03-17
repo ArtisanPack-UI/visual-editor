@@ -1,0 +1,57 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "table-of-contents",
+	"name": "Table of Contents",
+	"description": "Auto-generated table of contents from heading blocks in the document",
+	"icon": "bars-3-bottom-left",
+	"category": "dynamic",
+	"keywords": ["toc", "table of contents", "navigation", "headings", "outline"],
+	"version": 1,
+	"dynamic": true,
+	"attributes": {
+		"headingLevels": {
+			"type": "array",
+			"source": "content",
+			"default": [2, 3]
+		},
+		"listStyle": {
+			"type": "string",
+			"source": "content",
+			"default": "numbered"
+		},
+		"hierarchical": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"maxDepth": {
+			"type": "integer",
+			"source": "content",
+			"default": 3
+		},
+		"title": {
+			"type": "string",
+			"source": "content",
+			"default": "Table of Contents"
+		},
+		"collapsible": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"smoothScroll": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		}
+	},
+	"supports": {
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"border": true,
+		"htmlId": true,
+		"className": true
+	}
+}

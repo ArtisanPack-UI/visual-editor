@@ -4,7 +4,8 @@
  * Block Registry.
  *
  * Centralized registry for managing block type registrations,
- * lookups, and category filtering.
+ * lookups, and category filtering. Automatically registers view
+ * namespaces and Livewire components when blocks are added.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Blocks
@@ -20,9 +21,16 @@ namespace ArtisanPackUI\VisualEditor\Blocks;
 
 use ArtisanPackUI\VisualEditor\Blocks\Contracts\BlockInterface;
 use InvalidArgumentException;
+use Livewire\Livewire;
 
 /**
  * Registry for visual editor block types.
+ *
+ * When a block is registered, its co-located views directory is
+ * automatically added as a namespaced view path, and dynamic blocks
+ * have their Livewire component registered. The `ap.visualEditor.blocks`
+ * filter allows third-party code to add or remove blocks from the
+ * final collection returned by `all()`.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Blocks
@@ -43,6 +51,9 @@ class BlockRegistry
 	/**
 	 * Register a block type.
 	 *
+	 * Automatically registers the block's co-located view namespace
+	 * and, for dynamic blocks, their Livewire component.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param BlockInterface $block The block instance to register.
@@ -59,9 +70,10 @@ class BlockRegistry
 
 		$this->blocks[ $type ] = $block;
 
-		if ( function_exists( 'doAction' ) ) {
-			doAction( 'ap.visualEditor.block.registered', $block );
-		}
+		$this->registerBlockViewNamespace( $block );
+		$this->registerDynamicComponent( $block );
+
+		veDoAction( 'ap.visualEditor.block.registered', $block );
 	}
 
 	/**
@@ -130,7 +142,8 @@ class BlockRegistry
 	/**
 	 * Get all registered blocks.
 	 *
-	 * Applies the blocksRegister filter hook to allow third-party modification.
+	 * Applies the `ap.visualEditor.blocks` filter hook so that
+	 * third-party code can add, remove, or reorder blocks.
 	 *
 	 * @since 1.0.0
 	 *
@@ -138,13 +151,7 @@ class BlockRegistry
 	 */
 	public function all(): array
 	{
-		$blocks = $this->blocks;
-
-		if ( function_exists( 'applyFilters' ) ) {
-			$blocks = applyFilters( 'ap.visualEditor.blocksRegister', $blocks );
-		}
-
-		return $blocks;
+		return veApplyFilters( 'ap.visualEditor.blocks', $this->blocks );
 	}
 
 	/**
@@ -167,6 +174,9 @@ class BlockRegistry
 	/**
 	 * Get all unique registered categories.
 	 *
+	 * Applies the `ap.visualEditor.blockCategories` filter so that
+	 * third-party code can add custom categories or reorder them.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @return array<int, string>
@@ -178,7 +188,9 @@ class BlockRegistry
 			$this->all(),
 		);
 
-		return array_values( array_unique( $categories ) );
+		$categories = array_values( array_unique( $categories ) );
+
+		return veApplyFilters( 'ap.visualEditor.blockCategories', $categories );
 	}
 
 	/**
@@ -209,13 +221,28 @@ class BlockRegistry
 	}
 
 	/**
-	 * Get all blocks that have a custom JavaScript renderer.
+	 * Get all blocks that are dynamic (server-rendered via Livewire).
 	 *
 	 * @since 2.0.0
 	 *
 	 * @return array<string, BlockInterface>
 	 */
 	public function getDynamicBlocks(): array
+	{
+		return array_filter(
+			$this->all(),
+			fn ( BlockInterface $block ) => $block->isDynamic(),
+		);
+	}
+
+	/**
+	 * Get all blocks that have a custom JavaScript renderer.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return array<string, BlockInterface>
+	 */
+	public function getJsRendererBlocks(): array
 	{
 		return array_filter(
 			$this->all(),
@@ -239,5 +266,65 @@ class BlockRegistry
 		}
 
 		return $result;
+	}
+
+	/**
+	 * Register the view namespace for a block's co-located views.
+	 *
+	 * If the block has a views/ subdirectory alongside its class,
+	 * it is registered as `visual-editor-block-{type}`. Published
+	 * (overridden) views take priority.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param BlockInterface $block The block to register views for.
+	 *
+	 * @return void
+	 */
+	protected function registerBlockViewNamespace( BlockInterface $block ): void
+	{
+		$blockDir = $block->getBlockDir();
+
+		if ( null === $blockDir ) {
+			return;
+		}
+
+		$viewsDir = $blockDir . '/views';
+
+		if ( ! is_dir( $viewsDir ) ) {
+			return;
+		}
+
+		$type         = $block->getType();
+		$namespace    = 'visual-editor-block-' . $type;
+		$publishedDir = resource_path( 'views/vendor/visual-editor/blocks/' . $type );
+
+		if ( is_dir( $publishedDir ) ) {
+			view()->addNamespace( $namespace, $publishedDir );
+		}
+
+		view()->addNamespace( $namespace, $viewsDir );
+	}
+
+	/**
+	 * Register the Livewire component for a dynamic block.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param BlockInterface $block The block to check and register.
+	 *
+	 * @return void
+	 */
+	protected function registerDynamicComponent( BlockInterface $block ): void
+	{
+		if ( ! ( $block instanceof DynamicBlock ) ) {
+			return;
+		}
+
+		if ( ! app()->bound( 'livewire' ) ) {
+			return;
+		}
+
+		Livewire::component( $block->getComponentTag(), $block->getComponent() );
 	}
 }

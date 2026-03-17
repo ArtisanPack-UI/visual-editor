@@ -216,7 +216,8 @@ class Editor extends Component
 	 * @param string       $documentStatus   Initial document status.
 	 * @param bool         $showSidebar      Show sidebar by default.
 	 * @param string       $mode             Editor mode (visual/code).
-	 * @param Closure|null $customIconRenderer Optional custom icon renderer.
+	 * @param Closure|null $customIconRenderer  Optional custom icon renderer.
+	 * @param string       $featuredImageUrl    Optional featured image URL for the Cover block placeholder.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -230,8 +231,14 @@ class Editor extends Component
 		public bool $showSidebar = true,
 		public string $mode = 'visual',
 		?Closure $customIconRenderer = null,
+		public string $featuredImageUrl = '',
 	) {
 		$this->uuid = 've-editor-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
+
+		// Resolve featured image URL via hook if not explicitly provided.
+		if ( '' === $this->featuredImageUrl ) {
+			$this->featuredImageUrl = (string) veApplyFilters( 've.editor.featured_image_url', '' );
+		}
 
 		/** @var BlockRegistry $registry */
 		$registry = app( 'visual-editor.blocks' );
@@ -345,14 +352,9 @@ class Editor extends Component
 	protected function buildRenderedBlocks( BlockRegistry $registry ): void
 	{
 		$this->renderedBlocks = [];
-		$dynamicBlockTypes    = array_keys( $registry->getDynamicBlocks() );
 
 		foreach ( $this->initialBlocks as $block ) {
 			if ( ! is_array( $block ) || ! isset( $block['id'], $block['type'] ) || ! is_string( $block['id'] ) || ! is_string( $block['type'] ) ) {
-				continue;
-			}
-
-			if ( in_array( $block['type'], $dynamicBlockTypes, true ) ) {
 				continue;
 			}
 
@@ -360,7 +362,7 @@ class Editor extends Component
 			if ( $blockType ) {
 				$this->renderedBlocks[ $block['id'] ] = $blockType->renderEditor(
 					$block['attributes'] ?? [],
-					[],
+					$block['styles'] ?? [],
 				);
 			}
 		}
@@ -378,13 +380,8 @@ class Editor extends Component
 	protected function buildDefaultBlockTemplates( BlockRegistry $registry ): void
 	{
 		$this->defaultBlockTemplates = [];
-		$dynamicBlockTypes           = array_keys( $registry->getDynamicBlocks() );
 
 		foreach ( $registry->all() as $type => $block ) {
-			if ( in_array( $type, $dynamicBlockTypes, true ) ) {
-				continue;
-			}
-
 			$defaultContent = [];
 			foreach ( $block->getContentSchema() as $key => $field ) {
 				$defaultContent[ $key ] = $field['default'] ?? '';

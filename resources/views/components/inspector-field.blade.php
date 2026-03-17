@@ -18,10 +18,35 @@
 	$fieldDefault     = $fieldDefault();
 	$fieldHint        = $fieldHint();
 	$currentValue     = $value ?? $fieldDefault;
+
+	// Build an x-effect expression that syncs the field value from the
+	// Alpine editor store.  This keeps inspector fields up-to-date when
+	// block attributes are changed programmatically (e.g. geocoding).
+	// The activeElement check prevents overwriting user input while the
+	// field is focused.  Writing to value without reading it avoids
+	// creating a dependency on the local state (only store changes
+	// trigger re-evaluation).
+	$storeSync = 'dynamic' === $blockId
+		? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); const _sv = _b?.attributes?.[' . Js::from( $name ) . ']; if ( _sv !== undefined && document.activeElement !== $el ) { value = _sv; }'
+		: '';
+
+	// Build an x-show expression for conditional visibility based on
+	// another block attribute's value (e.g. show mapType only when
+	// provider === 'google').
+	$showWhen    = $schema['showWhen'] ?? null;
+	$showWhenExp = '';
+	if ( $showWhen && 'dynamic' === $blockId ) {
+		$conditions = [];
+		foreach ( $showWhen as $depField => $depValue ) {
+			$conditions[] = '$store.editor?.getBlock( $store.selection?.focused )?.attributes?.[' . Js::from( $depField ) . '] === ' . Js::from( $depValue );
+		}
+		$showWhenExp = implode( ' && ', $conditions );
+	}
 @endphp
 
 <div
 	id="{{ $uuid }}"
+	@if ( $showWhenExp ) x-show="{{ $showWhenExp }}" x-cloak @endif
 	{{ $attributes->merge( [ 'class' => 've-inspector-field' ] ) }}
 >
 	@switch ( $fieldType )
@@ -82,6 +107,7 @@
 					class="select select-bordered select-sm w-full"
 					x-data="{ value: {{ Js::from( $currentValue ) }} }"
 					x-model="value"
+					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
 					x-on:change="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: value } )"
 				>
 					@foreach ( $fieldOptions as $optionValue => $optionLabel )
@@ -98,12 +124,18 @@
 				<label class="text-sm font-medium text-base-content/80" for="{{ $uuid }}-toggle">
 					{{ $fieldLabel }}
 				</label>
+				@php
+					$toggleSync = 'dynamic' === $blockId
+						? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); const _sv = _b?.attributes?.[' . Js::from( $name ) . ']; if ( _sv !== undefined ) { checked = !! _sv; }'
+						: '';
+				@endphp
 				<input
 					type="checkbox"
 					id="{{ $uuid }}-toggle"
 					class="toggle toggle-sm toggle-primary"
 					x-data="{ checked: {{ Js::from( (bool) $currentValue ) }} }"
 					x-model="checked"
+					@if ( $toggleSync ) x-effect="{{ $toggleSync }}" @endif
 					x-on:change="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: checked } )"
 					@if ( $currentValue ) checked @endif
 				/>
@@ -168,7 +200,37 @@
 			</div>
 			@break
 
+		@case ( 'unit' )
+			@php
+				$unitCurrentValue = $currentValue ?? '';
+				$unitNumeric      = '';
+				$unitSuffix       = 'px';
+
+				if ( is_numeric( $unitCurrentValue ) ) {
+					$unitNumeric = (string) $unitCurrentValue;
+				} elseif ( is_string( $unitCurrentValue ) && '' !== $unitCurrentValue ) {
+					if ( preg_match( '/^(\d+\.?\d*|\.\d+)\s*([a-z%]+)$/i', $unitCurrentValue, $m ) ) {
+						$unitNumeric = $m[1];
+						$unitSuffix  = $m[2];
+					} else {
+						$unitNumeric = $unitCurrentValue;
+					}
+				}
+			@endphp
+			<x-ve-unit-control
+				:label="$fieldLabel"
+				:value="$unitNumeric"
+				:unit="$unitSuffix"
+				x-on:ve-unit-change.stop="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: ( $event.detail.value !== null && $event.detail.value !== undefined && $event.detail.value !== '' ) ? ( $event.detail.value + $event.detail.unit ) : '' } )"
+			/>
+			@break
+
 		@case ( 'media_picker' )
+			@php
+				$mediaStoreSync = 'dynamic' === $blockId
+					? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); value = _b?.attributes?.[' . Js::from( $name ) . '] || \'\'; const _fid = $store.selection?.focused || \'dynamic\'; context = _fid + \':\' + ' . Js::from( $name ) . ';'
+					: '';
+			@endphp
 			<div
 				class="ve-inspector-field-media-picker"
 				x-data="{
@@ -182,6 +244,7 @@
 						$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: '' } );
 					}
 				}"
+				@if ( $mediaStoreSync ) x-effect="{{ $mediaStoreSync }}" @endif
 				x-on:ve-media-selected.window="
 					if ( $event.detail.context === context && $event.detail.media && $event.detail.media.length ) {
 						value = $event.detail.media[0].url ?? $event.detail.media[0].path ?? '';
@@ -249,6 +312,7 @@
 					placeholder="{{ $fieldPlaceholder }}"
 					x-data="{ value: {{ Js::from( $currentValue ?? '' ) }} }"
 					x-model="value"
+					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
 					x-on:change="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: value } )"
 				/>
 			</div>
@@ -267,6 +331,7 @@
 					placeholder="{{ $fieldPlaceholder }}"
 					x-data="{ value: {{ Js::from( $currentValue ?? '' ) }} }"
 					x-model="value"
+					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
 					x-on:change="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: value } )"
 				/>
 				@if ( $fieldHint )

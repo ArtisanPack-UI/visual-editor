@@ -103,9 +103,7 @@ class SupportsPanelRegistry
 			];
 		}
 
-		if ( function_exists( 'applyFilters' ) ) {
-			$panels = applyFilters( 'ap.visualEditor.inspectorPanels', $panels, $block );
-		}
+		$panels = veApplyFilters( 'ap.visualEditor.inspectorPanels', $panels, $block );
 
 		return $panels;
 	}

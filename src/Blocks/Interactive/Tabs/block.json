@@ -1,0 +1,78 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "tabs",
+	"name": "Tabs",
+	"description": "Organize content into tabbed sections",
+	"icon": "rectangle-stack",
+	"category": "interactive",
+	"keywords": ["tabs", "tabbed", "sections", "panels", "navigation"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": ["tab-panel"],
+	"supportsInnerBlocks": true,
+	"hasJsRenderer": true,
+	"innerBlocksOrientation": "horizontal",
+	"attributes": {
+		"tabs": {
+			"type": "array",
+			"source": "content",
+			"default": []
+		},
+		"tabPosition": {
+			"type": "string",
+			"source": "content",
+			"default": "top"
+		},
+		"tabStyle": {
+			"type": "string",
+			"source": "style",
+			"default": "default"
+		},
+		"tabSize": {
+			"type": "string",
+			"source": "style",
+			"default": "md"
+		},
+		"fullWidth": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"fadeTransition": {
+			"type": "boolean",
+			"source": "style",
+			"default": true
+		},
+		"rememberActive": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"tabTextColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"activeTabColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"contentBackground": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"align": ["wide", "full"],
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

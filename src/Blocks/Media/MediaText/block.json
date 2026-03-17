@@ -1,0 +1,110 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "media-text",
+	"name": "Media & Text",
+	"description": "Set media and words side-by-side for a richer layout",
+	"icon": "view-columns",
+	"category": "media",
+	"keywords": ["image", "video", "media", "text", "side", "layout"],
+	"version": 1,
+	"public": true,
+	"parent": null,
+	"allowedChildren": null,
+	"supportsInnerBlocks": true,
+	"hasJsRenderer": true,
+	"innerBlocksOrientation": "vertical",
+	"attributes": {
+		"mediaType": {
+			"type": "string",
+			"source": "content",
+			"default": "image"
+		},
+		"mediaId": {
+			"type": "integer",
+			"source": "content",
+			"default": 0
+		},
+		"mediaUrl": {
+			"type": "url",
+			"source": "content",
+			"default": ""
+		},
+		"mediaAlt": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"focalPoint": {
+			"type": "object",
+			"source": "content",
+			"default": {
+				"x": 0.5,
+				"y": 0.5
+			}
+		},
+		"mediaPosition": {
+			"type": "string",
+			"source": "style",
+			"default": "left"
+		},
+		"mediaWidth": {
+			"type": "integer",
+			"source": "style",
+			"default": 50
+		},
+		"verticalAlignment": {
+			"type": "string",
+			"source": "style",
+			"default": "top"
+		},
+		"imageFill": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"isStackedOnMobile": {
+			"type": "boolean",
+			"source": "style",
+			"default": true
+		},
+		"gridGap": {
+			"type": "string",
+			"source": "style",
+			"default": "0"
+		},
+		"mediaBorderRadius": {
+			"type": "string",
+			"source": "style",
+			"default": "0"
+		},
+		"contentPadding": {
+			"type": "string",
+			"source": "style",
+			"default": "1rem"
+		},
+		"contentBackgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": ""
+		},
+		"align": {
+			"type": "string",
+			"source": "style",
+			"default": "none"
+		}
+	},
+	"supports": {
+		"align": ["wide", "full"],
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

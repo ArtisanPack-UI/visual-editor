@@ -1,0 +1,120 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "table",
+	"name": "Table",
+	"description": "Add a table with rows and columns",
+	"icon": "table-cells",
+	"category": "text",
+	"keywords": ["table", "grid", "data", "rows", "columns", "cells"],
+	"version": 1,
+	"public": true,
+	"hasJsRenderer": true,
+	"parent": null,
+	"allowedChildren": null,
+	"attributes": {
+		"rows": {
+			"type": "array",
+			"source": "content",
+			"default": null
+		},
+		"hasHeaderRow": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"hasHeaderColumn": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"hasFooterRow": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"caption": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"striped": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"bordered": {
+			"type": "boolean",
+			"source": "style",
+			"default": true
+		},
+		"fixedLayout": {
+			"type": "boolean",
+			"source": "style",
+			"default": false
+		},
+		"headerBackgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"stripeColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"borderColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"border": {
+			"type": "object",
+			"source": "style",
+			"default": {
+				"width": "0",
+				"widthUnit": "px",
+				"style": "none",
+				"color": "#000000",
+				"radius": "0",
+				"radiusUnit": "px",
+				"perSide": false,
+				"perCorner": false
+			}
+		}
+	},
+	"supports": {
+		"textAlignment": true,
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"border": true,
+		"htmlId": true,
+		"anchor": true,
+		"className": true
+	}
+}

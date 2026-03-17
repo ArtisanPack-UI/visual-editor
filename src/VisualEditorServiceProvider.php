@@ -25,6 +25,7 @@ use ArtisanPackUI\VisualEditor\Console\Commands\BlockCacheCommand;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockClearCommand;
 use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
+use ArtisanPackUI\VisualEditor\Services\OEmbedService;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -167,6 +168,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->app->singleton( BlockDiscoveryService::class, function () {
 			return new BlockDiscoveryService();
 		} );
+
+		$this->app->singleton( OEmbedService::class, function () {
+			return new OEmbedService();
+		} );
 	}
 
 	/**
@@ -182,13 +187,25 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->publishConfiguration();
 		$this->registerTranslations();
 		$this->registerViews();
-		$this->registerBlockViews();
 		$this->registerBladeComponents();
-		$this->registerLivewireComponents();
+		$this->registerLivewireNamespace();
 		$this->registerMigrations();
+		$this->registerRoutes();
 		$this->registerCoreBlocks();
 		$this->registerConsoleCommands();
 		$this->publishBlockViews();
+	}
+
+	/**
+	 * Register package routes.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerRoutes(): void
+	{
+		$this->loadRoutesFrom( __DIR__ . '/../routes/api.php' );
 	}
 
 	/**
@@ -261,76 +278,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
-	 * Register co-located block views as namespaced view directories.
+	 * Register the Livewire namespace for package components.
 	 *
-	 * Scans block directories for views/ subdirectories and registers
-	 * each as namespace visual-editor-block-{type}.
+	 * Block-specific Livewire components are now auto-registered
+	 * by `BlockRegistry::register()` for dynamic blocks.
 	 *
-	 * @since 2.0.0
-	 *
-	 * @return void
-	 */
-	protected function registerBlockViews(): void
-	{
-		$blocksDir  = __DIR__ . '/Blocks';
-		$categories = [ 'Text', 'Media', 'Layout', 'Interactive' ];
-
-		foreach ( $categories as $category ) {
-			$categoryDir = $blocksDir . '/' . $category;
-
-			if ( ! is_dir( $categoryDir ) ) {
-				continue;
-			}
-
-			$entries = scandir( $categoryDir );
-
-			if ( false === $entries ) {
-				continue;
-			}
-
-			foreach ( $entries as $entry ) {
-				if ( '.' === $entry || '..' === $entry ) {
-					continue;
-				}
-
-				$viewsDir = $categoryDir . '/' . $entry . '/views';
-
-				if ( ! is_dir( $viewsDir ) ) {
-					continue;
-				}
-
-				$blockJsonPath = $categoryDir . '/' . $entry . '/block.json';
-				$type          = null;
-
-				if ( file_exists( $blockJsonPath ) ) {
-					$json = json_decode( (string) file_get_contents( $blockJsonPath ), true );
-					$type = $json['type'] ?? null;
-				}
-
-				if ( null === $type ) {
-					$type = strtolower( preg_replace( '/([a-z])([A-Z])/', '$1-$2', $entry ) ?? $entry );
-				}
-
-				$namespace    = 'visual-editor-block-' . $type;
-				$publishedDir = resource_path( 'views/vendor/visual-editor/blocks/' . $type );
-
-				if ( is_dir( $publishedDir ) ) {
-					$this->loadViewsFrom( $publishedDir, $namespace );
-				}
-
-				$this->loadViewsFrom( $viewsDir, $namespace );
-			}
-		}
-	}
-
-	/**
-	 * Register Livewire single-file components from the package.
-	 *
-	 * @since 2.0.0
+	 * @since 2.1.0
 	 *
 	 * @return void
 	 */
-	protected function registerLivewireComponents(): void
+	protected function registerLivewireNamespace(): void
 	{
 		if ( ! $this->app->bound( 'livewire' ) ) {
 			return;
@@ -379,6 +336,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 	/**
 	 * Register all core block types with the block registry.
 	 *
+	 * Core blocks are discovered via `BlockDiscoveryService` and
+	 * registered with `BlockRegistry`. View namespaces and Livewire
+	 * components are automatically set up during registration.
+	 *
+	 * After core blocks are registered, the `ap.visualEditor.blocksInit`
+	 * action fires so third-party packages can register their own blocks.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @return void
@@ -409,9 +373,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			}
 		}
 
-		if ( function_exists( 'doAction' ) ) {
-			doAction( 'ap.visualEditor.blocksInit' );
-		}
+		veDoAction( 'ap.visualEditor.blocksInit' );
 	}
 
 	/**
@@ -434,8 +396,8 @@ class VisualEditorServiceProvider extends ServiceProvider
 	/**
 	 * Publish co-located block views for customization.
 	 *
-	 * Collects all co-located view directories and publishes them
-	 * to resources/views/vendor/visual-editor/blocks/{type}/.
+	 * Scans all core block directories and publishes their view
+	 * files to resources/views/vendor/visual-editor/blocks/{type}/.
 	 *
 	 * @since 2.0.0
 	 *
@@ -447,8 +409,26 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return;
 		}
 
+		$publishMap = $this->scanBlockViewDirectories();
+
+		if ( ! empty( $publishMap ) ) {
+			$this->publishes( $publishMap, 'visual-editor-block-views' );
+		}
+	}
+
+	/**
+	 * Scan core block directories for co-located view folders.
+	 *
+	 * Returns a map of source view directory => publish destination.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @return array<string, string>
+	 */
+	protected function scanBlockViewDirectories(): array
+	{
 		$blocksDir  = __DIR__ . '/Blocks';
-		$categories = [ 'Text', 'Media', 'Layout', 'Interactive' ];
+		$categories = [ 'Text', 'Media', 'Layout', 'Interactive', 'Embed', 'Dynamic' ];
 		$publishMap = [];
 
 		foreach ( $categories as $category ) {
@@ -491,8 +471,6 @@ class VisualEditorServiceProvider extends ServiceProvider
 			}
 		}
 
-		if ( ! empty( $publishMap ) ) {
-			$this->publishes( $publishMap, 'visual-editor-block-views' );
-		}
+		return $publishMap;
 	}
 }

@@ -1,0 +1,42 @@
+{
+	"$schema": "../../block-schema.json",
+	"type": "accordion-section",
+	"name": "Accordion Section",
+	"description": "A single section within an accordion block",
+	"icon": "bars-3-bottom-left",
+	"category": "interactive",
+	"keywords": [],
+	"version": 1,
+	"public": false,
+	"parent": ["accordion"],
+	"allowedChildren": null,
+	"supportsInnerBlocks": true,
+	"hasJsRenderer": true,
+	"innerBlocksOrientation": "vertical",
+	"attributes": {
+		"title": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"isOpen": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"headingLevel": {
+			"type": "string",
+			"source": "content",
+			"default": "h3"
+		}
+	},
+	"supports": {
+		"color": {
+			"background": true
+		},
+		"spacing": {
+			"padding": true
+		},
+		"className": true
+	}
+}

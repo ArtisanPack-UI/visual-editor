@@ -133,6 +133,12 @@ test( 'base block returns vertical inner blocks orientation by default', functio
 	expect( $block->getInnerBlocksOrientation() )->toBe( 'vertical' );
 } );
 
+test( 'base block is not dynamic by default', function (): void {
+	$block = new StubBlock();
+
+	expect( $block->isDynamic() )->toBeFalse();
+} );
+
 test( 'base block does not have JS renderer by default', function (): void {
 	$block = new StubBlock();
 
@@ -153,13 +159,14 @@ test( 'base block serializes to array', function (): void {
 
 	expect( $array )->toHaveKeys( [
 		'type', 'name', 'description', 'icon', 'category',
-		'keywords', 'public', 'supportsInnerBlocks',
+		'keywords', 'public', 'dynamic', 'supportsInnerBlocks',
 		'innerBlocksOrientation', 'allowedChildren',
 		'allowedParents', 'hasJsRenderer', 'hasCustomInspector',
 		'hasCustomToolbar', 'alignments', 'textAlignment',
 		'textFormatting',
 	] )
 		->and( $array['type'] )->toBe( 'stub' )
+		->and( $array['dynamic'] )->toBeFalse()
 		->and( $array['supportsInnerBlocks'] )->toBeFalse()
 		->and( $array['hasJsRenderer'] )->toBeFalse();
 } );

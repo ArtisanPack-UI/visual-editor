@@ -86,15 +86,13 @@ class BlockTransformService
 			}
 		}
 
-		if ( function_exists( 'applyFilters' ) ) {
-			$result = applyFilters(
-				'ap.visualEditor.block.transform',
-				$result,
-				$source->getType(),
-				$targetType,
-				$content,
-			);
-		}
+		$result = veApplyFilters(
+			'ap.visualEditor.block.transform',
+			$result,
+			$source->getType(),
+			$targetType,
+			$content,
+		);
 
 		return $result;
 	}

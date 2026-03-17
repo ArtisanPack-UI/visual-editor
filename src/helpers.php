@@ -14,6 +14,53 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Blocks\Contracts\BlockInterface;
 use ArtisanPackUI\VisualEditor\VisualEditor;
 
+if ( ! function_exists( 'veDoAction' ) ) {
+	/**
+	 * Fire a hook action if the hooks package is available.
+	 *
+	 * Centralizes the function_exists guard so it only needs
+	 * to be maintained in one place.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param string $name    The action hook name.
+	 * @param mixed  ...$args Arguments to pass to the action callbacks.
+	 *
+	 * @return void
+	 */
+	function veDoAction( string $name, mixed ...$args ): void
+	{
+		if ( function_exists( 'doAction' ) ) {
+			doAction( $name, ...$args );
+		}
+	}
+}
+
+if ( ! function_exists( 'veApplyFilters' ) ) {
+	/**
+	 * Apply a filter hook if the hooks package is available.
+	 *
+	 * Returns the value unmodified when the hooks package is
+	 * not installed.
+	 *
+	 * @since 2.1.0
+	 *
+	 * @param string $name    The filter hook name.
+	 * @param mixed  $value   The value to filter.
+	 * @param mixed  ...$args Additional arguments for filter callbacks.
+	 *
+	 * @return mixed The filtered value.
+	 */
+	function veApplyFilters( string $name, mixed $value, mixed ...$args ): mixed
+	{
+		if ( function_exists( 'applyFilters' ) ) {
+			return applyFilters( $name, $value, ...$args );
+		}
+
+		return $value;
+	}
+}
+
 if ( ! function_exists( 'visualEditor' ) ) {
 	/**
 	 * Get the Visual Editor instance.
@@ -129,6 +176,36 @@ if ( ! function_exists( 'veSanitizeCssDimension' ) ) {
 		}
 
 		if ( in_array( $value, [ 'auto', 'inherit', 'initial', 'unset', '0' ], true ) ) {
+			return $value;
+		}
+
+		return $default;
+	}
+}
+
+if ( ! function_exists( 'veSanitizeCssNumber' ) ) {
+	/**
+	 * Sanitize a numeric CSS value (no unit attached).
+	 *
+	 * Use this instead of veSanitizeCssDimension when the unit is appended
+	 * separately (e.g., border width/radius where unit comes from a different field).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string|null $value   The numeric value to sanitize.
+	 * @param string      $default The default value if sanitization fails.
+	 *
+	 * @return string The sanitized numeric string or default.
+	 */
+	function veSanitizeCssNumber( ?string $value, string $default = '0' ): string
+	{
+		if ( null === $value || '' === $value ) {
+			return $default;
+		}
+
+		$value = trim( $value );
+
+		if ( preg_match( '/^-?\d+(\.\d+)?$/', $value ) ) {
 			return $value;
 		}
 
