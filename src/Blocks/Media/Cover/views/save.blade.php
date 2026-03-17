@@ -102,7 +102,7 @@
 	@if ( 'image' === $mediaType && $mediaUrl && ! $hasParallax && $isRepeated )
 		<div
 			class="ve-block-cover__background"
-			style="position: absolute; inset: 0; background-image: url('{{ $mediaUrl }}'); background-repeat: repeat; background-size: auto;"
+			style="position: absolute; inset: 0; background-image: url('{{ $safeBgUrl }}'); background-repeat: repeat; background-size: auto;"
 			aria-hidden="true"
 		></div>
 	@elseif ( 'image' === $mediaType && $mediaUrl && ! $hasParallax )

@@ -16,7 +16,7 @@
 	$templateRowsInput  = $content['templateRows'] ?? 'auto';
 	$alignItemsInput    = $styles['alignItems'] ?? 'stretch';
 	$justifyItemsInput  = $styles['justifyItems'] ?? 'stretch';
-	$templateRows  = preg_match( '/^[a-zA-Z0-9\s\.\-%()\/ ]+$/', $templateRowsInput ) ? $templateRowsInput : 'auto';
+	$templateRows  = preg_match( '/^[a-zA-Z0-9\s\.\-%()\/, ]+$/', $templateRowsInput ) ? $templateRowsInput : 'auto';
 	$gap           = $styles['gap'] ?? 'medium';
 	$rowGap        = $styles['rowGap'] ?? '';
 	$alignItems    = in_array( $alignItemsInput, $allowedAlignJustify, true ) ? $alignItemsInput : 'stretch';

@@ -47,7 +47,7 @@
 				@endif
 			>
 				<iframe
-					srcdoc="{{ e( $html ) }}"
+					srcdoc="{!! str_replace( '"', '&quot;', $html ) !!}"
 					sandbox="allow-scripts allow-popups"
 					class="ve-embed-iframe"
 					title="{{ $title ?: __( 'visual-editor::ve.embedded_content' ) }}"
@@ -65,7 +65,11 @@
 			@endif
 		</figure>
 	@elseif ( $hasFallback )
-		<a @if ( $safeUrl ) href="{{ $safeUrl }}" @endif class="ve-embed-fallback-card" target="_blank" rel="noopener noreferrer">
+		@if ( $safeUrl )
+			<a href="{{ $safeUrl }}" class="ve-embed-fallback-card" target="_blank" rel="noopener noreferrer">
+		@else
+			<div class="ve-embed-fallback-card" role="article">
+		@endif
 			@if ( $thumbnailUrl )
 				<div class="ve-embed-thumbnail">
 					<img src="{{ $thumbnailUrl }}" alt="{{ $title }}" loading="lazy" />
@@ -78,6 +82,10 @@
 				@endif
 				<span class="ve-embed-fallback-url">{{ $url }}</span>
 			</div>
-		</a>
+		@if ( $safeUrl )
+			</a>
+		@else
+			</div>
+		@endif
 	@endif
 </div>

@@ -16,6 +16,7 @@ test( 'social embed block content schema has url and platform options', function
 	$schema = $block->getContentSchema();
 
 	expect( $schema )->toHaveKey( 'url' );
+	expect( $schema )->toHaveKey( 'platform' );
 	expect( $schema )->toHaveKey( 'hideConversation' );
 	expect( $schema )->toHaveKey( 'hideMedia' );
 	expect( $schema['url']['type'] )->toBe( 'url' );

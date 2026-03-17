@@ -85,7 +85,7 @@
 		"contentBackgroundColor": {
 			"type": "string",
 			"source": "style",
-			"default": null
+			"default": ""
 		},
 		"align": {
 			"type": "string",

@@ -18,9 +18,11 @@
 	$hasEmbed    = ! empty( $html ) && 'oembed' === $source;
 	$hasFallback = ! empty( $title ) && 'opengraph' === $source;
 
-	// Validate URL scheme to prevent javascript: or other unsafe schemes.
-	$urlScheme = parse_url( $url, PHP_URL_SCHEME );
-	$safeUrl   = in_array( $urlScheme, [ 'http', 'https' ], true ) ? $url : '';
+	// Validate URL schemes to prevent javascript: or other unsafe schemes.
+	$urlScheme       = parse_url( $url, PHP_URL_SCHEME );
+	$safeUrl         = in_array( $urlScheme, [ 'http', 'https' ], true ) ? $url : '';
+	$thumbScheme     = $thumbnailUrl ? parse_url( $thumbnailUrl, PHP_URL_SCHEME ) : null;
+	$safeThumbnailUrl = $thumbnailUrl && in_array( $thumbScheme, [ 'http', 'https' ], true ) ? $thumbnailUrl : '';
 
 	$alignMap = [
 		'left'   => 'flex-start',
@@ -53,7 +55,7 @@
 >
 	@if ( $hasEmbed )
 		<iframe
-			srcdoc="{{ e( $html ) }}"
+			srcdoc="{!! str_replace( '"', '&quot;', $html ) !!}"
 			sandbox="allow-scripts allow-popups"
 			class="ve-social-iframe"
 			title="{{ __( 'visual-editor::ve.social_post_from', ['platform' => $platformLabel] ) }}"
@@ -67,9 +69,9 @@
 		@else
 			<div class="ve-social-fallback-card" style="max-width: {{ $maxWidth }}; width: 100%;" role="article" aria-label="{{ $platformLabel }}">
 		@endif
-			@if ( $thumbnailUrl )
+			@if ( $safeThumbnailUrl )
 				<div class="ve-social-thumbnail">
-					<img src="{{ $thumbnailUrl }}" alt="{{ $title }}" loading="lazy" />
+					<img src="{{ $safeThumbnailUrl }}" alt="{{ $title }}" loading="lazy" />
 				</div>
 			@endif
 			<div class="ve-social-fallback-body">

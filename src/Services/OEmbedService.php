@@ -487,11 +487,30 @@ class OEmbedService
 			return false;
 		}
 
-		// Resolve hostname and reject private/reserved IP ranges.
-		$ip = gethostbyname( $host );
+		// Resolve hostname and reject private/reserved IP ranges (A + AAAA records).
+		$records = @dns_get_record( $host, DNS_A | DNS_AAAA );
 
-		if ( $ip !== $host && ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
-			return false;
+		if ( false === $records || [] === $records ) {
+			// Fallback: if dns_get_record fails, try gethostbyname for A record only.
+			$ip = gethostbyname( $host );
+
+			if ( $ip === $host ) {
+				return false;
+			}
+
+			return (bool) filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE );
+		}
+
+		foreach ( $records as $record ) {
+			$ip = $record['ip'] ?? $record['ipv6'] ?? null;
+
+			if ( null === $ip ) {
+				continue;
+			}
+
+			if ( ! filter_var( $ip, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE ) ) {
+				return false;
+			}
 		}
 
 		return true;

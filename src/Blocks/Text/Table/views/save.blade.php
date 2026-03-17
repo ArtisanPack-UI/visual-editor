@@ -88,10 +88,14 @@
 
 	$totalRows      = count( $rows );
 	$headerRows     = $hasHeaderRow ? [ $rows[0] ?? [] ] : [];
-	$footerRows     = $hasFooterRow && $totalRows > 1 ? [ $rows[ $totalRows - 1 ] ] : [];
-	$bodyStartIndex = $hasHeaderRow ? 1 : 0;
-	$bodyEndIndex   = $hasFooterRow && $totalRows > 1 ? $totalRows - 1 : $totalRows;
-	$bodyRows       = array_slice( $rows, $bodyStartIndex, $bodyEndIndex - $bodyStartIndex );
+
+	// Footer is only taken when there is a distinct last row (i.e. more than one row,
+	// or no header row claiming the single row).
+	$hasDistinctFooter = $hasFooterRow && ( $totalRows > 1 || ! $hasHeaderRow );
+	$footerRows        = $hasDistinctFooter ? [ $rows[ $totalRows - 1 ] ] : [];
+	$bodyStartIndex    = $hasHeaderRow ? 1 : 0;
+	$bodyEndIndex      = $hasDistinctFooter ? $totalRows - 1 : $totalRows;
+	$bodyRows          = array_slice( $rows, $bodyStartIndex, $bodyEndIndex - $bodyStartIndex );
 @endphp
 
 <div

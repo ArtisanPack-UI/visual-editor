@@ -62,6 +62,12 @@
 					body: JSON.stringify( { url } ),
 				} );
 
+				if ( ! response.ok ) {
+					this.error = true;
+					this.loading = false;
+					return;
+				}
+
 				const json = await response.json();
 
 				if ( json.success && json.data ) {
@@ -123,7 +129,7 @@
 				</div>
 			@endif
 			<iframe
-				srcdoc="{{ e( $html ) }}"
+				srcdoc="{!! str_replace( '"', '&quot;', $html ) !!}"
 				sandbox="allow-scripts allow-popups"
 				class="ve-social-iframe"
 				title="{{ __( 'visual-editor::ve.social_post_from', ['platform' => $platformLabel ?: __( 'visual-editor::ve.social_media' )] ) }}"

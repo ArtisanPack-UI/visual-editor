@@ -1,6 +1,6 @@
 @php
 	$displayTemplate   = $content['displayTemplate'] ?? 'list';
-	$numberOfPosts     = max( 1, min( 100, (int) ( $content['numberOfPosts'] ?? 5 ) ) );
+	$numberOfPosts     = max( 1, min( 50, (int) ( $content['numberOfPosts'] ?? 5 ) ) );
 	$orderBy           = $content['orderBy'] ?? 'date';
 	$order             = $content['order'] ?? 'desc';
 	$offset            = max( 0, (int) ( $content['offset'] ?? 0 ) );

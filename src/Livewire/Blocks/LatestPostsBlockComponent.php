@@ -251,10 +251,14 @@ class LatestPostsBlockComponent extends Component
 		}
 
 		$posts = veApplyFilters( 've.latest-posts.query', null, [
-			'postType'      => $this->postType,
-			'numberOfPosts' => $this->numberOfPosts,
-			'orderBy'       => $this->orderBy,
-			'categories'    => $this->categories,
+			'postType'           => $this->postType,
+			'numberOfPosts'      => $this->numberOfPosts,
+			'orderBy'            => $this->orderBy,
+			'order'              => $this->order,
+			'categories'         => $this->categories,
+			'tags'               => $this->tags,
+			'offset'             => $this->offset,
+			'excludeCurrentPost' => $this->excludeCurrentPost,
 		] );
 
 		if ( is_array( $posts ) ) {

@@ -10,7 +10,12 @@
 @if ( ! empty( $items ) )
 	<{{ $tag }} class="ve-block-toc-list {{ $listClass }}">
 		@foreach ( $items as $item )
-			@php $safeId = preg_replace( '/[^a-zA-Z0-9_-]/', '', $item['id'] ?? '' ); @endphp
+			@php
+			$safeId = preg_replace( '/[^a-zA-Z0-9_-]/', '', $item['id'] ?? '' );
+			if ( '' === $safeId ) {
+				$safeId = 'toc-item-' . $loop->index;
+			}
+		@endphp
 			<li class="ve-block-toc-item">
 				<a
 					href="#{{ $safeId }}"

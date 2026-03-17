@@ -44,7 +44,7 @@
 				aria-modal="true"
 				aria-label="{{ $form->name }}"
 				class="ve-block-form-overlay ve-block-form-overlay-{{ $displayStyle }}"
-				@keydown.escape.window="open = false"
+				@keydown.escape.window="open = false; $wire.closeOverlay()"
 			@endif
 		>
 			@if ( $isModal || $isSlide )

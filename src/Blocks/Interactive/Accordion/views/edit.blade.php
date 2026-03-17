@@ -1,4 +1,5 @@
 @php
+	$blockId          = $blockId ?? 'accordion-' . uniqid();
 	$sections         = $content['sections'] ?? [];
 	$allowMultiple    = $content['allowMultiple'] ?? false;
 	$iconStyle        = $styles['iconStyle'] ?? 'chevron';
@@ -65,7 +66,11 @@
 				x-on:keydown.enter.prevent="open.includes( {{ $index }} ) ? open = open.filter( i => i !== {{ $index }} ) : {{ $allowMultiple ? "open = [ ...open, {$index} ]" : "open = [ {$index} ]" }}"
 				x-on:keydown.space.prevent="open.includes( {{ $index }} ) ? open = open.filter( i => i !== {{ $index }} ) : {{ $allowMultiple ? "open = [ ...open, {$index} ]" : "open = [ {$index} ]" }}"
 			>
-				<span contenteditable="true" class="ve-accordion-title-editable">{{ $sectionTitle }}</span>
+				<span
+				contenteditable="true"
+				class="ve-accordion-title-editable"
+				x-on:blur="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: 'sections.{{ $index }}.title', value: $event.target.textContent.trim() } )"
+			>{{ $sectionTitle }}</span>
 			</{{ $headingTag }}>
 			<div
 				class="ve-accordion-content collapse-content"

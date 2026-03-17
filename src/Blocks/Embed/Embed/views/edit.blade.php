@@ -110,7 +110,7 @@
 				@endif
 			>
 				<iframe
-					srcdoc="{{ e( $html ) }}"
+					srcdoc="{!! str_replace( '"', '&quot;', $html ) !!}"
 					sandbox="allow-scripts allow-popups"
 					class="ve-embed-iframe"
 					title="{{ $title ?: __( 'visual-editor::ve.embed_iframe_title' ) }}"

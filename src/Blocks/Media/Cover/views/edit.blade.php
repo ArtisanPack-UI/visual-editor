@@ -49,8 +49,8 @@
 		showFocalPicker: false,
 		mediaContext: {{ Js::from( $mediaContext ) }},
 
-		openMediaPicker() {
-			Livewire.dispatch( 'open-ve-media-picker', { context: this.mediaContext } );
+		openMediaPicker( mode = 'library' ) {
+			Livewire.dispatch( 'open-ve-media-picker', { context: this.mediaContext, mode: mode } );
 		},
 
 		updateFocalPoint( e ) {
@@ -81,10 +81,10 @@
 			:block-name="__( 'visual-editor::ve.block_cover_name' )"
 			:description="__( 'visual-editor::ve.cover_placeholder_desc' )"
 		>
-			<button type="button" class="btn btn-sm btn-primary" x-on:click="openMediaPicker()">
+			<button type="button" class="btn btn-sm btn-primary" x-on:click="openMediaPicker( 'upload' )">
 				{{ __( 'visual-editor::ve.placeholder_upload' ) }}
 			</button>
-			<button type="button" class="btn btn-sm btn-outline" x-on:click="openMediaPicker()">
+			<button type="button" class="btn btn-sm btn-outline" x-on:click="openMediaPicker( 'library' )">
 				{{ __( 'visual-editor::ve.placeholder_media_library' ) }}
 			</button>
 			<button

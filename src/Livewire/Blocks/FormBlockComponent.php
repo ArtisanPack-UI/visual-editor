@@ -259,7 +259,10 @@ class FormBlockComponent extends Component
 				$query = request()->query();
 				foreach ( $fields as $field ) {
 					if ( ! $field->isLayoutField() && isset( $query[ $field->name ] ) ) {
-						$this->formData[ $field->name ] = sanitizeText( (string) $query[ $field->name ] );
+						$value                          = (string) $query[ $field->name ];
+						$this->formData[ $field->name ] = function_exists( 'sanitizeText' )
+							? sanitizeText( $value )
+							: trim( $value );
 					}
 				}
 			}
@@ -279,7 +282,7 @@ class FormBlockComponent extends Component
 			return null;
 		}
 
-		$rateLimitKey = 've-form-submit:' . request()->ip() . ':' . $this->formId;
+		$rateLimitKey = 've-form-submit:' . request()->ip() . ':' . ( $this->formId ?? 'anon-' . $this->formElementId );
 		if ( RateLimiter::tooManyAttempts( $rateLimitKey, 5 ) ) {
 			$this->addError( 'formData', __( 'visual-editor::ve.form_rate_limited' ) );
 

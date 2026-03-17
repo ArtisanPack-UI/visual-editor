@@ -1,4 +1,5 @@
 @php
+	$blockId      = $blockId ?? 'form-' . uniqid();
 	$formId       = $content['formId'] ?? null;
 	$displayStyle = $content['displayStyle'] ?? 'embedded';
 	$showLabels   = $content['showLabels'] ?? true;
@@ -82,7 +83,7 @@
 				selectForm() {
 					if ( this.selectedFormId ) {
 						document.dispatchEvent( new CustomEvent( 've-field-change', {
-							detail: { blockId: 'dynamic', field: 'formId', value: this.selectedFormId },
+							detail: { blockId: {{ Js::from( $blockId ) }}, field: 'formId', value: this.selectedFormId },
 							bubbles: true
 						} ) );
 					}

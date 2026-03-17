@@ -1,4 +1,5 @@
 @php
+	$blockId           = $blockId ?? 'tabs-' . uniqid();
 	$tabs              = $content['tabs'] ?? [];
 	$tabPosition       = $content['tabPosition'] ?? 'top';
 	$tabStyle          = $styles['tabStyle'] ?? 'default';
@@ -83,7 +84,11 @@
 				:tabindex="activeTab === {{ $index }} ? '0' : '-1'"
 				x-on:click="activeTab = {{ $index }}"
 			>
-				<span contenteditable="true" class="ve-tab-label-editable">{{ $tabLabel }}</span>
+				<span
+				contenteditable="true"
+				class="ve-tab-label-editable"
+				x-on:blur="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: 'tabs.{{ $index }}.label', value: $event.target.textContent.trim() } )"
+			>{{ $tabLabel }}</span>
 			</button>
 		@endforeach
 	</div>
