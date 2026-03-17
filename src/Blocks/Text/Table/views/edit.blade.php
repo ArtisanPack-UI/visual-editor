@@ -111,16 +111,30 @@
 					@foreach ( $footerRows as $row )
 						<tr>
 							@foreach ( $row as $cellIndex => $cell )
-								<td
-									contenteditable="true"
-									data-row="{{ $totalRows - 1 }}"
-									data-col="{{ $cellIndex }}"
-									data-placeholder="{{ __( 'visual-editor::ve.table_cell_placeholder' ) }}"
-									@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
-									@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
-									@php $alignment = $cell['alignment'] ?? 'left'; @endphp
-									@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
-								>{!! kses( $cell['content'] ?? '' ) !!}</td>
+								@if ( $hasHeaderColumn && 0 === $cellIndex )
+									<th
+										scope="row"
+										contenteditable="true"
+										data-row="{{ $totalRows - 1 }}"
+										data-col="{{ $cellIndex }}"
+										data-placeholder="{{ __( 'visual-editor::ve.table_cell_placeholder' ) }}"
+										@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
+										@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
+										@php $alignment = $cell['alignment'] ?? 'left'; @endphp
+										@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
+									>{!! kses( $cell['content'] ?? '' ) !!}</th>
+								@else
+									<td
+										contenteditable="true"
+										data-row="{{ $totalRows - 1 }}"
+										data-col="{{ $cellIndex }}"
+										data-placeholder="{{ __( 'visual-editor::ve.table_cell_placeholder' ) }}"
+										@if ( ( $cell['colSpan'] ?? 1 ) > 1 ) colspan="{{ $cell['colSpan'] }}" @endif
+										@if ( ( $cell['rowSpan'] ?? 1 ) > 1 ) rowspan="{{ $cell['rowSpan'] }}" @endif
+										@php $alignment = $cell['alignment'] ?? 'left'; @endphp
+										@if ( 'left' !== $alignment ) style="text-align: {{ in_array( $alignment, [ 'left', 'center', 'right', 'justify' ], true ) ? $alignment : 'left' }};" @endif
+									>{!! kses( $cell['content'] ?? '' ) !!}</td>
+								@endif
 							@endforeach
 						</tr>
 					@endforeach

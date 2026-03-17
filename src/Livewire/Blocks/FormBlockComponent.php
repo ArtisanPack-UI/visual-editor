@@ -259,7 +259,7 @@ class FormBlockComponent extends Component
 				$query = request()->query();
 				foreach ( $fields as $field ) {
 					if ( ! $field->isLayoutField() && isset( $query[ $field->name ] ) ) {
-						$this->formData[ $field->name ] = $query[ $field->name ];
+						$this->formData[ $field->name ] = sanitizeText( (string) $query[ $field->name ] );
 					}
 				}
 			}
@@ -349,7 +349,13 @@ class FormBlockComponent extends Component
 		$this->dispatch( 've-form-submitted', formId: $this->formId, message: $successMsg );
 
 		if ( $this->redirectUrl ) {
-			return $this->redirect( $this->redirectUrl );
+			$parsedHost = parse_url( $this->redirectUrl, PHP_URL_HOST );
+			$appHost    = parse_url( config( 'app.url' ), PHP_URL_HOST );
+			$isRelative = str_starts_with( $this->redirectUrl, '/' ) && ! str_starts_with( $this->redirectUrl, '//' );
+
+			if ( $isRelative || $parsedHost === $appHost ) {
+				return $this->redirect( $this->redirectUrl );
+			}
 		}
 
 		return null;

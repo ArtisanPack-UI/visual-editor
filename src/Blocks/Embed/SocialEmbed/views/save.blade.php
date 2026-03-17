@@ -62,7 +62,11 @@
 			loading="lazy"
 		></iframe>
 	@elseif ( $hasFallback )
-		<a @if ( $safeUrl ) href="{{ $safeUrl }}" @endif class="ve-social-fallback-card" style="max-width: {{ $maxWidth }}; width: 100%;" target="_blank" rel="noopener noreferrer">
+		@if ( $safeUrl )
+			<a href="{{ $safeUrl }}" class="ve-social-fallback-card" style="max-width: {{ $maxWidth }}; width: 100%;" target="_blank" rel="noopener noreferrer">
+		@else
+			<div class="ve-social-fallback-card" style="max-width: {{ $maxWidth }}; width: 100%;" role="article" aria-label="{{ $platformLabel }}">
+		@endif
 			@if ( $thumbnailUrl )
 				<div class="ve-social-thumbnail">
 					<img src="{{ $thumbnailUrl }}" alt="{{ $title }}" loading="lazy" />
@@ -75,6 +79,10 @@
 					<p class="ve-social-fallback-description">{{ $description }}</p>
 				@endif
 			</div>
-		</a>
+		@if ( $safeUrl )
+			</a>
+		@else
+			</div>
+		@endif
 	@endif
 </div>

@@ -35,7 +35,7 @@
 				<span class="text-xs font-medium text-base-content/60">{{ __( 'visual-editor::ve.custom_html_preview' ) }}</span>
 			</div>
 			<iframe
-				srcdoc="{{ e( $htmlContent ) }}"
+				srcdoc="{{ $htmlContent }}"
 				sandbox="allow-scripts"
 				class="ve-custom-html-iframe"
 				title="{{ __( 'visual-editor::ve.custom_html_preview_title' ) }}"

@@ -1076,7 +1076,7 @@
 					// JS-side CSS sanitizers matching the PHP-side veSanitizeCssColor/veSanitizeCssDimension.
 					const veSanitizeCssColor = ( value ) => {
 						if ( ! value ) { return ''; }
-						return /^(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgb|rgba|hsl|hsla)\([\d\s,./%]+\)|[a-zA-Z-]+)$/.test( value.trim() ) ? value.trim() : '';
+						return /^(#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})|(?:rgb|rgba|hsl|hsla|oklch|oklab|lch|lab)\([\d\s,./%a-zA-Z()-]+\)|[a-zA-Z][a-zA-Z0-9-]*)$/.test( value.trim() ) ? value.trim() : '';
 					};
 					const veSanitizeCssDimension = ( value ) => {
 						if ( ! value ) { return ''; }
@@ -1540,18 +1540,23 @@
 							const innerBlocks  = block.innerBlocks || [];
 
 							// Auto-populate tabs metadata from inner blocks if empty or mismatched.
-							if ( tabs.length < innerBlocks.length ) {
+							// Guard: only sync once per mismatch to prevent render loops.
+							const storedBlock = Alpine.store( 'editor' )?.getBlock( block.id );
+							const storedTabs  = storedBlock?.attributes?.tabs || [];
+							if ( tabs.length !== innerBlocks.length && storedTabs.length !== innerBlocks.length ) {
 								const store = Alpine.store( 'editor' );
-								const newTabs = [ ...tabs ];
-								for ( let i = tabs.length; i < innerBlocks.length; i++ ) {
-									newTabs.push( { id: i, label: {{ Js::from( __( 'visual-editor::ve.tabs_tab_label_placeholder' ) ) }} + ' ' + ( i + 1 ), icon: '' } );
+								if ( tabs.length < innerBlocks.length ) {
+									const newTabs = [ ...tabs ];
+									for ( let i = tabs.length; i < innerBlocks.length; i++ ) {
+										newTabs.push( { id: i, label: {{ Js::from( __( 'visual-editor::ve.tabs_tab_label_placeholder' ) ) }} + ' ' + ( i + 1 ), icon: '' } );
+									}
+									tabs = newTabs;
+									if ( store ) { queueMicrotask( () => store.updateBlock( block.id, { tabs: newTabs } ) ); }
+								} else {
+									tabs = tabs.slice( 0, innerBlocks.length );
+									const sliced = tabs;
+									if ( store ) { queueMicrotask( () => store.updateBlock( block.id, { tabs: sliced } ) ); }
 								}
-								tabs = newTabs;
-								if ( store ) { store.updateBlock( block.id, { tabs: newTabs } ); }
-							} else if ( tabs.length > innerBlocks.length ) {
-								const store = Alpine.store( 'editor' );
-								tabs = tabs.slice( 0, innerBlocks.length );
-								if ( store ) { store.updateBlock( block.id, { tabs } ); }
 							}
 
 							const isVertical = [ 'left', 'right' ].includes( tabPosition );
@@ -1676,14 +1681,17 @@
 							const innerBlocks   = block.innerBlocks || [];
 
 							// Auto-populate sections metadata from inner blocks if empty or mismatched.
-							if ( sections.length < innerBlocks.length ) {
+							// Guard: check stored state to prevent render-loop re-entrancy.
+							const storedAccBlock    = Alpine.store( 'editor' )?.getBlock( block.id );
+							const storedSections    = storedAccBlock?.attributes?.sections || [];
+							if ( sections.length < innerBlocks.length && storedSections.length < innerBlocks.length ) {
 								const store = Alpine.store( 'editor' );
 								const newSections = [ ...sections ];
 								for ( let i = sections.length; i < innerBlocks.length; i++ ) {
 									newSections.push( { id: i, title: {{ Js::from( __( 'visual-editor::ve.accordion_section_title_placeholder' ) ) }} + ' ' + ( i + 1 ), isOpen: 0 === i, headingLevel: 'h3' } );
 								}
 								sections = newSections;
-								if ( store ) { store.updateBlock( block.id, { sections: newSections } ); }
+								if ( store ) { queueMicrotask( () => store.updateBlock( block.id, { sections: newSections } ) ); }
 							}
 
 							let classes = 've-block ve-block-accordion ve-block-editing'
@@ -2038,8 +2046,8 @@
 								const cellText  = existingCells.hasOwnProperty( key ) ? existingCells[ key ] : ( cell.content || '' );
 								const cellAlignRaw = cell.alignment || 'left';
 								const cellAlign = [ 'left', 'center', 'right', 'justify' ].includes( cellAlignRaw ) ? cellAlignRaw : 'left';
-								const colSpan   = cell.colSpan || 1;
-								const rowSpan   = cell.rowSpan || 1;
+								const colSpan   = Math.max( 1, Math.min( 1000, Math.floor( Number( cell.colSpan ) || 1 ) ) );
+								const rowSpan   = Math.max( 1, Math.min( 1000, Math.floor( Number( cell.rowSpan ) || 1 ) ) );
 								const tag       = isHeader ? 'th' : 'td';
 								let attrs       = ' contenteditable=\'true\''
 									+ ' data-row=\'' + rowIdx + '\' data-col=\'' + colIdx + '\''

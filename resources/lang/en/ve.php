@@ -840,6 +840,7 @@ return [
 	'map_height'               => 'Height',
 	'map_placeholder'          => 'Add a map by entering an address or coordinates.',
 	'map_search'               => 'Search',
+	'map_confirm_coordinates'  => 'Confirm coordinates',
 	'map_apply_coordinates'    => 'Apply coordinates',
 	'map_iframe_title'         => 'Map',
 	'map_showing_location'     => 'Map showing :address',

@@ -62,8 +62,9 @@
 
 	$bgStyles = 'position: absolute; inset: 0;';
 	if ( 'image' === $mediaType && $mediaUrl ) {
+		$safeBgUrl = str_replace( [ "'", '"', '\\', '(', ')', ';' ], '', $mediaUrl );
 		if ( $hasParallax ) {
-			$bgStyles .= " background-image: url('" . $mediaUrl . "'); background-position: {$objectPosition}; background-attachment: fixed; background-size: cover;";
+			$bgStyles .= " background-image: url('" . $safeBgUrl . "'); background-position: {$objectPosition}; background-attachment: fixed; background-size: cover;";
 			if ( $isRepeated ) {
 				$bgStyles .= ' background-repeat: repeat; background-size: auto;';
 			} else {

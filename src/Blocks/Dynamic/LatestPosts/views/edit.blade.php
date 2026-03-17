@@ -56,7 +56,7 @@
 		if ( 'desc' === $order ) {
 			$allPosts = array_reverse( $allPosts );
 		}
-	} elseif ( 'asc' === $order ) {
+	} elseif ( 'date' === $orderBy && 'asc' === $order ) {
 		$allPosts = array_reverse( $allPosts );
 	}
 

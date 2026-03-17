@@ -44,7 +44,7 @@
 	$contentSideStyles = "padding: {$contentPadding};";
 	$contentSideStyles .= 'right' === $mediaPosition ? ' order: 0;' : ' order: 1;';
 	if ( $contentBgColor ) {
-		$contentSideStyles .= " background-color: {$contentBgColor};";
+		$contentSideStyles .= ' background-color: ' . veSanitizeCssColor( $contentBgColor, '' ) . ';';
 	}
 @endphp
 

@@ -64,6 +64,11 @@
 					'/api/visual-editor/geocode?q=' + encodeURIComponent( query ),
 					{ headers: { 'Accept': 'application/json' } }
 				);
+				if ( ! response.ok ) {
+					console.error( 'Geocoding request failed:', response.status );
+					this.loading = false;
+					return;
+				}
 				const j = await response.json();
 
 				if ( j.success && j.results && j.results.length > 0 ) {
@@ -140,6 +145,7 @@
 					type="button"
 					class="btn btn-ghost btn-sm"
 					x-on:click="setCoordinates()"
+					aria-label="{{ __( 'visual-editor::ve.map_confirm_coordinates' ) }}"
 				>
 					<svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
 						<path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />

@@ -182,9 +182,10 @@
 								</label>
 							@endif
 
+							@php $inputType = 'phone' === $field->type ? 'tel' : $field->type; @endphp
 							@if ( in_array( $field->type, [ 'text', 'email', 'phone', 'number', 'url', 'date', 'time', 'hidden' ], true ) )
 								<input
-									type="{{ $field->type }}"
+									type="{{ $inputType }}"
 									id="{{ $fieldId }}"
 									placeholder="{{ $field->placeholder }}"
 									disabled

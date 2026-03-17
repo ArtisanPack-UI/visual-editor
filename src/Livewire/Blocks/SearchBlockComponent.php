@@ -141,7 +141,7 @@ class SearchBlockComponent extends Component
 	public function mount(): void
 	{
 		$this->inputId        = 've-search-input-' . (string) \Illuminate\Support\Str::uuid();
-		$this->resultsPerPage = max( 1, min( 100, (int) $this->resultsPerPage ) );
+		$this->resultsPerPage = max( 1, min( 50, (int) $this->resultsPerPage ) );
 	}
 
 	/**

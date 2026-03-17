@@ -1661,7 +1661,7 @@
 							const minHeight        = block.attributes?.minHeight || '430px';
 							const contentAlignment = block.attributes?.contentAlignment || 'center';
 							const textColor        = block.attributes?.textColor || '';
-							const safeUrl = ( /^(https?:\/\/|data:|\/)/i.test( mediaUrl ) ) ? mediaUrl.replace( /'/g, '%27' ).replace( /\\/g, '%5C' ).replace( /\(/g, '%28' ).replace( /\)/g, '%29' ) : '';
+							const safeUrl = ( /^(https?:\/\/|\/(?!\/)|data:image\/(png|jpeg|gif|webp|svg\+xml)(;base64)?,[^\s]+$)/i.test( mediaUrl ) ) ? mediaUrl.replace( /'/g, '%27' ).replace( /\\/g, '%5C' ).replace( /\(/g, '%28' ).replace( /\)/g, '%29' ) : '';
 
 							const focalX = Math.max( 0, Math.min( 1, parseFloat( focalPoint.x ?? 0.5 ) ) );
 							const focalY = Math.max( 0, Math.min( 1, parseFloat( focalPoint.y ?? 0.5 ) ) );
@@ -1851,7 +1851,7 @@
 							const gridGap            = block.attributes?.gridGap || '0';
 							const contentPadding     = block.attributes?.contentPadding || '1rem';
 							const contentBgColor     = block.attributes?.contentBackgroundColor || '';
-							const safeUrl = ( /^(https?:\/\/|data:|\/)/i.test( mediaUrl ) ) ? mediaUrl.replace( /'/g, '%27' ).replace( /\\/g, '%5C' ).replace( /\(/g, '%28' ).replace( /\)/g, '%29' ) : '';
+							const safeUrl = ( /^(https?:\/\/|\/(?!\/)|data:image\/(png|jpeg|gif|webp|svg\+xml)(;base64)?,[^\s]+$)/i.test( mediaUrl ) ) ? mediaUrl.replace( /'/g, '%27' ).replace( /\\/g, '%5C' ).replace( /\(/g, '%28' ).replace( /\)/g, '%29' ) : '';
 
 							const contentWidth = 100 - mediaWidth;
 

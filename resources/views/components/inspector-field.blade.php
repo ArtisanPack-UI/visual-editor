@@ -27,7 +27,7 @@
 	// creating a dependency on the local state (only store changes
 	// trigger re-evaluation).
 	$storeSync = 'dynamic' === $blockId
-		? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); const _sv = _b?.attributes?.' . $name . '; if ( _sv !== undefined && document.activeElement !== $el ) { value = _sv; }'
+		? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); const _sv = _b?.attributes?.[' . Js::from( $name ) . ']; if ( _sv !== undefined && document.activeElement !== $el ) { value = _sv; }'
 		: '';
 
 	// Build an x-show expression for conditional visibility based on
@@ -38,7 +38,7 @@
 	if ( $showWhen && 'dynamic' === $blockId ) {
 		$conditions = [];
 		foreach ( $showWhen as $depField => $depValue ) {
-			$conditions[] = '$store.editor?.getBlock( $store.selection?.focused )?.attributes?.' . $depField . ' === ' . Js::from( $depValue );
+			$conditions[] = '$store.editor?.getBlock( $store.selection?.focused )?.attributes?.[' . Js::from( $depField ) . '] === ' . Js::from( $depValue );
 		}
 		$showWhenExp = implode( ' && ', $conditions );
 	}
@@ -126,7 +126,7 @@
 				</label>
 				@php
 					$toggleSync = 'dynamic' === $blockId
-						? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); const _sv = _b?.attributes?.' . $name . '; if ( _sv !== undefined ) { checked = !! _sv; }'
+						? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); const _sv = _b?.attributes?.[' . Js::from( $name ) . ']; if ( _sv !== undefined ) { checked = !! _sv; }'
 						: '';
 				@endphp
 				<input
@@ -209,7 +209,7 @@
 				if ( is_numeric( $unitCurrentValue ) ) {
 					$unitNumeric = (string) $unitCurrentValue;
 				} elseif ( is_string( $unitCurrentValue ) && '' !== $unitCurrentValue ) {
-					if ( preg_match( '/^([\d.]+)\s*([a-z%]+)$/i', $unitCurrentValue, $m ) ) {
+					if ( preg_match( '/^(\d+\.?\d*|\.\d+)\s*([a-z%]+)$/i', $unitCurrentValue, $m ) ) {
 						$unitNumeric = $m[1];
 						$unitSuffix  = $m[2];
 					} else {
@@ -228,7 +228,7 @@
 		@case ( 'media_picker' )
 			@php
 				$mediaStoreSync = 'dynamic' === $blockId
-					? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); value = _b?.attributes?.' . $name . ' || \'\'; const _fid = $store.selection?.focused || \'dynamic\'; context = _fid + \':\' + ' . Js::from( $name ) . ';'
+					? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); value = _b?.attributes?.[' . Js::from( $name ) . '] || \'\'; const _fid = $store.selection?.focused || \'dynamic\'; context = _fid + \':\' + ' . Js::from( $name ) . ';'
 					: '';
 			@endphp
 			<div

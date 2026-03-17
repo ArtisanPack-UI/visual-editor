@@ -50,7 +50,7 @@
 			@if ( $isModal || $isSlide )
 				<div
 					class="ve-block-form-overlay-backdrop"
-					x-on:click="open = false"
+					x-on:click="$wire.closeOverlay()"
 				></div>
 				<div class="ve-block-form-overlay-content ve-block-form-overlay-content-{{ $displayStyle }}">
 					<div class="ve-block-form-overlay-header">
@@ -149,9 +149,10 @@
 									</label>
 								@endif
 
-								@if ( in_array( $field->type, [ 'text', 'email', 'phone', 'number', 'url', 'date', 'time' ], true ) )
+								@php $inputType = 'phone' === $field->type ? 'tel' : $field->type; @endphp
+							@if ( in_array( $field->type, [ 'text', 'email', 'phone', 'number', 'url', 'date', 'time' ], true ) )
 									<input
-										type="{{ $field->type }}"
+										type="{{ $inputType }}"
 										id="{{ $fieldId }}"
 										name="{{ $field->name }}"
 										wire:model="formData.{{ $field->name }}"

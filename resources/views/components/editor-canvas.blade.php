@@ -199,8 +199,8 @@
 						const tableEl = editableEl.closest( 'table' );
 						const cells   = this._getTableCells( tableEl );
 						const cellIdx = cells.indexOf( editableEl );
-						const row     = parseInt( editableEl.getAttribute( 'data-row' ) );
-						const col     = parseInt( editableEl.getAttribute( 'data-col' ) );
+						const row     = parseInt( editableEl.getAttribute( 'data-row' ), 10 );
+						const col     = parseInt( editableEl.getAttribute( 'data-col' ), 10 );
 
 						// Tab / Shift+Tab: move to next/previous cell.
 						if ( 'Tab' === event.key ) {
