@@ -51,9 +51,9 @@ test( 'document taxonomies renders empty state', function (): void {
 		->assertSee( 'No options available.' );
 } );
 
-test( 'document taxonomies renders checkbox inputs', function (): void {
-	$this->blade( '<x-ve-document-taxonomies />' )
-		->assertSee( 'checkbox', false );
+test( 'document taxonomies renders checkbox inputs with options', function (): void {
+	$this->blade( '<x-ve-document-taxonomies :options="[\'1\' => \'News\', \'2\' => \'Updates\']" />' )
+		->assertSee( 'type="checkbox"', false );
 } );
 
 test( 'document taxonomies renders meta key binding', function (): void {

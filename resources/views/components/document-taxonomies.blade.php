@@ -11,7 +11,10 @@
  --}}
 
 @php
-	$labelText  = $label ?? __( 'visual-editor::ve.document_taxonomies' );
+	$labelText = $label ?? __( 'visual-editor::ve.document_taxonomies' );
+
+	// Storage key is a flat string (e.g. "taxonomies.category") used as a single
+	// key in the editor store's getMeta/setMeta — not nested object access.
 	$storageKey = $taxonomy ? $metaKey . '.' . $taxonomy : $metaKey;
 @endphp
 

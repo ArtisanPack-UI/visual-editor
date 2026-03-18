@@ -19,10 +19,9 @@
 	id="{{ $uuid }}"
 	x-data="{
 		value: Alpine.store( 'editor' )?.getMeta( {{ Js::from( $metaKey ) }}, '' ) ?? '',
-		update( val ) {
-			this.value = val;
+		sync() {
 			if ( Alpine.store( 'editor' ) ) {
-				Alpine.store( 'editor' ).setMeta( {{ Js::from( $metaKey ) }}, val );
+				Alpine.store( 'editor' ).setMeta( {{ Js::from( $metaKey ) }}, this.value );
 			}
 		},
 	}"
@@ -35,7 +34,7 @@
 		class="textarea textarea-sm w-full"
 		rows="3"
 		x-model="value"
-		x-on:input="update( $event.target.value )"
+		x-on:input="sync()"
 		placeholder="{{ $placeholderText }}"
 		@if ( $maxLength ) maxlength="{{ $maxLength }}" @endif
 	></textarea>

@@ -51,14 +51,25 @@ test( 'document featured image renders meta key binding', function (): void {
 	$view->assertSee( 'getMeta', false );
 } );
 
-test( 'document featured image renders file input as fallback', function (): void {
+test( 'document featured image renders media picker button when media library is available', function (): void {
+	$component = new DocumentFeaturedImage();
+
+	if ( $component->hasMediaLibrary ) {
+		$view = $this->blade( '<x-ve-document-featured-image />' );
+		$view->assertSee( 'Select Image' );
+		$view->assertSee( 'open-ve-media-picker', false );
+	} else {
+		expect( true )->toBeTrue();
+	}
+} );
+
+test( 'document featured image renders file input when media library is not available', function (): void {
 	$component = new DocumentFeaturedImage();
 
 	if ( ! $component->hasMediaLibrary ) {
 		$view = $this->blade( '<x-ve-document-featured-image />' );
 		$view->assertSee( 'file-input', false );
 	} else {
-		$view = $this->blade( '<x-ve-document-featured-image />' );
-		$view->assertSee( 'Select Image' );
+		expect( true )->toBeTrue();
 	}
 } );

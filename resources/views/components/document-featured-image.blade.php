@@ -79,7 +79,7 @@
 		/>
 		<button
 			type="button"
-			class="btn btn-xs btn-circle btn-error absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
+			class="btn btn-xs btn-circle btn-error absolute top-2 right-2 opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 transition-opacity"
 			x-on:click="removeImage()"
 			aria-label="{{ __( 'visual-editor::ve.featured_image_remove' ) }}"
 		>
