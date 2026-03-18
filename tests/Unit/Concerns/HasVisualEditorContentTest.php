@@ -237,3 +237,61 @@ it( 'does not set scheduled_at when meta does not include scheduledDate', functi
 
 	expect( $post->scheduled_at )->toBeNull();
 } );
+
+it( 'does not prune revisions when max_revisions is zero', function (): void {
+	config()->set( 'artisanpack.visual-editor.persistence.max_revisions', 0 );
+
+	$post = TestPost::create();
+
+	for ( $i = 1; $i <= 5; $i++ ) {
+		$post->saveFromEditor( [
+			'blocks' => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => "Rev {$i}" ] ] ],
+		] );
+	}
+
+	expect( $post->revisions()->count() )->toBe( 5 );
+} );
+
+it( 'renders blocks via the block registry', function (): void {
+	$mockBlock = Mockery::mock( ArtisanPackUI\VisualEditor\Blocks\Contracts\BlockInterface::class );
+	$mockBlock->shouldReceive( 'render' )
+		->once()
+		->with( [ 'content' => 'Hello' ], [], [], [] )
+		->andReturn( '<p>Hello</p>' );
+
+	$mockRegistry = Mockery::mock( ArtisanPackUI\VisualEditor\Blocks\BlockRegistry::class );
+	$mockRegistry->shouldReceive( 'get' )
+		->with( 'paragraph' )
+		->andReturn( $mockBlock );
+
+	$this->app->instance( 'visual-editor.blocks', $mockRegistry );
+
+	$post = TestPost::create( [
+		'blocks' => [
+			[ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Hello' ] ],
+		],
+	] );
+
+	$html = $post->renderBlocks();
+
+	expect( $html )->toContain( '<p>Hello</p>' );
+} );
+
+it( 'returns empty string for unregistered block types in renderBlocks', function (): void {
+	$mockRegistry = Mockery::mock( ArtisanPackUI\VisualEditor\Blocks\BlockRegistry::class );
+	$mockRegistry->shouldReceive( 'get' )
+		->with( 'nonexistent' )
+		->andReturn( null );
+
+	$this->app->instance( 'visual-editor.blocks', $mockRegistry );
+
+	$post = TestPost::create( [
+		'blocks' => [
+			[ 'type' => 'nonexistent', 'attributes' => [] ],
+		],
+	] );
+
+	$html = $post->renderBlocks();
+
+	expect( $html )->toBe( '' );
+} );

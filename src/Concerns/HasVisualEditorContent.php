@@ -167,7 +167,11 @@ trait HasVisualEditorContent
 	}
 
 	/**
-	 * Restore the model's blocks from a specific revision.
+	 * Restore the model's block content from a specific revision.
+	 *
+	 * Only restores the blocks array — status, scheduled_at, and other
+	 * model attributes are left unchanged. A new revision is created
+	 * after the restore to record the state change.
 	 *
 	 * @since 1.0.0
 	 *
@@ -218,6 +222,10 @@ trait HasVisualEditorContent
 	protected function pruneRevisions(): void
 	{
 		$maxRevisions = (int) config( 'artisanpack.visual-editor.persistence.max_revisions', 50 );
+
+		if ( $maxRevisions <= 0 ) {
+			return;
+		}
 
 		$count = $this->revisions()->count();
 
