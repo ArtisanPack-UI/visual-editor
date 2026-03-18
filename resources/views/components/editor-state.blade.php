@@ -747,8 +747,7 @@
 					if ( ! this.autosaveInterval || this.autosaveInterval <= 0 ) return;
 					this._autosaveTimer = setInterval( () => {
 						if ( this.SAVE_STATUS.UNSAVED === this.saveStatus ) {
-							document.dispatchEvent( new CustomEvent( 've-autosave', {
-								bubbles: true,
+							window.dispatchEvent( new CustomEvent( 've-autosave', {
 								detail: {
 									blocks: JSON.parse( JSON.stringify( this.blocks ) ),
 									documentStatus: this.documentStatus,
