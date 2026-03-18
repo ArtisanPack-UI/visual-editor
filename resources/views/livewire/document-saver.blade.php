@@ -61,13 +61,13 @@ new class extends Component
 		$this->form->validate();
 
 		if ( function_exists( 'doAction' ) ) {
-			doAction( 'ap.visualEditor.document.saving', $this->documentId, $blocks, $documentStatus, $meta );
+			doAction( 'ap.visualEditor.document.saving', $this->documentId, $blocks, $documentStatus, $scheduledDate, $meta );
 		}
 
-		$this->dispatch( 've-document-saved', documentId: $this->documentId );
+		$this->dispatch( 've-document-saved', documentId: $this->documentId, scheduledDate: $scheduledDate );
 
 		if ( function_exists( 'doAction' ) ) {
-			doAction( 'ap.visualEditor.document.saved', $this->documentId, $blocks, $documentStatus, $meta );
+			doAction( 'ap.visualEditor.document.saved', $this->documentId, $blocks, $documentStatus, $scheduledDate, $meta );
 		}
 	}
 

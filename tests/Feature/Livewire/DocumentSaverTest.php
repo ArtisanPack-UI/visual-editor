@@ -107,6 +107,20 @@ it( 'handles autosave event with meta', function (): void {
 		->assertDispatched( 've-document-saved' );
 } );
 
+it( 'handles scheduled autosave with meta', function (): void {
+	$blocks = [
+		[ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Scheduled content' ] ],
+	];
+	$meta          = [ 'title' => 'Scheduled Post' ];
+	$scheduledDate = now()->addDay()->toDateTimeString();
+
+	Livewire::test( 'visual-editor::document-saver', [ 'documentId' => 1 ] )
+		->dispatch( 've-autosave', blocks: $blocks, documentStatus: 'scheduled', scheduledDate: $scheduledDate, meta: $meta )
+		->assertSet( 'form.meta', $meta )
+		->assertSet( 'form.scheduledDate', $scheduledDate )
+		->assertDispatched( 've-document-saved' );
+} );
+
 it( 'dispatches error event on autosave failure', function (): void {
 	Livewire::test( 'visual-editor::document-saver', [ 'documentId' => 1 ] )
 		->dispatch( 've-autosave', blocks: [] )
