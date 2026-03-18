@@ -36,8 +36,9 @@ new class extends Component
 	/**
 	 * Mount the component and check for existing drafts.
 	 *
-	 * If a draft exists in cache, dispatches `ve-draft-restored` with the
-	 * stored blocks and meta so the Alpine store can prompt the user.
+	 * If a draft exists in cache, dispatches `ve-draft-found` so the
+	 * Alpine store can prompt the user to restore or discard. Does not
+	 * auto-restore — the user must explicitly choose to restore.
 	 *
 	 * @since 1.0.0
 	 *
@@ -58,10 +59,11 @@ new class extends Component
 
 		$this->documentType = trim( $documentType );
 		$this->documentId   = trim( $documentId );
+		$this->migrateLegacyDraft();
 		$this->hasDraft     = Cache::has( $this->getCacheKey() );
 
 		if ( $this->hasDraft ) {
-			$this->loadDraft();
+			$this->dispatch( 've-draft-found' );
 		}
 	}
 
@@ -160,6 +162,36 @@ new class extends Component
 	}
 
 	/**
+	 * Migrate a draft stored under the legacy cache key format.
+	 *
+	 * Checks for drafts stored under the old `ve-draft-{userId}-{documentId}`
+	 * format and moves them to the new `ve-draft-{documentType}-{documentId}-{userId}`
+	 * format. The legacy key is deleted after migration.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	private function migrateLegacyDraft(): void
+	{
+		$legacyKey = $this->getLegacyCacheKey();
+
+		if ( ! Cache::has( $legacyKey ) ) {
+			return;
+		}
+
+		if ( ! Cache::has( $this->getCacheKey() ) ) {
+			Cache::put(
+				$this->getCacheKey(),
+				Cache::get( $legacyKey ),
+				config( 'artisanpack.visual-editor.persistence.draft_ttl', 86400 ),
+			);
+		}
+
+		Cache::forget( $legacyKey );
+	}
+
+	/**
 	 * Get the cache key for this document's draft.
 	 *
 	 * Format: ve-draft-{documentType}-{documentId}-{userId}
@@ -170,9 +202,33 @@ new class extends Component
 	 */
 	private function getCacheKey(): string
 	{
-		$userId = auth()->id() ?? 'guest-' . session()->getId();
+		return 've-draft-' . $this->documentType . '-' . $this->documentId . '-' . $this->getUserId();
+	}
 
-		return 've-draft-' . $this->documentType . '-' . $this->documentId . '-' . $userId;
+	/**
+	 * Get the legacy cache key format for migration.
+	 *
+	 * Format: ve-draft-{userId}-{documentId}
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string
+	 */
+	private function getLegacyCacheKey(): string
+	{
+		return 've-draft-' . $this->getUserId() . '-' . $this->documentId;
+	}
+
+	/**
+	 * Get the current user identifier for cache key generation.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string
+	 */
+	private function getUserId(): string
+	{
+		return (string) ( auth()->id() ?? 'guest-' . session()->getId() );
 	}
 }; ?>
 

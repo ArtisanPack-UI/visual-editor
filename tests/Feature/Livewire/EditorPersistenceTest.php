@@ -11,8 +11,17 @@
 
 declare( strict_types=1 );
 
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
+
+uses( RefreshDatabase::class );
+
+beforeEach( function (): void {
+	$this->artisan( 'migrate', [ '--database' => 'testbench' ] );
+} );
 
 /**
  * Build the expected guest cache key for a given document type and ID.
@@ -25,6 +34,46 @@ use Livewire\Livewire;
 function guestCacheKey( string $documentType, string $documentId ): string
 {
 	return 've-draft-' . $documentType . '-' . $documentId . '-guest-' . session()->getId();
+}
+
+/**
+ * Build an authenticated user cache key for a given document type and ID.
+ *
+ * @param int    $userId       The user ID.
+ * @param string $documentType The document type (model class).
+ * @param string $documentId   The document identifier.
+ *
+ * @return string
+ */
+function authCacheKey( int $userId, string $documentType, string $documentId ): string
+{
+	return 've-draft-' . $documentType . '-' . $documentId . '-' . $userId;
+}
+
+/**
+ * Create a test user with the given email.
+ *
+ * @param string $email The email address.
+ *
+ * @return Authenticatable
+ */
+function createPersistenceUser( string $email = 'test@example.com' ): Authenticatable
+{
+	$id = DB::table( 'users' )->insertGetId( [
+		'name'       => 'Test User',
+		'email'      => $email,
+		'created_at' => now(),
+		'updated_at' => now(),
+	] );
+
+	$user        = new class extends Authenticatable {
+		protected $table = 'users';
+	};
+	$user->id    = $id;
+	$user->name  = 'Test User';
+	$user->email = $email;
+
+	return $user;
 }
 
 it( 'mounts with document type and ID', function (): void {
@@ -78,7 +127,7 @@ it( 'saves draft with blocks only when meta is omitted', function (): void {
 		->and( $cached['meta'] )->toBe( [] );
 } );
 
-it( 'dispatches ve-draft-restored on mount when draft exists', function (): void {
+it( 'dispatches ve-draft-found on mount when draft exists', function (): void {
 	$draft = [
 		'blocks' => [ [ 'type' => 'heading', 'attributes' => [ 'content' => 'Recovered' ] ] ],
 		'meta'   => [ 'title' => 'Recovered Title' ],
@@ -88,10 +137,11 @@ it( 'dispatches ve-draft-restored on mount when draft exists', function (): void
 
 	Livewire::test( 'visual-editor::editor-persistence', [ 'documentType' => 'App\\Models\\Post', 'documentId' => 'auto-load-doc' ] )
 		->assertSet( 'hasDraft', true )
-		->assertDispatched( 've-draft-restored' );
+		->assertDispatched( 've-draft-found' )
+		->assertNotDispatched( 've-draft-restored' );
 } );
 
-it( 'restores draft with blocks and meta', function (): void {
+it( 'restores draft with matching blocks and meta payload', function (): void {
 	$draft = [
 		'blocks' => [ [ 'type' => 'heading', 'attributes' => [ 'content' => 'Restored' ] ] ],
 		'meta'   => [ 'title' => 'Restored Title' ],
@@ -102,7 +152,26 @@ it( 'restores draft with blocks and meta', function (): void {
 	Livewire::test( 'visual-editor::editor-persistence', [ 'documentType' => 'App\\Models\\Post', 'documentId' => 'restore-doc' ] )
 		->assertSet( 'hasDraft', true )
 		->call( 'restoreDraft' )
-		->assertDispatched( 've-draft-restored' );
+		->assertDispatched( 've-draft-restored', function ( string $event, array $params ): bool {
+			return $params['blocks'] === [ [ 'type' => 'heading', 'attributes' => [ 'content' => 'Restored' ] ] ]
+				&& $params['meta'] === [ 'title' => 'Restored Title' ];
+		} );
+} );
+
+it( 'loadDraft dispatches matching blocks and meta payload', function (): void {
+	$draft = [
+		'blocks' => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Loaded' ] ] ],
+		'meta'   => [ 'documentStatus' => 'published', 'title' => 'Loaded Title' ],
+	];
+
+	Cache::put( guestCacheKey( 'App\\Models\\Post', 'load-doc' ), $draft, 86400 );
+
+	Livewire::test( 'visual-editor::editor-persistence', [ 'documentType' => 'App\\Models\\Post', 'documentId' => 'load-doc' ] )
+		->call( 'loadDraft' )
+		->assertDispatched( 've-draft-restored', function ( string $event, array $params ) use ( $draft ): bool {
+			return $params['blocks'] === $draft['blocks']
+				&& $params['meta'] === $draft['meta'];
+		} );
 } );
 
 it( 'clears draft from cache via clearDraft', function (): void {
@@ -161,7 +230,7 @@ it( 'does not dispatch when no draft exists', function (): void {
 		->assertNotDispatched( 've-draft-restored' );
 } );
 
-it( 'respects config TTL', function (): void {
+it( 'respects config TTL when saving draft', function (): void {
 	config()->set( 'artisanpack.visual-editor.persistence.draft_ttl', 3600 );
 
 	$blocks = [
@@ -172,10 +241,16 @@ it( 'respects config TTL', function (): void {
 		->dispatch( 've-autosave', blocks: $blocks )
 		->assertDispatched( 've-draft-saved' );
 
+	// Verify the draft was stored
 	expect( Cache::has( guestCacheKey( 'App\\Models\\Post', 'ttl-doc' ) ) )->toBeTrue();
+
+	// Verify the stored payload structure
+	$cached = Cache::get( guestCacheKey( 'App\\Models\\Post', 'ttl-doc' ) );
+
+	expect( $cached )->toBe( [ 'blocks' => $blocks, 'meta' => [] ] );
 } );
 
-it( 'scopes drafts by user and document type', function (): void {
+it( 'scopes drafts by user and document type for guests', function (): void {
 	$draftA = [
 		'blocks' => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Post draft' ] ] ],
 		'meta'   => [],
@@ -199,4 +274,70 @@ it( 'scopes drafts by user and document type', function (): void {
 	// No draft for a different document ID
 	Livewire::test( 'visual-editor::editor-persistence', [ 'documentType' => 'App\\Models\\Post', 'documentId' => 'doc-2' ] )
 		->assertSet( 'hasDraft', false );
+} );
+
+it( 'isolates drafts between authenticated users', function (): void {
+	$userA = createPersistenceUser( 'alice@example.com' );
+	$userB = createPersistenceUser( 'bob@example.com' );
+
+	$draft = [
+		'blocks' => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Alice draft' ] ] ],
+		'meta'   => [],
+	];
+
+	Cache::put( authCacheKey( $userA->id, 'App\\Models\\Post', 'doc-1' ), $draft, 86400 );
+
+	// User A sees the draft
+	Livewire::actingAs( $userA )
+		->test( 'visual-editor::editor-persistence', [ 'documentType' => 'App\\Models\\Post', 'documentId' => 'doc-1' ] )
+		->assertSet( 'hasDraft', true );
+
+	// User B does not see User A's draft
+	Livewire::actingAs( $userB )
+		->test( 'visual-editor::editor-persistence', [ 'documentType' => 'App\\Models\\Post', 'documentId' => 'doc-1' ] )
+		->assertSet( 'hasDraft', false );
+} );
+
+it( 'migrates legacy cache key to new format', function (): void {
+	$legacyKey = 've-draft-guest-' . session()->getId() . '-legacy-doc';
+	$draft     = [
+		'blocks' => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Legacy draft' ] ] ],
+		'meta'   => [ 'title' => 'Legacy' ],
+	];
+
+	Cache::put( $legacyKey, $draft, 86400 );
+
+	Livewire::test( 'visual-editor::editor-persistence', [ 'documentType' => 'App\\Models\\Post', 'documentId' => 'legacy-doc' ] )
+		->assertSet( 'hasDraft', true );
+
+	// Legacy key is deleted after migration
+	expect( Cache::has( $legacyKey ) )->toBeFalse()
+		->and( Cache::has( guestCacheKey( 'App\\Models\\Post', 'legacy-doc' ) ) )->toBeTrue();
+
+	// Migrated data matches
+	$migrated = Cache::get( guestCacheKey( 'App\\Models\\Post', 'legacy-doc' ) );
+
+	expect( $migrated )->toBe( $draft );
+} );
+
+it( 'does not overwrite new key when legacy key exists', function (): void {
+	$legacyKey = 've-draft-guest-' . session()->getId() . '-overwrite-doc';
+	$newKey    = guestCacheKey( 'App\\Models\\Post', 'overwrite-doc' );
+
+	$legacyDraft = [ 'blocks' => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Old' ] ] ], 'meta' => [] ];
+	$newDraft    = [ 'blocks' => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'New' ] ] ], 'meta' => [] ];
+
+	Cache::put( $legacyKey, $legacyDraft, 86400 );
+	Cache::put( $newKey, $newDraft, 86400 );
+
+	Livewire::test( 'visual-editor::editor-persistence', [ 'documentType' => 'App\\Models\\Post', 'documentId' => 'overwrite-doc' ] )
+		->assertSet( 'hasDraft', true );
+
+	// Legacy key is still cleaned up
+	expect( Cache::has( $legacyKey ) )->toBeFalse();
+
+	// New key retains its original value (not overwritten by legacy)
+	$current = Cache::get( $newKey );
+
+	expect( $current['blocks'][0]['attributes']['content'] )->toBe( 'New' );
 } );
