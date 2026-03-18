@@ -271,6 +271,21 @@ return [
 	'schedule_date'      => 'Schedule date',
 	'schedule_date_hint' => 'Set the date and time for publishing.',
 
+	// Document Panel Fields
+	'document_title'                => 'Title',
+	'document_title_placeholder'    => 'Add title…',
+	'document_excerpt'              => 'Excerpt',
+	'document_excerpt_placeholder'  => 'Write an excerpt…',
+	'characters'                    => 'characters',
+	'document_permalink'            => 'Permalink',
+	'document_permalink_placeholder' => 'enter-slug',
+	'document_featured_image'       => 'Featured Image',
+	'featured_image_preview'        => 'Featured image preview',
+	'featured_image_remove'         => 'Remove featured image',
+	'featured_image_select'         => 'Select Image',
+	'document_taxonomies'           => 'Taxonomies',
+	'document_taxonomies_empty'     => 'No options available.',
+
 	// Block Names and Descriptions (translation-aware getters)
 	'block_heading_name'          => 'Heading',
 	'block_heading_description'   => 'Add a heading to your content',
