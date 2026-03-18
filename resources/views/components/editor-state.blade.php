@@ -785,10 +785,10 @@
 							this.blocks = e.detail.blocks;
 
 							if ( e.detail.meta ) {
-								if ( e.detail.meta.documentStatus ) {
+								if ( 'documentStatus' in e.detail.meta ) {
 									this.documentStatus = e.detail.meta.documentStatus;
 								}
-								if ( e.detail.meta.scheduledDate ) {
+								if ( 'scheduledDate' in e.detail.meta ) {
 									this.scheduledDate = e.detail.meta.scheduledDate;
 								}
 

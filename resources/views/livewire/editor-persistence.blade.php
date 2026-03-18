@@ -107,7 +107,9 @@ new class extends Component
 			return;
 		}
 
-		$this->dispatch( 've-draft-restored', blocks: $draft['blocks'] ?? [], meta: $draft['meta'] ?? [] );
+		$draft = $this->normalizeDraft( $draft );
+
+		$this->dispatch( 've-draft-restored', blocks: $draft['blocks'], meta: $draft['meta'] );
 	}
 
 	/**
@@ -183,12 +185,36 @@ new class extends Component
 		if ( ! Cache::has( $this->getCacheKey() ) ) {
 			Cache::put(
 				$this->getCacheKey(),
-				Cache::get( $legacyKey ),
+				$this->normalizeDraft( Cache::get( $legacyKey ) ),
 				config( 'artisanpack.visual-editor.persistence.draft_ttl', 86400 ),
 			);
 		}
 
 		Cache::forget( $legacyKey );
+	}
+
+	/**
+	 * Normalize a draft payload into the expected shape.
+	 *
+	 * Legacy drafts were stored as raw block arrays. This method
+	 * detects that format and wraps it into `{ blocks, meta }`.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array<string|int, mixed> $draft The raw or normalized draft data.
+	 *
+	 * @return array{blocks: array<int, array<string, mixed>>, meta: array<string, mixed>}
+	 */
+	private function normalizeDraft( array $draft ): array
+	{
+		if ( ! array_key_exists( 'blocks', $draft ) ) {
+			return [ 'blocks' => $draft, 'meta' => [] ];
+		}
+
+		return [
+			'blocks' => $draft['blocks'] ?? [],
+			'meta'   => $draft['meta'] ?? [],
+		];
 	}
 
 	/**

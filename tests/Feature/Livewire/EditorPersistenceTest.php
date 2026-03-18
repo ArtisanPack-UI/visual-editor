@@ -298,14 +298,13 @@ it( 'isolates drafts between authenticated users', function (): void {
 		->assertSet( 'hasDraft', false );
 } );
 
-it( 'migrates legacy cache key to new format', function (): void {
+it( 'migrates legacy cache key to new format and normalizes raw blocks', function (): void {
 	$legacyKey = 've-draft-guest-' . session()->getId() . '-legacy-doc';
-	$draft     = [
-		'blocks' => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Legacy draft' ] ] ],
-		'meta'   => [ 'title' => 'Legacy' ],
+	$rawBlocks = [
+		[ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Legacy draft' ] ],
 	];
 
-	Cache::put( $legacyKey, $draft, 86400 );
+	Cache::put( $legacyKey, $rawBlocks, 86400 );
 
 	Livewire::test( 'visual-editor::editor-persistence', [ 'documentType' => 'App\\Models\\Post', 'documentId' => 'legacy-doc' ] )
 		->assertSet( 'hasDraft', true );
@@ -314,17 +313,17 @@ it( 'migrates legacy cache key to new format', function (): void {
 	expect( Cache::has( $legacyKey ) )->toBeFalse()
 		->and( Cache::has( guestCacheKey( 'App\\Models\\Post', 'legacy-doc' ) ) )->toBeTrue();
 
-	// Migrated data matches
+	// Migrated data is normalized into { blocks, meta } shape
 	$migrated = Cache::get( guestCacheKey( 'App\\Models\\Post', 'legacy-doc' ) );
 
-	expect( $migrated )->toBe( $draft );
+	expect( $migrated )->toBe( [ 'blocks' => $rawBlocks, 'meta' => [] ] );
 } );
 
 it( 'does not overwrite new key when legacy key exists', function (): void {
 	$legacyKey = 've-draft-guest-' . session()->getId() . '-overwrite-doc';
 	$newKey    = guestCacheKey( 'App\\Models\\Post', 'overwrite-doc' );
 
-	$legacyDraft = [ 'blocks' => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Old' ] ] ], 'meta' => [] ];
+	$legacyDraft = [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Old' ] ] ];
 	$newDraft    = [ 'blocks' => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'New' ] ] ], 'meta' => [] ];
 
 	Cache::put( $legacyKey, $legacyDraft, 86400 );
