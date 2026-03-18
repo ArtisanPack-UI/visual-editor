@@ -252,6 +252,48 @@ it( 'does not prune revisions when max_revisions is zero', function (): void {
 	expect( $post->revisions()->count() )->toBe( 5 );
 } );
 
+it( 'skips revision creation for autosaves when autosave_revisions is false', function (): void {
+	config()->set( 'artisanpack.visual-editor.persistence.autosave_revisions', false );
+
+	$post = TestPost::create();
+
+	$post->saveFromEditor( [
+		'blocks'     => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Autosaved' ] ] ],
+		'isAutosave' => true,
+	] );
+
+	expect( $post->revisions()->count() )->toBe( 0 );
+
+	$post->refresh();
+
+	expect( $post->blocks[0]['attributes']['content'] )->toBe( 'Autosaved' );
+} );
+
+it( 'creates revision for autosaves when autosave_revisions is true', function (): void {
+	config()->set( 'artisanpack.visual-editor.persistence.autosave_revisions', true );
+
+	$post = TestPost::create();
+
+	$post->saveFromEditor( [
+		'blocks'     => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Autosaved' ] ] ],
+		'isAutosave' => true,
+	] );
+
+	expect( $post->revisions()->count() )->toBe( 1 );
+} );
+
+it( 'always creates revision for manual saves regardless of autosave_revisions config', function (): void {
+	config()->set( 'artisanpack.visual-editor.persistence.autosave_revisions', false );
+
+	$post = TestPost::create();
+
+	$post->saveFromEditor( [
+		'blocks' => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Manual' ] ] ],
+	] );
+
+	expect( $post->revisions()->count() )->toBe( 1 );
+} );
+
 it( 'renders blocks via the BlockRenderer service', function (): void {
 	$mockRenderer = Mockery::mock( ArtisanPackUI\VisualEditor\Rendering\BlockRenderer::class );
 	$mockRenderer->shouldReceive( 'render' )

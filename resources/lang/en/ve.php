@@ -802,13 +802,17 @@ return [
 	'persistence_document_id_required'     => 'A document ID is required for editor persistence.',
 
 	// Revision History
-	'revision_created'  => 'Revision created',
-	'revision_restored' => 'Revision restored',
-	'revision_deleted'  => 'Revision deleted',
-	'revision_history'  => 'Revision history',
-	'restore_revision'  => 'Restore revision',
-	'delete_revision'   => 'Delete revision',
-	'no_revisions'      => 'No revisions yet.',
+	'revision_created'         => 'Revision created',
+	'revision_restored'        => 'Revision restored',
+	'revision_deleted'         => 'Revision deleted',
+	'revision_history'         => 'Revision history',
+	'restore_revision'         => 'Restore revision',
+	'delete_revision'          => 'Delete revision',
+	'no_revisions'             => 'No revisions yet.',
+	'revision_by'              => 'by :name',
+	'revision_guest'           => 'Guest',
+	'confirm_restore_revision' => 'Are you sure you want to restore this revision? Current content will be replaced.',
+	'confirm_delete_revision'  => 'Are you sure you want to delete this revision? This cannot be undone.',
 
 	// Inner Blocks
 	'inner_blocks_placeholder' => 'Type / to choose a block',

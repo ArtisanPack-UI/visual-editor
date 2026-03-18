@@ -11,8 +11,9 @@
 
 return [
 	'persistence' => [
-		'draft_ttl'      => 86400,
-		'max_revisions'  => 50,
+		'draft_ttl'          => 86400,
+		'max_revisions'      => 50,
+		'autosave_revisions' => false,
 	],
 
 	/*
