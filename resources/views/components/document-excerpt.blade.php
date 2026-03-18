@@ -13,6 +13,7 @@
 @php
 	$labelText       = $label ?? __( 'visual-editor::ve.document_excerpt' );
 	$placeholderText = $placeholder ?? __( 'visual-editor::ve.document_excerpt_placeholder' );
+	$inputId         = $uuid . '-input';
 @endphp
 
 <div
@@ -24,13 +25,21 @@
 				Alpine.store( 'editor' ).setMeta( {{ Js::from( $metaKey ) }}, this.value );
 			}
 		},
+		init() {
+			this.$watch( () => Alpine.store( 'editor' )?.getMeta( {{ Js::from( $metaKey ) }}, '' ), ( newVal ) => {
+				if ( newVal !== this.value ) {
+					this.value = newVal ?? '';
+				}
+			} );
+		},
 	}"
 	{{ $attributes->merge( [ 'class' => '' ] ) }}
 >
-	<label class="text-xs font-medium text-base-content/60">
+	<label for="{{ $inputId }}" class="text-xs font-medium text-base-content/60">
 		{{ $labelText }}
 	</label>
 	<textarea
+		id="{{ $inputId }}"
 		class="textarea textarea-sm w-full"
 		rows="3"
 		x-model="value"

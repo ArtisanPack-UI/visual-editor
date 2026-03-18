@@ -51,7 +51,7 @@
 		{{ $labelText }}
 	</label>
 
-	<div class="mt-1 max-h-40 overflow-y-auto space-y-1 border border-base-300 rounded-btn p-2">
+	<div class="mt-1 max-h-40 overflow-y-auto space-y-1 border border-base-300 rounded-btn p-2" role="group" aria-label="{{ $labelText }}">
 		<template x-for="( optionLabel, optionValue ) in options" :key="optionValue">
 			<label class="flex items-center gap-2 cursor-pointer hover:bg-base-200 rounded px-1 py-0.5">
 				<input
