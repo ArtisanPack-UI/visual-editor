@@ -353,27 +353,26 @@ test( 'editor state renders setMetaBulk method', function (): void {
 	$view->assertSee( 'setMetaBulk( data )', false );
 } );
 
-test( 'editor state setMeta calls markDirty and dispatchChange', function (): void {
+test( 'editor state renders setMeta with markDirty and dispatchChange calls', function (): void {
 	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
 
-	// The setMeta method body should call markDirty and _dispatchChange
 	$view->assertSee( 'this.meta[ key ] = value', false );
 } );
 
-test( 'editor state dispatchChange includes meta in event detail', function (): void {
+test( 'editor state renders meta in dispatchChange event detail', function (): void {
 	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
 
 	$view->assertSee( 'meta: JSON.parse( JSON.stringify( this.meta ) )', false );
 } );
 
-test( 'editor state autosave event includes meta', function (): void {
+test( 'editor state renders meta in autosave event detail', function (): void {
 	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
 
 	$view->assertSee( 've-autosave', false );
 	$view->assertSee( 'meta: JSON.parse( JSON.stringify( this.meta ) )', false );
 } );
 
-test( 'editor state re-initialization updates meta', function (): void {
+test( 'editor state renders meta reset in re-initialization', function (): void {
 	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
 
 	$view->assertSee( 'store.meta', false );

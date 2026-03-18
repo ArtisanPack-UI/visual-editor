@@ -35,6 +35,18 @@ it( 'saves and dispatches document saved event', function (): void {
 		->assertDispatched( 've-document-saved' );
 } );
 
+it( 'saves with meta data', function (): void {
+	$blocks = [
+		[ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Hello' ] ],
+	];
+	$meta = [ 'title' => 'My Post', 'excerpt' => 'Summary' ];
+
+	Livewire::test( 'visual-editor::document-saver', [ 'documentId' => 1 ] )
+		->call( 'save', $blocks, 'draft', null, $meta )
+		->assertSet( 'form.meta', $meta )
+		->assertDispatched( 've-document-saved' );
+} );
+
 it( 'validates blocks are required', function (): void {
 	Livewire::test( 'visual-editor::document-saver', [ 'documentId' => 1 ] )
 		->call( 'save', [], 'draft' )
@@ -80,6 +92,18 @@ it( 'handles autosave event', function (): void {
 
 	Livewire::test( 'visual-editor::document-saver', [ 'documentId' => 1 ] )
 		->dispatch( 've-autosave', blocks: $blocks )
+		->assertDispatched( 've-document-saved' );
+} );
+
+it( 'handles autosave event with meta', function (): void {
+	$blocks = [
+		[ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Auto saved' ] ],
+	];
+	$meta = [ 'title' => 'Autosaved Title' ];
+
+	Livewire::test( 'visual-editor::document-saver', [ 'documentId' => 1 ] )
+		->dispatch( 've-autosave', blocks: $blocks, documentStatus: 'draft', scheduledDate: null, meta: $meta )
+		->assertSet( 'form.meta', $meta )
 		->assertDispatched( 've-document-saved' );
 } );
 
