@@ -2,6 +2,7 @@
 
 use ArtisanPackUI\VisualEditor\Contracts\EditorContent;
 use ArtisanPackUI\VisualEditor\Livewire\Forms\DocumentForm;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
@@ -12,7 +13,7 @@ new class extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @var EditorContent
+	 * @var EditorContent&Model
 	 */
 	public EditorContent $model;
 
@@ -30,11 +31,11 @@ new class extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param EditorContent $model The model implementing EditorContent.
+	 * @param EditorContent&Model $model The Eloquent model implementing EditorContent.
 	 *
 	 * @return void
 	 */
-	public function mount( EditorContent $model ): void
+	public function mount( EditorContent&Model $model ): void
 	{
 		$this->model            = $model;
 		$this->form->documentId = $model->getKey();
