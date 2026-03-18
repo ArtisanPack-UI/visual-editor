@@ -1,11 +1,21 @@
 <?php
 
+use ArtisanPackUI\VisualEditor\Contracts\EditorContent;
 use ArtisanPackUI\VisualEditor\Livewire\Forms\DocumentForm;
-use Livewire\Attributes\On;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Component;
 
 new class extends Component
 {
+	/**
+	 * The Eloquent model implementing EditorContent.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var EditorContent
+	 */
+	public EditorContent $model;
+
 	/**
 	 * The document form object.
 	 *
@@ -16,58 +26,62 @@ new class extends Component
 	public DocumentForm $form;
 
 	/**
-	 * The document ID being edited.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @var int|null
-	 */
-	public ?int $documentId = null;
-
-	/**
 	 * Mount the component.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param int|null $documentId The document ID to load.
+	 * @param EditorContent $model The model implementing EditorContent.
 	 *
 	 * @return void
 	 */
-	public function mount( ?int $documentId = null ): void
+	public function mount( EditorContent $model ): void
 	{
-		$this->documentId      = $documentId;
-		$this->form->documentId = $documentId;
+		$this->model            = $model;
+		$this->form->documentId = $model->getKey();
 	}
 
 	/**
 	 * Save the document.
 	 *
+	 * Validates the payload via DocumentForm, authorizes the current user
+	 * via Laravel policy (when a policy exists), then delegates persistence
+	 * to the model's saveFromEditor method.
+	 *
 	 * @since 1.0.0
 	 *
-	 * @param array<int, array<string, mixed>> $blocks         The block content.
-	 * @param string                           $documentStatus The document status.
-	 * @param string|null                      $scheduledDate  The scheduled date.
-	 * @param array<string, mixed>             $meta           Meta key-value pairs from document panel fields.
+	 * @param array<string, mixed> $payload The editor payload containing blocks, documentStatus, scheduledDate, and meta.
 	 *
 	 * @return void
 	 */
-	public function save( array $blocks, string $documentStatus = 'draft', ?string $scheduledDate = null, array $meta = [] ): void
+	public function save( array $payload ): void
 	{
-		$this->form->blocks         = $blocks;
-		$this->form->documentStatus = $documentStatus;
-		$this->form->scheduledDate  = $scheduledDate;
-		$this->form->meta           = $meta;
+		$this->form->blocks         = $payload['blocks'] ?? [];
+		$this->form->documentStatus = $payload['documentStatus'] ?? 'draft';
+		$this->form->scheduledDate  = $payload['scheduledDate'] ?? null;
+		$this->form->meta           = $payload['meta'] ?? [];
 
 		$this->form->validate();
 
-		if ( function_exists( 'doAction' ) ) {
-			doAction( 'ap.visualEditor.document.saving', $this->documentId, $blocks, $documentStatus, $scheduledDate, $meta );
+		if ( Gate::getPolicyFor( $this->model ) ) {
+			Gate::authorize( 'update', $this->model );
 		}
 
-		$this->dispatch( 've-document-saved', documentId: $this->documentId, scheduledDate: $scheduledDate );
+		if ( function_exists( 'doAction' ) ) {
+			doAction( 'ap.visualEditor.document.saving', $this->model, $payload );
+		}
+
+		$meta = array_merge( $this->form->meta, [
+			'blocks'        => $this->form->blocks,
+			'status'        => $this->form->documentStatus,
+			'scheduledDate' => $this->form->scheduledDate,
+		] );
+
+		$this->model->saveFromEditor( $meta );
+
+		$this->dispatch( 've-document-saved', documentId: $this->model->getKey(), scheduledDate: $this->form->scheduledDate );
 
 		if ( function_exists( 'doAction' ) ) {
-			doAction( 'ap.visualEditor.document.saved', $this->documentId, $blocks, $documentStatus, $scheduledDate, $meta );
+			doAction( 'ap.visualEditor.document.saved', $this->model, $payload );
 		}
 	}
 
@@ -76,24 +90,34 @@ new class extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array<int, array<string, mixed>> $blocks         The block content.
-	 * @param string                           $documentStatus The document status.
-	 * @param string|null                      $scheduledDate  The scheduled date.
-	 * @param array<string, mixed>             $meta           Meta key-value pairs from document panel fields.
+	 * @param array<string, mixed> $payload The editor payload.
 	 *
 	 * @return void
 	 */
-	#[On( 've-autosave' )]
-	public function autosave( array $blocks, string $documentStatus = 'draft', ?string $scheduledDate = null, array $meta = [] ): void
+	public function autosave( array $payload ): void
 	{
 		try {
-			$this->save( $blocks, $documentStatus, $scheduledDate, $meta );
+			$this->save( $payload );
 		} catch ( \Throwable $e ) {
 			$this->dispatch( 've-document-error', message: $e->getMessage() );
 		}
 	}
 }; ?>
 
-<div>
-	{{-- Document saver is a headless component — no visible UI --}}
+<div
+	x-on:ve-save-request.window="
+		$store.editor.markSaving();
+		$wire.save( {
+			blocks: JSON.parse( JSON.stringify( $store.editor.blocks ) ),
+			documentStatus: $store.editor.documentStatus,
+			scheduledDate: $store.editor.scheduledDate,
+			meta: { ...$store.editor.meta }
+		} )
+	"
+	x-on:ve-autosave.window="
+		$store.editor.markSaving();
+		$wire.autosave( $event.detail )
+	"
+>
+	{{-- Document saver is a headless bridge component — no visible UI --}}
 </div>
