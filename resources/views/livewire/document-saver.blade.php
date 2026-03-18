@@ -47,25 +47,27 @@ new class extends Component
 	 * @param array<int, array<string, mixed>> $blocks         The block content.
 	 * @param string                           $documentStatus The document status.
 	 * @param string|null                      $scheduledDate  The scheduled date.
+	 * @param array<string, mixed>             $meta           Meta key-value pairs from document panel fields.
 	 *
 	 * @return void
 	 */
-	public function save( array $blocks, string $documentStatus = 'draft', ?string $scheduledDate = null ): void
+	public function save( array $blocks, string $documentStatus = 'draft', ?string $scheduledDate = null, array $meta = [] ): void
 	{
 		$this->form->blocks         = $blocks;
 		$this->form->documentStatus = $documentStatus;
 		$this->form->scheduledDate  = $scheduledDate;
+		$this->form->meta           = $meta;
 
 		$this->form->validate();
 
 		if ( function_exists( 'doAction' ) ) {
-			doAction( 'ap.visualEditor.document.saving', $this->documentId, $blocks, $documentStatus );
+			doAction( 'ap.visualEditor.document.saving', $this->documentId, $blocks, $documentStatus, $scheduledDate, $meta );
 		}
 
-		$this->dispatch( 've-document-saved', documentId: $this->documentId );
+		$this->dispatch( 've-document-saved', documentId: $this->documentId, scheduledDate: $scheduledDate );
 
 		if ( function_exists( 'doAction' ) ) {
-			doAction( 'ap.visualEditor.document.saved', $this->documentId, $blocks, $documentStatus );
+			doAction( 'ap.visualEditor.document.saved', $this->documentId, $blocks, $documentStatus, $scheduledDate, $meta );
 		}
 	}
 
@@ -74,15 +76,18 @@ new class extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array<int, array<string, mixed>> $blocks The block content.
+	 * @param array<int, array<string, mixed>> $blocks         The block content.
+	 * @param string                           $documentStatus The document status.
+	 * @param string|null                      $scheduledDate  The scheduled date.
+	 * @param array<string, mixed>             $meta           Meta key-value pairs from document panel fields.
 	 *
 	 * @return void
 	 */
 	#[On( 've-autosave' )]
-	public function autosave( array $blocks ): void
+	public function autosave( array $blocks, string $documentStatus = 'draft', ?string $scheduledDate = null, array $meta = [] ): void
 	{
 		try {
-			$this->save( $blocks );
+			$this->save( $blocks, $documentStatus, $scheduledDate, $meta );
 		} catch ( \Throwable $e ) {
 			$this->dispatch( 've-document-error', message: $e->getMessage() );
 		}

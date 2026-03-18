@@ -383,6 +383,7 @@
 	:show-sidebar="$showSidebar"
 	:mode="$mode"
 	:default-inner-blocks-map="$defaultInnerBlocksMap"
+	:initial-meta="$initialMeta"
 />
 <x-ve-selection-manager />
 <x-ve-aria-live-region />

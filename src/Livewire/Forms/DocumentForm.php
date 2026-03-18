@@ -67,6 +67,15 @@ class DocumentForm extends Form
 	public ?string $scheduledDate = null;
 
 	/**
+	 * Key-value meta data from document panel fields.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<string, mixed>
+	 */
+	public array $meta = [];
+
+	/**
 	 * Get validation rules with conditional scheduledDate requirement.
 	 *
 	 * @since 1.0.0
@@ -81,6 +90,7 @@ class DocumentForm extends Form
 			'scheduledDate'  => 'scheduled' === $this->documentStatus
 				? 'required|date|after:now'
 				: 'nullable|date',
+			'meta'           => 'array',
 		];
 	}
 }
