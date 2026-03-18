@@ -25,6 +25,7 @@ use ArtisanPackUI\VisualEditor\Console\Commands\BlockCacheCommand;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockClearCommand;
 use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
+use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\Services\OEmbedService;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
@@ -176,6 +177,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( OEmbedService::class, function () {
 			return new OEmbedService();
+		} );
+
+		$this->app->singleton( BlockRenderer::class, function ( $app ) {
+			return new BlockRenderer(
+				$app->make( 'visual-editor.blocks' ),
+				(string) config( 'artisanpack.visual-editor.rendering.class_prefix', 've-block-' ),
+				(int) config( 'artisanpack.visual-editor.rendering.max_depth', BlockRenderer::DEFAULT_MAX_DEPTH ),
+			);
 		} );
 	}
 

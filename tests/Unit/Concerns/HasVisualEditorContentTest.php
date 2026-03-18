@@ -252,19 +252,16 @@ it( 'does not prune revisions when max_revisions is zero', function (): void {
 	expect( $post->revisions()->count() )->toBe( 5 );
 } );
 
-it( 'renders blocks via the block registry', function (): void {
-	$mockBlock = Mockery::mock( ArtisanPackUI\VisualEditor\Blocks\Contracts\BlockInterface::class );
-	$mockBlock->shouldReceive( 'render' )
+it( 'renders blocks via the BlockRenderer service', function (): void {
+	$mockRenderer = Mockery::mock( ArtisanPackUI\VisualEditor\Rendering\BlockRenderer::class );
+	$mockRenderer->shouldReceive( 'render' )
 		->once()
-		->with( [ 'content' => 'Hello' ], [], [], [] )
+		->with( [
+			[ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Hello' ] ],
+		] )
 		->andReturn( '<p>Hello</p>' );
 
-	$mockRegistry = Mockery::mock( ArtisanPackUI\VisualEditor\Blocks\BlockRegistry::class );
-	$mockRegistry->shouldReceive( 'get' )
-		->with( 'paragraph' )
-		->andReturn( $mockBlock );
-
-	$this->app->instance( 'visual-editor.blocks', $mockRegistry );
+	$this->app->instance( ArtisanPackUI\VisualEditor\Rendering\BlockRenderer::class, $mockRenderer );
 
 	$post = TestPost::create( [
 		'blocks' => [
@@ -284,6 +281,9 @@ it( 'returns empty string for unregistered block types in renderBlocks', functio
 		->andReturn( null );
 
 	$this->app->instance( 'visual-editor.blocks', $mockRegistry );
+
+	$mockRenderer = new ArtisanPackUI\VisualEditor\Rendering\BlockRenderer( $mockRegistry );
+	$this->app->instance( ArtisanPackUI\VisualEditor\Rendering\BlockRenderer::class, $mockRenderer );
 
 	$post = TestPost::create( [
 		'blocks' => [

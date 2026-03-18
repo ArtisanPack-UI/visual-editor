@@ -19,6 +19,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Concerns;
 
 use ArtisanPackUI\VisualEditor\Models\Revision;
+use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Auth;
 
@@ -117,8 +118,8 @@ trait HasVisualEditorContent
 	/**
 	 * Render the stored blocks as front-end HTML.
 	 *
-	 * Delegates to each registered block's render method to produce
-	 * HTML from the stored block JSON.
+	 * Delegates to the BlockRenderer service which walks the block
+	 * tree and produces clean, semantic HTML for front-end display.
 	 *
 	 * @since 1.0.0
 	 *
@@ -126,15 +127,7 @@ trait HasVisualEditorContent
 	 */
 	public function renderBlocks(): string
 	{
-		$blocks   = $this->getBlocks();
-		$registry = app( 'visual-editor.blocks' );
-		$html     = '';
-
-		foreach ( $blocks as $blockData ) {
-			$html .= $this->renderSingleBlock( $blockData, $registry );
-		}
-
-		return $html;
+		return app( BlockRenderer::class )->render( $this->getBlocks() );
 	}
 
 	/**
@@ -241,44 +234,5 @@ trait HasVisualEditorContent
 		$this->revisions()
 			->whereNotIn( 'id', $idsToKeep )
 			->delete();
-	}
-
-	/**
-	 * Render a single block and its inner blocks.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param array<string, mixed>                             $blockData The block data.
-	 * @param \ArtisanPackUI\VisualEditor\Blocks\BlockRegistry $registry  The block registry.
-	 *
-	 * @return string The rendered block HTML.
-	 */
-	protected function renderSingleBlock( array $blockData, $registry ): string
-	{
-		$type = $blockData['type'] ?? '';
-
-		if ( '' === $type ) {
-			return '';
-		}
-
-		$block = $registry->get( $type );
-
-		if ( null === $block ) {
-			return '';
-		}
-
-		$content     = $blockData['attributes'] ?? [];
-		$styles      = $blockData['styles'] ?? [];
-		$innerBlocks = $blockData['innerBlocks'] ?? [];
-
-		$renderedInnerBlocks = [];
-
-		foreach ( $innerBlocks as $innerBlock ) {
-			$renderedInnerBlocks[] = $this->renderSingleBlock( $innerBlock, $registry );
-		}
-
-		$blockHtml = $block->render( $content, $styles, [], $renderedInnerBlocks );
-
-		return applyFilters( 'ap.visualEditor.renderBlock', $blockHtml, $blockData );
 	}
 }
