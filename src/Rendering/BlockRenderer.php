@@ -39,6 +39,17 @@ use Throwable;
 class BlockRenderer
 {
 	/**
+	 * Default maximum recursion depth for nested inner blocks.
+	 *
+	 * Prevents stack overflows from maliciously deep block trees.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var int
+	 */
+	public const DEFAULT_MAX_DEPTH = 100;
+
+	/**
 	 * The block registry instance.
 	 *
 	 * @since 1.0.0
@@ -48,15 +59,40 @@ class BlockRenderer
 	protected BlockRegistry $registry;
 
 	/**
+	 * The CSS class prefix for rendered block wrappers.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var string
+	 */
+	protected string $classPrefix;
+
+	/**
+	 * The maximum recursion depth for nested inner blocks.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var int
+	 */
+	protected int $maxDepth;
+
+	/**
 	 * Create a new BlockRenderer instance.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @param BlockRegistry $registry The block registry for resolving block types.
+	 * @param string        $classPrefix The CSS class prefix for block wrappers.
+	 * @param int           $maxDepth    Maximum recursion depth for nested blocks.
 	 */
-	public function __construct( BlockRegistry $registry )
-	{
-		$this->registry = $registry;
+	public function __construct(
+		BlockRegistry $registry,
+		string $classPrefix = 've-block-',
+		int $maxDepth = self::DEFAULT_MAX_DEPTH,
+	) {
+		$this->registry    = $registry;
+		$this->classPrefix = $classPrefix;
+		$this->maxDepth    = $maxDepth;
 	}
 
 	/**
@@ -90,20 +126,28 @@ class BlockRenderer
 	 * blocks first, then calls the block's `render()` method. The
 	 * output is passed through the `ap.visualEditor.renderBlock` filter.
 	 *
-	 * Returns an empty string for blocks with an empty type or
-	 * unregistered block types.
+	 * Returns an empty string for blocks with an empty type,
+	 * unregistered block types, or when the maximum recursion depth
+	 * is exceeded.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @param array<string, mixed> $blockData The individual block data array.
+	 * @param int                  $depth     Current recursion depth (0 = top level).
 	 *
 	 * @return string The rendered block HTML.
 	 */
-	public function renderBlock( array $blockData ): string
+	public function renderBlock( array $blockData, int $depth = 0 ): string
 	{
 		$type = $blockData['type'] ?? '';
 
 		if ( '' === $type ) {
+			return '';
+		}
+
+		if ( $depth >= $this->maxDepth ) {
+			Log::warning( "BlockRenderer: max depth ({$this->maxDepth}) exceeded for block type '{$type}'" );
+
 			return '';
 		}
 
@@ -120,11 +164,15 @@ class BlockRenderer
 		$renderedInnerBlocks = [];
 
 		foreach ( $innerBlocks as $innerBlock ) {
-			$renderedInnerBlocks[] = $this->renderBlock( $innerBlock );
+			$renderedInnerBlocks[] = $this->renderBlock( $innerBlock, $depth + 1 );
 		}
 
+		$context = [
+			'classPrefix' => $this->classPrefix,
+		];
+
 		try {
-			$blockHtml = $block->render( $content, $styles, [], $renderedInnerBlocks );
+			$blockHtml = $block->render( $content, $styles, $context, $renderedInnerBlocks );
 		} catch ( Throwable $e ) {
 			Log::warning( "BlockRenderer: failed to render block type '{$type}'", [
 				'error' => $e->getMessage(),

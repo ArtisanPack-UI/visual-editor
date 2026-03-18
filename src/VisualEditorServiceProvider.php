@@ -180,7 +180,11 @@ class VisualEditorServiceProvider extends ServiceProvider
 		} );
 
 		$this->app->singleton( BlockRenderer::class, function ( $app ) {
-			return new BlockRenderer( $app->make( 'visual-editor.blocks' ) );
+			return new BlockRenderer(
+				$app->make( 'visual-editor.blocks' ),
+				(string) config( 'artisanpack.visual-editor.rendering.class_prefix', 've-block-' ),
+				(int) config( 'artisanpack.visual-editor.rendering.max_depth', BlockRenderer::DEFAULT_MAX_DEPTH ),
+			);
 		} );
 	}
 

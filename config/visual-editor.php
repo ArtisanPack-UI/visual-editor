@@ -25,9 +25,13 @@ return [
 	| class_prefix: The CSS class prefix applied to rendered block
 	|               wrapper elements (default: 've-block-').
 	|
+	| max_depth:    Maximum recursion depth for nested inner blocks.
+	|               Prevents stack overflows from deeply nested content.
+	|
 	*/
 	'rendering' => [
 		'class_prefix' => 've-block-',
+		'max_depth'    => 100,
 	],
 
 	'user_model' => 'App\\Models\\User',

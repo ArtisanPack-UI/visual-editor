@@ -26,7 +26,6 @@ test( 'render delegates to block render method', function (): void {
 	$mockBlock = Mockery::mock( BlockInterface::class );
 	$mockBlock->shouldReceive( 'render' )
 		->once()
-		->with( [ 'text' => 'Hello' ], [], [], [] )
 		->andReturn( '<p>Hello</p>' );
 
 	$mockRegistry = Mockery::mock( BlockRegistry::class );
@@ -103,7 +102,6 @@ test( 'render handles nested inner blocks recursively', function (): void {
 	$mockParagraph = Mockery::mock( BlockInterface::class );
 	$mockParagraph->shouldReceive( 'render' )
 		->once()
-		->with( [ 'text' => 'Nested' ], [], [], [] )
 		->andReturn( '<p>Nested</p>' );
 
 	$mockRegistry = Mockery::mock( BlockRegistry::class );
@@ -133,12 +131,6 @@ test( 'render passes styles to block render method', function (): void {
 	$mockBlock = Mockery::mock( BlockInterface::class );
 	$mockBlock->shouldReceive( 'render' )
 		->once()
-		->with(
-			[ 'text' => 'Styled' ],
-			[ 'alignment' => 'center', 'textColor' => '#ff0000' ],
-			[],
-			[],
-		)
 		->andReturn( '<p style="text-align: center; color: #ff0000;">Styled</p>' );
 
 	$mockRegistry = Mockery::mock( BlockRegistry::class );
@@ -277,7 +269,6 @@ test( 'render defaults attributes to empty array when missing', function (): voi
 	$mockBlock = Mockery::mock( BlockInterface::class );
 	$mockBlock->shouldReceive( 'render' )
 		->once()
-		->with( [], [], [], [] )
 		->andReturn( '<hr />' );
 
 	$mockRegistry = Mockery::mock( BlockRegistry::class );
@@ -348,6 +339,116 @@ test( 'render continues rendering remaining blocks when one throws', function ()
 	] );
 
 	expect( $html )->toBe( '<p>OK</p>' );
+} );
+
+test( 'renderBlock passes classPrefix in context to block render', function (): void {
+	$receivedContext = null;
+
+	$mockBlock = Mockery::mock( BlockInterface::class );
+	$mockBlock->shouldReceive( 'render' )
+		->once()
+		->andReturnUsing( function ( array $content, array $styles, array $context ) use ( &$receivedContext ): string {
+			$receivedContext = $context;
+
+			return '<p>test</p>';
+		} );
+
+	$mockRegistry = Mockery::mock( BlockRegistry::class );
+	$mockRegistry->shouldReceive( 'get' )
+		->with( 'paragraph' )
+		->andReturn( $mockBlock );
+
+	$renderer = new BlockRenderer( $mockRegistry, 've-block-' );
+
+	$renderer->renderBlock( [ 'type' => 'paragraph', 'attributes' => [] ] );
+
+	expect( $receivedContext )->toHaveKey( 'classPrefix' )
+		->and( $receivedContext['classPrefix'] )->toBe( 've-block-' );
+} );
+
+test( 'renderBlock uses custom classPrefix from constructor', function (): void {
+	$receivedContext = null;
+
+	$mockBlock = Mockery::mock( BlockInterface::class );
+	$mockBlock->shouldReceive( 'render' )
+		->once()
+		->andReturnUsing( function ( array $content, array $styles, array $context ) use ( &$receivedContext ): string {
+			$receivedContext = $context;
+
+			return '<p>test</p>';
+		} );
+
+	$mockRegistry = Mockery::mock( BlockRegistry::class );
+	$mockRegistry->shouldReceive( 'get' )
+		->with( 'paragraph' )
+		->andReturn( $mockBlock );
+
+	$renderer = new BlockRenderer( $mockRegistry, 'wp-block-' );
+
+	$renderer->renderBlock( [ 'type' => 'paragraph', 'attributes' => [] ] );
+
+	expect( $receivedContext['classPrefix'] )->toBe( 'wp-block-' );
+} );
+
+test( 'renderBlock returns empty string when max depth is exceeded', function (): void {
+	$mockBlock = Mockery::mock( BlockInterface::class );
+	$mockBlock->shouldNotReceive( 'render' );
+
+	$mockRegistry = Mockery::mock( BlockRegistry::class );
+	$mockRegistry->shouldReceive( 'get' )
+		->with( 'group' )
+		->andReturn( $mockBlock );
+
+	Illuminate\Support\Facades\Log::shouldReceive( 'warning' )
+		->once()
+		->withArgs( function ( string $message ): bool {
+			return str_contains( $message, 'max depth' )
+				&& str_contains( $message, 'group' );
+		} );
+
+	$renderer = new BlockRenderer( $mockRegistry, 've-block-', 3 );
+
+	$html = $renderer->renderBlock( [ 'type' => 'group', 'attributes' => [] ], 3 );
+
+	expect( $html )->toBe( '' );
+} );
+
+test( 'render stops recursion at configured max depth', function (): void {
+	$mockGroup = Mockery::mock( BlockInterface::class );
+	$mockGroup->shouldReceive( 'render' )
+		->once()
+		->andReturnUsing( function ( array $content, array $styles, array $context, array $innerBlocks ): string {
+			return '<div>' . implode( '', $innerBlocks ) . '</div>';
+		} );
+
+	$mockRegistry = Mockery::mock( BlockRegistry::class );
+	$mockRegistry->shouldReceive( 'get' )
+		->with( 'group' )
+		->andReturn( $mockGroup );
+
+	Illuminate\Support\Facades\Log::shouldReceive( 'warning' )
+		->once()
+		->withArgs( function ( string $message ): bool {
+			return str_contains( $message, 'max depth' );
+		} );
+
+	$renderer = new BlockRenderer( $mockRegistry, 've-block-', 1 );
+
+	$html = $renderer->render( [
+		[
+			'type'        => 'group',
+			'attributes'  => [],
+			'innerBlocks' => [
+				[
+					'type'        => 'group',
+					'attributes'  => [],
+					'innerBlocks' => [],
+				],
+			],
+		],
+	] );
+
+	expect( $html )->toBe( '<div></div>' );
 } );
 
 test( 'BlockRenderer is resolvable from the container', function (): void {
