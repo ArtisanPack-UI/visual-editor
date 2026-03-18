@@ -1,0 +1,49 @@
+{{--
+ * Document Excerpt Component
+ *
+ * Textarea bound to the editor store's meta bag for the document excerpt.
+ * Supports optional character count and max length.
+ *
+ * @package    ArtisanPack_UI
+ * @subpackage VisualEditor\Views\Components
+ *
+ * @since      1.0.0
+ --}}
+
+@php
+	$labelText       = $label ?? __( 'visual-editor::ve.document_excerpt' );
+	$placeholderText = $placeholder ?? __( 'visual-editor::ve.document_excerpt_placeholder' );
+@endphp
+
+<div
+	id="{{ $uuid }}"
+	x-data="{
+		value: Alpine.store( 'editor' )?.getMeta( {{ Js::from( $metaKey ) }}, '' ) ?? '',
+		update( val ) {
+			this.value = val;
+			if ( Alpine.store( 'editor' ) ) {
+				Alpine.store( 'editor' ).setMeta( {{ Js::from( $metaKey ) }}, val );
+			}
+		},
+	}"
+	{{ $attributes->merge( [ 'class' => '' ] ) }}
+>
+	<label class="text-xs font-medium text-base-content/60">
+		{{ $labelText }}
+	</label>
+	<textarea
+		class="textarea textarea-sm w-full"
+		rows="3"
+		x-model="value"
+		x-on:input="update( $event.target.value )"
+		placeholder="{{ $placeholderText }}"
+		@if ( $maxLength ) maxlength="{{ $maxLength }}" @endif
+	></textarea>
+
+	@if ( $maxLength )
+		<p class="text-xs text-base-content/40 mt-1">
+			<span x-text="value.length"></span> / {{ $maxLength }}
+			{{ __( 'visual-editor::ve.characters' ) }}
+		</p>
+	@endif
+</div>
