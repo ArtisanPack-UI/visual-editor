@@ -15,6 +15,21 @@ return [
 		'max_revisions'  => 50,
 	],
 
+	/*
+	|----------------------------------------------------------------------
+	| Rendering
+	|----------------------------------------------------------------------
+	|
+	| Configuration for the front-end block rendering engine.
+	|
+	| class_prefix: The CSS class prefix applied to rendered block
+	|               wrapper elements (default: 've-block-').
+	|
+	*/
+	'rendering' => [
+		'class_prefix' => 've-block-',
+	],
+
 	'user_model' => 'App\\Models\\User',
 
 	'blocks' => [
