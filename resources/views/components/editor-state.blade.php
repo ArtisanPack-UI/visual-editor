@@ -783,6 +783,21 @@
 						if ( e.detail && e.detail.blocks ) {
 							this._pushHistory();
 							this.blocks = e.detail.blocks;
+
+							if ( e.detail.meta ) {
+								if ( 'documentStatus' in e.detail.meta ) {
+									this.documentStatus = e.detail.meta.documentStatus;
+								}
+								if ( 'scheduledDate' in e.detail.meta ) {
+									this.scheduledDate = e.detail.meta.scheduledDate;
+								}
+
+								const { documentStatus, scheduledDate, ...otherMeta } = e.detail.meta;
+								if ( Object.keys( otherMeta ).length > 0 ) {
+									Object.assign( this.meta, otherMeta );
+								}
+							}
+
 							this.markDirty();
 							this._announceAction( {{ Js::from( __( 'visual-editor::ve.draft_restored' ) ) }} );
 						}
