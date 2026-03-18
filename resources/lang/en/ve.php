@@ -746,6 +746,7 @@ return [
 	// Document Saver
 	'document_saved'       => 'Document saved',
 	'document_save_error'  => 'Error saving document',
+	'document_save_failed' => 'An error occurred while saving the document.',
 	'document_loading'     => 'Loading document...',
 	'autosave_draft_saved' => 'Autosave draft saved',
 

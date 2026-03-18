@@ -211,6 +211,20 @@ it( 'dispatches error event on autosave failure', function (): void {
 		->assertDispatched( 've-document-error' );
 } );
 
+it( 'dispatches error event on save failure', function (): void {
+	$post = FailingSavePost::create( [ 'status' => 'draft' ] );
+
+	$payload = [
+		'blocks'         => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Test' ] ] ],
+		'documentStatus' => 'draft',
+	];
+
+	Livewire::test( 'visual-editor::document-saver', [ 'model' => $post ] )
+		->call( 'save', $payload )
+		->assertDispatched( 've-document-error' )
+		->assertNotDispatched( 've-document-saved' );
+} );
+
 it( 'authorizes update when a policy exists', function (): void {
 	$post = TestPost::create( [ 'status' => 'draft' ] );
 
@@ -291,5 +305,30 @@ class TestPostPolicy
 	public function update(): Response
 	{
 		return Response::deny( 'Not allowed.' );
+	}
+}
+
+/**
+ * Test model that always throws on saveFromEditor.
+ *
+ * @since 1.0.0
+ */
+class FailingSavePost extends TestPost
+{
+	/**
+	 * @var string
+	 */
+	protected $table = 'test_posts';
+
+	/**
+	 * Always throw to simulate a persistence failure.
+	 *
+	 * @param array<string, mixed> $meta The editor metadata.
+	 *
+	 * @return void
+	 */
+	public function saveFromEditor( array $meta ): void
+	{
+		throw new RuntimeException( 'Simulated DB failure' );
 	}
 }

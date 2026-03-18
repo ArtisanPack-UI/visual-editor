@@ -55,33 +55,40 @@ new class extends Component
 	 */
 	public function save( array $payload ): void
 	{
-		$this->form->blocks         = $payload['blocks'] ?? [];
-		$this->form->documentStatus = $payload['documentStatus'] ?? 'draft';
-		$this->form->scheduledDate  = $payload['scheduledDate'] ?? null;
-		$this->form->meta           = $payload['meta'] ?? [];
+		try {
+			$this->form->blocks         = $payload['blocks'] ?? [];
+			$this->form->documentStatus = $payload['documentStatus'] ?? 'draft';
+			$this->form->scheduledDate  = $payload['scheduledDate'] ?? null;
+			$this->form->meta           = $payload['meta'] ?? [];
 
-		$this->form->validate();
+			$this->form->validate();
 
-		if ( Gate::getPolicyFor( $this->model ) ) {
-			Gate::authorize( 'update', $this->model );
-		}
+			if ( Gate::getPolicyFor( $this->model ) ) {
+				Gate::authorize( 'update', $this->model );
+			}
 
-		if ( function_exists( 'doAction' ) ) {
-			doAction( 'ap.visualEditor.document.saving', $this->model, $payload );
-		}
+			if ( function_exists( 'doAction' ) ) {
+				doAction( 'ap.visualEditor.document.saving', $this->model, $payload );
+			}
 
-		$meta = array_merge( $this->form->meta, [
-			'blocks'        => $this->form->blocks,
-			'status'        => $this->form->documentStatus,
-			'scheduledDate' => $this->form->scheduledDate,
-		] );
+			$meta = array_merge( $this->form->meta, [
+				'blocks'        => $this->form->blocks,
+				'status'        => $this->form->documentStatus,
+				'scheduledDate' => $this->form->scheduledDate,
+			] );
 
-		$this->model->saveFromEditor( $meta );
+			$this->model->saveFromEditor( $meta );
 
-		$this->dispatch( 've-document-saved', documentId: $this->model->getKey(), scheduledDate: $this->form->scheduledDate );
+			$this->dispatch( 've-document-saved', documentId: $this->model->getKey(), scheduledDate: $this->form->scheduledDate );
 
-		if ( function_exists( 'doAction' ) ) {
-			doAction( 'ap.visualEditor.document.saved', $this->model, $payload );
+			if ( function_exists( 'doAction' ) ) {
+				doAction( 'ap.visualEditor.document.saved', $this->model, $payload );
+			}
+		} catch ( \Illuminate\Validation\ValidationException|\Illuminate\Auth\Access\AuthorizationException $e ) {
+			throw $e;
+		} catch ( \Throwable $e ) {
+			report( $e );
+			$this->dispatch( 've-document-error', message: __( 'visual-editor::ve.document_save_failed' ) );
 		}
 	}
 
@@ -98,8 +105,9 @@ new class extends Component
 	{
 		try {
 			$this->save( $payload );
-		} catch ( \Throwable $e ) {
-			$this->dispatch( 've-document-error', message: $e->getMessage() );
+		} catch ( \Illuminate\Validation\ValidationException|\Illuminate\Auth\Access\AuthorizationException $e ) {
+			report( $e );
+			$this->dispatch( 've-document-error', message: __( 'visual-editor::ve.document_save_failed' ) );
 		}
 	}
 }; ?>
@@ -112,11 +120,15 @@ new class extends Component
 			documentStatus: $store.editor.documentStatus,
 			scheduledDate: $store.editor.scheduledDate,
 			meta: { ...$store.editor.meta }
+		} ).catch( ( err ) => {
+			document.dispatchEvent( new CustomEvent( 've-document-error', { detail: { message: err.message }, bubbles: true } ) );
 		} )
 	"
 	x-on:ve-autosave.window="
 		$store.editor.markSaving();
-		$wire.autosave( $event.detail )
+		$wire.autosave( $event.detail ).catch( ( err ) => {
+			document.dispatchEvent( new CustomEvent( 've-document-error', { detail: { message: err.message }, bubbles: true } ) );
+		} )
 	"
 >
 	{{-- Document saver is a headless bridge component — no visible UI --}}
