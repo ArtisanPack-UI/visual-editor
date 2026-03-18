@@ -24,6 +24,7 @@ test( 'editor can be instantiated with defaults', function (): void {
 	expect( $component->documentStatus )->toBe( 'draft' );
 	expect( $component->showSidebar )->toBeTrue();
 	expect( $component->mode )->toBe( 'visual' );
+	expect( $component->initialMeta )->toBe( [] );
 } );
 
 test( 'editor accepts custom props', function (): void {
@@ -234,6 +235,17 @@ test( 'editor blockTransforms does not include blocks without transforms', funct
 
 	// Empty registry means no transforms.
 	expect( $component->blockTransforms )->toBeArray()->toBeEmpty();
+} );
+
+test( 'editor accepts initialMeta prop', function (): void {
+	$this->app->singleton( 'visual-editor.blocks', function () {
+		return new BlockRegistry();
+	} );
+
+	$meta      = [ 'title' => 'My Post', 'excerpt' => 'Summary' ];
+	$component = new Editor( initialMeta: $meta );
+
+	expect( $component->initialMeta )->toBe( $meta );
 } );
 
 test( 'editor renders view name', function (): void {

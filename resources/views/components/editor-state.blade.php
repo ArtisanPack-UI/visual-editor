@@ -50,6 +50,7 @@
 				blockVariations: {{ Js::from( $blockVariations ) }},
 				defaultBlockType: {{ Js::from( $defaultBlockType ) }},
 				defaultInnerBlocksMap: {{ Js::from( $defaultInnerBlocksMap ) }},
+				meta: {{ Js::from( $initialMeta ) }},
 				showPatternModal: false,
 				leftSidebarTab: 'blocks',
 
@@ -495,6 +496,24 @@
 					this._dispatchChange();
 				},
 
+				{{-- ── Meta ──────────────────────────────────────────────── --}}
+
+				setMeta( key, value ) {
+					this.meta[ key ] = value;
+					this.markDirty();
+					this._dispatchChange();
+				},
+
+				getMeta( key, defaultValue = null ) {
+					return this.meta[ key ] ?? defaultValue;
+				},
+
+				setMetaBulk( data ) {
+					Object.assign( this.meta, data );
+					this.markDirty();
+					this._dispatchChange();
+				},
+
 				{{-- ── Pattern Operations ────────────────────────────────── --}}
 
 				insertPattern( pattern ) {
@@ -732,6 +751,9 @@
 								bubbles: true,
 								detail: {
 									blocks: JSON.parse( JSON.stringify( this.blocks ) ),
+									documentStatus: this.documentStatus,
+									scheduledDate: this.scheduledDate,
+									meta: JSON.parse( JSON.stringify( this.meta ) ),
 								},
 							} ) );
 						}
@@ -1017,6 +1039,7 @@
 							saveStatus: this.saveStatus,
 							documentStatus: this.documentStatus,
 							scheduledDate: this.scheduledDate,
+							meta: JSON.parse( JSON.stringify( this.meta ) ),
 						},
 					} ) );
 				},
@@ -1074,6 +1097,7 @@
 			store.blockTransforms  = {{ Js::from( $blockTransforms ) }};
 			store.blockVariations  = {{ Js::from( $blockVariations ) }};
 			store.defaultBlockType = {{ Js::from( $defaultBlockType ) }};
+			store.meta             = {{ Js::from( $initialMeta ) }};
 			store.showPatternModal = false;
 			store.leftSidebarTab   = 'blocks';
 
