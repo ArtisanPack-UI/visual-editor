@@ -792,12 +792,14 @@ return [
 	'pattern_category' => 'Pattern category',
 
 	// Editor Persistence
-	'draft_saved'     => 'Draft saved',
-	'draft_restored'  => 'Draft restored',
-	'draft_discarded' => 'Draft discarded',
-	'draft_found'     => 'Draft found',
-	'restore_draft'   => 'Restore draft',
-	'discard_draft'   => 'Discard draft',
+	'draft_saved'                          => 'Draft saved',
+	'draft_restored'                       => 'Draft restored',
+	'draft_discarded'                      => 'Draft discarded',
+	'draft_found'                          => 'Draft found',
+	'restore_draft'                        => 'Restore draft',
+	'discard_draft'                        => 'Discard draft',
+	'persistence_document_type_required'   => 'A document type is required for editor persistence.',
+	'persistence_document_id_required'     => 'A document ID is required for editor persistence.',
 
 	// Revision History
 	'revision_created'  => 'Revision created',
