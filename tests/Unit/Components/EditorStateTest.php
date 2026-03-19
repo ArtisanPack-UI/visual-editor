@@ -23,6 +23,7 @@ test( 'editor state can be instantiated with defaults', function (): void {
 	expect( $component->blockTransforms )->toBe( [] );
 	expect( $component->blockVariations )->toBe( [] );
 	expect( $component->defaultBlockType )->toBe( 'paragraph' );
+	expect( $component->initialMeta )->toBe( [] );
 } );
 
 test( 'editor state accepts custom props', function (): void {
@@ -37,6 +38,10 @@ test( 'editor state accepts custom props', function (): void {
 	];
 	$variations = [
 		'group' => [ [ 'name' => 'row', 'label' => 'Row' ] ],
+	];
+	$meta = [
+		'title'   => 'My Post',
+		'excerpt' => 'A short summary',
 	];
 	$component  = new EditorState(
 		id: 'main-editor',
@@ -55,6 +60,7 @@ test( 'editor state accepts custom props', function (): void {
 		blockTransforms: $transforms,
 		blockVariations: $variations,
 		defaultBlockType: 'heading',
+		initialMeta: $meta,
 	);
 
 	expect( $component->uuid )->toContain( 'main-editor' );
@@ -73,6 +79,7 @@ test( 'editor state accepts custom props', function (): void {
 	expect( $component->blockTransforms )->toBe( $transforms );
 	expect( $component->blockVariations )->toBe( $variations );
 	expect( $component->defaultBlockType )->toBe( 'heading' );
+	expect( $component->initialMeta )->toBe( $meta );
 } );
 
 test( 'editor state falls back to paragraph for empty default block type', function (): void {
@@ -320,4 +327,63 @@ test( 'editor state re-initialization updates defaultBlockType', function (): vo
 	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
 
 	$view->assertSee( 'store.defaultBlockType', false );
+} );
+
+test( 'editor state renders meta object in store', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'meta:', false );
+} );
+
+test( 'editor state renders setMeta method', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'setMeta( key, value )', false );
+} );
+
+test( 'editor state renders getMeta method', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'getMeta( key, defaultValue = null )', false );
+} );
+
+test( 'editor state renders setMetaBulk method', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'setMetaBulk( data )', false );
+} );
+
+test( 'editor state renders setMeta with markDirty and dispatchChange calls', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'this.meta[ key ] = value', false );
+} );
+
+test( 'editor state renders meta in dispatchChange event detail', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'meta: JSON.parse( JSON.stringify( this.meta ) )', false );
+} );
+
+test( 'editor state renders meta in autosave event detail', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 've-autosave', false );
+	$view->assertSee( 'meta: JSON.parse( JSON.stringify( this.meta ) )', false );
+} );
+
+test( 'editor state renders meta reset in re-initialization', function (): void {
+	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
+
+	$view->assertSee( 'store.meta             =', false );
+} );
+
+test( 'editor state renders initial meta values when provided', function (): void {
+	$view = $this->blade(
+		'<x-ve-editor-state :initial-meta="$meta">Content</x-ve-editor-state>',
+		[ 'meta' => [ 'title' => 'Test Title', 'excerpt' => 'Test Excerpt' ] ],
+	);
+
+	$view->assertSee( 'Test Title', false );
+	$view->assertSee( 'Test Excerpt', false );
 } );

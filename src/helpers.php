@@ -12,6 +12,7 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Blocks\Contracts\BlockInterface;
+use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\VisualEditor;
 
 if ( ! function_exists( 'veDoAction' ) ) {
@@ -256,6 +257,25 @@ if ( ! function_exists( 'veSanitizeBorderStyle' ) ) {
 		}
 
 		return $value;
+	}
+}
+
+if ( ! function_exists( 'veRenderBlocks' ) ) {
+	/**
+	 * Render an array of block data into front-end HTML.
+	 *
+	 * Convenience wrapper around the BlockRenderer service for
+	 * rendering blocks outside of an Eloquent model context.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array<int, array<string, mixed>> $blocks The block data array.
+	 *
+	 * @return string The rendered HTML string.
+	 */
+	function veRenderBlocks( array $blocks ): string
+	{
+		return app( BlockRenderer::class )->render( $blocks );
 	}
 }
 

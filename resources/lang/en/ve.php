@@ -271,6 +271,21 @@ return [
 	'schedule_date'      => 'Schedule date',
 	'schedule_date_hint' => 'Set the date and time for publishing.',
 
+	// Document Panel Fields
+	'document_title'                => 'Title',
+	'document_title_placeholder'    => 'Add title…',
+	'document_excerpt'              => 'Excerpt',
+	'document_excerpt_placeholder'  => 'Write an excerpt…',
+	'characters'                    => 'characters',
+	'document_permalink'            => 'Permalink',
+	'document_permalink_placeholder' => 'enter-slug',
+	'document_featured_image'       => 'Featured Image',
+	'featured_image_preview'        => 'Featured image preview',
+	'featured_image_remove'         => 'Remove featured image',
+	'featured_image_select'         => 'Select Image',
+	'document_taxonomies'           => 'Taxonomies',
+	'document_taxonomies_empty'     => 'No options available.',
+
 	// Block Names and Descriptions (translation-aware getters)
 	'block_heading_name'          => 'Heading',
 	'block_heading_description'   => 'Add a heading to your content',
@@ -731,6 +746,7 @@ return [
 	// Document Saver
 	'document_saved'       => 'Document saved',
 	'document_save_error'  => 'Error saving document',
+	'document_save_failed' => 'An error occurred while saving the document.',
 	'document_loading'     => 'Loading document...',
 	'autosave_draft_saved' => 'Autosave draft saved',
 
@@ -776,21 +792,27 @@ return [
 	'pattern_category' => 'Pattern category',
 
 	// Editor Persistence
-	'draft_saved'     => 'Draft saved',
-	'draft_restored'  => 'Draft restored',
-	'draft_discarded' => 'Draft discarded',
-	'draft_found'     => 'Draft found',
-	'restore_draft'   => 'Restore draft',
-	'discard_draft'   => 'Discard draft',
+	'draft_saved'                          => 'Draft saved',
+	'draft_restored'                       => 'Draft restored',
+	'draft_discarded'                      => 'Draft discarded',
+	'draft_found'                          => 'Draft found',
+	'restore_draft'                        => 'Restore draft',
+	'discard_draft'                        => 'Discard draft',
+	'persistence_document_type_required'   => 'A document type is required for editor persistence.',
+	'persistence_document_id_required'     => 'A document ID is required for editor persistence.',
 
 	// Revision History
-	'revision_created'  => 'Revision created',
-	'revision_restored' => 'Revision restored',
-	'revision_deleted'  => 'Revision deleted',
-	'revision_history'  => 'Revision history',
-	'restore_revision'  => 'Restore revision',
-	'delete_revision'   => 'Delete revision',
-	'no_revisions'      => 'No revisions yet.',
+	'revision_created'         => 'Revision created',
+	'revision_restored'        => 'Revision restored',
+	'revision_deleted'         => 'Revision deleted',
+	'revision_history'         => 'Revision history',
+	'restore_revision'         => 'Restore revision',
+	'delete_revision'          => 'Delete revision',
+	'no_revisions'             => 'No revisions yet.',
+	'revision_by'              => 'by :name',
+	'revision_guest'           => 'Guest',
+	'confirm_restore_revision' => 'Are you sure you want to restore this revision? Current content will be replaced.',
+	'confirm_delete_revision'  => 'Are you sure you want to delete this revision? This cannot be undone.',
 
 	// Inner Blocks
 	'inner_blocks_placeholder' => 'Type / to choose a block',

@@ -50,6 +50,7 @@
 				blockVariations: {{ Js::from( $blockVariations ) }},
 				defaultBlockType: {{ Js::from( $defaultBlockType ) }},
 				defaultInnerBlocksMap: {{ Js::from( $defaultInnerBlocksMap ) }},
+				meta: {{ Js::from( $initialMeta ) }},
 				showPatternModal: false,
 				leftSidebarTab: 'blocks',
 
@@ -359,7 +360,12 @@
 				{{-- ── Undo / Redo ────────────────────────────────────── --}}
 
 				_pushHistory() {
-					this.history.past.push( JSON.parse( JSON.stringify( this.blocks ) ) );
+					this.history.past.push( {
+						blocks: JSON.parse( JSON.stringify( this.blocks ) ),
+						meta: JSON.parse( JSON.stringify( this.meta ) ),
+						documentStatus: this.documentStatus,
+						scheduledDate: this.scheduledDate,
+					} );
 					this.history.future = [];
 
 					if ( this.history.past.length > this.maxHistorySize ) {
@@ -373,8 +379,23 @@
 						return;
 					}
 
-					this.history.future.push( JSON.parse( JSON.stringify( this.blocks ) ) );
-					this.blocks = JSON.parse( JSON.stringify( this.history.past.pop() ) );
+					this.history.future.push( {
+						blocks: JSON.parse( JSON.stringify( this.blocks ) ),
+						meta: JSON.parse( JSON.stringify( this.meta ) ),
+						documentStatus: this.documentStatus,
+						scheduledDate: this.scheduledDate,
+					} );
+					const snapshot = this.history.past.pop();
+					this.blocks = JSON.parse( JSON.stringify( snapshot.blocks ?? snapshot ) );
+					if ( snapshot.meta ) {
+						this.meta = JSON.parse( JSON.stringify( snapshot.meta ) );
+					}
+					if ( undefined !== snapshot.documentStatus ) {
+						this.documentStatus = snapshot.documentStatus;
+					}
+					if ( undefined !== snapshot.scheduledDate ) {
+						this.scheduledDate = snapshot.scheduledDate;
+					}
 					this.markDirty();
 					this._announceAction( {{ Js::from( __( 'visual-editor::ve.action_undone' ) ) }} );
 					this._dispatchChange();
@@ -386,8 +407,23 @@
 						return;
 					}
 
-					this.history.past.push( JSON.parse( JSON.stringify( this.blocks ) ) );
-					this.blocks = JSON.parse( JSON.stringify( this.history.future.pop() ) );
+					this.history.past.push( {
+						blocks: JSON.parse( JSON.stringify( this.blocks ) ),
+						meta: JSON.parse( JSON.stringify( this.meta ) ),
+						documentStatus: this.documentStatus,
+						scheduledDate: this.scheduledDate,
+					} );
+					const snapshot = this.history.future.pop();
+					this.blocks = JSON.parse( JSON.stringify( snapshot.blocks ?? snapshot ) );
+					if ( snapshot.meta ) {
+						this.meta = JSON.parse( JSON.stringify( snapshot.meta ) );
+					}
+					if ( undefined !== snapshot.documentStatus ) {
+						this.documentStatus = snapshot.documentStatus;
+					}
+					if ( undefined !== snapshot.scheduledDate ) {
+						this.scheduledDate = snapshot.scheduledDate;
+					}
 					this.markDirty();
 					this._announceAction( {{ Js::from( __( 'visual-editor::ve.action_redone' ) ) }} );
 					this._dispatchChange();
@@ -491,6 +527,26 @@
 
 				setScheduledDate( date ) {
 					this.scheduledDate = date;
+					this.markDirty();
+					this._dispatchChange();
+				},
+
+				{{-- ── Meta ──────────────────────────────────────────────── --}}
+
+				setMeta( key, value ) {
+					this._pushHistory();
+					this.meta[ key ] = value;
+					this.markDirty();
+					this._dispatchChange();
+				},
+
+				getMeta( key, defaultValue = null ) {
+					return this.meta[ key ] ?? defaultValue;
+				},
+
+				setMetaBulk( data ) {
+					this._pushHistory();
+					Object.assign( this.meta, data );
 					this.markDirty();
 					this._dispatchChange();
 				},
@@ -698,6 +754,9 @@
 				},
 
 				_generateId() {
+					if ( typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ) {
+						return 'block-' + crypto.randomUUID();
+					}
 					return 'block-' + Date.now().toString( 36 ) + '-' + Math.random().toString( 36 ).substring( 2, 8 );
 				},
 
@@ -728,10 +787,12 @@
 					if ( ! this.autosaveInterval || this.autosaveInterval <= 0 ) return;
 					this._autosaveTimer = setInterval( () => {
 						if ( this.SAVE_STATUS.UNSAVED === this.saveStatus ) {
-							document.dispatchEvent( new CustomEvent( 've-autosave', {
-								bubbles: true,
+							window.dispatchEvent( new CustomEvent( 've-autosave', {
 								detail: {
 									blocks: JSON.parse( JSON.stringify( this.blocks ) ),
+									documentStatus: this.documentStatus,
+									scheduledDate: this.scheduledDate,
+									meta: JSON.parse( JSON.stringify( this.meta ) ),
 								},
 							} ) );
 						}
@@ -748,6 +809,9 @@
 				{{-- ── Livewire Bridge ───────────────────────────── --}}
 
 				_registerLivewireBridge() {
+					if ( window.__veLivewireBridgeRegistered ) return;
+					window.__veLivewireBridgeRegistered = true;
+
 					document.addEventListener( 've-document-saved', ( e ) => {
 						this.markSaved();
 						this._announceAction( {{ Js::from( __( 'visual-editor::ve.document_saved' ) ) }} );
@@ -762,6 +826,19 @@
 						if ( e.detail && e.detail.blocks ) {
 							this._pushHistory();
 							this.blocks = e.detail.blocks;
+
+							if ( e.detail.meta ) {
+								if ( 'documentStatus' in e.detail.meta ) {
+									this.documentStatus = e.detail.meta.documentStatus;
+								}
+								if ( 'scheduledDate' in e.detail.meta ) {
+									this.scheduledDate = e.detail.meta.scheduledDate;
+								}
+
+								const { documentStatus, scheduledDate, ...otherMeta } = e.detail.meta;
+								this.meta = otherMeta;
+							}
+
 							this.markDirty();
 							this._announceAction( {{ Js::from( __( 'visual-editor::ve.draft_restored' ) ) }} );
 						}
@@ -782,8 +859,6 @@
 						}
 					} );
 
-					if ( ! window.__veMediaSelectedRegistered ) {
-					window.__veMediaSelectedRegistered = true;
 					window.addEventListener( 've-media-selected', ( e ) => {
 						if ( e.detail && e.detail.media && e.detail.media.length ) {
 							this._announceAction( {{ Js::from( __( 'visual-editor::ve.media_selected' ) ) }} );
@@ -864,7 +939,6 @@
 							}
 						}
 					} );
-					} // end guard
 
 					document.addEventListener( 've-field-change', ( e ) => {
 						if ( ! e.detail ) return;
@@ -964,7 +1038,9 @@
 										} );
 									}
 								} )
-								.catch( () => {} );
+								.catch( ( err ) => {
+									console.warn( '[VisualEditor] Embed resolve failed:', err );
+								} );
 								return;
 							}
 
@@ -990,7 +1066,9 @@
 										} );
 									}
 								} )
-								.catch( () => {} );
+								.catch( ( err ) => {
+									console.warn( '[VisualEditor] Geocode request failed:', err );
+								} );
 								return;
 							}
 
@@ -1017,6 +1095,7 @@
 							saveStatus: this.saveStatus,
 							documentStatus: this.documentStatus,
 							scheduledDate: this.scheduledDate,
+							meta: JSON.parse( JSON.stringify( this.meta ) ),
 						},
 					} ) );
 				},
@@ -1074,6 +1153,7 @@
 			store.blockTransforms  = {{ Js::from( $blockTransforms ) }};
 			store.blockVariations  = {{ Js::from( $blockVariations ) }};
 			store.defaultBlockType = {{ Js::from( $defaultBlockType ) }};
+			store.meta             = {{ Js::from( $initialMeta ) }};
 			store.showPatternModal = false;
 			store.leftSidebarTab   = 'blocks';
 

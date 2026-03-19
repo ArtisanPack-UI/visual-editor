@@ -25,6 +25,7 @@ use ArtisanPackUI\VisualEditor\Console\Commands\BlockCacheCommand;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockClearCommand;
 use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
+use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\Services\OEmbedService;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
@@ -101,11 +102,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 		'editor-layout'           => Components\EditorLayout::class,
 
 		// Phase 4: Left Sidebar, Patterns, Layers & Hooks
-		'left-sidebar'     => Components\LeftSidebar::class,
-		'pattern-browser'  => Components\PatternBrowser::class,
-		'pattern-modal'    => Components\PatternModal::class,
-		'layer-panel'      => Components\LayerPanel::class,
-		'document-status'  => Components\DocumentStatus::class,
+		'left-sidebar'            => Components\LeftSidebar::class,
+		'pattern-browser'         => Components\PatternBrowser::class,
+		'pattern-modal'           => Components\PatternModal::class,
+		'layer-panel'             => Components\LayerPanel::class,
+		'document-status'         => Components\DocumentStatus::class,
+		'document-title'          => Components\DocumentTitle::class,
+		'document-excerpt'        => Components\DocumentExcerpt::class,
+		'document-permalink'      => Components\DocumentPermalink::class,
+		'document-featured-image' => Components\DocumentFeaturedImage::class,
+		'document-taxonomies'     => Components\DocumentTaxonomies::class,
 
 		// Phase 5: Inspector & Block Enhancements
 		'inspector-field'          => Components\InspectorField::class,
@@ -171,6 +177,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( OEmbedService::class, function () {
 			return new OEmbedService();
+		} );
+
+		$this->app->singleton( BlockRenderer::class, function ( $app ) {
+			return new BlockRenderer(
+				$app->make( 'visual-editor.blocks' ),
+				(string) config( 'artisanpack.visual-editor.rendering.class_prefix', 've-block-' ),
+				(int) config( 'artisanpack.visual-editor.rendering.max_depth', BlockRenderer::DEFAULT_MAX_DEPTH ),
+			);
 		} );
 	}
 

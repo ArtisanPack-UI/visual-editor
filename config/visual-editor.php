@@ -11,8 +11,28 @@
 
 return [
 	'persistence' => [
-		'draft_ttl'      => 86400,
-		'max_revisions'  => 50,
+		'draft_ttl'          => 86400,
+		'max_revisions'      => 50,
+		'autosave_revisions' => false,
+	],
+
+	/*
+	|----------------------------------------------------------------------
+	| Rendering
+	|----------------------------------------------------------------------
+	|
+	| Configuration for the front-end block rendering engine.
+	|
+	| class_prefix: The CSS class prefix applied to rendered block
+	|               wrapper elements (default: 've-block-').
+	|
+	| max_depth:    Maximum recursion depth for nested inner blocks.
+	|               Prevents stack overflows from deeply nested content.
+	|
+	*/
+	'rendering' => [
+		'class_prefix' => 've-block-',
+		'max_depth'    => 100,
 	],
 
 	'user_model' => 'App\\Models\\User',

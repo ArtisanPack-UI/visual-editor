@@ -218,6 +218,7 @@ class Editor extends Component
 	 * @param string       $mode             Editor mode (visual/code).
 	 * @param Closure|null $customIconRenderer  Optional custom icon renderer.
 	 * @param string       $featuredImageUrl    Optional featured image URL for the Cover block placeholder.
+	 * @param array<string, mixed> $initialMeta Initial meta key-value pairs for document panel fields.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -232,6 +233,7 @@ class Editor extends Component
 		public string $mode = 'visual',
 		?Closure $customIconRenderer = null,
 		public string $featuredImageUrl = '',
+		public array $initialMeta = [],
 	) {
 		$this->uuid = 've-editor-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
