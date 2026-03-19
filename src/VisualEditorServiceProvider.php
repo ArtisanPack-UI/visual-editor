@@ -28,6 +28,7 @@ use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\Services\OEmbedService;
 use ArtisanPackUI\VisualEditor\Services\TemplateManager;
+use ArtisanPackUI\VisualEditor\Services\TemplatePartManager;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -188,6 +189,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return $app->make( 'visual-editor.templates' );
 		} );
 
+		$this->app->singleton( 'visual-editor.template-parts', function () {
+			return new TemplatePartManager();
+		} );
+
+		$this->app->singleton( TemplatePartManager::class, function ( $app ) {
+			return $app->make( 'visual-editor.template-parts' );
+		} );
+
 		$this->app->singleton( BlockRenderer::class, function ( $app ) {
 			return new BlockRenderer(
 				$app->make( 'visual-editor.blocks' ),
@@ -216,6 +225,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerRoutes();
 		$this->registerCoreBlocks();
 		$this->registerDefaultTemplates();
+		$this->registerDefaultTemplateParts();
 		$this->registerConsoleCommands();
 		$this->publishBlockViews();
 	}
@@ -468,6 +478,48 @@ class VisualEditorServiceProvider extends ServiceProvider
 		] );
 
 		veDoAction( 'ap.visualEditor.templatesInit' );
+	}
+
+	/**
+	 * Register the default built-in template parts.
+	 *
+	 * Registers header, footer, and sidebar template parts with the
+	 * template part manager. Third-party packages can register additional
+	 * template parts via the `ap.visualEditor.templatePartsInit` action.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerDefaultTemplateParts(): void
+	{
+		$manager = $this->app->make( 'visual-editor.template-parts' );
+
+		$manager->register( 'header', [
+			'name'        => __( 'Header' ),
+			'description' => __( 'A default header area for site-wide navigation and branding.' ),
+			'area'        => 'header',
+			'content'     => [],
+			'is_custom'   => false,
+		] );
+
+		$manager->register( 'footer', [
+			'name'        => __( 'Footer' ),
+			'description' => __( 'A default footer area for site-wide links and information.' ),
+			'area'        => 'footer',
+			'content'     => [],
+			'is_custom'   => false,
+		] );
+
+		$manager->register( 'sidebar', [
+			'name'        => __( 'Sidebar' ),
+			'description' => __( 'A default sidebar area for supplementary content and widgets.' ),
+			'area'        => 'sidebar',
+			'content'     => [],
+			'is_custom'   => false,
+		] );
+
+		veDoAction( 'ap.visualEditor.templatePartsInit' );
 	}
 
 	/**

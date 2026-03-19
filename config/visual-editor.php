@@ -55,6 +55,24 @@ return [
 		'locked_templates'       => [],
 	],
 
+	/*
+	|----------------------------------------------------------------------
+	| Template Parts
+	|----------------------------------------------------------------------
+	|
+	| Configuration for reusable template parts (headers, footers, sidebars).
+	|
+	| allow_custom_parts:  Whether users can create custom template parts.
+	| locked_parts:        Slugs of template parts that cannot be edited.
+	| areas:               Registered template part area types.
+	|
+	*/
+	'template_parts' => [
+		'allow_custom_parts' => true,
+		'locked_parts'       => [],
+		'areas'              => [ 'header', 'footer', 'sidebar', 'custom' ],
+	],
+
 	'blocks' => [
 		'core'     => [
 			'heading'   => true,
