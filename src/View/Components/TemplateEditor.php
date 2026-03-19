@@ -219,6 +219,7 @@ class TemplateEditor extends Component
 	 * @param bool          $showSidebar         Show sidebar by default.
 	 * @param string        $mode                Editor mode (visual/code).
 	 * @param Closure|null  $customIconRenderer  Optional custom icon renderer.
+	 * @param string        $featuredImageUrl    Optional featured image URL for the Cover block placeholder.
 	 * @param array<string, mixed> $initialMeta  Initial meta key-value pairs.
 	 * @param array<int, array<string, string>> $templates  Available templates for the switcher.
 	 * @param string        $currentTemplateSlug The currently active template slug.
@@ -234,11 +235,17 @@ class TemplateEditor extends Component
 		public bool $showSidebar = true,
 		public string $mode = 'visual',
 		?Closure $customIconRenderer = null,
+		public string $featuredImageUrl = '',
 		public array $initialMeta = [],
 		public array $templates = [],
 		public string $currentTemplateSlug = '',
 	) {
 		$this->uuid = 've-tpl-editor-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
+
+		// Resolve featured image URL via hook if not explicitly provided.
+		if ( '' === $this->featuredImageUrl ) {
+			$this->featuredImageUrl = (string) veApplyFilters( 've.editor.featured_image_url', '' );
+		}
 
 		/** @var BlockRegistry $registry */
 		$registry = app( 'visual-editor.blocks' );
