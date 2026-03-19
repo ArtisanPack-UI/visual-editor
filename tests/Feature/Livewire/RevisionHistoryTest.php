@@ -12,8 +12,12 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Models\Revision;
+use Illuminate\Foundation\Auth\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
+use Tests\Stubs\AllowRevisionPolicy;
+use Tests\Stubs\DenyRevisionPolicy;
 
 uses( RefreshDatabase::class );
 
@@ -87,6 +91,13 @@ it( 'shows empty state when no revisions exist', function (): void {
 } );
 
 it( 'refreshes revisions on ve-document-saved', function (): void {
+	$component = Livewire::test( 'visual-editor::revision-history', [
+		'documentType' => 'post',
+		'documentId'   => 1,
+		'inline'       => true,
+	] )
+		->assertSee( __( 'visual-editor::ve.no_revisions' ) );
+
 	Revision::create( [
 		'document_type' => 'post',
 		'document_id'   => 1,
@@ -94,12 +105,7 @@ it( 'refreshes revisions on ve-document-saved', function (): void {
 		'created_at'    => now(),
 	] );
 
-	Livewire::test( 'visual-editor::revision-history', [
-		'documentType' => 'post',
-		'documentId'   => 1,
-		'inline'       => true,
-	] )
-		->assertDontSee( __( 'visual-editor::ve.no_revisions' ) )
+	$component
 		->dispatch( 've-document-saved', documentId: 1, scheduledDate: null )
 		->assertDontSee( __( 'visual-editor::ve.no_revisions' ) );
 } );
@@ -122,6 +128,90 @@ it( 'restores a revision and dispatches event', function (): void {
 	] )
 		->call( 'restoreRevision', $revision->id )
 		->assertDispatched( 've-revision-restored' );
+} );
+
+it( 'denies restore when policy forbids it', function (): void {
+	Gate::policy( Revision::class, DenyRevisionPolicy::class );
+
+	$revision = Revision::create( [
+		'document_type' => 'post',
+		'document_id'   => 1,
+		'blocks'        => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Locked' ] ] ],
+		'created_at'    => now(),
+	] );
+
+	Livewire::actingAs( new User() )
+		->test( 'visual-editor::revision-history', [
+			'documentType' => 'post',
+			'documentId'   => 1,
+		] )
+		->call( 'restoreRevision', $revision->id )
+		->assertForbidden();
+} );
+
+it( 'allows restore when policy permits it', function (): void {
+	Gate::policy( Revision::class, AllowRevisionPolicy::class );
+
+	$blocks = [
+		[ 'type' => 'heading', 'attributes' => [ 'content' => 'Allowed' ] ],
+	];
+
+	$revision = Revision::create( [
+		'document_type' => 'post',
+		'document_id'   => 1,
+		'blocks'        => $blocks,
+		'created_at'    => now(),
+	] );
+
+	Livewire::actingAs( new User() )
+		->test( 'visual-editor::revision-history', [
+			'documentType' => 'post',
+			'documentId'   => 1,
+		] )
+		->call( 'restoreRevision', $revision->id )
+		->assertDispatched( 've-revision-restored' );
+} );
+
+it( 'denies delete when policy forbids it', function (): void {
+	Gate::policy( Revision::class, DenyRevisionPolicy::class );
+
+	$revision = Revision::create( [
+		'document_type' => 'post',
+		'document_id'   => 1,
+		'blocks'        => [],
+		'created_at'    => now(),
+	] );
+
+	Livewire::actingAs( new User() )
+		->test( 'visual-editor::revision-history', [
+			'documentType' => 'post',
+			'documentId'   => 1,
+		] )
+		->call( 'deleteRevision', $revision->id )
+		->assertForbidden();
+
+	expect( Revision::find( $revision->id ) )->not->toBeNull();
+} );
+
+it( 'allows delete when policy permits it', function (): void {
+	Gate::policy( Revision::class, AllowRevisionPolicy::class );
+
+	$revision = Revision::create( [
+		'document_type' => 'post',
+		'document_id'   => 1,
+		'blocks'        => [],
+		'created_at'    => now(),
+	] );
+
+	Livewire::actingAs( new User() )
+		->test( 'visual-editor::revision-history', [
+			'documentType' => 'post',
+			'documentId'   => 1,
+		] )
+		->call( 'deleteRevision', $revision->id )
+		->assertDispatched( 've-revision-deleted' );
+
+	expect( Revision::find( $revision->id ) )->toBeNull();
 } );
 
 it( 'deletes a revision', function (): void {
