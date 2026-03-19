@@ -717,6 +717,9 @@
 				},
 
 				_generateId() {
+					if ( typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function' ) {
+						return 'block-' + crypto.randomUUID();
+					}
 					return 'block-' + Date.now().toString( 36 ) + '-' + Math.random().toString( 36 ).substring( 2, 8 );
 				},
 
@@ -769,6 +772,9 @@
 				{{-- ── Livewire Bridge ───────────────────────────── --}}
 
 				_registerLivewireBridge() {
+					if ( window.__veLivewireBridgeRegistered ) return;
+					window.__veLivewireBridgeRegistered = true;
+
 					document.addEventListener( 've-document-saved', ( e ) => {
 						this.markSaved();
 						this._announceAction( {{ Js::from( __( 'visual-editor::ve.document_saved' ) ) }} );
@@ -818,8 +824,6 @@
 						}
 					} );
 
-					if ( ! window.__veMediaSelectedRegistered ) {
-					window.__veMediaSelectedRegistered = true;
 					window.addEventListener( 've-media-selected', ( e ) => {
 						if ( e.detail && e.detail.media && e.detail.media.length ) {
 							this._announceAction( {{ Js::from( __( 'visual-editor::ve.media_selected' ) ) }} );
@@ -900,7 +904,6 @@
 							}
 						}
 					} );
-					} // end guard
 
 					document.addEventListener( 've-field-change', ( e ) => {
 						if ( ! e.detail ) return;
@@ -1000,7 +1003,9 @@
 										} );
 									}
 								} )
-								.catch( () => {} );
+								.catch( ( err ) => {
+									console.warn( '[VisualEditor] Embed resolve failed:', err );
+								} );
 								return;
 							}
 
@@ -1026,7 +1031,9 @@
 										} );
 									}
 								} )
-								.catch( () => {} );
+								.catch( ( err ) => {
+									console.warn( '[VisualEditor] Geocode request failed:', err );
+								} );
 								return;
 							}
 

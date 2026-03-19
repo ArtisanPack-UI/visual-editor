@@ -24,8 +24,17 @@
 		mediaId: Alpine.store( 'editor' )?.getMeta( {{ Js::from( $metaKey ) }}, null ) ?? null,
 		imageUrl: Alpine.store( 'editor' )?.getMeta( {{ Js::from( $urlKey ) }}, '' ) ?? '',
 		mediaContext: {{ Js::from( $mediaContext ) }},
+		_objectUrl: null,
+
+		_revokeObjectUrl() {
+			if ( this._objectUrl ) {
+				URL.revokeObjectURL( this._objectUrl );
+				this._objectUrl = null;
+			}
+		},
 
 		setImage( id, url ) {
+			this._revokeObjectUrl();
 			this.mediaId  = id;
 			this.imageUrl = url;
 			if ( Alpine.store( 'editor' ) ) {
@@ -35,6 +44,7 @@
 		},
 
 		removeImage() {
+			this._revokeObjectUrl();
 			this.mediaId  = null;
 			this.imageUrl = '';
 			if ( Alpine.store( 'editor' ) ) {
@@ -52,7 +62,9 @@
 		handleFileSelect( event ) {
 			const file = event.target.files[ 0 ];
 			if ( file ) {
-				this.setImage( null, URL.createObjectURL( file ) );
+				const objectUrl = URL.createObjectURL( file );
+				this.setImage( null, objectUrl );
+				this._objectUrl = objectUrl;
 			}
 		},
 	}"
