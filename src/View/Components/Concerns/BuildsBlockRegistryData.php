@@ -315,6 +315,7 @@ trait BuildsBlockRegistryData
 			}
 		}
 
+		// External transforms override registry-defined ones (intentional).
 		$this->blockTransforms = array_merge( $registryTransforms, $this->blockTransforms );
 	}
 

@@ -30,7 +30,7 @@
 			if ( Alpine.store( 'announcer' ) ) {
 				const tpl = this.templates.find( ( t ) => t.slug === slug );
 				Alpine.store( 'announcer' ).announce(
-					{{ Js::from( __( 'visual-editor::ve.template_switched_to', [ 'name' => '__NAME__' ] ) ) }}.replace( '__NAME__', () => tpl ? tpl.name : slug )
+					{{ Js::from( __( 'visual-editor::ve.template_switched_to', [ 'name' => '__NAME__' ] ) ) }}.replace( '__NAME__', tpl ? tpl.name : slug )
 				);
 			}
 		},
@@ -42,7 +42,7 @@
 		type="button"
 		class="btn btn-ghost btn-sm gap-1"
 		x-on:click="open = ! open"
-		:aria-expanded="open ? 'true' : 'false'"
+		:aria-expanded="open"
 		aria-haspopup="listbox"
 		aria-label="{{ $label ?? __( 'visual-editor::ve.template_switcher' ) }}"
 	>

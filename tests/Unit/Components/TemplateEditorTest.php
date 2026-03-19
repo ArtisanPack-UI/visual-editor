@@ -150,6 +150,8 @@ test( 'template editor renders view name', function (): void {
 } );
 
 test( 'template editor auto-populates blockTransforms from registry', function (): void {
+	// Use the real registry with all core blocks registered
+	// (the service provider registers core blocks on boot).
 	$component = new TemplateEditor();
 
 	expect( $component->blockTransforms )->toBeArray();

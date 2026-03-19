@@ -180,6 +180,62 @@ test( 'trait builds empty block transforms from empty registry', function (): vo
 	expect( $consumer->blockTransforms )->toBeArray()->toBeEmpty();
 } );
 
+test( 'trait builds empty alignment data from empty registry', function (): void {
+	$consumer = new TestTraitConsumer();
+	$registry = new BlockRegistry();
+	$consumer->buildAlignmentData( $registry );
+
+	expect( $consumer->blockAlignSupports )->toBeArray()->toBeEmpty();
+} );
+
+test( 'trait builds populated data from real registry', function (): void {
+	// Use the real registry with core blocks (service provider boots automatically).
+	$registry = app( 'visual-editor.blocks' );
+	$consumer = new TestTraitConsumer();
+
+	$consumer->buildInserterBlocks( $registry );
+	expect( $consumer->inserterBlocks )->toBeArray()->not->toBeEmpty();
+	expect( $consumer->inserterBlocks[0] )->toHaveKeys( [ 'name', 'label', 'icon', 'category' ] );
+
+	$consumer->buildBlockMetadata( $registry );
+	expect( $consumer->blockMetadata )->toBeArray()->not->toBeEmpty();
+	expect( $consumer->blockMetadata )->toHaveKey( 'paragraph' );
+
+	$consumer->buildInspectorData( $registry );
+	expect( $consumer->inspectorBlockNames )->toBeArray()->not->toBeEmpty();
+	expect( $consumer->inspectorBlockNames )->toHaveKey( 'paragraph' );
+	expect( $consumer->inspectorBlockDescriptions )->toBeArray()->not->toBeEmpty();
+	expect( $consumer->inspectorBlockTypes )->toBeArray()->not->toBeEmpty();
+	expect( $consumer->inspectorBlockTypes )->toContain( 'paragraph' );
+
+	$consumer->buildToolbarData( $registry );
+	expect( $consumer->toolbarBlockIcons )->toBeArray()->not->toBeEmpty();
+	expect( $consumer->toolbarBlockIcons )->toHaveKey( 'paragraph' );
+	expect( $consumer->blockNames )->toBeArray()->not->toBeEmpty();
+	expect( $consumer->blockNames )->toHaveKey( 'paragraph' );
+	expect( $consumer->transformableBlocks )->toBeArray()->not->toBeEmpty();
+
+	$consumer->buildDefaultBlockTemplates( $registry );
+	expect( $consumer->defaultBlockTemplates )->toBeArray()->not->toBeEmpty();
+	expect( $consumer->defaultBlockTemplates )->toHaveKey( 'paragraph' );
+} );
+
+test( 'trait builds rendered blocks from real registry with initial blocks', function (): void {
+	$registry                = app( 'visual-editor.blocks' );
+	$consumer                = new TestTraitConsumer();
+	$consumer->initialBlocks = [
+		[ 'id' => 'b1', 'type' => 'paragraph', 'attributes' => [ 'text' => 'Hello' ] ],
+		[ 'id' => 'b2', 'type' => 'heading', 'attributes' => [ 'text' => 'Title', 'level' => 'h2' ] ],
+	];
+
+	$consumer->buildRenderedBlocks( $registry );
+
+	expect( $consumer->renderedBlocks )->toBeArray()->not->toBeEmpty();
+	expect( $consumer->renderedBlocks )->toHaveKey( 'b1' );
+	expect( $consumer->renderedBlocks )->toHaveKey( 'b2' );
+	expect( $consumer->renderedBlocks['b1'] )->toContain( 'Hello' );
+} );
+
 test( 'trait default icon renderer returns svg for heading', function (): void {
 	$consumer = new TestTraitConsumer();
 	$result   = ( $consumer->iconRenderer )( 'heading' );

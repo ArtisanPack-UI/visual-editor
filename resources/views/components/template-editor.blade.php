@@ -25,7 +25,7 @@
 	}
 
 	/* Contenteditable placeholder for nested elements */
-	[contenteditable] > [data-placeholder].ve-is-empty::before {
+	[contenteditable] > [data-placeholder].ve-is-empty:not(:focus)::before {
 		content: attr(data-placeholder);
 		opacity: 0.4;
 		font-style: italic;

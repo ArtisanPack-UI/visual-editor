@@ -62,8 +62,14 @@
 
 		{{-- Hover Overlay with Actions --}}
 		<div
-			class="absolute inset-0 flex items-center justify-center gap-2 bg-base-100/80 backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity rounded"
-			x-show="! {{ Js::from( $isEditing ) }}"
+			class="absolute inset-0 flex items-center justify-center gap-2 bg-base-100/80 backdrop-blur-sm transition-opacity rounded"
+			x-show="hovered && ! {{ Js::from( $isEditing ) }}"
+			x-transition:enter="transition ease-out duration-150"
+			x-transition:enter-start="opacity-0"
+			x-transition:enter-end="opacity-100"
+			x-transition:leave="transition ease-in duration-100"
+			x-transition:leave-start="opacity-100"
+			x-transition:leave-end="opacity-0"
 		>
 			@if ( ! $isLocked )
 				<button
@@ -148,6 +154,7 @@
 					class="w-full text-left px-3 py-2 text-sm hover:bg-base-200 transition-colors flex items-center justify-between first:rounded-t-lg last:rounded-b-lg"
 					x-on:click="$dispatch( 've-template-part-assigned', { area: {{ Js::from( $area ) }}, slug: {{ Js::from( $part['slug'] ?? '' ) }} } ); showPicker = false;"
 					role="option"
+					aria-selected="{{ ( ( $part['slug'] ?? '' ) === $assignedSlug ) ? 'true' : 'false' }}"
 				>
 					<div>
 						<div class="font-medium">{{ $part['name'] ?? $part['slug'] ?? '' }}</div>
