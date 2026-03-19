@@ -123,6 +123,11 @@ new class extends Component
 
 		if ( Gate::getPolicyFor( $revision ) ) {
 			Gate::authorize( 'restore', $revision );
+		} elseif ( class_exists( $this->documentType ) ) {
+			$document = $this->documentType::findOrFail( $this->documentId );
+			if ( Gate::getPolicyFor( $document ) ) {
+				Gate::authorize( 'update', $document );
+			}
 		}
 
 		$this->dispatch( 've-revision-restored', blocks: $revision->blocks );
@@ -145,6 +150,11 @@ new class extends Component
 
 		if ( Gate::getPolicyFor( $revision ) ) {
 			Gate::authorize( 'delete', $revision );
+		} elseif ( class_exists( $this->documentType ) ) {
+			$document = $this->documentType::findOrFail( $this->documentId );
+			if ( Gate::getPolicyFor( $document ) ) {
+				Gate::authorize( 'update', $document );
+			}
 		}
 
 		$revision->delete();

@@ -18,6 +18,7 @@
 	id="{{ $uuid }}"
 	x-data="{
 		value: Alpine.store( 'editor' )?.getMeta( {{ Js::from( $metaKey ) }}, '' ) ?? '',
+		_permalinkDebounceTimer: null,
 		update( val ) {
 			const slug = val.toLowerCase()
 				.replace( /[^a-z0-9\s-]/g, '' )
@@ -26,7 +27,10 @@
 				.replace( /^-|-$/g, '' );
 			this.value = slug;
 			if ( Alpine.store( 'editor' ) ) {
-				Alpine.store( 'editor' ).setMeta( {{ Js::from( $metaKey ) }}, slug );
+				clearTimeout( this._permalinkDebounceTimer );
+				this._permalinkDebounceTimer = setTimeout( () => {
+					Alpine.store( 'editor' ).setMeta( {{ Js::from( $metaKey ) }}, slug );
+				}, 300 );
 			}
 		},
 		init() {

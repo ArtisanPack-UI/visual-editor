@@ -131,6 +131,10 @@ test( 'render passes styles to block render method', function (): void {
 	$mockBlock = Mockery::mock( BlockInterface::class );
 	$mockBlock->shouldReceive( 'render' )
 		->once()
+		->withArgs( function ( array $content, array $styles ) {
+			return isset( $styles['alignment'] ) && 'center' === $styles['alignment']
+				&& isset( $styles['textColor'] ) && '#ff0000' === $styles['textColor'];
+		} )
 		->andReturn( '<p style="text-align: center; color: #ff0000;">Styled</p>' );
 
 	$mockRegistry = Mockery::mock( BlockRegistry::class );
@@ -187,15 +191,17 @@ test( 'render applies ap.visualEditor.renderBlock filter', function (): void {
 		return str_replace( '<p>', '<p class="filtered">', $html );
 	} );
 
-	$renderer = new BlockRenderer( $mockRegistry );
+	try {
+		$renderer = new BlockRenderer( $mockRegistry );
 
-	$html = $renderer->render( [
-		[ 'type' => 'paragraph', 'attributes' => [ 'text' => 'Original' ] ],
-	] );
+		$html = $renderer->render( [
+			[ 'type' => 'paragraph', 'attributes' => [ 'text' => 'Original' ] ],
+		] );
 
-	expect( $html )->toContain( '<p class="filtered">Original</p>' );
-
-	removeAllFilters( 'ap.visualEditor.renderBlock' );
+		expect( $html )->toContain( '<p class="filtered">Original</p>' );
+	} finally {
+		removeAllFilters( 'ap.visualEditor.renderBlock' );
+	}
 } );
 
 test( 'render applies ap.visualEditor.renderedContent filter', function (): void {
@@ -213,15 +219,17 @@ test( 'render applies ap.visualEditor.renderedContent filter', function (): void
 		return '<div class="post-content">' . $html . '</div>';
 	} );
 
-	$renderer = new BlockRenderer( $mockRegistry );
+	try {
+		$renderer = new BlockRenderer( $mockRegistry );
 
-	$html = $renderer->render( [
-		[ 'type' => 'paragraph', 'attributes' => [ 'text' => 'Hello' ] ],
-	] );
+		$html = $renderer->render( [
+			[ 'type' => 'paragraph', 'attributes' => [ 'text' => 'Hello' ] ],
+		] );
 
-	expect( $html )->toBe( '<div class="post-content"><p>Hello</p></div>' );
-
-	removeAllFilters( 'ap.visualEditor.renderedContent' );
+		expect( $html )->toBe( '<div class="post-content"><p>Hello</p></div>' );
+	} finally {
+		removeAllFilters( 'ap.visualEditor.renderedContent' );
+	}
 } );
 
 test( 'render handles deeply nested inner blocks', function (): void {

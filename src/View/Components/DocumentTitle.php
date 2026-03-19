@@ -18,7 +18,6 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\View\Components;
 
-use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
 use Illuminate\View\Component;
@@ -51,8 +50,8 @@ class DocumentTitle extends Component
 	 * @param string      $metaKey     The meta key to bind to in the editor store.
 	 * @param string|null $label       Label text for the field.
 	 * @param string|null $placeholder Placeholder text for the input.
-	 * @param bool        $autoSlug    Whether to auto-generate a slug on change.
-	 * @param string      $slugKey     The meta key for the auto-generated slug.
+	 * @param bool        $autoSlug    Whether to auto-generate a slug on change. When used alongside DocumentPermalink, ensure slugKey differs from DocumentPermalink's metaKey to avoid collisions.
+	 * @param string      $slugKey     The meta key for the auto-generated slug. Defaults to 'slug' which shares DocumentPermalink's default metaKey — customize one when using both components.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -70,9 +69,9 @@ class DocumentTitle extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return Closure|string|View
+	 * @return string|View
 	 */
-	public function render(): View|Closure|string
+	public function render(): View|string
 	{
 		return view( 'visual-editor::components.document-title' );
 	}

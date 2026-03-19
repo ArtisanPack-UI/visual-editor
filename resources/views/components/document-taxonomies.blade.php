@@ -21,7 +21,7 @@
 <div
 	id="{{ $uuid }}"
 	x-data="{
-		selected: Alpine.store( 'editor' )?.getMeta( {{ Js::from( $storageKey ) }}, [] ) ?? [],
+		selected: ( ( v ) => Array.isArray( v ) ? v : [] )( Alpine.store( 'editor' )?.getMeta( {{ Js::from( $storageKey ) }}, [] ) ?? [] ),
 		options: {{ Js::from( $options ) }},
 
 		toggle( value ) {

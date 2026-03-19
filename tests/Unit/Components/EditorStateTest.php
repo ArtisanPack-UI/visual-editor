@@ -375,7 +375,7 @@ test( 'editor state renders meta in autosave event detail', function (): void {
 test( 'editor state renders meta reset in re-initialization', function (): void {
 	$view = $this->blade( '<x-ve-editor-state>Content</x-ve-editor-state>' );
 
-	$view->assertSee( 'store.meta', false );
+	$view->assertSee( 'store.meta             =', false );
 } );
 
 test( 'editor state renders initial meta values when provided', function (): void {

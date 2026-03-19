@@ -56,7 +56,7 @@ test( 'document permalink renders input', function (): void {
 test( 'document permalink renders meta key binding', function (): void {
 	$view = $this->blade( '<x-ve-document-permalink />' );
 
-	$view->assertSee( 'getMeta', false );
+	$view->assertSee( "getMeta( 'slug'", false );
 } );
 
 test( 'document permalink renders slug placeholder', function (): void {

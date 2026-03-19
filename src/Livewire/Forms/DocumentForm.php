@@ -91,6 +91,7 @@ class DocumentForm extends Form
 				? 'required|date|after:now'
 				: 'nullable|date',
 			'meta'           => 'array',
+			'meta.*'         => 'nullable|max:65535',
 		];
 	}
 }

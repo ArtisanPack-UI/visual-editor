@@ -52,24 +52,26 @@ test( 'document featured image renders meta key binding', function (): void {
 } );
 
 test( 'document featured image renders media picker button when media library is available', function (): void {
-	$component = new DocumentFeaturedImage();
+	$this->app->bind( DocumentFeaturedImage::class, function () {
+		$component                  = new DocumentFeaturedImage();
+		$component->hasMediaLibrary = true;
 
-	if ( $component->hasMediaLibrary ) {
-		$view = $this->blade( '<x-ve-document-featured-image />' );
-		$view->assertSee( 'Select Image' );
-		$view->assertSee( 'open-ve-media-picker', false );
-	} else {
-		expect( true )->toBeTrue();
-	}
+		return $component;
+	} );
+
+	$view = $this->blade( '<x-ve-document-featured-image />' );
+	$view->assertSee( 'Select Image' );
+	$view->assertSee( 'open-ve-media-picker', false );
 } );
 
 test( 'document featured image renders file input when media library is not available', function (): void {
-	$component = new DocumentFeaturedImage();
+	$this->app->bind( DocumentFeaturedImage::class, function () {
+		$component                  = new DocumentFeaturedImage();
+		$component->hasMediaLibrary = false;
 
-	if ( ! $component->hasMediaLibrary ) {
-		$view = $this->blade( '<x-ve-document-featured-image />' );
-		$view->assertSee( 'file-input', false );
-	} else {
-		expect( true )->toBeTrue();
-	}
+		return $component;
+	} );
+
+	$view = $this->blade( '<x-ve-document-featured-image />' );
+	$view->assertSee( 'file-input', false );
 } );

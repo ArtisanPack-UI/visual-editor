@@ -22,6 +22,7 @@ use ArtisanPackUI\VisualEditor\Models\Revision;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Trait for models that store visual editor content.
@@ -105,18 +106,20 @@ trait HasVisualEditorContent
 			$this->status = $meta['status'];
 		}
 
-		if ( isset( $meta['scheduledDate'] ) ) {
+		if ( array_key_exists( 'scheduledDate', $meta ) ) {
 			$this->scheduled_at = $meta['scheduledDate'];
 		}
 
-		$this->save();
+		DB::transaction( function () use ( $meta ): void {
+			$this->save();
 
-		$isAutosave        = ! empty( $meta['isAutosave'] );
-		$autosaveRevisions = (bool) config( 'artisanpack.visual-editor.persistence.autosave_revisions', false );
+			$isAutosave        = ! empty( $meta['isAutosave'] );
+			$autosaveRevisions = (bool) config( 'artisanpack.visual-editor.persistence.autosave_revisions', false );
 
-		if ( ! $isAutosave || $autosaveRevisions ) {
-			$this->createRevision();
-		}
+			if ( ! $isAutosave || $autosaveRevisions ) {
+				$this->createRevision();
+			}
+		} );
 
 		doAction( 'ap.visualEditor.afterSave', $this, $meta );
 	}
@@ -183,9 +186,11 @@ trait HasVisualEditorContent
 		$revision = $this->revisions()->findOrFail( $revisionId );
 
 		$this->blocks = $revision->blocks;
-		$this->save();
 
-		$this->createRevision();
+		DB::transaction( function (): void {
+			$this->save();
+			$this->createRevision();
+		} );
 	}
 
 	/**

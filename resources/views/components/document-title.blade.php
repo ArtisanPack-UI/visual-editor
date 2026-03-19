@@ -35,6 +35,13 @@
 				@endif
 			}
 		},
+		init() {
+			this.$watch( () => Alpine.store( 'editor' )?.getMeta( {{ Js::from( $metaKey ) }}, '' ), ( newVal ) => {
+				if ( newVal !== this.value ) {
+					this.value = newVal ?? '';
+				}
+			} );
+		},
 	}"
 	{{ $attributes->merge( [ 'class' => '' ] ) }}
 >

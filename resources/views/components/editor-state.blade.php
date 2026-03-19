@@ -360,7 +360,10 @@
 				{{-- ── Undo / Redo ────────────────────────────────────── --}}
 
 				_pushHistory() {
-					this.history.past.push( JSON.parse( JSON.stringify( this.blocks ) ) );
+					this.history.past.push( {
+						blocks: JSON.parse( JSON.stringify( this.blocks ) ),
+						meta: JSON.parse( JSON.stringify( this.meta ) ),
+					} );
 					this.history.future = [];
 
 					if ( this.history.past.length > this.maxHistorySize ) {
@@ -374,8 +377,15 @@
 						return;
 					}
 
-					this.history.future.push( JSON.parse( JSON.stringify( this.blocks ) ) );
-					this.blocks = JSON.parse( JSON.stringify( this.history.past.pop() ) );
+					this.history.future.push( {
+						blocks: JSON.parse( JSON.stringify( this.blocks ) ),
+						meta: JSON.parse( JSON.stringify( this.meta ) ),
+					} );
+					const snapshot = this.history.past.pop();
+					this.blocks = JSON.parse( JSON.stringify( snapshot.blocks ?? snapshot ) );
+					if ( snapshot.meta ) {
+						this.meta = JSON.parse( JSON.stringify( snapshot.meta ) );
+					}
 					this.markDirty();
 					this._announceAction( {{ Js::from( __( 'visual-editor::ve.action_undone' ) ) }} );
 					this._dispatchChange();
@@ -387,8 +397,15 @@
 						return;
 					}
 
-					this.history.past.push( JSON.parse( JSON.stringify( this.blocks ) ) );
-					this.blocks = JSON.parse( JSON.stringify( this.history.future.pop() ) );
+					this.history.past.push( {
+						blocks: JSON.parse( JSON.stringify( this.blocks ) ),
+						meta: JSON.parse( JSON.stringify( this.meta ) ),
+					} );
+					const snapshot = this.history.future.pop();
+					this.blocks = JSON.parse( JSON.stringify( snapshot.blocks ?? snapshot ) );
+					if ( snapshot.meta ) {
+						this.meta = JSON.parse( JSON.stringify( snapshot.meta ) );
+					}
 					this.markDirty();
 					this._announceAction( {{ Js::from( __( 'visual-editor::ve.action_redone' ) ) }} );
 					this._dispatchChange();
@@ -499,6 +516,7 @@
 				{{-- ── Meta ──────────────────────────────────────────────── --}}
 
 				setMeta( key, value ) {
+					this._pushHistory();
 					this.meta[ key ] = value;
 					this.markDirty();
 					this._dispatchChange();
@@ -509,6 +527,7 @@
 				},
 
 				setMetaBulk( data ) {
+					this._pushHistory();
 					Object.assign( this.meta, data );
 					this.markDirty();
 					this._dispatchChange();
@@ -799,9 +818,7 @@
 								}
 
 								const { documentStatus, scheduledDate, ...otherMeta } = e.detail.meta;
-								if ( Object.keys( otherMeta ).length > 0 ) {
-									Object.assign( this.meta, otherMeta );
-								}
+								this.meta = otherMeta;
 							}
 
 							this.markDirty();

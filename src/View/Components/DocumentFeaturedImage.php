@@ -19,7 +19,6 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\View\Components;
 
-use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
 use Illuminate\View\Component;
@@ -75,9 +74,9 @@ class DocumentFeaturedImage extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return Closure|string|View
+	 * @return string|View
 	 */
-	public function render(): View|Closure|string
+	public function render(): View|string
 	{
 		return view( 'visual-editor::components.document-featured-image' );
 	}

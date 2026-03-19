@@ -72,17 +72,24 @@ new class extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param array<int, array<string, mixed>> $blocks The block content to save.
-	 * @param array<string, mixed>             $meta   Additional metadata to save with the draft.
+	 * @param array<int, array<string, mixed>> $blocks         The block content to save.
+	 * @param array<string, mixed>             $meta           Additional metadata to save with the draft.
+	 * @param string                           $documentStatus The current document status.
+	 * @param string|null                      $scheduledDate  The scheduled publish date, if any.
 	 *
 	 * @return void
 	 */
 	#[On( 've-autosave' )]
-	public function saveDraft( array $blocks, array $meta = [] ): void
+	public function saveDraft( array $blocks, array $meta = [], string $documentStatus = 'draft', ?string $scheduledDate = null ): void
 	{
 		$ttl = config( 'artisanpack.visual-editor.persistence.draft_ttl', 86400 );
 
-		Cache::put( $this->getCacheKey(), [ 'blocks' => $blocks, 'meta' => $meta ], $ttl );
+		Cache::put( $this->getCacheKey(), [
+			'blocks'         => $blocks,
+			'meta'           => $meta,
+			'documentStatus' => $documentStatus,
+			'scheduledDate'  => $scheduledDate,
+		], $ttl );
 
 		$this->hasDraft = true;
 
@@ -109,7 +116,13 @@ new class extends Component
 
 		$draft = $this->normalizeDraft( $draft );
 
-		$this->dispatch( 've-draft-restored', blocks: $draft['blocks'], meta: $draft['meta'] );
+		$this->dispatch( 've-draft-restored',
+			blocks: $draft['blocks'],
+			meta: array_merge( $draft['meta'], [
+				'documentStatus' => $draft['documentStatus'],
+				'scheduledDate'  => $draft['scheduledDate'],
+			] ),
+		);
 	}
 
 	/**
@@ -212,8 +225,10 @@ new class extends Component
 		}
 
 		return [
-			'blocks' => $draft['blocks'] ?? [],
-			'meta'   => $draft['meta'] ?? [],
+			'blocks'         => $draft['blocks'] ?? [],
+			'meta'           => $draft['meta'] ?? [],
+			'documentStatus' => $draft['documentStatus'] ?? 'draft',
+			'scheduledDate'  => $draft['scheduledDate'] ?? null,
 		];
 	}
 

@@ -15,15 +15,19 @@ use ArtisanPackUI\VisualEditor\Models\Revision;
 use Illuminate\Foundation\Auth\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Schema;
 use Livewire\Livewire;
+use Tests\Stubs\AllowDocumentPolicy;
 use Tests\Stubs\AllowRevisionPolicy;
+use Tests\Stubs\DenyDocumentPolicy;
 use Tests\Stubs\DenyRevisionPolicy;
+use Tests\Stubs\FakeDocument;
 
 uses( RefreshDatabase::class );
 
 beforeEach( function (): void {
 	$this->artisan( 'migrate', [ '--database' => 'testbench' ] );
-	config()->set( 'artisanpack.visual-editor.user_model', Illuminate\Foundation\Auth\User::class );
+	config()->set( 'artisanpack.visual-editor.user_model', User::class );
 } );
 
 it( 'mounts with document type and ID', function (): void {
@@ -214,7 +218,7 @@ it( 'allows delete when policy permits it', function (): void {
 	expect( Revision::find( $revision->id ) )->toBeNull();
 } );
 
-it( 'deletes a revision', function (): void {
+it( 'deletes a revision when no policy is registered', function (): void {
 	$revision = Revision::create( [
 		'document_type' => 'post',
 		'document_id'   => 1,
@@ -230,5 +234,125 @@ it( 'deletes a revision', function (): void {
 		->assertDispatched( 've-revision-deleted' );
 
 	expect( Revision::find( $revision->id ) )->toBeNull();
+} );
+
+it( 'denies restore when no revision policy exists but document policy denies update', function (): void {
+	Schema::create( 'fake_documents', function ( Illuminate\Database\Schema\Blueprint $table ): void {
+		$table->id();
+		$table->timestamps();
+	} );
+
+	$document = FakeDocument::create();
+
+	Gate::policy( FakeDocument::class, DenyDocumentPolicy::class );
+
+	$revision = Revision::create( [
+		'document_type' => FakeDocument::class,
+		'document_id'   => $document->id,
+		'blocks'        => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Test' ] ] ],
+		'created_at'    => now(),
+	] );
+
+	Livewire::actingAs( new User() )
+		->test( 'visual-editor::revision-history', [
+			'documentType' => FakeDocument::class,
+			'documentId'   => $document->id,
+		] )
+		->call( 'restoreRevision', $revision->id )
+		->assertForbidden();
+
+	Schema::dropIfExists( 'fake_documents' );
+} );
+
+it( 'allows restore when no revision policy exists but document policy allows update', function (): void {
+	Schema::create( 'fake_documents', function ( Illuminate\Database\Schema\Blueprint $table ): void {
+		$table->id();
+		$table->timestamps();
+	} );
+
+	$document = FakeDocument::create();
+
+	Gate::policy( FakeDocument::class, AllowDocumentPolicy::class );
+
+	$blocks = [
+		[ 'type' => 'heading', 'attributes' => [ 'content' => 'Fallback Allowed' ] ],
+	];
+
+	$revision = Revision::create( [
+		'document_type' => FakeDocument::class,
+		'document_id'   => $document->id,
+		'blocks'        => $blocks,
+		'created_at'    => now(),
+	] );
+
+	Livewire::actingAs( new User() )
+		->test( 'visual-editor::revision-history', [
+			'documentType' => FakeDocument::class,
+			'documentId'   => $document->id,
+		] )
+		->call( 'restoreRevision', $revision->id )
+		->assertDispatched( 've-revision-restored' );
+
+	Schema::dropIfExists( 'fake_documents' );
+} );
+
+it( 'denies delete when no revision policy exists but document policy denies update', function (): void {
+	Schema::create( 'fake_documents', function ( Illuminate\Database\Schema\Blueprint $table ): void {
+		$table->id();
+		$table->timestamps();
+	} );
+
+	$document = FakeDocument::create();
+
+	Gate::policy( FakeDocument::class, DenyDocumentPolicy::class );
+
+	$revision = Revision::create( [
+		'document_type' => FakeDocument::class,
+		'document_id'   => $document->id,
+		'blocks'        => [],
+		'created_at'    => now(),
+	] );
+
+	Livewire::actingAs( new User() )
+		->test( 'visual-editor::revision-history', [
+			'documentType' => FakeDocument::class,
+			'documentId'   => $document->id,
+		] )
+		->call( 'deleteRevision', $revision->id )
+		->assertForbidden();
+
+	expect( Revision::find( $revision->id ) )->not->toBeNull();
+
+	Schema::dropIfExists( 'fake_documents' );
+} );
+
+it( 'allows delete when no revision policy exists but document policy allows update', function (): void {
+	Schema::create( 'fake_documents', function ( Illuminate\Database\Schema\Blueprint $table ): void {
+		$table->id();
+		$table->timestamps();
+	} );
+
+	$document = FakeDocument::create();
+
+	Gate::policy( FakeDocument::class, AllowDocumentPolicy::class );
+
+	$revision = Revision::create( [
+		'document_type' => FakeDocument::class,
+		'document_id'   => $document->id,
+		'blocks'        => [],
+		'created_at'    => now(),
+	] );
+
+	Livewire::actingAs( new User() )
+		->test( 'visual-editor::revision-history', [
+			'documentType' => FakeDocument::class,
+			'documentId'   => $document->id,
+		] )
+		->call( 'deleteRevision', $revision->id )
+		->assertDispatched( 've-revision-deleted' );
+
+	expect( Revision::find( $revision->id ) )->toBeNull();
+
+	Schema::dropIfExists( 'fake_documents' );
 } );
 

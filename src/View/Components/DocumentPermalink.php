@@ -18,7 +18,6 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\View\Components;
 
-use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
 use Illuminate\View\Component;
@@ -58,7 +57,7 @@ class DocumentPermalink extends Component
 		public string $baseUrl = '/',
 		public ?string $label = null,
 	) {
-		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
+		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . Str::slug( $id ) : '' );
 	}
 
 	/**
@@ -66,9 +65,9 @@ class DocumentPermalink extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return Closure|string|View
+	 * @return string|View
 	 */
-	public function render(): View|Closure|string
+	public function render(): View|string
 	{
 		return view( 'visual-editor::components.document-permalink' );
 	}

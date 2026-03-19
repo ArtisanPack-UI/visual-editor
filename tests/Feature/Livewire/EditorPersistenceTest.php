@@ -154,7 +154,7 @@ it( 'restores draft with matching blocks and meta payload', function (): void {
 		->call( 'restoreDraft' )
 		->assertDispatched( 've-draft-restored', function ( string $event, array $params ): bool {
 			return $params['blocks'] === [ [ 'type' => 'heading', 'attributes' => [ 'content' => 'Restored' ] ] ]
-				&& $params['meta'] === [ 'title' => 'Restored Title' ];
+				&& $params['meta'] === [ 'title' => 'Restored Title', 'documentStatus' => 'draft', 'scheduledDate' => null ];
 		} );
 } );
 
@@ -170,7 +170,7 @@ it( 'loadDraft dispatches matching blocks and meta payload', function (): void {
 		->call( 'loadDraft' )
 		->assertDispatched( 've-draft-restored', function ( string $event, array $params ) use ( $draft ): bool {
 			return $params['blocks'] === $draft['blocks']
-				&& $params['meta'] === $draft['meta'];
+				&& $params['meta'] === array_merge( $draft['meta'], [ 'documentStatus' => 'draft', 'scheduledDate' => null ] );
 		} );
 } );
 
@@ -247,7 +247,7 @@ it( 'respects config TTL when saving draft', function (): void {
 	// Verify the stored payload structure
 	$cached = Cache::get( guestCacheKey( 'App\\Models\\Post', 'ttl-doc' ) );
 
-	expect( $cached )->toBe( [ 'blocks' => $blocks, 'meta' => [] ] );
+	expect( $cached )->toBe( [ 'blocks' => $blocks, 'meta' => [], 'documentStatus' => 'draft', 'scheduledDate' => null ] );
 } );
 
 it( 'scopes drafts by user and document type for guests', function (): void {
