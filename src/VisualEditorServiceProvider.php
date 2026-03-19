@@ -27,6 +27,7 @@ use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\Services\OEmbedService;
+use ArtisanPackUI\VisualEditor\Services\TemplateManager;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -179,6 +180,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new OEmbedService();
 		} );
 
+		$this->app->singleton( 'visual-editor.templates', function () {
+			return new TemplateManager();
+		} );
+
+		$this->app->singleton( TemplateManager::class, function ( $app ) {
+			return $app->make( 'visual-editor.templates' );
+		} );
+
 		$this->app->singleton( BlockRenderer::class, function ( $app ) {
 			return new BlockRenderer(
 				$app->make( 'visual-editor.blocks' ),
@@ -206,6 +215,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerMigrations();
 		$this->registerRoutes();
 		$this->registerCoreBlocks();
+		$this->registerDefaultTemplates();
 		$this->registerConsoleCommands();
 		$this->publishBlockViews();
 	}
@@ -388,6 +398,72 @@ class VisualEditorServiceProvider extends ServiceProvider
 		}
 
 		veDoAction( 'ap.visualEditor.blocksInit' );
+	}
+
+	/**
+	 * Register the default built-in templates.
+	 *
+	 * Registers blank, full-width, sidebar-left, and sidebar-right
+	 * templates with the template manager. Third-party packages can
+	 * register additional templates via the `ap.visualEditor.templatesInit` action.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerDefaultTemplates(): void
+	{
+		$manager = $this->app->make( 'visual-editor.templates' );
+
+		$manager->register( 'blank', [
+			'name'                  => __( 'Blank' ),
+			'description'           => __( 'A blank template with no predefined content.' ),
+			'type'                  => 'page',
+			'content'               => [],
+			'content_area_settings' => [
+				'max_width' => 'full',
+				'padding'   => 'none',
+			],
+		] );
+
+		$manager->register( 'full-width', [
+			'name'                  => __( 'Full Width' ),
+			'description'           => __( 'A full-width template with no sidebar.' ),
+			'type'                  => 'page',
+			'content'               => [],
+			'content_area_settings' => [
+				'max_width' => 'full',
+				'padding'   => 'large',
+			],
+		] );
+
+		$manager->register( 'sidebar-left', [
+			'name'                  => __( 'Sidebar Left' ),
+			'description'           => __( 'A layout with a sidebar on the left and content on the right.' ),
+			'type'                  => 'page',
+			'content'               => [],
+			'content_area_settings' => [
+				'max_width'     => 'container',
+				'padding'       => 'large',
+				'layout'        => 'sidebar-left',
+				'sidebar_width' => '300px',
+			],
+		] );
+
+		$manager->register( 'sidebar-right', [
+			'name'                  => __( 'Sidebar Right' ),
+			'description'           => __( 'A layout with content on the left and a sidebar on the right.' ),
+			'type'                  => 'page',
+			'content'               => [],
+			'content_area_settings' => [
+				'max_width'     => 'container',
+				'padding'       => 'large',
+				'layout'        => 'sidebar-right',
+				'sidebar_width' => '300px',
+			],
+		] );
+
+		veDoAction( 'ap.visualEditor.templatesInit' );
 	}
 
 	/**

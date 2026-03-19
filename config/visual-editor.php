@@ -37,6 +37,24 @@ return [
 
 	'user_model' => 'App\\Models\\User',
 
+	/*
+	|----------------------------------------------------------------------
+	| Templates
+	|----------------------------------------------------------------------
+	|
+	| Configuration for the template system.
+	|
+	| default_template:        The default template slug for new content.
+	| allow_custom_templates:  Whether users can create custom templates.
+	| locked_templates:        Slugs of templates that cannot be edited.
+	|
+	*/
+	'templates' => [
+		'default_template'       => 'blank',
+		'allow_custom_templates' => true,
+		'locked_templates'       => [],
+	],
+
 	'blocks' => [
 		'core'     => [
 			'heading'   => true,

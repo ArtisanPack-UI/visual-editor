@@ -151,3 +151,72 @@ test( 'veSanitizeHtmlId returns null for empty input', function (): void {
 	expect( veSanitizeHtmlId( '' ) )->toBeNull();
 	expect( veSanitizeHtmlId( '<<<>>>' ) )->toBeNull();
 } );
+
+// --- Template Helpers ---
+
+test( 'veRegisterTemplate registers a template', function (): void {
+	$manager = app( 'visual-editor.templates' );
+	$manager->clearRegistered();
+
+	veRegisterTemplate( 'helper-test', [ 'name' => 'Helper Test' ] );
+
+	expect( $manager->getRegistered() )->toHaveKey( 'helper-test' );
+
+	$manager->clearRegistered();
+} );
+
+test( 'veGetTemplate resolves a registered template', function (): void {
+	$this->artisan( 'migrate', [ '--database' => 'testbench' ] );
+	$manager = app( 'visual-editor.templates' );
+	$manager->clearRegistered();
+
+	veRegisterTemplate( 'resolve-test', [ 'name' => 'Resolve Test' ] );
+
+	$result = veGetTemplate( 'resolve-test' );
+
+	expect( $result )->toBeArray()
+		->and( $result['name'] )->toBe( 'Resolve Test' );
+
+	$manager->clearRegistered();
+} );
+
+test( 'veGetTemplate returns null for nonexistent template', function (): void {
+	$this->artisan( 'migrate', [ '--database' => 'testbench' ] );
+	expect( veGetTemplate( 'nonexistent-helper' ) )->toBeNull();
+} );
+
+test( 'veTemplateExists checks template existence', function (): void {
+	$this->artisan( 'migrate', [ '--database' => 'testbench' ] );
+	$manager = app( 'visual-editor.templates' );
+	$manager->clearRegistered();
+
+	veRegisterTemplate( 'exists-test', [ 'name' => 'Exists Test' ] );
+
+	expect( veTemplateExists( 'exists-test' ) )->toBeTrue()
+		->and( veTemplateExists( 'nope' ) )->toBeFalse();
+
+	$manager->clearRegistered();
+} );
+
+test( 'veGetTemplatesForType filters by content type', function (): void {
+	$this->artisan( 'migrate', [ '--database' => 'testbench' ] );
+	$manager = app( 'visual-editor.templates' );
+	$manager->clearRegistered();
+
+	veRegisterTemplate( 'universal', [
+		'name'             => 'Universal',
+		'for_content_type' => null,
+	] );
+
+	veRegisterTemplate( 'post-only', [
+		'name'             => 'Post Only',
+		'for_content_type' => 'post',
+	] );
+
+	$postTemplates = veGetTemplatesForType( 'post' );
+
+	expect( $postTemplates )->toHaveKey( 'universal' )
+		->and( $postTemplates )->toHaveKey( 'post-only' );
+
+	$manager->clearRegistered();
+} );
