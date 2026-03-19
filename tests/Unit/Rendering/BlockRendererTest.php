@@ -277,6 +277,9 @@ test( 'render defaults attributes to empty array when missing', function (): voi
 	$mockBlock = Mockery::mock( BlockInterface::class );
 	$mockBlock->shouldReceive( 'render' )
 		->once()
+		->withArgs( function ( array $content, array $styles ): bool {
+			return [] === $content && [] === $styles;
+		} )
 		->andReturn( '<hr />' );
 
 	$mockRegistry = Mockery::mock( BlockRegistry::class );

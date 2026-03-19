@@ -156,14 +156,10 @@ it( 'denies restore when policy forbids it', function (): void {
 it( 'allows restore when policy permits it', function (): void {
 	Gate::policy( Revision::class, AllowRevisionPolicy::class );
 
-	$blocks = [
-		[ 'type' => 'heading', 'attributes' => [ 'content' => 'Allowed' ] ],
-	];
-
 	$revision = Revision::create( [
 		'document_type' => 'post',
 		'document_id'   => 1,
-		'blocks'        => $blocks,
+		'blocks'        => [],
 		'created_at'    => now(),
 	] );
 
@@ -236,13 +232,19 @@ it( 'deletes a revision when no policy is registered', function (): void {
 	expect( Revision::find( $revision->id ) )->toBeNull();
 } );
 
-it( 'denies restore when no revision policy exists but document policy denies update', function (): void {
-	Schema::create( 'fake_documents', function ( Illuminate\Database\Schema\Blueprint $table ): void {
-		$table->id();
-		$table->timestamps();
+describe( 'document policy fallback authorization', function (): void {
+	beforeEach( function (): void {
+		Schema::create( 'fake_documents', function ( Illuminate\Database\Schema\Blueprint $table ): void {
+			$table->id();
+			$table->timestamps();
+		} );
 	} );
 
-	try {
+	afterEach( function (): void {
+		Schema::dropIfExists( 'fake_documents' );
+	} );
+
+	it( 'denies restore when no revision policy exists but document policy denies update', function (): void {
 		$document = FakeDocument::create();
 
 		Gate::policy( FakeDocument::class, DenyDocumentPolicy::class );
@@ -261,30 +263,17 @@ it( 'denies restore when no revision policy exists but document policy denies up
 			] )
 			->call( 'restoreRevision', $revision->id )
 			->assertForbidden();
-	} finally {
-		Schema::dropIfExists( 'fake_documents' );
-	}
-} );
-
-it( 'allows restore when no revision policy exists but document policy allows update', function (): void {
-	Schema::create( 'fake_documents', function ( Illuminate\Database\Schema\Blueprint $table ): void {
-		$table->id();
-		$table->timestamps();
 	} );
 
-	try {
+	it( 'allows restore when no revision policy exists but document policy allows update', function (): void {
 		$document = FakeDocument::create();
 
 		Gate::policy( FakeDocument::class, AllowDocumentPolicy::class );
 
-		$blocks = [
-			[ 'type' => 'heading', 'attributes' => [ 'content' => 'Fallback Allowed' ] ],
-		];
-
 		$revision = Revision::create( [
 			'document_type' => FakeDocument::class,
 			'document_id'   => $document->id,
-			'blocks'        => $blocks,
+			'blocks'        => [],
 			'created_at'    => now(),
 		] );
 
@@ -295,18 +284,9 @@ it( 'allows restore when no revision policy exists but document policy allows up
 			] )
 			->call( 'restoreRevision', $revision->id )
 			->assertDispatched( 've-revision-restored' );
-	} finally {
-		Schema::dropIfExists( 'fake_documents' );
-	}
-} );
-
-it( 'denies delete when no revision policy exists but document policy denies update', function (): void {
-	Schema::create( 'fake_documents', function ( Illuminate\Database\Schema\Blueprint $table ): void {
-		$table->id();
-		$table->timestamps();
 	} );
 
-	try {
+	it( 'denies delete when no revision policy exists but document policy denies update', function (): void {
 		$document = FakeDocument::create();
 
 		Gate::policy( FakeDocument::class, DenyDocumentPolicy::class );
@@ -327,18 +307,9 @@ it( 'denies delete when no revision policy exists but document policy denies upd
 			->assertForbidden();
 
 		expect( Revision::find( $revision->id ) )->not->toBeNull();
-	} finally {
-		Schema::dropIfExists( 'fake_documents' );
-	}
-} );
-
-it( 'allows delete when no revision policy exists but document policy allows update', function (): void {
-	Schema::create( 'fake_documents', function ( Illuminate\Database\Schema\Blueprint $table ): void {
-		$table->id();
-		$table->timestamps();
 	} );
 
-	try {
+	it( 'allows delete when no revision policy exists but document policy allows update', function (): void {
 		$document = FakeDocument::create();
 
 		Gate::policy( FakeDocument::class, AllowDocumentPolicy::class );
@@ -359,8 +330,6 @@ it( 'allows delete when no revision policy exists but document policy allows upd
 			->assertDispatched( 've-revision-deleted' );
 
 		expect( Revision::find( $revision->id ) )->toBeNull();
-	} finally {
-		Schema::dropIfExists( 'fake_documents' );
-	}
+	} );
 } );
 
