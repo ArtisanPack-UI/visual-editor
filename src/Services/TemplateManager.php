@@ -69,6 +69,7 @@ class TemplateManager
 			'for_content_type'      => null,
 			'content'               => [],
 			'status'                => 'active',
+			'is_custom'             => false,
 			'content_area_settings' => [],
 			'styles'                => [],
 		], $config );
@@ -354,7 +355,7 @@ class TemplateManager
 				continue;
 			}
 
-			$created[] = Template::create( [
+			$created[] = $this->create( [
 				'name'                  => $config['name'],
 				'slug'                  => $slug,
 				'description'           => $config['description'] ?? null,

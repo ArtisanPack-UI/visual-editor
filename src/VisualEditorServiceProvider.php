@@ -420,6 +420,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			'description'           => __( 'A blank template with no predefined content.' ),
 			'type'                  => 'page',
 			'content'               => [],
+			'is_custom'             => false,
 			'content_area_settings' => [
 				'max_width' => 'full',
 				'padding'   => 'none',
@@ -431,6 +432,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			'description'           => __( 'A full-width template with no sidebar.' ),
 			'type'                  => 'page',
 			'content'               => [],
+			'is_custom'             => false,
 			'content_area_settings' => [
 				'max_width' => 'full',
 				'padding'   => 'large',
@@ -442,6 +444,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			'description'           => __( 'A layout with a sidebar on the left and content on the right.' ),
 			'type'                  => 'page',
 			'content'               => [],
+			'is_custom'             => false,
 			'content_area_settings' => [
 				'max_width'     => 'container',
 				'padding'       => 'large',
@@ -455,6 +458,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			'description'           => __( 'A layout with content on the left and a sidebar on the right.' ),
 			'type'                  => 'page',
 			'content'               => [],
+			'is_custom'             => false,
 			'content_area_settings' => [
 				'max_width'     => 'container',
 				'padding'       => 'large',
