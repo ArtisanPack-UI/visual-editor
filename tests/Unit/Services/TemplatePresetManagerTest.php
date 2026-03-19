@@ -15,6 +15,7 @@ use ArtisanPackUI\VisualEditor\Models\Template;
 use ArtisanPackUI\VisualEditor\Models\TemplatePreset;
 use ArtisanPackUI\VisualEditor\Services\TemplatePresetManager;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses( RefreshDatabase::class );
 
@@ -202,17 +203,49 @@ it( 'checks existence in registry and database', function (): void {
 } );
 
 it( 'creates a preset in the database', function (): void {
-	$preset = $this->manager->create( [
-		'name'     => 'Created',
-		'slug'     => 'created',
-		'content'  => [ [ 'type' => 'paragraph' ] ],
-		'category' => 'blog',
+	$userId = DB::table( 'users' )->insertGetId( [
+		'name'  => 'Test User',
+		'email' => 'test-preset@example.com',
 	] );
+
+	$preset = $this->manager->create(
+		[
+			'name'     => 'Created',
+			'slug'     => 'created',
+			'content'  => [ [ 'type' => 'paragraph' ] ],
+			'category' => 'blog',
+		],
+		true,
+		$userId,
+	);
 
 	expect( $preset )->toBeInstanceOf( TemplatePreset::class )
 		->and( $preset->exists )->toBeTrue()
 		->and( $preset->name )->toBe( 'Created' )
-		->and( $preset->category )->toBe( 'blog' );
+		->and( $preset->category )->toBe( 'blog' )
+		->and( $preset->is_custom )->toBeTrue()
+		->and( $preset->user_id )->toBe( $userId );
+} );
+
+it( 'throws when creating custom preset with custom presets disabled', function (): void {
+	config()->set( 'artisanpack.visual-editor.template_presets.allow_custom_presets', false );
+
+	expect( fn () => $this->manager->create(
+		[ 'name' => 'Blocked', 'slug' => 'blocked', 'content' => [] ],
+		true,
+	) )->toThrow( RuntimeException::class );
+} );
+
+it( 'allows built-in presets even when custom presets disabled', function (): void {
+	config()->set( 'artisanpack.visual-editor.template_presets.allow_custom_presets', false );
+
+	$preset = $this->manager->create(
+		[ 'name' => 'Built In', 'slug' => 'built-in', 'content' => [] ],
+		false,
+	);
+
+	expect( $preset->exists )->toBeTrue()
+		->and( $preset->is_custom )->toBeFalse();
 } );
 
 it( 'updates a preset', function (): void {
@@ -336,6 +369,19 @@ it( 'saves a template as a preset', function (): void {
 		->and( $preset->content_area_settings )->toEqual( [ 'max_width' => 'container' ] )
 		->and( $preset->styles )->toEqual( [ 'color' => '#333' ] )
 		->and( $preset->is_custom )->toBeTrue();
+} );
+
+it( 'throws when saving template as preset with custom presets disabled', function (): void {
+	config()->set( 'artisanpack.visual-editor.template_presets.allow_custom_presets', false );
+
+	$template = Template::create( [
+		'name'    => 'Source',
+		'slug'    => 'source',
+		'content' => [],
+	] );
+
+	expect( fn () => $this->manager->saveTemplateAsPreset( $template, 'blocked', 'Blocked' ) )
+		->toThrow( RuntimeException::class );
 } );
 
 it( 'seeds registered presets to database', function (): void {

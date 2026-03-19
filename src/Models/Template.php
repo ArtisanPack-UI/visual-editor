@@ -348,6 +348,9 @@ class Template extends Model
 	/**
 	 * Create a variation of this template.
 	 *
+	 * The user_id is not inherited from the parent by default. Callers
+	 * should pass user_id via $overrides to attribute ownership.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param string               $slug     The slug for the new variation.
@@ -371,7 +374,7 @@ class Template extends Model
 			'is_custom'             => true,
 			'is_locked'             => false,
 			'parent_id'             => $this->id,
-			'user_id'               => $this->user_id,
+			'user_id'               => null,
 		];
 
 		return static::create( array_merge( $defaults, $overrides ) );
@@ -411,8 +414,9 @@ class Template extends Model
 	/**
 	 * Resolve the effective content area settings for this template.
 	 *
-	 * For variations, merges parent settings with any overrides.
-	 * For base templates, returns the template's own settings.
+	 * For variations, recursively merges parent settings with any overrides
+	 * so nested keys are preserved. For base templates, returns the
+	 * template's own settings.
 	 *
 	 * @since 1.0.0
 	 *
@@ -434,14 +438,15 @@ class Template extends Model
 
 		$parentSettings = $parent->content_area_settings ?? [];
 
-		return array_merge( $parentSettings, $ownSettings );
+		return array_replace_recursive( $parentSettings, $ownSettings );
 	}
 
 	/**
 	 * Resolve the effective styles for this template.
 	 *
-	 * For variations, merges parent styles with any overrides.
-	 * For base templates, returns the template's own styles.
+	 * For variations, recursively merges parent styles with any overrides
+	 * so nested keys are preserved. For base templates, returns the
+	 * template's own styles.
 	 *
 	 * @since 1.0.0
 	 *
@@ -463,7 +468,7 @@ class Template extends Model
 
 		$parentStyles = $parent->styles ?? [];
 
-		return array_merge( $parentStyles, $ownStyles );
+		return array_replace_recursive( $parentStyles, $ownStyles );
 	}
 
 	/**

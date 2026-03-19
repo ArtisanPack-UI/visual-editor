@@ -27,7 +27,14 @@ return new class() extends Migration
 	 */
 	public function up(): void
 	{
-		Schema::create( 'visual_editor_template_presets', function ( Blueprint $table ): void {
+		$userModel = config( 'artisanpack.visual-editor.user_model', 'App\\Models\\User' );
+		$userTable = 'users';
+
+		if ( class_exists( $userModel ) ) {
+			$userTable = ( new $userModel() )->getTable();
+		}
+
+		Schema::create( 'visual_editor_template_presets', function ( Blueprint $table ) use ( $userTable ): void {
 			$table->id();
 			$table->string( 'name' );
 			$table->string( 'slug' )->unique();
@@ -43,7 +50,7 @@ return new class() extends Migration
 			$table->boolean( 'is_custom' )->default( false );
 			$table->unsignedBigInteger( 'user_id' )->nullable();
 			$table->timestamps();
-			$table->foreign( 'user_id' )->references( 'id' )->on( 'users' )->nullOnDelete();
+			$table->foreign( 'user_id' )->references( 'id' )->on( $userTable )->nullOnDelete();
 			$table->index( 'category' );
 			$table->index( [ 'type', 'category' ] );
 		} );

@@ -387,6 +387,9 @@ class TemplateManager
 	 */
 	public function createVariation( Template $template, string $slug, string $name, array $overrides = [] ): Template
 	{
+		$forbidden = [ 'id', 'parent_id', 'slug', 'name' ];
+		$overrides = array_diff_key( $overrides, array_flip( $forbidden ) );
+
 		$variation = $template->createVariation( $slug, $name, $overrides );
 
 		veDoAction( 'ap.visualEditor.templateVariationCreated', $variation, $template );

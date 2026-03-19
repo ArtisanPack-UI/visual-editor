@@ -16,6 +16,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Models\Template;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 
 uses( RefreshDatabase::class );
 
@@ -269,6 +270,61 @@ it( 'gets all base templates via the manager', function (): void {
 
 	expect( $baseTemplates )->toHaveKey( 'parent' )
 		->and( $baseTemplates )->not->toHaveKey( 'child' );
+} );
+
+it( 'defaults user_id to null for variations', function (): void {
+	$userId = DB::table( 'users' )->insertGetId( [
+		'name'  => 'Parent Owner',
+		'email' => 'parent-owner@example.com',
+	] );
+
+	$parent = Template::create( [
+		'name'    => 'Parent',
+		'slug'    => 'parent-uid',
+		'content' => [],
+		'user_id' => $userId,
+	] );
+
+	$variation = $parent->createVariation( 'child-uid', 'Child' );
+
+	expect( $variation->user_id )->toBeNull();
+} );
+
+it( 'allows user_id override for variations', function (): void {
+	$userId = DB::table( 'users' )->insertGetId( [
+		'name'  => 'Variation Owner',
+		'email' => 'variation-owner@example.com',
+	] );
+
+	$parent = Template::create( [
+		'name'    => 'Parent',
+		'slug'    => 'parent-uid-override',
+		'content' => [],
+	] );
+
+	$variation = $parent->createVariation( 'child-uid-override', 'Child', [
+		'user_id' => $userId,
+	] );
+
+	expect( $variation->user_id )->toBe( $userId );
+} );
+
+it( 'strips forbidden overrides in manager createVariation', function (): void {
+	$parent = Template::create( [
+		'name'    => 'Parent',
+		'slug'    => 'parent-strip',
+		'content' => [],
+	] );
+
+	$variation = $this->manager->createVariation( $parent, 'child-strip', 'Child', [
+		'parent_id' => 9999,
+		'id'        => 9999,
+		'status'    => 'active',
+	] );
+
+	expect( $variation->parent_id )->toBe( $parent->id )
+		->and( $variation->id )->not->toBe( 9999 )
+		->and( $variation->status )->toBe( 'active' );
 } );
 
 it( 'sets parent_id to null when parent is deleted', function (): void {

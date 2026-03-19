@@ -90,8 +90,6 @@ class TemplatePreset extends Model
 		'template_parts',
 		'type',
 		'for_content_type',
-		'is_custom',
-		'user_id',
 	];
 
 	/**

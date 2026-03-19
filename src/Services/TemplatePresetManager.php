@@ -20,6 +20,7 @@ namespace ArtisanPackUI\VisualEditor\Services;
 
 use ArtisanPackUI\VisualEditor\Models\Template;
 use ArtisanPackUI\VisualEditor\Models\TemplatePreset;
+use RuntimeException;
 
 /**
  * Service for registering, resolving, and managing template presets.
@@ -105,9 +106,7 @@ class TemplatePresetManager
 	{
 		$presets = $this->registered;
 
-		$dbPresets = TemplatePreset::query()->get();
-
-		foreach ( $dbPresets as $preset ) {
+		foreach ( TemplatePreset::query()->cursor() as $preset ) {
 			$presets[ $preset->slug ] = $preset->toArray();
 		}
 
@@ -242,15 +241,31 @@ class TemplatePresetManager
 	/**
 	 * Create a new preset in the database.
 	 *
+	 * The is_custom and user_id fields are not mass-assignable and must
+	 * be provided explicitly via the dedicated parameters.
+	 *
 	 * @since 1.0.0
 	 *
-	 * @param array<string, mixed> $data The preset data.
+	 * @param array<string, mixed> $data     The preset data (mass-assignable fields only).
+	 * @param bool                 $isCustom Whether this is a user-created preset.
+	 * @param int|null             $userId   The user creating the preset.
+	 *
+	 * @throws RuntimeException If custom presets are disabled and isCustom is true.
 	 *
 	 * @return TemplatePreset
 	 */
-	public function create( array $data ): TemplatePreset
+	public function create( array $data, bool $isCustom = false, ?int $userId = null ): TemplatePreset
 	{
-		$preset = TemplatePreset::create( $data );
+		if ( $isCustom && ! config( 'artisanpack.visual-editor.template_presets.allow_custom_presets', true ) ) {
+			throw new RuntimeException(
+				__( 'Custom template presets are disabled.' ),
+			);
+		}
+
+		$preset            = new TemplatePreset( $data );
+		$preset->is_custom = $isCustom;
+		$preset->user_id   = $userId;
+		$preset->save();
 
 		veDoAction( 'ap.visualEditor.templatePresetCreated', $preset );
 
@@ -341,6 +356,12 @@ class TemplatePresetManager
 	/**
 	 * Save an existing template as a new preset.
 	 *
+	 * This delegates to create(), which fires the generic
+	 * `ap.visualEditor.templatePresetCreated` hook. After creation, this
+	 * method additionally fires `ap.visualEditor.templateSavedAsPreset`
+	 * so listeners can differentiate between generic preset creation and
+	 * the "saved from template" flow.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param Template    $template The template to save as a preset.
@@ -348,23 +369,27 @@ class TemplatePresetManager
 	 * @param string      $name     The name for the new preset.
 	 * @param string|null $category The category for the preset.
 	 *
+	 * @throws RuntimeException If custom presets are disabled.
+	 *
 	 * @return TemplatePreset
 	 */
 	public function saveTemplateAsPreset( Template $template, string $slug, string $name, ?string $category = null ): TemplatePreset
 	{
-		$preset = $this->create( [
-			'name'                  => $name,
-			'slug'                  => $slug,
-			'description'           => $template->description,
-			'category'              => $category,
-			'content'               => $template->content ?? [],
-			'content_area_settings' => $template->content_area_settings ?? [],
-			'styles'                => $template->styles ?? [],
-			'type'                  => $template->type,
-			'for_content_type'      => $template->for_content_type,
-			'is_custom'             => true,
-			'user_id'               => $template->user_id,
-		] );
+		$preset = $this->create(
+			[
+				'name'                  => $name,
+				'slug'                  => $slug,
+				'description'           => $template->description,
+				'category'              => $category,
+				'content'               => $template->content ?? [],
+				'content_area_settings' => $template->content_area_settings ?? [],
+				'styles'                => $template->styles ?? [],
+				'type'                  => $template->type,
+				'for_content_type'      => $template->for_content_type,
+			],
+			true,
+			$template->user_id,
+		);
 
 		veDoAction( 'ap.visualEditor.templateSavedAsPreset', $preset, $template );
 
@@ -390,20 +415,22 @@ class TemplatePresetManager
 				continue;
 			}
 
-			$created[] = $this->create( [
-				'name'                  => $config['name'],
-				'slug'                  => $slug,
-				'description'           => $config['description'] ?? null,
-				'category'              => $config['category'] ?? null,
-				'thumbnail'             => $config['thumbnail'] ?? null,
-				'content'               => $config['content'] ?? [],
-				'content_area_settings' => $config['content_area_settings'] ?? [],
-				'styles'                => $config['styles'] ?? [],
-				'template_parts'        => $config['template_parts'] ?? [],
-				'type'                  => $config['type'] ?? 'page',
-				'for_content_type'      => $config['for_content_type'] ?? null,
-				'is_custom'             => false,
-			] );
+			$created[] = $this->create(
+				[
+					'name'                  => $config['name'],
+					'slug'                  => $slug,
+					'description'           => $config['description'] ?? null,
+					'category'              => $config['category'] ?? null,
+					'thumbnail'             => $config['thumbnail'] ?? null,
+					'content'               => $config['content'] ?? [],
+					'content_area_settings' => $config['content_area_settings'] ?? [],
+					'styles'                => $config['styles'] ?? [],
+					'template_parts'        => $config['template_parts'] ?? [],
+					'type'                  => $config['type'] ?? 'page',
+					'for_content_type'      => $config['for_content_type'] ?? null,
+				],
+				false,
+			);
 		}
 
 		return $created;
