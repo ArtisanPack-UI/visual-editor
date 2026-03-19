@@ -72,7 +72,11 @@ new class extends Component
 				doAction( 'ap.visualEditor.document.saving', $this->model, $payload );
 			}
 
-			$meta = array_merge( $this->form->meta, [
+			$sanitizedMeta = collect( $this->form->meta )
+				->except( [ 'isAutosave' ] )
+				->all();
+
+			$meta = array_merge( $sanitizedMeta, [
 				'blocks'        => $this->form->blocks,
 				'status'        => $this->form->documentStatus,
 				'scheduledDate' => $this->form->scheduledDate,
