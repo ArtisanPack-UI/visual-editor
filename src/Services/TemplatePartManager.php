@@ -106,7 +106,9 @@ class TemplatePartManager
 			$parts[ $part->slug ] = $part->toArray();
 		}
 
-		return veApplyFilters( 'ap.visualEditor.templateParts', $parts );
+		$filtered = veApplyFilters( 'ap.visualEditor.templateParts', $parts );
+
+		return is_array( $filtered ) ? $filtered : $parts;
 	}
 
 	/**
@@ -129,7 +131,9 @@ class TemplatePartManager
 			$parts[ $part->slug ] = $part->toArray();
 		}
 
-		return veApplyFilters( 'ap.visualEditor.templateParts', $parts );
+		$filtered = veApplyFilters( 'ap.visualEditor.templateParts', $parts );
+
+		return is_array( $filtered ) ? $filtered : $parts;
 	}
 
 	/**
@@ -157,7 +161,9 @@ class TemplatePartManager
 			$parts[ $part->slug ] = $part->toArray();
 		}
 
-		return veApplyFilters( 'ap.visualEditor.templateParts', $parts );
+		$filtered = veApplyFilters( 'ap.visualEditor.templateParts', $parts );
+
+		return is_array( $filtered ) ? $filtered : $parts;
 	}
 
 	/**
@@ -211,10 +217,20 @@ class TemplatePartManager
 	 */
 	public function create( array $data ): TemplatePart
 	{
-		if ( isset( $data['slug'] ) && TemplatePart::where( 'slug', $data['slug'] )->exists() ) {
+		if ( isset( $data['slug'] ) && $this->exists( $data['slug'] ) ) {
 			throw new RuntimeException(
 				__( 'A template part with the slug ":slug" already exists.', [ 'slug' => $data['slug'] ] ),
 			);
+		}
+
+		if ( isset( $data['area'] ) ) {
+			$validAreas = (array) config( 'artisanpack.visual-editor.template_parts.areas', TemplatePart::AREAS );
+
+			if ( ! in_array( $data['area'], $validAreas, true ) ) {
+				throw new RuntimeException(
+					__( 'Invalid template part area ":area".', [ 'area' => $data['area'] ] ),
+				);
+			}
 		}
 
 		$part = TemplatePart::create( $data );
@@ -246,6 +262,18 @@ class TemplatePartManager
 			throw new RuntimeException(
 				__( 'Template part ":name" is locked and cannot be edited.', [ 'name' => $part->name ] ),
 			);
+		}
+
+		if ( isset( $data['slug'] ) && $data['slug'] !== $part->slug ) {
+			$conflict = TemplatePart::where( 'slug', $data['slug'] )
+				->where( 'id', '!=', $part->id )
+				->exists();
+
+			if ( $conflict || isset( $this->registered[ $data['slug'] ] ) ) {
+				throw new RuntimeException(
+					__( 'A template part with the slug ":slug" already exists.', [ 'slug' => $data['slug'] ] ),
+				);
+			}
 		}
 
 		if ( isset( $data['content'] ) && $data['content'] !== $part->content ) {
@@ -296,6 +324,12 @@ class TemplatePartManager
 	 */
 	public function duplicate( TemplatePart $part, string $newSlug, ?string $newName = null ): TemplatePart
 	{
+		if ( $this->exists( $newSlug ) ) {
+			throw new RuntimeException(
+				__( 'A template part with the slug ":slug" already exists.', [ 'slug' => $newSlug ] ),
+			);
+		}
+
 		$duplicate = $part->duplicate( $newSlug, $newName );
 
 		veDoAction( 'ap.visualEditor.templatePartDuplicated', $duplicate, $part );
@@ -358,7 +392,7 @@ class TemplatePartManager
 				continue;
 			}
 
-			$created[] = $this->create( [
+			$part = TemplatePart::create( [
 				'name'        => $config['name'],
 				'slug'        => $slug,
 				'description' => $config['description'] ?? null,
@@ -368,6 +402,10 @@ class TemplatePartManager
 				'is_custom'   => false,
 				'is_locked'   => false,
 			] );
+
+			veDoAction( 'ap.visualEditor.templatePartCreated', $part );
+
+			$created[] = $part;
 		}
 
 		return $created;

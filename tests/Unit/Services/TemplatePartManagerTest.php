@@ -200,7 +200,7 @@ it( 'checks existence in registry and database', function (): void {
 		->and( $this->manager->exists( 'nowhere' ) )->toBeFalse();
 } );
 
-it( 'throws when creating a template part with a duplicate slug', function (): void {
+it( 'throws when creating a template part with a duplicate slug in database', function (): void {
 	TemplatePart::create( [
 		'name'    => 'Existing',
 		'slug'    => 'duplicate-slug',
@@ -212,6 +212,84 @@ it( 'throws when creating a template part with a duplicate slug', function (): v
 		'slug'    => 'duplicate-slug',
 		'content' => [],
 	] ) )->toThrow( RuntimeException::class );
+} );
+
+it( 'throws when creating a template part with a slug that exists in registry', function (): void {
+	$this->manager->register( 'registered-slug', [ 'name' => 'Registered' ] );
+
+	expect( fn () => $this->manager->create( [
+		'name'    => 'Conflict',
+		'slug'    => 'registered-slug',
+		'content' => [],
+	] ) )->toThrow( RuntimeException::class );
+} );
+
+it( 'throws when creating a template part with an invalid area', function (): void {
+	expect( fn () => $this->manager->create( [
+		'name'    => 'Bad Area',
+		'slug'    => 'bad-area',
+		'area'    => 'nonexistent-area',
+		'content' => [],
+	] ) )->toThrow( RuntimeException::class );
+} );
+
+it( 'throws when updating slug to one that already exists', function (): void {
+	$partA = TemplatePart::create( [
+		'name'    => 'Part A',
+		'slug'    => 'part-a',
+		'content' => [],
+	] );
+
+	TemplatePart::create( [
+		'name'    => 'Part B',
+		'slug'    => 'part-b',
+		'content' => [],
+	] );
+
+	expect( fn () => $this->manager->update( $partA, [ 'slug' => 'part-b' ] ) )
+		->toThrow( RuntimeException::class );
+} );
+
+it( 'throws when updating slug to one in registry', function (): void {
+	$part = TemplatePart::create( [
+		'name'    => 'DB Part',
+		'slug'    => 'db-part',
+		'content' => [],
+	] );
+
+	$this->manager->register( 'reg-slug', [ 'name' => 'Registered' ] );
+
+	expect( fn () => $this->manager->update( $part, [ 'slug' => 'reg-slug' ] ) )
+		->toThrow( RuntimeException::class );
+} );
+
+it( 'allows updating slug to same value', function (): void {
+	$part = TemplatePart::create( [
+		'name'    => 'Same Slug',
+		'slug'    => 'same-slug',
+		'content' => [],
+	] );
+
+	$updated = $this->manager->update( $part, [ 'slug' => 'same-slug', 'name' => 'Renamed' ] );
+
+	expect( $updated->fresh()->name )->toBe( 'Renamed' );
+} );
+
+it( 'throws when duplicating to an existing slug', function (): void {
+	$part = TemplatePart::create( [
+		'name'    => 'Original',
+		'slug'    => 'original',
+		'content' => [],
+	] );
+
+	TemplatePart::create( [
+		'name'    => 'Taken',
+		'slug'    => 'taken-slug',
+		'content' => [],
+	] );
+
+	expect( fn () => $this->manager->duplicate( $part, 'taken-slug' ) )
+		->toThrow( RuntimeException::class );
 } );
 
 it( 'creates a template part in the database', function (): void {

@@ -493,31 +493,33 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 */
 	protected function registerDefaultTemplateParts(): void
 	{
-		$manager = $this->app->make( 'visual-editor.template-parts' );
+		$manager         = $this->app->make( 'visual-editor.template-parts' );
+		$configuredAreas = (array) config( 'artisanpack.visual-editor.template_parts.areas', [ 'header', 'footer', 'sidebar', 'custom' ] );
 
-		$manager->register( 'header', [
-			'name'        => __( 'Header' ),
-			'description' => __( 'A default header area for site-wide navigation and branding.' ),
-			'area'        => 'header',
-			'content'     => [],
-			'is_custom'   => false,
-		] );
+		$defaults = [
+			'header'  => [
+				'name'        => __( 'Header' ),
+				'description' => __( 'A default header area for site-wide navigation and branding.' ),
+			],
+			'footer'  => [
+				'name'        => __( 'Footer' ),
+				'description' => __( 'A default footer area for site-wide links and information.' ),
+			],
+			'sidebar' => [
+				'name'        => __( 'Sidebar' ),
+				'description' => __( 'A default sidebar area for supplementary content and widgets.' ),
+			],
+		];
 
-		$manager->register( 'footer', [
-			'name'        => __( 'Footer' ),
-			'description' => __( 'A default footer area for site-wide links and information.' ),
-			'area'        => 'footer',
-			'content'     => [],
-			'is_custom'   => false,
-		] );
-
-		$manager->register( 'sidebar', [
-			'name'        => __( 'Sidebar' ),
-			'description' => __( 'A default sidebar area for supplementary content and widgets.' ),
-			'area'        => 'sidebar',
-			'content'     => [],
-			'is_custom'   => false,
-		] );
+		foreach ( $defaults as $area => $config ) {
+			if ( in_array( $area, $configuredAreas, true ) ) {
+				$manager->register( $area, array_merge( $config, [
+					'area'      => $area,
+					'content'   => [],
+					'is_custom' => false,
+				] ) );
+			}
+		}
 
 		veDoAction( 'ap.visualEditor.templatePartsInit' );
 	}
