@@ -344,6 +344,71 @@ if ( ! function_exists( 'veTemplateExists' ) ) {
 	}
 }
 
+if ( ! function_exists( 'veRegisterTemplatePart' ) ) {
+	/**
+	 * Register a template part definition with the template part manager.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string               $slug   The unique template part slug.
+	 * @param array<string, mixed> $config The template part configuration.
+	 *
+	 * @return void
+	 */
+	function veRegisterTemplatePart( string $slug, array $config ): void
+	{
+		app( 'visual-editor.template-parts' )->register( $slug, $config );
+	}
+}
+
+if ( ! function_exists( 'veGetTemplatePart' ) ) {
+	/**
+	 * Resolve a template part by slug.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $slug The template part slug to resolve.
+	 *
+	 * @return array<string, mixed>|ArtisanPackUI\VisualEditor\Models\TemplatePart|null
+	 */
+	function veGetTemplatePart( string $slug ): ArtisanPackUI\VisualEditor\Models\TemplatePart|array|null
+	{
+		return app( 'visual-editor.template-parts' )->resolve( $slug );
+	}
+}
+
+if ( ! function_exists( 'veGetTemplatePartsForArea' ) ) {
+	/**
+	 * Get all active template parts for a specific area.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $area The area to filter by (header, footer, sidebar, custom).
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	function veGetTemplatePartsForArea( string $area ): array
+	{
+		return app( 'visual-editor.template-parts' )->forArea( $area );
+	}
+}
+
+if ( ! function_exists( 'veTemplatePartExists' ) ) {
+	/**
+	 * Check if a template part exists by slug.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $slug The template part slug to check.
+	 *
+	 * @return bool
+	 */
+	function veTemplatePartExists( string $slug ): bool
+	{
+		return app( 'visual-editor.template-parts' )->exists( $slug );
+	}
+}
+
 if ( ! function_exists( 'veSanitizeHtmlId' ) ) {
 	/**
 	 * Sanitize a value for use as an HTML id attribute.
