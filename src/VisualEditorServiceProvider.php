@@ -27,6 +27,7 @@ use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\Services\OEmbedService;
+use ArtisanPackUI\VisualEditor\Services\TemplateAssignmentManager;
 use ArtisanPackUI\VisualEditor\Services\TemplateManager;
 use ArtisanPackUI\VisualEditor\Services\TemplatePartManager;
 use ArtisanPackUI\VisualEditor\View\Components;
@@ -201,6 +202,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( TemplatePartManager::class, function ( $app ) {
 			return $app->make( 'visual-editor.template-parts' );
+		} );
+
+		$this->app->singleton( 'visual-editor.template-assignments', function () {
+			return new TemplateAssignmentManager();
+		} );
+
+		$this->app->singleton( TemplateAssignmentManager::class, function ( $app ) {
+			return $app->make( 'visual-editor.template-assignments' );
 		} );
 
 		$this->app->singleton( BlockRenderer::class, function ( $app ) {

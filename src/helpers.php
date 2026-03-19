@@ -409,6 +409,111 @@ if ( ! function_exists( 'veTemplatePartExists' ) ) {
 	}
 }
 
+if ( ! function_exists( 'veAssignTemplate' ) ) {
+	/**
+	 * Assign a default template to a content type.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string   $contentType The content type identifier.
+	 * @param int      $templateId  The template ID to assign.
+	 * @param int|null $userId      The user making the assignment.
+	 *
+	 * @return ArtisanPackUI\VisualEditor\Models\TemplateAssignment
+	 */
+	function veAssignTemplate( string $contentType, int $templateId, ?int $userId = null ): ArtisanPackUI\VisualEditor\Models\TemplateAssignment
+	{
+		return app( 'visual-editor.template-assignments' )->assign( $contentType, $templateId, $userId );
+	}
+}
+
+if ( ! function_exists( 'veUnassignTemplate' ) ) {
+	/**
+	 * Remove the default template assignment for a content type.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $contentType The content type to unassign.
+	 *
+	 * @return bool
+	 */
+	function veUnassignTemplate( string $contentType ): bool
+	{
+		return app( 'visual-editor.template-assignments' )->unassign( $contentType );
+	}
+}
+
+if ( ! function_exists( 'veGetDefaultTemplateFor' ) ) {
+	/**
+	 * Get the default template for a content type.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $contentType The content type to look up.
+	 *
+	 * @return ArtisanPackUI\VisualEditor\Models\Template|null
+	 */
+	function veGetDefaultTemplateFor( string $contentType ): ?ArtisanPackUI\VisualEditor\Models\Template
+	{
+		return app( 'visual-editor.template-assignments' )->defaultFor( $contentType );
+	}
+}
+
+if ( ! function_exists( 'veResolveTemplate' ) ) {
+	/**
+	 * Resolve the template for content using the hierarchy.
+	 *
+	 * Resolution order: page-specific -> content type default -> site default.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string   $contentType    The content type.
+	 * @param int|null $pageTemplateId Optional page-specific template ID override.
+	 *
+	 * @return array<string, mixed>|ArtisanPackUI\VisualEditor\Models\Template|null
+	 */
+	function veResolveTemplate( string $contentType, ?int $pageTemplateId = null ): ArtisanPackUI\VisualEditor\Models\Template|array|null
+	{
+		return app( 'visual-editor.template-assignments' )->resolveTemplate( $contentType, $pageTemplateId );
+	}
+}
+
+if ( ! function_exists( 'veValidateTemplateAssignment' ) ) {
+	/**
+	 * Validate that a template can be assigned to a content type.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param int    $templateId  The template ID to validate.
+	 * @param string $contentType The target content type.
+	 *
+	 * @return bool
+	 */
+	function veValidateTemplateAssignment( int $templateId, string $contentType ): bool
+	{
+		return app( 'visual-editor.template-assignments' )->validateAssignment( $templateId, $contentType );
+	}
+}
+
+if ( ! function_exists( 'veBulkAssignTemplate' ) ) {
+	/**
+	 * Bulk assign a template to multiple content entities.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param int             $templateId  The template ID to assign.
+	 * @param string          $modelClass  The fully qualified model class name.
+	 * @param string          $contentType The content type for validation.
+	 * @param array<int, int> $entityIds   The entity IDs to update.
+	 *
+	 * @return int The number of entities updated.
+	 */
+	function veBulkAssignTemplate( int $templateId, string $modelClass, string $contentType, array $entityIds ): int
+	{
+		return app( 'visual-editor.template-assignments' )->bulkAssign( $templateId, $modelClass, $contentType, $entityIds );
+	}
+}
+
 if ( ! function_exists( 'veSanitizeHtmlId' ) ) {
 	/**
 	 * Sanitize a value for use as an HTML id attribute.
