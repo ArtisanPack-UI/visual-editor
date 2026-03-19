@@ -1,12 +1,12 @@
 <?php
 
 /**
- * Editor Component.
+ * Template Editor Component.
  *
- * The high-level orchestration component that assembles the complete
- * visual editor experience. Composes all sub-components (layout, canvas,
- * sidebar, toolbar, inserter, inspector, layers) and wires them together
- * with block rendering, drag-and-drop, and the block renderer registry.
+ * Provides a full block editing experience for templates. Reuses the
+ * same sub-components as the Editor (canvas, sidebar, toolbar, inserter,
+ * inspector, layers) but is tailored for template editing with a
+ * template switcher and structure panel.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\View\Components
@@ -28,15 +28,18 @@ use Illuminate\Support\Str;
 use Illuminate\View\Component;
 
 /**
- * Editor component providing the complete visual editor UI.
+ * Template Editor component for full block-based template editing.
+ *
+ * Mirrors the Editor component layout but with template-specific
+ * features: a template switcher in the toolbar, a Structure tab
+ * in the left sidebar (instead of Layers), and no Document tab
+ * in the right sidebar.
  *
  * Usage:
- *   <x-ve-editor
+ *   <x-ve-template-editor
  *       :initial-blocks="$blocks"
- *       :patterns="$patterns"
- *       :autosave="true"
- *       :autosave-interval="30"
- *       document-status="draft"
+ *       :templates="$templates"
+ *       current-template-slug="default-page"
  *   />
  *
  * @package    ArtisanPack_UI
@@ -44,7 +47,7 @@ use Illuminate\View\Component;
  *
  * @since      1.0.0
  */
-class Editor extends Component
+class TemplateEditor extends Component
 {
 	use BuildsBlockRegistryData;
 
@@ -186,9 +189,6 @@ class Editor extends Component
 	/**
 	 * Default inner blocks keyed by block type.
 	 *
-	 * Allows the editor store to auto-populate inner blocks
-	 * when a block is added from any insertion path.
-	 *
 	 * @since 1.0.0
 	 *
 	 * @var array<string, array<int, array<string, mixed>>>
@@ -209,19 +209,19 @@ class Editor extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string|null  $id               Optional custom ID.
-	 * @param array<mixed> $initialBlocks    Block data to populate the editor.
-	 * @param array<mixed> $patterns         Pattern definitions for the pattern browser.
-	 * @param array<mixed> $blockTransforms  Transform mappings between block types.
-	 * @param array<mixed> $blockVariations  Variation definitions for blocks.
-	 * @param bool         $autosave         Enable autosave.
-	 * @param int          $autosaveInterval Autosave interval in seconds.
-	 * @param string       $documentStatus   Initial document status.
-	 * @param bool         $showSidebar      Show sidebar by default.
-	 * @param string       $mode             Editor mode (visual/code).
-	 * @param Closure|null $customIconRenderer  Optional custom icon renderer.
-	 * @param string       $featuredImageUrl    Optional featured image URL for the Cover block placeholder.
-	 * @param array<string, mixed> $initialMeta Initial meta key-value pairs for document panel fields.
+	 * @param string|null   $id                  Optional custom ID.
+	 * @param array<mixed>  $initialBlocks       Block data to populate the editor.
+	 * @param array<mixed>  $patterns            Pattern definitions for the pattern browser.
+	 * @param array<mixed>  $blockTransforms     Transform mappings between block types.
+	 * @param array<mixed>  $blockVariations     Variation definitions for blocks.
+	 * @param bool          $autosave            Enable autosave.
+	 * @param int           $autosaveInterval    Autosave interval in seconds.
+	 * @param bool          $showSidebar         Show sidebar by default.
+	 * @param string        $mode                Editor mode (visual/code).
+	 * @param Closure|null  $customIconRenderer  Optional custom icon renderer.
+	 * @param array<string, mixed> $initialMeta  Initial meta key-value pairs.
+	 * @param array<int, array<string, string>> $templates  Available templates for the switcher.
+	 * @param string        $currentTemplateSlug The currently active template slug.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -231,19 +231,14 @@ class Editor extends Component
 		public array $blockVariations = [],
 		public bool $autosave = false,
 		public int $autosaveInterval = 60,
-		public string $documentStatus = 'draft',
 		public bool $showSidebar = true,
 		public string $mode = 'visual',
 		?Closure $customIconRenderer = null,
-		public string $featuredImageUrl = '',
 		public array $initialMeta = [],
+		public array $templates = [],
+		public string $currentTemplateSlug = '',
 	) {
-		$this->uuid = 've-editor-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
-
-		// Resolve featured image URL via hook if not explicitly provided.
-		if ( '' === $this->featuredImageUrl ) {
-			$this->featuredImageUrl = (string) veApplyFilters( 've.editor.featured_image_url', '' );
-		}
+		$this->uuid = 've-tpl-editor-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
 		/** @var BlockRegistry $registry */
 		$registry = app( 'visual-editor.blocks' );
@@ -272,6 +267,6 @@ class Editor extends Component
 	 */
 	public function render(): View|Closure|string
 	{
-		return view( 'visual-editor::components.editor' );
+		return view( 'visual-editor::components.template-editor' );
 	}
 }

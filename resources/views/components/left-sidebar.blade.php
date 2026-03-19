@@ -3,6 +3,7 @@
  *
  * Three-tab panel for Blocks, Patterns, and Layers.
  * Visibility is controlled by the editor store's showInserter property.
+ * Supports custom tabs via $customTabs prop.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Views\Components
@@ -11,7 +12,7 @@
  --}}
 
 @php
-	$tabs = [
+	$tabs = ! empty( $customTabs ) ? $customTabs : [
 		[ 'slug' => 'blocks', 'label' => __( 'visual-editor::ve.blocks_tab' ) ],
 		[ 'slug' => 'patterns', 'label' => __( 'visual-editor::ve.patterns_tab' ) ],
 		[ 'slug' => 'layers', 'label' => __( 'visual-editor::ve.layers_tab' ) ],
@@ -96,5 +97,16 @@
 		aria-label="{{ __( 'visual-editor::ve.layers_tab' ) }}"
 	>
 		{{ $layersPanel ?? '' }}
+	</div>
+
+	{{-- Structure panel (used by template editor) --}}
+	<div
+		id="{{ $uuid }}-structure-panel"
+		x-show="'structure' === activeTab"
+		class="flex-1 overflow-y-auto"
+		role="tabpanel"
+		aria-label="{{ __( 'visual-editor::ve.template_structure' ) }}"
+	>
+		{{ $structurePanel ?? '' }}
 	</div>
 </div>

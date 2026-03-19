@@ -43,6 +43,7 @@ class EditorState extends Component
 	public const MODES = [
 		'visual',
 		'code',
+		'template',
 	];
 
 	/**
