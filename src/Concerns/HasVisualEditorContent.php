@@ -86,7 +86,8 @@ trait HasVisualEditorContent
 	 * Handles blocks and status by default. Override this method
 	 * to handle custom fields like title, excerpt, taxonomies, etc.
 	 *
-	 * Automatically creates a revision after saving.
+	 * Automatically creates a revision after saving unless the save
+	 * is an autosave and autosave_revisions is disabled in config.
 	 *
 	 * @since 1.0.0
 	 *
@@ -110,7 +111,12 @@ trait HasVisualEditorContent
 
 		$this->save();
 
-		$this->createRevision();
+		$isAutosave        = ! empty( $meta['isAutosave'] );
+		$autosaveRevisions = (bool) config( 'artisanpack.visual-editor.persistence.autosave_revisions', false );
+
+		if ( ! $isAutosave || $autosaveRevisions ) {
+			$this->createRevision();
+		}
 
 		doAction( 'ap.visualEditor.afterSave', $this, $meta );
 	}

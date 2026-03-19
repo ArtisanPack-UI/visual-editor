@@ -72,11 +72,19 @@ new class extends Component
 				doAction( 'ap.visualEditor.document.saving', $this->model, $payload );
 			}
 
-			$meta = array_merge( $this->form->meta, [
+			$sanitizedMeta = collect( $this->form->meta )
+				->except( [ 'isAutosave' ] )
+				->all();
+
+			$meta = array_merge( $sanitizedMeta, [
 				'blocks'        => $this->form->blocks,
 				'status'        => $this->form->documentStatus,
 				'scheduledDate' => $this->form->scheduledDate,
 			] );
+
+			if ( ! empty( $payload['isAutosave'] ) ) {
+				$meta['isAutosave'] = true;
+			}
 
 			$this->model->saveFromEditor( $meta );
 
@@ -96,6 +104,9 @@ new class extends Component
 	/**
 	 * Handle autosave events from the Alpine editor store.
 	 *
+	 * Marks the payload as an autosave so the trait can skip
+	 * revision creation when autosave_revisions is disabled.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param array<string, mixed> $payload The editor payload.
@@ -105,6 +116,8 @@ new class extends Component
 	public function autosave( array $payload ): void
 	{
 		try {
+			$payload['isAutosave'] = true;
+
 			$this->save( $payload );
 		} catch ( \Illuminate\Validation\ValidationException|\Illuminate\Auth\Access\AuthorizationException $e ) {
 			report( $e );
