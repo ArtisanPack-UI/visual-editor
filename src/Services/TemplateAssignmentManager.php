@@ -43,6 +43,8 @@ class TemplateAssignmentManager
 	 * Assign a default template to a content type.
 	 *
 	 * Creates or updates the assignment for the given content type.
+	 * Validates that the template is compatible with the content type
+	 * before persisting the assignment.
 	 *
 	 * @since 1.0.0
 	 *
@@ -50,7 +52,7 @@ class TemplateAssignmentManager
 	 * @param int      $templateId  The template ID to assign.
 	 * @param int|null $userId      The user making the assignment.
 	 *
-	 * @throws InvalidArgumentException If the template does not exist.
+	 * @throws InvalidArgumentException If the template does not exist or is incompatible.
 	 *
 	 * @return TemplateAssignment
 	 */
@@ -61,6 +63,16 @@ class TemplateAssignmentManager
 		if ( null === $template ) {
 			throw new InvalidArgumentException(
 				__( 'Template with ID :id does not exist.', [ 'id' => $templateId ] ),
+			);
+		}
+
+		if ( null !== $template->for_content_type && $contentType !== $template->for_content_type ) {
+			throw new InvalidArgumentException(
+				__( 'Template ":name" is scoped to content type ":scope" and cannot be assigned to ":target".', [
+					'name'   => $template->name,
+					'scope'  => $template->for_content_type,
+					'target' => $contentType,
+				] ),
 			);
 		}
 
@@ -185,33 +197,43 @@ class TemplateAssignmentManager
 
 		$isValid = null === $template->for_content_type || $contentType === $template->for_content_type;
 
-		return veApplyFilters( 'ap.visualEditor.validateTemplateAssignment', $isValid, $template, $contentType );
+		return (bool) veApplyFilters( 'ap.visualEditor.validateTemplateAssignment', $isValid, $template, $contentType );
 	}
 
 	/**
 	 * Bulk assign a template to multiple content entities.
 	 *
-	 * Accepts a model class and array of entity IDs. Sets the
-	 * `template_id` column on each entity. The model must have
-	 * a `template_id` column.
+	 * Accepts a model class, content type, and array of entity IDs. Validates
+	 * that the template is compatible with the content type before updating.
+	 * Sets the `template_id` column on each entity.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param int                $templateId  The template ID to assign.
-	 * @param string             $modelClass  The fully qualified model class name.
-	 * @param array<int, int>    $entityIds   The entity IDs to update.
+	 * @param int             $templateId  The template ID to assign.
+	 * @param string          $modelClass  The fully qualified model class name.
+	 * @param string          $contentType The content type for validation.
+	 * @param array<int, int> $entityIds   The entity IDs to update.
 	 *
-	 * @throws InvalidArgumentException If the template does not exist.
+	 * @throws InvalidArgumentException If the template does not exist or is incompatible.
 	 *
 	 * @return int The number of entities updated.
 	 */
-	public function bulkAssign( int $templateId, string $modelClass, array $entityIds ): int
+	public function bulkAssign( int $templateId, string $modelClass, string $contentType, array $entityIds ): int
 	{
 		$template = Template::find( $templateId );
 
 		if ( null === $template ) {
 			throw new InvalidArgumentException(
 				__( 'Template with ID :id does not exist.', [ 'id' => $templateId ] ),
+			);
+		}
+
+		if ( ! $this->validateAssignment( $templateId, $contentType ) ) {
+			throw new InvalidArgumentException(
+				__( 'Template ":name" is not compatible with content type ":type".', [
+					'name' => $template->name,
+					'type' => $contentType,
+				] ),
 			);
 		}
 

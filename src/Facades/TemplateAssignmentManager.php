@@ -28,7 +28,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static \ArtisanPackUI\VisualEditor\Models\Template|null defaultFor( string $contentType )
  * @method static \ArtisanPackUI\VisualEditor\Models\Template|array|null resolveTemplate( string $contentType, ?int $pageTemplateId = null )
  * @method static bool validateAssignment( int $templateId, string $contentType )
- * @method static int bulkAssign( int $templateId, string $modelClass, array $entityIds )
+ * @method static int bulkAssign( int $templateId, string $modelClass, string $contentType, array $entityIds )
  * @method static \Illuminate\Database\Eloquent\Collection allAssignments()
  * @method static \ArtisanPackUI\VisualEditor\Models\TemplateAssignment|null getAssignment( string $contentType )
  *

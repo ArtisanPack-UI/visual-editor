@@ -51,20 +51,26 @@ it( 'casts template_id and user_id to integer', function (): void {
 } );
 
 it( 'enforces unique content type', function (): void {
-	$template = Template::create( [
+	$template1 = Template::create( [
 		'name'    => 'Test Template',
 		'slug'    => 'test-template',
 		'content' => [],
 	] );
 
+	$template2 = Template::create( [
+		'name'    => 'Other Template',
+		'slug'    => 'other-template',
+		'content' => [],
+	] );
+
 	TemplateAssignment::create( [
 		'content_type' => 'post',
-		'template_id'  => $template->id,
+		'template_id'  => $template1->id,
 	] );
 
 	expect( fn () => TemplateAssignment::create( [
 		'content_type' => 'post',
-		'template_id'  => $template->id,
+		'template_id'  => $template2->id,
 	] ) )->toThrow( Illuminate\Database\QueryException::class );
 } );
 

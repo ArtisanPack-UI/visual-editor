@@ -81,6 +81,44 @@ it( 'throws when assigning nonexistent template', function (): void {
 		->toThrow( InvalidArgumentException::class );
 } );
 
+it( 'throws when assigning incompatible template', function (): void {
+	$template = Template::create( [
+		'name'             => 'Page Only',
+		'slug'             => 'page-only',
+		'content'          => [],
+		'for_content_type' => 'page',
+	] );
+
+	expect( fn () => $this->manager->assign( 'post', $template->id ) )
+		->toThrow( InvalidArgumentException::class );
+} );
+
+it( 'allows assigning universal template to any content type', function (): void {
+	$template = Template::create( [
+		'name'             => 'Universal',
+		'slug'             => 'universal',
+		'content'          => [],
+		'for_content_type' => null,
+	] );
+
+	$assignment = $this->manager->assign( 'post', $template->id );
+
+	expect( $assignment->template_id )->toBe( $template->id );
+} );
+
+it( 'allows assigning matching content type template', function (): void {
+	$template = Template::create( [
+		'name'             => 'Post Template',
+		'slug'             => 'post-template',
+		'content'          => [],
+		'for_content_type' => 'post',
+	] );
+
+	$assignment = $this->manager->assign( 'post', $template->id );
+
+	expect( $assignment->template_id )->toBe( $template->id );
+} );
+
 it( 'unassigns a content type', function (): void {
 	$template = Template::create( [
 		'name'    => 'Template',
@@ -253,7 +291,7 @@ it( 'bulk assigns a template to entities', function (): void {
 		protected $table = 'test_posts';
 	} );
 
-	$count = $this->manager->bulkAssign( $template->id, $modelClass, [ 1, 2 ] );
+	$count = $this->manager->bulkAssign( $template->id, $modelClass, 'post', [ 1, 2 ] );
 
 	expect( $count )->toBe( 2 );
 
@@ -269,7 +307,19 @@ it( 'bulk assigns a template to entities', function (): void {
 } );
 
 it( 'throws when bulk assigning nonexistent template', function (): void {
-	expect( fn () => $this->manager->bulkAssign( 9999, 'App\\Models\\Post', [ 1, 2 ] ) )
+	expect( fn () => $this->manager->bulkAssign( 9999, 'App\\Models\\Post', 'post', [ 1, 2 ] ) )
+		->toThrow( InvalidArgumentException::class );
+} );
+
+it( 'throws when bulk assigning incompatible template', function (): void {
+	$template = Template::create( [
+		'name'             => 'Page Only',
+		'slug'             => 'page-only-bulk',
+		'content'          => [],
+		'for_content_type' => 'page',
+	] );
+
+	expect( fn () => $this->manager->bulkAssign( $template->id, 'App\\Models\\Post', 'post', [ 1 ] ) )
 		->toThrow( InvalidArgumentException::class );
 } );
 

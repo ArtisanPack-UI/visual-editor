@@ -501,15 +501,16 @@ if ( ! function_exists( 'veBulkAssignTemplate' ) ) {
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param int             $templateId The template ID to assign.
-	 * @param string          $modelClass The fully qualified model class name.
-	 * @param array<int, int> $entityIds  The entity IDs to update.
+	 * @param int             $templateId  The template ID to assign.
+	 * @param string          $modelClass  The fully qualified model class name.
+	 * @param string          $contentType The content type for validation.
+	 * @param array<int, int> $entityIds   The entity IDs to update.
 	 *
 	 * @return int The number of entities updated.
 	 */
-	function veBulkAssignTemplate( int $templateId, string $modelClass, array $entityIds ): int
+	function veBulkAssignTemplate( int $templateId, string $modelClass, string $contentType, array $entityIds ): int
 	{
-		return app( 'visual-editor.template-assignments' )->bulkAssign( $templateId, $modelClass, $entityIds );
+		return app( 'visual-editor.template-assignments' )->bulkAssign( $templateId, $modelClass, $contentType, $entityIds );
 	}
 }
 
