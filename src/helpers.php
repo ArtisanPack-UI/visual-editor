@@ -279,6 +279,71 @@ if ( ! function_exists( 'veRenderBlocks' ) ) {
 	}
 }
 
+if ( ! function_exists( 'veRegisterTemplate' ) ) {
+	/**
+	 * Register a template definition with the template manager.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string               $slug   The unique template slug.
+	 * @param array<string, mixed> $config The template configuration.
+	 *
+	 * @return void
+	 */
+	function veRegisterTemplate( string $slug, array $config ): void
+	{
+		app( 'visual-editor.templates' )->register( $slug, $config );
+	}
+}
+
+if ( ! function_exists( 'veGetTemplate' ) ) {
+	/**
+	 * Resolve a template by slug.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $slug The template slug to resolve.
+	 *
+	 * @return array<string, mixed>|ArtisanPackUI\VisualEditor\Models\Template|null
+	 */
+	function veGetTemplate( string $slug ): ArtisanPackUI\VisualEditor\Models\Template|array|null
+	{
+		return app( 'visual-editor.templates' )->resolve( $slug );
+	}
+}
+
+if ( ! function_exists( 'veGetTemplatesForType' ) ) {
+	/**
+	 * Get all active templates for a content type.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $contentType The content type to filter by.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	function veGetTemplatesForType( string $contentType ): array
+	{
+		return app( 'visual-editor.templates' )->forContentType( $contentType );
+	}
+}
+
+if ( ! function_exists( 'veTemplateExists' ) ) {
+	/**
+	 * Check if a template exists by slug.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $slug The template slug to check.
+	 *
+	 * @return bool
+	 */
+	function veTemplateExists( string $slug ): bool
+	{
+		return app( 'visual-editor.templates' )->exists( $slug );
+	}
+}
+
 if ( ! function_exists( 'veSanitizeHtmlId' ) ) {
 	/**
 	 * Sanitize a value for use as an HTML id attribute.
