@@ -209,6 +209,7 @@ return [
 	'toggle_sidebar'    => 'Toggle sidebar',
 	'save'              => 'Save',
 	'publish'           => 'Publish',
+	'drag_to_reorder'   => 'Drag to reorder',
 	'move_up'           => 'Move up',
 	'move_down'         => 'Move down',
 	'more_options'      => 'More options',
@@ -1094,4 +1095,43 @@ return [
 	'warning'                               => 'Warning',
 	'error'                                 => 'Error',
 	'info'                                  => 'Info',
+
+	// Template Editor
+	'template_editor'            => 'Template editor',
+	'template_untitled'          => 'Untitled Template',
+	'template_mode_switcher'     => 'Template mode switcher',
+	'template_editing_mode'      => 'Editing mode',
+	'template_mode_template'     => 'Template',
+	'template_mode_content'      => 'Content',
+	'template_mode_switched'     => 'Editing mode switched',
+	'template_preview'           => 'Template preview',
+	'template_preview_size'      => 'Preview size',
+
+	// Template Part Slots
+	'template_area_header'       => 'Header',
+	'template_area_footer'       => 'Footer',
+	'template_area_sidebar'      => 'Sidebar',
+	'template_area_custom'       => 'Custom',
+	'template_content_area'      => 'Content Area',
+	'template_edit_part'         => 'Edit Part',
+	'template_replace_part'      => 'Replace',
+	'template_clear_part'        => 'Remove',
+	'template_choose_part'       => 'Choose a :area template part',
+	'template_add_part'          => 'Add Template Part',
+	'template_select_part'       => 'Select a template part',
+	'template_no_parts_available' => 'No template parts available for this area.',
+	'template_part_assigned'     => 'Template part assigned',
+	'template_part_cleared'      => 'Template part removed',
+	'template_empty_slot'        => 'Empty',
+
+	// Template Switcher
+	'template_switcher'          => 'Template switcher',
+	'template_select'            => 'Select template',
+	'template_available_templates' => 'Available templates',
+	'template_no_templates'      => 'No templates available.',
+	'template_switched_to'       => 'Switched to :name template',
+
+	// Template Structure Panel
+	'template_structure'         => 'Template Structure',
+	'structure_tab'              => 'Structure',
 ];

@@ -60,21 +60,28 @@ class LeftSidebar extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string|null $id        Optional custom ID.
-	 * @param string|null $label     Accessible label. Defaults to translation.
-	 * @param string      $activeTab Initially active tab: blocks, patterns, or layers.
-	 * @param string      $width     CSS width for the sidebar.
+	 * @param string|null                        $id         Optional custom ID.
+	 * @param string|null                        $label      Accessible label. Defaults to translation.
+	 * @param string                             $activeTab  Initially active tab: blocks, patterns, or layers.
+	 * @param string                             $width      CSS width for the sidebar.
+	 * @param array<int, array<string, string>>  $customTabs Custom tab definitions to replace the defaults.
 	 */
 	public function __construct(
 		public ?string $id = null,
 		public ?string $label = null,
 		public string $activeTab = 'blocks',
 		public string $width = '280px',
+		public array $customTabs = [],
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
-		if ( ! in_array( $this->activeTab, self::TABS, true ) ) {
-			$this->activeTab = 'blocks';
+		// Validate activeTab against default tabs or custom tab slugs.
+		$validSlugs = ! empty( $this->customTabs )
+			? array_column( $this->customTabs, 'slug' )
+			: self::TABS;
+
+		if ( ! in_array( $this->activeTab, $validSlugs, true ) ) {
+			$this->activeTab = $validSlugs[0] ?? 'blocks';
 		}
 	}
 

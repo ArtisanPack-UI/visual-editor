@@ -131,6 +131,12 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// Phase 8: Block Placeholder
 		'block-placeholder' => Components\BlockPlaceholder::class,
 
+		// Phase 10: Template Editor
+		'template-editor'          => Components\TemplateEditor::class,
+		'template-part-slot'       => Components\TemplatePartSlot::class,
+		'template-switcher'        => Components\TemplateSwitcher::class,
+		'template-structure-panel' => Components\TemplateStructurePanel::class,
+
 		// Phase 9: Editor Assembly
 		'icon'   => Components\Icon::class,
 		'editor' => Components\Editor::class,
