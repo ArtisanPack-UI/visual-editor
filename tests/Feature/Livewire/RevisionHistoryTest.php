@@ -86,30 +86,22 @@ it( 'shows empty state when no revisions exist', function (): void {
 		->assertSee( __( 'visual-editor::ve.no_revisions' ) );
 } );
 
-it( 'creates a revision from blocks', function (): void {
-	$blocks = [
-		[ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Revision content' ] ],
-	];
+it( 'refreshes revisions on ve-document-saved', function (): void {
+	Revision::create( [
+		'document_type' => 'post',
+		'document_id'   => 1,
+		'blocks'        => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Test' ] ] ],
+		'created_at'    => now(),
+	] );
 
 	Livewire::test( 'visual-editor::revision-history', [
 		'documentType' => 'post',
 		'documentId'   => 1,
+		'inline'       => true,
 	] )
-		->call( 'createRevision', $blocks )
-		->assertDispatched( 've-revision-created' );
-
-	expect( Revision::forDocument( 'post', 1 )->count() )->toBe( 1 );
-} );
-
-it( 'does not create revision with empty blocks', function (): void {
-	Livewire::test( 'visual-editor::revision-history', [
-		'documentType' => 'post',
-		'documentId'   => 1,
-	] )
-		->call( 'createRevision', [] )
-		->assertNotDispatched( 've-revision-created' );
-
-	expect( Revision::count() )->toBe( 0 );
+		->assertDontSee( __( 'visual-editor::ve.no_revisions' ) )
+		->dispatch( 've-document-saved', documentId: 1, scheduledDate: null )
+		->assertDontSee( __( 'visual-editor::ve.no_revisions' ) );
 } );
 
 it( 'restores a revision and dispatches event', function (): void {
@@ -150,19 +142,3 @@ it( 'deletes a revision', function (): void {
 	expect( Revision::find( $revision->id ) )->toBeNull();
 } );
 
-it( 'enforces max revisions config', function (): void {
-	config()->set( 'artisanpack.visual-editor.persistence.max_revisions', 3 );
-
-	$component = Livewire::test( 'visual-editor::revision-history', [
-		'documentType' => 'post',
-		'documentId'   => 1,
-	] );
-
-	for ( $i = 0; $i < 5; $i++ ) {
-		$component->call( 'createRevision', [
-			[ 'type' => 'paragraph', 'attributes' => [ 'content' => "Revision $i" ] ],
-		] );
-	}
-
-	expect( Revision::forDocument( 'post', 1 )->count() )->toBeLessThanOrEqual( 3 );
-} );

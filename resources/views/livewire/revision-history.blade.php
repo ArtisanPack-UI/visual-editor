@@ -90,36 +90,20 @@ new class extends Component
 	}
 
 	/**
-	 * Create a new revision from the current blocks.
+	 * Refresh the revision list after a document save.
+	 *
+	 * Revision creation is handled by the HasVisualEditorContent trait;
+	 * this listener simply invalidates the cached computed property so
+	 * the UI reflects the latest revisions.
 	 *
 	 * @since 1.0.0
-	 *
-	 * @param array<int, array<string, mixed>> $blocks The block content to save.
 	 *
 	 * @return void
 	 */
 	#[On( 've-document-saved' )]
-	public function createRevision( array $blocks = [] ): void
+	public function refreshRevisions(): void
 	{
-		if ( empty( $blocks ) ) {
-			return;
-		}
-
-		$maxRevisions = config( 'artisanpack.visual-editor.persistence.max_revisions', 50 );
-
-		Revision::create( [
-			'document_type' => $this->documentType,
-			'document_id'   => $this->documentId,
-			'blocks'        => $blocks,
-			'user_id'       => auth()->id() ?? null,
-			'created_at'    => now(),
-		] );
-
-		$this->enforceMaxRevisions( $maxRevisions );
-
 		unset( $this->revisions );
-
-		$this->dispatch( 've-revision-created' );
 	}
 
 	/**
@@ -168,29 +152,6 @@ new class extends Component
 		unset( $this->revisions );
 
 		$this->dispatch( 've-revision-deleted' );
-	}
-
-	/**
-	 * Enforce the maximum number of revisions by deleting the oldest.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @param int $maxRevisions The maximum number of revisions to keep.
-	 *
-	 * @return void
-	 */
-	private function enforceMaxRevisions( int $maxRevisions ): void
-	{
-		$count = Revision::forDocument( $this->documentType, $this->documentId )->count();
-
-		if ( $count > $maxRevisions ) {
-			$idsToDelete = Revision::forDocument( $this->documentType, $this->documentId )
-				->orderBy( 'created_at' )
-				->limit( $count - $maxRevisions )
-				->pluck( 'id' );
-
-			Revision::whereIn( 'id', $idsToDelete )->delete();
-		}
 	}
 }; ?>
 
