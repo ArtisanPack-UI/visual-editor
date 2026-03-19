@@ -19,8 +19,10 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Template model for storing page layout templates.
@@ -40,6 +42,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array|null       $styles
  * @property bool             $is_custom
  * @property bool             $is_locked
+ * @property int|null         $parent_id
  * @property int|null         $user_id
  * @property \Carbon\Carbon   $created_at
  * @property \Carbon\Carbon   $updated_at
@@ -90,6 +93,7 @@ class Template extends Model
 		'styles',
 		'is_custom',
 		'is_locked',
+		'parent_id',
 		'user_id',
 	];
 
@@ -239,9 +243,9 @@ class Template extends Model
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return \Illuminate\Database\Eloquent\Collection<int, Revision>
+	 * @return Collection<int, Revision>
 	 */
-	public function revisions(): \Illuminate\Database\Eloquent\Collection
+	public function revisions(): Collection
 	{
 		return Revision::forDocument( 'template', $this->id )
 			->orderByDesc( 'created_at' )
@@ -277,6 +281,192 @@ class Template extends Model
 	}
 
 	/**
+	 * Scope a query to only base templates (not variations).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param Builder $query The query builder instance.
+	 *
+	 * @return Builder
+	 */
+	public function scopeBaseTemplates( Builder $query ): Builder
+	{
+		return $query->whereNull( 'parent_id' );
+	}
+
+	/**
+	 * Scope a query to variations of a specific template.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param Builder $query    The query builder instance.
+	 * @param int     $parentId The parent template ID.
+	 *
+	 * @return Builder
+	 */
+	public function scopeVariationsOf( Builder $query, int $parentId ): Builder
+	{
+		return $query->where( 'parent_id', $parentId );
+	}
+
+	/**
+	 * Get the parent template this is a variation of.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return BelongsTo
+	 */
+	public function parent(): BelongsTo
+	{
+		return $this->belongsTo( static::class, 'parent_id' );
+	}
+
+	/**
+	 * Get all variations of this template.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return HasMany
+	 */
+	public function variations(): HasMany
+	{
+		return $this->hasMany( static::class, 'parent_id' );
+	}
+
+	/**
+	 * Check if this template is a variation of another template.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return bool
+	 */
+	public function isVariation(): bool
+	{
+		return null !== $this->parent_id;
+	}
+
+	/**
+	 * Create a variation of this template.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string               $slug     The slug for the new variation.
+	 * @param string               $name     The name for the new variation.
+	 * @param array<string, mixed> $overrides Attribute overrides for the variation.
+	 *
+	 * @return static
+	 */
+	public function createVariation( string $slug, string $name, array $overrides = [] ): static
+	{
+		$defaults = [
+			'name'                  => $name,
+			'slug'                  => $slug,
+			'description'           => $this->description,
+			'type'                  => $this->type,
+			'for_content_type'      => $this->for_content_type,
+			'content'               => $this->content,
+			'status'                => 'draft',
+			'content_area_settings' => $this->content_area_settings,
+			'styles'                => $this->styles,
+			'is_custom'             => true,
+			'is_locked'             => false,
+			'parent_id'             => $this->id,
+			'user_id'               => $this->user_id,
+		];
+
+		return static::create( array_merge( $defaults, $overrides ) );
+	}
+
+	/**
+	 * Resolve the effective content for this template.
+	 *
+	 * For variations, merges parent content with any overrides.
+	 * For base templates, returns the template's own content.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function resolveContent(): array
+	{
+		if ( ! $this->isVariation() ) {
+			return $this->content ?? [];
+		}
+
+		$ownContent = $this->content ?? [];
+
+		if ( ! empty( $ownContent ) ) {
+			return $ownContent;
+		}
+
+		$parent = $this->parent;
+
+		if ( null === $parent ) {
+			return [];
+		}
+
+		return $parent->content ?? [];
+	}
+
+	/**
+	 * Resolve the effective content area settings for this template.
+	 *
+	 * For variations, merges parent settings with any overrides.
+	 * For base templates, returns the template's own settings.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function resolveContentAreaSettings(): array
+	{
+		$ownSettings = $this->content_area_settings ?? [];
+
+		if ( ! $this->isVariation() ) {
+			return $ownSettings;
+		}
+
+		$parent = $this->parent;
+
+		if ( null === $parent ) {
+			return $ownSettings;
+		}
+
+		$parentSettings = $parent->content_area_settings ?? [];
+
+		return array_merge( $parentSettings, $ownSettings );
+	}
+
+	/**
+	 * Resolve the effective styles for this template.
+	 *
+	 * For variations, merges parent styles with any overrides.
+	 * For base templates, returns the template's own styles.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function resolveStyles(): array
+	{
+		$ownStyles = $this->styles ?? [];
+
+		if ( ! $this->isVariation() ) {
+			return $ownStyles;
+		}
+
+		$parent = $this->parent;
+
+		if ( null === $parent ) {
+			return $ownStyles;
+		}
+
+		$parentStyles = $parent->styles ?? [];
+
+		return array_merge( $parentStyles, $ownStyles );
+	}
+
+	/**
 	 * Get the attributes that should be cast.
 	 *
 	 * @since 1.0.0
@@ -291,6 +481,7 @@ class Template extends Model
 			'styles'                => 'array',
 			'is_custom'             => 'boolean',
 			'is_locked'             => 'boolean',
+			'parent_id'             => 'integer',
 			'user_id'               => 'integer',
 		];
 	}
