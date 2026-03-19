@@ -363,6 +363,8 @@
 					this.history.past.push( {
 						blocks: JSON.parse( JSON.stringify( this.blocks ) ),
 						meta: JSON.parse( JSON.stringify( this.meta ) ),
+						documentStatus: this.documentStatus,
+						scheduledDate: this.scheduledDate,
 					} );
 					this.history.future = [];
 
@@ -380,11 +382,19 @@
 					this.history.future.push( {
 						blocks: JSON.parse( JSON.stringify( this.blocks ) ),
 						meta: JSON.parse( JSON.stringify( this.meta ) ),
+						documentStatus: this.documentStatus,
+						scheduledDate: this.scheduledDate,
 					} );
 					const snapshot = this.history.past.pop();
 					this.blocks = JSON.parse( JSON.stringify( snapshot.blocks ?? snapshot ) );
 					if ( snapshot.meta ) {
 						this.meta = JSON.parse( JSON.stringify( snapshot.meta ) );
+					}
+					if ( undefined !== snapshot.documentStatus ) {
+						this.documentStatus = snapshot.documentStatus;
+					}
+					if ( undefined !== snapshot.scheduledDate ) {
+						this.scheduledDate = snapshot.scheduledDate;
 					}
 					this.markDirty();
 					this._announceAction( {{ Js::from( __( 'visual-editor::ve.action_undone' ) ) }} );
@@ -400,11 +410,19 @@
 					this.history.past.push( {
 						blocks: JSON.parse( JSON.stringify( this.blocks ) ),
 						meta: JSON.parse( JSON.stringify( this.meta ) ),
+						documentStatus: this.documentStatus,
+						scheduledDate: this.scheduledDate,
 					} );
 					const snapshot = this.history.future.pop();
 					this.blocks = JSON.parse( JSON.stringify( snapshot.blocks ?? snapshot ) );
 					if ( snapshot.meta ) {
 						this.meta = JSON.parse( JSON.stringify( snapshot.meta ) );
+					}
+					if ( undefined !== snapshot.documentStatus ) {
+						this.documentStatus = snapshot.documentStatus;
+					}
+					if ( undefined !== snapshot.scheduledDate ) {
+						this.scheduledDate = snapshot.scheduledDate;
 					}
 					this.markDirty();
 					this._announceAction( {{ Js::from( __( 'visual-editor::ve.action_redone' ) ) }} );

@@ -242,26 +242,28 @@ it( 'denies restore when no revision policy exists but document policy denies up
 		$table->timestamps();
 	} );
 
-	$document = FakeDocument::create();
+	try {
+		$document = FakeDocument::create();
 
-	Gate::policy( FakeDocument::class, DenyDocumentPolicy::class );
+		Gate::policy( FakeDocument::class, DenyDocumentPolicy::class );
 
-	$revision = Revision::create( [
-		'document_type' => FakeDocument::class,
-		'document_id'   => $document->id,
-		'blocks'        => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Test' ] ] ],
-		'created_at'    => now(),
-	] );
+		$revision = Revision::create( [
+			'document_type' => FakeDocument::class,
+			'document_id'   => $document->id,
+			'blocks'        => [ [ 'type' => 'paragraph', 'attributes' => [ 'content' => 'Test' ] ] ],
+			'created_at'    => now(),
+		] );
 
-	Livewire::actingAs( new User() )
-		->test( 'visual-editor::revision-history', [
-			'documentType' => FakeDocument::class,
-			'documentId'   => $document->id,
-		] )
-		->call( 'restoreRevision', $revision->id )
-		->assertForbidden();
-
-	Schema::dropIfExists( 'fake_documents' );
+		Livewire::actingAs( new User() )
+			->test( 'visual-editor::revision-history', [
+				'documentType' => FakeDocument::class,
+				'documentId'   => $document->id,
+			] )
+			->call( 'restoreRevision', $revision->id )
+			->assertForbidden();
+	} finally {
+		Schema::dropIfExists( 'fake_documents' );
+	}
 } );
 
 it( 'allows restore when no revision policy exists but document policy allows update', function (): void {
@@ -270,30 +272,32 @@ it( 'allows restore when no revision policy exists but document policy allows up
 		$table->timestamps();
 	} );
 
-	$document = FakeDocument::create();
+	try {
+		$document = FakeDocument::create();
 
-	Gate::policy( FakeDocument::class, AllowDocumentPolicy::class );
+		Gate::policy( FakeDocument::class, AllowDocumentPolicy::class );
 
-	$blocks = [
-		[ 'type' => 'heading', 'attributes' => [ 'content' => 'Fallback Allowed' ] ],
-	];
+		$blocks = [
+			[ 'type' => 'heading', 'attributes' => [ 'content' => 'Fallback Allowed' ] ],
+		];
 
-	$revision = Revision::create( [
-		'document_type' => FakeDocument::class,
-		'document_id'   => $document->id,
-		'blocks'        => $blocks,
-		'created_at'    => now(),
-	] );
+		$revision = Revision::create( [
+			'document_type' => FakeDocument::class,
+			'document_id'   => $document->id,
+			'blocks'        => $blocks,
+			'created_at'    => now(),
+		] );
 
-	Livewire::actingAs( new User() )
-		->test( 'visual-editor::revision-history', [
-			'documentType' => FakeDocument::class,
-			'documentId'   => $document->id,
-		] )
-		->call( 'restoreRevision', $revision->id )
-		->assertDispatched( 've-revision-restored' );
-
-	Schema::dropIfExists( 'fake_documents' );
+		Livewire::actingAs( new User() )
+			->test( 'visual-editor::revision-history', [
+				'documentType' => FakeDocument::class,
+				'documentId'   => $document->id,
+			] )
+			->call( 'restoreRevision', $revision->id )
+			->assertDispatched( 've-revision-restored' );
+	} finally {
+		Schema::dropIfExists( 'fake_documents' );
+	}
 } );
 
 it( 'denies delete when no revision policy exists but document policy denies update', function (): void {
@@ -302,28 +306,30 @@ it( 'denies delete when no revision policy exists but document policy denies upd
 		$table->timestamps();
 	} );
 
-	$document = FakeDocument::create();
+	try {
+		$document = FakeDocument::create();
 
-	Gate::policy( FakeDocument::class, DenyDocumentPolicy::class );
+		Gate::policy( FakeDocument::class, DenyDocumentPolicy::class );
 
-	$revision = Revision::create( [
-		'document_type' => FakeDocument::class,
-		'document_id'   => $document->id,
-		'blocks'        => [],
-		'created_at'    => now(),
-	] );
+		$revision = Revision::create( [
+			'document_type' => FakeDocument::class,
+			'document_id'   => $document->id,
+			'blocks'        => [],
+			'created_at'    => now(),
+		] );
 
-	Livewire::actingAs( new User() )
-		->test( 'visual-editor::revision-history', [
-			'documentType' => FakeDocument::class,
-			'documentId'   => $document->id,
-		] )
-		->call( 'deleteRevision', $revision->id )
-		->assertForbidden();
+		Livewire::actingAs( new User() )
+			->test( 'visual-editor::revision-history', [
+				'documentType' => FakeDocument::class,
+				'documentId'   => $document->id,
+			] )
+			->call( 'deleteRevision', $revision->id )
+			->assertForbidden();
 
-	expect( Revision::find( $revision->id ) )->not->toBeNull();
-
-	Schema::dropIfExists( 'fake_documents' );
+		expect( Revision::find( $revision->id ) )->not->toBeNull();
+	} finally {
+		Schema::dropIfExists( 'fake_documents' );
+	}
 } );
 
 it( 'allows delete when no revision policy exists but document policy allows update', function (): void {
@@ -332,27 +338,29 @@ it( 'allows delete when no revision policy exists but document policy allows upd
 		$table->timestamps();
 	} );
 
-	$document = FakeDocument::create();
+	try {
+		$document = FakeDocument::create();
 
-	Gate::policy( FakeDocument::class, AllowDocumentPolicy::class );
+		Gate::policy( FakeDocument::class, AllowDocumentPolicy::class );
 
-	$revision = Revision::create( [
-		'document_type' => FakeDocument::class,
-		'document_id'   => $document->id,
-		'blocks'        => [],
-		'created_at'    => now(),
-	] );
+		$revision = Revision::create( [
+			'document_type' => FakeDocument::class,
+			'document_id'   => $document->id,
+			'blocks'        => [],
+			'created_at'    => now(),
+		] );
 
-	Livewire::actingAs( new User() )
-		->test( 'visual-editor::revision-history', [
-			'documentType' => FakeDocument::class,
-			'documentId'   => $document->id,
-		] )
-		->call( 'deleteRevision', $revision->id )
-		->assertDispatched( 've-revision-deleted' );
+		Livewire::actingAs( new User() )
+			->test( 'visual-editor::revision-history', [
+				'documentType' => FakeDocument::class,
+				'documentId'   => $document->id,
+			] )
+			->call( 'deleteRevision', $revision->id )
+			->assertDispatched( 've-revision-deleted' );
 
-	expect( Revision::find( $revision->id ) )->toBeNull();
-
-	Schema::dropIfExists( 'fake_documents' );
+		expect( Revision::find( $revision->id ) )->toBeNull();
+	} finally {
+		Schema::dropIfExists( 'fake_documents' );
+	}
 } );
 

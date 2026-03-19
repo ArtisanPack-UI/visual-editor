@@ -399,13 +399,8 @@ test( 'renderBlock uses custom classPrefix from constructor', function (): void 
 } );
 
 test( 'renderBlock returns empty string when max depth is exceeded', function (): void {
-	$mockBlock = Mockery::mock( BlockInterface::class );
-	$mockBlock->shouldNotReceive( 'render' );
-
 	$mockRegistry = Mockery::mock( BlockRegistry::class );
-	$mockRegistry->shouldReceive( 'get' )
-		->with( 'group' )
-		->andReturn( $mockBlock );
+	$mockRegistry->shouldNotReceive( 'get' );
 
 	Illuminate\Support\Facades\Log::shouldReceive( 'warning' )
 		->once()

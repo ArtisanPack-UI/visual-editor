@@ -61,7 +61,7 @@ class DocumentTitle extends Component
 		public bool $autoSlug = false,
 		public string $slugKey = 'slug',
 	) {
-		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
+		$this->uuid = 've-' . Str::random( 8 ) . ( null !== $id && '' !== $id ? '-' . $id : '' );
 	}
 
 	/**

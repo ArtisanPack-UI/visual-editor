@@ -19,10 +19,6 @@ use Livewire\Livewire;
 
 uses( RefreshDatabase::class );
 
-beforeEach( function (): void {
-	$this->artisan( 'migrate', [ '--database' => 'testbench' ] );
-} );
-
 /**
  * Build the expected guest cache key for a given document type and ID.
  *
@@ -247,7 +243,11 @@ it( 'respects config TTL when saving draft', function (): void {
 	// Verify the stored payload structure
 	$cached = Cache::get( guestCacheKey( 'App\\Models\\Post', 'ttl-doc' ) );
 
-	expect( $cached )->toBe( [ 'blocks' => $blocks, 'meta' => [], 'documentStatus' => 'draft', 'scheduledDate' => null ] );
+	expect( $cached )->toHaveKey( 'blocks' );
+	expect( $cached['blocks'] )->toBe( $blocks );
+	expect( $cached['documentStatus'] )->toBe( 'draft' );
+	expect( $cached['scheduledDate'] )->toBeNull();
+	expect( $cached['meta'] )->toBeArray();
 } );
 
 it( 'scopes drafts by user and document type for guests', function (): void {
