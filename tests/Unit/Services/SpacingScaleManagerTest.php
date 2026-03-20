@@ -149,11 +149,12 @@ test( 'get block gap value returns the css value for the gap step', function ():
 	expect( $manager->getBlockGapValue() )->toBe( '1rem' );
 } );
 
-test( 'get block gap value returns null if gap step is missing', function (): void {
+test( 'set block gap falls back to default for unknown slug', function (): void {
 	$manager = new SpacingScaleManager();
 	$manager->setBlockGap( 'nonexistent' );
 
-	expect( $manager->getBlockGapValue() )->toBeNull();
+	expect( $manager->getBlockGap() )->toBe( 'md' )
+		->and( $manager->getBlockGapValue() )->toBe( '1rem' );
 } );
 
 test( 'reset to defaults restores default scale and block gap', function (): void {
@@ -269,12 +270,13 @@ test( 'generate css block wraps properties in root selector', function (): void 
 		->and( $css )->toContain( '--ve-spacing-md: 1rem;' );
 } );
 
-test( 'generate css block returns empty string for empty scale', function (): void {
+test( 'generate css block still emits block gap with empty scale', function (): void {
 	$manager = new SpacingScaleManager();
 	$manager->setScale( [] );
-	$manager->setBlockGap( 'nonexistent' );
 
-	expect( $manager->generateCssBlock() )->toBe( '' );
+	$css = $manager->generateCssBlock();
+
+	expect( $css )->toContain( '--ve-block-gap:' );
 } );
 
 test( 'to store format returns correct structure', function (): void {
@@ -410,6 +412,32 @@ test( 'scale and custom steps merge in get scale', function (): void {
 
 	expect( $scale )->toHaveKey( 'md' )
 		->and( $scale )->toHaveKey( 'hero' );
+} );
+
+test( 'remove step rehydrates block gap when gap step is removed', function (): void {
+	$manager = new SpacingScaleManager();
+	$manager->setBlockGap( 'xs' );
+	$manager->removeStep( 'xs' );
+
+	expect( $manager->getBlockGap() )->toBe( 'md' );
+} );
+
+test( 'set scale rehydrates block gap when gap step no longer exists', function (): void {
+	$manager = new SpacingScaleManager();
+	$manager->setBlockGap( 'xl' );
+	$manager->setScale( [
+		'sm' => [ 'name' => 'Small', 'slug' => 'sm', 'value' => '0.5rem' ],
+	] );
+
+	expect( $manager->getBlockGap() )->toBe( 'md' );
+} );
+
+test( 'set step sanitizes slug', function (): void {
+	$manager = new SpacingScaleManager();
+	$manager->setStep( 'my<script>slug', 'Test', '1rem' );
+
+	expect( $manager->hasStep( 'myscriptslug' ) )->toBeTrue()
+		->and( $manager->hasStep( 'my<script>slug' ) )->toBeFalse();
 } );
 
 test( 'from store format sanitizes block gap value', function (): void {

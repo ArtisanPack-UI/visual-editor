@@ -201,7 +201,9 @@ class SpacingScaleManager
 		if ( isset( $config['customSteps'] ) && is_array( $config['customSteps'] ) ) {
 			foreach ( $config['customSteps'] as $entry ) {
 				if ( isset( $entry['slug'], $entry['name'], $entry['value'] ) && $this->isValidDimension( $entry['value'] ) ) {
-					$this->customSteps[ $entry['slug'] ] = $entry;
+					$sanitized                       = $this->sanitizeSlug( $entry['slug'] );
+					$entry['slug']                   = $sanitized;
+					$this->customSteps[ $sanitized ] = $entry;
 				}
 			}
 		}
@@ -234,6 +236,10 @@ class SpacingScaleManager
 	{
 		$this->scale       = $scale;
 		$this->customSteps = [];
+
+		if ( ! $this->hasStep( $this->blockGap ) ) {
+			$this->blockGap = self::DEFAULT_BLOCK_GAP;
+		}
 	}
 
 	/**
@@ -283,6 +289,7 @@ class SpacingScaleManager
 	 */
 	public function setStep( string $slug, string $name, string $value ): void
 	{
+		$slug  = $this->sanitizeSlug( $slug );
 		$value = $this->validateDimension( $value );
 
 		$entry = [
@@ -310,6 +317,10 @@ class SpacingScaleManager
 	public function removeStep( string $slug ): void
 	{
 		unset( $this->scale[ $slug ], $this->customSteps[ $slug ] );
+
+		if ( $this->blockGap === $slug && ! $this->hasStep( $slug ) ) {
+			$this->blockGap = self::DEFAULT_BLOCK_GAP;
+		}
 	}
 
 	/**
@@ -349,7 +360,13 @@ class SpacingScaleManager
 	 */
 	public function setBlockGap( string $slug ): void
 	{
-		$this->blockGap = $slug;
+		$slug = $this->sanitizeSlug( $slug );
+
+		if ( $this->hasStep( $slug ) ) {
+			$this->blockGap = $slug;
+		} else {
+			$this->blockGap = self::DEFAULT_BLOCK_GAP;
+		}
 	}
 
 	/**
@@ -483,11 +500,9 @@ class SpacingScaleManager
 			$lines[] = '--ve-spacing-' . $entry['slug'] . ': ' . $entry['value'] . ';';
 		}
 
-		$gapValue = $this->getBlockGapValue();
+		$gapSlug = $this->hasStep( $this->blockGap ) ? $this->blockGap : self::DEFAULT_BLOCK_GAP;
 
-		if ( null !== $gapValue ) {
-			$lines[] = '--ve-block-gap: var(--ve-spacing-' . $this->blockGap . ');';
-		}
+		$lines[] = '--ve-block-gap: var(--ve-spacing-' . $gapSlug . ');';
 
 		return implode( "\n", $lines );
 	}
@@ -542,7 +557,9 @@ class SpacingScaleManager
 
 			foreach ( $data['scale'] as $entry ) {
 				if ( isset( $entry['slug'], $entry['name'], $entry['value'] ) && $this->isValidDimension( $entry['value'] ) ) {
-					$scale[ $entry['slug'] ] = $entry;
+					$sanitized           = $this->sanitizeSlug( $entry['slug'] );
+					$entry['slug']       = $sanitized;
+					$scale[ $sanitized ] = $entry;
 				}
 			}
 
@@ -550,7 +567,7 @@ class SpacingScaleManager
 		}
 
 		if ( isset( $data['blockGap'] ) && is_string( $data['blockGap'] ) ) {
-			$this->blockGap = preg_replace( '/[^a-zA-Z0-9_-]/', '', $data['blockGap'] );
+			$this->blockGap = $this->sanitizeSlug( $data['blockGap'] );
 		}
 
 		if ( isset( $data['customSteps'] ) && is_array( $data['customSteps'] ) ) {
@@ -558,7 +575,9 @@ class SpacingScaleManager
 
 			foreach ( $data['customSteps'] as $entry ) {
 				if ( isset( $entry['slug'], $entry['name'], $entry['value'] ) && $this->isValidDimension( $entry['value'] ) ) {
-					$custom[ $entry['slug'] ] = $entry;
+					$sanitized            = $this->sanitizeSlug( $entry['slug'] );
+					$entry['slug']        = $sanitized;
+					$custom[ $sanitized ] = $entry;
 				}
 			}
 
@@ -625,6 +644,20 @@ class SpacingScaleManager
 		}
 
 		return $value;
+	}
+
+	/**
+	 * Sanitize a slug to contain only safe CSS-identifier characters.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $slug The slug to sanitize.
+	 *
+	 * @return string The sanitized slug.
+	 */
+	protected function sanitizeSlug( string $slug ): string
+	{
+		return (string) preg_replace( '/[^a-zA-Z0-9_-]/', '', trim( $slug ) );
 	}
 
 	/**

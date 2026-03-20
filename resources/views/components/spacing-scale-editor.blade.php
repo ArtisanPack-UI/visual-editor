@@ -56,6 +56,10 @@
 				this.editError = '{{ __( 'visual-editor::ve.spacing_edit_required' ) }}'
 				return
 			}
+			if ( ! this._isValidDimension( value ) ) {
+				this.editError = '{{ __( 'visual-editor::ve.spacing_invalid_value' ) }}'
+				return
+			}
 			const list = this.editing.isCustom ? this.customSteps : this.scale
 			list[ this.editing.index ] = {
 				name:  this.editName.trim(),
@@ -90,6 +94,10 @@
 			const slug  = this._sanitizeSlug( this.newSlug )
 			const value = this.newValue.trim()
 			if ( ! this.newName.trim() || ! slug || ! value ) return
+			if ( ! this._isValidDimension( value ) ) {
+				this.slugError = '{{ __( 'visual-editor::ve.spacing_invalid_value' ) }}'
+				return
+			}
 			const allSlugs = [
 				...this.scale.map( s => s.slug ),
 				...this.customSteps.map( s => s.slug ),
@@ -158,6 +166,11 @@
 				.replace( /[^a-z0-9-]/g, '' )
 				.replace( /-{2,}/g, '-' )
 				.replace( /^-+|-+$/g, '' )
+		},
+
+		_isValidDimension( value ) {
+			if ( '0' === value ) return true
+			return /^-?\d*\.?\d+(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)$/.test( value )
 		},
 
 		_dispatch() {
@@ -337,16 +350,19 @@
 							<input
 								type="text"
 								x-model="editName"
+								x-on:input="editError = ''"
 								class="input input-sm input-bordered flex-1 min-w-0"
 								placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
 							/>
 							<input
 								type="text"
 								x-model="editValue"
+								x-on:input="editError = ''"
 								class="input input-sm input-bordered w-28 font-mono text-xs"
 								placeholder="1rem"
 							/>
 						</div>
+						<p x-show="editError" x-cloak x-text="editError" class="text-xs text-error"></p>
 						<div class="flex justify-end gap-2">
 							<button
 								type="button"
