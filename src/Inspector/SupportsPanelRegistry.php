@@ -55,7 +55,7 @@ class SupportsPanelRegistry
 			];
 		}
 
-		if ( $this->hasAnySupport( $activeSupports, [ 'typography.fontSize', 'typography.fontFamily', 'typography.appearance', 'typography.lineHeight', 'typography.letterSpacing', 'typography.decoration', 'typography.letterCase', 'typography.dropCap' ] ) ) {
+		if ( $this->hasAnySupport( $activeSupports, [ 'typography.fontSize', 'typography.fontFamily', 'typography.fontFamily.heading', 'typography.fontFamily.body', 'typography.appearance', 'typography.lineHeight', 'typography.letterSpacing', 'typography.decoration', 'typography.letterCase', 'typography.dropCap' ] ) ) {
 			$panels[] = [
 				'key'      => 'typography',
 				'label'    => __( 'visual-editor::ve.typography' ),

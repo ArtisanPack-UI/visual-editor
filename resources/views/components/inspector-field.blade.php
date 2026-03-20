@@ -296,13 +296,27 @@
 			@break
 
 		@case ( 'letter_spacing' )
+			@php
+				$lsNumeric = '';
+				$lsUnit    = 'px';
+				$lsRaw     = $currentValue ?? '';
+
+				if ( is_string( $lsRaw ) && '' !== $lsRaw ) {
+					if ( preg_match( '/^(-?\d+\.?\d*)\s*([a-z%]+)$/i', $lsRaw, $lsMatch ) ) {
+						$lsNumeric = $lsMatch[1];
+						$lsUnit    = $lsMatch[2];
+					} elseif ( is_numeric( $lsRaw ) ) {
+						$lsNumeric = $lsRaw;
+					}
+				}
+			@endphp
 			<div class="ve-inspector-field-letter-spacing">
 				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1" for="{{ $uuid }}-letter-spacing">
 					{{ $fieldLabel }}
 				</label>
 				<div
 					class="flex items-center gap-1"
-					x-data="{ value: {{ Js::from( $currentValue ?? '' ) }}, unit: 'px' }"
+					x-data="{ value: {{ Js::from( $lsNumeric ) }}, unit: {{ Js::from( $lsUnit ) }} }"
 					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
 				>
 					<input
@@ -314,7 +328,7 @@
 						x-model="value"
 						x-on:change="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: ( value !== '' && value !== null ) ? value + unit : '' } )"
 					/>
-					<span class="text-xs text-base-content/40 font-mono shrink-0 w-6 text-center">px</span>
+					<span class="text-xs text-base-content/40 font-mono shrink-0 w-6 text-center" x-text="unit"></span>
 				</div>
 			</div>
 			@break
@@ -341,11 +355,13 @@
 					@foreach ( $decorationOptions as $option )
 						<button
 							type="button"
+							role="radio"
 							class="btn btn-ghost btn-sm btn-square transition-colors"
 							:class="value === {{ Js::from( $option['value'] ) }} ? 'bg-base-300 text-base-content' : 'text-base-content/40'"
 							x-on:click="value = {{ Js::from( $option['value'] ) }}; $dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: value } )"
-							:aria-pressed="value === {{ Js::from( $option['value'] ) }}"
-							title="{{ $option['label'] }}"
+							:aria-checked="value === {{ Js::from( $option['value'] ) }}"
+							:tabindex="value === {{ Js::from( $option['value'] ) }} ? 0 : -1"
+							aria-label="{{ $option['label'] }}"
 						>
 							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
 								<path stroke-linecap="round" stroke-linejoin="round" d="{{ $option['icon'] }}" />
@@ -379,11 +395,13 @@
 					@foreach ( $caseOptions as $option )
 						<button
 							type="button"
+							role="radio"
 							class="btn btn-ghost btn-sm px-2 text-xs font-medium transition-colors"
 							:class="value === {{ Js::from( $option['value'] ) }} ? 'bg-base-300 text-base-content' : 'text-base-content/40'"
 							x-on:click="value = {{ Js::from( $option['value'] ) }}; $dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: value } )"
-							:aria-pressed="value === {{ Js::from( $option['value'] ) }}"
-							title="{{ $option['label'] }}"
+							:aria-checked="value === {{ Js::from( $option['value'] ) }}"
+							:tabindex="value === {{ Js::from( $option['value'] ) }} ? 0 : -1"
+							aria-label="{{ $option['label'] }}"
 						>
 							{{ $option['text'] }}
 						</button>

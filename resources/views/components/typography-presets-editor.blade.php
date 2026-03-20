@@ -119,7 +119,7 @@
 		},
 
 		_dispatch() {
-			$dispatch( 've-typography-change', {
+			this.$dispatch( 've-typography-change', {
 				fontFamilies: JSON.parse( JSON.stringify( this.fontFamilies ) ),
 				elements: JSON.parse( JSON.stringify( this.elements ) ),
 			} )
@@ -152,12 +152,18 @@
 	</div>
 
 	{{-- Section Tabs --}}
-	<div class="flex gap-1 rounded-lg bg-base-200 p-1" role="tablist">
+	<div class="flex gap-1 rounded-lg bg-base-200 p-1" role="tablist" aria-label="{{ __( 'visual-editor::ve.typography_title' ) }}">
 		<button
 			type="button"
 			role="tab"
+			id="{{ $uuid }}-tab-families"
+			aria-controls="{{ $uuid }}-panel-families"
 			x-on:click="activeSection = 'families'"
+			x-on:keydown.arrow-right.prevent="activeSection = 'elements'; $nextTick( () => $refs.tabElements.focus() )"
+			x-on:keydown.arrow-left.prevent="activeSection = 'scale'; $nextTick( () => $refs.tabScale.focus() )"
+			x-ref="tabFamilies"
 			:aria-selected="activeSection === 'families'"
+			:tabindex="activeSection === 'families' ? 0 : -1"
 			:class="activeSection === 'families' ? 'bg-base-100 shadow-sm text-base-content' : 'text-base-content/50 hover:text-base-content/80'"
 			class="flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all cursor-pointer"
 		>
@@ -166,8 +172,14 @@
 		<button
 			type="button"
 			role="tab"
+			id="{{ $uuid }}-tab-elements"
+			aria-controls="{{ $uuid }}-panel-elements"
 			x-on:click="activeSection = 'elements'"
+			x-on:keydown.arrow-right.prevent="activeSection = 'scale'; $nextTick( () => $refs.tabScale.focus() )"
+			x-on:keydown.arrow-left.prevent="activeSection = 'families'; $nextTick( () => $refs.tabFamilies.focus() )"
+			x-ref="tabElements"
 			:aria-selected="activeSection === 'elements'"
+			:tabindex="activeSection === 'elements' ? 0 : -1"
 			:class="activeSection === 'elements' ? 'bg-base-100 shadow-sm text-base-content' : 'text-base-content/50 hover:text-base-content/80'"
 			class="flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all cursor-pointer"
 		>
@@ -176,8 +188,14 @@
 		<button
 			type="button"
 			role="tab"
+			id="{{ $uuid }}-tab-scale"
+			aria-controls="{{ $uuid }}-panel-scale"
 			x-on:click="activeSection = 'scale'"
+			x-on:keydown.arrow-right.prevent="activeSection = 'families'; $nextTick( () => $refs.tabFamilies.focus() )"
+			x-on:keydown.arrow-left.prevent="activeSection = 'elements'; $nextTick( () => $refs.tabElements.focus() )"
+			x-ref="tabScale"
 			:aria-selected="activeSection === 'scale'"
+			:tabindex="activeSection === 'scale' ? 0 : -1"
 			:class="activeSection === 'scale' ? 'bg-base-100 shadow-sm text-base-content' : 'text-base-content/50 hover:text-base-content/80'"
 			class="flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all cursor-pointer"
 		>
@@ -186,7 +204,7 @@
 	</div>
 
 	{{-- Font Families Section --}}
-	<div x-show="activeSection === 'families'" x-cloak class="flex flex-col gap-3">
+	<div x-show="activeSection === 'families'" x-cloak role="tabpanel" aria-labelledby="{{ $uuid }}-tab-families" id="{{ $uuid }}-panel-families" class="flex flex-col gap-3">
 		@foreach ( $familyLabels as $slot => $label )
 			<div class="flex flex-col gap-1">
 				<label
@@ -207,7 +225,7 @@
 	</div>
 
 	{{-- Elements Section --}}
-	<div x-show="activeSection === 'elements'" x-cloak class="flex flex-col gap-2">
+	<div x-show="activeSection === 'elements'" x-cloak role="tabpanel" aria-labelledby="{{ $uuid }}-tab-elements" id="{{ $uuid }}-panel-elements" class="flex flex-col gap-2">
 		@foreach ( $elementLabels as $key => $label )
 			<div class="rounded-lg border border-base-300 overflow-hidden">
 				{{-- Element row --}}
@@ -301,6 +319,20 @@
 								placeholder="0"
 							/>
 						</div>
+						<div class="flex flex-col gap-1">
+							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider">
+								{{ __( 'visual-editor::ve.typography_font_style' ) }}
+							</label>
+							<select
+								:value="elements['{{ $key }}'] ? elements['{{ $key }}'].fontStyle || 'normal' : 'normal'"
+								x-on:change="updateElementProperty( '{{ $key }}', 'fontStyle', $event.target.value )"
+								class="select select-sm select-bordered w-full text-xs"
+							>
+								<option value="normal">Normal</option>
+								<option value="italic">Italic</option>
+								<option value="oblique">Oblique</option>
+							</select>
+						</div>
 					</div>
 
 					{{-- Preview --}}
@@ -325,7 +357,7 @@
 	</div>
 
 	{{-- Type Scale Section --}}
-	<div x-show="activeSection === 'scale'" x-cloak class="flex flex-col gap-3">
+	<div x-show="activeSection === 'scale'" x-cloak role="tabpanel" aria-labelledby="{{ $uuid }}-tab-scale" id="{{ $uuid }}-panel-scale" class="flex flex-col gap-3">
 		<p class="text-xs text-base-content/50">
 			{{ __( 'visual-editor::ve.typography_scale_description' ) }}
 		</p>

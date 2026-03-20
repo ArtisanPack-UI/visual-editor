@@ -51,7 +51,7 @@ test( 'accepts custom config overriding font families', function (): void {
 	] );
 
 	expect( $manager->getFontFamily( 'heading' ) )->toBe( '"Playfair Display", serif' )
-		->and( $manager->getFontFamily( 'body' ) )->toBe( 'Inter, sans-serif' );
+		->and( $manager->getFontFamily( 'body' ) )->toBe( TypographyPresetsManager::DEFAULT_FONT_FAMILIES['body'] );
 } );
 
 test( 'accepts custom config overriding elements', function (): void {
@@ -75,8 +75,8 @@ test( 'accepts custom config overriding elements', function (): void {
 test( 'get font family returns value by slot', function (): void {
 	$manager = new TypographyPresetsManager();
 
-	expect( $manager->getFontFamily( 'heading' ) )->toBe( 'Inter, sans-serif' )
-		->and( $manager->getFontFamily( 'mono' ) )->toBe( 'JetBrains Mono, monospace' );
+	expect( $manager->getFontFamily( 'heading' ) )->toBe( TypographyPresetsManager::DEFAULT_FONT_FAMILIES['heading'] )
+		->and( $manager->getFontFamily( 'mono' ) )->toBe( TypographyPresetsManager::DEFAULT_FONT_FAMILIES['mono'] );
 } );
 
 test( 'get font family returns null for missing slot', function (): void {

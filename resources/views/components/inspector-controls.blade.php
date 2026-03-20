@@ -85,7 +85,7 @@
 									@foreach ( $control['controls'] as $rowControl )
 										<x-ve-inspector-field
 											:name="$rowControl['field']"
-											:schema="[ 'type' => $rowControl['type'], 'label' => $rowControl['label'] ?? '' ]"
+											:schema="array_merge( [ 'type' => $rowControl['type'], 'label' => $rowControl['label'] ?? '' ], array_diff_key( $rowControl, array_flip( [ 'type', 'field', 'label' ] ) ) )"
 											:value="null"
 											:block-id="$blockId"
 										/>
@@ -232,7 +232,7 @@
 									@foreach ( $control['controls'] as $rowControl )
 										<x-ve-inspector-field
 											:name="$rowControl['field']"
-											:schema="[ 'type' => $rowControl['type'], 'label' => $rowControl['label'] ?? '' ]"
+											:schema="array_merge( [ 'type' => $rowControl['type'], 'label' => $rowControl['label'] ?? '' ], array_diff_key( $rowControl, array_flip( [ 'type', 'field', 'label' ] ) ) )"
 											:value="null"
 											:block-id="$blockId"
 										/>

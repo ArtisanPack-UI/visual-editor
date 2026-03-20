@@ -189,9 +189,9 @@ class TypographyPresetsManager
 	 * @var array<string, string>
 	 */
 	public const DEFAULT_FONT_FAMILIES = [
-		'heading' => 'Inter, sans-serif',
-		'body'    => 'Inter, sans-serif',
-		'mono'    => 'JetBrains Mono, monospace',
+		'heading' => 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+		'body'    => 'system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+		'mono'    => 'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
 	];
 
 	/**
@@ -332,18 +332,29 @@ class TypographyPresetsManager
 
 		$this->elements = [] === $elements
 			? self::DEFAULT_ELEMENTS
-			: array_merge( self::DEFAULT_ELEMENTS, $elements );
+			: array_replace_recursive( self::DEFAULT_ELEMENTS, $elements );
 
 		$this->fontCollection = self::DEFAULT_SYSTEM_FONTS;
 
 		$configFonts = $config['fonts'] ?? [];
 		foreach ( $configFonts as $slug => $font ) {
 			if ( isset( $font['name'], $font['family'] ) ) {
+				$category = $font['category'] ?? 'all';
+				$source   = $font['source'] ?? 'custom';
+
+				if ( ! in_array( $category, self::ALLOWED_FONT_CATEGORIES, true ) ) {
+					$category = 'all';
+				}
+
+				if ( ! in_array( $source, self::ALLOWED_FONT_SOURCES, true ) ) {
+					$source = 'custom';
+				}
+
 				$this->fontCollection[ $slug ] = [
 					'name'     => $font['name'],
 					'family'   => $font['family'],
-					'category' => $font['category'] ?? 'all',
-					'source'   => $font['source'] ?? 'custom',
+					'category' => $category,
+					'source'   => $source,
 				];
 			}
 		}
@@ -372,7 +383,9 @@ class TypographyPresetsManager
 	 */
 	public function setFontFamilies( array $families ): void
 	{
-		$this->fontFamilies = $families;
+		$allowed = array_flip( self::ALLOWED_FAMILY_SLOTS );
+
+		$this->fontFamilies = array_intersect_key( $families, $allowed );
 	}
 
 	/**
@@ -764,7 +777,13 @@ class TypographyPresetsManager
 		$scale = $this->generateTypeScale( $baseSize, $ratio, $unit );
 
 		foreach ( $scale as $element => $fontSize ) {
-			if ( isset( $this->elements[ $element ] ) ) {
+			if ( ! isset( $this->elements[ $element ] ) ) {
+				$this->elements[ $element ] = [
+					'fontSize'   => $fontSize,
+					'fontWeight' => '400',
+					'lineHeight' => '1.4',
+				];
+			} else {
 				$this->elements[ $element ]['fontSize'] = $fontSize;
 			}
 		}
@@ -773,12 +792,16 @@ class TypographyPresetsManager
 	/**
 	 * Register a custom font source for @font-face generation.
 	 *
+	 * Also adds the font to the font collection registry so it
+	 * appears in block inspector font family dropdowns.
+	 *
 	 * @since 1.0.0
 	 *
-	 * @param string $family The font family name.
-	 * @param string $src    The font source URL.
-	 * @param string $weight The font weight (default: '400').
-	 * @param string $style  The font style (default: 'normal').
+	 * @param string $family   The font family name.
+	 * @param string $src      The font source URL.
+	 * @param string $weight   The font weight (default: '400').
+	 * @param string $style    The font style (default: 'normal').
+	 * @param string $category Font category: 'all', 'heading', or 'body'.
 	 *
 	 * @return void
 	 */
@@ -813,11 +836,15 @@ class TypographyPresetsManager
 	/**
 	 * Register a Google Font family for loading.
 	 *
+	 * Also adds the font to the font collection registry so it
+	 * appears in block inspector font family dropdowns.
+	 *
 	 * @since 1.0.0
 	 *
-	 * @param string            $family  The font family name.
-	 * @param array<int, string> $weights Font weights to load.
-	 * @param array<int, string> $styles  Font styles to load.
+	 * @param string             $family   The font family name.
+	 * @param array<int, string> $weights  Font weights to load.
+	 * @param array<int, string> $styles   Font styles to load.
+	 * @param string             $category Font category: 'all', 'heading', or 'body'.
 	 *
 	 * @return void
 	 */
@@ -909,9 +936,12 @@ class TypographyPresetsManager
 			$style  = $font['style'] ?? 'normal';
 			$format = $this->detectFontFormat( $font['src'] );
 
+			$safeName = str_replace( [ "'", '\\' ], [ "\\'", '\\\\' ], $font['family'] );
+			$safeSrc  = filter_var( $font['src'], FILTER_SANITIZE_URL ) ?: '';
+
 			$declaration  = "@font-face {\n";
-			$declaration .= "\tfont-family: '" . $font['family'] . "';\n";
-			$declaration .= "\tsrc: url('" . $font['src'] . "')";
+			$declaration .= "\tfont-family: '" . $safeName . "';\n";
+			$declaration .= "\tsrc: url('" . $safeSrc . "')";
 
 			if ( '' !== $format ) {
 				$declaration .= " format('" . $format . "')";
@@ -1001,11 +1031,19 @@ class TypographyPresetsManager
 	public function fromStoreFormat( array $data ): void
 	{
 		if ( isset( $data['fontFamilies'] ) && is_array( $data['fontFamilies'] ) ) {
-			$this->fontFamilies = $data['fontFamilies'];
+			$allowed            = array_flip( self::ALLOWED_FAMILY_SLOTS );
+			$this->fontFamilies = array_intersect_key( $data['fontFamilies'], $allowed );
 		}
 
 		if ( isset( $data['elements'] ) && is_array( $data['elements'] ) ) {
-			$this->elements = $data['elements'];
+			$validElements  = array_flip( self::ALLOWED_ELEMENTS );
+			$this->elements = [];
+
+			foreach ( $data['elements'] as $key => $styles ) {
+				if ( isset( $validElements[ $key ] ) && is_array( $styles ) ) {
+					$this->elements[ $key ] = $this->sanitizeElementStyles( $styles );
+				}
+			}
 		}
 	}
 
