@@ -301,14 +301,18 @@
 				$lsUnit    = 'px';
 				$lsRaw     = $currentValue ?? '';
 
-				if ( is_string( $lsRaw ) && '' !== $lsRaw ) {
+				if ( is_numeric( $lsRaw ) ) {
+					$lsNumeric = (string) $lsRaw;
+				} elseif ( is_string( $lsRaw ) && '' !== $lsRaw ) {
 					if ( preg_match( '/^(-?\d+\.?\d*)\s*([a-z%]+)$/i', $lsRaw, $lsMatch ) ) {
 						$lsNumeric = $lsMatch[1];
 						$lsUnit    = $lsMatch[2];
-					} elseif ( is_numeric( $lsRaw ) ) {
-						$lsNumeric = $lsRaw;
 					}
 				}
+
+				$lsStoreSync = 'dynamic' === $blockId
+					? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); const _raw = _b?.attributes?.[' . Js::from( $name ) . ']; if ( _raw !== undefined && document.activeElement !== $el ) { const _m = String( _raw ).match( /^(-?\\d+\\.?\\d*)\\s*([a-z%]+)$/i ); if ( _m ) { value = _m[1]; unit = _m[2]; } else if ( ! isNaN( parseFloat( _raw ) ) ) { value = String( _raw ); } else { value = \'\'; } }'
+					: '';
 			@endphp
 			<div class="ve-inspector-field-letter-spacing">
 				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1" for="{{ $uuid }}-letter-spacing">
@@ -317,7 +321,7 @@
 				<div
 					class="flex items-center gap-1"
 					x-data="{ value: {{ Js::from( $lsNumeric ) }}, unit: {{ Js::from( $lsUnit ) }} }"
-					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
+					@if ( $lsStoreSync ) x-effect="{{ $lsStoreSync }}" @endif
 				>
 					<input
 						type="number"
@@ -341,16 +345,33 @@
 					[ 'value' => 'line-through', 'label' => __( 'visual-editor::ve.typography_decoration_strikethrough' ), 'icon' => 'M16 4H9a3 3 0 100 6h6a3 3 0 010 6H8M4 12h16' ],
 				];
 			@endphp
+			@php
+				$decoValues = array_map( fn ( $o ) => $o['value'], $decorationOptions );
+			@endphp
 			<div class="ve-inspector-field-decoration">
 				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1">
 					{{ $fieldLabel }}
 				</label>
 				<div
 					class="flex gap-1"
-					x-data="{ value: {{ Js::from( $currentValue ?? '' ) }} }"
+					x-data="{
+						value: {{ Js::from( $currentValue ?? '' ) }},
+						options: {{ Js::from( $decoValues ) }},
+						_move( delta ) {
+							const idx = this.options.indexOf( this.value )
+							const next = ( idx + delta + this.options.length ) % this.options.length
+							this.value = this.options[ next ]
+							$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: this.value } )
+							$nextTick( () => $el.querySelectorAll( '[role=radio]' )[ next ]?.focus() )
+						},
+					}"
 					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
 					role="radiogroup"
 					aria-label="{{ $fieldLabel }}"
+					x-on:keydown.arrow-right.prevent="_move( 1 )"
+					x-on:keydown.arrow-down.prevent="_move( 1 )"
+					x-on:keydown.arrow-left.prevent="_move( -1 )"
+					x-on:keydown.arrow-up.prevent="_move( -1 )"
 				>
 					@foreach ( $decorationOptions as $option )
 						<button
@@ -381,16 +402,33 @@
 					[ 'value' => 'capitalize', 'label' => __( 'visual-editor::ve.typography_case_capitalize' ), 'text' => 'Ab' ],
 				];
 			@endphp
+			@php
+				$caseValues = array_map( fn ( $o ) => $o['value'], $caseOptions );
+			@endphp
 			<div class="ve-inspector-field-letter-case">
 				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1">
 					{{ $fieldLabel }}
 				</label>
 				<div
 					class="flex gap-1"
-					x-data="{ value: {{ Js::from( $currentValue ?? '' ) }} }"
+					x-data="{
+						value: {{ Js::from( $currentValue ?? '' ) }},
+						options: {{ Js::from( $caseValues ) }},
+						_move( delta ) {
+							const idx = this.options.indexOf( this.value )
+							const next = ( idx + delta + this.options.length ) % this.options.length
+							this.value = this.options[ next ]
+							$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: this.value } )
+							$nextTick( () => $el.querySelectorAll( '[role=radio]' )[ next ]?.focus() )
+						},
+					}"
 					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
 					role="radiogroup"
 					aria-label="{{ $fieldLabel }}"
+					x-on:keydown.arrow-right.prevent="_move( 1 )"
+					x-on:keydown.arrow-down.prevent="_move( 1 )"
+					x-on:keydown.arrow-left.prevent="_move( -1 )"
+					x-on:keydown.arrow-up.prevent="_move( -1 )"
 				>
 					@foreach ( $caseOptions as $option )
 						<button

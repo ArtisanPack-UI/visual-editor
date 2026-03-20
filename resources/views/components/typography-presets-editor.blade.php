@@ -84,6 +84,11 @@
 		applyTypeScale() {
 			const base    = parseFloat( this.typeScaleBase )
 			const ratio   = parseFloat( this.typeScaleRatio )
+
+			if ( ! Number.isFinite( base ) || base <= 0 || ! Number.isFinite( ratio ) || ratio <= 0 ) {
+				return
+			}
+
 			const headings = [ 'h6', 'h5', 'h4', 'h3', 'h2', 'h1' ]
 
 			headings.forEach( ( heading, index ) => {
