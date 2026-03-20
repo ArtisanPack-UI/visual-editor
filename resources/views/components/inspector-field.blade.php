@@ -193,7 +193,7 @@
 				$familyOptions       = [ '' => __( 'visual-editor::ve.typography_default' ) ] + $registeredFonts;
 			@endphp
 			<div class="ve-inspector-field-font-family">
-				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1">
+				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1" for="{{ $uuid }}-font-family">
 					{{ $fieldLabel }}
 				</label>
 				<select
@@ -236,7 +236,7 @@
 				];
 			@endphp
 			<div class="ve-inspector-field-appearance">
-				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1">
+				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1" for="{{ $uuid }}-appearance">
 					{{ $fieldLabel }}
 				</label>
 				<select
@@ -255,6 +255,11 @@
 			@break
 
 		@case ( 'line_height' )
+			@php
+				$lhStoreSync = 'dynamic' === $blockId
+					? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); const _sv = _b?.attributes?.[' . Js::from( $name ) . ']; if ( _sv !== undefined && ! $el.contains( document.activeElement ) ) { value = _sv; }'
+					: '';
+			@endphp
 			<div class="ve-inspector-field-line-height">
 				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1" for="{{ $uuid }}-line-height">
 					{{ $fieldLabel }}
@@ -262,7 +267,7 @@
 				<div
 					class="flex items-center gap-1"
 					x-data="{ value: {{ Js::from( $currentValue ?? '' ) }} }"
-					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
+					@if ( $lhStoreSync ) x-effect="{{ $lhStoreSync }}" @endif
 				>
 					<input
 						type="number"
@@ -311,7 +316,7 @@
 				}
 
 				$lsStoreSync = 'dynamic' === $blockId
-					? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); const _raw = _b?.attributes?.[' . Js::from( $name ) . ']; if ( _raw !== undefined && document.activeElement !== $el ) { const _m = String( _raw ).match( /^(-?\\d+\\.?\\d*)\\s*([a-z%]+)$/i ); if ( _m ) { value = _m[1]; unit = _m[2]; } else if ( ! isNaN( parseFloat( _raw ) ) ) { value = String( _raw ); } else { value = \'\'; } }'
+					? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); const _raw = _b?.attributes?.[' . Js::from( $name ) . ']; if ( _raw !== undefined && ! $el.contains( document.activeElement ) ) { const _m = String( _raw ).match( /^(-?\\d+\\.?\\d*)\\s*([a-z%]+)$/i ); if ( _m ) { value = _m[1]; unit = _m[2]; } else if ( ! isNaN( parseFloat( _raw ) ) ) { value = String( _raw ); } else { value = \'\'; } }'
 					: '';
 			@endphp
 			<div class="ve-inspector-field-letter-spacing">

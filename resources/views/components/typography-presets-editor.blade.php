@@ -275,11 +275,12 @@
 				>
 					<div class="grid grid-cols-2 gap-3">
 						<div class="flex flex-col gap-1">
-							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider">
+							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-fontSize">
 								{{ __( 'visual-editor::ve.typography_font_size' ) }}
 							</label>
 							<input
 								type="text"
+								id="{{ $uuid }}-{{ $key }}-fontSize"
 								:value="elements['{{ $key }}'] ? elements['{{ $key }}'].fontSize : ''"
 								x-on:change="updateElementProperty( '{{ $key }}', 'fontSize', $event.target.value )"
 								class="input input-sm input-bordered w-full font-mono text-xs"
@@ -287,10 +288,11 @@
 							/>
 						</div>
 						<div class="flex flex-col gap-1">
-							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider">
+							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-fontWeight">
 								{{ __( 'visual-editor::ve.typography_font_weight' ) }}
 							</label>
 							<select
+								id="{{ $uuid }}-{{ $key }}-fontWeight"
 								:value="elements['{{ $key }}'] ? elements['{{ $key }}'].fontWeight : '400'"
 								x-on:change="updateElementProperty( '{{ $key }}', 'fontWeight', $event.target.value )"
 								class="select select-sm select-bordered w-full text-xs"
@@ -301,11 +303,12 @@
 							</select>
 						</div>
 						<div class="flex flex-col gap-1">
-							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider">
+							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-lineHeight">
 								{{ __( 'visual-editor::ve.typography_line_height' ) }}
 							</label>
 							<input
 								type="text"
+								id="{{ $uuid }}-{{ $key }}-lineHeight"
 								:value="elements['{{ $key }}'] ? elements['{{ $key }}'].lineHeight : ''"
 								x-on:change="updateElementProperty( '{{ $key }}', 'lineHeight', $event.target.value )"
 								class="input input-sm input-bordered w-full font-mono text-xs"
@@ -313,11 +316,12 @@
 							/>
 						</div>
 						<div class="flex flex-col gap-1">
-							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider">
+							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-letterSpacing">
 								{{ __( 'visual-editor::ve.typography_letter_spacing' ) }}
 							</label>
 							<input
 								type="text"
+								id="{{ $uuid }}-{{ $key }}-letterSpacing"
 								:value="elements['{{ $key }}'] ? elements['{{ $key }}'].letterSpacing : ''"
 								x-on:change="updateElementProperty( '{{ $key }}', 'letterSpacing', $event.target.value )"
 								class="input input-sm input-bordered w-full font-mono text-xs"
@@ -325,17 +329,18 @@
 							/>
 						</div>
 						<div class="flex flex-col gap-1">
-							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider">
+							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-fontStyle">
 								{{ __( 'visual-editor::ve.typography_font_style' ) }}
 							</label>
 							<select
+								id="{{ $uuid }}-{{ $key }}-fontStyle"
 								:value="elements['{{ $key }}'] ? elements['{{ $key }}'].fontStyle || 'normal' : 'normal'"
 								x-on:change="updateElementProperty( '{{ $key }}', 'fontStyle', $event.target.value )"
 								class="select select-sm select-bordered w-full text-xs"
 							>
-								<option value="normal">Normal</option>
-								<option value="italic">Italic</option>
-								<option value="oblique">Oblique</option>
+								<option value="normal">{{ __( 'visual-editor::ve.typography_font_style_normal' ) }}</option>
+								<option value="italic">{{ __( 'visual-editor::ve.typography_font_style_italic' ) }}</option>
+								<option value="oblique">{{ __( 'visual-editor::ve.typography_font_style_oblique' ) }}</option>
 							</select>
 						</div>
 					</div>
