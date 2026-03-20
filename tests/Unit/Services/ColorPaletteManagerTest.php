@@ -323,3 +323,37 @@ test( 'color palette manager class binding resolves to singleton', function (): 
 
 	expect( $fromString )->toBe( $fromClass );
 } );
+
+test( 'default palette has no duplicate hex values', function (): void {
+	$colors = array_map( fn ( array $e ) => $e['color'], ColorPaletteManager::DEFAULT_PALETTE );
+
+	expect( count( $colors ) )->toBe( count( array_unique( $colors ) ) );
+} );
+
+test( 'set color normalizes hex to lowercase', function (): void {
+	$manager = new ColorPaletteManager();
+	$manager->setColor( 'test', 'Test', '#AABBCC' );
+
+	expect( $manager->getColorValue( 'test' ) )->toBe( '#aabbcc' );
+} );
+
+test( 'set color expands shorthand hex', function (): void {
+	$manager = new ColorPaletteManager();
+	$manager->setColor( 'test', 'Test', '#abc' );
+
+	expect( $manager->getColorValue( 'test' ) )->toBe( '#aabbcc' );
+} );
+
+test( 'set color throws on invalid hex', function (): void {
+	$manager = new ColorPaletteManager();
+
+	expect( fn () => $manager->setColor( 'test', 'Test', 'not-a-color' ) )
+		->toThrow( InvalidArgumentException::class );
+} );
+
+test( 'set color throws on incomplete hex', function (): void {
+	$manager = new ColorPaletteManager();
+
+	expect( fn () => $manager->setColor( 'test', 'Test', '#ab' ) )
+		->toThrow( InvalidArgumentException::class );
+} );

@@ -38,6 +38,8 @@
 
 		saveEdit() {
 			if ( null === this.editing ) return
+			const duplicate = this.entries.some( ( e, i ) => i !== this.editing && e.slug === this.editSlug )
+			if ( duplicate ) return
 			this.entries[ this.editing ] = {
 				name:  this.editName,
 				slug:  this.editSlug,
@@ -65,6 +67,8 @@
 
 		confirmAdd() {
 			if ( ! this.newName || ! this.newSlug || ! this.newColor ) return
+			const duplicate = this.entries.some( ( e ) => e.slug === this.newSlug )
+			if ( duplicate ) return
 			this.entries.push( {
 				name:  this.newName,
 				slug:  this.newSlug,

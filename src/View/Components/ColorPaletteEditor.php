@@ -65,10 +65,11 @@ class ColorPaletteEditor extends Component
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
-		$manager = app( 'visual-editor.color-palette' );
-
 		if ( null !== $palette ) {
+			$manager = clone app( 'visual-editor.color-palette' );
 			$manager->fromStoreFormat( $palette );
+		} else {
+			$manager = app( 'visual-editor.color-palette' );
 		}
 
 		$this->paletteEntries = $manager->toStoreFormat();

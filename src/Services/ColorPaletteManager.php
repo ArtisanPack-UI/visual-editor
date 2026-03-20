@@ -19,6 +19,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Services;
 
+use InvalidArgumentException;
 use Throwable;
 
 /**
@@ -57,7 +58,7 @@ class ColorPaletteManager
 		'accent'     => [
 			'name'  => 'Accent',
 			'slug'  => 'accent',
-			'color' => '#f59e0b',
+			'color' => '#f97316',
 		],
 		'background' => [
 			'name'  => 'Background',
@@ -102,7 +103,7 @@ class ColorPaletteManager
 		'info'       => [
 			'name'  => 'Info',
 			'slug'  => 'info',
-			'color' => '#3b82f6',
+			'color' => '#0ea5e9',
 		],
 	];
 
@@ -192,12 +193,16 @@ class ColorPaletteManager
 	 *
 	 * @param string $slug  The unique color slug.
 	 * @param string $name  The display name.
-	 * @param string $color The hex color value.
+	 * @param string $color The hex color value (#RGB or #RRGGBB).
+	 *
+	 * @throws InvalidArgumentException If the color is not a valid hex value.
 	 *
 	 * @return void
 	 */
 	public function setColor( string $slug, string $name, string $color ): void
 	{
+		$color = $this->normalizeHex( $color );
+
 		$this->palette[ $slug ] = [
 			'name'  => $name,
 			'slug'  => $slug,
@@ -530,5 +535,36 @@ class ColorPaletteManager
 		$lines = explode( "\n", $css );
 
 		return implode( "\n", array_map( fn ( string $line ) => "\t" . $line, $lines ) );
+	}
+
+	/**
+	 * Validate and normalize a hex color string.
+	 *
+	 * Accepts #RGB and #RRGGBB formats. Expands shorthand to full
+	 * six-digit form and lowercases the result.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $hex The hex color value.
+	 *
+	 * @throws InvalidArgumentException If the value is not a valid hex color.
+	 *
+	 * @return string The normalized hex color (lowercase, 7 characters).
+	 */
+	protected function normalizeHex( string $hex ): string
+	{
+		$raw = ltrim( $hex, '#' );
+
+		if ( 3 === strlen( $raw ) && preg_match( '/^[0-9a-fA-F]{3}$/', $raw ) ) {
+			$raw = $raw[0] . $raw[0] . $raw[1] . $raw[1] . $raw[2] . $raw[2];
+		}
+
+		if ( 6 !== strlen( $raw ) || ! preg_match( '/^[0-9a-fA-F]{6}$/', $raw ) ) {
+			throw new InvalidArgumentException(
+				"Invalid hex color: {$hex}. Expected #RGB or #RRGGBB format.",
+			);
+		}
+
+		return '#' . strtolower( $raw );
 	}
 }

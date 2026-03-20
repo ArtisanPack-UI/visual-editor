@@ -51,20 +51,24 @@
 			role="listbox"
 			aria-label="{{ $label ?? __( 'visual-editor::ve.color_palette' ) }}"
 		>
-			@foreach ( $palette as $index => $paletteColor )
+			@php
+			$lightColors = [ '#ffffff', '#d1d5db', '#9ca3af', '#f9fafb', '#f3f4f6', '#e5e7eb', '#f0f9ff', '#e0f2fe', '#e2e8f0', '#bfdbfe', '#f8fafc' ];
+		@endphp
+		@foreach ( $palette as $index => $paletteColor )
 				@php
-					$entryName  = $paletteEntries[ $index ]['name'] ?? null;
-					$entrySlug  = $paletteEntries[ $index ]['slug'] ?? null;
+					$entry      = $paletteEntries[ $index ] ?? null;
+					$entryName  = $entry['name'] ?? ucfirst( str_replace( '#', '', $paletteColor ) );
+					$entrySlug  = $entry['slug'] ?? null;
 					$checkColor = '#ffffff';
 
 					if ( function_exists( 'a11yGetContrastColor' ) ) {
 						try {
 							$checkColor = a11yGetContrastColor( $paletteColor );
 						} catch ( \Throwable $e ) {
-							$checkColor = in_array( strtolower( $paletteColor ), [ '#ffffff', '#d1d5db', '#9ca3af', '#f9fafb', '#f3f4f6', '#e5e7eb', '#f0f9ff', '#e0f2fe', '#e2e8f0', '#bfdbfe', '#f8fafc' ] ) ? '#374151' : '#ffffff';
+							$checkColor = in_array( strtolower( $paletteColor ), $lightColors ) ? '#374151' : '#ffffff';
 						}
 					} else {
-						$checkColor = in_array( strtolower( $paletteColor ), [ '#ffffff', '#d1d5db', '#9ca3af', '#f9fafb', '#f3f4f6', '#e5e7eb', '#f0f9ff', '#e0f2fe', '#e2e8f0', '#bfdbfe', '#f8fafc' ] ) ? '#374151' : '#ffffff';
+						$checkColor = in_array( strtolower( $paletteColor ), $lightColors ) ? '#374151' : '#ffffff';
 					}
 				@endphp
 				<div class="relative group">
@@ -87,11 +91,9 @@
 							</svg>
 						</span>
 					</button>
-					@if ( $entryName )
-						<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-[10px] font-medium text-base-100 bg-base-content rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
-							{{ $entryName }}
-						</div>
-					@endif
+					<div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 px-2 py-1 text-[10px] font-medium text-base-100 bg-base-content rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10">
+						{{ $entryName }}
+					</div>
 				</div>
 			@endforeach
 		</div>

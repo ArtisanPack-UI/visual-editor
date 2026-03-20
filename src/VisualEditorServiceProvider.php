@@ -225,6 +225,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return $app->make( 'visual-editor.template-presets' );
 		} );
 
+		// Config is read lazily (on first resolve, after boot merges config).
 		$this->app->singleton( 'visual-editor.color-palette', function () {
 			$configPalette = config( 'artisanpack.visual-editor.color_palette', [] );
 

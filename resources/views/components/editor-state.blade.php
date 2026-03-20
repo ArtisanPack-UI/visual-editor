@@ -882,6 +882,12 @@
 						}
 					} );
 
+					document.addEventListener( 've-palette-change', ( e ) => {
+						if ( e.detail && e.detail.palette ) {
+							this.setPalette( e.detail.palette );
+						}
+					} );
+
 					document.addEventListener( 've-pattern-loaded', ( e ) => {
 						if ( e.detail && e.detail.blocks ) {
 							this.insertPattern( { name: e.detail.name, blocks: e.detail.blocks } );
