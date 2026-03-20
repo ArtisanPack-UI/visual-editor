@@ -245,7 +245,7 @@ class TemplateManager
 			);
 		}
 
-		if ( isset( $data['content'] ) && $data['content'] !== $template->content ) {
+		if ( isset( $data['content'] ) && $data['content'] !== $template->resolveContent() ) {
 			$template->createRevision( $userId );
 		}
 

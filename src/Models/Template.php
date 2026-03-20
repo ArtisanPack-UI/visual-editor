@@ -361,6 +361,9 @@ class Template extends Model
 	 */
 	public function createVariation( string $slug, string $name, array $overrides = [] ): static
 	{
+		$forbidden = [ 'id', 'parent_id', 'slug', 'name' ];
+		$overrides = array_diff_key( $overrides, array_flip( $forbidden ) );
+
 		$defaults = [
 			'name'                  => $name,
 			'slug'                  => $slug,
@@ -408,7 +411,7 @@ class Template extends Model
 			return [];
 		}
 
-		return $parent->content ?? [];
+		return $parent->resolveContent();
 	}
 
 	/**
@@ -436,7 +439,7 @@ class Template extends Model
 			return $ownSettings;
 		}
 
-		$parentSettings = $parent->content_area_settings ?? [];
+		$parentSettings = $parent->resolveContentAreaSettings();
 
 		return array_replace_recursive( $parentSettings, $ownSettings );
 	}
@@ -466,7 +469,7 @@ class Template extends Model
 			return $ownStyles;
 		}
 
-		$parentStyles = $parent->styles ?? [];
+		$parentStyles = $parent->resolveStyles();
 
 		return array_replace_recursive( $parentStyles, $ownStyles );
 	}

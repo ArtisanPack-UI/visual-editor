@@ -327,6 +327,72 @@ it( 'strips forbidden overrides in manager createVariation', function (): void {
 		->and( $variation->status )->toBe( 'active' );
 } );
 
+it( 'resolves content recursively through multi-level variations', function (): void {
+	$grandparent = Template::create( [
+		'name'    => 'Grandparent',
+		'slug'    => 'grandparent',
+		'content' => [ [ 'type' => 'heading' ], [ 'type' => 'paragraph' ] ],
+	] );
+
+	$parent = $grandparent->createVariation( 'parent-multi', 'Parent', [
+		'content' => [],
+	] );
+
+	$child = $parent->createVariation( 'child-multi', 'Child', [
+		'content' => [],
+	] );
+
+	expect( $child->resolveContent() )->toEqual( [
+		[ 'type' => 'heading' ],
+		[ 'type' => 'paragraph' ],
+	] );
+} );
+
+it( 'resolves settings recursively through multi-level variations', function (): void {
+	$grandparent = Template::create( [
+		'name'                  => 'Grandparent',
+		'slug'                  => 'grandparent-settings',
+		'content'               => [],
+		'content_area_settings' => [ 'max_width' => 'container', 'padding' => 'large' ],
+		'styles'                => [ 'color' => '#000', 'font' => 'serif' ],
+	] );
+
+	$parent = $grandparent->createVariation( 'parent-settings', 'Parent', [
+		'content_area_settings' => [ 'padding' => 'medium' ],
+		'styles'                => [ 'font' => 'sans-serif' ],
+	] );
+
+	$child = $parent->createVariation( 'child-settings', 'Child', [
+		'content_area_settings' => [ 'max_width' => 'full' ],
+		'styles'                => [ 'color' => '#333' ],
+	] );
+
+	expect( $child->resolveContentAreaSettings() )->toEqual( [
+		'max_width' => 'full',
+		'padding'   => 'medium',
+	] )
+		->and( $child->resolveStyles() )->toEqual( [
+			'color' => '#333',
+			'font'  => 'sans-serif',
+		] );
+} );
+
+it( 'sanitizes forbidden overrides in model createVariation', function (): void {
+	$parent = Template::create( [
+		'name'    => 'Parent',
+		'slug'    => 'parent-model-sanitize',
+		'content' => [],
+	] );
+
+	$variation = $parent->createVariation( 'child-model-sanitize', 'Child', [
+		'parent_id' => 9999,
+		'id'        => 9999,
+	] );
+
+	expect( $variation->parent_id )->toBe( $parent->id )
+		->and( $variation->id )->not->toBe( 9999 );
+} );
+
 it( 'sets parent_id to null when parent is deleted', function (): void {
 	$parent = Template::create( [
 		'name'    => 'Parent',
