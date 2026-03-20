@@ -411,3 +411,52 @@ test( 'scale and custom steps merge in get scale', function (): void {
 	expect( $scale )->toHaveKey( 'md' )
 		->and( $scale )->toHaveKey( 'hero' );
 } );
+
+test( 'from store format sanitizes block gap value', function (): void {
+	$manager = new SpacingScaleManager();
+	$manager->fromStoreFormat( [
+		'blockGap' => 'md<script>alert(1)</script>',
+	] );
+
+	expect( $manager->getBlockGap() )->toBe( 'mdscriptalert1script' );
+} );
+
+test( 'set step accepts negative dimension values', function (): void {
+	$manager = new SpacingScaleManager();
+	$manager->setStep( 'negative', 'Negative', '-1rem' );
+
+	expect( $manager->getStepValue( 'negative' ) )->toBe( '-1rem' );
+} );
+
+test( 'constructor skips custom steps with invalid dimensions', function (): void {
+	$config = [
+		'customSteps' => [
+			[ 'name' => 'Valid', 'slug' => 'valid', 'value' => '2rem' ],
+			[ 'name' => 'Invalid', 'slug' => 'invalid', 'value' => 'not-a-dimension' ],
+		],
+	];
+
+	$manager = new SpacingScaleManager( $config );
+
+	expect( $manager->hasStep( 'valid' ) )->toBeTrue()
+		->and( $manager->hasStep( 'invalid' ) )->toBeFalse();
+} );
+
+test( 'from store format skips entries with invalid dimensions', function (): void {
+	$manager = new SpacingScaleManager();
+	$manager->fromStoreFormat( [
+		'scale' => [
+			[ 'name' => 'Good', 'slug' => 'good', 'value' => '1rem' ],
+			[ 'name' => 'Bad', 'slug' => 'bad', 'value' => 'javascript:alert(1)' ],
+		],
+		'customSteps' => [
+			[ 'name' => 'Custom Good', 'slug' => 'custom-good', 'value' => '3px' ],
+			[ 'name' => 'Custom Bad', 'slug' => 'custom-bad', 'value' => '<img onerror>' ],
+		],
+	] );
+
+	expect( $manager->hasStep( 'good' ) )->toBeTrue()
+		->and( $manager->hasStep( 'bad' ) )->toBeFalse()
+		->and( $manager->hasStep( 'custom-good' ) )->toBeTrue()
+		->and( $manager->hasStep( 'custom-bad' ) )->toBeFalse();
+} );

@@ -114,20 +114,7 @@ class InspectorControls extends Component
 		$covered = [];
 
 		foreach ( $this->supportsPanels() as $panel ) {
-			foreach ( $panel['controls'] ?? [] as $control ) {
-				if ( isset( $control['field'] ) ) {
-					$covered[] = $control['field'];
-				}
-
-				// Row controls contain nested controls with their own fields.
-				if ( 'row' === ( $control['type'] ?? '' ) && isset( $control['controls'] ) ) {
-					foreach ( $control['controls'] as $rowControl ) {
-						if ( isset( $rowControl['field'] ) ) {
-							$covered[] = $rowControl['field'];
-						}
-					}
-				}
-			}
+			$covered = array_merge( $covered, $this->collectFieldsFromControls( $panel['controls'] ?? [] ) );
 		}
 
 		return $covered;
@@ -143,5 +130,34 @@ class InspectorControls extends Component
 	public function render(): View|Closure|string
 	{
 		return view( 'visual-editor::components.inspector-controls' );
+	}
+
+	/**
+	 * Recursively collect field names from a controls array.
+	 *
+	 * Traverses any nesting depth (row, group, or future container types)
+	 * to find all field names covered by supports panels.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<int, array<string, mixed>> $controls The controls to traverse.
+	 *
+	 * @return array<int, string>
+	 */
+	protected function collectFieldsFromControls( array $controls ): array
+	{
+		$fields = [];
+
+		foreach ( $controls as $control ) {
+			if ( isset( $control['field'] ) ) {
+				$fields[] = $control['field'];
+			}
+
+			if ( isset( $control['controls'] ) && is_array( $control['controls'] ) ) {
+				$fields = array_merge( $fields, $this->collectFieldsFromControls( $control['controls'] ) );
+			}
+		}
+
+		return $fields;
 	}
 }

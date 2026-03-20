@@ -1252,6 +1252,7 @@ return [
 	'spacing_step_name'             => 'Step name',
 	'spacing_step_slug'             => 'Step slug',
 	'spacing_slug_exists'           => 'A step with this slug already exists.',
+	'spacing_edit_required'         => 'Name and value are required.',
 	'spacing_padding'               => 'Padding',
 	'spacing_margin'                => 'Margin',
 	'spacing_gap'                   => 'Gap',

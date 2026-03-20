@@ -87,11 +87,14 @@
 
 		@case ( 'spacing' )
 			@php
-				$spacingSides   = $schema['sides'] ?? [ 'top', 'right', 'bottom', 'left' ];
-				$spacingManager = app( 'visual-editor.spacing-scale' );
-				$spacingSteps   = array_values( $spacingManager->getScale() );
-				$currentBox     = is_array( $currentValue ) ? $currentValue : [];
-				$isLinked       = $currentBox['linked'] ?? true;
+				$spacingSides      = $schema['sides'] ?? [ 'top', 'right', 'bottom', 'left' ];
+				$spacingManager    = app( 'visual-editor.spacing-scale' );
+				$spacingSteps      = array_values( $spacingManager->getScale() );
+				$currentBox        = is_array( $currentValue ) ? $currentValue : [];
+				$isLinked          = $currentBox['linked'] ?? true;
+				$allowsNegative    = 'margin' === $name;
+				$spacingCustomStep = $schema['step'] ?? 'any';
+				$spacingCustomMin  = $schema['min'] ?? ( $allowsNegative ? null : '0' );
 
 				$spacingStoreSync = '';
 				if ( 'dynamic' === $blockId ) {
@@ -253,14 +256,21 @@
 				</div>
 				<div class="grid grid-cols-2 gap-2">
 					@foreach ( $spacingSides as $side )
+						@php
+							$sideLabelId = $uuid . '-' . $name . '-' . $side . '-label';
+						@endphp
 						<div class="flex flex-col gap-0.5">
-							<span class="text-[10px] font-medium uppercase tracking-wider text-base-content/40 text-center">
+							<span
+								id="{{ $sideLabelId }}"
+								class="text-[10px] font-medium uppercase tracking-wider text-base-content/40 text-center"
+							>
 								{{ __( 'visual-editor::ve.' . $side ) }}
 							</span>
 							<select
 								class="select select-bordered select-sm w-full text-xs"
 								:value="getSelectValue( '{{ $side }}' )"
 								x-on:change="onPresetChange( '{{ $side }}', $event.target.value )"
+								aria-labelledby="{{ $sideLabelId }}"
 							>
 								<option value="">—</option>
 								<template x-for="step in spacingSteps" :key="'{{ $name }}-{{ $side }}-' + step.slug">
@@ -272,15 +282,18 @@
 								<input
 									type="number"
 									class="input input-bordered input-sm flex-1 font-mono text-xs min-w-0"
-									step="1"
+									step="{{ $spacingCustomStep }}"
+									@if ( null !== $spacingCustomMin ) min="{{ $spacingCustomMin }}" @endif
 									placeholder="0"
 									:value="sides['{{ $side }}'].custom"
 									x-on:input="onCustomInput( '{{ $side }}', $event.target.value )"
+									aria-label="{{ __( 'visual-editor::ve.' . $side ) }} {{ $fieldLabel }}"
 								/>
 								<select
 									class="select select-bordered select-sm w-16 text-xs"
 									:value="sides['{{ $side }}'].unit"
 									x-on:change="onUnitChange( '{{ $side }}', $event.target.value )"
+									aria-label="{{ __( 'visual-editor::ve.' . $side ) }} {{ __( 'visual-editor::ve.unit' ) }}"
 								>
 									<template x-for="u in units" :key="'{{ $name }}-{{ $side }}-u-' + u">
 										<option :value="u" x-text="u"></option>

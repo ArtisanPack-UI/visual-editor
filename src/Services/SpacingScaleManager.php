@@ -200,7 +200,7 @@ class SpacingScaleManager
 
 		if ( isset( $config['customSteps'] ) && is_array( $config['customSteps'] ) ) {
 			foreach ( $config['customSteps'] as $entry ) {
-				if ( isset( $entry['slug'], $entry['name'], $entry['value'] ) ) {
+				if ( isset( $entry['slug'], $entry['name'], $entry['value'] ) && $this->isValidDimension( $entry['value'] ) ) {
 					$this->customSteps[ $entry['slug'] ] = $entry;
 				}
 			}

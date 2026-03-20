@@ -31,6 +31,7 @@
 		editName: '',
 		editSlug: '',
 		editValue: '',
+		editError: '',
 		adding: false,
 		newName: '',
 		newSlug: '',
@@ -49,20 +50,26 @@
 
 		saveEdit() {
 			if ( ! this.editing ) return
+			this.editError = ''
 			const value = this.editValue.trim()
-			if ( ! this.editName.trim() || ! value ) return
+			if ( ! this.editName.trim() || ! value ) {
+				this.editError = '{{ __( 'visual-editor::ve.spacing_edit_required' ) }}'
+				return
+			}
 			const list = this.editing.isCustom ? this.customSteps : this.scale
 			list[ this.editing.index ] = {
 				name:  this.editName.trim(),
 				slug:  list[ this.editing.index ].slug,
 				value: value,
 			}
-			this.editing = null
+			this.editing   = null
+			this.editError = ''
 			this._dispatch()
 		},
 
 		cancelEdit() {
-			this.editing = null
+			this.editing   = null
+			this.editError = ''
 		},
 
 		removeCustomStep( index ) {
@@ -224,11 +231,11 @@
 				>
 					<div
 						class="h-4 rounded bg-primary/20 shrink-0"
-						x-bind:style="{ '--ve-preview-size': /^\d+(\.\d+)?(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)$/.test( entry.value ) ? entry.value : '0px' }" style="width: calc( 8px + var(--ve-preview-size, 0px) )"
+						x-bind:style="{ '--ve-preview-size': /^-?\d*\.?\d+(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)?$/.test( entry.value ) ? entry.value : '0px' }" style="width: calc( 8px + var(--ve-preview-size, 0px) )"
 					></div>
 					<button
 						type="button"
-						class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer text-left focus:outline-none"
+						class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
 						x-on:click="startEdit( index, false )"
 						:aria-label="'{{ __( 'visual-editor::ve.spacing_edit_step' ) }}: ' + entry.name"
 					>
@@ -247,16 +254,19 @@
 						<input
 							type="text"
 							x-model="editName"
+							x-on:input="editError = ''"
 							class="input input-sm input-bordered flex-1 min-w-0"
 							placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
 						/>
 						<input
 							type="text"
 							x-model="editValue"
+							x-on:input="editError = ''"
 							class="input input-sm input-bordered w-28 font-mono text-xs"
 							placeholder="1rem"
 						/>
 					</div>
+					<p x-show="editError" x-cloak x-text="editError" class="text-xs text-error"></p>
 					<div class="flex justify-end gap-2">
 						<button
 							type="button"
@@ -294,11 +304,11 @@
 					>
 						<div
 							class="h-4 rounded bg-accent/20 shrink-0"
-							x-bind:style="{ '--ve-preview-size': /^\d+(\.\d+)?(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)$/.test( entry.value ) ? entry.value : '0px' }" style="width: calc( 8px + var(--ve-preview-size, 0px) )"
+							x-bind:style="{ '--ve-preview-size': /^-?\d*\.?\d+(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)?$/.test( entry.value ) ? entry.value : '0px' }" style="width: calc( 8px + var(--ve-preview-size, 0px) )"
 						></div>
 						<button
 							type="button"
-							class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer text-left focus:outline-none"
+							class="flex items-center gap-2 min-w-0 flex-1 cursor-pointer text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 rounded"
 							x-on:click="startEdit( index, true )"
 							:aria-label="'{{ __( 'visual-editor::ve.spacing_edit_step' ) }}: ' + entry.name"
 						>
