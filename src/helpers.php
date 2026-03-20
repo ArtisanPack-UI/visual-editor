@@ -647,6 +647,157 @@ if ( ! function_exists( 'veCreateTemplateVariation' ) ) {
 	}
 }
 
+if ( ! function_exists( 'veGetTypographyPresets' ) ) {
+	/**
+	 * Get the current typography presets (font families and elements).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array{fontFamilies: array<string, string>, elements: array<string, array<string, string>>}
+	 */
+	function veGetTypographyPresets(): array
+	{
+		return app( 'visual-editor.typography-presets' )->toStoreFormat();
+	}
+}
+
+if ( ! function_exists( 'veGetFontFamily' ) ) {
+	/**
+	 * Get a font family value by slot.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $slot The font family slot (heading, body, mono).
+	 *
+	 * @return string|null
+	 */
+	function veGetFontFamily( string $slot ): ?string
+	{
+		return app( 'visual-editor.typography-presets' )->getFontFamily( $slot );
+	}
+}
+
+if ( ! function_exists( 'veGetTypographyElement' ) ) {
+	/**
+	 * Get typography styles for a specific element.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $element The element key (h1-h6, body, small, caption, blockquote, code).
+	 *
+	 * @return array<string, string>|null
+	 */
+	function veGetTypographyElement( string $element ): ?array
+	{
+		return app( 'visual-editor.typography-presets' )->getElement( $element );
+	}
+}
+
+if ( ! function_exists( 'veGenerateTypographyCss' ) ) {
+	/**
+	 * Generate the full CSS :root block for typography custom properties.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string
+	 */
+	function veGenerateTypographyCss(): string
+	{
+		return app( 'visual-editor.typography-presets' )->generateCssBlock();
+	}
+}
+
+if ( ! function_exists( 'veRegisterGoogleFont' ) ) {
+	/**
+	 * Register a Google Font for loading.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string             $family   The font family name.
+	 * @param array<int, string> $weights  Font weights to load.
+	 * @param array<int, string> $styles   Font styles to load.
+	 * @param string             $category Font category: 'all', 'heading', or 'body'.
+	 *
+	 * @return void
+	 */
+	function veRegisterGoogleFont( string $family, array $weights = [ '400', '700' ], array $styles = [ 'normal' ], string $category = 'all' ): void
+	{
+		app( 'visual-editor.typography-presets' )->registerGoogleFont( $family, $weights, $styles, $category );
+	}
+}
+
+if ( ! function_exists( 'veRegisterFont' ) ) {
+	/**
+	 * Register a font in the typography collection.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $slug     Unique slug for the font.
+	 * @param string $name     Display name.
+	 * @param string $family   CSS font-family stack.
+	 * @param string $category Font category: 'all', 'heading', or 'body'.
+	 * @param string $source   Font source: 'system', 'custom', or 'google'.
+	 *
+	 * @return void
+	 */
+	function veRegisterFont( string $slug, string $name, string $family, string $category = 'all', string $source = 'custom' ): void
+	{
+		app( 'visual-editor.typography-presets' )->registerFont( $slug, $name, $family, $category, $source );
+	}
+}
+
+if ( ! function_exists( 'veGetAvailableFonts' ) ) {
+	/**
+	 * Get all available fonts, optionally filtered by category.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string|null $category Optional category filter: 'heading', 'body', or null for all.
+	 *
+	 * @return array<string, array{name: string, family: string, category: string, source: string}>
+	 */
+	function veGetAvailableFonts( ?string $category = null ): array
+	{
+		return app( 'visual-editor.typography-presets' )->getAvailableFonts( $category );
+	}
+}
+
+if ( ! function_exists( 'veGetFontOptions' ) ) {
+	/**
+	 * Get available fonts as options for a dropdown (family => name).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string|null $category Optional category filter.
+	 *
+	 * @return array<string, string>
+	 */
+	function veGetFontOptions( ?string $category = null ): array
+	{
+		return app( 'visual-editor.typography-presets' )->getFontOptions( $category );
+	}
+}
+
+if ( ! function_exists( 'veRegisterCustomFont' ) ) {
+	/**
+	 * Register a custom font for @font-face generation.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $family   The font family name.
+	 * @param string $src      The font source URL.
+	 * @param string $weight   The font weight (default: '400').
+	 * @param string $style    The font style (default: 'normal').
+	 * @param string $category Font category: 'all', 'heading', or 'body'.
+	 *
+	 * @return void
+	 */
+	function veRegisterCustomFont( string $family, string $src, string $weight = '400', string $style = 'normal', string $category = 'all' ): void
+	{
+		app( 'visual-editor.typography-presets' )->registerCustomFont( $family, $src, $weight, $style, $category );
+	}
+}
+
 if ( ! function_exists( 'veSanitizeHtmlId' ) ) {
 	/**
 	 * Sanitize a value for use as an HTML id attribute.

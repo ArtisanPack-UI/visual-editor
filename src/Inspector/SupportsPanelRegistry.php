@@ -55,7 +55,7 @@ class SupportsPanelRegistry
 			];
 		}
 
-		if ( $this->hasAnySupport( $activeSupports, [ 'typography.fontSize', 'typography.fontFamily', 'typography.dropCap' ] ) ) {
+		if ( $this->hasAnySupport( $activeSupports, [ 'typography.fontSize', 'typography.fontFamily', 'typography.appearance', 'typography.lineHeight', 'typography.letterSpacing', 'typography.decoration', 'typography.letterCase', 'typography.dropCap' ] ) ) {
 			$panels[] = [
 				'key'      => 'typography',
 				'label'    => __( 'visual-editor::ve.typography' ),
@@ -168,6 +168,28 @@ class SupportsPanelRegistry
 	{
 		$controls = [];
 
+		if ( in_array( 'typography.fontFamily', $activeSupports, true ) ) {
+			$controls[] = [
+				'type'  => 'font_family',
+				'field' => 'fontFamily',
+				'label' => __( 'visual-editor::ve.typography_font' ),
+			];
+		} elseif ( in_array( 'typography.fontFamily.heading', $activeSupports, true ) ) {
+			$controls[] = [
+				'type'         => 'font_family',
+				'field'        => 'fontFamily',
+				'label'        => __( 'visual-editor::ve.typography_font' ),
+				'fontCategory' => 'heading',
+			];
+		} elseif ( in_array( 'typography.fontFamily.body', $activeSupports, true ) ) {
+			$controls[] = [
+				'type'         => 'font_family',
+				'field'        => 'fontFamily',
+				'label'        => __( 'visual-editor::ve.typography_font' ),
+				'fontCategory' => 'body',
+			];
+		}
+
 		if ( in_array( 'typography.fontSize', $activeSupports, true ) ) {
 			$controls[] = [
 				'type'  => 'font_size',
@@ -176,11 +198,65 @@ class SupportsPanelRegistry
 			];
 		}
 
-		if ( in_array( 'typography.fontFamily', $activeSupports, true ) ) {
+		$appearanceLineRow = [];
+
+		if ( in_array( 'typography.appearance', $activeSupports, true ) ) {
+			$appearanceLineRow[] = [
+				'type'  => 'appearance',
+				'field' => 'fontAppearance',
+				'label' => __( 'visual-editor::ve.typography_appearance' ),
+			];
+		}
+
+		if ( in_array( 'typography.lineHeight', $activeSupports, true ) ) {
+			$appearanceLineRow[] = [
+				'type'  => 'line_height',
+				'field' => 'lineHeight',
+				'label' => __( 'visual-editor::ve.typography_line_height' ),
+			];
+		}
+
+		if ( count( $appearanceLineRow ) > 1 ) {
 			$controls[] = [
-				'type'  => 'select',
-				'field' => 'fontFamily',
-				'label' => __( 'visual-editor::ve.font_family' ),
+				'type'     => 'row',
+				'controls' => $appearanceLineRow,
+			];
+		} else {
+			$controls = array_merge( $controls, $appearanceLineRow );
+		}
+
+		$spacingDecoRow = [];
+
+		if ( in_array( 'typography.letterSpacing', $activeSupports, true ) ) {
+			$spacingDecoRow[] = [
+				'type'  => 'letter_spacing',
+				'field' => 'letterSpacing',
+				'label' => __( 'visual-editor::ve.typography_letter_spacing' ),
+			];
+		}
+
+		if ( in_array( 'typography.decoration', $activeSupports, true ) ) {
+			$spacingDecoRow[] = [
+				'type'  => 'decoration',
+				'field' => 'textDecoration',
+				'label' => __( 'visual-editor::ve.typography_decoration' ),
+			];
+		}
+
+		if ( count( $spacingDecoRow ) > 1 ) {
+			$controls[] = [
+				'type'     => 'row',
+				'controls' => $spacingDecoRow,
+			];
+		} else {
+			$controls = array_merge( $controls, $spacingDecoRow );
+		}
+
+		if ( in_array( 'typography.letterCase', $activeSupports, true ) ) {
+			$controls[] = [
+				'type'  => 'letter_case',
+				'field' => 'textTransform',
+				'label' => __( 'visual-editor::ve.typography_letter_case' ),
 			];
 		}
 

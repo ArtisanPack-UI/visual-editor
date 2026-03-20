@@ -20,7 +20,8 @@ test( 'getActiveStyleSupports excludes disabled supports', function (): void {
 
 	$active = $block->getActiveStyleSupports();
 
-	expect( $active )->not->toContain( 'typography.fontFamily' );
+	expect( $active )->not->toContain( 'typography.dropCap' );
+	expect( $active )->toContain( 'typography.fontFamily' );
 	expect( $active )->toContain( 'spacing.margin' );
 	expect( $active )->toContain( 'spacing.padding' );
 	expect( $active )->toContain( 'border' );

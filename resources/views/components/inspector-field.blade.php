@@ -185,6 +185,213 @@
 			/>
 			@break
 
+		@case ( 'font_family' )
+			@php
+				$typographyManager   = app( 'visual-editor.typography-presets' );
+				$fontCategoryFilter  = $schema['fontCategory'] ?? null;
+				$registeredFonts     = $typographyManager->getFontOptions( $fontCategoryFilter );
+				$familyOptions       = [ '' => __( 'visual-editor::ve.typography_default' ) ] + $registeredFonts;
+			@endphp
+			<div class="ve-inspector-field-font-family">
+				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1">
+					{{ $fieldLabel }}
+				</label>
+				<select
+					id="{{ $uuid }}-font-family"
+					class="select select-bordered select-sm w-full"
+					x-data="{ value: {{ Js::from( $currentValue ?? '' ) }} }"
+					x-model="value"
+					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
+					x-on:change="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: value } )"
+				>
+					@foreach ( $familyOptions as $optionValue => $optionLabel )
+						<option value="{{ $optionValue }}">{{ $optionLabel }}</option>
+					@endforeach
+				</select>
+			</div>
+			@break
+
+		@case ( 'appearance' )
+			@php
+				$appearanceOptions = [
+					''                   => __( 'visual-editor::ve.typography_default' ),
+					'100'                => __( 'visual-editor::ve.typography_appearance_thin' ),
+					'200'                => __( 'visual-editor::ve.typography_appearance_extra_light' ),
+					'300'                => __( 'visual-editor::ve.typography_appearance_light' ),
+					'400'                => __( 'visual-editor::ve.typography_appearance_regular' ),
+					'500'                => __( 'visual-editor::ve.typography_appearance_medium' ),
+					'600'                => __( 'visual-editor::ve.typography_appearance_semi_bold' ),
+					'700'                => __( 'visual-editor::ve.typography_appearance_bold' ),
+					'800'                => __( 'visual-editor::ve.typography_appearance_extra_bold' ),
+					'900'                => __( 'visual-editor::ve.typography_appearance_black' ),
+					'100-italic'         => __( 'visual-editor::ve.typography_appearance_thin_italic' ),
+					'200-italic'         => __( 'visual-editor::ve.typography_appearance_extra_light_italic' ),
+					'300-italic'         => __( 'visual-editor::ve.typography_appearance_light_italic' ),
+					'400-italic'         => __( 'visual-editor::ve.typography_appearance_regular_italic' ),
+					'500-italic'         => __( 'visual-editor::ve.typography_appearance_medium_italic' ),
+					'600-italic'         => __( 'visual-editor::ve.typography_appearance_semi_bold_italic' ),
+					'700-italic'         => __( 'visual-editor::ve.typography_appearance_bold_italic' ),
+					'800-italic'         => __( 'visual-editor::ve.typography_appearance_extra_bold_italic' ),
+					'900-italic'         => __( 'visual-editor::ve.typography_appearance_black_italic' ),
+				];
+			@endphp
+			<div class="ve-inspector-field-appearance">
+				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1">
+					{{ $fieldLabel }}
+				</label>
+				<select
+					id="{{ $uuid }}-appearance"
+					class="select select-bordered select-sm w-full"
+					x-data="{ value: {{ Js::from( $currentValue ?? '' ) }} }"
+					x-model="value"
+					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
+					x-on:change="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: value } )"
+				>
+					@foreach ( $appearanceOptions as $optionValue => $optionLabel )
+						<option value="{{ $optionValue }}">{{ $optionLabel }}</option>
+					@endforeach
+				</select>
+			</div>
+			@break
+
+		@case ( 'line_height' )
+			<div class="ve-inspector-field-line-height">
+				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1" for="{{ $uuid }}-line-height">
+					{{ $fieldLabel }}
+				</label>
+				<div
+					class="flex items-center gap-1"
+					x-data="{ value: {{ Js::from( $currentValue ?? '' ) }} }"
+					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
+				>
+					<input
+						type="number"
+						id="{{ $uuid }}-line-height"
+						class="input input-bordered input-sm w-full font-mono text-xs"
+						step="0.1"
+						min="0"
+						max="10"
+						placeholder="1.5"
+						x-model="value"
+						x-on:change="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: value } )"
+					/>
+					<button
+						type="button"
+						class="btn btn-ghost btn-sm btn-square shrink-0"
+						x-on:click="value = Math.min( 10, parseFloat( value || 1.5 ) + 0.1 ); value = parseFloat( value.toFixed( 1 ) ); $dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: String( value ) } )"
+						aria-label="{{ __( 'visual-editor::ve.typography_increase' ) }}"
+					>
+						<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+					</button>
+					<button
+						type="button"
+						class="btn btn-ghost btn-sm btn-square shrink-0"
+						x-on:click="value = Math.max( 0, parseFloat( value || 1.5 ) - 0.1 ); value = parseFloat( value.toFixed( 1 ) ); $dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: String( value ) } )"
+						aria-label="{{ __( 'visual-editor::ve.typography_decrease' ) }}"
+					>
+						<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" /></svg>
+					</button>
+				</div>
+			</div>
+			@break
+
+		@case ( 'letter_spacing' )
+			<div class="ve-inspector-field-letter-spacing">
+				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1" for="{{ $uuid }}-letter-spacing">
+					{{ $fieldLabel }}
+				</label>
+				<div
+					class="flex items-center gap-1"
+					x-data="{ value: {{ Js::from( $currentValue ?? '' ) }}, unit: 'px' }"
+					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
+				>
+					<input
+						type="number"
+						id="{{ $uuid }}-letter-spacing"
+						class="input input-bordered input-sm flex-1 font-mono text-xs"
+						step="0.5"
+						placeholder="0"
+						x-model="value"
+						x-on:change="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: ( value !== '' && value !== null ) ? value + unit : '' } )"
+					/>
+					<span class="text-xs text-base-content/40 font-mono shrink-0 w-6 text-center">px</span>
+				</div>
+			</div>
+			@break
+
+		@case ( 'decoration' )
+			@php
+				$decorationOptions = [
+					[ 'value' => '',             'label' => __( 'visual-editor::ve.typography_decoration_none' ),          'icon' => 'M20 12H4' ],
+					[ 'value' => 'underline',    'label' => __( 'visual-editor::ve.typography_decoration_underline' ),     'icon' => 'M6 3v7a6 6 0 0012 0V3M4 21h16' ],
+					[ 'value' => 'line-through', 'label' => __( 'visual-editor::ve.typography_decoration_strikethrough' ), 'icon' => 'M16 4H9a3 3 0 100 6h6a3 3 0 010 6H8M4 12h16' ],
+				];
+			@endphp
+			<div class="ve-inspector-field-decoration">
+				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1">
+					{{ $fieldLabel }}
+				</label>
+				<div
+					class="flex gap-1"
+					x-data="{ value: {{ Js::from( $currentValue ?? '' ) }} }"
+					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
+					role="radiogroup"
+					aria-label="{{ $fieldLabel }}"
+				>
+					@foreach ( $decorationOptions as $option )
+						<button
+							type="button"
+							class="btn btn-ghost btn-sm btn-square transition-colors"
+							:class="value === {{ Js::from( $option['value'] ) }} ? 'bg-base-300 text-base-content' : 'text-base-content/40'"
+							x-on:click="value = {{ Js::from( $option['value'] ) }}; $dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: value } )"
+							:aria-pressed="value === {{ Js::from( $option['value'] ) }}"
+							title="{{ $option['label'] }}"
+						>
+							<svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" d="{{ $option['icon'] }}" />
+							</svg>
+						</button>
+					@endforeach
+				</div>
+			</div>
+			@break
+
+		@case ( 'letter_case' )
+			@php
+				$caseOptions = [
+					[ 'value' => '',           'label' => __( 'visual-editor::ve.typography_case_none' ),       'text' => '—' ],
+					[ 'value' => 'uppercase',  'label' => __( 'visual-editor::ve.typography_case_uppercase' ),  'text' => 'AB' ],
+					[ 'value' => 'lowercase',  'label' => __( 'visual-editor::ve.typography_case_lowercase' ),  'text' => 'ab' ],
+					[ 'value' => 'capitalize', 'label' => __( 'visual-editor::ve.typography_case_capitalize' ), 'text' => 'Ab' ],
+				];
+			@endphp
+			<div class="ve-inspector-field-letter-case">
+				<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider block mb-1">
+					{{ $fieldLabel }}
+				</label>
+				<div
+					class="flex gap-1"
+					x-data="{ value: {{ Js::from( $currentValue ?? '' ) }} }"
+					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
+					role="radiogroup"
+					aria-label="{{ $fieldLabel }}"
+				>
+					@foreach ( $caseOptions as $option )
+						<button
+							type="button"
+							class="btn btn-ghost btn-sm px-2 text-xs font-medium transition-colors"
+							:class="value === {{ Js::from( $option['value'] ) }} ? 'bg-base-300 text-base-content' : 'text-base-content/40'"
+							x-on:click="value = {{ Js::from( $option['value'] ) }}; $dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: value } )"
+							:aria-pressed="value === {{ Js::from( $option['value'] ) }}"
+							title="{{ $option['label'] }}"
+						>
+							{{ $option['text'] }}
+						</button>
+					@endforeach
+				</div>
+			</div>
+			@break
+
 		@case ( 'rich_text' )
 			<div class="ve-inspector-field-rich-text">
 				<label class="text-sm font-medium text-base-content/80 block mb-1">
