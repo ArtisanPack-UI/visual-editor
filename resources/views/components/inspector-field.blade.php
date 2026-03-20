@@ -87,14 +87,210 @@
 
 		@case ( 'spacing' )
 			@php
-				$spacingSides = $schema['sides'] ?? [ 'top', 'right', 'bottom', 'left' ];
+				$spacingSides   = $schema['sides'] ?? [ 'top', 'right', 'bottom', 'left' ];
+				$spacingManager = app( 'visual-editor.spacing-scale' );
+				$spacingSteps   = array_values( $spacingManager->getScale() );
+				$currentBox     = is_array( $currentValue ) ? $currentValue : [];
+				$isLinked       = $currentBox['linked'] ?? true;
+
+				$spacingStoreSync = '';
+				if ( 'dynamic' === $blockId ) {
+					$spacingStoreSync = 'const _b = $store.editor?.getBlock( $store.selection?.focused ); '
+						. 'const _v = _b?.attributes?.[' . Js::from( $name ) . ']; '
+						. 'if ( _v && typeof _v === \'object\' && ! $el.contains( document.activeElement ) ) { '
+						. '_parseSidesFromBlock( _v ); '
+						. '}';
+				}
 			@endphp
-			<x-ve-box-control
-				:label="$fieldLabel"
-				:sides="$spacingSides"
-				:values="is_array( $currentValue ) ? $currentValue : []"
-				x-on:ve-box-change.stop="$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: $event.detail } )"
-			/>
+			<div
+				class="ve-inspector-field-spacing"
+				x-data="{
+					spacingSteps: {{ Js::from( $spacingSteps ) }},
+					units: [ 'px', 'em', 'rem', '%', 'vh', 'vw' ],
+					linked: {{ Js::from( $isLinked ) }},
+					sides: {
+						@foreach ( $spacingSides as $s )
+							{{ $s }}: { mode: 'preset', preset: '', custom: '', unit: 'px' },
+						@endforeach
+					},
+
+					init() {
+						this._parseSidesFromBlock( {{ Js::from( $currentBox ) }} );
+					},
+
+					_parseSidesFromBlock( boxVal ) {
+						if ( ! boxVal || typeof boxVal !== 'object' ) return;
+						@foreach ( $spacingSides as $s )
+							this._parseSide( '{{ $s }}', boxVal['{{ $s }}'] ?? '' );
+						@endforeach
+						if ( boxVal.linked !== undefined ) this.linked = boxVal.linked;
+					},
+
+					_parseSide( side, val ) {
+						const state = this.sides[ side ];
+						if ( ! val || '' === val ) {
+							state.mode = 'preset';
+							state.preset = '';
+							state.custom = '';
+							state.unit = 'px';
+							return;
+						}
+						const isPreset = this.spacingSteps.some( s => s.slug === val );
+						if ( isPreset ) {
+							state.mode = 'preset';
+							state.preset = val;
+						} else {
+							state.mode = 'custom';
+							const m = String( val ).match( /^(-?\d*\.?\d+)\s*([a-z%]+)$/i );
+							if ( m ) {
+								state.custom = m[1];
+								state.unit = m[2];
+							} else {
+								state.custom = val;
+								state.unit = 'px';
+							}
+						}
+					},
+
+					_resolveValue( state ) {
+						if ( 'custom' === state.mode ) {
+							return ( '' !== state.custom && null !== state.custom ) ? state.custom + state.unit : '';
+						}
+						return state.preset || '';
+					},
+
+					getSelectValue( side ) {
+						const state = this.sides[ side ];
+						if ( 'custom' === state.mode ) return 'custom';
+						return state.preset || '';
+					},
+
+					isCustomMode( side ) {
+						return this.sides[ side ].mode === 'custom';
+					},
+
+					onPresetChange( side, value ) {
+						const state = this.sides[ side ];
+						if ( 'custom' === value ) {
+							state.mode = 'custom';
+							state.preset = '';
+						} else {
+							state.mode = 'preset';
+							state.preset = value;
+							state.custom = '';
+						}
+						if ( this.linked ) this._syncLinked( side );
+						this._dispatch();
+					},
+
+					onCustomInput( side, value ) {
+						this.sides[ side ].custom = value;
+						if ( this.linked ) this._syncLinked( side );
+						this._dispatch();
+					},
+
+					onUnitChange( side, value ) {
+						this.sides[ side ].unit = value;
+						if ( this.linked ) this._syncLinked( side );
+						this._dispatch();
+					},
+
+					toggleLinked() {
+						this.linked = ! this.linked;
+						if ( this.linked ) {
+							const firstSide = Object.keys( this.sides )[0];
+							this._syncLinked( firstSide );
+						}
+						this._dispatch();
+					},
+
+					_syncLinked( sourceSide ) {
+						const source = this.sides[ sourceSide ];
+						Object.keys( this.sides ).forEach( s => {
+							if ( s !== sourceSide ) {
+								this.sides[ s ].mode = source.mode;
+								this.sides[ s ].preset = source.preset;
+								this.sides[ s ].custom = source.custom;
+								this.sides[ s ].unit = source.unit;
+							}
+						} );
+					},
+
+					_dispatch() {
+						const detail = { linked: this.linked };
+						Object.keys( this.sides ).forEach( s => {
+							detail[ s ] = this._resolveValue( this.sides[ s ] );
+						} );
+						$dispatch( 've-field-change', {
+							blockId: {{ Js::from( $blockId ) }},
+							field: {{ Js::from( $name ) }},
+							value: detail,
+						} );
+					},
+				}"
+				@if ( $spacingStoreSync ) x-effect="{{ $spacingStoreSync }}" @endif
+			>
+				<div class="flex items-center justify-between mb-2">
+					<label class="text-xs font-medium text-base-content/60">
+						{{ $fieldLabel }}
+					</label>
+					<button
+						type="button"
+						x-on:click="toggleLinked()"
+						:class="linked ? 'text-primary' : 'text-base-content/30 hover:text-base-content/60'"
+						class="p-1 rounded transition-colors cursor-pointer"
+						:aria-pressed="linked ? 'true' : 'false'"
+						aria-label="{{ __( 'visual-editor::ve.link_sides' ) }}"
+					>
+						<svg x-show="linked" class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+						</svg>
+						<svg x-show="! linked" x-cloak class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m3.212-8.383l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+							<path stroke-linecap="round" stroke-width="2" d="M4 20L20 4" />
+						</svg>
+					</button>
+				</div>
+				<div class="grid grid-cols-2 gap-2">
+					@foreach ( $spacingSides as $side )
+						<div class="flex flex-col gap-0.5">
+							<span class="text-[10px] font-medium uppercase tracking-wider text-base-content/40 text-center">
+								{{ __( 'visual-editor::ve.' . $side ) }}
+							</span>
+							<select
+								class="select select-bordered select-sm w-full text-xs"
+								:value="getSelectValue( '{{ $side }}' )"
+								x-on:change="onPresetChange( '{{ $side }}', $event.target.value )"
+							>
+								<option value="">—</option>
+								<template x-for="step in spacingSteps" :key="'{{ $name }}-{{ $side }}-' + step.slug">
+									<option :value="step.slug" x-text="step.slug"></option>
+								</template>
+								<option value="custom">{{ __( 'visual-editor::ve.custom' ) }}</option>
+							</select>
+							<div x-show="isCustomMode( '{{ $side }}' )" x-cloak class="flex gap-1">
+								<input
+									type="number"
+									class="input input-bordered input-sm flex-1 font-mono text-xs min-w-0"
+									step="1"
+									placeholder="0"
+									:value="sides['{{ $side }}'].custom"
+									x-on:input="onCustomInput( '{{ $side }}', $event.target.value )"
+								/>
+								<select
+									class="select select-bordered select-sm w-16 text-xs"
+									:value="sides['{{ $side }}'].unit"
+									x-on:change="onUnitChange( '{{ $side }}', $event.target.value )"
+								>
+									<template x-for="u in units" :key="'{{ $name }}-{{ $side }}-u-' + u">
+										<option :value="u" x-text="u"></option>
+									</template>
+								</select>
+							</div>
+						</div>
+					@endforeach
+				</div>
+			</div>
 			@break
 
 		@case ( 'select' )

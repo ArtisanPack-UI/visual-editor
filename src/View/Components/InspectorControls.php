@@ -118,6 +118,15 @@ class InspectorControls extends Component
 				if ( isset( $control['field'] ) ) {
 					$covered[] = $control['field'];
 				}
+
+				// Row controls contain nested controls with their own fields.
+				if ( 'row' === ( $control['type'] ?? '' ) && isset( $control['controls'] ) ) {
+					foreach ( $control['controls'] as $rowControl ) {
+						if ( isset( $rowControl['field'] ) ) {
+							$covered[] = $rowControl['field'];
+						}
+					}
+				}
 			}
 		}
 
