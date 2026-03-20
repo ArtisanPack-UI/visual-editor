@@ -232,7 +232,7 @@ class Template extends Model
 		return Revision::create( [
 			'document_type' => 'template',
 			'document_id'   => $this->id,
-			'blocks'        => $this->content,
+			'blocks'        => $this->resolveContent(),
 			'user_id'       => $userId,
 			'created_at'    => now(),
 		] );
@@ -370,10 +370,10 @@ class Template extends Model
 			'description'           => $this->description,
 			'type'                  => $this->type,
 			'for_content_type'      => $this->for_content_type,
-			'content'               => $this->content,
+			'content'               => [],
 			'status'                => 'draft',
-			'content_area_settings' => $this->content_area_settings,
-			'styles'                => $this->styles,
+			'content_area_settings' => [],
+			'styles'                => [],
 			'is_custom'             => true,
 			'is_locked'             => false,
 			'parent_id'             => $this->id,
@@ -386,15 +386,22 @@ class Template extends Model
 	/**
 	 * Resolve the effective content for this template.
 	 *
-	 * For variations, merges parent content with any overrides.
+	 * For variations, walks up the parent chain to find inherited content.
 	 * For base templates, returns the template's own content.
+	 * Detects parent cycles and returns an empty array if found.
 	 *
 	 * @since 1.0.0
 	 *
+	 * @param array<int, int> $visited Template IDs already visited (cycle detection).
+	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function resolveContent(): array
+	public function resolveContent( array $visited = [] ): array
 	{
+		if ( in_array( $this->id, $visited, true ) ) {
+			return [];
+		}
+
 		if ( ! $this->isVariation() ) {
 			return $this->content ?? [];
 		}
@@ -411,7 +418,9 @@ class Template extends Model
 			return [];
 		}
 
-		return $parent->resolveContent();
+		$visited[] = $this->id;
+
+		return $parent->resolveContent( $visited );
 	}
 
 	/**
@@ -419,15 +428,22 @@ class Template extends Model
 	 *
 	 * For variations, recursively merges parent settings with any overrides
 	 * so nested keys are preserved. For base templates, returns the
-	 * template's own settings.
+	 * template's own settings. Detects parent cycles and returns own
+	 * settings if found.
 	 *
 	 * @since 1.0.0
 	 *
+	 * @param array<int, int> $visited Template IDs already visited (cycle detection).
+	 *
 	 * @return array<string, mixed>
 	 */
-	public function resolveContentAreaSettings(): array
+	public function resolveContentAreaSettings( array $visited = [] ): array
 	{
 		$ownSettings = $this->content_area_settings ?? [];
+
+		if ( in_array( $this->id, $visited, true ) ) {
+			return $ownSettings;
+		}
 
 		if ( ! $this->isVariation() ) {
 			return $ownSettings;
@@ -439,7 +455,9 @@ class Template extends Model
 			return $ownSettings;
 		}
 
-		$parentSettings = $parent->resolveContentAreaSettings();
+		$visited[] = $this->id;
+
+		$parentSettings = $parent->resolveContentAreaSettings( $visited );
 
 		return array_replace_recursive( $parentSettings, $ownSettings );
 	}
@@ -449,15 +467,22 @@ class Template extends Model
 	 *
 	 * For variations, recursively merges parent styles with any overrides
 	 * so nested keys are preserved. For base templates, returns the
-	 * template's own styles.
+	 * template's own styles. Detects parent cycles and returns own
+	 * styles if found.
 	 *
 	 * @since 1.0.0
 	 *
+	 * @param array<int, int> $visited Template IDs already visited (cycle detection).
+	 *
 	 * @return array<string, mixed>
 	 */
-	public function resolveStyles(): array
+	public function resolveStyles( array $visited = [] ): array
 	{
 		$ownStyles = $this->styles ?? [];
+
+		if ( in_array( $this->id, $visited, true ) ) {
+			return $ownStyles;
+		}
 
 		if ( ! $this->isVariation() ) {
 			return $ownStyles;
@@ -469,9 +494,35 @@ class Template extends Model
 			return $ownStyles;
 		}
 
-		$parentStyles = $parent->resolveStyles();
+		$visited[] = $this->id;
+
+		$parentStyles = $parent->resolveStyles( $visited );
 
 		return array_replace_recursive( $parentStyles, $ownStyles );
+	}
+
+	/**
+	 * Boot the model and register event listeners.
+	 *
+	 * Before deleting a parent template, materializes resolved content,
+	 * settings, and styles into each child variation so they are not
+	 * orphaned with empty inherited fields.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected static function booted(): void
+	{
+		static::deleting( function ( Template $template ): void {
+			foreach ( $template->variations as $variation ) {
+				$variation->update( [
+					'content'               => $variation->resolveContent(),
+					'content_area_settings' => $variation->resolveContentAreaSettings(),
+					'styles'                => $variation->resolveStyles(),
+				] );
+			}
+		} );
 	}
 
 	/**

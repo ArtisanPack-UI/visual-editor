@@ -393,19 +393,71 @@ it( 'sanitizes forbidden overrides in model createVariation', function (): void 
 		->and( $variation->id )->not->toBe( 9999 );
 } );
 
-it( 'sets parent_id to null when parent is deleted', function (): void {
+it( 'materializes resolved fields and nulls parent_id when parent is deleted', function (): void {
 	$parent = Template::create( [
-		'name'    => 'Parent',
-		'slug'    => 'parent',
-		'content' => [],
+		'name'                  => 'Parent',
+		'slug'                  => 'parent',
+		'content'               => [ [ 'type' => 'heading' ] ],
+		'content_area_settings' => [ 'max_width' => 'container', 'padding' => 'large' ],
+		'styles'                => [ 'color' => '#333' ],
 	] );
 
-	$variation = $parent->createVariation( 'child', 'Child' );
+	$variation = $parent->createVariation( 'child', 'Child', [
+		'content_area_settings' => [ 'padding' => 'none' ],
+	] );
+
+	expect( $variation->content )->toBeEmpty();
 
 	$parent->delete();
 
 	$variation->refresh();
 
 	expect( $variation->parent_id )->toBeNull()
-		->and( $variation->isVariation() )->toBeFalse();
+		->and( $variation->isVariation() )->toBeFalse()
+		->and( $variation->content )->toEqual( [ [ 'type' => 'heading' ] ] )
+		->and( $variation->content_area_settings )->toEqual( [
+			'max_width' => 'container',
+			'padding'   => 'none',
+		] )
+		->and( $variation->styles )->toEqual( [ 'color' => '#333' ] );
+} );
+
+it( 'handles cycle detection in resolveContent', function (): void {
+	$a = Template::create( [
+		'name'    => 'A',
+		'slug'    => 'cycle-a',
+		'content' => [],
+	] );
+
+	$b = $a->createVariation( 'cycle-b', 'B' );
+
+	// Manually create a cycle: A -> B -> A
+	Template::withoutEvents( function () use ( $a, $b ): void {
+		$a->update( [ 'parent_id' => $b->id ] );
+	} );
+
+	$a->refresh();
+
+	expect( $a->resolveContent() )->toBeEmpty()
+		->and( $a->resolveContentAreaSettings() )->toBeEmpty()
+		->and( $a->resolveStyles() )->toBeEmpty();
+} );
+
+it( 'creates variation with empty content to preserve inheritance', function (): void {
+	$parent = Template::create( [
+		'name'                  => 'Parent',
+		'slug'                  => 'parent-inherit',
+		'content'               => [ [ 'type' => 'heading' ] ],
+		'content_area_settings' => [ 'max_width' => 'container' ],
+		'styles'                => [ 'font' => 'serif' ],
+	] );
+
+	$variation = $parent->createVariation( 'child-inherit', 'Child' );
+
+	expect( $variation->content )->toBeEmpty()
+		->and( $variation->content_area_settings )->toBeEmpty()
+		->and( $variation->styles )->toBeEmpty()
+		->and( $variation->resolveContent() )->toEqual( [ [ 'type' => 'heading' ] ] )
+		->and( $variation->resolveContentAreaSettings() )->toEqual( [ 'max_width' => 'container' ] )
+		->and( $variation->resolveStyles() )->toEqual( [ 'font' => 'serif' ] );
 } );
