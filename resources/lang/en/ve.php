@@ -89,6 +89,19 @@ return [
 	'open_custom_color_picker'  => 'Open custom color picker',
 	'gradient_options_coming'   => 'Gradient options coming soon.',
 
+	// Color Palette Editor
+	'color_palette_title' => 'Color Palette',
+	'css_preview'         => 'CSS',
+	'edit_color'          => 'Edit color',
+	'remove_color'        => 'Remove color',
+	'add_color'           => 'Add Color',
+	'color_name'          => 'Color name',
+	'color_slug'          => 'Slug',
+	'pick_color'          => 'Pick a color',
+	'generated_css'       => 'Generated CSS',
+	'add'                 => 'Add',
+	'palette_updated'     => 'Color palette updated',
+
 	// Drop Zone
 	'files_dropped'  => '1 file dropped|:count files dropped',
 	'block_dropped'  => 'Block dropped',

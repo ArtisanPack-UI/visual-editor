@@ -106,6 +106,31 @@ return [
 		'areas'              => [ 'header', 'footer', 'sidebar', 'custom' ],
 	],
 
+	/*
+	|----------------------------------------------------------------------
+	| Global Styles: Color Palette
+	|----------------------------------------------------------------------
+	|
+	| Override the default color palette for the global styles system.
+	| When empty, the defaults from ColorPaletteManager::DEFAULT_PALETTE
+	| are used. Each entry defines a named color slot with a display name,
+	| unique slug (used in CSS custom properties), and hex value.
+	|
+	| Blocks reference these colors via 'palette:{slug}' which resolves
+	| to the CSS custom property --ve-color-{slug}.
+	|
+	| Example:
+	|   'color_palette' => [
+	|       'brand' => [
+	|           'name'  => 'Brand Blue',
+	|           'slug'  => 'brand',
+	|           'color' => '#1e40af',
+	|       ],
+	|   ],
+	|
+	*/
+	'color_palette' => [],
+
 	'blocks' => [
 		'core'     => [
 			'heading'   => true,

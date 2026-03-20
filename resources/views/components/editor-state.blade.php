@@ -51,6 +51,9 @@
 				defaultBlockType: {{ Js::from( $defaultBlockType ) }},
 				defaultInnerBlocksMap: {{ Js::from( $defaultInnerBlocksMap ) }},
 				meta: {{ Js::from( $initialMeta ) }},
+				globalStyles: {
+					palette: {{ Js::from( $initialPalette ) }},
+				},
 				showPatternModal: false,
 				leftSidebarTab: 'blocks',
 
@@ -363,6 +366,7 @@
 					this.history.past.push( {
 						blocks: JSON.parse( JSON.stringify( this.blocks ) ),
 						meta: JSON.parse( JSON.stringify( this.meta ) ),
+						globalStyles: JSON.parse( JSON.stringify( this.globalStyles ) ),
 						documentStatus: this.documentStatus,
 						scheduledDate: this.scheduledDate,
 					} );
@@ -382,6 +386,7 @@
 					this.history.future.push( {
 						blocks: JSON.parse( JSON.stringify( this.blocks ) ),
 						meta: JSON.parse( JSON.stringify( this.meta ) ),
+						globalStyles: JSON.parse( JSON.stringify( this.globalStyles ) ),
 						documentStatus: this.documentStatus,
 						scheduledDate: this.scheduledDate,
 					} );
@@ -389,6 +394,9 @@
 					this.blocks = JSON.parse( JSON.stringify( snapshot.blocks ?? snapshot ) );
 					if ( snapshot.meta ) {
 						this.meta = JSON.parse( JSON.stringify( snapshot.meta ) );
+					}
+					if ( snapshot.globalStyles ) {
+						this.globalStyles = JSON.parse( JSON.stringify( snapshot.globalStyles ) );
 					}
 					if ( undefined !== snapshot.documentStatus ) {
 						this.documentStatus = snapshot.documentStatus;
@@ -410,6 +418,7 @@
 					this.history.past.push( {
 						blocks: JSON.parse( JSON.stringify( this.blocks ) ),
 						meta: JSON.parse( JSON.stringify( this.meta ) ),
+						globalStyles: JSON.parse( JSON.stringify( this.globalStyles ) ),
 						documentStatus: this.documentStatus,
 						scheduledDate: this.scheduledDate,
 					} );
@@ -417,6 +426,9 @@
 					this.blocks = JSON.parse( JSON.stringify( snapshot.blocks ?? snapshot ) );
 					if ( snapshot.meta ) {
 						this.meta = JSON.parse( JSON.stringify( snapshot.meta ) );
+					}
+					if ( snapshot.globalStyles ) {
+						this.globalStyles = JSON.parse( JSON.stringify( snapshot.globalStyles ) );
 					}
 					if ( undefined !== snapshot.documentStatus ) {
 						this.documentStatus = snapshot.documentStatus;
@@ -549,6 +561,32 @@
 					Object.assign( this.meta, data );
 					this.markDirty();
 					this._dispatchChange();
+				},
+
+				{{-- ── Global Styles: Palette ─────────────────────────────── --}}
+
+				setPalette( entries ) {
+					this._pushHistory();
+					this.globalStyles.palette = entries;
+					this.markDirty();
+					this._dispatchChange();
+				},
+
+				getPalette() {
+					return this.globalStyles.palette;
+				},
+
+				getPaletteColor( slug ) {
+					return this.globalStyles.palette.find( ( c ) => c.slug === slug ) || null;
+				},
+
+				resolvePaletteReference( value ) {
+					if ( 'string' !== typeof value || ! value.startsWith( 'palette:' ) ) {
+						return value;
+					}
+					const slug  = value.substring( 8 );
+					const entry = this.getPaletteColor( slug );
+					return entry ? entry.color : value;
 				},
 
 				{{-- ── Pattern Operations ────────────────────────────────── --}}
@@ -793,6 +831,7 @@
 									documentStatus: this.documentStatus,
 									scheduledDate: this.scheduledDate,
 									meta: JSON.parse( JSON.stringify( this.meta ) ),
+									globalStyles: JSON.parse( JSON.stringify( this.globalStyles ) ),
 								},
 							} ) );
 						}
@@ -841,6 +880,12 @@
 
 							this.markDirty();
 							this._announceAction( {{ Js::from( __( 'visual-editor::ve.draft_restored' ) ) }} );
+						}
+					} );
+
+					document.addEventListener( 've-palette-change', ( e ) => {
+						if ( e.detail && e.detail.palette ) {
+							this.setPalette( e.detail.palette );
 						}
 					} );
 
@@ -1096,6 +1141,7 @@
 							documentStatus: this.documentStatus,
 							scheduledDate: this.scheduledDate,
 							meta: JSON.parse( JSON.stringify( this.meta ) ),
+							globalStyles: JSON.parse( JSON.stringify( this.globalStyles ) ),
 						},
 					} ) );
 				},
@@ -1154,6 +1200,7 @@
 			store.blockVariations  = {{ Js::from( $blockVariations ) }};
 			store.defaultBlockType = {{ Js::from( $defaultBlockType ) }};
 			store.meta             = {{ Js::from( $initialMeta ) }};
+			store.globalStyles     = { palette: {{ Js::from( $initialPalette ) }} };
 			store.showPatternModal = false;
 			store.leftSidebarTab   = 'blocks';
 

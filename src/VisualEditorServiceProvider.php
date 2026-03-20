@@ -26,6 +26,7 @@ use ArtisanPackUI\VisualEditor\Console\Commands\BlockClearCommand;
 use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
+use ArtisanPackUI\VisualEditor\Services\ColorPaletteManager;
 use ArtisanPackUI\VisualEditor\Services\OEmbedService;
 use ArtisanPackUI\VisualEditor\Services\TemplateAssignmentManager;
 use ArtisanPackUI\VisualEditor\Services\TemplateManager;
@@ -139,6 +140,9 @@ class VisualEditorServiceProvider extends ServiceProvider
 		'template-switcher'        => Components\TemplateSwitcher::class,
 		'template-structure-panel' => Components\TemplateStructurePanel::class,
 
+		// Phase 7: Global Styles
+		'color-palette-editor' => Components\ColorPaletteEditor::class,
+
 		// Phase 9: Editor Assembly
 		'icon'   => Components\Icon::class,
 		'editor' => Components\Editor::class,
@@ -219,6 +223,17 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( TemplatePresetManager::class, function ( $app ) {
 			return $app->make( 'visual-editor.template-presets' );
+		} );
+
+		// Config is read lazily (on first resolve, after boot merges config).
+		$this->app->singleton( 'visual-editor.color-palette', function () {
+			$configPalette = config( 'artisanpack.visual-editor.color_palette', [] );
+
+			return new ColorPaletteManager( $configPalette );
+		} );
+
+		$this->app->singleton( ColorPaletteManager::class, function ( $app ) {
+			return $app->make( 'visual-editor.color-palette' );
 		} );
 
 		$this->app->singleton( BlockRenderer::class, function ( $app ) {

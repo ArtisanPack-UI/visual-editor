@@ -56,6 +56,19 @@ class ColorSystem extends Component
 	public string $uuid;
 
 	/**
+	 * The full palette entries with name, slug, and color.
+	 *
+	 * When the global color palette is active (no custom palette passed),
+	 * this contains the named entries from ColorPaletteManager.
+	 * When a custom palette of hex strings is passed, this is empty.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<int, array{name: string, slug: string, color: string}>
+	 */
+	public array $paletteEntries = [];
+
+	/**
 	 * Create a new component instance.
 	 *
 	 * @since 1.0.0
@@ -86,7 +99,12 @@ class ColorSystem extends Component
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
 		if ( null === $this->palette ) {
-			$this->palette = self::DEFAULT_PALETTE;
+			$manager              = app( 'visual-editor.color-palette' );
+			$this->paletteEntries = $manager->toStoreFormat();
+			$this->palette        = array_map(
+				fn ( array $entry ): string => $entry['color'],
+				$this->paletteEntries,
+			);
 		}
 	}
 
