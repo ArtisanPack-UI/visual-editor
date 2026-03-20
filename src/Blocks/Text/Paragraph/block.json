@@ -36,6 +36,36 @@
 			"source": "style",
 			"default": null
 		},
+		"fontFamily": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontAppearance": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"lineHeight": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"letterSpacing": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textDecoration": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textTransform": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
 		"dropCap": {
 			"type": "boolean",
 			"source": "style",
@@ -75,6 +105,12 @@
 		},
 		"typography": {
 			"fontSize": true,
+			"fontFamily": true,
+			"appearance": true,
+			"lineHeight": true,
+			"letterSpacing": true,
+			"decoration": true,
+			"letterCase": true,
 			"dropCap": true
 		},
 		"spacing": {

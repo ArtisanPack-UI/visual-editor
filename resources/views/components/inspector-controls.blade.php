@@ -80,7 +80,18 @@
 				@foreach ( $supportsPanels as $panel )
 					<x-ve-panel-body :title="$panel['label']">
 						@foreach ( $panel['controls'] as $control )
-							@if ( 'shadow' === $control['type'] )
+							@if ( 'row' === $control['type'] )
+								<div class="grid grid-cols-2 gap-3">
+									@foreach ( $control['controls'] as $rowControl )
+										<x-ve-inspector-field
+											:name="$rowControl['field']"
+											:schema="array_merge( [ 'type' => $rowControl['type'], 'label' => $rowControl['label'] ?? '' ], array_diff_key( $rowControl, array_flip( [ 'type', 'field', 'label' ] ) ) )"
+											:value="null"
+											:block-id="$blockId"
+										/>
+									@endforeach
+								</div>
+							@elseif ( 'shadow' === $control['type'] )
 								<x-ve-shadow-control :block-id="$blockId" />
 							@elseif ( 'border' === $control['type'] )
 								<x-ve-inspector-field
@@ -92,7 +103,7 @@
 							@else
 								<x-ve-inspector-field
 									:name="$control['field']"
-									:schema="[ 'type' => $control['type'], 'label' => $control['label'] ?? '' ]"
+									:schema="array_merge( [ 'type' => $control['type'], 'label' => $control['label'] ?? '' ], array_diff_key( $control, array_flip( [ 'type', 'field', 'label' ] ) ) )"
 									:value="null"
 									:block-id="$blockId"
 								/>
@@ -216,7 +227,18 @@
 				@foreach ( $supportsPanels as $panel )
 					<x-ve-panel-body :title="$panel['label']">
 						@foreach ( $panel['controls'] as $control )
-							@if ( 'shadow' === $control['type'] )
+							@if ( 'row' === $control['type'] )
+								<div class="grid grid-cols-2 gap-3">
+									@foreach ( $control['controls'] as $rowControl )
+										<x-ve-inspector-field
+											:name="$rowControl['field']"
+											:schema="array_merge( [ 'type' => $rowControl['type'], 'label' => $rowControl['label'] ?? '' ], array_diff_key( $rowControl, array_flip( [ 'type', 'field', 'label' ] ) ) )"
+											:value="null"
+											:block-id="$blockId"
+										/>
+									@endforeach
+								</div>
+							@elseif ( 'shadow' === $control['type'] )
 								<x-ve-shadow-control :block-id="$blockId" />
 							@elseif ( 'border' === $control['type'] )
 								<x-ve-inspector-field
@@ -228,7 +250,7 @@
 							@else
 								<x-ve-inspector-field
 									:name="$control['field']"
-									:schema="[ 'type' => $control['type'], 'label' => $control['label'] ?? '' ]"
+									:schema="array_merge( [ 'type' => $control['type'], 'label' => $control['label'] ?? '' ], array_diff_key( $control, array_flip( [ 'type', 'field', 'label' ] ) ) )"
 									:value="null"
 									:block-id="$blockId"
 								/>

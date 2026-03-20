@@ -131,6 +131,46 @@ return [
 	*/
 	'color_palette' => [],
 
+	/*
+	|----------------------------------------------------------------------
+	| Global Styles: Typography Presets
+	|----------------------------------------------------------------------
+	|
+	| Override the default typography presets for the global styles system.
+	| When empty, the defaults from TypographyPresetsManager are used.
+	|
+	| 'fontFamilies': Keyed by slot (heading, body, mono) with CSS
+	|                 font-family values.
+	|
+	| 'elements':     Keyed by element (h1-h6, body, small, caption,
+	|                 blockquote, code) with typography properties:
+	|                 fontSize, fontWeight, lineHeight, letterSpacing,
+	|                 fontStyle.
+	|
+	| Example:
+	|   'typography_presets' => [
+	|       'fontFamilies' => [
+	|           'heading' => '"Playfair Display", serif',
+	|       ],
+	|       'elements' => [
+	|           'h1' => ['fontSize' => '3rem', 'fontWeight' => '800'],
+	|       ],
+	|   ],
+	|
+	*/
+	'typography_presets' => [
+		// 'fontFamilies' => [],
+		// 'elements'     => [],
+		// 'fonts'        => [
+		//     'brand-font' => [
+		//         'name'     => 'Brand Font',
+		//         'family'   => '"Brand Font", sans-serif',
+		//         'category' => 'all',    // 'all', 'heading', or 'body'
+		//         'source'   => 'custom', // 'system', 'custom', or 'google'
+		//     ],
+		// ],
+	],
+
 	'blocks' => [
 		'core'     => [
 			'heading'   => true,

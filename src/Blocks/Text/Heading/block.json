@@ -41,6 +41,36 @@
 			"source": "style",
 			"default": null
 		},
+		"fontFamily": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontAppearance": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"lineHeight": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"letterSpacing": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textDecoration": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textTransform": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
 		"padding": {
 			"type": "object",
 			"source": "style",
@@ -80,7 +110,13 @@
 			"background": true
 		},
 		"typography": {
-			"fontSize": true
+			"fontSize": true,
+			"fontFamily": "heading",
+			"appearance": true,
+			"lineHeight": true,
+			"letterSpacing": true,
+			"decoration": true,
+			"letterCase": true
 		},
 		"spacing": {
 			"margin": true,

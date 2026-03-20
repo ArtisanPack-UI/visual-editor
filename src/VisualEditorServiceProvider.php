@@ -32,6 +32,7 @@ use ArtisanPackUI\VisualEditor\Services\TemplateAssignmentManager;
 use ArtisanPackUI\VisualEditor\Services\TemplateManager;
 use ArtisanPackUI\VisualEditor\Services\TemplatePartManager;
 use ArtisanPackUI\VisualEditor\Services\TemplatePresetManager;
+use ArtisanPackUI\VisualEditor\Services\TypographyPresetsManager;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -141,7 +142,8 @@ class VisualEditorServiceProvider extends ServiceProvider
 		'template-structure-panel' => Components\TemplateStructurePanel::class,
 
 		// Phase 7: Global Styles
-		'color-palette-editor' => Components\ColorPaletteEditor::class,
+		'color-palette-editor'        => Components\ColorPaletteEditor::class,
+		'typography-presets-editor'   => Components\TypographyPresetsEditor::class,
 
 		// Phase 9: Editor Assembly
 		'icon'   => Components\Icon::class,
@@ -234,6 +236,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( ColorPaletteManager::class, function ( $app ) {
 			return $app->make( 'visual-editor.color-palette' );
+		} );
+
+		$this->app->singleton( 'visual-editor.typography-presets', function () {
+			$configTypography = config( 'artisanpack.visual-editor.typography_presets', [] );
+
+			return new TypographyPresetsManager( $configTypography );
+		} );
+
+		$this->app->singleton( TypographyPresetsManager::class, function ( $app ) {
+			return $app->make( 'visual-editor.typography-presets' );
 		} );
 
 		$this->app->singleton( BlockRenderer::class, function ( $app ) {

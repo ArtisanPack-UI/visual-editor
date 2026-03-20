@@ -917,11 +917,59 @@ abstract class BaseBlock implements BlockInterface
 			];
 		}
 
+		if ( in_array( 'typography.fontFamily', $activeSupports, true ) ) {
+			$schema['fontFamily'] = [
+				'type'    => 'font_family',
+				'label'   => __( 'visual-editor::ve.typography_font' ),
+				'default' => $attributes['fontFamily']['default'] ?? null,
+			];
+		}
+
 		if ( in_array( 'typography.fontSize', $activeSupports, true ) ) {
 			$schema['fontSize'] = [
 				'type'    => 'font_size',
 				'label'   => __( 'visual-editor::ve.font_size' ),
 				'default' => $attributes['fontSize']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'typography.appearance', $activeSupports, true ) ) {
+			$schema['fontAppearance'] = [
+				'type'    => 'appearance',
+				'label'   => __( 'visual-editor::ve.typography_appearance' ),
+				'default' => $attributes['fontAppearance']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'typography.lineHeight', $activeSupports, true ) ) {
+			$schema['lineHeight'] = [
+				'type'    => 'line_height',
+				'label'   => __( 'visual-editor::ve.typography_line_height' ),
+				'default' => $attributes['lineHeight']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'typography.letterSpacing', $activeSupports, true ) ) {
+			$schema['letterSpacing'] = [
+				'type'    => 'letter_spacing',
+				'label'   => __( 'visual-editor::ve.typography_letter_spacing' ),
+				'default' => $attributes['letterSpacing']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'typography.decoration', $activeSupports, true ) ) {
+			$schema['textDecoration'] = [
+				'type'    => 'decoration',
+				'label'   => __( 'visual-editor::ve.typography_decoration' ),
+				'default' => $attributes['textDecoration']['default'] ?? null,
+			];
+		}
+
+		if ( in_array( 'typography.letterCase', $activeSupports, true ) ) {
+			$schema['textTransform'] = [
+				'type'    => 'letter_case',
+				'label'   => __( 'visual-editor::ve.typography_letter_case' ),
+				'default' => $attributes['textTransform']['default'] ?? null,
 			];
 		}
 
