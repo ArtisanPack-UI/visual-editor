@@ -283,7 +283,7 @@
 					<button
 						type="button"
 						class="btn btn-ghost btn-sm btn-square shrink-0"
-						x-on:click="value = Math.min( 10, parseFloat( value || 1.5 ) + 0.1 ); value = parseFloat( value.toFixed( 1 ) ); $dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: String( value ) } )"
+						x-on:click="value = Math.min( 10, parseFloat( value !== '' && value !== null ? value : 1.5 ) + 0.1 ); value = parseFloat( value.toFixed( 1 ) ); $dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: String( value ) } )"
 						aria-label="{{ __( 'visual-editor::ve.typography_increase' ) }}"
 					>
 						<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
@@ -291,7 +291,7 @@
 					<button
 						type="button"
 						class="btn btn-ghost btn-sm btn-square shrink-0"
-						x-on:click="value = Math.max( 0, parseFloat( value || 1.5 ) - 0.1 ); value = parseFloat( value.toFixed( 1 ) ); $dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: String( value ) } )"
+						x-on:click="value = Math.max( 0, parseFloat( value !== '' && value !== null ? value : 1.5 ) - 0.1 ); value = parseFloat( value.toFixed( 1 ) ); $dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: String( value ) } )"
 						aria-label="{{ __( 'visual-editor::ve.typography_decrease' ) }}"
 					>
 						<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12H4" /></svg>
@@ -316,7 +316,7 @@
 				}
 
 				$lsStoreSync = 'dynamic' === $blockId
-					? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); const _raw = _b?.attributes?.[' . Js::from( $name ) . ']; if ( _raw !== undefined && ! $el.contains( document.activeElement ) ) { const _m = String( _raw ).match( /^(-?\\d+\\.?\\d*)\\s*([a-z%]+)$/i ); if ( _m ) { value = _m[1]; unit = _m[2]; } else if ( ! isNaN( parseFloat( _raw ) ) ) { value = String( _raw ); } else { value = \'\'; } }'
+					? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); const _raw = _b?.attributes?.[' . Js::from( $name ) . ']; if ( _raw !== undefined && ! $el.contains( document.activeElement ) ) { const _m = String( _raw ).match( /^(-?\\d+\\.?\\d*)\\s*([a-z%]+)$/i ); if ( _m ) { value = _m[1]; unit = _m[2]; } else if ( _raw !== \'\' && ! isNaN( parseFloat( _raw ) ) ) { value = String( _raw ); unit = \'px\'; } else { value = \'\'; unit = \'px\'; } }'
 					: '';
 			@endphp
 			<div class="ve-inspector-field-letter-spacing">
@@ -366,8 +366,8 @@
 							const idx = this.options.indexOf( this.value )
 							const next = ( idx + delta + this.options.length ) % this.options.length
 							this.value = this.options[ next ]
-							$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: this.value } )
-							$nextTick( () => $el.querySelectorAll( '[role=radio]' )[ next ]?.focus() )
+							this.$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: this.value } )
+							this.$nextTick( () => this.$el.querySelectorAll( '[role=radio]' )[ next ]?.focus() )
 						},
 					}"
 					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
@@ -423,8 +423,8 @@
 							const idx = this.options.indexOf( this.value )
 							const next = ( idx + delta + this.options.length ) % this.options.length
 							this.value = this.options[ next ]
-							$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: this.value } )
-							$nextTick( () => $el.querySelectorAll( '[role=radio]' )[ next ]?.focus() )
+							this.$dispatch( 've-field-change', { blockId: {{ Js::from( $blockId ) }}, field: {{ Js::from( $name ) }}, value: this.value } )
+							this.$nextTick( () => this.$el.querySelectorAll( '[role=radio]' )[ next ]?.focus() )
 						},
 					}"
 					@if ( $storeSync ) x-effect="{{ $storeSync }}" @endif
