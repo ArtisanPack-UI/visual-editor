@@ -514,6 +514,139 @@ if ( ! function_exists( 'veBulkAssignTemplate' ) ) {
 	}
 }
 
+if ( ! function_exists( 'veRegisterPreset' ) ) {
+	/**
+	 * Register a template preset definition with the preset manager.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string               $slug   The unique preset slug.
+	 * @param array<string, mixed> $config The preset configuration.
+	 *
+	 * @return void
+	 */
+	function veRegisterPreset( string $slug, array $config ): void
+	{
+		app( 'visual-editor.template-presets' )->register( $slug, $config );
+	}
+}
+
+if ( ! function_exists( 'veGetPreset' ) ) {
+	/**
+	 * Resolve a template preset by slug.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $slug The preset slug to resolve.
+	 *
+	 * @return array<string, mixed>|ArtisanPackUI\VisualEditor\Models\TemplatePreset|null
+	 */
+	function veGetPreset( string $slug ): ArtisanPackUI\VisualEditor\Models\TemplatePreset|array|null
+	{
+		return app( 'visual-editor.template-presets' )->resolve( $slug );
+	}
+}
+
+if ( ! function_exists( 'veGetPresetsForCategory' ) ) {
+	/**
+	 * Get all presets for a specific category.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $category The category to filter by.
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	function veGetPresetsForCategory( string $category ): array
+	{
+		return app( 'visual-editor.template-presets' )->forCategory( $category );
+	}
+}
+
+if ( ! function_exists( 'vePresetExists' ) ) {
+	/**
+	 * Check if a template preset exists by slug.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $slug The preset slug to check.
+	 *
+	 * @return bool
+	 */
+	function vePresetExists( string $slug ): bool
+	{
+		return app( 'visual-editor.template-presets' )->exists( $slug );
+	}
+}
+
+if ( ! function_exists( 'veCreateTemplateFromPreset' ) ) {
+	/**
+	 * Create a template from a preset.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string               $presetSlug The preset slug to use.
+	 * @param string               $slug       The slug for the new template.
+	 * @param string               $name       The name for the new template.
+	 * @param array<string, mixed> $overrides  Optional template data overrides.
+	 *
+	 * @return ArtisanPackUI\VisualEditor\Models\Template|null
+	 */
+	function veCreateTemplateFromPreset( string $presetSlug, string $slug, string $name, array $overrides = [] ): ?ArtisanPackUI\VisualEditor\Models\Template
+	{
+		return app( 'visual-editor.template-presets' )->createTemplateFromPreset( $presetSlug, $slug, $name, $overrides );
+	}
+}
+
+if ( ! function_exists( 'veGetPresetCategories' ) ) {
+	/**
+	 * Get all available preset categories.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<int, string>
+	 */
+	function veGetPresetCategories(): array
+	{
+		return app( 'visual-editor.template-presets' )->categories();
+	}
+}
+
+if ( ! function_exists( 'veGetTemplateVariations' ) ) {
+	/**
+	 * Get all variations of a specific template.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param int $parentId The parent template ID.
+	 *
+	 * @return array<int, ArtisanPackUI\VisualEditor\Models\Template>
+	 */
+	function veGetTemplateVariations( int $parentId ): array
+	{
+		return app( 'visual-editor.templates' )->variationsOf( $parentId );
+	}
+}
+
+if ( ! function_exists( 'veCreateTemplateVariation' ) ) {
+	/**
+	 * Create a variation of an existing template.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param ArtisanPackUI\VisualEditor\Models\Template $template  The base template.
+	 * @param string                                      $slug      The slug for the variation.
+	 * @param string                                      $name      The name for the variation.
+	 * @param array<string, mixed>                        $overrides Attribute overrides.
+	 *
+	 * @return ArtisanPackUI\VisualEditor\Models\Template
+	 */
+	function veCreateTemplateVariation( ArtisanPackUI\VisualEditor\Models\Template $template, string $slug, string $name, array $overrides = [] ): ArtisanPackUI\VisualEditor\Models\Template
+	{
+		return app( 'visual-editor.templates' )->createVariation( $template, $slug, $name, $overrides );
+	}
+}
+
 if ( ! function_exists( 'veSanitizeHtmlId' ) ) {
 	/**
 	 * Sanitize a value for use as an HTML id attribute.

@@ -30,6 +30,7 @@ use ArtisanPackUI\VisualEditor\Services\OEmbedService;
 use ArtisanPackUI\VisualEditor\Services\TemplateAssignmentManager;
 use ArtisanPackUI\VisualEditor\Services\TemplateManager;
 use ArtisanPackUI\VisualEditor\Services\TemplatePartManager;
+use ArtisanPackUI\VisualEditor\Services\TemplatePresetManager;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -212,6 +213,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return $app->make( 'visual-editor.template-assignments' );
 		} );
 
+		$this->app->singleton( 'visual-editor.template-presets', function () {
+			return new TemplatePresetManager();
+		} );
+
+		$this->app->singleton( TemplatePresetManager::class, function ( $app ) {
+			return $app->make( 'visual-editor.template-presets' );
+		} );
+
 		$this->app->singleton( BlockRenderer::class, function ( $app ) {
 			return new BlockRenderer(
 				$app->make( 'visual-editor.blocks' ),
@@ -241,6 +250,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerCoreBlocks();
 		$this->registerDefaultTemplates();
 		$this->registerDefaultTemplateParts();
+		$this->registerDefaultPresets();
 		$this->registerConsoleCommands();
 		$this->publishBlockViews();
 	}
@@ -537,6 +547,185 @@ class VisualEditorServiceProvider extends ServiceProvider
 		}
 
 		veDoAction( 'ap.visualEditor.templatePartsInit' );
+	}
+
+	/**
+	 * Register the default built-in template presets.
+	 *
+	 * Registers starter presets organized by category that users can
+	 * select when creating a new template. Third-party packages can
+	 * register additional presets via the `ap.visualEditor.templatePresetsInit` action.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerDefaultPresets(): void
+	{
+		$manager = $this->app->make( 'visual-editor.template-presets' );
+
+		$manager->register( 'blog-post', [
+			'name'                  => __( 'Blog Post' ),
+			'description'           => __( 'A standard blog post layout with a featured image, title, and content area.' ),
+			'category'              => 'blog',
+			'type'                  => 'page',
+			'content'               => [
+				[
+					'type'       => 'image',
+					'attributes' => [ 'className' => 've-featured-image' ],
+				],
+				[
+					'type'       => 'heading',
+					'attributes' => [ 'level' => 1 ],
+				],
+				[
+					'type'       => 'paragraph',
+					'attributes' => [],
+				],
+			],
+			'content_area_settings' => [
+				'max_width' => 'container',
+				'padding'   => 'large',
+			],
+			'template_parts'        => [
+				'header' => 'header',
+				'footer' => 'footer',
+			],
+		] );
+
+		$manager->register( 'blog-sidebar', [
+			'name'                  => __( 'Blog Post with Sidebar' ),
+			'description'           => __( 'A blog post layout with a right sidebar for widgets and navigation.' ),
+			'category'              => 'blog',
+			'type'                  => 'page',
+			'content'               => [
+				[
+					'type'       => 'heading',
+					'attributes' => [ 'level' => 1 ],
+				],
+				[
+					'type'       => 'paragraph',
+					'attributes' => [],
+				],
+			],
+			'content_area_settings' => [
+				'max_width'     => 'container',
+				'padding'       => 'large',
+				'layout'        => 'sidebar-right',
+				'sidebar_width' => '300px',
+			],
+			'template_parts'        => [
+				'header'  => 'header',
+				'footer'  => 'footer',
+				'sidebar' => 'sidebar',
+			],
+		] );
+
+		$manager->register( 'landing-page', [
+			'name'                  => __( 'Landing Page' ),
+			'description'           => __( 'A full-width landing page layout for marketing and promotional content.' ),
+			'category'              => 'marketing',
+			'type'                  => 'page',
+			'content'               => [
+				[
+					'type'       => 'heading',
+					'attributes' => [ 'level' => 1, 'className' => 've-hero-heading' ],
+				],
+				[
+					'type'       => 'paragraph',
+					'attributes' => [ 'className' => 've-hero-text' ],
+				],
+				[
+					'type'       => 'columns',
+					'attributes' => [ 'columns' => 3 ],
+				],
+			],
+			'content_area_settings' => [
+				'max_width' => 'full',
+				'padding'   => 'none',
+			],
+			'template_parts'        => [
+				'header' => 'header',
+				'footer' => 'footer',
+			],
+		] );
+
+		$manager->register( 'single-page', [
+			'name'                  => __( 'Single Page' ),
+			'description'           => __( 'A simple single page layout with title and content.' ),
+			'category'              => 'general',
+			'type'                  => 'page',
+			'content'               => [
+				[
+					'type'       => 'heading',
+					'attributes' => [ 'level' => 1 ],
+				],
+				[
+					'type'       => 'paragraph',
+					'attributes' => [],
+				],
+			],
+			'content_area_settings' => [
+				'max_width' => 'container',
+				'padding'   => 'large',
+			],
+			'template_parts'        => [
+				'header' => 'header',
+				'footer' => 'footer',
+			],
+		] );
+
+		$manager->register( 'archive', [
+			'name'                  => __( 'Archive' ),
+			'description'           => __( 'A template for displaying lists of posts or content items.' ),
+			'category'              => 'blog',
+			'type'                  => 'page',
+			'content'               => [
+				[
+					'type'       => 'heading',
+					'attributes' => [ 'level' => 1 ],
+				],
+				[
+					'type'       => 'paragraph',
+					'attributes' => [ 'className' => 've-archive-description' ],
+				],
+			],
+			'content_area_settings' => [
+				'max_width' => 'container',
+				'padding'   => 'large',
+			],
+			'template_parts'        => [
+				'header' => 'header',
+				'footer' => 'footer',
+			],
+		] );
+
+		$manager->register( 'portfolio', [
+			'name'                  => __( 'Portfolio' ),
+			'description'           => __( 'A portfolio template for showcasing work with a grid layout.' ),
+			'category'              => 'portfolio',
+			'type'                  => 'page',
+			'content'               => [
+				[
+					'type'       => 'heading',
+					'attributes' => [ 'level' => 1 ],
+				],
+				[
+					'type'       => 'grid',
+					'attributes' => [ 'columns' => 3 ],
+				],
+			],
+			'content_area_settings' => [
+				'max_width' => 'container',
+				'padding'   => 'large',
+			],
+			'template_parts'        => [
+				'header' => 'header',
+				'footer' => 'footer',
+			],
+		] );
+
+		veDoAction( 'ap.visualEditor.templatePresetsInit' );
 	}
 
 	/**

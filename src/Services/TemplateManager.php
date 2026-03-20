@@ -245,7 +245,7 @@ class TemplateManager
 			);
 		}
 
-		if ( isset( $data['content'] ) && $data['content'] !== $template->content ) {
+		if ( isset( $data['content'] ) && $data['content'] !== $template->resolveContent() ) {
 			$template->createRevision( $userId );
 		}
 
@@ -334,6 +334,67 @@ class TemplateManager
 		veDoAction( 'ap.visualEditor.templateUnlocked', $template );
 
 		return $template;
+	}
+
+	/**
+	 * Get all base templates (not variations).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	public function allBaseTemplates(): array
+	{
+		$templates = array_filter(
+			$this->registered,
+			fn ( array $t ): bool => null === ( $t['parent_id'] ?? null ),
+		);
+
+		$dbTemplates = Template::baseTemplates()->get();
+
+		foreach ( $dbTemplates as $template ) {
+			$templates[ $template->slug ] = $template->toArray();
+		}
+
+		return veApplyFilters( 'ap.visualEditor.templates', $templates );
+	}
+
+	/**
+	 * Get all variations of a specific template.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param int $parentId The parent template ID.
+	 *
+	 * @return array<int, Template>
+	 */
+	public function variationsOf( int $parentId ): array
+	{
+		return Template::variationsOf( $parentId )->get()->all();
+	}
+
+	/**
+	 * Create a variation of an existing template.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param Template             $template  The base template to create a variation from.
+	 * @param string               $slug      The slug for the new variation.
+	 * @param string               $name      The name for the new variation.
+	 * @param array<string, mixed> $overrides Attribute overrides for the variation.
+	 *
+	 * @return Template
+	 */
+	public function createVariation( Template $template, string $slug, string $name, array $overrides = [] ): Template
+	{
+		$forbidden = [ 'id', 'parent_id', 'slug', 'name' ];
+		$overrides = array_diff_key( $overrides, array_flip( $forbidden ) );
+
+		$variation = $template->createVariation( $slug, $name, $overrides );
+
+		veDoAction( 'ap.visualEditor.templateVariationCreated', $variation, $template );
+
+		return $variation;
 	}
 
 	/**

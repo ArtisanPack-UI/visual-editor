@@ -57,6 +57,39 @@ return [
 
 	/*
 	|----------------------------------------------------------------------
+	| Template Presets
+	|----------------------------------------------------------------------
+	|
+	| Configuration for the template preset system.
+	|
+	| allow_custom_presets:  Whether users can save their own presets.
+	| categories:            Available preset categories with labels.
+	|
+	*/
+	'template_presets' => [
+		'allow_custom_presets' => true,
+		'categories'           => [
+			'blog'      => [
+				'label' => 'Blog',
+				'icon'  => 'o-document-text',
+			],
+			'marketing' => [
+				'label' => 'Marketing',
+				'icon'  => 'o-megaphone',
+			],
+			'portfolio' => [
+				'label' => 'Portfolio',
+				'icon'  => 'o-squares-2x2',
+			],
+			'general'   => [
+				'label' => 'General',
+				'icon'  => 'o-document',
+			],
+		],
+	],
+
+	/*
+	|----------------------------------------------------------------------
 	| Template Parts
 	|----------------------------------------------------------------------
 	|

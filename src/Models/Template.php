@@ -19,8 +19,10 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Models;
 
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * Template model for storing page layout templates.
@@ -40,6 +42,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property array|null       $styles
  * @property bool             $is_custom
  * @property bool             $is_locked
+ * @property int|null         $parent_id
  * @property int|null         $user_id
  * @property \Carbon\Carbon   $created_at
  * @property \Carbon\Carbon   $updated_at
@@ -90,6 +93,7 @@ class Template extends Model
 		'styles',
 		'is_custom',
 		'is_locked',
+		'parent_id',
 		'user_id',
 	];
 
@@ -228,7 +232,7 @@ class Template extends Model
 		return Revision::create( [
 			'document_type' => 'template',
 			'document_id'   => $this->id,
-			'blocks'        => $this->content,
+			'blocks'        => $this->resolveContent(),
 			'user_id'       => $userId,
 			'created_at'    => now(),
 		] );
@@ -239,9 +243,9 @@ class Template extends Model
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return \Illuminate\Database\Eloquent\Collection<int, Revision>
+	 * @return Collection<int, Revision>
 	 */
-	public function revisions(): \Illuminate\Database\Eloquent\Collection
+	public function revisions(): Collection
 	{
 		return Revision::forDocument( 'template', $this->id )
 			->orderByDesc( 'created_at' )
@@ -277,6 +281,251 @@ class Template extends Model
 	}
 
 	/**
+	 * Scope a query to only base templates (not variations).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param Builder $query The query builder instance.
+	 *
+	 * @return Builder
+	 */
+	public function scopeBaseTemplates( Builder $query ): Builder
+	{
+		return $query->whereNull( 'parent_id' );
+	}
+
+	/**
+	 * Scope a query to variations of a specific template.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param Builder $query    The query builder instance.
+	 * @param int     $parentId The parent template ID.
+	 *
+	 * @return Builder
+	 */
+	public function scopeVariationsOf( Builder $query, int $parentId ): Builder
+	{
+		return $query->where( 'parent_id', $parentId );
+	}
+
+	/**
+	 * Get the parent template this is a variation of.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return BelongsTo
+	 */
+	public function parent(): BelongsTo
+	{
+		return $this->belongsTo( static::class, 'parent_id' );
+	}
+
+	/**
+	 * Get all variations of this template.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return HasMany
+	 */
+	public function variations(): HasMany
+	{
+		return $this->hasMany( static::class, 'parent_id' );
+	}
+
+	/**
+	 * Check if this template is a variation of another template.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return bool
+	 */
+	public function isVariation(): bool
+	{
+		return null !== $this->parent_id;
+	}
+
+	/**
+	 * Create a variation of this template.
+	 *
+	 * The user_id is not inherited from the parent by default. Callers
+	 * should pass user_id via $overrides to attribute ownership.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string               $slug     The slug for the new variation.
+	 * @param string               $name     The name for the new variation.
+	 * @param array<string, mixed> $overrides Attribute overrides for the variation.
+	 *
+	 * @return static
+	 */
+	public function createVariation( string $slug, string $name, array $overrides = [] ): static
+	{
+		$forbidden = [ 'id', 'parent_id', 'slug', 'name' ];
+		$overrides = array_diff_key( $overrides, array_flip( $forbidden ) );
+
+		$defaults = [
+			'name'                  => $name,
+			'slug'                  => $slug,
+			'description'           => $this->description,
+			'type'                  => $this->type,
+			'for_content_type'      => $this->for_content_type,
+			'content'               => [],
+			'status'                => 'draft',
+			'content_area_settings' => [],
+			'styles'                => [],
+			'is_custom'             => true,
+			'is_locked'             => false,
+			'parent_id'             => $this->id,
+			'user_id'               => null,
+		];
+
+		return static::create( array_merge( $defaults, $overrides ) );
+	}
+
+	/**
+	 * Resolve the effective content for this template.
+	 *
+	 * For variations, walks up the parent chain to find inherited content.
+	 * For base templates, returns the template's own content.
+	 * Detects parent cycles and returns an empty array if found.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array<int, int> $visited Template IDs already visited (cycle detection).
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function resolveContent( array $visited = [] ): array
+	{
+		if ( in_array( $this->id, $visited, true ) ) {
+			return [];
+		}
+
+		if ( ! $this->isVariation() ) {
+			return $this->content ?? [];
+		}
+
+		$ownContent = $this->content ?? [];
+
+		if ( ! empty( $ownContent ) ) {
+			return $ownContent;
+		}
+
+		$parent = $this->parent;
+
+		if ( null === $parent ) {
+			return [];
+		}
+
+		$visited[] = $this->id;
+
+		return $parent->resolveContent( $visited );
+	}
+
+	/**
+	 * Resolve the effective content area settings for this template.
+	 *
+	 * For variations, recursively merges parent settings with any overrides
+	 * so nested keys are preserved. For base templates, returns the
+	 * template's own settings. Detects parent cycles and returns own
+	 * settings if found.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array<int, int> $visited Template IDs already visited (cycle detection).
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function resolveContentAreaSettings( array $visited = [] ): array
+	{
+		$ownSettings = $this->content_area_settings ?? [];
+
+		if ( in_array( $this->id, $visited, true ) ) {
+			return $ownSettings;
+		}
+
+		if ( ! $this->isVariation() ) {
+			return $ownSettings;
+		}
+
+		$parent = $this->parent;
+
+		if ( null === $parent ) {
+			return $ownSettings;
+		}
+
+		$visited[] = $this->id;
+
+		$parentSettings = $parent->resolveContentAreaSettings( $visited );
+
+		return array_replace_recursive( $parentSettings, $ownSettings );
+	}
+
+	/**
+	 * Resolve the effective styles for this template.
+	 *
+	 * For variations, recursively merges parent styles with any overrides
+	 * so nested keys are preserved. For base templates, returns the
+	 * template's own styles. Detects parent cycles and returns own
+	 * styles if found.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array<int, int> $visited Template IDs already visited (cycle detection).
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function resolveStyles( array $visited = [] ): array
+	{
+		$ownStyles = $this->styles ?? [];
+
+		if ( in_array( $this->id, $visited, true ) ) {
+			return $ownStyles;
+		}
+
+		if ( ! $this->isVariation() ) {
+			return $ownStyles;
+		}
+
+		$parent = $this->parent;
+
+		if ( null === $parent ) {
+			return $ownStyles;
+		}
+
+		$visited[] = $this->id;
+
+		$parentStyles = $parent->resolveStyles( $visited );
+
+		return array_replace_recursive( $parentStyles, $ownStyles );
+	}
+
+	/**
+	 * Boot the model and register event listeners.
+	 *
+	 * Before deleting a parent template, materializes resolved content,
+	 * settings, and styles into each child variation so they are not
+	 * orphaned with empty inherited fields.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected static function booted(): void
+	{
+		static::deleting( function ( Template $template ): void {
+			foreach ( $template->variations as $variation ) {
+				$variation->update( [
+					'content'               => $variation->resolveContent(),
+					'content_area_settings' => $variation->resolveContentAreaSettings(),
+					'styles'                => $variation->resolveStyles(),
+				] );
+			}
+		} );
+	}
+
+	/**
 	 * Get the attributes that should be cast.
 	 *
 	 * @since 1.0.0
@@ -291,6 +540,7 @@ class Template extends Model
 			'styles'                => 'array',
 			'is_custom'             => 'boolean',
 			'is_locked'             => 'boolean',
+			'parent_id'             => 'integer',
 			'user_id'               => 'integer',
 		];
 	}
