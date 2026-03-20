@@ -199,7 +199,12 @@ class SpacingScaleManager
 		if ( isset( $config['customSteps'] ) && is_array( $config['customSteps'] ) ) {
 			foreach ( $config['customSteps'] as $entry ) {
 				if ( isset( $entry['slug'], $entry['name'], $entry['value'] ) && $this->isValidDimension( $entry['value'] ) ) {
-					$sanitized                       = $this->sanitizeSlug( $entry['slug'] );
+					$sanitized = $this->sanitizeSlug( $entry['slug'] );
+
+					if ( isset( $this->scale[ $sanitized ] ) || isset( $this->customSteps[ $sanitized ] ) ) {
+						continue;
+					}
+
 					$entry['slug']                   = $sanitized;
 					$this->customSteps[ $sanitized ] = $entry;
 				}
@@ -339,7 +344,9 @@ class SpacingScaleManager
 	 */
 	public function hasStep( string $slug ): bool
 	{
-		return isset( $this->scale[ $slug ] ) || isset( $this->customSteps[ $slug ] );
+		$scale = $this->getScale();
+
+		return isset( $scale[ $slug ] );
 	}
 
 	/**
@@ -580,7 +587,12 @@ class SpacingScaleManager
 
 			foreach ( $data['customSteps'] as $entry ) {
 				if ( isset( $entry['slug'], $entry['name'], $entry['value'] ) && $this->isValidDimension( $entry['value'] ) ) {
-					$sanitized            = $this->sanitizeSlug( $entry['slug'] );
+					$sanitized = $this->sanitizeSlug( $entry['slug'] );
+
+					if ( isset( $this->scale[ $sanitized ] ) || isset( $custom[ $sanitized ] ) ) {
+						continue;
+					}
+
 					$entry['slug']        = $sanitized;
 					$custom[ $sanitized ] = $entry;
 				}

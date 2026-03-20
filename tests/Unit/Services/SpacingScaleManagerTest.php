@@ -490,6 +490,50 @@ test( 'set step accepts negative dimension values', function (): void {
 	expect( $manager->getStepValue( 'negative' ) )->toBe( '-1rem' );
 } );
 
+test( 'constructor skips custom steps that collide with built-in scale keys', function (): void {
+	$config = [
+		'customSteps' => [
+			[ 'name' => 'Overwrite MD', 'slug' => 'md', 'value' => '99rem' ],
+			[ 'name' => 'Unique', 'slug' => 'hero', 'value' => '6rem' ],
+		],
+	];
+
+	$manager = new SpacingScaleManager( $config );
+
+	// 'md' should keep the default scale value, not the custom step
+	expect( $manager->getStepValue( 'md' ) )->toBe( '1rem' )
+		->and( $manager->hasStep( 'hero' ) )->toBeTrue();
+} );
+
+test( 'from store format skips custom steps that collide with scale keys', function (): void {
+	$manager = new SpacingScaleManager();
+	$manager->fromStoreFormat( [
+		'scale' => [
+			[ 'name' => 'Small', 'slug' => 'sm', 'value' => '0.5rem' ],
+		],
+		'customSteps' => [
+			[ 'name' => 'Collides', 'slug' => 'sm', 'value' => '99rem' ],
+			[ 'name' => 'Unique', 'slug' => 'hero', 'value' => '6rem' ],
+		],
+	] );
+
+	expect( $manager->getStepValue( 'sm' ) )->toBe( '0.5rem' )
+		->and( $manager->hasStep( 'hero' ) )->toBeTrue();
+} );
+
+test( 'from store format skips duplicate custom steps after sanitization', function (): void {
+	$manager = new SpacingScaleManager();
+	$manager->fromStoreFormat( [
+		'customSteps' => [
+			[ 'name' => 'First', 'slug' => 'hero', 'value' => '5rem' ],
+			[ 'name' => 'Second', 'slug' => 'hero', 'value' => '10rem' ],
+		],
+	] );
+
+	// First entry wins
+	expect( $manager->getStepValue( 'hero' ) )->toBe( '5rem' );
+} );
+
 test( 'constructor skips custom steps with invalid dimensions', function (): void {
 	$config = [
 		'customSteps' => [
