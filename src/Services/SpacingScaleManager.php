@@ -328,7 +328,7 @@ class SpacingScaleManager
 	{
 		unset( $this->scale[ $slug ], $this->customSteps[ $slug ] );
 
-		if ( $this->blockGap === $slug && ! $this->hasStep( $slug ) ) {
+		if ( $this->blockGap === $slug ) {
 			$this->blockGap = self::DEFAULT_BLOCK_GAP;
 		}
 	}
@@ -636,9 +636,15 @@ class SpacingScaleManager
 		];
 
 		foreach ( $values as $slug => $value ) {
-			$scale[ $slug ] = [
-				'name'  => $names[ $slug ] ?? ucfirst( $slug ),
-				'slug'  => $slug,
+			$sanitized = $this->sanitizeSlug( (string) $slug );
+
+			if ( ! $this->isValidDimension( $value ) || isset( $scale[ $sanitized ] ) ) {
+				continue;
+			}
+
+			$scale[ $sanitized ] = [
+				'name'  => $names[ $sanitized ] ?? ucfirst( $sanitized ),
+				'slug'  => $sanitized,
 				'value' => $value,
 			];
 		}
