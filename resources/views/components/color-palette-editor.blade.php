@@ -38,12 +38,15 @@
 
 		saveEdit() {
 			if ( null === this.editing ) return
-			const duplicate = this.entries.some( ( e, i ) => i !== this.editing && e.slug === this.editSlug )
+			const slug  = this._sanitizeSlug( this.editSlug )
+			const color = this._normalizeHex( this.editColor )
+			if ( ! slug || ! this.editName.trim() || ! color ) return
+			const duplicate = this.entries.some( ( e, i ) => i !== this.editing && e.slug === slug )
 			if ( duplicate ) return
 			this.entries[ this.editing ] = {
-				name:  this.editName,
-				slug:  this.editSlug,
-				color: this.editColor,
+				name:  this.editName.trim(),
+				slug:  slug,
+				color: color,
 			}
 			this.editing = null
 			this._dispatch()
@@ -66,13 +69,15 @@
 		},
 
 		confirmAdd() {
-			if ( ! this.newName || ! this.newSlug || ! this.newColor ) return
-			const duplicate = this.entries.some( ( e ) => e.slug === this.newSlug )
+			const slug  = this._sanitizeSlug( this.newSlug )
+			const color = this._normalizeHex( this.newColor )
+			if ( ! this.newName.trim() || ! slug || ! color ) return
+			const duplicate = this.entries.some( ( e ) => e.slug === slug )
 			if ( duplicate ) return
 			this.entries.push( {
-				name:  this.newName,
-				slug:  this.newSlug,
-				color: this.newColor,
+				name:  this.newName.trim(),
+				slug:  slug,
+				color: color,
 			} )
 			this.adding = false
 			this._dispatch()
@@ -82,15 +87,33 @@
 			this.adding = false
 		},
 
-		autoSlug( name ) {
-			return name
+		_sanitizeSlug( value ) {
+			return value
 				.toLowerCase()
-				.replace( /[^a-z0-9]+/g, '-' )
+				.trim()
+				.replace( /\s+/g, '-' )
+				.replace( /[^a-z0-9-]/g, '' )
+				.replace( /-{2,}/g, '-' )
 				.replace( /^-+|-+$/g, '' )
 		},
 
+		_normalizeHex( value ) {
+			const hex = value.trim().replace( /^#/, '' )
+			if ( /^[0-9a-fA-F]{3}$/.test( hex ) ) {
+				return '#' + hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2]
+			}
+			if ( /^[0-9a-fA-F]{6}$/.test( hex ) ) {
+				return '#' + hex.toLowerCase()
+			}
+			return ''
+		},
+
+		autoSlug( name ) {
+			return this._sanitizeSlug( name )
+		},
+
 		resetToDefaults() {
-			this.entries = {{ Js::from( app( 'visual-editor.color-palette' )->getDefaultPalette() ? array_values( app( 'visual-editor.color-palette' )->getDefaultPalette() ) : [] ) }}
+			this.entries = {{ Js::from( $defaultEntries ) }}
 			this.editing = null
 			this.adding  = false
 			this._dispatch()
@@ -133,23 +156,28 @@
 				{{-- Display mode --}}
 				<div
 					x-show="editing !== index"
-					class="flex items-center gap-3 rounded-lg border border-base-300 px-3 py-2 hover:bg-base-200/50 transition-colors group"
+					class="flex items-center gap-3 rounded-lg border border-base-300 px-3 py-2 hover:bg-base-200/50 focus-within:bg-base-200/50 transition-colors group"
 				>
-					<div
-						class="h-8 w-8 rounded-full ring-1 ring-base-300 shrink-0 cursor-pointer"
+					<button
+						type="button"
+						class="h-8 w-8 rounded-full ring-1 ring-base-300 shrink-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
 						:style="'background-color: ' + entry.color"
 						x-on:click="startEdit( index )"
-						role="button"
 						:aria-label="'{{ __( 'visual-editor::ve.edit_color' ) }}: ' + entry.name"
-					></div>
-					<div class="flex flex-col min-w-0 flex-1 cursor-pointer" x-on:click="startEdit( index )">
+					></button>
+					<button
+						type="button"
+						class="flex flex-col min-w-0 flex-1 cursor-pointer text-left focus:outline-none"
+						x-on:click="startEdit( index )"
+						:aria-label="'{{ __( 'visual-editor::ve.edit_color' ) }}: ' + entry.name"
+					>
 						<span class="text-sm text-base-content truncate" x-text="entry.name"></span>
 						<span class="text-xs text-base-content/40 font-mono" x-text="entry.color"></span>
-					</div>
+					</button>
 					<button
 						type="button"
 						x-on:click="removeColor( index )"
-						class="text-base-content/30 hover:text-error transition-colors opacity-0 group-hover:opacity-100 cursor-pointer shrink-0"
+						class="text-base-content/30 hover:text-error focus:text-error transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 group-focus-within:opacity-100 cursor-pointer shrink-0 focus:outline-none"
 						:aria-label="'{{ __( 'visual-editor::ve.remove_color' ) }}: ' + entry.name"
 					>
 						<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

@@ -831,6 +831,7 @@
 									documentStatus: this.documentStatus,
 									scheduledDate: this.scheduledDate,
 									meta: JSON.parse( JSON.stringify( this.meta ) ),
+									globalStyles: JSON.parse( JSON.stringify( this.globalStyles ) ),
 								},
 							} ) );
 						}
@@ -1140,6 +1141,7 @@
 							documentStatus: this.documentStatus,
 							scheduledDate: this.scheduledDate,
 							meta: JSON.parse( JSON.stringify( this.meta ) ),
+							globalStyles: JSON.parse( JSON.stringify( this.globalStyles ) ),
 						},
 					} ) );
 				},
@@ -1198,6 +1200,7 @@
 			store.blockVariations  = {{ Js::from( $blockVariations ) }};
 			store.defaultBlockType = {{ Js::from( $defaultBlockType ) }};
 			store.meta             = {{ Js::from( $initialMeta ) }};
+			store.globalStyles     = { palette: {{ Js::from( $initialPalette ) }} };
 			store.showPatternModal = false;
 			store.leftSidebarTab   = 'blocks';
 

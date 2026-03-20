@@ -52,6 +52,19 @@ class ColorPaletteEditor extends Component
 	public array $paletteEntries;
 
 	/**
+	 * The resolved default palette for the reset button.
+	 *
+	 * Uses the installation's resolved palette (config + filters)
+	 * rather than the hardcoded constant, so project overrides
+	 * are respected when resetting.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<int, array{name: string, slug: string, color: string}>
+	 */
+	public array $defaultEntries;
+
+	/**
 	 * Create a new component instance.
 	 *
 	 * @since 1.0.0
@@ -65,11 +78,14 @@ class ColorPaletteEditor extends Component
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
+		$resolvedManager      = app( 'visual-editor.color-palette' );
+		$this->defaultEntries = $resolvedManager->toStoreFormat();
+
 		if ( null !== $palette ) {
-			$manager = clone app( 'visual-editor.color-palette' );
+			$manager = clone $resolvedManager;
 			$manager->fromStoreFormat( $palette );
 		} else {
-			$manager = app( 'visual-editor.color-palette' );
+			$manager = $resolvedManager;
 		}
 
 		$this->paletteEntries = $manager->toStoreFormat();
