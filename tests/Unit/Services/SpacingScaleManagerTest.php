@@ -276,7 +276,9 @@ test( 'generate css block still emits block gap with empty scale', function (): 
 
 	$css = $manager->generateCssBlock();
 
-	expect( $css )->toContain( '--ve-block-gap:' );
+	// With empty scale, neither blockGap nor DEFAULT_BLOCK_GAP steps exist,
+	// so a hardcoded fallback CSS value is used.
+	expect( $css )->toContain( '--ve-block-gap: 1rem;' );
 } );
 
 test( 'to store format returns correct structure', function (): void {
@@ -440,13 +442,45 @@ test( 'set step sanitizes slug', function (): void {
 		->and( $manager->hasStep( 'my<script>slug' ) )->toBeFalse();
 } );
 
-test( 'from store format sanitizes block gap value', function (): void {
+test( 'set step with all-special-char slug falls back to unnamed', function (): void {
+	$manager = new SpacingScaleManager();
+	$manager->setStep( '!!!', 'Special', '1rem' );
+
+	expect( $manager->hasStep( 'unnamed' ) )->toBeTrue()
+		->and( $manager->getStepValue( 'unnamed' ) )->toBe( '1rem' );
+} );
+
+test( 'constructor validates block gap against available steps', function (): void {
+	$config = [
+		'blockGap' => 'nonexistent',
+	];
+
+	$manager = new SpacingScaleManager( $config );
+
+	expect( $manager->getBlockGap() )->toBe( 'md' );
+} );
+
+test( 'from store format validates block gap against imported scale', function (): void {
+	$manager = new SpacingScaleManager();
+	$manager->fromStoreFormat( [
+		'scale' => [
+			[ 'name' => 'Small', 'slug' => 'sm', 'value' => '0.5rem' ],
+		],
+		'blockGap' => 'sm',
+	] );
+
+	expect( $manager->getBlockGap() )->toBe( 'sm' );
+} );
+
+test( 'from store format sanitizes and validates block gap value', function (): void {
 	$manager = new SpacingScaleManager();
 	$manager->fromStoreFormat( [
 		'blockGap' => 'md<script>alert(1)</script>',
 	] );
 
-	expect( $manager->getBlockGap() )->toBe( 'mdscriptalert1script' );
+	// Sanitized slug 'mdscriptalert1script' doesn't exist as a step,
+	// so blockGap falls back to DEFAULT_BLOCK_GAP.
+	expect( $manager->getBlockGap() )->toBe( 'md' );
 } );
 
 test( 'set step accepts negative dimension values', function (): void {
