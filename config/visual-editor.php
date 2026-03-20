@@ -106,6 +106,82 @@ return [
 		'areas'              => [ 'header', 'footer', 'sidebar', 'custom' ],
 	],
 
+	/*
+	|----------------------------------------------------------------------
+	| Global Styles: Color Palette
+	|----------------------------------------------------------------------
+	|
+	| Default color palette for the global styles system.
+	| Each entry defines a named color slot with a display name,
+	| unique slug (used in CSS custom properties), and hex value.
+	|
+	| Blocks reference these colors via 'palette:{slug}' which resolves
+	| to the CSS custom property --ve-color-{slug}.
+	|
+	*/
+	'color_palette' => [
+		'primary'    => [
+			'name'  => 'Primary',
+			'slug'  => 'primary',
+			'color' => '#3b82f6',
+		],
+		'secondary'  => [
+			'name'  => 'Secondary',
+			'slug'  => 'secondary',
+			'color' => '#6366f1',
+		],
+		'accent'     => [
+			'name'  => 'Accent',
+			'slug'  => 'accent',
+			'color' => '#f59e0b',
+		],
+		'background' => [
+			'name'  => 'Background',
+			'slug'  => 'background',
+			'color' => '#ffffff',
+		],
+		'surface'    => [
+			'name'  => 'Surface',
+			'slug'  => 'surface',
+			'color' => '#f8fafc',
+		],
+		'text'       => [
+			'name'  => 'Text',
+			'slug'  => 'text',
+			'color' => '#1e293b',
+		],
+		'muted'      => [
+			'name'  => 'Muted',
+			'slug'  => 'muted',
+			'color' => '#94a3b8',
+		],
+		'border'     => [
+			'name'  => 'Border',
+			'slug'  => 'border',
+			'color' => '#e2e8f0',
+		],
+		'success'    => [
+			'name'  => 'Success',
+			'slug'  => 'success',
+			'color' => '#22c55e',
+		],
+		'warning'    => [
+			'name'  => 'Warning',
+			'slug'  => 'warning',
+			'color' => '#f59e0b',
+		],
+		'error'      => [
+			'name'  => 'Error',
+			'slug'  => 'error',
+			'color' => '#ef4444',
+		],
+		'info'       => [
+			'name'  => 'Info',
+			'slug'  => 'info',
+			'color' => '#3b82f6',
+		],
+	],
+
 	'blocks' => [
 		'core'     => [
 			'heading'   => true,

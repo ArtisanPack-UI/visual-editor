@@ -119,6 +119,7 @@ class EditorState extends Component
 	 * @param string       $defaultBlockType     The default block type used when adding blocks without an explicit type.
 	 * @param array<mixed> $defaultInnerBlocksMap Map of block type to default inner blocks created on insertion.
 	 * @param array<string, mixed> $initialMeta  Initial meta key-value pairs for document panel fields.
+	 * @param array<int, array{name: string, slug: string, color: string}> $initialPalette Initial color palette entries for global styles.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -139,6 +140,7 @@ class EditorState extends Component
 		public string $defaultBlockType = 'paragraph',
 		public array $defaultInnerBlocksMap = [],
 		public array $initialMeta = [],
+		public array $initialPalette = [],
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
@@ -168,6 +170,10 @@ class EditorState extends Component
 
 		if ( '' === trim( $this->defaultBlockType ) ) {
 			$this->defaultBlockType = 'paragraph';
+		}
+
+		if ( [] === $this->initialPalette ) {
+			$this->initialPalette = app( 'visual-editor.color-palette' )->toStoreFormat();
 		}
 	}
 

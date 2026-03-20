@@ -8,18 +8,35 @@ test( 'color system can be instantiated with defaults', function (): void {
 	$component = new ColorSystem();
 
 	expect( $component->uuid )->toStartWith( 've-' );
-	expect( $component->palette )->toBe( ColorSystem::DEFAULT_PALETTE );
 	expect( $component->showCustom )->toBeTrue();
 	expect( $component->showContrast )->toBeFalse();
 	expect( $component->contrastBackground )->toBe( '#ffffff' );
 	expect( $component->compact )->toBeTrue();
 } );
 
+test( 'color system loads palette from color palette manager', function (): void {
+	$component = new ColorSystem();
+	$manager   = app( 'visual-editor.color-palette' );
+	$expected  = array_map( fn ( array $e ): string => $e['color'], $manager->toStoreFormat() );
+
+	expect( $component->palette )->toBe( $expected )
+		->and( $component->paletteEntries )->toHaveCount( count( $manager->getPalette() ) );
+} );
+
+test( 'color system palette entries have name slug and color', function (): void {
+	$component = new ColorSystem();
+
+	foreach ( $component->paletteEntries as $entry ) {
+		expect( $entry )->toHaveKeys( [ 'name', 'slug', 'color' ] );
+	}
+} );
+
 test( 'color system accepts custom palette', function (): void {
 	$palette   = [ '#ff0000', '#00ff00', '#0000ff' ];
 	$component = new ColorSystem( palette: $palette );
 
-	expect( $component->palette )->toBe( $palette );
+	expect( $component->palette )->toBe( $palette )
+		->and( $component->paletteEntries )->toBeEmpty();
 } );
 
 test( 'color system default palette has 12 colors', function (): void {
