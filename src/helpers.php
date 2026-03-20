@@ -798,6 +798,64 @@ if ( ! function_exists( 'veRegisterCustomFont' ) ) {
 	}
 }
 
+if ( ! function_exists( 'veGetSpacingScale' ) ) {
+	/**
+	 * Get the current spacing scale (all steps including custom).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array{scale: array<int, array{name: string, slug: string, value: string}>, blockGap: string, customSteps: array<int, array{name: string, slug: string, value: string}>}
+	 */
+	function veGetSpacingScale(): array
+	{
+		return app( 'visual-editor.spacing-scale' )->toStoreFormat();
+	}
+}
+
+if ( ! function_exists( 'veGetSpacingStep' ) ) {
+	/**
+	 * Get a spacing step value by slug.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $slug The spacing step slug (e.g. 'md', 'lg').
+	 *
+	 * @return string|null The CSS value or null.
+	 */
+	function veGetSpacingStep( string $slug ): ?string
+	{
+		return app( 'visual-editor.spacing-scale' )->getStepValue( $slug );
+	}
+}
+
+if ( ! function_exists( 'veGetBlockGap' ) ) {
+	/**
+	 * Get the current block gap CSS value.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string|null The CSS value or null.
+	 */
+	function veGetBlockGap(): ?string
+	{
+		return app( 'visual-editor.spacing-scale' )->getBlockGapValue();
+	}
+}
+
+if ( ! function_exists( 'veGenerateSpacingCss' ) ) {
+	/**
+	 * Generate the full CSS :root block for spacing custom properties.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string
+	 */
+	function veGenerateSpacingCss(): string
+	{
+		return app( 'visual-editor.spacing-scale' )->generateCssBlock();
+	}
+}
+
 if ( ! function_exists( 'veSanitizeHtmlId' ) ) {
 	/**
 	 * Sanitize a value for use as an HTML id attribute.

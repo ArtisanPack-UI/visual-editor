@@ -171,6 +171,37 @@ return [
 		// ],
 	],
 
+	/*
+	|----------------------------------------------------------------------
+	| Global Styles: Spacing Scale
+	|----------------------------------------------------------------------
+	|
+	| Override the default spacing scale for the global styles system.
+	| When empty, the defaults from SpacingScaleManager::DEFAULT_SCALE
+	| are used. Defines named spacing steps used for padding, margin,
+	| and gap across all blocks.
+	|
+	| 'scale':     A slug => CSS value map for spacing steps.
+	| 'blockGap':  The spacing step slug used as the default gap
+	|              between blocks (default: 'md').
+	|
+	| Example:
+	|   'spacing_scale' => [
+	|       'scale' => [
+	|           'xs'  => '0.25rem',
+	|           'sm'  => '0.5rem',
+	|           'md'  => '1rem',
+	|           'lg'  => '1.5rem',
+	|           'xl'  => '2rem',
+	|           '2xl' => '3rem',
+	|           '3xl' => '4rem',
+	|       ],
+	|       'blockGap' => 'md',
+	|   ],
+	|
+	*/
+	'spacing_scale' => [],
+
 	'blocks' => [
 		'core'     => [
 			'heading'   => true,

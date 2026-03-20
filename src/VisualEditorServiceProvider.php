@@ -28,6 +28,7 @@ use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\Services\ColorPaletteManager;
 use ArtisanPackUI\VisualEditor\Services\OEmbedService;
+use ArtisanPackUI\VisualEditor\Services\SpacingScaleManager;
 use ArtisanPackUI\VisualEditor\Services\TemplateAssignmentManager;
 use ArtisanPackUI\VisualEditor\Services\TemplateManager;
 use ArtisanPackUI\VisualEditor\Services\TemplatePartManager;
@@ -144,6 +145,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// Phase 7: Global Styles
 		'color-palette-editor'        => Components\ColorPaletteEditor::class,
 		'typography-presets-editor'   => Components\TypographyPresetsEditor::class,
+		'spacing-scale-editor'        => Components\SpacingScaleEditor::class,
 
 		// Phase 9: Editor Assembly
 		'icon'   => Components\Icon::class,
@@ -246,6 +248,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( TypographyPresetsManager::class, function ( $app ) {
 			return $app->make( 'visual-editor.typography-presets' );
+		} );
+
+		$this->app->singleton( 'visual-editor.spacing-scale', function () {
+			$configSpacing = config( 'artisanpack.visual-editor.spacing_scale', [] );
+
+			return new SpacingScaleManager( $configSpacing );
+		} );
+
+		$this->app->singleton( SpacingScaleManager::class, function ( $app ) {
+			return $app->make( 'visual-editor.spacing-scale' );
 		} );
 
 		$this->app->singleton( BlockRenderer::class, function ( $app ) {
