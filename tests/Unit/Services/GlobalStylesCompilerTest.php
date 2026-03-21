@@ -89,24 +89,29 @@ test( 'compile uses custom root selector', function (): void {
 } );
 
 test( 'compile returns empty string when all managers produce no output', function (): void {
+	$colors = Mockery::mock( ColorPaletteManager::class );
+	$colors->shouldReceive( 'generateCssProperties' )->andReturn( '' );
+
+	$typography = Mockery::mock( TypographyPresetsManager::class );
+	$typography->shouldReceive( 'generateCssProperties' )->andReturn( '' );
+
+	$spacing = Mockery::mock( SpacingScaleManager::class );
+	$spacing->shouldReceive( 'generateCssProperties' )->andReturn( '' );
+
+	$compiler = new GlobalStylesCompiler( $colors, $typography, $spacing );
+
+	expect( $compiler->compile() )->toBe( '' );
+} );
+
+test( 'compile omits color section when palette is empty', function (): void {
 	$colors     = new ColorPaletteManager();
 	$typography = new TypographyPresetsManager();
 	$spacing    = new SpacingScaleManager();
 
 	$colors->setPalette( [] );
-	$spacing->setScale( [] );
 
-	// Typography with no families and no elements will still output defaults.
-	// Use a fully empty state by constructing with overrides.
-	$compiler = new GlobalStylesCompiler(
-		$colors,
-		$typography,
-		$spacing,
-	);
-
-	// Colors empty, but typography and spacing still have defaults.
-	// This tests that at least the color section can be omitted.
-	$css = $compiler->compile();
+	$compiler = new GlobalStylesCompiler( $colors, $typography, $spacing );
+	$css      = $compiler->compile();
 
 	expect( $css )->not->toContain( '--ve-color-' );
 } );
@@ -264,21 +269,18 @@ test( 'toInlineStyle wraps CSS in style tag', function (): void {
 } );
 
 test( 'toInlineStyle returns empty string when no CSS', function (): void {
-	$colors  = new ColorPaletteManager();
-	$typo    = new TypographyPresetsManager();
-	$spacing = new SpacingScaleManager();
+	$colors = Mockery::mock( ColorPaletteManager::class );
+	$colors->shouldReceive( 'generateCssProperties' )->andReturn( '' );
 
-	$colors->setPalette( [] );
-	$spacing->setScale( [] );
+	$typography = Mockery::mock( TypographyPresetsManager::class );
+	$typography->shouldReceive( 'generateCssProperties' )->andReturn( '' );
 
-	// Typography will still produce output with defaults,
-	// so toInlineStyle won't be empty. This is expected behavior.
-	$compiler = new GlobalStylesCompiler( $colors, $typo, $spacing );
+	$spacing = Mockery::mock( SpacingScaleManager::class );
+	$spacing->shouldReceive( 'generateCssProperties' )->andReturn( '' );
 
-	// Just verify it produces valid HTML.
-	$html = $compiler->toInlineStyle();
+	$compiler = new GlobalStylesCompiler( $colors, $typography, $spacing );
 
-	expect( $html )->toContain( '<style' );
+	expect( $compiler->toInlineStyle() )->toBe( '' );
 } );
 
 // ─── Minification ────────────────────────────────────────────────────
@@ -437,6 +439,92 @@ test( 'compileScoped with debug comments includes section markers', function ():
 	] );
 
 	expect( $css )->toContain( '/* Colors */' );
+} );
+
+// ─── Defensive Handling ──────────────────────────────────────────────
+
+test( 'toInlineStyle escapes closing style tags in CSS values', function (): void {
+	$compiler = createCompiler();
+	$html     = $compiler->toInlineStyle();
+
+	expect( $html )->not->toContain( '</style>' . "\n" . '</style>' );
+
+	// Simulate a value containing </style> by checking the escaping method directly.
+	$colors = new ColorPaletteManager( [
+		'test' => [
+			'name'  => 'Test',
+			'slug'  => 'test',
+			'color' => '#ff0000',
+		],
+	] );
+
+	$compiler = new GlobalStylesCompiler(
+		$colors,
+		new TypographyPresetsManager(),
+		new SpacingScaleManager(),
+	);
+
+	$html = $compiler->toInlineStyle();
+
+	// The output should not contain a raw unescaped </style inside the CSS.
+	// Count occurrences: only the closing </style> wrapper should exist.
+	expect( substr_count( $html, '</style>' ) )->toBe( 1 );
+} );
+
+test( 'compileScoped skips non-string font family overrides', function (): void {
+	$compiler = createCompiler();
+	$css      = $compiler->compileScoped( 'test', [
+		'typography' => [
+			'fontFamilies' => [
+				'heading' => [ 'not', 'a', 'string' ],
+				'body'    => 123,
+			],
+		],
+	] );
+
+	// Should produce output without crashing (typography from cloned defaults).
+	expect( $css )->toBeString();
+} );
+
+test( 'compileScoped skips non-array element overrides', function (): void {
+	$compiler = createCompiler();
+	$css      = $compiler->compileScoped( 'test', [
+		'typography' => [
+			'elements' => [
+				'h1' => 'not-an-array',
+				'h2' => 42,
+			],
+		],
+	] );
+
+	expect( $css )->toBeString();
+} );
+
+test( 'compileScoped skips non-string blockGap override', function (): void {
+	$compiler = createCompiler();
+	$css      = $compiler->compileScoped( 'test', [
+		'spacing' => [
+			'blockGap' => [ 'not', 'a', 'string' ],
+		],
+	] );
+
+	expect( $css )->toBeString();
+} );
+
+test( 'constructor skips non-array template overrides entries', function (): void {
+	$compiler = createCompiler( [
+		'template_overrides' => [
+			'valid'   => [ 'colors' => [] ],
+			'invalid' => 'not-an-array',
+			'also'    => 42,
+		],
+	] );
+
+	$overrides = $compiler->getTemplateOverrides();
+
+	expect( $overrides )->toHaveKey( 'valid' )
+		->and( $overrides )->not->toHaveKey( 'invalid' )
+		->and( $overrides )->not->toHaveKey( 'also' );
 } );
 
 // ─── Editor Selector Override ────────────────────────────────────────

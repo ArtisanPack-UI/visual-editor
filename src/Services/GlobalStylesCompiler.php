@@ -22,7 +22,9 @@ namespace ArtisanPackUI\VisualEditor\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use InvalidArgumentException;
 use RuntimeException;
+use TypeError;
 
 /**
  * Service for compiling all global style managers into unified CSS output.
@@ -106,7 +108,9 @@ class GlobalStylesCompiler
 
 		if ( isset( $config['template_overrides'] ) && is_array( $config['template_overrides'] ) ) {
 			foreach ( $config['template_overrides'] as $slug => $overrides ) {
-				$this->templateOverrides[ $slug ] = $overrides;
+				if ( is_array( $overrides ) ) {
+					$this->templateOverrides[ $slug ] = $overrides;
+				}
 			}
 		}
 	}
@@ -223,15 +227,27 @@ class GlobalStylesCompiler
 		if ( isset( $overrides['typography'] ) && is_array( $overrides['typography'] ) ) {
 			$cloned = clone $this->typography;
 
-			if ( isset( $overrides['typography']['fontFamilies'] ) ) {
+			if ( isset( $overrides['typography']['fontFamilies'] ) && is_array( $overrides['typography']['fontFamilies'] ) ) {
 				foreach ( $overrides['typography']['fontFamilies'] as $familySlot => $familyValue ) {
-					$cloned->setFontFamily( (string) $familySlot, $familyValue );
+					if ( is_string( $familyValue ) ) {
+						try {
+							$cloned->setFontFamily( (string) $familySlot, $familyValue );
+						} catch ( TypeError | InvalidArgumentException $e ) {
+							continue;
+						}
+					}
 				}
 			}
 
-			if ( isset( $overrides['typography']['elements'] ) ) {
+			if ( isset( $overrides['typography']['elements'] ) && is_array( $overrides['typography']['elements'] ) ) {
 				foreach ( $overrides['typography']['elements'] as $element => $styles ) {
-					$cloned->setElement( (string) $element, $styles );
+					if ( is_array( $styles ) ) {
+						try {
+							$cloned->setElement( (string) $element, $styles );
+						} catch ( TypeError | InvalidArgumentException $e ) {
+							continue;
+						}
+					}
 				}
 			}
 
@@ -252,12 +268,16 @@ class GlobalStylesCompiler
 			if ( isset( $overrides['spacing']['scale'] ) && is_array( $overrides['spacing']['scale'] ) ) {
 				foreach ( $overrides['spacing']['scale'] as $stepSlug => $stepData ) {
 					if ( isset( $stepData['name'], $stepData['value'] ) ) {
-						$cloned->setStep( (string) $stepSlug, $stepData['name'], $stepData['value'] );
+						try {
+							$cloned->setStep( (string) $stepSlug, $stepData['name'], $stepData['value'] );
+						} catch ( TypeError | InvalidArgumentException $e ) {
+							continue;
+						}
 					}
 				}
 			}
 
-			if ( isset( $overrides['spacing']['blockGap'] ) ) {
+			if ( isset( $overrides['spacing']['blockGap'] ) && is_string( $overrides['spacing']['blockGap'] ) ) {
 				$cloned->setBlockGap( $overrides['spacing']['blockGap'] );
 			}
 
@@ -349,6 +369,10 @@ class GlobalStylesCompiler
 		if ( '' === $css ) {
 			return '';
 		}
+
+		// Prevent HTML parser breakout from user-controlled values
+		// (e.g., a font family containing "</style>").
+		$css = str_replace( '</style', '<\/style', $css );
 
 		return '<style id="ve-global-styles">' . "\n" . $css . "\n" . '</style>';
 	}
