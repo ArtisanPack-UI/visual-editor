@@ -856,6 +856,95 @@ if ( ! function_exists( 'veGenerateSpacingCss' ) ) {
 	}
 }
 
+if ( ! function_exists( 'veCompileGlobalStyles' ) ) {
+	/**
+	 * Compile all global styles (colors, typography, spacing) into a CSS string.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string The compiled CSS.
+	 */
+	function veCompileGlobalStyles(): string
+	{
+		return app( 'visual-editor.global-styles' )->compile();
+	}
+}
+
+if ( ! function_exists( 'veGlobalStylesInline' ) ) {
+	/**
+	 * Get the compiled global styles as an inline <style> tag.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param bool $forEditor When true, forces :root selector regardless of config.
+	 *
+	 * @return string The HTML <style> element.
+	 */
+	function veGlobalStylesInline( bool $forEditor = false ): string
+	{
+		return app( 'visual-editor.global-styles' )->toInlineStyle( $forEditor );
+	}
+}
+
+if ( ! function_exists( 'veGlobalStylesCached' ) ) {
+	/**
+	 * Get cached compiled global styles CSS.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string The compiled CSS string.
+	 */
+	function veGlobalStylesCached(): string
+	{
+		return app( 'visual-editor.global-styles' )->getCached();
+	}
+}
+
+if ( ! function_exists( 'veInvalidateGlobalStylesCache' ) ) {
+	/**
+	 * Invalidate the global styles CSS cache.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	function veInvalidateGlobalStylesCache(): void
+	{
+		app( 'visual-editor.global-styles' )->invalidateCache();
+	}
+}
+
+if ( ! function_exists( 'veCompileScopedStyles' ) ) {
+	/**
+	 * Compile scoped CSS for a template with overrides.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string               $slug      The template slug.
+	 * @param array<string, mixed> $overrides The style overrides.
+	 *
+	 * @return string The scoped CSS string.
+	 */
+	function veCompileScopedStyles( string $slug, array $overrides ): string
+	{
+		return app( 'visual-editor.global-styles' )->compileScoped( $slug, $overrides );
+	}
+}
+
+if ( ! function_exists( 'veGlobalStylesOutput' ) ) {
+	/**
+	 * Output global styles based on the configured output mode.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string The output result (inline style tag or file path).
+	 */
+	function veGlobalStylesOutput(): string
+	{
+		return app( 'visual-editor.global-styles' )->output();
+	}
+}
+
 if ( ! function_exists( 'veSanitizeHtmlId' ) ) {
 	/**
 	 * Sanitize a value for use as an HTML id attribute.

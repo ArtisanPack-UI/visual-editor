@@ -371,6 +371,23 @@
 @endpush
 @endonce
 
+{{-- Global styles (colors, typography, spacing custom properties) --}}
+@once
+@push( 'styles' )
+{!! veGlobalStylesInline( true ) !!}
+<style id="ve-canvas-global-styles">
+	/* Apply global style tokens to the editor canvas */
+	.ve-editor-canvas {
+		background-color: var(--ve-color-background, #ffffff);
+		color: var(--ve-color-text, #1e293b);
+		font-family: var(--ve-font-body, sans-serif);
+		font-size: var(--ve-text-body-font-size, 1rem);
+		line-height: var(--ve-text-body-line-height, 1.6);
+	}
+</style>
+@endpush
+@endonce
+
 {{-- State stores --}}
 <x-ve-editor-state
 	:initial-blocks="$initialBlocks"

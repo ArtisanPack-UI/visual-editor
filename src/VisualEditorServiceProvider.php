@@ -27,6 +27,7 @@ use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\Services\ColorPaletteManager;
+use ArtisanPackUI\VisualEditor\Services\GlobalStylesCompiler;
 use ArtisanPackUI\VisualEditor\Services\OEmbedService;
 use ArtisanPackUI\VisualEditor\Services\SpacingScaleManager;
 use ArtisanPackUI\VisualEditor\Services\TemplateAssignmentManager;
@@ -266,6 +267,19 @@ class VisualEditorServiceProvider extends ServiceProvider
 				(string) config( 'artisanpack.visual-editor.rendering.class_prefix', 've-block-' ),
 				(int) config( 'artisanpack.visual-editor.rendering.max_depth', BlockRenderer::DEFAULT_MAX_DEPTH ),
 			);
+		} );
+
+		$this->app->singleton( 'visual-editor.global-styles', function ( $app ) {
+			return new GlobalStylesCompiler(
+				$app->make( 'visual-editor.color-palette' ),
+				$app->make( 'visual-editor.typography-presets' ),
+				$app->make( 'visual-editor.spacing-scale' ),
+				(array) config( 'artisanpack.visual-editor.global_styles', [] ),
+			);
+		} );
+
+		$this->app->singleton( GlobalStylesCompiler::class, function ( $app ) {
+			return $app->make( 'visual-editor.global-styles' );
 		} );
 	}
 

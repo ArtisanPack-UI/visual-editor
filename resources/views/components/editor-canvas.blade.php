@@ -589,7 +589,7 @@
 			},
 		@endif
 	}"
-	{{ $attributes->merge( [ 'class' => 'relative min-h-[200px] p-4', 'style' => '--ve-canvas-padding: 1rem;' ] ) }}
+	{{ $attributes->merge( [ 'class' => 've-editor-canvas relative min-h-[200px] p-4', 'style' => '--ve-canvas-padding: 1rem;' ] ) }}
 	role="region"
 	aria-label="{{ $label ?? __( 'visual-editor::ve.editor_canvas' ) }}"
 	@if ( $enableArrowNavigation )
