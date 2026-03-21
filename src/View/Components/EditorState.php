@@ -120,6 +120,8 @@ class EditorState extends Component
 	 * @param array<mixed> $defaultInnerBlocksMap Map of block type to default inner blocks created on insertion.
 	 * @param array<string, mixed> $initialMeta  Initial meta key-value pairs for document panel fields.
 	 * @param array<int, array{name: string, slug: string, color: string}> $initialPalette Initial color palette entries for global styles.
+	 * @param array{fontFamilies: array<string, string>, elements: array<string, array<string, string>>} $initialTypography Initial typography presets for global styles.
+	 * @param array{scale: array<int, array{name: string, slug: string, value: string}>, blockGap: string, customSteps: array<int, array{name: string, slug: string, value: string}>} $initialSpacing Initial spacing scale for global styles.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -141,6 +143,8 @@ class EditorState extends Component
 		public array $defaultInnerBlocksMap = [],
 		public array $initialMeta = [],
 		public array $initialPalette = [],
+		public array $initialTypography = [],
+		public array $initialSpacing = [],
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
@@ -174,6 +178,14 @@ class EditorState extends Component
 
 		if ( [] === $this->initialPalette ) {
 			$this->initialPalette = app( 'visual-editor.color-palette' )->toStoreFormat();
+		}
+
+		if ( [] === $this->initialTypography ) {
+			$this->initialTypography = app( 'visual-editor.typography-presets' )->toStoreFormat();
+		}
+
+		if ( [] === $this->initialSpacing ) {
+			$this->initialSpacing = app( 'visual-editor.spacing-scale' )->toStoreFormat();
 		}
 	}
 

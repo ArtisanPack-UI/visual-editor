@@ -1173,6 +1173,116 @@
 							h6: 'text-base font-semibold',
 						},
 
+						/**
+						 * Build an inline style string from a block's style attributes.
+						 *
+						 * Handles all support categories: color, typography, spacing,
+						 * border, shadow, dimensions, and background. Works for all
+						 * block types, including custom blocks.
+						 *
+						 * @param {Object} attrs - The block attributes object.
+						 * @returns {string} A CSS inline style string.
+						 */
+						/**
+						 * Resolve a spacing value that may be a preset slug or CSS value.
+						 *
+						 * @param {string} val - Preset slug (e.g. 'md') or CSS value (e.g. '16px').
+						 * @returns {string} The resolved CSS value, or empty string.
+						 */
+						_resolveSpacingValue( val ) {
+							if ( ! val || '' === val ) return '';
+							// If it already looks like a CSS value, return as-is
+							if ( /^-?\d/.test( val ) || val.startsWith( 'var(' ) || val.startsWith( 'calc(' ) ) {
+								return val;
+							}
+							// Look up preset slug from the store
+							const store = Alpine.store( 'editor' );
+							if ( store && store.globalStyles && store.globalStyles.spacing ) {
+								const allSteps = [
+									...( store.globalStyles.spacing.scale || [] ),
+									...( store.globalStyles.spacing.customSteps || [] ),
+								];
+								const step = allSteps.find( ( s ) => s.slug === val );
+								if ( step ) return step.value;
+							}
+							// Fall back to CSS custom property
+							return 'var(--ve-spacing-' + val + ')';
+						},
+
+						buildBlockStyle( attrs ) {
+							let s = '';
+
+							// ── Color ──────────────────────────────────────
+							if ( attrs.textColor ) s += 'color:' + attrs.textColor + ';';
+							if ( attrs.backgroundColor ) s += 'background-color:' + attrs.backgroundColor + ';';
+
+							// ── Typography ──────────────────────────────────
+							if ( attrs.fontSize ) s += 'font-size:' + attrs.fontSize + ';';
+							if ( attrs.fontFamily ) s += 'font-family:' + attrs.fontFamily + ';';
+							if ( attrs.lineHeight ) s += 'line-height:' + attrs.lineHeight + ';';
+							if ( attrs.letterSpacing ) s += 'letter-spacing:' + attrs.letterSpacing + ';';
+							if ( attrs.textDecoration ) s += 'text-decoration:' + attrs.textDecoration + ';';
+							if ( attrs.textTransform ) s += 'text-transform:' + attrs.textTransform + ';';
+							if ( attrs.fontAppearance ) {
+								const parts = ( attrs.fontAppearance || '' ).split( '/' );
+								if ( parts[0] ) s += 'font-weight:' + parts[0] + ';';
+								if ( parts[1] ) s += 'font-style:' + parts[1] + ';';
+							}
+
+							// ── Spacing (box model with per-side support) ──
+							[ 'padding', 'margin' ].forEach( ( prop ) => {
+								const val = attrs[ prop ];
+								if ( ! val ) return;
+								if ( 'object' === typeof val ) {
+									[ 'top', 'right', 'bottom', 'left' ].forEach( ( side ) => {
+										const resolved = this._resolveSpacingValue( val[ side ] );
+										if ( resolved ) {
+											s += prop + '-' + side + ':' + resolved + ';';
+										}
+									} );
+								} else {
+									const resolved = this._resolveSpacingValue( val );
+									if ( resolved ) s += prop + ':' + resolved + ';';
+								}
+							} );
+							if ( attrs.blockSpacing ) {
+								const resolved = this._resolveSpacingValue( attrs.blockSpacing );
+								if ( resolved ) s += 'gap:' + resolved + ';';
+							}
+
+							// ── Border ──────────────────────────────────────
+							if ( attrs.border && 'object' === typeof attrs.border ) {
+								const b = attrs.border;
+								if ( b.width && '0' !== b.width && 'none' !== b.style ) {
+									s += 'border-width:' + b.width + ( b.widthUnit || 'px' ) + ';';
+									s += 'border-style:' + ( b.style || 'solid' ) + ';';
+									if ( b.color ) s += 'border-color:' + b.color + ';';
+								}
+								if ( b.radius && '0' !== b.radius ) {
+									s += 'border-radius:' + b.radius + ( b.radiusUnit || 'px' ) + ';';
+								}
+							}
+
+							// ── Shadow ──────────────────────────────────────
+							if ( attrs.shadow ) s += 'box-shadow:' + attrs.shadow + ';';
+
+							// ── Dimensions ─────────────────────────────────
+							if ( attrs.aspectRatio ) s += 'aspect-ratio:' + attrs.aspectRatio + ';';
+							if ( attrs.minHeight ) s += 'min-height:' + attrs.minHeight + ';';
+
+							// ── Background ─────────────────────────────────
+							if ( attrs.backgroundImage ) {
+								s += 'background-image:url(' + attrs.backgroundImage + ');';
+								if ( attrs.backgroundSize ) s += 'background-size:' + attrs.backgroundSize + ';';
+								if ( attrs.backgroundPosition ) s += 'background-position:' + attrs.backgroundPosition + ';';
+							}
+							if ( attrs.backgroundGradient ) {
+								s += 'background-image:' + attrs.backgroundGradient + ';';
+							}
+
+							return s;
+						},
+
 						getBlockHtml( block ) {
 							// Delegate to the block renderer registry first.
 							// Registered renderers handle their own rendering.
@@ -3008,6 +3118,7 @@
 										$store.selection?.focused === block.id ? 'ring-2 ring-primary ring-offset-2 rounded' : '',
 										'align' + ( block.attributes?.align || 'none' ),
 									].filter(Boolean).join(' ')"
+									:style="buildBlockStyle( block.attributes || {} )"
 									x-on:dragover.prevent="if ( ! $event.target.closest( '[data-ve-inner-blocks]' ) ) { $el.classList.add( 'ring-2', 'ring-info', 'ring-offset-1' ); }"
 									x-on:dragleave="$el.classList.remove( 'ring-2', 'ring-info', 'ring-offset-1' )"
 									x-on:drop="

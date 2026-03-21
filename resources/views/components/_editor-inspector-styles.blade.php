@@ -12,6 +12,45 @@
 	</template>
 	<template x-if="selectedBlockId && blockType">
 		<div>
+			{{-- Reset Styles Button --}}
+			<div
+				x-data="{
+					_styleKeys: [ 'backgroundColor', 'textColor', 'fontSize', 'fontFamily', 'padding', 'margin', 'border', 'shadow', 'lineHeight', 'letterSpacing', 'textDecoration', 'textTransform', 'fontAppearance', 'blockSpacing', 'backgroundImage', 'backgroundSize', 'backgroundPosition', 'backgroundGradient', 'aspectRatio', 'minHeight' ],
+					get block() { return $store.editor?.getBlock( $store.selection?.focused ); },
+					get attrs() { return this.block?.attributes || {}; },
+					get hasOverrides() {
+						return this._styleKeys.some( ( key ) => undefined !== this.attrs[ key ] );
+					},
+					_refreshInspector( blockId ) {
+						if ( $store.selection ) {
+							$store.selection.focused = null;
+							requestAnimationFrame( () => {
+								$store.selection.focused = blockId;
+							} );
+						}
+					},
+					resetAll() {
+						const blockId = $store.selection?.focused;
+						if ( ! blockId ) return;
+						$store.editor.removeBlockAttributes( blockId, this._styleKeys );
+						this._refreshInspector( blockId );
+					},
+				}"
+				x-show="hasOverrides"
+				x-cloak
+				class="px-3 py-2 border-b border-base-300"
+			>
+				<button
+					type="button"
+					class="btn btn-ghost btn-xs btn-block text-warning hover:text-warning/80 gap-1"
+					x-on:click.stop="resetAll()"
+					:title="{{ Js::from( __( 'visual-editor::ve.reset_to_default' ) ) }}"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" fill="currentColor" class="w-3 h-3"><path fill-rule="evenodd" d="M8 1a.75.75 0 0 1 .75.75v6.5a.75.75 0 0 1-1.5 0v-6.5A.75.75 0 0 1 8 1ZM4.11 3.05a.75.75 0 0 1 0 1.06 5.5 5.5 0 1 0 7.78 0 .75.75 0 0 1 1.06-1.06 7 7 0 1 1-9.9 0 .75.75 0 0 1 1.06 0Z" clip-rule="evenodd" /></svg>
+					{{ __( 'visual-editor::ve.reset_to_default' ) }}
+				</button>
+			</div>
+
 			@foreach ( $inspectorBlockTypes as $inspectorType )
 				<div x-show="blockType === {{ Js::from( $inspectorType ) }}" x-cloak>
 					<x-ve-inspector-controls :block-type="$inspectorType" block-id="dynamic" tab="styles" />

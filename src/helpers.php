@@ -945,6 +945,109 @@ if ( ! function_exists( 'veGlobalStylesOutput' ) ) {
 	}
 }
 
+// ─── Style Cascade Helpers ──────────────────────────────────────────
+
+if ( ! function_exists( 'veResolveStyleCascade' ) ) {
+	/**
+	 * Resolve the computed styles for a block through the cascade.
+	 *
+	 * Merges global ← template ← block styles so the most specific wins.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array<string, mixed> $blockStyles    The block-level style overrides.
+	 * @param array<string, mixed> $templateStyles The template-level style overrides.
+	 *
+	 * @return array<string, mixed> The fully resolved computed styles.
+	 */
+	function veResolveStyleCascade( array $blockStyles = [], array $templateStyles = [] ): array
+	{
+		return app( 'visual-editor.style-cascade' )->resolve( $blockStyles, $templateStyles );
+	}
+}
+
+if ( ! function_exists( 'veResolveInheritedStyles' ) ) {
+	/**
+	 * Resolve the inherited styles (global + template) without block overrides.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array<string, mixed> $templateStyles The template-level style overrides.
+	 *
+	 * @return array<string, mixed> The inherited styles.
+	 */
+	function veResolveInheritedStyles( array $templateStyles = [] ): array
+	{
+		return app( 'visual-editor.style-cascade' )->resolveInherited( $templateStyles );
+	}
+}
+
+if ( ! function_exists( 'veGetStyleSource' ) ) {
+	/**
+	 * Determine which cascade level provides a specific style property.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string               $path           Dot-notation path to the property.
+	 * @param array<string, mixed> $blockStyles    The block-level style overrides.
+	 * @param array<string, mixed> $templateStyles The template-level style overrides.
+	 *
+	 * @return string The source level: 'global', 'template', or 'block'.
+	 */
+	function veGetStyleSource( string $path, array $blockStyles = [], array $templateStyles = [] ): string
+	{
+		return app( 'visual-editor.style-cascade' )->getSource( $path, $blockStyles, $templateStyles );
+	}
+}
+
+if ( ! function_exists( 'veGetStyleSourceMap' ) ) {
+	/**
+	 * Get a source map for all properties in the resolved styles.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array<string, mixed> $blockStyles    The block-level style overrides.
+	 * @param array<string, mixed> $templateStyles The template-level style overrides.
+	 *
+	 * @return array<string, string> Map of property path => source level.
+	 */
+	function veGetStyleSourceMap( array $blockStyles = [], array $templateStyles = [] ): array
+	{
+		return app( 'visual-editor.style-cascade' )->getSourceMap( $blockStyles, $templateStyles );
+	}
+}
+
+if ( ! function_exists( 'veGetInheritedStyleValue' ) ) {
+	/**
+	 * Get the value a property would have if the block override were removed.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string               $path           Dot-notation path to the property.
+	 * @param array<string, mixed> $templateStyles The template-level style overrides.
+	 *
+	 * @return mixed The inherited value, or null if not set.
+	 */
+	function veGetInheritedStyleValue( string $path, array $templateStyles = [] ): mixed
+	{
+		return app( 'visual-editor.style-cascade' )->getInheritedValue( $path, $templateStyles );
+	}
+}
+
+if ( ! function_exists( 'veGetGlobalStyles' ) ) {
+	/**
+	 * Get the current global styles from all managers.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed> The global styles array.
+	 */
+	function veGetGlobalStyles(): array
+	{
+		return app( 'visual-editor.style-cascade' )->getGlobalStyles();
+	}
+}
+
 if ( ! function_exists( 'veSanitizeHtmlId' ) ) {
 	/**
 	 * Sanitize a value for use as an HTML id attribute.

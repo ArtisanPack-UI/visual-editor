@@ -40,6 +40,24 @@
 		showCss: false,
 		presets: {{ Js::from( $presetScales ) }},
 
+		init() {
+			const syncToStore = () => {
+				const store = Alpine.store( 'editor' );
+				if ( ! store ) return;
+				store.globalStyles.spacing = {
+					scale: JSON.parse( JSON.stringify( this.scale ) ),
+					blockGap: this.blockGap,
+					customSteps: JSON.parse( JSON.stringify( this.customSteps ) ),
+				};
+				store._syncGlobalCssVariables();
+				store.markDirty();
+				store._dispatchChange();
+			};
+			this.$watch( 'scale', syncToStore );
+			this.$watch( 'blockGap', syncToStore );
+			this.$watch( 'customSteps', syncToStore );
+		},
+
 		startEdit( index, isCustom ) {
 			const list = isCustom ? this.customSteps : this.scale
 			this.editing   = { index, isCustom }
@@ -174,11 +192,14 @@
 		},
 
 		_dispatch() {
-			$dispatch( 've-spacing-change', {
-				scale: JSON.parse( JSON.stringify( this.scale ) ),
-				blockGap: this.blockGap,
-				customSteps: JSON.parse( JSON.stringify( this.customSteps ) ),
-			} )
+			document.dispatchEvent( new CustomEvent( 've-spacing-change', {
+				detail: {
+					scale: JSON.parse( JSON.stringify( this.scale ) ),
+					blockGap: this.blockGap,
+					customSteps: JSON.parse( JSON.stringify( this.customSteps ) ),
+				},
+				bubbles: true,
+			} ) );
 		},
 
 		allSteps() {

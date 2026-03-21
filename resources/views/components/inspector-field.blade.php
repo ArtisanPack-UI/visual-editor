@@ -27,7 +27,7 @@
 	// creating a dependency on the local state (only store changes
 	// trigger re-evaluation).
 	$storeSync = 'dynamic' === $blockId
-		? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); const _sv = _b?.attributes?.[' . Js::from( $name ) . ']; if ( _sv !== undefined && document.activeElement !== $el ) { value = _sv; }'
+		? 'const _b = $store.editor?.getBlock( $store.selection?.focused ); const _sv = _b?.attributes?.[' . Js::from( $name ) . ']; if ( document.activeElement !== $el ) { value = _sv !== undefined ? _sv : ' . Js::from( $fieldDefault ) . '; }'
 		: '';
 
 	// Build an x-show expression for conditional visibility based on

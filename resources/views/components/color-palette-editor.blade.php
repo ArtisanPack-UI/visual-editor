@@ -29,6 +29,29 @@
 		newColor: '#000000',
 		showCss: false,
 
+		init() {
+			this.$watch( 'entries', ( value ) => {
+				const store = Alpine.store( 'editor' );
+				if ( ! store ) return;
+				store._pushHistory();
+				store.globalStyles.palette = JSON.parse( JSON.stringify( value ) );
+				store._syncGlobalCssVariables();
+				store.markDirty();
+				store._dispatchChange();
+			} );
+			this.$watch( 'editColor', ( value ) => {
+				if ( null === this.editing ) return;
+				const store = Alpine.store( 'editor' );
+				if ( ! store ) return;
+				const color = this._normalizeHex( value );
+				if ( ! color ) return;
+				const palette = JSON.parse( JSON.stringify( this.entries ) );
+				palette[ this.editing ] = { ...palette[ this.editing ], color: color };
+				store.globalStyles.palette = palette;
+				store._syncGlobalCssVariables();
+			} );
+		},
+
 		startEdit( index ) {
 			this.editing   = index
 			this.editName  = this.entries[ index ].name
@@ -120,8 +143,12 @@
 		},
 
 		_dispatch() {
-			$dispatch( 've-palette-change', { palette: JSON.parse( JSON.stringify( this.entries ) ) } )
+			document.dispatchEvent( new CustomEvent( 've-palette-change', {
+				detail: { palette: JSON.parse( JSON.stringify( this.entries ) ) },
+				bubbles: true,
+			} ) );
 		},
+
 	}"
 	{{ $attributes->merge( [ 'class' => 'flex flex-col gap-4' ] ) }}
 >
