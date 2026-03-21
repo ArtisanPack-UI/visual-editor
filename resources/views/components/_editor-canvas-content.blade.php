@@ -1272,9 +1272,14 @@
 
 							// ── Background ─────────────────────────────────
 							if ( attrs.backgroundImage ) {
-								s += 'background-image:url(' + attrs.backgroundImage + ');';
-								if ( attrs.backgroundSize ) s += 'background-size:' + attrs.backgroundSize + ';';
-								if ( attrs.backgroundPosition ) s += 'background-position:' + attrs.backgroundPosition + ';';
+								const safeUrl = ( /^(https?:\/\/|\/(?!\/)|data:image\/(png|jpeg|gif|webp|svg\+xml)(;base64)?,[^\s]+$)/i.test( attrs.backgroundImage ) )
+									? attrs.backgroundImage.replace( /'/g, '%27' ).replace( /\\/g, '%5C' ).replace( /\(/g, '%28' ).replace( /\)/g, '%29' )
+									: '';
+								if ( safeUrl ) {
+									s += 'background-image:url(' + safeUrl + ');';
+									if ( attrs.backgroundSize ) s += 'background-size:' + attrs.backgroundSize + ';';
+									if ( attrs.backgroundPosition ) s += 'background-position:' + attrs.backgroundPosition + ';';
+								}
 							}
 							if ( attrs.backgroundGradient ) {
 								s += 'background-image:' + attrs.backgroundGradient + ';';

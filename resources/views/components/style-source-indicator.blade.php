@@ -13,11 +13,16 @@
 <span
 	x-data="{
 		field: {{ Js::from( $field ) }},
+		propBlockId: {{ Js::from( $blockId ) }},
+
+		get resolvedBlockId() {
+			if ( this.propBlockId && 'dynamic' !== this.propBlockId ) return this.propBlockId;
+			return $store.selection?.focused ?? null;
+		},
 
 		get block() {
-			const blockId = $store.selection?.focused;
-			if ( ! blockId || ! $store.editor ) return null;
-			return $store.editor.getBlock( blockId );
+			if ( ! this.resolvedBlockId || ! $store.editor ) return null;
+			return $store.editor.getBlock( this.resolvedBlockId );
 		},
 
 		get hasBlockOverride() {
@@ -27,6 +32,7 @@
 
 		get source() {
 			if ( this.hasBlockOverride ) return 'block';
+			// Template source detection requires template context (future: #207)
 			return 'global';
 		},
 
@@ -49,9 +55,8 @@
 		},
 
 		resetToDefault() {
-			const blockId = $store.selection?.focused;
-			if ( ! blockId ) return;
-			$store.editor.removeBlockAttributes( blockId, [ this.field ] );
+			if ( ! this.resolvedBlockId ) return;
+			$store.editor.removeBlockAttributes( this.resolvedBlockId, [ this.field ] );
 		},
 	}"
 	class="inline-flex items-center gap-1"

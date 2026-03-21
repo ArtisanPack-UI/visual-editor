@@ -638,14 +638,19 @@
 					return str.replace( /([a-z0-9])([A-Z])/g, '$1-$2' ).toLowerCase();
 				},
 
+				_lastCssVars: new Set(),
+
 				_syncGlobalCssVariables() {
-					const root = document.documentElement;
+					const root    = document.documentElement;
+					const newVars = new Set();
 
 					// Colors
 					const palette = this.globalStyles.palette || [];
 					palette.forEach( ( entry ) => {
 						if ( entry.slug && entry.color ) {
-							root.style.setProperty( '--ve-color-' + entry.slug, entry.color );
+							const name = '--ve-color-' + entry.slug;
+							root.style.setProperty( name, entry.color );
+							newVars.add( name );
 						}
 					} );
 
@@ -654,7 +659,9 @@
 					const families   = typography.fontFamilies || {};
 					Object.keys( families ).forEach( ( slot ) => {
 						if ( families[ slot ] ) {
-							root.style.setProperty( '--ve-font-' + slot, families[ slot ] );
+							const name = '--ve-font-' + slot;
+							root.style.setProperty( name, families[ slot ] );
+							newVars.add( name );
 						}
 					} );
 
@@ -664,7 +671,9 @@
 						const styles = elements[ element ] || {};
 						Object.keys( styles ).forEach( ( prop ) => {
 							if ( styles[ prop ] ) {
-								root.style.setProperty( '--ve-text-' + element + '-' + this._camelToKebab( prop ), styles[ prop ] );
+								const name = '--ve-text-' + element + '-' + this._camelToKebab( prop );
+								root.style.setProperty( name, styles[ prop ] );
+								newVars.add( name );
 							}
 						} );
 					} );
@@ -674,7 +683,9 @@
 					const scale   = spacing.scale || [];
 					scale.forEach( ( step ) => {
 						if ( step.slug && step.value ) {
-							root.style.setProperty( '--ve-spacing-' + step.slug, step.value );
+							const name = '--ve-spacing-' + step.slug;
+							root.style.setProperty( name, step.value );
+							newVars.add( name );
 						}
 					} );
 
@@ -682,7 +693,9 @@
 					const customSteps = spacing.customSteps || [];
 					customSteps.forEach( ( step ) => {
 						if ( step.slug && step.value ) {
-							root.style.setProperty( '--ve-spacing-' + step.slug, step.value );
+							const name = '--ve-spacing-' + step.slug;
+							root.style.setProperty( name, step.value );
+							newVars.add( name );
 						}
 					} );
 
@@ -695,7 +708,16 @@
 							gapValue = gapStep.value;
 						}
 						root.style.setProperty( '--ve-block-gap', gapValue );
+						newVars.add( '--ve-block-gap' );
 					}
+
+					// Remove stale variables from previous sync
+					this._lastCssVars.forEach( ( name ) => {
+						if ( ! newVars.has( name ) ) {
+							root.style.removeProperty( name );
+						}
+					} );
+					this._lastCssVars = newVars;
 				},
 
 				{{-- ── Pattern Operations ────────────────────────────────── --}}

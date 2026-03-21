@@ -84,7 +84,6 @@
 
 		setFontFamily( slot, value ) {
 			this.fontFamilies[ slot ] = value
-			this._dispatch()
 		},
 
 		startEditElement( key ) {
@@ -94,7 +93,6 @@
 		updateElementProperty( element, property, value ) {
 			if ( ! this.elements[ element ] ) return
 			this.elements[ element ][ property ] = value
-			this._dispatch()
 		},
 
 		applyTypeScale() {
@@ -113,7 +111,6 @@
 					this.elements[ heading ].fontSize = parseFloat( size.toFixed( 3 ) ) + 'rem'
 				}
 			} )
-			this._dispatch()
 		},
 
 		resetToDefaults() {
@@ -121,7 +118,6 @@
 			this.fontFamilies  = JSON.parse( JSON.stringify( defaults.fontFamilies ) )
 			this.elements      = JSON.parse( JSON.stringify( defaults.elements ) )
 			this.editingElement = null
-			this._dispatch()
 		},
 
 		_getCssPreview() {

@@ -18,7 +18,7 @@
 		dispatch() {
 			if ( this._dispatching ) return;
 			this._dispatching = true;
-			$dispatch( 've-unit-change', { value: this.value, unit: this.unit } );
+			this.$dispatch( 've-unit-change', { value: this.value, unit: this.unit } );
 			this.$nextTick( () => { this._dispatching = false; } );
 		}
 	}"

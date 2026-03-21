@@ -23,14 +23,19 @@
 				const settingsPanel = document.getElementById( '{{ $uuid }}-settings-subpanel' );
 				if ( ! settingsPanel ) return;
 
-				// Temporarily reveal the panel (without transition) to inspect content.
+				// Use visibility (not display) to avoid layout flicker.
 				const wasHidden = settingsPanel.style.display === 'none';
-				if ( wasHidden ) settingsPanel.style.display = '';
+				if ( wasHidden ) {
+					settingsPanel.style.visibility = 'hidden';
+					settingsPanel.style.display    = '';
+				}
 
-				// Look for inspector fields inside the currently visible block type div.
 				const hasFields = settingsPanel.querySelector( '.ve-inspector-field' );
 
-				if ( wasHidden ) settingsPanel.style.display = 'none';
+				if ( wasHidden ) {
+					settingsPanel.style.display    = 'none';
+					settingsPanel.style.visibility = '';
+				}
 
 				this.activeBlockSubTab = hasFields ? 'settings' : 'styles';
 			} ); } );

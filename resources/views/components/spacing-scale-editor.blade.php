@@ -86,7 +86,6 @@
 			}
 			this.editing   = null
 			this.editError = ''
-			this._dispatch()
 		},
 
 		cancelEdit() {
@@ -96,7 +95,6 @@
 
 		removeCustomStep( index ) {
 			this.customSteps.splice( index, 1 )
-			this._dispatch()
 		},
 
 		startAdd() {
@@ -131,7 +129,6 @@
 			} )
 			this.adding    = false
 			this.slugError = ''
-			this._dispatch()
 		},
 
 		cancelAdd() {
@@ -159,12 +156,10 @@
 			this.customSteps = []
 			this.editing     = null
 			this.adding      = false
-			this._dispatch()
 		},
 
 		setBlockGap( slug ) {
 			this.blockGap = slug
-			this._dispatch()
 		},
 
 		resetToDefaults() {
@@ -173,7 +168,6 @@
 			this.customSteps = {{ Js::from( $defaultData['customSteps'] ) }}
 			this.editing     = null
 			this.adding      = false
-			this._dispatch()
 		},
 
 		_sanitizeSlug( value ) {
