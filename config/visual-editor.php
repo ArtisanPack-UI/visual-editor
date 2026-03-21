@@ -202,6 +202,53 @@ return [
 	*/
 	'spacing_scale' => [],
 
+	/*
+	|----------------------------------------------------------------------
+	| Global Styles: CSS Compilation
+	|----------------------------------------------------------------------
+	|
+	| Configuration for the unified CSS custom properties compilation
+	| engine that aggregates colors, typography, and spacing into a
+	| single CSS output.
+	|
+	| output_mode:          How to deliver CSS: 'inline' (<style> tag),
+	|                       'file' (static CSS file), or 'both'.
+	| output_path:          Relative path for the static CSS file
+	|                       (used when output_mode is 'file' or 'both').
+	| output_disk:          Laravel filesystem disk to use for file
+	|                       output. Null uses public_path().
+	| minify:               Whether to minify the compiled CSS output.
+	| cache.enabled:        Enable CSS output caching.
+	| cache.key:            Cache key for the compiled CSS.
+	| cache.ttl:            Cache time-to-live in seconds.
+	| cache.store:          Cache store driver name (null = default).
+	| debug_comments:       Include section comments in the compiled
+	|                       output (e.g. Colors, Typography, Spacing).
+	| include_color_shades: Include light/dark shade variations for
+	|                       palette colors.
+	| root_selector:        The CSS selector for the root block
+	|                       (default: ':root').
+	| template_overrides:   Keyed by template slug, each entry is an
+	|                       array of per-manager overrides for scoped CSS.
+	|
+	*/
+	'global_styles' => [
+		'output_mode'          => 'inline',
+		'output_path'          => 'css/ve-global-styles.css',
+		'output_disk'          => null,
+		'minify'               => false,
+		'cache'                => [
+			'enabled' => false,
+			'key'     => 've-global-styles',
+			'ttl'     => 3600,
+			'store'   => null,
+		],
+		'debug_comments'       => false,
+		'include_color_shades' => true,
+		'root_selector'        => ':root',
+		'template_overrides'   => [],
+	],
+
 	'blocks' => [
 		'core'     => [
 			'heading'   => true,
