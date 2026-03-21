@@ -438,3 +438,188 @@ test( 'compileScoped with debug comments includes section markers', function ():
 
 	expect( $css )->toContain( '/* Colors */' );
 } );
+
+// ─── Editor Selector Override ────────────────────────────────────────
+
+test( 'compile accepts selector override', function (): void {
+	$compiler = createCompiler( [ 'root_selector' => '.custom-scope' ] );
+	$css      = $compiler->compile();
+
+	expect( $css )->toStartWith( '.custom-scope {' );
+
+	$overridden = $compiler->compile( ':root' );
+
+	expect( $overridden )->toStartWith( ':root {' );
+} );
+
+test( 'compileForEditor always uses :root regardless of config', function (): void {
+	$compiler = createCompiler( [ 'root_selector' => '.template-dark' ] );
+	$css      = $compiler->compileForEditor();
+
+	expect( $css )->toContain( ':root {' )
+		->and( $css )->not->toContain( '.template-dark {' );
+} );
+
+test( 'toInlineStyle with forEditor forces :root', function (): void {
+	$compiler = createCompiler( [ 'root_selector' => '.custom' ] );
+
+	$defaultHtml = $compiler->toInlineStyle();
+
+	expect( $defaultHtml )->toContain( '.custom {' );
+
+	$editorHtml = $compiler->toInlineStyle( true );
+
+	expect( $editorHtml )->toContain( ':root {' )
+		->and( $editorHtml )->not->toContain( '.custom {' );
+} );
+
+// ─── Cache Integration ───────────────────────────────────────────────
+
+test( 'getCached returns compiled CSS when cache is disabled', function (): void {
+	$compiler = createCompiler( [ 'cache' => [ 'enabled' => false ] ] );
+	$cached   = $compiler->getCached();
+
+	expect( $cached )->toContain( ':root {' )
+		->and( $cached )->toContain( '--ve-color-primary' );
+} );
+
+test( 'getCached returns compiled CSS when cache is enabled', function (): void {
+	$compiler = createCompiler( [
+		'cache' => [
+			'enabled' => true,
+			'key'     => 've-test-cache-' . uniqid(),
+			'ttl'     => 60,
+			'store'   => null,
+		],
+	] );
+
+	$first  = $compiler->getCached();
+	$second = $compiler->getCached();
+
+	expect( $first )->toBe( $second )
+		->and( $first )->toContain( '--ve-color-primary' );
+} );
+
+test( 'invalidateCache clears cached entry', function (): void {
+	$cacheKey = 've-test-invalidate-' . uniqid();
+	$compiler = createCompiler( [
+		'cache' => [
+			'enabled' => true,
+			'key'     => $cacheKey,
+			'ttl'     => 60,
+			'store'   => null,
+		],
+	] );
+
+	$compiler->getCached();
+
+	expect( Illuminate\Support\Facades\Cache::has( $cacheKey ) )->toBeTrue();
+
+	$compiler->invalidateCache();
+
+	expect( Illuminate\Support\Facades\Cache::has( $cacheKey ) )->toBeFalse();
+} );
+
+test( 'registerTemplateOverride invalidates cache when enabled', function (): void {
+	$cacheKey = 've-test-override-invalidate-' . uniqid();
+	$compiler = createCompiler( [
+		'cache' => [
+			'enabled' => true,
+			'key'     => $cacheKey,
+			'ttl'     => 60,
+			'store'   => null,
+		],
+	] );
+
+	$compiler->getCached();
+
+	expect( Illuminate\Support\Facades\Cache::has( $cacheKey ) )->toBeTrue();
+
+	$compiler->registerTemplateOverride( 'test', [
+		'colors' => [
+			'primary' => [ 'name' => 'P', 'color' => '#000000' ],
+		],
+	] );
+
+	expect( Illuminate\Support\Facades\Cache::has( $cacheKey ) )->toBeFalse();
+} );
+
+// ─── File Output ─────────────────────────────────────────────────────
+
+test( 'toFile writes CSS and returns path', function (): void {
+	$outputPath = 'css/ve-test-' . uniqid() . '.css';
+	$compiler   = createCompiler( [ 'output_path' => $outputPath ] );
+
+	$result = $compiler->toFile();
+
+	expect( $result )->toBe( $outputPath );
+
+	$fullPath = public_path( $outputPath );
+
+	expect( file_exists( $fullPath ) )->toBeTrue();
+
+	$contents = file_get_contents( $fullPath );
+
+	expect( $contents )->toContain( '--ve-color-primary' );
+
+	// Cleanup
+	@unlink( $fullPath );
+	@rmdir( dirname( $fullPath ) );
+} );
+
+test( 'toFile applies minification when configured', function (): void {
+	$outputPath = 'css/ve-test-minify-' . uniqid() . '.css';
+	$compiler   = createCompiler( [
+		'output_path' => $outputPath,
+		'minify'      => true,
+	] );
+
+	$compiler->toFile();
+
+	$fullPath = public_path( $outputPath );
+	$contents = file_get_contents( $fullPath );
+
+	expect( $contents )->not->toContain( "\n" )
+		->and( $contents )->not->toContain( "\t" );
+
+	// Cleanup
+	@unlink( $fullPath );
+	@rmdir( dirname( $fullPath ) );
+} );
+
+test( 'output in file mode returns path', function (): void {
+	$outputPath = 'css/ve-test-mode-' . uniqid() . '.css';
+	$compiler   = createCompiler( [
+		'output_mode' => 'file',
+		'output_path' => $outputPath,
+	] );
+
+	$result = $compiler->output();
+
+	expect( $result )->toBe( $outputPath );
+
+	// Cleanup
+	$fullPath = public_path( $outputPath );
+	@unlink( $fullPath );
+	@rmdir( dirname( $fullPath ) );
+} );
+
+test( 'output in both mode writes file and returns inline style', function (): void {
+	$outputPath = 'css/ve-test-both-' . uniqid() . '.css';
+	$compiler   = createCompiler( [
+		'output_mode' => 'both',
+		'output_path' => $outputPath,
+	] );
+
+	$result = $compiler->output();
+
+	expect( $result )->toContain( '<style' );
+
+	$fullPath = public_path( $outputPath );
+
+	expect( file_exists( $fullPath ) )->toBeTrue();
+
+	// Cleanup
+	@unlink( $fullPath );
+	@rmdir( dirname( $fullPath ) );
+} );

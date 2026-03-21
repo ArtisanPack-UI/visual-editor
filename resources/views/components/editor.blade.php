@@ -372,8 +372,9 @@
 @endonce
 
 {{-- Global styles (colors, typography, spacing custom properties) --}}
+@once
 @push( 'styles' )
-{!! veGlobalStylesInline() !!}
+{!! veGlobalStylesInline( true ) !!}
 <style id="ve-canvas-global-styles">
 	/* Apply global style tokens to the editor canvas */
 	.ve-editor-canvas {
@@ -385,6 +386,7 @@
 	}
 </style>
 @endpush
+@endonce
 
 {{-- State stores --}}
 <x-ve-editor-state

@@ -878,9 +878,9 @@ if ( ! function_exists( 'veGlobalStylesInline' ) ) {
 	 *
 	 * @return string The HTML <style> element.
 	 */
-	function veGlobalStylesInline(): string
+	function veGlobalStylesInline( bool $forEditor = false ): string
 	{
-		return app( 'visual-editor.global-styles' )->toInlineStyle();
+		return app( 'visual-editor.global-styles' )->toInlineStyle( $forEditor );
 	}
 }
 

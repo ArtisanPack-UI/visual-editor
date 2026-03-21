@@ -23,10 +23,11 @@ use Illuminate\Support\Facades\Facade;
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Facades
  *
- * @method static string compile()
+ * @method static string compile( ?string $selectorOverride = null )
  * @method static string compileScoped( string $slug, array $overrides )
- * @method static string compileWithScopes()
- * @method static string toInlineStyle()
+ * @method static string compileWithScopes( ?string $selectorOverride = null )
+ * @method static string compileForEditor()
+ * @method static string toInlineStyle( bool $forEditor = false )
  * @method static string toFile()
  * @method static string output()
  * @method static string getCached()

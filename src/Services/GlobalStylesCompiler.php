@@ -115,16 +115,20 @@ class GlobalStylesCompiler
 	 *
 	 * Aggregates CSS custom properties from colors, typography, and
 	 * spacing managers into one CSS rule using the configured root selector.
+	 * Pass a selector override to force a specific selector (e.g. ':root'
+	 * for editor context regardless of config).
 	 *
 	 * @since 1.0.0
 	 *
+	 * @param string|null $selectorOverride Optional CSS selector to use instead of configured root_selector.
+	 *
 	 * @return string The compiled CSS string.
 	 */
-	public function compile(): string
+	public function compile( ?string $selectorOverride = null ): string
 	{
 		$includeShades = (bool) ( $this->config['include_color_shades'] ?? true );
 		$debugComments = (bool) ( $this->config['debug_comments'] ?? false );
-		$rootSelector  = (string) ( $this->config['root_selector'] ?? ':root' );
+		$rootSelector  = $selectorOverride ?? (string) ( $this->config['root_selector'] ?? ':root' );
 
 		$colorProps     = veApplyFilters(
 			'ap.visualEditor.globalStyles.properties.colors',
@@ -285,12 +289,14 @@ class GlobalStylesCompiler
 	 *
 	 * @since 1.0.0
 	 *
+	 * @param string|null $selectorOverride Optional CSS selector override for the root block.
+	 *
 	 * @return string The complete CSS with root and all scoped blocks.
 	 */
-	public function compileWithScopes(): string
+	public function compileWithScopes( ?string $selectorOverride = null ): string
 	{
 		$parts   = [];
-		$parts[] = $this->compile();
+		$parts[] = $this->compile( $selectorOverride );
 
 		foreach ( $this->templateOverrides as $slug => $overrides ) {
 			$scoped = $this->compileScoped( $slug, $overrides );
@@ -306,17 +312,33 @@ class GlobalStylesCompiler
 	}
 
 	/**
+	 * Compile all global styles with :root as the selector.
+	 *
+	 * Guarantees :root is used regardless of the configured root_selector,
+	 * which is necessary for the editor canvas where CSS custom properties
+	 * must be inherited from the document root.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return string The compiled CSS string using :root.
+	 */
+	public function compileForEditor(): string
+	{
+		return $this->compileWithScopes( ':root' );
+	}
+
+	/**
 	 * Wrap the compiled CSS in a <style> tag for inline output.
 	 *
 	 * @since 1.0.0
 	 *
+	 * @param bool $forEditor When true, forces :root selector regardless of config.
+	 *
 	 * @return string The HTML <style> element.
 	 */
-	public function toInlineStyle(): string
+	public function toInlineStyle( bool $forEditor = false ): string
 	{
-		$css = $this->shouldMinify()
-			? $this->minify( $this->compileWithScopes() )
-			: $this->compileWithScopes();
+		$css = $this->resolvedCss( $forEditor ? ':root' : null );
 
 		if ( '' === $css ) {
 			return '';
@@ -334,9 +356,7 @@ class GlobalStylesCompiler
 	 */
 	public function toFile(): string
 	{
-		$css  = $this->shouldMinify()
-			? $this->minify( $this->compileWithScopes() )
-			: $this->compileWithScopes();
+		$css  = $this->resolvedCss();
 		$path = (string) ( $this->config['output_path'] ?? 'css/ve-global-styles.css' );
 		$disk = $this->config['output_disk'] ?? null;
 
@@ -505,6 +525,10 @@ class GlobalStylesCompiler
 	public function registerTemplateOverride( string $slug, array $overrides ): void
 	{
 		$this->templateOverrides[ $slug ] = $overrides;
+
+		if ( $this->isCacheEnabled() ) {
+			$this->invalidateCache();
+		}
 	}
 
 	/**
@@ -556,6 +580,29 @@ class GlobalStylesCompiler
 			'root_selector'        => ':root',
 			'template_overrides'   => [],
 		];
+	}
+
+	/**
+	 * Resolve the final CSS string, applying caching and minification.
+	 *
+	 * Centralizes the compilation pipeline so that toInlineStyle(),
+	 * toFile(), and output() all respect the cache setting.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string|null $selectorOverride Optional CSS selector override for the root block.
+	 *
+	 * @return string The resolved CSS string.
+	 */
+	protected function resolvedCss( ?string $selectorOverride = null ): string
+	{
+		$css = $this->isCacheEnabled() && null === $selectorOverride
+			? $this->getCached()
+			: $this->compileWithScopes( $selectorOverride );
+
+		return $this->shouldMinify()
+			? $this->minify( $css )
+			: $css;
 	}
 
 	/**
