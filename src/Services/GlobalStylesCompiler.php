@@ -371,8 +371,8 @@ class GlobalStylesCompiler
 		}
 
 		// Prevent HTML parser breakout from user-controlled values
-		// (e.g., a font family containing "</style>").
-		$css = str_replace( '</style', '<\/style', $css );
+		// (e.g., a font family containing "</style>" or "</STYLE>").
+		$css = str_ireplace( '</style', '<\/style', $css );
 
 		return '<style id="ve-global-styles">' . "\n" . $css . "\n" . '</style>';
 	}
@@ -453,15 +453,10 @@ class GlobalStylesCompiler
 			return $this->compileWithScopes();
 		}
 
-		$key   = $this->getCacheKey();
-		$ttl   = (int) ( $this->config['cache']['ttl'] ?? 3600 );
-		$store = $this->config['cache']['store'] ?? null;
+		$key = $this->getCacheKey();
+		$ttl = (int) ( $this->config['cache']['ttl'] ?? 3600 );
 
-		$cache = ( null !== $store && '' !== $store )
-			? Cache::store( $store )
-			: Cache::store();
-
-		return $cache->remember( $key, $ttl, fn () => $this->compileWithScopes() );
+		return $this->resolveCacheStore()->remember( $key, $ttl, fn () => $this->compileWithScopes() );
 	}
 
 	/**
@@ -473,14 +468,7 @@ class GlobalStylesCompiler
 	 */
 	public function invalidateCache(): void
 	{
-		$key   = $this->getCacheKey();
-		$store = $this->config['cache']['store'] ?? null;
-
-		$cache = ( null !== $store && '' !== $store )
-			? Cache::store( $store )
-			: Cache::store();
-
-		$cache->forget( $key );
+		$this->resolveCacheStore()->forget( $this->getCacheKey() );
 	}
 
 	/**
@@ -637,6 +625,22 @@ class GlobalStylesCompiler
 		return $this->shouldMinify()
 			? $this->minify( $css )
 			: $css;
+	}
+
+	/**
+	 * Resolve the configured cache store instance.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return \Illuminate\Contracts\Cache\Repository
+	 */
+	protected function resolveCacheStore(): \Illuminate\Contracts\Cache\Repository
+	{
+		$store = $this->config['cache']['store'] ?? null;
+
+		return ( null !== $store && '' !== $store )
+			? Cache::store( $store )
+			: Cache::store();
 	}
 
 	/**

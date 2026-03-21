@@ -444,31 +444,36 @@ test( 'compileScoped with debug comments includes section markers', function ():
 // ─── Defensive Handling ──────────────────────────────────────────────
 
 test( 'toInlineStyle escapes closing style tags in CSS values', function (): void {
-	$compiler = createCompiler();
-	$html     = $compiler->toInlineStyle();
-
-	expect( $html )->not->toContain( '</style>' . "\n" . '</style>' );
-
-	// Simulate a value containing </style> by checking the escaping method directly.
-	$colors = new ColorPaletteManager( [
-		'test' => [
-			'name'  => 'Test',
-			'slug'  => 'test',
-			'color' => '#ff0000',
-		],
-	] );
+	$typography = new TypographyPresetsManager();
+	$typography->setFontFamily( 'heading', '</style><script>alert(1)</script>' );
 
 	$compiler = new GlobalStylesCompiler(
-		$colors,
-		new TypographyPresetsManager(),
+		new ColorPaletteManager(),
+		$typography,
 		new SpacingScaleManager(),
 	);
 
 	$html = $compiler->toInlineStyle();
 
-	// The output should not contain a raw unescaped </style inside the CSS.
-	// Count occurrences: only the closing </style> wrapper should exist.
-	expect( substr_count( $html, '</style>' ) )->toBe( 1 );
+	// Only the wrapper closing tag should remain unescaped.
+	expect( substr_count( $html, '</style>' ) )->toBe( 1 )
+		->and( $html )->toContain( '<\/style' );
+} );
+
+test( 'toInlineStyle escapes case-insensitive style tag variants', function (): void {
+	$typography = new TypographyPresetsManager();
+	$typography->setFontFamily( 'body', '</STYLE><script>x</script>' );
+
+	$compiler = new GlobalStylesCompiler(
+		new ColorPaletteManager(),
+		$typography,
+		new SpacingScaleManager(),
+	);
+
+	$html = $compiler->toInlineStyle();
+
+	expect( substr_count( $html, '</style>' ) )->toBe( 1 )
+		->and( $html )->not->toContain( '</STYLE>' );
 } );
 
 test( 'compileScoped skips non-string font family overrides', function (): void {
