@@ -40,6 +40,24 @@
 		showCss: false,
 		presets: {{ Js::from( $presetScales ) }},
 
+		init() {
+			const syncToStore = () => {
+				const store = Alpine.store( 'editor' );
+				if ( ! store ) return;
+				store.globalStyles.spacing = {
+					scale: JSON.parse( JSON.stringify( this.scale ) ),
+					blockGap: this.blockGap,
+					customSteps: JSON.parse( JSON.stringify( this.customSteps ) ),
+				};
+				store._syncGlobalCssVariables();
+				store.markDirty();
+				store._dispatchChange();
+			};
+			this.$watch( 'scale', syncToStore );
+			this.$watch( 'blockGap', syncToStore );
+			this.$watch( 'customSteps', syncToStore );
+		},
+
 		startEdit( index, isCustom ) {
 			const list = isCustom ? this.customSteps : this.scale
 			this.editing   = { index, isCustom }
@@ -68,7 +86,6 @@
 			}
 			this.editing   = null
 			this.editError = ''
-			this._dispatch()
 		},
 
 		cancelEdit() {
@@ -78,7 +95,6 @@
 
 		removeCustomStep( index ) {
 			this.customSteps.splice( index, 1 )
-			this._dispatch()
 		},
 
 		startAdd() {
@@ -113,7 +129,6 @@
 			} )
 			this.adding    = false
 			this.slugError = ''
-			this._dispatch()
 		},
 
 		cancelAdd() {
@@ -141,12 +156,10 @@
 			this.customSteps = []
 			this.editing     = null
 			this.adding      = false
-			this._dispatch()
 		},
 
 		setBlockGap( slug ) {
 			this.blockGap = slug
-			this._dispatch()
 		},
 
 		resetToDefaults() {
@@ -155,7 +168,6 @@
 			this.customSteps = {{ Js::from( $defaultData['customSteps'] ) }}
 			this.editing     = null
 			this.adding      = false
-			this._dispatch()
 		},
 
 		_sanitizeSlug( value ) {
@@ -174,11 +186,14 @@
 		},
 
 		_dispatch() {
-			$dispatch( 've-spacing-change', {
-				scale: JSON.parse( JSON.stringify( this.scale ) ),
-				blockGap: this.blockGap,
-				customSteps: JSON.parse( JSON.stringify( this.customSteps ) ),
-			} )
+			document.dispatchEvent( new CustomEvent( 've-spacing-change', {
+				detail: {
+					scale: JSON.parse( JSON.stringify( this.scale ) ),
+					blockGap: this.blockGap,
+					customSteps: JSON.parse( JSON.stringify( this.customSteps ) ),
+				},
+				bubbles: true,
+			} ) );
 		},
 
 		allSteps() {

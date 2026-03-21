@@ -53,6 +53,8 @@
 				meta: {{ Js::from( $initialMeta ) }},
 				globalStyles: {
 					palette: {{ Js::from( $initialPalette ) }},
+					typography: {{ Js::from( $initialTypography ) }},
+					spacing: {{ Js::from( $initialSpacing ) }},
 				},
 				showPatternModal: false,
 				leftSidebarTab: 'blocks',
@@ -123,6 +125,18 @@
 
 					this._pushHistory();
 					block.attributes = { ...block.attributes, ...attributes };
+					this.markDirty();
+					this._dispatchChange();
+				},
+
+				removeBlockAttributes( blockId, keys ) {
+					const block = this.getBlock( blockId );
+					if ( ! block || ! block.attributes ) return;
+
+					this._pushHistory();
+					const updated = { ...block.attributes };
+					keys.forEach( ( key ) => { delete updated[ key ]; } );
+					block.attributes = updated;
 					this.markDirty();
 					this._dispatchChange();
 				},
@@ -568,6 +582,7 @@
 				setPalette( entries ) {
 					this._pushHistory();
 					this.globalStyles.palette = entries;
+					this._syncGlobalCssVariables();
 					this.markDirty();
 					this._dispatchChange();
 				},
@@ -587,6 +602,122 @@
 					const slug  = value.substring( 8 );
 					const entry = this.getPaletteColor( slug );
 					return entry ? entry.color : value;
+				},
+
+				{{-- ── Global Styles: Typography ─────────────────────────── --}}
+
+				setTypography( data ) {
+					this._pushHistory();
+					this.globalStyles.typography = data;
+					this._syncGlobalCssVariables();
+					this.markDirty();
+					this._dispatchChange();
+				},
+
+				getTypography() {
+					return this.globalStyles.typography;
+				},
+
+				{{-- ── Global Styles: Spacing ────────────────────────────── --}}
+
+				setSpacing( data ) {
+					this._pushHistory();
+					this.globalStyles.spacing = data;
+					this._syncGlobalCssVariables();
+					this.markDirty();
+					this._dispatchChange();
+				},
+
+				getSpacing() {
+					return this.globalStyles.spacing;
+				},
+
+				{{-- ── Reactive CSS Custom Properties ────────────────────── --}}
+
+				_camelToKebab( str ) {
+					return str.replace( /([a-z0-9])([A-Z])/g, '$1-$2' ).toLowerCase();
+				},
+
+				_lastCssVars: new Set(),
+
+				_syncGlobalCssVariables() {
+					const root    = document.documentElement;
+					const newVars = new Set();
+
+					// Colors
+					const palette = this.globalStyles.palette || [];
+					palette.forEach( ( entry ) => {
+						if ( entry.slug && entry.color ) {
+							const name = '--ve-color-' + entry.slug;
+							root.style.setProperty( name, entry.color );
+							newVars.add( name );
+						}
+					} );
+
+					// Typography: font families
+					const typography = this.globalStyles.typography || {};
+					const families   = typography.fontFamilies || {};
+					Object.keys( families ).forEach( ( slot ) => {
+						if ( families[ slot ] ) {
+							const name = '--ve-font-' + slot;
+							root.style.setProperty( name, families[ slot ] );
+							newVars.add( name );
+						}
+					} );
+
+					// Typography: elements (convert camelCase keys to kebab-case)
+					const elements = typography.elements || {};
+					Object.keys( elements ).forEach( ( element ) => {
+						const styles = elements[ element ] || {};
+						Object.keys( styles ).forEach( ( prop ) => {
+							if ( styles[ prop ] ) {
+								const name = '--ve-text-' + element + '-' + this._camelToKebab( prop );
+								root.style.setProperty( name, styles[ prop ] );
+								newVars.add( name );
+							}
+						} );
+					} );
+
+					// Spacing: scale
+					const spacing = this.globalStyles.spacing || {};
+					const scale   = spacing.scale || [];
+					scale.forEach( ( step ) => {
+						if ( step.slug && step.value ) {
+							const name = '--ve-spacing-' + step.slug;
+							root.style.setProperty( name, step.value );
+							newVars.add( name );
+						}
+					} );
+
+					// Spacing: custom steps
+					const customSteps = spacing.customSteps || [];
+					customSteps.forEach( ( step ) => {
+						if ( step.slug && step.value ) {
+							const name = '--ve-spacing-' + step.slug;
+							root.style.setProperty( name, step.value );
+							newVars.add( name );
+						}
+					} );
+
+					// Spacing: block gap
+					if ( spacing.blockGap ) {
+						let gapValue   = spacing.blockGap;
+						const allSteps = [ ...scale, ...customSteps ];
+						const gapStep  = allSteps.find( ( s ) => s.slug === gapValue );
+						if ( gapStep ) {
+							gapValue = gapStep.value;
+						}
+						root.style.setProperty( '--ve-block-gap', gapValue );
+						newVars.add( '--ve-block-gap' );
+					}
+
+					// Remove stale variables from previous sync
+					this._lastCssVars.forEach( ( name ) => {
+						if ( ! newVars.has( name ) ) {
+							root.style.removeProperty( name );
+						}
+					} );
+					this._lastCssVars = newVars;
 				},
 
 				{{-- ── Pattern Operations ────────────────────────────────── --}}
@@ -886,6 +1017,25 @@
 					document.addEventListener( 've-palette-change', ( e ) => {
 						if ( e.detail && e.detail.palette ) {
 							this.setPalette( e.detail.palette );
+						}
+					} );
+
+					document.addEventListener( 've-typography-change', ( e ) => {
+						if ( e.detail ) {
+							this.setTypography( {
+								fontFamilies: e.detail.fontFamilies || {},
+								elements: e.detail.elements || {},
+							} );
+						}
+					} );
+
+					document.addEventListener( 've-spacing-change', ( e ) => {
+						if ( e.detail ) {
+							this.setSpacing( {
+								scale: e.detail.scale || [],
+								blockGap: e.detail.blockGap || 'md',
+								customSteps: e.detail.customSteps || [],
+							} );
 						}
 					} );
 
@@ -1200,7 +1350,7 @@
 			store.blockVariations  = {{ Js::from( $blockVariations ) }};
 			store.defaultBlockType = {{ Js::from( $defaultBlockType ) }};
 			store.meta             = {{ Js::from( $initialMeta ) }};
-			store.globalStyles     = { palette: {{ Js::from( $initialPalette ) }} };
+			store.globalStyles     = { palette: {{ Js::from( $initialPalette ) }}, typography: {{ Js::from( $initialTypography ) }}, spacing: {{ Js::from( $initialSpacing ) }} };
 			store.showPatternModal = false;
 			store.leftSidebarTab   = 'blocks';
 

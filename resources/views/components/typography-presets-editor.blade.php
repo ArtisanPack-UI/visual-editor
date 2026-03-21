@@ -66,9 +66,24 @@
 		typeScaleRatio: 1.25,
 		elementLabels: {{ Js::from( $elementLabels ) }},
 
+		init() {
+			const syncToStore = () => {
+				const store = Alpine.store( 'editor' );
+				if ( ! store ) return;
+				store.globalStyles.typography = {
+					fontFamilies: JSON.parse( JSON.stringify( this.fontFamilies ) ),
+					elements: JSON.parse( JSON.stringify( this.elements ) ),
+				};
+				store._syncGlobalCssVariables();
+				store.markDirty();
+				store._dispatchChange();
+			};
+			this.$watch( 'fontFamilies', syncToStore );
+			this.$watch( 'elements', syncToStore );
+		},
+
 		setFontFamily( slot, value ) {
 			this.fontFamilies[ slot ] = value
-			this._dispatch()
 		},
 
 		startEditElement( key ) {
@@ -78,7 +93,6 @@
 		updateElementProperty( element, property, value ) {
 			if ( ! this.elements[ element ] ) return
 			this.elements[ element ][ property ] = value
-			this._dispatch()
 		},
 
 		applyTypeScale() {
@@ -97,7 +111,6 @@
 					this.elements[ heading ].fontSize = parseFloat( size.toFixed( 3 ) ) + 'rem'
 				}
 			} )
-			this._dispatch()
 		},
 
 		resetToDefaults() {
@@ -105,7 +118,6 @@
 			this.fontFamilies  = JSON.parse( JSON.stringify( defaults.fontFamilies ) )
 			this.elements      = JSON.parse( JSON.stringify( defaults.elements ) )
 			this.editingElement = null
-			this._dispatch()
 		},
 
 		_getCssPreview() {
@@ -124,10 +136,13 @@
 		},
 
 		_dispatch() {
-			this.$dispatch( 've-typography-change', {
-				fontFamilies: JSON.parse( JSON.stringify( this.fontFamilies ) ),
-				elements: JSON.parse( JSON.stringify( this.elements ) ),
-			} )
+			document.dispatchEvent( new CustomEvent( 've-typography-change', {
+				detail: {
+					fontFamilies: JSON.parse( JSON.stringify( this.fontFamilies ) ),
+					elements: JSON.parse( JSON.stringify( this.elements ) ),
+				},
+				bubbles: true,
+			} ) );
 		},
 	}"
 	{{ $attributes->merge( [ 'class' => 'flex flex-col gap-4' ] ) }}

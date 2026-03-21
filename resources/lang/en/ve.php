@@ -1258,4 +1258,14 @@ return [
 	'spacing_margin'                => 'Margin',
 	'spacing_gap'                   => 'Gap',
 	'spacing_none'                  => 'None',
+
+	// Style Cascade
+	'style_source_global'           => 'Global',
+	'style_source_template'         => 'Template',
+	'style_source_block'            => 'Block',
+	'style_inherited_from_global'   => 'Inherited from global styles',
+	'style_inherited_from_template' => 'Inherited from template styles',
+	'style_overridden_by_block'     => 'Overridden at block level',
+	'style_reset_to_inherited'      => 'Reset to inherited value',
+	'style_cascade_label'           => 'Source',
 ];

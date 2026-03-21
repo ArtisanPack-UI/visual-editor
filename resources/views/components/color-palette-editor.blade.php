@@ -28,8 +28,34 @@
 		newSlug: '',
 		newColor: '#000000',
 		showCss: false,
+		_savedPalette: null,
+
+		init() {
+			this.$watch( 'editColor', ( value ) => {
+				if ( null === this.editing ) return;
+				const store = Alpine.store( 'editor' );
+				if ( ! store ) return;
+				const color = this._normalizeHex( value );
+				if ( ! color ) return;
+				const palette = JSON.parse( JSON.stringify( this.entries ) );
+				palette[ this.editing ] = { ...palette[ this.editing ], color: color };
+				store.globalStyles.palette = palette;
+				store._syncGlobalCssVariables();
+			} );
+		},
+
+		_commitToStore() {
+			const store = Alpine.store( 'editor' );
+			if ( ! store ) return;
+			store._pushHistory();
+			store.globalStyles.palette = JSON.parse( JSON.stringify( this.entries ) );
+			store._syncGlobalCssVariables();
+			store.markDirty();
+			store._dispatchChange();
+		},
 
 		startEdit( index ) {
+			this._savedPalette = JSON.parse( JSON.stringify( Alpine.store( 'editor' )?.globalStyles?.palette || this.entries ) );
 			this.editing   = index
 			this.editName  = this.entries[ index ].name
 			this.editSlug  = this.entries[ index ].slug
@@ -48,16 +74,27 @@
 				slug:  slug,
 				color: color,
 			}
-			this.editing = null
+			this.editing      = null
+			this._savedPalette = null
+			this._commitToStore()
 			this._dispatch()
 		},
 
 		cancelEdit() {
 			this.editing = null
+			if ( this._savedPalette ) {
+				const store = Alpine.store( 'editor' );
+				if ( store ) {
+					store.globalStyles.palette = this._savedPalette;
+					store._syncGlobalCssVariables();
+				}
+				this._savedPalette = null;
+			}
 		},
 
 		removeColor( index ) {
 			this.entries.splice( index, 1 )
+			this._commitToStore()
 			this._dispatch()
 		},
 
@@ -80,6 +117,7 @@
 				color: color,
 			} )
 			this.adding = false
+			this._commitToStore()
 			this._dispatch()
 		},
 
@@ -114,14 +152,20 @@
 
 		resetToDefaults() {
 			this.entries = {{ Js::from( $defaultEntries ) }}
-			this.editing = null
-			this.adding  = false
+			this.editing       = null
+			this.adding        = false
+			this._savedPalette = null
+			this._commitToStore()
 			this._dispatch()
 		},
 
 		_dispatch() {
-			$dispatch( 've-palette-change', { palette: JSON.parse( JSON.stringify( this.entries ) ) } )
+			document.dispatchEvent( new CustomEvent( 've-palette-change', {
+				detail: { palette: JSON.parse( JSON.stringify( this.entries ) ) },
+				bubbles: true,
+			} ) );
 		},
+
 	}"
 	{{ $attributes->merge( [ 'class' => 'flex flex-col gap-4' ] ) }}
 >

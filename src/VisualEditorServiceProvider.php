@@ -30,6 +30,7 @@ use ArtisanPackUI\VisualEditor\Services\ColorPaletteManager;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCompiler;
 use ArtisanPackUI\VisualEditor\Services\OEmbedService;
 use ArtisanPackUI\VisualEditor\Services\SpacingScaleManager;
+use ArtisanPackUI\VisualEditor\Services\StyleCascadeResolver;
 use ArtisanPackUI\VisualEditor\Services\TemplateAssignmentManager;
 use ArtisanPackUI\VisualEditor\Services\TemplateManager;
 use ArtisanPackUI\VisualEditor\Services\TemplatePartManager;
@@ -147,6 +148,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		'color-palette-editor'        => Components\ColorPaletteEditor::class,
 		'typography-presets-editor'   => Components\TypographyPresetsEditor::class,
 		'spacing-scale-editor'        => Components\SpacingScaleEditor::class,
+		'style-source-indicator'      => Components\StyleSourceIndicator::class,
 
 		// Phase 9: Editor Assembly
 		'icon'   => Components\Icon::class,
@@ -280,6 +282,18 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( GlobalStylesCompiler::class, function ( $app ) {
 			return $app->make( 'visual-editor.global-styles' );
+		} );
+
+		$this->app->singleton( 'visual-editor.style-cascade', function ( $app ) {
+			return new StyleCascadeResolver(
+				$app->make( 'visual-editor.color-palette' ),
+				$app->make( 'visual-editor.typography-presets' ),
+				$app->make( 'visual-editor.spacing-scale' ),
+			);
+		} );
+
+		$this->app->singleton( StyleCascadeResolver::class, function ( $app ) {
+			return $app->make( 'visual-editor.style-cascade' );
 		} );
 	}
 

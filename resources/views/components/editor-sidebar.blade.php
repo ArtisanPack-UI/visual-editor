@@ -16,7 +16,32 @@
 	x-data="{
 		activeTab: {{ Js::from( $activeTab ) }},
 		activeBlockSubTab: {{ Js::from( $activeBlockSubTab ) }},
+		_autoSelectSubTab() {
+			// Wait two ticks: one for Alpine to update the x-show blocks
+			// based on the new block type, another for DOM to settle.
+			this.$nextTick( () => { this.$nextTick( () => {
+				const settingsPanel = document.getElementById( '{{ $uuid }}-settings-subpanel' );
+				if ( ! settingsPanel ) return;
+
+				// Use visibility (not display) to avoid layout flicker.
+				const wasHidden = settingsPanel.style.display === 'none';
+				if ( wasHidden ) {
+					settingsPanel.style.visibility = 'hidden';
+					settingsPanel.style.display    = '';
+				}
+
+				const hasFields = settingsPanel.querySelector( '.ve-inspector-field' );
+
+				if ( wasHidden ) {
+					settingsPanel.style.display    = 'none';
+					settingsPanel.style.visibility = '';
+				}
+
+				this.activeBlockSubTab = hasFields ? 'settings' : 'styles';
+			} ); } );
+		},
 	}"
+	x-effect="if ( $store.selection?.focused ) { _autoSelectSubTab() }"
 	{{ $attributes->merge( [ 'class' => 'flex flex-col h-full border-l border-base-300 bg-base-100 overflow-hidden' ] ) }}
 	role="complementary"
 	aria-label="{{ $label ?? __( 'visual-editor::ve.editor_sidebar' ) }}"

@@ -14,8 +14,12 @@
 	x-data="{
 		value: {{ Js::from( $value ) }},
 		unit: {{ Js::from( $unit ) }},
+		_dispatching: false,
 		dispatch() {
-			$dispatch( 've-unit-change', { value: this.value, unit: this.unit } )
+			if ( this._dispatching ) return;
+			this._dispatching = true;
+			this.$dispatch( 've-unit-change', { value: this.value, unit: this.unit } );
+			this.$nextTick( () => { this._dispatching = false; } );
 		}
 	}"
 	{{ $attributes->merge( [ 'class' => 'flex flex-col gap-1' ] ) }}
