@@ -22,6 +22,7 @@ namespace ArtisanPackUI\VisualEditor\Services;
 
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
+use RuntimeException;
 
 /**
  * Service for compiling all global style managers into unified CSS output.
@@ -278,6 +279,11 @@ class GlobalStylesCompiler
 		}
 
 		$sanitizedSlug = preg_replace( '/[^a-zA-Z0-9_-]/', '', $slug );
+
+		if ( '' === $sanitizedSlug ) {
+			return '';
+		}
+
 		$selector      = '.template-' . $sanitizedSlug;
 		$css           = $selector . " {\n" . $this->indentCss( $allProperties ) . "\n}";
 
@@ -361,16 +367,20 @@ class GlobalStylesCompiler
 		$disk = $this->config['output_disk'] ?? null;
 
 		if ( null !== $disk && '' !== $disk ) {
-			Storage::disk( $disk )->put( $path, $css );
+			if ( ! Storage::disk( $disk )->put( $path, $css ) ) {
+				throw new RuntimeException( "Failed to write CSS to disk '{$disk}' at path '{$path}'." );
+			}
 		} else {
 			$fullPath = public_path( $path );
 			$dir      = dirname( $fullPath );
 
-			if ( ! is_dir( $dir ) ) {
-				mkdir( $dir, 0755, true );
+			if ( ! is_dir( $dir ) && ! mkdir( $dir, 0755, true ) && ! is_dir( $dir ) ) {
+				throw new RuntimeException( "Failed to create directory '{$dir}'." );
 			}
 
-			file_put_contents( $fullPath, $css );
+			if ( false === file_put_contents( $fullPath, $css ) ) {
+				throw new RuntimeException( "Failed to write CSS to '{$fullPath}'." );
+			}
 		}
 
 		return $path;
