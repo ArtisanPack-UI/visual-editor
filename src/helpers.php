@@ -876,6 +876,8 @@ if ( ! function_exists( 'veGlobalStylesInline' ) ) {
 	 *
 	 * @since 1.0.0
 	 *
+	 * @param bool $forEditor When true, forces :root selector regardless of config.
+	 *
 	 * @return string The HTML <style> element.
 	 */
 	function veGlobalStylesInline( bool $forEditor = false ): string
