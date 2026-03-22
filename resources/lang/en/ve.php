@@ -1268,4 +1268,22 @@ return [
 	'style_overridden_by_block'     => 'Overridden at block level',
 	'style_reset_to_inherited'      => 'Reset to inherited value',
 	'style_cascade_label'           => 'Source',
+
+	// Site Editor
+	'site_editor'                   => 'Site Editor',
+	'site_editor_navigation'        => 'Site Editor Navigation',
+	'site_editor_hub'               => 'Site Editor Hub',
+	'back_to_hub'                   => 'Back to Site Editor',
+	'hub_welcome'                   => 'Welcome to the Site Editor',
+	'hub_welcome_description'       => 'Customize the look and feel of your site.',
+	'hub_global_styles'             => 'Global Styles',
+	'hub_global_styles_description' => 'Manage colors, typography, and spacing across your site.',
+	'hub_templates'                 => 'Templates',
+	'hub_templates_description'     => 'Create and manage page templates.',
+	'hub_template_parts'            => 'Template Parts',
+	'hub_template_parts_description' => 'Manage reusable template parts like headers and footers.',
+	'hub_patterns'                  => 'Patterns',
+	'hub_patterns_description'      => 'Browse and manage reusable block patterns.',
+	'hub_items_count'               => ':count item|:count items',
+	'hub_access_denied'             => 'You do not have permission to access the Site Editor.',
 ];

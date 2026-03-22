@@ -249,6 +249,30 @@ return [
 		'template_overrides'   => [],
 	],
 
+	/*
+	|----------------------------------------------------------------------
+	| Site Editor
+	|----------------------------------------------------------------------
+	|
+	| Configuration for the site editor hub and navigation shell.
+	|
+	| route_prefix:   URL prefix for site editor routes (default: 'site-editor').
+	| middleware:     Middleware applied to site editor routes.
+	| permission:     Gate/policy ability checked before accessing the hub.
+	| hub_page:       Livewire component class for the hub page. Swap this
+	|                 to use a custom hub page implementation.
+	| layout:         Blade component class for the site editor layout shell.
+	|                 Swap this to use a custom layout implementation.
+	|
+	*/
+	'site_editor' => [
+		'route_prefix'  => 'site-editor',
+		'middleware'    => [ 'web', 'auth' ],
+		'permission'    => 'visual-editor.access-site-editor',
+		'hub_page'      => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage::class,
+		'layout'        => ArtisanPackUI\VisualEditor\View\Components\SiteEditorLayout::class,
+	],
+
 	'blocks' => [
 		'core'     => [
 			'heading'   => true,
