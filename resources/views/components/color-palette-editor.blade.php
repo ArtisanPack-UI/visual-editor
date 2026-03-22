@@ -28,6 +28,8 @@
 		newSlug: '',
 		newColor: '#000000',
 		showCss: false,
+		editPickerOpen: false,
+		addPickerOpen: false,
 		_savedPalette: null,
 
 		init() {
@@ -56,7 +58,8 @@
 
 		startEdit( index ) {
 			this._savedPalette = JSON.parse( JSON.stringify( Alpine.store( 'editor' )?.globalStyles?.palette || this.entries ) );
-			this.editing   = index
+			this.editing         = index
+			this.editPickerOpen  = false
 			this.editName  = this.entries[ index ].name
 			this.editSlug  = this.entries[ index ].slug
 			this.editColor = this.entries[ index ].color
@@ -81,7 +84,8 @@
 		},
 
 		cancelEdit() {
-			this.editing = null
+			this.editing        = null
+			this.editPickerOpen = false
 			if ( this._savedPalette ) {
 				const store = Alpine.store( 'editor' );
 				if ( store ) {
@@ -99,7 +103,8 @@
 		},
 
 		startAdd() {
-			this.adding  = true
+			this.adding        = true
+			this.addPickerOpen = false
 			this.newName  = ''
 			this.newSlug  = ''
 			this.newColor = '#000000'
@@ -122,7 +127,8 @@
 		},
 
 		cancelAdd() {
-			this.adding = false
+			this.adding        = false
+			this.addPickerOpen = false
 		},
 
 		_sanitizeSlug( value ) {
@@ -237,17 +243,28 @@
 					class="flex flex-col gap-3 rounded-lg border border-primary/30 bg-base-200/30 px-3 py-3"
 				>
 					<div class="flex items-center gap-3">
-						<input
-							type="color"
-							x-model="editColor"
-							class="h-8 w-8 rounded-full border-none cursor-pointer shrink-0 appearance-none p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none"
-							aria-label="{{ __( 'visual-editor::ve.pick_color' ) }}"
-						/>
+						<button
+							type="button"
+							class="h-8 w-8 rounded-full border border-base-300 cursor-pointer shrink-0"
+							x-bind:style="'background-color:' + editColor"
+							x-on:click="editPickerOpen = ! editPickerOpen"
+							:aria-label="'{{ __( 'visual-editor::ve.pick_color' ) }}'"
+							:aria-expanded="editPickerOpen"
+						></button>
 						<input
 							type="text"
 							x-model="editName"
 							class="input input-sm input-bordered flex-1 min-w-0"
 							placeholder="{{ __( 'visual-editor::ve.color_name' ) }}"
+						/>
+					</div>
+					<div x-show="editPickerOpen" x-cloak>
+						<x-ve-color-picker
+							:value="'#000000'"
+							x-bind:value="editColor || '#000000'"
+							x-on:ve-color-picker-change.stop="editColor = $event.detail.hex"
+							:show-format-toggle="false"
+							:show-copy-button="false"
 						/>
 					</div>
 					<div class="flex items-center gap-3">
@@ -306,18 +323,29 @@
 			class="flex flex-col gap-3 rounded-lg border border-success/30 bg-base-200/30 px-3 py-3"
 		>
 			<div class="flex items-center gap-3">
-				<input
-					type="color"
-					x-model="newColor"
-					class="h-8 w-8 rounded-full border-none cursor-pointer shrink-0 appearance-none p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none"
+				<button
+					type="button"
+					class="h-8 w-8 rounded-full border border-base-300 cursor-pointer shrink-0"
+					x-bind:style="'background-color:' + newColor"
+					x-on:click="addPickerOpen = ! addPickerOpen"
 					aria-label="{{ __( 'visual-editor::ve.pick_color' ) }}"
-				/>
+					:aria-expanded="addPickerOpen"
+				></button>
 				<input
 					type="text"
 					x-model="newName"
 					x-on:input="newSlug = autoSlug( newName )"
 					class="input input-sm input-bordered flex-1 min-w-0"
 					placeholder="{{ __( 'visual-editor::ve.color_name' ) }}"
+				/>
+			</div>
+			<div x-show="addPickerOpen" x-cloak>
+				<x-ve-color-picker
+					:value="'#000000'"
+					x-bind:value="newColor || '#000000'"
+					x-on:ve-color-picker-change.stop="newColor = $event.detail.hex"
+					:show-format-toggle="false"
+					:show-copy-button="false"
 				/>
 			</div>
 			<div class="flex items-center gap-3">

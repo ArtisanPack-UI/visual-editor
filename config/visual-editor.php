@@ -232,6 +232,23 @@ return [
 	|                       array of per-manager overrides for scoped CSS.
 	|
 	*/
+	/*
+	|----------------------------------------------------------------------
+	| Global Styles: Persistence
+	|----------------------------------------------------------------------
+	|
+	| Configuration for persisting global styles to the database.
+	|
+	| enabled:      Whether to persist global styles to the database.
+	|               When disabled, styles are only sourced from config.
+	| default_key:  The key used for the primary global styles record.
+	|
+	*/
+	'global_styles_persistence' => [
+		'enabled'     => true,
+		'default_key' => 'default',
+	],
+
 	'global_styles' => [
 		'output_mode'          => 'inline',
 		'output_path'          => 'css/ve-global-styles.css',
