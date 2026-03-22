@@ -25,6 +25,7 @@ use ArtisanPackUI\VisualEditor\Console\Commands\BlockCacheCommand;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockClearCommand;
 use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\Services\ColorPaletteManager;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCompiler;
@@ -153,6 +154,9 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// Phase 9: Editor Assembly
 		'icon'   => Components\Icon::class,
 		'editor' => Components\Editor::class,
+
+		// Site Editor
+		'site-editor-layout' => Components\SiteEditorLayout::class,
 	];
 
 	/**
@@ -332,6 +336,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	protected function registerRoutes(): void
 	{
 		$this->loadRoutesFrom( __DIR__ . '/../routes/api.php' );
+		$this->loadRoutesFrom( __DIR__ . '/../routes/web.php' );
 	}
 
 	/**
@@ -422,7 +427,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Livewire::addNamespace(
 			namespace: 'visual-editor',
 			viewPath: __DIR__ . '/../resources/views/livewire',
+			classNamespace: 'ArtisanPackUI\\VisualEditor\\Livewire',
 		);
+
+		Livewire::component( 'site-editor.hub-page', HubPage::class );
 	}
 
 	/**
