@@ -111,7 +111,7 @@ class GlobalStyle extends Model
 	{
 		return $this->hasMany( Revision::class, 'document_id' )
 			->where( 'document_type', self::REVISION_DOCUMENT_TYPE )
-			->orderByDesc( 'created_at' );
+			->orderByDesc( 'id' );
 	}
 
 	/**
@@ -163,7 +163,7 @@ class GlobalStyle extends Model
 			throw new InvalidArgumentException( 'Revision does not belong to this GlobalStyle record.' );
 		}
 
-		$data = $revision->blocks;
+		$data = is_array( $revision->blocks ) ? $revision->blocks : [];
 
 		$this->update( [
 			'palette'    => $data['palette'] ?? null,
@@ -199,7 +199,7 @@ class GlobalStyle extends Model
 	protected function pruneRevisions( int $maxRevisions ): void
 	{
 		$keepIds = Revision::forDocument( self::REVISION_DOCUMENT_TYPE, $this->id )
-			->orderByDesc( 'created_at' )
+			->orderByDesc( 'id' )
 			->limit( $maxRevisions )
 			->pluck( 'id' );
 
