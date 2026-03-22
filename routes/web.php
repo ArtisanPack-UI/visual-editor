@@ -29,4 +29,7 @@ Route::prefix( $prefix )
 	->group( function () use ( $hubPage ): void {
 		Route::get( '/', $hubPage )
 			->name( 'visual-editor.site-editor' );
+
+		Route::get( '/global-styles', \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\GlobalStylesPage::class )
+			->name( 'visual-editor.global-styles' );
 	} );

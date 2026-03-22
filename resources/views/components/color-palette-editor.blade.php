@@ -237,17 +237,26 @@
 					class="flex flex-col gap-3 rounded-lg border border-primary/30 bg-base-200/30 px-3 py-3"
 				>
 					<div class="flex items-center gap-3">
-						<input
-							type="color"
-							x-model="editColor"
-							class="h-8 w-8 rounded-full border-none cursor-pointer shrink-0 appearance-none p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none"
-							aria-label="{{ __( 'visual-editor::ve.pick_color' ) }}"
-						/>
+						<div
+							class="h-8 w-8 rounded-full border border-base-300 cursor-pointer shrink-0"
+							x-bind:style="'background-color:' + editColor"
+							x-on:click="$refs['editPickerWrap' + index]?.classList.toggle( 'hidden' )"
+							role="button"
+							:aria-label="'{{ __( 'visual-editor::ve.pick_color' ) }}'"
+						></div>
 						<input
 							type="text"
 							x-model="editName"
 							class="input input-sm input-bordered flex-1 min-w-0"
 							placeholder="{{ __( 'visual-editor::ve.color_name' ) }}"
+						/>
+					</div>
+					<div x-bind:ref="'editPickerWrap' + index" class="hidden">
+						<x-ve-color-picker
+							value="#000000"
+							x-on:ve-color-picker-change.stop="editColor = $event.detail.hex"
+							:show-format-toggle="false"
+							:show-copy-button="false"
 						/>
 					</div>
 					<div class="flex items-center gap-3">
@@ -306,18 +315,27 @@
 			class="flex flex-col gap-3 rounded-lg border border-success/30 bg-base-200/30 px-3 py-3"
 		>
 			<div class="flex items-center gap-3">
-				<input
-					type="color"
-					x-model="newColor"
-					class="h-8 w-8 rounded-full border-none cursor-pointer shrink-0 appearance-none p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none"
+				<div
+					class="h-8 w-8 rounded-full border border-base-300 cursor-pointer shrink-0"
+					x-bind:style="'background-color:' + newColor"
+					x-on:click="$refs.addPickerWrap?.classList.toggle( 'hidden' )"
+					role="button"
 					aria-label="{{ __( 'visual-editor::ve.pick_color' ) }}"
-				/>
+				></div>
 				<input
 					type="text"
 					x-model="newName"
 					x-on:input="newSlug = autoSlug( newName )"
 					class="input input-sm input-bordered flex-1 min-w-0"
 					placeholder="{{ __( 'visual-editor::ve.color_name' ) }}"
+				/>
+			</div>
+			<div x-ref="addPickerWrap" class="hidden">
+				<x-ve-color-picker
+					value="#000000"
+					x-on:ve-color-picker-change.stop="newColor = $event.detail.hex"
+					:show-format-toggle="false"
+					:show-copy-button="false"
 				/>
 			</div>
 			<div class="flex items-center gap-3">

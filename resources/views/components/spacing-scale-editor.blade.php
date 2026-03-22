@@ -64,6 +64,7 @@
 			this.editName  = list[ index ].name
 			this.editSlug  = list[ index ].slug
 			this.editValue = list[ index ].value
+			this._syncEditFromValue()
 		},
 
 		saveEdit() {
@@ -185,6 +186,34 @@
 			return /^-?\d*\.?\d+(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)$/.test( value )
 		},
 
+		_parseValue( str ) {
+			if ( ! str ) return { num: '', unit: 'rem' }
+			const match = String( str ).match( /^(-?\d*\.?\d+)\s*(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)?$/ )
+			if ( match ) return { num: match[1], unit: match[2] || 'rem' }
+			return { num: str, unit: 'rem' }
+		},
+
+		_combineValue( num, unit ) {
+			if ( '' === num || null === num || undefined === num ) return ''
+			return String( num ) + ( unit || 'rem' )
+		},
+
+		editNum: '',
+		editUnit: 'rem',
+		newNum: '',
+		newUnit: 'rem',
+
+		_syncEditFromValue() {
+			const parsed = this._parseValue( this.editValue )
+			this.editNum  = parsed.num
+			this.editUnit = parsed.unit || 'rem'
+		},
+
+		_syncEditToValue() {
+			this.editValue = this._combineValue( this.editNum, this.editUnit )
+			this.editError = ''
+		},
+
 		_dispatch() {
 			document.dispatchEvent( new CustomEvent( 've-spacing-change', {
 				detail: {
@@ -278,21 +307,35 @@
 					x-cloak
 					class="flex flex-col gap-3 rounded-lg border border-primary/30 bg-base-200/30 px-3 py-3"
 				>
-					<div class="flex items-center gap-3">
+					<input
+						type="text"
+						x-model="editName"
+						x-on:input="editError = ''"
+						class="input input-sm input-bordered w-full"
+						placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+					/>
+					<div class="flex items-center gap-2">
 						<input
-							type="text"
-							x-model="editName"
-							x-on:input="editError = ''"
-							class="input input-sm input-bordered flex-1 min-w-0"
-							placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+							type="number"
+							step="0.001"
+							min="0"
+							x-model="editNum"
+							x-on:input="editError = ''; _syncEditToValue()"
+							class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
+							placeholder="1"
 						/>
-						<input
-							type="text"
-							x-model="editValue"
-							x-on:input="editError = ''"
-							class="input input-sm input-bordered w-28 font-mono text-xs"
-							placeholder="1rem"
-						/>
+						<select
+							x-model="editUnit"
+							x-on:change="_syncEditToValue()"
+							class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+						>
+							<option value="rem">rem</option>
+							<option value="em">em</option>
+							<option value="px">px</option>
+							<option value="%">%</option>
+							<option value="vw">vw</option>
+							<option value="vh">vh</option>
+						</select>
 					</div>
 					<p x-show="editError" x-cloak x-text="editError" class="text-xs text-error"></p>
 					<div class="flex justify-end gap-2">
@@ -420,20 +463,35 @@
 			x-cloak
 			class="flex flex-col gap-3 rounded-lg border border-success/30 bg-base-200/30 px-3 py-3"
 		>
-			<div class="flex items-center gap-3">
+			<input
+				type="text"
+				x-model="newName"
+				x-on:input="newSlug = _sanitizeSlug( newName )"
+				class="input input-sm input-bordered w-full"
+				placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+			/>
+			<div class="flex items-center gap-2">
 				<input
-					type="text"
-					x-model="newName"
-					x-on:input="newSlug = _sanitizeSlug( newName )"
-					class="input input-sm input-bordered flex-1 min-w-0"
-					placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+					type="number"
+					step="0.001"
+					min="0"
+					x-model="newNum"
+					x-on:input="newValue = _combineValue( newNum, newUnit )"
+					class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
+					placeholder="1"
 				/>
-				<input
-					type="text"
-					x-model="newValue"
-					class="input input-sm input-bordered w-28 font-mono text-xs"
-					placeholder="1rem"
-				/>
+				<select
+					x-model="newUnit"
+					x-on:change="newValue = _combineValue( newNum, newUnit )"
+					class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+				>
+					<option value="rem">rem</option>
+					<option value="em">em</option>
+					<option value="px">px</option>
+					<option value="%">%</option>
+					<option value="vw">vw</option>
+					<option value="vh">vh</option>
+				</select>
 			</div>
 			<div class="flex flex-col gap-1">
 				<div class="flex items-center gap-3">

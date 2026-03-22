@@ -61,6 +61,18 @@ class TypographyPresetsEditor extends Component
 	public array $defaultData;
 
 	/**
+	 * Available fonts grouped by slot category.
+	 *
+	 * Each slot (heading, body, mono) gets the fonts matching
+	 * its category plus fonts with category 'all'.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<string, array<string, array{name: string, family: string}>>
+	 */
+	public array $availableFonts;
+
+	/**
 	 * Create a new component instance.
 	 *
 	 * @since 1.0.0
@@ -85,6 +97,18 @@ class TypographyPresetsEditor extends Component
 		}
 
 		$this->typographyData = $manager->toStoreFormat();
+
+		$slotCategories = [
+			'heading' => 'heading',
+			'body'    => 'body',
+			'mono'    => null,
+		];
+
+		$this->availableFonts = [];
+
+		foreach ( $slotCategories as $slot => $category ) {
+			$this->availableFonts[ $slot ] = $resolvedManager->getFontOptions( $category );
+		}
 	}
 
 	/**

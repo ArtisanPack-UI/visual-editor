@@ -25,10 +25,12 @@ use ArtisanPackUI\VisualEditor\Console\Commands\BlockCacheCommand;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockClearCommand;
 use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\GlobalStylesPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\Services\ColorPaletteManager;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCompiler;
+use ArtisanPackUI\VisualEditor\Services\GlobalStylesRepository;
 use ArtisanPackUI\VisualEditor\Services\OEmbedService;
 use ArtisanPackUI\VisualEditor\Services\SpacingScaleManager;
 use ArtisanPackUI\VisualEditor\Services\StyleCascadeResolver;
@@ -299,6 +301,18 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->app->singleton( StyleCascadeResolver::class, function ( $app ) {
 			return $app->make( 'visual-editor.style-cascade' );
 		} );
+
+		$this->app->singleton( 'visual-editor.global-styles-repository', function ( $app ) {
+			return new GlobalStylesRepository(
+				$app->make( 'visual-editor.color-palette' ),
+				$app->make( 'visual-editor.typography-presets' ),
+				$app->make( 'visual-editor.spacing-scale' ),
+			);
+		} );
+
+		$this->app->singleton( GlobalStylesRepository::class, function ( $app ) {
+			return $app->make( 'visual-editor.global-styles-repository' );
+		} );
 	}
 
 	/**
@@ -431,6 +445,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		);
 
 		Livewire::component( 'site-editor.hub-page', HubPage::class );
+		Livewire::component( 'site-editor.global-styles-page', GlobalStylesPage::class );
 	}
 
 	/**

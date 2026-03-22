@@ -135,6 +135,18 @@
 			return css
 		},
 
+		_parseValue( str ) {
+			if ( ! str ) return { num: '', unit: 'rem' }
+			const match = String( str ).match( /^(-?\d*\.?\d+)\s*(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)?$/ )
+			if ( match ) return { num: match[1], unit: match[2] || 'rem' }
+			return { num: str, unit: '' }
+		},
+
+		_combineValue( num, unit ) {
+			if ( '' === num || null === num || undefined === num ) return ''
+			return String( num ) + ( unit || '' )
+		},
+
 		_dispatch() {
 			document.dispatchEvent( new CustomEvent( 've-typography-change', {
 				detail: {
@@ -233,13 +245,16 @@
 				>
 					{{ $label }}
 				</label>
-				<input
-					type="text"
+				<select
 					id="{{ $uuid }}-family-{{ $slot }}"
 					x-model="fontFamilies.{{ $slot }}"
 					x-on:change="setFontFamily( '{{ $slot }}', $event.target.value )"
-					class="input input-sm input-bordered w-full font-mono text-xs"
-				/>
+					class="select select-sm select-bordered w-full text-xs"
+				>
+					@foreach ( $availableFonts[ $slot ] ?? [] as $family => $name )
+						<option value="{{ $family }}">{{ $name }}</option>
+					@endforeach
+				</select>
 			</div>
 		@endforeach
 	</div>
@@ -289,19 +304,36 @@
 					class="border-t border-base-300 bg-base-200/30 px-3 py-3"
 				>
 					<div class="grid grid-cols-2 gap-3">
+						{{-- Font Size (number + unit) --}}
 						<div class="flex flex-col gap-1">
-							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-fontSize">
+							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider">
 								{{ __( 'visual-editor::ve.typography_font_size' ) }}
 							</label>
-							<input
-								type="text"
-								id="{{ $uuid }}-{{ $key }}-fontSize"
-								:value="elements['{{ $key }}'] ? elements['{{ $key }}'].fontSize : ''"
-								x-on:change="updateElementProperty( '{{ $key }}', 'fontSize', $event.target.value )"
-								class="input input-sm input-bordered w-full font-mono text-xs"
-								placeholder="1rem"
-							/>
+							<div class="flex gap-1">
+								<input
+									type="number"
+									step="0.001"
+									min="0"
+									:value="_parseValue( elements['{{ $key }}']?.fontSize ).num"
+									x-on:change="updateElementProperty( '{{ $key }}', 'fontSize', _combineValue( $event.target.value, $event.target.closest('.flex').querySelector('select').value ) )"
+									class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
+									placeholder="1"
+								/>
+								<select
+									:value="_parseValue( elements['{{ $key }}']?.fontSize ).unit"
+									x-on:change="updateElementProperty( '{{ $key }}', 'fontSize', _combineValue( $event.target.closest('.flex').querySelector('input').value, $event.target.value ) )"
+									class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+								>
+									<option value="rem">rem</option>
+									<option value="em">em</option>
+									<option value="px">px</option>
+									<option value="%">%</option>
+									<option value="vw">vw</option>
+								</select>
+							</div>
 						</div>
+
+						{{-- Font Weight --}}
 						<div class="flex flex-col gap-1">
 							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-fontWeight">
 								{{ __( 'visual-editor::ve.typography_font_weight' ) }}
@@ -317,32 +349,50 @@
 								@endforeach
 							</select>
 						</div>
+
+						{{-- Line Height (number, unitless or with unit) --}}
 						<div class="flex flex-col gap-1">
-							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-lineHeight">
+							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider">
 								{{ __( 'visual-editor::ve.typography_line_height' ) }}
 							</label>
 							<input
-								type="text"
-								id="{{ $uuid }}-{{ $key }}-lineHeight"
+								type="number"
+								step="0.01"
+								min="0"
 								:value="elements['{{ $key }}'] ? elements['{{ $key }}'].lineHeight : ''"
 								x-on:change="updateElementProperty( '{{ $key }}', 'lineHeight', $event.target.value )"
 								class="input input-sm input-bordered w-full font-mono text-xs"
 								placeholder="1.5"
 							/>
 						</div>
+
+						{{-- Letter Spacing (number + unit) --}}
 						<div class="flex flex-col gap-1">
-							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-letterSpacing">
+							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider">
 								{{ __( 'visual-editor::ve.typography_letter_spacing' ) }}
 							</label>
-							<input
-								type="text"
-								id="{{ $uuid }}-{{ $key }}-letterSpacing"
-								:value="elements['{{ $key }}'] ? elements['{{ $key }}'].letterSpacing : ''"
-								x-on:change="updateElementProperty( '{{ $key }}', 'letterSpacing', $event.target.value )"
-								class="input input-sm input-bordered w-full font-mono text-xs"
-								placeholder="0"
-							/>
+							<div class="flex gap-1">
+								<input
+									type="number"
+									step="0.001"
+									:value="_parseValue( elements['{{ $key }}']?.letterSpacing ).num"
+									x-on:change="updateElementProperty( '{{ $key }}', 'letterSpacing', _combineValue( $event.target.value, $event.target.closest('.flex').querySelector('select').value ) )"
+									class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
+									placeholder="0"
+								/>
+								<select
+									:value="_parseValue( elements['{{ $key }}']?.letterSpacing ).unit"
+									x-on:change="updateElementProperty( '{{ $key }}', 'letterSpacing', _combineValue( $event.target.closest('.flex').querySelector('input').value, $event.target.value ) )"
+									class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+								>
+									<option value="em">em</option>
+									<option value="rem">rem</option>
+									<option value="px">px</option>
+								</select>
+							</div>
 						</div>
+
+						{{-- Font Style --}}
 						<div class="flex flex-col gap-1">
 							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-fontStyle">
 								{{ __( 'visual-editor::ve.typography_font_style' ) }}
