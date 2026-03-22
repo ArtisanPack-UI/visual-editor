@@ -63,12 +63,12 @@ class TypographyPresetsEditor extends Component
 	/**
 	 * Available fonts grouped by slot category.
 	 *
-	 * Each slot (heading, body, mono) gets the fonts matching
-	 * its category plus fonts with category 'all'.
+	 * Each slot (heading, body, mono) maps to an associative array
+	 * of CSS family stack => display name, from getFontOptions().
 	 *
 	 * @since 1.0.0
 	 *
-	 * @var array<string, array<string, array{name: string, family: string}>>
+	 * @var array<string, array<string, string>>
 	 */
 	public array $availableFonts;
 

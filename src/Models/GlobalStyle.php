@@ -23,6 +23,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use InvalidArgumentException;
 
 /**
  * Global Style model for persisting site-wide style settings.
@@ -124,6 +125,10 @@ class GlobalStyle extends Model
 	 */
 	public function createRevision( ?int $userId = null ): Revision
 	{
+		if ( ! $this->exists ) {
+			throw new InvalidArgumentException( 'Cannot create a revision for an unsaved GlobalStyle.' );
+		}
+
 		$maxRevisions = (int) config( 'artisanpack.visual-editor.persistence.max_revisions', 50 );
 
 		$revision = Revision::create( [

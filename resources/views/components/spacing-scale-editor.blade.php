@@ -103,6 +103,8 @@
 			this.newName   = ''
 			this.newSlug   = ''
 			this.newValue  = ''
+			this.newNum    = ''
+			this.newUnit   = 'rem'
 			this.slugError = ''
 		},
 
@@ -133,7 +135,9 @@
 		},
 
 		cancelAdd() {
-			this.adding = false
+			this.adding  = false
+			this.newNum  = ''
+			this.newUnit = 'rem'
 		},
 
 		applyPreset( key ) {
@@ -335,6 +339,10 @@
 							<option value="%">%</option>
 							<option value="vw">vw</option>
 							<option value="vh">vh</option>
+							<option value="vmin">vmin</option>
+							<option value="vmax">vmax</option>
+							<option value="ch">ch</option>
+							<option value="ex">ex</option>
 						</select>
 					</div>
 					<p x-show="editError" x-cloak x-text="editError" class="text-xs text-error"></p>

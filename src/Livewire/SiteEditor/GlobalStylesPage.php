@@ -22,6 +22,7 @@ namespace ArtisanPackUI\VisualEditor\Livewire\SiteEditor;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesRepository;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -114,7 +115,16 @@ class GlobalStylesPage extends Component
 	 */
 	public function save( array $palette, array $typography, array $spacing ): void
 	{
-		$repository = app( GlobalStylesRepository::class );
+		Validator::make(
+			[ 'palette' => $palette, 'typography' => $typography, 'spacing' => $spacing ],
+			[
+				'palette'    => 'present|array',
+				'typography' => 'present|array',
+				'spacing'    => 'present|array',
+			],
+		)->validate();
+
+		$repository = $this->repository();
 
 		$repository->save( [
 			'palette'    => $palette,
@@ -138,7 +148,7 @@ class GlobalStylesPage extends Component
 	 */
 	public function resetToDefaults(): void
 	{
-		$repository = app( GlobalStylesRepository::class );
+		$repository = $this->repository();
 
 		$record = $repository->resetToDefaults( auth()->id() );
 
@@ -180,7 +190,7 @@ class GlobalStylesPage extends Component
 	 */
 	public function restoreRevision( int $revisionId ): void
 	{
-		$repository = app( GlobalStylesRepository::class );
+		$repository = $this->repository();
 
 		$record = $repository->restoreRevision( $revisionId, auth()->id() );
 
@@ -218,6 +228,18 @@ class GlobalStylesPage extends Component
 	}
 
 	/**
+	 * Resolve the global styles repository.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return GlobalStylesRepository
+	 */
+	protected function repository(): GlobalStylesRepository
+	{
+		return app( GlobalStylesRepository::class );
+	}
+
+	/**
 	 * Load the current global styles from the repository.
 	 *
 	 * @since 1.0.0
@@ -226,7 +248,7 @@ class GlobalStylesPage extends Component
 	 */
 	protected function loadStyles(): void
 	{
-		$repository = app( GlobalStylesRepository::class );
+		$repository = $this->repository();
 
 		$this->palette    = $repository->getPalette();
 		$this->typography = $repository->getTypography();

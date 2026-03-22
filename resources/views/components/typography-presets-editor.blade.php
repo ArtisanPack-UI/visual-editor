@@ -314,14 +314,16 @@
 									type="number"
 									step="0.001"
 									min="0"
+									x-ref="fontSizeNum_{{ $key }}"
 									:value="_parseValue( elements['{{ $key }}']?.fontSize ).num"
-									x-on:change="updateElementProperty( '{{ $key }}', 'fontSize', _combineValue( $event.target.value, $event.target.closest('.flex').querySelector('select').value ) )"
+									x-on:change="updateElementProperty( '{{ $key }}', 'fontSize', _combineValue( $event.target.value, $refs.fontSizeUnit_{{ $key }}.value ) )"
 									class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
 									placeholder="1"
 								/>
 								<select
+									x-ref="fontSizeUnit_{{ $key }}"
 									:value="_parseValue( elements['{{ $key }}']?.fontSize ).unit"
-									x-on:change="updateElementProperty( '{{ $key }}', 'fontSize', _combineValue( $event.target.closest('.flex').querySelector('input').value, $event.target.value ) )"
+									x-on:change="updateElementProperty( '{{ $key }}', 'fontSize', _combineValue( $refs.fontSizeNum_{{ $key }}.value, $event.target.value ) )"
 									class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
 								>
 									<option value="rem">rem</option>
@@ -375,14 +377,16 @@
 								<input
 									type="number"
 									step="0.001"
+									x-ref="letterSpacingNum_{{ $key }}"
 									:value="_parseValue( elements['{{ $key }}']?.letterSpacing ).num"
-									x-on:change="updateElementProperty( '{{ $key }}', 'letterSpacing', _combineValue( $event.target.value, $event.target.closest('.flex').querySelector('select').value ) )"
+									x-on:change="updateElementProperty( '{{ $key }}', 'letterSpacing', _combineValue( $event.target.value, $refs.letterSpacingUnit_{{ $key }}.value ) )"
 									class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
 									placeholder="0"
 								/>
 								<select
+									x-ref="letterSpacingUnit_{{ $key }}"
 									:value="_parseValue( elements['{{ $key }}']?.letterSpacing ).unit"
-									x-on:change="updateElementProperty( '{{ $key }}', 'letterSpacing', _combineValue( $event.target.closest('.flex').querySelector('input').value, $event.target.value ) )"
+									x-on:change="updateElementProperty( '{{ $key }}', 'letterSpacing', _combineValue( $refs.letterSpacingNum_{{ $key }}.value, $event.target.value ) )"
 									class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
 								>
 									<option value="em">em</option>

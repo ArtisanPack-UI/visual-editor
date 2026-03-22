@@ -102,7 +102,7 @@
 							Object.entries( gs.typography.elements ).forEach( ( [ element, props ] ) => {
 								if ( typeof props === 'object' && props !== null ) {
 									Object.entries( props ).forEach( ( [ prop, value ] ) => {
-										const kebab   = prop.replace( /([A-Z])/g, '-$1' ).toLowerCase();
+										const kebab   = prop.replace( /([a-z])([A-Z])/g, '$1-$2' ).toLowerCase();
 										const varName = '--ve-text-' + element + '-' + kebab;
 										root.style.setProperty( varName, value );
 										newVars.push( varName );
@@ -160,10 +160,18 @@
 			Alpine.store( 'editor' )._syncGlobalCssVariables();
 
 			{{-- Listen for editor changes to mark dirty --}}
-			window.addEventListener( 've-palette-change', () => { this.dirty = true; } );
-			window.addEventListener( 've-typography-change', () => { this.dirty = true; } );
-			window.addEventListener( 've-spacing-change', () => { this.dirty = true; } );
-			document.addEventListener( 've-store-dirty', () => { this.dirty = true; } );
+			const markDirty = () => { this.dirty = true; };
+			window.addEventListener( 've-palette-change', markDirty );
+			window.addEventListener( 've-typography-change', markDirty );
+			window.addEventListener( 've-spacing-change', markDirty );
+			document.addEventListener( 've-store-dirty', markDirty );
+
+			this.$cleanup( () => {
+				window.removeEventListener( 've-palette-change', markDirty );
+				window.removeEventListener( 've-typography-change', markDirty );
+				window.removeEventListener( 've-spacing-change', markDirty );
+				document.removeEventListener( 've-store-dirty', markDirty );
+			} );
 
 			{{-- Listen for save/reset confirmations --}}
 			Livewire.on( 've-global-styles-saved', () => {

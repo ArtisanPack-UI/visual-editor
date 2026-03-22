@@ -127,6 +127,8 @@ test( 'restoreRevision reverts to a previous state', function (): void {
 	$restored = $repository->restoreRevision( $firstRevision->id );
 
 	expect( $restored )->not->toBeNull();
+	expect( $restored->palette )->not->toBeNull();
+	expect( $restored->palette )->toBeArray();
 } );
 
 test( 'restoreRevision returns null for invalid revision id', function (): void {

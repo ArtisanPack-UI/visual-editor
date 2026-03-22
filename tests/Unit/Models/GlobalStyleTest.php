@@ -102,13 +102,21 @@ test( 'global style can restore from a revision', function (): void {
 test( 'global style revisions relationship returns revisions in descending order', function (): void {
 	$record = GlobalStyle::create( [ 'key' => 'default' ] );
 
+	$earlier = now()->subMinutes( 2 );
+	$later   = now();
+
+	Illuminate\Support\Carbon::setTestNow( $earlier );
 	$record->createRevision();
+
+	Illuminate\Support\Carbon::setTestNow( $later );
 	$record->createRevision();
+
+	Illuminate\Support\Carbon::setTestNow();
 
 	$revisions = $record->revisions;
 
 	expect( $revisions )->toHaveCount( 2 );
-	expect( $revisions->first()->created_at->gte( $revisions->last()->created_at ) )->toBeTrue();
+	expect( $revisions->first()->created_at->gt( $revisions->last()->created_at ) )->toBeTrue();
 } );
 
 test( 'global style prunes old revisions beyond maximum', function (): void {

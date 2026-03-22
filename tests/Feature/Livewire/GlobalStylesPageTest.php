@@ -139,9 +139,14 @@ test( 'global styles page restoreRevision restores a previous state', function (
 
 	$repository->save( [ 'palette' => [ [ 'name' => 'Changed', 'slug' => 'changed', 'color' => '#bbbbbb' ] ] ] );
 
-	Livewire::test( GlobalStylesPage::class )
+	$component = Livewire::test( GlobalStylesPage::class )
 		->call( 'restoreRevision', $revisionId )
 		->assertDispatched( 've-global-styles-reset' );
+
+	$restoredRecord = $repository->get();
+
+	expect( $restoredRecord )->not->toBeNull();
+	expect( $restoredRecord->palette )->not->toBeNull();
 } );
 
 test( 'global styles page restoreRevision ignores invalid revision id', function (): void {
