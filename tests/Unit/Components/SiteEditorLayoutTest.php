@@ -117,12 +117,14 @@ test( 'site editor layout nav items are filterable via hook', function (): void 
 
 	addFilter( 've.site-editor.nav-items', $callback );
 
-	$component = new SiteEditorLayout( navItems: [] );
+	try {
+		$component = new SiteEditorLayout( navItems: [] );
 
-	$injected = collect( $component->navItems )->firstWhere( 'slug', 'injected' );
+		$injected = collect( $component->navItems )->firstWhere( 'slug', 'injected' );
 
-	expect( $injected )->not->toBeNull();
-	expect( $injected['label'] )->toBe( 'Injected Item' );
-
-	removeFilter( 've.site-editor.nav-items', $callback );
+		expect( $injected )->not->toBeNull();
+		expect( $injected['label'] )->toBe( 'Injected Item' );
+	} finally {
+		removeFilter( 've.site-editor.nav-items', $callback );
+	}
 } );

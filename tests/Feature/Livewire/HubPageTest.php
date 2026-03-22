@@ -130,15 +130,17 @@ test( 'hub page cards are filterable via hook', function (): void {
 
 	addFilter( 've.hub.cards', $callback );
 
-	$component = new HubPage();
-	$cards     = $component->getCards();
+	try {
+		$component = new HubPage();
+		$cards     = $component->getCards();
 
-	$customCard = collect( $cards )->firstWhere( 'slug', 'custom-section' );
+		$customCard = collect( $cards )->firstWhere( 'slug', 'custom-section' );
 
-	expect( $customCard )->not->toBeNull();
-	expect( $customCard['label'] )->toBe( 'Custom Section' );
-
-	removeFilter( 've.hub.cards', $callback );
+		expect( $customCard )->not->toBeNull();
+		expect( $customCard['label'] )->toBe( 'Custom Section' );
+	} finally {
+		removeFilter( 've.hub.cards', $callback );
+	}
 } );
 
 test( 'site editor route is accessible with permission', function (): void {
@@ -147,7 +149,7 @@ test( 'site editor route is accessible with permission', function (): void {
 	$user = createHubTestUser();
 
 	$this->actingAs( $user )
-		->get( '/site-editor' )
+		->get( route( 'visual-editor.site-editor' ) )
 		->assertSuccessful();
 } );
 
@@ -157,10 +159,13 @@ test( 'site editor route is forbidden without permission', function (): void {
 	$user = createHubTestUser();
 
 	$this->actingAs( $user )
-		->get( '/site-editor' )
+		->get( route( 'visual-editor.site-editor' ) )
 		->assertForbidden();
 } );
 
 test( 'site editor route has correct name', function (): void {
-	expect( route( 'visual-editor.site-editor' ) )->toContain( '/site-editor' );
+	$routeUrl = route( 'visual-editor.site-editor' );
+	$prefix   = config( 'artisanpack.visual-editor.site_editor.route_prefix', 'site-editor' );
+
+	expect( $routeUrl )->toContain( '/' . $prefix );
 } );
