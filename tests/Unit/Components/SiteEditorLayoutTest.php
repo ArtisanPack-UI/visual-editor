@@ -104,7 +104,7 @@ test( 'site editor layout nav items are filterable via hook', function (): void 
 		$this->markTestSkipped( 'Hooks package not available.' );
 	}
 
-	addFilter( 've.site-editor.nav-items', function ( array $items ): array {
+	$callback = function ( array $items ): array {
 		$items[] = [
 			'slug'  => 'injected',
 			'label' => 'Injected Item',
@@ -113,7 +113,9 @@ test( 'site editor layout nav items are filterable via hook', function (): void 
 		];
 
 		return $items;
-	} );
+	};
+
+	addFilter( 've.site-editor.nav-items', $callback );
 
 	$component = new SiteEditorLayout( navItems: [] );
 
@@ -121,4 +123,6 @@ test( 'site editor layout nav items are filterable via hook', function (): void 
 
 	expect( $injected )->not->toBeNull();
 	expect( $injected['label'] )->toBe( 'Injected Item' );
+
+	removeFilter( 've.site-editor.nav-items', $callback );
 } );

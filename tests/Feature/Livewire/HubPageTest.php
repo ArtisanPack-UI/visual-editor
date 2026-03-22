@@ -15,6 +15,7 @@ use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Livewire;
 
 uses( RefreshDatabase::class );
@@ -114,7 +115,7 @@ test( 'hub page cards are filterable via hook', function (): void {
 		$this->markTestSkipped( 'Hooks package not available.' );
 	}
 
-	addFilter( 've.hub.cards', function ( array $cards ): array {
+	$callback = function ( array $cards ): array {
 		$cards[] = [
 			'slug'        => 'custom-section',
 			'label'       => 'Custom Section',
@@ -125,7 +126,9 @@ test( 'hub page cards are filterable via hook', function (): void {
 		];
 
 		return $cards;
-	} );
+	};
+
+	addFilter( 've.hub.cards', $callback );
 
 	$component = new HubPage();
 	$cards     = $component->getCards();
@@ -134,14 +137,28 @@ test( 'hub page cards are filterable via hook', function (): void {
 
 	expect( $customCard )->not->toBeNull();
 	expect( $customCard['label'] )->toBe( 'Custom Section' );
+
+	removeFilter( 've.hub.cards', $callback );
 } );
 
-test( 'site editor route is accessible', function (): void {
+test( 'site editor route is accessible with permission', function (): void {
+	Gate::define( 'visual-editor.access-site-editor', fn () => true );
+
 	$user = createHubTestUser();
 
 	$this->actingAs( $user )
 		->get( '/site-editor' )
 		->assertSuccessful();
+} );
+
+test( 'site editor route is forbidden without permission', function (): void {
+	Gate::define( 'visual-editor.access-site-editor', fn () => false );
+
+	$user = createHubTestUser();
+
+	$this->actingAs( $user )
+		->get( '/site-editor' )
+		->assertForbidden();
 } );
 
 test( 'site editor route has correct name', function (): void {

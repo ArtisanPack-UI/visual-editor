@@ -20,6 +20,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Livewire\SiteEditor;
 
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -34,6 +35,25 @@ use Livewire\Component;
 #[Layout( 'visual-editor::layouts.site-editor' )]
 class HubPage extends Component
 {
+	/**
+	 * Authorize access when the component mounts.
+	 *
+	 * Checks the configured permission gate as a fallback
+	 * in case route middleware is bypassed or removed.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	public function mount(): void
+	{
+		$permission = (string) config( 'artisanpack.visual-editor.site_editor.permission', 'visual-editor.access-site-editor' );
+
+		if ( '' !== $permission && Gate::has( $permission ) ) {
+			$this->authorize( $permission );
+		}
+	}
+
 	/**
 	 * Build the default hub cards.
 	 *
