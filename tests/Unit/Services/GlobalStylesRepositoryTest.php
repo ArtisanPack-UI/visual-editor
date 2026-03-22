@@ -118,17 +118,24 @@ test( 'restoreRevision reverts to a previous state', function (): void {
 
 	$repository->save( [ 'palette' => $original ] );
 
-	$record        = $repository->get();
-	$revisions     = $repository->getRevisions();
-	$firstRevision = $revisions->first();
+	$changed = [ [ 'name' => 'Changed', 'slug' => 'changed', 'color' => '#bbbbbb' ] ];
 
-	$repository->save( [ 'palette' => [ [ 'name' => 'Changed', 'slug' => 'changed', 'color' => '#bbbbbb' ] ] ] );
+	$repository->save( [ 'palette' => $changed ] );
 
-	$restored = $repository->restoreRevision( $firstRevision->id );
+	$record    = $repository->get();
+	$revisions = Revision::forDocument(
+		GlobalStyle::REVISION_DOCUMENT_TYPE,
+		$record->id,
+	)->orderByDesc( 'id' )->get();
+
+	$latestRevision = $revisions->first();
+
+	$repository->save( [ 'palette' => [ [ 'name' => 'Final', 'slug' => 'final', 'color' => '#cccccc' ] ] ] );
+
+	$restored = $repository->restoreRevision( $latestRevision->id );
 
 	expect( $restored )->not->toBeNull();
-	expect( $restored->palette )->not->toBeNull();
-	expect( $restored->palette )->toBeArray();
+	expect( $restored->palette )->toEqual( $original );
 } );
 
 test( 'restoreRevision returns null for invalid revision id', function (): void {

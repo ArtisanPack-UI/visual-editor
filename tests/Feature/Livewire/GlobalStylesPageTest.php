@@ -134,19 +134,26 @@ test( 'global styles page restoreRevision restores a previous state', function (
 
 	$repository->save( [ 'palette' => $originalPalette ] );
 
-	$revisions  = $repository->getRevisions();
-	$revisionId = $revisions->first()->id;
-
 	$repository->save( [ 'palette' => [ [ 'name' => 'Changed', 'slug' => 'changed', 'color' => '#bbbbbb' ] ] ] );
 
-	$component = Livewire::test( GlobalStylesPage::class )
+	$record    = $repository->get();
+	$revisions = ArtisanPackUI\VisualEditor\Models\Revision::forDocument(
+		GlobalStyle::REVISION_DOCUMENT_TYPE,
+		$record->id,
+	)->orderByDesc( 'id' )->get();
+
+	$revisionId = $revisions->first()->id;
+
+	$repository->save( [ 'palette' => [ [ 'name' => 'Final', 'slug' => 'final', 'color' => '#cccccc' ] ] ] );
+
+	Livewire::test( GlobalStylesPage::class )
 		->call( 'restoreRevision', $revisionId )
 		->assertDispatched( 've-global-styles-reset' );
 
 	$restoredRecord = $repository->get();
 
 	expect( $restoredRecord )->not->toBeNull();
-	expect( $restoredRecord->palette )->not->toBeNull();
+	expect( $restoredRecord->palette )->toEqual( $originalPalette );
 } );
 
 test( 'global styles page restoreRevision ignores invalid revision id', function (): void {

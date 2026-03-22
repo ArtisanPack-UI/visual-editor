@@ -251,6 +251,13 @@
 					x-on:change="setFontFamily( '{{ $slot }}', $event.target.value )"
 					class="select select-sm select-bordered w-full text-xs"
 				>
+					@php
+						$knownFamilies = array_keys( $availableFonts[ $slot ] ?? [] );
+						$currentFamily = $typographyData['fontFamilies'][ $slot ] ?? null;
+					@endphp
+					@if ( $currentFamily && ! in_array( $currentFamily, $knownFamilies, true ) )
+						<option value="{{ $currentFamily }}">{{ $currentFamily }}</option>
+					@endif
 					@foreach ( $availableFonts[ $slot ] ?? [] as $family => $name )
 						<option value="{{ $family }}">{{ $name }}</option>
 					@endforeach
@@ -306,7 +313,7 @@
 					<div class="grid grid-cols-2 gap-3">
 						{{-- Font Size (number + unit) --}}
 						<div class="flex flex-col gap-1">
-							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider">
+							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-fontSizeNum">
 								{{ __( 'visual-editor::ve.typography_font_size' ) }}
 							</label>
 							<div class="flex gap-1">
@@ -314,6 +321,7 @@
 									type="number"
 									step="0.001"
 									min="0"
+									id="{{ $uuid }}-{{ $key }}-fontSizeNum"
 									x-ref="fontSizeNum_{{ $key }}"
 									:value="_parseValue( elements['{{ $key }}']?.fontSize ).num"
 									x-on:change="updateElementProperty( '{{ $key }}', 'fontSize', _combineValue( $event.target.value, $refs.fontSizeUnit_{{ $key }}.value ) )"
@@ -325,6 +333,7 @@
 									:value="_parseValue( elements['{{ $key }}']?.fontSize ).unit"
 									x-on:change="updateElementProperty( '{{ $key }}', 'fontSize', _combineValue( $refs.fontSizeNum_{{ $key }}.value, $event.target.value ) )"
 									class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+									aria-label="{{ __( 'visual-editor::ve.typography_font_size' ) }} {{ __( 'visual-editor::ve.unit' ) }}"
 								>
 									<option value="rem">rem</option>
 									<option value="em">em</option>
@@ -354,13 +363,14 @@
 
 						{{-- Line Height (number, unitless or with unit) --}}
 						<div class="flex flex-col gap-1">
-							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider">
+							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-lineHeight">
 								{{ __( 'visual-editor::ve.typography_line_height' ) }}
 							</label>
 							<input
 								type="number"
 								step="0.01"
 								min="0"
+								id="{{ $uuid }}-{{ $key }}-lineHeight"
 								:value="elements['{{ $key }}'] ? elements['{{ $key }}'].lineHeight : ''"
 								x-on:change="updateElementProperty( '{{ $key }}', 'lineHeight', $event.target.value )"
 								class="input input-sm input-bordered w-full font-mono text-xs"
@@ -370,13 +380,14 @@
 
 						{{-- Letter Spacing (number + unit) --}}
 						<div class="flex flex-col gap-1">
-							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider">
+							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-letterSpacingNum">
 								{{ __( 'visual-editor::ve.typography_letter_spacing' ) }}
 							</label>
 							<div class="flex gap-1">
 								<input
 									type="number"
 									step="0.001"
+									id="{{ $uuid }}-{{ $key }}-letterSpacingNum"
 									x-ref="letterSpacingNum_{{ $key }}"
 									:value="_parseValue( elements['{{ $key }}']?.letterSpacing ).num"
 									x-on:change="updateElementProperty( '{{ $key }}', 'letterSpacing', _combineValue( $event.target.value, $refs.letterSpacingUnit_{{ $key }}.value ) )"
@@ -388,6 +399,7 @@
 									:value="_parseValue( elements['{{ $key }}']?.letterSpacing ).unit"
 									x-on:change="updateElementProperty( '{{ $key }}', 'letterSpacing', _combineValue( $refs.letterSpacingNum_{{ $key }}.value, $event.target.value ) )"
 									class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+									aria-label="{{ __( 'visual-editor::ve.typography_letter_spacing' ) }} {{ __( 'visual-editor::ve.unit' ) }}"
 								>
 									<option value="em">em</option>
 									<option value="rem">rem</option>

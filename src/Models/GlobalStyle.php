@@ -129,7 +129,7 @@ class GlobalStyle extends Model
 			throw new InvalidArgumentException( 'Cannot create a revision for an unsaved GlobalStyle.' );
 		}
 
-		$maxRevisions = (int) config( 'artisanpack.visual-editor.persistence.max_revisions', 50 );
+		$maxRevisions = max( 1, (int) config( 'artisanpack.visual-editor.persistence.max_revisions', 50 ) );
 
 		$revision = Revision::create( [
 			'document_type' => self::REVISION_DOCUMENT_TYPE,
@@ -159,6 +159,10 @@ class GlobalStyle extends Model
 	 */
 	public function restoreFromRevision( Revision $revision ): void
 	{
+		if ( self::REVISION_DOCUMENT_TYPE !== $revision->document_type || $this->id !== $revision->document_id ) {
+			throw new InvalidArgumentException( 'Revision does not belong to this GlobalStyle record.' );
+		}
+
 		$data = $revision->blocks;
 
 		$this->update( [
