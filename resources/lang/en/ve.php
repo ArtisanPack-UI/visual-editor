@@ -1442,4 +1442,24 @@ return [
 
 	// Global Styles State
 	'global_styles_store'              => 'Global Styles Store',
+
+	// Part Editor
+	'part_editor_tab'                     => 'Part',
+	'part_editor_settings_title'          => 'Part Settings',
+	'part_editor_name'                    => 'Name',
+	'part_editor_slug'                    => 'Slug',
+	'part_editor_area'                    => 'Area',
+	'part_editor_description'             => 'Description',
+	'part_editor_description_placeholder' => 'Describe what this template part is for...',
+	'part_editor_status'                  => 'Status',
+	'part_editor_status_active'           => 'Active',
+	'part_editor_status_draft'            => 'Draft',
+	'part_editor_metadata'                => 'Metadata',
+	'part_editor_created_by'              => 'Created by',
+	'part_editor_last_modified'           => 'Last modified',
+	'part_editor_untitled'                => 'Untitled Part',
+	'part_editor_back'                    => 'Template Parts',
+	'part_editor_save'                    => 'Save',
+	'part_editor_saving'                  => 'Saving…',
+	'part_editor_locked_message'          => 'This template part is locked and cannot be edited.',
 ];

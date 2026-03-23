@@ -154,6 +154,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		// Phase 10: Template Editor
 		'template-editor'          => Components\TemplateEditor::class,
+		'template-part-editor'     => Components\TemplatePartEditor::class,
 		'template-part-slot'       => Components\TemplatePartSlot::class,
 		'template-switcher'        => Components\TemplateSwitcher::class,
 		'template-structure-panel' => Components\TemplateStructurePanel::class,
@@ -563,6 +564,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Livewire::component( 'site-editor.global-styles-page', GlobalStylesPage::class );
 		Livewire::component( 'site-editor.template-listing-page', TemplateListingPage::class );
 		Livewire::component( 'site-editor.template-part-listing-page', TemplatePartListingPage::class );
+		Livewire::component( 'site-editor.part-editor-page', \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage::class );
 		Livewire::component( 'site-editor.pattern-listing-page', PatternListingPage::class );
 		Livewire::component( 'template-parts-crud', \ArtisanPackUI\VisualEditor\Livewire\TemplatePartsCrud::class );
 	}

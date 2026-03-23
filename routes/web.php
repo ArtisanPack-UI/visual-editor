@@ -43,6 +43,14 @@ Route::prefix( $prefix )
 			->middleware( veGateMiddleware( $gates['parts'] ?? '' ) )
 			->name( 'visual-editor.template-parts' );
 
+		Route::get( '/parts/create', \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage::class )
+			->middleware( veGateMiddleware( $gates['parts'] ?? '' ) )
+			->name( 'visual-editor.template-parts.create' );
+
+		Route::get( '/parts/{slug}/edit', \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage::class )
+			->middleware( veGateMiddleware( $gates['parts'] ?? '' ) )
+			->name( 'visual-editor.template-parts.edit' );
+
 		Route::get( '/patterns', \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternListingPage::class )
 			->middleware( veGateMiddleware( $gates['patterns'] ?? '' ) )
 			->name( 'visual-editor.patterns' );

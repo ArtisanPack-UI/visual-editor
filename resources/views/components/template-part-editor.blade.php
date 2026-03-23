@@ -1,10 +1,9 @@
 {{--
- * Template Editor Component
+ * Template Part Editor Component
  *
- * A full block editing experience for templates. Mirrors the Editor
- * layout with template-specific features: template switcher in the
- * toolbar, Structure tab in the left sidebar, and block-only inspector
- * in the right sidebar (no Document tab).
+ * A full block editing experience for template parts. Mirrors the Template
+ * Editor layout with part-specific features: a Part tab in the right
+ * sidebar with name, slug, area, description, and status fields.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Views\Components
@@ -51,15 +50,21 @@
 	:initial-meta="$initialMeta"
 />
 
-{{-- Inject template settings into editor store --}}
-@if ( ! empty( $templateSettings ) )
+{{-- Inject part settings into editor store --}}
+@if ( ! empty( $partSettings ) )
 <div
 	x-data="{
 		init() {
-			const store = Alpine.store( 'editor' );
-			if ( store ) {
-				store.templateSettings = {{ Js::from( $templateSettings ) }};
-			}
+			const settings = {{ Js::from( $partSettings ) }};
+			const assign = () => {
+				const store = Alpine.store( 'editor' );
+				if ( store ) {
+					store.partSettings = settings;
+				} else {
+					this.$nextTick( () => assign() );
+				}
+			};
+			assign();
 		},
 	}"
 	class="hidden"
@@ -85,10 +90,15 @@
 		<x-slot:toolbar>
 			<x-ve-top-toolbar>
 				<x-slot:center>
-					<x-ve-template-switcher
-						:templates="$templates"
-						:current-slug="$currentTemplateSlug"
-					/>
+					<a
+						href="{{ route( 'visual-editor.template-parts' ) }}"
+						class="inline-flex items-center gap-1 text-sm text-base-content/60 hover:text-primary transition-colors"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+						{{ __( 'visual-editor::ve.part_editor_back' ) }}
+					</a>
+					<span class="mx-1.5 text-base-content/30">/</span>
+					<span class="text-sm font-medium text-base-content" x-data x-text="Alpine.store( 'editor' )?.partSettings?.name || '{{ __( 'visual-editor::ve.part_editor_untitled' ) }}'"></span>
 					{{ $toolbarCenter ?? '' }}
 				</x-slot:center>
 			</x-ve-top-toolbar>
@@ -280,12 +290,12 @@
 		</x-slot:canvas>
 
 		{{-- ============================================================ --}}
-		{{-- RIGHT SIDEBAR (Block + Template tabs) --}}
+		{{-- RIGHT SIDEBAR (Block + Part tabs) --}}
 		{{-- ============================================================ --}}
 		<x-slot:sidebar>
 			<x-ve-editor-sidebar
 				:show-tabs="true"
-				:second-tab-label="__( 'visual-editor::ve.template_tab' )"
+				:second-tab-label="__( 'visual-editor::ve.part_editor_tab' )"
 			>
 				<x-slot:settingsPanel>
 					@include( 'visual-editor::components._editor-inspector-settings' )
@@ -297,62 +307,8 @@
 
 				<x-slot:documentPanel>
 					<div class="flex flex-col gap-6 p-2">
-						{{-- Template Settings --}}
-						@include( 'visual-editor::components._template-settings-panel' )
-
-						{{-- Template Style Overrides --}}
-						<div class="flex flex-col gap-4">
-							<h3 class="text-sm font-semibold text-base-content">
-								{{ __( 'visual-editor::ve.template_styles_title' ) }}
-							</h3>
-
-							{{-- Color Overrides --}}
-							<details class="group">
-								<summary class="flex items-center justify-between cursor-pointer text-xs font-medium text-base-content/60 hover:text-base-content transition-colors">
-									{{ __( 'visual-editor::ve.color_overrides' ) }}
-									<svg class="h-3.5 w-3.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-									</svg>
-								</summary>
-								<div class="mt-2">
-									<x-ve-color-palette-editor :base-values="$globalBaseStyles['palette']" />
-								</div>
-							</details>
-
-							{{-- Typography Overrides --}}
-							<details class="group">
-								<summary class="flex items-center justify-between cursor-pointer text-xs font-medium text-base-content/60 hover:text-base-content transition-colors">
-									{{ __( 'visual-editor::ve.typography_overrides' ) }}
-									<svg class="h-3.5 w-3.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-									</svg>
-								</summary>
-								<div class="mt-2">
-									<x-ve-typography-presets-editor :base-values="$globalBaseStyles['typography']" />
-								</div>
-							</details>
-
-							{{-- Spacing Overrides --}}
-							<details class="group">
-								<summary class="flex items-center justify-between cursor-pointer text-xs font-medium text-base-content/60 hover:text-base-content transition-colors">
-									{{ __( 'visual-editor::ve.spacing_overrides' ) }}
-									<svg class="h-3.5 w-3.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-									</svg>
-								</summary>
-								<div class="mt-2">
-									<x-ve-spacing-scale-editor :base-values="$globalBaseStyles['spacing']" />
-								</div>
-							</details>
-						</div>
-
-						{{-- Template Parts --}}
-						<x-ve-template-parts-manager
-							:assignments="$templatePartAssignments"
-						/>
-
-						{{-- Livewire CRUD bridge --}}
-						<livewire:template-parts-crud />
+						{{-- Part Settings --}}
+						@include( 'visual-editor::components._part-settings-panel' )
 
 						{{ $documentPanel ?? '' }}
 					</div>
@@ -367,5 +323,5 @@
 </div>
 
 @if ( function_exists( 'doAction' ) )
-	@action('ap.visualEditor.templateEditor.rendered')
+	@action('ap.visualEditor.templatePartEditor.rendered')
 @endif
