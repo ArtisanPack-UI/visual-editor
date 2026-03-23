@@ -11,7 +11,7 @@
  --}}
 
 <!DOCTYPE html>
-<html lang="{{ str_replace( '_', '-', app()->getLocale() ) }}">
+<html lang="{{ str_replace( '_', '-', app()->getLocale() ) }}" data-theme="light">
 <head>
 	<meta charset="utf-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
@@ -21,6 +21,8 @@
 
 	@stack( 'styles' )
 	@livewireStyles
+	{{-- Force light theme — dark mode support will be added in a future release --}}
+	<script>document.documentElement.setAttribute('data-theme','light');document.documentElement.classList.remove('dark');</script>
 </head>
 <body class="antialiased">
 	{{ $slot }}

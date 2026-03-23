@@ -176,7 +176,7 @@
 
 								// Add an empty inner block so the placeholder appears.
 								const newInner = {
-									id: Alpine.store( 'editor' ).generateBlockId(),
+									id: Alpine.store( 'editor' )._generateId(),
 									type: Alpine.store( 'editor' ).defaultBlockType,
 									attributes: { text: '' },
 									innerBlocks: [],
@@ -230,12 +230,12 @@
 								// (same pattern as the group variation picker).
 								widths.forEach( ( w, idx ) => {
 									const colBlock = {
-										id: Alpine.store( 'editor' ).generateBlockId() + '-col-' + idx,
+										id: Alpine.store( 'editor' )._generateId() + '-col-' + idx,
 										type: 'column',
 										attributes: { width: w, verticalAlignment: 'top' },
 										innerBlocks: [
 											{
-												id: Alpine.store( 'editor' ).generateBlockId() + '-col-' + idx + '-p',
+												id: Alpine.store( 'editor' )._generateId() + '-col-' + idx + '-p',
 												type: Alpine.store( 'editor' ).defaultBlockType,
 												attributes: { text: '' },
 												innerBlocks: [],
@@ -261,12 +261,12 @@
 								if ( ! block ) return;
 
 								const newCol = {
-									id: Alpine.store( 'editor' ).generateBlockId() + '-col-' + ( ( block.innerBlocks || [] ).length ),
+									id: Alpine.store( 'editor' )._generateId() + '-col-' + ( ( block.innerBlocks || [] ).length ),
 									type: 'column',
 									attributes: { width: '', verticalAlignment: 'top' },
 									innerBlocks: [
 										{
-											id: Alpine.store( 'editor' ).generateBlockId() + '-col-p',
+											id: Alpine.store( 'editor' )._generateId() + '-col-p',
 											type: Alpine.store( 'editor' ).defaultBlockType,
 											attributes: { text: '' },
 											innerBlocks: [],
@@ -331,7 +331,7 @@
 								// Create grid-item child blocks, each with an empty paragraph.
 								for ( let i = 0; i < preset.count; i++ ) {
 									const itemBlock = {
-										id: Alpine.store( 'editor' ).generateBlockId() + '-gi-' + i,
+										id: Alpine.store( 'editor' )._generateId() + '-gi-' + i,
 										type: 'grid-item',
 										attributes: {
 											columnSpan: { mode: 'global', global: 1, desktop: 1, tablet: 1, mobile: 1 },
@@ -340,7 +340,7 @@
 										},
 										innerBlocks: [
 											{
-												id: Alpine.store( 'editor' ).generateBlockId() + '-gi-' + i + '-p',
+												id: Alpine.store( 'editor' )._generateId() + '-gi-' + i + '-p',
 												type: Alpine.store( 'editor' ).defaultBlockType,
 												attributes: { text: '' },
 												innerBlocks: [],
@@ -366,7 +366,7 @@
 								if ( ! block ) return;
 
 								const newItem = {
-									id: Alpine.store( 'editor' ).generateBlockId() + '-gi-' + ( ( block.innerBlocks || [] ).length ),
+									id: Alpine.store( 'editor' )._generateId() + '-gi-' + ( ( block.innerBlocks || [] ).length ),
 									type: 'grid-item',
 									attributes: {
 										columnSpan: { mode: 'global', global: 1, desktop: 1, tablet: 1, mobile: 1 },
@@ -375,7 +375,7 @@
 									},
 									innerBlocks: [
 										{
-											id: Alpine.store( 'editor' ).generateBlockId() + '-gi-p',
+											id: Alpine.store( 'editor' )._generateId() + '-gi-p',
 											type: Alpine.store( 'editor' ).defaultBlockType,
 											attributes: { text: '' },
 											innerBlocks: [],
@@ -931,6 +931,20 @@
 
 								const store = Alpine.store( 'editor' );
 								if ( ! store ) return;
+
+								// Sync heading, paragraph, and quote text to store on blur.
+								// This is deferred from input to avoid x-html re-rendering
+								// the contenteditable and stealing focus during typing.
+								const blockEl = e.target.closest( '[data-block-id]' );
+								if ( blockEl && e.target.hasAttribute( 'contenteditable' ) && ! e.target.hasAttribute( 'data-inner-block-id' ) && ! e.target.closest( '[data-inner-block-id]' ) ) {
+									const blockId = blockEl.getAttribute( 'data-block-id' );
+									const block   = store.getBlock( blockId );
+									if ( block && ( 'heading' === block.type || 'paragraph' === block.type ) ) {
+										store.updateBlock( blockId, { text: e.target.innerHTML } );
+									} else if ( block && 'quote' === block.type && ! e.target.classList.contains( 've-quote-citation' ) ) {
+										store.updateBlock( blockId, { text: e.target.innerHTML } );
+									}
+								}
 
 								// Sync inner block text to store on blur.
 								const innerWrapper = e.target.hasAttribute( 'data-inner-block-id' )
@@ -2827,24 +2841,10 @@
 								return;
 							}
 
-							const blockEl = target.closest( '[data-block-id]' );
-							if ( ! blockEl ) return;
-
-							const blockId = blockEl.getAttribute( 'data-block-id' );
-							const block   = Alpine.store( 'editor' ).getBlock( blockId );
-							if ( ! block ) return;
-
-							const textContent = target.innerHTML;
-							if ( 'heading' === block.type || 'paragraph' === block.type ) {
-								Alpine.store( 'editor' ).updateBlock( blockId, { text: textContent } );
-							} else if ( 'quote' === block.type ) {
-								if ( target.classList.contains( 've-quote-citation' ) ) {
-									Alpine.store( 'editor' ).updateBlock( blockId, { citation: textContent } );
-								} else {
-									Alpine.store( 'editor' ).updateBlock( blockId, { text: textContent } );
-								}
-							}
-							// List blocks: no attribute update needed — content lives in the DOM.
+							// Heading and paragraph text lives in the DOM during
+							// editing — syncing to the store on every keystroke would
+							// trigger x-html re-render and steal contenteditable focus.
+							// Store sync happens on blur (see focusout handler above).
 						},
 
 						/**
