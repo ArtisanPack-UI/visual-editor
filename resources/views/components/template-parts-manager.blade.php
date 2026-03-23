@@ -28,10 +28,10 @@
 		creating: null,
 		newPartName: '',
 
-		_onPartCreated: null,
+		_cleanupListener: null,
 
 		init() {
-			this._onPartCreated = ( data ) => {
+			this._cleanupListener = Livewire.on( 've-template-part-created', ( data ) => {
 				const payload = Array.isArray( data ) ? data[0] : data;
 				const area = payload.area;
 				const part = payload.part;
@@ -43,14 +43,12 @@
 				this.partsByArea[ area ].push( part );
 				this.assignments[ area ] = part.id;
 				this._dispatchChange();
-			};
-
-			Livewire.on( 've-template-part-created', this._onPartCreated );
+			} );
 		},
 
 		destroy() {
-			if ( this._onPartCreated ) {
-				Livewire.off( 've-template-part-created', this._onPartCreated );
+			if ( typeof this._cleanupListener === 'function' ) {
+				this._cleanupListener();
 			}
 		},
 
@@ -104,7 +102,7 @@
 		_dispatchChange() {
 			const store = this._getStore();
 			if ( store ) {
-				store.markDirty();
+				if ( typeof store.markDirty === 'function' ) store.markDirty();
 				if ( typeof store._dispatchChange === 'function' ) store._dispatchChange();
 			}
 
@@ -127,11 +125,15 @@
 
 			{{-- Current assignment or empty state --}}
 			<div x-show="creating !== area">
-				<div class="flex items-center gap-2">
+				<div
+					class="flex items-center gap-2"
+					x-data="{ selectedPart: String( assignments[ area ] || '' ) }"
+					x-effect="assignments[ area ] = selectedPart ? parseInt( selectedPart, 10 ) : null"
+				>
 					<select
 						class="select select-sm select-bordered flex-1"
-						:value="String( assignments[ area ] || '' )"
-						x-on:change="assignPart( area, $event.target.value )"
+						x-model="selectedPart"
+						x-on:change="$nextTick( () => _dispatchChange() )"
 					>
 						<option value="">{{ __( 'visual-editor::ve.template_part_select_placeholder' ) }}</option>
 						<template x-for="part in ( partsByArea[ area ] || [] )" :key="part.id">
@@ -167,13 +169,13 @@
 					</button>
 
 					<template x-if="assignments[ area ]">
-						<a
-							href="#"
+						<button
+							type="button"
 							class="btn btn-ghost btn-xs text-base-content/50 hover:text-base-content/80"
-							x-on:click.prevent="$dispatch( 've-template-part-edit', { area: area, partId: assignments[ area ] } )"
+							x-on:click="$dispatch( 've-template-part-edit', { area: area, partId: assignments[ area ] } )"
 						>
 							{{ __( 'visual-editor::ve.template_part_edit' ) }}
-						</a>
+						</button>
 					</template>
 				</div>
 			</div>

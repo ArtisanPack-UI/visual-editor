@@ -242,12 +242,11 @@
 				>
 					{{-- Override indicator --}}
 					<template x-if="overrideMode">
-						<span
-							class="w-2 h-2 rounded-full shrink-0"
-							:class="isOverridden( index ) ? 'bg-warning' : 'bg-success/40'"
-							:title="isOverridden( index ) ? '{{ __( 'visual-editor::ve.overridden' ) }}' : '{{ __( 'visual-editor::ve.inherited_from_global' ) }}'"
-							:aria-label="'{{ __( 'visual-editor::ve.override_indicator_label', [ 'name' => '\' + entry.name + \'', 'status' => '' ] ) }}'.replace( /\s*$/, '' ) + ( isOverridden( index ) ? '{{ __( 'visual-editor::ve.overridden' ) }}' : '{{ __( 'visual-editor::ve.inherited_from_global' ) }}' )"
-						></span>
+						@include( 'visual-editor::components._override-indicator', [
+							'overriddenExpr' => 'isOverridden( index )',
+							'nameExpr'       => 'entry.name',
+							'resetExpr'      => 'resetToBase( index )',
+						] )
 					</template>
 
 					<button
@@ -266,21 +265,6 @@
 						<span class="text-sm text-base-content truncate" x-text="entry.name"></span>
 						<span class="text-xs text-base-content/40 font-mono" x-text="entry.color"></span>
 					</button>
-
-					{{-- Reset to global button (override mode) --}}
-					<template x-if="overrideMode && isOverridden( index )">
-						<button
-							type="button"
-							x-on:click="resetToBase( index )"
-							class="text-base-content/30 hover:text-warning focus:text-warning transition-colors cursor-pointer shrink-0 focus:outline-none"
-							:aria-label="'{{ __( 'visual-editor::ve.reset_to_global' ) }}: ' + entry.name"
-							:title="'{{ __( 'visual-editor::ve.reset_to_global' ) }}'"
-						>
-							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-							</svg>
-						</button>
-					</template>
 
 					<button
 						type="button"
