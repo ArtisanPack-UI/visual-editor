@@ -55,13 +55,16 @@ class TemplatePartsCrud extends Component
 			return;
 		}
 
-		$slug = Str::slug( $name );
+		$originalSlug = Str::slug( $name );
+		$slug         = $originalSlug;
 
 		/** @var TemplatePartManager $manager */
-		$manager = app( 'visual-editor.template-parts' );
+		$manager  = app( 'visual-editor.template-parts' );
+		$attempts = 0;
 
-		if ( $manager->exists( $slug ) ) {
-			$slug .= '-' . Str::random( 4 );
+		while ( $manager->exists( $slug ) && $attempts < 10 ) {
+			$slug = $originalSlug . '-' . Str::random( 4 );
+			$attempts++;
 		}
 
 		$part = $manager->create( [
