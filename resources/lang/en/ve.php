@@ -1288,6 +1288,22 @@ return [
 	'hub_access_denied'             => 'You do not have permission to access the Site Editor.',
 	'hub_back'                      => 'Back to Site Editor',
 
+	// Permissions
+	'permission_access_site_editor'         => 'Access Site Editor',
+	'permission_access_site_editor_desc'    => 'View the site editor hub.',
+	'permission_manage_styles'              => 'Manage Global Styles',
+	'permission_manage_styles_desc'         => 'Edit global styles (colors, typography, spacing).',
+	'permission_manage_templates'           => 'Manage Templates',
+	'permission_manage_templates_desc'      => 'Create, edit, and delete templates.',
+	'permission_manage_parts'               => 'Manage Template Parts',
+	'permission_manage_parts_desc'          => 'Create, edit, and delete template parts.',
+	'permission_manage_patterns'            => 'Manage Patterns',
+	'permission_manage_patterns_desc'       => 'Create, edit, and delete patterns.',
+	'permission_manage_template_styles'     => 'Manage Template Styles',
+	'permission_manage_template_styles_desc' => 'Edit template-level style overrides.',
+	'permission_lock_content'               => 'Lock Content',
+	'permission_lock_content_desc'          => 'Lock and unlock templates and template parts.',
+
 	// Global Styles Page
 	'global_styles_title'              => 'Global Styles',
 	'global_styles_save'               => 'Save',

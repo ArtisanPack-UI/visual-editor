@@ -23,6 +23,7 @@ use ArtisanPackUI\VisualEditor\Blocks\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Blocks\BlockTransformService;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockCacheCommand;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockClearCommand;
+use ArtisanPackUI\VisualEditor\Http\Middleware\CheckGateIfDefined;
 use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\GlobalStylesPage;
@@ -30,6 +31,12 @@ use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternListingPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateListingPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplatePartListingPage;
+use ArtisanPackUI\VisualEditor\Models\Pattern;
+use ArtisanPackUI\VisualEditor\Models\Template;
+use ArtisanPackUI\VisualEditor\Models\TemplatePart;
+use ArtisanPackUI\VisualEditor\Policies\PatternSiteEditorPolicy;
+use ArtisanPackUI\VisualEditor\Policies\TemplatePartSiteEditorPolicy;
+use ArtisanPackUI\VisualEditor\Policies\TemplateSiteEditorPolicy;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\Services\ColorPaletteManager;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCompiler;
@@ -44,6 +51,7 @@ use ArtisanPackUI\VisualEditor\Services\TemplatePresetManager;
 use ArtisanPackUI\VisualEditor\Services\TypographyPresetsManager;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 
@@ -179,6 +187,8 @@ class VisualEditorServiceProvider extends ServiceProvider
 			__DIR__ . '/../config/visual-editor.php',
 			'artisanpack-visual-editor-temp',
 		);
+
+		$this->app['router']->aliasMiddleware( 've.gate', CheckGateIfDefined::class );
 
 		$this->app->singleton( 'visual-editor', function () {
 			return new VisualEditor();
@@ -336,6 +346,8 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerBladeComponents();
 		$this->registerLivewireNamespace();
 		$this->registerMigrations();
+		$this->registerPermissions();
+		$this->registerPolicies();
 		$this->registerRoutes();
 		$this->registerCoreBlocks();
 		$this->registerDefaultTemplates();
@@ -343,6 +355,102 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerDefaultPresets();
 		$this->registerConsoleCommands();
 		$this->publishBlockViews();
+		$this->registerAdminMenu();
+	}
+
+	/**
+	 * Register site editor permissions with the CMS framework.
+	 *
+	 * Permissions are only registered when the cms-framework's
+	 * `ap_register_permission` function is available.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerPermissions(): void
+	{
+		if ( ! function_exists( 'ap_register_permission' ) ) {
+			return;
+		}
+
+		$permissions = [
+			'visual-editor.access-site-editor'    => [
+				'name'        => __( 'visual-editor::ve.permission_access_site_editor' ),
+				'description' => __( 'visual-editor::ve.permission_access_site_editor_desc' ),
+			],
+			'visual-editor.manage-styles'         => [
+				'name'        => __( 'visual-editor::ve.permission_manage_styles' ),
+				'description' => __( 'visual-editor::ve.permission_manage_styles_desc' ),
+			],
+			'visual-editor.manage-templates'      => [
+				'name'        => __( 'visual-editor::ve.permission_manage_templates' ),
+				'description' => __( 'visual-editor::ve.permission_manage_templates_desc' ),
+			],
+			'visual-editor.manage-parts'          => [
+				'name'        => __( 'visual-editor::ve.permission_manage_parts' ),
+				'description' => __( 'visual-editor::ve.permission_manage_parts_desc' ),
+			],
+			'visual-editor.manage-patterns'       => [
+				'name'        => __( 'visual-editor::ve.permission_manage_patterns' ),
+				'description' => __( 'visual-editor::ve.permission_manage_patterns_desc' ),
+			],
+			'visual-editor.manage-template-styles' => [
+				'name'        => __( 'visual-editor::ve.permission_manage_template_styles' ),
+				'description' => __( 'visual-editor::ve.permission_manage_template_styles_desc' ),
+			],
+			'visual-editor.lock-content'          => [
+				'name'        => __( 'visual-editor::ve.permission_lock_content' ),
+				'description' => __( 'visual-editor::ve.permission_lock_content_desc' ),
+			],
+		];
+
+		foreach ( $permissions as $slug => $meta ) {
+			ap_register_permission( $slug, $meta['name'], $meta['description'] );
+		}
+	}
+
+	/**
+	 * Register authorization policies for site editor models.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerPolicies(): void
+	{
+		Gate::policy( Template::class, TemplateSiteEditorPolicy::class );
+		Gate::policy( TemplatePart::class, TemplatePartSiteEditorPolicy::class );
+		Gate::policy( Pattern::class, PatternSiteEditorPolicy::class );
+	}
+
+	/**
+	 * Register the site editor as an admin page with the CMS framework.
+	 *
+	 * Only registers when the cms-framework's `apAddAdminPage`
+	 * function is available.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerAdminMenu(): void
+	{
+		if ( ! function_exists( 'apAddAdminPage' ) ) {
+			return;
+		}
+
+		$prefix = (string) config( 'artisanpack.visual-editor.site_editor.route_prefix', 'site-editor' );
+
+		apAddAdminPage(
+			title: __( 'visual-editor::ve.site_editor' ),
+			slug: 'site-editor',
+			sectionSlug: 'appearance',
+			options: [
+				'capability' => 'visual-editor.access-site-editor',
+				'action'     => fn () => redirect( url( $prefix ) ),
+			],
+		);
 	}
 
 	/**

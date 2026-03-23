@@ -283,11 +283,20 @@ return [
 	|
 	*/
 	'site_editor' => [
-		'route_prefix'  => 'site-editor',
-		'middleware'    => [ 'web', 'auth' ],
-		'permission'    => 'visual-editor.access-site-editor',
-		'hub_page'      => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage::class,
-		'layout'        => ArtisanPackUI\VisualEditor\View\Components\SiteEditorLayout::class,
+		'route_prefix' => 'site-editor',
+		'middleware'   => [ 'web', 'auth' ],
+		'permission'   => 'visual-editor.access-site-editor',
+		'hub_page'     => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage::class,
+		'layout'       => ArtisanPackUI\VisualEditor\View\Components\SiteEditorLayout::class,
+		'gates'        => [
+			'access'          => 'visual-editor.access-site-editor',
+			'styles'          => 'visual-editor.manage-styles',
+			'templates'       => 'visual-editor.manage-templates',
+			'parts'           => 'visual-editor.manage-parts',
+			'patterns'        => 'visual-editor.manage-patterns',
+			'template_styles' => 'visual-editor.manage-template-styles',
+			'lock_content'    => 'visual-editor.lock-content',
+		],
 	],
 
 	'blocks' => [
