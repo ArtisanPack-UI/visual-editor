@@ -1500,4 +1500,9 @@ return [
 	'pattern_listing_column_sync'      => 'Type',
 	'pattern_listing_synced'           => 'Synced',
 	'pattern_listing_standard'         => 'Standard',
+
+	// Publish Views Command
+	'publish_views_flag_required' => 'The --views flag is required. Usage: ve:publish --views',
+	'publish_unknown_tag'         => 'Unknown tag ":tag". Available tags: :tags',
+	'publish_views_complete'      => ':count view(s) published successfully.',
 ];

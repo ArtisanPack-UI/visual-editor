@@ -19,6 +19,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Livewire\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\Contracts\SiteEditorPage;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesRepository;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
@@ -35,7 +36,7 @@ use Livewire\Component;
  * @since      1.0.0
  */
 #[Layout( 'visual-editor::layouts.site-editor' )]
-class GlobalStylesPage extends Component
+class GlobalStylesPage extends Component implements SiteEditorPage
 {
 	/**
 	 * The current palette data for the editor.
