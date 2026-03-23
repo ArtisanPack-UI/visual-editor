@@ -13,19 +13,25 @@ declare( strict_types=1 );
 
 use Illuminate\Support\Facades\File;
 
-$publishBase = '';
+/**
+ * Get the publish destination base path.
+ *
+ * @return string
+ */
+function getPublishBase(): string
+{
+	return resource_path( 'views/vendor/visual-editor' );
+}
 
-beforeEach( function () use ( &$publishBase ): void {
-	$publishBase = resource_path( 'views/vendor/visual-editor' );
-
-	if ( File::isDirectory( $publishBase ) ) {
-		File::deleteDirectory( $publishBase );
+beforeEach( function (): void {
+	if ( File::isDirectory( getPublishBase() ) ) {
+		File::deleteDirectory( getPublishBase() );
 	}
 } );
 
-afterEach( function () use ( &$publishBase ): void {
-	if ( File::isDirectory( $publishBase ) ) {
-		File::deleteDirectory( $publishBase );
+afterEach( function (): void {
+	if ( File::isDirectory( getPublishBase() ) ) {
+		File::deleteDirectory( getPublishBase() );
 	}
 } );
 
@@ -38,55 +44,55 @@ test( 've:publish --views publishes all views', function (): void {
 	$this->artisan( 've:publish', [ '--views' => true ] )
 		->assertSuccessful();
 
-	$publishBase = resource_path( 'views/vendor/visual-editor' );
+	$base = getPublishBase();
 
-	expect( File::isDirectory( $publishBase . '/livewire/site-editor' ) )->toBeTrue();
-	expect( File::exists( $publishBase . '/livewire/site-editor/hub.blade.php' ) )->toBeTrue();
-	expect( File::exists( $publishBase . '/livewire/site-editor/template-listing.blade.php' ) )->toBeTrue();
+	expect( File::isDirectory( $base . '/livewire/site-editor' ) )->toBeTrue();
+	expect( File::exists( $base . '/livewire/site-editor/hub.blade.php' ) )->toBeTrue();
+	expect( File::exists( $base . '/livewire/site-editor/template-listing.blade.php' ) )->toBeTrue();
 } );
 
 test( 've:publish --views --tag=site-editor publishes only site editor views', function (): void {
 	$this->artisan( 've:publish', [ '--views' => true, '--tag' => 'site-editor' ] )
 		->assertSuccessful();
 
-	$publishBase = resource_path( 'views/vendor/visual-editor' );
+	$base = getPublishBase();
 
-	expect( File::exists( $publishBase . '/livewire/site-editor/hub.blade.php' ) )->toBeTrue();
-	expect( File::exists( $publishBase . '/layouts/site-editor.blade.php' ) )->toBeTrue();
-	expect( File::exists( $publishBase . '/livewire/site-editor/template-listing.blade.php' ) )->toBeFalse();
+	expect( File::exists( $base . '/livewire/site-editor/hub.blade.php' ) )->toBeTrue();
+	expect( File::exists( $base . '/layouts/site-editor.blade.php' ) )->toBeTrue();
+	expect( File::exists( $base . '/livewire/site-editor/template-listing.blade.php' ) )->toBeFalse();
 } );
 
 test( 've:publish --views --tag=listings publishes only listing views', function (): void {
 	$this->artisan( 've:publish', [ '--views' => true, '--tag' => 'listings' ] )
 		->assertSuccessful();
 
-	$publishBase = resource_path( 'views/vendor/visual-editor' );
+	$base = getPublishBase();
 
-	expect( File::exists( $publishBase . '/livewire/site-editor/template-listing.blade.php' ) )->toBeTrue();
-	expect( File::exists( $publishBase . '/livewire/site-editor/part-listing.blade.php' ) )->toBeTrue();
-	expect( File::exists( $publishBase . '/livewire/site-editor/pattern-listing.blade.php' ) )->toBeTrue();
-	expect( File::exists( $publishBase . '/livewire/site-editor/hub.blade.php' ) )->toBeFalse();
+	expect( File::exists( $base . '/livewire/site-editor/template-listing.blade.php' ) )->toBeTrue();
+	expect( File::exists( $base . '/livewire/site-editor/part-listing.blade.php' ) )->toBeTrue();
+	expect( File::exists( $base . '/livewire/site-editor/pattern-listing.blade.php' ) )->toBeTrue();
+	expect( File::exists( $base . '/livewire/site-editor/hub.blade.php' ) )->toBeFalse();
 } );
 
 test( 've:publish --views --tag=editors publishes only editor views', function (): void {
 	$this->artisan( 've:publish', [ '--views' => true, '--tag' => 'editors' ] )
 		->assertSuccessful();
 
-	$publishBase = resource_path( 'views/vendor/visual-editor' );
+	$base = getPublishBase();
 
-	expect( File::exists( $publishBase . '/livewire/site-editor/part-editor.blade.php' ) )->toBeTrue();
-	expect( File::exists( $publishBase . '/livewire/site-editor/pattern-editor.blade.php' ) )->toBeTrue();
-	expect( File::exists( $publishBase . '/livewire/site-editor/hub.blade.php' ) )->toBeFalse();
+	expect( File::exists( $base . '/livewire/site-editor/part-editor.blade.php' ) )->toBeTrue();
+	expect( File::exists( $base . '/livewire/site-editor/pattern-editor.blade.php' ) )->toBeTrue();
+	expect( File::exists( $base . '/livewire/site-editor/hub.blade.php' ) )->toBeFalse();
 } );
 
 test( 've:publish --views --tag=styles publishes only styles views', function (): void {
 	$this->artisan( 've:publish', [ '--views' => true, '--tag' => 'styles' ] )
 		->assertSuccessful();
 
-	$publishBase = resource_path( 'views/vendor/visual-editor' );
+	$base = getPublishBase();
 
-	expect( File::exists( $publishBase . '/livewire/site-editor/global-styles-page.blade.php' ) )->toBeTrue();
-	expect( File::exists( $publishBase . '/livewire/site-editor/hub.blade.php' ) )->toBeFalse();
+	expect( File::exists( $base . '/livewire/site-editor/global-styles-page.blade.php' ) )->toBeTrue();
+	expect( File::exists( $base . '/livewire/site-editor/hub.blade.php' ) )->toBeFalse();
 } );
 
 test( 've:publish fails with unknown tag', function (): void {
@@ -95,13 +101,13 @@ test( 've:publish fails with unknown tag', function (): void {
 } );
 
 test( 've:publish does not overwrite existing files without --force', function (): void {
-	$publishBase = resource_path( 'views/vendor/visual-editor' );
+	$base = getPublishBase();
 
 	// Publish first time.
 	$this->artisan( 've:publish', [ '--views' => true, '--tag' => 'site-editor' ] )
 		->assertSuccessful();
 
-	$hubPath = $publishBase . '/livewire/site-editor/hub.blade.php';
+	$hubPath = $base . '/livewire/site-editor/hub.blade.php';
 
 	expect( File::exists( $hubPath ) )->toBeTrue();
 
@@ -117,13 +123,13 @@ test( 've:publish does not overwrite existing files without --force', function (
 } );
 
 test( 've:publish --force overwrites existing files', function (): void {
-	$publishBase = resource_path( 'views/vendor/visual-editor' );
+	$base = getPublishBase();
 
 	// Publish first time.
 	$this->artisan( 've:publish', [ '--views' => true, '--tag' => 'site-editor' ] )
 		->assertSuccessful();
 
-	$hubPath = $publishBase . '/livewire/site-editor/hub.blade.php';
+	$hubPath = $base . '/livewire/site-editor/hub.blade.php';
 
 	// Write custom content.
 	File::put( $hubPath, '<!-- custom -->' );

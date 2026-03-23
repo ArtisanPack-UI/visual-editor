@@ -31,6 +31,8 @@ use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\GlobalStylesPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternEditorPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternListingPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateListingPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplatePartListingPage;
@@ -536,35 +538,11 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor' );
 
 		if ( $this->app->runningInConsole() ) {
-			$viewsBase = __DIR__ . '/../resources/views';
-
+			// All views can be published via `vendor:publish --tag=visual-editor-views`.
+			// For granular publishing by group, use the `ve:publish --views --tag=...` command.
 			$this->publishes( [
-				$viewsBase => resource_path( 'views/vendor/visual-editor' ),
+				__DIR__ . '/../resources/views' => resource_path( 'views/vendor/visual-editor' ),
 			], 'visual-editor-views' );
-
-			$this->publishes( [
-				$viewsBase . '/livewire/site-editor/hub.blade.php' => resource_path( 'views/vendor/visual-editor/livewire/site-editor/hub.blade.php' ),
-				$viewsBase . '/layouts/site-editor.blade.php'      => resource_path( 'views/vendor/visual-editor/layouts/site-editor.blade.php' ),
-			], 'visual-editor-views-site-editor' );
-
-			$this->publishes( [
-				$viewsBase . '/livewire/site-editor/template-listing.blade.php' => resource_path( 'views/vendor/visual-editor/livewire/site-editor/template-listing.blade.php' ),
-				$viewsBase . '/livewire/site-editor/part-listing.blade.php'     => resource_path( 'views/vendor/visual-editor/livewire/site-editor/part-listing.blade.php' ),
-				$viewsBase . '/livewire/site-editor/pattern-listing.blade.php'  => resource_path( 'views/vendor/visual-editor/livewire/site-editor/pattern-listing.blade.php' ),
-			], 'visual-editor-views-listings' );
-
-			$this->publishes( [
-				$viewsBase . '/livewire/site-editor/part-editor.blade.php'    => resource_path( 'views/vendor/visual-editor/livewire/site-editor/part-editor.blade.php' ),
-				$viewsBase . '/livewire/site-editor/pattern-editor.blade.php' => resource_path( 'views/vendor/visual-editor/livewire/site-editor/pattern-editor.blade.php' ),
-			], 'visual-editor-views-editors' );
-
-			$this->publishes( [
-				$viewsBase . '/livewire/site-editor/global-styles-page.blade.php' => resource_path( 'views/vendor/visual-editor/livewire/site-editor/global-styles-page.blade.php' ),
-			], 'visual-editor-views-styles' );
-
-			$this->publishes( [
-				$viewsBase . '/components' => resource_path( 'views/vendor/visual-editor/components' ),
-			], 'visual-editor-views-components' );
 		}
 	}
 
@@ -596,9 +574,9 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Livewire::component( 'site-editor.global-styles-page', (string) ( $components['global_styles_page'] ?? GlobalStylesPage::class ) );
 		Livewire::component( 'site-editor.template-listing-page', (string) ( $components['template_listing'] ?? TemplateListingPage::class ) );
 		Livewire::component( 'site-editor.template-part-listing-page', (string) ( $components['part_listing'] ?? TemplatePartListingPage::class ) );
-		Livewire::component( 'site-editor.part-editor-page', (string) ( $components['part_editor'] ?? \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage::class ) );
+		Livewire::component( 'site-editor.part-editor-page', (string) ( $components['part_editor'] ?? PartEditorPage::class ) );
 		Livewire::component( 'site-editor.pattern-listing-page', (string) ( $components['pattern_listing'] ?? PatternListingPage::class ) );
-		Livewire::component( 'site-editor.pattern-editor-page', (string) ( $components['pattern_editor'] ?? \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternEditorPage::class ) );
+		Livewire::component( 'site-editor.pattern-editor-page', (string) ( $components['pattern_editor'] ?? PatternEditorPage::class ) );
 		Livewire::component( 'template-parts-crud', \ArtisanPackUI\VisualEditor\Livewire\TemplatePartsCrud::class );
 
 		$this->validateComponentContracts( $components );
@@ -641,6 +619,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 			$class = $components[ $key ];
 
 			if ( ! class_exists( $class ) ) {
+				$this->app->make( 'log' )->error(
+					"Visual Editor: configured component '{$key}' references non-existent class [{$class}].",
+				);
+
 				continue;
 			}
 

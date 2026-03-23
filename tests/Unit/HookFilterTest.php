@@ -78,7 +78,7 @@ test( 've.listing.actions filter adds custom row actions', function (): void {
 		$this->markTestSkipped( 'Hooks package not installed.' );
 	}
 
-	addFilter( 've.listing.actions', function ( array $actions, string $type ): array {
+	addFilter( 've.listing.actions', function ( array $actions, string $type, object $item ): array {
 		$actions[] = [ 'label' => 'Export', 'event' => 've-export', 'icon' => 'download' ];
 
 		return $actions;

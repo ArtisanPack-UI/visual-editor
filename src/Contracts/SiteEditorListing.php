@@ -37,4 +37,18 @@ interface SiteEditorListing extends SiteEditorPage
 	 * @return array<int, array<string, mixed>>
 	 */
 	public function getColumns(): array;
+
+	/**
+	 * Get the row actions for a given item.
+	 *
+	 * Returns custom actions added via the `ve.listing.actions` filter hook.
+	 * Default actions (duplicate, lock, delete) are built-in to the view.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param object $item The listing row item.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getRowActions( object $item ): array;
 }
