@@ -78,7 +78,7 @@ class TemplatePartsCrud extends Component
 			'content'   => [],
 			'status'    => 'active',
 			'is_custom' => true,
-			'user_id'   => auth()->id() ?? null,
+			'user_id'   => auth()->id(),
 		] );
 
 		$this->dispatch( 've-template-part-created', [

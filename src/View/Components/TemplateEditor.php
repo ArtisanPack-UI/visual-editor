@@ -301,15 +301,14 @@ class TemplateEditor extends Component
 		$this->buildBlockTransforms( $registry );
 
 		// Resolve global base styles for the override indicators.
-		if ( empty( $globalBaseStyles ) ) {
-			$this->globalBaseStyles = [
-				'palette'    => app( 'visual-editor.color-palette' )->toStoreFormat(),
-				'typography' => app( 'visual-editor.typography-presets' )->toStoreFormat(),
-				'spacing'    => app( 'visual-editor.spacing-scale' )->toStoreFormat(),
-			];
-		} else {
-			$this->globalBaseStyles = $globalBaseStyles;
-		}
+		// Merge provided values with defaults so partial arrays are safe.
+		$defaults = [
+			'palette'    => app( 'visual-editor.color-palette' )->toStoreFormat(),
+			'typography' => app( 'visual-editor.typography-presets' )->toStoreFormat(),
+			'spacing'    => app( 'visual-editor.spacing-scale' )->toStoreFormat(),
+		];
+
+		$this->globalBaseStyles = array_replace_recursive( $defaults, $globalBaseStyles );
 
 		$this->templatePartAssignments = $templatePartAssignments;
 		$this->templateSettings        = $templateSettings;

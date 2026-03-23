@@ -19,7 +19,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\View\Components;
 
-use ArtisanPackUI\VisualEditor\Models\TemplatePart;
+use ArtisanPackUI\VisualEditor\Services\TemplatePartManager;
 use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
@@ -109,23 +109,33 @@ class TemplatePartsManager extends Component
 	}
 
 	/**
-	 * Load available template parts grouped by area.
+	 * Load available template parts grouped by area via TemplatePartManager.
+	 *
+	 * Uses the service instead of querying the model directly so that
+	 * in-memory registered parts and filter hooks are included.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return array<string, array<int, array{id: int, name: string, slug: string}>>
+	 * @return array<string, array<int, array{id: int|null, name: string, slug: string}>>
 	 */
 	protected function loadPartsByArea(): array
 	{
+		/** @var TemplatePartManager $manager */
+		$manager     = app( 'visual-editor.template-parts' );
 		$partsByArea = [];
 
 		foreach ( array_keys( $this->areaLabels ) as $area ) {
-			$parts = TemplatePart::active()
-				->forArea( $area )
-				->orderBy( 'name' )
-				->get( [ 'id', 'name', 'slug' ] );
+			$parts = collect( $manager->forArea( $area ) )
+				->map( fn ( array $part ): array => [
+					'id'   => $part['id'] ?? null,
+					'name' => $part['name'] ?? $part['slug'],
+					'slug' => $part['slug'],
+				] )
+				->sortBy( 'name' )
+				->values()
+				->all();
 
-			$partsByArea[ $area ] = $parts->toArray();
+			$partsByArea[ $area ] = $parts;
 		}
 
 		return $partsByArea;

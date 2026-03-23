@@ -77,7 +77,7 @@
 		_commitToStore() {
 			const store = this._getStore();
 			if ( ! store ) return;
-			store._pushHistory();
+			if ( typeof store._pushHistory === 'function' ) store._pushHistory();
 			store.globalStyles.palette = JSON.parse( JSON.stringify( this.entries ) );
 			store._syncGlobalCssVariables();
 			store.markDirty();

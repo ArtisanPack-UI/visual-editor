@@ -270,12 +270,23 @@
 	<div x-show="activeSection === 'families'" x-cloak role="tabpanel" aria-labelledby="{{ $uuid }}-tab-families" id="{{ $uuid }}-panel-families" class="flex flex-col gap-3">
 		@foreach ( $familyLabels as $slot => $label )
 			<div class="flex flex-col gap-1">
-				<label
-					for="{{ $uuid }}-family-{{ $slot }}"
-					class="text-xs font-medium text-base-content/70"
-				>
-					{{ $label }}
-				</label>
+				<div class="flex items-center gap-1">
+					<label
+						for="{{ $uuid }}-family-{{ $slot }}"
+						class="text-xs font-medium text-base-content/70 flex-1"
+					>
+						{{ $label }}
+					</label>
+					@if ( $hasOverrideMode )
+						<template x-if="overrideMode">
+							@include( 'visual-editor::components._override-indicator', [
+								'overriddenExpr' => "isFamilyOverridden( '" . $slot . "' )",
+								'nameExpr'       => "'" . $label . "'",
+								'resetExpr'      => "resetFamilyToBase( '" . $slot . "' )",
+							] )
+						</template>
+					@endif
+				</div>
 				<select
 					id="{{ $uuid }}-family-{{ $slot }}"
 					x-model="fontFamilies.{{ $slot }}"
@@ -309,6 +320,15 @@
 					:aria-expanded="editingElement === '{{ $key }}'"
 				>
 					<div class="flex items-center gap-3 min-w-0">
+						@if ( $hasOverrideMode )
+							<template x-if="overrideMode">
+								@include( 'visual-editor::components._override-indicator', [
+									'overriddenExpr' => "isElementOverridden( '" . $key . "' )",
+									'nameExpr'       => "'" . $label . "'",
+									'resetExpr'      => "resetElementToBase( '" . $key . "' )",
+								] )
+							</template>
+						@endif
 						<span
 							class="shrink-0 text-base-content/70"
 							:style="'font-size: ' + ( elements['{{ $key }}'] ? elements['{{ $key }}'].fontSize : '1rem' ) + '; font-weight: ' + ( elements['{{ $key }}'] ? elements['{{ $key }}'].fontWeight : '400' ) + '; line-height: 1'"

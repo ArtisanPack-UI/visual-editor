@@ -1435,10 +1435,10 @@ return [
 	'template_part_none_assigned'      => 'None assigned',
 	'template_part_select_placeholder' => 'Select a part...',
 	'template_part_name_placeholder'   => 'Part name',
-	'template_part_created'            => 'Template part created.',
-	'template_part_assigned'           => 'Template part assigned.',
-	'template_part_cleared'            => 'Template part assignment cleared.',
-	'template_part_deleted'            => 'Template part deleted.',
+	'template_part_crud_created'       => 'Template part created.',
+	'template_part_crud_assigned'      => 'Template part assigned.',
+	'template_part_crud_cleared'       => 'Template part assignment cleared.',
+	'template_part_crud_deleted'       => 'Template part deleted.',
 
 	// Global Styles State
 	'global_styles_store'              => 'Global Styles Store',

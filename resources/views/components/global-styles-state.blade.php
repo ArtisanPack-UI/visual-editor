@@ -24,20 +24,23 @@
 			if ( ! Alpine.store( 'globalStyles' ) ) {
 				Alpine.store( 'globalStyles', {
 					globalStyles: {
-						palette: JSON.parse( JSON.stringify( {{ Js::from( $initialPalette ) }} ) ),
-						typography: JSON.parse( JSON.stringify( {{ Js::from( $initialTypography ) }} ) ),
-						spacing: JSON.parse( JSON.stringify( {{ Js::from( $initialSpacing ) }} ) ),
+						palette: {{ Js::from( $initialPalette ) }},
+						typography: {{ Js::from( $initialTypography ) }},
+						spacing: {{ Js::from( $initialSpacing ) }},
 					},
 					_lastCssVars: [],
 
 					_pushHistory() {},
 
+					{{-- Both markDirty and _dispatchChange emit the same event.
+					     Kept as separate methods for interface compatibility with
+					     the full editor store which distinguishes the two. --}}
 					markDirty() {
 						document.dispatchEvent( new CustomEvent( 've-store-dirty', { bubbles: true } ) );
 					},
 
 					_dispatchChange() {
-						document.dispatchEvent( new CustomEvent( 've-store-dirty', { bubbles: true } ) );
+						this.markDirty();
 					},
 
 					setPalette( palette ) {
@@ -140,8 +143,9 @@
 						}
 
 						{{-- Remove stale vars --}}
+						const newVarSet = new Set( newVars );
 						this._lastCssVars.forEach( varName => {
-							if ( ! newVars.includes( varName ) ) {
+							if ( ! newVarSet.has( varName ) ) {
 								root.style.removeProperty( varName );
 							}
 						} );

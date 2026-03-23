@@ -321,6 +321,15 @@
 					x-show="! editing || editing.index !== index || editing.isCustom"
 					class="flex items-center gap-3 rounded-lg border border-base-300 px-3 py-2 hover:bg-base-200/50 focus-within:bg-base-200/50 transition-colors group"
 				>
+					{{-- Override indicator --}}
+					<template x-if="overrideMode">
+						@include( 'visual-editor::components._override-indicator', [
+							'overriddenExpr' => 'isStepOverridden( index, false )',
+							'nameExpr'       => 'entry.name',
+							'resetExpr'      => 'resetStepToBase( index, false )',
+						] )
+					</template>
+
 					<div
 						class="h-4 rounded bg-primary/20 shrink-0"
 						x-bind:style="{ '--ve-preview-size': /^-?\d*\.?\d+(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)?$/.test( entry.value ) ? entry.value : '0px' }" style="width: calc( 8px + var(--ve-preview-size, 0px) )"
@@ -412,6 +421,15 @@
 						x-show="! editing || editing.index !== index || ! editing.isCustom"
 						class="flex items-center gap-3 rounded-lg border border-base-300 px-3 py-2 hover:bg-base-200/50 focus-within:bg-base-200/50 transition-colors group"
 					>
+						{{-- Override indicator --}}
+						<template x-if="overrideMode">
+							@include( 'visual-editor::components._override-indicator', [
+								'overriddenExpr' => 'isStepOverridden( index, true )',
+								'nameExpr'       => 'entry.name',
+								'resetExpr'      => 'resetStepToBase( index, true )',
+							] )
+						</template>
+
 						<div
 							class="h-4 rounded bg-accent/20 shrink-0"
 							x-bind:style="{ '--ve-preview-size': /^-?\d*\.?\d+(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)?$/.test( entry.value ) ? entry.value : '0px' }" style="width: calc( 8px + var(--ve-preview-size, 0px) )"

@@ -27,8 +27,10 @@
 		creating: null,
 		newPartName: '',
 
+		_onPartCreated: null,
+
 		init() {
-			Livewire.on( 've-template-part-created', ( data ) => {
+			this._onPartCreated = ( data ) => {
 				const payload = Array.isArray( data ) ? data[0] : data;
 				const area = payload.area;
 				const part = payload.part;
@@ -40,7 +42,15 @@
 				this.partsByArea[ area ].push( part );
 				this.assignments[ area ] = part.id;
 				this._dispatchChange();
-			} );
+			};
+
+			Livewire.on( 've-template-part-created', this._onPartCreated );
+		},
+
+		destroy() {
+			if ( this._onPartCreated ) {
+				Livewire.off( 've-template-part-created', this._onPartCreated );
+			}
 		},
 
 		getAssignedPartName( area ) {
@@ -52,7 +62,7 @@
 		},
 
 		assignPart( area, partId ) {
-			this.assignments[ area ] = partId ? parseInt( partId ) : null;
+			this.assignments[ area ] = partId ? parseInt( partId, 10 ) : null;
 			this._dispatchChange();
 		},
 
@@ -86,8 +96,12 @@
 			this.newPartName = '';
 		},
 
+		_getStore() {
+			return Alpine.store( 'editor' ) || Alpine.store( 'globalStyles' ) || null;
+		},
+
 		_dispatchChange() {
-			const store = Alpine.store( 'editor' );
+			const store = this._getStore();
 			if ( store ) {
 				store.markDirty();
 				store._dispatchChange();
@@ -115,12 +129,12 @@
 				<div class="flex items-center gap-2">
 					<select
 						class="select select-sm select-bordered flex-1"
-						:value="assignments[ area ] || ''"
+						:value="String( assignments[ area ] || '' )"
 						x-on:change="assignPart( area, $event.target.value )"
 					>
 						<option value="">{{ __( 'visual-editor::ve.template_part_select_placeholder' ) }}</option>
 						<template x-for="part in ( partsByArea[ area ] || [] )" :key="part.id">
-							<option :value="part.id" x-text="part.name" :selected="assignments[ area ] === part.id"></option>
+							<option :value="String( part.id )" x-text="part.name"></option>
 						</template>
 					</select>
 

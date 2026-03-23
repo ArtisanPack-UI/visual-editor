@@ -27,8 +27,10 @@
 	{{-- Override dot --}}
 	<span
 		class="w-2 h-2 rounded-full"
+		role="img"
 		:class="{{ $overriddenExpr }} ? 'bg-warning' : 'bg-success/40'"
 		:title="{{ $overriddenExpr }} ? '{{ __( 'visual-editor::ve.overridden' ) }}' : '{{ __( 'visual-editor::ve.inherited_from_global' ) }}'"
+		:aria-label="{{ $nameExpr }} + ': ' + ( {{ $overriddenExpr }} ? '{{ __( 'visual-editor::ve.overridden' ) }}' : '{{ __( 'visual-editor::ve.inherited_from_global' ) }}' )"
 	></span>
 
 	{{-- Reset button (only shown when overridden) --}}
