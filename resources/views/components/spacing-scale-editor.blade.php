@@ -68,6 +68,7 @@
 			const base = baseList.find( b => b.slug === step.slug );
 			if ( ! base ) return;
 			list[ index ] = { ...base };
+			this._dispatch();
 		},
 
 		init() {

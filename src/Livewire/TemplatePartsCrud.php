@@ -67,6 +67,10 @@ class TemplatePartsCrud extends Component
 			$attempts++;
 		}
 
+		if ( $manager->exists( $slug ) ) {
+			$slug = $originalSlug . '-' . uniqid();
+		}
+
 		$part = $manager->create( [
 			'name'      => $name,
 			'slug'      => $slug,
@@ -74,7 +78,7 @@ class TemplatePartsCrud extends Component
 			'content'   => [],
 			'status'    => 'active',
 			'is_custom' => true,
-			'user_id'   => auth()->id(),
+			'user_id'   => auth()->id() ?? null,
 		] );
 
 		$this->dispatch( 've-template-part-created', [
