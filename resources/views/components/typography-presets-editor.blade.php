@@ -12,8 +12,10 @@
  --}}
 
 @php
-	$initialData    = $typographyData;
-	$defaultsData   = $defaultData;
+	$initialData       = $typographyData;
+	$defaultsData      = $defaultData;
+	$initialBaseValues = $baseValues;
+	$hasOverrideMode   = null !== $baseValues;
 	$elementLabels  = [
 		'h1'         => __( 'visual-editor::ve.typography_h1' ),
 		'h2'         => __( 'visual-editor::ve.typography_h2' ),
@@ -58,6 +60,8 @@
 	x-data="{
 		fontFamilies: {{ Js::from( $initialData['fontFamilies'] ) }},
 		elements: {{ Js::from( $initialData['elements'] ) }},
+		baseValues: {{ Js::from( $initialBaseValues ) }},
+		overrideMode: {{ Js::from( $hasOverrideMode ) }},
 		editingElement: null,
 		activeSection: 'families',
 		showCss: false,
@@ -66,9 +70,36 @@
 		typeScaleRatio: 1.25,
 		elementLabels: {{ Js::from( $elementLabels ) }},
 
+		_getStore() {
+			return Alpine.store( 'editor' ) || Alpine.store( 'globalStyles' ) || null;
+		},
+
+		isFamilyOverridden( slot ) {
+			if ( ! this.overrideMode || ! this.baseValues?.fontFamilies ) return false;
+			return this.fontFamilies[ slot ] !== this.baseValues.fontFamilies[ slot ];
+		},
+
+		isElementOverridden( element ) {
+			if ( ! this.overrideMode || ! this.baseValues?.elements ) return false;
+			const base    = this.baseValues.elements[ element ];
+			const current = this.elements[ element ];
+			if ( ! base || ! current ) return true;
+			return JSON.stringify( base ) !== JSON.stringify( current );
+		},
+
+		resetFamilyToBase( slot ) {
+			if ( ! this.baseValues?.fontFamilies ) return;
+			this.fontFamilies[ slot ] = this.baseValues.fontFamilies[ slot ];
+		},
+
+		resetElementToBase( element ) {
+			if ( ! this.baseValues?.elements ) return;
+			this.elements[ element ] = JSON.parse( JSON.stringify( this.baseValues.elements[ element ] ) );
+		},
+
 		init() {
 			const syncToStore = () => {
-				const store = Alpine.store( 'editor' );
+				const store = this._getStore();
 				if ( ! store ) return;
 				store.globalStyles.typography = {
 					fontFamilies: JSON.parse( JSON.stringify( this.fontFamilies ) ),

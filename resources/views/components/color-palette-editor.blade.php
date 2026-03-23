@@ -12,13 +12,17 @@
  --}}
 
 @php
-	$initialEntries = $paletteEntries;
+	$initialEntries   = $paletteEntries;
+	$initialBaseValues = $baseValues;
+	$hasOverrideMode  = null !== $baseValues;
 @endphp
 
 <div
 	id="{{ $uuid }}"
 	x-data="{
 		entries: {{ Js::from( $initialEntries ) }},
+		baseValues: {{ Js::from( $initialBaseValues ) }},
+		overrideMode: {{ Js::from( $hasOverrideMode ) }},
 		editing: null,
 		editName: '',
 		editSlug: '',
@@ -32,10 +36,34 @@
 		addPickerOpen: false,
 		_savedPalette: null,
 
+		_getStore() {
+			return Alpine.store( 'editor' ) || Alpine.store( 'globalStyles' ) || null;
+		},
+
+		isOverridden( index ) {
+			if ( ! this.overrideMode || ! this.baseValues ) return false;
+			const entry = this.entries[ index ];
+			if ( ! entry ) return false;
+			const base = this.baseValues.find( b => b.slug === entry.slug );
+			if ( ! base ) return true;
+			return base.color !== entry.color || base.name !== entry.name;
+		},
+
+		resetToBase( index ) {
+			if ( ! this.overrideMode || ! this.baseValues ) return;
+			const entry = this.entries[ index ];
+			if ( ! entry ) return;
+			const base = this.baseValues.find( b => b.slug === entry.slug );
+			if ( ! base ) return;
+			this.entries[ index ] = { ...base };
+			this._commitToStore();
+			this._dispatch();
+		},
+
 		init() {
 			this.$watch( 'editColor', ( value ) => {
 				if ( null === this.editing ) return;
-				const store = Alpine.store( 'editor' );
+				const store = this._getStore();
 				if ( ! store ) return;
 				const color = this._normalizeHex( value );
 				if ( ! color ) return;
@@ -47,7 +75,7 @@
 		},
 
 		_commitToStore() {
-			const store = Alpine.store( 'editor' );
+			const store = this._getStore();
 			if ( ! store ) return;
 			store._pushHistory();
 			store.globalStyles.palette = JSON.parse( JSON.stringify( this.entries ) );
@@ -57,7 +85,8 @@
 		},
 
 		startEdit( index ) {
-			this._savedPalette = JSON.parse( JSON.stringify( Alpine.store( 'editor' )?.globalStyles?.palette || this.entries ) );
+			const store = this._getStore();
+			this._savedPalette = JSON.parse( JSON.stringify( store?.globalStyles?.palette || this.entries ) );
 			this.editing         = index
 			this.editPickerOpen  = false
 			this.editName  = this.entries[ index ].name
@@ -87,7 +116,7 @@
 			this.editing        = null
 			this.editPickerOpen = false
 			if ( this._savedPalette ) {
-				const store = Alpine.store( 'editor' );
+				const store = this._getStore();
 				if ( store ) {
 					store.globalStyles.palette = this._savedPalette;
 					store._syncGlobalCssVariables();
@@ -208,6 +237,16 @@
 					x-show="editing !== index"
 					class="flex items-center gap-3 rounded-lg border border-base-300 px-3 py-2 hover:bg-base-200/50 focus-within:bg-base-200/50 transition-colors group"
 				>
+					{{-- Override indicator --}}
+					<template x-if="overrideMode">
+						<span
+							class="w-2 h-2 rounded-full shrink-0"
+							:class="isOverridden( index ) ? 'bg-warning' : 'bg-success/40'"
+							:title="isOverridden( index ) ? '{{ __( 'visual-editor::ve.overridden' ) }}' : '{{ __( 'visual-editor::ve.inherited_from_global' ) }}'"
+							:aria-label="'{{ __( 'visual-editor::ve.override_indicator_label', [ 'name' => '\' + entry.name + \'', 'status' => '' ] ) }}'.replace( /\s*$/, '' ) + ( isOverridden( index ) ? '{{ __( 'visual-editor::ve.overridden' ) }}' : '{{ __( 'visual-editor::ve.inherited_from_global' ) }}' )"
+						></span>
+					</template>
+
 					<button
 						type="button"
 						class="h-8 w-8 rounded-full ring-1 ring-base-300 shrink-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
@@ -224,6 +263,22 @@
 						<span class="text-sm text-base-content truncate" x-text="entry.name"></span>
 						<span class="text-xs text-base-content/40 font-mono" x-text="entry.color"></span>
 					</button>
+
+					{{-- Reset to global button (override mode) --}}
+					<template x-if="overrideMode && isOverridden( index )">
+						<button
+							type="button"
+							x-on:click="resetToBase( index )"
+							class="text-base-content/30 hover:text-warning focus:text-warning transition-colors cursor-pointer shrink-0 focus:outline-none"
+							:aria-label="'{{ __( 'visual-editor::ve.reset_to_global' ) }}: ' + entry.name"
+							:title="'{{ __( 'visual-editor::ve.reset_to_global' ) }}'"
+						>
+							<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+							</svg>
+						</button>
+					</template>
+
 					<button
 						type="button"
 						x-on:click="removeColor( index )"

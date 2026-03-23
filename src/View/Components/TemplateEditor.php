@@ -205,24 +205,57 @@ class TemplateEditor extends Component
 	public Closure $iconRenderer;
 
 	/**
+	 * Global base style values for override indicators.
+	 *
+	 * When provided, the template style editors operate in override mode
+	 * showing inherited vs overridden values relative to these base values.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array{palette: array, typography: array, spacing: array}
+	 */
+	public array $globalBaseStyles;
+
+	/**
+	 * Current template part assignments keyed by area.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<string, int|null>
+	 */
+	public array $templatePartAssignments;
+
+	/**
+	 * Template metadata for the settings panel.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array{name: string, slug: string, type: string, contentType: string|null}
+	 */
+	public array $templateSettings;
+
+	/**
 	 * Create a new component instance.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string|null   $id                  Optional custom ID.
-	 * @param array<mixed>  $initialBlocks       Block data to populate the editor.
-	 * @param array<mixed>  $patterns            Pattern definitions for the pattern browser.
-	 * @param array<mixed>  $blockTransforms     Transform mappings between block types.
-	 * @param array<mixed>  $blockVariations     Variation definitions for blocks.
-	 * @param bool          $autosave            Enable autosave.
-	 * @param int           $autosaveInterval    Autosave interval in seconds.
-	 * @param bool          $showSidebar         Show sidebar by default.
-	 * @param string        $mode                Editor mode (visual/code).
-	 * @param Closure|null  $customIconRenderer  Optional custom icon renderer.
-	 * @param string        $featuredImageUrl    Optional featured image URL for the Cover block placeholder.
-	 * @param array<string, mixed> $initialMeta  Initial meta key-value pairs.
+	 * @param string|null   $id                       Optional custom ID.
+	 * @param array<mixed>  $initialBlocks            Block data to populate the editor.
+	 * @param array<mixed>  $patterns                 Pattern definitions for the pattern browser.
+	 * @param array<mixed>  $blockTransforms          Transform mappings between block types.
+	 * @param array<mixed>  $blockVariations          Variation definitions for blocks.
+	 * @param bool          $autosave                 Enable autosave.
+	 * @param int           $autosaveInterval         Autosave interval in seconds.
+	 * @param bool          $showSidebar              Show sidebar by default.
+	 * @param string        $mode                     Editor mode (visual/code).
+	 * @param Closure|null  $customIconRenderer       Optional custom icon renderer.
+	 * @param string        $featuredImageUrl         Optional featured image URL for the Cover block placeholder.
+	 * @param array<string, mixed> $initialMeta       Initial meta key-value pairs.
 	 * @param array<int, array<string, string>> $templates  Available templates for the switcher.
-	 * @param string        $currentTemplateSlug The currently active template slug.
+	 * @param string        $currentTemplateSlug      The currently active template slug.
+	 * @param array<string, array> $globalBaseStyles   Global base styles for override mode.
+	 * @param array<string, int|null> $templatePartAssignments  Current part assignments.
+	 * @param array<string, mixed> $templateSettings  Template metadata settings.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -239,6 +272,9 @@ class TemplateEditor extends Component
 		public array $initialMeta = [],
 		public array $templates = [],
 		public string $currentTemplateSlug = '',
+		array $globalBaseStyles = [],
+		array $templatePartAssignments = [],
+		array $templateSettings = [],
 	) {
 		$this->uuid = 've-tpl-editor-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
@@ -263,6 +299,20 @@ class TemplateEditor extends Component
 		$this->buildEditorShortcuts();
 		$this->buildPatternsWithPreviews();
 		$this->buildBlockTransforms( $registry );
+
+		// Resolve global base styles for the override indicators.
+		if ( empty( $globalBaseStyles ) ) {
+			$this->globalBaseStyles = [
+				'palette'    => app( 'visual-editor.color-palette' )->toStoreFormat(),
+				'typography' => app( 'visual-editor.typography-presets' )->toStoreFormat(),
+				'spacing'    => app( 'visual-editor.spacing-scale' )->toStoreFormat(),
+			];
+		} else {
+			$this->globalBaseStyles = $globalBaseStyles;
+		}
+
+		$this->templatePartAssignments = $templatePartAssignments;
+		$this->templateSettings        = $templateSettings;
 	}
 
 	/**

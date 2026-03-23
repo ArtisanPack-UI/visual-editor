@@ -1,0 +1,179 @@
+{{--
+ * Template Parts Manager Component
+ *
+ * Sidebar panel for managing template part assignments per area.
+ * Supports assigning existing parts via dropdown, creating new parts,
+ * and clearing assignments.
+ *
+ * @package    ArtisanPack_UI
+ * @subpackage VisualEditor\Views\Components
+ *
+ * @since      1.0.0
+ --}}
+
+@php
+	$initialAssignments = $assignments;
+	$initialPartsByArea = $partsByArea;
+	$initialAreaLabels  = $areaLabels;
+@endphp
+
+<div
+	id="{{ $uuid }}"
+	x-data="{
+		assignments: {{ Js::from( $initialAssignments ) }},
+		partsByArea: {{ Js::from( $initialPartsByArea ) }},
+		areaLabels: {{ Js::from( $initialAreaLabels ) }},
+		areas: [ 'header', 'footer', 'sidebar', 'custom' ],
+		creating: null,
+		newPartName: '',
+
+		getAssignedPartName( area ) {
+			const partId = this.assignments[ area ];
+			if ( ! partId ) return null;
+			const parts = this.partsByArea[ area ] || [];
+			const part  = parts.find( p => p.id === partId );
+			return part ? part.name : null;
+		},
+
+		assignPart( area, partId ) {
+			this.assignments[ area ] = partId ? parseInt( partId ) : null;
+			this._dispatchChange();
+		},
+
+		clearAssignment( area ) {
+			this.assignments[ area ] = null;
+			this._dispatchChange();
+		},
+
+		startCreate( area ) {
+			this.creating    = area;
+			this.newPartName = '';
+		},
+
+		cancelCreate() {
+			this.creating    = null;
+			this.newPartName = '';
+		},
+
+		confirmCreate() {
+			if ( ! this.creating || ! this.newPartName.trim() ) return;
+			const area = this.creating;
+			const name = this.newPartName.trim();
+
+			{{-- Dispatch event for Livewire to handle --}}
+			this.$dispatch( 've-template-part-create', {
+				area: area,
+				name: name,
+			} );
+
+			this.creating    = null;
+			this.newPartName = '';
+		},
+
+		_dispatchChange() {
+			const store = Alpine.store( 'editor' );
+			if ( store ) {
+				store.markDirty();
+				store._dispatchChange();
+			}
+
+			document.dispatchEvent( new CustomEvent( 've-template-parts-change', {
+				detail: { assignments: JSON.parse( JSON.stringify( this.assignments ) ) },
+				bubbles: true,
+			} ) );
+		},
+	}"
+	{{ $attributes->merge( [ 'class' => 'flex flex-col gap-4' ] ) }}
+>
+	<h3 class="text-sm font-semibold text-base-content">
+		{{ __( 'visual-editor::ve.template_parts_title' ) }}
+	</h3>
+
+	<template x-for="area in areas" :key="area">
+		<div class="flex flex-col gap-2 rounded-lg border border-base-300 p-3">
+			{{-- Area label --}}
+			<div class="text-xs font-medium text-base-content/60" x-text="areaLabels[ area ]"></div>
+
+			{{-- Current assignment or empty state --}}
+			<div x-show="creating !== area">
+				<div class="flex items-center gap-2">
+					<select
+						class="select select-sm select-bordered flex-1"
+						:value="assignments[ area ] || ''"
+						x-on:change="assignPart( area, $event.target.value )"
+					>
+						<option value="">{{ __( 'visual-editor::ve.template_part_select_placeholder' ) }}</option>
+						<template x-for="part in ( partsByArea[ area ] || [] )" :key="part.id">
+							<option :value="part.id" x-text="part.name" :selected="assignments[ area ] === part.id"></option>
+						</template>
+					</select>
+
+					{{-- Clear button --}}
+					<button
+						type="button"
+						x-show="assignments[ area ]"
+						x-on:click="clearAssignment( area )"
+						class="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-error"
+						:aria-label="'{{ __( 'visual-editor::ve.template_part_clear' ) }}'"
+					>
+						<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+						</svg>
+					</button>
+				</div>
+
+				{{-- Action buttons --}}
+				<div class="flex items-center gap-2 mt-2">
+					<button
+						type="button"
+						x-on:click="startCreate( area )"
+						class="btn btn-ghost btn-xs text-base-content/50 hover:text-base-content/80"
+					>
+						<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
+						</svg>
+						{{ __( 'visual-editor::ve.template_part_create_new' ) }}
+					</button>
+
+					<template x-if="assignments[ area ]">
+						<a
+							href="#"
+							class="btn btn-ghost btn-xs text-base-content/50 hover:text-base-content/80"
+							x-on:click.prevent="$dispatch( 've-template-part-edit', { area: area, partId: assignments[ area ] } )"
+						>
+							{{ __( 'visual-editor::ve.template_part_edit' ) }}
+						</a>
+					</template>
+				</div>
+			</div>
+
+			{{-- Create new part inline --}}
+			<div x-show="creating === area" x-cloak class="flex flex-col gap-2">
+				<input
+					type="text"
+					x-model="newPartName"
+					class="input input-sm input-bordered w-full"
+					placeholder="{{ __( 'visual-editor::ve.template_part_name_placeholder' ) }}"
+					x-on:keydown.enter.prevent="confirmCreate()"
+					x-on:keydown.escape.prevent="cancelCreate()"
+				/>
+				<div class="flex justify-end gap-2">
+					<button
+						type="button"
+						x-on:click="cancelCreate()"
+						class="btn btn-ghost btn-xs"
+					>
+						{{ __( 'visual-editor::ve.cancel' ) }}
+					</button>
+					<button
+						type="button"
+						x-on:click="confirmCreate()"
+						class="btn btn-primary btn-xs"
+					>
+						{{ __( 'visual-editor::ve.save' ) }}
+					</button>
+				</div>
+			</div>
+		</div>
+	</template>
+</div>

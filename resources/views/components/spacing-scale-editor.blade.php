@@ -18,7 +18,9 @@
 		[ 'key' => 'spacious', 'label' => __( 'visual-editor::ve.spacing_preset_spacious' ) ],
 	];
 
-	$presetScales = \ArtisanPackUI\VisualEditor\Services\SpacingScaleManager::PRESETS;
+	$presetScales      = \ArtisanPackUI\VisualEditor\Services\SpacingScaleManager::PRESETS;
+	$initialBaseValues = $baseValues;
+	$hasOverrideMode   = null !== $baseValues;
 @endphp
 
 <div
@@ -27,6 +29,8 @@
 		scale: {{ Js::from( $spacingData['scale'] ) }},
 		blockGap: {{ Js::from( $spacingData['blockGap'] ) }},
 		customSteps: {{ Js::from( $spacingData['customSteps'] ) }},
+		baseValues: {{ Js::from( $initialBaseValues ) }},
+		overrideMode: {{ Js::from( $hasOverrideMode ) }},
 		editing: null,
 		editName: '',
 		editSlug: '',
@@ -40,9 +44,35 @@
 		showCss: false,
 		presets: {{ Js::from( $presetScales ) }},
 
+		_getStore() {
+			return Alpine.store( 'editor' ) || Alpine.store( 'globalStyles' ) || null;
+		},
+
+		isStepOverridden( index, isCustom ) {
+			if ( ! this.overrideMode || ! this.baseValues ) return false;
+			const list = isCustom ? this.customSteps : this.scale;
+			const step = list[ index ];
+			if ( ! step ) return false;
+			const baseList = isCustom ? ( this.baseValues.customSteps || [] ) : ( this.baseValues.scale || [] );
+			const base = baseList.find( b => b.slug === step.slug );
+			if ( ! base ) return true;
+			return base.value !== step.value || base.name !== step.name;
+		},
+
+		resetStepToBase( index, isCustom ) {
+			if ( ! this.baseValues ) return;
+			const list = isCustom ? this.customSteps : this.scale;
+			const step = list[ index ];
+			if ( ! step ) return;
+			const baseList = isCustom ? ( this.baseValues.customSteps || [] ) : ( this.baseValues.scale || [] );
+			const base = baseList.find( b => b.slug === step.slug );
+			if ( ! base ) return;
+			list[ index ] = { ...base };
+		},
+
 		init() {
 			const syncToStore = () => {
-				const store = Alpine.store( 'editor' );
+				const store = this._getStore();
 				if ( ! store ) return;
 				store.globalStyles.spacing = {
 					scale: JSON.parse( JSON.stringify( this.scale ) ),

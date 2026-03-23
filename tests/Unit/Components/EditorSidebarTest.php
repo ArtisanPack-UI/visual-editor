@@ -104,3 +104,25 @@ test( 'editor sidebar renders document panel slot', function (): void {
 	' )
 		->assertSee( 'Document Settings Content' );
 } );
+
+test( 'editor sidebar accepts custom second tab label', function (): void {
+	$component = new EditorSidebar( secondTabLabel: 'Template' );
+
+	expect( $component->secondTabLabel )->toBe( 'Template' );
+} );
+
+test( 'editor sidebar defaults to null second tab label', function (): void {
+	$component = new EditorSidebar();
+
+	expect( $component->secondTabLabel )->toBeNull();
+} );
+
+test( 'editor sidebar renders custom second tab label', function (): void {
+	$this->blade( '<x-ve-editor-sidebar second-tab-label="Template" />' )
+		->assertSee( 'Template' );
+} );
+
+test( 'editor sidebar renders default document tab label when no custom label', function (): void {
+	$this->blade( '<x-ve-editor-sidebar />' )
+		->assertSee( 'Document' );
+} );

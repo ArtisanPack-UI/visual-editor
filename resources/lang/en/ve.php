@@ -1396,4 +1396,50 @@ return [
 	'pattern_listing_duplicated'         => 'Pattern duplicated successfully.',
 	'pattern_listing_deleted'            => 'Pattern deleted successfully.',
 	'pattern_listing_bulk_deleted'       => ':count pattern deleted.|:count patterns deleted.',
+
+	// Template Sidebar Tab
+	'template_tab'                     => 'Template',
+	'template_settings_title'          => 'Template Settings',
+	'template_name'                    => 'Name',
+	'template_slug'                    => 'Slug',
+	'template_type'                    => 'Type',
+	'template_content_type'            => 'Content Type',
+	'template_content_type_any'        => 'Any',
+	'template_type_page'               => 'Page',
+	'template_type_archive'            => 'Archive',
+	'template_type_single'             => 'Single',
+	'template_type_search'             => 'Search',
+	'template_type_404'                => '404',
+	'template_type_custom'             => 'Custom',
+
+	// Template Style Overrides
+	'template_styles_title'            => 'Template Styles',
+	'color_overrides'                  => 'Color Overrides',
+	'typography_overrides'             => 'Typography Overrides',
+	'spacing_overrides'                => 'Spacing Overrides',
+	'inherited_from_global'            => 'Inherited from global',
+	'overridden'                       => 'Overridden',
+	'reset_to_global'                  => 'Reset to global',
+	'override_indicator_label'         => ':name is :status',
+
+	// Template Parts CRUD
+	'template_parts_title'             => 'Template Parts',
+	'template_part_area_header'        => 'Header',
+	'template_part_area_footer'        => 'Footer',
+	'template_part_area_sidebar'       => 'Sidebar',
+	'template_part_area_custom'        => 'Custom',
+	'template_part_assign'             => 'Assign Part',
+	'template_part_create_new'         => 'Create New Part',
+	'template_part_edit'               => 'Edit Part',
+	'template_part_clear'              => 'Clear Assignment',
+	'template_part_none_assigned'      => 'None assigned',
+	'template_part_select_placeholder' => 'Select a part...',
+	'template_part_name_placeholder'   => 'Part name',
+	'template_part_created'            => 'Template part created.',
+	'template_part_assigned'           => 'Template part assigned.',
+	'template_part_cleared'            => 'Template part assignment cleared.',
+	'template_part_deleted'            => 'Template part deleted.',
+
+	// Global Styles State
+	'global_styles_store'              => 'Global Styles Store',
 ];

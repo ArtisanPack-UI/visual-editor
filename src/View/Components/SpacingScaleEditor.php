@@ -62,16 +62,31 @@ class SpacingScaleEditor extends Component
 	public array $defaultData;
 
 	/**
+	 * Base spacing values for override mode.
+	 *
+	 * When set, the editor operates in override mode where values
+	 * matching the base are shown as inherited and values differing
+	 * are shown as overridden.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array{scale: array<int, array{name: string, slug: string, value: string}>, blockGap: string, customSteps: array<int, array{name: string, slug: string, value: string}>}|null
+	 */
+	public ?array $baseValues;
+
+	/**
 	 * Create a new component instance.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string|null $id      Optional custom ID.
-	 * @param array|null  $spacing Optional spacing data (defaults to manager data).
+	 * @param string|null $id         Optional custom ID.
+	 * @param array|null  $spacing    Optional spacing data (defaults to manager data).
+	 * @param array|null  $baseValues Optional base spacing for override mode.
 	 */
 	public function __construct(
 		public ?string $id = null,
 		?array $spacing = null,
+		?array $baseValues = null,
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
@@ -86,6 +101,7 @@ class SpacingScaleEditor extends Component
 		}
 
 		$this->spacingData = $manager->toStoreFormat();
+		$this->baseValues  = $baseValues;
 	}
 
 	/**

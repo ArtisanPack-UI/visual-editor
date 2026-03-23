@@ -163,6 +163,8 @@ class VisualEditorServiceProvider extends ServiceProvider
 		'typography-presets-editor'   => Components\TypographyPresetsEditor::class,
 		'spacing-scale-editor'        => Components\SpacingScaleEditor::class,
 		'style-source-indicator'      => Components\StyleSourceIndicator::class,
+		'global-styles-state'         => Components\GlobalStylesState::class,
+		'template-parts-manager'      => Components\TemplatePartsManager::class,
 
 		// Phase 9: Editor Assembly
 		'icon'   => Components\Icon::class,
@@ -562,6 +564,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Livewire::component( 'site-editor.template-listing-page', TemplateListingPage::class );
 		Livewire::component( 'site-editor.template-part-listing-page', TemplatePartListingPage::class );
 		Livewire::component( 'site-editor.pattern-listing-page', PatternListingPage::class );
+		Livewire::component( 'template-parts-crud', \ArtisanPackUI\VisualEditor\Livewire\TemplatePartsCrud::class );
 	}
 
 	/**

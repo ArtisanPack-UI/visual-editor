@@ -81,7 +81,7 @@
 				:tabindex="'document' === activeTab ? 0 : -1"
 				aria-controls="{{ $uuid }}-document-panel"
 			>
-				{{ __( 'visual-editor::ve.document_tab' ) }}
+				{{ $secondTabLabel ?? __( 'visual-editor::ve.document_tab' ) }}
 			</button>
 		</div>
 	@endif
