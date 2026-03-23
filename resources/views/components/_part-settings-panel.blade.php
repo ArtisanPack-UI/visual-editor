@@ -31,7 +31,9 @@
 			store.partSettings[ field ] = value;
 
 			if ( 'name' === field && this.autoSlug ) {
-				const slug = value.toLowerCase()
+				const slug = value.normalize( 'NFD' )
+					.replace( /[\u0300-\u036f]/g, '' )
+					.toLowerCase()
 					.replace( /[^a-z0-9\s-]/g, '' )
 					.replace( /\s+/g, '-' )
 					.replace( /-+/g, '-' )

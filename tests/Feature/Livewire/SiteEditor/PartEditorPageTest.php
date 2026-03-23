@@ -68,7 +68,7 @@ function createEditorTestPart( array $overrides = [] ): TemplatePart
 	], $overrides ) );
 }
 
-test( 'part editor page mounts in create mode', function (): void {
+test( 'part editor page mounts in create mode with default settings', function (): void {
 	$component = new PartEditorPage();
 	$component->mount( null );
 
@@ -122,17 +122,6 @@ test( 'part editor page loads part settings from part', function (): void {
 	expect( $component->partSettings['slug'] )->toBe( 'site-footer' );
 	expect( $component->partSettings['area'] )->toBe( 'footer' );
 	expect( $component->partSettings['description'] )->toBe( 'Footer description' );
-	expect( $component->partSettings['status'] )->toBe( 'draft' );
-} );
-
-test( 'part editor page sets default settings in create mode', function (): void {
-	$component = new PartEditorPage();
-	$component->mount( null );
-
-	expect( $component->partSettings['name'] )->toBe( '' );
-	expect( $component->partSettings['slug'] )->toBe( '' );
-	expect( $component->partSettings['area'] )->toBe( 'custom' );
-	expect( $component->partSettings['description'] )->toBe( '' );
 	expect( $component->partSettings['status'] )->toBe( 'draft' );
 } );
 

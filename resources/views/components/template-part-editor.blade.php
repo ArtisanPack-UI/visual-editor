@@ -55,10 +55,16 @@
 <div
 	x-data="{
 		init() {
-			const store = Alpine.store( 'editor' );
-			if ( store ) {
-				store.partSettings = {{ Js::from( $partSettings ) }};
-			}
+			const settings = {{ Js::from( $partSettings ) }};
+			const assign = () => {
+				const store = Alpine.store( 'editor' );
+				if ( store ) {
+					store.partSettings = settings;
+				} else {
+					this.$nextTick( () => assign() );
+				}
+			};
+			assign();
 		},
 	}"
 	class="hidden"

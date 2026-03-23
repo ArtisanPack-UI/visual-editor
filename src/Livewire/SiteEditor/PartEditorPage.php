@@ -189,20 +189,21 @@ class PartEditorPage extends Component
 			$existing = TemplatePart::where( 'slug', $data['slug'] )->first();
 
 			if ( null !== $existing ) {
-				// DB record exists — update it instead of creating.
-				$existing->update( $data );
-				$this->part = $existing;
+				// DB record exists — update via manager for hooks and revisions.
+				unset( $data['slug'] );
+				$this->part = $manager->update( $existing, $data, auth()->id() );
 			} else {
 				// Create directly via Eloquent to bypass the manager's
 				// slug-exists check which rejects slugs that match
 				// in-memory registered parts. The DB record intentionally
-				// overrides the registered part.
+				// overrides the registered part. Fire hook manually.
 				$this->part = TemplatePart::create( $data );
+				veDoAction( 'ap.visualEditor.templatePartCreated', $this->part );
 			}
 
 			$this->isCreateMode = false;
 
-			$this->dispatch( 've-part-editor-saved', partId: $this->part->id, slug: $this->part->slug, created: true );
+			$this->dispatch( 've-part-editor-saved', partId: $this->part->id, slug: $this->part->slug, created: null === $existing );
 		} else {
 			// Only include slug in the update if it actually changed.
 			// TemplatePartManager::update() rejects slug changes that

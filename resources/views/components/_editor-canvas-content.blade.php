@@ -941,9 +941,10 @@
 									const block   = store.getBlock( blockId );
 									if ( block && ( 'heading' === block.type || 'paragraph' === block.type ) ) {
 										store.updateBlock( blockId, { text: e.target.innerHTML } );
-									} else if ( block && 'quote' === block.type && ! e.target.classList.contains( 've-quote-citation' ) ) {
-										store.updateBlock( blockId, { text: e.target.innerHTML } );
 									}
+									// Quote text is not synced here — the quote renderer
+									// rebuilds from innerBlocks, not attributes.text.
+									// Citation sync is handled separately below.
 								}
 
 								// Sync inner block text to store on blur.
