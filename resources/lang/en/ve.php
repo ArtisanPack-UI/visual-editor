@@ -1462,4 +1462,42 @@ return [
 	'part_editor_save'                    => 'Save',
 	'part_editor_saving'                  => 'Saving…',
 	'part_editor_locked_message'          => 'This template part is locked and cannot be edited.',
+
+	// Pattern Editor
+	'pattern_editor_tab'                     => 'Pattern',
+	'pattern_editor_settings_title'          => 'Pattern Settings',
+	'pattern_editor_name'                    => 'Name',
+	'pattern_editor_slug'                    => 'Slug',
+	'pattern_editor_category'                => 'Category',
+	'pattern_editor_category_none'           => 'Uncategorized',
+	'pattern_editor_description'             => 'Description',
+	'pattern_editor_description_placeholder' => 'Describe what this pattern is for...',
+	'pattern_editor_keywords'                => 'Keywords',
+	'pattern_editor_keywords_placeholder'    => 'hero, banner, signup...',
+	'pattern_editor_keywords_hint'           => 'Comma-separated tags to help find this pattern.',
+	'pattern_editor_status'                  => 'Status',
+	'pattern_editor_status_active'           => 'Active',
+	'pattern_editor_status_draft'            => 'Draft',
+	'pattern_editor_sync_mode'               => 'Sync Mode',
+	'pattern_editor_synced'                  => 'Synced',
+	'pattern_editor_standard'                => 'Standard',
+	'pattern_editor_synced_hint'             => 'Changes to this pattern will update everywhere it is used.',
+	'pattern_editor_standard_hint'           => 'Each use of this pattern is an independent copy.',
+	'pattern_editor_metadata'                => 'Metadata',
+	'pattern_editor_created_by'              => 'Created by',
+	'pattern_editor_last_modified'           => 'Last modified',
+	'pattern_editor_untitled'                => 'Untitled Pattern',
+	'pattern_editor_back'                    => 'Patterns',
+	'pattern_editor_save'                    => 'Save',
+	'pattern_editor_saving'                  => 'Saving…',
+
+	// Pattern Categories (supplements existing keys in Pattern Browser section)
+	'pattern_category_media'           => 'Media',
+	'pattern_category_layout'          => 'Layout',
+	'pattern_category_call_to_action'  => 'Call to Action',
+
+	// Pattern Listing (synced column)
+	'pattern_listing_column_sync'      => 'Type',
+	'pattern_listing_synced'           => 'Synced',
+	'pattern_listing_standard'         => 'Standard',
 ];

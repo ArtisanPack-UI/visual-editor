@@ -54,4 +54,12 @@ Route::prefix( $prefix )
 		Route::get( '/patterns', \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternListingPage::class )
 			->middleware( veGateMiddleware( $gates['patterns'] ?? '' ) )
 			->name( 'visual-editor.patterns' );
+
+		Route::get( '/patterns/create', \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternEditorPage::class )
+			->middleware( veGateMiddleware( $gates['patterns'] ?? '' ) )
+			->name( 'visual-editor.patterns.create' );
+
+		Route::get( '/patterns/{slug}/edit', \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternEditorPage::class )
+			->middleware( veGateMiddleware( $gates['patterns'] ?? '' ) )
+			->name( 'visual-editor.patterns.edit' );
 	} );

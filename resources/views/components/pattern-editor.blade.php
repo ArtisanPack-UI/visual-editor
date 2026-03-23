@@ -1,9 +1,10 @@
 {{--
- * Template Part Editor Component
+ * Pattern Editor Component
  *
- * A full block editing experience for template parts. Mirrors the Template
- * Editor layout with part-specific features: a Part tab in the right
- * sidebar with name, slug, area, description, and status fields.
+ * A full block editing experience for patterns. Mirrors the Template
+ * Part Editor layout with pattern-specific features: a Pattern tab in
+ * the right sidebar with name, slug, category, description, keywords,
+ * status, and synced/standard toggle.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Views\Components
@@ -50,18 +51,20 @@
 	:initial-meta="$initialMeta"
 />
 
-{{-- Inject part settings into editor store --}}
-@if ( ! empty( $partSettings ) )
+{{-- Inject pattern settings into editor store --}}
+@if ( ! empty( $patternSettings ) )
 <div
 	x-data="{
 		init() {
-			const settings = {{ Js::from( $partSettings ) }};
+			const settings = {{ Js::from( $patternSettings ) }};
+			let attempts = 0;
+			const maxAttempts = 50;
 			const assign = () => {
 				const store = Alpine.store( 'editor' );
 				if ( store ) {
-					store.partSettings = settings;
-				} else {
-					this.$nextTick( () => assign() );
+					store.patternSettings = settings;
+				} else if ( ++attempts < maxAttempts ) {
+					setTimeout( assign, 10 );
 				}
 			};
 			assign();
@@ -91,14 +94,18 @@
 			<x-ve-top-toolbar>
 				<x-slot:center>
 					<a
-						href="{{ route( 'visual-editor.template-parts' ) }}"
+						href="{{ route( 'visual-editor.patterns' ) }}"
 						class="inline-flex items-center gap-1 text-sm text-base-content/60 hover:text-primary transition-colors"
 					>
 						<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
-						{{ __( 'visual-editor::ve.part_editor_back' ) }}
+						{{ __( 'visual-editor::ve.pattern_editor_back' ) }}
 					</a>
 					<span class="mx-1.5 text-base-content/30">/</span>
-					<span class="text-sm font-medium text-base-content" x-data x-text="Alpine.store( 'editor' )?.partSettings?.name || '{{ __( 'visual-editor::ve.part_editor_untitled' ) }}'"></span>
+					<span class="text-sm font-medium text-base-content" x-data x-text="Alpine.store( 'editor' )?.patternSettings?.name || '{{ __( 'visual-editor::ve.pattern_editor_untitled' ) }}'"></span>
+					{{-- Synced badge --}}
+					<template x-if="Alpine.store( 'editor' )?.patternSettings?.isSynced">
+						<span class="badge badge-xs badge-primary ml-1.5">{{ __( 'visual-editor::ve.pattern_editor_synced' ) }}</span>
+					</template>
 					{{ $toolbarCenter ?? '' }}
 				</x-slot:center>
 			</x-ve-top-toolbar>
@@ -296,12 +303,12 @@
 		</x-slot:canvas>
 
 		{{-- ============================================================ --}}
-		{{-- RIGHT SIDEBAR (Block + Part tabs) --}}
+		{{-- RIGHT SIDEBAR (Block + Pattern tabs) --}}
 		{{-- ============================================================ --}}
 		<x-slot:sidebar>
 			<x-ve-editor-sidebar
 				:show-tabs="true"
-				:second-tab-label="__( 'visual-editor::ve.part_editor_tab' )"
+				:second-tab-label="__( 'visual-editor::ve.pattern_editor_tab' )"
 			>
 				<x-slot:settingsPanel>
 					@include( 'visual-editor::components._editor-inspector-settings' )
@@ -313,8 +320,8 @@
 
 				<x-slot:documentPanel>
 					<div class="flex flex-col gap-6 p-2">
-						{{-- Part Settings --}}
-						@include( 'visual-editor::components._part-settings-panel' )
+						{{-- Pattern Settings --}}
+						@include( 'visual-editor::components._pattern-settings-panel' )
 
 						{{ $documentPanel ?? '' }}
 					</div>
@@ -329,5 +336,5 @@
 </div>
 
 @if ( function_exists( 'doAction' ) )
-	@action('ap.visualEditor.templatePartEditor.rendered')
+	@action('ap.visualEditor.patternEditor.rendered')
 @endif
