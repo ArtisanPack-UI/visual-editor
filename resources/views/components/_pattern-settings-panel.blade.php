@@ -22,10 +22,40 @@
 
 <div
 	x-data="{
-		autoSlug: true,
+		autoSlug: null,
 
 		get settings() {
 			return Alpine.store( 'editor' )?.patternSettings || {};
+		},
+
+		init() {
+			this.$nextTick( () => {
+				const s = this.settings;
+				if ( null === this.autoSlug ) {
+					if ( ! s.slug || ! s.name ) {
+						this.autoSlug = true;
+					} else {
+						const computed = s.name.normalize( 'NFD' )
+							.replace( /[\u0300-\u036f]/g, '' )
+							.toLowerCase()
+							.replace( /[^a-z0-9\s-]/g, '' )
+							.replace( /\s+/g, '-' )
+							.replace( /-+/g, '-' )
+							.replace( /^-|-$/g, '' );
+						this.autoSlug = s.slug === computed;
+					}
+				}
+			} );
+		},
+
+		slugify( value ) {
+			return value.normalize( 'NFD' )
+				.replace( /[\u0300-\u036f]/g, '' )
+				.toLowerCase()
+				.replace( /[^a-z0-9\s-]/g, '' )
+				.replace( /\s+/g, '-' )
+				.replace( /-+/g, '-' )
+				.replace( /^-|-$/g, '' );
 		},
 
 		update( field, value ) {
@@ -34,14 +64,7 @@
 			store.patternSettings[ field ] = value;
 
 			if ( 'name' === field && this.autoSlug ) {
-				const slug = value.normalize( 'NFD' )
-					.replace( /[\u0300-\u036f]/g, '' )
-					.toLowerCase()
-					.replace( /[^a-z0-9\s-]/g, '' )
-					.replace( /\s+/g, '-' )
-					.replace( /-+/g, '-' )
-					.replace( /^-|-$/g, '' );
-				store.patternSettings.slug = slug;
+				store.patternSettings.slug = this.slugify( value );
 			}
 
 			store.markDirty();
