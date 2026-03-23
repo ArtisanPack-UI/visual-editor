@@ -77,13 +77,17 @@ class TemplatePartSiteEditorPolicy
 	 */
 	public function update( Authenticatable $user, TemplatePart $templatePart ): bool
 	{
+		$permission = veApplyFilters( 've.template-part.update', 'visual-editor.manage-parts' );
+
+		if ( ! $user->can( $permission ) ) {
+			return false;
+		}
+
 		if ( $templatePart->is_locked ) {
 			return $user->can( 'visual-editor.lock-content' );
 		}
 
-		$permission = veApplyFilters( 've.template-part.update', 'visual-editor.manage-parts' );
-
-		return $user->can( $permission );
+		return true;
 	}
 
 	/**

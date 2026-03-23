@@ -134,6 +134,25 @@ test( 'update on locked template denied without lock-content permission', functi
 	expect( $policy->update( $user, $template ) )->toBeFalse();
 } );
 
+test( 'update on locked template denied with lock-content but without manage-templates', function (): void {
+	$user     = createPolicyTestUser( [
+		'visual-editor.manage-templates' => false,
+		'visual-editor.lock-content'     => true,
+	] );
+	$policy   = new TemplateSiteEditorPolicy();
+	$template = Template::create( [
+		'name'      => 'Locked Template',
+		'slug'      => 'test-locked-no-manage-' . Illuminate\Support\Str::random( 6 ),
+		'type'      => 'page',
+		'content'   => [],
+		'status'    => 'active',
+		'is_custom' => true,
+		'is_locked' => true,
+	] );
+
+	expect( $policy->update( $user, $template ) )->toBeFalse();
+} );
+
 test( 'delete allows user with manage-templates permission on unlocked template', function (): void {
 	$user     = createPolicyTestUser( [ 'visual-editor.manage-templates' => true ] );
 	$policy   = new TemplateSiteEditorPolicy();

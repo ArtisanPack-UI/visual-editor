@@ -77,13 +77,17 @@ class TemplateSiteEditorPolicy
 	 */
 	public function update( Authenticatable $user, Template $template ): bool
 	{
+		$permission = veApplyFilters( 've.template.update', 'visual-editor.manage-templates' );
+
+		if ( ! $user->can( $permission ) ) {
+			return false;
+		}
+
 		if ( $template->is_locked ) {
 			return $user->can( 'visual-editor.lock-content' );
 		}
 
-		$permission = veApplyFilters( 've.template.update', 'visual-editor.manage-templates' );
-
-		return $user->can( $permission );
+		return true;
 	}
 
 	/**

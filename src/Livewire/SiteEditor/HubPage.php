@@ -49,7 +49,9 @@ class HubPage extends Component
 	 */
 	public function mount(): void
 	{
-		$permission = (string) config( 'artisanpack.visual-editor.site_editor.permission', 'visual-editor.access-site-editor' );
+		$gates      = (array) config( 'artisanpack.visual-editor.site_editor.gates', [] );
+		$permission = $gates['access']
+			?? (string) config( 'artisanpack.visual-editor.site_editor.permission', 'visual-editor.access-site-editor' );
 
 		if ( '' !== $permission && Gate::has( $permission ) ) {
 			$this->authorize( $permission );
@@ -133,8 +135,15 @@ class HubPage extends Component
 	 * Filter hub cards by the current user's permissions.
 	 *
 	 * Cards without a permission key or with a null permission are always shown.
-	 * Cards with a permission are only shown if the gate is not defined
-	 * (graceful degradation) or if the user passes the gate check.
+	 * Cards with a permission are only shown if the user passes the gate check.
+	 *
+	 * When a gate is not explicitly registered (Gate::has() returns false),
+	 * the card is shown for graceful degradation — this allows the hub to
+	 * remain fully functional when no permission system is installed.
+	 *
+	 * Note: packages that use Gate::before() (e.g. Spatie Permission) should
+	 * also register gates via Gate::define() or use the `ve.hub.cards` filter
+	 * hook to customize card visibility.
 	 *
 	 * @since 1.0.0
 	 *

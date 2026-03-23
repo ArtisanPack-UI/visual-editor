@@ -66,14 +66,14 @@ if ( ! function_exists( 'veGateMiddleware' ) ) {
 	/**
 	 * Build a capability middleware array for a route.
 	 *
-	 * Returns `['can:{ability}']` when an ability is configured.
+	 * Returns `['ve.gate:{ability}']` when an ability is configured.
 	 * Returns an empty array when no ability is set, allowing the
 	 * route to remain accessible with just the base middleware.
 	 *
-	 * Graceful degradation: the `can` middleware is always applied,
-	 * but the gate must be registered (e.g. via cms-framework) for
-	 * the check to take effect. When no gate is registered, the
-	 * middleware falls back to Laravel's default Gate behavior.
+	 * The `ve.gate` middleware (CheckGateIfDefined) only enforces
+	 * the authorization check when the gate has been registered.
+	 * When no gate is registered (e.g. cms-framework not installed),
+	 * the request passes through for graceful degradation.
 	 *
 	 * @since 1.0.0
 	 *

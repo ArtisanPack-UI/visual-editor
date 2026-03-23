@@ -11,7 +11,6 @@
 
 declare( strict_types=1 );
 
-use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 
 $prefix     = (string) config( 'artisanpack.visual-editor.site_editor.route_prefix', 'site-editor' );
