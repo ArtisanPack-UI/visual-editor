@@ -62,6 +62,35 @@ if ( ! function_exists( 'veApplyFilters' ) ) {
 	}
 }
 
+if ( ! function_exists( 'veGateMiddleware' ) ) {
+	/**
+	 * Build a capability middleware array for a route.
+	 *
+	 * Returns `['can:{ability}']` when an ability is configured.
+	 * Returns an empty array when no ability is set, allowing the
+	 * route to remain accessible with just the base middleware.
+	 *
+	 * Graceful degradation: the `can` middleware is always applied,
+	 * but the gate must be registered (e.g. via cms-framework) for
+	 * the check to take effect. When no gate is registered, the
+	 * middleware falls back to Laravel's default Gate behavior.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $ability The gate ability to check.
+	 *
+	 * @return array<int, string>
+	 */
+	function veGateMiddleware( string $ability ): array
+	{
+		if ( '' === $ability ) {
+			return [];
+		}
+
+		return [ 've.gate:' . $ability ];
+	}
+}
+
 if ( ! function_exists( 'visualEditor' ) ) {
 	/**
 	 * Get the Visual Editor instance.
