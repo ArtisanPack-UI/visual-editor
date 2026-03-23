@@ -60,10 +60,11 @@
 
 	{{-- Pattern Name --}}
 	<div class="flex flex-col gap-1">
-		<label class="text-xs font-medium text-base-content/60">
+		<label for="ve-pattern-name" class="text-xs font-medium text-base-content/60">
 			{{ __( 'visual-editor::ve.pattern_editor_name' ) }}
 		</label>
 		<input
+			id="ve-pattern-name"
 			type="text"
 			class="input input-sm input-bordered w-full"
 			:value="settings.name || ''"
@@ -73,10 +74,11 @@
 
 	{{-- Pattern Slug --}}
 	<div class="flex flex-col gap-1">
-		<label class="text-xs font-medium text-base-content/60">
+		<label for="ve-pattern-slug" class="text-xs font-medium text-base-content/60">
 			{{ __( 'visual-editor::ve.pattern_editor_slug' ) }}
 		</label>
 		<input
+			id="ve-pattern-slug"
 			type="text"
 			class="input input-sm input-bordered w-full font-mono text-xs"
 			:value="settings.slug || ''"
@@ -86,7 +88,7 @@
 
 	{{-- Category --}}
 	<div class="flex flex-col gap-1">
-		<label class="text-xs font-medium text-base-content/60">
+		<label for="ve-pattern-category" class="text-xs font-medium text-base-content/60">
 			{{ __( 'visual-editor::ve.pattern_editor_category' ) }}
 		</label>
 		@php
@@ -102,6 +104,7 @@
 			] );
 		@endphp
 		<select
+			id="ve-pattern-category"
 			class="select select-sm select-bordered w-full"
 			x-model="settings.category"
 			x-on:change="update( 'category', settings.category )"
@@ -115,10 +118,11 @@
 
 	{{-- Description --}}
 	<div class="flex flex-col gap-1">
-		<label class="text-xs font-medium text-base-content/60">
+		<label for="ve-pattern-description" class="text-xs font-medium text-base-content/60">
 			{{ __( 'visual-editor::ve.pattern_editor_description' ) }}
 		</label>
 		<textarea
+			id="ve-pattern-description"
 			class="textarea textarea-sm textarea-bordered w-full"
 			rows="3"
 			x-model.lazy="settings.description"
@@ -129,10 +133,11 @@
 
 	{{-- Keywords --}}
 	<div class="flex flex-col gap-1">
-		<label class="text-xs font-medium text-base-content/60">
+		<label for="ve-pattern-keywords" class="text-xs font-medium text-base-content/60">
 			{{ __( 'visual-editor::ve.pattern_editor_keywords' ) }}
 		</label>
 		<input
+			id="ve-pattern-keywords"
 			type="text"
 			class="input input-sm input-bordered w-full"
 			:value="settings.keywords || ''"
@@ -146,10 +151,11 @@
 
 	{{-- Status --}}
 	<div class="flex flex-col gap-1">
-		<label class="text-xs font-medium text-base-content/60">
+		<label for="ve-pattern-status" class="text-xs font-medium text-base-content/60">
 			{{ __( 'visual-editor::ve.pattern_editor_status' ) }}
 		</label>
 		<select
+			id="ve-pattern-status"
 			class="select select-sm select-bordered w-full"
 			x-model="settings.status"
 			x-on:change="update( 'status', settings.status )"
@@ -161,11 +167,12 @@
 
 	{{-- Synced / Standard Toggle --}}
 	<div class="flex flex-col gap-1">
-		<label class="text-xs font-medium text-base-content/60">
+		<label for="ve-pattern-synced" class="text-xs font-medium text-base-content/60">
 			{{ __( 'visual-editor::ve.pattern_editor_sync_mode' ) }}
 		</label>
 		<div class="flex items-center gap-3">
 			<input
+				id="ve-pattern-synced"
 				type="checkbox"
 				class="toggle toggle-sm toggle-primary"
 				:checked="settings.isSynced"

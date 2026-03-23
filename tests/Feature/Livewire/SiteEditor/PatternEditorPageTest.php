@@ -168,6 +168,7 @@ test( 'pattern editor page can save a new pattern', function (): void {
 	expect( $pattern->keywords )->toBe( 'hero, banner' );
 	expect( $pattern->blocks )->toHaveCount( 1 );
 	expect( $pattern->is_synced )->toBeFalse();
+	expect( $pattern->user_id )->toBe( $user->id );
 } );
 
 test( 'pattern editor page can save a synced pattern', function (): void {
