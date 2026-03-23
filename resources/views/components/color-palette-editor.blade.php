@@ -54,8 +54,11 @@
 			const entry = this.entries[ index ];
 			if ( ! entry ) return;
 			const base = this.baseValues.find( b => b.slug === entry.slug );
-			if ( ! base ) return;
-			this.entries[ index ] = { ...base };
+			if ( base ) {
+				this.entries[ index ] = { ...base };
+			} else {
+				this.entries.splice( index, 1 );
+			}
 			this._commitToStore();
 			this._dispatch();
 		},

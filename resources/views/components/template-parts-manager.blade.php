@@ -24,6 +24,7 @@
 		partsByArea: {{ Js::from( $initialPartsByArea ) }},
 		areaLabels: {{ Js::from( $initialAreaLabels ) }},
 		areas: [ 'header', 'footer', 'sidebar', 'custom' ],
+		clearLabel: {{ Js::from( __( 'visual-editor::ve.template_part_clear' ) ) }},
 		creating: null,
 		newPartName: '',
 
@@ -104,7 +105,7 @@
 			const store = this._getStore();
 			if ( store ) {
 				store.markDirty();
-				store._dispatchChange();
+				if ( typeof store._dispatchChange === 'function' ) store._dispatchChange();
 			}
 
 			document.dispatchEvent( new CustomEvent( 've-template-parts-change', {
@@ -144,7 +145,7 @@
 						x-show="assignments[ area ]"
 						x-on:click="clearAssignment( area )"
 						class="btn btn-ghost btn-xs btn-square text-base-content/40 hover:text-error"
-						:aria-label="'{{ __( 'visual-editor::ve.template_part_clear' ) }}'"
+						:aria-label="clearLabel"
 					>
 						<svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

@@ -92,7 +92,13 @@ class TemplatePartsCrud extends Component
 	}
 
 	/**
-	 * Delete a template part assignment (not the part itself).
+	 * Confirm a template part assignment was cleared.
+	 *
+	 * Assignments live in the Alpine editor store (client-side) and are
+	 * persisted to the Template model's content_area_settings column
+	 * when the template is saved. This method only dispatches a
+	 * confirmation event back to the frontend — no DB write is needed
+	 * because the assignment hasn't been persisted yet.
 	 *
 	 * @since 1.0.0
 	 *

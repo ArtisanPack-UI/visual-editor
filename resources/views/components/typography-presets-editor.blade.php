@@ -281,7 +281,7 @@
 						<template x-if="overrideMode">
 							@include( 'visual-editor::components._override-indicator', [
 								'overriddenExpr' => "isFamilyOverridden( '" . $slot . "' )",
-								'nameExpr'       => "'" . $label . "'",
+								'nameExpr'       => Js::from( $label ),
 								'resetExpr'      => "resetFamilyToBase( '" . $slot . "' )",
 							] )
 						</template>
@@ -324,7 +324,7 @@
 							<template x-if="overrideMode">
 								@include( 'visual-editor::components._override-indicator', [
 									'overriddenExpr' => "isElementOverridden( '" . $key . "' )",
-									'nameExpr'       => "'" . $label . "'",
+									'nameExpr'       => Js::from( $label ),
 									'resetExpr'      => "resetElementToBase( '" . $key . "' )",
 								] )
 							</template>
