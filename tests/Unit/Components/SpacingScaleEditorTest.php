@@ -91,3 +91,29 @@ test( 'spacing scale editor renders css preview toggle', function (): void {
 	$this->blade( '<x-ve-spacing-scale-editor />' )
 		->assertSee( 'CSS' );
 } );
+
+test( 'spacing scale editor accepts base values for override mode', function (): void {
+	$baseValues = [
+		'scale' => [
+			[ 'name' => 'Small', 'slug' => 'sm', 'value' => '0.5rem' ],
+		],
+		'blockGap'    => 'sm',
+		'customSteps' => [],
+	];
+
+	$component = new SpacingScaleEditor( baseValues: $baseValues );
+
+	expect( $component->baseValues )->not->toBeNull()
+		->and( $component->baseValues['scale'] )->toHaveCount( 1 );
+} );
+
+test( 'spacing scale editor defaults to null base values', function (): void {
+	$component = new SpacingScaleEditor();
+
+	expect( $component->baseValues )->toBeNull();
+} );
+
+test( 'spacing scale editor renders getStore dual detection', function (): void {
+	$this->blade( '<x-ve-spacing-scale-editor />' )
+		->assertSee( '_getStore()', false );
+} );

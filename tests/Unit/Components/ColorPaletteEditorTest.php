@@ -67,3 +67,35 @@ test( 'color palette editor renders css preview toggle', function (): void {
 	$this->blade( '<x-ve-color-palette-editor />' )
 		->assertSee( 'CSS' );
 } );
+
+test( 'color palette editor accepts base values for override mode', function (): void {
+	$baseValues = [
+		[ 'name' => 'Primary', 'slug' => 'primary', 'color' => '#3b82f6' ],
+		[ 'name' => 'Secondary', 'slug' => 'secondary', 'color' => '#6b7280' ],
+	];
+
+	$component = new ColorPaletteEditor( baseValues: $baseValues );
+
+	expect( $component->baseValues )->toHaveCount( 2 )
+		->and( $component->baseValues[0]['slug'] )->toBe( 'primary' );
+} );
+
+test( 'color palette editor defaults to null base values', function (): void {
+	$component = new ColorPaletteEditor();
+
+	expect( $component->baseValues )->toBeNull();
+} );
+
+test( 'color palette editor renders override mode indicators', function (): void {
+	$baseValues = [
+		[ 'name' => 'Primary', 'slug' => 'primary', 'color' => '#3b82f6' ],
+	];
+
+	$this->blade( '<x-ve-color-palette-editor :base-values="$baseValues" />', [ 'baseValues' => $baseValues ] )
+		->assertSee( 'overrideMode', false );
+} );
+
+test( 'color palette editor renders getStore dual detection', function (): void {
+	$this->blade( '<x-ve-color-palette-editor />' )
+		->assertSee( '_getStore()', false );
+} );

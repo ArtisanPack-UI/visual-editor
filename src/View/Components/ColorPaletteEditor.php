@@ -65,16 +65,31 @@ class ColorPaletteEditor extends Component
 	public array $defaultEntries;
 
 	/**
+	 * Base palette values for override mode.
+	 *
+	 * When set, the editor operates in override mode where entries
+	 * matching the base values are shown as inherited and entries
+	 * differing from the base are shown as overridden.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<int, array{name: string, slug: string, color: string}>|null
+	 */
+	public ?array $baseValues;
+
+	/**
 	 * Create a new component instance.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param string|null $id      Optional custom ID.
-	 * @param array|null  $palette Optional palette to display (defaults to manager palette).
+	 * @param string|null $id         Optional custom ID.
+	 * @param array|null  $palette    Optional palette to display (defaults to manager palette).
+	 * @param array|null  $baseValues Optional base palette for override mode.
 	 */
 	public function __construct(
 		public ?string $id = null,
 		?array $palette = null,
+		?array $baseValues = null,
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
@@ -89,6 +104,7 @@ class ColorPaletteEditor extends Component
 		}
 
 		$this->paletteEntries = $manager->toStoreFormat();
+		$this->baseValues     = $baseValues;
 	}
 
 	/**

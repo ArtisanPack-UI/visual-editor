@@ -49,6 +49,22 @@
 	:default-inner-blocks-map="$defaultInnerBlocksMap"
 	:initial-meta="$initialMeta"
 />
+
+{{-- Inject template settings into editor store --}}
+@if ( ! empty( $templateSettings ) )
+<div
+	x-data="{
+		init() {
+			const store = Alpine.store( 'editor' );
+			if ( store ) {
+				store.templateSettings = {{ Js::from( $templateSettings ) }};
+			}
+		},
+	}"
+	class="hidden"
+	aria-hidden="true"
+></div>
+@endif
 <x-ve-selection-manager />
 <x-ve-aria-live-region />
 
@@ -263,10 +279,13 @@
 		</x-slot:canvas>
 
 		{{-- ============================================================ --}}
-		{{-- RIGHT SIDEBAR (Block Inspector only, no Document tab) --}}
+		{{-- RIGHT SIDEBAR (Block + Template tabs) --}}
 		{{-- ============================================================ --}}
 		<x-slot:sidebar>
-			<x-ve-editor-sidebar :show-tabs="false">
+			<x-ve-editor-sidebar
+				:show-tabs="true"
+				:second-tab-label="__( 'visual-editor::ve.template_tab' )"
+			>
 				<x-slot:settingsPanel>
 					@include( 'visual-editor::components._editor-inspector-settings' )
 				</x-slot:settingsPanel>
@@ -276,7 +295,66 @@
 				</x-slot:stylesPanel>
 
 				<x-slot:documentPanel>
-					{{ $documentPanel ?? '' }}
+					<div class="flex flex-col gap-6 p-2">
+						{{-- Template Settings --}}
+						@include( 'visual-editor::components._template-settings-panel' )
+
+						{{-- Template Style Overrides --}}
+						<div class="flex flex-col gap-4">
+							<h3 class="text-sm font-semibold text-base-content">
+								{{ __( 'visual-editor::ve.template_styles_title' ) }}
+							</h3>
+
+							{{-- Color Overrides --}}
+							<details class="group">
+								<summary class="flex items-center justify-between cursor-pointer text-xs font-medium text-base-content/60 hover:text-base-content transition-colors">
+									{{ __( 'visual-editor::ve.color_overrides' ) }}
+									<svg class="h-3.5 w-3.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+									</svg>
+								</summary>
+								<div class="mt-2">
+									<x-ve-color-palette-editor :base-values="$globalBaseStyles['palette']" />
+								</div>
+							</details>
+
+							{{-- Typography Overrides --}}
+							<details class="group">
+								<summary class="flex items-center justify-between cursor-pointer text-xs font-medium text-base-content/60 hover:text-base-content transition-colors">
+									{{ __( 'visual-editor::ve.typography_overrides' ) }}
+									<svg class="h-3.5 w-3.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+									</svg>
+								</summary>
+								<div class="mt-2">
+									<x-ve-typography-presets-editor :base-values="$globalBaseStyles['typography']" />
+								</div>
+							</details>
+
+							{{-- Spacing Overrides --}}
+							<details class="group">
+								<summary class="flex items-center justify-between cursor-pointer text-xs font-medium text-base-content/60 hover:text-base-content transition-colors">
+									{{ __( 'visual-editor::ve.spacing_overrides' ) }}
+									<svg class="h-3.5 w-3.5 transition-transform group-open:rotate-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+										<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+									</svg>
+								</summary>
+								<div class="mt-2">
+									<x-ve-spacing-scale-editor :base-values="$globalBaseStyles['spacing']" />
+								</div>
+							</details>
+						</div>
+
+						{{-- Template Parts --}}
+						<x-ve-template-parts-manager
+							:assignments="$templatePartAssignments"
+						/>
+
+						{{-- Livewire CRUD bridge --}}
+						<livewire:template-parts-crud />
+
+						{{ $documentPanel ?? '' }}
+					</div>
 				</x-slot:documentPanel>
 			</x-ve-editor-sidebar>
 		</x-slot:sidebar>

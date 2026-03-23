@@ -12,8 +12,10 @@
  --}}
 
 @php
-	$initialData    = $typographyData;
-	$defaultsData   = $defaultData;
+	$initialData       = $typographyData;
+	$defaultsData      = $defaultData;
+	$initialBaseValues = $baseValues;
+	$hasOverrideMode   = null !== $baseValues;
 	$elementLabels  = [
 		'h1'         => __( 'visual-editor::ve.typography_h1' ),
 		'h2'         => __( 'visual-editor::ve.typography_h2' ),
@@ -58,6 +60,8 @@
 	x-data="{
 		fontFamilies: {{ Js::from( $initialData['fontFamilies'] ) }},
 		elements: {{ Js::from( $initialData['elements'] ) }},
+		baseValues: {{ Js::from( $initialBaseValues ) }},
+		overrideMode: {{ Js::from( $hasOverrideMode ) }},
 		editingElement: null,
 		activeSection: 'families',
 		showCss: false,
@@ -66,9 +70,36 @@
 		typeScaleRatio: 1.25,
 		elementLabels: {{ Js::from( $elementLabels ) }},
 
+		_getStore() {
+			return Alpine.store( 'editor' ) || Alpine.store( 'globalStyles' ) || null;
+		},
+
+		isFamilyOverridden( slot ) {
+			if ( ! this.overrideMode || ! this.baseValues?.fontFamilies ) return false;
+			return this.fontFamilies[ slot ] !== this.baseValues.fontFamilies[ slot ];
+		},
+
+		isElementOverridden( element ) {
+			if ( ! this.overrideMode || ! this.baseValues?.elements ) return false;
+			const base    = this.baseValues.elements[ element ];
+			const current = this.elements[ element ];
+			if ( ! base || ! current ) return true;
+			return JSON.stringify( base ) !== JSON.stringify( current );
+		},
+
+		resetFamilyToBase( slot ) {
+			if ( ! this.baseValues?.fontFamilies ) return;
+			this.fontFamilies[ slot ] = this.baseValues.fontFamilies[ slot ];
+		},
+
+		resetElementToBase( element ) {
+			if ( ! this.baseValues?.elements || ! ( element in this.baseValues.elements ) ) return;
+			this.elements[ element ] = JSON.parse( JSON.stringify( this.baseValues.elements[ element ] ) );
+		},
+
 		init() {
 			const syncToStore = () => {
-				const store = Alpine.store( 'editor' );
+				const store = this._getStore();
 				if ( ! store ) return;
 				store.globalStyles.typography = {
 					fontFamilies: JSON.parse( JSON.stringify( this.fontFamilies ) ),
@@ -239,12 +270,23 @@
 	<div x-show="activeSection === 'families'" x-cloak role="tabpanel" aria-labelledby="{{ $uuid }}-tab-families" id="{{ $uuid }}-panel-families" class="flex flex-col gap-3">
 		@foreach ( $familyLabels as $slot => $label )
 			<div class="flex flex-col gap-1">
-				<label
-					for="{{ $uuid }}-family-{{ $slot }}"
-					class="text-xs font-medium text-base-content/70"
-				>
-					{{ $label }}
-				</label>
+				<div class="flex items-center gap-1">
+					<label
+						for="{{ $uuid }}-family-{{ $slot }}"
+						class="text-xs font-medium text-base-content/70 flex-1"
+					>
+						{{ $label }}
+					</label>
+					@if ( $hasOverrideMode )
+						<template x-if="overrideMode">
+							@include( 'visual-editor::components._override-indicator', [
+								'overriddenExpr' => "isFamilyOverridden( '" . $slot . "' )",
+								'nameExpr'       => Js::from( $label ),
+								'resetExpr'      => "resetFamilyToBase( '" . $slot . "' )",
+							] )
+						</template>
+					@endif
+				</div>
 				<select
 					id="{{ $uuid }}-family-{{ $slot }}"
 					x-model="fontFamilies.{{ $slot }}"
@@ -278,6 +320,15 @@
 					:aria-expanded="editingElement === '{{ $key }}'"
 				>
 					<div class="flex items-center gap-3 min-w-0">
+						@if ( $hasOverrideMode )
+							<template x-if="overrideMode">
+								@include( 'visual-editor::components._override-indicator', [
+									'overriddenExpr' => "isElementOverridden( '" . $key . "' )",
+									'nameExpr'       => Js::from( $label ),
+									'resetExpr'      => "resetElementToBase( '" . $key . "' )",
+								] )
+							</template>
+						@endif
 						<span
 							class="shrink-0 text-base-content/70"
 							:style="'font-size: ' + ( elements['{{ $key }}'] ? elements['{{ $key }}'].fontSize : '1rem' ) + '; font-weight: ' + ( elements['{{ $key }}'] ? elements['{{ $key }}'].fontWeight : '400' ) + '; line-height: 1'"

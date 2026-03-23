@@ -12,13 +12,17 @@
  --}}
 
 @php
-	$initialEntries = $paletteEntries;
+	$initialEntries   = $paletteEntries;
+	$initialBaseValues = $baseValues;
+	$hasOverrideMode  = null !== $baseValues;
 @endphp
 
 <div
 	id="{{ $uuid }}"
 	x-data="{
 		entries: {{ Js::from( $initialEntries ) }},
+		baseValues: {{ Js::from( $initialBaseValues ) }},
+		overrideMode: {{ Js::from( $hasOverrideMode ) }},
 		editing: null,
 		editName: '',
 		editSlug: '',
@@ -32,10 +36,50 @@
 		addPickerOpen: false,
 		_savedPalette: null,
 
+		_getStore() {
+			return Alpine.store( 'editor' ) || Alpine.store( 'globalStyles' ) || null;
+		},
+
+		_baseSlugFor( entry ) {
+			return entry._baseSlug || entry.slug;
+		},
+
+		isOverridden( index ) {
+			if ( ! this.overrideMode || ! this.baseValues ) return false;
+			const entry = this.entries[ index ];
+			if ( ! entry ) return false;
+			const baseSlug = this._baseSlugFor( entry );
+			const base = this.baseValues.find( b => b.slug === baseSlug );
+			if ( ! base ) return true;
+			return base.color !== entry.color || base.name !== entry.name || base.slug !== entry.slug;
+		},
+
+		resetToBase( index ) {
+			if ( ! this.overrideMode || ! this.baseValues ) return;
+			const entry = this.entries[ index ];
+			if ( ! entry ) return;
+			const baseSlug = this._baseSlugFor( entry );
+			const base = this.baseValues.find( b => b.slug === baseSlug );
+			if ( base ) {
+				this.entries[ index ] = { ...base, _baseSlug: base.slug };
+			} else {
+				this.entries.splice( index, 1 );
+			}
+			this._commitToStore();
+			this._dispatch();
+		},
+
 		init() {
+			if ( this.overrideMode && this.baseValues ) {
+				this.entries = this.entries.map( entry => {
+					const base = this.baseValues.find( b => b.slug === entry.slug );
+					return base ? { ...entry, _baseSlug: entry.slug } : entry;
+				} );
+			}
+
 			this.$watch( 'editColor', ( value ) => {
 				if ( null === this.editing ) return;
-				const store = Alpine.store( 'editor' );
+				const store = this._getStore();
 				if ( ! store ) return;
 				const color = this._normalizeHex( value );
 				if ( ! color ) return;
@@ -47,9 +91,9 @@
 		},
 
 		_commitToStore() {
-			const store = Alpine.store( 'editor' );
+			const store = this._getStore();
 			if ( ! store ) return;
-			store._pushHistory();
+			if ( typeof store._pushHistory === 'function' ) store._pushHistory();
 			store.globalStyles.palette = JSON.parse( JSON.stringify( this.entries ) );
 			store._syncGlobalCssVariables();
 			store.markDirty();
@@ -57,7 +101,8 @@
 		},
 
 		startEdit( index ) {
-			this._savedPalette = JSON.parse( JSON.stringify( Alpine.store( 'editor' )?.globalStyles?.palette || this.entries ) );
+			const store = this._getStore();
+			this._savedPalette = JSON.parse( JSON.stringify( store?.globalStyles?.palette || this.entries ) );
 			this.editing         = index
 			this.editPickerOpen  = false
 			this.editName  = this.entries[ index ].name
@@ -87,7 +132,7 @@
 			this.editing        = null
 			this.editPickerOpen = false
 			if ( this._savedPalette ) {
-				const store = Alpine.store( 'editor' );
+				const store = this._getStore();
 				if ( store ) {
 					store.globalStyles.palette = this._savedPalette;
 					store._syncGlobalCssVariables();
@@ -208,6 +253,15 @@
 					x-show="editing !== index"
 					class="flex items-center gap-3 rounded-lg border border-base-300 px-3 py-2 hover:bg-base-200/50 focus-within:bg-base-200/50 transition-colors group"
 				>
+					{{-- Override indicator --}}
+					<template x-if="overrideMode">
+						@include( 'visual-editor::components._override-indicator', [
+							'overriddenExpr' => 'isOverridden( index )',
+							'nameExpr'       => 'entry.name',
+							'resetExpr'      => 'resetToBase( index )',
+						] )
+					</template>
+
 					<button
 						type="button"
 						class="h-8 w-8 rounded-full ring-1 ring-base-300 shrink-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
@@ -224,6 +278,7 @@
 						<span class="text-sm text-base-content truncate" x-text="entry.name"></span>
 						<span class="text-xs text-base-content/40 font-mono" x-text="entry.color"></span>
 					</button>
+
 					<button
 						type="button"
 						x-on:click="removeColor( index )"
