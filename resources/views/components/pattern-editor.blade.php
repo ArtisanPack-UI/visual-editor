@@ -64,7 +64,7 @@
 				if ( store ) {
 					store.patternSettings = settings;
 				} else if ( ++attempts < maxAttempts ) {
-					this.$nextTick( () => assign() );
+					setTimeout( assign, 10 );
 				}
 			};
 			assign();

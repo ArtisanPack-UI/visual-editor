@@ -30,7 +30,7 @@ return new class () extends Migration {
 			$table->string( 'status' )->default( 'active' )->after( 'keywords' );
 			$table->boolean( 'is_synced' )->default( false )->after( 'status' );
 
-			$table->index( [ 'category', 'status' ] );
+			$table->index( [ 'category', 'status' ], 'visual_editor_patterns_category_status_index' );
 		} );
 	}
 
@@ -40,7 +40,7 @@ return new class () extends Migration {
 	public function down(): void
 	{
 		Schema::table( 'visual_editor_patterns', function ( Blueprint $table ): void {
-			$table->dropIndex( [ 'category', 'status' ] );
+			$table->dropIndex( 'visual_editor_patterns_category_status_index' );
 			$table->dropColumn( [ 'description', 'keywords', 'status', 'is_synced' ] );
 		} );
 	}

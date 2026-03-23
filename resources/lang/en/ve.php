@@ -1491,15 +1491,10 @@ return [
 	'pattern_editor_save'                    => 'Save',
 	'pattern_editor_saving'                  => 'Saving…',
 
-	// Pattern Categories
-	'pattern_category_text'            => 'Text',
+	// Pattern Categories (supplements existing keys in Pattern Browser section)
 	'pattern_category_media'           => 'Media',
 	'pattern_category_layout'          => 'Layout',
-	'pattern_category_header'          => 'Header',
-	'pattern_category_footer'          => 'Footer',
 	'pattern_category_call_to_action'  => 'Call to Action',
-	'pattern_category_gallery'         => 'Gallery',
-	'pattern_category_testimonial'     => 'Testimonial',
 
 	// Pattern Listing (synced column)
 	'pattern_listing_column_sync'      => 'Type',

@@ -222,7 +222,7 @@ test( 'pattern editor page can update an existing pattern', function (): void {
 	expect( $pattern->blocks )->toHaveCount( 1 );
 } );
 
-test( 'pattern editor page updates existing DB pattern when slug conflicts on create', function (): void {
+test( 'pattern editor page generates unique slug on collision in create mode', function (): void {
 	$user = createPatternEditorTestUser();
 	$this->actingAs( $user );
 
@@ -234,19 +234,23 @@ test( 'pattern editor page updates existing DB pattern when slug conflicts on cr
 	$component->save(
 		blocks: [ [ 'id' => 'b1', 'type' => 'paragraph', 'attributes' => [] ] ],
 		settings: [
-			'name'     => 'Updated Name',
+			'name'     => 'New Pattern',
 			'slug'     => 'existing-slug',
 			'category' => 'text',
 			'status'   => 'draft',
 		],
 	);
 
-	// Should update the existing record, not create a new one.
-	expect( Pattern::count() )->toBe( 1 );
+	// Should create a new record with a unique slug, not update the existing one.
+	expect( Pattern::count() )->toBe( 2 );
 
 	$existing->refresh();
-	expect( $existing->name )->toBe( 'Updated Name' );
-	expect( $existing->blocks )->toHaveCount( 1 );
+	expect( $existing->name )->toBe( 'Original' );
+
+	expect( $component->pattern )->not->toBeNull();
+	expect( $component->pattern->slug )->not->toBe( 'existing-slug' );
+	expect( $component->pattern->slug )->toStartWith( 'existing-slug-' );
+	expect( $component->pattern->name )->toBe( 'New Pattern' );
 } );
 
 test( 'pattern editor page aborts for nonexistent patterns', function (): void {

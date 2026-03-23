@@ -207,7 +207,7 @@ class PatternEditor extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @var array{name: string, slug: string, category: string|null, description: string|null, keywords: string|null, status: string, isSynced: bool}
+	 * @var array{name: string, slug: string, status: string, isSynced: bool, category?: string|null, description?: string|null, keywords?: string|null, createdBy?: string, updatedAt?: string}
 	 */
 	public array $patternSettings;
 

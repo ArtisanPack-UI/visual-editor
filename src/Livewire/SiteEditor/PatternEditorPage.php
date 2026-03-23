@@ -102,12 +102,10 @@ class PatternEditorPage extends Component
 			$this->initialBlocks = $this->pattern->blocks ?? [];
 
 			$createdBy = '';
-			if ( $this->pattern->exists ) {
-				try {
-					$createdBy = $this->pattern->user?->name ?? '';
-				} catch ( Throwable ) {
-					// User model may not be resolvable in all environments.
-				}
+			try {
+				$createdBy = $this->pattern->user?->name ?? '';
+			} catch ( Throwable ) {
+				// User model may not be resolvable in all environments.
 			}
 
 			$this->patternSettings = [
@@ -151,21 +149,22 @@ class PatternEditorPage extends Component
 	#[On( 've-pattern-editor-save' )]
 	public function save( array $blocks, array $settings ): void
 	{
+		if ( ! auth()->check() ) {
+			abort( 403 );
+		}
+
 		$permission = (string) config( 'artisanpack.visual-editor.site_editor.gates.patterns', 'visual-editor.manage-patterns' );
 
 		if ( '' !== $permission && Gate::has( $permission ) ) {
 			$this->authorize( $permission );
 		}
 
-		if ( null === auth()->id() ) {
-			abort( 403 );
-		}
-
 		$name = ! empty( $settings['name'] ) ? $settings['name'] : __( 'visual-editor::ve.pattern_editor_untitled' );
+		$slug = ! empty( $settings['slug'] ) ? $settings['slug'] : Str::slug( $name );
 
 		$data = [
 			'name'        => $name,
-			'slug'        => ! empty( $settings['slug'] ) ? $settings['slug'] : Str::slug( $name ),
+			'slug'        => $slug,
 			'blocks'      => $blocks,
 			'category'    => $settings['category'] ?? null,
 			'description' => $settings['description'] ?? null,
@@ -176,20 +175,17 @@ class PatternEditorPage extends Component
 		];
 
 		if ( $this->isCreateMode ) {
-			$existing = Pattern::where( 'slug', $data['slug'] )->first();
-
-			if ( null !== $existing ) {
-				unset( $data['slug'] );
-				$existing->update( $data );
-				$this->pattern = $existing;
-			} else {
-				$this->pattern = Pattern::create( $data );
-				veDoAction( 'ap.visualEditor.patternCreated', $this->pattern );
+			// Generate a unique slug if one already exists.
+			while ( Pattern::where( 'slug', $data['slug'] )->exists() ) {
+				$data['slug'] = $slug . '-' . Str::random( 6 );
 			}
+
+			$this->pattern = Pattern::create( $data );
+			veDoAction( 'ap.visualEditor.patternCreated', $this->pattern );
 
 			$this->isCreateMode = false;
 
-			$this->dispatch( 've-pattern-editor-saved', patternId: $this->pattern->id, slug: $this->pattern->slug, created: null === $existing );
+			$this->dispatch( 've-pattern-editor-saved', patternId: $this->pattern->id, slug: $this->pattern->slug, created: true );
 		} else {
 			// Only include slug in the update if it actually changed.
 			if ( isset( $data['slug'] ) && $data['slug'] === $this->pattern->slug ) {

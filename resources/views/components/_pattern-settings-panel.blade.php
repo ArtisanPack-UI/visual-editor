@@ -80,8 +80,7 @@
 			type="text"
 			class="input input-sm input-bordered w-full font-mono text-xs"
 			:value="settings.slug || ''"
-			x-on:focus="autoSlug = false"
-			x-on:change="update( 'slug', $event.target.value )"
+			x-on:change="autoSlug = false; update( 'slug', $event.target.value )"
 		/>
 	</div>
 
@@ -90,20 +89,27 @@
 		<label class="text-xs font-medium text-base-content/60">
 			{{ __( 'visual-editor::ve.pattern_editor_category' ) }}
 		</label>
+		@php
+			$categories = veApplyFilters( 've.pattern-editor.categories', [
+				'text'           => __( 'visual-editor::ve.pattern_category_text' ),
+				'media'          => __( 'visual-editor::ve.pattern_category_media' ),
+				'layout'         => __( 'visual-editor::ve.pattern_category_layout' ),
+				'header'         => __( 'visual-editor::ve.pattern_category_header' ),
+				'footer'         => __( 'visual-editor::ve.pattern_category_footer' ),
+				'call-to-action' => __( 'visual-editor::ve.pattern_category_call_to_action' ),
+				'gallery'        => __( 'visual-editor::ve.pattern_category_gallery' ),
+				'testimonial'    => __( 'visual-editor::ve.pattern_category_testimonial' ),
+			] );
+		@endphp
 		<select
 			class="select select-sm select-bordered w-full"
 			x-model="settings.category"
 			x-on:change="update( 'category', settings.category )"
 		>
 			<option value="">{{ __( 'visual-editor::ve.pattern_editor_category_none' ) }}</option>
-			<option value="text">{{ __( 'visual-editor::ve.pattern_category_text' ) }}</option>
-			<option value="media">{{ __( 'visual-editor::ve.pattern_category_media' ) }}</option>
-			<option value="layout">{{ __( 'visual-editor::ve.pattern_category_layout' ) }}</option>
-			<option value="header">{{ __( 'visual-editor::ve.pattern_category_header' ) }}</option>
-			<option value="footer">{{ __( 'visual-editor::ve.pattern_category_footer' ) }}</option>
-			<option value="call-to-action">{{ __( 'visual-editor::ve.pattern_category_call_to_action' ) }}</option>
-			<option value="gallery">{{ __( 'visual-editor::ve.pattern_category_gallery' ) }}</option>
-			<option value="testimonial">{{ __( 'visual-editor::ve.pattern_category_testimonial' ) }}</option>
+			@foreach ( $categories as $value => $label )
+				<option value="{{ $value }}">{{ $label }}</option>
+			@endforeach
 		</select>
 	</div>
 

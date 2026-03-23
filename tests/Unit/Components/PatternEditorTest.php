@@ -152,6 +152,7 @@ test( 'pattern editor renders view name', function (): void {
 } );
 
 test( 'pattern editor auto-populates blockTransforms from registry', function (): void {
+	// Uses the service-provider-registered registry with core blocks.
 	$component = new PatternEditor();
 
 	expect( $component->blockTransforms )->toBeArray();
