@@ -19,10 +19,14 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage;
 use ArtisanPackUI\VisualEditor\Models\TemplatePart;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\HttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
 uses( RefreshDatabase::class );
 
@@ -33,9 +37,11 @@ uses( RefreshDatabase::class );
  */
 function createPartEditorTestUser(): Authenticatable
 {
+	$email = 'part-editor-' . Str::random( 8 ) . '@example.com';
+
 	$id = DB::table( 'users' )->insertGetId( [
 		'name'       => 'Editor User',
-		'email'      => 'part-editor-test@example.com',
+		'email'      => $email,
 		'created_at' => now(),
 		'updated_at' => now(),
 	] );
@@ -45,7 +51,7 @@ function createPartEditorTestUser(): Authenticatable
 	};
 	$user->id    = $id;
 	$user->name  = 'Editor User';
-	$user->email = 'part-editor-test@example.com';
+	$user->email = $email;
 
 	return $user;
 }
@@ -61,7 +67,7 @@ function createEditorTestPart( array $overrides = [] ): TemplatePart
 {
 	return TemplatePart::create( array_merge( [
 		'name'    => 'Test Part',
-		'slug'    => 'test-part-' . Illuminate\Support\Str::random( 6 ),
+		'slug'    => 'test-part-' . Str::random( 6 ),
 		'area'    => 'header',
 		'content' => [],
 		'status'  => 'active',
@@ -206,20 +212,24 @@ test( 'part editor page updates existing DB part when slug conflicts on create',
 	expect( $existing->content )->toHaveCount( 1 );
 } );
 
-test( 'part editor page aborts for locked parts', function (): void {
+test( 'part editor page aborts with 403 for locked parts', function (): void {
 	createEditorTestPart( [ 'slug' => 'locked-part', 'is_locked' => true ] );
 
 	$component = new PartEditorPage();
 
-	expect( fn () => $component->mount( 'locked-part' ) )
-		->toThrow( Symfony\Component\HttpKernel\Exception\HttpException::class );
+	try {
+		$component->mount( 'locked-part' );
+		$this->fail( 'Expected HttpException was not thrown.' );
+	} catch ( HttpException $e ) {
+		expect( $e->getStatusCode() )->toBe( 403 );
+	}
 } );
 
 test( 'part editor page aborts for nonexistent parts', function (): void {
 	$component = new PartEditorPage();
 
 	expect( fn () => $component->mount( 'nonexistent' ) )
-		->toThrow( Symfony\Component\HttpKernel\Exception\NotFoundHttpException::class );
+		->toThrow( NotFoundHttpException::class );
 } );
 
 test( 'part editor create route has correct name', function (): void {
@@ -250,8 +260,11 @@ test( 'part editor page is forbidden without manage-parts permission', function 
 	Gate::define( 'visual-editor.access-site-editor', fn () => true );
 	Gate::define( 'visual-editor.manage-parts', fn () => false );
 
+	$user = createPartEditorTestUser();
+	$this->actingAs( $user );
+
 	$component = new PartEditorPage();
 
 	expect( fn () => $component->mount( null ) )
-		->toThrow( Illuminate\Auth\Access\AuthorizationException::class );
+		->toThrow( AuthorizationException::class );
 } );
