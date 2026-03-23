@@ -85,10 +85,15 @@
 		<x-slot:toolbar>
 			<x-ve-top-toolbar>
 				<x-slot:center>
-					<x-ve-template-switcher
-						:templates="$templates"
-						:current-slug="$currentTemplateSlug"
-					/>
+					<a
+						href="{{ route( 'visual-editor.templates' ) }}"
+						class="inline-flex items-center gap-1 text-sm text-base-content/60 hover:text-primary transition-colors"
+					>
+						<svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" /></svg>
+						{{ __( 'visual-editor::ve.template_editor_back' ) }}
+					</a>
+					<span class="mx-1.5 text-base-content/30">/</span>
+					<span class="text-sm font-medium text-base-content" x-data x-text="Alpine.store( 'editor' )?.templateSettings?.name || '{{ __( 'visual-editor::ve.template_editor_untitled' ) }}'"></span>
 					{{ $toolbarCenter ?? '' }}
 				</x-slot:center>
 			</x-ve-top-toolbar>

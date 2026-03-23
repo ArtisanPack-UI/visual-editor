@@ -34,6 +34,7 @@ use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternEditorPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternListingPage;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateEditorPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateListingPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplatePartListingPage;
 use ArtisanPackUI\VisualEditor\Models\Pattern;
@@ -573,6 +574,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Livewire::component( 'site-editor.hub-page', (string) ( $components['hub_page'] ?? HubPage::class ) );
 		Livewire::component( 'site-editor.global-styles-page', (string) ( $components['global_styles_page'] ?? GlobalStylesPage::class ) );
 		Livewire::component( 'site-editor.template-listing-page', (string) ( $components['template_listing'] ?? TemplateListingPage::class ) );
+		Livewire::component( 'site-editor.template-editor-page', (string) ( $components['template_editor'] ?? TemplateEditorPage::class ) );
 		Livewire::component( 'site-editor.template-part-listing-page', (string) ( $components['part_listing'] ?? TemplatePartListingPage::class ) );
 		Livewire::component( 'site-editor.part-editor-page', (string) ( $components['part_editor'] ?? PartEditorPage::class ) );
 		Livewire::component( 'site-editor.pattern-listing-page', (string) ( $components['pattern_listing'] ?? PatternListingPage::class ) );
