@@ -204,11 +204,15 @@ class PatternListingPage extends Component
 		}
 
 		Pattern::create( [
-			'name'     => $pattern->name . ' (' . __( 'Copy' ) . ')',
-			'slug'     => $pattern->slug . '-' . Str::random( 6 ),
-			'blocks'   => $pattern->blocks,
-			'category' => $pattern->category,
-			'user_id'  => $pattern->user_id,
+			'name'        => $pattern->name . ' (' . __( 'Copy' ) . ')',
+			'slug'        => $pattern->slug . '-' . Str::random( 6 ),
+			'blocks'      => $pattern->blocks,
+			'category'    => $pattern->category,
+			'description' => $pattern->description,
+			'keywords'    => $pattern->keywords,
+			'status'      => $pattern->status ?? 'draft',
+			'is_synced'   => $pattern->is_synced ?? false,
+			'user_id'     => $pattern->user_id,
 		] );
 
 		$this->dispatch( 've-pattern-duplicated' );

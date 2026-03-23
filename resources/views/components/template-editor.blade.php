@@ -260,6 +260,9 @@
 					</div>
 				</div>
 
+				{{-- Block alignment, text alignment, and text formatting controls --}}
+				@include( 'visual-editor::components._block-toolbar-controls' )
+
 				{{-- Custom toolbar HTML from blocks --}}
 				@foreach ( $customToolbarHtml as $toolbarType => $toolbarHtml )
 					<template x-if="(() => {
@@ -274,6 +277,9 @@
 
 			{{-- Slash command inserter --}}
 			<x-ve-slash-command-inserter :blocks="$inserterBlocks" />
+
+			{{-- Block renderer registry Alpine store --}}
+			@include( 'visual-editor::components._block-renderers-script' )
 
 			{{-- Dynamic canvas --}}
 			@include( 'visual-editor::components._editor-canvas-content' )
