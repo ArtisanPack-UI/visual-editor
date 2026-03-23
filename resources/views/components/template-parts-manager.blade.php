@@ -27,6 +27,22 @@
 		creating: null,
 		newPartName: '',
 
+		init() {
+			Livewire.on( 've-template-part-created', ( data ) => {
+				const payload = Array.isArray( data ) ? data[0] : data;
+				const area = payload.area;
+				const part = payload.part;
+				if ( ! area || ! part ) return;
+
+				if ( ! this.partsByArea[ area ] ) {
+					this.partsByArea[ area ] = [];
+				}
+				this.partsByArea[ area ].push( part );
+				this.assignments[ area ] = part.id;
+				this._dispatchChange();
+			} );
+		},
+
 		getAssignedPartName( area ) {
 			const partId = this.assignments[ area ];
 			if ( ! partId ) return null;

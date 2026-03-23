@@ -93,7 +93,7 @@
 		},
 
 		resetElementToBase( element ) {
-			if ( ! this.baseValues?.elements ) return;
+			if ( ! this.baseValues?.elements || ! ( element in this.baseValues.elements ) ) return;
 			this.elements[ element ] = JSON.parse( JSON.stringify( this.baseValues.elements[ element ] ) );
 		},
 
