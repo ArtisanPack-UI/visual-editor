@@ -27,6 +27,9 @@ use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\GlobalStylesPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternListingPage;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateListingPage;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplatePartListingPage;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\Services\ColorPaletteManager;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCompiler;
@@ -159,6 +162,8 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		// Site Editor
 		'site-editor-layout' => Components\SiteEditorLayout::class,
+		'listing-table'      => Components\ListingTable::class,
+		'listing-grid'       => Components\ListingGrid::class,
 	];
 
 	/**
@@ -446,6 +451,9 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		Livewire::component( 'site-editor.hub-page', HubPage::class );
 		Livewire::component( 'site-editor.global-styles-page', GlobalStylesPage::class );
+		Livewire::component( 'site-editor.template-listing-page', TemplateListingPage::class );
+		Livewire::component( 'site-editor.template-part-listing-page', TemplatePartListingPage::class );
+		Livewire::component( 'site-editor.pattern-listing-page', PatternListingPage::class );
 	}
 
 	/**
