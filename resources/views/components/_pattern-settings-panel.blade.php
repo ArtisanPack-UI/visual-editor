@@ -106,8 +106,8 @@
 		<select
 			id="ve-pattern-category"
 			class="select select-sm select-bordered w-full"
-			x-model="settings.category"
-			x-on:change="update( 'category', settings.category )"
+			:value="settings.category"
+			x-on:change="update( 'category', $event.target.value )"
 		>
 			<option value="">{{ __( 'visual-editor::ve.pattern_editor_category_none' ) }}</option>
 			@foreach ( $categories as $value => $label )
@@ -125,8 +125,8 @@
 			id="ve-pattern-description"
 			class="textarea textarea-sm textarea-bordered w-full"
 			rows="3"
-			x-model.lazy="settings.description"
-			x-on:change="update( 'description', settings.description )"
+			:value="settings.description || ''"
+			x-on:change="update( 'description', $event.target.value )"
 			placeholder="{{ __( 'visual-editor::ve.pattern_editor_description_placeholder' ) }}"
 		></textarea>
 	</div>
@@ -157,8 +157,8 @@
 		<select
 			id="ve-pattern-status"
 			class="select select-sm select-bordered w-full"
-			x-model="settings.status"
-			x-on:change="update( 'status', settings.status )"
+			:value="settings.status"
+			x-on:change="update( 'status', $event.target.value )"
 		>
 			<option value="active">{{ __( 'visual-editor::ve.pattern_editor_status_active' ) }}</option>
 			<option value="draft">{{ __( 'visual-editor::ve.pattern_editor_status_draft' ) }}</option>
@@ -180,7 +180,7 @@
 			/>
 			<span
 				class="text-xs text-base-content/70"
-				x-text="settings.isSynced ? '{{ __( 'visual-editor::ve.pattern_editor_synced' ) }}' : '{{ __( 'visual-editor::ve.pattern_editor_standard' ) }}'"
+				x-text="settings.isSynced ? {{ Js::from( __( 'visual-editor::ve.pattern_editor_synced' ) ) }} : {{ Js::from( __( 'visual-editor::ve.pattern_editor_standard' ) ) }}"
 			></span>
 		</div>
 		<p class="text-xs text-base-content/40">
