@@ -19,6 +19,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Livewire\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\Contracts\SiteEditorPage;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
@@ -35,7 +36,7 @@ use Livewire\Component;
  * @since      1.0.0
  */
 #[Layout( 'visual-editor::layouts.site-editor' )]
-class HubPage extends Component
+class HubPage extends Component implements SiteEditorPage
 {
 	/**
 	 * Authorize access when the component mounts.

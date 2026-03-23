@@ -276,19 +276,39 @@ return [
 	| route_prefix:   URL prefix for site editor routes (default: 'site-editor').
 	| middleware:     Middleware applied to site editor routes.
 	| permission:     Gate/policy ability checked before accessing the hub.
-	| hub_page:       Livewire component class for the hub page. Swap this
-	|                 to use a custom hub page implementation.
-	| layout:         Blade component class for the site editor layout shell.
-	|                 Swap this to use a custom layout implementation.
 	|
 	*/
 	'site_editor' => [
 		'route_prefix' => 'site-editor',
 		'middleware'   => [ 'web', 'auth' ],
 		'permission'   => 'visual-editor.access-site-editor',
-		'hub_page'     => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage::class,
-		'layout'       => ArtisanPackUI\VisualEditor\View\Components\SiteEditorLayout::class,
-		'gates'        => [
+
+		/*
+		|----------------------------------------------------------------------
+		| Component Class Swaps
+		|----------------------------------------------------------------------
+		|
+		| Override any site editor page component by replacing its class below.
+		| Custom classes must implement the appropriate contract:
+		|   - Page components: SiteEditorPage
+		|   - Listing components: SiteEditorListing
+		|
+		| Routes and Livewire registrations resolve classes from this config,
+		| so swapping a class here replaces the component everywhere.
+		|
+		*/
+		'components' => [
+			'hub_page'           => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage::class,
+			'template_listing'   => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateListingPage::class,
+			'part_listing'       => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplatePartListingPage::class,
+			'pattern_listing'    => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternListingPage::class,
+			'global_styles_page' => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\GlobalStylesPage::class,
+			'part_editor'        => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage::class,
+			'pattern_editor'     => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternEditorPage::class,
+			'layout'             => ArtisanPackUI\VisualEditor\View\Components\SiteEditorLayout::class,
+		],
+
+		'gates' => [
 			'access'          => 'visual-editor.access-site-editor',
 			'styles'          => 'visual-editor.manage-styles',
 			'templates'       => 'visual-editor.manage-templates',

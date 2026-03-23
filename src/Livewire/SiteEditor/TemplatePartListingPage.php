@@ -19,6 +19,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Livewire\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\Contracts\SiteEditorListing;
 use ArtisanPackUI\VisualEditor\Models\TemplatePart;
 use ArtisanPackUI\VisualEditor\Services\TemplatePartManager;
 use Illuminate\Contracts\View\View;
@@ -39,7 +40,7 @@ use Livewire\Component;
  * @since      1.0.0
  */
 #[Layout( 'visual-editor::layouts.site-editor' )]
-class TemplatePartListingPage extends Component
+class TemplatePartListingPage extends Component implements SiteEditorListing
 {
 	/**
 	 * The search query string.
@@ -319,6 +320,24 @@ class TemplatePartListingPage extends Component
 		];
 
 		return veApplyFilters( 've.listing.columns', $columns, 'part' );
+	}
+
+	/**
+	 * Get the row actions for a given item.
+	 *
+	 * Default actions (duplicate, lock, delete) are built-in to the view.
+	 * This method returns additional custom actions added via the
+	 * `ve.listing.actions` filter hook.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param object $item The listing row item.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getRowActions( object $item ): array
+	{
+		return veApplyFilters( 've.listing.actions', [], 'part', $item );
 	}
 
 	/**

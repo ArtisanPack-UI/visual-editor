@@ -19,6 +19,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Livewire\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\Contracts\SiteEditorPage;
 use ArtisanPackUI\VisualEditor\Models\TemplatePart;
 use ArtisanPackUI\VisualEditor\Services\TemplatePartManager;
 use Illuminate\Contracts\View\View;
@@ -38,7 +39,7 @@ use Throwable;
  * @since      1.0.0
  */
 #[Layout( 'visual-editor::layouts.site-editor' )]
-class PartEditorPage extends Component
+class PartEditorPage extends Component implements SiteEditorPage
 {
 	/**
 	 * The template part being edited, or null for create mode.

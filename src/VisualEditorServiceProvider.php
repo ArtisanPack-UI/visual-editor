@@ -23,6 +23,9 @@ use ArtisanPackUI\VisualEditor\Blocks\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Blocks\BlockTransformService;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockCacheCommand;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockClearCommand;
+use ArtisanPackUI\VisualEditor\Console\Commands\PublishViewsCommand;
+use ArtisanPackUI\VisualEditor\Contracts\SiteEditorListing;
+use ArtisanPackUI\VisualEditor\Contracts\SiteEditorPage;
 use ArtisanPackUI\VisualEditor\Http\Middleware\CheckGateIfDefined;
 use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
@@ -533,9 +536,35 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor' );
 
 		if ( $this->app->runningInConsole() ) {
+			$viewsBase = __DIR__ . '/../resources/views';
+
 			$this->publishes( [
-				__DIR__ . '/../resources/views' => resource_path( 'views/vendor/visual-editor' ),
+				$viewsBase => resource_path( 'views/vendor/visual-editor' ),
 			], 'visual-editor-views' );
+
+			$this->publishes( [
+				$viewsBase . '/livewire/site-editor/hub.blade.php' => resource_path( 'views/vendor/visual-editor/livewire/site-editor/hub.blade.php' ),
+				$viewsBase . '/layouts/site-editor.blade.php'      => resource_path( 'views/vendor/visual-editor/layouts/site-editor.blade.php' ),
+			], 'visual-editor-views-site-editor' );
+
+			$this->publishes( [
+				$viewsBase . '/livewire/site-editor/template-listing.blade.php' => resource_path( 'views/vendor/visual-editor/livewire/site-editor/template-listing.blade.php' ),
+				$viewsBase . '/livewire/site-editor/part-listing.blade.php'     => resource_path( 'views/vendor/visual-editor/livewire/site-editor/part-listing.blade.php' ),
+				$viewsBase . '/livewire/site-editor/pattern-listing.blade.php'  => resource_path( 'views/vendor/visual-editor/livewire/site-editor/pattern-listing.blade.php' ),
+			], 'visual-editor-views-listings' );
+
+			$this->publishes( [
+				$viewsBase . '/livewire/site-editor/part-editor.blade.php'    => resource_path( 'views/vendor/visual-editor/livewire/site-editor/part-editor.blade.php' ),
+				$viewsBase . '/livewire/site-editor/pattern-editor.blade.php' => resource_path( 'views/vendor/visual-editor/livewire/site-editor/pattern-editor.blade.php' ),
+			], 'visual-editor-views-editors' );
+
+			$this->publishes( [
+				$viewsBase . '/livewire/site-editor/global-styles-page.blade.php' => resource_path( 'views/vendor/visual-editor/livewire/site-editor/global-styles-page.blade.php' ),
+			], 'visual-editor-views-styles' );
+
+			$this->publishes( [
+				$viewsBase . '/components' => resource_path( 'views/vendor/visual-editor/components' ),
+			], 'visual-editor-views-components' );
 		}
 	}
 
@@ -561,14 +590,66 @@ class VisualEditorServiceProvider extends ServiceProvider
 			classNamespace: 'ArtisanPackUI\\VisualEditor\\Livewire',
 		);
 
-		Livewire::component( 'site-editor.hub-page', HubPage::class );
-		Livewire::component( 'site-editor.global-styles-page', GlobalStylesPage::class );
-		Livewire::component( 'site-editor.template-listing-page', TemplateListingPage::class );
-		Livewire::component( 'site-editor.template-part-listing-page', TemplatePartListingPage::class );
-		Livewire::component( 'site-editor.part-editor-page', \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage::class );
-		Livewire::component( 'site-editor.pattern-listing-page', PatternListingPage::class );
-		Livewire::component( 'site-editor.pattern-editor-page', \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternEditorPage::class );
+		$components = (array) config( 'artisanpack.visual-editor.site_editor.components', [] );
+
+		Livewire::component( 'site-editor.hub-page', (string) ( $components['hub_page'] ?? HubPage::class ) );
+		Livewire::component( 'site-editor.global-styles-page', (string) ( $components['global_styles_page'] ?? GlobalStylesPage::class ) );
+		Livewire::component( 'site-editor.template-listing-page', (string) ( $components['template_listing'] ?? TemplateListingPage::class ) );
+		Livewire::component( 'site-editor.template-part-listing-page', (string) ( $components['part_listing'] ?? TemplatePartListingPage::class ) );
+		Livewire::component( 'site-editor.part-editor-page', (string) ( $components['part_editor'] ?? \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage::class ) );
+		Livewire::component( 'site-editor.pattern-listing-page', (string) ( $components['pattern_listing'] ?? PatternListingPage::class ) );
+		Livewire::component( 'site-editor.pattern-editor-page', (string) ( $components['pattern_editor'] ?? \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternEditorPage::class ) );
 		Livewire::component( 'template-parts-crud', \ArtisanPackUI\VisualEditor\Livewire\TemplatePartsCrud::class );
+
+		$this->validateComponentContracts( $components );
+	}
+
+	/**
+	 * Validate that configured component classes implement the required contracts.
+	 *
+	 * Logs a warning if a configured class does not implement its expected interface.
+	 * This prevents silent failures when developers swap component classes.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array<string, string> $components The configured component class map.
+	 *
+	 * @return void
+	 */
+	protected function validateComponentContracts( array $components ): void
+	{
+		$pageContracts = [
+			'hub_page'           => SiteEditorPage::class,
+			'global_styles_page' => SiteEditorPage::class,
+			'part_editor'        => SiteEditorPage::class,
+			'pattern_editor'     => SiteEditorPage::class,
+		];
+
+		$listingContracts = [
+			'template_listing' => SiteEditorListing::class,
+			'part_listing'     => SiteEditorListing::class,
+			'pattern_listing'  => SiteEditorListing::class,
+		];
+
+		$allContracts = array_merge( $pageContracts, $listingContracts );
+
+		foreach ( $allContracts as $key => $contract ) {
+			if ( ! isset( $components[ $key ] ) ) {
+				continue;
+			}
+
+			$class = $components[ $key ];
+
+			if ( ! class_exists( $class ) ) {
+				continue;
+			}
+
+			if ( ! is_subclass_of( $class, $contract ) ) {
+				$this->app->make( 'log' )->warning(
+					"Visual Editor: configured component '{$key}' class [{$class}] does not implement {$contract}.",
+				);
+			}
+		}
 	}
 
 	/**
@@ -954,6 +1035,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			$this->commands( [
 				BlockCacheCommand::class,
 				BlockClearCommand::class,
+				PublishViewsCommand::class,
 			] );
 		}
 	}

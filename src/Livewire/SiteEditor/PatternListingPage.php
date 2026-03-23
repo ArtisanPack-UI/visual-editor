@@ -19,6 +19,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Livewire\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\Contracts\SiteEditorListing;
 use ArtisanPackUI\VisualEditor\Models\Pattern;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
@@ -37,7 +38,7 @@ use Livewire\WithPagination;
  * @since      1.0.0
  */
 #[Layout( 'visual-editor::layouts.site-editor' )]
-class PatternListingPage extends Component
+class PatternListingPage extends Component implements SiteEditorListing
 {
 	use WithPagination;
 
@@ -272,6 +273,24 @@ class PatternListingPage extends Component
 		];
 
 		return veApplyFilters( 've.listing.columns', $columns, 'pattern' );
+	}
+
+	/**
+	 * Get the row actions for a given item.
+	 *
+	 * Default actions (duplicate, lock, delete) are built-in to the view.
+	 * This method returns additional custom actions added via the
+	 * `ve.listing.actions` filter hook.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param object $item The listing row item.
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getRowActions( object $item ): array
+	{
+		return veApplyFilters( 've.listing.actions', [], 'pattern', $item );
 	}
 
 	/**

@@ -19,6 +19,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Livewire\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\Contracts\SiteEditorPage;
 use ArtisanPackUI\VisualEditor\Models\Pattern;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
@@ -37,7 +38,7 @@ use Throwable;
  * @since      1.0.0
  */
 #[Layout( 'visual-editor::layouts.site-editor' )]
-class PatternEditorPage extends Component
+class PatternEditorPage extends Component implements SiteEditorPage
 {
 	/**
 	 * The pattern being edited, or null for create mode.
