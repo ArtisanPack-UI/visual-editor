@@ -127,8 +127,21 @@
 			<div x-show="creating !== area">
 				<div
 					class="flex items-center gap-2"
-					x-data="{ selectedPart: String( assignments[ area ] || '' ) }"
-					x-effect="assignments[ area ] = selectedPart ? parseInt( selectedPart, 10 ) : null"
+					x-data="{ selectedPart: String( assignments[ area ] || '' ), _syncing: false }"
+					x-effect="
+						if ( ! _syncing ) {
+							_syncing = true;
+							assignments[ area ] = selectedPart ? parseInt( selectedPart, 10 ) : null;
+							_syncing = false;
+						}
+					"
+					x-init="$watch( () => assignments[ area ], ( val ) => {
+						if ( ! _syncing ) {
+							_syncing = true;
+							selectedPart = String( val || '' );
+							_syncing = false;
+						}
+					} )"
 				>
 					<select
 						class="select select-sm select-bordered flex-1"

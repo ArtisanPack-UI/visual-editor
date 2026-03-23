@@ -40,22 +40,28 @@
 			return Alpine.store( 'editor' ) || Alpine.store( 'globalStyles' ) || null;
 		},
 
+		_baseSlugFor( entry ) {
+			return entry._baseSlug || entry.slug;
+		},
+
 		isOverridden( index ) {
 			if ( ! this.overrideMode || ! this.baseValues ) return false;
 			const entry = this.entries[ index ];
 			if ( ! entry ) return false;
-			const base = this.baseValues.find( b => b.slug === entry.slug );
+			const baseSlug = this._baseSlugFor( entry );
+			const base = this.baseValues.find( b => b.slug === baseSlug );
 			if ( ! base ) return true;
-			return base.color !== entry.color || base.name !== entry.name;
+			return base.color !== entry.color || base.name !== entry.name || base.slug !== entry.slug;
 		},
 
 		resetToBase( index ) {
 			if ( ! this.overrideMode || ! this.baseValues ) return;
 			const entry = this.entries[ index ];
 			if ( ! entry ) return;
-			const base = this.baseValues.find( b => b.slug === entry.slug );
+			const baseSlug = this._baseSlugFor( entry );
+			const base = this.baseValues.find( b => b.slug === baseSlug );
 			if ( base ) {
-				this.entries[ index ] = { ...base };
+				this.entries[ index ] = { ...base, _baseSlug: base.slug };
 			} else {
 				this.entries.splice( index, 1 );
 			}
@@ -64,6 +70,13 @@
 		},
 
 		init() {
+			if ( this.overrideMode && this.baseValues ) {
+				this.entries = this.entries.map( entry => {
+					const base = this.baseValues.find( b => b.slug === entry.slug );
+					return base ? { ...entry, _baseSlug: entry.slug } : entry;
+				} );
+			}
+
 			this.$watch( 'editColor', ( value ) => {
 				if ( null === this.editing ) return;
 				const store = this._getStore();
