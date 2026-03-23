@@ -178,10 +178,11 @@ class TemplatePartListingPage extends Component
 	 */
 	public function toggleSelectAll(): void
 	{
-		$pageIds = $this->getAllParts()
+		$allItems = $this->getAllParts();
+		$page     = max( 1, (int) request()->input( 'page', 1 ) );
+		$pageIds  = $allItems->forPage( $page, $this->perPage )
 			->pluck( 'id' )
 			->filter()
-			->map( fn ( $id ) => (int) $id )
 			->values()
 			->toArray();
 

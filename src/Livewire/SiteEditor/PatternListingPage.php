@@ -168,7 +168,10 @@ class PatternListingPage extends Component
 	 */
 	public function toggleSelectAll(): void
 	{
-		$pageIds = $this->getQuery()->pluck( 'id' )->toArray();
+		$pageIds = $this->getQuery()
+			->paginate( $this->perPage )
+			->pluck( 'id' )
+			->toArray();
 
 		if ( count( $this->selected ) === count( $pageIds ) ) {
 			$this->selected = [];
@@ -294,9 +297,17 @@ class PatternListingPage extends Component
 	 */
 	public function render(): View
 	{
+		$categories = Pattern::query()
+			->whereNotNull( 'category' )
+			->distinct()
+			->pluck( 'category' )
+			->sort()
+			->values();
+
 		return view( 'visual-editor::livewire.site-editor.pattern-listing', [
-			'patterns' => $this->getQuery()->paginate( $this->perPage ),
-			'columns'  => $this->getColumns(),
+			'patterns'   => $this->getQuery()->paginate( $this->perPage ),
+			'columns'    => $this->getColumns(),
+			'categories' => $categories,
 		] );
 	}
 

@@ -51,6 +51,9 @@
 			{{-- Category filter --}}
 			<select wire:model.live="filterCategory" class="select select-bordered select-sm">
 				<option value="">{{ __( 'visual-editor::ve.pattern_listing_filter_all_categories' ) }}</option>
+				@foreach ( $categories as $category )
+					<option value="{{ $category }}">{{ ucfirst( $category ) }}</option>
+				@endforeach
 			</select>
 
 			{{-- View toggle --}}
