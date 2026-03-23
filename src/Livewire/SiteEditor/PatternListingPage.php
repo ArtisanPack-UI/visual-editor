@@ -133,6 +133,12 @@ class PatternListingPage extends Component
 	 */
 	public function sort( string $field ): void
 	{
+		$allowed = [ 'name', 'category', 'updated_at' ];
+
+		if ( ! in_array( $field, $allowed, true ) ) {
+			return;
+		}
+
 		if ( $this->sortField === $field ) {
 			$this->sortDirection = 'asc' === $this->sortDirection ? 'desc' : 'asc';
 		} else {

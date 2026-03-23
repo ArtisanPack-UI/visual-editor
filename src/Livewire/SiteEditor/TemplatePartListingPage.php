@@ -143,14 +143,18 @@ class TemplatePartListingPage extends Component
 	 */
 	public function sort( string $field ): void
 	{
+		$allowed = [ 'name', 'area', 'status', 'updated_at' ];
+
+		if ( ! in_array( $field, $allowed, true ) ) {
+			return;
+		}
+
 		if ( $this->sortField === $field ) {
 			$this->sortDirection = 'asc' === $this->sortDirection ? 'desc' : 'asc';
 		} else {
 			$this->sortField     = $field;
 			$this->sortDirection = 'asc';
 		}
-
-		// Pagination resets via query string.
 	}
 
 	/**
