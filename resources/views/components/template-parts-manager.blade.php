@@ -147,6 +147,7 @@
 						class="select select-sm select-bordered flex-1"
 						x-model="selectedPart"
 						x-on:change="$nextTick( () => _dispatchChange() )"
+						:aria-label="areaLabels[ area ]"
 					>
 						<option value="">{{ __( 'visual-editor::ve.template_part_select_placeholder' ) }}</option>
 						<template x-for="part in ( partsByArea[ area ] || [] )" :key="part.id">
@@ -200,6 +201,7 @@
 					x-model="newPartName"
 					class="input input-sm input-bordered w-full"
 					placeholder="{{ __( 'visual-editor::ve.template_part_name_placeholder' ) }}"
+					:aria-label="areaLabels[ area ]"
 					x-on:keydown.enter.prevent="confirmCreate()"
 					x-on:keydown.escape.prevent="cancelCreate()"
 				/>

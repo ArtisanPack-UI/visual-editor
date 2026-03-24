@@ -1349,6 +1349,7 @@ return [
 	'listing_bulk_delete'         => 'Delete selected',
 	'listing_bulk_status'         => 'Change status',
 	'listing_selected_count'      => ':count selected',
+	'listing_select_all'          => 'Select all',
 	'listing_per_page'            => 'Per page',
 
 	// Template Listing Page

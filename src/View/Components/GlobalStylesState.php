@@ -80,9 +80,38 @@ class GlobalStylesState extends Component
 		?array $typography = null,
 		?array $spacing = null,
 	) {
-		$this->paletteEntries = $palette ?? app( 'visual-editor.color-palette' )->toStoreFormat();
-		$this->typographyData = $typography ?? app( 'visual-editor.typography-presets' )->toStoreFormat();
-		$this->spacingData    = $spacing ?? app( 'visual-editor.spacing-scale' )->toStoreFormat();
+		/** @var \ArtisanPackUI\VisualEditor\Services\ColorPaletteManager $paletteManager */
+		$paletteManager = app( 'visual-editor.color-palette' );
+
+		if ( null !== $palette ) {
+			$paletteClone = clone $paletteManager;
+			$paletteClone->fromStoreFormat( $palette );
+			$this->paletteEntries = $paletteClone->toStoreFormat();
+		} else {
+			$this->paletteEntries = $paletteManager->toStoreFormat();
+		}
+
+		/** @var \ArtisanPackUI\VisualEditor\Services\TypographyPresetsManager $typographyManager */
+		$typographyManager = app( 'visual-editor.typography-presets' );
+
+		if ( null !== $typography ) {
+			$typographyClone = clone $typographyManager;
+			$typographyClone->fromStoreFormat( $typography );
+			$this->typographyData = $typographyClone->toStoreFormat();
+		} else {
+			$this->typographyData = $typographyManager->toStoreFormat();
+		}
+
+		/** @var \ArtisanPackUI\VisualEditor\Services\SpacingScaleManager $spacingManager */
+		$spacingManager = app( 'visual-editor.spacing-scale' );
+
+		if ( null !== $spacing ) {
+			$spacingClone = clone $spacingManager;
+			$spacingClone->fromStoreFormat( $spacing );
+			$this->spacingData = $spacingClone->toStoreFormat();
+		} else {
+			$this->spacingData = $spacingManager->toStoreFormat();
+		}
 	}
 
 	/**

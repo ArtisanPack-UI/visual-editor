@@ -13,12 +13,10 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Livewire\TemplatePartsCrud;
 use ArtisanPackUI\VisualEditor\Models\TemplatePart;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 
-beforeEach( function (): void {
-	// Run visual editor migrations.
-	$this->artisan( 'migrate' );
-} );
+uses( RefreshDatabase::class );
 
 test( 'template parts crud renders headless component', function (): void {
 	Livewire::test( TemplatePartsCrud::class )

@@ -85,6 +85,7 @@ class SiteEditorLayout extends Component
 	public function hubUrl(): string
 	{
 		$prefix = (string) config( 'artisanpack.visual-editor.site_editor.route_prefix', 'site-editor' );
+		$prefix = (string) veApplyFilters( 've.site-editor.route-prefix', $prefix );
 
 		return url( $prefix );
 	}

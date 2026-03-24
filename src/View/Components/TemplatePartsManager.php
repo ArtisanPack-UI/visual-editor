@@ -90,7 +90,7 @@ class TemplatePartsManager extends Component
 		];
 
 		if ( null !== $availableParts ) {
-			$this->partsByArea = $availableParts;
+			$this->partsByArea = $this->normalizePartsByArea( $availableParts );
 		} else {
 			$this->partsByArea = $this->loadPartsByArea();
 		}
@@ -125,19 +125,39 @@ class TemplatePartsManager extends Component
 		$partsByArea = [];
 
 		foreach ( array_keys( $this->areaLabels ) as $area ) {
-			$parts = collect( $manager->forArea( $area ) )
+			$partsByArea[ $area ] = collect( $manager->forArea( $area ) )->all();
+		}
+
+		return $this->normalizePartsByArea( $partsByArea );
+	}
+
+	/**
+	 * Normalize a parts-by-area array into the expected structure.
+	 *
+	 * Ensures each part entry has id, name, and slug keys, and sorts by name.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, array<int, array<string, mixed>>> $partsByArea Raw parts grouped by area.
+	 *
+	 * @return array<string, array<int, array{id: int|null, name: string, slug: string}>>
+	 */
+	protected function normalizePartsByArea( array $partsByArea ): array
+	{
+		$normalized = [];
+
+		foreach ( $partsByArea as $area => $parts ) {
+			$normalized[ $area ] = collect( $parts )
 				->map( fn ( array $part ): array => [
 					'id'   => $part['id'] ?? null,
-					'name' => $part['name'] ?? $part['slug'],
-					'slug' => $part['slug'],
+					'name' => $part['name'] ?? ( $part['slug'] ?? '' ),
+					'slug' => $part['slug'] ?? '',
 				] )
 				->sortBy( 'name' )
 				->values()
 				->all();
-
-			$partsByArea[ $area ] = $parts;
 		}
 
-		return $partsByArea;
+		return $normalized;
 	}
 }

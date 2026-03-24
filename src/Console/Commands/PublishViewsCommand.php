@@ -141,8 +141,9 @@ class PublishViewsCommand extends Command
 				$source . '/livewire/site-editor/pattern-listing.blade.php'  => 'livewire/site-editor/pattern-listing.blade.php',
 			],
 			'editors' => [
-				$source . '/livewire/site-editor/part-editor.blade.php'    => 'livewire/site-editor/part-editor.blade.php',
-				$source . '/livewire/site-editor/pattern-editor.blade.php' => 'livewire/site-editor/pattern-editor.blade.php',
+				$source . '/livewire/site-editor/part-editor.blade.php'      => 'livewire/site-editor/part-editor.blade.php',
+				$source . '/livewire/site-editor/pattern-editor.blade.php'   => 'livewire/site-editor/pattern-editor.blade.php',
+				$source . '/livewire/site-editor/template-editor.blade.php'  => 'livewire/site-editor/template-editor.blade.php',
 			],
 			'styles' => [
 				$source . '/livewire/site-editor/global-styles-page.blade.php' => 'livewire/site-editor/global-styles-page.blade.php',

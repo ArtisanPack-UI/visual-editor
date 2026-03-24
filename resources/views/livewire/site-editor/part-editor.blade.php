@@ -13,7 +13,9 @@
 
 <div
 	x-data="{
+		saving: false,
 		save() {
+			if ( this.saving ) return;
 			const store = Alpine.store( 'editor' );
 			if ( ! store || ! store.markSaving ) return;
 
@@ -26,6 +28,7 @@
 
 			// Wait a tick for the blur/focusout handler to update the store.
 			setTimeout( () => {
+				this.saving = true;
 				store.markSaving();
 
 				const blocks   = JSON.parse( JSON.stringify( store.blocks ) );
@@ -36,6 +39,8 @@
 					if ( store.markSaved ) store.markSaved();
 				} ).catch( () => {
 					if ( store.markDirty ) store.markDirty();
+				} ).finally( () => {
+					this.saving = false;
 				} );
 			}, 0 );
 		},

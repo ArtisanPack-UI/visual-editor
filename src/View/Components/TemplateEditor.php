@@ -311,7 +311,15 @@ class TemplateEditor extends Component
 		$this->globalBaseStyles = array_replace_recursive( $defaults, $globalBaseStyles );
 
 		$this->templatePartAssignments = $templatePartAssignments;
-		$this->templateSettings        = $templateSettings;
+		$this->templateSettings        = array_replace(
+			[
+				'name'        => '',
+				'slug'        => '',
+				'type'        => '',
+				'contentType' => null,
+			],
+			$templateSettings,
+		);
 	}
 
 	/**

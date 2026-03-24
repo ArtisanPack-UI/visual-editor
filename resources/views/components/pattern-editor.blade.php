@@ -44,7 +44,7 @@
 	:block-variations="$blockVariations"
 	:autosave="$autosave"
 	:autosave-interval="$autosaveInterval"
-	document-status="draft"
+	:document-status="$patternSettings['status'] ?? 'draft'"
 	:show-sidebar="$showSidebar"
 	:mode="$mode"
 	:default-inner-blocks-map="$defaultInnerBlocksMap"
@@ -101,7 +101,7 @@
 						{{ __( 'visual-editor::ve.pattern_editor_back' ) }}
 					</a>
 					<span class="mx-1.5 text-base-content/30">/</span>
-					<span class="text-sm font-medium text-base-content" x-data x-text="Alpine.store( 'editor' )?.patternSettings?.name || '{{ __( 'visual-editor::ve.pattern_editor_untitled' ) }}'"></span>
+					<span class="text-sm font-medium text-base-content" x-data x-text="Alpine.store( 'editor' )?.patternSettings?.name || {{ Js::from( __( 'visual-editor::ve.pattern_editor_untitled' ) ) }}"></span>
 					{{-- Synced badge --}}
 					<template x-if="Alpine.store( 'editor' )?.patternSettings?.isSynced">
 						<span class="badge badge-xs badge-primary ml-1.5">{{ __( 'visual-editor::ve.pattern_editor_synced' ) }}</span>
@@ -171,7 +171,7 @@
 							type="button"
 							class="btn btn-ghost btn-xs btn-square"
 							x-on:click="selectParent()"
-							:aria-label="'{{ __( 'visual-editor::ve.select_parent_block', [ 'name' => ':name' ] ) }}'.replace( ':name', parentBlockNames[ parentBlock?.type ] || parentBlock?.type || '' )"
+							:aria-label="{{ Js::from( __( 'visual-editor::ve.select_parent_block', [ 'name' => ':name' ] ) ) }}.replace( ':name', parentBlockNames[ parentBlock?.type ] || parentBlock?.type || '' )"
 							:title="parentBlockNames[ parentBlock?.type ] || parentBlock?.type || ''"
 						>
 							<span class="w-4 h-4 flex items-center justify-center" x-html="parentBlockIcons[ parentBlock?.type ] || ''"></span>

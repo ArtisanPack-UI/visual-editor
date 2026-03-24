@@ -66,7 +66,10 @@
 			if ( ! step ) return;
 			const baseList = isCustom ? ( this.baseValues.customSteps || [] ) : ( this.baseValues.scale || [] );
 			const base = baseList.find( b => b.slug === step.slug );
-			if ( ! base ) return;
+			if ( ! base ) {
+				if ( isCustom ) list.splice( index, 1 );
+				return;
+			}
 			list.splice( index, 1, { ...base } );
 			this._dispatch();
 		},

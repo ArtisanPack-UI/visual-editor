@@ -43,7 +43,7 @@
 	:block-variations="$blockVariations"
 	:autosave="$autosave"
 	:autosave-interval="$autosaveInterval"
-	document-status="draft"
+	:document-status="$partSettings['status'] ?? 'draft'"
 	:show-sidebar="$showSidebar"
 	:mode="$mode"
 	:default-inner-blocks-map="$defaultInnerBlocksMap"
@@ -166,7 +166,7 @@
 							type="button"
 							class="btn btn-ghost btn-xs btn-square"
 							x-on:click="selectParent()"
-							:aria-label="'{{ __( 'visual-editor::ve.select_parent_block', [ 'name' => ':name' ] ) }}'.replace( ':name', parentBlockNames[ parentBlock?.type ] || parentBlock?.type || '' )"
+							:aria-label="{{ Js::from( __( 'visual-editor::ve.select_parent_block', [ 'name' => ':name' ] ) ) }}.replace( ':name', parentBlockNames[ parentBlock?.type ] || parentBlock?.type || '' )"
 							:title="parentBlockNames[ parentBlock?.type ] || parentBlock?.type || ''"
 						>
 							<span class="w-4 h-4 flex items-center justify-center" x-html="parentBlockIcons[ parentBlock?.type ] || ''"></span>

@@ -44,12 +44,13 @@
 					type="text"
 					wire:model.live.debounce.300ms="search"
 					placeholder="{{ __( 'visual-editor::ve.listing_search_placeholder' ) }}"
+					aria-label="{{ __( 'visual-editor::ve.listing_search_placeholder' ) }}"
 					class="input input-bordered input-sm w-full"
 				/>
 			</div>
 
 			{{-- Category filter --}}
-			<select wire:model.live="filterCategory" class="select select-bordered select-sm">
+			<select wire:model.live="filterCategory" class="select select-bordered select-sm" aria-label="{{ __( 'visual-editor::ve.pattern_listing_filter_all_categories' ) }}">
 				<option value="">{{ __( 'visual-editor::ve.pattern_listing_filter_all_categories' ) }}</option>
 				@foreach ( $categories as $category )
 					<option value="{{ $category }}">{{ ucfirst( $category ) }}</option>
@@ -62,6 +63,7 @@
 					wire:click="setViewMode( 'table' )"
 					@class([ 'btn btn-sm join-item', 'btn-active' => 'table' === $viewMode ])
 					title="{{ __( 'visual-editor::ve.listing_view_table' ) }}"
+					aria-label="{{ __( 'visual-editor::ve.listing_view_table' ) }}"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.375 19.5h17.25m-17.25 0a1.125 1.125 0 0 1-1.125-1.125M3.375 19.5h7.5c.621 0 1.125-.504 1.125-1.125m-9.75 0V5.625m0 12.75v-1.5c0-.621.504-1.125 1.125-1.125m18.375 2.625V5.625m0 12.75c0 .621-.504 1.125-1.125 1.125m1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125m0 3.75h-7.5A1.125 1.125 0 0 1 12 18.375m9.75-12.75c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125m19.5 0v1.5c0 .621-.504 1.125-1.125 1.125M2.25 5.625v1.5c0 .621.504 1.125 1.125 1.125m0 0h17.25m-17.25 0h7.5c.621 0 1.125.504 1.125 1.125M3.375 8.25c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125m17.25-3.75h-7.5c-.621 0-1.125.504-1.125 1.125m8.625-1.125c.621 0 1.125.504 1.125 1.125v1.5c0 .621-.504 1.125-1.125 1.125m-17.25 0h7.5m-7.5 0c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125M12 10.875v-1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 10.875c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125M10.875 12h-7.5m8.625 0h7.5M12 12v1.5m0 1.5c0 .621-.504 1.125-1.125 1.125M12 15c0 .621.504 1.125 1.125 1.125m-2.25 0c.621 0 1.125.504 1.125 1.125m0 0v1.5" /></svg>
 				</button>
@@ -69,6 +71,7 @@
 					wire:click="setViewMode( 'grid' )"
 					@class([ 'btn btn-sm join-item', 'btn-active' => 'grid' === $viewMode ])
 					title="{{ __( 'visual-editor::ve.listing_view_grid' ) }}"
+					aria-label="{{ __( 'visual-editor::ve.listing_view_grid' ) }}"
 				>
 					<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25a2.25 2.25 0 0 1-2.25-2.25v-2.25Z" /></svg>
 				</button>
@@ -94,25 +97,34 @@
 					<thead>
 						<tr>
 							<th class="w-10">
-								<input type="checkbox" class="checkbox checkbox-sm" wire:click="toggleSelectAll" @checked( count( $selected ) > 0 && count( $selected ) === $patterns->count() ) />
+								<input type="checkbox" class="checkbox checkbox-sm" wire:click="toggleSelectAll" @checked( count( $selected ) > 0 && count( $selected ) === $patterns->count() ) aria-label="{{ __( 'visual-editor::ve.listing_select_all' ) }}" />
 							</th>
 							@foreach ( $columns as $column )
 								<th
 									@if ( $column['sortable'] ?? false )
-										class="cursor-pointer select-none hover:bg-base-200 transition-colors"
-										wire:click="sort( '{{ $column['key'] }}' )"
+										aria-sort="{{ ( $sortField === $column['key'] ) ? ( 'asc' === $sortDirection ? 'ascending' : 'descending' ) : 'none' }}"
 									@endif
 								>
-									<div class="flex items-center gap-1">
-										{{ $column['label'] }}
-										@if ( ( $column['sortable'] ?? false ) && $sortField === $column['key'] )
-											@if ( 'asc' === $sortDirection )
-												<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" /></svg>
-											@else
-												<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+									@if ( $column['sortable'] ?? false )
+										<button
+											type="button"
+											class="flex items-center gap-1 cursor-pointer select-none hover:text-primary transition-colors w-full"
+											wire:click="sort( '{{ $column['key'] }}' )"
+										>
+											{{ $column['label'] }}
+											@if ( $sortField === $column['key'] )
+												@if ( 'asc' === $sortDirection )
+													<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 15.75 7.5-7.5 7.5 7.5" /></svg>
+												@else
+													<svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" /></svg>
+												@endif
 											@endif
-										@endif
-									</div>
+										</button>
+									@else
+										<div class="flex items-center gap-1">
+											{{ $column['label'] }}
+										</div>
+									@endif
 								</th>
 							@endforeach
 							<th class="w-28 text-right">{{ __( 'visual-editor::ve.listing_actions' ) }}</th>
@@ -122,7 +134,7 @@
 						@forelse ( $patterns as $pattern )
 							<tr wire:key="row-{{ $pattern->id }}" class="hover">
 								<td>
-									<input type="checkbox" class="checkbox checkbox-sm" value="{{ $pattern->id }}" wire:model.live="selected" />
+									<input type="checkbox" class="checkbox checkbox-sm" value="{{ $pattern->id }}" wire:model.live="selected" aria-label="{{ $pattern->name }}" />
 								</td>
 								<td>
 									<a href="{{ route( 'visual-editor.patterns.edit', [ 'slug' => $pattern->slug ] ) }}" class="link link-hover font-medium" wire:navigate>
@@ -164,7 +176,7 @@
 				@forelse ( $patterns as $pattern )
 					<div wire:key="card-{{ $pattern->id }}" class="group relative card bg-base-100 border border-base-300 shadow-sm hover:shadow-md hover:border-primary/30 transition-all">
 						<div class="absolute top-3 left-3 z-10">
-							<input type="checkbox" class="checkbox checkbox-sm" value="{{ $pattern->id }}" wire:model.live="selected" />
+							<input type="checkbox" class="checkbox checkbox-sm" value="{{ $pattern->id }}" wire:model.live="selected" aria-label="{{ $pattern->name }}" />
 						</div>
 						<div class="card-body p-5">
 							<div class="w-full h-28 bg-base-200 rounded-lg mb-3 flex items-center justify-center">

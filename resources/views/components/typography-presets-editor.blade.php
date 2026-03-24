@@ -296,10 +296,18 @@
 					@php
 						$knownFamilies = array_keys( $availableFonts[ $slot ] ?? [] );
 						$currentFamily = $typographyData['fontFamilies'][ $slot ] ?? null;
+						$baseFamily    = $baseValues['fontFamilies'][ $slot ] ?? null;
+						$extraOptions  = [];
+						if ( $currentFamily && ! in_array( $currentFamily, $knownFamilies, true ) ) {
+							$extraOptions[ $currentFamily ] = $currentFamily;
+						}
+						if ( $baseFamily && $baseFamily !== $currentFamily && ! in_array( $baseFamily, $knownFamilies, true ) ) {
+							$extraOptions[ $baseFamily ] = $baseFamily;
+						}
 					@endphp
-					@if ( $currentFamily && ! in_array( $currentFamily, $knownFamilies, true ) )
-						<option value="{{ $currentFamily }}">{{ $currentFamily }}</option>
-					@endif
+					@foreach ( $extraOptions as $family => $label )
+						<option value="{{ $family }}">{{ $label }}</option>
+					@endforeach
 					@foreach ( $availableFonts[ $slot ] ?? [] as $family => $name )
 						<option value="{{ $family }}">{{ $name }}</option>
 					@endforeach

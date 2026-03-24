@@ -117,10 +117,12 @@
 			if ( ! slug || ! this.editName.trim() || ! color ) return
 			const duplicate = this.entries.some( ( e, i ) => i !== this.editing && e.slug === slug )
 			if ( duplicate ) return
+				const currentEntry = this.entries[ this.editing ]
 			this.entries[ this.editing ] = {
-				name:  this.editName.trim(),
-				slug:  slug,
-				color: color,
+				_baseSlug: currentEntry._baseSlug ?? currentEntry.slug,
+				name:      this.editName.trim(),
+				slug:      slug,
+				color:     color,
 			}
 			this.editing      = null
 			this._savedPalette = null
@@ -202,7 +204,10 @@
 		},
 
 		resetToDefaults() {
-			this.entries = {{ Js::from( $defaultEntries ) }}
+			const resetEntries = this.overrideMode && this.baseValues
+				? this.baseValues.map( ( entry ) => ( { ...entry, _baseSlug: entry.slug } ) )
+				: {{ Js::from( $defaultEntries ) }}
+			this.entries       = JSON.parse( JSON.stringify( resetEntries ) )
 			this.editing       = null
 			this.adding        = false
 			this._savedPalette = null

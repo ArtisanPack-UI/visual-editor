@@ -134,10 +134,12 @@
 						{{-- Block gap --}}
 						if ( gs.spacing && gs.spacing.blockGap ) {
 							let gapValue = gs.spacing.blockGap;
-							if ( gs.spacing.scale && Array.isArray( gs.spacing.scale ) ) {
-								const match = gs.spacing.scale.find( s => s.slug === gapValue );
-								if ( match ) gapValue = match.value;
-							}
+							const allSteps = [
+								...( gs.spacing.scale || [] ),
+								...( gs.spacing.customSteps || [] ),
+							];
+							const match = allSteps.find( s => s.slug === gapValue );
+							if ( match ) gapValue = match.value;
 							root.style.setProperty( '--ve-block-gap', gapValue );
 							newVars.push( '--ve-block-gap' );
 						}

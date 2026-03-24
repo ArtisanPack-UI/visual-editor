@@ -104,8 +104,8 @@
 			id="ve-pattern-slug"
 			type="text"
 			class="input input-sm input-bordered w-full font-mono text-xs"
-			:value="settings.slug || ''"
-			x-on:change="autoSlug = false; update( 'slug', $event.target.value )"
+			x-model="settings.slug"
+			x-on:input="autoSlug = false; update( 'slug', settings.slug )"
 		/>
 	</div>
 
@@ -163,8 +163,8 @@
 			id="ve-pattern-keywords"
 			type="text"
 			class="input input-sm input-bordered w-full"
-			:value="settings.keywords || ''"
-			x-on:change="update( 'keywords', $event.target.value )"
+			x-model="settings.keywords"
+			x-on:input="update( 'keywords', settings.keywords )"
 			placeholder="{{ __( 'visual-editor::ve.pattern_editor_keywords_placeholder' ) }}"
 		/>
 		<p class="text-xs text-base-content/40">
