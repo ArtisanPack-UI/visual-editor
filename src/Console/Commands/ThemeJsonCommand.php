@@ -151,10 +151,12 @@ class ThemeJsonCommand extends Command
 	 */
 	protected function handleValidate(): int
 	{
+		$loader      = app( ThemeJsonLoader::class );
 		$configPaths = config( 'artisanpack.visual-editor.theme_json.paths', [] );
 
-		// Fallback: if no paths configured, check the default location.
-		if ( [] === $configPaths ) {
+		// Fallback: only use default location when both config and
+		// registered paths are empty.
+		if ( [] === $configPaths && [] === $loader->getRegisteredPaths() ) {
 			$defaultPath = resource_path( 'theme.json' );
 
 			if ( ! file_exists( $defaultPath ) ) {
@@ -168,7 +170,6 @@ class ThemeJsonCommand extends Command
 			$configPaths = [ $defaultPath ];
 		}
 
-		$loader = app( ThemeJsonLoader::class );
 		$valid  = $loader->loadPaths( $configPaths );
 		$errors = $loader->getErrors();
 

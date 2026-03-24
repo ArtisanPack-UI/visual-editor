@@ -1354,6 +1354,7 @@
 			store.defaultBlockType = {{ Js::from( $defaultBlockType ) }};
 			store.meta             = {{ Js::from( $initialMeta ) }};
 			store.globalStyles     = { palette: {{ Js::from( $initialPalette ) }}, typography: {{ Js::from( $initialTypography ) }}, spacing: {{ Js::from( $initialSpacing ) }} };
+			store._syncGlobalCssVariables();
 			store.showPatternModal = false;
 			store.leftSidebarTab   = 'blocks';
 

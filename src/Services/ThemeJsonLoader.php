@@ -744,11 +744,15 @@ class ThemeJsonLoader
 				$this->errors[] = __( 'visual-editor::ve.theme_json_font_families_not_object' );
 			} else {
 				$allowed = TypographyPresetsManager::ALLOWED_FAMILY_SLOTS;
-				foreach ( array_keys( $families ) as $slot ) {
+				foreach ( $families as $slot => $value ) {
 					if ( ! in_array( $slot, $allowed, true ) ) {
 						$this->errors[] = __( 'visual-editor::ve.theme_json_invalid_font_slot', [
 							'slot'    => $slot,
 							'allowed' => implode( ', ', $allowed ),
+						] );
+					} elseif ( ! is_string( $value ) ) {
+						$this->errors[] = __( 'visual-editor::ve.theme_json_font_family_not_string', [
+							'slot' => $slot,
 						] );
 					}
 				}

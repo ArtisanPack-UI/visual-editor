@@ -1559,6 +1559,7 @@ return [
 	'theme_json_typography_not_object' => 'The "settings.typography" field must be an object.',
 	'theme_json_font_families_not_object' => 'The "settings.typography.fontFamilies" field must be an object.',
 	'theme_json_invalid_font_slot'     => 'Invalid font family slot ":slot". Allowed slots: :allowed.',
+	'theme_json_font_family_not_string' => 'Font family value for slot ":slot" must be a string.',
 	'theme_json_elements_not_object'   => 'The "settings.typography.elements" field must be an object.',
 	'theme_json_invalid_element'       => 'Invalid typography element ":element". Allowed elements: :allowed.',
 	'theme_json_spacing_not_object'    => 'The "settings.spacing" field must be an object.',
