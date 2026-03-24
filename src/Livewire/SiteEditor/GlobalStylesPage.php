@@ -89,6 +89,30 @@ class GlobalStylesPage extends Component implements SiteEditorPage
 	public array $revisions = [];
 
 	/**
+	 * Rendered template part previews grouped by area.
+	 *
+	 * Loaded once during mount and cached for the component lifetime.
+	 * Not a public Livewire property to avoid serialisation overhead.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<string, array<int, array{name: string, slug: string, area: string, html: string}>>
+	 */
+	protected array $cachedPreviewParts = [];
+
+	/**
+	 * Rendered pattern previews grouped by category.
+	 *
+	 * Loaded once during mount and cached for the component lifetime.
+	 * Not a public Livewire property to avoid serialisation overhead.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<string, array<int, array{name: string, slug: string, category: string|null, html: string}>>
+	 */
+	protected array $cachedPreviewPatterns = [];
+
+	/**
 	 * Authorize access and load data when the component mounts.
 	 *
 	 * @since 1.0.0
@@ -104,6 +128,8 @@ class GlobalStylesPage extends Component implements SiteEditorPage
 		}
 
 		$this->loadStyles();
+		$this->cachedPreviewParts    = $this->loadPreviewParts();
+		$this->cachedPreviewPatterns = $this->loadPreviewPatterns();
 	}
 
 	/**
@@ -255,8 +281,8 @@ class GlobalStylesPage extends Component implements SiteEditorPage
 			'palette'         => $this->palette,
 			'typography'      => $this->typography,
 			'spacing'         => $this->spacing,
-			'previewParts'    => $this->loadPreviewParts(),
-			'previewPatterns' => $this->loadPreviewPatterns(),
+			'previewParts'    => $this->cachedPreviewParts,
+			'previewPatterns' => $this->cachedPreviewPatterns,
 		] );
 	}
 

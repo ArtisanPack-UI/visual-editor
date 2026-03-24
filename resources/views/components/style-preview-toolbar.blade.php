@@ -86,6 +86,10 @@
 			class="flex items-center gap-0.5 rounded-lg bg-gray-100 p-0.5"
 			role="radiogroup"
 			aria-label="{{ __( 'visual-editor::ve.style_preview_compare_label' ) }}"
+			x-on:keydown.arrow-left.prevent="switchToLivePreview(); $nextTick( () => $el.querySelector( '[aria-checked=true]' )?.focus() )"
+			x-on:keydown.arrow-up.prevent="switchToLivePreview(); $nextTick( () => $el.querySelector( '[aria-checked=true]' )?.focus() )"
+			x-on:keydown.arrow-right.prevent="switchToSavedPreview(); $nextTick( () => $el.querySelector( '[aria-checked=true]' )?.focus() )"
+			x-on:keydown.arrow-down.prevent="switchToSavedPreview(); $nextTick( () => $el.querySelector( '[aria-checked=true]' )?.focus() )"
 		>
 			<button
 				type="button"

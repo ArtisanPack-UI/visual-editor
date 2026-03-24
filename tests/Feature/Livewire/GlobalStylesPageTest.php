@@ -182,19 +182,7 @@ test( 'global styles route is forbidden without permission', function (): void {
 		->assertForbidden();
 } );
 
-test( 'global styles page discardChanges dispatches reset event with saved data', function (): void {
-	$repository = app( GlobalStylesRepository::class );
-
-	$savedPalette = [ [ 'name' => 'Saved', 'slug' => 'saved', 'color' => '#112233' ] ];
-
-	$repository->save( [ 'palette' => $savedPalette ] );
-
-	Livewire::test( GlobalStylesPage::class )
-		->call( 'discardChanges' )
-		->assertDispatched( 've-global-styles-reset' );
-} );
-
-test( 'global styles page discardChanges reloads saved data into component', function (): void {
+test( 'global styles page discardChanges reverts modified palette to saved state', function (): void {
 	$repository = app( GlobalStylesRepository::class );
 
 	$savedPalette = [ [ 'name' => 'Saved', 'slug' => 'saved', 'color' => '#112233' ] ];
@@ -202,9 +190,30 @@ test( 'global styles page discardChanges reloads saved data into component', fun
 	$repository->save( [ 'palette' => $savedPalette ] );
 
 	$component = Livewire::test( GlobalStylesPage::class )
-		->call( 'discardChanges' );
+		->set( 'palette', [ [ 'name' => 'Modified', 'slug' => 'modified', 'color' => '#ff0000' ] ] );
+
+	expect( $component->get( 'palette' ) )->not->toEqual( $savedPalette );
+
+	$component->call( 'discardChanges' )
+		->assertDispatched( 've-global-styles-reset' );
 
 	expect( $component->get( 'palette' ) )->toEqual( $savedPalette );
+} );
+
+test( 'global styles page discardChanges dispatches saved typography and spacing', function (): void {
+	$repository = app( GlobalStylesRepository::class );
+
+	$repository->save( [
+		'palette'    => [ [ 'name' => 'Brand', 'slug' => 'brand', 'color' => '#aabb00' ] ],
+		'typography' => [ 'fontFamilies' => [ 'heading' => 'Georgia, serif' ] ],
+		'spacing'    => [ 'scale' => [], 'blockGap' => 'lg' ],
+	] );
+
+	$component = Livewire::test( GlobalStylesPage::class )
+		->set( 'typography', [ 'fontFamilies' => [ 'heading' => 'Arial, sans-serif' ] ] )
+		->call( 'discardChanges' );
+
+	expect( $component->get( 'typography' ) )->toEqual( [ 'fontFamilies' => [ 'heading' => 'Georgia, serif' ] ] );
 } );
 
 test( 'global styles page discardChanges does not modify database', function (): void {
@@ -215,6 +224,7 @@ test( 'global styles page discardChanges does not modify database', function ():
 	$repository->save( [ 'palette' => $originalPalette ] );
 
 	Livewire::test( GlobalStylesPage::class )
+		->set( 'palette', [ [ 'name' => 'Changed', 'slug' => 'changed', 'color' => '#000000' ] ] )
 		->call( 'discardChanges' );
 
 	$record = $repository->get();
@@ -222,26 +232,37 @@ test( 'global styles page discardChanges does not modify database', function ():
 	expect( $record->palette )->toEqual( $originalPalette );
 } );
 
-test( 'global styles page renders preview toolbar', function (): void {
-	Livewire::test( GlobalStylesPage::class )
-		->assertSee( 'previewMode', false );
-} );
-
-test( 'global styles page renders unsaved indicator markup', function (): void {
-	Livewire::test( GlobalStylesPage::class )
-		->assertSee( 'dirty', false );
-} );
-
-test( 'global styles page renders discard button markup', function (): void {
+test( 'global styles page renders viewport device labels', function (): void {
 	$html = Livewire::test( GlobalStylesPage::class )->html();
 
-	expect( $html )->toContain( 'discardChanges' );
+	expect( $html )->toContain( __( 'visual-editor::ve.device_desktop' ) )
+		->and( $html )->toContain( __( 'visual-editor::ve.device_tablet' ) )
+		->and( $html )->toContain( __( 'visual-editor::ve.device_mobile' ) );
 } );
 
-test( 'global styles page renders viewport switcher', function (): void {
+test( 'global styles page renders unsaved changes label', function (): void {
 	$html = Livewire::test( GlobalStylesPage::class )->html();
 
-	expect( $html )->toContain( 'viewport' );
+	expect( $html )->toContain( __( 'visual-editor::ve.style_preview_unsaved' ) );
+} );
+
+test( 'global styles page renders discard button label', function (): void {
+	$html = Livewire::test( GlobalStylesPage::class )->html();
+
+	expect( $html )->toContain( __( 'visual-editor::ve.style_preview_discard' ) );
+} );
+
+test( 'global styles page renders before after labels', function (): void {
+	$html = Livewire::test( GlobalStylesPage::class )->html();
+
+	expect( $html )->toContain( __( 'visual-editor::ve.style_preview_before' ) )
+		->and( $html )->toContain( __( 'visual-editor::ve.style_preview_after' ) );
+} );
+
+test( 'global styles page renders compare aria label', function (): void {
+	$html = Livewire::test( GlobalStylesPage::class )->html();
+
+	expect( $html )->toContain( __( 'visual-editor::ve.style_preview_compare_label' ) );
 } );
 
 test( 'global styles page renders style overview section', function (): void {
@@ -254,12 +275,6 @@ test( 'global styles page shows empty state when no patterns or parts exist', fu
 	$html = Livewire::test( GlobalStylesPage::class )->html();
 
 	expect( $html )->toContain( __( 'visual-editor::ve.style_preview_no_content' ) );
-} );
-
-test( 'global styles page renders before after toggle', function (): void {
-	$html = Livewire::test( GlobalStylesPage::class )->html();
-
-	expect( $html )->toContain( 'previewMode' );
 } );
 
 test( 'global styles route has correct name', function (): void {

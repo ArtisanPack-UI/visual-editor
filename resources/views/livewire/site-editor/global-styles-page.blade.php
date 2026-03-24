@@ -9,7 +9,6 @@
  * Features:
  * - Real-time CSS custom property injection
  * - Responsive viewport preview (desktop/tablet/mobile)
- * - Preview contexts (default, blog post, archive)
  * - Before/after comparison toggle
  * - Unsaved changes indicator with discard option
  *
@@ -35,9 +34,91 @@
 
 		{{-- Snapshot of the last-saved styles for before/after comparison --}}
 		savedStyles: {
-			palette: JSON.parse( JSON.stringify( {{ Js::from( $initialPalette ) }} ) ),
-			typography: JSON.parse( JSON.stringify( {{ Js::from( $initialTypography ) }} ) ),
-			spacing: JSON.parse( JSON.stringify( {{ Js::from( $initialSpacing ) }} ) ),
+			palette: this._deepClone( {{ Js::from( $initialPalette ) }} ),
+			typography: this._deepClone( {{ Js::from( $initialTypography ) }} ),
+			spacing: this._deepClone( {{ Js::from( $initialSpacing ) }} ),
+		},
+
+		{{-- Deep-clone a value to break reactive references --}}
+		_deepClone( obj ) {
+			return JSON.parse( JSON.stringify( obj ) );
+		},
+
+		{{-- Apply a styles object to the document root as CSS custom properties --}}
+		_applyStylesToRoot( styles ) {
+			const root    = document.documentElement;
+			const newVars = [];
+
+			{{-- Colors --}}
+			if ( styles.palette && Array.isArray( styles.palette ) ) {
+				styles.palette.forEach( entry => {
+					if ( entry.slug && entry.color ) {
+						const varName = '--ve-color-' + entry.slug;
+						root.style.setProperty( varName, entry.color );
+						newVars.push( varName );
+					}
+				} );
+			}
+
+			{{-- Typography font families --}}
+			if ( styles.typography && styles.typography.fontFamilies ) {
+				Object.entries( styles.typography.fontFamilies ).forEach( ( [ slot, value ] ) => {
+					const varName = '--ve-font-' + slot;
+					root.style.setProperty( varName, value );
+					newVars.push( varName );
+				} );
+			}
+
+			{{-- Typography elements --}}
+			if ( styles.typography && styles.typography.elements ) {
+				Object.entries( styles.typography.elements ).forEach( ( [ element, props ] ) => {
+					if ( typeof props === 'object' && props !== null ) {
+						Object.entries( props ).forEach( ( [ prop, value ] ) => {
+							const kebab   = prop.replace( /([a-z])([A-Z])/g, '$1-$2' ).toLowerCase();
+							const varName = '--ve-text-' + element + '-' + kebab;
+							root.style.setProperty( varName, value );
+							newVars.push( varName );
+						} );
+					}
+				} );
+			}
+
+			{{-- Spacing scale --}}
+			if ( styles.spacing && styles.spacing.scale && Array.isArray( styles.spacing.scale ) ) {
+				styles.spacing.scale.forEach( step => {
+					if ( step.slug && step.value ) {
+						const varName = '--ve-spacing-' + step.slug;
+						root.style.setProperty( varName, step.value );
+						newVars.push( varName );
+					}
+				} );
+			}
+
+			{{-- Spacing custom steps --}}
+			if ( styles.spacing && styles.spacing.customSteps && Array.isArray( styles.spacing.customSteps ) ) {
+				styles.spacing.customSteps.forEach( step => {
+					if ( step.slug && step.value ) {
+						const varName = '--ve-spacing-' + step.slug;
+						root.style.setProperty( varName, step.value );
+						newVars.push( varName );
+					}
+				} );
+			}
+
+			{{-- Block gap --}}
+			if ( styles.spacing && styles.spacing.blockGap ) {
+				let gapValue = styles.spacing.blockGap;
+				const allSteps = [
+					...( styles.spacing.scale || [] ),
+					...( styles.spacing.customSteps || [] ),
+				];
+				const match = allSteps.find( s => s.slug === gapValue );
+				if ( match ) gapValue = match.value;
+				root.style.setProperty( '--ve-block-gap', gapValue );
+				newVars.push( '--ve-block-gap' );
+			}
+
+			return newVars;
 		},
 
 		get viewportWidth() {
@@ -202,9 +283,9 @@
 				{{-- Snapshot the new saved state --}}
 				const store = Alpine.store( 'editor' );
 				this.savedStyles = {
-					palette: JSON.parse( JSON.stringify( store.globalStyles.palette ) ),
-					typography: JSON.parse( JSON.stringify( store.globalStyles.typography ) ),
-					spacing: JSON.parse( JSON.stringify( store.globalStyles.spacing ) ),
+					palette: this._deepClone( store.globalStyles.palette ),
+					typography: this._deepClone( store.globalStyles.typography ),
+					spacing: this._deepClone( store.globalStyles.spacing ),
 				};
 
 				setTimeout( () => { this.saveStatus = 'idle'; }, 2000 );
@@ -221,9 +302,9 @@
 
 					{{-- Update the saved snapshot --}}
 					this.savedStyles = {
-						palette: JSON.parse( JSON.stringify( store.globalStyles.palette ) ),
-						typography: JSON.parse( JSON.stringify( store.globalStyles.typography ) ),
-						spacing: JSON.parse( JSON.stringify( store.globalStyles.spacing ) ),
+						palette: this._deepClone( store.globalStyles.palette ),
+						typography: this._deepClone( store.globalStyles.typography ),
+						spacing: this._deepClone( store.globalStyles.spacing ),
 					};
 				}
 				this.dirty       = false;
@@ -253,6 +334,7 @@
 		},
 
 		handleDiscard() {
+			if ( ! confirm( {{ Js::from( __( 'visual-editor::ve.style_preview_discard_confirm' ) ) }} ) ) return;
 			$wire.discardChanges();
 		},
 
@@ -268,55 +350,7 @@
 		switchToSavedPreview() {
 			if ( 'saved' === this.previewMode ) return;
 			this.previewMode = 'saved';
-			this._applySavedCssVariables();
-		},
-
-		{{-- Apply saved styles' CSS variables to the document root --}}
-		_applySavedCssVariables() {
-			const root = document.documentElement;
-			const ss   = this.savedStyles;
-
-			if ( ss.palette && Array.isArray( ss.palette ) ) {
-				ss.palette.forEach( entry => {
-					if ( entry.slug && entry.color ) {
-						root.style.setProperty( '--ve-color-' + entry.slug, entry.color );
-					}
-				} );
-			}
-
-			if ( ss.typography && ss.typography.fontFamilies ) {
-				Object.entries( ss.typography.fontFamilies ).forEach( ( [ slot, value ] ) => {
-					root.style.setProperty( '--ve-font-' + slot, value );
-				} );
-			}
-
-			if ( ss.typography && ss.typography.elements ) {
-				Object.entries( ss.typography.elements ).forEach( ( [ element, props ] ) => {
-					if ( typeof props === 'object' && props !== null ) {
-						Object.entries( props ).forEach( ( [ prop, value ] ) => {
-							const kebab = prop.replace( /([a-z])([A-Z])/g, '$1-$2' ).toLowerCase();
-							root.style.setProperty( '--ve-text-' + element + '-' + kebab, value );
-						} );
-					}
-				} );
-			}
-
-			if ( ss.spacing && ss.spacing.scale && Array.isArray( ss.spacing.scale ) ) {
-				ss.spacing.scale.forEach( step => {
-					if ( step.slug && step.value ) {
-						root.style.setProperty( '--ve-spacing-' + step.slug, step.value );
-					}
-				} );
-			}
-
-			if ( ss.spacing && ss.spacing.blockGap ) {
-				let gapValue = ss.spacing.blockGap;
-				if ( ss.spacing.scale && Array.isArray( ss.spacing.scale ) ) {
-					const match = ss.spacing.scale.find( s => s.slug === gapValue );
-					if ( match ) gapValue = match.value;
-				}
-				root.style.setProperty( '--ve-block-gap', gapValue );
-			}
+			this._applyStylesToRoot( this.savedStyles );
 		},
 	}"
 	class="flex h-full"

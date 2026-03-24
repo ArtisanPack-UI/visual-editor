@@ -17,7 +17,7 @@
 		<h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
 			{{ __( 'visual-editor::ve.global_styles_preview_colors' ) }}
 		</h3>
-		<div class="grid grid-cols-4 gap-3 sm:grid-cols-6" x-data>
+		<div class="grid grid-cols-4 gap-3 sm:grid-cols-6">
 			<template x-for="entry in Alpine.store( 'editor' )?.globalStyles?.palette || []" :key="entry.slug">
 				<div class="flex flex-col items-center gap-1.5">
 					<div
@@ -60,7 +60,7 @@
 		<h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
 			{{ __( 'visual-editor::ve.global_styles_preview_spacing' ) }}
 		</h3>
-		<div class="space-y-2" x-data>
+		<div class="space-y-2">
 			<template x-for="step in Alpine.store( 'editor' )?.globalStyles?.spacing?.scale || []" :key="step.slug">
 				<div class="flex items-center gap-3">
 					<span class="w-8 text-xs text-gray-400 text-right tabular-nums" x-text="step.slug"></span>

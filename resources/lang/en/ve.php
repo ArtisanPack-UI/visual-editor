@@ -1340,6 +1340,7 @@ return [
 	'style_preview_after'           => 'After',
 	'style_preview_unsaved'         => 'Unsaved',
 	'style_preview_discard'         => 'Discard',
+	'style_preview_discard_confirm' => 'Discard all unsaved style changes?',
 
 	// Style Preview Sections
 	'style_preview_section_overview'       => 'Style Overview',
