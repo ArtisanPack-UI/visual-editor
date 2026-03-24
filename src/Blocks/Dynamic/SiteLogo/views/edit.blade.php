@@ -41,10 +41,10 @@
 
 	$imgStyle = '';
 	if ( $imgWidth ) {
-		$imgStyle .= 'width: ' . ( is_numeric( $imgWidth ) ? $imgWidth . 'px' : $imgWidth ) . ';';
+		$imgStyle .= 'width: ' . ( is_numeric( $imgWidth ) ? $imgWidth . 'px' : veSanitizeCssDimension( (string) $imgWidth, '' ) ) . ';';
 	}
 	if ( $imgHeight ) {
-		$imgStyle .= ' height: ' . ( is_numeric( $imgHeight ) ? $imgHeight . 'px' : $imgHeight ) . ';';
+		$imgStyle .= ' height: ' . ( is_numeric( $imgHeight ) ? $imgHeight . 'px' : veSanitizeCssDimension( (string) $imgHeight, '' ) ) . ';';
 	}
 @endphp
 

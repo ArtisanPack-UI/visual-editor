@@ -63,6 +63,15 @@ test( 'site tagline block supports typography', function (): void {
 		->and( $supports['typography']['fontSize'] )->toBeTrue();
 } );
 
+test( 'site tagline block supports spacing', function (): void {
+	$block    = new SiteTaglineBlock();
+	$supports = $block->getSupports();
+
+	expect( $supports )->toHaveKey( 'spacing' )
+		->and( $supports['spacing']['margin'] )->toBeTrue()
+		->and( $supports['spacing']['padding'] )->toBeTrue();
+} );
+
 test( 'site tagline block supports color', function (): void {
 	$block    = new SiteTaglineBlock();
 	$supports = $block->getSupports();

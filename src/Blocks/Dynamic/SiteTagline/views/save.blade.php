@@ -51,7 +51,7 @@
 	}
 @endphp
 
-@if ( $tagline )
+@if ( '' !== $tagline )
 	<{{ $tag }}
 		class="{{ $classes }}"
 		@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif

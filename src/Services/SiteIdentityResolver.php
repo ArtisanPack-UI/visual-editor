@@ -39,6 +39,15 @@ namespace ArtisanPackUI\VisualEditor\Services;
 class SiteIdentityResolver
 {
 	/**
+	 * Allowed URL schemes for site identity URLs.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @var array<int, string>
+	 */
+	private const SAFE_SCHEMES = [ '', 'http', 'https' ];
+
+	/**
 	 * Get the site title.
 	 *
 	 * Resolution order:
@@ -94,7 +103,7 @@ class SiteIdentityResolver
 	{
 		$logoUrl = config( 'artisanpack.visual-editor.site_identity.logo_url', '' );
 
-		return (string) veApplyFilters( 've.site-identity.logo-url', $logoUrl );
+		return $this->sanitizeUrl( (string) veApplyFilters( 've.site-identity.logo-url', $logoUrl ) );
 	}
 
 	/**
@@ -117,7 +126,7 @@ class SiteIdentityResolver
 			$homeUrl = config( 'app.url', '/' );
 		}
 
-		return (string) veApplyFilters( 've.site-identity.home-url', $homeUrl );
+		return $this->sanitizeUrl( (string) veApplyFilters( 've.site-identity.home-url', $homeUrl ), '/' );
 	}
 
 	/**
@@ -161,5 +170,34 @@ class SiteIdentityResolver
 			'logoAlt' => $this->getLogoAlt(),
 			'homeUrl' => $this->getHomeUrl(),
 		];
+	}
+
+	/**
+	 * Validate that a URL uses a safe scheme.
+	 *
+	 * Returns the URL unchanged if the scheme is safe (http, https,
+	 * or relative). Returns the fallback for unsafe schemes like
+	 * javascript: or data:.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string $url      The URL to validate.
+	 * @param string $fallback The fallback value for unsafe URLs.
+	 *
+	 * @return string
+	 */
+	private function sanitizeUrl( string $url, string $fallback = '' ): string
+	{
+		if ( '' === $url ) {
+			return $fallback;
+		}
+
+		$scheme = strtolower( (string) parse_url( $url, PHP_URL_SCHEME ) );
+
+		if ( in_array( $scheme, self::SAFE_SCHEMES, true ) ) {
+			return $url;
+		}
+
+		return $fallback;
 	}
 }

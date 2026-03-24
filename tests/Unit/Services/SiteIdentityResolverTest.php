@@ -97,6 +97,82 @@ test( 'get logo alt returns config override when set', function (): void {
 	expect( $resolver->getLogoAlt() )->toBe( 'Custom Alt' );
 } );
 
+test( 'filter hook overrides site title', function (): void {
+	config()->set( 'artisanpack.visual-editor.site_identity.title', 'Original' );
+
+	addFilter( 've.site-identity.title', fn () => 'Hooked Title' );
+
+	$resolver = new SiteIdentityResolver();
+
+	expect( $resolver->getTitle() )->toBe( 'Hooked Title' );
+
+	removeAllFilters( 've.site-identity.title' );
+} );
+
+test( 'filter hook overrides site tagline', function (): void {
+	config()->set( 'artisanpack.visual-editor.site_identity.tagline', 'Original' );
+
+	addFilter( 've.site-identity.tagline', fn () => 'Hooked Tagline' );
+
+	$resolver = new SiteIdentityResolver();
+
+	expect( $resolver->getTagline() )->toBe( 'Hooked Tagline' );
+
+	removeAllFilters( 've.site-identity.tagline' );
+} );
+
+test( 'filter hook overrides logo url', function (): void {
+	config()->set( 'artisanpack.visual-editor.site_identity.logo_url', '/original.png' );
+
+	addFilter( 've.site-identity.logo-url', fn () => 'https://cdn.example.com/logo.png' );
+
+	$resolver = new SiteIdentityResolver();
+
+	expect( $resolver->getLogoUrl() )->toBe( 'https://cdn.example.com/logo.png' );
+
+	removeAllFilters( 've.site-identity.logo-url' );
+} );
+
+test( 'filter hook overrides logo alt', function (): void {
+	config()->set( 'artisanpack.visual-editor.site_identity.logo_alt', 'Original' );
+
+	addFilter( 've.site-identity.logo-alt', fn () => 'Hooked Alt' );
+
+	$resolver = new SiteIdentityResolver();
+
+	expect( $resolver->getLogoAlt() )->toBe( 'Hooked Alt' );
+
+	removeAllFilters( 've.site-identity.logo-alt' );
+} );
+
+test( 'filter hook overrides home url', function (): void {
+	config()->set( 'artisanpack.visual-editor.site_identity.home_url', 'https://original.com' );
+
+	addFilter( 've.site-identity.home-url', fn () => 'https://hooked.com' );
+
+	$resolver = new SiteIdentityResolver();
+
+	expect( $resolver->getHomeUrl() )->toBe( 'https://hooked.com' );
+
+	removeAllFilters( 've.site-identity.home-url' );
+} );
+
+test( 'unsafe url scheme is rejected for logo url', function (): void {
+	config()->set( 'artisanpack.visual-editor.site_identity.logo_url', 'javascript:alert(1)' );
+
+	$resolver = new SiteIdentityResolver();
+
+	expect( $resolver->getLogoUrl() )->toBe( '' );
+} );
+
+test( 'unsafe url scheme is rejected for home url', function (): void {
+	config()->set( 'artisanpack.visual-editor.site_identity.home_url', 'data:text/html,<h1>evil</h1>' );
+
+	$resolver = new SiteIdentityResolver();
+
+	expect( $resolver->getHomeUrl() )->toBe( '/' );
+} );
+
 test( 'to array returns all identity values', function (): void {
 	config()->set( 'artisanpack.visual-editor.site_identity.title', 'Site Name' );
 	config()->set( 'artisanpack.visual-editor.site_identity.tagline', 'Site Tagline' );

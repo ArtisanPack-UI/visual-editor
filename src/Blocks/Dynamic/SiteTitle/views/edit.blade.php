@@ -49,7 +49,7 @@
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
 >
 	@if ( $isLink )
-		<a href="#" onclick="event.preventDefault()" style="pointer-events: auto; cursor: default;">{{ $siteTitle }}</a>
+		<a href="#" data-ve-preview-link style="pointer-events: none; cursor: default; color: inherit; text-decoration: inherit;">{{ $siteTitle }}</a>
 	@else
 		{{ $siteTitle }}
 	@endif
