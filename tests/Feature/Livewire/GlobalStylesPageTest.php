@@ -182,6 +182,86 @@ test( 'global styles route is forbidden without permission', function (): void {
 		->assertForbidden();
 } );
 
+test( 'global styles page discardChanges dispatches reset event with saved data', function (): void {
+	$repository = app( GlobalStylesRepository::class );
+
+	$savedPalette = [ [ 'name' => 'Saved', 'slug' => 'saved', 'color' => '#112233' ] ];
+
+	$repository->save( [ 'palette' => $savedPalette ] );
+
+	Livewire::test( GlobalStylesPage::class )
+		->call( 'discardChanges' )
+		->assertDispatched( 've-global-styles-reset' );
+} );
+
+test( 'global styles page discardChanges reloads saved data into component', function (): void {
+	$repository = app( GlobalStylesRepository::class );
+
+	$savedPalette = [ [ 'name' => 'Saved', 'slug' => 'saved', 'color' => '#112233' ] ];
+
+	$repository->save( [ 'palette' => $savedPalette ] );
+
+	$component = Livewire::test( GlobalStylesPage::class )
+		->call( 'discardChanges' );
+
+	expect( $component->get( 'palette' ) )->toEqual( $savedPalette );
+} );
+
+test( 'global styles page discardChanges does not modify database', function (): void {
+	$repository = app( GlobalStylesRepository::class );
+
+	$originalPalette = [ [ 'name' => 'Original', 'slug' => 'original', 'color' => '#aabbcc' ] ];
+
+	$repository->save( [ 'palette' => $originalPalette ] );
+
+	Livewire::test( GlobalStylesPage::class )
+		->call( 'discardChanges' );
+
+	$record = $repository->get();
+
+	expect( $record->palette )->toEqual( $originalPalette );
+} );
+
+test( 'global styles page renders preview toolbar', function (): void {
+	Livewire::test( GlobalStylesPage::class )
+		->assertSee( 'previewMode', false );
+} );
+
+test( 'global styles page renders unsaved indicator markup', function (): void {
+	Livewire::test( GlobalStylesPage::class )
+		->assertSee( 'dirty', false );
+} );
+
+test( 'global styles page renders discard button markup', function (): void {
+	$html = Livewire::test( GlobalStylesPage::class )->html();
+
+	expect( $html )->toContain( 'discardChanges' );
+} );
+
+test( 'global styles page renders viewport switcher', function (): void {
+	$html = Livewire::test( GlobalStylesPage::class )->html();
+
+	expect( $html )->toContain( 'viewport' );
+} );
+
+test( 'global styles page renders style overview section', function (): void {
+	$html = Livewire::test( GlobalStylesPage::class )->html();
+
+	expect( $html )->toContain( __( 'visual-editor::ve.style_preview_section_overview' ) );
+} );
+
+test( 'global styles page shows empty state when no patterns or parts exist', function (): void {
+	$html = Livewire::test( GlobalStylesPage::class )->html();
+
+	expect( $html )->toContain( __( 'visual-editor::ve.style_preview_no_content' ) );
+} );
+
+test( 'global styles page renders before after toggle', function (): void {
+	$html = Livewire::test( GlobalStylesPage::class )->html();
+
+	expect( $html )->toContain( 'previewMode' );
+} );
+
 test( 'global styles route has correct name', function (): void {
 	$routeUrl = route( 'visual-editor.global-styles' );
 	$prefix   = config( 'artisanpack.visual-editor.site_editor.route_prefix', 'site-editor' );

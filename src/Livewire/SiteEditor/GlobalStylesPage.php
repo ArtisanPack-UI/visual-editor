@@ -20,12 +20,17 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Livewire\SiteEditor;
 
 use ArtisanPackUI\VisualEditor\Contracts\SiteEditorPage;
+use ArtisanPackUI\VisualEditor\Models\Pattern;
+use ArtisanPackUI\VisualEditor\Models\TemplatePart;
+use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesRepository;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Throwable;
 
 /**
  * Livewire component for the Global Styles admin page.
@@ -141,6 +146,27 @@ class GlobalStylesPage extends Component implements SiteEditorPage
 	}
 
 	/**
+	 * Discard unsaved style changes and revert to the last saved state.
+	 *
+	 * Dispatches a reset event with the currently persisted data so the
+	 * Alpine store reverts to the saved values without modifying the database.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	public function discardChanges(): void
+	{
+		$this->loadStyles();
+
+		$this->dispatch( 've-global-styles-reset', [
+			'palette'    => $this->palette,
+			'typography' => $this->typography,
+			'spacing'    => $this->spacing,
+		] );
+	}
+
+	/**
 	 * Reset global styles to defaults.
 	 *
 	 * @since 1.0.0
@@ -215,6 +241,10 @@ class GlobalStylesPage extends Component implements SiteEditorPage
 	/**
 	 * Render the global styles page.
 	 *
+	 * Loads active template parts and patterns, renders their block
+	 * content via BlockRenderer, and passes the results to the view
+	 * for display in the live preview panel.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @return View
@@ -222,9 +252,11 @@ class GlobalStylesPage extends Component implements SiteEditorPage
 	public function render(): View
 	{
 		return view( 'visual-editor::livewire.site-editor.global-styles-page', [
-			'palette'    => $this->palette,
-			'typography' => $this->typography,
-			'spacing'    => $this->spacing,
+			'palette'         => $this->palette,
+			'typography'      => $this->typography,
+			'spacing'         => $this->spacing,
+			'previewParts'    => $this->loadPreviewParts(),
+			'previewPatterns' => $this->loadPreviewPatterns(),
 		] );
 	}
 
@@ -275,5 +307,102 @@ class GlobalStylesPage extends Component implements SiteEditorPage
 				];
 			} )
 			->toArray();
+	}
+
+	/**
+	 * Load active template parts and render their content for preview.
+	 *
+	 * Groups template parts by area (header, footer, sidebar, custom)
+	 * and renders each part's block content to HTML via BlockRenderer.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, array<int, array{name: string, slug: string, area: string, html: string}>>
+	 */
+	protected function loadPreviewParts(): array
+	{
+		$grouped = [];
+
+		try {
+			$renderer = app( BlockRenderer::class );
+			$parts    = TemplatePart::active()->get();
+
+			foreach ( $parts as $part ) {
+				$blocks = $part->content ?? [];
+
+				if ( [] === $blocks ) {
+					continue;
+				}
+
+				$html = $renderer->render( $blocks );
+
+				if ( '' === trim( $html ) ) {
+					continue;
+				}
+
+				$area = $part->area ?? 'custom';
+
+				$grouped[ $area ][] = [
+					'name' => $part->name,
+					'slug' => $part->slug,
+					'area' => $area,
+					'html' => $html,
+				];
+			}
+		} catch ( Throwable $e ) {
+			Log::warning( 'GlobalStylesPage: failed to load preview parts', [
+				'error' => $e->getMessage(),
+			] );
+		}
+
+		return $grouped;
+	}
+
+	/**
+	 * Load active patterns and render their content for preview.
+	 *
+	 * Returns an array of rendered pattern previews grouped by category.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, array<int, array{name: string, slug: string, category: string|null, html: string}>>
+	 */
+	protected function loadPreviewPatterns(): array
+	{
+		$grouped = [];
+
+		try {
+			$renderer = app( BlockRenderer::class );
+			$patterns = Pattern::where( 'status', 'active' )->get();
+
+			foreach ( $patterns as $pattern ) {
+				$blocks = $pattern->blocks ?? [];
+
+				if ( [] === $blocks ) {
+					continue;
+				}
+
+				$html = $renderer->render( $blocks );
+
+				if ( '' === trim( $html ) ) {
+					continue;
+				}
+
+				$category = $pattern->category ?? 'uncategorized';
+
+				$grouped[ $category ][] = [
+					'name'     => $pattern->name,
+					'slug'     => $pattern->slug,
+					'category' => $pattern->category,
+					'html'     => $html,
+				];
+			}
+		} catch ( Throwable $e ) {
+			Log::warning( 'GlobalStylesPage: failed to load preview patterns', [
+				'error' => $e->getMessage(),
+			] );
+		}
+
+		return $grouped;
 	}
 }

@@ -1329,6 +1329,29 @@ return [
 	'global_styles_preview_body_text'  => 'This is a sample paragraph demonstrating your body text typography settings. It shows how regular content will appear with the current font family, size, and line height.',
 	'global_styles_preview_small_text' => 'This is smaller text used for captions and supporting content.',
 
+	// Style Preview Toolbar
+	'style_preview_viewport_label' => 'Preview viewport',
+	'style_preview_context_label'  => 'Preview context',
+	'style_preview_context_default' => 'Style Overview',
+	'style_preview_context_blog'    => 'Blog Post',
+	'style_preview_context_archive' => 'Archive Page',
+	'style_preview_compare_label'   => 'Compare styles',
+	'style_preview_before'          => 'Before',
+	'style_preview_after'           => 'After',
+	'style_preview_unsaved'         => 'Unsaved',
+	'style_preview_discard'         => 'Discard',
+
+	// Style Preview Sections
+	'style_preview_section_overview'       => 'Style Overview',
+	'style_preview_section_parts'          => 'Template Parts',
+	'style_preview_section_patterns'       => 'Patterns',
+	'style_preview_no_content'             => 'Create template parts or patterns to preview how your style changes affect real content.',
+	'style_preview_area_header'            => 'Header',
+	'style_preview_area_footer'            => 'Footer',
+	'style_preview_area_sidebar'           => 'Sidebar',
+	'style_preview_area_custom'            => 'Custom',
+	'style_preview_category_uncategorized' => 'Uncategorized',
+
 	// Listing Pages (shared)
 	'listing_search_placeholder'  => 'Search…',
 	'listing_no_results'          => 'No items found.',
