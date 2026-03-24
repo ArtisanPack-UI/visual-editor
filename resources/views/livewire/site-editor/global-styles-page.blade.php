@@ -32,7 +32,6 @@
 		viewport: 'desktop',
 		previewMode: 'live',
 		savedStyles: null,
-		_lastAppliedVars: [],
 
 		{{-- Deep-clone a value to break reactive references --}}
 		_deepClone( obj ) {
@@ -114,15 +113,22 @@
 				newVars.push( '--ve-block-gap' );
 			}
 
-			{{-- Remove stale vars from the previous apply --}}
+			{{-- Remove stale vars using the store's single registry --}}
+			const store    = Alpine.store( 'editor' );
 			const newVarSet = new Set( newVars );
-			this._lastAppliedVars.forEach( varName => {
-				if ( ! newVarSet.has( varName ) ) {
-					root.style.removeProperty( varName );
-				}
-			} );
 
-			this._lastAppliedVars = newVars;
+			if ( store && store._lastCssVars ) {
+				store._lastCssVars.forEach( varName => {
+					if ( ! newVarSet.has( varName ) ) {
+						root.style.removeProperty( varName );
+					}
+				} );
+			}
+
+			{{-- Update the shared registry so the next mode switch cleans up correctly --}}
+			if ( store ) {
+				store._lastCssVars = newVars;
+			}
 
 			return newVars;
 		},
@@ -146,14 +152,21 @@
 				spacing: this._deepClone( {{ Js::from( $initialSpacing ) }} ),
 			};
 
-			{{-- Register a lightweight editor store for the style editors --}}
-			if ( ! Alpine.store( 'editor' ) ) {
+			{{-- Register or reinitialize the editor store with fresh data.
+			     On remount the store may already exist with stale state, so
+			     always sync globalStyles from the Blade payload. --}}
+			const freshStyles = {
+				palette: JSON.parse( JSON.stringify( {{ Js::from( $initialPalette ) }} ) ),
+				typography: JSON.parse( JSON.stringify( {{ Js::from( $initialTypography ) }} ) ),
+				spacing: JSON.parse( JSON.stringify( {{ Js::from( $initialSpacing ) }} ) ),
+			};
+
+			if ( Alpine.store( 'editor' ) ) {
+				const store          = Alpine.store( 'editor' );
+				store.globalStyles   = freshStyles;
+			} else {
 				Alpine.store( 'editor', {
-					globalStyles: {
-						palette: JSON.parse( JSON.stringify( {{ Js::from( $initialPalette ) }} ) ),
-						typography: JSON.parse( JSON.stringify( {{ Js::from( $initialTypography ) }} ) ),
-						spacing: JSON.parse( JSON.stringify( {{ Js::from( $initialSpacing ) }} ) ),
-					},
+					globalStyles: freshStyles,
 					_lastCssVars: [],
 
 					_pushHistory() {},
@@ -310,6 +323,12 @@
 					typography: this._deepClone( store.globalStyles.typography ),
 					spacing: this._deepClone( store.globalStyles.spacing ),
 				};
+
+				{{-- If viewing the "before" preview, refresh the canvas with the
+				     updated saved snapshot so it reflects the just-saved state. --}}
+				if ( 'saved' === this.previewMode ) {
+					this._applyStylesToRoot( this.savedStyles );
+				}
 
 				setTimeout( () => { this.saveStatus = 'idle'; }, 2000 );
 			} );
