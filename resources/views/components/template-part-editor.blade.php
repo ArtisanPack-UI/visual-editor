@@ -56,12 +56,14 @@
 	x-data="{
 		init() {
 			const settings = {{ Js::from( $partSettings ) }};
+			let attempts = 0;
+			const maxAttempts = 50;
 			const assign = () => {
 				const store = Alpine.store( 'editor' );
 				if ( store ) {
 					store.partSettings = settings;
-				} else {
-					this.$nextTick( () => assign() );
+				} else if ( ++attempts < maxAttempts ) {
+					setTimeout( assign, 10 );
 				}
 			};
 			assign();

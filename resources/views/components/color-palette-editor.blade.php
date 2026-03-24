@@ -315,7 +315,6 @@
 					</div>
 					<div x-show="editPickerOpen" x-cloak>
 						<x-ve-color-picker
-							:value="'#000000'"
 							x-bind:value="editColor || '#000000'"
 							x-on:ve-color-picker-change.stop="editColor = $event.detail.hex"
 							:show-format-toggle="false"
@@ -396,7 +395,6 @@
 			</div>
 			<div x-show="addPickerOpen" x-cloak>
 				<x-ve-color-picker
-					:value="'#000000'"
 					x-bind:value="newColor || '#000000'"
 					x-on:ve-color-picker-change.stop="newColor = $event.detail.hex"
 					:show-format-toggle="false"

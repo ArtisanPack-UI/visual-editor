@@ -53,7 +53,7 @@ class TemplatePartsManager extends Component
 	 *
 	 * @since 1.0.0
 	 *
-	 * @var array<string, array<int, array{id: int, name: string, slug: string}>>
+	 * @var array<string, array<int, array{id: int|null, name: string, slug: string}>>
 	 */
 	public array $partsByArea;
 

@@ -73,14 +73,15 @@
 		</label>
 		<select
 			class="select select-sm select-bordered w-full"
-			x-on:change="update( 'type', $event.target.value )"
+			x-model="settings.type"
+			x-on:change="update( 'type', settings.type )"
 		>
-			<option value="page" :selected="( settings.type || 'page' ) === 'page'">{{ __( 'visual-editor::ve.template_type_page' ) }}</option>
-			<option value="archive" :selected="settings.type === 'archive'">{{ __( 'visual-editor::ve.template_type_archive' ) }}</option>
-			<option value="single" :selected="settings.type === 'single'">{{ __( 'visual-editor::ve.template_type_single' ) }}</option>
-			<option value="search" :selected="settings.type === 'search'">{{ __( 'visual-editor::ve.template_type_search' ) }}</option>
-			<option value="404" :selected="settings.type === '404'">{{ __( 'visual-editor::ve.template_type_404' ) }}</option>
-			<option value="custom" :selected="settings.type === 'custom'">{{ __( 'visual-editor::ve.template_type_custom' ) }}</option>
+			<option value="page">{{ __( 'visual-editor::ve.template_type_page' ) }}</option>
+			<option value="archive">{{ __( 'visual-editor::ve.template_type_archive' ) }}</option>
+			<option value="single">{{ __( 'visual-editor::ve.template_type_single' ) }}</option>
+			<option value="search">{{ __( 'visual-editor::ve.template_type_search' ) }}</option>
+			<option value="404">{{ __( 'visual-editor::ve.template_type_404' ) }}</option>
+			<option value="custom">{{ __( 'visual-editor::ve.template_type_custom' ) }}</option>
 		</select>
 	</div>
 

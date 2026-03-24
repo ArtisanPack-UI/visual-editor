@@ -321,7 +321,9 @@
 							const textColor      = veSanitizeCssColor( block.attributes?.textColor || '' );
 							const bgColor        = veSanitizeCssColor( block.attributes?.backgroundColor || '' );
 							const gap            = veSanitizeCssDimension( block.attributes?.gap || '' );
-							const tag            = block.attributes?.tag || 'div';
+							const allowedTags    = [ 'div', 'section', 'article', 'aside', 'header', 'footer', 'main', 'nav', 'figure', 'span', 'p', 'ul', 'ol', 'li' ];
+							const tagRaw         = ( block.attributes?.tag || 'div' ).toLowerCase();
+							const tag            = allowedTags.includes( tagRaw ) ? tagRaw : 'div';
 							const useFlexbox     = block.attributes?.useFlexbox || false;
 							const fillHeight     = block.attributes?.fillHeight || false;
 							const innerSpacing   = block.attributes?.innerSpacing || 'normal';

@@ -21,6 +21,7 @@ use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternEditorPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternListingPage;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateEditorPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateListingPage;
 use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplatePartListingPage;
 
@@ -38,6 +39,10 @@ test( 'PartEditorPage implements SiteEditorPage', function (): void {
 
 test( 'PatternEditorPage implements SiteEditorPage', function (): void {
 	expect( new PatternEditorPage() )->toBeInstanceOf( SiteEditorPage::class );
+} );
+
+test( 'TemplateEditorPage implements SiteEditorPage', function (): void {
+	expect( new TemplateEditorPage() )->toBeInstanceOf( SiteEditorPage::class );
 } );
 
 test( 'TemplateListingPage implements SiteEditorListing', function (): void {
@@ -96,6 +101,12 @@ test( 'config contains default pattern_editor class', function (): void {
 	$components = config( 'artisanpack.visual-editor.site_editor.components' );
 
 	expect( $components['pattern_editor'] )->toBe( PatternEditorPage::class );
+} );
+
+test( 'config contains default template_editor class', function (): void {
+	$components = config( 'artisanpack.visual-editor.site_editor.components' );
+
+	expect( $components['template_editor'] )->toBe( TemplateEditorPage::class );
 } );
 
 test( 'routes resolve hub page from config', function (): void {

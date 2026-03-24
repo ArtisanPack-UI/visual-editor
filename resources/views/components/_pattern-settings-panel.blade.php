@@ -148,8 +148,8 @@
 			id="ve-pattern-description"
 			class="textarea textarea-sm textarea-bordered w-full"
 			rows="3"
-			:value="settings.description || ''"
-			x-on:change="update( 'description', $event.target.value )"
+			x-model="settings.description"
+			x-on:change="update( 'description', settings.description )"
 			placeholder="{{ __( 'visual-editor::ve.pattern_editor_description_placeholder' ) }}"
 		></textarea>
 	</div>

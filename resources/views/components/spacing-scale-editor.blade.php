@@ -548,6 +548,10 @@
 					<option value="%">%</option>
 					<option value="vw">vw</option>
 					<option value="vh">vh</option>
+					<option value="vmin">vmin</option>
+					<option value="vmax">vmax</option>
+					<option value="ch">ch</option>
+					<option value="ex">ex</option>
 				</select>
 			</div>
 			<div class="flex flex-col gap-1">

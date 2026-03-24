@@ -16,6 +16,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 uses( RefreshDatabase::class );
@@ -27,9 +28,11 @@ uses( RefreshDatabase::class );
  */
 function createHubTestUser(): Authenticatable
 {
+	$email = 'hub-test-' . Str::random( 8 ) . '@example.com';
+
 	$id = DB::table( 'users' )->insertGetId( [
 		'name'       => 'Test User',
-		'email'      => 'hub-test@example.com',
+		'email'      => $email,
 		'created_at' => now(),
 		'updated_at' => now(),
 	] );
@@ -39,7 +42,7 @@ function createHubTestUser(): Authenticatable
 	};
 	$user->id    = $id;
 	$user->name  = 'Test User';
-	$user->email = 'hub-test@example.com';
+	$user->email = $email;
 
 	return $user;
 }

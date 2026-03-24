@@ -177,8 +177,17 @@ class PatternEditorPage extends Component implements SiteEditorPage
 
 		if ( $this->isCreateMode ) {
 			// Generate a unique slug if one already exists.
+			$maxTries = 10;
+			$tries    = 0;
+
 			while ( Pattern::where( 'slug', $data['slug'] )->exists() ) {
 				$data['slug'] = $slug . '-' . Str::random( 6 );
+				$tries++;
+
+				if ( $tries >= $maxTries ) {
+					$data['slug'] = $slug . '-' . Str::uuid()->toString();
+					break;
+				}
 			}
 
 			$this->pattern = Pattern::create( $data );

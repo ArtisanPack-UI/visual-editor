@@ -305,6 +305,7 @@ return [
 			'global_styles_page' => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\GlobalStylesPage::class,
 			'part_editor'        => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage::class,
 			'pattern_editor'     => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternEditorPage::class,
+			'template_editor'    => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateEditorPage::class,
 			'layout'             => ArtisanPackUI\VisualEditor\View\Components\SiteEditorLayout::class,
 		],
 

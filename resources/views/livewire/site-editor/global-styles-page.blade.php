@@ -174,14 +174,14 @@
 			} );
 
 			{{-- Listen for save/reset confirmations --}}
-			Livewire.on( 've-global-styles-saved', () => {
+			const offSaved = Livewire.on( 've-global-styles-saved', () => {
 				this.dirty      = false;
 				this.saving     = false;
 				this.saveStatus = 'saved';
 				setTimeout( () => { this.saveStatus = 'idle'; }, 2000 );
 			} );
 
-			Livewire.on( 've-global-styles-reset', ( data ) => {
+			const offReset = Livewire.on( 've-global-styles-reset', ( data ) => {
 				if ( data && data[0] ) {
 					const d     = data[0];
 					const store = Alpine.store( 'editor' );
@@ -192,6 +192,11 @@
 				}
 				this.dirty      = false;
 				this.saveStatus = 'idle';
+			} );
+
+			this.$cleanup( () => {
+				offSaved();
+				offReset();
 			} );
 		},
 

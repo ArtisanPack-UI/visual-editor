@@ -17,6 +17,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 
 uses( RefreshDatabase::class );
@@ -28,9 +29,11 @@ uses( RefreshDatabase::class );
  */
 function createPatternListingTestUser(): Authenticatable
 {
+	$email = 'pattern-listing-test-' . Str::random( 8 ) . '@example.com';
+
 	$id = DB::table( 'users' )->insertGetId( [
 		'name'       => 'Test User',
-		'email'      => 'pattern-listing-test@example.com',
+		'email'      => $email,
 		'created_at' => now(),
 		'updated_at' => now(),
 	] );
@@ -40,7 +43,7 @@ function createPatternListingTestUser(): Authenticatable
 	};
 	$user->id    = $id;
 	$user->name  = 'Test User';
-	$user->email = 'pattern-listing-test@example.com';
+	$user->email = $email;
 
 	return $user;
 }
@@ -56,7 +59,7 @@ function createTestPattern( array $overrides = [] ): Pattern
 {
 	return Pattern::create( array_merge( [
 		'name'     => 'Test Pattern',
-		'slug'     => 'test-pattern-' . Illuminate\Support\Str::random( 6 ),
+		'slug'     => 'test-pattern-' . Str::random( 6 ),
 		'blocks'   => [],
 		'category' => 'layout',
 	], $overrides ) );

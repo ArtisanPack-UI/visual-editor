@@ -29,8 +29,8 @@
 		class="w-2 h-2 rounded-full"
 		role="img"
 		:class="{{ $overriddenExpr }} ? 'bg-warning' : 'bg-success/40'"
-		:title="{{ $overriddenExpr }} ? '{{ __( 'visual-editor::ve.overridden' ) }}' : '{{ __( 'visual-editor::ve.inherited_from_global' ) }}'"
-		:aria-label="{{ $nameExpr }} + ': ' + ( {{ $overriddenExpr }} ? '{{ __( 'visual-editor::ve.overridden' ) }}' : '{{ __( 'visual-editor::ve.inherited_from_global' ) }}' )"
+		:title="{{ $overriddenExpr }} ? @js(__( 'visual-editor::ve.overridden' )) : @js(__( 'visual-editor::ve.inherited_from_global' ))"
+		:aria-label="{{ $nameExpr }} + ': ' + ( {{ $overriddenExpr }} ? @js(__( 'visual-editor::ve.overridden' )) : @js(__( 'visual-editor::ve.inherited_from_global' )) )"
 	></span>
 
 	{{-- Reset button (only shown when overridden) --}}
