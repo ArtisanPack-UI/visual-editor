@@ -66,6 +66,7 @@
 
 				init() {
 					this._migrateGroupVariations( this.blocks );
+					this._syncGlobalCssVariables();
 
 					if ( this.autosave ) {
 						this._startAutosave();

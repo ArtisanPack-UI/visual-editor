@@ -384,6 +384,83 @@
 		font-size: var(--ve-text-body-font-size, 1rem);
 		line-height: var(--ve-text-body-line-height, 1.6);
 	}
+
+	/* Typography: apply heading font and element presets */
+	.ve-editor-canvas h1,
+	.ve-editor-canvas h2,
+	.ve-editor-canvas h3,
+	.ve-editor-canvas h4,
+	.ve-editor-canvas h5,
+	.ve-editor-canvas h6,
+	.ve-editor-canvas [data-type="heading"] [contenteditable] {
+		font-family: var(--ve-font-heading, inherit);
+	}
+
+	.ve-editor-canvas h1,
+	.ve-editor-canvas [data-type="heading"][data-level="1"] [contenteditable] {
+		font-size: var(--ve-text-h1-font-size, 2.25rem);
+		font-weight: var(--ve-text-h1-font-weight, 800);
+		line-height: var(--ve-text-h1-line-height, 1.2);
+		letter-spacing: var(--ve-text-h1-letter-spacing, normal);
+	}
+
+	.ve-editor-canvas h2,
+	.ve-editor-canvas [data-type="heading"][data-level="2"] [contenteditable] {
+		font-size: var(--ve-text-h2-font-size, 1.875rem);
+		font-weight: var(--ve-text-h2-font-weight, 700);
+		line-height: var(--ve-text-h2-line-height, 1.3);
+		letter-spacing: var(--ve-text-h2-letter-spacing, normal);
+	}
+
+	.ve-editor-canvas h3,
+	.ve-editor-canvas [data-type="heading"][data-level="3"] [contenteditable] {
+		font-size: var(--ve-text-h3-font-size, 1.5rem);
+		font-weight: var(--ve-text-h3-font-weight, 600);
+		line-height: var(--ve-text-h3-line-height, 1.4);
+		letter-spacing: var(--ve-text-h3-letter-spacing, normal);
+	}
+
+	.ve-editor-canvas h4,
+	.ve-editor-canvas [data-type="heading"][data-level="4"] [contenteditable] {
+		font-size: var(--ve-text-h4-font-size, 1.25rem);
+		font-weight: var(--ve-text-h4-font-weight, 600);
+		line-height: var(--ve-text-h4-line-height, 1.35);
+	}
+
+	.ve-editor-canvas h5,
+	.ve-editor-canvas [data-type="heading"][data-level="5"] [contenteditable] {
+		font-size: var(--ve-text-h5-font-size, 1.125rem);
+		font-weight: var(--ve-text-h5-font-weight, 600);
+		line-height: var(--ve-text-h5-line-height, 1.4);
+	}
+
+	.ve-editor-canvas h6,
+	.ve-editor-canvas [data-type="heading"][data-level="6"] [contenteditable] {
+		font-size: var(--ve-text-h6-font-size, 1rem);
+		font-weight: var(--ve-text-h6-font-weight, 600);
+		line-height: var(--ve-text-h6-line-height, 1.4);
+	}
+
+	/* Typography: code/pre elements */
+	.ve-editor-canvas code,
+	.ve-editor-canvas pre,
+	.ve-editor-canvas [data-type="code"] [contenteditable] {
+		font-family: var(--ve-font-mono, monospace);
+	}
+
+	/* Typography: blockquote */
+	.ve-editor-canvas blockquote,
+	.ve-editor-canvas [data-type="quote"] [contenteditable]:not(.ve-quote-citation) {
+		font-size: var(--ve-text-blockquote-font-size, inherit);
+		font-style: var(--ve-text-blockquote-font-style, italic);
+		line-height: var(--ve-text-blockquote-line-height, 1.6);
+	}
+
+	/* Typography: small/caption */
+	.ve-editor-canvas small {
+		font-size: var(--ve-text-small-font-size, 0.875rem);
+		line-height: var(--ve-text-small-line-height, 1.5);
+	}
 </style>
 @endpush
 @endonce
