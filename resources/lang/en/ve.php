@@ -1254,6 +1254,8 @@ return [
 	'spacing_remove_step'           => 'Remove step',
 	'spacing_step_name'             => 'Step name',
 	'spacing_step_slug'             => 'Step slug',
+	'spacing_value'                 => 'Spacing value',
+	'spacing_unit'                  => 'Spacing unit',
 	'spacing_slug_exists'           => 'A step with this slug already exists.',
 	'spacing_edit_required'         => 'Name and value are required.',
 	'spacing_invalid_value'         => 'Enter a valid CSS dimension (e.g. 1rem, 16px).',

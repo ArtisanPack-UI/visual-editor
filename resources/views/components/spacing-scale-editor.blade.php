@@ -71,7 +71,13 @@
 			const baseList = isCustom ? ( this.baseValues.customSteps || [] ) : ( this.baseValues.scale || [] );
 			const base = baseList.find( b => b.slug === step.slug );
 			if ( ! base ) {
-				if ( isCustom ) list.splice( index, 1 );
+				if ( isCustom ) {
+					if ( step.slug === this.blockGap ) {
+						this.blockGap = ( this.scale.length > 0 ? this.scale[ 0 ].slug : '0' );
+					}
+					list.splice( index, 1 );
+					this._dispatch();
+				}
 				return;
 			}
 			list.splice( index, 1, { ...base } );
@@ -369,11 +375,13 @@
 							x-on:input="editError = ''; _syncEditToValue()"
 							class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
 							placeholder="1"
+							aria-label="{{ __( 'visual-editor::ve.spacing_value' ) }}"
 						/>
 						<select
 							x-model="editUnit"
 							x-on:change="_syncEditToValue()"
 							class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+							aria-label="{{ __( 'visual-editor::ve.spacing_unit' ) }}"
 						>
 							<option value="rem">rem</option>
 							<option value="em">em</option>
@@ -478,11 +486,13 @@
 								x-on:input="editError = ''; _syncEditToValue()"
 								class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
 								placeholder="1"
+								aria-label="{{ __( 'visual-editor::ve.spacing_value' ) }}"
 							/>
 							<select
 								x-model="editUnit"
 								x-on:change="_syncEditToValue()"
 								class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+								aria-label="{{ __( 'visual-editor::ve.spacing_unit' ) }}"
 							>
 								<option value="rem">rem</option>
 								<option value="em">em</option>
@@ -554,11 +564,13 @@
 					x-on:input="newValue = _combineValue( newNum, newUnit )"
 					class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
 					placeholder="1"
+					aria-label="{{ __( 'visual-editor::ve.spacing_value' ) }}"
 				/>
 				<select
 					x-model="newUnit"
 					x-on:change="newValue = _combineValue( newNum, newUnit )"
 					class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+					aria-label="{{ __( 'visual-editor::ve.spacing_unit' ) }}"
 				>
 					<option value="rem">rem</option>
 					<option value="em">em</option>

@@ -21,6 +21,7 @@ namespace ArtisanPackUI\VisualEditor\Console\Commands;
 
 use Illuminate\Console\Command;
 use Illuminate\Filesystem\Filesystem;
+use RuntimeException;
 
 /**
  * Artisan command to publish visual editor views.
@@ -102,16 +103,22 @@ class PublishViewsCommand extends Command
 
 		$publishedCount = 0;
 
-		foreach ( $publishMap as $source => $destination ) {
-			$dest = $destinationBase . '/' . $destination;
+		try {
+			foreach ( $publishMap as $source => $destination ) {
+				$dest = $destinationBase . '/' . $destination;
 
-			if ( $files->isDirectory( $source ) ) {
-				$publishedCount += $this->publishDirectory( $files, $source, $dest, $force );
-			} elseif ( $files->exists( $source ) ) {
-				$publishedCount += $this->publishFile( $files, $source, $dest, $force );
-			} else {
-				$this->components->warn( __( 'visual-editor::ve.publish_views_source_skipped', [ 'source' => $source ] ) );
+				if ( $files->isDirectory( $source ) ) {
+					$publishedCount += $this->publishDirectory( $files, $source, $dest, $force );
+				} elseif ( $files->exists( $source ) ) {
+					$publishedCount += $this->publishFile( $files, $source, $dest, $force );
+				} else {
+					$this->components->warn( __( 'visual-editor::ve.publish_views_source_skipped', [ 'source' => $source ] ) );
+				}
 			}
+		} catch ( RuntimeException $e ) {
+			$this->components->error( $e->getMessage() );
+
+			return self::FAILURE;
 		}
 
 		$this->components->info(
@@ -225,7 +232,10 @@ class PublishViewsCommand extends Command
 		}
 
 		$files->ensureDirectoryExists( dirname( $destination ) );
-		$files->copy( $source, $destination );
+
+		if ( ! $files->copy( $source, $destination ) ) {
+			throw new RuntimeException( "Failed to copy '{$source}' to '{$destination}'." );
+		}
 
 		return 1;
 	}
