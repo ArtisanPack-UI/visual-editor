@@ -257,10 +257,12 @@
 						{{-- Block gap --}}
 						if ( gs.spacing && gs.spacing.blockGap ) {
 							let gapValue = gs.spacing.blockGap;
-							if ( gs.spacing.scale && Array.isArray( gs.spacing.scale ) ) {
-								const match = gs.spacing.scale.find( s => s.slug === gapValue );
-								if ( match ) gapValue = match.value;
-							}
+							const allSteps = [
+								...( gs.spacing.scale || [] ),
+								...( gs.spacing.customSteps || [] ),
+							];
+							const match = allSteps.find( s => s.slug === gapValue );
+							if ( match ) gapValue = match.value;
 							root.style.setProperty( '--ve-block-gap', gapValue );
 							newVars.push( '--ve-block-gap' );
 						}
@@ -280,12 +282,20 @@
 			{{-- Initial CSS sync --}}
 			Alpine.store( 'editor' )._syncGlobalCssVariables();
 
-			{{-- Listen for editor changes to mark dirty --}}
-			const markDirty = () => { this.dirty = true; };
-			window.addEventListener( 've-palette-change', markDirty );
-			window.addEventListener( 've-typography-change', markDirty );
-			window.addEventListener( 've-spacing-change', markDirty );
-			document.addEventListener( 've-store-dirty', markDirty );
+			{{-- Listen for editor changes to mark dirty and re-lock saved preview --}}
+			const onEditorChange = () => {
+				this.dirty = true;
+
+				{{-- When in saved preview mode, re-apply saved styles after every
+				     live edit so the canvas stays locked to the saved state. --}}
+				if ( 'saved' === this.previewMode ) {
+					this._applyStylesToRoot( this.savedStyles );
+				}
+			};
+			window.addEventListener( 've-palette-change', onEditorChange );
+			window.addEventListener( 've-typography-change', onEditorChange );
+			window.addEventListener( 've-spacing-change', onEditorChange );
+			document.addEventListener( 've-store-dirty', onEditorChange );
 
 			{{-- Listen for save/reset confirmations --}}
 			const offSaved = Livewire.on( 've-global-styles-saved', () => {
@@ -327,10 +337,10 @@
 
 			{{-- Teardown listeners when navigating away --}}
 			document.addEventListener( 'livewire:navigating', () => {
-				window.removeEventListener( 've-palette-change', markDirty );
-				window.removeEventListener( 've-typography-change', markDirty );
-				window.removeEventListener( 've-spacing-change', markDirty );
-				document.removeEventListener( 've-store-dirty', markDirty );
+				window.removeEventListener( 've-palette-change', onEditorChange );
+				window.removeEventListener( 've-typography-change', onEditorChange );
+				window.removeEventListener( 've-spacing-change', onEditorChange );
+				document.removeEventListener( 've-store-dirty', onEditorChange );
 				offSaved();
 				offReset();
 			}, { once: true } );

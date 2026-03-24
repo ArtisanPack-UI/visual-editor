@@ -393,7 +393,7 @@ class GlobalStylesPage extends Component implements SiteEditorPage
 				$grouped[ $category ][] = [
 					'name'     => $pattern->name,
 					'slug'     => $pattern->slug,
-					'category' => $pattern->category,
+					'category' => $category,
 					'html'     => $html,
 				];
 			}
