@@ -176,10 +176,16 @@ class PublishViewsCommand extends Command
 	{
 		$maps = $this->getTagMap();
 		$all  = [];
+		$seen = [];
 
 		foreach ( $maps as $entries ) {
 			foreach ( $entries as $source => $destination ) {
-				$all[ $source ] = $destination;
+				if ( isset( $seen[ $destination ] ) ) {
+					continue;
+				}
+
+				$all[ $source ]       = $destination;
+				$seen[ $destination ] = true;
 			}
 		}
 

@@ -36,8 +36,8 @@
 					settings = JSON.parse( JSON.stringify( store.templateSettings || {} ) );
 				} catch ( e ) {
 					this.isSaving = false;
-					if ( store.markError ) store.markError();
 					if ( store.markDirty ) store.markDirty();
+					if ( store.markError ) store.markError();
 					return;
 				}
 
@@ -45,8 +45,8 @@
 					store.dirty = false;
 					if ( store.markSaved ) store.markSaved();
 				} ).catch( () => {
-					if ( store.markError ) store.markError();
 					if ( store.markDirty ) store.markDirty();
+					if ( store.markError ) store.markError();
 				} ).finally( () => {
 					this.isSaving = false;
 				} );

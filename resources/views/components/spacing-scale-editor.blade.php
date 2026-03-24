@@ -140,7 +140,12 @@
 		},
 
 		removeCustomStep( index ) {
+			const step = this.customSteps[ index ]
+			if ( step && step.slug === this.blockGap ) {
+				this.blockGap = ( this.scale.length > 0 ? this.scale[ 0 ].slug : '0' )
+			}
 			this.customSteps.splice( index, 1 )
+			this._dispatch()
 		},
 
 		startAdd() {
@@ -366,6 +371,7 @@
 						x-on:input="editError = ''"
 						class="input input-sm input-bordered w-full"
 						placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+						aria-label="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
 					/>
 					<div class="flex items-center gap-2">
 						<input
@@ -477,6 +483,7 @@
 							x-on:input="editError = ''"
 							class="input input-sm input-bordered w-full"
 							placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+							aria-label="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
 						/>
 						<div class="flex items-center gap-2">
 							<input
@@ -555,6 +562,7 @@
 				x-on:input="newSlug = _sanitizeSlug( newName )"
 				class="input input-sm input-bordered w-full"
 				placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+				aria-label="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
 			/>
 			<div class="flex items-center gap-2">
 				<input
@@ -593,6 +601,7 @@
 						class="input input-sm input-bordered flex-1 font-mono text-xs"
 						:class="slugError ? 'input-error' : ''"
 						placeholder="{{ __( 'visual-editor::ve.spacing_step_slug' ) }}"
+						aria-label="{{ __( 'visual-editor::ve.spacing_step_slug' ) }}"
 					/>
 				</div>
 				<p x-show="slugError" x-cloak x-text="slugError" class="text-xs text-error"></p>
