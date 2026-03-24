@@ -86,7 +86,7 @@
 				$opacity     = $dimRatio / 100;
 			@endphp
 			@if ( $safeOverlay )
-				<div style="position: absolute; inset: 0; background-color: {{ $safeOverlay }}; opacity: {{ $opacity }}; pointer-events: none;"></div>
+				<div aria-hidden="true" style="position: absolute; inset: 0; background-color: {{ $safeOverlay }}; opacity: {{ $opacity }}; pointer-events: none;"></div>
 			@endif
 		@endif
 	</figure>

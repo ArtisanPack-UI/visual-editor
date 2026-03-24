@@ -126,3 +126,39 @@ test( 'content resolver sanitizes unsafe featured image urls', function (): void
 		expect( $resolver->getFeaturedImageUrl() )->toBe( '' );
 	}
 } );
+
+test( 'content resolver preserves valid http permalink urls', function (): void {
+	$resolver = new ContentResolver();
+
+	if ( function_exists( 'addFilter' ) ) {
+		addFilter( 've.content.permalink', function () {
+			return 'http://example.com/posts/1';
+		} );
+
+		expect( $resolver->getPermalink() )->toBe( 'http://example.com/posts/1' );
+
+		if ( function_exists( 'removeAllFilters' ) ) {
+			removeAllFilters( 've.content.permalink' );
+		}
+	} else {
+		expect( $resolver->getPermalink() )->toBe( '' );
+	}
+} );
+
+test( 'content resolver preserves valid https featured image urls', function (): void {
+	$resolver = new ContentResolver();
+
+	if ( function_exists( 'addFilter' ) ) {
+		addFilter( 've.content.featured-image-url', function () {
+			return 'https://example.com/images/hero.jpg';
+		} );
+
+		expect( $resolver->getFeaturedImageUrl() )->toBe( 'https://example.com/images/hero.jpg' );
+
+		if ( function_exists( 'removeAllFilters' ) ) {
+			removeAllFilters( 've.content.featured-image-url' );
+		}
+	} else {
+		expect( $resolver->getFeaturedImageUrl() )->toBe( '' );
+	}
+} );

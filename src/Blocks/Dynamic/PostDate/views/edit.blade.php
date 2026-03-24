@@ -60,7 +60,7 @@
 	@endif
 	@if ( 'modified' === $displayType || 'both' === $displayType )
 		@if ( 'both' === $displayType )
-			<span style="color: #6b7280; font-size: 0.9em;">{{ __( 'visual-editor::ve.post_date_modified_label' ) }} <time>{{ $sampleModified }}</time></span>
+			<span class="ve-post-date-modified">{{ __( 'visual-editor::ve.post_date_modified_label' ) }} <time>{{ $sampleModified }}</time></span>
 		@else
 			@if ( $isLink )
 				<a href="#" data-ve-preview-link style="pointer-events: none; cursor: default; color: inherit; text-decoration: inherit;"><time>{{ $sampleModified }}</time></a>

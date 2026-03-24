@@ -47,6 +47,11 @@
 	$safeClassName = preg_replace( '/[^a-zA-Z0-9_\- ]/', '', (string) $className );
 	$safeRel       = preg_replace( '/[^a-zA-Z0-9_\- ]/', '', (string) $rel );
 
+	$isBlankTarget = '_blank' === $linkTarget;
+	$targetAttr    = $isBlankTarget ? ' target="_blank"' : '';
+	$relValue      = $safeRel ?: ( $isBlankTarget ? 'noopener noreferrer' : '' );
+	$relAttr       = $relValue ? ' rel="' . $relValue . '"' : '';
+
 	$classes = 've-block ve-block-post-title';
 	if ( $safeFontSize ) {
 		$classes .= " text-{$safeFontSize}";
@@ -62,7 +67,7 @@
 	@if ( $elementId ) id="{{ $elementId }}" @endif
 >
 	@if ( $isLink && $permalink )
-		<a href="{{ $permalink }}"@if ( '_blank' === $linkTarget ) target="_blank"@endif @if ( $safeRel ) rel="{{ $safeRel }}"@elseif ( '_blank' === $linkTarget ) rel="noopener noreferrer"@endif>{{ $postTitle }}</a>
+		<a href="{{ $permalink }}"{!! $targetAttr !!}{!! $relAttr !!}>{{ $postTitle }}</a>
 	@else
 		{{ $postTitle }}
 	@endif

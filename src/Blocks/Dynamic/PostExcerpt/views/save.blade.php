@@ -15,7 +15,8 @@
 	$excerpt   = veGetContentExcerpt( $context );
 	$permalink = veGetContentPermalink( $context );
 
-	$truncated = Illuminate\Support\Str::words( $excerpt, $excerptLength, '' );
+	$suffix    = $moreText ? '' : '…';
+	$truncated = Illuminate\Support\Str::words( $excerpt, $excerptLength, $suffix );
 
 	$inlineStyles = '';
 	$textColor = veSanitizeCssColor( $textColor );
@@ -58,8 +59,12 @@
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
 	@if ( $elementId ) id="{{ $elementId }}" @endif
 >
-	<p>{{ $truncated }}@if ( $moreText && $permalink )@if ( $showMoreOnNewLine )</p><p><a href="{{ $permalink }}">{{ $moreText }}</a></p>@else <a href="{{ $permalink }}">{{ $moreText }}</a></p>@endif
+	@if ( $moreText && $permalink && $showMoreOnNewLine )
+		<p>{{ $truncated }}</p>
+		<p><a href="{{ $permalink }}">{{ $moreText }}</a></p>
+	@elseif ( $moreText && $permalink )
+		<p>{{ $truncated }} <a href="{{ $permalink }}">{{ $moreText }}</a></p>
 	@else
-	</p>
+		<p>{{ $truncated }}</p>
 	@endif
 </div>

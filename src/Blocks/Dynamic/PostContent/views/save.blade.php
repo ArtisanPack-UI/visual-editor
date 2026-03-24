@@ -7,7 +7,8 @@
 
 	$elementId = veSanitizeHtmlId( $htmlId );
 
-	$postContent = veGetContentBody( $context );
+	$rawContent  = veGetContentBody( $context );
+	$postContent = function_exists( 'kses' ) ? kses( $rawContent ) : $rawContent;
 
 	$inlineStyles = '';
 

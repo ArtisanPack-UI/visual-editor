@@ -48,8 +48,16 @@
 	class="{{ $classes }}"
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
 >
-	<p style="margin: 0;">{{ $truncated }}@if ( $moreText )@if ( $showMoreOnNewLine )</p><p style="margin: 0.5rem 0 0;"><a href="#" data-ve-preview-link style="pointer-events: none; cursor: default;">{{ $moreText }}</a></p>@else <a href="#" data-ve-preview-link style="pointer-events: none; cursor: default;">{{ $moreText }}</a></p>@endif
+	@if ( $moreText && $showMoreOnNewLine )
+		<p style="margin: 0;">{{ $truncated }}</p>
+		<p style="margin: 0.5rem 0 0;">
+			<a href="#" data-ve-preview-link style="pointer-events: none; cursor: default;">{{ $moreText }}</a>
+		</p>
+	@elseif ( $moreText )
+		<p style="margin: 0;">
+			{{ $truncated }} <a href="#" data-ve-preview-link style="pointer-events: none; cursor: default;">{{ $moreText }}</a>
+		</p>
 	@else
-	</p>
+		<p style="margin: 0;">{{ $truncated }}</p>
 	@endif
 </div>

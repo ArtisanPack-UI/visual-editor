@@ -15,11 +15,11 @@
 	$inlineStyles = '';
 	$textColor = veSanitizeCssColor( $textColor );
 	if ( $textColor ) {
-		$inlineStyles .= "color: {$textColor};";
+		$inlineStyles .= " color: {$textColor};";
 	}
 	$bgColor = veSanitizeCssColor( $bgColor );
 	if ( $bgColor ) {
-		$inlineStyles .= "background-color: {$bgColor};";
+		$inlineStyles .= " background-color: {$bgColor};";
 	}
 
 	if ( is_array( $padding ) ) {
@@ -35,6 +35,8 @@
 		$bottom = veSanitizeCssDimension( $margin['bottom'] ?? '0' );
 		$inlineStyles .= " margin-top: {$top}; margin-bottom: {$bottom};";
 	}
+
+	$inlineStyles = ltrim( $inlineStyles );
 
 	$safeFontSize = preg_replace( '/[^a-zA-Z0-9_\-]/', '', (string) $fontSize );
 
