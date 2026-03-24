@@ -51,6 +51,7 @@ use ArtisanPackUI\VisualEditor\Services\ColorPaletteManager;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCompiler;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesRepository;
 use ArtisanPackUI\VisualEditor\Services\OEmbedService;
+use ArtisanPackUI\VisualEditor\Services\SiteIdentityResolver;
 use ArtisanPackUI\VisualEditor\Services\SpacingScaleManager;
 use ArtisanPackUI\VisualEditor\Services\StyleCascadeResolver;
 use ArtisanPackUI\VisualEditor\Services\StyleImportExportService;
@@ -366,6 +367,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( ThemeJsonLoader::class, function ( $app ) {
 			return $app->make( 'visual-editor.theme-json' );
+		} );
+
+		$this->app->singleton( SiteIdentityResolver::class, function () {
+			return new SiteIdentityResolver();
 		} );
 	}
 

@@ -8,7 +8,7 @@ test( 'discovery finds all 36 core blocks', function (): void {
 	$service = new BlockDiscoveryService();
 	$blocks  = $service->discover();
 
-	expect( $blocks )->toHaveCount( 36 );
+	expect( $blocks )->toHaveCount( 39 );
 } );
 
 test( 'discovery returns correct structure for each block', function (): void {
@@ -36,6 +36,7 @@ test( 'discovery returns all expected block types', function (): void {
 		'columns', 'column', 'group', 'grid', 'grid-item', 'spacer', 'divider',
 		'button', 'buttons', 'code', 'tabs', 'tab-panel', 'accordion', 'accordion-section',
 		'latest-posts', 'table-of-contents', 'search',
+		'site-title', 'site-tagline', 'site-logo',
 	];
 
 	foreach ( $expected as $type ) {
@@ -92,7 +93,7 @@ test( 'addDiscoveryPath registers additional paths for discovery', function (): 
 
 	$blocks = $service->discover();
 
-	expect( $blocks )->toHaveCount( 36 );
+	expect( $blocks )->toHaveCount( 39 );
 } );
 
 test( 'discovery applies ap.visualEditor.discoveryPaths filter', function (): void {
@@ -104,7 +105,7 @@ test( 'discovery applies ap.visualEditor.discoveryPaths filter', function (): vo
 
 	$blocks = $service->discover();
 
-	expect( $blocks )->toHaveCount( 36 );
+	expect( $blocks )->toHaveCount( 39 );
 
 	removeAllFilters( 'ap.visualEditor.discoveryPaths' );
 } );

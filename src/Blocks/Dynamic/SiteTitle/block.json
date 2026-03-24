@@ -1,0 +1,104 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "site-title",
+	"name": "Site Title",
+	"description": "Display the site name with configurable heading level and optional homepage link",
+	"icon": "identification",
+	"category": "dynamic",
+	"keywords": ["site", "title", "name", "identity", "brand", "header"],
+	"version": 1,
+	"dynamic": true,
+	"attributes": {
+		"level": {
+			"type": "string",
+			"source": "content",
+			"default": "h1"
+		},
+		"isLink": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"linkTarget": {
+			"type": "string",
+			"source": "content",
+			"default": "_self"
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontSize": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontFamily": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontAppearance": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"lineHeight": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"letterSpacing": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textDecoration": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textTransform": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"typography": {
+			"fontSize": true,
+			"fontFamily": "heading",
+			"appearance": true,
+			"lineHeight": true,
+			"letterSpacing": true,
+			"decoration": true,
+			"letterCase": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"htmlId": true,
+		"className": true
+	}
+}
