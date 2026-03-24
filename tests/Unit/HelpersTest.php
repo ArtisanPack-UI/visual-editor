@@ -220,3 +220,33 @@ test( 'veGetTemplatesForType filters by content type', function (): void {
 
 	$manager->clearRegistered();
 } );
+
+test( 'veGetSiteTitle returns site title from resolver', function (): void {
+	config()->set( 'artisanpack.visual-editor.site_identity.title', 'Helper Test Site' );
+
+	expect( veGetSiteTitle() )->toBe( 'Helper Test Site' );
+} );
+
+test( 'veGetSiteTagline returns site tagline from resolver', function (): void {
+	config()->set( 'artisanpack.visual-editor.site_identity.tagline', 'Helper Tagline' );
+
+	expect( veGetSiteTagline() )->toBe( 'Helper Tagline' );
+} );
+
+test( 'veGetSiteLogoUrl returns logo url from resolver', function (): void {
+	config()->set( 'artisanpack.visual-editor.site_identity.logo_url', '/test-logo.png' );
+
+	expect( veGetSiteLogoUrl() )->toBe( '/test-logo.png' );
+} );
+
+test( 'veGetSiteLogoAlt returns logo alt from resolver', function (): void {
+	config()->set( 'artisanpack.visual-editor.site_identity.logo_alt', 'Test Alt' );
+
+	expect( veGetSiteLogoAlt() )->toBe( 'Test Alt' );
+} );
+
+test( 'veGetSiteHomeUrl returns home url from resolver', function (): void {
+	config()->set( 'artisanpack.visual-editor.site_identity.home_url', 'https://helper-test.com' );
+
+	expect( veGetSiteHomeUrl() )->toBe( 'https://helper-test.com' );
+} );

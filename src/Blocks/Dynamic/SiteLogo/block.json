@@ -1,0 +1,66 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "site-logo",
+	"name": "Site Logo",
+	"description": "Display the site logo from site settings with optional homepage link",
+	"icon": "photo",
+	"category": "dynamic",
+	"keywords": ["site", "logo", "image", "identity", "brand", "header"],
+	"version": 1,
+	"dynamic": true,
+	"attributes": {
+		"width": {
+			"type": "string",
+			"source": "style",
+			"default": ""
+		},
+		"height": {
+			"type": "string",
+			"source": "style",
+			"default": ""
+		},
+		"isLink": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"linkTarget": {
+			"type": "string",
+			"source": "content",
+			"default": "_self"
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"border": {
+			"type": "object",
+			"source": "style",
+			"default": {
+				"width": "0",
+				"widthUnit": "px",
+				"style": "none",
+				"color": "#000000",
+				"radius": "0",
+				"radiusUnit": "px",
+				"perSide": false,
+				"perCorner": false
+			}
+		}
+	},
+	"supports": {
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"border": true,
+		"htmlId": true,
+		"className": true
+	}
+}

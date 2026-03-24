@@ -920,6 +920,12 @@ return [
 	'block_table-of-contents_description'  => 'Auto-generated table of contents from heading blocks in the document',
 	'block_search_name'                    => 'Search',
 	'block_search_description'             => 'Add a configurable search form',
+	'block_site-title_name'                => 'Site Title',
+	'block_site-title_description'         => 'Display the site name with configurable heading level and optional homepage link',
+	'block_site-tagline_name'              => 'Site Tagline',
+	'block_site-tagline_description'       => 'Display the site tagline or description from site settings',
+	'block_site-logo_name'                 => 'Site Logo',
+	'block_site-logo_description'          => 'Display the site logo from site settings with optional homepage link',
 
 	// Latest Posts Block
 	'latest_posts'          => 'Latest posts',
@@ -988,6 +994,14 @@ return [
 	'display_style'       => 'Display style',
 	'inline'              => 'Inline',
 	'stacked'             => 'Stacked',
+
+	// Site Identity Blocks
+	'html_element'        => 'HTML Element',
+	'paragraph'           => 'Paragraph',
+	'span'                => 'Span',
+	'link_to_homepage'    => 'Link to homepage',
+	'site_tagline_empty'  => 'Add a tagline in site identity settings…',
+	'site_logo_empty'     => 'Set a logo in site identity settings',
 
 	// Cover Block
 	'block_cover_name'             => 'Cover',

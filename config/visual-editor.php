@@ -204,6 +204,46 @@ return [
 
 	/*
 	|----------------------------------------------------------------------
+	| Site Identity
+	|----------------------------------------------------------------------
+	|
+	| Configuration for the site identity blocks (Site Title, Site Tagline,
+	| Site Logo). These values serve as defaults that can be overridden
+	| via filter hooks for full developer control.
+	|
+	| title:    The site name displayed by the Site Title block.
+	|           Falls back to config('app.name') when empty.
+	|
+	| tagline:  The site description/tagline displayed by the Site
+	|           Tagline block. Defaults to empty string.
+	|
+	| logo_url: URL to the site logo image. Defaults to empty string
+	|           (no logo). Can be an absolute URL or an asset path.
+	|
+	| logo_alt: Alt text for the site logo image. Falls back to the
+	|           site title when empty.
+	|
+	| home_url: The home page URL used when site identity blocks link
+	|           to the homepage. Falls back to config('app.url').
+	|
+	| Filter hooks for runtime customization:
+	|   - ve.site-identity.title     Override the site title
+	|   - ve.site-identity.tagline   Override the site tagline
+	|   - ve.site-identity.logo-url  Override the logo URL
+	|   - ve.site-identity.logo-alt  Override the logo alt text
+	|   - ve.site-identity.home-url  Override the home URL
+	|
+	*/
+	'site_identity' => [
+		'title'    => null,
+		'tagline'  => '',
+		'logo_url' => '',
+		'logo_alt' => null,
+		'home_url' => null,
+	],
+
+	/*
+	|----------------------------------------------------------------------
 	| Theme JSON
 	|----------------------------------------------------------------------
 	|
@@ -351,24 +391,27 @@ return [
 
 	'blocks' => [
 		'core'     => [
-			'heading'   => true,
-			'paragraph' => true,
-			'list'      => true,
-			'quote'     => true,
-			'image'     => true,
-			'gallery'   => true,
-			'video'     => true,
-			'audio'     => true,
-			'file'      => true,
-			'columns'   => true,
-			'column'    => true,
-			'grid'      => true,
-			'grid-item' => true,
-			'group'     => true,
-			'spacer'    => true,
-			'divider'   => true,
-			'button'    => true,
-			'code'      => true,
+			'heading'      => true,
+			'paragraph'    => true,
+			'list'         => true,
+			'quote'        => true,
+			'image'        => true,
+			'gallery'      => true,
+			'video'        => true,
+			'audio'        => true,
+			'file'         => true,
+			'columns'      => true,
+			'column'       => true,
+			'grid'         => true,
+			'grid-item'    => true,
+			'group'        => true,
+			'spacer'       => true,
+			'divider'      => true,
+			'button'       => true,
+			'code'         => true,
+			'site-title'   => true,
+			'site-tagline' => true,
+			'site-logo'    => true,
 		],
 		'disabled' => [],
 

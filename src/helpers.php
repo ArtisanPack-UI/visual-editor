@@ -13,6 +13,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Blocks\Contracts\BlockInterface;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
+use ArtisanPackUI\VisualEditor\Services\SiteIdentityResolver;
 use ArtisanPackUI\VisualEditor\VisualEditor;
 
 if ( ! function_exists( 'veDoAction' ) ) {
@@ -1107,5 +1108,75 @@ if ( ! function_exists( 'veSanitizeHtmlId' ) ) {
 		}
 
 		return $sanitized;
+	}
+}
+
+if ( ! function_exists( 'veGetSiteTitle' ) ) {
+	/**
+	 * Get the site title from the site identity resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return string
+	 */
+	function veGetSiteTitle(): string
+	{
+		return app( SiteIdentityResolver::class )->getTitle();
+	}
+}
+
+if ( ! function_exists( 'veGetSiteTagline' ) ) {
+	/**
+	 * Get the site tagline from the site identity resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return string
+	 */
+	function veGetSiteTagline(): string
+	{
+		return app( SiteIdentityResolver::class )->getTagline();
+	}
+}
+
+if ( ! function_exists( 'veGetSiteLogoUrl' ) ) {
+	/**
+	 * Get the site logo URL from the site identity resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return string
+	 */
+	function veGetSiteLogoUrl(): string
+	{
+		return app( SiteIdentityResolver::class )->getLogoUrl();
+	}
+}
+
+if ( ! function_exists( 'veGetSiteLogoAlt' ) ) {
+	/**
+	 * Get the site logo alt text from the site identity resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return string
+	 */
+	function veGetSiteLogoAlt(): string
+	{
+		return app( SiteIdentityResolver::class )->getLogoAlt();
+	}
+}
+
+if ( ! function_exists( 'veGetSiteHomeUrl' ) ) {
+	/**
+	 * Get the site home URL from the site identity resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @return string
+	 */
+	function veGetSiteHomeUrl(): string
+	{
+		return app( SiteIdentityResolver::class )->getHomeUrl();
 	}
 }
