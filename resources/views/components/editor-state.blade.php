@@ -1351,7 +1351,8 @@
 			store.patterns         = {{ Js::from( $patterns ) }};
 			store.blockTransforms  = {{ Js::from( $blockTransforms ) }};
 			store.blockVariations  = {{ Js::from( $blockVariations ) }};
-			store.defaultBlockType = {{ Js::from( $defaultBlockType ) }};
+			store.defaultBlockType      = {{ Js::from( $defaultBlockType ) }};
+			store.defaultInnerBlocksMap = {{ Js::from( $defaultInnerBlocksMap ) }};
 			store.meta             = {{ Js::from( $initialMeta ) }};
 			store.globalStyles     = { palette: {{ Js::from( $initialPalette ) }}, typography: {{ Js::from( $initialTypography ) }}, spacing: {{ Js::from( $initialSpacing ) }} };
 			store._syncGlobalCssVariables();

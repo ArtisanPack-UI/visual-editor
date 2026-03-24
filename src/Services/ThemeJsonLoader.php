@@ -766,11 +766,15 @@ class ThemeJsonLoader
 				$this->errors[] = __( 'visual-editor::ve.theme_json_elements_not_object' );
 			} else {
 				$allowed = TypographyPresetsManager::ALLOWED_ELEMENTS;
-				foreach ( array_keys( $elements ) as $element ) {
+				foreach ( $elements as $element => $value ) {
 					if ( ! in_array( $element, $allowed, true ) ) {
 						$this->errors[] = __( 'visual-editor::ve.theme_json_invalid_element', [
 							'element' => $element,
 							'allowed' => implode( ', ', $allowed ),
+						] );
+					} elseif ( ! is_array( $value ) ) {
+						$this->errors[] = __( 'visual-editor::ve.theme_json_element_not_object', [
+							'element' => $element,
 						] );
 					}
 				}
@@ -801,14 +805,31 @@ class ThemeJsonLoader
 
 		$scale = $spacing['scale'] ?? null;
 
-		if ( null !== $scale && ! is_array( $scale ) ) {
-			$this->errors[] = __( 'visual-editor::ve.theme_json_scale_not_object' );
+		if ( null !== $scale ) {
+			if ( ! is_array( $scale ) ) {
+				$this->errors[] = __( 'visual-editor::ve.theme_json_scale_not_object' );
+			} else {
+				foreach ( $scale as $slug => $value ) {
+					if ( ! is_string( $value ) ) {
+						$this->errors[] = __( 'visual-editor::ve.theme_json_scale_entry_not_string', [
+							'slug' => $slug,
+						] );
+					}
+				}
+			}
 		}
 
 		$blockGap = $spacing['blockGap'] ?? null;
 
-		if ( null !== $blockGap && ! is_string( $blockGap ) ) {
-			$this->errors[] = __( 'visual-editor::ve.theme_json_block_gap_not_string' );
+		if ( null !== $blockGap ) {
+			if ( ! is_string( $blockGap ) ) {
+				$this->errors[] = __( 'visual-editor::ve.theme_json_block_gap_not_string' );
+			} elseif ( is_array( $scale ) && ! array_key_exists( $blockGap, $scale ) ) {
+				$this->errors[] = __( 'visual-editor::ve.theme_json_block_gap_not_in_scale', [
+					'blockGap' => $blockGap,
+					'allowed'  => implode( ', ', array_keys( $scale ) ),
+				] );
+			}
 		}
 	}
 

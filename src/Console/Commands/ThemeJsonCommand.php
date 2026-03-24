@@ -187,6 +187,19 @@ class ThemeJsonCommand extends Command
 			return self::SUCCESS;
 		}
 
+		// No files loaded and no validation errors means none of the
+		// resolved paths existed on disk.
+		if ( ! $valid && [] === $errors ) {
+			$this->components->error(
+				__( 'visual-editor::ve.theme_json_no_files_found' ),
+			);
+
+			$allPaths = array_merge( $configPaths, $loader->getRegisteredPaths() );
+			$this->components->bulletList( $allPaths );
+
+			return self::FAILURE;
+		}
+
 		$this->components->error(
 			__( 'visual-editor::ve.theme_json_validation_failed' ),
 		);
