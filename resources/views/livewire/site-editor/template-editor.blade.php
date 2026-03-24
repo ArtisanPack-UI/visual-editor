@@ -45,6 +45,7 @@
 					store.dirty = false;
 					if ( store.markSaved ) store.markSaved();
 				} ).catch( () => {
+					if ( store.markError ) store.markError();
 					if ( store.markDirty ) store.markDirty();
 				} ).finally( () => {
 					this.isSaving = false;

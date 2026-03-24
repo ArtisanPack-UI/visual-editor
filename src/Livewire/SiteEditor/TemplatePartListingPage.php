@@ -187,7 +187,7 @@ class TemplatePartListingPage extends Component implements SiteEditorListing
 		$page     = max( 1, (int) request()->input( 'page', 1 ) );
 		$pageIds  = $allItems->forPage( $page, $this->perPage )
 			->pluck( 'id' )
-			->filter()
+			->filter( fn ( $id ) => is_numeric( $id ) )
 			->values()
 			->toArray();
 
@@ -211,6 +211,12 @@ class TemplatePartListingPage extends Component implements SiteEditorListing
 	 */
 	public function duplicate( int $id ): void
 	{
+		$permission = (string) config( 'artisanpack.visual-editor.site_editor.gates.parts', 'visual-editor.manage-parts' );
+
+		if ( '' !== $permission && Gate::has( $permission ) ) {
+			$this->authorize( $permission );
+		}
+
 		$part = TemplatePart::find( $id );
 
 		if ( null === $part ) {
@@ -233,6 +239,12 @@ class TemplatePartListingPage extends Component implements SiteEditorListing
 	 */
 	public function delete( int $id ): void
 	{
+		$permission = (string) config( 'artisanpack.visual-editor.site_editor.gates.parts', 'visual-editor.manage-parts' );
+
+		if ( '' !== $permission && Gate::has( $permission ) ) {
+			$this->authorize( $permission );
+		}
+
 		$part = TemplatePart::find( $id );
 
 		if ( null === $part || $part->is_locked ) {
@@ -256,6 +268,12 @@ class TemplatePartListingPage extends Component implements SiteEditorListing
 	 */
 	public function toggleLock( int $id ): void
 	{
+		$permission = (string) config( 'artisanpack.visual-editor.site_editor.gates.lock_content', 'visual-editor.lock-content' );
+
+		if ( '' !== $permission && Gate::has( $permission ) ) {
+			$this->authorize( $permission );
+		}
+
 		$part = TemplatePart::find( $id );
 
 		if ( null === $part ) {
@@ -274,6 +292,12 @@ class TemplatePartListingPage extends Component implements SiteEditorListing
 	 */
 	public function bulkDelete(): void
 	{
+		$permission = (string) config( 'artisanpack.visual-editor.site_editor.gates.parts', 'visual-editor.manage-parts' );
+
+		if ( '' !== $permission && Gate::has( $permission ) ) {
+			$this->authorize( $permission );
+		}
+
 		$count = TemplatePart::whereIn( 'id', $this->selected )
 			->where( 'is_locked', false )
 			->delete();
@@ -293,6 +317,12 @@ class TemplatePartListingPage extends Component implements SiteEditorListing
 	 */
 	public function bulkChangeStatus( string $status ): void
 	{
+		$permission = (string) config( 'artisanpack.visual-editor.site_editor.gates.parts', 'visual-editor.manage-parts' );
+
+		if ( '' !== $permission && Gate::has( $permission ) ) {
+			$this->authorize( $permission );
+		}
+
 		if ( ! in_array( $status, [ 'active', 'draft' ], true ) ) {
 			return;
 		}

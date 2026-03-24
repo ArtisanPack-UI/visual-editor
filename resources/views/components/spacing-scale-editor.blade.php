@@ -125,6 +125,7 @@
 			}
 			this.editing   = null
 			this.editError = ''
+			this._dispatch()
 		},
 
 		cancelEdit() {
