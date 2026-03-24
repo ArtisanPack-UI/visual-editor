@@ -24,6 +24,8 @@ use ArtisanPackUI\VisualEditor\Blocks\BlockTransformService;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockCacheCommand;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockClearCommand;
 use ArtisanPackUI\VisualEditor\Console\Commands\PublishViewsCommand;
+use ArtisanPackUI\VisualEditor\Console\Commands\StylesExportCommand;
+use ArtisanPackUI\VisualEditor\Console\Commands\StylesImportCommand;
 use ArtisanPackUI\VisualEditor\Console\Commands\ThemeJsonCommand;
 use ArtisanPackUI\VisualEditor\Contracts\SiteEditorListing;
 use ArtisanPackUI\VisualEditor\Contracts\SiteEditorPage;
@@ -51,6 +53,7 @@ use ArtisanPackUI\VisualEditor\Services\GlobalStylesRepository;
 use ArtisanPackUI\VisualEditor\Services\OEmbedService;
 use ArtisanPackUI\VisualEditor\Services\SpacingScaleManager;
 use ArtisanPackUI\VisualEditor\Services\StyleCascadeResolver;
+use ArtisanPackUI\VisualEditor\Services\StyleImportExportService;
 use ArtisanPackUI\VisualEditor\Services\TemplateAssignmentManager;
 use ArtisanPackUI\VisualEditor\Services\TemplateManager;
 use ArtisanPackUI\VisualEditor\Services\TemplatePartManager;
@@ -341,6 +344,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( GlobalStylesRepository::class, function ( $app ) {
 			return $app->make( 'visual-editor.global-styles-repository' );
+		} );
+
+		$this->app->singleton( 'visual-editor.style-import-export', function ( $app ) {
+			return new StyleImportExportService(
+				$app->make( 'visual-editor.global-styles-repository' ),
+			);
+		} );
+
+		$this->app->singleton( StyleImportExportService::class, function ( $app ) {
+			return $app->make( 'visual-editor.style-import-export' );
 		} );
 
 		$this->app->singleton( 'visual-editor.theme-json', function ( $app ) {
@@ -1106,6 +1119,8 @@ class VisualEditorServiceProvider extends ServiceProvider
 				BlockCacheCommand::class,
 				BlockClearCommand::class,
 				PublishViewsCommand::class,
+				StylesExportCommand::class,
+				StylesImportCommand::class,
 				ThemeJsonCommand::class,
 			] );
 		}
