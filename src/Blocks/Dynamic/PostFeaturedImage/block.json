@@ -1,0 +1,76 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "post-featured-image",
+	"name": "Post Featured Image",
+	"description": "Display the featured image of the current content item with optional link and overlay",
+	"icon": "photo",
+	"category": "dynamic",
+	"keywords": ["post", "featured", "image", "thumbnail", "hero", "cover"],
+	"version": 1,
+	"dynamic": true,
+	"attributes": {
+		"isLink": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"aspectRatio": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"width": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"height": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"scale": {
+			"type": "string",
+			"source": "content",
+			"default": "cover"
+		},
+		"overlayColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"dimRatio": {
+			"type": "integer",
+			"source": "style",
+			"default": 0
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"borderRadius": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"border": true,
+		"dimensions": {
+			"aspectRatio": true,
+			"minHeight": false
+		},
+		"htmlId": true,
+		"className": true
+	}
+}

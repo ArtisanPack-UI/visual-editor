@@ -1,0 +1,37 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "post-content",
+	"name": "Post Content",
+	"description": "Display the full block content of the current content item",
+	"icon": "document",
+	"category": "dynamic",
+	"keywords": ["post", "content", "body", "text", "article"],
+	"version": 1,
+	"dynamic": true,
+	"attributes": {
+		"layout": {
+			"type": "string",
+			"source": "content",
+			"default": "default"
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"align": ["wide", "full"],
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"htmlId": true,
+		"className": true
+	}
+}

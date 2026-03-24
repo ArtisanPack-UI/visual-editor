@@ -38,7 +38,7 @@ test( 've:cache manifest contains all 39 blocks', function (): void {
 	$manifest = $service->loadManifest();
 
 	expect( $manifest )->toBeArray();
-	expect( $manifest )->toHaveCount( 39 );
+	expect( $manifest )->toHaveCount( 44 );
 } );
 
 test( 've:cache manifest entries have correct structure', function (): void {
