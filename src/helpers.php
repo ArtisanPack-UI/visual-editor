@@ -13,6 +13,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Blocks\Contracts\BlockInterface;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
+use ArtisanPackUI\VisualEditor\Services\ContentResolver;
 use ArtisanPackUI\VisualEditor\Services\SiteIdentityResolver;
 use ArtisanPackUI\VisualEditor\VisualEditor;
 
@@ -1178,5 +1179,133 @@ if ( ! function_exists( 'veGetSiteHomeUrl' ) ) {
 	function veGetSiteHomeUrl(): string
 	{
 		return app( SiteIdentityResolver::class )->getHomeUrl();
+	}
+}
+
+if ( ! function_exists( 'veGetContentTitle' ) ) {
+	/**
+	 * Get the content title from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	function veGetContentTitle( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getTitle( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentBody' ) ) {
+	/**
+	 * Get the content body from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	function veGetContentBody( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getBody( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentExcerpt' ) ) {
+	/**
+	 * Get the content excerpt from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	function veGetContentExcerpt( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getExcerpt( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentDate' ) ) {
+	/**
+	 * Get the content publish date from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string The date as an ISO 8601 string, or empty string.
+	 */
+	function veGetContentDate( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getDate( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentModifiedDate' ) ) {
+	/**
+	 * Get the content modified date from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string The date as an ISO 8601 string, or empty string.
+	 */
+	function veGetContentModifiedDate( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getModifiedDate( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentFeaturedImageUrl' ) ) {
+	/**
+	 * Get the content featured image URL from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	function veGetContentFeaturedImageUrl( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getFeaturedImageUrl( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentFeaturedImageAlt' ) ) {
+	/**
+	 * Get the content featured image alt text from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	function veGetContentFeaturedImageAlt( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getFeaturedImageAlt( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentPermalink' ) ) {
+	/**
+	 * Get the content permalink from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	function veGetContentPermalink( array $context = []): string
+	{
+		return app( ContentResolver::class )->getPermalink( $context );
 	}
 }

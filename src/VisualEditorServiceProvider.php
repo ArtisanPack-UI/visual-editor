@@ -48,6 +48,7 @@ use ArtisanPackUI\VisualEditor\Policies\TemplatePartSiteEditorPolicy;
 use ArtisanPackUI\VisualEditor\Policies\TemplateSiteEditorPolicy;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\Services\ColorPaletteManager;
+use ArtisanPackUI\VisualEditor\Services\ContentResolver;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCompiler;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesRepository;
 use ArtisanPackUI\VisualEditor\Services\OEmbedService;
@@ -371,6 +372,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( SiteIdentityResolver::class, function () {
 			return new SiteIdentityResolver();
+		} );
+
+		$this->app->singleton( ContentResolver::class, function () {
+			return new ContentResolver();
 		} );
 	}
 

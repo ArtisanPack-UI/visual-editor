@@ -926,6 +926,16 @@ return [
 	'block_site-tagline_description'       => 'Display the site tagline or description from site settings',
 	'block_site-logo_name'                 => 'Site Logo',
 	'block_site-logo_description'          => 'Display the site logo from site settings with optional homepage link',
+	'block_post-title_name'                => 'Post Title',
+	'block_post-title_description'         => 'Display the content title with configurable heading level and optional link',
+	'block_post-content_name'              => 'Post Content',
+	'block_post-content_description'       => 'Display the full block content of the current content item',
+	'block_post-excerpt_name'              => 'Post Excerpt',
+	'block_post-excerpt_description'       => 'Display the content excerpt with configurable length and optional read more link',
+	'block_post-date_name'                 => 'Post Date',
+	'block_post-date_description'          => 'Display the publish date or modified date of the current content item',
+	'block_post-featured-image_name'       => 'Post Featured Image',
+	'block_post-featured-image_description' => 'Display the featured image of the current content item with optional link and overlay',
 
 	// Latest Posts Block
 	'latest_posts'          => 'Latest posts',
@@ -1002,6 +1012,44 @@ return [
 	'link_to_homepage'    => 'Link to homepage',
 	'site_tagline_empty'  => 'Add a tagline in site identity settings…',
 	'site_logo_empty'     => 'Set a logo in site identity settings',
+
+	// Post Title Block
+	'post_title_make_link'  => 'Link to content',
+	'post_title_link_rel'   => 'Link rel attribute',
+	'post_title_sample'     => 'Post Title',
+
+	// Post Content Block
+	'post_content_layout'          => 'Inner blocks layout',
+	'post_content_layout_default'  => 'Default',
+	'post_content_layout_wide'     => 'Wide',
+	'post_content_layout_full'     => 'Full width',
+	'post_content_placeholder'     => 'This block will display the content of the current post or page.',
+
+	// Post Excerpt Block
+	'post_excerpt_max_words'       => 'Max number of words',
+	'post_excerpt_more_text'       => '"Read more" link text',
+	'post_excerpt_more_new_line'   => 'Show link on new line',
+	'post_excerpt_sample'          => 'This is a sample excerpt for the post. It provides a brief preview of the content that will be displayed to visitors. The excerpt can be auto-generated from the content body or manually set by the content author. It typically appears in archive listings and search results.',
+
+	// Post Date Block
+	'post_date_format'             => 'Date format',
+	'post_date_display_type'       => 'Display',
+	'post_date_type_publish'       => 'Publish date',
+	'post_date_type_modified'      => 'Modified date',
+	'post_date_type_both'          => 'Both dates',
+	'post_date_make_link'          => 'Link to content',
+	'post_date_modified_label'     => 'Modified:',
+
+	// Post Featured Image Block
+	'post_featured_image_make_link'        => 'Link to content',
+	'post_featured_image_aspect_ratio'     => 'Aspect ratio',
+	'post_featured_image_original'         => 'Original',
+	'post_featured_image_height'           => 'Height',
+	'post_featured_image_scale'            => 'Scale',
+	'post_featured_image_cover'            => 'Cover',
+	'post_featured_image_contain'          => 'Contain',
+	'post_featured_image_overlay_color'    => 'Overlay color',
+	'post_featured_image_overlay_opacity'  => 'Overlay opacity',
 
 	// Cover Block
 	'block_cover_name'             => 'Cover',

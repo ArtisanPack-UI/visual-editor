@@ -1,0 +1,104 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "post-excerpt",
+	"name": "Post Excerpt",
+	"description": "Display the content excerpt with configurable length and optional read more link",
+	"icon": "bars-3-bottom-left",
+	"category": "dynamic",
+	"keywords": ["post", "excerpt", "summary", "preview", "teaser"],
+	"version": 1,
+	"dynamic": true,
+	"attributes": {
+		"excerptLength": {
+			"type": "integer",
+			"source": "content",
+			"default": 55
+		},
+		"moreText": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"showMoreOnNewLine": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontSize": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontFamily": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontAppearance": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"lineHeight": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"letterSpacing": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textDecoration": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textTransform": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"typography": {
+			"fontSize": true,
+			"fontFamily": "body",
+			"appearance": true,
+			"lineHeight": true,
+			"letterSpacing": true,
+			"decoration": true,
+			"letterCase": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"htmlId": true,
+		"className": true
+	}
+}
