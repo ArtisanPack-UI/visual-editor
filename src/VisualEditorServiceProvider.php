@@ -601,6 +601,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$pageContracts = [
 			'hub_page'           => SiteEditorPage::class,
 			'global_styles_page' => SiteEditorPage::class,
+			'template_editor'    => SiteEditorPage::class,
 			'part_editor'        => SiteEditorPage::class,
 			'pattern_editor'     => SiteEditorPage::class,
 		];

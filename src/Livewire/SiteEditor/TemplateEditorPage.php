@@ -213,6 +213,13 @@ class TemplateEditorPage extends Component implements SiteEditorPage
 
 			$this->dispatch( 've-template-editor-saved', templateId: $this->template->id, slug: $this->template->slug, created: true );
 		} else {
+			// Re-check lock status to prevent stale-tab overwrites.
+			$this->template->refresh();
+
+			if ( $this->template->is_locked ) {
+				abort( 403, __( 'visual-editor::ve.template_editor_locked_message' ) );
+			}
+
 			// Only include slug in the update if it actually changed.
 			if ( isset( $data['slug'] ) && $data['slug'] === $this->template->slug ) {
 				unset( $data['slug'] );
