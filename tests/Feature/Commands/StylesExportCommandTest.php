@@ -29,10 +29,12 @@ afterEach( function (): void {
 test( 've:styles-export writes JSON to default path', function (): void {
 	$defaultPath = 'styles-export.json';
 
-	$this->artisan( 've:styles-export' )->assertSuccessful();
-
-	if ( file_exists( $defaultPath ) ) {
-		unlink( $defaultPath );
+	try {
+		$this->artisan( 've:styles-export' )->assertSuccessful();
+	} finally {
+		if ( file_exists( $defaultPath ) ) {
+			unlink( $defaultPath );
+		}
 	}
 } );
 

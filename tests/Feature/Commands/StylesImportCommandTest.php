@@ -89,6 +89,8 @@ test( 've:styles-import with --force overrides conflicts', function (): void {
 } );
 
 test( 've:styles-import with --only imports specific sections', function (): void {
+	$defaultTypography = app( 'visual-editor.typography-presets' )->toStoreFormat();
+
 	file_put_contents( $this->importPath, json_encode( [
 		'version' => '1.0',
 		'name'    => 'Selective Import',
@@ -106,7 +108,8 @@ test( 've:styles-import with --only imports specific sections', function (): voi
 
 	$record = GlobalStyle::byKey( GlobalStyle::DEFAULT_KEY )->first();
 
-	expect( $record->palette )->toEqual( [ [ 'name' => 'Selected', 'slug' => 'selected', 'color' => '#00ff00' ] ] );
+	expect( $record->palette )->toEqual( [ [ 'name' => 'Selected', 'slug' => 'selected', 'color' => '#00ff00' ] ] )
+		->and( $record->typography )->toEqual( $defaultTypography );
 } );
 
 test( 've:styles-import with invalid --only fails', function (): void {

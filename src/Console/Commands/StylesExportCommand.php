@@ -68,20 +68,36 @@ class StylesExportCommand extends Command
 		$only       = $this->option( 'only' );
 		$presetName = $this->option( 'preset' );
 
-		$sections = null !== $only ? $this->parseSections( (string) $only ) : null;
+		$sections = null;
 
-		if ( null !== $sections && [] === $sections ) {
-			$this->components->error(
-				__( 'visual-editor::ve.styles_export_invalid_sections', [
-					'allowed' => implode( ', ', StyleImportExportService::VALID_SECTIONS ),
-				] ),
-			);
+		if ( null !== $only ) {
+			[ $sections, $invalid ] = $this->parseSections( (string) $only );
 
-			return self::FAILURE;
+			if ( [] !== $invalid ) {
+				$this->components->error(
+					__( 'visual-editor::ve.styles_export_invalid_sections', [
+						'invalid' => implode( ', ', $invalid ),
+						'allowed' => implode( ', ', StyleImportExportService::VALID_SECTIONS ),
+					] ),
+				);
+
+				return self::FAILURE;
+			}
+
+			if ( [] === $sections ) {
+				$this->components->error(
+					__( 'visual-editor::ve.styles_export_invalid_sections', [
+						'invalid' => (string) $only,
+						'allowed' => implode( ', ', StyleImportExportService::VALID_SECTIONS ),
+					] ),
+				);
+
+				return self::FAILURE;
+			}
 		}
 
 		if ( null !== $presetName && '' !== $presetName ) {
-			return $this->handlePresetSave( $service, (string) $presetName, $sections );
+			return $this->handlePresetSave( $service, (string) $presetName );
 		}
 
 		return $this->handleFileExport( $service, $output, $name, $sections );
@@ -94,11 +110,10 @@ class StylesExportCommand extends Command
 	 *
 	 * @param StyleImportExportService $service    The import/export service.
 	 * @param string                   $presetName The preset name.
-	 * @param array|null               $sections   Sections to include.
 	 *
 	 * @return int
 	 */
-	protected function handlePresetSave( StyleImportExportService $service, string $presetName, ?array $sections ): int
+	protected function handlePresetSave( StyleImportExportService $service, string $presetName ): int
 	{
 		$preset = $service->savePreset( $presetName );
 
@@ -152,20 +167,22 @@ class StylesExportCommand extends Command
 	/**
 	 * Parse the --only option into a validated array of section names.
 	 *
+	 * Returns a tuple of [valid sections, invalid sections]. The caller
+	 * should check for invalid entries and fail fast before proceeding.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param string $only The comma-separated sections string.
 	 *
-	 * @return array<int, string> The validated section names (empty if none valid).
+	 * @return array{0: array<int, string>, 1: array<int, string>} [valid, invalid]
 	 */
 	protected function parseSections( string $only ): array
 	{
 		$requested = array_map( 'trim', explode( ',', $only ) );
-		$valid     = array_filter(
-			$requested,
-			fn ( string $section ): bool => in_array( $section, StyleImportExportService::VALID_SECTIONS, true ),
-		);
+		$requested = array_filter( $requested, fn ( string $s ): bool => '' !== $s );
+		$invalid   = array_values( array_diff( $requested, StyleImportExportService::VALID_SECTIONS ) );
+		$valid     = array_values( array_intersect( $requested, StyleImportExportService::VALID_SECTIONS ) );
 
-		return array_values( $valid );
+		return [ $valid, $invalid ];
 	}
 }

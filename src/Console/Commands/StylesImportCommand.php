@@ -18,6 +18,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Console\Commands;
 
+use ArtisanPackUI\VisualEditor\Models\GlobalStyle;
 use ArtisanPackUI\VisualEditor\Services\StyleImportExportService;
 use Illuminate\Console\Command;
 
@@ -169,16 +170,21 @@ class StylesImportCommand extends Command
 	protected function handlePresetApply( StyleImportExportService $service, string $slug ): int
 	{
 		$only     = $this->option( 'only' );
-		$sections = null !== $only ? $this->parseSections( (string) $only ) : null;
+		$sections = null;
 
-		if ( null !== $sections && [] === $sections ) {
-			$this->components->error(
-				__( 'visual-editor::ve.styles_import_invalid_sections', [
-					'allowed' => implode( ', ', StyleImportExportService::VALID_SECTIONS ),
-				] ),
-			);
+		if ( null !== $only ) {
+			[ $sections, $invalid ] = $this->parseSections( (string) $only );
 
-			return self::FAILURE;
+			if ( [] !== $invalid ) {
+				$this->components->error(
+					__( 'visual-editor::ve.styles_import_invalid_sections', [
+						'invalid' => implode( ', ', $invalid ),
+						'allowed' => implode( ', ', StyleImportExportService::VALID_SECTIONS ),
+					] ),
+				);
+
+				return self::FAILURE;
+			}
 		}
 
 		$result = $service->applyPreset( $slug, $sections );
@@ -220,16 +226,21 @@ class StylesImportCommand extends Command
 		}
 
 		$only     = $this->option( 'only' );
-		$sections = null !== $only ? $this->parseSections( (string) $only ) : null;
+		$sections = null;
 
-		if ( null !== $sections && [] === $sections ) {
-			$this->components->error(
-				__( 'visual-editor::ve.styles_import_invalid_sections', [
-					'allowed' => implode( ', ', StyleImportExportService::VALID_SECTIONS ),
-				] ),
-			);
+		if ( null !== $only ) {
+			[ $sections, $invalid ] = $this->parseSections( (string) $only );
 
-			return self::FAILURE;
+			if ( [] !== $invalid ) {
+				$this->components->error(
+					__( 'visual-editor::ve.styles_import_invalid_sections', [
+						'invalid' => implode( ', ', $invalid ),
+						'allowed' => implode( ', ', StyleImportExportService::VALID_SECTIONS ),
+					] ),
+				);
+
+				return self::FAILURE;
+			}
 		}
 
 		$validation = $service->validateFile( (string) $file );
@@ -262,7 +273,7 @@ class StylesImportCommand extends Command
 		}
 
 		if ( ! $this->option( 'force' ) ) {
-			$conflicts = $service->detectConflicts( $validation['data'] );
+			$conflicts = $service->detectConflicts( $validation['data'], GlobalStyle::DEFAULT_KEY, $sections );
 
 			if ( [] !== $conflicts ) {
 				$this->components->warn(
@@ -279,19 +290,7 @@ class StylesImportCommand extends Command
 			}
 		}
 
-		$result = $service->importFromFile( (string) $file, $sections );
-
-		if ( ! $result['success'] ) {
-			$this->components->error(
-				__( 'visual-editor::ve.styles_import_failed' ),
-			);
-
-			foreach ( $result['errors'] as $error ) {
-				$this->components->bulletList( [ $error ] );
-			}
-
-			return self::FAILURE;
-		}
+		$record = $service->import( $validation['data'], $sections );
 
 		$this->components->info(
 			__( 'visual-editor::ve.styles_import_success' ),
@@ -303,20 +302,22 @@ class StylesImportCommand extends Command
 	/**
 	 * Parse the --only option into a validated array of section names.
 	 *
+	 * Returns a tuple of [valid sections, invalid sections]. The caller
+	 * should check for invalid entries and fail fast before proceeding.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param string $only The comma-separated sections string.
 	 *
-	 * @return array<int, string> The validated section names (empty if none valid).
+	 * @return array{0: array<int, string>, 1: array<int, string>} [valid, invalid]
 	 */
 	protected function parseSections( string $only ): array
 	{
 		$requested = array_map( 'trim', explode( ',', $only ) );
-		$valid     = array_filter(
-			$requested,
-			fn ( string $section ): bool => in_array( $section, StyleImportExportService::VALID_SECTIONS, true ),
-		);
+		$requested = array_filter( $requested, fn ( string $s ): bool => '' !== $s );
+		$invalid   = array_values( array_diff( $requested, StyleImportExportService::VALID_SECTIONS ) );
+		$valid     = array_values( array_intersect( $requested, StyleImportExportService::VALID_SECTIONS ) );
 
-		return array_values( $valid );
+		return [ $valid, $invalid ];
 	}
 }

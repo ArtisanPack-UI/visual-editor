@@ -154,6 +154,19 @@ test( 'validateJson rejects non-array colors section', function (): void {
 	expect( $result['valid'] )->toBeFalse();
 } );
 
+test( 'validateJson rejects explicit null section values', function (): void {
+	$service = app( StyleImportExportService::class );
+
+	$json = json_encode( [
+		'version' => '1.0',
+		'styles'  => [ 'colors' => null ],
+	] );
+
+	$result = $service->validateJson( $json );
+
+	expect( $result['valid'] )->toBeFalse();
+} );
+
 test( 'validateFile returns error for missing file', function (): void {
 	$service = app( StyleImportExportService::class );
 
@@ -192,6 +205,44 @@ test( 'detectConflicts returns empty when no conflicts exist', function (): void
 	$conflicts = $service->detectConflicts( $exportData );
 
 	expect( $conflicts )->toBeEmpty();
+} );
+
+test( 'detectConflicts respects sections filter', function (): void {
+	$service = app( StyleImportExportService::class );
+
+	$importData = [
+		'styles' => [
+			'colors'     => [ [ 'name' => 'Different', 'slug' => 'different', 'color' => '#ff0000' ] ],
+			'typography' => [ 'fontFamilies' => [ 'heading' => 'Impact' ] ],
+		],
+	];
+
+	$conflicts = $service->detectConflicts( $importData, GlobalStyle::DEFAULT_KEY, [ 'colors' ] );
+
+	expect( $conflicts )->toHaveKey( 'colors' )
+		->and( $conflicts )->not->toHaveKey( 'typography' );
+} );
+
+test( 'import with no matching sections skips revision', function (): void {
+	$service = app( StyleImportExportService::class );
+
+	$importData = [
+		'version' => '1.0',
+		'styles'  => [
+			'colors' => [ [ 'name' => 'Custom', 'slug' => 'custom', 'color' => '#ff0000' ] ],
+		],
+	];
+
+	$record = $service->import( $importData, [ 'spacing' ] );
+
+	expect( $record )->toBeInstanceOf( GlobalStyle::class );
+
+	$revisionCount = ArtisanPackUI\VisualEditor\Models\Revision::forDocument(
+		GlobalStyle::REVISION_DOCUMENT_TYPE,
+		$record->id,
+	)->count();
+
+	expect( $revisionCount )->toBe( 0 );
 } );
 
 test( 'detectConflicts detects changed sections', function (): void {
@@ -233,6 +284,8 @@ test( 'import applies all sections by default', function (): void {
 test( 'import with sections filter only applies specified sections', function (): void {
 	$service = app( StyleImportExportService::class );
 
+	$defaultTypography = app( 'visual-editor.typography-presets' )->toStoreFormat();
+
 	$importData = [
 		'version' => '1.0',
 		'styles'  => [
@@ -243,9 +296,8 @@ test( 'import with sections filter only applies specified sections', function ()
 
 	$record = $service->import( $importData, [ 'colors' ] );
 
-	expect( $record->palette )->toEqual( $importData['styles']['colors'] );
-	// Typography should NOT have been changed to the import data
-	// (it stays as the default since only colors was imported).
+	expect( $record->palette )->toEqual( $importData['styles']['colors'] )
+		->and( $record->typography )->toEqual( $defaultTypography );
 } );
 
 test( 'importJson validates and imports', function (): void {

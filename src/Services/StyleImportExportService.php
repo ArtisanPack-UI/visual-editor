@@ -254,19 +254,26 @@ class StyleImportExportService
 	/**
 	 * Detect conflicts between imported styles and current styles.
 	 *
+	 * When $sections is provided, only sections in that list are checked.
+	 * When null, all sections present in the import data are checked.
+	 *
 	 * @since 1.0.0
 	 *
-	 * @param array  $importData The validated import data.
-	 * @param string $key        The global style key.
+	 * @param array      $importData The validated import data.
+	 * @param string     $key        The global style key.
+	 * @param array|null $sections   Sections to check (null for all present).
 	 *
 	 * @return array<string, array{current: mixed, imported: mixed}> Map of section => conflict details.
 	 */
-	public function detectConflicts( array $importData, string $key = GlobalStyle::DEFAULT_KEY ): array
+	public function detectConflicts( array $importData, string $key = GlobalStyle::DEFAULT_KEY, ?array $sections = null ): array
 	{
 		$conflicts = [];
 		$styles    = $importData['styles'] ?? [];
 
-		if ( isset( $styles['colors'] ) ) {
+		$shouldCheck = fn ( string $section ): bool => isset( $styles[ $section ] )
+			&& ( null === $sections || in_array( $section, $sections, true ) );
+
+		if ( $shouldCheck( 'colors' ) ) {
 			$current = $this->repository->getPalette( $key );
 
 			if ( $current !== $styles['colors'] ) {
@@ -277,7 +284,7 @@ class StyleImportExportService
 			}
 		}
 
-		if ( isset( $styles['typography'] ) ) {
+		if ( $shouldCheck( 'typography' ) ) {
 			$current = $this->repository->getTypography( $key );
 
 			if ( $current !== $styles['typography'] ) {
@@ -288,7 +295,7 @@ class StyleImportExportService
 			}
 		}
 
-		if ( isset( $styles['spacing'] ) ) {
+		if ( $shouldCheck( 'spacing' ) ) {
 			$current = $this->repository->getSpacing( $key );
 
 			if ( $current !== $styles['spacing'] ) {
@@ -331,6 +338,10 @@ class StyleImportExportService
 
 		if ( in_array( 'spacing', $includeSections, true ) && isset( $styles['spacing'] ) ) {
 			$updateData['spacing'] = $styles['spacing'];
+		}
+
+		if ( [] === $updateData ) {
+			return $this->repository->getOrCreate( $key );
 		}
 
 		return $this->repository->save( $updateData, $userId, $key );
@@ -554,7 +565,7 @@ class StyleImportExportService
 	{
 		$hasSection = false;
 
-		if ( isset( $styles['colors'] ) ) {
+		if ( array_key_exists( 'colors', $styles ) ) {
 			$hasSection = true;
 
 			if ( ! is_array( $styles['colors'] ) ) {
@@ -562,7 +573,7 @@ class StyleImportExportService
 			}
 		}
 
-		if ( isset( $styles['typography'] ) ) {
+		if ( array_key_exists( 'typography', $styles ) ) {
 			$hasSection = true;
 
 			if ( ! is_array( $styles['typography'] ) ) {
@@ -570,7 +581,7 @@ class StyleImportExportService
 			}
 		}
 
-		if ( isset( $styles['spacing'] ) ) {
+		if ( array_key_exists( 'spacing', $styles ) ) {
 			$hasSection = true;
 
 			if ( ! is_array( $styles['spacing'] ) ) {
