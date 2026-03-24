@@ -204,6 +204,35 @@ return [
 
 	/*
 	|----------------------------------------------------------------------
+	| Theme JSON
+	|----------------------------------------------------------------------
+	|
+	| Configuration for declarative theme.json style definitions.
+	|
+	| paths:  An ordered array of absolute paths to theme.json files.
+	|         Files are loaded in order; later files override earlier ones.
+	|         Use this to layer CMS theme overrides on top of application
+	|         defaults (e.g. a CMS theme package registers its own
+	|         theme.json that overrides the application's base file).
+	|
+	|         Priority cascade (lowest to highest):
+	|           1. Package defaults
+	|           2. First path in this array (typically the app's theme.json)
+	|           3. Subsequent paths (CMS theme overrides, etc.)
+	|           4. Config file overrides (this file's color_palette, etc.)
+	|           5. Database-persisted styles (user customizations)
+	|
+	|         Paths that don't exist are silently skipped.
+	|
+	*/
+	'theme_json' => [
+		'paths' => [
+			// resource_path( 'theme.json' ),
+		],
+	],
+
+	/*
+	|----------------------------------------------------------------------
 	| Global Styles: CSS Compilation
 	|----------------------------------------------------------------------
 	|

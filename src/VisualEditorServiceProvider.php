@@ -24,6 +24,7 @@ use ArtisanPackUI\VisualEditor\Blocks\BlockTransformService;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockCacheCommand;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockClearCommand;
 use ArtisanPackUI\VisualEditor\Console\Commands\PublishViewsCommand;
+use ArtisanPackUI\VisualEditor\Console\Commands\ThemeJsonCommand;
 use ArtisanPackUI\VisualEditor\Contracts\SiteEditorListing;
 use ArtisanPackUI\VisualEditor\Contracts\SiteEditorPage;
 use ArtisanPackUI\VisualEditor\Http\Middleware\CheckGateIfDefined;
@@ -54,10 +55,12 @@ use ArtisanPackUI\VisualEditor\Services\TemplateAssignmentManager;
 use ArtisanPackUI\VisualEditor\Services\TemplateManager;
 use ArtisanPackUI\VisualEditor\Services\TemplatePartManager;
 use ArtisanPackUI\VisualEditor\Services\TemplatePresetManager;
+use ArtisanPackUI\VisualEditor\Services\ThemeJsonLoader;
 use ArtisanPackUI\VisualEditor\Services\TypographyPresetsManager;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 
@@ -339,6 +342,18 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->app->singleton( GlobalStylesRepository::class, function ( $app ) {
 			return $app->make( 'visual-editor.global-styles-repository' );
 		} );
+
+		$this->app->singleton( 'visual-editor.theme-json', function ( $app ) {
+			return new ThemeJsonLoader(
+				$app->make( 'visual-editor.color-palette' ),
+				$app->make( 'visual-editor.typography-presets' ),
+				$app->make( 'visual-editor.spacing-scale' ),
+			);
+		} );
+
+		$this->app->singleton( ThemeJsonLoader::class, function ( $app ) {
+			return $app->make( 'visual-editor.theme-json' );
+		} );
 	}
 
 	/**
@@ -367,6 +382,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerConsoleCommands();
 		$this->publishBlockViews();
 		$this->registerAdminMenu();
+
+		// Defer theme.json loading until all providers have booted so
+		// that registerPath() calls from other service providers are
+		// picked up.
+		$this->app->booted( function (): void {
+			$this->loadThemeJson();
+		} );
 	}
 
 	/**
@@ -495,6 +517,64 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
+	 * Load and apply theme.json files if present.
+	 *
+	 * Loads theme.json files from the configured paths array plus any
+	 * programmatically registered paths. Files are loaded in order,
+	 * with later files deep-merging on top of earlier ones. This
+	 * enables CMS themes to layer overrides on the application's
+	 * base theme.json.
+	 *
+	 * If no paths are configured, falls back to resource_path('theme.json').
+	 *
+	 * Priority: config > theme.json (last path wins) > package defaults.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function loadThemeJson(): void
+	{
+		$configPaths = config( 'artisanpack.visual-editor.theme_json.paths', [] );
+
+		// Fallback: if no paths configured, check the default location.
+		if ( [] === $configPaths ) {
+			$defaultPath = resource_path( 'theme.json' );
+
+			if ( file_exists( $defaultPath ) ) {
+				$configPaths = [ $defaultPath ];
+			}
+		}
+
+		$loader = $this->app->make( 'visual-editor.theme-json' );
+
+		// loadPaths() also appends any programmatically registered paths.
+		$loaded = $loader->loadPaths( $configPaths );
+		$errors = $loader->getErrors();
+
+		if ( [] !== $errors ) {
+			Log::warning( '[ve] ThemeJsonLoader errors', [ 'errors' => $errors ] );
+		}
+
+		if ( ! $loaded ) {
+			return;
+		}
+
+		$loader->apply();
+
+		// Register template overrides with the compiler.
+		$overrides = $loader->getTemplateOverrides();
+
+		if ( [] !== $overrides ) {
+			$compiler = $this->app->make( 'visual-editor.global-styles' );
+
+			foreach ( $overrides as $slug => $override ) {
+				$compiler->registerTemplateOverride( $slug, $override );
+			}
+		}
+	}
+
+	/**
 	 * Publish the configuration file.
 	 *
 	 * @since 1.0.0
@@ -507,6 +587,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 			$this->publishes( [
 				__DIR__ . '/../config/visual-editor.php' => config_path( 'artisanpack/visual-editor.php' ),
 			], 'artisanpack-visual-editor-config' );
+
+			$this->publishes( [
+				__DIR__ . '/../stubs/theme.json' => resource_path( 'theme.json' ),
+			], 'visual-editor-theme' );
 		}
 	}
 
@@ -1022,6 +1106,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 				BlockCacheCommand::class,
 				BlockClearCommand::class,
 				PublishViewsCommand::class,
+				ThemeJsonCommand::class,
 			] );
 		}
 	}

@@ -1,0 +1,291 @@
+{
+	"$schema": "https://json-schema.org/draft/2020-12/schema",
+	"$id": "https://artisanpack-ui.dev/schemas/theme.json",
+	"title": "ArtisanPack Visual Editor Theme",
+	"description": "Schema for the visual editor theme.json declarative style definition file.",
+	"type": "object",
+	"properties": {
+		"$schema": {
+			"type": "string",
+			"description": "JSON Schema reference for IDE autocomplete."
+		},
+		"version": {
+			"type": "integer",
+			"minimum": 1,
+			"maximum": 1,
+			"description": "The theme.json schema version. Currently only version 1 is supported."
+		},
+		"settings": {
+			"type": "object",
+			"description": "Global style settings for colors, typography, and spacing.",
+			"properties": {
+				"color": {
+					"type": "object",
+					"description": "Color palette settings.",
+					"properties": {
+						"palette": {
+							"type": "array",
+							"description": "Array of named color entries for the global palette.",
+							"items": {
+								"type": "object",
+								"properties": {
+									"name": {
+										"type": "string",
+										"description": "Display name for the color."
+									},
+									"slug": {
+										"type": "string",
+										"description": "Unique identifier used in CSS custom properties (--ve-color-{slug}).",
+										"pattern": "^[a-z0-9]+(-[a-z0-9]+)*$"
+									},
+									"color": {
+										"type": "string",
+										"description": "Hex color value.",
+										"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+									}
+								},
+								"required": ["name", "slug", "color"],
+								"additionalProperties": false
+							}
+						}
+					},
+					"additionalProperties": false
+				},
+				"typography": {
+					"type": "object",
+					"description": "Typography settings for font families and element presets.",
+					"properties": {
+						"fontFamilies": {
+							"type": "object",
+							"description": "Font family assignments for heading, body, and mono slots.",
+							"properties": {
+								"heading": {
+									"type": "string",
+									"description": "CSS font-family value for headings."
+								},
+								"body": {
+									"type": "string",
+									"description": "CSS font-family value for body text."
+								},
+								"mono": {
+									"type": "string",
+									"description": "CSS font-family value for monospace text."
+								}
+							},
+							"additionalProperties": false
+						},
+						"elements": {
+							"type": "object",
+							"description": "Typography presets for specific HTML elements.",
+							"patternProperties": {
+								"^(h[1-6]|body|small|caption|blockquote|code)$": {
+									"type": "object",
+									"description": "Typography properties for an element.",
+									"properties": {
+										"fontSize": {
+											"type": "string",
+											"description": "CSS font-size value (e.g., '2.25rem')."
+										},
+										"fontWeight": {
+											"type": "string",
+											"description": "CSS font-weight value (e.g., '800', 'bold')."
+										},
+										"lineHeight": {
+											"type": "string",
+											"description": "CSS line-height value (e.g., '1.2')."
+										},
+										"letterSpacing": {
+											"type": "string",
+											"description": "CSS letter-spacing value (e.g., '-0.02em')."
+										},
+										"fontStyle": {
+											"type": "string",
+											"description": "CSS font-style value (e.g., 'normal', 'italic')."
+										}
+									},
+									"additionalProperties": false
+								}
+							},
+							"additionalProperties": false
+						}
+					},
+					"additionalProperties": false
+				},
+				"spacing": {
+					"type": "object",
+					"description": "Spacing scale settings.",
+					"properties": {
+						"scale": {
+							"type": "object",
+							"description": "Named spacing steps with CSS dimension values.",
+							"patternProperties": {
+								"^[a-zA-Z0-9_-]+$": {
+									"type": "string",
+									"description": "CSS dimension value (e.g., '1rem', '16px')."
+								}
+							},
+							"additionalProperties": false
+						},
+						"blockGap": {
+							"type": "string",
+							"description": "The spacing step slug used as the default gap between blocks."
+						}
+					},
+					"additionalProperties": false
+				}
+			},
+			"additionalProperties": false
+		},
+		"styles": {
+			"type": "object",
+			"description": "Default styles for block types.",
+			"properties": {
+				"blocks": {
+					"type": "object",
+					"description": "Per-block-type style defaults. Keys are block type slugs.",
+					"patternProperties": {
+						"^[a-z0-9]+(-[a-z0-9]+)*$": {
+							"type": "object",
+							"description": "Style overrides for a block type.",
+							"properties": {
+								"color": {
+									"type": "object",
+									"description": "Color overrides for this block type.",
+									"properties": {
+										"text": {
+											"type": "string"
+										},
+										"background": {
+											"type": "string"
+										}
+									},
+									"additionalProperties": false
+								},
+								"typography": {
+									"type": "object",
+									"description": "Typography overrides for this block type.",
+									"properties": {
+										"fontFamily": {
+											"type": "string"
+										},
+										"fontSize": {
+											"type": "string"
+										},
+										"fontWeight": {
+											"type": "string"
+										},
+										"lineHeight": {
+											"type": "string"
+										}
+									},
+									"additionalProperties": false
+								},
+								"spacing": {
+									"type": "object",
+									"description": "Spacing overrides for this block type.",
+									"properties": {
+										"padding": {
+											"type": "string"
+										},
+										"margin": {
+											"type": "string"
+										}
+									},
+									"additionalProperties": false
+								}
+							},
+							"additionalProperties": false
+						}
+					},
+					"additionalProperties": false
+				}
+			},
+			"additionalProperties": false
+		},
+		"templateOverrides": {
+			"type": "object",
+			"description": "Per-template style overrides. Keys are template slugs.",
+			"patternProperties": {
+				"^[a-z0-9]+(-[a-z0-9]+)*$": {
+					"type": "object",
+					"description": "Style overrides for a specific template.",
+					"properties": {
+						"colors": {
+							"type": "object",
+							"description": "Color overrides keyed by slug.",
+							"patternProperties": {
+								"^[a-z0-9]+(-[a-z0-9]+)*$": {
+									"type": "object",
+									"properties": {
+										"name": {
+											"type": "string"
+										},
+										"color": {
+											"type": "string",
+											"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
+										}
+									},
+									"required": ["name", "color"],
+									"additionalProperties": false
+								}
+							},
+							"additionalProperties": false
+						},
+						"typography": {
+							"type": "object",
+							"description": "Typography overrides.",
+							"properties": {
+								"fontFamilies": {
+									"type": "object",
+									"properties": {
+										"heading": { "type": "string" },
+										"body": { "type": "string" },
+										"mono": { "type": "string" }
+									},
+									"additionalProperties": false
+								},
+								"elements": {
+									"type": "object",
+									"patternProperties": {
+										"^(h[1-6]|body|small|caption|blockquote|code)$": {
+											"type": "object",
+											"properties": {
+												"fontSize": { "type": "string" },
+												"fontWeight": { "type": "string" },
+												"lineHeight": { "type": "string" },
+												"letterSpacing": { "type": "string" },
+												"fontStyle": { "type": "string" }
+											},
+											"additionalProperties": false
+										}
+									},
+									"additionalProperties": false
+								}
+							},
+							"additionalProperties": false
+						},
+						"spacing": {
+							"type": "object",
+							"description": "Spacing overrides.",
+							"properties": {
+								"scale": {
+									"type": "object",
+									"patternProperties": {
+										"^[a-zA-Z0-9_-]+$": { "type": "string" }
+									},
+									"additionalProperties": false
+								},
+								"blockGap": { "type": "string" }
+							},
+							"additionalProperties": false
+						}
+					},
+					"additionalProperties": false
+				}
+			},
+			"additionalProperties": false
+		}
+	},
+	"required": ["version"],
+	"additionalProperties": false
+}
