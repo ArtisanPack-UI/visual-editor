@@ -31,20 +31,16 @@
 		saveStatus: 'idle',
 		viewport: 'desktop',
 		previewMode: 'live',
-
-		{{-- Snapshot of the last-saved styles for before/after comparison --}}
-		savedStyles: {
-			palette: this._deepClone( {{ Js::from( $initialPalette ) }} ),
-			typography: this._deepClone( {{ Js::from( $initialTypography ) }} ),
-			spacing: this._deepClone( {{ Js::from( $initialSpacing ) }} ),
-		},
+		savedStyles: null,
+		_lastAppliedVars: [],
 
 		{{-- Deep-clone a value to break reactive references --}}
 		_deepClone( obj ) {
 			return JSON.parse( JSON.stringify( obj ) );
 		},
 
-		{{-- Apply a styles object to the document root as CSS custom properties --}}
+		{{-- Apply a styles object to the document root as CSS custom properties.
+		     Removes any previously-set vars not in the new set to prevent stale values. --}}
 		_applyStylesToRoot( styles ) {
 			const root    = document.documentElement;
 			const newVars = [];
@@ -118,6 +114,16 @@
 				newVars.push( '--ve-block-gap' );
 			}
 
+			{{-- Remove stale vars from the previous apply --}}
+			const newVarSet = new Set( newVars );
+			this._lastAppliedVars.forEach( varName => {
+				if ( ! newVarSet.has( varName ) ) {
+					root.style.removeProperty( varName );
+				}
+			} );
+
+			this._lastAppliedVars = newVars;
+
 			return newVars;
 		},
 
@@ -133,6 +139,13 @@
 		},
 
 		init() {
+			{{-- Snapshot saved styles now that _deepClone is available --}}
+			this.savedStyles = {
+				palette: this._deepClone( {{ Js::from( $initialPalette ) }} ),
+				typography: this._deepClone( {{ Js::from( $initialTypography ) }} ),
+				spacing: this._deepClone( {{ Js::from( $initialSpacing ) }} ),
+			};
+
 			{{-- Register a lightweight editor store for the style editors --}}
 			if ( ! Alpine.store( 'editor' ) ) {
 				Alpine.store( 'editor', {
