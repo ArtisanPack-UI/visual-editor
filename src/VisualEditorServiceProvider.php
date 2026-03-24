@@ -172,6 +172,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		'spacing-scale-editor'        => Components\SpacingScaleEditor::class,
 		'style-source-indicator'      => Components\StyleSourceIndicator::class,
 		'global-styles-state'         => Components\GlobalStylesState::class,
+		'style-preview-toolbar'       => Components\StylePreviewToolbar::class,
 		'template-parts-manager'      => Components\TemplatePartsManager::class,
 
 		// Phase 9: Editor Assembly

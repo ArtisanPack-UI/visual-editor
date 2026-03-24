@@ -6,6 +6,12 @@
  * store ('editor') that provides the same interface the style
  * editors expect, but without the full document editor overhead.
  *
+ * Features:
+ * - Real-time CSS custom property injection
+ * - Responsive viewport preview (desktop/tablet/mobile)
+ * - Before/after comparison toggle
+ * - Unsaved changes indicator with discard option
+ *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor\Views\Livewire\SiteEditor
  *
@@ -23,16 +29,144 @@
 		dirty: false,
 		saving: false,
 		saveStatus: 'idle',
+		viewport: 'desktop',
+		previewMode: 'live',
+		savedStyles: null,
+
+		{{-- Deep-clone a value to break reactive references --}}
+		_deepClone( obj ) {
+			return JSON.parse( JSON.stringify( obj ) );
+		},
+
+		{{-- Apply a styles object to the document root as CSS custom properties.
+		     Removes any previously-set vars not in the new set to prevent stale values. --}}
+		_applyStylesToRoot( styles ) {
+			const root    = document.documentElement;
+			const newVars = [];
+
+			{{-- Colors --}}
+			if ( styles.palette && Array.isArray( styles.palette ) ) {
+				styles.palette.forEach( entry => {
+					if ( entry.slug && entry.color ) {
+						const varName = '--ve-color-' + entry.slug;
+						root.style.setProperty( varName, entry.color );
+						newVars.push( varName );
+					}
+				} );
+			}
+
+			{{-- Typography font families --}}
+			if ( styles.typography && styles.typography.fontFamilies ) {
+				Object.entries( styles.typography.fontFamilies ).forEach( ( [ slot, value ] ) => {
+					const varName = '--ve-font-' + slot;
+					root.style.setProperty( varName, value );
+					newVars.push( varName );
+				} );
+			}
+
+			{{-- Typography elements --}}
+			if ( styles.typography && styles.typography.elements ) {
+				Object.entries( styles.typography.elements ).forEach( ( [ element, props ] ) => {
+					if ( typeof props === 'object' && props !== null ) {
+						Object.entries( props ).forEach( ( [ prop, value ] ) => {
+							const kebab   = prop.replace( /([a-z])([A-Z])/g, '$1-$2' ).toLowerCase();
+							const varName = '--ve-text-' + element + '-' + kebab;
+							root.style.setProperty( varName, value );
+							newVars.push( varName );
+						} );
+					}
+				} );
+			}
+
+			{{-- Spacing scale --}}
+			if ( styles.spacing && styles.spacing.scale && Array.isArray( styles.spacing.scale ) ) {
+				styles.spacing.scale.forEach( step => {
+					if ( step.slug && step.value ) {
+						const varName = '--ve-spacing-' + step.slug;
+						root.style.setProperty( varName, step.value );
+						newVars.push( varName );
+					}
+				} );
+			}
+
+			{{-- Spacing custom steps --}}
+			if ( styles.spacing && styles.spacing.customSteps && Array.isArray( styles.spacing.customSteps ) ) {
+				styles.spacing.customSteps.forEach( step => {
+					if ( step.slug && step.value ) {
+						const varName = '--ve-spacing-' + step.slug;
+						root.style.setProperty( varName, step.value );
+						newVars.push( varName );
+					}
+				} );
+			}
+
+			{{-- Block gap --}}
+			if ( styles.spacing && styles.spacing.blockGap ) {
+				let gapValue = styles.spacing.blockGap;
+				const allSteps = [
+					...( styles.spacing.scale || [] ),
+					...( styles.spacing.customSteps || [] ),
+				];
+				const match = allSteps.find( s => s.slug === gapValue );
+				if ( match ) gapValue = match.value;
+				root.style.setProperty( '--ve-block-gap', gapValue );
+				newVars.push( '--ve-block-gap' );
+			}
+
+			{{-- Remove stale vars using the store's single registry --}}
+			const store    = Alpine.store( 'editor' );
+			const newVarSet = new Set( newVars );
+
+			if ( store && store._lastCssVars ) {
+				store._lastCssVars.forEach( varName => {
+					if ( ! newVarSet.has( varName ) ) {
+						root.style.removeProperty( varName );
+					}
+				} );
+			}
+
+			{{-- Update the shared registry so the next mode switch cleans up correctly --}}
+			if ( store ) {
+				store._lastCssVars = newVars;
+			}
+
+			return newVars;
+		},
+
+		get viewportWidth() {
+			switch ( this.viewport ) {
+				case 'tablet':
+					return '768px';
+				case 'mobile':
+					return '375px';
+				default:
+					return '100%';
+			}
+		},
 
 		init() {
-			{{-- Register a lightweight editor store for the style editors --}}
-			if ( ! Alpine.store( 'editor' ) ) {
+			{{-- Snapshot saved styles now that _deepClone is available --}}
+			this.savedStyles = {
+				palette: this._deepClone( {{ Js::from( $initialPalette ) }} ),
+				typography: this._deepClone( {{ Js::from( $initialTypography ) }} ),
+				spacing: this._deepClone( {{ Js::from( $initialSpacing ) }} ),
+			};
+
+			{{-- Register or reinitialize the editor store with fresh data.
+			     On remount the store may already exist with stale state, so
+			     always sync globalStyles from the Blade payload. --}}
+			const freshStyles = {
+				palette: JSON.parse( JSON.stringify( {{ Js::from( $initialPalette ) }} ) ),
+				typography: JSON.parse( JSON.stringify( {{ Js::from( $initialTypography ) }} ) ),
+				spacing: JSON.parse( JSON.stringify( {{ Js::from( $initialSpacing ) }} ) ),
+			};
+
+			if ( Alpine.store( 'editor' ) ) {
+				const store          = Alpine.store( 'editor' );
+				store.globalStyles   = freshStyles;
+			} else {
 				Alpine.store( 'editor', {
-					globalStyles: {
-						palette: JSON.parse( JSON.stringify( {{ Js::from( $initialPalette ) }} ) ),
-						typography: JSON.parse( JSON.stringify( {{ Js::from( $initialTypography ) }} ) ),
-						spacing: JSON.parse( JSON.stringify( {{ Js::from( $initialSpacing ) }} ) ),
-					},
+					globalStyles: freshStyles,
 					_lastCssVars: [],
 
 					_pushHistory() {},
@@ -136,10 +270,12 @@
 						{{-- Block gap --}}
 						if ( gs.spacing && gs.spacing.blockGap ) {
 							let gapValue = gs.spacing.blockGap;
-							if ( gs.spacing.scale && Array.isArray( gs.spacing.scale ) ) {
-								const match = gs.spacing.scale.find( s => s.slug === gapValue );
-								if ( match ) gapValue = match.value;
-							}
+							const allSteps = [
+								...( gs.spacing.scale || [] ),
+								...( gs.spacing.customSteps || [] ),
+							];
+							const match = allSteps.find( s => s.slug === gapValue );
+							if ( match ) gapValue = match.value;
 							root.style.setProperty( '--ve-block-gap', gapValue );
 							newVars.push( '--ve-block-gap' );
 						}
@@ -159,25 +295,41 @@
 			{{-- Initial CSS sync --}}
 			Alpine.store( 'editor' )._syncGlobalCssVariables();
 
-			{{-- Listen for editor changes to mark dirty --}}
-			const markDirty = () => { this.dirty = true; };
-			window.addEventListener( 've-palette-change', markDirty );
-			window.addEventListener( 've-typography-change', markDirty );
-			window.addEventListener( 've-spacing-change', markDirty );
-			document.addEventListener( 've-store-dirty', markDirty );
+			{{-- Listen for editor changes to mark dirty and re-lock saved preview --}}
+			const onEditorChange = () => {
+				this.dirty = true;
 
-			this.$cleanup( () => {
-				window.removeEventListener( 've-palette-change', markDirty );
-				window.removeEventListener( 've-typography-change', markDirty );
-				window.removeEventListener( 've-spacing-change', markDirty );
-				document.removeEventListener( 've-store-dirty', markDirty );
-			} );
+				{{-- When in saved preview mode, re-apply saved styles after every
+				     live edit so the canvas stays locked to the saved state. --}}
+				if ( 'saved' === this.previewMode ) {
+					this._applyStylesToRoot( this.savedStyles );
+				}
+			};
+			window.addEventListener( 've-palette-change', onEditorChange );
+			window.addEventListener( 've-typography-change', onEditorChange );
+			window.addEventListener( 've-spacing-change', onEditorChange );
+			document.addEventListener( 've-store-dirty', onEditorChange );
 
 			{{-- Listen for save/reset confirmations --}}
 			const offSaved = Livewire.on( 've-global-styles-saved', () => {
 				this.dirty      = false;
 				this.saving     = false;
 				this.saveStatus = 'saved';
+
+				{{-- Snapshot the new saved state --}}
+				const store = Alpine.store( 'editor' );
+				this.savedStyles = {
+					palette: this._deepClone( store.globalStyles.palette ),
+					typography: this._deepClone( store.globalStyles.typography ),
+					spacing: this._deepClone( store.globalStyles.spacing ),
+				};
+
+				{{-- If viewing the "before" preview, refresh the canvas with the
+				     updated saved snapshot so it reflects the just-saved state. --}}
+				if ( 'saved' === this.previewMode ) {
+					this._applyStylesToRoot( this.savedStyles );
+				}
+
 				setTimeout( () => { this.saveStatus = 'idle'; }, 2000 );
 			} );
 
@@ -189,15 +341,28 @@
 					if ( d.typography ) store.globalStyles.typography = d.typography;
 					if ( d.spacing ) store.globalStyles.spacing       = d.spacing;
 					store._syncGlobalCssVariables();
+
+					{{-- Update the saved snapshot --}}
+					this.savedStyles = {
+						palette: this._deepClone( store.globalStyles.palette ),
+						typography: this._deepClone( store.globalStyles.typography ),
+						spacing: this._deepClone( store.globalStyles.spacing ),
+					};
 				}
-				this.dirty      = false;
-				this.saveStatus = 'idle';
+				this.dirty       = false;
+				this.previewMode = 'live';
+				this.saveStatus  = 'idle';
 			} );
 
-			this.$cleanup( () => {
+			{{-- Teardown listeners when navigating away --}}
+			document.addEventListener( 'livewire:navigating', () => {
+				window.removeEventListener( 've-palette-change', onEditorChange );
+				window.removeEventListener( 've-typography-change', onEditorChange );
+				window.removeEventListener( 've-spacing-change', onEditorChange );
+				document.removeEventListener( 've-store-dirty', onEditorChange );
 				offSaved();
 				offReset();
-			} );
+			}, { once: true } );
 		},
 
 		handleSave() {
@@ -208,6 +373,26 @@
 				store.globalStyles.typography,
 				store.globalStyles.spacing,
 			);
+		},
+
+		handleDiscard() {
+			if ( ! confirm( {{ Js::from( __( 'visual-editor::ve.style_preview_discard_confirm' ) ) }} ) ) return;
+			$wire.discardChanges();
+		},
+
+		{{-- Before/After: switch to live (pending) preview --}}
+		switchToLivePreview() {
+			if ( 'live' === this.previewMode ) return;
+			this.previewMode = 'live';
+			const store = Alpine.store( 'editor' );
+			store._syncGlobalCssVariables();
+		},
+
+		{{-- Before/After: switch to saved (before) preview --}}
+		switchToSavedPreview() {
+			if ( 'saved' === this.previewMode ) return;
+			this.previewMode = 'saved';
+			this._applyStylesToRoot( this.savedStyles );
 		},
 	}"
 	class="flex h-full"
@@ -229,6 +414,20 @@
 				<h1 class="text-lg font-semibold text-base-content">
 					{{ __( 'visual-editor::ve.global_styles_title' ) }}
 				</h1>
+
+				{{-- Unsaved changes indicator --}}
+				<span
+					x-show="dirty"
+					x-transition
+					x-cloak
+					class="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-warning-content bg-warning/80 rounded-full"
+					aria-live="polite"
+				>
+					<svg class="w-2.5 h-2.5" fill="currentColor" viewBox="0 0 8 8" aria-hidden="true" focusable="false">
+						<circle cx="4" cy="4" r="4" />
+					</svg>
+					{{ __( 'visual-editor::ve.style_preview_unsaved' ) }}
+				</span>
 			</div>
 
 			<div class="flex items-center gap-2">
@@ -250,6 +449,15 @@
 						<path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
 					</svg>
 				</button>
+
+				{{-- Discard button --}}
+				<button
+					type="button"
+					x-on:click="handleDiscard()"
+					x-show="dirty"
+					x-cloak
+					class="px-3 py-1.5 text-xs font-medium text-error bg-error/10 rounded-lg hover:bg-error/20 transition-colors"
+				>{{ __( 'visual-editor::ve.style_preview_discard' ) }}</button>
 
 				{{-- Reset button --}}
 				<button
@@ -322,69 +530,64 @@
 		</div>
 	</div>
 
-	{{-- Right panel: Live Preview (forced light mode) --}}
-	<div class="flex-1 min-w-0 overflow-y-auto bg-gray-100 p-8" data-theme="light">
-		<div class="max-w-3xl mx-auto space-y-8">
-			{{-- Color swatches preview --}}
-			<div class="bg-white rounded-xl border border-gray-200 p-6">
-				<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-					{{ __( 'visual-editor::ve.global_styles_preview_colors' ) }}
-				</h2>
-				<div class="grid grid-cols-4 gap-3 sm:grid-cols-6" x-data>
-					<template x-for="entry in Alpine.store( 'editor' )?.globalStyles?.palette || []" :key="entry.slug">
-						<div class="flex flex-col items-center gap-1.5">
-							<div
-								class="w-12 h-12 rounded-lg border border-gray-200 shadow-sm"
-								x-bind:style="'background-color:' + entry.color"
-								x-bind:title="entry.name"
-							></div>
-							<span class="text-[10px] text-gray-400 truncate max-w-[60px]" x-text="entry.name"></span>
-						</div>
-					</template>
-				</div>
-			</div>
+	{{-- Right panel: Live Preview --}}
+	<div class="flex-1 min-w-0 flex flex-col bg-gray-100" data-theme="light">
+		{{-- Preview toolbar --}}
+		<x-ve-style-preview-toolbar />
 
-			{{-- Typography preview --}}
-			<div class="bg-white rounded-xl border border-gray-200 p-6">
-				<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-					{{ __( 'visual-editor::ve.global_styles_preview_typography' ) }}
-				</h2>
-				<div class="space-y-3 text-gray-900">
-					<h1 style="font-family: var(--ve-font-heading, inherit); font-size: var(--ve-text-h1-font-size, 2.25rem); font-weight: var(--ve-text-h1-font-weight, 800); line-height: var(--ve-text-h1-line-height, 1.2);">
-						{{ __( 'visual-editor::ve.global_styles_preview_heading_1' ) }}
-					</h1>
-					<h2 style="font-family: var(--ve-font-heading, inherit); font-size: var(--ve-text-h2-font-size, 1.875rem); font-weight: var(--ve-text-h2-font-weight, 700); line-height: var(--ve-text-h2-line-height, 1.3);">
-						{{ __( 'visual-editor::ve.global_styles_preview_heading_2' ) }}
-					</h2>
-					<h3 style="font-family: var(--ve-font-heading, inherit); font-size: var(--ve-text-h3-font-size, 1.5rem); font-weight: var(--ve-text-h3-font-weight, 600); line-height: var(--ve-text-h3-line-height, 1.4);">
-						{{ __( 'visual-editor::ve.global_styles_preview_heading_3' ) }}
-					</h3>
-					<p style="font-family: var(--ve-font-body, inherit); font-size: var(--ve-text-body-font-size, 1rem); line-height: var(--ve-text-body-line-height, 1.6);">
-						{{ __( 'visual-editor::ve.global_styles_preview_body_text' ) }}
-					</p>
-					<p style="font-family: var(--ve-font-body, inherit); font-size: var(--ve-text-small-font-size, 0.875rem); line-height: var(--ve-text-small-line-height, 1.5);" class="text-gray-400">
-						{{ __( 'visual-editor::ve.global_styles_preview_small_text' ) }}
-					</p>
-				</div>
-			</div>
+		{{-- Preview content area with responsive viewport --}}
+		<div class="flex-1 overflow-y-auto p-8">
+			<div
+				class="mx-auto transition-all duration-300 ease-in-out space-y-4"
+				:style="{ width: viewportWidth, maxWidth: '100%' }"
+			>
+				{{-- Section: Style Overview (colors, typography, spacing) --}}
+				@include( 'visual-editor::components._style-preview-section', [
+					'title'   => __( 'visual-editor::ve.style_preview_section_overview' ),
+					'id'      => 'overview',
+					'open'    => true,
+					'badge'   => '',
+					'content' => 'visual-editor::components._style-preview-context-default',
+				] )
 
-			{{-- Spacing preview --}}
-			<div class="bg-white rounded-xl border border-gray-200 p-6">
-				<h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">
-					{{ __( 'visual-editor::ve.global_styles_preview_spacing' ) }}
-				</h2>
-				<div class="space-y-2" x-data>
-					<template x-for="step in Alpine.store( 'editor' )?.globalStyles?.spacing?.scale || []" :key="step.slug">
-						<div class="flex items-center gap-3">
-							<span class="w-8 text-xs text-gray-400 text-right tabular-nums" x-text="step.slug"></span>
-							<div
-								class="h-4 rounded bg-blue-100 border border-blue-200"
-								x-bind:style="'width:' + step.value"
-							></div>
-							<span class="text-xs text-gray-300 tabular-nums" x-text="step.value"></span>
-						</div>
-					</template>
-				</div>
+				{{-- Section: Template Parts (grouped by area) --}}
+				@if ( [] !== $previewParts )
+					@php
+						$totalParts = collect( $previewParts )->flatten( 1 )->count();
+					@endphp
+
+					@include( 'visual-editor::components._style-preview-section', [
+						'title'   => __( 'visual-editor::ve.style_preview_section_parts' ),
+						'id'      => 'parts',
+						'open'    => true,
+						'badge'   => (string) $totalParts,
+						'content' => 'visual-editor::components._style-preview-parts',
+					] )
+				@endif
+
+				{{-- Section: Patterns (grouped by category) --}}
+				@if ( [] !== $previewPatterns )
+					@php
+						$totalPatterns = collect( $previewPatterns )->flatten( 1 )->count();
+					@endphp
+
+					@include( 'visual-editor::components._style-preview-section', [
+						'title'   => __( 'visual-editor::ve.style_preview_section_patterns' ),
+						'id'      => 'patterns',
+						'open'    => true,
+						'badge'   => (string) $totalPatterns,
+						'content' => 'visual-editor::components._style-preview-patterns',
+					] )
+				@endif
+
+				{{-- Empty state when no patterns or parts exist --}}
+				@if ( [] === $previewParts && [] === $previewPatterns )
+					<div class="bg-white rounded-xl border border-gray-200 p-6 text-center">
+						<p class="text-sm text-gray-400">
+							{{ __( 'visual-editor::ve.style_preview_no_content' ) }}
+						</p>
+					</div>
+				@endif
 			</div>
 		</div>
 	</div>
