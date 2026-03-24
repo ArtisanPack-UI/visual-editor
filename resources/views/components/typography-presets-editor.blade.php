@@ -12,8 +12,10 @@
  --}}
 
 @php
-	$initialData    = $typographyData;
-	$defaultsData   = $defaultData;
+	$initialData       = $typographyData;
+	$defaultsData      = $defaultData;
+	$initialBaseValues = $baseValues;
+	$hasOverrideMode   = null !== $baseValues;
 	$elementLabels  = [
 		'h1'         => __( 'visual-editor::ve.typography_h1' ),
 		'h2'         => __( 'visual-editor::ve.typography_h2' ),
@@ -58,6 +60,8 @@
 	x-data="{
 		fontFamilies: {{ Js::from( $initialData['fontFamilies'] ) }},
 		elements: {{ Js::from( $initialData['elements'] ) }},
+		baseValues: {{ Js::from( $initialBaseValues ) }},
+		overrideMode: {{ Js::from( $hasOverrideMode ) }},
 		editingElement: null,
 		activeSection: 'families',
 		showCss: false,
@@ -66,9 +70,36 @@
 		typeScaleRatio: 1.25,
 		elementLabels: {{ Js::from( $elementLabels ) }},
 
+		_getStore() {
+			return Alpine.store( 'editor' ) || Alpine.store( 'globalStyles' ) || null;
+		},
+
+		isFamilyOverridden( slot ) {
+			if ( ! this.overrideMode || ! this.baseValues?.fontFamilies ) return false;
+			return this.fontFamilies[ slot ] !== this.baseValues.fontFamilies[ slot ];
+		},
+
+		isElementOverridden( element ) {
+			if ( ! this.overrideMode || ! this.baseValues?.elements ) return false;
+			const base    = this.baseValues.elements[ element ];
+			const current = this.elements[ element ];
+			if ( ! base || ! current ) return false;
+			return JSON.stringify( base ) !== JSON.stringify( current );
+		},
+
+		resetFamilyToBase( slot ) {
+			if ( ! this.baseValues?.fontFamilies ) return;
+			this.fontFamilies[ slot ] = this.baseValues.fontFamilies[ slot ];
+		},
+
+		resetElementToBase( element ) {
+			if ( ! this.baseValues?.elements || ! ( element in this.baseValues.elements ) ) return;
+			this.elements[ element ] = JSON.parse( JSON.stringify( this.baseValues.elements[ element ] ) );
+		},
+
 		init() {
 			const syncToStore = () => {
-				const store = Alpine.store( 'editor' );
+				const store = this._getStore();
 				if ( ! store ) return;
 				store.globalStyles.typography = {
 					fontFamilies: JSON.parse( JSON.stringify( this.fontFamilies ) ),
@@ -92,6 +123,10 @@
 
 		updateElementProperty( element, property, value ) {
 			if ( ! this.elements[ element ] ) return
+			if ( 'lineHeight' === property ) {
+				const parsed = parseFloat( value )
+				value = ( Number.isFinite( parsed ) && parsed > 0 ) ? parsed : 0.01
+			}
 			this.elements[ element ][ property ] = value
 		},
 
@@ -133,6 +168,18 @@
 			} )
 			css += '}'
 			return css
+		},
+
+		_parseValue( str ) {
+			if ( ! str ) return { num: '', unit: 'rem' }
+			const match = String( str ).match( /^(\d*\.?\d+)\s*(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)?$/ )
+			if ( match ) return { num: match[1], unit: match[2] || 'rem' }
+			return { num: str, unit: '' }
+		},
+
+		_combineValue( num, unit ) {
+			if ( '' === num || null === num || undefined === num ) return ''
+			return String( num ) + ( unit || '' )
 		},
 
 		_dispatch() {
@@ -227,19 +274,48 @@
 	<div x-show="activeSection === 'families'" x-cloak role="tabpanel" aria-labelledby="{{ $uuid }}-tab-families" id="{{ $uuid }}-panel-families" class="flex flex-col gap-3">
 		@foreach ( $familyLabels as $slot => $label )
 			<div class="flex flex-col gap-1">
-				<label
-					for="{{ $uuid }}-family-{{ $slot }}"
-					class="text-xs font-medium text-base-content/70"
-				>
-					{{ $label }}
-				</label>
-				<input
-					type="text"
+				<div class="flex items-center gap-1">
+					<label
+						for="{{ $uuid }}-family-{{ $slot }}"
+						class="text-xs font-medium text-base-content/70 flex-1"
+					>
+						{{ $label }}
+					</label>
+					@if ( $hasOverrideMode )
+						<template x-if="overrideMode">
+							@include( 'visual-editor::components._override-indicator', [
+								'overriddenExpr' => "isFamilyOverridden( '" . $slot . "' )",
+								'nameExpr'       => Js::from( $label ),
+								'resetExpr'      => "resetFamilyToBase( '" . $slot . "' )",
+							] )
+						</template>
+					@endif
+				</div>
+				<select
 					id="{{ $uuid }}-family-{{ $slot }}"
 					x-model="fontFamilies.{{ $slot }}"
 					x-on:change="setFontFamily( '{{ $slot }}', $event.target.value )"
-					class="input input-sm input-bordered w-full font-mono text-xs"
-				/>
+					class="select select-sm select-bordered w-full text-xs"
+				>
+					@php
+						$knownFamilies = array_keys( $availableFonts[ $slot ] ?? [] );
+						$currentFamily = $typographyData['fontFamilies'][ $slot ] ?? null;
+						$baseFamily    = $baseValues['fontFamilies'][ $slot ] ?? null;
+						$extraOptions  = [];
+						if ( $currentFamily && ! in_array( $currentFamily, $knownFamilies, true ) ) {
+							$extraOptions[ $currentFamily ] = $currentFamily;
+						}
+						if ( $baseFamily && $baseFamily !== $currentFamily && ! in_array( $baseFamily, $knownFamilies, true ) ) {
+							$extraOptions[ $baseFamily ] = $baseFamily;
+						}
+					@endphp
+					@foreach ( $extraOptions as $family => $label )
+						<option value="{{ $family }}">{{ $label }}</option>
+					@endforeach
+					@foreach ( $availableFonts[ $slot ] ?? [] as $family => $name )
+						<option value="{{ $family }}">{{ $name }}</option>
+					@endforeach
+				</select>
 			</div>
 		@endforeach
 	</div>
@@ -256,6 +332,15 @@
 					:aria-expanded="editingElement === '{{ $key }}'"
 				>
 					<div class="flex items-center gap-3 min-w-0">
+						@if ( $hasOverrideMode )
+							<template x-if="overrideMode">
+								@include( 'visual-editor::components._override-indicator', [
+									'overriddenExpr' => "isElementOverridden( '" . $key . "' )",
+									'nameExpr'       => Js::from( $label ),
+									'resetExpr'      => "resetElementToBase( '" . $key . "' )",
+								] )
+							</template>
+						@endif
 						<span
 							class="shrink-0 text-base-content/70"
 							:style="'font-size: ' + ( elements['{{ $key }}'] ? elements['{{ $key }}'].fontSize : '1rem' ) + '; font-weight: ' + ( elements['{{ $key }}'] ? elements['{{ $key }}'].fontWeight : '400' ) + '; line-height: 1'"
@@ -289,19 +374,40 @@
 					class="border-t border-base-300 bg-base-200/30 px-3 py-3"
 				>
 					<div class="grid grid-cols-2 gap-3">
+						{{-- Font Size (number + unit) --}}
 						<div class="flex flex-col gap-1">
-							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-fontSize">
+							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-fontSizeNum">
 								{{ __( 'visual-editor::ve.typography_font_size' ) }}
 							</label>
-							<input
-								type="text"
-								id="{{ $uuid }}-{{ $key }}-fontSize"
-								:value="elements['{{ $key }}'] ? elements['{{ $key }}'].fontSize : ''"
-								x-on:change="updateElementProperty( '{{ $key }}', 'fontSize', $event.target.value )"
-								class="input input-sm input-bordered w-full font-mono text-xs"
-								placeholder="1rem"
-							/>
+							<div class="flex gap-1">
+								<input
+									type="number"
+									step="0.001"
+									min="0"
+									id="{{ $uuid }}-{{ $key }}-fontSizeNum"
+									x-ref="fontSizeNum_{{ $key }}"
+									:value="_parseValue( elements['{{ $key }}']?.fontSize ).num"
+									x-on:change="updateElementProperty( '{{ $key }}', 'fontSize', _combineValue( $event.target.value, $refs.fontSizeUnit_{{ $key }}.value ) )"
+									class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
+									placeholder="1"
+								/>
+								<select
+									x-ref="fontSizeUnit_{{ $key }}"
+									:value="_parseValue( elements['{{ $key }}']?.fontSize ).unit"
+									x-on:change="updateElementProperty( '{{ $key }}', 'fontSize', _combineValue( $refs.fontSizeNum_{{ $key }}.value, $event.target.value ) )"
+									class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+									aria-label="{{ __( 'visual-editor::ve.typography_font_size' ) }} {{ __( 'visual-editor::ve.unit' ) }}"
+								>
+									<option value="rem">rem</option>
+									<option value="em">em</option>
+									<option value="px">px</option>
+									<option value="%">%</option>
+									<option value="vw">vw</option>
+								</select>
+							</div>
 						</div>
+
+						{{-- Font Weight --}}
 						<div class="flex flex-col gap-1">
 							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-fontWeight">
 								{{ __( 'visual-editor::ve.typography_font_weight' ) }}
@@ -317,32 +423,55 @@
 								@endforeach
 							</select>
 						</div>
+
+						{{-- Line Height (number, unitless or with unit) --}}
 						<div class="flex flex-col gap-1">
 							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-lineHeight">
 								{{ __( 'visual-editor::ve.typography_line_height' ) }}
 							</label>
 							<input
-								type="text"
+								type="number"
+								step="0.01"
+								min="0"
 								id="{{ $uuid }}-{{ $key }}-lineHeight"
 								:value="elements['{{ $key }}'] ? elements['{{ $key }}'].lineHeight : ''"
-								x-on:change="updateElementProperty( '{{ $key }}', 'lineHeight', $event.target.value )"
+								x-on:change="updateElementProperty( '{{ $key }}', 'lineHeight', Math.max( 0.01, parseFloat( $event.target.value ) || 0.01 ) )"
 								class="input input-sm input-bordered w-full font-mono text-xs"
 								placeholder="1.5"
 							/>
 						</div>
+
+						{{-- Letter Spacing (number + unit) --}}
 						<div class="flex flex-col gap-1">
-							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-letterSpacing">
+							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-letterSpacingNum">
 								{{ __( 'visual-editor::ve.typography_letter_spacing' ) }}
 							</label>
-							<input
-								type="text"
-								id="{{ $uuid }}-{{ $key }}-letterSpacing"
-								:value="elements['{{ $key }}'] ? elements['{{ $key }}'].letterSpacing : ''"
-								x-on:change="updateElementProperty( '{{ $key }}', 'letterSpacing', $event.target.value )"
-								class="input input-sm input-bordered w-full font-mono text-xs"
-								placeholder="0"
-							/>
+							<div class="flex gap-1">
+								<input
+									type="number"
+									step="0.001"
+									id="{{ $uuid }}-{{ $key }}-letterSpacingNum"
+									x-ref="letterSpacingNum_{{ $key }}"
+									:value="_parseValue( elements['{{ $key }}']?.letterSpacing ).num"
+									x-on:change="updateElementProperty( '{{ $key }}', 'letterSpacing', _combineValue( $event.target.value, $refs.letterSpacingUnit_{{ $key }}.value ) )"
+									class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
+									placeholder="0"
+								/>
+								<select
+									x-ref="letterSpacingUnit_{{ $key }}"
+									:value="_parseValue( elements['{{ $key }}']?.letterSpacing ).unit"
+									x-on:change="updateElementProperty( '{{ $key }}', 'letterSpacing', _combineValue( $refs.letterSpacingNum_{{ $key }}.value, $event.target.value ) )"
+									class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+									aria-label="{{ __( 'visual-editor::ve.typography_letter_spacing' ) }} {{ __( 'visual-editor::ve.unit' ) }}"
+								>
+									<option value="em">em</option>
+									<option value="rem">rem</option>
+									<option value="px">px</option>
+								</select>
+							</div>
 						</div>
+
+						{{-- Font Style --}}
 						<div class="flex flex-col gap-1">
 							<label class="text-[10px] font-medium text-base-content/50 uppercase tracking-wider" for="{{ $uuid }}-{{ $key }}-fontStyle">
 								{{ __( 'visual-editor::ve.typography_font_style' ) }}

@@ -23,11 +23,30 @@ use ArtisanPackUI\VisualEditor\Blocks\BlockRegistry;
 use ArtisanPackUI\VisualEditor\Blocks\BlockTransformService;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockCacheCommand;
 use ArtisanPackUI\VisualEditor\Console\Commands\BlockClearCommand;
+use ArtisanPackUI\VisualEditor\Console\Commands\PublishViewsCommand;
+use ArtisanPackUI\VisualEditor\Contracts\SiteEditorListing;
+use ArtisanPackUI\VisualEditor\Contracts\SiteEditorPage;
+use ArtisanPackUI\VisualEditor\Http\Middleware\CheckGateIfDefined;
 use ArtisanPackUI\VisualEditor\Inspector\BlockMetadataService;
 use ArtisanPackUI\VisualEditor\Inspector\SupportsPanelRegistry;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\GlobalStylesPage;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternEditorPage;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternListingPage;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateEditorPage;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateListingPage;
+use ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplatePartListingPage;
+use ArtisanPackUI\VisualEditor\Models\Pattern;
+use ArtisanPackUI\VisualEditor\Models\Template;
+use ArtisanPackUI\VisualEditor\Models\TemplatePart;
+use ArtisanPackUI\VisualEditor\Policies\PatternSiteEditorPolicy;
+use ArtisanPackUI\VisualEditor\Policies\TemplatePartSiteEditorPolicy;
+use ArtisanPackUI\VisualEditor\Policies\TemplateSiteEditorPolicy;
 use ArtisanPackUI\VisualEditor\Rendering\BlockRenderer;
 use ArtisanPackUI\VisualEditor\Services\ColorPaletteManager;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCompiler;
+use ArtisanPackUI\VisualEditor\Services\GlobalStylesRepository;
 use ArtisanPackUI\VisualEditor\Services\OEmbedService;
 use ArtisanPackUI\VisualEditor\Services\SpacingScaleManager;
 use ArtisanPackUI\VisualEditor\Services\StyleCascadeResolver;
@@ -38,6 +57,7 @@ use ArtisanPackUI\VisualEditor\Services\TemplatePresetManager;
 use ArtisanPackUI\VisualEditor\Services\TypographyPresetsManager;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 
@@ -140,6 +160,8 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		// Phase 10: Template Editor
 		'template-editor'          => Components\TemplateEditor::class,
+		'template-part-editor'     => Components\TemplatePartEditor::class,
+		'pattern-editor'           => Components\PatternEditor::class,
 		'template-part-slot'       => Components\TemplatePartSlot::class,
 		'template-switcher'        => Components\TemplateSwitcher::class,
 		'template-structure-panel' => Components\TemplateStructurePanel::class,
@@ -149,10 +171,17 @@ class VisualEditorServiceProvider extends ServiceProvider
 		'typography-presets-editor'   => Components\TypographyPresetsEditor::class,
 		'spacing-scale-editor'        => Components\SpacingScaleEditor::class,
 		'style-source-indicator'      => Components\StyleSourceIndicator::class,
+		'global-styles-state'         => Components\GlobalStylesState::class,
+		'template-parts-manager'      => Components\TemplatePartsManager::class,
 
 		// Phase 9: Editor Assembly
 		'icon'   => Components\Icon::class,
 		'editor' => Components\Editor::class,
+
+		// Site Editor
+		'site-editor-layout' => Components\SiteEditorLayout::class,
+		'listing-table'      => Components\ListingTable::class,
+		'listing-grid'       => Components\ListingGrid::class,
 	];
 
 	/**
@@ -168,6 +197,8 @@ class VisualEditorServiceProvider extends ServiceProvider
 			__DIR__ . '/../config/visual-editor.php',
 			'artisanpack-visual-editor-temp',
 		);
+
+		$this->app['router']->aliasMiddleware( 've.gate', CheckGateIfDefined::class );
 
 		$this->app->singleton( 'visual-editor', function () {
 			return new VisualEditor();
@@ -295,6 +326,18 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->app->singleton( StyleCascadeResolver::class, function ( $app ) {
 			return $app->make( 'visual-editor.style-cascade' );
 		} );
+
+		$this->app->singleton( 'visual-editor.global-styles-repository', function ( $app ) {
+			return new GlobalStylesRepository(
+				$app->make( 'visual-editor.color-palette' ),
+				$app->make( 'visual-editor.typography-presets' ),
+				$app->make( 'visual-editor.spacing-scale' ),
+			);
+		} );
+
+		$this->app->singleton( GlobalStylesRepository::class, function ( $app ) {
+			return $app->make( 'visual-editor.global-styles-repository' );
+		} );
 	}
 
 	/**
@@ -313,6 +356,8 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerBladeComponents();
 		$this->registerLivewireNamespace();
 		$this->registerMigrations();
+		$this->registerPermissions();
+		$this->registerPolicies();
 		$this->registerRoutes();
 		$this->registerCoreBlocks();
 		$this->registerDefaultTemplates();
@@ -320,6 +365,102 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerDefaultPresets();
 		$this->registerConsoleCommands();
 		$this->publishBlockViews();
+		$this->registerAdminMenu();
+	}
+
+	/**
+	 * Register site editor permissions with the CMS framework.
+	 *
+	 * Permissions are only registered when the cms-framework's
+	 * `ap_register_permission` function is available.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerPermissions(): void
+	{
+		if ( ! function_exists( 'ap_register_permission' ) ) {
+			return;
+		}
+
+		$permissions = [
+			'visual-editor.access-site-editor'    => [
+				'name'        => __( 'visual-editor::ve.permission_access_site_editor' ),
+				'description' => __( 'visual-editor::ve.permission_access_site_editor_desc' ),
+			],
+			'visual-editor.manage-styles'         => [
+				'name'        => __( 'visual-editor::ve.permission_manage_styles' ),
+				'description' => __( 'visual-editor::ve.permission_manage_styles_desc' ),
+			],
+			'visual-editor.manage-templates'      => [
+				'name'        => __( 'visual-editor::ve.permission_manage_templates' ),
+				'description' => __( 'visual-editor::ve.permission_manage_templates_desc' ),
+			],
+			'visual-editor.manage-parts'          => [
+				'name'        => __( 'visual-editor::ve.permission_manage_parts' ),
+				'description' => __( 'visual-editor::ve.permission_manage_parts_desc' ),
+			],
+			'visual-editor.manage-patterns'       => [
+				'name'        => __( 'visual-editor::ve.permission_manage_patterns' ),
+				'description' => __( 'visual-editor::ve.permission_manage_patterns_desc' ),
+			],
+			'visual-editor.manage-template-styles' => [
+				'name'        => __( 'visual-editor::ve.permission_manage_template_styles' ),
+				'description' => __( 'visual-editor::ve.permission_manage_template_styles_desc' ),
+			],
+			'visual-editor.lock-content'          => [
+				'name'        => __( 'visual-editor::ve.permission_lock_content' ),
+				'description' => __( 'visual-editor::ve.permission_lock_content_desc' ),
+			],
+		];
+
+		foreach ( $permissions as $slug => $meta ) {
+			ap_register_permission( $slug, $meta['name'], $meta['description'] );
+		}
+	}
+
+	/**
+	 * Register authorization policies for site editor models.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerPolicies(): void
+	{
+		Gate::policy( Template::class, TemplateSiteEditorPolicy::class );
+		Gate::policy( TemplatePart::class, TemplatePartSiteEditorPolicy::class );
+		Gate::policy( Pattern::class, PatternSiteEditorPolicy::class );
+	}
+
+	/**
+	 * Register the site editor as an admin page with the CMS framework.
+	 *
+	 * Only registers when the cms-framework's `apAddAdminPage`
+	 * function is available.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return void
+	 */
+	protected function registerAdminMenu(): void
+	{
+		if ( ! function_exists( 'apAddAdminPage' ) ) {
+			return;
+		}
+
+		$prefix = (string) config( 'artisanpack.visual-editor.site_editor.route_prefix', 'site-editor' );
+
+		apAddAdminPage(
+			title: __( 'visual-editor::ve.site_editor' ),
+			slug: 'site-editor',
+			sectionSlug: 'appearance',
+			options: [
+				'capability' => 'visual-editor.access-site-editor',
+				'action'     => fn () => redirect( url( $prefix ) ),
+			],
+		);
 	}
 
 	/**
@@ -332,6 +473,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	protected function registerRoutes(): void
 	{
 		$this->loadRoutesFrom( __DIR__ . '/../routes/api.php' );
+		$this->loadRoutesFrom( __DIR__ . '/../routes/web.php' );
 	}
 
 	/**
@@ -397,6 +539,8 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor' );
 
 		if ( $this->app->runningInConsole() ) {
+			// All views can be published via `vendor:publish --tag=visual-editor-views`.
+			// For granular publishing by group, use the `ve:publish --views --tag=...` command.
 			$this->publishes( [
 				__DIR__ . '/../resources/views' => resource_path( 'views/vendor/visual-editor' ),
 			], 'visual-editor-views' );
@@ -422,7 +566,75 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Livewire::addNamespace(
 			namespace: 'visual-editor',
 			viewPath: __DIR__ . '/../resources/views/livewire',
+			classNamespace: 'ArtisanPackUI\\VisualEditor\\Livewire',
 		);
+
+		$components = (array) config( 'artisanpack.visual-editor.site_editor.components', [] );
+
+		Livewire::component( 'site-editor.hub-page', (string) ( $components['hub_page'] ?? HubPage::class ) );
+		Livewire::component( 'site-editor.global-styles-page', (string) ( $components['global_styles_page'] ?? GlobalStylesPage::class ) );
+		Livewire::component( 'site-editor.template-listing-page', (string) ( $components['template_listing'] ?? TemplateListingPage::class ) );
+		Livewire::component( 'site-editor.template-editor-page', (string) ( $components['template_editor'] ?? TemplateEditorPage::class ) );
+		Livewire::component( 'site-editor.template-part-listing-page', (string) ( $components['part_listing'] ?? TemplatePartListingPage::class ) );
+		Livewire::component( 'site-editor.part-editor-page', (string) ( $components['part_editor'] ?? PartEditorPage::class ) );
+		Livewire::component( 'site-editor.pattern-listing-page', (string) ( $components['pattern_listing'] ?? PatternListingPage::class ) );
+		Livewire::component( 'site-editor.pattern-editor-page', (string) ( $components['pattern_editor'] ?? PatternEditorPage::class ) );
+		Livewire::component( 'template-parts-crud', \ArtisanPackUI\VisualEditor\Livewire\TemplatePartsCrud::class );
+
+		$this->validateComponentContracts( $components );
+	}
+
+	/**
+	 * Validate that configured component classes implement the required contracts.
+	 *
+	 * Logs a warning if a configured class does not implement its expected interface.
+	 * This prevents silent failures when developers swap component classes.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param array<string, string> $components The configured component class map.
+	 *
+	 * @return void
+	 */
+	protected function validateComponentContracts( array $components ): void
+	{
+		$pageContracts = [
+			'hub_page'           => SiteEditorPage::class,
+			'global_styles_page' => SiteEditorPage::class,
+			'template_editor'    => SiteEditorPage::class,
+			'part_editor'        => SiteEditorPage::class,
+			'pattern_editor'     => SiteEditorPage::class,
+		];
+
+		$listingContracts = [
+			'template_listing' => SiteEditorListing::class,
+			'part_listing'     => SiteEditorListing::class,
+			'pattern_listing'  => SiteEditorListing::class,
+		];
+
+		$allContracts = array_merge( $pageContracts, $listingContracts );
+
+		foreach ( $allContracts as $key => $contract ) {
+			if ( ! isset( $components[ $key ] ) ) {
+				continue;
+			}
+
+			$class = $components[ $key ];
+
+			if ( ! class_exists( $class ) ) {
+				$this->app->make( 'log' )->error(
+					"Visual Editor: configured component '{$key}' references non-existent class [{$class}].",
+				);
+
+				continue;
+			}
+
+			if ( ! is_subclass_of( $class, $contract ) ) {
+				$this->app->make( 'log' )->warning(
+					"Visual Editor: configured component '{$key}' class [{$class}] does not implement {$contract}.",
+				);
+			}
+		}
 	}
 
 	/**
@@ -808,6 +1020,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			$this->commands( [
 				BlockCacheCommand::class,
 				BlockClearCommand::class,
+				PublishViewsCommand::class,
 			] );
 		}
 	}

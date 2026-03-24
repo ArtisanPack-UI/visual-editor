@@ -62,6 +62,35 @@ if ( ! function_exists( 'veApplyFilters' ) ) {
 	}
 }
 
+if ( ! function_exists( 'veGateMiddleware' ) ) {
+	/**
+	 * Build a capability middleware array for a route.
+	 *
+	 * Returns `['ve.gate:{ability}']` when an ability is configured.
+	 * Returns an empty array when no ability is set, allowing the
+	 * route to remain accessible with just the base middleware.
+	 *
+	 * The `ve.gate` middleware (CheckGateIfDefined) only enforces
+	 * the authorization check when the gate has been registered.
+	 * When no gate is registered (e.g. cms-framework not installed),
+	 * the request passes through for graceful degradation.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string $ability The gate ability to check.
+	 *
+	 * @return array<int, string>
+	 */
+	function veGateMiddleware( string $ability ): array
+	{
+		if ( '' === $ability ) {
+			return [];
+		}
+
+		return [ 've.gate:' . $ability ];
+	}
+}
+
 if ( ! function_exists( 'visualEditor' ) ) {
 	/**
 	 * Get the Visual Editor instance.

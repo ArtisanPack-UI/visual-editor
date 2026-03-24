@@ -18,7 +18,9 @@
 		[ 'key' => 'spacious', 'label' => __( 'visual-editor::ve.spacing_preset_spacious' ) ],
 	];
 
-	$presetScales = \ArtisanPackUI\VisualEditor\Services\SpacingScaleManager::PRESETS;
+	$presetScales      = \ArtisanPackUI\VisualEditor\Services\SpacingScaleManager::PRESETS;
+	$initialBaseValues = $baseValues;
+	$hasOverrideMode   = null !== $baseValues;
 @endphp
 
 <div
@@ -27,6 +29,8 @@
 		scale: {{ Js::from( $spacingData['scale'] ) }},
 		blockGap: {{ Js::from( $spacingData['blockGap'] ) }},
 		customSteps: {{ Js::from( $spacingData['customSteps'] ) }},
+		baseValues: {{ Js::from( $initialBaseValues ) }},
+		overrideMode: {{ Js::from( $hasOverrideMode ) }},
 		editing: null,
 		editName: '',
 		editSlug: '',
@@ -39,10 +43,50 @@
 		slugError: '',
 		showCss: false,
 		presets: {{ Js::from( $presetScales ) }},
+		editNum: '',
+		editUnit: 'rem',
+		newNum: '',
+		newUnit: 'rem',
+
+		_getStore() {
+			return Alpine.store( 'editor' ) || Alpine.store( 'globalStyles' ) || null;
+		},
+
+		isStepOverridden( index, isCustom ) {
+			if ( ! this.overrideMode || ! this.baseValues ) return false;
+			const list = isCustom ? this.customSteps : this.scale;
+			const step = list[ index ];
+			if ( ! step ) return false;
+			const baseList = isCustom ? ( this.baseValues.customSteps || [] ) : ( this.baseValues.scale || [] );
+			const base = baseList.find( b => b.slug === step.slug );
+			if ( ! base ) return true;
+			return base.value !== step.value || base.name !== step.name;
+		},
+
+		resetStepToBase( index, isCustom ) {
+			if ( ! this.baseValues ) return;
+			const list = isCustom ? this.customSteps : this.scale;
+			const step = list[ index ];
+			if ( ! step ) return;
+			const baseList = isCustom ? ( this.baseValues.customSteps || [] ) : ( this.baseValues.scale || [] );
+			const base = baseList.find( b => b.slug === step.slug );
+			if ( ! base ) {
+				if ( isCustom ) {
+					if ( step.slug === this.blockGap ) {
+						this.blockGap = ( this.scale.length > 0 ? this.scale[ 0 ].slug : '0' );
+					}
+					list.splice( index, 1 );
+					this._dispatch();
+				}
+				return;
+			}
+			list.splice( index, 1, { ...base } );
+			this._dispatch();
+		},
 
 		init() {
 			const syncToStore = () => {
-				const store = Alpine.store( 'editor' );
+				const store = this._getStore();
 				if ( ! store ) return;
 				store.globalStyles.spacing = {
 					scale: JSON.parse( JSON.stringify( this.scale ) ),
@@ -64,6 +108,7 @@
 			this.editName  = list[ index ].name
 			this.editSlug  = list[ index ].slug
 			this.editValue = list[ index ].value
+			this._syncEditFromValue()
 		},
 
 		saveEdit() {
@@ -86,6 +131,7 @@
 			}
 			this.editing   = null
 			this.editError = ''
+			this._dispatch()
 		},
 
 		cancelEdit() {
@@ -94,7 +140,12 @@
 		},
 
 		removeCustomStep( index ) {
+			const step = this.customSteps[ index ]
+			if ( step && step.slug === this.blockGap ) {
+				this.blockGap = ( this.scale.length > 0 ? this.scale[ 0 ].slug : '0' )
+			}
 			this.customSteps.splice( index, 1 )
+			this._dispatch()
 		},
 
 		startAdd() {
@@ -102,6 +153,8 @@
 			this.newName   = ''
 			this.newSlug   = ''
 			this.newValue  = ''
+			this.newNum    = ''
+			this.newUnit   = 'rem'
 			this.slugError = ''
 		},
 
@@ -132,7 +185,9 @@
 		},
 
 		cancelAdd() {
-			this.adding = false
+			this.adding  = false
+			this.newNum  = ''
+			this.newUnit = 'rem'
 		},
 
 		applyPreset( key ) {
@@ -183,6 +238,29 @@
 		_isValidDimension( value ) {
 			if ( '0' === value ) return true
 			return /^-?\d*\.?\d+(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)$/.test( value )
+		},
+
+		_parseValue( str ) {
+			if ( ! str ) return { num: '', unit: 'rem' }
+			const match = String( str ).match( /^(-?\d*\.?\d+)\s*(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)?$/ )
+			if ( match ) return { num: match[1], unit: match[2] || 'rem' }
+			return { num: str, unit: 'rem' }
+		},
+
+		_combineValue( num, unit ) {
+			if ( '' === num || null === num || undefined === num ) return ''
+			return String( num ) + ( unit || 'rem' )
+		},
+
+		_syncEditFromValue() {
+			const parsed = this._parseValue( this.editValue )
+			this.editNum  = parsed.num
+			this.editUnit = parsed.unit || 'rem'
+		},
+
+		_syncEditToValue() {
+			this.editValue = this._combineValue( this.editNum, this.editUnit )
+			this.editError = ''
 		},
 
 		_dispatch() {
@@ -257,6 +335,15 @@
 					x-show="! editing || editing.index !== index || editing.isCustom"
 					class="flex items-center gap-3 rounded-lg border border-base-300 px-3 py-2 hover:bg-base-200/50 focus-within:bg-base-200/50 transition-colors group"
 				>
+					{{-- Override indicator --}}
+					<template x-if="overrideMode">
+						@include( 'visual-editor::components._override-indicator', [
+							'overriddenExpr' => 'isStepOverridden( index, false )',
+							'nameExpr'       => 'entry.name',
+							'resetExpr'      => 'resetStepToBase( index, false )',
+						] )
+					</template>
+
 					<div
 						class="h-4 rounded bg-primary/20 shrink-0"
 						x-bind:style="{ '--ve-preview-size': /^-?\d*\.?\d+(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)?$/.test( entry.value ) ? entry.value : '0px' }" style="width: calc( 8px + var(--ve-preview-size, 0px) )"
@@ -278,21 +365,41 @@
 					x-cloak
 					class="flex flex-col gap-3 rounded-lg border border-primary/30 bg-base-200/30 px-3 py-3"
 				>
-					<div class="flex items-center gap-3">
+					<input
+						type="text"
+						x-model="editName"
+						x-on:input="editError = ''"
+						class="input input-sm input-bordered w-full"
+						placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+						aria-label="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+					/>
+					<div class="flex items-center gap-2">
 						<input
-							type="text"
-							x-model="editName"
-							x-on:input="editError = ''"
-							class="input input-sm input-bordered flex-1 min-w-0"
-							placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+							type="number"
+							step="0.001"
+							x-model="editNum"
+							x-on:input="editError = ''; _syncEditToValue()"
+							class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
+							placeholder="1"
+							aria-label="{{ __( 'visual-editor::ve.spacing_value' ) }}"
 						/>
-						<input
-							type="text"
-							x-model="editValue"
-							x-on:input="editError = ''"
-							class="input input-sm input-bordered w-28 font-mono text-xs"
-							placeholder="1rem"
-						/>
+						<select
+							x-model="editUnit"
+							x-on:change="_syncEditToValue()"
+							class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+							aria-label="{{ __( 'visual-editor::ve.spacing_unit' ) }}"
+						>
+							<option value="rem">rem</option>
+							<option value="em">em</option>
+							<option value="px">px</option>
+							<option value="%">%</option>
+							<option value="vw">vw</option>
+							<option value="vh">vh</option>
+							<option value="vmin">vmin</option>
+							<option value="vmax">vmax</option>
+							<option value="ch">ch</option>
+							<option value="ex">ex</option>
+						</select>
 					</div>
 					<p x-show="editError" x-cloak x-text="editError" class="text-xs text-error"></p>
 					<div class="flex justify-end gap-2">
@@ -330,6 +437,15 @@
 						x-show="! editing || editing.index !== index || ! editing.isCustom"
 						class="flex items-center gap-3 rounded-lg border border-base-300 px-3 py-2 hover:bg-base-200/50 focus-within:bg-base-200/50 transition-colors group"
 					>
+						{{-- Override indicator --}}
+						<template x-if="overrideMode">
+							@include( 'visual-editor::components._override-indicator', [
+								'overriddenExpr' => 'isStepOverridden( index, true )',
+								'nameExpr'       => 'entry.name',
+								'resetExpr'      => 'resetStepToBase( index, true )',
+							] )
+						</template>
+
 						<div
 							class="h-4 rounded bg-accent/20 shrink-0"
 							x-bind:style="{ '--ve-preview-size': /^-?\d*\.?\d+(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)?$/.test( entry.value ) ? entry.value : '0px' }" style="width: calc( 8px + var(--ve-preview-size, 0px) )"
@@ -361,21 +477,41 @@
 						x-cloak
 						class="flex flex-col gap-3 rounded-lg border border-primary/30 bg-base-200/30 px-3 py-3"
 					>
-						<div class="flex items-center gap-3">
+						<input
+							type="text"
+							x-model="editName"
+							x-on:input="editError = ''"
+							class="input input-sm input-bordered w-full"
+							placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+							aria-label="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+						/>
+						<div class="flex items-center gap-2">
 							<input
-								type="text"
-								x-model="editName"
-								x-on:input="editError = ''"
-								class="input input-sm input-bordered flex-1 min-w-0"
-								placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+								type="number"
+								step="0.001"
+								x-model="editNum"
+								x-on:input="editError = ''; _syncEditToValue()"
+								class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
+								placeholder="1"
+								aria-label="{{ __( 'visual-editor::ve.spacing_value' ) }}"
 							/>
-							<input
-								type="text"
-								x-model="editValue"
-								x-on:input="editError = ''"
-								class="input input-sm input-bordered w-28 font-mono text-xs"
-								placeholder="1rem"
-							/>
+							<select
+								x-model="editUnit"
+								x-on:change="_syncEditToValue()"
+								class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+								aria-label="{{ __( 'visual-editor::ve.spacing_unit' ) }}"
+							>
+								<option value="rem">rem</option>
+								<option value="em">em</option>
+								<option value="px">px</option>
+								<option value="%">%</option>
+								<option value="vw">vw</option>
+								<option value="vh">vh</option>
+								<option value="vmin">vmin</option>
+								<option value="vmax">vmax</option>
+								<option value="ch">ch</option>
+								<option value="ex">ex</option>
+							</select>
 						</div>
 						<p x-show="editError" x-cloak x-text="editError" class="text-xs text-error"></p>
 						<div class="flex justify-end gap-2">
@@ -420,20 +556,41 @@
 			x-cloak
 			class="flex flex-col gap-3 rounded-lg border border-success/30 bg-base-200/30 px-3 py-3"
 		>
-			<div class="flex items-center gap-3">
+			<input
+				type="text"
+				x-model="newName"
+				x-on:input="newSlug = _sanitizeSlug( newName )"
+				class="input input-sm input-bordered w-full"
+				placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+				aria-label="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+			/>
+			<div class="flex items-center gap-2">
 				<input
-					type="text"
-					x-model="newName"
-					x-on:input="newSlug = _sanitizeSlug( newName )"
-					class="input input-sm input-bordered flex-1 min-w-0"
-					placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+					type="number"
+					step="0.001"
+					x-model="newNum"
+					x-on:input="newValue = _combineValue( newNum, newUnit )"
+					class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
+					placeholder="1"
+					aria-label="{{ __( 'visual-editor::ve.spacing_value' ) }}"
 				/>
-				<input
-					type="text"
-					x-model="newValue"
-					class="input input-sm input-bordered w-28 font-mono text-xs"
-					placeholder="1rem"
-				/>
+				<select
+					x-model="newUnit"
+					x-on:change="newValue = _combineValue( newNum, newUnit )"
+					class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+					aria-label="{{ __( 'visual-editor::ve.spacing_unit' ) }}"
+				>
+					<option value="rem">rem</option>
+					<option value="em">em</option>
+					<option value="px">px</option>
+					<option value="%">%</option>
+					<option value="vw">vw</option>
+					<option value="vh">vh</option>
+					<option value="vmin">vmin</option>
+					<option value="vmax">vmax</option>
+					<option value="ch">ch</option>
+					<option value="ex">ex</option>
+				</select>
 			</div>
 			<div class="flex flex-col gap-1">
 				<div class="flex items-center gap-3">
@@ -444,6 +601,7 @@
 						class="input input-sm input-bordered flex-1 font-mono text-xs"
 						:class="slugError ? 'input-error' : ''"
 						placeholder="{{ __( 'visual-editor::ve.spacing_step_slug' ) }}"
+						aria-label="{{ __( 'visual-editor::ve.spacing_step_slug' ) }}"
 					/>
 				</div>
 				<p x-show="slugError" x-cloak x-text="slugError" class="text-xs text-error"></p>

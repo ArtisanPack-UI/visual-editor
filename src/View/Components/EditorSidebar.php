@@ -76,6 +76,7 @@ class EditorSidebar extends Component
 	 * @param string      $activeTab         Initially active tab: block or document.
 	 * @param bool        $showTabs          Whether to show block/document tab switcher.
 	 * @param string      $activeBlockSubTab Initially active block sub-tab: settings or styles.
+	 * @param string|null $secondTabLabel    Custom label for the second tab. Defaults to 'Document' translation.
 	 */
 	public function __construct(
 		public ?string $id = null,
@@ -83,6 +84,7 @@ class EditorSidebar extends Component
 		public string $activeTab = 'block',
 		public bool $showTabs = true,
 		public string $activeBlockSubTab = 'settings',
+		public ?string $secondTabLabel = null,
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 

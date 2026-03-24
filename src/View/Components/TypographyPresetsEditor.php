@@ -61,16 +61,43 @@ class TypographyPresetsEditor extends Component
 	public array $defaultData;
 
 	/**
+	 * Available fonts grouped by slot category.
+	 *
+	 * Each slot (heading, body, mono) maps to an associative array
+	 * of CSS family stack => display name, from getFontOptions().
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array<string, array<string, string>>
+	 */
+	public array $availableFonts;
+
+	/**
+	 * Base typography values for override mode.
+	 *
+	 * When set, the editor operates in override mode where values
+	 * matching the base are shown as inherited and values differing
+	 * are shown as overridden.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @var array{fontFamilies: array<string, string>, elements: array<string, array<string, string>>}|null
+	 */
+	public ?array $baseValues;
+
+	/**
 	 * Create a new component instance.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @param string|null $id         Optional custom ID.
 	 * @param array|null  $typography Optional typography data (defaults to manager data).
+	 * @param array|null  $baseValues Optional base typography for override mode.
 	 */
 	public function __construct(
 		public ?string $id = null,
 		?array $typography = null,
+		?array $baseValues = null,
 	) {
 		$this->uuid = 've-' . Str::random( 8 ) . ( $id ? '-' . $id : '' );
 
@@ -85,6 +112,20 @@ class TypographyPresetsEditor extends Component
 		}
 
 		$this->typographyData = $manager->toStoreFormat();
+
+		$slotCategories = [
+			'heading' => 'heading',
+			'body'    => 'body',
+			'mono'    => null,
+		];
+
+		$this->availableFonts = [];
+
+		foreach ( $slotCategories as $slot => $category ) {
+			$this->availableFonts[ $slot ] = $resolvedManager->getFontOptions( $category );
+		}
+
+		$this->baseValues = $baseValues;
 	}
 
 	/**

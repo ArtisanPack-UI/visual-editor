@@ -95,3 +95,28 @@ test( 'typography presets editor renders type scale controls', function (): void
 		->assertSee( 'Apply type scale' )
 		->assertSee( 'Major Third (1.25)' );
 } );
+
+test( 'typography presets editor accepts base values for override mode', function (): void {
+	$baseValues = [
+		'fontFamilies' => [ 'heading' => '"Georgia", serif', 'body' => 'system-ui', 'mono' => 'monospace' ],
+		'elements'     => [
+			'h1' => [ 'fontSize' => '2rem', 'fontWeight' => '700' ],
+		],
+	];
+
+	$component = new TypographyPresetsEditor( baseValues: $baseValues );
+
+	expect( $component->baseValues )->not->toBeNull()
+		->and( $component->baseValues['fontFamilies']['heading'] )->toBe( '"Georgia", serif' );
+} );
+
+test( 'typography presets editor defaults to null base values', function (): void {
+	$component = new TypographyPresetsEditor();
+
+	expect( $component->baseValues )->toBeNull();
+} );
+
+test( 'typography presets editor renders getStore dual detection', function (): void {
+	$this->blade( '<x-ve-typography-presets-editor />' )
+		->assertSee( '_getStore()', false );
+} );

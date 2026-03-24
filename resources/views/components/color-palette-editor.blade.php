@@ -12,13 +12,17 @@
  --}}
 
 @php
-	$initialEntries = $paletteEntries;
+	$initialEntries   = $paletteEntries;
+	$initialBaseValues = $baseValues;
+	$hasOverrideMode  = null !== $baseValues;
 @endphp
 
 <div
 	id="{{ $uuid }}"
 	x-data="{
 		entries: {{ Js::from( $initialEntries ) }},
+		baseValues: {{ Js::from( $initialBaseValues ) }},
+		overrideMode: {{ Js::from( $hasOverrideMode ) }},
 		editing: null,
 		editName: '',
 		editSlug: '',
@@ -28,12 +32,54 @@
 		newSlug: '',
 		newColor: '#000000',
 		showCss: false,
+		editPickerOpen: false,
+		addPickerOpen: false,
 		_savedPalette: null,
 
+		_getStore() {
+			return Alpine.store( 'editor' ) || Alpine.store( 'globalStyles' ) || null;
+		},
+
+		_baseSlugFor( entry ) {
+			return entry._baseSlug || entry.slug;
+		},
+
+		isOverridden( index ) {
+			if ( ! this.overrideMode || ! this.baseValues ) return false;
+			const entry = this.entries[ index ];
+			if ( ! entry ) return false;
+			const baseSlug = this._baseSlugFor( entry );
+			const base = this.baseValues.find( b => b.slug === baseSlug );
+			if ( ! base ) return true;
+			return base.color !== entry.color || base.name !== entry.name || base.slug !== entry.slug;
+		},
+
+		resetToBase( index ) {
+			if ( ! this.overrideMode || ! this.baseValues ) return;
+			const entry = this.entries[ index ];
+			if ( ! entry ) return;
+			const baseSlug = this._baseSlugFor( entry );
+			const base = this.baseValues.find( b => b.slug === baseSlug );
+			if ( base ) {
+				this.entries[ index ] = { ...base, _baseSlug: base.slug };
+			} else {
+				this.entries.splice( index, 1 );
+			}
+			this._commitToStore();
+			this._dispatch();
+		},
+
 		init() {
+			if ( this.overrideMode && this.baseValues ) {
+				this.entries = this.entries.map( entry => {
+					const base = this.baseValues.find( b => b.slug === entry.slug );
+					return base ? { ...entry, _baseSlug: entry.slug } : entry;
+				} );
+			}
+
 			this.$watch( 'editColor', ( value ) => {
 				if ( null === this.editing ) return;
-				const store = Alpine.store( 'editor' );
+				const store = this._getStore();
 				if ( ! store ) return;
 				const color = this._normalizeHex( value );
 				if ( ! color ) return;
@@ -45,9 +91,9 @@
 		},
 
 		_commitToStore() {
-			const store = Alpine.store( 'editor' );
+			const store = this._getStore();
 			if ( ! store ) return;
-			store._pushHistory();
+			if ( typeof store._pushHistory === 'function' ) store._pushHistory();
 			store.globalStyles.palette = JSON.parse( JSON.stringify( this.entries ) );
 			store._syncGlobalCssVariables();
 			store.markDirty();
@@ -55,8 +101,10 @@
 		},
 
 		startEdit( index ) {
-			this._savedPalette = JSON.parse( JSON.stringify( Alpine.store( 'editor' )?.globalStyles?.palette || this.entries ) );
-			this.editing   = index
+			const store = this._getStore();
+			this._savedPalette = JSON.parse( JSON.stringify( store?.globalStyles?.palette || this.entries ) );
+			this.editing         = index
+			this.editPickerOpen  = false
 			this.editName  = this.entries[ index ].name
 			this.editSlug  = this.entries[ index ].slug
 			this.editColor = this.entries[ index ].color
@@ -69,10 +117,12 @@
 			if ( ! slug || ! this.editName.trim() || ! color ) return
 			const duplicate = this.entries.some( ( e, i ) => i !== this.editing && e.slug === slug )
 			if ( duplicate ) return
+			const currentEntry = this.entries[ this.editing ]
 			this.entries[ this.editing ] = {
-				name:  this.editName.trim(),
-				slug:  slug,
-				color: color,
+				_baseSlug: currentEntry._baseSlug ?? currentEntry.slug,
+				name:      this.editName.trim(),
+				slug:      slug,
+				color:     color,
 			}
 			this.editing      = null
 			this._savedPalette = null
@@ -81,9 +131,10 @@
 		},
 
 		cancelEdit() {
-			this.editing = null
+			this.editing        = null
+			this.editPickerOpen = false
 			if ( this._savedPalette ) {
-				const store = Alpine.store( 'editor' );
+				const store = this._getStore();
 				if ( store ) {
 					store.globalStyles.palette = this._savedPalette;
 					store._syncGlobalCssVariables();
@@ -99,7 +150,8 @@
 		},
 
 		startAdd() {
-			this.adding  = true
+			this.adding        = true
+			this.addPickerOpen = false
 			this.newName  = ''
 			this.newSlug  = ''
 			this.newColor = '#000000'
@@ -122,7 +174,8 @@
 		},
 
 		cancelAdd() {
-			this.adding = false
+			this.adding        = false
+			this.addPickerOpen = false
 		},
 
 		_sanitizeSlug( value ) {
@@ -151,7 +204,10 @@
 		},
 
 		resetToDefaults() {
-			this.entries = {{ Js::from( $defaultEntries ) }}
+			const resetEntries = this.overrideMode && this.baseValues
+				? this.baseValues.map( ( entry ) => ( { ...entry, _baseSlug: entry.slug } ) )
+				: {{ Js::from( $defaultEntries ) }}
+			this.entries       = JSON.parse( JSON.stringify( resetEntries ) )
 			this.editing       = null
 			this.adding        = false
 			this._savedPalette = null
@@ -202,6 +258,17 @@
 					x-show="editing !== index"
 					class="flex items-center gap-3 rounded-lg border border-base-300 px-3 py-2 hover:bg-base-200/50 focus-within:bg-base-200/50 transition-colors group"
 				>
+					{{-- Override indicator --}}
+					@if ( $hasOverrideMode )
+					<template x-if="overrideMode">
+						@include( 'visual-editor::components._override-indicator', [
+							'overriddenExpr' => 'isOverridden( index )',
+							'nameExpr'       => 'entry.name',
+							'resetExpr'      => 'resetToBase( index )',
+						] )
+					</template>
+					@endif
+
 					<button
 						type="button"
 						class="h-8 w-8 rounded-full ring-1 ring-base-300 shrink-0 cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
@@ -218,6 +285,7 @@
 						<span class="text-sm text-base-content truncate" x-text="entry.name"></span>
 						<span class="text-xs text-base-content/40 font-mono" x-text="entry.color"></span>
 					</button>
+
 					<button
 						type="button"
 						x-on:click="removeColor( index )"
@@ -237,17 +305,27 @@
 					class="flex flex-col gap-3 rounded-lg border border-primary/30 bg-base-200/30 px-3 py-3"
 				>
 					<div class="flex items-center gap-3">
-						<input
-							type="color"
-							x-model="editColor"
-							class="h-8 w-8 rounded-full border-none cursor-pointer shrink-0 appearance-none p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none"
-							aria-label="{{ __( 'visual-editor::ve.pick_color' ) }}"
-						/>
+						<button
+							type="button"
+							class="h-8 w-8 rounded-full border border-base-300 cursor-pointer shrink-0"
+							x-bind:style="'background-color:' + editColor"
+							x-on:click="editPickerOpen = ! editPickerOpen"
+							:aria-label="'{{ __( 'visual-editor::ve.pick_color' ) }}'"
+							:aria-expanded="editPickerOpen"
+						></button>
 						<input
 							type="text"
 							x-model="editName"
 							class="input input-sm input-bordered flex-1 min-w-0"
 							placeholder="{{ __( 'visual-editor::ve.color_name' ) }}"
+						/>
+					</div>
+					<div x-show="editPickerOpen" x-cloak>
+						<x-ve-color-picker
+							x-bind:value="editColor || '#000000'"
+							x-on:ve-color-picker-change.stop="editColor = $event.detail.hex"
+							:show-format-toggle="false"
+							:show-copy-button="false"
 						/>
 					</div>
 					<div class="flex items-center gap-3">
@@ -306,18 +384,28 @@
 			class="flex flex-col gap-3 rounded-lg border border-success/30 bg-base-200/30 px-3 py-3"
 		>
 			<div class="flex items-center gap-3">
-				<input
-					type="color"
-					x-model="newColor"
-					class="h-8 w-8 rounded-full border-none cursor-pointer shrink-0 appearance-none p-0 [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:rounded-full [&::-webkit-color-swatch]:border-none"
+				<button
+					type="button"
+					class="h-8 w-8 rounded-full border border-base-300 cursor-pointer shrink-0"
+					x-bind:style="'background-color:' + newColor"
+					x-on:click="addPickerOpen = ! addPickerOpen"
 					aria-label="{{ __( 'visual-editor::ve.pick_color' ) }}"
-				/>
+					:aria-expanded="addPickerOpen"
+				></button>
 				<input
 					type="text"
 					x-model="newName"
 					x-on:input="newSlug = autoSlug( newName )"
 					class="input input-sm input-bordered flex-1 min-w-0"
 					placeholder="{{ __( 'visual-editor::ve.color_name' ) }}"
+				/>
+			</div>
+			<div x-show="addPickerOpen" x-cloak>
+				<x-ve-color-picker
+					x-bind:value="newColor || '#000000'"
+					x-on:ve-color-picker-change.stop="newColor = $event.detail.hex"
+					:show-format-toggle="false"
+					:show-copy-button="false"
 				/>
 			</div>
 			<div class="flex items-center gap-3">

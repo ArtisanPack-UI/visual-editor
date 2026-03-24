@@ -33,6 +33,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string      $slug
  * @property array       $blocks
  * @property string|null $category
+ * @property string|null $description
+ * @property string|null $keywords
+ * @property string      $status
+ * @property bool        $is_synced
  * @property int|null    $user_id
  * @property \Carbon\Carbon $created_at
  * @property \Carbon\Carbon $updated_at
@@ -62,6 +66,10 @@ class Pattern extends Model
 		'slug',
 		'blocks',
 		'category',
+		'description',
+		'keywords',
+		'status',
+		'is_synced',
 		'user_id',
 	];
 
@@ -96,6 +104,34 @@ class Pattern extends Model
 	}
 
 	/**
+	 * Scope a query to synced patterns only.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param Builder $query The query builder instance.
+	 *
+	 * @return Builder
+	 */
+	public function scopeSynced( Builder $query ): Builder
+	{
+		return $query->where( 'is_synced', true );
+	}
+
+	/**
+	 * Scope a query to standard (unsynced) patterns only.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param Builder $query The query builder instance.
+	 *
+	 * @return Builder
+	 */
+	public function scopeStandard( Builder $query ): Builder
+	{
+		return $query->where( 'is_synced', false );
+	}
+
+	/**
 	 * Get the user that created the pattern.
 	 *
 	 * @since 1.0.0
@@ -119,8 +155,9 @@ class Pattern extends Model
 	protected function casts(): array
 	{
 		return [
-			'blocks'  => 'array',
-			'user_id' => 'integer',
+			'blocks'    => 'array',
+			'user_id'   => 'integer',
+			'is_synced' => 'boolean',
 		];
 	}
 }

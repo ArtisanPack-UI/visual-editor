@@ -232,6 +232,23 @@ return [
 	|                       array of per-manager overrides for scoped CSS.
 	|
 	*/
+	/*
+	|----------------------------------------------------------------------
+	| Global Styles: Persistence
+	|----------------------------------------------------------------------
+	|
+	| Configuration for persisting global styles to the database.
+	|
+	| enabled:      Whether to persist global styles to the database.
+	|               When disabled, styles are only sourced from config.
+	| default_key:  The key used for the primary global styles record.
+	|
+	*/
+	'global_styles_persistence' => [
+		'enabled'     => true,
+		'default_key' => 'default',
+	],
+
 	'global_styles' => [
 		'output_mode'          => 'inline',
 		'output_path'          => 'css/ve-global-styles.css',
@@ -247,6 +264,60 @@ return [
 		'include_color_shades' => true,
 		'root_selector'        => ':root',
 		'template_overrides'   => [],
+	],
+
+	/*
+	|----------------------------------------------------------------------
+	| Site Editor
+	|----------------------------------------------------------------------
+	|
+	| Configuration for the site editor hub and navigation shell.
+	|
+	| route_prefix:   URL prefix for site editor routes (default: 'site-editor').
+	| middleware:     Middleware applied to site editor routes.
+	| permission:     Gate/policy ability checked before accessing the hub.
+	|
+	*/
+	'site_editor' => [
+		'route_prefix' => 'site-editor',
+		'middleware'   => [ 'web', 'auth' ],
+		'permission'   => 'visual-editor.access-site-editor',
+
+		/*
+		|----------------------------------------------------------------------
+		| Component Class Swaps
+		|----------------------------------------------------------------------
+		|
+		| Override any site editor page component by replacing its class below.
+		| Custom classes must implement the appropriate contract:
+		|   - Page components: SiteEditorPage
+		|   - Listing components: SiteEditorListing
+		|
+		| Routes and Livewire registrations resolve classes from this config,
+		| so swapping a class here replaces the component everywhere.
+		|
+		*/
+		'components' => [
+			'hub_page'           => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\HubPage::class,
+			'template_listing'   => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateListingPage::class,
+			'part_listing'       => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplatePartListingPage::class,
+			'pattern_listing'    => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternListingPage::class,
+			'global_styles_page' => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\GlobalStylesPage::class,
+			'part_editor'        => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage::class,
+			'pattern_editor'     => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternEditorPage::class,
+			'template_editor'    => ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateEditorPage::class,
+			'layout'             => ArtisanPackUI\VisualEditor\View\Components\SiteEditorLayout::class,
+		],
+
+		'gates' => [
+			'access'          => 'visual-editor.access-site-editor',
+			'styles'          => 'visual-editor.manage-styles',
+			'templates'       => 'visual-editor.manage-templates',
+			'parts'           => 'visual-editor.manage-parts',
+			'patterns'        => 'visual-editor.manage-patterns',
+			'template_styles' => 'visual-editor.manage-template-styles',
+			'lock_content'    => 'visual-editor.lock-content',
+		],
 	],
 
 	'blocks' => [
