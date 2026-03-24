@@ -22,7 +22,9 @@ namespace ArtisanPackUI\VisualEditor\View\Components;
 
 use Closure;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\Component;
+use Throwable;
 
 /**
  * Global Styles State component for standalone style editing.
@@ -117,7 +119,14 @@ class GlobalStylesState extends Component
 
 		if ( null !== $override ) {
 			$manager = clone $manager;
-			$manager->fromStoreFormat( $override );
+
+			try {
+				$manager->fromStoreFormat( $override );
+			} catch ( Throwable $e ) {
+				Log::error( '[ve] GlobalStylesState: fromStoreFormat() failed for binding "' . $binding . '": ' . $e->getMessage() );
+
+				return ( clone app( $binding ) )->toStoreFormat();
+			}
 		}
 
 		return $manager->toStoreFormat();

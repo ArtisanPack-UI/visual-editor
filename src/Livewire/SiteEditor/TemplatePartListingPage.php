@@ -191,7 +191,9 @@ class TemplatePartListingPage extends Component implements SiteEditorListing
 			->values()
 			->toArray();
 
-		if ( count( $this->selected ) === count( $pageIds ) ) {
+		$alreadyAllSelected = 0 === count( array_diff( $pageIds, $this->selected ) ) && count( $pageIds ) > 0;
+
+		if ( $alreadyAllSelected ) {
 			$this->selected = [];
 		} else {
 			$this->selected = $pageIds;

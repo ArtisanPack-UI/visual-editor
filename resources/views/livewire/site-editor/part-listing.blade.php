@@ -110,7 +110,7 @@
 					<thead>
 						<tr>
 							<th class="w-10">
-								<input type="checkbox" class="checkbox checkbox-sm" wire:click="toggleSelectAll" @checked( count( $selected ) > 0 && count( $selected ) === $parts->count() ) aria-label="{{ __( 'visual-editor::ve.listing_select_all' ) }}" />
+								<input type="checkbox" class="checkbox checkbox-sm" wire:click="toggleSelectAll" @checked( count( array_intersect( $selected, $parts->pluck( 'id' )->all() ) ) === $parts->count() && $parts->count() > 0 ) aria-label="{{ __( 'visual-editor::ve.listing_select_all' ) }}" />
 							</th>
 							@foreach ( $columns as $column )
 								<th

@@ -64,6 +64,8 @@
 					store.partSettings = settings;
 				} else if ( ++attempts < maxAttempts ) {
 					setTimeout( assign, 10 );
+				} else {
+					console.warn( '[ve] template-part-editor: editor store not available after ' + maxAttempts + ' attempts; part settings not applied.' );
 				}
 			};
 			assign();

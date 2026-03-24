@@ -1507,7 +1507,8 @@ return [
 	'pattern_listing_standard'         => 'Standard',
 
 	// Publish Views Command
-	'publish_views_flag_required' => 'The --views flag is required. Usage: ve:publish --views',
-	'publish_unknown_tag'         => 'Unknown tag ":tag". Available tags: :tags',
-	'publish_views_complete'      => ':count view(s) published successfully.',
+	'publish_views_flag_required'   => 'The --views flag is required. Usage: ve:publish --views',
+	'publish_unknown_tag'           => 'Unknown tag ":tag". Available tags: :tags',
+	'publish_views_complete'        => ':count view(s) published successfully.',
+	'publish_views_source_skipped'  => 'Source not found, skipping: :source',
 ];

@@ -110,7 +110,7 @@ class PublishViewsCommand extends Command
 			} elseif ( $files->exists( $source ) ) {
 				$publishedCount += $this->publishFile( $files, $source, $dest, $force );
 			} else {
-				$this->components->warn( "Source not found, skipping: {$source}" );
+				$this->components->warn( __( 'visual-editor::ve.publish_views_source_skipped', [ 'source' => $source ] ) );
 			}
 		}
 

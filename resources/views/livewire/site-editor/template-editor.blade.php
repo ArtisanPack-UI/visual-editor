@@ -32,10 +32,11 @@
 			setTimeout( () => {
 				let blocks, settings;
 				try {
-					blocks   = JSON.parse( JSON.stringify( store.blocks ) );
+					blocks   = JSON.parse( JSON.stringify( store.blocks || [] ) );
 					settings = JSON.parse( JSON.stringify( store.templateSettings || {} ) );
 				} catch ( e ) {
 					this.isSaving = false;
+					if ( store.markError ) store.markError();
 					if ( store.markDirty ) store.markDirty();
 					return;
 				}

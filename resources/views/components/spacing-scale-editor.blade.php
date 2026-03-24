@@ -364,7 +364,6 @@
 						<input
 							type="number"
 							step="0.001"
-							min="0"
 							x-model="editNum"
 							x-on:input="editError = ''; _syncEditToValue()"
 							class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
@@ -463,21 +462,38 @@
 						x-cloak
 						class="flex flex-col gap-3 rounded-lg border border-primary/30 bg-base-200/30 px-3 py-3"
 					>
-						<div class="flex items-center gap-3">
+						<input
+							type="text"
+							x-model="editName"
+							x-on:input="editError = ''"
+							class="input input-sm input-bordered w-full"
+							placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+						/>
+						<div class="flex items-center gap-2">
 							<input
-								type="text"
-								x-model="editName"
-								x-on:input="editError = ''"
-								class="input input-sm input-bordered flex-1 min-w-0"
-								placeholder="{{ __( 'visual-editor::ve.spacing_step_name' ) }}"
+								type="number"
+								step="0.001"
+								x-model="editNum"
+								x-on:input="editError = ''; _syncEditToValue()"
+								class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
+								placeholder="1"
 							/>
-							<input
-								type="text"
-								x-model="editValue"
-								x-on:input="editError = ''"
-								class="input input-sm input-bordered w-28 font-mono text-xs"
-								placeholder="1rem"
-							/>
+							<select
+								x-model="editUnit"
+								x-on:change="_syncEditToValue()"
+								class="select select-sm select-bordered text-xs !min-w-0 w-auto shrink-0"
+							>
+								<option value="rem">rem</option>
+								<option value="em">em</option>
+								<option value="px">px</option>
+								<option value="%">%</option>
+								<option value="vw">vw</option>
+								<option value="vh">vh</option>
+								<option value="vmin">vmin</option>
+								<option value="vmax">vmax</option>
+								<option value="ch">ch</option>
+								<option value="ex">ex</option>
+							</select>
 						</div>
 						<p x-show="editError" x-cloak x-text="editError" class="text-xs text-error"></p>
 						<div class="flex justify-end gap-2">
@@ -533,7 +549,6 @@
 				<input
 					type="number"
 					step="0.001"
-					min="0"
 					x-model="newNum"
 					x-on:input="newValue = _combineValue( newNum, newUnit )"
 					class="input input-sm input-bordered flex-1 min-w-0 font-mono text-xs"
