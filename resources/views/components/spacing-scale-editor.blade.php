@@ -43,6 +43,10 @@
 		slugError: '',
 		showCss: false,
 		presets: {{ Js::from( $presetScales ) }},
+		editNum: '',
+		editUnit: 'rem',
+		newNum: '',
+		newUnit: 'rem',
 
 		_getStore() {
 			return Alpine.store( 'editor' ) || Alpine.store( 'globalStyles' ) || null;
@@ -235,11 +239,6 @@
 			if ( '' === num || null === num || undefined === num ) return ''
 			return String( num ) + ( unit || 'rem' )
 		},
-
-		editNum: '',
-		editUnit: 'rem',
-		newNum: '',
-		newUnit: 'rem',
 
 		_syncEditFromValue() {
 			const parsed = this._parseValue( this.editValue )

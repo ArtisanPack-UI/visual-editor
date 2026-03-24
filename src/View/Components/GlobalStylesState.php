@@ -80,38 +80,9 @@ class GlobalStylesState extends Component
 		?array $typography = null,
 		?array $spacing = null,
 	) {
-		/** @var \ArtisanPackUI\VisualEditor\Services\ColorPaletteManager $paletteManager */
-		$paletteManager = app( 'visual-editor.color-palette' );
-
-		if ( null !== $palette ) {
-			$paletteClone = clone $paletteManager;
-			$paletteClone->fromStoreFormat( $palette );
-			$this->paletteEntries = $paletteClone->toStoreFormat();
-		} else {
-			$this->paletteEntries = $paletteManager->toStoreFormat();
-		}
-
-		/** @var \ArtisanPackUI\VisualEditor\Services\TypographyPresetsManager $typographyManager */
-		$typographyManager = app( 'visual-editor.typography-presets' );
-
-		if ( null !== $typography ) {
-			$typographyClone = clone $typographyManager;
-			$typographyClone->fromStoreFormat( $typography );
-			$this->typographyData = $typographyClone->toStoreFormat();
-		} else {
-			$this->typographyData = $typographyManager->toStoreFormat();
-		}
-
-		/** @var \ArtisanPackUI\VisualEditor\Services\SpacingScaleManager $spacingManager */
-		$spacingManager = app( 'visual-editor.spacing-scale' );
-
-		if ( null !== $spacing ) {
-			$spacingClone = clone $spacingManager;
-			$spacingClone->fromStoreFormat( $spacing );
-			$this->spacingData = $spacingClone->toStoreFormat();
-		} else {
-			$this->spacingData = $spacingManager->toStoreFormat();
-		}
+		$this->paletteEntries = $this->resolveManagerData( 'visual-editor.color-palette', $palette );
+		$this->typographyData = $this->resolveManagerData( 'visual-editor.typography-presets', $typography );
+		$this->spacingData    = $this->resolveManagerData( 'visual-editor.spacing-scale', $spacing );
 	}
 
 	/**
@@ -124,5 +95,31 @@ class GlobalStylesState extends Component
 	public function render(): View|Closure|string
 	{
 		return view( 'visual-editor::components.global-styles-state' );
+	}
+
+	/**
+	 * Resolve store-format data from a named manager, optionally applying override data.
+	 *
+	 * When $override is null, returns the manager's default store format.
+	 * When $override is provided, clones the manager, applies the override,
+	 * and returns the resulting store format.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param string     $binding  The service container binding key for the manager.
+	 * @param array|null $override Optional data to apply via fromStoreFormat().
+	 *
+	 * @return array<string, mixed>
+	 */
+	private function resolveManagerData( string $binding, ?array $override ): array
+	{
+		$manager = app( $binding );
+
+		if ( null !== $override ) {
+			$manager = clone $manager;
+			$manager->fromStoreFormat( $override );
+		}
+
+		return $manager->toStoreFormat();
 	}
 }

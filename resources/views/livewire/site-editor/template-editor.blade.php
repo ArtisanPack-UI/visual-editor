@@ -27,12 +27,18 @@
 			}
 
 			// Wait a tick for the blur/focusout handler to update the store.
+			this.isSaving = true;
+			store.markSaving();
 			setTimeout( () => {
-				this.isSaving = true;
-				store.markSaving();
-
-				const blocks   = JSON.parse( JSON.stringify( store.blocks ) );
-				const settings = JSON.parse( JSON.stringify( store.templateSettings || {} ) );
+				let blocks, settings;
+				try {
+					blocks   = JSON.parse( JSON.stringify( store.blocks ) );
+					settings = JSON.parse( JSON.stringify( store.templateSettings || {} ) );
+				} catch ( e ) {
+					this.isSaving = false;
+					if ( store.markDirty ) store.markDirty();
+					return;
+				}
 
 				$wire.call( 'save', blocks, settings ).then( () => {
 					store.dirty = false;

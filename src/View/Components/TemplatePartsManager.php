@@ -20,7 +20,6 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\View\Components;
 
 use ArtisanPackUI\VisualEditor\Services\TemplatePartManager;
-use Closure;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Str;
 use Illuminate\View\Component;
@@ -103,7 +102,7 @@ class TemplatePartsManager extends Component
 	 *
 	 * @return Closure|string|View
 	 */
-	public function render(): View|Closure|string
+	public function render(): View
 	{
 		return view( 'visual-editor::components.template-parts-manager' );
 	}
@@ -125,7 +124,7 @@ class TemplatePartsManager extends Component
 		$partsByArea = [];
 
 		foreach ( array_keys( $this->areaLabels ) as $area ) {
-			$partsByArea[ $area ] = collect( $manager->forArea( $area ) )->all();
+			$partsByArea[ $area ] = $manager->forArea( $area );
 		}
 
 		return $this->normalizePartsByArea( $partsByArea );

@@ -109,6 +109,8 @@ class PublishViewsCommand extends Command
 				$publishedCount += $this->publishDirectory( $files, $source, $dest, $force );
 			} elseif ( $files->exists( $source ) ) {
 				$publishedCount += $this->publishFile( $files, $source, $dest, $force );
+			} else {
+				$this->components->warn( "Source not found, skipping: {$source}" );
 			}
 		}
 

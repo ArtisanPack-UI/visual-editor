@@ -39,6 +39,7 @@
 					if ( store.markSaved ) store.markSaved();
 				} ).catch( () => {
 					if ( store.markDirty ) store.markDirty();
+					$dispatch( 've-save-error', {} );
 				} ).finally( () => {
 					this.saving = false;
 				} );

@@ -368,6 +368,7 @@ class TemplatePartListingPage extends Component implements SiteEditorListing
 		return view( 'visual-editor::livewire.site-editor.part-listing', [
 			'parts'   => $parts,
 			'columns' => $this->getColumns(),
+			'areas'   => TemplatePart::AREAS,
 		] );
 	}
 

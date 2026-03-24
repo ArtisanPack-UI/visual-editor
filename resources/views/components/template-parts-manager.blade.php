@@ -11,18 +11,12 @@
  * @since      1.0.0
  --}}
 
-@php
-	$initialAssignments = $assignments;
-	$initialPartsByArea = $partsByArea;
-	$initialAreaLabels  = $areaLabels;
-@endphp
-
 <div
 	id="{{ $uuid }}"
 	x-data="{
-		assignments: {{ Js::from( $initialAssignments ) }},
-		partsByArea: {{ Js::from( $initialPartsByArea ) }},
-		areaLabels: {{ Js::from( $initialAreaLabels ) }},
+		assignments: {{ Js::from( $assignments ) }},
+		partsByArea: {{ Js::from( $partsByArea ) }},
+		areaLabels: {{ Js::from( $areaLabels ) }},
 		areas: [ 'header', 'footer', 'sidebar', 'custom' ],
 		clearLabel: {{ Js::from( __( 'visual-editor::ve.template_part_clear' ) ) }},
 		creating: null,
@@ -175,6 +169,7 @@
 						type="button"
 						x-on:click="startCreate( area )"
 						class="btn btn-ghost btn-xs text-base-content/50 hover:text-base-content/80"
+						:aria-label="'{{ __( 'visual-editor::ve.template_part_create_new' ) }}: ' + areaLabels[ area ]"
 					>
 						<svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 							<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />

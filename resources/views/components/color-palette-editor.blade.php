@@ -117,7 +117,7 @@
 			if ( ! slug || ! this.editName.trim() || ! color ) return
 			const duplicate = this.entries.some( ( e, i ) => i !== this.editing && e.slug === slug )
 			if ( duplicate ) return
-				const currentEntry = this.entries[ this.editing ]
+			const currentEntry = this.entries[ this.editing ]
 			this.entries[ this.editing ] = {
 				_baseSlug: currentEntry._baseSlug ?? currentEntry.slug,
 				name:      this.editName.trim(),
@@ -259,6 +259,7 @@
 					class="flex items-center gap-3 rounded-lg border border-base-300 px-3 py-2 hover:bg-base-200/50 focus-within:bg-base-200/50 transition-colors group"
 				>
 					{{-- Override indicator --}}
+					@if ( $hasOverrideMode )
 					<template x-if="overrideMode">
 						@include( 'visual-editor::components._override-indicator', [
 							'overriddenExpr' => 'isOverridden( index )',
@@ -266,6 +267,7 @@
 							'resetExpr'      => 'resetToBase( index )',
 						] )
 					</template>
+					@endif
 
 					<button
 						type="button"

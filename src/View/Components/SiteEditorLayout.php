@@ -72,7 +72,8 @@ class SiteEditorLayout extends Component
 		public ?string $actionLabel = null,
 		public string $sidebarWidth = '280px',
 	) {
-		$this->navItems = veApplyFilters( 've.site-editor.nav-items', $navItems );
+		$filtered       = veApplyFilters( 've.site-editor.nav-items', $navItems );
+		$this->navItems = is_array( $filtered ) ? $filtered : $navItems;
 	}
 
 	/**
@@ -86,6 +87,7 @@ class SiteEditorLayout extends Component
 	{
 		$prefix = (string) config( 'artisanpack.visual-editor.site_editor.route_prefix', 'site-editor' );
 		$prefix = (string) veApplyFilters( 've.site-editor.route-prefix', $prefix );
+		$prefix = trim( $prefix, '/' );
 
 		return url( $prefix );
 	}

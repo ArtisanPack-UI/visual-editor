@@ -10,6 +10,8 @@
  * @since      1.0.0
  --}}
 
+@props( [ 'rows' => [] ] )
+
 <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
 	@forelse ( $rows as $row )
 		<div
@@ -46,6 +48,7 @@
 							'badge badge-sm',
 							'badge-success' => 'active' === $row->status,
 							'badge-warning' => 'draft' === $row->status,
+							'badge-neutral' => ! in_array( $row->status, [ 'active', 'draft' ], true ),
 						])>
 							{{ ucfirst( $row->status ) }}
 						</span>

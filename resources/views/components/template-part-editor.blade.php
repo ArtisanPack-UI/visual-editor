@@ -100,7 +100,7 @@
 						{{ __( 'visual-editor::ve.part_editor_back' ) }}
 					</a>
 					<span class="mx-1.5 text-base-content/30">/</span>
-					<span class="text-sm font-medium text-base-content" x-data x-text="Alpine.store( 'editor' )?.partSettings?.name || '{{ __( 'visual-editor::ve.part_editor_untitled' ) }}'"></span>
+					<span class="text-sm font-medium text-base-content" x-data x-text="Alpine.store( 'editor' )?.partSettings?.name || {{ Js::from( __( 'visual-editor::ve.part_editor_untitled' ) ) }}"></span>
 					{{ $toolbarCenter ?? '' }}
 				</x-slot:center>
 			</x-ve-top-toolbar>

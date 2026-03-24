@@ -83,7 +83,7 @@
 			if ( ! this.overrideMode || ! this.baseValues?.elements ) return false;
 			const base    = this.baseValues.elements[ element ];
 			const current = this.elements[ element ];
-			if ( ! base || ! current ) return true;
+			if ( ! base || ! current ) return false;
 			return JSON.stringify( base ) !== JSON.stringify( current );
 		},
 
@@ -123,6 +123,10 @@
 
 		updateElementProperty( element, property, value ) {
 			if ( ! this.elements[ element ] ) return
+			if ( 'lineHeight' === property ) {
+				const parsed = parseFloat( value )
+				value = ( Number.isFinite( parsed ) && parsed > 0 ) ? parsed : 0.01
+			}
 			this.elements[ element ][ property ] = value
 		},
 
@@ -168,7 +172,7 @@
 
 		_parseValue( str ) {
 			if ( ! str ) return { num: '', unit: 'rem' }
-			const match = String( str ).match( /^(-?\d*\.?\d+)\s*(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)?$/ )
+			const match = String( str ).match( /^(\d*\.?\d+)\s*(px|em|rem|%|vh|vw|vmin|vmax|ch|ex)?$/ )
 			if ( match ) return { num: match[1], unit: match[2] || 'rem' }
 			return { num: str, unit: '' }
 		},
@@ -431,7 +435,7 @@
 								min="0"
 								id="{{ $uuid }}-{{ $key }}-lineHeight"
 								:value="elements['{{ $key }}'] ? elements['{{ $key }}'].lineHeight : ''"
-								x-on:change="updateElementProperty( '{{ $key }}', 'lineHeight', $event.target.value )"
+								x-on:change="updateElementProperty( '{{ $key }}', 'lineHeight', Math.max( 0.01, parseFloat( $event.target.value ) || 0.01 ) )"
 								class="input input-sm input-bordered w-full font-mono text-xs"
 								placeholder="1.5"
 							/>

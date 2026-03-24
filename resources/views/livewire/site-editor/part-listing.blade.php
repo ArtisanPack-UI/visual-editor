@@ -59,7 +59,7 @@
 			{{-- Area filter --}}
 			<select wire:model.live="filterArea" class="select select-bordered select-sm" aria-label="{{ __( 'visual-editor::ve.part_listing_filter_all_areas' ) }}">
 				<option value="">{{ __( 'visual-editor::ve.part_listing_filter_all_areas' ) }}</option>
-				@foreach ( \ArtisanPackUI\VisualEditor\Models\TemplatePart::AREAS as $area )
+				@foreach ( $areas as $area )
 					<option value="{{ $area }}">{{ ucfirst( $area ) }}</option>
 				@endforeach
 			</select>
