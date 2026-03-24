@@ -1110,8 +1110,11 @@ return [
 	'info'                                  => 'Info',
 
 	// Template Editor
-	'template_editor'            => 'Template editor',
-	'template_untitled'          => 'Untitled Template',
+	'template_editor'                => 'Template editor',
+	'template_editor_back'           => 'Templates',
+	'template_editor_untitled'       => 'Untitled Template',
+	'template_editor_locked_message' => 'This template is locked and cannot be edited.',
+	'template_untitled'              => 'Untitled Template',
 	'template_mode_switcher'     => 'Template mode switcher',
 	'template_editing_mode'      => 'Editing mode',
 	'template_mode_template'     => 'Template',
@@ -1352,6 +1355,7 @@ return [
 	'template_listing_title'              => 'Templates',
 	'template_listing_description'        => 'Manage page templates that define the layout structure for your content.',
 	'template_listing_new'                => '+ New Template',
+	'template_listing_edit'               => 'Edit',
 	'template_listing_column_name'        => 'Name',
 	'template_listing_column_type'        => 'Type',
 	'template_listing_column_content_type' => 'Content Type',

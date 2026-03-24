@@ -26,6 +26,7 @@ $globalStylesPage = (string) ( $components['global_styles_page'] ?? \ArtisanPack
 $templateListing  = (string) ( $components['template_listing'] ?? \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateListingPage::class );
 $partListing      = (string) ( $components['part_listing'] ?? \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplatePartListingPage::class );
 $partEditor       = (string) ( $components['part_editor'] ?? \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PartEditorPage::class );
+$templateEditor   = (string) ( $components['template_editor'] ?? \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\TemplateEditorPage::class );
 $patternListing   = (string) ( $components['pattern_listing'] ?? \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternListingPage::class );
 $patternEditor    = (string) ( $components['pattern_editor'] ?? \ArtisanPackUI\VisualEditor\Livewire\SiteEditor\PatternEditorPage::class );
 
@@ -37,7 +38,7 @@ if ( '' !== $permission ) {
 
 Route::prefix( $prefix )
 	->middleware( $middleware )
-	->group( function () use ( $hubPage, $globalStylesPage, $templateListing, $partListing, $partEditor, $patternListing, $patternEditor, $gates ): void {
+	->group( function () use ( $hubPage, $globalStylesPage, $templateListing, $templateEditor, $partListing, $partEditor, $patternListing, $patternEditor, $gates ): void {
 		Route::get( '/', $hubPage )
 			->name( 'visual-editor.site-editor' );
 
@@ -48,6 +49,14 @@ Route::prefix( $prefix )
 		Route::get( '/templates', $templateListing )
 			->middleware( veGateMiddleware( $gates['templates'] ?? '' ) )
 			->name( 'visual-editor.templates' );
+
+		Route::get( '/templates/create', $templateEditor )
+			->middleware( veGateMiddleware( $gates['templates'] ?? '' ) )
+			->name( 'visual-editor.templates.create' );
+
+		Route::get( '/templates/{slug}/edit', $templateEditor )
+			->middleware( veGateMiddleware( $gates['templates'] ?? '' ) )
+			->name( 'visual-editor.templates.edit' );
 
 		Route::get( '/parts', $partListing )
 			->middleware( veGateMiddleware( $gates['parts'] ?? '' ) )
