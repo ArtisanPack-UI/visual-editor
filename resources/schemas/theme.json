@@ -41,7 +41,7 @@
 									"color": {
 										"type": "string",
 										"description": "Hex color value.",
-										"pattern": "^#[0-9a-fA-F]{3,8}$"
+										"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
 									}
 								},
 								"required": ["name", "slug", "color"],
@@ -222,7 +222,7 @@
 										},
 										"color": {
 											"type": "string",
-											"pattern": "^#[0-9a-fA-F]{3,8}$"
+											"pattern": "^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$"
 										}
 									},
 									"required": ["name", "color"],

@@ -162,7 +162,9 @@ class ThemeJsonLoader
 	 */
 	public function registerPath( string $path ): void
 	{
-		$this->registeredPaths[] = $path;
+		if ( ! in_array( $path, $this->registeredPaths, true ) ) {
+			$this->registeredPaths[] = $path;
+		}
 	}
 
 	/**

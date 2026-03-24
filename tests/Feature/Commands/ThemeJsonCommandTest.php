@@ -29,6 +29,10 @@ test( 've:theme-json fails without options', function (): void {
 	$this->artisan( 've:theme-json' )->assertFailed();
 } );
 
+test( 've:theme-json fails with both options', function (): void {
+	$this->artisan( 've:theme-json', [ '--init' => true, '--validate' => true ] )->assertFailed();
+} );
+
 test( 've:theme-json --init creates theme.json', function (): void {
 	$this->artisan( 've:theme-json', [ '--init' => true ] )->assertSuccessful();
 

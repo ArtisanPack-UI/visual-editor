@@ -62,6 +62,14 @@ class ThemeJsonCommand extends Command
 		$init     = $this->option( 'init' );
 		$validate = $this->option( 'validate' );
 
+		if ( $init && $validate ) {
+			$this->components->error(
+				__( 'visual-editor::ve.theme_json_both_options' ),
+			);
+
+			return self::FAILURE;
+		}
+
 		if ( ! $init && ! $validate ) {
 			$this->components->error(
 				__( 'visual-editor::ve.theme_json_no_option' ),
@@ -132,7 +140,10 @@ class ThemeJsonCommand extends Command
 	}
 
 	/**
-	 * Validate the current theme.json file.
+	 * Validate theme.json files using the same cascade as boot.
+	 *
+	 * Resolves paths from config and registered paths, falling back
+	 * to resource_path('theme.json') when no paths are configured.
 	 *
 	 * @since 1.0.0
 	 *
@@ -140,23 +151,37 @@ class ThemeJsonCommand extends Command
 	 */
 	protected function handleValidate(): int
 	{
-		$path = resource_path( 'theme.json' );
+		$configPaths = config( 'artisanpack.visual-editor.theme_json.paths', [] );
 
-		if ( ! file_exists( $path ) ) {
-			$this->components->error(
-				__( 'visual-editor::ve.theme_json_not_found', [ 'path' => $path ] ),
-			);
+		// Fallback: if no paths configured, check the default location.
+		if ( [] === $configPaths ) {
+			$defaultPath = resource_path( 'theme.json' );
 
-			return self::FAILURE;
+			if ( ! file_exists( $defaultPath ) ) {
+				$this->components->error(
+					__( 'visual-editor::ve.theme_json_not_found', [ 'path' => $defaultPath ] ),
+				);
+
+				return self::FAILURE;
+			}
+
+			$configPaths = [ $defaultPath ];
 		}
 
 		$loader = app( ThemeJsonLoader::class );
-		$valid  = $loader->load( $path );
+		$valid  = $loader->loadPaths( $configPaths );
+		$errors = $loader->getErrors();
 
-		if ( $valid ) {
+		if ( $valid && [] === $errors ) {
+			$loaded = $loader->getLoadedPaths();
+
 			$this->components->info(
 				__( 'visual-editor::ve.theme_json_valid' ),
 			);
+
+			foreach ( $loaded as $path ) {
+				$this->components->bulletList( [ $path ] );
+			}
 
 			return self::SUCCESS;
 		}
@@ -165,7 +190,7 @@ class ThemeJsonCommand extends Command
 			__( 'visual-editor::ve.theme_json_validation_failed' ),
 		);
 
-		foreach ( $loader->getErrors() as $error ) {
+		foreach ( $errors as $error ) {
 			$this->components->bulletList( [ $error ] );
 		}
 

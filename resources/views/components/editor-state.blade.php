@@ -412,6 +412,7 @@
 					}
 					if ( snapshot.globalStyles ) {
 						this.globalStyles = JSON.parse( JSON.stringify( snapshot.globalStyles ) );
+						this._syncGlobalCssVariables();
 					}
 					if ( undefined !== snapshot.documentStatus ) {
 						this.documentStatus = snapshot.documentStatus;
@@ -444,6 +445,7 @@
 					}
 					if ( snapshot.globalStyles ) {
 						this.globalStyles = JSON.parse( JSON.stringify( snapshot.globalStyles ) );
+						this._syncGlobalCssVariables();
 					}
 					if ( undefined !== snapshot.documentStatus ) {
 						this.documentStatus = snapshot.documentStatus;

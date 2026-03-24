@@ -32,6 +32,13 @@ function createLoader(): array
 }
 
 /**
+ * Tracks temporary files created during tests for cleanup.
+ *
+ * @var array<int, string>
+ */
+$tempFiles = [];
+
+/**
  * Write a temporary theme.json for testing.
  *
  * @param array<string, mixed> $data The data to write.
@@ -40,11 +47,25 @@ function createLoader(): array
  */
 function writeThemeJson( array $data ): string
 {
+	global $tempFiles;
+
 	$path = sys_get_temp_dir() . '/ve-test-theme-' . uniqid() . '.json';
 	file_put_contents( $path, json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES ) );
 
+	$tempFiles[] = $path;
+
 	return $path;
 }
+
+afterEach( function (): void {
+	global $tempFiles;
+
+	foreach ( $tempFiles ?? [] as $file ) {
+		@unlink( $file );
+	}
+
+	$tempFiles = [];
+} );
 
 // ---- Loading Tests ----
 
@@ -57,39 +78,39 @@ test( 'load returns false for nonexistent file', function (): void {
 } );
 
 test( 'load returns false for empty file', function (): void {
+	global $tempFiles;
 	$path = sys_get_temp_dir() . '/ve-test-empty-' . uniqid() . '.json';
 	file_put_contents( $path, '' );
+	$tempFiles[] = $path;
 
 	[ 'loader' => $loader ] = createLoader();
 
 	expect( $loader->load( $path ) )->toBeFalse()
 		->and( $loader->getErrors() )->not->toBeEmpty();
-
-	@unlink( $path );
 } );
 
 test( 'load returns false for invalid JSON', function (): void {
+	global $tempFiles;
 	$path = sys_get_temp_dir() . '/ve-test-invalid-' . uniqid() . '.json';
 	file_put_contents( $path, '{ invalid json }' );
+	$tempFiles[] = $path;
 
 	[ 'loader' => $loader ] = createLoader();
 
 	expect( $loader->load( $path ) )->toBeFalse()
 		->and( $loader->getErrors() )->not->toBeEmpty();
-
-	@unlink( $path );
 } );
 
 test( 'load returns false for non-object JSON', function (): void {
+	global $tempFiles;
 	$path = sys_get_temp_dir() . '/ve-test-array-' . uniqid() . '.json';
 	file_put_contents( $path, '"just a string"' );
+	$tempFiles[] = $path;
 
 	[ 'loader' => $loader ] = createLoader();
 
 	expect( $loader->load( $path ) )->toBeFalse()
 		->and( $loader->getErrors() )->not->toBeEmpty();
-
-	@unlink( $path );
 } );
 
 test( 'load succeeds with valid minimal theme.json', function (): void {
@@ -102,7 +123,6 @@ test( 'load succeeds with valid minimal theme.json', function (): void {
 		->and( $loader->getErrors() )->toBeEmpty()
 		->and( $loader->getVersion() )->toBe( 1 );
 
-	@unlink( $path );
 } );
 
 test( 'load populates data and file path', function (): void {
@@ -114,7 +134,6 @@ test( 'load populates data and file path', function (): void {
 	expect( $loader->getData() )->toBe( [ 'version' => 1 ] )
 		->and( $loader->getFilePath() )->toBe( $path );
 
-	@unlink( $path );
 } );
 
 // ---- Validation Tests ----
@@ -127,7 +146,6 @@ test( 'validate fails when version is missing', function (): void {
 	expect( $loader->load( $path ) )->toBeFalse()
 		->and( $loader->getErrors() )->not->toBeEmpty();
 
-	@unlink( $path );
 } );
 
 test( 'validate fails when version is zero', function (): void {
@@ -138,7 +156,6 @@ test( 'validate fails when version is zero', function (): void {
 	expect( $loader->load( $path ) )->toBeFalse()
 		->and( $loader->getErrors() )->not->toBeEmpty();
 
-	@unlink( $path );
 } );
 
 test( 'validate fails when version is too high', function (): void {
@@ -149,7 +166,6 @@ test( 'validate fails when version is too high', function (): void {
 	expect( $loader->load( $path ) )->toBeFalse()
 		->and( $loader->getErrors() )->not->toBeEmpty();
 
-	@unlink( $path );
 } );
 
 test( 'validate fails when settings is not an object', function (): void {
@@ -159,7 +175,6 @@ test( 'validate fails when settings is not an object', function (): void {
 
 	expect( $loader->load( $path ) )->toBeFalse();
 
-	@unlink( $path );
 } );
 
 test( 'validate fails for invalid color palette entry', function (): void {
@@ -179,7 +194,6 @@ test( 'validate fails for invalid color palette entry', function (): void {
 	expect( $loader->load( $path ) )->toBeFalse()
 		->and( $loader->getErrors() )->not->toBeEmpty();
 
-	@unlink( $path );
 } );
 
 test( 'validate fails for invalid hex color', function (): void {
@@ -198,7 +212,6 @@ test( 'validate fails for invalid hex color', function (): void {
 
 	expect( $loader->load( $path ) )->toBeFalse();
 
-	@unlink( $path );
 } );
 
 test( 'validate passes for valid color palette', function (): void {
@@ -219,7 +232,6 @@ test( 'validate passes for valid color palette', function (): void {
 	expect( $loader->load( $path ) )->toBeTrue()
 		->and( $loader->getErrors() )->toBeEmpty();
 
-	@unlink( $path );
 } );
 
 test( 'validate fails for invalid font family slot', function (): void {
@@ -238,7 +250,6 @@ test( 'validate fails for invalid font family slot', function (): void {
 
 	expect( $loader->load( $path ) )->toBeFalse();
 
-	@unlink( $path );
 } );
 
 test( 'validate fails for invalid typography element', function (): void {
@@ -257,7 +268,6 @@ test( 'validate fails for invalid typography element', function (): void {
 
 	expect( $loader->load( $path ) )->toBeFalse();
 
-	@unlink( $path );
 } );
 
 test( 'validate passes for valid typography settings', function (): void {
@@ -281,7 +291,6 @@ test( 'validate passes for valid typography settings', function (): void {
 
 	expect( $loader->load( $path ) )->toBeTrue();
 
-	@unlink( $path );
 } );
 
 test( 'validate passes for valid spacing settings', function (): void {
@@ -302,7 +311,6 @@ test( 'validate passes for valid spacing settings', function (): void {
 
 	expect( $loader->load( $path ) )->toBeTrue();
 
-	@unlink( $path );
 } );
 
 test( 'validate fails when spacing scale is not an object', function (): void {
@@ -319,7 +327,6 @@ test( 'validate fails when spacing scale is not an object', function (): void {
 
 	expect( $loader->load( $path ) )->toBeFalse();
 
-	@unlink( $path );
 } );
 
 test( 'validate passes for valid styles blocks section', function (): void {
@@ -338,7 +345,6 @@ test( 'validate passes for valid styles blocks section', function (): void {
 
 	expect( $loader->load( $path ) )->toBeTrue();
 
-	@unlink( $path );
 } );
 
 test( 'validate fails when styles is not an object', function (): void {
@@ -348,7 +354,6 @@ test( 'validate fails when styles is not an object', function (): void {
 
 	expect( $loader->load( $path ) )->toBeFalse();
 
-	@unlink( $path );
 } );
 
 test( 'validate fails when templateOverrides entries are not objects', function (): void {
@@ -363,7 +368,6 @@ test( 'validate fails when templateOverrides entries are not objects', function 
 
 	expect( $loader->load( $path ) )->toBeFalse();
 
-	@unlink( $path );
 } );
 
 test( 'validate passes for valid template overrides', function (): void {
@@ -382,7 +386,6 @@ test( 'validate passes for valid template overrides', function (): void {
 
 	expect( $loader->load( $path ) )->toBeTrue();
 
-	@unlink( $path );
 } );
 
 // ---- Apply Tests ----
@@ -417,7 +420,6 @@ test( 'apply sets color palette on manager', function (): void {
 		->and( $palette )->toHaveKey( 'accent' )
 		->and( $palette['brand']['color'] )->toBe( '#ff0000' );
 
-	@unlink( $path );
 } );
 
 test( 'apply sets font families on typography manager', function (): void {
@@ -438,7 +440,6 @@ test( 'apply sets font families on typography manager', function (): void {
 
 	expect( $typography->getFontFamily( 'heading' ) )->toBe( '"Playfair Display", serif' );
 
-	@unlink( $path );
 } );
 
 test( 'apply sets element styles on typography manager', function (): void {
@@ -462,7 +463,6 @@ test( 'apply sets element styles on typography manager', function (): void {
 	expect( $h1['fontSize'] )->toBe( '3rem' )
 		->and( $h1['fontWeight'] )->toBe( '900' );
 
-	@unlink( $path );
 } );
 
 test( 'apply sets spacing scale on manager', function (): void {
@@ -487,7 +487,6 @@ test( 'apply sets spacing scale on manager', function (): void {
 		->and( $spacing->getStepValue( 'tiny' ) )->toBe( '0.125rem' )
 		->and( $spacing->getBlockGap() )->toBe( 'small' );
 
-	@unlink( $path );
 } );
 
 test( 'apply does not change managers when settings is absent', function (): void {
@@ -502,7 +501,6 @@ test( 'apply does not change managers when settings is absent', function (): voi
 
 	expect( $colors->getPalette() )->toBe( $beforePalette );
 
-	@unlink( $path );
 } );
 
 // ---- Accessor Tests ----
@@ -525,7 +523,6 @@ test( 'getBlockStyles returns block style defaults', function (): void {
 	expect( $blocks )->toHaveKey( 'heading' )
 		->and( $blocks['heading']['color']['text'] )->toBe( 'palette:text' );
 
-	@unlink( $path );
 } );
 
 test( 'getBlockStyles returns empty when no styles defined', function (): void {
@@ -536,7 +533,6 @@ test( 'getBlockStyles returns empty when no styles defined', function (): void {
 
 	expect( $loader->getBlockStyles() )->toBeEmpty();
 
-	@unlink( $path );
 } );
 
 test( 'getTemplateOverrides returns template overrides', function (): void {
@@ -558,7 +554,6 @@ test( 'getTemplateOverrides returns template overrides', function (): void {
 
 	expect( $loader->getTemplateOverrides() )->toBe( $overrides );
 
-	@unlink( $path );
 } );
 
 test( 'getVersion returns null when not loaded', function (): void {
@@ -650,7 +645,6 @@ test( 'load and apply works with full theme.json', function (): void {
 	// Template overrides accessible
 	expect( $loader->getTemplateOverrides() )->toHaveKey( 'dark-theme' );
 
-	@unlink( $path );
 } );
 
 // ---- Multi-File Cascade Tests ----
@@ -693,8 +687,6 @@ test( 'loadPaths loads multiple files in order', function (): void {
 		->and( $palette )->toHaveKey( 'text' )
 		->and( $palette['text']['color'] )->toBe( '#000000' );
 
-	@unlink( $base );
-	@unlink( $override );
 } );
 
 test( 'loadPaths returns false when no files exist', function (): void {
@@ -712,12 +704,13 @@ test( 'loadPaths skips nonexistent files', function (): void {
 	expect( $loader->loadPaths( [ '/nonexistent.json', $valid ] ) )->toBeTrue()
 		->and( $loader->getLoadedPaths() )->toHaveCount( 1 );
 
-	@unlink( $valid );
 } );
 
 test( 'loadPaths skips invalid files and continues', function (): void {
+	global $tempFiles;
 	$invalid = sys_get_temp_dir() . '/ve-test-invalid-cascade-' . uniqid() . '.json';
 	file_put_contents( $invalid, '{ bad json }' );
+	$tempFiles[] = $invalid;
 
 	$valid = writeThemeJson( [
 		'version'  => 1,
@@ -736,8 +729,6 @@ test( 'loadPaths skips invalid files and continues', function (): void {
 		->and( $loader->getErrors() )->not->toBeEmpty()
 		->and( $loader->getLoadedPaths() )->toHaveCount( 1 );
 
-	@unlink( $invalid );
-	@unlink( $valid );
 } );
 
 test( 'loadPaths deep merges typography settings', function (): void {
@@ -788,8 +779,6 @@ test( 'loadPaths deep merges typography settings', function (): void {
 	$h2 = $typography->getElement( 'h2' );
 	expect( $h2['fontSize'] )->toBe( '2rem' );
 
-	@unlink( $base );
-	@unlink( $override );
 } );
 
 test( 'loadPaths deep merges spacing and template overrides', function (): void {
@@ -849,8 +838,6 @@ test( 'loadPaths deep merges spacing and template overrides', function (): void 
 		->and( $overrides )->toHaveKey( 'light' )
 		->and( $overrides['dark']['colors']['bg']['color'] )->toBe( '#222222' );
 
-	@unlink( $base );
-	@unlink( $override );
 } );
 
 test( 'registerPath appends to registered paths', function (): void {
@@ -864,6 +851,16 @@ test( 'registerPath appends to registered paths', function (): void {
 	expect( $loader->getRegisteredPaths() )->toHaveCount( 2 )
 		->and( $loader->getRegisteredPaths()[0] )->toBe( '/custom/theme.json' )
 		->and( $loader->getRegisteredPaths()[1] )->toBe( '/another/theme.json' );
+} );
+
+test( 'registerPath deduplicates identical paths', function (): void {
+	[ 'loader' => $loader ] = createLoader();
+
+	$loader->registerPath( '/custom/theme.json' );
+	$loader->registerPath( '/custom/theme.json' );
+	$loader->registerPath( '/other/theme.json' );
+
+	expect( $loader->getRegisteredPaths() )->toHaveCount( 2 );
 } );
 
 test( 'loadPaths includes registered paths after config paths', function (): void {
@@ -899,8 +896,6 @@ test( 'loadPaths includes registered paths after config paths', function (): voi
 	expect( $colors->getColorValue( 'primary' ) )->toBe( '#0000ff' )
 		->and( $loader->getLoadedPaths() )->toHaveCount( 2 );
 
-	@unlink( $configFile );
-	@unlink( $registeredFile );
 } );
 
 test( 'getLoadedPaths tracks all successfully loaded files', function (): void {
@@ -915,6 +910,4 @@ test( 'getLoadedPaths tracks all successfully loaded files', function (): void {
 		->and( $loader->getLoadedPaths()[0] )->toBe( $file1 )
 		->and( $loader->getLoadedPaths()[1] )->toBe( $file2 );
 
-	@unlink( $file1 );
-	@unlink( $file2 );
 } );

@@ -1570,6 +1570,7 @@ return [
 	'theme_json_override_not_object'   => 'Template override ":slug" must be an object.',
 
 	// Theme JSON Command
+	'theme_json_both_options'          => 'Please specify only one of --init or --validate, not both.',
 	'theme_json_no_option'             => 'Please specify --init or --validate. Run "ve:theme-json --help" for usage.',
 	'theme_json_already_exists'        => 'A theme.json file already exists at :path.',
 	'theme_json_stub_not_found'        => 'The theme.json stub file could not be found.',

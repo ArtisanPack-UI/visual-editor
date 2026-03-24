@@ -446,6 +446,9 @@
 	.ve-editor-canvas pre,
 	.ve-editor-canvas [data-type="code"] [contenteditable] {
 		font-family: var(--ve-font-mono, monospace);
+		font-size: var(--ve-text-code-font-size, 0.875em);
+		line-height: var(--ve-text-code-line-height, 1.5);
+		font-style: var(--ve-text-code-font-style, normal);
 	}
 
 	/* Typography: blockquote */
@@ -457,9 +460,12 @@
 	}
 
 	/* Typography: small/caption */
-	.ve-editor-canvas small {
-		font-size: var(--ve-text-small-font-size, 0.875rem);
-		line-height: var(--ve-text-small-line-height, 1.5);
+	.ve-editor-canvas small,
+	.ve-editor-canvas caption,
+	.ve-editor-canvas [data-type="caption"] [contenteditable] {
+		font-size: var(--ve-text-caption-font-size, var(--ve-text-small-font-size, 0.875rem));
+		line-height: var(--ve-text-caption-line-height, var(--ve-text-small-line-height, 1.5));
+		font-style: var(--ve-text-caption-font-style, normal);
 	}
 </style>
 @endpush

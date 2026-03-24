@@ -60,6 +60,7 @@ use ArtisanPackUI\VisualEditor\Services\TypographyPresetsManager;
 use ArtisanPackUI\VisualEditor\View\Components;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\ServiceProvider;
 use Livewire\Livewire;
 
@@ -365,7 +366,6 @@ class VisualEditorServiceProvider extends ServiceProvider
 	public function boot(): void
 	{
 		$this->mergeConfiguration();
-		$this->loadThemeJson();
 		$this->publishConfiguration();
 		$this->registerTranslations();
 		$this->registerViews();
@@ -382,6 +382,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerConsoleCommands();
 		$this->publishBlockViews();
 		$this->registerAdminMenu();
+
+		// Defer theme.json loading until all providers have booted so
+		// that registerPath() calls from other service providers are
+		// picked up.
+		$this->app->booted( function (): void {
+			$this->loadThemeJson();
+		} );
 	}
 
 	/**
@@ -542,7 +549,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$loader = $this->app->make( 'visual-editor.theme-json' );
 
 		// loadPaths() also appends any programmatically registered paths.
-		if ( ! $loader->loadPaths( $configPaths ) ) {
+		$loaded = $loader->loadPaths( $configPaths );
+		$errors = $loader->getErrors();
+
+		if ( [] !== $errors ) {
+			Log::warning( '[ve] ThemeJsonLoader errors', [ 'errors' => $errors ] );
+		}
+
+		if ( ! $loaded ) {
 			return;
 		}
 
