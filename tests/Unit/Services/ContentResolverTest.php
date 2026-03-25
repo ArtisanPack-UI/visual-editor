@@ -52,6 +52,129 @@ test( 'content resolver returns empty permalink by default', function (): void {
 	expect( $resolver->getPermalink() )->toBe( '' );
 } );
 
+test( 'content resolver returns empty author name by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getAuthorName() )->toBe( '' );
+} );
+
+test( 'content resolver returns empty author bio by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getAuthorBio() )->toBe( '' );
+} );
+
+test( 'content resolver returns empty author avatar url by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getAuthorAvatarUrl() )->toBe( '' );
+} );
+
+test( 'content resolver returns empty author url by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getAuthorUrl() )->toBe( '' );
+} );
+
+test( 'content resolver returns empty terms by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getTerms( 'category' ) )->toBe( [] );
+} );
+
+test( 'content resolver returns zero comments count by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getCommentsCount() )->toBe( 0 );
+} );
+
+test( 'content resolver returns empty comments url by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getCommentsUrl() )->toBe( '' );
+} );
+
+test( 'content resolver returns zero word count by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getWordCount() )->toBe( 0 );
+} );
+
+test( 'content resolver sanitizes unsafe author avatar urls', function (): void {
+	$resolver = new ContentResolver();
+
+	if ( function_exists( 'addFilter' ) ) {
+		addFilter( 've.content.author-avatar-url', function () {
+			return 'javascript:alert(1)';
+		} );
+
+		expect( $resolver->getAuthorAvatarUrl() )->toBe( '' );
+
+		if ( function_exists( 'removeAllFilters' ) ) {
+			removeAllFilters( 've.content.author-avatar-url' );
+		}
+	} else {
+		expect( $resolver->getAuthorAvatarUrl() )->toBe( '' );
+	}
+} );
+
+test( 'content resolver sanitizes unsafe author urls', function (): void {
+	$resolver = new ContentResolver();
+
+	if ( function_exists( 'addFilter' ) ) {
+		addFilter( 've.content.author-url', function () {
+			return 'javascript:alert(1)';
+		} );
+
+		expect( $resolver->getAuthorUrl() )->toBe( '' );
+
+		if ( function_exists( 'removeAllFilters' ) ) {
+			removeAllFilters( 've.content.author-url' );
+		}
+	} else {
+		expect( $resolver->getAuthorUrl() )->toBe( '' );
+	}
+} );
+
+test( 'content resolver sanitizes unsafe comments urls', function (): void {
+	$resolver = new ContentResolver();
+
+	if ( function_exists( 'addFilter' ) ) {
+		addFilter( 've.content.comments-url', function () {
+			return 'javascript:alert(1)';
+		} );
+
+		expect( $resolver->getCommentsUrl() )->toBe( '' );
+
+		if ( function_exists( 'removeAllFilters' ) ) {
+			removeAllFilters( 've.content.comments-url' );
+		}
+	} else {
+		expect( $resolver->getCommentsUrl() )->toBe( '' );
+	}
+} );
+
+test( 'content resolver sanitizes term urls in terms array', function (): void {
+	$resolver = new ContentResolver();
+
+	if ( function_exists( 'addFilter' ) ) {
+		addFilter( 've.content.terms', function () {
+			return [
+				[ 'name' => 'Test', 'url' => 'javascript:alert(1)', 'slug' => 'test' ],
+			];
+		} );
+
+		$terms = $resolver->getTerms( 'category' );
+		expect( $terms[0]['url'] )->toBe( '' );
+
+		if ( function_exists( 'removeAllFilters' ) ) {
+			removeAllFilters( 've.content.terms' );
+		}
+	} else {
+		expect( $resolver->getTerms( 'category' ) )->toBe( [] );
+	}
+} );
+
 test( 'content resolver to array returns all fields', function (): void {
 	$resolver = new ContentResolver();
 	$array    = $resolver->toArray();
@@ -65,6 +188,13 @@ test( 'content resolver to array returns all fields', function (): void {
 		'featuredImageUrl',
 		'featuredImageAlt',
 		'permalink',
+		'authorName',
+		'authorBio',
+		'authorAvatarUrl',
+		'authorUrl',
+		'commentsCount',
+		'commentsUrl',
+		'wordCount',
 	] );
 } );
 

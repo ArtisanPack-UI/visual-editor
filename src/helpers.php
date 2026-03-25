@@ -1304,8 +1304,137 @@ if ( ! function_exists( 'veGetContentPermalink' ) ) {
 	 *
 	 * @return string
 	 */
-	function veGetContentPermalink( array $context = []): string
+	function veGetContentPermalink( array $context = [] ): string
 	{
 		return app( ContentResolver::class )->getPermalink( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentAuthorName' ) ) {
+	/**
+	 * Get the content author name from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	function veGetContentAuthorName( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getAuthorName( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentAuthorBio' ) ) {
+	/**
+	 * Get the content author biography from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	function veGetContentAuthorBio( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getAuthorBio( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentAuthorAvatarUrl' ) ) {
+	/**
+	 * Get the content author avatar URL from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	function veGetContentAuthorAvatarUrl( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getAuthorAvatarUrl( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentAuthorUrl' ) ) {
+	/**
+	 * Get the content author archive/profile URL from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	function veGetContentAuthorUrl( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getAuthorUrl( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentTerms' ) ) {
+	/**
+	 * Get the content taxonomy terms from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string               $taxonomy The taxonomy slug (e.g. 'category', 'tag').
+	 * @param array<string, mixed> $context  Optional context (e.g. from query loop).
+	 *
+	 * @return array<int, array{name: string, url: string, slug: string}>
+	 */
+	function veGetContentTerms( string $taxonomy, array $context = [] ): array
+	{
+		return app( ContentResolver::class )->getTerms( $taxonomy, $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentCommentsCount' ) ) {
+	/**
+	 * Get the content comments count from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return int
+	 */
+	function veGetContentCommentsCount( array $context = [] ): int
+	{
+		return app( ContentResolver::class )->getCommentsCount( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentCommentsUrl' ) ) {
+	/**
+	 * Get the URL to the content comments section from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	function veGetContentCommentsUrl( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getCommentsUrl( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentWordCount' ) ) {
+	/**
+	 * Get the content word count from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return int
+	 */
+	function veGetContentWordCount( array $context = []): int
+	{
+		return app( ContentResolver::class )->getWordCount( $context );
 	}
 }

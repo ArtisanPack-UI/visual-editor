@@ -192,13 +192,146 @@ class ContentResolver
 	}
 
 	/**
+	 * Get the content author name.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	public function getAuthorName( array $context = [] ): string
+	{
+		return (string) veApplyFilters( 've.content.author-name', '', $context );
+	}
+
+	/**
+	 * Get the content author biography.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	public function getAuthorBio( array $context = [] ): string
+	{
+		return (string) veApplyFilters( 've.content.author-bio', '', $context );
+	}
+
+	/**
+	 * Get the content author avatar URL.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	public function getAuthorAvatarUrl( array $context = [] ): string
+	{
+		$url = (string) veApplyFilters( 've.content.author-avatar-url', '', $context );
+
+		return $this->sanitizeUrl( $url );
+	}
+
+	/**
+	 * Get the content author archive/profile URL.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	public function getAuthorUrl( array $context = [] ): string
+	{
+		$url = (string) veApplyFilters( 've.content.author-url', '', $context );
+
+		return $this->sanitizeUrl( $url );
+	}
+
+	/**
+	 * Get the content taxonomy terms.
+	 *
+	 * Returns an array of term objects with name, url, and slug keys.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param string               $taxonomy The taxonomy slug (e.g. 'category', 'tag').
+	 * @param array<string, mixed> $context  Optional context (e.g. from query loop).
+	 *
+	 * @return array<int, array{name: string, url: string, slug: string}>
+	 */
+	public function getTerms( string $taxonomy, array $context = [] ): array
+	{
+		$terms = veApplyFilters( 've.content.terms', [], $context, $taxonomy );
+
+		if ( ! is_array( $terms ) ) {
+			return [];
+		}
+
+		return array_map( function ( $term ) {
+			return [
+				'name' => (string) ( $term['name'] ?? '' ),
+				'url'  => $this->sanitizeUrl( (string) ( $term['url'] ?? '' ) ),
+				'slug' => (string) ( $term['slug'] ?? '' ),
+			];
+		}, $terms );
+	}
+
+	/**
+	 * Get the content comments count.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return int
+	 */
+	public function getCommentsCount( array $context = [] ): int
+	{
+		return (int) veApplyFilters( 've.content.comments-count', 0, $context );
+	}
+
+	/**
+	 * Get the URL to the content comments section.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return string
+	 */
+	public function getCommentsUrl( array $context = [] ): string
+	{
+		$url = (string) veApplyFilters( 've.content.comments-url', '', $context );
+
+		return $this->sanitizeUrl( $url );
+	}
+
+	/**
+	 * Get the content word count.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return int
+	 */
+	public function getWordCount( array $context = [] ): int
+	{
+		return (int) veApplyFilters( 've.content.word-count', 0, $context );
+	}
+
+	/**
 	 * Get all content fields as an array.
 	 *
 	 * @since 2.0.0
 	 *
 	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
 	 *
-	 * @return array{title: string, body: string, excerpt: string, date: string, modifiedDate: string, featuredImageUrl: string, featuredImageAlt: string, permalink: string}
+	 * @return array{title: string, body: string, excerpt: string, date: string, modifiedDate: string, featuredImageUrl: string, featuredImageAlt: string, permalink: string, authorName: string, authorBio: string, authorAvatarUrl: string, authorUrl: string, commentsCount: int, commentsUrl: string, wordCount: int}
 	 */
 	public function toArray( array $context = [] ): array
 	{
@@ -211,6 +344,13 @@ class ContentResolver
 			'featuredImageUrl' => $this->getFeaturedImageUrl( $context ),
 			'featuredImageAlt' => $this->getFeaturedImageAlt( $context ),
 			'permalink'        => $this->getPermalink( $context ),
+			'authorName'       => $this->getAuthorName( $context ),
+			'authorBio'        => $this->getAuthorBio( $context ),
+			'authorAvatarUrl'  => $this->getAuthorAvatarUrl( $context ),
+			'authorUrl'        => $this->getAuthorUrl( $context ),
+			'commentsCount'    => $this->getCommentsCount( $context ),
+			'commentsUrl'      => $this->getCommentsUrl( $context ),
+			'wordCount'        => $this->getWordCount( $context ),
 		];
 	}
 
