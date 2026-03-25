@@ -60,13 +60,14 @@
 		@if ( $prefix )
 			<span>{{ $prefix }}</span>
 		@endif
+		@php $termsCount = count( $terms ); @endphp
 		@foreach ( $terms as $index => $termItem )
 			@if ( $termItem['url'] )
 				<a href="{{ $termItem['url'] }}">{{ $termItem['name'] }}</a>
 			@else
 				<span>{{ $termItem['name'] }}</span>
 			@endif
-			@if ( $index < count( $terms ) - 1 )
+			@if ( $index < $termsCount - 1 )
 				{{ $separator }}
 			@endif
 		@endforeach

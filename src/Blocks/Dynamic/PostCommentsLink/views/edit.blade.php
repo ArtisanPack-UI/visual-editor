@@ -45,5 +45,5 @@
 	class="{{ $classes }}"
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
 >
-	<a href="#" data-ve-preview-link style="pointer-events: none; cursor: default; color: inherit; text-decoration: underline;">{{ $displayText }}</a>
+	<span data-ve-preview-link style="color: inherit; text-decoration: underline; cursor: default;">{{ $displayText }}</span>
 </div>

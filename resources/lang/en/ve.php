@@ -1060,6 +1060,7 @@ return [
 	'post_author_show_bio'       => 'Show biography',
 	'post_author_byline'         => 'Byline prefix',
 	'post_author_make_link'      => 'Link to author page',
+	'post_author_avatar_alt'     => 'Author avatar',
 	'post_author_sample_name'    => 'Author Name',
 	'post_author_sample_bio'     => 'This is the author biography. It provides a brief description of the content author.',
 

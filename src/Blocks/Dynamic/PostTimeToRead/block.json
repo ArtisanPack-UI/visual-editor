@@ -10,9 +10,9 @@
 	"dynamic": true,
 	"attributes": {
 		"wordsPerMinute": {
-			"type": "string",
+			"type": "integer",
 			"source": "content",
-			"default": "200"
+			"default": 200
 		},
 		"prefix": {
 			"type": "string",

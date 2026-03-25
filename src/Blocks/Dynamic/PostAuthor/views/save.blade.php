@@ -67,7 +67,7 @@
 		@if ( $showAvatar && $authorAvatarUrl )
 			<img
 				src="{{ $authorAvatarUrl }}"
-				alt="{{ $authorName }}"
+				alt="{{ $authorName ?: __( 'visual-editor::ve.post_author_avatar_alt' ) }}"
 				style="width: {{ $avatarDim }}; height: {{ $avatarDim }}; border-radius: 50%; object-fit: cover; flex-shrink: 0;"
 			/>
 		@endif

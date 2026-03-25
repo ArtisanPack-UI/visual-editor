@@ -40,6 +40,8 @@ test( 'discovery returns all expected block types', function (): void {
 		'latest-posts', 'table-of-contents', 'search',
 		'site-title', 'site-tagline', 'site-logo',
 		'post-title', 'post-content', 'post-excerpt', 'post-date', 'post-featured-image',
+		'post-author', 'post-author-name', 'post-author-biography',
+		'post-terms', 'post-comments-count', 'post-comments-link', 'post-time-to-read',
 	];
 
 	foreach ( $expected as $type ) {
