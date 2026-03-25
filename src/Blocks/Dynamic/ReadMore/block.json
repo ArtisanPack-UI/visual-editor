@@ -12,7 +12,7 @@
 		"content": {
 			"type": "string",
 			"source": "content",
-			"default": "Read more"
+			"default": ""
 		},
 		"linkTarget": {
 			"type": "string",

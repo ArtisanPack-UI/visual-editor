@@ -1126,11 +1126,10 @@ return [
 	'post_nav_link_chevron_next'     => '»',
 
 	// Read More Block
-	'read_more_content'     => 'Link text',
-	'read_more_default'     => 'Read more',
-	'read_more_link_target' => 'Open in new tab',
-	'read_more_show_arrow'  => 'Show arrow',
-	'read_more_arrow'       => '→',
+	'read_more_content'    => 'Link text',
+	'read_more_default'    => 'Read more',
+	'read_more_show_arrow' => 'Show arrow',
+	'read_more_arrow'      => '→',
 
 	// Cover Block
 	'block_cover_name'             => 'Cover',

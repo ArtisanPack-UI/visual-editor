@@ -403,7 +403,7 @@ class ContentResolver
 	 *
 	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
 	 *
-	 * @return array{title: string, body: string, excerpt: string, date: string, modifiedDate: string, featuredImageUrl: string, featuredImageAlt: string, permalink: string, authorName: string, authorBio: string, authorAvatarUrl: string, authorUrl: string, commentsCount: int, commentsUrl: string, wordCount: int}
+	 * @return array{title: string, body: string, excerpt: string, date: string, modifiedDate: string, featuredImageUrl: string, featuredImageAlt: string, permalink: string, authorName: string, authorBio: string, authorAvatarUrl: string, authorUrl: string, commentsCount: int, commentsUrl: string, wordCount: int, previousPostUrl: string, previousPostTitle: string, nextPostUrl: string, nextPostTitle: string}
 	 */
 	public function toArray( array $context = [] ): array
 	{

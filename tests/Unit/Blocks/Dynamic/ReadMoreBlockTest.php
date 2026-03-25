@@ -89,5 +89,5 @@ test( 'read more block does not have toolbar controls by default', function (): 
 	$block    = new ReadMoreBlock();
 	$controls = $block->getToolbarControls();
 
-	expect( $controls )->toBeArray();
+	expect( $controls )->toBeArray()->toBeEmpty();
 } );

@@ -199,6 +199,42 @@ test( 'content resolver returns empty next post title by default', function (): 
 	expect( $resolver->getNextPostTitle() )->toBe( '' );
 } );
 
+test( 'content resolver applies filter to previous post title', function (): void {
+	$resolver = new ContentResolver();
+
+	if ( function_exists( 'addFilter' ) ) {
+		addFilter( 've.content.previous-post-title', function () {
+			return 'Previous Post Title';
+		} );
+
+		expect( $resolver->getPreviousPostTitle() )->toBe( 'Previous Post Title' );
+
+		if ( function_exists( 'removeAllFilters' ) ) {
+			removeAllFilters( 've.content.previous-post-title' );
+		}
+	} else {
+		expect( $resolver->getPreviousPostTitle() )->toBe( '' );
+	}
+} );
+
+test( 'content resolver applies filter to next post title', function (): void {
+	$resolver = new ContentResolver();
+
+	if ( function_exists( 'addFilter' ) ) {
+		addFilter( 've.content.next-post-title', function () {
+			return 'Next Post Title';
+		} );
+
+		expect( $resolver->getNextPostTitle() )->toBe( 'Next Post Title' );
+
+		if ( function_exists( 'removeAllFilters' ) ) {
+			removeAllFilters( 've.content.next-post-title' );
+		}
+	} else {
+		expect( $resolver->getNextPostTitle() )->toBe( '' );
+	}
+} );
+
 test( 'content resolver sanitizes unsafe previous post urls', function (): void {
 	$resolver = new ContentResolver();
 
