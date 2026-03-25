@@ -1,0 +1,109 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "comments-title",
+	"name": "Comments Title",
+	"description": "Display a heading for the comments section with optional count",
+	"icon": "chat-bubble-bottom-center-text",
+	"category": "dynamic",
+	"keywords": ["comments", "title", "heading", "discussion", "count"],
+	"version": 1,
+	"dynamic": true,
+	"attributes": {
+		"level": {
+			"type": "string",
+			"source": "content",
+			"default": "h2"
+		},
+		"showCount": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"singularLabel": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"pluralLabel": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontSize": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontFamily": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontAppearance": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"lineHeight": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"letterSpacing": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textDecoration": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textTransform": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"typography": {
+			"fontSize": true,
+			"fontFamily": "heading",
+			"appearance": true,
+			"lineHeight": true,
+			"letterSpacing": true,
+			"decoration": true,
+			"letterCase": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"htmlId": true,
+		"className": true
+	}
+}

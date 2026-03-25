@@ -1,0 +1,109 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "comments-pagination",
+	"name": "Comments Pagination",
+	"description": "Display pagination controls for the comments list",
+	"icon": "arrows-right-left",
+	"category": "dynamic",
+	"keywords": ["comments", "pagination", "pages", "navigation", "paging"],
+	"version": 1,
+	"dynamic": true,
+	"attributes": {
+		"perPage": {
+			"type": "integer",
+			"source": "content",
+			"default": 20
+		},
+		"previousLabel": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"nextLabel": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"showNumbers": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontSize": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontFamily": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontAppearance": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"lineHeight": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"letterSpacing": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textDecoration": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textTransform": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"typography": {
+			"fontSize": true,
+			"fontFamily": "body",
+			"appearance": true,
+			"lineHeight": true,
+			"letterSpacing": true,
+			"decoration": true,
+			"letterCase": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"htmlId": true,
+		"className": true
+	}
+}

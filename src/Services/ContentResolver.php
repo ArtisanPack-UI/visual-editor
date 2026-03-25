@@ -397,6 +397,179 @@ class ContentResolver
 	}
 
 	/**
+	 * Get the list of comments for the current content.
+	 *
+	 * Returns an array of comment data arrays, each containing at minimum
+	 * id, author_name, author_avatar_url, author_url, content, date,
+	 * reply_url, edit_url, and children (nested replies).
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function getComments( array $context = [] ): array
+	{
+		$comments = veApplyFilters( 've.content.comments', [], $context );
+
+		if ( ! is_array( $comments ) ) {
+			return [];
+		}
+
+		return $comments;
+	}
+
+	/**
+	 * Get the comment author name.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Comment context with comment data.
+	 *
+	 * @return string
+	 */
+	public function getCommentAuthorName( array $context = [] ): string
+	{
+		return (string) veApplyFilters( 've.content.comment-author-name', '', $context );
+	}
+
+	/**
+	 * Get the comment author avatar URL.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Comment context with comment data.
+	 *
+	 * @return string
+	 */
+	public function getCommentAuthorAvatarUrl( array $context = [] ): string
+	{
+		$url = (string) veApplyFilters( 've.content.comment-author-avatar-url', '', $context );
+
+		return $this->sanitizeUrl( $url );
+	}
+
+	/**
+	 * Get the comment author URL.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Comment context with comment data.
+	 *
+	 * @return string
+	 */
+	public function getCommentAuthorUrl( array $context = [] ): string
+	{
+		$url = (string) veApplyFilters( 've.content.comment-author-url', '', $context );
+
+		return $this->sanitizeUrl( $url );
+	}
+
+	/**
+	 * Get the comment content/body text.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Comment context with comment data.
+	 *
+	 * @return string
+	 */
+	public function getCommentContent( array $context = [] ): string
+	{
+		return (string) veApplyFilters( 've.content.comment-content', '', $context );
+	}
+
+	/**
+	 * Get the comment date.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Comment context with comment data.
+	 *
+	 * @return string The date as an ISO 8601 string, or empty string.
+	 */
+	public function getCommentDate( array $context = [] ): string
+	{
+		return (string) veApplyFilters( 've.content.comment-date', '', $context );
+	}
+
+	/**
+	 * Get the comment reply URL.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Comment context with comment data.
+	 *
+	 * @return string
+	 */
+	public function getCommentReplyUrl( array $context = [] ): string
+	{
+		$url = (string) veApplyFilters( 've.content.comment-reply-url', '', $context );
+
+		return $this->sanitizeUrl( $url );
+	}
+
+	/**
+	 * Get the comment edit URL.
+	 *
+	 * Returns empty string if the current user cannot edit the comment.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Comment context with comment data.
+	 *
+	 * @return string
+	 */
+	public function getCommentEditUrl( array $context = [] ): string
+	{
+		$url = (string) veApplyFilters( 've.content.comment-edit-url', '', $context );
+
+		return $this->sanitizeUrl( $url );
+	}
+
+	/**
+	 * Get comments pagination data.
+	 *
+	 * Returns pagination metadata: total pages, current page,
+	 * previous URL, next URL, and per-page count.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context.
+	 *
+	 * @return array{totalPages: int, currentPage: int, previousUrl: string, nextUrl: string, perPage: int}
+	 */
+	public function getCommentsPagination( array $context = [] ): array
+	{
+		$pagination = veApplyFilters( 've.content.comments-pagination', [
+			'totalPages'  => 1,
+			'currentPage' => 1,
+			'previousUrl' => '',
+			'nextUrl'     => '',
+			'perPage'     => 20,
+		], $context );
+
+		if ( ! is_array( $pagination ) ) {
+			return [
+				'totalPages'  => 1,
+				'currentPage' => 1,
+				'previousUrl' => '',
+				'nextUrl'     => '',
+				'perPage'     => 20,
+			];
+		}
+
+		return [
+			'totalPages'  => (int) ( $pagination['totalPages'] ?? 1 ),
+			'currentPage' => (int) ( $pagination['currentPage'] ?? 1 ),
+			'previousUrl' => $this->sanitizeUrl( (string) ( $pagination['previousUrl'] ?? '' ) ),
+			'nextUrl'     => $this->sanitizeUrl( (string) ( $pagination['nextUrl'] ?? '' ) ),
+			'perPage'     => (int) ( $pagination['perPage'] ?? 20 ),
+		];
+	}
+
+	/**
 	 * Get all content fields as an array.
 	 *
 	 * @since 2.0.0
@@ -408,25 +581,27 @@ class ContentResolver
 	public function toArray( array $context = [] ): array
 	{
 		return [
-			'title'             => $this->getTitle( $context ),
-			'body'              => $this->getBody( $context ),
-			'excerpt'           => $this->getExcerpt( $context ),
-			'date'              => $this->getDate( $context ),
-			'modifiedDate'      => $this->getModifiedDate( $context ),
-			'featuredImageUrl'  => $this->getFeaturedImageUrl( $context ),
-			'featuredImageAlt'  => $this->getFeaturedImageAlt( $context ),
-			'permalink'         => $this->getPermalink( $context ),
-			'authorName'        => $this->getAuthorName( $context ),
-			'authorBio'         => $this->getAuthorBio( $context ),
-			'authorAvatarUrl'   => $this->getAuthorAvatarUrl( $context ),
-			'authorUrl'         => $this->getAuthorUrl( $context ),
-			'commentsCount'     => $this->getCommentsCount( $context ),
-			'commentsUrl'       => $this->getCommentsUrl( $context ),
-			'wordCount'         => $this->getWordCount( $context ),
-			'previousPostUrl'   => $this->getPreviousPostUrl( $context ),
-			'previousPostTitle' => $this->getPreviousPostTitle( $context ),
-			'nextPostUrl'       => $this->getNextPostUrl( $context ),
-			'nextPostTitle'     => $this->getNextPostTitle( $context ),
+			'title'              => $this->getTitle( $context ),
+			'body'               => $this->getBody( $context ),
+			'excerpt'            => $this->getExcerpt( $context ),
+			'date'               => $this->getDate( $context ),
+			'modifiedDate'       => $this->getModifiedDate( $context ),
+			'featuredImageUrl'   => $this->getFeaturedImageUrl( $context ),
+			'featuredImageAlt'   => $this->getFeaturedImageAlt( $context ),
+			'permalink'          => $this->getPermalink( $context ),
+			'authorName'         => $this->getAuthorName( $context ),
+			'authorBio'          => $this->getAuthorBio( $context ),
+			'authorAvatarUrl'    => $this->getAuthorAvatarUrl( $context ),
+			'authorUrl'          => $this->getAuthorUrl( $context ),
+			'commentsCount'      => $this->getCommentsCount( $context ),
+			'commentsUrl'        => $this->getCommentsUrl( $context ),
+			'wordCount'          => $this->getWordCount( $context ),
+			'previousPostUrl'    => $this->getPreviousPostUrl( $context ),
+			'previousPostTitle'  => $this->getPreviousPostTitle( $context ),
+			'nextPostUrl'        => $this->getNextPostUrl( $context ),
+			'nextPostTitle'      => $this->getNextPostTitle( $context ),
+			'comments'           => $this->getComments( $context ),
+			'commentsPagination' => $this->getCommentsPagination( $context ),
 		];
 	}
 

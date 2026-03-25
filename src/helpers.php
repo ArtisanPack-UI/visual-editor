@@ -1497,8 +1497,152 @@ if ( ! function_exists( 'veGetContentNextPostTitle' ) ) {
 	 *
 	 * @return string
 	 */
-	function veGetContentNextPostTitle( array $context = []): string
+	function veGetContentNextPostTitle( array $context = [] ): string
 	{
 		return app( ContentResolver::class )->getNextPostTitle( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentComments' ) ) {
+	/**
+	 * Get the list of comments from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	function veGetContentComments( array $context = [] ): array
+	{
+		return app( ContentResolver::class )->getComments( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentCommentAuthorName' ) ) {
+	/**
+	 * Get the comment author name from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Comment context with comment data.
+	 *
+	 * @return string
+	 */
+	function veGetContentCommentAuthorName( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getCommentAuthorName( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentCommentAuthorAvatarUrl' ) ) {
+	/**
+	 * Get the comment author avatar URL from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Comment context with comment data.
+	 *
+	 * @return string
+	 */
+	function veGetContentCommentAuthorAvatarUrl( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getCommentAuthorAvatarUrl( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentCommentAuthorUrl' ) ) {
+	/**
+	 * Get the comment author URL from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Comment context with comment data.
+	 *
+	 * @return string
+	 */
+	function veGetContentCommentAuthorUrl( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getCommentAuthorUrl( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentCommentContent' ) ) {
+	/**
+	 * Get the comment content from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Comment context with comment data.
+	 *
+	 * @return string
+	 */
+	function veGetContentCommentContent( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getCommentContent( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentCommentDate' ) ) {
+	/**
+	 * Get the comment date from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Comment context with comment data.
+	 *
+	 * @return string
+	 */
+	function veGetContentCommentDate( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getCommentDate( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentCommentReplyUrl' ) ) {
+	/**
+	 * Get the comment reply URL from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Comment context with comment data.
+	 *
+	 * @return string
+	 */
+	function veGetContentCommentReplyUrl( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getCommentReplyUrl( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentCommentEditUrl' ) ) {
+	/**
+	 * Get the comment edit URL from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Comment context with comment data.
+	 *
+	 * @return string
+	 */
+	function veGetContentCommentEditUrl( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getCommentEditUrl( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentCommentsPagination' ) ) {
+	/**
+	 * Get comments pagination data from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context.
+	 *
+	 * @return array{totalPages: int, currentPage: int, previousUrl: string, nextUrl: string, perPage: int}
+	 */
+	function veGetContentCommentsPagination( array $context = []): array
+	{
+		return app( ContentResolver::class )->getCommentsPagination( $context );
 	}
 }

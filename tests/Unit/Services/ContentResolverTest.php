@@ -411,6 +411,74 @@ test( 'content resolver preserves valid http permalink urls', function (): void 
 	}
 } );
 
+test( 'content resolver returns empty comments array by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getComments() )->toBe( [] );
+} );
+
+test( 'content resolver returns empty comment author name by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getCommentAuthorName() )->toBe( '' );
+} );
+
+test( 'content resolver returns empty comment author avatar url by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getCommentAuthorAvatarUrl() )->toBe( '' );
+} );
+
+test( 'content resolver returns empty comment author url by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getCommentAuthorUrl() )->toBe( '' );
+} );
+
+test( 'content resolver returns empty comment content by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getCommentContent() )->toBe( '' );
+} );
+
+test( 'content resolver returns empty comment date by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getCommentDate() )->toBe( '' );
+} );
+
+test( 'content resolver returns empty comment reply url by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getCommentReplyUrl() )->toBe( '' );
+} );
+
+test( 'content resolver returns empty comment edit url by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getCommentEditUrl() )->toBe( '' );
+} );
+
+test( 'content resolver returns default comments pagination by default', function (): void {
+	$resolver   = new ContentResolver();
+	$pagination = $resolver->getCommentsPagination();
+
+	expect( $pagination['totalPages'] )->toBe( 1 )
+		->and( $pagination['currentPage'] )->toBe( 1 )
+		->and( $pagination['previousUrl'] )->toBe( '' )
+		->and( $pagination['nextUrl'] )->toBe( '' )
+		->and( $pagination['perPage'] )->toBe( 20 );
+} );
+
+test( 'content resolver to array includes comment fields', function (): void {
+	$resolver = new ContentResolver();
+	$array    = $resolver->toArray();
+
+	expect( $array )->toHaveKeys( [ 'comments', 'commentsPagination' ] )
+		->and( $array['comments'] )->toBe( [] )
+		->and( $array['commentsPagination'] )->toBeArray();
+} );
+
 test( 'content resolver preserves valid https featured image urls', function (): void {
 	$resolver = new ContentResolver();
 
