@@ -4,9 +4,9 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Blocks\BlockDiscoveryService;
 
-$expectedCoreBlocks = 51;
+$expectedCoreBlocks = 53;
 
-test( 'discovery finds all 51 core blocks', function () use ( $expectedCoreBlocks ): void {
+test( 'discovery finds all 53 core blocks', function () use ( $expectedCoreBlocks ): void {
 	$service = new BlockDiscoveryService();
 	$blocks  = $service->discover();
 

@@ -175,6 +175,102 @@ test( 'content resolver sanitizes term urls in terms array', function (): void {
 	}
 } );
 
+test( 'content resolver returns empty previous post url by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getPreviousPostUrl() )->toBe( '' );
+} );
+
+test( 'content resolver returns empty previous post title by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getPreviousPostTitle() )->toBe( '' );
+} );
+
+test( 'content resolver returns empty next post url by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getNextPostUrl() )->toBe( '' );
+} );
+
+test( 'content resolver returns empty next post title by default', function (): void {
+	$resolver = new ContentResolver();
+
+	expect( $resolver->getNextPostTitle() )->toBe( '' );
+} );
+
+test( 'content resolver sanitizes unsafe previous post urls', function (): void {
+	$resolver = new ContentResolver();
+
+	if ( function_exists( 'addFilter' ) ) {
+		addFilter( 've.content.previous-post-url', function () {
+			return 'javascript:alert(1)';
+		} );
+
+		expect( $resolver->getPreviousPostUrl() )->toBe( '' );
+
+		if ( function_exists( 'removeAllFilters' ) ) {
+			removeAllFilters( 've.content.previous-post-url' );
+		}
+	} else {
+		expect( $resolver->getPreviousPostUrl() )->toBe( '' );
+	}
+} );
+
+test( 'content resolver sanitizes unsafe next post urls', function (): void {
+	$resolver = new ContentResolver();
+
+	if ( function_exists( 'addFilter' ) ) {
+		addFilter( 've.content.next-post-url', function () {
+			return 'javascript:alert(1)';
+		} );
+
+		expect( $resolver->getNextPostUrl() )->toBe( '' );
+
+		if ( function_exists( 'removeAllFilters' ) ) {
+			removeAllFilters( 've.content.next-post-url' );
+		}
+	} else {
+		expect( $resolver->getNextPostUrl() )->toBe( '' );
+	}
+} );
+
+test( 'content resolver preserves valid previous post urls', function (): void {
+	$resolver = new ContentResolver();
+
+	if ( function_exists( 'addFilter' ) ) {
+		addFilter( 've.content.previous-post-url', function () {
+			return 'https://example.com/posts/previous-post';
+		} );
+
+		expect( $resolver->getPreviousPostUrl() )->toBe( 'https://example.com/posts/previous-post' );
+
+		if ( function_exists( 'removeAllFilters' ) ) {
+			removeAllFilters( 've.content.previous-post-url' );
+		}
+	} else {
+		expect( $resolver->getPreviousPostUrl() )->toBe( '' );
+	}
+} );
+
+test( 'content resolver preserves valid next post urls', function (): void {
+	$resolver = new ContentResolver();
+
+	if ( function_exists( 'addFilter' ) ) {
+		addFilter( 've.content.next-post-url', function () {
+			return 'https://example.com/posts/next-post';
+		} );
+
+		expect( $resolver->getNextPostUrl() )->toBe( 'https://example.com/posts/next-post' );
+
+		if ( function_exists( 'removeAllFilters' ) ) {
+			removeAllFilters( 've.content.next-post-url' );
+		}
+	} else {
+		expect( $resolver->getNextPostUrl() )->toBe( '' );
+	}
+} );
+
 test( 'content resolver to array returns all fields', function (): void {
 	$resolver = new ContentResolver();
 	$array    = $resolver->toArray();
@@ -195,6 +291,10 @@ test( 'content resolver to array returns all fields', function (): void {
 		'commentsCount',
 		'commentsUrl',
 		'wordCount',
+		'previousPostUrl',
+		'previousPostTitle',
+		'nextPostUrl',
+		'nextPostTitle',
 	] );
 } );
 

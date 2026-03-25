@@ -1433,8 +1433,72 @@ if ( ! function_exists( 'veGetContentWordCount' ) ) {
 	 *
 	 * @return int
 	 */
-	function veGetContentWordCount( array $context = []): int
+	function veGetContentWordCount( array $context = [] ): int
 	{
 		return app( ContentResolver::class )->getWordCount( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentPreviousPostUrl' ) ) {
+	/**
+	 * Get the previous post URL from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. taxonomy scope).
+	 *
+	 * @return string
+	 */
+	function veGetContentPreviousPostUrl( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getPreviousPostUrl( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentPreviousPostTitle' ) ) {
+	/**
+	 * Get the previous post title from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. taxonomy scope).
+	 *
+	 * @return string
+	 */
+	function veGetContentPreviousPostTitle( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getPreviousPostTitle( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentNextPostUrl' ) ) {
+	/**
+	 * Get the next post URL from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. taxonomy scope).
+	 *
+	 * @return string
+	 */
+	function veGetContentNextPostUrl( array $context = [] ): string
+	{
+		return app( ContentResolver::class )->getNextPostUrl( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetContentNextPostTitle' ) ) {
+	/**
+	 * Get the next post title from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. taxonomy scope).
+	 *
+	 * @return string
+	 */
+	function veGetContentNextPostTitle( array $context = []): string
+	{
+		return app( ContentResolver::class )->getNextPostTitle( $context );
 	}
 }
