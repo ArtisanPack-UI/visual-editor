@@ -1,0 +1,59 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "comment-template",
+	"name": "Comment Template",
+	"description": "Define the layout for a single comment, repeated for each comment",
+	"icon": "chat-bubble-left-ellipsis",
+	"category": "dynamic",
+	"keywords": ["comment", "template", "loop", "discussion", "thread"],
+	"version": 1,
+	"dynamic": true,
+	"allowedChildren": [
+		"comment-author-avatar",
+		"comment-author-name",
+		"comment-content",
+		"comment-date",
+		"comment-reply-link",
+		"comment-edit-link"
+	],
+	"attributes": {
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"borderColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"borderWidth": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"borderRadius": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"border": {
+			"color": true,
+			"width": true,
+			"radius": true
+		},
+		"htmlId": true,
+		"className": true
+	}
+}

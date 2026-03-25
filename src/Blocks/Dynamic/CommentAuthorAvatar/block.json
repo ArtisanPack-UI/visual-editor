@@ -1,0 +1,56 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "comment-author-avatar",
+	"name": "Comment Author Avatar",
+	"description": "Display the comment author's avatar image",
+	"icon": "user-circle",
+	"category": "dynamic",
+	"keywords": ["comment", "author", "avatar", "gravatar", "image"],
+	"version": 1,
+	"dynamic": true,
+	"parent": ["comment-template"],
+	"attributes": {
+		"size": {
+			"type": "string",
+			"source": "content",
+			"default": "md"
+		},
+		"borderRadius": {
+			"type": "string",
+			"source": "content",
+			"default": "50%"
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"styleBorderColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"styleBorderWidth": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"border": {
+			"color": true,
+			"width": true
+		},
+		"htmlId": true,
+		"className": true
+	}
+}

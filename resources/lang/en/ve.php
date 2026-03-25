@@ -1099,6 +1099,57 @@ return [
 	'post_comments_link_default'   => 'Leave a comment',
 	'post_comments_link_zero'      => 'No comments yet',
 
+	// Comments Title Block
+	'comments_title_level'             => 'Heading level',
+	'comments_title_show_count'        => 'Show comment count',
+	'comments_title_singular'          => 'Singular label',
+	'comments_title_plural'            => 'Plural label',
+	'comments_title_default_singular'  => 'Comment',
+	'comments_title_default_plural'    => 'Comments',
+
+	// Comment Template Block
+	'comment_template_placeholder' => 'This block repeats for each comment. Add comment blocks inside.',
+
+	// Comment Author Avatar Block
+	'comment_author_avatar_size'          => 'Avatar size',
+	'comment_author_avatar_sm'            => 'Small',
+	'comment_author_avatar_md'            => 'Medium',
+	'comment_author_avatar_lg'            => 'Large',
+	'comment_author_avatar_border_radius' => 'Border radius',
+	'comment_author_avatar_alt'           => 'Comment author avatar',
+
+	// Comment Author Name Block
+	'comment_author_name_is_link' => 'Link to author URL',
+	'comment_author_name_sample'  => 'Comment Author',
+
+	// Comment Content Block
+	'comment_content_sample' => 'This is a sample comment. It shows how the comment content will appear when rendered on the frontend.',
+
+	// Comment Date Block
+	'comment_date_format'          => 'Date format',
+	'comment_date_format_relative' => 'Relative (e.g. 2 hours ago)',
+	'comment_date_format_absolute' => 'Absolute (e.g. March 15, 2024)',
+	'comment_date_is_link'         => 'Link to comment',
+	'comment_date_sample_relative' => '2 hours ago',
+	'comment_date_sample_absolute' => 'March 15, 2024',
+
+	// Comment Reply Link Block
+	'comment_reply_link_text'    => 'Link text',
+	'comment_reply_link_default' => 'Reply',
+
+	// Comment Edit Link Block
+	'comment_edit_link_text'    => 'Link text',
+	'comment_edit_link_default' => 'Edit',
+
+	// Comments Pagination Block
+	'comments_pagination_per_page'         => 'Comments per page',
+	'comments_pagination_previous_label'   => 'Previous label',
+	'comments_pagination_next_label'       => 'Next label',
+	'comments_pagination_show_numbers'     => 'Show page numbers',
+	'comments_pagination_default_previous' => 'Previous',
+	'comments_pagination_default_next'     => 'Next',
+	'comments_pagination_aria_label'       => 'Comments pagination',
+
 	// Post Time to Read Block
 	'post_time_to_read_wpm'    => 'Words per minute',
 	'post_time_to_read_prefix' => 'Prefix',
