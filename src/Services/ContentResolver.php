@@ -560,12 +560,16 @@ class ContentResolver
 			];
 		}
 
+		$totalPages  = max( 1, (int) ( $pagination['totalPages'] ?? 1 ) );
+		$perPage     = max( 1, (int) ( $pagination['perPage'] ?? 20 ) );
+		$currentPage = min( $totalPages, max( 1, (int) ( $pagination['currentPage'] ?? 1 ) ) );
+
 		return [
-			'totalPages'  => (int) ( $pagination['totalPages'] ?? 1 ),
-			'currentPage' => (int) ( $pagination['currentPage'] ?? 1 ),
+			'totalPages'  => $totalPages,
+			'currentPage' => $currentPage,
 			'previousUrl' => $this->sanitizeUrl( (string) ( $pagination['previousUrl'] ?? '' ) ),
 			'nextUrl'     => $this->sanitizeUrl( (string) ( $pagination['nextUrl'] ?? '' ) ),
-			'perPage'     => (int) ( $pagination['perPage'] ?? 20 ),
+			'perPage'     => $perPage,
 		];
 	}
 
@@ -576,7 +580,7 @@ class ContentResolver
 	 *
 	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
 	 *
-	 * @return array{title: string, body: string, excerpt: string, date: string, modifiedDate: string, featuredImageUrl: string, featuredImageAlt: string, permalink: string, authorName: string, authorBio: string, authorAvatarUrl: string, authorUrl: string, commentsCount: int, commentsUrl: string, wordCount: int, previousPostUrl: string, previousPostTitle: string, nextPostUrl: string, nextPostTitle: string}
+	 * @return array{title: string, body: string, excerpt: string, date: string, modifiedDate: string, featuredImageUrl: string, featuredImageAlt: string, permalink: string, authorName: string, authorBio: string, authorAvatarUrl: string, authorUrl: string, commentsCount: int, commentsUrl: string, wordCount: int, previousPostUrl: string, previousPostTitle: string, nextPostUrl: string, nextPostTitle: string, comments: array<int, array<string, mixed>>, commentsPagination: array{totalPages: int, currentPage: int, previousUrl: string, nextUrl: string, perPage: int}}
 	 */
 	public function toArray( array $context = [] ): array
 	{

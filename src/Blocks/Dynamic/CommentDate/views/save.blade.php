@@ -67,9 +67,9 @@
 >
 	@if ( $isLink && $commentsUrl )
 		<a href="{{ $commentsUrl }}">
-			<time datetime="{{ $commentDate }}">{{ $displayDate }}</time>
+			<time @if ( $commentDate ) datetime="{{ $commentDate }}" @endif>{{ $displayDate }}</time>
 		</a>
 	@else
-		<time datetime="{{ $commentDate }}">{{ $displayDate }}</time>
+		<time @if ( $commentDate ) datetime="{{ $commentDate }}" @endif>{{ $displayDate }}</time>
 	@endif
 </div>

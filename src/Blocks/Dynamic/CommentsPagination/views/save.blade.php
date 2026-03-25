@@ -13,7 +13,7 @@
 
 	$elementId = veSanitizeHtmlId( $htmlId );
 
-	$pagination = veGetContentCommentsPagination( $context );
+	$pagination = veGetContentCommentsPagination( array_merge( $context, [ 'perPage' => $perPage ] ) );
 	$totalPages = $pagination['totalPages'];
 	$currentPage = $pagination['currentPage'];
 	$previousUrl = $pagination['previousUrl'];

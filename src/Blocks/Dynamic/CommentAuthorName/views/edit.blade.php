@@ -45,7 +45,7 @@
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
 >
 	@if ( $isLink )
-		<a href="#" data-ve-preview-link style="pointer-events: none; cursor: default; color: inherit; text-decoration: inherit;">{{ $sampleName }}</a>
+		<a href="#" data-ve-preview-link tabindex="-1" aria-disabled="true" style="pointer-events: none; cursor: default; color: inherit; text-decoration: inherit;">{{ $sampleName }}</a>
 	@else
 		<strong>{{ $sampleName }}</strong>
 	@endif

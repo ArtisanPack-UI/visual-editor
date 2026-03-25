@@ -49,12 +49,12 @@
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
 >
 	<nav style="display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-		<a href="#" data-ve-preview-link style="pointer-events: none; cursor: default; color: inherit; text-decoration: inherit;">{{ $prevText }}</a>
+		<a href="#" data-ve-preview-link tabindex="-1" aria-disabled="true" style="pointer-events: none; cursor: default; color: inherit; text-decoration: inherit;">{{ $prevText }}</a>
 		@if ( $showNumbers )
 			<span style="opacity: 0.5;">1</span>
 			<span style="font-weight: bold;">2</span>
 			<span style="opacity: 0.5;">3</span>
 		@endif
-		<a href="#" data-ve-preview-link style="pointer-events: none; cursor: default; color: inherit; text-decoration: inherit;">{{ $nextText }}</a>
+		<a href="#" data-ve-preview-link tabindex="-1" aria-disabled="true" style="pointer-events: none; cursor: default; color: inherit; text-decoration: inherit;">{{ $nextText }}</a>
 	</nav>
 </div>

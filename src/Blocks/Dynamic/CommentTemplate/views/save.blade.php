@@ -53,6 +53,9 @@
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
 	@if ( $elementId ) id="{{ $elementId }}" @endif
 >
+	{{-- TODO: Inner blocks are pre-rendered strings without per-comment context.
+		 BlockRenderer needs to support re-rendering inner blocks with comment-specific
+		 context so each iteration shows the correct comment data. --}}
 	@foreach ( $comments as $comment )
 		<div class="ve-comment-item">
 			@foreach ( $innerBlocks as $innerBlock )

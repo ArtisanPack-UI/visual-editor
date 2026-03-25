@@ -52,5 +52,5 @@
 	@if ( $inlineStyles ) style="{{ $inlineStyles }}" @endif
 	@if ( $elementId ) id="{{ $elementId }}" @endif
 >
-	{!! $commentContent !!}
+	{{ $commentContent }}
 </div>
