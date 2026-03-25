@@ -1,0 +1,109 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "post-terms",
+	"name": "Post Terms",
+	"description": "Display taxonomy terms such as categories or tags for the current content",
+	"icon": "tag",
+	"category": "dynamic",
+	"keywords": ["post", "terms", "category", "tag", "taxonomy"],
+	"version": 1,
+	"dynamic": true,
+	"attributes": {
+		"term": {
+			"type": "string",
+			"source": "content",
+			"default": "category"
+		},
+		"separator": {
+			"type": "string",
+			"source": "content",
+			"default": ", "
+		},
+		"prefix": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"suffix": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontSize": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontFamily": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontAppearance": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"lineHeight": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"letterSpacing": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textDecoration": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textTransform": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"typography": {
+			"fontSize": true,
+			"fontFamily": "body",
+			"appearance": true,
+			"lineHeight": true,
+			"letterSpacing": true,
+			"decoration": true,
+			"letterCase": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"htmlId": true,
+		"className": true
+	}
+}

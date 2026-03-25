@@ -4,9 +4,9 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Blocks\BlockDiscoveryService;
 
-$expectedCoreBlocks = 44;
+$expectedCoreBlocks = 51;
 
-test( 'discovery finds all 44 core blocks', function () use ( $expectedCoreBlocks ): void {
+test( 'discovery finds all 51 core blocks', function () use ( $expectedCoreBlocks ): void {
 	$service = new BlockDiscoveryService();
 	$blocks  = $service->discover();
 
@@ -40,6 +40,8 @@ test( 'discovery returns all expected block types', function (): void {
 		'latest-posts', 'table-of-contents', 'search',
 		'site-title', 'site-tagline', 'site-logo',
 		'post-title', 'post-content', 'post-excerpt', 'post-date', 'post-featured-image',
+		'post-author', 'post-author-name', 'post-author-biography',
+		'post-terms', 'post-comments-count', 'post-comments-link', 'post-time-to-read',
 	];
 
 	foreach ( $expected as $type ) {

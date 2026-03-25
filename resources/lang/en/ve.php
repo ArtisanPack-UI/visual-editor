@@ -1051,6 +1051,60 @@ return [
 	'post_featured_image_overlay_color'    => 'Overlay color',
 	'post_featured_image_overlay_opacity'  => 'Overlay opacity',
 
+	// Post Author Block
+	'post_author_show_avatar'    => 'Show avatar',
+	'post_author_avatar_size'    => 'Avatar size',
+	'post_author_avatar_sm'      => 'Small',
+	'post_author_avatar_md'      => 'Medium',
+	'post_author_avatar_lg'      => 'Large',
+	'post_author_show_bio'       => 'Show biography',
+	'post_author_byline'         => 'Byline prefix',
+	'post_author_make_link'      => 'Link to author page',
+	'post_author_avatar_alt'     => 'Author avatar',
+	'post_author_sample_name'    => 'Author Name',
+	'post_author_sample_bio'     => 'This is the author biography. It provides a brief description of the content author.',
+
+	// Post Author Name Block
+	'post_author_name_make_link' => 'Link to author page',
+	'post_author_name_byline'    => 'Byline prefix',
+	'post_author_name_sample'    => 'Author Name',
+
+	// Post Author Biography Block
+	'post_author_bio_sample'     => 'This is the author biography. It provides a brief description of the content author.',
+
+	// Post Terms Block
+	'post_terms_taxonomy'        => 'Taxonomy',
+	'post_terms_separator'       => 'Separator',
+	'post_terms_prefix'          => 'Prefix',
+	'post_terms_suffix'          => 'Suffix',
+	'post_terms_sample_category' => 'Category One',
+	'post_terms_sample_tag'      => 'Tag One',
+
+	// Post Comments Count Block
+	'post_comments_count_format'           => 'Format',
+	'post_comments_count_format_number'    => 'Number only',
+	'post_comments_count_format_short'     => 'Short (e.g. 5 comments)',
+	'post_comments_count_format_long'      => 'Long (e.g. 5 Comments on this post)',
+	'post_comments_count_singular'         => 'Singular label',
+	'post_comments_count_plural'           => 'Plural label',
+	'post_comments_count_show_icon'        => 'Show icon',
+	'post_comments_count_link_to_comments' => 'Link to comments',
+	'post_comments_count_default_singular' => 'comment',
+	'post_comments_count_default_plural'   => 'comments',
+	'post_comments_count_long_format'      => ':count :label on this post',
+
+	// Post Comments Link Block
+	'post_comments_link_text'      => 'Link text',
+	'post_comments_link_zero_text' => 'Text when no comments',
+	'post_comments_link_default'   => 'Leave a comment',
+	'post_comments_link_zero'      => 'No comments yet',
+
+	// Post Time to Read Block
+	'post_time_to_read_wpm'    => 'Words per minute',
+	'post_time_to_read_prefix' => 'Prefix',
+	'post_time_to_read_suffix' => 'Suffix',
+	'post_time_to_read_sample' => '5 min read',
+
 	// Cover Block
 	'block_cover_name'             => 'Cover',
 	'block_cover_description'      => 'Add an image or video with a text overlay',
