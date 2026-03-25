@@ -1105,6 +1105,32 @@ return [
 	'post_time_to_read_suffix' => 'Suffix',
 	'post_time_to_read_sample' => '5 min read',
 
+	// Post Navigation Link Block
+	'post_nav_link_type'             => 'Navigation type',
+	'post_nav_link_type_previous'    => 'Previous',
+	'post_nav_link_type_next'        => 'Next',
+	'post_nav_link_label'            => 'Label',
+	'post_nav_link_label_previous'   => 'Previous Post',
+	'post_nav_link_label_next'       => 'Next Post',
+	'post_nav_link_show_title'       => 'Show post title',
+	'post_nav_link_arrow'            => 'Arrow',
+	'post_nav_link_arrow_none'       => 'None',
+	'post_nav_link_arrow_arrow'      => 'Arrow',
+	'post_nav_link_arrow_chevron'    => 'Chevron',
+	'post_nav_link_taxonomy'         => 'Filter by taxonomy',
+	'post_nav_link_taxonomy_hint'    => 'Navigate within the same taxonomy (e.g. category)',
+	'post_nav_link_sample_title'     => 'Adjacent Post Title',
+	'post_nav_link_arrow_previous'   => '←',
+	'post_nav_link_arrow_next'       => '→',
+	'post_nav_link_chevron_previous' => '«',
+	'post_nav_link_chevron_next'     => '»',
+
+	// Read More Block
+	'read_more_content'    => 'Link text',
+	'read_more_default'    => 'Read more',
+	'read_more_show_arrow' => 'Show arrow',
+	'read_more_arrow'      => '→',
+
 	// Cover Block
 	'block_cover_name'             => 'Cover',
 	'block_cover_description'      => 'Add an image or video with a text overlay',

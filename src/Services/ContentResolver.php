@@ -325,32 +325,108 @@ class ContentResolver
 	}
 
 	/**
+	 * Get the previous post URL for navigation.
+	 *
+	 * Returns the URL of the previous content item based on publish date.
+	 * Applications provide the URL via the `ve.content.previous-post-url` filter.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. taxonomy scope).
+	 *
+	 * @return string The URL, or empty string if none.
+	 */
+	public function getPreviousPostUrl( array $context = [] ): string
+	{
+		$url = (string) veApplyFilters( 've.content.previous-post-url', '', $context );
+
+		return $this->sanitizeUrl( $url );
+	}
+
+	/**
+	 * Get the previous post title for navigation.
+	 *
+	 * Returns the title of the previous content item based on publish date.
+	 * Applications provide the title via the `ve.content.previous-post-title` filter.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. taxonomy scope).
+	 *
+	 * @return string
+	 */
+	public function getPreviousPostTitle( array $context = [] ): string
+	{
+		return (string) veApplyFilters( 've.content.previous-post-title', '', $context );
+	}
+
+	/**
+	 * Get the next post URL for navigation.
+	 *
+	 * Returns the URL of the next content item based on publish date.
+	 * Applications provide the URL via the `ve.content.next-post-url` filter.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. taxonomy scope).
+	 *
+	 * @return string The URL, or empty string if none.
+	 */
+	public function getNextPostUrl( array $context = [] ): string
+	{
+		$url = (string) veApplyFilters( 've.content.next-post-url', '', $context );
+
+		return $this->sanitizeUrl( $url );
+	}
+
+	/**
+	 * Get the next post title for navigation.
+	 *
+	 * Returns the title of the next content item based on publish date.
+	 * Applications provide the title via the `ve.content.next-post-title` filter.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context (e.g. taxonomy scope).
+	 *
+	 * @return string
+	 */
+	public function getNextPostTitle( array $context = [] ): string
+	{
+		return (string) veApplyFilters( 've.content.next-post-title', '', $context );
+	}
+
+	/**
 	 * Get all content fields as an array.
 	 *
 	 * @since 2.0.0
 	 *
 	 * @param array<string, mixed> $context Optional context (e.g. from query loop).
 	 *
-	 * @return array{title: string, body: string, excerpt: string, date: string, modifiedDate: string, featuredImageUrl: string, featuredImageAlt: string, permalink: string, authorName: string, authorBio: string, authorAvatarUrl: string, authorUrl: string, commentsCount: int, commentsUrl: string, wordCount: int}
+	 * @return array{title: string, body: string, excerpt: string, date: string, modifiedDate: string, featuredImageUrl: string, featuredImageAlt: string, permalink: string, authorName: string, authorBio: string, authorAvatarUrl: string, authorUrl: string, commentsCount: int, commentsUrl: string, wordCount: int, previousPostUrl: string, previousPostTitle: string, nextPostUrl: string, nextPostTitle: string}
 	 */
 	public function toArray( array $context = [] ): array
 	{
 		return [
-			'title'            => $this->getTitle( $context ),
-			'body'             => $this->getBody( $context ),
-			'excerpt'          => $this->getExcerpt( $context ),
-			'date'             => $this->getDate( $context ),
-			'modifiedDate'     => $this->getModifiedDate( $context ),
-			'featuredImageUrl' => $this->getFeaturedImageUrl( $context ),
-			'featuredImageAlt' => $this->getFeaturedImageAlt( $context ),
-			'permalink'        => $this->getPermalink( $context ),
-			'authorName'       => $this->getAuthorName( $context ),
-			'authorBio'        => $this->getAuthorBio( $context ),
-			'authorAvatarUrl'  => $this->getAuthorAvatarUrl( $context ),
-			'authorUrl'        => $this->getAuthorUrl( $context ),
-			'commentsCount'    => $this->getCommentsCount( $context ),
-			'commentsUrl'      => $this->getCommentsUrl( $context ),
-			'wordCount'        => $this->getWordCount( $context ),
+			'title'             => $this->getTitle( $context ),
+			'body'              => $this->getBody( $context ),
+			'excerpt'           => $this->getExcerpt( $context ),
+			'date'              => $this->getDate( $context ),
+			'modifiedDate'      => $this->getModifiedDate( $context ),
+			'featuredImageUrl'  => $this->getFeaturedImageUrl( $context ),
+			'featuredImageAlt'  => $this->getFeaturedImageAlt( $context ),
+			'permalink'         => $this->getPermalink( $context ),
+			'authorName'        => $this->getAuthorName( $context ),
+			'authorBio'         => $this->getAuthorBio( $context ),
+			'authorAvatarUrl'   => $this->getAuthorAvatarUrl( $context ),
+			'authorUrl'         => $this->getAuthorUrl( $context ),
+			'commentsCount'     => $this->getCommentsCount( $context ),
+			'commentsUrl'       => $this->getCommentsUrl( $context ),
+			'wordCount'         => $this->getWordCount( $context ),
+			'previousPostUrl'   => $this->getPreviousPostUrl( $context ),
+			'previousPostTitle' => $this->getPreviousPostTitle( $context ),
+			'nextPostUrl'       => $this->getNextPostUrl( $context ),
+			'nextPostTitle'     => $this->getNextPostTitle( $context ),
 		];
 	}
 
