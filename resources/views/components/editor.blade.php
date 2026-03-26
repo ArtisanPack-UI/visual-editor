@@ -2899,6 +2899,200 @@
 								+ '>' + escapedForAttr + '</textarea></div></div>';
 						},
 					} );
+
+					// ── Query loop: sample post data ──
+					const veQuerySampleTitles = [
+						'Getting Started with Laravel', 'Advanced Eloquent Techniques',
+						'Building APIs with Sanctum', 'Tailwind CSS Best Practices',
+						'Livewire Components Deep Dive', 'Testing with Pest',
+						'Database Migrations Guide', 'Queue Workers Explained',
+						'Blade Templates Mastery', 'Deploy to Production',
+					];
+					const veQuerySampleExcerpt = {{ Js::from( __( 'visual-editor::ve.sample_post_excerpt' ) ) }};
+					const veQuerySampleAuthor  = {{ Js::from( __( 'visual-editor::ve.sample_author' ) ) }};
+
+					function veGenerateSamplePosts( count, orderBy, order, offset ) {
+						let posts = [];
+						for ( let i = 1; i <= count + ( offset || 0 ); i++ ) {
+							const d = new Date(); d.setDate( d.getDate() - i );
+							posts.push( { title: veQuerySampleTitles[ ( i - 1 ) % veQuerySampleTitles.length ], excerpt: veQuerySampleExcerpt, dateStr: d.toLocaleDateString( 'en-US', { month: 'short', day: 'numeric', year: 'numeric' } ), author: veQuerySampleAuthor } );
+						}
+						if ( 'title' === orderBy ) { posts.sort( ( a, b ) => a.title.localeCompare( b.title ) ); }
+						if ( 'asc' === order ) { posts.reverse(); }
+						return posts.slice( offset || 0, ( offset || 0 ) + count );
+					}
+
+					// Render a single inner block as a preview with sample data.
+					function veBlockPreviewHtml( inner, post ) {
+						const t = inner.type || '';
+						if ( 'post-featured-image' === t ) {
+							return '<div style="aspect-ratio:16/9;background:#e5e7eb;border-radius:4px;margin-bottom:0.5rem;display:flex;align-items:center;justify-content:center;color:#9ca3af;font-size:0.8rem;">' + {{ Js::from( __( 'visual-editor::ve.post_featured_image_placeholder' ) ) }} + '</div>';
+						}
+						if ( 'post-title' === t ) {
+							const level = inner.attributes?.level || 'h3';
+							const tag = [ 'h1', 'h2', 'h3', 'h4', 'h5', 'h6' ].includes( level ) ? level : 'h3';
+							const sizes = { h1: '2rem', h2: '1.5rem', h3: '1.25rem', h4: '1.1rem', h5: '1rem', h6: '0.875rem' };
+							return '<' + tag + ' style="margin:0 0 0.25rem;font-size:' + ( sizes[ tag ] || '1.25rem' ) + ';font-weight:600;">' + veEscapeHtml( post.title ) + '</' + tag + '>';
+						}
+						if ( 'post-excerpt' === t ) {
+							const len = parseInt( inner.attributes?.excerptLength || 25 );
+							return '<p style="margin:0.25rem 0;color:#374151;font-size:0.9em;line-height:1.5;">' + veEscapeHtml( post.excerpt.split( ' ' ).slice( 0, len ).join( ' ' ) ) + '</p>';
+						}
+						if ( 'post-date' === t ) { return '<time style="font-size:0.85em;color:#6b7280;">' + veEscapeHtml( post.dateStr ) + '</time>'; }
+						if ( 'post-author-name' === t || 'post-author' === t ) { return '<span style="font-size:0.85em;color:#6b7280;">' + veEscapeHtml( post.author ) + '</span>'; }
+						if ( 'read-more' === t ) { return '<span style="font-size:0.85em;color:#3b82f6;">' + {{ Js::from( __( 'visual-editor::ve.read_more_default' ) ) }} + '</span>'; }
+						if ( 'post-terms' === t ) { return '<span style="font-size:0.8em;color:#6b7280;font-style:italic;">Category</span>'; }
+						if ( 'post-comments-count' === t ) { return '<span style="font-size:0.85em;color:#6b7280;">0 comments</span>'; }
+						// For any other block (cover, group, etc.), use its registered renderer.
+						if ( br.hasRenderer( t ) ) { return br.getHtml( inner, {} ) || ''; }
+						return '<div style="padding:0.5rem;border:1px dashed #d1d5db;border-radius:4px;color:#9ca3af;font-size:0.85em;text-align:center;">' + veEscapeHtml( t ) + '</div>';
+					}
+
+					function vePostTemplateVariationPicker( blockId ) {
+						return '<div class=\'ve-block ve-block-post-template ve-block-editing\' data-block-id=\'' + blockId + '\'>'
+							+ '<div class=\'ve-template-variation-picker flex flex-col items-center justify-center gap-4 py-8 px-4 w-full\'>'
+							+ '<p class=\'text-sm text-base-content/60\'>' + {{ Js::from( __( 'visual-editor::ve.post_template_variation_instruction' ) ) }} + '</p>'
+							+ '<div class=\'flex flex-wrap justify-center gap-3\'>'
+							+ '<button type=\'button\' class=\'ve-variation-btn flex flex-col items-center gap-1 rounded-lg border border-base-300 px-4 py-3 hover:border-primary hover:bg-primary/5 transition-colors\' data-ve-set-template-variation=\'image-title-excerpt\'><svg class=\'w-8 h-8 text-base-content/70\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'7\' rx=\'1\'/><line x1=\'3\' y1=\'14\' x2=\'15\' y2=\'14\'/><line x1=\'3\' y1=\'17\' x2=\'21\' y2=\'17\'/><line x1=\'3\' y1=\'20\' x2=\'18\' y2=\'20\'/></svg><span class=\'text-xs font-medium\'>' + {{ Js::from( __( 'visual-editor::ve.post_template_variation_image_title_excerpt' ) ) }} + '</span></button>'
+							+ '<button type=\'button\' class=\'ve-variation-btn flex flex-col items-center gap-1 rounded-lg border border-base-300 px-4 py-3 hover:border-primary hover:bg-primary/5 transition-colors\' data-ve-set-template-variation=\'title-date\'><svg class=\'w-8 h-8 text-base-content/70\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\'><line x1=\'3\' y1=\'8\' x2=\'18\' y2=\'8\'/><line x1=\'3\' y1=\'13\' x2=\'12\' y2=\'13\'/></svg><span class=\'text-xs font-medium\'>' + {{ Js::from( __( 'visual-editor::ve.post_template_variation_title_date' ) ) }} + '</span></button>'
+							+ '<button type=\'button\' class=\'ve-variation-btn flex flex-col items-center gap-1 rounded-lg border border-base-300 px-4 py-3 hover:border-primary hover:bg-primary/5 transition-colors\' data-ve-set-template-variation=\'title-excerpt-author\'><svg class=\'w-8 h-8 text-base-content/70\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\'><line x1=\'3\' y1=\'6\' x2=\'18\' y2=\'6\'/><line x1=\'3\' y1=\'11\' x2=\'21\' y2=\'11\'/><line x1=\'3\' y1=\'14\' x2=\'16\' y2=\'14\'/><circle cx=\'5\' cy=\'19\' r=\'2\'/><line x1=\'9\' y1=\'19\' x2=\'15\' y2=\'19\'/></svg><span class=\'text-xs font-medium\'>' + {{ Js::from( __( 'visual-editor::ve.post_template_variation_title_excerpt_author' ) ) }} + '</span></button>'
+							+ '<button type=\'button\' class=\'ve-variation-btn flex flex-col items-center gap-1 rounded-lg border border-base-300 px-4 py-3 hover:border-primary hover:bg-primary/5 transition-colors\' data-ve-set-template-variation=\'image-title-date\'><svg class=\'w-8 h-8 text-base-content/70\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\'><rect x=\'3\' y=\'3\' width=\'18\' height=\'7\' rx=\'1\'/><line x1=\'3\' y1=\'14\' x2=\'15\' y2=\'14\'/><line x1=\'3\' y1=\'17\' x2=\'10\' y2=\'17\'/></svg><span class=\'text-xs font-medium\'>' + {{ Js::from( __( 'visual-editor::ve.post_template_variation_image_title_date' ) ) }} + '</span></button>'
+							+ '<button type=\'button\' class=\'ve-variation-btn flex flex-col items-center gap-1 rounded-lg border border-base-300 px-4 py-3 hover:border-primary hover:bg-primary/5 transition-colors\' data-ve-set-template-variation=\'title-only\'><svg class=\'w-8 h-8 text-base-content/70\' viewBox=\'0 0 24 24\' fill=\'none\' stroke=\'currentColor\' stroke-width=\'1.5\'><line x1=\'3\' y1=\'12\' x2=\'18\' y2=\'12\'/></svg><span class=\'text-xs font-medium\'>' + {{ Js::from( __( 'visual-editor::ve.post_template_variation_title_only' ) ) }} + '</span></button>'
+							+ '</div></div></div>';
+					}
+
+					br.register( 'query-loop', {
+						render( block, context ) {
+							const perPage = parseInt( block.attributes?.perPage ) || 10;
+							const orderBy = block.attributes?.orderBy || 'date';
+							const order   = block.attributes?.order || 'desc';
+							const offset  = parseInt( block.attributes?.offset ) || 0;
+
+							const postTemplate    = ( block.innerBlocks || [] ).find( ( b ) => 'post-template' === b.type );
+							const queryPagination = ( block.innerBlocks || [] ).find( ( b ) => 'query-pagination' === b.type );
+							const queryNoResults  = ( block.innerBlocks || [] ).find( ( b ) => 'query-no-results' === b.type );
+
+							let html = '<div class=\'ve-block ve-block-query-loop ve-block-editing ve-block-dynamic-preview\'>';
+
+							if ( ! postTemplate ) {
+								html += '<div style=\'padding:2rem;text-align:center;color:oklch(var(--bc)/0.4);font-style:italic;\'>' + {{ Js::from( __( 'visual-editor::ve.query_loop_inner_placeholder' ) ) }} + '</div></div>';
+								return html;
+							}
+
+							const templateInnerBlocks = postTemplate.innerBlocks || [];
+
+							if ( 0 === templateInnerBlocks.length ) {
+								html += vePostTemplateVariationPicker( postTemplate.id );
+								html += '</div>';
+								return html;
+							}
+
+							// Render PostTemplate as an editable inner blocks container using renderInnerBlocks
+							// with a custom renderChild callback that shows preview data instead of "Start writing...".
+							const layout  = postTemplate.attributes?.layout || 'list';
+							const columns = Math.max( 1, Math.min( 6, parseInt( postTemplate.attributes?.columns ) || 3 ) );
+							const safeLayout = [ 'list', 'grid' ].includes( layout ) ? layout : 'list';
+							const posts = veGenerateSamplePosts( perPage, orderBy, order, offset );
+							const firstPost = posts[0] || { title: 'Post Title', excerpt: veQuerySampleExcerpt, dateStr: '', author: veQuerySampleAuthor };
+
+							const safeBlockId = block.id.replace( /[^a-zA-Z0-9_-]/g, '' );
+							const gridId = 've-query-loop-' + safeBlockId;
+
+							// First card: editable via renderInnerBlocks with custom child renderer.
+							const editableHtml = br.renderInnerBlocks( postTemplate, {
+								orientation: 'vertical',
+								placeholder: {{ Js::from( __( 'visual-editor::ve.post_template_inner_placeholder' ) ) }},
+								context: context,
+								renderChild: function( inner, idx ) {
+									// Post-* dynamic blocks: show preview with sample data.
+									const postBlockTypes = [ 'post-title', 'post-content', 'post-excerpt', 'post-featured-image', 'post-date',
+										'post-author', 'post-author-name', 'post-author-biography', 'post-terms',
+										'post-comments-count', 'post-comments-link', 'post-time-to-read',
+										'post-navigation-link', 'read-more' ];
+
+									if ( postBlockTypes.includes( inner.type ) ) {
+										let childHtml = '<div class=\'ve-inner-block-wrapper relative group/inner-block\''
+											+ ' data-block-id=\'' + inner.id + '\''
+											+ ' data-inner-block-id=\'' + inner.id + '\''
+											+ ' data-parent-id=\'' + postTemplate.id + '\''
+											+ ' tabindex=\'-1\'>'
+											+ '<div class=\'ve-inner-block-drag-handle absolute -left-6 top-1/2 -translate-y-1/2 cursor-grab active:cursor-grabbing opacity-0 group-hover/inner-block:opacity-50 hover:!opacity-100 transition-opacity\''
+											+ ' draggable=\'true\' data-ve-inner-drag-handle data-inner-drag-id=\'' + inner.id + '\' data-parent-id=\'' + postTemplate.id + '\'>'
+											+ '<svg class=\'w-3 h-3\' viewBox=\'0 0 24 24\' fill=\'currentColor\'><circle cx=\'9\' cy=\'7\' r=\'1.5\'/><circle cx=\'15\' cy=\'7\' r=\'1.5\'/><circle cx=\'9\' cy=\'12\' r=\'1.5\'/><circle cx=\'15\' cy=\'12\' r=\'1.5\'/><circle cx=\'9\' cy=\'17\' r=\'1.5\'/><circle cx=\'15\' cy=\'17\' r=\'1.5\'/></svg></div>'
+											+ veBlockPreviewHtml( inner, firstPost )
+											+ '</div>';
+										return childHtml;
+									}
+
+									// All other blocks (heading, paragraph, cover, group, etc.): use the
+									// standard inner block wrapper which supports contenteditable, Enter key,
+									// registered renderers, and the full editing experience.
+									return br._renderInnerBlockWrapper( postTemplate.id, inner, context );
+								},
+							} );
+
+							const editableCard = '<article class=\'ve-block ve-block-post-template ve-block-editing\' data-block-id=\'' + postTemplate.id + '\'>'
+								+ editableHtml + '</article>';
+
+							// Remaining cards: read-only previews.
+							let previewCards = '';
+							for ( let i = 1; i < posts.length; i++ ) {
+								previewCards += '<article style="' + ( 'list' === safeLayout ? 'padding:0.75rem 0;border-bottom:1px solid #e5e7eb;' : '' ) + '">';
+								templateInnerBlocks.forEach( ( inner ) => { previewCards += veBlockPreviewHtml( inner, posts[ i ] ); } );
+								previewCards += '</article>';
+							}
+
+							if ( 'grid' === safeLayout ) {
+								html += '<style>#' + gridId + '{display:grid;grid-template-columns:repeat(' + columns + ',1fr);gap:1.5rem;}</style>'
+									+ '<div id=\'' + gridId + '\'>' + editableCard + previewCards + '</div>';
+							} else {
+								html += '<div style="display:flex;flex-direction:column;">' + editableCard + previewCards + '</div>';
+							}
+
+							if ( queryPagination && br.hasRenderer( 'query-pagination' ) ) { html += br.getHtml( queryPagination, context ); }
+							if ( queryNoResults && br.hasRenderer( 'query-no-results' ) ) { html += br.getHtml( queryNoResults, context ); }
+
+							html += '</div>';
+							return html;
+						},
+					} );
+
+					br.register( 'post-template', {
+						render( block ) {
+							if ( ! block.innerBlocks || 0 === block.innerBlocks.length ) { return vePostTemplateVariationPicker( block.id ); }
+							const post = veGenerateSamplePosts( 1, 'date', 'desc', 0 )[0];
+							let cardHtml = '';
+							block.innerBlocks.forEach( ( inner ) => { cardHtml += veBlockPreviewHtml( inner, post ); } );
+							return '<div class=\'ve-block ve-block-post-template ve-block-editing\' data-block-id=\'' + block.id + '\'><article>' + cardHtml + '</article></div>';
+						},
+					} );
+
+					br.register( 'query-pagination', {
+						render( block ) {
+							const showNumbers  = block.attributes?.showNumbers !== false;
+							const showPrevNext = block.attributes?.showPrevNext !== false;
+							const prevLabel    = block.attributes?.previousLabel || {{ Js::from( __( 'visual-editor::ve.query_pagination_default_previous' ) ) }};
+							const nextLabel    = block.attributes?.nextLabel || {{ Js::from( __( 'visual-editor::ve.query_pagination_default_next' ) ) }};
+							let navHtml = '<nav style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:1rem 0;font-size:0.9em;">';
+							if ( showPrevNext ) { navHtml += '<a href="#" style="pointer-events:none;color:inherit;text-decoration:underline;">' + veEscapeHtml( prevLabel ) + '</a>'; }
+							if ( showNumbers ) { navHtml += '<span style="opacity:0.5;">1</span><span style="font-weight:bold;">2</span><span style="opacity:0.5;">3</span><span>…</span><span style="opacity:0.5;">7</span>'; }
+							if ( showPrevNext ) { navHtml += '<a href="#" style="pointer-events:none;color:inherit;text-decoration:underline;">' + veEscapeHtml( nextLabel ) + '</a>'; }
+							navHtml += '</nav>';
+							return '<div class=\'ve-block ve-block-query-pagination ve-block-editing ve-block-dynamic-preview\'>' + navHtml + '</div>';
+						},
+					} );
+
+					br.register( 'query-no-results', {
+						render( block, context ) {
+							const innerHtml = br.renderInnerBlocks( block, {
+								orientation: 'vertical',
+								placeholder: {{ Js::from( __( 'visual-editor::ve.query_no_results_inner_placeholder' ) ) }},
+								context: context,
+							} );
+							return '<div class=\'ve-block ve-block-query-no-results ve-block-editing\'>' + innerHtml + '</div>';
+						},
+					} );
+
 				} );
 			</script>
 

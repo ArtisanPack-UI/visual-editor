@@ -1,0 +1,58 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "post-template",
+	"name": "Post Template",
+	"description": "Define the layout for each query result item",
+	"icon": "rectangle-stack",
+	"category": "dynamic",
+	"keywords": ["post", "template", "loop", "item", "layout"],
+	"version": 1,
+	"dynamic": true,
+	"supportsInnerBlocks": true,
+	"parent": ["query-loop"],
+	"allowedChildren": [
+		"post-title",
+		"post-content",
+		"post-excerpt",
+		"post-featured-image",
+		"post-date",
+		"post-author",
+		"post-author-name",
+		"post-author-biography",
+		"post-terms",
+		"post-comments-count",
+		"post-comments-link",
+		"post-time-to-read",
+		"read-more"
+	],
+	"attributes": {
+		"layout": {
+			"type": "string",
+			"source": "content",
+			"default": "list"
+		},
+		"columns": {
+			"type": "integer",
+			"source": "content",
+			"default": 3
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"htmlId": true,
+		"className": true
+	}
+}

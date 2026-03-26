@@ -1,0 +1,90 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "query-loop",
+	"name": "Query Loop",
+	"description": "Query content and display results using inner template blocks",
+	"icon": "arrow-path",
+	"category": "dynamic",
+	"keywords": ["query", "loop", "archive", "listing", "posts", "content"],
+	"version": 1,
+	"dynamic": true,
+	"supportsInnerBlocks": true,
+	"allowedChildren": [
+		"post-template",
+		"query-pagination",
+		"query-no-results"
+	],
+	"attributes": {
+		"queryType": {
+			"type": "string",
+			"source": "content",
+			"default": "post"
+		},
+		"perPage": {
+			"type": "integer",
+			"source": "content",
+			"default": 10
+		},
+		"orderBy": {
+			"type": "string",
+			"source": "content",
+			"default": "date"
+		},
+		"order": {
+			"type": "string",
+			"source": "content",
+			"default": "desc"
+		},
+		"taxQuery": {
+			"type": "object",
+			"source": "content",
+			"default": null
+		},
+		"author": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"search": {
+			"type": "string",
+			"source": "content",
+			"default": ""
+		},
+		"offset": {
+			"type": "integer",
+			"source": "content",
+			"default": 0
+		},
+		"sticky": {
+			"type": "string",
+			"source": "content",
+			"default": "include"
+		},
+		"inherit": {
+			"type": "boolean",
+			"source": "content",
+			"default": false
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"layout": {
+			"default": "flow"
+		},
+		"htmlId": true,
+		"className": true
+	}
+}

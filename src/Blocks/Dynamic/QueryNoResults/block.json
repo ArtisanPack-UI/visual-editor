@@ -1,0 +1,33 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "query-no-results",
+	"name": "Query No Results",
+	"description": "Display content when the query returns no results",
+	"icon": "document-minus",
+	"category": "dynamic",
+	"keywords": ["query", "no results", "empty", "fallback", "missing"],
+	"version": 1,
+	"dynamic": true,
+	"supportsInnerBlocks": true,
+	"parent": ["query-loop"],
+	"attributes": {
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"htmlId": true,
+		"className": true
+	}
+}

@@ -184,6 +184,69 @@
 								store.addInnerBlock( blockId, newInner, 0 );
 							} );
 
+							// Post Template variation picker: populate with inner blocks from a variation.
+							el.addEventListener( 'click', ( e ) => {
+								const variationBtn = e.target.closest( '[data-ve-set-template-variation]' );
+								if ( ! variationBtn ) return;
+
+								e.stopPropagation();
+								e.preventDefault();
+
+								const variation = variationBtn.getAttribute( 'data-ve-set-template-variation' );
+								const blockEl   = variationBtn.closest( '[data-block-id]' );
+								if ( ! blockEl ) return;
+
+								const blockId = blockEl.getAttribute( 'data-block-id' );
+								const store   = Alpine.store( 'editor' );
+								if ( ! store ) return;
+
+								const block = store.getBlock( blockId );
+								if ( ! block ) return;
+
+								// Prevent re-triggering if already populated.
+								if ( block.innerBlocks && block.innerBlocks.length > 0 ) return;
+
+								const variationMap = {
+									'image-title-excerpt': [
+										{ type: 'post-featured-image', attributes: {} },
+										{ type: 'post-title', attributes: { level: 'h3' } },
+										{ type: 'post-excerpt', attributes: {} },
+										{ type: 'read-more', attributes: {} },
+									],
+									'title-date': [
+										{ type: 'post-title', attributes: { level: 'h3' } },
+										{ type: 'post-date', attributes: {} },
+									],
+									'title-excerpt-author': [
+										{ type: 'post-title', attributes: { level: 'h3' } },
+										{ type: 'post-excerpt', attributes: {} },
+										{ type: 'post-author-name', attributes: {} },
+										{ type: 'post-date', attributes: {} },
+									],
+									'image-title-date': [
+										{ type: 'post-featured-image', attributes: {} },
+										{ type: 'post-title', attributes: { level: 'h3' } },
+										{ type: 'post-date', attributes: {} },
+									],
+									'title-only': [
+										{ type: 'post-title', attributes: { level: 'h3', isLink: true } },
+									],
+								};
+
+								const innerBlockDefs = variationMap[ variation ] || variationMap['image-title-excerpt'];
+
+								// Set innerBlocks atomically in one operation to avoid re-render loops.
+								store._pushHistory();
+								block.innerBlocks = innerBlockDefs.map( ( def ) => ( {
+									id: store._generateId(),
+									type: def.type,
+									attributes: def.attributes || {},
+									innerBlocks: [],
+								} ) );
+								store.markDirty();
+								store._dispatchChange();
+							} );
+
 							// Columns layout picker: create column child blocks from the selected layout.
 							el.addEventListener( 'click', ( e ) => {
 								const layoutBtn = e.target.closest( '[data-ve-set-columns-layout]' );

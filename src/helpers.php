@@ -1641,8 +1641,86 @@ if ( ! function_exists( 'veGetContentCommentsPagination' ) ) {
 	 *
 	 * @return array{totalPages: int, currentPage: int, previousUrl: string, nextUrl: string, perPage: int}
 	 */
-	function veGetContentCommentsPagination( array $context = []): array
+	function veGetContentCommentsPagination( array $context = [] ): array
 	{
 		return app( ContentResolver::class )->getCommentsPagination( $context );
+	}
+}
+
+// ──────────────────────────────────────────────────────────
+// Query loop helpers
+// ──────────────────────────────────────────────────────────
+
+if ( ! function_exists( 'veGetQueryResults' ) ) {
+	/**
+	 * Get query results from the content resolver.
+	 *
+	 * Returns an array with 'items' and 'total' keys. Applications
+	 * register a filter on 've.query.results' to execute the actual
+	 * query against their models.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context     Optional context (e.g. page context for inherit).
+	 * @param array<string, mixed> $queryParams Query parameters (queryType, perPage, orderBy, etc.).
+	 *
+	 * @return array{items: array<int, array<string, mixed>>, total: int}
+	 */
+	function veGetQueryResults( array $context = [], array $queryParams = [] ): array
+	{
+		return app( ContentResolver::class )->getQueryResults( $context, $queryParams );
+	}
+}
+
+if ( ! function_exists( 'veGetQueryPagination' ) ) {
+	/**
+	 * Get query pagination data from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context.
+	 *
+	 * @return array{totalPages: int, currentPage: int, previousUrl: string, nextUrl: string}
+	 */
+	function veGetQueryPagination( array $context = [] ): array
+	{
+		return app( ContentResolver::class )->getQueryPagination( $context );
+	}
+}
+
+if ( ! function_exists( 'veGetQueryTitle' ) ) {
+	/**
+	 * Get the contextual query title from the content resolver.
+	 *
+	 * Returns a title appropriate for the current query context,
+	 * such as "Search results for: X" or "Category: Technology".
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context    Optional context.
+	 * @param string               $prefixType The prefix type (archive, search).
+	 * @param bool                 $showPrefix Whether to include the prefix.
+	 *
+	 * @return string
+	 */
+	function veGetQueryTitle( array $context = [], string $prefixType = 'archive', bool $showPrefix = true ): string
+	{
+		return app( ContentResolver::class )->getQueryTitle( $context, $prefixType, $showPrefix );
+	}
+}
+
+if ( ! function_exists( 'veGetQueryTotal' ) ) {
+	/**
+	 * Get the total number of query results from the content resolver.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context.
+	 *
+	 * @return int
+	 */
+	function veGetQueryTotal( array $context = []): int
+	{
+		return app( ContentResolver::class )->getQueryTotal( $context );
 	}
 }

@@ -610,6 +610,108 @@ class ContentResolver
 	}
 
 	/**
+	 * Get query results based on the provided query parameters.
+	 *
+	 * Resolves via `ve.query.results` filter. Applications register
+	 * filter callbacks to execute the query against their models and
+	 * return a standardised result array.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context      Optional context (e.g. page context for inherit).
+	 * @param array<string, mixed> $queryParams  Query parameters (queryType, perPage, orderBy, etc.).
+	 *
+	 * @return array{items: array<int, array<string, mixed>>, total: int}
+	 */
+	public function getQueryResults( array $context = [], array $queryParams = [] ): array
+	{
+		$defaults = [
+			'items' => [],
+			'total' => 0,
+		];
+
+		$result = veApplyFilters( 've.query.results', $defaults, $context, $queryParams );
+
+		if ( ! is_array( $result ) || ! isset( $result['items'], $result['total'] ) ) {
+			return $defaults;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Get query pagination data.
+	 *
+	 * Resolves via `ve.query.pagination` filter. Returns pagination
+	 * metadata for the current query loop context.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context.
+	 *
+	 * @return array{totalPages: int, currentPage: int, previousUrl: string, nextUrl: string}
+	 */
+	public function getQueryPagination( array $context = [] ): array
+	{
+		$defaults = [
+			'totalPages'  => 1,
+			'currentPage' => 1,
+			'previousUrl' => '',
+			'nextUrl'     => '',
+		];
+
+		$result = veApplyFilters( 've.query.pagination', $defaults, $context );
+
+		if ( ! is_array( $result ) ) {
+			return $defaults;
+		}
+
+		return [
+			'totalPages'  => (int) ( $result['totalPages'] ?? 1 ),
+			'currentPage' => (int) ( $result['currentPage'] ?? 1 ),
+			'previousUrl' => $this->sanitizeUrl( (string) ( $result['previousUrl'] ?? '' ) ),
+			'nextUrl'     => $this->sanitizeUrl( (string) ( $result['nextUrl'] ?? '' ) ),
+		];
+	}
+
+	/**
+	 * Get the contextual query title.
+	 *
+	 * Resolves via `ve.query.title` filter. Returns a title string
+	 * appropriate for the current query context (e.g. "Search results
+	 * for: X", "Category: Technology").
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context    Optional context.
+	 * @param string               $prefixType The prefix type (archive, search).
+	 * @param bool                 $showPrefix Whether to include the prefix.
+	 *
+	 * @return string
+	 */
+	public function getQueryTitle( array $context = [], string $prefixType = 'archive', bool $showPrefix = true ): string
+	{
+		return (string) veApplyFilters( 've.query.title', '', $context, $prefixType, $showPrefix );
+	}
+
+	/**
+	 * Get the total number of query results.
+	 *
+	 * Resolves via `ve.query.total` filter. Returns the count of
+	 * results for the current query context.
+	 *
+	 * @since 2.0.0
+	 *
+	 * @param array<string, mixed> $context Optional context.
+	 *
+	 * @return int
+	 */
+	public function getQueryTotal( array $context = [] ): int
+	{
+		return (int) veApplyFilters( 've.query.total', 0, $context );
+	}
+
+	/**
 	 * Validate that a URL uses a safe scheme.
 	 *
 	 * Returns the URL unchanged if the scheme is safe (http, https,

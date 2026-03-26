@@ -1,0 +1,104 @@
+{
+	"$schema": "../../../block-schema.json",
+	"type": "query-title",
+	"name": "Query Title",
+	"description": "Display the contextual title for a query (e.g. search results, archive title)",
+	"icon": "document-text",
+	"category": "dynamic",
+	"keywords": ["query", "title", "archive", "search", "heading"],
+	"version": 1,
+	"dynamic": true,
+	"attributes": {
+		"level": {
+			"type": "string",
+			"source": "content",
+			"default": "h1"
+		},
+		"showPrefix": {
+			"type": "boolean",
+			"source": "content",
+			"default": true
+		},
+		"prefixType": {
+			"type": "string",
+			"source": "content",
+			"default": "archive"
+		},
+		"textColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"backgroundColor": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontSize": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontFamily": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"fontAppearance": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"lineHeight": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"letterSpacing": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textDecoration": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"textTransform": {
+			"type": "string",
+			"source": "style",
+			"default": null
+		},
+		"padding": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		},
+		"margin": {
+			"type": "object",
+			"source": "style",
+			"default": null
+		}
+	},
+	"supports": {
+		"color": {
+			"text": true,
+			"background": true
+		},
+		"typography": {
+			"fontSize": true,
+			"fontFamily": "heading",
+			"appearance": true,
+			"lineHeight": true,
+			"letterSpacing": true,
+			"decoration": true,
+			"letterCase": true
+		},
+		"spacing": {
+			"margin": true,
+			"padding": true
+		},
+		"htmlId": true,
+		"className": true
+	}
+}
