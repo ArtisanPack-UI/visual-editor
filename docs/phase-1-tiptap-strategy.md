@@ -34,7 +34,7 @@ This document decides (1) which extensions each block-level Tiptap editor actual
 | 15 | `Code` | mark | **Defer** | Inline `code` mark is not in #272 scope. Same reasoning as `Strike`. |
 | 16 | `Dropcursor` | utility | **Defer** | Signals a drop target inside PM. Our drag-and-drop operates at the block level via dnd-kit (#271), not inside a paragraph's PM doc. Revisit only if we add in-paragraph media drops. |
 | 17 | `Gapcursor` | utility | **Drop** | Its job is letting the caret sit between block-level PM nodes (tables, figures, HR). Our paragraph editor contains no such nodes, so gapcursor has nothing to do. |
-| 18 | `History` | utility | **Replace with app-level undo** | Tiptap's `History` records undo per-editor. Because every block has its own editor instance, per-editor history produces user-confusing undo (typing in block B then `Ctrl+Z` only undoes block B; it cannot undo the block A edit that came before). Phase 1 needs **one** undo stack at the block-store level. Action: disable `History` in every Tiptap instance (`history: false`); Phase 1 separately ships a store-level undo/redo (tracked outside #267 — file as follow-up if no issue exists). |
+| 18 | `History` | utility | **Replace with app-level undo** | Tiptap's `History` records undo per-editor. Because every block has its own editor instance, per-editor history produces user-confusing undo (typing in block B then `Ctrl+Z` only undoes block B; it cannot undo the block A edit that came before). Phase 1 needs **one** undo stack at the block-store level. Action: disable `History` in every Tiptap instance (`history: false`); store-level undo/redo is tracked separately under **#266** (Phase 1.4) and must land before Phase 1 closes. |
 | 19 | `Link` (via `extension-link`) | mark | **Keep (direct dep)** | Already a direct dep from Phase 0. Not part of `starter-kit`; call it out explicitly because the toolbar in #272 needs it. Configure with `openOnClick: false`, `autolink: true` (matches spike). |
 
 **Summary:** out of ~18 pieces in `starter-kit`, Phase 1 keeps **5 nodes/marks** (`Document`, `Text`, `HardBreak`, `Bold`, `Italic`), **replaces 1** (`Paragraph` → `BlockParagraph`), **drops 11** (heading, lists, blockquote, code block, HR, gapcursor, strike, code, dropcursor, history, and the list-item helper), and adds `Link` on top as a direct dep. The heading block (§3) uses the same base set plus its own node.
@@ -131,7 +131,7 @@ Notes:
 
 ## 5. Open Follow-ups (not part of #267)
 
-- **Store-level undo/redo** — replaces disabled Tiptap `History`. Needs its own issue if one does not exist under #237's breakdown. Must be in place by the end of Phase 1 or users will notice the regression from the spike.
+- **Store-level undo/redo** — replaces disabled Tiptap `History`. Tracked under **#266** (Phase 1.4: Undo/redo history layer on editor store) in the #237 breakdown. Must be in place by the end of Phase 1 or users will notice the regression from the spike.
 - **Dropcursor revisit** — if we later allow dropping images or other media inside a paragraph (rather than as sibling blocks), dropcursor comes back.
 - **Inline `code` and `strike` marks** — Phase 2 typography expansion.
 - **Collaborative editing extensions** (`@tiptap/extension-collaboration`) — not in scope anywhere in Phase 1; flag for Phase 5+.
