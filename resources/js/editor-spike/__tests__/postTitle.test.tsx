@@ -68,6 +68,22 @@ describe('post-title block edit', () => {
         expect(heading.getAttribute('data-placeholder')).toBe('true');
     });
 
+    it('renders the placeholder when the context post cannot be resolved', () => {
+        const block = makePostTitle();
+
+        render(
+            <BlockTreeProvider blocks={[block]}>
+                <BlockContextProvider value={{ postId: 9999, postType: 'post' }}>
+                    <RenderBlock block={block} />
+                </BlockContextProvider>
+            </BlockTreeProvider>
+        );
+
+        const heading = screen.getByText('[post title]');
+        expect(heading).toBeInTheDocument();
+        expect(heading.getAttribute('data-placeholder')).toBe('true');
+    });
+
     it('shows different titles when wrapped in different BlockContextProviders', () => {
         const blockA = makePostTitle('pt-a');
         const blockB = makePostTitle('pt-b');
