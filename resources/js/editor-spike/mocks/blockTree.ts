@@ -26,7 +26,7 @@ export const blockTree: Block[] = [
                 clientId: 'block-paragraph-1',
                 name: 've/paragraph',
                 attributes: {
-                    field: 'excerpt',
+                    content: '<p>Edit me. This template is shared across every post in the loop.</p>',
                 },
                 innerBlocks: [],
             },
