@@ -3,6 +3,7 @@ import { createStore, useStore, type StoreApi } from 'zustand';
 import type {
     Block,
     EditorStoreState,
+    HistoryState,
     InsertLocation,
     MoveLocation,
     Selection,
@@ -16,6 +17,9 @@ import {
     updateAttributesInTree,
 } from './treeUtils';
 
+const HISTORY_LIMIT = 100;
+const COALESCE_WINDOW_MS = 500;
+
 function selectionExistsIn(blocks: Block[], clientId: string | null): boolean {
     if (clientId === null) {
         return true;
@@ -24,129 +28,262 @@ function selectionExistsIn(blocks: Block[], clientId: string | null): boolean {
     return findBlock(blocks, clientId) !== undefined;
 }
 
+function createInitialHistory(): HistoryState {
+    return {
+        past: [],
+        future: [],
+        lastCoalesceKey: null,
+        lastCoalesceAt: 0,
+    };
+}
+
+function commitHistory(
+    history: HistoryState,
+    previousBlocks: Block[],
+    coalesceKey: string | null,
+    now: number
+): HistoryState {
+    const canCoalesce =
+        coalesceKey !== null &&
+        history.past.length > 0 &&
+        history.lastCoalesceKey === coalesceKey &&
+        now - history.lastCoalesceAt < COALESCE_WINDOW_MS;
+
+    if (canCoalesce) {
+        return {
+            past: history.past,
+            future: [],
+            lastCoalesceKey: coalesceKey,
+            lastCoalesceAt: now,
+        };
+    }
+
+    const nextPast = history.past.concat([previousBlocks]);
+
+    while (nextPast.length > HISTORY_LIMIT) {
+        nextPast.shift();
+    }
+
+    return {
+        past: nextPast,
+        future: [],
+        lastCoalesceKey: coalesceKey,
+        lastCoalesceAt: now,
+    };
+}
+
 export type EditorStore = StoreApi<EditorStoreState>;
 
 const initialSelection: Selection = { clientId: null };
 
 export function createEditorStore(initialBlocks: Block[] = []): EditorStore {
-    return createStore<EditorStoreState>((set) => ({
-        blocks: initialBlocks,
-        selection: initialSelection,
-        isDirty: false,
-
-        insertBlock: (block: Block, location: InsertLocation = {}) => {
+    return createStore<EditorStoreState>((set) => {
+        function applyContentChange(
+            updater: (state: EditorStoreState) => Partial<EditorStoreState> | null,
+            coalesceKey: string | null
+        ): void {
             set((state) => {
-                const nextBlocks = insertIntoTree(
+                const update = updater(state);
+
+                if (update === null) {
+                    return state;
+                }
+
+                const nextBlocks =
+                    update.blocks !== undefined ? update.blocks : state.blocks;
+
+                if (nextBlocks === state.blocks) {
+                    return state;
+                }
+
+                const history = commitHistory(
+                    state.history,
                     state.blocks,
-                    block,
-                    location.parentClientId ?? null,
-                    location.index
+                    coalesceKey,
+                    Date.now()
                 );
-
-                if (nextBlocks === state.blocks) {
-                    return state;
-                }
-
-                return { ...state, blocks: nextBlocks, isDirty: true };
-            });
-        },
-
-        updateBlockAttributes: (clientId: string, attrs: Record<string, unknown>) => {
-            set((state) => {
-                const nextBlocks = updateAttributesInTree(state.blocks, clientId, attrs);
-
-                if (nextBlocks === state.blocks) {
-                    return state;
-                }
-
-                return { ...state, blocks: nextBlocks, isDirty: true };
-            });
-        },
-
-        removeBlock: (clientId: string) => {
-            set((state) => {
-                const nextBlocks = removeFromTree(state.blocks, clientId);
-
-                if (nextBlocks === state.blocks) {
-                    return state;
-                }
-
-                const nextSelection = selectionExistsIn(nextBlocks, state.selection.clientId)
-                    ? state.selection
-                    : initialSelection;
 
                 return {
                     ...state,
+                    ...update,
                     blocks: nextBlocks,
-                    selection: nextSelection,
                     isDirty: true,
+                    history,
                 };
             });
-        },
+        }
 
-        moveBlock: (clientId: string, location: MoveLocation) => {
-            set((state) => {
-                const parentClientId = location.parentClientId ?? null;
+        return {
+            blocks: initialBlocks,
+            selection: initialSelection,
+            isDirty: false,
+            history: createInitialHistory(),
 
-                if (parentClientId !== null) {
-                    return state;
-                }
+            insertBlock: (block: Block, location: InsertLocation = {}) => {
+                applyContentChange((state) => {
+                    const nextBlocks = insertIntoTree(
+                        state.blocks,
+                        block,
+                        location.parentClientId ?? null,
+                        location.index
+                    );
 
-                const currentIndex = state.blocks.findIndex(
-                    (block) => block.clientId === clientId
+                    return { blocks: nextBlocks };
+                }, null);
+            },
+
+            updateBlockAttributes: (clientId: string, attrs: Record<string, unknown>) => {
+                applyContentChange((state) => {
+                    const nextBlocks = updateAttributesInTree(state.blocks, clientId, attrs);
+
+                    return { blocks: nextBlocks };
+                }, `updateBlockAttributes:${clientId}`);
+            },
+
+            removeBlock: (clientId: string) => {
+                applyContentChange((state) => {
+                    const nextBlocks = removeFromTree(state.blocks, clientId);
+
+                    if (nextBlocks === state.blocks) {
+                        return null;
+                    }
+
+                    const nextSelection = selectionExistsIn(nextBlocks, state.selection.clientId)
+                        ? state.selection
+                        : initialSelection;
+
+                    return { blocks: nextBlocks, selection: nextSelection };
+                }, null);
+            },
+
+            moveBlock: (clientId: string, location: MoveLocation) => {
+                applyContentChange((state) => {
+                    const parentClientId = location.parentClientId ?? null;
+
+                    if (parentClientId !== null) {
+                        return null;
+                    }
+
+                    const currentIndex = state.blocks.findIndex(
+                        (block) => block.clientId === clientId
+                    );
+
+                    if (currentIndex === -1) {
+                        return null;
+                    }
+
+                    const block = state.blocks[currentIndex];
+                    const withoutBlock = state.blocks.slice();
+
+                    withoutBlock.splice(currentIndex, 1);
+
+                    const targetIndex =
+                        location.index < 0
+                            ? 0
+                            : location.index > withoutBlock.length
+                                ? withoutBlock.length
+                                : location.index;
+
+                    withoutBlock.splice(targetIndex, 0, block);
+
+                    if (targetIndex === currentIndex) {
+                        return null;
+                    }
+
+                    return { blocks: withoutBlock };
+                }, null);
+            },
+
+            replaceBlocks: (newBlocks: Block[]) => {
+                applyContentChange(
+                    () => ({ blocks: newBlocks, selection: initialSelection }),
+                    null
                 );
+            },
 
-                if (currentIndex === -1) {
-                    return state;
-                }
+            select: (clientId: string, edge?: SelectionEdge) => {
+                set((state) => ({ ...state, selection: { clientId, edge } }));
+            },
 
-                const block = state.blocks[currentIndex];
-                const withoutBlock = state.blocks.slice();
+            clearSelection: () => {
+                set((state) => ({ ...state, selection: initialSelection }));
+            },
 
-                withoutBlock.splice(currentIndex, 1);
+            markDirty: () => {
+                set((state) => (state.isDirty ? state : { ...state, isDirty: true }));
+            },
 
-                const targetIndex =
-                    location.index < 0
-                        ? 0
-                        : location.index > withoutBlock.length
-                            ? withoutBlock.length
-                            : location.index;
+            markClean: () => {
+                set((state) => (state.isDirty ? { ...state, isDirty: false } : state));
+            },
 
-                withoutBlock.splice(targetIndex, 0, block);
+            undo: () => {
+                set((state) => {
+                    if (state.history.past.length === 0) {
+                        return state;
+                    }
 
-                if (targetIndex === currentIndex) {
-                    return state;
-                }
+                    const previousBlocks = state.history.past[state.history.past.length - 1];
+                    const nextPast = state.history.past.slice(0, -1);
+                    const nextFuture = [state.blocks, ...state.history.future];
+                    const nextSelection = selectionExistsIn(
+                        previousBlocks,
+                        state.selection.clientId
+                    )
+                        ? state.selection
+                        : initialSelection;
 
-                return { ...state, blocks: withoutBlock, isDirty: true };
-            });
-        },
+                    return {
+                        ...state,
+                        blocks: previousBlocks,
+                        selection: nextSelection,
+                        isDirty: true,
+                        history: {
+                            past: nextPast,
+                            future: nextFuture,
+                            lastCoalesceKey: null,
+                            lastCoalesceAt: 0,
+                        },
+                    };
+                });
+            },
 
-        replaceBlocks: (newBlocks: Block[]) => {
-            set((state) => ({
-                ...state,
-                blocks: newBlocks,
-                selection: initialSelection,
-                isDirty: true,
-            }));
-        },
+            redo: () => {
+                set((state) => {
+                    if (state.history.future.length === 0) {
+                        return state;
+                    }
 
-        select: (clientId: string, edge?: SelectionEdge) => {
-            set((state) => ({ ...state, selection: { clientId, edge } }));
-        },
+                    const [nextBlocks, ...remainingFuture] = state.history.future;
+                    const nextPast = state.history.past.concat([state.blocks]);
 
-        clearSelection: () => {
-            set((state) => ({ ...state, selection: initialSelection }));
-        },
+                    while (nextPast.length > HISTORY_LIMIT) {
+                        nextPast.shift();
+                    }
 
-        markDirty: () => {
-            set((state) => (state.isDirty ? state : { ...state, isDirty: true }));
-        },
+                    const nextSelection = selectionExistsIn(
+                        nextBlocks,
+                        state.selection.clientId
+                    )
+                        ? state.selection
+                        : initialSelection;
 
-        markClean: () => {
-            set((state) => (state.isDirty ? { ...state, isDirty: false } : state));
-        },
-    }));
+                    return {
+                        ...state,
+                        blocks: nextBlocks,
+                        selection: nextSelection,
+                        isDirty: true,
+                        history: {
+                            past: nextPast,
+                            future: remainingFuture,
+                            lastCoalesceKey: null,
+                            lastCoalesceAt: 0,
+                        },
+                    };
+                });
+            },
+        };
+    });
 }
 
 export function useBlock(store: EditorStore, clientId: string | null): Block | undefined {
@@ -173,4 +310,12 @@ export function useSelection(store: EditorStore): Selection {
 
 export function useIsDirty(store: EditorStore): boolean {
     return useStore(store, (state) => state.isDirty);
+}
+
+export function useCanUndo(store: EditorStore): boolean {
+    return useStore(store, (state) => state.history.past.length > 0);
+}
+
+export function useCanRedo(store: EditorStore): boolean {
+    return useStore(store, (state) => state.history.future.length > 0);
 }
