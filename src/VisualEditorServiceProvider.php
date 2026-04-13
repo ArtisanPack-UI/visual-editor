@@ -30,11 +30,19 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// 1. Merge the configuration correctly.
 		$this->mergeConfiguration();
 
-		// 2. Tag the config file for the scaffold command.
+		// 2. Load package views and routes for the Phase 0 spike.
+		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor' );
+		$this->loadRoutesFrom( __DIR__ . '/../routes/web.php' );
+
+		// 3. Tag the config file for the scaffold command.
 		if ( $this->app->runningInConsole() ) {
 			$this->publishes( [
 								  __DIR__ . '/../config/visual-editor.php' => config_path( 'artisanpack/visual-editor.php' ),
 							  ], 'artisanpack-package-config' );
+
+			$this->publishes( [
+								  __DIR__ . '/../public/editor-spike' => public_path( 'vendor/visual-editor/editor-spike' ),
+							  ], 'visual-editor-spike-assets' );
 		}
 	}
 
