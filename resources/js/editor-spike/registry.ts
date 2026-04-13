@@ -17,6 +17,13 @@ export interface BlockDefinition {
 const registry = new Map<string, BlockDefinition>();
 
 export function registerBlock(definition: BlockDefinition): void {
+    if (registry.has(definition.name)) {
+        console.warn(
+            `[editor-spike] Block "${definition.name}" is already registered; ignoring duplicate registration.`
+        );
+        return;
+    }
+
     registry.set(definition.name, definition);
 }
 
