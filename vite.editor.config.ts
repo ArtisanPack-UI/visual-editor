@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 
 const editorRoot = resolve(__dirname, 'resources/js/visual-editor/editor');
+const spikeRoot = resolve(__dirname, 'resources/js/editor-spike');
 
 export default defineConfig(({ command }) => ({
     plugins: [react()],
@@ -10,6 +11,7 @@ export default defineConfig(({ command }) => ({
     resolve: {
         alias: {
             '@editor': editorRoot,
+            '@spike': spikeRoot,
         },
     },
     server: {
