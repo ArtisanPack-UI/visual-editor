@@ -103,7 +103,7 @@ describe('BlockPreview', () => {
         expect(screen.getByText('click me')).toBeInTheDocument();
     });
 
-    it('applies pointer-events:none and user-select:none to the wrapper', () => {
+    it('applies pointer-events:none, user-select:none, and inert to the wrapper', () => {
         const { container } = render(<BlockPreview blocks={[tree[0]]} className="ve-preview" />);
 
         const wrapper = container.querySelector('[data-block-preview]') as HTMLElement | null;
@@ -111,6 +111,7 @@ describe('BlockPreview', () => {
         expect(wrapper!.classList.contains('ve-preview')).toBe(true);
         expect(wrapper!.style.pointerEvents).toBe('none');
         expect(wrapper!.style.userSelect).toBe('none');
+        expect(wrapper!.hasAttribute('inert')).toBe(true);
     });
 
     it('renders multiple root blocks', () => {
@@ -136,6 +137,7 @@ describe('useBlockPreview', () => {
         expect(captured!.previewProps['data-block-preview']).toBe(true);
         expect(captured!.previewProps.style.pointerEvents).toBe('none');
         expect(captured!.previewProps.style.userSelect).toBe('none');
+        expect(captured!.previewProps.inert).toBe(true);
         expect(container.querySelector('[data-block-preview]')).not.toBeNull();
     });
 });

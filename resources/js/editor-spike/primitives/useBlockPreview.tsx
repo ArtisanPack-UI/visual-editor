@@ -12,6 +12,7 @@ export interface UseBlockPreviewOptions {
 export interface BlockPreviewProps {
     children: ReactNode;
     style: CSSProperties;
+    inert: boolean;
     'data-block-preview': true;
 }
 
@@ -42,6 +43,7 @@ export function useBlockPreview({ blocks }: UseBlockPreviewOptions): UseBlockPre
         previewProps: {
             children,
             style: previewStyle,
+            inert: true,
             'data-block-preview': true,
         },
     };
