@@ -10,8 +10,16 @@ registerParagraphBlock();
 registerPostTitleBlock();
 registerQueryLoopBlock();
 
+function cloneBlocks(blocks: Block[]): Block[] {
+    return blocks.map((block) => ({
+        ...block,
+        attributes: { ...block.attributes },
+        innerBlocks: cloneBlocks(block.innerBlocks),
+    }));
+}
+
 export default function App() {
-    const [tree] = useState<Block[]>(() => blockTree);
+    const [tree] = useState<Block[]>(() => cloneBlocks(blockTree));
     const root = tree[0];
 
     return (

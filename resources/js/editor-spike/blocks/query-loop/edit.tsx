@@ -10,8 +10,12 @@ const DEFAULT_QUERY: Query = { postType: 'post', perPage: 5 };
 function readQuery(attributes: Record<string, unknown>): Query {
     const postType =
         typeof attributes.postType === 'string' ? attributes.postType : DEFAULT_QUERY.postType;
+
+    const rawPerPage = attributes.perPage;
     const perPage =
-        typeof attributes.perPage === 'number' ? attributes.perPage : DEFAULT_QUERY.perPage;
+        typeof rawPerPage === 'number' && Number.isFinite(rawPerPage) && rawPerPage > 0
+            ? Math.floor(rawPerPage)
+            : DEFAULT_QUERY.perPage;
 
     return { postType, perPage };
 }
