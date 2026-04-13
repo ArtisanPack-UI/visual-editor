@@ -27,10 +27,12 @@ describe('EditorStoreContext', () => {
     it('throws a helpful error when used outside of a provider', () => {
         const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-        expect(() => render(<StoreReader />)).toThrow(
-            /useEditorStore must be used within an <EditorStoreProvider>/
-        );
-
-        consoleError.mockRestore();
+        try {
+            expect(() => render(<StoreReader />)).toThrow(
+                /useEditorStore must be used within an <EditorStoreProvider>/
+            );
+        } finally {
+            consoleError.mockRestore();
+        }
     });
 });
