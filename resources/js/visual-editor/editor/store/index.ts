@@ -4,6 +4,8 @@ export {
     useChildren,
     useSelection,
     useIsDirty,
+    useCanUndo,
+    useCanRedo,
     type EditorStore,
 } from './editorStore';
 export {
@@ -19,6 +21,8 @@ export type {
     EditorActions,
     EditorState,
     EditorStoreState,
+    HistorySnapshot,
+    HistoryState,
     InsertLocation,
     MoveLocation,
     Selection,

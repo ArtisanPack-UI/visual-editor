@@ -28,6 +28,15 @@ export type EditorState = {
     isDirty: boolean;
 };
 
+export type HistorySnapshot = Block[];
+
+export type HistoryState = {
+    past: HistorySnapshot[];
+    future: HistorySnapshot[];
+    lastCoalesceKey: string | null;
+    lastCoalesceAt: number;
+};
+
 export type EditorActions = {
     insertBlock: (block: Block, location?: InsertLocation) => void;
     updateBlockAttributes: (clientId: string, attrs: Record<string, unknown>) => void;
@@ -38,6 +47,11 @@ export type EditorActions = {
     clearSelection: () => void;
     markDirty: () => void;
     markClean: () => void;
+    undo: () => void;
+    redo: () => void;
 };
 
-export type EditorStoreState = EditorState & EditorActions;
+export type EditorStoreState = EditorState &
+    EditorActions & {
+        history: HistoryState;
+    };
