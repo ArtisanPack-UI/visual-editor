@@ -29,7 +29,9 @@ function EditorShell({ postId, postType, apiBase }: EditorShellProps) {
 }
 
 function readEditorConfig(container: HTMLElement): EditorConfig | null {
-    const { postId, postType, apiBase } = container.dataset;
+    const postId = container.dataset.postId?.trim();
+    const postType = container.dataset.postType?.trim();
+    const apiBase = container.dataset.apiBase?.trim();
 
     if (!postId || !postType || !apiBase) {
         return null;
