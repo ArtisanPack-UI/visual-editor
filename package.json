@@ -6,6 +6,8 @@
     "scripts": {
         "dev": "vite",
         "build": "vite build",
+        "dev:editor": "vite --config vite.editor.config.ts",
+        "build:editor": "vite build --config vite.editor.config.ts",
         "test": "vitest run",
         "test:watch": "vitest"
     },
