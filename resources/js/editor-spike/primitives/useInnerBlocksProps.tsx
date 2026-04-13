@@ -39,7 +39,7 @@ interface RenderBlockProps {
     block: Block;
 }
 
-function RenderBlock({ block }: RenderBlockProps) {
+export function RenderBlock({ block }: RenderBlockProps) {
     const definition = getBlock(block.name);
 
     if (!definition) {
