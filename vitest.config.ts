@@ -13,6 +13,9 @@ export default defineConfig({
         globals: true,
         environment: 'jsdom',
         setupFiles: ['./resources/js/editor-spike/test-setup.ts'],
-        include: ['resources/js/editor-spike/**/*.{test,spec}.{ts,tsx}'],
+        include: [
+            'resources/js/editor-spike/**/*.{test,spec}.{ts,tsx}',
+            'resources/js/visual-editor/**/*.{test,spec}.{ts,tsx}',
+        ],
     },
 });
