@@ -237,6 +237,7 @@ export function createEditorStore(initialBlocks: Block[] = []): EditorStore {
                         ...state,
                         blocks: previousBlocks,
                         selection: nextSelection,
+                        isDirty: true,
                         history: {
                             past: nextPast,
                             future: nextFuture,
@@ -271,6 +272,7 @@ export function createEditorStore(initialBlocks: Block[] = []): EditorStore {
                         ...state,
                         blocks: nextBlocks,
                         selection: nextSelection,
+                        isDirty: true,
                         history: {
                             past: nextPast,
                             future: remainingFuture,

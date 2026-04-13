@@ -281,5 +281,28 @@ describe('editor store history', () => {
             expect(store.getState().isDirty).toBe(true);
             expect(store.getState().history.past).toHaveLength(1);
         });
+
+        it('undo marks the store dirty even if it was clean', () => {
+            const store = createEditorStore();
+
+            store.getState().insertBlock(makeBlock('p-1'));
+            store.getState().markClean();
+            expect(store.getState().isDirty).toBe(false);
+
+            store.getState().undo();
+            expect(store.getState().isDirty).toBe(true);
+        });
+
+        it('redo marks the store dirty even if it was clean', () => {
+            const store = createEditorStore();
+
+            store.getState().insertBlock(makeBlock('p-1'));
+            store.getState().undo();
+            store.getState().markClean();
+            expect(store.getState().isDirty).toBe(false);
+
+            store.getState().redo();
+            expect(store.getState().isDirty).toBe(true);
+        });
     });
 });
