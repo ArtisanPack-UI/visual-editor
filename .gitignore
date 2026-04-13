@@ -1,2 +1,5 @@
 vendor/
 .idea/
+node_modules/
+public/editor-spike/
+*.log
