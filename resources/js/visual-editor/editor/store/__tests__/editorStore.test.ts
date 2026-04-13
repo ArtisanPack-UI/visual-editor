@@ -105,6 +105,17 @@ describe('insertBlock', () => {
         expect(next).not.toBe(original);
         expect(original).toHaveLength(1);
     });
+
+    it('is a no-op for an unknown parentClientId', () => {
+        const store = createEditorStore(nestedTree());
+        const beforeBlocks = store.getState().blocks;
+
+        store.getState().markClean();
+        store.getState().insertBlock(makeBlock('orphan'), { parentClientId: 'missing' });
+
+        expect(store.getState().blocks).toBe(beforeBlocks);
+        expect(store.getState().isDirty).toBe(false);
+    });
 });
 
 describe('updateBlockAttributes', () => {
@@ -201,6 +212,24 @@ describe('removeBlock', () => {
         store.getState().removeBlock('missing');
 
         expect(store.getState().isDirty).toBe(false);
+    });
+
+    it('clears the selection when a removed ancestor contained the selected block', () => {
+        const store = createEditorStore(nestedTree());
+
+        store.getState().select('para-1', 'end');
+        store.getState().removeBlock('ql-1');
+
+        expect(store.getState().selection).toEqual({ clientId: null });
+    });
+
+    it('preserves the selection when the selected block is in an untouched subtree', () => {
+        const store = createEditorStore(nestedTree());
+
+        store.getState().select('para-top');
+        store.getState().removeBlock('ql-1');
+
+        expect(store.getState().selection.clientId).toBe('para-top');
     });
 });
 

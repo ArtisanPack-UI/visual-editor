@@ -64,11 +64,15 @@ export function insertIntoTree(
         return next;
     }
 
-    return blocks.map((current) => {
+    let changed = false;
+
+    const next = blocks.map((current) => {
         if (current.clientId === parentClientId) {
             const nextInner = current.innerBlocks.slice();
 
             nextInner.splice(clampIndex(current.innerBlocks.length, index), 0, block);
+
+            changed = true;
 
             return { ...current, innerBlocks: nextInner };
         }
@@ -83,8 +87,12 @@ export function insertIntoTree(
             return current;
         }
 
+        changed = true;
+
         return { ...current, innerBlocks: nextInner };
     });
+
+    return changed ? next : blocks;
 }
 
 export function removeFromTree(blocks: Block[], clientId: string): Block[] {

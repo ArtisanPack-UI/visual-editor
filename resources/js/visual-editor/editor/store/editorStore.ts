@@ -16,6 +16,14 @@ import {
     updateAttributesInTree,
 } from './treeUtils';
 
+function selectionExistsIn(blocks: Block[], clientId: string | null): boolean {
+    if (clientId === null) {
+        return true;
+    }
+
+    return findBlock(blocks, clientId) !== undefined;
+}
+
 export type EditorStore = StoreApi<EditorStoreState>;
 
 const initialSelection: Selection = { clientId: null };
@@ -27,15 +35,20 @@ export function createEditorStore(initialBlocks: Block[] = []): EditorStore {
         isDirty: false,
 
         insertBlock: (block: Block, location: InsertLocation = {}) => {
-            set((state) => ({
-                blocks: insertIntoTree(
+            set((state) => {
+                const nextBlocks = insertIntoTree(
                     state.blocks,
                     block,
                     location.parentClientId ?? null,
                     location.index
-                ),
-                isDirty: true,
-            }));
+                );
+
+                if (nextBlocks === state.blocks) {
+                    return state;
+                }
+
+                return { ...state, blocks: nextBlocks, isDirty: true };
+            });
         },
 
         updateBlockAttributes: (clientId: string, attrs: Record<string, unknown>) => {
@@ -58,8 +71,9 @@ export function createEditorStore(initialBlocks: Block[] = []): EditorStore {
                     return state;
                 }
 
-                const nextSelection =
-                    state.selection.clientId === clientId ? initialSelection : state.selection;
+                const nextSelection = selectionExistsIn(nextBlocks, state.selection.clientId)
+                    ? state.selection
+                    : initialSelection;
 
                 return {
                     ...state,
