@@ -12,6 +12,7 @@ export interface BlockDefinition {
     name: string;
     edit: ComponentType<BlockEditProps>;
     providesContext?: (attributes: Record<string, unknown>, block: Block) => BlockContextValue;
+    usesContext?: string[];
 }
 
 const registry = new Map<string, BlockDefinition>();
