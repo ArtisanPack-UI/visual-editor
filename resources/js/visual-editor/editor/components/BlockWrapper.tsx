@@ -2,8 +2,10 @@ import { useState, type CSSProperties, type ReactNode } from 'react';
 import { useStore } from 'zustand';
 import { useSortable } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { faGripVertical } from '@fortawesome/free-solid-svg-icons';
 import type { Block } from '../store';
 import { RenderBlock, useEditorStore } from '../primitives';
+import { Icon } from './Icon';
 
 export interface BlockWrapperProps {
     block: Block;
@@ -64,7 +66,7 @@ export function BlockWrapper({ block, children }: BlockWrapperProps) {
                 {...attributes}
                 {...listeners}
             >
-                <span aria-hidden="true">⠿</span>
+                <Icon icon={faGripVertical} />
             </button>
             {children ?? <RenderBlock block={block} />}
         </div>
