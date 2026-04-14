@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useStore } from 'zustand';
 import type { EditorStore } from '../store';
+import type { AutosaveState } from '../rest';
 import { EditorStoreProvider, useEditorStore } from '../primitives';
 import { Canvas } from './Canvas';
 import { BlockList } from './BlockList';
@@ -9,20 +10,21 @@ import { InserterPanel } from './InserterPanel';
 
 export interface EditorShellProps {
     store: EditorStore;
+    saveStatus?: AutosaveState;
 }
 
-export function EditorShell({ store }: EditorShellProps) {
+export function EditorShell({ store, saveStatus }: EditorShellProps) {
     return (
         <EditorStoreProvider store={store}>
-            <EditorShellChrome />
+            <EditorShellChrome saveStatus={saveStatus} />
         </EditorStoreProvider>
     );
 }
 
-function EditorShellChrome() {
+function EditorShellChrome({ saveStatus }: { saveStatus?: AutosaveState }) {
     return (
         <div className="ve-editor-shell" data-ve-editor-shell="">
-            <Statusbar />
+            <Statusbar saveStatus={saveStatus} />
             <KeyboardBindings />
             <RichTextToolbar />
             <div className="ve-editor-shell__body">
@@ -35,10 +37,18 @@ function EditorShellChrome() {
     );
 }
 
-function Statusbar() {
+function Statusbar({ saveStatus }: { saveStatus?: AutosaveState }) {
     const store = useEditorStore();
     const isDirty = useStore(store, (state) => state.isDirty);
     const selectedClientId = useStore(store, (state) => state.selection.clientId);
+
+    const statusLabel = resolveStatusLabel(saveStatus, isDirty);
+    const statusToken =
+        saveStatus && saveStatus.status !== 'idle'
+            ? saveStatus.status
+            : isDirty
+                ? 'dirty'
+                : 'saved';
 
     return (
         <div className="ve-editor-shell__statusbar" role="status" aria-live="polite">
@@ -50,8 +60,9 @@ function Statusbar() {
                     .filter(Boolean)
                     .join(' ')}
                 data-ve-dirty={isDirty || undefined}
+                data-ve-save-status={statusToken}
             >
-                {isDirty ? 'Unsaved changes' : 'Saved'}
+                {statusLabel}
             </span>
             <span
                 className="ve-editor-shell__status"
@@ -93,6 +104,27 @@ function KeyboardBindings() {
     }, [store]);
 
     return null;
+}
+
+function resolveStatusLabel(
+    saveStatus: AutosaveState | undefined,
+    isDirty: boolean
+): string {
+    if (saveStatus) {
+        switch (saveStatus.status) {
+            case 'saving':
+                return 'Saving…';
+            case 'saved':
+                return 'Saved';
+            case 'error':
+                return 'Save failed';
+            case 'idle':
+            default:
+                break;
+        }
+    }
+
+    return isDirty ? 'Unsaved changes' : 'Saved';
 }
 
 function isUndoRedoKey(event: KeyboardEvent): boolean {

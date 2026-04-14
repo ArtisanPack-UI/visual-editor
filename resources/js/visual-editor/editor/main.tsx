@@ -1,11 +1,10 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { EditorShell } from './components';
+import { EditorBoot } from './components';
 import './components/editor.css';
 import { registerBlock, type BlockEditProps } from './registry';
-import { registerCoreBlocks, PARAGRAPH_BLOCK_NAME, HEADING_BLOCK_NAME } from './blocks';
+import { registerCoreBlocks } from './blocks';
 import { loadInserterBlocks } from './inserter';
-import { createEditorStore, createClientId, type Block, type EditorStore } from './store';
 
 const MOUNT_ID = 've-root';
 
@@ -38,25 +37,6 @@ function registerPlaceholderBlock(): void {
     registerBlock({ name: 've/placeholder', edit: PlaceholderEdit });
 }
 
-function createInitialStore(): EditorStore {
-    const initialBlocks: Block[] = [
-        {
-            clientId: createClientId(),
-            name: HEADING_BLOCK_NAME,
-            attributes: { level: 2, content: '<h2>Heading</h2>' },
-            innerBlocks: [],
-        },
-        {
-            clientId: createClientId(),
-            name: PARAGRAPH_BLOCK_NAME,
-            attributes: { content: '<p>Start writing…</p>' },
-            innerBlocks: [],
-        },
-    ];
-
-    return createEditorStore(initialBlocks);
-}
-
 function bootEditor(): void {
     const container = document.getElementById(MOUNT_ID);
 
@@ -81,14 +61,15 @@ function bootEditor(): void {
 
     void loadInserterBlocks({ apiBase: config.apiBase });
 
-    const store = createInitialStore();
-
     createRoot(container).render(
         <StrictMode>
-            <EditorShell store={store} />
+            <EditorBoot
+                postId={config.postId}
+                postType={config.postType}
+                apiBase={config.apiBase}
+            />
         </StrictMode>
     );
-
 }
 
 bootEditor();
