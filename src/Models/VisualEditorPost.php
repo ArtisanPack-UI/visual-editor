@@ -26,12 +26,9 @@ class VisualEditorPost extends Model
 	protected $guarded = [];
 
 	/**
-	 * @inheritDoc
+	 * @var array<string, string>
 	 */
-	protected function casts(): array
-	{
-		return [
-			'blocks' => 'array',
-		];
-	}
+	protected $casts = [
+		'blocks' => 'array',
+	];
 }

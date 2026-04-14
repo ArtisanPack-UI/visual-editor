@@ -1,6 +1,6 @@
 # Phase 1 — REST API
 
-Three JSON endpoints feed the React editor during Phase 1. All routes sit behind the `api` + `auth` middleware stack and are grouped under the `/visual-editor/api` prefix.
+Three JSON endpoints feed the React editor during Phase 1. All routes are grouped under the `/visual-editor/api` prefix. By default they sit behind the `api` + `auth` middleware stack; the stack can be overridden via `config('artisanpack.visual-editor.api.middleware')`.
 
 | Method | URI                               | Name                            | Purpose                                          |
 | ------ | --------------------------------- | ------------------------------- | ------------------------------------------------ |
@@ -8,7 +8,7 @@ Three JSON endpoints feed the React editor during Phase 1. All routes sit behind
 | PUT    | `/visual-editor/api/posts/{post}` | `visual-editor.api.posts.update`| Persist a new block tree for a post              |
 | GET    | `/visual-editor/api/blocks`       | `visual-editor.api.blocks.index`| Return the registered block type definitions    |
 
-The middleware stack is overridable via `config('artisanpack.visual-editor.api.middleware')` if a consuming app needs Sanctum, a different guard, etc.
+Override the middleware stack when a consuming app needs Sanctum, a different guard, etc.
 
 ## Authorization
 

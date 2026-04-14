@@ -18,8 +18,16 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Registries;
 
+use InvalidArgumentException;
+
 class BlockTypeRegistry
 {
+	/**
+	 * Canonical block name pattern: `namespace/name` using lowercase
+	 * alphanumerics and hyphens (e.g. `core/paragraph`).
+	 */
+	protected const NAME_PATTERN = '/^[a-z][a-z0-9-]*\/[a-z][a-z0-9-]*$/';
+
 	/**
 	 * @var array<string, array<string, mixed>>
 	 */
@@ -55,7 +63,20 @@ class BlockTypeRegistry
 	 */
 	public function register( string $name, array $definition ): void
 	{
-		$this->blocks[ $name ] = array_merge( ['name' => $name], $definition );
+		$normalized = trim( $name );
+
+		if ( '' === $normalized ) {
+			throw new InvalidArgumentException( 'Block type name cannot be empty.' );
+		}
+
+		if ( 1 !== preg_match( self::NAME_PATTERN, $normalized ) ) {
+			throw new InvalidArgumentException( sprintf(
+				'Block type name "%s" is invalid. Expected format: "namespace/name" using lowercase letters, numbers, and hyphens.',
+				$name
+			) );
+		}
+
+		$this->blocks[ $normalized ] = array_merge( ['name' => $normalized], $definition );
 	}
 
 	/**

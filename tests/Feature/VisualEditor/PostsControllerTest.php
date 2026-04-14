@@ -86,6 +86,81 @@ it( 'validates the block tree shape on PUT', function () {
 		->assertJsonValidationErrors( 'blocks' );
 } );
 
+it( 'rejects duplicate clientIds within the tree', function () {
+	actingAsUser();
+	$post = createPost();
+
+	$response = $this->putJson( "/visual-editor/api/posts/{$post->id}", [
+		'blocks' => [
+			[
+				'clientId'    => 'dupe',
+				'name'        => 'core/paragraph',
+				'attributes'  => ['content' => 'a'],
+				'innerBlocks' => [],
+			],
+			[
+				'clientId'    => 'dupe',
+				'name'        => 'core/paragraph',
+				'attributes'  => ['content' => 'b'],
+				'innerBlocks' => [],
+			],
+		],
+	] );
+
+	$response->assertUnprocessable()
+		->assertJsonValidationErrors( 'blocks' );
+} );
+
+it( 'rejects block trees deeper than MAX_DEPTH', function () {
+	actingAsUser();
+	$post = createPost();
+
+	$build = function ( int $depth ) use ( &$build ): array {
+		$block = [
+			'clientId'    => "c-{$depth}",
+			'name'        => 'core/paragraph',
+			'attributes'  => [],
+			'innerBlocks' => [],
+		];
+
+		if ( $depth > 0 ) {
+			$block['innerBlocks'] = [$build( $depth - 1 )];
+		}
+
+		return $block;
+	};
+
+	$response = $this->putJson( "/visual-editor/api/posts/{$post->id}", [
+		'blocks' => [$build( \ArtisanPackUI\VisualEditor\Rules\BlockTreeRule::MAX_DEPTH )],
+	] );
+
+	$response->assertUnprocessable()
+		->assertJsonValidationErrors( 'blocks' );
+} );
+
+it( 'rejects block trees with more than MAX_NODES blocks', function () {
+	actingAsUser();
+	$post = createPost();
+
+	$count  = \ArtisanPackUI\VisualEditor\Rules\BlockTreeRule::MAX_NODES + 1;
+	$blocks = [];
+	for ( $i = 0; $i < $count; $i++ ) {
+		$blocks[] = [
+			'clientId'    => "c-{$i}",
+			'name'        => 'core/paragraph',
+			'attributes'  => [],
+			'innerBlocks' => [],
+		];
+	}
+
+	$response = $this->putJson( "/visual-editor/api/posts/{$post->id}", [
+		'blocks' => $blocks,
+	] );
+
+	$response->assertUnprocessable()
+		->assertJsonValidationErrors( 'blocks' );
+} );
+
 it( 'requires the blocks key on PUT', function () {
 	actingAsUser();
 	$post = createPost();
