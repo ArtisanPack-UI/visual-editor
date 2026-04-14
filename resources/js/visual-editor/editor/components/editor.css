@@ -66,23 +66,44 @@
     position: absolute;
     top: 50%;
     left: 0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     width: 1rem;
     height: 1rem;
+    padding: 0;
     transform: translateY(-50%);
+    border: 0;
     border-radius: 2px;
-    background: repeating-linear-gradient(
-        to bottom,
-        #c7c7cc 0,
-        #c7c7cc 2px,
-        transparent 2px,
-        transparent 4px
-    );
+    background: transparent;
+    color: #8e8e93;
+    font-size: 0.75rem;
+    line-height: 1;
+    cursor: grab;
     opacity: 0;
-    transition: opacity 120ms ease;
-    pointer-events: none;
+    transition: opacity 120ms ease, background-color 120ms ease;
+    touch-action: none;
+}
+
+.ve-block__drag-handle:focus-visible {
+    outline: 2px solid #0a84ff;
+    outline-offset: 2px;
+    opacity: 1;
 }
 
 .ve-block--is-hovered .ve-block__drag-handle,
-.ve-block--is-selected .ve-block__drag-handle {
+.ve-block--is-selected .ve-block__drag-handle,
+.ve-block--is-dragging .ve-block__drag-handle {
     opacity: 1;
+}
+
+.ve-block--is-dragging {
+    opacity: 0.4;
+}
+
+.ve-block--drag-overlay {
+    background: #fff;
+    border-color: #0a84ff;
+    box-shadow: 0 12px 24px rgba(10, 132, 255, 0.2);
+    cursor: grabbing;
 }
