@@ -4,7 +4,7 @@ export interface PostPayload {
     id: number;
     title: string;
     blocks: Block[];
-    updated_at: string;
+    updated_at: string | null;
 }
 
 export interface PostRestClientOptions {
@@ -107,7 +107,7 @@ function isPostPayload(value: unknown): value is PostPayload {
         typeof source.id === 'number' &&
         typeof source.title === 'string' &&
         Array.isArray(source.blocks) &&
-        typeof source.updated_at === 'string'
+        (typeof source.updated_at === 'string' || source.updated_at === null)
     );
 }
 
