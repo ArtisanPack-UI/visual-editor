@@ -43,7 +43,12 @@ function Statusbar({ saveStatus }: { saveStatus?: AutosaveState }) {
     const selectedClientId = useStore(store, (state) => state.selection.clientId);
 
     const statusLabel = resolveStatusLabel(saveStatus, isDirty);
-    const statusToken = saveStatus?.status ?? (isDirty ? 'dirty' : 'saved');
+    const statusToken =
+        saveStatus && saveStatus.status !== 'idle'
+            ? saveStatus.status
+            : isDirty
+                ? 'dirty'
+                : 'saved';
 
     return (
         <div className="ve-editor-shell__statusbar" role="status" aria-live="polite">
