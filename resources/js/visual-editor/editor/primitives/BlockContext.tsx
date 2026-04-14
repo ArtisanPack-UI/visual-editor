@@ -49,10 +49,15 @@ export function useBlockContextValue<T>(
     const raw = context[key];
 
     const lastRawRef = useRef<unknown>(UNSET_SENTINEL);
+    const lastGuardRef = useRef<BlockContextTypeGuard<T> | null>(null);
     const lastResultRef = useRef<T | undefined>(undefined);
 
-    if (!Object.is(lastRawRef.current, raw)) {
+    if (
+        !Object.is(lastRawRef.current, raw) ||
+        lastGuardRef.current !== guard
+    ) {
         lastRawRef.current = raw;
+        lastGuardRef.current = guard;
         lastResultRef.current = guard(raw) ? raw : undefined;
     }
 

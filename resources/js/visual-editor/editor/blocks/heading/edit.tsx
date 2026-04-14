@@ -94,7 +94,7 @@ export default function HeadingEdit({ clientId, attributes }: BlockEditProps) {
             return;
         }
 
-        editor.chain().focus().setNode('heading', { level }).run();
+        editor.chain().setNode('heading', { level }).run();
     }, [editor, level]);
 
     return (

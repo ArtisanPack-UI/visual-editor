@@ -24,13 +24,6 @@ export default defineConfig(({ command }) => ({
         sourcemap: true,
         rollupOptions: {
             input: resolve(editorRoot, 'main.tsx'),
-            external: [
-                'react',
-                'react/jsx-runtime',
-                'react/jsx-dev-runtime',
-                'react-dom',
-                'react-dom/client',
-            ],
             output: {
                 format: 'es',
                 entryFileNames: 'main.js',

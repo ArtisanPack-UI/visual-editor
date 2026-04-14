@@ -59,7 +59,9 @@ function bootEditor(): void {
     registerPlaceholderBlock();
     registerCoreBlocks();
 
-    void loadInserterBlocks({ apiBase: config.apiBase });
+    loadInserterBlocks({ apiBase: config.apiBase }).catch((error) => {
+        console.error('visual-editor: loadInserterBlocks failed', error);
+    });
 
     createRoot(container).render(
         <StrictMode>

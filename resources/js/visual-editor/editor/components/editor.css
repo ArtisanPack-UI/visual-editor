@@ -112,6 +112,12 @@
     outline: none;
 }
 
+.ve-richtext:focus-visible {
+    outline: 2px solid #0a84ff;
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
 .ve-richtext p,
 .ve-richtext h1,
 .ve-richtext h2,

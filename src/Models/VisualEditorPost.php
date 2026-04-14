@@ -23,7 +23,13 @@ class VisualEditorPost extends Model
 {
 	protected $table = 've_contents';
 
-	protected $guarded = [];
+	/**
+	 * @var array<int, string>
+	 */
+	protected $fillable = [
+		'title',
+		'blocks',
+	];
 
 	/**
 	 * @var array<string, string>

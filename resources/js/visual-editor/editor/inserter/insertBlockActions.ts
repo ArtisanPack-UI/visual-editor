@@ -19,8 +19,8 @@ export function insertBlockAtSelection(
     }
 
     const newBlock: Block = {
-        clientId: createClientId(),
         ...factory(),
+        clientId: createClientId(),
     };
 
     const state = store.getState();
@@ -70,8 +70,8 @@ export function replaceBlockWithInserterBlock(
     }
 
     const newBlock: Block = {
-        clientId: createClientId(),
         ...factory(),
+        clientId: createClientId(),
     };
 
     const nextBlocks = state.blocks.slice();

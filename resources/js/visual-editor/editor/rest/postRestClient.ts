@@ -111,6 +111,31 @@ function isPostPayload(value: unknown): value is PostPayload {
     );
 }
 
+function isAbortError(error: unknown): boolean {
+    return error instanceof DOMException && error.name === 'AbortError';
+}
+
+async function fetchWithErrorWrapping(
+    fetcher: typeof fetch,
+    url: string,
+    init: RequestInit
+): Promise<Response> {
+    try {
+        return await fetcher(url, init);
+    } catch (error) {
+        if (isAbortError(error)) {
+            throw error;
+        }
+
+        const message =
+            error instanceof Error
+                ? `Visual editor REST request failed: ${error.message}`
+                : 'Visual editor REST request failed.';
+
+        throw new PostRestError(message, 0, error);
+    }
+}
+
 async function handlePostResponse(response: Response): Promise<PostPayload> {
     const body = await parseJsonSafe(response);
 
@@ -142,7 +167,7 @@ export async function fetchPost(
     const csrfToken = resolveCsrfToken(clientOptions.csrfToken);
     const url = joinUrl(clientOptions.apiBase, `posts/${encodeURIComponent(postId)}`);
 
-    const response = await fetcher(url, {
+    const response = await fetchWithErrorWrapping(fetcher, url, {
         method: 'GET',
         credentials: 'same-origin',
         headers: buildHeaders(csrfToken, false),
@@ -162,7 +187,7 @@ export async function savePost(
     const csrfToken = resolveCsrfToken(clientOptions.csrfToken);
     const url = joinUrl(clientOptions.apiBase, `posts/${encodeURIComponent(postId)}`);
 
-    const response = await fetcher(url, {
+    const response = await fetchWithErrorWrapping(fetcher, url, {
         method: 'PUT',
         credentials: 'same-origin',
         headers: buildHeaders(csrfToken, true),

@@ -7,7 +7,10 @@ use Tests\TestUser;
 
 function createPost( array $overrides = [] ): VisualEditorPost
 {
-	return VisualEditorPost::create( array_merge( [
+	$authorId = $overrides['author_id'] ?? null;
+	unset( $overrides['author_id'] );
+
+	$post = VisualEditorPost::create( array_merge( [
 		'title'  => 'Test Post',
 		'blocks' => [
 			[
@@ -18,13 +21,20 @@ function createPost( array $overrides = [] ): VisualEditorPost
 			],
 		],
 	], $overrides ) );
+
+	if ( null !== $authorId ) {
+		$post->author_id = $authorId;
+		$post->save();
+	}
+
+	return $post;
 }
 
 function actingAsUser(): TestUser
 {
 	$user = TestUser::create( [
 		'name'     => 'Jane Doe',
-		'email'    => 'jane@example.com',
+		'email'    => 'jane+' . uniqid() . '@example.com',
 		'password' => bcrypt( 'secret' ),
 	] );
 

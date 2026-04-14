@@ -72,6 +72,12 @@ export function useBlockTiptap({
                 class: 've-richtext',
             },
             handleKeyDown: (_view, event) => {
+                if (event.isComposing || event.keyCode === 229) {
+                    return false;
+                }
+                if (event.ctrlKey || event.metaKey || event.altKey) {
+                    return false;
+                }
                 if (event.key === 'Enter' && !event.shiftKey) {
                     const handled = onEnterRef.current();
                     if (handled) {
