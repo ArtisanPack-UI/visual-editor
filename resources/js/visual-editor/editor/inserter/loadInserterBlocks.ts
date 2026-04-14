@@ -1,5 +1,9 @@
 import { registerBuiltinInserterBlocks } from './builtinInserterBlocks';
-import { registerInserterBlock, type InserterBlock } from './inserterRegistry';
+import {
+    getBlockFactory,
+    registerInserterBlock,
+    type InserterBlock,
+} from './inserterRegistry';
 
 export interface LoadInserterBlocksOptions {
     apiBase?: string;
@@ -36,18 +40,62 @@ export async function loadInserterBlocks(
             return;
         }
 
-        const data = (await response.json()) as { blocks?: InserterBlock[] };
+        const data = (await response.json()) as { blocks?: unknown };
 
         if (Array.isArray(data.blocks)) {
-            data.blocks.forEach((block) => {
-                if (block && typeof block.name === 'string' && typeof block.title === 'string') {
-                    registerInserterBlock(block);
+            data.blocks.forEach((raw) => {
+                const block = sanitizeInserterBlock(raw);
+
+                if (!block) {
+                    return;
                 }
+
+                // Skip entries without a client-side factory — without one,
+                // the inserter actions can't produce a usable block instance,
+                // so showing the entry would create dead list items.
+                if (!getBlockFactory(block.name)) {
+                    return;
+                }
+
+                registerInserterBlock(block);
             });
         }
     } catch {
         // Silent fallback — the built-ins are already registered.
     }
+}
+
+function sanitizeInserterBlock(raw: unknown): InserterBlock | null {
+    if (!raw || typeof raw !== 'object') {
+        return null;
+    }
+
+    const source = raw as Record<string, unknown>;
+
+    if (typeof source.name !== 'string' || typeof source.title !== 'string') {
+        return null;
+    }
+
+    const block: InserterBlock = {
+        name: source.name,
+        title: source.title,
+    };
+
+    if (typeof source.description === 'string') {
+        block.description = source.description;
+    }
+
+    if (Array.isArray(source.keywords)) {
+        const keywords = source.keywords.filter(
+            (keyword): keyword is string => typeof keyword === 'string'
+        );
+
+        if (keywords.length > 0) {
+            block.keywords = keywords;
+        }
+    }
+
+    return block;
 }
 
 function joinUrl(base: string, path: string): string {

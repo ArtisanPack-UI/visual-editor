@@ -32,7 +32,8 @@ export function insertBlockAtSelection(
         );
 
         if (currentIndex !== -1) {
-            insertIndex = currentIndex + 1;
+            const edge = state.selection.edge ?? 'end';
+            insertIndex = edge === 'start' ? currentIndex : currentIndex + 1;
         }
     }
 

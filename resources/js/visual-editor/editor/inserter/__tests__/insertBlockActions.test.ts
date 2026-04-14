@@ -36,12 +36,28 @@ describe('insertBlockAtSelection', () => {
         expect(store.getState().blocks[1].name).toBe('ve/heading');
     });
 
-    it('inserts after the selected block', () => {
+    it('inserts after the selected block when the selection edge is end', () => {
         const store = createEditorStore([
             makeParagraph('p1', '<p>a</p>'),
             makeParagraph('p2', '<p>b</p>'),
         ]);
-        store.getState().select('p1');
+        store.getState().select('p1', 'end');
+
+        insertBlockAtSelection(store, 've/heading');
+
+        const blocks = store.getState().blocks;
+        expect(blocks).toHaveLength(3);
+        expect(blocks[0].clientId).toBe('p1');
+        expect(blocks[1].name).toBe('ve/heading');
+        expect(blocks[2].clientId).toBe('p2');
+    });
+
+    it('inserts before the selected block when the selection edge is start', () => {
+        const store = createEditorStore([
+            makeParagraph('p1', '<p>a</p>'),
+            makeParagraph('p2', '<p>b</p>'),
+        ]);
+        store.getState().select('p2', 'start');
 
         insertBlockAtSelection(store, 've/heading');
 

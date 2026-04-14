@@ -16,7 +16,6 @@ export function SlashCommandPopover({
     return (
         <div
             className="ve-slash-command-popover"
-            role="listbox"
             aria-label="Slash command menu"
             data-testid="ve-slash-command-popover"
             onMouseDown={(event) => event.preventDefault()}
@@ -35,8 +34,6 @@ export function SlashCommandPopover({
                         return (
                             <li
                                 key={block.name}
-                                role="option"
-                                aria-selected={isSelected}
                                 className={[
                                     've-slash-command-popover__item',
                                     isSelected

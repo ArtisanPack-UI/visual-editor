@@ -60,9 +60,7 @@ export default function ParagraphEdit({ clientId, attributes }: BlockEditProps) 
         (state) => (state.selection.clientId === clientId ? state.selection.edge : undefined)
     );
 
-    const [slashQuery, setSlashQuery] = useState<string | null>(
-        detectSlashQuery(content)
-    );
+    const [slashQuery, setSlashQuery] = useState<string | null>(null);
     const [slashIndex, setSlashIndex] = useState(0);
 
     const inserterBlocks = useSyncExternalStore(
@@ -167,6 +165,22 @@ export default function ParagraphEdit({ clientId, attributes }: BlockEditProps) 
             return Math.min(current, filteredSlashBlocks.length - 1);
         });
     }, [filteredSlashBlocks]);
+
+    useEffect(() => {
+        if (!editor) {
+            return;
+        }
+
+        const onBlur = (): void => {
+            setSlashQuery(null);
+        };
+
+        editor.on('blur', onBlur);
+
+        return () => {
+            editor.off('blur', onBlur);
+        };
+    }, [editor]);
 
     useEffect(() => {
         if (slashQuery === null) {

@@ -4,6 +4,7 @@ import {
     filterInserterBlocks,
     getInserterBlocks,
     loadInserterBlocks,
+    registerBlockFactory,
     registerBuiltinInserterBlocks,
     subscribeInserterBlocks,
     type InserterBlock,
@@ -97,7 +98,13 @@ describe('loadInserterBlocks', () => {
         expect(names).toContain('ve/heading');
     });
 
-    it('merges API-returned blocks into the registry', async () => {
+    it('merges API-returned blocks when a client factory is registered', async () => {
+        registerBlockFactory('ve/custom', () => ({
+            name: 've/custom',
+            attributes: {},
+            innerBlocks: [],
+        }));
+
         const fetchImpl = vi.fn().mockResolvedValue({
             ok: true,
             json: async () => ({
@@ -112,6 +119,51 @@ describe('loadInserterBlocks', () => {
         const names = getInserterBlocks().map((block) => block.name);
         expect(names).toContain('ve/custom');
         expect(names).toContain('ve/paragraph');
+    });
+
+    it('skips API-returned blocks that have no client factory', async () => {
+        const fetchImpl = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                blocks: [
+                    { name: 've/unregistered', title: 'Unregistered' },
+                ],
+            }),
+        }) as unknown as typeof fetch;
+
+        await loadInserterBlocks({ apiBase: 'https://example.test/api', fetchImpl });
+
+        const names = getInserterBlocks().map((block) => block.name);
+        expect(names).not.toContain('ve/unregistered');
+    });
+
+    it('ignores malformed payloads with non-string description or keyword entries', async () => {
+        registerBlockFactory('ve/custom', () => ({
+            name: 've/custom',
+            attributes: {},
+            innerBlocks: [],
+        }));
+
+        const fetchImpl = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                blocks: [
+                    {
+                        name: 've/custom',
+                        title: 'Custom',
+                        description: 42,
+                        keywords: ['valid', 7, null, 'more'],
+                    },
+                ],
+            }),
+        }) as unknown as typeof fetch;
+
+        await loadInserterBlocks({ apiBase: 'https://example.test/api', fetchImpl });
+
+        const custom = getInserterBlocks().find((block) => block.name === 've/custom');
+        expect(custom).toBeDefined();
+        expect(custom!.description).toBeUndefined();
+        expect(custom!.keywords).toEqual(['valid', 'more']);
     });
 
     it('falls back to built-ins when the API request fails', async () => {

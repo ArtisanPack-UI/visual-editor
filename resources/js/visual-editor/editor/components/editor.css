@@ -210,12 +210,14 @@
 
 .ve-inserter-panel {
     flex: 0 0 240px;
-    max-height: 100%;
+    max-height: calc(100vh - 120px);
     padding: 12px;
     border: 1px solid #d0d0d0;
     border-radius: 8px;
     background: #fafafa;
     font-size: 13px;
+    overflow-y: auto;
+    box-sizing: border-box;
 }
 
 .ve-inserter-panel__header {
@@ -297,12 +299,15 @@
     left: 0;
     z-index: 20;
     min-width: 240px;
+    max-height: min(320px, calc(100vh - 160px));
     margin-top: 4px;
     padding: 4px;
     background: #fff;
     border: 1px solid #d0d0d0;
     border-radius: 6px;
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.14);
+    overflow-y: auto;
+    box-sizing: border-box;
 }
 
 .ve-slash-command-popover__list {

@@ -72,6 +72,10 @@ function KeyboardBindings() {
                 return;
             }
 
+            if (shouldDeferToNativeHistory(event.target)) {
+                return;
+            }
+
             const isRedo = event.shiftKey || event.key.toLowerCase() === 'y';
 
             event.preventDefault();
@@ -99,4 +103,19 @@ function isUndoRedoKey(event: KeyboardEvent): boolean {
     const key = event.key.toLowerCase();
 
     return key === 'z' || key === 'y';
+}
+
+function shouldDeferToNativeHistory(target: EventTarget | null): boolean {
+    if (!(target instanceof HTMLElement)) {
+        return false;
+    }
+
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+        return true;
+    }
+
+    // Non-contenteditable focusable fields (e.g. `<select>`) should also keep
+    // their native behavior. The Tiptap editor surfaces are contenteditable,
+    // so those still route through the store's undo/redo.
+    return false;
 }
