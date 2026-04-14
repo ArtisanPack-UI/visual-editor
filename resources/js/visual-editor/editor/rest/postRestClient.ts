@@ -96,6 +96,36 @@ async function parseJsonSafe(response: Response): Promise<unknown> {
     }
 }
 
+function isBlockShape(value: unknown): value is Block {
+    if (!value || typeof value !== 'object') {
+        return false;
+    }
+
+    const source = value as Record<string, unknown>;
+
+    if (typeof source.clientId !== 'string' || source.clientId === '') {
+        return false;
+    }
+
+    if (typeof source.name !== 'string' || source.name === '') {
+        return false;
+    }
+
+    if (
+        !source.attributes ||
+        typeof source.attributes !== 'object' ||
+        Array.isArray(source.attributes)
+    ) {
+        return false;
+    }
+
+    if (!Array.isArray(source.innerBlocks)) {
+        return false;
+    }
+
+    return source.innerBlocks.every(isBlockShape);
+}
+
 function isPostPayload(value: unknown): value is PostPayload {
     if (!value || typeof value !== 'object') {
         return false;
@@ -107,6 +137,7 @@ function isPostPayload(value: unknown): value is PostPayload {
         typeof source.id === 'number' &&
         typeof source.title === 'string' &&
         Array.isArray(source.blocks) &&
+        source.blocks.every(isBlockShape) &&
         (typeof source.updated_at === 'string' || source.updated_at === null)
     );
 }

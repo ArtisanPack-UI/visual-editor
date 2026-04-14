@@ -65,6 +65,30 @@ describe('fetchPost', () => {
         ).rejects.toBeInstanceOf(PostRestError);
     });
 
+    it('throws PostRestError when a block in the tree is malformed', async () => {
+        const fetchImpl = vi.fn().mockResolvedValue(
+            mockJsonResponse({
+                id: 1,
+                title: 'Test Post',
+                blocks: [
+                    {
+                        clientId: 'abc-123',
+                        name: 'core/paragraph',
+                        attributes: { content: 'Hello' },
+                        innerBlocks: [
+                            { clientId: '', name: '', attributes: null, innerBlocks: [] },
+                        ],
+                    },
+                ],
+                updated_at: '2026-04-14T12:34:56+00:00',
+            })
+        );
+
+        await expect(
+            fetchPost('1', { apiBase: '/visual-editor/api', fetchImpl })
+        ).rejects.toBeInstanceOf(PostRestError);
+    });
+
     it('normalizes trailing slashes in apiBase', async () => {
         const fetchImpl = vi.fn().mockResolvedValue(mockJsonResponse(samplePayload));
 
