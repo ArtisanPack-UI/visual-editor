@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { EditorShell } from './components';
 import './components/editor.css';
 import { registerBlock, type BlockEditProps } from './registry';
-import { createEditorStore, type Block, type EditorStore } from './store';
+import { registerCoreBlocks, PARAGRAPH_BLOCK_NAME, HEADING_BLOCK_NAME } from './blocks';
+import { createEditorStore, createClientId, type Block, type EditorStore } from './store';
 
 const MOUNT_ID = 've-root';
 
@@ -36,23 +37,23 @@ function registerPlaceholderBlock(): void {
     registerBlock({ name: 've/placeholder', edit: PlaceholderEdit });
 }
 
-function createPlaceholderStore(): EditorStore {
-    const placeholders: Block[] = [
+function createInitialStore(): EditorStore {
+    const initialBlocks: Block[] = [
         {
-            clientId: 'placeholder-1',
-            name: 've/placeholder',
-            attributes: { label: 'First placeholder block' },
+            clientId: createClientId(),
+            name: HEADING_BLOCK_NAME,
+            attributes: { level: 2, content: '<h2>Heading</h2>' },
             innerBlocks: [],
         },
         {
-            clientId: 'placeholder-2',
-            name: 've/placeholder',
-            attributes: { label: 'Second placeholder block' },
+            clientId: createClientId(),
+            name: PARAGRAPH_BLOCK_NAME,
+            attributes: { content: '<p>Start writing…</p>' },
             innerBlocks: [],
         },
     ];
 
-    return createEditorStore(placeholders);
+    return createEditorStore(initialBlocks);
 }
 
 function bootEditor(): void {
@@ -75,8 +76,9 @@ function bootEditor(): void {
     }
 
     registerPlaceholderBlock();
+    registerCoreBlocks();
 
-    const store = createPlaceholderStore();
+    const store = createInitialStore();
 
     createRoot(container).render(
         <StrictMode>

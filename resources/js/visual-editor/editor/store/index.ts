@@ -16,6 +16,7 @@ export {
     removeFromTree,
     updateAttributesInTree,
 } from './treeUtils';
+export { createClientId } from './ids';
 export type {
     Block,
     EditorActions,
