@@ -2,6 +2,11 @@
 
 namespace ArtisanPackUI\VisualEditor;
 
+use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
+use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
+use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
+use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
 
 class VisualEditorServiceProvider extends ServiceProvider
@@ -11,6 +16,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 	{
 		$this->app->singleton( 'package', function ( $app ) {
 			return new VisualEditor();
+		} );
+
+		$this->app->singleton( BlockTypeRegistry::class, function () {
+			return new BlockTypeRegistry();
 		} );
 
 		$this->mergeConfigFrom(
@@ -30,9 +39,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// 1. Merge the configuration correctly.
 		$this->mergeConfiguration();
 
-		// 2. Load package views and routes for the Phase 0 spike.
+		// 2. Load package views, routes, and migrations.
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor' );
 		$this->loadRoutesFrom( __DIR__ . '/../routes/web.php' );
+		$this->loadMigrationsFrom( __DIR__ . '/../database/migrations' );
+
+		$this->registerApiRoutes();
+
+		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
 
 		// 3. Tag the config file for the scaffold command.
 		if ( $this->app->runningInConsole() ) {
@@ -44,6 +58,23 @@ class VisualEditorServiceProvider extends ServiceProvider
 								  __DIR__ . '/../public/editor-spike' => public_path( 'vendor/visual-editor/editor-spike' ),
 							  ], 'visual-editor-spike-assets' );
 		}
+	}
+
+	/**
+	 * Registers the package API routes under the `/visual-editor/api` prefix.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function registerApiRoutes(): void
+	{
+		$middleware = (array) config(
+			'artisanpack.visual-editor.api.middleware',
+			['api', 'auth']
+		);
+
+		Route::middleware( $middleware )
+			->prefix( 'visual-editor/api' )
+			->group( __DIR__ . '/../routes/api.php' );
 	}
 
 
