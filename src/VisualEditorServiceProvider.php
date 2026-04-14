@@ -53,10 +53,6 @@ class VisualEditorServiceProvider extends ServiceProvider
 			$this->publishes( [
 								  __DIR__ . '/../config/visual-editor.php' => config_path( 'artisanpack/visual-editor.php' ),
 							  ], 'artisanpack-package-config' );
-
-			$this->publishes( [
-								  __DIR__ . '/../public/editor-spike' => public_path( 'vendor/visual-editor/editor-spike' ),
-							  ], 'visual-editor-spike-assets' );
 		}
 	}
 
