@@ -86,7 +86,7 @@ class BlockTypeRegistry
 	 */
 	public function unregister( string $name ): void
 	{
-		unset( $this->blocks[ $name ] );
+		unset( $this->blocks[ trim( $name ) ] );
 	}
 
 	/**

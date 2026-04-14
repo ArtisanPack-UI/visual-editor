@@ -19,7 +19,9 @@ type LoadState =
     | { status: 'error'; error: Error }
     | { status: 'ready'; store: EditorStore };
 
-export function EditorBoot({ postId, apiBase }: EditorBootProps) {
+export function EditorBoot(props: EditorBootProps) {
+    const { postId, apiBase } = props;
+
     const clientOptions = useMemo<PostRestClientOptions>(
         () => ({ apiBase }),
         [apiBase]
