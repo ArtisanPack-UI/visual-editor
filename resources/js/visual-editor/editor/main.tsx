@@ -1,5 +1,9 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import { EditorShell } from './components';
+import './components/editor.css';
+import { registerBlock, type BlockEditProps } from './registry';
+import { createEditorStore, type Block, type EditorStore } from './store';
 
 const MOUNT_ID = 've-root';
 
@@ -8,25 +12,6 @@ type EditorConfig = {
     postType: string;
     apiBase: string;
 };
-
-type EditorShellProps = EditorConfig;
-
-function EditorShell({ postId, postType, apiBase }: EditorShellProps) {
-    return (
-        <div className="ve-editor-placeholder">
-            <h1>ArtisanPack Visual Editor</h1>
-            <p>Placeholder shell — the real editor lands in issue #270.</p>
-            <dl>
-                <dt>postId</dt>
-                <dd>{postId}</dd>
-                <dt>postType</dt>
-                <dd>{postType}</dd>
-                <dt>apiBase</dt>
-                <dd>{apiBase}</dd>
-            </dl>
-        </div>
-    );
-}
 
 function readEditorConfig(container: HTMLElement): EditorConfig | null {
     const postId = container.dataset.postId?.trim();
@@ -38,6 +23,36 @@ function readEditorConfig(container: HTMLElement): EditorConfig | null {
     }
 
     return { postId, postType, apiBase };
+}
+
+function PlaceholderEdit({ attributes }: BlockEditProps) {
+    const label =
+        typeof attributes.label === 'string' ? attributes.label : 'Placeholder block';
+
+    return <p className="ve-placeholder-block">{label}</p>;
+}
+
+function registerPlaceholderBlock(): void {
+    registerBlock({ name: 've/placeholder', edit: PlaceholderEdit });
+}
+
+function createPlaceholderStore(): EditorStore {
+    const placeholders: Block[] = [
+        {
+            clientId: 'placeholder-1',
+            name: 've/placeholder',
+            attributes: { label: 'First placeholder block' },
+            innerBlocks: [],
+        },
+        {
+            clientId: 'placeholder-2',
+            name: 've/placeholder',
+            attributes: { label: 'Second placeholder block' },
+            innerBlocks: [],
+        },
+    ];
+
+    return createEditorStore(placeholders);
 }
 
 function bootEditor(): void {
@@ -59,11 +74,18 @@ function bootEditor(): void {
         return;
     }
 
+    registerPlaceholderBlock();
+
+    const store = createPlaceholderStore();
+
     createRoot(container).render(
         <StrictMode>
-            <EditorShell {...config} />
+            <EditorShell store={store} />
         </StrictMode>
     );
+
+    // Config is read for future wiring (post loader, API client) but unused for now.
+    void config;
 }
 
 bootEditor();
