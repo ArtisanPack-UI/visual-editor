@@ -25,7 +25,7 @@ test('mount blade view pulls the editor entry through @vite', function () use ($
     expect($contents)->toContain("@vite(['resources/js/visual-editor/editor/main.tsx'])");
 });
 
-test('package routes register the /editor path next to /editor-spike', function () use ($routesPath) {
+test('package routes register the /editor path', function () use ($routesPath) {
     $contents = file_get_contents($routesPath);
 
     expect($contents)->toContain("Route::get('/editor'");
@@ -33,7 +33,7 @@ test('package routes register the /editor path next to /editor-spike', function 
     expect($contents)->toContain("'postId'");
     expect($contents)->toContain("'postType'");
     expect($contents)->toContain("'apiBase'");
-    expect($contents)->toContain('/editor-spike');
+    expect($contents)->not->toContain('/editor-spike');
 });
 
 test('boot script targets #ve-root and logs a clear error when missing', function () use ($bootPath) {

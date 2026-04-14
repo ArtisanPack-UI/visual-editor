@@ -1,7 +1,6 @@
 vendor/
 .idea/
 node_modules/
-public/editor-spike/
 dist/
 .vite/
 *.log
