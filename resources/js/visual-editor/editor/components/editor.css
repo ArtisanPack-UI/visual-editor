@@ -201,3 +201,148 @@
     white-space: nowrap;
     border: 0;
 }
+
+.ve-editor-shell__body {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+}
+
+.ve-inserter-panel {
+    flex: 0 0 240px;
+    max-height: 100%;
+    padding: 12px;
+    border: 1px solid #d0d0d0;
+    border-radius: 8px;
+    background: #fafafa;
+    font-size: 13px;
+}
+
+.ve-inserter-panel__header {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.ve-inserter-panel__title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #555;
+}
+
+.ve-inserter-panel__search input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid #d0d0d0;
+    border-radius: 4px;
+    font-size: 13px;
+    background: #fff;
+}
+
+.ve-inserter-panel__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ve-inserter-panel__empty {
+    padding: 8px;
+    color: #888;
+    font-style: italic;
+}
+
+.ve-inserter-panel__item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    width: 100%;
+    padding: 8px;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+}
+
+.ve-inserter-panel__item:hover,
+.ve-inserter-panel__item:focus-visible {
+    background: #eef5ff;
+    border-color: #0a84ff;
+    outline: none;
+}
+
+.ve-inserter-panel__item-title {
+    font-weight: 600;
+}
+
+.ve-inserter-panel__item-description {
+    color: #666;
+    font-size: 12px;
+}
+
+.ve-block-paragraph-wrapper {
+    position: relative;
+}
+
+.ve-slash-command-popover {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 20;
+    min-width: 240px;
+    margin-top: 4px;
+    padding: 4px;
+    background: #fff;
+    border: 1px solid #d0d0d0;
+    border-radius: 6px;
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.14);
+}
+
+.ve-slash-command-popover__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ve-slash-command-popover__item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 6px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.ve-slash-command-popover__item--is-selected {
+    background: #0a84ff;
+    color: #fff;
+}
+
+.ve-slash-command-popover__item--is-selected .ve-slash-command-popover__item-description {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.ve-slash-command-popover__item-title {
+    font-weight: 600;
+}
+
+.ve-slash-command-popover__item-description {
+    font-size: 12px;
+    color: #666;
+}
+
+.ve-slash-command-popover__empty {
+    padding: 8px;
+    color: #888;
+    font-style: italic;
+}

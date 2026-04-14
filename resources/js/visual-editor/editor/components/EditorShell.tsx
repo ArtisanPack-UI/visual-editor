@@ -5,6 +5,7 @@ import { EditorStoreProvider, useEditorStore } from '../primitives';
 import { Canvas } from './Canvas';
 import { BlockList } from './BlockList';
 import { RichTextToolbar } from './RichTextToolbar';
+import { InserterPanel } from './InserterPanel';
 
 export interface EditorShellProps {
     store: EditorStore;
@@ -24,9 +25,12 @@ function EditorShellChrome() {
             <Statusbar />
             <KeyboardBindings />
             <RichTextToolbar />
-            <Canvas>
-                <BlockList />
-            </Canvas>
+            <div className="ve-editor-shell__body">
+                <InserterPanel />
+                <Canvas>
+                    <BlockList />
+                </Canvas>
+            </div>
         </div>
     );
 }

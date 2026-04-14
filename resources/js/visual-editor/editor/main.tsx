@@ -4,6 +4,7 @@ import { EditorShell } from './components';
 import './components/editor.css';
 import { registerBlock, type BlockEditProps } from './registry';
 import { registerCoreBlocks, PARAGRAPH_BLOCK_NAME, HEADING_BLOCK_NAME } from './blocks';
+import { loadInserterBlocks } from './inserter';
 import { createEditorStore, createClientId, type Block, type EditorStore } from './store';
 
 const MOUNT_ID = 've-root';
@@ -78,6 +79,8 @@ function bootEditor(): void {
     registerPlaceholderBlock();
     registerCoreBlocks();
 
+    void loadInserterBlocks({ apiBase: config.apiBase });
+
     const store = createInitialStore();
 
     createRoot(container).render(
@@ -86,8 +89,6 @@ function bootEditor(): void {
         </StrictMode>
     );
 
-    // Config is read for future wiring (post loader, API client) but unused for now.
-    void config;
 }
 
 bootEditor();
