@@ -58,6 +58,41 @@ it( 'returns 403 when ownership restriction blocks the user', function () {
 	$response->assertForbidden();
 } );
 
+it( 'returns 403 on PUT when ownership restriction blocks the user', function () {
+	config()->set( 'artisanpack.visual-editor.authorization.restrict_by_owner', true );
+
+	$owner = TestUser::create( [
+		'name'     => 'Owner',
+		'email'    => 'owner@example.com',
+		'password' => bcrypt( 'secret' ),
+	] );
+	$post = createPost( ['author_id' => $owner->id] );
+
+	actingAsUser();
+
+	$response = $this->putJson( "/visual-editor/api/posts/{$post->id}", [
+		'blocks' => [
+			[
+				'clientId'    => 'c-1',
+				'name'        => 'core/paragraph',
+				'attributes'  => ['content' => 'Hello'],
+				'innerBlocks' => [],
+			],
+		],
+	] );
+
+	$response->assertForbidden();
+
+	expect( $post->fresh()->blocks )->toEqual( [
+		[
+			'clientId'    => 'abc-123',
+			'name'        => 'core/paragraph',
+			'attributes'  => ['content' => 'Hello'],
+			'innerBlocks' => [],
+		],
+	] );
+} );
+
 it( 'returns the block tree for an authorized GET request', function () {
 	actingAsUser();
 	$post = createPost();
