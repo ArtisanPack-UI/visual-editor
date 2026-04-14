@@ -305,4 +305,43 @@ describe('editor store history', () => {
             expect(store.getState().isDirty).toBe(true);
         });
     });
+
+    describe('selection capture', () => {
+        it('restores the selection that was active before the change on undo', () => {
+            const store = createEditorStore([makeBlock('p-1')]);
+            store.getState().select('p-1', 'end');
+
+            store.getState().replaceBlocks([makeBlock('p-2')]);
+            expect(store.getState().selection.clientId).toBe(null);
+
+            store.getState().undo();
+
+            expect(store.getState().selection.clientId).toBe('p-1');
+            expect(store.getState().selection.edge).toBe('end');
+        });
+
+        it('restores the post-change selection on redo', () => {
+            const store = createEditorStore([makeBlock('p-1')]);
+            store.getState().select('p-1');
+
+            store.getState().replaceBlocks([makeBlock('p-2')]);
+            store.getState().select('p-2', 'start');
+
+            store.getState().undo();
+            expect(store.getState().selection.clientId).toBe('p-1');
+
+            store.getState().redo();
+            expect(store.getState().selection.clientId).toBe('p-2');
+            expect(store.getState().selection.edge).toBe('start');
+        });
+
+        it('preserves a selection on undo when the captured block still exists', () => {
+            const store = createEditorStore([makeBlock('p-1')]);
+            store.getState().select('p-1');
+            store.getState().insertBlock(makeBlock('p-2'));
+            // Past snapshot captured { blocks: [p-1], selection: { p-1 } }, so p-1 still exists after undo.
+            store.getState().undo();
+            expect(store.getState().selection.clientId).toBe('p-1');
+        });
+    });
 });

@@ -3,6 +3,7 @@ import { createStore, useStore, type StoreApi } from 'zustand';
 import type {
     Block,
     EditorStoreState,
+    HistorySnapshot,
     HistoryState,
     InsertLocation,
     MoveLocation,
@@ -39,7 +40,7 @@ function createInitialHistory(): HistoryState {
 
 function commitHistory(
     history: HistoryState,
-    previousBlocks: Block[],
+    previousSnapshot: HistorySnapshot,
     coalesceKey: string | null,
     now: number
 ): HistoryState {
@@ -58,7 +59,7 @@ function commitHistory(
         };
     }
 
-    const nextPast = history.past.concat([previousBlocks]);
+    const nextPast = history.past.concat([previousSnapshot]);
 
     while (nextPast.length > HISTORY_LIMIT) {
         nextPast.shift();
@@ -98,7 +99,7 @@ export function createEditorStore(initialBlocks: Block[] = []): EditorStore {
 
                 const history = commitHistory(
                     state.history,
-                    state.blocks,
+                    { blocks: state.blocks, selection: state.selection },
                     coalesceKey,
                     Date.now()
                 );
@@ -223,20 +224,23 @@ export function createEditorStore(initialBlocks: Block[] = []): EditorStore {
                         return state;
                     }
 
-                    const previousBlocks = state.history.past[state.history.past.length - 1];
+                    const previousSnapshot = state.history.past[state.history.past.length - 1];
                     const nextPast = state.history.past.slice(0, -1);
-                    const nextFuture = [state.blocks, ...state.history.future];
-                    const nextSelection = selectionExistsIn(
-                        previousBlocks,
-                        state.selection.clientId
-                    )
-                        ? state.selection
-                        : initialSelection;
+                    const currentSnapshot: HistorySnapshot = {
+                        blocks: state.blocks,
+                        selection: state.selection,
+                    };
+                    const nextFuture = [currentSnapshot, ...state.history.future];
 
                     return {
                         ...state,
-                        blocks: previousBlocks,
-                        selection: nextSelection,
+                        blocks: previousSnapshot.blocks,
+                        selection: selectionExistsIn(
+                            previousSnapshot.blocks,
+                            previousSnapshot.selection.clientId
+                        )
+                            ? previousSnapshot.selection
+                            : initialSelection,
                         isDirty: true,
                         history: {
                             past: nextPast,
@@ -254,24 +258,26 @@ export function createEditorStore(initialBlocks: Block[] = []): EditorStore {
                         return state;
                     }
 
-                    const [nextBlocks, ...remainingFuture] = state.history.future;
-                    const nextPast = state.history.past.concat([state.blocks]);
+                    const [nextSnapshot, ...remainingFuture] = state.history.future;
+                    const currentSnapshot: HistorySnapshot = {
+                        blocks: state.blocks,
+                        selection: state.selection,
+                    };
+                    const nextPast = state.history.past.concat([currentSnapshot]);
 
                     while (nextPast.length > HISTORY_LIMIT) {
                         nextPast.shift();
                     }
 
-                    const nextSelection = selectionExistsIn(
-                        nextBlocks,
-                        state.selection.clientId
-                    )
-                        ? state.selection
-                        : initialSelection;
-
                     return {
                         ...state,
-                        blocks: nextBlocks,
-                        selection: nextSelection,
+                        blocks: nextSnapshot.blocks,
+                        selection: selectionExistsIn(
+                            nextSnapshot.blocks,
+                            nextSnapshot.selection.clientId
+                        )
+                            ? nextSnapshot.selection
+                            : initialSelection,
                         isDirty: true,
                         history: {
                             past: nextPast,

@@ -28,7 +28,10 @@ export type EditorState = {
     isDirty: boolean;
 };
 
-export type HistorySnapshot = Block[];
+export type HistorySnapshot = {
+    blocks: Block[];
+    selection: Selection;
+};
 
 export type HistoryState = {
     past: HistorySnapshot[];
