@@ -19,9 +19,11 @@
         "types": ["vitest/globals", "@testing-library/jest-dom"],
         "baseUrl": ".",
         "paths": {
-            "@spike/*": ["resources/js/editor-spike/*"]
+            "@editor/*": ["resources/js/visual-editor/editor/*"]
         }
     },
-    "include": ["resources/js/editor-spike/**/*"],
+    "include": [
+        "resources/js/visual-editor/**/*"
+    ],
     "exclude": ["node_modules", "vendor", "public", "dist"]
 }

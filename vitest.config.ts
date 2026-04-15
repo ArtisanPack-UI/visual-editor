@@ -6,13 +6,15 @@ export default defineConfig({
     plugins: [react()],
     resolve: {
         alias: {
-            '@spike': resolve(__dirname, 'resources/js/editor-spike'),
+            '@editor': resolve(__dirname, 'resources/js/visual-editor/editor'),
         },
     },
     test: {
         globals: true,
         environment: 'jsdom',
-        setupFiles: ['./resources/js/editor-spike/test-setup.ts'],
-        include: ['resources/js/editor-spike/**/*.{test,spec}.{ts,tsx}'],
+        setupFiles: ['./resources/js/visual-editor/editor/test-setup.ts'],
+        include: [
+            'resources/js/visual-editor/**/*.{test,spec}.{ts,tsx}',
+        ],
     },
 });

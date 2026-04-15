@@ -2,25 +2,34 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 
-export default defineConfig({
+const editorRoot = resolve(__dirname, 'resources/js/visual-editor/editor');
+
+export default defineConfig(({ command }) => ({
     plugins: [react()],
+    root: command === 'serve' ? editorRoot : __dirname,
     resolve: {
         alias: {
-            '@spike': resolve(__dirname, 'resources/js/editor-spike'),
+            '@editor': editorRoot,
         },
+    },
+    server: {
+        port: 5175,
+        strictPort: false,
     },
     build: {
         target: 'esnext',
-        outDir: 'public/editor-spike',
+        outDir: resolve(__dirname, 'dist/editor'),
         emptyOutDir: true,
         manifest: false,
+        sourcemap: true,
         rollupOptions: {
-            input: resolve(__dirname, 'resources/js/editor-spike/main.tsx'),
+            input: resolve(editorRoot, 'main.tsx'),
             output: {
+                format: 'es',
                 entryFileNames: 'main.js',
                 chunkFileNames: '[name].js',
                 assetFileNames: '[name][extname]',
             },
         },
     },
-});
+}));

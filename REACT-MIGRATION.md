@@ -1,6 +1,6 @@
 # Visual Editor: React Migration
 
-> **Status:** Plan locked 2026-04-12. Phase 0 landed — gate passed. Phase 1 next. Tracking issues #236–#242.
+> **Status:** Phase 1 landed. Phase 2 next. Tracking issues #236–#242.
 
 ## What's Happening
 
