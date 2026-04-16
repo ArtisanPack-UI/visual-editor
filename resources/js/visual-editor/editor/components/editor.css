@@ -25,8 +25,8 @@
     --ve-color-accent: #0a84ff;
 
     /* Typography — themeable */
-    --ve-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --ve-font-family-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Fira Code', Menlo, Consolas, monospace;
+    --ve-font-family: -apple-system, "BlinkMacSystemFont", "Segoe UI", "Roboto", sans-serif;
+    --ve-font-family-mono: ui-monospace, "SF Mono", "Cascadia Code", "Fira Code", "Menlo", "Consolas", monospace;
     --ve-font-size-base: 1rem;
     --ve-line-height-base: 1.6;
 
@@ -924,14 +924,17 @@
     color: var(--ve-color-text);
 }
 
-/* Empty paragraph placeholder */
-.ve-block-paragraph .ve-richtext p.is-empty::before,
-.ve-block-paragraph .ProseMirror-trailingBreak:only-child::before {
+/* Empty block placeholder — data-placeholder is set on the .ve-richtext
+   ProseMirror element via useBlockTiptap's editorProps.attributes. Tiptap
+   adds .is-empty when the document has no content. */
+.ve-richtext[data-placeholder].is-editor-empty::before,
+.ve-richtext[data-placeholder].ProseMirror-focused.is-editor-empty::before {
     content: attr(data-placeholder);
     color: var(--ve-color-text-muted);
     pointer-events: none;
     float: left;
     height: 0;
+    font-style: italic;
 }
 
 /* --------------------------------------------------------------------------
@@ -1111,7 +1114,7 @@
     line-height: 1.5;
     color: var(--ve-pre-color);
     white-space: pre-wrap;
-    word-wrap: break-word;
+    overflow-wrap: break-word;
     overflow-x: auto;
 }
 

@@ -134,6 +134,7 @@ export function RichText({
         onEnter: onEnter ?? (() => false),
         onBackspaceAtStart: onBackspaceAtStart ?? (() => false),
         extraExtensions: extraExtensions?.slice(1),
+        placeholder,
     });
 
     // Heading level sync — when tagName changes (e.g. h2 → h4),

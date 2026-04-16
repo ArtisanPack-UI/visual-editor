@@ -25,6 +25,7 @@ export interface UseBlockTiptapOptions {
     onEnter: () => boolean;
     onBackspaceAtStart: () => boolean;
     extraExtensions?: Extensions;
+    placeholder?: string;
 }
 
 /**
@@ -43,6 +44,7 @@ export function useBlockTiptap({
     onEnter,
     onBackspaceAtStart,
     extraExtensions,
+    placeholder,
 }: UseBlockTiptapOptions): Editor | null {
     const lastEmittedHtmlRef = useRef<string>(content);
     const onUpdateRef = useRef(onUpdate);
@@ -78,6 +80,7 @@ export function useBlockTiptap({
         editorProps: {
             attributes: {
                 class: 've-richtext',
+                ...(placeholder ? { 'data-placeholder': placeholder } : {}),
             },
             handleKeyDown: (_view, event) => {
                 if (event.isComposing || event.keyCode === 229) {
