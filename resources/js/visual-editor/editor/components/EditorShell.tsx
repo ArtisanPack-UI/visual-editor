@@ -1,12 +1,24 @@
-import { useEffect } from 'react';
-import { useStore } from 'zustand';
+import { useCallback, useEffect, useState } from 'react';
 import type { EditorStore } from '../store';
 import type { AutosaveState } from '../rest';
 import { EditorStoreProvider, useEditorStore } from '../primitives';
 import { Canvas } from './Canvas';
 import { BlockList } from './BlockList';
-import { RichTextToolbar } from './RichTextToolbar';
-import { InserterPanel } from './InserterPanel';
+import { TopBar } from './TopBar';
+import { StatusBar } from './StatusBar';
+import { InspectorSidebar } from './InspectorSidebar';
+import { LeftSidebar } from './LeftSidebar';
+import { BlockToolbar } from './BlockToolbar';
+
+const TOOLBAR_PINNED_KEY = 've-toolbar-pinned';
+
+function readToolbarPinned(): boolean {
+    try {
+        return localStorage.getItem(TOOLBAR_PINNED_KEY) === 'true';
+    } catch {
+        return false;
+    }
+}
 
 export interface EditorShellProps {
     store: EditorStore;
@@ -22,54 +34,70 @@ export function EditorShell({ store, saveStatus }: EditorShellProps) {
 }
 
 function EditorShellChrome({ saveStatus }: { saveStatus?: AutosaveState }) {
+    const [inserterOpen, setInserterOpen] = useState(false);
+    const [inspectorOpen, setInspectorOpen] = useState(true);
+    const [toolbarPinned, setToolbarPinned] = useState(readToolbarPinned);
+
+    const toggleInserter = useCallback(() => {
+        setInserterOpen((prev) => !prev);
+    }, []);
+
+    const toggleInspector = useCallback(() => {
+        setInspectorOpen((prev) => !prev);
+    }, []);
+
+    const toggleToolbarPin = useCallback(() => {
+        setToolbarPinned((prev) => {
+            const next = !prev;
+            try {
+                localStorage.setItem(TOOLBAR_PINNED_KEY, String(next));
+            } catch {
+                // localStorage unavailable
+            }
+            return next;
+        });
+    }, []);
+
     return (
-        <div className="ve-editor-shell" data-ve-editor-shell="">
-            <Statusbar saveStatus={saveStatus} />
+        <div
+            className={[
+                've-editor-shell',
+                inserterOpen ? 've-editor-shell--inserter-open' : null,
+                inspectorOpen ? 've-editor-shell--inspector-open' : null,
+            ].filter(Boolean).join(' ')}
+            data-ve-editor-shell=""
+        >
+            <TopBar
+                inserterOpen={inserterOpen}
+                onToggleInserter={toggleInserter}
+                inspectorOpen={inspectorOpen}
+                onToggleInspector={toggleInspector}
+                saveStatus={saveStatus}
+                pinnedToolbar={
+                    toolbarPinned ? (
+                        <BlockToolbar pinned onTogglePin={toggleToolbarPin} />
+                    ) : null
+                }
+            />
+
             <KeyboardBindings />
-            <RichTextToolbar />
+
             <div className="ve-editor-shell__body">
-                <InserterPanel />
-                <Canvas>
-                    <BlockList />
-                </Canvas>
+                {inserterOpen ? <LeftSidebar /> : null}
+
+                <div className="ve-editor-shell__canvas-area" style={{ position: 'relative' }}>
+                    {!toolbarPinned ? (
+                        <BlockToolbar pinned={false} onTogglePin={toggleToolbarPin} />
+                    ) : null}
+                    <Canvas>
+                        <BlockList />
+                    </Canvas>
+                </div>
+
+                <InspectorSidebar open={inspectorOpen} />
             </div>
-        </div>
-    );
-}
 
-function Statusbar({ saveStatus }: { saveStatus?: AutosaveState }) {
-    const store = useEditorStore();
-    const isDirty = useStore(store, (state) => state.isDirty);
-    const selectedClientId = useStore(store, (state) => state.selection.clientId);
-
-    const statusLabel = resolveStatusLabel(saveStatus, isDirty);
-    const statusToken =
-        saveStatus && saveStatus.status !== 'idle'
-            ? saveStatus.status
-            : isDirty
-                ? 'dirty'
-                : 'saved';
-
-    return (
-        <div className="ve-editor-shell__statusbar" role="status" aria-live="polite">
-            <span
-                className={[
-                    've-editor-shell__status',
-                    isDirty ? 've-editor-shell__status--dirty' : null,
-                ]
-                    .filter(Boolean)
-                    .join(' ')}
-                data-ve-dirty={isDirty || undefined}
-                data-ve-save-status={statusToken}
-            >
-                {statusLabel}
-            </span>
-            <span
-                className="ve-editor-shell__status"
-                data-ve-selection={selectedClientId ?? undefined}
-            >
-                {selectedClientId ? `Selected: ${selectedClientId}` : 'No selection'}
-            </span>
+            <StatusBar />
         </div>
     );
 }
@@ -106,27 +134,6 @@ function KeyboardBindings() {
     return null;
 }
 
-function resolveStatusLabel(
-    saveStatus: AutosaveState | undefined,
-    isDirty: boolean
-): string {
-    if (saveStatus) {
-        switch (saveStatus.status) {
-            case 'saving':
-                return 'Saving…';
-            case 'saved':
-                return 'Saved';
-            case 'error':
-                return 'Save failed';
-            case 'idle':
-            default:
-                break;
-        }
-    }
-
-    return isDirty ? 'Unsaved changes' : 'Saved';
-}
-
 function isUndoRedoKey(event: KeyboardEvent): boolean {
     if (!(event.metaKey || event.ctrlKey)) {
         return false;
@@ -146,8 +153,5 @@ function shouldDeferToNativeHistory(target: EventTarget | null): boolean {
         return true;
     }
 
-    // Non-contenteditable focusable fields (e.g. `<select>`) should also keep
-    // their native behavior. The Tiptap editor surfaces are contenteditable,
-    // so those still route through the store's undo/redo.
     return false;
 }

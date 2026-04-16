@@ -58,17 +58,17 @@ describe('EditorShell', () => {
         expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
     });
 
-    it('shows the currently selected block client id', () => {
+    it('shows the currently selected block info in the status bar', () => {
         const store = createEditorStore([makeBlock('a', 'alpha')]);
         render(<EditorShell store={store} />);
 
-        expect(screen.getByText('No selection')).toBeInTheDocument();
+        expect(screen.getByText('No block selected')).toBeInTheDocument();
 
         act(() => {
             store.getState().select('a');
         });
 
-        expect(screen.getByText('Selected: a')).toBeInTheDocument();
+        expect(screen.getByTestId('ve-status-bar-block')).toHaveTextContent('a');
     });
 
     it('undoes the last mutation when Cmd+Z is pressed', () => {

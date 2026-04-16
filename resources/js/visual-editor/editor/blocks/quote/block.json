@@ -4,6 +4,7 @@
     "title": "Quote",
     "category": "text",
     "description": "Give quoted text visual emphasis.",
+    "icon": "quote-left",
     "keywords": ["blockquote", "citation", "pullquote"],
     "textdomain": "visual-editor",
     "attributes": {
