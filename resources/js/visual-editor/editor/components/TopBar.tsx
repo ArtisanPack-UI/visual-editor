@@ -9,8 +9,18 @@ import {
 import type { AutosaveState } from '../rest';
 import { getBlock } from '../registry';
 import { useEditorStore } from '../primitives';
+import type { Block } from '../store';
 import { Icon } from './Icon';
 import { resolveBlockIcon } from './blockIconMap';
+
+function findBlockInTree(blocks: Block[], clientId: string): Block | undefined {
+    for (const block of blocks) {
+        if (block.clientId === clientId) return block;
+        const found = findBlockInTree(block.innerBlocks, clientId);
+        if (found) return found;
+    }
+    return undefined;
+}
 
 export interface TopBarProps {
     inserterOpen: boolean;
@@ -38,7 +48,7 @@ export function TopBar({
         if (!state.selection.clientId) {
             return null;
         }
-        return state.blocks.find((b) => b.clientId === state.selection.clientId) ?? null;
+        return findBlockInTree(state.blocks, state.selection.clientId) ?? null;
     });
 
     const selectedBlockDef = selectedBlock ? getBlock(selectedBlock.name) : null;

@@ -154,6 +154,7 @@ function SortableLayerItem({ block, depth, isDragActive }: SortableLayerItemProp
                 <span
                     ref={setActivatorNodeRef}
                     className="ve-layers-panel__item-grip"
+                    tabIndex={0}
                     {...listeners}
                 >
                     <Icon icon={faGripVertical} />

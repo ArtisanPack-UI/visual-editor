@@ -36,10 +36,10 @@ export function BlockToolbar({ pinned, onTogglePin }: BlockToolbarProps) {
             return;
         }
 
-        // The data-block-client-id element wraps the .ve-block element which
-        // has the actual padding. Find the inner .ve-block to get the correct
+        // The data-block-client-id element is inside the .ve-block wrapper which
+        // has the actual padding. Find the ancestor .ve-block to get the correct
         // content offset.
-        const veBlock = blockEl.querySelector('.ve-block') ?? blockEl;
+        const veBlock = blockEl.closest('.ve-block') ?? blockEl;
         const veBlockRect = veBlock.getBoundingClientRect();
         const veBlockStyles = window.getComputedStyle(veBlock);
         const paddingLeft = parseFloat(veBlockStyles.paddingLeft) || 0;

@@ -2,12 +2,22 @@ import { useState } from 'react';
 import { useStore } from 'zustand';
 import { getBlock } from '../registry';
 import { useEditorStore } from '../primitives';
+import type { Block } from '../store';
 
 export interface InspectorSidebarProps {
     open: boolean;
 }
 
 type InspectorTab = 'settings' | 'styles';
+
+function findBlockInTree(blocks: Block[], clientId: string): Block | undefined {
+    for (const block of blocks) {
+        if (block.clientId === clientId) return block;
+        const found = findBlockInTree(block.innerBlocks, clientId);
+        if (found) return found;
+    }
+    return undefined;
+}
 
 export function InspectorSidebar({ open }: InspectorSidebarProps) {
     const [activeTab, setActiveTab] = useState<InspectorTab>('settings');
@@ -17,7 +27,7 @@ export function InspectorSidebar({ open }: InspectorSidebarProps) {
         if (!state.selection.clientId) {
             return null;
         }
-        return state.blocks.find((b) => b.clientId === state.selection.clientId) ?? null;
+        return findBlockInTree(state.blocks, state.selection.clientId) ?? null;
     });
 
     const blockTitle = selectedBlock
@@ -34,68 +44,70 @@ export function InspectorSidebar({ open }: InspectorSidebarProps) {
             aria-label="Block inspector"
             aria-hidden={!open}
         >
-            <div className="ve-inspector__inner">
-                <header className="ve-inspector__header">
-                    <h2 className="ve-inspector__title">
-                        {blockTitle ?? 'Document'}
-                    </h2>
-                </header>
+            {open ? (
+                <div className="ve-inspector__inner">
+                    <header className="ve-inspector__header">
+                        <h2 className="ve-inspector__title">
+                            {blockTitle ?? 'Document'}
+                        </h2>
+                    </header>
 
-                <div className="ve-inspector__tabs" role="tablist" aria-label="Inspector tabs">
-                    <button
-                        type="button"
-                        role="tab"
-                        id="ve-inspector-tab-settings"
-                        className={[
-                            've-inspector__tab',
-                            activeTab === 'settings' ? 've-inspector__tab--active' : null,
-                        ].filter(Boolean).join(' ')}
-                        aria-selected={activeTab === 'settings'}
-                        aria-controls="ve-inspector-panel-settings"
-                        data-testid="ve-inspector-tab-settings"
-                        onClick={() => setActiveTab('settings')}
-                    >
-                        Settings
-                    </button>
-                    <button
-                        type="button"
-                        role="tab"
-                        id="ve-inspector-tab-styles"
-                        className={[
-                            've-inspector__tab',
-                            activeTab === 'styles' ? 've-inspector__tab--active' : null,
-                        ].filter(Boolean).join(' ')}
-                        aria-selected={activeTab === 'styles'}
-                        aria-controls="ve-inspector-panel-styles"
-                        data-testid="ve-inspector-tab-styles"
-                        onClick={() => setActiveTab('styles')}
-                    >
-                        Styles
-                    </button>
-                </div>
+                    <div className="ve-inspector__tabs" role="tablist" aria-label="Inspector tabs">
+                        <button
+                            type="button"
+                            role="tab"
+                            id="ve-inspector-tab-settings"
+                            className={[
+                                've-inspector__tab',
+                                activeTab === 'settings' ? 've-inspector__tab--active' : null,
+                            ].filter(Boolean).join(' ')}
+                            aria-selected={activeTab === 'settings'}
+                            aria-controls="ve-inspector-panel-settings"
+                            data-testid="ve-inspector-tab-settings"
+                            onClick={() => setActiveTab('settings')}
+                        >
+                            Settings
+                        </button>
+                        <button
+                            type="button"
+                            role="tab"
+                            id="ve-inspector-tab-styles"
+                            className={[
+                                've-inspector__tab',
+                                activeTab === 'styles' ? 've-inspector__tab--active' : null,
+                            ].filter(Boolean).join(' ')}
+                            aria-selected={activeTab === 'styles'}
+                            aria-controls="ve-inspector-panel-styles"
+                            data-testid="ve-inspector-tab-styles"
+                            onClick={() => setActiveTab('styles')}
+                        >
+                            Styles
+                        </button>
+                    </div>
 
-                <div className="ve-inspector__content">
-                    {activeTab === 'settings' ? (
-                        <div
-                            id="ve-inspector-panel-settings"
-                            role="tabpanel"
-                            aria-labelledby="ve-inspector-tab-settings"
-                            data-testid="ve-inspector-panel-settings"
-                        >
-                            <SettingsPanel blockName={blockTitle} />
-                        </div>
-                    ) : (
-                        <div
-                            id="ve-inspector-panel-styles"
-                            role="tabpanel"
-                            aria-labelledby="ve-inspector-tab-styles"
-                            data-testid="ve-inspector-panel-styles"
-                        >
-                            <StylesPanel />
-                        </div>
-                    )}
+                    <div className="ve-inspector__content">
+                        {activeTab === 'settings' ? (
+                            <div
+                                id="ve-inspector-panel-settings"
+                                role="tabpanel"
+                                aria-labelledby="ve-inspector-tab-settings"
+                                data-testid="ve-inspector-panel-settings"
+                            >
+                                <SettingsPanel blockName={blockTitle} />
+                            </div>
+                        ) : (
+                            <div
+                                id="ve-inspector-panel-styles"
+                                role="tabpanel"
+                                aria-labelledby="ve-inspector-tab-styles"
+                                data-testid="ve-inspector-panel-styles"
+                            >
+                                <StylesPanel />
+                            </div>
+                        )}
+                    </div>
                 </div>
-            </div>
+            ) : null}
         </aside>
     );
 }

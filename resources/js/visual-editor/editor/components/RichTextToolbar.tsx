@@ -37,6 +37,23 @@ import { createClientId, type Block } from '../store';
 import { PARAGRAPH_BLOCK_NAME } from '../blocks/paragraph';
 import { Icon } from './Icon';
 
+function findBlockInTree(blocks: Block[], clientId: string): Block | undefined {
+    for (const block of blocks) {
+        if (block.clientId === clientId) return block;
+        const found = findBlockInTree(block.innerBlocks, clientId);
+        if (found) return found;
+    }
+    return undefined;
+}
+
+function cloneBlockWithNewIds(block: Block): Block {
+    return {
+        ...block,
+        clientId: createClientId(),
+        innerBlocks: block.innerBlocks.map(cloneBlockWithNewIds),
+    };
+}
+
 export interface RichTextToolbarProps {
     className?: string;
 }
@@ -48,7 +65,7 @@ export function RichTextToolbar({ className }: RichTextToolbarProps) {
         if (state.selection.clientId === null) {
             return undefined;
         }
-        return state.blocks.find((b) => b.clientId === state.selection.clientId);
+        return findBlockInTree(state.blocks, state.selection.clientId);
     });
 
     const editor = useSyncExternalStore(
@@ -208,8 +225,8 @@ function MoreOptionsMenu({ clientId }: MoreOptionsMenuProps) {
     }, [open]);
 
     const handleCopy = useCallback(async () => {
-        const selection = window.getSelection();
-        const text = selection?.toString() ?? '';
+        const editor = getBlockEditor(clientId);
+        const text = editor?.state.doc.textContent ?? '';
 
         if (text && navigator.clipboard) {
             try {
@@ -220,18 +237,17 @@ function MoreOptionsMenu({ clientId }: MoreOptionsMenuProps) {
         }
 
         setOpen(false);
-    }, []);
+    }, [clientId]);
 
     const handleCut = useCallback(async () => {
-        const selection = window.getSelection();
-        const text = selection?.toString() ?? '';
+        const editor = getBlockEditor(clientId);
+        const text = editor?.state.doc.textContent ?? '';
 
         if (text && navigator.clipboard) {
             try {
                 await navigator.clipboard.writeText(text);
-                const editor = getBlockEditor(clientId);
                 if (editor) {
-                    editor.commands.deleteSelection();
+                    editor.chain().selectAll().deleteSelection().run();
                 }
             } catch {
                 // Clipboard API may be blocked; silent fallback
@@ -250,10 +266,7 @@ function MoreOptionsMenu({ clientId }: MoreOptionsMenuProps) {
         }
 
         const original = state.blocks[blockIndex];
-        const duplicate: Block = {
-            ...structuredClone(original),
-            clientId: createClientId(),
-        };
+        const duplicate = cloneBlockWithNewIds(structuredClone(original));
 
         state.insertBlock(duplicate, { index: blockIndex + 1 });
         state.select(duplicate.clientId);
@@ -367,6 +380,7 @@ function MoreMenuItem({ label, shortcut, onClick, disabled, destructive }: MoreM
                 destructive ? 've-more-menu__item--destructive' : null,
                 disabled ? 've-more-menu__item--disabled' : null,
             ].filter(Boolean).join(' ')}
+            onMouseDown={(event) => event.preventDefault()}
             onClick={disabled ? undefined : onClick}
             disabled={disabled}
             data-testid={`ve-more-menu-${label.toLowerCase().replace(/\s+/g, '-')}`}
