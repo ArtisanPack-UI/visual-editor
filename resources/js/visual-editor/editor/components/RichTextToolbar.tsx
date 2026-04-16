@@ -15,6 +15,12 @@ import {
     faLink,
     faListOl,
     faListUl,
+    faStrikethrough,
+    faUnderline,
+    faAlignLeft,
+    faAlignCenter,
+    faAlignRight,
+    faEllipsisVertical,
 } from '@fortawesome/free-solid-svg-icons';
 import { useEditorStore } from '../primitives';
 import {
@@ -27,7 +33,53 @@ import {
     normalizeHeadingLevel,
 } from '../blocks/heading';
 import { normalizeOrdered } from '../blocks/list';
+import { createClientId, type Block } from '../store';
+import { PARAGRAPH_BLOCK_NAME } from '../blocks/paragraph';
 import { Icon } from './Icon';
+
+function findBlockInTree(blocks: Block[], clientId: string): Block | undefined {
+    for (const block of blocks) {
+        if (block.clientId === clientId) return block;
+        const found = findBlockInTree(block.innerBlocks, clientId);
+        if (found) return found;
+    }
+    return undefined;
+}
+
+function cloneBlockWithNewIds(block: Block): Block {
+    return {
+        ...block,
+        clientId: createClientId(),
+        innerBlocks: block.innerBlocks.map(cloneBlockWithNewIds),
+    };
+}
+
+interface BlockLocation {
+    parentClientId: string | null;
+    index: number;
+    block: Block;
+}
+
+function findBlockLocation(
+    blocks: Block[],
+    clientId: string,
+    parentClientId: string | null = null
+): BlockLocation | null {
+    for (let i = 0; i < blocks.length; i++) {
+        if (blocks[i].clientId === clientId) {
+            return { parentClientId, index: i, block: blocks[i] };
+        }
+        const nested = findBlockLocation(
+            blocks[i].innerBlocks,
+            clientId,
+            blocks[i].clientId
+        );
+        if (nested) {
+            return nested;
+        }
+    }
+    return null;
+}
 
 export interface RichTextToolbarProps {
     className?: string;
@@ -40,7 +92,7 @@ export function RichTextToolbar({ className }: RichTextToolbarProps) {
         if (state.selection.clientId === null) {
             return undefined;
         }
-        return state.blocks.find((b) => b.clientId === state.selection.clientId);
+        return findBlockInTree(state.blocks, state.selection.clientId);
     });
 
     const editor = useSyncExternalStore(
@@ -52,9 +104,6 @@ export function RichTextToolbar({ className }: RichTextToolbarProps) {
     if (!selectedClientId || !block || !editor) {
         return null;
     }
-
-    // Show toolbar for any block that has a Tiptap editor registered
-    // (i.e. it's a rich-text block). No hardcoded block name checks.
 
     const blockDefinition = getBlock(block.name);
     const levelSchema = blockDefinition?.attributes?.level;
@@ -81,6 +130,9 @@ export function RichTextToolbar({ className }: RichTextToolbarProps) {
                     ordered={normalizeOrdered(block.attributes.ordered)}
                 />
             ) : null}
+
+            <ToolbarDivider />
+
             <ToolbarButton
                 label="Bold"
                 isActive={editor.isActive('bold')}
@@ -97,9 +149,287 @@ export function RichTextToolbar({ className }: RichTextToolbarProps) {
             >
                 <Icon icon={faItalic} />
             </ToolbarButton>
+            <ToolbarButton
+                label="Underline"
+                isActive={editor.isActive('underline')}
+                onClick={() => editor.chain().focus().toggleUnderline().run()}
+                testId="ve-toolbar-underline"
+            >
+                <Icon icon={faUnderline} />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Strikethrough"
+                isActive={editor.isActive('strike')}
+                onClick={() => editor.chain().focus().toggleStrike().run()}
+                testId="ve-toolbar-strikethrough"
+            >
+                <Icon icon={faStrikethrough} />
+            </ToolbarButton>
             <LinkControl editor={editor} />
+
+            <ToolbarDivider />
+
+            <TextAlignControls editor={editor} />
+
+            <ToolbarDivider />
+
+            <MoreOptionsMenu clientId={block.clientId} />
         </div>
     );
+}
+
+function ToolbarDivider() {
+    return <span className="ve-rich-text-toolbar__divider" aria-hidden="true" />;
+}
+
+interface TextAlignControlsProps {
+    editor: Editor;
+}
+
+function TextAlignControls({ editor }: TextAlignControlsProps) {
+    return (
+        <div className="ve-rich-text-toolbar__align-group" role="group" aria-label="Text alignment">
+            <ToolbarButton
+                label="Align left"
+                isActive={editor.isActive({ textAlign: 'left' })}
+                onClick={() => editor.chain().focus().setTextAlign('left').run()}
+                testId="ve-toolbar-align-left"
+            >
+                <Icon icon={faAlignLeft} />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Align center"
+                isActive={editor.isActive({ textAlign: 'center' })}
+                onClick={() => editor.chain().focus().setTextAlign('center').run()}
+                testId="ve-toolbar-align-center"
+            >
+                <Icon icon={faAlignCenter} />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Align right"
+                isActive={editor.isActive({ textAlign: 'right' })}
+                onClick={() => editor.chain().focus().setTextAlign('right').run()}
+                testId="ve-toolbar-align-right"
+            >
+                <Icon icon={faAlignRight} />
+            </ToolbarButton>
+        </div>
+    );
+}
+
+interface MoreOptionsMenuProps {
+    clientId: string;
+}
+
+function MoreOptionsMenu({ clientId }: MoreOptionsMenuProps) {
+    const [open, setOpen] = useState(false);
+    const menuRef = useRef<HTMLDivElement>(null);
+    const store = useEditorStore();
+
+    useEffect(() => {
+        if (!open) {
+            return;
+        }
+
+        function handleClickOutside(event: MouseEvent) {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setOpen(false);
+            }
+        }
+
+        function handleEscape(event: globalThis.KeyboardEvent) {
+            if (event.key === 'Escape') {
+                setOpen(false);
+            }
+        }
+
+        document.addEventListener('mousedown', handleClickOutside);
+        document.addEventListener('keydown', handleEscape);
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+            document.removeEventListener('keydown', handleEscape);
+        };
+    }, [open]);
+
+    const handleCopy = useCallback(async () => {
+        const editor = getBlockEditor(clientId);
+        const text = editor?.state.doc.textContent ?? '';
+
+        if (text && navigator.clipboard) {
+            try {
+                await navigator.clipboard.writeText(text);
+            } catch {
+                // Clipboard API may be blocked; silent fallback
+            }
+        }
+
+        setOpen(false);
+    }, [clientId]);
+
+    const handleCut = useCallback(async () => {
+        const editor = getBlockEditor(clientId);
+        const text = editor?.state.doc.textContent ?? '';
+
+        if (text && navigator.clipboard) {
+            try {
+                await navigator.clipboard.writeText(text);
+                if (editor) {
+                    editor.chain().selectAll().deleteSelection().run();
+                }
+            } catch {
+                // Clipboard API may be blocked; silent fallback
+            }
+        }
+
+        setOpen(false);
+    }, [clientId]);
+
+    const handleDuplicate = useCallback(() => {
+        const state = store.getState();
+        const location = findBlockLocation(state.blocks, clientId);
+
+        if (!location) {
+            return;
+        }
+
+        const duplicate = cloneBlockWithNewIds(structuredClone(location.block));
+
+        state.insertBlock(duplicate, {
+            parentClientId: location.parentClientId,
+            index: location.index + 1,
+        });
+        state.select(duplicate.clientId);
+        setOpen(false);
+    }, [store, clientId]);
+
+    const handleAddBefore = useCallback(() => {
+        const state = store.getState();
+        const location = findBlockLocation(state.blocks, clientId);
+
+        if (!location) {
+            return;
+        }
+
+        const newBlock: Block = {
+            clientId: createClientId(),
+            name: PARAGRAPH_BLOCK_NAME,
+            attributes: { content: '<p></p>' },
+            innerBlocks: [],
+        };
+
+        state.insertBlock(newBlock, {
+            parentClientId: location.parentClientId,
+            index: location.index,
+        });
+        state.select(newBlock.clientId, 'start');
+        setOpen(false);
+    }, [store, clientId]);
+
+    const handleAddAfter = useCallback(() => {
+        const state = store.getState();
+        const location = findBlockLocation(state.blocks, clientId);
+
+        if (!location) {
+            return;
+        }
+
+        const newBlock: Block = {
+            clientId: createClientId(),
+            name: PARAGRAPH_BLOCK_NAME,
+            attributes: { content: '<p></p>' },
+            innerBlocks: [],
+        };
+
+        state.insertBlock(newBlock, {
+            parentClientId: location.parentClientId,
+            index: location.index + 1,
+        });
+        state.select(newBlock.clientId, 'start');
+        setOpen(false);
+    }, [store, clientId]);
+
+    const handleDelete = useCallback(() => {
+        store.getState().removeBlock(clientId);
+        setOpen(false);
+    }, [store, clientId]);
+
+    return (
+        <div className="ve-rich-text-toolbar__more" ref={menuRef}>
+            <ToolbarButton
+                label="More options"
+                onClick={() => setOpen((v) => !v)}
+                testId="ve-toolbar-more-toggle"
+            >
+                <Icon icon={faEllipsisVertical} />
+            </ToolbarButton>
+            {open ? (
+                <div
+                    className="ve-rich-text-toolbar__more-menu"
+                    role="menu"
+                    aria-label="Block options"
+                    data-testid="ve-toolbar-more-menu"
+                >
+                    <MoreMenuItem label="Copy" shortcut="⌘C" onClick={handleCopy} />
+                    <MoreMenuItem label="Cut" shortcut="⌘X" onClick={handleCut} />
+                    <MoreMenuItem label="Duplicate" shortcut="⇧⌘D" onClick={handleDuplicate} />
+                    <MoreMenuDivider />
+                    <MoreMenuItem label="Add before" shortcut="⌥⌘T" onClick={handleAddBefore} />
+                    <MoreMenuItem label="Add after" shortcut="⌥⌘Y" onClick={handleAddAfter} />
+                    <MoreMenuDivider />
+                    <MoreMenuItem label="Copy styles" onClick={() => setOpen(false)} disabled />
+                    <MoreMenuItem label="Paste styles" onClick={() => setOpen(false)} disabled />
+                    <MoreMenuDivider />
+                    <MoreMenuItem label="Group" onClick={() => setOpen(false)} disabled />
+                    <MoreMenuItem label="Lock" onClick={() => setOpen(false)} disabled />
+                    <MoreMenuItem label="Rename" onClick={() => setOpen(false)} disabled />
+                    <MoreMenuItem label="Hide" onClick={() => setOpen(false)} disabled />
+                    <MoreMenuItem label="Create pattern" onClick={() => setOpen(false)} disabled />
+                    <MoreMenuDivider />
+                    <MoreMenuItem
+                        label="Delete"
+                        shortcut="⌃⌥Z"
+                        onClick={handleDelete}
+                        destructive
+                    />
+                </div>
+            ) : null}
+        </div>
+    );
+}
+
+interface MoreMenuItemProps {
+    label: string;
+    shortcut?: string;
+    onClick: () => void;
+    disabled?: boolean;
+    destructive?: boolean;
+}
+
+function MoreMenuItem({ label, shortcut, onClick, disabled, destructive }: MoreMenuItemProps) {
+    return (
+        <button
+            type="button"
+            role="menuitem"
+            className={[
+                've-more-menu__item',
+                destructive ? 've-more-menu__item--destructive' : null,
+                disabled ? 've-more-menu__item--disabled' : null,
+            ].filter(Boolean).join(' ')}
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={disabled ? undefined : onClick}
+            disabled={disabled}
+            data-testid={`ve-more-menu-${label.toLowerCase().replace(/\s+/g, '-')}`}
+        >
+            <span className="ve-more-menu__item-label">{label}</span>
+            {shortcut ? (
+                <span className="ve-more-menu__item-shortcut">{shortcut}</span>
+            ) : null}
+        </button>
+    );
+}
+
+function MoreMenuDivider() {
+    return <div className="ve-more-menu__divider" role="separator" />;
 }
 
 interface HeadingLevelSwitcherProps {

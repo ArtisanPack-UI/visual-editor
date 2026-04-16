@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState, type MouseEvent } from 'react';
 import {
     DndContext,
     DragOverlay,
@@ -18,9 +18,10 @@ import {
     sortableKeyboardCoordinates,
     verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
-import { useChildren } from '../store';
+import { useChildren, createClientId, type Block } from '../store';
 import { useEditorStore, useInnerBlocksProps, RenderBlock } from '../primitives';
 import { BlockWrapper } from './BlockWrapper';
+import { PARAGRAPH_BLOCK_NAME } from '../blocks/paragraph';
 
 export interface BlockListProps {
     className?: string;
@@ -150,8 +151,12 @@ export function BlockList({ className }: BlockListProps) {
                     data-parent-client-id={parentClientId}
                     onClickCapture={onClickCapture}
                 >
-                    {topLevelBlocks.map((block) => (
-                        <BlockWrapper key={block.clientId} block={block} />
+                    <BetweenBlockInserter index={0} />
+                    {topLevelBlocks.map((block, index) => (
+                        <div key={block.clientId}>
+                            <BlockWrapper block={block} />
+                            <BetweenBlockInserter index={index + 1} />
+                        </div>
                     ))}
                 </div>
             </SortableContext>
@@ -166,5 +171,40 @@ export function BlockList({ className }: BlockListProps) {
                 ) : null}
             </DragOverlay>
         </DndContext>
+    );
+}
+
+function BetweenBlockInserter({ index }: { index: number }) {
+    const store = useEditorStore();
+
+    const onClick = useCallback(
+        (event: MouseEvent) => {
+            event.stopPropagation();
+            const newBlock: Block = {
+                clientId: createClientId(),
+                name: PARAGRAPH_BLOCK_NAME,
+                attributes: { content: '<p></p>' },
+                innerBlocks: [],
+            };
+            store.getState().insertBlock(newBlock, { index });
+            store.getState().select(newBlock.clientId, 'start');
+        },
+        [store, index]
+    );
+
+    return (
+        <div className="ve-between-block-inserter">
+            <button
+                type="button"
+                className="ve-between-block-inserter__button"
+                onClick={onClick}
+                aria-label={`Insert block at position ${index + 1}`}
+                data-testid={`ve-between-inserter-${index}`}
+            >
+                <span className="ve-between-block-inserter__line" />
+                <span className="ve-between-block-inserter__icon">+</span>
+                <span className="ve-between-block-inserter__line" />
+            </button>
+        </div>
     );
 }

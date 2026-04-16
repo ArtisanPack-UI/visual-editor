@@ -1,43 +1,186 @@
+/* ==========================================================================
+   Visual Editor — 3-Panel Layout
+   ========================================================================== */
+
+:root {
+    --ve-topbar-height: 48px;
+    --ve-statusbar-height: 32px;
+    --ve-inspector-width: 280px;
+    --ve-inserter-width: 260px;
+    --ve-canvas-max-width: 960px;
+    --ve-color-primary: #0a84ff;
+    --ve-color-primary-light: #f0f7ff;
+    --ve-color-bg: #f5f5f7;
+    --ve-color-surface: #fff;
+    --ve-color-text: #1d1d1f;
+    --ve-color-text-secondary: #6e6e73;
+    --ve-color-text-muted: #666;
+    --ve-color-border: #e5e5ea;
+    --ve-color-border-strong: #d0d0d0;
+    --ve-color-dirty: #bf5af2;
+    --ve-color-error: #bf1d1d;
+    --ve-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --ve-transition-fast: 120ms ease;
+    --ve-transition-medium: 200ms ease;
+}
+
+/* --------------------------------------------------------------------------
+   Editor Shell — Root Layout
+   -------------------------------------------------------------------------- */
+
 .ve-editor-shell {
     display: flex;
     flex-direction: column;
-    min-height: 100vh;
-    background: #f5f5f7;
-    color: #1d1d1f;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    height: 100vh;
+    background: var(--ve-color-bg);
+    color: var(--ve-color-text);
+    font-family: var(--ve-font-family);
+    font-size: 14px;
+    overflow: hidden;
 }
 
-.ve-editor-shell__statusbar {
+.ve-editor-shell__body {
     display: flex;
-    gap: 1rem;
-    padding: 0.5rem 1rem;
-    border-bottom: 1px solid #e5e5ea;
-    background: #fff;
-    font-size: 0.75rem;
+    flex: 1 1 auto;
+    overflow: hidden;
 }
 
-.ve-editor-shell__status {
-    color: #6e6e73;
+.ve-editor-shell__canvas-area {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    position: relative;
 }
 
-.ve-editor-shell__status--dirty {
-    color: #bf5af2;
+/* --------------------------------------------------------------------------
+   Top Bar
+   -------------------------------------------------------------------------- */
+
+.ve-top-bar {
+    display: flex;
+    align-items: center;
+    height: var(--ve-topbar-height);
+    padding: 0 12px;
+    border-bottom: 1px solid var(--ve-color-border);
+    background: var(--ve-color-surface);
+    gap: 8px;
+    flex-shrink: 0;
 }
+
+.ve-top-bar__left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.ve-top-bar__center {
+    flex: 1 1 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 0;
+}
+
+.ve-top-bar__right {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.ve-top-bar__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ve-color-text);
+    font-size: 14px;
+    cursor: pointer;
+    transition: background var(--ve-transition-fast), border-color var(--ve-transition-fast);
+}
+
+.ve-top-bar__button:hover {
+    background: #f3f3f3;
+}
+
+.ve-top-bar__button:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.ve-top-bar__button--is-active {
+    background: var(--ve-color-primary);
+    color: #fff;
+}
+
+.ve-top-bar__button--is-active:hover {
+    background: #0070e0;
+}
+
+.ve-top-bar__block-info {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ve-color-text-secondary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    background: #f3f3f3;
+}
+
+.ve-top-bar__save-status {
+    font-size: 12px;
+    color: var(--ve-color-text-secondary);
+    padding: 4px 8px;
+}
+
+.ve-top-bar__save-status--dirty {
+    color: var(--ve-color-dirty);
+}
+
+/* --------------------------------------------------------------------------
+   Status Bar (bottom)
+   -------------------------------------------------------------------------- */
+
+.ve-status-bar {
+    display: flex;
+    align-items: center;
+    height: var(--ve-statusbar-height);
+    padding: 0 12px;
+    border-top: 1px solid var(--ve-color-border);
+    background: var(--ve-color-surface);
+    font-size: 11px;
+    color: var(--ve-color-text-muted);
+    flex-shrink: 0;
+}
+
+.ve-status-bar__item {
+    padding: 0 8px;
+}
+
+/* --------------------------------------------------------------------------
+   Canvas
+   -------------------------------------------------------------------------- */
 
 .ve-canvas {
-    flex: 1 1 auto;
-    padding: 2rem;
-    background: #fff;
-    max-width: 960px;
+    max-width: var(--ve-canvas-max-width);
     margin: 0 auto;
+    padding: 2rem;
     width: 100%;
     box-sizing: border-box;
 }
 
+/* --------------------------------------------------------------------------
+   Block List & Blocks
+   -------------------------------------------------------------------------- */
+
 .ve-block-list {
     display: flex;
     flex-direction: column;
-    gap: 0.5rem;
 }
 
 .ve-block {
@@ -45,7 +188,7 @@
     padding: 0.25rem 0.5rem 0.25rem 1.75rem;
     border: 1px solid transparent;
     border-radius: 4px;
-    transition: border-color 120ms ease, background-color 120ms ease;
+    transition: border-color var(--ve-transition-fast), background-color var(--ve-transition-fast);
 }
 
 .ve-block--is-hovered {
@@ -54,12 +197,12 @@
 }
 
 .ve-block--is-selected {
-    border-color: #0a84ff;
-    background: #f0f7ff;
+    border-color: var(--ve-color-primary);
+    background: var(--ve-color-primary-light);
 }
 
 .ve-block--is-selected.ve-block--is-hovered {
-    border-color: #0a84ff;
+    border-color: var(--ve-color-primary);
 }
 
 .ve-block__drag-handle {
@@ -81,12 +224,12 @@
     line-height: 1;
     cursor: grab;
     opacity: 0;
-    transition: opacity 120ms ease, background-color 120ms ease;
+    transition: opacity var(--ve-transition-fast), background-color var(--ve-transition-fast);
     touch-action: none;
 }
 
 .ve-block__drag-handle:focus-visible {
-    outline: 2px solid #0a84ff;
+    outline: 2px solid var(--ve-color-primary);
     outline-offset: 2px;
     opacity: 1;
 }
@@ -103,39 +246,68 @@
 
 .ve-block--drag-overlay {
     background: #fff;
-    border-color: #0a84ff;
+    border-color: var(--ve-color-primary);
     box-shadow: 0 12px 24px rgba(10, 132, 255, 0.2);
     cursor: grabbing;
 }
 
-.ve-richtext {
-    outline: none;
+/* --------------------------------------------------------------------------
+   Between-Block Inserter
+   -------------------------------------------------------------------------- */
+
+.ve-between-block-inserter {
+    height: 20px;
+    display: flex;
+    align-items: center;
+    opacity: 0;
+    transition: opacity var(--ve-transition-fast);
 }
 
-.ve-richtext:focus-visible {
-    outline: 2px solid #0a84ff;
-    outline-offset: 2px;
-    border-radius: 2px;
+.ve-between-block-inserter:hover,
+.ve-between-block-inserter:focus-within {
+    opacity: 1;
 }
 
-.ve-richtext p,
-.ve-richtext h1,
-.ve-richtext h2,
-.ve-richtext h3,
-.ve-richtext h4,
-.ve-richtext h5,
-.ve-richtext h6 {
-    margin: 0;
+.ve-between-block-inserter__button {
+    display: flex;
+    align-items: center;
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
+    gap: 0;
 }
+
+.ve-between-block-inserter__line {
+    flex: 1;
+    height: 1px;
+    background: var(--ve-color-primary);
+}
+
+.ve-between-block-inserter__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--ve-color-primary);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1;
+    flex-shrink: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Rich Text Toolbar (formatting controls)
+   -------------------------------------------------------------------------- */
 
 .ve-rich-text-toolbar {
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    padding: 4px 8px;
-    border: 1px solid #d0d0d0;
-    border-radius: 6px;
-    background: #fff;
 }
 
 .ve-rich-text-toolbar__button {
@@ -150,14 +322,104 @@
     background: transparent;
     font-size: 14px;
     cursor: pointer;
+    transition: background var(--ve-transition-fast);
 }
 
 .ve-rich-text-toolbar__button:hover {
     background: #f3f3f3;
 }
 
+.ve-rich-text-toolbar__divider {
+    display: inline-block;
+    width: 1px;
+    height: 20px;
+    background: var(--ve-color-border);
+    margin: 0 2px;
+}
+
+.ve-rich-text-toolbar__align-group {
+    display: inline-flex;
+    gap: 2px;
+}
+
+.ve-rich-text-toolbar__more {
+    position: relative;
+    display: inline-flex;
+}
+
+/* --------------------------------------------------------------------------
+   More Options Menu (dropdown)
+   -------------------------------------------------------------------------- */
+
+.ve-rich-text-toolbar__more-menu {
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: 30;
+    min-width: 220px;
+    padding: 4px;
+    background: var(--ve-color-surface);
+    border: 1px solid var(--ve-color-border-strong);
+    border-radius: 6px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+}
+
+.ve-more-menu__item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    background: transparent;
+    font-size: 13px;
+    text-align: left;
+    cursor: pointer;
+    color: var(--ve-color-text);
+    transition: background var(--ve-transition-fast);
+}
+
+.ve-more-menu__item:hover:not(:disabled) {
+    background: #f3f3f3;
+}
+
+.ve-more-menu__item:focus-visible {
+    outline: 2px solid var(--ve-color-primary);
+    outline-offset: -2px;
+}
+
+.ve-more-menu__item--disabled {
+    opacity: 0.4;
+    cursor: default;
+}
+
+.ve-more-menu__item--destructive {
+    color: var(--ve-color-error);
+}
+
+.ve-more-menu__item--destructive:hover:not(:disabled) {
+    background: #fef2f2;
+}
+
+.ve-more-menu__item-label {
+    flex: 1;
+}
+
+.ve-more-menu__item-shortcut {
+    font-size: 12px;
+    color: var(--ve-color-text-muted);
+    margin-left: 16px;
+}
+
+.ve-more-menu__divider {
+    height: 1px;
+    margin: 4px 0;
+    background: var(--ve-color-border);
+}
+
 .ve-rich-text-toolbar__button--is-active {
-    background: #0a84ff;
+    background: var(--ve-color-primary);
     color: #fff;
 }
 
@@ -170,14 +432,14 @@
     position: absolute;
     top: calc(100% + 4px);
     left: 0;
-    z-index: 10;
+    z-index: 20;
     display: flex;
     flex-direction: column;
     gap: 6px;
     padding: 8px;
     min-width: 220px;
-    background: #fff;
-    border: 1px solid #d0d0d0;
+    background: var(--ve-color-surface);
+    border: 1px solid var(--ve-color-border-strong);
     border-radius: 6px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
 }
@@ -185,7 +447,7 @@
 .ve-rich-text-toolbar__link-field input {
     width: 100%;
     padding: 6px 8px;
-    border: 1px solid #d0d0d0;
+    border: 1px solid var(--ve-color-border-strong);
     border-radius: 4px;
     font-size: 13px;
 }
@@ -196,108 +458,450 @@
     justify-content: flex-end;
 }
 
-.ve-sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
+/* --------------------------------------------------------------------------
+   Block Toolbar (floating / pinned wrapper)
+   -------------------------------------------------------------------------- */
+
+.ve-block-toolbar {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border: 1px solid var(--ve-color-border-strong);
+    border-radius: 6px;
+    background: var(--ve-color-surface);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.ve-block-toolbar--pinned {
+    box-shadow: none;
+    border: none;
     padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip-path: inset(50%);
-    white-space: nowrap;
+    background: transparent;
+}
+
+.ve-block-toolbar__pin {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    padding: 0;
     border: 0;
+    border-radius: 4px;
+    background: transparent;
+    color: var(--ve-color-text-muted);
+    font-size: 11px;
+    cursor: pointer;
+    margin-left: 4px;
+    transition: color var(--ve-transition-fast);
 }
 
-.ve-editor-shell__body {
-    display: flex;
-    gap: 16px;
-    align-items: flex-start;
+.ve-block-toolbar__pin:hover {
+    color: var(--ve-color-text);
 }
 
-.ve-inserter-panel {
-    flex: 0 0 240px;
-    max-height: calc(100vh - 120px);
-    padding: 12px;
-    border: 1px solid #d0d0d0;
-    border-radius: 8px;
-    background: #fafafa;
-    font-size: 13px;
+.ve-block-toolbar__pin--active {
+    color: var(--ve-color-primary);
+}
+
+/* --------------------------------------------------------------------------
+   Inspector Sidebar
+   -------------------------------------------------------------------------- */
+
+.ve-inspector {
+    width: var(--ve-inspector-width);
+    flex-shrink: 0;
+    border-left: 1px solid var(--ve-color-border);
+    background: var(--ve-color-surface);
     overflow-y: auto;
+    overflow-x: hidden;
+    transition: width var(--ve-transition-medium), opacity var(--ve-transition-medium);
+}
+
+.ve-inspector--closed {
+    width: 0;
+    opacity: 0;
+    border-left: none;
+    pointer-events: none;
+}
+
+.ve-inspector__inner {
+    width: var(--ve-inspector-width);
+    padding: 16px;
     box-sizing: border-box;
 }
 
-.ve-inserter-panel__header {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    margin-bottom: 8px;
+.ve-inspector__header {
+    margin-bottom: 12px;
 }
 
-.ve-inserter-panel__title {
+.ve-inspector__title {
     margin: 0;
-    font-size: 13px;
+    font-size: 14px;
     font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-    color: #555;
+}
+
+.ve-inspector__tabs {
+    display: flex;
+    gap: 0;
+    margin-bottom: 16px;
+    border-bottom: 1px solid var(--ve-color-border);
+}
+
+.ve-inspector__tab {
+    flex: 1;
+    padding: 8px 12px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--ve-color-text-secondary);
+    cursor: pointer;
+    transition: color var(--ve-transition-fast), border-color var(--ve-transition-fast);
+}
+
+.ve-inspector__tab:hover {
+    color: var(--ve-color-text);
+}
+
+.ve-inspector__tab--active {
+    color: var(--ve-color-primary);
+    border-bottom-color: var(--ve-color-primary);
+}
+
+.ve-inspector__content {
+    font-size: 13px;
+}
+
+.ve-inspector__empty {
+    padding: 12px 0;
+    color: var(--ve-color-text-muted);
+    text-align: center;
+}
+
+.ve-inspector__empty p {
+    margin: 0 0 4px;
+}
+
+.ve-inspector__empty-meta {
+    font-size: 11px;
+    color: var(--ve-color-text-muted);
+}
+
+.ve-inspector__styles-controls {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.ve-inspector__styles-select {
+    padding: 4px 8px;
+    border: 1px solid var(--ve-color-border-strong);
+    border-radius: 4px;
+    font-size: 12px;
+    background: var(--ve-color-surface);
+}
+
+.ve-inspector__styles-breakpoints {
+    display: flex;
+    gap: 2px;
+}
+
+.ve-inspector__styles-bp {
+    padding: 4px 8px;
+    border: 1px solid var(--ve-color-border);
+    border-radius: 4px;
+    background: transparent;
+    font-size: 11px;
+    cursor: pointer;
+    transition: background var(--ve-transition-fast);
+}
+
+.ve-inspector__styles-bp:hover {
+    background: #f3f3f3;
+}
+
+.ve-inspector__styles-bp--active {
+    background: var(--ve-color-primary);
+    color: #fff;
+    border-color: var(--ve-color-primary);
+}
+
+/* --------------------------------------------------------------------------
+   Left Sidebar (Blocks / Patterns / Layers)
+   -------------------------------------------------------------------------- */
+
+.ve-left-sidebar {
+    width: var(--ve-inserter-width);
+    flex-shrink: 0;
+    border-right: 1px solid var(--ve-color-border);
+    background: var(--ve-color-surface);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.ve-left-sidebar__tabs {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--ve-color-border);
+    flex-shrink: 0;
+}
+
+.ve-left-sidebar__tab {
+    flex: 1;
+    padding: 8px 4px;
+    border: none;
+    border-bottom: 2px solid transparent;
+    background: transparent;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--ve-color-text-secondary);
+    cursor: pointer;
+    transition: color var(--ve-transition-fast), border-color var(--ve-transition-fast);
+}
+
+.ve-left-sidebar__tab:hover {
+    color: var(--ve-color-text);
+}
+
+.ve-left-sidebar__tab--active {
+    color: var(--ve-color-primary);
+    border-bottom-color: var(--ve-color-primary);
+}
+
+.ve-left-sidebar__content {
+    flex: 1 1 auto;
+    overflow-y: auto;
+}
+
+.ve-left-sidebar__empty {
+    padding: 16px;
+    text-align: center;
+    color: var(--ve-color-text-muted);
+    font-size: 13px;
+}
+
+.ve-left-sidebar__empty p {
+    margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Inserter Panel (inside left sidebar)
+   -------------------------------------------------------------------------- */
+
+.ve-inserter-panel {
+    padding: 12px;
+    font-size: 13px;
+}
+
+.ve-inserter-panel__search {
+    display: block;
+    margin-bottom: 12px;
 }
 
 .ve-inserter-panel__search input {
     width: 100%;
     padding: 6px 8px;
-    border: 1px solid #d0d0d0;
+    border: 1px solid var(--ve-color-border-strong);
     border-radius: 4px;
     font-size: 13px;
-    background: #fff;
-}
-
-.ve-inserter-panel__list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
+    background: var(--ve-color-surface);
+    box-sizing: border-box;
 }
 
 .ve-inserter-panel__empty {
     padding: 8px;
-    color: #888;
+    color: var(--ve-color-text-muted);
     font-style: italic;
+    text-align: center;
+}
+
+.ve-inserter-panel__category {
+    margin-bottom: 12px;
+}
+
+.ve-inserter-panel__category-title {
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ve-color-text-secondary);
+}
+
+.ve-inserter-panel__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
 }
 
 .ve-inserter-panel__item {
     display: flex;
     flex-direction: column;
-    gap: 2px;
-    width: 100%;
-    padding: 8px;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    background: transparent;
-    text-align: left;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 4px;
+    border: 1px solid var(--ve-color-border);
+    border-radius: 6px;
+    background: var(--ve-color-surface);
+    text-align: center;
     cursor: pointer;
+    transition: background var(--ve-transition-fast), border-color var(--ve-transition-fast);
+}
+
+.ve-inserter-panel__item-icon {
+    font-size: 18px;
+    color: var(--ve-color-text-secondary);
 }
 
 .ve-inserter-panel__item:hover,
 .ve-inserter-panel__item:focus-visible {
-    background: #eef5ff;
-    border-color: #0a84ff;
+    background: var(--ve-color-primary-light);
+    border-color: var(--ve-color-primary);
     outline: none;
 }
 
 .ve-inserter-panel__item-title {
-    font-weight: 600;
+    font-size: 12px;
+    font-weight: 500;
 }
 
-.ve-inserter-panel__item-description {
-    color: #666;
-    font-size: 12px;
+/* --------------------------------------------------------------------------
+   Layers Panel
+   -------------------------------------------------------------------------- */
+
+.ve-layers-panel__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
+
+.ve-layers-panel__children {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.ve-layers-panel__item {
+    border-bottom: 1px solid var(--ve-color-border);
+}
+
+.ve-layers-panel__item-row {
+    display: flex;
+    align-items: center;
+}
+
+.ve-layers-panel__item-row:hover {
+    background: #f3f3f3;
+}
+
+.ve-layers-panel__item--selected > .ve-layers-panel__item-row {
+    background: var(--ve-color-primary-light);
+}
+
+.ve-layers-panel__item-button {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    padding: 8px;
+    border: none;
+    background: transparent;
+    text-align: left;
+    cursor: pointer;
+    font-size: 13px;
+}
+
+.ve-layers-panel__item-grip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 32px;
+    flex-shrink: 0;
+    color: var(--ve-color-text-muted);
+    font-size: 10px;
+    cursor: grab;
+    border: none;
+    background: transparent;
+    touch-action: none;
+}
+
+.ve-layers-panel__item-grip:focus-visible {
+    outline: 2px solid var(--ve-color-primary);
+    outline-offset: -2px;
+    border-radius: 2px;
+}
+
+.ve-layers-panel__item-title {
+    font-weight: 500;
+}
+
+.ve-layers-panel__empty {
+    padding: 16px;
+    text-align: center;
+    color: var(--ve-color-text-muted);
+    font-size: 13px;
+}
+
+/* --------------------------------------------------------------------------
+   Rich Text Surface
+   -------------------------------------------------------------------------- */
+
+.ve-richtext {
+    outline: none;
+}
+
+.ve-richtext:focus-visible {
+    outline: 2px solid var(--ve-color-primary);
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.ve-richtext p,
+.ve-richtext h1,
+.ve-richtext h2,
+.ve-richtext h3,
+.ve-richtext h4,
+.ve-richtext h5,
+.ve-richtext h6 {
+    margin: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Paragraph & Heading Blocks
+   -------------------------------------------------------------------------- */
 
 .ve-block-paragraph-wrapper {
     position: relative;
 }
+
+.ve-block-heading h1,
+.ve-block-heading h2,
+.ve-block-heading h3,
+.ve-block-heading h4,
+.ve-block-heading h5,
+.ve-block-heading h6 {
+    margin: 0;
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--ve-color-text);
+}
+
+.ve-block-heading h1 { font-size: 2.25rem; }
+.ve-block-heading h2 { font-size: 1.875rem; }
+.ve-block-heading h3 { font-size: 1.5rem; }
+.ve-block-heading h4 { font-size: 1.25rem; }
+.ve-block-heading h5 { font-size: 1.125rem; }
+.ve-block-heading h6 { font-size: 1rem; }
+
+/* --------------------------------------------------------------------------
+   Slash Command Popover
+   -------------------------------------------------------------------------- */
 
 .ve-slash-command-popover {
     position: absolute;
@@ -308,8 +912,8 @@
     max-height: min(320px, calc(100vh - 160px));
     margin-top: 4px;
     padding: 4px;
-    background: #fff;
-    border: 1px solid #d0d0d0;
+    background: var(--ve-color-surface);
+    border: 1px solid var(--ve-color-border-strong);
     border-radius: 6px;
     box-shadow: 0 12px 24px rgba(0, 0, 0, 0.14);
     overflow-y: auto;
@@ -335,7 +939,7 @@
 }
 
 .ve-slash-command-popover__item--is-selected {
-    background: #0a84ff;
+    background: var(--ve-color-primary);
     color: #fff;
 }
 
@@ -349,50 +953,34 @@
 
 .ve-slash-command-popover__item-description {
     font-size: 12px;
-    color: #666;
+    color: var(--ve-color-text-secondary);
 }
 
 .ve-slash-command-popover__empty {
     padding: 8px;
-    color: #888;
+    color: var(--ve-color-text-muted);
     font-style: italic;
 }
 
-.ve-block-heading h1,
-.ve-block-heading h2,
-.ve-block-heading h3,
-.ve-block-heading h4,
-.ve-block-heading h5,
-.ve-block-heading h6 {
-    margin: 0;
-    font-weight: 700;
-    line-height: 1.2;
-    color: #1d1d1f;
+/* --------------------------------------------------------------------------
+   Utilities
+   -------------------------------------------------------------------------- */
+
+.ve-sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+    border: 0;
 }
 
-.ve-block-heading h1 {
-    font-size: 2.25rem;
-}
-
-.ve-block-heading h2 {
-    font-size: 1.875rem;
-}
-
-.ve-block-heading h3 {
-    font-size: 1.5rem;
-}
-
-.ve-block-heading h4 {
-    font-size: 1.25rem;
-}
-
-.ve-block-heading h5 {
-    font-size: 1.125rem;
-}
-
-.ve-block-heading h6 {
-    font-size: 1rem;
-}
+/* --------------------------------------------------------------------------
+   Editor Boot (loading / error states)
+   -------------------------------------------------------------------------- */
 
 .ve-editor-boot {
     display: flex;
@@ -402,15 +990,15 @@
     justify-content: center;
     min-height: 100vh;
     padding: 2rem;
-    background: #f5f5f7;
-    color: #1d1d1f;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: var(--ve-color-bg);
+    color: var(--ve-color-text);
+    font-family: var(--ve-font-family);
     font-size: 0.875rem;
     text-align: center;
 }
 
 .ve-editor-boot--error {
-    color: #bf1d1d;
+    color: var(--ve-color-error);
 }
 
 .ve-editor-boot__message {
@@ -421,9 +1009,9 @@
 .ve-editor-boot__retry {
     appearance: none;
     padding: 0.5rem 1rem;
-    border: 1px solid #1d1d1f;
+    border: 1px solid var(--ve-color-text);
     border-radius: 0.375rem;
-    background: #1d1d1f;
+    background: var(--ve-color-text);
     color: #fff;
     font: inherit;
     cursor: pointer;
@@ -439,7 +1027,7 @@
     right: 1.5rem;
     padding: 0.75rem 1rem;
     border-radius: 0.5rem;
-    background: #bf1d1d;
+    background: var(--ve-color-error);
     color: #fff;
     font-size: 0.8125rem;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);

@@ -6,7 +6,10 @@ import Text from '@tiptap/extension-text';
 import HardBreak from '@tiptap/extension-hard-break';
 import Bold from '@tiptap/extension-bold';
 import Italic from '@tiptap/extension-italic';
+import Strike from '@tiptap/extension-strike';
+import Underline from '@tiptap/extension-underline';
 import Link from '@tiptap/extension-link';
+import TextAlign from '@tiptap/extension-text-align';
 import {
     registerBlockEditor,
     unregisterBlockEditor,
@@ -58,10 +61,15 @@ export function useBlockTiptap({
             HardBreak,
             Bold,
             Italic,
+            Strike,
+            Underline,
             Link.configure({
                 openOnClick: false,
                 autolink: false,
                 HTMLAttributes: { rel: 'noopener noreferrer' },
+            }),
+            TextAlign.configure({
+                types: ['heading', 'paragraph'],
             }),
             ...(extraExtensions ?? []),
         ],

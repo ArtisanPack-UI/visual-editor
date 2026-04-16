@@ -101,9 +101,18 @@ describe('BlockList drag-and-drop wiring', () => {
         const store = createEditorStore([makeBlock('a', 'alpha')]);
 
         renderList(store);
-        await user.tab();
 
-        const focused = document.activeElement as HTMLElement | null;
-        expect(focused?.getAttribute('data-ve-drag-handle-slot')).not.toBeNull();
+        // Tab through the between-block inserter buttons to reach the drag handle
+        let found = false;
+        for (let i = 0; i < 10; i++) {
+            await user.tab();
+            const focused = document.activeElement as HTMLElement | null;
+            if (focused !== null && focused.getAttribute('data-ve-drag-handle-slot') !== null) {
+                found = true;
+                break;
+            }
+        }
+
+        expect(found).toBe(true);
     });
 });
