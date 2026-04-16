@@ -1,14 +1,13 @@
-import { useCallback, useEffect, useMemo } from 'react';
-import { EditorContent } from '@tiptap/react';
-import { useStore } from 'zustand';
-import Heading, { type Level } from '@tiptap/extension-heading';
+import { useCallback } from 'react';
+import type { Level } from '@tiptap/extension-heading';
 import type { BlockEditProps } from '../../registry';
-import { useEditorStore } from '../../primitives';
-import { useBlockTiptap } from '../shared/useBlockTiptap';
+import { useEditorStore, RichText } from '../../primitives';
 import { handleBlockBackspace, handleBlockEnter } from '../shared/blockSplitMerge';
-import { takePendingCursor } from '../shared/blockEditorRegistry';
+import { getBlockEditor } from '../shared/blockEditorRegistry';
 
-export const HEADING_BLOCK_NAME = 've/heading';
+import metadata from './block.json';
+
+export const HEADING_BLOCK_NAME = metadata.name;
 export const HEADING_LEVELS: readonly Level[] = [1, 2, 3, 4, 5, 6];
 
 export function normalizeHeadingLevel(value: unknown): Level {
@@ -22,86 +21,39 @@ export default function HeadingEdit({ clientId, attributes }: BlockEditProps) {
     const store = useEditorStore();
     const content = typeof attributes.content === 'string' ? attributes.content : '';
     const level = normalizeHeadingLevel(attributes.level);
-    const isSelected = useStore(
-        store,
-        (state) => state.selection.clientId === clientId
-    );
-    const selectionEdge = useStore(
-        store,
-        (state) => (state.selection.clientId === clientId ? state.selection.edge : undefined)
-    );
 
-    const headingNode = useMemo(
-        () => Heading.configure({ levels: [...HEADING_LEVELS] }),
-        []
-    );
-
-    const onUpdate = useCallback(
+    const onChange = useCallback(
         (html: string) => {
             store.getState().updateBlockAttributes(clientId, { content: html });
         },
         [store, clientId]
     );
 
-    const editor = useBlockTiptap({
-        clientId,
-        content,
-        topLevelNode: headingNode,
-        docContentSpec: 'heading',
-        onUpdate,
-        onEnter: () => {
-            if (!editor) {
-                return false;
-            }
-            return handleBlockEnter(store, clientId, editor);
-        },
-        onBackspaceAtStart: () => {
-            if (!editor) {
-                return false;
-            }
-            return handleBlockBackspace(store, clientId, editor);
-        },
-    });
-
-    useEffect(() => {
-        if (!editor || !isSelected) {
-            return;
-        }
-
-        const pending = takePendingCursor(clientId);
-
-        if (pending !== undefined) {
-            editor.commands.focus(pending);
-            return;
-        }
-
-        if (editor.isFocused) {
-            return;
-        }
-
-        const position = selectionEdge === 'start' ? 'start' : 'end';
-        editor.commands.focus(position);
-    }, [editor, isSelected, selectionEdge, clientId]);
-
-    useEffect(() => {
+    const onEnter = useCallback((): boolean => {
+        const editor = getBlockEditor(clientId);
         if (!editor) {
-            return;
+            return false;
         }
+        return handleBlockEnter(store, clientId, editor);
+    }, [store, clientId]);
 
-        const first = editor.state.doc.firstChild;
-
-        if (!first || first.type.name !== 'heading' || first.attrs.level === level) {
-            return;
+    const onBackspaceAtStart = useCallback((): boolean => {
+        const editor = getBlockEditor(clientId);
+        if (!editor) {
+            return false;
         }
-
-        editor.chain().setNode('heading', { level }).run();
-    }, [editor, level]);
+        return handleBlockBackspace(store, clientId, editor);
+    }, [store, clientId]);
 
     return (
-        <EditorContent
-            editor={editor}
-            data-block-name={HEADING_BLOCK_NAME}
-            data-heading-level={level}
+        <RichText
+            clientId={clientId}
+            tagName={`h${level}`}
+            value={content}
+            onChange={onChange}
+            onEnter={onEnter}
+            onBackspaceAtStart={onBackspaceAtStart}
+            blockName={HEADING_BLOCK_NAME}
             className="ve-block-heading"
         />
     );

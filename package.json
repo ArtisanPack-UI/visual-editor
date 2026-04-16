@@ -3,9 +3,16 @@
     "version": "1.0.0-spike",
     "private": true,
     "type": "module",
+    "exports": {
+        ".": {
+            "types": "./dist/lib/visual-editor.d.ts",
+            "import": "./dist/lib/visual-editor.js"
+        }
+    },
     "scripts": {
         "dev": "vite",
         "build": "vite build",
+        "build:lib": "vite build --mode lib",
         "test": "vitest run",
         "test:watch": "vitest"
     },

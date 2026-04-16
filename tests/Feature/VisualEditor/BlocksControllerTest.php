@@ -10,7 +10,7 @@ it( 'returns 401 for unauthenticated blocks requests', function () {
 	$response->assertUnauthorized();
 } );
 
-it( 'returns the registered block types', function () {
+it( 'returns the registered block types from block.json manifests', function () {
 	$user = TestUser::create( [
 		'name'     => 'Jane',
 		'email'    => 'jane@example.com',
@@ -23,12 +23,12 @@ it( 'returns the registered block types', function () {
 
 	$response->assertOk()
 		->assertJsonStructure( [
-			'data' => [
-				'*' => ['name', 'title', 'category', 'attributes'],
+			'blocks' => [
+				'*' => ['name', 'title'],
 			],
 		] );
 
-	$names = collect( $response->json( 'data' ) )->pluck( 'name' )->all();
+	$names = collect( $response->json( 'blocks' ) )->pluck( 'name' )->all();
 
-	expect( $names )->toContain( 'core/paragraph', 'core/heading' );
+	expect( $names )->toContain( 'artisanpack/paragraph', 'artisanpack/heading' );
 } );

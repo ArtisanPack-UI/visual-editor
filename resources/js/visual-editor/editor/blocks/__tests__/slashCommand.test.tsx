@@ -3,15 +3,12 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { EditorStoreProvider, RenderBlock } from '../../primitives';
 import { clearRegistry } from '../../registry';
 import { createEditorStore, type Block, type EditorStore } from '../../store';
-import { registerCoreBlocks, PARAGRAPH_BLOCK_NAME } from '../index';
+import { registerCoreBlocks, PARAGRAPH_BLOCK_NAME, HEADING_BLOCK_NAME } from '../index';
 import {
     clearBlockEditors,
     getBlockEditor,
 } from '../shared/blockEditorRegistry';
-import {
-    clearInserterRegistry,
-    registerBuiltinInserterBlocks,
-} from '../../inserter';
+import { clearInserterRegistry } from '../../inserter';
 
 function paragraph(clientId: string, content: string): Block {
     return {
@@ -35,7 +32,6 @@ beforeEach(() => {
     clearBlockEditors();
     clearInserterRegistry();
     registerCoreBlocks();
-    registerBuiltinInserterBlocks();
 });
 
 afterEach(() => {
@@ -60,8 +56,8 @@ describe('slash command', () => {
         });
 
         expect(screen.getByTestId('ve-slash-command-popover')).toBeInTheDocument();
-        expect(screen.getByTestId('ve-slash-command-item-ve/paragraph')).toBeInTheDocument();
-        expect(screen.getByTestId('ve-slash-command-item-ve/heading')).toBeInTheDocument();
+        expect(screen.getByTestId(`ve-slash-command-item-${PARAGRAPH_BLOCK_NAME}`)).toBeInTheDocument();
+        expect(screen.getByTestId(`ve-slash-command-item-${HEADING_BLOCK_NAME}`)).toBeInTheDocument();
     });
 
     it('filters the popover by the text after the slash', async () => {
@@ -76,8 +72,8 @@ describe('slash command', () => {
             editor!.commands.insertContent('/head');
         });
 
-        expect(screen.queryByTestId('ve-slash-command-item-ve/paragraph')).toBeNull();
-        expect(screen.getByTestId('ve-slash-command-item-ve/heading')).toBeInTheDocument();
+        expect(screen.queryByTestId(`ve-slash-command-item-${PARAGRAPH_BLOCK_NAME}`)).toBeNull();
+        expect(screen.getByTestId(`ve-slash-command-item-${HEADING_BLOCK_NAME}`)).toBeInTheDocument();
     });
 
     it('moves the selected index with ArrowDown / ArrowUp', async () => {
@@ -94,7 +90,7 @@ describe('slash command', () => {
 
         expect(
             screen
-                .getByTestId('ve-slash-command-item-ve/paragraph')
+                .getByTestId(`ve-slash-command-item-${PARAGRAPH_BLOCK_NAME}`)
                 .getAttribute('data-selected')
         ).toBe('true');
 
@@ -104,7 +100,7 @@ describe('slash command', () => {
 
         expect(
             screen
-                .getByTestId('ve-slash-command-item-ve/heading')
+                .getByTestId(`ve-slash-command-item-${HEADING_BLOCK_NAME}`)
                 .getAttribute('data-selected')
         ).toBe('true');
 
@@ -114,7 +110,7 @@ describe('slash command', () => {
 
         expect(
             screen
-                .getByTestId('ve-slash-command-item-ve/paragraph')
+                .getByTestId(`ve-slash-command-item-${PARAGRAPH_BLOCK_NAME}`)
                 .getAttribute('data-selected')
         ).toBe('true');
     });
@@ -142,7 +138,7 @@ describe('slash command', () => {
 
         const blocks = store.getState().blocks;
         expect(blocks).toHaveLength(1);
-        expect(blocks[0].name).toBe('ve/heading');
+        expect(blocks[0].name).toBe(HEADING_BLOCK_NAME);
     });
 
     it('closes the popover on Escape', async () => {
@@ -179,11 +175,11 @@ describe('slash command', () => {
         });
 
         await act(async () => {
-            fireEvent.mouseDown(screen.getByTestId('ve-slash-command-item-ve/heading'));
+            fireEvent.mouseDown(screen.getByTestId(`ve-slash-command-item-${HEADING_BLOCK_NAME}`));
         });
 
         const blocks = store.getState().blocks;
         expect(blocks).toHaveLength(1);
-        expect(blocks[0].name).toBe('ve/heading');
+        expect(blocks[0].name).toBe(HEADING_BLOCK_NAME);
     });
 });

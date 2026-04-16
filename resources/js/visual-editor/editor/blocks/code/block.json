@@ -1,0 +1,42 @@
+{
+    "apiVersion": 1,
+    "name": "artisanpack/code",
+    "title": "Code",
+    "category": "text",
+    "description": "Display code snippets with monospaced formatting.",
+    "keywords": ["pre", "snippet", "syntax"],
+    "textdomain": "visual-editor",
+    "attributes": {
+        "content": {
+            "type": "string",
+            "default": ""
+        },
+        "language": {
+            "type": "string",
+            "default": "plaintext",
+            "enum": [
+                "plaintext", "html", "css", "javascript", "typescript",
+                "php", "python", "ruby", "go", "rust", "json", "yaml",
+                "bash", "sql", "markdown"
+            ]
+        }
+    },
+    "supports": {
+        "anchor": true,
+        "className": true,
+        "spacing": {
+            "margin": true,
+            "padding": true
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true
+        },
+        "border": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true
+        }
+    }
+}

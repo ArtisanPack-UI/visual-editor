@@ -14,13 +14,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 	public function register(): void
 	{
-		$this->app->singleton( 'package', function ( $app ) {
-			return new VisualEditor();
-		} );
-
 		$this->app->singleton( BlockTypeRegistry::class, function () {
 			return new BlockTypeRegistry();
 		} );
+
+		$this->app->singleton( VisualEditor::class, function ( $app ) {
+			return new VisualEditor( $app->make( BlockTypeRegistry::class ) );
+		} );
+
+		// Legacy alias for backward compatibility
+		$this->app->alias( VisualEditor::class, 'visualEditor' );
 
 		$this->mergeConfigFrom(
 			__DIR__ . '/../config/visual-editor.php', 'artisanpack-visual-editor-temp'
@@ -48,11 +51,42 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
 
-		// 3. Tag the config file for the scaffold command.
+		// 3. Register core blocks from their block.json manifests.
+		$this->registerCoreBlocks();
+
+		// 4. Tag the config file for the scaffold command.
 		if ( $this->app->runningInConsole() ) {
 			$this->publishes( [
 								  __DIR__ . '/../config/visual-editor.php' => config_path( 'artisanpack/visual-editor.php' ),
 							  ], 'artisanpack-package-config' );
+		}
+	}
+
+	/**
+	 * Registers the core block types from their block.json manifest files.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function registerCoreBlocks(): void
+	{
+		$editor    = $this->app->make( VisualEditor::class );
+		$blocksDir = __DIR__ . '/../resources/js/visual-editor/editor/blocks';
+
+		$coreBlocks = [
+			'paragraph',
+			'heading',
+			'list',
+			'quote',
+			'code',
+			'preformatted',
+		];
+
+		foreach ( $coreBlocks as $block ) {
+			$blockJsonPath = $blocksDir . '/' . $block . '/block.json';
+
+			if ( file_exists( $blockJsonPath ) ) {
+				$editor->registerBlock( $blockJsonPath );
+			}
 		}
 	}
 

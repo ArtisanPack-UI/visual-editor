@@ -15,7 +15,7 @@ function createPost( array $overrides = [] ): VisualEditorPost
 		'blocks' => [
 			[
 				'clientId'    => 'abc-123',
-				'name'        => 'core/paragraph',
+				'name'        => 'artisanpack/paragraph',
 				'attributes'  => ['content' => 'Hello'],
 				'innerBlocks' => [],
 			],
@@ -84,7 +84,7 @@ it( 'returns 403 on PUT when ownership restriction blocks the user', function ()
 		'blocks' => [
 			[
 				'clientId'    => 'c-1',
-				'name'        => 'core/paragraph',
+				'name'        => 'artisanpack/paragraph',
 				'attributes'  => ['content' => 'Hello'],
 				'innerBlocks' => [],
 			],
@@ -96,7 +96,7 @@ it( 'returns 403 on PUT when ownership restriction blocks the user', function ()
 	expect( $post->fresh()->blocks )->toEqual( [
 		[
 			'clientId'    => 'abc-123',
-			'name'        => 'core/paragraph',
+			'name'        => 'artisanpack/paragraph',
 			'attributes'  => ['content' => 'Hello'],
 			'innerBlocks' => [],
 		],
@@ -113,7 +113,7 @@ it( 'returns the block tree for an authorized GET request', function () {
 		->assertJsonPath( 'id', $post->id )
 		->assertJsonPath( 'title', 'Test Post' )
 		->assertJsonPath( 'blocks.0.clientId', 'abc-123' )
-		->assertJsonPath( 'blocks.0.name', 'core/paragraph' )
+		->assertJsonPath( 'blocks.0.name', 'artisanpack/paragraph' )
 		->assertJsonPath( 'blocks.0.attributes.content', 'Hello' );
 } );
 
@@ -139,13 +139,13 @@ it( 'rejects duplicate clientIds within the tree', function () {
 		'blocks' => [
 			[
 				'clientId'    => 'dupe',
-				'name'        => 'core/paragraph',
+				'name'        => 'artisanpack/paragraph',
 				'attributes'  => ['content' => 'a'],
 				'innerBlocks' => [],
 			],
 			[
 				'clientId'    => 'dupe',
-				'name'        => 'core/paragraph',
+				'name'        => 'artisanpack/paragraph',
 				'attributes'  => ['content' => 'b'],
 				'innerBlocks' => [],
 			],
@@ -163,7 +163,7 @@ it( 'rejects block trees deeper than MAX_DEPTH', function () {
 	$build = function ( int $depth ) use ( &$build ): array {
 		$block = [
 			'clientId'    => "c-{$depth}",
-			'name'        => 'core/paragraph',
+			'name'        => 'artisanpack/paragraph',
 			'attributes'  => [],
 			'innerBlocks' => [],
 		];
@@ -192,7 +192,7 @@ it( 'rejects block trees with more than MAX_NODES blocks', function () {
 	for ( $i = 0; $i < $count; $i++ ) {
 		$blocks[] = [
 			'clientId'    => "c-{$i}",
-			'name'        => 'core/paragraph',
+			'name'        => 'artisanpack/paragraph',
 			'attributes'  => [],
 			'innerBlocks' => [],
 		];
@@ -223,18 +223,18 @@ it( 'persists a valid block tree on PUT', function () {
 	$newBlocks = [
 		[
 			'clientId'    => 'heading-1',
-			'name'        => 'core/heading',
+			'name'        => 'artisanpack/heading',
 			'attributes'  => ['content' => 'Updated', 'level' => 2],
 			'innerBlocks' => [],
 		],
 		[
 			'clientId'    => 'paragraph-1',
-			'name'        => 'core/paragraph',
+			'name'        => 'artisanpack/paragraph',
 			'attributes'  => ['content' => 'Body text'],
 			'innerBlocks' => [
 				[
 					'clientId'    => 'inner-1',
-					'name'        => 'core/paragraph',
+					'name'        => 'artisanpack/paragraph',
 					'attributes'  => ['content' => 'Nested'],
 					'innerBlocks' => [],
 				],

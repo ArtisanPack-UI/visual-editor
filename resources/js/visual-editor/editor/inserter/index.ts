@@ -4,6 +4,7 @@ export {
     getInserterBlocks,
     getBlockFactory,
     clearInserterRegistry,
+    clearFactories,
     subscribeInserterBlocks,
     type InserterBlock,
     type BlockFactory,

@@ -1,0 +1,53 @@
+{
+    "apiVersion": 1,
+    "name": "artisanpack/paragraph",
+    "title": "Paragraph",
+    "category": "text",
+    "description": "Start with the basic building block of all narrative.",
+    "keywords": ["text", "body", "p"],
+    "textdomain": "visual-editor",
+    "attributes": {
+        "content": {
+            "type": "rich-text",
+            "source": "rich-text",
+            "selector": "p",
+            "role": "content",
+            "default": ""
+        }
+    },
+    "supports": {
+        "splitting": true,
+        "anchor": true,
+        "className": true,
+        "color": {
+            "background": true,
+            "text": true,
+            "gradients": true,
+            "link": true
+        },
+        "spacing": {
+            "margin": true,
+            "padding": true
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "textAlign": true,
+            "fontFamily": true,
+            "fontStyle": true,
+            "fontWeight": true,
+            "letterSpacing": true,
+            "textDecoration": true,
+            "textTransform": true
+        },
+        "border": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true
+        }
+    },
+    "selectors": {
+        "root": "p"
+    }
+}
