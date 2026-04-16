@@ -828,6 +828,7 @@
     cursor: grab;
     border: none;
     background: transparent;
+    touch-action: none;
 }
 
 .ve-layers-panel__item-grip:focus-visible {
