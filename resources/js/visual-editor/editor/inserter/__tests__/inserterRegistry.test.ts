@@ -1,66 +1,60 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { clearRegistry } from '../../registry';
+import { registerCoreBlocks, PARAGRAPH_BLOCK_NAME, HEADING_BLOCK_NAME } from '../../blocks';
 import {
     clearInserterRegistry,
     filterInserterBlocks,
     getInserterBlocks,
     loadInserterBlocks,
     registerBlockFactory,
-    registerBuiltinInserterBlocks,
     subscribeInserterBlocks,
     type InserterBlock,
 } from '../index';
 
 beforeEach(() => {
+    clearRegistry();
     clearInserterRegistry();
 });
 
 afterEach(() => {
+    clearRegistry();
     clearInserterRegistry();
 });
 
 describe('inserter registry', () => {
-    it('returns a stable snapshot reference until mutated', () => {
-        registerBuiltinInserterBlocks();
-        const a = getInserterBlocks();
-        const b = getInserterBlocks();
+    it('returns blocks registered via registerCoreBlocks', () => {
+        registerCoreBlocks();
+        const blocks = getInserterBlocks();
+        const names = blocks.map((b) => b.name);
 
-        expect(a).toBe(b);
-    });
-
-    it('produces a new snapshot when a block is registered', () => {
-        registerBuiltinInserterBlocks();
-        const first = getInserterBlocks();
-
-        registerBuiltinInserterBlocks();
-
-        const second = getInserterBlocks();
-        expect(second).not.toBe(first);
+        expect(names).toContain(PARAGRAPH_BLOCK_NAME);
+        expect(names).toContain(HEADING_BLOCK_NAME);
     });
 
     it('notifies subscribers when the registry changes', () => {
         const listener = vi.fn();
         const unsubscribe = subscribeInserterBlocks(listener);
 
-        registerBuiltinInserterBlocks();
+        registerCoreBlocks();
 
         expect(listener).toHaveBeenCalled();
 
         unsubscribe();
     });
 
-    it('seeds paragraph and heading via registerBuiltinInserterBlocks', () => {
-        registerBuiltinInserterBlocks();
+    it('seeds paragraph and heading via registerCoreBlocks', () => {
+        registerCoreBlocks();
         const blocks = getInserterBlocks();
 
-        expect(blocks.map((block) => block.name)).toContain('ve/paragraph');
-        expect(blocks.map((block) => block.name)).toContain('ve/heading');
+        expect(blocks.map((block) => block.name)).toContain(PARAGRAPH_BLOCK_NAME);
+        expect(blocks.map((block) => block.name)).toContain(HEADING_BLOCK_NAME);
     });
 });
 
 describe('filterInserterBlocks', () => {
     const blocks: InserterBlock[] = [
-        { name: 've/paragraph', title: 'Paragraph', keywords: ['text'] },
-        { name: 've/heading', title: 'Heading', description: 'Sections', keywords: ['h1', 'h2'] },
+        { name: PARAGRAPH_BLOCK_NAME, title: 'Paragraph', keywords: ['text'] },
+        { name: HEADING_BLOCK_NAME, title: 'Heading', description: 'Sections', keywords: ['h1', 'h2'] },
     ];
 
     it('returns a copy of the list for an empty query', () => {
@@ -91,16 +85,19 @@ describe('filterInserterBlocks', () => {
 });
 
 describe('loadInserterBlocks', () => {
-    it('registers the built-ins even without an API base', async () => {
+    it('includes core blocks even without an API base', async () => {
+        registerCoreBlocks();
         await loadInserterBlocks();
         const names = getInserterBlocks().map((block) => block.name);
-        expect(names).toContain('ve/paragraph');
-        expect(names).toContain('ve/heading');
+        expect(names).toContain(PARAGRAPH_BLOCK_NAME);
+        expect(names).toContain(HEADING_BLOCK_NAME);
     });
 
     it('merges API-returned blocks when a client factory is registered', async () => {
-        registerBlockFactory('ve/custom', () => ({
-            name: 've/custom',
+        registerCoreBlocks();
+
+        registerBlockFactory('custom/block', () => ({
+            name: 'custom/block',
             attributes: {},
             innerBlocks: [],
         }));
@@ -109,7 +106,7 @@ describe('loadInserterBlocks', () => {
             ok: true,
             json: async () => ({
                 blocks: [
-                    { name: 've/custom', title: 'Custom', description: 'A custom block' },
+                    { name: 'custom/block', title: 'Custom', description: 'A custom block' },
                 ],
             }),
         }) as unknown as typeof fetch;
@@ -117,16 +114,18 @@ describe('loadInserterBlocks', () => {
         await loadInserterBlocks({ apiBase: 'https://example.test/api', fetchImpl });
 
         const names = getInserterBlocks().map((block) => block.name);
-        expect(names).toContain('ve/custom');
-        expect(names).toContain('ve/paragraph');
+        expect(names).toContain('custom/block');
+        expect(names).toContain(PARAGRAPH_BLOCK_NAME);
     });
 
     it('skips API-returned blocks that have no client factory', async () => {
+        registerCoreBlocks();
+
         const fetchImpl = vi.fn().mockResolvedValue({
             ok: true,
             json: async () => ({
                 blocks: [
-                    { name: 've/unregistered', title: 'Unregistered' },
+                    { name: 'unknown/block', title: 'Unregistered' },
                 ],
             }),
         }) as unknown as typeof fetch;
@@ -134,12 +133,14 @@ describe('loadInserterBlocks', () => {
         await loadInserterBlocks({ apiBase: 'https://example.test/api', fetchImpl });
 
         const names = getInserterBlocks().map((block) => block.name);
-        expect(names).not.toContain('ve/unregistered');
+        expect(names).not.toContain('unknown/block');
     });
 
     it('ignores malformed payloads with non-string description or keyword entries', async () => {
-        registerBlockFactory('ve/custom', () => ({
-            name: 've/custom',
+        registerCoreBlocks();
+
+        registerBlockFactory('custom/block', () => ({
+            name: 'custom/block',
             attributes: {},
             innerBlocks: [],
         }));
@@ -149,7 +150,7 @@ describe('loadInserterBlocks', () => {
             json: async () => ({
                 blocks: [
                     {
-                        name: 've/custom',
+                        name: 'custom/block',
                         title: 'Custom',
                         description: 42,
                         keywords: ['valid', 7, null, 'more'],
@@ -160,13 +161,15 @@ describe('loadInserterBlocks', () => {
 
         await loadInserterBlocks({ apiBase: 'https://example.test/api', fetchImpl });
 
-        const custom = getInserterBlocks().find((block) => block.name === 've/custom');
+        const custom = getInserterBlocks().find((block) => block.name === 'custom/block');
         expect(custom).toBeDefined();
         expect(custom!.description).toBeUndefined();
         expect(custom!.keywords).toEqual(['valid', 'more']);
     });
 
-    it('falls back to built-ins when the API request fails', async () => {
+    it('falls back to core blocks when the API request fails', async () => {
+        registerCoreBlocks();
+
         const fetchImpl = vi
             .fn()
             .mockRejectedValue(new Error('network')) as unknown as typeof fetch;
@@ -174,11 +177,13 @@ describe('loadInserterBlocks', () => {
         await loadInserterBlocks({ apiBase: 'https://example.test/api', fetchImpl });
 
         const names = getInserterBlocks().map((block) => block.name);
-        expect(names).toContain('ve/paragraph');
-        expect(names).toContain('ve/heading');
+        expect(names).toContain(PARAGRAPH_BLOCK_NAME);
+        expect(names).toContain(HEADING_BLOCK_NAME);
     });
 
     it('ignores non-ok responses', async () => {
+        registerCoreBlocks();
+
         const fetchImpl = vi.fn().mockResolvedValue({
             ok: false,
             json: async () => ({ blocks: [] }),

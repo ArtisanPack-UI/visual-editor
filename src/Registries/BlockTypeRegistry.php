@@ -3,8 +3,9 @@
 /**
  * BlockType registry.
  *
- * In-memory registry describing the block types the editor is aware of.
- * Packages and applications can extend this via the service container.
+ * In-memory registry storing block type definitions. Blocks are registered
+ * via their block.json metadata (read by VisualEditor::registerBlock()) or
+ * programmatically via VisualEditor::registerBlockType().
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -24,7 +25,7 @@ class BlockTypeRegistry
 {
 	/**
 	 * Canonical block name pattern: `namespace/name` using lowercase
-	 * alphanumerics and hyphens (e.g. `core/paragraph`).
+	 * alphanumerics and hyphens (e.g. `artisanpack/paragraph`).
 	 */
 	protected const NAME_PATTERN = '/^[a-z][a-z0-9-]*\/[a-z][a-z0-9-]*$/';
 
@@ -33,33 +34,13 @@ class BlockTypeRegistry
 	 */
 	protected array $blocks = [];
 
-	public function __construct()
-	{
-		$this->register( 'core/paragraph', [
-			'title'      => 'Paragraph',
-			'category'   => 'text',
-			'attributes' => [
-				'content' => ['type' => 'string', 'default' => ''],
-			],
-		] );
-
-		$this->register( 'core/heading', [
-			'title'      => 'Heading',
-			'category'   => 'text',
-			'attributes' => [
-				'content' => ['type' => 'string', 'default' => ''],
-				'level'   => ['type' => 'integer', 'default' => 2],
-			],
-		] );
-	}
-
 	/**
 	 * Registers a block type by name.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  string                $name        The block name (e.g. `core/paragraph`).
-	 * @param  array<string, mixed>  $definition  Metadata describing the block.
+	 * @param  string                $name        The block name (e.g. `artisanpack/paragraph`).
+	 * @param  array<string, mixed>  $definition  Metadata describing the block (typically from block.json).
 	 */
 	public function register( string $name, array $definition ): void
 	{
@@ -77,6 +58,20 @@ class BlockTypeRegistry
 		}
 
 		$this->blocks[ $normalized ] = array_merge( ['name' => $normalized], $definition );
+	}
+
+	/**
+	 * Returns a single registered block type by name, or null if not found.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  string  $name  The block name.
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	public function get( string $name ): ?array
+	{
+		return $this->blocks[ trim( $name ) ] ?? null;
 	}
 
 	/**

@@ -15,6 +15,7 @@ export {
     type UseInnerBlocksPropsOptions,
     type UseInnerBlocksPropsReturn,
 } from './useInnerBlocksProps';
+export { RichText, type RichTextProps } from './RichText';
 export {
     BlockPreview,
     useBlockPreview,

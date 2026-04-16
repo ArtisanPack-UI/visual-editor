@@ -3,8 +3,8 @@ import type { Block, EditorStore } from '../../store';
 import { createClientId } from '../../store';
 import { splitAtCursor, isCursorAtStart } from './splitContent';
 import { getBlockEditor, setPendingCursor } from './blockEditorRegistry';
-
-const TEXT_BLOCK_NAMES = new Set<string>(['ve/paragraph', 've/heading']);
+import { blockSupports } from '../../registry';
+import { PARAGRAPH_BLOCK_NAME } from '../paragraph';
 
 function findTopLevelIndex(blocks: Block[], clientId: string): number {
     return blocks.findIndex((block) => block.clientId === clientId);
@@ -33,7 +33,7 @@ export function handleBlockEnter(
 
     const newBlock: Block = {
         clientId: createClientId(),
-        name: 've/paragraph',
+        name: PARAGRAPH_BLOCK_NAME,
         attributes: { content: rightHtml },
         innerBlocks: [],
     };
@@ -78,7 +78,7 @@ export function handleBlockBackspace(
 
     const previousBlock = state.blocks[topLevelIndex - 1];
 
-    if (!TEXT_BLOCK_NAMES.has(previousBlock.name)) {
+    if (!blockSupports(previousBlock.name, 'splitting')) {
         return false;
     }
 

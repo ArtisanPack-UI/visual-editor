@@ -1,12 +1,20 @@
-import { registerBlock } from '../../registry';
-import ParagraphEdit, { PARAGRAPH_BLOCK_NAME } from './edit';
+import { registerBlockType, type BlockJsonMetadata } from '../../registry';
+import rawMetadata from './block.json';
+import ParagraphEdit from './edit';
+
+const metadata = rawMetadata as unknown as BlockJsonMetadata;
+
+export const PARAGRAPH_BLOCK_NAME = metadata.name;
 
 export function registerParagraphBlock(): void {
-    registerBlock({
-        name: PARAGRAPH_BLOCK_NAME,
+    registerBlockType(metadata, {
         edit: ParagraphEdit,
+        factory: () => ({
+            name: PARAGRAPH_BLOCK_NAME,
+            attributes: { content: '<p></p>' },
+            innerBlocks: [],
+        }),
     });
 }
 
-export { PARAGRAPH_BLOCK_NAME };
 export { default as ParagraphEdit } from './edit';

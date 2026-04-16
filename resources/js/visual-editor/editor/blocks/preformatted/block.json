@@ -1,0 +1,34 @@
+{
+    "apiVersion": 1,
+    "name": "artisanpack/preformatted",
+    "title": "Preformatted",
+    "category": "text",
+    "description": "Preserve whitespace and line breaks in a monospaced block.",
+    "keywords": ["pre", "ascii", "whitespace"],
+    "textdomain": "visual-editor",
+    "attributes": {
+        "content": {
+            "type": "rich-text",
+            "source": "rich-text",
+            "selector": "pre",
+            "role": "content",
+            "default": ""
+        }
+    },
+    "supports": {
+        "anchor": true,
+        "className": true,
+        "color": {
+            "background": true,
+            "text": true
+        },
+        "spacing": {
+            "margin": true,
+            "padding": true
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true
+        }
+    }
+}

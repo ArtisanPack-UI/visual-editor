@@ -1,0 +1,36 @@
+{
+    "apiVersion": 1,
+    "name": "artisanpack/list",
+    "title": "List",
+    "category": "text",
+    "description": "Create a bulleted or numbered list.",
+    "keywords": ["ul", "ol", "bullet", "numbered", "ordered", "unordered"],
+    "textdomain": "visual-editor",
+    "attributes": {
+        "ordered": {
+            "type": "boolean",
+            "default": false
+        },
+        "content": {
+            "type": "string",
+            "default": ""
+        }
+    },
+    "supports": {
+        "anchor": true,
+        "className": true,
+        "color": {
+            "background": true,
+            "text": true,
+            "link": true
+        },
+        "spacing": {
+            "margin": true,
+            "padding": true
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true
+        }
+    }
+}

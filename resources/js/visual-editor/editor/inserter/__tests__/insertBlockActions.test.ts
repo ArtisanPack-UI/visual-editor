@@ -1,27 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { createEditorStore, type Block } from '../../store';
+import { clearRegistry } from '../../registry';
+import { registerCoreBlocks, PARAGRAPH_BLOCK_NAME, HEADING_BLOCK_NAME } from '../../blocks';
 import {
     clearInserterRegistry,
     insertBlockAtSelection,
-    registerBuiltinInserterBlocks,
     replaceBlockWithInserterBlock,
 } from '../index';
 
 function makeParagraph(clientId: string, content: string): Block {
     return {
         clientId,
-        name: 've/paragraph',
+        name: PARAGRAPH_BLOCK_NAME,
         attributes: { content },
         innerBlocks: [],
     };
 }
 
 beforeEach(() => {
+    clearRegistry();
     clearInserterRegistry();
-    registerBuiltinInserterBlocks();
+    registerCoreBlocks();
 });
 
 afterEach(() => {
+    clearRegistry();
     clearInserterRegistry();
 });
 
@@ -29,11 +32,11 @@ describe('insertBlockAtSelection', () => {
     it('appends a block when nothing is selected', () => {
         const store = createEditorStore([makeParagraph('p1', '<p>a</p>')]);
 
-        const inserted = insertBlockAtSelection(store, 've/heading');
+        const inserted = insertBlockAtSelection(store, HEADING_BLOCK_NAME);
 
         expect(inserted).not.toBeNull();
         expect(store.getState().blocks).toHaveLength(2);
-        expect(store.getState().blocks[1].name).toBe('ve/heading');
+        expect(store.getState().blocks[1].name).toBe(HEADING_BLOCK_NAME);
     });
 
     it('inserts after the selected block when the selection edge is end', () => {
@@ -43,12 +46,12 @@ describe('insertBlockAtSelection', () => {
         ]);
         store.getState().select('p1', 'end');
 
-        insertBlockAtSelection(store, 've/heading');
+        insertBlockAtSelection(store, HEADING_BLOCK_NAME);
 
         const blocks = store.getState().blocks;
         expect(blocks).toHaveLength(3);
         expect(blocks[0].clientId).toBe('p1');
-        expect(blocks[1].name).toBe('ve/heading');
+        expect(blocks[1].name).toBe(HEADING_BLOCK_NAME);
         expect(blocks[2].clientId).toBe('p2');
     });
 
@@ -59,19 +62,19 @@ describe('insertBlockAtSelection', () => {
         ]);
         store.getState().select('p2', 'start');
 
-        insertBlockAtSelection(store, 've/heading');
+        insertBlockAtSelection(store, HEADING_BLOCK_NAME);
 
         const blocks = store.getState().blocks;
         expect(blocks).toHaveLength(3);
         expect(blocks[0].clientId).toBe('p1');
-        expect(blocks[1].name).toBe('ve/heading');
+        expect(blocks[1].name).toBe(HEADING_BLOCK_NAME);
         expect(blocks[2].clientId).toBe('p2');
     });
 
     it('selects the newly inserted block', () => {
         const store = createEditorStore([makeParagraph('p1', '<p>a</p>')]);
 
-        const inserted = insertBlockAtSelection(store, 've/paragraph');
+        const inserted = insertBlockAtSelection(store, PARAGRAPH_BLOCK_NAME);
 
         expect(store.getState().selection.clientId).toBe(inserted!.clientId);
     });
@@ -79,7 +82,7 @@ describe('insertBlockAtSelection', () => {
     it('returns null when no factory is registered for the block', () => {
         const store = createEditorStore([makeParagraph('p1', '<p>a</p>')]);
 
-        const inserted = insertBlockAtSelection(store, 've/unknown');
+        const inserted = insertBlockAtSelection(store, 'unknown/block');
 
         expect(inserted).toBeNull();
         expect(store.getState().blocks).toHaveLength(1);
@@ -93,12 +96,12 @@ describe('replaceBlockWithInserterBlock', () => {
             makeParagraph('p2', '<p>/head</p>'),
         ]);
 
-        const replacement = replaceBlockWithInserterBlock(store, 'p2', 've/heading');
+        const replacement = replaceBlockWithInserterBlock(store, 'p2', HEADING_BLOCK_NAME);
 
         expect(replacement).not.toBeNull();
         const blocks = store.getState().blocks;
         expect(blocks).toHaveLength(2);
-        expect(blocks[1].name).toBe('ve/heading');
+        expect(blocks[1].name).toBe(HEADING_BLOCK_NAME);
         expect(blocks[1].clientId).toBe(replacement!.clientId);
         expect(store.getState().selection.clientId).toBe(replacement!.clientId);
     });
@@ -109,13 +112,13 @@ describe('replaceBlockWithInserterBlock', () => {
             makeParagraph('p2', '<p>/head</p>'),
         ]);
 
-        replaceBlockWithInserterBlock(store, 'p2', 've/heading');
+        replaceBlockWithInserterBlock(store, 'p2', HEADING_BLOCK_NAME);
 
         store.getState().undo();
 
         const blocks = store.getState().blocks;
         expect(blocks).toHaveLength(2);
         expect(blocks[1].clientId).toBe('p2');
-        expect(blocks[1].name).toBe('ve/paragraph');
+        expect(blocks[1].name).toBe(PARAGRAPH_BLOCK_NAME);
     });
 });

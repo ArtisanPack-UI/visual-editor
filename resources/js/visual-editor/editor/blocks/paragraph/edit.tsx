@@ -6,14 +6,10 @@ import {
     useState,
     useSyncExternalStore,
 } from 'react';
-import { EditorContent } from '@tiptap/react';
-import { useStore } from 'zustand';
-import Paragraph from '@tiptap/extension-paragraph';
 import type { BlockEditProps } from '../../registry';
-import { useEditorStore } from '../../primitives';
-import { useBlockTiptap } from '../shared/useBlockTiptap';
+import { useEditorStore, RichText } from '../../primitives';
 import { handleBlockBackspace, handleBlockEnter } from '../shared/blockSplitMerge';
-import { takePendingCursor } from '../shared/blockEditorRegistry';
+import { getBlockEditor } from '../shared/blockEditorRegistry';
 import {
     filterInserterBlocks,
     getInserterBlocks,
@@ -23,7 +19,9 @@ import {
 } from '../../inserter';
 import { SlashCommandPopover } from '../../components/SlashCommandPopover';
 
-export const PARAGRAPH_BLOCK_NAME = 've/paragraph';
+import metadata from './block.json';
+
+export const PARAGRAPH_BLOCK_NAME = metadata.name;
 
 const SLASH_PLAINTEXT_REGEX = /^\/(.*)$/;
 
@@ -51,14 +49,6 @@ function detectSlashQuery(html: string): string | null {
 export default function ParagraphEdit({ clientId, attributes }: BlockEditProps) {
     const store = useEditorStore();
     const content = typeof attributes.content === 'string' ? attributes.content : '';
-    const isSelected = useStore(
-        store,
-        (state) => state.selection.clientId === clientId
-    );
-    const selectionEdge = useStore(
-        store,
-        (state) => (state.selection.clientId === clientId ? state.selection.edge : undefined)
-    );
 
     const [slashQuery, setSlashQuery] = useState<string | null>(null);
     const [slashIndex, setSlashIndex] = useState(0);
@@ -82,7 +72,7 @@ export default function ParagraphEdit({ clientId, attributes }: BlockEditProps) 
     filteredRef.current = filteredSlashBlocks;
     slashIndexRef.current = slashIndex;
 
-    const onUpdate = useCallback(
+    const onChange = useCallback(
         (html: string) => {
             store.getState().updateBlockAttributes(clientId, { content: html });
             setSlashQuery(detectSlashQuery(html));
@@ -108,54 +98,30 @@ export default function ParagraphEdit({ clientId, attributes }: BlockEditProps) 
         [selectSlashBlock]
     );
 
-    const editor = useBlockTiptap({
-        clientId,
-        content,
-        topLevelNode: Paragraph,
-        docContentSpec: 'paragraph',
-        onUpdate,
-        onEnter: () => {
-            if (slashActiveRef.current) {
-                if (filteredRef.current.length > 0) {
-                    selectSlashBlockAtIndex(slashIndexRef.current);
-                }
-                return true;
+    const onEnter = useCallback((): boolean => {
+        if (slashActiveRef.current) {
+            if (filteredRef.current.length > 0) {
+                selectSlashBlockAtIndex(slashIndexRef.current);
             }
-            if (!editor) {
-                return false;
-            }
-            return handleBlockEnter(store, clientId, editor);
-        },
-        onBackspaceAtStart: () => {
-            if (slashActiveRef.current) {
-                return false;
-            }
-            if (!editor) {
-                return false;
-            }
-            return handleBlockBackspace(store, clientId, editor);
-        },
-    });
-
-    useEffect(() => {
-        if (!editor || !isSelected) {
-            return;
+            return true;
         }
-
-        const pending = takePendingCursor(clientId);
-
-        if (pending !== undefined) {
-            editor.commands.focus(pending);
-            return;
+        const editor = getBlockEditor(clientId);
+        if (!editor) {
+            return false;
         }
+        return handleBlockEnter(store, clientId, editor);
+    }, [store, clientId, selectSlashBlockAtIndex]);
 
-        if (editor.isFocused) {
-            return;
+    const onBackspaceAtStart = useCallback((): boolean => {
+        if (slashActiveRef.current) {
+            return false;
         }
-
-        const position = selectionEdge === 'start' ? 'start' : 'end';
-        editor.commands.focus(position);
-    }, [editor, isSelected, selectionEdge, clientId]);
+        const editor = getBlockEditor(clientId);
+        if (!editor) {
+            return false;
+        }
+        return handleBlockBackspace(store, clientId, editor);
+    }, [store, clientId]);
 
     useEffect(() => {
         setSlashIndex((current) => {
@@ -167,6 +133,7 @@ export default function ParagraphEdit({ clientId, attributes }: BlockEditProps) 
     }, [filteredSlashBlocks]);
 
     useEffect(() => {
+        const editor = getBlockEditor(clientId);
         if (!editor) {
             return;
         }
@@ -180,7 +147,7 @@ export default function ParagraphEdit({ clientId, attributes }: BlockEditProps) 
         return () => {
             editor.off('blur', onBlur);
         };
-    }, [editor]);
+    }, [clientId]);
 
     useEffect(() => {
         if (slashQuery === null) {
@@ -219,9 +186,14 @@ export default function ParagraphEdit({ clientId, attributes }: BlockEditProps) 
 
     return (
         <div className="ve-block-paragraph-wrapper">
-            <EditorContent
-                editor={editor}
-                data-block-name={PARAGRAPH_BLOCK_NAME}
+            <RichText
+                clientId={clientId}
+                tagName="p"
+                value={content}
+                onChange={onChange}
+                onEnter={onEnter}
+                onBackspaceAtStart={onBackspaceAtStart}
+                blockName={PARAGRAPH_BLOCK_NAME}
                 className="ve-block-paragraph"
             />
             {slashQuery !== null ? (

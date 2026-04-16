@@ -1,17 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import { EditorStoreProvider } from '../../primitives';
+import { clearRegistry } from '../../registry';
 import { createEditorStore, type Block, type EditorStore } from '../../store';
 import { InserterPanel } from '../InserterPanel';
-import {
-    clearInserterRegistry,
-    registerBuiltinInserterBlocks,
-} from '../../inserter';
+import { clearInserterRegistry } from '../../inserter';
+import { registerCoreBlocks, PARAGRAPH_BLOCK_NAME, HEADING_BLOCK_NAME } from '../../blocks';
 
 function paragraph(clientId: string, content: string): Block {
     return {
         clientId,
-        name: 've/paragraph',
+        name: PARAGRAPH_BLOCK_NAME,
         attributes: { content },
         innerBlocks: [],
     };
@@ -26,11 +25,13 @@ function renderPanel(store: EditorStore) {
 }
 
 beforeEach(() => {
+    clearRegistry();
     clearInserterRegistry();
-    registerBuiltinInserterBlocks();
+    registerCoreBlocks();
 });
 
 afterEach(() => {
+    clearRegistry();
     clearInserterRegistry();
 });
 
@@ -40,8 +41,8 @@ describe('InserterPanel', () => {
 
         renderPanel(store);
 
-        expect(screen.getByTestId('ve-inserter-item-ve/paragraph')).toBeInTheDocument();
-        expect(screen.getByTestId('ve-inserter-item-ve/heading')).toBeInTheDocument();
+        expect(screen.getByTestId(`ve-inserter-item-${PARAGRAPH_BLOCK_NAME}`)).toBeInTheDocument();
+        expect(screen.getByTestId(`ve-inserter-item-${HEADING_BLOCK_NAME}`)).toBeInTheDocument();
     });
 
     it('filters the list by the search query', () => {
@@ -55,8 +56,8 @@ describe('InserterPanel', () => {
             fireEvent.change(search, { target: { value: 'head' } });
         });
 
-        expect(screen.queryByTestId('ve-inserter-item-ve/paragraph')).toBeNull();
-        expect(screen.getByTestId('ve-inserter-item-ve/heading')).toBeInTheDocument();
+        expect(screen.queryByTestId(`ve-inserter-item-${PARAGRAPH_BLOCK_NAME}`)).toBeNull();
+        expect(screen.getByTestId(`ve-inserter-item-${HEADING_BLOCK_NAME}`)).toBeInTheDocument();
     });
 
     it('shows an empty state when the query matches nothing', () => {
@@ -80,12 +81,12 @@ describe('InserterPanel', () => {
         renderPanel(store);
 
         act(() => {
-            fireEvent.click(screen.getByTestId('ve-inserter-item-ve/heading'));
+            fireEvent.click(screen.getByTestId(`ve-inserter-item-${HEADING_BLOCK_NAME}`));
         });
 
         const blocks = store.getState().blocks;
         expect(blocks).toHaveLength(2);
-        expect(blocks[1].name).toBe('ve/heading');
+        expect(blocks[1].name).toBe(HEADING_BLOCK_NAME);
         expect(store.getState().selection.clientId).toBe(blocks[1].clientId);
     });
 
@@ -95,11 +96,11 @@ describe('InserterPanel', () => {
         renderPanel(store);
 
         act(() => {
-            fireEvent.click(screen.getByTestId('ve-inserter-item-ve/paragraph'));
+            fireEvent.click(screen.getByTestId(`ve-inserter-item-${PARAGRAPH_BLOCK_NAME}`));
         });
 
         const blocks = store.getState().blocks;
         expect(blocks).toHaveLength(2);
-        expect(blocks[1].name).toBe('ve/paragraph');
+        expect(blocks[1].name).toBe(PARAGRAPH_BLOCK_NAME);
     });
 });

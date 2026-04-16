@@ -9,18 +9,24 @@ import {
 } from 'react';
 import { useStore } from 'zustand';
 import type { Editor } from '@tiptap/react';
-import { faBold, faItalic, faLink } from '@fortawesome/free-solid-svg-icons';
+import {
+    faBold,
+    faItalic,
+    faLink,
+    faListOl,
+    faListUl,
+} from '@fortawesome/free-solid-svg-icons';
 import { useEditorStore } from '../primitives';
 import {
     getBlockEditor,
     subscribeBlockEditors,
 } from '../blocks/shared/blockEditorRegistry';
+import { getBlock } from '../registry';
 import {
-    HEADING_BLOCK_NAME,
     HEADING_LEVELS,
     normalizeHeadingLevel,
 } from '../blocks/heading';
-import { PARAGRAPH_BLOCK_NAME } from '../blocks/paragraph';
+import { normalizeOrdered } from '../blocks/list';
 import { Icon } from './Icon';
 
 export interface RichTextToolbarProps {
@@ -47,11 +53,12 @@ export function RichTextToolbar({ className }: RichTextToolbarProps) {
         return null;
     }
 
-    if (block.name !== PARAGRAPH_BLOCK_NAME && block.name !== HEADING_BLOCK_NAME) {
-        return null;
-    }
+    // Show toolbar for any block that has a Tiptap editor registered
+    // (i.e. it's a rich-text block). No hardcoded block name checks.
 
-    const isHeading = block.name === HEADING_BLOCK_NAME;
+    const blockDefinition = getBlock(block.name);
+    const hasLevelAttribute = blockDefinition?.attributes?.level !== undefined;
+    const hasOrderedAttribute = blockDefinition?.attributes?.ordered !== undefined;
 
     return (
         <div
@@ -60,10 +67,16 @@ export function RichTextToolbar({ className }: RichTextToolbarProps) {
             aria-label="Text formatting"
             data-ve-rich-text-toolbar=""
         >
-            {isHeading ? (
+            {hasLevelAttribute ? (
                 <HeadingLevelSwitcher
                     clientId={block.clientId}
                     level={normalizeHeadingLevel(block.attributes.level)}
+                />
+            ) : null}
+            {hasOrderedAttribute ? (
+                <ListTypeSwitcher
+                    clientId={block.clientId}
+                    ordered={normalizeOrdered(block.attributes.ordered)}
                 />
             ) : null}
             <ToolbarButton
@@ -114,6 +127,40 @@ function HeadingLevelSwitcher({ clientId, level }: HeadingLevelSwitcherProps) {
                 ))}
             </select>
         </label>
+    );
+}
+
+interface ListTypeSwitcherProps {
+    clientId: string;
+    ordered: boolean;
+}
+
+function ListTypeSwitcher({ clientId, ordered }: ListTypeSwitcherProps) {
+    const store = useEditorStore();
+
+    return (
+        <div className="ve-rich-text-toolbar__list-type" role="group" aria-label="List type">
+            <ToolbarButton
+                label="Bulleted list"
+                isActive={!ordered}
+                onClick={() => {
+                    store.getState().updateBlockAttributes(clientId, { ordered: false });
+                }}
+                testId="ve-toolbar-list-unordered"
+            >
+                <Icon icon={faListUl} />
+            </ToolbarButton>
+            <ToolbarButton
+                label="Numbered list"
+                isActive={ordered}
+                onClick={() => {
+                    store.getState().updateBlockAttributes(clientId, { ordered: true });
+                }}
+                testId="ve-toolbar-list-ordered"
+            >
+                <Icon icon={faListOl} />
+            </ToolbarButton>
+        </div>
     );
 }
 
