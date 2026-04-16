@@ -4,7 +4,7 @@ import { createClientId } from '../../store';
 import { splitAtCursor, isCursorAtStart } from './splitContent';
 import { getBlockEditor, setPendingCursor } from './blockEditorRegistry';
 import { blockSupports } from '../../registry';
-import { PARAGRAPH_BLOCK_NAME } from '../paragraph';
+import paragraphMetadata from '../paragraph/block.json';
 
 function findTopLevelIndex(blocks: Block[], clientId: string): number {
     return blocks.findIndex((block) => block.clientId === clientId);
@@ -33,7 +33,7 @@ export function handleBlockEnter(
 
     const newBlock: Block = {
         clientId: createClientId(),
-        name: PARAGRAPH_BLOCK_NAME,
+        name: paragraphMetadata.name,
         attributes: { content: rightHtml },
         innerBlocks: [],
     };

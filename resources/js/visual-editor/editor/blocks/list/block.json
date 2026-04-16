@@ -12,7 +12,10 @@
             "default": false
         },
         "content": {
-            "type": "string",
+            "type": "rich-text",
+            "source": "rich-text",
+            "selector": "ul,ol",
+            "role": "content",
             "default": ""
         }
     },

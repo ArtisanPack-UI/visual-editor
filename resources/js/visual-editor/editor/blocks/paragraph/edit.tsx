@@ -102,8 +102,9 @@ export default function ParagraphEdit({ clientId, attributes }: BlockEditProps) 
         if (slashActiveRef.current) {
             if (filteredRef.current.length > 0) {
                 selectSlashBlockAtIndex(slashIndexRef.current);
+                return true;
             }
-            return true;
+            return false;
         }
         const editor = getBlockEditor(clientId);
         if (!editor) {

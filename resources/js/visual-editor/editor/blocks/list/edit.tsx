@@ -100,6 +100,17 @@ export default function ListEdit({ clientId, attributes }: BlockEditProps) {
             return false;
         }
 
+        // Delete the empty list item from the ProseMirror document before
+        // creating the new paragraph block below.
+        const listItemStart = $from.before(listItemDepth);
+        const listItemEnd = $from.after(listItemDepth);
+        const tr = activeEditor.state.tr.delete(listItemStart, listItemEnd);
+        activeEditor.view.dispatch(tr);
+
+        // Persist the trimmed list HTML back to the store attribute.
+        const updatedHtml = activeEditor.getHTML();
+        store.getState().updateBlockAttributes(clientId, { content: updatedHtml });
+
         const state = store.getState();
         const index = state.blocks.findIndex((b) => b.clientId === clientId);
 

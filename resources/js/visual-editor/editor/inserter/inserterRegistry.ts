@@ -28,6 +28,7 @@ export { type BlockFactory };
 
 export function registerBlockFactory(name: string, factory: BlockFactory): void {
     blockFactories.set(name, factory);
+    rebuildInserterSnapshot();
 }
 
 export function getBlockFactory(name: string): BlockFactory | undefined {
@@ -45,6 +46,7 @@ export function getBlockFactory(name: string): BlockFactory | undefined {
 
 export function clearFactories(): void {
     blockFactories.clear();
+    rebuildInserterSnapshot();
 }
 
 // ---------------------------------------------------------------------------

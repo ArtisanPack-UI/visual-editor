@@ -57,8 +57,10 @@ export function RichTextToolbar({ className }: RichTextToolbarProps) {
     // (i.e. it's a rich-text block). No hardcoded block name checks.
 
     const blockDefinition = getBlock(block.name);
-    const hasLevelAttribute = blockDefinition?.attributes?.level !== undefined;
-    const hasOrderedAttribute = blockDefinition?.attributes?.ordered !== undefined;
+    const levelSchema = blockDefinition?.attributes?.level;
+    const orderedSchema = blockDefinition?.attributes?.ordered;
+    const hasLevelAttribute = levelSchema !== undefined && levelSchema.type === 'number';
+    const hasOrderedAttribute = orderedSchema !== undefined && orderedSchema.type === 'boolean';
 
     return (
         <div

@@ -34,7 +34,11 @@ function resolveTopLevelNode(tagName: string, extraExtensions?: Extensions): {
     // For unknown tags, use paragraph as fallback — the extra extensions
     // should supply the actual top-level node.
     if (extraExtensions && extraExtensions.length > 0) {
-        return { node: extraExtensions[0], docContentSpec: tagName };
+        const ext = extraExtensions[0];
+        const extName = typeof ext === 'object' && ext !== null && 'name' in ext
+            ? (ext as { name: string }).name
+            : tagName;
+        return { node: ext, docContentSpec: extName };
     }
 
     return { node: Paragraph, docContentSpec: 'paragraph' };
@@ -98,7 +102,7 @@ export function RichText({
     tagName,
     value,
     onChange,
-    placeholder: _placeholder,
+    placeholder,
     className,
     blockName,
     onEnter,
@@ -182,6 +186,7 @@ export function RichText({
             editor={editor}
             className={className}
             data-block-name={blockName}
+            data-placeholder={placeholder}
         />
     );
 }

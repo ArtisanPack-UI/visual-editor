@@ -60,7 +60,7 @@ class VisualEditor
 
 		$metadata = json_decode( $json, true, 512, JSON_THROW_ON_ERROR );
 
-		if ( ! is_array( $metadata ) || ! isset( $metadata['name'] ) || ! is_string( $metadata['name'] ) ) {
+		if ( ! is_array( $metadata ) || ! isset( $metadata['name'] ) || ! is_string( $metadata['name'] ) || '' === trim( $metadata['name'] ) ) {
 			throw new InvalidArgumentException(
 				sprintf( 'block.json missing required "name" field: %s', $blockJsonPath )
 			);
@@ -79,7 +79,7 @@ class VisualEditor
 	 */
 	public function registerBlockType( string $name, array $definition ): void
 	{
-		$this->registry->register( $name, $definition );
+		$this->registry->register( $name, [ 'name' => $name ] + $definition );
 	}
 
 	/**
