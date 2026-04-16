@@ -3,11 +3,14 @@
    ========================================================================== */
 
 :root {
+    /* Layout */
     --ve-topbar-height: 48px;
     --ve-statusbar-height: 32px;
     --ve-inspector-width: 280px;
     --ve-inserter-width: 260px;
     --ve-canvas-max-width: 960px;
+
+    /* UI Colors */
     --ve-color-primary: #0a84ff;
     --ve-color-primary-light: #f0f7ff;
     --ve-color-bg: #f5f5f7;
@@ -19,7 +22,42 @@
     --ve-color-border-strong: #d0d0d0;
     --ve-color-dirty: #bf5af2;
     --ve-color-error: #bf1d1d;
+    --ve-color-accent: #0a84ff;
+
+    /* Typography — themeable */
     --ve-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --ve-font-family-mono: ui-monospace, 'SF Mono', 'Cascadia Code', 'Fira Code', Menlo, Consolas, monospace;
+    --ve-font-size-base: 1rem;
+    --ve-line-height-base: 1.6;
+
+    /* Spacing — themeable */
+    --ve-spacing-block: 1rem;
+    --ve-spacing-sm: 0.5rem;
+    --ve-spacing-md: 1rem;
+    --ve-spacing-lg: 2rem;
+
+    /* Code blocks — themeable */
+    --ve-code-bg: #1e1e2e;
+    --ve-code-color: #cdd6f4;
+    --ve-code-font-size: 0.875rem;
+    --ve-code-border-radius: 0.5rem;
+    --ve-code-padding: 1rem;
+
+    /* Preformatted — themeable */
+    --ve-pre-bg: #f8f9fa;
+    --ve-pre-color: var(--ve-color-text);
+    --ve-pre-border-radius: 0.375rem;
+    --ve-pre-padding: 1rem;
+
+    /* Blockquote — themeable */
+    --ve-quote-border-color: var(--ve-color-accent);
+    --ve-quote-border-width: 4px;
+    --ve-quote-bg: #f8f9fa;
+    --ve-quote-border-radius: 0.375rem;
+    --ve-quote-padding: 1rem 1.25rem;
+    --ve-quote-citation-color: var(--ve-color-text-muted);
+
+    /* Transitions */
     --ve-transition-fast: 120ms ease;
     --ve-transition-medium: 200ms ease;
 }
@@ -873,12 +911,32 @@
 }
 
 /* --------------------------------------------------------------------------
-   Paragraph & Heading Blocks
+   Block Content Styles — Paragraph
    -------------------------------------------------------------------------- */
 
 .ve-block-paragraph-wrapper {
     position: relative;
 }
+
+.ve-block-paragraph .ve-richtext p {
+    font-size: var(--ve-font-size-base);
+    line-height: var(--ve-line-height-base);
+    color: var(--ve-color-text);
+}
+
+/* Empty paragraph placeholder */
+.ve-block-paragraph .ve-richtext p.is-empty::before,
+.ve-block-paragraph .ProseMirror-trailingBreak:only-child::before {
+    content: attr(data-placeholder);
+    color: var(--ve-color-text-muted);
+    pointer-events: none;
+    float: left;
+    height: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Block Content Styles — Heading
+   -------------------------------------------------------------------------- */
 
 .ve-block-heading h1,
 .ve-block-heading h2,
@@ -898,6 +956,164 @@
 .ve-block-heading h4 { font-size: 1.25rem; }
 .ve-block-heading h5 { font-size: 1.125rem; }
 .ve-block-heading h6 { font-size: 1rem; }
+
+/* --------------------------------------------------------------------------
+   Block Content Styles — List
+   -------------------------------------------------------------------------- */
+
+.ve-block-list .ve-richtext ul,
+.ve-block-list .ve-richtext ol {
+    margin: 0;
+    padding-left: 1.5em;
+    font-size: var(--ve-font-size-base);
+    line-height: var(--ve-line-height-base);
+    color: var(--ve-color-text);
+}
+
+.ve-block-list .ve-richtext ul {
+    list-style-type: disc;
+}
+
+.ve-block-list .ve-richtext ol {
+    list-style-type: decimal;
+}
+
+.ve-block-list .ve-richtext li {
+    margin-bottom: 0.25em;
+}
+
+.ve-block-list .ve-richtext li p {
+    margin: 0;
+}
+
+/* Nested lists */
+.ve-block-list .ve-richtext ul ul,
+.ve-block-list .ve-richtext ol ul {
+    list-style-type: circle;
+}
+
+.ve-block-list .ve-richtext ul ul ul,
+.ve-block-list .ve-richtext ol ul ul {
+    list-style-type: square;
+}
+
+.ve-block-list .ve-richtext ol ol {
+    list-style-type: lower-alpha;
+}
+
+/* --------------------------------------------------------------------------
+   Block Content Styles — Blockquote
+   -------------------------------------------------------------------------- */
+
+.ve-block-quote .ve-richtext blockquote {
+    margin: 0;
+    padding: var(--ve-quote-padding);
+    border-left: var(--ve-quote-border-width) solid var(--ve-quote-border-color);
+    background: var(--ve-quote-bg);
+    border-radius: 0 var(--ve-quote-border-radius) var(--ve-quote-border-radius) 0;
+    font-size: var(--ve-font-size-base);
+    line-height: var(--ve-line-height-base);
+    color: var(--ve-color-text);
+}
+
+.ve-block-quote .ve-richtext blockquote p {
+    margin: 0;
+    font-style: italic;
+}
+
+.ve-block-quote__citation {
+    display: block;
+    width: 100%;
+    margin-top: var(--ve-spacing-sm);
+    padding: 6px 0 6px calc(var(--ve-quote-border-width) + 1.25rem);
+    border: none;
+    background: transparent;
+    font-size: 0.875rem;
+    font-style: normal;
+    color: var(--ve-quote-citation-color);
+}
+
+.ve-block-quote__citation::placeholder {
+    color: var(--ve-color-text-muted);
+    font-style: italic;
+}
+
+/* --------------------------------------------------------------------------
+   Block Content Styles — Code
+   -------------------------------------------------------------------------- */
+
+.ve-block-code-wrapper {
+    background: var(--ve-code-bg);
+    border-radius: var(--ve-code-border-radius);
+    overflow: hidden;
+}
+
+.ve-block-code__language {
+    display: flex;
+    padding: 0.5rem var(--ve-code-padding) 0;
+}
+
+.ve-block-code__language select {
+    appearance: none;
+    padding: 2px 20px 2px 8px;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.08)
+        url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23999'/%3E%3C/svg%3E")
+        no-repeat right 6px center;
+    background-size: 8px;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    font-family: var(--ve-font-family);
+    cursor: pointer;
+}
+
+.ve-block-code__textarea {
+    display: block;
+    width: 100%;
+    min-height: 80px;
+    padding: var(--ve-code-padding);
+    border: none;
+    background: transparent;
+    color: var(--ve-code-color);
+    font-family: var(--ve-font-family-mono);
+    font-size: var(--ve-code-font-size);
+    line-height: 1.5;
+    resize: vertical;
+    white-space: pre;
+    overflow-x: auto;
+    tab-size: 4;
+    box-sizing: border-box;
+}
+
+.ve-block-code__textarea:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.3);
+    outline-offset: -2px;
+    border-radius: 2px;
+}
+
+.ve-block-code__textarea::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   Block Content Styles — Preformatted
+   -------------------------------------------------------------------------- */
+
+.ve-block-preformatted .ve-richtext pre {
+    margin: 0;
+    padding: var(--ve-pre-padding);
+    background: var(--ve-pre-bg);
+    border-radius: var(--ve-pre-border-radius);
+    border: 1px solid var(--ve-color-border);
+    font-family: var(--ve-font-family-mono);
+    font-size: var(--ve-code-font-size);
+    line-height: 1.5;
+    color: var(--ve-pre-color);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow-x: auto;
+}
 
 /* --------------------------------------------------------------------------
    Slash Command Popover
