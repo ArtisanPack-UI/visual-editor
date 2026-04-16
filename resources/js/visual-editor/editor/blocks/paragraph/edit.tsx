@@ -9,7 +9,7 @@ import {
 import type { BlockEditProps } from '../../registry';
 import { useEditorStore, RichText } from '../../primitives';
 import { handleBlockBackspace, handleBlockEnter } from '../shared/blockSplitMerge';
-import { getBlockEditor } from '../shared/blockEditorRegistry';
+import { getBlockEditor, subscribeBlockEditors } from '../shared/blockEditorRegistry';
 import {
     filterInserterBlocks,
     getInserterBlocks,
@@ -133,8 +133,13 @@ export default function ParagraphEdit({ clientId, attributes }: BlockEditProps) 
         });
     }, [filteredSlashBlocks]);
 
+    const editor = useSyncExternalStore(
+        subscribeBlockEditors,
+        () => getBlockEditor(clientId),
+        () => null
+    );
+
     useEffect(() => {
-        const editor = getBlockEditor(clientId);
         if (!editor) {
             return;
         }
@@ -148,7 +153,7 @@ export default function ParagraphEdit({ clientId, attributes }: BlockEditProps) 
         return () => {
             editor.off('blur', onBlur);
         };
-    }, [clientId]);
+    }, [editor]);
 
     useEffect(() => {
         if (slashQuery === null) {
