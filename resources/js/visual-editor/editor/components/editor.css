@@ -791,32 +791,49 @@
     border-bottom: 1px solid var(--ve-color-border);
 }
 
+.ve-layers-panel__item-row {
+    display: flex;
+    align-items: center;
+}
+
+.ve-layers-panel__item-row:hover {
+    background: #f3f3f3;
+}
+
+.ve-layers-panel__item--selected > .ve-layers-panel__item-row {
+    background: var(--ve-color-primary-light);
+}
+
 .ve-layers-panel__item-button {
     display: flex;
     align-items: center;
-    gap: 6px;
-    width: 100%;
+    flex: 1;
     padding: 8px;
     border: none;
     background: transparent;
     text-align: left;
     cursor: pointer;
     font-size: 13px;
-    transition: background var(--ve-transition-fast);
-}
-
-.ve-layers-panel__item-button:hover {
-    background: #f3f3f3;
-}
-
-.ve-layers-panel__item--selected > .ve-layers-panel__item-button {
-    background: var(--ve-color-primary-light);
 }
 
 .ve-layers-panel__item-grip {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 32px;
+    flex-shrink: 0;
     color: var(--ve-color-text-muted);
     font-size: 10px;
     cursor: grab;
+    border: none;
+    background: transparent;
+}
+
+.ve-layers-panel__item-grip:focus-visible {
+    outline: 2px solid var(--ve-color-primary);
+    outline-offset: -2px;
+    border-radius: 2px;
 }
 
 .ve-layers-panel__item-title {

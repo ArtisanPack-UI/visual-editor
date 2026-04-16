@@ -76,7 +76,7 @@ export function LayersPanel() {
                 onDragCancel={() => setActiveId(null)}
             >
                 <SortableContext items={sortableIds} strategy={verticalListSortingStrategy}>
-                    <ul className="ve-layers-panel__list" role="tree" aria-label="Block layers">
+                    <ul className="ve-layers-panel__list" role="list" aria-label="Block layers">
                         {topLevelBlocks.map((block) => (
                             <SortableLayerItem
                                 key={block.clientId}
@@ -141,28 +141,32 @@ function SortableLayerItem({ block, depth, isDragActive }: SortableLayerItemProp
                 isDragging ? 've-layers-panel__item--dragging' : null,
             ].filter(Boolean).join(' ')}
             {...attributes}
-            role="treeitem"
-            aria-selected={isSelected}
+            role="listitem"
             data-testid={`ve-layer-${block.clientId}`}
         >
-            <button
-                type="button"
-                className="ve-layers-panel__item-button"
-                onClick={onClick}
-                style={{ paddingLeft: `${depth * 16 + 8}px` }}
-            >
+            <div className="ve-layers-panel__item-row">
                 <span
                     ref={setActivatorNodeRef}
                     className="ve-layers-panel__item-grip"
                     tabIndex={0}
+                    role="button"
+                    aria-label={`Drag ${title}`}
                     {...listeners}
                 >
                     <Icon icon={faGripVertical} />
                 </span>
-                <span className="ve-layers-panel__item-title">{title}</span>
-            </button>
+                <button
+                    type="button"
+                    className="ve-layers-panel__item-button"
+                    onClick={onClick}
+                    aria-current={isSelected || undefined}
+                    style={{ paddingLeft: `${depth * 16}px` }}
+                >
+                    <span className="ve-layers-panel__item-title">{title}</span>
+                </button>
+            </div>
             {block.innerBlocks.length > 0 && !isDragActive ? (
-                <ul className="ve-layers-panel__children" role="group">
+                <ul className="ve-layers-panel__children" role="list">
                     {block.innerBlocks.map((child) => (
                         <ChildLayerItem
                             key={child.clientId}
@@ -201,23 +205,22 @@ function ChildLayerItem({ block, depth }: ChildLayerItemProps) {
                 've-layers-panel__item',
                 isSelected ? 've-layers-panel__item--selected' : null,
             ].filter(Boolean).join(' ')}
-            role="treeitem"
-            aria-selected={isSelected}
+            role="listitem"
             data-testid={`ve-layer-${block.clientId}`}
         >
-            <button
-                type="button"
-                className="ve-layers-panel__item-button"
-                onClick={onClick}
-                style={{ paddingLeft: `${depth * 16 + 8}px` }}
-            >
-                <span className="ve-layers-panel__item-grip">
-                    <Icon icon={faGripVertical} />
-                </span>
-                <span className="ve-layers-panel__item-title">{title}</span>
-            </button>
+            <div className="ve-layers-panel__item-row">
+                <button
+                    type="button"
+                    className="ve-layers-panel__item-button"
+                    onClick={onClick}
+                    aria-current={isSelected || undefined}
+                    style={{ paddingLeft: `${depth * 16 + 24}px` }}
+                >
+                    <span className="ve-layers-panel__item-title">{title}</span>
+                </button>
+            </div>
             {block.innerBlocks.length > 0 ? (
-                <ul className="ve-layers-panel__children" role="group">
+                <ul className="ve-layers-panel__children" role="list">
                     {block.innerBlocks.map((child) => (
                         <ChildLayerItem
                             key={child.clientId}

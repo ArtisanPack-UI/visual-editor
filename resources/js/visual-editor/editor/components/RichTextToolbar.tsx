@@ -54,6 +54,33 @@ function cloneBlockWithNewIds(block: Block): Block {
     };
 }
 
+interface BlockLocation {
+    parentClientId: string | null;
+    index: number;
+    block: Block;
+}
+
+function findBlockLocation(
+    blocks: Block[],
+    clientId: string,
+    parentClientId: string | null = null
+): BlockLocation | null {
+    for (let i = 0; i < blocks.length; i++) {
+        if (blocks[i].clientId === clientId) {
+            return { parentClientId, index: i, block: blocks[i] };
+        }
+        const nested = findBlockLocation(
+            blocks[i].innerBlocks,
+            clientId,
+            blocks[i].clientId
+        );
+        if (nested) {
+            return nested;
+        }
+    }
+    return null;
+}
+
 export interface RichTextToolbarProps {
     className?: string;
 }
@@ -259,25 +286,27 @@ function MoreOptionsMenu({ clientId }: MoreOptionsMenuProps) {
 
     const handleDuplicate = useCallback(() => {
         const state = store.getState();
-        const blockIndex = state.blocks.findIndex((b) => b.clientId === clientId);
+        const location = findBlockLocation(state.blocks, clientId);
 
-        if (blockIndex === -1) {
+        if (!location) {
             return;
         }
 
-        const original = state.blocks[blockIndex];
-        const duplicate = cloneBlockWithNewIds(structuredClone(original));
+        const duplicate = cloneBlockWithNewIds(structuredClone(location.block));
 
-        state.insertBlock(duplicate, { index: blockIndex + 1 });
+        state.insertBlock(duplicate, {
+            parentClientId: location.parentClientId,
+            index: location.index + 1,
+        });
         state.select(duplicate.clientId);
         setOpen(false);
     }, [store, clientId]);
 
     const handleAddBefore = useCallback(() => {
         const state = store.getState();
-        const blockIndex = state.blocks.findIndex((b) => b.clientId === clientId);
+        const location = findBlockLocation(state.blocks, clientId);
 
-        if (blockIndex === -1) {
+        if (!location) {
             return;
         }
 
@@ -288,16 +317,19 @@ function MoreOptionsMenu({ clientId }: MoreOptionsMenuProps) {
             innerBlocks: [],
         };
 
-        state.insertBlock(newBlock, { index: blockIndex });
+        state.insertBlock(newBlock, {
+            parentClientId: location.parentClientId,
+            index: location.index,
+        });
         state.select(newBlock.clientId, 'start');
         setOpen(false);
     }, [store, clientId]);
 
     const handleAddAfter = useCallback(() => {
         const state = store.getState();
-        const blockIndex = state.blocks.findIndex((b) => b.clientId === clientId);
+        const location = findBlockLocation(state.blocks, clientId);
 
-        if (blockIndex === -1) {
+        if (!location) {
             return;
         }
 
@@ -308,7 +340,10 @@ function MoreOptionsMenu({ clientId }: MoreOptionsMenuProps) {
             innerBlocks: [],
         };
 
-        state.insertBlock(newBlock, { index: blockIndex + 1 });
+        state.insertBlock(newBlock, {
+            parentClientId: location.parentClientId,
+            index: location.index + 1,
+        });
         state.select(newBlock.clientId, 'start');
         setOpen(false);
     }, [store, clientId]);
