@@ -36,7 +36,7 @@ rendering, admin chrome — is Laravel-native.
 
 ## Architecture
 
-```
+```text
 ┌────────────────────────────────────────────────────────────────┐
 │  Host Laravel app                                              │
 │                                                                 │
@@ -121,7 +121,7 @@ V1 ships 16 milestones tracked as sub-issues of [`#309`](https://github.com/Arti
 ## Legacy work
 
 The prior Phase 2 custom-React editor lives under
-[`resources/js/visual-editor/_legacy/editor/`](../resources/js/visual-editor/_legacy/)
+[`resources/js/visual-editor/_legacy/editor/`](../resources/js/visual-editor/_legacy/editor/)
 as a reference for the transition and is deleted when V1 ships (M15). See
 that directory's README for details.
 
