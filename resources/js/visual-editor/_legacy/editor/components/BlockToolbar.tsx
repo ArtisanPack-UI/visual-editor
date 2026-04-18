@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useStore } from 'zustand';
+import { Button } from '@artisanpack-ui/react/form';
 import { faThumbtack } from '@fortawesome/free-solid-svg-icons';
 import { useEditorStore } from '../primitives';
 import { RichTextToolbar } from './RichTextToolbar';
@@ -94,19 +95,16 @@ export function BlockToolbar({ pinned, onTogglePin }: BlockToolbarProps) {
     const toolbarContent = (
         <>
             <RichTextToolbar />
-            <button
-                type="button"
-                className={[
-                    've-block-toolbar__pin',
-                    pinned ? 've-block-toolbar__pin--active' : null,
-                ].filter(Boolean).join(' ')}
+            <Button
+                size="sm"
+                color={pinned ? 'primary' : 'ghost'}
+                className="btn-square"
                 onClick={onTogglePin}
                 aria-label={pinned ? 'Float toolbar' : 'Pin toolbar to top'}
                 aria-pressed={pinned}
                 data-testid="ve-block-toolbar-pin"
-            >
-                <Icon icon={faThumbtack} />
-            </button>
+                icon={<Icon icon={faThumbtack} />}
+            />
         </>
     );
 

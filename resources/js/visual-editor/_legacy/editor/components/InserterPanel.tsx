@@ -5,6 +5,7 @@ import {
     useSyncExternalStore,
     type ChangeEvent,
 } from 'react';
+import { Input } from '@artisanpack-ui/react/form';
 import { useEditorStore } from '../primitives';
 import { getBlock } from '../registry';
 import {
@@ -106,9 +107,8 @@ export function InserterPanel({ className }: InserterPanelProps) {
             className={['ve-inserter-panel', className].filter(Boolean).join(' ')}
             data-ve-inserter-panel=""
         >
-            <label className="ve-inserter-panel__search">
-                <span className="ve-sr-only">Search blocks</span>
-                <input
+            <div className="ve-inserter-panel__search">
+                <Input
                     type="search"
                     value={query}
                     onChange={onQueryChange}
@@ -116,7 +116,7 @@ export function InserterPanel({ className }: InserterPanelProps) {
                     aria-label="Search blocks"
                     data-testid="ve-inserter-search"
                 />
-            </label>
+            </div>
 
             {filtered.length === 0 ? (
                 <div className="ve-inserter-panel__empty" data-testid="ve-inserter-empty">

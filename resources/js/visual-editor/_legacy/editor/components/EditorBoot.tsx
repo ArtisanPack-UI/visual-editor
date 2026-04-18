@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Button } from '@artisanpack-ui/react/form';
 import { EditorShell } from './EditorShell';
 import {
     fetchPost,
@@ -89,13 +90,8 @@ export function EditorBoot(props: EditorBootProps) {
                 <p className="ve-editor-boot__message">
                     Failed to load the post: {loadState.error.message}
                 </p>
-                <button
-                    type="button"
-                    className="ve-editor-boot__retry"
-                    onClick={retry}
-                >
-                    Retry
-                </button>
+                <Button onClick={retry} label="Retry" />
+
             </div>
         );
     }

@@ -70,7 +70,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 	protected function registerCoreBlocks(): void
 	{
 		$editor    = $this->app->make( VisualEditor::class );
-		$blocksDir = __DIR__ . '/../resources/js/visual-editor/editor/blocks';
+		// Legacy block.json manifests — retained under _legacy/ during the
+		// Gutenberg adoption (see docs/gutenberg-adoption.md and issue #309).
+		// M5 will revisit which of these survive as enabled-by-default.
+		$blocksDir = __DIR__ . '/../resources/js/visual-editor/_legacy/editor/blocks';
 
 		$coreBlocks = [
 			'paragraph',
