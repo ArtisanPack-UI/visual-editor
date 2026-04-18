@@ -2,7 +2,11 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 
-const editorRoot = resolve(__dirname, 'resources/js/visual-editor/editor');
+// Legacy editor root — reference-only custom-React implementation retained
+// under _legacy/ during the Gutenberg adoption. M1 will introduce a new
+// editor tree at resources/js/visual-editor/editor/ and wire vite accordingly.
+// See docs/gutenberg-adoption.md and issue #309.
+const editorRoot = resolve(__dirname, 'resources/js/visual-editor/_legacy/editor');
 
 export default defineConfig(({ command, mode }) => {
     const isLibraryBuild = mode === 'lib';

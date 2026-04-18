@@ -2,9 +2,12 @@
 
 declare(strict_types=1);
 
+// Path references updated for the Gutenberg adoption (#309). The legacy editor
+// entry now lives under _legacy/; M3 replaces mount.blade.php with the new
+// Blade component and these tests will be rewritten alongside it.
 $viewPath = __DIR__.'/../../resources/views/editor/mount.blade.php';
 $routesPath = __DIR__.'/../../routes/web.php';
-$bootPath = __DIR__.'/../../resources/js/visual-editor/editor/main.tsx';
+$bootPath = __DIR__.'/../../resources/js/visual-editor/_legacy/editor/main.tsx';
 
 test('mount blade view exists', function () use ($viewPath) {
     expect(file_exists($viewPath))->toBeTrue();
@@ -22,7 +25,7 @@ test('mount blade view renders the ve-root element with data attributes', functi
 test('mount blade view pulls the editor entry through @vite', function () use ($viewPath) {
     $contents = file_get_contents($viewPath);
 
-    expect($contents)->toContain("@vite(['resources/js/visual-editor/editor/main.tsx'])");
+    expect($contents)->toContain("@vite(['resources/js/visual-editor/_legacy/editor/main.tsx'])");
 });
 
 test('package routes register the /editor path', function () use ($routesPath) {

@@ -19,7 +19,7 @@
         "types": ["vitest/globals", "@testing-library/jest-dom"],
         "baseUrl": ".",
         "paths": {
-            "@editor/*": ["resources/js/visual-editor/editor/*"]
+            "@editor/*": ["resources/js/visual-editor/_legacy/editor/*"]
         }
     },
     "include": [
