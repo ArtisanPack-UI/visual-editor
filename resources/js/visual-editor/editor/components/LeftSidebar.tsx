@@ -1,11 +1,33 @@
-import { useState } from 'react';
+import { useMemo } from 'react';
+import { Tabs, type TabItem } from '@artisanpack-ui/react/layout';
 import { InserterPanel } from './InserterPanel';
 import { LayersPanel } from './LayersPanel';
 
-type LeftSidebarTab = 'blocks' | 'patterns' | 'layers';
-
 export function LeftSidebar() {
-    const [activeTab, setActiveTab] = useState<LeftSidebarTab>('blocks');
+    const tabs = useMemo<TabItem[]>(
+        () => [
+            {
+                name: 'blocks',
+                label: 'Blocks',
+                content: <InserterPanel />,
+            },
+            {
+                name: 'patterns',
+                label: 'Patterns',
+                content: (
+                    <div className="ve-left-sidebar__empty" data-testid="ve-patterns-panel">
+                        <p>Patterns coming soon.</p>
+                    </div>
+                ),
+            },
+            {
+                name: 'layers',
+                label: 'Layers',
+                content: <LayersPanel />,
+            },
+        ],
+        []
+    );
 
     return (
         <aside
@@ -13,59 +35,15 @@ export function LeftSidebar() {
             data-testid="ve-left-sidebar"
             aria-label="Editor sidebar"
         >
-            <div className="ve-left-sidebar__tabs" role="tablist" aria-label="Sidebar tabs">
-                <button
-                    type="button"
-                    role="tab"
-                    className={[
-                        've-left-sidebar__tab',
-                        activeTab === 'blocks' ? 've-left-sidebar__tab--active' : null,
-                    ].filter(Boolean).join(' ')}
-                    aria-selected={activeTab === 'blocks'}
-                    data-testid="ve-left-sidebar-tab-blocks"
-                    onClick={() => setActiveTab('blocks')}
-                >
-                    Blocks
-                </button>
-                <button
-                    type="button"
-                    role="tab"
-                    className={[
-                        've-left-sidebar__tab',
-                        activeTab === 'patterns' ? 've-left-sidebar__tab--active' : null,
-                    ].filter(Boolean).join(' ')}
-                    aria-selected={activeTab === 'patterns'}
-                    data-testid="ve-left-sidebar-tab-patterns"
-                    onClick={() => setActiveTab('patterns')}
-                >
-                    Patterns
-                </button>
-                <button
-                    type="button"
-                    role="tab"
-                    className={[
-                        've-left-sidebar__tab',
-                        activeTab === 'layers' ? 've-left-sidebar__tab--active' : null,
-                    ].filter(Boolean).join(' ')}
-                    aria-selected={activeTab === 'layers'}
-                    data-testid="ve-left-sidebar-tab-layers"
-                    onClick={() => setActiveTab('layers')}
-                >
-                    Layers
-                </button>
-            </div>
-
-            <div className="ve-left-sidebar__content">
-                {activeTab === 'blocks' ? (
-                    <InserterPanel />
-                ) : activeTab === 'patterns' ? (
-                    <div className="ve-left-sidebar__empty" data-testid="ve-patterns-panel">
-                        <p>Patterns coming soon.</p>
-                    </div>
-                ) : (
-                    <LayersPanel />
-                )}
-            </div>
+            <Tabs
+                tabs={tabs}
+                defaultTab="blocks"
+                variant="boxed"
+                size="sm"
+                className="ve-left-sidebar__tabs-root"
+                tabListClassName="tabs-box"
+                panelClassName="ve-left-sidebar__content"
+            />
         </aside>
     );
 }

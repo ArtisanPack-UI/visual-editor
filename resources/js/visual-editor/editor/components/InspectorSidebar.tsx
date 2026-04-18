@@ -1,5 +1,7 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useStore } from 'zustand';
+import { Button, Select } from '@artisanpack-ui/react/form';
+import { Tabs, type TabItem } from '@artisanpack-ui/react/layout';
 import { getBlock } from '../registry';
 import { useEditorStore } from '../primitives';
 import type { Block } from '../store';
@@ -7,8 +9,6 @@ import type { Block } from '../store';
 export interface InspectorSidebarProps {
     open: boolean;
 }
-
-type InspectorTab = 'settings' | 'styles';
 
 function findBlockInTree(blocks: Block[], clientId: string): Block | undefined {
     for (const block of blocks) {
@@ -20,7 +20,6 @@ function findBlockInTree(blocks: Block[], clientId: string): Block | undefined {
 }
 
 export function InspectorSidebar({ open }: InspectorSidebarProps) {
-    const [activeTab, setActiveTab] = useState<InspectorTab>('settings');
     const store = useEditorStore();
 
     const selectedBlock = useStore(store, (state) => {
@@ -33,6 +32,30 @@ export function InspectorSidebar({ open }: InspectorSidebarProps) {
     const blockTitle = selectedBlock
         ? getBlock(selectedBlock.name)?.title ?? selectedBlock.name
         : null;
+
+    const tabs = useMemo<TabItem[]>(
+        () => [
+            {
+                name: 'settings',
+                label: 'Settings',
+                content: (
+                    <div data-testid="ve-inspector-panel-settings">
+                        <SettingsPanel blockName={blockTitle} />
+                    </div>
+                ),
+            },
+            {
+                name: 'styles',
+                label: 'Styles',
+                content: (
+                    <div data-testid="ve-inspector-panel-styles">
+                        <StylesPanel />
+                    </div>
+                ),
+            },
+        ],
+        [blockTitle]
+    );
 
     return (
         <aside
@@ -52,60 +75,15 @@ export function InspectorSidebar({ open }: InspectorSidebarProps) {
                         </h2>
                     </header>
 
-                    <div className="ve-inspector__tabs" role="tablist" aria-label="Inspector tabs">
-                        <button
-                            type="button"
-                            role="tab"
-                            id="ve-inspector-tab-settings"
-                            className={[
-                                've-inspector__tab',
-                                activeTab === 'settings' ? 've-inspector__tab--active' : null,
-                            ].filter(Boolean).join(' ')}
-                            aria-selected={activeTab === 'settings'}
-                            aria-controls="ve-inspector-panel-settings"
-                            data-testid="ve-inspector-tab-settings"
-                            onClick={() => setActiveTab('settings')}
-                        >
-                            Settings
-                        </button>
-                        <button
-                            type="button"
-                            role="tab"
-                            id="ve-inspector-tab-styles"
-                            className={[
-                                've-inspector__tab',
-                                activeTab === 'styles' ? 've-inspector__tab--active' : null,
-                            ].filter(Boolean).join(' ')}
-                            aria-selected={activeTab === 'styles'}
-                            aria-controls="ve-inspector-panel-styles"
-                            data-testid="ve-inspector-tab-styles"
-                            onClick={() => setActiveTab('styles')}
-                        >
-                            Styles
-                        </button>
-                    </div>
-
-                    <div className="ve-inspector__content">
-                        {activeTab === 'settings' ? (
-                            <div
-                                id="ve-inspector-panel-settings"
-                                role="tabpanel"
-                                aria-labelledby="ve-inspector-tab-settings"
-                                data-testid="ve-inspector-panel-settings"
-                            >
-                                <SettingsPanel blockName={blockTitle} />
-                            </div>
-                        ) : (
-                            <div
-                                id="ve-inspector-panel-styles"
-                                role="tabpanel"
-                                aria-labelledby="ve-inspector-tab-styles"
-                                data-testid="ve-inspector-panel-styles"
-                            >
-                                <StylesPanel />
-                            </div>
-                        )}
-                    </div>
+                    <Tabs
+                        tabs={tabs}
+                        defaultTab="settings"
+                        variant="boxed"
+                        size="sm"
+                        className="ve-inspector__tabs-root"
+                        tabListClassName="tabs-box"
+                        panelClassName="ve-inspector__content"
+                    />
                 </div>
             ) : null}
         </aside>
@@ -138,36 +116,29 @@ function StylesPanel() {
     return (
         <div className="ve-inspector__styles">
             <div className="ve-inspector__styles-controls">
-                <label className="ve-inspector__styles-label">
-                    <span className="ve-sr-only">State</span>
-                    <select
-                        value={styleState}
-                        onChange={(e) => setStyleState(e.target.value as StyleState)}
-                        className="ve-inspector__styles-select"
-                        data-testid="ve-inspector-state-select"
-                    >
-                        <option value="default">Default</option>
-                        <option value="hover">Hover</option>
-                        <option value="focus">Focus</option>
-                        <option value="active">Active</option>
-                    </select>
-                </label>
+                <Select
+                    value={styleState}
+                    onChange={(e) => setStyleState(e.target.value as StyleState)}
+                    aria-label="State"
+                    data-testid="ve-inspector-state-select"
+                >
+                    <option value="default">Default</option>
+                    <option value="hover">Hover</option>
+                    <option value="focus">Focus</option>
+                    <option value="active">Active</option>
+                </Select>
 
                 <div className="ve-inspector__styles-breakpoints" role="group" aria-label="Responsive breakpoints">
                     {(['desktop', 'tablet', 'mobile'] as const).map((bp) => (
-                        <button
+                        <Button
                             key={bp}
-                            type="button"
-                            className={[
-                                've-inspector__styles-bp',
-                                breakpoint === bp ? 've-inspector__styles-bp--active' : null,
-                            ].filter(Boolean).join(' ')}
+                            size="xs"
+                            color={breakpoint === bp ? 'primary' : 'ghost'}
                             onClick={() => setBreakpoint(bp)}
                             aria-pressed={breakpoint === bp}
                             data-testid={`ve-inspector-bp-${bp}`}
-                        >
-                            {bp.charAt(0).toUpperCase() + bp.slice(1)}
-                        </button>
+                            label={bp.charAt(0).toUpperCase() + bp.slice(1)}
+                        />
                     ))}
                 </div>
             </div>

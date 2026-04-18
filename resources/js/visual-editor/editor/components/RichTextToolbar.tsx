@@ -9,6 +9,7 @@ import {
 } from 'react';
 import { useStore } from 'zustand';
 import type { Editor } from '@tiptap/react';
+import { Button, Input, Select } from '@artisanpack-ui/react/form';
 import {
     faBold,
     faItalic,
@@ -363,8 +364,8 @@ function MoreOptionsMenu({ clientId }: MoreOptionsMenuProps) {
                 <Icon icon={faEllipsisVertical} />
             </ToolbarButton>
             {open ? (
-                <div
-                    className="ve-rich-text-toolbar__more-menu"
+                <ul
+                    className="ve-rich-text-toolbar__more-menu menu bg-base-100 rounded-box shadow-lg border border-base-300"
                     role="menu"
                     aria-label="Block options"
                     data-testid="ve-toolbar-more-menu"
@@ -391,7 +392,7 @@ function MoreOptionsMenu({ clientId }: MoreOptionsMenuProps) {
                         onClick={handleDelete}
                         destructive
                     />
-                </div>
+                </ul>
             ) : null}
         </div>
     );
@@ -407,29 +408,30 @@ interface MoreMenuItemProps {
 
 function MoreMenuItem({ label, shortcut, onClick, disabled, destructive }: MoreMenuItemProps) {
     return (
-        <button
-            type="button"
-            role="menuitem"
-            className={[
-                've-more-menu__item',
-                destructive ? 've-more-menu__item--destructive' : null,
-                disabled ? 've-more-menu__item--disabled' : null,
-            ].filter(Boolean).join(' ')}
-            onMouseDown={(event) => event.preventDefault()}
-            onClick={disabled ? undefined : onClick}
-            disabled={disabled}
-            data-testid={`ve-more-menu-${label.toLowerCase().replace(/\s+/g, '-')}`}
+        <li
+            role="none"
+            className={destructive ? 've-more-menu__item--destructive' : undefined}
         >
-            <span className="ve-more-menu__item-label">{label}</span>
-            {shortcut ? (
-                <span className="ve-more-menu__item-shortcut">{shortcut}</span>
-            ) : null}
-        </button>
+            <button
+                type="button"
+                role="menuitem"
+                className="flex w-full items-center justify-between"
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={disabled ? undefined : onClick}
+                disabled={disabled}
+                data-testid={`ve-more-menu-${label.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+                <span className="ve-more-menu__item-label">{label}</span>
+                {shortcut ? (
+                    <span className="ve-more-menu__item-shortcut">{shortcut}</span>
+                ) : null}
+            </button>
+        </li>
     );
 }
 
 function MoreMenuDivider() {
-    return <div className="ve-more-menu__divider" role="separator" />;
+    return <li className="ve-more-menu__divider" role="separator" />;
 }
 
 interface HeadingLevelSwitcherProps {
@@ -441,24 +443,22 @@ function HeadingLevelSwitcher({ clientId, level }: HeadingLevelSwitcherProps) {
     const store = useEditorStore();
 
     return (
-        <label className="ve-rich-text-toolbar__heading-level">
-            <span className="ve-sr-only">Heading level</span>
-            <select
-                value={level}
-                aria-label="Heading level"
-                data-testid="ve-toolbar-heading-level"
-                onChange={(event) => {
-                    const nextLevel = normalizeHeadingLevel(Number(event.target.value));
-                    store.getState().updateBlockAttributes(clientId, { level: nextLevel });
-                }}
-            >
-                {HEADING_LEVELS.map((value) => (
-                    <option key={value} value={value}>
-                        H{value}
-                    </option>
-                ))}
-            </select>
-        </label>
+        <Select
+            value={level}
+            aria-label="Heading level"
+            data-testid="ve-toolbar-heading-level"
+            className="select-sm"
+            onChange={(event) => {
+                const nextLevel = normalizeHeadingLevel(Number(event.target.value));
+                store.getState().updateBlockAttributes(clientId, { level: nextLevel });
+            }}
+        >
+            {HEADING_LEVELS.map((value) => (
+                <option key={value} value={value}>
+                    H{value}
+                </option>
+            ))}
+        </Select>
     );
 }
 
@@ -499,29 +499,34 @@ function ListTypeSwitcher({ clientId, ordered }: ListTypeSwitcherProps) {
 interface ToolbarButtonProps {
     label: string;
     isActive?: boolean;
-    onClick: () => void;
+    onClick?: () => void;
     children: ReactNode;
     testId?: string;
+    [key: `aria-${string}`]: unknown;
+    [key: `data-${string}`]: unknown;
 }
 
-function ToolbarButton({ label, isActive, onClick, children, testId }: ToolbarButtonProps) {
+function ToolbarButton({
+    label,
+    isActive,
+    onClick,
+    children,
+    testId,
+    ...rest
+}: ToolbarButtonProps) {
     return (
-        <button
-            type="button"
-            className={[
-                've-rich-text-toolbar__button',
-                isActive ? 've-rich-text-toolbar__button--is-active' : null,
-            ]
-                .filter(Boolean)
-                .join(' ')}
+        <Button
+            size="sm"
+            color={isActive ? 'primary' : 'ghost'}
+            className="btn-square"
             aria-label={label}
             aria-pressed={isActive}
             data-testid={testId}
             onMouseDown={(event) => event.preventDefault()}
             onClick={onClick}
-        >
-            {children}
-        </button>
+            icon={children}
+            {...rest}
+        />
     );
 }
 
@@ -590,45 +595,39 @@ function LinkControl({ editor }: LinkControlProps) {
             </ToolbarButton>
             {open ? (
                 <div
-                    className="ve-rich-text-toolbar__link-popover"
+                    className="ve-rich-text-toolbar__link-popover bg-base-100 rounded-box shadow-lg border border-base-300 p-3"
                     role="dialog"
                     aria-label="Link settings"
                     data-testid="ve-toolbar-link-popover"
                     onMouseDown={(event) => event.preventDefault()}
                 >
-                    <label className="ve-rich-text-toolbar__link-field">
-                        <span className="ve-sr-only">URL</span>
-                        <input
-                            ref={inputRef}
-                            type="url"
-                            value={href}
-                            placeholder="https://example.com"
-                            aria-label="Link URL"
-                            data-testid="ve-toolbar-link-input"
-                            onChange={(event) => setHref(event.target.value)}
-                            onKeyDown={onKeyDown}
-                        />
-                    </label>
+                    <Input
+                        ref={inputRef}
+                        type="url"
+                        value={href}
+                        placeholder="https://example.com"
+                        aria-label="Link URL"
+                        data-testid="ve-toolbar-link-input"
+                        onChange={(event) => setHref(event.target.value)}
+                        onKeyDown={onKeyDown}
+                    />
                     <div className="ve-rich-text-toolbar__link-actions">
-                        <button
-                            type="button"
-                            className="ve-rich-text-toolbar__button"
+                        <Button
+                            size="sm"
                             data-testid="ve-toolbar-link-apply"
                             onMouseDown={(event) => event.preventDefault()}
                             onClick={applyLink}
-                        >
-                            Apply
-                        </button>
+                            label="Apply"
+                        />
                         {isActive ? (
-                            <button
-                                type="button"
-                                className="ve-rich-text-toolbar__button"
+                            <Button
+                                size="sm"
+                                color="ghost"
                                 data-testid="ve-toolbar-link-remove"
                                 onMouseDown={(event) => event.preventDefault()}
                                 onClick={removeLink}
-                            >
-                                Remove
-                            </button>
+                                label="Remove"
+                            />
                         ) : null}
                     </div>
                 </div>

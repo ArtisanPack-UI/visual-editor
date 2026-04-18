@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { useStore } from 'zustand';
+import { Button } from '@artisanpack-ui/react/form';
 import {
     faPlus,
     faUndo,
@@ -60,19 +61,16 @@ export function TopBar({
     return (
         <div className="ve-top-bar" data-testid="ve-top-bar" role="toolbar" aria-label="Editor toolbar">
             <div className="ve-top-bar__left">
-                <button
-                    type="button"
-                    className={[
-                        've-top-bar__button',
-                        inserterOpen ? 've-top-bar__button--is-active' : null,
-                    ].filter(Boolean).join(' ')}
+                <Button
+                    size="sm"
+                    color={inserterOpen ? 'primary' : 'ghost'}
+                    className="btn-square"
                     onClick={onToggleInserter}
                     aria-label={inserterOpen ? 'Close block inserter' : 'Open block inserter'}
                     aria-expanded={inserterOpen}
                     data-testid="ve-top-bar-inserter-toggle"
-                >
-                    <Icon icon={faPlus} />
-                </button>
+                    icon={<Icon icon={faPlus} />}
+                />
 
                 {blockTitle ? (
                     <span className="ve-top-bar__block-info" data-testid="ve-top-bar-block-info">
@@ -87,26 +85,26 @@ export function TopBar({
             </div>
 
             <div className="ve-top-bar__right">
-                <button
-                    type="button"
-                    className="ve-top-bar__button"
+                <Button
+                    size="sm"
+                    color="ghost"
+                    className="btn-square"
                     onClick={() => store.getState().undo()}
                     disabled={!canUndo}
                     aria-label="Undo"
                     data-testid="ve-top-bar-undo"
-                >
-                    <Icon icon={faUndo} />
-                </button>
-                <button
-                    type="button"
-                    className="ve-top-bar__button"
+                    icon={<Icon icon={faUndo} />}
+                />
+                <Button
+                    size="sm"
+                    color="ghost"
+                    className="btn-square"
                     onClick={() => store.getState().redo()}
                     disabled={!canRedo}
                     aria-label="Redo"
                     data-testid="ve-top-bar-redo"
-                >
-                    <Icon icon={faRedo} />
-                </button>
+                    icon={<Icon icon={faRedo} />}
+                />
 
                 <span
                     className={[
@@ -118,19 +116,16 @@ export function TopBar({
                     {statusLabel}
                 </span>
 
-                <button
-                    type="button"
-                    className={[
-                        've-top-bar__button',
-                        inspectorOpen ? 've-top-bar__button--is-active' : null,
-                    ].filter(Boolean).join(' ')}
+                <Button
+                    size="sm"
+                    color={inspectorOpen ? 'primary' : 'ghost'}
+                    className="btn-square"
                     onClick={onToggleInspector}
                     aria-label={inspectorOpen ? 'Close inspector' : 'Open inspector'}
                     aria-expanded={inspectorOpen}
                     data-testid="ve-top-bar-inspector-toggle"
-                >
-                    <Icon icon={faCog} />
-                </button>
+                    icon={<Icon icon={faCog} />}
+                />
             </div>
         </div>
     );
