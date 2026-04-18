@@ -95,6 +95,12 @@ rendering, admin chrome — is Laravel-native.
 | Livewire | Event-based opt-in; no Livewire-specific package code in V1 | Documented recipe |
 | Site editor | Deferred to Phase 3+ | V1 data model leaves room |
 
+## Branching
+
+- **Integration branch**: `release/1.0`. Every M1–M15 feature branch cuts from here and opens a draft PR back into it.
+- **`main`**: reserved for tagged releases. It moves only when V1 ships (M15) and for any subsequent patch releases.
+- **Feature branches**: named `feature/{issue#}-{slug}` where issue number is the milestone issue (e.g. `feature/311-gutenberg-packages-installed`).
+
 ## Milestones
 
 V1 ships 16 milestones tracked as sub-issues of [`#309`](https://github.com/ArtisanPack-UI/visual-editor/issues/309):
