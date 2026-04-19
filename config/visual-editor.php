@@ -58,11 +58,12 @@ return [
 	| Media adapter
 	|--------------------------------------------------------------------------
 	|
-	| Identifier the editor uses to resolve the media-upload implementation.
-	| M3 only ships the `null` adapter (media insertion is unavailable); the
-	| real `artisanpack-ui/media-library` adapter lands in a later milestone.
-	| Consuming apps can bind their own adapter by registering a container
-	| binding on the same key and updating this value.
+	| Reserved for a future server-side adapter binding. The M4 media bridge
+	| (#314) wires `artisanpack-ui/media-library` into the editor entirely on
+	| the client: the host app calls `registerMediaBridge(...)` from
+	| `@artisanpack-ui/visual-editor` with `MediaModal` and `uploadMedia`
+	| before `bootVisualEditor()`. Leaving this key in place for apps that
+	| bind their own adapter via a container binding keyed on this value.
 	|
 	*/
 

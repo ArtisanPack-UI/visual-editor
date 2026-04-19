@@ -12,9 +12,9 @@ import { __ } from '@wordpress/i18n';
 
 import { bootI18n, TEXT_DOMAIN } from '../vendor/i18n';
 import {
-    mediaUploadStub,
-    registerMediaUploadStub,
-} from '../vendor/media-upload-stub';
+    ensureMediaBridgeFilter,
+    mediaUploadSetting,
+} from '../media-bridge';
 
 import '@wordpress/components/build-style/style.css';
 import '@wordpress/block-editor/build-style/style.css';
@@ -23,7 +23,7 @@ import '@wordpress/block-library/build-style/style.css';
 import '@wordpress/block-library/build-style/editor.css';
 
 bootI18n();
-registerMediaUploadStub();
+ensureMediaBridgeFilter();
 registerCoreBlocks();
 
 const initialBlocks: BlockInstance[] = [
@@ -36,10 +36,11 @@ const initialBlocks: BlockInstance[] = [
 ];
 
 // `MediaUploadCheck` (in @wordpress/block-editor) hides the "Media Library"
-// button when `settings.mediaUpload` is falsy. The M2 stub gates the button
-// in; the editor.MediaUpload filter then intercepts the click. See #312.
+// button when `settings.mediaUpload` is falsy. The bridge's settings
+// callback keeps the button in place; the editor.MediaUpload filter
+// intercepts the click to open the host-registered picker. See #314.
 const sandboxSettings = {
-    mediaUpload: mediaUploadStub,
+    mediaUpload: mediaUploadSetting,
 };
 
 /**
