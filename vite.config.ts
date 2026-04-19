@@ -9,6 +9,10 @@ import { resolve } from 'node:path';
 // See docs/gutenberg-adoption.md and issue #309.
 const editorRoot = resolve(__dirname, 'resources/js/visual-editor/_legacy/editor');
 const sandboxEntry = resolve(__dirname, 'resources/js/visual-editor/sandbox/main.tsx');
+const coreDataShim = resolve(
+    __dirname,
+    'resources/js/visual-editor/vendor/core-data-shim.ts'
+);
 
 export default defineConfig(({ command, mode }) => {
     const isLibraryBuild = mode === 'lib';
@@ -19,6 +23,11 @@ export default defineConfig(({ command, mode }) => {
         resolve: {
             alias: {
                 '@editor': editorRoot,
+                // M2 (#312): every `@wordpress/core-data` import in the
+                // editor bundle resolves to our in-repo empty-state shim.
+                // cms-framework will replace the shim with a real
+                // Laravel-backed `core` store in a later milestone.
+                '@wordpress/core-data': coreDataShim,
             },
         },
         server: {
