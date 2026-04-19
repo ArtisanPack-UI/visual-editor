@@ -72,11 +72,7 @@ const selectors = {
 };
 
 const actions = {
-    receiveEntityRecords:
-        () =>
-        ({ dispatch }: { dispatch: () => void }) => {
-            dispatch();
-        },
+    receiveEntityRecords: () => ({ type: 'SHIM_NOOP' }) as const,
     receiveUserQuery: () => ({ type: 'SHIM_NOOP' }) as const,
     receiveCurrentUser: () => ({ type: 'SHIM_NOOP' }) as const,
     saveEntityRecord: () => async (): Promise<null> => null,

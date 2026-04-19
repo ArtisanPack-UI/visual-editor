@@ -61,11 +61,14 @@ async function collectSourceFiles(dir) {
  */
 /**
  * The text-domain argument may be either a literal string
- * (`'artisanpack-visual-editor'`) or the `TEXT_DOMAIN` identifier re-exported
- * from `vendor/i18n.ts`. The richer extractor (post-V1) will resolve
- * identifiers through the TS AST instead of lexical pattern matching.
+ * (`'artisanpack-visual-editor'` or `"artisanpack-visual-editor"`) or the
+ * `TEXT_DOMAIN` identifier re-exported from `vendor/i18n.ts`. Both literal
+ * forms are listed explicitly — embedding a capture-group alternation would
+ * shift backreference numbering when the fragment is spliced into a larger
+ * pattern that already captures a quote. The richer extractor (post-V1) will
+ * resolve identifiers through the TS AST instead of lexical pattern matching.
  */
-const DOMAIN = `(?:(['"])artisanpack-visual-editor\\1|TEXT_DOMAIN)`;
+const DOMAIN = `(?:'artisanpack-visual-editor'|"artisanpack-visual-editor"|TEXT_DOMAIN)`;
 
 const CALL_PATTERNS = [
     {

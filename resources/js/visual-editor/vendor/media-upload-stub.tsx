@@ -54,12 +54,23 @@ function MediaUploadStub(props: MediaUploadProps): ReactElement | null {
     }
 
     // Some call sites pass a single button-like child expecting `onClick` to
-    // be wired to `open`. Clone it so clicking routes to the stub handler.
+    // be wired to `open`. Clone it so clicking routes to the stub handler —
+    // and if the child already has its own onClick, invoke both so the host
+    // can still observe the event.
     const onlyChild = Children.toArray(children).find(isValidElement);
 
     if (onlyChild) {
+        const existingOnClick = (
+            onlyChild as ReactElement<{
+                onClick?: (event: unknown) => void;
+            }>
+        ).props.onClick;
+
         return cloneElement(onlyChild as ReactElement, {
-            onClick: openMediaLibraryStub,
+            onClick: (event: unknown) => {
+                existingOnClick?.(event);
+                openMediaLibraryStub();
+            },
         });
     }
 
