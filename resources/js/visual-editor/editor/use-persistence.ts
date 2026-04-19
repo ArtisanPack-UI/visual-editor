@@ -1,0 +1,182 @@
+/**
+ * Persistence hook for the visual editor.
+ *
+ * Fetches the block tree for a resource on mount, exposes the initial state
+ * for `BlockEditorProvider`, and PUTs debounced changes back to the server.
+ * Dedupes concurrent saves so the React editor can fire `onChange` on every
+ * keystroke without overwhelming the Laravel endpoint.
+ */
+
+import { useCallback, useEffect, useRef, useState } from 'react';
+import type { BlockInstance } from '@wordpress/blocks';
+
+import {
+    ApiError,
+    fetchContent,
+    saveContent,
+    type ApiClientConfig,
+} from './api-client';
+
+type LoadStatus = 'loading' | 'ready' | 'error';
+type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+
+export interface PersistenceState {
+    blocks: BlockInstance[];
+    loadStatus: LoadStatus;
+    saveStatus: SaveStatus;
+    loadError: ApiError | null;
+    saveError: ApiError | null;
+    lastSavedAt: string | null;
+    onBlocksChange: (next: BlockInstance[]) => void;
+}
+
+export interface UsePersistenceOptions extends ApiClientConfig {
+    /**
+     * Delay in milliseconds between the last change and the triggered save.
+     * Defaults to 800ms so rapid edits coalesce into a single request.
+     */
+    debounceMs?: number;
+}
+
+const DEFAULT_DEBOUNCE_MS = 800;
+
+function toApiError(error: unknown, fallback: string): ApiError {
+    return error instanceof ApiError ? error : new ApiError(fallback, 0, error);
+}
+
+export function usePersistence(
+    options: UsePersistenceOptions
+): PersistenceState {
+    const { debounceMs = DEFAULT_DEBOUNCE_MS, apiBase, resource, id } = options;
+
+    const [blocks, setBlocks] = useState<BlockInstance[]>([]);
+    const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading');
+    const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
+    const [loadError, setLoadError] = useState<ApiError | null>(null);
+    const [saveError, setSaveError] = useState<ApiError | null>(null);
+    const [lastSavedAt, setLastSavedAt] = useState<string | null>(null);
+
+    const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const pendingRef = useRef<BlockInstance[] | null>(null);
+    const inFlightRef = useRef<boolean>(false);
+    const unmountedRef = useRef<boolean>(false);
+    const loadStatusRef = useRef<LoadStatus>('loading');
+
+    loadStatusRef.current = loadStatus;
+
+    useEffect(() => {
+        unmountedRef.current = false;
+        let cancelled = false;
+
+        setLoadStatus('loading');
+        setLoadError(null);
+
+        fetchContent({ apiBase, resource, id })
+            .then((response) => {
+                if (cancelled) {
+                    return;
+                }
+
+                setBlocks(response.blocks as BlockInstance[]);
+                setLastSavedAt(response.updated_at);
+                setLoadStatus('ready');
+            })
+            .catch((error: unknown) => {
+                if (cancelled) {
+                    return;
+                }
+
+                setLoadError(toApiError(error, 'Failed to load content.'));
+                setLoadStatus('error');
+            });
+
+        return () => {
+            cancelled = true;
+            unmountedRef.current = true;
+
+            if (timerRef.current !== null) {
+                clearTimeout(timerRef.current);
+                timerRef.current = null;
+            }
+        };
+    }, [apiBase, resource, id]);
+
+    const runFlush = useCallback(
+        async function runFlush(): Promise<void> {
+            if (inFlightRef.current || unmountedRef.current) {
+                return;
+            }
+
+            const next = pendingRef.current;
+
+            if (next === null) {
+                return;
+            }
+
+            pendingRef.current = null;
+            inFlightRef.current = true;
+            setSaveStatus('saving');
+            setSaveError(null);
+
+            try {
+                const response = await saveContent({ apiBase, resource, id }, next);
+
+                if (unmountedRef.current) {
+                    return;
+                }
+
+                setLastSavedAt(response.updated_at);
+                setSaveStatus('saved');
+            } catch (error: unknown) {
+                if (unmountedRef.current) {
+                    return;
+                }
+
+                setSaveError(toApiError(error, 'Failed to save content.'));
+                setSaveStatus('error');
+            } finally {
+                inFlightRef.current = false;
+            }
+
+            // A change landed while the save was in flight — drain the
+            // trailing edit now so we don't lose it.
+            if (pendingRef.current !== null && !unmountedRef.current) {
+                void runFlush();
+            }
+        },
+        [apiBase, resource, id]
+    );
+
+    const onBlocksChange = useCallback(
+        (next: BlockInstance[]): void => {
+            setBlocks(next);
+
+            if (loadStatusRef.current !== 'ready') {
+                return;
+            }
+
+            pendingRef.current = next;
+
+            if (timerRef.current !== null) {
+                clearTimeout(timerRef.current);
+            }
+
+            timerRef.current = setTimeout(() => {
+                timerRef.current = null;
+                void runFlush();
+            }, debounceMs);
+        },
+        [debounceMs, runFlush]
+    );
+
+    return {
+        blocks,
+        loadStatus,
+        saveStatus,
+        loadError,
+        saveError,
+        lastSavedAt,
+        onBlocksChange,
+    };
+}
+
