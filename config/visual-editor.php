@@ -47,11 +47,64 @@ return [
 	| always-applied deny-list. The deny-list wins when both are set. Use
 	| fully-qualified block names (e.g. `core/paragraph`, `core/query`).
 	|
+	| The frozen V1 defaults follow the M5 block-library audit
+	| (see docs/block-library-audit.md). Only blocks that render correctly
+	| against the empty-state @wordpress/core-data shim are enabled; every
+	| block that needs a real Laravel-backed core store — navigation, query,
+	| post-*, site-*, template-part, taxonomy widgets — is disabled until
+	| the artisanpack-ui/cms-framework package replaces the shim.
+	|
 	*/
 
-	'enabled_blocks' => [],
+	'enabled_blocks' => [
+		'core/paragraph',
+		'core/heading',
+		'core/list',
+		'core/quote',
+		'core/code',
+		'core/preformatted',
+		'core/pullquote',
+		'core/verse',
+		'core/table',
+		'core/image',
+		'core/gallery',
+		'core/video',
+		'core/audio',
+		'core/file',
+		'core/embed',
+		'core/cover',
+		'core/media-text',
+		'core/columns',
+		'core/group',
+		'core/row',
+		'core/stack',
+		'core/buttons',
+		'core/separator',
+		'core/spacer',
+		'core/details',
+		'core/search',
+		'core/latest-posts',
+	],
 
-	'disabled_blocks' => [],
+	'disabled_blocks' => [
+		'core/navigation',
+		'core/query',
+		'core/query-loop',
+		'core/post-content',
+		'core/post-title',
+		'core/post-excerpt',
+		'core/post-date',
+		'core/post-author',
+		'core/post-featured-image',
+		'core/site-logo',
+		'core/site-title',
+		'core/site-tagline',
+		'core/template-part',
+		'core/latest-comments',
+		'core/archives',
+		'core/categories',
+		'core/tag-cloud',
+	],
 
 	/*
 	|--------------------------------------------------------------------------

@@ -32,6 +32,22 @@ The V1 editor adopts the upstream `@wordpress/*` packages. Some of those package
 
 Both shims will be replaced by `artisanpack-ui/cms-framework` (the real Laravel-backed `core-data` store and media bridge). Every selector or filter we implement here is one we have to re-verify against Gutenberg upgrades — expand the surface only when an observed crash demands it.
 
+## Block defaults
+
+V1 ships with a frozen allow-list of blocks from `@wordpress/block-library`. The defaults in `config/visual-editor.php` expose only blocks that render correctly against the empty-state `@wordpress/core-data` shim — content, media, layout, and simple widget blocks that do not need a WordPress backend to work.
+
+**Disabled by default.** Every block in the following categories is listed in `disabled_blocks` because it relies on data the shim does not provide:
+
+- **Site / theme** — `core/navigation`, `core/site-logo`, `core/site-title`, `core/site-tagline`, `core/template-part`
+- **Query loop** — `core/query`, `core/query-loop`
+- **Post context** — `core/post-content`, `core/post-title`, `core/post-excerpt`, `core/post-date`, `core/post-author`, `core/post-featured-image`
+- **Taxonomy widgets** — `core/categories`, `core/tag-cloud`, `core/archives`
+- **Comments feeds** — `core/latest-comments`
+
+These blocks will be re-enabled once `artisanpack-ui/cms-framework` replaces the shim with a real Laravel-backed `core-data` store. The full per-block classification — including blocks that render empty but do not crash — lives in [`docs/block-library-audit.md`](docs/block-library-audit.md). Because the defaults populate `enabled_blocks` as an explicit allow-list, new blocks introduced by a future `@wordpress/block-library` upgrade are implicitly disabled until the audit is revisited.
+
+Override the defaults by publishing the config to `config/artisanpack/visual-editor.php` and editing the `enabled_blocks` / `disabled_blocks` arrays. The deny-list always wins over the allow-list.
+
 ## i18n
 
 Editor strings use `@wordpress/i18n` with the `artisanpack-visual-editor` text domain. The domain is initialized via `bootI18n()` in `resources/js/visual-editor/vendor/i18n.ts`.
