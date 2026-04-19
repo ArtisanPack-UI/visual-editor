@@ -60,20 +60,33 @@ export function usePersistence(
     const pendingRef = useRef<BlockInstance[] | null>(null);
     const inFlightRef = useRef<boolean>(false);
     const unmountedRef = useRef<boolean>(false);
+    // Incremented on every target change so in-flight saves for the previous
+    // (apiBase, resource, id) tuple can detect they've been superseded before
+    // writing state or scheduling a trailing flush.
+    const targetVersionRef = useRef<number>(0);
     const loadStatusRef = useRef<LoadStatus>('loading');
 
     loadStatusRef.current = loadStatus;
 
     useEffect(() => {
         unmountedRef.current = false;
-        let cancelled = false;
+        const version = ++targetVersionRef.current;
+        pendingRef.current = null;
+        inFlightRef.current = false;
+
+        if (timerRef.current !== null) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
 
         setLoadStatus('loading');
         setLoadError(null);
+        setSaveStatus('idle');
+        setSaveError(null);
 
         fetchContent({ apiBase, resource, id })
             .then((response) => {
-                if (cancelled) {
+                if (version !== targetVersionRef.current) {
                     return;
                 }
 
@@ -82,7 +95,7 @@ export function usePersistence(
                 setLoadStatus('ready');
             })
             .catch((error: unknown) => {
-                if (cancelled) {
+                if (version !== targetVersionRef.current) {
                     return;
                 }
 
@@ -91,8 +104,8 @@ export function usePersistence(
             });
 
         return () => {
-            cancelled = true;
             unmountedRef.current = true;
+            pendingRef.current = null;
 
             if (timerRef.current !== null) {
                 clearTimeout(timerRef.current);
@@ -113,6 +126,8 @@ export function usePersistence(
                 return;
             }
 
+            const version = targetVersionRef.current;
+
             pendingRef.current = null;
             inFlightRef.current = true;
             setSaveStatus('saving');
@@ -121,14 +136,14 @@ export function usePersistence(
             try {
                 const response = await saveContent({ apiBase, resource, id }, next);
 
-                if (unmountedRef.current) {
+                if (unmountedRef.current || version !== targetVersionRef.current) {
                     return;
                 }
 
                 setLastSavedAt(response.updated_at);
                 setSaveStatus('saved');
             } catch (error: unknown) {
-                if (unmountedRef.current) {
+                if (unmountedRef.current || version !== targetVersionRef.current) {
                     return;
                 }
 
@@ -139,8 +154,13 @@ export function usePersistence(
             }
 
             // A change landed while the save was in flight — drain the
-            // trailing edit now so we don't lose it.
-            if (pendingRef.current !== null && !unmountedRef.current) {
+            // trailing edit now so we don't lose it. Skip if the target
+            // changed during the save.
+            if (
+                pendingRef.current !== null
+                && !unmountedRef.current
+                && version === targetVersionRef.current
+            ) {
                 void runFlush();
             }
         },

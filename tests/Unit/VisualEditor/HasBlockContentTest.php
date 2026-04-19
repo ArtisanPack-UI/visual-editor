@@ -93,6 +93,21 @@ it( 'leaves the query untouched when no scope is configured', function () {
 	expect( $results )->toHaveCount( 2 );
 } );
 
+it( 'throws when the configured scope method does not exist on the model', function () {
+	$model = new class extends \Illuminate\Database\Eloquent\Model {
+		use \ArtisanPackUI\VisualEditor\Concerns\HasBlockContent;
+
+		protected $table = 'test_block_content_models';
+
+		protected $guarded = [];
+
+		protected string $blockContentScope = 'nonexistent';
+	};
+
+	expect( fn () => $model->newQuery()->forVisualEditor() )
+		->toThrow( InvalidArgumentException::class );
+} );
+
 it( 'emits a searchable array stub for Scout integration', function () {
 	$model = TestBlockContentModel::create( [
 		'title'   => 'Searchable',

@@ -22,6 +22,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Concerns;
 
 use Illuminate\Database\Eloquent\Builder;
+use InvalidArgumentException;
 
 /**
  * @mixin \Illuminate\Database\Eloquent\Model
@@ -101,15 +102,17 @@ trait HasBlockContent
 	/**
 	 * Scopes the query to models the editor can resolve.
 	 *
-	 * Applies the optional `$blockContentScope` if it matches a local scope on
-	 * the model. Unknown scope names are ignored so a misconfigured scope
-	 * can't silently hide content.
+	 * Applies the optional `$blockContentScope` if it's configured. Missing
+	 * scope methods throw loudly — silently ignoring a typo'd scope would
+	 * leak otherwise-hidden content (e.g. drafts) through the editor API.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @param  Builder<\Illuminate\Database\Eloquent\Model>  $query
 	 *
 	 * @return Builder<\Illuminate\Database\Eloquent\Model>
+	 *
+	 * @throws InvalidArgumentException When the configured scope method doesn't exist on the model.
 	 */
 	public function scopeForVisualEditor( Builder $query ): Builder
 	{
@@ -121,9 +124,16 @@ trait HasBlockContent
 
 		$method = 'scope' . ucfirst( $scope );
 
-		if ( method_exists( $this, $method ) ) {
-			$query->{$scope}();
+		if ( ! method_exists( $this, $method ) ) {
+			throw new InvalidArgumentException( sprintf(
+				'HasBlockContent: scope "%s" (expected method %s::%s) is not defined on the model.',
+				$scope,
+				static::class,
+				$method
+			) );
 		}
+
+		$query->{$scope}();
 
 		return $query;
 	}

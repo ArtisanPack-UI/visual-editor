@@ -83,6 +83,28 @@ it( 'honors an explicit resource override prop', function () {
 	expect( $html )->toContain( 'data-resource="custom-slug"' );
 } );
 
+it( 'throws when mounted against an unsaved model', function () {
+	$model = new TestBlockContentModel( [
+		'title'   => 'Unsaved',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	try {
+		Blade::render( '<x-visual-editor :model="$model" />', [ 'model' => $model ] );
+		test()->fail( 'Expected a RuntimeException to be thrown.' );
+	} catch ( \Throwable $e ) {
+		$root = $e;
+
+		while ( $root->getPrevious() && ! $root instanceof RuntimeException ) {
+			$root = $root->getPrevious();
+		}
+
+		expect( $root )->toBeInstanceOf( RuntimeException::class )
+			->and( $root->getMessage() )->toContain( 'unsaved' );
+	}
+} );
+
 it( 'honors an explicit api-base override prop', function () {
 	$model = TestBlockContentModel::create( [
 		'title'   => 'Api override',

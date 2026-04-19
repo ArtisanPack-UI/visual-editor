@@ -103,33 +103,13 @@ class ResourceResolver
 			);
 		}
 
-		if ( ! in_array( HasBlockContent::class, $this->usedTraits( $model ), true ) ) {
+		if ( ! in_array( HasBlockContent::class, class_uses_recursive( $model::class ), true ) ) {
 			throw new RuntimeException(
 				sprintf( 'Visual-editor resource "%s" must use the HasBlockContent trait.', $modelClass )
 			);
 		}
 
 		return $model;
-	}
-
-	/**
-	 * Returns the recursive list of traits used by a model.
-	 *
-	 * @since 1.0.0
-	 *
-	 * @return array<int, string>
-	 */
-	protected function usedTraits( Model $model ): array
-	{
-		$traits = [];
-		$class  = $model::class;
-
-		do {
-			$traits = array_merge( $traits, class_uses( $class ) ?: [] );
-			$class  = get_parent_class( $class );
-		} while ( false !== $class );
-
-		return array_values( array_unique( $traits ) );
 	}
 
 	/**

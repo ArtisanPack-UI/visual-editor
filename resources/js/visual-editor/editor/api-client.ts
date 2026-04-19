@@ -80,19 +80,34 @@ async function requireOk(response: Response): Promise<unknown> {
     return body;
 }
 
+function normalizeError(error: unknown, fallbackMessage: string): ApiError {
+    if (error instanceof ApiError) {
+        return error;
+    }
+
+    const message =
+        error instanceof Error && error.message ? error.message : fallbackMessage;
+
+    return new ApiError(message, 0, error);
+}
+
 export async function fetchContent(
     config: ApiClientConfig
 ): Promise<ContentResponse> {
-    const response = await fetch(contentUrl(config), {
-        method: 'GET',
-        credentials: 'same-origin',
-        headers: {
-            Accept: 'application/json',
-            'X-Requested-With': 'XMLHttpRequest',
-        },
-    });
+    try {
+        const response = await fetch(contentUrl(config), {
+            method: 'GET',
+            credentials: 'same-origin',
+            headers: {
+                Accept: 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+            },
+        });
 
-    return (await requireOk(response)) as ContentResponse;
+        return (await requireOk(response)) as ContentResponse;
+    } catch (error: unknown) {
+        throw normalizeError(error, 'Failed to load content.');
+    }
 }
 
 export async function saveContent(
@@ -110,12 +125,16 @@ export async function saveContent(
         headers['X-CSRF-TOKEN'] = csrfToken;
     }
 
-    const response = await fetch(contentUrl(config), {
-        method: 'PUT',
-        credentials: 'same-origin',
-        headers,
-        body: JSON.stringify({ blocks }),
-    });
+    try {
+        const response = await fetch(contentUrl(config), {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers,
+            body: JSON.stringify({ blocks }),
+        });
 
-    return (await requireOk(response)) as ContentResponse;
+        return (await requireOk(response)) as ContentResponse;
+    } catch (error: unknown) {
+        throw normalizeError(error, 'Failed to save content.');
+    }
 }

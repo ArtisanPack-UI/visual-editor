@@ -51,11 +51,23 @@ async function mount(element: MountableElement): Promise<void> {
         return;
     }
 
-    const { EditorApp } = await import('./editor-app');
-
+    // Reserve the element synchronously so a second concurrent mount() call
+    // (e.g. a rapid bootVisualEditor() re-trigger) can't slip past the
+    // dedupe check while the dynamic import is still in flight.
     const root = createRoot(element);
     element[ROOT_SYMBOL] = root;
-    root.render(createElement(StrictMode, null, createElement(EditorApp, config)));
+
+    try {
+        const { EditorApp } = await import('./editor-app');
+
+        root.render(
+            createElement(StrictMode, null, createElement(EditorApp, config))
+        );
+    } catch (error: unknown) {
+        console.error('visual-editor: failed to load editor app.', error);
+        root.unmount();
+        delete element[ROOT_SYMBOL];
+    }
 }
 
 export function bootVisualEditor(

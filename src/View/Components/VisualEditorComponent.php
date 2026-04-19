@@ -38,8 +38,17 @@ class VisualEditorComponent extends Component
 		?string $resource = null,
 		?string $apiBase = null,
 	) {
+		$key = $model->getKey();
+
+		if ( ! $model->exists || null === $key || '' === (string) $key ) {
+			throw new RuntimeException( sprintf(
+				'Visual editor cannot mount against an unsaved %s. Persist the model before rendering <x-visual-editor>.',
+				$model::class
+			) );
+		}
+
 		$this->resource = $resource ?? $this->resolveResourceSlug( $model );
-		$this->modelId  = (string) $model->getKey();
+		$this->modelId  = (string) $key;
 		$this->apiBase  = $apiBase ?? $this->defaultApiBase();
 	}
 
