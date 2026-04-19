@@ -93,6 +93,51 @@ it( 'leaves the query untouched when no scope is configured', function () {
 	expect( $results )->toHaveCount( 2 );
 } );
 
+it( 'falls back to defaults when override properties are declared but uninitialized', function () {
+	$model = new class extends \Illuminate\Database\Eloquent\Model {
+		use \ArtisanPackUI\VisualEditor\Concerns\HasBlockContent;
+
+		protected $table = 'test_block_content_models';
+
+		protected $guarded = [];
+
+		protected string $blockContentColumn;
+
+		protected string $blockContentScope;
+	};
+
+	expect( $model->getBlockContentColumn() )->toBe( 'content' )
+		->and( $model->getBlockContentScope() )->toBeNull();
+} );
+
+it( 'preserves Arrayable casts on read (e.g. AsCollection)', function () {
+	$model = new class extends \Illuminate\Database\Eloquent\Model {
+		use \ArtisanPackUI\VisualEditor\Concerns\HasBlockContent;
+
+		protected $table = 'test_block_content_models';
+
+		protected $guarded = [];
+
+		protected function casts(): array
+		{
+			return [ 'content' => \Illuminate\Database\Eloquent\Casts\AsCollection::class ];
+		}
+	};
+
+	$model->setRawAttributes( [
+		'id'      => 1,
+		'content' => json_encode( [
+			[ 'clientId' => 'c', 'name' => 'core/paragraph', 'attributes' => [], 'innerBlocks' => [] ],
+		] ),
+	] );
+
+	$result = $model->getBlockContent();
+
+	expect( $result )->toBeArray()
+		->and( $result )->toHaveCount( 1 )
+		->and( $result[0]['clientId'] )->toBe( 'c' );
+} );
+
 it( 'throws when the configured scope method does not exist on the model', function () {
 	$model = new class extends \Illuminate\Database\Eloquent\Model {
 		use \ArtisanPackUI\VisualEditor\Concerns\HasBlockContent;

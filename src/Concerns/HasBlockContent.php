@@ -21,8 +21,10 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Concerns;
 
+use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
+use Traversable;
 
 /**
  * @mixin \Illuminate\Database\Eloquent\Model
@@ -48,12 +50,14 @@ trait HasBlockContent
 	 * Returns the column that stores the block tree JSON.
 	 *
 	 * Override by setting `protected $blockContentColumn = 'body';` on the model.
+	 * Uses `isset()` rather than `property_exists()` so an uninitialized typed
+	 * property falls back to the default instead of throwing.
 	 *
 	 * @since 1.0.0
 	 */
 	public function getBlockContentColumn(): string
 	{
-		return property_exists( $this, 'blockContentColumn' ) && is_string( $this->blockContentColumn )
+		return isset( $this->blockContentColumn ) && is_string( $this->blockContentColumn )
 			? $this->blockContentColumn
 			: 'content';
 	}
@@ -62,19 +66,24 @@ trait HasBlockContent
 	 * Returns the optional query scope applied when resolving models for the editor.
 	 *
 	 * Override by setting `protected $blockContentScope = 'published';` on the
-	 * model. Returns null when no scope is configured.
+	 * model. Returns null when no scope is configured. Uses `isset()` so
+	 * uninitialized typed properties fall back to null rather than throwing.
 	 *
 	 * @since 1.0.0
 	 */
 	public function getBlockContentScope(): ?string
 	{
-		return property_exists( $this, 'blockContentScope' ) && is_string( $this->blockContentScope )
+		return isset( $this->blockContentScope ) && is_string( $this->blockContentScope )
 			? $this->blockContentScope
 			: null;
 	}
 
 	/**
 	 * Returns the current block tree for the model.
+	 *
+	 * Accepts native arrays, `Arrayable` (e.g. Collection / `AsCollection`
+	 * casts), and `Traversable` so a consumer's custom cast on the block
+	 * content column is preserved on read instead of collapsing to `[]`.
 	 *
 	 * @since 1.0.0
 	 *
@@ -84,7 +93,19 @@ trait HasBlockContent
 	{
 		$value = $this->getAttribute( $this->getBlockContentColumn() );
 
-		return is_array( $value ) ? $value : [];
+		if ( is_array( $value ) ) {
+			return $value;
+		}
+
+		if ( $value instanceof Arrayable ) {
+			return $value->toArray();
+		}
+
+		if ( $value instanceof Traversable ) {
+			return iterator_to_array( $value );
+		}
+
+		return [];
 	}
 
 	/**
