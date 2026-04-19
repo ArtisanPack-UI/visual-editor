@@ -1,0 +1,22 @@
+# Copyright (C) Jacob Martella
+# This file is distributed under the same license as the ArtisanPack UI Visual Editor package.
+msgid ""
+msgstr ""
+"Project-Id-Version: artisanpack-ui-visual-editor\n"
+"POT-Creation-Date: 2026-04-19T01:03:55+0000\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Domain: artisanpack-visual-editor\n"
+
+#: resources/js/visual-editor/vendor/media-upload-stub.tsx:99
+msgid "File upload is a stub in M2. Integration with artisanpack-ui/media-library lands in M4."
+msgstr ""
+
+#: resources/js/visual-editor/sandbox/sandbox-editor.tsx:31
+msgid "Hello from the Gutenberg sandbox."
+msgstr ""
+
+#: resources/js/visual-editor/vendor/media-upload-stub.tsx:42
+msgid "The media library picker is a stub in M2. Integration with artisanpack-ui/media-library lands in M4."
+msgstr ""

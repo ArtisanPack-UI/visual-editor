@@ -10,6 +10,13 @@ export default defineConfig({
     resolve: {
         alias: {
             '@editor': resolve(__dirname, 'resources/js/visual-editor/_legacy/editor'),
+            // Keep the test bundle aligned with the production Vite alias
+            // (#312). Tests import `@wordpress/core-data` via the shim so
+            // selector stubs stay in sync across both environments.
+            '@wordpress/core-data': resolve(
+                __dirname,
+                'resources/js/visual-editor/vendor/core-data-shim.ts'
+            ),
         },
     },
     test: {
