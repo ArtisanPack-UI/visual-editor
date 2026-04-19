@@ -11,6 +11,7 @@
     },
     "scripts": {
         "dev": "vite",
+        "dev:sandbox": "vite resources/js/visual-editor/sandbox --port 5176",
         "build": "vite build",
         "build:lib": "vite build --mode lib",
         "test": "vitest run",
