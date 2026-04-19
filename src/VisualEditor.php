@@ -19,14 +19,20 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor;
 
+use ArtisanPackUI\VisualEditor\Blocks\ClosureDynamicBlock;
+use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
+use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use Closure;
 use InvalidArgumentException;
 use JsonException;
 
 class VisualEditor
 {
-	public function __construct( protected BlockTypeRegistry $registry )
-	{
+	public function __construct(
+		protected BlockTypeRegistry $registry,
+		protected DynamicBlockRegistry $dynamicRegistry,
+	) {
 	}
 
 	/**
@@ -90,6 +96,132 @@ class VisualEditor
 	public function getRegistry(): BlockTypeRegistry
 	{
 		return $this->registry;
+	}
+
+	/**
+	 * Returns the dynamic block registry instance.
+	 *
+	 * @since 1.0.0
+	 */
+	public function getDynamicBlockRegistry(): DynamicBlockRegistry
+	{
+		return $this->dynamicRegistry;
+	}
+
+	/**
+	 * Register a server-rendered (dynamic) block.
+	 *
+	 * Supports two registration styles:
+	 *
+	 *   1. Class form — pass the fully-qualified class name of a
+	 *      {@see DynamicBlock} subclass. The class is resolved from the
+	 *      container so constructor dependencies are injected normally.
+	 *
+	 *      `VisualEditor::registerDynamicBlock(LatestPostsBlock::class);`
+	 *
+	 *   2. Closure form — pass the block name as the first argument and an
+	 *      array of callbacks as the second. `render` is required; the other
+	 *      callbacks fall back to the defaults on {@see DynamicBlock}.
+	 *
+	 *      `VisualEditor::registerDynamicBlock('acme/latest-posts', [
+	 *          'render' => fn (array $attrs) => view('blocks.latest-posts', $attrs),
+	 *          'searchableText' => fn (array $attrs) => $attrs['title'] ?? '',
+	 *      ]);`
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  DynamicBlock|class-string<DynamicBlock>|string  $blockOrName
+	 * @param  array<string, callable>|null                    $config
+	 */
+	public function registerDynamicBlock( $blockOrName, ?array $config = null ): DynamicBlock
+	{
+		$block = $this->resolveDynamicBlock( $blockOrName, $config );
+
+		$this->dynamicRegistry->register( $block );
+
+		return $block;
+	}
+
+	/**
+	 * Resolve the appropriate {@see DynamicBlock} instance for the arguments
+	 * passed to {@see registerDynamicBlock()}.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  DynamicBlock|class-string<DynamicBlock>|string  $blockOrName
+	 * @param  array<string, callable>|null                    $config
+	 */
+	protected function resolveDynamicBlock( $blockOrName, ?array $config ): DynamicBlock
+	{
+		if ( $blockOrName instanceof DynamicBlock ) {
+			return $blockOrName;
+		}
+
+		if ( ! is_string( $blockOrName ) || '' === trim( $blockOrName ) ) {
+			throw new InvalidArgumentException( 'Dynamic block registration requires a class name, block name, or DynamicBlock instance.' );
+		}
+
+		if ( null === $config ) {
+			return $this->instantiateDynamicBlockClass( $blockOrName );
+		}
+
+		return $this->buildClosureDynamicBlock( $blockOrName, $config );
+	}
+
+	/**
+	 * Instantiate a dynamic block class via the container.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  class-string<DynamicBlock>|string  $class
+	 */
+	protected function instantiateDynamicBlockClass( string $class ): DynamicBlock
+	{
+		if ( ! class_exists( $class ) ) {
+			throw new InvalidArgumentException( sprintf( 'Dynamic block class "%s" does not exist.', $class ) );
+		}
+
+		if ( ! is_subclass_of( $class, DynamicBlock::class ) ) {
+			throw new InvalidArgumentException( sprintf( 'Dynamic block class "%s" must extend %s.', $class, DynamicBlock::class ) );
+		}
+
+		$instance = app( $class );
+
+		if ( ! $instance instanceof DynamicBlock ) {
+			throw new InvalidArgumentException( sprintf( 'Container resolved "%s" to a non-DynamicBlock instance.', $class ) );
+		}
+
+		return $instance;
+	}
+
+	/**
+	 * Build a {@see ClosureDynamicBlock} from a name + callback array.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, callable>  $config
+	 */
+	protected function buildClosureDynamicBlock( string $name, array $config ): ClosureDynamicBlock
+	{
+		$render = $config['render'] ?? null;
+
+		if ( ! is_callable( $render ) ) {
+			throw new InvalidArgumentException( sprintf( 'Dynamic block "%s" must supply a callable "render" entry.', $name ) );
+		}
+
+		return new ClosureDynamicBlock(
+			blockName: $name,
+			renderCallback: Closure::fromCallable( $render ),
+			searchCallback: isset( $config['searchableText'] ) && is_callable( $config['searchableText'] )
+				? Closure::fromCallable( $config['searchableText'] )
+				: null,
+			validateCallback: isset( $config['validateAttrs'] ) && is_callable( $config['validateAttrs'] )
+				? Closure::fromCallable( $config['validateAttrs'] )
+				: null,
+			authorizeCallback: isset( $config['authorize'] ) && is_callable( $config['authorize'] )
+				? Closure::fromCallable( $config['authorize'] )
+				: null,
+		);
 	}
 
 	/**
