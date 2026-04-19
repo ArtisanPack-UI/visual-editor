@@ -11,6 +11,16 @@
 import { StrictMode, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
+export { registerMediaBridge } from '../media-bridge';
+export type {
+    BridgeMedia,
+    BridgeMediaType,
+    MediaBridgeComponent,
+    MediaBridgeComponentProps,
+    MediaUploader,
+    RegisterMediaBridgeOptions,
+} from '../media-bridge';
+
 const MOUNT_SELECTOR = '[data-ap-visual-editor]';
 const ROOT_SYMBOL: unique symbol = Symbol('ap-visual-editor-root');
 

@@ -22,9 +22,9 @@ import type { BlockInstance } from '@wordpress/blocks';
 
 import { bootI18n, TEXT_DOMAIN } from '../vendor/i18n';
 import {
-    mediaUploadStub,
-    registerMediaUploadStub,
-} from '../vendor/media-upload-stub';
+    ensureMediaBridgeFilter,
+    mediaUploadSetting,
+} from '../media-bridge';
 
 import { usePersistence } from './use-persistence';
 
@@ -42,13 +42,13 @@ function registerOnce(): void {
     }
 
     bootI18n();
-    registerMediaUploadStub();
+    ensureMediaBridgeFilter();
     registerCoreBlocks();
     blocksRegistered = true;
 }
 
 const editorSettings = {
-    mediaUpload: mediaUploadStub,
+    mediaUpload: mediaUploadSetting,
 };
 
 export interface EditorAppProps {
