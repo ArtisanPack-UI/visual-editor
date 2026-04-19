@@ -36,6 +36,11 @@ export function MediaUploadBridge(
     props: GutenbergMediaUploadProps
 ): ReactElement | null {
     const [open, setOpen] = useState(false);
+    // Resolve the bridge at render time so the modal below mounts against
+    // the latest registration, and resolve again inside the click handler
+    // because `registerMediaBridge` may run after this component's first
+    // render (hot-reload, out-of-order boot). Capturing only the
+    // render-time value would leave stale closures pointed at `null`.
     const Bridge = getMediaBridge();
 
     const { render, children } = props;
@@ -43,7 +48,7 @@ export function MediaUploadBridge(
         render,
         children,
         open: () => {
-            if (Bridge === null) {
+            if (getMediaBridge() === null) {
                 notifyUnconfigured();
                 return;
             }
@@ -128,9 +133,24 @@ function renderTrigger(args: TriggerArgs): ReactNode {
     return cloneElement(element, {
         onClick: (event: unknown) => {
             existingOnClick?.(event);
+            // Honour the child's intent: if its handler called
+            // `preventDefault()` the click was explicitly consumed, so
+            // suppress the picker rather than forcing it open.
+            if (isDefaultPrevented(event)) {
+                return;
+            }
             open();
         },
     });
+}
+
+function isDefaultPrevented(event: unknown): boolean {
+    return (
+        typeof event === 'object' &&
+        event !== null &&
+        'defaultPrevented' in event &&
+        (event as { defaultPrevented: unknown }).defaultPrevented === true
+    );
 }
 
 /**

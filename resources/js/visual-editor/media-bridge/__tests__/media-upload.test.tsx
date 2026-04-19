@@ -202,4 +202,56 @@ describe('MediaUploadBridge with a registered bridge', () => {
         expect(childOnClick).toHaveBeenCalledTimes(1);
         expect(captured).toHaveLength(1);
     });
+
+    it('skips opening the bridge when the child calls preventDefault', async () => {
+        const captured: MediaBridgeComponentProps[] = [];
+        const Bridge = makeBridge((props) => captured.push(props));
+        registerMediaBridge({ MediaBridge: Bridge, uploadMedia: noopUploader });
+
+        render(
+            <MediaUploadBridge>
+                <button
+                    type="button"
+                    onClick={(event) => {
+                        event.preventDefault();
+                    }}
+                >
+                    Blocks default
+                </button>
+            </MediaUploadBridge>
+        );
+
+        await userEvent.click(
+            screen.getByRole('button', { name: 'Blocks default' })
+        );
+
+        expect(captured).toHaveLength(0);
+        expect(screen.queryByTestId('bridge')).not.toBeInTheDocument();
+    });
+
+    it('resolves the registered bridge at click time, not render time', async () => {
+        const alertSpy = vi
+            .spyOn(window, 'alert')
+            .mockImplementation(() => undefined);
+
+        render(
+            <MediaUploadBridge
+                render={({ open }) => (
+                    <button type="button" onClick={open}>
+                        Open
+                    </button>
+                )}
+            />
+        );
+
+        // Component first renders with no bridge, then one is registered.
+        const captured: MediaBridgeComponentProps[] = [];
+        const Bridge = makeBridge((props) => captured.push(props));
+        registerMediaBridge({ MediaBridge: Bridge, uploadMedia: noopUploader });
+
+        await userEvent.click(screen.getByRole('button', { name: 'Open' }));
+
+        expect(alertSpy).not.toHaveBeenCalled();
+        expect(captured).toHaveLength(1);
+    });
 });

@@ -159,6 +159,32 @@ describe('mediaUploadSetting', () => {
         expect(onError.mock.calls[0]?.[0]).toBe('boom');
     });
 
+    it('catches synchronous throws from the uploader', async () => {
+        const uploader: MediaUploader = () => {
+            throw new Error('sync throw');
+        };
+
+        registerMediaBridge({
+            MediaBridge: () => null,
+            uploadMedia: uploader,
+        });
+
+        const onError = vi.fn();
+
+        expect(() =>
+            mediaUploadSetting({
+                filesList: [textFile('a.txt', 'a')],
+                onError,
+            })
+        ).not.toThrow();
+
+        await vi.waitFor(() => {
+            expect(onError).toHaveBeenCalledTimes(1);
+        });
+
+        expect(onError.mock.calls[0]?.[0]).toBe('sync throw');
+    });
+
     it('short-circuits on an empty filesList', () => {
         const uploader = vi.fn();
         registerMediaBridge({

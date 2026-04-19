@@ -70,9 +70,12 @@ function runMediaUpload(
 
     void Promise.all(
         files.map((file) =>
-            Promise.resolve(uploader(file, options.additionalData)).then(
-                unwrap
-            )
+            // Defer the `uploader` call onto a resolved-promise `.then` so
+            // any synchronous throw lands in the `.catch` below rather
+            // than escaping the promise chain.
+            Promise.resolve()
+                .then(() => uploader(file, options.additionalData))
+                .then(unwrap)
         )
     )
         .then((media: BridgeMedia[]): void => {
