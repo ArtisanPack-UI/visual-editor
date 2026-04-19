@@ -138,3 +138,57 @@ export async function saveContent(
         throw normalizeError(error, 'Failed to save content.');
     }
 }
+
+export interface PreviewBlockConfig {
+    apiBase: string;
+}
+
+export interface PreviewBlockResponse {
+    name: string;
+    html: string;
+}
+
+function previewUrl(config: PreviewBlockConfig): string {
+    const base = config.apiBase.replace(/\/$/, '');
+
+    return `${base}/blocks/preview`;
+}
+
+export interface PreviewBlockOptions {
+    name: string;
+    attributes?: Record<string, unknown>;
+    signal?: AbortSignal;
+}
+
+export async function previewBlock(
+    config: PreviewBlockConfig,
+    options: PreviewBlockOptions
+): Promise<PreviewBlockResponse> {
+    const csrfToken = readCsrfToken();
+    const headers: Record<string, string> = {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+    };
+
+    if (csrfToken) {
+        headers['X-CSRF-TOKEN'] = csrfToken;
+    }
+
+    try {
+        const response = await fetch(previewUrl(config), {
+            method: 'POST',
+            credentials: 'same-origin',
+            headers,
+            body: JSON.stringify({
+                name: options.name,
+                attributes: options.attributes ?? {},
+            }),
+            signal: options.signal,
+        });
+
+        return (await requireOk(response)) as PreviewBlockResponse;
+    } catch (error: unknown) {
+        throw normalizeError(error, 'Failed to preview block.');
+    }
+}

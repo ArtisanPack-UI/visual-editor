@@ -5,6 +5,7 @@ namespace ArtisanPackUI\VisualEditor;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
+use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\View\Components\VisualEditorComponent;
 use Illuminate\Support\Facades\Blade;
@@ -21,8 +22,15 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new BlockTypeRegistry();
 		} );
 
+		$this->app->singleton( DynamicBlockRegistry::class, function () {
+			return new DynamicBlockRegistry();
+		} );
+
 		$this->app->singleton( VisualEditor::class, function ( $app ) {
-			return new VisualEditor( $app->make( BlockTypeRegistry::class ) );
+			return new VisualEditor(
+				$app->make( BlockTypeRegistry::class ),
+				$app->make( DynamicBlockRegistry::class ),
+			);
 		} );
 
 		$this->app->singleton( ResourceResolver::class, function () {

@@ -197,20 +197,3 @@ it( 'returns 500 when a configured resource does not use HasBlockContent', funct
 		->toThrow( RuntimeException::class );
 } );
 
-it( 'returns a preview stub from the blocks/preview endpoint', function () {
-	makeActor();
-
-	$this->postJson( '/visual-editor/api/blocks/preview', [ 'blocks' => validBlockTree() ] )
-		->assertOk()
-		->assertJsonPath( 'status', 'stub' )
-		->assertJsonPath( 'blocks.0.clientId', 'abc' )
-		->assertJsonPath( 'html', null );
-} );
-
-it( 'validates the block tree shape on the preview endpoint', function () {
-	makeActor();
-
-	$this->postJson( '/visual-editor/api/blocks/preview', [ 'blocks' => [ [ 'clientId' => 'only-id' ] ] ] )
-		->assertUnprocessable()
-		->assertJsonValidationErrors( 'blocks' );
-} );
