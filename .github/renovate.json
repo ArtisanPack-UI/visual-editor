@@ -1,0 +1,18 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended",
+        ":semanticCommits"
+    ],
+    "packageRules": [
+        {
+            "description": "Group all @wordpress/* package updates into a single PR on a two-week cadence, and keep them exact-pinned so Gutenberg's cross-package version coupling stays in lockstep.",
+            "matchPackagePrefixes": ["@wordpress/"],
+            "groupName": "gutenberg",
+            "groupSlug": "gutenberg",
+            "schedule": ["every 2 weeks on monday"],
+            "rangeStrategy": "pin",
+            "labels": ["dependencies", "gutenberg"]
+        }
+    ]
+}

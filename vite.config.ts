@@ -3,10 +3,12 @@ import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 
 // Legacy editor root — reference-only custom-React implementation retained
-// under _legacy/ during the Gutenberg adoption. M1 will introduce a new
-// editor tree at resources/js/visual-editor/editor/ and wire vite accordingly.
+// under _legacy/ during the Gutenberg adoption. M1 introduces the sandbox
+// entry at resources/js/visual-editor/sandbox/ while the new editor tree
+// (M3+) will live at resources/js/visual-editor/editor/.
 // See docs/gutenberg-adoption.md and issue #309.
 const editorRoot = resolve(__dirname, 'resources/js/visual-editor/_legacy/editor');
+const sandboxEntry = resolve(__dirname, 'resources/js/visual-editor/sandbox/main.tsx');
 
 export default defineConfig(({ command, mode }) => {
     const isLibraryBuild = mode === 'lib';
@@ -57,19 +59,31 @@ export default defineConfig(({ command, mode }) => {
                 },
             }
             : {
-                // App build — produces the full bundled editor application.
+                // App build — produces the bundled editor application plus the
+                // M1 sandbox entry. The sandbox entry dynamically imports its
+                // Gutenberg-using module so `@wordpress/*` lands in a dedicated
+                // `gutenberg` chunk that is only fetched when the editor mounts.
                 target: 'esnext',
                 outDir: resolve(__dirname, 'dist/editor'),
                 emptyOutDir: true,
                 manifest: false,
                 sourcemap: true,
                 rollupOptions: {
-                    input: resolve(editorRoot, 'main.tsx'),
+                    input: {
+                        editor: resolve(editorRoot, 'main.tsx'),
+                        sandbox: sandboxEntry,
+                    },
                     output: {
                         format: 'es',
-                        entryFileNames: 'main.js',
-                        chunkFileNames: '[name].js',
-                        assetFileNames: '[name][extname]',
+                        entryFileNames: '[name].js',
+                        chunkFileNames: 'chunks/[name]-[hash].js',
+                        assetFileNames: 'assets/[name]-[hash][extname]',
+                        manualChunks(id) {
+                            if (id.includes('/node_modules/@wordpress/')) {
+                                return 'gutenberg';
+                            }
+                            return undefined;
+                        },
                     },
                 },
             },
