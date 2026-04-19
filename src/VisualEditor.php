@@ -91,4 +91,85 @@ class VisualEditor
 	{
 		return $this->registry;
 	}
+
+	/**
+	 * Returns the fully-qualified names of blocks that should be exposed to
+	 * the editor after the allow-list + deny-list filters run.
+	 *
+	 * Resolution order:
+	 *   1. Start with the configured `enabled_blocks` allow-list. When
+	 *      empty, fall back to every block currently in the registry — the
+	 *      allow-list is only enforced when the host app has opted in.
+	 *   2. Remove anything in the `disabled_blocks` deny-list.
+	 *   3. De-duplicate and preserve authoring order.
+	 *
+	 * The return value is deterministic (no registry lookups, no locale
+	 * sorting) so it can drive a snapshot test.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<int, string>
+	 */
+	public function getEnabledBlockNames(): array
+	{
+		$enabled  = $this->stringListFromConfig( 'artisanpack.visual-editor.enabled_blocks' );
+		$disabled = $this->stringListFromConfig( 'artisanpack.visual-editor.disabled_blocks' );
+
+		$candidates = [] === $enabled
+			? array_column( $this->registry->all(), 'name' )
+			: $enabled;
+
+		$denyIndex = array_flip( $disabled );
+		$seen      = [];
+		$result    = [];
+
+		foreach ( $candidates as $name ) {
+			if ( ! is_string( $name ) ) {
+				continue;
+			}
+
+			$normalized = trim( $name );
+
+			if ( '' === $normalized || isset( $denyIndex[ $normalized ] ) || isset( $seen[ $normalized ] ) ) {
+				continue;
+			}
+
+			$seen[ $normalized ] = true;
+			$result[]            = $normalized;
+		}
+
+		return $result;
+	}
+
+	/**
+	 * Pulls a config key, coerces it to a list of trimmed non-empty strings.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<int, string>
+	 */
+	protected function stringListFromConfig( string $key ): array
+	{
+		$raw = config( $key, [] );
+
+		if ( ! is_array( $raw ) ) {
+			return [];
+		}
+
+		$out = [];
+
+		foreach ( $raw as $value ) {
+			if ( ! is_string( $value ) ) {
+				continue;
+			}
+
+			$trimmed = trim( $value );
+
+			if ( '' !== $trimmed ) {
+				$out[] = $trimmed;
+			}
+		}
+
+		return $out;
+	}
 }
