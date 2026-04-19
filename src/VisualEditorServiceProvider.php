@@ -5,6 +5,9 @@ namespace ArtisanPackUI\VisualEditor;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
+use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
+use ArtisanPackUI\VisualEditor\View\Components\VisualEditorComponent;
+use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
@@ -20,6 +23,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( VisualEditor::class, function ( $app ) {
 			return new VisualEditor( $app->make( BlockTypeRegistry::class ) );
+		} );
+
+		$this->app->singleton( ResourceResolver::class, function () {
+			return new ResourceResolver();
 		} );
 
 		// Legacy alias for backward compatibility
@@ -48,6 +55,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->loadMigrationsFrom( __DIR__ . '/../database/migrations' );
 
 		$this->registerApiRoutes();
+		$this->registerBladeComponents();
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
 
@@ -108,6 +116,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Route::middleware( $middleware )
 			->prefix( 'visual-editor/api' )
 			->group( __DIR__ . '/../routes/api.php' );
+	}
+
+	/**
+	 * Registers package Blade components.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function registerBladeComponents(): void
+	{
+		Blade::component( VisualEditorComponent::class, 'visual-editor' );
 	}
 
 

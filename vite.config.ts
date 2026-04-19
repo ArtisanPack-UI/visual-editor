@@ -9,6 +9,10 @@ import { resolve } from 'node:path';
 // See docs/gutenberg-adoption.md and issue #309.
 const editorRoot = resolve(__dirname, 'resources/js/visual-editor/_legacy/editor');
 const sandboxEntry = resolve(__dirname, 'resources/js/visual-editor/sandbox/main.tsx');
+const visualEditorEntry = resolve(
+    __dirname,
+    'resources/js/visual-editor/editor/main.tsx'
+);
 const coreDataShim = resolve(
     __dirname,
     'resources/js/visual-editor/vendor/core-data-shim.ts'
@@ -81,6 +85,7 @@ export default defineConfig(({ command, mode }) => {
                     input: {
                         editor: resolve(editorRoot, 'main.tsx'),
                         sandbox: sandboxEntry,
+                        'visual-editor': visualEditorEntry,
                     },
                     output: {
                         format: 'es',
