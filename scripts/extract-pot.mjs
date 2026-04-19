@@ -122,18 +122,74 @@ function lineOf(source, offset) {
 
 /**
  * Strip `//` line comments and `/* … *\/` block comments so translation call
- * examples embedded in JSDoc don't show up in the .pot. The replacement keeps
- * newlines intact so line-number references stay accurate.
+ * examples embedded in JSDoc don't show up in the .pot. The scanner tracks
+ * string state (single-quote, double-quote, template) and escape characters,
+ * so `//` inside a quoted literal (e.g. `__('Visit https://example.com', …)`)
+ * is preserved. Newlines are kept intact inside block comments so line-number
+ * references downstream stay accurate.
+ *
+ * Known limitation: regex literals (`/foo\/bar/`) are not detected, so a
+ * `//` inside a regex literal could still be stripped. This is acceptable
+ * for the placeholder extractor — a richer AST-based extractor lands post-V1.
  *
  * @param {string} source
  * @returns {string}
  */
 function stripComments(source) {
-    return source
-        .replace(/\/\*[\s\S]*?\*\//g, (match) =>
-            match.replace(/[^\n]/g, ' ')
-        )
-        .replace(/(^|[^:])\/\/[^\n]*/g, (_match, prefix) => prefix);
+    let out = '';
+    let i = 0;
+    const n = source.length;
+
+    while (i < n) {
+        const ch = source[i];
+        const next = source[i + 1];
+
+        if (ch === '/' && next === '*') {
+            i += 2;
+            while (i < n && !(source[i] === '*' && source[i + 1] === '/')) {
+                out += source[i] === '\n' ? '\n' : ' ';
+                i += 1;
+            }
+            if (i < n) {
+                out += '  ';
+                i += 2;
+            }
+            continue;
+        }
+
+        if (ch === '/' && next === '/') {
+            i += 2;
+            while (i < n && source[i] !== '\n') {
+                i += 1;
+            }
+            continue;
+        }
+
+        if (ch === "'" || ch === '"' || ch === '`') {
+            const quote = ch;
+            out += ch;
+            i += 1;
+            while (i < n) {
+                const c = source[i];
+                out += c;
+                i += 1;
+                if (c === '\\' && i < n) {
+                    out += source[i];
+                    i += 1;
+                    continue;
+                }
+                if (c === quote) {
+                    break;
+                }
+            }
+            continue;
+        }
+
+        out += ch;
+        i += 1;
+    }
+
+    return out;
 }
 
 function escapePotString(value) {
@@ -177,6 +233,16 @@ async function extract() {
                 const reference = `${rel}:${lineOf(source, match.index)}`;
                 if (existing) {
                     existing.references.add(reference);
+                    // Singular-first / plural-later: promote the plural form
+                    // into the existing entry so `_n`/`_nx` callers don't
+                    // lose their plural data when a `__` call appeared first.
+                    // (msgctxt keys the entry, so it can't differ here.)
+                    if (
+                        existing.msgid_plural === undefined &&
+                        entry.msgid_plural !== undefined
+                    ) {
+                        existing.msgid_plural = entry.msgid_plural;
+                    }
                 } else {
                     entries.set(key, {
                         msgid: entry.msgid,
