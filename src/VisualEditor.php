@@ -212,16 +212,40 @@ class VisualEditor
 		return new ClosureDynamicBlock(
 			blockName: $name,
 			renderCallback: Closure::fromCallable( $render ),
-			searchCallback: isset( $config['searchableText'] ) && is_callable( $config['searchableText'] )
-				? Closure::fromCallable( $config['searchableText'] )
-				: null,
-			validateCallback: isset( $config['validateAttrs'] ) && is_callable( $config['validateAttrs'] )
-				? Closure::fromCallable( $config['validateAttrs'] )
-				: null,
-			authorizeCallback: isset( $config['authorize'] ) && is_callable( $config['authorize'] )
-				? Closure::fromCallable( $config['authorize'] )
-				: null,
+			searchCallback: $this->optionalCallback( $name, $config, 'searchableText' ),
+			validateCallback: $this->optionalCallback( $name, $config, 'validateAttrs' ),
+			authorizeCallback: $this->optionalCallback( $name, $config, 'authorize' ),
 		);
+	}
+
+	/**
+	 * Pull an optional closure-form callback out of the registration config.
+	 *
+	 * Returns null when the key is absent. Throws when the key is present but
+	 * the value is not callable — a silent fallback there hides typos and
+	 * makes customizations appear to "work" while using the default logic.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $config
+	 */
+	protected function optionalCallback( string $name, array $config, string $key ): ?Closure
+	{
+		if ( ! array_key_exists( $key, $config ) ) {
+			return null;
+		}
+
+		$value = $config[ $key ];
+
+		if ( ! is_callable( $value ) ) {
+			throw new InvalidArgumentException( sprintf(
+				'Dynamic block "%s" has a non-callable "%s" entry.',
+				$name,
+				$key
+			) );
+		}
+
+		return Closure::fromCallable( $value );
 	}
 
 	/**

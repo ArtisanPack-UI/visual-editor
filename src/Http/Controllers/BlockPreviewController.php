@@ -83,7 +83,7 @@ class BlockPreviewController extends Controller
 			return response()->json( [
 				'error'   => 'render_failed',
 				'name'    => $name,
-				'message' => $e->getMessage(),
+				'message' => 'Rendering failed.',
 			], 500 );
 		}
 

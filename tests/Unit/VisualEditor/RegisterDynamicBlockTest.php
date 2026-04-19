@@ -58,6 +58,27 @@ it( 'rejects a closure config without a render callback', function () {
 	] );
 } )->throws( InvalidArgumentException::class, 'render' );
 
+it( 'rejects a closure config with a non-callable searchableText entry', function () {
+	VisualEditor::registerDynamicBlock( 'acme/bad', [
+		'render'         => static fn (): string => '<p></p>',
+		'searchableText' => 'not a callable',
+	] );
+} )->throws( InvalidArgumentException::class, 'searchableText' );
+
+it( 'rejects a closure config with a non-callable validateAttrs entry', function () {
+	VisualEditor::registerDynamicBlock( 'acme/bad', [
+		'render'        => static fn (): string => '<p></p>',
+		'validateAttrs' => 'not a callable',
+	] );
+} )->throws( InvalidArgumentException::class, 'validateAttrs' );
+
+it( 'rejects a closure config with a non-callable authorize entry', function () {
+	VisualEditor::registerDynamicBlock( 'acme/bad', [
+		'render'    => static fn (): string => '<p></p>',
+		'authorize' => 'not a callable',
+	] );
+} )->throws( InvalidArgumentException::class, 'authorize' );
+
 it( 'rejects a non-existent class name', function () {
 	VisualEditor::registerDynamicBlock( 'Tests\\Fixtures\\NoSuchBlock' );
 } )->throws( InvalidArgumentException::class, 'does not exist' );

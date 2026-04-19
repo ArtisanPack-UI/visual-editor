@@ -118,3 +118,25 @@ it( 'returns 401 when the request is not authenticated', function () {
 	] )
 		->assertUnauthorized();
 } );
+
+it( 'returns a generic message when the block render() throws', function () {
+	VisualEditor::registerDynamicBlock( 'acme/boom', [
+		'render' => static function (): string {
+			throw new RuntimeException( 'secret internal path /var/www/leak' );
+		},
+	] );
+
+	// Suppress the exception reporter so the test output stays clean — the
+	// controller still calls report() regardless of whether it's a no-op.
+	$this->withoutExceptionHandling( [] );
+
+	$response = $this->postJson( '/visual-editor/api/blocks/preview', [
+		'name' => 'acme/boom',
+	] );
+
+	$response->assertStatus( 500 )
+		->assertJsonPath( 'error', 'render_failed' )
+		->assertJsonPath( 'message', 'Rendering failed.' );
+
+	expect( $response->json( 'message' ) )->not->toContain( 'secret internal path' );
+} );

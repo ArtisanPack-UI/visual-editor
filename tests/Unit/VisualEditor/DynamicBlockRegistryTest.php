@@ -54,3 +54,21 @@ it( 'overwrites the previous registration when the same name is reused', functio
 
 	expect( $registry->get( 'acme/thing' ) )->toBe( $second );
 } );
+
+it( 'rejects a block whose name is empty', function () {
+	$registry = new DynamicBlockRegistry();
+
+	$registry->register( makeClosureBlock( '   ' ) );
+} )->throws( InvalidArgumentException::class, 'cannot be empty' );
+
+it( 'rejects a block whose name does not match the preview-endpoint format', function () {
+	$registry = new DynamicBlockRegistry();
+
+	$registry->register( makeClosureBlock( 'Bad Name!' ) );
+} )->throws( InvalidArgumentException::class, 'Expected format' );
+
+it( 'rejects a block name missing a namespace', function () {
+	$registry = new DynamicBlockRegistry();
+
+	$registry->register( makeClosureBlock( 'paragraph' ) );
+} )->throws( InvalidArgumentException::class, 'Expected format' );

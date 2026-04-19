@@ -25,6 +25,15 @@ use InvalidArgumentException;
 class DynamicBlockRegistry
 {
 	/**
+	 * Canonical block name pattern: `namespace/name` using lowercase
+	 * alphanumerics and hyphens. Mirrors the regex enforced by
+	 * {@see \ArtisanPackUI\VisualEditor\Http\Requests\BlockPreviewRequest}
+	 * so a block is either resolvable through the preview endpoint or
+	 * rejected at registration — never silently unreachable.
+	 */
+	public const NAME_PATTERN = '/^[a-z][a-z0-9-]*\/[a-z][a-z0-9-]*$/';
+
+	/**
 	 * @var array<string, DynamicBlock>
 	 */
 	protected array $blocks = [];
@@ -40,6 +49,13 @@ class DynamicBlockRegistry
 
 		if ( '' === $name ) {
 			throw new InvalidArgumentException( 'Dynamic block name cannot be empty.' );
+		}
+
+		if ( 1 !== preg_match( self::NAME_PATTERN, $name ) ) {
+			throw new InvalidArgumentException( sprintf(
+				'Dynamic block name "%s" is invalid. Expected format: "namespace/name" using lowercase letters, numbers, and hyphens.',
+				$name
+			) );
 		}
 
 		$this->blocks[ $name ] = $block;
