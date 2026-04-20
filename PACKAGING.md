@@ -12,9 +12,7 @@ sub-packages are meant to reach Packagist, because Packagist watches one
 | `./`                                    | `artisanpack-ui/visual-editor`                            | Packagist | published   |
 | `packages/visual-editor-renderer-blade` | `artisanpack-ui/visual-editor-renderer-blade`             | Packagist | unpublished |
 | `packages/visual-editor-renderer-react` | `@artisanpack-ui/visual-editor-renderer-react`            | npm       | unpublished |
-
-M11 (Vue renderer) will add one more sub-package under the same `packages/`
-directory.
+| `packages/visual-editor-renderer-vue`   | `@artisanpack-ui/visual-editor-renderer-vue`              | npm       | unpublished |
 
 ## Distribution strategy: subtree splits
 
