@@ -16,9 +16,16 @@ import {
     saveContent,
     type ApiClientConfig,
 } from './api-client';
+import {
+    VE_EDITOR_AUTOSAVE,
+    VE_EDITOR_CHANGE,
+    VE_EDITOR_SAVE,
+    dispatchEditorEvent,
+} from './editor-events';
 
 type LoadStatus = 'loading' | 'ready' | 'error';
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
+type SaveTrigger = 'autosave' | 'save';
 
 export interface PersistenceState {
     blocks: BlockInstance[];
@@ -121,7 +128,7 @@ export function usePersistence(
     }, [apiBase, resource, id]);
 
     const runFlush = useCallback(
-        async function runFlush(): Promise<void> {
+        async function runFlush(trigger: SaveTrigger): Promise<void> {
             if (inFlightRef.current || unmountedRef.current) {
                 return;
             }
@@ -148,6 +155,16 @@ export function usePersistence(
 
                 setLastSavedAt(response.updated_at);
                 setSaveStatus('saved');
+
+                dispatchEditorEvent(
+                    trigger === 'save' ? VE_EDITOR_SAVE : VE_EDITOR_AUTOSAVE,
+                    {
+                        resource,
+                        id,
+                        blocks: next,
+                        updatedAt: response.updated_at,
+                    }
+                );
             } catch (error: unknown) {
                 if (unmountedRef.current || version !== targetVersionRef.current) {
                     return;
@@ -160,14 +177,16 @@ export function usePersistence(
             }
 
             // A change landed while the save was in flight — drain the
-            // trailing edit now so we don't lose it. Skip if the target
-            // changed during the save.
+            // trailing edit now so we don't lose it. Trailing drains always
+            // count as autosaves: they're reacting to buffered edits, not a
+            // fresh explicit Save press. Skip if the target changed during
+            // the save.
             if (
                 pendingRef.current !== null
                 && !unmountedRef.current
                 && version === targetVersionRef.current
             ) {
-                void runFlush();
+                void runFlush('autosave');
             }
         },
         [apiBase, resource, id]
@@ -189,10 +208,18 @@ export function usePersistence(
 
             timerRef.current = setTimeout(() => {
                 timerRef.current = null;
-                void runFlush();
+                // The change event is debounced: host listeners see one
+                // event per coalesced edit burst, timed with the autosave
+                // they're about to observe.
+                dispatchEditorEvent(VE_EDITOR_CHANGE, {
+                    resource,
+                    id,
+                    blocks: next,
+                });
+                void runFlush('autosave');
             }, debounceMs);
         },
-        [debounceMs, runFlush]
+        [debounceMs, id, resource, runFlush]
     );
 
     const flush = useCallback((): void => {
@@ -208,7 +235,7 @@ export function usePersistence(
             return;
         }
 
-        void runFlush();
+        void runFlush('save');
     }, [runFlush]);
 
     return {
