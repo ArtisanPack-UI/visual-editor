@@ -153,7 +153,7 @@ it( 'throws when the configured scope method does not exist on the model', funct
 		->toThrow( InvalidArgumentException::class );
 } );
 
-it( 'emits a searchable array stub for Scout integration', function () {
+it( 'emits extracted searchable text in the Scout integration array', function () {
 	$model = TestBlockContentModel::create( [
 		'title'   => 'Searchable',
 		'status'  => 'published',
@@ -163,8 +163,6 @@ it( 'emits a searchable array stub for Scout integration', function () {
 	] );
 
 	expect( $model->toBlockContentSearchableArray() )->toEqual( [
-		'block_content' => [
-			[ 'clientId' => 'x', 'name' => 'core/paragraph', 'attributes' => ['content' => 'Hello'], 'innerBlocks' => [] ],
-		],
+		'block_content' => 'Hello',
 	] );
 } );
