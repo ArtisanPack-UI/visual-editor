@@ -126,12 +126,25 @@ export const VisualEditor = defineComponent({
             }
         };
 
+        // `mountEditor().ready` rejects when the dynamic editor-app import
+        // fails. The failure is already logged inside `mountEditor`; attach
+        // a no-op catch here so the rejection doesn't bubble up as an
+        // unhandled promise warning in the host app's console.
+        const swallowReadyRejection = (mount: MountedEditor): MountedEditor => {
+            mount.ready.catch(() => {
+                // Already logged by mountEditor.
+            });
+            return mount;
+        };
+
         onMounted(() => {
             if (rootEl.value === null) {
                 return;
             }
 
-            mounted = mountEditor(rootEl.value, buildMountConfig(props));
+            mounted = swallowReadyRejection(
+                mountEditor(rootEl.value, buildMountConfig(props)),
+            );
 
             window.addEventListener(VE_EDITOR_CHANGE, onChange);
             window.addEventListener(VE_EDITOR_AUTOSAVE, onAutosave);
@@ -159,7 +172,9 @@ export const VisualEditor = defineComponent({
                 }
 
                 if (rootEl.value !== null) {
-                    mounted = mountEditor(rootEl.value, buildMountConfig(props));
+                    mounted = swallowReadyRejection(
+                        mountEditor(rootEl.value, buildMountConfig(props)),
+                    );
                 }
             },
         );

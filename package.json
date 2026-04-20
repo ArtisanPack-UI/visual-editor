@@ -7,6 +7,10 @@
         ".": {
             "types": "./dist/lib/visual-editor.d.ts",
             "import": "./dist/lib/visual-editor.js"
+        },
+        "./vue": {
+            "types": "./resources/js/visual-editor/editor/vue.ts",
+            "import": "./resources/js/visual-editor/editor/vue.ts"
         }
     },
     "scripts": {
