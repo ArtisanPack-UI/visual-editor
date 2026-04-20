@@ -64,7 +64,7 @@ outside a DaisyUI host:
 ```
 
 Radii follow the same pattern, reading `--rounded-btn` from DaisyUI and
-defaulting to `0.5rem`:
+defaulting to `6px`:
 
 ```css
 --ap-visual-editor-top-bar-radius: var(--rounded-btn, 6px);

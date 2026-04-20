@@ -349,6 +349,13 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         ]
     );
 
+    const shortcutsModal = (
+        <KeyboardShortcutsModal
+            open={shortcutsOpen}
+            onClose={handleCloseShortcuts}
+        />
+    );
+
     if (loadStatus === 'loading') {
         return (
             <div className="ap-visual-editor__shell" data-state="loading">
@@ -356,6 +363,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 <p className="ap-visual-editor__status ap-visual-editor__status--loading">
                     {__('Loading content…', TEXT_DOMAIN)}
                 </p>
+                {shortcutsModal}
             </div>
         );
     }
@@ -373,6 +381,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                             __('Unable to load content.', TEXT_DOMAIN)}
                     </Alert>
                 </div>
+                {shortcutsModal}
             </div>
         );
     }
@@ -436,10 +445,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                         </aside>
                     ) : null}
                 </div>
-                <KeyboardShortcutsModal
-                    open={shortcutsOpen}
-                    onClose={handleCloseShortcuts}
-                />
+                {shortcutsModal}
             </div>
         </SlotFillProvider>
     );

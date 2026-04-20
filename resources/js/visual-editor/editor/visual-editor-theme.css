@@ -73,5 +73,6 @@
  */
 .ap-visual-editor__shell .editor-styles-wrapper {
     --wp-admin-theme-color: var(--color-primary, #2563eb);
+
     color: var(--color-base-content, #1f2937);
 }
