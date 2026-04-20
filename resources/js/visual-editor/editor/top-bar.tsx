@@ -304,11 +304,6 @@ export function TopBar(props: TopBarProps): JSX.Element {
         []
     );
 
-    const closeMenu = useCallback((): void => {
-        setMenuOpen(false);
-        menuTriggerRef.current?.focus();
-    }, []);
-
     const toggleMenu = useCallback(
         (event: ReactMouseEvent<HTMLButtonElement>): void => {
             event.preventDefault();
@@ -591,13 +586,6 @@ export function TopBar(props: TopBarProps): JSX.Element {
                                     {item.label}
                                 </button>
                             ))}
-                            <button
-                                type="button"
-                                className="ap-visual-editor-top-bar__menu-close"
-                                onClick={closeMenu}
-                                aria-hidden="true"
-                                tabIndex={-1}
-                            />
                         </div>
                     ) : null}
                 </div>

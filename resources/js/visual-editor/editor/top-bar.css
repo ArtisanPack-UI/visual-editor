@@ -225,17 +225,6 @@
     cursor: not-allowed;
 }
 
-.ap-visual-editor-top-bar__menu-close {
-    position: fixed;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    padding: 0;
-    background: transparent;
-    border: 0;
-    pointer-events: none;
-}
-
 @media (prefers-color-scheme: dark) {
     .ap-visual-editor-top-bar {
         --ap-visual-editor-top-bar-background: #0f172a;
