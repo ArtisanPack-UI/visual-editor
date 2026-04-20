@@ -32,6 +32,10 @@ interface MountConfig {
     apiBase: string;
     resource: string;
     id: string;
+    initialTitle?: string;
+    initialSlug?: string;
+    initialStatus?: string;
+    previewUrl?: string | null;
 }
 
 function readMountConfig(element: HTMLElement): MountConfig | null {
@@ -43,7 +47,20 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
         return null;
     }
 
-    return { apiBase, resource, id };
+    const initialTitle = element.dataset.title?.trim();
+    const initialSlug = element.dataset.slug?.trim();
+    const initialStatus = element.dataset.status?.trim();
+    const previewUrl = element.dataset.previewUrl?.trim();
+
+    return {
+        apiBase,
+        resource,
+        id,
+        ...(initialTitle ? { initialTitle } : {}),
+        ...(initialSlug ? { initialSlug } : {}),
+        ...(initialStatus ? { initialStatus } : {}),
+        previewUrl: previewUrl ?? null,
+    };
 }
 
 async function mount(element: MountableElement): Promise<void> {
