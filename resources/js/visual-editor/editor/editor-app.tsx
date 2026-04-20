@@ -14,6 +14,7 @@ import {
     useRef,
     useState,
 } from 'react';
+import { Alert, ToastProvider } from '@artisanpack-ui/react/feedback';
 import {
     BlockEditorProvider,
     BlockList,
@@ -31,6 +32,8 @@ import {
     mediaUploadSetting,
 } from '../media-bridge';
 
+import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
+import { useSaveNotifications } from './save-notifications';
 import { TopBar, type PostStatus } from './top-bar';
 import { usePersistence } from './use-persistence';
 
@@ -41,6 +44,9 @@ import '@wordpress/block-library/build-style/style.css';
 import '@wordpress/block-library/build-style/editor.css';
 
 import './editor-app.css';
+// Loaded last so DaisyUI-driven custom properties win the cascade against
+// the `@wordpress/*` stylesheets above (M8 · #318).
+import './visual-editor-theme.css';
 
 let blocksRegistered = false;
 
@@ -106,6 +112,14 @@ const EMPTY_HISTORY: HistoryState = { past: [], future: [] };
 export function EditorApp(props: EditorAppProps): JSX.Element {
     registerOnce();
 
+    return (
+        <ToastProvider>
+            <EditorAppShell {...props} />
+        </ToastProvider>
+    );
+}
+
+function EditorAppShell(props: EditorAppProps): JSX.Element {
     const {
         initialTitle = '',
         initialSlug = '',
@@ -125,6 +139,11 @@ export function EditorApp(props: EditorAppProps): JSX.Element {
         flush,
     } = usePersistence(props);
 
+    useSaveNotifications({
+        saveStatus,
+        saveErrorMessage: saveError?.message ?? null,
+    });
+
     const [title, setTitle] = useState<string>(initialTitle);
     const [slug, setSlug] = useState<string>(initialSlug);
     const [status, setStatus] = useState<PostStatus>(
@@ -132,6 +151,7 @@ export function EditorApp(props: EditorAppProps): JSX.Element {
     );
     const [inserterOpen, setInserterOpen] = useState<boolean>(false);
     const [inspectorOpen, setInspectorOpen] = useState<boolean>(false);
+    const [shortcutsOpen, setShortcutsOpen] = useState<boolean>(false);
     const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
     // Mirror history in a ref so undo/redo handlers can read the latest
     // snapshot without taking a dep on `history` (which would re-memoize the
@@ -272,6 +292,14 @@ export function EditorApp(props: EditorAppProps): JSX.Element {
         setInspectorOpen((open) => !open);
     }, []);
 
+    const handleShowShortcuts = useCallback((): void => {
+        setShortcutsOpen(true);
+    }, []);
+
+    const handleCloseShortcuts = useCallback((): void => {
+        setShortcutsOpen(false);
+    }, []);
+
     const topBar = useMemo(
         () => (
             <TopBar
@@ -294,11 +322,13 @@ export function EditorApp(props: EditorAppProps): JSX.Element {
                 onToggleInspector={handleToggleInspector}
                 previewUrl={previewUrl}
                 onSave={flush}
+                onShowKeyboardShortcuts={handleShowShortcuts}
             />
         ),
         [
             flush,
             handleRedo,
+            handleShowShortcuts,
             handleSlugChange,
             handleStatusChange,
             handleTitleChange,
@@ -334,10 +364,15 @@ export function EditorApp(props: EditorAppProps): JSX.Element {
         return (
             <div className="ap-visual-editor__shell" data-state="error">
                 {topBar}
-                <p className="ap-visual-editor__status ap-visual-editor__status--error">
-                    {loadError?.message ??
-                        __('Unable to load content.', TEXT_DOMAIN)}
-                </p>
+                <div
+                    className="ap-visual-editor__status ap-visual-editor__status--error"
+                    data-testid="ap-visual-editor-load-error"
+                >
+                    <Alert color="error">
+                        {loadError?.message ??
+                            __('Unable to load content.', TEXT_DOMAIN)}
+                    </Alert>
+                </div>
             </div>
         );
     }
@@ -401,6 +436,10 @@ export function EditorApp(props: EditorAppProps): JSX.Element {
                         </aside>
                     ) : null}
                 </div>
+                <KeyboardShortcutsModal
+                    open={shortcutsOpen}
+                    onClose={handleCloseShortcuts}
+                />
             </div>
         </SlotFillProvider>
     );
