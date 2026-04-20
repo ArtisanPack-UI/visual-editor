@@ -25,6 +25,8 @@ describe('safeUrl', () => {
         expect(safeUrl('http://example.test')).toBe('http://example.test');
         expect(safeUrl('mailto:me@example.test')).toBe('mailto:me@example.test');
         expect(safeUrl('tel:+15555551212')).toBe('tel:+15555551212');
+        expect(safeUrl('ftp://example.test/file.zip')).toBe('ftp://example.test/file.zip');
+        expect(safeUrl('sms:+15555551212')).toBe('sms:+15555551212');
     });
 
     it('drops javascript, data, and vbscript schemes', () => {

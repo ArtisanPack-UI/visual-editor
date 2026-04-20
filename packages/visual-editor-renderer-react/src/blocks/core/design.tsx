@@ -6,7 +6,7 @@
  * server-side output.
  */
 
-import { useMemo } from 'react';
+import { useId } from 'react';
 import {
     attrArray,
     attrBoolean,
@@ -217,7 +217,7 @@ export function DetailsBlock({ attributes, children }: BlockRendererProps): JSX.
     );
 }
 
-export function SearchBlock({ name, attributes }: BlockRendererProps): JSX.Element {
+export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
     const label = attrString(attributes.label, 'Search');
     const showLabel = attributes.showLabel === undefined ? true : attrBoolean(attributes.showLabel);
     const placeholder = attrString(attributes.placeholder);
@@ -233,10 +233,7 @@ export function SearchBlock({ name, attributes }: BlockRendererProps): JSX.Eleme
         className,
     ]);
 
-    const inputId = useMemo(
-        () => `wp-block-search-input-${stableHash(`${name}|${JSON.stringify(attributes)}`)}`,
-        [name, attributes]
-    );
+    const inputId = `wp-block-search-input-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
 
     return (
         <form role="search" method="get" action="/" className={classes}>
@@ -261,21 +258,3 @@ export function SearchBlock({ name, attributes }: BlockRendererProps): JSX.Eleme
     );
 }
 
-function stableHash(value: string): string {
-    let h1 = 0xdeadbeef ^ value.length;
-    let h2 = 0x41c6ce57 ^ value.length;
-
-    for (let i = 0; i < value.length; i++) {
-        const code = value.charCodeAt(i);
-
-        h1 = Math.imul(h1 ^ code, 2654435761);
-        h2 = Math.imul(h2 ^ code, 1597334677);
-    }
-
-    h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-    h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-
-    const combined = (BigInt(h2 >>> 0) << 32n) | BigInt(h1 >>> 0);
-
-    return combined.toString(16).padStart(16, '0').slice(0, 8);
-}

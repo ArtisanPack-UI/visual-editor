@@ -28,7 +28,9 @@ export function attrBoolean(value: unknown, fallback = false): boolean {
     }
 
     if (typeof value === 'string') {
-        return value.trim() !== '' && value !== 'false' && value !== '0';
+        const normalized = value.trim().toLowerCase();
+
+        return normalized !== '' && normalized !== 'false' && normalized !== '0';
     }
 
     if (typeof value === 'number') {

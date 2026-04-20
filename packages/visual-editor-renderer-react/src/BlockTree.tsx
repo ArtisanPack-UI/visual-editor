@@ -59,7 +59,7 @@ function renderBlock(
             ? (block.attributes as Record<string, unknown>)
             : {};
 
-    const innerBlocks = Array.isArray(block.innerBlocks) ? block.innerBlocks : [];
+    const innerBlocks = Array.isArray(block.innerBlocks) ? block.innerBlocks.filter(isBlock) : [];
     const key = typeof block.clientId === 'string' && block.clientId !== '' ? block.clientId : `${name}-${index}`;
 
     const renderedChildren =

@@ -59,6 +59,25 @@ describe('BlockTree normalization', () => {
 
         expect(renderTree(tree)).toBe('');
     });
+
+    it('filters non-block entries out of innerBlocks before recursion', () => {
+        const tree = [
+            makeBlock(
+                'core/group',
+                {},
+                [
+                    makeBlock('core/paragraph', { content: 'Real' }, [], 'p-1'),
+                    'not-a-block' as unknown as never,
+                    null as unknown as never,
+                    { clientId: 'x', name: '', attributes: {}, innerBlocks: [] },
+                ]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('<p class="wp-block-paragraph">Real</p>');
+    });
 });
 
 describe('Core text blocks', () => {
@@ -505,14 +524,28 @@ describe('Core design blocks', () => {
         expect(html).toContain('Hidden');
     });
 
-    it('generates stable unique ids for multiple search blocks on the same page', () => {
+    it('generates unique ids for multiple search blocks on the same page', () => {
         const tree = [
             makeBlock('core/search', { label: 'First', buttonText: 'Go' }, [], 's-1'),
             makeBlock('core/search', { label: 'Second', buttonText: 'Find' }, [], 's-2'),
         ];
 
         const html = renderTree(tree);
-        const ids = Array.from(html.matchAll(/id="(wp-block-search-input-[a-f0-9]+)"/g)).map((m) => m[1]);
+        const ids = Array.from(html.matchAll(/id="(wp-block-search-input-[\w-]+)"/g)).map((m) => m[1]);
+
+        expect(ids).toHaveLength(2);
+        expect(ids[0]).not.toBe(ids[1]);
+    });
+
+    it('gives two search blocks with identical attributes different ids', () => {
+        const identicalAttrs = { label: 'Same', buttonText: 'Go' };
+        const tree = [
+            makeBlock('core/search', identicalAttrs, [], 'a'),
+            makeBlock('core/search', identicalAttrs, [], 'b'),
+        ];
+
+        const html = renderTree(tree);
+        const ids = Array.from(html.matchAll(/id="(wp-block-search-input-[\w-]+)"/g)).map((m) => m[1]);
 
         expect(ids).toHaveLength(2);
         expect(ids[0]).not.toBe(ids[1]);
