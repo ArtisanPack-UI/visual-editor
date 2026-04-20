@@ -2,30 +2,53 @@
  * Editor top bar styles.
  *
  * Every color, spacing, and border value is expressed as a CSS custom
- * property under the `--ap-visual-editor-top-bar-*` namespace so M8 (#318)
- * can swap palettes at the theme level without touching this file.
+ * property under the `--ap-visual-editor-top-bar-*` namespace. Defaults
+ * read DaisyUI tokens (`--color-*`, `--rounded-btn`) first and fall back
+ * to hex values so the top bar still renders correctly outside a DaisyUI
+ * host. Light/dark switching is driven by DaisyUI's `data-theme`; there
+ * is no OS-level `prefers-color-scheme` override here because that would
+ * fight the host's theme choice (see docs/theming.md).
  */
 
 .ap-visual-editor-top-bar {
-    --ap-visual-editor-top-bar-background: #ffffff;
-    --ap-visual-editor-top-bar-foreground: #1f2937;
-    --ap-visual-editor-top-bar-muted: #6b7280;
-    --ap-visual-editor-top-bar-border: #e5e7eb;
-    --ap-visual-editor-top-bar-accent: #2563eb;
-    --ap-visual-editor-top-bar-accent-contrast: #ffffff;
-    --ap-visual-editor-top-bar-error: #dc2626;
-    --ap-visual-editor-top-bar-input-background: #f9fafb;
-    --ap-visual-editor-top-bar-input-border: #d1d5db;
-    --ap-visual-editor-top-bar-input-foreground: #111827;
-    --ap-visual-editor-top-bar-hover: rgba(37, 99, 235, 0.08);
-    --ap-visual-editor-top-bar-disabled: #9ca3af;
-    --ap-visual-editor-top-bar-radius: 6px;
+    --ap-visual-editor-top-bar-background: var(--color-base-100, #ffffff);
+    --ap-visual-editor-top-bar-foreground: var(--color-base-content, #1f2937);
+    --ap-visual-editor-top-bar-muted: color-mix(
+        in oklch,
+        var(--color-base-content, #6b7280) 65%,
+        transparent
+    );
+    --ap-visual-editor-top-bar-border: var(--color-base-300, #e5e7eb);
+    --ap-visual-editor-top-bar-accent: var(--color-primary, #2563eb);
+    --ap-visual-editor-top-bar-accent-contrast: var(
+        --color-primary-content,
+        #ffffff
+    );
+    --ap-visual-editor-top-bar-error: var(--color-error, #dc2626);
+    --ap-visual-editor-top-bar-input-background: var(--color-base-200, #f9fafb);
+    --ap-visual-editor-top-bar-input-border: var(--color-base-300, #d1d5db);
+    --ap-visual-editor-top-bar-input-foreground: var(
+        --color-base-content,
+        #111827
+    );
+    --ap-visual-editor-top-bar-hover: color-mix(
+        in oklch,
+        var(--color-primary, #2563eb) 10%,
+        transparent
+    );
+    --ap-visual-editor-top-bar-disabled: color-mix(
+        in oklch,
+        var(--color-base-content, #9ca3af) 40%,
+        transparent
+    );
+    --ap-visual-editor-top-bar-radius: var(--rounded-btn, 6px);
     --ap-visual-editor-top-bar-gap: 8px;
     --ap-visual-editor-top-bar-padding-x: 12px;
     --ap-visual-editor-top-bar-padding-y: 8px;
     --ap-visual-editor-top-bar-height: 56px;
-    --ap-visual-editor-top-bar-menu-background: #ffffff;
-    --ap-visual-editor-top-bar-menu-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+    --ap-visual-editor-top-bar-menu-background: var(--color-base-100, #ffffff);
+    --ap-visual-editor-top-bar-menu-shadow: 0 10px 30px
+        color-mix(in oklch, var(--color-neutral, #0f172a) 25%, transparent);
 
     display: flex;
     align-items: center;
@@ -223,19 +246,4 @@
 .ap-visual-editor-top-bar__menu-item:disabled {
     color: var(--ap-visual-editor-top-bar-disabled);
     cursor: not-allowed;
-}
-
-@media (prefers-color-scheme: dark) {
-    .ap-visual-editor-top-bar {
-        --ap-visual-editor-top-bar-background: #0f172a;
-        --ap-visual-editor-top-bar-foreground: #e5e7eb;
-        --ap-visual-editor-top-bar-muted: #94a3b8;
-        --ap-visual-editor-top-bar-border: #1f2937;
-        --ap-visual-editor-top-bar-input-background: #111827;
-        --ap-visual-editor-top-bar-input-border: #334155;
-        --ap-visual-editor-top-bar-input-foreground: #f9fafb;
-        --ap-visual-editor-top-bar-hover: rgba(59, 130, 246, 0.2);
-        --ap-visual-editor-top-bar-menu-background: #111827;
-        --ap-visual-editor-top-bar-menu-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-    }
 }
