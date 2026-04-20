@@ -1,0 +1,87 @@
+/**
+ * Visual editor shell layout.
+ *
+ * Provides the three-region layout (top bar + optional inserter/inspector
+ * sidebars + canvas) used by M7 (#317). Every visual token is driven by
+ * CSS custom properties under the `--ap-visual-editor-*` namespace so M8
+ * (#318) can theme the shell without touching this file.
+ */
+
+.ap-visual-editor__shell {
+    --ap-visual-editor-shell-background: #f9fafb;
+    --ap-visual-editor-shell-foreground: #1f2937;
+    --ap-visual-editor-shell-border: #e5e7eb;
+    --ap-visual-editor-shell-sidebar-background: #ffffff;
+    --ap-visual-editor-shell-sidebar-width: 280px;
+    --ap-visual-editor-shell-gap: 0;
+
+    display: flex;
+    flex-direction: column;
+    background: var(--ap-visual-editor-shell-background);
+    color: var(--ap-visual-editor-shell-foreground);
+    min-height: 100%;
+}
+
+.ap-visual-editor__body {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.ap-visual-editor__canvas {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ap-visual-editor__sidebar {
+    flex: 0 0 var(--ap-visual-editor-shell-sidebar-width);
+    padding: 16px;
+    background: var(--ap-visual-editor-shell-sidebar-background);
+    border-right: 1px solid var(--ap-visual-editor-shell-border);
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.ap-visual-editor__sidebar--inspector {
+    border-right: 0;
+    border-left: 1px solid var(--ap-visual-editor-shell-border);
+}
+
+.ap-visual-editor__sidebar-title {
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ap-visual-editor__sidebar-note {
+    margin: 0;
+    font-size: 13px;
+    color: #6b7280;
+    line-height: 1.5;
+}
+
+.ap-visual-editor__status {
+    margin: 24px;
+    font-size: 14px;
+    color: #6b7280;
+}
+
+.ap-visual-editor__status--error {
+    color: #dc2626;
+    font-weight: 600;
+}
+
+@media (prefers-color-scheme: dark) {
+    .ap-visual-editor__shell {
+        --ap-visual-editor-shell-background: #0b1220;
+        --ap-visual-editor-shell-foreground: #e5e7eb;
+        --ap-visual-editor-shell-border: #1f2937;
+        --ap-visual-editor-shell-sidebar-background: #0f172a;
+    }
+
+    .ap-visual-editor__sidebar-note {
+        color: #94a3b8;
+    }
+}

@@ -147,6 +147,70 @@ describe('usePersistence', () => {
         expect(result.current.blocks).toHaveLength(1);
     });
 
+    it('flushes pending edits immediately when flush() is called', async () => {
+        const requests: RecordedCall[] = [];
+        mockFetch((call) => {
+            requests.push(call);
+            if (call.method === 'GET') {
+                return jsonResponse({ id: 42, resource: 'posts', blocks: [], updated_at: null });
+            }
+            return jsonResponse({
+                id: 42,
+                resource: 'posts',
+                blocks: [],
+                updated_at: '2026-04-19T10:20:00Z',
+            });
+        });
+
+        const { result } = renderHook(() =>
+            usePersistence({ ...CONFIG, debounceMs: 5000 })
+        );
+
+        await waitFor(() => {
+            expect(result.current.loadStatus).toBe('ready');
+        });
+
+        act(() => {
+            result.current.onBlocksChange([
+                { clientId: 'flush', name: 'core/paragraph', attributes: {}, innerBlocks: [] } as never,
+            ]);
+        });
+
+        expect(requests.filter((r) => r.method === 'PUT')).toHaveLength(0);
+
+        act(() => {
+            result.current.flush();
+        });
+
+        await waitFor(() => {
+            expect(result.current.saveStatus).toBe('saved');
+        });
+
+        expect(requests.filter((r) => r.method === 'PUT')).toHaveLength(1);
+    });
+
+    it('flush() is a no-op when there is no pending change', async () => {
+        const requests: RecordedCall[] = [];
+        mockFetch((call) => {
+            requests.push(call);
+            return jsonResponse({ id: 42, resource: 'posts', blocks: [], updated_at: null });
+        });
+
+        const { result } = renderHook(() => usePersistence(CONFIG));
+
+        await waitFor(() => {
+            expect(result.current.loadStatus).toBe('ready');
+        });
+
+        act(() => {
+            result.current.flush();
+        });
+
+        await new Promise((resolve) => setTimeout(resolve, CONFIG.debounceMs + 20));
+
+        expect(requests.filter((r) => r.method === 'PUT')).toHaveLength(0);
+    });
+
     it('does not fire PUTs for edits before the initial load finishes', async () => {
         let resolveLoad: (value: Response) => void = () => {};
         const loadPromise = new Promise<Response>((resolve) => {

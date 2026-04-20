@@ -28,6 +28,12 @@ export interface PersistenceState {
     saveError: ApiError | null;
     lastSavedAt: string | null;
     onBlocksChange: (next: BlockInstance[]) => void;
+    /**
+     * Cancels the pending debounce timer and fires the save immediately.
+     * Wired to the ⌘S shortcut in the top bar so explicit saves bypass the
+     * 800ms coalescing window.
+     */
+    flush: () => void;
 }
 
 export interface UsePersistenceOptions extends ApiClientConfig {
@@ -189,6 +195,22 @@ export function usePersistence(
         [debounceMs, runFlush]
     );
 
+    const flush = useCallback((): void => {
+        if (timerRef.current !== null) {
+            clearTimeout(timerRef.current);
+            timerRef.current = null;
+        }
+
+        if (
+            pendingRef.current === null
+            || loadStatusRef.current !== 'ready'
+        ) {
+            return;
+        }
+
+        void runFlush();
+    }, [runFlush]);
+
     return {
         blocks,
         loadStatus,
@@ -197,6 +219,7 @@ export function usePersistence(
         saveError,
         lastSavedAt,
         onBlocksChange,
+        flush,
     };
 }
 

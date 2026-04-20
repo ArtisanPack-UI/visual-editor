@@ -1,0 +1,252 @@
+/**
+ * Editor top bar styles.
+ *
+ * Every color, spacing, and border value is expressed as a CSS custom
+ * property under the `--ap-visual-editor-top-bar-*` namespace so M8 (#318)
+ * can swap palettes at the theme level without touching this file.
+ */
+
+.ap-visual-editor-top-bar {
+    --ap-visual-editor-top-bar-background: #ffffff;
+    --ap-visual-editor-top-bar-foreground: #1f2937;
+    --ap-visual-editor-top-bar-muted: #6b7280;
+    --ap-visual-editor-top-bar-border: #e5e7eb;
+    --ap-visual-editor-top-bar-accent: #2563eb;
+    --ap-visual-editor-top-bar-accent-contrast: #ffffff;
+    --ap-visual-editor-top-bar-error: #dc2626;
+    --ap-visual-editor-top-bar-input-background: #f9fafb;
+    --ap-visual-editor-top-bar-input-border: #d1d5db;
+    --ap-visual-editor-top-bar-input-foreground: #111827;
+    --ap-visual-editor-top-bar-hover: rgba(37, 99, 235, 0.08);
+    --ap-visual-editor-top-bar-disabled: #9ca3af;
+    --ap-visual-editor-top-bar-radius: 6px;
+    --ap-visual-editor-top-bar-gap: 8px;
+    --ap-visual-editor-top-bar-padding-x: 12px;
+    --ap-visual-editor-top-bar-padding-y: 8px;
+    --ap-visual-editor-top-bar-height: 56px;
+    --ap-visual-editor-top-bar-menu-background: #ffffff;
+    --ap-visual-editor-top-bar-menu-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ap-visual-editor-top-bar-gap);
+    min-height: var(--ap-visual-editor-top-bar-height);
+    padding: var(--ap-visual-editor-top-bar-padding-y)
+        var(--ap-visual-editor-top-bar-padding-x);
+    background: var(--ap-visual-editor-top-bar-background);
+    color: var(--ap-visual-editor-top-bar-foreground);
+    border-bottom: 1px solid var(--ap-visual-editor-top-bar-border);
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.ap-visual-editor-top-bar *,
+.ap-visual-editor-top-bar *::before,
+.ap-visual-editor-top-bar *::after {
+    box-sizing: border-box;
+}
+
+.ap-visual-editor-top-bar__group {
+    display: flex;
+    align-items: center;
+    gap: var(--ap-visual-editor-top-bar-gap);
+}
+
+.ap-visual-editor-top-bar__group--fields {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.ap-visual-editor-top-bar__field,
+.ap-visual-editor-top-bar__status {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.ap-visual-editor-top-bar__field-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--ap-visual-editor-top-bar-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ap-visual-editor-top-bar__input,
+.ap-visual-editor-top-bar__select {
+    width: 100%;
+    padding: 6px 10px;
+    background: var(--ap-visual-editor-top-bar-input-background);
+    color: var(--ap-visual-editor-top-bar-input-foreground);
+    border: 1px solid var(--ap-visual-editor-top-bar-input-border);
+    border-radius: var(--ap-visual-editor-top-bar-radius);
+    font-size: 14px;
+    line-height: 1.25;
+    font-family: inherit;
+}
+
+.ap-visual-editor-top-bar__input:focus,
+.ap-visual-editor-top-bar__select:focus,
+.ap-visual-editor-top-bar__icon-button:focus-visible,
+.ap-visual-editor-top-bar__preview:focus-visible,
+.ap-visual-editor-top-bar__menu-item:focus-visible {
+    outline: 2px solid var(--ap-visual-editor-top-bar-accent);
+    outline-offset: 2px;
+}
+
+.ap-visual-editor-top-bar__input--title {
+    min-width: 180px;
+}
+
+.ap-visual-editor-top-bar__input--slug {
+    min-width: 140px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.ap-visual-editor-top-bar__icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    color: var(--ap-visual-editor-top-bar-foreground);
+    border: 1px solid transparent;
+    border-radius: var(--ap-visual-editor-top-bar-radius);
+    cursor: pointer;
+}
+
+.ap-visual-editor-top-bar__icon-button:hover:not(:disabled) {
+    background: var(--ap-visual-editor-top-bar-hover);
+}
+
+.ap-visual-editor-top-bar__icon-button[data-open='true'] {
+    background: var(--ap-visual-editor-top-bar-accent);
+    color: var(--ap-visual-editor-top-bar-accent-contrast);
+}
+
+.ap-visual-editor-top-bar__icon-button:disabled {
+    color: var(--ap-visual-editor-top-bar-disabled);
+    cursor: not-allowed;
+}
+
+.ap-visual-editor-top-bar__save-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    font-size: 13px;
+    color: var(--ap-visual-editor-top-bar-muted);
+    white-space: nowrap;
+}
+
+.ap-visual-editor-top-bar__save-status[data-save-status='error'] {
+    color: var(--ap-visual-editor-top-bar-error);
+    font-weight: 600;
+}
+
+.ap-visual-editor-top-bar__save-status[data-save-status='saving']::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: var(--ap-visual-editor-top-bar-accent);
+    animation: ap-visual-editor-top-bar-pulse 1s ease-in-out infinite;
+}
+
+@keyframes ap-visual-editor-top-bar-pulse {
+    0%, 100% {
+        opacity: 0.4;
+        transform: scale(0.85);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.ap-visual-editor-top-bar__preview {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border: 1px solid var(--ap-visual-editor-top-bar-border);
+    border-radius: var(--ap-visual-editor-top-bar-radius);
+    font-size: 13px;
+    color: var(--ap-visual-editor-top-bar-foreground);
+    text-decoration: none;
+}
+
+.ap-visual-editor-top-bar__preview:hover {
+    background: var(--ap-visual-editor-top-bar-hover);
+}
+
+.ap-visual-editor-top-bar__menu {
+    position: relative;
+}
+
+.ap-visual-editor-top-bar__menu-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 220px;
+    padding: 6px 0;
+    background: var(--ap-visual-editor-top-bar-menu-background);
+    border: 1px solid var(--ap-visual-editor-top-bar-border);
+    border-radius: var(--ap-visual-editor-top-bar-radius);
+    box-shadow: var(--ap-visual-editor-top-bar-menu-shadow);
+    z-index: 20;
+}
+
+.ap-visual-editor-top-bar__menu-item {
+    display: block;
+    width: 100%;
+    padding: 8px 14px;
+    background: transparent;
+    color: var(--ap-visual-editor-top-bar-foreground);
+    border: 0;
+    text-align: left;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.ap-visual-editor-top-bar__menu-item:hover:not(:disabled),
+.ap-visual-editor-top-bar__menu-item:focus-visible {
+    background: var(--ap-visual-editor-top-bar-hover);
+}
+
+.ap-visual-editor-top-bar__menu-item:disabled {
+    color: var(--ap-visual-editor-top-bar-disabled);
+    cursor: not-allowed;
+}
+
+.ap-visual-editor-top-bar__menu-close {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    pointer-events: none;
+}
+
+@media (prefers-color-scheme: dark) {
+    .ap-visual-editor-top-bar {
+        --ap-visual-editor-top-bar-background: #0f172a;
+        --ap-visual-editor-top-bar-foreground: #e5e7eb;
+        --ap-visual-editor-top-bar-muted: #94a3b8;
+        --ap-visual-editor-top-bar-border: #1f2937;
+        --ap-visual-editor-top-bar-input-background: #111827;
+        --ap-visual-editor-top-bar-input-border: #334155;
+        --ap-visual-editor-top-bar-input-foreground: #f9fafb;
+        --ap-visual-editor-top-bar-hover: rgba(59, 130, 246, 0.2);
+        --ap-visual-editor-top-bar-menu-background: #111827;
+        --ap-visual-editor-top-bar-menu-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+}
