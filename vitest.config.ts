@@ -25,6 +25,7 @@ export default defineConfig({
         setupFiles: ['./resources/js/visual-editor/_legacy/editor/test-setup.ts'],
         include: [
             'resources/js/visual-editor/**/*.{test,spec}.{ts,tsx}',
+            'packages/**/tests/**/*.{test,spec}.{ts,tsx}',
         ],
     },
 });

@@ -7,13 +7,14 @@ sub-packages are meant to reach Packagist, because Packagist watches one
 
 ## Sub-packages
 
-| Path                                    | Composer name                                       | Status      |
-|-----------------------------------------|-----------------------------------------------------|-------------|
-| `./`                                    | `artisanpack-ui/visual-editor`                      | published   |
-| `packages/visual-editor-renderer-blade` | `artisanpack-ui/visual-editor-renderer-blade`       | unpublished |
+| Path                                    | Package name                                              | Registry  | Status      |
+|-----------------------------------------|-----------------------------------------------------------|-----------|-------------|
+| `./`                                    | `artisanpack-ui/visual-editor`                            | Packagist | published   |
+| `packages/visual-editor-renderer-blade` | `artisanpack-ui/visual-editor-renderer-blade`             | Packagist | unpublished |
+| `packages/visual-editor-renderer-react` | `@artisanpack-ui/visual-editor-renderer-react`            | npm       | unpublished |
 
-M10 (React renderer) and M11 (Vue renderer) will add two more sub-packages
-under the same `packages/` directory.
+M11 (Vue renderer) will add one more sub-package under the same `packages/`
+directory.
 
 ## Distribution strategy: subtree splits
 

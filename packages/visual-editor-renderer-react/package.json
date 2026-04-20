@@ -1,0 +1,32 @@
+{
+    "name": "@artisanpack-ui/visual-editor-renderer-react",
+    "version": "1.0.0",
+    "description": "React renderer for ArtisanPack UI visual-editor block trees. Designed for Inertia+React apps.",
+    "license": "GPL-3.0-or-later",
+    "author": "Jacob Martella <me@jacobmartella.com>",
+    "type": "module",
+    "main": "./src/index.ts",
+    "types": "./src/index.ts",
+    "exports": {
+        ".": {
+            "types": "./src/index.ts",
+            "import": "./src/index.ts"
+        }
+    },
+    "files": [
+        "src",
+        "README.md"
+    ],
+    "keywords": [
+        "react",
+        "inertia",
+        "visual-editor",
+        "gutenberg",
+        "renderer",
+        "blocks"
+    ],
+    "peerDependencies": {
+        "react": "^18.0.0 || ^19.0.0",
+        "react-dom": "^18.0.0 || ^19.0.0"
+    }
+}
