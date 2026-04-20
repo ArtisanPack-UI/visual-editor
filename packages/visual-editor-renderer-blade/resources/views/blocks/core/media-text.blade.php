@@ -24,7 +24,7 @@
 	if ( 50 !== $mediaWidth ) {
 		$columns = 'left' === $mediaPosition
 			? sprintf( '%d%% auto', $mediaWidth )
-			: sprintf( 'auto %d%%', 100 - $mediaWidth );
+			: sprintf( 'auto %d%%', $mediaWidth );
 
 		$styleAttr = sprintf( ' style="grid-template-columns: %s;"', e( $columns ) );
 	}

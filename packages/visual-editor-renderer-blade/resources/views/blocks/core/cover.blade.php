@@ -1,9 +1,21 @@
 @php
-	$url           = (string) ( $attributes['url'] ?? '' );
-	$dimRatio      = isset( $attributes['dimRatio'] ) ? (int) $attributes['dimRatio'] : 50;
-	$isDark        = ! isset( $attributes['isDark'] ) || ! empty( $attributes['isDark'] );
-	$minHeight     = $attributes['minHeight'] ?? null;
-	$minHeightUnit = (string) ( $attributes['minHeightUnit'] ?? 'px' );
+	$url    = (string) ( $attributes['url'] ?? '' );
+	$isDark = ! isset( $attributes['isDark'] ) || ! empty( $attributes['isDark'] );
+
+	$dimRatio = isset( $attributes['dimRatio'] ) ? (int) $attributes['dimRatio'] : 50;
+	$dimRatio = max( 0, min( 100, $dimRatio ) );
+
+	$allowedUnits  = [ 'px', 'em', 'rem', 'vh', 'vw', '%' ];
+	$minHeight     = null;
+	$minHeightUnit = 'px';
+
+	if ( isset( $attributes['minHeight'] ) && is_numeric( $attributes['minHeight'] ) ) {
+		$minHeight = max( 0.0, (float) $attributes['minHeight'] );
+
+		if ( isset( $attributes['minHeightUnit'] ) && in_array( $attributes['minHeightUnit'], $allowedUnits, true ) ) {
+			$minHeightUnit = (string) $attributes['minHeightUnit'];
+		}
+	}
 
 	$classes = [ 'wp-block-cover' ];
 
@@ -20,7 +32,7 @@
 	$styleAttr = '';
 
 	if ( null !== $minHeight ) {
-		$styleAttr = sprintf( ' style="min-height: %s%s;"', e( (string) (float) $minHeight ), e( $minHeightUnit ) );
+		$styleAttr = sprintf( ' style="min-height: %s%s;"', e( (string) $minHeight ), e( $minHeightUnit ) );
 	}
 @endphp
 <div class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}"{!! $styleAttr !!}>

@@ -1,8 +1,10 @@
 @php
-	$url     = (string) ( $attributes['url'] ?? '' );
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
+
+	$url     = UrlSanitizer::safe( (string) ( $attributes['url'] ?? '' ) );
 	$alt     = (string) ( $attributes['alt'] ?? '' );
 	$caption = (string) ( $attributes['caption'] ?? '' );
-	$href    = (string) ( $attributes['href'] ?? '' );
+	$href    = UrlSanitizer::safe( (string) ( $attributes['href'] ?? '' ) );
 	$width   = isset( $attributes['width'] ) ? (int) $attributes['width'] : null;
 	$height  = isset( $attributes['height'] ) ? (int) $attributes['height'] : null;
 

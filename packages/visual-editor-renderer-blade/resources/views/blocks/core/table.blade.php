@@ -29,15 +29,18 @@
 		'foot' => 'td',
 	];
 
-	$renderCell = static function ( array $cell, string $defaultTag ): string {
+	$allowedAligns = [ 'left', 'center', 'right', 'justify' ];
+
+	$renderCell = static function ( array $cell, string $defaultTag ) use ( $allowedAligns ): string {
 		$cellContent = (string) ( $cell['content'] ?? '' );
-		$cellAlign   = isset( $cell['align'] ) ? (string) $cell['align'] : '';
+		$rawAlign    = isset( $cell['align'] ) ? strtolower( (string) $cell['align'] ) : '';
+		$cellAlign   = in_array( $rawAlign, $allowedAligns, true ) ? $rawAlign : '';
 		$tag         = isset( $cell['tag'] ) && in_array( $cell['tag'], [ 'td', 'th' ], true )
 			? $cell['tag']
 			: $defaultTag;
 
 		$styleAttr = '' !== $cellAlign
-			? sprintf( ' style="text-align: %s;"', e( $cellAlign ) )
+			? sprintf( ' style="text-align: %s;"', $cellAlign )
 			: '';
 
 		return sprintf( '<%1$s%2$s>%3$s</%1$s>', $tag, $styleAttr, $cellContent );

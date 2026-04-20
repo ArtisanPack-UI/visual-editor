@@ -100,11 +100,16 @@ class BlockRenderer
 			return $this->renderStatic( $name, $attributes, $innerBlocksHtml );
 		}
 
-		$attributes = $block->validateAttrs( $attributes );
+		try {
+			$validated = $block->validateAttrs( $attributes );
+			$result    = $block->render( $validated );
 
-		$result = $block->render( $attributes );
+			return $this->coerceToString( $result );
+		} catch ( Throwable $e ) {
+			report( $e );
 
-		return $this->coerceToString( $result );
+			return $this->renderStatic( $name, $attributes, $innerBlocksHtml );
+		}
 	}
 
 	/**

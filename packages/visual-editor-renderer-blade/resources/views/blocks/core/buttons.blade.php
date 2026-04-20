@@ -1,9 +1,11 @@
 @php
-	$classes = [ 'wp-block-buttons', 'is-layout-flex', 'is-content-justification-left' ];
+	$classes = [ 'wp-block-buttons', 'is-layout-flex' ];
 
-	if ( ! empty( $attributes['layout']['justifyContent'] ) ) {
-		$classes[] = 'is-content-justification-' . $attributes['layout']['justifyContent'];
-	}
+	$justify = $attributes['layout']['justifyContent'] ?? '';
+
+	$classes[] = '' !== $justify
+		? 'is-content-justification-' . $justify
+		: 'is-content-justification-left';
 
 	if ( ! empty( $attributes['className'] ) ) {
 		$classes[] = $attributes['className'];

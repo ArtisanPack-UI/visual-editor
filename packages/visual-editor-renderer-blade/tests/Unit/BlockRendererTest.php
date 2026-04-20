@@ -326,3 +326,148 @@ it( 'coerces a view returned from a dynamic block into a string', function () {
 
 	expect( $this->normalizeHtml( makeRenderer()->render( $tree ) ) )->toBe( '<div>from view</div>' );
 } );
+
+it( 'recovers from exceptions thrown by a dynamic block', function () {
+	$registry = app( DynamicBlockRegistry::class );
+
+	$registry->register( new class extends DynamicBlock {
+		public function name(): string
+		{
+			return 'acme/explodes';
+		}
+
+		public function render( array $attrs )
+		{
+			throw new RuntimeException( 'boom' );
+		}
+	} );
+
+	$tree = [ makeBlock( 'acme/explodes' ) ];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'data-ve-unknown-block="acme/explodes"' );
+} );
+
+it( 'drops unsafe URL schemes from button hrefs', function () {
+	$tree = [ makeBlock( 'core/button', [ 'text' => 'Click', 'url' => 'javascript:alert(1)' ] ) ];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->not->toContain( 'javascript:' )
+		->not->toContain( '<a ' )
+		->toContain( '<span class="wp-block-button__link' );
+} );
+
+it( 'enforces noopener noreferrer on target=_blank buttons', function () {
+	$tree = [
+		makeBlock( 'core/button', [
+			'text'       => 'External',
+			'url'        => 'https://example.com',
+			'linkTarget' => '_blank',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'rel="noopener noreferrer"' )
+		->toContain( 'target="_blank"' );
+} );
+
+it( 'drops unsafe URL schemes from image hrefs and src', function () {
+	$tree = [
+		makeBlock( 'core/image', [
+			'url'  => 'https://example.test/safe.jpg',
+			'href' => 'javascript:void(0)',
+			'alt'  => 'safe',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->not->toContain( 'javascript:' )
+		->toContain( 'src="https://example.test/safe.jpg"' )
+		->not->toContain( '<a ' );
+} );
+
+it( 'places media-text width on the right column when mediaPosition is right', function () {
+	$tree = [
+		makeBlock( 'core/media-text', [
+			'mediaUrl'      => 'https://example.test/photo.jpg',
+			'mediaPosition' => 'right',
+			'mediaWidth'    => 30,
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'grid-template-columns: auto 30%;' );
+} );
+
+it( 'clamps cover dimRatio to 0-100 and whitelists minHeightUnit', function () {
+	$tree = [
+		makeBlock( 'core/cover', [
+			'dimRatio'      => 250,
+			'minHeight'     => 40,
+			'minHeightUnit' => 'javascript:alert(1)',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'opacity: 1;' )
+		->toContain( 'min-height: 40px;' )
+		->not->toContain( 'javascript:' );
+} );
+
+it( 'validates table cell alignment against an allowlist', function () {
+	$tree = [
+		makeBlock( 'core/table', [
+			'body' => [ [ 'cells' => [
+				[ 'content' => 'A', 'tag' => 'td', 'align' => 'center' ],
+				[ 'content' => 'B', 'tag' => 'td', 'align' => 'expression(alert(1))' ],
+			] ] ],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'style="text-align: center;"' )
+		->not->toContain( 'expression' );
+} );
+
+it( 'generates stable unique ids for multiple search blocks on the same page', function () {
+	$tree = [
+		makeBlock( 'core/search', [ 'label' => 'First', 'buttonText' => 'Go' ], [], 's-1' ),
+		makeBlock( 'core/search', [ 'label' => 'Second', 'buttonText' => 'Find' ], [], 's-2' ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match_all( '/id="(wp-block-search-input-[a-f0-9]+)"/', $html, $m );
+
+	expect( $m[1] )->toHaveCount( 2 );
+	expect( $m[1][0] )->not->toBe( $m[1][1] );
+} );
+
+it( 'uses an empty button label when buttonUseIcon is true', function () {
+	$tree = [ makeBlock( 'core/search', [ 'buttonText' => 'Go', 'buttonUseIcon' => true ] ) ];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<button type="submit" class="wp-block-search__button"></button>' );
+} );
+
+it( 'preserves fractional column widths', function () {
+	$tree = [
+		makeBlock( 'core/columns', [], [
+			makeBlock( 'core/column', [ 'width' => 33.33 ], [
+				makeBlock( 'core/paragraph', [ 'content' => 'A' ], [], 'p-a' ),
+			], 'col-a' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'flex-basis: 33.33%;' );
+} );

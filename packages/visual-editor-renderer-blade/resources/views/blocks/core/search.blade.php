@@ -3,9 +3,11 @@
 	$showLabel   = ! isset( $attributes['showLabel'] ) || ! empty( $attributes['showLabel'] );
 	$placeholder = (string) ( $attributes['placeholder'] ?? '' );
 	$buttonText  = (string) ( $attributes['buttonText'] ?? 'Search' );
-	$buttonUse   = (string) ( $attributes['buttonUseIcon'] ?? '' );
+	$useIcon     = ! empty( $attributes['buttonUseIcon'] );
 	$queryName   = (string) ( $attributes['query']['name'] ?? 's' );
-	$buttonLabel = '' !== $buttonUse ? $buttonUse : $buttonText;
+	$buttonLabel = $useIcon ? '' : $buttonText;
+
+	$inputId = sprintf( 'wp-block-search-input-%s', substr( md5( $blockName . serialize( $attributes ) ), 0, 8 ) );
 
 	$classes = [ 'wp-block-search' ];
 
@@ -23,10 +25,10 @@
 @endphp
 <form role="search" method="get" action="/" class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
 	@if ( $showLabel )
-		<label class="wp-block-search__label" for="wp-block-search-input">{{ $label }}</label>
+		<label class="wp-block-search__label" for="{{ $inputId }}">{{ $label }}</label>
 	@endif
 	<div class="wp-block-search__inside-wrapper">
-		<input id="wp-block-search-input" type="search" class="wp-block-search__input" name="{{ $queryName }}"{!! $inputPlaceholder !!}/>
+		<input id="{{ $inputId }}" type="search" class="wp-block-search__input" name="{{ $queryName }}"{!! $inputPlaceholder !!}/>
 		<button type="submit" class="wp-block-search__button">{{ $buttonLabel }}</button>
 	</div>
 </form>
