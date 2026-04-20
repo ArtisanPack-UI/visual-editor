@@ -21,6 +21,21 @@ export type {
     RegisterMediaBridgeOptions,
 } from '../media-bridge';
 
+export {
+    VE_EDITOR_AUTOSAVE,
+    VE_EDITOR_CHANGE,
+    VE_EDITOR_SAVE,
+} from './editor-events';
+export type {
+    EditorEventTarget,
+    VeEditorAutosaveDetail,
+    VeEditorAutosaveEvent,
+    VeEditorChangeDetail,
+    VeEditorChangeEvent,
+    VeEditorSaveDetail,
+    VeEditorSaveEvent,
+} from './editor-events';
+
 const MOUNT_SELECTOR = '[data-ap-visual-editor]';
 const ROOT_SYMBOL: unique symbol = Symbol('ap-visual-editor-root');
 
