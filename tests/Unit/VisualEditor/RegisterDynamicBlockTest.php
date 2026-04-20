@@ -87,7 +87,7 @@ it( 'rejects a class that does not extend DynamicBlock', function () {
 	VisualEditor::registerDynamicBlock( \stdClass::class );
 } )->throws( InvalidArgumentException::class, 'must extend' );
 
-it( 'walks attrs to build default searchable text', function () {
+it( 'returns an empty string from the default searchableText()', function () {
 	$block = new class extends DynamicBlock {
 		public function name(): string
 		{
@@ -105,5 +105,5 @@ it( 'walks attrs to build default searchable text', function () {
 		'nested' => [ 'line' => 'World', 'ignored' => 42 ],
 	] );
 
-	expect( $text )->toBe( 'Hello World' );
+	expect( $text )->toBe( '' );
 } );

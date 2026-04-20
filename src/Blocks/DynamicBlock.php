@@ -55,9 +55,11 @@ abstract class DynamicBlock
 	/**
 	 * Extract searchable text from the block's attributes.
 	 *
-	 * The default implementation walks all string attribute values and joins
-	 * them with a single space. Override per-block when the block persists
-	 * IDs, slugs, or other non-display data that should not leak into search.
+	 * The default is an empty string: dynamic blocks often persist IDs,
+	 * slugs, or foreign-key references that would pollute search if they
+	 * leaked into the index. Override per-block to emit just the text the
+	 * rendered block will show — for example, a `LatestPostsBlock` might
+	 * resolve its referenced posts at index time and return their titles.
 	 *
 	 * @since 1.0.0
 	 *
@@ -65,19 +67,7 @@ abstract class DynamicBlock
 	 */
 	public function searchableText( array $attrs ): string
 	{
-		$collected = [];
-
-		array_walk_recursive( $attrs, static function ( $value ) use ( &$collected ): void {
-			if ( is_string( $value ) ) {
-				$trimmed = trim( $value );
-
-				if ( '' !== $trimmed ) {
-					$collected[] = $trimmed;
-				}
-			}
-		} );
-
-		return implode( ' ', $collected );
+		return '';
 	}
 
 	/**

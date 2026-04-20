@@ -5,9 +5,10 @@
  *
  * Opt-in trait that marks an Eloquent model as editable by the visual editor.
  * Declares the column that stores the block tree JSON and an optional scope
- * that the editor's REST controller applies when resolving models. Includes a
- * Scout hook stub (real implementation in M12) so consuming apps can start
- * using the trait today without needing the full search pipeline.
+ * that the editor's REST controller applies when resolving models. Also
+ * exposes a Scout helper — {@see self::toBlockContentSearchableArray()} — that
+ * renders the block tree to plain text so a host model's `toSearchableArray()`
+ * can index editor content alongside its own fields.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -21,6 +22,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Concerns;
 
+use ArtisanPackUI\VisualEditor\Search\BlockTreeSearchExtractor;
 use Illuminate\Contracts\Support\Arrayable;
 use Illuminate\Database\Eloquent\Builder;
 use InvalidArgumentException;
@@ -162,18 +164,42 @@ trait HasBlockContent
 	/**
 	 * Returns the Scout-indexable payload for block content.
 	 *
-	 * Stub for M12. Consuming apps that use Laravel Scout can override
-	 * `toSearchableArray()` on their model and call this helper to include a
-	 * plain-text rendering of the block tree once the Scout indexer lands.
+	 * Walks the saved block tree, joins the extracted text from every static
+	 * and dynamic block into a single string, and returns it keyed by
+	 * `block_content`. Host models merge this into their own
+	 * `toSearchableArray()` so editor-authored copy lands in the index
+	 * alongside their native columns:
+	 *
+	 *     public function toSearchableArray(): array
+	 *     {
+	 *         return array_merge(
+	 *             $this->only( ['title', 'excerpt'] ),
+	 *             $this->toBlockContentSearchableArray()
+	 *         );
+	 *     }
 	 *
 	 * @since 1.0.0
 	 *
-	 * @return array<string, mixed>
+	 * @return array<string, string>
 	 */
 	public function toBlockContentSearchableArray(): array
 	{
 		return [
-			'block_content' => $this->getBlockContent(),
+			'block_content' => $this->blockContentSearchableText(),
 		];
+	}
+
+	/**
+	 * Return the plain-text rendering of this model's block tree.
+	 *
+	 * Use when you need the raw string (e.g. to combine with a custom
+	 * separator or to pipe into a separate search field) without the
+	 * `block_content` array wrapper.
+	 *
+	 * @since 1.0.0
+	 */
+	public function blockContentSearchableText(): string
+	{
+		return app( BlockTreeSearchExtractor::class )->extract( $this->getBlockContent() );
 	}
 }

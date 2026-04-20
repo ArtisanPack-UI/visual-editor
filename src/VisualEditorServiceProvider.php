@@ -7,6 +7,7 @@ use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
+use ArtisanPackUI\VisualEditor\Search\BlockTreeSearchExtractor;
 use ArtisanPackUI\VisualEditor\View\Components\VisualEditorComponent;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
@@ -35,6 +36,12 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( ResourceResolver::class, function () {
 			return new ResourceResolver();
+		} );
+
+		$this->app->singleton( BlockTreeSearchExtractor::class, function ( $app ) {
+			return new BlockTreeSearchExtractor(
+				$app->make( DynamicBlockRegistry::class )
+			);
 		} );
 
 		// Legacy alias for backward compatibility
