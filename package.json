@@ -37,7 +37,13 @@
     },
     "peerDependencies": {
         "daisyui": "^5.0.0",
-        "tailwindcss": "^4.0.0"
+        "tailwindcss": "^4.0.0",
+        "vue": "^3.3.0"
+    },
+    "peerDependenciesMeta": {
+        "vue": {
+            "optional": true
+        }
     },
     "dependencies": {
         "@artisanpack-ui/react": "^1.0.0",

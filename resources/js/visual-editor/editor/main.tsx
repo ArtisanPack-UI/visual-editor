@@ -12,6 +12,7 @@ import { StrictMode, createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
 export { registerMediaBridge } from '../media-bridge';
+export type { MountConfig, MountedEditor };
 export type {
     BridgeMedia,
     BridgeMediaType,
@@ -43,7 +44,7 @@ type MountableElement = HTMLElement & {
     [ROOT_SYMBOL]?: Root;
 };
 
-interface MountConfig {
+export interface MountConfig {
     apiBase: string;
     resource: string;
     id: string;
@@ -51,6 +52,20 @@ interface MountConfig {
     initialSlug?: string;
     initialStatus?: string;
     previewUrl?: string | null;
+}
+
+export interface MountedEditor {
+    /**
+     * Unmounts the React root and releases the mount slot. Safe to call
+     * multiple times — subsequent calls are no-ops.
+     */
+    unmount(): void;
+    /**
+     * Resolves once the dynamic editor bundle has been loaded and the
+     * initial React render has been scheduled. Rejects if the bundle
+     * fails to load.
+     */
+    ready: Promise<void>;
 }
 
 function readMountConfig(element: HTMLElement): MountConfig | null {
@@ -78,6 +93,70 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
     };
 }
 
+/**
+ * Mounts the React editor into an arbitrary host element with an explicit
+ * config object. Intended for host-framework wrappers (Vue, Svelte, etc.)
+ * that can't rely on the `[data-ap-visual-editor]` attribute bootstrap.
+ *
+ * Returns a {@link MountedEditor} with an `unmount()` method the host
+ * should call from its component-unmount hook to tear down the React root.
+ */
+export function mountEditor(
+    element: HTMLElement,
+    config: MountConfig,
+): MountedEditor {
+    const host = element as MountableElement;
+
+    if (host[ROOT_SYMBOL]) {
+        return {
+            ready: Promise.resolve(),
+            unmount: () => unmountEditor(host),
+        };
+    }
+
+    // Reserve the element synchronously so a second concurrent mount call
+    // (e.g. a rapid bootVisualEditor() re-trigger or a dev-server HMR
+    // double-mount) can't slip past the dedupe check while the dynamic
+    // import is still in flight.
+    const root = createRoot(host);
+    host[ROOT_SYMBOL] = root;
+
+    const ready = import('./editor-app').then(
+        ({ EditorApp }) => {
+            // If the host unmounted before the dynamic import resolved,
+            // `ROOT_SYMBOL` will have been cleared — skip the render.
+            if (host[ROOT_SYMBOL] !== root) {
+                return;
+            }
+
+            root.render(
+                createElement(StrictMode, null, createElement(EditorApp, config)),
+            );
+        },
+        (error: unknown) => {
+            console.error('visual-editor: failed to load editor app.', error);
+            unmountEditor(host);
+            throw error;
+        },
+    );
+
+    return {
+        ready,
+        unmount: () => unmountEditor(host),
+    };
+}
+
+function unmountEditor(element: MountableElement): void {
+    const root = element[ROOT_SYMBOL];
+
+    if (root === undefined) {
+        return;
+    }
+
+    delete element[ROOT_SYMBOL];
+    root.unmount();
+}
+
 async function mount(element: MountableElement): Promise<void> {
     const config = readMountConfig(element);
 
@@ -89,26 +168,10 @@ async function mount(element: MountableElement): Promise<void> {
         return;
     }
 
-    if (element[ROOT_SYMBOL]) {
-        return;
-    }
-
-    // Reserve the element synchronously so a second concurrent mount() call
-    // (e.g. a rapid bootVisualEditor() re-trigger) can't slip past the
-    // dedupe check while the dynamic import is still in flight.
-    const root = createRoot(element);
-    element[ROOT_SYMBOL] = root;
-
     try {
-        const { EditorApp } = await import('./editor-app');
-
-        root.render(
-            createElement(StrictMode, null, createElement(EditorApp, config))
-        );
-    } catch (error: unknown) {
-        console.error('visual-editor: failed to load editor app.', error);
-        root.unmount();
-        delete element[ROOT_SYMBOL];
+        await mountEditor(element, config).ready;
+    } catch {
+        // `mountEditor` already logged the failure and cleared the root.
     }
 }
 
