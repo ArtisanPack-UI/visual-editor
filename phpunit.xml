@@ -11,6 +11,10 @@
         <testsuite name="Feature">
             <directory>tests/Feature</directory>
         </testsuite>
+        <testsuite name="RendererBlade">
+            <directory>packages/visual-editor-renderer-blade/tests/Unit</directory>
+            <directory>packages/visual-editor-renderer-blade/tests/Feature</directory>
+        </testsuite>
     </testsuites>
     <source>
         <include>

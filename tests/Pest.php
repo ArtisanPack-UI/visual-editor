@@ -19,6 +19,12 @@ pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Unit/VisualEditor');
 
+pest()->extend(ArtisanPackUI\VisualEditorRendererBlade\Tests\TestCase::class)
+    ->in(__DIR__ . '/../packages/visual-editor-renderer-blade/tests/Unit');
+
+pest()->extend(ArtisanPackUI\VisualEditorRendererBlade\Tests\TestCase::class)
+    ->in(__DIR__ . '/../packages/visual-editor-renderer-blade/tests/Feature');
+
 /*
 |--------------------------------------------------------------------------
 | Expectations

@@ -1,0 +1,87 @@
+<?php
+
+/**
+ * `<x-ve-blocks :tree="...">` Blade component.
+ *
+ * Renders a saved visual editor block tree into HTML using the
+ * {@see \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer} engine.
+ *
+ * @package    ArtisanPack_UI
+ * @subpackage VisualEditorRendererBlade
+ *
+ * @author     Jacob Martella <me@jacobmartella.com>
+ *
+ * @since      1.0.0
+ */
+
+declare( strict_types=1 );
+
+namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
+
+use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
+use Illuminate\Contracts\View\View;
+use Illuminate\View\Component;
+
+class BlocksComponent extends Component
+{
+	/**
+	 * Normalized block tree ready for rendering.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	public array $tree;
+
+	public function __construct(
+		protected BlockRenderer $renderer,
+		mixed $tree = null,
+	) {
+		$this->tree = $this->normalizeTree( $tree );
+	}
+
+	public function render(): View
+	{
+		return view( 'visual-editor-renderer-blade::components.blocks', [
+			'html' => $this->renderer->render( $this->tree ),
+		] );
+	}
+
+	/**
+	 * Accept the `tree` prop in any common Laravel shape (array, JSON string,
+	 * Arrayable, stdClass) and coerce it to a list of block arrays.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function normalizeTree( mixed $tree ): array
+	{
+		if ( null === $tree ) {
+			return [];
+		}
+
+		if ( is_string( $tree ) ) {
+			$decoded = json_decode( $tree, true );
+
+			$tree = is_array( $decoded ) ? $decoded : [];
+		}
+
+		if ( is_object( $tree ) && method_exists( $tree, 'toArray' ) ) {
+			/** @var array<mixed> $tree */
+			$tree = $tree->toArray();
+		}
+
+		if ( ! is_array( $tree ) ) {
+			return [];
+		}
+
+		$normalized = [];
+
+		foreach ( $tree as $block ) {
+			if ( is_array( $block ) ) {
+				$normalized[] = $block;
+			}
+		}
+
+		return $normalized;
+	}
+}
