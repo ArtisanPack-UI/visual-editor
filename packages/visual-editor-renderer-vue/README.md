@@ -49,7 +49,7 @@ defineProps<{ post: { content: unknown } }>();
 
 | Prop | Type | Default | Notes |
 | --- | --- | --- | --- |
-| `tree` | `Block[] \| string \| null` | — | Required. |
+| `tree` | `Block[] \| string \| null` | `null` | Optional. `null`/`undefined` renders nothing. |
 | `dynamicBlockEndpoint` | `string` | `/visual-editor/api/blocks/preview` | Override if your app prefix is not `visual-editor`. |
 | `fetchOptions` | `RequestInit` | `{ credentials: 'same-origin' }` | Merged on top of the default request. Use for CSRF headers etc. |
 
