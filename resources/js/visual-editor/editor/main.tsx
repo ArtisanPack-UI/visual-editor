@@ -8,11 +8,16 @@
  * at least one editor is present on the page.
  */
 
-import { StrictMode, createElement } from 'react';
+import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
+import type {
+    AuthorOption,
+    DocumentSupports,
+    FeaturedImageValue,
+} from './document-panels';
+
 export { registerMediaBridge } from '../media-bridge';
-export type { MountConfig, MountedEditor };
 export type {
     BridgeMedia,
     BridgeMediaType,
@@ -37,6 +42,23 @@ export type {
     VeEditorSaveEvent,
 } from './editor-events';
 
+export {
+    DocumentPanelSlot,
+    DOCUMENT_PANELS_FILTER,
+    PluginDocumentSettingPanel,
+    getFilteredDocumentPanels,
+} from './plugin-document-setting-panel';
+export type {
+    DocumentPanelSpec,
+    PluginDocumentSettingPanelProps,
+} from './plugin-document-setting-panel';
+export type {
+    AuthorOption,
+    DocumentSupports,
+    FeaturedImageValue,
+    PostStatus,
+} from './document-panels';
+
 const MOUNT_SELECTOR = '[data-ap-visual-editor]';
 const ROOT_SYMBOL: unique symbol = Symbol('ap-visual-editor-root');
 
@@ -51,6 +73,12 @@ export interface MountConfig {
     initialTitle?: string;
     initialSlug?: string;
     initialStatus?: string;
+    initialExcerpt?: string;
+    initialFeaturedImage?: FeaturedImageValue | null;
+    initialAuthorId?: number | string | null;
+    initialCommentsOpen?: boolean;
+    authorOptions?: ReadonlyArray<AuthorOption>;
+    supports?: DocumentSupports;
     previewUrl?: string | null;
 }
 
@@ -68,6 +96,28 @@ export interface MountedEditor {
     ready: Promise<void>;
 }
 
+function parseJsonDataset<T>(raw: string | undefined, context: string): T | null {
+    if (raw === undefined) {
+        return null;
+    }
+
+    const trimmed = raw.trim();
+
+    if (trimmed === '') {
+        return null;
+    }
+
+    try {
+        return JSON.parse(trimmed) as T;
+    } catch (error) {
+        console.warn(
+            `visual-editor: could not parse ${context} dataset attribute as JSON.`,
+            error
+        );
+        return null;
+    }
+}
+
 function readMountConfig(element: HTMLElement): MountConfig | null {
     const apiBase = element.dataset.apiBase?.trim();
     const resource = element.dataset.resource?.trim();
@@ -80,7 +130,41 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
     const initialTitle = element.dataset.title?.trim();
     const initialSlug = element.dataset.slug?.trim();
     const initialStatus = element.dataset.status?.trim();
+    const initialExcerpt = element.dataset.excerpt;
+    const rawAuthorId = element.dataset.authorId?.trim();
+    const commentsOpenRaw = element.dataset.commentsOpen?.trim();
     const previewUrl = element.dataset.previewUrl?.trim();
+
+    const featuredImage = parseJsonDataset<FeaturedImageValue | null>(
+        element.dataset.featuredImage,
+        'data-featured-image'
+    );
+    // `parseJsonDataset` returns whatever the JSON resolves to, so a host
+    // mis-emitting an object (or a primitive) as `data-author-options`
+    // would otherwise crash `normalizeAuthorId`'s `.find` / the
+    // SelectControl props builder. Fall back to null when the parsed
+    // value isn't an array.
+    const parsedAuthorOptions = parseJsonDataset<unknown>(
+        element.dataset.authorOptions,
+        'data-author-options'
+    );
+    const authorOptions: ReadonlyArray<AuthorOption> | null = Array.isArray(
+        parsedAuthorOptions
+    )
+        ? (parsedAuthorOptions as ReadonlyArray<AuthorOption>)
+        : null;
+    const supports = parseJsonDataset<DocumentSupports>(
+        element.dataset.supports,
+        'data-supports'
+    );
+
+    // Dataset attributes are always strings, but most Laravel hosts store
+    // author IDs as integers. Normalize back to the original type so
+    // `onMetadataChange` emits values that round-trip cleanly into the
+    // host's model. Preference order: exact match against an author
+    // option (preserves whatever type the host declared), then numeric
+    // coercion when the string looks numeric, then leave-as-string.
+    const initialAuthorId = normalizeAuthorId(rawAuthorId, authorOptions);
 
     return {
         apiBase,
@@ -89,8 +173,48 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
         ...(initialTitle ? { initialTitle } : {}),
         ...(initialSlug ? { initialSlug } : {}),
         ...(initialStatus ? { initialStatus } : {}),
+        ...(initialExcerpt !== undefined ? { initialExcerpt } : {}),
+        ...(initialAuthorId !== undefined ? { initialAuthorId } : {}),
+        ...(commentsOpenRaw !== undefined
+            ? { initialCommentsOpen: commentsOpenRaw === 'true' }
+            : {}),
+        ...(featuredImage !== null ? { initialFeaturedImage: featuredImage } : {}),
+        ...(authorOptions !== null ? { authorOptions } : {}),
+        ...(supports !== null ? { supports } : {}),
         previewUrl: previewUrl ?? null,
     };
+}
+
+/**
+ * Exported for tests. Not part of the public package surface.
+ * @internal
+ */
+export function normalizeAuthorId(
+    raw: string | undefined,
+    authorOptions: ReadonlyArray<AuthorOption> | null
+): number | string | undefined {
+    if (raw === undefined || raw === '') {
+        return undefined;
+    }
+
+    if (authorOptions !== null && authorOptions.length > 0) {
+        const match = authorOptions.find(
+            (option) =>
+                String(option.value) === raw || option.value === Number(raw)
+        );
+
+        if (match !== undefined) {
+            return match.value;
+        }
+    }
+
+    const asNumber = Number(raw);
+
+    if (!Number.isNaN(asNumber) && /^-?\d+(\.\d+)?$/.test(raw)) {
+        return asNumber;
+    }
+
+    return raw;
 }
 
 /**
@@ -129,9 +253,14 @@ export function mountEditor(
                 return;
             }
 
-            root.render(
-                createElement(StrictMode, null, createElement(EditorApp, config)),
-            );
+            // Intentionally NOT wrapped in React.StrictMode. Several
+            // `@wordpress/components` class components (and the block-
+            // editor color pipeline) are not StrictMode-safe in v32/v15
+            // — the dev-mode double-invocation triggers "Maximum update
+            // depth exceeded" crashes during interactions like color
+            // picker drag. Revisit once Gutenberg's own StrictMode audit
+            // lands upstream.
+            root.render(createElement(EditorApp, config));
         },
         (error: unknown) => {
             console.error('visual-editor: failed to load editor app.', error);

@@ -33,10 +33,49 @@ class VisualEditorComponent extends Component
 
 	public string $apiBase;
 
+	public ?string $initialTitle;
+
+	public ?string $initialSlug;
+
+	public ?string $initialStatus;
+
+	public ?string $initialExcerpt;
+
+	/**
+	 * @var array{ id: int, url: string, alt?: string }|null
+	 */
+	public ?array $initialFeaturedImage;
+
+	public int|string|null $initialAuthorId;
+
+	public ?bool $initialCommentsOpen;
+
+	/**
+	 * @var array<int, array{ value: int|string, label: string }>|null
+	 */
+	public ?array $authorOptions;
+
+	/**
+	 * @var array{ excerpt?: bool, featuredImage?: bool, comments?: bool }|null
+	 */
+	public ?array $supports;
+
+	public ?string $previewUrl;
+
 	public function __construct(
 		public Model $model,
 		?string $resource = null,
 		?string $apiBase = null,
+		?string $initialTitle = null,
+		?string $initialSlug = null,
+		?string $initialStatus = null,
+		?string $initialExcerpt = null,
+		?array $initialFeaturedImage = null,
+		int|string|null $initialAuthorId = null,
+		?bool $initialCommentsOpen = null,
+		?array $authorOptions = null,
+		?array $supports = null,
+		?string $previewUrl = null,
 	) {
 		$key = $model->getKey();
 
@@ -47,9 +86,19 @@ class VisualEditorComponent extends Component
 			) );
 		}
 
-		$this->resource = $resource ?? $this->resolveResourceSlug( $model );
-		$this->modelId  = (string) $key;
-		$this->apiBase  = $apiBase ?? $this->defaultApiBase();
+		$this->resource             = $resource ?? $this->resolveResourceSlug( $model );
+		$this->modelId              = (string) $key;
+		$this->apiBase              = $apiBase ?? $this->defaultApiBase();
+		$this->initialTitle         = $initialTitle;
+		$this->initialSlug          = $initialSlug;
+		$this->initialStatus        = $initialStatus;
+		$this->initialExcerpt       = $initialExcerpt;
+		$this->initialFeaturedImage = $initialFeaturedImage;
+		$this->initialAuthorId      = $initialAuthorId;
+		$this->initialCommentsOpen  = $initialCommentsOpen;
+		$this->authorOptions        = $authorOptions;
+		$this->supports             = $supports;
+		$this->previewUrl           = $previewUrl;
 	}
 
 	public function render(): View

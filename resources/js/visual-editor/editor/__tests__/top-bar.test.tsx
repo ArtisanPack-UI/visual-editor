@@ -2,16 +2,10 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { TopBar, type PostStatus, type TopBarProps } from '../top-bar';
+import { TopBar, type TopBarProps } from '../top-bar';
 
 function defaultProps(overrides: Partial<TopBarProps> = {}): TopBarProps {
     return {
-        title: '',
-        slug: '',
-        status: 'draft',
-        onTitleChange: vi.fn(),
-        onSlugChange: vi.fn(),
-        onStatusChange: vi.fn(),
         saveStatus: 'idle',
         lastSavedAt: null,
         saveErrorMessage: null,
@@ -45,32 +39,18 @@ describe('TopBar', () => {
         expect(toolbar).toBeInTheDocument();
     });
 
-    it('fires onTitleChange, onSlugChange, and onStatusChange with the new value', () => {
-        const onTitleChange = vi.fn();
-        const onSlugChange = vi.fn();
-        const onStatusChange = vi.fn();
+    it('does not render title, slug, or status inputs (moved to canvas/sidebar)', () => {
+        render(<TopBar {...defaultProps()} />);
 
-        render(
-            <TopBar
-                {...defaultProps({
-                    onTitleChange,
-                    onSlugChange,
-                    onStatusChange,
-                })}
-            />
-        );
-
-        const titleInput = screen.getByTestId('ap-visual-editor-top-bar-title') as HTMLInputElement;
-        fireEvent.change(titleInput, { target: { value: 'Hello world' } });
-        expect(onTitleChange).toHaveBeenCalledWith('Hello world');
-
-        const slugInput = screen.getByTestId('ap-visual-editor-top-bar-slug') as HTMLInputElement;
-        fireEvent.change(slugInput, { target: { value: 'hello-world' } });
-        expect(onSlugChange).toHaveBeenCalledWith('hello-world');
-
-        const statusSelect = screen.getByTestId('ap-visual-editor-top-bar-status') as HTMLSelectElement;
-        fireEvent.change(statusSelect, { target: { value: 'published' } });
-        expect(onStatusChange).toHaveBeenCalledWith('published' satisfies PostStatus);
+        expect(
+            screen.queryByTestId('ap-visual-editor-top-bar-title')
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByTestId('ap-visual-editor-top-bar-slug')
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByTestId('ap-visual-editor-top-bar-status')
+        ).not.toBeInTheDocument();
     });
 
     it('disables undo/redo when history has no entries', () => {

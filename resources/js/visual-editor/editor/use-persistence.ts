@@ -34,7 +34,22 @@ export interface PersistenceState {
     loadError: ApiError | null;
     saveError: ApiError | null;
     lastSavedAt: string | null;
+    /**
+     * Mirror the new tree into React state *and* schedule a debounced save.
+     * Used for persistent commits (`onChange`) — typing, drops, inserts —
+     * where React state needs to reflect the latest value for undo/redo and
+     * the controlled `<BlockEditorProvider value>` pattern.
+     */
     onBlocksChange: (next: BlockInstance[]) => void;
+    /**
+     * Schedule a debounced save *without* calling `setBlocks`. Used for
+     * intermediate events (`onInput` — e.g., color picker drag frames)
+     * where re-rendering the whole editor tree on every frame causes
+     * cascading update loops inside Gutenberg's block support hooks
+     * (#343 A1). Saves still land because the debounce timer reads
+     * `pendingRef.current` at flush time, not the React state.
+     */
+    queueBlocksForSave: (next: BlockInstance[]) => void;
     /**
      * Cancels the pending debounce timer and fires the save immediately.
      * Wired to the ⌘S shortcut in the top bar so explicit saves bypass the
@@ -51,7 +66,11 @@ export interface UsePersistenceOptions extends ApiClientConfig {
     debounceMs?: number;
 }
 
-const DEFAULT_DEBOUNCE_MS = 800;
+// 1.5s debounce — long enough to coalesce drag-bursts from the color
+// picker and fast typing (which helps avoid a known upstream Gutenberg
+// render-backpressure issue during color drag) while still feeling
+// responsive for normal edits.
+const DEFAULT_DEBOUNCE_MS = 1500;
 
 function toApiError(error: unknown, fallback: string): ApiError {
     return error instanceof ApiError ? error : new ApiError(fallback, 0, error);
@@ -192,10 +211,8 @@ export function usePersistence(
         [apiBase, resource, id]
     );
 
-    const onBlocksChange = useCallback(
+    const queueBlocksForSave = useCallback(
         (next: BlockInstance[]): void => {
-            setBlocks(next);
-
             if (loadStatusRef.current !== 'ready') {
                 return;
             }
@@ -210,16 +227,27 @@ export function usePersistence(
                 timerRef.current = null;
                 // The change event is debounced: host listeners see one
                 // event per coalesced edit burst, timed with the autosave
-                // they're about to observe.
+                // they're about to observe. `pendingRef.current` is used
+                // instead of the closed-over `next` so trailing updates
+                // land in the same event.
+                const latest = pendingRef.current ?? next;
                 dispatchEditorEvent(VE_EDITOR_CHANGE, {
                     resource,
                     id,
-                    blocks: next,
+                    blocks: latest,
                 });
                 void runFlush('autosave');
             }, debounceMs);
         },
         [debounceMs, id, resource, runFlush]
+    );
+
+    const onBlocksChange = useCallback(
+        (next: BlockInstance[]): void => {
+            setBlocks(next);
+            queueBlocksForSave(next);
+        },
+        [queueBlocksForSave]
     );
 
     const flush = useCallback((): void => {
@@ -246,6 +274,7 @@ export function usePersistence(
         saveError,
         lastSavedAt,
         onBlocksChange,
+        queueBlocksForSave,
         flush,
     };
 }

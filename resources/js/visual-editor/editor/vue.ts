@@ -25,6 +25,11 @@ import {
 } from 'vue';
 import type { PropType } from 'vue';
 
+import type {
+    AuthorOption,
+    DocumentSupports,
+    FeaturedImageValue,
+} from './document-panels';
 import {
     VE_EDITOR_AUTOSAVE,
     VE_EDITOR_CHANGE,
@@ -46,6 +51,10 @@ export interface VisualEditorModel {
     title?: string;
     slug?: string;
     status?: PostStatus | string;
+    excerpt?: string;
+    featuredImage?: FeaturedImageValue | null;
+    authorId?: number | string | null;
+    commentsOpen?: boolean;
 }
 
 export interface VisualEditorProps {
@@ -53,16 +62,30 @@ export interface VisualEditorProps {
     apiBase: string;
     resource: string;
     previewUrl?: string | null;
+    authorOptions?: ReadonlyArray<AuthorOption>;
+    supports?: DocumentSupports;
 }
 
 function buildMountConfig(props: VisualEditorProps): MountConfig {
+    const { model, authorOptions, supports } = props;
+
     return {
         apiBase: props.apiBase,
         resource: props.resource,
-        id: String(props.model.id),
-        ...(props.model.title !== undefined ? { initialTitle: props.model.title } : {}),
-        ...(props.model.slug !== undefined ? { initialSlug: props.model.slug } : {}),
-        ...(props.model.status !== undefined ? { initialStatus: String(props.model.status) } : {}),
+        id: String(model.id),
+        ...(model.title !== undefined ? { initialTitle: model.title } : {}),
+        ...(model.slug !== undefined ? { initialSlug: model.slug } : {}),
+        ...(model.status !== undefined ? { initialStatus: String(model.status) } : {}),
+        ...(model.excerpt !== undefined ? { initialExcerpt: model.excerpt } : {}),
+        ...(model.featuredImage !== undefined
+            ? { initialFeaturedImage: model.featuredImage }
+            : {}),
+        ...(model.authorId !== undefined ? { initialAuthorId: model.authorId } : {}),
+        ...(model.commentsOpen !== undefined
+            ? { initialCommentsOpen: model.commentsOpen }
+            : {}),
+        ...(authorOptions !== undefined ? { authorOptions } : {}),
+        ...(supports !== undefined ? { supports } : {}),
         previewUrl: props.previewUrl ?? null,
     };
 }
@@ -85,6 +108,14 @@ export const VisualEditor = defineComponent({
         previewUrl: {
             type: String as PropType<string | null>,
             default: null,
+        },
+        authorOptions: {
+            type: Array as PropType<ReadonlyArray<AuthorOption>>,
+            default: undefined,
+        },
+        supports: {
+            type: Object as PropType<DocumentSupports>,
+            default: undefined,
         },
     },
     emits: {

@@ -1,5 +1,26 @@
 import '@testing-library/jest-dom/vitest';
 
+// `@wordpress/components` calls `window.matchMedia` through its responsive
+// helpers (e.g. `PanelBody`, `SelectControl`). jsdom doesn't ship a
+// `matchMedia` implementation so the component import throws. Install a
+// no-op stub that satisfies the `MediaQueryList` shape.
+if (typeof window !== 'undefined' && typeof window.matchMedia !== 'function') {
+    Object.defineProperty(window, 'matchMedia', {
+        writable: true,
+        value: (query: string): MediaQueryList =>
+            ({
+                matches: false,
+                media: query,
+                onchange: null,
+                addListener: () => {},
+                removeListener: () => {},
+                addEventListener: () => {},
+                removeEventListener: () => {},
+                dispatchEvent: () => false,
+            }) as MediaQueryList,
+    });
+}
+
 // jsdom does not implement Range.getBoundingClientRect or
 // Document.elementFromPoint, which ProseMirror needs for mouse/selection
 // handling. Stub just enough for Tiptap-driven tests to run.

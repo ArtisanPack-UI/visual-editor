@@ -1,16 +1,17 @@
 /**
  * Editor top bar.
  *
- * Owns the admin chrome above the block canvas — title/slug inputs, post
- * status selector, save indicator, undo/redo, inserter/inspector toggles,
- * preview link, and the "more options" menu. This intentionally replaces
- * `@wordpress/edit-post`'s header so the editor feels like a Laravel admin
- * page rather than a WordPress one (M7 of the Gutenberg adoption; umbrella
- * issue #309).
+ * Owns the admin chrome above the block canvas — save indicator, undo/
+ * redo, the inserter/inspector toggles, preview link, and the "more
+ * options" menu. This intentionally replaces `@wordpress/edit-post`'s
+ * header so the editor feels like a Laravel admin page rather than a
+ * WordPress one (M7 of the Gutenberg adoption; umbrella issue #309).
  *
- * All state is controlled by the parent so the same component can be mounted
- * against any model with a block-content column. Keyboard shortcuts (⌘Z,
- * ⌘⇧Z, ⌘S) are installed while the component is mounted.
+ * A1 (#343) moved the title input into the canvas and moved the slug
+ * and status selectors into the inspector sidebar's Document tab, so
+ * this bar no longer renders them. Keyboard shortcuts (⌘Z, ⌘⇧Z, ⌘S)
+ * stay here because they're global regardless of where the fields
+ * live.
  *
  * Theming hook: every color, spacing, and radius value is driven by CSS
  * custom properties under the `--ap-visual-editor-top-bar-*` namespace so
@@ -24,7 +25,6 @@ import {
     useMemo,
     useRef,
     useState,
-    type ChangeEvent,
     type KeyboardEvent as ReactKeyboardEvent,
     type MouseEvent as ReactMouseEvent,
     type ReactNode,
@@ -35,17 +35,9 @@ import { TEXT_DOMAIN } from '../vendor/i18n';
 
 import './top-bar.css';
 
-export type PostStatus = 'draft' | 'pending' | 'scheduled' | 'published' | 'private';
-
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
 export interface TopBarProps {
-    title: string;
-    slug: string;
-    status: PostStatus;
-    onTitleChange: (title: string) => void;
-    onSlugChange: (slug: string) => void;
-    onStatusChange: (status: PostStatus) => void;
     saveStatus: SaveStatus;
     lastSavedAt?: string | null;
     saveErrorMessage?: string | null;
@@ -67,29 +59,6 @@ export interface TopBarProps {
      * actions between the preview link and the more-options menu.
      */
     extraActions?: ReactNode;
-}
-
-const STATUS_ORDER: readonly PostStatus[] = [
-    'draft',
-    'pending',
-    'scheduled',
-    'published',
-    'private',
-];
-
-function statusLabel(status: PostStatus): string {
-    switch (status) {
-        case 'draft':
-            return __('Draft', TEXT_DOMAIN);
-        case 'pending':
-            return __('Pending review', TEXT_DOMAIN);
-        case 'scheduled':
-            return __('Scheduled', TEXT_DOMAIN);
-        case 'published':
-            return __('Published', TEXT_DOMAIN);
-        case 'private':
-            return __('Private', TEXT_DOMAIN);
-    }
 }
 
 function saveStatusLabel(
@@ -159,12 +128,6 @@ function focusAdjacent(
 
 export function TopBar(props: TopBarProps): JSX.Element {
     const {
-        title,
-        slug,
-        status,
-        onTitleChange,
-        onSlugChange,
-        onStatusChange,
         saveStatus,
         lastSavedAt,
         saveErrorMessage,
@@ -184,9 +147,6 @@ export function TopBar(props: TopBarProps): JSX.Element {
         extraActions,
     } = props;
 
-    const titleFieldId = useId();
-    const slugFieldId = useId();
-    const statusFieldId = useId();
     const menuId = useId();
     const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
     const menuRef = useRef<HTMLDivElement | null>(null);
@@ -427,70 +387,7 @@ export function TopBar(props: TopBarProps): JSX.Element {
                     </svg>
                 </button>
             </div>
-            <div className="ap-visual-editor-top-bar__group ap-visual-editor-top-bar__group--fields">
-                <label
-                    className="ap-visual-editor-top-bar__field"
-                    htmlFor={titleFieldId}
-                >
-                    <span className="ap-visual-editor-top-bar__field-label">
-                        {__('Title', TEXT_DOMAIN)}
-                    </span>
-                    <input
-                        id={titleFieldId}
-                        type="text"
-                        className="ap-visual-editor-top-bar__input ap-visual-editor-top-bar__input--title"
-                        value={title}
-                        placeholder={__('Add title', TEXT_DOMAIN)}
-                        onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                            onTitleChange(event.target.value)
-                        }
-                        data-testid="ap-visual-editor-top-bar-title"
-                    />
-                </label>
-                <label
-                    className="ap-visual-editor-top-bar__field"
-                    htmlFor={slugFieldId}
-                >
-                    <span className="ap-visual-editor-top-bar__field-label">
-                        {__('Slug', TEXT_DOMAIN)}
-                    </span>
-                    <input
-                        id={slugFieldId}
-                        type="text"
-                        className="ap-visual-editor-top-bar__input ap-visual-editor-top-bar__input--slug"
-                        value={slug}
-                        placeholder={__('page-slug', TEXT_DOMAIN)}
-                        onChange={(event: ChangeEvent<HTMLInputElement>) =>
-                            onSlugChange(event.target.value)
-                        }
-                        data-testid="ap-visual-editor-top-bar-slug"
-                    />
-                </label>
-            </div>
             <div className="ap-visual-editor-top-bar__group ap-visual-editor-top-bar__group--end">
-                <label
-                    className="ap-visual-editor-top-bar__status"
-                    htmlFor={statusFieldId}
-                >
-                    <span className="ap-visual-editor-top-bar__field-label">
-                        {__('Status', TEXT_DOMAIN)}
-                    </span>
-                    <select
-                        id={statusFieldId}
-                        className="ap-visual-editor-top-bar__select"
-                        value={status}
-                        onChange={(event: ChangeEvent<HTMLSelectElement>) =>
-                            onStatusChange(event.target.value as PostStatus)
-                        }
-                        data-testid="ap-visual-editor-top-bar-status"
-                    >
-                        {STATUS_ORDER.map((option) => (
-                            <option key={option} value={option}>
-                                {statusLabel(option)}
-                            </option>
-                        ))}
-                    </select>
-                </label>
                 <span
                     className="ap-visual-editor-top-bar__save-status"
                     role="status"
