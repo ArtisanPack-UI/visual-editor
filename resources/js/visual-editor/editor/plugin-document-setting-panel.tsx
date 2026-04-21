@@ -124,7 +124,7 @@ export function getFilteredDocumentPanels(): DocumentPanelSpec[] {
     // Stable sort by order, then by registration index. Array.prototype.sort
     // is not guaranteed stable across engines older than ES2019, so pair
     // with the original index before comparing.
-    return valid
+    const sorted = valid
         .map((panel, index) => ({ panel, index }))
         .sort((a, b) => {
             const orderA = a.panel.order ?? 100;
@@ -137,4 +137,17 @@ export function getFilteredDocumentPanels(): DocumentPanelSpec[] {
             return a.index - b.index;
         })
         .map(({ panel }) => panel);
+
+    // Deduplicate by id — two plugins racing on the same identifier, or
+    // a single plugin re-registering after HMR, would otherwise produce
+    // duplicate React keys and render the panel twice. Last-wins policy
+    // mirrors how `@wordpress/hooks` itself composes filters: a later
+    // `addFilter` overrides an earlier one at the same priority.
+    const deduped = new Map<string, DocumentPanelSpec>();
+
+    for (const panel of sorted) {
+        deduped.set(panel.id, panel);
+    }
+
+    return Array.from(deduped.values());
 }

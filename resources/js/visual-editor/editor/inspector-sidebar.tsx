@@ -211,39 +211,47 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
                     {__('Document', TEXT_DOMAIN)}
                 </button>
             </div>
-            {activeTab === 'block' ? (
-                <div
-                    role="tabpanel"
-                    id={blockPanelId}
-                    aria-labelledby={blockTabId}
-                    className="ap-visual-editor-inspector-sidebar__panel"
-                    data-testid="ap-visual-editor-inspector-block-panel"
-                >
-                    {hasSelectedBlock ? (
-                        <BlockInspector />
-                    ) : (
-                        <p
-                            className="ap-visual-editor-inspector-sidebar__empty"
-                            data-testid="ap-visual-editor-inspector-block-empty"
-                        >
-                            {__(
-                                'Click on a block to view its settings.',
-                                TEXT_DOMAIN
-                            )}
-                        </p>
-                    )}
-                </div>
-            ) : (
-                <div
-                    role="tabpanel"
-                    id={documentPanelId}
-                    aria-labelledby={documentTabId}
-                    className="ap-visual-editor-inspector-sidebar__panel"
-                    data-testid="ap-visual-editor-inspector-document-panel"
-                >
-                    {documentContent}
-                </div>
-            )}
+            {/*
+             * Both tabpanels stay mounted so inner state survives tab
+             * switches — `PanelBody` open/closed state, `TextareaControl`
+             * cursor position, filter-registered plugin state, etc.
+             * would reset if we unmounted the inactive panel. The
+             * inactive panel is toggled via the `hidden` attribute
+             * (which also sets `aria-hidden` automatically) so screen
+             * readers and sighted users still see only the active one.
+             */}
+            <div
+                role="tabpanel"
+                id={blockPanelId}
+                aria-labelledby={blockTabId}
+                className="ap-visual-editor-inspector-sidebar__panel"
+                data-testid="ap-visual-editor-inspector-block-panel"
+                hidden={activeTab !== 'block'}
+            >
+                {hasSelectedBlock ? (
+                    <BlockInspector />
+                ) : (
+                    <p
+                        className="ap-visual-editor-inspector-sidebar__empty"
+                        data-testid="ap-visual-editor-inspector-block-empty"
+                    >
+                        {__(
+                            'Click on a block to view its settings.',
+                            TEXT_DOMAIN
+                        )}
+                    </p>
+                )}
+            </div>
+            <div
+                role="tabpanel"
+                id={documentPanelId}
+                aria-labelledby={documentTabId}
+                className="ap-visual-editor-inspector-sidebar__panel"
+                data-testid="ap-visual-editor-inspector-document-panel"
+                hidden={activeTab !== 'document'}
+            >
+                {documentContent}
+            </div>
         </aside>
     );
 }

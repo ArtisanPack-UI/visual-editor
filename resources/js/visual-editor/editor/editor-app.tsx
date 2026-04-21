@@ -158,40 +158,45 @@ function registerOnce(): void {
  * (B3) lands; for V1 we seed a coherent default so new installs aren't
  * staring at an empty color picker.
  */
+// Preset labels are wrapped with `__()` so the pot-extraction command
+// (`composer visual-editor:pot`) picks them up and host apps that load
+// translations before the editor bundle executes get the translated
+// strings. When translations aren't loaded, `__()` returns the English
+// source unchanged — same behaviour as the raw strings had before.
 const DEFAULT_PALETTE = [
-    { name: 'Base content', slug: 'base-content', color: '#1f2937' },
-    { name: 'Base muted', slug: 'base-muted', color: '#6b7280' },
-    { name: 'Primary', slug: 'primary', color: '#2563eb' },
-    { name: 'Secondary', slug: 'secondary', color: '#64748b' },
-    { name: 'Accent', slug: 'accent', color: '#9333ea' },
-    { name: 'Success', slug: 'success', color: '#16a34a' },
-    { name: 'Warning', slug: 'warning', color: '#d97706' },
-    { name: 'Error', slug: 'error', color: '#dc2626' },
+    { name: __('Base content', TEXT_DOMAIN), slug: 'base-content', color: '#1f2937' },
+    { name: __('Base muted', TEXT_DOMAIN), slug: 'base-muted', color: '#6b7280' },
+    { name: __('Primary', TEXT_DOMAIN), slug: 'primary', color: '#2563eb' },
+    { name: __('Secondary', TEXT_DOMAIN), slug: 'secondary', color: '#64748b' },
+    { name: __('Accent', TEXT_DOMAIN), slug: 'accent', color: '#9333ea' },
+    { name: __('Success', TEXT_DOMAIN), slug: 'success', color: '#16a34a' },
+    { name: __('Warning', TEXT_DOMAIN), slug: 'warning', color: '#d97706' },
+    { name: __('Error', TEXT_DOMAIN), slug: 'error', color: '#dc2626' },
 ];
 
 const DEFAULT_FONT_SIZES = [
-    { name: 'Small', slug: 'small', size: '13px' },
-    { name: 'Regular', slug: 'regular', size: '16px' },
-    { name: 'Medium', slug: 'medium', size: '20px' },
-    { name: 'Large', slug: 'large', size: '28px' },
-    { name: 'Huge', slug: 'huge', size: '36px' },
+    { name: __('Small', TEXT_DOMAIN), slug: 'small', size: '13px' },
+    { name: __('Regular', TEXT_DOMAIN), slug: 'regular', size: '16px' },
+    { name: __('Medium', TEXT_DOMAIN), slug: 'medium', size: '20px' },
+    { name: __('Large', TEXT_DOMAIN), slug: 'large', size: '28px' },
+    { name: __('Huge', TEXT_DOMAIN), slug: 'huge', size: '36px' },
 ];
 
 const DEFAULT_FONT_FAMILIES = [
     {
-        name: 'System',
+        name: __('System', TEXT_DOMAIN),
         slug: 'system',
         fontFamily:
             'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
     },
     {
-        name: 'Serif',
+        name: __('Serif', TEXT_DOMAIN),
         slug: 'serif',
         fontFamily:
             'Georgia, Cambria, "Times New Roman", Times, serif',
     },
     {
-        name: 'Monospaced',
+        name: __('Monospaced', TEXT_DOMAIN),
         slug: 'mono',
         fontFamily:
             'ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace',
@@ -457,7 +462,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             // tree (TopBar, InspectorSidebar, BlockInspector panels) on
             // every frame, which triggers a runaway layout-effect cascade
             // inside Gutenberg's block-support hooks and crashes the
-            // block with "Maximum update depth exceeded" (#343 A1).
+            // block with "Maximum update depth exceeded" (#343 A1, #347).
             //
             // The block-editor store already has the latest tree from
             // the dispatch that triggered this callback, so the canvas
@@ -465,6 +470,17 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             // debounced save — undo/redo still works because `onChange`
             // (fired on the persistent commit at the end of the drag)
             // does the React state update and history push.
+            //
+            // Invariant: letting the `value` prop go stale between
+            // commits is SAFE. `use-block-sync` only reacts to
+            // reference-changes of `controlledBlocks` (its effect deps
+            // are `[controlledBlocks, clientId]`); when `value` doesn't
+            // change, the sync effect is a no-op and the internal
+            // store keeps itself consistent. Any attempt to "mirror"
+            // per-frame into a transient state reintroduces the
+            // cascade we're explicitly avoiding — there's no React
+            // pattern that feeds a reactive `value` prop without
+            // triggering a render.
             queueBlocksForSave(next);
         },
         [queueBlocksForSave]

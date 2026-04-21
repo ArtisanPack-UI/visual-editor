@@ -28,7 +28,7 @@ import {
     ToggleControl,
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
-import { useCallback, useMemo } from 'react';
+import { useCallback } from 'react';
 import type { ReactNode } from 'react';
 
 import { TEXT_DOMAIN } from '../vendor/i18n';
@@ -142,7 +142,12 @@ export function DocumentPanels(props: DocumentPanelsProps): JSX.Element {
     const showFeaturedImage = supports?.featuredImage !== false;
     const showComments = supports?.comments === true && onCommentsOpenChange !== undefined;
 
-    const filteredPanels = useMemo(() => getFilteredDocumentPanels(), []);
+    // Recompute on every render — `@wordpress/hooks` filters are global
+    // module state with no React-level subscription, so memoizing here
+    // would freeze the panel list at mount time and hide any panels a
+    // host registers after that point. The cost is one `applyFilters`
+    // call per render, which is negligible.
+    const filteredPanels = getFilteredDocumentPanels();
 
     return (
         <div

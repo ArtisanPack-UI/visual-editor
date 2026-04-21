@@ -131,7 +131,7 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
     const initialSlug = element.dataset.slug?.trim();
     const initialStatus = element.dataset.status?.trim();
     const initialExcerpt = element.dataset.excerpt;
-    const initialAuthorId = element.dataset.authorId?.trim();
+    const rawAuthorId = element.dataset.authorId?.trim();
     const commentsOpenRaw = element.dataset.commentsOpen?.trim();
     const previewUrl = element.dataset.previewUrl?.trim();
 
@@ -148,6 +148,14 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
         'data-supports'
     );
 
+    // Dataset attributes are always strings, but most Laravel hosts store
+    // author IDs as integers. Normalize back to the original type so
+    // `onMetadataChange` emits values that round-trip cleanly into the
+    // host's model. Preference order: exact match against an author
+    // option (preserves whatever type the host declared), then numeric
+    // coercion when the string looks numeric, then leave-as-string.
+    const initialAuthorId = normalizeAuthorId(rawAuthorId, authorOptions);
+
     return {
         apiBase,
         resource,
@@ -156,7 +164,7 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
         ...(initialSlug ? { initialSlug } : {}),
         ...(initialStatus ? { initialStatus } : {}),
         ...(initialExcerpt !== undefined ? { initialExcerpt } : {}),
-        ...(initialAuthorId ? { initialAuthorId } : {}),
+        ...(initialAuthorId !== undefined ? { initialAuthorId } : {}),
         ...(commentsOpenRaw !== undefined
             ? { initialCommentsOpen: commentsOpenRaw === 'true' }
             : {}),
@@ -165,6 +173,38 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
         ...(supports !== null ? { supports } : {}),
         previewUrl: previewUrl ?? null,
     };
+}
+
+/**
+ * Exported for tests. Not part of the public package surface.
+ * @internal
+ */
+export function normalizeAuthorId(
+    raw: string | undefined,
+    authorOptions: ReadonlyArray<AuthorOption> | null
+): number | string | undefined {
+    if (raw === undefined || raw === '') {
+        return undefined;
+    }
+
+    if (authorOptions !== null && authorOptions.length > 0) {
+        const match = authorOptions.find(
+            (option) =>
+                String(option.value) === raw || option.value === Number(raw)
+        );
+
+        if (match !== undefined) {
+            return match.value;
+        }
+    }
+
+    const asNumber = Number(raw);
+
+    if (!Number.isNaN(asNumber) && /^-?\d+(\.\d+)?$/.test(raw)) {
+        return asNumber;
+    }
+
+    return raw;
 }
 
 /**

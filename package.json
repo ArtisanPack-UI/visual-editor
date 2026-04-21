@@ -76,6 +76,7 @@
         "@wordpress/components": "32.5.0",
         "@wordpress/core-data": "7.43.0",
         "@wordpress/format-library": "5.43.0",
+        "@wordpress/hooks": "4.43.0",
         "@wordpress/i18n": "6.17.0",
         "@wordpress/patterns": "2.43.0",
         "@wordpress/reusable-blocks": "5.43.0",

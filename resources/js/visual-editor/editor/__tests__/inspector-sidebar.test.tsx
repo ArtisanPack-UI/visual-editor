@@ -67,6 +67,31 @@ describe('<InspectorSidebar />', () => {
         ).toHaveAttribute('aria-selected', 'false');
     });
 
+    it('keeps both tabpanels mounted and toggles `hidden` on the inactive one', async () => {
+        const user = userEvent.setup();
+
+        renderSidebar({ hasSelectedBlockOverride: true });
+
+        const blockPanel = screen.getByTestId(
+            'ap-visual-editor-inspector-block-panel'
+        );
+        const documentPanel = screen.getByTestId(
+            'ap-visual-editor-inspector-document-panel'
+        );
+
+        // Block tab is active; document panel mounted but hidden.
+        expect(blockPanel).not.toHaveAttribute('hidden');
+        expect(documentPanel).toHaveAttribute('hidden');
+
+        await user.click(
+            screen.getByTestId('ap-visual-editor-inspector-tab-document')
+        );
+
+        // Flipped: document shown, block hidden. Both still in the DOM.
+        expect(documentPanel).not.toHaveAttribute('hidden');
+        expect(blockPanel).toHaveAttribute('hidden');
+    });
+
     it('shows an empty-state message on the Block tab when nothing is selected', async () => {
         const user = userEvent.setup();
 

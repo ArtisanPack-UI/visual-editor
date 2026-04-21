@@ -72,6 +72,22 @@ describe('getFilteredDocumentPanels', () => {
         expect(panels).toHaveLength(1);
         expect(panels[0].id).toBe('test/good');
     });
+
+    it('deduplicates panels by id with last-wins policy', () => {
+        addFilter(DOCUMENT_PANELS_FILTER, 'test/dup', (panels) => [
+            ...panels,
+            { id: 'shared', title: 'First', render: () => 'first' },
+            { id: 'unique', title: 'Unique', render: () => 'unique' },
+            { id: 'shared', title: 'Second', render: () => 'second' },
+        ]);
+
+        const panels = getFilteredDocumentPanels();
+
+        expect(panels).toHaveLength(2);
+
+        const shared = panels.find((panel) => panel.id === 'shared');
+        expect(shared?.title).toBe('Second');
+    });
 });
 
 describe('<PluginDocumentSettingPanel />', () => {
