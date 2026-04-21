@@ -66,6 +66,7 @@ Phase A — Post-editor polish (parallelizable)
 Phase B — Foundation (sequential; gates Phase C)
   B1  core-data shim expansion: template, template-part, navigation,
       wp_block (patterns), global-styles entities
+      (surface + endpoint contract — see docs/core-data-shim.md)
   B2  Dev-app sample content for above
 
 Phase C — Site-editor backends (parallelizable after B)
