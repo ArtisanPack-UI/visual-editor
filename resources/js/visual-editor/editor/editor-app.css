@@ -14,25 +14,48 @@
     --ap-visual-editor-shell-foreground: var(--color-base-content, #1f2937);
     --ap-visual-editor-shell-border: var(--color-base-300, #e5e7eb);
     --ap-visual-editor-shell-sidebar-background: var(--color-base-100, #ffffff);
+    /* Right (inspector) rail sticks at 280px — matches the Gutenberg
+     * post-editor inspector. The left (block library) rail is widened
+     * separately below because the inserter's 3-up block grid + 20px
+     * panel padding is designed around Gutenberg's $secondary-sidebar
+     * width of 350px; at 280px the last column of tiles overflowed. */
     --ap-visual-editor-shell-sidebar-width: 280px;
+    --ap-visual-editor-shell-inserter-width: 350px;
     --ap-visual-editor-shell-gap: 0;
 
     display: flex;
     flex-direction: column;
     background: var(--ap-visual-editor-shell-background);
     color: var(--ap-visual-editor-shell-foreground);
-    min-height: 100%;
+    /* Fill the viewport so both sidebars and the canvas trap their own
+     * overflow. Falling back to `100vh` covers browsers without
+     * `dvh` support; the editor host page is expected to own the
+     * viewport anyway. Host apps that embed the editor inside a
+     * smaller fixed-height container can override this property. */
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+@supports not (height: 100dvh) {
+    .ap-visual-editor__shell {
+        height: 100vh;
+        max-height: 100vh;
+    }
 }
 
 .ap-visual-editor__body {
     display: flex;
     flex: 1 1 auto;
     min-height: 0;
+    overflow: hidden;
 }
 
 .ap-visual-editor__canvas {
     flex: 1 1 auto;
     min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
 }
 
 .ap-visual-editor__sidebar {
@@ -43,8 +66,12 @@
 }
 
 .ap-visual-editor__sidebar--inserter {
-    padding: 16px;
-    overflow-y: auto;
+    flex: 0 0 var(--ap-visual-editor-shell-inserter-width);
+    padding: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 .ap-visual-editor__sidebar--inspector {
@@ -54,25 +81,7 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-}
-
-.ap-visual-editor__sidebar-title {
-    margin: 0 0 8px;
-    font-size: 14px;
-    font-weight: 600;
-    text-transform: uppercase;
-    letter-spacing: 0.04em;
-}
-
-.ap-visual-editor__sidebar-note {
-    margin: 0;
-    font-size: 13px;
-    color: color-mix(
-        in oklch,
-        var(--color-base-content, #6b7280) 65%,
-        transparent
-    );
-    line-height: 1.5;
+    overflow: hidden;
 }
 
 .ap-visual-editor__status {

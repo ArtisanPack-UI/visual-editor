@@ -41,6 +41,7 @@ import {
     mediaUploadSetting,
 } from '../media-bridge';
 
+import { BlockLibrarySidebar } from './block-library-sidebar';
 import {
     DocumentPanels,
     type AuthorOption,
@@ -677,29 +678,20 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             >
                 {topBar}
                 <div className="ap-visual-editor__body">
-                    {inserterOpen ? (
-                        <aside
-                            className="ap-visual-editor__sidebar ap-visual-editor__sidebar--inserter"
-                            aria-label={__('Block inserter', TEXT_DOMAIN)}
-                            data-testid="ap-visual-editor-inserter-panel"
-                        >
-                            <h2 className="ap-visual-editor__sidebar-title">
-                                {__('Block inserter', TEXT_DOMAIN)}
-                            </h2>
-                            <p className="ap-visual-editor__sidebar-note">
-                                {__(
-                                    'Block library UI lands in a later milestone. For now, use the “/” slash inserter inside the canvas.',
-                                    TEXT_DOMAIN
-                                )}
-                            </p>
-                        </aside>
-                    ) : null}
                     <BlockEditorProvider
                         value={blocks}
                         settings={editorSettings}
                         onInput={handleInput}
                         onChange={handleChange}
                     >
+                        {inserterOpen ? (
+                            <div
+                                className="ap-visual-editor__sidebar ap-visual-editor__sidebar--inserter"
+                                data-testid="ap-visual-editor-inserter-panel"
+                            >
+                                <BlockLibrarySidebar />
+                            </div>
+                        ) : null}
                         <div className="editor-styles-wrapper ap-visual-editor__canvas">
                             <PostTitle value={title} onChange={handleTitleChange} />
                             <BlockTools>
