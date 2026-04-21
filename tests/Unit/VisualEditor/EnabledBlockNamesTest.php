@@ -40,6 +40,7 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 		'core/details',
 		'core/search',
 		'core/latest-posts',
+		'artisanpack/callout',
 	] );
 } );
 

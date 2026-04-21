@@ -471,3 +471,35 @@ it( 'preserves fractional column widths', function () {
 
 	expect( $html )->toContain( 'flex-basis: 33.33%;' );
 } );
+
+it( 'renders the artisanpack/callout reference block with severity and icon', function () {
+	$tree = [
+		makeBlock( 'artisanpack/callout', [
+			'severity' => 'warning',
+			'icon'     => 'warning',
+			'content'  => 'Check this out.',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'ap-callout ap-callout--warning' )
+		->and( $html )->toContain( 'data-severity="warning"' )
+		->and( $html )->toContain( '<div class="ap-callout__body">Check this out.</div>' )
+		->and( $html )->toContain( '<svg' );
+} );
+
+it( 'falls back to safe defaults when callout severity or icon is invalid', function () {
+	$tree = [
+		makeBlock( 'artisanpack/callout', [
+			'severity' => 'catastrophic',
+			'icon'     => 'rocket',
+			'content'  => 'fallback',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'ap-callout--info' )
+		->and( $html )->toContain( 'data-severity="info"' );
+} );

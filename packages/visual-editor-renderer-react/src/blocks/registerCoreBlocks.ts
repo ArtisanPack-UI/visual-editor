@@ -12,6 +12,7 @@
  */
 
 import { registerBlockRenderer } from '../registry';
+import { CalloutBlock } from './artisanpack/callout';
 import {
     CoverBlock,
     DetailsBlock,
@@ -81,6 +82,7 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/search': SearchBlock,
     'core/separator': SeparatorBlock,
     'core/spacer': SpacerBlock,
+    'artisanpack/callout': CalloutBlock,
 };
 
 export function registerCoreBlocks(): void {

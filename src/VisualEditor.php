@@ -21,6 +21,7 @@ namespace ArtisanPackUI\VisualEditor;
 
 use ArtisanPackUI\VisualEditor\Blocks\ClosureDynamicBlock;
 use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
+use ArtisanPackUI\VisualEditor\Blocks\ProvidesBlockMetadata;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use Closure;
@@ -36,19 +37,113 @@ class VisualEditor
 	}
 
 	/**
-	 * Registers a block type from a block.json manifest file.
+	 * Registers a block type from one of three sources.
 	 *
-	 * Reads the JSON file, validates it has a `name` field, and stores
-	 * the full metadata in the block type registry.
+	 *   1. **Path string** — an absolute path to a `block.json` manifest.
+	 *      The file is read and parsed, and the full metadata is stored
+	 *      in the block type registry.
+	 *
+	 *      `VisualEditor::registerBlock(__DIR__ . '/callout/block.json');`
+	 *
+	 *   2. **Class name** — a string that resolves to a class implementing
+	 *      {@see ProvidesBlockMetadata}. The static `blockMetadata()` method
+	 *      is invoked to obtain the metadata array.
+	 *
+	 *      `VisualEditor::registerBlock(CalloutBlock::class);`
+	 *
+	 *   3. **Closure** — any callable that returns a metadata array. Useful
+	 *      when the metadata is computed at registration time (e.g. pulling
+	 *      attribute defaults from config).
+	 *
+	 *      `VisualEditor::registerBlock(fn () => ['name' => 'acme/callout', ...]);`
+	 *
+	 * In all three cases the returned metadata must contain a non-empty
+	 * `name` field in `namespace/name` format.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  string  $blockJsonPath  Absolute path to the block.json file.
+	 * @param  string|Closure  $source  Path to block.json, a class name that implements
+	 *                                  {@see ProvidesBlockMetadata}, or a closure that
+	 *                                  returns a metadata array.
 	 *
-	 * @throws InvalidArgumentException When the file doesn't exist or is invalid.
-	 * @throws JsonException            When the JSON cannot be parsed.
+	 * @throws InvalidArgumentException When the source is invalid or the resulting
+	 *                                  metadata is missing a `name` field.
+	 * @throws JsonException            When a block.json file cannot be parsed.
 	 */
-	public function registerBlock( string $blockJsonPath ): void
+	public function registerBlock( $source ): void
+	{
+		$metadata = $this->resolveBlockMetadata( $source );
+
+		if ( ! isset( $metadata['name'] ) || ! is_string( $metadata['name'] ) || '' === trim( $metadata['name'] ) ) {
+			throw new InvalidArgumentException(
+				'Block metadata is missing a non-empty "name" field.'
+			);
+		}
+
+		$this->registry->register( $metadata['name'], $metadata );
+	}
+
+	/**
+	 * Resolve the block metadata array from the registration source.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  string|Closure  $source
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function resolveBlockMetadata( $source ): array
+	{
+		if ( $source instanceof Closure ) {
+			$value = ( $source )();
+
+			if ( ! is_array( $value ) ) {
+				throw new InvalidArgumentException(
+					'Block registration closure must return an array of metadata.'
+				);
+			}
+
+			return $value;
+		}
+
+		if ( ! is_string( $source ) || '' === trim( $source ) ) {
+			throw new InvalidArgumentException(
+				'Block registration requires a block.json path, a class name, or a closure.'
+			);
+		}
+
+		if ( class_exists( $source ) ) {
+			if ( ! is_subclass_of( $source, ProvidesBlockMetadata::class ) && ! in_array( ProvidesBlockMetadata::class, class_implements( $source ) ?: [], true ) ) {
+				throw new InvalidArgumentException( sprintf(
+					'Block class "%s" must implement %s.',
+					$source,
+					ProvidesBlockMetadata::class
+				) );
+			}
+
+			$value = $source::blockMetadata();
+
+			if ( ! is_array( $value ) ) {
+				throw new InvalidArgumentException( sprintf(
+					'%s::blockMetadata() must return an array.',
+					$source
+				) );
+			}
+
+			return $value;
+		}
+
+		return $this->loadBlockJsonMetadata( $source );
+	}
+
+	/**
+	 * Read and decode a `block.json` manifest file into a metadata array.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function loadBlockJsonMetadata( string $blockJsonPath ): array
 	{
 		if ( ! file_exists( $blockJsonPath ) ) {
 			throw new InvalidArgumentException(
@@ -66,13 +161,13 @@ class VisualEditor
 
 		$metadata = json_decode( $json, true, 512, JSON_THROW_ON_ERROR );
 
-		if ( ! is_array( $metadata ) || ! isset( $metadata['name'] ) || ! is_string( $metadata['name'] ) || '' === trim( $metadata['name'] ) ) {
+		if ( ! is_array( $metadata ) ) {
 			throw new InvalidArgumentException(
-				sprintf( 'block.json missing required "name" field: %s', $blockJsonPath )
+				sprintf( 'block.json did not decode to an object: %s', $blockJsonPath )
 			);
 		}
 
-		$this->registry->register( $metadata['name'], $metadata );
+		return $metadata;
 	}
 
 	/**

@@ -559,6 +559,38 @@ describe('Core design blocks', () => {
 
         expect(renderTree(tree)).toContain('<button type="submit" class="wp-block-search__button"></button>');
     });
+
+    it('renders the artisanpack/callout reference block', () => {
+        const tree = [
+            makeBlock('artisanpack/callout', {
+                severity: 'success',
+                icon: 'check',
+                content: 'Nice work.',
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('class="ap-callout ap-callout--success"');
+        expect(html).toContain('data-severity="success"');
+        expect(html).toContain('<div class="ap-callout__body">Nice work.</div>');
+        expect(html).toContain('<svg');
+    });
+
+    it('normalizes invalid callout severity and icon to safe defaults', () => {
+        const tree = [
+            makeBlock('artisanpack/callout', {
+                severity: 'galactic',
+                icon: 'rocket',
+                content: 'fallback',
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('ap-callout--info');
+        expect(html).toContain('data-severity="info"');
+    });
 });
 
 describe('Registry + dynamic fallback', () => {

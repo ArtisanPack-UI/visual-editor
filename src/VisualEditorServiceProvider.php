@@ -85,7 +85,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// 3. Register core blocks from their block.json manifests.
 		$this->registerCoreBlocks();
 
-		// 4. Tag the config file for the scaffold command.
+		// 4. Register the bundled reference custom block
+		//    (`artisanpack/callout`). Demonstrates the auto-discovered
+		//    block pattern for host apps and exercises the `artisanpack`
+		//    category end-to-end.
+		$this->registerReferenceBlocks();
+
+		// 5. Tag the config file for the scaffold command.
 		if ( $this->app->runningInConsole() ) {
 			$this->publishes( [
 								  __DIR__ . '/../config/visual-editor.php' => config_path( 'artisanpack/visual-editor.php' ),
@@ -116,6 +122,36 @@ class VisualEditorServiceProvider extends ServiceProvider
 		];
 
 		foreach ( $coreBlocks as $block ) {
+			$blockJsonPath = $blocksDir . '/' . $block . '/block.json';
+
+			if ( file_exists( $blockJsonPath ) ) {
+				$editor->registerBlock( $blockJsonPath );
+			}
+		}
+	}
+
+	/**
+	 * Registers the bundled reference blocks from the
+	 * `resources/js/visual-editor/blocks/` directory.
+	 *
+	 * Keeping the path discovery in PHP (rather than trusting the JS
+	 * auto-discovery glob alone) means the server-side registry knows
+	 * about the block — its metadata flows into `getEnabledBlockNames()`
+	 * and into anything that reads the registry — even before the editor
+	 * bundle loads.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function registerReferenceBlocks(): void
+	{
+		$editor    = $this->app->make( VisualEditor::class );
+		$blocksDir = __DIR__ . '/../resources/js/visual-editor/blocks';
+
+		$referenceBlocks = [
+			'callout',
+		];
+
+		foreach ( $referenceBlocks as $block ) {
 			$blockJsonPath = $blocksDir . '/' . $block . '/block.json';
 
 			if ( file_exists( $blockJsonPath ) ) {
