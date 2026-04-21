@@ -1,0 +1,238 @@
+/**
+ * Block library sidebar styles.
+ *
+ * Mirrors the structure of `inspector-sidebar.css` — every color, gap,
+ * and radius is driven by CSS custom properties under the
+ * `--ap-visual-editor-block-library-*` namespace so M8 (#318) theming
+ * and host apps can override without touching this file. Defaults read
+ * DaisyUI tokens first with hex fallbacks so the sidebar still looks
+ * correct outside a DaisyUI host.
+ *
+ * Two concerns beyond plain layout are worth calling out:
+ *
+ *   1. `__experimentalLibrary` renders its own Blocks/Patterns/Media
+ *      tab strip via `TabbedSidebar`. Our outer tablist already owns
+ *      Blocks/Patterns/Layouts navigation, so the inner strip would be
+ *      redundant *and* break the ARIA relationship between the outer
+ *      tabs and their panels. The `display: none` rules at the bottom
+ *      of this file take the whole `__tablist-and-close-button`
+ *      container out of flow.
+ *
+ *   2. `__experimentalLibrary` and `__experimentalListView` both assume
+ *      they render inside a fixed-height host and rely on the host's
+ *      `overflow` to trap scroll. The flex chain below
+ *      (`min-height: 0` on every level) makes the panels the
+ *      scroll-trap rather than letting content push the page height
+ *      out.
+ */
+
+.ap-visual-editor-block-library {
+    --ap-visual-editor-block-library-background: var(
+        --color-base-100,
+        #ffffff
+    );
+    --ap-visual-editor-block-library-foreground: var(
+        --color-base-content,
+        #1f2937
+    );
+    --ap-visual-editor-block-library-border: var(
+        --color-base-300,
+        #e5e7eb
+    );
+    --ap-visual-editor-block-library-accent: var(
+        --color-primary,
+        #2563eb
+    );
+    --ap-visual-editor-block-library-muted: color-mix(
+        in oklch,
+        var(--color-base-content, #6b7280) 65%,
+        transparent
+    );
+    --ap-visual-editor-block-library-tab-inactive: color-mix(
+        in oklch,
+        var(--color-base-content, #6b7280) 70%,
+        transparent
+    );
+
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    background: var(--ap-visual-editor-block-library-background);
+    color: var(--ap-visual-editor-block-library-foreground);
+    box-sizing: border-box;
+    overflow: hidden;
+}
+
+.ap-visual-editor-block-library__tablist {
+    display: flex;
+    flex: 0 0 auto;
+    padding: 0;
+    margin: 0;
+    border-bottom: 1px solid
+        var(--ap-visual-editor-block-library-border);
+    background: var(--ap-visual-editor-block-library-background);
+}
+
+.ap-visual-editor-block-library__tab {
+    flex: 1 1 0;
+    padding: 12px 8px;
+    background: transparent;
+    color: var(--ap-visual-editor-block-library-tab-inactive);
+    border: 0;
+    border-bottom: 2px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    cursor: pointer;
+    font-family: inherit;
+}
+
+.ap-visual-editor-block-library__tab[aria-selected='true'] {
+    color: var(--ap-visual-editor-block-library-accent);
+    border-bottom-color: var(--ap-visual-editor-block-library-accent);
+}
+
+.ap-visual-editor-block-library__tab:focus-visible {
+    outline: 2px solid var(--ap-visual-editor-block-library-accent);
+    outline-offset: -2px;
+}
+
+.ap-visual-editor-block-library__panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0;
+}
+
+.ap-visual-editor-block-library__panel[hidden] {
+    display: none;
+}
+
+.ap-visual-editor-block-library__panel--blocks {
+    /* The Blocks panel defers scroll to `__experimentalLibrary`'s
+     * internal `TabbedSidebar__tabpanel`, which already owns
+     * `overflow-y: auto`. Hiding our own overflow avoids a nested
+     * scroll container. */
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.ap-visual-editor-block-library__panel--layouts {
+    padding: 8px;
+}
+
+.ap-visual-editor-block-library__panel--patterns {
+    padding: 16px;
+}
+
+.ap-visual-editor-block-library__patterns-stub {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ap-visual-editor-block-library__stub-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ap-visual-editor-block-library-foreground);
+}
+
+.ap-visual-editor-block-library__empty {
+    margin: 0;
+    color: var(--ap-visual-editor-block-library-muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+/**
+ * Suppress `__experimentalLibrary`'s own Blocks/Patterns/Media tab
+ * strip + close button. The outer tablist owns navigation; the inner
+ * row would be redundant and break the ARIA relationship between the
+ * outer tabs and their panels.
+ */
+.ap-visual-editor-block-library__panel--blocks
+    .block-editor-tabbed-sidebar__tablist-and-close-button {
+    display: none;
+}
+
+/**
+ * Force `__experimentalLibrary`'s flex chain to the outer panel's
+ * height. Without this the menu renders at intrinsic content height
+ * and scroll bubbles up to the page.
+ */
+.ap-visual-editor-block-library__panel--blocks
+    .block-editor-tabbed-sidebar {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+    overflow: hidden;
+}
+
+.ap-visual-editor-block-library__panel--blocks
+    .block-editor-tabbed-sidebar__tabpanel {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.ap-visual-editor-block-library__panel--blocks
+    .block-editor-inserter__menu {
+    flex: 1 1 auto;
+    min-height: 0;
+    height: 100%;
+}
+
+.ap-visual-editor-block-library__panel--blocks
+    .block-editor-inserter__main-area {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/**
+ * Tighten the Layouts list-view up/down movers. Gutenberg's default
+ * rules target a `.mover-cell-alignment-wrapper` class that's no
+ * longer rendered (the wrapper moved inside `TreeGridItem` divs in a
+ * recent refactor), so the two buttons stack with the table cell's
+ * natural vertical-align spacing, leaving a big gap between ^ and v.
+ * These overrides shrink the buttons to 16px tall and zero their
+ * surrounding margins so the arrows sit snugly one atop the other.
+ */
+.ap-visual-editor-block-library__panel--layouts
+    .block-editor-list-view-block__mover-cell {
+    line-height: 0;
+}
+
+.ap-visual-editor-block-library__panel--layouts
+    .block-editor-list-view-block__mover-cell > div {
+    display: block;
+    line-height: 0;
+    font-size: 0;
+}
+
+.ap-visual-editor-block-library__panel--layouts
+    .block-editor-list-view-leaf
+    .block-editor-block-mover-button {
+    height: 16px;
+    min-height: 16px;
+    width: 28px;
+    margin: 0;
+    padding: 0;
+}
+
+.ap-visual-editor-block-library__panel--layouts
+    .block-editor-list-view-leaf
+    .block-editor-block-mover-button svg {
+    height: 16px;
+    width: 16px;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+}
+
