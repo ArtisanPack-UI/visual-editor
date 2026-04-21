@@ -151,12 +151,18 @@ class SampleContentRepository
 			}
 
 			foreach ( $records as $basename => $record ) {
-				$id = $this->recordIdFor( $fragment, (string) $basename, $record );
+				$id     = $this->recordIdFor( $fragment, (string) $basename, $record );
+				$target = sprintf( '%s/%s.json', $entityPath, $id );
 
-				$disk->put(
-					sprintf( '%s/%s.json', $entityPath, $id ),
-					$this->encode( $record )
-				);
+				if ( ! $disk->put( $target, $this->encode( $record ) ) ) {
+					throw new RuntimeException(
+						sprintf(
+							'Failed to write sample-content fixture %s (entity id %s).',
+							$target,
+							$id
+						)
+					);
+				}
 
 				$counts[ $fragment ]++;
 			}
@@ -251,13 +257,35 @@ class SampleContentRepository
 	}
 
 	/**
+	 * Resolves the primary key for a fixture and guards against
+	 * filename-unsafe values. String IDs flow straight into the disk
+	 * path, so anything with a path separator or `..` segment could
+	 * escape `visual-editor/sample-content/{kind}/{name}/` — even
+	 * though the fixtures are dev-authored today, the `--path` option
+	 * lets host apps point the seeder at arbitrary directories.
+	 *
 	 * @param  array<string, mixed>  $record
 	 */
 	protected function recordIdFor( string $fragment, string $basename, array $record ): int | string
 	{
 		$id = $record['id'] ?? null;
 
-		if ( is_int( $id ) || ( is_string( $id ) && '' !== $id ) ) {
+		if ( is_int( $id ) ) {
+			return $id;
+		}
+
+		if ( is_string( $id ) && '' !== $id ) {
+			if ( 1 !== preg_match( '/^[A-Za-z0-9._-]+$/', $id ) || str_contains( $id, '..' ) ) {
+				throw new RuntimeException(
+					sprintf(
+						'Sample-content fixture %s/%s.json has an unsafe id %s — ids must contain only letters, digits, dot, underscore, or hyphen, and no path-traversal segments.',
+						$fragment,
+						$basename,
+						var_export( $id, true )
+					)
+				);
+			}
+
 			return $id;
 		}
 
@@ -285,7 +313,7 @@ class SampleContentRepository
 			);
 		}
 
-		if ( ! is_array( $decoded ) ) {
+		if ( ! is_array( $decoded ) || array_is_list( $decoded ) ) {
 			throw new RuntimeException(
 				sprintf( 'Sample-content fixture %s must decode to a JSON object.', $source )
 			);

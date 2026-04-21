@@ -160,3 +160,39 @@ it( 'rejects fixtures that are missing a primary key', function (): void {
 	rmdir( $fixturesDir . '/templates' );
 	rmdir( $fixturesDir );
 } );
+
+it( 'rejects string ids that would escape the sample-content directory', function (): void {
+	$fixturesDir = sys_get_temp_dir() . '/visual-editor-b2-fixtures-' . uniqid();
+	mkdir( $fixturesDir . '/templates', 0o777, true );
+
+	file_put_contents(
+		$fixturesDir . '/templates/traversal.json',
+		json_encode( [ 'id' => '../evil', 'slug' => 'traversal' ] )
+	);
+
+	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $fixturesDir ] )
+		->expectsOutputToContain( 'unsafe id' )
+		->assertFailed();
+
+	unlink( $fixturesDir . '/templates/traversal.json' );
+	rmdir( $fixturesDir . '/templates' );
+	rmdir( $fixturesDir );
+} );
+
+it( 'rejects fixture files whose top-level JSON is a list rather than an object', function (): void {
+	$fixturesDir = sys_get_temp_dir() . '/visual-editor-b2-fixtures-' . uniqid();
+	mkdir( $fixturesDir . '/templates', 0o777, true );
+
+	file_put_contents(
+		$fixturesDir . '/templates/list.json',
+		json_encode( [ [ 'id' => 1, 'slug' => 'wrapped' ] ] )
+	);
+
+	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $fixturesDir ] )
+		->expectsOutputToContain( 'must decode to a JSON object' )
+		->assertFailed();
+
+	unlink( $fixturesDir . '/templates/list.json' );
+	rmdir( $fixturesDir . '/templates' );
+	rmdir( $fixturesDir );
+} );

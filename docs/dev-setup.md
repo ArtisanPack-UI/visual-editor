@@ -30,7 +30,7 @@ disk (`storage/app/visual-editor/sample-content/…` on the `local`
 disk) so that Phase C seeders can pick up the payloads without a
 second fixtures round-trip:
 
-```
+```text
 storage/app/visual-editor/sample-content/
 ├── postType/
 │   ├── wp_template/{1,2,3,4}.json         # single, page, index, 404
