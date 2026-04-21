@@ -1,0 +1,73 @@
+/**
+ * Post title styles.
+ *
+ * Token namespace: `--ap-visual-editor-post-title-*`. Defaults read
+ * DaisyUI tokens first with hex fallbacks so the title renders
+ * correctly outside a DaisyUI host.
+ */
+
+.ap-visual-editor-post-title {
+    --ap-visual-editor-post-title-foreground: var(
+        --color-base-content,
+        #111827
+    );
+    --ap-visual-editor-post-title-placeholder: color-mix(
+        in oklch,
+        var(--color-base-content, #9ca3af) 45%,
+        transparent
+    );
+    --ap-visual-editor-post-title-padding-x: 32px;
+    --ap-visual-editor-post-title-padding-y: 28px;
+    --ap-visual-editor-post-title-max-width: 720px;
+
+    padding: var(--ap-visual-editor-post-title-padding-y)
+        var(--ap-visual-editor-post-title-padding-x) 12px;
+}
+
+.ap-visual-editor-post-title__label {
+    display: block;
+    max-width: var(--ap-visual-editor-post-title-max-width);
+    margin: 0 auto;
+}
+
+.ap-visual-editor-post-title__input {
+    display: block;
+    width: 100%;
+    padding: 2px 4px;
+    margin: 0 -4px;
+    background: transparent;
+    color: var(--ap-visual-editor-post-title-foreground);
+    border: 0;
+    border-radius: var(--rounded-btn, 6px);
+    outline: none;
+    font-family: inherit;
+    font-size: clamp(28px, 4vw, 40px);
+    font-weight: 700;
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    resize: none;
+    overflow: hidden;
+    word-break: break-word;
+}
+
+.ap-visual-editor-post-title__input:focus-visible {
+    outline: 2px solid var(--color-primary, #2563eb);
+    outline-offset: 2px;
+}
+
+.ap-visual-editor-post-title__input::placeholder {
+    color: var(--ap-visual-editor-post-title-placeholder);
+    font-weight: 600;
+}
+
+.screen-reader-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
