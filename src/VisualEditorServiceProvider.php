@@ -2,6 +2,7 @@
 
 namespace ArtisanPackUI\VisualEditor;
 
+use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
@@ -42,6 +43,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new BlockTreeSearchExtractor(
 				$app->make( DynamicBlockRegistry::class )
 			);
+		} );
+
+		// The adapter is stateless and safe to share. Hosts that need a
+		// subclass (e.g. to append custom fields to the attachment shape)
+		// can rebind it via the container.
+		$this->app->singleton( GutenbergAttachmentAdapter::class, function () {
+			return new GutenbergAttachmentAdapter();
 		} );
 
 		// Legacy alias for backward compatibility

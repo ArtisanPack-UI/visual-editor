@@ -35,6 +35,9 @@
     "pestphp/pest-plugin-laravel": "^3.1",
     "orchestra/testbench": "^10.2"
   },
+  "suggest": {
+    "artisanpack-ui/media-library": "^1.2 — Default media library integration. Wire MediaModal + uploadMedia through registerArtisanpackMediaBridge() in the editor bootstrap to power Gutenberg's media picker and upload flows."
+  },
   "scripts": {
     "test": "./vendor/bin/pest"
   },

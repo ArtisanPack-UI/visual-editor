@@ -17,13 +17,17 @@ import type {
     FeaturedImageValue,
 } from './document-panels';
 
-export { registerMediaBridge } from '../media-bridge';
+export {
+    registerArtisanpackMediaBridge,
+    registerMediaBridge,
+} from '../media-bridge';
 export type {
     BridgeMedia,
     BridgeMediaType,
     MediaBridgeComponent,
     MediaBridgeComponentProps,
     MediaUploader,
+    RegisterArtisanpackMediaBridgeOptions,
     RegisterMediaBridgeOptions,
 } from '../media-bridge';
 

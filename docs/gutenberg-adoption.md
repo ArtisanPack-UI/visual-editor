@@ -95,6 +95,85 @@ rendering, admin chrome — is Laravel-native.
 | Livewire | Event-based opt-in; no Livewire-specific package code in V1 | Documented recipe |
 | Site editor | Deferred to Phase 3+ | V1 data model leaves room |
 
+## Media bridge
+
+Gutenberg core media blocks (`core/image`, `core/gallery`, `core/video`,
+`core/audio`, `core/file`, `core/cover`, `core/media-text`) render
+`<MediaUpload>` slot-fills and call the `settings.mediaUpload` callback
+for drag-and-drop uploads. The editor replaces both with a host-supplied
+bridge so picker UI and uploads route to the host's own media library.
+
+### Client wiring
+
+Most hosts pair the editor with `artisanpack-ui/media-library` and wire
+both halves in one call before booting the editor:
+
+```ts
+import {
+    bootVisualEditor,
+    registerArtisanpackMediaBridge,
+} from '@artisanpack-ui/visual-editor';
+import { MediaModal, uploadMedia } from './vendor/media-library';
+
+registerArtisanpackMediaBridge({ MediaModal, uploadMedia });
+bootVisualEditor();
+```
+
+Publish the React sources with
+`php artisan vendor:publish --tag=media-react` so they resolve inside the
+host bundle; the npm distribution for `artisanpack-ui/media-library` is
+the published source tree, not a separate package.
+
+### Swapping in a different media library
+
+Any picker component that accepts the bridge props — `open`, `onClose`,
+`onSelect(media, context)`, `multiSelect`, `allowedTypes`, `context`,
+`title` — can replace the default. Pair it with an `uploadMedia`
+function that resolves with `{ data: Media } | Media`:
+
+```ts
+import { registerMediaBridge } from '@artisanpack-ui/visual-editor';
+import { CustomPicker, customUploadMedia } from './vendor/my-media';
+
+registerMediaBridge({
+    MediaBridge: CustomPicker,
+    uploadMedia: customUploadMedia,
+});
+```
+
+Registration overrides any previous bridge — the last call wins — so
+hot-reload and feature-flag flips work without a page reload. Clicking
+the Media Library button before any bridge is registered surfaces an
+operator-facing alert instead of silently dropping the click.
+
+### Server-side adapter
+
+`ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter` maps
+a media-library `Media` record (or any duck-typed record exposing the
+same fields) into the Gutenberg attachment shape core blocks consume:
+
+```php
+use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
+
+$attachment = app(GutenbergAttachmentAdapter::class)
+    ->toGutenberg($post->featured_image);
+// ['id' => …, 'url' => …, 'alt' => …, 'caption' => …,
+//  'mime' => …, 'media_type' => …, 'width' => …, 'height' => …,
+//  'filename' => …, 'sizes' => …]
+```
+
+Hydrate the `FeaturedImageValue` prop passed to `<x-visual-editor>`
+through this adapter so the Featured Image panel renders with the
+correct shape on first paint — no REST round-trip needed. Rebind the
+class in the container to customise the output (e.g. to append host-
+specific fields).
+
+The `config/visual-editor.php` key `media.adapter` records the adapter
+class name and `media.bridge` records the active JS bridge (defaults to
+`artisanpack-ui/media-library`). Both keys are informational — the
+active bridge is whichever component the host passes to
+`registerMediaBridge` / `registerArtisanpackMediaBridge`.
+
 ## Branching
 
 - **Integration branch**: `release/1.0`. Every M1–M15 feature branch cuts from here and opens a draft PR back into it.

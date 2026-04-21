@@ -162,7 +162,7 @@ function notifyUnconfigured(): void {
     // eslint-disable-next-line no-alert -- intentional operator-facing fallback.
     window.alert(
         __(
-            'Media picker is not configured. Call registerMediaBridge() with MediaModal and uploadMedia from artisanpack-ui/media-library.',
+            'Media picker is not configured. Call registerArtisanpackMediaBridge() with MediaModal and uploadMedia from artisanpack-ui/media-library, or registerMediaBridge() with a custom picker.',
             TEXT_DOMAIN
         )
     );
