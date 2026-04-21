@@ -108,20 +108,32 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
-	| Media adapter
+	| Media bridge
 	|--------------------------------------------------------------------------
 	|
-	| Reserved for a future server-side adapter binding. The M4 media bridge
-	| (#314) wires `artisanpack-ui/media-library` into the editor entirely on
-	| the client: the host app calls `registerMediaBridge(...)` from
-	| `@artisanpack-ui/visual-editor` with `MediaModal` and `uploadMedia`
-	| before `bootVisualEditor()`. Leaving this key in place for apps that
-	| bind their own adapter via a container binding keyed on this value.
+	| The editor's media picker and upload plumbing route to whatever media
+	| library the host application provides. The default integration is
+	| `artisanpack-ui/media-library`: the host calls `registerMediaBridge`
+	| with `MediaModal` and `uploadMedia` before `bootVisualEditor`. Any
+	| library that exposes an equivalent picker component (props:
+	| `open`, `onClose`, `onSelect`, `multiSelect`, `allowedTypes`,
+	| `context`, `title`) and upload function (`(file, metadata?) =>
+	| Promise<{ data: Media } | Media>`) can be swapped in — the
+	| `media.bridge` key below records the active choice so server-side
+	| code (for example the Featured Image hydration path) can pick the
+	| matching PHP adapter from the container.
+	|
+	| Server-side record conversion is delegated to
+	| `ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter`.
+	| Rebind that class in the container to override the Gutenberg shape
+	| emitted by `toGutenberg()`; the default implementation duck-types
+	| the `artisanpack-ui/media-library` Media model.
 	|
 	*/
 
 	'media' => [
-		'adapter' => 'null',
+		'bridge'  => 'artisanpack-ui/media-library',
+		'adapter' => \ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter::class,
 	],
 
 	/*
