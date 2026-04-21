@@ -91,7 +91,7 @@ vi.mock('@wordpress/block-editor', () => ({
                         type="button"
                         data-testid="list-view-row"
                         draggable
-                        onClick={() =>
+                        onDragStart={() =>
                             reorders.push({
                                 clientId: 'block-1',
                                 direction: 'up',
@@ -291,7 +291,7 @@ describe('<BlockLibrarySidebar />', () => {
     it('forwards a drag interaction on the list view to the block-editor store', () => {
         renderSidebar({ initialTab: 'layouts' });
 
-        fireEvent.click(screen.getByTestId('list-view-row'));
+        fireEvent.dragStart(screen.getByTestId('list-view-row'));
 
         expect(reorders).toEqual([
             { clientId: 'block-1', direction: 'up' },

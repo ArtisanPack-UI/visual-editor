@@ -685,12 +685,12 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                         onChange={handleChange}
                     >
                         {inserterOpen ? (
-                            <aside
+                            <div
                                 className="ap-visual-editor__sidebar ap-visual-editor__sidebar--inserter"
                                 data-testid="ap-visual-editor-inserter-panel"
                             >
                                 <BlockLibrarySidebar />
-                            </aside>
+                            </div>
                         ) : null}
                         <div className="editor-styles-wrapper ap-visual-editor__canvas">
                             <PostTitle value={title} onChange={handleTitleChange} />
