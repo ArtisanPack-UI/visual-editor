@@ -139,10 +139,20 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
         element.dataset.featuredImage,
         'data-featured-image'
     );
-    const authorOptions = parseJsonDataset<ReadonlyArray<AuthorOption>>(
+    // `parseJsonDataset` returns whatever the JSON resolves to, so a host
+    // mis-emitting an object (or a primitive) as `data-author-options`
+    // would otherwise crash `normalizeAuthorId`'s `.find` / the
+    // SelectControl props builder. Fall back to null when the parsed
+    // value isn't an array.
+    const parsedAuthorOptions = parseJsonDataset<unknown>(
         element.dataset.authorOptions,
         'data-author-options'
     );
+    const authorOptions: ReadonlyArray<AuthorOption> | null = Array.isArray(
+        parsedAuthorOptions
+    )
+        ? (parsedAuthorOptions as ReadonlyArray<AuthorOption>)
+        : null;
     const supports = parseJsonDataset<DocumentSupports>(
         element.dataset.supports,
         'data-supports'

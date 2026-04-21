@@ -46,4 +46,14 @@ describe('normalizeAuthorId', () => {
 
         expect(result).toBe(99);
     });
+
+    it('tolerates a non-array `authorOptions` without throwing', () => {
+        // Guards the readMountConfig call site: parseJsonDataset returns
+        // whatever the JSON resolves to, so a malformed data-author-options
+        // could be `null`, an object, or a primitive. The Array.isArray
+        // check up there funnels non-arrays into `null`; make sure
+        // normalizeAuthorId also doesn't trip on the nullish case.
+        expect(normalizeAuthorId('42', null)).toBe(42);
+        expect(normalizeAuthorId('', null)).toBeUndefined();
+    });
 });

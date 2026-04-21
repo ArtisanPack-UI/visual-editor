@@ -143,9 +143,18 @@ export function getFilteredDocumentPanels(): DocumentPanelSpec[] {
     // duplicate React keys and render the panel twice. Last-wins policy
     // mirrors how `@wordpress/hooks` itself composes filters: a later
     // `addFilter` overrides an earlier one at the same priority.
+    //
+    // `Map#set` on an existing key updates the value but keeps the
+    // original insertion position. We want the *later* panel to appear
+    // at its later position (so ordering reflects the most recent
+    // registration), so delete-then-reinsert when the key already
+    // exists.
     const deduped = new Map<string, DocumentPanelSpec>();
 
     for (const panel of sorted) {
+        if (deduped.has(panel.id)) {
+            deduped.delete(panel.id);
+        }
         deduped.set(panel.id, panel);
     }
 

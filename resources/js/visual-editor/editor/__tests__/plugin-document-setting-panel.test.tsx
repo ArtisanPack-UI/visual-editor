@@ -73,7 +73,7 @@ describe('getFilteredDocumentPanels', () => {
         expect(panels[0].id).toBe('test/good');
     });
 
-    it('deduplicates panels by id with last-wins policy', () => {
+    it('deduplicates panels by id with last-wins policy, including position', () => {
         addFilter(DOCUMENT_PANELS_FILTER, 'test/dup', (panels) => [
             ...panels,
             { id: 'shared', title: 'First', render: () => 'first' },
@@ -85,8 +85,13 @@ describe('getFilteredDocumentPanels', () => {
 
         expect(panels).toHaveLength(2);
 
-        const shared = panels.find((panel) => panel.id === 'shared');
-        expect(shared?.title).toBe('Second');
+        // The later 'shared' wins AND takes the later position — the
+        // earlier instance is completely replaced rather than just
+        // having its value overwritten in place.
+        expect(panels.map((panel) => panel.id)).toEqual(['unique', 'shared']);
+        expect(panels.find((panel) => panel.id === 'shared')?.title).toBe(
+            'Second'
+        );
     });
 });
 
