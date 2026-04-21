@@ -2,6 +2,7 @@
 
 namespace ArtisanPackUI\VisualEditor;
 
+use ArtisanPackUI\VisualEditor\Console\Commands\SeedSampleContentCommand;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
@@ -96,6 +97,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 			$this->publishes( [
 								  __DIR__ . '/../config/visual-editor.php' => config_path( 'artisanpack/visual-editor.php' ),
 							  ], 'artisanpack-package-config' );
+
+			$this->commands( [
+				SeedSampleContentCommand::class,
+			] );
 		}
 	}
 

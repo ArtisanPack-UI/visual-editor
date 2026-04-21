@@ -1,0 +1,45 @@
+{
+    "id": 22,
+    "slug": "nested-nav",
+    "title": { "rendered": "Nested" },
+    "content": {
+        "raw": "<!-- wp:navigation-link {\"label\":\"Home\",\"url\":\"/\"} /--><!-- wp:navigation-submenu {\"label\":\"Products\",\"url\":\"/products\"} --><!-- wp:navigation-link {\"label\":\"Featured\",\"url\":\"/products/featured\"} /--><!-- wp:navigation-link {\"label\":\"New\",\"url\":\"/products/new\"} /--><!-- /wp:navigation-submenu --><!-- wp:navigation-link {\"label\":\"Contact\",\"url\":\"/contact\"} /-->",
+        "blocks": [
+            {
+                "name": "core/navigation-link",
+                "attributes": { "label": "Home", "url": "/" },
+                "innerBlocks": []
+            },
+            {
+                "name": "core/navigation-submenu",
+                "attributes": { "label": "Products", "url": "/products" },
+                "innerBlocks": [
+                    {
+                        "name": "core/navigation-link",
+                        "attributes": {
+                            "label": "Featured",
+                            "url": "/products/featured"
+                        },
+                        "innerBlocks": []
+                    },
+                    {
+                        "name": "core/navigation-link",
+                        "attributes": {
+                            "label": "New",
+                            "url": "/products/new"
+                        },
+                        "innerBlocks": []
+                    }
+                ]
+            },
+            {
+                "name": "core/navigation-link",
+                "attributes": { "label": "Contact", "url": "/contact" },
+                "innerBlocks": []
+            }
+        ]
+    },
+    "status": "publish",
+    "menu_order": 2,
+    "type": "wp_navigation"
+}

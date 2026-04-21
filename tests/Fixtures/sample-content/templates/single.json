@@ -1,0 +1,50 @@
+{
+    "id": 1,
+    "slug": "single",
+    "title": { "rendered": "Single Post" },
+    "description": "Fallback template used for individual posts.",
+    "content": {
+        "raw": "<!-- wp:template-part {\"slug\":\"header\",\"theme\":\"artisanpack-base\"} /--><!-- wp:group {\"tagName\":\"main\",\"layout\":{\"type\":\"constrained\"}} --><main class=\"wp-block-group\"><!-- wp:post-title {\"level\":1} /--><!-- wp:post-featured-image /--><!-- wp:post-content /--></main><!-- /wp:group --><!-- wp:template-part {\"slug\":\"footer\",\"theme\":\"artisanpack-base\"} /-->",
+        "blocks": [
+            {
+                "name": "core/template-part",
+                "attributes": { "slug": "header", "theme": "artisanpack-base" },
+                "innerBlocks": []
+            },
+            {
+                "name": "core/group",
+                "attributes": {
+                    "tagName": "main",
+                    "layout": { "type": "constrained" }
+                },
+                "innerBlocks": [
+                    {
+                        "name": "core/post-title",
+                        "attributes": { "level": 1 },
+                        "innerBlocks": []
+                    },
+                    {
+                        "name": "core/post-featured-image",
+                        "attributes": {},
+                        "innerBlocks": []
+                    },
+                    {
+                        "name": "core/post-content",
+                        "attributes": {},
+                        "innerBlocks": []
+                    }
+                ]
+            },
+            {
+                "name": "core/template-part",
+                "attributes": { "slug": "footer", "theme": "artisanpack-base" },
+                "innerBlocks": []
+            }
+        ]
+    },
+    "status": "publish",
+    "theme": "artisanpack-base",
+    "type": "wp_template",
+    "source": "theme",
+    "origin": "theme"
+}

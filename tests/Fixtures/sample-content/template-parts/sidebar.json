@@ -1,0 +1,32 @@
+{
+    "id": 12,
+    "slug": "sidebar",
+    "title": { "rendered": "Sidebar" },
+    "content": {
+        "raw": "<!-- wp:group {\"tagName\":\"aside\",\"layout\":{\"type\":\"constrained\"}} --><aside class=\"wp-block-group\"><!-- wp:heading {\"level\":2} --><h2>Section title</h2><!-- /wp:heading --><!-- wp:paragraph --><p>Body content here.</p><!-- /wp:paragraph --></aside><!-- /wp:group -->",
+        "blocks": [
+            {
+                "name": "core/group",
+                "attributes": {
+                    "tagName": "aside",
+                    "layout": { "type": "constrained" }
+                },
+                "innerBlocks": [
+                    {
+                        "name": "core/heading",
+                        "attributes": { "level": 2, "content": "Section title" },
+                        "innerBlocks": []
+                    },
+                    {
+                        "name": "core/paragraph",
+                        "attributes": { "content": "Body content here." },
+                        "innerBlocks": []
+                    }
+                ]
+            }
+        ]
+    },
+    "area": "sidebar",
+    "theme": "artisanpack-base",
+    "type": "wp_template_part"
+}
