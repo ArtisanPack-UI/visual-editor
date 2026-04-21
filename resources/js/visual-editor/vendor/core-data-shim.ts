@@ -474,21 +474,39 @@ function reducer(
                 receivedIds.push(id);
             }
 
-            const nextQueries = { ...bag.queries };
-            const nextQueryMeta = { ...bag.queryMeta };
+            // `query === undefined` = save-path / single-record fetch.
+            // Drop every cached filter query for this entity: we can't
+            // know whether the new/updated record still matches any of
+            // those filters, so the safe move is to invalidate them and
+            // force a refetch on next list render. The live `items` bag
+            // is still authoritative for `getEntityRecords` with no
+            // query, so creates/updates show up immediately there.
+            //
+            // `query !== undefined` = list-fetch. Cache the received
+            // ids under the query's stable signature, and let sibling
+            // query caches stay untouched.
+            let nextQueries: Record<string, readonly EntityKey[]>;
+            let nextQueryMeta: Record<
+                string,
+                { totalItems: number; totalPages: number }
+            >;
 
-            // `query === undefined` means a single-record fetch just landed,
-            // so only the `items` map needs updating. `query === null` (or
-            // `{}`) is the callers' "I fetched the whole list" signal and
-            // caches under the empty-string slot; a real filter query
-            // caches under its stable signature.
-            if (action.query !== undefined) {
+            if (action.query === undefined) {
+                nextQueries = {};
+                nextQueryMeta = {};
+            } else {
                 const qKey = queryKey(action.query);
 
-                nextQueries[qKey] = Object.freeze(receivedIds);
-                nextQueryMeta[qKey] = {
-                    totalItems: action.totalItems ?? receivedIds.length,
-                    totalPages: action.totalPages ?? 1,
+                nextQueries = {
+                    ...bag.queries,
+                    [qKey]: Object.freeze(receivedIds),
+                };
+                nextQueryMeta = {
+                    ...bag.queryMeta,
+                    [qKey]: {
+                        totalItems: action.totalItems ?? receivedIds.length,
+                        totalPages: action.totalPages ?? 1,
+                    },
                 };
             }
 
@@ -516,14 +534,10 @@ function reducer(
             const nextItems = { ...bag.items };
             delete nextItems[String(action.id)];
 
-            const nextQueries: Record<string, readonly EntityKey[]> = {};
-
-            for (const [qKey, ids] of Object.entries(bag.queries)) {
-                nextQueries[qKey] = Object.freeze(
-                    ids.filter((existing) => String(existing) !== String(action.id)),
-                );
-            }
-
+            // A delete invalidates every cached filter query (the removed
+            // record might have filtered in or out of any of them) and
+            // their totals (`totalItems` would otherwise return a stale
+            // pre-delete count). Drop both.
             const nextEdits = { ...(state.edits[key] ?? {}) };
             delete nextEdits[String(action.id)];
 
@@ -533,8 +547,8 @@ function reducer(
                     ...state.records,
                     [key]: {
                         items: nextItems,
-                        queries: nextQueries,
-                        queryMeta: bag.queryMeta,
+                        queries: {},
+                        queryMeta: {},
                     },
                 },
                 edits: {
@@ -670,29 +684,35 @@ function selectEntityRecords(
         return EMPTY_RECORDS;
     }
 
-    const qKey = queryKey(query);
-
     if (query === undefined) {
         return Object.values(bag.items);
     }
 
+    const qKey = queryKey(query);
     const ids = bag.queries[qKey];
 
-    if (!ids) {
-        return EMPTY_RECORDS;
-    }
+    if (ids) {
+        const records: EntityRecord[] = [];
 
-    const records: EntityRecord[] = [];
+        for (const id of ids) {
+            const record = bag.items[String(id)];
 
-    for (const id of ids) {
-        const record = bag.items[String(id)];
-
-        if (record !== undefined) {
-            records.push(record);
+            if (record !== undefined) {
+                records.push(record);
+            }
         }
+
+        return records;
     }
 
-    return records;
+    // No cached filter query. For the "fetched everything" slot
+    // (`null`/`{}`) fall back to the live items map so UIs pick up
+    // cache-invalidating saves/deletes without needing a refetch.
+    if (qKey === '') {
+        return Object.values(bag.items);
+    }
+
+    return EMPTY_RECORDS;
 }
 
 function selectEditsForRecord(
@@ -746,7 +766,24 @@ const selectors = {
     ): number => {
         const bag = state.records[entityKey(kind, name)];
 
-        return bag?.queryMeta[queryKey(query)]?.totalItems ?? 0;
+        if (!bag) {
+            return 0;
+        }
+
+        const qKey = queryKey(query);
+        const meta = bag.queryMeta[qKey];
+
+        if (meta) {
+            return meta.totalItems;
+        }
+
+        // Fall back to the live items map for the "everything" slot so
+        // the count reflects saves/deletes after query caches are cleared.
+        if (qKey === '') {
+            return Object.keys(bag.items).length;
+        }
+
+        return 0;
     },
 
     getEntityRecordsTotalPages: (
@@ -757,7 +794,22 @@ const selectors = {
     ): number => {
         const bag = state.records[entityKey(kind, name)];
 
-        return bag?.queryMeta[queryKey(query)]?.totalPages ?? 0;
+        if (!bag) {
+            return 0;
+        }
+
+        const qKey = queryKey(query);
+        const meta = bag.queryMeta[qKey];
+
+        if (meta) {
+            return meta.totalPages;
+        }
+
+        if (qKey === '') {
+            return Object.keys(bag.items).length > 0 ? 1 : 0;
+        }
+
+        return 0;
     },
 
     getEditedEntityRecord: (
@@ -1163,6 +1215,11 @@ const actions = {
      * PUTs the edited record (base + edits) back to the server, then
      * clears the edits bag on success. Leaves the edits intact on failure
      * so the UI can retry.
+     *
+     * The key field is pinned onto the payload explicitly: edits staged
+     * before the base record was ever cached would otherwise produce a
+     * key-less payload, which `saveEntityRecord` would mis-route to
+     * `POST` (create) instead of `PUT` (update).
      */
     saveEditedEntityRecord:
         (kind: EntityKind, name: EntityName, id: EntityKey) =>
@@ -1173,7 +1230,12 @@ const actions = {
                 return null;
             }
 
-            const saved = await actions.saveEntityRecord(kind, name, edited)({
+            const config = select.getEntityConfig(kind, name);
+            const payload: EntityRecord = config
+                ? { ...edited, [config.key]: id }
+                : edited;
+
+            const saved = await actions.saveEntityRecord(kind, name, payload)({
                 dispatch,
                 select,
             });

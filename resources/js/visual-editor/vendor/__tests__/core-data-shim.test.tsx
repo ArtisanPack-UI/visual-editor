@@ -351,6 +351,89 @@ describe('core-data-shim fetch → cache', () => {
     });
 });
 
+describe('core-data-shim list-cache invalidation', () => {
+    it('drops filter-query caches when a save-path receive fires', async () => {
+        coreDispatch().receiveEntityRecords(
+            'postType',
+            'wp_template',
+            [
+                { id: 1, slug: 'one' },
+                { id: 2, slug: 'two' },
+            ],
+            { status: 'publish' },
+            2,
+            1,
+        );
+
+        // Filter-query slot is populated.
+        expect(
+            coreSelect().getEntityRecords('postType', 'wp_template', {
+                status: 'publish',
+            }),
+        ).toHaveLength(2);
+
+        // A save-path receive (no query) lands.
+        coreDispatch().receiveEntityRecords('postType', 'wp_template', [
+            { id: 3, slug: 'three' },
+        ]);
+
+        // Filter-query slot is invalidated — next list render must
+        // refetch before showing a filtered view.
+        expect(
+            coreSelect().getEntityRecords('postType', 'wp_template', {
+                status: 'publish',
+            }),
+        ).toEqual([]);
+
+        // But `getEntityRecords(..., null)` still returns the live items
+        // (1, 2, 3) because the empty-slot falls back to `items`.
+        expect(
+            coreSelect().getEntityRecords('postType', 'wp_template', null),
+        ).toHaveLength(3);
+        expect(
+            coreSelect().getEntityRecordsTotalItems(
+                'postType',
+                'wp_template',
+                null,
+            ),
+        ).toBe(3);
+    });
+
+    it('drops query caches and refreshes totals after delete', async () => {
+        coreDispatch().receiveEntityRecords(
+            'postType',
+            'wp_block',
+            [
+                { id: 1, slug: 'one' },
+                { id: 2, slug: 'two' },
+            ],
+            null,
+            12,
+            3,
+        );
+
+        expect(
+            coreSelect().getEntityRecordsTotalItems('postType', 'wp_block', null),
+        ).toBe(12);
+
+        const { fetcher } = mockFetcher(
+            async () => new Response(null, { status: 204 }),
+        );
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        await coreDispatch().deleteEntityRecord('postType', 'wp_block', 1);
+
+        // Total is recomputed from live items — stale "12" no longer shown.
+        expect(
+            coreSelect().getEntityRecordsTotalItems('postType', 'wp_block', null),
+        ).toBe(1);
+        expect(
+            coreSelect().getEntityRecords('postType', 'wp_block', null),
+        ).toHaveLength(1);
+    });
+});
+
 describe('core-data-shim save round-trip', () => {
     it('POSTs a new record and caches the response', async () => {
         const { fetcher, calls } = mockFetcher(async (_url, init) => {
@@ -410,6 +493,34 @@ describe('core-data-shim save round-trip', () => {
         expect(
             coreSelect().getEntityRecord('postType', 'wp_template', 3),
         ).toEqual({ id: 3, slug: 'page', title: 'Updated' });
+    });
+
+    it('saveEditedEntityRecord PUTs even when no base record is cached', async () => {
+        // Stage edits for a record that was never fetched — covers the
+        // case where the UI is editing an id it knows by reference only.
+        coreDispatch().editEntityRecord('postType', 'wp_template', 8, {
+            title: 'Created from edits',
+        });
+
+        const { fetcher, calls } = mockFetcher(async (_url, init) => {
+            expect(init.method).toBe('PUT');
+            const body = JSON.parse(init.body as string) as EntityRecord;
+
+            expect(body).toEqual({ id: 8, title: 'Created from edits' });
+
+            return jsonResponse({ id: 8, title: 'Created from edits' });
+        });
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        const saved = await coreDispatch().saveEditedEntityRecord(
+            'postType',
+            'wp_template',
+            8,
+        );
+
+        expect(saved).not.toBeNull();
+        expect(calls[0]?.url).toBe('/api/templates/8');
     });
 
     it('retains edits when the save fails', async () => {
