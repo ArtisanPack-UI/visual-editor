@@ -43,13 +43,13 @@
     flex: 0 0 auto;
     width: 1.5rem;
     height: 1.5rem;
-    color: var(--ap-callout-accent, currentColor);
+    color: var(--ap-callout-accent, currentcolor);
 }
 
 .ap-callout__icon svg {
     width: 100%;
     height: 100%;
-    fill: currentColor;
+    fill: currentcolor;
 }
 
 .ap-callout__body {

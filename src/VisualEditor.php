@@ -74,13 +74,28 @@ class VisualEditor
 	{
 		$metadata = $this->resolveBlockMetadata( $source );
 
-		if ( ! isset( $metadata['name'] ) || ! is_string( $metadata['name'] ) || '' === trim( $metadata['name'] ) ) {
+		if ( ! isset( $metadata['name'] ) || ! is_string( $metadata['name'] ) ) {
 			throw new InvalidArgumentException(
 				'Block metadata is missing a non-empty "name" field.'
 			);
 		}
 
-		$this->registry->register( $metadata['name'], $metadata );
+		$normalizedName = trim( $metadata['name'] );
+
+		if ( '' === $normalizedName ) {
+			throw new InvalidArgumentException(
+				'Block metadata is missing a non-empty "name" field.'
+			);
+		}
+
+		// Store the trimmed name back into the metadata array so the
+		// registry ends up with a canonical value in both the key and
+		// the definition's own `name` field. Format validation
+		// (namespace/name, lowercase, hyphens) is enforced by
+		// {@see BlockTypeRegistry::register()}.
+		$metadata['name'] = $normalizedName;
+
+		$this->registry->register( $normalizedName, $metadata );
 	}
 
 	/**

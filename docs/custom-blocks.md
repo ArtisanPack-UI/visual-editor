@@ -20,7 +20,7 @@ covered here — that's tracked separately under issue #331 and lands in V2.
 Custom blocks live under
 `resources/js/visual-editor/blocks/{block-name}/` with this layout:
 
-```
+```text
 resources/js/visual-editor/blocks/
 └── callout/
     ├── block.json          ← metadata (Gutenberg schema)
@@ -240,7 +240,7 @@ matching partial in every renderer you plan to use.
 `visual-editor-renderer-blade::blocks.{namespace}.{block}`. Add a
 partial at:
 
-```
+```text
 packages/visual-editor-renderer-blade/resources/views/blocks/artisanpack/callout.blade.php
 ```
 
@@ -266,7 +266,7 @@ Host apps can override any core or custom partial by publishing
 `artisanpack-ui/visual-editor-renderer-react` holds a module-level
 registry keyed by block name. Create a renderer component:
 
-```
+```text
 packages/visual-editor-renderer-react/src/blocks/artisanpack/callout.tsx
 ```
 
@@ -289,7 +289,7 @@ for safe coercion.
 Identical pattern to React, using `defineComponent` and
 `blockRendererProps`:
 
-```
+```text
 packages/visual-editor-renderer-vue/src/blocks/artisanpack/callout.ts
 ```
 

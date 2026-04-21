@@ -26,12 +26,7 @@
         }
     },
     "supports": {
-        "anchor": true,
         "className": true,
-        "html": false,
-        "spacing": {
-            "margin": true,
-            "padding": true
-        }
+        "html": false
     }
 }

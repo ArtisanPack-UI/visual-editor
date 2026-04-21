@@ -166,13 +166,32 @@ export function discoverAndRegisterCustomBlocks(): ReadonlyArray<string> {
     return registerCustomBlocks(discovered);
 }
 
+function hasBlockShape(value: unknown): value is GlobbedModule {
+    if (value === null || value === undefined || typeof value !== 'object') {
+        return false;
+    }
+
+    const candidate = value as GlobbedModule;
+    const metadata = candidate.metadata;
+
+    return (
+        metadata !== null &&
+        metadata !== undefined &&
+        typeof metadata === 'object' &&
+        typeof (metadata as { name?: unknown }).name === 'string' &&
+        typeof candidate.edit === 'function'
+    );
+}
+
 function resolveCustomBlockModule(module: GlobbedModule): CustomBlockModule | null {
-    const candidate =
-        module.default !== undefined &&
-        module.default !== null &&
-        typeof module.default === 'object'
-            ? (module.default as GlobbedModule)
-            : module;
+    // Prefer the `default` export only when it actually looks like a
+    // block module (has the metadata + edit shape). Otherwise fall back
+    // to the named exports on `module` itself — a default export that's
+    // unrelated (e.g. a helper object) shouldn't shadow valid named
+    // exports.
+    const candidate: GlobbedModule = hasBlockShape(module.default)
+        ? (module.default as GlobbedModule)
+        : module;
 
     const metadata = candidate.metadata;
 
