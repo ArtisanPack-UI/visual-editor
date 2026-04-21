@@ -1,0 +1,59 @@
+/**
+ * Callout block styles.
+ *
+ * Loaded in the editor via `blocks/callout/index.ts` so authors see the
+ * block chromed; host apps are expected to reuse these rules (or a
+ * compatible override) on the public frontend. Values use CSS variables
+ * so DaisyUI themes and host-app theming can swap colors without
+ * patching the block.
+ */
+
+.ap-callout {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+    padding: 1rem 1.25rem;
+    border-radius: 0.5rem;
+    border-left: 4px solid var(--ap-callout-accent, #3b82f6);
+    background: var(--ap-callout-surface, rgba(59, 130, 246, 0.08));
+    color: var(--ap-callout-color, inherit);
+}
+
+.ap-callout--info {
+    --ap-callout-accent: #3b82f6;
+    --ap-callout-surface: rgba(59, 130, 246, 0.08);
+}
+
+.ap-callout--success {
+    --ap-callout-accent: #16a34a;
+    --ap-callout-surface: rgba(22, 163, 74, 0.08);
+}
+
+.ap-callout--warning {
+    --ap-callout-accent: #d97706;
+    --ap-callout-surface: rgba(217, 119, 6, 0.08);
+}
+
+.ap-callout--error {
+    --ap-callout-accent: #dc2626;
+    --ap-callout-surface: rgba(220, 38, 38, 0.08);
+}
+
+.ap-callout__icon {
+    flex: 0 0 auto;
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--ap-callout-accent, currentcolor);
+}
+
+.ap-callout__icon svg {
+    width: 100%;
+    height: 100%;
+    fill: currentcolor;
+}
+
+.ap-callout__body {
+    flex: 1 1 auto;
+    min-width: 0;
+    line-height: 1.5;
+}

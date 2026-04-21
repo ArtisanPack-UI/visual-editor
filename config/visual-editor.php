@@ -84,6 +84,7 @@ return [
 		'core/details',
 		'core/search',
 		'core/latest-posts',
+		'artisanpack/callout',
 	],
 
 	'disabled_blocks' => [

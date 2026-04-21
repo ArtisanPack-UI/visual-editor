@@ -42,6 +42,7 @@ import {
 } from '../media-bridge';
 
 import { BlockLibrarySidebar } from './block-library-sidebar';
+import { discoverAndRegisterCustomBlocks } from './custom-blocks';
 import {
     DocumentPanels,
     type AuthorOption,
@@ -149,6 +150,12 @@ function registerOnce(): void {
     // already-registered blocks with the default (buggy) checker on.
     disableContrastCheckerOnBlocks();
     registerCoreBlocks();
+    // Discover host-app custom blocks under
+    // `resources/js/visual-editor/blocks/{block-name}/index.ts` and
+    // register them plus the `artisanpack` category. Runs after
+    // `registerCoreBlocks` so custom-block category registration sees
+    // the full core category list.
+    discoverAndRegisterCustomBlocks();
     blocksRegistered = true;
 }
 
