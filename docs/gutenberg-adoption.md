@@ -126,10 +126,23 @@ the published source tree, not a separate package.
 
 ### Swapping in a different media library
 
-Any picker component that accepts the bridge props — `open`, `onClose`,
-`onSelect(media, context)`, `multiSelect`, `allowedTypes`, `context`,
-`title` — can replace the default. Pair it with an `uploadMedia`
-function that resolves with `{ data: Media } | Media`:
+Any picker component that accepts the bridge props can replace the
+default. The exact contracts (defined in `media-bridge/types.ts`):
+
+- **Picker props** — `open: boolean`, `onClose: () => void`,
+  `onSelect: (media: Media[], context: string) => void`, optional
+  `multiSelect`, `allowedTypes`, `context`, `title`. `onSelect` always
+  receives an **array** regardless of `multiSelect`; the `multiSelect`
+  flag is a hint the picker uses to gate its own multi-select UI. The
+  editor's slot-fill (`MediaUploadBridge`) is responsible for
+  collapsing a single-element array into a scalar before handing off
+  to Gutenberg when the calling block is single-select.
+- **`uploadMedia`** — `(file: File, metadata?, onProgress?) =>
+  Promise<{ data: Media } | Media>`. Always per-file; the bridge
+  parallelises across multiple files via `Promise.all` when the user
+  drops several at once, so implementations only need to handle one
+  file per call. The wrapper accepts both the API-resource shape
+  (`{ data: Media }`) and a bare `Media` and unwraps accordingly.
 
 ```ts
 import { registerMediaBridge } from '@artisanpack-ui/visual-editor';

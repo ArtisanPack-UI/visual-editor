@@ -36,7 +36,7 @@
     "orchestra/testbench": "^10.2"
   },
   "suggest": {
-    "artisanpack-ui/media-library": "^1.2 — Default media library integration. Wire MediaModal + uploadMedia through registerArtisanpackMediaBridge() in the editor bootstrap to power Gutenberg's media picker and upload flows."
+    "artisanpack-ui/media-library": "Recommended ^1.2 — default media library integration. Wire MediaModal + uploadMedia through registerArtisanpackMediaBridge() in the editor bootstrap to power Gutenberg's media picker and upload flows. Not enforced by Composer; host apps are free to install a different library and register a custom bridge instead."
   },
   "scripts": {
     "test": "./vendor/bin/pest"
