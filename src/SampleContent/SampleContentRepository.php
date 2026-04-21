@@ -129,8 +129,14 @@ class SampleContentRepository
 	public function writeToDisk( Filesystem $disk, array $fixtures ): array
 	{
 		$root   = 'visual-editor/sample-content';
+		$plan   = [];
 		$counts = [];
 
+		// Validate + encode every record first so a malformed fixture
+		// aborts the seed before any existing directory is deleted.
+		// Otherwise a bad fixture partway through the loop would wipe
+		// the previously-seeded sample content and leave nothing to
+		// read back.
 		foreach ( self::ENTITY_MAP as $fragment => $identity ) {
 			$records = $fixtures[ $fragment ] ?? [];
 			$counts[ $fragment ] = 0;
@@ -142,24 +148,39 @@ class SampleContentRepository
 				$identity['name']
 			);
 
-			// Reset the entity directory so removed fixtures do not
-			// linger on disk after a seed. `deleteDirectory` is defined
-			// on the `Filesystem` contract, so every driver the host
-			// app might configure (local, s3, memory, …) supports it.
-			if ( $disk->exists( $entityPath ) ) {
-				$disk->deleteDirectory( $entityPath );
-			}
+			$plan[ $fragment ] = [
+				'entityPath' => $entityPath,
+				'writes'     => [],
+			];
 
 			foreach ( $records as $basename => $record ) {
 				$id     = $this->recordIdFor( $fragment, (string) $basename, $record );
 				$target = sprintf( '%s/%s.json', $entityPath, $id );
 
-				if ( ! $disk->put( $target, $this->encode( $record ) ) ) {
+				$plan[ $fragment ]['writes'][] = [
+					'id'      => $id,
+					'target'  => $target,
+					'payload' => $this->encode( $record ),
+				];
+			}
+		}
+
+		// With every fixture validated, it's safe to reset the entity
+		// directories and commit the writes. `deleteDirectory` is
+		// defined on the `Filesystem` contract, so every driver the
+		// host app might configure (local, s3, memory, …) supports it.
+		foreach ( $plan as $fragment => $entry ) {
+			if ( $disk->exists( $entry['entityPath'] ) ) {
+				$disk->deleteDirectory( $entry['entityPath'] );
+			}
+
+			foreach ( $entry['writes'] as $write ) {
+				if ( ! $disk->put( $write['target'], $write['payload'] ) ) {
 					throw new RuntimeException(
 						sprintf(
 							'Failed to write sample-content fixture %s (entity id %s).',
-							$target,
-							$id
+							$write['target'],
+							$write['id']
 						)
 					);
 				}

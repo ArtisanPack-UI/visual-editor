@@ -6,6 +6,11 @@ use ArtisanPackUI\VisualEditor\SampleContent\SampleContentRepository;
 use Illuminate\Support\Facades\Storage;
 
 beforeEach( function (): void {
+	// Pin the default disk so `Storage::fake('local')` is the disk
+	// the command resolves via `config('filesystems.default')`,
+	// regardless of what Testbench (or a future host app config)
+	// ships as its default.
+	config( [ 'filesystems.default' => 'local' ] );
 	Storage::fake( 'local' );
 } );
 
@@ -177,6 +182,53 @@ it( 'rejects string ids that would escape the sample-content directory', functio
 	unlink( $fixturesDir . '/templates/traversal.json' );
 	rmdir( $fixturesDir . '/templates' );
 	rmdir( $fixturesDir );
+} );
+
+it( 'preserves previously-seeded content when a later fixture fails validation', function (): void {
+	// First seed: a single valid fixture so the disk has known state.
+	$goodDir = sys_get_temp_dir() . '/visual-editor-b2-good-' . uniqid();
+	mkdir( $goodDir . '/templates', 0o777, true );
+	file_put_contents(
+		$goodDir . '/templates/valid.json',
+		json_encode( [ 'id' => 555, 'slug' => 'valid', 'type' => 'wp_template' ] )
+	);
+
+	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $goodDir ] )
+		->assertSuccessful();
+
+	$targetPath = 'visual-editor/sample-content/postType/wp_template/555.json';
+	expect( Storage::disk( 'local' )->exists( $targetPath ) )->toBeTrue();
+
+	// Second seed: a new fixtures directory that mixes a valid
+	// record with one whose id would escape the sample-content root.
+	$mixedDir = sys_get_temp_dir() . '/visual-editor-b2-mixed-' . uniqid();
+	mkdir( $mixedDir . '/templates', 0o777, true );
+	file_put_contents(
+		$mixedDir . '/templates/fresh.json',
+		json_encode( [ 'id' => 777, 'slug' => 'fresh', 'type' => 'wp_template' ] )
+	);
+	file_put_contents(
+		$mixedDir . '/templates/broken.json',
+		json_encode( [ 'id' => '../escape', 'slug' => 'broken' ] )
+	);
+
+	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $mixedDir ] )
+		->assertFailed();
+
+	// The previously-seeded record must still be on disk and the
+	// half-seeded "fresh" record must NOT have been written.
+	expect( Storage::disk( 'local' )->exists( $targetPath ) )->toBeTrue();
+	expect(
+		Storage::disk( 'local' )->exists( 'visual-editor/sample-content/postType/wp_template/777.json' )
+	)->toBeFalse();
+
+	unlink( $goodDir . '/templates/valid.json' );
+	rmdir( $goodDir . '/templates' );
+	rmdir( $goodDir );
+	unlink( $mixedDir . '/templates/fresh.json' );
+	unlink( $mixedDir . '/templates/broken.json' );
+	rmdir( $mixedDir . '/templates' );
+	rmdir( $mixedDir );
 } );
 
 it( 'rejects fixture files whose top-level JSON is a list rather than an object', function (): void {
