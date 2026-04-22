@@ -1,0 +1,50 @@
+{
+    "id": 32,
+    "slug": "call-out-pair",
+    "title": { "rendered": "Call-out pair" },
+    "content": {
+        "raw": "<!-- wp:columns --><div class=\"wp-block-columns\"><!-- wp:column --><div class=\"wp-block-column\"><!-- wp:artisanpack/callout {\"tone\":\"info\",\"title\":\"Section title\",\"body\":\"Body content here.\"} --><div class=\"wp-block-artisanpack-callout\"><p>Section title</p><p>Body content here.</p></div><!-- /wp:artisanpack/callout --></div><!-- /wp:column --><!-- wp:column --><div class=\"wp-block-column\"><!-- wp:artisanpack/callout {\"tone\":\"success\",\"title\":\"Section title\",\"body\":\"Body content here.\"} --><div class=\"wp-block-artisanpack-callout\"><p>Section title</p><p>Body content here.</p></div><!-- /wp:artisanpack/callout --></div><!-- /wp:column --></div><!-- /wp:columns -->",
+        "blocks": [
+            {
+                "name": "core/columns",
+                "attributes": {},
+                "innerBlocks": [
+                    {
+                        "name": "core/column",
+                        "attributes": {},
+                        "innerBlocks": [
+                            {
+                                "name": "artisanpack/callout",
+                                "attributes": {
+                                    "tone": "info",
+                                    "title": "Section title",
+                                    "body": "Body content here."
+                                },
+                                "innerBlocks": []
+                            }
+                        ]
+                    },
+                    {
+                        "name": "core/column",
+                        "attributes": {},
+                        "innerBlocks": [
+                            {
+                                "name": "artisanpack/callout",
+                                "attributes": {
+                                    "tone": "success",
+                                    "title": "Section title",
+                                    "body": "Body content here."
+                                },
+                                "innerBlocks": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "synced": false,
+    "categories": ["featured"],
+    "status": "publish",
+    "type": "wp_block"
+}

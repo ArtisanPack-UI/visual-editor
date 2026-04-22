@@ -1,0 +1,68 @@
+{
+    "id": 31,
+    "slug": "pricing-row",
+    "title": { "rendered": "Pricing row" },
+    "content": {
+        "raw": "<!-- wp:columns --><div class=\"wp-block-columns\"><!-- wp:column --><div class=\"wp-block-column\"><!-- wp:heading {\"level\":3} --><h3>Starter</h3><!-- /wp:heading --><!-- wp:paragraph --><p>Price placeholder</p><!-- /wp:paragraph --></div><!-- /wp:column --><!-- wp:column --><div class=\"wp-block-column\"><!-- wp:heading {\"level\":3} --><h3>Pro</h3><!-- /wp:heading --><!-- wp:paragraph --><p>Price placeholder</p><!-- /wp:paragraph --></div><!-- /wp:column --><!-- wp:column --><div class=\"wp-block-column\"><!-- wp:heading {\"level\":3} --><h3>Team</h3><!-- /wp:heading --><!-- wp:paragraph --><p>Price placeholder</p><!-- /wp:paragraph --></div><!-- /wp:column --></div><!-- /wp:columns -->",
+        "blocks": [
+            {
+                "name": "core/columns",
+                "attributes": {},
+                "innerBlocks": [
+                    {
+                        "name": "core/column",
+                        "attributes": {},
+                        "innerBlocks": [
+                            {
+                                "name": "core/heading",
+                                "attributes": { "level": 3, "content": "Starter" },
+                                "innerBlocks": []
+                            },
+                            {
+                                "name": "core/paragraph",
+                                "attributes": { "content": "Price placeholder" },
+                                "innerBlocks": []
+                            }
+                        ]
+                    },
+                    {
+                        "name": "core/column",
+                        "attributes": {},
+                        "innerBlocks": [
+                            {
+                                "name": "core/heading",
+                                "attributes": { "level": 3, "content": "Pro" },
+                                "innerBlocks": []
+                            },
+                            {
+                                "name": "core/paragraph",
+                                "attributes": { "content": "Price placeholder" },
+                                "innerBlocks": []
+                            }
+                        ]
+                    },
+                    {
+                        "name": "core/column",
+                        "attributes": {},
+                        "innerBlocks": [
+                            {
+                                "name": "core/heading",
+                                "attributes": { "level": 3, "content": "Team" },
+                                "innerBlocks": []
+                            },
+                            {
+                                "name": "core/paragraph",
+                                "attributes": { "content": "Price placeholder" },
+                                "innerBlocks": []
+                            }
+                        ]
+                    }
+                ]
+            }
+        ]
+    },
+    "synced": false,
+    "categories": ["pricing"],
+    "status": "publish",
+    "type": "wp_block"
+}

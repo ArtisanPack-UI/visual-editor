@@ -1,0 +1,47 @@
+{
+    "id": 4,
+    "slug": "404",
+    "title": { "rendered": "404" },
+    "description": "Not-found template shown when the requested URL has no matching record.",
+    "content": {
+        "raw": "<!-- wp:template-part {\"slug\":\"header\",\"theme\":\"artisanpack-base\"} /--><!-- wp:group {\"tagName\":\"main\",\"layout\":{\"type\":\"constrained\"}} --><main class=\"wp-block-group\"><!-- wp:heading {\"level\":1} --><h1>Page not found</h1><!-- /wp:heading --><!-- wp:paragraph --><p>The page you requested could not be located.</p><!-- /wp:paragraph --></main><!-- /wp:group --><!-- wp:template-part {\"slug\":\"footer\",\"theme\":\"artisanpack-base\"} /-->",
+        "blocks": [
+            {
+                "name": "core/template-part",
+                "attributes": { "slug": "header", "theme": "artisanpack-base" },
+                "innerBlocks": []
+            },
+            {
+                "name": "core/group",
+                "attributes": {
+                    "tagName": "main",
+                    "layout": { "type": "constrained" }
+                },
+                "innerBlocks": [
+                    {
+                        "name": "core/heading",
+                        "attributes": { "level": 1, "content": "Page not found" },
+                        "innerBlocks": []
+                    },
+                    {
+                        "name": "core/paragraph",
+                        "attributes": {
+                            "content": "The page you requested could not be located."
+                        },
+                        "innerBlocks": []
+                    }
+                ]
+            },
+            {
+                "name": "core/template-part",
+                "attributes": { "slug": "footer", "theme": "artisanpack-base" },
+                "innerBlocks": []
+            }
+        ]
+    },
+    "status": "publish",
+    "theme": "artisanpack-base",
+    "type": "wp_template",
+    "source": "theme",
+    "origin": "theme"
+}

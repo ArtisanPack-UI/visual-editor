@@ -167,4 +167,26 @@ return [
 		'restrict_by_owner' => false,
 	],
 
+	/*
+	|--------------------------------------------------------------------------
+	| Sample content
+	|--------------------------------------------------------------------------
+	|
+	| The `visual-editor:seed-sample-content` Artisan command loads fixtures
+	| for the five B1 shim entities (templates, template parts, navigation,
+	| patterns, global styles) and writes them to a storage disk so the dev
+	| app has something to render against before Phase C endpoints land.
+	|
+	| `fixtures_path` is an absolute directory path. When null, the command
+	| falls back to the package's own `tests/Fixtures/sample-content/`
+	| directory (only available while the package is installed from source,
+	| e.g. a path repository or cloned checkout). Host apps that want to
+	| vendor their own fixtures should point this at their own directory.
+	|
+	*/
+
+	'sample_content' => [
+		'fixtures_path' => null,
+	],
+
 ];
