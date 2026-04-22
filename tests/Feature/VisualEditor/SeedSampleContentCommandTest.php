@@ -231,6 +231,19 @@ it( 'preserves previously-seeded content when a later fixture fails validation',
 	rmdir( $mixedDir );
 } );
 
+it( 'rejects unsafe ids passed directly to readRecord()', function (): void {
+	$this->artisan( 'visual-editor:seed-sample-content' )->assertSuccessful();
+
+	$repository = app( SampleContentRepository::class );
+	$disk       = Storage::disk( 'local' );
+
+	expect( fn () => $repository->readRecord( $disk, 'templates', '../escape' ) )
+		->toThrow( \InvalidArgumentException::class, 'Unsafe sample-content id' );
+
+	// Integer ids and safe strings still resolve normally.
+	expect( $repository->readRecord( $disk, 'templates', 1 ) )->not->toBeNull();
+} );
+
 it( 'rejects fixture files whose top-level JSON is a list rather than an object', function (): void {
 	$fixturesDir = sys_get_temp_dir() . '/visual-editor-b2-fixtures-' . uniqid();
 	mkdir( $fixturesDir . '/templates', 0o777, true );

@@ -216,13 +216,15 @@ class SampleContentRepository
 			);
 		}
 
+		$safeId = $this->assertSafeId( $id );
+
 		$identity = self::ENTITY_MAP[ $fragment ];
 
 		$path = sprintf(
 			'visual-editor/sample-content/%s/%s/%s.json',
 			$identity['kind'],
 			$identity['name'],
-			$id
+			$safeId
 		);
 
 		if ( ! $disk->exists( $path ) ) {
@@ -296,7 +298,7 @@ class SampleContentRepository
 		}
 
 		if ( is_string( $id ) && '' !== $id ) {
-			if ( 1 !== preg_match( '/^[A-Za-z0-9._-]+$/', $id ) || str_contains( $id, '..' ) ) {
+			if ( ! $this->isSafeIdSegment( $id ) ) {
 				throw new RuntimeException(
 					sprintf(
 						'Sample-content fixture %s/%s.json has an unsafe id %s — ids must contain only letters, digits, dot, underscore, or hyphen, and no path-traversal segments.',
@@ -317,6 +319,42 @@ class SampleContentRepository
 				$basename
 			)
 		);
+	}
+
+	/**
+	 * Validates that `$id` is safe to use as a single path segment
+	 * and returns its string form. Non-integer string ids must match
+	 * the allowed character set and may not contain any `..` segment.
+	 *
+	 * @throws InvalidArgumentException If the id is blank or unsafe.
+	 */
+	protected function assertSafeId( int | string $id ): string
+	{
+		if ( is_int( $id ) ) {
+			return (string) $id;
+		}
+
+		if ( '' === $id || ! $this->isSafeIdSegment( $id ) ) {
+			throw new InvalidArgumentException(
+				sprintf(
+					'Unsafe sample-content id %s — ids must contain only letters, digits, dot, underscore, or hyphen, and no path-traversal segments.',
+					var_export( $id, true )
+				)
+			);
+		}
+
+		return $id;
+	}
+
+	/**
+	 * Whether `$id` is a single filename-safe path segment: ASCII
+	 * letters, digits, dot, underscore, hyphen; and no `..` anywhere
+	 * (which would otherwise satisfy the character class).
+	 */
+	protected function isSafeIdSegment( string $id ): bool
+	{
+		return 1 === preg_match( '/^[A-Za-z0-9._-]+$/', $id )
+			&& ! str_contains( $id, '..' );
 	}
 
 	/**
