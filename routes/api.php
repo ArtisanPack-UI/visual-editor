@@ -20,6 +20,7 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\GlobalStylesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\NavigationController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\PatternController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\TemplatePartController;
@@ -90,6 +91,22 @@ Route::get( 'global-styles/{globalStyle}', [ GlobalStylesController::class, 'sho
 
 Route::put( 'global-styles/{globalStyle}', [ GlobalStylesController::class, 'update' ] )
 	->name( 'visual-editor.api.global-styles.update' );
+
+// C5 `wp_block` REST surface — see docs/core-data-shim.md §Patterns.
+Route::get( 'patterns', [ PatternController::class, 'index' ] )
+	->name( 'visual-editor.api.patterns.index' );
+
+Route::post( 'patterns', [ PatternController::class, 'store' ] )
+	->name( 'visual-editor.api.patterns.store' );
+
+Route::get( 'patterns/{pattern}', [ PatternController::class, 'show' ] )
+	->name( 'visual-editor.api.patterns.show' );
+
+Route::put( 'patterns/{pattern}', [ PatternController::class, 'update' ] )
+	->name( 'visual-editor.api.patterns.update' );
+
+Route::delete( 'patterns/{pattern}', [ PatternController::class, 'destroy' ] )
+	->name( 'visual-editor.api.patterns.destroy' );
 
 // C4 `wp_navigation` REST surface — see docs/core-data-shim.md §Navigation.
 Route::get( 'navigation', [ NavigationController::class, 'index' ] )
