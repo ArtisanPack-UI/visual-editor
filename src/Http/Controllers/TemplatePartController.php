@@ -253,9 +253,12 @@ class TemplatePartController extends Controller
 	 * Recursively checks whether a parsed block tree contains a
 	 * `core/template-part` pointer matching the given slug + theme.
 	 *
-	 * Treats a missing `theme` attribute as a match when the part's own
-	 * theme is the default — the B2 fixtures always set `theme` on the
-	 * block, but older exports may omit it.
+	 * An empty/missing `theme` attribute on the block is treated as a
+	 * same-theme reference. The B2 fixtures always set `theme` on the
+	 * block, but older exports may omit it; since
+	 * {@see resolveReferencedBy()} only scans templates already filtered
+	 * to the target theme, an untagged reference inside one of those
+	 * templates can only resolve to a part in that same theme.
 	 *
 	 * @since 1.0.0
 	 *
@@ -275,7 +278,7 @@ class TemplatePartController extends Controller
 				$attributeSlug  = isset( $attributes['slug'] ) && is_string( $attributes['slug'] ) ? $attributes['slug'] : '';
 				$attributeTheme = isset( $attributes['theme'] ) && is_string( $attributes['theme'] ) ? $attributes['theme'] : '';
 
-				if ( $slug === $attributeSlug && $theme === $attributeTheme ) {
+				if ( $slug === $attributeSlug && ( '' === $attributeTheme || $theme === $attributeTheme ) ) {
 					return true;
 				}
 			}

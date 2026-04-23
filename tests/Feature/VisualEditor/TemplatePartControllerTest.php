@@ -198,6 +198,38 @@ it( 'detects references nested inside inner blocks', function () {
 		->assertJsonPath( 'referenced_by', [ 'single' ] );
 } );
 
+it( 'counts an untagged template-part block as a same-theme reference', function () {
+	actingAsTemplatePartUser();
+
+	$part = createTemplatePart( [ 'slug' => 'header', 'theme' => 'artisanpack-base' ] );
+
+	// Older export — `core/template-part` block references the slug but
+	// omits the `theme` attribute. Since the containing template is
+	// already in `artisanpack-base`, the reference resolves there.
+	VisualEditorTemplate::create( [
+		'slug'    => 'single',
+		'title'   => 'Single',
+		'content' => [
+			'raw'    => '',
+			'blocks' => [
+				[
+					'name'        => 'core/template-part',
+					'attributes'  => [ 'slug' => 'header' ],
+					'innerBlocks' => [],
+				],
+			],
+		],
+		'status'  => 'publish',
+		'theme'   => 'artisanpack-base',
+		'source'  => 'theme',
+		'origin'  => 'theme',
+	] );
+
+	$this->getJson( "/visual-editor/api/template-parts/{$part->id}" )
+		->assertOk()
+		->assertJsonPath( 'referenced_by', [ 'single' ] );
+} );
+
 it( 'deduplicates referenced_by when a template embeds the part twice', function () {
 	actingAsTemplatePartUser();
 
