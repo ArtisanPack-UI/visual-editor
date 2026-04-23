@@ -66,6 +66,13 @@ class VisualEditorGlobalStyles extends Model
 	 * new site starts with the same defaults the `/base` endpoint
 	 * returns.
 	 *
+	 * The write path relies on Laravel's race-safe `firstOrCreate`
+	 * (which catches `UniqueConstraintViolationException` and re-queries
+	 * on conflict) plus the unique index on `theme` at the DB level. Two
+	 * concurrent cold-start `lookup` requests cannot both succeed with
+	 * different ids for the same theme — the loser's insert is converted
+	 * back into a read of the winner's row.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $defaults  Seed payload for first-time creation.

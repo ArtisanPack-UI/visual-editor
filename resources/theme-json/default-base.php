@@ -4,7 +4,7 @@
  * Default `base` global-styles payload.
  *
  * Returned by `GET /visual-editor/api/global-styles/base` when the host
- * app has not overridden `artisanpack.visual-editor.global_styles.base`
+ * app has not overridden `artisanpack.visual-editor.global_styles.base_path`
  * in config. The shape mirrors theme.json as of the pinned schema
  * version documented in `docs/global-styles.md`. The B2 global-styles
  * fixture (`tests/Fixtures/sample-content/global-styles/default.json`)

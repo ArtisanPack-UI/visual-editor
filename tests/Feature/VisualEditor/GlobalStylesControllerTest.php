@@ -195,6 +195,50 @@ it( 'rejects an update with duplicate palette slugs', function () {
 		->assertJsonValidationErrors( 'settings.color.palette' );
 } );
 
+it( 'rejects an update with a malformed fontFamilies entry', function () {
+	actingAsGlobalStylesUser();
+
+	$id = $this->getJson( '/visual-editor/api/global-styles/lookup' )->json( 'id' );
+
+	$payload = [
+		'version'  => 3,
+		'settings' => [
+			'typography' => [
+				'fontFamilies' => [
+					[ 'slug' => 'sans', 'name' => 'Sans' ], // missing fontFamily
+				],
+			],
+		],
+		'styles'   => [],
+	];
+
+	$this->putJson( "/visual-editor/api/global-styles/{$id}", $payload )
+		->assertUnprocessable()
+		->assertJsonValidationErrors( 'settings.typography.fontFamilies.0.fontFamily' );
+} );
+
+it( 'rejects an update with a malformed fontSizes entry', function () {
+	actingAsGlobalStylesUser();
+
+	$id = $this->getJson( '/visual-editor/api/global-styles/lookup' )->json( 'id' );
+
+	$payload = [
+		'version'  => 3,
+		'settings' => [
+			'typography' => [
+				'fontSizes' => [
+					[ 'slug' => 'medium', 'name' => 'Medium' ], // missing size
+				],
+			],
+		],
+		'styles'   => [],
+	];
+
+	$this->putJson( "/visual-editor/api/global-styles/{$id}", $payload )
+		->assertUnprocessable()
+		->assertJsonValidationErrors( 'settings.typography.fontSizes.0.size' );
+} );
+
 it( 'rejects an update with a malformed palette entry', function () {
 	actingAsGlobalStylesUser();
 
@@ -255,7 +299,11 @@ it( 'returns a theme.json-shaped default payload on base', function () {
 it( 'base respects the base_path config override', function () {
 	actingAsGlobalStylesUser();
 
-	$override = tempnam( sys_get_temp_dir(), 'base-' ) . '.php';
+	// tempnam() creates the file at the path it returns; writing to
+	// that same path (no extension append) keeps us from leaking the
+	// stub file when the finally block runs. `require` in the
+	// controller does not care about the extension.
+	$override = tempnam( sys_get_temp_dir(), 'base-' );
 	file_put_contents( $override, '<?php return [ "version" => 3, "settings" => [ "custom" => true ], "styles" => [ "custom" => true ] ];' );
 
 	try {

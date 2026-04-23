@@ -46,15 +46,21 @@ class UpdateGlobalStylesRequest extends FormRequest
 		);
 
 		return [
-			'version'                          => [ 'required', 'integer', Rule::in( [ $schemaVersion ] ) ],
-			'settings'                         => [ 'required', 'array' ],
-			'settings.color.palette'           => [ 'sometimes', 'array', $this->uniqueSlugRule( 'palette' ) ],
-			'settings.color.palette.*.slug'    => [ 'required_with:settings.color.palette', 'string' ],
-			'settings.color.palette.*.name'    => [ 'required_with:settings.color.palette', 'string' ],
-			'settings.color.palette.*.color'   => [ 'required_with:settings.color.palette', 'string' ],
-			'settings.typography.fontFamilies' => [ 'sometimes', 'array', $this->uniqueSlugRule( 'fontFamilies' ) ],
-			'settings.typography.fontSizes'    => [ 'sometimes', 'array', $this->uniqueSlugRule( 'fontSizes' ) ],
-			'styles'                           => [ 'required', 'array' ],
+			'version'                                      => [ 'required', 'integer', Rule::in( [ $schemaVersion ] ) ],
+			'settings'                                     => [ 'required', 'array' ],
+			'settings.color.palette'                       => [ 'sometimes', 'array', $this->uniqueSlugRule( 'palette' ) ],
+			'settings.color.palette.*.slug'                => [ 'required_with:settings.color.palette', 'string' ],
+			'settings.color.palette.*.name'                => [ 'required_with:settings.color.palette', 'string' ],
+			'settings.color.palette.*.color'               => [ 'required_with:settings.color.palette', 'string' ],
+			'settings.typography.fontFamilies'             => [ 'sometimes', 'array', $this->uniqueSlugRule( 'fontFamilies' ) ],
+			'settings.typography.fontFamilies.*.slug'      => [ 'required_with:settings.typography.fontFamilies', 'string' ],
+			'settings.typography.fontFamilies.*.name'      => [ 'required_with:settings.typography.fontFamilies', 'string' ],
+			'settings.typography.fontFamilies.*.fontFamily' => [ 'required_with:settings.typography.fontFamilies', 'string' ],
+			'settings.typography.fontSizes'                => [ 'sometimes', 'array', $this->uniqueSlugRule( 'fontSizes' ) ],
+			'settings.typography.fontSizes.*.slug'         => [ 'required_with:settings.typography.fontSizes', 'string' ],
+			'settings.typography.fontSizes.*.name'         => [ 'required_with:settings.typography.fontSizes', 'string' ],
+			'settings.typography.fontSizes.*.size'         => [ 'required_with:settings.typography.fontSizes', 'string' ],
+			'styles'                                       => [ 'required', 'array' ],
 		];
 	}
 
