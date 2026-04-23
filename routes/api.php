@@ -20,6 +20,7 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\TemplateController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\TemplatePartController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\VisualEditorBlocksController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\VisualEditorPostsController;
 use Illuminate\Support\Facades\Route;
@@ -55,6 +56,22 @@ Route::put( 'templates/{template}', [ TemplateController::class, 'update' ] )
 
 Route::delete( 'templates/{template}', [ TemplateController::class, 'destroy' ] )
 	->name( 'visual-editor.api.templates.destroy' );
+
+// C2 `wp_template_part` REST surface — see docs/core-data-shim.md §Template parts.
+Route::get( 'template-parts', [ TemplatePartController::class, 'index' ] )
+	->name( 'visual-editor.api.template-parts.index' );
+
+Route::post( 'template-parts', [ TemplatePartController::class, 'store' ] )
+	->name( 'visual-editor.api.template-parts.store' );
+
+Route::get( 'template-parts/{templatePart}', [ TemplatePartController::class, 'show' ] )
+	->name( 'visual-editor.api.template-parts.show' );
+
+Route::put( 'template-parts/{templatePart}', [ TemplatePartController::class, 'update' ] )
+	->name( 'visual-editor.api.template-parts.update' );
+
+Route::delete( 'template-parts/{templatePart}', [ TemplatePartController::class, 'destroy' ] )
+	->name( 'visual-editor.api.template-parts.destroy' );
 
 // Legacy ve_contents routes retained for the existing editor tests and the
 // `VisualEditorPost` model. Deprecated in M3 in favor of the resource routes
