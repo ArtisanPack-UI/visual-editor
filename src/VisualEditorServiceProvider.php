@@ -5,10 +5,12 @@ namespace ArtisanPackUI\VisualEditor;
 use ArtisanPackUI\VisualEditor\Console\Commands\SeedSampleContentCommand;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorGlobalStyles;
+use ArtisanPackUI\VisualEditor\Models\VisualEditorNavigation;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplate;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplatePart;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorGlobalStylesPolicy;
+use ArtisanPackUI\VisualEditor\Policies\VisualEditorNavigationPolicy;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorTemplatePolicy;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorTemplatePartPolicy;
@@ -16,6 +18,7 @@ use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Search\BlockTreeSearchExtractor;
+use ArtisanPackUI\VisualEditor\Services\MenuLocationResolver;
 use ArtisanPackUI\VisualEditor\View\Components\VisualEditorComponent;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
@@ -59,6 +62,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new GutenbergAttachmentAdapter();
 		} );
 
+		$this->app->singleton( MenuLocationResolver::class, function ( $app ) {
+			return new MenuLocationResolver( $app['config'] );
+		} );
+
 		// Legacy alias for backward compatibility
 		$this->app->alias( VisualEditor::class, 'visualEditor' );
 
@@ -91,6 +98,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Gate::policy( VisualEditorTemplate::class, VisualEditorTemplatePolicy::class );
 		Gate::policy( VisualEditorTemplatePart::class, VisualEditorTemplatePartPolicy::class );
 		Gate::policy( VisualEditorGlobalStyles::class, VisualEditorGlobalStylesPolicy::class );
+		Gate::policy( VisualEditorNavigation::class, VisualEditorNavigationPolicy::class );
 
 		// 3. Register core blocks from their block.json manifests.
 		$this->registerCoreBlocks();
