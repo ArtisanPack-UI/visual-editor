@@ -4,9 +4,11 @@ namespace ArtisanPackUI\VisualEditor;
 
 use ArtisanPackUI\VisualEditor\Console\Commands\SeedSampleContentCommand;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
+use ArtisanPackUI\VisualEditor\Models\VisualEditorGlobalStyles;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplate;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplatePart;
+use ArtisanPackUI\VisualEditor\Policies\VisualEditorGlobalStylesPolicy;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorTemplatePolicy;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorTemplatePartPolicy;
@@ -88,6 +90,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
 		Gate::policy( VisualEditorTemplate::class, VisualEditorTemplatePolicy::class );
 		Gate::policy( VisualEditorTemplatePart::class, VisualEditorTemplatePartPolicy::class );
+		Gate::policy( VisualEditorGlobalStyles::class, VisualEditorGlobalStylesPolicy::class );
 
 		// 3. Register core blocks from their block.json manifests.
 		$this->registerCoreBlocks();

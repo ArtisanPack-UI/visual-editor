@@ -189,4 +189,27 @@ return [
 		'fixtures_path' => null,
 	],
 
+	/*
+	|--------------------------------------------------------------------------
+	| Global styles
+	|--------------------------------------------------------------------------
+	|
+	| Configures the `globalStyles` entity the site editor customizes.
+	| `theme` scopes the singleton lookup — each installed theme gets its
+	| own global-styles record. `schema_version` pins the theme.json
+	| schema the package accepts on `PUT` requests; see
+	| `docs/global-styles.md` for the contract and how we handle future
+	| upgrades. `base_path` is an absolute path to the PHP file returning
+	| the default `base` payload (the theme.json defaults the site-editor
+	| compares user overrides against); leave null to use the package's
+	| bundled defaults.
+	|
+	*/
+
+	'global_styles' => [
+		'theme'          => 'artisanpack-base',
+		'schema_version' => 3,
+		'base_path'      => null,
+	],
+
 ];
