@@ -80,10 +80,15 @@ class VisualEditorGlobalStyles extends Model
 	 */
 	public static function resolveSingleton( string $theme, array $defaults ): self
 	{
+		// Fallback reads the pinned schema version from config so the
+		// model, controller, and form-request share a single source of
+		// truth — see `artisanpack.visual-editor.global_styles.schema_version`.
+		$schemaVersion = (int) config( 'artisanpack.visual-editor.global_styles.schema_version', 3 );
+
 		return self::firstOrCreate(
 			[ 'theme' => $theme ],
 			[
-				'version'  => isset( $defaults['version'] ) ? (int) $defaults['version'] : 3,
+				'version'  => isset( $defaults['version'] ) ? (int) $defaults['version'] : $schemaVersion,
 				'settings' => isset( $defaults['settings'] ) && is_array( $defaults['settings'] ) ? $defaults['settings'] : [],
 				'styles'   => isset( $defaults['styles'] ) && is_array( $defaults['styles'] ) ? $defaults['styles'] : [],
 			]
