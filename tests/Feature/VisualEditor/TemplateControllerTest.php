@@ -286,6 +286,86 @@ it( 'round-trips the B2 fixture templates through store + show', function () {
 	}
 } );
 
+it( 'rejects a null title on store (column is non-nullable)', function () {
+	actingAsTemplateUser();
+
+	$this->postJson( '/visual-editor/api/templates', [
+		'slug'  => 'archive',
+		'theme' => 'artisanpack-base',
+		'title' => null,
+	] )
+		->assertUnprocessable()
+		->assertJsonValidationErrors( 'title' );
+} );
+
+it( 'rejects a null title on update (column is non-nullable)', function () {
+	actingAsTemplateUser();
+
+	$template = createTemplate();
+
+	$this->putJson( "/visual-editor/api/templates/{$template->id}", [
+		'title' => null,
+	] )
+		->assertUnprocessable()
+		->assertJsonValidationErrors( 'title' );
+
+	expect( $template->fresh()->title )->toBe( 'Single' );
+} );
+
+it( 'rejects a bare-list content payload on store', function () {
+	actingAsTemplateUser();
+
+	$this->postJson( '/visual-editor/api/templates', [
+		'slug'    => 'archive',
+		'theme'   => 'artisanpack-base',
+		'content' => [
+			[
+				'name'        => 'core/paragraph',
+				'attributes'  => [],
+				'innerBlocks' => [],
+			],
+		],
+	] )
+		->assertUnprocessable()
+		->assertJsonValidationErrors( 'content' );
+} );
+
+it( 'rejects a bare-list content payload on update', function () {
+	actingAsTemplateUser();
+
+	$template = createTemplate();
+
+	$this->putJson( "/visual-editor/api/templates/{$template->id}", [
+		'content' => [
+			[
+				'name'        => 'core/paragraph',
+				'attributes'  => [],
+				'innerBlocks' => [],
+			],
+		],
+	] )
+		->assertUnprocessable()
+		->assertJsonValidationErrors( 'content' );
+} );
+
+it( 'rejects a theme-only update that would collide with an existing (slug, theme)', function () {
+	actingAsTemplateUser();
+
+	// Existing record we will try to update into a colliding (slug, theme).
+	$editing = createTemplate( [ 'slug' => 'index', 'theme' => 'theme-a' ] );
+
+	// The collision target.
+	createTemplate( [ 'slug' => 'index', 'theme' => 'theme-b' ] );
+
+	$this->putJson( "/visual-editor/api/templates/{$editing->id}", [
+		'theme' => 'theme-b',
+	] )
+		->assertUnprocessable()
+		->assertJsonValidationErrors( 'theme' );
+
+	expect( $editing->fresh()->theme )->toBe( 'theme-a' );
+} );
+
 it( 'rejects unauthenticated store, update, and destroy', function () {
 	$template = createTemplate();
 

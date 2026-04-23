@@ -20,6 +20,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Requests;
 
 use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplate;
 use ArtisanPackUI\VisualEditor\Rules\TemplateBlockTreeRule;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -38,24 +39,43 @@ class UpdateTemplateRequest extends FormRequest
 		/** @var VisualEditorTemplate $template */
 		$template = $this->route( 'template' );
 
+		$resolvedSlug  = $this->input( 'slug', $template->slug );
+		$resolvedTheme = $this->input( 'theme', $template->theme );
+
+		// Composite-uniqueness is mirrored on both slug and theme so a
+		// PUT that changes *either* field triggers the check. Without
+		// the theme-side mirror, `{ "theme": "other" }` (no slug) would
+		// slip past the `sometimes`-gated slug rule and rely on the DB
+		// constraint to reject the collision as an opaque
+		// QueryException.
+		$uniqueness = Rule::unique( 'visual_editor_templates', 'slug' )
+			->ignore( $template->getKey() )
+			->where( fn ( $query ) => $query->where( 'theme', $resolvedTheme ) );
+
+		$themeUniqueness = Rule::unique( 'visual_editor_templates', 'theme' )
+			->ignore( $template->getKey() )
+			->where( fn ( $query ) => $query->where( 'slug', $resolvedSlug ) );
+
 		return [
 			'slug'            => [
 				'sometimes',
 				'required',
 				'string',
 				'max:191',
-				Rule::unique( 'visual_editor_templates', 'slug' )
-					->ignore( $template->getKey() )
-					->where( fn ( $query ) => $query->where( 'theme', $this->input( 'theme', $template->theme ) ) ),
+				$uniqueness,
 			],
-			'title'           => [ 'sometimes', 'nullable', 'string', 'max:255' ],
+			// `title`, `status`, and `source` back non-nullable DB
+			// columns — null is never a legal value. The update
+			// controller leaves missing fields untouched, so dropping
+			// `nullable` here only tightens the error path without
+			// changing what a partial update can do.
+			'title'           => [ 'sometimes', 'string', 'max:255' ],
 			'description'     => [ 'sometimes', 'nullable', 'string' ],
-			'content'         => [ 'sometimes', 'nullable', 'array' ],
+			'content'         => [ 'sometimes', 'nullable', 'array', $this->envelopeShapeRule() ],
 			'content.raw'     => [ 'sometimes', 'nullable', 'string' ],
 			'content.blocks'  => [ 'sometimes', 'nullable', 'array', new TemplateBlockTreeRule() ],
 			'status'          => [
 				'sometimes',
-				'nullable',
 				'string',
 				Rule::in( [
 					VisualEditorTemplate::STATUS_PUBLISH,
@@ -63,10 +83,15 @@ class UpdateTemplateRequest extends FormRequest
 					VisualEditorTemplate::STATUS_PRIVATE,
 				] ),
 			],
-			'theme'           => [ 'sometimes', 'required', 'string', 'max:191' ],
+			'theme'           => [
+				'sometimes',
+				'required',
+				'string',
+				'max:191',
+				$themeUniqueness,
+			],
 			'source'          => [
 				'sometimes',
-				'nullable',
 				'string',
 				Rule::in( [
 					VisualEditorTemplate::SOURCE_THEME,
@@ -84,5 +109,20 @@ class UpdateTemplateRequest extends FormRequest
 				] ),
 			],
 		];
+	}
+
+	/**
+	 * Rejects a bare-list `content` payload — see the mirrored method
+	 * on {@see StoreTemplateRequest::envelopeShapeRule()} for why.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function envelopeShapeRule(): Closure
+	{
+		return function ( string $attribute, mixed $value, Closure $fail ): void {
+			if ( is_array( $value ) && [] !== $value && array_is_list( $value ) ) {
+				$fail( 'The :attribute must be a { raw, blocks } envelope, not a bare list of blocks.' );
+			}
+		};
 	}
 }

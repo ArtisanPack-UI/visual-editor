@@ -174,8 +174,9 @@ class TemplateController extends Controller
 
 	/**
 	 * Normalizes the inbound content payload into the `{ raw, blocks }`
-	 * envelope the model expects. Accepts an envelope, a bare blocks
-	 * array, or null.
+	 * envelope the model expects. Form-request validation guarantees
+	 * the shape before we get here; this method just guards against
+	 * missing keys and bad types as a belt-and-braces fallback.
 	 *
 	 * @since 1.0.0
 	 *
@@ -187,10 +188,6 @@ class TemplateController extends Controller
 	{
 		if ( ! is_array( $content ) ) {
 			return [ 'raw' => '', 'blocks' => [] ];
-		}
-
-		if ( array_is_list( $content ) ) {
-			return [ 'raw' => '', 'blocks' => $content ];
 		}
 
 		return [
