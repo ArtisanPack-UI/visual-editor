@@ -18,6 +18,7 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\GlobalStylesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\TemplatePartController;
@@ -72,6 +73,22 @@ Route::put( 'template-parts/{templatePart}', [ TemplatePartController::class, 'u
 
 Route::delete( 'template-parts/{templatePart}', [ TemplatePartController::class, 'destroy' ] )
 	->name( 'visual-editor.api.template-parts.destroy' );
+
+// C3 `globalStyles` REST surface — see docs/core-data-shim.md §Global styles.
+// Order matters: the static `lookup` and `base` routes must be declared
+// before `{globalStyle}` so they are not swallowed by the wildcard
+// model-binding segment.
+Route::get( 'global-styles/lookup', [ GlobalStylesController::class, 'lookup' ] )
+	->name( 'visual-editor.api.global-styles.lookup' );
+
+Route::get( 'global-styles/base', [ GlobalStylesController::class, 'base' ] )
+	->name( 'visual-editor.api.global-styles.base' );
+
+Route::get( 'global-styles/{globalStyle}', [ GlobalStylesController::class, 'show' ] )
+	->name( 'visual-editor.api.global-styles.show' );
+
+Route::put( 'global-styles/{globalStyle}', [ GlobalStylesController::class, 'update' ] )
+	->name( 'visual-editor.api.global-styles.update' );
 
 // Legacy ve_contents routes retained for the existing editor tests and the
 // `VisualEditorPost` model. Deprecated in M3 in favor of the resource routes
