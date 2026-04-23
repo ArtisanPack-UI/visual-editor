@@ -19,6 +19,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\VisualEditorBlocksController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\VisualEditorPostsController;
 use Illuminate\Support\Facades\Route;
@@ -38,6 +39,22 @@ Route::post( 'blocks/preview', [ BlockPreviewController::class, 'preview' ] )
 
 Route::get( 'blocks', [ VisualEditorBlocksController::class, 'index' ] )
 	->name( 'visual-editor.api.blocks.index' );
+
+// C1 `wp_template` REST surface — see docs/core-data-shim.md §Templates.
+Route::get( 'templates', [ TemplateController::class, 'index' ] )
+	->name( 'visual-editor.api.templates.index' );
+
+Route::post( 'templates', [ TemplateController::class, 'store' ] )
+	->name( 'visual-editor.api.templates.store' );
+
+Route::get( 'templates/{template}', [ TemplateController::class, 'show' ] )
+	->name( 'visual-editor.api.templates.show' );
+
+Route::put( 'templates/{template}', [ TemplateController::class, 'update' ] )
+	->name( 'visual-editor.api.templates.update' );
+
+Route::delete( 'templates/{template}', [ TemplateController::class, 'destroy' ] )
+	->name( 'visual-editor.api.templates.destroy' );
 
 // Legacy ve_contents routes retained for the existing editor tests and the
 // `VisualEditorPost` model. Deprecated in M3 in favor of the resource routes
