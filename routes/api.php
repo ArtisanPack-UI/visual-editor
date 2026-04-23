@@ -19,6 +19,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\GlobalStylesController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\NavigationController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\TemplatePartController;
@@ -89,6 +90,22 @@ Route::get( 'global-styles/{globalStyle}', [ GlobalStylesController::class, 'sho
 
 Route::put( 'global-styles/{globalStyle}', [ GlobalStylesController::class, 'update' ] )
 	->name( 'visual-editor.api.global-styles.update' );
+
+// C4 `wp_navigation` REST surface — see docs/core-data-shim.md §Navigation.
+Route::get( 'navigation', [ NavigationController::class, 'index' ] )
+	->name( 'visual-editor.api.navigation.index' );
+
+Route::post( 'navigation', [ NavigationController::class, 'store' ] )
+	->name( 'visual-editor.api.navigation.store' );
+
+Route::get( 'navigation/{navigation}', [ NavigationController::class, 'show' ] )
+	->name( 'visual-editor.api.navigation.show' );
+
+Route::put( 'navigation/{navigation}', [ NavigationController::class, 'update' ] )
+	->name( 'visual-editor.api.navigation.update' );
+
+Route::delete( 'navigation/{navigation}', [ NavigationController::class, 'destroy' ] )
+	->name( 'visual-editor.api.navigation.destroy' );
 
 // Legacy ve_contents routes retained for the existing editor tests and the
 // `VisualEditorPost` model. Deprecated in M3 in favor of the resource routes

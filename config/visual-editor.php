@@ -212,4 +212,34 @@ return [
 		'base_path'      => null,
 	],
 
+	/*
+	|--------------------------------------------------------------------------
+	| Navigation
+	|--------------------------------------------------------------------------
+	|
+	| `locations` maps a theme-exposed menu-location slug to a navigation
+	| record id (by primary key) along with a human-readable label for the
+	| site editor UI. When `primary_id` is null or points at a missing
+	| record, the `MenuLocationResolver` falls back to the first published
+	| nav in `menu_order`. Menu-location admin CRUD is deferred to 1.1+;
+	| V1 is intentionally config-driven (see the V1 plan doc §8).
+	|
+	| Each entry:
+	|   - `slug`       (string)  Location identifier used by theme blocks.
+	|   - `label`      (string)  Human label shown in the site editor.
+	|   - `primary_id` (int|null) VisualEditorNavigation id, or null to
+	|                            always use the fallback.
+	|
+	*/
+
+	'navigation' => [
+		'locations' => [
+			// 'primary' => [
+			//     'slug'       => 'primary',
+			//     'label'      => 'Primary Menu',
+			//     'primary_id' => null,
+			// ],
+		],
+	],
+
 ];
