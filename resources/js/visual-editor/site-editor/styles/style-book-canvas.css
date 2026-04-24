@@ -21,7 +21,7 @@
 .ap-site-editor__style-book-variation {
     appearance: none;
     background: transparent;
-    border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+    border: 1px solid color-mix(in srgb, currentcolor 25%, transparent);
     border-radius: 0.375rem;
     color: inherit;
     cursor: pointer;
@@ -31,8 +31,8 @@
 }
 
 .ap-site-editor__style-book-variation[data-active='true'] {
-    background: color-mix(in srgb, currentColor 10%, transparent);
-    border-color: color-mix(in srgb, currentColor 40%, transparent);
+    background: color-mix(in srgb, currentcolor 10%, transparent);
+    border-color: color-mix(in srgb, currentcolor 40%, transparent);
     font-weight: 600;
 }
 
@@ -53,8 +53,8 @@
 }
 
 .ap-site-editor__style-book-section {
-    background: color-mix(in srgb, currentColor 4%, transparent);
-    border: 1px solid color-mix(in srgb, currentColor 8%, transparent);
+    background: color-mix(in srgb, currentcolor 4%, transparent);
+    border: 1px solid color-mix(in srgb, currentcolor 8%, transparent);
     border-radius: 0.5rem;
     padding: 1rem;
 }
@@ -83,7 +83,7 @@
 }
 
 .ap-site-editor__style-book-swatch-chip {
-    border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+    border: 1px solid color-mix(in srgb, currentcolor 18%, transparent);
     border-radius: 0.25rem;
     display: block;
     height: 2.5rem;

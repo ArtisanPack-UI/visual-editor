@@ -22,7 +22,13 @@
  */
 
 import { __, sprintf } from '@wordpress/i18n';
-import { type CSSProperties, useMemo } from 'react';
+import {
+    useCallback,
+    useMemo,
+    useRef,
+    type CSSProperties,
+    type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 
@@ -152,6 +158,54 @@ export function StyleBookCanvas(props: StyleBookCanvasProps): JSX.Element {
         };
     }, [typography.family, typography.size]);
 
+    const variationButtonsRef = useRef<Array<HTMLButtonElement | null>>([]);
+
+    // WAI-ARIA APG `radiogroup` keyboard behavior: arrow keys cycle
+    // through the radios (with wrap-around), Home / End jump to the
+    // ends, and moving focus also selects — matching the roving-tabindex
+    // we render above.
+    const handleVariationKeyDown = useCallback(
+        (event: ReactKeyboardEvent<HTMLDivElement>): void => {
+            if (variations.length === 0) {
+                return;
+            }
+
+            const currentIndex = variations.findIndex(
+                (variation) => variation.slug === activeVariationSlug
+            );
+            const effectiveIndex = currentIndex === -1 ? 0 : currentIndex;
+
+            let nextIndex: number | null = null;
+
+            if (event.key === 'ArrowRight' || event.key === 'ArrowDown') {
+                nextIndex = (effectiveIndex + 1) % variations.length;
+            } else if (event.key === 'ArrowLeft' || event.key === 'ArrowUp') {
+                nextIndex =
+                    (effectiveIndex - 1 + variations.length) %
+                    variations.length;
+            } else if (event.key === 'Home') {
+                nextIndex = 0;
+            } else if (event.key === 'End') {
+                nextIndex = variations.length - 1;
+            }
+
+            if (nextIndex === null) {
+                return;
+            }
+
+            event.preventDefault();
+            const nextVariation = variations[nextIndex];
+
+            if (nextVariation === undefined) {
+                return;
+            }
+
+            onSelectVariation(nextVariation.slug);
+            variationButtonsRef.current[nextIndex]?.focus();
+        },
+        [activeVariationSlug, onSelectVariation, variations]
+    );
+
     return (
         <div
             className="ap-site-editor__style-book"
@@ -162,6 +216,7 @@ export function StyleBookCanvas(props: StyleBookCanvasProps): JSX.Element {
                 role="radiogroup"
                 aria-label={__('Style variations', TEXT_DOMAIN)}
                 data-testid="ap-site-editor-style-book-variations"
+                onKeyDown={handleVariationKeyDown}
             >
                 {variations.length === 0 ? (
                     <p
@@ -187,6 +242,9 @@ export function StyleBookCanvas(props: StyleBookCanvasProps): JSX.Element {
 
                     return (
                         <button
+                            ref={(element) => {
+                                variationButtonsRef.current[index] = element;
+                            }}
                             key={variation.slug}
                             type="button"
                             role="radio"

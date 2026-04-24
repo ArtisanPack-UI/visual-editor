@@ -134,9 +134,11 @@ export function TypographyPanel(props: TypographyPanelProps): JSX.Element {
                     __next40pxDefaultSize={true}
                     onChange={(next) => {
                         if (next === CUSTOM_SENTINEL) {
-                            // Seed the custom input with the current draft
-                            // value so the user tweaks rather than retypes.
-                            editor.setValue(FONT_FAMILY_PATH, fontFamilyValue);
+                            // Clear the value so `fontFamilyMatches` flips
+                            // to false and the Custom input renders —
+                            // otherwise re-writing the current preset value
+                            // would snap the select straight back.
+                            editor.setValue(FONT_FAMILY_PATH, '');
                             return;
                         }
 
@@ -177,7 +179,7 @@ export function TypographyPanel(props: TypographyPanelProps): JSX.Element {
                     __next40pxDefaultSize={true}
                     onChange={(next) => {
                         if (next === CUSTOM_SENTINEL) {
-                            editor.setValue(FONT_SIZE_PATH, fontSizeValue);
+                            editor.setValue(FONT_SIZE_PATH, '');
                             return;
                         }
 

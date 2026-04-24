@@ -11,9 +11,11 @@
  *     from the `lookup` dispatch at bootstrap.
  *   - Edits are sparse leaf patches (one property at a time) rather
  *     than block-tree mutations. `patch(path, value)` writes a deep
- *     key; `reset(path)` clears it.
- *   - Save PUTs the merged (`base + edits`) record; 422 responses
- *     surface under `validationErrors` so panels can render inline.
+ *     key; `resetPath(path)` reverts to base (including stripping a
+ *     previously-persisted override from the record on save).
+ *   - Save PUTs the user-owned payload (record + overlay, minus reset
+ *     paths); 422 responses surface under `validationErrors` so panels
+ *     can render inline.
  *
  * The hook is kept headless so each panel gets the same dirty /
  * customized / save primitives and the section wrapper can hand the
@@ -69,7 +71,7 @@ export interface UseGlobalStylesEditorResult {
     id: number | null;
     base: GlobalStylesBase | null;
     record: GlobalStylesRecord | null;
-    /** Merged (record + pending edits) shape — what panels should render. */
+    /** Merged (base + record + overlay) shape — what panels should render. */
     draft: GlobalStylesDraft | null;
 
     loadStatus: LoadStatus;
@@ -102,18 +104,39 @@ export interface UseGlobalStylesEditorResult {
      * specific subtree without touching sibling subtrees.
      */
     replaceSubtree: (scope: 'settings' | 'styles', path: ThemeJsonPath, value: unknown) => void;
-    /** Clears the user override at `path`, reverting to base. */
+    /**
+     * Reverts the value at `path` back to the theme default. Clears
+     * both pending overlay edits *and* any persisted override on the
+     * saved record so the user genuinely sees the theme default (not a
+     * stale value they saved days ago).
+     */
     resetPath: (path: ThemeJsonPath) => void;
-    /** Clears every pending edit — full revert to the last saved record. */
+    /**
+     * Wipes every user customization — pending edits + persisted
+     * overrides — so the editor shows the theme base wholesale.
+     */
     resetAll: () => void;
 
     save: () => Promise<GlobalStylesRecord | null>;
 }
 
-const EMPTY_EDITS: Readonly<GlobalStylesDraft> = Object.freeze({
-    version: 0,
+interface EditsState {
+    settings: Record<string, unknown>;
+    styles: Record<string, unknown>;
+    /**
+     * Paths (relative to the draft root, e.g. `['settings','color','palette']`)
+     * the user has explicitly reset. Applied as a pre-merge strip on
+     * the record — so a previously-persisted override doesn't survive a
+     * reset, and the save payload omits the value so the next fetch
+     * returns the base default.
+     */
+    removedPaths: ThemeJsonPath[];
+}
+
+const EMPTY_EDITS: Readonly<EditsState> = Object.freeze({
     settings: {},
     styles: {},
+    removedPaths: [],
 });
 
 function schemaVersionFrom(
@@ -135,55 +158,12 @@ function schemaVersionFrom(
     return 3;
 }
 
-function hasAnyEdits(edits: GlobalStylesDraft | null): boolean {
-    if (edits === null) {
-        return false;
-    }
-
+function hasAnyEdits(edits: EditsState): boolean {
     return (
         Object.keys(edits.settings).length > 0 ||
-        Object.keys(edits.styles).length > 0
+        Object.keys(edits.styles).length > 0 ||
+        edits.removedPaths.length > 0
     );
-}
-
-/**
- * Merges the base record, server record, and pending edits into a
- * single object panels can read from.
- */
-function buildDraft(
-    record: GlobalStylesRecord | null,
-    edits: GlobalStylesDraft,
-    base: GlobalStylesBase | null
-): GlobalStylesDraft | null {
-    if (record === null && base === null) {
-        return null;
-    }
-
-    const recordSettings =
-        record !== null && typeof record.settings === 'object' && record.settings !== null
-            ? record.settings
-            : {};
-    const recordStyles =
-        record !== null && typeof record.styles === 'object' && record.styles !== null
-            ? record.styles
-            : {};
-    const baseSettings = base?.settings ?? {};
-    const baseStyles = base?.styles ?? {};
-
-    const settings = mergeDeep(
-        mergeDeep(baseSettings, recordSettings),
-        edits.settings
-    );
-    const styles = mergeDeep(
-        mergeDeep(baseStyles, recordStyles),
-        edits.styles
-    );
-
-    return {
-        version: schemaVersionFrom(record, base),
-        settings,
-        styles,
-    };
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
@@ -219,6 +199,116 @@ function mergeDeep(
     return result;
 }
 
+/**
+ * Applies every removed path as an `unset` against the record so the
+ * strip survives into both the draft render and the save payload.
+ */
+function stripRemovedPaths(
+    recordSettings: Record<string, unknown>,
+    recordStyles: Record<string, unknown>,
+    removedPaths: readonly ThemeJsonPath[]
+): { settings: Record<string, unknown>; styles: Record<string, unknown> } {
+    let settings = { ...recordSettings };
+    let styles = { ...recordStyles };
+
+    for (const path of removedPaths) {
+        const [scope, ...rest] = path;
+
+        if (scope === 'settings') {
+            settings =
+                rest.length === 0
+                    ? {}
+                    : (unsetPath(settings, rest) as Record<string, unknown>);
+        } else if (scope === 'styles') {
+            styles =
+                rest.length === 0
+                    ? {}
+                    : (unsetPath(styles, rest) as Record<string, unknown>);
+        }
+    }
+
+    return { settings, styles };
+}
+
+/**
+ * Merges the base record, server record (with resets applied), and
+ * pending overlay edits into a single object panels can read from.
+ */
+function buildDraft(
+    record: GlobalStylesRecord | null,
+    edits: EditsState,
+    base: GlobalStylesBase | null
+): GlobalStylesDraft | null {
+    if (record === null && base === null) {
+        return null;
+    }
+
+    const recordSettings =
+        record !== null && isPlainObject(record.settings)
+            ? record.settings
+            : {};
+    const recordStyles =
+        record !== null && isPlainObject(record.styles)
+            ? record.styles
+            : {};
+    const baseSettings = isPlainObject(base?.settings) ? base.settings : {};
+    const baseStyles = isPlainObject(base?.styles) ? base.styles : {};
+
+    const stripped = stripRemovedPaths(
+        recordSettings,
+        recordStyles,
+        edits.removedPaths
+    );
+
+    const settings = mergeDeep(
+        mergeDeep(baseSettings, stripped.settings),
+        edits.settings
+    );
+    const styles = mergeDeep(
+        mergeDeep(baseStyles, stripped.styles),
+        edits.styles
+    );
+
+    return {
+        version: schemaVersionFrom(record, base),
+        settings,
+        styles,
+    };
+}
+
+/**
+ * Computes the payload for `PUT /global-styles/{id}` — the user's own
+ * record + pending overlay, with reset paths stripped. Does NOT include
+ * base defaults, so subsequent fetches return a lean record that the
+ * next reset can actually bring back to base.
+ */
+function buildSavePayload(
+    record: GlobalStylesRecord | null,
+    edits: EditsState,
+    version: number
+): { version: number; settings: Record<string, unknown>; styles: Record<string, unknown> } {
+    const recordSettings =
+        record !== null && isPlainObject(record.settings)
+            ? record.settings
+            : {};
+    const recordStyles =
+        record !== null && isPlainObject(record.styles)
+            ? record.styles
+            : {};
+
+    const stripped = stripRemovedPaths(
+        recordSettings,
+        recordStyles,
+        edits.removedPaths
+    );
+
+    return {
+        version,
+        settings: mergeDeep(stripped.settings, edits.settings),
+        styles: mergeDeep(stripped.styles, edits.styles),
+    };
+}
+
 export function useGlobalStylesEditor(
     options: UseGlobalStylesEditorOptions
 ): UseGlobalStylesEditorResult {
@@ -227,9 +317,7 @@ export function useGlobalStylesEditor(
     const [id, setId] = useState<number | null>(null);
     const [base, setBase] = useState<GlobalStylesBase | null>(null);
     const [record, setRecord] = useState<GlobalStylesRecord | null>(null);
-    const [edits, setEdits] = useState<GlobalStylesDraft>({
-        ...EMPTY_EDITS,
-    });
+    const [edits, setEdits] = useState<EditsState>({ ...EMPTY_EDITS });
 
     const [loadStatus, setLoadStatus] = useState<LoadStatus>('idle');
     const [loadErrorMessage, setLoadErrorMessage] = useState<string | null>(
@@ -251,7 +339,19 @@ export function useGlobalStylesEditor(
 
     useEffect(() => {
         if (!enabled) {
+            // Invalidate any in-flight fetches started while this
+            // section was active and clear the cached state so a
+            // subsequent re-enable doesn't surface stale styles.
+            requestCounterRef.current += 1;
+            setId(null);
+            setBase(null);
+            setRecord(null);
+            setEdits({ ...EMPTY_EDITS });
             setLoadStatus('idle');
+            setLoadErrorMessage(null);
+            setSaveStatus('idle');
+            setSaveErrorMessage(null);
+            setValidationErrors(null);
             return;
         }
 
@@ -363,9 +463,7 @@ export function useGlobalStylesEditor(
     );
 
     const mutate = useCallback(
-        (
-            mutator: (edits: GlobalStylesDraft) => GlobalStylesDraft
-        ): void => {
+        (mutator: (edits: EditsState) => EditsState): void => {
             requestCounterRef.current += 1;
             setEdits((prev) => mutator(prev));
             setSaveStatus('idle');
@@ -393,6 +491,14 @@ export function useGlobalStylesEditor(
                     string,
                     unknown
                 >,
+                // A new value at this path implicitly un-resets it — the
+                // user is explicitly re-customizing, so the previous
+                // "strip from record on save" marker is stale.
+                removedPaths: prev.removedPaths.filter(
+                    (removed) =>
+                        removed.length !== path.length ||
+                        removed.some((segment, index) => segment !== path[index])
+                ),
             }));
         },
         [mutate]
@@ -404,16 +510,32 @@ export function useGlobalStylesEditor(
             path: ThemeJsonPath,
             value: unknown
         ): void => {
-            mutate((prev) => ({
-                ...prev,
-                [scope]:
+            mutate((prev) => {
+                const nextScope =
                     path.length === 0
                         ? ((value as Record<string, unknown>) ?? {})
                         : (writePath(prev[scope], path, value) as Record<
                               string,
                               unknown
-                          >),
-            }));
+                          >);
+
+                // A root replace (applying a variation) means "this is
+                // now the whole scope" — any stale removed-path for
+                // this scope is now absorbed by the explicit overlay,
+                // so drop them.
+                const nextRemoved =
+                    path.length === 0
+                        ? prev.removedPaths.filter(
+                              (removed) => removed[0] !== scope
+                          )
+                        : prev.removedPaths;
+
+                return {
+                    ...prev,
+                    [scope]: nextScope,
+                    removedPaths: nextRemoved,
+                };
+            });
         },
         [mutate]
     );
@@ -430,19 +552,54 @@ export function useGlobalStylesEditor(
                 return;
             }
 
-            mutate((prev) => ({
-                ...prev,
-                [scope]: unsetPath(prev[scope], rest) as Record<
-                    string,
-                    unknown
-                >,
-            }));
+            mutate((prev) => {
+                // Drop any overlay entry at or under this path so the
+                // display + save payload don't re-apply the value we're
+                // trying to reset.
+                const nextScope =
+                    rest.length === 0
+                        ? {}
+                        : (unsetPath(prev[scope], rest) as Record<
+                              string,
+                              unknown
+                          >);
+
+                // Record the reset so buildDraft strips record + the
+                // save payload omits the value. De-dupe against any
+                // ancestor path already marked — the broader reset
+                // already covers this one.
+                const alreadyCovered = prev.removedPaths.some((removed) => {
+                    if (removed.length > path.length) {
+                        return false;
+                    }
+
+                    return removed.every(
+                        (segment, index) => segment === path[index]
+                    );
+                });
+
+                const nextRemoved = alreadyCovered
+                    ? prev.removedPaths
+                    : [...prev.removedPaths, path];
+
+                return {
+                    ...prev,
+                    [scope]: nextScope,
+                    removedPaths: nextRemoved,
+                };
+            });
         },
         [mutate]
     );
 
     const resetAll = useCallback((): void => {
-        mutate(() => ({ ...EMPTY_EDITS }));
+        // Blow away both scopes entirely: pending overlay + persisted
+        // record get stripped so the user sees pure base defaults.
+        mutate(() => ({
+            settings: {},
+            styles: {},
+            removedPaths: [['settings'], ['styles']],
+        }));
     }, [mutate]);
 
     const isDirty = useMemo(() => hasAnyEdits(edits), [edits]);
@@ -465,11 +622,11 @@ export function useGlobalStylesEditor(
         setValidationErrors(null);
 
         try {
-            const saved = await updateGlobalStyles(apiConfig, id, {
-                version: draft.version,
-                settings: draft.settings,
-                styles: draft.styles,
-            });
+            const saved = await updateGlobalStyles(
+                apiConfig,
+                id,
+                buildSavePayload(record, edits, draft.version)
+            );
 
             if (isStale()) {
                 return saved;
@@ -499,7 +656,7 @@ export function useGlobalStylesEditor(
 
             return null;
         }
-    }, [apiConfig, draft, id]);
+    }, [apiConfig, draft, edits, id, record]);
 
     return {
         id,

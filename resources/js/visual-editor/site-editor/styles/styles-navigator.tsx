@@ -88,8 +88,7 @@ export function StylesNavigator(
             data-testid="ap-site-editor-styles-navigator"
         >
             <ul
-                role="tree"
-                aria-label={__('Styles scopes', TEXT_DOMAIN)}
+                role="list"
                 className="ap-site-editor__styles-navigator-list"
             >
                 {PANEL_ORDER.map((panel) => {
@@ -100,13 +99,7 @@ export function StylesNavigator(
                     return (
                         <li
                             key={panel}
-                            role="treeitem"
-                            aria-expanded={
-                                panel === 'blocks' || panel === 'elements'
-                                    ? isOpen
-                                    : undefined
-                            }
-                            aria-selected={isSelected}
+                            role="listitem"
                             className="ap-site-editor__styles-navigator-item"
                             data-panel={panel}
                             data-active={isSelected}
@@ -129,7 +122,7 @@ export function StylesNavigator(
 
                             {panel === 'blocks' && isOpen ? (
                                 <ul
-                                    role="group"
+                                    role="list"
                                     className="ap-site-editor__styles-navigator-children"
                                     data-testid="ap-site-editor-styles-nav-blocks-children"
                                 >
@@ -171,8 +164,7 @@ export function StylesNavigator(
                                         return (
                                             <li
                                                 key={block.name}
-                                                role="treeitem"
-                                                aria-selected={isBlockSelected}
+                                                role="listitem"
                                                 className="ap-site-editor__styles-navigator-child"
                                             >
                                                 <button
@@ -180,6 +172,11 @@ export function StylesNavigator(
                                                     className="ap-site-editor__styles-navigator-child-link"
                                                     data-active={isBlockSelected}
                                                     data-testid={`ap-site-editor-styles-nav-block-${block.name}`}
+                                                    aria-current={
+                                                        isBlockSelected
+                                                            ? 'page'
+                                                            : undefined
+                                                    }
                                                     onClick={() =>
                                                         onSelect({
                                                             panel: 'blocks',
@@ -198,7 +195,7 @@ export function StylesNavigator(
 
                             {panel === 'elements' && isOpen ? (
                                 <ul
-                                    role="group"
+                                    role="list"
                                     className="ap-site-editor__styles-navigator-children"
                                     data-testid="ap-site-editor-styles-nav-elements-children"
                                 >
@@ -210,8 +207,7 @@ export function StylesNavigator(
                                             return (
                                                 <li
                                                     key={element}
-                                                    role="treeitem"
-                                                    aria-selected={isElementSelected}
+                                                    role="listitem"
                                                     className="ap-site-editor__styles-navigator-child"
                                                 >
                                                     <button
@@ -219,6 +215,11 @@ export function StylesNavigator(
                                                         className="ap-site-editor__styles-navigator-child-link"
                                                         data-active={isElementSelected}
                                                         data-testid={`ap-site-editor-styles-nav-element-${element}`}
+                                                        aria-current={
+                                                            isElementSelected
+                                                                ? 'page'
+                                                                : undefined
+                                                        }
                                                         onClick={() =>
                                                             onSelect({
                                                                 panel: 'elements',

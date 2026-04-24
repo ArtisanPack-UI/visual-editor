@@ -137,38 +137,61 @@ function stableStringify(value: unknown): string {
         .join(',')}}`;
 }
 
+function variationMatchesDraft(
+    variation: StyleVariation,
+    editor: UseGlobalStylesEditorResult
+): boolean {
+    if (editor.draft === null) {
+        return false;
+    }
+
+    const variationSignature = stableStringify({
+        settings: variation.settings ?? {},
+        styles: variation.styles ?? {},
+    });
+    const draftSignature = stableStringify({
+        settings: editor.draft.settings ?? {},
+        styles: editor.draft.styles ?? {},
+    });
+
+    return variationSignature === draftSignature;
+}
+
 function selectActiveVariation(
     editor: UseGlobalStylesEditorResult,
     variations: readonly StyleVariation[],
     activeSlug: string | null
 ): string | null {
-    // The user explicitly applied a variation in this session.
-    if (activeSlug !== null) {
-        return activeSlug;
-    }
-
-    // If the user record's settings/styles match a variation wholesale,
-    // surface that variation as the "applied" one. For V1 we detect a
-    // strict match by deterministic (key-sorted) stringify so picker
-    // state is predictable regardless of the order PHP serialized the
-    // payload — any manual edit (which won't exactly equal a preset)
-    // flips back to "customized / no variation selected".
-    if (editor.record === null || variations.length === 0) {
+    if (variations.length === 0) {
         return null;
     }
 
-    const userSignature = stableStringify({
-        settings: editor.record.settings ?? {},
-        styles: editor.record.styles ?? {},
-    });
+    // An explicit click-to-apply only stays authoritative while the
+    // current draft still matches the variation's payload — a
+    // subsequent manual edit breaks the match and flips us back to
+    // "customized / no variation selected" so the picker doesn't
+    // falsely advertise a preset the user has already diverged from.
+    if (activeSlug !== null) {
+        const explicit = variations.find(
+            (variation) => variation.slug === activeSlug
+        );
 
+        if (
+            explicit !== undefined &&
+            variationMatchesDraft(explicit, editor)
+        ) {
+            return activeSlug;
+        }
+
+        return null;
+    }
+
+    // No explicit selection this session: fall back to auto-detecting a
+    // match against whatever the user saved previously. Same
+    // deterministic (key-sorted) stringify so ordering in PHP JSON
+    // output doesn't produce false negatives.
     for (const variation of variations) {
-        const signature = stableStringify({
-            settings: variation.settings ?? {},
-            styles: variation.styles ?? {},
-        });
-
-        if (signature === userSignature) {
+        if (variationMatchesDraft(variation, editor)) {
             return variation.slug;
         }
     }

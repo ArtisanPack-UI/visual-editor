@@ -40,12 +40,12 @@
 }
 
 .ap-site-editor__styles-navigator-link:hover {
-    background: color-mix(in srgb, currentColor 6%, transparent);
+    background: color-mix(in srgb, currentcolor 6%, transparent);
 }
 
 .ap-site-editor__styles-navigator-item[data-active='true']
     > .ap-site-editor__styles-navigator-link {
-    background: color-mix(in srgb, currentColor 10%, transparent);
+    background: color-mix(in srgb, currentcolor 10%, transparent);
     font-weight: 600;
 }
 
@@ -56,7 +56,7 @@
     display: flex;
     flex-direction: column;
     gap: 0.125rem;
-    border-left: 1px solid color-mix(in srgb, currentColor 12%, transparent);
+    border-left: 1px solid color-mix(in srgb, currentcolor 12%, transparent);
     padding-left: 0.5rem;
 }
 
@@ -75,11 +75,11 @@
 }
 
 .ap-site-editor__styles-navigator-child-link:hover {
-    background: color-mix(in srgb, currentColor 6%, transparent);
+    background: color-mix(in srgb, currentcolor 6%, transparent);
 }
 
 .ap-site-editor__styles-navigator-child-link[data-active='true'] {
-    background: color-mix(in srgb, currentColor 10%, transparent);
+    background: color-mix(in srgb, currentcolor 10%, transparent);
     font-weight: 600;
 }
 

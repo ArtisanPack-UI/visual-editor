@@ -79,12 +79,10 @@
     margin: 0;
     opacity: 0.75;
     overflow-wrap: anywhere;
-    word-break: break-word;
 }
 
 .ap-site-editor__style-control-row-base > code {
     overflow-wrap: anywhere;
-    word-break: break-word;
 }
 
 .ap-site-editor__style-control-row-error {
@@ -126,7 +124,7 @@
 .ap-site-editor__styles-inspector
     .components-panel__row
     + .components-panel__row {
-    border-top: 1px solid color-mix(in srgb, currentColor 8%, transparent);
+    border-top: 1px solid color-mix(in srgb, currentcolor 8%, transparent);
 }
 
 .ap-site-editor__styles-inspector .components-color-palette {

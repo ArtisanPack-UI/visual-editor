@@ -188,7 +188,11 @@ export function renderStyleField(
                     __next40pxDefaultSize={true}
                     onChange={(next) => {
                         if (next === CUSTOM_SENTINEL) {
-                            editor.setValue(path, value);
+                            // Clear the value so the select sticks on
+                            // "Custom…" and the custom input renders —
+                            // re-writing the preset value would snap it
+                            // back to the preset row.
+                            editor.setValue(path, '');
                             return;
                         }
 
@@ -246,7 +250,7 @@ export function renderStyleField(
                     __next40pxDefaultSize={true}
                     onChange={(next) => {
                         if (next === CUSTOM_SENTINEL) {
-                            editor.setValue(path, value);
+                            editor.setValue(path, '');
                             return;
                         }
 

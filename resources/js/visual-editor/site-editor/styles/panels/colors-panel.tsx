@@ -71,14 +71,29 @@ function readPalette(editor: UseGlobalStylesEditorResult): PaletteEntry[] {
         .filter((entry): entry is PaletteEntry => entry !== null);
 }
 
-function slugify(value: string, existing: readonly string[]): string {
-    const base =
-        value
-            .toLowerCase()
-            .normalize('NFKD')
-            .replace(/[^a-z0-9-]+/g, '-')
-            .replace(/-+/g, '-')
-            .replace(/^-|-$/g, '') || 'color';
+/**
+ * Normalizes an arbitrary string into a theme.json-safe slug: lowercase,
+ * alphanumerics + hyphen only, collapsed hyphens. No collision-avoidance
+ * suffix so the user keeps control of the identifier they're typing —
+ * duplicates are surfaced by `detectDuplicateSlug` as inline feedback
+ * the user resolves themselves.
+ */
+function normalizeSlugChars(value: string): string {
+    return value
+        .toLowerCase()
+        .normalize('NFKD')
+        .replace(/[^a-z0-9-]+/g, '-')
+        .replace(/-+/g, '-')
+        .replace(/^-|-$/g, '');
+}
+
+/**
+ * Picks a fresh unique slug for a newly-added swatch. Uses the stricter
+ * normalization above + appends a `-N` suffix if the candidate collides
+ * with an existing slug.
+ */
+function slugifyNew(seed: string, existing: readonly string[]): string {
+    const base = normalizeSlugChars(seed) || 'color';
 
     if (!existing.includes(base)) {
         return base;
@@ -197,7 +212,7 @@ export function ColorsPanel(props: ColorsPanelProps): JSX.Element {
     };
 
     const addSwatch = (): void => {
-        const slug = slugify(
+        const slug = slugifyNew(
             'new-color',
             palette.map((entry) => entry.slug)
         );
@@ -245,7 +260,16 @@ export function ColorsPanel(props: ColorsPanelProps): JSX.Element {
             return;
         }
 
-        copy[index] = { ...existing, [key]: value };
+        // Slug edits go through the char-normalizer so whatever lands in
+        // the record is always safe for the `var(--wp--preset--color--{slug})`
+        // CSS variable name. Duplicate detection stays with
+        // `detectDuplicateSlug` — we don't auto-append `-N` here because
+        // collisions happen mid-typing ("prim" → "prima" → "primary") and
+        // should surface as inline errors the user clears themselves.
+        const normalizedValue =
+            key === 'slug' ? normalizeSlugChars(value) : value;
+
+        copy[index] = { ...existing, [key]: normalizedValue };
         persistPalette(copy);
     };
 
@@ -254,6 +278,49 @@ export function ColorsPanel(props: ColorsPanelProps): JSX.Element {
         (duplicateSlug !== null
             ? __('Palette slugs must be unique.', TEXT_DOMAIN)
             : null);
+
+    /**
+     * Per-row validation errors extracted from keys like
+     * `settings.color.palette.2.slug`. Laravel's validator emits one
+     * key per offending attribute — we bucket them by index so the row
+     * renderer can show the message next to the offending field.
+     */
+    const paletteRowErrors = useMemo((): ReadonlyArray<
+        Partial<Record<keyof PaletteEntry, string>>
+    > => {
+        const rows: Array<Partial<Record<keyof PaletteEntry, string>>> =
+            palette.map(() => ({}));
+
+        if (validationErrors === null) {
+            return rows;
+        }
+
+        for (const [key, messages] of Object.entries(validationErrors)) {
+            const match = /^settings\.color\.palette\.(\d+)\.(slug|name|color)$/.exec(
+                key
+            );
+
+            if (match === null) {
+                continue;
+            }
+
+            const index = Number(match[1]);
+            const field = match[2] as keyof PaletteEntry;
+            const message = messages[0];
+
+            if (message === undefined) {
+                continue;
+            }
+
+            const bucket = rows[index];
+
+            if (bucket !== undefined) {
+                bucket[field] = message;
+            }
+        }
+
+        return rows;
+    }, [palette, validationErrors]);
 
     const paletteOptions = useMemo(
         () =>
@@ -318,104 +385,137 @@ export function ColorsPanel(props: ColorsPanelProps): JSX.Element {
                         className="ap-site-editor__style-palette-list"
                         aria-label={__('Color palette', TEXT_DOMAIN)}
                     >
-                        {palette.map((entry, index) => (
-                            <li
-                                key={`${entry.slug}-${index}`}
-                                className="ap-site-editor__style-palette-row"
-                                data-testid={`ap-site-editor-style-palette-row-${index}`}
-                            >
-                                <Dropdown
-                                    popoverProps={{ placement: 'bottom-start' }}
-                                    renderToggle={({ isOpen, onToggle }) => (
+                        {palette.map((entry, index) => {
+                            const rowErrors =
+                                paletteRowErrors[index] ?? {};
+
+                            return (
+                                <li
+                                    key={`${entry.slug}-${index}`}
+                                    className="ap-site-editor__style-palette-row"
+                                    data-testid={`ap-site-editor-style-palette-row-${index}`}
+                                >
+                                    <Dropdown
+                                        popoverProps={{
+                                            placement: 'bottom-start',
+                                        }}
+                                        renderToggle={({ isOpen, onToggle }) => (
+                                            <Button
+                                                variant="tertiary"
+                                                className="ap-site-editor__style-palette-color-trigger"
+                                                aria-expanded={isOpen}
+                                                aria-label={__(
+                                                    'Color value',
+                                                    TEXT_DOMAIN
+                                                )}
+                                                data-testid={`ap-site-editor-style-palette-color-${index}`}
+                                                onClick={onToggle}
+                                            >
+                                                <ColorIndicator
+                                                    colorValue={entry.color}
+                                                />
+                                            </Button>
+                                        )}
+                                        renderContent={() => (
+                                            <ColorPicker
+                                                color={entry.color}
+                                                enableAlpha={false}
+                                                onChange={(next) =>
+                                                    updateSwatch(
+                                                        index,
+                                                        'color',
+                                                        next
+                                                    )
+                                                }
+                                            />
+                                        )}
+                                    />
+                                    <TextControl
+                                        label={__('Color name', TEXT_DOMAIN)}
+                                        hideLabelFromVision={true}
+                                        value={entry.name}
+                                        placeholder={__('Name', TEXT_DOMAIN)}
+                                        data-testid={`ap-site-editor-style-palette-name-${index}`}
+                                        __nextHasNoMarginBottom={true}
+                                        __next40pxDefaultSize={true}
+                                        onChange={(next) =>
+                                            updateSwatch(index, 'name', next)
+                                        }
+                                    />
+                                    <TextControl
+                                        label={__('Color slug', TEXT_DOMAIN)}
+                                        hideLabelFromVision={true}
+                                        value={entry.slug}
+                                        placeholder={__('slug', TEXT_DOMAIN)}
+                                        data-testid={`ap-site-editor-style-palette-slug-${index}`}
+                                        __nextHasNoMarginBottom={true}
+                                        __next40pxDefaultSize={true}
+                                        onChange={(next) =>
+                                            updateSwatch(index, 'slug', next)
+                                        }
+                                    />
+                                    <div className="ap-site-editor__style-palette-row-actions">
                                         <Button
                                             variant="tertiary"
-                                            className="ap-site-editor__style-palette-color-trigger"
-                                            aria-expanded={isOpen}
+                                            size="small"
                                             aria-label={__(
-                                                'Color value',
+                                                'Move up',
                                                 TEXT_DOMAIN
                                             )}
-                                            data-testid={`ap-site-editor-style-palette-color-${index}`}
-                                            onClick={onToggle}
+                                            data-testid={`ap-site-editor-style-palette-up-${index}`}
+                                            disabled={index === 0}
+                                            onClick={() => moveSwatch(index, -1)}
                                         >
-                                            <ColorIndicator
-                                                colorValue={entry.color}
-                                            />
+                                            {__('↑', TEXT_DOMAIN)}
                                         </Button>
-                                    )}
-                                    renderContent={() => (
-                                        <ColorPicker
-                                            color={entry.color}
-                                            enableAlpha={false}
-                                            onChange={(next) =>
-                                                updateSwatch(
-                                                    index,
-                                                    'color',
-                                                    next
-                                                )
+                                        <Button
+                                            variant="tertiary"
+                                            size="small"
+                                            aria-label={__(
+                                                'Move down',
+                                                TEXT_DOMAIN
+                                            )}
+                                            data-testid={`ap-site-editor-style-palette-down-${index}`}
+                                            disabled={
+                                                index === palette.length - 1
                                             }
-                                        />
-                                    )}
-                                />
-                                <TextControl
-                                    label={__('Color name', TEXT_DOMAIN)}
-                                    hideLabelFromVision={true}
-                                    value={entry.name}
-                                    placeholder={__('Name', TEXT_DOMAIN)}
-                                    data-testid={`ap-site-editor-style-palette-name-${index}`}
-                                    __nextHasNoMarginBottom={true}
-                                    __next40pxDefaultSize={true}
-                                    onChange={(next) =>
-                                        updateSwatch(index, 'name', next)
-                                    }
-                                />
-                                <TextControl
-                                    label={__('Color slug', TEXT_DOMAIN)}
-                                    hideLabelFromVision={true}
-                                    value={entry.slug}
-                                    placeholder={__('slug', TEXT_DOMAIN)}
-                                    data-testid={`ap-site-editor-style-palette-slug-${index}`}
-                                    __nextHasNoMarginBottom={true}
-                                    __next40pxDefaultSize={true}
-                                    onChange={(next) =>
-                                        updateSwatch(index, 'slug', next)
-                                    }
-                                />
-                                <div className="ap-site-editor__style-palette-row-actions">
-                                    <Button
-                                        variant="tertiary"
-                                        size="small"
-                                        aria-label={__('Move up', TEXT_DOMAIN)}
-                                        data-testid={`ap-site-editor-style-palette-up-${index}`}
-                                        disabled={index === 0}
-                                        onClick={() => moveSwatch(index, -1)}
-                                    >
-                                        {__('↑', TEXT_DOMAIN)}
-                                    </Button>
-                                    <Button
-                                        variant="tertiary"
-                                        size="small"
-                                        aria-label={__('Move down', TEXT_DOMAIN)}
-                                        data-testid={`ap-site-editor-style-palette-down-${index}`}
-                                        disabled={
-                                            index === palette.length - 1
+                                            onClick={() => moveSwatch(index, 1)}
+                                        >
+                                            {__('↓', TEXT_DOMAIN)}
+                                        </Button>
+                                        <Button
+                                            variant="tertiary"
+                                            size="small"
+                                            isDestructive={true}
+                                            data-testid={`ap-site-editor-style-palette-remove-${index}`}
+                                            onClick={() => removeSwatch(index)}
+                                        >
+                                            {__('Remove', TEXT_DOMAIN)}
+                                        </Button>
+                                    </div>
+                                    {(['color', 'name', 'slug'] as const).map(
+                                        (field) => {
+                                            const message = rowErrors[field];
+
+                                            if (message === undefined) {
+                                                return null;
+                                            }
+
+                                            return (
+                                                <p
+                                                    key={field}
+                                                    role="alert"
+                                                    className="ap-site-editor__style-palette-row-error"
+                                                    data-testid={`ap-site-editor-style-palette-error-${index}-${field}`}
+                                                >
+                                                    {message}
+                                                </p>
+                                            );
                                         }
-                                        onClick={() => moveSwatch(index, 1)}
-                                    >
-                                        {__('↓', TEXT_DOMAIN)}
-                                    </Button>
-                                    <Button
-                                        variant="tertiary"
-                                        size="small"
-                                        isDestructive={true}
-                                        data-testid={`ap-site-editor-style-palette-remove-${index}`}
-                                        onClick={() => removeSwatch(index)}
-                                    >
-                                        {__('Remove', TEXT_DOMAIN)}
-                                    </Button>
-                                </div>
-                            </li>
-                        ))}
+                                    )}
+                                </li>
+                            );
+                        })}
                     </ul>
                 </div>
             </PanelRow>

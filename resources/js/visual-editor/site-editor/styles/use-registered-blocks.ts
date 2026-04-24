@@ -99,6 +99,13 @@ export function useRegisteredBlocks(
 
     useEffect(() => {
         if (!enabled) {
+            // Invalidate any in-flight fetch and clear cached state so
+            // a stale response can't slip past the counter guard and a
+            // re-enable starts from a known blank slate.
+            requestCounterRef.current += 1;
+            setBlocks([]);
+            setError(null);
+            setIsLoading(false);
             return;
         }
 
