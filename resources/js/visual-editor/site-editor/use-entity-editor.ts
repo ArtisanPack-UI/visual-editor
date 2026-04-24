@@ -134,6 +134,24 @@ export function useEntityEditor<K extends EntityKind>(
     // typed then undid" from "user typed" without comparing trees.
     const committedBlocksRef = useRef<readonly unknown[]>([]);
 
+    // Bumped on every local edit (setBlocks, patch, reset). A save
+    // snapshots this at start; if the value has moved by the time the
+    // response arrives, the user kept typing during the save and we
+    // must NOT overwrite their newer edits with the server snapshot.
+    const editVersionRef = useRef(0);
+
+    const resetEditorState = useCallback((): void => {
+        committedBlocksRef.current = [];
+        setEntity(null);
+        setBlocksState([]);
+        setPendingPatch({});
+        setIsDirty(false);
+        setSaveStatus('idle');
+        setSaveErrorMessage(null);
+        setValidationErrors(null);
+        setLastSavedAt(null);
+    }, []);
+
     const hydrateFromRecord = useCallback((record: EntityRecord<K>): void => {
         const nextBlocks = isEntityContent(record.content)
             ? hydrateBlocks(record.content)
@@ -154,22 +172,19 @@ export function useEntityEditor<K extends EntityKind>(
             // slip past the stale-request guard and re-populate the
             // cleared state.
             requestCounterRef.current += 1;
-            committedBlocksRef.current = [];
-            setEntity(null);
-            setBlocksState([]);
-            setPendingPatch({});
-            setIsDirty(false);
+            resetEditorState();
             setLoadStatus('idle');
             setLoadErrorMessage(null);
-            setSaveStatus('idle');
-            setSaveErrorMessage(null);
-            setValidationErrors(null);
-            setLastSavedAt(null);
             return;
         }
 
         const requestId = ++requestCounterRef.current;
 
+        // Clear every field that belonged to the previous entity before
+        // kicking off the fetch — otherwise entity A's `saveStatus`,
+        // `lastSavedAt`, validation errors, and dirty flag stay visible
+        // in the top bar / inspector until entity B finishes loading.
+        resetEditorState();
         setLoadStatus('loading');
         setLoadErrorMessage(null);
 
@@ -199,7 +214,7 @@ export function useEntityEditor<K extends EntityKind>(
                 setLoadErrorMessage(message);
             }
         })();
-    }, [apiConfig, kind, entityId, hydrateFromRecord]);
+    }, [apiConfig, kind, entityId, hydrateFromRecord, resetEditorState]);
 
     // Read the latest `pendingPatch` from inside `setBlocks` without
     // re-creating the callback on every keystroke — reading from state
@@ -217,6 +232,8 @@ export function useEntityEditor<K extends EntityKind>(
                 return prev;
             }
 
+            editVersionRef.current += 1;
+
             if (next === committedBlocksRef.current) {
                 // User undid every block edit back to the saved tree —
                 // clear the dirty flag unless a pending field override
@@ -233,11 +250,13 @@ export function useEntityEditor<K extends EntityKind>(
     }, []);
 
     const patch = useCallback((overrides: UpdatePayload): void => {
+        editVersionRef.current += 1;
         setPendingPatch((prev) => ({ ...prev, ...overrides }));
         setIsDirty(true);
     }, []);
 
     const reset = useCallback((): void => {
+        editVersionRef.current += 1;
         setBlocksState(committedBlocksRef.current);
         setPendingPatch({});
         setIsDirty(false);
@@ -323,6 +342,13 @@ export function useEntityEditor<K extends EntityKind>(
             const requestId = ++requestCounterRef.current;
             const isStale = (): boolean => requestCounterRef.current !== requestId;
 
+            // Snapshot the edit-version so we can detect typing that
+            // happened after the payload was captured. On a slow network
+            // the user can keep editing while the PUT is in-flight;
+            // hydrating the response on top of those fresh edits would
+            // silently discard them.
+            const draftVersion = editVersionRef.current;
+
             setSaveStatus('saving');
             setSaveErrorMessage(null);
             setValidationErrors(null);
@@ -334,9 +360,18 @@ export function useEntityEditor<K extends EntityKind>(
                     return updated;
                 }
 
-                hydrateFromRecord(updated);
+                // The save itself succeeded either way, so confirm it to
+                // the user. Only re-sync the canvas + pending patch from
+                // the server when no new edits happened during the
+                // request — otherwise preserve the user's in-flight
+                // edits and leave `isDirty` true so they know there's
+                // still newer state to push.
                 setSaveStatus('saved');
                 setLastSavedAt(new Date());
+
+                if (editVersionRef.current === draftVersion) {
+                    hydrateFromRecord(updated);
+                }
 
                 return updated;
             } catch (error: unknown) {

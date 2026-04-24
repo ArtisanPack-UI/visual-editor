@@ -237,6 +237,115 @@ describe('useEntityEditor', () => {
         expect(result.current.saveStatus).not.toBe('saved');
     });
 
+    it('preserves in-flight edits when a save response arrives after the user kept typing', async () => {
+        FETCH_MOCK.mockResolvedValue(
+            makeTemplate({ title: { rendered: 'Original' } })
+        );
+
+        let releaseUpdate: (value: Record<string, unknown>) => void = () => {};
+        UPDATE_MOCK.mockImplementationOnce(
+            () =>
+                new Promise<Record<string, unknown>>((resolve) => {
+                    releaseUpdate = resolve;
+                })
+        );
+
+        const { result } = renderHook(() =>
+            useEntityEditor({
+                apiConfig: API_CONFIG,
+                kind: 'template',
+                entityId: '1',
+            })
+        );
+
+        await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+        act(() => {
+            result.current.patch({ title: 'Saved snapshot' });
+        });
+
+        let savePromise: Promise<unknown> = Promise.resolve();
+        act(() => {
+            savePromise = result.current.save();
+        });
+
+        // User keeps typing while the PUT is still in-flight.
+        act(() => {
+            result.current.patch({ title: 'Newer edit' });
+        });
+
+        await act(async () => {
+            releaseUpdate(
+                makeTemplate({ title: { rendered: 'Saved snapshot' } })
+            );
+            await savePromise;
+        });
+
+        // Save confirmed (status + timestamp advance) but the user's
+        // post-save edit survives and the dirty flag stays up so they
+        // know there's still pending state to push.
+        expect(result.current.saveStatus).toBe('saved');
+        expect(result.current.lastSavedAt).not.toBeNull();
+        expect(result.current.entity?.title.rendered).toBe('Newer edit');
+        expect(result.current.isDirty).toBe(true);
+    });
+
+    it('clears entity A save metadata when switching to entity B', async () => {
+        FETCH_MOCK.mockImplementation(async (_config, _kind, id) =>
+            makeTemplate({ id: Number(id), slug: `slug-${id}` })
+        );
+        UPDATE_MOCK.mockImplementation(async (_config, _kind, id) =>
+            makeTemplate({ id: Number(id), slug: `slug-${id}` })
+        );
+
+        const { result, rerender } = renderHook(
+            ({ id }: { id: string }) =>
+                useEntityEditor({
+                    apiConfig: API_CONFIG,
+                    kind: 'template',
+                    entityId: id,
+                }),
+            { initialProps: { id: '1' } }
+        );
+
+        await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+        await act(async () => {
+            await result.current.save();
+        });
+
+        expect(result.current.saveStatus).toBe('saved');
+        expect(result.current.lastSavedAt).not.toBeNull();
+
+        // Hold entity 2's fetch open so we can observe the in-between
+        // "loading B" window and confirm A's save metadata isn't bleeding
+        // into it.
+        let releaseFetch: (value: Record<string, unknown>) => void = () => {};
+        FETCH_MOCK.mockImplementationOnce(
+            () =>
+                new Promise<Record<string, unknown>>((resolve) => {
+                    releaseFetch = resolve;
+                })
+        );
+
+        rerender({ id: '2' });
+
+        expect(result.current.loadStatus).toBe('loading');
+        expect(result.current.saveStatus).toBe('idle');
+        expect(result.current.lastSavedAt).toBeNull();
+        expect(result.current.saveErrorMessage).toBeNull();
+        expect(result.current.validationErrors).toBeNull();
+        expect(result.current.isDirty).toBe(false);
+        expect(result.current.entity).toBeNull();
+
+        await act(async () => {
+            releaseFetch(makeTemplate({ id: 2, slug: 'slug-2' }));
+        });
+
+        await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+        expect(result.current.entity?.slug).toBe('slug-2');
+    });
+
     it('drops a concurrent save response that resolves after a newer save started', async () => {
         FETCH_MOCK.mockResolvedValue(makeTemplate());
 
