@@ -44,13 +44,32 @@ export interface StyleFieldDescriptor {
 const CUSTOM_SENTINEL = '__custom__';
 const PRESET_VAR_PATTERN = /^var\(--wp--preset--color--([a-z0-9-]+)\)$/i;
 
-const FONT_WEIGHT_PRESETS = [
-    { value: '300', label: 'Light · 300' },
-    { value: '400', label: 'Regular · 400' },
-    { value: '500', label: 'Medium · 500' },
-    { value: '600', label: 'Semibold · 600' },
-    { value: '700', label: 'Bold · 700' },
+/**
+ * Stable value list — used for match detection so the "Custom…" escape
+ * hatch triggers only when the draft's weight isn't in the preset set.
+ * Labels live in {@link fontWeightPresetOptions} so their `__()` calls
+ * run at render time (after `bootI18n`), not at module load.
+ */
+const FONT_WEIGHT_PRESET_VALUES: ReadonlyArray<string> = [
+    '300',
+    '400',
+    '500',
+    '600',
+    '700',
 ];
+
+function fontWeightPresetOptions(): ReadonlyArray<{
+    value: string;
+    label: string;
+}> {
+    return [
+        { value: '300', label: __('Light · 300', TEXT_DOMAIN) },
+        { value: '400', label: __('Regular · 400', TEXT_DOMAIN) },
+        { value: '500', label: __('Medium · 500', TEXT_DOMAIN) },
+        { value: '600', label: __('Semibold · 600', TEXT_DOMAIN) },
+        { value: '700', label: __('Bold · 700', TEXT_DOMAIN) },
+    ];
+}
 
 const SIZE_UNITS = [
     { value: 'px', label: 'px', default: 0 },
@@ -231,12 +250,10 @@ export function renderStyleField(
 
     if (descriptor.kind === 'font-weight') {
         const options = [
-            ...FONT_WEIGHT_PRESETS,
+            ...fontWeightPresetOptions(),
             { value: CUSTOM_SENTINEL, label: __('Custom…', TEXT_DOMAIN) },
         ];
-        const matches = FONT_WEIGHT_PRESETS.some(
-            (preset) => preset.value === value
-        );
+        const matches = FONT_WEIGHT_PRESET_VALUES.includes(value);
         const selectValue = matches ? value : CUSTOM_SENTINEL;
 
         return (
