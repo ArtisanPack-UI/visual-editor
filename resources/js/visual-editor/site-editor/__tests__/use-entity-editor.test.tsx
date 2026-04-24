@@ -237,6 +237,51 @@ describe('useEntityEditor', () => {
         expect(result.current.saveStatus).not.toBe('saved');
     });
 
+    it('ignores a save response that resolves after the editor was closed', async () => {
+        FETCH_MOCK.mockResolvedValue(makeTemplate());
+
+        let releaseUpdate: (value: Record<string, unknown>) => void = () => {};
+        UPDATE_MOCK.mockImplementationOnce(
+            () =>
+                new Promise<Record<string, unknown>>((resolve) => {
+                    releaseUpdate = resolve;
+                })
+        );
+
+        const { result, rerender } = renderHook(
+            ({ id }: { id: string | null }) =>
+                useEntityEditor({
+                    apiConfig: API_CONFIG,
+                    kind: 'template',
+                    entityId: id,
+                }),
+            { initialProps: { id: '1' } as { id: string | null } }
+        );
+
+        await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+        let savePromise: Promise<unknown> = Promise.resolve();
+        act(() => {
+            savePromise = result.current.save();
+        });
+
+        rerender({ id: null });
+
+        expect(result.current.entity).toBeNull();
+        expect(result.current.loadStatus).toBe('idle');
+
+        await act(async () => {
+            releaseUpdate(makeTemplate({ slug: 'should-not-appear' }));
+            await savePromise;
+        });
+
+        // Closing while a save was in-flight should leave the editor
+        // idle — the late response can't re-populate the cleared state.
+        expect(result.current.entity).toBeNull();
+        expect(result.current.loadStatus).toBe('idle');
+        expect(result.current.saveStatus).not.toBe('saved');
+    });
+
     it('switches to idle state when entityId becomes null', async () => {
         FETCH_MOCK.mockResolvedValue(makeTemplate());
 

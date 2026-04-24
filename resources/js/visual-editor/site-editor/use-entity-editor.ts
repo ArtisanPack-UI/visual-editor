@@ -149,6 +149,11 @@ export function useEntityEditor<K extends EntityKind>(
 
     useEffect(() => {
         if (entityId === null) {
+            // Bump the counter alongside the state reset so a load or
+            // save that resolves after the user closed the editor can't
+            // slip past the stale-request guard and re-populate the
+            // cleared state.
+            requestCounterRef.current += 1;
             committedBlocksRef.current = [];
             setEntity(null);
             setBlocksState([]);
