@@ -522,7 +522,7 @@ regions need a fixed home so the chrome doesn't drift section by section: the **
   zoom-out / preview affordance. Each toggle's `aria-pressed` reflects the panel's open state, mirroring the post
   editor's M7 conventions.
 
-```
+```text
 Edit mode (entity selected):
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  Top Bar:  [☰] [+] [List] [Brand]  [Entity title]   [Save template]    │
@@ -538,7 +538,7 @@ Edit mode (entity selected):
 └────┴─────────────────┴─────────────────────────────┴─────────────────────┘
 ```
 
-```
+```text
 Browse mode (no entity selected):
 ┌──────────────────────────────────────────────────────────────────────────┐
 │  Top Bar:  [☰] [Brand]  [Section name]                                  │

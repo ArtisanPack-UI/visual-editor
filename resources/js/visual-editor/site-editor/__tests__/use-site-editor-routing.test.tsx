@@ -57,6 +57,30 @@ describe('parseSiteEditorPath', () => {
         });
     });
 
+    it('decodes percent-encoded entity ids (round-trips reserved chars)', () => {
+        expect(
+            parseSiteEditorPath(
+                `${ROUTE_BASE}/templates/${encodeURIComponent('hero / banner')}`,
+                ROUTE_BASE
+            )
+        ).toEqual({
+            section: 'templates',
+            entityId: 'hero / banner',
+        });
+    });
+
+    it('falls back to the raw segment when the entity id is malformed', () => {
+        // A lone `%` is not a valid escape sequence — `decodeURIComponent`
+        // throws on it, and the router should not bring the SPA down on
+        // a hand-typed URL.
+        expect(
+            parseSiteEditorPath(`${ROUTE_BASE}/templates/100%`, ROUTE_BASE)
+        ).toEqual({
+            section: 'templates',
+            entityId: '100%',
+        });
+    });
+
     it('falls back to the default section for unknown slugs', () => {
         expect(
             parseSiteEditorPath(`${ROUTE_BASE}/not-a-section`, ROUTE_BASE)
@@ -86,6 +110,20 @@ describe('buildSiteEditorPath', () => {
         expect(buildSiteEditorPath('/visual-editor/site/', 'styles')).toBe(
             '/visual-editor/site/styles'
         );
+    });
+
+    it('encodes reserved characters in the entity id', () => {
+        expect(
+            buildSiteEditorPath(ROUTE_BASE, 'templates', 'hero / banner')
+        ).toBe('/visual-editor/site/templates/hero%20%2F%20banner');
+    });
+
+    it('round-trips the entity id through parse + build', () => {
+        const original = 'hero / banner';
+        const built = buildSiteEditorPath(ROUTE_BASE, 'patterns', original);
+        const parsed = parseSiteEditorPath(built, ROUTE_BASE);
+
+        expect(parsed.entityId).toBe(original);
     });
 });
 

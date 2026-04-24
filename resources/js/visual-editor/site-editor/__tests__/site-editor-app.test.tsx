@@ -200,4 +200,26 @@ describe('SiteEditorApp', () => {
             screen.getByTestId('ap-site-editor-mode-indicator')
         ).toHaveAttribute('data-section', 'patterns');
     });
+
+    it('marks the body region as the tabpanel and labels it by the active tab', async () => {
+        const user = userEvent.setup();
+        renderApp();
+
+        const panel = document.getElementById('ap-site-editor-section-outlet');
+
+        expect(panel).not.toBeNull();
+        expect(panel).toHaveAttribute('role', 'tabpanel');
+        expect(panel).toHaveAttribute(
+            'aria-labelledby',
+            'ap-site-editor-tab-templates'
+        );
+        expect(panel).toHaveAttribute('tabindex', '0');
+
+        await user.click(screen.getByTestId('ap-site-editor-navigator-styles'));
+
+        expect(panel).toHaveAttribute(
+            'aria-labelledby',
+            'ap-site-editor-tab-styles'
+        );
+    });
 });

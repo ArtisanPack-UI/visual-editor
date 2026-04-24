@@ -73,14 +73,29 @@ export function parseSiteEditorPath(
         return { section: DEFAULT_SECTION_ID, entityId: null };
     }
 
-    const entityId = rest.length > 0 ? rest.join('/') : null;
+    const entityId = rest.length > 0 ? decodePathSegment(rest.join('/')) : null;
 
     return { section: section.id, entityId };
 }
 
 /**
+ * `decodeURIComponent` throws on malformed escape sequences (e.g. a
+ * lone `%`). The router should never crash on a hand-typed URL — fall
+ * back to the raw string when the segment isn't decodable so the user
+ * still lands on the resolved section.
+ */
+function decodePathSegment(value: string): string {
+    try {
+        return decodeURIComponent(value);
+    } catch {
+        return value;
+    }
+}
+
+/**
  * Builds the canonical pathname for a (section, entityId) pair. Pure;
- * exported for tests.
+ * exported for tests. The entity id is `encodeURIComponent`-ed so
+ * reserved characters round-trip safely through `parseSiteEditorPath`.
  */
 export function buildSiteEditorPath(
     routeBase: string,
@@ -88,7 +103,10 @@ export function buildSiteEditorPath(
     entityId: string | null = null
 ): string {
     const normalizedBase = routeBase.replace(/\/+$/, '');
-    const tail = entityId === null ? section : `${section}/${entityId}`;
+    const tail =
+        entityId === null
+            ? section
+            : `${section}/${encodeURIComponent(entityId)}`;
 
     return `${normalizedBase}/${tail}`;
 }

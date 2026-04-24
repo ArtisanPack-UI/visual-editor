@@ -17,9 +17,18 @@ import { createRoot, type Root } from 'react-dom/client';
 
 const MOUNT_SELECTOR = '[data-ap-site-editor]';
 const ROOT_SYMBOL: unique symbol = Symbol('ap-site-editor-root');
+const READY_SYMBOL: unique symbol = Symbol('ap-site-editor-ready');
 
 type MountableElement = HTMLElement & {
     [ROOT_SYMBOL]?: Root;
+    /**
+     * Resolves once the dynamic shell module has loaded and the initial
+     * render has been scheduled. Stored on the host so a second call to
+     * {@link mountSiteEditor} on the same element waits for the first
+     * mount's render commit instead of resolving immediately and
+     * letting callers race the render.
+     */
+    [READY_SYMBOL]?: Promise<void>;
 };
 
 export interface SiteEditorMountConfig {
@@ -56,9 +65,17 @@ export function mountSiteEditor(
 ): MountedSiteEditor {
     const host = element as MountableElement;
 
-    if (host[ROOT_SYMBOL]) {
+    // Re-mount on an already-mounted host: hand back the in-flight
+    // readiness promise so the second caller sees the same render
+    // commit the first caller is waiting for. Falling back to
+    // `Promise.resolve()` here (the previous behaviour) lets the
+    // second caller race the dynamic import and observe a
+    // half-mounted DOM.
+    const existing = host[READY_SYMBOL];
+
+    if (host[ROOT_SYMBOL] && existing !== undefined) {
         return {
-            ready: Promise.resolve(),
+            ready: existing,
             unmount: () => unmountSiteEditor(host),
         };
     }
@@ -87,6 +104,8 @@ export function mountSiteEditor(
         }
     );
 
+    host[READY_SYMBOL] = ready;
+
     return {
         ready,
         unmount: () => unmountSiteEditor(host),
@@ -101,6 +120,7 @@ function unmountSiteEditor(element: MountableElement): void {
     }
 
     delete element[ROOT_SYMBOL];
+    delete element[READY_SYMBOL];
     root.unmount();
 }
 

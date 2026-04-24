@@ -9,7 +9,7 @@
  *     the inserter; the inspector keeps its right-rail position.
  */
 
-@import url('../editor/top-bar.css');
+@import '../editor/top-bar.css';
 
 .ap-visual-editor-site-editor-body {
     margin: 0;

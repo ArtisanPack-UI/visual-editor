@@ -30,7 +30,11 @@ import { TEXT_DOMAIN, bootI18n } from '../vendor/i18n';
 
 import { CanvasFrame } from './canvas-frame';
 import { InspectorOutlet } from './inspector-outlet';
-import { NavigatorSidebar } from './navigator-sidebar';
+import {
+    NAVIGATOR_PANEL_ID,
+    NavigatorSidebar,
+    navigatorTabId,
+} from './navigator-sidebar';
 import { SectionOutlet } from './section-outlet';
 import { getSection } from './sections';
 import { usePersistedToggle } from './use-persisted-toggle';
@@ -190,7 +194,10 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
             />
             <div
                 className="ap-site-editor__body"
-                id="ap-site-editor-section-outlet"
+                id={NAVIGATOR_PANEL_ID}
+                role="tabpanel"
+                aria-labelledby={navigatorTabId(activeSection.id)}
+                tabIndex={0}
             >
                 {navigatorOpen ? (
                     <div className="ap-site-editor__sidebar ap-site-editor__sidebar--navigator">
