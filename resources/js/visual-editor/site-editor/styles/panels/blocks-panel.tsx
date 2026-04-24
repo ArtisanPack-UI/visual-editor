@@ -35,37 +35,59 @@ interface BlockField extends StyleFieldDescriptor {
     key: readonly string[];
 }
 
-const BLOCK_FIELDS: readonly BlockField[] = [
-    {
-        label: 'Background color',
-        key: ['color', 'background'],
-        testId: 'block-color-background',
-        kind: 'color',
-    },
-    {
-        label: 'Text color',
-        key: ['color', 'text'],
-        testId: 'block-color-text',
-        kind: 'color',
-    },
-    {
-        label: 'Font family',
-        key: ['typography', 'fontFamily'],
-        testId: 'block-font-family',
-        kind: 'font-family',
-    },
-    {
-        label: 'Font size',
-        key: ['typography', 'fontSize'],
-        testId: 'block-font-size',
-        kind: 'font-size',
-    },
-    {
-        label: 'Border radius',
-        key: ['border', 'radius'],
-        testId: 'block-border-radius',
-        kind: 'size',
-    },
+/**
+ * Returns the block-detail field descriptors. A function (not a
+ * top-level constant) so `__()` resolves at call time — mirrors the
+ * `getSiteEditorSections` pattern and matches how the codebase handles
+ * every other static label list that needs to be translator-extractable
+ * without freezing to English at module load.
+ */
+function getBlockFields(): readonly BlockField[] {
+    return [
+        {
+            label: __('Background color', TEXT_DOMAIN),
+            key: ['color', 'background'],
+            testId: 'block-color-background',
+            kind: 'color',
+        },
+        {
+            label: __('Text color', TEXT_DOMAIN),
+            key: ['color', 'text'],
+            testId: 'block-color-text',
+            kind: 'color',
+        },
+        {
+            label: __('Font family', TEXT_DOMAIN),
+            key: ['typography', 'fontFamily'],
+            testId: 'block-font-family',
+            kind: 'font-family',
+        },
+        {
+            label: __('Font size', TEXT_DOMAIN),
+            key: ['typography', 'fontSize'],
+            testId: 'block-font-size',
+            kind: 'font-size',
+        },
+        {
+            label: __('Border radius', TEXT_DOMAIN),
+            key: ['border', 'radius'],
+            testId: 'block-border-radius',
+            kind: 'size',
+        },
+    ];
+}
+
+/**
+ * Stable key list used for iteration in `customizedCount` detection —
+ * derived once from a single cached descriptor set so the render path
+ * doesn't re-translate on every isPathCustomized check.
+ */
+const BLOCK_FIELD_KEYS: readonly (readonly string[])[] = [
+    ['color', 'background'],
+    ['color', 'text'],
+    ['typography', 'fontFamily'],
+    ['typography', 'fontSize'],
+    ['border', 'radius'],
 ];
 
 export function BlocksIndexPanel(
@@ -188,14 +210,16 @@ export function BlockDetailPanel(
         [blocks, selectedBlockName]
     );
 
+    const fields = useMemo(() => getBlockFields(), []);
+
     const customizedCount = useMemo(
         () =>
-            BLOCK_FIELDS.filter((field) =>
+            BLOCK_FIELD_KEYS.filter((key) =>
                 editor.isPathCustomized([
                     'styles',
                     'blocks',
                     selectedBlockName,
-                    ...field.key,
+                    ...key,
                 ])
             ).length,
         [editor, selectedBlockName]
@@ -234,7 +258,7 @@ export function BlockDetailPanel(
                     ])
                 }
             >
-                {BLOCK_FIELDS.map((field) =>
+                {fields.map((field) =>
                     renderStyleField({
                         editor,
                         validationErrors,

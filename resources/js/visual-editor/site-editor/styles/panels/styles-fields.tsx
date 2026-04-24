@@ -155,7 +155,7 @@ export function renderStyleField(
                     data-testid={`ap-site-editor-style-swatches-${descriptor.testId}`}
                 >
                     <span className="ap-site-editor__style-color-field-label">
-                        {__(descriptor.label, TEXT_DOMAIN)}
+                        {descriptor.label}
                     </span>
                     <ColorPalette
                         colors={paletteOptions}
@@ -199,7 +199,7 @@ export function renderStyleField(
         return (
             <StyleControlRow key={descriptor.testId} {...rowProps}>
                 <SelectControl
-                    label={__(descriptor.label, TEXT_DOMAIN)}
+                    label={descriptor.label}
                     value={selectValue}
                     options={options}
                     data-testid={selectTestId}
@@ -259,7 +259,7 @@ export function renderStyleField(
         return (
             <StyleControlRow key={descriptor.testId} {...rowProps}>
                 <SelectControl
-                    label={__(descriptor.label, TEXT_DOMAIN)}
+                    label={descriptor.label}
                     value={selectValue}
                     options={options}
                     data-testid={`ap-site-editor-style-field-select-${descriptor.testId}`}
@@ -293,7 +293,7 @@ export function renderStyleField(
     return (
         <StyleControlRow key={descriptor.testId} {...rowProps}>
             <UnitControl
-                label={__(descriptor.label, TEXT_DOMAIN)}
+                label={descriptor.label}
                 value={value}
                 units={SIZE_UNITS}
                 data-testid={`ap-site-editor-style-field-input-${descriptor.testId}`}

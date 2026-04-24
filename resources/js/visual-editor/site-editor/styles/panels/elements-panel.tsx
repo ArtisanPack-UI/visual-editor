@@ -36,37 +36,59 @@ interface ElementField extends StyleFieldDescriptor {
     key: readonly string[];
 }
 
-const ELEMENT_FIELDS: readonly ElementField[] = [
-    {
-        label: 'Text color',
-        key: ['color', 'text'],
-        testId: 'element-color-text',
-        kind: 'color',
-    },
-    {
-        label: 'Background color',
-        key: ['color', 'background'],
-        testId: 'element-color-background',
-        kind: 'color',
-    },
-    {
-        label: 'Font family',
-        key: ['typography', 'fontFamily'],
-        testId: 'element-font-family',
-        kind: 'font-family',
-    },
-    {
-        label: 'Font size',
-        key: ['typography', 'fontSize'],
-        testId: 'element-font-size',
-        kind: 'font-size',
-    },
-    {
-        label: 'Font weight',
-        key: ['typography', 'fontWeight'],
-        testId: 'element-font-weight',
-        kind: 'font-weight',
-    },
+/**
+ * Returns the element-detail field descriptors. A function (not a
+ * top-level constant) so `__()` resolves at call time — mirrors the
+ * `getSiteEditorSections` pattern and matches how the codebase handles
+ * every other static label list that needs to be translator-extractable
+ * without freezing to English at module load.
+ */
+function getElementFields(): readonly ElementField[] {
+    return [
+        {
+            label: __('Text color', TEXT_DOMAIN),
+            key: ['color', 'text'],
+            testId: 'element-color-text',
+            kind: 'color',
+        },
+        {
+            label: __('Background color', TEXT_DOMAIN),
+            key: ['color', 'background'],
+            testId: 'element-color-background',
+            kind: 'color',
+        },
+        {
+            label: __('Font family', TEXT_DOMAIN),
+            key: ['typography', 'fontFamily'],
+            testId: 'element-font-family',
+            kind: 'font-family',
+        },
+        {
+            label: __('Font size', TEXT_DOMAIN),
+            key: ['typography', 'fontSize'],
+            testId: 'element-font-size',
+            kind: 'font-size',
+        },
+        {
+            label: __('Font weight', TEXT_DOMAIN),
+            key: ['typography', 'fontWeight'],
+            testId: 'element-font-weight',
+            kind: 'font-weight',
+        },
+    ];
+}
+
+/**
+ * Stable key list used for iteration in `customizedCount` detection —
+ * derived once so the render path doesn't re-translate on every
+ * isPathCustomized check.
+ */
+const ELEMENT_FIELD_KEYS: readonly (readonly string[])[] = [
+    ['color', 'text'],
+    ['color', 'background'],
+    ['typography', 'fontFamily'],
+    ['typography', 'fontSize'],
+    ['typography', 'fontWeight'],
 ];
 
 export function ElementsIndexPanel(
@@ -156,14 +178,16 @@ export function ElementDetailPanel(
     const { editor, validationErrors, element, onBack } = props;
     const presets = useStylePresets(editor);
 
+    const fields = useMemo(() => getElementFields(), []);
+
     const customizedCount = useMemo(
         () =>
-            ELEMENT_FIELDS.filter((field) =>
+            ELEMENT_FIELD_KEYS.filter((key) =>
                 editor.isPathCustomized([
                     'styles',
                     'elements',
                     element,
-                    ...field.key,
+                    ...key,
                 ])
             ).length,
         [editor, element]
@@ -196,7 +220,7 @@ export function ElementDetailPanel(
                     editor.resetPath(['styles', 'elements', element])
                 }
             >
-                {ELEMENT_FIELDS.map((field) =>
+                {fields.map((field) =>
                     renderStyleField({
                         editor,
                         validationErrors,
