@@ -314,11 +314,13 @@ export function useEntityEditor<K extends EntityKind>(
                 },
             };
 
-            // Snapshot the request counter so a save that resolves after
-            // the user navigated to a different entity (counter was bumped
-            // by the load effect) or triggered a manual reload doesn't
-            // hydrate the editor with a stale record.
-            const requestId = requestCounterRef.current;
+            // Allocate a unique request id for this save so a later save
+            // (or a navigate/close) always invalidates us. Snapshotting
+            // without incrementing would let two concurrent saves share
+            // an id — the slower one's stale response could then
+            // hydrate the editor with outdated fields on top of the
+            // faster one's authoritative result.
+            const requestId = ++requestCounterRef.current;
             const isStale = (): boolean => requestCounterRef.current !== requestId;
 
             setSaveStatus('saving');

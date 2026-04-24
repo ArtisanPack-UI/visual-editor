@@ -237,6 +237,62 @@ describe('useEntityEditor', () => {
         expect(result.current.saveStatus).not.toBe('saved');
     });
 
+    it('drops a concurrent save response that resolves after a newer save started', async () => {
+        FETCH_MOCK.mockResolvedValue(makeTemplate());
+
+        let releaseFirst: (value: Record<string, unknown>) => void = () => {};
+        let releaseSecond: (value: Record<string, unknown>) => void = () => {};
+
+        UPDATE_MOCK
+            .mockImplementationOnce(
+                () =>
+                    new Promise<Record<string, unknown>>((resolve) => {
+                        releaseFirst = resolve;
+                    })
+            )
+            .mockImplementationOnce(
+                () =>
+                    new Promise<Record<string, unknown>>((resolve) => {
+                        releaseSecond = resolve;
+                    })
+            );
+
+        const { result } = renderHook(() =>
+            useEntityEditor({
+                apiConfig: API_CONFIG,
+                kind: 'template',
+                entityId: '1',
+            })
+        );
+
+        await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+        let firstSave: Promise<unknown> = Promise.resolve();
+        let secondSave: Promise<unknown> = Promise.resolve();
+
+        act(() => {
+            firstSave = result.current.save();
+            secondSave = result.current.save();
+        });
+
+        // Resolve the second (newer) save first, then the first. The
+        // later-started save is authoritative — the earlier one's
+        // response must not overwrite it.
+        await act(async () => {
+            releaseSecond(makeTemplate({ slug: 'winner' }));
+            await secondSave;
+        });
+
+        expect(result.current.entity?.slug).toBe('winner');
+
+        await act(async () => {
+            releaseFirst(makeTemplate({ slug: 'stale' }));
+            await firstSave;
+        });
+
+        expect(result.current.entity?.slug).toBe('winner');
+    });
+
     it('ignores a save response that resolves after the editor was closed', async () => {
         FETCH_MOCK.mockResolvedValue(makeTemplate());
 
