@@ -1,34 +1,33 @@
 /**
  * Site-editor SPA root.
  *
- * D1 (#368) — assembles the four shell regions defined in the macro
- * design brief (`docs/design/site-editor-ux.md` §3.2):
+ * D1 (#368) built the four shell regions (top bar / navigator / canvas /
+ * inspector). D2 (#369) plugs in the Templates and Template Parts
+ * sections: the navigator-outlet hosts the entity browser, the canvas
+ * swaps its empty state for the block editor when an entity id appears
+ * in the URL, and the inspector outlet renders the reused A1
+ * `InspectorSidebar` with a kind-specific Document panel.
  *
- *   ┌────────── Top bar ──────────┐
- *   │ Navigator │  Canvas │ Inspector │
- *   └─────────────────────────────────┘
- *
- * The top bar reuses the post-editor's {@link TopBar} so the chrome
- * stays visually consistent (per issue: "Reuse the post-editor's
- * top-bar implementation from M7 rather than forking it"). Site-editor-
- * specific extras — back-to-post-editor, mode indicator, save-with-
- * scope — ride in through the existing `extraActions` slot.
- *
- * D2–D5 plug into:
- *   - The navigator's `children` slot for per-section entity browsers.
- *   - The canvas-frame's `hasEntity` / `children` for live editing.
- *   - The inspector outlet for per-entity settings.
- *
- * Until those phases land, the shell is intentionally informative
- * (placeholders name the section + phase) rather than empty.
+ * The top-bar Save button is wired to whatever entity editor is mounted
+ * via an `entityState` hand-off — the site editor tracks one entity at a
+ * time, so the shell owns a single save slot rather than a per-section
+ * context tree. D3–D5 will hook their own `entityState` into the same
+ * slot when they ship.
  */
 
-import { useCallback, useEffect, useMemo } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { getBlockTypes, unregisterBlockType } from '@wordpress/blocks';
+import { registerCoreBlocks } from '@wordpress/block-library';
 import { __, sprintf } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN, bootI18n } from '../vendor/i18n';
 
+import type { EntityKind, SiteEditorApiConfig } from './api-client';
 import { CanvasFrame } from './canvas-frame';
+import {
+    useEntityEditorViews,
+    type EntityEditorState,
+} from './entity-editor';
 import { InspectorOutlet } from './inspector-outlet';
 import {
     NAVIGATOR_PANEL_ID,
@@ -36,7 +35,15 @@ import {
     navigatorTabId,
 } from './navigator-sidebar';
 import { SectionOutlet } from './section-outlet';
-import { getSection } from './sections';
+import { getSection, type SiteEditorSectionId } from './sections';
+import {
+    TemplateCreateDialog,
+    TemplatesBrowser,
+} from './templates-section';
+import {
+    TemplatePartCreateDialog,
+    TemplatePartsBrowser,
+} from './template-parts-section';
 import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
 import { TopBar } from '../editor/top-bar';
@@ -46,28 +53,124 @@ import './site-editor-app.css';
 const NAVIGATOR_STORAGE_KEY = 'ap-site-editor:navigator-open';
 const INSPECTOR_STORAGE_KEY = 'ap-site-editor:inspector-open';
 
+const IDLE_ENTITY_STATE: EntityEditorState = {
+    entityId: null,
+    entityTitle: '',
+    isDirty: false,
+    saveStatus: 'idle',
+    saveErrorMessage: null,
+    lastSavedAt: null,
+    save: null,
+};
+
+/**
+ * Section ids whose content D2 ships. Others still render the D1
+ * placeholder.
+ */
+const D2_SECTIONS: ReadonlySet<SiteEditorSectionId> = new Set([
+    'templates',
+    'template-parts',
+]);
+
 export interface SiteEditorAppProps {
     /** Pathname prefix the SPA owns (e.g. `/visual-editor/site`). */
     routeBase: string;
     /** URL to send the user back to when they leave the site editor. */
     postEditorUrl: string;
+    /** Base URL for the site-editor REST surface (e.g. `/visual-editor/api`). */
+    apiBase: string;
+    /** Theme slug used when creating new templates / parts. */
+    theme?: string;
 }
 
-let i18nBooted = false;
+let editorBooted = false;
 
-function ensureI18n(): void {
-    if (i18nBooted) {
+/**
+ * Core blocks the site-editor deliberately leaves unregistered for D2.
+ * Per issue #369's out-of-scope list, these entity-scoped blocks wait
+ * until E4 — their `Edit` components depend on core-data selectors
+ * (`getCurrentTheme`, `getEditedPostType`, etc.) that the B1 shim does
+ * not yet implement, so rendering them under D2 trips the block-crash
+ * boundary and leaves users staring at red error cards inside seeded
+ * templates.
+ *
+ * Mirrors the PHP `disabled_blocks` list in
+ * `config/visual-editor.php` — the two lists want to agree, and E4 will
+ * be the single commit that removes blocks from both sides.
+ */
+const D2_DISABLED_BLOCKS: ReadonlyArray<string> = [
+    'core/template-part',
+    'core/post-content',
+    'core/post-title',
+    'core/post-excerpt',
+    'core/post-date',
+    'core/post-author',
+    'core/post-featured-image',
+    'core/site-logo',
+    'core/site-title',
+    'core/site-tagline',
+    'core/navigation',
+    'core/query',
+    'core/query-loop',
+    'core/latest-comments',
+    'core/archives',
+    'core/categories',
+    'core/tag-cloud',
+];
+
+function ensureEditorBoot(): void {
+    if (editorBooted) {
         return;
     }
 
     bootI18n();
-    i18nBooted = true;
+
+    // Register core blocks before the first template loads so `parse()`
+    // can turn the saved raw serialization back into BlockInstances
+    // Gutenberg can render. Skip if another mount (HMR, shared bundle)
+    // already registered the core set.
+    if (getBlockTypes().length === 0) {
+        registerCoreBlocks();
+    }
+
+    // Strip out the out-of-scope blocks. `unregisterBlockType` throws a
+    // console warning when the target was never registered (e.g. a
+    // narrower `registerCoreBlocks` build) — check the registry first so
+    // host apps that ship a trimmed core don't see spurious noise.
+    const registered = new Set(
+        getBlockTypes().map((type: { name: string }) => type.name)
+    );
+
+    for (const name of D2_DISABLED_BLOCKS) {
+        if (registered.has(name)) {
+            unregisterBlockType(name);
+        }
+    }
+
+    editorBooted = true;
+}
+
+function sectionKind(section: SiteEditorSectionId): EntityKind | null {
+    if (section === 'templates') {
+        return 'template';
+    }
+
+    if (section === 'template-parts') {
+        return 'template-part';
+    }
+
+    return null;
 }
 
 export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
-    ensureI18n();
+    ensureEditorBoot();
 
-    const { routeBase, postEditorUrl } = props;
+    const { routeBase, postEditorUrl, apiBase, theme = 'default' } = props;
+
+    const apiConfig = useMemo<SiteEditorApiConfig>(
+        () => ({ apiBase }),
+        [apiBase]
+    );
 
     const routing = useSiteEditorRouting({ routeBase });
     const [navigatorOpen, setNavigatorOpen] = usePersistedToggle(
@@ -83,8 +186,42 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         [routing.section]
     );
 
-    // Update the document title so deep-links and tab pickers identify
-    // the active scope without forcing the user to read the URL.
+    const activeEntityId = routing.entityId;
+    const isD2Section = D2_SECTIONS.has(activeSection.id);
+    const activeKind = sectionKind(activeSection.id);
+
+    // Effective kind passed to the editor hook — always a real value so
+    // the hook is called unconditionally. Non-D2 sections get
+    // `entityId: null`, which short-circuits the hook into idle state.
+    const editorKind: EntityKind = activeKind ?? 'template';
+    const editorEntityId = isD2Section ? activeEntityId : null;
+
+    const [entityState, setEntityState] =
+        useState<EntityEditorState>(IDLE_ENTITY_STATE);
+
+    const handleEntityStateChange = useCallback(
+        (state: EntityEditorState): void => {
+            setEntityState(state);
+        },
+        []
+    );
+
+    const editorViews = useEntityEditorViews({
+        apiConfig,
+        kind: editorKind,
+        entityId: editorEntityId,
+        onStateChange: handleEntityStateChange,
+    });
+
+    const [dialogKind, setDialogKind] = useState<EntityKind | null>(null);
+
+    // Browser-list refresh signal. Bumped after a successful create so the
+    // navigator list re-fetches and the new row appears without a full
+    // page reload. Each section tracks its own counter so touching one
+    // section never invalidates the other.
+    const [templatesRefreshKey, setTemplatesRefreshKey] = useState(0);
+    const [partsRefreshKey, setPartsRefreshKey] = useState(0);
+
     useEffect(() => {
         if (typeof document === 'undefined') {
             return;
@@ -96,6 +233,14 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
             activeSection.label
         );
     }, [activeSection.label]);
+
+    // Reset cached entity state when leaving a D2 section so a
+    // subsequent re-entry doesn't surface stale save-status chrome.
+    useEffect(() => {
+        if (!isD2Section) {
+            setEntityState(IDLE_ENTITY_STATE);
+        }
+    }, [isD2Section, activeSection.id]);
 
     const handleSelectSection = useCallback(
         (sectionId: typeof activeSection.id): void => {
@@ -112,10 +257,51 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         setInspectorOpen((open) => !open);
     }, [setInspectorOpen]);
 
-    // The Cmd+S handler is intentionally a no-op for D1 so the
-    // shortcut doesn't bubble up as a browser "save page" dialog. D2–D5
-    // replace this with the real, scope-aware save dispatcher.
-    const handleSavePlaceholder = useCallback((): void => undefined, []);
+    const handleOpenEntity = useCallback(
+        (entityId: string): void => {
+            routing.navigate(activeSection.id, entityId);
+        },
+        [activeSection.id, routing]
+    );
+
+    const handleRequestCreate = useCallback((): void => {
+        if (activeKind === null) {
+            return;
+        }
+
+        setDialogKind(activeKind);
+    }, [activeKind]);
+
+    const handleCloseDialog = useCallback((): void => {
+        setDialogKind(null);
+    }, []);
+
+    const handleDialogCreated = useCallback(
+        (entityId: number | string): void => {
+            setDialogKind(null);
+
+            // Bump the section's refresh counter so the navigator list
+            // re-fetches and the new record appears alongside its siblings.
+            // Only the active section's counter moves — the sibling list
+            // stays cached until the user explicitly visits it.
+            if (activeSection.id === 'templates') {
+                setTemplatesRefreshKey((v) => v + 1);
+            } else if (activeSection.id === 'template-parts') {
+                setPartsRefreshKey((v) => v + 1);
+            }
+
+            routing.navigate(activeSection.id, String(entityId));
+        },
+        [activeSection.id, routing]
+    );
+
+    const handleSave = useCallback((): void => {
+        if (entityState.save === null) {
+            return;
+        }
+
+        void entityState.save();
+    }, [entityState.save]);
 
     const inserterToggleAriaLabel = useMemo(
         () => ({
@@ -132,6 +318,19 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         }),
         []
     );
+
+    const saveLabel = useMemo(() => {
+        if (entityState.entityTitle !== '' && entityState.entityId !== null) {
+            return sprintf(
+                /* translators: 1: entity title, 2: section save label (e.g. "Save template"). */
+                __('%1$s — %2$s', TEXT_DOMAIN),
+                entityState.entityTitle,
+                activeSection.saveLabel
+            );
+        }
+
+        return activeSection.saveLabel;
+    }, [activeSection.saveLabel, entityState.entityId, entityState.entityTitle]);
 
     const extraActions = (
         <div
@@ -152,19 +351,70 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                 data-testid="ap-site-editor-mode-indicator"
                 data-section={activeSection.id}
             >
-                {activeSection.modeLabel}
+                {entityState.entityId !== null
+                    ? sprintf(
+                          /* translators: %s: entity title being edited. */
+                          __('Editing: %s', TEXT_DOMAIN),
+                          entityState.entityTitle || activeSection.label
+                      )
+                    : activeSection.modeLabel}
             </span>
+            {entityState.isDirty ? (
+                <span
+                    className="ap-site-editor__dirty-indicator"
+                    role="status"
+                    data-testid="ap-site-editor-top-bar-dirty"
+                >
+                    {__('Unsaved', TEXT_DOMAIN)}
+                </span>
+            ) : null}
             <button
                 type="button"
                 className="ap-site-editor__top-bar-save"
-                disabled
-                aria-label={activeSection.saveLabel}
+                disabled={entityState.save === null || entityState.saveStatus === 'saving'}
+                aria-label={saveLabel}
                 data-testid="ap-site-editor-save"
+                onClick={handleSave}
             >
-                {activeSection.saveLabel}
+                {entityState.saveStatus === 'saving'
+                    ? __('Saving…', TEXT_DOMAIN)
+                    : activeSection.saveLabel}
             </button>
         </div>
     );
+
+    let navigatorChildren: JSX.Element;
+
+    if (activeSection.id === 'templates') {
+        navigatorChildren = (
+            <TemplatesBrowser
+                apiConfig={apiConfig}
+                activeEntityId={activeEntityId}
+                onOpen={handleOpenEntity}
+                onRequestCreate={handleRequestCreate}
+                refreshKey={templatesRefreshKey}
+            />
+        );
+    } else if (activeSection.id === 'template-parts') {
+        navigatorChildren = (
+            <TemplatePartsBrowser
+                apiConfig={apiConfig}
+                activeEntityId={activeEntityId}
+                onOpen={handleOpenEntity}
+                onRequestCreate={handleRequestCreate}
+                refreshKey={partsRefreshKey}
+            />
+        );
+    } else {
+        navigatorChildren = (
+            <SectionOutlet
+                section={activeSection.id}
+                sectionLabel={activeSection.label}
+            />
+        );
+    }
+
+    const showEntityEditor = isD2Section && activeEntityId !== null;
 
     return (
         <div
@@ -172,12 +422,17 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
             data-navigator-open={navigatorOpen}
             data-inspector-open={inspectorOpen}
             data-active-section={activeSection.id}
+            data-has-entity={showEntityEditor}
             data-testid="ap-site-editor-shell"
         >
             <TopBar
-                saveStatus="idle"
-                lastSavedAt={null}
-                saveErrorMessage={null}
+                saveStatus={entityState.saveStatus}
+                lastSavedAt={
+                    entityState.lastSavedAt !== null
+                        ? entityState.lastSavedAt.toISOString()
+                        : null
+                }
+                saveErrorMessage={entityState.saveErrorMessage}
                 canUndo={false}
                 canRedo={false}
                 onUndo={() => undefined}
@@ -187,7 +442,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                 onToggleInserter={handleToggleNavigator}
                 onToggleInspector={handleToggleInspector}
                 previewUrl={null}
-                onSave={handleSavePlaceholder}
+                onSave={handleSave}
                 inserterToggleAriaLabel={inserterToggleAriaLabel}
                 inspectorToggleAriaLabel={inspectorToggleAriaLabel}
                 extraActions={extraActions}
@@ -205,23 +460,50 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                             activeSection={activeSection.id}
                             onSelectSection={handleSelectSection}
                         >
-                            <SectionOutlet
-                                section={activeSection.id}
-                                sectionLabel={activeSection.label}
-                            />
+                            {navigatorChildren}
                         </NavigatorSidebar>
                     </div>
                 ) : null}
-                <CanvasFrame
-                    sectionLabel={activeSection.modeLabel}
-                    hasEntity={false}
-                />
+                {showEntityEditor ? (
+                    <div
+                        className="ap-site-editor__canvas"
+                        data-has-entity="true"
+                        data-testid="ap-site-editor-canvas"
+                    >
+                        {editorViews.canvas}
+                    </div>
+                ) : (
+                    <CanvasFrame
+                        sectionLabel={activeSection.modeLabel}
+                        hasEntity={false}
+                    />
+                )}
                 {inspectorOpen ? (
                     <div className="ap-site-editor__sidebar ap-site-editor__sidebar--inspector">
-                        <InspectorOutlet sectionLabel={activeSection.label} />
+                        {showEntityEditor ? (
+                            editorViews.inspector
+                        ) : (
+                            <InspectorOutlet sectionLabel={activeSection.label} />
+                        )}
                     </div>
                 ) : null}
             </div>
+            {dialogKind === 'template' ? (
+                <TemplateCreateDialog
+                    apiConfig={apiConfig}
+                    defaultTheme={theme}
+                    onClose={handleCloseDialog}
+                    onCreated={(entity) => handleDialogCreated(entity.id)}
+                />
+            ) : null}
+            {dialogKind === 'template-part' ? (
+                <TemplatePartCreateDialog
+                    apiConfig={apiConfig}
+                    defaultTheme={theme}
+                    onClose={handleCloseDialog}
+                    onCreated={(entity) => handleDialogCreated(entity.id)}
+                />
+            ) : null}
         </div>
     );
 }

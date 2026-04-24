@@ -66,6 +66,9 @@
 
 .ap-site-editor__sidebar--inspector {
     flex: 0 0 var(--ap-site-editor-inspector-width);
+    /* Match the navigator's separator on the left side so both rails
+       frame the canvas symmetrically. */
+    border-left: 1px solid var(--ap-site-editor-border);
 }
 
 .ap-site-editor__top-bar-extras {

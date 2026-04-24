@@ -2,6 +2,18 @@ import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+// Stub the Gutenberg block-library registration pathway: loading it
+// under jsdom pulls in the full block catalog which fails on strict
+// JSON-attribute ESM rules. The shell tests don't exercise block
+// rendering; they only care that the shell wires regions correctly.
+vi.mock('@wordpress/blocks', () => ({
+    getBlockTypes: (): never[] => [],
+}));
+
+vi.mock('@wordpress/block-library', () => ({
+    registerCoreBlocks: (): void => undefined,
+}));
+
 // Stub the canvas frame to avoid mounting `BlockCanvas` (which needs a
 // real iframe + the @wordpress/block-editor data store) under jsdom.
 // The shell-level integration is what we're verifying here; the canvas
@@ -21,6 +33,32 @@ vi.mock('../canvas-frame', () => ({
             {sectionLabel}
         </div>
     ),
+}));
+
+// D2 mounts real browsers into the templates/parts sections; the shell
+// tests only care that the navigator wires them through, so stub them
+// with simple placeholders that opt out of the REST fetch chain.
+vi.mock('../templates-section', () => ({
+    TemplatesBrowser: (): JSX.Element => (
+        <div data-testid="ap-site-editor-stub-templates-browser" />
+    ),
+    TemplateCreateDialog: (): null => null,
+    TemplateDocumentPanel: (): null => null,
+}));
+
+vi.mock('../template-parts-section', () => ({
+    TemplatePartsBrowser: (): JSX.Element => (
+        <div data-testid="ap-site-editor-stub-parts-browser" />
+    ),
+    TemplatePartCreateDialog: (): null => null,
+    TemplatePartDocumentPanel: (): null => null,
+}));
+
+vi.mock('../entity-editor', () => ({
+    useEntityEditorViews: (): { canvas: JSX.Element; inspector: JSX.Element } => ({
+        canvas: <div data-testid="ap-site-editor-stub-entity-canvas" />,
+        inspector: <div data-testid="ap-site-editor-stub-entity-inspector" />,
+    }),
 }));
 
 import { SiteEditorApp } from '../site-editor-app';
@@ -45,6 +83,7 @@ function renderApp(): void {
         <SiteEditorApp
             routeBase={ROUTE_BASE}
             postEditorUrl="/editor"
+            apiBase="/visual-editor/api"
         />
     );
 }
@@ -168,15 +207,26 @@ describe('SiteEditorApp', () => {
         expect(screen.getByTestId('ap-site-editor-save')).toBeDisabled();
     });
 
-    it('mounts the section outlet placeholder inside the navigator', () => {
+    it('mounts the D2 templates browser inside the navigator', () => {
         renderApp();
 
+        expect(
+            screen.getByTestId('ap-site-editor-stub-templates-browser')
+        ).toBeInTheDocument();
+    });
+
+    it('falls back to the section-outlet placeholder for phase-not-yet sections', async () => {
+        const user = userEvent.setup();
+        renderApp();
+
+        await user.click(screen.getByTestId('ap-site-editor-navigator-patterns'));
+
         const outlet = screen.getByTestId(
-            'ap-site-editor-section-outlet-templates'
+            'ap-site-editor-section-outlet-patterns'
         );
 
         expect(outlet).toBeInTheDocument();
-        expect(outlet).toHaveTextContent(/Templates UI lands in D2\./);
+        expect(outlet).toHaveTextContent(/Patterns UI lands in D5\./);
     });
 
     it('updates document.title to identify the active scope', () => {

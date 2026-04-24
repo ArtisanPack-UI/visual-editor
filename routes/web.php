@@ -23,8 +23,17 @@ Route::get('/ve-sandbox', function () {
 // hands routing inside the shell to the React app via `history.pushState`.
 // Sub-paths the SPA recognises: `templates`, `template-parts`, `patterns`,
 // `styles`, `navigation` (each optionally followed by an entity id).
-Route::get('/visual-editor/site/{path?}', function () {
-    return view('visual-editor::site-editor.index');
-})
-    ->where('path', '.*')
-    ->name('visual-editor.site-editor');
+//
+// `web` middleware is applied explicitly: `loadRoutesFrom()` does not
+// attach it by default, and without a session on the SPA page load the
+// `csrf_token()` helper in the blade returns a token that isn't tied to
+// any session cookie — which makes the first REST mutation (CREATE,
+// PUT) fail with "CSRF token mismatch" (D2 #369).
+Route::middleware('web')
+    ->group(function (): void {
+        Route::get('/visual-editor/site/{path?}', function () {
+            return view('visual-editor::site-editor.index');
+        })
+            ->where('path', '.*')
+            ->name('visual-editor.site-editor');
+    });

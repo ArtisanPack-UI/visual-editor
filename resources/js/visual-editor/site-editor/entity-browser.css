@@ -1,0 +1,174 @@
+.ap-site-editor__entity-browser {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 8px 0 0;
+}
+
+.ap-site-editor__entity-browser-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 12px;
+}
+
+.ap-site-editor__entity-browser-title {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ap-site-editor-muted, #666);
+}
+
+.ap-site-editor__entity-browser-create {
+    appearance: none;
+    background: var(--ap-site-editor-accent, #1d4ed8);
+    color: #fff;
+    border: 0;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ap-site-editor__entity-browser-create:hover {
+    background: var(--ap-site-editor-accent-hover, #1e40af);
+}
+
+.ap-site-editor__entity-browser-create:focus-visible {
+    background: var(--ap-site-editor-accent-hover, #1e40af);
+    outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+    outline-offset: 2px;
+}
+
+.ap-site-editor__entity-browser-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 0 12px;
+}
+
+.ap-site-editor__entity-browser-chip {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--ap-site-editor-border, #d1d5db);
+    border-radius: 999px;
+    padding: 2px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    color: inherit;
+}
+
+.ap-site-editor__entity-browser-chip[aria-pressed='true'] {
+    background: var(--ap-site-editor-chip-active, #dbeafe);
+    border-color: var(--ap-site-editor-accent, #1d4ed8);
+    color: var(--ap-site-editor-accent, #1d4ed8);
+}
+
+.ap-site-editor__entity-browser-chip:focus-visible {
+    outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+    outline-offset: 2px;
+}
+
+.ap-site-editor__entity-browser-status,
+.ap-site-editor__entity-browser-error,
+.ap-site-editor__entity-browser-empty {
+    padding: 8px 12px;
+    font-size: 13px;
+    color: var(--ap-site-editor-muted, #666);
+    margin: 0;
+}
+
+.ap-site-editor__entity-browser-error {
+    background: var(--ap-site-editor-error-bg, #fef2f2);
+    border-top: 1px solid var(--ap-site-editor-error-border, #fecaca);
+    border-bottom: 1px solid var(--ap-site-editor-error-border, #fecaca);
+    color: var(--ap-site-editor-error-fg, #991b1b);
+}
+
+.ap-site-editor__entity-browser-retry {
+    margin-top: 4px;
+    appearance: none;
+    background: transparent;
+    border: 1px solid currentColor;
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+    color: inherit;
+    font-size: 12px;
+}
+
+.ap-site-editor__entity-browser-retry:focus-visible {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+.ap-site-editor__entity-browser-empty-title {
+    font-weight: 600;
+    color: inherit;
+    margin: 0 0 4px;
+}
+
+.ap-site-editor__entity-browser-empty-body {
+    margin: 0;
+    font-size: 12px;
+}
+
+.ap-site-editor__entity-browser-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ap-site-editor__entity-browser-item {
+    margin: 0;
+}
+
+.ap-site-editor__entity-browser-row {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: inherit;
+    font: inherit;
+    border-left: 2px solid transparent;
+}
+
+.ap-site-editor__entity-browser-row:hover {
+    background: var(--ap-site-editor-row-hover, #f3f4f6);
+}
+
+.ap-site-editor__entity-browser-row:focus-visible {
+    outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+    outline-offset: -2px;
+}
+
+.ap-site-editor__entity-browser-row[data-active='true'] {
+    background: var(--ap-site-editor-row-active, #eff6ff);
+    border-left-color: var(--ap-site-editor-accent, #1d4ed8);
+}
+
+.ap-site-editor__entity-browser-row-title {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.ap-site-editor__entity-browser-row-meta {
+    font-size: 11px;
+    color: var(--ap-site-editor-muted, #666);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}

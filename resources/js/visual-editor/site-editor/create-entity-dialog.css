@@ -1,0 +1,196 @@
+.ap-site-editor__dialog-scrim {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    padding: 16px;
+}
+
+.ap-site-editor__dialog {
+    background: #fff;
+    border-radius: 8px;
+    max-width: 520px;
+    width: 100%;
+    max-height: calc(100vh - 32px);
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(15, 23, 42, 0.25);
+}
+
+.ap-site-editor__dialog-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--ap-site-editor-border, #e5e7eb);
+}
+
+.ap-site-editor__dialog-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.ap-site-editor__dialog-close {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    color: inherit;
+    padding: 4px 8px;
+}
+
+.ap-site-editor__dialog-form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+}
+
+.ap-site-editor__dialog-body {
+    padding: 16px 20px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.ap-site-editor__dialog-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 20px;
+    border-top: 1px solid var(--ap-site-editor-border, #e5e7eb);
+}
+
+.ap-site-editor__dialog-cancel,
+.ap-site-editor__dialog-submit {
+    appearance: none;
+    border-radius: 4px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    border: 1px solid transparent;
+}
+
+.ap-site-editor__dialog-cancel {
+    background: transparent;
+    border-color: var(--ap-site-editor-border, #d1d5db);
+    color: inherit;
+}
+
+.ap-site-editor__dialog-submit {
+    background: var(--ap-site-editor-accent, #1d4ed8);
+    color: #fff;
+}
+
+.ap-site-editor__dialog-submit:disabled,
+.ap-site-editor__dialog-cancel:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.ap-site-editor__dialog-error {
+    background: var(--ap-site-editor-error-bg, #fef2f2);
+    border: 1px solid var(--ap-site-editor-error-border, #fecaca);
+    color: var(--ap-site-editor-error-fg, #991b1b);
+    padding: 8px 10px;
+    border-radius: 4px;
+    margin: 0;
+    font-size: 13px;
+}
+
+.ap-site-editor__dialog-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.ap-site-editor__dialog-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--ap-site-editor-muted, #4b5563);
+    line-height: 1;
+}
+
+.ap-site-editor__dialog-input,
+.ap-site-editor__dialog-select,
+.ap-site-editor__dialog-textarea {
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.4;
+    padding: 8px 10px;
+    border: 1px solid var(--ap-site-editor-border, #d1d5db);
+    border-radius: 4px;
+    background: #fff;
+    color: inherit;
+}
+
+/* Native <select> runs through the browser's widget renderer, which
+   overrides `padding` in ways even `!important` can't beat on most
+   platforms. `appearance: none` strips the renderer so CSS takes
+   full control — at the cost of the browser's default chevron, which
+   we redraw via the inline-SVG background below. */
+.ap-site-editor__dialog-select {
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    padding: 10px 32px 10px 10px;
+    min-height: 38px;
+    background-color: #fff;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 8'><path fill='none' stroke='%234b5563' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round' d='M1 1.5l5 5 5-5'/></svg>");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px 8px;
+    cursor: pointer;
+}
+
+.ap-site-editor__dialog-select::-ms-expand {
+    display: none;
+}
+
+.ap-site-editor__dialog-input:focus,
+.ap-site-editor__dialog-select:focus,
+.ap-site-editor__dialog-textarea:focus {
+    outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+    outline-offset: -1px;
+    border-color: transparent;
+}
+
+.ap-site-editor__dialog-field-help {
+    font-size: 12px;
+    color: var(--ap-site-editor-muted, #6b7280);
+    margin: 0;
+}
+
+.ap-site-editor__dialog-field-error {
+    font-size: 12px;
+    color: var(--ap-site-editor-error-fg, #991b1b);
+    margin: 0;
+}
+
+.ap-site-editor__fallback-chain {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--ap-site-editor-muted, #4b5563);
+}
+
+.ap-site-editor__fallback-chain-item {
+    padding: 2px 6px;
+    background: var(--ap-site-editor-chip-active, #eef2ff);
+    border-radius: 4px;
+}
+
+.ap-site-editor__fallback-chain-sep {
+    align-self: center;
+}

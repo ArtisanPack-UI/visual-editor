@@ -34,6 +34,8 @@ type MountableElement = HTMLElement & {
 export interface SiteEditorMountConfig {
     routeBase: string;
     postEditorUrl: string;
+    apiBase: string;
+    theme?: string;
 }
 
 export interface MountedSiteEditor {
@@ -51,12 +53,19 @@ export interface MountedSiteEditor {
 function readMountConfig(element: HTMLElement): SiteEditorMountConfig | null {
     const routeBase = element.dataset.routeBase?.trim();
     const postEditorUrl = element.dataset.postEditorUrl?.trim();
+    const apiBase = element.dataset.apiBase?.trim();
+    const theme = element.dataset.theme?.trim();
 
-    if (!routeBase || !postEditorUrl) {
+    if (!routeBase || !postEditorUrl || !apiBase) {
         return null;
     }
 
-    return { routeBase, postEditorUrl };
+    return {
+        routeBase,
+        postEditorUrl,
+        apiBase,
+        ...(theme !== undefined && theme !== '' ? { theme } : {}),
+    };
 }
 
 export function mountSiteEditor(
@@ -156,7 +165,7 @@ async function mount(element: MountableElement): Promise<void> {
 
     if (config === null) {
         console.error(
-            'site-editor: mount point is missing data-route-base or data-post-editor-url.',
+            'site-editor: mount point is missing data-route-base, data-post-editor-url, or data-api-base.',
             element
         );
         return;
