@@ -99,7 +99,16 @@ export function mountSiteEditor(
         },
         (error: unknown) => {
             console.error('site-editor: failed to load shell.', error);
-            unmountSiteEditor(host);
+
+            // Same staleness guard as the success path above: if the
+            // host has been unmounted and re-mounted (HMR, rapid
+            // re-boot) while this import was in flight, the current
+            // root on the host belongs to that newer mount — leave it
+            // alone instead of tearing it down on a stale failure.
+            if (host[ROOT_SYMBOL] === root) {
+                unmountSiteEditor(host);
+            }
+
             throw error;
         }
     );
