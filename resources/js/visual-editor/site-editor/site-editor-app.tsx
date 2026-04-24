@@ -44,6 +44,7 @@ import {
     TemplatePartCreateDialog,
     TemplatePartsBrowser,
 } from './template-parts-section';
+import { useStylesSectionViews } from './styles/styles-section';
 import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
 import { TopBar } from '../editor/top-bar';
@@ -70,6 +71,14 @@ const IDLE_ENTITY_STATE: EntityEditorState = {
 const D2_SECTIONS: ReadonlySet<SiteEditorSectionId> = new Set([
     'templates',
     'template-parts',
+]);
+
+/**
+ * Section ids D3 (#370) ships — the Styles section mounts the
+ * global-styles UI instead of the placeholder outlet.
+ */
+const D3_SECTIONS: ReadonlySet<SiteEditorSectionId> = new Set<SiteEditorSectionId>([
+    'styles',
 ]);
 
 export interface SiteEditorAppProps {
@@ -191,6 +200,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
 
     const activeEntityId = routing.entityId;
     const isD2Section = D2_SECTIONS.has(activeSection.id);
+    const isD3Section = D3_SECTIONS.has(activeSection.id);
     const activeKind = sectionKind(activeSection.id);
 
     // Effective kind passed to the editor hook — always a real value so
@@ -209,11 +219,26 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         []
     );
 
+    // Swap in a no-op receiver for the hook that isn't driving the shell
+    // on this render so the active hook has sole ownership of the entity-
+    // state slot. Without this both hooks would fight over the slot and
+    // one would keep resetting it to idle.
+    const noopStateChange = useCallback(
+        (_state: EntityEditorState): void => undefined,
+        []
+    );
+
     const editorViews = useEntityEditorViews({
         apiConfig,
         kind: editorKind,
         entityId: editorEntityId,
-        onStateChange: handleEntityStateChange,
+        onStateChange: isD3Section ? noopStateChange : handleEntityStateChange,
+    });
+
+    const stylesViews = useStylesSectionViews({
+        apiConfig,
+        enabled: isD3Section,
+        onStateChange: isD3Section ? handleEntityStateChange : noopStateChange,
     });
 
     const [dialogKind, setDialogKind] = useState<EntityKind | null>(null);
@@ -237,17 +262,14 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         );
     }, [activeSection.label]);
 
-    // Reset cached entity state when leaving a D2 section so a
-    // subsequent re-entry doesn't surface stale save-status chrome.
-    // Switches between D2 sections (templates ↔ template-parts) are
-    // handled by the entity-editor hook itself: when its `entityId`
-    // resets to `null`, it dispatches an idle `onStateChange` that
-    // clears our cached state through the normal path.
+    // Reset cached entity state whenever the active section changes so
+    // a previous section's save-status chrome never lingers in the top
+    // bar. Each section's hook then dispatches its own fresh state on
+    // the next render — D2's entity-editor when an entity loads, D3's
+    // global-styles hook when `/lookup` resolves.
     useEffect(() => {
-        if (!isD2Section) {
-            setEntityState(IDLE_ENTITY_STATE);
-        }
-    }, [isD2Section]);
+        setEntityState(IDLE_ENTITY_STATE);
+    }, [activeSection.id]);
 
     const handleSelectSection = useCallback(
         (sectionId: typeof activeSection.id): void => {
@@ -412,6 +434,8 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                 refreshKey={partsRefreshKey}
             />
         );
+    } else if (isD3Section) {
+        navigatorChildren = stylesViews.navigator;
     } else {
         navigatorChildren = (
             <SectionOutlet
@@ -429,7 +453,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
             data-navigator-open={navigatorOpen}
             data-inspector-open={inspectorOpen}
             data-active-section={activeSection.id}
-            data-has-entity={showEntityEditor}
+            data-has-entity={showEntityEditor || isD3Section}
             data-testid="ap-site-editor-shell"
         >
             <TopBar
@@ -479,6 +503,14 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                     >
                         {editorViews.canvas}
                     </div>
+                ) : isD3Section ? (
+                    <div
+                        className="ap-site-editor__canvas"
+                        data-has-entity="true"
+                        data-testid="ap-site-editor-canvas"
+                    >
+                        {stylesViews.canvas}
+                    </div>
                 ) : (
                     <CanvasFrame
                         sectionLabel={activeSection.modeLabel}
@@ -489,6 +521,8 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                     <div className="ap-site-editor__sidebar ap-site-editor__sidebar--inspector">
                         {showEntityEditor ? (
                             editorViews.inspector
+                        ) : isD3Section ? (
+                            stylesViews.inspector
                         ) : (
                             <InspectorOutlet sectionLabel={activeSection.label} />
                         )}

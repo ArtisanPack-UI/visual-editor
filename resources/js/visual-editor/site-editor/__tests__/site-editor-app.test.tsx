@@ -63,6 +63,21 @@ vi.mock('../entity-editor', () => ({
     }),
 }));
 
+// D3 mounts the styles section inside the shell; the shell tests only
+// care that the navigator routes to it, not the global-styles fetch
+// chain. The styles-section test file exercises the hook end-to-end.
+vi.mock('../styles/styles-section', () => ({
+    useStylesSectionViews: (): {
+        navigator: JSX.Element;
+        canvas: JSX.Element;
+        inspector: JSX.Element;
+    } => ({
+        navigator: <div data-testid="ap-site-editor-stub-styles-navigator" />,
+        canvas: <div data-testid="ap-site-editor-stub-styles-canvas" />,
+        inspector: <div data-testid="ap-site-editor-stub-styles-inspector" />,
+    }),
+}));
+
 import { SiteEditorApp } from '../site-editor-app';
 
 const ROUTE_BASE = '/visual-editor/site';
