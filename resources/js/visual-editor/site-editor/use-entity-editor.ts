@@ -13,7 +13,10 @@
  */
 
 import { parse, serialize, type BlockInstance } from '@wordpress/blocks';
+import { __ } from '@wordpress/i18n';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+import { TEXT_DOMAIN } from '../vendor/i18n';
 
 import {
     fetchEntity,
@@ -183,7 +186,7 @@ export function useEntityEditor<K extends EntityKind>(
                 const message =
                     error instanceof SiteEditorApiError
                         ? error.message
-                        : 'Failed to load entity.';
+                        : __('Failed to load entity.', TEXT_DOMAIN);
 
                 setEntity(null);
                 setBlocksState([]);
@@ -277,7 +280,7 @@ export function useEntityEditor<K extends EntityKind>(
                     setValidationErrors(error.validationErrors);
                 } else {
                     setSaveStatus('error');
-                    setSaveErrorMessage('Failed to save.');
+                    setSaveErrorMessage(__('Failed to save.', TEXT_DOMAIN));
                 }
 
                 return null;

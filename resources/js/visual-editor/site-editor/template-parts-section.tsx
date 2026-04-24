@@ -75,16 +75,28 @@ export function TemplatePartsBrowser(
     const { apiConfig, activeEntityId, onOpen, onRequestCreate, refreshKey } = props;
     const chips = useMemo(() => buildPartChips(), []);
 
+    // Index areas by slug so the row renderer can swap the raw machine
+    // slug for its localized label without walking the list on every
+    // render.
+    const areaLabelBySlug = useMemo(() => {
+        const map: Record<string, string> = {};
+        for (const area of getTemplatePartAreas()) {
+            map[area.slug] = area.label;
+        }
+
+        return map;
+    }, []);
+
     const renderRow = useCallback(
         (entity: EntityRecord<'template-part'>): JSX.Element => (
             <>
                 <code>{entity.slug}</code>
                 <span data-testid={`ap-site-editor-template-part-area-${entity.id}`}>
-                    {entity.area}
+                    {areaLabelBySlug[entity.area] ?? entity.area}
                 </span>
             </>
         ),
-        []
+        [areaLabelBySlug]
     );
 
     const openAriaLabel = useCallback(

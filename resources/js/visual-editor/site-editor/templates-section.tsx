@@ -246,6 +246,7 @@ export function TemplateCreateDialog(
     const [title, setTitle] = useState<string>('');
     const [description, setDescription] = useState<string>('');
     const [theme] = useState<string>(defaultTheme);
+    const [localSlugError, setLocalSlugError] = useState<string | null>(null);
 
     const activeSlug = kind === CUSTOM_KIND_VALUE ? customSlug.trim() : kind;
     const chain = useMemo(
@@ -255,8 +256,17 @@ export function TemplateCreateDialog(
 
     const buildPayload = useCallback((): TemplateCreatePayload | null => {
         if (activeSlug === '') {
+            // The dialog form suppresses submission when this returns
+            // null — surface an inline error so the user understands
+            // why nothing happened instead of silently no-op'ing.
+            setLocalSlugError(
+                __('Enter a slug to continue.', TEXT_DOMAIN)
+            );
+
             return null;
         }
+
+        setLocalSlugError(null);
 
         return {
             slug: activeSlug,
@@ -271,7 +281,8 @@ export function TemplateCreateDialog(
 
     const renderFields = useCallback(
         (api: { validationErrors: ValidationErrors | null }): JSX.Element => {
-            const slugError = api.validationErrors?.slug?.[0] ?? null;
+            const slugError =
+                localSlugError ?? api.validationErrors?.slug?.[0] ?? null;
             const titleError = api.validationErrors?.title?.[0] ?? null;
 
             return (
@@ -316,9 +327,12 @@ export function TemplateCreateDialog(
                                 type="text"
                                 className="ap-site-editor__dialog-input"
                                 value={customSlug}
-                                onChange={(event) =>
-                                    setCustomSlug(normalizeSlugInput(event.target.value))
-                                }
+                                onChange={(event) => {
+                                    setCustomSlug(
+                                        normalizeSlugInput(event.target.value)
+                                    );
+                                    setLocalSlugError(null);
+                                }}
                                 placeholder={__('e.g. single-book', TEXT_DOMAIN)}
                                 data-testid="ap-site-editor-new-template-slug"
                             />
@@ -417,7 +431,7 @@ export function TemplateCreateDialog(
                 </>
             );
         },
-        [chain, customSlug, description, kind, kindOptions, title]
+        [chain, customSlug, description, kind, kindOptions, localSlugError, title]
     );
 
     return (

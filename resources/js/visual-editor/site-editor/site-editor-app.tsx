@@ -236,11 +236,15 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
 
     // Reset cached entity state when leaving a D2 section so a
     // subsequent re-entry doesn't surface stale save-status chrome.
+    // Switches between D2 sections (templates ↔ template-parts) are
+    // handled by the entity-editor hook itself: when its `entityId`
+    // resets to `null`, it dispatches an idle `onStateChange` that
+    // clears our cached state through the normal path.
     useEffect(() => {
         if (!isD2Section) {
             setEntityState(IDLE_ENTITY_STATE);
         }
-    }, [isD2Section, activeSection.id]);
+    }, [isD2Section]);
 
     const handleSelectSection = useCallback(
         (sectionId: typeof activeSection.id): void => {

@@ -66,8 +66,12 @@ export function fallbackChainForSlug(slug: string): readonly string[] {
 /**
  * Known template kinds the create-new picker surfaces. The design brief
  * (§3.4, §5.1) calls out "Front page, Home, Single post, Single page,
- * Archive, 404, Search, Custom" — kept in this order so the picker reads
- * left-to-right from most specific to most generic.
+ * Archive, 404, Search, Custom" — kept in this order so the picker
+ * reads left-to-right from most specific to most generic. The "Custom"
+ * option is NOT in this list on purpose: the create dialog renders it
+ * as a dedicated sentinel (`__custom__`) that swaps the fixed slug for
+ * a free-text input, so mixing it into the kind-options array would
+ * double up the affordance.
  */
 export interface TemplateKindOption {
     slug: string;

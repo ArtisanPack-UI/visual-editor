@@ -8,5 +8,5 @@
  * validation rather than silently disappearing under the user's cursor.
  */
 export function normalizeSlugInput(value: string): string {
-    return value.toLowerCase().replace(/\s+/g, '-');
+    return value.trim().toLowerCase().replace(/\s+/g, '-');
 }

@@ -16,6 +16,7 @@
 import { __, sprintf } from '@wordpress/i18n';
 import {
     useCallback,
+    useEffect,
     useMemo,
     useState,
     type KeyboardEvent as ReactKeyboardEvent,
@@ -114,7 +115,7 @@ export function EntityBrowser<K extends EntityKind>(
         [activeChipId, chips]
     );
 
-    const { items, status, errorMessage, refresh } = useEntityList({
+    const { items, status, errorMessage, refresh, setPage } = useEntityList({
         apiConfig,
         kind,
         perPage: DEFAULT_PER_PAGE,
@@ -122,6 +123,14 @@ export function EntityBrowser<K extends EntityKind>(
         area: activeChip?.filter?.area,
         refreshKey,
     });
+
+    // Reset to page 1 whenever the user picks a new filter chip so a
+    // short list doesn't inherit a deep-page cursor from the previous
+    // filter. Skips the mount-time run because `useEntityList` is
+    // already initialized at page 1.
+    useEffect(() => {
+        setPage(1);
+    }, [activeChipId, setPage]);
 
     // Keyboard navigation across the row buttons — Up/Down walks the
     // list, Home/End jumps to the ends. Roving tabindex keeps keyboard
