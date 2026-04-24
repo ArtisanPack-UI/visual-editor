@@ -39,6 +39,7 @@ describe('bootSiteEditor', () => {
         target.setAttribute('data-ap-site-editor', '');
         target.dataset.routeBase = '/visual-editor/site';
         target.dataset.postEditorUrl = '/editor';
+        target.dataset.apiBase = '/visual-editor/api';
         root.appendChild(target);
         document.body.appendChild(root);
 
@@ -74,6 +75,7 @@ describe('mountSiteEditor', () => {
                 handleA = mountSiteEditor(target, {
                     routeBase: '/visual-editor/site',
                     postEditorUrl: '/editor',
+                    apiBase: '/visual-editor/api',
                 });
                 await handleA.ready;
             });
@@ -89,6 +91,7 @@ describe('mountSiteEditor', () => {
                 handleB = mountSiteEditor(target, {
                     routeBase: '/visual-editor/site',
                     postEditorUrl: '/editor',
+                    apiBase: '/visual-editor/api',
                 });
                 await handleB.ready;
             });
@@ -124,6 +127,7 @@ describe('mountSiteEditor', () => {
                 const first = mountSiteEditor(target, {
                     routeBase: '/visual-editor/site',
                     postEditorUrl: '/editor',
+                    apiBase: '/visual-editor/api',
                 });
                 await first.ready;
             });
@@ -131,6 +135,7 @@ describe('mountSiteEditor', () => {
             const second = mountSiteEditor(target, {
                 routeBase: '/visual-editor/site',
                 postEditorUrl: '/editor',
+                apiBase: '/visual-editor/api',
             });
             await second.ready;
 
