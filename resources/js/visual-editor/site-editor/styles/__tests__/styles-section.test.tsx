@@ -539,9 +539,12 @@ describe('useStylesSectionViews — variations', () => {
 
     it('shows an empty state when the base payload ships no variations', async () => {
         // Swap the fetcher mid-test to return a base without variations.
+        // Capture the delegate fetcher first (the one the new stub just
+        // installed), then override `global.fetch` with a proxy that
+        // intercepts /global-styles/base and delegates everything else.
         fetchStub.restore();
-        const newStub = installFetchStub();
-        const originalFetch = global.fetch as unknown as typeof fetch;
+        fetchStub = installFetchStub();
+        const stubbedFetch = global.fetch as unknown as typeof fetch;
 
         global.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
             const url =
@@ -556,10 +559,8 @@ describe('useStylesSectionViews — variations', () => {
                 });
             }
 
-            return originalFetch(input, init);
+            return stubbedFetch(input, init);
         }) as unknown as typeof fetch;
-
-        fetchStub = newStub;
 
         render(<Harness />);
 
