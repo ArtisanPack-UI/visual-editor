@@ -18,3 +18,13 @@ Route::get('/editor', function () {
 Route::get('/ve-sandbox', function () {
     return view('visual-editor::sandbox.index');
 })->name('visual-editor.sandbox');
+
+// D1 (#368). Site-editor shell. A single catch-all entry mounts the SPA and
+// hands routing inside the shell to the React app via `history.pushState`.
+// Sub-paths the SPA recognises: `templates`, `template-parts`, `patterns`,
+// `styles`, `navigation` (each optionally followed by an entity id).
+Route::get('/visual-editor/site/{path?}', function () {
+    return view('visual-editor::site-editor.index');
+})
+    ->where('path', '.*')
+    ->name('visual-editor.site-editor');

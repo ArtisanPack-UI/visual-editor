@@ -59,6 +59,20 @@ export interface TopBarProps {
      * actions between the preview link and the more-options menu.
      */
     extraActions?: ReactNode;
+    /**
+     * Override the aria-label / accessible name of the left toggle button.
+     * The post editor uses this slot for the block inserter; the site
+     * editor (D1 · #368) reuses the same button for the navigator panel
+     * and supplies the matching label here. Defaults preserve the
+     * post-editor wording when omitted.
+     */
+    inserterToggleAriaLabel?: { open: string; close: string };
+    /**
+     * Override the aria-label / accessible name of the right (inspector)
+     * toggle button. The label varies between the post editor (the
+     * inspector panel) and the site editor (the section inspector).
+     */
+    inspectorToggleAriaLabel?: { open: string; close: string };
 }
 
 function saveStatusLabel(
@@ -145,7 +159,18 @@ export function TopBar(props: TopBarProps): JSX.Element {
         onPasteStyles,
         onShowKeyboardShortcuts,
         extraActions,
+        inserterToggleAriaLabel,
+        inspectorToggleAriaLabel,
     } = props;
+
+    const inserterOpenLabel =
+        inserterToggleAriaLabel?.open ?? __('Open block inserter', TEXT_DOMAIN);
+    const inserterCloseLabel =
+        inserterToggleAriaLabel?.close ?? __('Close block inserter', TEXT_DOMAIN);
+    const inspectorOpenLabel =
+        inspectorToggleAriaLabel?.open ?? __('Open inspector', TEXT_DOMAIN);
+    const inspectorCloseLabel =
+        inspectorToggleAriaLabel?.close ?? __('Close inspector', TEXT_DOMAIN);
 
     const menuId = useId();
     const menuTriggerRef = useRef<HTMLButtonElement | null>(null);
@@ -321,9 +346,7 @@ export function TopBar(props: TopBarProps): JSX.Element {
                     type="button"
                     className="ap-visual-editor-top-bar__icon-button"
                     aria-label={
-                        isInserterOpen
-                            ? __('Close block inserter', TEXT_DOMAIN)
-                            : __('Open block inserter', TEXT_DOMAIN)
+                        isInserterOpen ? inserterCloseLabel : inserterOpenLabel
                     }
                     aria-expanded={isInserterOpen}
                     aria-pressed={isInserterOpen}
@@ -413,9 +436,7 @@ export function TopBar(props: TopBarProps): JSX.Element {
                     type="button"
                     className="ap-visual-editor-top-bar__icon-button"
                     aria-label={
-                        isInspectorOpen
-                            ? __('Close inspector', TEXT_DOMAIN)
-                            : __('Open inspector', TEXT_DOMAIN)
+                        isInspectorOpen ? inspectorCloseLabel : inspectorOpenLabel
                     }
                     aria-expanded={isInspectorOpen}
                     aria-pressed={isInspectorOpen}
