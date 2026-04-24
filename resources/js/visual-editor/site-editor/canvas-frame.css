@@ -1,0 +1,52 @@
+/**
+ * Site-editor canvas frame styling.
+ *
+ * The block-editor `BlockCanvas` already paints its own background
+ * inside the iframe — we only need to govern the wrapping flex cell and
+ * the empty-state placeholder rendered until D2–D5 ship.
+ */
+
+.ap-site-editor__canvas {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background: var(--ap-site-editor-canvas-background, var(--color-base-100, #ffffff));
+}
+
+.ap-site-editor__canvas-iframe {
+    flex: 1 1 auto;
+    width: 100%;
+    border: 0;
+    background: transparent;
+}
+
+.ap-site-editor__canvas-empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 48px 24px;
+    color: color-mix(
+        in oklch,
+        var(--color-base-content, #1f2937) 70%,
+        transparent
+    );
+    text-align: center;
+}
+
+.ap-site-editor__canvas-empty-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--color-base-content, #1f2937);
+}
+
+.ap-site-editor__canvas-empty-body {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+}

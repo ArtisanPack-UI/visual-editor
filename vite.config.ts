@@ -13,6 +13,12 @@ const visualEditorEntry = resolve(
     __dirname,
     'resources/js/visual-editor/editor/main.tsx'
 );
+// D1 (#368). Site-editor shell entry — distinct boot bundle so the post
+// editor and site editor can ship independent chunks.
+const siteEditorEntry = resolve(
+    __dirname,
+    'resources/js/visual-editor/site-editor/main.tsx'
+);
 const coreDataShim = resolve(
     __dirname,
     'resources/js/visual-editor/vendor/core-data-shim.ts'
@@ -86,6 +92,7 @@ export default defineConfig(({ command, mode }) => {
                         editor: resolve(editorRoot, 'main.tsx'),
                         sandbox: sandboxEntry,
                         'visual-editor': visualEditorEntry,
+                        'site-editor': siteEditorEntry,
                     },
                     output: {
                         format: 'es',

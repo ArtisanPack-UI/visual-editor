@@ -500,6 +500,66 @@ The shell has **four regions** and their responsibilities are fixed:
 Rationale: F10 (navigator depth), F11 (styles hierarchy), F13 (control dispersion) all stem from ambiguity about *which
 region owns what*. Locking these roles means controls have a single predictable home.
 
+#### 3.2.1 Editing-mode regions (block inserter, list view, pattern picker)
+
+D1 (#368) ships the four-region shell above. As D2–D5 wire entity editing into the canvas, three additional
+regions need a fixed home so the chrome doesn't drift section by section: the **block inserter**, the **list view**
+(block outline), and the **pattern picker**. Decision (recorded after D1 prototype review):
+
+- **Navigator stays visible.** When the user enters edit mode (selects an entity in the section list), the navigator
+  collapses to an **icon-only** rail (≈48px). It does not disappear. Section labels are revealed on hover / focus and
+  the active section keeps its accent. This preserves P5 ("navigator browses, canvas edits, inspector configures") and
+  the cross-section jump that motivates the persistent-shell IA in the first place — losing the navigator while
+  editing is one of the WP frictions (F11) we're explicitly designing out.
+- **Inserter + pattern picker live in a secondary left rail.** A second column opens *to the right of* the navigator
+  when toggled from the top bar's left button. It hosts the block inserter and pattern picker (synced/unsynced tabs
+  from §3.6) as a tabbed panel. The panel is roughly the same width as the post-editor's inserter (≈350px). When
+  closed, the rail collapses entirely; the canvas reclaims the space.
+- **List view rides in the inspector.** The right-rail inspector grows a third tab — **List view** — alongside Block
+  and Entity. This avoids competing with the inserter for left-rail space and keeps the inspector's charter intact:
+  it's the panel for *configuring what's on the canvas*, and the outline of the canvas is part of that.
+- **Top bar adds three editing-mode toggles.** Inserter (left-rail), list-view (right-rail tab focus), and a future
+  zoom-out / preview affordance. Each toggle's `aria-pressed` reflects the panel's open state, mirroring the post
+  editor's M7 conventions.
+
+```
+Edit mode (entity selected):
+┌──────────────────────────────────────────────────────────────────────────┐
+│  Top Bar:  [☰] [+] [List] [Brand]  [Entity title]   [Save template]    │
+├────┬─────────────────┬─────────────────────────────┬─────────────────────┤
+│    │                 │                             │                     │
+│ N  │  Inserter /     │  Canvas (iframe)            │  Inspector          │
+│ a  │  pattern        │                             │  ┌──────────────┐   │
+│ v  │  picker         │                             │  │ Block │ Doc  │   │
+│ (  │  (toggled,      │                             │  │ List view    │   │
+│ i  │  optional)      │                             │  └──────────────┘   │
+│ c  │                 │                             │                     │
+│ )  │                 │                             │                     │
+└────┴─────────────────┴─────────────────────────────┴─────────────────────┘
+```
+
+```
+Browse mode (no entity selected):
+┌──────────────────────────────────────────────────────────────────────────┐
+│  Top Bar:  [☰] [Brand]  [Section name]                                  │
+├──────────────────────┬───────────────────────────────┬───────────────────┤
+│                      │                               │                   │
+│  Navigator           │  Canvas (entity list/grid)    │  Inspector        │
+│  (full-width with    │                               │  (section-scoped) │
+│  section list)       │                               │                   │
+│                      │                               │                   │
+└──────────────────────┴───────────────────────────────┴───────────────────┘
+```
+
+Rationale: this is the "Pattern B" hybrid considered after D1's shell landed. Pattern A (swap left rail entirely
+with editing tools) loses the navigator at exactly the moment cross-section jumps are most useful. Pattern C
+(floating overlays) makes the pattern picker too cramped for the synced/unsynced + filter UI in §3.6. Pattern B
+preserves the four-region shell while giving editing tools dedicated space, at the cost of needing one extra
+column on small viewports — addressed by the inserter rail being collapsible.
+
+D2 implements the icon-only navigator collapse and the inserter rail. D3–D5 plug their per-section editor surfaces
+into the same chrome. Every D-issue's PR must reference this section when it lands editing-mode UI.
+
 ### 3.3 Section IA — overview
 
 Five sections, each with consistent region semantics:

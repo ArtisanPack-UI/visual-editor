@@ -167,6 +167,54 @@ describe('TopBar', () => {
         ).toHaveTextContent('Network error');
     });
 
+    it('honors per-host overrides for the inserter and inspector aria labels', () => {
+        const { rerender } = render(
+            <TopBar
+                {...defaultProps({
+                    inserterToggleAriaLabel: {
+                        open: 'Open navigator',
+                        close: 'Close navigator',
+                    },
+                    inspectorToggleAriaLabel: {
+                        open: 'Open settings',
+                        close: 'Close settings',
+                    },
+                })}
+            />
+        );
+
+        expect(
+            screen.getByTestId('ap-visual-editor-top-bar-inserter')
+        ).toHaveAttribute('aria-label', 'Open navigator');
+        expect(
+            screen.getByTestId('ap-visual-editor-top-bar-inspector')
+        ).toHaveAttribute('aria-label', 'Open settings');
+
+        rerender(
+            <TopBar
+                {...defaultProps({
+                    isInserterOpen: true,
+                    isInspectorOpen: true,
+                    inserterToggleAriaLabel: {
+                        open: 'Open navigator',
+                        close: 'Close navigator',
+                    },
+                    inspectorToggleAriaLabel: {
+                        open: 'Open settings',
+                        close: 'Close settings',
+                    },
+                })}
+            />
+        );
+
+        expect(
+            screen.getByTestId('ap-visual-editor-top-bar-inserter')
+        ).toHaveAttribute('aria-label', 'Close navigator');
+        expect(
+            screen.getByTestId('ap-visual-editor-top-bar-inspector')
+        ).toHaveAttribute('aria-label', 'Close settings');
+    });
+
     it('renders a preview link when a URL is provided', () => {
         render(
             <TopBar
