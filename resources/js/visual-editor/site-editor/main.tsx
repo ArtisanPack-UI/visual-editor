@@ -72,11 +72,12 @@ export function mountSiteEditor(
     // second caller race the dynamic import and observe a
     // half-mounted DOM.
     const existing = host[READY_SYMBOL];
+    const existingRoot = host[ROOT_SYMBOL];
 
-    if (host[ROOT_SYMBOL] && existing !== undefined) {
+    if (existingRoot !== undefined && existing !== undefined) {
         return {
             ready: existing,
-            unmount: () => unmountSiteEditor(host),
+            unmount: makeBoundUnmount(host, existingRoot),
         };
     }
 
@@ -117,7 +118,7 @@ export function mountSiteEditor(
 
     return {
         ready,
-        unmount: () => unmountSiteEditor(host),
+        unmount: makeBoundUnmount(host, root),
     };
 }
 
@@ -131,6 +132,23 @@ function unmountSiteEditor(element: MountableElement): void {
     delete element[ROOT_SYMBOL];
     delete element[READY_SYMBOL];
     root.unmount();
+}
+
+/**
+ * Builds an unmount closure bound to the specific root the caller's
+ * {@link MountedSiteEditor} handle was created for. A handle that was
+ * already used to unmount (or that belongs to a mount that has since
+ * been replaced — HMR, rapid re-boot) becomes a no-op instead of
+ * tearing down whatever newer root happens to be on the host. Without
+ * this, a stale handle's `unmount()` would call `unmountSiteEditor`
+ * unconditionally and stomp the live mount.
+ */
+function makeBoundUnmount(host: MountableElement, ownRoot: Root): () => void {
+    return () => {
+        if (host[ROOT_SYMBOL] === ownRoot) {
+            unmountSiteEditor(host);
+        }
+    };
 }
 
 async function mount(element: MountableElement): Promise<void> {

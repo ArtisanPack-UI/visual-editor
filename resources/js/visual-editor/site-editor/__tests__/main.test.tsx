@@ -58,6 +58,62 @@ describe('bootSiteEditor', () => {
 });
 
 describe('mountSiteEditor', () => {
+    it("a stale handle's unmount() is a no-op against a newer root", async () => {
+        const target = document.createElement('div');
+        target.setAttribute('data-ap-site-editor', '');
+        document.body.appendChild(target);
+
+        try {
+            // First mount → handleA. Tear it down, then re-mount the
+            // same node → handleB. Calling handleA.unmount() a second
+            // time must NOT touch handleB's root.
+            let handleA: ReturnType<typeof mountSiteEditor>;
+            let handleB: ReturnType<typeof mountSiteEditor>;
+
+            await act(async () => {
+                handleA = mountSiteEditor(target, {
+                    routeBase: '/visual-editor/site',
+                    postEditorUrl: '/editor',
+                });
+                await handleA.ready;
+            });
+
+            await act(async () => {
+                handleA.unmount();
+            });
+            expect(
+                target.querySelectorAll('[data-testid="ap-site-editor-stub"]').length
+            ).toBe(0);
+
+            await act(async () => {
+                handleB = mountSiteEditor(target, {
+                    routeBase: '/visual-editor/site',
+                    postEditorUrl: '/editor',
+                });
+                await handleB.ready;
+            });
+            expect(
+                target.querySelectorAll('[data-testid="ap-site-editor-stub"]').length
+            ).toBe(1);
+
+            // Stale unmount — must not affect handleB's root.
+            await act(async () => {
+                handleA.unmount();
+            });
+            expect(
+                target.querySelectorAll('[data-testid="ap-site-editor-stub"]').length
+            ).toBe(1);
+
+            await act(async () => {
+                handleB.unmount();
+            });
+        } finally {
+            if (target.parentNode === document.body) {
+                document.body.removeChild(target);
+            }
+        }
+    });
+
     it('is idempotent — repeat mounts on the same node return the same root', async () => {
         const target = document.createElement('div');
         target.setAttribute('data-ap-site-editor', '');
