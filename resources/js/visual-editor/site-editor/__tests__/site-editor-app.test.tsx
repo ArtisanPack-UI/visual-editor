@@ -7,7 +7,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // JSON-attribute ESM rules. The shell tests don't exercise block
 // rendering; they only care that the shell wires regions correctly.
 vi.mock('@wordpress/blocks', () => ({
+    getBlockType: (): undefined => undefined,
     getBlockTypes: (): never[] => [],
+    unregisterBlockType: (): void => undefined,
 }));
 
 vi.mock('@wordpress/block-library', () => ({

@@ -163,6 +163,80 @@ describe('useEntityEditor', () => {
         expect(result.current.validationErrors?.slug?.[0]).toBe('Slug required.');
     });
 
+    it('merges pending patch into the exposed entity so inputs reflect typed-in values', async () => {
+        FETCH_MOCK.mockResolvedValue(makeTemplate({ description: 'Old desc' }));
+
+        const { result } = renderHook(() =>
+            useEntityEditor({
+                apiConfig: API_CONFIG,
+                kind: 'template',
+                entityId: '1',
+            })
+        );
+
+        await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+        act(() => {
+            result.current.patch({ title: 'Edited', description: 'New desc' });
+        });
+
+        expect(result.current.entity?.title.rendered).toBe('Edited');
+        expect(
+            (result.current.entity as unknown as { description: string } | null)
+                ?.description
+        ).toBe('New desc');
+        expect(result.current.isDirty).toBe(true);
+    });
+
+    it('ignores a save response once the user navigates to a different entity', async () => {
+        FETCH_MOCK.mockImplementation(async (_config, _kind, id) =>
+            makeTemplate({ id: Number(id), slug: `slug-${id}` })
+        );
+
+        let releaseUpdate: (value: Record<string, unknown>) => void = () => {};
+        UPDATE_MOCK.mockImplementationOnce(
+            () =>
+                new Promise<Record<string, unknown>>((resolve) => {
+                    releaseUpdate = resolve;
+                })
+        );
+
+        const { result, rerender } = renderHook(
+            ({ id }: { id: string }) =>
+                useEntityEditor({
+                    apiConfig: API_CONFIG,
+                    kind: 'template',
+                    entityId: id,
+                }),
+            { initialProps: { id: '1' } }
+        );
+
+        await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+        expect(result.current.entity?.slug).toBe('slug-1');
+
+        let savePromise: Promise<unknown> = Promise.resolve();
+        act(() => {
+            savePromise = result.current.save();
+        });
+
+        expect(result.current.saveStatus).toBe('saving');
+
+        rerender({ id: '2' });
+
+        await waitFor(() => expect(result.current.entity?.slug).toBe('slug-2'));
+
+        await act(async () => {
+            releaseUpdate(makeTemplate({ id: 1, slug: 'slug-1-stale' }));
+            await savePromise;
+        });
+
+        // The in-flight save resolved with entity 1's shape, but the user
+        // is now on entity 2 — hydrating would overwrite the visible
+        // record with the wrong one. Editor should still show entity 2.
+        expect(result.current.entity?.slug).toBe('slug-2');
+        expect(result.current.saveStatus).not.toBe('saved');
+    });
+
     it('switches to idle state when entityId becomes null', async () => {
         FETCH_MOCK.mockResolvedValue(makeTemplate());
 

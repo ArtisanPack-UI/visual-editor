@@ -14,7 +14,7 @@
 
 import { parse, serialize, type BlockInstance } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { TEXT_DOMAIN } from '../vendor/i18n';
 
@@ -239,6 +239,54 @@ export function useEntityEditor<K extends EntityKind>(
         setValidationErrors(null);
     }, []);
 
+    // Merge pending field overrides back into the loaded record so the
+    // inspector inputs bound to `entity.title.rendered`, `entity.slug`,
+    // etc. reflect what the user typed. Without this, each keystroke
+    // updates `pendingPatch` but the bound input re-renders with the
+    // committed record — keystrokes vanish from the UI even though the
+    // dirty flag is set correctly.
+    const draftEntity = useMemo<EntityRecord<K> | null>(() => {
+        if (entity === null) {
+            return null;
+        }
+
+        if (Object.keys(pendingPatch).length === 0) {
+            return entity;
+        }
+
+        const merged = { ...entity } as EntityRecord<K> & Record<string, unknown>;
+
+        if (pendingPatch.slug !== undefined) {
+            merged.slug = pendingPatch.slug;
+        }
+
+        if (pendingPatch.title !== undefined) {
+            merged.title = { ...entity.title, rendered: pendingPatch.title };
+        }
+
+        if (pendingPatch.description !== undefined && 'description' in entity) {
+            merged.description = pendingPatch.description ?? '';
+        }
+
+        if (pendingPatch.area !== undefined && 'area' in entity) {
+            merged.area = pendingPatch.area;
+        }
+
+        if (pendingPatch.status !== undefined && 'status' in entity) {
+            merged.status = pendingPatch.status;
+        }
+
+        if (pendingPatch.source !== undefined && 'source' in entity) {
+            merged.source = pendingPatch.source;
+        }
+
+        if (pendingPatch.theme !== undefined && 'theme' in entity) {
+            merged.theme = pendingPatch.theme;
+        }
+
+        return merged as EntityRecord<K>;
+    }, [entity, pendingPatch]);
+
     const save = useCallback(
         async (overrides: UpdatePayload = {}): Promise<EntityRecord<K> | null> => {
             if (entityId === null) {
@@ -261,6 +309,13 @@ export function useEntityEditor<K extends EntityKind>(
                 },
             };
 
+            // Snapshot the request counter so a save that resolves after
+            // the user navigated to a different entity (counter was bumped
+            // by the load effect) or triggered a manual reload doesn't
+            // hydrate the editor with a stale record.
+            const requestId = requestCounterRef.current;
+            const isStale = (): boolean => requestCounterRef.current !== requestId;
+
             setSaveStatus('saving');
             setSaveErrorMessage(null);
             setValidationErrors(null);
@@ -268,12 +323,20 @@ export function useEntityEditor<K extends EntityKind>(
             try {
                 const updated = await updateEntity(apiConfig, kind, entityId, payload);
 
+                if (isStale()) {
+                    return updated;
+                }
+
                 hydrateFromRecord(updated);
                 setSaveStatus('saved');
                 setLastSavedAt(new Date());
 
                 return updated;
             } catch (error: unknown) {
+                if (isStale()) {
+                    return null;
+                }
+
                 if (error instanceof SiteEditorApiError) {
                     setSaveStatus('error');
                     setSaveErrorMessage(error.message);
@@ -290,7 +353,7 @@ export function useEntityEditor<K extends EntityKind>(
     );
 
     return {
-        entity,
+        entity: draftEntity,
         loadStatus,
         loadErrorMessage,
         blocks,

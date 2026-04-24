@@ -16,7 +16,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getBlockTypes, unregisterBlockType } from '@wordpress/blocks';
+import { getBlockType, getBlockTypes, unregisterBlockType } from '@wordpress/blocks';
 import { registerCoreBlocks } from '@wordpress/block-library';
 import { __, sprintf } from '@wordpress/i18n';
 
@@ -127,9 +127,12 @@ function ensureEditorBoot(): void {
 
     // Register core blocks before the first template loads so `parse()`
     // can turn the saved raw serialization back into BlockInstances
-    // Gutenberg can render. Skip if another mount (HMR, shared bundle)
-    // already registered the core set.
-    if (getBlockTypes().length === 0) {
+    // Gutenberg can render. Probe for `core/paragraph` specifically —
+    // a length > 0 registry isn't enough, since a host app may have
+    // registered an unrelated block before this boot runs and we'd
+    // silently skip the core set. Paragraph is the canonical "is core
+    // loaded?" sentinel.
+    if (getBlockType('core/paragraph') === undefined) {
         registerCoreBlocks();
     }
 
