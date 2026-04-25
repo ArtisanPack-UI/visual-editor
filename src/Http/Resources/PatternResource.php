@@ -49,11 +49,19 @@ class PatternResource extends JsonResource
 			? $pattern->categories
 			: $pattern->categories()->get();
 
+		$title = (string) ( $pattern->title ?? '' );
+
 		return [
 			'id'         => $pattern->getKey(),
 			'slug'       => $pattern->slug,
+			// `core/block` reads `title.raw` first (the user-editable
+			// value) and falls back to the whole `title` object when
+			// `raw` is missing — which renders as "[object Object]"
+			// in the inline reference. Ship both fields so synced
+			// patterns surface their human title in the canvas.
 			'title'      => [
-				'rendered' => (string) ( $pattern->title ?? '' ),
+				'raw'      => $title,
+				'rendered' => $title,
 			],
 			'content'    => [
 				'raw'    => $envelope['raw'],

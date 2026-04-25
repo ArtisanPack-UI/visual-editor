@@ -1,0 +1,193 @@
+.ap-pattern-grid {
+    padding: 16px 24px 32px;
+    height: 100%;
+    overflow: auto;
+}
+
+.ap-pattern-grid__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.ap-pattern-grid__heading {
+    font-size: 18px;
+    font-weight: 700;
+    margin: 0;
+}
+
+.ap-pattern-grid__create {
+    appearance: none;
+    background: var(--ap-site-editor-accent, #1d4ed8);
+    color: #fff;
+    border: 0;
+    border-radius: 4px;
+    padding: 8px 14px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ap-pattern-grid__create:hover {
+    background: var(--ap-site-editor-accent-hover, #1e40af);
+}
+
+.ap-pattern-grid__create:focus-visible {
+    outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+    outline-offset: 2px;
+}
+
+.ap-pattern-grid__status,
+.ap-pattern-grid__error,
+.ap-pattern-grid__empty {
+    margin: 0;
+    padding: 16px;
+    border-radius: 6px;
+    background: var(--ap-pattern-section-bg, #f9fafb);
+    border: 1px solid var(--ap-site-editor-border, #e5e7eb);
+    color: var(--ap-site-editor-muted, #6b7280);
+}
+
+.ap-pattern-grid__error {
+    background: var(--ap-site-editor-error-bg, #fef2f2);
+    border-color: var(--ap-site-editor-error-border, #fecaca);
+    color: var(--ap-site-editor-error-fg, #991b1b);
+}
+
+.ap-pattern-grid__retry {
+    margin-top: 8px;
+    appearance: none;
+    background: transparent;
+    border: 1px solid currentcolor;
+    border-radius: 4px;
+    padding: 4px 10px;
+    cursor: pointer;
+    color: inherit;
+    font-size: 12px;
+}
+
+.ap-pattern-grid__empty-title {
+    font-weight: 700;
+    margin: 0 0 4px;
+    color: inherit;
+}
+
+.ap-pattern-grid__empty-body {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    max-width: 60ch;
+}
+
+.ap-pattern-grid__cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 16px;
+}
+
+.ap-pattern-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: #fff;
+    border: 1px solid var(--ap-site-editor-border, #e5e7eb);
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+.ap-pattern-card[data-active='true'] {
+    border-color: var(--ap-site-editor-accent, #1d4ed8);
+    box-shadow: 0 0 0 2px rgba(29, 78, 216, 0.2);
+}
+
+.ap-pattern-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.ap-pattern-card__title {
+    font-size: 14px;
+    font-weight: 700;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ap-pattern-card__badge {
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid currentcolor;
+    color: var(--ap-site-editor-muted, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ap-pattern-card__badge[data-synced='true'] {
+    color: var(--ap-site-editor-accent, #1d4ed8);
+    background: rgba(29, 78, 216, 0.06);
+}
+
+.ap-pattern-card__slug {
+    margin: 0;
+    font-size: 11px;
+    color: var(--ap-site-editor-muted, #6b7280);
+}
+
+.ap-pattern-card__categories {
+    margin: 0;
+    font-size: 11px;
+    color: var(--ap-site-editor-muted, #6b7280);
+    font-style: italic;
+}
+
+.ap-pattern-card__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: auto;
+}
+
+.ap-pattern-card__action {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--ap-site-editor-border, #d1d5db);
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    color: inherit;
+}
+
+.ap-pattern-card__action:hover {
+    background: var(--ap-site-editor-row-hover, #f3f4f6);
+}
+
+.ap-pattern-card__action:focus-visible {
+    outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+    outline-offset: 2px;
+}
+
+.ap-pattern-card__action--primary {
+    background: var(--ap-site-editor-accent, #1d4ed8);
+    border-color: var(--ap-site-editor-accent, #1d4ed8);
+    color: #fff;
+}
+
+.ap-pattern-card__action--primary:hover {
+    background: var(--ap-site-editor-accent-hover, #1e40af);
+}
+
+.ap-pattern-card__action--danger {
+    color: var(--ap-site-editor-error-fg, #991b1b);
+}
+
+.ap-pattern-card__action--danger:hover {
+    background: var(--ap-site-editor-error-bg, #fef2f2);
+}

@@ -45,11 +45,19 @@ import {
     createContext,
     createElement,
     useContext,
+    useEffect,
     useMemo,
+    useRef,
+    useState,
     type PropsWithChildren,
     type ReactElement,
 } from 'react';
-import { createReduxStore, register } from '@wordpress/data';
+import {
+    createReduxStore,
+    register,
+    useDispatch,
+    useSelect,
+} from '@wordpress/data';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -672,6 +680,36 @@ function selectEntityRecord(
     );
 }
 
+/**
+ * WordPress's `getRawEntityRecord` flattens any `{raw, rendered}`
+ * shaped property to its `raw` string. Block-library code (e.g.
+ * `core/block`'s `__experimentalLabel`) relies on this — it passes
+ * `entity.title` straight to `decodeEntities()`, which coerces the
+ * structured object to `[object Object]` if the shim returns the
+ * REST shape verbatim. The flattener mirrors core-data's behaviour
+ * so synced patterns surface their human-readable title in the
+ * canvas + inspector.
+ */
+function flattenRawProperties(record: EntityRecord): EntityRecord {
+    const out: EntityRecord = {};
+
+    for (const [key, value] of Object.entries(record)) {
+        if (
+            value !== null &&
+            typeof value === 'object' &&
+            'raw' in value &&
+            typeof (value as { raw?: unknown }).raw === 'string'
+        ) {
+            out[key] = (value as { raw: string }).raw;
+            continue;
+        }
+
+        out[key] = value;
+    }
+
+    return out;
+}
+
 function selectEntityRecords(
     state: CoreDataState,
     kind: EntityKind,
@@ -748,7 +786,11 @@ const selectors = {
         kind: EntityKind,
         name: EntityName,
         id: EntityKey,
-    ): EntityRecord | null => selectEntityRecord(state, kind, name, id),
+    ): EntityRecord | null => {
+        const record = selectEntityRecord(state, kind, name, id);
+
+        return record === null ? null : flattenRawProperties(record);
+    },
 
     getEntityRecords: (
         state: CoreDataState,
@@ -825,7 +867,12 @@ const selectors = {
             return null;
         }
 
-        return { ...(base ?? {}), ...(edits ?? {}) };
+        // Match `getRawEntityRecord` — flatten `{raw, rendered}` shaped
+        // fields before merging edits on top. Core-data does the same
+        // so consumers can read `entity.title` as a plain string.
+        const flattenedBase = base === null ? {} : flattenRawProperties(base);
+
+        return { ...flattenedBase, ...(edits ?? {}) };
     },
 
     getEntityRecordEdits: (
@@ -1380,7 +1427,33 @@ export function useEntityProp<T = unknown>(): [
     return [undefined, noopSetter, undefined];
 }
 
-export function useEntityRecord<T = unknown>(): {
+/**
+ * Returns the cached entity record. The B1 shim originally returned a
+ * null record stub; D5 (#372) needs a real read so `core/block`'s
+ * `isMissing` check passes for synced patterns. Two paths populate the
+ * cache:
+ *
+ *   1. The patterns inserter primes records via
+ *      `receiveEntityRecords` at fetch time, so the very first synced
+ *      insertion resolves without a round-trip.
+ *   2. When `core/block` mounts on page reload (before any inserter
+ *      ran), the saved post tree carries `core/block` references for
+ *      already-synced patterns. The cache is empty for those, so the
+ *      hook fires `fetchEntityRecord` once per missing tuple and
+ *      reports `hasResolved=false` until the fetch settles. Without
+ *      this branch, every saved synced reference would render "Block
+ *      has been deleted or is unavailable." after a reload — the same
+ *      crash D5 #372 was filed to fix.
+ *
+ * Edits are still no-ops — callers wanting to write through must use
+ * the section's dedicated editor (D2 templates, D5 patterns, …)
+ * rather than `editEntityRecord` from the inline edit path.
+ */
+export function useEntityRecord<T = unknown>(
+    kind?: EntityKind,
+    name?: EntityName,
+    id?: EntityKey | null
+): {
     record: T | null;
     editedRecord: T | null;
     hasEdits: boolean;
@@ -1389,12 +1462,149 @@ export function useEntityRecord<T = unknown>(): {
     edit: typeof noopSetter;
     save: () => Promise<null>;
 } {
-    return {
-        record: null,
-        editedRecord: null,
-        hasEdits: false,
-        hasResolved: true,
+    const record = useSelect(
+        (select) => {
+            if (
+                kind === undefined ||
+                name === undefined ||
+                id === undefined ||
+                id === null
+            ) {
+                return null;
+            }
+
+            const store = select(STORE_NAME) as
+                | {
+                      getEntityRecord?: (
+                          kind: EntityKind,
+                          name: EntityName,
+                          id: EntityKey
+                      ) => EntityRecord | null;
+                  }
+                | undefined;
+
+            return store?.getEntityRecord?.(kind, name, id) ?? null;
+        },
+        [kind, name, id]
+    );
+
+    const dispatchActions = useDispatch(STORE_NAME) as
+        | {
+              fetchEntityRecord?: (
+                  kind: EntityKind,
+                  name: EntityName,
+                  id: EntityKey
+              ) => Promise<EntityRecord | null>;
+          }
+        | null
+        | undefined;
+
+    const tupleKey =
+        kind !== undefined &&
+        name !== undefined &&
+        id !== undefined &&
+        id !== null
+            ? `${kind}|${name}|${id}`
+            : null;
+
+    const [resolutionState, setResolutionState] = useState<{
+        key: string | null;
+        hasResolved: boolean;
+        isResolving: boolean;
+    }>({
+        key: tupleKey,
+        // No id, or already in cache → resolution is trivially "done"
+        // on first render so consumers don't see a spinner that
+        // never had work to do.
+        hasResolved: tupleKey === null || record !== null,
         isResolving: false,
+    });
+
+    // Snapshot the latest dispatch + record without forcing the
+    // resolution effect to re-fire when their identities churn.
+    const fetcherRef = useRef(dispatchActions?.fetchEntityRecord);
+    fetcherRef.current = dispatchActions?.fetchEntityRecord;
+
+    const recordRef = useRef(record);
+    recordRef.current = record;
+
+    useEffect(() => {
+        if (tupleKey === null) {
+            setResolutionState({
+                key: null,
+                hasResolved: true,
+                isResolving: false,
+            });
+
+            return undefined;
+        }
+
+        // Already cached. Mark resolved without a round-trip.
+        if (recordRef.current !== null) {
+            setResolutionState({
+                key: tupleKey,
+                hasResolved: true,
+                isResolving: false,
+            });
+
+            return undefined;
+        }
+
+        const fetcher = fetcherRef.current;
+
+        if (typeof fetcher !== 'function') {
+            // No fetcher available — degrade gracefully so consumers
+            // don't get stuck on a perpetual spinner. Treat the
+            // resolution as finished even though the cache is empty;
+            // `core/block` will then surface the "deleted" placeholder
+            // (which is correct — there's no way to reach the record).
+            setResolutionState({
+                key: tupleKey,
+                hasResolved: true,
+                isResolving: false,
+            });
+
+            return undefined;
+        }
+
+        let cancelled = false;
+
+        setResolutionState({
+            key: tupleKey,
+            hasResolved: false,
+            isResolving: true,
+        });
+
+        void Promise.resolve(
+            fetcher(kind as EntityKind, name as EntityName, id as EntityKey)
+        ).finally(() => {
+            if (cancelled) {
+                return;
+            }
+
+            setResolutionState((prev) =>
+                prev.key === tupleKey
+                    ? { key: tupleKey, hasResolved: true, isResolving: false }
+                    : prev
+            );
+        });
+
+        return () => {
+            cancelled = true;
+        };
+    }, [tupleKey, kind, name, id]);
+
+    const hasResolved =
+        resolutionState.key === tupleKey ? resolutionState.hasResolved : false;
+    const isResolving =
+        resolutionState.key === tupleKey ? resolutionState.isResolving : false;
+
+    return {
+        record: (record as T | null) ?? null,
+        editedRecord: (record as T | null) ?? null,
+        hasEdits: false,
+        hasResolved,
+        isResolving,
         edit: noopSetter,
         save: async () => null,
     };
@@ -1418,12 +1628,86 @@ export function useEntityRecords<T = unknown>(): {
     };
 }
 
-export function useEntityBlockEditor(): [
-    readonly never[],
-    typeof noopSetter,
-    typeof noopSetter,
+/**
+ * Resolves the inner block tree for an entity record.
+ *
+ * `core/block` (the synced-pattern reference block) calls this with
+ * `('postType', 'wp_block', { id: ref })` to load the pattern's saved
+ * blocks. The B1 shim originally returned an empty array which made
+ * the block render "Block has been deleted or is unavailable" even
+ * when the wp_block record was cached. D5 (#372) needed real reads,
+ * so the implementation now pulls the cached record, prefers the
+ * already-parsed `content.blocks` payload, and falls back to parsing
+ * the raw HTML when `blocks` is missing.
+ *
+ * Edits are still no-ops — saving a synced pattern goes through the
+ * dedicated patterns canvas in the site editor (D5), not via this
+ * inline path. When the post-V1 cms-framework backend lands the
+ * setters can begin dispatching real `editEntityRecord` actions.
+ */
+export function useEntityBlockEditor(
+    kind?: EntityKind,
+    name?: EntityName,
+    options?: { id?: EntityKey | null }
+): [
+    readonly unknown[],
+    (blocks: readonly unknown[]) => void,
+    (blocks: readonly unknown[]) => void,
 ] {
-    return [EMPTY_RECORDS, noopSetter, noopSetter];
+    const id = options?.id ?? null;
+
+    const blocks = useSelect(
+        (select) => {
+            if (kind === undefined || name === undefined || id === null) {
+                return EMPTY_RECORDS as readonly unknown[];
+            }
+
+            const store = select(STORE_NAME) as
+                | {
+                      getEntityRecord?: (
+                          kind: EntityKind,
+                          name: EntityName,
+                          id: EntityKey
+                      ) => EntityRecord | null;
+                  }
+                | undefined;
+
+            const record = store?.getEntityRecord?.(kind, name, id);
+
+            if (!record) {
+                return EMPTY_RECORDS as readonly unknown[];
+            }
+
+            const content = (record as { content?: unknown }).content;
+
+            if (
+                content === null ||
+                content === undefined ||
+                typeof content !== 'object'
+            ) {
+                return EMPTY_RECORDS as readonly unknown[];
+            }
+
+            // The patterns C5 endpoint (and the templates / parts
+            // endpoints alongside it) always ship `content.blocks`
+            // alongside `content.raw`, so we trust the parsed array
+            // and skip the `parse(raw)` fallback. Adding `parseBlocks`
+            // here would force `@wordpress/blocks` into every test
+            // that ever imports the shim — vitest can't resolve that
+            // package's strict-ESM JSON import without per-test
+            // mocks, and the fallback never fires in production.
+            const parsed = (content as { blocks?: unknown }).blocks;
+
+            if (Array.isArray(parsed)) {
+                return parsed as readonly unknown[];
+            }
+
+            return EMPTY_RECORDS as readonly unknown[];
+        },
+        [kind, name, id]
+    );
+
+    return [blocks, noopSetter, noopSetter];
 }
 
 export function useResourcePermissions(): {

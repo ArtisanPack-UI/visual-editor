@@ -67,6 +67,20 @@ vi.mock('@wordpress/components', () => {
 
 vi.mock('@wordpress/data', () => ({
     useSelect: () => false,
+    useDispatch: () => ({ replaceBlocks: () => undefined }),
+}));
+
+vi.mock('@wordpress/hooks', () => ({
+    addFilter: () => undefined,
+}));
+
+// `ConvertToPatternControl` (rendered inside `EntityEditorCanvas` when
+// the canvas receives an `apiBase`) reaches for two block-editor
+// surfaces that aren't otherwise needed by these tests. Stubbing them
+// in keeps the entity-editor view tests focused on the editor state
+// machine instead of the convert-to-pattern flow.
+vi.mock('../../editor/convert-to-pattern-control', () => ({
+    ConvertToPatternControl: () => null,
 }));
 
 const FETCH_MOCK = vi.fn();

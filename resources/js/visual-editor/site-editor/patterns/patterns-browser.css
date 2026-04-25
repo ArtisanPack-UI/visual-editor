@@ -1,0 +1,187 @@
+.ap-patterns-browser {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 8px 0 0;
+}
+
+.ap-patterns-browser__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 12px;
+}
+
+.ap-patterns-browser__title {
+    font-size: 13px;
+    font-weight: 600;
+    margin: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ap-site-editor-muted, #666);
+}
+
+.ap-patterns-browser__create {
+    appearance: none;
+    background: var(--ap-site-editor-accent, #1d4ed8);
+    color: #fff;
+    border: 0;
+    border-radius: 4px;
+    padding: 4px 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.ap-patterns-browser__create:hover {
+    background: var(--ap-site-editor-accent-hover, #1e40af);
+}
+
+.ap-patterns-browser__create:focus-visible {
+    outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+    outline-offset: 2px;
+}
+
+.ap-patterns-browser__tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 12px;
+    border-bottom: 1px solid var(--ap-site-editor-border, #d1d5db);
+}
+
+.ap-patterns-browser__tab {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--ap-site-editor-muted, #666);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+}
+
+.ap-patterns-browser__tab:hover {
+    color: inherit;
+}
+
+.ap-patterns-browser__tab[aria-selected='true'] {
+    color: var(--ap-site-editor-accent, #1d4ed8);
+    border-bottom-color: var(--ap-site-editor-accent, #1d4ed8);
+}
+
+.ap-patterns-browser__tab:focus-visible {
+    outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+    outline-offset: 2px;
+}
+
+.ap-patterns-browser__panel {
+    display: flex;
+    flex-direction: column;
+}
+
+.ap-patterns-browser__status,
+.ap-patterns-browser__error,
+.ap-patterns-browser__empty {
+    padding: 12px;
+    font-size: 13px;
+    color: var(--ap-site-editor-muted, #666);
+    margin: 0;
+}
+
+.ap-patterns-browser__error {
+    background: var(--ap-site-editor-error-bg, #fef2f2);
+    border-top: 1px solid var(--ap-site-editor-error-border, #fecaca);
+    border-bottom: 1px solid var(--ap-site-editor-error-border, #fecaca);
+    color: var(--ap-site-editor-error-fg, #991b1b);
+}
+
+.ap-patterns-browser__retry {
+    margin-top: 4px;
+    appearance: none;
+    background: transparent;
+    border: 1px solid currentcolor;
+    border-radius: 4px;
+    padding: 2px 8px;
+    cursor: pointer;
+    color: inherit;
+    font-size: 12px;
+}
+
+.ap-patterns-browser__empty-title {
+    font-weight: 600;
+    color: inherit;
+    margin: 0 0 4px;
+}
+
+.ap-patterns-browser__empty-body {
+    margin: 0;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.ap-patterns-browser__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.ap-patterns-browser__item {
+    margin: 0;
+}
+
+.ap-patterns-browser__row {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    width: 100%;
+    text-align: left;
+    padding: 8px 12px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    color: inherit;
+    font: inherit;
+    border-left: 2px solid transparent;
+}
+
+.ap-patterns-browser__row:hover {
+    background: var(--ap-site-editor-row-hover, #f3f4f6);
+}
+
+.ap-patterns-browser__row:focus-visible {
+    outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+    outline-offset: -2px;
+}
+
+.ap-patterns-browser__row[data-active='true'] {
+    background: var(--ap-site-editor-row-active, #eff6ff);
+    border-left-color: var(--ap-site-editor-accent, #1d4ed8);
+}
+
+.ap-patterns-browser__row-title {
+    font-weight: 600;
+    font-size: 13px;
+}
+
+.ap-patterns-browser__row-meta {
+    font-size: 11px;
+    color: var(--ap-site-editor-muted, #666);
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.ap-patterns-browser__row-slug {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.ap-patterns-browser__row-categories {
+    font-style: italic;
+}

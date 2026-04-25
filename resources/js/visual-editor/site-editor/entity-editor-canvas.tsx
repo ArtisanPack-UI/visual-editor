@@ -25,6 +25,8 @@ import {
     WritingFlow,
 } from '@wordpress/block-editor';
 import { Popover, SlotFillProvider } from '@wordpress/components';
+
+import { ConvertToPatternControl } from '../editor/convert-to-pattern-control';
 // `@wordpress/format-library` is a side-effect import: it registers the
 // core rich-text formats (bold, italic, link, …) so the block toolbar's
 // inline formatting controls work inside RichText blocks.
@@ -59,6 +61,12 @@ export interface EntityEditorCanvasProps {
     isLoading?: boolean;
     /** Optional error copy rendered in place of the canvas. */
     errorMessage?: string | null;
+    /**
+     * API base used by D5's "Convert to pattern" control. The site
+     * editor hands this through so the canvas can mount the patterns
+     * dialog when a user converts a selection.
+     */
+    apiBase?: string;
 }
 
 /**
@@ -73,8 +81,16 @@ const EDITOR_SETTINGS = {
 };
 
 export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element {
-    const { entityTitle, blocks, onChange, onInput, header, isLoading, errorMessage } =
-        props;
+    const {
+        entityTitle,
+        blocks,
+        onChange,
+        onInput,
+        header,
+        isLoading,
+        errorMessage,
+        apiBase,
+    } = props;
 
     const announcement = useMemo(
         () =>
@@ -145,6 +161,9 @@ export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element 
                             </BlockTools>
                         </div>
                         <Popover.Slot />
+                        {apiBase !== undefined && apiBase !== '' ? (
+                            <ConvertToPatternControl apiBase={apiBase} />
+                        ) : null}
                     </BlockEditorProvider>
                 </SlotFillProvider>
             </div>

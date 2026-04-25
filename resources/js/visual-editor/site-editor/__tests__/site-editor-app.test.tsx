@@ -78,6 +78,53 @@ vi.mock('../styles/styles-section', () => ({
     }),
 }));
 
+// D5 mounts the patterns section. Stub the hook entry point so the
+// shell tests don't pull in the patterns canvas (and therefore
+// `@wordpress/block-editor`) at module-load time. The patterns-section
+// test file exercises the hook end-to-end.
+vi.mock('../patterns/patterns-section', () => ({
+    usePatternsSectionViews: (): {
+        navigator: JSX.Element;
+        canvas: JSX.Element;
+        inspector: JSX.Element;
+        overlay: null;
+    } => ({
+        navigator: (
+            <div data-testid="ap-site-editor-stub-patterns-navigator" />
+        ),
+        canvas: <div data-testid="ap-site-editor-stub-patterns-canvas" />,
+        inspector: (
+            <div data-testid="ap-site-editor-stub-patterns-inspector" />
+        ),
+        overlay: null,
+    }),
+}));
+
+// Same reasoning for D4 — keep the navigation-section module out of
+// the shell test's import graph so its API client doesn't try to
+// fetch menu locations during the shell unit tests.
+vi.mock('../navigation/navigation-section', () => ({
+    useNavigationSectionViews: (): {
+        navigator: JSX.Element;
+        canvas: JSX.Element;
+        inspector: JSX.Element;
+        overlay: null;
+    } => ({
+        navigator: (
+            <div data-testid="ap-site-editor-stub-navigation-navigator" />
+        ),
+        canvas: <div data-testid="ap-site-editor-stub-navigation-canvas" />,
+        inspector: (
+            <div data-testid="ap-site-editor-stub-navigation-inspector" />
+        ),
+        overlay: null,
+    }),
+}));
+
+vi.mock('../../editor/synced-pattern-indicator', () => ({
+    registerSyncedPatternIndicator: () => undefined,
+}));
+
 import { SiteEditorApp } from '../site-editor-app';
 
 const ROUTE_BASE = '/visual-editor/site';
@@ -232,18 +279,15 @@ describe('SiteEditorApp', () => {
         ).toBeInTheDocument();
     });
 
-    it('falls back to the section-outlet placeholder for phase-not-yet sections', async () => {
+    it('mounts the D5 patterns navigator when the section is selected', async () => {
         const user = userEvent.setup();
         renderApp();
 
         await user.click(screen.getByTestId('ap-site-editor-navigator-patterns'));
 
-        const outlet = screen.getByTestId(
-            'ap-site-editor-section-outlet-patterns'
-        );
-
-        expect(outlet).toBeInTheDocument();
-        expect(outlet).toHaveTextContent(/Patterns UI lands in D5\./);
+        expect(
+            screen.getByTestId('ap-site-editor-stub-patterns-navigator')
+        ).toBeInTheDocument();
     });
 
     it('updates document.title to identify the active scope', () => {

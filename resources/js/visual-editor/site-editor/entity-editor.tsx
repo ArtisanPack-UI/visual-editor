@@ -217,9 +217,11 @@ export function useEntityEditorViews<K extends EntityKind>(
                 header={headerContent}
                 isLoading={loadStatus === 'loading'}
                 errorMessage={loadStatus === 'error' ? loadErrorMessage : null}
+                apiBase={apiConfig.apiBase}
             />
         );
     }, [
+        apiConfig.apiBase,
         blocks,
         entityId,
         entityTitle,

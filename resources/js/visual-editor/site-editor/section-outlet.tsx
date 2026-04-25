@@ -18,6 +18,10 @@ import { type SiteEditorSectionId } from './sections';
 const SECTION_PHASE_NOTE: Record<SiteEditorSectionId, string> = {
     templates: 'D2',
     'template-parts': 'D2',
+    // D5 (#372) replaces this placeholder; the entry stays in the
+    // table so a future regression that loses the patterns wiring
+    // still falls back to a labelled outlet rather than rendering
+    // empty.
     patterns: 'D5',
     styles: 'D3',
     navigation: 'D4',

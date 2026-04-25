@@ -46,9 +46,11 @@ import {
 } from './template-parts-section';
 import { useStylesSectionViews } from './styles/styles-section';
 import { useNavigationSectionViews } from './navigation/navigation-section';
+import { usePatternsSectionViews } from './patterns/patterns-section';
 import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
 import { TopBar } from '../editor/top-bar';
+import { registerSyncedPatternIndicator } from '../editor/synced-pattern-indicator';
 
 import './site-editor-app.css';
 
@@ -92,6 +94,16 @@ const D3_SECTIONS: ReadonlySet<SiteEditorSectionId> = new Set<SiteEditorSectionI
  */
 const D4_SECTIONS: ReadonlySet<SiteEditorSectionId> = new Set<SiteEditorSectionId>([
     'navigation',
+]);
+
+/**
+ * Section ids D5 (#372) ships — the Patterns section mounts a card
+ * grid + tabbed list (synced/unsynced) and reuses the site-editor
+ * canvas in edit mode. Like Navigation, the canvas swap is driven by
+ * whether the URL carries an entity id: no id → grid, id → editor.
+ */
+const D5_SECTIONS: ReadonlySet<SiteEditorSectionId> = new Set<SiteEditorSectionId>([
+    'patterns',
 ]);
 
 export interface SiteEditorAppProps {
@@ -149,6 +161,11 @@ function ensureEditorBoot(): void {
     }
 
     bootI18n();
+
+    // Mount D5's synced-pattern indicator filter before block
+    // registration so `core/block` reference blocks get the badge from
+    // the first render. Idempotent across HMR.
+    registerSyncedPatternIndicator();
 
     // Register core blocks before the first template loads so `parse()`
     // can turn the saved raw serialization back into BlockInstances
@@ -218,6 +235,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
     const isD2Section = D2_SECTIONS.has(activeSection.id);
     const isD3Section = D3_SECTIONS.has(activeSection.id);
     const isD4Section = D4_SECTIONS.has(activeSection.id);
+    const isD5Section = D5_SECTIONS.has(activeSection.id);
     const activeKind = sectionKind(activeSection.id);
 
     // Effective kind passed to the editor hook — always a real value so
@@ -250,7 +268,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         kind: editorKind,
         entityId: editorEntityId,
         onStateChange:
-            isD3Section || isD4Section
+            isD3Section || isD4Section || isD5Section
                 ? noopStateChange
                 : handleEntityStateChange,
     });
@@ -280,6 +298,26 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         activeEntityId,
         onOpenEntity: handleNavigationOpen,
         onStateChange: isD4Section ? handleEntityStateChange : noopStateChange,
+    });
+
+    const handlePatternsOpen = useCallback(
+        (entityId: string): void => {
+            routing.navigate(activeSection.id, entityId);
+        },
+        [activeSection.id, routing]
+    );
+
+    const handlePatternsClose = useCallback((): void => {
+        routing.navigate(activeSection.id, null);
+    }, [activeSection.id, routing]);
+
+    const patternsViews = usePatternsSectionViews({
+        apiConfig,
+        enabled: isD5Section,
+        activeEntityId,
+        onOpenEntity: handlePatternsOpen,
+        onCloseEntity: handlePatternsClose,
+        onStateChange: isD5Section ? handleEntityStateChange : noopStateChange,
     });
 
     const [dialogKind, setDialogKind] = useState<EntityKind | null>(null);
@@ -479,6 +517,8 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         navigatorChildren = stylesViews.navigator;
     } else if (isD4Section) {
         navigatorChildren = navigationViews.navigator;
+    } else if (isD5Section) {
+        navigatorChildren = patternsViews.navigator;
     } else {
         navigatorChildren = (
             <SectionOutlet
@@ -490,6 +530,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
 
     const showEntityEditor = isD2Section && activeEntityId !== null;
     const showNavigationEditor = isD4Section && activeEntityId !== null;
+    const showPatternsEditor = isD5Section && activeEntityId !== null;
 
     return (
         <div
@@ -497,7 +538,9 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
             data-navigator-open={navigatorOpen}
             data-inspector-open={inspectorOpen}
             data-active-section={activeSection.id}
-            data-has-entity={showEntityEditor || isD3Section || isD4Section}
+            data-has-entity={
+                showEntityEditor || isD3Section || isD4Section || isD5Section
+            }
             data-testid="ap-site-editor-shell"
         >
             <TopBar
@@ -563,6 +606,14 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                     >
                         {navigationViews.canvas}
                     </div>
+                ) : isD5Section ? (
+                    <div
+                        className="ap-site-editor__canvas"
+                        data-has-entity={showPatternsEditor}
+                        data-testid="ap-site-editor-canvas"
+                    >
+                        {patternsViews.canvas}
+                    </div>
                 ) : (
                     <CanvasFrame
                         sectionLabel={activeSection.modeLabel}
@@ -577,6 +628,8 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                             stylesViews.inspector
                         ) : isD4Section && showNavigationEditor ? (
                             navigationViews.inspector
+                        ) : isD5Section && showPatternsEditor ? (
+                            patternsViews.inspector
                         ) : (
                             <InspectorOutlet sectionLabel={activeSection.label} />
                         )}
@@ -600,6 +653,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                 />
             ) : null}
             {navigationViews.overlay}
+            {patternsViews.overlay}
         </div>
     );
 }
