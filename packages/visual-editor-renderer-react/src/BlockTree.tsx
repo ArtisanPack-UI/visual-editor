@@ -9,13 +9,25 @@
  *
  * `tree` accepts the array form the editor persists, a JSON-encoded string of
  * that shape, or `null`/`undefined` for an empty render.
+ *
+ * Optionally accepts a `templateParts` map. When provided, every
+ * `core/template-part` block in the tree is replaced (pre-walk) with
+ * its referenced part's blocks via {@link inlineTemplateParts}. The
+ * registered `core/template-part` renderer wraps the resolved blocks in
+ * a semantic element so the surrounding layout still gets the part's
+ * regions.
  */
 
-import { Fragment } from 'react';
+import { Fragment, useMemo } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 import { DynamicBlock } from './DynamicBlock';
 import { UnknownBlock } from './blocks/unknownBlock';
 import { getBlockRenderer } from './registry';
+import {
+    DEFAULT_MAX_TEMPLATE_PART_DEPTH,
+    inlineTemplateParts,
+} from './templateParts';
+import type { TemplatePartRecord } from './templateParts';
 import type { Block } from './types';
 
 const DEFAULT_ENDPOINT = '/visual-editor/api/blocks/preview';
@@ -24,14 +36,32 @@ export interface BlockTreeProps {
     tree: Block[] | string | null | undefined;
     dynamicBlockEndpoint?: string;
     fetchOptions?: RequestInit;
+    templateParts?: TemplatePartRecord[];
+    defaultTheme?: string;
+    maxTemplatePartDepth?: number;
 }
 
 export function BlockTree({
     tree,
     dynamicBlockEndpoint = DEFAULT_ENDPOINT,
     fetchOptions,
+    templateParts,
+    defaultTheme,
+    maxTemplatePartDepth = DEFAULT_MAX_TEMPLATE_PART_DEPTH,
 }: BlockTreeProps): ReactElement {
-    const blocks = normalizeTree(tree);
+    const blocks = useMemo(() => {
+        const normalized = normalizeTree(tree);
+
+        if (templateParts === undefined || templateParts.length === 0) {
+            return normalized;
+        }
+
+        return inlineTemplateParts(normalized, {
+            parts: templateParts,
+            defaultTheme,
+            maxDepth: maxTemplatePartDepth,
+        });
+    }, [tree, templateParts, defaultTheme, maxTemplatePartDepth]);
 
     return (
         <>

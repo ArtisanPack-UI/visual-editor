@@ -39,6 +39,18 @@ abstract class TestCase extends BaseTestCase
 	}
 
 	/**
+	 * Loads the host package's migrations so tests that touch the
+	 * `visual_editor_*` tables (template-part inlining, template
+	 * resolution) can persist fixtures via Eloquent.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function defineDatabaseMigrations(): void
+	{
+		$this->loadMigrationsFrom( __DIR__ . '/../../../database/migrations' );
+	}
+
+	/**
 	 * Collapse insignificant whitespace so snapshot comparisons aren't brittle.
 	 *
 	 * Only strips whitespace directly between tags (e.g. "</p>\n\t<p>" → "</p><p>")
