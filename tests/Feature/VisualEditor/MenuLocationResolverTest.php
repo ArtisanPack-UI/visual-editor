@@ -200,3 +200,63 @@ it( 'drops malformed location entries silently', function () {
 		->toHaveCount( 1 )
 		->toHaveKey( 'primary' );
 } );
+
+it( 'prefers a DB-assigned navigation over the configured primary_id', function () {
+	$dbAssigned = makeNavigation( [ 'slug' => 'editor-pick', 'location' => 'primary', 'menu_order' => 99 ] );
+	$configPick = makeNavigation( [ 'slug' => 'config-pick', 'menu_order' => 0 ] );
+
+	setLocations( [
+		'primary' => [
+			'slug'       => 'primary',
+			'label'      => 'Primary Menu',
+			'primary_id' => $configPick->id,
+		],
+	] );
+
+	$resolver = app( MenuLocationResolver::class );
+
+	expect( $resolver->forLocation( 'primary' ) )
+		->not->toBeNull()
+		->and( $resolver->forLocation( 'primary' )->id )->toBe( $dbAssigned->id );
+} );
+
+it( 'falls through to the config primary_id when no DB assignment matches', function () {
+	$configPick = makeNavigation( [ 'slug' => 'config-pick' ] );
+	makeNavigation( [ 'slug' => 'unrelated', 'location' => 'footer' ] );
+
+	setLocations( [
+		'primary' => [
+			'slug'       => 'primary',
+			'label'      => 'Primary Menu',
+			'primary_id' => $configPick->id,
+		],
+	] );
+
+	$resolver = app( MenuLocationResolver::class );
+
+	expect( $resolver->forLocation( 'primary' )->id )->toBe( $configPick->id );
+} );
+
+it( 'effectiveAssignments() reports each configured location once', function () {
+	$primary = makeNavigation( [ 'slug' => 'primary-pick', 'location' => 'primary' ] );
+	makeNavigation( [ 'slug' => 'fallback' ] );
+
+	setLocations( [
+		'primary' => [
+			'slug'       => 'primary',
+			'label'      => 'Primary',
+			'primary_id' => null,
+		],
+		'footer'  => [
+			'slug'       => 'footer',
+			'label'      => 'Footer',
+			'primary_id' => null,
+		],
+	] );
+
+	$resolver    = app( MenuLocationResolver::class );
+	$assignments = $resolver->effectiveAssignments();
+
+	expect( $assignments )->toHaveKey( 'primary' )
+		->and( $assignments['primary']->id )->toBe( $primary->id );
+} );

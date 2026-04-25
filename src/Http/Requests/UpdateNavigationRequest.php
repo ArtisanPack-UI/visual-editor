@@ -20,6 +20,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Requests;
 
 use ArtisanPackUI\VisualEditor\Models\VisualEditorNavigation;
 use ArtisanPackUI\VisualEditor\Rules\TemplateBlockTreeRule;
+use ArtisanPackUI\VisualEditor\Services\MenuLocationResolver;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -67,6 +68,10 @@ class UpdateNavigationRequest extends FormRequest
 				] ),
 			],
 			'menu_order'     => [ 'sometimes', 'integer', 'min:0' ],
+			// Mirrors `StoreNavigationRequest::rules()['location']`. Null
+			// clears the assignment, a configured slug writes one;
+			// anything else 422s before it can poison the resolver.
+			'location'       => [ 'sometimes', 'nullable', 'string', 'max:191', $this->locationSlugRule() ],
 		];
 	}
 
@@ -81,6 +86,34 @@ class UpdateNavigationRequest extends FormRequest
 		return function ( string $attribute, mixed $value, Closure $fail ): void {
 			if ( is_array( $value ) && [] !== $value && array_is_list( $value ) ) {
 				$fail( 'The :attribute must be a { raw, blocks } envelope, not a bare list of blocks.' );
+			}
+		};
+	}
+
+	/**
+	 * Mirrors {@see StoreNavigationRequest::locationSlugRule()} so the
+	 * `location` field accepts only slugs declared in the package
+	 * configuration.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function locationSlugRule(): Closure
+	{
+		return function ( string $attribute, mixed $value, Closure $fail ): void {
+			if ( null === $value || '' === $value ) {
+				return;
+			}
+
+			if ( ! is_string( $value ) ) {
+				return;
+			}
+
+			/** @var MenuLocationResolver $resolver */
+			$resolver = $this->container->make( MenuLocationResolver::class );
+			$slugs    = array_keys( $resolver->locations() );
+
+			if ( ! in_array( $value, $slugs, true ) ) {
+				$fail( 'The :attribute is not a configured menu location.' );
 			}
 		};
 	}

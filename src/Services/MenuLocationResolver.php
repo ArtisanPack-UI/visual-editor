@@ -93,10 +93,15 @@ class MenuLocationResolver
 	 * should render for that slot.
 	 *
 	 * Resolution order:
-	 *   1. The configured `primary_id` (when present and the record
-	 *      exists and has a non-empty block tree).
-	 *   2. The first published nav ordered by `menu_order`.
-	 *   3. `null` when no published navs exist.
+	 *   1. The first published nav with `location = $slug` ordered by
+	 *      `menu_order`. This is what the D4 site editor writes to;
+	 *      always preferred over config so an admin's UI assignment
+	 *      wins against a stale config entry.
+	 *   2. The configured `primary_id` (when present and the record
+	 *      exists and has a non-empty block tree). Lets a host app
+	 *      pin a location without exposing it to the editor.
+	 *   3. The first published nav ordered by `menu_order`.
+	 *   4. `null` when no published navs exist.
 	 *
 	 * An unknown slug still falls through to the published-nav fallback,
 	 * because a freshly-installed host app may have navs seeded before
@@ -106,6 +111,14 @@ class MenuLocationResolver
 	 */
 	public function forLocation( string $slug ): ?VisualEditorNavigation
 	{
+		if ( '' !== $slug ) {
+			$assigned = VisualEditorNavigation::query()->forLocation( $slug )->first();
+
+			if ( null !== $assigned && ! $assigned->isEmpty() ) {
+				return $assigned;
+			}
+		}
+
 		$locations = $this->locations();
 
 		$primary = null;
@@ -122,6 +135,31 @@ class MenuLocationResolver
 		}
 
 		return $this->fallback();
+	}
+
+	/**
+	 * Returns the navigation record currently assigned to each
+	 * configured location via the database `location` column.
+	 *
+	 * The site editor's locations panel uses this to render which menu
+	 * is "effective" for each slot per D0's "what does this affect"
+	 * principle. A location with no DB assignment AND no config
+	 * `primary_id` resolves to `null` so the UI can render the
+	 * fallback-chain note instead of a fictitious assignment.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, ?VisualEditorNavigation>  Keyed by location slug.
+	 */
+	public function effectiveAssignments(): array
+	{
+		$assignments = [];
+
+		foreach ( array_keys( $this->locations() ) as $slug ) {
+			$assignments[ $slug ] = $this->forLocation( $slug );
+		}
+
+		return $assignments;
 	}
 
 	/**

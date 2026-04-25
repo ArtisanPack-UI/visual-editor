@@ -120,9 +120,15 @@ class NavigationController extends Controller
 			'title'      => $data['title'] ?? '',
 			'status'     => $data['status'] ?? VisualEditorNavigation::STATUS_PUBLISH,
 			'menu_order' => $data['menu_order'] ?? 0,
+			'location'   => array_key_exists( 'location', $data ) ? $this->normalizeLocation( $data['location'] ) : null,
 		] );
 
 		$navigation->setContentEnvelope( $this->normalizeContentEnvelope( $data['content'] ?? null ) );
+
+		if ( null !== $navigation->location && '' !== $navigation->location ) {
+			$this->releaseLocationFromOtherRecords( $navigation );
+		}
+
 		$navigation->save();
 
 		return response()->json(
@@ -150,6 +156,20 @@ class NavigationController extends Controller
 
 		if ( array_key_exists( 'content', $data ) ) {
 			$navigation->setContentEnvelope( $this->normalizeContentEnvelope( $data['content'] ) );
+		}
+
+		if ( array_key_exists( 'location', $data ) ) {
+			$navigation->location = $this->normalizeLocation( $data['location'] );
+
+			// A location is single-occupant: assigning it to one menu
+			// implicitly releases it from any other record that already
+			// claims the same slug. Without this an admin who reassigns
+			// would briefly have two records claiming `primary` and the
+			// resolver's `forLocation` would resolve to whichever sorts
+			// lowest by menu_order — surprising behavior.
+			if ( null !== $navigation->location && '' !== $navigation->location ) {
+				$this->releaseLocationFromOtherRecords( $navigation );
+			}
 		}
 
 		$navigation->save();
@@ -193,5 +213,43 @@ class NavigationController extends Controller
 			'raw'    => isset( $content['raw'] ) && is_string( $content['raw'] ) ? $content['raw'] : '',
 			'blocks' => isset( $content['blocks'] ) && is_array( $content['blocks'] ) ? array_values( $content['blocks'] ) : [],
 		];
+	}
+
+	/**
+	 * Coerces an empty `location` string into `null` so the database
+	 * stores a uniform "unassigned" sentinel and the resolver's
+	 * `forLocation` short-circuits.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function normalizeLocation( mixed $location ): ?string
+	{
+		if ( null === $location ) {
+			return null;
+		}
+
+		if ( ! is_string( $location ) ) {
+			return null;
+		}
+
+		$trimmed = trim( $location );
+
+		return '' === $trimmed ? null : $trimmed;
+	}
+
+	/**
+	 * Clears the location slug on every other record that already claims
+	 * it so the location is single-occupant by construction.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function releaseLocationFromOtherRecords( VisualEditorNavigation $navigation ): void
+	{
+		VisualEditorNavigation::query()
+			->where( 'location', $navigation->location )
+			->when( null !== $navigation->getKey(), function ( $query ) use ( $navigation ) {
+				$query->where( $navigation->getKeyName(), '!=', $navigation->getKey() );
+			} )
+			->update( [ 'location' => null ] );
 	}
 }

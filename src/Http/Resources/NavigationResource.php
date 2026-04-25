@@ -55,6 +55,9 @@ class NavigationResource extends JsonResource
 			],
 			'status'     => $navigation->status,
 			'menu_order' => (int) $navigation->menu_order,
+			// `null` is the wire signal "no location assigned" — the
+			// site editor's locations panel keys off this directly.
+			'location'   => null === $navigation->location || '' === $navigation->location ? null : (string) $navigation->location,
 			'type'       => 'wp_navigation',
 		];
 	}

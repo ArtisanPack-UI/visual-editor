@@ -1,0 +1,132 @@
+/*
+ * Navigation browser — left-rail menu list + locations panel.
+ */
+
+.ap-nav-browser {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 12px;
+	height: 100%;
+	overflow: auto;
+}
+
+.ap-nav-browser__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+}
+
+.ap-nav-browser__title {
+	font-size: 13px;
+	font-weight: 600;
+	margin: 0;
+}
+
+.ap-nav-browser__create {
+	font-size: 12px;
+	padding: 4px 8px;
+	background: var(--ap-site-editor-accent, #2271b1);
+	color: #fff;
+	border: 0;
+	border-radius: 3px;
+	cursor: pointer;
+}
+
+.ap-nav-browser__list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.ap-nav-browser__row[data-active='true'] .ap-nav-browser__row-button {
+	border-color: var(--ap-site-editor-accent, #2271b1);
+	background: rgba(34, 113, 177, 0.05);
+}
+
+.ap-nav-browser__row-button {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	gap: 2px;
+	text-align: left;
+	background: #fff;
+	border: 1px solid var(--ap-site-editor-border, #ddd);
+	border-radius: 3px;
+	padding: 8px;
+	cursor: pointer;
+}
+
+.ap-nav-browser__row-title {
+	font-weight: 500;
+	font-size: 12px;
+	color: var(--ap-site-editor-fg, #1d2327);
+}
+
+.ap-nav-browser__row-meta {
+	font-size: 11px;
+	color: var(--ap-site-editor-muted, #555);
+}
+
+.ap-nav-browser__status,
+.ap-nav-browser__empty {
+	margin: 0;
+	font-size: 12px;
+	color: var(--ap-site-editor-muted, #555);
+}
+
+.ap-locations-panel {
+	margin-top: 12px;
+	padding-top: 12px;
+	border-top: 1px solid var(--ap-site-editor-border, #ddd);
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+}
+
+.ap-locations-panel__title {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.04em;
+	text-transform: uppercase;
+	color: var(--ap-site-editor-muted, #555);
+	margin: 0;
+}
+
+.ap-locations-panel__row {
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+	padding: 6px;
+	background: #fff;
+	border: 1px solid var(--ap-site-editor-border, #ddd);
+	border-radius: 3px;
+}
+
+.ap-locations-panel__label {
+	font-size: 12px;
+	font-weight: 500;
+}
+
+.ap-locations-panel__select {
+	font-size: 11px;
+	padding: 4px;
+	border: 1px solid var(--ap-site-editor-border, #ddd);
+	border-radius: 3px;
+}
+
+.ap-locations-panel__hint {
+	font-size: 11px;
+	color: var(--ap-site-editor-muted, #555);
+	margin: 0;
+}
+
+.ap-locations-panel__empty {
+	font-size: 11px;
+	color: var(--ap-site-editor-muted, #555);
+	margin: 0;
+}

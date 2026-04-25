@@ -18,7 +18,9 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\GlobalStylesController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\NavigationController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\PatternController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
@@ -123,6 +125,18 @@ Route::put( 'navigation/{navigation}', [ NavigationController::class, 'update' ]
 
 Route::delete( 'navigation/{navigation}', [ NavigationController::class, 'destroy' ] )
 	->name( 'visual-editor.api.navigation.destroy' );
+
+// D4 menu-location read surface — locations are config-driven (V1 plan §8) so
+// the editor only reads them; assignment writes live on the navigation
+// record's `location` field via the regular `PUT /navigation/{id}` route.
+Route::get( 'menu-locations', [ MenuLocationsController::class, 'index' ] )
+	->name( 'visual-editor.api.menu-locations.index' );
+
+// D4 entity search — backs the link-control picker in the menu tree
+// editor. Sources: registered `resources` config + templates +
+// template parts. Read-only.
+Route::get( 'search', [ EntitySearchController::class, 'index' ] )
+	->name( 'visual-editor.api.search.index' );
 
 // Legacy ve_contents routes retained for the existing editor tests and the
 // `VisualEditorPost` model. Deprecated in M3 in favor of the resource routes
