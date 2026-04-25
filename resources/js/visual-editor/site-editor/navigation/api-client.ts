@@ -331,10 +331,35 @@ function isMenuLocation(value: unknown): value is MenuLocation {
 
     const row = value as Record<string, unknown>;
 
+    if (
+        typeof row.slug !== 'string' ||
+        typeof row.label !== 'string' ||
+        typeof row.is_fallback !== 'boolean'
+    ) {
+        return false;
+    }
+
+    // `menu` is `null` when nothing is currently resolved for the
+    // location, otherwise the matching record envelope. Reject
+    // anything else (string, number, malformed object) so a stray
+    // payload can't slip past the predicate's narrowing. `undefined`
+    // is allowed too so older API builds that omit the key entirely
+    // still pass — same lenient handling we use for `url` in
+    // `isSearchResult`.
+    if (row.menu === null || row.menu === undefined) {
+        return true;
+    }
+
+    if (typeof row.menu !== 'object') {
+        return false;
+    }
+
+    const menu = row.menu as Record<string, unknown>;
+
     return (
-        typeof row.slug === 'string' &&
-        typeof row.label === 'string' &&
-        typeof row.is_fallback === 'boolean'
+        typeof menu.id === 'number' &&
+        typeof menu.slug === 'string' &&
+        typeof menu.title === 'string'
     );
 }
 
@@ -378,10 +403,21 @@ function isSearchResult(value: unknown): value is SearchResult {
 
     const row = value as Record<string, unknown>;
 
+    if (
+        typeof row.type !== 'string' ||
+        (typeof row.id !== 'number' && typeof row.id !== 'string') ||
+        typeof row.title !== 'string'
+    ) {
+        return false;
+    }
+
+    // `url` is `string | null` per `SearchResult` — anything else is
+    // a malformed payload. Allow `undefined` too so older API
+    // builds that omit the key entirely still pass.
     return (
-        typeof row.type === 'string' &&
-        (typeof row.id === 'number' || typeof row.id === 'string') &&
-        typeof row.title === 'string'
+        row.url === null ||
+        row.url === undefined ||
+        typeof row.url === 'string'
     );
 }
 

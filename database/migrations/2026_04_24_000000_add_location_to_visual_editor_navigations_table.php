@@ -10,9 +10,13 @@
  * consults before falling back to the config-driven `primary_id` /
  * first-published lookup chain.
  *
- * The column is nullable + indexed: most navs sit at no location until the
- * editor explicitly assigns one, and the resolver's `forLocation` lookup is
- * an indexed `where`.
+ * The column is nullable + uniquely indexed. Single-occupancy is the
+ * design contract — a location belongs to exactly one menu at a time —
+ * so enforcing it at the database layer closes the race window the
+ * application-level `releaseLocationFromOtherRecords()` shim leaves
+ * open. SQL `UNIQUE` allows multiple NULLs across all three target
+ * databases (MySQL / Postgres / SQLite), so unassigned menus
+ * (`location = NULL`) coexist freely.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -33,14 +37,14 @@ return new class extends Migration
 	public function up(): void
 	{
 		Schema::table( 'visual_editor_navigations', function ( Blueprint $table ) {
-			$table->string( 'location' )->nullable()->index();
+			$table->string( 'location' )->nullable()->unique();
 		} );
 	}
 
 	public function down(): void
 	{
 		Schema::table( 'visual_editor_navigations', function ( Blueprint $table ) {
-			$table->dropIndex( [ 'location' ] );
+			$table->dropUnique( [ 'location' ] );
 			$table->dropColumn( 'location' );
 		} );
 	}

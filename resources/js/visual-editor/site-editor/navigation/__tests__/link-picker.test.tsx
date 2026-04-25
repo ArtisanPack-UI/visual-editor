@@ -71,6 +71,8 @@ describe('LinkPicker', () => {
             type: 'custom',
             targetId: null,
             url: null,
+            sourceKind: null,
+            sourceType: null,
         });
     });
 
@@ -115,6 +117,8 @@ describe('LinkPicker', () => {
                 targetId: 7,
                 autoLabel: 'About',
                 url: '/about',
+                sourceKind: null,
+                sourceType: null,
             })
         );
     });

@@ -35,6 +35,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class NavigationController extends Controller
@@ -125,11 +126,17 @@ class NavigationController extends Controller
 
 		$navigation->setContentEnvelope( $this->normalizeContentEnvelope( $data['content'] ?? null ) );
 
-		if ( null !== $navigation->location && '' !== $navigation->location ) {
-			$this->releaseLocationFromOtherRecords( $navigation );
-		}
+		// Wrap the release + save in a transaction so the table's
+		// `UNIQUE(location)` constraint can't trap us in a half-applied
+		// state — if the save fails for any reason the previous owner
+		// keeps the slug.
+		DB::transaction( function () use ( $navigation ) {
+			if ( null !== $navigation->location && '' !== $navigation->location ) {
+				$this->releaseLocationFromOtherRecords( $navigation );
+			}
 
-		$navigation->save();
+			$navigation->save();
+		} );
 
 		return response()->json(
 			( new NavigationResource( $navigation ) )->toArray( $request ),
@@ -160,19 +167,21 @@ class NavigationController extends Controller
 
 		if ( array_key_exists( 'location', $data ) ) {
 			$navigation->location = $this->normalizeLocation( $data['location'] );
+		}
 
-			// A location is single-occupant: assigning it to one menu
-			// implicitly releases it from any other record that already
-			// claims the same slug. Without this an admin who reassigns
-			// would briefly have two records claiming `primary` and the
-			// resolver's `forLocation` would resolve to whichever sorts
-			// lowest by menu_order — surprising behavior.
+		// A location is single-occupant: assigning it to one menu
+		// implicitly releases it from any other record that already
+		// claims the same slug. The release + save run in one
+		// transaction so the table's `UNIQUE(location)` constraint
+		// can't see the intermediate two-claimant state and the save
+		// rolls back cleanly on any failure.
+		DB::transaction( function () use ( $navigation ) {
 			if ( null !== $navigation->location && '' !== $navigation->location ) {
 				$this->releaseLocationFromOtherRecords( $navigation );
 			}
-		}
 
-		$navigation->save();
+			$navigation->save();
+		} );
 
 		return response()->json( ( new NavigationResource( $navigation ) )->toArray( $request ) );
 	}

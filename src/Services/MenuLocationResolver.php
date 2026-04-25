@@ -138,14 +138,18 @@ class MenuLocationResolver
 	}
 
 	/**
-	 * Returns the navigation record currently assigned to each
-	 * configured location via the database `location` column.
+	 * Returns the navigation record currently effective for each
+	 * configured location, keyed by location slug.
 	 *
-	 * The site editor's locations panel uses this to render which menu
-	 * is "effective" for each slot per D0's "what does this affect"
-	 * principle. A location with no DB assignment AND no config
-	 * `primary_id` resolves to `null` so the UI can render the
-	 * fallback-chain note instead of a fictitious assignment.
+	 * Each entry is the result of `forLocation($slug)` — see that
+	 * method for the resolution chain (DB assignment → configured
+	 * `primary_id` → first-published fallback → `null`). A null entry
+	 * therefore means "no DB assignment, no config primary_id, AND no
+	 * published nav exists at all" — not the narrower "no direct
+	 * assignment" condition the locations-panel UI uses to render its
+	 * fallback hint. The panel reads `is_fallback` from
+	 * {@see \ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController::index()}
+	 * for that distinction.
 	 *
 	 * @since 1.0.0
 	 *

@@ -34,6 +34,19 @@ export interface MenuItem {
     type: MenuItemType;
     /** When the item points at an entity, this is the typed reference. */
     targetId: number | string | null;
+    /**
+     * The original `kind` attribute from the source block when it
+     * didn't map cleanly to one of the four IA `MenuItemType`
+     * values (e.g. a custom post type or a specific taxonomy slug).
+     * Preserved verbatim so the save path can re-emit it and host
+     * apps that seed nav menus with CPT / taxonomy references don't
+     * lose those identifiers across the editor's read → write cycle.
+     * `null` after the user explicitly changes the type / target in
+     * the editor — the new IA selection then drives serialization.
+     */
+    sourceKind: string | null;
+    /** Original `type` attribute from the source block — see {@link sourceKind}. */
+    sourceType: string | null;
     /** Optional human override; falsy → render the auto-derived label. */
     labelOverride: string | null;
     /**
@@ -146,6 +159,34 @@ function menuItemTypeToAttributes(
 }
 
 /**
+ * Prefer the source `kind` / `type` attributes from the original
+ * block when present so custom post types (e.g. `kind: 'post-type',
+ * type: 'book'`) and specific taxonomies (e.g. `kind: 'taxonomy',
+ * type: 'category'`) round-trip through the editor without losing
+ * their wire identifiers. The IA-derived attributes only kick in
+ * when the user explicitly creates / changes a menu item — the link
+ * picker clears `sourceKind` + `sourceType` on every type / target
+ * mutation so the new IA selection takes precedence.
+ */
+function sourceAwareTypeAttributes(
+    item: MenuItem
+): { kind: string; type?: string } {
+    if (item.sourceKind !== null && item.sourceKind !== '') {
+        const out: { kind: string; type?: string } = {
+            kind: item.sourceKind,
+        };
+
+        if (item.sourceType !== null && item.sourceType !== '') {
+            out.type = item.sourceType;
+        }
+
+        return out;
+    }
+
+    return menuItemTypeToAttributes(item.type);
+}
+
+/**
  * Walks a block tree and returns the corresponding MenuItem tree.
  * Drops blocks whose `name` we don't know how to translate.
  */
@@ -173,10 +214,27 @@ export function blocksToMenuTree(blocks: readonly unknown[]): MenuItem[] {
             ? (block.innerBlocks as readonly unknown[])
             : [];
 
+        const derivedType = blockAttributesToType(attributes);
+        const wireKind = readMaybeString(attributes.kind);
+        const wireType = readMaybeString(attributes.type);
+
+        // Only preserve `kind` / `type` as source overrides when they
+        // diverge from what the IA would re-emit on save — otherwise
+        // round-tripping a `kind: 'post-type', type: 'page'` block
+        // through a freshly-created MenuItem would write source* on
+        // read and skip them on write, breaking bit-equivalence.
+        const iaShape = menuItemTypeToAttributes(derivedType);
+        const matchesIaShape =
+            wireKind === iaShape.kind &&
+            ((iaShape.type === undefined && wireType === null) ||
+                wireType === (iaShape.type ?? null));
+
         const item: MenuItem = {
             localId: nextLocalId(),
-            type: blockAttributesToType(attributes),
+            type: derivedType,
             targetId: readMaybeIdentifier(attributes.id),
+            sourceKind: matchesIaShape ? null : wireKind,
+            sourceType: matchesIaShape ? null : wireType,
             // The wire format has a single `label` attribute — there is
             // no signal whether it originated as an auto-derived label
             // or a user override. Treat it as the auto label on read;
@@ -211,7 +269,7 @@ export function menuTreeToBlocks(items: readonly MenuItem[]): unknown[] {
 
 function menuItemToBlock(item: MenuItem): Record<string, unknown> {
     const attributes: Record<string, unknown> = {
-        ...menuItemTypeToAttributes(item.type),
+        ...sourceAwareTypeAttributes(item),
         label:
             item.labelOverride !== null && item.labelOverride !== ''
                 ? item.labelOverride
@@ -258,6 +316,8 @@ export function makeMenuItem(overrides: Partial<MenuItem> = {}): MenuItem {
         localId: overrides.localId ?? nextLocalId(),
         type: overrides.type ?? 'custom',
         targetId: overrides.targetId ?? null,
+        sourceKind: overrides.sourceKind ?? null,
+        sourceType: overrides.sourceType ?? null,
         labelOverride: overrides.labelOverride ?? null,
         autoLabel: overrides.autoLabel ?? '',
         url: overrides.url ?? null,

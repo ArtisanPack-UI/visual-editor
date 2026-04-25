@@ -75,6 +75,38 @@ describe('blocksToMenuTree', () => {
         expect(tree[0].url).toBe('https://docs.example.com');
     });
 
+    it('preserves the source kind / type for non-IA wire shapes', () => {
+        const tree = blocksToMenuTree([
+            {
+                name: 'core/navigation-link',
+                attributes: {
+                    kind: 'post-type',
+                    type: 'book',
+                    id: 42,
+                    label: 'Catalog',
+                    url: '/books/42',
+                },
+                innerBlocks: [],
+            },
+        ]);
+
+        // The IA collapses non-{page,post,taxonomy} post types to
+        // 'custom' for the editor UI, but `sourceKind` / `sourceType`
+        // capture the wire-shape so the save path can re-emit it.
+        expect(tree[0].type).toBe('custom');
+        expect(tree[0].sourceKind).toBe('post-type');
+        expect(tree[0].sourceType).toBe('book');
+
+        const blocks = menuTreeToBlocks(tree) as Array<{
+            name: string;
+            attributes: Record<string, unknown>;
+        }>;
+
+        expect(blocks[0].attributes.kind).toBe('post-type');
+        expect(blocks[0].attributes.type).toBe('book');
+        expect(blocks[0].attributes.id).toBe(42);
+    });
+
     it('walks navigation-submenu inner blocks recursively', () => {
         const blocks = [
             {

@@ -146,11 +146,18 @@ export function LinkPicker(props: LinkPickerProps): JSX.Element {
                         const next = event.target.value as MenuItemType;
                         // Switching type clears `targetId` + `url` so the
                         // user can't accidentally save a stale typed
-                        // reference under the wrong wire shape.
+                        // reference under the wrong wire shape. Also
+                        // clear `sourceKind` / `sourceType` so the new
+                        // IA selection drives serialization — without
+                        // that, a CPT-sourced item the user retypes as
+                        // `Page` would still emit the original CPT
+                        // wire shape.
                         onChange({
                             type: next,
                             targetId: null,
                             url: next === 'custom' ? item.url : null,
+                            sourceKind: null,
+                            sourceType: null,
                         });
                     }}
                     data-testid="ap-nav-link-picker-type"
@@ -226,6 +233,13 @@ export function LinkPicker(props: LinkPickerProps): JSX.Element {
                                                 autoLabel: result.title,
                                                 url:
                                                     result.url ?? item.url,
+                                                // Picking a result is an
+                                                // explicit re-typing — the
+                                                // wire-source attributes
+                                                // from the original block
+                                                // no longer apply.
+                                                sourceKind: null,
+                                                sourceType: null,
                                             });
                                         }}
                                         data-testid={`ap-nav-link-picker-result-${result.id}`}
