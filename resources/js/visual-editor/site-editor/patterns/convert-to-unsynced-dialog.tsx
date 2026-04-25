@@ -15,7 +15,7 @@
 
 import { __, sprintf } from '@wordpress/i18n';
 import { serialize, type BlockInstance } from '@wordpress/blocks';
-import { useCallback, useId, useState } from 'react';
+import { useCallback, useId, useRef, useState } from 'react';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import type { SiteEditorApiConfig } from '../api-client';
@@ -69,12 +69,18 @@ export function ConvertToUnsyncedDialog(
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
 
+    // `submitting` only flips after a re-render, so two clicks landing
+    // in the same React batch can both pass the `if (submitting)` check
+    // and fire `createPattern` twice. Guard with a synchronous ref so
+    // the second click bails immediately.
+    const isSubmittingRef = useRef(false);
+
     const descriptionId = useId();
     const nameId = useId();
     const slugId = useId();
 
     const handleConvert = useCallback(async (): Promise<void> => {
-        if (submitting) {
+        if (isSubmittingRef.current) {
             return;
         }
 
@@ -95,6 +101,7 @@ export function ConvertToUnsyncedDialog(
                 ? serialize(workingBlocks as BlockInstance[])
                 : source.content.raw;
 
+        isSubmittingRef.current = true;
         setSubmitting(true);
         setSubmitError(null);
 
@@ -118,9 +125,10 @@ export function ConvertToUnsyncedDialog(
                 );
             }
         } finally {
+            isSubmittingRef.current = false;
             setSubmitting(false);
         }
-    }, [apiConfig, name, onCreated, slug, source, submitting, workingBlocks]);
+    }, [apiConfig, name, onCreated, slug, source, workingBlocks]);
 
     return (
         <PatternDialog
@@ -139,7 +147,7 @@ export function ConvertToUnsyncedDialog(
                     data-testid="ap-pattern-dialog-convert-warning"
                 >
                     {__(
-                        'A new unsynced pattern will be created with this content. The original synced pattern is left as-is, and every place that already references it keeps doing so. Sync status is permanent: this new pattern can not be flipped back to synced later.',
+                        'A new unsynced pattern will be created with this content. The original synced pattern is left as-is, and every place that already references it keeps doing so. Sync status is permanent: this new pattern cannot be flipped back to synced later.',
                         TEXT_DOMAIN
                     )}
                 </p>

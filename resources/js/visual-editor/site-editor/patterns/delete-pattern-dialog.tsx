@@ -10,10 +10,11 @@
  * non-zero.
  */
 
-import { __, sprintf } from '@wordpress/i18n';
+import { __, _n, sprintf } from '@wordpress/i18n';
 import {
     useEffect,
     useId,
+    useRef,
     useState,
 } from 'react';
 
@@ -65,7 +66,12 @@ function describeUsage(usage: UsageBreakdown): string {
         segments.push(
             sprintf(
                 /* translators: %s: count of templates. */
-                __('%s templates', TEXT_DOMAIN),
+                _n(
+                    '%s template',
+                    '%s templates',
+                    usage.perKind.template,
+                    TEXT_DOMAIN
+                ),
                 String(usage.perKind.template)
             )
         );
@@ -75,7 +81,12 @@ function describeUsage(usage: UsageBreakdown): string {
         segments.push(
             sprintf(
                 /* translators: %s: count of template parts. */
-                __('%s template parts', TEXT_DOMAIN),
+                _n(
+                    '%s template part',
+                    '%s template parts',
+                    usage.perKind['template-part'],
+                    TEXT_DOMAIN
+                ),
                 String(usage.perKind['template-part'])
             )
         );
@@ -83,8 +94,10 @@ function describeUsage(usage: UsageBreakdown): string {
 
     return sprintf(
         /* translators: %1$s: total references, %2$s: per-kind breakdown. */
-        __(
+        _n(
+            'This synced pattern is referenced %1$s time (%2$s). Deleting it will leave broken references behind.',
             'This synced pattern is referenced %1$s times (%2$s). Deleting it will leave broken references behind.',
+            usage.total,
             TEXT_DOMAIN
         ),
         String(usage.total),
@@ -101,6 +114,12 @@ export function DeletePatternDialog(
     const usage = usePatternUsage({ apiConfig });
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
+
+    // `submitting` only flips after the next render, so two clicks in
+    // the same React batch could both pass the gate and dispatch
+    // `deletePattern` twice (the second hits 404). Guard with a
+    // synchronous ref.
+    const isSubmittingRef = useRef(false);
 
     useEffect(() => {
         if (pattern.synced) {
@@ -128,10 +147,11 @@ export function DeletePatternDialog(
     const isDisabled = submitting || usageLookupPending;
 
     const handleDelete = async (): Promise<void> => {
-        if (isDisabled) {
+        if (isDisabled || isSubmittingRef.current) {
             return;
         }
 
+        isSubmittingRef.current = true;
         setSubmitting(true);
         setSubmitError(null);
 
@@ -146,6 +166,7 @@ export function DeletePatternDialog(
 
             setSubmitError(message);
         } finally {
+            isSubmittingRef.current = false;
             setSubmitting(false);
         }
     };
@@ -207,8 +228,10 @@ export function DeletePatternDialog(
                                         ? __('Used in 0 places', TEXT_DOMAIN)
                                         : sprintf(
                                               /* translators: %s: total references. */
-                                              __(
+                                              _n(
+                                                  'Used in %s place',
                                                   'Used in %s places',
+                                                  usage.usage.total,
                                                   TEXT_DOMAIN
                                               ),
                                               String(usage.usage.total)

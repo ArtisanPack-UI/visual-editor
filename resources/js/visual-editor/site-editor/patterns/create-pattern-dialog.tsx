@@ -21,6 +21,7 @@ import {
     useCallback,
     useId,
     useMemo,
+    useRef,
     useState,
     type FormEvent,
 } from 'react';
@@ -89,6 +90,11 @@ export function CreatePatternDialog(
     const [validationErrors, setValidationErrors] =
         useState<ValidationErrors | null>(null);
 
+    // `submitting` only flips after the next render, so two clicks in
+    // the same React batch can both pass the gate and fire
+    // `createPattern` twice. Guard with a synchronous ref.
+    const isSubmittingRef = useRef(false);
+
     const descriptionId = useId();
     const nameId = useId();
     const slugId = useId();
@@ -124,7 +130,7 @@ export function CreatePatternDialog(
         async (event: FormEvent<HTMLFormElement>): Promise<void> => {
             event.preventDefault();
 
-            if (submitting) {
+            if (isSubmittingRef.current) {
                 return;
             }
 
@@ -164,6 +170,7 @@ export function CreatePatternDialog(
                 status: 'publish',
             };
 
+            isSubmittingRef.current = true;
             setSubmitting(true);
             setSubmitError(null);
             setValidationErrors(null);
@@ -182,6 +189,7 @@ export function CreatePatternDialog(
                     );
                 }
             } finally {
+                isSubmittingRef.current = false;
                 setSubmitting(false);
             }
         },
@@ -193,7 +201,6 @@ export function CreatePatternDialog(
             rawContent,
             slug,
             sourceBlocks,
-            submitting,
             sync,
         ]
     );
@@ -220,7 +227,7 @@ export function CreatePatternDialog(
             >
                 {sourceBlocks === null
                     ? __(
-                          'Choose a sync type — this can not be changed once the pattern is created.',
+                          'Choose a sync type — this cannot be changed once the pattern is created.',
                           TEXT_DOMAIN
                       )
                     : __(
