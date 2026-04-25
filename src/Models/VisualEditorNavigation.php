@@ -48,6 +48,7 @@ class VisualEditorNavigation extends Model
 		'content',
 		'status',
 		'menu_order',
+		'location',
 	];
 
 	/**
@@ -152,6 +153,27 @@ class VisualEditorNavigation extends Model
 	public function scopePublished( Builder $query ): Builder
 	{
 		return $query->where( 'status', self::STATUS_PUBLISH )
+			->orderBy( 'menu_order' )
+			->orderBy( 'id' );
+	}
+
+	/**
+	 * Scopes the query to navs published to the given location slug,
+	 * ordered by `menu_order`. Used by the
+	 * {@see \ArtisanPackUI\VisualEditor\Services\MenuLocationResolver}
+	 * as the authoritative lookup before it falls back to the
+	 * config-driven `primary_id` chain.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  Builder<VisualEditorNavigation>  $query
+	 *
+	 * @return Builder<VisualEditorNavigation>
+	 */
+	public function scopeForLocation( Builder $query, string $location ): Builder
+	{
+		return $query->where( 'location', $location )
+			->where( 'status', self::STATUS_PUBLISH )
 			->orderBy( 'menu_order' )
 			->orderBy( 'id' );
 	}

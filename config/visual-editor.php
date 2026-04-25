@@ -88,7 +88,11 @@ return [
 	],
 
 	'disabled_blocks' => [
-		'core/navigation',
+		// `core/navigation` is enabled by D4 — its editor experience is
+		// backed by the `wp_navigation` shim entity (B1) plus the C4
+		// REST surface, so the block's link-control picker and inner
+		// blocks both round-trip cleanly. The JS-side mirror in
+		// site-editor-app.tsx is updated alongside this entry.
 		'core/query',
 		'core/query-loop',
 		'core/post-content',

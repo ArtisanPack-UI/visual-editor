@@ -35,6 +35,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 
 class NavigationController extends Controller
@@ -120,10 +121,22 @@ class NavigationController extends Controller
 			'title'      => $data['title'] ?? '',
 			'status'     => $data['status'] ?? VisualEditorNavigation::STATUS_PUBLISH,
 			'menu_order' => $data['menu_order'] ?? 0,
+			'location'   => array_key_exists( 'location', $data ) ? $this->normalizeLocation( $data['location'] ) : null,
 		] );
 
 		$navigation->setContentEnvelope( $this->normalizeContentEnvelope( $data['content'] ?? null ) );
-		$navigation->save();
+
+		// Wrap the release + save in a transaction so the table's
+		// `UNIQUE(location)` constraint can't trap us in a half-applied
+		// state — if the save fails for any reason the previous owner
+		// keeps the slug.
+		DB::transaction( function () use ( $navigation ) {
+			if ( null !== $navigation->location && '' !== $navigation->location ) {
+				$this->releaseLocationFromOtherRecords( $navigation );
+			}
+
+			$navigation->save();
+		} );
 
 		return response()->json(
 			( new NavigationResource( $navigation ) )->toArray( $request ),
@@ -152,7 +165,23 @@ class NavigationController extends Controller
 			$navigation->setContentEnvelope( $this->normalizeContentEnvelope( $data['content'] ) );
 		}
 
-		$navigation->save();
+		if ( array_key_exists( 'location', $data ) ) {
+			$navigation->location = $this->normalizeLocation( $data['location'] );
+		}
+
+		// A location is single-occupant: assigning it to one menu
+		// implicitly releases it from any other record that already
+		// claims the same slug. The release + save run in one
+		// transaction so the table's `UNIQUE(location)` constraint
+		// can't see the intermediate two-claimant state and the save
+		// rolls back cleanly on any failure.
+		DB::transaction( function () use ( $navigation ) {
+			if ( null !== $navigation->location && '' !== $navigation->location ) {
+				$this->releaseLocationFromOtherRecords( $navigation );
+			}
+
+			$navigation->save();
+		} );
 
 		return response()->json( ( new NavigationResource( $navigation ) )->toArray( $request ) );
 	}
@@ -193,5 +222,43 @@ class NavigationController extends Controller
 			'raw'    => isset( $content['raw'] ) && is_string( $content['raw'] ) ? $content['raw'] : '',
 			'blocks' => isset( $content['blocks'] ) && is_array( $content['blocks'] ) ? array_values( $content['blocks'] ) : [],
 		];
+	}
+
+	/**
+	 * Coerces an empty `location` string into `null` so the database
+	 * stores a uniform "unassigned" sentinel and the resolver's
+	 * `forLocation` short-circuits.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function normalizeLocation( mixed $location ): ?string
+	{
+		if ( null === $location ) {
+			return null;
+		}
+
+		if ( ! is_string( $location ) ) {
+			return null;
+		}
+
+		$trimmed = trim( $location );
+
+		return '' === $trimmed ? null : $trimmed;
+	}
+
+	/**
+	 * Clears the location slug on every other record that already claims
+	 * it so the location is single-occupant by construction.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function releaseLocationFromOtherRecords( VisualEditorNavigation $navigation ): void
+	{
+		VisualEditorNavigation::query()
+			->where( 'location', $navigation->location )
+			->when( null !== $navigation->getKey(), function ( $query ) use ( $navigation ) {
+				$query->where( $navigation->getKeyName(), '!=', $navigation->getKey() );
+			} )
+			->update( [ 'location' => null ] );
 	}
 }

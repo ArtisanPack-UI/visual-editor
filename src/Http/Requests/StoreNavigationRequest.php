@@ -20,6 +20,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Requests;
 
 use ArtisanPackUI\VisualEditor\Models\VisualEditorNavigation;
 use ArtisanPackUI\VisualEditor\Rules\TemplateBlockTreeRule;
+use ArtisanPackUI\VisualEditor\Services\MenuLocationResolver;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -62,6 +63,12 @@ class StoreNavigationRequest extends FormRequest
 				] ),
 			],
 			'menu_order'     => [ 'sometimes', 'integer', 'min:0' ],
+			// `location` is nullable (most menus sit unassigned). When
+			// present it must name a slug declared in
+			// `artisanpack.visual-editor.navigation.locations` so the
+			// editor can never write an assignment to a slot the front
+			// end has no theme hook for.
+			'location'       => [ 'sometimes', 'nullable', 'string', 'max:191', $this->locationSlugRule() ],
 		];
 	}
 
@@ -79,6 +86,37 @@ class StoreNavigationRequest extends FormRequest
 		return function ( string $attribute, mixed $value, Closure $fail ): void {
 			if ( is_array( $value ) && [] !== $value && array_is_list( $value ) ) {
 				$fail( 'The :attribute must be a { raw, blocks } envelope, not a bare list of blocks.' );
+			}
+		};
+	}
+
+	/**
+	 * Restricts the `location` slug to one of the declared
+	 * configuration entries.
+	 *
+	 * Resolves the resolver lazily through the container so request
+	 * tests that don't bootstrap the package config don't trip the
+	 * binding.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function locationSlugRule(): Closure
+	{
+		return function ( string $attribute, mixed $value, Closure $fail ): void {
+			if ( null === $value || '' === $value ) {
+				return;
+			}
+
+			if ( ! is_string( $value ) ) {
+				return;
+			}
+
+			/** @var MenuLocationResolver $resolver */
+			$resolver = $this->container->make( MenuLocationResolver::class );
+			$slugs    = array_keys( $resolver->locations() );
+
+			if ( ! in_array( $value, $slugs, true ) ) {
+				$fail( 'The :attribute is not a configured menu location.' );
 			}
 		};
 	}

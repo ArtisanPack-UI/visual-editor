@@ -45,6 +45,7 @@ import {
     TemplatePartsBrowser,
 } from './template-parts-section';
 import { useStylesSectionViews } from './styles/styles-section';
+import { useNavigationSectionViews } from './navigation/navigation-section';
 import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
 import { TopBar } from '../editor/top-bar';
@@ -79,6 +80,18 @@ const D2_SECTIONS: ReadonlySet<SiteEditorSectionId> = new Set([
  */
 const D3_SECTIONS: ReadonlySet<SiteEditorSectionId> = new Set<SiteEditorSectionId>([
     'styles',
+]);
+
+/**
+ * Section ids D4 (#371) ships — the Navigation section mounts the
+ * native tree editor (per design brief §3.8) instead of the
+ * block-canvas placeholder. The shell still treats it as an
+ * "entity-driven" section: the tree editor only renders once the URL
+ * carries a navigation id, with the empty list / locations panel
+ * showing in the navigator outlet beforehand.
+ */
+const D4_SECTIONS: ReadonlySet<SiteEditorSectionId> = new Set<SiteEditorSectionId>([
+    'navigation',
 ]);
 
 export interface SiteEditorAppProps {
@@ -118,7 +131,10 @@ const D2_DISABLED_BLOCKS: ReadonlyArray<string> = [
     'core/site-logo',
     'core/site-title',
     'core/site-tagline',
-    'core/navigation',
+    // `core/navigation` is now D4-enabled. The block can render in the
+    // template canvas because B1's shim has `wp_navigation` and C4's
+    // REST surface round-trips its inner blocks. Keep it OUT of this
+    // list so the template editor's inserter exposes it.
     'core/query',
     'core/query-loop',
     'core/latest-comments',
@@ -201,6 +217,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
     const activeEntityId = routing.entityId;
     const isD2Section = D2_SECTIONS.has(activeSection.id);
     const isD3Section = D3_SECTIONS.has(activeSection.id);
+    const isD4Section = D4_SECTIONS.has(activeSection.id);
     const activeKind = sectionKind(activeSection.id);
 
     // Effective kind passed to the editor hook — always a real value so
@@ -232,13 +249,37 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         apiConfig,
         kind: editorKind,
         entityId: editorEntityId,
-        onStateChange: isD3Section ? noopStateChange : handleEntityStateChange,
+        onStateChange:
+            isD3Section || isD4Section
+                ? noopStateChange
+                : handleEntityStateChange,
     });
 
     const stylesViews = useStylesSectionViews({
         apiConfig,
         enabled: isD3Section,
         onStateChange: isD3Section ? handleEntityStateChange : noopStateChange,
+    });
+
+    // Same shape as `handleOpenEntity` declared further down — duplicated
+    // here so the navigation views hook can receive it without having to
+    // hoist the original above the hook calls (the down-stream
+    // `handleOpenEntity` would otherwise be a TDZ reference). Both
+    // callbacks dispatch through the same routing instance, so no state
+    // diverges.
+    const handleNavigationOpen = useCallback(
+        (entityId: string): void => {
+            routing.navigate(activeSection.id, entityId);
+        },
+        [activeSection.id, routing]
+    );
+
+    const navigationViews = useNavigationSectionViews({
+        apiConfig,
+        enabled: isD4Section,
+        activeEntityId,
+        onOpenEntity: handleNavigationOpen,
+        onStateChange: isD4Section ? handleEntityStateChange : noopStateChange,
     });
 
     const [dialogKind, setDialogKind] = useState<EntityKind | null>(null);
@@ -436,6 +477,8 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         );
     } else if (isD3Section) {
         navigatorChildren = stylesViews.navigator;
+    } else if (isD4Section) {
+        navigatorChildren = navigationViews.navigator;
     } else {
         navigatorChildren = (
             <SectionOutlet
@@ -446,6 +489,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
     }
 
     const showEntityEditor = isD2Section && activeEntityId !== null;
+    const showNavigationEditor = isD4Section && activeEntityId !== null;
 
     return (
         <div
@@ -453,7 +497,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
             data-navigator-open={navigatorOpen}
             data-inspector-open={inspectorOpen}
             data-active-section={activeSection.id}
-            data-has-entity={showEntityEditor || isD3Section}
+            data-has-entity={showEntityEditor || isD3Section || isD4Section}
             data-testid="ap-site-editor-shell"
         >
             <TopBar
@@ -511,6 +555,14 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                     >
                         {stylesViews.canvas}
                     </div>
+                ) : isD4Section ? (
+                    <div
+                        className="ap-site-editor__canvas"
+                        data-has-entity={showNavigationEditor}
+                        data-testid="ap-site-editor-canvas"
+                    >
+                        {navigationViews.canvas}
+                    </div>
                 ) : (
                     <CanvasFrame
                         sectionLabel={activeSection.modeLabel}
@@ -523,6 +575,8 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                             editorViews.inspector
                         ) : isD3Section ? (
                             stylesViews.inspector
+                        ) : isD4Section && showNavigationEditor ? (
+                            navigationViews.inspector
                         ) : (
                             <InspectorOutlet sectionLabel={activeSection.label} />
                         )}
@@ -545,6 +599,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                     onCreated={(entity) => handleDialogCreated(entity.id)}
                 />
             ) : null}
+            {navigationViews.overlay}
         </div>
     );
 }

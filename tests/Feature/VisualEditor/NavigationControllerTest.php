@@ -409,3 +409,99 @@ it( 'rejects unauthenticated store, update, and destroy', function () {
 
 	$this->deleteJson( "/visual-editor/api/navigation/{$navigation->id}" )->assertUnauthorized();
 } );
+
+it( 'persists a configured location on store and exposes it in the response', function () {
+	actingAsNavigationUser();
+
+	config( [
+		'artisanpack.visual-editor.navigation.locations' => [
+			'primary' => [
+				'slug'       => 'primary',
+				'label'      => 'Primary Menu',
+				'primary_id' => null,
+			],
+		],
+	] );
+
+	$this->postJson( '/visual-editor/api/navigation', [
+		'slug'     => 'main-menu',
+		'title'    => 'Main',
+		'location' => 'primary',
+	] )
+		->assertCreated()
+		->assertJsonPath( 'location', 'primary' );
+
+	expect( VisualEditorNavigation::where( 'slug', 'main-menu' )->first()->location )
+		->toBe( 'primary' );
+} );
+
+it( 'rejects an unknown location slug as a 422', function () {
+	actingAsNavigationUser();
+
+	config( [
+		'artisanpack.visual-editor.navigation.locations' => [
+			'primary' => [
+				'slug'       => 'primary',
+				'label'      => 'Primary',
+				'primary_id' => null,
+			],
+		],
+	] );
+
+	$this->postJson( '/visual-editor/api/navigation', [
+		'slug'     => 'main-menu',
+		'location' => 'sidebar',
+	] )
+		->assertUnprocessable()
+		->assertJsonValidationErrors( 'location' );
+} );
+
+it( 'releases an existing location assignment when reassigning to another menu', function () {
+	actingAsNavigationUser();
+
+	config( [
+		'artisanpack.visual-editor.navigation.locations' => [
+			'primary' => [
+				'slug'       => 'primary',
+				'label'      => 'Primary',
+				'primary_id' => null,
+			],
+		],
+	] );
+
+	$first  = createNavigation( [ 'slug' => 'first-nav', 'location' => 'primary' ] );
+	$second = createNavigation( [ 'slug' => 'second-nav', 'location' => null ] );
+
+	$this->putJson( "/visual-editor/api/navigation/{$second->id}", [
+		'location' => 'primary',
+	] )
+		->assertOk()
+		->assertJsonPath( 'location', 'primary' );
+
+	expect( $first->fresh()->location )->toBeNull();
+	expect( $second->fresh()->location )->toBe( 'primary' );
+} );
+
+it( 'clears the location when null is sent on update', function () {
+	actingAsNavigationUser();
+
+	config( [
+		'artisanpack.visual-editor.navigation.locations' => [
+			'primary' => [
+				'slug'       => 'primary',
+				'label'      => 'Primary',
+				'primary_id' => null,
+			],
+		],
+	] );
+
+	$navigation = createNavigation( [ 'slug' => 'primary-nav', 'location' => 'primary' ] );
+
+	$this->putJson( "/visual-editor/api/navigation/{$navigation->id}", [
+		'location' => null,
+	] )
+		->assertOk()
+		->assertJsonPath( 'location', null );
+
+	expect( $navigation->fresh()->location )->toBeNull();
+} );
