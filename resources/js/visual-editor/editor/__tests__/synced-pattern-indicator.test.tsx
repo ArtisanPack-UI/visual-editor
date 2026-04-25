@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { ComponentType } from 'react';
 
 const filters: Array<{
     hook: string;
@@ -17,12 +18,23 @@ vi.mock('@wordpress/hooks', () => ({
     },
 }));
 
+// Mirror the production sentinel so we can clear it between tests.
+// `registerSyncedPatternIndicator` stores its dedup flag on
+// `globalThis` keyed by `Symbol.for(...)` so it survives bundle
+// reloads — perfect in production, but it would also leak between
+// test cases here unless we explicitly reset it.
+const REGISTERED_KEY = Symbol.for(
+    'artisanpack-ui.visual-editor.synced-pattern-indicator.registered'
+);
+
 beforeEach(() => {
     filters.length = 0;
+    delete (globalThis as Record<symbol, unknown>)[REGISTERED_KEY];
     vi.resetModules();
 });
 
 afterEach(() => {
+    delete (globalThis as Record<symbol, unknown>)[REGISTERED_KEY];
     vi.resetModules();
 });
 
@@ -56,8 +68,8 @@ describe('registerSyncedPatternIndicator', () => {
     it('wraps core/block with a synced badge', async () => {
         const { callback } = await loadAndRegister();
         const wrap = callback as (
-            component: React.ComponentType<{ name?: string }>
-        ) => React.ComponentType<{ name?: string }>;
+            component: ComponentType<{ name?: string }>
+        ) => ComponentType<{ name?: string }>;
 
         const Wrapped = wrap(({ name }) => (
             <div data-testid="inner-block">{name}</div>
@@ -76,8 +88,8 @@ describe('registerSyncedPatternIndicator', () => {
     it('does not wrap non-core/block blocks', async () => {
         const { callback } = await loadAndRegister();
         const wrap = callback as (
-            component: React.ComponentType<{ name?: string }>
-        ) => React.ComponentType<{ name?: string }>;
+            component: ComponentType<{ name?: string }>
+        ) => ComponentType<{ name?: string }>;
 
         const Wrapped = wrap(({ name }) => (
             <div data-testid="inner-block">{name}</div>

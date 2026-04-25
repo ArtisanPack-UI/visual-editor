@@ -57,6 +57,12 @@ export interface InserterPatternsPanelProps {
 type LoadStatus = 'idle' | 'loading' | 'ready' | 'error';
 
 function patternTitle(pattern: PatternRecord): string {
+    const raw = pattern.title?.raw?.trim();
+
+    if (raw !== undefined && raw !== '') {
+        return raw;
+    }
+
     const rendered = pattern.title?.rendered?.trim();
 
     if (rendered !== undefined && rendered !== '') {

@@ -36,6 +36,12 @@ export interface DeletePatternDialogProps {
 }
 
 function patternTitle(pattern: PatternRecord): string {
+    const raw = pattern.title?.raw?.trim();
+
+    if (raw !== undefined && raw !== '') {
+        return raw;
+    }
+
     const rendered = pattern.title?.rendered?.trim();
 
     if (rendered !== undefined && rendered !== '') {
@@ -109,8 +115,20 @@ export function DeletePatternDialog(
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pattern.id, pattern.synced]);
 
+    // Block delete-pattern confirmation until the usage lookup
+    // finishes. For synced patterns the count drives the warning copy,
+    // and shipping the destructive action before the lookup resolves
+    // could let the user delete a heavily-referenced pattern without
+    // ever seeing the breakdown. Unsynced patterns skip the count
+    // lookup entirely, so no gating is needed for them.
+    const usageLookupPending =
+        pattern.synced &&
+        usage.error === null &&
+        usage.usage === null;
+    const isDisabled = submitting || usageLookupPending;
+
     const handleDelete = async (): Promise<void> => {
-        if (submitting) {
+        if (isDisabled) {
             return;
         }
 
@@ -225,7 +243,7 @@ export function DeletePatternDialog(
                     type="button"
                     className="ap-pattern-dialog__submit ap-pattern-dialog__submit--danger"
                     onClick={() => void handleDelete()}
-                    disabled={submitting}
+                    disabled={isDisabled}
                     data-testid="ap-pattern-dialog-delete-submit"
                 >
                     {submitting

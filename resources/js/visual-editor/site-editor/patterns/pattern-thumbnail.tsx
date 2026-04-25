@@ -117,7 +117,16 @@ export function PatternThumbnail(props: PatternThumbnailProps): JSX.Element {
         >
             <ul className="ap-pattern-thumb__tree">
                 {summary.lines.map((line, index) => (
-                    <li key={`${index}-${line}`}>{line.trim()}</li>
+                    <li
+                        key={`${index}-${line}`}
+                        // `describeBlocks` emits leading spaces to
+                        // mark nesting depth — keep them so the tree
+                        // visually communicates the structure.
+                        // `pre-wrap` is set on the parent so spaces
+                        // survive the default whitespace collapse.
+                    >
+                        {line}
+                    </li>
                 ))}
                 {summary.capped ? (
                     <li className="ap-pattern-thumb__more">

@@ -140,6 +140,33 @@ describe('<CreatePatternDialog />', () => {
         expect(intro).toHaveTextContent(/Sync type is permanent/i);
     });
 
+    it('disables submission until the user picks a sync type when initialSync is null', async () => {
+        const user = userEvent.setup();
+
+        render(
+            <CreatePatternDialog
+                apiConfig={API_CONFIG}
+                initialSync={null}
+                sourceBlocks={[{ name: 'core/paragraph' }]}
+                initialName="Lead-in"
+                onClose={() => undefined}
+                onCreated={vi.fn()}
+            />
+        );
+
+        const submit = screen.getByTestId(
+            'ap-pattern-dialog-create-submit'
+        );
+
+        expect(submit).toBeDisabled();
+
+        await user.click(
+            screen.getByTestId('ap-pattern-dialog-create-sync-unsynced')
+        );
+
+        expect(submit).toBeEnabled();
+    });
+
     it('blocks submission when slug is empty', async () => {
         const user = userEvent.setup();
 

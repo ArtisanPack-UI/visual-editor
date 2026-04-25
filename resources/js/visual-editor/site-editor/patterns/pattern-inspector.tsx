@@ -29,6 +29,19 @@ export interface PatternDocumentPanelProps {
     onConvertToUnsynced: () => void;
 }
 
+/**
+ * Lowercases the input, collapses any non-alphanumeric run to a single
+ * hyphen, and trims leading/trailing hyphens. Used for the categories
+ * field so what the user types (`Featured Hero`, `featured hero`,
+ * `Featured-Hero!`) all converge on the same `featured-hero` slug.
+ */
+function slugifyCategory(value: string): string {
+    return value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
 export function PatternDocumentPanel(
     props: PatternDocumentPanelProps
 ): JSX.Element {
@@ -47,9 +60,13 @@ export function PatternDocumentPanel(
 
     const handleCategoriesChange = useCallback(
         (value: string): void => {
+            // Normalize each comma-delimited token to a slug so the
+            // backend's `firstOrCreate` lookup (which keys on slug)
+            // sees consistent values regardless of how the user types.
+            // Drops anything that empties out after normalization.
             const slugs = value
                 .split(',')
-                .map((slug) => slug.trim())
+                .map((token) => slugifyCategory(token))
                 .filter((slug) => slug !== '');
 
             onFieldsChange({ categories: slugs });

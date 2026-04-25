@@ -31,7 +31,18 @@ interface BlockListBlockProps {
     [key: string]: unknown;
 }
 
-let registered = false;
+// Page-global sentinel so the indicator is registered exactly once even
+// when this module is loaded into multiple bundles (e.g. site-editor +
+// post-editor entries on the same page, or HMR re-imports during
+// development). A module-level `let` would only dedupe within a single
+// module instance and miss the cross-bundle case.
+const REGISTERED_KEY = Symbol.for(
+    'artisanpack-ui.visual-editor.synced-pattern-indicator.registered'
+);
+
+interface GlobalSentinelHost {
+    [REGISTERED_KEY]?: boolean;
+}
 
 function withSyncedPatternIndicator(
     BlockListBlock: ComponentType<BlockListBlockProps>
@@ -72,10 +83,12 @@ function withSyncedPatternIndicator(
 }
 
 export function registerSyncedPatternIndicator(): void {
-    if (registered) {
+    const host = globalThis as unknown as GlobalSentinelHost;
+
+    if (host[REGISTERED_KEY] === true) {
         return;
     }
 
     addFilter(FILTER_HOOK, FILTER_NAMESPACE, withSyncedPatternIndicator);
-    registered = true;
+    host[REGISTERED_KEY] = true;
 }

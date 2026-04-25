@@ -15,7 +15,7 @@
  * queries on entry.
  */
 
-import { useCallback, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { parse } from '@wordpress/blocks';
 
 import {
@@ -171,7 +171,17 @@ export function usePatternUsage(
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
+    // Counter used to invalidate concurrent / superseded `run()`
+    // invocations: a later call (or `reset()`) bumps the id, and any
+    // in-flight pass that resolves afterward checks its own id against
+    // the latest before mutating state. Without this guard, the
+    // delete dialog could surface a stale count if the user reopened
+    // it for a different pattern while the first lookup was still
+    // walking the templates / parts list.
+    const requestIdRef = useRef(0);
+
     const reset = useCallback((): void => {
+        requestIdRef.current += 1;
         setUsage(null);
         setIsLoading(false);
         setError(null);
@@ -179,6 +189,10 @@ export function usePatternUsage(
 
     const run = useCallback(
         async (patternId: number | string): Promise<UsageBreakdown> => {
+            const requestId = ++requestIdRef.current;
+            const isStale = (): boolean =>
+                requestIdRef.current !== requestId;
+
             setIsLoading(true);
             setError(null);
 
@@ -246,11 +260,19 @@ export function usePatternUsage(
                     breakdown.perKind.template +
                     breakdown.perKind['template-part'];
 
+                if (isStale()) {
+                    return breakdown;
+                }
+
                 setUsage(breakdown);
                 setIsLoading(false);
 
                 return breakdown;
             } catch (caught: unknown) {
+                if (isStale()) {
+                    return EMPTY_USAGE;
+                }
+
                 setIsLoading(false);
                 setUsage(EMPTY_USAGE);
 

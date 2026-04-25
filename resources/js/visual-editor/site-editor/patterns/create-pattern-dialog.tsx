@@ -77,7 +77,12 @@ export function CreatePatternDialog(
     const [name, setName] = useState<string>(initialName);
     const [slug, setSlug] = useState<string>(deriveSlug(initialName));
     const [slugTouched, setSlugTouched] = useState<boolean>(initialName !== '');
-    const [sync, setSync] = useState<SyncChoice>(initialSync ?? 'synced');
+    // Convert flows from a block-selection pass `initialSync={null}` so
+    // the user must explicitly pick synced vs. unsynced (sync status is
+    // immutable post-creation per F6 / P9). Preserve the null and gate
+    // the submit button on a real choice; the empty-pattern flow
+    // (`initialSync !== null`) keeps the radios pre-selected.
+    const [sync, setSync] = useState<SyncChoice | null>(initialSync);
     const [categoriesInput, setCategoriesInput] = useState<string>('');
     const [submitting, setSubmitting] = useState(false);
     const [submitError, setSubmitError] = useState<string | null>(null);
@@ -133,10 +138,21 @@ export function CreatePatternDialog(
                 return;
             }
 
+            if (sync === null) {
+                setValidationErrors({
+                    sync: [
+                        __('Choose synced or unsynced.', TEXT_DOMAIN),
+                    ],
+                });
+                return;
+            }
+
+            const finalSync: SyncChoice = sync;
+
             const payload: PatternCreatePayload = {
                 slug: finalSlug,
                 title: trimmedName,
-                synced: sync === 'synced',
+                synced: finalSync === 'synced',
                 content: {
                     raw: rawContent,
                     blocks: sourceBlocks ?? [],
@@ -155,7 +171,7 @@ export function CreatePatternDialog(
             try {
                 const record = await createPattern(apiConfig, payload);
 
-                onCreated(record, { sync });
+                onCreated(record, { sync: finalSync });
             } catch (error: unknown) {
                 if (error instanceof SiteEditorApiError) {
                     setSubmitError(error.message);
@@ -323,6 +339,15 @@ export function CreatePatternDialog(
                             </p>
                         </label>
                     </div>
+                    {validationErrors?.sync?.[0] !== undefined ? (
+                        <p
+                            className="ap-pattern-dialog__error"
+                            role="alert"
+                            data-testid="ap-pattern-dialog-create-sync-error"
+                        >
+                            {validationErrors.sync[0]}
+                        </p>
+                    ) : null}
                 </fieldset>
 
                 <div className="ap-pattern-dialog__field">
@@ -370,7 +395,7 @@ export function CreatePatternDialog(
                     <button
                         type="submit"
                         className="ap-pattern-dialog__submit"
-                        disabled={submitting}
+                        disabled={submitting || sync === null}
                         data-testid="ap-pattern-dialog-create-submit"
                     >
                         {submitting

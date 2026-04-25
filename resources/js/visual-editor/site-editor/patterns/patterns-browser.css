@@ -110,6 +110,11 @@
     font-size: 12px;
 }
 
+.ap-patterns-browser__retry:focus-visible {
+    outline: 2px solid currentcolor;
+    outline-offset: 2px;
+}
+
 .ap-patterns-browser__empty-title {
     font-weight: 600;
     color: inherit;

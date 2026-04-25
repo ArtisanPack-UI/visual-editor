@@ -41,6 +41,16 @@ export interface PatternGridProps {
 }
 
 function patternTitle(pattern: PatternRecord): string {
+    // Prefer the user-authored `raw` title over `rendered` so labels
+    // don't surface HTML-escaped entities (`&amp;`, `&#039;`, …) the
+    // REST renderer applies to the public form. Fall back to slug if
+    // both are absent.
+    const raw = pattern.title?.raw?.trim();
+
+    if (raw !== undefined && raw !== '') {
+        return raw;
+    }
+
     const rendered = pattern.title?.rendered?.trim();
 
     if (rendered !== undefined && rendered !== '') {

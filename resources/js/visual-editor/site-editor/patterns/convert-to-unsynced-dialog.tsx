@@ -59,7 +59,10 @@ export function ConvertToUnsyncedDialog(
 ): JSX.Element {
     const { apiConfig, source, workingBlocks, onClose, onCreated } = props;
 
-    const sourceTitle = source.title?.rendered?.trim() || source.slug;
+    const sourceTitle =
+        source.title?.raw?.trim() ||
+        source.title?.rendered?.trim() ||
+        source.slug;
 
     const [name, setName] = useState<string>(deriveCopyName(sourceTitle));
     const [slug, setSlug] = useState<string>(deriveCopySlug(source.slug));

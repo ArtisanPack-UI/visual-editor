@@ -139,8 +139,15 @@ export function usePatternsList(
     // the status would freeze on whatever state was active when the
     // section unmounted, so a later re-enable would briefly leak
     // stale loading/error chrome before the next fetch settled.
+    //
+    // Bumping `requestCounterRef` here also invalidates any fetch
+    // that's still in-flight: when its response settles, the
+    // `requestCounterRef !== requestId` guards in `fetchList` will
+    // bail out before re-flipping the status to 'ready' / 'error'
+    // and clobbering the idle state we just set.
     useEffect(() => {
         if (!enabled) {
+            requestCounterRef.current += 1;
             setStatus('idle');
             setErrorMessage(null);
         }

@@ -33,7 +33,7 @@
 }
 
 .ap-pattern-thumb__tree li {
-    white-space: nowrap;
+    white-space: pre;
     text-overflow: ellipsis;
     overflow: hidden;
 }

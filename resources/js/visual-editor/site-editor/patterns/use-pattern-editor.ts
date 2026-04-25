@@ -96,7 +96,9 @@ function fieldsForRecord(record: PatternRecord | null): PatternEditorFields {
     }
 
     return {
-        title: record.title?.rendered ?? '',
+        // Prefer the user-authored `raw` title so the inspector field
+        // edits the unescaped form instead of the HTML-rendered one.
+        title: record.title?.raw ?? record.title?.rendered ?? '',
         slug: record.slug,
         status: record.status,
         categories: [...record.categories],
