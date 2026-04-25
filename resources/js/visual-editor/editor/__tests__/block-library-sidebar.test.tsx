@@ -106,6 +106,17 @@ vi.mock('@wordpress/block-editor', () => ({
     },
 }));
 
+// `InserterPatternsPanel` reaches into `@wordpress/blocks` (createBlock)
+// and `@wordpress/data` (useDispatch/useSelect) to wire up insertion.
+// The sidebar tests only care about the tab structure, so stub the
+// patterns panel out and let the tests treat the patterns tab as a
+// labelled placeholder.
+vi.mock('../inserter-patterns-panel', () => ({
+    InserterPatternsPanel: () => (
+        <div data-testid="ap-inserter-patterns-stub" />
+    ),
+}));
+
 import { BlockLibrarySidebar } from '../block-library-sidebar';
 
 afterEach(() => {
@@ -229,7 +240,7 @@ describe('<BlockLibrarySidebar />', () => {
         expect(categoryClicks).toContain('media');
     });
 
-    it('switches to the Patterns stub when the Patterns tab is clicked', async () => {
+    it('switches to the Patterns stub when the Patterns tab is clicked without an apiBase', async () => {
         const user = userEvent.setup();
 
         renderSidebar();
@@ -243,7 +254,23 @@ describe('<BlockLibrarySidebar />', () => {
         ).not.toHaveAttribute('hidden');
         expect(
             screen.getByTestId('ap-visual-editor-block-library-patterns-stub')
-        ).toHaveTextContent(/pattern library lands in phase d/i);
+        ).toHaveTextContent(/Pass an API base/i);
+    });
+
+    it('renders the patterns panel when an apiBase is supplied', async () => {
+        const user = userEvent.setup();
+
+        render(
+            <BlockLibrarySidebar apiBase="/visual-editor/api" />
+        );
+
+        await user.click(
+            screen.getByTestId('ap-visual-editor-block-library-tab-patterns')
+        );
+
+        expect(
+            screen.getByTestId('ap-inserter-patterns-stub')
+        ).toBeInTheDocument();
     });
 
     it('keeps the Blocks panel mounted when another tab is active (preserves library state)', async () => {

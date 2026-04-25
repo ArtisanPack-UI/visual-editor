@@ -710,6 +710,103 @@ describe('core-data-shim hooks', () => {
         expect(typeof onChange).toBe('function');
     });
 
+    it('useEntityRecord surfaces a cached record so core/block can find synced patterns', () => {
+        coreDispatch().receiveEntityRecords('postType', 'wp_block', [
+            {
+                id: 42,
+                slug: 'hero',
+                title: { raw: 'Hero', rendered: 'Hero' },
+                content: { raw: '', blocks: [] },
+                synced: true,
+                status: 'publish',
+                type: 'wp_block',
+            },
+        ]);
+
+        const result = renderHook(() =>
+            useEntityRecord('postType', 'wp_block', 42),
+        );
+
+        expect(result.hasResolved).toBe(true);
+        expect(result.record).toMatchObject({ id: 42, slug: 'hero' });
+        expect(result.editedRecord).toMatchObject({ id: 42, slug: 'hero' });
+    });
+
+    it('useEntityBlockEditor returns the cached record content.blocks', () => {
+        coreDispatch().receiveEntityRecords('postType', 'wp_block', [
+            {
+                id: 7,
+                content: {
+                    raw: '<!-- wp:paragraph -->',
+                    blocks: [
+                        { name: 'core/paragraph', clientId: 'a' },
+                        { name: 'core/heading', clientId: 'b' },
+                    ],
+                },
+                title: { raw: '', rendered: '' },
+                synced: true,
+                status: 'publish',
+                type: 'wp_block',
+            },
+        ]);
+
+        const [blocks] = renderHook(() =>
+            useEntityBlockEditor('postType', 'wp_block', { id: 7 }),
+        );
+
+        expect(blocks).toHaveLength(2);
+        expect(blocks[0]).toMatchObject({ name: 'core/paragraph' });
+    });
+
+    it('flattens {raw, rendered} fields on getRawEntityRecord and getEditedEntityRecord', () => {
+        coreDispatch().receiveEntityRecords('postType', 'wp_block', [
+            {
+                id: 88,
+                slug: 'flatten',
+                title: { raw: 'Flatten Me', rendered: 'Flatten Me' },
+                content: {
+                    raw: '<!-- raw content -->',
+                    blocks: [],
+                },
+                synced: true,
+                status: 'publish',
+                type: 'wp_block',
+            },
+        ]);
+
+        const raw = coreSelect().getRawEntityRecord(
+            'postType',
+            'wp_block',
+            88,
+        ) as { title?: unknown; content?: unknown };
+
+        expect(raw.title).toBe('Flatten Me');
+        expect(raw.content).toBe('<!-- raw content -->');
+
+        const edited = coreSelect().getEditedEntityRecord(
+            'postType',
+            'wp_block',
+            88,
+        ) as { title?: unknown };
+
+        expect(edited.title).toBe('Flatten Me');
+    });
+
+    it('useEntityRecord starts unresolved when it has to fetch a missing record', () => {
+        // The hook fires `fetchEntityRecord` on a cache miss so synced
+        // `core/block` references render a spinner instead of "Block
+        // has been deleted" while the round-trip is in flight. The
+        // initial sync render reports `hasResolved=false`; the actual
+        // fetch lifecycle is exercised in integration tests that mock
+        // the network, not here.
+        const result = renderHook(() =>
+            useEntityRecord('postType', 'wp_block', 12345),
+        );
+
+        expect(result.hasResolved).toBe(false);
+        expect(result.record).toBeNull();
+    });
+
     it('useResourcePermissions denies everything and reports resolved', () => {
         const perms = renderHook(() => useResourcePermissions());
         expect(perms).toEqual({

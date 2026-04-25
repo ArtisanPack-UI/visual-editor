@@ -42,7 +42,9 @@ import {
 } from '../media-bridge';
 
 import { BlockLibrarySidebar } from './block-library-sidebar';
+import { ConvertToPatternControl } from './convert-to-pattern-control';
 import { discoverAndRegisterCustomBlocks } from './custom-blocks';
+import { registerSyncedPatternIndicator } from './synced-pattern-indicator';
 import {
     DocumentPanels,
     type AuthorOption,
@@ -149,6 +151,10 @@ function registerOnce(): void {
     // reaches every block as it registers. Doing it after would leave
     // already-registered blocks with the default (buggy) checker on.
     disableContrastCheckerOnBlocks();
+    // Register D5's synced-pattern indicator filter pre-`registerCoreBlocks`
+    // for the same reason — the wrapper sees `core/block` once the
+    // block registers and applies the badge from then on.
+    registerSyncedPatternIndicator();
     registerCoreBlocks();
     // Discover host-app custom blocks under
     // `resources/js/visual-editor/blocks/{block-name}/index.ts` and
@@ -696,7 +702,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                                 className="ap-visual-editor__sidebar ap-visual-editor__sidebar--inserter"
                                 data-testid="ap-visual-editor-inserter-panel"
                             >
-                                <BlockLibrarySidebar />
+                                <BlockLibrarySidebar apiBase={props.apiBase} />
                             </div>
                         ) : null}
                         <div className="editor-styles-wrapper ap-visual-editor__canvas">
@@ -710,6 +716,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                             </BlockTools>
                         </div>
                         <Popover.Slot />
+                        <ConvertToPatternControl apiBase={props.apiBase} />
                         {inspectorOpen ? (
                             <div
                                 className="ap-visual-editor__sidebar ap-visual-editor__sidebar--inspector"

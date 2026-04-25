@@ -44,6 +44,8 @@ import {
 
 import { TEXT_DOMAIN } from '../vendor/i18n';
 
+import { InserterPatternsPanel } from './inserter-patterns-panel';
+
 import './block-library-sidebar.css';
 
 export type BlockLibraryTab = 'blocks' | 'patterns' | 'layouts';
@@ -62,9 +64,23 @@ export interface BlockLibrarySidebarProps {
      */
     renderBlocksTab?: () => ReactNode;
     /**
+     * Render override for the Patterns tab. Production passes `apiBase`
+     * via the dedicated prop instead and lets the default render path
+     * mount the patterns panel; tests stub the panel out so they don't
+     * have to spin up the patterns REST surface.
+     */
+    renderPatternsTab?: () => ReactNode;
+    /**
      * Render override for the Layouts tab, for the same reason.
      */
     renderLayoutsTab?: () => ReactNode;
+    /**
+     * Base URL for the visual-editor API (e.g. `/visual-editor/api`).
+     * Required for the Patterns tab — when omitted the panel renders an
+     * inline note explaining the host hasn't passed an API base. Default
+     * production wiring always supplies it.
+     */
+    apiBase?: string;
     /**
      * Tab to open on first render. Defaults to `'blocks'`.
      */
@@ -92,7 +108,9 @@ export function BlockLibrarySidebar(
 ): JSX.Element {
     const {
         renderBlocksTab,
+        renderPatternsTab,
         renderLayoutsTab,
+        apiBase,
         initialTab = 'blocks',
     } = props;
 
@@ -300,20 +318,26 @@ export function BlockLibrarySidebar(
                 data-testid="ap-visual-editor-block-library-patterns-panel"
                 hidden={activeTab !== 'patterns'}
             >
-                <div
-                    className="ap-visual-editor-block-library__patterns-stub"
-                    data-testid="ap-visual-editor-block-library-patterns-stub"
-                >
-                    <h3 className="ap-visual-editor-block-library__stub-title">
-                        {__('Patterns', TEXT_DOMAIN)}
-                    </h3>
-                    <p className="ap-visual-editor-block-library__empty">
-                        {__(
-                            'The pattern library lands in Phase D. You will be able to browse, search, and insert synced and unsynced patterns from this tab.',
-                            TEXT_DOMAIN
-                        )}
-                    </p>
-                </div>
+                {renderPatternsTab !== undefined ? (
+                    renderPatternsTab()
+                ) : apiBase !== undefined && apiBase !== '' ? (
+                    <InserterPatternsPanel apiBase={apiBase} />
+                ) : (
+                    <div
+                        className="ap-visual-editor-block-library__patterns-stub"
+                        data-testid="ap-visual-editor-block-library-patterns-stub"
+                    >
+                        <h3 className="ap-visual-editor-block-library__stub-title">
+                            {__('Patterns', TEXT_DOMAIN)}
+                        </h3>
+                        <p className="ap-visual-editor-block-library__empty">
+                            {__(
+                                'Pass an API base to load patterns into this tab.',
+                                TEXT_DOMAIN
+                            )}
+                        </p>
+                    </div>
+                )}
             </div>
             <div
                 role="tabpanel"
