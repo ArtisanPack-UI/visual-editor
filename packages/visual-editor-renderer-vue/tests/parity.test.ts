@@ -354,6 +354,17 @@ const FIXTURES: Array<{ name: string; tree: Block[] }> = [
             ),
         ],
     },
+    {
+        name: 'template-part wrapper with inlined inner block',
+        tree: [
+            makeBlock(
+                'core/template-part',
+                { slug: 'header', theme: 'artisanpack-base' },
+                [makeBlock('core/paragraph', { content: 'Inlined header' }, [], 'p-h')],
+                'tp-1'
+            ),
+        ],
+    },
 ];
 
 describe('React/Vue renderer parity', () => {

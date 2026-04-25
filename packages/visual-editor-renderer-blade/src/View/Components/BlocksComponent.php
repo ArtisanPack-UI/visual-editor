@@ -5,6 +5,10 @@
  *
  * Renders a saved visual editor block tree into HTML using the
  * {@see \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer} engine.
+ * Resolves any `core/template-part` blocks in the tree inline (via the
+ * shared {@see TemplatePartInliner}) so a single render pass produces
+ * the final markup. Pass `:resolve-parts="false"` to opt out and render
+ * the raw tree.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditorRendererBlade
@@ -18,6 +22,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 
+use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
@@ -33,9 +38,16 @@ class BlocksComponent extends Component
 
 	public function __construct(
 		protected BlockRenderer $renderer,
+		protected TemplatePartInliner $inliner,
 		mixed $tree = null,
+		?string $defaultTheme = null,
+		bool $resolveParts = true,
 	) {
-		$this->tree = $this->normalizeTree( $tree );
+		$normalized = $this->normalizeTree( $tree );
+
+		$this->tree = $resolveParts
+			? $this->inliner->inline( $normalized, $defaultTheme )
+			: $normalized;
 	}
 
 	public function render(): View

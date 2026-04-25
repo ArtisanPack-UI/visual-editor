@@ -9,13 +9,25 @@
  *
  * `tree` accepts the array form the editor persists, a JSON-encoded string of
  * that shape, or `null`/`undefined` for an empty render.
+ *
+ * Optionally accepts a `templateParts` map. When provided, every
+ * `core/template-part` block in the tree is replaced (pre-walk) with
+ * its referenced part's blocks via {@link inlineTemplateParts}. The
+ * registered `core/template-part` renderer wraps the resolved blocks in
+ * a semantic element so the surrounding layout still gets the part's
+ * regions.
  */
 
-import { Fragment, defineComponent, h } from 'vue';
+import { Fragment, computed, defineComponent, h } from 'vue';
 import type { PropType, VNode } from 'vue';
 import { DynamicBlock } from './DynamicBlock';
 import { UnknownBlock } from './blocks/unknownBlock';
 import { getBlockRenderer } from './registry';
+import {
+    DEFAULT_MAX_TEMPLATE_PART_DEPTH,
+    inlineTemplateParts,
+} from './templateParts';
+import type { TemplatePartRecord } from './templateParts';
 import type { Block } from './types';
 
 const DEFAULT_ENDPOINT = '/visual-editor/api/blocks/preview';
@@ -24,6 +36,9 @@ export interface BlockTreeProps {
     tree: Block[] | string | null | undefined;
     dynamicBlockEndpoint?: string;
     fetchOptions?: RequestInit;
+    templateParts?: TemplatePartRecord[];
+    defaultTheme?: string;
+    maxTemplatePartDepth?: number;
 }
 
 export const BlockTree = defineComponent({
@@ -41,12 +56,42 @@ export const BlockTree = defineComponent({
             type: Object as PropType<RequestInit>,
             default: undefined,
         },
+        templateParts: {
+            type: Array as PropType<TemplatePartRecord[]>,
+            default: undefined,
+        },
+        defaultTheme: {
+            type: String,
+            default: undefined,
+        },
+        maxTemplatePartDepth: {
+            type: Number,
+            default: DEFAULT_MAX_TEMPLATE_PART_DEPTH,
+        },
     },
     setup(props) {
+        const blocks = computed(() => {
+            const normalized = normalizeTree(props.tree);
+
+            // Run the inliner whenever templateParts is supplied at all,
+            // even when it's an empty array — the host explicitly told us
+            // "no parts available," so any core/template-part references
+            // in the tree should be flagged unresolved instead of
+            // silently rendering an empty wrapper.
+            if (props.templateParts === undefined) {
+                return normalized;
+            }
+
+            return inlineTemplateParts(normalized, {
+                parts: props.templateParts,
+                defaultTheme: props.defaultTheme,
+                maxDepth: props.maxTemplatePartDepth,
+            });
+        });
+
         return () => {
-            const blocks = normalizeTree(props.tree);
             const endpoint = props.dynamicBlockEndpoint ?? DEFAULT_ENDPOINT;
-            const children = blocks
+            const children = blocks.value
                 .map((block, index) => renderBlock(block, index, endpoint, props.fetchOptions))
                 .filter((vnode): vnode is VNode => vnode !== null);
 

@@ -39,6 +39,7 @@ import {
     ImageBlock,
     VideoBlock,
 } from './core/media';
+import { TemplatePartBlock } from './core/templatePart';
 import {
     CodeBlock,
     HeadingBlock,
@@ -82,6 +83,7 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/search': SearchBlock,
     'core/separator': SeparatorBlock,
     'core/spacer': SpacerBlock,
+    'core/template-part': TemplatePartBlock,
     'artisanpack/callout': CalloutBlock,
 };
 

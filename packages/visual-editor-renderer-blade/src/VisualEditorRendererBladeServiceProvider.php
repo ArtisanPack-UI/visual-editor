@@ -4,8 +4,8 @@
  * Service provider for the Blade renderer package.
  *
  * Wires the {@see BlockRenderer} singleton, registers the `<x-ve-blocks>`
- * Blade component, and publishes the partial views so host apps can override
- * any individual block's markup.
+ * and `<x-ve-template>` Blade components, and publishes the partial views
+ * so host apps can override any individual block's markup.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditorRendererBlade
@@ -20,7 +20,9 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade;
 
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksComponent;
+use ArtisanPackUI\VisualEditorRendererBlade\View\Components\TemplateComponent;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\ServiceProvider;
@@ -35,6 +37,10 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 				$app->make( DynamicBlockRegistry::class ),
 			);
 		} );
+
+		$this->app->singleton( TemplatePartInliner::class, function () {
+			return new TemplatePartInliner();
+		} );
 	}
 
 	public function boot(): void
@@ -42,6 +48,7 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor-renderer-blade' );
 
 		Blade::component( BlocksComponent::class, 've-blocks' );
+		Blade::component( TemplateComponent::class, 've-template' );
 
 		if ( $this->app->runningInConsole() ) {
 			$this->publishes( [
