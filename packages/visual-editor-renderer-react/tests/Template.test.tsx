@@ -60,6 +60,19 @@ describe('BlockTree template-part inlining', () => {
         expect(wrapper).not.toBeNull();
         expect(wrapper?.children.length).toBe(0);
     });
+
+    it('runs the inliner for an explicit empty templateParts array so missing references are flagged', () => {
+        const tree = [partRef('header')];
+
+        const { container } = render(<BlockTree tree={tree} templateParts={[]} />);
+        const wrapper = container.querySelector('[data-ve-template-part="header"]');
+
+        // Empty array means "no parts supplied" — the inliner should mark
+        // the reference unresolved so dev diagnostics surface, rather than
+        // silently rendering an empty wrapper indistinguishable from
+        // "templateParts not configured at all."
+        expect(wrapper?.getAttribute('data-ve-resolution-error')).toBe('not-found');
+    });
 });
 
 describe('Template component', () => {

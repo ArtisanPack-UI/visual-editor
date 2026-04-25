@@ -73,7 +73,12 @@ export const BlockTree = defineComponent({
         const blocks = computed(() => {
             const normalized = normalizeTree(props.tree);
 
-            if (props.templateParts === undefined || props.templateParts.length === 0) {
+            // Run the inliner whenever templateParts is supplied at all,
+            // even when it's an empty array — the host explicitly told us
+            // "no parts available," so any core/template-part references
+            // in the tree should be flagged unresolved instead of
+            // silently rendering an empty wrapper.
+            if (props.templateParts === undefined) {
                 return normalized;
             }
 

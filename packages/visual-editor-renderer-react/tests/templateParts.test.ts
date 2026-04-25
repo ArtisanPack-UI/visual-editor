@@ -73,6 +73,26 @@ describe('findTemplate / resolveTemplate', () => {
     it('returns templates regardless of theme when no theme is supplied', () => {
         expect(findTemplate(templates, 'index')?.slug).toBe('index');
     });
+
+    it('prefers an exact-theme match over an unthemed record regardless of array order', () => {
+        const mixed = [
+            // Unthemed record listed first; the themed record should still win
+            // because findTemplate runs an exact-theme pass before the fallback.
+            { slug: 'index', theme: '', blocks: [paragraph('Unthemed')] },
+            { slug: 'index', theme: 'artisanpack-base', blocks: [paragraph('Themed')] },
+        ];
+
+        expect(findTemplate(mixed, 'index', 'artisanpack-base')?.blocks[0].attributes?.content).toBe('Themed');
+    });
+
+    it('falls back to an unthemed record only when no exact-theme match exists', () => {
+        const mixed = [
+            { slug: 'index', theme: '', blocks: [paragraph('Unthemed')] },
+            { slug: 'index', theme: 'other-theme', blocks: [paragraph('Other')] },
+        ];
+
+        expect(findTemplate(mixed, 'index', 'artisanpack-base')?.blocks[0].attributes?.content).toBe('Unthemed');
+    });
 });
 
 describe('inlineTemplateParts', () => {
@@ -173,5 +193,17 @@ describe('inlineTemplateParts', () => {
 
     it('exposes a default depth limit', () => {
         expect(DEFAULT_MAX_TEMPLATE_PART_DEPTH).toBe(10);
+    });
+
+    it('prefers an exact-theme part over an unthemed part regardless of array order', () => {
+        const parts = [
+            { slug: 'header', theme: '', blocks: [paragraph('Unthemed')] },
+            { slug: 'header', theme: 'artisanpack-base', blocks: [paragraph('Themed')] },
+        ];
+        const tree = [partRef('header', 'artisanpack-base')];
+
+        const inlined = inlineTemplateParts(tree, { parts });
+
+        expect(inlined[0].innerBlocks?.[0].attributes?.content).toBe('Themed');
     });
 });

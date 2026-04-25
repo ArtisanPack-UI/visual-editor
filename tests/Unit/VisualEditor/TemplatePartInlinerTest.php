@@ -178,3 +178,33 @@ it( 'returns an empty array when given non-array entries', function () {
 
 	expect( $resolved )->toBe( [] );
 } );
+
+it( 'matches across themes when neither the block nor defaultTheme supplies one', function () {
+	// Same slug seeded under two themes. With no theme attribute on the
+	// block and no defaultTheme passed in, findPart degrades to a
+	// slug-only lookup (matching VisualEditorTemplatePart::scopeForSlug),
+	// so the first record wins. The point of this test is to lock in
+	// "the inliner doesn't crash and doesn't silently mark unresolved" —
+	// host apps that need deterministic cross-theme behavior should pass
+	// a defaultTheme.
+	inlinerMakePart( 'header', [ inlinerParagraph( 'Theme A' ) ], 'theme-a' );
+	inlinerMakePart( 'header', [ inlinerParagraph( 'Theme B' ) ], 'theme-b' );
+
+	$tree = [ inlinerPartRef( 'header' ) ];
+
+	$resolved = ( new TemplatePartInliner() )->inline( $tree );
+
+	expect( $resolved[0]['attributes']['_resolutionError'] ?? null )->toBeNull();
+	expect( $resolved[0]['innerBlocks'] )->toHaveCount( 1 );
+} );
+
+it( 'scopes to the defaultTheme when one is supplied alongside an untyped reference', function () {
+	inlinerMakePart( 'header', [ inlinerParagraph( 'Theme A' ) ], 'theme-a' );
+	inlinerMakePart( 'header', [ inlinerParagraph( 'Theme B' ) ], 'theme-b' );
+
+	$tree = [ inlinerPartRef( 'header' ) ];
+
+	$resolved = ( new TemplatePartInliner() )->inline( $tree, 'theme-b' );
+
+	expect( $resolved[0]['innerBlocks'][0]['attributes']['content'] )->toBe( 'Theme B' );
+} );

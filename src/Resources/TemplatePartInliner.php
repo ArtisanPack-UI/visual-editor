@@ -176,17 +176,18 @@ class TemplatePartInliner
 	/**
 	 * Looks the part up by slug, optionally constrained to a theme.
 	 *
+	 * Delegates to {@see VisualEditorTemplatePart::scopeForSlug()} so the
+	 * empty-string-vs-null theme handling stays in one place — passing
+	 * an empty string here is treated as "no theme filter" the same way
+	 * the scope does.
+	 *
 	 * @since 1.0.0
 	 */
 	protected function findPart( string $slug, string $theme ): ?VisualEditorTemplatePart
 	{
-		$query = VisualEditorTemplatePart::query()->where( 'slug', $slug );
-
-		if ( '' !== $theme ) {
-			$query->where( 'theme', $theme );
-		}
-
-		return $query->first();
+		return VisualEditorTemplatePart::query()
+			->forSlug( $slug, '' === $theme ? null : $theme )
+			->first();
 	}
 
 	/**

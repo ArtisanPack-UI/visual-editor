@@ -81,17 +81,25 @@ export function findTemplate(
     slug: string,
     theme?: string
 ): TemplateRecord | undefined {
-    return templates.find((template) => {
-        if (template.slug !== slug) {
-            return false;
-        }
+    if (theme === undefined || theme === '') {
+        return templates.find((template) => template.slug === slug);
+    }
 
-        if (theme === undefined || theme === '') {
-            return true;
-        }
+    // Two-pass lookup: prefer an exact theme match, then fall back to an
+    // unthemed record. Single-pass matching would let array order pick the
+    // unthemed record over a more-specific themed one for the same slug.
+    const exact = templates.find(
+        (template) => template.slug === slug && template.theme === theme
+    );
 
-        return template.theme === undefined || template.theme === '' || template.theme === theme;
-    });
+    if (exact !== undefined) {
+        return exact;
+    }
+
+    return templates.find(
+        (template) =>
+            template.slug === slug && (template.theme === undefined || template.theme === '')
+    );
 }
 
 export function resolveTemplate(
@@ -202,17 +210,22 @@ function findPart(
     slug: string,
     theme: string
 ): TemplatePartRecord | undefined {
-    return parts.find((part) => {
-        if (part.slug !== slug) {
-            return false;
-        }
+    if (theme === '') {
+        return parts.find((part) => part.slug === slug);
+    }
 
-        if (theme === '') {
-            return true;
-        }
+    // Two-pass lookup matching findTemplate's contract: prefer an exact
+    // theme match, then fall back to an unthemed record. Single-pass would
+    // let array order pick the wrong part for the slug.
+    const exact = parts.find((part) => part.slug === slug && part.theme === theme);
 
-        return part.theme === undefined || part.theme === '' || part.theme === theme;
-    });
+    if (exact !== undefined) {
+        return exact;
+    }
+
+    return parts.find(
+        (part) => part.slug === slug && (part.theme === undefined || part.theme === '')
+    );
 }
 
 function markUnresolved(

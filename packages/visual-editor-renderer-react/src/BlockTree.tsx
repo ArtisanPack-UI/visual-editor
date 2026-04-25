@@ -52,7 +52,12 @@ export function BlockTree({
     const blocks = useMemo(() => {
         const normalized = normalizeTree(tree);
 
-        if (templateParts === undefined || templateParts.length === 0) {
+        // Run the inliner whenever templateParts is supplied at all, even
+        // when it's an empty array — the host explicitly told us "no parts
+        // available," so any core/template-part references in the tree
+        // should be flagged unresolved instead of silently rendering an
+        // empty wrapper.
+        if (templateParts === undefined) {
             return normalized;
         }
 
