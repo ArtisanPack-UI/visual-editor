@@ -134,6 +134,32 @@ it( 'renders a cycle marker without infinite recursion', function () {
 	expect( $rendered )->toContain( 'failed to resolve (cycle)' );
 } );
 
+it( 'omits data-ve-pattern-ref when the ref attribute is whitespace-only', function () {
+	// `:resolve-patterns="false"` lets the raw attributes flow straight to
+	// the partial — exercise the partial's own normalization to confirm a
+	// whitespace ref does not leak into the rendered data attribute. This
+	// matches the React/Vue `refString` helper, which trims before
+	// emptiness checks.
+	$tree = [
+		[
+			'clientId'    => 'pat-whitespace',
+			'name'        => 'core/block',
+			'attributes'  => [ 'ref' => '   ' ],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render(
+		'<x-ve-blocks :tree="$tree" :resolve-patterns="false" />',
+		[ 'tree' => $tree ]
+	);
+
+	$normalized = $this->normalizeHtml( $rendered );
+
+	expect( $normalized )->toContain( '<div class="wp-block-block">' );
+	expect( $normalized )->not()->toContain( 'data-ve-pattern-ref' );
+} );
+
 it( 'unsynced patterns travel as inlined block trees, never as core/block references', function () {
 	// Sanity check on the synced/unsynced contract documented in
 	// `docs/plans/11-v1-expansion.md` §2.2 / §8: the editor only emits

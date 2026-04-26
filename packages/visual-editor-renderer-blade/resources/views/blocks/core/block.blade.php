@@ -1,6 +1,7 @@
 @php
 	$ref = isset( $attributes['ref'] ) ? $attributes['ref'] : null;
-	$refString = is_int( $ref ) || ( is_string( $ref ) && '' !== $ref ) ? (string) $ref : '';
+	$trimmedRef = is_string( $ref ) ? trim( $ref ) : $ref;
+	$refString = is_int( $ref ) || ( is_string( $trimmedRef ) && '' !== $trimmedRef ) ? (string) $trimmedRef : '';
 
 	$resolutionError = isset( $attributes['_resolutionError'] ) && is_string( $attributes['_resolutionError'] )
 		? $attributes['_resolutionError']
