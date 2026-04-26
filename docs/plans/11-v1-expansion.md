@@ -165,4 +165,4 @@ Not blocking this plan, but worth naming:
 
 - **Global-styles**: do we surface "style variations" (theme-level presets) in V1 UI, or save for 1.1? Schema-compat means we *can*; UI cost is real.
 - **Nav menu locations**: config-driven (`config/visual-editor.php`) or database-driven (admin CRUD)? Leaning config for V1.
-- **Patterns**: do unsynced patterns support variables/bindings, or are they pure block-tree copies? Leaning pure copies for V1 — bindings are a whole separate system.
+- **Patterns**: do unsynced patterns support variables/bindings, or are they pure block-tree copies? **Closed (E3)** — pure block-tree copies for V1. The editor inlines unsynced patterns at insert time (`inserter-patterns-panel.tsx::patternBlocks`), so renderers only resolve `core/block` references for synced patterns. Bindings are deferred to V2.

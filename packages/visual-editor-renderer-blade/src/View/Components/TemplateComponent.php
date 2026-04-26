@@ -27,6 +27,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 
+use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplateResolver;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCssProvider;
@@ -57,6 +58,7 @@ class TemplateComponent extends Component
 		protected BlockRenderer $renderer,
 		protected TemplateResolver $templates,
 		protected TemplatePartInliner $inliner,
+		protected PatternInliner $patternInliner,
 		protected Application $app,
 		protected GlobalStylesCssProvider $globalStyles,
 		protected GlobalStylesEmissionTracker $emissionTracker,
@@ -80,8 +82,9 @@ class TemplateComponent extends Component
 		$this->matchedSlug     = $template->slug;
 		$this->resolutionError = null;
 
-		$inlined    = $this->inliner->inline( $template->getBlocks(), $theme ?? $template->theme );
-		$this->html = $renderer->render( $inlined );
+		$inlinedParts    = $this->inliner->inline( $template->getBlocks(), $theme ?? $template->theme );
+		$inlinedPatterns = $this->patternInliner->inline( $inlinedParts );
+		$this->html      = $renderer->render( $inlinedPatterns );
 	}
 
 	public function render(): View

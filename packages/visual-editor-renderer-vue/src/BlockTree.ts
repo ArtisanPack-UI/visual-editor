@@ -23,6 +23,11 @@ import type { PropType, VNode } from 'vue';
 import { DynamicBlock } from './DynamicBlock';
 import { GlobalStyles } from './GlobalStyles';
 import { UnknownBlock } from './blocks/unknownBlock';
+import {
+    DEFAULT_MAX_PATTERN_DEPTH,
+    inlinePatterns,
+} from './patterns';
+import type { PatternRecord } from './patterns';
 import { getBlockRenderer } from './registry';
 import {
     DEFAULT_MAX_TEMPLATE_PART_DEPTH,
@@ -38,8 +43,15 @@ export interface BlockTreeProps {
     dynamicBlockEndpoint?: string;
     fetchOptions?: RequestInit;
     templateParts?: TemplatePartRecord[];
+    /**
+     * Synced-pattern records keyed by id. When supplied, every
+     * `core/block` reference in the tree is replaced (pre-walk) with its
+     * referenced pattern's blocks via {@link inlinePatterns}.
+     */
+    patterns?: PatternRecord[];
     defaultTheme?: string;
     maxTemplatePartDepth?: number;
+    maxPatternDepth?: number;
     /**
      * Compiled global-styles CSS — same string the PHP
      * `GlobalStylesCssProvider` emits on Blade pages. When supplied,
@@ -68,6 +80,10 @@ export const BlockTree = defineComponent({
             type: Array as PropType<TemplatePartRecord[]>,
             default: undefined,
         },
+        patterns: {
+            type: Array as PropType<PatternRecord[]>,
+            default: undefined,
+        },
         defaultTheme: {
             type: String,
             default: undefined,
@@ -75,6 +91,10 @@ export const BlockTree = defineComponent({
         maxTemplatePartDepth: {
             type: Number,
             default: DEFAULT_MAX_TEMPLATE_PART_DEPTH,
+        },
+        maxPatternDepth: {
+            type: Number,
+            default: DEFAULT_MAX_PATTERN_DEPTH,
         },
         globalStylesCss: {
             type: String as PropType<string | null | undefined>,
@@ -90,14 +110,29 @@ export const BlockTree = defineComponent({
             // "no parts available," so any core/template-part references
             // in the tree should be flagged unresolved instead of
             // silently rendering an empty wrapper.
-            if (props.templateParts === undefined) {
-                return normalized;
+            const withParts =
+                props.templateParts === undefined
+                    ? normalized
+                    : inlineTemplateParts(normalized, {
+                          parts: props.templateParts,
+                          defaultTheme: props.defaultTheme,
+                          maxDepth: props.maxTemplatePartDepth,
+                      });
+
+            // Same opt-in semantics as templateParts: an empty `patterns`
+            // array means "no synced patterns available," so any
+            // `core/block` references resolve to an unresolved marker
+            // instead of falling through to the dynamic-block fallback.
+            // Pattern inlining runs after template-part inlining so a
+            // part that itself contains a synced-pattern reference
+            // resolves in the same pass.
+            if (props.patterns === undefined) {
+                return withParts;
             }
 
-            return inlineTemplateParts(normalized, {
-                parts: props.templateParts,
-                defaultTheme: props.defaultTheme,
-                maxDepth: props.maxTemplatePartDepth,
+            return inlinePatterns(withParts, {
+                patterns: props.patterns,
+                maxDepth: props.maxPatternDepth,
             });
         });
 
