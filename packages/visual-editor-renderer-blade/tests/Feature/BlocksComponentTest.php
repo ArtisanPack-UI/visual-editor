@@ -39,6 +39,7 @@ it( 'accepts a JSON string tree', function () {
 it( 'renders only the global-styles block when the tree is null', function () {
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => null ] );
 
+	expect( $rendered )->toContain( 'data-ve-global-styles' );
 	expect( trim( $this->stripGlobalStyles( $rendered ) ) )->toBe( '' );
 } );
 

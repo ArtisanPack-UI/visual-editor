@@ -29,21 +29,33 @@ use Illuminate\Support\Carbon;
 
 class GlobalStylesCacheInvalidator
 {
+	/**
+	 * Tracks whether the model event listeners have been attached so
+	 * `register()` is genuinely idempotent — Eloquent's
+	 * `Model::saved()` and `Model::deleted()` resolvers accumulate
+	 * closures on every call, so a second `register()` would otherwise
+	 * fire the cache forget twice per save.
+	 */
+	protected bool $listenersRegistered = false;
+
 	public function __construct(
 		protected GlobalStylesCssProvider $provider,
 	) {
 	}
 
 	/**
-	 * Registers the model event listeners. Idempotent — callers should
-	 * still gate on `runningUnitTests()` etc. if they need single-firing
-	 * semantics, but model::saved is registered through the resolver so
-	 * repeated calls only attach the listener once per process.
+	 * Registers the model event listeners. Safe to call more than once
+	 * — subsequent invocations are no-ops thanks to the
+	 * `$listenersRegistered` guard.
 	 *
 	 * @since 1.0.0
 	 */
 	public function register(): void
 	{
+		if ( $this->listenersRegistered ) {
+			return;
+		}
+
 		VisualEditorGlobalStyles::saved( function ( VisualEditorGlobalStyles $record ): void {
 			$this->provider->forget(
 				$record,
@@ -57,6 +69,8 @@ class GlobalStylesCacheInvalidator
 				$this->originalUpdatedAt( $record )
 			);
 		} );
+
+		$this->listenersRegistered = true;
 	}
 
 	/**

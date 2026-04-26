@@ -11,9 +11,13 @@
  * (e.g. a layout that nests a `<x-ve-template name="header">` above a
  * `<x-ve-blocks :tree="...">` post body).
  *
- * Bound as a singleton in the package container — Laravel's container
- * is request-scoped by default in HTTP requests, so each visitor
- * response gets a fresh tracker without further plumbing.
+ * Bound via `$this->app->scoped()` in the package container so the
+ * tracker is rebuilt at the start of every request scope. That keeps
+ * a long-lived worker (Octane, RoadRunner, queue worker rendering
+ * blocks per job) from leaking the "already emitted" flag from one
+ * request into the next. Tests can also explicitly call `reset()` on
+ * the resolved instance to clear state between assertions inside a
+ * single PHP process.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor

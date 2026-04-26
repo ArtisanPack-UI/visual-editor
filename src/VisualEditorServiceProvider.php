@@ -86,7 +86,12 @@ class VisualEditorServiceProvider extends ServiceProvider
 			);
 		} );
 
-		$this->app->singleton( GlobalStylesEmissionTracker::class, function () {
+		// Scoped (not singleton) so a long-lived worker (Octane,
+		// RoadRunner, queue) gets a fresh tracker per request scope.
+		// A singleton would leak the "already emitted" flag across
+		// requests and suppress the <style> block on every page after
+		// the first one served by the worker.
+		$this->app->scoped( GlobalStylesEmissionTracker::class, function () {
 			return new GlobalStylesEmissionTracker();
 		} );
 
