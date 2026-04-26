@@ -120,33 +120,22 @@ export interface SiteEditorAppProps {
 let editorBooted = false;
 
 /**
- * Core blocks the site-editor deliberately leaves unregistered for D2.
- * Per issue #369's out-of-scope list, these entity-scoped blocks wait
- * until E4 — their `Edit` components depend on core-data selectors
- * (`getCurrentTheme`, `getEditedPostType`, etc.) that the B1 shim does
- * not yet implement, so rendering them under D2 trips the block-crash
- * boundary and leaves users staring at red error cards inside seeded
- * templates.
+ * Core blocks the site-editor deliberately leaves unregistered.
+ *
+ * D2 originally disabled the entity-scoped post-/site-/template-part
+ * blocks alongside the loop + feed widgets because their `Edit`
+ * components depended on core-data selectors the M2 shim did not
+ * implement. E4 re-enables every entity-scoped block on the back of
+ * B1's expanded shim plus the C1–C5 REST surface; the loop and feed
+ * widgets stay disabled because they still need a real loop runtime
+ * (V2) and term/comment endpoints (V1.1+) that the shim does not
+ * implement.
  *
  * Mirrors the PHP `disabled_blocks` list in
- * `config/visual-editor.php` — the two lists want to agree, and E4 will
- * be the single commit that removes blocks from both sides.
+ * `config/visual-editor.php` — the two lists want to agree, and the
+ * commit that promotes a block out of one promotes it out of the other.
  */
 const D2_DISABLED_BLOCKS: ReadonlyArray<string> = [
-    'core/template-part',
-    'core/post-content',
-    'core/post-title',
-    'core/post-excerpt',
-    'core/post-date',
-    'core/post-author',
-    'core/post-featured-image',
-    'core/site-logo',
-    'core/site-title',
-    'core/site-tagline',
-    // `core/navigation` is now D4-enabled. The block can render in the
-    // template canvas because B1's shim has `wp_navigation` and C4's
-    // REST surface round-trips its inner blocks. Keep it OUT of this
-    // list so the template editor's inserter exposes it.
     'core/query',
     'core/query-loop',
     'core/latest-comments',

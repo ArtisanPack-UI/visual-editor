@@ -7,11 +7,14 @@ use ArtisanPackUI\VisualEditor\VisualEditor;
 it( 'returns the frozen V1 block allow-list under the default config', function () {
 	$editor = app( VisualEditor::class );
 
-	// Snapshot of the M5-frozen default block set. Update this array only
-	// when intentionally changing the block-library audit (see
+	// Snapshot of the V1 default block set. Update this array only when
+	// intentionally changing the block-library audit (see
 	// docs/block-library-audit.md) and keep config/visual-editor.php in
-	// sync. The deny-list already removes every data-dependent block, so
-	// the output should be the allow-list verbatim, in config order.
+	// sync. The deny-list already removes every block that still needs a
+	// real loop runtime or term/comment endpoints, so the output should
+	// be the allow-list verbatim, in config order. E4 (#381) added the
+	// post-, site-, navigation, and template-part blocks on the back of
+	// B1's expanded core-data shim and the C-series REST surface.
 	expect( $editor->getEnabledBlockNames() )->toBe( [
 		'core/paragraph',
 		'core/heading',
@@ -40,6 +43,17 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 		'core/details',
 		'core/search',
 		'core/latest-posts',
+		'core/template-part',
+		'core/post-title',
+		'core/post-content',
+		'core/post-excerpt',
+		'core/post-date',
+		'core/post-author',
+		'core/post-featured-image',
+		'core/site-title',
+		'core/site-tagline',
+		'core/site-logo',
+		'core/navigation',
 		'artisanpack/callout',
 	] );
 } );

@@ -84,27 +84,40 @@ return [
 		'core/details',
 		'core/search',
 		'core/latest-posts',
-		'artisanpack/callout',
-	],
-
-	'disabled_blocks' => [
-		// `core/navigation` is enabled by D4 — its editor experience is
-		// backed by the `wp_navigation` shim entity (B1) plus the C4
-		// REST surface, so the block's link-control picker and inner
-		// blocks both round-trip cleanly. The JS-side mirror in
-		// site-editor-app.tsx is updated alongside this entry.
-		'core/query',
-		'core/query-loop',
-		'core/post-content',
+		// E4 — re-enabled on the back of B1's expanded core-data shim
+		// and the C1–C5 REST surface. Each block has a renderer in
+		// every renderer package (Blade / React / Vue) and round-trips
+		// against the empty-state shim without crashing. See
+		// docs/block-library-audit.md for the per-block notes.
+		'core/template-part',
 		'core/post-title',
+		'core/post-content',
 		'core/post-excerpt',
 		'core/post-date',
 		'core/post-author',
 		'core/post-featured-image',
-		'core/site-logo',
 		'core/site-title',
 		'core/site-tagline',
-		'core/template-part',
+		'core/site-logo',
+		'core/navigation',
+		'artisanpack/callout',
+	],
+
+	'disabled_blocks' => [
+		// `core/navigation` was enabled by D4 and stays enabled in E4.
+		// `core/template-part`, `core/post-*`, and `core/site-*` are
+		// promoted to the allow-list above by E4 (#381). The blocks
+		// listed here remain deliberately deferred:
+		//
+		//  - core/query / core/query-loop need a real loop runtime
+		//    (V2 — `artisanpack-ui/cms-framework`).
+		//  - The taxonomy/feed widgets need term + comment endpoints
+		//    that the shim does not implement (V1.1+).
+		//
+		// The JS-side mirror in site-editor-app.tsx is updated
+		// alongside this entry.
+		'core/query',
+		'core/query-loop',
 		'core/latest-comments',
 		'core/archives',
 		'core/categories',
