@@ -20,8 +20,14 @@ use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Search\BlockTreeSearchExtractor;
+use ArtisanPackUI\VisualEditor\Services\GlobalStylesCacheInvalidator;
+use ArtisanPackUI\VisualEditor\Services\GlobalStylesCompiler;
+use ArtisanPackUI\VisualEditor\Services\GlobalStylesCssProvider;
+use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\Services\MenuLocationResolver;
 use ArtisanPackUI\VisualEditor\View\Components\VisualEditorComponent;
+use Illuminate\Contracts\Cache\Repository as CacheRepository;
+use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Route;
@@ -68,6 +74,28 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new MenuLocationResolver( $app['config'] );
 		} );
 
+		$this->app->singleton( GlobalStylesCompiler::class, function () {
+			return new GlobalStylesCompiler();
+		} );
+
+		$this->app->singleton( GlobalStylesCssProvider::class, function ( $app ) {
+			return new GlobalStylesCssProvider(
+				$app->make( GlobalStylesCompiler::class ),
+				$app->make( CacheRepository::class ),
+				$app->make( ConfigRepository::class ),
+			);
+		} );
+
+		$this->app->singleton( GlobalStylesEmissionTracker::class, function () {
+			return new GlobalStylesEmissionTracker();
+		} );
+
+		$this->app->singleton( GlobalStylesCacheInvalidator::class, function ( $app ) {
+			return new GlobalStylesCacheInvalidator(
+				$app->make( GlobalStylesCssProvider::class ),
+			);
+		} );
+
 		// Legacy alias for backward compatibility
 		$this->app->alias( VisualEditor::class, 'visualEditor' );
 
@@ -102,6 +130,11 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Gate::policy( VisualEditorGlobalStyles::class, VisualEditorGlobalStylesPolicy::class );
 		Gate::policy( VisualEditorNavigation::class, VisualEditorNavigationPolicy::class );
 		Gate::policy( VisualEditorPattern::class, VisualEditorPatternPolicy::class );
+
+		// Hook the global-styles cache to model save/delete events so a
+		// PUT to `/visual-editor/api/global-styles/{id}` invalidates the
+		// CSS the front-end renderers serve on the next request.
+		$this->app->make( GlobalStylesCacheInvalidator::class )->register();
 
 		// 3. Register core blocks from their block.json manifests.
 		$this->registerCoreBlocks();

@@ -29,6 +29,8 @@ namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplateResolver;
+use ArtisanPackUI\VisualEditor\Services\GlobalStylesCssProvider;
+use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\View;
@@ -56,6 +58,8 @@ class TemplateComponent extends Component
 		protected TemplateResolver $templates,
 		protected TemplatePartInliner $inliner,
 		protected Application $app,
+		protected GlobalStylesCssProvider $globalStyles,
+		protected GlobalStylesEmissionTracker $emissionTracker,
 		string $slug,
 		?string $theme = null,
 	) {
@@ -90,6 +94,26 @@ class TemplateComponent extends Component
 			'resolutionError' => $this->resolutionError,
 			'inDev'           => ! $this->app->environment( 'production' ),
 			'html'            => $this->html,
+			'globalStylesCss' => $this->resolveGlobalStylesCss(),
 		] );
+	}
+
+	/**
+	 * Returns the compiled global-styles CSS the first time a renderer
+	 * fires in the current request, then null on every subsequent call —
+	 * matching the dedupe behaviour of `<x-ve-blocks>` so a layout that
+	 * combines the two does not emit `<style>` twice.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function resolveGlobalStylesCss(): ?string
+	{
+		if ( $this->emissionTracker->hasEmitted() ) {
+			return null;
+		}
+
+		$this->emissionTracker->markEmitted();
+
+		return $this->globalStyles->css( $this->theme );
 	}
 }

@@ -374,4 +374,21 @@ describe('React/Vue renderer parity', () => {
 
         expect(vueHtml).toBe(reactHtml);
     });
+
+    it('emits the same global-styles <style> tag on both renderers', async () => {
+        const css = ':root { --wp--preset--color--brand: #abcdef; }';
+        const tree: Block[] = [makeBlock('core/paragraph', { content: 'Hi' }, [], 'p1')];
+
+        const reactApp = createElement(ReactBlockTree, { tree, globalStylesCss: css });
+        const reactHtml = domNormalize(renderToStaticMarkup(reactApp));
+
+        const vueApp = createSSRApp({
+            render: () => vueH(VueBlockTree, { tree, globalStylesCss: css }),
+        });
+        const vueHtml = domNormalize(stripVueServerMarkers(await vueRenderToString(vueApp)));
+
+        expect(vueHtml).toBe(reactHtml);
+        expect(reactHtml).toContain('<style data-ve-global-styles="">');
+        expect(reactHtml).toContain('--wp--preset--color--brand');
+    });
 });

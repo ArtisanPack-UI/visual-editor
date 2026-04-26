@@ -15,6 +15,7 @@
 import { useMemo } from 'react';
 import type { ReactElement } from 'react';
 import { BlockTree } from './BlockTree';
+import { GlobalStyles } from './GlobalStyles';
 import {
     DEFAULT_MAX_TEMPLATE_PART_DEPTH,
     resolveTemplate,
@@ -42,6 +43,13 @@ export interface TemplateProps {
     dynamicBlockEndpoint?: string;
     fetchOptions?: RequestInit;
     maxTemplatePartDepth?: number;
+    /**
+     * Compiled global-styles CSS — same string the PHP
+     * `GlobalStylesCssProvider` emits on Blade pages. Hosts that mount
+     * `<Template>` at the page root pass this once and let it emit
+     * before the wrapper div.
+     */
+    globalStylesCss?: string | null;
 }
 
 export function Template({
@@ -52,6 +60,7 @@ export function Template({
     dynamicBlockEndpoint,
     fetchOptions,
     maxTemplatePartDepth = DEFAULT_MAX_TEMPLATE_PART_DEPTH,
+    globalStylesCss,
 }: TemplateProps): ReactElement {
     const matched = useMemo(() => resolveTemplate(templates, slug, theme), [templates, slug, theme]);
     const fallbackChain = useMemo(() => templateFallbackChain(slug), [slug]);
@@ -76,19 +85,27 @@ export function Template({
     }
 
     if (matched === undefined) {
-        return <div className={wrapperClasses.join(' ')} {...dataAttributes} />;
+        return (
+            <>
+                <GlobalStyles css={globalStylesCss} />
+                <div className={wrapperClasses.join(' ')} {...dataAttributes} />
+            </>
+        );
     }
 
     return (
-        <div className={wrapperClasses.join(' ')} {...dataAttributes}>
-            <BlockTree
-                tree={matched.blocks}
-                templateParts={templateParts}
-                defaultTheme={theme ?? matched.theme}
-                dynamicBlockEndpoint={dynamicBlockEndpoint}
-                fetchOptions={fetchOptions}
-                maxTemplatePartDepth={maxTemplatePartDepth}
-            />
-        </div>
+        <>
+            <GlobalStyles css={globalStylesCss} />
+            <div className={wrapperClasses.join(' ')} {...dataAttributes}>
+                <BlockTree
+                    tree={matched.blocks}
+                    templateParts={templateParts}
+                    defaultTheme={theme ?? matched.theme}
+                    dynamicBlockEndpoint={dynamicBlockEndpoint}
+                    fetchOptions={fetchOptions}
+                    maxTemplatePartDepth={maxTemplatePartDepth}
+                />
+            </div>
+        </>
     );
 }

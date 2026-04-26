@@ -16,7 +16,7 @@ it( 'renders the x-ve-blocks component from an array tree', function () {
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
 
-	expect( $this->normalizeHtml( $rendered ) )
+	expect( $this->normalizeHtml( $this->stripGlobalStyles( $rendered ) ) )
 		->toBe( '<p class="wp-block-paragraph">Hello from Blade</p>' );
 } );
 
@@ -32,14 +32,14 @@ it( 'accepts a JSON string tree', function () {
 
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $json ] );
 
-	expect( $this->normalizeHtml( $rendered ) )
+	expect( $this->normalizeHtml( $this->stripGlobalStyles( $rendered ) ) )
 		->toBe( '<p class="wp-block-paragraph">JSON string</p>' );
 } );
 
-it( 'renders nothing for a null tree', function () {
+it( 'renders only the global-styles block when the tree is null', function () {
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => null ] );
 
-	expect( trim( $rendered ) )->toBe( '' );
+	expect( trim( $this->stripGlobalStyles( $rendered ) ) )->toBe( '' );
 } );
 
 it( 'publishes block views under the visual-editor-blade-views tag', function () {

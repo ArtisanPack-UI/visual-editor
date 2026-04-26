@@ -12,9 +12,10 @@
  * developer can spot the misconfiguration in the inspector.
  */
 
-import { computed, defineComponent, h } from 'vue';
+import { Fragment, computed, defineComponent, h } from 'vue';
 import type { PropType } from 'vue';
 import { BlockTree } from './BlockTree';
+import { GlobalStyles } from './GlobalStyles';
 import {
     DEFAULT_MAX_TEMPLATE_PART_DEPTH,
     resolveTemplate,
@@ -42,6 +43,13 @@ export interface TemplateProps {
     dynamicBlockEndpoint?: string;
     fetchOptions?: RequestInit;
     maxTemplatePartDepth?: number;
+    /**
+     * Compiled global-styles CSS — same string the PHP
+     * `GlobalStylesCssProvider` emits on Blade pages. Hosts that mount
+     * `<Template>` at the page root pass this once and let it emit
+     * before the wrapper div.
+     */
+    globalStylesCss?: string | null;
 }
 
 export const Template = defineComponent({
@@ -75,6 +83,10 @@ export const Template = defineComponent({
             type: Number,
             default: DEFAULT_MAX_TEMPLATE_PART_DEPTH,
         },
+        globalStylesCss: {
+            type: String as PropType<string | null | undefined>,
+            default: null,
+        },
     },
     setup(props) {
         const matched = computed(() => resolveTemplate(props.templates, props.slug, props.theme));
@@ -103,19 +115,24 @@ export const Template = defineComponent({
                 elementProps['data-ve-fallback-chain'] = fallbackChain.value.join(',');
             }
 
+            const globalStylesNode = h(GlobalStyles, { css: props.globalStylesCss });
+
             if (matched.value === undefined) {
-                return h('div', elementProps);
+                return h(Fragment, null, [globalStylesNode, h('div', elementProps)]);
             }
 
-            return h('div', elementProps, [
-                h(BlockTree, {
-                    tree: matched.value.blocks,
-                    templateParts: props.templateParts,
-                    defaultTheme: props.theme ?? matched.value.theme,
-                    dynamicBlockEndpoint: props.dynamicBlockEndpoint,
-                    fetchOptions: props.fetchOptions,
-                    maxTemplatePartDepth: props.maxTemplatePartDepth,
-                }),
+            return h(Fragment, null, [
+                globalStylesNode,
+                h('div', elementProps, [
+                    h(BlockTree, {
+                        tree: matched.value.blocks,
+                        templateParts: props.templateParts,
+                        defaultTheme: props.theme ?? matched.value.theme,
+                        dynamicBlockEndpoint: props.dynamicBlockEndpoint,
+                        fetchOptions: props.fetchOptions,
+                        maxTemplatePartDepth: props.maxTemplatePartDepth,
+                    }),
+                ]),
             ]);
         };
     },
