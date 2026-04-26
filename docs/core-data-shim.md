@@ -202,6 +202,39 @@ synced patterns (reusable blocks) from unsynced (one-shot inserts).
 }
 ```
 
+#### Synced vs. unsynced rendering (E3)
+
+The two pattern types reach the saved block tree by different paths, so
+the front-end renderers (Blade, React, Vue) treat them differently:
+
+- **Synced patterns** (`synced: true`) — the editor inserts a
+  `core/block` reference, e.g. `{ "name": "core/block", "attributes":
+  { "ref": 42 } }`, into the saved tree. Editing the pattern record
+  propagates everywhere. At render time the renderers resolve the
+  reference against the pattern API (PHP: `PatternInliner` —
+  `src/Resources/PatternInliner.php`; JS: `inlinePatterns()` —
+  `packages/visual-editor-renderer-react/src/patterns.ts` and the Vue
+  twin). Resolution happens **before** the renderer walks the tree, so
+  a single recursive pass produces the final HTML. Missing patterns,
+  cycles, and depth-overflow conditions stamp a synthetic
+  `_resolutionError` attribute that the registered `core/block`
+  renderer surfaces as an empty wrapper in production and a
+  `data-ve-resolution-error` / HTML comment in development.
+- **Unsynced patterns** (`synced: false`) — the editor parses
+  `pattern.content.raw` at insert time and pastes the resulting block
+  list directly into the target (see
+  `inserter-patterns-panel.tsx::patternBlocks`). The two diverge from
+  that point on. Renderers never see a `core/block` reference for an
+  unsynced pattern — the tree they receive already carries the
+  pattern's blocks inline, so no runtime resolution is required.
+
+Hosts wire synced-pattern resolution by passing a `patterns` collection
+to `<x-ve-blocks>` (Blade resolves automatically through Eloquent),
+`<BlockTree patterns={patterns} />` / `<Template patterns={patterns} />`
+(React), or the same props on the Vue twins. Pattern inlining runs
+after template-part inlining so a part that itself references a synced
+pattern resolves in the same pass.
+
 ### Global styles — `globalStyles`
 
 Global styles is a **singleton** per site. The `lookup` endpoint

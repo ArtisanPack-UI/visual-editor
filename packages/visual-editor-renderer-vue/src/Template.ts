@@ -16,6 +16,8 @@ import { Fragment, computed, defineComponent, h } from 'vue';
 import type { PropType } from 'vue';
 import { BlockTree } from './BlockTree';
 import { GlobalStyles } from './GlobalStyles';
+import { DEFAULT_MAX_PATTERN_DEPTH } from './patterns';
+import type { PatternRecord } from './patterns';
 import {
     DEFAULT_MAX_TEMPLATE_PART_DEPTH,
     resolveTemplate,
@@ -40,9 +42,11 @@ export interface TemplateProps {
     theme?: string;
     templates: TemplateRecord[];
     templateParts?: TemplatePartRecord[];
+    patterns?: PatternRecord[];
     dynamicBlockEndpoint?: string;
     fetchOptions?: RequestInit;
     maxTemplatePartDepth?: number;
+    maxPatternDepth?: number;
     /**
      * Compiled global-styles CSS — same string the PHP
      * `GlobalStylesCssProvider` emits on Blade pages. Hosts that mount
@@ -71,6 +75,10 @@ export const Template = defineComponent({
             type: Array as PropType<TemplatePartRecord[]>,
             default: () => [],
         },
+        patterns: {
+            type: Array as PropType<PatternRecord[]>,
+            default: undefined,
+        },
         dynamicBlockEndpoint: {
             type: String,
             default: undefined,
@@ -82,6 +90,10 @@ export const Template = defineComponent({
         maxTemplatePartDepth: {
             type: Number,
             default: DEFAULT_MAX_TEMPLATE_PART_DEPTH,
+        },
+        maxPatternDepth: {
+            type: Number,
+            default: DEFAULT_MAX_PATTERN_DEPTH,
         },
         globalStylesCss: {
             type: String as PropType<string | null | undefined>,
@@ -127,10 +139,12 @@ export const Template = defineComponent({
                     h(BlockTree, {
                         tree: matched.value.blocks,
                         templateParts: props.templateParts,
+                        patterns: props.patterns,
                         defaultTheme: props.theme ?? matched.value.theme,
                         dynamicBlockEndpoint: props.dynamicBlockEndpoint,
                         fetchOptions: props.fetchOptions,
                         maxTemplatePartDepth: props.maxTemplatePartDepth,
+                        maxPatternDepth: props.maxPatternDepth,
                     }),
                 ]),
             ]);

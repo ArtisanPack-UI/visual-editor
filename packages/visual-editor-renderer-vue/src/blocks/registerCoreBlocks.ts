@@ -39,6 +39,7 @@ import {
     ImageBlock,
     VideoBlock,
 } from './core/media';
+import { SyncedPatternBlock } from './core/syncedPattern';
 import { TemplatePartBlock } from './core/templatePart';
 import {
     CodeBlock,
@@ -84,6 +85,7 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/separator': SeparatorBlock,
     'core/spacer': SpacerBlock,
     'core/template-part': TemplatePartBlock,
+    'core/block': SyncedPatternBlock,
     'artisanpack/callout': CalloutBlock,
 };
 

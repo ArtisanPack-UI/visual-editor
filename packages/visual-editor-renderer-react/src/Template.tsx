@@ -16,6 +16,8 @@ import { useMemo } from 'react';
 import type { ReactElement } from 'react';
 import { BlockTree } from './BlockTree';
 import { GlobalStyles } from './GlobalStyles';
+import { DEFAULT_MAX_PATTERN_DEPTH } from './patterns';
+import type { PatternRecord } from './patterns';
 import {
     DEFAULT_MAX_TEMPLATE_PART_DEPTH,
     resolveTemplate,
@@ -40,9 +42,11 @@ export interface TemplateProps {
     theme?: string;
     templates: TemplateRecord[];
     templateParts?: TemplatePartRecord[];
+    patterns?: PatternRecord[];
     dynamicBlockEndpoint?: string;
     fetchOptions?: RequestInit;
     maxTemplatePartDepth?: number;
+    maxPatternDepth?: number;
     /**
      * Compiled global-styles CSS — same string the PHP
      * `GlobalStylesCssProvider` emits on Blade pages. Hosts that mount
@@ -57,9 +61,11 @@ export function Template({
     theme,
     templates,
     templateParts = [],
+    patterns,
     dynamicBlockEndpoint,
     fetchOptions,
     maxTemplatePartDepth = DEFAULT_MAX_TEMPLATE_PART_DEPTH,
+    maxPatternDepth = DEFAULT_MAX_PATTERN_DEPTH,
     globalStylesCss,
 }: TemplateProps): ReactElement {
     const matched = useMemo(() => resolveTemplate(templates, slug, theme), [templates, slug, theme]);
@@ -100,10 +106,12 @@ export function Template({
                 <BlockTree
                     tree={matched.blocks}
                     templateParts={templateParts}
+                    patterns={patterns}
                     defaultTheme={theme ?? matched.theme}
                     dynamicBlockEndpoint={dynamicBlockEndpoint}
                     fetchOptions={fetchOptions}
                     maxTemplatePartDepth={maxTemplatePartDepth}
+                    maxPatternDepth={maxPatternDepth}
                 />
             </div>
         </>

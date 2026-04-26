@@ -6,9 +6,11 @@
  * Renders a saved visual editor block tree into HTML using the
  * {@see \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer} engine.
  * Resolves any `core/template-part` blocks in the tree inline (via the
- * shared {@see TemplatePartInliner}) so a single render pass produces
- * the final markup. Pass `:resolve-parts="false"` to opt out and render
- * the raw tree.
+ * shared {@see TemplatePartInliner}) and any `core/block`
+ * (synced-pattern) references via {@see PatternInliner} so a single
+ * render pass produces the final markup. Pass `:resolve-parts="false"`
+ * or `:resolve-patterns="false"` to opt out of either resolution step
+ * and render the raw tree.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditorRendererBlade
@@ -22,6 +24,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 
+use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCssProvider;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
@@ -47,19 +50,28 @@ class BlocksComponent extends Component
 	public function __construct(
 		protected BlockRenderer $renderer,
 		protected TemplatePartInliner $inliner,
+		protected PatternInliner $patternInliner,
 		protected GlobalStylesCssProvider $globalStyles,
 		protected GlobalStylesEmissionTracker $emissionTracker,
 		mixed $tree = null,
 		?string $defaultTheme = null,
 		bool $resolveParts = true,
+		bool $resolvePatterns = true,
 	) {
 		$this->defaultTheme = $defaultTheme;
 
 		$normalized = $this->normalizeTree( $tree );
 
-		$this->tree = $resolveParts
+		$resolved = $resolveParts
 			? $this->inliner->inline( $normalized, $defaultTheme )
 			: $normalized;
+
+		// Pattern inlining runs after template-part inlining so a part
+		// that itself contains a synced-pattern reference resolves in the
+		// same pass.
+		$this->tree = $resolvePatterns
+			? $this->patternInliner->inline( $resolved )
+			: $resolved;
 	}
 
 	public function render(): View

@@ -42,4 +42,13 @@ export type {
     TemplatePartResolutionError,
     TemplateRecord,
 } from './templateParts';
+export {
+    DEFAULT_MAX_PATTERN_DEPTH,
+    inlinePatterns,
+} from './patterns';
+export type {
+    InlinePatternsOptions,
+    PatternRecord,
+    PatternResolutionError,
+} from './patterns';
 export type { Block, BlockRenderer, BlockRendererProps } from './types';
