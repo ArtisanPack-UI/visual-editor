@@ -23,6 +23,8 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
+use ArtisanPackUI\VisualEditor\Services\GlobalStylesCssProvider;
+use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
@@ -36,13 +38,23 @@ class BlocksComponent extends Component
 	 */
 	public array $tree;
 
+	/**
+	 * Theme slug forwarded to the global-styles provider so a block tree
+	 * rendered against a non-default theme picks up that theme's record.
+	 */
+	protected ?string $defaultTheme;
+
 	public function __construct(
 		protected BlockRenderer $renderer,
 		protected TemplatePartInliner $inliner,
+		protected GlobalStylesCssProvider $globalStyles,
+		protected GlobalStylesEmissionTracker $emissionTracker,
 		mixed $tree = null,
 		?string $defaultTheme = null,
 		bool $resolveParts = true,
 	) {
+		$this->defaultTheme = $defaultTheme;
+
 		$normalized = $this->normalizeTree( $tree );
 
 		$this->tree = $resolveParts
@@ -53,8 +65,28 @@ class BlocksComponent extends Component
 	public function render(): View
 	{
 		return view( 'visual-editor-renderer-blade::components.blocks', [
-			'html' => $this->renderer->render( $this->tree ),
+			'html'            => $this->renderer->render( $this->tree ),
+			'globalStylesCss' => $this->resolveGlobalStylesCss(),
 		] );
+	}
+
+	/**
+	 * Returns the compiled global-styles CSS the first time a renderer
+	 * fires in the current request, then null on every subsequent call —
+	 * so a page with multiple `<x-ve-blocks>` / `<x-ve-template>`
+	 * instances emits the `<style>` block exactly once.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function resolveGlobalStylesCss(): ?string
+	{
+		if ( $this->emissionTracker->hasEmitted() ) {
+			return null;
+		}
+
+		$this->emissionTracker->markEmitted();
+
+		return $this->globalStyles->css( $this->defaultTheme );
 	}
 
 	/**

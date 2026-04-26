@@ -21,6 +21,7 @@
 import { Fragment, computed, defineComponent, h } from 'vue';
 import type { PropType, VNode } from 'vue';
 import { DynamicBlock } from './DynamicBlock';
+import { GlobalStyles } from './GlobalStyles';
 import { UnknownBlock } from './blocks/unknownBlock';
 import { getBlockRenderer } from './registry';
 import {
@@ -39,6 +40,13 @@ export interface BlockTreeProps {
     templateParts?: TemplatePartRecord[];
     defaultTheme?: string;
     maxTemplatePartDepth?: number;
+    /**
+     * Compiled global-styles CSS — same string the PHP
+     * `GlobalStylesCssProvider` emits on Blade pages. When supplied,
+     * `BlockTree` injects it as a `<style>` tag inside the rendered
+     * fragment so the Vue-rendered page matches the canvas.
+     */
+    globalStylesCss?: string | null;
 }
 
 export const BlockTree = defineComponent({
@@ -68,6 +76,10 @@ export const BlockTree = defineComponent({
             type: Number,
             default: DEFAULT_MAX_TEMPLATE_PART_DEPTH,
         },
+        globalStylesCss: {
+            type: String as PropType<string | null | undefined>,
+            default: null,
+        },
     },
     setup(props) {
         const blocks = computed(() => {
@@ -91,9 +103,16 @@ export const BlockTree = defineComponent({
 
         return () => {
             const endpoint = props.dynamicBlockEndpoint ?? DEFAULT_ENDPOINT;
-            const children = blocks.value
+            const children: VNode[] = [];
+
+            const styleNode = h(GlobalStyles, { css: props.globalStylesCss });
+
+            children.push(styleNode);
+
+            blocks.value
                 .map((block, index) => renderBlock(block, index, endpoint, props.fetchOptions))
-                .filter((vnode): vnode is VNode => vnode !== null);
+                .filter((vnode): vnode is VNode => vnode !== null)
+                .forEach((vnode) => children.push(vnode));
 
             return h(Fragment, null, children);
         };

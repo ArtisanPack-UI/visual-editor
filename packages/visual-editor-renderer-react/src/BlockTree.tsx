@@ -21,6 +21,7 @@
 import { Fragment, useMemo } from 'react';
 import type { ReactElement, ReactNode } from 'react';
 import { DynamicBlock } from './DynamicBlock';
+import { GlobalStyles } from './GlobalStyles';
 import { UnknownBlock } from './blocks/unknownBlock';
 import { getBlockRenderer } from './registry';
 import {
@@ -39,6 +40,13 @@ export interface BlockTreeProps {
     templateParts?: TemplatePartRecord[];
     defaultTheme?: string;
     maxTemplatePartDepth?: number;
+    /**
+     * Compiled global-styles CSS — same string the PHP
+     * `GlobalStylesCssProvider` emits on Blade pages. When supplied,
+     * `BlockTree` injects it as a `<style>` tag inside the rendered
+     * fragment so the React-rendered page matches the canvas.
+     */
+    globalStylesCss?: string | null;
 }
 
 export function BlockTree({
@@ -48,6 +56,7 @@ export function BlockTree({
     templateParts,
     defaultTheme,
     maxTemplatePartDepth = DEFAULT_MAX_TEMPLATE_PART_DEPTH,
+    globalStylesCss,
 }: BlockTreeProps): ReactElement {
     const blocks = useMemo(() => {
         const normalized = normalizeTree(tree);
@@ -70,6 +79,7 @@ export function BlockTree({
 
     return (
         <>
+            <GlobalStyles css={globalStylesCss} />
             {blocks.map((block, index) =>
                 renderBlock(block, index, dynamicBlockEndpoint, fetchOptions)
             )}

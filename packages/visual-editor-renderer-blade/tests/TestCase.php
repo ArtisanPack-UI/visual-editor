@@ -66,4 +66,21 @@ abstract class TestCase extends BaseTestCase
 
 		return trim( $attrCollapsed );
 	}
+
+	/**
+	 * Strips the auto-emitted `<style data-ve-global-styles>...</style>`
+	 * block so existing block-output assertions can compare against the
+	 * actual block HTML without dragging in the global-styles CSS.
+	 * Tests that exercise the emission itself should not call this.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function stripGlobalStyles( string $html ): string
+	{
+		return (string) preg_replace(
+			'#<style data-ve-global-styles>.*?</style>#s',
+			'',
+			$html
+		);
+	}
 }
