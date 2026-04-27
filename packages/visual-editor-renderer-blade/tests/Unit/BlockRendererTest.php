@@ -450,12 +450,23 @@ it( 'generates stable unique ids for multiple search blocks on the same page', f
 	expect( $m[1][0] )->not->toBe( $m[1][1] );
 } );
 
-it( 'uses an empty button label when buttonUseIcon is true', function () {
+it( 'renders an icon-only submit button with accessible name when buttonUseIcon is true', function () {
 	$tree = [ makeBlock( 'core/search', [ 'buttonText' => 'Go', 'buttonUseIcon' => true ] ) ];
 
 	$html = makeRenderer()->render( $tree );
 
-	expect( $html )->toContain( '<button type="submit" class="wp-block-search__button"></button>' );
+	expect( $html )->toContain( 'class="wp-block-search__button has-icon"' )
+		->toContain( 'aria-label="Go"' )
+		->toContain( '<svg class="wp-block-search__button-icon"' )
+		->not->toContain( '<button type="submit" class="wp-block-search__button"></button>' );
+} );
+
+it( 'falls back to label when buttonText is empty and buttonUseIcon is true', function () {
+	$tree = [ makeBlock( 'core/search', [ 'label' => 'Find stuff', 'buttonText' => '', 'buttonUseIcon' => true ] ) ];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'aria-label="Find stuff"' );
 } );
 
 it( 'preserves fractional column widths', function () {

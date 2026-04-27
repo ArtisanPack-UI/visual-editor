@@ -551,10 +551,27 @@ describe('Core design blocks', () => {
         expect(ids[0]).not.toBe(ids[1]);
     });
 
-    it('uses an empty button label when buttonUseIcon is true', () => {
+    it('renders an icon-only submit button with accessible name when buttonUseIcon is true', () => {
         const tree = [makeBlock('core/search', { buttonText: 'Go', buttonUseIcon: true })];
 
-        expect(renderTree(tree)).toContain('<button type="submit" class="wp-block-search__button"></button>');
+        const html = renderTree(tree);
+
+        expect(html).toContain('class="wp-block-search__button has-icon"');
+        expect(html).toContain('aria-label="Go"');
+        expect(html).toContain('<svg class="wp-block-search__button-icon"');
+        expect(html).not.toContain('<button type="submit" class="wp-block-search__button"></button>');
+    });
+
+    it('falls back to label when buttonText is empty and buttonUseIcon is true', () => {
+        const tree = [
+            makeBlock('core/search', {
+                label: 'Find stuff',
+                buttonText: '',
+                buttonUseIcon: true,
+            }),
+        ];
+
+        expect(renderTree(tree)).toContain('aria-label="Find stuff"');
     });
 
     it('renders the artisanpack/callout reference block', () => {
