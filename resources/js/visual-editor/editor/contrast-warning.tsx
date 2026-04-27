@@ -231,13 +231,19 @@ export function ContrastWarning(props: ContrastWarningProps): JSX.Element | null
         return null;
     }
 
+    // `toFixed(2)` rounds half-up, so a failing ratio like 4.499 would
+    // render as "4.50:1" — visually equal to the 4.5:1 threshold quoted
+    // in the same sentence. Truncate toward zero instead so the
+    // displayed value is always strictly below the WCAG line for any
+    // ratio that actually failed the check.
+    const truncatedRatio = Math.floor(evaluation.ratio * 100) / 100;
     const message = sprintf(
         // translators: %s is the calculated contrast ratio (e.g. "3.21").
         __(
             'This color combination may be hard to read. Contrast ratio is %s:1; WCAG AA requires at least 4.5:1 for normal text.',
             TEXT_DOMAIN
         ),
-        evaluation.ratio.toFixed(2)
+        truncatedRatio.toFixed(2)
     );
 
     // The fill is dropped into Gutenberg's color `ToolsPanel`, which lays

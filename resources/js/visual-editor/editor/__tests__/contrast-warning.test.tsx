@@ -253,6 +253,35 @@ describe('<ContrastWarning />', () => {
         );
     });
 
+    it('truncates the displayed ratio rather than rounding it up', async () => {
+        // #777777 on #ffffff produces a ratio of ~4.4781. The
+        // regression we're guarding against is `toFixed(2)` rounding
+        // failing ratios upward — here it would render "4.48", which
+        // is fine for this exact pair but telegraphs the rounding
+        // direction. Truncation locks the displayed value strictly
+        // below the actual ratio so no failing ratio can ever read
+        // ≥ 4.50:1 in the warning.
+        mockSettings = {
+            colors: [
+                { slug: 'fg', color: '#777777' },
+                { slug: 'bg', color: '#ffffff' },
+            ],
+        };
+
+        const { ContrastWarning } = await import('../contrast-warning');
+
+        render(
+            <ContrastWarning
+                attributes={{ textColor: 'fg', backgroundColor: 'bg' }}
+            />
+        );
+
+        const notice = screen.getByTestId('notice');
+        // Truncated value for ratio 4.4781 is 4.47, not 4.48.
+        expect(notice.textContent).toContain('4.47:1');
+        expect(notice.textContent).not.toContain('4.50:1');
+    });
+
     it('renders nothing when contrast passes', async () => {
         mockSettings = {
             colors: [
