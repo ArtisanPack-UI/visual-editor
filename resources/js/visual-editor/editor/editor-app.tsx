@@ -42,6 +42,7 @@ import {
 } from '../media-bridge';
 
 import { BlockLibrarySidebar } from './block-library-sidebar';
+import { registerContrastWarning } from './contrast-warning';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
 import { discoverAndRegisterCustomBlocks } from './custom-blocks';
 import { registerSyncedPatternIndicator } from './synced-pattern-indicator';
@@ -151,6 +152,11 @@ function registerOnce(): void {
     // reaches every block as it registers. Doing it after would leave
     // already-registered blocks with the default (buggy) checker on.
     disableContrastCheckerOnBlocks();
+    // Replace the disabled upstream checker with our attribute-driven
+    // implementation (#348). Registers an `editor.BlockEdit` HOC, so it
+    // also belongs before `registerCoreBlocks` to wrap every block at
+    // first render rather than retroactively.
+    registerContrastWarning();
     // Register D5's synced-pattern indicator filter pre-`registerCoreBlocks`
     // for the same reason — the wrapper sees `core/block` once the
     // block registers and applies the badge from then on.
