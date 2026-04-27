@@ -47,12 +47,20 @@ return [
 	| always-applied deny-list. The deny-list wins when both are set. Use
 	| fully-qualified block names (e.g. `core/paragraph`, `core/query`).
 	|
-	| The frozen V1 defaults follow the M5 block-library audit
-	| (see docs/block-library-audit.md). Only blocks that render correctly
-	| against the empty-state @wordpress/core-data shim are enabled; every
-	| block that needs a real Laravel-backed core store — navigation, query,
-	| post-*, site-*, template-part, taxonomy widgets — is disabled until
-	| the artisanpack-ui/cms-framework package replaces the shim.
+	| The V1 defaults follow the M5 block-library audit
+	| (see docs/block-library-audit.md), updated by E4 (#381). The
+	| allow-list now includes the entity-scoped blocks that B1's expanded
+	| `core-data` shim plus the C1–C5 REST surface can round-trip:
+	| `core/template-part`, `core/post-*`, `core/site-*`, and
+	| `core/navigation`. The deny-list still removes the loop / feed
+	| widgets (`core/query`, `core/latest-comments`, `core/archives`,
+	| `core/categories`, `core/tag-cloud`) — they need a real loop runtime
+	| and term/comment endpoints that the shim does not implement, and
+	| stay deferred until V2 (`artisanpack-ui/cms-framework`) and V1.1+
+	| respectively. Keep the JS-side mirror in
+	| `resources/js/visual-editor/site-editor/site-editor-app.tsx`
+	| (`D2_DISABLED_BLOCKS`) in sync with the deny-list — the two lists
+	| want to agree.
 	|
 	*/
 
@@ -84,27 +92,40 @@ return [
 		'core/details',
 		'core/search',
 		'core/latest-posts',
-		'artisanpack/callout',
-	],
-
-	'disabled_blocks' => [
-		// `core/navigation` is enabled by D4 — its editor experience is
-		// backed by the `wp_navigation` shim entity (B1) plus the C4
-		// REST surface, so the block's link-control picker and inner
-		// blocks both round-trip cleanly. The JS-side mirror in
-		// site-editor-app.tsx is updated alongside this entry.
-		'core/query',
-		'core/query-loop',
-		'core/post-content',
+		// E4 — re-enabled on the back of B1's expanded core-data shim
+		// and the C1–C5 REST surface. Each block has a renderer in
+		// every renderer package (Blade / React / Vue) and round-trips
+		// against the empty-state shim without crashing. See
+		// docs/block-library-audit.md for the per-block notes.
+		'core/template-part',
 		'core/post-title',
+		'core/post-content',
 		'core/post-excerpt',
 		'core/post-date',
 		'core/post-author',
 		'core/post-featured-image',
-		'core/site-logo',
 		'core/site-title',
 		'core/site-tagline',
-		'core/template-part',
+		'core/site-logo',
+		'core/navigation',
+		'artisanpack/callout',
+	],
+
+	'disabled_blocks' => [
+		// `core/navigation` was enabled by D4 and stays enabled in E4.
+		// `core/template-part`, `core/post-*`, and `core/site-*` are
+		// promoted to the allow-list above by E4 (#381). The blocks
+		// listed here remain deliberately deferred:
+		//
+		//  - core/query / core/query-loop need a real loop runtime
+		//    (V2 — `artisanpack-ui/cms-framework`).
+		//  - The taxonomy/feed widgets need term + comment endpoints
+		//    that the shim does not implement (V1.1+).
+		//
+		// The JS-side mirror in site-editor-app.tsx is updated
+		// alongside this entry.
+		'core/query',
+		'core/query-loop',
 		'core/latest-comments',
 		'core/archives',
 		'core/categories',

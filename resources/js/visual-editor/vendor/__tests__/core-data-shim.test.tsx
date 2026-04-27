@@ -180,6 +180,28 @@ describe('core-data-shim record cache', () => {
         expect(coreSelect().getUsers()).toEqual([]);
     });
 
+    it('returns a synthetic theme record for getCurrentTheme', () => {
+        const theme = coreSelect().getCurrentTheme();
+
+        expect(theme).toMatchObject({
+            stylesheet: 'artisanpack-base',
+            template: 'artisanpack-base',
+            is_block_theme: true,
+        });
+    });
+
+    it('returns null from getPostType to keep post-* edit components quiet', () => {
+        expect(coreSelect().getPostType('post')).toBeNull();
+    });
+
+    it('returns an empty themeSupports object', () => {
+        expect(coreSelect().getThemeSupports()).toEqual({});
+    });
+
+    it('exposes getNavigationFallbackId as a no-op selector', () => {
+        expect(coreSelect().getNavigationFallbackId()).toBeUndefined();
+    });
+
     it('reports resolution as finished and not in-flight by default', () => {
         expect(
             coreSelect().hasFinishedResolution('getEntityRecord', [

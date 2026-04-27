@@ -274,6 +274,15 @@ export function __resetCoreDataShimConfig(): void {
 const STORE_NAME = 'core';
 const EMPTY_RECORDS: readonly never[] = Object.freeze([]);
 
+const CURRENT_THEME_STUB: EntityRecord = Object.freeze({
+    stylesheet: 'artisanpack-base',
+    template: 'artisanpack-base',
+    name: 'ArtisanPack Base',
+    is_block_theme: true,
+});
+
+const EMPTY_THEME_SUPPORTS: EntityRecord = Object.freeze({});
+
 function entityKey(kind: EntityKind, name: EntityName): string {
     return `${kind}|${name}`;
 }
@@ -952,6 +961,30 @@ const selectors = {
     getAutosaves: (): readonly EntityRecord[] => EMPTY_RECORDS,
     getAutosave: (): EntityRecord | null => null,
     getReferenceByDistinctEdits: (): readonly number[] => EMPTY_RECORDS,
+
+    // E4 stubs — synthetic theme + post-type records returned to the
+    // template-part / post-* / site-* edit components so their
+    // `select(coreStore).getCurrentTheme()` / `getPostType()` calls
+    // don't throw against the empty-state shim. The theme value
+    // matches `config('artisanpack.visual-editor.global_styles.theme')`'s
+    // default ('artisanpack-base'); Phase C of cms-framework will
+    // replace these with a real backend that resolves the active
+    // theme and full post-type schema.
+    getCurrentTheme: (): EntityRecord => CURRENT_THEME_STUB,
+    getThemeSupports: (): EntityRecord => EMPTY_THEME_SUPPORTS,
+    getPostType: (): EntityRecord | null => null,
+
+    // Upstream `@wordpress/core-data` registers this as a private
+    // selector, so `core/navigation`'s edit reaches it through
+    // `unlock( useSelect( coreStore ) )`. `@wordpress/data` locks the
+    // store's selectors object with a merged public+private map; when
+    // we never register any private selectors that merged map is just
+    // the public selectors. Exposing it here lets the unlock call fall
+    // through to a no-op without us depending on `@wordpress/private-apis`
+    // (whose lock/unlock symbol identity is fragile across module
+    // copies in a mixed `node_modules` tree). Returning `undefined`
+    // routes the block to its uncontrolled-inner-blocks fallback path.
+    getNavigationFallbackId: (): EntityKey | undefined => undefined,
 };
 
 // ---------------------------------------------------------------------------

@@ -39,6 +39,20 @@ import {
     ImageBlock,
     VideoBlock,
 } from './core/media';
+import {
+    NavigationBlock,
+    NavigationLinkBlock,
+    NavigationSubmenuBlock,
+} from './core/navigation';
+import {
+    PostAuthorBlock,
+    PostContentBlock,
+    PostDateBlock,
+    PostExcerptBlock,
+    PostFeaturedImageBlock,
+    PostTitleBlock,
+} from './core/postContext';
+import { SiteLogoBlock, SiteTaglineBlock, SiteTitleBlock } from './core/siteContext';
 import { SyncedPatternBlock } from './core/syncedPattern';
 import { TemplatePartBlock } from './core/templatePart';
 import {
@@ -86,6 +100,18 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/spacer': SpacerBlock,
     'core/template-part': TemplatePartBlock,
     'core/block': SyncedPatternBlock,
+    'core/post-title': PostTitleBlock,
+    'core/post-content': PostContentBlock,
+    'core/post-excerpt': PostExcerptBlock,
+    'core/post-date': PostDateBlock,
+    'core/post-author': PostAuthorBlock,
+    'core/post-featured-image': PostFeaturedImageBlock,
+    'core/site-title': SiteTitleBlock,
+    'core/site-tagline': SiteTaglineBlock,
+    'core/site-logo': SiteLogoBlock,
+    'core/navigation': NavigationBlock,
+    'core/navigation-link': NavigationLinkBlock,
+    'core/navigation-submenu': NavigationSubmenuBlock,
     'artisanpack/callout': CalloutBlock,
 };
 

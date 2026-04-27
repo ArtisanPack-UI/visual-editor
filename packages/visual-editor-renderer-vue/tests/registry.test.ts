@@ -63,6 +63,27 @@ describe('registerBlockRenderer', () => {
         expect(names).toContain('core/separator');
     });
 
+    it('registers every E4 post-, site-, and navigation block', () => {
+        const names = getRegisteredBlockNames();
+
+        for (const block of [
+            'core/post-title',
+            'core/post-content',
+            'core/post-excerpt',
+            'core/post-date',
+            'core/post-author',
+            'core/post-featured-image',
+            'core/site-title',
+            'core/site-tagline',
+            'core/site-logo',
+            'core/navigation',
+            'core/navigation-link',
+            'core/navigation-submenu',
+        ]) {
+            expect(names).toContain(block);
+        }
+    });
+
     it('allows unregistering a renderer', () => {
         registerBlockRenderer('acme/temp', noopRenderer);
         expect(hasBlockRenderer('acme/temp')).toBe(true);
