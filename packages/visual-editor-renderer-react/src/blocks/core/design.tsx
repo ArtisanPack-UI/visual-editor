@@ -224,13 +224,24 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
     const buttonText = attrString(attributes.buttonText, 'Search');
     const useIcon = attrBoolean(attributes.buttonUseIcon);
     const queryName = attrString(attrRecord(attributes.query).name, 's');
-    const buttonLabel = useIcon ? '' : buttonText;
     const className = attrString(attributes.className);
+
+    const ariaLabel =
+        buttonText.trim() !== ''
+            ? buttonText
+            : label.trim() !== ''
+            ? label
+            : 'Search';
 
     const classes = classList([
         'wp-block-search',
         !showLabel ? 'wp-block-search__button-inside' : null,
         className,
+    ]);
+
+    const buttonClasses = classList([
+        'wp-block-search__button',
+        useIcon ? 'has-icon' : null,
     ]);
 
     const inputId = `wp-block-search-input-${useId().replace(/[^a-zA-Z0-9_-]/g, '')}`;
@@ -250,9 +261,25 @@ export function SearchBlock({ attributes }: BlockRendererProps): JSX.Element {
                     name={queryName}
                     placeholder={placeholder === '' ? undefined : placeholder}
                 />
-                <button type="submit" className="wp-block-search__button">
-                    {buttonLabel}
-                </button>
+                {useIcon ? (
+                    <button type="submit" className={buttonClasses} aria-label={ariaLabel}>
+                        <svg
+                            className="wp-block-search__button-icon"
+                            xmlns="http://www.w3.org/2000/svg"
+                            viewBox="0 0 24 24"
+                            width="24"
+                            height="24"
+                            aria-hidden="true"
+                            focusable="false"
+                        >
+                            <path d="M13.5 6C10.5 6 8 8.5 8 11.5c0 1.1.3 2.1.9 3l-3.4 3 1 1.1 3.4-3c1 .9 2.2 1.4 3.6 1.4 3 0 5.5-2.5 5.5-5.5C19 8.5 16.5 6 13.5 6zm0 9.5c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z"></path>
+                        </svg>
+                    </button>
+                ) : (
+                    <button type="submit" className={buttonClasses}>
+                        {buttonText}
+                    </button>
+                )}
             </div>
         </form>
     );
