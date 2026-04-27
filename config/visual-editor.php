@@ -47,12 +47,20 @@ return [
 	| always-applied deny-list. The deny-list wins when both are set. Use
 	| fully-qualified block names (e.g. `core/paragraph`, `core/query`).
 	|
-	| The frozen V1 defaults follow the M5 block-library audit
-	| (see docs/block-library-audit.md). Only blocks that render correctly
-	| against the empty-state @wordpress/core-data shim are enabled; every
-	| block that needs a real Laravel-backed core store — navigation, query,
-	| post-*, site-*, template-part, taxonomy widgets — is disabled until
-	| the artisanpack-ui/cms-framework package replaces the shim.
+	| The V1 defaults follow the M5 block-library audit
+	| (see docs/block-library-audit.md), updated by E4 (#381). The
+	| allow-list now includes the entity-scoped blocks that B1's expanded
+	| `core-data` shim plus the C1–C5 REST surface can round-trip:
+	| `core/template-part`, `core/post-*`, `core/site-*`, and
+	| `core/navigation`. The deny-list still removes the loop / feed
+	| widgets (`core/query`, `core/latest-comments`, `core/archives`,
+	| `core/categories`, `core/tag-cloud`) — they need a real loop runtime
+	| and term/comment endpoints that the shim does not implement, and
+	| stay deferred until V2 (`artisanpack-ui/cms-framework`) and V1.1+
+	| respectively. Keep the JS-side mirror in
+	| `resources/js/visual-editor/site-editor/site-editor-app.tsx`
+	| (`D2_DISABLED_BLOCKS`) in sync with the deny-list — the two lists
+	| want to agree.
 	|
 	*/
 
