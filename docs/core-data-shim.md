@@ -34,10 +34,20 @@ The API base is configured at editor bootstrap with
 
 ## Selectors
 
-All selectors read from the Redux store — they never trigger fetches
-themselves. Fetches are thunk actions (`fetchEntityRecord`,
-`fetchEntityRecords`) the editor calls imperatively (or that upstream
-block-editor components call via their own resolvers).
+`getEntityRecord` and `getEntityRecords` are wired to resolvers that
+dispatch `fetchEntityRecord` / `fetchEntityRecords` on first read for
+each `(kind, name, id|query)` tuple (G0 / #395). Subsequent reads hit
+the cache. Resolution metadata is exposed via `@wordpress/data`'s
+auto-supplied `hasFinishedResolution(selectorName, args)` /
+`isResolving(selectorName, args)` selectors so consumers (the
+template-part placeholder picker, archives inserters, `core/post-*`
+edit components, etc.) can render real loading states.
+
+Other selectors read from the Redux store directly — they never
+trigger fetches. Imperative fetches via the thunk actions
+(`fetchEntityRecord`, `fetchEntityRecords`) remain available for
+callers that need to refresh a tuple outside the resolver lifecycle
+(saves, list invalidation, etc.).
 
 | Selector                                        | Returns                                   | Purpose                                                   |
 | ----------------------------------------------- | ----------------------------------------- | --------------------------------------------------------- |
@@ -59,14 +69,35 @@ block-editor components call via their own resolvers).
 | `__experimentalGetCurrentGlobalStylesId()`      | `EntityKey \| null`                       | Singleton global-styles record id.                        |
 | `__experimentalGlobalStylesBaseStyles()`        | `Record<string, unknown> \| null`         | theme.json-shaped base styles (schema + defaults).        |
 
+### Resolution-tracking selectors
+
+`hasFinishedResolution(selectorName, args)`, `hasStartedResolution`, and
+`isResolving(selectorName, args)` are auto-supplied by `@wordpress/data`
+once resolvers are registered (G0 / #395). For `getEntityRecord` /
+`getEntityRecords` / `getEditedEntityRecord` they reflect real fetch
+lifecycle state — first read flips `isResolving` to `true`, the
+resolver fetches, then `hasFinishedResolution` flips to `true` and the
+cache is populated. Selectors without a registered resolver
+(`getCurrentTheme`, `canUser`, etc.) report `hasFinishedResolution =
+false` indefinitely; callers that need a real "resolved" signal for
+those should not gate on it.
+
+### Permissions stubs
+
+`canUser(action, resource)` and `canUserEditEntityRecord` return
+`true` in the shim — the editor route is already gated by the
+package's auth middleware, so any user with editor access is treated
+as having full CRUD on the entities the editor manages. Real
+fine-grained permissions land in G5 (cms-framework #98); until then,
+do not use these selectors as a security boundary.
+
 ### Back-compat stubs
 
 `getCurrentUser`, `getUsers`, `getMedia`, `getMediaItems`,
-`hasFinishedResolution`, `hasStartedResolution`, `isResolving`,
-`canUser`, `canUserEditEntityRecord`, `getAutosaves`, `getAutosave`,
-and `getReferenceByDistinctEdits` retain the M2 stub behavior (always
-null / empty / resolved). Site-editor features that need real values
-here should land them in a dedicated follow-up, not B1.
+`getAutosaves`, `getAutosave`, and `getReferenceByDistinctEdits`
+retain the M2 stub behavior (always null / empty). Site-editor
+features that need real values here should land them in a dedicated
+follow-up.
 
 ## Actions + mutators
 
