@@ -34,10 +34,20 @@ The API base is configured at editor bootstrap with
 
 ## Selectors
 
-All selectors read from the Redux store — they never trigger fetches
-themselves. Fetches are thunk actions (`fetchEntityRecord`,
-`fetchEntityRecords`) the editor calls imperatively (or that upstream
-block-editor components call via their own resolvers).
+`getEntityRecord` and `getEntityRecords` are wired to resolvers that
+dispatch `fetchEntityRecord` / `fetchEntityRecords` on first read for
+each `(kind, name, id|query)` tuple (G0 / #395). Subsequent reads hit
+the cache. Resolution metadata is exposed via `@wordpress/data`'s
+auto-supplied `hasFinishedResolution(selectorName, args)` /
+`isResolving(selectorName, args)` selectors so consumers (the
+template-part placeholder picker, archives inserters, `core/post-*`
+edit components, etc.) can render real loading states.
+
+Other selectors read from the Redux store directly — they never
+trigger fetches. Imperative fetches via the thunk actions
+(`fetchEntityRecord`, `fetchEntityRecords`) remain available for
+callers that need to refresh a tuple outside the resolver lifecycle
+(saves, list invalidation, etc.).
 
 | Selector                                        | Returns                                   | Purpose                                                   |
 | ----------------------------------------------- | ----------------------------------------- | --------------------------------------------------------- |

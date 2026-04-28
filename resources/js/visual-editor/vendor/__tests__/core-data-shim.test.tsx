@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import { dispatch, select } from '@wordpress/data';
+import { act, render, screen } from '@testing-library/react';
+import { dispatch, resolveSelect, select } from '@wordpress/data';
 
 import {
     DEFAULT_ENTITIES,
@@ -23,9 +23,36 @@ type CoreDispatch = Record<string, (...args: unknown[]) => unknown>;
 
 const coreSelect = (): CoreSelect => select('core') as CoreSelect;
 const coreDispatch = (): CoreDispatch => dispatch('core') as CoreDispatch;
+const coreResolveSelect = (): Record<
+    string,
+    (...args: unknown[]) => Promise<unknown>
+> =>
+    resolveSelect('core') as Record<
+        string,
+        (...args: unknown[]) => Promise<unknown>
+    >;
 
-function resetStore(): void {
+async function resetStore(): Promise<void> {
+    // Drain in-flight resolvers from the previous test so their
+    // pending `receiveEntityRecords` dispatches don't land mid-reset.
+    // Replacing the fetcher with a fast-fail responder forces any
+    // outstanding `restRequest` awaits to resolve immediately; the
+    // 50ms macrotask wait then settles the resolver thunks (which
+    // chain through several microtasks) before we wipe state and
+    // resolution metadata.
+    configureCoreDataShim({
+        apiBase: '/_drain_',
+        fetcher: async () =>
+            new Response(null, {
+                status: 503,
+                headers: { 'Content-Type': 'application/json' },
+            }),
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
     coreDispatch().reset();
+    coreDispatch().invalidateResolutionForStore();
 }
 
 function mockFetcher(
@@ -51,13 +78,13 @@ function jsonResponse(body: unknown, status = 200): Response {
     });
 }
 
-beforeEach(() => {
-    resetStore();
+beforeEach(async () => {
+    await resetStore();
     __resetCoreDataShimConfig();
 });
 
-afterEach(() => {
-    resetStore();
+afterEach(async () => {
+    await resetStore();
     __resetCoreDataShimConfig();
 });
 
@@ -202,14 +229,17 @@ describe('core-data-shim record cache', () => {
         expect(coreSelect().getNavigationFallbackId()).toBeUndefined();
     });
 
-    it('reports resolution as finished and not in-flight by default', () => {
+    it('reports resolution as not-yet-started for an unread entity tuple', () => {
+        // G0 (#395) wires resolvers for `getEntityRecord` /
+        // `getEntityRecords`. Before a tuple has been read, no
+        // resolver has fired, so `hasFinishedResolution` is false.
         expect(
             coreSelect().hasFinishedResolution('getEntityRecord', [
                 'postType',
                 'wp_template',
                 1,
             ]),
-        ).toBe(true);
+        ).toBe(false);
         expect(
             coreSelect().isResolving('getEntityRecord', [
                 'postType',
@@ -370,6 +400,186 @@ describe('core-data-shim fetch → cache', () => {
 
         expect(record).toBeNull();
         expect(calls).toHaveLength(0);
+    });
+});
+
+describe('core-data-shim resolver auto-resolution', () => {
+    it('resolves getEntityRecord by triggering fetchEntityRecord on first read', async () => {
+        const { fetcher, calls } = mockFetcher(async () =>
+            jsonResponse({ id: 9, slug: 'home' }),
+        );
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        const record = await coreResolveSelect().getEntityRecord(
+            'postType',
+            'wp_template',
+            9,
+        );
+
+        expect(record).toEqual({ id: 9, slug: 'home' });
+        expect(calls).toHaveLength(1);
+        expect(calls[0]?.url).toBe('/api/templates/9');
+        expect(
+            coreSelect().hasFinishedResolution('getEntityRecord', [
+                'postType',
+                'wp_template',
+                9,
+            ]),
+        ).toBe(true);
+    });
+
+    it('resolves getEntityRecords by triggering fetchEntityRecords on first read', async () => {
+        const { fetcher, calls } = mockFetcher(async () =>
+            jsonResponse([
+                { id: 1, slug: 'header' },
+                { id: 2, slug: 'footer' },
+            ]),
+        );
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        const records = await coreResolveSelect().getEntityRecords(
+            'postType',
+            'wp_template_part',
+            null,
+        );
+
+        expect(records).toHaveLength(2);
+        expect(calls).toHaveLength(1);
+        expect(calls[0]?.url).toBe('/api/template-parts');
+        expect(
+            coreSelect().hasFinishedResolution('getEntityRecords', [
+                'postType',
+                'wp_template_part',
+                null,
+            ]),
+        ).toBe(true);
+    });
+
+    it('does not refetch a resolved tuple on subsequent reads', async () => {
+        const { fetcher, calls } = mockFetcher(async () =>
+            jsonResponse({ id: 11, slug: 'page' }),
+        );
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        await coreResolveSelect().getEntityRecord(
+            'postType',
+            'wp_template',
+            11,
+        );
+        await coreResolveSelect().getEntityRecord(
+            'postType',
+            'wp_template',
+            11,
+        );
+
+        expect(calls).toHaveLength(1);
+    });
+
+    it('keeps an empty cache when the resolver hits a 404', async () => {
+        const { fetcher } = mockFetcher(async () => jsonResponse({}, 404));
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        const records = await coreResolveSelect().getEntityRecords(
+            'postType',
+            'wp_navigation',
+            null,
+        );
+
+        expect(records).toEqual([]);
+        expect(
+            coreSelect().hasFinishedResolution('getEntityRecords', [
+                'postType',
+                'wp_navigation',
+                null,
+            ]),
+        ).toBe(true);
+    });
+
+    it('resolves a composite <theme>//<slug> id via the index endpoint', async () => {
+        // Block-library reads `getEntityRecord(kind, 'wp_template_part',
+        // '<theme>//<slug>')` for saved template-part references. Our
+        // REST `show` route only accepts numeric ids, so the resolver
+        // falls back to listing the index filtered by theme+slug.
+        const { fetcher, calls } = mockFetcher(async () =>
+            jsonResponse({
+                data: [
+                    {
+                        id: 1,
+                        slug: 'footer',
+                        theme: 'artisanpack-base',
+                        title: { rendered: 'Footer' },
+                        content: { raw: '<!-- wp:paragraph -->', blocks: [] },
+                    },
+                ],
+                meta: { total: 1, last_page: 1 },
+            }),
+        );
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        const record = await coreResolveSelect().getEntityRecord(
+            'postType',
+            'wp_template_part',
+            'artisanpack-base//footer',
+        );
+
+        expect(record).toMatchObject({ id: 1, slug: 'footer' });
+        expect(calls).toHaveLength(1);
+        expect(calls[0]?.url).toBe(
+            '/api/template-parts?theme=artisanpack-base&slug=footer',
+        );
+        // Both the numeric id and the composite key resolve to the
+        // same record so subsequent reads hit the cache regardless of
+        // which form the caller uses.
+        expect(
+            coreSelect().getEntityRecord('postType', 'wp_template_part', 1),
+        ).toMatchObject({ id: 1, slug: 'footer' });
+        expect(
+            coreSelect().getEntityRecord(
+                'postType',
+                'wp_template_part',
+                'artisanpack-base//footer',
+            ),
+        ).toMatchObject({ id: 1, slug: 'footer' });
+    });
+
+    it('resolves getEditedEntityRecord through the same fetch path', async () => {
+        const { fetcher, calls } = mockFetcher(async () =>
+            jsonResponse({
+                data: [
+                    {
+                        id: 2,
+                        slug: 'header',
+                        theme: 'artisanpack-base',
+                        title: { rendered: 'Header' },
+                        content: { raw: '<!-- wp:site-title /-->', blocks: [] },
+                    },
+                ],
+                meta: { total: 1, last_page: 1 },
+            }),
+        );
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        const record = await coreResolveSelect().getEditedEntityRecord(
+            'postType',
+            'wp_template_part',
+            'artisanpack-base//header',
+        );
+
+        expect(record).toMatchObject({ id: 2, slug: 'header' });
+        expect(calls).toHaveLength(1);
+        expect(
+            coreSelect().hasFinishedResolution('getEditedEntityRecord', [
+                'postType',
+                'wp_template_part',
+                'artisanpack-base//header',
+            ]),
+        ).toBe(true);
     });
 });
 
@@ -780,6 +990,56 @@ describe('core-data-shim hooks', () => {
         expect(blocks[0]).toMatchObject({ name: 'core/paragraph' });
     });
 
+    it('useEntityBlockEditor decorates server blocks with clientId / isValid', () => {
+        // Block-editor's `useInnerBlocksProps` rejects blocks that
+        // lack a `clientId`; the shim's REST envelope ships only
+        // `{name, attributes, innerBlocks}` so the hook must decorate
+        // each block before handing them off (#395).
+        coreDispatch().receiveEntityRecords('postType', 'wp_template_part', [
+            {
+                id: 1,
+                slug: 'footer',
+                theme: 'artisanpack-base',
+                content: {
+                    raw: '<!-- wp:group -->',
+                    blocks: [
+                        {
+                            name: 'core/group',
+                            attributes: { tagName: 'footer' },
+                            innerBlocks: [
+                                {
+                                    name: 'core/paragraph',
+                                    attributes: { content: 'Hi' },
+                                    innerBlocks: [],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            },
+        ]);
+
+        const [blocks] = renderHook(() =>
+            useEntityBlockEditor('postType', 'wp_template_part', { id: 1 }),
+        ) as readonly Array<{
+            name: string;
+            clientId: string;
+            isValid: true;
+            attributes: Record<string, unknown>;
+            innerBlocks: ReadonlyArray<{ name: string; clientId: string }>;
+        }>;
+
+        expect(blocks).toHaveLength(1);
+        expect(blocks[0].name).toBe('core/group');
+        expect(blocks[0].isValid).toBe(true);
+        expect(typeof blocks[0].clientId).toBe('string');
+        expect(blocks[0].clientId.length).toBeGreaterThan(0);
+        expect(blocks[0].attributes).toEqual({ tagName: 'footer' });
+        expect(blocks[0].innerBlocks).toHaveLength(1);
+        expect(blocks[0].innerBlocks[0].name).toBe('core/paragraph');
+        expect(typeof blocks[0].innerBlocks[0].clientId).toBe('string');
+    });
+
     it('flattens {raw, rendered} fields on getRawEntityRecord and getEditedEntityRecord', () => {
         coreDispatch().receiveEntityRecords('postType', 'wp_block', [
             {
@@ -812,6 +1072,39 @@ describe('core-data-shim hooks', () => {
         ) as { title?: unknown };
 
         expect(edited.title).toBe('Flatten Me');
+    });
+
+    it('useEntityRecords surfaces the list-cache and resolves through fetchEntityRecords', async () => {
+        const { fetcher, calls } = mockFetcher(async () =>
+            jsonResponse([
+                { id: 1, slug: 'header', title: 'Header' },
+                { id: 2, slug: 'footer', title: 'Footer' },
+            ]),
+        );
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        const initial = renderHook(() =>
+            useEntityRecords('postType', 'wp_template_part', null),
+        );
+
+        expect(initial.records).toEqual([]);
+        expect(initial.hasResolved).toBe(false);
+
+        // Wait for the resolver thunk + receive dispatch to settle.
+        await act(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+        });
+
+        const settled = renderHook(() =>
+            useEntityRecords('postType', 'wp_template_part', null),
+        );
+
+        expect(calls).toHaveLength(1);
+        expect(calls[0]?.url).toBe('/api/template-parts');
+        expect(settled.records).toHaveLength(2);
+        expect(settled.hasResolved).toBe(true);
+        expect(settled.totalItems).toBe(2);
     });
 
     it('useEntityRecord starts unresolved when it has to fetch a missing record', () => {
