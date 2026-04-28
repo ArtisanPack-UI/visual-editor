@@ -581,6 +581,79 @@ describe('core-data-shim resolver auto-resolution', () => {
             ]),
         ).toBe(true);
     });
+
+    it('does not double-count composite-aliased records in list selectors', () => {
+        // Records with theme+slug are mirrored under a `<theme>//<slug>`
+        // alias for upstream lookups, but the alias must not show up as
+        // a separate item in `getEntityRecords` / totals — otherwise
+        // pickers would render duplicates.
+        coreDispatch().receiveEntityRecords('postType', 'wp_template_part', [
+            {
+                id: 1,
+                slug: 'footer',
+                theme: 'artisanpack-base',
+                title: { rendered: 'Footer' },
+            },
+            {
+                id: 2,
+                slug: 'header',
+                theme: 'artisanpack-base',
+                title: { rendered: 'Header' },
+            },
+        ]);
+
+        // Composite lookups still resolve.
+        expect(
+            coreSelect().getEntityRecord(
+                'postType',
+                'wp_template_part',
+                'artisanpack-base//footer',
+            ),
+        ).toMatchObject({ id: 1, slug: 'footer' });
+
+        // List + total reflect only primaries.
+        expect(
+            coreSelect().getEntityRecords('postType', 'wp_template_part'),
+        ).toHaveLength(2);
+        expect(
+            coreSelect().getEntityRecordsTotalItems(
+                'postType',
+                'wp_template_part',
+            ),
+        ).toBe(2);
+    });
+
+    it('drops composite aliases when the primary record is removed', () => {
+        coreDispatch().receiveEntityRecords('postType', 'wp_template_part', [
+            {
+                id: 1,
+                slug: 'footer',
+                theme: 'artisanpack-base',
+                title: { rendered: 'Footer' },
+            },
+        ]);
+
+        expect(
+            coreSelect().getEntityRecord(
+                'postType',
+                'wp_template_part',
+                'artisanpack-base//footer',
+            ),
+        ).toMatchObject({ id: 1 });
+
+        coreDispatch().removeEntityRecord('postType', 'wp_template_part', 1);
+
+        expect(
+            coreSelect().getEntityRecord('postType', 'wp_template_part', 1),
+        ).toBeNull();
+        expect(
+            coreSelect().getEntityRecord(
+                'postType',
+                'wp_template_part',
+                'artisanpack-base//footer',
+            ),
+        ).toBeNull();
+    });
 });
 
 describe('core-data-shim list-cache invalidation', () => {
@@ -1105,6 +1178,46 @@ describe('core-data-shim hooks', () => {
         expect(settled.records).toHaveLength(2);
         expect(settled.hasResolved).toBe(true);
         expect(settled.totalItems).toBe(2);
+    });
+
+    it('useEntityRecord exposes staged edits via editedRecord + hasEdits', () => {
+        // `useEntityRecord` returns the canonical cached record on
+        // `record` and the cached + staged-edits merge on
+        // `editedRecord`. Block-library reads `editedRecord` to render
+        // optimistic UI before saves land; if the hook ignored edits
+        // the canvas would flicker between the typed value and the
+        // server's stale copy.
+        coreDispatch().receiveEntityRecords('postType', 'wp_template', [
+            { id: 5, slug: 'index', title: 'Index' },
+        ]);
+
+        const initial = renderHook(() =>
+            useEntityRecord('postType', 'wp_template', 5),
+        ) as {
+            record: { title?: string } | null;
+            editedRecord: { title?: string } | null;
+            hasEdits: boolean;
+        };
+
+        expect(initial.record?.title).toBe('Index');
+        expect(initial.editedRecord?.title).toBe('Index');
+        expect(initial.hasEdits).toBe(false);
+
+        coreDispatch().editEntityRecord('postType', 'wp_template', 5, {
+            title: 'New Title',
+        });
+
+        const edited = renderHook(() =>
+            useEntityRecord('postType', 'wp_template', 5),
+        ) as {
+            record: { title?: string } | null;
+            editedRecord: { title?: string } | null;
+            hasEdits: boolean;
+        };
+
+        expect(edited.record?.title).toBe('Index');
+        expect(edited.editedRecord?.title).toBe('New Title');
+        expect(edited.hasEdits).toBe(true);
     });
 
     it('useEntityRecord starts unresolved when it has to fetch a missing record', () => {

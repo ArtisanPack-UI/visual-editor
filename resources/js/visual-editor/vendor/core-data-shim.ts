@@ -87,6 +87,13 @@ interface EntityIdentity {
 
 interface EntityBag {
     items: Record<string, EntityRecord>;
+    /**
+     * Read-only alias map (e.g. `<theme>//<slug>` → numeric primary key)
+     * for upstream-shape lookups. Never iterated as records and never
+     * counted by `getEntityRecordsTotalItems` — only used to redirect
+     * `getEntityRecord(kind, name, alias)` to the real item.
+     */
+    aliases: Record<string, string>;
     queries: Record<string, readonly EntityKey[]>;
     queryMeta: Record<string, { totalItems: number; totalPages: number }>;
 }
@@ -507,12 +514,14 @@ function reducer(
             const key = entityKey(action.kind, action.name);
             const bag: EntityBag = state.records[key] ?? {
                 items: {},
+                aliases: {},
                 queries: {},
                 queryMeta: {},
             };
             const config = state.entities[key];
 
             const nextItems: Record<string, EntityRecord> = { ...bag.items };
+            const nextAliases: Record<string, string> = { ...bag.aliases };
             const receivedIds: EntityKey[] = [];
 
             for (const record of action.records) {
@@ -522,19 +531,21 @@ function reducer(
                     continue;
                 }
 
-                nextItems[String(id)] = record;
+                const primaryKey = String(id);
+                nextItems[primaryKey] = record;
                 receivedIds.push(id);
 
                 // Upstream `@wordpress/block-library` looks up template parts
                 // (and templates) by a composite `<theme>//<slug>` id while
-                // our REST endpoints return numeric ids. Mirror the record
-                // under the composite key so `getEntityRecord(kind, name,
-                // "<theme>//<slug>")` and `getEditedEntityRecord(...)` find
-                // it without a backend contract change. See #395.
+                // our REST endpoints return numeric ids. Track the composite
+                // form in a separate alias map keyed `composite → primary`
+                // so `getEntityRecord(kind, name, "<theme>//<slug>")` resolves
+                // to the same record without double-counting it in
+                // `getEntityRecords` / `getEntityRecordsTotalItems`. See #395.
                 const compositeKey = compositeRecordKey(record);
 
-                if (compositeKey !== null) {
-                    nextItems[compositeKey] = record;
+                if (compositeKey !== null && compositeKey !== primaryKey) {
+                    nextAliases[compositeKey] = primaryKey;
                 }
             }
 
@@ -580,6 +591,7 @@ function reducer(
                     ...state.records,
                     [key]: {
                         items: nextItems,
+                        aliases: nextAliases,
                         queries: nextQueries,
                         queryMeta: nextQueryMeta,
                     },
@@ -595,15 +607,27 @@ function reducer(
                 return state;
             }
 
+            const primaryKey = String(action.id);
             const nextItems = { ...bag.items };
-            delete nextItems[String(action.id)];
+            delete nextItems[primaryKey];
+
+            // Drop any composite alias that pointed at the removed primary
+            // so subsequent `getEntityRecord(kind, name, "<theme>//<slug>")`
+            // calls return null rather than redirecting to an evicted item.
+            const nextAliases = { ...bag.aliases };
+
+            for (const [alias, target] of Object.entries(nextAliases)) {
+                if (target === primaryKey) {
+                    delete nextAliases[alias];
+                }
+            }
 
             // A delete invalidates every cached filter query (the removed
             // record might have filtered in or out of any of them) and
             // their totals (`totalItems` would otherwise return a stale
             // pre-delete count). Drop both.
             const nextEdits = { ...(state.edits[key] ?? {}) };
-            delete nextEdits[String(action.id)];
+            delete nextEdits[primaryKey];
 
             return {
                 ...state,
@@ -611,6 +635,7 @@ function reducer(
                     ...state.records,
                     [key]: {
                         items: nextItems,
+                        aliases: nextAliases,
                         queries: {},
                         queryMeta: {},
                     },
@@ -731,9 +756,29 @@ function selectEntityRecord(
     name: EntityName,
     id: EntityKey,
 ): EntityRecord | null {
-    return (
-        state.records[entityKey(kind, name)]?.items[String(id)] ?? null
-    );
+    const bag = state.records[entityKey(kind, name)];
+
+    if (!bag) {
+        return null;
+    }
+
+    const primary = String(id);
+    const direct = bag.items[primary];
+
+    if (direct !== undefined) {
+        return direct;
+    }
+
+    // Fall through to the composite alias map so upstream-shape lookups
+    // like `getEntityRecord('postType', 'wp_template_part', '<theme>//<slug>')`
+    // resolve to the same record stored under the numeric primary key.
+    const aliasTarget = bag.aliases[primary];
+
+    if (aliasTarget !== undefined) {
+        return bag.items[aliasTarget] ?? null;
+    }
+
+    return null;
 }
 
 /**
@@ -1613,9 +1658,10 @@ export function useEntityProp<T = unknown>(): [
  * `core/block` mount would see `hasResolved: false` for one render and
  * flash the "deleted" placeholder.
  *
- * Edits are still no-ops — callers wanting to write through must use
- * the section's dedicated editor (D2 templates, D5 patterns, …) rather
- * than `editEntityRecord` from the inline edit path.
+ * `editedRecord` and `hasEdits` reflect the store's edits bag — staged
+ * `editEntityRecord(...)` writes appear immediately. The `edit` and
+ * `save` callbacks remain no-ops since this hook is the read-side
+ * surface; the visual editor saves through dedicated paths.
  */
 export function useEntityRecord<T = unknown>(
     kind?: EntityKind,
@@ -1656,6 +1702,16 @@ export function useEntityRecord<T = unknown>(
                           name: EntityName,
                           id: EntityKey,
                       ) => EntityRecord | null;
+                      getEditedEntityRecord?: (
+                          kind: EntityKind,
+                          name: EntityName,
+                          id: EntityKey,
+                      ) => EntityRecord | null;
+                      hasEditsForEntityRecord?: (
+                          kind: EntityKind,
+                          name: EntityName,
+                          id: EntityKey,
+                      ) => boolean;
                       hasFinishedResolution?: (
                           selectorName: string,
                           args: readonly unknown[],
@@ -1670,11 +1726,18 @@ export function useEntityRecord<T = unknown>(
             const args: readonly unknown[] = [kind, name, id];
             const record = (store?.getEntityRecord?.(kind, name, id) ??
                 null) as T | null;
+            const editedRecord = (store?.getEditedEntityRecord?.(
+                kind,
+                name,
+                id,
+            ) ?? record) as T | null;
+            const hasEdits =
+                store?.hasEditsForEntityRecord?.(kind, name, id) ?? false;
 
             return {
                 record,
-                editedRecord: record,
-                hasEdits: false,
+                editedRecord,
+                hasEdits,
                 hasResolved:
                     record !== null ||
                     (store?.hasFinishedResolution?.('getEntityRecord', args) ??
