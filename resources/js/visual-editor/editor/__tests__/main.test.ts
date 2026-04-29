@@ -104,4 +104,13 @@ describe('parseNullableInt', () => {
     it('returns null for non-numeric input', () => {
         expect(parseNullableInt('abc')).toBeNull();
     });
+
+    it('rejects truncatable tokens that parseInt would otherwise accept', () => {
+        // `parseInt('3.9', 10) === 3` and `parseInt('12abc', 10) === 12`
+        // — those silent truncations would seep into the editor's
+        // `initialParent` / `initialMenuOrder` and surprise the host.
+        expect(parseNullableInt('3.9')).toBeNull();
+        expect(parseNullableInt('12abc')).toBeNull();
+        expect(parseNullableInt('  4 5  ')).toBeNull();
+    });
 });

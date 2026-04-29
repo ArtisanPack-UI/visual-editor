@@ -686,9 +686,11 @@ function PageAttributesPanel(props: PageAttributesPanelProps): JSX.Element {
 
 /**
  * Parses a user-typed comma-separated id list into a deduplicated
- * array of positive integers. Whitespace, blank entries, non-numeric
- * tokens, and negative / zero ids are dropped — the result is safe to
- * round-trip through the WP-shape `categories[]` / `tags[]` arrays.
+ * array of positive integers. Each token is validated against a
+ * whole-positive-integer regex *before* parsing so malformed input
+ * like `"1.5"` (truncated by `parseInt` to `1`) or `"12abc"`
+ * (truncated to `12`) is rejected outright instead of silently
+ * promoted into the saved id list.
  *
  * @since 1.0.0
  */
@@ -696,9 +698,8 @@ function parseIdList(raw: string): ReadonlyArray<number> {
     const ids = raw
         .split(',')
         .map((piece) => piece.trim())
-        .filter((piece) => piece.length > 0)
-        .map((piece) => Number.parseInt(piece, 10))
-        .filter((value): value is number => Number.isFinite(value) && value > 0);
+        .filter((piece) => /^[1-9]\d*$/.test(piece))
+        .map((piece) => Number.parseInt(piece, 10));
 
     return Array.from(new Set(ids));
 }

@@ -283,19 +283,29 @@ export function parseIdListDataset(
 
 /**
  * Parses a `data-*` numeric attribute into a finite integer or
- * `null` for blank / unparseable input. Used by `data-parent` and
- * `data-menu-order`.
+ * `null` for blank / unparseable input.
+ *
+ * The whole string must match `^-?\d+$` (optional leading minus, one
+ * or more digits, nothing else); `parseInt` would otherwise silently
+ * accept tokens like `"3.9"` (truncated to `3`) or `"12abc"`
+ * (truncated to `12`) and surface them as initial values.
  *
  * Exported for tests. Not part of the public package surface.
  *
  * @internal
  */
 export function parseNullableInt(raw: string | undefined): number | null {
-    if (raw === undefined || raw === '') {
+    if (raw === undefined) {
         return null;
     }
 
-    const parsed = Number.parseInt(raw, 10);
+    const trimmed = raw.trim();
+
+    if (trimmed === '' || !/^-?\d+$/.test(trimmed)) {
+        return null;
+    }
+
+    const parsed = Number.parseInt(trimmed, 10);
 
     return Number.isFinite(parsed) ? parsed : null;
 }

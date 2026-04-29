@@ -380,6 +380,41 @@ describe('<DocumentPanels />', () => {
 
             expect(onCategoriesChange).toHaveBeenLastCalledWith([1, 4, 9]);
         });
+
+        it('rejects truncatable tokens like "1.5" and "12abc" outright', async () => {
+            const onCategoriesChange = vi.fn();
+            const user = userEvent.setup();
+
+            render(
+                <DocumentPanels
+                    {...baseProps({
+                        documentType: 'post',
+                        categories: [],
+                        tags: [],
+                        onCategoriesChange,
+                        onTagsChange: vi.fn(),
+                    })}
+                />
+            );
+
+            await user.click(
+                screen.getByRole('button', { name: /Categories & Tags/i })
+            );
+
+            const input = screen.getByTestId(
+                'ap-visual-editor-document-categories'
+            );
+
+            // `parseInt('1.5', 10) === 1` and `parseInt('12abc', 10) === 12`
+            // would silently promote both into the saved id list. The
+            // regex pre-check rejects them outright; only the bare integer
+            // 7 survives.
+            fireEvent.change(input, {
+                target: { value: '1.5, 12abc, 7' },
+            });
+
+            expect(onCategoriesChange).toHaveBeenLastCalledWith([7]);
+        });
     });
 
     describe('page-only Page attributes panel', () => {

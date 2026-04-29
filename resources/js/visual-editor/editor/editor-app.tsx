@@ -373,10 +373,13 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     } = props;
 
     const documentType = entityTypeForResource(props.resource);
-    const numericId = useMemo<number | null>(() => {
-        const parsed = Number.parseInt(props.id, 10);
-        return Number.isFinite(parsed) ? parsed : null;
-    }, [props.id]);
+    // Validate against a whole-digit regex *before* parsing so malformed
+    // ids like "42abc" don't silently promote to 42 — the EntityProvider
+    // wrap below would otherwise fetch the wrong entity record.
+    const numericId = useMemo<number | null>(
+        () => (/^\d+$/.test(props.id) ? Number.parseInt(props.id, 10) : null),
+        [props.id]
+    );
 
     const {
         blocks,
