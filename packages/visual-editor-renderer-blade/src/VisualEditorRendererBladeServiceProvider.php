@@ -40,7 +40,12 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 			return new SiteMetaResolver();
 		} );
 
-		$this->app->singleton( BlockRenderer::class, function ( $app ) {
+		// Scoped (not singleton) so the BlockRenderer captures the
+		// current request's SiteMetaResolver — also scoped — instead of
+		// pinning the first request's resolver for the lifetime of a
+		// long-running worker (Octane / queue) and serving stale site
+		// meta on every subsequent request.
+		$this->app->scoped( BlockRenderer::class, function ( $app ) {
 			return new BlockRenderer(
 				$app->make( ViewFactory::class ),
 				$app->make( DynamicBlockRegistry::class ),

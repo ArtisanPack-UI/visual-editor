@@ -40,10 +40,21 @@ export function getDefaultSiteMeta(): SiteMeta | null {
     return defaultSiteMeta;
 }
 
+/**
+ * Pre-walks a block tree and stamps `_resolvedSite*` attributes onto
+ * every `core/site-*` block, returning a new tree.
+ *
+ * - `undefined` falls back to the global default set via
+ *   {@link setDefaultSiteMeta}.
+ * - Explicit `null` intentionally disables resolution (returns the
+ *   tree unchanged) so a host can opt out of the bootstrap default
+ *   for a specific render.
+ * - A `SiteMeta` object stamps its values onto matching blocks.
+ */
 export function inlineSiteMeta(tree: Block[], meta?: SiteMeta | null): Block[] {
-    const resolved = meta ?? defaultSiteMeta;
+    const resolved = meta === undefined ? defaultSiteMeta : meta;
 
-    if (resolved === null || resolved === undefined) {
+    if (resolved === null) {
         return tree;
     }
 

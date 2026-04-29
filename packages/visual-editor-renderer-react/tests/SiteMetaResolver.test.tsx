@@ -77,6 +77,17 @@ describe('site-meta resolution', () => {
         expect(renderTree(tree, { title: 'Prop Title' })).toContain('Pre-stamped');
     });
 
+    it('treats explicit null as a disable signal that bypasses the bootstrap default', () => {
+        setDefaultSiteMeta({ title: 'Should Not Appear' });
+
+        const tree = [makeBlock('core/site-title')];
+
+        // Explicit null tells the resolver "do not stamp anything,
+        // including the bootstrap default" — so the block renders
+        // empty rather than picking up the fallback.
+        expect(renderTree(tree, null)).not.toContain('Should Not Appear');
+    });
+
     it('leaves non-site-meta blocks untouched', () => {
         const tree = [
             makeBlock('core/paragraph', { content: 'Hello' }),

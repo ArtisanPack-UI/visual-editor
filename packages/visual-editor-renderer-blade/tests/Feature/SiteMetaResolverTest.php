@@ -107,6 +107,31 @@ it( 'lets host-stamped attributes win over the resolver fallback', function () {
 		->not()->toContain( 'From Config' );
 } );
 
+it( 'lets a host-stamped logo URL win over the resolver fallback', function () {
+	// site_meta.logo_id is configured, but the resolver's URL resolution
+	// goes through `apGetMediaUrl()` which isn't loaded in the test env;
+	// the host stamps the URL directly on the block instead. This proves
+	// the existing-attribute-wins guarantee covers the logo path the
+	// same way it covers title/url/tagline.
+	config()->set( 'artisanpack.visual-editor.site_meta', [
+		'logo_id' => 99,
+	] );
+
+	app( SiteMetaResolver::class )->flush();
+
+	$rendered = $this->stripGlobalStyles( siteRenderTree( [
+		siteBlockNode( 'core/site-logo', [
+			'_resolvedLogoUrl'   => 'https://host.example/logo.svg',
+			'_resolvedSiteUrl'   => 'https://host.example',
+			'_resolvedSiteTitle' => 'Host Site',
+		] ),
+	] ) );
+
+	expect( $rendered )
+		->toContain( 'src="https://host.example/logo.svg"' )
+		->toContain( 'href="https://host.example"' );
+} );
+
 it( 'leaves non-site-meta blocks untouched', function () {
 	config()->set( 'artisanpack.visual-editor.site_meta', [
 		'title' => 'Should Not Appear',
