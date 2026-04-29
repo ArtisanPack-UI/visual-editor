@@ -211,6 +211,28 @@ export const DEFAULT_ENTITIES: readonly EntityConfig[] = Object.freeze([
         label: 'Global Styles',
         plural: 'globalStyles',
     },
+    // G3 cms-framework entities — see plan 12 §4.4. Always declared so
+    // `core/post-*` blocks can resolve via `useEntityRecord('postType',
+    // 'post', id)` regardless of whether cms-framework is installed.
+    // When the package is absent the matching `/visual-editor/api/{posts,
+    // pages}/{id}` endpoints are unrouted and the resolver returns `null`
+    // — no different from any other entity that hasn't been seeded yet.
+    {
+        kind: 'postType',
+        name: 'post',
+        baseURL: '/posts',
+        key: 'id',
+        label: 'Post',
+        plural: 'posts',
+    },
+    {
+        kind: 'postType',
+        name: 'page',
+        baseURL: '/pages',
+        key: 'id',
+        label: 'Page',
+        plural: 'pages',
+    },
 ]);
 
 // ---------------------------------------------------------------------------
