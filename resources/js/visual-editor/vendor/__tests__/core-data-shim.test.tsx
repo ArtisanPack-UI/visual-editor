@@ -89,7 +89,7 @@ afterEach(async () => {
 });
 
 describe('core-data-shim entity registry', () => {
-    it('registers the five V1 entities by default', () => {
+    it('registers the V1 site-editor + G3 cms-framework entities by default', () => {
         const names = DEFAULT_ENTITIES.map((entity) => `${entity.kind}|${entity.name}`);
 
         expect(names).toEqual([
@@ -98,6 +98,12 @@ describe('core-data-shim entity registry', () => {
             'postType|wp_navigation',
             'postType|wp_block',
             'root|globalStyles',
+            // G3 cms-framework Post + Page (plan 12 §4.4) — declared
+            // unconditionally; the matching `/visual-editor/api/{posts,
+            // pages}/{id}` endpoints come from the resource map and
+            // resolve to null when cms-framework isn't installed.
+            'postType|post',
+            'postType|page',
         ]);
     });
 
@@ -111,8 +117,37 @@ describe('core-data-shim entity registry', () => {
                 'postType|wp_navigation',
                 'postType|wp_block',
                 'root|globalStyles',
+                'postType|post',
+                'postType|page',
             ]),
         );
+    });
+
+    it('the G3 post + page entities resolve to /posts and /pages baseURLs', () => {
+        const post = DEFAULT_ENTITIES.find(
+            (entity) => entity.kind === 'postType' && entity.name === 'post',
+        );
+        const page = DEFAULT_ENTITIES.find(
+            (entity) => entity.kind === 'postType' && entity.name === 'page',
+        );
+
+        expect(post).toMatchObject({
+            kind: 'postType',
+            name: 'post',
+            baseURL: '/posts',
+            key: 'id',
+            label: 'Post',
+            plural: 'posts',
+        });
+
+        expect(page).toMatchObject({
+            kind: 'postType',
+            name: 'page',
+            baseURL: '/pages',
+            key: 'id',
+            label: 'Page',
+            plural: 'pages',
+        });
     });
 
     it('addEntities registers custom entities alongside defaults', () => {
