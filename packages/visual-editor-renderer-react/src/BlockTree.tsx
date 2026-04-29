@@ -29,6 +29,8 @@ import {
 } from './patterns';
 import type { PatternRecord } from './patterns';
 import { getBlockRenderer } from './registry';
+import { inlineSiteMeta } from './siteMeta';
+import type { SiteMeta } from './siteMeta';
 import {
     DEFAULT_MAX_TEMPLATE_PART_DEPTH,
     inlineTemplateParts,
@@ -59,6 +61,17 @@ export interface BlockTreeProps {
      * fragment so the React-rendered page matches the canvas.
      */
     globalStylesCss?: string | null;
+    /**
+     * Site-meta envelope used to resolve `core/site-title`,
+     * `core/site-tagline`, and `core/site-logo` blocks. Typically
+     * fetched server-side from cms-framework's
+     * `/api/v1/settings/site` endpoint and injected into the page
+     * payload. When omitted, falls back to the global default
+     * registered via `setDefaultSiteMeta`. Existing `_resolvedSite*`
+     * attributes on a block always win, so hosts can override per
+     * block when needed.
+     */
+    siteMeta?: SiteMeta | null;
 }
 
 export function BlockTree({
@@ -71,6 +84,7 @@ export function BlockTree({
     maxTemplatePartDepth = DEFAULT_MAX_TEMPLATE_PART_DEPTH,
     maxPatternDepth = DEFAULT_MAX_PATTERN_DEPTH,
     globalStylesCss,
+    siteMeta,
 }: BlockTreeProps): ReactElement {
     const blocks = useMemo(() => {
         const normalized = normalizeTree(tree);
@@ -95,15 +109,19 @@ export function BlockTree({
         // falling through to the dynamic-block fallback. Pattern inlining
         // runs after template-part inlining so a part that itself
         // contains a synced-pattern reference resolves in the same pass.
-        if (patterns === undefined) {
-            return withParts;
-        }
+        const withPatterns =
+            patterns === undefined
+                ? withParts
+                : inlinePatterns(withParts, {
+                      patterns,
+                      maxDepth: maxPatternDepth,
+                  });
 
-        return inlinePatterns(withParts, {
-            patterns,
-            maxDepth: maxPatternDepth,
-        });
-    }, [tree, templateParts, patterns, defaultTheme, maxTemplatePartDepth, maxPatternDepth]);
+        // Site-meta inlining runs last so values stamped here are visible
+        // on blocks that template-part / pattern inlining brought into
+        // the tree from elsewhere.
+        return inlineSiteMeta(withPatterns, siteMeta);
+    }, [tree, templateParts, patterns, defaultTheme, maxTemplatePartDepth, maxPatternDepth, siteMeta]);
 
     return (
         <>

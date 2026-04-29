@@ -21,6 +21,7 @@ namespace ArtisanPackUI\VisualEditorRendererBlade;
 
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
+use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksComponent;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\TemplateComponent;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -31,10 +32,24 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 {
 	public function register(): void
 	{
-		$this->app->singleton( BlockRenderer::class, function ( $app ) {
+		// Scoped (not singleton) so a long-lived worker (Octane / queue)
+		// gets a fresh resolver per request scope. The resolver caches
+		// its lookup; a singleton would leak stale settings across
+		// requests served by the same worker.
+		$this->app->scoped( SiteMetaResolver::class, function () {
+			return new SiteMetaResolver();
+		} );
+
+		// Scoped (not singleton) so the BlockRenderer captures the
+		// current request's SiteMetaResolver — also scoped — instead of
+		// pinning the first request's resolver for the lifetime of a
+		// long-running worker (Octane / queue) and serving stale site
+		// meta on every subsequent request.
+		$this->app->scoped( BlockRenderer::class, function ( $app ) {
 			return new BlockRenderer(
 				$app->make( ViewFactory::class ),
 				$app->make( DynamicBlockRegistry::class ),
+				$app->make( SiteMetaResolver::class ),
 			);
 		} );
 

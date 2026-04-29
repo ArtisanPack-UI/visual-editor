@@ -39,6 +39,31 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Site meta
+	|--------------------------------------------------------------------------
+	|
+	| Fallback values for the `core/site-title`, `core/site-tagline`, and
+	| `core/site-logo` block resolvers. The Blade renderer reads these only
+	| when `apGetSetting()` (cms-framework's settings helper) is unavailable;
+	| the React/Vue renderers consume them via the `siteMeta` prop or the
+	| bootstrap-time `setDefaultSiteMeta()` API. See plan 12 §4.3 for the
+	| full G2 site-meta bridge contract.
+	|
+	| `logo_id` and `icon_id` are media-library media ids; the resolver
+	| converts them to URLs via `apGetMediaUrl()` when present.
+	|
+	*/
+
+	'site_meta' => [
+		'title'       => null,
+		'description' => null,
+		'url'         => null,
+		'logo_id'     => null,
+		'icon_id'     => null,
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Block registry filters
 	|--------------------------------------------------------------------------
 	|

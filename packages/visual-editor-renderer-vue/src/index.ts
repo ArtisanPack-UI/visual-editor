@@ -51,4 +51,10 @@ export type {
     PatternRecord,
     PatternResolutionError,
 } from './patterns';
+export {
+    getDefaultSiteMeta,
+    inlineSiteMeta,
+    setDefaultSiteMeta,
+} from './siteMeta';
+export type { SiteMeta } from './siteMeta';
 export type { Block, BlockRenderer, BlockRendererProps } from './types';
