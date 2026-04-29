@@ -155,15 +155,12 @@ Route::post( 'posts', [ PostController::class, 'store' ] )
 	->name( 'visual-editor.api.posts.store' );
 
 Route::get( 'posts/{id}', [ PostController::class, 'show' ] )
-	->where( 'id', '[0-9]+' )
 	->name( 'visual-editor.api.posts.show' );
 
 Route::put( 'posts/{id}', [ PostController::class, 'update' ] )
-	->where( 'id', '[0-9]+' )
 	->name( 'visual-editor.api.posts.update' );
 
 Route::delete( 'posts/{id}', [ PostController::class, 'destroy' ] )
-	->where( 'id', '[0-9]+' )
 	->name( 'visual-editor.api.posts.destroy' );
 
 Route::get( 'pages', [ PageController::class, 'index' ] )
@@ -173,13 +170,10 @@ Route::post( 'pages', [ PageController::class, 'store' ] )
 	->name( 'visual-editor.api.pages.store' );
 
 Route::get( 'pages/{id}', [ PageController::class, 'show' ] )
-	->where( 'id', '[0-9]+' )
 	->name( 'visual-editor.api.pages.show' );
 
 Route::put( 'pages/{id}', [ PageController::class, 'update' ] )
-	->where( 'id', '[0-9]+' )
 	->name( 'visual-editor.api.pages.update' );
 
 Route::delete( 'pages/{id}', [ PageController::class, 'destroy' ] )
-	->where( 'id', '[0-9]+' )
 	->name( 'visual-editor.api.pages.destroy' );

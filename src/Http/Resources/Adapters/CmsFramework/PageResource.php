@@ -39,7 +39,7 @@ class PageResource extends WpEntityResource
 	{
 		$extras = [];
 
-		if ( $this->hasAttribute( $model, 'parent_id' ) ) {
+		if ( $this->hasAttribute( $model, 'parent_id' ) || $this->hasAttribute( $model, 'parent' ) ) {
 			$extras['parent'] = $this->intField( $model, [ 'parent_id', 'parent' ] );
 		}
 
