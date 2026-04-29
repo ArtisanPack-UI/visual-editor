@@ -22,6 +22,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade;
 
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -31,9 +32,21 @@ use Throwable;
 
 class BlockRenderer
 {
+	/**
+	 * Block names that consume site-meta `_resolved*` attributes.
+	 *
+	 * @var array<int, string>
+	 */
+	protected const SITE_META_BLOCKS = [
+		'core/site-title',
+		'core/site-tagline',
+		'core/site-logo',
+	];
+
 	public function __construct(
 		protected ViewFactory $views,
 		protected DynamicBlockRegistry $dynamicBlocks,
+		protected ?SiteMetaResolver $siteMeta = null,
 	) {
 	}
 
@@ -75,6 +88,7 @@ class BlockRenderer
 		}
 
 		$attributes      = $this->normalizeAttributes( $block['attributes'] ?? [] );
+		$attributes      = $this->stampSiteMeta( $name, $attributes );
 		$innerBlocksHtml = $this->render( $this->normalizeInnerBlocks( $block['innerBlocks'] ?? [] ) );
 
 		if ( $this->dynamicBlocks->has( $name ) ) {
@@ -82,6 +96,42 @@ class BlockRenderer
 		}
 
 		return $this->renderStatic( $name, $attributes, $innerBlocksHtml );
+	}
+
+	/**
+	 * Stamps `_resolvedSite*` attributes onto `core/site-*` blocks so the
+	 * block partials can read site title / tagline / URL / logo without
+	 * each one knowing about cms-framework's settings helper.
+	 *
+	 * Pre-existing `_resolved*` keys win — a host that has already
+	 * resolved values upstream (custom Inertia payload, theme
+	 * customizer, etc.) keeps full control. The resolver acts as the
+	 * default fallback, not an override.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function stampSiteMeta( string $name, array $attributes ): array
+	{
+		if ( null === $this->siteMeta || ! in_array( $name, self::SITE_META_BLOCKS, true ) ) {
+			return $attributes;
+		}
+
+		$meta = $this->siteMeta->resolve();
+
+		$stamped = [
+			'_resolvedSiteTitle'   => $meta['title'],
+			'_resolvedSiteTagline' => $meta['description'],
+			'_resolvedSiteUrl'     => $meta['url'],
+			'_resolvedLogoUrl'     => $meta['logoUrl'],
+		];
+
+		// Existing values win — array_merge with the resolver defaults
+		// first, host-supplied attributes layered on top.
+		return array_merge( $stamped, $attributes );
 	}
 
 	/**
