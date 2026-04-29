@@ -17,6 +17,8 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PageController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PostController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\GlobalStylesController;
@@ -27,7 +29,6 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\TemplatePartController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\VisualEditorBlocksController;
-use ArtisanPackUI\VisualEditor\Http\Controllers\VisualEditorPostsController;
 use Illuminate\Support\Facades\Route;
 
 // Generic resource content endpoints (M3). Any model registered in
@@ -138,11 +139,47 @@ Route::get( 'menu-locations', [ MenuLocationsController::class, 'index' ] )
 Route::get( 'search', [ EntitySearchController::class, 'index' ] )
 	->name( 'visual-editor.api.search.index' );
 
-// Legacy ve_contents routes retained for the existing editor tests and the
-// `VisualEditorPost` model. Deprecated in M3 in favor of the resource routes
-// above; removed once the dev app migrates off the seeded post fixture.
-Route::get( 'posts/{post}', [ VisualEditorPostsController::class, 'show' ] )
+// G3 cms-framework Post + Page entity adapters — see plan 12 §4.4.
+// Both controllers resolve their model through `ResourceResolver`, so
+// the host's `posts` / `pages` slugs (registered statically or via
+// the `ap.visual-editor.resources` filter) determine the underlying
+// Eloquent class. The legacy `posts/{post}` routes that bound to
+// `VisualEditorPost` were removed at this point in the M3→G3
+// migration — host apps that still reference that model directly
+// should migrate to a `HasBlockContent` model registered in the
+// resource map.
+Route::get( 'posts', [ PostController::class, 'index' ] )
+	->name( 'visual-editor.api.posts.index' );
+
+Route::post( 'posts', [ PostController::class, 'store' ] )
+	->name( 'visual-editor.api.posts.store' );
+
+Route::get( 'posts/{id}', [ PostController::class, 'show' ] )
+	->where( 'id', '[0-9]+' )
 	->name( 'visual-editor.api.posts.show' );
 
-Route::put( 'posts/{post}', [ VisualEditorPostsController::class, 'update' ] )
+Route::put( 'posts/{id}', [ PostController::class, 'update' ] )
+	->where( 'id', '[0-9]+' )
 	->name( 'visual-editor.api.posts.update' );
+
+Route::delete( 'posts/{id}', [ PostController::class, 'destroy' ] )
+	->where( 'id', '[0-9]+' )
+	->name( 'visual-editor.api.posts.destroy' );
+
+Route::get( 'pages', [ PageController::class, 'index' ] )
+	->name( 'visual-editor.api.pages.index' );
+
+Route::post( 'pages', [ PageController::class, 'store' ] )
+	->name( 'visual-editor.api.pages.store' );
+
+Route::get( 'pages/{id}', [ PageController::class, 'show' ] )
+	->where( 'id', '[0-9]+' )
+	->name( 'visual-editor.api.pages.show' );
+
+Route::put( 'pages/{id}', [ PageController::class, 'update' ] )
+	->where( 'id', '[0-9]+' )
+	->name( 'visual-editor.api.pages.update' );
+
+Route::delete( 'pages/{id}', [ PageController::class, 'destroy' ] )
+	->where( 'id', '[0-9]+' )
+	->name( 'visual-editor.api.pages.destroy' );
