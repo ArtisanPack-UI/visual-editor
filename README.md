@@ -48,6 +48,24 @@ These blocks will be re-enabled once `artisanpack-ui/cms-framework` replaces the
 
 Override the defaults by publishing the config to `config/artisanpack/visual-editor.php` and editing the `enabled_blocks` / `disabled_blocks` arrays. The deny-list always wins over the allow-list.
 
+## Extensibility
+
+The package exposes a small filter surface so other packages can contribute editor wiring at runtime without forcing host apps to publish-and-edit the package config.
+
+### `ap.visual-editor.resources`
+
+Register slug → Eloquent model class mappings used by `/visual-editor/api/{resource}/{id}/content`. Filter contributions are merged with `config('artisanpack.visual-editor.resources')`; the static config wins on key collision so host-app overrides always take precedence. Models must use `ArtisanPackUI\VisualEditor\Concerns\HasBlockContent` — invalid entries surface as `InvalidArgumentException` on first request rather than at boot, so a contributor's standalone install never trips host boot.
+
+```php
+addFilter( 'ap.visual-editor.resources', function ( array $resources ): array {
+    return array_merge( [
+        'posts' => App\Models\Post::class,
+    ], $resources );
+} );
+```
+
+Full contract (input/output shape, collision behavior, validation guarantees, contributor timing): [`docs/plans/12-cms-framework-integration.md`](docs/plans/12-cms-framework-integration.md) §4.1.
+
 ## i18n
 
 Editor strings use `@wordpress/i18n` with the `artisanpack-visual-editor` text domain. The domain is initialized via `bootI18n()` in `resources/js/visual-editor/vendor/i18n.ts`.

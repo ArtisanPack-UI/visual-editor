@@ -2,6 +2,7 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use Tests\Fixtures\TestBlockContentModel;
 use Tests\Fixtures\TestBlockContentPageModel;
@@ -14,6 +15,10 @@ beforeEach( function () {
 		'posts' => TestBlockContentModel::class,
 		'pages' => TestBlockContentPageModel::class,
 	] );
+
+	// Service provider boot already ran with empty resources config.
+	// Re-bind ResourceResolver so this test's config takes effect.
+	( new VisualEditorServiceProvider( app() ) )->registerResourceResolver();
 
 	Gate::policy( TestBlockContentModel::class, TestBlockContentPolicy::class );
 	Gate::policy( TestBlockContentPageModel::class, TestBlockContentPagePolicy::class );
@@ -186,14 +191,17 @@ it( 'persists a valid block tree on PUT', function () {
 	expect( $model->fresh()->content )->toEqual( $next );
 } );
 
-it( 'returns 500 when a configured resource does not use HasBlockContent', function () {
+it( 'surfaces a HasBlockContent validation error on first resolve', function () {
 	config()->set( 'artisanpack.visual-editor.resources.broken', TestUser::class );
+
+	// Re-bind so the new config entry lands in the resolver.
+	( new VisualEditorServiceProvider( app() ) )->registerResourceResolver();
 
 	makeActor();
 
 	$this->withoutExceptionHandling();
 
 	expect( fn () => $this->getJson( '/visual-editor/api/broken/1/content' ) )
-		->toThrow( RuntimeException::class );
+		->toThrow( InvalidArgumentException::class );
 } );
 

@@ -53,6 +53,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 			);
 		} );
 
+		// Bound here as a placeholder so other providers' register() phases
+		// can typehint ResourceResolver. The boot() phase rebinds with the
+		// final filter-merged map once all providers have registered their
+		// `ap.visual-editor.resources` callbacks.
 		$this->app->singleton( ResourceResolver::class, function () {
 			return new ResourceResolver();
 		} );
@@ -120,6 +124,17 @@ class VisualEditorServiceProvider extends ServiceProvider
 	{
 		// 1. Merge the configuration correctly.
 		$this->mergeConfiguration();
+
+		// 1a. Build the resource map after every provider has finished
+		//     booting so filter callbacks registered in another provider's
+		//     boot() phase are visible regardless of provider ordering.
+		//     Static config wins on key collision; host overrides always
+		//     take precedence over filter contributions. See
+		//     docs/plans/12-cms-framework-integration.md §4.1 for the full
+		//     filter contract.
+		$this->app->booted( function (): void {
+			$this->registerResourceResolver();
+		} );
 
 		// 2. Load package views, routes, and migrations.
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor' );
@@ -250,6 +265,35 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Blade::component( VisualEditorComponent::class, 'visual-editor' );
 	}
 
+
+	/**
+	 * Builds the slug → model class map for ResourceResolver.
+	 *
+	 * Pipes the static config through the `ap.visual-editor.resources` filter
+	 * (so packages like cms-framework can register their models at runtime),
+	 * then merges static config back on top so host-app entries always win on
+	 * key collision. ResourceResolver itself does not validate at construction
+	 * — invalid classes only surface on first resolve, which keeps a
+	 * standalone install of a contributor (cms-framework without visual-editor
+	 * loaded) from tripping host boot.
+	 *
+	 * Public so tests (and edge cases that mutate config or hook callbacks at
+	 * runtime) can re-trigger the rebind without going through reflection.
+	 *
+	 * @since 1.0.0
+	 */
+	public function registerResourceResolver(): void
+	{
+		$staticConfig = (array) config( 'artisanpack.visual-editor.resources', [] );
+		$filtered     = applyFilters( 'ap.visual-editor.resources', $staticConfig );
+		$filtered     = is_array( $filtered ) ? $filtered : [];
+
+		// Static config wins on key collision: host app entries take
+		// precedence over filter contributions.
+		$resources = array_merge( $filtered, $staticConfig );
+
+		$this->app->instance( ResourceResolver::class, new ResourceResolver( $resources ) );
+	}
 
 	/**
 	 * Merges the package's default configuration with the user's customizations.
