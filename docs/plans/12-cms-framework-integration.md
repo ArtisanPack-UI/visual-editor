@@ -133,13 +133,30 @@ Phase G — cms-framework integration (V1)
 
 **Filter name:** `ap.visual-editor.resources`
 
-**Input:** the static-config map from `config('artisanpack.visual-editor.resources')` (typically empty in the package default; populated by host apps that want to register their own `App\Models\*`).
+**Input shape:** `array<string, class-string<\Illuminate\Database\Eloquent\Model>>` — the static-config map from `config('artisanpack.visual-editor.resources')` (typically empty in the package default; populated by host apps that want to register their own `App\Models\*`). Filter callbacks receive the static config as the seed value so they can introspect what's already registered before adding their own entries.
 
-**Output:** a `Map<string, class-string>` where keys are URL slugs and values are FQCN of Eloquent models that use `HasBlockContent`.
+**Output shape:** `array<string, class-string<\Illuminate\Database\Eloquent\Model>>` — keys are URL slugs (e.g. `posts`, `pages`); values are FQCN of Eloquent models that use `HasBlockContent`.
 
-**Application site:** `VisualEditorServiceProvider::boot()` replaces the static read with `applyFilters('ap.visual-editor.resources', config('artisanpack.visual-editor.resources'))` and passes the merged map to `ResourceResolver`. Static config wins on key collision (host app overrides cms-framework defaults).
+**Application site:** `VisualEditorServiceProvider::boot()` (specifically `registerResourceResolver()`) does:
 
-**Validation:** `ResourceResolver` throws if a registered slug → class entry's class doesn't use `HasBlockContent`. Errors surface in the dev-app on first request, not at boot, so cms-framework standalone install never trips them.
+```php
+$staticConfig = (array) config( 'artisanpack.visual-editor.resources', [] );
+$filtered     = applyFilters( 'ap.visual-editor.resources', $staticConfig );
+$resources    = array_merge( $filtered, $staticConfig );
+
+$this->app->instance( ResourceResolver::class, new ResourceResolver( $resources ) );
+```
+
+**Behavior on collision:** static config wins. The static config is merged on top of the filter result so host-app entries in `config/artisanpack/visual-editor.php` always override filter contributions of the same slug. A package contributing a default mapping (e.g. cms-framework registering `'posts' => Post::class`) is silently superseded if the host app has its own `'posts' => CustomPost::class`.
+
+**Validation guarantees:** `ResourceResolver` throws on first `resolve()` / `modelClassFor()` call — not at boot:
+  - `NotFoundHttpException` (404) when a slug is unknown.
+  - `RuntimeException` when a slug points at a missing class or non-Eloquent class.
+  - `InvalidArgumentException` (`Resource [slug] resolves to [Class] which does not use HasBlockContent.`) when a class exists but doesn't apply the trait.
+
+Validation is lazy by design: a filter contributor whose class isn't loaded (e.g. cms-framework standalone install where visual-editor isn't present) never trips host boot. Errors surface only when an editor route actually tries to resolve a model.
+
+**Filter contributor timing:** The resolver build is queued to `$this->app->booted()` so it runs after every provider's `boot()` completes. Callbacks registered in any provider's `register()` or `boot()` are visible regardless of provider order; only callbacks added inside an already-booted runtime path (e.g. mid-request, after a controller has resolved `ResourceResolver` once) are too late. To force a rebuild after such a runtime change, call `$serviceProvider->registerResourceResolver()`.
 
 **cms-framework registration site (G1b'):** `CMSFrameworkServiceProvider::boot()`:
 
