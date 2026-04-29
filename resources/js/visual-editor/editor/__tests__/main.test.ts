@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 
-import { normalizeAuthorId } from '../main';
+import {
+    normalizeAuthorId,
+    parseIdListDataset,
+    parseNullableInt,
+} from '../main';
 
 describe('normalizeAuthorId', () => {
     it('returns undefined for empty or missing values', () => {
@@ -55,5 +59,49 @@ describe('normalizeAuthorId', () => {
         // normalizeAuthorId also doesn't trip on the nullish case.
         expect(normalizeAuthorId('42', null)).toBe(42);
         expect(normalizeAuthorId('', null)).toBeUndefined();
+    });
+});
+
+describe('parseIdListDataset', () => {
+    it('returns null when the attribute is undefined', () => {
+        expect(parseIdListDataset(undefined, 'data-categories')).toBeNull();
+    });
+
+    it('parses a JSON array of integers', () => {
+        expect(parseIdListDataset('[1, 4, 7]', 'data-categories')).toEqual([
+            1, 4, 7,
+        ]);
+    });
+
+    it('coerces numeric strings inside the JSON array', () => {
+        expect(parseIdListDataset('["3", "9"]', 'data-tags')).toEqual([3, 9]);
+    });
+
+    it('drops zero, negative, and non-numeric tokens', () => {
+        expect(
+            parseIdListDataset('[0, -2, "abc", 5, "5", 1.5]', 'data-categories')
+        ).toEqual([5]);
+    });
+
+    it('returns null for malformed JSON or non-array shapes', () => {
+        expect(parseIdListDataset('not json', 'data-categories')).toBeNull();
+        expect(parseIdListDataset('{"id": 1}', 'data-categories')).toBeNull();
+    });
+});
+
+describe('parseNullableInt', () => {
+    it('returns null for missing / blank input', () => {
+        expect(parseNullableInt(undefined)).toBeNull();
+        expect(parseNullableInt('')).toBeNull();
+    });
+
+    it('parses positive and negative integer strings', () => {
+        expect(parseNullableInt('42')).toBe(42);
+        expect(parseNullableInt('-3')).toBe(-3);
+        expect(parseNullableInt('0')).toBe(0);
+    });
+
+    it('returns null for non-numeric input', () => {
+        expect(parseNullableInt('abc')).toBeNull();
     });
 });

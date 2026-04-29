@@ -24,6 +24,7 @@ import {
 } from '@wordpress/block-editor';
 import { registerCoreBlocks } from '@wordpress/block-library';
 import { Popover, SlotFillProvider } from '@wordpress/components';
+import { EntityProvider } from '@wordpress/core-data';
 // Importing `@wordpress/format-library` is a side-effect — it registers
 // the core rich-text formats (bold, italic, link, inline code, etc.) so
 // the block toolbar's inline formatting controls render inside RichText
@@ -50,9 +51,11 @@ import {
     DocumentPanels,
     type AuthorOption,
     type DocumentSupports,
+    type DocumentType,
     type FeaturedImageValue,
     type PostStatus,
 } from './document-panels';
+import { entityTypeForResource } from './entity-type';
 import { InspectorSidebar } from './inspector-sidebar';
 import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 import { PostTitle } from './post-title';
@@ -296,6 +299,16 @@ export interface MetadataChange {
     featuredImage: FeaturedImageValue | null;
     authorId: number | string | null;
     commentsOpen: boolean;
+    /** Selected category ids — surfaced for `documentType === 'post'`. */
+    categories: ReadonlyArray<number>;
+    /** Selected tag ids — surfaced for `documentType === 'post'`. */
+    tags: ReadonlyArray<number>;
+    /** Parent page id; `null` clears the relationship. Page-only. */
+    parent: number | null;
+    /** Page menu_order. Page-only. */
+    menuOrder: number;
+    /** Theme template slug applied to this page. Page-only. */
+    template: string;
 }
 
 export interface EditorAppProps {
@@ -309,11 +322,18 @@ export interface EditorAppProps {
     initialFeaturedImage?: FeaturedImageValue | null;
     initialAuthorId?: number | string | null;
     initialCommentsOpen?: boolean;
+    initialCategories?: ReadonlyArray<number>;
+    initialTags?: ReadonlyArray<number>;
+    initialParent?: number | null;
+    initialMenuOrder?: number;
+    initialTemplate?: string;
     authorOptions?: ReadonlyArray<AuthorOption>;
     supports?: DocumentSupports;
     previewUrl?: string | null;
     onMetadataChange?: (change: MetadataChange) => void;
 }
+
+export { entityTypeForResource } from './entity-type';
 
 interface HistoryState {
     past: BlockInstance[][];
@@ -341,11 +361,22 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         initialFeaturedImage = null,
         initialAuthorId = null,
         initialCommentsOpen = true,
+        initialCategories,
+        initialTags,
+        initialParent = null,
+        initialMenuOrder = 0,
+        initialTemplate = '',
         authorOptions,
         supports,
         previewUrl = null,
         onMetadataChange,
     } = props;
+
+    const documentType = entityTypeForResource(props.resource);
+    const numericId = useMemo<number | null>(() => {
+        const parsed = Number.parseInt(props.id, 10);
+        return Number.isFinite(parsed) ? parsed : null;
+    }, [props.id]);
 
     const {
         blocks,
@@ -375,6 +406,13 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     );
     const [authorId, setAuthorId] = useState<number | string | null>(initialAuthorId);
     const [commentsOpen, setCommentsOpen] = useState<boolean>(initialCommentsOpen);
+    const [categories, setCategories] = useState<ReadonlyArray<number>>(
+        initialCategories ?? []
+    );
+    const [tags, setTags] = useState<ReadonlyArray<number>>(initialTags ?? []);
+    const [parent, setParent] = useState<number | null>(initialParent);
+    const [menuOrder, setMenuOrder] = useState<number>(initialMenuOrder);
+    const [template, setTemplate] = useState<string>(initialTemplate);
     const [inserterOpen, setInserterOpen] = useState<boolean>(false);
     const [inspectorOpen, setInspectorOpen] = useState<boolean>(true);
     const [shortcutsOpen, setShortcutsOpen] = useState<boolean>(false);
@@ -400,8 +438,26 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             featuredImage,
             authorId,
             commentsOpen,
+            categories,
+            tags,
+            parent,
+            menuOrder,
+            template,
         }),
-        [authorId, commentsOpen, excerpt, featuredImage, slug, status, title]
+        [
+            authorId,
+            categories,
+            commentsOpen,
+            excerpt,
+            featuredImage,
+            menuOrder,
+            parent,
+            slug,
+            status,
+            tags,
+            template,
+            title,
+        ]
     );
 
     const emitMetadata = useCallback(
@@ -470,6 +526,46 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         (value: boolean): void => {
             setCommentsOpen(value);
             emitMetadata({ commentsOpen: value });
+        },
+        [emitMetadata]
+    );
+
+    const handleCategoriesChange = useCallback(
+        (value: ReadonlyArray<number>): void => {
+            setCategories(value);
+            emitMetadata({ categories: value });
+        },
+        [emitMetadata]
+    );
+
+    const handleTagsChange = useCallback(
+        (value: ReadonlyArray<number>): void => {
+            setTags(value);
+            emitMetadata({ tags: value });
+        },
+        [emitMetadata]
+    );
+
+    const handleParentChange = useCallback(
+        (value: number | null): void => {
+            setParent(value);
+            emitMetadata({ parent: value });
+        },
+        [emitMetadata]
+    );
+
+    const handleMenuOrderChange = useCallback(
+        (value: number): void => {
+            setMenuOrder(value);
+            emitMetadata({ menuOrder: value });
+        },
+        [emitMetadata]
+    );
+
+    const handleTemplateChange = useCallback(
+        (value: string): void => {
+            setTemplate(value);
+            emitMetadata({ template: value });
         },
         [emitMetadata]
     );
@@ -655,6 +751,25 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             commentsOpen={commentsOpen}
             onCommentsOpenChange={handleCommentsOpenChange}
             supports={supports}
+            documentType={documentType}
+            categories={categories}
+            onCategoriesChange={
+                documentType === 'post' ? handleCategoriesChange : undefined
+            }
+            tags={tags}
+            onTagsChange={documentType === 'post' ? handleTagsChange : undefined}
+            parent={parent}
+            onParentChange={
+                documentType === 'page' ? handleParentChange : undefined
+            }
+            menuOrder={menuOrder}
+            onMenuOrderChange={
+                documentType === 'page' ? handleMenuOrderChange : undefined
+            }
+            template={template}
+            onTemplateChange={
+                documentType === 'page' ? handleTemplateChange : undefined
+            }
         />
     );
 
@@ -688,51 +803,74 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         );
     }
 
+    const editorBody = (
+        <BlockEditorProvider
+            value={blocks}
+            settings={editorSettings}
+            onInput={handleInput}
+            onChange={handleChange}
+        >
+            {inserterOpen ? (
+                <div
+                    className="ap-visual-editor__sidebar ap-visual-editor__sidebar--inserter"
+                    data-testid="ap-visual-editor-inserter-panel"
+                >
+                    <BlockLibrarySidebar apiBase={props.apiBase} />
+                </div>
+            ) : null}
+            <div className="editor-styles-wrapper ap-visual-editor__canvas">
+                <PostTitle value={title} onChange={handleTitleChange} />
+                <BlockTools>
+                    <WritingFlow>
+                        <ObserveTyping>
+                            <BlockList />
+                        </ObserveTyping>
+                    </WritingFlow>
+                </BlockTools>
+            </div>
+            <Popover.Slot />
+            <ConvertToPatternControl apiBase={props.apiBase} />
+            {inspectorOpen ? (
+                <div
+                    className="ap-visual-editor__sidebar ap-visual-editor__sidebar--inspector"
+                    data-testid="ap-visual-editor-inspector-panel"
+                >
+                    <InspectorSidebar documentContent={documentPanels} />
+                </div>
+            ) : null}
+        </BlockEditorProvider>
+    );
+
+    // G3: when the editor mounts for a cms-framework Post or Page, wrap
+    // the canvas in `EntityProvider` so `core/post-*` blocks pick up
+    // their entity context (kind, name, id) and resolve through the
+    // core-data shim's `useEntityRecord` / `useEntityProp` hooks. Other
+    // resources (custom HasBlockContent models, legacy fixtures) skip
+    // the wrap and the blocks render the placeholder shell — same
+    // behavior as before this phase.
+    const wrappedBody =
+        documentType !== null && numericId !== null ? (
+            <EntityProvider
+                kind="postType"
+                name={documentType}
+                id={numericId}
+            >
+                {editorBody}
+            </EntityProvider>
+        ) : (
+            editorBody
+        );
+
     return (
         <SlotFillProvider>
             <div
                 className="ap-visual-editor__shell"
                 data-inserter-open={inserterOpen}
                 data-inspector-open={inspectorOpen}
+                data-document-type={documentType ?? 'unset'}
             >
                 {topBar}
-                <div className="ap-visual-editor__body">
-                    <BlockEditorProvider
-                        value={blocks}
-                        settings={editorSettings}
-                        onInput={handleInput}
-                        onChange={handleChange}
-                    >
-                        {inserterOpen ? (
-                            <div
-                                className="ap-visual-editor__sidebar ap-visual-editor__sidebar--inserter"
-                                data-testid="ap-visual-editor-inserter-panel"
-                            >
-                                <BlockLibrarySidebar apiBase={props.apiBase} />
-                            </div>
-                        ) : null}
-                        <div className="editor-styles-wrapper ap-visual-editor__canvas">
-                            <PostTitle value={title} onChange={handleTitleChange} />
-                            <BlockTools>
-                                <WritingFlow>
-                                    <ObserveTyping>
-                                        <BlockList />
-                                    </ObserveTyping>
-                                </WritingFlow>
-                            </BlockTools>
-                        </div>
-                        <Popover.Slot />
-                        <ConvertToPatternControl apiBase={props.apiBase} />
-                        {inspectorOpen ? (
-                            <div
-                                className="ap-visual-editor__sidebar ap-visual-editor__sidebar--inspector"
-                                data-testid="ap-visual-editor-inspector-panel"
-                            >
-                                <InspectorSidebar documentContent={documentPanels} />
-                            </div>
-                        ) : null}
-                    </BlockEditorProvider>
-                </div>
+                <div className="ap-visual-editor__body">{wrappedBody}</div>
                 {shortcutsModal}
             </div>
         </SlotFillProvider>

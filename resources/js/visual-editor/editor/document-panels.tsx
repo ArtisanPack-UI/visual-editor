@@ -68,6 +68,18 @@ export interface DocumentSupports {
     comments?: boolean;
 }
 
+/**
+ * Discriminator that toggles the post-type-specific document panels.
+ *
+ * Threaded down from `EditorApp` based on the editor's mount resource —
+ * `'posts'` → `'post'`, `'pages'` → `'page'`, anything else (custom
+ * resources, the legacy fixture) → `null` so neither extra panel
+ * renders.
+ *
+ * @since 1.0.0
+ */
+export type DocumentType = 'post' | 'page' | null;
+
 export interface DocumentPanelsProps {
     status: PostStatus;
     slug: string;
@@ -88,6 +100,34 @@ export interface DocumentPanelsProps {
     onCommentsOpenChange?: (value: boolean) => void;
 
     supports?: DocumentSupports;
+
+    /**
+     * When set to `'post'` or `'page'` the inspector renders the matching
+     * post-type-specific panel set (taxonomies for posts, page attributes
+     * for pages). `null` (the default for non-cms-framework resources)
+     * hides both.
+     */
+    documentType?: DocumentType;
+
+    /** Selected category ids — post only. */
+    categories?: ReadonlyArray<number>;
+    onCategoriesChange?: (value: ReadonlyArray<number>) => void;
+
+    /** Selected tag ids — post only. */
+    tags?: ReadonlyArray<number>;
+    onTagsChange?: (value: ReadonlyArray<number>) => void;
+
+    /** Parent page id — page only. `null` clears the parent. */
+    parent?: number | null;
+    onParentChange?: (value: number | null) => void;
+
+    /** Page menu order — page only. */
+    menuOrder?: number;
+    onMenuOrderChange?: (value: number) => void;
+
+    /** Theme template slug applied to this page — page only. */
+    template?: string;
+    onTemplateChange?: (value: string) => void;
 }
 
 const STATUS_OPTIONS: ReadonlyArray<{ value: PostStatus; label: string }> = [
@@ -136,11 +176,32 @@ export function DocumentPanels(props: DocumentPanelsProps): JSX.Element {
         commentsOpen,
         onCommentsOpenChange,
         supports,
+        documentType,
+        categories,
+        onCategoriesChange,
+        tags,
+        onTagsChange,
+        parent,
+        onParentChange,
+        menuOrder,
+        onMenuOrderChange,
+        template,
+        onTemplateChange,
     } = props;
 
     const showExcerpt = supports?.excerpt !== false && onExcerptChange !== undefined;
     const showFeaturedImage = supports?.featuredImage !== false;
     const showComments = supports?.comments === true && onCommentsOpenChange !== undefined;
+
+    const showTaxonomies =
+        documentType === 'post' &&
+        (onCategoriesChange !== undefined || onTagsChange !== undefined);
+
+    const showPageAttributes =
+        documentType === 'page' &&
+        (onParentChange !== undefined ||
+            onMenuOrderChange !== undefined ||
+            onTemplateChange !== undefined);
 
     // Recompute on every render — `@wordpress/hooks` filters are global
     // module state with no React-level subscription, so memoizing here
@@ -173,6 +234,24 @@ export function DocumentPanels(props: DocumentPanelsProps): JSX.Element {
                 <ExcerptPanel
                     value={excerpt ?? ''}
                     onChange={onExcerptChange!}
+                />
+            ) : null}
+            {showTaxonomies ? (
+                <TaxonomiesPanel
+                    categories={categories ?? []}
+                    tags={tags ?? []}
+                    onCategoriesChange={onCategoriesChange}
+                    onTagsChange={onTagsChange}
+                />
+            ) : null}
+            {showPageAttributes ? (
+                <PageAttributesPanel
+                    parent={parent ?? null}
+                    menuOrder={menuOrder ?? 0}
+                    template={template ?? ''}
+                    onParentChange={onParentChange}
+                    onMenuOrderChange={onMenuOrderChange}
+                    onTemplateChange={onTemplateChange}
                 />
             ) : null}
             {showComments ? (
@@ -424,6 +503,214 @@ function DiscussionPanel(props: DiscussionPanelProps): JSX.Element {
             />
         </PanelBody>
     );
+}
+
+interface TaxonomiesPanelProps {
+    categories: ReadonlyArray<number>;
+    tags: ReadonlyArray<number>;
+    onCategoriesChange?: (value: ReadonlyArray<number>) => void;
+    onTagsChange?: (value: ReadonlyArray<number>) => void;
+}
+
+/**
+ * Post-type-specific panel surfacing category + tag id selection.
+ *
+ * V1 ships a comma-separated id list rather than a real term-picker
+ * dropdown — building the picker requires the cms-framework term REST
+ * endpoints to be paginated and searchable, which is V1.1 scope. The
+ * id-list contract still round-trips correctly through the WP-shape
+ * `categories` / `tags` arrays in {@link PostResource}, so a host
+ * that wires up its own picker on top can swap in richer UI without
+ * the underlying data shape changing.
+ */
+function TaxonomiesPanel(props: TaxonomiesPanelProps): JSX.Element {
+    const { categories, tags, onCategoriesChange, onTagsChange } = props;
+
+    const handleCategoriesChange = useCallback(
+        (raw: string): void => {
+            onCategoriesChange?.(parseIdList(raw));
+        },
+        [onCategoriesChange]
+    );
+
+    const handleTagsChange = useCallback(
+        (raw: string): void => {
+            onTagsChange?.(parseIdList(raw));
+        },
+        [onTagsChange]
+    );
+
+    return (
+        <PanelBody title={__('Categories & Tags', TEXT_DOMAIN)} initialOpen={false}>
+            {onCategoriesChange !== undefined ? (
+                <PanelRow>
+                    <TextControl
+                        label={__('Categories', TEXT_DOMAIN)}
+                        help={__(
+                            'Comma-separated category ids (e.g. 1, 4, 7). A richer picker lands in 1.1.',
+                            TEXT_DOMAIN
+                        )}
+                        value={formatIdList(categories)}
+                        onChange={handleCategoriesChange}
+                        __nextHasNoMarginBottom={true}
+                        __next40pxDefaultSize={true}
+                        data-testid="ap-visual-editor-document-categories"
+                    />
+                </PanelRow>
+            ) : null}
+            {onTagsChange !== undefined ? (
+                <PanelRow>
+                    <TextControl
+                        label={__('Tags', TEXT_DOMAIN)}
+                        help={__(
+                            'Comma-separated tag ids (e.g. 2, 5).',
+                            TEXT_DOMAIN
+                        )}
+                        value={formatIdList(tags)}
+                        onChange={handleTagsChange}
+                        __nextHasNoMarginBottom={true}
+                        __next40pxDefaultSize={true}
+                        data-testid="ap-visual-editor-document-tags"
+                    />
+                </PanelRow>
+            ) : null}
+        </PanelBody>
+    );
+}
+
+interface PageAttributesPanelProps {
+    parent: number | null;
+    menuOrder: number;
+    template: string;
+    onParentChange?: (value: number | null) => void;
+    onMenuOrderChange?: (value: number) => void;
+    onTemplateChange?: (value: string) => void;
+}
+
+/**
+ * Page-only panel surfacing parent / menu_order / template fields.
+ *
+ * `parent` accepts a numeric page id; an empty input clears the parent
+ * relationship. `menu_order` is a non-negative integer used by the host
+ * to sort pages in navigation menus. `template` is a free-form theme
+ * template slug — the editor doesn't enumerate available templates
+ * (that needs a theme-registry integration we punt to 1.1), so the
+ * input is a plain text control.
+ */
+function PageAttributesPanel(props: PageAttributesPanelProps): JSX.Element {
+    const {
+        parent,
+        menuOrder,
+        template,
+        onParentChange,
+        onMenuOrderChange,
+        onTemplateChange,
+    } = props;
+
+    const handleParentChange = useCallback(
+        (raw: string): void => {
+            if (onParentChange === undefined) {
+                return;
+            }
+
+            const trimmed = raw.trim();
+
+            if (trimmed === '') {
+                onParentChange(null);
+                return;
+            }
+
+            const parsed = Number.parseInt(trimmed, 10);
+            onParentChange(Number.isFinite(parsed) ? parsed : null);
+        },
+        [onParentChange]
+    );
+
+    const handleMenuOrderChange = useCallback(
+        (raw: string): void => {
+            if (onMenuOrderChange === undefined) {
+                return;
+            }
+
+            const trimmed = raw.trim();
+            const parsed = Number.parseInt(trimmed, 10);
+            onMenuOrderChange(Number.isFinite(parsed) && parsed >= 0 ? parsed : 0);
+        },
+        [onMenuOrderChange]
+    );
+
+    return (
+        <PanelBody title={__('Page attributes', TEXT_DOMAIN)} initialOpen={false}>
+            {onParentChange !== undefined ? (
+                <PanelRow>
+                    <TextControl
+                        label={__('Parent page', TEXT_DOMAIN)}
+                        help={__('Numeric id of the parent page; leave blank for top-level.', TEXT_DOMAIN)}
+                        value={parent === null ? '' : String(parent)}
+                        onChange={handleParentChange}
+                        __nextHasNoMarginBottom={true}
+                        __next40pxDefaultSize={true}
+                        data-testid="ap-visual-editor-document-parent"
+                    />
+                </PanelRow>
+            ) : null}
+            {onMenuOrderChange !== undefined ? (
+                <PanelRow>
+                    <TextControl
+                        label={__('Order', TEXT_DOMAIN)}
+                        type="number"
+                        value={String(menuOrder)}
+                        onChange={handleMenuOrderChange}
+                        __nextHasNoMarginBottom={true}
+                        __next40pxDefaultSize={true}
+                        data-testid="ap-visual-editor-document-menu-order"
+                    />
+                </PanelRow>
+            ) : null}
+            {onTemplateChange !== undefined ? (
+                <PanelRow>
+                    <TextControl
+                        label={__('Template', TEXT_DOMAIN)}
+                        help={__('Theme template slug applied to this page.', TEXT_DOMAIN)}
+                        value={template}
+                        onChange={onTemplateChange}
+                        __nextHasNoMarginBottom={true}
+                        __next40pxDefaultSize={true}
+                        data-testid="ap-visual-editor-document-template"
+                    />
+                </PanelRow>
+            ) : null}
+        </PanelBody>
+    );
+}
+
+/**
+ * Parses a user-typed comma-separated id list into a deduplicated
+ * array of positive integers. Whitespace, blank entries, non-numeric
+ * tokens, and negative / zero ids are dropped — the result is safe to
+ * round-trip through the WP-shape `categories[]` / `tags[]` arrays.
+ *
+ * @since 1.0.0
+ */
+function parseIdList(raw: string): ReadonlyArray<number> {
+    const ids = raw
+        .split(',')
+        .map((piece) => piece.trim())
+        .filter((piece) => piece.length > 0)
+        .map((piece) => Number.parseInt(piece, 10))
+        .filter((value): value is number => Number.isFinite(value) && value > 0);
+
+    return Array.from(new Set(ids));
+}
+
+/**
+ * Renders a numeric id list back into the comma-separated form the
+ * `TaxonomiesPanel` text inputs accept.
+ *
+ * @since 1.0.0
+ */
+function formatIdList(ids: ReadonlyArray<number>): string {
+    return ids.join(', ');
 }
 
 function FilteredPanel({
