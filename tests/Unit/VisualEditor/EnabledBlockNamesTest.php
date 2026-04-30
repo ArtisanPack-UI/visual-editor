@@ -14,7 +14,9 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 	// real loop runtime or term/comment endpoints, so the output should
 	// be the allow-list verbatim, in config order. E4 (#381) added the
 	// post-, site-, navigation, and template-part blocks on the back of
-	// B1's expanded core-data shim and the C-series REST surface.
+	// B1's expanded core-data shim and the C-series REST surface. G4b
+	// (#401) added the taxonomy/feed widgets that the cms-framework
+	// term + post APIs back through the dynamic-block registry.
 	expect( $editor->getEnabledBlockNames() )->toBe( [
 		'core/paragraph',
 		'core/heading',
@@ -54,6 +56,9 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 		'core/site-tagline',
 		'core/site-logo',
 		'core/navigation',
+		'core/categories',
+		'core/tag-cloud',
+		'core/archives',
 		'artisanpack/callout',
 	] );
 } );

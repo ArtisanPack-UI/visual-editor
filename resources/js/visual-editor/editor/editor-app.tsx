@@ -50,6 +50,7 @@ import { registerContrastWarning } from './contrast-warning';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
 import { discoverAndRegisterCustomBlocks } from './custom-blocks';
 import { registerSyncedPatternIndicator } from './synced-pattern-indicator';
+import { registerTaxonomyAndArchiveBlockOverrides } from './taxonomy-archive-block-overrides';
 import {
     DocumentPanels,
     type AuthorOption,
@@ -167,6 +168,11 @@ function registerOnce(): void {
     // for the same reason — the wrapper sees `core/block` once the
     // block registers and applies the badge from then on.
     registerSyncedPatternIndicator();
+    // G4b — swap the broken upstream Edit components for
+    // `core/categories`, `core/tag-cloud`, and `core/archives` with our
+    // ServerSideRender-backed wrappers BEFORE `registerCoreBlocks()` so
+    // the override applies during initial registration.
+    registerTaxonomyAndArchiveBlockOverrides();
     registerCoreBlocks();
     // Discover host-app custom blocks under
     // `resources/js/visual-editor/blocks/{block-name}/index.ts` and

@@ -2,6 +2,10 @@
 
 namespace ArtisanPackUI\VisualEditor;
 
+use ArtisanPackUI\CMSFramework\Modules\Blog\Managers\BlogManager;
+use ArtisanPackUI\VisualEditor\Blocks\Core\ArchivesBlock;
+use ArtisanPackUI\VisualEditor\Blocks\Core\CategoriesBlock;
+use ArtisanPackUI\VisualEditor\Blocks\Core\TagCloudBlock;
 use ArtisanPackUI\VisualEditor\Console\Commands\SeedSampleContentCommand;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorGlobalStyles;
@@ -165,6 +169,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//    category end-to-end.
 		$this->registerReferenceBlocks();
 
+		// 4a. G4b — register the three taxonomy/feed core blocks against
+		//     cms-framework's term + post APIs. Gated on the package's
+		//     presence so visual-editor still boots when cms-framework is
+		//     absent; without it these blocks stay deferred and the
+		//     deny-list keeps them out of the inserter.
+		$this->registerTaxonomyAndArchiveBlocks();
+
 		// 5. Tag the config file for the scaffold command.
 		if ( $this->app->runningInConsole() ) {
 			$this->publishes( [
@@ -236,6 +247,25 @@ class VisualEditorServiceProvider extends ServiceProvider
 				$editor->registerBlock( $blockJsonPath );
 			}
 		}
+	}
+
+	/**
+	 * Registers the G4b dynamic blocks (`core/categories`, `core/tag-cloud`,
+	 * `core/archives`) against cms-framework's term + post APIs.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function registerTaxonomyAndArchiveBlocks(): void
+	{
+		if ( ! class_exists( BlogManager::class ) ) {
+			return;
+		}
+
+		$editor = $this->app->make( VisualEditor::class );
+
+		$editor->registerDynamicBlock( CategoriesBlock::class );
+		$editor->registerDynamicBlock( TagCloudBlock::class );
+		$editor->registerDynamicBlock( ArchivesBlock::class );
 	}
 
 	/**

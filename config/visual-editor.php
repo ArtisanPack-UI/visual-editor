@@ -73,16 +73,16 @@ return [
 	| fully-qualified block names (e.g. `core/paragraph`, `core/query`).
 	|
 	| The V1 defaults follow the M5 block-library audit
-	| (see docs/block-library-audit.md), updated by E4 (#381). The
-	| allow-list now includes the entity-scoped blocks that B1's expanded
-	| `core-data` shim plus the C1–C5 REST surface can round-trip:
-	| `core/template-part`, `core/post-*`, `core/site-*`, and
-	| `core/navigation`. The deny-list still removes the loop / feed
-	| widgets (`core/query`, `core/latest-comments`, `core/archives`,
-	| `core/categories`, `core/tag-cloud`) — they need a real loop runtime
-	| and term/comment endpoints that the shim does not implement, and
-	| stay deferred until V2 (`artisanpack-ui/cms-framework`) and V1.1+
-	| respectively. Keep the JS-side mirror in
+	| (see docs/block-library-audit.md), updated by E4 (#381) and G4b
+	| (#401). The allow-list now includes the entity-scoped blocks that
+	| B1's expanded `core-data` shim plus the C1–C5 REST surface can
+	| round-trip (`core/template-part`, `core/post-*`, `core/site-*`,
+	| `core/navigation`) and the taxonomy/feed widgets that G4b wires to
+	| cms-framework's term + post APIs (`core/categories`,
+	| `core/tag-cloud`, `core/archives`). The deny-list still removes
+	| the loop runtime (`core/query`, `core/query-loop` — V1 G4c) and
+	| the comments widgets (`core/latest-comments` — V1.1+, requires a
+	| Comments module in cms-framework). Keep the JS-side mirror in
 	| `resources/js/visual-editor/site-editor/site-editor-app.tsx`
 	| (`D2_DISABLED_BLOCKS`) in sync with the deny-list — the two lists
 	| want to agree.
@@ -133,28 +133,35 @@ return [
 		'core/site-tagline',
 		'core/site-logo',
 		'core/navigation',
+		// G4b (#401) — taxonomy/feed widgets backed by cms-framework's
+		// term + post APIs through the dynamic-block registry. Hosts
+		// without cms-framework leave them registered client-side but
+		// the server-side renderer falls back to the unknown-block
+		// shell since no DynamicBlock is registered.
+		'core/categories',
+		'core/tag-cloud',
+		'core/archives',
 		'artisanpack/callout',
 	],
 
 	'disabled_blocks' => [
 		// `core/navigation` was enabled by D4 and stays enabled in E4.
 		// `core/template-part`, `core/post-*`, and `core/site-*` are
-		// promoted to the allow-list above by E4 (#381). The blocks
-		// listed here remain deliberately deferred:
+		// promoted to the allow-list above by E4 (#381). G4b (#401)
+		// promotes `core/categories`, `core/tag-cloud`, and
+		// `core/archives`. The blocks listed here remain deliberately
+		// deferred:
 		//
 		//  - core/query / core/query-loop need a real loop runtime
-		//    (V2 — `artisanpack-ui/cms-framework`).
-		//  - The taxonomy/feed widgets need term + comment endpoints
-		//    that the shim does not implement (V1.1+).
+		//    (V1 G4c — `cms-framework` `QueryRuntime` service).
+		//  - core/latest-comments needs a Comments module in
+		//    cms-framework that does not exist yet (V1.1+).
 		//
 		// The JS-side mirror in site-editor-app.tsx is updated
 		// alongside this entry.
 		'core/query',
 		'core/query-loop',
 		'core/latest-comments',
-		'core/archives',
-		'core/categories',
-		'core/tag-cloud',
 	],
 
 	/*

@@ -51,6 +51,7 @@ import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
 import { TopBar } from '../editor/top-bar';
 import { registerSyncedPatternIndicator } from '../editor/synced-pattern-indicator';
+import { registerTaxonomyAndArchiveBlockOverrides } from '../editor/taxonomy-archive-block-overrides';
 
 import './site-editor-app.css';
 
@@ -126,10 +127,14 @@ let editorBooted = false;
  * blocks alongside the loop + feed widgets because their `Edit`
  * components depended on core-data selectors the M2 shim did not
  * implement. E4 re-enables every entity-scoped block on the back of
- * B1's expanded shim plus the C1–C5 REST surface; the loop and feed
- * widgets stay disabled because they still need a real loop runtime
- * (V2) and term/comment endpoints (V1.1+) that the shim does not
- * implement.
+ * B1's expanded shim plus the C1–C5 REST surface. G4b (#401) re-enables
+ * `core/categories`, `core/tag-cloud`, and `core/archives` because
+ * their upstream `Edit` components render through `ServerSideRender`
+ * — the visual-editor's preview endpoint resolves them via the
+ * dynamic-block registry against cms-framework's term and post APIs.
+ * The loop and comments widgets stay disabled because they still need
+ * a real loop runtime (V1 G4c) and a Comments module in cms-framework
+ * (V1.1+) respectively.
  *
  * Mirrors the PHP `disabled_blocks` list in
  * `config/visual-editor.php` — the two lists want to agree, and the
@@ -139,9 +144,6 @@ const D2_DISABLED_BLOCKS: ReadonlyArray<string> = [
     'core/query',
     'core/query-loop',
     'core/latest-comments',
-    'core/archives',
-    'core/categories',
-    'core/tag-cloud',
 ];
 
 function ensureEditorBoot(): void {
@@ -155,6 +157,12 @@ function ensureEditorBoot(): void {
     // registration so `core/block` reference blocks get the badge from
     // the first render. Idempotent across HMR.
     registerSyncedPatternIndicator();
+
+    // G4b — swap the broken upstream Edit components for
+    // `core/categories`, `core/tag-cloud`, and `core/archives` with our
+    // ServerSideRender-backed wrappers BEFORE `registerCoreBlocks()` so
+    // the override applies during initial registration.
+    registerTaxonomyAndArchiveBlockOverrides();
 
     // Register core blocks before the first template loads so `parse()`
     // can turn the saved raw serialization back into BlockInstances
