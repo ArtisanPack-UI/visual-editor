@@ -304,4 +304,229 @@ describe('<DocumentPanels />', () => {
             screen.getByRole('button', { name: /SEO/i })
         ).toBeInTheDocument();
     });
+
+    describe('post-only Categories & tags panel', () => {
+        it('hides the panel when documentType is not "post"', () => {
+            render(
+                <DocumentPanels
+                    {...baseProps({
+                        documentType: 'page',
+                        onCategoriesChange: vi.fn(),
+                        onTagsChange: vi.fn(),
+                    })}
+                />
+            );
+
+            expect(
+                screen.queryByRole('button', { name: /Categories & Tags/i })
+            ).not.toBeInTheDocument();
+        });
+
+        it('renders both inputs when documentType is "post"', async () => {
+            const user = userEvent.setup();
+
+            render(
+                <DocumentPanels
+                    {...baseProps({
+                        documentType: 'post',
+                        categories: [1, 4],
+                        tags: [7],
+                        onCategoriesChange: vi.fn(),
+                        onTagsChange: vi.fn(),
+                    })}
+                />
+            );
+
+            await user.click(
+                screen.getByRole('button', { name: /Categories & Tags/i })
+            );
+
+            expect(
+                screen.getByTestId('ap-visual-editor-document-categories')
+            ).toHaveValue('1, 4');
+            expect(
+                screen.getByTestId('ap-visual-editor-document-tags')
+            ).toHaveValue('7');
+        });
+
+        it('parses comma-separated input into a deduplicated id list', async () => {
+            const onCategoriesChange = vi.fn();
+            const user = userEvent.setup();
+
+            render(
+                <DocumentPanels
+                    {...baseProps({
+                        documentType: 'post',
+                        categories: [],
+                        tags: [],
+                        onCategoriesChange,
+                        onTagsChange: vi.fn(),
+                    })}
+                />
+            );
+
+            await user.click(
+                screen.getByRole('button', { name: /Categories & Tags/i })
+            );
+
+            const input = screen.getByTestId(
+                'ap-visual-editor-document-categories'
+            );
+
+            // userEvent.type fires onChange per keystroke; the panel
+            // parses the *current* input each time, so the last call
+            // is the only one we need to assert against.
+            fireEvent.change(input, { target: { value: '1, 4, 4, abc, 9 ' } });
+
+            expect(onCategoriesChange).toHaveBeenLastCalledWith([1, 4, 9]);
+        });
+
+        it('rejects truncatable tokens like "1.5" and "12abc" outright', async () => {
+            const onCategoriesChange = vi.fn();
+            const user = userEvent.setup();
+
+            render(
+                <DocumentPanels
+                    {...baseProps({
+                        documentType: 'post',
+                        categories: [],
+                        tags: [],
+                        onCategoriesChange,
+                        onTagsChange: vi.fn(),
+                    })}
+                />
+            );
+
+            await user.click(
+                screen.getByRole('button', { name: /Categories & Tags/i })
+            );
+
+            const input = screen.getByTestId(
+                'ap-visual-editor-document-categories'
+            );
+
+            // `parseInt('1.5', 10) === 1` and `parseInt('12abc', 10) === 12`
+            // would silently promote both into the saved id list. The
+            // regex pre-check rejects them outright; only the bare integer
+            // 7 survives.
+            fireEvent.change(input, {
+                target: { value: '1.5, 12abc, 7' },
+            });
+
+            expect(onCategoriesChange).toHaveBeenLastCalledWith([7]);
+        });
+    });
+
+    describe('page-only Page attributes panel', () => {
+        it('hides the panel when documentType is not "page"', () => {
+            render(
+                <DocumentPanels
+                    {...baseProps({
+                        documentType: 'post',
+                        onParentChange: vi.fn(),
+                        onMenuOrderChange: vi.fn(),
+                        onTemplateChange: vi.fn(),
+                    })}
+                />
+            );
+
+            expect(
+                screen.queryByRole('button', { name: /Page attributes/i })
+            ).not.toBeInTheDocument();
+        });
+
+        it('renders parent / menu_order / template inputs', async () => {
+            const user = userEvent.setup();
+
+            render(
+                <DocumentPanels
+                    {...baseProps({
+                        documentType: 'page',
+                        parent: 5,
+                        menuOrder: 3,
+                        template: 'sidebar',
+                        onParentChange: vi.fn(),
+                        onMenuOrderChange: vi.fn(),
+                        onTemplateChange: vi.fn(),
+                    })}
+                />
+            );
+
+            await user.click(
+                screen.getByRole('button', { name: /Page attributes/i })
+            );
+
+            expect(
+                screen.getByTestId('ap-visual-editor-document-parent')
+            ).toHaveValue('5');
+            expect(
+                screen.getByTestId('ap-visual-editor-document-menu-order')
+            ).toHaveValue(3);
+            expect(
+                screen.getByTestId('ap-visual-editor-document-template')
+            ).toHaveValue('sidebar');
+        });
+
+        it('clears parent when the input is blanked', async () => {
+            const onParentChange = vi.fn();
+            const user = userEvent.setup();
+
+            render(
+                <DocumentPanels
+                    {...baseProps({
+                        documentType: 'page',
+                        parent: 5,
+                        menuOrder: 0,
+                        template: '',
+                        onParentChange,
+                        onMenuOrderChange: vi.fn(),
+                        onTemplateChange: vi.fn(),
+                    })}
+                />
+            );
+
+            await user.click(
+                screen.getByRole('button', { name: /Page attributes/i })
+            );
+
+            const input = screen.getByTestId(
+                'ap-visual-editor-document-parent'
+            );
+
+            fireEvent.change(input, { target: { value: '' } });
+
+            expect(onParentChange).toHaveBeenLastCalledWith(null);
+        });
+
+        it('coerces negative or non-numeric menu_order to 0', async () => {
+            const onMenuOrderChange = vi.fn();
+            const user = userEvent.setup();
+
+            render(
+                <DocumentPanels
+                    {...baseProps({
+                        documentType: 'page',
+                        parent: null,
+                        menuOrder: 0,
+                        template: '',
+                        onParentChange: vi.fn(),
+                        onMenuOrderChange,
+                        onTemplateChange: vi.fn(),
+                    })}
+                />
+            );
+
+            await user.click(
+                screen.getByRole('button', { name: /Page attributes/i })
+            );
+
+            const input = screen.getByTestId(
+                'ap-visual-editor-document-menu-order'
+            );
+
+            fireEvent.change(input, { target: { value: '-1' } });
+
+            expect(onMenuOrderChange).toHaveBeenLastCalledWith(0);
+        });
+    });
 });

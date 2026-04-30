@@ -81,6 +81,31 @@ export interface MountConfig {
     initialFeaturedImage?: FeaturedImageValue | null;
     initialAuthorId?: number | string | null;
     initialCommentsOpen?: boolean;
+    /**
+     * Initial category ids — surfaced in the inspector for `posts` resources.
+     * Hosts pass via `data-categories` (JSON array) on the mount element.
+     */
+    initialCategories?: ReadonlyArray<number>;
+    /**
+     * Initial tag ids — surfaced in the inspector for `posts` resources.
+     * Hosts pass via `data-tags` (JSON array).
+     */
+    initialTags?: ReadonlyArray<number>;
+    /**
+     * Initial parent page id — surfaced in the inspector for `pages` resources.
+     * Hosts pass via `data-parent` (numeric string; empty for top-level).
+     */
+    initialParent?: number | null;
+    /**
+     * Initial page menu_order — surfaced in the inspector for `pages` resources.
+     * Hosts pass via `data-menu-order` (numeric string).
+     */
+    initialMenuOrder?: number;
+    /**
+     * Initial theme template slug — surfaced in the inspector for `pages` resources.
+     * Hosts pass via `data-template`.
+     */
+    initialTemplate?: string;
     authorOptions?: ReadonlyArray<AuthorOption>;
     supports?: DocumentSupports;
     previewUrl?: string | null;
@@ -138,6 +163,39 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
     const rawAuthorId = element.dataset.authorId?.trim();
     const commentsOpenRaw = element.dataset.commentsOpen?.trim();
     const previewUrl = element.dataset.previewUrl?.trim();
+    const rawParent = element.dataset.parent?.trim();
+    const rawMenuOrder = element.dataset.menuOrder?.trim();
+    const initialTemplate = element.dataset.template?.trim();
+
+    const initialCategories = parseIdListDataset(
+        element.dataset.categories,
+        'data-categories'
+    );
+    const initialTags = parseIdListDataset(
+        element.dataset.tags,
+        'data-tags'
+    );
+
+    // `data-parent` has three meaningful states the rest of the editor
+    // depends on: missing (use the default), the empty string (explicit
+    // top-level — host stamped a `null` parent), and a numeric id.
+    // A fourth case — malformed, e.g. `data-parent="abc"` — would be
+    // silently coerced to `null` by `parseNullableInt` and conflated
+    // with the legitimate top-level signal. Treat malformed input as
+    // "not present" instead so the inspector falls back to its default
+    // and a host bug doesn't masquerade as a top-level page.
+    let initialParent: number | null | undefined;
+
+    if (rawParent === undefined) {
+        initialParent = undefined;
+    } else if (rawParent === '') {
+        initialParent = null;
+    } else {
+        const parsed = parseNullableInt(rawParent);
+        initialParent = parsed ?? undefined;
+    }
+
+    const initialMenuOrder = parseNullableInt(rawMenuOrder);
 
     const featuredImage = parseJsonDataset<FeaturedImageValue | null>(
         element.dataset.featuredImage,
@@ -185,8 +243,88 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
         ...(featuredImage !== null ? { initialFeaturedImage: featuredImage } : {}),
         ...(authorOptions !== null ? { authorOptions } : {}),
         ...(supports !== null ? { supports } : {}),
+        ...(initialCategories !== null ? { initialCategories } : {}),
+        ...(initialTags !== null ? { initialTags } : {}),
+        ...(initialParent !== undefined ? { initialParent } : {}),
+        ...(initialMenuOrder !== null
+            ? { initialMenuOrder }
+            : {}),
+        ...(initialTemplate ? { initialTemplate } : {}),
         previewUrl: previewUrl ?? null,
     };
+}
+
+/**
+ * Parses a `data-*` JSON array of integers into a deduplicated id
+ * list. Returns `null` when the attribute is missing or unparseable
+ * so `readMountConfig` can omit the field instead of clobbering the
+ * `EditorAppProps` default.
+ *
+ * Exported for tests. Not part of the public package surface.
+ *
+ * @internal
+ */
+export function parseIdListDataset(
+    raw: string | undefined,
+    context: string
+): ReadonlyArray<number> | null {
+    const parsed = parseJsonDataset<unknown>(raw, context);
+
+    if (!Array.isArray(parsed)) {
+        return null;
+    }
+
+    const ids: number[] = [];
+
+    for (const candidate of parsed) {
+        if (
+            typeof candidate === 'number' &&
+            Number.isInteger(candidate) &&
+            candidate > 0
+        ) {
+            ids.push(candidate);
+            continue;
+        }
+
+        if (
+            typeof candidate === 'string' &&
+            candidate.trim() !== '' &&
+            /^[1-9]\d*$/.test(candidate.trim())
+        ) {
+            ids.push(Number.parseInt(candidate.trim(), 10));
+        }
+    }
+
+    return Array.from(new Set(ids));
+}
+
+/**
+ * Parses a `data-*` numeric attribute into a finite integer or
+ * `null` for blank / unparseable input.
+ *
+ * The whole string must match `^-?\d+$` (optional leading minus, one
+ * or more digits, nothing else); `parseInt` would otherwise silently
+ * accept tokens like `"3.9"` (truncated to `3`) or `"12abc"`
+ * (truncated to `12`) and surface them as initial values.
+ *
+ * Exported for tests. Not part of the public package surface.
+ *
+ * @internal
+ */
+export function parseNullableInt(raw: string | undefined): number | null {
+    if (raw === undefined) {
+        return null;
+    }
+
+    const trimmed = raw.trim();
+
+    if (trimmed === '' || !/^-?\d+$/.test(trimmed)) {
+        return null;
+    }
+
+    const parsed = Number.parseInt(trimmed, 10);
+
+    return Number.isFinite(parsed) ? parsed : null;
 }
 
 /**
