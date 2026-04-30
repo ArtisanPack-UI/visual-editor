@@ -175,7 +175,26 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
         element.dataset.tags,
         'data-tags'
     );
-    const initialParent = parseNullableInt(rawParent);
+
+    // `data-parent` has three meaningful states the rest of the editor
+    // depends on: missing (use the default), the empty string (explicit
+    // top-level — host stamped a `null` parent), and a numeric id.
+    // A fourth case — malformed, e.g. `data-parent="abc"` — would be
+    // silently coerced to `null` by `parseNullableInt` and conflated
+    // with the legitimate top-level signal. Treat malformed input as
+    // "not present" instead so the inspector falls back to its default
+    // and a host bug doesn't masquerade as a top-level page.
+    let initialParent: number | null | undefined;
+
+    if (rawParent === undefined) {
+        initialParent = undefined;
+    } else if (rawParent === '') {
+        initialParent = null;
+    } else {
+        const parsed = parseNullableInt(rawParent);
+        initialParent = parsed ?? undefined;
+    }
+
     const initialMenuOrder = parseNullableInt(rawMenuOrder);
 
     const featuredImage = parseJsonDataset<FeaturedImageValue | null>(
@@ -226,9 +245,7 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
         ...(supports !== null ? { supports } : {}),
         ...(initialCategories !== null ? { initialCategories } : {}),
         ...(initialTags !== null ? { initialTags } : {}),
-        ...(rawParent !== undefined
-            ? { initialParent: initialParent }
-            : {}),
+        ...(initialParent !== undefined ? { initialParent } : {}),
         ...(initialMenuOrder !== null
             ? { initialMenuOrder }
             : {}),
