@@ -112,13 +112,48 @@ title. Better UX is no block at all until `cms-framework` lands.
 | Block | Required data |
 | --- | --- |
 | `core/latest-comments` | Comments feed. |
-| `core/archives` | Archive list query. |
-| `core/categories` | Term hierarchy. |
-| `core/tag-cloud` | Term weights. |
 | `core/rss` | External feed fetch — not blocked by shim but disabled for consistency with the other feed widgets. |
 | `core/calendar` | Post date aggregation. |
 | `core/page-list` | Hierarchical page query. |
 | `core/table-of-contents` | Heading scan against rendered entity. |
+
+### G4b — re-enabled against cms-framework's term + post APIs (#401)
+
+`core/categories`, `core/tag-cloud`, and `core/archives` were promoted out
+of the empty-state list in G4b. Each block ships as a `DynamicBlock`
+subclass under `src/Blocks/Core/` that reads from cms-framework's
+`PostCategory`, `PostTag`, and `Post` models respectively. Registration is
+gated on `class_exists(BlogManager::class)` in `VisualEditorServiceProvider`
+— host apps without cms-framework still register the block client-side
+(via the inserter allow-list) but the preview endpoint resolves to the
+unknown-block fallback because no `DynamicBlock` is bound.
+
+Editor preview, Blade renderer, React renderer, and Vue renderer all
+resolve through the same `DynamicBlock::render()` path:
+
+- Editor surface: Gutenberg's upstream `Edit` components for these three
+  blocks already use `ServerSideRender`, which POSTs the block's name
+  and attributes to `/visual-editor/api/blocks/preview` — that controller
+  routes through the dynamic-block registry.
+- Front-end Blade renderer (`@artisanpack-ui/visual-editor-renderer-blade`)
+  invokes the registered `DynamicBlock` directly when walking the saved
+  block tree.
+- Front-end React (`...-renderer-react`) and Vue (`...-renderer-vue`)
+  renderers POST to the same preview endpoint on mount and splice the
+  returned HTML back into the tree.
+
+Archive URLs default to `/blog/{year}/{month}` (the cms-framework blog
+default route shape). Hosts with a different archive route should rebind
+the dynamic block via `VisualEditor::registerDynamicBlock(ArchivesBlock::class)`
+with a subclass that overrides `decorate()`. Custom-taxonomy support is
+out of scope for V1 (deferred to V1.1).
+
+The taxonomy entity registration (`{kind: 'taxonomy', name: 'category', …}`)
+called for in #401's implementation notes is intentionally **not** added in
+V1 — the upstream `core/categories|tag-cloud|archives` `Edit` components
+all render through `ServerSideRender`, so they never query
+`useEntityRecords('taxonomy', 'category')`. The shim entities can be
+layered in cheaply later if a future block needs them.
 
 ## Crash or backend-required — disabled by default
 

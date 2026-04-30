@@ -125,6 +125,13 @@ vi.mock('../../editor/synced-pattern-indicator', () => ({
     registerSyncedPatternIndicator: () => undefined,
 }));
 
+// G4b — stub the taxonomy/archive Edit override registration to avoid
+// pulling `@wordpress/block-editor` + `@wordpress/components` into the
+// shell test's import graph.
+vi.mock('../../editor/taxonomy-archive-block-overrides', () => ({
+    registerTaxonomyAndArchiveBlockOverrides: () => undefined,
+}));
+
 import { SiteEditorApp } from '../site-editor-app';
 
 const ROUTE_BASE = '/visual-editor/site';
