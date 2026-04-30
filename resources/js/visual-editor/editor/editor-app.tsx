@@ -10,12 +10,14 @@
 
 import {
     useCallback,
+    useEffect,
     useMemo,
     useRef,
     useState,
 } from 'react';
 import { Alert, ToastProvider } from '@artisanpack-ui/react/feedback';
 import {
+    BlockContextProvider,
     BlockEditorProvider,
     BlockList,
     BlockTools,
@@ -24,6 +26,7 @@ import {
 } from '@wordpress/block-editor';
 import { registerCoreBlocks } from '@wordpress/block-library';
 import { Popover, SlotFillProvider } from '@wordpress/components';
+import { useDispatch, useSelect } from '@wordpress/data';
 import { EntityProvider } from '@wordpress/core-data';
 // Importing `@wordpress/format-library` is a side-effect — it registers
 // the core rich-text formats (bold, italic, link, inline code, etc.) so
@@ -381,6 +384,34 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         [props.id]
     );
 
+    // G4a: thread the entity identity (kind/name/id) through the
+    // persistence layer so sidebar metadata edits and post-title block
+    // edits round-trip via the G3 entity endpoint after the block save.
+    // Bypasses for non-cms-framework resources (custom HasBlockContent
+    // models without a shim entity registration) — the persistence loop
+    // skips the metadata flush when `entity` is null.
+    const entityIdentity = useMemo(
+        () =>
+            documentType !== null && numericId !== null
+                ? { kind: 'postType', name: documentType, id: numericId }
+                : null,
+        [documentType, numericId]
+    );
+
+    // Memoized block context value. Stable reference across editor-app
+    // re-renders (e.g. on entity-edit dispatches) so `BlockContextProvider`
+    // doesn't fan out a new context object to every block on every render
+    // — the cascading `Edit` re-renders that follows clobbers the
+    // block-editor's selection state, leaving the inspector's "Block" tab
+    // stuck on its empty placeholder mid-edit.
+    const blockContextValue = useMemo(
+        () =>
+            documentType !== null && numericId !== null
+                ? { postType: documentType, postId: numericId }
+                : null,
+        [documentType, numericId]
+    );
+
     const {
         blocks,
         loadStatus,
@@ -390,8 +421,85 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         lastSavedAt,
         onBlocksChange,
         queueBlocksForSave,
+        queueMetadataForSave,
         flush,
-    } = usePersistence(props);
+    } = usePersistence({ ...props, entity: entityIdentity });
+
+    const { editEntityRecord } = useDispatch('core') as {
+        editEntityRecord?: (
+            kind: string,
+            name: string,
+            id: number,
+            edits: Record<string, unknown>
+        ) => void;
+    };
+
+    /**
+     * Stages a metadata edit on the core-data entity record (when the
+     * editor is mounted against a cms-framework Post/Page) and schedules
+     * the debounced metadata flush. Sidebar handlers below call this
+     * alongside their `setLocalState` mirror so the canvas's
+     * `useEntityProp`-driven blocks (e.g. `core/post-title`) and the
+     * inspector share a single source of truth on save.
+     */
+    const stageEntityEdit = useCallback(
+        (field: string, value: unknown): void => {
+            if (entityIdentity === null || editEntityRecord === undefined) {
+                return;
+            }
+
+            editEntityRecord(
+                entityIdentity.kind,
+                entityIdentity.name,
+                entityIdentity.id,
+                { [field]: value }
+            );
+            queueMetadataForSave();
+        },
+        [entityIdentity, editEntityRecord, queueMetadataForSave]
+    );
+
+    // Watches the entity edits bag. Blocks rendered inside the canvas
+    // (e.g. `core/post-title` typing into a `PlainText`) call
+    // `editEntityRecord` directly through `useEntityProp`'s setter — they
+    // never reach `stageEntityEdit`. Subscribing here picks up those
+    // edits and re-arms the metadata-save debounce so block-level
+    // metadata edits round-trip on the same cycle as sidebar edits.
+    const stagedEntityEdits = useSelect(
+        (select) => {
+            if (entityIdentity === null) {
+                return null;
+            }
+
+            const store = select('core') as
+                | {
+                      getEntityRecordEdits?: (
+                          kind: string,
+                          name: string,
+                          id: number
+                      ) => Record<string, unknown> | null;
+                  }
+                | undefined;
+
+            return (
+                store?.getEntityRecordEdits?.(
+                    entityIdentity.kind,
+                    entityIdentity.name,
+                    entityIdentity.id
+                ) ?? null
+            );
+        },
+        [entityIdentity]
+    );
+
+    useEffect(() => {
+        if (
+            stagedEntityEdits !== null
+            && Object.keys(stagedEntityEdits).length > 0
+        ) {
+            queueMetadataForSave();
+        }
+    }, [stagedEntityEdits, queueMetadataForSave]);
 
     useSaveNotifications({
         saveStatus,
@@ -481,54 +589,73 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         (value: string): void => {
             setTitle(value);
             emitMetadata({ title: value });
+            stageEntityEdit('title', value);
         },
-        [emitMetadata]
+        [emitMetadata, stageEntityEdit]
     );
 
     const handleSlugChange = useCallback(
         (value: string): void => {
             setSlug(value);
             emitMetadata({ slug: value });
+            stageEntityEdit('slug', value);
         },
-        [emitMetadata]
+        [emitMetadata, stageEntityEdit]
     );
 
     const handleStatusChange = useCallback(
         (value: PostStatus): void => {
             setStatus(value);
             emitMetadata({ status: value });
+            stageEntityEdit('status', value);
         },
-        [emitMetadata]
+        [emitMetadata, stageEntityEdit]
     );
 
     const handleExcerptChange = useCallback(
         (value: string): void => {
             setExcerpt(value);
             emitMetadata({ excerpt: value });
+            stageEntityEdit('excerpt', value);
         },
-        [emitMetadata]
+        [emitMetadata, stageEntityEdit]
     );
 
     const handleFeaturedImageChange = useCallback(
         (value: FeaturedImageValue | null): void => {
             setFeaturedImage(value);
             emitMetadata({ featuredImage: value });
+            // The G3 endpoint's WP-shape envelope expects
+            // `featured_media: <id|null>`, not the host's
+            // `{id, url, alt}` blob.
+            stageEntityEdit('featured_media', value === null ? null : value.id);
         },
-        [emitMetadata]
+        [emitMetadata, stageEntityEdit]
     );
 
     const handleAuthorChange = useCallback(
         (value: number | string | null): void => {
             setAuthorId(value);
             emitMetadata({ authorId: value });
+            // WP-shape entity field is `author`, scalar id.
+            stageEntityEdit(
+                'author',
+                typeof value === 'string' && value !== '' && /^\d+$/.test(value)
+                    ? Number.parseInt(value, 10)
+                    : (value as number | null)
+            );
         },
-        [emitMetadata]
+        [emitMetadata, stageEntityEdit]
     );
 
     const handleCommentsOpenChange = useCallback(
         (value: boolean): void => {
             setCommentsOpen(value);
             emitMetadata({ commentsOpen: value });
+            // `comments_open` isn't part of the V1 UpdatePostRequest
+            // surface, so we don't stage it on the entity record. Hosts
+            // that wire a comments column persist it through
+            // `onMetadataChange` until the entity adapter formalizes it.
         },
         [emitMetadata]
     );
@@ -537,40 +664,45 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         (value: ReadonlyArray<number>): void => {
             setCategories(value);
             emitMetadata({ categories: value });
+            stageEntityEdit('categories', [...value]);
         },
-        [emitMetadata]
+        [emitMetadata, stageEntityEdit]
     );
 
     const handleTagsChange = useCallback(
         (value: ReadonlyArray<number>): void => {
             setTags(value);
             emitMetadata({ tags: value });
+            stageEntityEdit('tags', [...value]);
         },
-        [emitMetadata]
+        [emitMetadata, stageEntityEdit]
     );
 
     const handleParentChange = useCallback(
         (value: number | null): void => {
             setParent(value);
             emitMetadata({ parent: value });
+            stageEntityEdit('parent', value);
         },
-        [emitMetadata]
+        [emitMetadata, stageEntityEdit]
     );
 
     const handleMenuOrderChange = useCallback(
         (value: number): void => {
             setMenuOrder(value);
             emitMetadata({ menuOrder: value });
+            stageEntityEdit('menu_order', value);
         },
-        [emitMetadata]
+        [emitMetadata, stageEntityEdit]
     );
 
     const handleTemplateChange = useCallback(
         (value: string): void => {
             setTemplate(value);
             emitMetadata({ template: value });
+            stageEntityEdit('template', value);
         },
-        [emitMetadata]
+        [emitMetadata, stageEntityEdit]
     );
 
     const handleInput = useCallback(
@@ -826,7 +958,23 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 <BlockTools>
                     <WritingFlow>
                         <ObserveTyping>
-                            <BlockList />
+                            {/*
+                             * G4a: stamp `postType`/`postId` into block context
+                             * for cms-framework Post/Page edits so `core/post-*`
+                             * blocks (which declare `usesContext: ["postId",
+                             * "postType", "queryId"]`) see the active entity.
+                             * Outside an entity-mounted canvas the values stay
+                             * undefined and the blocks render their placeholder
+                             * shell — same behaviour as a query-loop descendant
+                             * with no parent providing the context.
+                             */}
+                            {documentType !== null && numericId !== null ? (
+                                <BlockContextProvider value={blockContextValue}>
+                                    <BlockList />
+                                </BlockContextProvider>
+                            ) : (
+                                <BlockList />
+                            )}
                         </ObserveTyping>
                     </WritingFlow>
                 </BlockTools>

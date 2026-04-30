@@ -227,3 +227,63 @@ it( 'is resolvable from the service container', function () {
 
 	expect( $adapter )->toBeInstanceOf( GutenbergAttachmentAdapter::class );
 } );
+
+it( 'emits the WP REST media shape for getEntityRecord(attachment) consumers', function () {
+	$adapter = new GutenbergAttachmentAdapter();
+
+	$result = $adapter->toWpRestShape( adapterFixture() );
+
+	expect( $result )->toMatchArray( [
+		'id'         => 42,
+		'source_url' => 'https://cdn.example.test/pic.jpg',
+		'alt_text'   => 'alt',
+		'mime_type'  => 'image/jpeg',
+		'media_type' => 'image',
+		'caption'    => [ 'rendered' => 'caption' ],
+		'title'      => [ 'rendered' => '' ],
+	] );
+
+	expect( $result['media_details'] )->toMatchArray( [
+		'width'  => 1024,
+		'height' => 768,
+	] );
+} );
+
+it( 'reshapes Gutenberg-style sizes into WP REST media-details sizes', function () {
+	$adapter = new GutenbergAttachmentAdapter();
+
+	$result = $adapter->toWpRestShape( adapterFixture( [
+		'metadata' => [
+			'sizes' => [
+				'thumbnail' => [
+					'url'    => 'https://cdn.example.test/pic-thumb.jpg',
+					'width'  => 150,
+					'height' => 150,
+				],
+			],
+		],
+	] ) );
+
+	expect( $result['media_details']['sizes'] ?? null )->toMatchArray( [
+		'thumbnail' => [
+			'source_url' => 'https://cdn.example.test/pic-thumb.jpg',
+			'width'      => 150,
+			'height'     => 150,
+		],
+	] );
+} );
+
+it( 'collapses null caption to a rendered empty string', function () {
+	$adapter = new GutenbergAttachmentAdapter();
+
+	$result = $adapter->toWpRestShape( adapterFixture( [
+		'alt_text' => null,
+		'caption'  => null,
+	] ) );
+
+	expect( $result )
+		->toMatchArray( [
+			'alt_text' => '',
+			'caption'  => [ 'rendered' => '' ],
+		] );
+} );

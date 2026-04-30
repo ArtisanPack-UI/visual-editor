@@ -104,6 +104,14 @@ describe('core-data-shim entity registry', () => {
             // resolve to null when cms-framework isn't installed.
             'postType|post',
             'postType|page',
+            // G4a — `core/post-featured-image` and `core/cover` resolve
+            // the saved `featured_media` id via
+            // `getEntityRecord('postType', 'attachment', id)`. The
+            // matching `/visual-editor/api/attachments/{id}` endpoint
+            // delegates to the host's media library through
+            // `apGetMedia()` and falls back to 404 when no media
+            // library is installed.
+            'postType|attachment',
         ]);
     });
 
@@ -1034,11 +1042,173 @@ describe('core-data-shim hooks', () => {
         expect(result.totalPages).toBe(0);
     });
 
-    it('useEntityProp returns [undefined, setter, undefined]', () => {
+    it('useEntityProp returns [undefined, noop setter, undefined] when args are missing', () => {
         const [value, setter, rawValue] = renderHook(() => useEntityProp());
         expect(value).toBeUndefined();
         expect(rawValue).toBeUndefined();
         expect(typeof setter).toBe('function');
+        // Calling the noop setter must not throw or dispatch — we don't
+        // know which entity/prop the caller meant to edit.
+        expect(() => setter(undefined as unknown as never)).not.toThrow();
+    });
+
+    it('useEntityProp reads the edited prop (flattened raw shape) and the full prop separately', () => {
+        coreDispatch().receiveEntityRecords('postType', 'post', [
+            {
+                id: 1,
+                title: { rendered: 'Hello World', raw: 'Hello World' },
+                status: 'publish',
+                type: 'post',
+            },
+        ]);
+
+        const [edited, setter, full] = renderHook(() =>
+            useEntityProp<string | { rendered: string; raw: string }>(
+                'postType',
+                'post',
+                'title',
+                1,
+            ),
+        );
+
+        expect(edited).toBe('Hello World');
+        expect(full).toEqual({ rendered: 'Hello World', raw: 'Hello World' });
+        expect(typeof setter).toBe('function');
+    });
+
+    it('useEntityProp setter dispatches editEntityRecord and surfaces the edit on next read', () => {
+        coreDispatch().receiveEntityRecords('postType', 'post', [
+            {
+                id: 1,
+                title: { rendered: 'Hello World', raw: 'Hello World' },
+                status: 'publish',
+                type: 'post',
+            },
+        ]);
+
+        const captured = renderHook(() =>
+            useEntityProp<string>('postType', 'post', 'title', 1),
+        );
+
+        act(() => {
+            captured[1]('Updated Title');
+        });
+
+        const [edited] = renderHook(() =>
+            useEntityProp<string>('postType', 'post', 'title', 1),
+        );
+
+        expect(edited).toBe('Updated Title');
+        expect(
+            coreSelect().getEntityRecordEdits('postType', 'post', 1),
+        ).toEqual({ title: 'Updated Title' });
+    });
+
+    it('useEntityProp re-renders the same consumer when the resolver populates the cache', async () => {
+        // The previous renderHook-based test mounted a fresh React tree
+        // after the fetch settled. Real consumers (e.g. core/post-title's
+        // Edit) mount once and rely on useSelect's subscription to surface
+        // the populated value on the next render. This test exercises the
+        // subscription path against a single mounted Probe.
+        const { fetcher } = mockFetcher(async () =>
+            jsonResponse({
+                id: 1,
+                slug: 'tinker-test',
+                title: { rendered: 'Tinker Test', raw: 'Tinker Test' },
+                status: 'publish',
+                type: 'post',
+            }),
+        );
+
+        configureCoreDataShim({ apiBase: '/visual-editor/api', fetcher });
+
+        let captured: [unknown, unknown, unknown] = [
+            undefined,
+            undefined,
+            undefined,
+        ];
+
+        function Probe(): null {
+            captured = useEntityProp<string>('postType', 'post', 'title', 1);
+            return null;
+        }
+
+        render(<Probe />);
+
+        expect(captured[0]).toBeUndefined();
+
+        await act(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+        });
+
+        expect(captured[0]).toBe('Tinker Test');
+    });
+
+    it('useEntityProp resolves the entity through the REST resolver and surfaces the prop after fetch', async () => {
+        // Mirrors how `core/post-title` reads `title` from a cms-framework
+        // post in the editor canvas: nothing pre-populates the cache, so
+        // the hook has to trigger the `getEntityRecord` resolver, fetch
+        // the record, and re-render with the populated value.
+        const { fetcher, calls } = mockFetcher(async () =>
+            jsonResponse({
+                id: 1,
+                slug: 'tinker-test',
+                title: { rendered: 'Tinker Test', raw: 'Tinker Test' },
+                status: 'publish',
+                type: 'post',
+            }),
+        );
+
+        configureCoreDataShim({ apiBase: '/visual-editor/api', fetcher });
+
+        const initial = renderHook(() =>
+            useEntityProp<string>('postType', 'post', 'title', 1),
+        );
+
+        expect(initial[0]).toBeUndefined();
+
+        // Settle the resolver thunk + receive dispatch.
+        await act(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 20));
+        });
+
+        const settled = renderHook(() =>
+            useEntityProp<string>('postType', 'post', 'title', 1),
+        );
+
+        expect(calls.length).toBeGreaterThanOrEqual(1);
+        expect(calls[0]?.url).toBe('/visual-editor/api/posts/1');
+        expect(settled[0]).toBe('Tinker Test');
+    });
+
+    it('useEntityProp falls back to ambient EntityProvider id when the id arg is omitted', () => {
+        coreDispatch().receiveEntityRecords('postType', 'post', [
+            {
+                id: 7,
+                title: { rendered: 'Ambient', raw: 'Ambient' },
+                status: 'publish',
+                type: 'post',
+            },
+        ]);
+
+        let captured: [unknown, unknown, unknown] = [
+            undefined,
+            undefined,
+            undefined,
+        ];
+
+        function Probe(): null {
+            captured = useEntityProp('postType', 'post', 'title');
+            return null;
+        }
+
+        render(
+            <EntityProvider kind="postType" name="post" id={7}>
+                <Probe />
+            </EntityProvider>,
+        );
+
+        expect(captured[0]).toBe('Ambient');
     });
 
     it('useEntityBlockEditor returns an empty block list and stable setters', () => {

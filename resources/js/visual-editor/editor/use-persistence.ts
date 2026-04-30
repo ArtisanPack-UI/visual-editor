@@ -9,11 +9,13 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { BlockInstance } from '@wordpress/blocks';
+import { dispatch as wpDispatch, select as wpSelect } from '@wordpress/data';
 
 import {
     ApiError,
     fetchContent,
     saveContent,
+    saveEntityRecord,
     type ApiClientConfig,
 } from './api-client';
 import {
@@ -26,6 +28,20 @@ import {
 type LoadStatus = 'loading' | 'ready' | 'error';
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 type SaveTrigger = 'autosave' | 'save';
+
+/**
+ * Identity tuple for a core-data entity edited by the canvas. When set,
+ * the persistence loop also flushes any staged
+ * `editEntityRecord(kind, name, id, ...)` edits to the G3 entity
+ * endpoint after the block save lands. cms-framework Post/Page edits
+ * thread their identity here so sidebar metadata edits and post-title
+ * block edits both round-trip through the same save cycle.
+ */
+export interface EntityIdentity {
+    kind: string;
+    name: string;
+    id: number;
+}
 
 export interface PersistenceState {
     blocks: BlockInstance[];
@@ -51,6 +67,14 @@ export interface PersistenceState {
      */
     queueBlocksForSave: (next: BlockInstance[]) => void;
     /**
+     * Schedule a debounced save for entity metadata edits already staged
+     * in the core-data shim's edits bag (via `editEntityRecord`). Sidebar
+     * handlers + the post-title block's `useEntityProp` setter both
+     * dispatch into the same bag; this hook drains it on the next
+     * scheduled flush.
+     */
+    queueMetadataForSave: () => void;
+    /**
      * Cancels the pending debounce timer and fires the save immediately.
      * Wired to the ⌘S shortcut in the top bar so explicit saves bypass the
      * 800ms coalescing window.
@@ -64,6 +88,13 @@ export interface UsePersistenceOptions extends ApiClientConfig {
      * Defaults to 800ms so rapid edits coalesce into a single request.
      */
     debounceMs?: number;
+    /**
+     * Optional core-data entity identity. Provide for resources that
+     * register a `postType:*` entity through the shim (cms-framework
+     * Post/Page) so metadata edits round-trip through the G3 endpoint
+     * alongside the block save.
+     */
+    entity?: EntityIdentity | null;
 }
 
 // 1.5s debounce — long enough to coalesce drag-bursts from the color
@@ -76,10 +107,62 @@ function toApiError(error: unknown, fallback: string): ApiError {
     return error instanceof ApiError ? error : new ApiError(fallback, 0, error);
 }
 
+function hasEntityEdits(kind: string, name: string, id: number): boolean {
+    const store = wpSelect('core') as
+        | {
+              hasEditsForEntityRecord?: (
+                  kind: string,
+                  name: string,
+                  id: number
+              ) => boolean;
+          }
+        | undefined;
+
+    return store?.hasEditsForEntityRecord?.(kind, name, id) ?? false;
+}
+
+function readEntityEdits(
+    kind: string,
+    name: string,
+    id: number
+): Record<string, unknown> | null {
+    const store = wpSelect('core') as
+        | {
+              getEntityRecordEdits?: (
+                  kind: string,
+                  name: string,
+                  id: number
+              ) => Record<string, unknown> | null;
+          }
+        | undefined;
+
+    return store?.getEntityRecordEdits?.(kind, name, id) ?? null;
+}
+
+function clearEntityEdits(kind: string, name: string, id: number): void {
+    const dispatcher = wpDispatch('core') as
+        | {
+              clearEntityRecordEdits?: (
+                  kind: string,
+                  name: string,
+                  id: number
+              ) => void;
+          }
+        | undefined;
+
+    dispatcher?.clearEntityRecordEdits?.(kind, name, id);
+}
+
 export function usePersistence(
     options: UsePersistenceOptions
 ): PersistenceState {
-    const { debounceMs = DEFAULT_DEBOUNCE_MS, apiBase, resource, id } = options;
+    const {
+        debounceMs = DEFAULT_DEBOUNCE_MS,
+        apiBase,
+        resource,
+        id,
+        entity = null,
+    } = options;
 
     const [blocks, setBlocks] = useState<BlockInstance[]>([]);
     const [loadStatus, setLoadStatus] = useState<LoadStatus>('loading');
@@ -97,6 +180,12 @@ export function usePersistence(
     // writing state or scheduling a trailing flush.
     const targetVersionRef = useRef<number>(0);
     const loadStatusRef = useRef<LoadStatus>('loading');
+    // Mirrors the entity tuple in a ref so the runFlush closure can read
+    // the latest identity without re-binding `runFlush` on every render
+    // (which would replace `queueBlocksForSave` / `queueMetadataForSave`
+    // identity and churn the consuming components downstream).
+    const entityRef = useRef<EntityIdentity | null>(entity);
+    entityRef.current = entity;
 
     loadStatusRef.current = loadStatus;
 
@@ -152,9 +241,12 @@ export function usePersistence(
                 return;
             }
 
-            const next = pendingRef.current;
+            const nextBlocks = pendingRef.current;
+            const ent = entityRef.current;
+            const hasMetadata =
+                ent !== null && hasEntityEdits(ent.kind, ent.name, ent.id);
 
-            if (next === null) {
+            if (nextBlocks === null && !hasMetadata) {
                 return;
             }
 
@@ -165,25 +257,64 @@ export function usePersistence(
             setSaveStatus('saving');
             setSaveError(null);
 
-            try {
-                const response = await saveContent({ apiBase, resource, id }, next);
+            let savedAt: string | null = null;
 
-                if (unmountedRef.current || version !== targetVersionRef.current) {
-                    return;
+            try {
+                if (nextBlocks !== null) {
+                    const response = await saveContent(
+                        { apiBase, resource, id },
+                        nextBlocks
+                    );
+
+                    if (unmountedRef.current || version !== targetVersionRef.current) {
+                        return;
+                    }
+
+                    savedAt = response.updated_at;
+
+                    dispatchEditorEvent(
+                        trigger === 'save' ? VE_EDITOR_SAVE : VE_EDITOR_AUTOSAVE,
+                        {
+                            resource,
+                            id,
+                            blocks: nextBlocks,
+                            updatedAt: response.updated_at,
+                        }
+                    );
                 }
 
-                setLastSavedAt(response.updated_at);
-                setSaveStatus('saved');
+                if (
+                    ent !== null
+                    && hasEntityEdits(ent.kind, ent.name, ent.id)
+                ) {
+                    const edits = readEntityEdits(ent.kind, ent.name, ent.id);
 
-                dispatchEditorEvent(
-                    trigger === 'save' ? VE_EDITOR_SAVE : VE_EDITOR_AUTOSAVE,
-                    {
-                        resource,
-                        id,
-                        blocks: next,
-                        updatedAt: response.updated_at,
+                    if (edits !== null && Object.keys(edits).length > 0) {
+                        // PUT only the staged edits — sending the merged
+                        // record would re-stamp the cached `content.blocks`
+                        // (potentially clobbering the just-saved block tree
+                        // when `nextBlocks` was non-null).
+                        await saveEntityRecord(
+                            { apiBase, resource, id },
+                            edits
+                        );
+
+                        if (
+                            unmountedRef.current
+                            || version !== targetVersionRef.current
+                        ) {
+                            return;
+                        }
+
+                        clearEntityEdits(ent.kind, ent.name, ent.id);
                     }
-                );
+                }
+
+                if (savedAt !== null) {
+                    setLastSavedAt(savedAt);
+                }
+
+                setSaveStatus('saved');
             } catch (error: unknown) {
                 if (unmountedRef.current || version !== targetVersionRef.current) {
                     return;
@@ -200,8 +331,17 @@ export function usePersistence(
             // count as autosaves: they're reacting to buffered edits, not a
             // fresh explicit Save press. Skip if the target changed during
             // the save.
+            const trailingEnt = entityRef.current;
+            const hasTrailingMetadata =
+                trailingEnt !== null
+                && hasEntityEdits(
+                    trailingEnt.kind,
+                    trailingEnt.name,
+                    trailingEnt.id
+                );
+
             if (
-                pendingRef.current !== null
+                (pendingRef.current !== null || hasTrailingMetadata)
                 && !unmountedRef.current
                 && version === targetVersionRef.current
             ) {
@@ -250,16 +390,43 @@ export function usePersistence(
         [queueBlocksForSave]
     );
 
+    const queueMetadataForSave = useCallback((): void => {
+        if (
+            loadStatusRef.current !== 'ready'
+            || entityRef.current === null
+        ) {
+            return;
+        }
+
+        // Mark dirty immediately so the top-bar indicator reflects the
+        // pending edit before the debounce window elapses.
+        setSaveStatus('idle');
+
+        if (timerRef.current !== null) {
+            clearTimeout(timerRef.current);
+        }
+
+        timerRef.current = setTimeout(() => {
+            timerRef.current = null;
+            void runFlush('autosave');
+        }, debounceMs);
+    }, [debounceMs, runFlush]);
+
     const flush = useCallback((): void => {
         if (timerRef.current !== null) {
             clearTimeout(timerRef.current);
             timerRef.current = null;
         }
 
-        if (
-            pendingRef.current === null
-            || loadStatusRef.current !== 'ready'
-        ) {
+        if (loadStatusRef.current !== 'ready') {
+            return;
+        }
+
+        const ent = entityRef.current;
+        const hasMetadata =
+            ent !== null && hasEntityEdits(ent.kind, ent.name, ent.id);
+
+        if (pendingRef.current === null && !hasMetadata) {
             return;
         }
 
@@ -275,6 +442,7 @@ export function usePersistence(
         lastSavedAt,
         onBlocksChange,
         queueBlocksForSave,
+        queueMetadataForSave,
         flush,
     };
 }

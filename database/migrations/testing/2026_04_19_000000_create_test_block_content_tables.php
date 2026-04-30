@@ -25,11 +25,18 @@ return new class extends Migration
 			$table->id();
 			$table->unsignedBigInteger( 'author_id' )->nullable()->index();
 			$table->string( 'title' )->default( '' );
+			$table->string( 'slug' )->nullable();
+			$table->text( 'excerpt' )->nullable();
+			$table->unsignedBigInteger( 'featured_image_id' )->nullable();
 			$table->string( 'status' )->default( 'draft' )->index();
 			$table->json( 'content' )->nullable();
 			$table->timestamps();
 		} );
 
+		// Pages fixture is intentionally minimal — its PageResource test
+		// asserts that page-only fields (parent / menu_order / template)
+		// stay absent from the response when the model doesn't declare
+		// them. Don't add those columns here.
 		Schema::create( 'test_block_content_pages', function ( Blueprint $table ) {
 			$table->id();
 			$table->unsignedBigInteger( 'author_id' )->nullable()->index();

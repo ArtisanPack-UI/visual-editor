@@ -42,6 +42,14 @@ function contentUrl(config: ApiClientConfig): string {
     )}/content`;
 }
 
+function entityRecordUrl(config: ApiClientConfig): string {
+    const base = config.apiBase.replace(/\/$/, '');
+
+    return `${base}/${encodeURIComponent(config.resource)}/${encodeURIComponent(
+        config.id
+    )}`;
+}
+
 function readCsrfToken(): string | null {
     if (typeof document === 'undefined') {
         return null;
@@ -136,6 +144,48 @@ export async function saveContent(
         return (await requireOk(response)) as ContentResponse;
     } catch (error: unknown) {
         throw normalizeError(error, 'Failed to save content.');
+    }
+}
+
+/**
+ * Persists a partial WP-shape entity record to the G3 endpoint at
+ * `{apiBase}/{resource}/{id}`. Used to flush metadata edits (title,
+ * slug, status, excerpt, featured_media, author, categories, tags,
+ * parent, menu_order, template) staged through the core-data shim's
+ * `editEntityRecord` action — the legacy `/content` endpoint only
+ * accepts the block tree, so metadata persistence rides this separate
+ * channel. The server's `UpdatePostRequest` / `UpdatePageRequest`
+ * gate every field with `sometimes`, so a partial payload is the
+ * canonical shape.
+ *
+ * @since 1.0.0
+ */
+export async function saveEntityRecord(
+    config: ApiClientConfig,
+    edits: Record<string, unknown>
+): Promise<unknown> {
+    const csrfToken = readCsrfToken();
+    const headers: Record<string, string> = {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+    };
+
+    if (csrfToken) {
+        headers['X-CSRF-TOKEN'] = csrfToken;
+    }
+
+    try {
+        const response = await fetch(entityRecordUrl(config), {
+            method: 'PUT',
+            credentials: 'same-origin',
+            headers,
+            body: JSON.stringify(edits),
+        });
+
+        return await requireOk(response);
+    } catch (error: unknown) {
+        throw normalizeError(error, 'Failed to save metadata.');
     }
 }
 

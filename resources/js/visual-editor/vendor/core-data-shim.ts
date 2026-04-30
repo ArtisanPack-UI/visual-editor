@@ -49,7 +49,7 @@ import {
     type PropsWithChildren,
     type ReactElement,
 } from 'react';
-import { createReduxStore, register, useSelect } from '@wordpress/data';
+import { createReduxStore, register, useDispatch, useSelect } from '@wordpress/data';
 
 // ---------------------------------------------------------------------------
 // Types
@@ -232,6 +232,21 @@ export const DEFAULT_ENTITIES: readonly EntityConfig[] = Object.freeze([
         key: 'id',
         label: 'Page',
         plural: 'pages',
+    },
+    // G4a — `core/post-featured-image` and `core/cover` resolve the
+    // saved `featured_media` id via `getEntityRecord('postType',
+    // 'attachment', id)`. The matching endpoint
+    // (`/visual-editor/api/attachments/{id}`) emits the WP REST media
+    // shape by delegating to the host's media library through
+    // `apGetMedia()`. When the helper isn't available the endpoint
+    // 404s and the block falls back to its empty placeholder.
+    {
+        kind: 'postType',
+        name: 'attachment',
+        baseURL: '/attachments',
+        key: 'id',
+        label: 'Attachment',
+        plural: 'attachments',
     },
 ]);
 
@@ -1654,12 +1669,113 @@ export function useEntityId(): EntityKey | undefined {
  */
 const noopSetter = (): void => {};
 
-export function useEntityProp<T = unknown>(): [
-    T | undefined,
-    typeof noopSetter,
-    T | undefined,
-] {
-    return [undefined, noopSetter, undefined];
+/**
+ * Reads + edits a single property of an entity record. Mirrors upstream
+ * `@wordpress/core-data`'s `useEntityProp` so block-library Edit
+ * components (e.g. `core/post-title`) round-trip the prop through the
+ * shim's edits bag.
+ *
+ * Returns `[ editedValue, setValue, fullValue ]` where:
+ * - `editedValue` is the prop read from `getEditedEntityRecord`, which
+ *   already flattens `{raw, rendered}` shapes to their `raw` string and
+ *   layers any pending edits on top. Block edits (e.g. typing into a
+ *   `core/post-title`'s `PlainText`) read this value.
+ * - `setValue` dispatches `editEntityRecord(kind, name, id, { [prop]: value })`
+ *   so subsequent reads see the new value through the edits bag.
+ * - `fullValue` is the prop read from the original `getEntityRecord` —
+ *   the unflattened shape, used by upstream code that needs the
+ *   `{rendered}` form (e.g. the post-title block's read-only fallback
+ *   path).
+ *
+ * The `id` argument is optional; when omitted the hook reads the
+ * ambient entity from {@link EntityProvider} via {@link useEntityId}.
+ * That mirrors core-data's behaviour for blocks rendered in a context
+ * that already declared the current entity.
+ *
+ * Returns `[undefined, noop, undefined]` when any of `kind`, `name`,
+ * `prop`, or the resolved id are missing — same guarded shape callers
+ * already destructure with default values (`const [ rawTitle = '' ]`).
+ */
+export function useEntityProp<T = unknown>(
+    kind?: EntityKind,
+    name?: EntityName,
+    prop?: string,
+    id?: EntityKey | null,
+): [T | undefined, (value: T) => void, T | undefined] {
+    const ambientId = useEntityId();
+    const resolvedId = id !== undefined && id !== null ? id : ambientId;
+
+    const { editedValue, fullValue } = useSelect<{
+        editedValue: T | undefined;
+        fullValue: T | undefined;
+    }>(
+        (select) => {
+            if (
+                kind === undefined ||
+                name === undefined ||
+                prop === undefined ||
+                resolvedId === undefined ||
+                resolvedId === null
+            ) {
+                return { editedValue: undefined, fullValue: undefined };
+            }
+
+            const store = select(STORE_NAME) as
+                | {
+                      getEntityRecord?: (
+                          kind: EntityKind,
+                          name: EntityName,
+                          id: EntityKey,
+                      ) => EntityRecord | null;
+                      getEditedEntityRecord?: (
+                          kind: EntityKind,
+                          name: EntityName,
+                          id: EntityKey,
+                      ) => EntityRecord | null;
+                  }
+                | undefined;
+
+            const edited = store?.getEditedEntityRecord?.(kind, name, resolvedId) ?? null;
+            const full = store?.getEntityRecord?.(kind, name, resolvedId) ?? null;
+
+            return {
+                editedValue: (edited?.[prop] as T | undefined) ?? undefined,
+                fullValue: (full?.[prop] as T | undefined) ?? undefined,
+            };
+        },
+        [kind, name, prop, resolvedId],
+    );
+
+    const dispatchTuple = useDispatch(STORE_NAME) as
+        | {
+              editEntityRecord?: (
+                  kind: EntityKind,
+                  name: EntityName,
+                  id: EntityKey,
+                  edits: EntityRecord,
+              ) => void;
+          }
+        | undefined;
+
+    const setter = useMemo(() => {
+        if (
+            kind === undefined ||
+            name === undefined ||
+            prop === undefined ||
+            resolvedId === undefined ||
+            resolvedId === null
+        ) {
+            return noopSetter as (value: T) => void;
+        }
+
+        return (value: T): void => {
+            dispatchTuple?.editEntityRecord?.(kind, name, resolvedId, {
+                [prop]: value,
+            });
+        };
+    }, [dispatchTuple, kind, name, prop, resolvedId]);
+
+    return [editedValue, setter, fullValue];
 }
 
 /**
