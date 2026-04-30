@@ -107,6 +107,93 @@ class GutenbergAttachmentAdapter
 	}
 
 	/**
+	 * Convert a single media record to the WP REST attachment shape.
+	 *
+	 * Distinct from {@see self::toGutenberg()}: where that emits the
+	 * compact shape Gutenberg's `MediaUpload` component round-trips
+	 * (`{ id, url, alt, sizes, ... }`), this method emits the WP REST
+	 * `/wp/v2/media/{id}` envelope (`{ id, source_url, alt_text,
+	 * media_details: { width, height, sizes }, ... }`) used by blocks
+	 * that resolve attachments through `getEntityRecord('postType',
+	 * 'attachment', id)` — `core/post-featured-image`, `core/cover`'s
+	 * featured-image option, and any other block that reads the media
+	 * record from the core-data store.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>|Arrayable<string, mixed>|object  $media  Media record.
+	 *
+	 * @return array<string, mixed>
+	 */
+	public function toWpRestShape( array|object $media ): array
+	{
+		$source = $this->normalize( $media );
+
+		$id = (int) ( $source['id'] ?? 0 );
+
+		$mediaDetails = [];
+		if ( $this->isPositiveInt( $source['width'] ?? null ) ) {
+			$mediaDetails['width'] = (int) $source['width'];
+		}
+		if ( $this->isPositiveInt( $source['height'] ?? null ) ) {
+			$mediaDetails['height'] = (int) $source['height'];
+		}
+
+		$sizes = $this->extractSizes( $source );
+		if ( null !== $sizes ) {
+			$mediaDetails['sizes'] = $this->sizesToWpShape( $sizes );
+		}
+
+		return [
+			'id'            => $id,
+			'source_url'    => (string) ( $source['url'] ?? '' ),
+			'alt_text'      => $this->stringOrEmpty( $source['alt_text'] ?? null ),
+			'caption'       => [ 'rendered' => $this->stringOrEmpty( $source['caption'] ?? null ) ],
+			'title'         => [ 'rendered' => $this->stringOrEmpty( $source['title'] ?? null ) ],
+			'mime_type'     => (string) ( $source['mime_type'] ?? '' ),
+			'media_type'    => $this->inferMediaType( $source ) ?? 'file',
+			'media_details' => $mediaDetails,
+		];
+	}
+
+	/**
+	 * Reshape Gutenberg-style sizes (`{ slug: { url, width, height } }`)
+	 * into the WP REST media-details sizes shape (`{ slug: { source_url,
+	 * width, height } }`). Keeps the V1 surface narrow — additional
+	 * fields (`mime_type`, `file`) are V1.1+ if and when consumers need
+	 * them.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, array<string, mixed>>  $sizes
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	protected function sizesToWpShape( array $sizes ): array
+	{
+		$out = [];
+		foreach ( $sizes as $slug => $size ) {
+			if ( ! is_array( $size ) ) {
+				continue;
+			}
+			$reshaped = [];
+			if ( isset( $size['url'] ) && is_string( $size['url'] ) ) {
+				$reshaped['source_url'] = $size['url'];
+			}
+			if ( isset( $size['width'] ) && is_int( $size['width'] ) ) {
+				$reshaped['width'] = $size['width'];
+			}
+			if ( isset( $size['height'] ) && is_int( $size['height'] ) ) {
+				$reshaped['height'] = $size['height'];
+			}
+			if ( [] !== $reshaped ) {
+				$out[ (string) $slug ] = $reshaped;
+			}
+		}
+		return $out;
+	}
+
+	/**
 	 * Reduce any supported input into an associative array for uniform
 	 * field access. Objects exposing `toArray()` route through that path so
 	 * Eloquent models surface their appended accessors (including `url`).

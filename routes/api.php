@@ -19,6 +19,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PageController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PostController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\AttachmentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\GlobalStylesController;
@@ -177,3 +178,13 @@ Route::put( 'pages/{id}', [ PageController::class, 'update' ] )
 
 Route::delete( 'pages/{id}', [ PageController::class, 'destroy' ] )
 	->name( 'visual-editor.api.pages.destroy' );
+
+// G4a — WP REST attachment shape for `core/post-featured-image` and
+// `core/cover` (featured-image option). Both blocks resolve the saved
+// `featured_media` id via `getEntityRecord('postType', 'attachment',
+// id)`, so the shim's attachment entity registration points here.
+// Read-only for V1; uploads still flow through the host's media-library
+// picker via the M4 media bridge.
+Route::get( 'attachments/{id}', [ AttachmentController::class, 'show' ] )
+	->where( 'id', '[0-9]+' )
+	->name( 'visual-editor.api.attachments.show' );

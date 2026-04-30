@@ -158,6 +158,30 @@ it( 'updates a post via PUT and round-trips the block tree', function () {
 	expect( $post->fresh()->getBlockContent() )->toEqual( $next );
 } );
 
+it( 'persists a partial metadata-only PUT (excerpt + featured_media)', function () {
+	actor();
+
+	$post = TestBlockContentModel::create( [
+		'title'   => 'Original',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	// Mirror the shape that visual-editor's `saveEntityRecord` API
+	// client sends when only sidebar metadata edits are pending — no
+	// `content` envelope, just the staged fields.
+	$this->putJson( "/visual-editor/api/posts/{$post->id}", [
+		'excerpt'        => 'A brand-new excerpt',
+		'featured_media' => 42,
+	] )
+		->assertOk()
+		->assertJsonPath( 'excerpt.rendered', 'A brand-new excerpt' );
+
+	$fresh = $post->fresh();
+	expect( $fresh->getAttribute( 'excerpt' ) )->toBe( 'A brand-new excerpt' );
+	expect( (int) $fresh->getAttribute( 'featured_image_id' ) )->toBe( 42 );
+} );
+
 it( 'rejects a bare-list content payload with 422', function () {
 	actor();
 
