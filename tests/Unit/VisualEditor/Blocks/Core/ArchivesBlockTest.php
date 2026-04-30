@@ -82,10 +82,20 @@ it( 'renders a dropdown when displayAsDropdown is set', function () {
 
 	$html = test()->block->render( test()->block->validateAttrs( [ 'displayAsDropdown' => true ] ) );
 
-	expect( $html )->toMatch( '/<select id="wp-block-archives-dropdown-[a-f0-9.]+">/' )
+	expect( $html )->toMatch( '/<select id="wp-block-archives-dropdown-[a-f0-9.]+" onchange="[^"]+">/' )
 		->and( $html )->toContain( '<option value="' )
 		->and( $html )->toContain( '/blog/2026/04' )
 		->and( $html )->toContain( 'April 2026' );
+} );
+
+it( 'attaches an inline onchange handler so the dropdown navigates on select', function () {
+	test()->block->buckets = new Collection( [
+		[ 'year' => 2026, 'month' => 4, 'count' => 5 ],
+	] );
+
+	$html = test()->block->render( test()->block->validateAttrs( [ 'displayAsDropdown' => true ] ) );
+
+	expect( $html )->toContain( 'onchange="if(this.value)document.location.href=this.value"' );
 } );
 
 it( 'gives multiple dropdowns unique ids on the same render pass', function () {

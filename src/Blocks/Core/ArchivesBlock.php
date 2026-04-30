@@ -198,8 +198,13 @@ class ArchivesBlock extends DynamicBlock
 			);
 		} )->implode( '' );
 
+		// The inline onchange mirrors upstream `core/archives` — selecting an
+		// option navigates to the archive URL. Hosts under a strict CSP that
+		// forbids inline handlers can rebind this block via the dynamic-block
+		// registry to emit a data-attribute hook + a host-supplied script
+		// instead.
 		return sprintf(
-			'<div class="%s">%s<select id="%s"><option value="">%s</option>%s</select></div>',
+			'<div class="%s">%s<select id="%s" onchange="if(this.value)document.location.href=this.value"><option value="">%s</option>%s</select></div>',
 			e( implode( ' ', $classes ) ),
 			$labelMarkup,
 			e( $dropdownId ),
