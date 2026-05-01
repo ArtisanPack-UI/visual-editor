@@ -75,11 +75,28 @@ class ResolvedPattern
 			);
 		}
 
+		// Normalize the blocks fallback through an explicit is_array check on
+		// each candidate so a non-array value at any layer of the WP-shape
+		// envelope can't reach the typed `array $blocks` constructor param
+		// and raise a TypeError under strict_types.
+		if ( is_array( $data['blocks'] ?? null ) ) {
+			$blocks = $data['blocks'];
+		} elseif ( is_array( $data['content']['blocks'] ?? null ) ) {
+			$blocks = $data['content']['blocks'];
+		} else {
+			$blocks = [];
+		}
+
 		return new self(
 			slug       : $slug,
-			title      : (string) ( $data['title'] ?? '' ),
+			// Patterns require a title — WP REST `wp_block` enforces it and
+			// titleless patterns are unfindable in the inserter UI. Mirrors
+			// the slug check above so misconfigured contributors surface a
+			// clear error on first read instead of silently shipping empty
+			// titles.
+			title      : self::requireString( $data, 'title', $slug ),
 			rawContent : (string) ( $data['raw_content'] ?? $data['content']['raw'] ?? '' ),
-			blocks     : is_array( $data['blocks'] ?? null ) ? $data['blocks'] : ( $data['content']['blocks'] ?? [] ),
+			blocks     : $blocks,
 			source     : (string) $source,
 			synced     : (bool) ( $data['synced'] ?? false ),
 			categories : array_values( array_filter(

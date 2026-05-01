@@ -93,6 +93,10 @@ class ResolvedTemplatePart extends ResolvedTemplate
 			);
 		}
 
+		// Same strict_types-safe rawContent fallback as ResolvedTemplate —
+		// see the comment there for the rationale.
+		$rawFallback = isset( $data['content']['raw'] ) ? (string) $data['content']['raw'] : '';
+
 		return new self(
 			slug         : $slug,
 			theme        : self::requireString( $data, 'theme', $slug ),
@@ -100,7 +104,7 @@ class ResolvedTemplatePart extends ResolvedTemplate
 			description  : self::optionalString( $data, 'description', '' ),
 			status       : self::optionalString( $data, 'status', 'publish' ),
 			source       : self::requireSourceEnum( $data, $slug ),
-			rawContent   : self::optionalString( $data, 'raw_content', $data['raw_content'] ?? $data['content']['raw'] ?? '' ),
+			rawContent   : self::optionalString( $data, 'raw_content', $rawFallback ),
 			blocks       : self::optionalArray( $data, 'blocks', $data['content']['blocks'] ?? [] ),
 			hasThemeFile : (bool) ( $data['has_theme_file'] ?? false ),
 			isCustom     : (bool) ( $data['is_custom'] ?? false ),

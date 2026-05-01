@@ -83,6 +83,12 @@ class ResolvedTemplate
 	{
 		$slug = self::requireString( $data, 'slug' );
 
+		// Coerce the nested `content.raw` fallback to a string before passing
+		// it through `optionalString`'s `string $default` parameter. Without
+		// the explicit cast a non-string nested value (e.g. an array or int)
+		// would raise a TypeError under strict_types at the call site.
+		$rawFallback = isset( $data['content']['raw'] ) ? (string) $data['content']['raw'] : '';
+
 		return new self(
 			slug         : $slug,
 			theme        : self::requireString( $data, 'theme', $slug ),
@@ -90,7 +96,7 @@ class ResolvedTemplate
 			description  : self::optionalString( $data, 'description', '' ),
 			status       : self::optionalString( $data, 'status', 'publish' ),
 			source       : self::requireSourceEnum( $data, $slug ),
-			rawContent   : self::optionalString( $data, 'raw_content', $data['raw_content'] ?? $data['content']['raw'] ?? '' ),
+			rawContent   : self::optionalString( $data, 'raw_content', $rawFallback ),
 			blocks       : self::optionalArray( $data, 'blocks', $data['content']['blocks'] ?? [] ),
 			hasThemeFile : (bool) ( $data['has_theme_file'] ?? false ),
 			isCustom     : (bool) ( $data['is_custom'] ?? false ),

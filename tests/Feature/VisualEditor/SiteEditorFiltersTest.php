@@ -316,6 +316,44 @@ describe( 'lazy validation on first read', function (): void {
 			->toThrow( SiteEditorRegistrationException::class, 'source' );
 	} );
 
+	it( 'throws when a pattern is missing the title field', function (): void {
+		addFilter( 'ap.visual-editor.patterns', function ( array $existing ): array {
+			return array_merge( [
+				'titleless' => [
+					'slug'   => 'titleless',
+					'source' => 'theme',
+				],
+			], $existing );
+		} );
+
+		rebuildSiteEditorResolvers();
+
+		expect( fn () => app( PatternResolver::class )->all() )
+			->toThrow( SiteEditorRegistrationException::class, 'title' );
+	} );
+
+	it( 'normalizes pattern blocks when content.blocks is not an array', function (): void {
+		// A misconfigured contributor passes a string in the nested
+		// content.blocks slot — should resolve to an empty blocks array
+		// instead of raising a TypeError on the typed constructor param.
+		addFilter( 'ap.visual-editor.patterns', function ( array $existing ): array {
+			return array_merge( [
+				'malformed' => [
+					'slug'    => 'malformed',
+					'title'   => 'Malformed',
+					'source'  => 'theme',
+					'content' => [ 'blocks' => 'not-an-array' ],
+				],
+			], $existing );
+		} );
+
+		rebuildSiteEditorResolvers();
+
+		$pattern = app( PatternResolver::class )->find( 'malformed' );
+
+		expect( $pattern->blocks )->toBe( [] );
+	} );
+
 	it( 'throws when global-styles is missing the theme field', function (): void {
 		addFilter( 'ap.visual-editor.global-styles', function ( $existing ) {
 			return $existing ?? [
