@@ -418,6 +418,74 @@ describe( 'lazy validation on first read', function (): void {
 			->and( $part->blocks )->toBe( [] );
 	} );
 
+	it( 'does not stringify a non-scalar raw_content to "Array" on patterns', function (): void {
+		// A contributor passes an array under `raw_content` (or under a
+		// nested `content.raw`). Without the is_scalar guard,
+		// `(string) $array` produces the literal `"Array"` and ships
+		// silently — the resolver should fall back to the empty default
+		// instead.
+		addFilter( 'ap.visual-editor.patterns', function ( array $existing ): array {
+			return array_merge( [
+				'array-raw' => [
+					'slug'        => 'array-raw',
+					'title'       => 'Array Raw',
+					'source'      => 'theme',
+					'raw_content' => [ 'unexpected' => 'array' ],
+				],
+			], $existing );
+		} );
+
+		rebuildSiteEditorResolvers();
+
+		$pattern = app( PatternResolver::class )->find( 'array-raw' );
+
+		expect( $pattern->rawContent )->toBe( '' )
+			->and( $pattern->rawContent )->not->toBe( 'Array' );
+	} );
+
+	it( 'does not stringify a non-scalar nested content.raw to "Array" on templates', function (): void {
+		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+			return array_merge( [
+				'array-content-raw' => [
+					'slug'    => 'array-content-raw',
+					'theme'   => 'host',
+					'source'  => 'theme',
+					'content' => [
+						'raw' => [ 'unexpected' => 'array' ],
+					],
+				],
+			], $existing );
+		} );
+
+		rebuildSiteEditorResolvers();
+
+		$template = app( TemplateResolver::class )->find( 'array-content-raw' );
+
+		expect( $template->rawContent )->toBe( '' );
+	} );
+
+	it( 'coerces scalar non-string raw_content (int/float/bool) to a string on patterns', function (): void {
+		// is_scalar accepts int, float, bool — these are sensibly stringable
+		// and shouldn't be rejected. Verifies the coercion path exposes the
+		// stringified value rather than dropping it.
+		addFilter( 'ap.visual-editor.patterns', function ( array $existing ): array {
+			return array_merge( [
+				'numeric-raw' => [
+					'slug'        => 'numeric-raw',
+					'title'       => 'Numeric Raw',
+					'source'      => 'theme',
+					'raw_content' => 42,
+				],
+			], $existing );
+		} );
+
+		rebuildSiteEditorResolvers();
+
+		$pattern = app( PatternResolver::class )->find( 'numeric-raw' );
+
+		expect( $pattern->rawContent )->toBe( '42' );
+	} );
+
 	it( 'throws when global-styles is missing the theme field', function (): void {
 		addFilter( 'ap.visual-editor.global-styles', function ( $existing ) {
 			return $existing ?? [

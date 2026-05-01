@@ -92,8 +92,16 @@ class ResolvedPattern
 		// Mirror the same defensive pattern for `content.raw`. A string-shaped
 		// `$data['content']` would let `$data['content']['raw']` index into
 		// the string's offsets (PHP coerces 'raw' → int 0 → returns the first
-		// character), silently corrupting `rawContent` to a single byte.
-		$rawFromContent = ( is_array( $content ) && isset( $content['raw'] ) ) ? (string) $content['raw'] : '';
+		// character), silently corrupting `rawContent` to a single byte. The
+		// is_array guard above prevents that; coerceScalarString below
+		// additionally guards against a non-scalar `content.raw` (e.g. an
+		// array) stringifying to the literal `"Array"`.
+		$rawFromContent = self::coerceScalarString( $content['raw'] ?? null ) ?? '';
+
+		// Top-level `raw_content` may also arrive non-scalar from a
+		// misconfigured contributor; only adopt it when it cleanly coerces
+		// to a string, otherwise fall through to the nested fallback.
+		$rawContent = self::coerceScalarString( $data['raw_content'] ?? null ) ?? $rawFromContent;
 
 		return new self(
 			slug       : $slug,
@@ -103,7 +111,7 @@ class ResolvedPattern
 			// clear error on first read instead of silently shipping empty
 			// titles.
 			title      : self::requireString( $data, 'title', $slug ),
-			rawContent : (string) ( $data['raw_content'] ?? $rawFromContent ),
+			rawContent : $rawContent,
 			blocks     : $blocks,
 			source     : (string) $source,
 			synced     : (bool) ( $data['synced'] ?? false ),
@@ -135,5 +143,27 @@ class ResolvedPattern
 		}
 
 		return $data[ $field ];
+	}
+
+	/**
+	 * Mirror of {@see ResolvedTemplate::coerceScalarString()}. Returns the
+	 * value unchanged if it's already a string, casts other scalars
+	 * (int/float/bool) to string, and returns null for arrays / objects /
+	 * null. Without this guard, a non-scalar `content.raw` (e.g. an array)
+	 * would stringify to the literal `"Array"` and ship as `rawContent`.
+	 *
+	 * @since 1.0.0
+	 */
+	protected static function coerceScalarString( mixed $value ): ?string
+	{
+		if ( is_string( $value ) ) {
+			return $value;
+		}
+
+		if ( is_scalar( $value ) ) {
+			return (string) $value;
+		}
+
+		return null;
 	}
 }

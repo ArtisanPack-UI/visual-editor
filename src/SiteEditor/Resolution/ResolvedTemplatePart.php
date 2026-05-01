@@ -94,12 +94,13 @@ class ResolvedTemplatePart extends ResolvedTemplate
 		}
 
 		// Same defensive `content.*` guards as ResolvedTemplate — see the
-		// comment there for the rationale (string-offset coercion silently
+		// comments there for the rationale (string-offset coercion silently
 		// corrupting `rawContent` to a single character if `content` is a
-		// string).
+		// string; `(string) $array` corrupting it to `"Array"` if a value
+		// is non-scalar).
 		$content = is_array( $data['content'] ?? null ) ? $data['content'] : [];
 
-		$rawFallback    = isset( $content['raw'] ) ? (string) $content['raw'] : '';
+		$rawFallback    = self::coerceScalarString( $content['raw'] ?? null ) ?? '';
 		$blocksFallback = is_array( $content['blocks'] ?? null ) ? $content['blocks'] : [];
 
 		return new self(

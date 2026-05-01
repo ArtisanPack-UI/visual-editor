@@ -93,8 +93,11 @@ class ResolvedTemplate
 		// non-numeric keys.
 		$content = is_array( $data['content'] ?? null ) ? $data['content'] : [];
 
-		$rawFallback     = isset( $content['raw'] ) ? (string) $content['raw'] : '';
-		$blocksFallback  = is_array( $content['blocks'] ?? null ) ? $content['blocks'] : [];
+		// Use coerceScalarString instead of an unconditional cast — a
+		// non-scalar `content.raw` (array/object) would otherwise stringify
+		// to the literal `"Array"` and ship as rawContent.
+		$rawFallback    = self::coerceScalarString( $content['raw'] ?? null ) ?? '';
+		$blocksFallback = is_array( $content['blocks'] ?? null ) ? $content['blocks'] : [];
 
 		return new self(
 			slug         : $slug,
@@ -147,6 +150,28 @@ class ResolvedTemplate
 		}
 
 		return is_string( $data[ $field ] ) ? $data[ $field ] : $default;
+	}
+
+	/**
+	 * Safely cast a filter-supplied value to a string when it is sensibly
+	 * stringable, returning null otherwise. Used at the contributor boundary
+	 * to guard against arrays or unsupported objects landing in string-typed
+	 * value-object fields — `(string) $array` would otherwise produce the
+	 * literal `"Array"` and silently corrupt `rawContent`.
+	 *
+	 * @since 1.0.0
+	 */
+	protected static function coerceScalarString( mixed $value ): ?string
+	{
+		if ( is_string( $value ) ) {
+			return $value;
+		}
+
+		if ( is_scalar( $value ) ) {
+			return (string) $value;
+		}
+
+		return null;
 	}
 
 	/**
