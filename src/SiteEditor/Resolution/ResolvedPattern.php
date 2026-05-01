@@ -79,13 +79,21 @@ class ResolvedPattern
 		// each candidate so a non-array value at any layer of the WP-shape
 		// envelope can't reach the typed `array $blocks` constructor param
 		// and raise a TypeError under strict_types.
+		$content = is_array( $data['content'] ?? null ) ? $data['content'] : [];
+
 		if ( is_array( $data['blocks'] ?? null ) ) {
 			$blocks = $data['blocks'];
-		} elseif ( is_array( $data['content']['blocks'] ?? null ) ) {
-			$blocks = $data['content']['blocks'];
+		} elseif ( is_array( $content['blocks'] ?? null ) ) {
+			$blocks = $content['blocks'];
 		} else {
 			$blocks = [];
 		}
+
+		// Mirror the same defensive pattern for `content.raw`. A string-shaped
+		// `$data['content']` would let `$data['content']['raw']` index into
+		// the string's offsets (PHP coerces 'raw' → int 0 → returns the first
+		// character), silently corrupting `rawContent` to a single byte.
+		$rawFromContent = ( is_array( $content ) && isset( $content['raw'] ) ) ? (string) $content['raw'] : '';
 
 		return new self(
 			slug       : $slug,
@@ -95,7 +103,7 @@ class ResolvedPattern
 			// clear error on first read instead of silently shipping empty
 			// titles.
 			title      : self::requireString( $data, 'title', $slug ),
-			rawContent : (string) ( $data['raw_content'] ?? $data['content']['raw'] ?? '' ),
+			rawContent : (string) ( $data['raw_content'] ?? $rawFromContent ),
 			blocks     : $blocks,
 			source     : (string) $source,
 			synced     : (bool) ( $data['synced'] ?? false ),

@@ -93,9 +93,14 @@ class ResolvedTemplatePart extends ResolvedTemplate
 			);
 		}
 
-		// Same strict_types-safe rawContent fallback as ResolvedTemplate —
-		// see the comment there for the rationale.
-		$rawFallback = isset( $data['content']['raw'] ) ? (string) $data['content']['raw'] : '';
+		// Same defensive `content.*` guards as ResolvedTemplate — see the
+		// comment there for the rationale (string-offset coercion silently
+		// corrupting `rawContent` to a single character if `content` is a
+		// string).
+		$content = is_array( $data['content'] ?? null ) ? $data['content'] : [];
+
+		$rawFallback    = isset( $content['raw'] ) ? (string) $content['raw'] : '';
+		$blocksFallback = is_array( $content['blocks'] ?? null ) ? $content['blocks'] : [];
 
 		return new self(
 			slug         : $slug,
@@ -105,7 +110,7 @@ class ResolvedTemplatePart extends ResolvedTemplate
 			status       : self::optionalString( $data, 'status', 'publish' ),
 			source       : self::requireSourceEnum( $data, $slug ),
 			rawContent   : self::optionalString( $data, 'raw_content', $rawFallback ),
-			blocks       : self::optionalArray( $data, 'blocks', $data['content']['blocks'] ?? [] ),
+			blocks       : self::optionalArray( $data, 'blocks', $blocksFallback ),
 			hasThemeFile : (bool) ( $data['has_theme_file'] ?? false ),
 			isCustom     : (bool) ( $data['is_custom'] ?? false ),
 			wpId         : isset( $data['wp_id'] ) ? (int) $data['wp_id'] : null,

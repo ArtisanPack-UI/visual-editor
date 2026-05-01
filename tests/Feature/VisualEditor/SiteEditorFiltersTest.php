@@ -354,6 +354,70 @@ describe( 'lazy validation on first read', function (): void {
 		expect( $pattern->blocks )->toBe( [] );
 	} );
 
+	it( 'safely handles a scalar content envelope on patterns', function (): void {
+		// content is a string instead of an array. Without the defensive
+		// is_array guard, $data['content']['raw'] would index into the
+		// string and silently corrupt rawContent to its first character.
+		addFilter( 'ap.visual-editor.patterns', function ( array $existing ): array {
+			return array_merge( [
+				'scalar-content' => [
+					'slug'    => 'scalar-content',
+					'title'   => 'Scalar Content',
+					'source'  => 'theme',
+					'content' => 'this should be an array',
+				],
+			], $existing );
+		} );
+
+		rebuildSiteEditorResolvers();
+
+		$pattern = app( PatternResolver::class )->find( 'scalar-content' );
+
+		expect( $pattern->rawContent )->toBe( '' )
+			->and( $pattern->blocks )->toBe( [] );
+	} );
+
+	it( 'safely handles a scalar content envelope on templates', function (): void {
+		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+			return array_merge( [
+				'scalar-template' => [
+					'slug'    => 'scalar-template',
+					'theme'   => 'host',
+					'source'  => 'theme',
+					'content' => 'malformed string',
+				],
+			], $existing );
+		} );
+
+		rebuildSiteEditorResolvers();
+
+		$template = app( TemplateResolver::class )->find( 'scalar-template' );
+
+		expect( $template->rawContent )->toBe( '' )
+			->and( $template->blocks )->toBe( [] );
+	} );
+
+	it( 'safely handles a scalar content envelope on template parts', function (): void {
+		addFilter( 'ap.visual-editor.template-parts', function ( array $existing ): array {
+			return array_merge( [
+				'scalar-part' => [
+					'slug'    => 'scalar-part',
+					'theme'   => 'host',
+					'area'    => 'header',
+					'source'  => 'theme',
+					'content' => 'malformed string',
+				],
+			], $existing );
+		} );
+
+		rebuildSiteEditorResolvers();
+
+		$part = app( TemplatePartResolver::class )->find( 'scalar-part' );
+
+		expect( $part->rawContent )->toBe( '' )
+			->and( $part->blocks )->toBe( [] );
+	} );
+
 	it( 'throws when global-styles is missing the theme field', function (): void {
 		addFilter( 'ap.visual-editor.global-styles', function ( $existing ) {
 			return $existing ?? [

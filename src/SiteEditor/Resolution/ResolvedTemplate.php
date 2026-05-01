@@ -83,11 +83,18 @@ class ResolvedTemplate
 	{
 		$slug = self::requireString( $data, 'slug' );
 
-		// Coerce the nested `content.raw` fallback to a string before passing
-		// it through `optionalString`'s `string $default` parameter. Without
-		// the explicit cast a non-string nested value (e.g. an array or int)
-		// would raise a TypeError under strict_types at the call site.
-		$rawFallback = isset( $data['content']['raw'] ) ? (string) $data['content']['raw'] : '';
+		// Guard the nested `content.*` fallbacks with an is_array check on
+		// `content` itself before drilling in. `isset($str['raw'])` on a
+		// string would return true (PHP coerces 'raw' → int 0 → checks
+		// offset 0 of the string, which is set for any non-empty string),
+		// so without this guard a string-shaped `content` would silently
+		// corrupt `rawContent` to a single character. The guard also
+		// prevents the warning PHP emits on string-offset access with
+		// non-numeric keys.
+		$content = is_array( $data['content'] ?? null ) ? $data['content'] : [];
+
+		$rawFallback     = isset( $content['raw'] ) ? (string) $content['raw'] : '';
+		$blocksFallback  = is_array( $content['blocks'] ?? null ) ? $content['blocks'] : [];
 
 		return new self(
 			slug         : $slug,
@@ -97,7 +104,7 @@ class ResolvedTemplate
 			status       : self::optionalString( $data, 'status', 'publish' ),
 			source       : self::requireSourceEnum( $data, $slug ),
 			rawContent   : self::optionalString( $data, 'raw_content', $rawFallback ),
-			blocks       : self::optionalArray( $data, 'blocks', $data['content']['blocks'] ?? [] ),
+			blocks       : self::optionalArray( $data, 'blocks', $blocksFallback ),
 			hasThemeFile : (bool) ( $data['has_theme_file'] ?? false ),
 			isCustom     : (bool) ( $data['is_custom'] ?? false ),
 			wpId         : isset( $data['wp_id'] ) ? (int) $data['wp_id'] : null,
