@@ -19,7 +19,7 @@ This doc captures **ordering**, not detailed acceptance criteria. Per-issue spec
 
 ## 1. Critical-path summary
 
-```
+```text
 V1 ship (≈4–6 mo) ──→  V2 block fork (≈10–12 wk) ──→  1.1+ features
    ▲
    └── cms-framework V1.x (Phase G + Phase H backends, parallel)

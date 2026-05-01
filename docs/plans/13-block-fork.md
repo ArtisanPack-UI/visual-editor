@@ -138,7 +138,7 @@ Phase I — Block fork (V2)
            release.
 
   Ship
-    I8   v2.0.0-alpha.1 → v2.0.0-beta.1 → v2.0.0.
+    I8   v2.0.0-alpha.2 → v2.0.0-beta.1 → v2.0.0.
          Beta tag at end of I6 once all forks are landed but before
          cutover; GA after I7 has a soak window in the dev-app.
 ```
