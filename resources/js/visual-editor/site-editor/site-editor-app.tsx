@@ -50,6 +50,7 @@ import { usePatternsSectionViews } from './patterns/patterns-section';
 import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
 import { TopBar } from '../editor/top-bar';
+import { registerCoreQueryBlockOverride } from '../editor/query-block-override';
 import { registerSyncedPatternIndicator } from '../editor/synced-pattern-indicator';
 import { registerTaxonomyAndArchiveBlockOverrides } from '../editor/taxonomy-archive-block-overrides';
 
@@ -141,7 +142,10 @@ let editorBooted = false;
  * commit that promotes a block out of one promotes it out of the other.
  */
 const D2_DISABLED_BLOCKS: ReadonlyArray<string> = [
-    'core/query',
+    // G4c-2 (#402) leaves the deprecated `core/query-loop` alias in
+    // the deny-list (upstream no longer ships an `Edit`) plus
+    // `core/latest-comments` which needs the V1.1 cms-framework
+    // Comments module before it can resolve.
     'core/query-loop',
     'core/latest-comments',
 ];
@@ -163,6 +167,8 @@ function ensureEditorBoot(): void {
     // ServerSideRender-backed wrappers BEFORE `registerCoreBlocks()` so
     // the override applies during initial registration.
     registerTaxonomyAndArchiveBlockOverrides();
+    // G4c-2 — `core/query` Edit override.
+    registerCoreQueryBlockOverride();
 
     // Register core blocks before the first template loads so `parse()`
     // can turn the saved raw serialization back into BlockInstances

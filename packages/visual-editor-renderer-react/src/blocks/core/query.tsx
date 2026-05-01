@@ -1,0 +1,71 @@
+/**
+ * `core/query` and `core/post-template` renderers.
+ *
+ * Both blocks operate on an already-expanded inner-block tree — see
+ * {@link inlineQueries} for the pre-walk that replaces every
+ * `core/query` block with one stamped copy of its template per result.
+ * The renderers themselves just emit the wrapping markup and pass
+ * children through.
+ *
+ * If the inliner could not resolve the query (no resolved set passed
+ * for the matching `queryId`), it stamps `_resolutionError` and the
+ * wrapper renders empty in production so the surrounding layout stays
+ * intact.
+ */
+
+import type { JSX, ReactNode } from 'react';
+import { attrString, classList } from '../../support/attributes';
+import type { BlockRendererProps } from '../../types';
+
+interface WrapperProps {
+    children: ReactNode;
+    className: string;
+    'data-ve-resolution-error'?: string;
+}
+
+function isDevelopment(): boolean {
+    if (typeof process === 'undefined') {
+        return false;
+    }
+
+    const env = process.env;
+
+    if (env === undefined || env === null) {
+        return false;
+    }
+
+    return env.NODE_ENV !== 'production';
+}
+
+export function QueryBlock({ attributes, children }: BlockRendererProps): JSX.Element {
+    const className = attrString(attributes.className);
+    const resolutionError = attrString(attributes._resolutionError);
+    const hasError = resolutionError !== '';
+    const baseClasses = classList(['wp-block-query', className]);
+
+    const wrapperProps: WrapperProps = {
+        children: hasError ? null : children,
+        className: baseClasses,
+    };
+
+    if (hasError && isDevelopment()) {
+        wrapperProps['data-ve-resolution-error'] = resolutionError;
+    }
+
+    return <div {...wrapperProps} />;
+}
+
+export function PostTemplateBlock({ attributes, children }: BlockRendererProps): JSX.Element {
+    const className = attrString(attributes.className);
+    const layout = attrString(attributes.layout);
+    const layoutType = attrString(attributes.layoutType);
+    const isGrid = layout === 'grid' || layoutType === 'grid';
+
+    const classes = classList([
+        'wp-block-post-template',
+        isGrid ? 'is-layout-grid' : 'is-layout-flow',
+        className,
+    ]);
+
+    return <ul className={classes}>{children}</ul>;
+}

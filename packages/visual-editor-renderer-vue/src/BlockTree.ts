@@ -28,6 +28,8 @@ import {
     inlinePatterns,
 } from './patterns';
 import type { PatternRecord } from './patterns';
+import { inlineQueries } from './queries';
+import type { ResolvedQuery } from './queries';
 import { getBlockRenderer } from './registry';
 import { inlineSiteMeta } from './siteMeta';
 import type { SiteMeta } from './siteMeta';
@@ -72,6 +74,14 @@ export interface BlockTreeProps {
      * block when needed.
      */
     siteMeta?: SiteMeta | null;
+    /**
+     * Pre-resolved `core/query` results keyed by `queryId`. When
+     * supplied, every `core/query` block in the tree is replaced with
+     * one stamped copy of its inner blocks per result via
+     * {@link inlineQueries}. Hosts that pre-fetch results server-side
+     * pass them here.
+     */
+    queryResults?: ResolvedQuery[];
 }
 
 export const BlockTree = defineComponent({
@@ -117,6 +127,10 @@ export const BlockTree = defineComponent({
             type: Object as PropType<SiteMeta | null | undefined>,
             default: undefined,
         },
+        queryResults: {
+            type: Array as PropType<ResolvedQuery[]>,
+            default: undefined,
+        },
     },
     setup(props) {
         const blocks = computed(() => {
@@ -151,10 +165,14 @@ export const BlockTree = defineComponent({
                           maxDepth: props.maxPatternDepth,
                       });
 
-            // Site-meta inlining runs last so values stamped here are
-            // visible on blocks that template-part / pattern inlining
-            // brought into the tree from elsewhere.
-            return inlineSiteMeta(withPatterns, props.siteMeta);
+            const withSiteMeta = inlineSiteMeta(withPatterns, props.siteMeta);
+
+            // Query inlining runs last so a `core/query` block reachable
+            // only through a resolved template part / pattern still gets
+            // its loop expanded.
+            return props.queryResults === undefined
+                ? withSiteMeta
+                : inlineQueries(withSiteMeta, { queries: props.queryResults });
         });
 
         return () => {

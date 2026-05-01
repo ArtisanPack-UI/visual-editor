@@ -141,6 +141,15 @@ return [
 		'core/categories',
 		'core/tag-cloud',
 		'core/archives',
+		// G4c-2 (#402) — `core/query` + its inner `core/post-template`
+		// are pre-resolved server-side by `QueryInliner` against
+		// cms-framework's `QueryRuntime`. The editor preview hits the
+		// `/visual-editor/api/query/resolve` endpoint via a custom
+		// `useQueryPreview` hook. Each renderer package (Blade, React,
+		// Vue) ships its own thin `core/query` renderer that walks the
+		// pre-expanded inner blocks.
+		'core/query',
+		'core/post-template',
 		'artisanpack/callout',
 	],
 
@@ -149,17 +158,18 @@ return [
 		// `core/template-part`, `core/post-*`, and `core/site-*` are
 		// promoted to the allow-list above by E4 (#381). G4b (#401)
 		// promotes `core/categories`, `core/tag-cloud`, and
-		// `core/archives`. The blocks listed here remain deliberately
-		// deferred:
+		// `core/archives`. G4c-2 (#402) promotes `core/query` and
+		// `core/post-template`. The blocks listed here remain
+		// deliberately deferred:
 		//
-		//  - core/query / core/query-loop need a real loop runtime
-		//    (V1 G4c — `cms-framework` `QueryRuntime` service).
+		//  - core/query-loop is the deprecated alias for `core/query`;
+		//    upstream registers it but no `Edit` ships any longer, so
+		//    it stays in the deny-list to keep it out of the inserter.
 		//  - core/latest-comments needs a Comments module in
 		//    cms-framework that does not exist yet (V1.1+).
 		//
 		// The JS-side mirror in site-editor-app.tsx is updated
 		// alongside this entry.
-		'core/query',
 		'core/query-loop',
 		'core/latest-comments',
 	],

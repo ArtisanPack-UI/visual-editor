@@ -59,6 +59,8 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 		'core/categories',
 		'core/tag-cloud',
 		'core/archives',
+		'core/query',
+		'core/post-template',
 		'artisanpack/callout',
 	] );
 } );

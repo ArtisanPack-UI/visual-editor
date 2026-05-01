@@ -49,6 +49,7 @@ import { BlockLibrarySidebar } from './block-library-sidebar';
 import { registerContrastWarning } from './contrast-warning';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
 import { discoverAndRegisterCustomBlocks } from './custom-blocks';
+import { registerCoreQueryBlockOverride } from './query-block-override';
 import { registerSyncedPatternIndicator } from './synced-pattern-indicator';
 import { registerTaxonomyAndArchiveBlockOverrides } from './taxonomy-archive-block-overrides';
 import {
@@ -173,6 +174,10 @@ function registerOnce(): void {
     // ServerSideRender-backed wrappers BEFORE `registerCoreBlocks()` so
     // the override applies during initial registration.
     registerTaxonomyAndArchiveBlockOverrides();
+    // G4c-2 — same idea for `core/query`: swap the upstream Edit (which
+    // pulls a heavy chain of unsupported core-data selectors) with a
+    // wrapper that previews via /visual-editor/api/query/resolve.
+    registerCoreQueryBlockOverride();
     registerCoreBlocks();
     // Discover host-app custom blocks under
     // `resources/js/visual-editor/blocks/{block-name}/index.ts` and

@@ -132,6 +132,11 @@ vi.mock('../../editor/taxonomy-archive-block-overrides', () => ({
     registerTaxonomyAndArchiveBlockOverrides: () => undefined,
 }));
 
+// G4c-2 — same reasoning for the `core/query` override.
+vi.mock('../../editor/query-block-override', () => ({
+    registerCoreQueryBlockOverride: () => undefined,
+}));
+
 import { SiteEditorApp } from '../site-editor-app';
 
 const ROUTE_BASE = '/visual-editor/site';

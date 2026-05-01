@@ -25,6 +25,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 
 use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
+use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCssProvider;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
@@ -51,12 +52,14 @@ class BlocksComponent extends Component
 		protected BlockRenderer $renderer,
 		protected TemplatePartInliner $inliner,
 		protected PatternInliner $patternInliner,
+		protected QueryInliner $queryInliner,
 		protected GlobalStylesCssProvider $globalStyles,
 		protected GlobalStylesEmissionTracker $emissionTracker,
 		mixed $tree = null,
 		?string $defaultTheme = null,
 		bool $resolveParts = true,
 		bool $resolvePatterns = true,
+		bool $resolveQueries = true,
 	) {
 		$this->defaultTheme = $defaultTheme;
 
@@ -69,8 +72,14 @@ class BlocksComponent extends Component
 		// Pattern inlining runs after template-part inlining so a part
 		// that itself contains a synced-pattern reference resolves in the
 		// same pass.
-		$this->tree = $resolvePatterns
+		$resolved = $resolvePatterns
 			? $this->patternInliner->inline( $resolved )
+			: $resolved;
+
+		// Query inlining runs last so a `core/query` block inside a
+		// resolved template part / pattern still gets its loop expanded.
+		$this->tree = $resolveQueries
+			? $this->queryInliner->inline( $resolved )
 			: $resolved;
 	}
 
