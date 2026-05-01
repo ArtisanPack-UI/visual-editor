@@ -135,11 +135,19 @@ export function useQueryPreview(
             // `signal`. Caller-provided headers that *don't* collide
             // (e.g. tracing headers) are preserved via the explicit
             // header merge.
+            //
+            // Normalising via `new Headers(...)` handles all three
+            // shapes `RequestInit.headers` accepts (plain object,
+            // `Headers` instance, `[string, string][]`); a naive spread
+            // would silently drop the latter two.
             const userOptions = fetchOptionsRef.current ?? {};
-            const userHeaders =
-                userOptions.headers !== undefined && userOptions.headers !== null
-                    ? (userOptions.headers as Record<string, string>)
-                    : {};
+            const userHeaders: Record<string, string> = {};
+
+            if (userOptions.headers !== undefined && userOptions.headers !== null) {
+                new Headers(userOptions.headers).forEach((value, key) => {
+                    userHeaders[key] = value;
+                });
+            }
 
             const init: RequestInit = {
                 ...userOptions,

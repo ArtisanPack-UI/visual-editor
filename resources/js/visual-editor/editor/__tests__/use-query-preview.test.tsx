@@ -87,9 +87,43 @@ describe('useQueryPreview', () => {
         const init = fetchMock.mock.calls[0][1] as RequestInit;
         const headers = init.headers as Record<string, string>;
 
+        // The required headers stay in their original case (they're set
+        // by the hook directly); caller-supplied headers come back
+        // lowercased because they round-trip through the Headers spec
+        // normaliser.
         expect(headers['Content-Type']).toBe('application/json');
         expect(headers.Accept).toBe('application/json');
-        expect(headers['X-Trace']).toBe('caller-supplied');
+        expect(headers['x-trace']).toBe('caller-supplied');
+    });
+
+    it('handles caller-supplied Headers instances and tuple arrays', async () => {
+        fetchMock.mockResolvedValue(
+            new Response(JSON.stringify({ data: [], meta: { total: 0 } }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        const callerHeaders = new Headers({ 'X-Trace': 'instance' });
+
+        renderHook(() =>
+            useQueryPreview(
+                { postType: 'post' },
+                {
+                    debounceMs: 0,
+                    fetchOptions: { headers: callerHeaders },
+                }
+            )
+        );
+
+        await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+
+        const init = fetchMock.mock.calls[0][1] as RequestInit;
+        const headers = init.headers as Record<string, string>;
+
+        // Headers normalises keys to lowercase — assert against that.
+        expect(headers['x-trace']).toBe('instance');
+        expect(headers['Content-Type']).toBe('application/json');
     });
 
     it('strips upstream empty defaults from the posted payload', async () => {

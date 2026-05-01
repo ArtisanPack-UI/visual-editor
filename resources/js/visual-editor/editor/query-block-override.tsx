@@ -116,7 +116,14 @@ function QueryEdit({ attributes, setAttributes, clientId }: QueryEditProps): JSX
             ? queryFromAttrs.postType
             : 'post';
 
-    const firstPost = preview.posts[0];
+    // Only consume `preview.posts` when the resolver has actually
+    // finished — `useQueryPreview` keeps the previous fetch's posts
+    // visible during a new fetch's loading window so the canvas does
+    // not flicker on every inspector tweak. Skipping that read here
+    // means the inner `core/post-*` blocks fall back to their empty
+    // shells while a new query is in flight rather than rendering with
+    // a postId that no longer matches the saved query payload.
+    const firstPost = preview.status === 'ready' ? preview.posts[0] : undefined;
     const blockContext =
         firstPost === undefined
             ? { postType }
