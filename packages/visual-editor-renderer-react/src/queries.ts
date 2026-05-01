@@ -214,9 +214,16 @@ function resolvedAttributesFor(name: string, post: ResolvedPost): Record<string,
 /**
  * Format an ISO timestamp as a human-readable "F j, Y" date so the
  * client-side `_resolvedDateFormatted` matches the server-side output
- * Carbon's `translatedFormat('F j, Y')` produces. Falls back to the raw
- * string when the date is unparseable so the renderer never throws on
- * malformed input.
+ * Carbon's `translatedFormat('F j, Y')` produces.
+ *
+ * Locale resolution prefers the document's `<html lang>` so a host that
+ * sets `lang="es"` gets Spanish month names (matching the server-side
+ * locale via Carbon's translation). Timezone is pinned to `UTC` so the
+ * day boundary matches what the server emits — without this, a post
+ * stored at `2026-04-20T23:30:00Z` would render as April 20 server-side
+ * but April 21 in a viewer's `Asia/Tokyo` browser. Falls back to the
+ * raw string when the date is unparseable so the renderer never throws
+ * on malformed input.
  */
 function formatHumanDate(iso: string | null | undefined): string {
     if (iso === null || iso === undefined || iso === '') {
@@ -229,10 +236,16 @@ function formatHumanDate(iso: string | null | undefined): string {
         return iso;
     }
 
-    return new Intl.DateTimeFormat('en-US', {
+    const locale =
+        typeof document !== 'undefined' && document.documentElement?.lang
+            ? document.documentElement.lang
+            : 'en-US';
+
+    return new Intl.DateTimeFormat(locale, {
         year: 'numeric',
         month: 'long',
         day: 'numeric',
+        timeZone: 'UTC',
     }).format(date);
 }
 

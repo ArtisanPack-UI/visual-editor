@@ -5,14 +5,24 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Resources\PostResolver;
 use Illuminate\Support\Carbon;
 
+beforeEach( function (): void {
+	// Pin the locale to English so `translatedFormat( 'F j, Y' )`
+	// produces "April 20, 2026" regardless of the host's default
+	// locale; tests assert the exact English month name.
+	Carbon::setLocale( 'en' );
+} );
+
 function fakePost( array $overrides = [] ): object
 {
 	$post                    = new stdClass();
 	$post->title             = 'Hello world';
 	$post->content           = '<p>Body.</p>';
 	$post->excerpt           = 'A brief excerpt';
-	$post->published_at      = Carbon::create( 2026, 4, 20, 12 );
-	$post->updated_at        = Carbon::create( 2026, 4, 21, 9 );
+	// Pin the timezone to UTC so `toIso8601String()` always emits
+	// `+00:00`; tests assert the literal offset and would otherwise
+	// be flaky on machines whose `date.timezone` differs.
+	$post->published_at      = Carbon::create( 2026, 4, 20, 12, 0, 0, 'UTC' );
+	$post->updated_at        = Carbon::create( 2026, 4, 21, 9, 0, 0, 'UTC' );
 	$post->permalink         = 'https://example.test/posts/hello';
 	$post->author            = (object) [
 		'name'        => 'Jane Doe',

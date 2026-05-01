@@ -23,6 +23,75 @@ describe('useQueryPreview', () => {
         expect(fetchMock).not.toHaveBeenCalled();
     });
 
+    it('recursively strips empty nested objects and arrays', async () => {
+        fetchMock.mockResolvedValue(
+            new Response(JSON.stringify({ data: [], meta: { total: 0 } }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderHook(() =>
+            useQueryPreview(
+                {
+                    queryId: 'abc',
+                    postType: 'post',
+                    // A partially-configured taxQuery the user toggled
+                    // back off. Validation would reject it as missing
+                    // required `terms`; the recursive strip should
+                    // collapse the entire object away.
+                    taxQuery: { taxonomy: '', terms: [], operator: '' },
+                    // Nested object with a meaningful key — that key
+                    // survives, the empty siblings get pruned.
+                    nested: { keep: 'value', drop: '', alsoDrop: [] },
+                },
+                { debounceMs: 0 }
+            )
+        );
+
+        await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+
+        const init = fetchMock.mock.calls[0][1] as RequestInit;
+        const body = JSON.parse(init.body as string) as Record<string, unknown>;
+
+        expect(body).not.toHaveProperty('taxQuery');
+        expect(body).toEqual({
+            queryId: 'abc',
+            postType: 'post',
+            nested: { keep: 'value' },
+        });
+    });
+
+    it('preserves caller-supplied headers without dropping the required ones', async () => {
+        fetchMock.mockResolvedValue(
+            new Response(JSON.stringify({ data: [], meta: { total: 0 } }), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+            })
+        );
+
+        renderHook(() =>
+            useQueryPreview(
+                { postType: 'post' },
+                {
+                    debounceMs: 0,
+                    fetchOptions: {
+                        headers: { 'X-Trace': 'caller-supplied' },
+                    },
+                }
+            )
+        );
+
+        await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+
+        const init = fetchMock.mock.calls[0][1] as RequestInit;
+        const headers = init.headers as Record<string, string>;
+
+        expect(headers['Content-Type']).toBe('application/json');
+        expect(headers.Accept).toBe('application/json');
+        expect(headers['X-Trace']).toBe('caller-supplied');
+    });
+
     it('strips upstream empty defaults from the posted payload', async () => {
         fetchMock.mockResolvedValue(
             new Response(JSON.stringify({ data: [], meta: { total: 0 } }), {

@@ -128,13 +128,26 @@ export function useQueryPreview(
                 headers['X-CSRF-TOKEN'] = csrfToken;
             }
 
+            // Merge user-supplied options first, then layer the request's
+            // required keys on top so a caller cannot accidentally drop
+            // `Content-Type` / `Accept` / `X-CSRF-TOKEN` / the
+            // AbortController signal by passing their own `headers` or
+            // `signal`. Caller-provided headers that *don't* collide
+            // (e.g. tracing headers) are preserved via the explicit
+            // header merge.
+            const userOptions = fetchOptionsRef.current ?? {};
+            const userHeaders =
+                userOptions.headers !== undefined && userOptions.headers !== null
+                    ? (userOptions.headers as Record<string, string>)
+                    : {};
+
             const init: RequestInit = {
+                ...userOptions,
                 method: 'POST',
-                credentials: 'same-origin',
-                headers,
+                credentials: userOptions.credentials ?? 'same-origin',
+                headers: { ...userHeaders, ...headers },
                 body: serialized,
                 signal: controller.signal,
-                ...fetchOptionsRef.current,
             };
 
             void fetch(url, init)
@@ -220,6 +233,10 @@ function serialize(query: Record<string, unknown> | null | undefined): string {
  * fires so the QueryRuntime only sees fields the user actually
  * configured.
  *
+ * Recurses into nested objects + arrays so a partially-configured
+ * `taxQuery: { taxonomy: '', terms: [] }` also collapses to absent
+ * instead of failing validation as "missing required `terms`".
+ *
  * `queryId` always survives because the inliner needs it to match
  * resolved records to their source block on the public-render path.
  */
@@ -232,22 +249,51 @@ function stripEmptyDefaults(query: Record<string, unknown>): Record<string, unkn
             continue;
         }
 
-        if (value === null || value === undefined || value === '') {
+        const pruned = pruneValue(value);
+
+        if (pruned === undefined) {
             continue;
         }
 
-        if (Array.isArray(value) && value.length === 0) {
-            continue;
-        }
-
-        if (typeof value === 'object' && Object.keys(value as Record<string, unknown>).length === 0) {
-            continue;
-        }
-
-        out[key] = value;
+        out[key] = pruned;
     }
 
     return out;
+}
+
+/**
+ * Returns the pruned form of `value`, or `undefined` if the value should
+ * be dropped entirely (empty / null / placeholder).
+ */
+function pruneValue(value: unknown): unknown {
+    if (value === null || value === undefined || value === '') {
+        return undefined;
+    }
+
+    if (Array.isArray(value)) {
+        const items = value
+            .map(pruneValue)
+            .filter((item): item is unknown => item !== undefined);
+
+        return items.length === 0 ? undefined : items;
+    }
+
+    if (typeof value === 'object') {
+        const record = value as Record<string, unknown>;
+        const inner: Record<string, unknown> = {};
+
+        for (const [key, child] of Object.entries(record)) {
+            const pruned = pruneValue(child);
+
+            if (pruned !== undefined) {
+                inner[key] = pruned;
+            }
+        }
+
+        return Object.keys(inner).length === 0 ? undefined : inner;
+    }
+
+    return value;
 }
 
 function normalizePosts(items: unknown[]): QueryPreviewPost[] {

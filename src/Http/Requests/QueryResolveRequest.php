@@ -55,7 +55,12 @@ class QueryResolveRequest extends FormRequest
 			'taxQuery.taxonomy'     => [ 'required_with:taxQuery', 'string', 'max:64' ],
 			'taxQuery.terms'        => [ 'required_with:taxQuery', 'array' ],
 			'taxQuery.terms.*'      => [ 'integer', 'min:1' ],
-			'taxQuery.operator'     => [ 'sometimes', 'string', 'in:IN,NOT IN,AND' ],
+			// V1 only supports the `IN` operator — `NOT IN` / `AND` are
+			// out of scope per #97's "Out of scope" list. Reject other
+			// values at the request layer rather than silently dropping
+			// the constraint at runtime, so the editor surfaces the
+			// limitation explicitly.
+			'taxQuery.operator'     => [ 'sometimes', 'string', 'in:IN' ],
 			'search'                => [ 'sometimes', 'string', 'max:255' ],
 			'status'                => [ 'sometimes', 'string', 'max:32' ],
 		];

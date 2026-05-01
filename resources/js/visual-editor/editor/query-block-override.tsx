@@ -82,27 +82,32 @@ function QueryEdit({ attributes, setAttributes, clientId }: QueryEditProps): JSX
             ? (attributes.query as Record<string, unknown>)
             : {};
 
-    // Stamp a queryId so the inliner can match this block's saved
-    // attributes to its resolved record set on the public-render path.
-    // Done in `useEffect` rather than during render so React does not
-    // see a setState during the render phase (which logs a warning and
-    // schedules an extra rerender) and so the call is skipped if the
-    // component unmounts before the effect runs.
-    const hasQueryId =
-        typeof queryFromAttrs.queryId === 'string' || typeof queryFromAttrs.queryId === 'number';
+    // Stamp this block instance's `clientId` as `query.queryId` whenever
+    // the persisted value differs (or is missing). Comparing against
+    // `clientId` rather than just absence handles the duplicated-block
+    // case: when a `core/query` is duplicated in the canvas, Gutenberg
+    // assigns a fresh `clientId` but copies the source's attributes
+    // verbatim — including its `queryId`. Without this rewrite, two
+    // sibling blocks would both resolve to the same record set on the
+    // public-render path. Done in `useEffect` rather than during render
+    // so React does not see a setState during the render phase.
+    const persistedQueryId =
+        typeof queryFromAttrs.queryId === 'string' || typeof queryFromAttrs.queryId === 'number'
+            ? String(queryFromAttrs.queryId)
+            : null;
 
     useEffect(() => {
-        if (hasQueryId) {
+        if (persistedQueryId === clientId) {
             return;
         }
 
         setAttributes({ query: { ...queryFromAttrs, queryId: clientId } });
         // `queryFromAttrs` is captured by reference for the next setAttributes
-        // call only — the effect intentionally re-runs when queryId presence
-        // flips (e.g. a host nukes the value) rather than on every attribute
-        // touch, hence the targeted dep list.
+        // call only — the effect intentionally re-runs when queryId
+        // disagrees with clientId (or vice versa) rather than on every
+        // attribute touch, hence the targeted dep list.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [hasQueryId, clientId]);
+    }, [persistedQueryId, clientId]);
 
     const preview = useQueryPreview(queryFromAttrs);
 
