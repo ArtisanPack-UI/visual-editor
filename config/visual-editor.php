@@ -309,4 +309,45 @@ return [
 		],
 	],
 
+	/*
+	|--------------------------------------------------------------------------
+	| Site editor (H5)
+	|--------------------------------------------------------------------------
+	|
+	| Static-config entry points for the five site-editor entity types. Each
+	| key is also a filter slug — packages like cms-framework register their
+	| entities at runtime through `addFilter('ap.visual-editor.{type}', ...)`.
+	|
+	| Static config wins on key collision: host-app entries listed here take
+	| precedence over filter-supplied entries with the same key.
+	|
+	| Standalone visual-editor installs (no cms-framework, no host
+	| registrations) leave these empty and the editor's site-editor surface
+	| boots cleanly with no entities. See plan 14 §4.4 for the full filter
+	| contract and the ResolvedX value-object shapes consumed by H6.
+	|
+	*/
+
+	'site-editor' => [
+		// array<string, array> keyed by template slug.
+		// Each entry: { slug, theme, title, status, source, content: { raw, blocks }, has_theme_file, is_custom, wp_id?, ... }
+		'templates' => [],
+
+		// array<string, array> keyed by template-part slug.
+		// Each entry adds: { area: 'header'|'footer'|'sidebar'|'general' }
+		'template-parts' => [],
+
+		// array<string, array> keyed by pattern slug.
+		// Each entry: { slug, title, source: 'theme'|'user', synced, content: { raw, blocks }, categories?, block_types? }
+		'patterns' => [],
+
+		// array<string, mixed>|null — singleton, not a map.
+		// { theme, settings, styles, variations? }
+		'global-styles' => null,
+
+		// array<string, array> keyed by theme-declared menu location.
+		// Each entry: { location, name, items: [...] }
+		'navigation' => [],
+	],
+
 ];

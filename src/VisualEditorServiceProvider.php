@@ -28,6 +28,11 @@ use ArtisanPackUI\VisualEditor\Resources\PostResolver;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Search\BlockTreeSearchExtractor;
+use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\GlobalStylesResolver as SiteEditorGlobalStylesResolver;
+use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\MenuResolver as SiteEditorMenuResolver;
+use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\PatternResolver as SiteEditorPatternResolver;
+use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver as SiteEditorTemplatePartResolver;
+use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplateResolver as SiteEditorTemplateResolver;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCacheInvalidator;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCompiler;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCssProvider;
@@ -67,6 +72,31 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// `ap.visual-editor.resources` callbacks.
 		$this->app->singleton( ResourceResolver::class, function () {
 			return new ResourceResolver();
+		} );
+
+		// H5 — site-editor resolvers. Same pattern as ResourceResolver
+		// above: empty placeholders here; boot() rebinds with the filter-
+		// merged data once all providers have registered their
+		// `ap.visual-editor.{templates,template-parts,patterns,
+		// global-styles,navigation}` callbacks.
+		$this->app->singleton( SiteEditorTemplateResolver::class, function () {
+			return new SiteEditorTemplateResolver();
+		} );
+
+		$this->app->singleton( SiteEditorTemplatePartResolver::class, function () {
+			return new SiteEditorTemplatePartResolver();
+		} );
+
+		$this->app->singleton( SiteEditorPatternResolver::class, function () {
+			return new SiteEditorPatternResolver();
+		} );
+
+		$this->app->singleton( SiteEditorGlobalStylesResolver::class, function () {
+			return new SiteEditorGlobalStylesResolver();
+		} );
+
+		$this->app->singleton( SiteEditorMenuResolver::class, function () {
+			return new SiteEditorMenuResolver();
 		} );
 
 		// G4c-2 — `PostResolver` stamps `_resolved*` keys on `core/post-*`
@@ -184,6 +214,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//     filter contract.
 		$this->app->booted( function (): void {
 			$this->registerResourceResolver();
+			$this->registerSiteEditorResolvers();
 		} );
 
 		// 2. Load package views, routes, and migrations.
@@ -369,6 +400,86 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$resources = array_merge( $filtered, $staticConfig );
 
 		$this->app->instance( ResourceResolver::class, new ResourceResolver( $resources ) );
+	}
+
+	/**
+	 * Builds the five site-editor resolvers from filter-merged data.
+	 *
+	 * Mirrors {@see self::registerResourceResolver()}: each filter receives the
+	 * static config, contributors (cms-framework H1–H4) merge their data in,
+	 * static config wins on key collision. Resolvers store the merged shape
+	 * verbatim — validation is deferred to first read so a misconfigured
+	 * contributor surfaces an exception on the editor's first request, not at
+	 * boot.
+	 *
+	 * Standalone visual-editor (no cms-framework, no host registrations) ends
+	 * up with empty resolvers — the editor's site-editor surface boots clean
+	 * and the editor renders with zero entities until something registers.
+	 *
+	 * Public so tests (and edge cases that mutate config or hook callbacks at
+	 * runtime) can re-trigger the rebind without going through reflection.
+	 *
+	 * @since 1.0.0
+	 */
+	public function registerSiteEditorResolvers(): void
+	{
+		// Templates ─ array<string, array> keyed by slug.
+		$templatesStatic = (array) config( 'artisanpack.visual-editor.site-editor.templates', [] );
+		$templatesMerged = applyFilters( 'ap.visual-editor.templates', $templatesStatic );
+		$templatesMerged = is_array( $templatesMerged ) ? $templatesMerged : [];
+		$templatesMerged = array_merge( $templatesMerged, $templatesStatic );
+
+		$this->app->instance(
+			SiteEditorTemplateResolver::class,
+			new SiteEditorTemplateResolver( $templatesMerged ),
+		);
+
+		// Template parts ─ array<string, array> keyed by slug.
+		$partsStatic = (array) config( 'artisanpack.visual-editor.site-editor.template-parts', [] );
+		$partsMerged = applyFilters( 'ap.visual-editor.template-parts', $partsStatic );
+		$partsMerged = is_array( $partsMerged ) ? $partsMerged : [];
+		$partsMerged = array_merge( $partsMerged, $partsStatic );
+
+		$this->app->instance(
+			SiteEditorTemplatePartResolver::class,
+			new SiteEditorTemplatePartResolver( $partsMerged ),
+		);
+
+		// Patterns ─ array<string, array> keyed by slug.
+		$patternsStatic = (array) config( 'artisanpack.visual-editor.site-editor.patterns', [] );
+		$patternsMerged = applyFilters( 'ap.visual-editor.patterns', $patternsStatic );
+		$patternsMerged = is_array( $patternsMerged ) ? $patternsMerged : [];
+		$patternsMerged = array_merge( $patternsMerged, $patternsStatic );
+
+		$this->app->instance(
+			SiteEditorPatternResolver::class,
+			new SiteEditorPatternResolver( $patternsMerged ),
+		);
+
+		// Global styles ─ singleton (?array). Static-config null-coalesces over
+		// filter return so a host that sets static config wins outright; with no
+		// static config, the filter result is authoritative.
+		$globalStylesStatic = config( 'artisanpack.visual-editor.site-editor.global-styles', null );
+		$globalStylesStatic = is_array( $globalStylesStatic ) ? $globalStylesStatic : null;
+		$globalStylesMerged = applyFilters( 'ap.visual-editor.global-styles', $globalStylesStatic );
+		$globalStylesMerged = is_array( $globalStylesMerged ) ? $globalStylesMerged : null;
+		$globalStylesMerged = $globalStylesStatic ?? $globalStylesMerged;
+
+		$this->app->instance(
+			SiteEditorGlobalStylesResolver::class,
+			new SiteEditorGlobalStylesResolver( $globalStylesMerged ),
+		);
+
+		// Navigation ─ array<string, array> keyed by location.
+		$menusStatic = (array) config( 'artisanpack.visual-editor.site-editor.navigation', [] );
+		$menusMerged = applyFilters( 'ap.visual-editor.navigation', $menusStatic );
+		$menusMerged = is_array( $menusMerged ) ? $menusMerged : [];
+		$menusMerged = array_merge( $menusMerged, $menusStatic );
+
+		$this->app->instance(
+			SiteEditorMenuResolver::class,
+			new SiteEditorMenuResolver( $menusMerged ),
+		);
 	}
 
 	/**

@@ -194,6 +194,14 @@ Five new filters mirroring `ap.visual-editor.resources` from Phase G. Each takes
 - `ap.visual-editor.global-styles` → `?ResolvedGlobalStyles` (singleton).
 - `ap.visual-editor.navigation` → `array<string, ResolvedMenu>` keyed by location.
 
+**Implementation reference (H5 shipped):**
+
+- Resolvers + value objects: `src/SiteEditor/Resolution/{TemplateResolver, TemplatePartResolver, PatternResolver, GlobalStylesResolver, MenuResolver, ResolvedTemplate, ResolvedTemplatePart, ResolvedPattern, ResolvedGlobalStyles, ResolvedMenu}.php`
+- Lazy-validation exception: `src/SiteEditor/Exceptions/SiteEditorRegistrationException.php`
+- Filter wiring: `VisualEditorServiceProvider::registerSiteEditorResolvers()` (called from the `$this->app->booted(...)` callback alongside `registerResourceResolver()`).
+- Static config: `config/visual-editor.php` `site-editor.{templates, template-parts, patterns, global-styles, navigation}`. Static keys override filter-supplied keys on collision; for the singleton global-styles, a non-null static config wins outright.
+- Tests: `tests/Feature/VisualEditor/SiteEditorFiltersTest.php` covers empty/single-source/colliding/malformed filter-return scenarios.
+
 cms-framework registration site (H5):
 
 ```php
