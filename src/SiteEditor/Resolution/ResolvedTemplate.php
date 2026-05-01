@@ -99,6 +99,13 @@ class ResolvedTemplate
 		$rawFallback    = self::coerceScalarString( $content['raw'] ?? null ) ?? '';
 		$blocksFallback = is_array( $content['blocks'] ?? null ) ? $content['blocks'] : [];
 
+		// Route the top-level `raw_content` through coerceScalarString too —
+		// otherwise a non-string scalar (e.g. `42`, `true`) at the top level
+		// is silently dropped by `optionalString`'s is_string check while
+		// the same value at the nested `content.raw` slot is coerced to its
+		// string form. Matches ResolvedPattern's pattern.
+		$rawContent = self::coerceScalarString( $data['raw_content'] ?? null ) ?? $rawFallback;
+
 		return new self(
 			slug         : $slug,
 			theme        : self::requireString( $data, 'theme', $slug ),
@@ -106,7 +113,7 @@ class ResolvedTemplate
 			description  : self::optionalString( $data, 'description', '' ),
 			status       : self::optionalString( $data, 'status', 'publish' ),
 			source       : self::requireSourceEnum( $data, $slug ),
-			rawContent   : self::optionalString( $data, 'raw_content', $rawFallback ),
+			rawContent   : $rawContent,
 			blocks       : self::optionalArray( $data, 'blocks', $blocksFallback ),
 			hasThemeFile : (bool) ( $data['has_theme_file'] ?? false ),
 			isCustom     : (bool) ( $data['is_custom'] ?? false ),

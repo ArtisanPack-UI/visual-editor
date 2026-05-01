@@ -486,6 +486,48 @@ describe( 'lazy validation on first read', function (): void {
 		expect( $pattern->rawContent )->toBe( '42' );
 	} );
 
+	it( 'coerces scalar non-string raw_content to a string on templates', function (): void {
+		// Top-level raw_content + nested content.raw should behave the same
+		// way: a non-string scalar (here, an int) coerces to its string form
+		// rather than being silently dropped.
+		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+			return array_merge( [
+				'numeric-template' => [
+					'slug'        => 'numeric-template',
+					'theme'       => 'host',
+					'source'      => 'theme',
+					'raw_content' => 42,
+				],
+			], $existing );
+		} );
+
+		rebuildSiteEditorResolvers();
+
+		$template = app( TemplateResolver::class )->find( 'numeric-template' );
+
+		expect( $template->rawContent )->toBe( '42' );
+	} );
+
+	it( 'coerces scalar non-string raw_content to a string on template parts', function (): void {
+		addFilter( 'ap.visual-editor.template-parts', function ( array $existing ): array {
+			return array_merge( [
+				'numeric-part' => [
+					'slug'        => 'numeric-part',
+					'theme'       => 'host',
+					'area'        => 'header',
+					'source'      => 'theme',
+					'raw_content' => 1.5,
+				],
+			], $existing );
+		} );
+
+		rebuildSiteEditorResolvers();
+
+		$part = app( TemplatePartResolver::class )->find( 'numeric-part' );
+
+		expect( $part->rawContent )->toBe( '1.5' );
+	} );
+
 	it( 'throws when global-styles is missing the theme field', function (): void {
 		addFilter( 'ap.visual-editor.global-styles', function ( $existing ) {
 			return $existing ?? [
