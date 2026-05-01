@@ -8,6 +8,8 @@ use ArtisanPackUI\VisualEditor\Blocks\Core\CategoriesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\TagCloudBlock;
 use ArtisanPackUI\VisualEditor\Console\Commands\SeedSampleContentCommand;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
+use ArtisanPackUI\VisualEditor\Services\Adapters\CmsFramework\CmsFrameworkQueryResolver;
+use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorGlobalStyles;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorNavigation;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPattern;
@@ -22,6 +24,8 @@ use ArtisanPackUI\VisualEditor\Policies\VisualEditorTemplatePolicy;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorTemplatePartPolicy;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditor\Resources\PostResolver;
+use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Search\BlockTreeSearchExtractor;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesCacheInvalidator;
@@ -63,6 +67,21 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// `ap.visual-editor.resources` callbacks.
 		$this->app->singleton( ResourceResolver::class, function () {
 			return new ResourceResolver();
+		} );
+
+		// G4c-2 — `PostResolver` stamps `_resolved*` keys on `core/post-*`
+		// blocks; `QueryInliner` orchestrates per-result expansion of
+		// `core/query` blocks. Both are stateless so binding as singletons
+		// is safe and lets host apps swap implementations cleanly.
+		$this->app->singleton( PostResolver::class, function () {
+			return new PostResolver();
+		} );
+
+		$this->app->singleton( QueryInliner::class, function ( $app ) {
+			return new QueryInliner(
+				$app,
+				$app->make( PostResolver::class ),
+			);
 		} );
 
 		$this->app->singleton( BlockTreeSearchExtractor::class, function ( $app ) {
@@ -112,10 +131,37 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// Legacy alias for backward compatibility
 		$this->app->alias( VisualEditor::class, 'visualEditor' );
 
+		// G4c-2 — bind `QueryResolverContract` to cms-framework's
+		// `QueryRuntime` adapter when the package is installed. Hosts
+		// without cms-framework (or that ship a custom runtime) can
+		// override this binding from their own service provider; the
+		// `QueryResolveController` and `QueryInliner` only require that
+		// *something* be bound.
+		$this->registerQueryResolverBinding();
+
 		$this->mergeConfigFrom(
 			__DIR__ . '/../config/visual-editor.php', 'artisanpack-visual-editor-temp'
 		);
 
+	}
+
+	/**
+	 * Register the cms-framework adapter for {@see QueryResolverContract}
+	 * when the upstream class is autoloadable.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function registerQueryResolverBinding(): void
+	{
+		$cmsRuntime = '\\ArtisanPackUI\\CMSFramework\\Modules\\Blog\\Services\\QueryRuntime';
+
+		if ( ! class_exists( $cmsRuntime ) ) {
+			return;
+		}
+
+		$this->app->singleton( QueryResolverContract::class, function ( $app ) use ( $cmsRuntime ): QueryResolverContract {
+			return new CmsFrameworkQueryResolver( $app->make( $cmsRuntime ) );
+		} );
 	}
 
 	/**

@@ -26,6 +26,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\GlobalStylesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\NavigationController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\PatternController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\TemplatePartController;
@@ -44,6 +45,14 @@ Route::put( '{resource}/{id}/content', [ ResourceContentController::class, 'upda
 
 Route::post( 'blocks/preview', [ BlockPreviewController::class, 'preview' ] )
 	->name( 'visual-editor.api.blocks.preview' );
+
+// G4c-2 — `core/query` block resolution. Wraps cms-framework's
+// `QueryRuntime` (or any host-bound `QueryResolverContract`
+// implementation) and returns paginated WP-shape results so the editor
+// canvas + the React/Vue front-end renderers can consume the same
+// envelope.
+Route::post( 'query/resolve', [ QueryResolveController::class, 'resolve' ] )
+	->name( 'visual-editor.api.query.resolve' );
 
 Route::get( 'blocks', [ VisualEditorBlocksController::class, 'index' ] )
 	->name( 'visual-editor.api.blocks.index' );

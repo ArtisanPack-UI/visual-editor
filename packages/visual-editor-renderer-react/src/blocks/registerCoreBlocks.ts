@@ -52,6 +52,7 @@ import {
     PostFeaturedImageBlock,
     PostTitleBlock,
 } from './core/postContext';
+import { PostTemplateBlock, QueryBlock } from './core/query';
 import { SiteLogoBlock, SiteTaglineBlock, SiteTitleBlock } from './core/siteContext';
 import { SyncedPatternBlock } from './core/syncedPattern';
 import { TemplatePartBlock } from './core/templatePart';
@@ -100,6 +101,8 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/spacer': SpacerBlock,
     'core/template-part': TemplatePartBlock,
     'core/block': SyncedPatternBlock,
+    'core/query': QueryBlock,
+    'core/post-template': PostTemplateBlock,
     'core/post-title': PostTitleBlock,
     'core/post-content': PostContentBlock,
     'core/post-excerpt': PostExcerptBlock,

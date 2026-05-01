@@ -52,6 +52,16 @@ export type {
     PatternResolutionError,
 } from './patterns';
 export {
+    QUERY_RESOLUTION_ERROR_NO_RESULTS,
+    inlineQueries,
+} from './queries';
+export type {
+    ResolvedAuthor,
+    ResolvedFeaturedImage,
+    ResolvedPost,
+    ResolvedQuery,
+} from './queries';
+export {
     getDefaultSiteMeta,
     inlineSiteMeta,
     setDefaultSiteMeta,

@@ -155,6 +155,58 @@ all render through `ServerSideRender`, so they never query
 `useEntityRecords('taxonomy', 'category')`. The shim entities can be
 layered in cheaply later if a future block needs them.
 
+### Query loop — re-enabled against cms-framework's QueryRuntime (G4c-2)
+
+`core/query` and `core/post-template` were promoted out of the deny-list in
+G4c-2 (#402). The architecture differs from G4b — `core/query` has inner
+blocks that need to render once per result with the per-iteration post id
+threaded through to inner `core/post-*` blocks, so a single
+`DynamicBlock::render()` does not fit. Instead the package ships:
+
+- **`QueryInliner`** (`src/Resources/QueryInliner.php`) — sibling to the
+  existing `TemplatePartInliner` and `PatternInliner`. Walks the saved
+  tree, replaces every `core/query` block with one stamped copy of its
+  inner blocks per result. Stamping is delegated to `PostResolver`,
+  which sets the `_resolved*` keys the existing `core/post-*` partials
+  already read.
+- **`PostResolver`** (`src/Resources/PostResolver.php`) — pure-data
+  service that maps a single post object to the `_resolved*` keys for
+  every supported `core/post-*` block. Uses the post's `permalink`
+  accessor / Carbon date casts / loaded `author` relation. Optional
+  helpers (`apGetMediaUrl`, `apGetMedia`) gate gracefully when
+  media-library is absent.
+- **`QueryResolverContract`** (`src/Services/QueryResolverContract.php`)
+  — interface the inliner + the new `POST
+  /visual-editor/api/query/resolve` controller depend on. Bound by
+  `VisualEditorServiceProvider::register()` to a thin
+  `CmsFrameworkQueryResolver` adapter when cms-framework is on the
+  autoloader; hosts can override it with any other implementation.
+
+All four rendering surfaces (editor canvas + Blade + React + Vue
+renderers) resolve through the same pipe:
+
+- **Editor canvas:** the `core/query` Edit is overridden with a wrapper
+  that calls `useQueryPreview` (a custom hook that POSTs to
+  `/query/resolve`). The first matching post id is pushed into block
+  context via `BlockContextProvider` so the editable inner template
+  renders with real data — every inner `core/post-*` block resolves
+  through G3's entity adapter.
+- **Blade renderer:** `BlocksComponent` invokes `QueryInliner` alongside
+  the template-part / pattern inliners. Result is the saved tree with
+  every `core/query` pre-expanded into per-result instances; the
+  existing `core/post-*` partials handle stamped attributes unchanged.
+- **React + Vue renderers:** ship a parallel TS implementation of
+  `inlineQueries` keyed by `queryId`. Hosts that pre-fetch results
+  server-side pass them via the new `queryResults` prop on `<BlockTree>`
+  / its Vue analog; on-the-fly client fetching uses the same
+  `useQueryPreview` hook (re-exportable for host code).
+
+The `taxQuery` operator surface is bounded to `IN` for V1 — matches the
+cms-framework `QueryRuntime` contract from G4c-1. `core/query-loop`
+(deprecated upstream alias for `core/query`) plus the pagination /
+no-results / read-more wrappers stay in the deny-list; they need
+follow-up renderer wiring that's out of scope for #402.
+
 ## Crash or backend-required — disabled by default
 
 These blocks call selectors the shim returns `null` for but which the block's
@@ -179,9 +231,13 @@ does not implement. They are permanently in the deny-list until a real
 
 ### Query loop
 
-- `core/query`
-- `core/query-loop` (listed per spec; no separate upstream block — the block
-  name is `core/query` and the loop is driven by `core/post-template`).
+`core/query` and `core/post-template` were promoted out of this section
+in G4c-2 (#402); see [Query loop — G4c-2](#query-loop--re-enabled-against-cms-frameworks-queryruntime-g4c-2) below for the
+architecture. The remaining query-loop blocks stay deferred — they wrap
+pagination, "no results", and read-more affordances that have not yet
+been wired into the renderer pipeline.
+
+- `core/query-loop` (deprecated upstream alias — `core/query` is the live name)
 - `core/query-pagination`
 - `core/query-pagination-next`
 - `core/query-pagination-numbers`
@@ -189,7 +245,6 @@ does not implement. They are permanently in the deny-list until a real
 - `core/query-no-results`
 - `core/query-title`
 - `core/query-total`
-- `core/post-template`
 - `core/read-more`
 
 ### Post context
