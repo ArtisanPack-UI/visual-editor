@@ -75,12 +75,12 @@ The set of upstream blocks to fork is the union of (a) the current `enabled_bloc
 ## 3. Phase ordering
 
 ```
-Phase H — Block fork (V2)
+Phase I — Block fork (V2)
 
   Pilot (sequential)
-    H0   Paragraph pilot.
+    I0   Paragraph pilot.
          - Fork core/paragraph → artisanpack/paragraph end-to-end.
-         - Branch: feature/H0-paragraph-pilot off main (NOT release/2.0).
+         - Branch: feature/I0-paragraph-pilot off main (NOT release/2.0).
          - Validate block.json, edit, save, deprecations, i18n.
          - Identify shared primitives that need to be vendored
            alongside the block (icons, SCSS utilities, shared
@@ -91,20 +91,20 @@ Phase H — Block fork (V2)
          - Produce a real cost estimate in engineer-days for the
            remaining 41 blocks.
 
-  Cluster milestones (parallelizable after H0)
-    H1   Content cluster (8 blocks):
+  Cluster milestones (parallelizable after I0)
+    I1   Content cluster (8 blocks):
          heading, list, quote, code, preformatted, pullquote, verse, table.
-    H2   Media cluster (8 blocks):
+    I2   Media cluster (8 blocks):
          image, gallery, video, audio, file, embed, cover, media-text.
          Coordinates with the media-bridge contract (host-app
          MediaUpload registration). No bridge changes; the forks
          consume the same registered MediaUpload component.
-    H3   Layout cluster (8 logical blocks, 6 source units):
+    I3   Layout cluster (8 logical blocks, 6 source units):
          columns, group (+row, +stack variations), buttons,
          separator, spacer, details.
-    H4   Widgets cluster (2 blocks):
+    I4   Widgets cluster (2 blocks):
          search, latest-posts.
-    H5   Entity cluster (11 blocks): template-part, post-title,
+    I5   Entity cluster (11 blocks): template-part, post-title,
          post-content, post-excerpt, post-date, post-author,
          post-featured-image, site-title, site-tagline, site-logo,
          navigation.
@@ -113,14 +113,14 @@ Phase H — Block fork (V2)
          These forks read entity data through the same
          useEntityRecord / useEntityRecords surface the upstream
          blocks use — no API change required.
-    H6   Loop / feed cluster (5 blocks):
+    I6   Loop / feed cluster (5 blocks):
          archives, categories, tag-cloud, query, query-loop.
          Hard-couples to plan 12 G4b / G4c — does not start until
          cms-framework's term endpoints (G4b) and QueryRuntime
          service (G4c) are tagged in a cms-framework release.
 
   Cutover (sequential, after all clusters)
-    H7   - Drop registerCoreBlocks() from
+    I7   - Drop registerCoreBlocks() from
            resources/js/visual-editor/editor/editor-app.tsx
            and resources/js/visual-editor/site-editor/site-editor-app.tsx.
          - Replace with the artisanpack/* registration entrypoint.
@@ -138,14 +138,14 @@ Phase H — Block fork (V2)
            release.
 
   Ship
-    H8   v2.0.0-alpha.1 → v2.0.0-beta.1 → v2.0.0.
-         Beta tag at end of H6 once all forks are landed but before
-         cutover; GA after H7 has a soak window in the dev-app.
+    I8   v2.0.0-alpha.2 → v2.0.0-beta.1 → v2.0.0.
+         Beta tag at end of I6 once all forks are landed but before
+         cutover; GA after I7 has a soak window in the dev-app.
 ```
 
-**Critical path:** H0 → (any one cluster) → H6 → H7. H6 cannot start until cms-framework's V1.x release tagged with G4b/G4c is published.
+**Critical path:** I0 → (any one cluster) → I6 → I7. I6 cannot start until cms-framework's V1.x release tagged with G4b/G4c is published.
 
-**Rough duration:** the H0 pilot's cost estimate refines this. Provisional budget — 1 week pilot, 1.5–2 weeks per cluster (six clusters), 1 week cutover. ~10–12 engineer-weeks total assuming clusters parallelize across two people; ~16–18 weeks single-engineer. Lock the real number after H0.
+**Rough duration:** the I0 pilot's cost estimate refines this. Provisional budget — 1 week pilot, 1.5–2 weeks per cluster (six clusters), 1 week cutover. ~10–12 engineer-weeks total assuming clusters parallelize across two people; ~16–18 weeks single-engineer. Lock the real number after I0.
 
 ---
 
@@ -183,13 +183,13 @@ packages/visual-editor-renderer-vue/src/blocks/artisanpack/paragraph.ts
 Every fork ships a `transforms.ts` with both directions:
 
 - `from: { type: 'block', blocks: ['core/paragraph'] }` — converts a `core/paragraph` block instance to `artisanpack/paragraph` losslessly. Lets host apps with mid-V1 content (if any persisted before V2 ships) upgrade by pasting / re-inserting.
-- `to: { type: 'block', blocks: ['core/paragraph'] }` — round-trip, in case the user wants to drop back. Removed at H7 cutover when `core/paragraph` is no longer registered.
+- `to: { type: 'block', blocks: ['core/paragraph'] }` — round-trip, in case the user wants to drop back. Removed at I7 cutover when `core/paragraph` is no longer registered.
 
-The transforms cover the no-migration window's edge case: existing host-app content that may have hit `core/*` names. The Artisan command in §2.1 is the bulk-conversion fallback if the window closes before H7.
+The transforms cover the no-migration window's edge case: existing host-app content that may have hit `core/*` names. The Artisan command in §2.1 is the bulk-conversion fallback if the window closes before I7.
 
 ### 4.3 Upstream-diff workflow
 
-This is the maintenance commitment we take on at H7 — and the one most likely to rot if we don't bake a workflow at H0.
+This is the maintenance commitment we take on at I7 — and the one most likely to rot if we don't bake a workflow at I0.
 
 **Tooling:** a `scripts/upstream-diff.ts` CLI in this package that takes a block name and a target upstream `@wordpress/block-library` version. It:
 
@@ -207,18 +207,18 @@ This is the maintenance commitment we take on at H7 — and the one most likely 
 
 `upstream-state.json` keeps the per-block decision log — what we last reviewed, what we ported, what we skipped, what we superseded. When the next bump lands, the diff baseline is the recorded version, not the previous live `node_modules` version.
 
-**Documented in:** `docs/block-fork-workflow.md` (created in H0). Keeping the workflow doc in the package, not just in the team handbook, means it travels with the source.
+**Documented in:** `docs/block-fork-workflow.md` (created in I0). Keeping the workflow doc in the package, not just in the team handbook, means it travels with the source.
 
 ### 4.4 Vendored shared primitives
 
 `@wordpress/block-library` is not a flat directory of self-contained blocks. Many blocks `import` from `@wordpress/block-library/src/utils/`, `@wordpress/block-library/src/components/`, or sibling block folders (`core/list-item` imports from `core/list/utils.ts`, etc.). Forking a single block without those primitives produces broken imports.
 
-The H0 pilot enumerates the primitives `core/paragraph` actually imports, then we make a per-primitive call:
+The I0 pilot enumerates the primitives `core/paragraph` actually imports, then we make a per-primitive call:
 
 - **Vendor** — copy the primitive into `resources/js/visual-editor/blocks/_shared/` if it is genuinely block-library-private and not exported from a public `@wordpress/*` package.
 - **Re-import from public WP package** — if it is re-exported from `@wordpress/block-editor`, `@wordpress/components`, or `@wordpress/rich-text`, switch the import.
 
-By H6 we expect to have ~5–10 vendored primitives in `_shared/` covering the bulk of the entity blocks' bridge code. The pilot's deliverable includes the first iteration of this directory.
+By I6 we expect to have ~5–10 vendored primitives in `_shared/` covering the bulk of the entity blocks' bridge code. The pilot's deliverable includes the first iteration of this directory.
 
 ### 4.5 Block re-registration sequencing
 
@@ -233,15 +233,15 @@ export function registerArtisanPackBlocks(): void {
 }
 ```
 
-Both editor bootstraps (`editor-app.tsx`, `site-editor-app.tsx`) call `registerArtisanPackBlocks()` instead of `registerCoreBlocks()` at H7. During the cluster phases (H1–H6), forked blocks register **alongside** their `core/*` counterparts so reviewers can A/B them in the dev-app — the inserter will show duplicates, gated behind a `?fork=on` query flag in the dev-app router. Production host apps continue to see `core/*` only until H7.
+Both editor bootstraps (`editor-app.tsx`, `site-editor-app.tsx`) call `registerArtisanPackBlocks()` instead of `registerCoreBlocks()` at I7. During the cluster phases (I1–I6), forked blocks register **alongside** their `core/*` counterparts so reviewers can A/B them in the dev-app — the inserter will show duplicates, gated behind a `?fork=on` query flag in the dev-app router. Production host apps continue to see `core/*` only until I7.
 
-### 4.6 Coordination with cms-framework (H5 / H6)
+### 4.6 Coordination with cms-framework (I5 / I6)
 
-**H5 — entity cluster.** The forked entity blocks (`artisanpack/post-*`, `artisanpack/site-*`, `artisanpack/template-part`, `artisanpack/navigation`) read entity records through the same `useEntityRecord` / `useEntityRecords` selectors the upstream blocks use. Plan 12 G0 (#395) plus G3 already wire those entities through `dispatch('core').addEntities(...)` — the forks inherit the wiring. No change to the cms-framework adapter.
+**I5 — entity cluster.** The forked entity blocks (`artisanpack/post-*`, `artisanpack/site-*`, `artisanpack/template-part`, `artisanpack/navigation`) read entity records through the same `useEntityRecord` / `useEntityRecords` selectors the upstream blocks use. Plan 12 G0 (#395) plus G3 already wire those entities through `dispatch('core').addEntities(...)` — the forks inherit the wiring. No change to the cms-framework adapter.
 
-**H6 — loop / feed cluster.** `artisanpack/query` and `artisanpack/query-loop` call into cms-framework's `QueryRuntime` (plan 12 G4c) via the same `POST /visual-editor/api/query/resolve` endpoint and Blade direct-call seam the upstream blocks use. The fork is contract-stable against G4c — no QueryRuntime API changes needed for the fork.
+**I6 — loop / feed cluster.** `artisanpack/query` and `artisanpack/query-loop` call into cms-framework's `QueryRuntime` (plan 12 G4c) via the same `POST /visual-editor/api/query/resolve` endpoint and Blade direct-call seam the upstream blocks use. The fork is contract-stable against G4c — no QueryRuntime API changes needed for the fork.
 
-**H6 — feed widgets.** `artisanpack/archives`, `artisanpack/categories`, `artisanpack/tag-cloud` consume cms-framework's existing term endpoints (`/api/post-categories`, `/api/post-tags`, `/api/page-categories`, `/api/page-tags`) per plan 12 G4b. Same contract; the fork inherits.
+**I6 — feed widgets.** `artisanpack/archives`, `artisanpack/categories`, `artisanpack/tag-cloud` consume cms-framework's existing term endpoints (`/api/post-categories`, `/api/post-tags`, `/api/page-categories`, `/api/page-tags`) per plan 12 G4b. Same contract; the fork inherits.
 
 The minimum-required cms-framework version for V2.0.0 is **the same** as for V1.0.0 plus whatever V1.x cms-framework release tags G4b and G4c. Document the version pair in V2.0.0 release notes per plan 12 §6.
 
@@ -251,7 +251,7 @@ The minimum-required cms-framework version for V2.0.0 is **the same** as for V1.
 
 ### 5.1 Maintenance debt compounds quietly
 
-41 forks × N upstream releases × M files per fork = a long tail of diff-and-port work. If the diff workflow rots — nobody triages the Renovate PR comments, `upstream-state.json` falls behind — the forks silently diverge from upstream a11y / security fixes. **Mitigation:** the H0 pilot ships the workflow doc *and* a CI job that fails the build if `upstream-state.json` is more than two minor versions behind the installed `@wordpress/block-library`. Forces the triage to happen on cadence.
+41 forks × N upstream releases × M files per fork = a long tail of diff-and-port work. If the diff workflow rots — nobody triages the Renovate PR comments, `upstream-state.json` falls behind — the forks silently diverge from upstream a11y / security fixes. **Mitigation:** the I0 pilot ships the workflow doc *and* a CI job that fails the build if `upstream-state.json` is more than two minor versions behind the installed `@wordpress/block-library`. Forces the triage to happen on cadence.
 
 ### 5.2 Block-library private API churn
 
@@ -267,11 +267,11 @@ The package ships three renderers — Blade, React, Vue. Each fork lands in all 
 
 ### 5.5 cms-framework version coupling tightens
 
-V1 already version-pairs visual-editor and cms-framework (plan 12 §5.5). V2 H6 hardens the pairing — if cms-framework's `QueryRuntime` API shifts post-G4c, the H6 forks break. **Mitigation:** the `QueryRuntime` PHP contract becomes a versioned interface (`ArtisanPackUI\CMSFramework\Contracts\QueryRuntime\V1`). cms-framework V2 introducing `V2` doesn't break our forks; we adopt `V2` as separate post-V2 work.
+V1 already version-pairs visual-editor and cms-framework (plan 12 §5.5). V2 I6 hardens the pairing — if cms-framework's `QueryRuntime` API shifts post-G4c, the I6 forks break. **Mitigation:** the `QueryRuntime` PHP contract becomes a versioned interface (`ArtisanPackUI\CMSFramework\Contracts\QueryRuntime\V1`). cms-framework V2 introducing `V2` doesn't break our forks; we adopt `V2` as separate post-V2 work.
 
 ### 5.6 No-migration window closes early
 
-§2.1 banks on V2 shipping within ~6 months of V1.0.0 GA. If V2 slips past that, host apps are persisting `core/*` block trees and our claim of "no stored content uses `core/*` names yet" no longer holds. **Mitigation:** the `wp:rename-blocks` Artisan command in §2.1 plus H7's cutover. Treated as an escape valve, not the primary plan.
+§2.1 banks on V2 shipping within ~6 months of V1.0.0 GA. If V2 slips past that, host apps are persisting `core/*` block trees and our claim of "no stored content uses `core/*` names yet" no longer holds. **Mitigation:** the `wp:rename-blocks` Artisan command in §2.1 plus I7's cutover. Treated as an escape valve, not the primary plan.
 
 ### 5.7 Diff fatigue across 41 blocks
 
@@ -281,28 +281,28 @@ Even with tooling, a human has to triage every Renovate-driven diff. With 41 for
 
 ## 6. Branching + release strategy
 
-- **Pilot branch:** `feature/H0-paragraph-pilot` cut from `main` per #331's pilot directive — V2 work does not gate on V1's `release/1.0` integration branch.
-- **Integration branch:** `release/2.0` cut from `main` once V1.0.0 is tagged. All H1–H7 work merges into `release/2.0`.
-- **Cluster branches:** `feature/H{n}-{cluster}` cut from + merged into `release/2.0`.
+- **Pilot branch:** `feature/I0-paragraph-pilot` cut from `main` per #331's pilot directive — V2 work does not gate on V1's `release/1.0` integration branch.
+- **Integration branch:** `release/2.0` cut from `main` once V1.0.0 is tagged. All I1–I7 work merges into `release/2.0`.
+- **Cluster branches:** `feature/I{n}-{cluster}` cut from + merged into `release/2.0`.
 - **Tags:**
-  - `v2.0.0-alpha.1` — at the end of H4 (content + media + layout + widgets clusters in).
-  - `v2.0.0-alpha.2` — at the end of H5 (entity cluster in).
-  - `v2.0.0-beta.1` — at the end of H6 (loop/feed cluster in; all forks landed; pre-cutover).
-  - `v2.0.0` — after H7 + dev-app soak.
+  - `v2.0.0-alpha.1` — at the end of I4 (content + media + layout + widgets clusters in).
+  - `v2.0.0-alpha.2` — at the end of I5 (entity cluster in).
+  - `v2.0.0-beta.1` — at the end of I6 (loop/feed cluster in; all forks landed; pre-cutover).
+  - `v2.0.0` — after I7 + dev-app soak.
 - `main` remains release-only; V2.0.0 merges back per existing workflow.
 
 ---
 
 ## 7. Issue tracking approach
 
-Following plan 11 §6 — create milestone-level tracking issues one phase at a time, as each phase kicks off. The cluster breakdown in §3 is provisional until the H0 pilot's cost estimate refines it; filing eight detailed cluster issues now produces stale tickets by the time H1 starts.
+Following plan 11 §6 — create milestone-level tracking issues one phase at a time, as each phase kicks off. The cluster breakdown in §3 is provisional until the I0 pilot's cost estimate refines it; filing eight detailed cluster issues now produces stale tickets by the time I1 starts.
 
-- **H0** — file as a single issue under #331 once V1.0.0 ships and the team commits to V2 kickoff.
-- **H1–H6** — one umbrella issue per cluster, filed at the start of each cluster's work. Each cluster issue spawns one child issue per block in the cluster as the cluster begins. Per-block issues have their own acceptance criteria covering edit/save parity, deprecations, transforms, three-renderer parity, and `__fixtures__` coverage.
-- **H7** — single cutover issue, filed at the start of H7.
+- **I0** — file as a single issue under #331 once V1.0.0 ships and the team commits to V2 kickoff.
+- **I1–I6** — one umbrella issue per cluster, filed at the start of each cluster's work. Each cluster issue spawns one child issue per block in the cluster as the cluster begins. Per-block issues have their own acceptance criteria covering edit/save parity, deprecations, transforms, three-renderer parity, and `__fixtures__` coverage.
+- **I7** — single cutover issue, filed at the start of I7.
 - **#331** stays open through the lifecycle; close only when v2.0.0 is tagged.
 
-`#338` (`core/search` `buttonUseIcon` a11y) is a V1 Phase F issue per plan 11 §6 and is unaffected by this plan — when `artisanpack/search` lands at H4, it inherits whatever fix V1 shipped.
+`#338` (`core/search` `buttonUseIcon` a11y) is a V1 Phase F issue per plan 11 §6 and is unaffected by this plan — when `artisanpack/search` lands at I4, it inherits whatever fix V1 shipped.
 
 ---
 
@@ -310,11 +310,11 @@ Following plan 11 §6 — create milestone-level tracking issues one phase at a 
 
 Not blocking this plan, but worth naming:
 
-- **H0 pilot location** — `feature/H0-paragraph-pilot` off `main` is per the issue body. Do we *also* land the pilot's `docs/block-fork-workflow.md` and `scripts/upstream-diff.ts` on `main` after H0 even if the rest of V2 stays on `release/2.0`? Leaning yes — the workflow doc is useful before V2 starts and not packaged into the published bundle.
-- **Vendored primitives directory naming** — `_shared/` (mirrors `_legacy/` precedent) vs `vendor/` (mirrors `core-data-shim` location at `resources/js/visual-editor/vendor/`). Settle at H0 once the actual primitives are visible.
+- **I0 pilot location** — `feature/I0-paragraph-pilot` off `main` is per the issue body. Do we *also* land the pilot's `docs/block-fork-workflow.md` and `scripts/upstream-diff.ts` on `main` after I0 even if the rest of V2 stays on `release/2.0`? Leaning yes — the workflow doc is useful before V2 starts and not packaged into the published bundle.
+- **Vendored primitives directory naming** — `_shared/` (mirrors `_legacy/` precedent) vs `vendor/` (mirrors `core-data-shim` location at `resources/js/visual-editor/vendor/`). Settle at I0 once the actual primitives are visible.
 - **Per-block customization budget** — at fork time, each block lands as byte-equivalent to upstream. When does post-fork customization (e.g. swapping `RichText` for Tiptap on `artisanpack/paragraph`) get scoped — alongside the fork or as a separate post-V2 backlog item per block? Leaning post-V2, scoped per block, so V2 itself stays a parity exercise.
-- **`@wordpress/block-library` final disposition** — devDependency for diff tooling, or removed entirely? The `scripts/upstream-diff.ts` workflow needs *some* path to upstream source. devDependency is the simpler answer; "remove and pull from a pinned tarball at CI time" is the smaller-attack-surface answer. Decide at H7.
-- **Style.scss / shared SCSS** — `@wordpress/block-library/src/style.scss` aggregates per-block styles and applies layout normalization. We'll need to fork the equivalent or rebuild. Cost surfaces at H0.
-- **i18n text-domain** — confirm `artisanpack-visual-editor` is the right text-domain for forked `__()` calls (vs reusing `default` or per-package domains). Settle at H0.
-- **Renderer parity manifest** — JSON file emitted by JS build, consumed by Blade (PHP) and Vue / React renderer build steps? Or a TS module that all three import? Decide at H4 once the cluster shape is concrete.
+- **`@wordpress/block-library` final disposition** — devDependency for diff tooling, or removed entirely? The `scripts/upstream-diff.ts` workflow needs *some* path to upstream source. devDependency is the simpler answer; "remove and pull from a pinned tarball at CI time" is the smaller-attack-surface answer. Decide at I7.
+- **Style.scss / shared SCSS** — `@wordpress/block-library/src/style.scss` aggregates per-block styles and applies layout normalization. We'll need to fork the equivalent or rebuild. Cost surfaces at I0.
+- **i18n text-domain** — confirm `artisanpack-visual-editor` is the right text-domain for forked `__()` calls (vs reusing `default` or per-package domains). Settle at I0.
+- **Renderer parity manifest** — JSON file emitted by JS build, consumed by Blade (PHP) and Vue / React renderer build steps? Or a TS module that all three import? Decide at I4 once the cluster shape is concrete.
 - **Block category labels** — upstream uses `text`, `media`, `design`, `widgets`, `theme`, `embed`. Do we keep those names under `artisanpack/*`, or rename to match the package's vocabulary? Leaning keep — host apps' inserter UI is built against the upstream category names and we don't want to invalidate that.
