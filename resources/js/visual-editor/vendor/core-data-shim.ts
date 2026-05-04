@@ -190,10 +190,22 @@ export const DEFAULT_ENTITIES: readonly EntityConfig[] = Object.freeze([
     {
         kind: 'postType',
         name: 'wp_navigation',
-        baseURL: '/navigation',
+        // H6 (#431) restructured the navigation surface from `/navigation`
+        // (plan 11 Phase D) to `/menus` to match WP REST `wp_navigation`.
+        // Individual items live at `/menu-items` under the
+        // `wp_navigation_link` entity below.
+        baseURL: '/menus',
         key: 'id',
         label: 'Navigation',
         plural: 'navigations',
+    },
+    {
+        kind: 'postType',
+        name: 'wp_navigation_link',
+        baseURL: '/menu-items',
+        key: 'id',
+        label: 'Navigation Link',
+        plural: 'navigationLinks',
     },
     {
         kind: 'postType',

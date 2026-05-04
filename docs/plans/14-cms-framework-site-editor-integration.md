@@ -3,7 +3,7 @@
 **Package:** `artisanpack-ui/visual-editor` (companion: `artisanpack-ui/cms-framework`)
 **Version Target:** visual-editor 1.0.0 / cms-framework 1.x
 **Created:** April 27, 2026
-**Status:** Planning
+**Status:** In rollout — H0–H6 shipped (#100, #108, #110, #112, #114, #407, #431); H7 + H8 pending
 **Relates to:** #309 (umbrella), [`11-v1-expansion.md`](11-v1-expansion.md), [`12-cms-framework-integration.md`](12-cms-framework-integration.md).
 **Supersedes scope of:** [`11-v1-expansion.md`](11-v1-expansion.md) Phase C (templates / template-parts / patterns / global-styles / navigation backends) and the corresponding Phase D backend wiring — those phases assumed visual-editor first-party tables. This plan moves ownership of those entities into cms-framework. Phase D's UI work in visual-editor remains, retargeted at cms-framework endpoints.
 
@@ -256,9 +256,36 @@ dispatch( 'core' ).addEntities( [
     { kind: 'postType', name: 'wp_template_part',    baseURL: '/template-parts',    key: 'id' },
     { kind: 'postType', name: 'wp_block',            baseURL: '/patterns',          key: 'id' },
     { kind: 'postType', name: 'wp_navigation',       baseURL: '/menus',             key: 'id' },
-    { kind: 'root',     name: '__unstableBase',      baseURL: '/global-styles',     key: 'id' },
+    { kind: 'postType', name: 'wp_navigation_link',  baseURL: '/menu-items',        key: 'id' },
+    { kind: 'root',     name: 'globalStyles',        baseURL: '/global-styles',     key: 'id' },
 ] );
 ```
+
+#### 4.5.1 Implementation status — H6 shipped
+
+The H6 surface ships across six commits on the `feature/431-site-editor-h6-adapters` branch (PR #431):
+
+| Sub-task | Files | Tests |
+|---|---|---|
+| WP-shape adapters | `src/Http/Resources/Adapters/CmsFramework/SiteEditor/{Template,TemplatePart,Pattern,GlobalStyles,Menu,MenuItem}Adapter.php` | `tests/Unit/VisualEditor/SiteEditor/Adapters/*Test.php` |
+| Template + TemplatePart controllers | `src/Http/Controllers/SiteEditor/{Template,TemplatePart}Controller.php`, form requests under `src/Http/Requests/SiteEditor/` | `tests/Feature/SiteEditor/{Template,TemplatePart}ControllerTest.php` + `TemplateControllerStandaloneTest.php` |
+| Pattern + GlobalStyles controllers | `src/Http/Controllers/SiteEditor/{Pattern,GlobalStyles}Controller.php`, form requests | `tests/Feature/SiteEditor/{Pattern,GlobalStyles}ControllerTest.php` + `PatternControllerStandaloneTest.php` |
+| Menu + MenuItem controllers | `src/Http/Controllers/SiteEditor/{Menu,MenuItem}Controller.php`, form requests | `tests/Feature/SiteEditor/{Menu,MenuItem}ControllerTest.php` + `MenuControllerStandaloneTest.php` |
+| `addEntities` registration | `resources/js/visual-editor/site-editor/register-entities.ts`, updated `vendor/core-data-shim.ts` `DEFAULT_ENTITIES` | `resources/js/visual-editor/site-editor/__tests__/register-entities.test.ts` |
+| Inspector sidebars (minimal) | `resources/js/visual-editor/site-editor/sidebars/{template,template-part,pattern,global-styles,menu}-sidebar.tsx` + `sidebar-frame.tsx` | `resources/js/visual-editor/site-editor/sidebars/__tests__/sidebars.test.tsx` |
+
+**Notable departures from this section's example:**
+
+- **`globalStyles` (not `__unstableBase`)** — visual-editor's core-data shim already registered the singleton entity under `name: 'globalStyles'` long before H6. Renaming would ripple through every consumer that reads global styles, so the H6 work kept the existing name. Functionally equivalent; the shim's `addEntities` lookup is keyed by `(kind, name)`.
+- **`/menu-items` is an entity, not a sub-resource** — registered as `wp_navigation_link` so the editor can do incremental item edits via `useEntityRecord('postType', 'wp_navigation_link', id)` without re-saving the whole menu. Mirrors the WP REST split.
+- **Sidebars are read-only minimal panels** — H6 ships the bootstrap-registration evidence (the sidebars actually fetch and render their entity record). H7's UI rescope expands them to editable Gutenberg-style document settings panels alongside the existing block-selection inspector.
+- **Write coupling via direct model import** — controllers gate cms-framework writes behind `class_exists(\ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\X::class)` + `app()->bound(<resolver-class>)`. Standalone install (no cms-framework provider booted) reads return empty, writes return 404 with `{ "message": "The site editor requires artisanpack-ui/cms-framework." }`. Plan 14 §2.1's hard-coupling model — explicit and testable.
+- **Menu reads bypass the resolver** — `MenuController` reads cms-framework's `Menu` model directly (not through H5's `MenuResolver`) because the resolver is location-keyed and only surfaces *assigned* menus, while WP REST `wp_navigation` expects id-based addressing over the full menu set. The resolver continues to power `core/navigation` block resolution at render time as a separate code path.
+- **DELETE writes scope by `(theme, slug)`** — Templates and parts require `?theme=...` so a multi-theme override doesn't get collateral-deleted. Pattern and Menu deletes scope by id (single global unique).
+
+**Deferred to follow-up #434:**
+
+Plan 11 Phase D legacy code cleanup — `VisualEditor{Template,TemplatePart,Pattern,GlobalStyles,Navigation}` models + their migrations + factories + policies; the legacy `Resources/{TemplateResolver,TemplatePartInliner,PatternInliner}` classes; the `Services/GlobalStylesCssProvider` + `GlobalStylesCacheInvalidator` (cms-framework's `GlobalStylesEmitter` per §4.6 supersedes); `EntitySearchController` rewrite to consume cms-framework's resource map; `MenuLocationsController` rewrite to consume cms-framework's `MenuLocationAssignment`. These are still alive at the model layer because their consumers (search picker, location config endpoint, CSS emission) remain wired to the old DB; #434 spells out the per-system cutover order.
 
 ### 4.6 CSS emission (H3)
 
