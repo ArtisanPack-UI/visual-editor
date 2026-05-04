@@ -34,10 +34,21 @@
   "require-dev": {
     "pestphp/pest": "^3.8",
     "pestphp/pest-plugin-laravel": "^3.1",
-    "orchestra/testbench": "^10.2"
+    "orchestra/testbench": "^10.2",
+    "artisanpack-ui/cms-framework": "*"
   },
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../cms-framework",
+      "options": {
+        "symlink": true
+      }
+    }
+  ],
   "suggest": {
-    "artisanpack-ui/media-library": "Recommended ^1.2 — default media library integration. Wire MediaModal + uploadMedia through registerArtisanpackMediaBridge() in the editor bootstrap to power Gutenberg's media picker and upload flows. Not enforced by Composer; host apps are free to install a different library and register a custom bridge instead."
+    "artisanpack-ui/media-library": "Recommended ^1.2 — default media library integration. Wire MediaModal + uploadMedia through registerArtisanpackMediaBridge() in the editor bootstrap to power Gutenberg's media picker and upload flows. Not enforced by Composer; host apps are free to install a different library and register a custom bridge instead.",
+    "artisanpack-ui/cms-framework": "Required ^1.2 for the site editor — the `/visual-editor/site-editor` route is hard-coupled to cms-framework's templates, parts, patterns, global styles, and menus modules (plan 14). Without it, the post-content editor still works but the site editor route returns an install gate."
   },
   "scripts": {
     "test": "./vendor/bin/pest"

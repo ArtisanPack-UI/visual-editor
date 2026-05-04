@@ -28,8 +28,8 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\NavigationController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\PatternController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
-use ArtisanPackUI\VisualEditor\Http\Controllers\TemplateController;
-use ArtisanPackUI\VisualEditor\Http\Controllers\TemplatePartController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplateController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplatePartController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\VisualEditorBlocksController;
 use Illuminate\Support\Facades\Route;
 
@@ -57,36 +57,45 @@ Route::post( 'query/resolve', [ QueryResolveController::class, 'resolve' ] )
 Route::get( 'blocks', [ VisualEditorBlocksController::class, 'index' ] )
 	->name( 'visual-editor.api.blocks.index' );
 
-// C1 `wp_template` REST surface — see docs/core-data-shim.md §Templates.
+// H6 `wp_template` REST surface — see docs/plans/14-cms-framework-site-editor-integration.md §4.5.
+// Slug-keyed (visual-editor's resolver is scoped to the active theme); reads
+// come through H5's resolver, writes pass through to cms-framework's
+// Template model under a class_exists + binding guard.
 Route::get( 'templates', [ TemplateController::class, 'index' ] )
 	->name( 'visual-editor.api.templates.index' );
 
 Route::post( 'templates', [ TemplateController::class, 'store' ] )
 	->name( 'visual-editor.api.templates.store' );
 
-Route::get( 'templates/{template}', [ TemplateController::class, 'show' ] )
+Route::get( 'templates/{slug}', [ TemplateController::class, 'show' ] )
+	->where( 'slug', '[A-Za-z0-9_-]+' )
 	->name( 'visual-editor.api.templates.show' );
 
-Route::put( 'templates/{template}', [ TemplateController::class, 'update' ] )
+Route::put( 'templates/{slug}', [ TemplateController::class, 'update' ] )
+	->where( 'slug', '[A-Za-z0-9_-]+' )
 	->name( 'visual-editor.api.templates.update' );
 
-Route::delete( 'templates/{template}', [ TemplateController::class, 'destroy' ] )
+Route::delete( 'templates/{slug}', [ TemplateController::class, 'destroy' ] )
+	->where( 'slug', '[A-Za-z0-9_-]+' )
 	->name( 'visual-editor.api.templates.destroy' );
 
-// C2 `wp_template_part` REST surface — see docs/core-data-shim.md §Template parts.
+// H6 `wp_template_part` REST surface.
 Route::get( 'template-parts', [ TemplatePartController::class, 'index' ] )
 	->name( 'visual-editor.api.template-parts.index' );
 
 Route::post( 'template-parts', [ TemplatePartController::class, 'store' ] )
 	->name( 'visual-editor.api.template-parts.store' );
 
-Route::get( 'template-parts/{templatePart}', [ TemplatePartController::class, 'show' ] )
+Route::get( 'template-parts/{slug}', [ TemplatePartController::class, 'show' ] )
+	->where( 'slug', '[A-Za-z0-9_-]+' )
 	->name( 'visual-editor.api.template-parts.show' );
 
-Route::put( 'template-parts/{templatePart}', [ TemplatePartController::class, 'update' ] )
+Route::put( 'template-parts/{slug}', [ TemplatePartController::class, 'update' ] )
+	->where( 'slug', '[A-Za-z0-9_-]+' )
 	->name( 'visual-editor.api.template-parts.update' );
 
-Route::delete( 'template-parts/{templatePart}', [ TemplatePartController::class, 'destroy' ] )
+Route::delete( 'template-parts/{slug}', [ TemplatePartController::class, 'destroy' ] )
+	->where( 'slug', '[A-Za-z0-9_-]+' )
 	->name( 'visual-editor.api.template-parts.destroy' );
 
 // C3 `globalStyles` REST surface — see docs/core-data-shim.md §Global styles.

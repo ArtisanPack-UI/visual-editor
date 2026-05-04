@@ -1,10 +1,13 @@
 <?php
 
 /**
- * StoreTemplatePart form request.
+ * StoreTemplatePartRequest — H6 site-editor.
  *
- * Validates the payload for creating a `wp_template_part` record via
- * `POST /visual-editor/api/template-parts`.
+ * Validates the WP REST `wp_template_part` payload for `POST
+ * /visual-editor/api/template-parts`. Adds the closed-list `area` field
+ * to {@see StoreTemplateRequest}'s shape; the area enum is defined on
+ * {@see ResolvedTemplatePart} so visual-editor and cms-framework agree
+ * on the V1 set without each owning their own copy.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -16,10 +19,10 @@
 
 declare( strict_types=1 );
 
-namespace ArtisanPackUI\VisualEditor\Http\Requests;
+namespace ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor;
 
-use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplatePart;
 use ArtisanPackUI\VisualEditor\Rules\TemplateBlockTreeRule;
+use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplatePart;
 use Closure;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -32,53 +35,38 @@ class StoreTemplatePartRequest extends FormRequest
 	}
 
 	/**
+	 * @since 1.0.0
+	 *
 	 * @return array<string, array<int, mixed>>
 	 */
 	public function rules(): array
 	{
 		return [
-			'slug'           => [
-				'required',
-				'string',
-				'max:191',
-				Rule::unique( 'visual_editor_template_parts', 'slug' )
-					->where( fn ( $query ) => $query->where( 'theme', $this->input( 'theme' ) ) ),
-			],
-			// `title` backs a non-nullable DB column (default ''). The store
-			// controller falls back to '' when the field is missing, but
-			// `null` is never a legal value — rejecting it here keeps the
-			// DB from rejecting the write later with an opaque
-			// QueryException.
+			'slug'           => [ 'required', 'string', 'max:191' ],
 			'title'          => [ 'sometimes', 'string', 'max:255' ],
+			'description'    => [ 'nullable', 'string' ],
 			'content'        => [ 'nullable', 'array', $this->envelopeShapeRule() ],
 			'content.raw'    => [ 'nullable', 'string' ],
 			'content.blocks' => [ 'nullable', 'array', new TemplateBlockTreeRule() ],
-			'area'           => [
-				'required',
-				'string',
-				Rule::in( VisualEditorTemplatePart::AREAS ),
-			],
+			'area'           => [ 'required', 'string', Rule::in( ResolvedTemplatePart::AREAS ) ],
 			'theme'          => [ 'required', 'string', 'max:191' ],
+			'is_custom'      => [ 'sometimes', 'boolean' ],
 		];
 	}
 
 	/**
+	 * @since 1.0.0
+	 *
 	 * @return array<string, string>
 	 */
 	public function messages(): array
 	{
 		return [
-			'area.in' => 'The area must be one of: ' . implode( ', ', VisualEditorTemplatePart::AREAS ) . '.',
+			'area.in' => 'The area must be one of: ' . implode( ', ', ResolvedTemplatePart::AREAS ) . '.',
 		];
 	}
 
 	/**
-	 * Rejects a bare-list `content` payload.
-	 *
-	 * `content.blocks` is only validated when the request uses the
-	 * `{ raw, blocks }` envelope; without this rule a caller could send
-	 * `content: [ <blocks> ]` to skip `TemplateBlockTreeRule` entirely.
-	 *
 	 * @since 1.0.0
 	 */
 	protected function envelopeShapeRule(): Closure

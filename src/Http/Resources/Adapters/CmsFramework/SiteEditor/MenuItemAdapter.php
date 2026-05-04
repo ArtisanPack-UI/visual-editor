@@ -142,7 +142,13 @@ class MenuItemAdapter
 		}
 
 		if ( is_array( $value ) ) {
-			return array_values( array_filter( $value, 'is_string' ) );
+			// Match the string-input branch's `PREG_SPLIT_NO_EMPTY` semantics:
+			// drop empty strings as well as non-strings so an array like
+			// `['', 'nofollow']` collapses to `['nofollow']`.
+			return array_values( array_filter(
+				$value,
+				static fn ( $entry ): bool => is_string( $entry ) && '' !== $entry,
+			) );
 		}
 
 		return [];
