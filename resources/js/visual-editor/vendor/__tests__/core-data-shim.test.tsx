@@ -96,6 +96,10 @@ describe('core-data-shim entity registry', () => {
             'postType|wp_template',
             'postType|wp_template_part',
             'postType|wp_navigation',
+            // H6 (#431) split items out from the navigation envelope
+            // into their own entity so the editor can do incremental
+            // item edits without re-saving the whole menu.
+            'postType|wp_navigation_link',
             'postType|wp_block',
             'root|globalStyles',
             // G3 cms-framework Post + Page (plan 12 §4.4) — declared
