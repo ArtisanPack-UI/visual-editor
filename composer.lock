@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "f022feb1bf9a9ac633320b1041047db7",
+    "content-hash": "4e240ef1b479ccbfa9aec61b9f816cd9",
     "packages": [
         {
             "name": "artisanpack-ui/core",
@@ -6013,7 +6013,7 @@
             "dist": {
                 "type": "path",
                 "url": "../cms-framework",
-                "reference": "29b8c51b516bed6171c44839ace307ff30ac23fd"
+                "reference": "b6d2685501ac8f8f0c84aa20928781901d495c70"
             },
             "require": {
                 "artisanpack-ui/accessibility": "^2.1.0",

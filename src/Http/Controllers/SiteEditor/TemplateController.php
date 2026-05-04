@@ -332,25 +332,27 @@ class TemplateController extends Controller
 	}
 
 	/**
-	 * Detect a unique-constraint violation. Mirrors cms-framework's own
-	 * detection so visual-editor surfaces the same 409 path regardless of
-	 * which DB driver bubbles the error.
+	 * Detect a unique-constraint violation on a {@see QueryException}.
 	 *
-	 * MySQL/MariaDB report SQLSTATE 23000 + driver code 1062; PostgreSQL
-	 * reports 23505; SQLite raises 23000 with 'UNIQUE constraint failed'
-	 * in the message.
+	 * PostgreSQL specifically reports SQLSTATE 23505 for unique
+	 * violations. SQLSTATE 23000 is the SQL standard "integrity
+	 * constraint violation" which covers FK / check / unique /
+	 * not-null — too broad to assume unique. MySQL/MariaDB (driver
+	 * code 1062) and SQLite both surface 23000 with a driver-specific
+	 * message we can pattern-match against instead.
 	 *
 	 * @since 1.0.0
 	 */
 	protected function isUniqueViolation( QueryException $e ): bool
 	{
-		$sqlState = (string) $e->getCode();
-
-		if ( '23000' === $sqlState || '23505' === $sqlState ) {
+		if ( '23505' === (string) $e->getCode() ) {
 			return true;
 		}
 
-		return str_contains( strtolower( $e->getMessage() ), 'unique' );
+		$message = strtolower( $e->getMessage() );
+
+		return str_contains( $message, 'unique' )
+			|| str_contains( $message, 'duplicate entry' );
 	}
 
 	/**
@@ -358,11 +360,21 @@ class TemplateController extends Controller
 	 * the response reflects the new state. Without this the same singleton
 	 * resolver returns the boot-time snapshot for the rest of the request.
 	 *
+	 * Mirrors the merge order used in
+	 * {@see VisualEditorServiceProvider::registerSiteEditorResolvers()}:
+	 * static config is the seed for `applyFilters`, then re-merged on top
+	 * so app-level config wins on key collision.
+	 *
 	 * @since 1.0.0
 	 */
 	protected function refreshResolver(): void
 	{
-		$this->resolver = new TemplateResolver( applyFilters( 'ap.visual-editor.templates', [] ) );
+		$static = (array) config( 'artisanpack.visual-editor.site-editor.templates', [] );
+		$merged = applyFilters( 'ap.visual-editor.templates', $static );
+		$merged = is_array( $merged ) ? $merged : [];
+		$merged = array_merge( $merged, $static );
+
+		$this->resolver = new TemplateResolver( $merged );
 
 		app()->instance( TemplateResolver::class, $this->resolver );
 	}

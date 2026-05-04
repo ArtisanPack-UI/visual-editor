@@ -1,21 +1,24 @@
 /**
  * Site-editor entity registration — H6 (#431).
  *
- * Re-exports the five H6-managed entity descriptors as an
- * editor-bootable list and provides a `registerSiteEditorEntities`
- * helper that idempotently merges them into the core-data shim's
- * registry via `dispatch('core').addEntities()`.
+ * Re-exports the H6-managed entity descriptors as an editor-bootable
+ * list and provides a `registerSiteEditorEntities` helper that
+ * idempotently merges them into the core-data shim's registry via
+ * `dispatch('core').addEntities()`.
  *
  * The shim ships these descriptors in `DEFAULT_ENTITIES` already, so
- * the production boot path doesn't actually need to call this helper
- * — the registrations are present from store init. The helper exists
- * so host apps that ship custom entity registrations in
- * `configureCoreDataShim({ entities: [...] })` (which replaces the
- * default list rather than appending to it) can opt back in to the
- * H6 site-editor entities without re-listing them by hand. It also
- * gives the site-editor entry point a single, named place to call
- * "register me" if a future plan splits the descriptors out of
- * `DEFAULT_ENTITIES`.
+ * the production boot path doesn't need to call this helper — the
+ * registrations are present from store init. The helper exists so
+ * host apps that have separately added a custom entity set via
+ * `dispatch('core').addEntities([...])` (e.g. for a custom CPT) and
+ * want to be sure the H6 descriptors are also present can opt in
+ * with a single named call. It also gives the site-editor entry
+ * point a stable surface if a future plan splits these descriptors
+ * out of `DEFAULT_ENTITIES`. Note that the shim's
+ * {@see configureCoreDataShim} accepts only `apiBase` + `fetcher`
+ * — there is no entity-list override hook on the config object
+ * itself; runtime entity registration happens through the
+ * `addEntities` action.
  *
  * @see plan 14 §4.5 for the WP REST shape mirrored by each entity.
  *
@@ -72,9 +75,10 @@ export const SITE_EDITOR_ENTITIES: readonly EntityConfig[] = Object.freeze(
  *
  * Production callers don't need to invoke this in the standard boot
  * path because {@see DEFAULT_ENTITIES} already includes these
- * descriptors. Host apps that override the default list via
- * `configureCoreDataShim({ entities: [...] })` should call this from
- * their site-editor entry point to opt back in to the H6 surface.
+ * descriptors. Host apps that have replaced or extended the registry
+ * via runtime `dispatch('core').addEntities([...])` calls can call
+ * this helper to ensure the H6 site-editor descriptors stay
+ * registered without re-listing them by hand.
  *
  * @since 1.0.0
  */

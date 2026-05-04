@@ -110,9 +110,10 @@ describe( 'POST /visual-editor/api/menus', function (): void {
 		] )->assertStatus( 409 );
 	} );
 
-	it( 'returns 422 when required fields are missing', function (): void {
+	it( 'returns 422 with explicit validation errors when required fields are missing', function (): void {
 		$this->postJson( '/visual-editor/api/menus', [ 'name' => 'Missing theme + slug' ] )
-			->assertStatus( 422 );
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( [ 'theme', 'slug' ] );
 	} );
 } );
 

@@ -41,7 +41,9 @@ class UpdateMenuItemRequest extends FormRequest
 			'position'    => [ 'sometimes', 'integer', 'min:0' ],
 			'type'        => [ 'sometimes', 'string', Rule::in( StoreMenuItemRequest::TYPES ) ],
 			'label'       => [ 'sometimes', 'string', 'max:255' ],
-			'url'         => [ 'nullable', 'string', 'max:2048' ],
+			// Same scheme allowlist as StoreMenuItemRequest — see its
+			// `URL_REGEX` constant for the accepted patterns.
+			'url'         => [ 'nullable', 'string', 'max:2048', 'regex:' . StoreMenuItemRequest::URL_REGEX ],
 			'target'      => [ 'sometimes', 'string', Rule::in( [ '', '_self', '_blank' ] ) ],
 			'rel'         => [ 'nullable', 'string', 'max:191' ],
 			'classes'     => [ 'nullable', 'string', 'max:191' ],

@@ -266,15 +266,18 @@ class MenuController extends Controller
 
 	/**
 	 * @since 1.0.0
+	 *
+	 * @see TemplateController::isUniqueViolation() for the rationale.
 	 */
 	protected function isUniqueViolation( QueryException $e ): bool
 	{
-		$sqlState = (string) $e->getCode();
-
-		if ( '23000' === $sqlState || '23505' === $sqlState ) {
+		if ( '23505' === (string) $e->getCode() ) {
 			return true;
 		}
 
-		return str_contains( strtolower( $e->getMessage() ), 'unique' );
+		$message = strtolower( $e->getMessage() );
+
+		return str_contains( $message, 'unique' )
+			|| str_contains( $message, 'duplicate entry' );
 	}
 }

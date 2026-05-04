@@ -339,24 +339,35 @@ class PatternController extends Controller
 
 	/**
 	 * @since 1.0.0
+	 *
+	 * @see TemplateController::isUniqueViolation() for the rationale.
 	 */
 	protected function isUniqueViolation( QueryException $e ): bool
 	{
-		$sqlState = (string) $e->getCode();
-
-		if ( '23000' === $sqlState || '23505' === $sqlState ) {
+		if ( '23505' === (string) $e->getCode() ) {
 			return true;
 		}
 
-		return str_contains( strtolower( $e->getMessage() ), 'unique' );
+		$message = strtolower( $e->getMessage() );
+
+		return str_contains( $message, 'unique' )
+			|| str_contains( $message, 'duplicate entry' );
 	}
 
 	/**
 	 * @since 1.0.0
+	 *
+	 * @see TemplateController::refreshResolver() for the static-config
+	 *      merge rationale.
 	 */
 	protected function refreshResolver(): void
 	{
-		$this->resolver = new PatternResolver( applyFilters( 'ap.visual-editor.patterns', [] ) );
+		$static = (array) config( 'artisanpack.visual-editor.site-editor.patterns', [] );
+		$merged = applyFilters( 'ap.visual-editor.patterns', $static );
+		$merged = is_array( $merged ) ? $merged : [];
+		$merged = array_merge( $merged, $static );
+
+		$this->resolver = new PatternResolver( $merged );
 
 		app()->instance( PatternResolver::class, $this->resolver );
 	}

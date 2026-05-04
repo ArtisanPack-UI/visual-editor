@@ -290,25 +290,39 @@ class TemplatePartController extends Controller
 	}
 
 	/**
+	 * Detect a unique-constraint violation on a {@see QueryException}.
+	 *
+	 * See {@see TemplateController::isUniqueViolation()} for the full
+	 * rationale on why SQLSTATE 23000 alone is too broad.
+	 *
 	 * @since 1.0.0
 	 */
 	protected function isUniqueViolation( QueryException $e ): bool
 	{
-		$sqlState = (string) $e->getCode();
-
-		if ( '23000' === $sqlState || '23505' === $sqlState ) {
+		if ( '23505' === (string) $e->getCode() ) {
 			return true;
 		}
 
-		return str_contains( strtolower( $e->getMessage() ), 'unique' );
+		$message = strtolower( $e->getMessage() );
+
+		return str_contains( $message, 'unique' )
+			|| str_contains( $message, 'duplicate entry' );
 	}
 
 	/**
 	 * @since 1.0.0
+	 *
+	 * @see TemplateController::refreshResolver() for the static-config
+	 *      merge rationale.
 	 */
 	protected function refreshResolver(): void
 	{
-		$this->resolver = new TemplatePartResolver( applyFilters( 'ap.visual-editor.template-parts', [] ) );
+		$static = (array) config( 'artisanpack.visual-editor.site-editor.template-parts', [] );
+		$merged = applyFilters( 'ap.visual-editor.template-parts', $static );
+		$merged = is_array( $merged ) ? $merged : [];
+		$merged = array_merge( $merged, $static );
+
+		$this->resolver = new TemplatePartResolver( $merged );
 
 		app()->instance( TemplatePartResolver::class, $this->resolver );
 	}

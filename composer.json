@@ -35,7 +35,7 @@
     "pestphp/pest": "^3.8",
     "pestphp/pest-plugin-laravel": "^3.1",
     "orchestra/testbench": "^10.2",
-    "artisanpack-ui/cms-framework": "*"
+    "artisanpack-ui/cms-framework": "^1.1"
   },
   "repositories": [
     {
@@ -48,7 +48,10 @@
   ],
   "suggest": {
     "artisanpack-ui/media-library": "Recommended ^1.2 — default media library integration. Wire MediaModal + uploadMedia through registerArtisanpackMediaBridge() in the editor bootstrap to power Gutenberg's media picker and upload flows. Not enforced by Composer; host apps are free to install a different library and register a custom bridge instead.",
-    "artisanpack-ui/cms-framework": "Required ^1.2 for the site editor — the `/visual-editor/site-editor` route is hard-coupled to cms-framework's templates, parts, patterns, global styles, and menus modules (plan 14). Without it, the post-content editor still works but the site editor route returns an install gate."
+    "artisanpack-ui/cms-framework": "Required ^1.1 for the site editor — the `/visual-editor/site-editor` route is hard-coupled to cms-framework's templates, parts, patterns, global styles, and menus modules (plan 14). Without it, the post-content editor still works but the site editor route returns an install gate."
+  },
+  "_comments": {
+    "repositories": "The path repository to ../cms-framework is a development-only convenience for the symlinked workflow used in the dev-app (see ../artisanpack-ui-dev/composer.json). On a fresh clone without the sibling cms-framework checkout, composer install will fail to resolve cms-framework — that's expected for now; the package's release pipeline pulls cms-framework from Packagist via the ^1.1 constraint. CI removes this entry before installing. Tracked for a permanent fix (e.g. an env-gated repository) in #434."
   },
   "scripts": {
     "test": "./vendor/bin/pest"

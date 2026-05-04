@@ -66,7 +66,22 @@ describe( 'GET /visual-editor/api/global-styles/lookup', function (): void {
 } );
 
 describe( 'GET /visual-editor/api/global-styles/base', function (): void {
-	it( 'returns the resolver view (theme defaults or DB-merged)', function (): void {
+	it( 'returns pristine theme defaults from theme.json regardless of DB overrides', function (): void {
+		// Override the beforeEach mock with a theme manifest that
+		// carries explicit settings + styles, so the assertion targets
+		// the theme-default values surfaced by the endpoint.
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name'     => 'Digital Shopfront',
+				'slug'     => 'digital-shopfront',
+				'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#000' ] ] ] ],
+				'styles'   => [ 'typography' => [ 'fontSize' => '14px' ] ],
+			] );
+		} );
+
+		// A DB override exists with different styles — base() must NOT
+		// surface it. The pristine theme baseline is what the inspector
+		// compares user customization against.
 		GlobalStyles::create( [
 			'theme'    => 'digital-shopfront',
 			'title'    => 'Custom',
@@ -74,12 +89,23 @@ describe( 'GET /visual-editor/api/global-styles/base', function (): void {
 			'styles'   => [ 'typography' => [ 'fontSize' => '20px' ] ],
 		] );
 
-		rebuildSiteEditorResolversForGlobalStylesTest();
+		$this->getJson( '/visual-editor/api/global-styles/base' )
+			->assertOk()
+			->assertJsonPath( 'id', '__base__' )
+			->assertJsonPath( 'theme', 'digital-shopfront' )
+			->assertJsonPath( 'styles.typography.fontSize', '14px' )
+			->assertJsonPath( 'settings.color.palette.0.slug', 'primary' );
+	} );
+
+	it( 'returns empty defaults when no active theme is configured', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );
+		} );
 
 		$this->getJson( '/visual-editor/api/global-styles/base' )
 			->assertOk()
-			->assertJsonPath( 'theme', 'digital-shopfront' )
-			->assertJsonPath( 'styles.typography.fontSize', '20px' );
+			->assertJsonPath( 'id', '__base__' )
+			->assertJsonPath( 'theme', '' );
 	} );
 } );
 

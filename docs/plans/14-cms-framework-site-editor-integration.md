@@ -3,7 +3,7 @@
 **Package:** `artisanpack-ui/visual-editor` (companion: `artisanpack-ui/cms-framework`)
 **Version Target:** visual-editor 1.0.0 / cms-framework 1.x
 **Created:** April 27, 2026
-**Status:** Planning
+**Status:** In rollout — H0–H6 shipped (#100, #108, #110, #112, #114, #407, #431); H7 + H8 pending
 **Relates to:** #309 (umbrella), [`11-v1-expansion.md`](11-v1-expansion.md), [`12-cms-framework-integration.md`](12-cms-framework-integration.md).
 **Supersedes scope of:** [`11-v1-expansion.md`](11-v1-expansion.md) Phase C (templates / template-parts / patterns / global-styles / navigation backends) and the corresponding Phase D backend wiring — those phases assumed visual-editor first-party tables. This plan moves ownership of those entities into cms-framework. Phase D's UI work in visual-editor remains, retargeted at cms-framework endpoints.
 

@@ -178,7 +178,9 @@ describe( 'PUT /visual-editor/api/template-parts/{slug}', function (): void {
 		$this->putJson( '/visual-editor/api/template-parts/new-part', [
 			'theme' => 'digital-shopfront',
 			'title' => 'No area',
-		] )->assertStatus( 422 );
+		] )
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( 'area' );
 	} );
 } );
 
@@ -230,7 +232,9 @@ describe( 'DELETE /visual-editor/api/template-parts/{slug}', function (): void {
 	} );
 
 	it( 'returns 422 when the theme query parameter is missing', function (): void {
-		$this->deleteJson( '/visual-editor/api/template-parts/header' )->assertStatus( 422 );
+		$this->deleteJson( '/visual-editor/api/template-parts/header' )
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( 'theme' );
 	} );
 
 	it( 'returns 404 when no DB override matches the (theme, slug)', function (): void {

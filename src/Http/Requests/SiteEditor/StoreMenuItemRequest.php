@@ -36,6 +36,21 @@ class StoreMenuItemRequest extends FormRequest
 	 */
 	public const TYPES = [ 'link', 'submenu', 'page-list' ];
 
+	/**
+	 * Allowlist regex for menu-item URLs. Accepts:
+	 *
+	 * - Relative paths: `/about`, `/`, `/blog?tag=foo`
+	 * - Fragment anchors: `#main`, `#section-2`
+	 * - Absolute URLs with whitelisted schemes: `http://`, `https://`,
+	 *   `mailto:user@example.com`, `tel:+1...`
+	 *
+	 * Rejects dangerous schemes (`javascript:`, `data:`, `file:`, etc.)
+	 * at validation time so they never reach a renderer.
+	 *
+	 * @since 1.0.0
+	 */
+	public const URL_REGEX = '/^(\\/[^\\s]*|#[^\\s]*|(https?:\\/\\/|mailto:|tel:)[^\\s]+)$/i';
+
 	public function authorize(): bool
 	{
 		return true;
@@ -54,7 +69,11 @@ class StoreMenuItemRequest extends FormRequest
 			'position'    => [ 'sometimes', 'integer', 'min:0' ],
 			'type'        => [ 'sometimes', 'string', Rule::in( self::TYPES ) ],
 			'label'       => [ 'required', 'string', 'max:255' ],
-			'url'         => [ 'nullable', 'string', 'max:2048' ],
+			// Allowlist URL schemes — relative paths (`/about`), fragment
+			// anchors (`#main`), or absolute URLs limited to `http`,
+			// `https`, `mailto`, and `tel`. Rejects `javascript:` /
+			// `data:` / etc. before they ever reach a renderer.
+			'url'         => [ 'nullable', 'string', 'max:2048', 'regex:' . self::URL_REGEX ],
 			'target'      => [ 'sometimes', 'string', Rule::in( [ '', '_self', '_blank' ] ) ],
 			'rel'         => [ 'nullable', 'string', 'max:191' ],
 			'classes'     => [ 'nullable', 'string', 'max:191' ],
@@ -73,7 +92,8 @@ class StoreMenuItemRequest extends FormRequest
 	public function messages(): array
 	{
 		return [
-			'type.in' => 'The type must be one of: ' . implode( ', ', self::TYPES ) . '.',
+			'type.in'    => 'The type must be one of: ' . implode( ', ', self::TYPES ) . '.',
+			'url.regex'  => 'The url must be a relative path, a fragment anchor, or an absolute URL using http, https, mailto, or tel.',
 		];
 	}
 }

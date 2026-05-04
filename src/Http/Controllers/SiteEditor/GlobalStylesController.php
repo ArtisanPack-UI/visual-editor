@@ -39,6 +39,7 @@ use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateGlobalStylesReques
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\GlobalStylesAdapter;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\GlobalStylesResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedGlobalStyles;
+use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
@@ -88,18 +89,26 @@ class GlobalStylesController extends Controller
 	}
 
 	/**
-	 * GET `/global-styles/base` — theme defaults, surfaced as the
-	 * read-only baseline the inspector compares against. Always returns
-	 * the resolver's view (file → DB merge); the front-end can compute
-	 * a "modified vs theme" diff by comparing against this payload.
+	 * GET `/global-styles/base` — pristine theme defaults, surfaced as
+	 * the read-only baseline the inspector compares against. Returns
+	 * the active theme's `theme.json` `settings` + `styles` + declared
+	 * `styles.variations` *without* any DB-row override applied. The
+	 * front-end can compute a "modified vs theme" diff by comparing
+	 * against this payload.
+	 *
+	 * Reads through cms-framework's `ThemeManager::getActiveTheme()`
+	 * because the H5 resolver only exposes the merged (file → DB) view
+	 * via `get()`. Returns empty defaults when cms-framework isn't
+	 * integrated; matches the standalone-install fallback elsewhere in
+	 * the H6 surface.
 	 *
 	 * @since 1.0.0
 	 */
 	public function base(): JsonResponse
 	{
-		$resolved = $this->resolver->get();
+		$theme = $this->activeTheme();
 
-		if ( ! $resolved instanceof ResolvedGlobalStyles ) {
+		if ( null === $theme ) {
 			return response()->json( [
 				'id'         => self::SINGLETON_ID,
 				'theme'      => '',
@@ -109,7 +118,43 @@ class GlobalStylesController extends Controller
 			] );
 		}
 
-		return response()->json( ( new GlobalStylesAdapter() )->toArray( $resolved ) );
+		$settings   = is_array( $theme['settings'] ?? null ) ? $theme['settings'] : [];
+		$styles     = is_array( $theme['styles'] ?? null ) ? $theme['styles'] : [];
+		$variations = is_array( $theme['styles']['variations'] ?? null ) ? array_values( $theme['styles']['variations'] ) : [];
+
+		return response()->json( [
+			'id'         => self::SINGLETON_ID,
+			'theme'      => (string) ( $theme['slug'] ?? '' ),
+			'settings'   => $settings,
+			'styles'     => $styles,
+			'variations' => $variations,
+		] );
+	}
+
+	/**
+	 * Resolve the active theme manifest through cms-framework's
+	 * `ThemeManager` when available. Returns null when cms-framework
+	 * isn't integrated or no theme is active.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	protected function activeTheme(): ?array
+	{
+		$themeManagerFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
+
+		if ( ! class_exists( $themeManagerFqcn ) || ! app()->bound( $themeManagerFqcn ) ) {
+			return null;
+		}
+
+		$theme = app( $themeManagerFqcn )->getActiveTheme();
+
+		if ( ! is_array( $theme ) || empty( $theme['slug'] ) ) {
+			return null;
+		}
+
+		return $theme;
 	}
 
 	/**
@@ -165,19 +210,44 @@ class GlobalStylesController extends Controller
 		if ( self::SINGLETON_ID === $id ) {
 			// Upsert the active theme's row. The unique index on `theme`
 			// guarantees only one row per theme; a concurrent first-write
-			// race resolves through `firstOrNew` + `save`.
-			$record         = $model::firstOrNew( [ 'theme' => $theme ] );
-			$record->theme  = $theme;
+			// race could see two callers both find "no row" via
+			// `firstOrNew` and both try to insert. Catch the unique
+			// violation, reload the now-existing row, re-apply the
+			// edits, and save — deterministic recovery so neither
+			// caller sees a 500.
+			$record        = $model::firstOrNew( [ 'theme' => $theme ] );
+			$record->theme = $theme;
+
+			$this->applyValidatedAttributes( $record, $validated );
+
+			try {
+				$record->save();
+			} catch ( QueryException $e ) {
+				if ( ! $this->isUniqueViolation( $e ) ) {
+					throw $e;
+				}
+
+				$record = $model::query()->where( 'theme', $theme )->firstOrFail();
+				$this->applyValidatedAttributes( $record, $validated );
+				$record->save();
+			}
 		} else {
-			$record = $model::query()->whereKey( $id )->first();
+			// Numeric id — scope by both id AND theme so a malformed
+			// request can't update one theme's row through another
+			// theme's body. cms-framework's unique index guarantees one
+			// row per theme so the (id, theme) pair is sufficient.
+			$record = $model::query()
+				->whereKey( $id )
+				->where( 'theme', $theme )
+				->first();
 
 			if ( null === $record ) {
 				return response()->json( [ 'message' => 'Global styles not found.' ], Response::HTTP_NOT_FOUND );
 			}
-		}
 
-		$this->applyValidatedAttributes( $record, $validated );
-		$record->save();
+			$this->applyValidatedAttributes( $record, $validated );
+			$record->save();
+		}
 
 		$this->refreshResolver();
 
@@ -263,6 +333,30 @@ class GlobalStylesController extends Controller
 	}
 
 	/**
+	 * Detect a unique-constraint violation on a {@see QueryException}.
+	 *
+	 * PostgreSQL specifically reports SQLSTATE 23505 for unique
+	 * violations. SQLSTATE 23000 is the SQL standard "integrity
+	 * constraint violation" which covers FK / check / unique /
+	 * not-null — too broad to assume unique. MySQL/MariaDB (driver
+	 * code 1062) and SQLite both surface 23000 with a driver-specific
+	 * message we can pattern-match against instead.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function isUniqueViolation( QueryException $e ): bool
+	{
+		if ( '23505' === (string) $e->getCode() ) {
+			return true;
+		}
+
+		$message = strtolower( $e->getMessage() );
+
+		return str_contains( $message, 'unique' )
+			|| str_contains( $message, 'duplicate entry' );
+	}
+
+	/**
 	 * Force the resolver singleton to re-read after a write so subsequent
 	 * lookups in the same request reflect the new state.
 	 *
@@ -270,7 +364,12 @@ class GlobalStylesController extends Controller
 	 */
 	protected function refreshResolver(): void
 	{
-		$this->resolver = new GlobalStylesResolver( applyFilters( 'ap.visual-editor.global-styles', null ) );
+		$static = config( 'artisanpack.visual-editor.site-editor.global-styles' );
+		$static = is_array( $static ) ? $static : null;
+		$merged = applyFilters( 'ap.visual-editor.global-styles', $static );
+		$merged = is_array( $merged ) ? $merged : $static;
+
+		$this->resolver = new GlobalStylesResolver( $merged );
 
 		app()->instance( GlobalStylesResolver::class, $this->resolver );
 	}
