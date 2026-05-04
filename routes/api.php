@@ -22,11 +22,11 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PostContro
 use ArtisanPackUI\VisualEditor\Http\Controllers\AttachmentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
-use ArtisanPackUI\VisualEditor\Http\Controllers\GlobalStylesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\NavigationController;
-use ArtisanPackUI\VisualEditor\Http\Controllers\PatternController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\GlobalStylesController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\PatternController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplatePartController;
@@ -98,36 +98,41 @@ Route::delete( 'template-parts/{slug}', [ TemplatePartController::class, 'destro
 	->where( 'slug', '[A-Za-z0-9_-]+' )
 	->name( 'visual-editor.api.template-parts.destroy' );
 
-// C3 `globalStyles` REST surface — see docs/core-data-shim.md §Global styles.
-// Order matters: the static `lookup` and `base` routes must be declared
-// before `{globalStyle}` so they are not swallowed by the wildcard
-// model-binding segment.
+// H6 `__unstableBase` REST surface — see docs/plans/14-cms-framework-site-editor-integration.md §4.5.
+// Singleton-per-theme. The `lookup` and `base` static routes must be
+// declared before `{id}` so they are not swallowed by the wildcard.
 Route::get( 'global-styles/lookup', [ GlobalStylesController::class, 'lookup' ] )
 	->name( 'visual-editor.api.global-styles.lookup' );
 
 Route::get( 'global-styles/base', [ GlobalStylesController::class, 'base' ] )
 	->name( 'visual-editor.api.global-styles.base' );
 
-Route::get( 'global-styles/{globalStyle}', [ GlobalStylesController::class, 'show' ] )
+Route::get( 'global-styles/{id}', [ GlobalStylesController::class, 'show' ] )
+	->where( 'id', '[A-Za-z0-9_]+' )
 	->name( 'visual-editor.api.global-styles.show' );
 
-Route::put( 'global-styles/{globalStyle}', [ GlobalStylesController::class, 'update' ] )
+Route::put( 'global-styles/{id}', [ GlobalStylesController::class, 'update' ] )
+	->where( 'id', '[A-Za-z0-9_]+' )
 	->name( 'visual-editor.api.global-styles.update' );
 
-// C5 `wp_block` REST surface — see docs/core-data-shim.md §Patterns.
+// H6 `wp_block` REST surface. Slug regex allows `user/<slug>` so
+// cms-framework's user-source slug prefix rides through the URL.
 Route::get( 'patterns', [ PatternController::class, 'index' ] )
 	->name( 'visual-editor.api.patterns.index' );
 
 Route::post( 'patterns', [ PatternController::class, 'store' ] )
 	->name( 'visual-editor.api.patterns.store' );
 
-Route::get( 'patterns/{pattern}', [ PatternController::class, 'show' ] )
+Route::get( 'patterns/{slug}', [ PatternController::class, 'show' ] )
+	->where( 'slug', '.+' )
 	->name( 'visual-editor.api.patterns.show' );
 
-Route::put( 'patterns/{pattern}', [ PatternController::class, 'update' ] )
+Route::put( 'patterns/{slug}', [ PatternController::class, 'update' ] )
+	->where( 'slug', '.+' )
 	->name( 'visual-editor.api.patterns.update' );
 
-Route::delete( 'patterns/{pattern}', [ PatternController::class, 'destroy' ] )
+Route::delete( 'patterns/{slug}', [ PatternController::class, 'destroy' ] )
+	->where( 'slug', '.+' )
 	->name( 'visual-editor.api.patterns.destroy' );
 
 // C4 `wp_navigation` REST surface — see docs/core-data-shim.md §Navigation.

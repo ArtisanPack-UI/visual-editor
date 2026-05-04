@@ -48,8 +48,14 @@ class GlobalStylesAdapter
 	 */
 	public function toArray( ResolvedGlobalStyles $globalStyles ): array
 	{
+		// cms-framework's `ResolvedGlobalStyles::wpId()` returns `0` (not
+		// `null`) when no DB row backs the active theme; treat both as
+		// "use the sentinel" so the shim's cache key stays stable across
+		// the theme-defaults → DB-customized transition.
+		$wpId = $globalStyles->wpId;
+
 		return [
-			'id'         => $globalStyles->wpId ?? self::SINGLETON_ID,
+			'id'         => null !== $wpId && $wpId > 0 ? $wpId : self::SINGLETON_ID,
 			'theme'      => $globalStyles->theme,
 			'settings'   => $globalStyles->settings,
 			'styles'     => $globalStyles->styles,
