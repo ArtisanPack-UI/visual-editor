@@ -23,9 +23,10 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\AttachmentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
-use ArtisanPackUI\VisualEditor\Http\Controllers\NavigationController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\GlobalStylesController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\MenuController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\MenuItemController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\PatternController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplateController;
@@ -135,21 +136,49 @@ Route::delete( 'patterns/{slug}', [ PatternController::class, 'destroy' ] )
 	->where( 'slug', '.+' )
 	->name( 'visual-editor.api.patterns.destroy' );
 
-// C4 `wp_navigation` REST surface — see docs/core-data-shim.md §Navigation.
-Route::get( 'navigation', [ NavigationController::class, 'index' ] )
-	->name( 'visual-editor.api.navigation.index' );
+// H6 `wp_navigation` REST surface — see docs/plans/14-cms-framework-site-editor-integration.md §4.5.
+// Id-keyed (cms-framework's `menus.id` is the canonical identifier);
+// reads bypass H5's location-keyed resolver and hit the model directly,
+// since `wp_navigation` REST expects id-based addressing over the full
+// menu set (not just menus assigned to a location).
+Route::get( 'menus', [ MenuController::class, 'index' ] )
+	->name( 'visual-editor.api.menus.index' );
 
-Route::post( 'navigation', [ NavigationController::class, 'store' ] )
-	->name( 'visual-editor.api.navigation.store' );
+Route::post( 'menus', [ MenuController::class, 'store' ] )
+	->name( 'visual-editor.api.menus.store' );
 
-Route::get( 'navigation/{navigation}', [ NavigationController::class, 'show' ] )
-	->name( 'visual-editor.api.navigation.show' );
+Route::get( 'menus/{id}', [ MenuController::class, 'show' ] )
+	->whereNumber( 'id' )
+	->name( 'visual-editor.api.menus.show' );
 
-Route::put( 'navigation/{navigation}', [ NavigationController::class, 'update' ] )
-	->name( 'visual-editor.api.navigation.update' );
+Route::put( 'menus/{id}', [ MenuController::class, 'update' ] )
+	->whereNumber( 'id' )
+	->name( 'visual-editor.api.menus.update' );
 
-Route::delete( 'navigation/{navigation}', [ NavigationController::class, 'destroy' ] )
-	->name( 'visual-editor.api.navigation.destroy' );
+Route::delete( 'menus/{id}', [ MenuController::class, 'destroy' ] )
+	->whereNumber( 'id' )
+	->name( 'visual-editor.api.menus.destroy' );
+
+// H6 `wp_navigation_link` REST surface. Items belong to a menu; index
+// requires `?menu_id=...` so the editor scopes its fetch to a single
+// menu's tree without paginating across the table.
+Route::get( 'menu-items', [ MenuItemController::class, 'index' ] )
+	->name( 'visual-editor.api.menu-items.index' );
+
+Route::post( 'menu-items', [ MenuItemController::class, 'store' ] )
+	->name( 'visual-editor.api.menu-items.store' );
+
+Route::get( 'menu-items/{id}', [ MenuItemController::class, 'show' ] )
+	->whereNumber( 'id' )
+	->name( 'visual-editor.api.menu-items.show' );
+
+Route::put( 'menu-items/{id}', [ MenuItemController::class, 'update' ] )
+	->whereNumber( 'id' )
+	->name( 'visual-editor.api.menu-items.update' );
+
+Route::delete( 'menu-items/{id}', [ MenuItemController::class, 'destroy' ] )
+	->whereNumber( 'id' )
+	->name( 'visual-editor.api.menu-items.destroy' );
 
 // D4 menu-location read surface — locations are config-driven (V1 plan §8) so
 // the editor only reads them; assignment writes live on the navigation
