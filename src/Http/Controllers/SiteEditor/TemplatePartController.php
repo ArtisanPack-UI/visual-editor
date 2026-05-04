@@ -188,8 +188,11 @@ class TemplatePartController extends Controller
 
 		$resolved = $this->resolver->find( $slug );
 
+		// The DB write succeeded; a post-write resolver miss shouldn't
+		// surface as 404. See {@see TemplateController::update()} for
+		// the full rationale.
 		if ( ! $resolved instanceof ResolvedTemplatePart ) {
-			return response()->json( [ 'message' => 'Template part not found.' ], Response::HTTP_NOT_FOUND );
+			return response()->json( [ 'message' => 'Template part updated but could not be resolved.' ] );
 		}
 
 		return response()->json( ( new TemplatePartAdapter() )->toArray( $resolved ) );

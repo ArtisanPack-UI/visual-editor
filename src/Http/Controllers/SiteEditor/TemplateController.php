@@ -214,8 +214,12 @@ class TemplateController extends Controller
 
 		$resolved = $this->resolver->find( $slug );
 
+		// The DB write succeeded; a post-write resolver miss shouldn't
+		// surface as 404 — that would imply the update failed. Return
+		// 200 with a fallback message so the client knows to refetch.
+		// Mirrors {@see store()}'s post-create fallback.
 		if ( ! $resolved instanceof ResolvedTemplate ) {
-			return response()->json( [ 'message' => 'Template not found.' ], Response::HTTP_NOT_FOUND );
+			return response()->json( [ 'message' => 'Template updated but could not be resolved.' ] );
 		}
 
 		return response()->json( ( new TemplateAdapter() )->toArray( $resolved ) );

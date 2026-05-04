@@ -186,8 +186,15 @@ class PatternController extends Controller
 
 		$resolved = $this->findPattern( $slug );
 
+		// The DB write succeeded; if the post-write resolver re-lookup
+		// can't find the record (stale filter contributor, slug-prefix
+		// race, etc.) the response shouldn't claim 404 — that would
+		// imply the update failed. Return 200 with a fallback message
+		// so the client knows to refetch. Mirrors {@see store()}'s
+		// post-create fallback. Same pattern applied across the H6
+		// Template / TemplatePart controllers.
 		if ( ! $resolved instanceof ResolvedPattern ) {
-			return response()->json( [ 'message' => 'Pattern not found.' ], Response::HTTP_NOT_FOUND );
+			return response()->json( [ 'message' => 'Pattern updated but could not be resolved.' ] );
 		}
 
 		return response()->json( ( new PatternAdapter() )->toArray( $resolved ) );

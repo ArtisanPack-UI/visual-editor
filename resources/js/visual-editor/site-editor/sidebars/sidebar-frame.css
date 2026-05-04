@@ -1,0 +1,72 @@
+/**
+ * Minimal styling for the H6 inspector sidebar frame (#431).
+ *
+ * Intentionally low-fidelity — this is a placeholder until H7's UI
+ * rescope replaces the layout with the real Gutenberg-style document
+ * settings panel.
+ */
+
+.ap-site-editor-sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    border-block-end: 1px solid var(--ap-border-color, #e0e0e0);
+    background: var(--ap-surface-color, #ffffff);
+}
+
+.ap-site-editor-sidebar__heading {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--ap-heading-color, #1f1f1f);
+}
+
+.ap-site-editor-sidebar__placeholder {
+    margin: 0;
+    color: var(--ap-muted-color, #6b6b6b);
+}
+
+.ap-site-editor-sidebar__field {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.ap-site-editor-sidebar__field-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ap-muted-color, #6b6b6b);
+}
+
+.ap-site-editor-sidebar__field-value {
+    font-size: 13px;
+    color: var(--ap-text-color, #1f1f1f);
+}
+
+.ap-site-editor-sidebar__chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ap-site-editor-sidebar__chip {
+    padding: 2px 8px;
+    border-radius: 9999px;
+    background: var(--ap-chip-bg, #f0f0f0);
+    color: var(--ap-text-color, #1f1f1f);
+    font-size: 12px;
+}
+
+.ap-site-editor-sidebar__note {
+    margin: 0;
+    padding: 6px 8px;
+    border-radius: 4px;
+    background: var(--ap-info-bg, #f0f6ff);
+    color: var(--ap-info-color, #2c5282);
+    font-size: 12px;
+}
