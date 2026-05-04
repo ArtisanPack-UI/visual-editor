@@ -196,15 +196,27 @@ class TemplateController extends Controller
 			try {
 				$existing = $model::create( $attributes );
 			} catch ( QueryException $e ) {
-				if ( $this->isUniqueViolation( $e ) ) {
-					$existing = $model::query()
-						->where( 'theme', $theme )
-						->where( 'slug', $slug )
-						->firstOrFail();
-					$existing->update( $this->modelAttributesFromRequest( $validated ) );
-				} else {
+				if ( ! $this->isUniqueViolation( $e ) ) {
 					throw $e;
 				}
+
+				// Race recovery: another request inserted between the
+				// existence check and our create. Re-fetch the now-existing
+				// row and re-apply the edits. If the lookup still misses
+				// (genuine contradiction — unique violation said the row
+				// exists, but our scoped query can't find it; e.g. the
+				// other writer used a different theme), rethrow the
+				// original exception rather than masking it as 404.
+				$existing = $model::query()
+					->where( 'theme', $theme )
+					->where( 'slug', $slug )
+					->first();
+
+				if ( null === $existing ) {
+					throw $e;
+				}
+
+				$existing->update( $this->modelAttributesFromRequest( $validated ) );
 			}
 		} else {
 			$existing->update( $this->modelAttributesFromRequest( $validated ) );
@@ -321,11 +333,11 @@ class TemplateController extends Controller
 			}
 		}
 
-		if ( array_key_exists( 'content', $validated ) ) {
-			$content                     = is_array( $validated['content'] ) ? $validated['content'] : [];
-			$attributes['block_content'] = isset( $content['blocks'] ) && is_array( $content['blocks'] )
-				? array_values( $content['blocks'] )
-				: [];
+		// See {@see TemplatePartController::modelAttributesFromRequest()}
+		// for the rationale on why partial updates without `content.blocks`
+		// must leave existing blocks intact.
+		if ( isset( $validated['content']['blocks'] ) && is_array( $validated['content']['blocks'] ) ) {
+			$attributes['block_content'] = array_values( $validated['content']['blocks'] );
 		}
 
 		return $attributes;

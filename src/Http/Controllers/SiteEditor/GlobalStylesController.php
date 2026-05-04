@@ -227,7 +227,15 @@ class GlobalStylesController extends Controller
 					throw $e;
 				}
 
-				$record = $model::query()->where( 'theme', $theme )->firstOrFail();
+				// See {@see TemplateController::update()} for the race-recovery
+				// rationale. Rethrow the original exception when the
+				// post-violation lookup still misses.
+				$record = $model::query()->where( 'theme', $theme )->first();
+
+				if ( null === $record ) {
+					throw $e;
+				}
+
 				$this->applyValidatedAttributes( $record, $validated );
 				$record->save();
 			}

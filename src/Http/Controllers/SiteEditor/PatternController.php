@@ -327,11 +327,11 @@ class PatternController extends Controller
 				: [];
 		}
 
-		if ( array_key_exists( 'content', $validated ) ) {
-			$content                     = is_array( $validated['content'] ) ? $validated['content'] : [];
-			$attributes['block_content'] = isset( $content['blocks'] ) && is_array( $content['blocks'] )
-				? array_values( $content['blocks'] )
-				: [];
+		// See {@see TemplatePartController::modelAttributesFromRequest()}
+		// for the rationale on why partial updates without `content.blocks`
+		// must leave existing blocks intact.
+		if ( isset( $validated['content']['blocks'] ) && is_array( $validated['content']['blocks'] ) ) {
+			$attributes['block_content'] = array_values( $validated['content']['blocks'] );
 		}
 
 		return $attributes;

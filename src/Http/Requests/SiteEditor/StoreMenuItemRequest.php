@@ -39,6 +39,9 @@ class StoreMenuItemRequest extends FormRequest
 	/**
 	 * Allowlist regex for menu-item URLs. Accepts:
 	 *
+	 * - Empty string `""` — equivalent to "no URL" alongside `null`.
+	 *   Laravel's `nullable` rule short-circuits on null but not on
+	 *   empty strings, so the regex itself has to accept them.
 	 * - Relative paths: `/about`, `/`, `/blog?tag=foo`
 	 * - Fragment anchors: `#main`, `#section-2`
 	 * - Absolute URLs with whitelisted schemes: `http://`, `https://`,
@@ -49,7 +52,7 @@ class StoreMenuItemRequest extends FormRequest
 	 *
 	 * @since 1.0.0
 	 */
-	public const URL_REGEX = '/^(\\/[^\\s]*|#[^\\s]*|(https?:\\/\\/|mailto:|tel:)[^\\s]+)$/i';
+	public const URL_REGEX = '/^($|\\/[^\\s]*|#[^\\s]*|(https?:\\/\\/|mailto:|tel:)[^\\s]+)$/i';
 
 	public function authorize(): bool
 	{

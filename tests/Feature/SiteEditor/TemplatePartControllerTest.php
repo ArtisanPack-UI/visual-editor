@@ -182,6 +182,35 @@ describe( 'PUT /visual-editor/api/template-parts/{slug}', function (): void {
 			->assertStatus( 422 )
 			->assertJsonValidationErrors( 'area' );
 	} );
+
+	it( 'preserves existing block_content on a partial update that omits content.blocks', function (): void {
+		$existing = [ [ 'name' => 'core/site-title', 'attributes' => [], 'innerBlocks' => [] ] ];
+
+		TemplatePart::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'header',
+			'title'         => 'Header',
+			'area'          => 'header',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => $existing,
+			'author_id'     => null,
+		] );
+
+		// Partial update — touches title, omits `content.blocks`. The
+		// existing block tree must survive the write; without the guard
+		// the controller would clear `block_content` to `[]`.
+		$this->putJson( '/visual-editor/api/template-parts/header', [
+			'theme' => 'digital-shopfront',
+			'title' => 'Header Renamed',
+			'area'  => 'header',
+		] )->assertOk();
+
+		$row = TemplatePart::query()->where( 'slug', 'header' )->first();
+
+		expect( $row )->not->toBeNull()
+			->and( $row->block_content )->toBe( $existing );
+	} );
 } );
 
 describe( 'DELETE /visual-editor/api/template-parts/{slug}', function (): void {

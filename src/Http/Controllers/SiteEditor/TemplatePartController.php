@@ -170,15 +170,23 @@ class TemplatePartController extends Controller
 			try {
 				$existing = $model::create( $attributes );
 			} catch ( QueryException $e ) {
-				if ( $this->isUniqueViolation( $e ) ) {
-					$existing = $model::query()
-						->where( 'theme', $theme )
-						->where( 'slug', $slug )
-						->firstOrFail();
-					$existing->update( $this->modelAttributesFromRequest( $validated ) );
-				} else {
+				if ( ! $this->isUniqueViolation( $e ) ) {
 					throw $e;
 				}
+
+				// See {@see TemplateController::update()} for the race-recovery
+				// rationale. Rethrow the original exception when the
+				// post-violation lookup still misses, rather than 404.
+				$existing = $model::query()
+					->where( 'theme', $theme )
+					->where( 'slug', $slug )
+					->first();
+
+				if ( null === $existing ) {
+					throw $e;
+				}
+
+				$existing->update( $this->modelAttributesFromRequest( $validated ) );
 			}
 		} else {
 			$existing->update( $this->modelAttributesFromRequest( $validated ) );
@@ -279,11 +287,15 @@ class TemplatePartController extends Controller
 			}
 		}
 
-		if ( array_key_exists( 'content', $validated ) ) {
-			$content                     = is_array( $validated['content'] ) ? $validated['content'] : [];
-			$attributes['block_content'] = isset( $content['blocks'] ) && is_array( $content['blocks'] )
-				? array_values( $content['blocks'] )
-				: [];
+		// Only touch `block_content` when the payload explicitly carries
+		// `content.blocks`. A partial update like `{ title: 'Renamed' }`
+		// or `{ content: { raw: '...' } }` (no blocks key) leaves the
+		// existing blocks intact — without this guard, any PUT that
+		// happens to include `content` without `blocks` would wipe the
+		// stored tree. Explicit empty (`content: { blocks: [] }`) still
+		// clears, since the key is present.
+		if ( isset( $validated['content']['blocks'] ) && is_array( $validated['content']['blocks'] ) ) {
+			$attributes['block_content'] = array_values( $validated['content']['blocks'] );
 		}
 
 		return $attributes;

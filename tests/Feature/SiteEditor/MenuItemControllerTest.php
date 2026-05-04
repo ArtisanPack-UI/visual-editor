@@ -151,6 +151,26 @@ describe( 'POST /visual-editor/api/menu-items', function (): void {
 			->assertStatus( 422 )
 			->assertJsonValidationErrors( 'type' );
 	} );
+
+	it( 'rejects javascript: and other dangerous URL schemes', function (): void {
+		$this->postJson( '/visual-editor/api/menu-items', [
+			'menu_id' => $this->menu->id,
+			'label'   => 'XSS attempt',
+			'url'     => 'javascript:alert(1)',
+		] )
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( 'url' );
+	} );
+
+	it( 'accepts an empty string url alongside null and missing values', function (): void {
+		$this->postJson( '/visual-editor/api/menu-items', [
+			'menu_id' => $this->menu->id,
+			'label'   => 'Placeholder',
+			'url'     => '',
+		] )
+			->assertCreated()
+			->assertJsonPath( 'url', '' );
+	} );
 } );
 
 describe( 'PUT /visual-editor/api/menu-items/{id}', function (): void {
