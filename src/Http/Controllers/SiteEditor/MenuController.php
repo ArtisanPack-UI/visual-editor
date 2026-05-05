@@ -253,6 +253,16 @@ class MenuController extends Controller
 				'rendered' => $name,
 				'raw'      => $name,
 			],
+			// `content` mirrors the WP REST `wp_navigation` shape so the
+			// editor's NavigationBrowser can read `row.content.blocks`
+			// without crashing (#438). Items are surfaced through the
+			// separate /menu-items endpoint; for now this is an empty
+			// envelope, populated by a future H6 follow-up that converts
+			// menu items into a `core/navigation` block tree.
+			'content'        => [
+				'raw'    => '',
+				'blocks' => [],
+			],
 			'auto_add_pages' => (bool) ( $menu->auto_add_pages ?? false ),
 		];
 	}

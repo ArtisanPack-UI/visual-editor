@@ -22,7 +22,12 @@ export interface NavigationRecord {
     id: number;
     slug: string;
     title: { rendered: string };
-    content: { raw: string; blocks: readonly unknown[] };
+    /**
+     * Optional because older controllers and partial-update responses
+     * may omit it; consumers should default to `{ raw: '', blocks: [] }`
+     * rather than crash on access (#438).
+     */
+    content?: { raw: string; blocks: readonly unknown[] };
     status: string;
     menu_order: number;
     /** `null` means no UI-driven location assignment. */

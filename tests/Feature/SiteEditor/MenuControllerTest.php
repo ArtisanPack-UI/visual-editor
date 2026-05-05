@@ -78,7 +78,11 @@ describe( 'GET /visual-editor/api/menus/{id}', function (): void {
 			->assertJsonPath( 'name', 'Primary Navigation' )
 			->assertJsonPath( 'title.rendered', 'Primary Navigation' )
 			->assertJsonPath( 'type', 'wp_navigation' )
-			->assertJsonPath( 'auto_add_pages', true );
+			->assertJsonPath( 'auto_add_pages', true )
+			// #438. NavigationBrowser dereferences `row.content.blocks`
+			// — the shape must always include an envelope, even empty.
+			->assertJsonPath( 'content.raw', '' )
+			->assertJsonPath( 'content.blocks', [] );
 	} );
 
 	it( 'returns 404 when no menu matches the id', function (): void {

@@ -122,7 +122,10 @@ export function NavigationBrowser(
     }, [locations]);
 
     const itemCountForRow = (row: NavigationRecord): number => {
-        return countNavigationLeaves(row.content.blocks);
+        // Defensive: older controllers and partial responses can omit
+        // `content`; treat as empty rather than crashing the whole tree
+        // with WSOD (#438).
+        return countNavigationLeaves(row.content?.blocks ?? []);
     };
 
     return (
