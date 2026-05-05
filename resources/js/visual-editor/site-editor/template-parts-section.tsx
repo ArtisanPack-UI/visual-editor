@@ -10,8 +10,8 @@
  * The create dialog requires an area selection up-front: a part with no
  * area can't be swapped into anything at render time, and the C2 request
  * validation rejects a blank area anyway. We surface the set from
- * {@link VisualEditorTemplatePart::AREAS} — adding a new area in PHP
- * means adding it here as well.
+ * cms-framework's `TemplatePart::AREAS` (plan 14 §4.2 / module H1) —
+ * adding a new area in PHP means adding it here as well.
  */
 
 import { __, sprintf } from '@wordpress/i18n';

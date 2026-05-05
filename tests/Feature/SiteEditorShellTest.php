@@ -66,6 +66,30 @@ test('site-editor app composes the four shell regions', function () use ($appPat
     expect($contents)->toContain('inspectorToggleAriaLabel');
 });
 
+// H7 (#432). The styles, navigation, and patterns sections are loaded
+// via React.lazy so their chunks stay out of the initial site-editor
+// boot bundle. This test pins the lazy boundary at the source level —
+// a regression that statically imports any of those modules would
+// fold the chunk back into the main bundle.
+test('site-editor app lazy-loads the three heavy section orchestrators', function () use ($appPath) {
+    $contents = file_get_contents($appPath);
+
+    // Suspense boundary + the dynamic-import targets must all be
+    // present. Match on the import path alone, not the full
+    // `lazy(() => import(...))` literal — the navigation entry wraps
+    // across multiple lines because of its longer module path.
+    expect($contents)->toContain('Suspense');
+    expect($contents)->toContain("import('./styles/styles-section')");
+    expect($contents)->toContain("import('./navigation/navigation-section')");
+    expect($contents)->toContain("import('./patterns/patterns-section')");
+    expect($contents)->toMatch('/lazy\(\s*\(\)\s*=>\s*import\(/');
+    // The hooks must NOT be statically imported in the shell — the
+    // lazy default exports own their hook calls now.
+    expect($contents)->not->toContain('useStylesSectionViews');
+    expect($contents)->not->toContain('useNavigationSectionViews');
+    expect($contents)->not->toContain('usePatternsSectionViews');
+});
+
 test('section registry declares the five V1 site-editor sections', function () use ($sectionsPath) {
     $contents = file_get_contents($sectionsPath);
 

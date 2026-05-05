@@ -26,6 +26,7 @@ import type {
     SiteEditorApiConfig,
 } from '../api-client';
 import type { EntityEditorState } from '../entity-editor';
+import { SectionPortal } from '../section-portal';
 import {
     fetchMenuLocations,
     listNavigations,
@@ -200,7 +201,7 @@ export function useNavigationSectionViews(
                     const list = await listNavigations(apiConfig, {
                         perPage: 50,
                     });
-                    const current = list.data.find(
+                    const current = list.find(
                         (row) => row.location === locationSlug
                     );
 
@@ -341,4 +342,42 @@ export function useNavigationSectionViews(
     ) : null;
 
     return { navigator, canvas, inspector, overlay };
+}
+
+/**
+ * Lazy-mountable wrapper around `useNavigationSectionViews` — H7 (#432).
+ *
+ * Same role as `StylesSectionView` for D3: the shell `React.lazy()`-
+ * imports this default export so the navigation tree editor, browser,
+ * inspector, and create-menu dialog stay out of the initial site-
+ * editor boot chunk.
+ */
+export interface NavigationSectionViewProps
+    extends UseNavigationSectionViewsOptions {
+    navigatorSlot: HTMLElement | null;
+    canvasSlot: HTMLElement | null;
+    inspectorSlot: HTMLElement | null;
+    overlaySlot: HTMLElement | null;
+}
+
+export default function NavigationSectionView(
+    props: NavigationSectionViewProps
+): ReactElement {
+    const {
+        navigatorSlot,
+        canvasSlot,
+        inspectorSlot,
+        overlaySlot,
+        ...hookOptions
+    } = props;
+    const views = useNavigationSectionViews(hookOptions);
+
+    return (
+        <>
+            <SectionPortal slot={navigatorSlot}>{views.navigator}</SectionPortal>
+            <SectionPortal slot={canvasSlot}>{views.canvas}</SectionPortal>
+            <SectionPortal slot={inspectorSlot}>{views.inspector}</SectionPortal>
+            <SectionPortal slot={overlaySlot}>{views.overlay}</SectionPortal>
+        </>
+    );
 }

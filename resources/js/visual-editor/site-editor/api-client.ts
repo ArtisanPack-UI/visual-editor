@@ -60,15 +60,15 @@ export type EntityRecord<K extends EntityKind> = K extends 'template'
     ? TemplateRecord
     : TemplatePartRecord;
 
-export interface PaginatedResponse<T> {
-    data: readonly T[];
-    meta: {
-        current_page: number;
-        last_page: number;
-        per_page: number;
-        total: number;
-    };
-}
+/**
+ * H7 (#432). The H6 controllers return flat JSON arrays via
+ * {@see TemplateAdapter::collection()} — there's no pagination wrapper
+ * around the templates / parts list endpoints. The previous
+ * `PaginatedResponse<T>` envelope plan 11 Phase D shipped is
+ * superseded; the alias is kept as a flat array for any out-of-tree
+ * consumer that still imports the type.
+ */
+export type PaginatedResponse<T> = readonly T[];
 
 export interface ListParams {
     perPage?: number;
@@ -249,7 +249,7 @@ export async function listEntities<K extends EntityKind>(
     config: SiteEditorApiConfig,
     kind: K,
     params: ListParams = {}
-): Promise<PaginatedResponse<EntityRecord<K>>> {
+): Promise<readonly EntityRecord<K>[]> {
     try {
         const response = await fetch(
             buildUrl(config, kind, null, {
@@ -267,7 +267,17 @@ export async function listEntities<K extends EntityKind>(
             }
         );
 
-        return (await requireOk(response)) as PaginatedResponse<EntityRecord<K>>;
+        const body = await requireOk(response);
+
+        // H7 (#432). H6's `TemplateController::index` /
+        // `TemplatePartController::index` return a flat JSON array via
+        // their adapter's `collection()` method — no `{ data, meta }`
+        // wrapper. Coerce to an empty list if the body is missing or
+        // wrong-shaped so a malformed response doesn't crash the
+        // navigator with `items.length === undefined`.
+        return Array.isArray(body)
+            ? (body as readonly EntityRecord<K>[])
+            : [];
     } catch (error: unknown) {
         throw normalizeError(error, `Failed to load ${kind} list.`);
     }

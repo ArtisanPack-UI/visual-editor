@@ -43,18 +43,16 @@ afterEach(() => {
 
 describe('<PatternGrid />', () => {
     it('renders one card per pattern with a synced badge', async () => {
-        LIST_MOCK.mockResolvedValue({
-            data: [
-                makePattern({
-                    id: 7,
-                    slug: 'hero',
-                    title: { rendered: 'Hero' },
-                    synced: true,
-                    categories: ['featured', 'hero'],
-                }),
-            ],
-            meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 },
-        });
+        // H7 (#432). H6's `PatternController::index` returns a flat array.
+        LIST_MOCK.mockResolvedValue([
+            makePattern({
+                id: 7,
+                slug: 'hero',
+                title: { rendered: 'Hero' },
+                synced: true,
+                categories: ['featured', 'hero'],
+            }),
+        ]);
 
         render(
             <PatternGrid
@@ -81,16 +79,13 @@ describe('<PatternGrid />', () => {
     });
 
     it('does not render the convert-to-unsynced button on unsynced cards', async () => {
-        LIST_MOCK.mockResolvedValue({
-            data: [
-                makePattern({
-                    id: 12,
-                    slug: 'plain',
-                    synced: false,
-                }),
-            ],
-            meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 },
-        });
+        LIST_MOCK.mockResolvedValue([
+            makePattern({
+                id: 12,
+                slug: 'plain',
+                synced: false,
+            }),
+        ]);
 
         render(
             <PatternGrid
@@ -118,10 +113,9 @@ describe('<PatternGrid />', () => {
     it('triggers Edit when the edit action is activated', async () => {
         const onEdit = vi.fn();
 
-        LIST_MOCK.mockResolvedValue({
-            data: [makePattern({ id: 22, slug: 'banner', synced: true })],
-            meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 },
-        });
+        LIST_MOCK.mockResolvedValue([
+            makePattern({ id: 22, slug: 'banner', synced: true }),
+        ]);
 
         const user = userEvent.setup();
 
@@ -147,10 +141,7 @@ describe('<PatternGrid />', () => {
     });
 
     it('renders an empty state when no patterns match the active sync flag', async () => {
-        LIST_MOCK.mockResolvedValue({
-            data: [],
-            meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 },
-        });
+        LIST_MOCK.mockResolvedValue([]);
 
         render(
             <PatternGrid

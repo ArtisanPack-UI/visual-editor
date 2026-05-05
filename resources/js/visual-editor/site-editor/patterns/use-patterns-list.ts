@@ -95,8 +95,12 @@ export function usePatternsList(
                 return;
             }
 
-            setItems(response.data);
-            setTotal(response.meta.total);
+            // H7 (#432). H6 returns a flat array; total now mirrors
+            // the loaded item count. The pattern grid uses `total`
+            // only for the "X patterns" badge, so this is a precise
+            // value at H6's no-pagination shape.
+            setItems(response);
+            setTotal(response.length);
             setStatus('ready');
         } catch (error: unknown) {
             if (requestCounterRef.current !== requestId) {

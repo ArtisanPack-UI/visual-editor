@@ -66,60 +66,94 @@ vi.mock('../entity-editor', () => ({
 // D3 mounts the styles section inside the shell; the shell tests only
 // care that the navigator routes to it, not the global-styles fetch
 // chain. The styles-section test file exercises the hook end-to-end.
-vi.mock('../styles/styles-section', () => ({
-    useStylesSectionViews: (): {
-        navigator: JSX.Element;
-        canvas: JSX.Element;
-        inspector: JSX.Element;
-    } => ({
-        navigator: <div data-testid="ap-site-editor-stub-styles-navigator" />,
-        canvas: <div data-testid="ap-site-editor-stub-styles-canvas" />,
-        inspector: <div data-testid="ap-site-editor-stub-styles-inspector" />,
-    }),
-}));
+//
+// H7 (#432) — the shell now lazy-imports each section's default
+// export, so the mock has to expose one alongside the hook. The stub
+// component just renders the same three views inline (no portals);
+// the tests check stub existence by `data-testid`, not DOM position.
+vi.mock('../styles/styles-section', () => {
+    const navigator = (
+        <div data-testid="ap-site-editor-stub-styles-navigator" />
+    );
+    const canvas = <div data-testid="ap-site-editor-stub-styles-canvas" />;
+    const inspector = (
+        <div data-testid="ap-site-editor-stub-styles-inspector" />
+    );
+
+    return {
+        useStylesSectionViews: (): {
+            navigator: JSX.Element;
+            canvas: JSX.Element;
+            inspector: JSX.Element;
+        } => ({ navigator, canvas, inspector }),
+        default: (): JSX.Element => (
+            <>
+                {navigator}
+                {canvas}
+                {inspector}
+            </>
+        ),
+    };
+});
 
 // D5 mounts the patterns section. Stub the hook entry point so the
 // shell tests don't pull in the patterns canvas (and therefore
 // `@wordpress/block-editor`) at module-load time. The patterns-section
 // test file exercises the hook end-to-end.
-vi.mock('../patterns/patterns-section', () => ({
-    usePatternsSectionViews: (): {
-        navigator: JSX.Element;
-        canvas: JSX.Element;
-        inspector: JSX.Element;
-        overlay: null;
-    } => ({
-        navigator: (
-            <div data-testid="ap-site-editor-stub-patterns-navigator" />
+vi.mock('../patterns/patterns-section', () => {
+    const navigator = (
+        <div data-testid="ap-site-editor-stub-patterns-navigator" />
+    );
+    const canvas = <div data-testid="ap-site-editor-stub-patterns-canvas" />;
+    const inspector = (
+        <div data-testid="ap-site-editor-stub-patterns-inspector" />
+    );
+
+    return {
+        usePatternsSectionViews: (): {
+            navigator: JSX.Element;
+            canvas: JSX.Element;
+            inspector: JSX.Element;
+            overlay: null;
+        } => ({ navigator, canvas, inspector, overlay: null }),
+        default: (): JSX.Element => (
+            <>
+                {navigator}
+                {canvas}
+                {inspector}
+            </>
         ),
-        canvas: <div data-testid="ap-site-editor-stub-patterns-canvas" />,
-        inspector: (
-            <div data-testid="ap-site-editor-stub-patterns-inspector" />
-        ),
-        overlay: null,
-    }),
-}));
+    };
+});
 
 // Same reasoning for D4 — keep the navigation-section module out of
 // the shell test's import graph so its API client doesn't try to
 // fetch menu locations during the shell unit tests.
-vi.mock('../navigation/navigation-section', () => ({
-    useNavigationSectionViews: (): {
-        navigator: JSX.Element;
-        canvas: JSX.Element;
-        inspector: JSX.Element;
-        overlay: null;
-    } => ({
-        navigator: (
-            <div data-testid="ap-site-editor-stub-navigation-navigator" />
+vi.mock('../navigation/navigation-section', () => {
+    const navigator = (
+        <div data-testid="ap-site-editor-stub-navigation-navigator" />
+    );
+    const canvas = <div data-testid="ap-site-editor-stub-navigation-canvas" />;
+    const inspector = (
+        <div data-testid="ap-site-editor-stub-navigation-inspector" />
+    );
+
+    return {
+        useNavigationSectionViews: (): {
+            navigator: JSX.Element;
+            canvas: JSX.Element;
+            inspector: JSX.Element;
+            overlay: null;
+        } => ({ navigator, canvas, inspector, overlay: null }),
+        default: (): JSX.Element => (
+            <>
+                {navigator}
+                {canvas}
+                {inspector}
+            </>
         ),
-        canvas: <div data-testid="ap-site-editor-stub-navigation-canvas" />,
-        inspector: (
-            <div data-testid="ap-site-editor-stub-navigation-inspector" />
-        ),
-        overlay: null,
-    }),
-}));
+    };
+});
 
 vi.mock('../../editor/synced-pattern-indicator', () => ({
     registerSyncedPatternIndicator: () => undefined,

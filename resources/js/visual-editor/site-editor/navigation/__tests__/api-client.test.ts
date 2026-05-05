@@ -49,28 +49,23 @@ afterEach(() => {
 });
 
 describe('listNavigations', () => {
-    it('returns the paginated envelope', async () => {
+    it('returns the H6 flat-array response', async () => {
+        // H7 (#432). H6's `MenuController::index` returns a flat
+        // JSON array of `wp_navigation` records — no
+        // `{ data, meta }` wrapper.
         const fetchMock = mockFetch(
-            jsonResponse({
-                data: [
-                    {
-                        id: 5,
-                        slug: 'primary',
-                        title: { rendered: 'Primary' },
-                        content: { raw: '', blocks: [] },
-                        status: 'publish',
-                        menu_order: 0,
-                        location: 'primary',
-                        type: 'wp_navigation',
-                    },
-                ],
-                meta: {
-                    current_page: 1,
-                    last_page: 1,
-                    per_page: 25,
-                    total: 1,
+            jsonResponse([
+                {
+                    id: 5,
+                    slug: 'primary',
+                    title: { rendered: 'Primary' },
+                    content: { raw: '', blocks: [] },
+                    status: 'publish',
+                    menu_order: 0,
+                    location: 'primary',
+                    type: 'wp_navigation',
                 },
-            })
+            ])
         );
 
         const response = await listNavigations(
@@ -78,11 +73,19 @@ describe('listNavigations', () => {
             { perPage: 25 }
         );
 
-        expect(response.data).toHaveLength(1);
-        expect(response.meta.total).toBe(1);
+        expect(response).toHaveLength(1);
+        expect(response[0]?.id).toBe(5);
         expect(fetchMock.mock.calls[0]?.[0]).toContain(
-            '/visual-editor/api/navigation?per_page=25'
+            '/visual-editor/api/menus?per_page=25'
         );
+    });
+
+    it('coerces non-array bodies to an empty list', async () => {
+        mockFetch(jsonResponse({ message: 'oops' }));
+
+        const response = await listNavigations({ apiBase: API_BASE });
+
+        expect(response).toEqual([]);
     });
 });
 
@@ -105,7 +108,7 @@ describe('fetchNavigation', () => {
 
         expect(record.slug).toBe('footer');
         expect(fetchMock.mock.calls[0]?.[0]).toBe(
-            '/visual-editor/api/navigation/9'
+            '/visual-editor/api/menus/9'
         );
     });
 });
@@ -163,7 +166,7 @@ describe('createNavigation + updateNavigation', () => {
         );
 
         expect(fetchMock.mock.calls[0]?.[0]).toBe(
-            '/visual-editor/api/navigation/2'
+            '/visual-editor/api/menus/2'
         );
         expect(fetchMock.mock.calls[0]?.[1]).toMatchObject({
             method: 'PUT',

@@ -180,6 +180,31 @@ describe( 'GET /visual-editor/api/patterns/{slug}', function (): void {
 
 		$this->getJson( '/visual-editor/api/patterns/missing' )->assertNotFound();
 	} );
+
+	// H7 (#432). The H6 adapter sets `id = wpId ?? slug`, and the
+	// editor's `addEntities` registers `wp_block` with `key: 'id'` —
+	// so after a user creates a DB-backed pattern the SPA fetches it
+	// at `/patterns/{numericId}`. The route matches `{slug}`; the
+	// controller resolves the numeric form by scanning for `wpId`.
+	it( 'resolves a pattern by its DB id (H6 adapter id field)', function (): void {
+		$pattern = BlockPattern::create( [
+			'slug'          => 'cta',
+			'title'         => 'CTA',
+			'source'        => 'user',
+			'synced'        => true,
+			'categories'    => [],
+			'block_types'   => [],
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		rebuildSiteEditorResolversForPatternTest();
+
+		$this->getJson( '/visual-editor/api/patterns/' . $pattern->id )
+			->assertOk()
+			->assertJsonPath( 'slug', 'user/cta' )
+			->assertJsonPath( 'id', $pattern->id );
+	} );
 } );
 
 describe( 'POST /visual-editor/api/patterns', function (): void {
@@ -256,6 +281,27 @@ describe( 'PUT /visual-editor/api/patterns/{slug}', function (): void {
 			'title' => 'Nope',
 		] )->assertNotFound();
 	} );
+
+	// H7 (#432). Same id-by-URL contract as the show endpoint.
+	it( 'updates by DB id (H6 adapter id field)', function (): void {
+		$pattern = BlockPattern::create( [
+			'slug'          => 'cta',
+			'title'         => 'CTA',
+			'source'        => 'user',
+			'synced'        => true,
+			'categories'    => [],
+			'block_types'   => [],
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$this->putJson( '/visual-editor/api/patterns/' . $pattern->id, [
+			'title' => 'CTA Renamed',
+		] )
+			->assertOk()
+			->assertJsonPath( 'title.raw', 'CTA Renamed' )
+			->assertJsonPath( 'id', $pattern->id );
+	} );
 } );
 
 describe( 'DELETE /visual-editor/api/patterns/{slug}', function (): void {
@@ -295,5 +341,24 @@ describe( 'DELETE /visual-editor/api/patterns/{slug}', function (): void {
 
 	it( 'returns 404 when no pattern matches', function (): void {
 		$this->deleteJson( '/visual-editor/api/patterns/user/missing' )->assertNotFound();
+	} );
+
+	// H7 (#432). Same id-by-URL contract as show / update.
+	it( 'deletes by DB id (H6 adapter id field)', function (): void {
+		$pattern = BlockPattern::create( [
+			'slug'          => 'cta',
+			'title'         => 'CTA',
+			'source'        => 'user',
+			'synced'        => true,
+			'categories'    => [],
+			'block_types'   => [],
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$this->deleteJson( '/visual-editor/api/patterns/' . $pattern->id )
+			->assertNoContent();
+
+		expect( BlockPattern::query()->whereKey( $pattern->id )->exists() )->toBeFalse();
 	} );
 } );

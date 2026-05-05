@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use ArtisanPackUI\VisualEditor\SiteEditor\CmsFrameworkIntegration;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/editor', function () {
@@ -29,9 +30,21 @@ Route::get('/ve-sandbox', function () {
 // `csrf_token()` helper in the blade returns a token that isn't tied to
 // any session cookie — which makes the first REST mutation (CREATE,
 // PUT) fail with "CSRF token mismatch" (D2 #369).
+//
+// H7 (#432). The closure short-circuits to an install-gate view when
+// cms-framework's SiteEditor module is not booted. Without the gate the
+// SPA would mount and then receive a cascade of 404s from every H6
+// controller — a bad first-run experience that the gate replaces with a
+// single `composer require artisanpack-ui/cms-framework` instruction.
 Route::middleware('web')
     ->group(function (): void {
         Route::get('/visual-editor/site/{path?}', function () {
+            if (! CmsFrameworkIntegration::isAvailable()) {
+                return response()->view('visual-editor::site-editor.install-gate', [
+                    'postEditorUrl' => route('visual-editor.editor'),
+                ]);
+            }
+
             return view('visual-editor::site-editor.index');
         })
             ->where('path', '.*')

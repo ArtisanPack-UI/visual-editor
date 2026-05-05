@@ -23,7 +23,7 @@
  *     `kind: 'post-type'` + `type` + `id`; `custom` → bare `url`/`label`.
  *
  * The `raw` half of the envelope is left empty; the backend regenerates
- * it from `blocks` on save (see `VisualEditorNavigation::setContentEnvelope`).
+ * it from `blocks` on save (see the H6 `MenuAdapter` — plan 14 §4.5).
  */
 
 export type MenuItemType = 'page' | 'post' | 'custom' | 'taxonomy';

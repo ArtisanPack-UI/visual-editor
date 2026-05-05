@@ -203,57 +203,43 @@ export function usePatternUsage(
                 };
 
                 for (const kind of TARGET_KINDS) {
-                    // Walk every page so the count remains accurate on
-                    // sites with more templates / parts than the
-                    // per-page cap. The C1/C2 list endpoints expose
-                    // `meta.last_page`; we trust it over a "stop when
-                    // empty" probe so a single empty page doesn't
-                    // truncate the count if the next one happens to
-                    // re-populate.
-                    let page = 1;
-                    let lastPage = 1;
+                    // H7 (#432). H6's list endpoints return a flat
+                    // array — no pagination wrapper, so a single fetch
+                    // sees every record. If H6 grows pagination later
+                    // this loop reverts to walking pages.
+                    const list = await listEntities(apiConfig, kind, {
+                        perPage: 100,
+                    });
 
-                    do {
-                        const list = await listEntities(apiConfig, kind, {
-                            perPage: 100,
-                            page,
-                        });
+                    for (const summary of list) {
+                        let blocks = blocksFromRecord(summary);
 
-                        lastPage = list.meta.last_page;
+                        if (blocks.length === 0) {
+                            // Some H6 list responses omit content to
+                            // keep the payload small. Fall back to a
+                            // per-row fetch when we don't see any
+                            // blocks — the caller budget is small (a
+                            // few extra HTTPs at delete time) and
+                            // skipping would silently under-count the
+                            // usage figure.
+                            try {
+                                const detail = await fetchEntity(
+                                    apiConfig,
+                                    kind,
+                                    summary.id
+                                );
 
-                        for (const summary of list.data) {
-                            let blocks = blocksFromRecord(summary);
-
-                            if (blocks.length === 0) {
-                                // Some C1/C2 list endpoints omit
-                                // content from the list response to
-                                // keep the payload small. Fall back to
-                                // a per-row fetch when we don't see
-                                // any blocks — the caller budget is
-                                // small (a few extra HTTPs at delete
-                                // time) and skipping would silently
-                                // under-count the usage figure.
-                                try {
-                                    const detail = await fetchEntity(
-                                        apiConfig,
-                                        kind,
-                                        summary.id
-                                    );
-
-                                    blocks = blocksFromRecord(detail);
-                                } catch {
-                                    continue;
-                                }
+                                blocks = blocksFromRecord(detail);
+                            } catch {
+                                continue;
                             }
-
-                            breakdown.perKind[kind] += countReferences(
-                                blocks,
-                                patternId
-                            );
                         }
 
-                        page += 1;
-                    } while (page <= lastPage);
+                        breakdown.perKind[kind] += countReferences(
+                            blocks,
+                            patternId
+                        );
+                    }
                 }
 
                 breakdown.total =

@@ -1,12 +1,16 @@
 /**
- * Paginated list hook for site-editor entities.
+ * List hook for site-editor entities.
  *
- * Handles the `{ data, meta }` envelope the C1/C2 REST endpoints return,
- * tracks load/error status, and exposes a `refresh` callback so callers
- * can force a re-fetch after a create/update/delete. The hook deliberately
- * does not cache across mounts — the site-editor browses one section at a
- * time and the relative cost of refetching a list on re-open is negligible
- * compared to the complexity of invalidation.
+ * H7 (#432) — H6's `TemplateController::index` /
+ * `TemplatePartController::index` return a flat JSON array via their
+ * adapter's `collection()` method, not the `{ data, meta }` envelope
+ * plan 11 Phase D shipped. This hook owns load/error status and a
+ * `refresh` callback so callers can force a re-fetch after a
+ * create/update/delete. It deliberately does not cache across mounts
+ * — the site-editor browses one section at a time and the cost of a
+ * refetch on re-open is negligible compared to invalidation
+ * complexity. Pagination state (`page` / `setPage`) is preserved as a
+ * no-op for callers; H6 doesn't paginate yet.
  */
 
 import { __ } from '@wordpress/i18n';
@@ -20,7 +24,6 @@ import {
     type EntityKind,
     type EntityRecord,
     type ListParams,
-    type PaginatedResponse,
     type SiteEditorApiConfig,
 } from './api-client';
 
@@ -46,7 +49,6 @@ export interface UseEntityListOptions<K extends EntityKind> extends ListParams {
 
 export interface UseEntityListResult<K extends EntityKind> {
     items: readonly EntityRecord<K>[];
-    meta: PaginatedResponse<EntityRecord<K>>['meta'] | null;
     status: EntityListStatus;
     errorMessage: string | null;
     /** Re-fetches the current page with the same filters. */
@@ -73,7 +75,6 @@ export function useEntityList<K extends EntityKind>(
     } = options;
 
     const [items, setItems] = useState<readonly EntityRecord<K>[]>([]);
-    const [meta, setMeta] = useState<PaginatedResponse<EntityRecord<K>>['meta'] | null>(null);
     const [status, setStatus] = useState<EntityListStatus>(enabled ? 'loading' : 'idle');
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [page, setPage] = useState<number>(initialPage);
@@ -106,8 +107,7 @@ export function useEntityList<K extends EntityKind>(
                 return;
             }
 
-            setItems(response.data);
-            setMeta(response.meta);
+            setItems(response);
             setStatus('ready');
         } catch (error: unknown) {
             if (requestCounterRef.current !== requestId) {
@@ -120,7 +120,6 @@ export function useEntityList<K extends EntityKind>(
                     : __('Failed to load entities.', TEXT_DOMAIN);
 
             setItems([]);
-            setMeta(null);
             setErrorMessage(message);
             setStatus('error');
         }
@@ -143,7 +142,6 @@ export function useEntityList<K extends EntityKind>(
 
     return {
         items,
-        meta,
         status,
         errorMessage,
         refresh: fetchList,
