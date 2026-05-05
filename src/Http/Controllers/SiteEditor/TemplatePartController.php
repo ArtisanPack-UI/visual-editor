@@ -202,21 +202,20 @@ class TemplatePartController extends Controller
 			$existing = $model::query()->where( 'theme', $theme )->where( 'slug', $slug )->first();
 
 			if ( null === $existing ) {
-				$attributes         = $this->modelAttributesFromRequest( $validated );
-				$attributes['slug'] = $slug;
+				// File→DB upsert: editor save payloads commonly omit
+				// every field except `content`. Seed defaults from the
+				// file-source resolved part (title, description, area,
+				// etc.) before layering user-supplied changes on top,
+				// so NOT NULL columns like `title` and `area` always
+				// carry a value (#438).
+				$fileDefaults = $this->fileSourceDefaults( $slug );
 
-				// Area is required to create a new part record. When the
-				// editor upserts a file-only part it doesn't repeat the
-				// `area` field; fall back to the resolver's view of the
-				// existing file-source part (which infers area from the
-				// slug or `theme.json`) before bailing with 422 (#438).
-				if ( ! array_key_exists( 'area', $attributes ) ) {
-					$resolved = $this->resolver->find( $slug );
-
-					if ( $resolved instanceof ResolvedTemplatePart ) {
-						$attributes['area'] = $resolved->area;
-					}
-				}
+				$attributes = array_merge(
+					$fileDefaults,
+					$this->modelAttributesFromRequest( $validated ),
+				);
+				$attributes['slug']  = $slug;
+				$attributes['theme'] = $theme;
 
 				if ( ! array_key_exists( 'area', $attributes ) ) {
 					return response()->json( [
@@ -371,6 +370,33 @@ class TemplatePartController extends Controller
 		}
 
 		return app()->bound( self::CMS_RESOLVER_BINDING );
+	}
+
+	/**
+	 * Seed model attributes for a brand-new file→DB upsert from the
+	 * file-source resolved part. Mirrors
+	 * {@see TemplateController::fileSourceDefaults()} but additionally
+	 * carries the `area` enum since template parts require it.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function fileSourceDefaults( string $slug ): array
+	{
+		$resolved = $this->resolver->find( $slug );
+
+		if ( ! $resolved instanceof ResolvedTemplatePart ) {
+			return [];
+		}
+
+		return [
+			'title'       => $resolved->title,
+			'description' => $resolved->description,
+			'status'      => $resolved->status,
+			'is_custom'   => $resolved->isCustom,
+			'area'        => $resolved->area,
+		];
 	}
 
 	/**

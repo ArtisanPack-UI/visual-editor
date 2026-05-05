@@ -240,8 +240,20 @@ class TemplateController extends Controller
 			$existing = $model::query()->where( 'theme', $theme )->where( 'slug', $slug )->first();
 
 			if ( null === $existing ) {
-				$attributes         = $this->modelAttributesFromRequest( $validated );
-				$attributes['slug'] = $slug;
+				// File→DB upsert: editor save payloads commonly omit
+				// every field except `content`. Seed defaults from the
+				// file-source resolved entity (title, description, etc.)
+				// before layering user-supplied changes on top, so
+				// NOT NULL columns like `title` always carry a value
+				// even when the editor only changed blocks (#438).
+				$fileDefaults = $this->fileSourceDefaults( $slug );
+
+				$attributes = array_merge(
+					$fileDefaults,
+					$this->modelAttributesFromRequest( $validated ),
+				);
+				$attributes['slug']  = $slug;
+				$attributes['theme'] = $theme;
 
 				try {
 					$existing = $model::create( $attributes );
@@ -404,6 +416,38 @@ class TemplateController extends Controller
 		}
 
 		return app()->bound( self::CMS_RESOLVER_BINDING );
+	}
+
+	/**
+	 * Seed model attributes for a brand-new file→DB upsert from the
+	 * file-source resolved template. Returns the subset of fields the
+	 * `templates` table requires (or strongly prefers) — `title`,
+	 * `description`, `status`, `is_custom` — so the editor can save
+	 * blocks-only payloads without 1364 NOT NULL violations on columns
+	 * it doesn't echo. Returns an empty array if the resolver can't
+	 * find the slug (e.g. a brand-new custom template the user is
+	 * creating from scratch through PUT — then required fields must
+	 * come from the request body, surfaced by the model's NOT NULL
+	 * column constraints if the client misses any).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function fileSourceDefaults( string $slug ): array
+	{
+		$resolved = $this->resolver->find( $slug );
+
+		if ( ! $resolved instanceof ResolvedTemplate ) {
+			return [];
+		}
+
+		return [
+			'title'       => $resolved->title,
+			'description' => $resolved->description,
+			'status'      => $resolved->status,
+			'is_custom'   => $resolved->isCustom,
+		];
 	}
 
 	/**
