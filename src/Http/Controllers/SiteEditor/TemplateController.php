@@ -90,11 +90,19 @@ class TemplateController extends Controller
 	/**
 	 * GET `/visual-editor/api/templates/{slug}` — return a single template.
 	 *
+	 * The route segment is named `{slug}` for parity with WP REST, but
+	 * H6 ({@see TemplateAdapter::toArray()}) sets the response's `id`
+	 * to `wpId ?? slug`, and the editor's `addEntities` registers
+	 * `wp_template` with `key: 'id'`. So the URL parameter is whatever
+	 * the adapter put into `id` — a numeric DB id when the template
+	 * has a DB override, the slug for theme-only templates.
+	 * {@see findTemplateByIdOrSlug()} handles both forms.
+	 *
 	 * @since 1.0.0
 	 */
 	public function show( string $slug ): JsonResponse
 	{
-		$resolved = $this->resolver->find( $slug );
+		$resolved = $this->findTemplateByIdOrSlug( $slug );
 
 		if ( ! $resolved instanceof ResolvedTemplate ) {
 			return response()->json( [ 'message' => 'Template not found.' ], Response::HTTP_NOT_FOUND );
@@ -168,63 +176,97 @@ class TemplateController extends Controller
 
 		$validated = $request->validated();
 
-		if ( array_key_exists( 'slug', $validated ) && $validated['slug'] !== $slug ) {
-			return response()->json( [
-				'message' => 'Body slug does not match URL slug.',
-				'errors'  => [ 'slug' => [ 'Slug in the request body must match the URL slug.' ] ],
-			], Response::HTTP_UNPROCESSABLE_ENTITY );
-		}
-
-		unset( $validated['slug'] );
-
 		$model = self::CMS_TEMPLATE_FQCN;
-		$theme = (string) ( $validated['theme'] ?? '' );
 
-		if ( '' === $theme ) {
-			return response()->json( [
-				'message' => 'A theme is required to identify the template.',
-				'errors'  => [ 'theme' => [ 'The theme field is required for site-editor updates.' ] ],
-			], Response::HTTP_UNPROCESSABLE_ENTITY );
-		}
+		// H7 (#432). Numeric URL parameter → look up the row directly
+		// by primary key (the row already knows its theme + slug). Slug
+		// path keeps the existing `(theme, slug)` upsert behavior so
+		// theme-only templates can be DB-overridden through a PUT.
+		if ( ctype_digit( $slug ) ) {
+			$existing = $model::query()->find( (int) $slug );
 
-		$existing = $model::query()->where( 'theme', $theme )->where( 'slug', $slug )->first();
+			if ( null === $existing ) {
+				return response()->json(
+					[ 'message' => 'Template not found.' ],
+					Response::HTTP_NOT_FOUND,
+				);
+			}
 
-		if ( null === $existing ) {
-			$attributes         = $this->modelAttributesFromRequest( $validated );
-			$attributes['slug'] = $slug;
+			if (
+				array_key_exists( 'slug', $validated )
+				&& $validated['slug'] !== (string) $existing->slug
+			) {
+				return response()->json( [
+					'message' => 'Body slug does not match URL slug.',
+					'errors'  => [ 'slug' => [ 'Slug in the request body must match the URL slug.' ] ],
+				], Response::HTTP_UNPROCESSABLE_ENTITY );
+			}
 
-			try {
-				$existing = $model::create( $attributes );
-			} catch ( QueryException $e ) {
-				if ( ! $this->isUniqueViolation( $e ) ) {
-					throw $e;
+			unset( $validated['slug'] );
+
+			$existing->update( $this->modelAttributesFromRequest( $validated ) );
+
+			$resolverKey = (string) $existing->slug;
+		} else {
+			if ( array_key_exists( 'slug', $validated ) && $validated['slug'] !== $slug ) {
+				return response()->json( [
+					'message' => 'Body slug does not match URL slug.',
+					'errors'  => [ 'slug' => [ 'Slug in the request body must match the URL slug.' ] ],
+				], Response::HTTP_UNPROCESSABLE_ENTITY );
+			}
+
+			unset( $validated['slug'] );
+
+			$theme = (string) ( $validated['theme'] ?? '' );
+
+			if ( '' === $theme ) {
+				return response()->json( [
+					'message' => 'A theme is required to identify the template.',
+					'errors'  => [ 'theme' => [ 'The theme field is required for site-editor updates.' ] ],
+				], Response::HTTP_UNPROCESSABLE_ENTITY );
+			}
+
+			$existing = $model::query()->where( 'theme', $theme )->where( 'slug', $slug )->first();
+
+			if ( null === $existing ) {
+				$attributes         = $this->modelAttributesFromRequest( $validated );
+				$attributes['slug'] = $slug;
+
+				try {
+					$existing = $model::create( $attributes );
+				} catch ( QueryException $e ) {
+					if ( ! $this->isUniqueViolation( $e ) ) {
+						throw $e;
+					}
+
+					// Race recovery: another request inserted between the
+					// existence check and our create. Re-fetch the now-existing
+					// row and re-apply the edits. If the lookup still misses
+					// (genuine contradiction — unique violation said the row
+					// exists, but our scoped query can't find it; e.g. the
+					// other writer used a different theme), rethrow the
+					// original exception rather than masking it as 404.
+					$existing = $model::query()
+						->where( 'theme', $theme )
+						->where( 'slug', $slug )
+						->first();
+
+					if ( null === $existing ) {
+						throw $e;
+					}
+
+					$existing->update( $this->modelAttributesFromRequest( $validated ) );
 				}
-
-				// Race recovery: another request inserted between the
-				// existence check and our create. Re-fetch the now-existing
-				// row and re-apply the edits. If the lookup still misses
-				// (genuine contradiction — unique violation said the row
-				// exists, but our scoped query can't find it; e.g. the
-				// other writer used a different theme), rethrow the
-				// original exception rather than masking it as 404.
-				$existing = $model::query()
-					->where( 'theme', $theme )
-					->where( 'slug', $slug )
-					->first();
-
-				if ( null === $existing ) {
-					throw $e;
-				}
-
+			} else {
 				$existing->update( $this->modelAttributesFromRequest( $validated ) );
 			}
-		} else {
-			$existing->update( $this->modelAttributesFromRequest( $validated ) );
+
+			$resolverKey = $slug;
 		}
 
 		$this->refreshResolver();
 
-		$resolved = $this->resolver->find( $slug );
+		$resolved = $this->resolver->find( $resolverKey );
 
 		// The DB write succeeded; a post-write resolver miss shouldn't
 		// surface as 404 — that would imply the update failed. Return
@@ -254,6 +296,29 @@ class TemplateController extends Controller
 			return $this->cmsFrameworkUnavailable();
 		}
 
+		$model = self::CMS_TEMPLATE_FQCN;
+
+		// H7 (#432). Numeric URL parameter → primary-key delete (row
+		// owns its theme already; no `?theme=` collision risk). Slug
+		// path keeps the `?theme=` requirement so a multi-theme
+		// override doesn't get collateral-deleted.
+		if ( ctype_digit( $slug ) ) {
+			$existing = $model::query()->find( (int) $slug );
+
+			if ( null === $existing ) {
+				return response()->json(
+					[ 'message' => 'No template override to revert.' ],
+					Response::HTTP_NOT_FOUND,
+				);
+			}
+
+			$existing->delete();
+
+			$this->refreshResolver();
+
+			return response()->json( null, Response::HTTP_NO_CONTENT );
+		}
+
 		// Cast to string defensively — Laravel returns an array if the
 		// client sends `?theme[]=...`, which would error on `trim()`.
 		$theme = trim( (string) $request->query( 'theme', '' ) );
@@ -264,8 +329,6 @@ class TemplateController extends Controller
 				'errors'  => [ 'theme' => [ 'The theme query parameter is required for site-editor deletes.' ] ],
 			], Response::HTTP_UNPROCESSABLE_ENTITY );
 		}
-
-		$model = self::CMS_TEMPLATE_FQCN;
 
 		$deleted = (int) $model::query()
 			->where( 'theme', $theme )
@@ -288,6 +351,33 @@ class TemplateController extends Controller
 	 *
 	 * @since 1.0.0
 	 */
+	/**
+	 * Resolve a template through the H5 resolver by either DB id or
+	 * slug. Numeric inputs scan {@see TemplateResolver::all()} for an
+	 * entry whose `wpId` matches; non-numeric inputs fall through to
+	 * the resolver's slug-keyed lookup.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function findTemplateByIdOrSlug( string $input ): ?ResolvedTemplate
+	{
+		if ( ctype_digit( $input ) ) {
+			$id = (int) $input;
+
+			foreach ( $this->resolver->all() as $candidate ) {
+				if ( $candidate instanceof ResolvedTemplate && $candidate->wpId === $id ) {
+					return $candidate;
+				}
+			}
+
+			return null;
+		}
+
+		$resolved = $this->resolver->find( $input );
+
+		return $resolved instanceof ResolvedTemplate ? $resolved : null;
+	}
+
 	protected function cmsFrameworkAvailable(): bool
 	{
 		if ( ! class_exists( self::CMS_TEMPLATE_FQCN ) ) {

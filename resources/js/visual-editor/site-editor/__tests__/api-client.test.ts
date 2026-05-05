@@ -42,11 +42,10 @@ afterEach(() => {
 });
 
 describe('listEntities', () => {
-    it('requests the paginated envelope and applies filters', async () => {
-        const body = {
-            data: [{ id: 1, slug: 'single', title: { rendered: 'Single' } }],
-            meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 },
-        };
+    it('returns the H6 flat-array response and applies filters', async () => {
+        // H7 (#432). H6's `TemplateController::index` returns a flat
+        // JSON array — no `{ data, meta }` envelope.
+        const body = [{ id: 1, slug: 'single', title: { rendered: 'Single' } }];
         const fetchMock = mockFetch(jsonResponse(body));
 
         const result = await listEntities(
@@ -55,8 +54,8 @@ describe('listEntities', () => {
             { perPage: 10, theme: 'my-theme', status: 'publish' }
         );
 
-        expect(result.data).toHaveLength(1);
-        expect(result.meta.total).toBe(1);
+        expect(result).toHaveLength(1);
+        expect(result[0]?.id).toBe(1);
 
         const firstCall = fetchMock.mock.calls[0];
         expect(firstCall).toBeDefined();
@@ -68,13 +67,21 @@ describe('listEntities', () => {
         expect(url).toContain('status=publish');
     });
 
-    it('hits the template-parts endpoint with an area filter', async () => {
-        const fetchMock = mockFetch(
-            jsonResponse({
-                data: [],
-                meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 },
-            })
+    it('coerces non-array bodies to an empty list', async () => {
+        // Defensive — a malformed response should not crash the
+        // navigator with `items.length === undefined`.
+        mockFetch(jsonResponse({ message: 'oops' }));
+
+        const result = await listEntities(
+            { apiBase: API_BASE },
+            'template'
         );
+
+        expect(result).toEqual([]);
+    });
+
+    it('hits the template-parts endpoint with an area filter', async () => {
+        const fetchMock = mockFetch(jsonResponse([]));
 
         await listEntities(
             { apiBase: API_BASE },

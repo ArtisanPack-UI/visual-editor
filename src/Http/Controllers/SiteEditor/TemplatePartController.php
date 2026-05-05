@@ -68,11 +68,17 @@ class TemplatePartController extends Controller
 	/**
 	 * GET `/visual-editor/api/template-parts/{slug}` — single part.
 	 *
+	 * H7 (#432). Same id-or-slug treatment as
+	 * {@see TemplateController::show()} — the editor's `addEntities`
+	 * registers `wp_template_part` with `key: 'id'` and the adapter
+	 * sets `id = wpId ?? slug`, so the URL parameter can be either
+	 * form. {@see findTemplatePartByIdOrSlug()} handles both.
+	 *
 	 * @since 1.0.0
 	 */
 	public function show( string $slug ): JsonResponse
 	{
-		$resolved = $this->resolver->find( $slug );
+		$resolved = $this->findTemplatePartByIdOrSlug( $slug );
 
 		if ( ! $resolved instanceof ResolvedTemplatePart ) {
 			return response()->json( [ 'message' => 'Template part not found.' ], Response::HTTP_NOT_FOUND );
@@ -133,68 +139,102 @@ class TemplatePartController extends Controller
 
 		$validated = $request->validated();
 
-		if ( array_key_exists( 'slug', $validated ) && $validated['slug'] !== $slug ) {
-			return response()->json( [
-				'message' => 'Body slug does not match URL slug.',
-				'errors'  => [ 'slug' => [ 'Slug in the request body must match the URL slug.' ] ],
-			], Response::HTTP_UNPROCESSABLE_ENTITY );
-		}
-
-		unset( $validated['slug'] );
-
 		$model = self::CMS_TEMPLATE_PART_FQCN;
-		$theme = (string) ( $validated['theme'] ?? '' );
 
-		if ( '' === $theme ) {
-			return response()->json( [
-				'message' => 'A theme is required to identify the template part.',
-				'errors'  => [ 'theme' => [ 'The theme field is required for site-editor updates.' ] ],
-			], Response::HTTP_UNPROCESSABLE_ENTITY );
-		}
+		// H7 (#432). Numeric URL parameter → primary-key update on
+		// the row that already knows its `(theme, slug, area)`. Slug
+		// path keeps the existing upsert behavior so a theme-only
+		// part can be DB-overridden through a PUT.
+		if ( ctype_digit( $slug ) ) {
+			$existing = $model::query()->find( (int) $slug );
 
-		$existing = $model::query()->where( 'theme', $theme )->where( 'slug', $slug )->first();
+			if ( null === $existing ) {
+				return response()->json(
+					[ 'message' => 'Template part not found.' ],
+					Response::HTTP_NOT_FOUND,
+				);
+			}
 
-		if ( null === $existing ) {
-			$attributes         = $this->modelAttributesFromRequest( $validated );
-			$attributes['slug'] = $slug;
-
-			// Area is required to create a new part record; the existing
-			// row's area would otherwise survive the update branch.
-			if ( ! array_key_exists( 'area', $attributes ) ) {
+			if (
+				array_key_exists( 'slug', $validated )
+				&& $validated['slug'] !== (string) $existing->slug
+			) {
 				return response()->json( [
-					'message' => 'An area is required to upsert a new template part.',
-					'errors'  => [ 'area' => [ 'The area field is required when creating a part.' ] ],
+					'message' => 'Body slug does not match URL slug.',
+					'errors'  => [ 'slug' => [ 'Slug in the request body must match the URL slug.' ] ],
 				], Response::HTTP_UNPROCESSABLE_ENTITY );
 			}
 
-			try {
-				$existing = $model::create( $attributes );
-			} catch ( QueryException $e ) {
-				if ( ! $this->isUniqueViolation( $e ) ) {
-					throw $e;
+			unset( $validated['slug'] );
+
+			$existing->update( $this->modelAttributesFromRequest( $validated ) );
+
+			$resolverKey = (string) $existing->slug;
+		} else {
+			if ( array_key_exists( 'slug', $validated ) && $validated['slug'] !== $slug ) {
+				return response()->json( [
+					'message' => 'Body slug does not match URL slug.',
+					'errors'  => [ 'slug' => [ 'Slug in the request body must match the URL slug.' ] ],
+				], Response::HTTP_UNPROCESSABLE_ENTITY );
+			}
+
+			unset( $validated['slug'] );
+
+			$theme = (string) ( $validated['theme'] ?? '' );
+
+			if ( '' === $theme ) {
+				return response()->json( [
+					'message' => 'A theme is required to identify the template part.',
+					'errors'  => [ 'theme' => [ 'The theme field is required for site-editor updates.' ] ],
+				], Response::HTTP_UNPROCESSABLE_ENTITY );
+			}
+
+			$existing = $model::query()->where( 'theme', $theme )->where( 'slug', $slug )->first();
+
+			if ( null === $existing ) {
+				$attributes         = $this->modelAttributesFromRequest( $validated );
+				$attributes['slug'] = $slug;
+
+				// Area is required to create a new part record; the existing
+				// row's area would otherwise survive the update branch.
+				if ( ! array_key_exists( 'area', $attributes ) ) {
+					return response()->json( [
+						'message' => 'An area is required to upsert a new template part.',
+						'errors'  => [ 'area' => [ 'The area field is required when creating a part.' ] ],
+					], Response::HTTP_UNPROCESSABLE_ENTITY );
 				}
 
-				// See {@see TemplateController::update()} for the race-recovery
-				// rationale. Rethrow the original exception when the
-				// post-violation lookup still misses, rather than 404.
-				$existing = $model::query()
-					->where( 'theme', $theme )
-					->where( 'slug', $slug )
-					->first();
+				try {
+					$existing = $model::create( $attributes );
+				} catch ( QueryException $e ) {
+					if ( ! $this->isUniqueViolation( $e ) ) {
+						throw $e;
+					}
 
-				if ( null === $existing ) {
-					throw $e;
+					// See {@see TemplateController::update()} for the race-recovery
+					// rationale. Rethrow the original exception when the
+					// post-violation lookup still misses, rather than 404.
+					$existing = $model::query()
+						->where( 'theme', $theme )
+						->where( 'slug', $slug )
+						->first();
+
+					if ( null === $existing ) {
+						throw $e;
+					}
+
+					$existing->update( $this->modelAttributesFromRequest( $validated ) );
 				}
-
+			} else {
 				$existing->update( $this->modelAttributesFromRequest( $validated ) );
 			}
-		} else {
-			$existing->update( $this->modelAttributesFromRequest( $validated ) );
+
+			$resolverKey = $slug;
 		}
 
 		$this->refreshResolver();
 
-		$resolved = $this->resolver->find( $slug );
+		$resolved = $this->resolver->find( $resolverKey );
 
 		// The DB write succeeded; a post-write resolver miss shouldn't
 		// surface as 404. See {@see TemplateController::update()} for
@@ -221,6 +261,28 @@ class TemplatePartController extends Controller
 			return $this->cmsFrameworkUnavailable();
 		}
 
+		$model = self::CMS_TEMPLATE_PART_FQCN;
+
+		// H7 (#432). Numeric URL parameter → primary-key delete; the
+		// row owns its theme so the `?theme=` collision risk doesn't
+		// apply. Slug path keeps the `?theme=` requirement.
+		if ( ctype_digit( $slug ) ) {
+			$existing = $model::query()->find( (int) $slug );
+
+			if ( null === $existing ) {
+				return response()->json(
+					[ 'message' => 'No template-part override to revert.' ],
+					Response::HTTP_NOT_FOUND,
+				);
+			}
+
+			$existing->delete();
+
+			$this->refreshResolver();
+
+			return response()->json( null, Response::HTTP_NO_CONTENT );
+		}
+
 		// Cast to string defensively — see {@see TemplateController::destroy()}.
 		$theme = trim( (string) $request->query( 'theme', '' ) );
 
@@ -230,8 +292,6 @@ class TemplatePartController extends Controller
 				'errors'  => [ 'theme' => [ 'The theme query parameter is required for site-editor deletes.' ] ],
 			], Response::HTTP_UNPROCESSABLE_ENTITY );
 		}
-
-		$model = self::CMS_TEMPLATE_PART_FQCN;
 
 		$deleted = (int) $model::query()
 			->where( 'theme', $theme )
@@ -250,6 +310,33 @@ class TemplatePartController extends Controller
 	/**
 	 * @since 1.0.0
 	 */
+	/**
+	 * Resolve a part through the H5 resolver by either DB id or slug.
+	 * Mirrors {@see TemplateController::findTemplateByIdOrSlug()};
+	 * numeric inputs scan the resolver's `all()` for a matching
+	 * `wpId`, slugs fall through to the slug-keyed lookup.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function findTemplatePartByIdOrSlug( string $input ): ?ResolvedTemplatePart
+	{
+		if ( ctype_digit( $input ) ) {
+			$id = (int) $input;
+
+			foreach ( $this->resolver->all() as $candidate ) {
+				if ( $candidate instanceof ResolvedTemplatePart && $candidate->wpId === $id ) {
+					return $candidate;
+				}
+			}
+
+			return null;
+		}
+
+		$resolved = $this->resolver->find( $input );
+
+		return $resolved instanceof ResolvedTemplatePart ? $resolved : null;
+	}
+
 	protected function cmsFrameworkAvailable(): bool
 	{
 		if ( ! class_exists( self::CMS_TEMPLATE_PART_FQCN ) ) {

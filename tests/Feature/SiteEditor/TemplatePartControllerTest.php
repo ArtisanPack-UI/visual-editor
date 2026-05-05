@@ -95,6 +95,29 @@ describe( 'GET /visual-editor/api/template-parts/{slug}', function (): void {
 			->assertJsonPath( 'type', 'wp_template_part' );
 	} );
 
+	// H7 (#432). The H6 adapter sets `id = wpId ?? slug` and the
+	// editor's `addEntities` registers `wp_template_part` with
+	// `key: 'id'`, so the SPA fetches DB-backed parts by integer id.
+	it( 'resolves a template part by its DB id (H6 adapter id field)', function (): void {
+		$part = TemplatePart::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'footer',
+			'title'         => 'Footer',
+			'area'          => 'footer',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		rebuildSiteEditorResolversForPartTest();
+
+		$this->getJson( '/visual-editor/api/template-parts/' . $part->id )
+			->assertOk()
+			->assertJsonPath( 'slug', 'footer' )
+			->assertJsonPath( 'id', $part->id );
+	} );
+
 	it( 'returns 404 when the slug does not resolve', function (): void {
 		rebuildSiteEditorResolversForPartTest();
 
@@ -183,6 +206,29 @@ describe( 'PUT /visual-editor/api/template-parts/{slug}', function (): void {
 			->assertJsonValidationErrors( 'area' );
 	} );
 
+	// H7 (#432). Numeric URL parameter looks up by primary key — the
+	// row already knows its theme, so the body's `theme` becomes
+	// optional.
+	it( 'updates by DB id without requiring a theme in the body', function (): void {
+		$part = TemplatePart::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'header',
+			'title'         => 'Header',
+			'area'          => 'header',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$this->putJson( '/visual-editor/api/template-parts/' . $part->id, [
+			'title' => 'Header Renamed',
+		] )
+			->assertOk()
+			->assertJsonPath( 'title.raw', 'Header Renamed' )
+			->assertJsonPath( 'id', $part->id );
+	} );
+
 	it( 'preserves existing block_content on a partial update that omits content.blocks', function (): void {
 		$existing = [ [ 'name' => 'core/site-title', 'attributes' => [], 'innerBlocks' => [] ] ];
 
@@ -268,5 +314,25 @@ describe( 'DELETE /visual-editor/api/template-parts/{slug}', function (): void {
 
 	it( 'returns 404 when no DB override matches the (theme, slug)', function (): void {
 		$this->deleteJson( '/visual-editor/api/template-parts/missing?theme=digital-shopfront' )->assertNotFound();
+	} );
+
+	// H7 (#432). Numeric URL parameter resolves by primary key; the
+	// `?theme=` query is unnecessary because the row owns its theme.
+	it( 'deletes by DB id without requiring a theme query param', function (): void {
+		$part = TemplatePart::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'header',
+			'title'         => 'Header',
+			'area'          => 'header',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$this->deleteJson( '/visual-editor/api/template-parts/' . $part->id )
+			->assertNoContent();
+
+		expect( TemplatePart::query()->whereKey( $part->id )->exists() )->toBeFalse();
 	} );
 } );

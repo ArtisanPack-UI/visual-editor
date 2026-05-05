@@ -30,17 +30,12 @@ export interface NavigationRecord {
     type: 'wp_navigation';
 }
 
-export interface NavigationListMeta {
-    current_page: number;
-    last_page: number;
-    per_page: number;
-    total: number;
-}
-
-export interface NavigationListResponse {
-    data: readonly NavigationRecord[];
-    meta: NavigationListMeta;
-}
+/**
+ * H7 (#432). H6's `MenuController::index` returns a flat JSON array of
+ * menus — no `{ data, meta }` wrapper. Type kept as a flat array for
+ * any downstream consumer that imports it.
+ */
+export type NavigationListResponse = readonly NavigationRecord[];
 
 export interface MenuLocation {
     slug: string;
@@ -195,8 +190,13 @@ function navigationUrl(
     suffix: string | number | null,
     query: Record<string, string | number | undefined> = {}
 ): string {
+    // H7 (#432). H6 mounted the navigation REST surface at
+    // `/visual-editor/api/menus` (per plan 14 §4.5 — `wp_navigation`
+    // entities), superseding plan 11 Phase D's `/navigation` path.
+    // The shim's `addEntities` registration also points at `/menus`,
+    // so the section client and the core-data shim stay aligned.
     const base = config.apiBase.replace(/\/+$/, '');
-    let url = `${base}/navigation`;
+    let url = `${base}/menus`;
 
     if (suffix !== null) {
         url += `/${encodeURIComponent(String(suffix))}`;
@@ -241,7 +241,9 @@ export async function listNavigations(
             }
         );
 
-        return (await requireOk(response)) as NavigationListResponse;
+        const body = await requireOk(response);
+
+        return Array.isArray(body) ? (body as NavigationListResponse) : [];
     } catch (error: unknown) {
         throw normalizeError(error, 'Failed to load navigation list.');
     }

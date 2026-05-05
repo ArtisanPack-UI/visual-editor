@@ -12,7 +12,6 @@
 
 import {
     SiteEditorApiError,
-    type PaginatedResponse,
     type SiteEditorApiConfig,
     type ValidationErrors,
 } from '../api-client';
@@ -200,7 +199,7 @@ const READ_HEADERS: Readonly<Record<string, string>> = {
 export async function listPatterns(
     config: SiteEditorApiConfig,
     params: PatternListParams = {}
-): Promise<PaginatedResponse<PatternRecord>> {
+): Promise<readonly PatternRecord[]> {
     const url = buildUrl(config, null, {
         per_page: params.perPage,
         page: params.page,
@@ -234,7 +233,13 @@ export async function listPatterns(
             headers: READ_HEADERS,
         });
 
-        return (await requireOk(response)) as PaginatedResponse<PatternRecord>;
+        // H7 (#432). H6's `PatternController::index` returns a flat
+        // JSON array via `PatternAdapter::collection()` — no
+        // `{ data, meta }` wrapper. Coerce to `[]` if the response
+        // body is missing or wrong-shaped.
+        const body = await requireOk(response);
+
+        return Array.isArray(body) ? (body as readonly PatternRecord[]) : [];
     } catch (error: unknown) {
         throw normalizeError(error, 'Failed to load patterns.');
     }

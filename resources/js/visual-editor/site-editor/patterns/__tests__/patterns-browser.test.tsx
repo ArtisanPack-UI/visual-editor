@@ -43,17 +43,15 @@ afterEach(() => {
 
 describe('<PatternsBrowser />', () => {
     it('renders Synced and Unsynced tabs and shows synced rows by default', async () => {
-        LIST_MOCK.mockResolvedValue({
-            data: [
-                makePattern({
-                    id: 5,
-                    slug: 'hero',
-                    title: { rendered: 'Hero pattern' },
-                    synced: true,
-                }),
-            ],
-            meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 },
-        });
+        // H7 (#432). H6's `PatternController::index` returns a flat array.
+        LIST_MOCK.mockResolvedValue([
+            makePattern({
+                id: 5,
+                slug: 'hero',
+                title: { rendered: 'Hero pattern' },
+                synced: true,
+            }),
+        ]);
 
         render(
             <PatternsBrowser
@@ -89,10 +87,7 @@ describe('<PatternsBrowser />', () => {
     it('switches to the unsynced tab when the parent updates activeTab', async () => {
         const user = userEvent.setup();
 
-        LIST_MOCK.mockResolvedValue({
-            data: [],
-            meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 },
-        });
+        LIST_MOCK.mockResolvedValue([]);
 
         const onSelectTab = vi.fn();
 
@@ -118,16 +113,13 @@ describe('<PatternsBrowser />', () => {
         const onOpen = vi.fn();
         const user = userEvent.setup();
 
-        LIST_MOCK.mockResolvedValue({
-            data: [
-                makePattern({
-                    id: 9,
-                    slug: 'cta',
-                    title: { rendered: 'Call to action' },
-                }),
-            ],
-            meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 },
-        });
+        LIST_MOCK.mockResolvedValue([
+            makePattern({
+                id: 9,
+                slug: 'cta',
+                title: { rendered: 'Call to action' },
+            }),
+        ]);
 
         render(
             <PatternsBrowser
@@ -151,10 +143,7 @@ describe('<PatternsBrowser />', () => {
         const user = userEvent.setup();
         const onRequestCreate = vi.fn();
 
-        LIST_MOCK.mockResolvedValue({
-            data: [],
-            meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 },
-        });
+        LIST_MOCK.mockResolvedValue([]);
 
         render(
             <PatternsBrowser
@@ -173,10 +162,7 @@ describe('<PatternsBrowser />', () => {
     });
 
     it('renders the empty state copy that names the active sync mode', async () => {
-        LIST_MOCK.mockResolvedValue({
-            data: [],
-            meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 },
-        });
+        LIST_MOCK.mockResolvedValue([]);
 
         render(
             <PatternsBrowser

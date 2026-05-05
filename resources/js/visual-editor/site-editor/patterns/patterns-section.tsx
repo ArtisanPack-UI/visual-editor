@@ -21,6 +21,7 @@ import { TEXT_DOMAIN } from '../../vendor/i18n';
 import type { SiteEditorApiConfig } from '../api-client';
 import { InspectorSidebar } from '../../editor/inspector-sidebar';
 import type { EntityEditorState } from '../entity-editor';
+import { SectionPortal } from '../section-portal';
 
 import {
     type PatternRecord,
@@ -348,4 +349,41 @@ export function usePatternsSectionViews(
     }
 
     return { navigator, canvas, inspector, overlay };
+}
+
+/**
+ * Lazy-mountable wrapper around `usePatternsSectionViews` — H7 (#432).
+ *
+ * Same role as `StylesSectionView` and `NavigationSectionView`: the
+ * shell `React.lazy()`-imports this default export so the patterns
+ * grid, canvas, inspector, and create / convert / delete dialogs stay
+ * out of the initial site-editor boot chunk.
+ */
+export interface PatternsSectionViewProps extends UsePatternsSectionViewsOptions {
+    navigatorSlot: HTMLElement | null;
+    canvasSlot: HTMLElement | null;
+    inspectorSlot: HTMLElement | null;
+    overlaySlot: HTMLElement | null;
+}
+
+export default function PatternsSectionView(
+    props: PatternsSectionViewProps
+): ReactElement {
+    const {
+        navigatorSlot,
+        canvasSlot,
+        inspectorSlot,
+        overlaySlot,
+        ...hookOptions
+    } = props;
+    const views = usePatternsSectionViews(hookOptions);
+
+    return (
+        <>
+            <SectionPortal slot={navigatorSlot}>{views.navigator}</SectionPortal>
+            <SectionPortal slot={canvasSlot}>{views.canvas}</SectionPortal>
+            <SectionPortal slot={inspectorSlot}>{views.inspector}</SectionPortal>
+            <SectionPortal slot={overlaySlot}>{views.overlay}</SectionPortal>
+        </>
+    );
 }

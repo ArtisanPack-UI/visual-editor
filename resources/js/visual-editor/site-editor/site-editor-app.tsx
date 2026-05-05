@@ -15,7 +15,7 @@
  * slot when they ship.
  */
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { getBlockType, getBlockTypes, unregisterBlockType } from '@wordpress/blocks';
 import { registerCoreBlocks } from '@wordpress/block-library';
 import { __, sprintf } from '@wordpress/i18n';
@@ -44,9 +44,6 @@ import {
     TemplatePartCreateDialog,
     TemplatePartsBrowser,
 } from './template-parts-section';
-import { useStylesSectionViews } from './styles/styles-section';
-import { useNavigationSectionViews } from './navigation/navigation-section';
-import { usePatternsSectionViews } from './patterns/patterns-section';
 import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
 import { TopBar } from '../editor/top-bar';
@@ -55,6 +52,24 @@ import { registerSyncedPatternIndicator } from '../editor/synced-pattern-indicat
 import { registerTaxonomyAndArchiveBlockOverrides } from '../editor/taxonomy-archive-block-overrides';
 
 import './site-editor-app.css';
+
+/**
+ * Lazy section orchestrators — H7 (#432).
+ *
+ * The styles, navigation, and patterns sections each carry a
+ * substantial dependency graph (style-book canvas, tree editor, link
+ * picker, pattern grid + dialogs). Loading them eagerly at boot pads
+ * the initial chunk for users who never leave the templates section.
+ * `React.lazy()` splits each into its own chunk; the active section's
+ * chunk is fetched on first nav. Templates and template-parts stay
+ * eager because they share `useEntityEditorViews` with the post
+ * editor's already-warm bundle and they're the default landing path.
+ */
+const StylesSectionView = lazy(() => import('./styles/styles-section'));
+const NavigationSectionView = lazy(
+    () => import('./navigation/navigation-section')
+);
+const PatternsSectionView = lazy(() => import('./patterns/patterns-section'));
 
 const NAVIGATOR_STORAGE_KEY = 'ap-site-editor:navigator-open';
 const INSPECTOR_STORAGE_KEY = 'ap-site-editor:inspector-open';
@@ -276,11 +291,19 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                 : handleEntityStateChange,
     });
 
-    const stylesViews = useStylesSectionViews({
-        apiConfig,
-        enabled: isD3Section,
-        onStateChange: isD3Section ? handleEntityStateChange : noopStateChange,
-    });
+    // H7 (#432). Lazy section orchestrators portal their views into
+    // these slots; the slots themselves are always present in the DOM
+    // (CSS controls navigator/inspector visibility) so the lazy
+    // section's portal targets remain stable across open/close
+    // toggles.
+    const [navigatorSlot, setNavigatorSlot] = useState<HTMLDivElement | null>(
+        null
+    );
+    const [canvasSlot, setCanvasSlot] = useState<HTMLDivElement | null>(null);
+    const [inspectorSlot, setInspectorSlot] = useState<HTMLDivElement | null>(
+        null
+    );
+    const [overlaySlot, setOverlaySlot] = useState<HTMLDivElement | null>(null);
 
     // Same shape as `handleOpenEntity` declared further down — duplicated
     // here so the navigation views hook can receive it without having to
@@ -295,14 +318,6 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         [activeSection.id, routing]
     );
 
-    const navigationViews = useNavigationSectionViews({
-        apiConfig,
-        enabled: isD4Section,
-        activeEntityId,
-        onOpenEntity: handleNavigationOpen,
-        onStateChange: isD4Section ? handleEntityStateChange : noopStateChange,
-    });
-
     const handlePatternsOpen = useCallback(
         (entityId: string): void => {
             routing.navigate(activeSection.id, entityId);
@@ -313,15 +328,6 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
     const handlePatternsClose = useCallback((): void => {
         routing.navigate(activeSection.id, null);
     }, [activeSection.id, routing]);
-
-    const patternsViews = usePatternsSectionViews({
-        apiConfig,
-        enabled: isD5Section,
-        activeEntityId,
-        onOpenEntity: handlePatternsOpen,
-        onCloseEntity: handlePatternsClose,
-        onStateChange: isD5Section ? handleEntityStateChange : noopStateChange,
-    });
 
     const [dialogKind, setDialogKind] = useState<EntityKind | null>(null);
 
@@ -494,6 +500,8 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         </div>
     );
 
+    const isLazySection = isD3Section || isD4Section || isD5Section;
+
     let navigatorChildren: JSX.Element;
 
     if (activeSection.id === 'templates') {
@@ -516,12 +524,19 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                 refreshKey={partsRefreshKey}
             />
         );
-    } else if (isD3Section) {
-        navigatorChildren = stylesViews.navigator;
-    } else if (isD4Section) {
-        navigatorChildren = navigationViews.navigator;
-    } else if (isD5Section) {
-        navigatorChildren = patternsViews.navigator;
+    } else if (isLazySection) {
+        // H7 (#432). The lazy section orchestrator portals its
+        // navigator view into this slot once its dynamic chunk
+        // resolves. The wrapping div is the stable portal target;
+        // re-renders that move it to a different DOM position trigger
+        // the callback ref and the lazy section's portal updates.
+        navigatorChildren = (
+            <div
+                className="ap-site-editor__navigator-slot"
+                ref={setNavigatorSlot}
+                data-testid="ap-site-editor-navigator-slot"
+            />
+        );
     } else {
         navigatorChildren = (
             <SectionOutlet
@@ -593,29 +608,21 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                     >
                         {editorViews.canvas}
                     </div>
-                ) : isD3Section ? (
+                ) : isLazySection ? (
                     <div
                         className="ap-site-editor__canvas"
-                        data-has-entity="true"
+                        data-has-entity={
+                            isD3Section ||
+                            showNavigationEditor ||
+                            showPatternsEditor
+                        }
                         data-testid="ap-site-editor-canvas"
                     >
-                        {stylesViews.canvas}
-                    </div>
-                ) : isD4Section ? (
-                    <div
-                        className="ap-site-editor__canvas"
-                        data-has-entity={showNavigationEditor}
-                        data-testid="ap-site-editor-canvas"
-                    >
-                        {navigationViews.canvas}
-                    </div>
-                ) : isD5Section ? (
-                    <div
-                        className="ap-site-editor__canvas"
-                        data-has-entity={showPatternsEditor}
-                        data-testid="ap-site-editor-canvas"
-                    >
-                        {patternsViews.canvas}
+                        <div
+                            className="ap-site-editor__canvas-slot"
+                            ref={setCanvasSlot}
+                            data-testid="ap-site-editor-canvas-slot"
+                        />
                     </div>
                 ) : (
                     <CanvasFrame
@@ -627,12 +634,14 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                     <div className="ap-site-editor__sidebar ap-site-editor__sidebar--inspector">
                         {showEntityEditor ? (
                             editorViews.inspector
-                        ) : isD3Section ? (
-                            stylesViews.inspector
-                        ) : isD4Section && showNavigationEditor ? (
-                            navigationViews.inspector
-                        ) : isD5Section && showPatternsEditor ? (
-                            patternsViews.inspector
+                        ) : isD3Section ||
+                          (isD4Section && showNavigationEditor) ||
+                          (isD5Section && showPatternsEditor) ? (
+                            <div
+                                className="ap-site-editor__inspector-slot"
+                                ref={setInspectorSlot}
+                                data-testid="ap-site-editor-inspector-slot"
+                            />
                         ) : (
                             <InspectorOutlet sectionLabel={activeSection.label} />
                         )}
@@ -655,8 +664,59 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                     onCreated={(entity) => handleDialogCreated(entity.id)}
                 />
             ) : null}
-            {navigationViews.overlay}
-            {patternsViews.overlay}
+            {/* H7 (#432). Stable portal target for lazy section overlays
+              (CreateMenuDialog, CreatePatternDialog, etc.). Always
+              mounted so the portal can fire as soon as the lazy section
+              resolves. */}
+            <div
+                ref={setOverlaySlot}
+                data-testid="ap-site-editor-overlay-slot"
+            />
+            {/* H7 (#432). Lazy section orchestrators. Each portals its
+              navigator / canvas / inspector / overlay views into the
+              shell-controlled slots above. Suspense fallback is null —
+              brief blank flash on first nav into a section is
+              preferable to a layout-shifting spinner that competes
+              with the section's own loading states. */}
+            <Suspense fallback={null}>
+                {isD3Section ? (
+                    <StylesSectionView
+                        apiConfig={apiConfig}
+                        enabled={isD3Section}
+                        onStateChange={handleEntityStateChange}
+                        navigatorSlot={navigatorSlot}
+                        canvasSlot={canvasSlot}
+                        inspectorSlot={inspectorSlot}
+                    />
+                ) : null}
+                {isD4Section ? (
+                    <NavigationSectionView
+                        apiConfig={apiConfig}
+                        enabled={isD4Section}
+                        activeEntityId={activeEntityId}
+                        onOpenEntity={handleNavigationOpen}
+                        onStateChange={handleEntityStateChange}
+                        navigatorSlot={navigatorSlot}
+                        canvasSlot={canvasSlot}
+                        inspectorSlot={inspectorSlot}
+                        overlaySlot={overlaySlot}
+                    />
+                ) : null}
+                {isD5Section ? (
+                    <PatternsSectionView
+                        apiConfig={apiConfig}
+                        enabled={isD5Section}
+                        activeEntityId={activeEntityId}
+                        onOpenEntity={handlePatternsOpen}
+                        onCloseEntity={handlePatternsClose}
+                        onStateChange={handleEntityStateChange}
+                        navigatorSlot={navigatorSlot}
+                        canvasSlot={canvasSlot}
+                        inspectorSlot={inspectorSlot}
+                        overlaySlot={overlaySlot}
+                    />
+                ) : null}
+            </Suspense>
         </div>
     );
 }

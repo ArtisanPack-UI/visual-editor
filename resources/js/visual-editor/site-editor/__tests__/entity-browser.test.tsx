@@ -29,22 +29,20 @@ afterEach(() => {
 
 describe('EntityBrowser', () => {
     it('shows a loading status then the rows returned by the API', async () => {
-        LIST_MOCK.mockResolvedValue({
-            data: [
-                {
-                    id: 1,
-                    slug: 'single',
-                    title: { rendered: 'Single post' },
-                    content: { raw: '', blocks: [] },
-                    status: 'publish',
-                    theme: 'default',
-                    type: 'wp_template',
-                    source: 'theme',
-                    origin: null,
-                },
-            ],
-            meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 },
-        });
+        // H7 (#432). H6's list endpoints return a flat array.
+        LIST_MOCK.mockResolvedValue([
+            {
+                id: 1,
+                slug: 'single',
+                title: { rendered: 'Single post' },
+                content: { raw: '', blocks: [] },
+                status: 'publish',
+                theme: 'default',
+                type: 'wp_template',
+                source: 'theme',
+                origin: null,
+            },
+        ]);
 
         const onOpen = vi.fn();
 
@@ -86,22 +84,19 @@ describe('EntityBrowser', () => {
     });
 
     it('calls onOpen with the row id when a row is activated', async () => {
-        LIST_MOCK.mockResolvedValue({
-            data: [
-                {
-                    id: 3,
-                    slug: 'page',
-                    title: { rendered: '' },
-                    content: { raw: '', blocks: [] },
-                    status: 'publish',
-                    theme: 'default',
-                    type: 'wp_template',
-                    source: 'custom',
-                    origin: null,
-                },
-            ],
-            meta: { current_page: 1, last_page: 1, per_page: 25, total: 1 },
-        });
+        LIST_MOCK.mockResolvedValue([
+            {
+                id: 3,
+                slug: 'page',
+                title: { rendered: '' },
+                content: { raw: '', blocks: [] },
+                status: 'publish',
+                theme: 'default',
+                type: 'wp_template',
+                source: 'custom',
+                origin: null,
+            },
+        ]);
 
         const onOpen = vi.fn();
         const user = userEvent.setup();
@@ -131,10 +126,7 @@ describe('EntityBrowser', () => {
     });
 
     it('shows the empty state when the API returns no rows', async () => {
-        LIST_MOCK.mockResolvedValue({
-            data: [],
-            meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 },
-        });
+        LIST_MOCK.mockResolvedValue([]);
 
         render(
             <EntityBrowser
@@ -192,10 +184,7 @@ describe('EntityBrowser', () => {
     });
 
     it('triggers onRequestCreate when the add-new button is clicked', async () => {
-        LIST_MOCK.mockResolvedValue({
-            data: [],
-            meta: { current_page: 1, last_page: 1, per_page: 25, total: 0 },
-        });
+        LIST_MOCK.mockResolvedValue([]);
 
         const onRequestCreate = vi.fn();
         const user = userEvent.setup();
@@ -225,30 +214,22 @@ describe('EntityBrowser', () => {
 
     it('filters via chips and re-fetches on chip change', async () => {
         LIST_MOCK.mockImplementation(
-            async (_config, _kind, params: { status?: string }) => ({
-                data:
-                    params.status === 'draft'
-                        ? [
-                              {
-                                  id: 5,
-                                  slug: 'draft-page',
-                                  title: { rendered: 'Draft' },
-                                  content: { raw: '', blocks: [] },
-                                  status: 'draft',
-                                  theme: 'default',
-                                  type: 'wp_template',
-                                  source: 'custom',
-                                  origin: null,
-                              },
-                          ]
-                        : [],
-                meta: {
-                    current_page: 1,
-                    last_page: 1,
-                    per_page: 25,
-                    total: params.status === 'draft' ? 1 : 0,
-                },
-            })
+            async (_config, _kind, params: { status?: string }) =>
+                params.status === 'draft'
+                    ? [
+                          {
+                              id: 5,
+                              slug: 'draft-page',
+                              title: { rendered: 'Draft' },
+                              content: { raw: '', blocks: [] },
+                              status: 'draft',
+                              theme: 'default',
+                              type: 'wp_template',
+                              source: 'custom',
+                              origin: null,
+                          },
+                      ]
+                    : []
         );
 
         const user = userEvent.setup();

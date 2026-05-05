@@ -64,44 +64,39 @@ afterEach(() => {
 
 describe('<DeletePatternDialog />', () => {
     it('shows a usage count derived from templates and parts for synced patterns', async () => {
+        // H7 (#432). H6's list endpoints return a flat array.
         LIST_ENTITIES_MOCK.mockImplementation((_config, kind) => {
             if (kind === 'template') {
-                return Promise.resolve({
-                    data: [
-                        {
-                            id: 1,
-                            slug: 'index',
-                            content: {
-                                raw: '',
-                                blocks: [
-                                    {
-                                        name: 'core/block',
-                                        attributes: { ref: 42 },
-                                        innerBlocks: [],
-                                    },
-                                    {
-                                        name: 'core/group',
-                                        attributes: {},
-                                        innerBlocks: [
-                                            {
-                                                name: 'core/block',
-                                                attributes: { ref: 42 },
-                                                innerBlocks: [],
-                                            },
-                                        ],
-                                    },
-                                ],
-                            },
+                return Promise.resolve([
+                    {
+                        id: 1,
+                        slug: 'index',
+                        content: {
+                            raw: '',
+                            blocks: [
+                                {
+                                    name: 'core/block',
+                                    attributes: { ref: 42 },
+                                    innerBlocks: [],
+                                },
+                                {
+                                    name: 'core/group',
+                                    attributes: {},
+                                    innerBlocks: [
+                                        {
+                                            name: 'core/block',
+                                            attributes: { ref: 42 },
+                                            innerBlocks: [],
+                                        },
+                                    ],
+                                },
+                            ],
                         },
-                    ],
-                    meta: { total: 1, current_page: 1, last_page: 1, per_page: 100 },
-                });
+                    },
+                ]);
             }
 
-            return Promise.resolve({
-                data: [],
-                meta: { total: 0, current_page: 1, last_page: 1, per_page: 100 },
-            });
+            return Promise.resolve([]);
         });
 
         render(
@@ -135,10 +130,7 @@ describe('<DeletePatternDialog />', () => {
 
     it('calls deletePattern when confirmed', async () => {
         DELETE_MOCK.mockResolvedValue(undefined);
-        LIST_ENTITIES_MOCK.mockResolvedValue({
-            data: [],
-            meta: { total: 0, current_page: 1, last_page: 1, per_page: 100 },
-        });
+        LIST_ENTITIES_MOCK.mockResolvedValue([]);
 
         const onDeleted = vi.fn();
         const user = userEvent.setup();

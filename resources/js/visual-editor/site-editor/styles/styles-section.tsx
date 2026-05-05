@@ -26,6 +26,7 @@ import {
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import type { SiteEditorApiConfig } from '../api-client';
 import type { EntityEditorState } from '../entity-editor';
+import { SectionPortal } from '../section-portal';
 import {
     StyleBookCanvas,
     type StyleVariation,
@@ -336,6 +337,37 @@ export function useStylesSectionViews(
     );
 
     return { navigator, canvas, inspector };
+}
+
+/**
+ * Lazy-mountable wrapper around `useStylesSectionViews` — H7 (#432).
+ *
+ * The shell `React.lazy()`-imports this file's default export so the
+ * styles bundle (style-book canvas, panels, navigator tree) stays out
+ * of the initial site-editor boot chunk. The component itself just
+ * runs the hook and portals the three views into shell-controlled
+ * mount points; lazy-loading the orchestrator is what actually splits
+ * the chunk.
+ */
+export interface StylesSectionViewProps extends UseStylesSectionViewsOptions {
+    navigatorSlot: HTMLElement | null;
+    canvasSlot: HTMLElement | null;
+    inspectorSlot: HTMLElement | null;
+}
+
+export default function StylesSectionView(
+    props: StylesSectionViewProps
+): ReactElement {
+    const { navigatorSlot, canvasSlot, inspectorSlot, ...hookOptions } = props;
+    const views = useStylesSectionViews(hookOptions);
+
+    return (
+        <>
+            <SectionPortal slot={navigatorSlot}>{views.navigator}</SectionPortal>
+            <SectionPortal slot={canvasSlot}>{views.canvas}</SectionPortal>
+            <SectionPortal slot={inspectorSlot}>{views.inspector}</SectionPortal>
+        </>
+    );
 }
 
 export { DEFAULT_NAVIGATOR_STATE } from './styles-navigator-tree';

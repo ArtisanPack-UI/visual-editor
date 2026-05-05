@@ -26,6 +26,7 @@ import type {
     SiteEditorApiConfig,
 } from '../api-client';
 import type { EntityEditorState } from '../entity-editor';
+import { SectionPortal } from '../section-portal';
 import {
     fetchMenuLocations,
     listNavigations,
@@ -194,13 +195,18 @@ export function useNavigationSectionViews(
             // the current owner and clear it.
             try {
                 if (navigationId === null) {
-                    // Find the current owner by slug. List response is
-                    // already paginated to 50 — V1 menus list is
-                    // small, no need to paginate further.
+                    // Find the current owner by location. H6's
+                    // `MenuController::index` returns the full menu
+                    // set as a flat array (no pagination), so a single
+                    // fetch sees every row — `perPage` is sent for
+                    // forward-compat with a future paginated surface
+                    // but the controller currently ignores it. If H6
+                    // adds pagination later, switch this to either a
+                    // location-filtered endpoint or a paginated walk.
                     const list = await listNavigations(apiConfig, {
                         perPage: 50,
                     });
-                    const current = list.data.find(
+                    const current = list.find(
                         (row) => row.location === locationSlug
                     );
 
@@ -341,4 +347,42 @@ export function useNavigationSectionViews(
     ) : null;
 
     return { navigator, canvas, inspector, overlay };
+}
+
+/**
+ * Lazy-mountable wrapper around `useNavigationSectionViews` — H7 (#432).
+ *
+ * Same role as `StylesSectionView` for D3: the shell `React.lazy()`-
+ * imports this default export so the navigation tree editor, browser,
+ * inspector, and create-menu dialog stay out of the initial site-
+ * editor boot chunk.
+ */
+export interface NavigationSectionViewProps
+    extends UseNavigationSectionViewsOptions {
+    navigatorSlot: HTMLElement | null;
+    canvasSlot: HTMLElement | null;
+    inspectorSlot: HTMLElement | null;
+    overlaySlot: HTMLElement | null;
+}
+
+export default function NavigationSectionView(
+    props: NavigationSectionViewProps
+): ReactElement {
+    const {
+        navigatorSlot,
+        canvasSlot,
+        inspectorSlot,
+        overlaySlot,
+        ...hookOptions
+    } = props;
+    const views = useNavigationSectionViews(hookOptions);
+
+    return (
+        <>
+            <SectionPortal slot={navigatorSlot}>{views.navigator}</SectionPortal>
+            <SectionPortal slot={canvasSlot}>{views.canvas}</SectionPortal>
+            <SectionPortal slot={inspectorSlot}>{views.inspector}</SectionPortal>
+            <SectionPortal slot={overlaySlot}>{views.overlay}</SectionPortal>
+        </>
+    );
 }

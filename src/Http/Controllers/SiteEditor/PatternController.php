@@ -84,15 +84,21 @@ class PatternController extends Controller
 	}
 
 	/**
-	 * GET `/visual-editor/api/patterns/{slug}` — single pattern. The
-	 * `{slug}` segment matches `.+` so user-source slugs carrying the
-	 * `user/` prefix can ride through unchanged.
+	 * GET `/visual-editor/api/patterns/{slug}` — single pattern.
+	 *
+	 * The route segment is named `{slug}` for parity with WP REST,
+	 * but H6 ({@see PatternAdapter::toArray()}) sets the response's
+	 * `id` to `wpId ?? slug`, and the editor's `addEntities` registers
+	 * `wp_block` with `key: 'id'`. So the URL parameter is whatever the
+	 * adapter put into `id` — a numeric DB id for user patterns, the
+	 * slug for theme patterns. {@see findPatternByIdOrSlug()} handles
+	 * both forms.
 	 *
 	 * @since 1.0.0
 	 */
 	public function show( string $slug ): JsonResponse
 	{
-		$resolved = $this->findPattern( $slug );
+		$resolved = $this->findPatternByIdOrSlug( $slug );
 
 		if ( ! $resolved instanceof ResolvedPattern ) {
 			return response()->json( [ 'message' => 'Pattern not found.' ], Response::HTTP_NOT_FOUND );
@@ -162,7 +168,13 @@ class PatternController extends Controller
 
 		$validated = $request->validated();
 
-		if ( array_key_exists( 'slug', $validated ) && $this->normalizeUserSlug( $validated['slug'] ) !== $this->normalizeUserSlug( $slug ) ) {
+		$existing = $this->findPatternModelByIdOrSlug( $slug );
+
+		if ( null === $existing ) {
+			return response()->json( [ 'message' => 'Pattern not found.' ], Response::HTTP_NOT_FOUND );
+		}
+
+		if ( array_key_exists( 'slug', $validated ) && $this->normalizeUserSlug( $validated['slug'] ) !== $this->normalizeUserSlug( (string) $existing->slug ) ) {
 			return response()->json( [
 				'message' => 'Body slug does not match URL slug.',
 				'errors'  => [ 'slug' => [ 'Slug in the request body must match the URL slug.' ] ],
@@ -171,20 +183,11 @@ class PatternController extends Controller
 
 		unset( $validated['slug'] );
 
-		$model      = self::CMS_PATTERN_FQCN;
-		$storedSlug = $this->ensureUserPrefix( $slug );
-
-		$existing = $model::query()->where( 'slug', $storedSlug )->first();
-
-		if ( null === $existing ) {
-			return response()->json( [ 'message' => 'Pattern not found.' ], Response::HTTP_NOT_FOUND );
-		}
-
 		$existing->update( $this->modelAttributesFromRequest( $validated ) );
 
 		$this->refreshResolver();
 
-		$resolved = $this->findPattern( $slug );
+		$resolved = $this->findPatternByIdOrSlug( $slug );
 
 		// The DB write succeeded; if the post-write resolver re-lookup
 		// can't find the record (stale filter contributor, slug-prefix
@@ -211,14 +214,13 @@ class PatternController extends Controller
 			return $this->cmsFrameworkUnavailable();
 		}
 
-		$model      = self::CMS_PATTERN_FQCN;
-		$storedSlug = $this->ensureUserPrefix( $slug );
+		$existing = $this->findPatternModelByIdOrSlug( $slug );
 
-		$deleted = (int) $model::query()->where( 'slug', $storedSlug )->delete();
-
-		if ( 0 === $deleted ) {
+		if ( null === $existing ) {
 			return response()->json( [ 'message' => 'Pattern not found.' ], Response::HTTP_NOT_FOUND );
 		}
+
+		$existing->delete();
 
 		$this->refreshResolver();
 
@@ -248,6 +250,64 @@ class PatternController extends Controller
 		$resolved = $this->resolver->find( $prefixed );
 
 		return $resolved instanceof ResolvedPattern ? $resolved : null;
+	}
+
+	/**
+	 * Resolve a pattern by either its DB id or its slug.
+	 *
+	 * H6's adapter stamps the response's `id` as `wpId ?? slug`, so the
+	 * URL parameter the editor sends back is one of:
+	 *   - a numeric DB id (user-source patterns), or
+	 *   - the slug (theme patterns whose `wpId` is null).
+	 *
+	 * Numeric ids dispatch through a single resolver scan keyed on
+	 * {@see ResolvedPattern::$wpId}; non-numeric input falls through to
+	 * {@see findPattern()} which already handles the user-prefix dance.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function findPatternByIdOrSlug( string $input ): ?ResolvedPattern
+	{
+		if ( ctype_digit( $input ) ) {
+			$id = (int) $input;
+
+			foreach ( $this->resolver->all() as $candidate ) {
+				if ( $candidate instanceof ResolvedPattern && $candidate->wpId === $id ) {
+					return $candidate;
+				}
+			}
+
+			return null;
+		}
+
+		return $this->findPattern( $input );
+	}
+
+	/**
+	 * Resolve a pattern model row by either id or slug, for write
+	 * paths (update / destroy) that need the underlying Eloquent
+	 * record. Mirrors {@see findPatternByIdOrSlug()} but bypasses the
+	 * resolver because writes target the DB row directly.
+	 *
+	 * Returns null when the row doesn't exist or when cms-framework
+	 * isn't booted (callers gate on
+	 * {@see cmsFrameworkAvailable()} before invoking).
+	 *
+	 * @since 1.0.0
+	 */
+	protected function findPatternModelByIdOrSlug( string $input ): ?object
+	{
+		$model = self::CMS_PATTERN_FQCN;
+
+		if ( ctype_digit( $input ) ) {
+			/** @var object|null */
+			return $model::query()->find( (int) $input );
+		}
+
+		$storedSlug = $this->ensureUserPrefix( $input );
+
+		/** @var object|null */
+		return $model::query()->where( 'slug', $storedSlug )->first();
 	}
 
 	/**

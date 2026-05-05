@@ -84,7 +84,7 @@ export function NavigationBrowser(
 
                 setState({
                     status: 'ready',
-                    rows: response.data,
+                    rows: response,
                     errorMessage: null,
                 });
             } catch (error: unknown) {

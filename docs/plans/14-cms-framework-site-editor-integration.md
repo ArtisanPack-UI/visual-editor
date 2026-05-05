@@ -3,7 +3,7 @@
 **Package:** `artisanpack-ui/visual-editor` (companion: `artisanpack-ui/cms-framework`)
 **Version Target:** visual-editor 1.0.0 / cms-framework 1.x
 **Created:** April 27, 2026
-**Status:** In rollout — H0–H6 shipped (#100, #108, #110, #112, #114, #407, #431); H7 + H8 pending
+**Status:** In rollout — H0–H7 shipped (#100, #108, #110, #112, #114, #407, #431, #432); H8 pending
 **Relates to:** #309 (umbrella), [`11-v1-expansion.md`](11-v1-expansion.md), [`12-cms-framework-integration.md`](12-cms-framework-integration.md).
 **Supersedes scope of:** [`11-v1-expansion.md`](11-v1-expansion.md) Phase C (templates / template-parts / patterns / global-styles / navigation backends) and the corresponding Phase D backend wiring — those phases assumed visual-editor first-party tables. This plan moves ownership of those entities into cms-framework. Phase D's UI work in visual-editor remains, retargeted at cms-framework endpoints.
 
@@ -287,6 +287,25 @@ The H6 surface ships across six commits on the `feature/431-site-editor-h6-adapt
 
 Plan 11 Phase D legacy code cleanup — `VisualEditor{Template,TemplatePart,Pattern,GlobalStyles,Navigation}` models + their migrations + factories + policies; the legacy `Resources/{TemplateResolver,TemplatePartInliner,PatternInliner}` classes; the `Services/GlobalStylesCssProvider` + `GlobalStylesCacheInvalidator` (cms-framework's `GlobalStylesEmitter` per §4.6 supersedes); `EntitySearchController` rewrite to consume cms-framework's resource map; `MenuLocationsController` rewrite to consume cms-framework's `MenuLocationAssignment`. These are still alive at the model layer because their consumers (search picker, location config endpoint, CSS emission) remain wired to the old DB; #434 spells out the per-system cutover order.
 
+#### 4.5.2 Implementation status — H7 shipped
+
+H7 (#432) layers two pieces on top of the H6 surface:
+
+| Sub-task | Files | Tests |
+|---|---|---|
+| Server-side install gate | `src/SiteEditor/CmsFrameworkIntegration.php`, `resources/views/site-editor/install-gate.blade.php`, `routes/web.php` | `tests/Feature/SiteEditor/InstallGateTest.php` (gate fires) + `InstallGateActiveTest.php` (gate falls through to SPA mount) |
+| Lazy-loaded section orchestrators | `resources/js/visual-editor/site-editor/section-portal.tsx`, default exports added to `styles/styles-section.tsx`, `navigation/navigation-section.tsx`, `patterns/patterns-section.tsx`; `site-editor-app.tsx` swaps the static hook calls for `React.lazy` + `Suspense` + portal slots | `tests/Feature/SiteEditorShellTest.php` (lazy boundary pinned at the source) + the existing site-editor-app shell test (updated mocks) |
+
+**Open questions resolved at H7 kickoff:**
+
+- **Install-gate copy** (deferred from H6) — final wording in `resources/views/site-editor/install-gate.blade.php`. Heading: *"Install cms-framework to enable the site editor"*. Body explains the dependency, shows a copy-pasteable `composer require` command, and links back to the post editor (which works standalone). The gate uses inline styles so it stays renderable when the Vite manifest isn't built.
+- **Entity-route lazy-loading** — three of the five section orchestrators (styles, navigation, patterns) ship as `React.lazy()` chunks; the shell exposes stable navigator/canvas/inspector/overlay portal slots and each lazy section portals its hook results into them. Templates and template-parts stay eager because they share `useEntityEditorViews` with the post-editor's already-warm bundle and they're the default landing path; making them lazy would pay a chunk-fetch cost on the most-trafficked nav.
+
+**Notable departures:**
+
+- **Coarse availability probe at the route** — `CmsFrameworkIntegration::isAvailable()` checks `class_exists` on cms-framework's `Template` model + `app()->bound()` on the `TemplateResolver` binding. Each H6 controller has its own per-entity probe; the route uses a single coarser check because cms-framework registers all four resolvers in one provider boot. Either signal alone would do — picking templates because H1 ships first.
+- **Slot-based portal architecture for the three lazy sections** — the navigator/canvas/inspector slots are conditional on whether the active section needs them, but they're at stable JSX positions so React reuses the same DOM elements across re-renders inside a section. The lazy section component receives the live slot state and renders a portal-or-null per slot — when the slot div isn't rendered (e.g., D4 with no entity loaded → falls back to `InspectorOutlet`), the slot state is null and the portal silently no-ops. This mirrors the existing shell's "show/hide the inspector based on entity load" behavior without forcing the section component to know about that gate.
+
 ### 4.6 CSS emission (H3)
 
 `GlobalStylesEmitter` service translates the resolved global-styles object into CSS custom properties + per-block class rules. Output is cached on a content hash; cache busts on any DB write to `global_styles` or theme switch.
@@ -376,6 +395,6 @@ Not blocking this plan, but worth naming so they don't surface mid-implementatio
 - **H2 user-pattern slug strategy** — `user/{slug}` prefix at storage (decision in §5.6) or separate `user_patterns` table? Leaning prefix for one model, one table.
 - **H3 variation registration** — theme-only (declared in `theme.json` `styles.variations`) or also runtime-registerable by apps? Leaning theme-only for V1.
 - **H4 menu-item link types** — `core/navigation-link` only, or also `core/navigation-submenu` and `core/page-list`? All three needed for parity; budget extra time at H4 kickoff.
-- **H6 install-gate copy** — exact wording for the "cms-framework required" page. Decide at H6 kickoff.
-- **H7 entity-route lazy-loading** — load all five entity-list views eagerly at site-editor boot (faster nav, larger initial bundle), or per-route lazy (smaller boot, per-nav cost)? Leaning lazy.
+- ~~**H6 install-gate copy** — exact wording for the "cms-framework required" page. Decide at H6 kickoff.~~ Resolved at H7 kickoff (deferred from H6 because the gate ships in H7) — see §4.5.2.
+- ~~**H7 entity-route lazy-loading** — load all five entity-list views eagerly at site-editor boot (faster nav, larger initial bundle), or per-route lazy (smaller boot, per-nav cost)? Leaning lazy.~~ Resolved: lazy on styles/navigation/patterns; eager on templates/template-parts. See §4.5.2.
 - **H8 sample theme name + scope** — fork cms-framework's `digital-shopfront` reference theme into the dev-app, or build a minimal `dev-sample` theme just for the smoke flow? Decide at H8 kickoff.

@@ -116,27 +116,20 @@ const baseLocations: PendingResponse = {
     },
 };
 
+// H7 (#432). H6's `MenuController::index` returns a flat array.
 const baseList: PendingResponse = {
-    body: {
-        data: [
-            {
-                id: 1,
-                slug: 'main',
-                title: { rendered: 'Main' },
-                content: { raw: '', blocks: [] },
-                status: 'publish',
-                menu_order: 0,
-                location: 'primary',
-                type: 'wp_navigation',
-            },
-        ],
-        meta: {
-            current_page: 1,
-            last_page: 1,
-            per_page: 50,
-            total: 1,
+    body: [
+        {
+            id: 1,
+            slug: 'main',
+            title: { rendered: 'Main' },
+            content: { raw: '', blocks: [] },
+            status: 'publish',
+            menu_order: 0,
+            location: 'primary',
+            type: 'wp_navigation',
         },
-    },
+    ],
 };
 
 describe('navigation-section list + open', () => {
@@ -151,7 +144,7 @@ describe('navigation-section list + open', () => {
                 response: baseLocations,
             },
             {
-                matcher: /\/navigation\?per_page=50/,
+                matcher: /\/menus\?per_page=50/,
                 method: 'GET',
                 response: baseList,
             },
@@ -184,7 +177,7 @@ describe('navigation-section list + open', () => {
                 response: baseLocations,
             },
             {
-                matcher: /\/navigation\?per_page=50/,
+                matcher: /\/menus\?per_page=50/,
                 method: 'GET',
                 response: baseList,
             },
@@ -207,7 +200,7 @@ describe('navigation-section list + open', () => {
 });
 
 describe('navigation-section save pipeline', () => {
-    it('dispatches PUT /navigation/{id} when the entity-state save runs', async () => {
+    it('dispatches PUT /menus/{id} when the entity-state save runs', async () => {
         const stateRef: { current: EntityEditorState | null } = {
             current: null,
         };
@@ -222,12 +215,12 @@ describe('navigation-section save pipeline', () => {
                 response: baseLocations,
             },
             {
-                matcher: /\/navigation\?per_page=50/,
+                matcher: /\/menus\?per_page=50/,
                 method: 'GET',
                 response: baseList,
             },
             {
-                matcher: /\/navigation\/1$/,
+                matcher: /\/menus\/1$/,
                 method: 'GET',
                 response: {
                     body: {
@@ -243,7 +236,7 @@ describe('navigation-section save pipeline', () => {
                 },
             },
             {
-                matcher: /\/navigation\/1$/,
+                matcher: /\/menus\/1$/,
                 method: 'PUT',
                 response: {
                     body: {
@@ -278,7 +271,7 @@ describe('navigation-section save pipeline', () => {
         const putCall = calls.find(
             ([url, init]) =>
                 typeof url === 'string' &&
-                url.endsWith('/navigation/1') &&
+                url.endsWith('/menus/1') &&
                 (init as RequestInit | undefined)?.method === 'PUT'
         );
 

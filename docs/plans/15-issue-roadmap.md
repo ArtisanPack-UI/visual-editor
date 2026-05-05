@@ -86,15 +86,16 @@ After Wave 1. `#100` (H0) gates H1–H4. **H1–H4 in cms-framework and H6–H8 
 | Issue | Repo | Title | Priority | Effort | Depends on |
 |---|---|---|---|---|---|
 | `#406` | visual-editor | Plan 14 umbrella | High | High | — |
-| `#100` | cms-framework | H0 · `theme.json` schema extension | High | Medium | — |
-| *not filed* | cms-framework | H1 · Templates + template-parts module | — | — | `#100` |
-| *not filed* | cms-framework | H2 · Patterns module | — | — | `#100` |
-| *not filed* | cms-framework | H3 · Global styles + CSS emission | — | — | `#100` |
-| *not filed* | cms-framework | H4 · Menus module | — | — | `#100` |
-| `#407` | visual-editor | H5 · Site-editor resource filters | High | Medium | H1–H4 *(any one)* |
-| *not filed* | visual-editor | H6 · WP-shape adapters + `addEntities` + sidebars | — | — | `#407` |
-| *not filed* | visual-editor | H7 · Rescope plan 11 Phase D UI | — | — | H6 |
-| *not filed* | visual-editor | H8 · Dev-app sample theme + smoke flow | — | — | H7 |
+| ~~`#100`~~ | cms-framework | H0 · `theme.json` schema extension *(closed)* | High | Medium | — |
+| ~~`#108`~~ | cms-framework | H1 · Templates + template-parts module *(closed)* | High | High | `#100` |
+| ~~`#110`~~ | cms-framework | H2 · Patterns module *(closed)* | High | High | `#100` |
+| ~~`#112`~~ | cms-framework | H3 · Global styles + CSS emission *(closed)* | High | High | `#100` |
+| ~~`#114`~~ | cms-framework | H4 · Menus module *(closed)* | High | High | `#100` |
+| ~~`#407`~~ | visual-editor | H5 · Site-editor resource filters *(closed)* | High | Medium | H1–H4 *(any one)* |
+| ~~`#431`~~ | visual-editor | H6 · WP-shape adapters + `addEntities` + sidebars *(closed)* | High | High | `#407` |
+| ~~`#432`~~ | visual-editor | H7 · Site-editor shell wiring + install gate *(closed)* | High | Medium | H6 |
+| `#433` | visual-editor | H8 · Dev-app sample theme + smoke flow + version-pair docs | High | Medium | H7 |
+| `#434` | visual-editor | Follow-up · delete plan-11-Phase-D legacy site-editor code | Medium | Medium | H7 |
 
 ### Parallel polish track
 

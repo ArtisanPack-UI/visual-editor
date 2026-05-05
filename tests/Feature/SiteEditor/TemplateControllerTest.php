@@ -106,6 +106,31 @@ describe( 'GET /visual-editor/api/templates/{slug}', function (): void {
 
 		$this->getJson( '/visual-editor/api/templates/missing' )->assertNotFound();
 	} );
+
+	// H7 (#432). The H6 adapter sets `id = wpId ?? slug`, so for
+	// DB-backed templates the SPA navigates by integer id. The route
+	// param is named `{slug}`; the controller dispatches on
+	// numeric-vs-non-numeric input and looks the row up by primary
+	// key in the numeric branch.
+	it( 'resolves a template by its DB id (H6 adapter id field)', function (): void {
+		$template = Template::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'page',
+			'title'         => 'Page',
+			'description'   => 'Default page template.',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		rebuildSiteEditorResolversForTest();
+
+		$this->getJson( '/visual-editor/api/templates/' . $template->id )
+			->assertOk()
+			->assertJsonPath( 'slug', 'page' )
+			->assertJsonPath( 'id', $template->id );
+	} );
 } );
 
 describe( 'POST /visual-editor/api/templates', function (): void {
@@ -211,6 +236,28 @@ describe( 'PUT /visual-editor/api/templates/{slug}', function (): void {
 		$this->putJson( '/visual-editor/api/templates/single', [ 'title' => 'No theme' ] )
 			->assertStatus( 422 );
 	} );
+
+	// H7 (#432). With a numeric URL parameter the controller resolves
+	// the template by primary key — the row already knows its theme,
+	// so the body's `theme` field becomes optional.
+	it( 'updates by DB id without requiring a theme in the body', function (): void {
+		$template = Template::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'single',
+			'title'         => 'Single',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$this->putJson( '/visual-editor/api/templates/' . $template->id, [
+			'title' => 'Single Renamed',
+		] )
+			->assertOk()
+			->assertJsonPath( 'title.raw', 'Single Renamed' )
+			->assertJsonPath( 'id', $template->id );
+	} );
 } );
 
 describe( 'DELETE /visual-editor/api/templates/{slug}', function (): void {
@@ -263,5 +310,25 @@ describe( 'DELETE /visual-editor/api/templates/{slug}', function (): void {
 
 	it( 'returns 404 when no DB override matches the (theme, slug)', function (): void {
 		$this->deleteJson( '/visual-editor/api/templates/missing?theme=digital-shopfront' )->assertNotFound();
+	} );
+
+	// H7 (#432). Numeric URL parameter resolves the row by primary
+	// key — the row owns its theme, so `?theme=` is unnecessary in
+	// this branch.
+	it( 'deletes by DB id without requiring a theme query param', function (): void {
+		$template = Template::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'archive',
+			'title'         => 'Archive',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$this->deleteJson( '/visual-editor/api/templates/' . $template->id )
+			->assertNoContent();
+
+		expect( Template::query()->whereKey( $template->id )->exists() )->toBeFalse();
 	} );
 } );
