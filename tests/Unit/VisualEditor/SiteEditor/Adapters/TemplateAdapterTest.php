@@ -95,6 +95,17 @@ describe( 'single-record envelope', function (): void {
 			->and( $out['content']['blocks'] )->toHaveCount( 1 );
 	} );
 
+	it( 'falls back from `wpId = 0` (file-only sentinel) to slug for `id` (#438)', function (): void {
+		$template = makeResolvedTemplate( [
+			'wpId' => 0,
+			'slug' => 'page',
+		] );
+
+		$out = ( new TemplateAdapter() )->toArray( $template );
+
+		expect( $out['id'] )->toBe( 'page' );
+	} );
+
 	it( 'reports `origin` as null for custom templates with no theme backing', function (): void {
 		$template = makeResolvedTemplate( [
 			'isCustom'     => true,

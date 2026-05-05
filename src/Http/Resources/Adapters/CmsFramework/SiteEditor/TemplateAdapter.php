@@ -58,7 +58,7 @@ class TemplateAdapter
 	public function toArray( ResolvedTemplate $template ): array
 	{
 		return [
-			'id'             => $template->wpId ?? $template->slug,
+			'id'             => $template->wpId > 0 ? $template->wpId : $template->slug,
 			'slug'           => $template->slug,
 			'type'           => 'wp_template',
 			'source'         => $template->source,

@@ -49,7 +49,7 @@ class PatternAdapter
 	public function toArray( ResolvedPattern $pattern ): array
 	{
 		return [
-			'id'          => $pattern->wpId ?? $pattern->slug,
+			'id'          => $pattern->wpId > 0 ? $pattern->wpId : $pattern->slug,
 			'slug'        => $pattern->slug,
 			'type'        => 'wp_block',
 			'status'      => 'publish',

@@ -68,6 +68,17 @@ describe( 'single-record envelope', function (): void {
 			->and( $out['synced'] )->toBeTrue();
 	} );
 
+	it( 'falls back from `wpId = 0` (theme-source sentinel) to slug for `id` (#438)', function (): void {
+		$pattern = makeResolvedPattern( [
+			'wpId' => 0,
+			'slug' => 'hero-banner',
+		] );
+
+		$out = ( new PatternAdapter() )->toArray( $pattern );
+
+		expect( $out['id'] )->toBe( 'hero-banner' );
+	} );
+
 	it( 'preserves empty category and block_type lists', function (): void {
 		$pattern = makeResolvedPattern( [ 'categories' => [], 'blockTypes' => [] ] );
 

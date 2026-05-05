@@ -47,7 +47,7 @@ class MenuAdapter
 	public function toArray( ResolvedMenu $menu ): array
 	{
 		return [
-			'id'     => $menu->wpId ?? $menu->location,
+			'id'     => $menu->wpId > 0 ? $menu->wpId : $menu->location,
 			'slug'   => $menu->location,
 			'type'   => 'wp_navigation',
 			'status' => 'publish',

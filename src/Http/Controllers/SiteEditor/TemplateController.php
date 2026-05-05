@@ -361,7 +361,10 @@ class TemplateController extends Controller
 	 */
 	protected function findTemplateByIdOrSlug( string $input ): ?ResolvedTemplate
 	{
-		if ( ctype_digit( $input ) ) {
+		// `0` is the sentinel `wpId` for file-only templates — never a valid
+		// DB id. Treating it as one would silently match the first file-only
+		// candidate, masking #438. Fall through to slug lookup instead.
+		if ( ctype_digit( $input ) && (int) $input > 0 ) {
 			$id = (int) $input;
 
 			foreach ( $this->resolver->all() as $candidate ) {

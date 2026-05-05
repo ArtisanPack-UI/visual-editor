@@ -144,8 +144,9 @@ class TemplatePartController extends Controller
 		// H7 (#432). Numeric URL parameter → primary-key update on
 		// the row that already knows its `(theme, slug, area)`. Slug
 		// path keeps the existing upsert behavior so a theme-only
-		// part can be DB-overridden through a PUT.
-		if ( ctype_digit( $slug ) ) {
+		// part can be DB-overridden through a PUT. `0` is the file-only
+		// sentinel and must fall through to the slug branch (#438).
+		if ( ctype_digit( $slug ) && (int) $slug > 0 ) {
 			$existing = $model::query()->find( (int) $slug );
 
 			if ( null === $existing ) {
@@ -265,8 +266,9 @@ class TemplatePartController extends Controller
 
 		// H7 (#432). Numeric URL parameter → primary-key delete; the
 		// row owns its theme so the `?theme=` collision risk doesn't
-		// apply. Slug path keeps the `?theme=` requirement.
-		if ( ctype_digit( $slug ) ) {
+		// apply. Slug path keeps the `?theme=` requirement. `0` is the
+		// file-only sentinel and must fall through (#438).
+		if ( ctype_digit( $slug ) && (int) $slug > 0 ) {
 			$existing = $model::query()->find( (int) $slug );
 
 			if ( null === $existing ) {
@@ -320,7 +322,8 @@ class TemplatePartController extends Controller
 	 */
 	protected function findTemplatePartByIdOrSlug( string $input ): ?ResolvedTemplatePart
 	{
-		if ( ctype_digit( $input ) ) {
+		// `0` is the file-only sentinel and must fall through (#438).
+		if ( ctype_digit( $input ) && (int) $input > 0 ) {
 			$id = (int) $input;
 
 			foreach ( $this->resolver->all() as $candidate ) {

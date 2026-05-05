@@ -48,6 +48,12 @@ describe( 'single-record envelope', function (): void {
 			->and( $out['slug'] )->toBe( 'primary' );
 	} );
 
+	it( 'falls back from `wpId = 0` (no-record sentinel) to location for `id` (#438)', function (): void {
+		$out = ( new MenuAdapter() )->toArray( makeResolvedMenu( [ 'wpId' => 0 ] ) );
+
+		expect( $out['id'] )->toBe( 'primary' );
+	} );
+
 	it( 'forwards items as-is for the inspector to render without parse round-trip', function (): void {
 		$items = [
 			[ 'label' => 'Blog', 'url' => '/blog', 'type' => 'link', 'classes' => 'has-icon' ],

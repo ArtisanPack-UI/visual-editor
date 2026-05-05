@@ -268,7 +268,10 @@ class PatternController extends Controller
 	 */
 	protected function findPatternByIdOrSlug( string $input ): ?ResolvedPattern
 	{
-		if ( ctype_digit( $input ) ) {
+		// `0` is the sentinel `wpId` for theme-source patterns — never a
+		// valid DB id. Treating it as one would silently match the first
+		// theme pattern, masking #438. Fall through to slug lookup.
+		if ( ctype_digit( $input ) && (int) $input > 0 ) {
 			$id = (int) $input;
 
 			foreach ( $this->resolver->all() as $candidate ) {
@@ -299,7 +302,9 @@ class PatternController extends Controller
 	{
 		$model = self::CMS_PATTERN_FQCN;
 
-		if ( ctype_digit( $input ) ) {
+		// `0` cannot match any real DB row; skip the lookup and fall
+		// through to slug resolution (#438).
+		if ( ctype_digit( $input ) && (int) $input > 0 ) {
 			/** @var object|null */
 			return $model::query()->find( (int) $input );
 		}
