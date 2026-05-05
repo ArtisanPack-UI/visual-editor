@@ -107,9 +107,25 @@ class MenuController extends Controller
 
 		$model = self::CMS_MENU_FQCN;
 
+		$attributes = $this->modelAttributesFromRequest( $request->validated() );
+
+		if ( ! array_key_exists( 'theme', $attributes ) || '' === (string) $attributes['theme'] ) {
+			return response()->json( [
+				'message' => 'A theme is required to create a menu.',
+				'errors'  => [ 'theme' => [ 'The theme field is required when no theme is active.' ] ],
+			], Response::HTTP_UNPROCESSABLE_ENTITY );
+		}
+
+		if ( ! array_key_exists( 'name', $attributes ) || '' === (string) $attributes['name'] ) {
+			return response()->json( [
+				'message' => 'A name is required to create a menu.',
+				'errors'  => [ 'name' => [ 'The name (or title) field is required.' ] ],
+			], Response::HTTP_UNPROCESSABLE_ENTITY );
+		}
+
 		try {
 			/** @var object $menu */
-			$menu = $model::create( $request->validated() );
+			$menu = $model::create( $attributes );
 		} catch ( QueryException $e ) {
 			if ( $this->isUniqueViolation( $e ) ) {
 				return response()->json( [
@@ -142,7 +158,7 @@ class MenuController extends Controller
 		}
 
 		try {
-			$menu->update( $request->validated() );
+			$menu->update( $this->modelAttributesFromRequest( $request->validated() ) );
 		} catch ( QueryException $e ) {
 			if ( $this->isUniqueViolation( $e ) ) {
 				return response()->json( [
@@ -251,6 +267,72 @@ class MenuController extends Controller
 		}
 
 		return app()->bound( self::CMS_RESOLVER_BINDING );
+	}
+
+	/**
+	 * Translate the WP-shape validated input into cms-framework `Menu`
+	 * model attributes. Maps `title` (WP REST shape — what the editor's
+	 * create-menu dialog sends) onto `name` (model column), and falls
+	 * back to cms-framework's active theme when the payload doesn't
+	 * carry one. Mirrors the helpers in TemplateController and
+	 * TemplatePartController (#438).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $validated
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function modelAttributesFromRequest( array $validated ): array
+	{
+		$attributes = [];
+
+		foreach ( [ 'theme', 'slug', 'name', 'description', 'auto_add_pages' ] as $field ) {
+			if ( array_key_exists( $field, $validated ) ) {
+				$attributes[ $field ] = $validated[ $field ];
+			}
+		}
+
+		// `title` (WP REST shape) wins over `name` (model shape) when
+		// both are present, since the editor consistently sends `title`
+		// and an explicit body `name` would only appear from a REST
+		// client choosing to use the model field directly.
+		if ( array_key_exists( 'title', $validated ) ) {
+			$attributes['name'] = $validated['title'];
+		}
+
+		if ( ! array_key_exists( 'theme', $attributes ) || '' === (string) ( $attributes['theme'] ?? '' ) ) {
+			$active = $this->activeThemeSlug();
+
+			if ( null !== $active ) {
+				$attributes['theme'] = $active;
+			}
+		}
+
+		return $attributes;
+	}
+
+	/**
+	 * Resolve the active theme slug through cms-framework's `ThemeManager`
+	 * when available. Mirrors {@see TemplateController::activeThemeSlug()}.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function activeThemeSlug(): ?string
+	{
+		$themeManagerFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
+
+		if ( ! class_exists( $themeManagerFqcn ) || ! app()->bound( $themeManagerFqcn ) ) {
+			return null;
+		}
+
+		$theme = app( $themeManagerFqcn )->getActiveTheme();
+
+		if ( ! is_array( $theme ) || empty( $theme['slug'] ) || ! is_string( $theme['slug'] ) ) {
+			return null;
+		}
+
+		return $theme['slug'];
 	}
 
 	/**

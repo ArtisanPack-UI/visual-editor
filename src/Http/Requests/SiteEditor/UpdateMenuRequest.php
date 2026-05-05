@@ -37,7 +37,11 @@ class UpdateMenuRequest extends FormRequest
 		return [
 			'theme'          => [ 'sometimes', 'string', 'max:191' ],
 			'slug'           => [ 'sometimes', 'string', 'max:191' ],
+			// Accept either `name` (model shape) or `title` (WP REST shape
+			// — what the editor's update flow sends). The controller maps
+			// `title` → `name` via `modelAttributesFromRequest`.
 			'name'           => [ 'sometimes', 'string', 'max:255' ],
+			'title'          => [ 'sometimes', 'string', 'max:255' ],
 			'description'    => [ 'nullable', 'string' ],
 			'auto_add_pages' => [ 'sometimes', 'boolean' ],
 		];

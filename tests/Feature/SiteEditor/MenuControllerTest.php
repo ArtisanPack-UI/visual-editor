@@ -110,10 +110,39 @@ describe( 'POST /visual-editor/api/menus', function (): void {
 		] )->assertStatus( 409 );
 	} );
 
-	it( 'returns 422 with explicit validation errors when required fields are missing', function (): void {
-		$this->postJson( '/visual-editor/api/menus', [ 'name' => 'Missing theme + slug' ] )
+	it( 'returns 422 when slug is missing (theme falls back to active)', function (): void {
+		$this->postJson( '/visual-editor/api/menus', [ 'name' => 'Missing slug' ] )
 			->assertStatus( 422 )
-			->assertJsonValidationErrors( [ 'theme', 'slug' ] );
+			->assertJsonValidationErrors( 'slug' );
+	} );
+
+	// #438. The editor's create-menu dialog sends `title`, not `name`,
+	// and never sends `theme`. The controller maps `title` → `name`
+	// and falls back to ThemeManager's active theme.
+	it( 'accepts the WP-shape `title` field and falls back to the active theme (#438)', function (): void {
+		$this->postJson( '/visual-editor/api/menus', [
+			'slug'  => 'primary',
+			'title' => 'Primary Navigation',
+		] )
+			->assertCreated()
+			->assertJsonPath( 'theme', 'digital-shopfront' )
+			->assertJsonPath( 'name', 'Primary Navigation' );
+
+		expect( Menu::query()->where( 'theme', 'digital-shopfront' )->where( 'slug', 'primary' )->first()?->name )
+			->toBe( 'Primary Navigation' );
+	} );
+
+	it( 'returns 422 when theme is missing and no active theme is bound', function (): void {
+		$this->mock( \ArtisanPackUI\CMSFramework\Modules\Themes\Managers\ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );
+		} );
+
+		$this->postJson( '/visual-editor/api/menus', [
+			'slug'  => 'primary',
+			'title' => 'Primary',
+		] )
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( 'theme' );
 	} );
 } );
 
