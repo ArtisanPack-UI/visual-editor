@@ -184,11 +184,20 @@ class TemplatePartController extends Controller
 			$theme = (string) ( $validated['theme'] ?? '' );
 
 			if ( '' === $theme ) {
+				$theme = (string) ( $this->activeThemeSlug() ?? '' );
+			}
+
+			if ( '' === $theme ) {
 				return response()->json( [
 					'message' => 'A theme is required to identify the template part.',
-					'errors'  => [ 'theme' => [ 'The theme field is required for site-editor updates.' ] ],
+					'errors'  => [ 'theme' => [ 'The theme field is required for site-editor updates when no theme is active.' ] ],
 				], Response::HTTP_UNPROCESSABLE_ENTITY );
 			}
+
+			// Persist the resolved theme back into `$validated` so
+			// `modelAttributesFromRequest()` carries it into the create
+			// payload. Mirrors the same fix in {@see TemplateController::update()}.
+			$validated['theme'] = $theme;
 
 			$existing = $model::query()->where( 'theme', $theme )->where( 'slug', $slug )->first();
 
@@ -196,8 +205,19 @@ class TemplatePartController extends Controller
 				$attributes         = $this->modelAttributesFromRequest( $validated );
 				$attributes['slug'] = $slug;
 
-				// Area is required to create a new part record; the existing
-				// row's area would otherwise survive the update branch.
+				// Area is required to create a new part record. When the
+				// editor upserts a file-only part it doesn't repeat the
+				// `area` field; fall back to the resolver's view of the
+				// existing file-source part (which infers area from the
+				// slug or `theme.json`) before bailing with 422 (#438).
+				if ( ! array_key_exists( 'area', $attributes ) ) {
+					$resolved = $this->resolver->find( $slug );
+
+					if ( $resolved instanceof ResolvedTemplatePart ) {
+						$attributes['area'] = $resolved->area;
+					}
+				}
+
 				if ( ! array_key_exists( 'area', $attributes ) ) {
 					return response()->json( [
 						'message' => 'An area is required to upsert a new template part.',
@@ -289,9 +309,13 @@ class TemplatePartController extends Controller
 		$theme = trim( (string) $request->query( 'theme', '' ) );
 
 		if ( '' === $theme ) {
+			$theme = (string) ( $this->activeThemeSlug() ?? '' );
+		}
+
+		if ( '' === $theme ) {
 			return response()->json( [
 				'message' => 'A theme is required to identify the template part.',
-				'errors'  => [ 'theme' => [ 'The theme query parameter is required for site-editor deletes.' ] ],
+				'errors'  => [ 'theme' => [ 'The theme query parameter is required for site-editor deletes when no theme is active.' ] ],
 			], Response::HTTP_UNPROCESSABLE_ENTITY );
 		}
 
@@ -347,6 +371,32 @@ class TemplatePartController extends Controller
 		}
 
 		return app()->bound( self::CMS_RESOLVER_BINDING );
+	}
+
+	/**
+	 * Resolve the active theme slug through cms-framework's `ThemeManager`
+	 * when available. Used as the fallback for slug-branch upserts and
+	 * destroys when the request omits an explicit theme. Mirrors
+	 * {@see TemplateController::activeThemeSlug()} and
+	 * {@see GlobalStylesController::activeTheme()}.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function activeThemeSlug(): ?string
+	{
+		$themeManagerFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
+
+		if ( ! class_exists( $themeManagerFqcn ) || ! app()->bound( $themeManagerFqcn ) ) {
+			return null;
+		}
+
+		$theme = app( $themeManagerFqcn )->getActiveTheme();
+
+		if ( ! is_array( $theme ) || empty( $theme['slug'] ) || ! is_string( $theme['slug'] ) ) {
+			return null;
+		}
+
+		return $theme['slug'];
 	}
 
 	/**

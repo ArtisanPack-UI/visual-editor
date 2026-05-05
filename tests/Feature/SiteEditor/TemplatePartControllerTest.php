@@ -306,7 +306,31 @@ describe( 'DELETE /visual-editor/api/template-parts/{slug}', function (): void {
 			->and( TemplatePart::query()->where( 'theme', 'other-theme' )->where( 'slug', 'header' )->exists() )->toBeTrue();
 	} );
 
-	it( 'returns 422 when the theme query parameter is missing', function (): void {
+	// #438. When the request omits `?theme=`, the controller falls back
+	// to cms-framework's active theme — the editor's revert action
+	// doesn't include the theme query param.
+	it( 'falls back to the active theme when ?theme= is omitted (#438)', function (): void {
+		TemplatePart::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'header',
+			'area'          => 'header',
+			'title'         => 'Header',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$this->deleteJson( '/visual-editor/api/template-parts/header' )->assertNoContent();
+
+		expect( TemplatePart::query()->where( 'theme', 'digital-shopfront' )->where( 'slug', 'header' )->exists() )
+			->toBeFalse();
+	} );
+
+	it( 'returns 422 when ?theme= is omitted and no active theme is bound', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );
+		} );
+
 		$this->deleteJson( '/visual-editor/api/template-parts/header' )
 			->assertStatus( 422 )
 			->assertJsonValidationErrors( 'theme' );

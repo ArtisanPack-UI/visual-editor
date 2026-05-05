@@ -232,9 +232,28 @@ describe( 'PUT /visual-editor/api/templates/{slug}', function (): void {
 		] )->assertStatus( 422 );
 	} );
 
-	it( 'returns 422 when the theme is missing', function (): void {
+	// #438. When the body omits `theme`, the controller falls back to
+	// cms-framework's active theme via ThemeManager — the editor save
+	// payload doesn't carry `theme` and shouldn't have to.
+	it( 'falls back to the active theme when the body omits theme (#438)', function (): void {
+		$this->putJson( '/visual-editor/api/templates/falls-back', [ 'title' => 'Falls back' ] )
+			->assertOk()
+			->assertJsonPath( 'theme', 'digital-shopfront' );
+
+		expect( Template::query()->where( 'theme', 'digital-shopfront' )->where( 'slug', 'falls-back' )->exists() )
+			->toBeTrue();
+	} );
+
+	it( 'returns 422 when the body omits theme and no active theme is bound', function (): void {
+		// Re-bind ThemeManager to a no-active-theme stub so the fallback
+		// returns null and the 422 path actually fires.
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );
+		} );
+
 		$this->putJson( '/visual-editor/api/templates/single', [ 'title' => 'No theme' ] )
-			->assertStatus( 422 );
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( 'theme' );
 	} );
 
 	// H7 (#432). With a numeric URL parameter the controller resolves
@@ -304,8 +323,34 @@ describe( 'DELETE /visual-editor/api/templates/{slug}', function (): void {
 			->and( Template::query()->where( 'theme', 'other-theme' )->where( 'slug', 'archive' )->exists() )->toBeTrue();
 	} );
 
-	it( 'returns 422 when the theme query parameter is missing', function (): void {
-		$this->deleteJson( '/visual-editor/api/templates/archive' )->assertStatus( 422 );
+	// #438. When the request omits `?theme=`, the controller falls back
+	// to cms-framework's active theme — the editor's revert action
+	// doesn't include the theme query param.
+	it( 'falls back to the active theme when ?theme= is omitted (#438)', function (): void {
+		Template::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'archive',
+			'title'         => 'Archive',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$this->deleteJson( '/visual-editor/api/templates/archive' )->assertNoContent();
+
+		expect( Template::query()->where( 'theme', 'digital-shopfront' )->where( 'slug', 'archive' )->exists() )
+			->toBeFalse();
+	} );
+
+	it( 'returns 422 when ?theme= is omitted and no active theme is bound', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );
+		} );
+
+		$this->deleteJson( '/visual-editor/api/templates/archive' )
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( 'theme' );
 	} );
 
 	it( 'returns 404 when no DB override matches the (theme, slug)', function (): void {
