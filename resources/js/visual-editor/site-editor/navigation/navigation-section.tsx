@@ -195,9 +195,14 @@ export function useNavigationSectionViews(
             // the current owner and clear it.
             try {
                 if (navigationId === null) {
-                    // Find the current owner by slug. List response is
-                    // already paginated to 50 — V1 menus list is
-                    // small, no need to paginate further.
+                    // Find the current owner by location. H6's
+                    // `MenuController::index` returns the full menu
+                    // set as a flat array (no pagination), so a single
+                    // fetch sees every row — `perPage` is sent for
+                    // forward-compat with a future paginated surface
+                    // but the controller currently ignores it. If H6
+                    // adds pagination later, switch this to either a
+                    // location-filtered endpoint or a paginated walk.
                     const list = await listNavigations(apiConfig, {
                         perPage: 50,
                     });
