@@ -125,12 +125,24 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
         }
     }, [hasSelectedBlock]);
 
+    // Belt-and-suspenders: if a host flips `showDocumentTab` off while
+    // the Document panel is active, snap back to Block so we never leave
+    // the inspector stuck in a hidden tab with no tablist to recover
+    // from. The `activeTab` initializer already covers the mount case;
+    // this guards against runtime prop changes.
+    useEffect(() => {
+        if (!showDocumentTab && activeTab === 'document') {
+            setActiveTab('block');
+        }
+    }, [showDocumentTab, activeTab]);
+
     // Move focus to the active tab on first render so keyboard users who
     // just toggled the sidebar open land somewhere useful. Skip on
     // subsequent re-renders so typing inside a document control doesn't
-    // steal focus back to the tablist.
+    // steal focus back to the tablist. Also skip when there's no tablist
+    // to focus (single-pane mode via `showDocumentTab={false}`).
     useEffect(() => {
-        if (initialFocusRan.current) {
+        if (initialFocusRan.current || !showDocumentTab) {
             return;
         }
 
@@ -140,7 +152,7 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
             activeTab === 'block' ? blockTabRef.current : documentTabRef.current;
 
         target?.focus({ preventScroll: true });
-    }, [activeTab]);
+    }, [activeTab, showDocumentTab]);
 
     const handleSelectTab = useCallback((tab: InspectorTab): void => {
         setActiveTab(tab);
@@ -233,12 +245,16 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
              * readers and sighted users still see only the active one.
              */}
             <div
-                role="tabpanel"
-                id={blockPanelId}
-                aria-labelledby={blockTabId}
+                {...(showDocumentTab
+                    ? {
+                          role: 'tabpanel',
+                          id: blockPanelId,
+                          'aria-labelledby': blockTabId,
+                          hidden: activeTab !== 'block',
+                      }
+                    : { role: 'region', 'aria-label': __('Block', TEXT_DOMAIN) })}
                 className="ap-visual-editor-inspector-sidebar__panel"
                 data-testid="ap-visual-editor-inspector-block-panel"
-                hidden={activeTab !== 'block'}
             >
                 {hasSelectedBlock ? (
                     <BlockInspector />
