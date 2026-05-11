@@ -74,5 +74,12 @@
 .ap-visual-editor__shell .editor-styles-wrapper {
     --wp-admin-theme-color: var(--color-primary, #2563eb);
 
-    color: var(--color-base-content, #1f2937);
+    /*
+     * Canvas typography reads the canvas-specific `--ap-editor-canvas-fg`
+     * token so host dark-mode tokens (DaisyUI `--color-base-content`,
+     * Tailwind's text-base, etc.) can't bleed in — the canvas is always
+     * a light-mode surface regardless of admin chrome theme. Hosts (or
+     * the theme.json bridge) can override the token per surface.
+     */
+    color: var(--ap-editor-canvas-fg, #1f2937);
 }

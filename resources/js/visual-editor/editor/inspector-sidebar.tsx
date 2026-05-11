@@ -48,6 +48,12 @@ export type InspectorTab = 'block' | 'document';
 export interface InspectorSidebarProps {
     documentContent: ReactNode;
     /**
+     * Render the Document tab. When `false`, the tablist is suppressed and
+     * the inspector is a single-pane Block view — used when the host app
+     * surfaces post meta in its own form outside the editor.
+     */
+    showDocumentTab?: boolean;
+    /**
      * Override for the `@wordpress/data` selection lookup. Tests pass a
      * synchronous value so they don't need to stand up a block-editor
      * store; production code always omits this so the sidebar reflects
@@ -57,7 +63,11 @@ export interface InspectorSidebarProps {
 }
 
 export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
-    const { documentContent, hasSelectedBlockOverride } = props;
+    const {
+        documentContent,
+        hasSelectedBlockOverride,
+        showDocumentTab = true,
+    } = props;
 
     const liveHasSelectedBlock = useSelect(
         (select) => {
@@ -84,7 +94,7 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
     // selected (which is rare but possible when the host reopens a
     // previously-focused canvas).
     const [activeTab, setActiveTab] = useState<InspectorTab>(
-        hasSelectedBlock ? 'block' : 'document'
+        !showDocumentTab || hasSelectedBlock ? 'block' : 'document'
     );
 
     const blockTabId = useId();
@@ -115,12 +125,24 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
         }
     }, [hasSelectedBlock]);
 
+    // Belt-and-suspenders: if a host flips `showDocumentTab` off while
+    // the Document panel is active, snap back to Block so we never leave
+    // the inspector stuck in a hidden tab with no tablist to recover
+    // from. The `activeTab` initializer already covers the mount case;
+    // this guards against runtime prop changes.
+    useEffect(() => {
+        if (!showDocumentTab && activeTab === 'document') {
+            setActiveTab('block');
+        }
+    }, [showDocumentTab, activeTab]);
+
     // Move focus to the active tab on first render so keyboard users who
     // just toggled the sidebar open land somewhere useful. Skip on
     // subsequent re-renders so typing inside a document control doesn't
-    // steal focus back to the tablist.
+    // steal focus back to the tablist. Also skip when there's no tablist
+    // to focus (single-pane mode via `showDocumentTab={false}`).
     useEffect(() => {
-        if (initialFocusRan.current) {
+        if (initialFocusRan.current || !showDocumentTab) {
             return;
         }
 
@@ -130,7 +152,7 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
             activeTab === 'block' ? blockTabRef.current : documentTabRef.current;
 
         target?.focus({ preventScroll: true });
-    }, [activeTab]);
+    }, [activeTab, showDocumentTab]);
 
     const handleSelectTab = useCallback((tab: InspectorTab): void => {
         setActiveTab(tab);
@@ -175,42 +197,44 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
             data-testid="ap-visual-editor-inspector-sidebar"
             data-active-tab={activeTab}
         >
-            <div
-                className="ap-visual-editor-inspector-sidebar__tablist"
-                role="tablist"
-                aria-label={__('Inspector tabs', TEXT_DOMAIN)}
-            >
-                <button
-                    ref={blockTabRef}
-                    type="button"
-                    role="tab"
-                    id={blockTabId}
-                    className="ap-visual-editor-inspector-sidebar__tab"
-                    aria-selected={activeTab === 'block'}
-                    aria-controls={blockPanelId}
-                    tabIndex={activeTab === 'block' ? 0 : -1}
-                    data-testid="ap-visual-editor-inspector-tab-block"
-                    onClick={() => handleSelectTab('block')}
-                    onKeyDown={handleTabKey}
+            {showDocumentTab && (
+                <div
+                    className="ap-visual-editor-inspector-sidebar__tablist"
+                    role="tablist"
+                    aria-label={__('Inspector tabs', TEXT_DOMAIN)}
                 >
-                    {__('Block', TEXT_DOMAIN)}
-                </button>
-                <button
-                    ref={documentTabRef}
-                    type="button"
-                    role="tab"
-                    id={documentTabId}
-                    className="ap-visual-editor-inspector-sidebar__tab"
-                    aria-selected={activeTab === 'document'}
-                    aria-controls={documentPanelId}
-                    tabIndex={activeTab === 'document' ? 0 : -1}
-                    data-testid="ap-visual-editor-inspector-tab-document"
-                    onClick={() => handleSelectTab('document')}
-                    onKeyDown={handleTabKey}
-                >
-                    {__('Document', TEXT_DOMAIN)}
-                </button>
-            </div>
+                    <button
+                        ref={blockTabRef}
+                        type="button"
+                        role="tab"
+                        id={blockTabId}
+                        className="ap-visual-editor-inspector-sidebar__tab"
+                        aria-selected={activeTab === 'block'}
+                        aria-controls={blockPanelId}
+                        tabIndex={activeTab === 'block' ? 0 : -1}
+                        data-testid="ap-visual-editor-inspector-tab-block"
+                        onClick={() => handleSelectTab('block')}
+                        onKeyDown={handleTabKey}
+                    >
+                        {__('Block', TEXT_DOMAIN)}
+                    </button>
+                    <button
+                        ref={documentTabRef}
+                        type="button"
+                        role="tab"
+                        id={documentTabId}
+                        className="ap-visual-editor-inspector-sidebar__tab"
+                        aria-selected={activeTab === 'document'}
+                        aria-controls={documentPanelId}
+                        tabIndex={activeTab === 'document' ? 0 : -1}
+                        data-testid="ap-visual-editor-inspector-tab-document"
+                        onClick={() => handleSelectTab('document')}
+                        onKeyDown={handleTabKey}
+                    >
+                        {__('Document', TEXT_DOMAIN)}
+                    </button>
+                </div>
+            )}
             {/*
              * Both tabpanels stay mounted so inner state survives tab
              * switches — `PanelBody` open/closed state, `TextareaControl`
@@ -221,12 +245,16 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
              * readers and sighted users still see only the active one.
              */}
             <div
-                role="tabpanel"
-                id={blockPanelId}
-                aria-labelledby={blockTabId}
+                {...(showDocumentTab
+                    ? {
+                          role: 'tabpanel',
+                          id: blockPanelId,
+                          'aria-labelledby': blockTabId,
+                          hidden: activeTab !== 'block',
+                      }
+                    : { role: 'region', 'aria-label': __('Block', TEXT_DOMAIN) })}
                 className="ap-visual-editor-inspector-sidebar__panel"
                 data-testid="ap-visual-editor-inspector-block-panel"
-                hidden={activeTab !== 'block'}
             >
                 {hasSelectedBlock ? (
                     <BlockInspector />
@@ -242,16 +270,18 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
                     </p>
                 )}
             </div>
-            <div
-                role="tabpanel"
-                id={documentPanelId}
-                aria-labelledby={documentTabId}
-                className="ap-visual-editor-inspector-sidebar__panel"
-                data-testid="ap-visual-editor-inspector-document-panel"
-                hidden={activeTab !== 'document'}
-            >
-                {documentContent}
-            </div>
+            {showDocumentTab && (
+                <div
+                    role="tabpanel"
+                    id={documentPanelId}
+                    aria-labelledby={documentTabId}
+                    className="ap-visual-editor-inspector-sidebar__panel"
+                    data-testid="ap-visual-editor-inspector-document-panel"
+                    hidden={activeTab !== 'document'}
+                >
+                    {documentContent}
+                </div>
+            )}
         </aside>
     );
 }

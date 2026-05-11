@@ -57,6 +57,21 @@ export interface AuthorOption {
 }
 
 export interface DocumentSupports {
+    /**
+     * Render the post-title block at the top of the canvas. Default `true`.
+     *
+     * Host apps that surface the title in their own form above the editor
+     * (so it isn't duplicated inside the canvas) should set this to `false`.
+     */
+    title?: boolean;
+    /**
+     * Render the Document tab in the inspector sidebar. Default `true`.
+     *
+     * Host apps that surface post meta (title/slug/status/excerpt/featured
+     * image/etc.) in their own form above the editor should set this to
+     * `false` — the inspector then collapses to a single "Block" pane.
+     */
+    document?: boolean;
     /** Show the Excerpt panel. Default `true`. */
     excerpt?: boolean;
     /** Show the Featured Image panel. Default `true`. */

@@ -10,6 +10,30 @@
  */
 
 .ap-visual-editor__shell {
+    /*
+     * The editor is a self-contained light-mode surface — both the
+     * chrome (top bar + sidebars) and the canvas always render in
+     * light mode regardless of the host admin's theme. WP component
+     * primitives (`@wordpress/components`) hardcode light-mode
+     * foreground colors that we can't easily flip per WP minor
+     * release, so coexisting with a dark host means the editor
+     * stays light. Hosts that want a dark editor can override
+     * `--ap-visual-editor-shell-*` and the `--color-base-*` tokens
+     * scoped below in tandem.
+     */
+    color-scheme: light;
+
+    /*
+     * Token reset: force DaisyUI / Tailwind theme variables to
+     * light-mode values within the editor shell so block CSS that
+     * reads `--color-base-content`, etc., doesn't pick up dark
+     * values from `html[data-theme="dark"]` on the host.
+     */
+    --color-base-100: #ffffff;
+    --color-base-200: #f3f4f6;
+    --color-base-300: #e5e7eb;
+    --color-base-content: #1f2937;
+
     --ap-visual-editor-shell-background: var(--color-base-200, #f9fafb);
     --ap-visual-editor-shell-foreground: var(--color-base-content, #1f2937);
     --ap-visual-editor-shell-border: var(--color-base-300, #e5e7eb);
@@ -56,6 +80,21 @@
     min-width: 0;
     min-height: 0;
     overflow-y: auto;
+}
+
+/*
+ * Canvas surface renders against the front-end theme's background so
+ * authoring matches the rendered page. The shell scope already forces
+ * light-mode tokens; this rule just pins the canvas surface to white
+ * (separate from the `--color-base-200` shell background that surrounds
+ * the canvas). Hosts can override `--ap-editor-canvas-bg` /
+ * `--ap-editor-canvas-fg` per theme — once the theme.json reader lands
+ * it'll supply these from `settings.color.background`.
+ */
+.ap-visual-editor__canvas.editor-styles-wrapper,
+.editor-styles-wrapper.ap-visual-editor__canvas {
+    background-color: var(--ap-editor-canvas-bg, #ffffff);
+    color: var(--ap-editor-canvas-fg, #1f2937);
 }
 
 .ap-visual-editor__sidebar {
