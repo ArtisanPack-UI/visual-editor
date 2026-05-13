@@ -10,6 +10,8 @@ use ArtisanPackUI\VisualEditor\Console\Commands\SeedSampleContentCommand;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
 use ArtisanPackUI\VisualEditor\Services\Adapters\CmsFramework\CmsFrameworkQueryResolver;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
+use ArtisanPackUI\VisualEditor\SiteEditor\Gates\DenyByDefaultGate;
+use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorGlobalStyles;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorNavigation;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPattern;
@@ -168,6 +170,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// `QueryResolveController` and `QueryInliner` only require that
 		// *something* be bound.
 		$this->registerQueryResolverBinding();
+
+		// H7 (#432) — bind the fail-closed default access gate for
+		// the site-editor shell route. `bindIf` is deliberate: a
+		// consuming app that binds its own `SiteEditorAccessGate`
+		// implementation (or one of the package-bundled gates such as
+		// `CmsFrameworkInstallGate`) earlier in the boot order wins.
+		// See `docs/site-editor-access-gate.md`.
+		$this->app->bindIf( SiteEditorAccessGate::class, DenyByDefaultGate::class );
 
 		$this->mergeConfigFrom(
 			__DIR__ . '/../config/visual-editor.php', 'artisanpack-visual-editor-temp'
