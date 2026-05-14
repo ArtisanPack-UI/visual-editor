@@ -75,26 +75,38 @@
     overflow: hidden;
 }
 
+/*
+ * #347: the canvas region is a vertical stack — `PostTitle` (editor
+ * chrome, in the parent document) above the iframed `BlockCanvas`. The
+ * region traps its own overflow; the iframe scrolls its content
+ * internally, so this column does not scroll.
+ */
 .ap-visual-editor__canvas {
     flex: 1 1 auto;
     min-width: 0;
     min-height: 0;
-    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
 }
 
 /*
- * Canvas surface renders against the front-end theme's background so
- * authoring matches the rendered page. The shell scope already forces
- * light-mode tokens; this rule just pins the canvas surface to white
- * (separate from the `--color-base-200` shell background that surrounds
- * the canvas). Hosts can override `--ap-editor-canvas-bg` /
- * `--ap-editor-canvas-fg` per theme — once the theme.json reader lands
- * it'll supply these from `settings.color.background`.
+ * Flex cell the `BlockCanvas` iframe fills. `BlockCanvas` is mounted
+ * with `height="100%"`, which resolves against this frame; keeping it
+ * a separate element (rather than sizing `BlockCanvas` against
+ * `.ap-visual-editor__canvas` directly) leaves room for `PostTitle` to
+ * take its natural height above the iframe.
+ *
+ * The canvas *surface* background is now painted inside the iframe via
+ * `canvas-theme-tokens.css` — the parent-document rule that used to do
+ * it (`.ap-visual-editor__canvas.editor-styles-wrapper`) can't reach
+ * the iframe document. Hosts still override `--ap-editor-canvas-bg` /
+ * `--ap-editor-canvas-fg`; once the theme.json reader lands it'll
+ * supply these from `settings.color.background`.
  */
-.ap-visual-editor__canvas.editor-styles-wrapper,
-.editor-styles-wrapper.ap-visual-editor__canvas {
-    background-color: var(--ap-editor-canvas-bg, #ffffff);
-    color: var(--ap-editor-canvas-fg, #1f2937);
+.ap-visual-editor__canvas-frame {
+    flex: 1 1 auto;
+    min-height: 0;
 }
 
 .ap-visual-editor__sidebar {
