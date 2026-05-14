@@ -40,8 +40,10 @@ vi.mock('@wordpress/components', () => {
 
 vi.mock('@wordpress/format-library', () => ({}));
 
+const CONVERT_TO_PATTERN_CONTROL_MOCK = vi.fn((): null => null);
+
 vi.mock('../../editor/convert-to-pattern-control', () => ({
-    ConvertToPatternControl: (): null => null,
+    ConvertToPatternControl: (): null => CONVERT_TO_PATTERN_CONTROL_MOCK(),
 }));
 
 import { BlockEditorBoundary } from '../block-editor-boundary';
@@ -71,18 +73,35 @@ describe('BlockEditorBoundary', () => {
     });
 
     it('omits the convert-to-pattern control when no apiBase is given', () => {
-        // ConvertToPatternControl is stubbed to null either way; this
-        // just guards the `apiBase` branch from throwing when unset.
-        expect(() =>
-            render(
-                <BlockEditorBoundary
-                    blocks={[]}
-                    onChange={() => undefined}
-                    onInput={() => undefined}
-                >
-                    <div data-testid="canvas-slot" />
-                </BlockEditorBoundary>
-            )
-        ).not.toThrow();
+        CONVERT_TO_PATTERN_CONTROL_MOCK.mockClear();
+
+        render(
+            <BlockEditorBoundary
+                blocks={[]}
+                onChange={() => undefined}
+                onInput={() => undefined}
+            >
+                <div data-testid="canvas-slot" />
+            </BlockEditorBoundary>
+        );
+
+        expect(CONVERT_TO_PATTERN_CONTROL_MOCK).not.toHaveBeenCalled();
+    });
+
+    it('mounts the convert-to-pattern control when an apiBase is given', () => {
+        CONVERT_TO_PATTERN_CONTROL_MOCK.mockClear();
+
+        render(
+            <BlockEditorBoundary
+                blocks={[]}
+                onChange={() => undefined}
+                onInput={() => undefined}
+                apiBase="/visual-editor/api"
+            >
+                <div data-testid="canvas-slot" />
+            </BlockEditorBoundary>
+        );
+
+        expect(CONVERT_TO_PATTERN_CONTROL_MOCK).toHaveBeenCalled();
     });
 });
