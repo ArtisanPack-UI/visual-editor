@@ -222,8 +222,9 @@ function renderApp(): void {
     render(
         <SiteEditorApp
             routeBase={ROUTE_BASE}
-            postEditorUrl="/editor"
             apiBase="/visual-editor/api"
+            exitUrl="/editor"
+            exitLabel="← Post editor"
         />
     );
 }
@@ -333,12 +334,40 @@ describe('SiteEditorApp', () => {
         ).not.toBeInTheDocument();
     });
 
-    it('renders a back-to-post-editor link pointing at the post editor URL', () => {
+    it('renders the exit link with the supplied url and label', () => {
         renderApp();
 
-        const back = screen.getByTestId('ap-site-editor-back-to-post-editor');
+        const exit = screen.getByTestId('ap-site-editor-exit-link');
 
-        expect(back).toHaveAttribute('href', '/editor');
+        expect(exit).toHaveAttribute('href', '/editor');
+        expect(exit).toHaveTextContent('← Post editor');
+    });
+
+    it('omits the exit link entirely when no exitUrl is supplied', () => {
+        // #446: the exit link is optional — a standalone embed with
+        // nowhere to go back to shouldn't be forced to invent a target.
+        render(
+            <SiteEditorApp routeBase={ROUTE_BASE} apiBase="/visual-editor/api" />
+        );
+
+        expect(
+            screen.queryByTestId('ap-site-editor-exit-link')
+        ).not.toBeInTheDocument();
+    });
+
+    it('falls back to a generic exit label when only exitUrl is given', () => {
+        render(
+            <SiteEditorApp
+                routeBase={ROUTE_BASE}
+                apiBase="/visual-editor/api"
+                exitUrl="/somewhere"
+            />
+        );
+
+        const exit = screen.getByTestId('ap-site-editor-exit-link');
+
+        expect(exit).toHaveAttribute('href', '/somewhere');
+        expect(exit).toHaveTextContent('← Back');
     });
 
     it('keeps the save button disabled until a per-section panel wires it', () => {

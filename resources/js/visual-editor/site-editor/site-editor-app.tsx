@@ -127,10 +127,20 @@ const D5_SECTIONS: ReadonlySet<SiteEditorSectionId> = new Set<SiteEditorSectionI
 export interface SiteEditorAppProps {
     /** Pathname prefix the SPA owns (e.g. `/visual-editor/site`). */
     routeBase: string;
-    /** URL to send the user back to when they leave the site editor. */
-    postEditorUrl: string;
     /** Base URL for the site-editor REST surface (e.g. `/visual-editor/api`). */
     apiBase: string;
+    /**
+     * URL the top-bar exit link points at. Optional — omit it and no
+     * exit link renders (a standalone embed with nowhere to go back to
+     * shouldn't be forced to invent a target).
+     */
+    exitUrl?: string;
+    /**
+     * Label for the exit link. Used verbatim — the consuming app owns
+     * its translation. Falls back to a generic translated "← Back"
+     * when `exitUrl` is set without a label.
+     */
+    exitLabel?: string;
     /** Theme slug used when creating new templates / parts. */
     theme?: string;
 }
@@ -229,7 +239,7 @@ function sectionKind(section: SiteEditorSectionId): EntityKind | null {
 export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
     ensureEditorBoot();
 
-    const { routeBase, postEditorUrl, apiBase, theme = 'default' } = props;
+    const { routeBase, apiBase, exitUrl, exitLabel, theme = 'default' } = props;
 
     const apiConfig = useMemo<SiteEditorApiConfig>(
         () => ({ apiBase }),
@@ -450,18 +460,33 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         return activeSection.saveLabel;
     }, [activeSection.saveLabel, entityState.entityId, entityState.entityTitle]);
 
+    {/*
+      #446: the exit link is consumer-configurable and optional, and
+      sits at the very start of the top bar's left group — matching
+      the WordPress site-editor layout — rather than in the right-hand
+      action cluster. No `exitUrl` → no link (a standalone embed with
+      nowhere to go back to). `exitLabel` is used verbatim — the
+      consuming app owns its translation — and falls back to a generic
+      translated "← Back" when only the URL is supplied.
+    */}
+    const leadingActions =
+        exitUrl !== undefined && exitUrl !== '' ? (
+            <a
+                className="ap-site-editor__top-bar-back"
+                href={exitUrl}
+                data-testid="ap-site-editor-exit-link"
+            >
+                {exitLabel !== undefined && exitLabel !== ''
+                    ? exitLabel
+                    : __('← Back', TEXT_DOMAIN)}
+            </a>
+        ) : null;
+
     const extraActions = (
         <div
             className="ap-site-editor__top-bar-extras"
             data-testid="ap-site-editor-top-bar-extras"
         >
-            <a
-                className="ap-site-editor__top-bar-back"
-                href={postEditorUrl}
-                data-testid="ap-site-editor-back-to-post-editor"
-            >
-                {__('← Post editor', TEXT_DOMAIN)}
-            </a>
             <span
                 className="ap-site-editor__mode-indicator"
                 role="status"
@@ -662,6 +687,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                 inserterToggleAriaLabel={inserterToggleAriaLabel}
                 inspectorToggleAriaLabel={inspectorToggleAriaLabel}
                 extraActions={extraActions}
+                leadingActions={leadingActions}
             />
             <div
                 className="ap-site-editor__body"

@@ -20,7 +20,9 @@ describe('bootSiteEditor', () => {
         const root = document.createElement('div');
         const incomplete = document.createElement('div');
         incomplete.setAttribute('data-ap-site-editor', '');
-        // route-base + post-editor-url intentionally absent.
+        // data-route-base + data-api-base intentionally absent — these
+        // are the only required attributes since #446 (the exit link
+        // is optional).
         root.appendChild(incomplete);
 
         await bootSiteEditor(root);
@@ -38,7 +40,7 @@ describe('bootSiteEditor', () => {
         const target = document.createElement('div');
         target.setAttribute('data-ap-site-editor', '');
         target.dataset.routeBase = '/visual-editor/site';
-        target.dataset.postEditorUrl = '/editor';
+        target.dataset.exitUrl = '/editor';
         target.dataset.apiBase = '/visual-editor/api';
         root.appendChild(target);
         document.body.appendChild(root);
@@ -54,6 +56,61 @@ describe('bootSiteEditor', () => {
             expect(target.querySelector('[data-testid="ap-site-editor-stub"]')).not.toBeNull();
         } finally {
             document.body.removeChild(root);
+        }
+    });
+
+    it('mounts without an exit URL — the exit link is optional since #446', async () => {
+        const root = document.createElement('div');
+        const target = document.createElement('div');
+        target.setAttribute('data-ap-site-editor', '');
+        target.dataset.routeBase = '/visual-editor/site';
+        target.dataset.apiBase = '/visual-editor/api';
+        // No data-exit-url: a standalone embed with nowhere to go back to.
+        root.appendChild(target);
+        document.body.appendChild(root);
+
+        try {
+            await act(async () => {
+                await bootSiteEditor(root);
+            });
+
+            expect(
+                target.querySelector('[data-testid="ap-site-editor-stub"]')
+            ).not.toBeNull();
+        } finally {
+            document.body.removeChild(root);
+        }
+    });
+
+    it('accepts the deprecated data-post-editor-url as an exit-url fallback', async () => {
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
+            // suppress test-log noise — the warning is the assertion target.
+        });
+
+        const root = document.createElement('div');
+        const target = document.createElement('div');
+        target.setAttribute('data-ap-site-editor', '');
+        target.dataset.routeBase = '/visual-editor/site';
+        target.dataset.apiBase = '/visual-editor/api';
+        // Pre-#446 attribute name — still honoured, with a deprecation warning.
+        target.dataset.postEditorUrl = '/editor';
+        root.appendChild(target);
+        document.body.appendChild(root);
+
+        try {
+            await act(async () => {
+                await bootSiteEditor(root);
+            });
+
+            expect(
+                target.querySelector('[data-testid="ap-site-editor-stub"]')
+            ).not.toBeNull();
+            expect(warnSpy).toHaveBeenCalledWith(
+                expect.stringContaining('data-post-editor-url` is deprecated')
+            );
+        } finally {
+            document.body.removeChild(root);
+            warnSpy.mockRestore();
         }
     });
 });
@@ -74,7 +131,7 @@ describe('mountSiteEditor', () => {
             await act(async () => {
                 handleA = mountSiteEditor(target, {
                     routeBase: '/visual-editor/site',
-                    postEditorUrl: '/editor',
+                    exitUrl: '/editor',
                     apiBase: '/visual-editor/api',
                 });
                 await handleA.ready;
@@ -90,7 +147,7 @@ describe('mountSiteEditor', () => {
             await act(async () => {
                 handleB = mountSiteEditor(target, {
                     routeBase: '/visual-editor/site',
-                    postEditorUrl: '/editor',
+                    exitUrl: '/editor',
                     apiBase: '/visual-editor/api',
                 });
                 await handleB.ready;
@@ -126,7 +183,7 @@ describe('mountSiteEditor', () => {
             await act(async () => {
                 const first = mountSiteEditor(target, {
                     routeBase: '/visual-editor/site',
-                    postEditorUrl: '/editor',
+                    exitUrl: '/editor',
                     apiBase: '/visual-editor/api',
                 });
                 await first.ready;
@@ -134,7 +191,7 @@ describe('mountSiteEditor', () => {
 
             const second = mountSiteEditor(target, {
                 routeBase: '/visual-editor/site',
-                postEditorUrl: '/editor',
+                exitUrl: '/editor',
                 apiBase: '/visual-editor/api',
             });
             await second.ready;
