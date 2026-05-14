@@ -27,6 +27,7 @@ import {
 import { __, sprintf } from '@wordpress/i18n';
 import { useMemo, type ReactNode } from 'react';
 
+import { DEFAULT_CANVAS_STYLES } from '../editor-settings';
 import { TEXT_DOMAIN } from '../vendor/i18n';
 
 import './entity-editor-canvas.css';
@@ -102,6 +103,21 @@ export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element 
             ) : null}
             <div className="ap-site-editor__entity-canvas-body">
                 <div className="editor-styles-wrapper ap-site-editor__entity-canvas-surface">
+                    {/*
+                     * #418: default canvas stylesheet rendered inline.
+                     * Gutenberg's `settings.styles` channel only injects
+                     * into the `<Iframe>` canvas; the site editor renders
+                     * the block list in the same DOM tree, so the rules
+                     * must be inlined here — exactly as the post editor
+                     * (`editor/editor-app.tsx`) does. Without it the
+                     * canvas (and any inlined `core/template-part` inner
+                     * blocks, which render in-tree under this wrapper)
+                     * fall back to browser-default serif. The CSS is
+                     * scoped under `.editor-styles-wrapper`, so a
+                     * theme.json stylesheet appended later wins on
+                     * cascade.
+                     */}
+                    <style>{DEFAULT_CANVAS_STYLES}</style>
                     <BlockTools>
                         <WritingFlow>
                             <ObserveTyping>

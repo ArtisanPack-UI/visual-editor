@@ -23,6 +23,7 @@ import {
 import { __, sprintf } from '@wordpress/i18n';
 import { useMemo, type ReactNode } from 'react';
 
+import { DEFAULT_CANVAS_STYLES } from '../../editor-settings';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 import './pattern-canvas.css';
@@ -102,6 +103,15 @@ export function PatternCanvas(props: PatternCanvasProps): JSX.Element {
             </div>
             <div className="ap-pattern-canvas__body">
                 <div className="editor-styles-wrapper ap-pattern-canvas__surface">
+                    {/*
+                     * #418: default canvas stylesheet rendered inline —
+                     * see the matching note in `entity-editor-canvas.tsx`.
+                     * Gutenberg's `settings.styles` only reaches the
+                     * `<Iframe>` canvas; this editor renders in-tree, so
+                     * the rules must be inlined or the canvas falls back
+                     * to browser-default serif.
+                     */}
+                    <style>{DEFAULT_CANVAS_STYLES}</style>
                     <BlockTools>
                         <WritingFlow>
                             <ObserveTyping>

@@ -189,6 +189,42 @@ describe('useEntityEditorViews', () => {
         ).toBeInTheDocument();
     });
 
+    it('inlines the default canvas stylesheet into the canvas surface (#418)', async () => {
+        FETCH_MOCK.mockResolvedValue({
+            id: 7,
+            slug: 'single',
+            title: { rendered: 'Single post' },
+            description: '',
+            content: { raw: '', blocks: [] },
+            status: 'publish',
+            theme: 'default',
+            type: 'wp_template',
+            source: 'custom',
+            origin: null,
+        });
+
+        render(<Harness entityId="7" onState={vi.fn()} />);
+
+        await waitFor(() =>
+            expect(
+                screen.getByTestId('ap-site-editor-entity-canvas')
+            ).toBeInTheDocument()
+        );
+
+        // Gutenberg's `settings.styles` only reaches an iframed canvas;
+        // this editor renders in-tree, so the stylesheet must be inlined
+        // into the `editor-styles-wrapper` surface — otherwise the
+        // canvas (and inlined core/template-part inner blocks) fall back
+        // to browser-default serif (#418).
+        const surface = document.querySelector(
+            '.ap-site-editor__entity-canvas-surface'
+        );
+        const style = surface?.querySelector('style');
+
+        expect(style).not.toBeNull();
+        expect(style?.textContent).toContain('.editor-styles-wrapper');
+    });
+
     it('flips the dirty flag through onStateChange when the canvas edits blocks', async () => {
         FETCH_MOCK.mockResolvedValue({
             id: 1,

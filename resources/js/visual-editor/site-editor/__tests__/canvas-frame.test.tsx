@@ -35,7 +35,7 @@ vi.mock('@wordpress/components', () => {
 import { CanvasFrame } from '../canvas-frame';
 
 describe('CanvasFrame', () => {
-    it('renders the canvas wrapper and the empty state when no entity is selected', () => {
+    it('renders the empty state outside the BlockCanvas iframe when no entity is selected (#418)', () => {
         render(<CanvasFrame sectionLabel="Editing: Templates" />);
 
         const canvas = screen.getByTestId('ap-site-editor-canvas');
@@ -49,26 +49,30 @@ describe('CanvasFrame', () => {
         expect(emptyState).toHaveTextContent(
             'Select an entity from the navigator to start editing.'
         );
+
+        // #418: the placeholder must NOT render inside `BlockCanvas` —
+        // the iframe doesn't inherit `canvas-frame.css` or the SPA body
+        // font, so an iframed placeholder lost its centering and fell
+        // back to browser-default serif. No entity → no iframe.
+        expect(
+            screen.queryByTestId('ap-stub-block-canvas')
+        ).not.toBeInTheDocument();
+        expect(
+            screen.queryByTestId('ap-stub-block-editor-provider')
+        ).not.toBeInTheDocument();
     });
 
-    it('mounts the BlockCanvas and provider chain', () => {
-        render(<CanvasFrame sectionLabel="Editing: Styles" />);
-
-        expect(
-            screen.getByTestId('ap-stub-block-editor-provider')
-        ).toBeInTheDocument();
-        expect(
-            screen.getByTestId('ap-stub-block-canvas')
-        ).toBeInTheDocument();
-    });
-
-    it('renders supplied children inside the canvas when hasEntity is true', () => {
+    it('mounts the BlockCanvas + provider chain and renders children when hasEntity is true', () => {
         render(
             <CanvasFrame sectionLabel="Editing: Patterns" hasEntity>
                 <div data-testid="ap-test-entity">My pattern</div>
             </CanvasFrame>
         );
 
+        expect(
+            screen.getByTestId('ap-stub-block-editor-provider')
+        ).toBeInTheDocument();
+        expect(screen.getByTestId('ap-stub-block-canvas')).toBeInTheDocument();
         expect(screen.getByTestId('ap-test-entity')).toBeInTheDocument();
         expect(
             screen.queryByTestId('ap-site-editor-canvas-empty')
