@@ -34,11 +34,13 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\StoreMenuRequest;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateMenuRequest;
+use ArtisanPackUI\VisualEditor\SiteEditor\MenuItemBlockBridge;
 use Illuminate\Database\QueryException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\DB;
 
 class MenuController extends Controller
 {
@@ -60,7 +62,10 @@ class MenuController extends Controller
 		}
 
 		$model = self::CMS_MENU_FQCN;
-		$query = $model::query()->orderBy( 'id' );
+		// Eager-load `items` — `menuToShape()` projects them into
+		// `content.blocks` (#440), and without the eager load the
+		// list endpoint would N+1 one items query per menu.
+		$query = $model::query()->with( 'items' )->orderBy( 'id' );
 
 		$theme = trim( (string) $request->query( 'theme', '' ) );
 		if ( '' !== $theme ) {
@@ -157,8 +162,22 @@ class MenuController extends Controller
 			return response()->json( [ 'message' => 'Menu not found.' ], Response::HTTP_NOT_FOUND );
 		}
 
+		$validated = $request->validated();
+
 		try {
-			$menu->update( $this->modelAttributesFromRequest( $request->validated() ) );
+			DB::transaction( function () use ( $menu, $validated ): void {
+				$menu->update( $this->modelAttributesFromRequest( $validated ) );
+
+				// #440. When the editor sends a navigation tree, replace
+				// the menu's items wholesale. Gated on `content.blocks`
+				// being present so a partial update (rename, theme
+				// change, …) leaves items untouched. Inside the same
+				// transaction as the attribute update so a failed item
+				// rebuild rolls the whole save back.
+				if ( is_array( $validated['content']['blocks'] ?? null ) ) {
+					$this->replaceMenuItems( $menu, $validated['content']['blocks'] );
+				}
+			} );
 		} catch ( QueryException $e ) {
 			if ( $this->isUniqueViolation( $e ) ) {
 				return response()->json( [
@@ -171,6 +190,62 @@ class MenuController extends Controller
 		}
 
 		return response()->json( $this->menuToShape( $menu->fresh() ) );
+	}
+
+	/**
+	 * Replace a menu's items from a `core/navigation-*` block tree.
+	 *
+	 * The block wire shape carries no stable per-item id, so a precise
+	 * insert / update / delete diff against the existing rows isn't
+	 * possible — a delete-all + rebuild is the correct equivalent and
+	 * satisfies every round-trip the editor needs (add, remove,
+	 * reorder, re-nest). The caller runs this inside a transaction.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<int, mixed>  $blocks
+	 */
+	protected function replaceMenuItems( object $menu, array $blocks ): void
+	{
+		// Bulk delete — `reorder()` strips the `items()` relation's
+		// `ORDER BY` so the DELETE is portable (SQLite rejects
+		// `DELETE … ORDER BY` without a LIMIT). Deleting every row for
+		// the menu in one query means no orphans regardless of the
+		// per-row `deleting` cascade.
+		$menu->items()->reorder()->delete();
+
+		$specs = ( new MenuItemBlockBridge() )->blocksToItemSpecs( $blocks );
+
+		$this->insertItemSpecs( $menu, $specs, null );
+	}
+
+	/**
+	 * Depth-first insert of the nested row specs produced by
+	 * {@see MenuItemBlockBridge::blocksToItemSpecs()}. `position` is the
+	 * sibling index within each parent; `parent_id` is the just-inserted
+	 * parent row's id.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<int, array{attributes: array<string, mixed>, children: array<int, mixed>}>  $specs
+	 */
+	protected function insertItemSpecs( object $menu, array $specs, ?int $parentId ): void
+	{
+		$position = 0;
+
+		foreach ( $specs as $spec ) {
+			/** @var object $row */
+			$row = $menu->items()->create( array_merge( $spec['attributes'], [
+				'parent_id' => $parentId,
+				'position'  => $position,
+			] ) );
+
+			$position++;
+
+			if ( [] !== $spec['children'] ) {
+				$this->insertItemSpecs( $menu, $spec['children'], (int) $row->id );
+			}
+		}
 	}
 
 	/**
@@ -253,15 +328,18 @@ class MenuController extends Controller
 				'rendered' => $name,
 				'raw'      => $name,
 			],
-			// `content` mirrors the WP REST `wp_navigation` shape so the
-			// editor's NavigationBrowser can read `row.content.blocks`
-			// without crashing (#438). Items are surfaced through the
-			// separate /menu-items endpoint; for now this is an empty
-			// envelope, populated by a future H6 follow-up that converts
-			// menu items into a `core/navigation` block tree.
+			// `content` mirrors the WP REST `wp_navigation` shape. #440:
+			// the menu's `menu_items` rows are projected into a
+			// `core/navigation-link` / `core/navigation-submenu` block
+			// tree so the editor's NavigationBrowser reads the real
+			// tree (it was an empty envelope from #438 until this
+			// bridge landed). `raw` stays empty — the editor works off
+			// `blocks`, and the backend re-derives the tree from
+			// `menu_items` on every read. Items remain individually
+			// addressable through the separate /menu-items endpoint.
 			'content'        => [
 				'raw'    => '',
-				'blocks' => [],
+				'blocks' => ( new MenuItemBlockBridge() )->itemsToBlocks( $menu->items ),
 			],
 			'auto_add_pages' => (bool) ( $menu->auto_add_pages ?? false ),
 		];

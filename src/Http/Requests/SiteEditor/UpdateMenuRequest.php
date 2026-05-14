@@ -44,6 +44,14 @@ class UpdateMenuRequest extends FormRequest
 			'title'          => [ 'sometimes', 'string', 'max:255' ],
 			'description'    => [ 'nullable', 'string' ],
 			'auto_add_pages' => [ 'sometimes', 'boolean' ],
+			// #440. The site editor PUTs its navigation tree as a
+			// `core/navigation-*` block tree under `content.blocks`;
+			// the controller bridges it to / from cms-framework's
+			// relational `menu_items` rows. `content.raw` is accepted
+			// but ignored — the backend re-derives it from the tree.
+			'content'        => [ 'sometimes', 'array' ],
+			'content.raw'    => [ 'sometimes', 'nullable', 'string' ],
+			'content.blocks' => [ 'sometimes', 'array' ],
 		];
 	}
 }
