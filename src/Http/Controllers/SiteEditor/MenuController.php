@@ -107,7 +107,7 @@ class MenuController extends Controller
 
 		$model = self::CMS_MENU_FQCN;
 
-		$attributes = $this->modelAttributesFromRequest( $request->validated() );
+		$attributes = $this->modelAttributesFromRequest( $request->validated(), forCreate: true );
 
 		if ( ! array_key_exists( 'theme', $attributes ) || '' === (string) $attributes['theme'] ) {
 			return response()->json( [
@@ -282,18 +282,26 @@ class MenuController extends Controller
 	/**
 	 * Translate the WP-shape validated input into cms-framework `Menu`
 	 * model attributes. Maps `title` (WP REST shape — what the editor's
-	 * create-menu dialog sends) onto `name` (model column), and falls
-	 * back to cms-framework's active theme when the payload doesn't
-	 * carry one. Mirrors the helpers in TemplateController and
+	 * create-menu dialog sends) onto `name` (model column). On create,
+	 * falls back to cms-framework's active theme when the payload
+	 * doesn't carry one. Mirrors the helpers in TemplateController and
 	 * TemplatePartController (#438).
+	 *
+	 * The active-theme fallback is create-only. On a partial `update()`
+	 * the payload routinely omits `theme` (e.g. a rename sends only
+	 * `title`); injecting the active theme there would silently
+	 * re-home the menu to a different theme. An explicit `theme` in the
+	 * payload still flows through on both paths — only the *inferred*
+	 * fallback is gated.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $validated
+	 * @param  bool  $forCreate  True for store(), false for update().
 	 *
 	 * @return array<string, mixed>
 	 */
-	protected function modelAttributesFromRequest( array $validated ): array
+	protected function modelAttributesFromRequest( array $validated, bool $forCreate = false ): array
 	{
 		$attributes = [];
 
@@ -311,7 +319,9 @@ class MenuController extends Controller
 			$attributes['name'] = $validated['title'];
 		}
 
-		if ( ! array_key_exists( 'theme', $attributes ) || '' === (string) ( $attributes['theme'] ?? '' ) ) {
+		if ( $forCreate
+			&& ( ! array_key_exists( 'theme', $attributes ) || '' === (string) ( $attributes['theme'] ?? '' ) )
+		) {
 			$active = $this->activeThemeSlug();
 
 			if ( null !== $active ) {

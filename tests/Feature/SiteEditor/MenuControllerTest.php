@@ -173,6 +173,27 @@ describe( 'PUT /visual-editor/api/menus/{id}', function (): void {
 		$this->putJson( '/visual-editor/api/menus/9999', [ 'name' => 'Nope' ] )->assertNotFound();
 	} );
 
+	it( 'leaves the theme untouched on a partial update that omits it (#438)', function (): void {
+		// The active-theme fallback in modelAttributesFromRequest() is
+		// create-only. A partial update — here a rename — must not
+		// silently re-home a menu belonging to a non-active theme onto
+		// the active one.
+		$menu = Menu::create( [
+			'theme' => 'other-theme',
+			'slug'  => 'primary',
+			'name'  => 'Primary',
+		] );
+
+		$this->putJson( "/visual-editor/api/menus/{$menu->id}", [
+			'name' => 'Primary Renamed',
+		] )
+			->assertOk()
+			->assertJsonPath( 'name', 'Primary Renamed' )
+			->assertJsonPath( 'theme', 'other-theme' );
+
+		expect( $menu->fresh()->theme )->toBe( 'other-theme' );
+	} );
+
 	it( 'returns 409 when the slug update would collide with another menu in the same theme', function (): void {
 		Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'primary', 'name' => 'Primary' ] );
 		$secondary = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'secondary', 'name' => 'Secondary' ] );
