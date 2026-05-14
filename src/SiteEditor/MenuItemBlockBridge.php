@@ -68,16 +68,18 @@ class MenuItemBlockBridge
 	public const NAV_SUBMENU = 'core/navigation-submenu';
 
 	/**
-	 * Read path — project a flat, pre-ordered list of `MenuItem` rows
-	 * into a nested `core/navigation-*` block tree.
+	 * Read path — project a flat list of `MenuItem` rows into a nested
+	 * `core/navigation-*` block tree.
 	 *
-	 * The rows must already be ordered `(parent_id, position, id)` —
-	 * cms-framework's `Menu::items()` relation does exactly that — so
-	 * this only has to bucket by `parent_id` and recurse.
+	 * Sibling order is normalized here by `(position, id)` rather than
+	 * relying on the caller to pre-sort — that mirrors cms-framework's
+	 * `Menu::items()` relation ordering and keeps the projection
+	 * deterministic for any input (an `index()` eager-load, a lazy
+	 * relation read, a hand-built collection in a test, …).
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  iterable<object>  $items  Flat, pre-ordered MenuItem rows.
+	 * @param  iterable<object>  $items  Flat MenuItem rows, any order.
 	 *
 	 * @return array<int, array<string, mixed>>  Nested block tree.
 	 */
@@ -89,7 +91,17 @@ class MenuItemBlockBridge
 			$byParent[ (int) ( $item->parent_id ?? 0 ) ][] = $item;
 		}
 
-		return $this->buildBlockBranch( $byParent, 0 );
+		foreach ( $byParent as &$siblings ) {
+			usort(
+				$siblings,
+				static fn ( object $a, object $b ): int =>
+					[ (int) ( $a->position ?? 0 ), (int) ( $a->id ?? 0 ) ]
+					<=> [ (int) ( $b->position ?? 0 ), (int) ( $b->id ?? 0 ) ],
+			);
+		}
+		unset( $siblings );
+
+		return $this->buildBlockBranch( $byParent, 0, [] );
 	}
 
 	/**
@@ -141,18 +153,37 @@ class MenuItemBlockBridge
 	/**
 	 * Recursive nesting helper for {@see itemsToBlocks()}.
 	 *
+	 * `$visited` tracks the parent ids already on the current ancestor
+	 * path. A corrupt `parent_id` chain — reachable via the
+	 * `/menu-items` endpoint, which accepts an arbitrary `parent_id` —
+	 * would otherwise recurse forever; once a parent id repeats, its
+	 * branch is treated as empty. A non-positive `id` (0 / null) is
+	 * never recursed into for the same reason: `parent_id = 0` is the
+	 * root bucket key, so an item with `id = 0` would re-walk the root.
+	 *
 	 * @since 1.0.0
 	 *
 	 * @param  array<int, array<int, object>>  $byParent
+	 * @param  array<int, true>  $visited
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	protected function buildBlockBranch( array $byParent, int $parentId ): array
+	protected function buildBlockBranch( array $byParent, int $parentId, array $visited ): array
 	{
+		if ( isset( $visited[ $parentId ] ) ) {
+			return [];
+		}
+
+		$visited[ $parentId ] = true;
+
 		$blocks = [];
 
 		foreach ( $byParent[ $parentId ] ?? [] as $item ) {
-			$children = $this->buildBlockBranch( $byParent, (int) $item->id );
+			$itemId = (int) ( $item->id ?? 0 );
+
+			$children = $itemId > 0
+				? $this->buildBlockBranch( $byParent, $itemId, $visited )
+				: [];
 
 			$blocks[] = [
 				// Children-driven, matching `menu-tree.ts` — a childless

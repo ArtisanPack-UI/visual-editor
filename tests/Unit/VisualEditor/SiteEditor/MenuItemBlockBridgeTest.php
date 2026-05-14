@@ -103,6 +103,34 @@ describe( 'itemsToBlocks() — read path', function (): void {
 
 		expect( $blocks[0]['attributes'] )->toBe( [ 'label' => 'Bare' ] );
 	} );
+
+	it( 'normalizes sibling order by (position, id) regardless of input order', function (): void {
+		// The bridge no longer depends on the caller pre-sorting — it
+		// orders each parent bucket itself. Feed the rows shuffled.
+		$blocks = ( new MenuItemBlockBridge() )->itemsToBlocks( [
+			menuItemRow( [ 'id' => 9, 'position' => 2, 'label' => 'Third' ] ),
+			menuItemRow( [ 'id' => 3, 'position' => 0, 'label' => 'First' ] ),
+			menuItemRow( [ 'id' => 7, 'position' => 1, 'label' => 'Second' ] ),
+		] );
+
+		expect( array_column( array_column( $blocks, 'attributes' ), 'label' ) )
+			->toBe( [ 'First', 'Second', 'Third' ] );
+	} );
+
+	it( 'does not infinite-loop on a cyclic parent_id chain', function (): void {
+		// Corrupt data — reachable via the /menu-items endpoint, which
+		// accepts an arbitrary parent_id. Item 1's parent is 2 and
+		// item 2's parent is 1. The cycle guard must bottom out.
+		$blocks = ( new MenuItemBlockBridge() )->itemsToBlocks( [
+			menuItemRow( [ 'id' => 1, 'parent_id' => 2, 'label' => 'A' ] ),
+			menuItemRow( [ 'id' => 2, 'parent_id' => 1, 'label' => 'B' ] ),
+		] );
+
+		// Neither item is reachable from the root (both have a non-zero
+		// parent), so the projection is simply empty — and crucially,
+		// it returns rather than recursing forever.
+		expect( $blocks )->toBe( [] );
+	} );
 } );
 
 describe( 'blocksToItemSpecs() — write path', function (): void {
