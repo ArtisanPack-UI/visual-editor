@@ -81,19 +81,31 @@ export function CanvasFrame(props: CanvasFrameProps): JSX.Element {
             data-has-entity={hasEntity}
             data-testid="ap-site-editor-canvas"
         >
-            <SlotFillProvider>
-                <BlockEditorProvider
-                    value={EMPTY_BLOCKS}
-                    settings={EMPTY_SETTINGS}
-                    onChange={() => undefined}
-                    onInput={() => undefined}
-                >
-                    <BlockCanvas height="100%">
-                        {hasEntity ? children : emptyState}
-                    </BlockCanvas>
-                    <Popover.Slot />
-                </BlockEditorProvider>
-            </SlotFillProvider>
+            {hasEntity ? (
+                <SlotFillProvider>
+                    <BlockEditorProvider
+                        value={EMPTY_BLOCKS}
+                        settings={EMPTY_SETTINGS}
+                        onChange={() => undefined}
+                        onInput={() => undefined}
+                    >
+                        <BlockCanvas height="100%">{children}</BlockCanvas>
+                        <Popover.Slot />
+                    </BlockEditorProvider>
+                </SlotFillProvider>
+            ) : (
+                /*
+                 * #418: the empty-state placeholder renders in the
+                 * parent document, NOT inside `BlockCanvas`'s iframe.
+                 * `canvas-frame.css` and the SPA body font live in the
+                 * parent doc and don't cross into the iframe — rendered
+                 * inside it the placeholder lost its centering and fell
+                 * back to browser-default serif. Iframing only earns
+                 * its keep when there's block content whose styles need
+                 * isolating; an empty-state message is just chrome.
+                 */
+                emptyState
+            )}
         </div>
     );
 }
