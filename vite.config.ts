@@ -24,14 +24,50 @@ const coreDataShim = resolve(
     'resources/js/visual-editor/vendor/core-data-shim.ts'
 );
 
+// Several transitive `@wordpress/*` dependencies (e.g. `global-styles-engine`,
+// `server-side-render`) ship their own nested `node_modules/@wordpress/blocks`
+// copy. Without explicit aliases Rollup resolves each import chain to a
+// different on-disk file, then `manualChunks` collocates all three copies
+// into the single `gutenberg` chunk, where each copy re-registers Gutenberg's
+// `core/blocks` Redux store at module init — surfacing as the
+// `Store "core/blocks" is already registered.` error in consumer apps and
+// triggering a Vite HMR-overlay → `location.reload()` cascade in dev.
+//
+// Pin every `@wordpress/*` import to the package's top-level node_modules
+// copy so Rollup produces a single instance.
+const sharedWordpressSingletons = [
+    '@wordpress/blocks',
+    '@wordpress/block-editor',
+    '@wordpress/block-library',
+    '@wordpress/components',
+    '@wordpress/data',
+    '@wordpress/element',
+    '@wordpress/hooks',
+    '@wordpress/i18n',
+];
+const wordpressSingletonAliases = Object.fromEntries(
+    sharedWordpressSingletons.map((name) => [
+        name,
+        resolve(__dirname, 'node_modules', name),
+    ]),
+);
+
 export default defineConfig(({ command, mode }) => {
     const isLibraryBuild = mode === 'lib';
 
     return {
         plugins: [react()],
         root: command === 'serve' ? editorRoot : __dirname,
+        // The app-mode build is consumed by Keystone (and other host apps)
+        // by copying `dist/editor/*` to `public/visual-editor/`. The bundle
+        // emits relative `chunks/...` imports plus `__vitePreload` CSS deps
+        // that are resolved as `base + path`; without a base they resolve
+        // to `/assets/...` and 404. Pinning the base keeps the prebuilt
+        // self-contained at its hosted URL.
+        base: isLibraryBuild ? '/' : '/visual-editor/',
         resolve: {
             alias: {
+                ...wordpressSingletonAliases,
                 '@editor': editorRoot,
                 // M2 (#312): every `@wordpress/core-data` import in the
                 // editor bundle resolves to our in-repo empty-state shim.

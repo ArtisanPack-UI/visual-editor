@@ -7,15 +7,27 @@
  * Pairs with {@see InstallGateTest} (no cms-framework) which asserts
  * the gate fires.
  *
+ * Both files explicitly bind {@see CmsFrameworkInstallGate} since the
+ * H7 policy-contract refactor: the package default is now fail-closed
+ * {@see DenyByDefaultGate}, and the install-gate behaviour is one of
+ * several gates a consumer can opt into. See
+ * {@see SiteEditorAccessGateTest} for default-binding coverage.
+ *
  * @since 1.0.0
  */
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\VisualEditor\SiteEditor\Gates\CmsFrameworkInstallGate;
+use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use Tests\Concerns\WithCmsFramework;
 use Tests\TestCase;
 
 uses( TestCase::class, WithCmsFramework::class );
+
+beforeEach( function (): void {
+	$this->app->bind( SiteEditorAccessGate::class, CmsFrameworkInstallGate::class );
+} );
 
 test( 'site-editor route mounts the SPA when cms-framework is booted', function (): void {
 	// `withoutVite` swaps the Vite handler for an empty stub so the SPA

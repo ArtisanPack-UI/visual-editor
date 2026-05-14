@@ -454,6 +454,41 @@ export function bootVisualEditor(
     return Promise.all(Array.from(elements).map((element) => mount(element)));
 }
 
+// Expose the boot function on `window` so SPA hosts (Inertia, Livewire, etc.)
+// can call it after client-side navigation introduces new
+// `[data-ap-visual-editor]` markers. `mountEditor` already de-dupes via a
+// per-element symbol, so calling this on already-mounted markers is a no-op.
+//
+// `window.ApVisualEditor` mirrors the named ESM exports for hosts that
+// load this bundle as `<script type="module" src="…">` rather than
+// importing it. The bridge state lives in `media-bridge/state.ts` inside
+// this same module scope, so calls through the global flow into the same
+// registry as direct imports.
+import {
+    registerArtisanpackMediaBridge as registerArtisanpackMediaBridgeImpl,
+    registerMediaBridge as registerMediaBridgeImpl,
+} from '../media-bridge';
+
+declare global {
+    interface Window {
+        ApVisualEditorBoot?: (scope?: ParentNode) => Promise<void[]>;
+        ApVisualEditor?: {
+            boot: typeof bootVisualEditor;
+            registerArtisanpackMediaBridge: typeof registerArtisanpackMediaBridgeImpl;
+            registerMediaBridge: typeof registerMediaBridgeImpl;
+        };
+    }
+}
+
+if (typeof window !== 'undefined') {
+    window.ApVisualEditorBoot = bootVisualEditor;
+    window.ApVisualEditor = {
+        boot: bootVisualEditor,
+        registerArtisanpackMediaBridge: registerArtisanpackMediaBridgeImpl,
+        registerMediaBridge: registerMediaBridgeImpl,
+    };
+}
+
 if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', () => {

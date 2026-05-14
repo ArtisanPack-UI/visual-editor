@@ -9,6 +9,11 @@
  * those 404s so the user lands on a single install instruction page
  * instead of a cascade of error banners from the SPA.
  *
+ * Since H7's policy-contract refactor the install gate is no longer
+ * the package default — these tests bind {@see CmsFrameworkInstallGate}
+ * explicitly to assert its behaviour. The deny-by-default behaviour is
+ * covered in {@see SiteEditorAccessGateTest}.
+ *
  * The companion {@see InstallGateActiveTest} runs with cms-framework
  * booted and asserts the gate falls through to the SPA mount.
  *
@@ -17,9 +22,15 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\VisualEditor\SiteEditor\Gates\CmsFrameworkInstallGate;
+use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use Tests\TestCase;
 
 uses( TestCase::class );
+
+beforeEach( function (): void {
+	$this->app->bind( SiteEditorAccessGate::class, CmsFrameworkInstallGate::class );
+} );
 
 test( 'site-editor route renders the install gate when cms-framework is missing', function (): void {
 	$response = $this->get( '/visual-editor/site' );
