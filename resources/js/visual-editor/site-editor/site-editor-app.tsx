@@ -23,6 +23,7 @@ import { __, sprintf } from '@wordpress/i18n';
 import { TEXT_DOMAIN, bootI18n } from '../vendor/i18n';
 
 import type { EntityKind, SiteEditorApiConfig } from './api-client';
+import { BlockEditorBoundary } from './block-editor-boundary';
 import { CanvasFrame } from './canvas-frame';
 import {
     useEntityEditorViews,
@@ -550,6 +551,85 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
     const showNavigationEditor = isD4Section && activeEntityId !== null;
     const showPatternsEditor = isD5Section && activeEntityId !== null;
 
+    // Navigator + canvas + inspector regions. Extracted so the D2
+    // (templates / parts) path can wrap all three in a single
+    // `BlockEditorBoundary` — the canvas and inspector must share one
+    // `core/block-editor` registry or the inspector never sees block
+    // selection (#436). The navigator doesn't read the block store, so
+    // wrapping it too is harmless. The lazy sections (patterns,
+    // navigation, styles) own their own boundary inside their section
+    // component, so they render these regions unwrapped.
+    const bodyRegions = (
+        <>
+            {navigatorOpen ? (
+                <div className="ap-site-editor__sidebar ap-site-editor__sidebar--navigator">
+                    <NavigatorSidebar
+                        activeSection={activeSection.id}
+                        onSelectSection={handleSelectSection}
+                    >
+                        {navigatorChildren}
+                    </NavigatorSidebar>
+                </div>
+            ) : null}
+            {showEntityEditor ? (
+                <div
+                    className="ap-site-editor__canvas"
+                    data-has-entity="true"
+                    data-testid="ap-site-editor-canvas"
+                >
+                    {editorViews.canvas}
+                </div>
+            ) : isLazySection ? (
+                <div
+                    className="ap-site-editor__canvas"
+                    data-has-entity={
+                        isD3Section ||
+                        showNavigationEditor ||
+                        showPatternsEditor
+                    }
+                    data-testid="ap-site-editor-canvas"
+                >
+                    <div
+                        className="ap-site-editor__canvas-slot"
+                        ref={setCanvasSlot}
+                        data-testid="ap-site-editor-canvas-slot"
+                    />
+                </div>
+            ) : (
+                <CanvasFrame
+                    sectionLabel={activeSection.modeLabel}
+                    hasEntity={false}
+                />
+            )}
+            {inspectorOpen ? (
+                <div className="ap-site-editor__sidebar ap-site-editor__sidebar--inspector">
+                    {showEntityEditor ? (
+                        editorViews.inspector
+                    ) : isD3Section ||
+                      (isD4Section && showNavigationEditor) ||
+                      (isD5Section && showPatternsEditor) ? (
+                        <div
+                            className="ap-site-editor__inspector-slot"
+                            ref={setInspectorSlot}
+                            data-testid="ap-site-editor-inspector-slot"
+                        />
+                    ) : (
+                        <InspectorOutlet sectionLabel={activeSection.label} />
+                    )}
+                </div>
+            ) : null}
+        </>
+    );
+
+    const body =
+        showEntityEditor && editorViews.editorBoundary !== null ? (
+            <BlockEditorBoundary {...editorViews.editorBoundary}>
+                {bodyRegions}
+            </BlockEditorBoundary>
+        ) : (
+            bodyRegions
+        );
+
     return (
         <div
             className="ap-site-editor__shell"
@@ -590,63 +670,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                 aria-labelledby={navigatorTabId(activeSection.id)}
                 tabIndex={0}
             >
-                {navigatorOpen ? (
-                    <div className="ap-site-editor__sidebar ap-site-editor__sidebar--navigator">
-                        <NavigatorSidebar
-                            activeSection={activeSection.id}
-                            onSelectSection={handleSelectSection}
-                        >
-                            {navigatorChildren}
-                        </NavigatorSidebar>
-                    </div>
-                ) : null}
-                {showEntityEditor ? (
-                    <div
-                        className="ap-site-editor__canvas"
-                        data-has-entity="true"
-                        data-testid="ap-site-editor-canvas"
-                    >
-                        {editorViews.canvas}
-                    </div>
-                ) : isLazySection ? (
-                    <div
-                        className="ap-site-editor__canvas"
-                        data-has-entity={
-                            isD3Section ||
-                            showNavigationEditor ||
-                            showPatternsEditor
-                        }
-                        data-testid="ap-site-editor-canvas"
-                    >
-                        <div
-                            className="ap-site-editor__canvas-slot"
-                            ref={setCanvasSlot}
-                            data-testid="ap-site-editor-canvas-slot"
-                        />
-                    </div>
-                ) : (
-                    <CanvasFrame
-                        sectionLabel={activeSection.modeLabel}
-                        hasEntity={false}
-                    />
-                )}
-                {inspectorOpen ? (
-                    <div className="ap-site-editor__sidebar ap-site-editor__sidebar--inspector">
-                        {showEntityEditor ? (
-                            editorViews.inspector
-                        ) : isD3Section ||
-                          (isD4Section && showNavigationEditor) ||
-                          (isD5Section && showPatternsEditor) ? (
-                            <div
-                                className="ap-site-editor__inspector-slot"
-                                ref={setInspectorSlot}
-                                data-testid="ap-site-editor-inspector-slot"
-                            />
-                        ) : (
-                            <InspectorOutlet sectionLabel={activeSection.label} />
-                        )}
-                    </div>
-                ) : null}
+                {body}
             </div>
             {dialogKind === 'template' ? (
                 <TemplateCreateDialog

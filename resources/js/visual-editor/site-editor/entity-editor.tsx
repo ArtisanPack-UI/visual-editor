@@ -53,9 +53,27 @@ export interface EntityEditorOptions<K extends EntityKind> {
     onStateChange: (state: EntityEditorState) => void;
 }
 
+/**
+ * Block-editor wiring the shell feeds into {@see BlockEditorBoundary}
+ * so the canvas and inspector share one `core/block-editor` registry
+ * (#436). `null` when no entity is open — the shell renders the body
+ * without a boundary in that case.
+ */
+export interface EntityEditorBoundaryProps {
+    blocks: readonly unknown[];
+    onChange: (blocks: readonly unknown[]) => void;
+    onInput: (blocks: readonly unknown[]) => void;
+    apiBase?: string;
+}
+
 export interface EntityEditorViews {
     canvas: JSX.Element;
     inspector: JSX.Element;
+    /**
+     * Props for the shared `BlockEditorBoundary` the shell wraps around
+     * both the canvas and the inspector. `null` when no entity is open.
+     */
+    editorBoundary: EntityEditorBoundaryProps | null;
 }
 
 function resolveTitle(entity: EntityRecord<EntityKind> | null): string {
@@ -211,26 +229,37 @@ export function useEntityEditorViews<K extends EntityKind>(
         return (
             <EntityEditorCanvas
                 entityTitle={entityTitle !== '' ? entityTitle : kind}
-                blocks={blocks}
-                onChange={setBlocks}
-                onInput={setBlocks}
                 header={headerContent}
                 isLoading={loadStatus === 'loading'}
                 errorMessage={loadStatus === 'error' ? loadErrorMessage : null}
-                apiBase={apiConfig.apiBase}
             />
         );
     }, [
-        apiConfig.apiBase,
-        blocks,
         entityId,
         entityTitle,
         headerContent,
         kind,
         loadErrorMessage,
         loadStatus,
-        setBlocks,
     ]);
+
+    // #436: the `BlockEditorProvider` is hoisted out of the canvas into
+    // the shared `BlockEditorBoundary`, which the shell wraps around
+    // both the canvas and the inspector. Hand the shell the wiring it
+    // needs to mount that boundary. `null` while no entity is open so
+    // the shell skips the boundary entirely.
+    const editorBoundary = useMemo(
+        (): EntityEditorBoundaryProps | null =>
+            entityId === null
+                ? null
+                : {
+                      blocks,
+                      onChange: setBlocks,
+                      onInput: setBlocks,
+                      apiBase: apiConfig.apiBase,
+                  },
+        [apiConfig.apiBase, blocks, entityId, setBlocks]
+    );
 
     const documentPanel = useMemo((): ReactNode => {
         const handlePatch = (overrides: UpdatePayload): void => {
@@ -259,5 +288,5 @@ export function useEntityEditorViews<K extends EntityKind>(
         [documentPanel]
     );
 
-    return { canvas, inspector };
+    return { canvas, inspector, editorBoundary };
 }

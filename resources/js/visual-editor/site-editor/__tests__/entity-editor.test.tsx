@@ -98,6 +98,7 @@ vi.mock('../api-client', async () => {
     };
 });
 
+import { BlockEditorBoundary } from '../block-editor-boundary';
 import { useEntityEditorViews } from '../entity-editor';
 import type { EntityEditorState } from '../entity-editor';
 
@@ -125,11 +126,22 @@ function Harness(props: {
         onStateChange: onState,
     });
 
-    return (
+    const body = (
         <div>
             {views.canvas}
             {views.inspector}
         </div>
+    );
+
+    // #436: the `BlockEditorProvider` is hoisted into
+    // `BlockEditorBoundary`, which the shell wraps around both the
+    // canvas and the inspector. Mirror that here so the canvas's block
+    // stack and the `onChange` wiring resolve the same way they do in
+    // the real shell.
+    return views.editorBoundary !== null ? (
+        <BlockEditorBoundary {...views.editorBoundary}>{body}</BlockEditorBoundary>
+    ) : (
+        body
     );
 }
 
