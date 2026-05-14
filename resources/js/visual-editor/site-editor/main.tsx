@@ -33,8 +33,20 @@ type MountableElement = HTMLElement & {
 
 export interface SiteEditorMountConfig {
     routeBase: string;
-    postEditorUrl: string;
     apiBase: string;
+    /**
+     * URL the top-bar exit link points at — where the user goes when
+     * they leave the site editor. Optional: omit it and no exit link
+     * renders. CMS hosts set this to their admin dashboard; the
+     * package dev app sets it to the post editor.
+     */
+    exitUrl?: string;
+    /**
+     * Label for the exit link. Used verbatim (the consuming app owns
+     * its translation). Falls back to a generic "← Back" when an
+     * `exitUrl` is supplied without a label.
+     */
+    exitLabel?: string;
     theme?: string;
 }
 
@@ -52,18 +64,42 @@ export interface MountedSiteEditor {
 
 function readMountConfig(element: HTMLElement): SiteEditorMountConfig | null {
     const routeBase = element.dataset.routeBase?.trim();
-    const postEditorUrl = element.dataset.postEditorUrl?.trim();
     const apiBase = element.dataset.apiBase?.trim();
+    const exitLabel = element.dataset.exitLabel?.trim();
     const theme = element.dataset.theme?.trim();
 
-    if (!routeBase || !postEditorUrl || !apiBase) {
+    // `data-post-editor-url` is the pre-#446 attribute name. Read it as
+    // a deprecated fallback for one release so a host that hasn't
+    // migrated its mount markup yet still gets a working exit link.
+    //
+    // An explicitly-present `data-exit-url` always wins — even when
+    // empty — so a consumer can set `data-exit-url=""` to deliberately
+    // opt out of the exit link without the deprecated key silently
+    // resurrecting it. The fallback only fires when `data-exit-url` is
+    // absent entirely.
+    const exitUrl =
+        element.dataset.exitUrl !== undefined
+            ? element.dataset.exitUrl.trim()
+            : element.dataset.postEditorUrl?.trim();
+
+    if (!routeBase || !apiBase) {
         return null;
+    }
+
+    if (
+        element.dataset.exitUrl === undefined &&
+        element.dataset.postEditorUrl !== undefined
+    ) {
+        console.warn(
+            'site-editor: `data-post-editor-url` is deprecated — use `data-exit-url` (and optionally `data-exit-label`).'
+        );
     }
 
     return {
         routeBase,
-        postEditorUrl,
         apiBase,
+        ...(exitUrl !== undefined && exitUrl !== '' ? { exitUrl } : {}),
+        ...(exitLabel !== undefined && exitLabel !== '' ? { exitLabel } : {}),
         ...(theme !== undefined && theme !== '' ? { theme } : {}),
     };
 }
@@ -165,7 +201,7 @@ async function mount(element: MountableElement): Promise<void> {
 
     if (config === null) {
         console.error(
-            'site-editor: mount point is missing data-route-base, data-post-editor-url, or data-api-base.',
+            'site-editor: mount point is missing data-route-base or data-api-base.',
             element
         );
         return;

@@ -60,6 +60,14 @@ export interface TopBarProps {
      */
     extraActions?: ReactNode;
     /**
+     * Optional content rendered at the very start of the left group,
+     * before the inserter / undo / redo buttons. The site editor uses
+     * this for its exit link so it sits top-left — matching the
+     * WordPress site-editor layout — rather than buried in the right
+     * group.
+     */
+    leadingActions?: ReactNode;
+    /**
      * Override the aria-label / accessible name of the left toggle button.
      * The post editor uses this slot for the block inserter; the site
      * editor (D1 · #368) reuses the same button for the navigator panel
@@ -159,6 +167,7 @@ export function TopBar(props: TopBarProps): JSX.Element {
         onPasteStyles,
         onShowKeyboardShortcuts,
         extraActions,
+        leadingActions,
         inserterToggleAriaLabel,
         inspectorToggleAriaLabel,
     } = props;
@@ -342,6 +351,7 @@ export function TopBar(props: TopBarProps): JSX.Element {
             data-testid="ap-visual-editor-top-bar"
         >
             <div className="ap-visual-editor-top-bar__group ap-visual-editor-top-bar__group--start">
+                {leadingActions}
                 <button
                     type="button"
                     className="ap-visual-editor-top-bar__icon-button"

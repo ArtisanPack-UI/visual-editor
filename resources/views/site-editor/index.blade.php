@@ -16,11 +16,17 @@
 	@vite(['resources/js/visual-editor/site-editor/main.tsx'])
 </head>
 <body class="ap-visual-editor-site-editor-body">
+	{{-- #446. `data-exit-url` / `data-exit-label` drive the top-bar
+	     exit link. The dev app points it back at the post editor; CMS
+	     hosts override this blade to point at their own admin
+	     dashboard (and the link is optional — omit `data-exit-url` and
+	     no link renders). --}}
 	<div
 		id="ap-visual-editor-site-editor"
 		data-ap-site-editor
 		data-route-base="/visual-editor/site"
-		data-post-editor-url="{{ route('visual-editor.editor') }}"
+		data-exit-url="{{ route('visual-editor.editor') }}"
+		data-exit-label="{{ __('← Post editor') }}"
 		data-api-base="/visual-editor/api"
 		data-theme="{{ config('artisanpack.visual-editor.global_styles.theme', 'default') }}"
 	></div>
