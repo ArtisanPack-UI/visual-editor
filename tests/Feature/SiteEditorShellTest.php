@@ -25,7 +25,10 @@ test('site-editor blade view exists and exposes the SPA mount data attributes', 
 
     expect($contents)->toContain('data-ap-site-editor');
     expect($contents)->toContain('data-route-base="/visual-editor/site"');
-    expect($contents)->toContain("data-post-editor-url=\"{{ route('visual-editor.editor') }}\"");
+    // #446 renamed the exit-link attributes from `data-post-editor-url`
+    // to the consumer-configurable `data-exit-url` / `data-exit-label`.
+    expect($contents)->toContain("data-exit-url=\"{{ route('visual-editor.editor') }}\"");
+    expect($contents)->toContain("data-exit-label=\"{{ __('← Post editor') }}\"");
     expect($contents)->toContain("@vite(['resources/js/visual-editor/site-editor/main.tsx'])");
 });
 
