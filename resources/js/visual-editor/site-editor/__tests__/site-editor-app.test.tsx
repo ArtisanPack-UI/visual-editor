@@ -16,6 +16,24 @@ vi.mock('@wordpress/block-library', () => ({
     registerCoreBlocks: (): void => undefined,
 }));
 
+// #436: the shell now imports `BlockEditorBoundary` directly to wrap
+// the D2 canvas + inspector in one `BlockEditorProvider`. The real
+// boundary pulls `@wordpress/block-editor` (and its `block-compare` →
+// `diff` subpath) into the graph, which doesn't resolve under jsdom.
+// Stub it as a passthrough — the shell test only checks that the
+// boundary wraps the body, not the provider internals.
+vi.mock('../block-editor-boundary', () => ({
+    BlockEditorBoundary: ({
+        children,
+    }: {
+        children?: React.ReactNode;
+    }): JSX.Element => (
+        <div data-testid="ap-site-editor-stub-block-editor-boundary">
+            {children}
+        </div>
+    ),
+}));
+
 // Stub the canvas frame to avoid mounting `BlockCanvas` (which needs a
 // real iframe + the @wordpress/block-editor data store) under jsdom.
 // The shell-level integration is what we're verifying here; the canvas
@@ -57,9 +75,21 @@ vi.mock('../template-parts-section', () => ({
 }));
 
 vi.mock('../entity-editor', () => ({
-    useEntityEditorViews: (): { canvas: JSX.Element; inspector: JSX.Element } => ({
+    useEntityEditorViews: (): {
+        canvas: JSX.Element;
+        inspector: JSX.Element;
+        editorBoundary: {
+            blocks: readonly unknown[];
+            onChange: () => void;
+            onInput: () => void;
+        } | null;
+    } => ({
         canvas: <div data-testid="ap-site-editor-stub-entity-canvas" />,
         inspector: <div data-testid="ap-site-editor-stub-entity-inspector" />,
+        // #436: a non-null boundary so the shell exercises its
+        // wrap-in-`BlockEditorBoundary` branch. The boundary itself is
+        // mocked as a passthrough above.
+        editorBoundary: { blocks: [], onChange: () => undefined, onInput: () => undefined },
     }),
 }));
 

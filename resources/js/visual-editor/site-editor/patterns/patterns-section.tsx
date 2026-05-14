@@ -19,6 +19,7 @@ import {
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import type { SiteEditorApiConfig } from '../api-client';
+import { BlockEditorBoundary } from '../block-editor-boundary';
 import { InspectorSidebar } from '../../editor/inspector-sidebar';
 import type { EntityEditorState } from '../entity-editor';
 import { SectionPortal } from '../section-portal';
@@ -49,11 +50,31 @@ export interface UsePatternsSectionViewsOptions {
     onStateChange: (state: EntityEditorState) => void;
 }
 
+/**
+ * Block-editor wiring for the shared `BlockEditorBoundary` (#436).
+ * `null` when no pattern is open. `PatternsSectionView` wraps the
+ * canvas and inspector portals in the boundary so they share one
+ * `core/block-editor` registry — without it the inspector, portaled
+ * into a separate DOM slot, fell outside the canvas's provider scope
+ * and never saw block selection.
+ */
+export interface PatternsEditorBoundaryProps {
+    blocks: readonly unknown[];
+    onChange: (blocks: readonly unknown[]) => void;
+    onInput: (blocks: readonly unknown[]) => void;
+    apiBase?: string;
+}
+
 export interface PatternsSectionViews {
     navigator: ReactElement;
     canvas: ReactElement;
     inspector: ReactElement;
     overlay: ReactElement | null;
+    /**
+     * Props for the shared `BlockEditorBoundary`. `null` when no
+     * pattern is open.
+     */
+    editorBoundary: PatternsEditorBoundaryProps | null;
 }
 
 const IDLE_STATE: EntityEditorState = {
@@ -236,35 +257,46 @@ export function usePatternsSectionViews(
             <PatternCanvas
                 title={title}
                 synced={synced}
-                blocks={editor.blocks}
-                onChange={editor.setBlocks}
-                onInput={editor.setBlocks}
                 isLoading={editor.loadStatus === 'loading'}
                 errorMessage={
                     editor.loadStatus === 'error'
                         ? editor.loadErrorMessage
                         : null
                 }
-                apiBase={apiConfig.apiBase}
             />
         );
     }, [
         activeEntityId,
         activeTab,
         apiConfig,
-        editor.blocks,
         editor.fields.slug,
         editor.fields.title,
         editor.loadErrorMessage,
         editor.loadStatus,
         editor.pattern,
-        editor.setBlocks,
         handleCanvasCreate,
         handleConvert,
         handleDelete,
         handleEdit,
         refreshKey,
     ]);
+
+    // #436: the `BlockEditorProvider` is hoisted out of `PatternCanvas`
+    // into the shared `BlockEditorBoundary`, which `PatternsSectionView`
+    // wraps around both the canvas and inspector portals. Hand back the
+    // wiring it needs. `null` while the grid (list view) is showing.
+    const editorBoundary = useMemo(
+        (): PatternsEditorBoundaryProps | null =>
+            activeEntityId === null
+                ? null
+                : {
+                      blocks: editor.blocks,
+                      onChange: editor.setBlocks,
+                      onInput: editor.setBlocks,
+                      apiBase: apiConfig.apiBase,
+                  },
+        [activeEntityId, apiConfig.apiBase, editor.blocks, editor.setBlocks]
+    );
 
     const inspector = useMemo(() => {
         const document = (
@@ -348,7 +380,7 @@ export function usePatternsSectionViews(
         );
     }
 
-    return { navigator, canvas, inspector, overlay };
+    return { navigator, canvas, inspector, overlay, editorBoundary };
 }
 
 /**
@@ -378,11 +410,32 @@ export default function PatternsSectionView(
     } = props;
     const views = usePatternsSectionViews(hookOptions);
 
+    // #436: the canvas and inspector portal into separate DOM slots,
+    // but both must be React-descendants of one `BlockEditorBoundary`
+    // so they share a single `core/block-editor` registry — React
+    // portals preserve context across the DOM hop. The navigator and
+    // overlay don't read the block store, so they stay outside.
+    const canvasAndInspector =
+        views.editorBoundary !== null ? (
+            <BlockEditorBoundary {...views.editorBoundary}>
+                <SectionPortal slot={canvasSlot}>{views.canvas}</SectionPortal>
+                <SectionPortal slot={inspectorSlot}>
+                    {views.inspector}
+                </SectionPortal>
+            </BlockEditorBoundary>
+        ) : (
+            <>
+                <SectionPortal slot={canvasSlot}>{views.canvas}</SectionPortal>
+                <SectionPortal slot={inspectorSlot}>
+                    {views.inspector}
+                </SectionPortal>
+            </>
+        );
+
     return (
         <>
             <SectionPortal slot={navigatorSlot}>{views.navigator}</SectionPortal>
-            <SectionPortal slot={canvasSlot}>{views.canvas}</SectionPortal>
-            <SectionPortal slot={inspectorSlot}>{views.inspector}</SectionPortal>
+            {canvasAndInspector}
             <SectionPortal slot={overlaySlot}>{views.overlay}</SectionPortal>
         </>
     );

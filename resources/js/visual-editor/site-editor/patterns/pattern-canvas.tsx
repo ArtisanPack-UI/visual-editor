@@ -2,70 +2,42 @@
  * Pattern editor canvas.
  *
  * Identical block-editor stack to `EntityEditorCanvas` (templates /
- * parts) — patterns share the BlockEditorProvider + BlockTools +
- * WritingFlow + BlockList composition. The header chrome is patterns-
- * specific: a sync-status badge and the canonical "Editing: {title}"
- * announcement so users always know which pattern they're working on
- * (P1 — every screen names the entity).
+ * parts) — patterns share the `BlockTools` + `WritingFlow` +
+ * `BlockList` composition. The header chrome is patterns-specific: a
+ * sync-status badge and the canonical "Editing: {title}" announcement
+ * so users always know which pattern they're working on (P1 — every
+ * screen names the entity).
+ *
+ * #436: the `BlockEditorProvider` no longer lives here. It was hoisted
+ * into {@see BlockEditorBoundary} so the canvas and the inspector share
+ * one `core/block-editor` registry. This component now assumes a
+ * provider above it and renders only the canvas surface.
  */
 
 import {
-    BlockEditorProvider,
     BlockList,
     BlockTools,
     ObserveTyping,
     WritingFlow,
 } from '@wordpress/block-editor';
-import { Popover, SlotFillProvider } from '@wordpress/components';
-// `@wordpress/format-library` registers the inline rich-text formats
-// (bold / italic / link / …) the toolbar surfaces. Side-effect import.
-import '@wordpress/format-library';
 import { __, sprintf } from '@wordpress/i18n';
 import { useMemo, type ReactNode } from 'react';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
-
-import { ConvertToPatternControl } from '../../editor/convert-to-pattern-control';
-
-import '@wordpress/components/build-style/style.css';
-import '@wordpress/block-editor/build-style/style.css';
-import '@wordpress/block-editor/build-style/content.css';
-import '@wordpress/block-library/build-style/style.css';
-import '@wordpress/block-library/build-style/editor.css';
 
 import './pattern-canvas.css';
 
 export interface PatternCanvasProps {
     title: string;
     synced: boolean;
-    blocks: readonly unknown[];
-    onChange: (blocks: readonly unknown[]) => void;
-    onInput: (blocks: readonly unknown[]) => void;
     /** Optional dirty / saved chrome rendered above the canvas. */
     header?: ReactNode;
     isLoading?: boolean;
     errorMessage?: string | null;
-    /** API base used by "Convert to pattern" inside the canvas. */
-    apiBase?: string;
 }
 
-const EDITOR_SETTINGS = {
-    alignWide: true,
-    hasFixedToolbar: false,
-};
-
 export function PatternCanvas(props: PatternCanvasProps): JSX.Element {
-    const {
-        title,
-        synced,
-        blocks,
-        onChange,
-        onInput,
-        header,
-        isLoading,
-        errorMessage,
-        apiBase,
-    } = props;
+    const { title, synced, header, isLoading, errorMessage } = props;
 
     const announcement = useMemo(
         () =>
@@ -129,28 +101,15 @@ export function PatternCanvas(props: PatternCanvasProps): JSX.Element {
                 {header}
             </div>
             <div className="ap-pattern-canvas__body">
-                <SlotFillProvider>
-                    <BlockEditorProvider
-                        value={blocks}
-                        settings={EDITOR_SETTINGS}
-                        onChange={onChange}
-                        onInput={onInput}
-                    >
-                        <div className="editor-styles-wrapper ap-pattern-canvas__surface">
-                            <BlockTools>
-                                <WritingFlow>
-                                    <ObserveTyping>
-                                        <BlockList />
-                                    </ObserveTyping>
-                                </WritingFlow>
-                            </BlockTools>
-                        </div>
-                        <Popover.Slot />
-                        {apiBase !== undefined && apiBase !== '' ? (
-                            <ConvertToPatternControl apiBase={apiBase} />
-                        ) : null}
-                    </BlockEditorProvider>
-                </SlotFillProvider>
+                <div className="editor-styles-wrapper ap-pattern-canvas__surface">
+                    <BlockTools>
+                        <WritingFlow>
+                            <ObserveTyping>
+                                <BlockList />
+                            </ObserveTyping>
+                        </WritingFlow>
+                    </BlockTools>
+                </div>
             </div>
         </div>
     );
