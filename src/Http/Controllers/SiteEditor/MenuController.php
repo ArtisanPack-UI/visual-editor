@@ -107,9 +107,25 @@ class MenuController extends Controller
 
 		$model = self::CMS_MENU_FQCN;
 
+		$attributes = $this->modelAttributesFromRequest( $request->validated(), forCreate: true );
+
+		if ( ! array_key_exists( 'theme', $attributes ) || '' === (string) $attributes['theme'] ) {
+			return response()->json( [
+				'message' => 'A theme is required to create a menu.',
+				'errors'  => [ 'theme' => [ 'The theme field is required when no theme is active.' ] ],
+			], Response::HTTP_UNPROCESSABLE_ENTITY );
+		}
+
+		if ( ! array_key_exists( 'name', $attributes ) || '' === (string) $attributes['name'] ) {
+			return response()->json( [
+				'message' => 'A name is required to create a menu.',
+				'errors'  => [ 'name' => [ 'The name (or title) field is required.' ] ],
+			], Response::HTTP_UNPROCESSABLE_ENTITY );
+		}
+
 		try {
 			/** @var object $menu */
-			$menu = $model::create( $request->validated() );
+			$menu = $model::create( $attributes );
 		} catch ( QueryException $e ) {
 			if ( $this->isUniqueViolation( $e ) ) {
 				return response()->json( [
@@ -142,7 +158,7 @@ class MenuController extends Controller
 		}
 
 		try {
-			$menu->update( $request->validated() );
+			$menu->update( $this->modelAttributesFromRequest( $request->validated() ) );
 		} catch ( QueryException $e ) {
 			if ( $this->isUniqueViolation( $e ) ) {
 				return response()->json( [
@@ -237,6 +253,16 @@ class MenuController extends Controller
 				'rendered' => $name,
 				'raw'      => $name,
 			],
+			// `content` mirrors the WP REST `wp_navigation` shape so the
+			// editor's NavigationBrowser can read `row.content.blocks`
+			// without crashing (#438). Items are surfaced through the
+			// separate /menu-items endpoint; for now this is an empty
+			// envelope, populated by a future H6 follow-up that converts
+			// menu items into a `core/navigation` block tree.
+			'content'        => [
+				'raw'    => '',
+				'blocks' => [],
+			],
 			'auto_add_pages' => (bool) ( $menu->auto_add_pages ?? false ),
 		];
 	}
@@ -251,6 +277,82 @@ class MenuController extends Controller
 		}
 
 		return app()->bound( self::CMS_RESOLVER_BINDING );
+	}
+
+	/**
+	 * Translate the WP-shape validated input into cms-framework `Menu`
+	 * model attributes. Maps `title` (WP REST shape — what the editor's
+	 * create-menu dialog sends) onto `name` (model column). On create,
+	 * falls back to cms-framework's active theme when the payload
+	 * doesn't carry one. Mirrors the helpers in TemplateController and
+	 * TemplatePartController (#438).
+	 *
+	 * The active-theme fallback is create-only. On a partial `update()`
+	 * the payload routinely omits `theme` (e.g. a rename sends only
+	 * `title`); injecting the active theme there would silently
+	 * re-home the menu to a different theme. An explicit `theme` in the
+	 * payload still flows through on both paths — only the *inferred*
+	 * fallback is gated.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $validated
+	 * @param  bool  $forCreate  True for store(), false for update().
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function modelAttributesFromRequest( array $validated, bool $forCreate = false ): array
+	{
+		$attributes = [];
+
+		foreach ( [ 'theme', 'slug', 'name', 'description', 'auto_add_pages' ] as $field ) {
+			if ( array_key_exists( $field, $validated ) ) {
+				$attributes[ $field ] = $validated[ $field ];
+			}
+		}
+
+		// `title` (WP REST shape) wins over `name` (model shape) when
+		// both are present, since the editor consistently sends `title`
+		// and an explicit body `name` would only appear from a REST
+		// client choosing to use the model field directly.
+		if ( array_key_exists( 'title', $validated ) ) {
+			$attributes['name'] = $validated['title'];
+		}
+
+		if ( $forCreate
+			&& ( ! array_key_exists( 'theme', $attributes ) || '' === (string) ( $attributes['theme'] ?? '' ) )
+		) {
+			$active = $this->activeThemeSlug();
+
+			if ( null !== $active ) {
+				$attributes['theme'] = $active;
+			}
+		}
+
+		return $attributes;
+	}
+
+	/**
+	 * Resolve the active theme slug through cms-framework's `ThemeManager`
+	 * when available. Mirrors {@see TemplateController::activeThemeSlug()}.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function activeThemeSlug(): ?string
+	{
+		$themeManagerFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
+
+		if ( ! class_exists( $themeManagerFqcn ) || ! app()->bound( $themeManagerFqcn ) ) {
+			return null;
+		}
+
+		$theme = app( $themeManagerFqcn )->getActiveTheme();
+
+		if ( ! is_array( $theme ) || empty( $theme['slug'] ) || ! is_string( $theme['slug'] ) ) {
+			return null;
+		}
+
+		return $theme['slug'];
 	}
 
 	/**

@@ -143,10 +143,19 @@ class PatternController extends Controller
 
 		$resolved = $this->findPattern( (string) $pattern->slug );
 
+		// The row was created but the resolver can't see it — a
+		// server-side inconsistency, not a client error. Returning 201
+		// with this body would hand the editor a record with no `id`,
+		// which it then dereferences into `/patterns/undefined` (#438).
+		if ( ! $resolved instanceof ResolvedPattern ) {
+			return response()->json(
+				[ 'message' => 'Pattern created but could not be resolved.' ],
+				Response::HTTP_INTERNAL_SERVER_ERROR,
+			);
+		}
+
 		return response()->json(
-			$resolved instanceof ResolvedPattern
-				? ( new PatternAdapter() )->toArray( $resolved )
-				: [ 'message' => 'Pattern created but could not be resolved.' ],
+			( new PatternAdapter() )->toArray( $resolved ),
 			Response::HTTP_CREATED,
 		);
 	}
@@ -268,7 +277,10 @@ class PatternController extends Controller
 	 */
 	protected function findPatternByIdOrSlug( string $input ): ?ResolvedPattern
 	{
-		if ( ctype_digit( $input ) ) {
+		// `0` is the sentinel `wpId` for theme-source patterns — never a
+		// valid DB id. Treating it as one would silently match the first
+		// theme pattern, masking #438. Fall through to slug lookup.
+		if ( ctype_digit( $input ) && (int) $input > 0 ) {
 			$id = (int) $input;
 
 			foreach ( $this->resolver->all() as $candidate ) {
@@ -299,7 +311,9 @@ class PatternController extends Controller
 	{
 		$model = self::CMS_PATTERN_FQCN;
 
-		if ( ctype_digit( $input ) ) {
+		// `0` cannot match any real DB row; skip the lookup and fall
+		// through to slug resolution (#438).
+		if ( ctype_digit( $input ) && (int) $input > 0 ) {
 			/** @var object|null */
 			return $model::query()->find( (int) $input );
 		}

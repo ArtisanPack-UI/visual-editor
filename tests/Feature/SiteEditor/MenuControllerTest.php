@@ -78,7 +78,11 @@ describe( 'GET /visual-editor/api/menus/{id}', function (): void {
 			->assertJsonPath( 'name', 'Primary Navigation' )
 			->assertJsonPath( 'title.rendered', 'Primary Navigation' )
 			->assertJsonPath( 'type', 'wp_navigation' )
-			->assertJsonPath( 'auto_add_pages', true );
+			->assertJsonPath( 'auto_add_pages', true )
+			// #438. NavigationBrowser dereferences `row.content.blocks`
+			// — the shape must always include an envelope, even empty.
+			->assertJsonPath( 'content.raw', '' )
+			->assertJsonPath( 'content.blocks', [] );
 	} );
 
 	it( 'returns 404 when no menu matches the id', function (): void {
@@ -110,10 +114,39 @@ describe( 'POST /visual-editor/api/menus', function (): void {
 		] )->assertStatus( 409 );
 	} );
 
-	it( 'returns 422 with explicit validation errors when required fields are missing', function (): void {
-		$this->postJson( '/visual-editor/api/menus', [ 'name' => 'Missing theme + slug' ] )
+	it( 'returns 422 when slug is missing (theme falls back to active)', function (): void {
+		$this->postJson( '/visual-editor/api/menus', [ 'name' => 'Missing slug' ] )
 			->assertStatus( 422 )
-			->assertJsonValidationErrors( [ 'theme', 'slug' ] );
+			->assertJsonValidationErrors( 'slug' );
+	} );
+
+	// #438. The editor's create-menu dialog sends `title`, not `name`,
+	// and never sends `theme`. The controller maps `title` → `name`
+	// and falls back to ThemeManager's active theme.
+	it( 'accepts the WP-shape `title` field and falls back to the active theme (#438)', function (): void {
+		$this->postJson( '/visual-editor/api/menus', [
+			'slug'  => 'primary',
+			'title' => 'Primary Navigation',
+		] )
+			->assertCreated()
+			->assertJsonPath( 'theme', 'digital-shopfront' )
+			->assertJsonPath( 'name', 'Primary Navigation' );
+
+		expect( Menu::query()->where( 'theme', 'digital-shopfront' )->where( 'slug', 'primary' )->first()?->name )
+			->toBe( 'Primary Navigation' );
+	} );
+
+	it( 'returns 422 when theme is missing and no active theme is bound', function (): void {
+		$this->mock( \ArtisanPackUI\CMSFramework\Modules\Themes\Managers\ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );
+		} );
+
+		$this->postJson( '/visual-editor/api/menus', [
+			'slug'  => 'primary',
+			'title' => 'Primary',
+		] )
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( 'theme' );
 	} );
 } );
 
@@ -138,6 +171,27 @@ describe( 'PUT /visual-editor/api/menus/{id}', function (): void {
 
 	it( 'returns 404 when the id does not exist', function (): void {
 		$this->putJson( '/visual-editor/api/menus/9999', [ 'name' => 'Nope' ] )->assertNotFound();
+	} );
+
+	it( 'leaves the theme untouched on a partial update that omits it (#438)', function (): void {
+		// The active-theme fallback in modelAttributesFromRequest() is
+		// create-only. A partial update — here a rename — must not
+		// silently re-home a menu belonging to a non-active theme onto
+		// the active one.
+		$menu = Menu::create( [
+			'theme' => 'other-theme',
+			'slug'  => 'primary',
+			'name'  => 'Primary',
+		] );
+
+		$this->putJson( "/visual-editor/api/menus/{$menu->id}", [
+			'name' => 'Primary Renamed',
+		] )
+			->assertOk()
+			->assertJsonPath( 'name', 'Primary Renamed' )
+			->assertJsonPath( 'theme', 'other-theme' );
+
+		expect( $menu->fresh()->theme )->toBe( 'other-theme' );
 	} );
 
 	it( 'returns 409 when the slug update would collide with another menu in the same theme', function (): void {

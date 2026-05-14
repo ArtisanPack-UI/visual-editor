@@ -78,6 +78,37 @@ describe( 'GET /visual-editor/api/templates', function (): void {
 			->assertJsonPath( '0.type', 'wp_template' )
 			->assertJsonPath( '0.title.rendered', 'Single' );
 	} );
+
+	it( 'filters the list by the status query param', function (): void {
+		foreach ( [ 'published-tpl' => 'publish', 'draft-tpl' => 'draft' ] as $slug => $status ) {
+			Template::create( [
+				'theme'         => 'digital-shopfront',
+				'slug'          => $slug,
+				'title'         => ucfirst( $slug ),
+				'description'   => '',
+				'status'        => $status,
+				'is_custom'     => false,
+				'block_content' => [],
+				'author_id'     => null,
+			] );
+		}
+
+		rebuildSiteEditorResolversForTest();
+
+		// Without the `status` filter the navigator's Published / Draft
+		// chips were cosmetic — every template showed under every chip
+		// (#438).
+		$this->getJson( '/visual-editor/api/templates?status=draft' )
+			->assertOk()
+			->assertJsonCount( 1 )
+			->assertJsonPath( '0.slug', 'draft-tpl' )
+			->assertJsonPath( '0.status', 'draft' );
+
+		// No `status` param → unfiltered, both templates surface.
+		$this->getJson( '/visual-editor/api/templates' )
+			->assertOk()
+			->assertJsonCount( 2 );
+	} );
 } );
 
 describe( 'GET /visual-editor/api/templates/{slug}', function (): void {
@@ -139,7 +170,7 @@ describe( 'POST /visual-editor/api/templates', function (): void {
 		// (per ResolvedEntity §raw docblock), so the response surfaces
 		// `content.blocks` from the resolver and `content.raw` stays
 		// empty for DB-stored entities. Asserts mirror that contract.
-		$this->postJson( '/visual-editor/api/templates', [
+		$response = $this->postJson( '/visual-editor/api/templates', [
 			'slug'    => 'archive',
 			'title'   => 'Archive',
 			'theme'   => 'digital-shopfront',
@@ -149,13 +180,43 @@ describe( 'POST /visual-editor/api/templates', function (): void {
 					[ 'name' => 'core/archives', 'attributes' => [ 'showLabel' => true ], 'innerBlocks' => [] ],
 				],
 			],
-		] )
+		] );
+
+		$response
 			->assertCreated()
 			->assertJsonPath( 'slug', 'archive' )
 			->assertJsonPath( 'title.raw', 'Archive' )
 			->assertJsonPath( 'content.blocks.0.name', 'core/archives' );
 
+		// The editor dereferences `entity.id` straight after create to
+		// navigate to the new template. A missing / zero id sends it to
+		// `/templates/undefined` (#438) — the response MUST carry a
+		// usable id.
+		$id = $response->json( 'id' );
+		expect( $id )->not->toBeNull()
+			->and( $id )->not->toBe( 0 );
+
 		expect( Template::query()->where( 'slug', 'archive' )->exists() )->toBeTrue();
+	} );
+
+	it( 'creates the template under the active theme, ignoring a stale request theme', function (): void {
+		// The site editor's mount point can carry a stale `data-theme`
+		// attribute, so the create payload's `theme` may not match the
+		// active theme. cms-framework's resolver only sees templates for
+		// the active theme — creating under any other theme yields an
+		// unresolvable template. store() must prefer the active theme (#438).
+		$response = $this->postJson( '/visual-editor/api/templates', [
+			'slug'  => 'search',
+			'title' => 'Search',
+			'theme' => 'some-stale-theme',
+		] );
+
+		$response->assertCreated()->assertJsonPath( 'slug', 'search' );
+
+		// Persisted under the active theme (mocked to digital-shopfront),
+		// not the stale value from the request body.
+		expect( Template::query()->where( 'slug', 'search' )->value( 'theme' ) )
+			->toBe( 'digital-shopfront' );
 	} );
 
 	it( 'returns 409 on a duplicate (theme, slug) write', function (): void {
@@ -232,9 +293,28 @@ describe( 'PUT /visual-editor/api/templates/{slug}', function (): void {
 		] )->assertStatus( 422 );
 	} );
 
-	it( 'returns 422 when the theme is missing', function (): void {
+	// #438. When the body omits `theme`, the controller falls back to
+	// cms-framework's active theme via ThemeManager — the editor save
+	// payload doesn't carry `theme` and shouldn't have to.
+	it( 'falls back to the active theme when the body omits theme (#438)', function (): void {
+		$this->putJson( '/visual-editor/api/templates/falls-back', [ 'title' => 'Falls back' ] )
+			->assertOk()
+			->assertJsonPath( 'theme', 'digital-shopfront' );
+
+		expect( Template::query()->where( 'theme', 'digital-shopfront' )->where( 'slug', 'falls-back' )->exists() )
+			->toBeTrue();
+	} );
+
+	it( 'returns 422 when the body omits theme and no active theme is bound', function (): void {
+		// Re-bind ThemeManager to a no-active-theme stub so the fallback
+		// returns null and the 422 path actually fires.
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );
+		} );
+
 		$this->putJson( '/visual-editor/api/templates/single', [ 'title' => 'No theme' ] )
-			->assertStatus( 422 );
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( 'theme' );
 	} );
 
 	// H7 (#432). With a numeric URL parameter the controller resolves
@@ -304,8 +384,34 @@ describe( 'DELETE /visual-editor/api/templates/{slug}', function (): void {
 			->and( Template::query()->where( 'theme', 'other-theme' )->where( 'slug', 'archive' )->exists() )->toBeTrue();
 	} );
 
-	it( 'returns 422 when the theme query parameter is missing', function (): void {
-		$this->deleteJson( '/visual-editor/api/templates/archive' )->assertStatus( 422 );
+	// #438. When the request omits `?theme=`, the controller falls back
+	// to cms-framework's active theme — the editor's revert action
+	// doesn't include the theme query param.
+	it( 'falls back to the active theme when ?theme= is omitted (#438)', function (): void {
+		Template::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'archive',
+			'title'         => 'Archive',
+			'status'        => 'publish',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$this->deleteJson( '/visual-editor/api/templates/archive' )->assertNoContent();
+
+		expect( Template::query()->where( 'theme', 'digital-shopfront' )->where( 'slug', 'archive' )->exists() )
+			->toBeFalse();
+	} );
+
+	it( 'returns 422 when ?theme= is omitted and no active theme is bound', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );
+		} );
+
+		$this->deleteJson( '/visual-editor/api/templates/archive' )
+			->assertStatus( 422 )
+			->assertJsonValidationErrors( 'theme' );
 	} );
 
 	it( 'returns 404 when no DB override matches the (theme, slug)', function (): void {

@@ -56,13 +56,28 @@ class TemplatePartController extends Controller
 	/**
 	 * GET `/visual-editor/api/template-parts` — list parts for the active theme.
 	 *
+	 * Honors the `area` query param (the navigator's Header / Footer /
+	 * Sidebar / General filter chips). Without it the chips were
+	 * cosmetic — every part showed under every chip (#438). Mirrors the
+	 * `source` / `synced` filtering already in
+	 * {@see PatternController::index()}.
+	 *
 	 * @since 1.0.0
 	 */
-	public function index(): JsonResponse
+	public function index( Request $request ): JsonResponse
 	{
-		$adapter = new TemplatePartAdapter();
+		$parts = $this->resolver->all();
 
-		return response()->json( $adapter->collection( $this->resolver->all() ) );
+		$area = trim( (string) $request->query( 'area', '' ) );
+
+		if ( '' !== $area ) {
+			$parts = array_filter(
+				$parts,
+				static fn ( ResolvedTemplatePart $part ): bool => $part->area === $area,
+			);
+		}
+
+		return response()->json( ( new TemplatePartAdapter() )->collection( $parts ) );
 	}
 
 	/**
@@ -98,11 +113,26 @@ class TemplatePartController extends Controller
 			return $this->cmsFrameworkUnavailable();
 		}
 
+		$validated = $request->validated();
+
+		// The site editor only ever resolves parts for the *active*
+		// theme — cms-framework's resolver scopes its DB query to it. A
+		// part created under any other theme is invisible to the
+		// navigator and to save/load, so prefer the active theme here.
+		// The request's `theme` (sourced from the mount point's stale
+		// `data-theme` attribute) is only a fallback for standalone
+		// installs with no ThemeManager bound. Mirrors the theme
+		// inference applied to update()/destroy() in #438.
+		//
+		// `StoreTemplatePartRequest` requires `theme`, so the fallback
+		// is always a non-empty string — no empty-theme guard needed.
+		$validated['theme'] = $this->activeThemeSlug() ?? $validated['theme'];
+
 		$model = self::CMS_TEMPLATE_PART_FQCN;
 
 		try {
 			/** @var object $part */
-			$part = $model::create( $this->modelAttributesFromRequest( $request->validated() ) );
+			$part = $model::create( $this->modelAttributesFromRequest( $validated ) );
 		} catch ( QueryException $e ) {
 			if ( $this->isUniqueViolation( $e ) ) {
 				return response()->json( [
@@ -118,10 +148,20 @@ class TemplatePartController extends Controller
 
 		$resolved = $this->resolver->find( (string) $part->slug );
 
+		// The row was created but the resolver can't see it — a
+		// server-side inconsistency, not a client error. Returning 201
+		// with this body would hand the editor a record with no `id`,
+		// which it then dereferences into `/template-parts/undefined`
+		// (#438).
+		if ( ! $resolved instanceof ResolvedTemplatePart ) {
+			return response()->json(
+				[ 'message' => 'Template part created but could not be resolved.' ],
+				Response::HTTP_INTERNAL_SERVER_ERROR,
+			);
+		}
+
 		return response()->json(
-			$resolved instanceof ResolvedTemplatePart
-				? ( new TemplatePartAdapter() )->toArray( $resolved )
-				: [ 'message' => 'Template part created but could not be resolved.' ],
+			( new TemplatePartAdapter() )->toArray( $resolved ),
 			Response::HTTP_CREATED,
 		);
 	}
@@ -144,8 +184,9 @@ class TemplatePartController extends Controller
 		// H7 (#432). Numeric URL parameter → primary-key update on
 		// the row that already knows its `(theme, slug, area)`. Slug
 		// path keeps the existing upsert behavior so a theme-only
-		// part can be DB-overridden through a PUT.
-		if ( ctype_digit( $slug ) ) {
+		// part can be DB-overridden through a PUT. `0` is the file-only
+		// sentinel and must fall through to the slug branch (#438).
+		if ( ctype_digit( $slug ) && (int) $slug > 0 ) {
 			$existing = $model::query()->find( (int) $slug );
 
 			if ( null === $existing ) {
@@ -183,20 +224,39 @@ class TemplatePartController extends Controller
 			$theme = (string) ( $validated['theme'] ?? '' );
 
 			if ( '' === $theme ) {
+				$theme = (string) ( $this->activeThemeSlug() ?? '' );
+			}
+
+			if ( '' === $theme ) {
 				return response()->json( [
 					'message' => 'A theme is required to identify the template part.',
-					'errors'  => [ 'theme' => [ 'The theme field is required for site-editor updates.' ] ],
+					'errors'  => [ 'theme' => [ 'The theme field is required for site-editor updates when no theme is active.' ] ],
 				], Response::HTTP_UNPROCESSABLE_ENTITY );
 			}
+
+			// Persist the resolved theme back into `$validated` so
+			// `modelAttributesFromRequest()` carries it into the create
+			// payload. Mirrors the same fix in {@see TemplateController::update()}.
+			$validated['theme'] = $theme;
 
 			$existing = $model::query()->where( 'theme', $theme )->where( 'slug', $slug )->first();
 
 			if ( null === $existing ) {
-				$attributes         = $this->modelAttributesFromRequest( $validated );
-				$attributes['slug'] = $slug;
+				// File→DB upsert: editor save payloads commonly omit
+				// every field except `content`. Seed defaults from the
+				// file-source resolved part (title, description, area,
+				// etc.) before layering user-supplied changes on top,
+				// so NOT NULL columns like `title` and `area` always
+				// carry a value (#438).
+				$fileDefaults = $this->fileSourceDefaults( $slug );
 
-				// Area is required to create a new part record; the existing
-				// row's area would otherwise survive the update branch.
+				$attributes = array_merge(
+					$fileDefaults,
+					$this->modelAttributesFromRequest( $validated ),
+				);
+				$attributes['slug']  = $slug;
+				$attributes['theme'] = $theme;
+
 				if ( ! array_key_exists( 'area', $attributes ) ) {
 					return response()->json( [
 						'message' => 'An area is required to upsert a new template part.',
@@ -265,8 +325,9 @@ class TemplatePartController extends Controller
 
 		// H7 (#432). Numeric URL parameter → primary-key delete; the
 		// row owns its theme so the `?theme=` collision risk doesn't
-		// apply. Slug path keeps the `?theme=` requirement.
-		if ( ctype_digit( $slug ) ) {
+		// apply. Slug path keeps the `?theme=` requirement. `0` is the
+		// file-only sentinel and must fall through (#438).
+		if ( ctype_digit( $slug ) && (int) $slug > 0 ) {
 			$existing = $model::query()->find( (int) $slug );
 
 			if ( null === $existing ) {
@@ -287,9 +348,13 @@ class TemplatePartController extends Controller
 		$theme = trim( (string) $request->query( 'theme', '' ) );
 
 		if ( '' === $theme ) {
+			$theme = (string) ( $this->activeThemeSlug() ?? '' );
+		}
+
+		if ( '' === $theme ) {
 			return response()->json( [
 				'message' => 'A theme is required to identify the template part.',
-				'errors'  => [ 'theme' => [ 'The theme query parameter is required for site-editor deletes.' ] ],
+				'errors'  => [ 'theme' => [ 'The theme query parameter is required for site-editor deletes when no theme is active.' ] ],
 			], Response::HTTP_UNPROCESSABLE_ENTITY );
 		}
 
@@ -320,7 +385,8 @@ class TemplatePartController extends Controller
 	 */
 	protected function findTemplatePartByIdOrSlug( string $input ): ?ResolvedTemplatePart
 	{
-		if ( ctype_digit( $input ) ) {
+		// `0` is the file-only sentinel and must fall through (#438).
+		if ( ctype_digit( $input ) && (int) $input > 0 ) {
 			$id = (int) $input;
 
 			foreach ( $this->resolver->all() as $candidate ) {
@@ -344,6 +410,59 @@ class TemplatePartController extends Controller
 		}
 
 		return app()->bound( self::CMS_RESOLVER_BINDING );
+	}
+
+	/**
+	 * Seed model attributes for a brand-new file→DB upsert from the
+	 * file-source resolved part. Mirrors
+	 * {@see TemplateController::fileSourceDefaults()} but additionally
+	 * carries the `area` enum since template parts require it.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function fileSourceDefaults( string $slug ): array
+	{
+		$resolved = $this->resolver->find( $slug );
+
+		if ( ! $resolved instanceof ResolvedTemplatePart ) {
+			return [];
+		}
+
+		return [
+			'title'       => $resolved->title,
+			'description' => $resolved->description,
+			'status'      => $resolved->status,
+			'is_custom'   => $resolved->isCustom,
+			'area'        => $resolved->area,
+		];
+	}
+
+	/**
+	 * Resolve the active theme slug through cms-framework's `ThemeManager`
+	 * when available. Used as the fallback for slug-branch upserts and
+	 * destroys when the request omits an explicit theme. Mirrors
+	 * {@see TemplateController::activeThemeSlug()} and
+	 * {@see GlobalStylesController::activeTheme()}.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function activeThemeSlug(): ?string
+	{
+		$themeManagerFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
+
+		if ( ! class_exists( $themeManagerFqcn ) || ! app()->bound( $themeManagerFqcn ) ) {
+			return null;
+		}
+
+		$theme = app( $themeManagerFqcn )->getActiveTheme();
+
+		if ( ! is_array( $theme ) || empty( $theme['slug'] ) || ! is_string( $theme['slug'] ) ) {
+			return null;
+		}
+
+		return $theme['slug'];
 	}
 
 	/**

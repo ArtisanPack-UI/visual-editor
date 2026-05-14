@@ -78,13 +78,27 @@ class TemplateController extends Controller
 	 * active theme. Returns a flat list keyed in slug-iteration order; no
 	 * pagination wrapper, matching {@see TemplateAdapter::collection()}.
 	 *
+	 * Honors the `status` query param (the navigator's Published / Draft
+	 * filter chips). Without it the chips were cosmetic — every template
+	 * showed under every chip (#438). Mirrors the `source` / `synced`
+	 * filtering already in {@see PatternController::index()}.
+	 *
 	 * @since 1.0.0
 	 */
-	public function index(): JsonResponse
+	public function index( Request $request ): JsonResponse
 	{
-		$adapter = new TemplateAdapter();
+		$templates = $this->resolver->all();
 
-		return response()->json( $adapter->collection( $this->resolver->all() ) );
+		$status = trim( (string) $request->query( 'status', '' ) );
+
+		if ( '' !== $status ) {
+			$templates = array_filter(
+				$templates,
+				static fn ( ResolvedTemplate $template ): bool => $template->status === $status,
+			);
+		}
+
+		return response()->json( ( new TemplateAdapter() )->collection( $templates ) );
 	}
 
 	/**
@@ -131,11 +145,26 @@ class TemplateController extends Controller
 			return $this->cmsFrameworkUnavailable();
 		}
 
+		$validated = $request->validated();
+
+		// The site editor only ever resolves templates for the *active*
+		// theme — cms-framework's resolver scopes its DB query to it. A
+		// template created under any other theme is invisible to the
+		// navigator and to save/load, so prefer the active theme here.
+		// The request's `theme` (sourced from the mount point's stale
+		// `data-theme` attribute) is only a fallback for standalone
+		// installs with no ThemeManager bound. Mirrors the theme
+		// inference applied to update()/destroy() in #438.
+		//
+		// `StoreTemplateRequest` requires `theme`, so the fallback is
+		// always a non-empty string — no empty-theme guard needed.
+		$validated['theme'] = $this->activeThemeSlug() ?? $validated['theme'];
+
 		$model = self::CMS_TEMPLATE_FQCN;
 
 		try {
 			/** @var object $template */
-			$template = $model::create( $this->modelAttributesFromRequest( $request->validated() ) );
+			$template = $model::create( $this->modelAttributesFromRequest( $validated ) );
 		} catch ( QueryException $e ) {
 			if ( $this->isUniqueViolation( $e ) ) {
 				return response()->json( [
@@ -153,10 +182,19 @@ class TemplateController extends Controller
 
 		$resolved = $this->resolver->find( (string) $template->slug );
 
+		// The row was created but the resolver can't see it — a
+		// server-side inconsistency, not a client error. Returning 201
+		// with this body would hand the editor a record with no `id`,
+		// which it then dereferences into `/templates/undefined` (#438).
+		if ( ! $resolved instanceof ResolvedTemplate ) {
+			return response()->json(
+				[ 'message' => 'Template created but could not be resolved.' ],
+				Response::HTTP_INTERNAL_SERVER_ERROR,
+			);
+		}
+
 		return response()->json(
-			$resolved instanceof ResolvedTemplate
-				? ( new TemplateAdapter() )->toArray( $resolved )
-				: [ 'message' => 'Template created but could not be resolved.' ],
+			( new TemplateAdapter() )->toArray( $resolved ),
 			Response::HTTP_CREATED,
 		);
 	}
@@ -181,8 +219,9 @@ class TemplateController extends Controller
 		// H7 (#432). Numeric URL parameter → look up the row directly
 		// by primary key (the row already knows its theme + slug). Slug
 		// path keeps the existing `(theme, slug)` upsert behavior so
-		// theme-only templates can be DB-overridden through a PUT.
-		if ( ctype_digit( $slug ) ) {
+		// theme-only templates can be DB-overridden through a PUT. `0`
+		// is the file-only sentinel and must fall through (#438).
+		if ( ctype_digit( $slug ) && (int) $slug > 0 ) {
 			$existing = $model::query()->find( (int) $slug );
 
 			if ( null === $existing ) {
@@ -220,17 +259,39 @@ class TemplateController extends Controller
 			$theme = (string) ( $validated['theme'] ?? '' );
 
 			if ( '' === $theme ) {
+				$theme = (string) ( $this->activeThemeSlug() ?? '' );
+			}
+
+			if ( '' === $theme ) {
 				return response()->json( [
 					'message' => 'A theme is required to identify the template.',
-					'errors'  => [ 'theme' => [ 'The theme field is required for site-editor updates.' ] ],
+					'errors'  => [ 'theme' => [ 'The theme field is required for site-editor updates when no theme is active.' ] ],
 				], Response::HTTP_UNPROCESSABLE_ENTITY );
 			}
+
+			// Persist the resolved theme back into `$validated` so
+			// `modelAttributesFromRequest()` carries it into the create
+			// payload. Without this, a fallback theme resolved from the
+			// active theme manager wouldn't reach the DB row.
+			$validated['theme'] = $theme;
 
 			$existing = $model::query()->where( 'theme', $theme )->where( 'slug', $slug )->first();
 
 			if ( null === $existing ) {
-				$attributes         = $this->modelAttributesFromRequest( $validated );
-				$attributes['slug'] = $slug;
+				// File→DB upsert: editor save payloads commonly omit
+				// every field except `content`. Seed defaults from the
+				// file-source resolved entity (title, description, etc.)
+				// before layering user-supplied changes on top, so
+				// NOT NULL columns like `title` always carry a value
+				// even when the editor only changed blocks (#438).
+				$fileDefaults = $this->fileSourceDefaults( $slug );
+
+				$attributes = array_merge(
+					$fileDefaults,
+					$this->modelAttributesFromRequest( $validated ),
+				);
+				$attributes['slug']  = $slug;
+				$attributes['theme'] = $theme;
 
 				try {
 					$existing = $model::create( $attributes );
@@ -301,8 +362,9 @@ class TemplateController extends Controller
 		// H7 (#432). Numeric URL parameter → primary-key delete (row
 		// owns its theme already; no `?theme=` collision risk). Slug
 		// path keeps the `?theme=` requirement so a multi-theme
-		// override doesn't get collateral-deleted.
-		if ( ctype_digit( $slug ) ) {
+		// override doesn't get collateral-deleted. `0` is the file-only
+		// sentinel and must fall through (#438).
+		if ( ctype_digit( $slug ) && (int) $slug > 0 ) {
 			$existing = $model::query()->find( (int) $slug );
 
 			if ( null === $existing ) {
@@ -324,9 +386,13 @@ class TemplateController extends Controller
 		$theme = trim( (string) $request->query( 'theme', '' ) );
 
 		if ( '' === $theme ) {
+			$theme = (string) ( $this->activeThemeSlug() ?? '' );
+		}
+
+		if ( '' === $theme ) {
 			return response()->json( [
 				'message' => 'A theme is required to identify the template.',
-				'errors'  => [ 'theme' => [ 'The theme query parameter is required for site-editor deletes.' ] ],
+				'errors'  => [ 'theme' => [ 'The theme query parameter is required for site-editor deletes when no theme is active.' ] ],
 			], Response::HTTP_UNPROCESSABLE_ENTITY );
 		}
 
@@ -361,7 +427,10 @@ class TemplateController extends Controller
 	 */
 	protected function findTemplateByIdOrSlug( string $input ): ?ResolvedTemplate
 	{
-		if ( ctype_digit( $input ) ) {
+		// `0` is the sentinel `wpId` for file-only templates — never a valid
+		// DB id. Treating it as one would silently match the first file-only
+		// candidate, masking #438. Fall through to slug lookup instead.
+		if ( ctype_digit( $input ) && (int) $input > 0 ) {
 			$id = (int) $input;
 
 			foreach ( $this->resolver->all() as $candidate ) {
@@ -385,6 +454,66 @@ class TemplateController extends Controller
 		}
 
 		return app()->bound( self::CMS_RESOLVER_BINDING );
+	}
+
+	/**
+	 * Seed model attributes for a brand-new file→DB upsert from the
+	 * file-source resolved template. Returns the subset of fields the
+	 * `templates` table requires (or strongly prefers) — `title`,
+	 * `description`, `status`, `is_custom` — so the editor can save
+	 * blocks-only payloads without 1364 NOT NULL violations on columns
+	 * it doesn't echo. Returns an empty array if the resolver can't
+	 * find the slug (e.g. a brand-new custom template the user is
+	 * creating from scratch through PUT — then required fields must
+	 * come from the request body, surfaced by the model's NOT NULL
+	 * column constraints if the client misses any).
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function fileSourceDefaults( string $slug ): array
+	{
+		$resolved = $this->resolver->find( $slug );
+
+		if ( ! $resolved instanceof ResolvedTemplate ) {
+			return [];
+		}
+
+		return [
+			'title'       => $resolved->title,
+			'description' => $resolved->description,
+			'status'      => $resolved->status,
+			'is_custom'   => $resolved->isCustom,
+		];
+	}
+
+	/**
+	 * Resolve the active theme slug through cms-framework's `ThemeManager`
+	 * when available. Used as the fallback for slug-branch upserts and
+	 * destroys when the request omits an explicit theme — matching the
+	 * single-active-theme invariant the site editor itself relies on.
+	 * Returns null when cms-framework isn't integrated, no theme is
+	 * active, or the manager is otherwise unbindable. Mirrors the same
+	 * helper in {@see GlobalStylesController::activeTheme()}.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function activeThemeSlug(): ?string
+	{
+		$themeManagerFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
+
+		if ( ! class_exists( $themeManagerFqcn ) || ! app()->bound( $themeManagerFqcn ) ) {
+			return null;
+		}
+
+		$theme = app( $themeManagerFqcn )->getActiveTheme();
+
+		if ( ! is_array( $theme ) || empty( $theme['slug'] ) || ! is_string( $theme['slug'] ) ) {
+			return null;
+		}
+
+		return $theme['slug'];
 	}
 
 	/**

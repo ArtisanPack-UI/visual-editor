@@ -71,6 +71,37 @@ describe( 'GET /visual-editor/api/template-parts', function (): void {
 			->assertJsonPath( '0.type', 'wp_template_part' )
 			->assertJsonPath( '0.area', 'header' );
 	} );
+
+	it( 'filters the list by the area query param', function (): void {
+		foreach ( [ 'site-header' => 'header', 'site-footer' => 'footer' ] as $slug => $area ) {
+			TemplatePart::create( [
+				'theme'         => 'digital-shopfront',
+				'slug'          => $slug,
+				'title'         => ucfirst( $area ),
+				'area'          => $area,
+				'status'        => 'publish',
+				'is_custom'     => false,
+				'block_content' => [],
+				'author_id'     => null,
+			] );
+		}
+
+		rebuildSiteEditorResolversForPartTest();
+
+		// Without the `area` filter the navigator's Header / Footer /
+		// Sidebar chips were cosmetic — every part showed under every
+		// chip (#438).
+		$this->getJson( '/visual-editor/api/template-parts?area=header' )
+			->assertOk()
+			->assertJsonCount( 1 )
+			->assertJsonPath( '0.slug', 'site-header' )
+			->assertJsonPath( '0.area', 'header' );
+
+		// No `area` param → unfiltered, both parts surface.
+		$this->getJson( '/visual-editor/api/template-parts' )
+			->assertOk()
+			->assertJsonCount( 2 );
+	} );
 } );
 
 describe( 'GET /visual-editor/api/template-parts/{slug}', function (): void {
@@ -127,7 +158,7 @@ describe( 'GET /visual-editor/api/template-parts/{slug}', function (): void {
 
 describe( 'POST /visual-editor/api/template-parts', function (): void {
 	it( 'creates a DB-stored part and returns the resolved record', function (): void {
-		$this->postJson( '/visual-editor/api/template-parts', [
+		$response = $this->postJson( '/visual-editor/api/template-parts', [
 			'slug'    => 'sidebar',
 			'title'   => 'Sidebar',
 			'area'    => 'sidebar',
@@ -136,13 +167,44 @@ describe( 'POST /visual-editor/api/template-parts', function (): void {
 				'raw'    => '',
 				'blocks' => [ [ 'name' => 'core/navigation', 'attributes' => [], 'innerBlocks' => [] ] ],
 			],
-		] )
+		] );
+
+		$response
 			->assertCreated()
 			->assertJsonPath( 'slug', 'sidebar' )
 			->assertJsonPath( 'area', 'sidebar' )
 			->assertJsonPath( 'content.blocks.0.name', 'core/navigation' );
 
+		// The editor dereferences `entity.id` straight after create to
+		// navigate to the new part. A missing / zero id sends it to
+		// `/template-parts/undefined` (#438) — the response MUST carry a
+		// usable id.
+		$id = $response->json( 'id' );
+		expect( $id )->not->toBeNull()
+			->and( $id )->not->toBe( 0 );
+
 		expect( TemplatePart::query()->where( 'slug', 'sidebar' )->exists() )->toBeTrue();
+	} );
+
+	it( 'creates the part under the active theme, ignoring a stale request theme', function (): void {
+		// The site editor's mount point can carry a stale `data-theme`
+		// attribute, so the create payload's `theme` may not match the
+		// active theme. cms-framework's resolver only sees parts for the
+		// active theme — creating under any other theme yields an
+		// unresolvable part. store() must prefer the active theme (#438).
+		$response = $this->postJson( '/visual-editor/api/template-parts', [
+			'slug'  => 'footer',
+			'title' => 'Footer',
+			'area'  => 'footer',
+			'theme' => 'some-stale-theme',
+		] );
+
+		$response->assertCreated()->assertJsonPath( 'slug', 'footer' );
+
+		// Persisted under the active theme (mocked to digital-shopfront),
+		// not the stale value from the request body.
+		expect( TemplatePart::query()->where( 'slug', 'footer' )->value( 'theme' ) )
+			->toBe( 'digital-shopfront' );
 	} );
 
 	it( 'rejects unknown areas at validation', function (): void {
@@ -306,7 +368,31 @@ describe( 'DELETE /visual-editor/api/template-parts/{slug}', function (): void {
 			->and( TemplatePart::query()->where( 'theme', 'other-theme' )->where( 'slug', 'header' )->exists() )->toBeTrue();
 	} );
 
-	it( 'returns 422 when the theme query parameter is missing', function (): void {
+	// #438. When the request omits `?theme=`, the controller falls back
+	// to cms-framework's active theme — the editor's revert action
+	// doesn't include the theme query param.
+	it( 'falls back to the active theme when ?theme= is omitted (#438)', function (): void {
+		TemplatePart::create( [
+			'theme'         => 'digital-shopfront',
+			'slug'          => 'header',
+			'area'          => 'header',
+			'title'         => 'Header',
+			'is_custom'     => false,
+			'block_content' => [],
+			'author_id'     => null,
+		] );
+
+		$this->deleteJson( '/visual-editor/api/template-parts/header' )->assertNoContent();
+
+		expect( TemplatePart::query()->where( 'theme', 'digital-shopfront' )->where( 'slug', 'header' )->exists() )
+			->toBeFalse();
+	} );
+
+	it( 'returns 422 when ?theme= is omitted and no active theme is bound', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );
+		} );
+
 		$this->deleteJson( '/visual-editor/api/template-parts/header' )
 			->assertStatus( 422 )
 			->assertJsonValidationErrors( 'theme' );

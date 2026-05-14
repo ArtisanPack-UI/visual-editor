@@ -37,9 +37,18 @@ class StoreMenuRequest extends FormRequest
 	public function rules(): array
 	{
 		return [
-			'theme'          => [ 'required', 'string', 'max:191' ],
+			// `theme` is optional at the request layer and resolved
+			// server-side through cms-framework's active ThemeManager
+			// when omitted, matching the editor save flow that doesn't
+			// repeat the active theme on every payload (#438).
+			'theme'          => [ 'sometimes', 'string', 'max:191' ],
 			'slug'           => [ 'required', 'string', 'max:191' ],
-			'name'           => [ 'required', 'string', 'max:255' ],
+			// Accept either `name` (model-shape) or `title` (WP REST
+			// shape — what the editor's create-menu dialog sends).
+			// At least one must be present; the controller picks
+			// whichever it finds and maps to the model's `name` column.
+			'name'           => [ 'sometimes', 'string', 'max:255' ],
+			'title'          => [ 'sometimes', 'string', 'max:255' ],
 			'description'    => [ 'nullable', 'string' ],
 			'auto_add_pages' => [ 'sometimes', 'boolean' ],
 		];
