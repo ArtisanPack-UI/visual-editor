@@ -16,14 +16,7 @@ import {
     useState,
 } from 'react';
 import { Alert, ToastProvider } from '@artisanpack-ui/react/feedback';
-import {
-    BlockContextProvider,
-    BlockEditorProvider,
-    BlockList,
-    BlockTools,
-    ObserveTyping,
-    WritingFlow,
-} from '@wordpress/block-editor';
+import { BlockEditorProvider } from '@wordpress/block-editor';
 import { registerCoreBlocks } from '@wordpress/block-library';
 import { Popover, SlotFillProvider } from '@wordpress/components';
 import { useDispatch, useSelect } from '@wordpress/data';
@@ -40,13 +33,14 @@ import type { BlockInstance } from '@wordpress/blocks';
 import { addFilter } from '@wordpress/hooks';
 
 import { bootI18n, TEXT_DOMAIN } from '../vendor/i18n';
-import { DEFAULT_CANVAS_STYLES, editorSettings } from '../editor-settings';
+import { editorSettings } from '../editor-settings';
 import { ensureMediaBridgeFilter } from '../media-bridge';
 
 import { BlockLibrarySidebar } from './block-library-sidebar';
 import { registerContrastWarning } from './contrast-warning';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
 import { discoverAndRegisterCustomBlocks } from './custom-blocks';
+import { EditorCanvas } from './editor-canvas';
 import { registerCoreQueryBlockOverride } from './query-block-override';
 import { registerSyncedPatternIndicator } from './synced-pattern-indicator';
 import { registerTaxonomyAndArchiveBlockOverrides } from './taxonomy-archive-block-overrides';
@@ -61,11 +55,16 @@ import {
 import { entityTypeForResource } from './entity-type';
 import { InspectorSidebar } from './inspector-sidebar';
 import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
-import { PostTitle } from './post-title';
 import { useSaveNotifications } from './save-notifications';
 import { TopBar } from './top-bar';
 import { usePersistence } from './use-persistence';
 
+// Side-effect imports for the editor *chrome* — the top bar, block
+// toolbar, and inspector sidebar that render in the parent document,
+// outside the `BlockCanvas` iframe. The same stylesheets are injected
+// *into* the iframe separately via `canvas-styles.ts` (#347), because
+// the iframe document doesn't inherit the parent's Vite-injected
+// `<style>` tags.
 import '@wordpress/components/build-style/style.css';
 import '@wordpress/block-editor/build-style/style.css';
 import '@wordpress/block-editor/build-style/content.css';
@@ -865,43 +864,22 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                     <BlockLibrarySidebar apiBase={props.apiBase} />
                 </div>
             ) : null}
-            <div className="editor-styles-wrapper ap-visual-editor__canvas">
-                {/*
-                 * Default canvas stylesheet rendered inline. Gutenberg's
-                 * `settings.styles` channel only injects into the
-                 * `<Iframe>` canvas; our editor renders the block list
-                 * in the same DOM tree, so we inline the rules here.
-                 * Themes that ship a theme.json get their stylesheet
-                 * appended after this `<style>` and win on cascade.
-                 */}
-                <style>{DEFAULT_CANVAS_STYLES}</style>
-                {supports?.title !== false && (
-                    <PostTitle value={title} onChange={handleTitleChange} />
-                )}
-                <BlockTools>
-                    <WritingFlow>
-                        <ObserveTyping>
-                            {/*
-                             * G4a: stamp `postType`/`postId` into block context
-                             * for cms-framework Post/Page edits so `core/post-*`
-                             * blocks (which declare `usesContext: ["postId",
-                             * "postType", "queryId"]`) see the active entity.
-                             * Outside an entity-mounted canvas the values stay
-                             * undefined and the blocks render their placeholder
-                             * shell — same behaviour as a query-loop descendant
-                             * with no parent providing the context.
-                             */}
-                            {documentType !== null && numericId !== null ? (
-                                <BlockContextProvider value={blockContextValue}>
-                                    <BlockList />
-                                </BlockContextProvider>
-                            ) : (
-                                <BlockList />
-                            )}
-                        </ObserveTyping>
-                    </WritingFlow>
-                </BlockTools>
-            </div>
+            {/*
+             * #347: the block list renders inside `EditorCanvas`'s
+             * `BlockCanvas` iframe. `blockContextValue` is non-null
+             * exactly for cms-framework Post/Page edits — it stamps
+             * `postType`/`postId` into block context so `core/post-*`
+             * blocks (which declare `usesContext: ["postId",
+             * "postType", "queryId"]`) see the active entity. Outside
+             * an entity-mounted canvas it's null and the blocks render
+             * their placeholder shell.
+             */}
+            <EditorCanvas
+                showTitle={supports?.title !== false}
+                title={title}
+                onTitleChange={handleTitleChange}
+                blockContext={blockContextValue}
+            />
             <Popover.Slot />
             <ConvertToPatternControl apiBase={props.apiBase} />
             {inspectorOpen ? (
