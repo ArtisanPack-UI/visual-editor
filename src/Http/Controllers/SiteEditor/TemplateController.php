@@ -78,13 +78,27 @@ class TemplateController extends Controller
 	 * active theme. Returns a flat list keyed in slug-iteration order; no
 	 * pagination wrapper, matching {@see TemplateAdapter::collection()}.
 	 *
+	 * Honors the `status` query param (the navigator's Published / Draft
+	 * filter chips). Without it the chips were cosmetic — every template
+	 * showed under every chip (#438). Mirrors the `source` / `synced`
+	 * filtering already in {@see PatternController::index()}.
+	 *
 	 * @since 1.0.0
 	 */
-	public function index(): JsonResponse
+	public function index( Request $request ): JsonResponse
 	{
-		$adapter = new TemplateAdapter();
+		$templates = $this->resolver->all();
 
-		return response()->json( $adapter->collection( $this->resolver->all() ) );
+		$status = trim( (string) $request->query( 'status', '' ) );
+
+		if ( '' !== $status ) {
+			$templates = array_filter(
+				$templates,
+				static fn ( ResolvedTemplate $template ): bool => $template->status === $status,
+			);
+		}
+
+		return response()->json( ( new TemplateAdapter() )->collection( $templates ) );
 	}
 
 	/**
@@ -131,11 +145,26 @@ class TemplateController extends Controller
 			return $this->cmsFrameworkUnavailable();
 		}
 
+		$validated = $request->validated();
+
+		// The site editor only ever resolves templates for the *active*
+		// theme — cms-framework's resolver scopes its DB query to it. A
+		// template created under any other theme is invisible to the
+		// navigator and to save/load, so prefer the active theme here.
+		// The request's `theme` (sourced from the mount point's stale
+		// `data-theme` attribute) is only a fallback for standalone
+		// installs with no ThemeManager bound. Mirrors the theme
+		// inference applied to update()/destroy() in #438.
+		//
+		// `StoreTemplateRequest` requires `theme`, so the fallback is
+		// always a non-empty string — no empty-theme guard needed.
+		$validated['theme'] = $this->activeThemeSlug() ?? $validated['theme'];
+
 		$model = self::CMS_TEMPLATE_FQCN;
 
 		try {
 			/** @var object $template */
-			$template = $model::create( $this->modelAttributesFromRequest( $request->validated() ) );
+			$template = $model::create( $this->modelAttributesFromRequest( $validated ) );
 		} catch ( QueryException $e ) {
 			if ( $this->isUniqueViolation( $e ) ) {
 				return response()->json( [
@@ -153,10 +182,19 @@ class TemplateController extends Controller
 
 		$resolved = $this->resolver->find( (string) $template->slug );
 
+		// The row was created but the resolver can't see it — a
+		// server-side inconsistency, not a client error. Returning 201
+		// with this body would hand the editor a record with no `id`,
+		// which it then dereferences into `/templates/undefined` (#438).
+		if ( ! $resolved instanceof ResolvedTemplate ) {
+			return response()->json(
+				[ 'message' => 'Template created but could not be resolved.' ],
+				Response::HTTP_INTERNAL_SERVER_ERROR,
+			);
+		}
+
 		return response()->json(
-			$resolved instanceof ResolvedTemplate
-				? ( new TemplateAdapter() )->toArray( $resolved )
-				: [ 'message' => 'Template created but could not be resolved.' ],
+			( new TemplateAdapter() )->toArray( $resolved ),
 			Response::HTTP_CREATED,
 		);
 	}

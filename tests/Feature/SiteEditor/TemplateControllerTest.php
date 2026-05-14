@@ -78,6 +78,37 @@ describe( 'GET /visual-editor/api/templates', function (): void {
 			->assertJsonPath( '0.type', 'wp_template' )
 			->assertJsonPath( '0.title.rendered', 'Single' );
 	} );
+
+	it( 'filters the list by the status query param', function (): void {
+		foreach ( [ 'published-tpl' => 'publish', 'draft-tpl' => 'draft' ] as $slug => $status ) {
+			Template::create( [
+				'theme'         => 'digital-shopfront',
+				'slug'          => $slug,
+				'title'         => ucfirst( $slug ),
+				'description'   => '',
+				'status'        => $status,
+				'is_custom'     => false,
+				'block_content' => [],
+				'author_id'     => null,
+			] );
+		}
+
+		rebuildSiteEditorResolversForTest();
+
+		// Without the `status` filter the navigator's Published / Draft
+		// chips were cosmetic — every template showed under every chip
+		// (#438).
+		$this->getJson( '/visual-editor/api/templates?status=draft' )
+			->assertOk()
+			->assertJsonCount( 1 )
+			->assertJsonPath( '0.slug', 'draft-tpl' )
+			->assertJsonPath( '0.status', 'draft' );
+
+		// No `status` param → unfiltered, both templates surface.
+		$this->getJson( '/visual-editor/api/templates' )
+			->assertOk()
+			->assertJsonCount( 2 );
+	} );
 } );
 
 describe( 'GET /visual-editor/api/templates/{slug}', function (): void {
@@ -139,7 +170,7 @@ describe( 'POST /visual-editor/api/templates', function (): void {
 		// (per ResolvedEntity §raw docblock), so the response surfaces
 		// `content.blocks` from the resolver and `content.raw` stays
 		// empty for DB-stored entities. Asserts mirror that contract.
-		$this->postJson( '/visual-editor/api/templates', [
+		$response = $this->postJson( '/visual-editor/api/templates', [
 			'slug'    => 'archive',
 			'title'   => 'Archive',
 			'theme'   => 'digital-shopfront',
@@ -149,13 +180,43 @@ describe( 'POST /visual-editor/api/templates', function (): void {
 					[ 'name' => 'core/archives', 'attributes' => [ 'showLabel' => true ], 'innerBlocks' => [] ],
 				],
 			],
-		] )
+		] );
+
+		$response
 			->assertCreated()
 			->assertJsonPath( 'slug', 'archive' )
 			->assertJsonPath( 'title.raw', 'Archive' )
 			->assertJsonPath( 'content.blocks.0.name', 'core/archives' );
 
+		// The editor dereferences `entity.id` straight after create to
+		// navigate to the new template. A missing / zero id sends it to
+		// `/templates/undefined` (#438) — the response MUST carry a
+		// usable id.
+		$id = $response->json( 'id' );
+		expect( $id )->not->toBeNull()
+			->and( $id )->not->toBe( 0 );
+
 		expect( Template::query()->where( 'slug', 'archive' )->exists() )->toBeTrue();
+	} );
+
+	it( 'creates the template under the active theme, ignoring a stale request theme', function (): void {
+		// The site editor's mount point can carry a stale `data-theme`
+		// attribute, so the create payload's `theme` may not match the
+		// active theme. cms-framework's resolver only sees templates for
+		// the active theme — creating under any other theme yields an
+		// unresolvable template. store() must prefer the active theme (#438).
+		$response = $this->postJson( '/visual-editor/api/templates', [
+			'slug'  => 'search',
+			'title' => 'Search',
+			'theme' => 'some-stale-theme',
+		] );
+
+		$response->assertCreated()->assertJsonPath( 'slug', 'search' );
+
+		// Persisted under the active theme (mocked to digital-shopfront),
+		// not the stale value from the request body.
+		expect( Template::query()->where( 'slug', 'search' )->value( 'theme' ) )
+			->toBe( 'digital-shopfront' );
 	} );
 
 	it( 'returns 409 on a duplicate (theme, slug) write', function (): void {

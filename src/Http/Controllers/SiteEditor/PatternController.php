@@ -143,10 +143,19 @@ class PatternController extends Controller
 
 		$resolved = $this->findPattern( (string) $pattern->slug );
 
+		// The row was created but the resolver can't see it — a
+		// server-side inconsistency, not a client error. Returning 201
+		// with this body would hand the editor a record with no `id`,
+		// which it then dereferences into `/patterns/undefined` (#438).
+		if ( ! $resolved instanceof ResolvedPattern ) {
+			return response()->json(
+				[ 'message' => 'Pattern created but could not be resolved.' ],
+				Response::HTTP_INTERNAL_SERVER_ERROR,
+			);
+		}
+
 		return response()->json(
-			$resolved instanceof ResolvedPattern
-				? ( new PatternAdapter() )->toArray( $resolved )
-				: [ 'message' => 'Pattern created but could not be resolved.' ],
+			( new PatternAdapter() )->toArray( $resolved ),
 			Response::HTTP_CREATED,
 		);
 	}
