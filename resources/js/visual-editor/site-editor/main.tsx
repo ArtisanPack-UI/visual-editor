@@ -71,9 +71,16 @@ function readMountConfig(element: HTMLElement): SiteEditorMountConfig | null {
     // `data-post-editor-url` is the pre-#446 attribute name. Read it as
     // a deprecated fallback for one release so a host that hasn't
     // migrated its mount markup yet still gets a working exit link.
+    //
+    // An explicitly-present `data-exit-url` always wins — even when
+    // empty — so a consumer can set `data-exit-url=""` to deliberately
+    // opt out of the exit link without the deprecated key silently
+    // resurrecting it. The fallback only fires when `data-exit-url` is
+    // absent entirely.
     const exitUrl =
-        element.dataset.exitUrl?.trim() ||
-        element.dataset.postEditorUrl?.trim();
+        element.dataset.exitUrl !== undefined
+            ? element.dataset.exitUrl.trim()
+            : element.dataset.postEditorUrl?.trim();
 
     if (!routeBase || !apiBase) {
         return null;

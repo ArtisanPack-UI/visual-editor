@@ -113,6 +113,41 @@ describe('bootSiteEditor', () => {
             warnSpy.mockRestore();
         }
     });
+
+    it('an explicitly empty data-exit-url wins over the deprecated key', async () => {
+        // A consumer that sets `data-exit-url=""` is deliberately
+        // opting out of the exit link. The deprecated
+        // `data-post-editor-url` must NOT silently resurrect it — and
+        // since `data-exit-url` is present, no deprecation warning
+        // fires either.
+        const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {
+            // suppress test-log noise — absence of the warning is the assertion.
+        });
+
+        const root = document.createElement('div');
+        const target = document.createElement('div');
+        target.setAttribute('data-ap-site-editor', '');
+        target.dataset.routeBase = '/visual-editor/site';
+        target.dataset.apiBase = '/visual-editor/api';
+        target.dataset.exitUrl = '';
+        target.dataset.postEditorUrl = '/editor';
+        root.appendChild(target);
+        document.body.appendChild(root);
+
+        try {
+            await act(async () => {
+                await bootSiteEditor(root);
+            });
+
+            expect(
+                target.querySelector('[data-testid="ap-site-editor-stub"]')
+            ).not.toBeNull();
+            expect(warnSpy).not.toHaveBeenCalled();
+        } finally {
+            document.body.removeChild(root);
+            warnSpy.mockRestore();
+        }
+    });
 });
 
 describe('mountSiteEditor', () => {
