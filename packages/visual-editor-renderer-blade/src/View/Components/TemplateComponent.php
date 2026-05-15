@@ -3,17 +3,19 @@
 /**
  * `<x-ve-template :slug="..." :theme="...">` Blade component.
  *
- * Resolves the most-specific {@see VisualEditorTemplate} for the given
- * slug (walking the WordPress-style fallback chain via
- * {@see TemplateResolver}) and renders its block tree to HTML, inlining
- * any `core/template-part` references along the way.
+ * Resolves the most-specific template entity for the given slug,
+ * walking a WordPress-style fallback chain (`single-page-home` →
+ * `single-page` → `single` → `index`) against cms-framework's
+ * `TemplateResolver`. Renders the resolved entity's block tree to
+ * HTML through the visual-editor block renderer, inlining any
+ * `core/template-part` or `core/block` references along the way.
  *
  * Behaviour when no template matches:
- * - In production the component renders an empty wrapper so the surrounding
- *   layout stays intact.
- * - In any non-production environment a visible HTML comment surfaces the
- *   resolution failure so developers see the misconfiguration during a
- *   browser refresh.
+ * - In production the component renders an empty wrapper so the
+ *   surrounding layout stays intact.
+ * - In any non-production environment a visible HTML comment surfaces
+ *   the resolution failure so developers see the misconfiguration
+ *   during a browser refresh.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditorRendererBlade
@@ -29,7 +31,6 @@ namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 
 use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
-use ArtisanPackUI\VisualEditor\Resources\TemplateResolver;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
@@ -39,6 +40,14 @@ use Illuminate\View\Component;
 
 class TemplateComponent extends Component
 {
+	/**
+	 * cms-framework's TemplateResolver. Lookups go through it when the
+	 * package is installed; without cms-framework the component
+	 * resolves to no template at all (Phase H install gate is the user-
+	 * facing surface).
+	 */
+	protected const RESOLVER_CLASS = '\\ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplateResolver';
+
 	public string $slug;
 
 	public ?string $theme;
@@ -56,7 +65,6 @@ class TemplateComponent extends Component
 
 	public function __construct(
 		protected BlockRenderer $renderer,
-		protected TemplateResolver $templates,
 		protected TemplatePartInliner $inliner,
 		protected PatternInliner $patternInliner,
 		protected Application $app,
@@ -67,11 +75,11 @@ class TemplateComponent extends Component
 	) {
 		$this->slug          = $slug;
 		$this->theme         = $theme;
-		$this->fallbackChain = $templates->fallbackChain( $slug );
+		$this->fallbackChain = $this->buildFallbackChain( $slug );
 
-		$template = $templates->forSlug( $slug, $theme );
+		[ $matchedSlug, $blocks ] = $this->resolveTemplate( $this->fallbackChain );
 
-		if ( null === $template ) {
+		if ( null === $matchedSlug || null === $blocks ) {
 			$this->matchedSlug     = null;
 			$this->resolutionError = 'no-matching-template';
 			$this->html            = '';
@@ -79,10 +87,10 @@ class TemplateComponent extends Component
 			return;
 		}
 
-		$this->matchedSlug     = $template->slug;
+		$this->matchedSlug     = $matchedSlug;
 		$this->resolutionError = null;
 
-		$inlinedParts    = $this->inliner->inline( $template->getBlocks(), $theme ?? $template->theme );
+		$inlinedParts    = $this->inliner->inline( $blocks, $theme );
 		$inlinedPatterns = $this->patternInliner->inline( $inlinedParts );
 		$this->html      = $renderer->render( $inlinedPatterns );
 	}
@@ -99,6 +107,69 @@ class TemplateComponent extends Component
 			'html'            => $this->html,
 			'globalStylesCss' => $this->resolveGlobalStylesCss(),
 		] );
+	}
+
+	/**
+	 * Build the ordered slug chain the resolver walks. Mirrors the
+	 * legacy visual-editor `TemplateResolver::fallbackChain()`
+	 * behaviour so existing call sites see no surface change.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<int, string>
+	 */
+	protected function buildFallbackChain( string $slug ): array
+	{
+		$chain = [ $slug ];
+
+		if ( 'single' !== $slug && str_starts_with( $slug, 'single-' ) ) {
+			$chain[] = 'single';
+		} elseif ( 'page' !== $slug && str_starts_with( $slug, 'page-' ) ) {
+			$chain[] = 'page';
+		}
+
+		if ( 'index' !== $slug ) {
+			$chain[] = 'index';
+		}
+
+		return $chain;
+	}
+
+	/**
+	 * Walk the fallback chain and return the first matched slug + its
+	 * resolved block tree. Returns `[null, null]` when nothing matches
+	 * or cms-framework isn't installed.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<int, string>  $chain
+	 * @return array{0: ?string, 1: ?array<int, array<string, mixed>>}
+	 */
+	protected function resolveTemplate( array $chain ): array
+	{
+		if ( ! class_exists( self::RESOLVER_CLASS ) ) {
+			return [ null, null ];
+		}
+
+		$resolver = app( self::RESOLVER_CLASS );
+
+		foreach ( $chain as $candidate ) {
+			$entity = $resolver->resolve( $candidate );
+
+			if ( null === $entity ) {
+				continue;
+			}
+
+			$blocks = $entity->blocks ?? null;
+
+			if ( ! is_array( $blocks ) ) {
+				continue;
+			}
+
+			return [ (string) ( $entity->slug ?? $candidate ), $blocks ];
+		}
+
+		return [ null, null ];
 	}
 
 	/**
