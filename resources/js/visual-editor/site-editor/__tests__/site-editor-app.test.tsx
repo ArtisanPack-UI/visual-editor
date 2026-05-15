@@ -335,46 +335,34 @@ describe('SiteEditorApp', () => {
         );
 
         // Pre-#439, the "+" button toggled the navigator and was labeled
-        // "Close navigator". It now belongs to the inserter.
+        // "Close navigator". It now belongs to the inserter. The default
+        // landing has no active entity so the button is disabled with a
+        // hinting label — the "Open block inserter" state lives behind
+        // an active D2 entity (separate test).
         expect(inserterToggle).toHaveAttribute(
             'aria-label',
-            'Open block inserter'
+            'Select a template or template part to insert blocks'
         );
-        expect(inserterToggle).toHaveAttribute('aria-pressed', 'false');
+        expect(inserterToggle).toBeDisabled();
     });
 
-    it('toggles the inserter exclusively with the navigator (#439)', async () => {
-        const user = userEvent.setup();
+    it('preseeds the inserter as closed and the navigator as open (#439)', () => {
         renderApp();
 
-        const navigatorToggle = screen.getByTestId(
-            'ap-site-editor-top-bar-navigator'
-        );
-        const inserterToggle = screen.getByTestId(
-            'ap-visual-editor-top-bar-inserter'
-        );
-
-        // Default landing has navigator open. Opening the inserter
-        // should flip both pressed states so they're never co-open.
-        expect(navigatorToggle).toHaveAttribute('aria-pressed', 'true');
-        expect(inserterToggle).toHaveAttribute('aria-pressed', 'false');
-
-        await user.click(inserterToggle);
-
-        expect(navigatorToggle).toHaveAttribute('aria-pressed', 'false');
-        expect(inserterToggle).toHaveAttribute('aria-pressed', 'true');
+        // The toggles persist independently. The default lands with the
+        // navigator open and the inserter closed — even before any entity
+        // is selected, the persisted state must be sane.
         expect(
-            window.localStorage.getItem('ap-site-editor:inserter-open')
-        ).toBe('true');
+            screen.getByTestId('ap-site-editor-top-bar-navigator')
+        ).toHaveAttribute('aria-pressed', 'true');
         expect(
-            window.localStorage.getItem('ap-site-editor:navigator-open')
-        ).toBe('false');
+            screen.getByTestId('ap-visual-editor-top-bar-inserter')
+        ).toHaveAttribute('aria-pressed', 'false');
 
-        // Opening the navigator again should close the inserter.
-        await user.click(navigatorToggle);
+        const shell = screen.getByTestId('ap-site-editor-shell');
 
-        expect(navigatorToggle).toHaveAttribute('aria-pressed', 'true');
-        expect(inserterToggle).toHaveAttribute('aria-pressed', 'false');
+        expect(shell).toHaveAttribute('data-navigator-open', 'true');
+        expect(shell).toHaveAttribute('data-inserter-open', 'false');
     });
 
     it('toggles the inspector and re-labels its trigger for the site editor', async () => {

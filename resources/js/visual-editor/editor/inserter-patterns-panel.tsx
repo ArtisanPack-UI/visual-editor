@@ -311,6 +311,13 @@ export function InserterPatternsPanel(
         setErrorMessage(null);
 
         try {
+            // `listPatterns` returns a flat array — `PatternController::index`
+            // doesn't wrap responses in `{ data, meta }` (see the comment in
+                // `site-editor/patterns/api-client.ts`). Reading `.data` on a flat
+                // array always gave `undefined`, then `primeEntityCache(undefined)`
+                // threw on `.length` and the catch branch always fired — which is
+                // why this panel showed "Failed to load patterns" even when the
+                // endpoint returned `[]`.
             const [syncedList, unsyncedList] = await Promise.all([
                 listPatterns(apiConfig, { synced: true, perPage: 100 }),
                 listPatterns(apiConfig, { synced: false, perPage: 100 }),
@@ -320,9 +327,9 @@ export function InserterPatternsPanel(
                 return;
             }
 
-            setSynced(syncedList.data);
-            setUnsynced(unsyncedList.data);
-            primeEntityCache(syncedList.data);
+            setSynced(syncedList);
+            setUnsynced(unsyncedList);
+            primeEntityCache(syncedList);
             setStatus('ready');
         } catch (error: unknown) {
             if (requestRef.current !== requestId) {

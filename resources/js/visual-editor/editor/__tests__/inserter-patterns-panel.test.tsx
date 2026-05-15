@@ -114,40 +114,38 @@ afterEach(() => {
 
 describe('<InserterPatternsPanel />', () => {
     it('lists synced and unsynced groups separately', async () => {
+        // `listPatterns` returns a flat array (no `{ data, meta }`
+        // envelope — see `site-editor/patterns/api-client.ts`). Older
+        // mocks in this file wrapped the array; the panel silently broke
+        // against the real shape. Mocks here now match production.
         LIST_MOCK.mockImplementation((_config, params: { synced: boolean }) => {
             if (params.synced) {
-                return Promise.resolve({
-                    data: [
-                        {
-                            id: 1,
-                            slug: 'hero',
-                            title: { rendered: 'Hero' },
-                            content: { raw: '', blocks: [] },
-                            synced: true,
-                            categories: [],
-                            status: 'publish',
-                            type: 'wp_block',
-                        },
-                    ],
-                    meta: { total: 1, per_page: 100, current_page: 1, last_page: 1 },
-                });
-            }
-
-            return Promise.resolve({
-                data: [
+                return Promise.resolve([
                     {
-                        id: 2,
-                        slug: 'cta',
-                        title: { rendered: 'Call to action' },
+                        id: 1,
+                        slug: 'hero',
+                        title: { rendered: 'Hero' },
                         content: { raw: '', blocks: [] },
-                        synced: false,
+                        synced: true,
                         categories: [],
                         status: 'publish',
                         type: 'wp_block',
                     },
-                ],
-                meta: { total: 1, per_page: 100, current_page: 1, last_page: 1 },
-            });
+                ]);
+            }
+
+            return Promise.resolve([
+                {
+                    id: 2,
+                    slug: 'cta',
+                    title: { rendered: 'Call to action' },
+                    content: { raw: '', blocks: [] },
+                    synced: false,
+                    categories: [],
+                    status: 'publish',
+                    type: 'wp_block',
+                },
+            ]);
         });
 
         render(<InserterPatternsPanel apiBase="/visual-editor/api" />);
@@ -171,8 +169,8 @@ describe('<InserterPatternsPanel />', () => {
 
     it('inserts a core/block reference when a synced pattern is picked', async () => {
         LIST_MOCK.mockImplementation((_config, params: { synced: boolean }) =>
-            Promise.resolve({
-                data: params.synced
+            Promise.resolve(
+                params.synced
                     ? [
                           {
                               id: 7,
@@ -185,9 +183,8 @@ describe('<InserterPatternsPanel />', () => {
                               type: 'wp_block',
                           },
                       ]
-                    : [],
-                meta: { total: 1, per_page: 100, current_page: 1, last_page: 1 },
-            })
+                    : []
+            )
         );
 
         const user = userEvent.setup();
@@ -207,8 +204,8 @@ describe('<InserterPatternsPanel />', () => {
 
     it('primes the core-data shim cache with synced patterns on load and on insert', async () => {
         LIST_MOCK.mockImplementation((_config, params: { synced: boolean }) =>
-            Promise.resolve({
-                data: params.synced
+            Promise.resolve(
+                params.synced
                     ? [
                           {
                               id: 91,
@@ -221,9 +218,8 @@ describe('<InserterPatternsPanel />', () => {
                               type: 'wp_block',
                           },
                       ]
-                    : [],
-                meta: { total: 1, per_page: 100, current_page: 1, last_page: 1 },
-            })
+                    : []
+            )
         );
 
         const user = userEvent.setup();
@@ -255,8 +251,8 @@ describe('<InserterPatternsPanel />', () => {
 
     it('inserts a copy of the block tree when an unsynced pattern is picked', async () => {
         LIST_MOCK.mockImplementation((_config, params: { synced: boolean }) =>
-            Promise.resolve({
-                data: params.synced
+            Promise.resolve(
+                params.synced
                     ? []
                     : [
                           {
@@ -278,9 +274,8 @@ describe('<InserterPatternsPanel />', () => {
                               status: 'publish',
                               type: 'wp_block',
                           },
-                      ],
-                meta: { total: 1, per_page: 100, current_page: 1, last_page: 1 },
-            })
+                      ]
+            )
         );
 
         const user = userEvent.setup();
@@ -296,5 +291,24 @@ describe('<InserterPatternsPanel />', () => {
         expect(insertedTrees).toHaveLength(1);
         expect(insertedTrees[0]?.blocks).toHaveLength(2);
         expect(insertedTrees[0]?.blocks[0]?.name).toBe('core/heading');
+    });
+
+    it('renders the empty-state message when the API returns no patterns', async () => {
+        // Regression for the bug surfaced during #439 manual testing: the
+        // panel used to read `result.data` on `listPatterns`' return value.
+        // Real `listPatterns` returns a flat array, so `.data` was
+        // `undefined`, `primeEntityCache(undefined).length` threw, and the
+        // catch branch always fired — showing "Failed to load patterns"
+        // even when the endpoint successfully returned `[]`.
+        LIST_MOCK.mockImplementation(() => Promise.resolve([]));
+
+        render(<InserterPatternsPanel apiBase="/visual-editor/api" />);
+
+        const empty = await screen.findByTestId('ap-inserter-patterns-empty');
+
+        expect(empty).toHaveTextContent(/No patterns yet/);
+        expect(
+            screen.queryByTestId('ap-inserter-patterns-error')
+        ).not.toBeInTheDocument();
     });
 });

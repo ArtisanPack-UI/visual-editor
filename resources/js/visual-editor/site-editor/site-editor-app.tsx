@@ -780,6 +780,14 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                 isInspectorOpen={inspectorOpen}
                 onToggleInserter={handleToggleInserter}
                 onToggleInspector={handleToggleInspector}
+                inserterDisabledReason={
+                    showEntityEditor
+                        ? null
+                        : __(
+                              'Select a template or template part to insert blocks',
+                              TEXT_DOMAIN
+                          )
+                }
                 previewUrl={null}
                 onSave={handleSave}
                 inserterToggleAriaLabel={inserterToggleAriaLabel}

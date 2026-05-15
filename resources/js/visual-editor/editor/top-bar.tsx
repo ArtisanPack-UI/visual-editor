@@ -49,6 +49,15 @@ export interface TopBarProps {
     isInspectorOpen: boolean;
     onToggleInserter: () => void;
     onToggleInspector: () => void;
+    /**
+     * When set, disables the inserter toggle and uses this string as the
+     * disabled-state tooltip. Used by the site editor to prevent the user
+     * from opening an inserter that can't render (no active entity →
+     * `BlockEditorBoundary` isn't mounted, so the inserter would silently
+     * fail). The post editor never sets this; `BlockEditorBoundary` is
+     * always mounted there.
+     */
+    inserterDisabledReason?: string | null;
     previewUrl?: string | null;
     onSave?: () => void;
     onCopyStyles?: () => void;
@@ -158,6 +167,7 @@ export function TopBar(props: TopBarProps): JSX.Element {
         onUndo,
         onRedo,
         isInserterOpen,
+        inserterDisabledReason,
         isInspectorOpen,
         onToggleInserter,
         onToggleInspector,
@@ -356,12 +366,20 @@ export function TopBar(props: TopBarProps): JSX.Element {
                     type="button"
                     className="ap-visual-editor-top-bar__icon-button"
                     aria-label={
-                        isInserterOpen ? inserterCloseLabel : inserterOpenLabel
+                        inserterDisabledReason ??
+                        (isInserterOpen
+                            ? inserterCloseLabel
+                            : inserterOpenLabel)
                     }
                     aria-expanded={isInserterOpen}
                     aria-pressed={isInserterOpen}
                     data-open={isInserterOpen}
                     data-testid="ap-visual-editor-top-bar-inserter"
+                    disabled={
+                        inserterDisabledReason !== null &&
+                        inserterDisabledReason !== undefined
+                    }
+                    title={inserterDisabledReason ?? undefined}
                     onClick={onToggleInserter}
                 >
                     <svg
