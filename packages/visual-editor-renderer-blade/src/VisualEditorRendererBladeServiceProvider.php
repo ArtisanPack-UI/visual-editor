@@ -22,6 +22,7 @@ namespace ArtisanPackUI\VisualEditorRendererBlade;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksComponent;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksStylesComponent;
@@ -61,6 +62,10 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 
 		$this->app->singleton( ThemeJsonTokensCompiler::class, function () {
 			return new ThemeJsonTokensCompiler();
+		} );
+
+		$this->app->singleton( GlobalStylesEmissionResolver::class, function () {
+			return new GlobalStylesEmissionResolver();
 		} );
 	}
 

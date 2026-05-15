@@ -30,9 +30,9 @@ namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplateResolver;
-use ArtisanPackUI\VisualEditor\Services\GlobalStylesCssProvider;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
@@ -60,7 +60,7 @@ class TemplateComponent extends Component
 		protected TemplatePartInliner $inliner,
 		protected PatternInliner $patternInliner,
 		protected Application $app,
-		protected GlobalStylesCssProvider $globalStyles,
+		protected GlobalStylesEmissionResolver $globalStyles,
 		protected GlobalStylesEmissionTracker $emissionTracker,
 		string $slug,
 		?string $theme = null,
@@ -117,6 +117,8 @@ class TemplateComponent extends Component
 
 		$this->emissionTracker->markEmitted();
 
-		return $this->globalStyles->css( $this->theme );
+		$css = $this->globalStyles->emit();
+
+		return '' === $css ? null : $css;
 	}
 }
