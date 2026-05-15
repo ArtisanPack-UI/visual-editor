@@ -22,7 +22,9 @@ namespace ArtisanPackUI\VisualEditorRendererBlade;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksComponent;
+use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksStylesComponent;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\TemplateComponent;
 use Illuminate\Contracts\View\Factory as ViewFactory;
 use Illuminate\Support\Facades\Blade;
@@ -56,6 +58,10 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		$this->app->singleton( TemplatePartInliner::class, function () {
 			return new TemplatePartInliner();
 		} );
+
+		$this->app->singleton( ThemeJsonTokensCompiler::class, function () {
+			return new ThemeJsonTokensCompiler();
+		} );
 	}
 
 	public function boot(): void
@@ -63,12 +69,20 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor-renderer-blade' );
 
 		Blade::component( BlocksComponent::class, 've-blocks' );
+		Blade::component( BlocksStylesComponent::class, 've-blocks-styles' );
 		Blade::component( TemplateComponent::class, 've-template' );
 
 		if ( $this->app->runningInConsole() ) {
 			$this->publishes( [
 				__DIR__ . '/../resources/views' => resource_path( 'views/vendor/visual-editor-renderer-blade' ),
 			], 'visual-editor-blade-views' );
+
+			// Asset publish path: copies the bundled `@wordpress/block-library`
+			// CSS to the consumer's `public/vendor/visual-editor-renderer-blade/`,
+			// which `<x-ve-blocks-styles />` links to by default.
+			$this->publishes( [
+				__DIR__ . '/../resources/assets/block-library' => public_path( 'vendor/visual-editor-renderer-blade' ),
+			], 'visual-editor-renderer-blade-assets' );
 		}
 	}
 }

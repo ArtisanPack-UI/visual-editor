@@ -33,6 +33,65 @@ The package is auto-registered by Laravel's package discovery. The
 - A JSON-encoded string of that shape.
 - Any `Arrayable` whose `toArray()` returns either of the above.
 
+## Public stylesheet bundle (`<x-ve-blocks-styles />`)
+
+`<x-ve-blocks>` produces semantically-correct Gutenberg block markup, but the
+public site still needs Gutenberg's block CSS for `core/columns` to flex,
+`core/buttons` to size properly, `core/quote` to get its left border, etc.
+The `<x-ve-blocks-styles />` Blade component handles that boilerplate:
+
+```blade
+<head>
+    <x-ve-blocks-styles :theme-json="$themeJson" />
+</head>
+<body>
+    <x-ve-blocks :tree="$page->content" />
+</body>
+```
+
+It emits:
+
+1. Two `<link>` tags to the bundled `@wordpress/block-library` `style.css`
+   and `theme.css` — the same public block CSS the editor uses.
+2. A `<style>` block with `--wp--preset--*` CSS custom properties compiled
+   from the `theme.json` you pass in, so blocks that reference e.g.
+   `var(--wp--preset--color--primary)` resolve against the active theme's
+   palette.
+
+Publish the bundled CSS into your `public/` directory first:
+
+```sh
+php artisan vendor:publish --tag=visual-editor-renderer-blade-assets
+```
+
+That drops `style.css` and `theme.css` at
+`public/vendor/visual-editor-renderer-blade/`, which `<x-ve-blocks-styles />`
+points to by default.
+
+### Props
+
+| Prop          | Type                          | Default                                  | Notes                                                                                |
+| ------------- | ----------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------ |
+| `theme-json`  | `array<string, mixed>\|null`  | `null`                                   | Decoded `theme.json` payload. When `null`, the token `<style>` is omitted.           |
+| `asset-base`  | `string\|null`                | `/vendor/visual-editor-renderer-blade`   | Override the bundled-CSS URL prefix — point at a CDN or your own asset pipeline.     |
+| `bundle`      | `bool`                        | `true`                                   | Set to `false` if your stack already loads `@wordpress/block-library` CSS elsewhere. |
+
+### What gets compiled from `theme.json`
+
+The token compiler walks the recognised preset categories and emits one
+custom property per entry:
+
+| theme.json path                 | Output                                          |
+| ------------------------------- | ----------------------------------------------- |
+| `settings.color.palette[]`      | `--wp--preset--color--{slug}: {color};`         |
+| `settings.color.gradient[]`     | `--wp--preset--gradient--{slug}: {gradient};`   |
+| `settings.typography.fontSizes[]` | `--wp--preset--font-size--{slug}: {size};`    |
+| `settings.spacing.spacingSizes[]` | `--wp--preset--spacing--{slug}: {size};`      |
+
+Slugs are normalised to lowercase, ASCII-safe identifiers (matching
+WordPress). Entries missing `slug` or the corresponding value key are
+skipped silently — `theme.json` validation is the consumer's job.
+
 ## Publishing views
 
 To override any individual block's markup, publish the partials into your app:
