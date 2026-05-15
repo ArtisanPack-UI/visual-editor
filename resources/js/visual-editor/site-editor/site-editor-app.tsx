@@ -47,6 +47,7 @@ import {
 } from './template-parts-section';
 import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
+import { BlockLibrarySidebar } from '../editor/block-library-sidebar';
 import { TopBar } from '../editor/top-bar';
 import { registerCoreQueryBlockOverride } from '../editor/query-block-override';
 import { registerSyncedPatternIndicator } from '../editor/synced-pattern-indicator';
@@ -73,6 +74,7 @@ const NavigationSectionView = lazy(
 const PatternsSectionView = lazy(() => import('./patterns/patterns-section'));
 
 const NAVIGATOR_STORAGE_KEY = 'ap-site-editor:navigator-open';
+const INSERTER_STORAGE_KEY = 'ap-site-editor:inserter-open';
 const INSPECTOR_STORAGE_KEY = 'ap-site-editor:inspector-open';
 
 const IDLE_ENTITY_STATE: EntityEditorState = {
@@ -251,6 +253,16 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         NAVIGATOR_STORAGE_KEY,
         true
     );
+    // #439: inserter has its own persisted toggle, decoupled from the
+    // navigator. The top-bar "+" used to call `handleToggleNavigator` —
+    // it now calls `handleToggleInserter`. Inserter and navigator share
+    // the left-sidebar slot and are mutually exclusive: opening one
+    // closes the other so the canvas keeps a single fixed-width sibling
+    // on the left rather than two stacked panels.
+    const [inserterOpen, setInserterOpen] = usePersistedToggle(
+        INSERTER_STORAGE_KEY,
+        false
+    );
     const [inspectorOpen, setInspectorOpen] = usePersistedToggle(
         INSPECTOR_STORAGE_KEY,
         true
@@ -378,8 +390,31 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
     );
 
     const handleToggleNavigator = useCallback((): void => {
-        setNavigatorOpen((open) => !open);
-    }, [setNavigatorOpen]);
+        setNavigatorOpen((open) => {
+            const next = !open;
+
+            // Mutually-exclusive with the inserter (see #439). Opening
+            // the navigator closes any open inserter so the left slot
+            // shows one panel at a time.
+            if (next) {
+                setInserterOpen(false);
+            }
+
+            return next;
+        });
+    }, [setInserterOpen, setNavigatorOpen]);
+
+    const handleToggleInserter = useCallback((): void => {
+        setInserterOpen((open) => {
+            const next = !open;
+
+            if (next) {
+                setNavigatorOpen(false);
+            }
+
+            return next;
+        });
+    }, [setInserterOpen, setNavigatorOpen]);
 
     const handleToggleInspector = useCallback((): void => {
         setInspectorOpen((open) => !open);
@@ -433,6 +468,14 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
 
     const inserterToggleAriaLabel = useMemo(
         () => ({
+            open: __('Open block inserter', TEXT_DOMAIN),
+            close: __('Close block inserter', TEXT_DOMAIN),
+        }),
+        []
+    );
+
+    const navigatorToggleAriaLabel = useMemo(
+        () => ({
             open: __('Open navigator', TEXT_DOMAIN),
             close: __('Close navigator', TEXT_DOMAIN),
         }),
@@ -469,18 +512,55 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
       consuming app owns its translation — and falls back to a generic
       translated "← Back" when only the URL is supplied.
     */}
-    const leadingActions =
-        exitUrl !== undefined && exitUrl !== '' ? (
-            <a
-                className="ap-site-editor__top-bar-back"
-                href={exitUrl}
-                data-testid="ap-site-editor-exit-link"
+    const leadingActions = (
+        <>
+            {exitUrl !== undefined && exitUrl !== '' ? (
+                <a
+                    className="ap-site-editor__top-bar-back"
+                    href={exitUrl}
+                    data-testid="ap-site-editor-exit-link"
+                >
+                    {exitLabel !== undefined && exitLabel !== ''
+                        ? exitLabel
+                        : __('← Back', TEXT_DOMAIN)}
+                </a>
+            ) : null}
+            {/*
+              #439: navigator toggle. The top-bar's built-in "+" button
+              now opens the inserter (matching the post editor), so we
+              need a separate control for the navigator. Lives in
+              `leadingActions` so it renders flush against the inserter
+              toggle without a TopBar API change.
+            */}
+            <button
+                type="button"
+                className="ap-site-editor__top-bar-navigator-toggle"
+                aria-label={
+                    navigatorOpen
+                        ? navigatorToggleAriaLabel.close
+                        : navigatorToggleAriaLabel.open
+                }
+                aria-expanded={navigatorOpen}
+                aria-pressed={navigatorOpen}
+                data-open={navigatorOpen}
+                data-testid="ap-site-editor-top-bar-navigator"
+                onClick={handleToggleNavigator}
             >
-                {exitLabel !== undefined && exitLabel !== ''
-                    ? exitLabel
-                    : __('← Back', TEXT_DOMAIN)}
-            </a>
-        ) : null;
+                <svg
+                    aria-hidden="true"
+                    focusable="false"
+                    viewBox="0 0 24 24"
+                    width="20"
+                    height="20"
+                >
+                    <path
+                        fill="currentColor"
+                        d="M4 6h16v2H4V6zm0 5h16v2H4v-2zm0 5h16v2H4v-2z"
+                    />
+                </svg>
+            </button>
+        </>
+    );
 
     const extraActions = (
         <div
@@ -584,9 +664,26 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
     // wrapping it too is harmless. The lazy sections (patterns,
     // navigation, styles) own their own boundary inside their section
     // component, so they render these regions unwrapped.
+    // #439: inserter and navigator are mutually exclusive in the left
+    // slot — the toggle handlers above already enforce this, so a render
+    // guard isn't strictly required, but rendering with explicit
+    // precedence here keeps the JSX legible. The inserter mounts only
+    // when D2 sections (templates / template-parts) are active because
+    // the post editor's `BlockLibrarySidebar` needs to live inside the
+    // shared `BlockEditorBoundary` to share the `core/block-editor`
+    // registry — which is only mounted on D2 paths.
+    const showInserterSidebar = inserterOpen && showEntityEditor;
+
     const bodyRegions = (
         <>
-            {navigatorOpen ? (
+            {showInserterSidebar ? (
+                <div
+                    className="ap-site-editor__sidebar ap-site-editor__sidebar--inserter"
+                    data-testid="ap-site-editor-inserter-panel"
+                >
+                    <BlockLibrarySidebar apiBase={apiBase} />
+                </div>
+            ) : navigatorOpen ? (
                 <div className="ap-site-editor__sidebar ap-site-editor__sidebar--navigator">
                     <NavigatorSidebar
                         activeSection={activeSection.id}
@@ -659,6 +756,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         <div
             className="ap-site-editor__shell"
             data-navigator-open={navigatorOpen}
+            data-inserter-open={inserterOpen}
             data-inspector-open={inspectorOpen}
             data-active-section={activeSection.id}
             data-has-entity={
@@ -678,9 +776,9 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                 canRedo={false}
                 onUndo={() => undefined}
                 onRedo={() => undefined}
-                isInserterOpen={navigatorOpen}
+                isInserterOpen={inserterOpen}
                 isInspectorOpen={inspectorOpen}
-                onToggleInserter={handleToggleNavigator}
+                onToggleInserter={handleToggleInserter}
                 onToggleInspector={handleToggleInspector}
                 previewUrl={null}
                 onSave={handleSave}

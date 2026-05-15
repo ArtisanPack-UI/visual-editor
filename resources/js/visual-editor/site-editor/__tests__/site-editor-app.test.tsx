@@ -34,6 +34,16 @@ vi.mock('../block-editor-boundary', () => ({
     ),
 }));
 
+// #439: same reason as the BlockEditorBoundary stub — BlockLibrarySidebar
+// imports `__experimentalLibrary` / `__experimentalListView` from
+// `@wordpress/block-editor`, which doesn't resolve under jsdom. Stub it
+// out; the shell test verifies the toggle wiring, not the library UI.
+vi.mock('../../editor/block-library-sidebar', () => ({
+    BlockLibrarySidebar: (): JSX.Element => (
+        <div data-testid="ap-site-editor-stub-block-library-sidebar" />
+    ),
+}));
+
 // Stub the canvas frame to avoid mounting `BlockCanvas` (which needs a
 // real iframe + the @wordpress/block-editor data store) under jsdom.
 // The shell-level integration is what we're verifying here; the canvas
@@ -293,11 +303,11 @@ describe('SiteEditorApp', () => {
         );
     });
 
-    it('toggles the navigator sidebar from the top bar and persists the state', async () => {
+    it('toggles the navigator sidebar from the leading navigator button and persists the state', async () => {
         const user = userEvent.setup();
         renderApp();
 
-        const toggle = screen.getByTestId('ap-visual-editor-top-bar-inserter');
+        const toggle = screen.getByTestId('ap-site-editor-top-bar-navigator');
 
         expect(toggle).toHaveAttribute('aria-pressed', 'true');
         expect(toggle).toHaveAttribute('aria-label', 'Close navigator');
@@ -315,6 +325,56 @@ describe('SiteEditorApp', () => {
         expect(
             window.localStorage.getItem('ap-site-editor:navigator-open')
         ).toBe('false');
+    });
+
+    it('labels the top-bar "+" button as the block inserter (#439)', () => {
+        renderApp();
+
+        const inserterToggle = screen.getByTestId(
+            'ap-visual-editor-top-bar-inserter'
+        );
+
+        // Pre-#439, the "+" button toggled the navigator and was labeled
+        // "Close navigator". It now belongs to the inserter.
+        expect(inserterToggle).toHaveAttribute(
+            'aria-label',
+            'Open block inserter'
+        );
+        expect(inserterToggle).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('toggles the inserter exclusively with the navigator (#439)', async () => {
+        const user = userEvent.setup();
+        renderApp();
+
+        const navigatorToggle = screen.getByTestId(
+            'ap-site-editor-top-bar-navigator'
+        );
+        const inserterToggle = screen.getByTestId(
+            'ap-visual-editor-top-bar-inserter'
+        );
+
+        // Default landing has navigator open. Opening the inserter
+        // should flip both pressed states so they're never co-open.
+        expect(navigatorToggle).toHaveAttribute('aria-pressed', 'true');
+        expect(inserterToggle).toHaveAttribute('aria-pressed', 'false');
+
+        await user.click(inserterToggle);
+
+        expect(navigatorToggle).toHaveAttribute('aria-pressed', 'false');
+        expect(inserterToggle).toHaveAttribute('aria-pressed', 'true');
+        expect(
+            window.localStorage.getItem('ap-site-editor:inserter-open')
+        ).toBe('true');
+        expect(
+            window.localStorage.getItem('ap-site-editor:navigator-open')
+        ).toBe('false');
+
+        // Opening the navigator again should close the inserter.
+        await user.click(navigatorToggle);
+
+        expect(navigatorToggle).toHaveAttribute('aria-pressed', 'true');
+        expect(inserterToggle).toHaveAttribute('aria-pressed', 'false');
     });
 
     it('toggles the inspector and re-labels its trigger for the site editor', async () => {

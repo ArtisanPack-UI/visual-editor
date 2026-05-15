@@ -64,6 +64,15 @@
     border-right: 1px solid var(--ap-site-editor-border);
 }
 
+/* #439: inserter rail occupies the same left-slot space as the
+   navigator. Sized a touch wider because the BlockLibrarySidebar's
+   three-tab strip + block grid needs more horizontal room than the
+   navigator's flat section list. */
+.ap-site-editor__sidebar--inserter {
+    flex: 0 0 var(--ap-site-editor-inserter-width, 320px);
+    border-right: 1px solid var(--ap-site-editor-border);
+}
+
 .ap-site-editor__sidebar--inspector {
     flex: 0 0 var(--ap-site-editor-inspector-width);
     /* Match the navigator's separator on the left side so both rails
