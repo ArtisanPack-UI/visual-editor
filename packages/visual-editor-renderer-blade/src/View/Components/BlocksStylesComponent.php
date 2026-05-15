@@ -1,0 +1,100 @@
+<?php
+
+/**
+ * `<x-ve-blocks-styles />` Blade component.
+ *
+ * Emits the public stylesheet bundle the visual editor's `<x-ve-blocks>`
+ * output expects:
+ *
+ *   1. `<link>`s to the bundled `@wordpress/block-library` `style.css`
+ *      + `theme.css` — the same CSS the editor uses, copied into this
+ *      package's `resources/assets/block-library/` directory. The
+ *      `vendor:publish --tag=visual-editor-renderer-blade-assets`
+ *      command copies those files into `public/vendor/visual-editor-
+ *      renderer-blade/`, where this component points by default.
+ *   2. A `<style>` block with `--wp--preset--*` CSS custom properties
+ *      compiled from a `theme.json` payload, so a block referencing e.g.
+ *      `var(--wp--preset--color--primary)` resolves on the public site
+ *      against the theme's palette.
+ *
+ * Consumers wire it into their layout `<head>`:
+ *
+ *     <head>
+ *         <x-ve-blocks-styles :theme-json="$themeJson" />
+ *     </head>
+ *
+ * The `theme.json` source is the consumer's responsibility — different
+ * CMSs discover themes differently. Pass an empty array (or omit) and the
+ * `<link>`s emit alone.
+ *
+ * @package    ArtisanPack_UI
+ * @subpackage VisualEditorRendererBlade
+ *
+ * @author     Jacob Martella <me@jacobmartella.com>
+ *
+ * @since      1.1.0
+ */
+
+declare( strict_types=1 );
+
+namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
+
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
+use Illuminate\Contracts\View\View;
+use Illuminate\View\Component;
+
+class BlocksStylesComponent extends Component
+{
+	/**
+	 * URL the bundled block-library CSS is served from. The
+	 * `vendor:publish --tag=visual-editor-renderer-blade-assets` step
+	 * copies the files to `public/vendor/visual-editor-renderer-blade/`,
+	 * which the asset() helper resolves to this URL.
+	 */
+	public const DEFAULT_ASSET_BASE = '/vendor/visual-editor-renderer-blade';
+
+	public string $styleHref;
+
+	public string $themeHref;
+
+	public bool $emitBlockLibrary;
+
+	public string $themeTokensCss;
+
+	/**
+	 * @param  ThemeJsonTokensCompiler  $compiler  Injected — see provider binding.
+	 * @param  array<string, mixed>|null  $themeJson  Optional theme.json payload to compile.
+	 *                                                 When null the tokens `<style>` is omitted.
+	 * @param  string|null  $assetBase  Override the bundled-CSS URL prefix (e.g. point at a CDN).
+	 *                                  Defaults to {@see self::DEFAULT_ASSET_BASE}.
+	 * @param  bool  $bundle  Set to false to skip the block-library `<link>` tags (consumers who
+	 *                        already load Gutenberg's CSS from elsewhere).
+	 */
+	public function __construct(
+		protected ThemeJsonTokensCompiler $compiler,
+		?array $themeJson = null,
+		?string $assetBase = null,
+		bool $bundle = true,
+	) {
+		$base = $this->normaliseBase( $assetBase ?? self::DEFAULT_ASSET_BASE );
+
+		$this->styleHref        = $base . '/style.css';
+		$this->themeHref        = $base . '/theme.css';
+		$this->emitBlockLibrary = $bundle;
+		$this->themeTokensCss   = null === $themeJson ? '' : $this->compiler->compile( $themeJson );
+	}
+
+	public function render(): View
+	{
+		return view( 'visual-editor-renderer-blade::components.blocks-styles' );
+	}
+
+	/**
+	 * Strip a single trailing slash from the base URL so concatenation
+	 * with `/style.css` doesn't double up.
+	 */
+	protected function normaliseBase( string $base ): string
+	{
+		return rtrim( $base, '/' );
+	}
+}
