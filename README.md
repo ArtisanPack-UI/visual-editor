@@ -8,6 +8,23 @@ You can install the visual-editor package by running the following composer comm
 
 `composer require artisanpack-ui/visual-editor`
 
+## Version compatibility
+
+The visual-editor and `artisanpack-ui/cms-framework` packages ship as a
+version pair — both packages need to be present, and both need to be
+on a compatible major version, for the Phase H site-editor integration
+to work. Install one without the other and the site-editor's install
+gate (#432) surfaces a "cms-framework required" page instead of mounting.
+
+| visual-editor | cms-framework | Notes                                          |
+| ------------- | ------------- | ---------------------------------------------- |
+| v1.x          | v1.x          | Phase H site-editor integration (this release) |
+| v0.x          | v0.x          | Pre-v1 — no site-editor integration            |
+
+Bumping the major on either package without bumping the partner is
+unsupported. The H8 smoke flow ([`docs/h8-smoke-flow.md`](docs/h8-smoke-flow.md))
+runs against this version pair before every release tag.
+
 ## Peer Dependencies
 
 The editor UI is built on [`@artisanpack-ui/react`](https://www.npmjs.com/package/@artisanpack-ui/react), which is styled with DaisyUI and Tailwind CSS. Host applications embedding the editor must have the following installed and loaded:
