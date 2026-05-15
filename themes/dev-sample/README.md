@@ -7,11 +7,11 @@ walkthrough.
 
 ## Layout
 
-```
+```text
 themes/dev-sample/
 ├── theme.json                     manifest (settings + styles + templateParts + menus.locations + customTemplates)
 ├── templates/
-│   └── index.html                 default template, references one part + one synced pattern
+│   └── index.html                 default template, references both parts
 ├── parts/
 │   ├── header.html                site title + nav (primary location)
 │   └── footer.html                separator + copyright
