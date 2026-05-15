@@ -12,18 +12,8 @@ use ArtisanPackUI\VisualEditor\Services\Adapters\CmsFramework\CmsFrameworkQueryR
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\DenyByDefaultGate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
-use ArtisanPackUI\VisualEditor\Models\VisualEditorGlobalStyles;
-use ArtisanPackUI\VisualEditor\Models\VisualEditorNavigation;
-use ArtisanPackUI\VisualEditor\Models\VisualEditorPattern;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
-use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplate;
-use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplatePart;
-use ArtisanPackUI\VisualEditor\Policies\VisualEditorGlobalStylesPolicy;
-use ArtisanPackUI\VisualEditor\Policies\VisualEditorNavigationPolicy;
-use ArtisanPackUI\VisualEditor\Policies\VisualEditorPatternPolicy;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
-use ArtisanPackUI\VisualEditor\Policies\VisualEditorTemplatePolicy;
-use ArtisanPackUI\VisualEditor\Policies\VisualEditorTemplatePartPolicy;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\PostResolver;
@@ -36,7 +26,6 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\PatternResolver as SiteEdit
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver as SiteEditorTemplatePartResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplateResolver as SiteEditorTemplateResolver;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
-use ArtisanPackUI\VisualEditor\Services\MenuLocationResolver;
 use ArtisanPackUI\VisualEditor\View\Components\VisualEditorComponent;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
@@ -124,10 +113,6 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// can rebind it via the container.
 		$this->app->singleton( GutenbergAttachmentAdapter::class, function () {
 			return new GutenbergAttachmentAdapter();
-		} );
-
-		$this->app->singleton( MenuLocationResolver::class, function ( $app ) {
-			return new MenuLocationResolver( $app['config'] );
 		} );
 
 		// Scoped (not singleton) so a long-lived worker (Octane,
@@ -223,11 +208,6 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerBladeComponents();
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
-		Gate::policy( VisualEditorTemplate::class, VisualEditorTemplatePolicy::class );
-		Gate::policy( VisualEditorTemplatePart::class, VisualEditorTemplatePartPolicy::class );
-		Gate::policy( VisualEditorGlobalStyles::class, VisualEditorGlobalStylesPolicy::class );
-		Gate::policy( VisualEditorNavigation::class, VisualEditorNavigationPolicy::class );
-		Gate::policy( VisualEditorPattern::class, VisualEditorPatternPolicy::class );
 
 		// 3. Register core blocks from their block.json manifests.
 		$this->registerCoreBlocks();
