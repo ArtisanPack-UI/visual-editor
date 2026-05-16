@@ -200,6 +200,44 @@ export async function fetchGlobalStylesBase(
     }
 }
 
+/**
+ * Returns the compiled CSS for the active theme's resolved global styles
+ * (theme.json defaults → variation → DB row, deep-merged server-side by
+ * cms-framework's `GlobalStylesResolver`). The site-editor canvas appends
+ * this string to its `BlockEditorProvider`'s `settings.styles` array so the
+ * iframe surface matches the public front-end's branding.
+ *
+ * Returns an empty string when cms-framework isn't installed or no active
+ * theme is configured — the canvas treats both the same as "no theme styles
+ * available" and keeps `DEFAULT_CANVAS_STYLES` as the only entry.
+ */
+export async function fetchGlobalStylesCss(
+    config: SiteEditorApiConfig
+): Promise<string> {
+    try {
+        const response = await fetch(buildUrl(config, 'css'), {
+            method: 'GET',
+            credentials: 'same-origin',
+            // `Accept: text/css` so an intermediary content negotiator
+            // can't downgrade the response to JSON. The controller
+            // returns `text/css` unconditionally, but the header keeps
+            // the contract explicit on the wire.
+            headers: { Accept: 'text/css' },
+        });
+
+        if (!response.ok) {
+            return '';
+        }
+
+        return await response.text();
+    } catch {
+        // Canvas styling is enhancement, not core flow — silently fall
+        // back to the package's default canvas baseline on network /
+        // server errors rather than blocking the editor boot.
+        return '';
+    }
+}
+
 export async function fetchGlobalStyles(
     config: SiteEditorApiConfig,
     id: number | string

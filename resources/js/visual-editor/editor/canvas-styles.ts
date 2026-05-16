@@ -28,7 +28,11 @@ import blockLibraryEditor from '@wordpress/block-library/build-style/editor.css?
 import blockLibraryStyle from '@wordpress/block-library/build-style/style.css?inline';
 import componentsStyle from '@wordpress/components/build-style/style.css?inline';
 
-import { DEFAULT_CANVAS_STYLES } from '../editor-settings';
+import {
+    ALIGNMENT_OVERRIDE_STYLES,
+    DEFAULT_CANVAS_STYLES,
+    POST_EDITOR_FRAMING_STYLES,
+} from '../editor-settings';
 
 import canvasThemeTokens from './canvas-theme-tokens.css?inline';
 
@@ -63,4 +67,13 @@ export const canvasStyles: readonly CanvasStyle[] = [
     { css: blockLibraryStyle },
     { css: blockLibraryEditor },
     { css: DEFAULT_CANVAS_STYLES },
+    // Per-block wide/full overrides. Shared with the site editor —
+    // both need the toolbar's alignment buttons to actually resize
+    // blocks (Keystone #47).
+    { css: ALIGNMENT_OVERRIDE_STYLES },
+    // Post-editor framing — 720px content column applied to direct
+    // children of the root layout. Site-editor canvases skip this
+    // entry so templates + template parts span full-bleed like the
+    // front-end (#47).
+    { css: POST_EDITOR_FRAMING_STYLES },
 ];

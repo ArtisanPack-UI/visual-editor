@@ -11,17 +11,29 @@
  * the fix. The provider internals are Gutenberg's; they're stubbed.
  */
 
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
 // Stub `BlockEditorProvider` as a labelled wrapper so the test can
 // assert structure (how many providers, which children sit inside)
-// without booting the real Gutenberg data store under jsdom.
+// without booting the real Gutenberg data store under jsdom. We also
+// capture the latest `settings` prop so the Keystone #47 parity tests
+// can assert what ends up in the canvas's `styles` array.
+const LATEST_SETTINGS = { value: null as unknown };
+
 vi.mock('@wordpress/block-editor', () => ({
-    BlockEditorProvider: ({ children }: { children?: ReactNode }): JSX.Element => (
-        <div data-testid="ap-stub-block-editor-provider">{children}</div>
-    ),
+    BlockEditorProvider: ({
+        children,
+        settings,
+    }: {
+        children?: ReactNode;
+        settings?: unknown;
+    }): JSX.Element => {
+        LATEST_SETTINGS.value = settings;
+
+        return <div data-testid="ap-stub-block-editor-provider">{children}</div>;
+    },
 }));
 
 vi.mock('@wordpress/components', () => {
@@ -40,6 +52,13 @@ vi.mock('@wordpress/components', () => {
 
 vi.mock('@wordpress/format-library', () => ({}));
 
+// Keystone #47: the boundary fetches compiled theme CSS through this
+// module when an apiBase is supplied. Stub it so the test stays
+// deterministic and doesn't touch the network under jsdom.
+vi.mock('../styles/global-styles-api', () => ({
+    fetchGlobalStylesCss: vi.fn(async (): Promise<string> => ''),
+}));
+
 const CONVERT_TO_PATTERN_CONTROL_MOCK = vi.fn((): null => null);
 
 vi.mock('../../editor/convert-to-pattern-control', () => ({
@@ -47,6 +66,8 @@ vi.mock('../../editor/convert-to-pattern-control', () => ({
 }));
 
 import { BlockEditorBoundary } from '../block-editor-boundary';
+import { DEFAULT_CANVAS_STYLES } from '../../editor-settings';
+import { resetThemeGlobalStylesCssCache } from '../use-theme-global-styles-css';
 
 describe('BlockEditorBoundary', () => {
     it('wraps the canvas and inspector slots in a single shared provider', () => {
@@ -88,19 +109,71 @@ describe('BlockEditorBoundary', () => {
         expect(CONVERT_TO_PATTERN_CONTROL_MOCK).not.toHaveBeenCalled();
     });
 
-    it('mounts the convert-to-pattern control when an apiBase is given', () => {
-        CONVERT_TO_PATTERN_CONTROL_MOCK.mockClear();
+    it('passes only DEFAULT_CANVAS_STYLES to the provider when no theme CSS is available (Keystone #47)', () => {
+        LATEST_SETTINGS.value = null;
+        resetThemeGlobalStylesCssCache();
 
         render(
             <BlockEditorBoundary
                 blocks={[]}
                 onChange={() => undefined}
                 onInput={() => undefined}
-                apiBase="/visual-editor/api"
+                themeGlobalStylesCss=""
             >
                 <div data-testid="canvas-slot" />
             </BlockEditorBoundary>
         );
+
+        const settings = LATEST_SETTINGS.value as { styles: { css: string }[] };
+        expect(settings.styles).toHaveLength(1);
+        expect(settings.styles[0]?.css).toBe(DEFAULT_CANVAS_STYLES);
+    });
+
+    it('appends the theme global-styles CSS after DEFAULT_CANVAS_STYLES so it wins on cascade (Keystone #47)', () => {
+        LATEST_SETTINGS.value = null;
+        resetThemeGlobalStylesCssCache();
+
+        const themeCss = ':root { --wp--preset--color--primary: #0f172a; }';
+
+        render(
+            <BlockEditorBoundary
+                blocks={[]}
+                onChange={() => undefined}
+                onInput={() => undefined}
+                themeGlobalStylesCss={themeCss}
+            >
+                <div data-testid="canvas-slot" />
+            </BlockEditorBoundary>
+        );
+
+        const settings = LATEST_SETTINGS.value as { styles: { css: string }[] };
+        // Order matters — Gutenberg cascades the array in order, so the
+        // theme CSS must come after the package's default baseline.
+        expect(settings.styles).toHaveLength(2);
+        expect(settings.styles[0]?.css).toBe(DEFAULT_CANVAS_STYLES);
+        expect(settings.styles[1]?.css).toBe(themeCss);
+    });
+
+    it('mounts the convert-to-pattern control when an apiBase is given', async () => {
+        CONVERT_TO_PATTERN_CONTROL_MOCK.mockClear();
+        resetThemeGlobalStylesCssCache();
+
+        // The boundary's theme-CSS hook fires a fetch when apiBase is
+        // non-empty; flush the in-flight promise inside act() so the
+        // setState that resolves it doesn't trigger the "update was
+        // not wrapped in act" warning.
+        await act(async () => {
+            render(
+                <BlockEditorBoundary
+                    blocks={[]}
+                    onChange={() => undefined}
+                    onInput={() => undefined}
+                    apiBase="/visual-editor/api"
+                >
+                    <div data-testid="canvas-slot" />
+                </BlockEditorBoundary>
+            );
+        });
 
         expect(CONVERT_TO_PATTERN_CONTROL_MOCK).toHaveBeenCalled();
     });

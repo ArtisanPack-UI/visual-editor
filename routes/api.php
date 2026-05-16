@@ -108,6 +108,9 @@ Route::get( 'global-styles/lookup', [ GlobalStylesController::class, 'lookup' ] 
 Route::get( 'global-styles/base', [ GlobalStylesController::class, 'base' ] )
 	->name( 'visual-editor.api.global-styles.base' );
 
+Route::get( 'global-styles/css', [ GlobalStylesController::class, 'css' ] )
+	->name( 'visual-editor.api.global-styles.css' );
+
 Route::get( 'global-styles/{id}', [ GlobalStylesController::class, 'show' ] )
 	->where( 'id', '[A-Za-z0-9_]+' )
 	->name( 'visual-editor.api.global-styles.show' );

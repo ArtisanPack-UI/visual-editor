@@ -97,23 +97,6 @@ export const DEFAULT_CANVAS_STYLES = `
     color: #1f2937;
 }
 
-.editor-styles-wrapper .block-editor-block-list__layout {
-    max-width: 720px;
-    margin-left: auto;
-    margin-right: auto;
-    padding: 48px 24px 96px;
-}
-
-.editor-styles-wrapper .wp-block[data-align="wide"] {
-    max-width: 1080px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-.editor-styles-wrapper .wp-block[data-align="full"] {
-    max-width: none;
-}
-
 .editor-styles-wrapper p {
     margin: 0 0 1em;
     font-size: 1rem;
@@ -183,6 +166,86 @@ export const DEFAULT_CANVAS_STYLES = `
 `;
 
 /**
+ * Per-block alignment overrides for the root canvas. Shipped via
+ * {@link DEFAULT_CANVAS_STYLES} since both editors need them — the
+ * toolbar's wide/full buttons set `data-align="wide" | "full"` on the
+ * block; these rules make those attributes visually take effect by
+ * resizing each direct child of the root layout (Keystone #47).
+ *
+ * The previous model clamped the root layout itself to 720px and then
+ * tried to override with `.wp-block[data-align=...] { max-width }` —
+ * which doesn't break out because the parent layout is the cap. This
+ * model flips it: the root layout is full-bleed, and direct children
+ * are sized individually by alignment.
+ *
+ * Scoped to `> .wp-block` so nested blocks (inside `core/group`,
+ * `core/columns`, etc.) aren't affected — those nested layouts have
+ * their own constrained / flex / grid rules.
+ */
+export const ALIGNMENT_OVERRIDE_STYLES = `
+.editor-styles-wrapper .block-editor-block-list__layout.is-root-container > .wp-block.alignwide {
+    max-width: 1080px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.editor-styles-wrapper .block-editor-block-list__layout.is-root-container > .wp-block.alignfull {
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+}
+`;
+
+/**
+ * Post-editor-only canvas framing (Keystone #47). Lifted out of
+ * {@link DEFAULT_CANVAS_STYLES} so the site editor's canvas — which
+ * edits templates and template parts that span the full viewport on
+ * the front-end — doesn't inherit a 720px content column it has no
+ * business showing. Post content edits sit inside the front-end's
+ * constrained column, so the post editor keeps the framing.
+ *
+ * Targets each direct child of the root layout rather than the root
+ * itself so blocks marked `data-align="wide" | "full"` (see
+ * {@link ALIGNMENT_OVERRIDE_STYLES}) can break out — clamping the
+ * root container would cap every child regardless of alignment.
+ *
+ * The `is-root-container` scope keeps nested layouts (`<li>` inside
+ * `core/list`, columns inside `core/columns`, every inner container
+ * of `core/group`) out of the rule so each child of a nested layout
+ * doesn't inherit 720px / 48px padding too.
+ */
+export const POST_EDITOR_FRAMING_STYLES = `
+.editor-styles-wrapper .block-editor-block-list__layout.is-root-container {
+    padding: 48px 24px 96px;
+}
+
+.editor-styles-wrapper .block-editor-block-list__layout.is-root-container > .wp-block:not(.alignwide):not(.alignfull) {
+    max-width: 720px;
+    margin-left: auto;
+    margin-right: auto;
+}
+`;
+
+/**
+ * Layout descriptor passed to the root `<BlockList layout={...}>` so
+ * Gutenberg's `BlockLayoutContext` resolves to a `constrained` layout
+ * with explicit `contentSize` / `wideSize`. Without it the root
+ * `BlockList` falls back to the package-internal `{type:"default"}`
+ * default, whose `getAlignments()` returns an empty list — the actual
+ * reason the wide / full alignment buttons never appeared on the
+ * block toolbar (Keystone #47).
+ *
+ * Hardcoded for now; a follow-up will sync `contentSize` / `wideSize`
+ * from the active theme's `theme.json` `settings.layout` via the
+ * `/global-styles/base` endpoint.
+ */
+export const ROOT_CANVAS_LAYOUT = {
+    type: 'constrained',
+    contentSize: '720px',
+    wideSize: '1080px',
+} as const;
+
+/**
  * Block-editor settings seeded with the block-support features needed
  * to light up the inspector panels (Color, Typography, Dimensions,
  * Border, Layout) and the toolbar text-align control. Fed into
@@ -191,6 +254,42 @@ export const DEFAULT_CANVAS_STYLES = `
 export const editorSettings = {
     mediaUpload: mediaUploadSetting,
     alignWide: true,
+    /*
+     * Top-level `layout` mirror of `__experimentalFeatures.layout`.
+     * Mirrored as a value via `ROOT_CANVAS_LAYOUT` below — the canvas
+     * components pass that constant as the `layout` prop to the root
+     * `<BlockList>` so Gutenberg's layout context resolves to
+     * `constrained` instead of the `{type:"default"}` fallback, which
+     * was the actual reason wide/full alignment buttons never showed
+     * on the block toolbar (Keystone #47).
+     * Gutenberg's `useAvailableAlignments` reads from this top-level
+     * setting when deciding whether to show wide/full in the block
+     * toolbar — without it the buttons are hidden even though
+     * `alignWide: true` and the block declares `supports.align`
+     * (Keystone #47). The explicit `type: "constrained"` is
+     * required: the constrained-layout `getAlignments` is what
+     * unshifts `wide` / `full` into the available list (it reads
+     * `contentSize` / `wideSize` off this same object). Without
+     * the type, Gutenberg falls back to the default handler which
+     * surfaces only left/center/right. The
+     * `__experimentalFeatures.layout` path stays around because
+     * other Gutenberg surfaces (the layout panel in the inspector)
+     * read from there.
+     */
+    layout: {
+        type: 'constrained',
+        contentSize: '720px',
+        wideSize: '1080px',
+    },
+    /*
+     * Required alongside `layout` so `useAvailableAlignments` takes
+     * the "supports layout" branch — which invokes the constrained
+     * layout's own `getAlignments(layout, blockBasedTheme)` and
+     * returns wide+full. Without it the function falls into the
+     * legacy branch that only checks the canonical alignment list
+     * and never actually exposes wide/full on `core/group`.
+     */
+    supportsLayout: true,
     /*
      * Default canvas stylesheet (`{ css }`) gives blocks a typographic
      * baseline so headings/paragraphs/links visually differentiate

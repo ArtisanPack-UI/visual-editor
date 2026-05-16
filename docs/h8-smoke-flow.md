@@ -34,10 +34,16 @@ before it reaches downstream consumers.
 
 ### A. Install + activate
 
-1. Run package migrations: `php artisan migrate`. Confirm
-   `template_parts`, `menus`, `menu_items`, `menu_location_assignments`,
-   `visual_editor_templates`, `visual_editor_template_parts`,
-   `visual_editor_patterns`, `visual_editor_global_styles` all exist.
+1. Run package migrations: `php artisan migrate`. Confirm the
+   cms-framework site-editor tables — `templates`, `template_parts`,
+   `block_patterns`, `global_styles`, `menus`, `menu_items`,
+   `menu_location_assignments` — all exist. The legacy
+   `visual_editor_templates` / `visual_editor_template_parts` /
+   `visual_editor_patterns` / `visual_editor_global_styles` tables
+   were retired in #434 (Slice 5); fresh installs never create them,
+   and existing installs have them dropped by the same migration set.
+   If any of those four remain after migration, the drop step
+   regressed — file a bug.
 2. Place `themes/dev-sample/` in the host's themes directory (the path
    resolved by `config('cms.themes.directory')`, default `themes/`).
 3. Activate the theme via the host's theme-management UI or by setting
@@ -118,12 +124,29 @@ the pattern record, which propagates to every render site-wide.
 3. Save.
 
 **Assert:**
-- `visual_editor_global_styles` carries the edited payload keyed on
-  `dev-sample`.
-- `GlobalStylesCssProvider::css('dev-sample')` emits the new value in
+- cms-framework's `global_styles` table carries the edited payload
+  keyed on `dev-sample` (slice 5 retired the orphan
+  `visual_editor_global_styles` table — emission now flows through
+  cms-framework's `GlobalStylesEmitter`).
+- `GET /visual-editor/api/global-styles/css` returns the new value in
   the `--wp--preset--color--accent` declaration.
 - Public front-end renders the new color (after cache-bust if the
   consumer caches the compiled CSS).
+
+### G2. Canvas ↔ front-end style parity (Keystone #47)
+
+1. Without making any further edits, open a page that includes the
+   `core/heading` and `core/button` blocks in the site editor.
+2. Compare the canvas rendering against the same page on the public
+   front-end (open in two browser tabs).
+
+**Assert:**
+- Heading typography, link color, button background, and palette
+  preset usage match between the two surfaces. The canvas pulls the
+  same compiled CSS the front-end emits (via
+  `/visual-editor/api/global-styles/css`), so divergence here means
+  the canvas's `BlockEditorBoundary` stopped appending it to
+  `editorSettings.styles`.
 
 ### H. Menus + menu locations
 

@@ -109,6 +109,102 @@ describe( 'GET /visual-editor/api/global-styles/base', function (): void {
 	} );
 } );
 
+describe( 'GET /visual-editor/api/global-styles/css', function (): void {
+	it( 'returns compiled CSS from cms-framework\'s emitter as text/css', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name'     => 'Digital Shopfront',
+				'slug'     => 'digital-shopfront',
+				'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#0f172a' ] ] ] ],
+				'styles'   => [ 'color' => [ 'text' => '#111827' ] ],
+			] );
+		} );
+
+		rebuildSiteEditorResolversForGlobalStylesTest();
+
+		$response = $this->get( '/visual-editor/api/global-styles/css' )->assertOk();
+
+		expect( $response->headers->get( 'content-type' ) )->toContain( 'text/css' );
+		// The emitter compiles palette presets to `--wp--preset--color--{slug}`
+		// custom properties on `:root` and `styles.color.text` to a `color`
+		// declaration on the root. Asserting on both proves the resolver +
+		// emitter pipeline is wired end-to-end.
+		expect( $response->getContent() )
+			->toContain( '--wp--preset--color--primary: #0f172a;' )
+			->toContain( 'color: #111827;' );
+	} );
+
+	it( 'returns an empty body when no active theme is configured', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );
+		} );
+
+		rebuildSiteEditorResolversForGlobalStylesTest();
+
+		$response = $this->get( '/visual-editor/api/global-styles/css' )->assertOk();
+
+		expect( $response->getContent() )->toBe( '' );
+		expect( $response->headers->get( 'content-type' ) )->toContain( 'text/css' );
+	} );
+
+	it( 'concatenates the active theme\'s style.css after the emitter output (Keystone #47)', function (): void {
+		$themesBase = sys_get_temp_dir() . '/keystone-47-css-' . uniqid();
+		$slug       = 'parity-theme';
+		$themeDir   = $themesBase . '/' . $slug;
+
+		mkdir( $themeDir, 0755, true );
+		file_put_contents( $themeDir . '/style.css', ".wp-element-button{border-radius:0.5rem;padding:0.75rem 1.5rem}\n" );
+
+		config()->set( 'cms.themes.directory', $themesBase );
+
+		$this->mock( ThemeManager::class, function ( $mock ) use ( $slug ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name'     => 'Parity theme',
+				'slug'     => $slug,
+				'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#0f172a' ] ] ] ],
+				'styles'   => [ 'elements' => [ 'button' => [ 'color' => [ 'background' => '#2563eb' ] ] ] ],
+			] );
+		} );
+
+		rebuildSiteEditorResolversForGlobalStylesTest();
+
+		$response = $this->get( '/visual-editor/api/global-styles/css' )->assertOk();
+		$body     = $response->getContent();
+
+		// Emitter output is present (palette token + button bg).
+		expect( $body )
+			->toContain( '--wp--preset--color--primary: #0f172a;' )
+			->toContain( 'background-color: #2563eb;' );
+
+		// The hand-authored stylesheet is appended AFTER the emitter so
+		// it wins on cascade — buttons get the radius + padding the
+		// emitter doesn't compile today.
+		expect( $body )->toContain( 'border-radius:0.5rem' );
+		expect( strpos( $body, 'background-color: #2563eb;' ) )->toBeLessThan( strpos( $body, 'border-radius:0.5rem' ) );
+
+		unlink( $themeDir . '/style.css' );
+		rmdir( $themeDir );
+		rmdir( $themesBase );
+	} );
+
+	it( 'rejects a malformed theme slug instead of reading off-disk (path-traversal guard)', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name' => 'Bad slug',
+				'slug' => '../../etc',
+			] );
+		} );
+
+		rebuildSiteEditorResolversForGlobalStylesTest();
+
+		$response = $this->get( '/visual-editor/api/global-styles/css' )->assertOk();
+
+		// The stylesheet read short-circuited on the bogus slug —
+		// body should not contain the theme-stylesheet marker.
+		expect( $response->getContent() )->not->toContain( '/* === theme stylesheet === */' );
+	} );
+} );
+
 describe( 'GET /visual-editor/api/global-styles/{id}', function (): void {
 	it( 'returns the singleton when id matches the resolver state', function (): void {
 		$record = GlobalStyles::create( [

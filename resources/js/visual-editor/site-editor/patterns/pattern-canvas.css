@@ -76,6 +76,9 @@
     min-height: 100%;
 }
 
-.ap-pattern-canvas__surface .block-editor-block-list__layout {
+/* Root-only — nested `core/list`, `core/columns`, etc. also render
+   `.block-editor-block-list__layout` and inheriting the 300px stacked
+   their inner blocks way below their siblings (Keystone #47). */
+.ap-pattern-canvas__surface .block-editor-block-list__layout.is-root-container {
     min-height: 300px;
 }

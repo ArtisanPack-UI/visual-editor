@@ -158,6 +158,101 @@ class GlobalStylesController extends Controller
 	}
 
 	/**
+	 * GET `/global-styles/css` — full canvas stylesheet for the active
+	 * theme. Concatenates two sources in order:
+	 *
+	 *   1. cms-framework's `GlobalStylesEmitter::emit()` — compiled CSS
+	 *      from theme.json `settings` + `styles`, merged with any DB
+	 *      override the user authored through the Styles section.
+	 *   2. The theme's hand-authored `themes/{slug}/style.css` — the
+	 *      same stylesheet the public front-end loads via `<link rel>`.
+	 *
+	 * Order matters: the emitter declares `--wp--preset--*` custom
+	 * properties on `:root`; the hand-authored sheet can consume those
+	 * tokens AND override emitter rules (button border-radius / padding
+	 * that the emitter doesn't compile yet, footer list resets, etc.).
+	 *
+	 * The site-editor canvas appends the full response to its
+	 * `BlockEditorProvider` `settings.styles` array so the iframe surface
+	 * matches the public front-end's branding 1:1 — closes the parity
+	 * gap that Keystone #47 surfaced. Front-end consumes the emitter
+	 * via the renderer-blade Blade components and loads its own
+	 * `<link rel="stylesheet">` to `style.css`; the canvas reaches
+	 * parity by getting both bundled into this one fetch.
+	 *
+	 * Returns an empty `text/css` body when cms-framework is not
+	 * installed; the canvas treats that the same as "no theme styles"
+	 * and falls back to the package's `DEFAULT_CANVAS_STYLES`.
+	 *
+	 * @since 1.1.0
+	 */
+	public function css(): Response
+	{
+		$emitterFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Emission\\GlobalStylesEmitter';
+
+		$emitted = '';
+
+		if ( class_exists( $emitterFqcn ) && app()->bound( $emitterFqcn ) ) {
+			$result  = app( $emitterFqcn )->emit();
+			$emitted = is_string( $result ) ? $result : '';
+		}
+
+		$themeCss = $this->readThemeStylesheet();
+
+		$body = '' === $themeCss
+			? $emitted
+			: rtrim( $emitted ) . "\n\n/* === theme stylesheet === */\n" . $themeCss;
+
+		return response( $body, Response::HTTP_OK, [ 'Content-Type' => 'text/css; charset=utf-8' ] );
+	}
+
+	/**
+	 * Read the active theme's hand-authored `style.css` from disk.
+	 * Returns an empty string when no theme is active, when the file
+	 * doesn't exist, or when the resolved path escapes the configured
+	 * themes directory (path-traversal guard — the theme slug rides in
+	 * from the DB / `theme.json`, but cheap to verify).
+	 *
+	 * @since 1.1.0
+	 */
+	protected function readThemeStylesheet(): string
+	{
+		$theme = $this->activeTheme();
+
+		if ( null === $theme ) {
+			return '';
+		}
+
+		$slug = (string) ( $theme['slug'] ?? '' );
+
+		if ( '' === $slug || ! preg_match( '/^[A-Za-z0-9_-]+$/', $slug ) ) {
+			return '';
+		}
+
+		$configured = (string) config( 'cms.themes.directory', 'themes' );
+		// Honor absolute paths verbatim; otherwise resolve relative to
+		// the app's base. cms-framework's `ThemeManager` follows the same
+		// convention, so themes resolve to the same directory on disk
+		// whether the host app keeps `themes/` inside the project root
+		// or points at an external mount.
+		$themesBase = ( '' !== $configured && ( '/' === $configured[0] || preg_match( '#^[A-Za-z]:[\\\\/]#', $configured ) ) )
+			? $configured
+			: base_path( $configured );
+		$stylesheet = $themesBase . '/' . $slug . '/style.css';
+
+		$resolved   = realpath( $stylesheet );
+		$baseReal   = realpath( $themesBase );
+
+		if ( false === $resolved || false === $baseReal || ! str_starts_with( $resolved, $baseReal . DIRECTORY_SEPARATOR ) ) {
+			return '';
+		}
+
+		$contents = @file_get_contents( $resolved );
+
+		return is_string( $contents ) ? $contents : '';
+	}
+
+	/**
 	 * GET `/global-styles/{id}` — fetch the singleton by id. Accepts
 	 * `__base__` (theme defaults) or a numeric DB id.
 	 *
