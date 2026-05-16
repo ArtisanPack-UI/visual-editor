@@ -15,17 +15,24 @@
  * `DEFAULT_CANVAS_STYLES`. The CSS only appends after it arrives, so a
  * slow fetch never blocks the editor boot.
  *
- * Module-level cache keyed by `apiBase` so a remount inside the same
- * editor session reuses the already-fetched CSS without re-hitting the
- * network. Cleared explicitly by {@see resetThemeGlobalStylesCssCache}
- * — used by tests, never by production code.
+ * Module-level cache keyed by `apiBase`. Stores either a pending
+ * `Promise<string>` (first mount, fetch in flight) or the resolved
+ * `string` (subsequent mounts, fetch settled) so a remount inside the
+ * same editor session returns the CSS synchronously from `useState`'s
+ * lazy initializer — no transient `undefined` render, no flash of
+ * unstyled canvas (per CodeRabbit on PR #456). Cleared explicitly by
+ * {@see resetThemeGlobalStylesCssCache} — used by tests only.
  */
 
 import { useEffect, useState } from 'react';
 
 import { fetchGlobalStylesCss } from './styles/global-styles-api';
 
-const cache = new Map<string, Promise<string>>();
+type CachedCss =
+    | { status: 'pending'; promise: Promise<string> }
+    | { status: 'resolved'; value: string };
+
+const cache = new Map<string, CachedCss>();
 
 /**
  * Test-only cache reset. Production code lets the cache live for the
@@ -44,18 +51,18 @@ export function useThemeGlobalStylesCss(
             return '';
         }
 
-        // Synchronous cache hit — return immediately so the boundary's
-        // initial render already carries the styles and the editor
-        // surface doesn't flash unstyled on remount.
         const cached = cache.get(apiBase);
 
-        if (cached !== undefined) {
-            // The promise is in flight; we still need an async settle.
-            // Surface `undefined` until it resolves so the boundary
-            // mounts without a partial styles array.
-            return undefined;
+        // Remount-after-resolved: hand the resolved string back
+        // synchronously from the lazy initializer so the boundary's
+        // first render already carries the styles and the canvas
+        // doesn't flash unstyled.
+        if (cached?.status === 'resolved') {
+            return cached.value;
         }
 
+        // Either no entry yet or a still-in-flight fetch from another
+        // mount — let the effect settle the value asynchronously.
         return undefined;
     });
 
@@ -67,26 +74,56 @@ export function useThemeGlobalStylesCss(
         }
 
         let cancelled = false;
+        let entry = cache.get(apiBase);
 
-        let pending = cache.get(apiBase);
+        if (entry === undefined) {
+            const promise = fetchGlobalStylesCss({ apiBase });
+            entry = { status: 'pending', promise };
+            cache.set(apiBase, entry);
 
-        if (pending === undefined) {
-            pending = fetchGlobalStylesCss({ apiBase });
-            cache.set(apiBase, pending);
+            // Upgrade the entry to `resolved` once the network settles
+            // so future remounts can return the value synchronously.
+            // The upgrade is independent of any specific mount's
+            // lifecycle — even if every consumer unmounts before the
+            // fetch resolves, the next mount still gets the cached
+            // value without re-hitting the network.
+            promise.then(
+                (value) => {
+                    cache.set(apiBase, { status: 'resolved', value });
+                },
+                () => {
+                    // Treat network failure as an empty stylesheet so
+                    // the canvas falls back to its package defaults
+                    // and the next remount doesn't re-hit a known-bad
+                    // endpoint. {@link fetchGlobalStylesCss} swallows
+                    // most errors already; this is belt-and-suspenders.
+                    cache.set(apiBase, { status: 'resolved', value: '' });
+                }
+            );
         }
 
-        pending.then((value) => {
-            if (!cancelled) {
-                setCss(value);
+        // `entry` may already be 'resolved' on remount — short-circuit
+        // to a sync update so React batches it with the initial render.
+        if (entry.status === 'resolved') {
+            setCss(entry.value);
+
+            return () => {
+                cancelled = true;
+            };
+        }
+
+        entry.promise.then(
+            (value) => {
+                if (!cancelled) {
+                    setCss(value);
+                }
+            },
+            () => {
+                if (!cancelled) {
+                    setCss('');
+                }
             }
-        }).catch(() => {
-            // Network failure already surfaces as `''` from the
-            // fetch wrapper; this `.catch` is just belt-and-suspenders
-            // for promise rejection elsewhere in the chain.
-            if (!cancelled) {
-                setCss('');
-            }
-        });
+        );
 
         return () => {
             cancelled = true;

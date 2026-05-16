@@ -81,4 +81,29 @@ describe('useThemeGlobalStylesCss', () => {
         // One fetch total — the cache short-circuits the second mount.
         expect(FETCH_GLOBAL_STYLES_CSS).toHaveBeenCalledTimes(1);
     });
+
+    it('returns the resolved CSS synchronously from useState on remount-after-resolve', async () => {
+        const css = ':root { --wp--preset--color--primary: #0f172a; }';
+        FETCH_GLOBAL_STYLES_CSS.mockResolvedValue(css);
+
+        const first = renderHook(() =>
+            useThemeGlobalStylesCss('/visual-editor/api')
+        );
+
+        // Wait for the fetch to settle so the cache entry transitions
+        // from `pending` to `resolved`.
+        await act(async () => {});
+        expect(first.result.current).toBe(css);
+
+        first.unmount();
+
+        // The remount must return the cached value on its FIRST
+        // render — no transient `undefined`, no flash of unstyled
+        // canvas (CodeRabbit on PR #456).
+        const second = renderHook(() =>
+            useThemeGlobalStylesCss('/visual-editor/api')
+        );
+
+        expect(second.result.current).toBe(css);
+    });
 });

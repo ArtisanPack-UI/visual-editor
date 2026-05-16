@@ -34,10 +34,16 @@ before it reaches downstream consumers.
 
 ### A. Install + activate
 
-1. Run package migrations: `php artisan migrate`. Confirm
-   `template_parts`, `menus`, `menu_items`, `menu_location_assignments`,
-   `visual_editor_templates`, `visual_editor_template_parts`,
-   `visual_editor_patterns`, `visual_editor_global_styles` all exist.
+1. Run package migrations: `php artisan migrate`. Confirm the
+   cms-framework site-editor tables — `templates`, `template_parts`,
+   `block_patterns`, `global_styles`, `menus`, `menu_items`,
+   `menu_location_assignments` — all exist. The legacy
+   `visual_editor_templates` / `visual_editor_template_parts` /
+   `visual_editor_patterns` / `visual_editor_global_styles` tables
+   were retired in #434 (Slice 5); fresh installs never create them,
+   and existing installs have them dropped by the same migration set.
+   If any of those four remain after migration, the drop step
+   regressed — file a bug.
 2. Place `themes/dev-sample/` in the host's themes directory (the path
    resolved by `config('cms.themes.directory')`, default `themes/`).
 3. Activate the theme via the host's theme-management UI or by setting
