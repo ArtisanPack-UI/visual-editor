@@ -1,12 +1,10 @@
 @php
-	$classes = [ 'wp-block-table' ];
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
-	}
+	$baseClasses = [ 'wp-block-table' ];
 
 	if ( ! empty( $attributes['hasFixedLayout'] ) ) {
-		$classes[] = 'has-fixed-layout';
+		$baseClasses[] = 'has-fixed-layout';
 	}
 
 	$caption = (string) ( $attributes['caption'] ?? '' );
@@ -46,7 +44,7 @@
 		return sprintf( '<%1$s%2$s>%3$s</%1$s>', $tag, $styleAttr, $cellContent );
 	};
 @endphp
-<figure class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	<table>
 		@foreach ( $sections as $sectionKey => $rows )
 			@if ( ! empty( $rows ) )

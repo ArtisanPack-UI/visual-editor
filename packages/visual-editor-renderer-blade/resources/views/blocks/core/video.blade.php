@@ -1,4 +1,6 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+
 	$src         = (string) ( $attributes['src'] ?? '' );
 	$caption     = (string) ( $attributes['caption'] ?? '' );
 	$autoplay    = ! empty( $attributes['autoplay'] );
@@ -8,16 +10,6 @@
 	$playsinline = ! empty( $attributes['playsInline'] );
 	$preload     = isset( $attributes['preload'] ) ? (string) $attributes['preload'] : 'metadata';
 	$poster      = (string) ( $attributes['poster'] ?? '' );
-
-	$classes = [ 'wp-block-video' ];
-
-	if ( ! empty( $attributes['align'] ) ) {
-		$classes[] = 'align' . $attributes['align'];
-	}
-
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
-	}
 
 	$videoAttrs = sprintf( ' src="%s"', e( $src ) );
 	$videoAttrs .= sprintf( ' preload="%s"', e( $preload ) );
@@ -46,7 +38,7 @@
 		$videoAttrs .= sprintf( ' poster="%s"', e( $poster ) );
 	}
 @endphp
-<figure class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<figure{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-video' ] ) !!}>
 	@if ( '' !== $src )
 		<video{!! $videoAttrs !!}></video>
 	@endif

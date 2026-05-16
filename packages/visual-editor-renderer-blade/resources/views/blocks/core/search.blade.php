@@ -1,4 +1,6 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+
 	$label       = (string) ( $attributes['label'] ?? 'Search' );
 	$showLabel   = ! isset( $attributes['showLabel'] ) || ! empty( $attributes['showLabel'] );
 	$placeholder = (string) ( $attributes['placeholder'] ?? '' );
@@ -12,14 +14,10 @@
 
 	$inputId = sprintf( 'wp-block-search-input-%s', substr( md5( $blockName . serialize( $attributes ) ), 0, 8 ) );
 
-	$classes = [ 'wp-block-search' ];
+	$baseClasses = [ 'wp-block-search' ];
 
 	if ( ! $showLabel ) {
-		$classes[] = 'wp-block-search__button-inside';
-	}
-
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
+		$baseClasses[] = 'wp-block-search__button-inside';
 	}
 
 	$buttonClasses = [ 'wp-block-search__button' ];
@@ -32,7 +30,7 @@
 		? sprintf( ' placeholder="%s"', e( $placeholder ) )
 		: '';
 @endphp
-<form role="search" method="get" action="/" class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<form role="search" method="get" action="/"{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	@if ( $showLabel )
 		<label class="wp-block-search__label" for="{{ $inputId }}">{{ $label }}</label>
 	@endif

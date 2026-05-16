@@ -1,16 +1,14 @@
 @php
-	$classes = [ 'wp-block-buttons', 'is-layout-flex' ];
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 
-	$justify = $attributes['layout']['justifyContent'] ?? '';
+	$justify = (string) ( $attributes['layout']['justifyContent'] ?? '' );
 
-	$classes[] = '' !== $justify
-		? 'is-content-justification-' . $justify
-		: 'is-content-justification-left';
-
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
-	}
+	$baseClasses = [
+		'wp-block-buttons',
+		'is-layout-flex',
+		'' !== $justify ? 'is-content-justification-' . $justify : 'is-content-justification-left',
+	];
 @endphp
-<div class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	{!! $innerBlocksHtml !!}
 </div>

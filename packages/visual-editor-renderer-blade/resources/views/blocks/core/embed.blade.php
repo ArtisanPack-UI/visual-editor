@@ -1,26 +1,28 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+
 	$url      = (string) ( $attributes['url'] ?? '' );
 	$provider = (string) ( $attributes['providerNameSlug'] ?? '' );
 	$caption  = (string) ( $attributes['caption'] ?? '' );
 	$ratio    = (string) ( $attributes['aspectRatio'] ?? '' );
 
-	$classes = [ 'wp-block-embed' ];
+	$baseClasses = [ 'wp-block-embed' ];
 
 	if ( '' !== $provider ) {
-		$classes[] = 'is-provider-' . preg_replace( '/[^a-z0-9\-]/i', '-', $provider );
-		$classes[] = 'wp-block-embed-' . preg_replace( '/[^a-z0-9\-]/i', '-', $provider );
+		$baseClasses[] = 'is-provider-' . preg_replace( '/[^a-z0-9\-]/i', '-', $provider );
+		$baseClasses[] = 'wp-block-embed-' . preg_replace( '/[^a-z0-9\-]/i', '-', $provider );
 	}
 
 	if ( ! empty( $attributes['type'] ) ) {
-		$classes[] = 'is-type-' . $attributes['type'];
+		$baseClasses[] = 'is-type-' . $attributes['type'];
 	}
 
 	if ( '' !== $ratio ) {
-		$classes[] = 'wp-embed-aspect-' . str_replace( '/', '-', $ratio );
-		$classes[] = 'wp-has-aspect-ratio';
+		$baseClasses[] = 'wp-embed-aspect-' . str_replace( '/', '-', $ratio );
+		$baseClasses[] = 'wp-has-aspect-ratio';
 	}
 @endphp
-<figure class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	<div class="wp-block-embed__wrapper">
 		@if ( '' !== $url )
 			{{ $url }}

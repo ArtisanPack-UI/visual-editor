@@ -1,35 +1,40 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+
 	$mediaUrl      = (string) ( $attributes['mediaUrl'] ?? '' );
 	$mediaAlt      = (string) ( $attributes['mediaAlt'] ?? '' );
 	$mediaType     = (string) ( $attributes['mediaType'] ?? 'image' );
 	$mediaPosition = (string) ( $attributes['mediaPosition'] ?? 'left' );
 	$mediaWidth    = isset( $attributes['mediaWidth'] ) ? (int) $attributes['mediaWidth'] : 50;
 
-	$classes = [ 'wp-block-media-text' ];
+	$baseClasses = [ 'wp-block-media-text' ];
 
 	if ( 'right' === $mediaPosition ) {
-		$classes[] = 'has-media-on-the-right';
+		$baseClasses[] = 'has-media-on-the-right';
 	}
 
 	if ( ! empty( $attributes['isStackedOnMobile'] ) ) {
-		$classes[] = 'is-stacked-on-mobile';
+		$baseClasses[] = 'is-stacked-on-mobile';
 	}
 
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
-	}
-
-	$styleAttr = '';
+	// Splice the grid-template-columns declaration into block-
+	// supports' style output rather than emitting two `style="…"`
+	// attributes.
+	$compiled = BlockSupports::compile( $attributes );
+	$classes  = array_values( array_unique( array_merge( $baseClasses, $compiled['classes'] ) ) );
+	$style    = '' !== $compiled['style'] ? rtrim( $compiled['style'], ';' ) : '';
 
 	if ( 50 !== $mediaWidth ) {
 		$columns = 'left' === $mediaPosition
 			? sprintf( '%d%% auto', $mediaWidth )
 			: sprintf( 'auto %d%%', $mediaWidth );
-
-		$styleAttr = sprintf( ' style="grid-template-columns: %s;"', e( $columns ) );
+		$style = ( '' !== $style ? $style . '; ' : '' ) . 'grid-template-columns: ' . $columns;
 	}
+
+	$styleAttr = '' !== $style ? sprintf( ' style="%s"', e( $style . ';' ) ) : '';
+	$idAttr    = null !== $compiled['id'] ? sprintf( ' id="%s"', e( $compiled['id'] ) ) : '';
 @endphp
-<div class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}"{!! $styleAttr !!}>
+<div class="{{ implode( ' ', $classes ) }}"{!! $styleAttr !!}{!! $idAttr !!}>
 	<figure class="wp-block-media-text__media">
 		@if ( '' !== $mediaUrl )
 			@if ( 'video' === $mediaType )

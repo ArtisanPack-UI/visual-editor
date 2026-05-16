@@ -1,15 +1,20 @@
 @php
-	$classes = [ 'wp-block-column' ];
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+
+	$baseClasses = [ 'wp-block-column' ];
 
 	if ( ! empty( $attributes['verticalAlignment'] ) ) {
-		$classes[] = 'is-vertically-aligned-' . $attributes['verticalAlignment'];
+		$baseClasses[] = 'is-vertically-aligned-' . $attributes['verticalAlignment'];
 	}
 
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
-	}
-
-	$styleAttr = '';
+	// `flex-basis` from the column's `width` attribute has to merge
+	// with any block-supports inline style — compile() lets us splice
+	// it in alongside the support declarations rather than emitting
+	// two `style="…"` attributes (the second one would override the
+	// first in some user agents).
+	$compiled = BlockSupports::compile( $attributes );
+	$classes  = array_values( array_unique( array_merge( $baseClasses, $compiled['classes'] ) ) );
+	$styles   = '' !== $compiled['style'] ? rtrim( $compiled['style'], ';' ) : '';
 
 	if ( ! empty( $attributes['width'] ) ) {
 		$width = $attributes['width'];
@@ -21,9 +26,12 @@
 			$basis = (string) $width;
 		}
 
-		$styleAttr = sprintf( ' style="flex-basis: %s;"', e( $basis ) );
+		$styles = ( '' !== $styles ? $styles . '; ' : '' ) . 'flex-basis: ' . $basis;
 	}
+
+	$styleAttr = '' !== $styles ? sprintf( ' style="%s"', e( $styles . ';' ) ) : '';
+	$idAttr    = null !== $compiled['id'] ? sprintf( ' id="%s"', e( $compiled['id'] ) ) : '';
 @endphp
-<div class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}"{!! $styleAttr !!}>
+<div class="{{ implode( ' ', $classes ) }}"{!! $styleAttr !!}{!! $idAttr !!}>
 	{!! $innerBlocksHtml !!}
 </div>

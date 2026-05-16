@@ -1,24 +1,22 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+
 	$tag = isset( $attributes['tagName'] ) && in_array( $attributes['tagName'], [ 'div', 'section', 'article', 'aside', 'header', 'footer', 'main', 'nav' ], true )
 		? $attributes['tagName']
 		: 'div';
 
 	$layoutType = isset( $attributes['layout']['type'] ) ? (string) $attributes['layout']['type'] : '';
 
-	$classes = [ 'wp-block-group' ];
-
 	if ( 'constrained' === $layoutType ) {
-		$classes[] = 'is-layout-constrained';
+		$layoutClass = 'is-layout-constrained';
 	} elseif ( 'flex' === $layoutType ) {
-		$classes[] = 'is-layout-flex';
+		$layoutClass = 'is-layout-flex';
+	} elseif ( 'grid' === $layoutType ) {
+		$layoutClass = 'is-layout-grid';
 	} else {
-		$classes[] = 'is-layout-flow';
-	}
-
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
+		$layoutClass = 'is-layout-flow';
 	}
 @endphp
-<{{ $tag }} class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<{{ $tag }}{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-group', $layoutClass ] ) !!}>
 	{!! $innerBlocksHtml !!}
 </{{ $tag }}>

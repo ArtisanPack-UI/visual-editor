@@ -1,4 +1,6 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+
 	$content = (string) ( $attributes['content'] ?? '' );
 @endphp
-<pre class="wp-block-code"><code>{!! $content !!}</code></pre>
+<pre{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-code' ] ) !!}><code>{!! $content !!}</code></pre>

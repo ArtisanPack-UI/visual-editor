@@ -1,16 +1,20 @@
 @php
-	$classes = [ 'wp-block-separator', 'has-alpha-channel-opacity' ];
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 
-	$style = isset( $attributes['style'] ) ? (string) $attributes['style'] : 'default';
+	$baseClasses = [ 'wp-block-separator', 'has-alpha-channel-opacity' ];
 
-	if ( 'wide' === $style ) {
-		$classes[] = 'is-style-wide';
-	} elseif ( 'dots' === $style ) {
-		$classes[] = 'is-style-dots';
-	}
+	// Legacy schema stored the variant as `style: "wide" | "dots"`
+	// (string). Modern blocks ship the variant in `className` as
+	// `is-style-{variant}` via the block-style picker. Honor the
+	// legacy shape here; BlockSupports normalizes the string-shaped
+	// `style` attribute away (it's not the style object per-category
+	// resolvers expect).
+	$legacyStyle = isset( $attributes['style'] ) && is_string( $attributes['style'] ) ? $attributes['style'] : 'default';
 
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
+	if ( 'wide' === $legacyStyle ) {
+		$baseClasses[] = 'is-style-wide';
+	} elseif ( 'dots' === $legacyStyle ) {
+		$baseClasses[] = 'is-style-dots';
 	}
 @endphp
-<hr class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}"/>
+<hr{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}/>

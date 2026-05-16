@@ -1,16 +1,12 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+
 	$summary     = (string) ( $attributes['summary'] ?? '' );
 	$showContent = ! empty( $attributes['showContent'] );
 
-	$classes = [ 'wp-block-details' ];
-
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
-	}
-
 	$openAttr = $showContent ? ' open' : '';
 @endphp
-<details class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}"{!! $openAttr !!}>
+<details{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-details' ] ) !!}{!! $openAttr !!}>
 	<summary>{!! $summary !!}</summary>
 	{!! $innerBlocksHtml !!}
 </details>

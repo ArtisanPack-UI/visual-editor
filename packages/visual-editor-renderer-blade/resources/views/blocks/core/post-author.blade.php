@@ -1,7 +1,7 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
-	$align      = isset( $attributes['textAlign'] ) && is_string( $attributes['textAlign'] ) ? $attributes['textAlign'] : '';
 	$showAvatar = ! isset( $attributes['showAvatar'] ) || ! empty( $attributes['showAvatar'] );
 	$showBio    = ! empty( $attributes['showBio'] );
 	$avatarSize = isset( $attributes['avatarSize'] ) ? max( 1, (int) $attributes['avatarSize'] ) : 24;
@@ -12,18 +12,8 @@
 	$bio       = isset( $attributes['_resolvedAuthorBio'] ) && is_string( $attributes['_resolvedAuthorBio'] ) ? $attributes['_resolvedAuthorBio'] : '';
 	$authorUrl = UrlSanitizer::safe( isset( $attributes['_resolvedAuthorUrl'] ) && is_string( $attributes['_resolvedAuthorUrl'] ) ? $attributes['_resolvedAuthorUrl'] : '' );
 	$avatarUrl = UrlSanitizer::safe( isset( $attributes['_resolvedAuthorAvatar'] ) && is_string( $attributes['_resolvedAuthorAvatar'] ) ? $attributes['_resolvedAuthorAvatar'] : '' );
-
-	$classes = [ 'wp-block-post-author' ];
-
-	if ( '' !== $align ) {
-		$classes[] = 'has-text-align-' . $align;
-	}
-
-	if ( ! empty( $attributes['className'] ) && is_string( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
-	}
 @endphp
-<div class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-post-author' ] ) !!}>
 	@if ( $showAvatar && '' !== $avatarUrl )
 		<div class="wp-block-post-author__avatar"><img alt="{{ $name }}" width="{{ $avatarSize }}" height="{{ $avatarSize }}" src="{{ $avatarUrl }}"/></div>
 	@endif

@@ -1,19 +1,11 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+
 	$src      = (string) ( $attributes['src'] ?? '' );
 	$caption  = (string) ( $attributes['caption'] ?? '' );
 	$autoplay = ! empty( $attributes['autoplay'] );
 	$loop     = ! empty( $attributes['loop'] );
 	$preload  = isset( $attributes['preload'] ) ? (string) $attributes['preload'] : 'none';
-
-	$classes = [ 'wp-block-audio' ];
-
-	if ( ! empty( $attributes['align'] ) ) {
-		$classes[] = 'align' . $attributes['align'];
-	}
-
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
-	}
 
 	$audioAttrs = ' controls';
 	$audioAttrs .= sprintf( ' src="%s"', e( $src ) );
@@ -27,7 +19,7 @@
 		$audioAttrs .= ' loop';
 	}
 @endphp
-<figure class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<figure{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-audio' ] ) !!}>
 	@if ( '' !== $src )
 		<audio{!! $audioAttrs !!}></audio>
 	@endif
