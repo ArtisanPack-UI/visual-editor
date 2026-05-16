@@ -47,6 +47,13 @@ vi.mock('@wordpress/blocks', () => ({
     parse: (raw: string): unknown[] =>
         raw === '' ? [] : [{ name: 'core/paragraph', clientId: 'stub' }],
     serialize: (): string => '',
+    // `applySchemaDefaults` in use-entity-editor.ts (Keystone #49)
+    // calls `getBlockType(name)?.attributes` to fill in missing
+    // default-valued attributes. Stub returns `undefined` for any
+    // block since this suite doesn't exercise the defaults path —
+    // the hook leaves attributes as-is when the registry has no
+    // entry for the block name.
+    getBlockType: (): undefined => undefined,
 }));
 
 vi.mock('@wordpress/format-library', () => ({}));

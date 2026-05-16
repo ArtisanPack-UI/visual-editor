@@ -11,6 +11,24 @@ vi.mock('@wordpress/blocks', () => ({
     parse: (raw: string): unknown[] =>
         raw === '' ? [] : [{ name: 'core/paragraph', clientId: 'stub' }],
     serialize: (): string => '',
+    // Block-type registry for `applySchemaDefaults` (Keystone #49).
+    // The hook calls `getBlockType(name)?.attributes` and fills any
+    // attribute with a `default` that's missing from the stored
+    // payload. The fixture below mirrors `core/separator`'s schema
+    // — the one block whose `edit()` actually crashed when
+    // `tagName` was missing.
+    getBlockType: (name: string): unknown => {
+        if (name === 'core/separator') {
+            return {
+                attributes: {
+                    opacity: { type: 'string', default: 'alpha-channel' },
+                    tagName: { type: 'string', default: 'hr' },
+                },
+            };
+        }
+
+        return undefined;
+    },
 }));
 
 import { useEntityEditor } from '../use-entity-editor';
@@ -467,5 +485,86 @@ describe('useEntityEditor', () => {
         expect(result.current.loadStatus).toBe('idle');
         expect(result.current.entity).toBeNull();
         expect(result.current.blocks).toHaveLength(0);
+    });
+
+    it('fills schema defaults on the parsed-blocks path so core/separator gets tagName="hr" (Keystone #49)', async () => {
+        // The seed persists `core/separator` with only `opacity` —
+        // `tagName` (default `"hr"`) is missing. Without the defaults
+        // pass the block's `edit()` would render `<undefined />` and
+        // trip React #130.
+        FETCH_MOCK.mockResolvedValue(
+            makeTemplate({
+                content: {
+                    raw: '',
+                    blocks: [
+                        {
+                            name: 'core/separator',
+                            clientId: 'sep-1',
+                            attributes: { opacity: 'alpha-channel' },
+                            innerBlocks: [],
+                        },
+                    ],
+                },
+            })
+        );
+
+        const { result } = renderHook(() =>
+            useEntityEditor({
+                apiConfig: API_CONFIG,
+                kind: 'template',
+                entityId: '1',
+            })
+        );
+
+        await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+        const [separator] = result.current.blocks as Array<{
+            attributes: { opacity?: string; tagName?: string };
+        }>;
+
+        expect(separator).toBeDefined();
+        expect(separator.attributes.tagName).toBe('hr');
+        // Existing attributes are preserved.
+        expect(separator.attributes.opacity).toBe('alpha-channel');
+    });
+
+    it('recurses into innerBlocks so a nested separator also gets its default tagName (Keystone #49)', async () => {
+        FETCH_MOCK.mockResolvedValue(
+            makeTemplate({
+                content: {
+                    raw: '',
+                    blocks: [
+                        {
+                            name: 'core/group',
+                            clientId: 'g-1',
+                            attributes: {},
+                            innerBlocks: [
+                                {
+                                    name: 'core/separator',
+                                    clientId: 'sep-2',
+                                    attributes: { opacity: 'alpha-channel' },
+                                    innerBlocks: [],
+                                },
+                            ],
+                        },
+                    ],
+                },
+            })
+        );
+
+        const { result } = renderHook(() =>
+            useEntityEditor({
+                apiConfig: API_CONFIG,
+                kind: 'template',
+                entityId: '1',
+            })
+        );
+
+        await waitFor(() => expect(result.current.loadStatus).toBe('ready'));
+
+        const group = result.current.blocks[0] as {
+            innerBlocks: Array<{ attributes: { tagName?: string } }>;
+        };
+        expect(group.innerBlocks[0]?.attributes.tagName).toBe('hr');
     });
 });

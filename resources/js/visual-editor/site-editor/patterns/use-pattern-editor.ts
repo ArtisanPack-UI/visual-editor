@@ -8,12 +8,13 @@
  * the shared one from accumulating sub-section conditionals.
  */
 
-import { parse, serialize, type BlockInstance } from '@wordpress/blocks';
+import { serialize, type BlockInstance } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 import type { SiteEditorApiConfig } from '../api-client';
+import { hydrateBlocks } from '../hydrate-blocks';
 
 import {
     fetchPattern,
@@ -73,16 +74,6 @@ function isPatternContent(value: unknown): value is LoadedContent {
         'blocks' in value &&
         Array.isArray((value as { blocks: unknown }).blocks)
     );
-}
-
-function hydrateBlocks(content: LoadedContent): BlockInstance[] {
-    const raw = typeof content.raw === 'string' ? content.raw.trim() : '';
-
-    if (raw !== '') {
-        return parse(raw);
-    }
-
-    return content.blocks as BlockInstance[];
 }
 
 function fieldsForRecord(record: PatternRecord | null): PatternEditorFields {
