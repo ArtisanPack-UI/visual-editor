@@ -121,15 +121,15 @@ class EntitySearchController extends Controller
 				'title' => '' !== $title ? $title : $slug,
 				'url'   => null,
 			];
-
-			if ( count( $matches ) >= self::MAX_RESULTS ) {
-				break;
-			}
 		}
 
+		// Sort first, slice second — otherwise the returned 20 would
+		// depend on the resolver's iteration order rather than being the
+		// alphabetically-first matches. Mirrors `searchResourceModel()`'s
+		// `orderBy + limit` semantics.
 		usort( $matches, static fn ( array $a, array $b ): int => strcasecmp( $a['title'], $b['title'] ) );
 
-		return $matches;
+		return array_slice( $matches, 0, self::MAX_RESULTS );
 	}
 
 	/**
