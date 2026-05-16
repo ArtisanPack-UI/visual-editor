@@ -118,12 +118,29 @@ the pattern record, which propagates to every render site-wide.
 3. Save.
 
 **Assert:**
-- `visual_editor_global_styles` carries the edited payload keyed on
-  `dev-sample`.
-- `GlobalStylesCssProvider::css('dev-sample')` emits the new value in
+- cms-framework's `global_styles` table carries the edited payload
+  keyed on `dev-sample` (slice 5 retired the orphan
+  `visual_editor_global_styles` table — emission now flows through
+  cms-framework's `GlobalStylesEmitter`).
+- `GET /visual-editor/api/global-styles/css` returns the new value in
   the `--wp--preset--color--accent` declaration.
 - Public front-end renders the new color (after cache-bust if the
   consumer caches the compiled CSS).
+
+### G2. Canvas ↔ front-end style parity (Keystone #47)
+
+1. Without making any further edits, open a page that includes the
+   `core/heading` and `core/button` blocks in the site editor.
+2. Compare the canvas rendering against the same page on the public
+   front-end (open in two browser tabs).
+
+**Assert:**
+- Heading typography, link color, button background, and palette
+  preset usage match between the two surfaces. The canvas pulls the
+  same compiled CSS the front-end emits (via
+  `/visual-editor/api/global-styles/css`), so divergence here means
+  the canvas's `BlockEditorBoundary` stopped appending it to
+  `editorSettings.styles`.
 
 ### H. Menus + menu locations
 

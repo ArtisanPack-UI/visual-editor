@@ -13,7 +13,10 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { DEFAULT_CANVAS_STYLES } from '../../editor-settings';
+import {
+    DEFAULT_CANVAS_STYLES,
+    POST_EDITOR_FRAMING_STYLES,
+} from '../../editor-settings';
 import { canvasStyles } from '../canvas-styles';
 
 describe('canvasStyles', () => {
@@ -26,15 +29,30 @@ describe('canvasStyles', () => {
         }
     });
 
-    it('bundles the theme token bridge, the three @wordpress sheet groups, and the canvas baseline', () => {
+    it('bundles the theme token bridge, the three @wordpress sheet groups, the canvas baseline, alignment overrides, and the post-editor framing', () => {
         // token bridge + components + block-editor (style + content)
-        // + block-library (style + editor) + DEFAULT_CANVAS_STYLES.
-        expect(canvasStyles).toHaveLength(7);
+        // + block-library (style + editor) + DEFAULT_CANVAS_STYLES
+        // + ALIGNMENT_OVERRIDE_STYLES + POST_EDITOR_FRAMING_STYLES
+        // (Keystone #47 — site-editor canvases skip the framing
+        // entry but keep the alignment overrides so the wide/full
+        // toolbar buttons take effect there too).
+        expect(canvasStyles).toHaveLength(9);
     });
 
-    it('ends with DEFAULT_CANVAS_STYLES so the package typographic baseline wins the cascade', () => {
-        expect(canvasStyles[canvasStyles.length - 1]?.css).toBe(
-            DEFAULT_CANVAS_STYLES
+    it('places DEFAULT_CANVAS_STYLES before POST_EDITOR_FRAMING_STYLES so the framing wins the cascade', () => {
+        const defaultsIndex = canvasStyles.findIndex(
+            (entry) => entry.css === DEFAULT_CANVAS_STYLES
         );
+        const framingIndex = canvasStyles.findIndex(
+            (entry) => entry.css === POST_EDITOR_FRAMING_STYLES
+        );
+
+        expect(defaultsIndex).toBeGreaterThanOrEqual(0);
+        expect(framingIndex).toBeGreaterThan(defaultsIndex);
+        // Framing is the cascade anchor for the post editor's page-like
+        // visual; if anything else were to land after it, that entry
+        // would have to be intentional (theme.json bridge for the post
+        // editor will land after framing).
+        expect(framingIndex).toBe(canvasStyles.length - 1);
     });
 });

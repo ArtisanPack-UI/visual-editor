@@ -35,9 +35,12 @@ import {
     BlockList,
     ObserveTyping,
 } from '@wordpress/block-editor';
+import { useMemo } from 'react';
 
 import { canvasStyles } from './canvas-styles';
 import { PostTitle } from './post-title';
+import { ROOT_CANVAS_LAYOUT } from '../editor-settings';
+import { useThemeGlobalStylesCss } from '../site-editor/use-theme-global-styles-css';
 
 /** Block context value stamped onto the canvas for cms-framework entities. */
 export interface CanvasBlockContext {
@@ -59,6 +62,14 @@ export interface EditorCanvasProps {
      * render their placeholder shell.
      */
     blockContext: CanvasBlockContext | null;
+    /**
+     * Visual-editor REST base. When supplied, the canvas appends the
+     * active theme's compiled CSS (cms-framework's `GlobalStylesEmitter`
+     * output + `themes/{slug}/style.css`) to {@link canvasStyles} so the
+     * iframe matches the public front-end (Keystone #47). Omit to keep
+     * the canvas on the package-default baseline.
+     */
+    apiBase?: string;
 }
 
 /**
@@ -66,9 +77,23 @@ export interface EditorCanvasProps {
  * `BlockEditorProvider` ancestor (mounted in `editor-app.tsx`).
  */
 export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
-    const { showTitle, title, onTitleChange, blockContext } = props;
+    const { showTitle, title, onTitleChange, blockContext, apiBase } = props;
 
-    const blockList = <BlockList />;
+    // Keystone #47: pull the compiled theme CSS once per `apiBase` and
+    // append it to the iframe's styles array so the canvas surface
+    // matches the public front-end. `useThemeGlobalStylesCss` caches
+    // module-level so multiple consumers (site editor + post editor)
+    // share one fetch when mounted in the same SPA session.
+    const themeCss = useThemeGlobalStylesCss(apiBase);
+    const styles = useMemo(
+        () =>
+            themeCss === undefined || themeCss === ''
+                ? canvasStyles
+                : [...canvasStyles, { css: themeCss }],
+        [themeCss]
+    );
+
+    const blockList = <BlockList layout={ROOT_CANVAS_LAYOUT} />;
 
     return (
         <div
@@ -79,7 +104,7 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
                 <PostTitle value={title} onChange={onTitleChange} />
             ) : null}
             <div className="ap-visual-editor__canvas-frame">
-                <BlockCanvas height="100%" styles={canvasStyles}>
+                <BlockCanvas height="100%" styles={styles}>
                     {blockContext !== null ? (
                         <BlockContextProvider value={blockContext}>
                             <ObserveTyping>{blockList}</ObserveTyping>

@@ -23,8 +23,13 @@ import {
 import { __, sprintf } from '@wordpress/i18n';
 import { useMemo, type ReactNode } from 'react';
 
-import { DEFAULT_CANVAS_STYLES } from '../../editor-settings';
+import {
+    ALIGNMENT_OVERRIDE_STYLES,
+    DEFAULT_CANVAS_STYLES,
+    ROOT_CANVAS_LAYOUT,
+} from '../../editor-settings';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
+import { CanvasThemeStyles } from '../canvas-theme-styles';
 
 import './pattern-canvas.css';
 
@@ -35,10 +40,12 @@ export interface PatternCanvasProps {
     header?: ReactNode;
     isLoading?: boolean;
     errorMessage?: string | null;
+    /** Site-editor REST base — wires in theme CSS (Keystone #47). */
+    apiBase?: string;
 }
 
 export function PatternCanvas(props: PatternCanvasProps): JSX.Element {
-    const { title, synced, header, isLoading, errorMessage } = props;
+    const { title, synced, header, isLoading, errorMessage, apiBase } = props;
 
     const announcement = useMemo(
         () =>
@@ -112,10 +119,14 @@ export function PatternCanvas(props: PatternCanvasProps): JSX.Element {
                      * to browser-default serif.
                      */}
                     <style>{DEFAULT_CANVAS_STYLES}</style>
+                    {/* Keystone #47: wide/full alignment overrides. */}
+                    <style>{ALIGNMENT_OVERRIDE_STYLES}</style>
+                    {/* Keystone #47: theme CSS inlined after defaults so it wins on cascade. */}
+                    <CanvasThemeStyles apiBase={apiBase} />
                     <BlockTools>
                         <WritingFlow>
                             <ObserveTyping>
-                                <BlockList />
+                                <BlockList layout={ROOT_CANVAS_LAYOUT} />
                             </ObserveTyping>
                         </WritingFlow>
                     </BlockTools>

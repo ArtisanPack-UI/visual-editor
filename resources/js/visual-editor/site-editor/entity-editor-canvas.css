@@ -53,8 +53,12 @@
 
 /* Clickable empty area: when a template has no blocks yet, the default
    inserter placeholder is tiny — give the surface a visible min-height
-   so users have a target to click the appender. */
-.ap-site-editor__entity-canvas-surface .block-editor-block-list__layout {
+   so users have a target to click the appender. Scoped to Gutenberg's
+   `.is-root-container` marker so the rule only hits the top-level
+   layout — nested `.block-editor-block-list__layout` instances (inside
+   `core/list`, `core/columns`, `core/group`) inherited the 300px before
+   and stacked their bullets way below the heading (Keystone #47). */
+.ap-site-editor__entity-canvas-surface .block-editor-block-list__layout.is-root-container {
     min-height: 300px;
 }
 

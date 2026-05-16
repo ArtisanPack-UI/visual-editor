@@ -263,6 +263,7 @@ export function usePatternsSectionViews(
                         ? editor.loadErrorMessage
                         : null
                 }
+                apiBase={apiConfig.apiBase}
             />
         );
     }, [

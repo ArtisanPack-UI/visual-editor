@@ -27,8 +27,14 @@ import {
 import { __, sprintf } from '@wordpress/i18n';
 import { useMemo, type ReactNode } from 'react';
 
-import { DEFAULT_CANVAS_STYLES } from '../editor-settings';
+import {
+    ALIGNMENT_OVERRIDE_STYLES,
+    DEFAULT_CANVAS_STYLES,
+    ROOT_CANVAS_LAYOUT,
+} from '../editor-settings';
 import { TEXT_DOMAIN } from '../vendor/i18n';
+
+import { CanvasThemeStyles } from './canvas-theme-styles';
 
 import './entity-editor-canvas.css';
 
@@ -45,10 +51,16 @@ export interface EntityEditorCanvasProps {
     isLoading?: boolean;
     /** Optional error copy rendered in place of the canvas. */
     errorMessage?: string | null;
+    /**
+     * Site-editor REST base. When supplied, the canvas inlines the
+     * active theme's compiled CSS via {@see CanvasThemeStyles}, so the
+     * surface matches the public front-end (Keystone #47).
+     */
+    apiBase?: string;
 }
 
 export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element {
-    const { entityTitle, header, isLoading, errorMessage } = props;
+    const { entityTitle, header, isLoading, errorMessage, apiBase } = props;
 
     const announcement = useMemo(
         () =>
@@ -118,10 +130,26 @@ export function EntityEditorCanvas(props: EntityEditorCanvasProps): JSX.Element 
                      * cascade.
                      */}
                     <style>{DEFAULT_CANVAS_STYLES}</style>
+                    {/*
+                     * Keystone #47: wide/full alignment overrides
+                     * applied to direct children of the root layout.
+                     * Sits before the theme CSS so the theme can
+                     * still tweak alignment behavior if it needs to.
+                     */}
+                    <style>{ALIGNMENT_OVERRIDE_STYLES}</style>
+                    {/*
+                     * Keystone #47: the active theme's compiled CSS
+                     * (theme.json tokens + hand-authored `style.css`)
+                     * gets inlined here, after the package default so
+                     * theme rules win on cascade. Falls back to no-op
+                     * when no `apiBase` is wired or the fetch returns
+                     * empty.
+                     */}
+                    <CanvasThemeStyles apiBase={apiBase} />
                     <BlockTools>
                         <WritingFlow>
                             <ObserveTyping>
-                                <BlockList />
+                                <BlockList layout={ROOT_CANVAS_LAYOUT} />
                             </ObserveTyping>
                         </WritingFlow>
                     </BlockTools>

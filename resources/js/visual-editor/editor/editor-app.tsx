@@ -879,6 +879,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 title={title}
                 onTitleChange={handleTitleChange}
                 blockContext={blockContextValue}
+                apiBase={props.apiBase}
             />
             <Popover.Slot />
             <ConvertToPatternControl apiBase={props.apiBase} />

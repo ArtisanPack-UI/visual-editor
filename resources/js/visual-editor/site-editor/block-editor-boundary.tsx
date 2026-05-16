@@ -26,6 +26,7 @@ import {
     BlockEditorProvider,
 } from '@wordpress/block-editor';
 import { Popover, SlotFillProvider } from '@wordpress/components';
+import { useMemo } from 'react';
 // `@wordpress/format-library` is a side-effect import: it registers the
 // core rich-text formats (bold, italic, link, …) so the block toolbar's
 // inline formatting controls work inside RichText blocks. It lived in
@@ -36,6 +37,7 @@ import { type ReactNode } from 'react';
 
 import { ConvertToPatternControl } from '../editor/convert-to-pattern-control';
 import { editorSettings } from '../editor-settings';
+import { useThemeGlobalStylesCss } from './use-theme-global-styles-css';
 
 // Gutenberg editor-surface stylesheets. Previously imported by each
 // canvas component; they follow the provider here so the boundary owns
@@ -58,6 +60,14 @@ export interface BlockEditorBoundaryProps {
      */
     apiBase?: string;
     /**
+     * Test-only override for the active theme's compiled CSS. In
+     * production the boundary fetches this through
+     * {@see useThemeGlobalStylesCss} keyed on `apiBase`; tests pass an
+     * explicit string to avoid hitting the network. When `undefined`
+     * the hook drives the value (Keystone #47).
+     */
+    themeGlobalStylesCss?: string;
+    /**
      * Canvas and inspector slots. Both must be rendered as children so
      * they share this boundary's `core/block-editor` registry — even
      * when a section portals them into separate DOM nodes.
@@ -66,13 +76,38 @@ export interface BlockEditorBoundaryProps {
 }
 
 export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Element {
-    const { blocks, onChange, onInput, apiBase, children } = props;
+    const { blocks, onChange, onInput, apiBase, themeGlobalStylesCss, children } = props;
+
+    // Tests can short-circuit the network by passing a string directly;
+    // production drives the value through the hook keyed on `apiBase`.
+    const fetchedCss = useThemeGlobalStylesCss(apiBase);
+    const themeCss = themeGlobalStylesCss !== undefined ? themeGlobalStylesCss : fetchedCss;
+
+    // Append the theme's compiled global-styles CSS to the editor's
+    // `styles` array so Gutenberg cascades it into the canvas. Memoized
+    // so identity-stable `editorSettings.styles` doesn't bust the
+    // provider's effects on every parent re-render. When no theme CSS
+    // is available we hand the provider the original `editorSettings`
+    // object — no allocation, no diff.
+    const settings = useMemo(() => {
+        if (themeCss === undefined || themeCss === '') {
+            return editorSettings;
+        }
+
+        return {
+            ...editorSettings,
+            styles: [
+                ...editorSettings.styles,
+                { css: themeCss },
+            ],
+        };
+    }, [themeCss]);
 
     return (
         <SlotFillProvider>
             <BlockEditorProvider
                 value={blocks}
-                settings={editorSettings}
+                settings={settings}
                 onChange={onChange}
                 onInput={onInput}
             >
