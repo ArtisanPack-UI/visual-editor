@@ -400,8 +400,13 @@ class BlockSupports
 			}
 		}
 
-		// Per-side overrides.
-		$hasSideWidthOrStyle = false;
+		// Per-side overrides. Track which sides need a per-side
+		// style fallback so a side-only `width` doesn't end up
+		// triggering a global `border-style: solid` that turns on
+		// the untouched edges with browser-default widths
+		// (CodeRabbit on PR #457: `style.border.top.width: 2px`
+		// should produce a single top border, not a full box).
+		$sideNeedsStyleFallback = [];
 
 		foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
 			$sideValues = $border[ $side ] ?? null;
@@ -409,6 +414,9 @@ class BlockSupports
 			if ( ! is_array( $sideValues ) ) {
 				continue;
 			}
+
+			$sideHasWidth         = false;
+			$sideHasExplicitStyle = false;
 
 			foreach ( [ 'color', 'style', 'width' ] as $property ) {
 				$value = self::stringAttr( $sideValues[ $property ] ?? null );
@@ -419,17 +427,36 @@ class BlockSupports
 
 				$style[] = sprintf( 'border-%s-%s: %s', $side, $property, self::expandPresetReference( $value ) );
 
-				if ( 'width' === $property || 'style' === $property ) {
-					$hasSideWidthOrStyle = true;
+				if ( 'width' === $property ) {
+					$sideHasWidth = true;
 				}
+
+				if ( 'style' === $property ) {
+					$sideHasExplicitStyle = true;
+				}
+			}
+
+			if ( $sideHasWidth && ! $sideHasExplicitStyle ) {
+				$sideNeedsStyleFallback[] = $side;
 			}
 		}
 
-		// Width without an explicit style would render nothing in some
-		// browsers — fall back to `solid` so the configured width is
-		// actually visible. WP core does the same.
-		if ( ( $hasRootWidthOrStyle || $hasSideWidthOrStyle ) && ! self::styleListContains( $style, 'border-style:' ) ) {
+		// Root-level fallback only when the ROOT declaration set a
+		// width or style. Width without an explicit style would
+		// render nothing in some browsers, so default to `solid` —
+		// matches WP core.
+		if ( $hasRootWidthOrStyle && ! self::styleListContains( $style, 'border-style:' ) ) {
 			$style[] = 'border-style: solid';
+		}
+
+		// Side-specific fallbacks — only the sides that actually
+		// have a `width` without a matching `style` get a per-side
+		// `border-{side}-style: solid`. Doesn't touch the other
+		// three edges.
+		foreach ( $sideNeedsStyleFallback as $side ) {
+			if ( ! self::styleListContains( $style, 'border-' . $side . '-style:' ) ) {
+				$style[] = 'border-' . $side . '-style: solid';
+			}
 		}
 	}
 

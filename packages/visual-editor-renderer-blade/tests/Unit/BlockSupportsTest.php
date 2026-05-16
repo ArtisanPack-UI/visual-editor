@@ -222,7 +222,11 @@ describe( 'BlockSupports::compile (border)', function (): void {
 		expect( substr_count( $result['style'], 'border-style:' ) )->toBe( 1 );
 	} );
 
-	it( 'maps per-side border objects (e.g. style.border.top.color)', function (): void {
+	it( 'maps per-side border objects with a per-side style fallback (not a global one)', function (): void {
+		// Side-only width must NOT trigger a global `border-style: solid`
+		// fallback — that would turn on the untouched edges with the
+		// browser-default width and render a full box instead of the
+		// single requested top border (CodeRabbit on PR #457).
 		$result = BlockSupports::compile( [
 			'style' => [
 				'border' => [
@@ -233,7 +237,43 @@ describe( 'BlockSupports::compile (border)', function (): void {
 
 		expect( $result['style'] )->toContain( 'border-top-color: #000;' );
 		expect( $result['style'] )->toContain( 'border-top-width: 1px;' );
-		expect( $result['style'] )->toContain( 'border-style: solid;' );
+		// Per-side fallback only.
+		expect( $result['style'] )->toContain( 'border-top-style: solid;' );
+		// NO global fallback that would activate the other three edges.
+		expect( $result['style'] )->not->toContain( 'border-style: solid;' );
+	} );
+
+	it( 'emits per-side style fallbacks for every side that has a width', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [
+				'border' => [
+					'top'    => [ 'width' => '1px' ],
+					'bottom' => [ 'width' => '2px' ],
+				],
+			],
+		] );
+
+		expect( $result['style'] )->toContain( 'border-top-style: solid;' );
+		expect( $result['style'] )->toContain( 'border-bottom-style: solid;' );
+		// Untouched sides stay untouched.
+		expect( $result['style'] )->not->toContain( 'border-right-style:' );
+		expect( $result['style'] )->not->toContain( 'border-left-style:' );
+		expect( $result['style'] )->not->toContain( 'border-style: solid;' );
+	} );
+
+	it( 'respects an explicit per-side style and skips the per-side fallback', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [
+				'border' => [
+					'top' => [ 'width' => '2px', 'style' => 'dashed' ],
+				],
+			],
+		] );
+
+		expect( $result['style'] )->toContain( 'border-top-style: dashed;' );
+		// No duplicate / no override from the fallback.
+		expect( substr_count( $result['style'], 'border-top-style:' ) )->toBe( 1 );
+		expect( $result['style'] )->not->toContain( 'border-top-style: solid;' );
 	} );
 
 	it( 'maps the borderColor palette slug', function (): void {
