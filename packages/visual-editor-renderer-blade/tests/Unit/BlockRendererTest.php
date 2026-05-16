@@ -514,3 +514,108 @@ it( 'falls back to safe defaults when callout severity or icon is invalid', func
 	expect( $html )->toContain( 'ap-callout--info' )
 		->and( $html )->toContain( 'data-severity="info"' );
 } );
+
+describe( 'Keystone #50 — block-supports compilation on the rendered HTML', function (): void {
+	it( 'renders a custom background color on core/group as both class marker and inline style', function (): void {
+		$tree = [ makeBlock( 'core/group', [
+			'style' => [ 'color' => [ 'background' => '#0f172a' ] ],
+		] ) ];
+
+		$html = makeRenderer()->render( $tree );
+
+		// `has-background` marker so theme CSS can target the wrapper.
+		expect( $html )->toContain( 'has-background' );
+		// The custom value lands as an inline style declaration.
+		expect( $html )->toContain( 'background-color: #0f172a' );
+	} );
+
+	it( 'renders a palette-slug background as has-{slug}-background-color', function (): void {
+		$tree = [ makeBlock( 'core/group', [
+			'backgroundColor' => 'accent',
+		] ) ];
+
+		$html = makeRenderer()->render( $tree );
+
+		expect( $html )->toContain( 'has-accent-background-color' );
+		expect( $html )->toContain( 'has-background' );
+	} );
+
+	it( 'renders block-level alignment as the alignwide / alignfull class', function (): void {
+		$wide = makeRenderer()->render( [ makeBlock( 'core/group', [ 'align' => 'wide' ] ) ] );
+		$full = makeRenderer()->render( [ makeBlock( 'core/group', [ 'align' => 'full' ] ) ] );
+
+		expect( $wide )->toContain( 'alignwide' );
+		expect( $full )->toContain( 'alignfull' );
+	} );
+
+	it( 'renders custom padding through style.spacing.padding as inline style', function (): void {
+		$tree = [ makeBlock( 'core/group', [
+			'style' => [ 'spacing' => [ 'padding' => [ 'top' => '2rem', 'bottom' => '2rem' ] ] ],
+		] ) ];
+
+		$html = makeRenderer()->render( $tree );
+
+		expect( $html )->toContain( 'padding-top: 2rem' );
+		expect( $html )->toContain( 'padding-bottom: 2rem' );
+	} );
+
+	it( 'renders typography palette slugs on core/heading', function (): void {
+		$tree = [ makeBlock( 'core/heading', [
+			'level'    => 2,
+			'content'  => 'Hello',
+			'fontSize' => 'large',
+		] ) ];
+
+		$html = makeRenderer()->render( $tree );
+
+		expect( $html )->toContain( 'has-large-font-size' );
+		expect( $html )->toContain( 'has-defined-font-size' );
+	} );
+
+	it( 'renders anchor as id on the wrapper', function (): void {
+		$tree = [ makeBlock( 'core/group', [ 'anchor' => 'hero-section' ] ) ];
+
+		$html = makeRenderer()->render( $tree );
+
+		expect( $html )->toContain( 'id="hero-section"' );
+	} );
+
+	it( 'renders core/button with color on the inner link, not the outer wrapper', function (): void {
+		$tree = [ makeBlock( 'core/button', [
+			'text'            => 'Click',
+			'url'             => 'https://example.com',
+			'backgroundColor' => 'accent',
+		] ) ];
+
+		$html = makeRenderer()->render( $tree );
+
+		// The wrapper div carries `wp-block-button` only — the visual
+		// classes live on the inner `<a>` so theme.json's
+		// `styles.elements.button` targeting `.wp-element-button`
+		// actually picks up the slug-based class set.
+		expect( $html )->toMatch( '/<a [^>]*has-accent-background-color/' );
+		// Negative assertion: the outer `<div class="wp-block-button">`
+		// must NOT carry the color class (CodeRabbit on PR #457). The
+		// contract is "color on the inner link, NOT the outer wrapper" —
+		// pin both sides so a future refactor that accidentally lifts
+		// color onto the wrapper fails this test.
+		expect( $html )->not->toMatch( '/<div [^>]*class="[^"]*has-accent-background-color/' );
+	} );
+
+	it( 'whitelists core/buttons layout.justifyContent against invalid values', function (): void {
+		$bad  = makeRenderer()->render( [ makeBlock( 'core/buttons', [
+			'layout' => [ 'justifyContent' => 'evil"><script>' ],
+		] ) ] );
+		$good = makeRenderer()->render( [ makeBlock( 'core/buttons', [
+			'layout' => [ 'justifyContent' => 'space-between' ],
+		] ) ] );
+
+		// Anything outside WP's known enum falls back to `left`.
+		expect( $bad )->toContain( 'is-content-justification-left' );
+		expect( $bad )->not->toContain( '<script>' );
+		expect( $bad )->not->toContain( 'is-content-justification-evil' );
+
+		// Legitimate values pass through.
+		expect( $good )->toContain( 'is-content-justification-space-between' );
+	} );
+} );

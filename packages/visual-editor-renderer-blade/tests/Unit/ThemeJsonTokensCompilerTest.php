@@ -98,3 +98,80 @@ it( 'ignores non-array entries gracefully', function () {
 
 	expect( $css )->toContain( '--wp--preset--color--ok: #123;' );
 } );
+
+describe( 'Keystone #50 — layout-size custom properties + alignment rules', function (): void {
+	it( 'emits content-size + wide-size custom properties from settings.layout', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [
+				'layout' => [
+					'contentSize' => '720px',
+					'wideSize'    => '1200px',
+				],
+			],
+		] );
+
+		expect( $css )->toContain( '--wp--style--global--content-size: 720px;' );
+		expect( $css )->toContain( '--wp--style--global--wide-size: 1200px;' );
+	} );
+
+	it( 'emits the alignwide layout rule referencing the wide-size custom property', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [ 'layout' => [ 'wideSize' => '1200px' ] ],
+		] );
+
+		expect( $css )->toContain( '.wp-block-group.is-layout-constrained.alignwide' );
+		expect( $css )->toContain( 'max-width: var(--wp--style--global--wide-size);' );
+		expect( $css )->toContain( 'margin-left: auto;' );
+		expect( $css )->toContain( 'margin-right: auto;' );
+	} );
+
+	it( 'emits the alignfull layout rule whenever any layout is configured', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [ 'layout' => [ 'contentSize' => '720px' ] ],
+		] );
+
+		expect( $css )->toContain( '.wp-block-group.is-layout-constrained.alignfull' );
+		expect( $css )->toContain( 'max-width: none;' );
+	} );
+
+	it( 'omits layout rules entirely when no layout is configured', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#000' ] ] ] ],
+		] );
+
+		expect( $css )->not->toContain( 'is-layout-constrained.alignwide' );
+		expect( $css )->not->toContain( 'is-layout-constrained.alignfull' );
+	} );
+
+	it( 'emits .wp-block-post-content child rules so root-level default alignment uses content-size', function (): void {
+		// Themes opt into WP-FSE-style page layout by adding
+		// `class="wp-block-post-content is-layout-constrained"` to
+		// their `<main>` wrapper. The renderer's CSS rules then
+		// give the children the canonical "default = content-size,
+		// wide = wide-size, full = no max" behavior. Without these
+		// rules a section with `align="none"` stretches full-width
+		// because nothing sizes its parent.
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [
+				'layout' => [ 'contentSize' => '720px', 'wideSize' => '1200px' ],
+			],
+		] );
+
+		expect( $css )
+			->toContain( '.wp-block-post-content.is-layout-constrained > :where(:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright))' )
+			->toContain( '.wp-block-post-content.is-layout-constrained > .alignwide' )
+			->toContain( '.wp-block-post-content.is-layout-constrained > .alignfull' );
+	} );
+
+	it( 'composes root presets with layout rules separated by a blank line', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [
+				'color'  => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#000' ] ] ],
+				'layout' => [ 'contentSize' => '720px', 'wideSize' => '1200px' ],
+			],
+		] );
+
+		// `:root { … }` block first, layout rules second.
+		expect( $css )->toMatch( '/:root \{[^}]*\}\n\n\.wp-block-group/' );
+	} );
+} );

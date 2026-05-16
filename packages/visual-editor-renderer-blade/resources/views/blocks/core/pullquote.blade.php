@@ -1,14 +1,10 @@
 @php
-	$classes = [ 'wp-block-pullquote' ];
-
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
-	}
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 
 	$value    = (string) ( $attributes['value'] ?? '' );
 	$citation = (string) ( $attributes['citation'] ?? '' );
 @endphp
-<figure class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<figure{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-pullquote' ] ) !!}>
 	<blockquote>
 		@if ( '' !== trim( $value ) )
 			{!! $value !!}

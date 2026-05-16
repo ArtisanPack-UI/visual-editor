@@ -1,4 +1,5 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$text   = (string) ( $attributes['text'] ?? '' );
@@ -19,32 +20,40 @@
 		$rel = implode( ' ', $relTokens );
 	}
 
-	$wrapperClasses = [ 'wp-block-button' ];
+	// `core/button` splits its attributes between the outer wrapper
+	// (block-level — align + className + style variations) and the
+	// inner link / span (visual — color, border, spacing, typography).
+	// This mirrors WP core's behavior: theme.json's
+	// `styles.elements.button` targets `.wp-element-button`, which is
+	// the inner element, so the visual block-supports have to land
+	// there to take effect.
+	$wrapperAttrs = [
+		'align'     => $attributes['align'] ?? null,
+		'className' => $attributes['className'] ?? null,
+		'anchor'    => $attributes['anchor'] ?? null,
+	];
 
-	if ( ! empty( $attributes['className'] ) ) {
-		$wrapperClasses[] = $attributes['className'];
-	}
+	$innerAttrs = $attributes;
+	unset( $innerAttrs['align'], $innerAttrs['className'], $innerAttrs['anchor'] );
 
-	$linkClasses = [ 'wp-block-button__link', 'wp-element-button' ];
-
-	$linkAttrs = '';
+	$linkAttrString = '';
 
 	if ( '' !== $target ) {
-		$linkAttrs .= sprintf( ' target="%s"', e( $target ) );
+		$linkAttrString .= sprintf( ' target="%s"', e( $target ) );
 	}
 
 	if ( '' !== $rel ) {
-		$linkAttrs .= sprintf( ' rel="%s"', e( $rel ) );
+		$linkAttrString .= sprintf( ' rel="%s"', e( $rel ) );
 	}
 
 	if ( '' !== $title ) {
-		$linkAttrs .= sprintf( ' title="%s"', e( $title ) );
+		$linkAttrString .= sprintf( ' title="%s"', e( $title ) );
 	}
 @endphp
-<div class="{{ implode( ' ', array_map( 'trim', $wrapperClasses ) ) }}">
+<div{!! BlockSupports::wrapperAttrs( $wrapperAttrs, [ 'wp-block-button' ] ) !!}>
 	@if ( '' !== $url )
-		<a class="{{ implode( ' ', $linkClasses ) }}" href="{{ $url }}"{!! $linkAttrs !!}>{!! $text !!}</a>
+		<a{!! BlockSupports::wrapperAttrs( $innerAttrs, [ 'wp-block-button__link', 'wp-element-button' ] ) !!} href="{{ $url }}"{!! $linkAttrString !!}>{!! $text !!}</a>
 	@else
-		<span class="{{ implode( ' ', $linkClasses ) }}">{!! $text !!}</span>
+		<span{!! BlockSupports::wrapperAttrs( $innerAttrs, [ 'wp-block-button__link', 'wp-element-button' ] ) !!}>{!! $text !!}</span>
 	@endif
 </div>

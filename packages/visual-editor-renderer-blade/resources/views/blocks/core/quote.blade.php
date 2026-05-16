@@ -1,13 +1,9 @@
 @php
-	$classes = [ 'wp-block-quote' ];
-
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
-	}
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 
 	$citation = (string) ( $attributes['citation'] ?? '' );
 @endphp
-<blockquote class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<blockquote{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-quote' ] ) !!}>
 	{!! $innerBlocksHtml !!}
 	@if ( '' !== trim( $citation ) )
 		<cite>{!! $citation !!}</cite>

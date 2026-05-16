@@ -1,10 +1,6 @@
 @php
-	$classes = [ 'wp-block-group', 'is-layout-flex', 'is-vertical' ];
-
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
-	}
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 @endphp
-<div class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-group', 'is-layout-flex', 'is-vertical' ] ) !!}>
 	{!! $innerBlocksHtml !!}
 </div>

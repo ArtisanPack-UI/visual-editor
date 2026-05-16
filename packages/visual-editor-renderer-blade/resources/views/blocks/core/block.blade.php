@@ -1,4 +1,6 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+
 	$ref = isset( $attributes['ref'] ) ? $attributes['ref'] : null;
 	$trimmedRef = is_string( $ref ) ? trim( $ref ) : $ref;
 	$refString = is_int( $ref ) || ( is_string( $trimmedRef ) && '' !== $trimmedRef ) ? (string) $trimmedRef : '';
@@ -7,15 +9,11 @@
 		? $attributes['_resolutionError']
 		: null;
 
-	$classes = [ 'wp-block-block' ];
-
-	if ( ! empty( $attributes['className'] ) && is_string( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
-	}
-
 	$inDev = function_exists( 'app' ) ? ! app()->environment( 'production' ) : false;
+
+	$dataRefAttr = '' !== $refString ? sprintf( ' data-ve-pattern-ref="%s"', e( $refString ) ) : '';
 @endphp
-<div class="{{ implode( ' ', $classes ) }}"@if( '' !== $refString ) data-ve-pattern-ref="{{ $refString }}"@endif>
+<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-block' ] ) !!}{!! $dataRefAttr !!}>
 @if( null !== $resolutionError )
 @if( $inDev )
 <!-- visual-editor: synced pattern{{ '' !== $refString ? ' "' . $refString . '"' : '' }} failed to resolve ({{ $resolutionError }}) -->

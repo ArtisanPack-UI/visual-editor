@@ -64,8 +64,12 @@ it( 'compiles theme.json palette + fontSizes into --wp--preset--* declarations',
 } );
 
 it( 'omits the tokens style block when theme.json carries no recognised tokens', function () {
+	// `settings.layout` is now a recognized category (Keystone #50 — it
+	// produces layout-size custom properties + alignwide/alignfull
+	// rules), so use an unrecognized section to exercise the
+	// "no tokens" code path.
 	$rendered = Blade::render( '<x-ve-blocks-styles :theme-json="$themeJson" />', [
-		'themeJson' => [ 'settings' => [ 'layout' => [ 'contentSize' => '720px' ] ] ],
+		'themeJson' => [ 'settings' => [ 'border' => [ 'color' => true ] ] ],
 	] );
 
 	expect( $rendered )->not->toContain( 'data-ve-theme-tokens' );

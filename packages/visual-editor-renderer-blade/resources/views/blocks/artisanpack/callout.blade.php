@@ -1,4 +1,6 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+
 	$validSeverities = [ 'info', 'success', 'warning', 'error' ];
 	$validIcons      = [ 'info', 'check', 'warning', 'error', 'lightbulb' ];
 
@@ -24,16 +26,12 @@
 		'lightbulb' => 'M9 21h6v-1H9Zm3-19a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2Zm1 12h-2v-2h2Z',
 	];
 
-	$classes = [
+	$baseClasses = [
 		'ap-callout',
 		'ap-callout--' . $severity,
 	];
-
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
-	}
 @endphp
-<div class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}" data-severity="{{ $severity }}">
+<div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!} data-severity="{{ $severity }}">
 	<span class="ap-callout__icon" aria-hidden="true">
 		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
 			<path d="{{ $iconPaths[ $icon ] }}"></path>

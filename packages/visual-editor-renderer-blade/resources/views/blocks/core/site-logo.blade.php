@@ -1,4 +1,5 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$width      = isset( $attributes['width'] ) ? (int) $attributes['width'] : 0;
@@ -9,14 +10,10 @@
 	$siteUrl = UrlSanitizer::safe( isset( $attributes['_resolvedSiteUrl'] ) && is_string( $attributes['_resolvedSiteUrl'] ) ? $attributes['_resolvedSiteUrl'] : '' );
 	$alt     = isset( $attributes['_resolvedSiteTitle'] ) && is_string( $attributes['_resolvedSiteTitle'] ) ? $attributes['_resolvedSiteTitle'] : '';
 
-	$classes = [ 'wp-block-site-logo' ];
+	$baseClasses = [ 'wp-block-site-logo' ];
 
 	if ( $width <= 0 ) {
-		$classes[] = 'is-default-size';
-	}
-
-	if ( ! empty( $attributes['className'] ) && is_string( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
+		$baseClasses[] = 'is-default-size';
 	}
 
 	$imgAttrs = sprintf( ' src="%s" alt="%s" class="custom-logo"', e( $logoUrl ), e( $alt ) );
@@ -25,7 +22,7 @@
 		$imgAttrs .= sprintf( ' width="%d"', $width );
 	}
 @endphp
-<div class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	@if ( '' !== $logoUrl )
 		@if ( $isLink && '' !== $siteUrl )
 			<a href="{{ $siteUrl }}" target="{{ $linkTarget }}" rel="{{ '_blank' === $linkTarget ? 'noopener noreferrer' : 'home' }}" class="custom-logo-link"><img{!! $imgAttrs !!}/></a>

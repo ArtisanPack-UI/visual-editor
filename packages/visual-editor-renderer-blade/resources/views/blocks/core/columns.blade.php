@@ -1,18 +1,16 @@
 @php
-	$classes = [ 'wp-block-columns' ];
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+
+	$baseClasses = [ 'wp-block-columns' ];
 
 	if ( ! empty( $attributes['isStackedOnMobile'] ) || ! isset( $attributes['isStackedOnMobile'] ) ) {
-		$classes[] = 'is-stacked-on-mobile';
+		$baseClasses[] = 'is-stacked-on-mobile';
 	}
 
 	if ( ! empty( $attributes['verticalAlignment'] ) ) {
-		$classes[] = 'are-vertically-aligned-' . $attributes['verticalAlignment'];
-	}
-
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
+		$baseClasses[] = 'are-vertically-aligned-' . $attributes['verticalAlignment'];
 	}
 @endphp
-<div class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	{!! $innerBlocksHtml !!}
 </div>

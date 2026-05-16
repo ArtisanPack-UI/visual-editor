@@ -1,4 +1,5 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$isLink     = ! empty( $attributes['isLink'] );
@@ -14,14 +15,10 @@
 	$height    = isset( $attributes['_resolvedImageHeight'] ) ? (int) $attributes['_resolvedImageHeight'] : 0;
 	$permalink = UrlSanitizer::safe( isset( $attributes['_resolvedPermalink'] ) && is_string( $attributes['_resolvedPermalink'] ) ? $attributes['_resolvedPermalink'] : '' );
 
-	$classes = [ 'wp-block-post-featured-image' ];
+	$baseClasses = [ 'wp-block-post-featured-image' ];
 
 	if ( '' !== $sizeSlug ) {
-		$classes[] = 'size-' . $sizeSlug;
-	}
-
-	if ( ! empty( $attributes['className'] ) && is_string( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
+		$baseClasses[] = 'size-' . $sizeSlug;
 	}
 
 	$styleParts = [];
@@ -34,7 +31,7 @@
 		$styleParts[] = 'object-fit:' . $scale;
 	}
 
-	$style = '' !== implode( '', $styleParts ) ? sprintf( ' style="%s"', e( implode( ';', $styleParts ) ) ) : '';
+	$imgStyle = '' !== implode( '', $styleParts ) ? sprintf( ' style="%s"', e( implode( ';', $styleParts ) ) ) : '';
 
 	$imgAttrs = sprintf( ' src="%s" alt="%s"', e( $imageUrl ), e( $alt ) );
 
@@ -46,9 +43,9 @@
 		$imgAttrs .= sprintf( ' height="%d"', $height );
 	}
 
-	$imgAttrs .= $style;
+	$imgAttrs .= $imgStyle;
 @endphp
-<figure class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	@if ( '' !== $imageUrl )
 		@if ( $isLink && '' !== $permalink )
 			@php

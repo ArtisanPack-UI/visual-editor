@@ -1,21 +1,19 @@
 @php
-	$classes = [ 'wp-block-gallery', 'has-nested-images' ];
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+
+	$baseClasses = [ 'wp-block-gallery', 'has-nested-images' ];
 
 	if ( ! empty( $attributes['columns'] ) ) {
-		$classes[] = 'columns-' . (int) $attributes['columns'];
+		$baseClasses[] = 'columns-' . (int) $attributes['columns'];
 	}
 
 	if ( ! empty( $attributes['imageCrop'] ) ) {
-		$classes[] = 'is-cropped';
-	}
-
-	if ( ! empty( $attributes['className'] ) ) {
-		$classes[] = $attributes['className'];
+		$baseClasses[] = 'is-cropped';
 	}
 
 	$caption = (string) ( $attributes['caption'] ?? '' );
 @endphp
-<figure class="{{ implode( ' ', array_map( 'trim', $classes ) ) }}">
+<figure{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	{!! $innerBlocksHtml !!}
 	@if ( '' !== trim( $caption ) )
 		<figcaption class="blocks-gallery-caption">{!! $caption !!}</figcaption>
