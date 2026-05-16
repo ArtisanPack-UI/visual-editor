@@ -10,6 +10,10 @@ const UPDATE_MOCK = vi.fn();
 vi.mock('@wordpress/blocks', () => ({
     parse: vi.fn(() => []),
     serialize: vi.fn(() => '<!-- wp:paragraph -->'),
+    // `applySchemaDefaults` (Keystone #49) calls this to fill missing
+    // default-valued attributes. Stub returns `undefined` so the hook
+    // leaves attributes as-is when the registry has no entry.
+    getBlockType: vi.fn(() => undefined),
 }));
 
 vi.mock('../api-client', async () => {

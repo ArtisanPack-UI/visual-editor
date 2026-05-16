@@ -12,11 +12,13 @@
  * calls — without the canvas having to render the button itself.
  */
 
-import { parse, serialize, type BlockInstance } from '@wordpress/blocks';
+import { serialize, type BlockInstance } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 import { TEXT_DOMAIN } from '../vendor/i18n';
+
+import { hydrateBlocks } from './hydrate-blocks';
 
 import {
     fetchEntity,
@@ -90,25 +92,6 @@ function isEntityContent(value: unknown): value is LoadedContent {
     );
 }
 
-/**
- * Hydrate a raw-serialized block tree into BlockInstances Gutenberg can
- * render. Prefers `content.raw` (the canonical Gutenberg HTML form —
- * guarantees fresh `clientId`s) and only falls back to the parsed
- * `blocks` array when raw is empty. This matches what the legacy
- * post-editor's `use-persistence` does for its response shape.
- */
-function hydrateBlocks(content: LoadedContent): BlockInstance[] {
-    const raw = typeof content.raw === 'string' ? content.raw.trim() : '';
-
-    if (raw !== '') {
-        return parse(raw);
-    }
-
-    // No raw serialization — trust the parsed array. `parse()` cannot run
-    // against an already-parsed tree, so cast through `BlockInstance` and
-    // let Gutenberg regenerate missing metadata when it renders.
-    return content.blocks as BlockInstance[];
-}
 
 export function useEntityEditor<K extends EntityKind>(
     options: UseEntityEditorOptions<K>
