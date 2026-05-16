@@ -12,18 +12,8 @@ use ArtisanPackUI\VisualEditor\Services\Adapters\CmsFramework\CmsFrameworkQueryR
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\DenyByDefaultGate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
-use ArtisanPackUI\VisualEditor\Models\VisualEditorGlobalStyles;
-use ArtisanPackUI\VisualEditor\Models\VisualEditorNavigation;
-use ArtisanPackUI\VisualEditor\Models\VisualEditorPattern;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
-use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplate;
-use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplatePart;
-use ArtisanPackUI\VisualEditor\Policies\VisualEditorGlobalStylesPolicy;
-use ArtisanPackUI\VisualEditor\Policies\VisualEditorNavigationPolicy;
-use ArtisanPackUI\VisualEditor\Policies\VisualEditorPatternPolicy;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
-use ArtisanPackUI\VisualEditor\Policies\VisualEditorTemplatePolicy;
-use ArtisanPackUI\VisualEditor\Policies\VisualEditorTemplatePartPolicy;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\PostResolver;
@@ -35,11 +25,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\MenuResolver as SiteEditorM
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\PatternResolver as SiteEditorPatternResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver as SiteEditorTemplatePartResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplateResolver as SiteEditorTemplateResolver;
-use ArtisanPackUI\VisualEditor\Services\GlobalStylesCacheInvalidator;
-use ArtisanPackUI\VisualEditor\Services\GlobalStylesCompiler;
-use ArtisanPackUI\VisualEditor\Services\GlobalStylesCssProvider;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
-use ArtisanPackUI\VisualEditor\Services\MenuLocationResolver;
 use ArtisanPackUI\VisualEditor\View\Components\VisualEditorComponent;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
@@ -129,22 +115,6 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new GutenbergAttachmentAdapter();
 		} );
 
-		$this->app->singleton( MenuLocationResolver::class, function ( $app ) {
-			return new MenuLocationResolver( $app['config'] );
-		} );
-
-		$this->app->singleton( GlobalStylesCompiler::class, function () {
-			return new GlobalStylesCompiler();
-		} );
-
-		$this->app->singleton( GlobalStylesCssProvider::class, function ( $app ) {
-			return new GlobalStylesCssProvider(
-				$app->make( GlobalStylesCompiler::class ),
-				$app->make( CacheRepository::class ),
-				$app->make( ConfigRepository::class ),
-			);
-		} );
-
 		// Scoped (not singleton) so a long-lived worker (Octane,
 		// RoadRunner, queue) gets a fresh tracker per request scope.
 		// A singleton would leak the "already emitted" flag across
@@ -154,11 +124,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new GlobalStylesEmissionTracker();
 		} );
 
-		$this->app->singleton( GlobalStylesCacheInvalidator::class, function ( $app ) {
-			return new GlobalStylesCacheInvalidator(
-				$app->make( GlobalStylesCssProvider::class ),
-			);
-		} );
+		// #434: `GlobalStylesCssProvider` + `GlobalStylesCacheInvalidator`
+		// were deleted with the rest of the plan-11 Phase D legacy.
+		// The renderer-blade package's `<x-ve-blocks>` /
+		// `<x-ve-template>` now delegate global-styles CSS emission to
+		// cms-framework's `GlobalStylesEmitter` via a thin resolver in
+		// the renderer-blade package; cache busting is event-driven
+		// inside cms-framework itself.
 
 		// Legacy alias for backward compatibility
 		$this->app->alias( VisualEditor::class, 'visualEditor' );
@@ -236,16 +208,6 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerBladeComponents();
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
-		Gate::policy( VisualEditorTemplate::class, VisualEditorTemplatePolicy::class );
-		Gate::policy( VisualEditorTemplatePart::class, VisualEditorTemplatePartPolicy::class );
-		Gate::policy( VisualEditorGlobalStyles::class, VisualEditorGlobalStylesPolicy::class );
-		Gate::policy( VisualEditorNavigation::class, VisualEditorNavigationPolicy::class );
-		Gate::policy( VisualEditorPattern::class, VisualEditorPatternPolicy::class );
-
-		// Hook the global-styles cache to model save/delete events so a
-		// PUT to `/visual-editor/api/global-styles/{id}` invalidates the
-		// CSS the front-end renderers serve on the next request.
-		$this->app->make( GlobalStylesCacheInvalidator::class )->register();
 
 		// 3. Register core blocks from their block.json manifests.
 		$this->registerCoreBlocks();

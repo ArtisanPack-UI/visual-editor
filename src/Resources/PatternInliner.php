@@ -36,8 +36,6 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Resources;
 
-use ArtisanPackUI\VisualEditor\Models\VisualEditorPattern;
-
 class PatternInliner
 {
 	/**
@@ -154,15 +152,15 @@ class PatternInliner
 			return $this->markUnresolved( $block, self::ERROR_CYCLE );
 		}
 
-		$pattern = $this->findPattern( $ref );
+		$blocks = $this->findPatternBlocks( $ref );
 
-		if ( null === $pattern ) {
+		if ( null === $blocks ) {
 			return $this->markUnresolved( $block, self::ERROR_NOT_FOUND );
 		}
 
 		$childStack       = $stack;
 		$childStack[]     = $key;
-		$resolvedChildren = $this->walk( $pattern->getBlocks(), $childStack, $depth + 1 );
+		$resolvedChildren = $this->walk( $blocks, $childStack, $depth + 1 );
 
 		return [
 			'clientId'    => $block['clientId'] ?? null,
@@ -199,13 +197,47 @@ class PatternInliner
 	}
 
 	/**
-	 * Looks the pattern up by id.
+	 * cms-framework's BlockPattern model. Direct `find()` lookup by id
+	 * matches the visual-editor's `core/block` ref-as-id contract.
+	 */
+	protected const PATTERN_MODEL = '\\ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\BlockPattern';
+
+	/**
+	 * Looks the pattern up via cms-framework's BlockPattern model and
+	 * returns its block tree. Returns null when cms-framework isn't
+	 * installed, no row matches the ref, or the content envelope is
+	 * malformed — the inliner's `_resolutionError: 'not-found'` marker
+	 * is the renderer's signal in any of those cases.
 	 *
 	 * @since 1.0.0
+	 *
+	 * @return array<int, array<string, mixed>>|null
 	 */
-	protected function findPattern( int $ref ): ?VisualEditorPattern
+	protected function findPatternBlocks( int $ref ): ?array
 	{
-		return VisualEditorPattern::query()->find( $ref );
+		if ( ! class_exists( self::PATTERN_MODEL ) ) {
+			return null;
+		}
+
+		$model   = self::PATTERN_MODEL;
+		$pattern = $model::query()->find( $ref );
+
+		if ( null === $pattern ) {
+			return null;
+		}
+
+		// cms-framework's `BlockPattern` stores `{ raw, blocks }` per the
+		// plan-14 envelope. Read `blocks` defensively — a malformed row
+		// surfaces as a resolution failure rather than a 500.
+		$content = $pattern->content ?? null;
+
+		if ( ! is_array( $content ) ) {
+			return null;
+		}
+
+		$blocks = $content['blocks'] ?? null;
+
+		return is_array( $blocks ) ? $blocks : null;
 	}
 
 	/**

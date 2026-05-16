@@ -36,11 +36,16 @@ it( 'accepts a JSON string tree', function () {
 		->toBe( '<p class="wp-block-paragraph">JSON string</p>' );
 } );
 
-it( 'renders only the global-styles block when the tree is null', function () {
+it( 'renders an empty output when the tree is null and cms-framework is not installed', function () {
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => null ] );
 
-	expect( $rendered )->toContain( 'data-ve-global-styles' );
-	expect( trim( $this->stripGlobalStyles( $rendered ) ) )->toBe( '' );
+	// #434: the legacy `GlobalStylesCssProvider` used to emit bundled
+	// defaults when no DB record existed, so a null tree still produced
+	// a `<style>` block. Without cms-framework's emitter in this test
+	// environment, the resolver returns an empty string and no `<style>`
+	// is rendered.
+	expect( $rendered )->not->toContain( 'data-ve-global-styles' );
+	expect( trim( $rendered ) )->toBe( '' );
 } );
 
 it( 'publishes block views under the visual-editor-blade-views tag', function () {

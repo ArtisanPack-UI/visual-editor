@@ -27,9 +27,9 @@ namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
-use ArtisanPackUI\VisualEditor\Services\GlobalStylesCssProvider;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
 
@@ -53,7 +53,7 @@ class BlocksComponent extends Component
 		protected TemplatePartInliner $inliner,
 		protected PatternInliner $patternInliner,
 		protected QueryInliner $queryInliner,
-		protected GlobalStylesCssProvider $globalStyles,
+		protected GlobalStylesEmissionResolver $globalStyles,
 		protected GlobalStylesEmissionTracker $emissionTracker,
 		mixed $tree = null,
 		?string $defaultTheme = null,
@@ -107,7 +107,9 @@ class BlocksComponent extends Component
 
 		$this->emissionTracker->markEmitted();
 
-		return $this->globalStyles->css( $this->defaultTheme );
+		$css = $this->globalStyles->emit();
+
+		return '' === $css ? null : $css;
 	}
 
 	/**

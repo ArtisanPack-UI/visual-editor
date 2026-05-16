@@ -28,8 +28,6 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Resources;
 
-use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplatePart;
-
 class TemplatePartInliner
 {
 	/**
@@ -152,15 +150,15 @@ class TemplatePartInliner
 			return $this->markUnresolved( $block, self::ERROR_CYCLE, $slug, $theme );
 		}
 
-		$part = $this->findPart( $slug, $theme );
+		$blocks = $this->findPartBlocks( $slug );
 
-		if ( null === $part ) {
+		if ( null === $blocks ) {
 			return $this->markUnresolved( $block, self::ERROR_NOT_FOUND, $slug, $theme );
 		}
 
 		$childStack       = $stack;
 		$childStack[]     = $key;
-		$resolvedChildren = $this->walk( $part->getBlocks(), '' !== $theme ? $theme : $defaultTheme, $childStack, $depth + 1 );
+		$resolvedChildren = $this->walk( $blocks, '' !== $theme ? $theme : $defaultTheme, $childStack, $depth + 1 );
 
 		return [
 			'clientId'    => $block['clientId'] ?? null,
@@ -174,20 +172,43 @@ class TemplatePartInliner
 	}
 
 	/**
-	 * Looks the part up by slug, optionally constrained to a theme.
+	 * cms-framework's TemplatePartResolver class. Lookups go through it
+	 * when the package is installed; without cms-framework no part
+	 * resolves (Phase H install gate is the user-facing surface).
+	 */
+	protected const RESOLVER_CLASS = '\\ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplatePartResolver';
+
+	/**
+	 * Looks the part up via cms-framework's resolver. Returns the part's
+	 * block tree or null when the resolver returns no entity, the
+	 * resolver isn't installed, or anything goes wrong reading the
+	 * resolved entity's blocks.
 	 *
-	 * Delegates to {@see VisualEditorTemplatePart::scopeForSlug()} so the
-	 * empty-string-vs-null theme handling stays in one place — passing
-	 * an empty string here is treated as "no theme filter" the same way
-	 * the scope does.
+	 * The resolver scopes by the host's active theme; the inliner used
+	 * to constrain by an explicit theme attribute, but cms-framework's
+	 * design treats theme scope as implicit. Block-markup `theme`
+	 * attributes are preserved on the returned block for documentation,
+	 * but they no longer drive the lookup.
 	 *
 	 * @since 1.0.0
+	 *
+	 * @return array<int, array<string, mixed>>|null
 	 */
-	protected function findPart( string $slug, string $theme ): ?VisualEditorTemplatePart
+	protected function findPartBlocks( string $slug ): ?array
 	{
-		return VisualEditorTemplatePart::query()
-			->forSlug( $slug, '' === $theme ? null : $theme )
-			->first();
+		if ( ! class_exists( self::RESOLVER_CLASS ) ) {
+			return null;
+		}
+
+		$resolved = app( self::RESOLVER_CLASS )->resolve( $slug );
+
+		if ( null === $resolved ) {
+			return null;
+		}
+
+		$blocks = $resolved->blocks ?? null;
+
+		return is_array( $blocks ) ? $blocks : null;
 	}
 
 	/**

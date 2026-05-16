@@ -3,15 +3,26 @@
 /**
  * Menu locations controller.
  *
- * Read-only surface for the configured menu-location slugs, paired with
- * the navigation record currently assigned to each. The site editor's
- * Navigation section calls `index` once when the section mounts to
- * render its locations panel; subsequent assignment writes go through
- * the regular `PUT /navigation/{id}` surface (the `location` field on
- * the navigation record is the source of truth).
+ * Read-only surface for the configured menu-location slugs paired with
+ * the {@see \ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\Menu}
+ * currently assigned to each. Backs the site editor's Navigation section
+ * locations panel.
  *
- * Locations themselves are config-only for V1 per plan §8 — there is
- * no create / update / destroy here on purpose. 1.1+ may revisit.
+ * Authoritative source for both halves of the response:
+ *
+ *   - Location slugs + labels come from the active theme's `theme.json`
+ *     `menus.locations` block (via cms-framework's `ThemeManager`).
+ *   - Assignments come from cms-framework's `menu_location_assignments`
+ *     table (`MenuLocationAssignment`), keyed on `(theme, location)`.
+ *
+ * Phase H deliberately drops the visual-editor's legacy config-driven
+ * fallback chain (the old `MenuLocationResolver`'s "if nothing's
+ * assigned, fall back to the first published nav" behavior) — see
+ * `docs/plans/14` §4.5.1. cms-framework's model is "assigned or
+ * unassigned, full stop"; consuming UI renders the empty state for the
+ * unassigned case. `is_fallback` is therefore always `false` in the
+ * response shape, kept for backwards compatibility with the existing
+ * JS contract.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -25,23 +36,16 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers;
 
-use ArtisanPackUI\VisualEditor\Models\VisualEditorNavigation;
-use ArtisanPackUI\VisualEditor\Services\MenuLocationResolver;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
-use Illuminate\Support\Facades\Gate;
 
 class MenuLocationsController extends Controller
 {
-	public function __construct( protected MenuLocationResolver $resolver ) {}
-
 	/**
-	 * Returns the configured menu locations, the menu currently
-	 * resolved for each, and whether that menu was resolved through a
-	 * direct DB assignment (the editor's UI-driven path) or via the
-	 * config-driven fallback chain.
+	 * Returns the configured menu locations + the menu currently
+	 * assigned to each.
 	 *
-	 * Response shape:
+	 * Response shape (preserved from V1 surface):
 	 *
 	 *   ```
 	 *   {
@@ -50,52 +54,79 @@ class MenuLocationsController extends Controller
 	 *         "slug": "primary",
 	 *         "label": "Primary Menu",
 	 *         "menu": { "id": 12, "title": "…", "slug": "main" } | null,
-	 *         "is_fallback": true | false
+	 *         "is_fallback": false
 	 *       }
 	 *     ]
 	 *   }
 	 *   ```
 	 *
-	 * `is_fallback: true` tells the panel to render the "no direct
-	 * assignment — falling back to X" hint instead of treating the
-	 * resolved menu as authoritative.
+	 * Returns an empty `data` array when cms-framework isn't installed,
+	 * since this surface is a Phase H feature gated by the install
+	 * check at the SPA mount layer.
 	 *
 	 * @since 1.0.0
 	 */
 	public function index(): JsonResponse
 	{
-		Gate::authorize( 'viewAny', VisualEditorNavigation::class );
+		if ( ! $this->cmsFrameworkAvailable() ) {
+			return response()->json( [ 'data' => [] ] );
+		}
 
-		$locations = $this->resolver->locations();
-		$rows      = [];
+		$themeManagerClass    = '\\ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
+		$assignmentClass      = '\\ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\MenuLocationAssignment';
+		$themeManager         = app( $themeManagerClass );
+		$activeTheme          = $themeManager->getActiveTheme();
+		$activeSlug           = is_array( $activeTheme ) && ! empty( $activeTheme['slug'] ) ? (string) $activeTheme['slug'] : null;
+		$declaredLocations    = is_array( $activeTheme['menus']['locations'] ?? null ) ? $activeTheme['menus']['locations'] : [];
 
-		foreach ( $locations as $entry ) {
-			$slug = $entry['slug'];
+		$assignmentsByLocation = [];
 
-			// Direct assignment — a published nav whose `location`
-			// column matches the slug. The same query the resolver
-			// runs first, but we also need to know whether it
-			// matched so the UI can flag fallback assignments.
-			$assigned = VisualEditorNavigation::query()
-				->forLocation( $slug )
-				->first();
+		if ( null !== $activeSlug ) {
+			$rows = $assignmentClass::query()
+				->where( 'theme', $activeSlug )
+				->with( 'menu' )
+				->get();
 
-			$resolved = null !== $assigned && ! $assigned->isEmpty()
-				? $assigned
-				: $this->resolver->forLocation( $slug );
+			foreach ( $rows as $row ) {
+				if ( null === $row->menu ) {
+					continue;
+				}
 
-			$rows[] = [
+				$assignmentsByLocation[ (string) $row->location ] = $row->menu;
+			}
+		}
+
+		$data = [];
+
+		foreach ( $declaredLocations as $slug => $label ) {
+			$slug  = (string) $slug;
+			$menu  = $assignmentsByLocation[ $slug ] ?? null;
+			$data[] = [
 				'slug'        => $slug,
-				'label'       => $entry['label'],
-				'menu'        => null === $resolved ? null : [
-					'id'    => $resolved->getKey(),
-					'slug'  => (string) $resolved->slug,
-					'title' => (string) ( $resolved->title ?? '' ),
+				'label'       => (string) $label,
+				'menu'        => null === $menu ? null : [
+					'id'    => (int) $menu->getKey(),
+					'slug'  => (string) ( $menu->slug ?? '' ),
+					'title' => (string) ( $menu->name ?? $menu->title ?? '' ),
 				],
-				'is_fallback' => null !== $resolved && ( null === $assigned || $assigned->isEmpty() ),
+				'is_fallback' => false,
 			];
 		}
 
-		return response()->json( [ 'data' => $rows ] );
+		return response()->json( [ 'data' => $data ] );
+	}
+
+	/**
+	 * Whether cms-framework's site-editor module is loaded in this app.
+	 * The endpoint is a no-op without it (Phase H install gate would
+	 * have already surfaced "cms-framework required" at the SPA layer,
+	 * but the controller stays defensive for direct-API callers).
+	 *
+	 * @since 1.0.0
+	 */
+	protected function cmsFrameworkAvailable(): bool
+	{
+		return class_exists( '\\ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager' )
+			&& class_exists( '\\ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\MenuLocationAssignment' );
 	}
 }
