@@ -119,6 +119,45 @@ describe( 'GET /visual-editor/api/menus/{id}', function (): void {
 	it( 'returns 404 when no menu matches the id', function (): void {
 		$this->getJson( '/visual-editor/api/menus/9999' )->assertNotFound();
 	} );
+
+	it( 'populates content.raw with the serialized block-comment tree when items exist (Keystone #48)', function (): void {
+		// Gutenberg's `core/navigation` block reads `content.raw` (not
+		// `content.blocks`) when deciding which inner blocks to render
+		// inside its picker. Pin the serialized form so a future
+		// refactor doesn't accidentally regress the picker back to
+		// empty-list state.
+		$menu = Menu::create( [
+			'theme' => 'digital-shopfront',
+			'slug'  => 'primary',
+			'name'  => 'Primary',
+		] );
+
+		$menu->items()->create( [
+			'parent_id' => null,
+			'position'  => 0,
+			'type'      => 'link',
+			'label'     => 'Home',
+			'url'       => '/',
+		] );
+
+		$menu->items()->create( [
+			'parent_id' => null,
+			'position'  => 1,
+			'type'      => 'link',
+			'label'     => 'Contact',
+			'url'       => '/contact',
+		] );
+
+		$response = $this->getJson( "/visual-editor/api/menus/{$menu->id}" )->assertOk();
+
+		$raw = $response->json( 'content.raw' );
+
+		expect( $raw )->toContain( 'wp:navigation-link' );
+		expect( $raw )->toContain( '"label":"Home"' );
+		expect( $raw )->toContain( '"label":"Contact"' );
+		// Items render in `(position, id)` order — same as the front-end.
+		expect( strpos( $raw, '"Home"' ) )->toBeLessThan( strpos( $raw, '"Contact"' ) );
+	} );
 } );
 
 describe( 'POST /visual-editor/api/menus', function (): void {
@@ -413,5 +452,67 @@ describe( 'navigation tree round-trip — content.blocks ↔ menu_items (#440)',
 		$this->putJson( "/visual-editor/api/menus/{$menu->id}", [ 'name' => 'Renamed' ] )->assertOk();
 
 		expect( MenuItem::query()->where( 'menu_id', $menu->id )->count() )->toBe( 1 );
+	} );
+
+	it( 'accepts content as a serialized block-comment string (Gutenberg default save path — Keystone #48)', function (): void {
+		// Gutenberg's `wp_navigation` save flow sends `content` as a
+		// string of WP block-comment markup, not the `{ raw, blocks }`
+		// object shape #440 uses. The controller has to parse it back
+		// into a tree before routing through replaceMenuItems —
+		// otherwise the editor's "Save" never persists nav-block edits.
+		$menu = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'primary', 'name' => 'Primary' ] );
+
+		$serialized = "<!-- wp:navigation-link {\"label\":\"Home\",\"url\":\"/\"} /-->\n"
+			. "<!-- wp:navigation-submenu {\"label\":\"About\"} -->\n"
+			. "<!-- wp:navigation-link {\"label\":\"Team\",\"url\":\"/team\"} /-->\n"
+			. '<!-- /wp:navigation-submenu -->';
+
+		$this->putJson( "/visual-editor/api/menus/{$menu->id}", [
+			'content' => $serialized,
+		] )->assertOk();
+
+		$items = MenuItem::query()->where( 'menu_id', $menu->id )->orderBy( 'position' )->get();
+
+		expect( $items )->toHaveCount( 3 );
+
+		$home = $items->firstWhere( 'label', 'Home' );
+		expect( $home->parent_id )->toBeNull();
+		expect( $home->url )->toBe( '/' );
+		expect( $home->position )->toBe( 0 );
+
+		$about = $items->firstWhere( 'label', 'About' );
+		expect( $about->parent_id )->toBeNull();
+		expect( $about->position )->toBe( 1 );
+
+		$team = $items->firstWhere( 'label', 'Team' );
+		expect( $team->parent_id )->toBe( $about->id );
+		expect( $team->url )->toBe( '/team' );
+	} );
+
+	it( 'still accepts the legacy content.blocks array shape (#440 path)', function (): void {
+		// Backward compat: the array-shape save path keeps working for
+		// clients that send `{ raw, blocks }` directly (our own tests,
+		// future first-party flows, etc.).
+		$menu = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'primary', 'name' => 'Primary' ] );
+
+		$this->putJson( "/visual-editor/api/menus/{$menu->id}", [
+			'content' => [
+				'raw'    => '',
+				'blocks' => [ navLink( [ 'label' => 'Home', 'url' => '/' ] ) ],
+			],
+		] )->assertOk();
+
+		expect( MenuItem::query()->where( 'menu_id', $menu->id )->where( 'label', 'Home' )->exists() )->toBeTrue();
+	} );
+
+	it( 'replaces items wholesale when an empty string content is sent', function (): void {
+		// An empty serialized string represents "no items" — same as
+		// `content.blocks: []`. Should wipe the table for the menu.
+		$menu = Menu::create( [ 'theme' => 'digital-shopfront', 'slug' => 'primary', 'name' => 'Primary' ] );
+		$menu->items()->create( [ 'parent_id' => null, 'position' => 0, 'type' => 'link', 'label' => 'Old', 'url' => '/' ] );
+
+		$this->putJson( "/visual-editor/api/menus/{$menu->id}", [ 'content' => '' ] )->assertOk();
+
+		expect( MenuItem::query()->where( 'menu_id', $menu->id )->count() )->toBe( 0 );
 	} );
 } );

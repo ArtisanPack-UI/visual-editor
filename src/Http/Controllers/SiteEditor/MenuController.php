@@ -163,19 +163,31 @@ class MenuController extends Controller
 		}
 
 		$validated = $request->validated();
+		$blocks    = array_key_exists( 'content', $validated )
+			? $this->resolveContentBlocks( $validated['content'] )
+			: null;
 
 		try {
-			DB::transaction( function () use ( $menu, $validated ): void {
+			DB::transaction( function () use ( $menu, $validated, $blocks ): void {
 				$menu->update( $this->modelAttributesFromRequest( $validated ) );
 
-				// #440. When the editor sends a navigation tree, replace
-				// the menu's items wholesale. Gated on `content.blocks`
-				// being present so a partial update (rename, theme
-				// change, …) leaves items untouched. Inside the same
-				// transaction as the attribute update so a failed item
-				// rebuild rolls the whole save back.
-				if ( is_array( $validated['content']['blocks'] ?? null ) ) {
-					$this->replaceMenuItems( $menu, $validated['content']['blocks'] );
+				// When the editor sends a navigation tree, replace the
+				// menu's items wholesale. Gated on `$blocks !== null`
+				// so a partial update (rename, theme change, …) leaves
+				// items untouched. Inside the same transaction as the
+				// attribute update so a failed item rebuild rolls the
+				// whole save back.
+				//
+				// `$blocks` is resolved up front from one of three
+				// shapes (Keystone #48):
+				//   - `content` as a string → parsed via rawToBlocks
+				//   - `content.blocks` as array → used directly (#440)
+				//   - `content.raw` as string → parsed via rawToBlocks
+				// `null` here means "key was omitted from the
+				// request" — leave items alone. An authored
+				// `content: null` / `""` resolves to `[]` (wipe).
+				if ( is_array( $blocks ) ) {
+					$this->replaceMenuItems( $menu, $blocks );
 				}
 			} );
 		} catch ( QueryException $e ) {
@@ -190,6 +202,57 @@ class MenuController extends Controller
 		}
 
 		return response()->json( $this->menuToShape( $menu->fresh() ) );
+	}
+
+	/**
+	 * Normalize an authored `content` value into a `core/navigation-*`
+	 * block tree (Keystone #48). Always returns an array; the caller
+	 * gates on whether the `content` key was *present* in the request
+	 * (so a partial update that omits `content` entirely leaves the
+	 * existing items in place — distinct from an authored
+	 * `content: null` / `content: ""` which wipes them).
+	 *
+	 * Three accepted input shapes:
+	 *   - `null` or empty string → `[]` (wipe items)
+	 *   - String of WP block-comment markup → parsed via
+	 *     {@see MenuItemBlockBridge::rawToBlocks}
+	 *   - Array `{ raw?, blocks? }` → `blocks` wins when both are
+	 *     set (lossless); `raw` is parsed otherwise
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function resolveContentBlocks( mixed $content ): array
+	{
+		if ( null === $content ) {
+			// `content: null` (from `ConvertEmptyStringsToNull` on
+			// `content: ""`) means "no items" — wipe them.
+			return [];
+		}
+
+		if ( is_string( $content ) ) {
+			$trimmed = trim( $content );
+
+			return '' === $trimmed ? [] : ( new MenuItemBlockBridge() )->rawToBlocks( $trimmed );
+		}
+
+		if ( is_array( $content ) ) {
+			if ( is_array( $content['blocks'] ?? null ) ) {
+				return $content['blocks'];
+			}
+
+			if ( is_string( $content['raw'] ?? null ) ) {
+				$trimmed = trim( $content['raw'] );
+
+				return '' === $trimmed ? [] : ( new MenuItemBlockBridge() )->rawToBlocks( $trimmed );
+			}
+
+			// Empty `content: {}` object → no items.
+			return [];
+		}
+
+		return [];
 	}
 
 	/**
@@ -328,19 +391,25 @@ class MenuController extends Controller
 				'rendered' => $name,
 				'raw'      => $name,
 			],
-			// `content` mirrors the WP REST `wp_navigation` shape. #440:
-			// the menu's `menu_items` rows are projected into a
-			// `core/navigation-link` / `core/navigation-submenu` block
-			// tree so the editor's NavigationBrowser reads the real
-			// tree (it was an empty envelope from #438 until this
-			// bridge landed). `raw` stays empty — the editor works off
-			// `blocks`, and the backend re-derives the tree from
-			// `menu_items` on every read. Items remain individually
-			// addressable through the separate /menu-items endpoint.
-			'content'        => [
-				'raw'    => '',
-				'blocks' => ( new MenuItemBlockBridge() )->itemsToBlocks( $menu->items ),
-			],
+			// `content` mirrors the WP REST `wp_navigation` shape. #440
+			// projects `menu_items` rows into a `core/navigation-link` /
+			// `core/navigation-submenu` block tree under `content.blocks`.
+			// Keystone #48: ship `content.raw` as the serialized block-
+			// comment form too — Gutenberg's `core/navigation` block
+			// reads `content.raw` (not `content.blocks`) when deciding
+			// which inner blocks to render, so without this the picker
+			// shows an empty list even when the menu has items. The
+			// backend re-derives both from `menu_items` on every read;
+			// items remain individually addressable via /menu-items.
+			'content'        => ( function () use ( $menu ): array {
+				$bridge = new MenuItemBlockBridge();
+				$blocks = $bridge->itemsToBlocks( $menu->items );
+
+				return [
+					'raw'    => $bridge->blocksToRaw( $blocks ),
+					'blocks' => $blocks,
+				];
+			} )(),
 			'auto_add_pages' => (bool) ( $menu->auto_add_pages ?? false ),
 		];
 	}

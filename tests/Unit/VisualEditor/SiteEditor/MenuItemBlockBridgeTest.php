@@ -215,3 +215,193 @@ describe( 'blocksToItemSpecs() — write path', function (): void {
 		expect( $specs[0]['attributes']['object_id'] )->toBeNull();
 	} );
 } );
+
+describe( 'MenuItemBlockBridge::blocksToRaw (Keystone #48)', function (): void {
+	it( 'serializes a leaf nav-link as a self-closing block comment', function (): void {
+		$raw = ( new MenuItemBlockBridge() )->blocksToRaw( [
+			[
+				'name'        => 'core/navigation-link',
+				'attributes'  => [ 'label' => 'Home', 'url' => '/' ],
+				'innerBlocks' => [],
+			],
+		] );
+
+		// Strip `core/` prefix, JSON-encode attrs, self-close.
+		expect( $raw )->toBe( '<!-- wp:navigation-link {"label":"Home","url":"/"} /-->' );
+	} );
+
+	it( 'omits the attrs JSON when the block has no attributes', function (): void {
+		$raw = ( new MenuItemBlockBridge() )->blocksToRaw( [
+			[ 'name' => 'core/navigation-link', 'attributes' => [], 'innerBlocks' => [] ],
+		] );
+
+		expect( $raw )->toBe( '<!-- wp:navigation-link /-->' );
+	} );
+
+	it( 'opens / closes a submenu around its serialized children', function (): void {
+		$raw = ( new MenuItemBlockBridge() )->blocksToRaw( [
+			[
+				'name'        => 'core/navigation-submenu',
+				'attributes'  => [ 'label' => 'About' ],
+				'innerBlocks' => [
+					[ 'name' => 'core/navigation-link', 'attributes' => [ 'label' => 'Team' ], 'innerBlocks' => [] ],
+				],
+			],
+		] );
+
+		expect( $raw )->toBe(
+			"<!-- wp:navigation-submenu {\"label\":\"About\"} -->\n"
+				. "<!-- wp:navigation-link {\"label\":\"Team\"} /-->\n"
+				. '<!-- /wp:navigation-submenu -->'
+		);
+	} );
+
+	it( 'serializes siblings on separate lines so the parse round-trip stays stable', function (): void {
+		$raw = ( new MenuItemBlockBridge() )->blocksToRaw( [
+			[ 'name' => 'core/navigation-link', 'attributes' => [ 'label' => 'A' ], 'innerBlocks' => [] ],
+			[ 'name' => 'core/navigation-link', 'attributes' => [ 'label' => 'B' ], 'innerBlocks' => [] ],
+		] );
+
+		expect( $raw )->toBe(
+			"<!-- wp:navigation-link {\"label\":\"A\"} /-->\n<!-- wp:navigation-link {\"label\":\"B\"} /-->"
+		);
+	} );
+
+	it( 'drops unknown block types so a malformed input cannot leak into content.raw', function (): void {
+		$raw = ( new MenuItemBlockBridge() )->blocksToRaw( [
+			[ 'name' => 'core/paragraph', 'attributes' => [ 'content' => 'nope' ], 'innerBlocks' => [] ],
+			[ 'name' => 'core/navigation-link', 'attributes' => [ 'label' => 'Real' ], 'innerBlocks' => [] ],
+		] );
+
+		expect( $raw )->toBe( '<!-- wp:navigation-link {"label":"Real"} /-->' );
+	} );
+
+	it( 'returns an empty string for an empty tree', function (): void {
+		expect( ( new MenuItemBlockBridge() )->blocksToRaw( [] ) )->toBe( '' );
+	} );
+
+	it( 'preserves unicode and forward slashes in the JSON attrs', function (): void {
+		$raw = ( new MenuItemBlockBridge() )->blocksToRaw( [
+			[
+				'name'        => 'core/navigation-link',
+				'attributes'  => [ 'label' => 'Café', 'url' => 'https://example.com/path' ],
+				'innerBlocks' => [],
+			],
+		] );
+
+		// `JSON_UNESCAPED_UNICODE` keeps the `é`, `JSON_UNESCAPED_SLASHES`
+		// keeps `/` readable in the URL — matches WP core's serializer.
+		expect( $raw )->toContain( 'Café' );
+		expect( $raw )->toContain( 'https://example.com/path' );
+		expect( $raw )->not->toContain( 'https:\/\/example.com\/path' );
+	} );
+} );
+
+describe( 'MenuItemBlockBridge::rawToBlocks (Keystone #48)', function (): void {
+	it( 'parses a self-closing nav-link with attrs', function (): void {
+		$blocks = ( new MenuItemBlockBridge() )->rawToBlocks(
+			'<!-- wp:navigation-link {"label":"Home","url":"/"} /-->'
+		);
+
+		expect( $blocks )->toBe( [
+			[
+				'name'        => 'core/navigation-link',
+				'attributes'  => [ 'label' => 'Home', 'url' => '/' ],
+				'innerBlocks' => [],
+			],
+		] );
+	} );
+
+	it( 'parses a self-closing nav-link without attrs', function (): void {
+		$blocks = ( new MenuItemBlockBridge() )->rawToBlocks( '<!-- wp:navigation-link /-->' );
+
+		expect( $blocks )->toBe( [
+			[
+				'name'        => 'core/navigation-link',
+				'attributes'  => [],
+				'innerBlocks' => [],
+			],
+		] );
+	} );
+
+	it( 'parses a submenu with nested children', function (): void {
+		$blocks = ( new MenuItemBlockBridge() )->rawToBlocks(
+			"<!-- wp:navigation-submenu {\"label\":\"About\"} -->\n"
+				. "<!-- wp:navigation-link {\"label\":\"Team\"} /-->\n"
+				. '<!-- /wp:navigation-submenu -->'
+		);
+
+		expect( $blocks )->toBe( [
+			[
+				'name'        => 'core/navigation-submenu',
+				'attributes'  => [ 'label' => 'About' ],
+				'innerBlocks' => [
+					[
+						'name'        => 'core/navigation-link',
+						'attributes'  => [ 'label' => 'Team' ],
+						'innerBlocks' => [],
+					],
+				],
+			],
+		] );
+	} );
+
+	it( 'parses multiple siblings on separate lines', function (): void {
+		$blocks = ( new MenuItemBlockBridge() )->rawToBlocks(
+			"<!-- wp:navigation-link {\"label\":\"A\"} /-->\n<!-- wp:navigation-link {\"label\":\"B\"} /-->"
+		);
+
+		expect( $blocks )->toHaveCount( 2 );
+		expect( $blocks[0]['attributes'] )->toBe( [ 'label' => 'A' ] );
+		expect( $blocks[1]['attributes'] )->toBe( [ 'label' => 'B' ] );
+	} );
+
+	it( 'drops unknown wp:* blocks at the top level so paragraph leakage cannot smuggle in', function (): void {
+		$blocks = ( new MenuItemBlockBridge() )->rawToBlocks(
+			"<!-- wp:paragraph {\"content\":\"nope\"} /-->\n<!-- wp:navigation-link {\"label\":\"Real\"} /-->"
+		);
+
+		expect( $blocks )->toHaveCount( 1 );
+		expect( $blocks[0]['attributes'] )->toBe( [ 'label' => 'Real' ] );
+	} );
+
+	it( 'returns an empty array for an empty / whitespace-only string', function (): void {
+		$bridge = new MenuItemBlockBridge();
+
+		expect( $bridge->rawToBlocks( '' ) )->toBe( [] );
+		expect( $bridge->rawToBlocks( "   \n  \t" ) )->toBe( [] );
+	} );
+
+	it( 'tolerates a missing close tag without infinite-looping', function (): void {
+		// `wp:navigation-submenu` without `/wp:navigation-submenu` —
+		// recursive descent should consume to EOF and return what it
+		// has rather than spinning. Pathological input from a
+		// malformed editor save shouldn't crash the controller.
+		$blocks = ( new MenuItemBlockBridge() )->rawToBlocks(
+			"<!-- wp:navigation-submenu {\"label\":\"Orphan\"} -->\n"
+				. '<!-- wp:navigation-link {"label":"Inside"} /-->'
+		);
+
+		expect( $blocks )->toHaveCount( 1 );
+		expect( $blocks[0]['name'] )->toBe( 'core/navigation-submenu' );
+		expect( $blocks[0]['innerBlocks'][0]['attributes'] )->toBe( [ 'label' => 'Inside' ] );
+	} );
+
+	it( 'round-trips blocksToRaw → rawToBlocks → blocksToRaw without losing data', function (): void {
+		$tree = [
+			[
+				'name'        => 'core/navigation-submenu',
+				'attributes'  => [ 'label' => 'About', 'url' => '#' ],
+				'innerBlocks' => [
+					[ 'name' => 'core/navigation-link', 'attributes' => [ 'label' => 'Team', 'url' => '/team' ], 'innerBlocks' => [] ],
+					[ 'name' => 'core/navigation-link', 'attributes' => [ 'label' => 'Story' ], 'innerBlocks' => [] ],
+				],
+			],
+			[ 'name' => 'core/navigation-link', 'attributes' => [ 'label' => 'Home', 'url' => '/' ], 'innerBlocks' => [] ],
+		];
+
+		$bridge = new MenuItemBlockBridge();
+
+		expect( $bridge->rawToBlocks( $bridge->blocksToRaw( $tree ) ) )->toBe( $tree );
+	} );
+} );
