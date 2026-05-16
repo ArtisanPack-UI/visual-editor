@@ -258,6 +258,26 @@ describe( 'BlockSupports::compile (typography)', function (): void {
 		expect( $result['classes'] )->toContain( 'has-mono-font-family' );
 	} );
 
+	it( 'gives slug precedence over custom for fontSize / fontFamily (matches color path)', function (): void {
+		$result = BlockSupports::compile( [
+			'fontSize'   => 'large',
+			'fontFamily' => 'mono',
+			'style'      => [ 'typography' => [
+				'fontSize'   => '2rem',
+				'fontFamily' => 'serif',
+				// Other keys still emit inline — they don't have a
+				// slug counterpart so there's nothing to conflict.
+				'fontWeight' => '700',
+			] ],
+		] );
+
+		expect( $result['classes'] )->toContain( 'has-large-font-size' );
+		expect( $result['classes'] )->toContain( 'has-mono-font-family' );
+		expect( $result['style'] )->not->toContain( 'font-size: 2rem' );
+		expect( $result['style'] )->not->toContain( 'font-family: serif' );
+		expect( $result['style'] )->toContain( 'font-weight: 700' );
+	} );
+
 	it( 'maps every supported style.typography.* key', function (): void {
 		$result = BlockSupports::compile( [
 			'style' => [

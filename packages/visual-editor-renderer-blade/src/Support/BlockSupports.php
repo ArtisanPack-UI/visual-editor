@@ -479,6 +479,21 @@ class BlockSupports
 		];
 
 		foreach ( $mappings as $attrKey => $cssProperty ) {
+			// Slug-over-custom precedence — matches the color path's
+			// behavior (CodeRabbit on PR #457). When `fontSize` /
+			// `fontFamily` slugs are set, the `has-{slug}-*` class is
+			// authoritative and the inline `style.typography.{key}`
+			// value is ignored. Without this guard both would emit;
+			// the inline style would win the cascade, contradicting
+			// the documented priority.
+			if ( 'fontSize' === $attrKey && '' !== $fontSizeSlug ) {
+				continue;
+			}
+
+			if ( 'fontFamily' === $attrKey && '' !== $fontFamilySlug ) {
+				continue;
+			}
+
 			$value = self::stringAttr( $typography[ $attrKey ] ?? null );
 
 			if ( '' === $value ) {

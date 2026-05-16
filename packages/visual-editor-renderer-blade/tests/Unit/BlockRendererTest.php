@@ -594,5 +594,28 @@ describe( 'Keystone #50 — block-supports compilation on the rendered HTML', fu
 		// `styles.elements.button` targeting `.wp-element-button`
 		// actually picks up the slug-based class set.
 		expect( $html )->toMatch( '/<a [^>]*has-accent-background-color/' );
+		// Negative assertion: the outer `<div class="wp-block-button">`
+		// must NOT carry the color class (CodeRabbit on PR #457). The
+		// contract is "color on the inner link, NOT the outer wrapper" —
+		// pin both sides so a future refactor that accidentally lifts
+		// color onto the wrapper fails this test.
+		expect( $html )->not->toMatch( '/<div [^>]*class="[^"]*has-accent-background-color/' );
+	} );
+
+	it( 'whitelists core/buttons layout.justifyContent against invalid values', function (): void {
+		$bad  = makeRenderer()->render( [ makeBlock( 'core/buttons', [
+			'layout' => [ 'justifyContent' => 'evil"><script>' ],
+		] ) ] );
+		$good = makeRenderer()->render( [ makeBlock( 'core/buttons', [
+			'layout' => [ 'justifyContent' => 'space-between' ],
+		] ) ] );
+
+		// Anything outside WP's known enum falls back to `left`.
+		expect( $bad )->toContain( 'is-content-justification-left' );
+		expect( $bad )->not->toContain( '<script>' );
+		expect( $bad )->not->toContain( 'is-content-justification-evil' );
+
+		// Legitimate values pass through.
+		expect( $good )->toContain( 'is-content-justification-space-between' );
 	} );
 } );
