@@ -143,6 +143,26 @@ describe( 'Keystone #50 — layout-size custom properties + alignment rules', fu
 		expect( $css )->not->toContain( 'is-layout-constrained.alignfull' );
 	} );
 
+	it( 'emits .wp-block-post-content child rules so root-level default alignment uses content-size', function (): void {
+		// Themes opt into WP-FSE-style page layout by adding
+		// `class="wp-block-post-content is-layout-constrained"` to
+		// their `<main>` wrapper. The renderer's CSS rules then
+		// give the children the canonical "default = content-size,
+		// wide = wide-size, full = no max" behavior. Without these
+		// rules a section with `align="none"` stretches full-width
+		// because nothing sizes its parent.
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [
+				'layout' => [ 'contentSize' => '720px', 'wideSize' => '1200px' ],
+			],
+		] );
+
+		expect( $css )
+			->toContain( '.wp-block-post-content.is-layout-constrained > :where(:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright))' )
+			->toContain( '.wp-block-post-content.is-layout-constrained > .alignwide' )
+			->toContain( '.wp-block-post-content.is-layout-constrained > .alignfull' );
+	} );
+
 	it( 'composes root presets with layout rules separated by a blank line', function (): void {
 		$css = ( new ThemeJsonTokensCompiler() )->compile( [
 			'settings' => [

@@ -139,6 +139,10 @@ class ThemeJsonTokensCompiler
 
 		$rules = [];
 
+		// Rule set A — the constrained group's OWN classes. Applies
+		// whether the group is at the page root or nested inside
+		// another container; covers the common "section with an
+		// alignment override" case authors hit in the editor.
 		if ( $hasWideSize ) {
 			$rules[] = ".wp-block-group.is-layout-constrained.alignwide {\n"
 				. "\tmax-width: var(--wp--style--global--wide-size);\n"
@@ -152,6 +156,35 @@ class ThemeJsonTokensCompiler
 		// so authors can toggle it on without the renderer caring whether
 		// `wideSize` happened to be declared.
 		$rules[] = ".wp-block-group.is-layout-constrained.alignfull {\n"
+			. "\tmax-width: none;\n"
+			. '}';
+
+		// Rule set B — children of an opt-in `.wp-block-post-content`
+		// container. Mirrors WP-FSE's post-content layout: when a theme
+		// wraps its page content in `<main class="wp-block-post-content
+		// is-layout-constrained">`, the children get the canonical
+		// "default = content-size, wide = wide-size, full = no max"
+		// behavior. Themes that don't add the class keep the old
+		// "container is full-bleed unless aligned" behavior — the
+		// opt-in keeps this from clashing with header / footer
+		// wrappers that are intentionally full-width.
+		if ( $hasContentSize ) {
+			$rules[] = ".wp-block-post-content.is-layout-constrained > :where(:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright)) {\n"
+				. "\tmax-width: var(--wp--style--global--content-size);\n"
+				. "\tmargin-left: auto;\n"
+				. "\tmargin-right: auto;\n"
+				. '}';
+		}
+
+		if ( $hasWideSize ) {
+			$rules[] = ".wp-block-post-content.is-layout-constrained > .alignwide {\n"
+				. "\tmax-width: var(--wp--style--global--wide-size);\n"
+				. "\tmargin-left: auto;\n"
+				. "\tmargin-right: auto;\n"
+				. '}';
+		}
+
+		$rules[] = ".wp-block-post-content.is-layout-constrained > .alignfull {\n"
 			. "\tmax-width: none;\n"
 			. '}';
 
