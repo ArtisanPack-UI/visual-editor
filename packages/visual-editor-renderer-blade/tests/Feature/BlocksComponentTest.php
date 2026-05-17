@@ -55,3 +55,73 @@ it( 'publishes block views under the visual-editor-blade-views tag', function ()
 
 	$artisan->assertExitCode( 0 );
 } );
+
+it( 'passes the nav-block tree through unchanged when no defaultTheme is supplied (Keystone #51)', function () {
+	// Without a theme, the navigation resolver has no `(theme, location)`
+	// to query against, so the tree should pass through. The block's
+	// own Blade view renders an empty `<nav>` — same as before #51.
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [ '__unstableLocation' => 'primary' ],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )->toContain( 'wp-block-navigation' );
+	// Empty container — no menu items projected.
+	expect( $this->normalizeHtml( $this->stripGlobalStyles( $rendered ) ) )
+		->toContain( '<ul class="wp-block-navigation__container"></ul>' );
+} );
+
+it( 'passes the nav-block tree through unchanged when cms-framework is not installed (Keystone #51)', function () {
+	// cms-framework's `MenuLocationAssignment` model isn't autoloaded in
+	// this Testbench environment, so the resolver's `class_exists` guard
+	// short-circuits the lookup. With a theme present but no DB to
+	// query, the tree still passes through — no menu items, no error.
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [ '__unstableLocation' => 'primary' ],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render(
+		'<x-ve-blocks :tree="$tree" default-theme="jmwd-default" />',
+		[ 'tree' => $tree ],
+	);
+
+	expect( $rendered )->toContain( 'wp-block-navigation' );
+	expect( $this->normalizeHtml( $this->stripGlobalStyles( $rendered ) ) )
+		->toContain( '<ul class="wp-block-navigation__container"></ul>' );
+} );
+
+it( 'preserves authored innerBlocks on a nav block instead of overwriting them (Keystone #51)', function () {
+	// A nav block authored with explicit nav-links keeps them — the
+	// resolver only projects menu items when the tree is empty.
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [],
+			'innerBlocks' => [
+				[
+					'clientId'    => 'l-1',
+					'name'        => 'core/navigation-link',
+					'attributes'  => [ 'label' => 'Authored', 'url' => '/authored' ],
+					'innerBlocks' => [],
+				],
+			],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )->toContain( 'Authored' );
+	expect( $rendered )->toContain( 'href="/authored"' );
+} );
