@@ -51,6 +51,8 @@ import {
 } from 'react';
 import { createReduxStore, register, useDispatch, useSelect } from '@wordpress/data';
 
+import { parseNavigationContent } from './parse-navigation-content';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -2054,26 +2056,68 @@ export function useEntityBlockEditor(
 
             const content = (record as { content?: unknown }).content;
 
-            if (
-                content === null ||
-                content === undefined ||
-                typeof content !== 'object'
-            ) {
+            if (content === null || content === undefined) {
+                return EMPTY_RECORDS as readonly unknown[];
+            }
+
+            // `getEditedEntityRecord` runs `flattenRawProperties` over
+            // the cached record, so a server envelope of
+            // `{ content: { raw, blocks } }` collapses down to a plain
+            // string here — same flattening WP applies to `title`.
+            // For `wp_navigation` (Keystone #48) the only thing we get
+            // back is the serialized block-comment markup; parse it
+            // with Gutenberg's own parser so the decorated tree we
+            // hand the editor matches what `parse()` would produce
+            // from any other content path.
+            if (typeof content === 'string') {
+                const trimmed = content.trim();
+
+                if (trimmed === '') {
+                    return EMPTY_RECORDS as readonly unknown[];
+                }
+
+                const parsed = parseNavigationContent(trimmed) as readonly unknown[];
+
+                if (parsed.length === 0) {
+                    return EMPTY_RECORDS as readonly unknown[];
+                }
+
+                return getDecoratedBlocks(kind, name, id, parsed);
+            }
+
+            if (typeof content !== 'object') {
                 return EMPTY_RECORDS as readonly unknown[];
             }
 
             const serverBlocks = (content as { blocks?: unknown }).blocks;
 
-            if (!Array.isArray(serverBlocks)) {
-                return EMPTY_RECORDS as readonly unknown[];
+            // Prefer a non-empty server-shipped `blocks` array — it's
+            // the lossless form. An EMPTY `blocks` array alongside a
+            // populated `raw` string can happen when the projection
+            // is still catching up (e.g. a `wp_navigation` envelope
+            // that didn't run the items → blocks step but kept the
+            // serialized markup); fall through to the raw parser in
+            // that case so the canvas still renders the menu items.
+            if (Array.isArray(serverBlocks) && serverBlocks.length > 0) {
+                return getDecoratedBlocks(
+                    kind,
+                    name,
+                    id,
+                    serverBlocks as readonly unknown[],
+                );
             }
 
-            return getDecoratedBlocks(
-                kind,
-                name,
-                id,
-                serverBlocks as readonly unknown[],
-            );
+            const raw = (content as { raw?: unknown }).raw;
+
+            if (typeof raw === 'string' && raw.trim() !== '') {
+                const parsed = parseNavigationContent(raw.trim()) as readonly unknown[];
+
+                if (parsed.length > 0) {
+                    return getDecoratedBlocks(kind, name, id, parsed);
+                }
+            }
+
+            return EMPTY_RECORDS as readonly unknown[];
         },
         [kind, name, id]
     );

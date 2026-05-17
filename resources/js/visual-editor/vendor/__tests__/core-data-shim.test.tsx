@@ -1322,6 +1322,53 @@ describe('core-data-shim hooks', () => {
         expect(typeof blocks[0].innerBlocks[0].clientId).toBe('string');
     });
 
+    it('useEntityBlockEditor parses a flattened string `content` payload (Keystone #48)', () => {
+        // `getEditedEntityRecord` runs `flattenRawProperties` over
+        // the cached record, so a server envelope of
+        // `{ content: { raw, blocks } }` becomes a plain string by
+        // the time the nav block reads it. For `wp_navigation` we
+        // need to parse that string into the block tree the canvas
+        // renders — otherwise the picker shows "is empty" even when
+        // the menu has items.
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+            {
+                id: 42,
+                slug: 'primary',
+                title: { raw: 'Primary', rendered: 'Primary' },
+                status: 'publish',
+                type: 'wp_navigation',
+                content: {
+                    raw:
+                        '<!-- wp:navigation-link {"label":"Home","url":"/"} /-->\n' +
+                        '<!-- wp:navigation-submenu {"label":"About"} -->\n' +
+                        '<!-- wp:navigation-link {"label":"Team"} /-->\n' +
+                        '<!-- /wp:navigation-submenu -->',
+                    blocks: [],
+                },
+            },
+        ]);
+
+        const [blocks] = renderHook(() =>
+            useEntityBlockEditor('postType', 'wp_navigation', { id: 42 }),
+        ) as readonly Array<{
+            name: string;
+            clientId: string;
+            attributes: Record<string, unknown>;
+            innerBlocks: ReadonlyArray<{ name: string; attributes: Record<string, unknown> }>;
+        }>;
+
+        expect(blocks).toHaveLength(2);
+        expect(blocks[0].name).toBe('core/navigation-link');
+        expect(blocks[0].attributes).toEqual({ label: 'Home', url: '/' });
+        expect(typeof blocks[0].clientId).toBe('string');
+
+        expect(blocks[1].name).toBe('core/navigation-submenu');
+        expect(blocks[1].attributes).toEqual({ label: 'About' });
+        expect(blocks[1].innerBlocks).toHaveLength(1);
+        expect(blocks[1].innerBlocks[0].name).toBe('core/navigation-link');
+        expect(blocks[1].innerBlocks[0].attributes).toEqual({ label: 'Team' });
+    });
+
     it('flattens {raw, rendered} fields on getRawEntityRecord and getEditedEntityRecord', () => {
         coreDispatch().receiveEntityRecords('postType', 'wp_block', [
             {
