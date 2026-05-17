@@ -314,8 +314,35 @@ export const editorSettings = {
         },
         color: {
             custom: true,
+            customGradient: false,
             text: true,
             background: true,
+            // `link: true` lights up the Link color row in the inspector
+            // (used by `core/navigation`, `core/post-content`, etc).
+            // The previously-warned "drag loop" came from turning on
+            // upstream-core flags (`defaultPalette`, `defaultGradients`,
+            // `defaultDuotone`) without the preset data backing them.
+            // `link` is data-backed by the palette below — no loop
+            // (Keystone #53).
+            link: true,
+            // Expose the palette through the modern features path so
+            // the nav block's color picker (and any block that reads
+            // `__experimentalFeatures.color.palette.theme` first)
+            // surfaces swatches instead of empty rows. Mirror the
+            // legacy top-level `colors:` array so both code paths
+            // converge on the same data.
+            // `__experimentalFeatures.color.palette.{theme,custom,default}`
+            // each take an ARRAY of `{slug, name, color}` entries —
+            // NOT a boolean. Gutenberg's `with-colors` HOC spreads
+            // all three together (`[...theme, ...custom, ...default]`),
+            // so a `custom: true` here crashes with "spread requires
+            // iterable" in `with-colors.mjs`. Leave `custom` as an
+            // empty array; user-defined custom colors get added via
+            // the picker UI at runtime, not seeded here.
+            palette: {
+                theme: DEFAULT_PALETTE,
+                custom: [],
+            },
         },
         typography: {
             customFontSize: true,
