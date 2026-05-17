@@ -1403,6 +1403,23 @@ describe('core-data-shim hooks', () => {
         expect(edited.title).toBe('Flatten Me');
     });
 
+    it('getEditedEntityRecord returns {} instead of null when nothing is cached (Keystone #48)', () => {
+        // Gutenberg's `core/navigation` block (use-navigation-menu.mjs)
+        // reads `record.status === "publish"` synchronously during
+        // render. A `null` return crashed the block before the async
+        // fetch resolver could settle. WP core returns `{}` in this
+        // case; the shim now matches.
+        const record = coreSelect().getEditedEntityRecord(
+            'postType',
+            'wp_navigation',
+            999_999,
+        );
+
+        expect(record).toEqual({});
+        // Belt-and-suspenders: `.status` is safely accessible.
+        expect((record as { status?: string }).status).toBeUndefined();
+    });
+
     it('useEntityRecords surfaces the list-cache and resolves through fetchEntityRecords', async () => {
         const { fetcher, calls } = mockFetcher(async () =>
             jsonResponse([

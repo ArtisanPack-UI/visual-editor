@@ -1020,17 +1020,24 @@ const selectors = {
         kind: EntityKind,
         name: EntityName,
         id: EntityKey,
-    ): EntityRecord | null => {
+    ): EntityRecord => {
         const base = selectEntityRecord(state, kind, name, id);
         const edits = selectEditsForRecord(state, kind, name, id);
 
-        if (base === null && edits === null) {
-            return null;
-        }
+        // Match WP core's behavior: return an empty object — never
+        // `null` — when nothing's been fetched yet. Consumers like
+        // Gutenberg's `core/navigation` block (`use-navigation-menu.mjs`)
+        // read fields like `o.status === "publish"` synchronously
+        // during render, so a `null` return crashes the block before
+        // the async fetch resolver can settle (Keystone #48). An
+        // empty object lets the consumer's `=== "publish"` check
+        // return `false` harmlessly, the resolution flag stays
+        // `false`, the picker shows its loading state, and the fetch
+        // repopulates state for the next render cycle.
 
-        // Match `getRawEntityRecord` — flatten `{raw, rendered}` shaped
-        // fields before merging edits on top. Core-data does the same
-        // so consumers can read `entity.title` as a plain string.
+        // Flatten `{raw, rendered}` shaped fields before merging
+        // edits on top — same as `getRawEntityRecord`, so consumers
+        // can read `entity.title` as a plain string.
         const flattenedBase = base === null ? {} : flattenRawProperties(base);
 
         return { ...flattenedBase, ...(edits ?? {}) };
