@@ -57,6 +57,7 @@ vi.mock('@wordpress/format-library', () => ({}));
 // deterministic and doesn't touch the network under jsdom.
 vi.mock('../styles/global-styles-api', () => ({
     fetchGlobalStylesCss: vi.fn(async (): Promise<string> => ''),
+    fetchGlobalStylesBase: vi.fn(async () => ({ settings: {}, styles: {} })),
 }));
 
 const CONVERT_TO_PATTERN_CONTROL_MOCK = vi.fn((): null => null);
