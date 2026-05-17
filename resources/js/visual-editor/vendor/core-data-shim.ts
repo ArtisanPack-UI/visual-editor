@@ -2108,7 +2108,7 @@ export function useEntityBlockEditor(
                     return EMPTY_RECORDS as readonly unknown[];
                 }
 
-                const parsed = parseNavigationContent(trimmed) as readonly unknown[];
+                const parsed = parseNavigationContentCached(trimmed);
 
                 if (parsed.length === 0) {
                     return EMPTY_RECORDS as readonly unknown[];
@@ -2142,7 +2142,7 @@ export function useEntityBlockEditor(
             const raw = (content as { raw?: unknown }).raw;
 
             if (typeof raw === 'string' && raw.trim() !== '') {
-                const parsed = parseNavigationContent(raw.trim()) as readonly unknown[];
+                const parsed = parseNavigationContentCached(raw.trim());
 
                 if (parsed.length > 0) {
                     return getDecoratedBlocks(kind, name, id, parsed);
@@ -2155,6 +2155,29 @@ export function useEntityBlockEditor(
     );
 
     return [blocks, noopSetter, noopSetter];
+}
+
+/**
+ * Memoize `parseNavigationContent` so identical raw strings return the
+ * same array reference. `getDecoratedBlocks` uses reference equality to
+ * decide whether to re-mint `clientId`s; without this cache, every read
+ * produced a fresh parsed array, the decoration cache missed, and
+ * `clientId`s churned each render — Gutenberg saw "new" blocks and
+ * re-mounted the inner-block subtree on every paint.
+ */
+const parsedNavigationContentCache = new Map<string, readonly unknown[]>();
+
+function parseNavigationContentCached(raw: string): readonly unknown[] {
+    const cached = parsedNavigationContentCache.get(raw);
+
+    if (cached !== undefined) {
+        return cached;
+    }
+
+    const parsed = parseNavigationContent(raw) as readonly unknown[];
+    parsedNavigationContentCache.set(raw, parsed);
+
+    return parsed;
 }
 
 interface ServerBlock {

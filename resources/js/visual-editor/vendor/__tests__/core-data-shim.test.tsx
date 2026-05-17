@@ -1337,14 +1337,16 @@ describe('core-data-shim hooks', () => {
                 title: { raw: 'Primary', rendered: 'Primary' },
                 status: 'publish',
                 type: 'wp_navigation',
-                content: {
-                    raw:
-                        '<!-- wp:navigation-link {"label":"Home","url":"/"} /-->\n' +
-                        '<!-- wp:navigation-submenu {"label":"About"} -->\n' +
-                        '<!-- wp:navigation-link {"label":"Team"} /-->\n' +
-                        '<!-- /wp:navigation-submenu -->',
-                    blocks: [],
-                },
+                // Bare string `content` — exercises the flattened
+                // fallback branch (we now skip flattening for the
+                // canonical wp_navigation read, but the parser still
+                // has to cope when an upstream caller hands us the
+                // string directly).
+                content:
+                    '<!-- wp:navigation-link {"label":"Home","url":"/"} /-->\n' +
+                    '<!-- wp:navigation-submenu {"label":"About"} -->\n' +
+                    '<!-- wp:navigation-link {"label":"Team"} /-->\n' +
+                    '<!-- /wp:navigation-submenu -->',
             },
         ]);
 

@@ -404,4 +404,80 @@ describe( 'MenuItemBlockBridge::rawToBlocks (Keystone #48)', function (): void {
 
 		expect( $bridge->rawToBlocks( $bridge->blocksToRaw( $tree ) ) )->toBe( $tree );
 	} );
+
+	it( 'matches close tags by block name so an unknown nested block does not eat the parent close', function (): void {
+		// An unsupported `wp:group` opens *inside* a submenu. The
+		// previous "return on any close" path treated that group's
+		// close as the submenu's close, dropping the sibling link
+		// that followed at the top level. With name-matched close
+		// handling the submenu keeps its real boundaries and the
+		// sibling stays a top-level child.
+		$blocks = ( new MenuItemBlockBridge() )->rawToBlocks(
+			"<!-- wp:navigation-submenu {\"label\":\"Parent\"} -->\n"
+				. "<!-- wp:group -->\n"
+				. "<!-- /wp:group -->\n"
+				. "<!-- wp:navigation-link {\"label\":\"Inside\"} /-->\n"
+				. "<!-- /wp:navigation-submenu -->\n"
+				. '<!-- wp:navigation-link {"label":"Sibling"} /-->'
+		);
+
+		expect( $blocks )->toHaveCount( 2 );
+		expect( $blocks[0]['name'] )->toBe( 'core/navigation-submenu' );
+		expect( $blocks[0]['innerBlocks'] )->toHaveCount( 1 );
+		expect( $blocks[0]['innerBlocks'][0]['attributes'] )->toBe( [ 'label' => 'Inside' ] );
+		expect( $blocks[1]['attributes'] )->toBe( [ 'label' => 'Sibling' ] );
+	} );
+} );
+
+describe( 'MenuItemBlockBridge::blocksToRaw — WP-compatible attribute escaping (Keystone #48)', function (): void {
+	it( 'escapes `-->`, `<`, `>`, `&`, backslash, and escaped-double-quote inside JSON attrs', function (): void {
+		// Bare `json_encode` lets these characters through literally,
+		// and `-->` in particular closes the surrounding HTML comment
+		// early — Gutenberg's parser then either rejects the markup
+		// or leaks attr tokens into rendered HTML. Mirror upstream
+		// `serialize_block_attributes()` by post-encoding the unsafe
+		// sequences as their JSON `\uXXXX` escapes.
+		$raw = ( new MenuItemBlockBridge() )->blocksToRaw( [
+			[
+				'name'        => 'core/navigation-link',
+				'attributes'  => [
+					'label' => 'A & B --> </span>',
+					'url'   => '\\path\\to',
+					// A literal `"` would already be JSON-escaped to
+					// `\"`; the escape sequence is what serializer
+					// rewrites to `"` so the closing quote of
+					// the attr string can't be mistaken.
+					'quote' => 'has "quote" inside',
+				],
+				'innerBlocks' => [],
+			],
+		] );
+
+		// Comment delimiters must remain intact — none of the unsafe
+		// sequences can show up literally between `<!--` and `-->`.
+		expect( $raw )->toStartWith( '<!-- wp:navigation-link ' );
+		expect( $raw )->toEndWith( ' /-->' );
+
+		// Strip the surrounding `<!-- wp:navigation-link ` / ` /-->`.
+		$json = substr( $raw, strlen( '<!-- wp:navigation-link ' ) );
+		$json = substr( $json, 0, -strlen( ' /-->' ) );
+
+		// Unsafe characters are gone — replaced by `\uXXXX` escapes.
+		expect( $json )->not->toContain( '-->' );
+		expect( $json )->not->toContain( '<' );
+		expect( $json )->not->toContain( '>' );
+		expect( $json )->not->toContain( '&' );
+		expect( $json )->toContain( '\\u002d\\u002d' );
+		expect( $json )->toContain( '\\u003c' );
+		expect( $json )->toContain( '\\u003e' );
+		expect( $json )->toContain( '\\u0026' );
+
+		// And the escaped form still decodes back to the original
+		// value — `json_decode` resolves `\uXXXX` natively, so the
+		// round-trip through `rawToBlocks` returns the exact input.
+		$reparsed = ( new MenuItemBlockBridge() )->rawToBlocks( $raw );
+		expect( $reparsed[0]['attributes']['label'] )->toBe( 'A & B --> </span>' );
+		expect( $reparsed[0]['attributes']['url'] )->toBe( '\\path\\to' );
+		expect( $reparsed[0]['attributes']['quote'] )->toBe( 'has "quote" inside' );
+	} );
 } );

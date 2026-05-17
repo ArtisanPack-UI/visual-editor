@@ -260,7 +260,7 @@ class MenuItemBlockBridge
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	protected function consumeChildren( array $tokens, int &$index ): array
+	protected function consumeChildren( array $tokens, int &$index, ?string $until = null ): array
 	{
 		$children = [];
 
@@ -268,19 +268,29 @@ class MenuItemBlockBridge
 			$token = $tokens[ $index ];
 
 			if ( 'close' === $token['kind'] ) {
-				return $children;
+				// Match close tags by block name to keep nesting honest.
+				// Returning on the first `close` we see drops later
+				// siblings (or reparents them under a submenu) whenever
+				// an unsupported or malformed open token slipped past
+				// our skip path. Only return when the close matches the
+				// block this frame was opened for.
+				if ( null !== $until && $token['name'] === $until ) {
+					return $children;
+				}
+
+				$index++;
+
+				continue;
 			}
 
 			$name = (string) $token['name'];
 
 			if ( self::NAV_LINK !== $name && self::NAV_SUBMENU !== $name ) {
-				// Skip unknown blocks — and their close tag if any —
-				// rather than letting them break the structural pair.
 				$index++;
 
 				if ( 'open' === $token['kind'] ) {
-					$this->consumeChildren( $tokens, $index );
-					$index++;
+					$this->consumeChildren( $tokens, $index, $name );
+					$this->skipMatchingClose( $tokens, $index, $name );
 				}
 
 				continue;
@@ -297,11 +307,13 @@ class MenuItemBlockBridge
 				continue;
 			}
 
-			// `open` — recurse for inner blocks, then skip the
-			// matching `close`.
+			// `open` — recurse for inner blocks, then skip the matching
+			// `close` (by name). A missing close is treated as benign:
+			// the recursion ends at end-of-stream and we move on rather
+			// than swallowing the next sibling's tokens.
 			$index++;
-			$inner = $this->consumeChildren( $tokens, $index );
-			$index++;
+			$inner = $this->consumeChildren( $tokens, $index, $name );
+			$this->skipMatchingClose( $tokens, $index, $name );
 
 			$children[] = [
 				'name'        => $name,
@@ -311,6 +323,27 @@ class MenuItemBlockBridge
 		}
 
 		return $children;
+	}
+
+	/**
+	 * Advance `$index` past the next token if it's a `close` for the
+	 * given block name. No-op on missing close (defensive against
+	 * truncated markup) or mismatched name (let the parent frame handle
+	 * its own close).
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<int, array<string, mixed>>  $tokens
+	 */
+	protected function skipMatchingClose( array $tokens, int &$index, string $name ): void
+	{
+		if (
+			$index < count( $tokens )
+			&& 'close' === $tokens[ $index ]['kind']
+			&& $tokens[ $index ]['name'] === $name
+		) {
+			$index++;
+		}
 	}
 
 	/**
@@ -341,7 +374,7 @@ class MenuItemBlockBridge
 		$attributes = is_array( $block['attributes'] ?? null ) ? $block['attributes'] : [];
 		$json       = [] === $attributes
 			? ''
-			: ' ' . json_encode( $attributes, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+			: ' ' . $this->encodeAttributes( $attributes );
 
 		$innerBlocks = is_array( $block['innerBlocks'] ?? null ) ? $block['innerBlocks'] : [];
 
@@ -360,6 +393,36 @@ class MenuItemBlockBridge
 			$inner,
 			$shortName
 		);
+	}
+
+	/**
+	 * Encode block attributes the same way WordPress core's
+	 * `serialize_block_attributes()` does. Bare `json_encode()` emits
+	 * characters that interfere with the surrounding HTML comment
+	 * (`-->`, `<`, `>`, `&`, `\`, `"`) — Gutenberg's parser rejects the
+	 * markup or, worse, the comment closes early and tokens leak into
+	 * the rendered HTML. Mirrors upstream by post-encoding those
+	 * sequences as their JSON `\uXXXX` escapes so the JSON stays valid
+	 * AND the comment stays intact.
+	 *
+	 * Reference: WP core `wp-includes/blocks.php :: serialize_block_attributes()`.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 */
+	protected function encodeAttributes( array $attributes ): string
+	{
+		$encoded = (string) json_encode( $attributes, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+
+		return strtr( $encoded, [
+			'\\\\' => '\\u005c',
+			'--'   => '\\u002d\\u002d',
+			'<'    => '\\u003c',
+			'>'    => '\\u003e',
+			'&'    => '\\u0026',
+			'\\"'  => '\\u0022',
+		] );
 	}
 
 	/**
