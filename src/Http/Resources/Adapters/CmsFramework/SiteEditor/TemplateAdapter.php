@@ -25,6 +25,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplate;
 
 class TemplateAdapter
@@ -57,6 +58,18 @@ class TemplateAdapter
 	 */
 	public function toArray( ResolvedTemplate $template ): array
 	{
+		// Stamp `ref` on any nested `core/navigation` block whose
+		// `__unstableLocation` matches an assigned menu location
+		// (Keystone #48). Gutenberg's current nav block doesn't
+		// auto-resolve `__unstableLocation` to a `ref`, so without
+		// this projection a themed seed of `{"__unstableLocation":
+		// "primary"}` lands in the editor as "no menu selected" and
+		// the picker shows "This Navigation Menu is empty."
+		$resolvedBlocks = ( new NavigationBlockRefResolver() )->resolve(
+			$template->blocks,
+			$template->theme,
+		);
+
 		return [
 			'id'             => $template->wpId > 0 ? $template->wpId : $template->slug,
 			'slug'           => $template->slug,
@@ -70,7 +83,7 @@ class TemplateAdapter
 			'description'    => $template->description,
 			'content'        => [
 				'raw'    => $template->rawContent,
-				'blocks' => $template->blocks,
+				'blocks' => $resolvedBlocks,
 			],
 			'status'         => $template->status,
 			'theme'          => $template->theme,

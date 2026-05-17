@@ -105,6 +105,327 @@ class MenuItemBlockBridge
 	}
 
 	/**
+	 * Serialize a `core/navigation-*` block tree into the WordPress
+	 * block-comment markup Gutenberg's `core/navigation` block reads
+	 * from `content.raw` (Keystone #48).
+	 *
+	 * Output format mirrors WP core's `serialize_block()`: the
+	 * `core/` prefix is stripped, attributes are JSON-encoded only
+	 * when non-empty, leaf blocks self-close, and submenus open /
+	 * close around recursively-serialized inner blocks. Lines stay
+	 * separated by `\n` so the parser on the way back produces the
+	 * same tree we started with.
+	 *
+	 * Returns an empty string when the tree is empty — keeps the
+	 * `content.raw` field present in the envelope but signals to
+	 * Gutenberg's nav block that there are no items, the same way an
+	 * empty menu would.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<int, mixed>  $blocks
+	 */
+	public function blocksToRaw( array $blocks ): string
+	{
+		$lines = [];
+
+		foreach ( $blocks as $block ) {
+			$rendered = $this->serializeBlock( $block );
+
+			if ( '' === $rendered ) {
+				continue;
+			}
+
+			$lines[] = $rendered;
+		}
+
+		return implode( "\n", $lines );
+	}
+
+	/**
+	 * Parse a WordPress block-comment string back into the block tree
+	 * `core/navigation`'s save flow sends us (Keystone #48). Inverse of
+	 * {@see blocksToRaw} — Gutenberg's data-store save layer serializes
+	 * edited blocks back to `content.raw` (a string) before PUT-ing,
+	 * which our `replaceMenuItems` path needs as a structured array.
+	 *
+	 * Scope is intentionally narrow: only `wp:navigation-link` and
+	 * `wp:navigation-submenu` comments are recognized. Anything else
+	 * (`wp:paragraph`, free-text between tokens, malformed comments)
+	 * is skipped — the controller's `blocksToItemSpecs` step would
+	 * drop them anyway, so the parser stays defensive rather than
+	 * fighting bad input.
+	 *
+	 * Tokenize first, then build the tree depth-first against a stack.
+	 * Lets a recursive structure (submenu containing submenu containing
+	 * link) come back out the way it went in without juggling indices.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	public function rawToBlocks( string $raw ): array
+	{
+		$tokens = $this->tokenize( $raw );
+		$index  = 0;
+
+		return $this->consumeChildren( $tokens, $index );
+	}
+
+	/**
+	 * Tokenize a block-comment string into a flat list of OPEN /
+	 * SELFCLOSE / CLOSE tokens. Each token carries the canonical block
+	 * name (with `core/` prefix re-added) and, for openers, the
+	 * decoded attributes array.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function tokenize( string $raw ): array
+	{
+		$tokens = [];
+		$pos    = 0;
+		$len    = strlen( $raw );
+
+		while ( $pos < $len ) {
+			$openAt = strpos( $raw, '<!--', $pos );
+
+			if ( false === $openAt ) {
+				break;
+			}
+
+			$closeAt = strpos( $raw, '-->', $openAt );
+
+			if ( false === $closeAt ) {
+				break;
+			}
+
+			$body = trim( substr( $raw, $openAt + 4, $closeAt - $openAt - 4 ) );
+			$pos  = $closeAt + 3;
+
+			$selfClose = false;
+
+			if ( str_ends_with( $body, '/' ) ) {
+				$selfClose = true;
+				$body      = rtrim( substr( $body, 0, -1 ) );
+			}
+
+			if ( str_starts_with( $body, '/wp:' ) ) {
+				$tokens[] = [
+					'kind' => 'close',
+					'name' => 'core/' . trim( substr( $body, 4 ) ),
+				];
+
+				continue;
+			}
+
+			if ( ! str_starts_with( $body, 'wp:' ) ) {
+				continue;
+			}
+
+			$tail = substr( $body, 3 );
+
+			// Split block name from optional JSON attrs. The name ends
+			// at the first whitespace or `{`; whatever follows is the
+			// JSON payload (or empty when the block has no attrs).
+			$nameEnd = strcspn( $tail, " \t\n\r\f\v{" );
+			$name    = 'core/' . substr( $tail, 0, $nameEnd );
+			$attrsTr = trim( substr( $tail, $nameEnd ) );
+
+			$attrs = [];
+
+			if ( '' !== $attrsTr ) {
+				$decoded = json_decode( $attrsTr, true );
+				$attrs   = is_array( $decoded ) ? $decoded : [];
+			}
+
+			$tokens[] = [
+				'kind'       => $selfClose ? 'selfclose' : 'open',
+				'name'       => $name,
+				'attributes' => $attrs,
+			];
+		}
+
+		return $tokens;
+	}
+
+	/**
+	 * Recursive tree builder. Consumes tokens until it hits a `close`
+	 * (which the caller is responsible for skipping) or runs out.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<int, array<string, mixed>>  $tokens
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function consumeChildren( array $tokens, int &$index, ?string $until = null ): array
+	{
+		$children = [];
+
+		while ( $index < count( $tokens ) ) {
+			$token = $tokens[ $index ];
+
+			if ( 'close' === $token['kind'] ) {
+				// Match close tags by block name to keep nesting honest.
+				// Returning on the first `close` we see drops later
+				// siblings (or reparents them under a submenu) whenever
+				// an unsupported or malformed open token slipped past
+				// our skip path. Only return when the close matches the
+				// block this frame was opened for.
+				if ( null !== $until && $token['name'] === $until ) {
+					return $children;
+				}
+
+				$index++;
+
+				continue;
+			}
+
+			$name = (string) $token['name'];
+
+			if ( self::NAV_LINK !== $name && self::NAV_SUBMENU !== $name ) {
+				$index++;
+
+				if ( 'open' === $token['kind'] ) {
+					$this->consumeChildren( $tokens, $index, $name );
+					$this->skipMatchingClose( $tokens, $index, $name );
+				}
+
+				continue;
+			}
+
+			if ( 'selfclose' === $token['kind'] ) {
+				$children[] = [
+					'name'        => $name,
+					'attributes'  => $token['attributes'] ?? [],
+					'innerBlocks' => [],
+				];
+				$index++;
+
+				continue;
+			}
+
+			// `open` — recurse for inner blocks, then skip the matching
+			// `close` (by name). A missing close is treated as benign:
+			// the recursion ends at end-of-stream and we move on rather
+			// than swallowing the next sibling's tokens.
+			$index++;
+			$inner = $this->consumeChildren( $tokens, $index, $name );
+			$this->skipMatchingClose( $tokens, $index, $name );
+
+			$children[] = [
+				'name'        => $name,
+				'attributes'  => $token['attributes'] ?? [],
+				'innerBlocks' => $inner,
+			];
+		}
+
+		return $children;
+	}
+
+	/**
+	 * Advance `$index` past the next token if it's a `close` for the
+	 * given block name. No-op on missing close (defensive against
+	 * truncated markup) or mismatched name (let the parent frame handle
+	 * its own close).
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<int, array<string, mixed>>  $tokens
+	 */
+	protected function skipMatchingClose( array $tokens, int &$index, string $name ): void
+	{
+		if (
+			$index < count( $tokens )
+			&& 'close' === $tokens[ $index ]['kind']
+			&& $tokens[ $index ]['name'] === $name
+		) {
+			$index++;
+		}
+	}
+
+	/**
+	 * Serialize a single navigation block into the WP-comment shape.
+	 * Drops unknown block names so a malformed input doesn't slip an
+	 * unsupported block type through the serializer.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  mixed  $block
+	 */
+	protected function serializeBlock( mixed $block ): string
+	{
+		if ( ! is_array( $block ) ) {
+			return '';
+		}
+
+		$name = $block['name'] ?? null;
+
+		if ( self::NAV_LINK !== $name && self::NAV_SUBMENU !== $name ) {
+			return '';
+		}
+
+		// Strip the `core/` prefix to match WP's serialize_block output.
+		// `core/navigation-link` → `navigation-link`.
+		$shortName = substr( (string) $name, strlen( 'core/' ) );
+
+		$attributes = is_array( $block['attributes'] ?? null ) ? $block['attributes'] : [];
+		$json       = [] === $attributes
+			? ''
+			: ' ' . $this->encodeAttributes( $attributes );
+
+		$innerBlocks = is_array( $block['innerBlocks'] ?? null ) ? $block['innerBlocks'] : [];
+
+		// Leaf blocks (no children) use the self-closing `/-->` form.
+		// Submenus open / close around their serialized children.
+		if ( [] === $innerBlocks ) {
+			return sprintf( '<!-- wp:%s%s /-->', $shortName, $json );
+		}
+
+		$inner = $this->blocksToRaw( $innerBlocks );
+
+		return sprintf(
+			"<!-- wp:%s%s -->\n%s\n<!-- /wp:%s -->",
+			$shortName,
+			$json,
+			$inner,
+			$shortName
+		);
+	}
+
+	/**
+	 * Encode block attributes the same way WordPress core's
+	 * `serialize_block_attributes()` does. Bare `json_encode()` emits
+	 * characters that interfere with the surrounding HTML comment
+	 * (`-->`, `<`, `>`, `&`, `\`, `"`) — Gutenberg's parser rejects the
+	 * markup or, worse, the comment closes early and tokens leak into
+	 * the rendered HTML. Mirrors upstream by post-encoding those
+	 * sequences as their JSON `\uXXXX` escapes so the JSON stays valid
+	 * AND the comment stays intact.
+	 *
+	 * Reference: WP core `wp-includes/blocks.php :: serialize_block_attributes()`.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 */
+	protected function encodeAttributes( array $attributes ): string
+	{
+		$encoded = (string) json_encode( $attributes, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE );
+
+		return strtr( $encoded, [
+			'\\\\' => '\\u005c',
+			'--'   => '\\u002d\\u002d',
+			'<'    => '\\u003c',
+			'>'    => '\\u003e',
+			'&'    => '\\u0026',
+			'\\"'  => '\\u0022',
+		] );
+	}
+
+	/**
 	 * Write path — parse a `core/navigation-*` block tree into a nested
 	 * list of row-attribute specs the controller inserts depth-first.
 	 *

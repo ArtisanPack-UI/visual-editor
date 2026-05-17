@@ -51,6 +51,8 @@ import {
 } from 'react';
 import { createReduxStore, register, useDispatch, useSelect } from '@wordpress/data';
 
+import { parseNavigationContent } from './parse-navigation-content';
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -852,6 +854,22 @@ function flattenRawProperties(record: EntityRecord): EntityRecord {
         if (value !== null && typeof value === 'object') {
             const shape = value as { raw?: unknown; rendered?: unknown };
 
+            // `content` for `wp_navigation` (and `wp_template` / `wp_block`)
+            // ships as `{ raw, blocks }`. Gutenberg's `core/navigation`
+            // edit component reads `editedRecord.content.raw` (object
+            // shape) to feed its parser; flattening it down to a bare
+            // string here breaks that read — `content.raw` becomes
+            // `undefined`, the block treats the menu as empty, and the
+            // canvas's projected innerBlocks get wiped on the next
+            // render. Preserve the object shape for `content`
+            // specifically (Keystone #48); other fields with the
+            // `{raw, rendered}` shape (`title`, `description`) keep
+            // their flatten so consumers can read them as strings.
+            if (key === 'content') {
+                out[key] = value;
+                continue;
+            }
+
             if (typeof shape.raw === 'string') {
                 out[key] = shape.raw;
                 continue;
@@ -1018,17 +1036,24 @@ const selectors = {
         kind: EntityKind,
         name: EntityName,
         id: EntityKey,
-    ): EntityRecord | null => {
+    ): EntityRecord => {
         const base = selectEntityRecord(state, kind, name, id);
         const edits = selectEditsForRecord(state, kind, name, id);
 
-        if (base === null && edits === null) {
-            return null;
-        }
+        // Match WP core's behavior: return an empty object — never
+        // `null` — when nothing's been fetched yet. Consumers like
+        // Gutenberg's `core/navigation` block (`use-navigation-menu.mjs`)
+        // read fields like `o.status === "publish"` synchronously
+        // during render, so a `null` return crashes the block before
+        // the async fetch resolver can settle (Keystone #48). An
+        // empty object lets the consumer's `=== "publish"` check
+        // return `false` harmlessly, the resolution flag stays
+        // `false`, the picker shows its loading state, and the fetch
+        // repopulates state for the next render cycle.
 
-        // Match `getRawEntityRecord` — flatten `{raw, rendered}` shaped
-        // fields before merging edits on top. Core-data does the same
-        // so consumers can read `entity.title` as a plain string.
+        // Flatten `{raw, rendered}` shaped fields before merging
+        // edits on top — same as `getRawEntityRecord`, so consumers
+        // can read `entity.title` as a plain string.
         const flattenedBase = base === null ? {} : flattenRawProperties(base);
 
         return { ...flattenedBase, ...(edits ?? {}) };
@@ -1209,6 +1234,11 @@ interface ThunkArgs {
             id: EntityKey,
         ) => EntityRecord | null;
         getEditedEntityRecord: (
+            kind: EntityKind,
+            name: EntityName,
+            id: EntityKey,
+        ) => EntityRecord | null;
+        getEntityRecordEdits: (
             kind: EntityKind,
             name: EntityName,
             id: EntityKey,
@@ -1498,11 +1528,23 @@ const actions = {
     saveEditedEntityRecord:
         (kind: EntityKind, name: EntityName, id: EntityKey) =>
         async ({ dispatch, select }: ThunkArgs): Promise<EntityRecord | null> => {
-            const edited = select.getEditedEntityRecord(kind, name, id);
+            // `getEditedEntityRecord` returns `{}` for an unresolved
+            // record so synchronous reads on the nav block (and other
+            // entity-backed Edit components) don't crash on
+            // `record.status` (Keystone #48). That makes a bare
+            // `=== null` check insufficient here — `{}` would slip
+            // through and trigger a spurious PUT `{ id }` payload
+            // for a record nothing has loaded or edited. Probe the
+            // underlying base + edits explicitly instead, so we only
+            // serialize a save when there's something to save.
+            const base = select.getEntityRecord(kind, name, id);
+            const edits = select.getEntityRecordEdits(kind, name, id);
 
-            if (edited === null) {
+            if (base === null && (edits === null || Object.keys(edits).length === 0)) {
                 return null;
             }
+
+            const edited = select.getEditedEntityRecord(kind, name, id);
 
             const config = select.getEntityConfig(kind, name);
             const payload: EntityRecord = config
@@ -2028,7 +2070,16 @@ export function useEntityBlockEditor(
     (blocks: readonly unknown[]) => void,
     (blocks: readonly unknown[]) => void,
 ] {
-    const id = options?.id ?? null;
+    // Upstream `core/navigation` (and other entity-backed blocks) wrap
+    // their inner blocks in `<EntityProvider id={ref}>` and call
+    // `useEntityBlockEditor(kind, name)` with NO explicit id — relying
+    // on the ambient `EntityProvider` context. Fall back to that id
+    // when `options.id` is missing so the hook resolves to the right
+    // record (Keystone #48). The diagnostic logs that surfaced this
+    // showed every call coming in as `{ id: null }`, which short-
+    // circuited the selector before it could read content.
+    const ambientId = useEntityId();
+    const id = options?.id ?? ambientId ?? null;
 
     const blocks = useSelect(
         (select) => {
@@ -2054,31 +2105,96 @@ export function useEntityBlockEditor(
 
             const content = (record as { content?: unknown }).content;
 
-            if (
-                content === null ||
-                content === undefined ||
-                typeof content !== 'object'
-            ) {
+            if (content === null || content === undefined) {
+                return EMPTY_RECORDS as readonly unknown[];
+            }
+
+            // `getEditedEntityRecord` runs `flattenRawProperties` over
+            // the cached record, so a server envelope of
+            // `{ content: { raw, blocks } }` collapses down to a plain
+            // string here — same flattening WP applies to `title`.
+            // For `wp_navigation` (Keystone #48) the only thing we get
+            // back is the serialized block-comment markup; parse it
+            // with Gutenberg's own parser so the decorated tree we
+            // hand the editor matches what `parse()` would produce
+            // from any other content path.
+            if (typeof content === 'string') {
+                const trimmed = content.trim();
+
+                if (trimmed === '') {
+                    return EMPTY_RECORDS as readonly unknown[];
+                }
+
+                const parsed = parseNavigationContentCached(trimmed);
+
+                if (parsed.length === 0) {
+                    return EMPTY_RECORDS as readonly unknown[];
+                }
+
+                return getDecoratedBlocks(kind, name, id, parsed);
+            }
+
+            if (typeof content !== 'object') {
                 return EMPTY_RECORDS as readonly unknown[];
             }
 
             const serverBlocks = (content as { blocks?: unknown }).blocks;
 
-            if (!Array.isArray(serverBlocks)) {
-                return EMPTY_RECORDS as readonly unknown[];
+            // Prefer a non-empty server-shipped `blocks` array — it's
+            // the lossless form. An EMPTY `blocks` array alongside a
+            // populated `raw` string can happen when the projection
+            // is still catching up (e.g. a `wp_navigation` envelope
+            // that didn't run the items → blocks step but kept the
+            // serialized markup); fall through to the raw parser in
+            // that case so the canvas still renders the menu items.
+            if (Array.isArray(serverBlocks) && serverBlocks.length > 0) {
+                return getDecoratedBlocks(
+                    kind,
+                    name,
+                    id,
+                    serverBlocks as readonly unknown[],
+                );
             }
 
-            return getDecoratedBlocks(
-                kind,
-                name,
-                id,
-                serverBlocks as readonly unknown[],
-            );
+            const raw = (content as { raw?: unknown }).raw;
+
+            if (typeof raw === 'string' && raw.trim() !== '') {
+                const parsed = parseNavigationContentCached(raw.trim());
+
+                if (parsed.length > 0) {
+                    return getDecoratedBlocks(kind, name, id, parsed);
+                }
+            }
+
+            return EMPTY_RECORDS as readonly unknown[];
         },
         [kind, name, id]
     );
 
     return [blocks, noopSetter, noopSetter];
+}
+
+/**
+ * Memoize `parseNavigationContent` so identical raw strings return the
+ * same array reference. `getDecoratedBlocks` uses reference equality to
+ * decide whether to re-mint `clientId`s; without this cache, every read
+ * produced a fresh parsed array, the decoration cache missed, and
+ * `clientId`s churned each render — Gutenberg saw "new" blocks and
+ * re-mounted the inner-block subtree on every paint.
+ */
+const parsedNavigationContentCache = new Map<string, readonly unknown[]>();
+
+function parseNavigationContentCached(raw: string): readonly unknown[] {
+    const cached = parsedNavigationContentCache.get(raw);
+
+    if (cached !== undefined) {
+        return cached;
+    }
+
+    const parsed = parseNavigationContent(raw) as readonly unknown[];
+    parsedNavigationContentCache.set(raw, parsed);
+
+    return parsed;
 }
 
 interface ServerBlock {

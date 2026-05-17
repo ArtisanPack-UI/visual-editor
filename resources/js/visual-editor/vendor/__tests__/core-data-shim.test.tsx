@@ -905,6 +905,27 @@ describe('core-data-shim save round-trip', () => {
             ),
         ).not.toBeNull();
     });
+
+    it('saveEditedEntityRecord bails out when there is no base record AND no staged edits (Keystone #48)', async () => {
+        // `getEditedEntityRecord` returns `{}` for an unresolved
+        // record so synchronous reads on the nav block don't crash on
+        // `.status`. A pre-fix `saveEditedEntityRecord` would treat
+        // that `{}` as a real edited record and PUT `{ id }` to the
+        // server — a write that should never have happened. Confirm
+        // the guard now bails before fetching.
+        const { fetcher, calls } = mockFetcher(async () => jsonResponse({}));
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        const saved = await coreDispatch().saveEditedEntityRecord(
+            'postType',
+            'wp_template',
+            999_999,
+        );
+
+        expect(saved).toBeNull();
+        expect(calls).toHaveLength(0);
+    });
 });
 
 describe('core-data-shim delete + evict', () => {
@@ -1322,6 +1343,55 @@ describe('core-data-shim hooks', () => {
         expect(typeof blocks[0].innerBlocks[0].clientId).toBe('string');
     });
 
+    it('useEntityBlockEditor parses a flattened string `content` payload (Keystone #48)', () => {
+        // `getEditedEntityRecord` runs `flattenRawProperties` over
+        // the cached record, so a server envelope of
+        // `{ content: { raw, blocks } }` becomes a plain string by
+        // the time the nav block reads it. For `wp_navigation` we
+        // need to parse that string into the block tree the canvas
+        // renders — otherwise the picker shows "is empty" even when
+        // the menu has items.
+        coreDispatch().receiveEntityRecords('postType', 'wp_navigation', [
+            {
+                id: 42,
+                slug: 'primary',
+                title: { raw: 'Primary', rendered: 'Primary' },
+                status: 'publish',
+                type: 'wp_navigation',
+                // Bare string `content` — exercises the flattened
+                // fallback branch (we now skip flattening for the
+                // canonical wp_navigation read, but the parser still
+                // has to cope when an upstream caller hands us the
+                // string directly).
+                content:
+                    '<!-- wp:navigation-link {"label":"Home","url":"/"} /-->\n' +
+                    '<!-- wp:navigation-submenu {"label":"About"} -->\n' +
+                    '<!-- wp:navigation-link {"label":"Team"} /-->\n' +
+                    '<!-- /wp:navigation-submenu -->',
+            },
+        ]);
+
+        const [blocks] = renderHook(() =>
+            useEntityBlockEditor('postType', 'wp_navigation', { id: 42 }),
+        ) as readonly Array<{
+            name: string;
+            clientId: string;
+            attributes: Record<string, unknown>;
+            innerBlocks: ReadonlyArray<{ name: string; attributes: Record<string, unknown> }>;
+        }>;
+
+        expect(blocks).toHaveLength(2);
+        expect(blocks[0].name).toBe('core/navigation-link');
+        expect(blocks[0].attributes).toEqual({ label: 'Home', url: '/' });
+        expect(typeof blocks[0].clientId).toBe('string');
+
+        expect(blocks[1].name).toBe('core/navigation-submenu');
+        expect(blocks[1].attributes).toEqual({ label: 'About' });
+        expect(blocks[1].innerBlocks).toHaveLength(1);
+        expect(blocks[1].innerBlocks[0].name).toBe('core/navigation-link');
+        expect(blocks[1].innerBlocks[0].attributes).toEqual({ label: 'Team' });
+    });
+
     it('flattens {raw, rendered} fields on getRawEntityRecord and getEditedEntityRecord', () => {
         coreDispatch().receiveEntityRecords('postType', 'wp_block', [
             {
@@ -1345,7 +1415,14 @@ describe('core-data-shim hooks', () => {
         ) as { title?: unknown; content?: unknown };
 
         expect(raw.title).toBe('Flatten Me');
-        expect(raw.content).toBe('<!-- raw content -->');
+        // `content` is intentionally preserved as the `{ raw, blocks }`
+        // object shape — Gutenberg's `core/navigation` edit reads
+        // `editedRecord.content.raw` directly, and flattening it to a
+        // bare string broke the nav block's load path (Keystone #48).
+        expect(raw.content).toEqual({
+            raw: '<!-- raw content -->',
+            blocks: [],
+        });
 
         const edited = coreSelect().getEditedEntityRecord(
             'postType',
@@ -1354,6 +1431,23 @@ describe('core-data-shim hooks', () => {
         ) as { title?: unknown };
 
         expect(edited.title).toBe('Flatten Me');
+    });
+
+    it('getEditedEntityRecord returns {} instead of null when nothing is cached (Keystone #48)', () => {
+        // Gutenberg's `core/navigation` block (use-navigation-menu.mjs)
+        // reads `record.status === "publish"` synchronously during
+        // render. A `null` return crashed the block before the async
+        // fetch resolver could settle. WP core returns `{}` in this
+        // case; the shim now matches.
+        const record = coreSelect().getEditedEntityRecord(
+            'postType',
+            'wp_navigation',
+            999_999,
+        );
+
+        expect(record).toEqual({});
+        // Belt-and-suspenders: `.status` is safely accessible.
+        expect((record as { status?: string }).status).toBeUndefined();
     });
 
     it('useEntityRecords surfaces the list-cache and resolves through fetchEntityRecords', async () => {
