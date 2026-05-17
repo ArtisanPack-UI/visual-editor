@@ -126,10 +126,23 @@ class NavigationBlockRefResolver
 			return $attributes;
 		}
 
-		return [
+		// Strip `__unstableLocation` after stamping `ref`. Gutenberg's
+		// current `core/navigation` block prefers `__unstableLocation`
+		// when both attributes are set and falls back to its own
+		// (broken in our environment) location-lookup pipeline; leaving
+		// the attribute in place sent the picker down that path and
+		// kept `useEntityBlockEditor` being called with `id: null`
+		// despite the `ref` sitting right next to it. Removing
+		// `__unstableLocation` forces the block to read `ref`
+		// directly — the path our shim hydrates from.
+		$resolved = [
 			...$attributes,
 			'ref' => $menuId,
 		];
+
+		unset( $resolved['__unstableLocation'] );
+
+		return $resolved;
 	}
 
 	/**

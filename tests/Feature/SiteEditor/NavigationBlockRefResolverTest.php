@@ -96,10 +96,12 @@ describe( 'NavigationBlockRefResolver — DB-backed resolution', function (): vo
 		$resolved = ( new NavigationBlockRefResolver() )->resolve( $blocks, 'jmwd-default' );
 
 		expect( $resolved[0]['attributes']['ref'] )->toBe( $menu->id );
-		// Original __unstableLocation stays in place — it's harmless
-		// once `ref` is set, and removing it would surprise anyone
-		// who happens to read the block attributes afterward.
-		expect( $resolved[0]['attributes']['__unstableLocation'] )->toBe( 'primary' );
+		// `__unstableLocation` is stripped after stamping `ref`.
+		// Leaving it in place sent Gutenberg's nav block down its
+		// own (broken in our environment) location-lookup path and
+		// kept the picker showing "This Navigation Menu is empty"
+		// even with a perfectly good `ref` next to it.
+		expect( $resolved[0]['attributes'] )->not->toHaveKey( '__unstableLocation' );
 	} );
 
 	it( 'resolves nav blocks nested inside other blocks', function (): void {
