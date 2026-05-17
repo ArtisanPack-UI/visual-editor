@@ -28,6 +28,7 @@ use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
+use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use Illuminate\Contracts\View\View;
@@ -53,6 +54,7 @@ class BlocksComponent extends Component
 		protected TemplatePartInliner $inliner,
 		protected PatternInliner $patternInliner,
 		protected QueryInliner $queryInliner,
+		protected NavigationBlockRefResolver $navigationResolver,
 		protected GlobalStylesEmissionResolver $globalStyles,
 		protected GlobalStylesEmissionTracker $emissionTracker,
 		mixed $tree = null,
@@ -60,6 +62,7 @@ class BlocksComponent extends Component
 		bool $resolveParts = true,
 		bool $resolvePatterns = true,
 		bool $resolveQueries = true,
+		bool $resolveNavigation = true,
 	) {
 		$this->defaultTheme = $defaultTheme;
 
@@ -76,10 +79,25 @@ class BlocksComponent extends Component
 			? $this->patternInliner->inline( $resolved )
 			: $resolved;
 
-		// Query inlining runs last so a `core/query` block inside a
-		// resolved template part / pattern still gets its loop expanded.
-		$this->tree = $resolveQueries
+		// Query inlining runs before nav-block resolution so a `core/query`
+		// loop with a navigation block inside it (rare but legal) still
+		// gets each cloned nav block resolved to its menu items.
+		$resolved = $resolveQueries
 			? $this->queryInliner->inline( $resolved )
+			: $resolved;
+
+		// Navigation resolution mirrors the editor's read path
+		// (Keystone #48 → #51): `core/navigation` blocks ship with
+		// `__unstableLocation` and/or `ref` but empty `innerBlocks`.
+		// The resolver stamps `ref` from a `(theme, location)` lookup,
+		// strips the legacy attr, and projects the menu's `menu_items`
+		// into the block's `innerBlocks` so the existing
+		// `core/navigation` Blade view renders the items as
+		// `<li><a>` markup without any per-renderer menu-lookup glue.
+		// No-ops cleanly when `$defaultTheme` is null or cms-framework
+		// isn't installed.
+		$this->tree = ( $resolveNavigation && null !== $defaultTheme )
+			? $this->navigationResolver->resolve( $resolved, $defaultTheme )
 			: $resolved;
 	}
 

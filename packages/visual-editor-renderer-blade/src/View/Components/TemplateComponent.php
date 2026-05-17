@@ -31,6 +31,7 @@ namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 
 use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
+use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
@@ -67,6 +68,7 @@ class TemplateComponent extends Component
 		protected BlockRenderer $renderer,
 		protected TemplatePartInliner $inliner,
 		protected PatternInliner $patternInliner,
+		protected NavigationBlockRefResolver $navigationResolver,
 		protected Application $app,
 		protected GlobalStylesEmissionResolver $globalStyles,
 		protected GlobalStylesEmissionTracker $emissionTracker,
@@ -92,7 +94,14 @@ class TemplateComponent extends Component
 
 		$inlinedParts    = $this->inliner->inline( $blocks, $theme );
 		$inlinedPatterns = $this->patternInliner->inline( $inlinedParts );
-		$this->html      = $renderer->render( $inlinedPatterns );
+
+		// Navigation resolution — see `BlocksComponent` for the
+		// full rationale. Keystone #51 (the front-end pair to #48).
+		$resolvedNav = null !== $theme
+			? $this->navigationResolver->resolve( $inlinedPatterns, $theme )
+			: $inlinedPatterns;
+
+		$this->html = $renderer->render( $resolvedNav );
 	}
 
 	public function render(): View
