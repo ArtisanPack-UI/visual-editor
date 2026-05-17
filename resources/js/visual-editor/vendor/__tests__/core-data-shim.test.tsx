@@ -905,6 +905,27 @@ describe('core-data-shim save round-trip', () => {
             ),
         ).not.toBeNull();
     });
+
+    it('saveEditedEntityRecord bails out when there is no base record AND no staged edits (Keystone #48)', async () => {
+        // `getEditedEntityRecord` returns `{}` for an unresolved
+        // record so synchronous reads on the nav block don't crash on
+        // `.status`. A pre-fix `saveEditedEntityRecord` would treat
+        // that `{}` as a real edited record and PUT `{ id }` to the
+        // server — a write that should never have happened. Confirm
+        // the guard now bails before fetching.
+        const { fetcher, calls } = mockFetcher(async () => jsonResponse({}));
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        const saved = await coreDispatch().saveEditedEntityRecord(
+            'postType',
+            'wp_template',
+            999_999,
+        );
+
+        expect(saved).toBeNull();
+        expect(calls).toHaveLength(0);
+    });
 });
 
 describe('core-data-shim delete + evict', () => {

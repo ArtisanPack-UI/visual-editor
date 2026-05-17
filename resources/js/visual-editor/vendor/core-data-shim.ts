@@ -1238,6 +1238,11 @@ interface ThunkArgs {
             name: EntityName,
             id: EntityKey,
         ) => EntityRecord | null;
+        getEntityRecordEdits: (
+            kind: EntityKind,
+            name: EntityName,
+            id: EntityKey,
+        ) => EntityRecord | null;
     };
 }
 
@@ -1523,11 +1528,23 @@ const actions = {
     saveEditedEntityRecord:
         (kind: EntityKind, name: EntityName, id: EntityKey) =>
         async ({ dispatch, select }: ThunkArgs): Promise<EntityRecord | null> => {
-            const edited = select.getEditedEntityRecord(kind, name, id);
+            // `getEditedEntityRecord` returns `{}` for an unresolved
+            // record so synchronous reads on the nav block (and other
+            // entity-backed Edit components) don't crash on
+            // `record.status` (Keystone #48). That makes a bare
+            // `=== null` check insufficient here — `{}` would slip
+            // through and trigger a spurious PUT `{ id }` payload
+            // for a record nothing has loaded or edited. Probe the
+            // underlying base + edits explicitly instead, so we only
+            // serialize a save when there's something to save.
+            const base = select.getEntityRecord(kind, name, id);
+            const edits = select.getEntityRecordEdits(kind, name, id);
 
-            if (edited === null) {
+            if (base === null && (edits === null || Object.keys(edits).length === 0)) {
                 return null;
             }
+
+            const edited = select.getEditedEntityRecord(kind, name, id);
 
             const config = select.getEntityConfig(kind, name);
             const payload: EntityRecord = config

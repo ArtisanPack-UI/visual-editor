@@ -213,9 +213,20 @@ class NavigationBlockRefResolver
 	protected function stampNavRef( array $attributes, string $theme ): array
 	{
 		// Honor an existing `ref` — the author already chose a menu
-		// explicitly, so resolution shouldn't override it.
+		// explicitly, so resolution shouldn't override it. Still
+		// strip `__unstableLocation` if it's sitting beside the
+		// `ref`: Gutenberg's current `core/navigation` block prefers
+		// the legacy location attribute over `ref` when both are
+		// present and falls back to its own (broken in our
+		// environment) location-lookup pipeline. Leaving it in place
+		// kept blocks authored with both attributes on the wrong
+		// resolution path and never hydrated from the explicit menu
+		// the author chose.
 		if ( isset( $attributes['ref'] ) && is_numeric( $attributes['ref'] ) ) {
-			return $attributes;
+			$resolved = $attributes;
+			unset( $resolved['__unstableLocation'] );
+
+			return $resolved;
 		}
 
 		$location = $attributes['__unstableLocation'] ?? null;

@@ -34,7 +34,7 @@ describe( 'NavigationBlockRefResolver — tree shaping (no DB)', function (): vo
 		expect( $resolved )->toBe( $blocks );
 	} );
 
-	it( 'leaves an existing ref alone when both ref and __unstableLocation are present', function (): void {
+	it( 'leaves an existing ref alone when both ref and __unstableLocation are present, but strips the legacy location attr', function (): void {
 		$blocks = [
 			[
 				'name'        => 'core/navigation',
@@ -46,6 +46,12 @@ describe( 'NavigationBlockRefResolver — tree shaping (no DB)', function (): vo
 		$resolved = ( new NavigationBlockRefResolver() )->resolve( $blocks, 'jmwd-default' );
 
 		expect( $resolved[0]['attributes']['ref'] )->toBe( 99 );
+		// `__unstableLocation` is stripped even when `ref` is preset.
+		// Gutenberg's nav block prefers `__unstableLocation` over `ref`
+		// when both are present, so leaving it in place would send a
+		// block-with-explicit-ref down the broken location-lookup
+		// path. CodeRabbit follow-up on #459.
+		expect( $resolved[0]['attributes'] )->not->toHaveKey( '__unstableLocation' );
 	} );
 
 	it( 'leaves a nav block without __unstableLocation alone', function (): void {
