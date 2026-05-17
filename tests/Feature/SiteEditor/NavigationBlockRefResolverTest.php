@@ -12,6 +12,7 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\Menu;
+use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\MenuItem;
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Models\MenuLocationAssignment;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use Tests\Concerns\WithCmsFramework;
@@ -192,5 +193,54 @@ describe( 'NavigationBlockRefResolver — DB-backed resolution', function (): vo
 		foreach ( $resolved as $block ) {
 			expect( $block['attributes']['ref'] )->toBe( $menu->id );
 		}
+	} );
+
+	it( 'populates innerBlocks from the menu items when the nav block tree is empty', function (): void {
+		// Gutenberg's nav block reads its children from the block tree
+		// itself, not from an entity record — so without populated
+		// innerBlocks the canvas renders an empty nav and the
+		// inspector shows "is empty" even when menu_items has rows.
+		$menu = Menu::create( [ 'theme' => 'jmwd-default', 'slug' => 'primary', 'name' => 'Primary' ] );
+		MenuLocationAssignment::create( [ 'theme' => 'jmwd-default', 'location' => 'primary', 'menu_id' => $menu->id ] );
+
+		$menu->items()->create( [ 'parent_id' => null, 'position' => 0, 'type' => 'link', 'label' => 'Home', 'url' => '/' ] );
+		$menu->items()->create( [ 'parent_id' => null, 'position' => 1, 'type' => 'link', 'label' => 'Services', 'url' => '/services' ] );
+
+		$blocks = [
+			[
+				'name'        => 'core/navigation',
+				'attributes'  => [ '__unstableLocation' => 'primary' ],
+				'innerBlocks' => [],
+			],
+		];
+
+		$resolved = ( new NavigationBlockRefResolver() )->resolve( $blocks, 'jmwd-default' );
+
+		$inner = $resolved[0]['innerBlocks'];
+		expect( $inner )->toHaveCount( 2 );
+		expect( $inner[0]['name'] )->toBe( 'core/navigation-link' );
+		expect( $inner[0]['attributes']['label'] )->toBe( 'Home' );
+		expect( $inner[1]['attributes']['label'] )->toBe( 'Services' );
+	} );
+
+	it( 'leaves existing innerBlocks alone when the author has already authored child blocks', function (): void {
+		$menu = Menu::create( [ 'theme' => 'jmwd-default', 'slug' => 'primary', 'name' => 'Primary' ] );
+		MenuLocationAssignment::create( [ 'theme' => 'jmwd-default', 'location' => 'primary', 'menu_id' => $menu->id ] );
+		$menu->items()->create( [ 'parent_id' => null, 'position' => 0, 'type' => 'link', 'label' => 'From DB', 'url' => '/' ] );
+
+		$blocks = [
+			[
+				'name'        => 'core/navigation',
+				'attributes'  => [ '__unstableLocation' => 'primary' ],
+				'innerBlocks' => [
+					[ 'name' => 'core/navigation-link', 'attributes' => [ 'label' => 'Already authored' ], 'innerBlocks' => [] ],
+				],
+			],
+		];
+
+		$resolved = ( new NavigationBlockRefResolver() )->resolve( $blocks, 'jmwd-default' );
+
+		expect( $resolved[0]['innerBlocks'] )->toHaveCount( 1 );
+		expect( $resolved[0]['innerBlocks'][0]['attributes']['label'] )->toBe( 'Already authored' );
 	} );
 } );

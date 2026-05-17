@@ -40,6 +40,8 @@ class NavigationBlockRefResolver
 
 	protected const ASSIGNMENT_FQCN = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\MenuLocationAssignment';
 
+	protected const MENU_FQCN = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\Menu';
+
 	/**
 	 * Per-instance cache. Keys are `{theme}|{location}` so a render
 	 * across multiple themes (vanishingly rare in V1) doesn't collide.
@@ -49,6 +51,15 @@ class NavigationBlockRefResolver
 	 * @var array<string, int|null>
 	 */
 	protected array $cache = [];
+
+	/**
+	 * Per-instance cache of menu-item projections, keyed by menu id so
+	 * a tree with multiple nav blocks pointed at the same menu doesn't
+	 * re-fetch / re-project for each one.
+	 *
+	 * @var array<int, array<int, array<string, mixed>>>
+	 */
+	protected array $blocksByMenuId = [];
 
 	/**
 	 * Walk a block tree and return a new tree with resolved refs.
@@ -83,12 +94,28 @@ class NavigationBlockRefResolver
 		$innerBlocks = is_array( $block['innerBlocks'] ?? null ) ? $block['innerBlocks'] : [];
 
 		$resolvedAttributes = $attributes;
+		$resolvedInner      = [] === $innerBlocks ? $innerBlocks : $this->resolve( $innerBlocks, $theme );
 
 		if ( self::NAV_BLOCK_NAME === ( $block['name'] ?? null ) ) {
 			$resolvedAttributes = $this->stampNavRef( $attributes, $theme );
-		}
 
-		$resolvedInner = [] === $innerBlocks ? $innerBlocks : $this->resolve( $innerBlocks, $theme );
+			// Stamp the menu's items as the nav block's innerBlocks
+			// when we resolved a `ref` (or the author had one) AND
+			// the block tree is currently empty. Gutenberg's nav
+			// block reads its children from the block tree (via the
+			// block-editor data store), not from any entity record —
+			// so without populated innerBlocks the canvas renders an
+			// empty nav block + the inspector shows "This Navigation
+			// Menu is empty." even when the menu has rows in
+			// `menu_items` (Keystone #48).
+			$refId = is_numeric( $resolvedAttributes['ref'] ?? null )
+				? (int) $resolvedAttributes['ref']
+				: null;
+
+			if ( null !== $refId && [] === $resolvedInner ) {
+				$resolvedInner = $this->menuItemsAsBlocks( $refId );
+			}
+		}
 
 		if ( $resolvedAttributes === $attributes && $resolvedInner === $innerBlocks ) {
 			return $block;
@@ -99,6 +126,49 @@ class NavigationBlockRefResolver
 			'attributes'  => $resolvedAttributes,
 			'innerBlocks' => $resolvedInner,
 		];
+	}
+
+	/**
+	 * Project the menu's `menu_items` rows into the nav-block tree
+	 * shape (`core/navigation-link` / `core/navigation-submenu`) the
+	 * editor expects. Reuses {@see MenuItemBlockBridge::itemsToBlocks}
+	 * so the projection stays in lockstep with the front-end render
+	 * path.
+	 *
+	 * Cached per-menu-id so a tree with multiple nav blocks pointed
+	 * at the same menu only fetches once. Returns an empty array
+	 * when cms-framework isn't installed or the menu isn't found.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function menuItemsAsBlocks( int $menuId ): array
+	{
+		if ( array_key_exists( $menuId, $this->blocksByMenuId ) ) {
+			return $this->blocksByMenuId[ $menuId ];
+		}
+
+		if ( ! class_exists( self::MENU_FQCN ) ) {
+			$this->blocksByMenuId[ $menuId ] = [];
+
+			return [];
+		}
+
+		$model = self::MENU_FQCN;
+		$menu  = $model::query()->with( 'items' )->find( $menuId );
+
+		if ( null === $menu ) {
+			$this->blocksByMenuId[ $menuId ] = [];
+
+			return [];
+		}
+
+		$blocks = ( new MenuItemBlockBridge() )->itemsToBlocks( $menu->items );
+
+		$this->blocksByMenuId[ $menuId ] = $blocks;
+
+		return $blocks;
 	}
 
 	/**
