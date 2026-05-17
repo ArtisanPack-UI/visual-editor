@@ -1392,7 +1392,14 @@ describe('core-data-shim hooks', () => {
         ) as { title?: unknown; content?: unknown };
 
         expect(raw.title).toBe('Flatten Me');
-        expect(raw.content).toBe('<!-- raw content -->');
+        // `content` is intentionally preserved as the `{ raw, blocks }`
+        // object shape — Gutenberg's `core/navigation` edit reads
+        // `editedRecord.content.raw` directly, and flattening it to a
+        // bare string broke the nav block's load path (Keystone #48).
+        expect(raw.content).toEqual({
+            raw: '<!-- raw content -->',
+            blocks: [],
+        });
 
         const edited = coreSelect().getEditedEntityRecord(
             'postType',

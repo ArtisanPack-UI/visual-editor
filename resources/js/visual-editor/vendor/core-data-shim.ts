@@ -854,6 +854,22 @@ function flattenRawProperties(record: EntityRecord): EntityRecord {
         if (value !== null && typeof value === 'object') {
             const shape = value as { raw?: unknown; rendered?: unknown };
 
+            // `content` for `wp_navigation` (and `wp_template` / `wp_block`)
+            // ships as `{ raw, blocks }`. Gutenberg's `core/navigation`
+            // edit component reads `editedRecord.content.raw` (object
+            // shape) to feed its parser; flattening it down to a bare
+            // string here breaks that read — `content.raw` becomes
+            // `undefined`, the block treats the menu as empty, and the
+            // canvas's projected innerBlocks get wiped on the next
+            // render. Preserve the object shape for `content`
+            // specifically (Keystone #48); other fields with the
+            // `{raw, rendered}` shape (`title`, `description`) keep
+            // their flatten so consumers can read them as strings.
+            if (key === 'content') {
+                out[key] = value;
+                continue;
+            }
+
             if (typeof shape.raw === 'string') {
                 out[key] = shape.raw;
                 continue;
