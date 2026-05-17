@@ -101,6 +101,57 @@ it( 'passes the nav-block tree through unchanged when cms-framework is not insta
 		->toContain( '<ul class="wp-block-navigation__container"></ul>' );
 } );
 
+it( 'emits items-justified-* class from layout.justifyContent (Keystone #52)', function () {
+	// Gutenberg writes the modern flex-layout justification to
+	// `attributes.layout.justifyContent`. The legacy top-level
+	// `itemsJustification` attribute is still emitted by some older
+	// saves. Honor both, modern path winning, so a nav block aligned
+	// right in the editor canvas aligns right on the front-end too.
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [
+				'layout' => [ 'type' => 'flex', 'justifyContent' => 'right' ],
+			],
+			'innerBlocks' => [
+				[
+					'clientId'    => 'l-1',
+					'name'        => 'core/navigation-link',
+					'attributes'  => [ 'label' => 'Home', 'url' => '/' ],
+					'innerBlocks' => [],
+				],
+			],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )->toContain( 'items-justified-right' );
+} );
+
+it( 'falls back to the legacy itemsJustification attribute when layout.justifyContent is absent (Keystone #52)', function () {
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [ 'itemsJustification' => 'center' ],
+			'innerBlocks' => [
+				[
+					'clientId'    => 'l-1',
+					'name'        => 'core/navigation-link',
+					'attributes'  => [ 'label' => 'Home', 'url' => '/' ],
+					'innerBlocks' => [],
+				],
+			],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )->toContain( 'items-justified-center' );
+} );
+
 it( 'preserves authored innerBlocks on a nav block instead of overwriting them (Keystone #51)', function () {
 	// A nav block authored with explicit nav-links keeps them — the
 	// resolver only projects menu items when the tree is empty.
