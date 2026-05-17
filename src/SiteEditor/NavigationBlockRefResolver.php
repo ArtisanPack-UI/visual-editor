@@ -34,6 +34,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\SiteEditor;
 
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 
 class NavigationBlockRefResolver
@@ -163,7 +164,15 @@ class NavigationBlockRefResolver
 			$menu = $model::query()->with( 'items' )->find( $menuId );
 		} catch ( \Throwable $e ) {
 			// Same partial-install / missing-table defense as
-			// `lookupMenuIdForLocation` — Keystone #51.
+			// `lookupMenuIdForLocation` — Keystone #51. Log the
+			// failure so a real DB problem (lost connection,
+			// permissions, schema drift) doesn't hide behind the
+			// "missing table" fallback in production.
+			Log::warning( 'NavigationBlockRefResolver: failed to load menu items', [
+				'menu_id'   => $menuId,
+				'exception' => $e->getMessage(),
+			] );
+
 			$this->blocksByMenuId[ $menuId ] = [];
 
 			return [];
@@ -300,7 +309,15 @@ class NavigationBlockRefResolver
 				// not run yet (fresh install, test environment without
 				// the menus tables, partial deploy). Treat as
 				// "unassigned" rather than blowing up the front-end
-				// render — Keystone #51.
+				// render — Keystone #51. Log the failure so a real
+				// DB problem doesn't hide behind the missing-table
+				// fallback in production.
+				Log::warning( 'NavigationBlockRefResolver: failed to look up menu location', [
+					'theme'     => $theme,
+					'location'  => $location,
+					'exception' => $e->getMessage(),
+				] );
+
 				$this->cache[ $cacheKey ] = null;
 
 				return null;
