@@ -221,6 +221,18 @@ describe( 'NavigationBlockRefResolver — DB-backed resolution', function (): vo
 		expect( $inner[0]['name'] )->toBe( 'core/navigation-link' );
 		expect( $inner[0]['attributes']['label'] )->toBe( 'Home' );
 		expect( $inner[1]['attributes']['label'] )->toBe( 'Services' );
+
+		// Each projected block must carry a `clientId` + `isValid: true`
+		// so Gutenberg's block-editor data store accepts it on receive.
+		// Other blocks in the response (group, columns, etc.) carry
+		// these because cms-framework's seed applier stamps them at
+		// write time; the runtime projection has to match or the whole
+		// tree fails to mount silently with no console error.
+		foreach ( $inner as $block ) {
+			expect( $block )->toHaveKey( 'clientId' );
+			expect( $block['clientId'] )->toBeString()->not->toBe( '' );
+			expect( $block['isValid'] )->toBeTrue();
+		}
 	} );
 
 	it( 'leaves existing innerBlocks alone when the author has already authored child blocks', function (): void {

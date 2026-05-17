@@ -34,6 +34,8 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\SiteEditor;
 
+use Illuminate\Support\Str;
+
 class NavigationBlockRefResolver
 {
 	protected const NAV_BLOCK_NAME = 'core/navigation';
@@ -164,11 +166,43 @@ class NavigationBlockRefResolver
 			return [];
 		}
 
-		$blocks = ( new MenuItemBlockBridge() )->itemsToBlocks( $menu->items );
+		$blocks = $this->stampMetadata(
+			( new MenuItemBlockBridge() )->itemsToBlocks( $menu->items ),
+		);
 
 		$this->blocksByMenuId[ $menuId ] = $blocks;
 
 		return $blocks;
+	}
+
+	/**
+	 * Stamp `clientId` + `isValid` on every block in the projected
+	 * tree. The other blocks in a template-part response carry these
+	 * because cms-framework's seed applier stamps them at write time;
+	 * our runtime projection has to mirror that or Gutenberg's
+	 * block-editor data store rejects the malformed nodes during
+	 * receive and the entire tree fails to mount silently (no
+	 * console error, just an empty canvas). Keystone #48.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<int, array<string, mixed>>  $blocks
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function stampMetadata( array $blocks ): array
+	{
+		return array_map(
+			fn ( array $block ): array => [
+				...$block,
+				'clientId'    => (string) ( $block['clientId'] ?? Str::uuid() ),
+				'isValid'     => true,
+				'innerBlocks' => $this->stampMetadata(
+					is_array( $block['innerBlocks'] ?? null ) ? $block['innerBlocks'] : [],
+				),
+			],
+			$blocks,
+		);
 	}
 
 	/**
