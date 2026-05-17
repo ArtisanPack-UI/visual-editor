@@ -2053,7 +2053,16 @@ export function useEntityBlockEditor(
     (blocks: readonly unknown[]) => void,
     (blocks: readonly unknown[]) => void,
 ] {
-    const id = options?.id ?? null;
+    // Upstream `core/navigation` (and other entity-backed blocks) wrap
+    // their inner blocks in `<EntityProvider id={ref}>` and call
+    // `useEntityBlockEditor(kind, name)` with NO explicit id — relying
+    // on the ambient `EntityProvider` context. Fall back to that id
+    // when `options.id` is missing so the hook resolves to the right
+    // record (Keystone #48). The diagnostic logs that surfaced this
+    // showed every call coming in as `{ id: null }`, which short-
+    // circuited the selector before it could read content.
+    const ambientId = useEntityId();
+    const id = options?.id ?? ambientId ?? null;
 
     const blocks = useSelect(
         (select) => {
