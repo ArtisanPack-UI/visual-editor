@@ -69,6 +69,18 @@ export interface BlockEditorBoundaryProps {
      */
     themeGlobalStylesCss?: string;
     /**
+     * Optional canvas-navigation callback. Some block-library actions
+     * (notably `core/navigation`'s Create Overlay flow) ask the editor
+     * to focus a freshly-created entity record by calling this hook
+     * with `{ postId, postType }`. The boundary forwards the callback
+     * into `BlockEditorProvider`'s `settings.onNavigateToEntityRecord`
+     * slot — without it, those flows succeed server-side but the
+     * editor shows no feedback. When the prop is omitted, the
+     * boundary installs a sensible default that swaps the SPA URL to
+     * `{routeBase}/template-parts/{slug-or-id}` (Keystone #55).
+     */
+    onNavigateToEntityRecord?: (target: NavigateToEntityRecordTarget) => void;
+    /**
      * Canvas and inspector slots. Both must be rendered as children so
      * they share this boundary's `core/block-editor` registry — even
      * when a section portals them into separate DOM nodes.
@@ -76,8 +88,88 @@ export interface BlockEditorBoundaryProps {
     children: ReactNode;
 }
 
+/**
+ * Shape `core/navigation`'s Create Overlay action (and any similar
+ * block-library flow) passes to {@see BlockEditorBoundaryProps.onNavigateToEntityRecord}.
+ *
+ * `postId` is a composite `{theme}//{slug}` id minted by the block
+ * library — that's the same shape our `getEntityRecord` resolver
+ * already understands (see `core-data-shim` composite-id handling).
+ */
+export interface NavigateToEntityRecordTarget {
+    postId: number | string;
+    postType: string;
+    viewport?: string;
+}
+
 export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Element {
-    const { blocks, onChange, onInput, apiBase, themeGlobalStylesCss, children } = props;
+    const {
+        blocks,
+        onChange,
+        onInput,
+        apiBase,
+        themeGlobalStylesCss,
+        onNavigateToEntityRecord,
+        children,
+    } = props;
+
+    // Default canvas-navigation handler — swaps the SPA URL when a
+    // block-library action asks us to focus a freshly-created entity.
+    // The host can pass an explicit `onNavigateToEntityRecord` to
+    // intercept (e.g., a router-aware push); when omitted, the boundary
+    // installs this fallback so flows like Create Overlay don't no-op
+    // (Keystone #55).
+    const navigateToEntityRecord = useMemo(() => {
+        if (onNavigateToEntityRecord !== undefined) {
+            return onNavigateToEntityRecord;
+        }
+
+        return (target: NavigateToEntityRecordTarget): void => {
+            if (typeof window === 'undefined') {
+                return;
+            }
+
+            // `postId` for template-parts arrives as a composite
+            // `{theme}//{slug}` from the block library — encode each
+            // segment so the slug part survives URL routing. We hand
+            // the composite to the SPA's existing template-parts route
+            // (`/admin/site-editor/template-parts/{path?}`); the
+            // host's site-editor controller serves the same shell for
+            // every sub-path and the SPA's client-side router takes
+            // over from there.
+            const postType = target.postType ?? '';
+            const segment =
+                postType === 'wp_template_part'
+                    ? 'template-parts'
+                    : postType === 'wp_template'
+                      ? 'templates'
+                      : '';
+
+            if (segment === '') {
+                return;
+            }
+
+            const rawId =
+                typeof target.postId === 'number'
+                    ? String(target.postId)
+                    : target.postId;
+            const id = encodeURIComponent(rawId);
+
+            // Resolve the route base from the editor mount's
+            // `data-route-base` attribute (the host's blade override
+            // sets this to `/admin/site-editor`). Fall back to a
+            // sensible default so a standalone install still navigates
+            // somewhere.
+            const mount = document.querySelector(
+                '[data-ap-visual-editor][data-route-base]'
+            );
+            const routeBase =
+                mount?.getAttribute('data-route-base') ??
+                '/visual-editor/site';
+
+            window.location.assign(`${routeBase}/${segment}/${id}`);
+        };
+    }, [onNavigateToEntityRecord]);
 
     // Tests can short-circuit the network by passing a string directly;
     // production drives the value through the hook keyed on `apiBase`.
@@ -113,7 +205,10 @@ export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Elemen
         const needsGradients = themeGradients !== null;
 
         if (!needsStyles && !needsPalette && !needsFontSizes && !needsGradients) {
-            return editorSettings;
+            return {
+                ...editorSettings,
+                onNavigateToEntityRecord: navigateToEntityRecord,
+            };
         }
 
         const nextStyles = needsStyles
@@ -128,6 +223,7 @@ export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Elemen
         return {
             ...editorSettings,
             styles: nextStyles,
+            onNavigateToEntityRecord: navigateToEntityRecord,
             // Mirror onto the legacy top-level keys too so older
             // blocks that still read `settings.colors` / `fontSizes`
             // pick up the theme's slugs.
@@ -160,7 +256,7 @@ export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Elemen
                     : baseTypography,
             },
         };
-    }, [themeCss, themeBase]);
+    }, [themeCss, themeBase, navigateToEntityRecord]);
 
     return (
         <SlotFillProvider>
