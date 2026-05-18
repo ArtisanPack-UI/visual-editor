@@ -26,6 +26,7 @@ import {
     BlockEditorProvider,
 } from '@wordpress/block-editor';
 import { Popover, SlotFillProvider } from '@wordpress/components';
+import { select as wpSelect } from '@wordpress/data';
 import { useMemo } from 'react';
 // `@wordpress/format-library` is a side-effect import: it registers the
 // core rich-text formats (bold, italic, link, …) so the block toolbar's
@@ -129,14 +130,6 @@ export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Elemen
                 return;
             }
 
-            // `postId` for template-parts arrives as a composite
-            // `{theme}//{slug}` from the block library — encode each
-            // segment so the slug part survives URL routing. We hand
-            // the composite to the SPA's existing template-parts route
-            // (`/admin/site-editor/template-parts/{path?}`); the
-            // host's site-editor controller serves the same shell for
-            // every sub-path and the SPA's client-side router takes
-            // over from there.
             const postType = target.postType ?? '';
             const segment =
                 postType === 'wp_template_part'
@@ -149,17 +142,23 @@ export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Elemen
                 return;
             }
 
-            const rawId =
-                typeof target.postId === 'number'
-                    ? String(target.postId)
-                    : target.postId;
-            const id = encodeURIComponent(rawId);
+            // `postId` arrives from Gutenberg as a composite
+            // `{theme}//{slug}` string. Hosts route by the entity's
+            // numeric DB id (e.g., `/template-parts/9`), so look the
+            // record up in our entity store and prefer its `id` field
+            // when one is set (`TemplatePartAdapter` ships
+            // `id = wpId` for DB-backed rows). Falls back to the raw
+            // composite when no record is cached — keeps the call
+            // testable and gives standalone installs a deterministic
+            // URL even without the entity registry warm.
+            const navigationId = resolveNavigationId(target.postId, postType);
 
             // Resolve the route base from the editor mount's
-            // `data-route-base` attribute (the host's blade override
-            // sets this to `/admin/site-editor`). Fall back to a
-            // sensible default so a standalone install still navigates
-            // somewhere.
+            // `data-route-base` attribute. Fall back to
+            // `/visual-editor/site` so a standalone install still
+            // navigates somewhere. Hosts that mount under a different
+            // admin shell (Keystone CMS: `/admin/site-editor`) set the
+            // attribute on their mount node.
             const mount = document.querySelector(
                 '[data-ap-visual-editor][data-route-base]'
             );
@@ -167,7 +166,7 @@ export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Elemen
                 mount?.getAttribute('data-route-base') ??
                 '/visual-editor/site';
 
-            window.location.assign(`${routeBase}/${segment}/${id}`);
+            window.location.assign(`${routeBase}/${segment}/${navigationId}`);
         };
     }, [onNavigateToEntityRecord]);
 
@@ -292,6 +291,57 @@ interface GradientEntry {
     slug: string;
     name: string;
     gradient: string;
+}
+
+/**
+ * Resolve the URL-safe id for a navigation target. Gutenberg's
+ * Create Overlay (and similar) hands the composite `{theme}//{slug}`
+ * id its block-library uses internally, but hosts route by the
+ * entity's numeric DB id (`/template-parts/9`). Look the record up
+ * in `@wordpress/data`'s `'core'` store (our shim) and prefer its
+ * `id` field — for DB-backed rows {@see TemplatePartAdapter} sets
+ * `id = wpId`, so the lookup returns the numeric primary key.
+ *
+ * Falls back to the raw composite when no record is cached — keeps
+ * the helper testable and gives standalone installs a deterministic
+ * URL even before the entity registry warms up.
+ *
+ * @since 1.1.0
+ */
+function resolveNavigationId(
+    postId: number | string,
+    postType: string,
+): string {
+    const composite = typeof postId === 'number' ? String(postId) : postId;
+
+    try {
+        const store = wpSelect( 'core' ) as
+            | {
+                  getEntityRecord?: (
+                      kind: string,
+                      name: string,
+                      id: number | string,
+                  ) => { id?: number | string } | null;
+              }
+            | undefined;
+
+        const record = store?.getEntityRecord?.(
+            'postType',
+            postType,
+            composite,
+        );
+        const resolved = record?.id;
+
+        if (typeof resolved === 'number' || typeof resolved === 'string') {
+            return encodeURIComponent(String(resolved));
+        }
+    } catch {
+        // Defensive — `@wordpress/data` might not have our store
+        // registered in some test contexts. Fall back to the raw
+        // composite below so navigation still produces a URL.
+    }
+
+    return encodeURIComponent(composite);
 }
 
 /**
