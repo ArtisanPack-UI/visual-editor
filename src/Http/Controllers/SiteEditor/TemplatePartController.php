@@ -124,17 +124,70 @@ class TemplatePartController extends Controller
 		// installs with no ThemeManager bound. Mirrors the theme
 		// inference applied to update()/destroy() in #438.
 		//
-		// `StoreTemplatePartRequest` requires `theme`, so the fallback
-		// is always a non-empty string — no empty-theme guard needed.
-		$validated['theme'] = $this->activeThemeSlug() ?? $validated['theme'];
+		// `theme` is `sometimes` on the request (Keystone #55 —
+		// Gutenberg's Create Overlay action POSTs without it), so we
+		// have to guard the empty-string case before write.
+		$validated['theme'] = $this->activeThemeSlug() ?? ( $validated['theme'] ?? '' );
+
+		if ( '' === $validated['theme'] ) {
+			return response()->json( [
+				'message' => 'The theme field is required when no theme is active.',
+				'errors'  => [ 'theme' => [ 'The theme field is required when no theme is active.' ] ],
+			], Response::HTTP_UNPROCESSABLE_ENTITY );
+		}
 
 		$model = self::CMS_TEMPLATE_PART_FQCN;
+
+		// Idempotency for Gutenberg's Create Overlay action — re-clicking
+		// the same nav block should NOT 409. Check for an existing
+		// (theme, slug) row first and hand it back with 200 instead.
+		// Mirrors WP core's REST behavior for re-creating identical
+		// parts (Keystone #55).
+		$existing = $model::query()
+			->where( 'theme', $validated['theme'] )
+			->where( 'slug', (string) ( $validated['slug'] ?? '' ) )
+			->first();
+
+		if ( null !== $existing ) {
+			$this->refreshResolver();
+			$resolved = $this->resolver->find( (string) $existing->slug );
+
+			if ( $resolved instanceof ResolvedTemplatePart ) {
+				return response()->json(
+					( new TemplatePartAdapter() )->toArray( $resolved ),
+					Response::HTTP_OK,
+				);
+			}
+		}
 
 		try {
 			/** @var object $part */
 			$part = $model::create( $this->modelAttributesFromRequest( $validated ) );
 		} catch ( QueryException $e ) {
 			if ( $this->isUniqueViolation( $e ) ) {
+				// Race-safe idempotency. The pre-check above catches the
+				// common case, but two concurrent Create Overlay clicks
+				// (or any duplicate POST) can both clear the pre-check
+				// and one of them collides on insert. Re-fetch the
+				// existing row and return the same 200 envelope the
+				// pre-check path would have surfaced (Keystone #55).
+				$existing = $model::query()
+					->where( 'theme', $validated['theme'] )
+					->where( 'slug', (string) ( $validated['slug'] ?? '' ) )
+					->first();
+
+				if ( null !== $existing ) {
+					$this->refreshResolver();
+					$resolved = $this->resolver->find( (string) $existing->slug );
+
+					if ( $resolved instanceof ResolvedTemplatePart ) {
+						return response()->json(
+							( new TemplatePartAdapter() )->toArray( $resolved ),
+							Response::HTTP_OK,
+						);
+					}
+				}
+
 				return response()->json( [
 					'message' => 'A template part with this slug already exists for the active theme.',
 					'errors'  => [ 'slug' => [ 'Slug must be unique within the theme.' ] ],

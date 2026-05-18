@@ -155,6 +155,65 @@ describe('BlockEditorBoundary', () => {
         expect(settings.styles[1]?.css).toBe(themeCss);
     });
 
+    it('exposes onNavigateToEntityRecord on the provider settings so the Create Overlay flow can switch the canvas (Keystone #55)', () => {
+        LATEST_SETTINGS.value = null;
+
+        render(
+            <BlockEditorBoundary
+                blocks={[]}
+                onChange={() => undefined}
+                onInput={() => undefined}
+                themeGlobalStylesCss=""
+            >
+                <div data-testid="canvas-slot" />
+            </BlockEditorBoundary>
+        );
+
+        const settings = LATEST_SETTINGS.value as {
+            onNavigateToEntityRecord?: (target: {
+                postId: string | number;
+                postType: string;
+            }) => void;
+        };
+
+        expect(typeof settings.onNavigateToEntityRecord).toBe('function');
+    });
+
+    it('honors a host-provided onNavigateToEntityRecord override instead of the default URL handler (Keystone #55)', () => {
+        LATEST_SETTINGS.value = null;
+        const hostHandler = vi.fn();
+
+        render(
+            <BlockEditorBoundary
+                blocks={[]}
+                onChange={() => undefined}
+                onInput={() => undefined}
+                themeGlobalStylesCss=""
+                onNavigateToEntityRecord={hostHandler}
+            >
+                <div data-testid="canvas-slot" />
+            </BlockEditorBoundary>
+        );
+
+        const settings = LATEST_SETTINGS.value as {
+            onNavigateToEntityRecord?: (target: {
+                postId: string | number;
+                postType: string;
+            }) => void;
+        };
+
+        settings.onNavigateToEntityRecord?.({
+            postId: 'jmwd-default//navigation-overlay',
+            postType: 'wp_template_part',
+        });
+
+        expect(hostHandler).toHaveBeenCalledTimes(1);
+        expect(hostHandler).toHaveBeenCalledWith({
+            postId: 'jmwd-default//navigation-overlay',
+            postType: 'wp_template_part',
+        });
+    });
+
     it('mounts the convert-to-pattern control when an apiBase is given', async () => {
         CONVERT_TO_PATTERN_CONTROL_MOCK.mockClear();
         resetThemeGlobalStylesCssCache();

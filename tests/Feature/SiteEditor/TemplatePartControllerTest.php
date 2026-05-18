@@ -216,7 +216,13 @@ describe( 'POST /visual-editor/api/template-parts', function (): void {
 		] )->assertStatus( 422 )->assertJsonValidationErrors( 'area' );
 	} );
 
-	it( 'returns 409 on duplicate (theme, slug)', function (): void {
+	it( 'idempotently returns the existing part with 200 when (theme, slug) already exists (Keystone #55)', function (): void {
+		// Gutenberg's Create Overlay action re-fires on each Click,
+		// even when the nav block already has an overlay. Previously
+		// the second click 409-ed, which the editor surfaced as a
+		// silent failure. The controller now returns the existing
+		// record with 200 so the editor's local cache picks it up
+		// transparently and the block stays consistent.
 		TemplatePart::create( [
 			'theme'         => 'digital-shopfront',
 			'slug'          => 'header',
@@ -228,12 +234,64 @@ describe( 'POST /visual-editor/api/template-parts', function (): void {
 			'author_id'     => null,
 		] );
 
-		$this->postJson( '/visual-editor/api/template-parts', [
+		$response = $this->postJson( '/visual-editor/api/template-parts', [
 			'slug'  => 'header',
 			'title' => 'Duplicate',
 			'area'  => 'header',
 			'theme' => 'digital-shopfront',
-		] )->assertStatus( 409 );
+		] );
+
+		$response->assertStatus( 200 );
+		$response->assertJsonPath( 'slug', 'header' );
+		// Original title preserved — the duplicate POST does NOT
+		// overwrite. Updates still go through PUT.
+		$response->assertJsonPath( 'title.raw', 'Header' );
+
+		// Only one row exists — no duplicate created.
+		expect( TemplatePart::query()->where( 'slug', 'header' )->count() )->toBe( 1 );
+	} );
+
+	it( 'accepts the exact payload Gutenberg posts for Create Overlay (Keystone #55)', function (): void {
+		// Live capture from `[#55] StoreTemplatePartRequest failed
+		// validation` — reproduces what the editor actually sends
+		// when the user clicks Create Overlay on a `core/navigation`
+		// block. Two non-obvious bits:
+		//
+		//  - `area: "navigation-overlay"` — Gutenberg's block-library
+		//    extends WP core's default areas via the
+		//    `block_template_part_areas` filter; the overlay flow
+		//    POSTs that exact value. Without it our enum rejected.
+		//  - `content` is a SERIALIZED STRING, not a `{raw, blocks}`
+		//    envelope. The store path now accepts string content via
+		//    the shared `ContentShapeRule`.
+		//
+		// No explicit `theme` field — the controller derives it from
+		// the active theme.
+		$this->postJson( '/visual-editor/api/template-parts', [
+			'slug'    => 'navigation-overlay',
+			'title'   => 'Navigation Overlay',
+			'content' => '<!-- wp:paragraph --><p></p><!-- /wp:paragraph -->',
+			'area'    => 'navigation-overlay',
+		] )->assertStatus( 201 )->assertJsonPath( 'area', 'navigation-overlay' );
+	} );
+
+	it( 'accepts area "uncategorized" so Gutenberg\'s Create Overlay action lands (Keystone #55)', function (): void {
+		$this->postJson( '/visual-editor/api/template-parts', [
+			'slug'  => 'navigation-overlay-test',
+			'title' => 'Overlay',
+			'area'  => 'uncategorized',
+			'theme' => 'digital-shopfront',
+		] )->assertStatus( 201 )->assertJsonPath( 'area', 'uncategorized' );
+	} );
+
+	it( 'creates the part without an explicit theme by falling back to the active theme (Keystone #55)', function (): void {
+		// Gutenberg's Create Overlay action POSTs without a `theme`
+		// field — the controller derives it from the active theme.
+		$this->postJson( '/visual-editor/api/template-parts', [
+			'slug'  => 'no-theme-overlay',
+			'title' => 'No Theme Overlay',
+			'area'  => 'uncategorized',
+		] )->assertStatus( 201 )->assertJsonPath( 'theme', 'digital-shopfront' );
 	} );
 } );
 
