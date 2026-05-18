@@ -154,19 +154,35 @@ export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Elemen
             const navigationId = resolveNavigationId(target.postId, postType);
 
             // Resolve the route base from the editor mount's
-            // `data-route-base` attribute. Fall back to
-            // `/visual-editor/site` so a standalone install still
-            // navigates somewhere. Hosts that mount under a different
-            // admin shell (Keystone CMS: `/admin/site-editor`) set the
-            // attribute on their mount node.
+            // `data-route-base` attribute. The Keystone CMS host
+            // sets `data-ap-site-editor` on its mount; standalone
+            // installs use `data-ap-visual-editor`. Match either so
+            // we don't have to know which host we're embedded in.
             const mount = document.querySelector(
-                '[data-ap-visual-editor][data-route-base]'
+                '[data-ap-site-editor][data-route-base], [data-ap-visual-editor][data-route-base]'
             );
             const routeBase =
                 mount?.getAttribute('data-route-base') ??
                 '/visual-editor/site';
 
-            window.location.assign(`${routeBase}/${segment}/${navigationId}`);
+            const targetPath = `${routeBase}/${segment}/${navigationId}`;
+
+            // Client-side navigation: the SPA's own routing hook
+            // (`useSiteEditorRouting`) listens for `popstate` and
+            // re-parses `window.location.pathname` on every event.
+            // Push the new URL onto history and synthesize a popstate
+            // so the listener fires. A full `window.location.assign`
+            // also works but boots the SPA fresh, and the user reported
+            // hydration glitches (canvas briefly stuck on the previous
+            // section's "select a record" placeholder) when navigating
+            // across sections programmatically. PushState avoids the
+            // remount entirely (Keystone #55).
+            if (window.location.pathname === targetPath) {
+                return;
+            }
+
+            window.history.pushState({ segment, navigationId }, '', targetPath);
+            window.dispatchEvent(new PopStateEvent('popstate'));
         };
     }, [onNavigateToEntityRecord]);
 
