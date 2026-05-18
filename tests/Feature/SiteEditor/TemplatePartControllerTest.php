@@ -251,6 +251,30 @@ describe( 'POST /visual-editor/api/template-parts', function (): void {
 		expect( TemplatePart::query()->where( 'slug', 'header' )->count() )->toBe( 1 );
 	} );
 
+	it( 'accepts the exact payload Gutenberg posts for Create Overlay (Keystone #55)', function (): void {
+		// Live capture from `[#55] StoreTemplatePartRequest failed
+		// validation` — reproduces what the editor actually sends
+		// when the user clicks Create Overlay on a `core/navigation`
+		// block. Two non-obvious bits:
+		//
+		//  - `area: "navigation-overlay"` — Gutenberg's block-library
+		//    extends WP core's default areas via the
+		//    `block_template_part_areas` filter; the overlay flow
+		//    POSTs that exact value. Without it our enum rejected.
+		//  - `content` is a SERIALIZED STRING, not a `{raw, blocks}`
+		//    envelope. The store path now accepts string content via
+		//    the shared `ContentShapeRule`.
+		//
+		// No explicit `theme` field — the controller derives it from
+		// the active theme.
+		$this->postJson( '/visual-editor/api/template-parts', [
+			'slug'    => 'navigation-overlay',
+			'title'   => 'Navigation Overlay',
+			'content' => '<!-- wp:paragraph --><p></p><!-- /wp:paragraph -->',
+			'area'    => 'navigation-overlay',
+		] )->assertStatus( 201 )->assertJsonPath( 'area', 'navigation-overlay' );
+	} );
+
 	it( 'accepts area "uncategorized" so Gutenberg\'s Create Overlay action lands (Keystone #55)', function (): void {
 		$this->postJson( '/visual-editor/api/template-parts', [
 			'slug'  => 'navigation-overlay-test',

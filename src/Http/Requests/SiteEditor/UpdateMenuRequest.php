@@ -18,34 +18,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor;
 
-use Closure;
-use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
-
-/**
- * Polymorphic shape validator for the `content` field. Gutenberg's
- * default save path serializes the navigation block tree into a
- * string (the WP-REST default for `wp_navigation`); the #440 custom
- * save path sends an object `{ raw?, blocks? }`. Accept both, reject
- * everything else.
- */
-final class ContentShapeRule implements ValidationRule
-{
-	public function validate( string $attribute, mixed $value, Closure $fail ): void
-	{
-		// `null` happens when Laravel's `ConvertEmptyStringsToNull`
-		// middleware normalizes an authored `content: ""` (which
-		// Gutenberg sends when the user clears every item) into
-		// `null`. Treat it as "empty content" — same semantic as
-		// `content.blocks: []` — and let the controller wipe the
-		// items.
-		if ( null === $value || is_string( $value ) || is_array( $value ) ) {
-			return;
-		}
-
-		$fail( 'The :attribute field must be a string or an object.' );
-	}
-}
 
 class UpdateMenuRequest extends FormRequest
 {

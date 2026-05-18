@@ -34,7 +34,7 @@ class ResolvedTemplatePart extends ResolvedTemplate
 	 *
 	 * @since 1.0.0
 	 */
-	public const AREAS = [ 'header', 'footer', 'sidebar', 'uncategorized' ];
+	public const AREAS = [ 'header', 'footer', 'sidebar', 'uncategorized', 'navigation-overlay' ];
 
 	/**
 	 * @since 1.0.0
