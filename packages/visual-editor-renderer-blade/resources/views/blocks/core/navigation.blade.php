@@ -189,14 +189,20 @@
 @if ( $emitScript )
 <style>
 /*! Keystone #54 — nav overlay layout fix-ups. Emitted once per response. */
-/* The bundled style.css reads `--navigation-layout-justify` on the
- * responsive container's content wrapper. When the parent nav has
- * `items-justified-right`, that var resolves to `flex-end` and the
- * inner `<ul>` packs to the right edge — so the vertically-stacked
- * menu items render flush right inside the open overlay. Override
- * with stretch alignment so the items lay out full-width left-aligned. */
-.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content{justify-content:flex-start;align-items:stretch;}
-.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container{align-items:stretch;}
+/* The bundled style.css reads `--navigation-layout-justification-setting`
+ * and `--navigation-layout-justify` on the `<ul>`, each `<li>`, and the
+ * page-list inside `is-menu-open`. When the parent nav has
+ * `items-justified-right`, those vars resolve to `flex-end` and items
+ * render flush against the right edge of the overlay (which is wrong —
+ * an open mobile overlay should stack items full-width starting from
+ * the inline-start edge, regardless of the desktop justification).
+ *
+ * Override the vars on the responsive container so the bundled rules
+ * (whose specificity we don't reliably beat with class selectors)
+ * read stretch / start values instead. Vars cascade to all descendants,
+ * so a single declaration on the container fixes the `<ul>`, `<li>`,
+ * `<a>`, and the page-list at once. */
+.wp-block-navigation__responsive-container.is-menu-open{--navigation-layout-justification-setting:stretch;--navigation-layout-justify:flex-start;--navigation-layout-align:stretch;}
 </style>
 <script>
 /*! Keystone #54 — nav overlay toggle. Tiny inline controller; emitted once per response. */
