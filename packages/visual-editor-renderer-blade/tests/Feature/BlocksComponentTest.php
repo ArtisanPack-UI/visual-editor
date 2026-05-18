@@ -152,6 +152,203 @@ it( 'falls back to the legacy itemsJustification attribute when layout.justifyCo
 	expect( $rendered )->toContain( 'items-justified-center' );
 } );
 
+it( 'renders the overlay container + hamburger toggle by default (Keystone #54)', function () {
+	// `overlayMenu` defaults to "mobile" so a nav block authored
+	// without an explicit value still gets the responsive overlay
+	// scaffolding on the front-end. The bundled style.css's
+	// breakpoint media queries then collapse it on small screens.
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [],
+			'innerBlocks' => [
+				[
+					'clientId'    => 'l-1',
+					'name'        => 'core/navigation-link',
+					'attributes'  => [ 'label' => 'Home', 'url' => '/' ],
+					'innerBlocks' => [],
+				],
+			],
+		],
+	];
+
+	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		->toContain( 'wp-block-navigation__responsive-container-open' )
+		->and( $rendered )->toContain( 'wp-block-navigation__responsive-container' )
+		->and( $rendered )->toContain( 'wp-block-navigation__responsive-dialog' )
+		->and( $rendered )->toContain( 'wp-block-navigation__responsive-container-close' )
+		->and( $rendered )->toContain( 'data-ap-nav-overlay-open="ap-modal-nav-1"' )
+		->and( $rendered )->toContain( 'id="ap-modal-nav-1"' )
+		->and( $rendered )->toContain( 'aria-hidden="true"' )
+		->and( $rendered )->toContain( 'aria-modal="true"' )
+		->and( $rendered )->toContain( 'role="dialog"' )
+		// Inline toggle script emitted once.
+		->and( $rendered )->toContain( '__apNavOverlayInit' );
+} );
+
+it( 'distinguishes the backdrop wrapper from the close button so link clicks inside the dialog navigate (CodeRabbit follow-up on #54)', function () {
+	// Backdrop carries `data-ap-nav-overlay-backdrop`, close button
+	// carries `data-ap-nav-overlay-close`. The JS handler only
+	// treats backdrop clicks as close when the click target IS the
+	// backdrop (not a descendant). Without this split a menu-link
+	// click inside the dialog bubbles up to the backdrop, matches
+	// `closest("[data-ap-nav-overlay-close]")`, and `preventDefault`
+	// cancels the link navigation.
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [],
+			'innerBlocks' => [],
+		],
+	];
+
+	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	// Backdrop wrapper — close-on-self only.
+	expect( $rendered )->toMatch( '/<div class="wp-block-navigation__responsive-close"[^>]*data-ap-nav-overlay-backdrop/' );
+	// Close button — intentional close trigger.
+	expect( $rendered )->toMatch( '/<button[^>]+class="wp-block-navigation__responsive-container-close"[^>]+data-ap-nav-overlay-close/' );
+	// Backdrop does NOT carry data-ap-nav-overlay-close — would
+	// re-introduce the bubbling-click-cancels-link bug.
+	expect( $rendered )->not->toMatch( '/<div class="wp-block-navigation__responsive-close"[^>]*data-ap-nav-overlay-close/' );
+} );
+
+it( 'adds the is-always-overlay class when overlayMenu is "always" (Keystone #54)', function () {
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [ 'overlayMenu' => 'always' ],
+			'innerBlocks' => [],
+		],
+	];
+
+	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		->toContain( 'is-always-overlay' )
+		->and( $rendered )->toContain( 'wp-block-navigation__responsive-container-open' );
+} );
+
+it( 'skips overlay scaffolding entirely when overlayMenu is "never" (Keystone #54)', function () {
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [ 'overlayMenu' => 'never' ],
+			'innerBlocks' => [
+				[
+					'clientId'    => 'l-1',
+					'name'        => 'core/navigation-link',
+					'attributes'  => [ 'label' => 'Home', 'url' => '/' ],
+					'innerBlocks' => [],
+				],
+			],
+		],
+	];
+
+	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		->not->toContain( 'wp-block-navigation__responsive-container' )
+		->and( $rendered )->not->toContain( 'wp-block-navigation__responsive-container-open' )
+		->and( $rendered )->not->toContain( '__apNavOverlayInit' )
+		// Inline `<ul>` still renders with the menu item.
+		->and( $rendered )->toContain( 'wp-block-navigation__container' )
+		->and( $rendered )->toContain( 'href="/"' )
+		->and( $rendered )->toContain( 'Home' );
+} );
+
+it( 'applies overlayBackgroundColor + overlayTextColor presets to the responsive container (Keystone #54)', function () {
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [
+				'overlayBackgroundColor' => 'page',
+				'overlayTextColor'       => 'accent',
+			],
+			'innerBlocks' => [],
+		],
+	];
+
+	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	// Overlay container picks up the preset classes — bound to
+	// `.has-{slug}-*` rules by cms-framework's emitter (Keystone #53).
+	expect( $rendered )
+		->toMatch( '/<div class="[^"]*has-page-background-color[^"]*has-background[^"]*"[^>]*id="ap-modal-nav-1"/' )
+		->and( $rendered )->toContain( 'has-accent-color' )
+		->and( $rendered )->toContain( 'has-text-color' );
+} );
+
+it( 'applies customOverlayBackgroundColor + customOverlayTextColor as inline styles on the responsive container (Keystone #54)', function () {
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [
+				'customOverlayBackgroundColor' => '#0a0606',
+				'customOverlayTextColor'       => '#ffffff',
+			],
+			'innerBlocks' => [],
+		],
+	];
+
+	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	// Inline style wins over the bundled `background-color: inherit`
+	// rule — overlay no longer inherits the parent nav's color.
+	expect( $rendered )
+		->toMatch( '/<div class="[^"]*wp-block-navigation__responsive-container[^"]*"[^>]*id="ap-modal-nav-1"[^>]*style="background-color: #0a0606; color: #ffffff"/' );
+} );
+
+it( 'emits the overlay toggle script exactly once even with multiple nav blocks (Keystone #54)', function () {
+	// Two nav blocks on the same page get distinct overlay ids and
+	// share a single inline `<script>` — the tracker gates emission
+	// so the toggle controller only initializes once.
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [],
+			'innerBlocks' => [],
+		],
+		[
+			'clientId'    => 'nav-2',
+			'name'        => 'core/navigation',
+			'attributes'  => [],
+			'innerBlocks' => [],
+		],
+	];
+
+	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( substr_count( $rendered, 'data-ap-nav-overlay-open="ap-modal-nav-1"' ) )->toBe( 1 );
+	expect( substr_count( $rendered, 'data-ap-nav-overlay-open="ap-modal-nav-2"' ) )->toBe( 1 );
+	// One `<script>` block regardless of how many nav blocks fired —
+	// the comment marker is unique to the controller header.
+	expect( substr_count( $rendered, 'Keystone #54 — nav overlay toggle' ) )->toBe( 1 );
+} );
+
 it( 'preserves authored innerBlocks on a nav block instead of overwriting them (Keystone #51)', function () {
 	// A nav block authored with explicit nav-links keeps them — the
 	// resolver only projects menu items when the tree is empty.
