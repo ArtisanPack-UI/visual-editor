@@ -49,7 +49,13 @@ class StoreTemplatePartRequest extends FormRequest
 			'content.raw'    => [ 'nullable', 'string' ],
 			'content.blocks' => [ 'nullable', 'array', new TemplateBlockTreeRule() ],
 			'area'           => [ 'required', 'string', Rule::in( ResolvedTemplatePart::AREAS ) ],
-			'theme'          => [ 'required', 'string', 'max:191' ],
+			// `theme` is optional on the request — Gutenberg's Create
+			// Overlay action POSTs without it. The controller falls back
+			// to the active theme via `ThemeManager::getActiveTheme()`
+			// when the field is missing, so a host with cms-framework
+			// integrated always lands with a non-empty theme on the row
+			// (Keystone #55).
+			'theme'          => [ 'sometimes', 'string', 'max:191' ],
 			'is_custom'      => [ 'sometimes', 'boolean' ],
 		];
 	}
