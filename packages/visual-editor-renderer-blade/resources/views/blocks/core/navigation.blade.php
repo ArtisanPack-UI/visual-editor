@@ -171,7 +171,7 @@
 		{!! $hamburgerIcon !!}
 	</button>
 	<div class="{{ implode( ' ', $overlayClasses ) }}" id="{{ $overlayId }}" aria-hidden="true"{!! $overlayStyleAttr !!}>
-		<div class="wp-block-navigation__responsive-close" tabindex="-1" data-ap-nav-overlay-close>
+		<div class="wp-block-navigation__responsive-close" tabindex="-1" data-ap-nav-overlay-backdrop>
 			<div class="wp-block-navigation__responsive-dialog" aria-label="{{ $openLabel }}" aria-modal="true" role="dialog">
 				<button type="button" aria-label="{{ $closeLabel }}" class="wp-block-navigation__responsive-container-close" data-ap-nav-overlay-close>
 					{!! $closeIcon !!}
@@ -214,7 +214,10 @@ var t=document.querySelector('[data-ap-nav-overlay-open="'+c.id+'"]');if(t)t.foc
 document.addEventListener('click',function(e){var o=e.target.closest('[data-ap-nav-overlay-open]');
 if(o){e.preventDefault();var t=document.getElementById(o.getAttribute('data-ap-nav-overlay-open'));if(t)open(t);return;}
 var x=e.target.closest('[data-ap-nav-overlay-close]');if(x){e.preventDefault();
-var c=x.closest('.wp-block-navigation__responsive-container');if(c)close(c);}});
+var c=x.closest('.wp-block-navigation__responsive-container');if(c)close(c);return;}
+/* Backdrop click — only when the click target IS the backdrop itself, not a descendant. Without the identity check, every menu-link click bubbles up to the backdrop and triggers a close + preventDefault, breaking link navigation. */
+var b=e.target.closest('[data-ap-nav-overlay-backdrop]');
+if(b&&e.target===b){var c=b.closest('.wp-block-navigation__responsive-container');if(c)close(c);}});
 document.addEventListener('keydown',function(e){if(e.key!=='Escape')return;
 var c=document.querySelector('.wp-block-navigation__responsive-container.is-menu-open');if(c){e.preventDefault();close(c);}});})();
 </script>

@@ -191,6 +191,36 @@ it( 'renders the overlay container + hamburger toggle by default (Keystone #54)'
 		->and( $rendered )->toContain( '__apNavOverlayInit' );
 } );
 
+it( 'distinguishes the backdrop wrapper from the close button so link clicks inside the dialog navigate (CodeRabbit follow-up on #54)', function () {
+	// Backdrop carries `data-ap-nav-overlay-backdrop`, close button
+	// carries `data-ap-nav-overlay-close`. The JS handler only
+	// treats backdrop clicks as close when the click target IS the
+	// backdrop (not a descendant). Without this split a menu-link
+	// click inside the dialog bubbles up to the backdrop, matches
+	// `closest("[data-ap-nav-overlay-close]")`, and `preventDefault`
+	// cancels the link navigation.
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [],
+			'innerBlocks' => [],
+		],
+	];
+
+	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	// Backdrop wrapper — close-on-self only.
+	expect( $rendered )->toMatch( '/<div class="wp-block-navigation__responsive-close"[^>]*data-ap-nav-overlay-backdrop/' );
+	// Close button — intentional close trigger.
+	expect( $rendered )->toMatch( '/<button[^>]+class="wp-block-navigation__responsive-container-close"[^>]+data-ap-nav-overlay-close/' );
+	// Backdrop does NOT carry data-ap-nav-overlay-close — would
+	// re-introduce the bubbling-click-cancels-link bug.
+	expect( $rendered )->not->toMatch( '/<div class="wp-block-navigation__responsive-close"[^>]*data-ap-nav-overlay-close/' );
+} );
+
 it( 'adds the is-always-overlay class when overlayMenu is "always" (Keystone #54)', function () {
 	$tree = [
 		[
