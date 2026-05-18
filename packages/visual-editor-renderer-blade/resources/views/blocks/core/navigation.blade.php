@@ -202,7 +202,7 @@
  * read stretch / start values instead. Vars cascade to all descendants,
  * so a single declaration on the container fixes the `<ul>`, `<li>`,
  * `<a>`, and the page-list at once. */
-.wp-block-navigation__responsive-container.is-menu-open{--navigation-layout-justification-setting:stretch;--navigation-layout-justify:flex-start;--navigation-layout-align:stretch;}
+.wp-block-navigation__responsive-container.is-menu-open{--navigation-layout-justification-setting:stretch;--navigation-layout-justify:flex-start;--navigation-layout-align:stretch;--wp--style--root--padding-top:1.5rem;--wp--style--root--padding-right:1.5rem;--wp--style--root--padding-bottom:1.5rem;--wp--style--root--padding-left:1.5rem;}
 </style>
 <script>
 /*! Keystone #54 — nav overlay toggle. Tiny inline controller; emitted once per response. */
