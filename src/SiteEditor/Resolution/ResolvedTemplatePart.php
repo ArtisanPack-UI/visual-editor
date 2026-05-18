@@ -84,6 +84,17 @@ class ResolvedTemplatePart extends ResolvedTemplate
 		$slug = self::requireString( $data, 'slug' );
 		$area = self::requireString( $data, 'area', $slug );
 
+		// Back-compat for rows persisted under the pre-#55 enum, when
+		// the catch-all area was `general` instead of WP core's
+		// `uncategorized` (Keystone #55). The live host DB scan
+		// before the rename found zero `general` rows, but downstream
+		// consumers may have older data. Map the legacy value forward
+		// so old rows continue to resolve cleanly without a
+		// schema-side migration.
+		if ( 'general' === $area ) {
+			$area = 'uncategorized';
+		}
+
 		if ( ! in_array( $area, self::AREAS, true ) ) {
 			throw SiteEditorRegistrationException::invalidField(
 				static::FILTER_NAME,
