@@ -241,6 +241,54 @@ it( 'skips overlay scaffolding entirely when overlayMenu is "never" (Keystone #5
 		->and( $rendered )->toContain( 'Home' );
 } );
 
+it( 'applies overlayBackgroundColor + overlayTextColor presets to the responsive container (Keystone #54)', function () {
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [
+				'overlayBackgroundColor' => 'page',
+				'overlayTextColor'       => 'accent',
+			],
+			'innerBlocks' => [],
+		],
+	];
+
+	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	// Overlay container picks up the preset classes — bound to
+	// `.has-{slug}-*` rules by cms-framework's emitter (Keystone #53).
+	expect( $rendered )
+		->toMatch( '/<div class="[^"]*has-page-background-color[^"]*has-background[^"]*"[^>]*id="ap-modal-nav-1"/' )
+		->and( $rendered )->toContain( 'has-accent-color' )
+		->and( $rendered )->toContain( 'has-text-color' );
+} );
+
+it( 'applies customOverlayBackgroundColor + customOverlayTextColor as inline styles on the responsive container (Keystone #54)', function () {
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [
+				'customOverlayBackgroundColor' => '#0a0606',
+				'customOverlayTextColor'       => '#ffffff',
+			],
+			'innerBlocks' => [],
+		],
+	];
+
+	app( \ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker::class )->reset();
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	// Inline style wins over the bundled `background-color: inherit`
+	// rule — overlay no longer inherits the parent nav's color.
+	expect( $rendered )
+		->toMatch( '/<div class="[^"]*wp-block-navigation__responsive-container[^"]*"[^>]*id="ap-modal-nav-1"[^>]*style="background-color: #0a0606; color: #ffffff"/' );
+} );
+
 it( 'emits the overlay toggle script exactly once even with multiple nav blocks (Keystone #54)', function () {
 	// Two nav blocks on the same page get distinct overlay ids and
 	// share a single inline `<script>` — the tracker gates emission

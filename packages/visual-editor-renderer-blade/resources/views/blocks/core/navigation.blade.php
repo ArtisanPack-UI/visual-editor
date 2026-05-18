@@ -114,6 +114,46 @@
 		$overlayClasses[] = 'is-always-overlay';
 	}
 
+	// Overlay-specific color attributes (Keystone #54). The nav block
+	// ships a parallel `overlayTextColor` / `overlayBackgroundColor`
+	// (preset slugs) + `customOverlay*` (hex) family that targets the
+	// responsive container, NOT the inline nav. Without this the
+	// overlay inherits the inline nav's colors — a red nav on
+	// desktop renders the mobile overlay red too even when the
+	// author picked a dark overlay background.
+	$overlayStyles = [];
+
+	$overlayBgSlug = isset( $attributes['overlayBackgroundColor'] ) && is_string( $attributes['overlayBackgroundColor'] )
+		? trim( $attributes['overlayBackgroundColor'] )
+		: '';
+	$overlayBgCustom = isset( $attributes['customOverlayBackgroundColor'] ) && is_string( $attributes['customOverlayBackgroundColor'] )
+		? trim( $attributes['customOverlayBackgroundColor'] )
+		: '';
+	$overlayTextSlug = isset( $attributes['overlayTextColor'] ) && is_string( $attributes['overlayTextColor'] )
+		? trim( $attributes['overlayTextColor'] )
+		: '';
+	$overlayTextCustom = isset( $attributes['customOverlayTextColor'] ) && is_string( $attributes['customOverlayTextColor'] )
+		? trim( $attributes['customOverlayTextColor'] )
+		: '';
+
+	if ( '' !== $overlayBgSlug ) {
+		$overlayClasses[] = 'has-' . $overlayBgSlug . '-background-color';
+		$overlayClasses[] = 'has-background';
+	} elseif ( '' !== $overlayBgCustom ) {
+		$overlayStyles[]  = 'background-color: ' . $overlayBgCustom;
+		$overlayClasses[] = 'has-background';
+	}
+
+	if ( '' !== $overlayTextSlug ) {
+		$overlayClasses[] = 'has-' . $overlayTextSlug . '-color';
+		$overlayClasses[] = 'has-text-color';
+	} elseif ( '' !== $overlayTextCustom ) {
+		$overlayStyles[]  = 'color: ' . $overlayTextCustom;
+		$overlayClasses[] = 'has-text-color';
+	}
+
+	$overlayStyleAttr = [] === $overlayStyles ? '' : sprintf( ' style="%s"', e( implode( '; ', $overlayStyles ) ) );
+
 	// Open-button label — `openSubmenusOnClick` is an unrelated
 	// attribute; the open-menu button label has no dedicated attribute
 	// in the block, so use a sensible default. WP core uses "Menu" —
@@ -130,7 +170,7 @@
 	<button type="button" aria-haspopup="dialog" aria-label="{{ $openLabel }}" class="wp-block-navigation__responsive-container-open" data-ap-nav-overlay-open="{{ $overlayId }}">
 		{!! $hamburgerIcon !!}
 	</button>
-	<div class="{{ implode( ' ', $overlayClasses ) }}" id="{{ $overlayId }}" aria-hidden="true">
+	<div class="{{ implode( ' ', $overlayClasses ) }}" id="{{ $overlayId }}" aria-hidden="true"{!! $overlayStyleAttr !!}>
 		<div class="wp-block-navigation__responsive-close" tabindex="-1" data-ap-nav-overlay-close>
 			<div class="wp-block-navigation__responsive-dialog" aria-label="{{ $openLabel }}" aria-modal="true" role="dialog">
 				<button type="button" aria-label="{{ $closeLabel }}" class="wp-block-navigation__responsive-container-close" data-ap-nav-overlay-close>
@@ -147,6 +187,17 @@
 @endif
 </nav>
 @if ( $emitScript )
+<style>
+/*! Keystone #54 — nav overlay layout fix-ups. Emitted once per response. */
+/* The bundled style.css reads `--navigation-layout-justify` on the
+ * responsive container's content wrapper. When the parent nav has
+ * `items-justified-right`, that var resolves to `flex-end` and the
+ * inner `<ul>` packs to the right edge — so the vertically-stacked
+ * menu items render flush right inside the open overlay. Override
+ * with stretch alignment so the items lay out full-width left-aligned. */
+.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content{justify-content:flex-start;align-items:stretch;}
+.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__container{align-items:stretch;}
+</style>
 <script>
 /*! Keystone #54 — nav overlay toggle. Tiny inline controller; emitted once per response. */
 (function(){if(window.__apNavOverlayInit)return;window.__apNavOverlayInit=true;
