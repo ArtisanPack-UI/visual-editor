@@ -23,6 +23,7 @@ use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksComponent;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksStylesComponent;
@@ -66,6 +67,14 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 
 		$this->app->singleton( GlobalStylesEmissionResolver::class, function () {
 			return new GlobalStylesEmissionResolver();
+		} );
+
+		// Scoped so a long-lived worker doesn't carry overlay state
+		// across requests (Octane / queue). The tracker hands out
+		// per-request DOM ids and gates the inline overlay toggle
+		// script to fire at most once per response (Keystone #54).
+		$this->app->scoped( NavigationOverlayTracker::class, function () {
+			return new NavigationOverlayTracker();
 		} );
 	}
 
