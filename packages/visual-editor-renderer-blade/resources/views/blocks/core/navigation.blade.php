@@ -169,6 +169,57 @@
 
 	$overlayStyleAttr = [] === $overlayStyles ? '' : sprintf( ' style="%s"', e( implode( '; ', $overlayStyles ) ) );
 
+	// Overlay template-part contents (Keystone #58). When the author
+	// picks (or creates) an overlay via Gutenberg's overlay-template
+	// dropdown, the chosen `template-part` slug lands on
+	// `attributes.overlay`. Honor it on the front-end by rendering
+	// that part's blocks INSIDE the responsive container instead of
+	// the duplicate-of-the-inline-menu fallback — matching WP core's
+	// behavior where the mobile drawer can show whatever the author
+	// authored in the overlay (custom layout, search, social links,
+	// CTA, etc.) rather than a copy of the desktop menu.
+	//
+	// Resolution goes through cms-framework's TemplatePartResolver
+	// (the same path the editor uses), so theme-file overrides and
+	// DB rows compose the same way they do in the canvas. Bail
+	// gracefully on any of: cms-framework absent, slug unresolvable,
+	// resolved record not in the navigation-overlay area, blocks
+	// payload missing, or any thrown exception (partial install,
+	// missing migrations). Each fallback path lands on the
+	// inline-menu duplicate the bundled style.css's mobile rules
+	// were already styled against.
+	$overlayInnerHtml = null;
+
+	if ( $wantsOverlay ) {
+		$overlaySlug = isset( $attributes['overlay'] ) && is_string( $attributes['overlay'] )
+			? trim( $attributes['overlay'] )
+			: '';
+
+		if ( '' !== $overlaySlug ) {
+			$resolverClass = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplatePartResolver';
+
+			if ( class_exists( $resolverClass ) ) {
+				try {
+					$resolved = app( $resolverClass )->resolve( $overlaySlug );
+
+					if ( null !== $resolved && 'navigation-overlay' === ( $resolved->area ?? null ) ) {
+						$overlayBlocks = is_array( $resolved->blocks ?? null ) ? $resolved->blocks : [];
+
+						if ( [] !== $overlayBlocks ) {
+							$overlayInnerHtml = app( \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer::class )
+								->render( $overlayBlocks );
+						}
+					}
+				} catch ( \Throwable $e ) {
+					\Illuminate\Support\Facades\Log::warning( 'Navigation overlay resolution failed', [
+						'slug'      => $overlaySlug,
+						'exception' => $e->getMessage(),
+					] );
+				}
+			}
+		}
+	}
+
 	// Open-button label — `openSubmenusOnClick` is an unrelated
 	// attribute; the open-menu button label has no dedicated attribute
 	// in the block, so use a sensible default. WP core uses "Menu" —
@@ -194,8 +245,18 @@
 				<button type="button" aria-label="{{ $closeLabel }}" class="wp-block-navigation__responsive-container-close" data-ap-nav-overlay-close>
 					{!! $closeIcon !!}
 				</button>
-				<div class="wp-block-navigation__responsive-container-content" id="{{ $overlayId }}-content">
+				<div class="wp-block-navigation__responsive-container-content{{ null !== $overlayInnerHtml ? ' has-overlay-template' : '' }}" id="{{ $overlayId }}-content">
+					{{-- Keystone #58: when an overlay template-part resolves,
+					     render BOTH the regular menu (shown inline on
+					     desktop / when the drawer is closed) AND the overlay
+					     content (shown only while the drawer is open). The
+					     `has-overlay-template` marker scopes the emitted
+					     toggle CSS so navs WITHOUT an overlay keep their
+					     menu visible in the open drawer. --}}
 					<ul class="wp-block-navigation__container">{!! $innerBlocksHtml !!}</ul>
+					@if ( null !== $overlayInnerHtml )
+						<div class="wp-block-navigation__overlay-content">{!! $overlayInnerHtml !!}</div>
+					@endif
 				</div>
 			</div>
 		</div>
@@ -221,6 +282,16 @@
  * so a single declaration on the container fixes the `<ul>`, `<li>`,
  * `<a>`, and the page-list at once. */
 .wp-block-navigation__responsive-container.is-menu-open{--navigation-layout-justification-setting:stretch;--navigation-layout-justify:flex-start;--navigation-layout-align:stretch;--wp--style--root--padding-top:1.5rem;--wp--style--root--padding-right:1.5rem;--wp--style--root--padding-bottom:1.5rem;--wp--style--root--padding-left:1.5rem;}
+/*! Keystone #58 — overlay template-part swap. A nav whose `overlay`
+ * attribute resolves renders BOTH the regular menu and the overlay
+ * content (marked `has-overlay-template`). The overlay is hidden by
+ * default (the inline desktop view shows the menu); once the drawer
+ * opens (`is-menu-open`) the menu is swapped out for the overlay's
+ * content. Scoped to `.has-overlay-template` so navs without an
+ * overlay keep showing their menu in the open drawer. */
+.wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__overlay-content{display:none;}
+.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__container{display:none;}
+.wp-block-navigation__responsive-container.is-menu-open .wp-block-navigation__responsive-container-content.has-overlay-template .wp-block-navigation__overlay-content{display:block;}
 </style>
 <script>
 /*! Keystone #54 — nav overlay toggle. Tiny inline controller; emitted once per response. */
