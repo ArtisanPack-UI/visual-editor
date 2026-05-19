@@ -13,6 +13,7 @@
  * no-op for callers; H6 doesn't paginate yet.
  */
 
+import { useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
@@ -83,6 +84,37 @@ export function useEntityList<K extends EntityKind>(
     // overwrite newer state (e.g. user types fast in a filter field).
     const requestCounterRef = useRef(0);
 
+    // Cross-subscribe to the `@wordpress/data` core store (Keystone #57).
+    // This hook owns its own REST fetch and intentionally doesn't share
+    // state with `@wordpress/data` — but sibling flows do write through
+    // `saveEntityRecord` (notably `core/navigation`'s Create Overlay
+    // button, which posts via the shim). Without a cross-subscription,
+    // a record minted by that path lands in `@wordpress/data`'s items
+    // map AND in the database but never in this hook's local `items`
+    // state until the navigator re-mounts. Reading the store's item
+    // count as a sentinel bumps every time a record is added (create)
+    // or removed (delete) for this entity kind, and a count change
+    // triggers a fresh `listEntities` call so the navigator catches up.
+    // Updates that only mutate an existing record's fields don't bump
+    // the count — out-of-navigator field edits still wait for the next
+    // re-mount, which is acceptable because every site-editor surface
+    // that edits an entity also dispatches the same save-flow refresh
+    // when navigating back.
+    const wpStoreName = kind === 'template' ? 'wp_template' : 'wp_template_part';
+    const storeItemSentinel = useSelect(
+        (select) => {
+            const store = select('core') as {
+                getEntityRecords?: (
+                    storeKind: string,
+                    storeName: string,
+                ) => readonly unknown[] | undefined;
+            } | undefined;
+
+            return store?.getEntityRecords?.('postType', wpStoreName)?.length ?? 0;
+        },
+        [wpStoreName],
+    );
+
     const fetchList = useCallback(async (): Promise<void> => {
         if (!enabled) {
             return;
@@ -134,6 +166,7 @@ export function useEntityList<K extends EntityKind>(
         area,
         page,
         refreshKey,
+        storeItemSentinel,
     ]);
 
     useEffect(() => {

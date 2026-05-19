@@ -124,6 +124,14 @@ type CoreDataAction =
           query?: Record<string, unknown> | null;
           totalItems?: number;
           totalPages?: number;
+          // Keystone #57. When omitted (or `true`), receiving records
+          // without an explicit `query` wipes every cached filter query
+          // for this entity — the conservative invalidation that
+          // protects against stale list reads after a save. The
+          // single-record fetch path (`fetchEntityRecord`) opts out
+          // with `false` because that read can't have changed any
+          // list's contents, only refreshed an existing item.
+          invalidateQueries?: boolean;
       }
     | {
           type: 'REMOVE_ENTITY_RECORD';
@@ -608,6 +616,17 @@ function reducer(
             // is still authoritative for `getEntityRecords` with no
             // query, so creates/updates show up immediately there.
             //
+            // Exception (Keystone #57): single-record FETCHES (resolver
+            // path) pass `invalidateQueries: false` because the read
+            // can only refresh data we already had; it can't have added
+            // or removed records from any cached list. Without this
+            // opt-out, every time the nav-block overlay panel resolved
+            // a selected overlay by composite id, the resolver dispatch
+            // wiped the `{per_page: -1}` template-parts list query, the
+            // selector returned an empty array on the next render, and
+            // the panel briefly flipped from "Edit" to the prominent
+            // "Create overlay" button.
+            //
             // `query !== undefined` = list-fetch. Cache the received
             // ids under the query's stable signature, and let sibling
             // query caches stay untouched.
@@ -617,9 +636,12 @@ function reducer(
                 { totalItems: number; totalPages: number }
             >;
 
-            if (action.query === undefined) {
+            if (action.query === undefined && action.invalidateQueries !== false) {
                 nextQueries = {};
                 nextQueryMeta = {};
+            } else if (action.query === undefined) {
+                nextQueries = bag.queries;
+                nextQueryMeta = bag.queryMeta;
             } else {
                 const qKey = queryKey(action.query);
 
@@ -1191,6 +1213,7 @@ interface ThunkArgs {
             query?: Record<string, unknown> | null,
             totalItems?: number,
             totalPages?: number,
+            invalidateQueries?: boolean,
         ) => CoreDataAction;
         editEntityRecord: (
             kind: EntityKind,
@@ -1222,6 +1245,15 @@ interface ThunkArgs {
             name: EntityName,
             id: EntityKey,
         ) => CoreDataAction;
+        // Auto-exposed by `@wordpress/data` for any registered store —
+        // resets the resolver state for a single selector so the next
+        // read re-triggers the resolver. Used after a save invalidates
+        // cached list queries (Keystone #57) so the affected lists
+        // refetch the next time they're read, instead of returning the
+        // wiped empty cache forever.
+        invalidateResolutionForStoreSelector?: (
+            selectorName: string,
+        ) => unknown;
     };
     select: {
         getEntityConfig: (
@@ -1259,6 +1291,7 @@ const actions = {
         query?: Record<string, unknown> | null,
         totalItems?: number,
         totalPages?: number,
+        invalidateQueries?: boolean,
     ): CoreDataAction => ({
         type: 'RECEIVE_ENTITY_RECORDS',
         kind,
@@ -1267,6 +1300,7 @@ const actions = {
         query,
         totalItems,
         totalPages,
+        invalidateQueries,
     }),
 
     removeEntityRecord: (
@@ -1394,7 +1428,19 @@ const actions = {
                     const record = parsed.records[0] ?? null;
 
                     if (record !== null) {
-                        dispatch.receiveEntityRecords(kind, name, [record]);
+                        // Keystone #57: single-record fetch — refreshing
+                        // one item never adds or removes records from a
+                        // cached list, so leave sibling list queries
+                        // intact instead of invalidating them all.
+                        dispatch.receiveEntityRecords(
+                            kind,
+                            name,
+                            [record],
+                            undefined,
+                            undefined,
+                            undefined,
+                            false,
+                        );
                     }
 
                     return record;
@@ -1406,7 +1452,15 @@ const actions = {
                 })) as EntityRecord | null;
 
                 if (record !== null) {
-                    dispatch.receiveEntityRecords(kind, name, [record]);
+                    dispatch.receiveEntityRecords(
+                        kind,
+                        name,
+                        [record],
+                        undefined,
+                        undefined,
+                        undefined,
+                        false,
+                    );
                 }
 
                 return record;
@@ -1503,6 +1557,20 @@ const actions = {
 
                 if (saved !== null) {
                     dispatch.receiveEntityRecords(kind, name, [saved]);
+
+                    // Keystone #57. The receive wiped every cached
+                    // filter query for this entity (the conservative
+                    // post-save invalidation). Also reset the resolver
+                    // state for `getEntityRecords` so the next read
+                    // refetches and the new record appears in lists
+                    // immediately — without this, the saved data is in
+                    // `items` but `bag.queries` is empty and the
+                    // resolver thinks it's already resolved, leaving
+                    // the list rendering the wiped (empty) cache until
+                    // the page reloads.
+                    dispatch.invalidateResolutionForStoreSelector?.(
+                        'getEntityRecords',
+                    );
                 }
 
                 dispatch.setEntitySaving(kind, name, saveSlotId, false, null);
@@ -1584,6 +1652,14 @@ const actions = {
                 });
 
                 dispatch.removeEntityRecord(kind, name, id);
+
+                // Mirror the save-path invalidation (Keystone #57). The
+                // REMOVE reducer wiped cached queries; reset the
+                // resolver state so the next list read refetches.
+                dispatch.invalidateResolutionForStoreSelector?.(
+                    'getEntityRecords',
+                );
+
                 dispatch.setEntityDeleting(kind, name, id, false, null);
 
                 return true;

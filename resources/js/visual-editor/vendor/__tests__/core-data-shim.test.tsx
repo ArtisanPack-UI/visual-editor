@@ -214,6 +214,85 @@ describe('core-data-shim record cache', () => {
         ).toEqual(template);
     });
 
+    it('preserves cached list queries when a single record is received without invalidation (Keystone #57)', () => {
+        // Seed a cached list-fetch result for the per_page=-1 query, then
+        // dispatch a single-record refresh through the resolver path
+        // (`invalidateQueries: false`). The list query must survive so
+        // the nav-block overlay panel doesn't flip from "Edit" to the
+        // prominent "Create overlay" button when the selected overlay's
+        // record is resolved by composite id.
+        const seeded: readonly EntityRecord[] = [
+            { id: 8, slug: 'mobile-overlay', area: 'navigation-overlay' },
+            { id: 9, slug: 'site-overlay', area: 'navigation-overlay' },
+        ];
+
+        coreDispatch().receiveEntityRecords(
+            'postType',
+            'wp_template_part',
+            seeded,
+            { per_page: -1 },
+            2,
+            1,
+        );
+
+        // Sanity check — the list query is populated.
+        expect(
+            coreSelect().getEntityRecords('postType', 'wp_template_part', {
+                per_page: -1,
+            }),
+        ).toEqual(seeded);
+
+        // Single-record refresh (resolver path) with invalidateQueries:false.
+        coreDispatch().receiveEntityRecords(
+            'postType',
+            'wp_template_part',
+            [{ id: 8, slug: 'mobile-overlay', area: 'navigation-overlay', title: { rendered: 'Mobile' } }],
+            undefined,
+            undefined,
+            undefined,
+            false,
+        );
+
+        // The cached `per_page=-1` query must still return both records.
+        expect(
+            coreSelect().getEntityRecords('postType', 'wp_template_part', {
+                per_page: -1,
+            }),
+        ).toHaveLength(2);
+    });
+
+    it('still invalidates cached list queries when a save dispatches without a query (default behavior)', () => {
+        // The opt-out is opt-in: save-path receives still wipe the
+        // cached queries (the conservative behavior the comment above
+        // RECEIVE_ENTITY_RECORDS describes) — only the resolver path
+        // opts out via `invalidateQueries: false`.
+        coreDispatch().receiveEntityRecords(
+            'postType',
+            'wp_template_part',
+            [{ id: 8, slug: 'mobile-overlay', area: 'navigation-overlay' }],
+            { per_page: -1 },
+            1,
+            1,
+        );
+
+        expect(
+            coreSelect().getEntityRecords('postType', 'wp_template_part', {
+                per_page: -1,
+            }),
+        ).toHaveLength(1);
+
+        // Save-path receive — no query, no opt-out → queries wiped.
+        coreDispatch().receiveEntityRecords('postType', 'wp_template_part', [
+            { id: 8, slug: 'mobile-overlay', area: 'navigation-overlay', title: { rendered: 'Mobile' } },
+        ]);
+
+        expect(
+            coreSelect().getEntityRecords('postType', 'wp_template_part', {
+                per_page: -1,
+            }),
+        ).toEqual([]);
+    });
+
     it('caches query→ids when a query is provided', () => {
         const templates: readonly EntityRecord[] = [
             { id: 1, slug: 'single' },
@@ -364,6 +443,153 @@ describe('core-data-shim fetch → cache', () => {
         expect(
             coreSelect().getEntityRecord('postType', 'wp_template', 7),
         ).toEqual({ id: 7, slug: 'home', title: 'Home' });
+    });
+
+    it('fetchEntityRecord does not invalidate a sibling list-query cache (Keystone #57)', async () => {
+        // Seed the per_page=-1 list cache the nav-block overlay panel
+        // depends on. Then resolve a single record by composite id —
+        // the path the panel hits when looking up the selected
+        // overlay's record. The list cache must survive that resolver
+        // dispatch; before the fix it was wiped, the overlay panel
+        // briefly saw an empty filtered list, and Gutenberg's "no
+        // overlays exist" prominent Create button replaced the
+        // dropdown.
+        const seeded: readonly EntityRecord[] = [
+            { id: 8, slug: 'mobile', area: 'navigation-overlay', theme: 'jmwd-default' },
+            { id: 9, slug: 'site', area: 'navigation-overlay', theme: 'jmwd-default' },
+        ];
+
+        coreDispatch().receiveEntityRecords(
+            'postType',
+            'wp_template_part',
+            seeded,
+            { per_page: -1 },
+            2,
+            1,
+        );
+
+        const { fetcher } = mockFetcher(async () =>
+            jsonResponse({
+                data: [{ id: 8, slug: 'mobile', area: 'navigation-overlay', theme: 'jmwd-default' }],
+            }),
+        );
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        // Composite id triggers the slug+theme list-query branch of
+        // fetchEntityRecord, which dispatches receiveEntityRecords with
+        // no query — the exact code path the bug hit.
+        await coreDispatch().fetchEntityRecord(
+            'postType',
+            'wp_template_part',
+            'jmwd-default//mobile',
+        );
+
+        expect(
+            coreSelect().getEntityRecords('postType', 'wp_template_part', {
+                per_page: -1,
+            }),
+        ).toHaveLength(2);
+    });
+
+    it('saveEntityRecord re-triggers the list resolver so newly-created records appear in cached lists without a refresh (Keystone #57)', async () => {
+        // Mirrors the Create Overlay flow: a `per_page=-1` list is
+        // already cached, the user creates a new overlay via the panel
+        // (saveEntityRecord), and the dropdown re-renders. Before the
+        // resolver-invalidation half of the fix, the cached query got
+        // wiped but `hasFinishedResolution` stayed true, so the next
+        // read returned the empty wiped cache forever — until the user
+        // refreshed the page.
+        const listFetcher = vi.fn(async (url: string) => {
+            if (url.includes('per_page=-1')) {
+                return jsonResponse({
+                    data: [
+                        { id: 8, slug: 'mobile', area: 'navigation-overlay', theme: 'jmwd-default' },
+                    ],
+                });
+            }
+
+            // Save: POST returns the created record.
+            return jsonResponse({
+                id: 9,
+                slug: 'site',
+                area: 'navigation-overlay',
+                theme: 'jmwd-default',
+            });
+        });
+
+        configureCoreDataShim({ apiBase: '/api', fetcher: listFetcher });
+
+        // Prime the list cache so we can observe the post-save behavior.
+        await coreDispatch().fetchEntityRecords('postType', 'wp_template_part', {
+            per_page: -1,
+        });
+
+        expect(
+            coreSelect().getEntityRecords('postType', 'wp_template_part', {
+                per_page: -1,
+            }),
+        ).toHaveLength(1);
+
+        // Save a new record (the Create Overlay code path).
+        await coreDispatch().saveEntityRecord('postType', 'wp_template_part', {
+            slug: 'site',
+            area: 'navigation-overlay',
+            theme: 'jmwd-default',
+        });
+
+        // Sanity: the new record was added to items.
+        expect(
+            coreSelect().getEntityRecord('postType', 'wp_template_part', 9),
+        ).toMatchObject({ id: 9, slug: 'site' });
+
+        // The resolver framework should now consider the list
+        // unresolved (invalidateResolutionForStoreSelector ran during
+        // the save), so the next read re-fires the resolver.
+        expect(
+            coreSelect().hasFinishedResolution('getEntityRecords', [
+                'postType',
+                'wp_template_part',
+                { per_page: -1 },
+            ]),
+        ).toBe(false);
+
+        // End-to-end: a fresh `resolveSelect` call must refetch the
+        // list. Stub the fetcher so the refetch returns BOTH records
+        // (the seeded one + the freshly saved one). Counting list
+        // fetches gives us hard evidence that the resolver ran again.
+        let listFetchCount = 0;
+
+        configureCoreDataShim({
+            apiBase: '/api',
+            fetcher: vi.fn(async (url: string) => {
+                if (url.includes('per_page=-1')) {
+                    listFetchCount += 1;
+
+                    return jsonResponse({
+                        data: [
+                            { id: 8, slug: 'mobile', area: 'navigation-overlay', theme: 'jmwd-default' },
+                            { id: 9, slug: 'site', area: 'navigation-overlay', theme: 'jmwd-default' },
+                        ],
+                    });
+                }
+
+                return jsonResponse({}, 500);
+            }),
+        });
+
+        await coreResolveSelect().getEntityRecords(
+            'postType',
+            'wp_template_part',
+            { per_page: -1 },
+        );
+
+        expect(listFetchCount).toBe(1);
+        expect(
+            coreSelect().getEntityRecords('postType', 'wp_template_part', {
+                per_page: -1,
+            }),
+        ).toHaveLength(2);
     });
 
     it('fetchEntityRecord swallows network errors and returns null', async () => {

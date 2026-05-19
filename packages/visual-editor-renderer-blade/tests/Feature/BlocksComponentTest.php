@@ -101,6 +101,49 @@ it( 'passes the nav-block tree through unchanged when cms-framework is not insta
 		->toContain( '<ul class="wp-block-navigation__container"></ul>' );
 } );
 
+it( 'renders style.elements.link.color.text on the nav block as a scoped style + class (Keystone #56)', function () {
+	// The dedicated Link color picker on core/navigation writes to
+	// `style.elements.link.color.text` — a path separate from the
+	// `textColor` / `customTextColor` attributes. Renderer-blade now
+	// compiles it into a per-block `wp-elements-{hash}` class on the
+	// wrapper plus a scoped `<style>` rule above the `<nav>`.
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [
+				'style' => [ 'elements' => [
+					'link' => [
+						'color'  => [ 'text' => 'var:preset|color|accent' ],
+						':hover' => [ 'color' => [ 'text' => '#0f172a' ] ],
+					],
+				] ],
+			],
+			'innerBlocks' => [
+				[
+					'clientId'    => 'l-1',
+					'name'        => 'core/navigation-link',
+					'attributes'  => [ 'label' => 'Home', 'url' => '/' ],
+					'innerBlocks' => [],
+				],
+			],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	// The wrapper picks up a single hash class shared by the scoped style.
+	expect( $rendered )->toMatch( '/<nav[^>]*class="[^"]*wp-elements-[a-f0-9]{8}[^"]*"/' );
+
+	// Preset slug expanded into a CSS custom property reference,
+	// scoped to descendant `a` elements, with !important to defeat
+	// the theme's default link color.
+	expect( $rendered )->toContain( 'a{color: var(--wp--preset--color--accent) !important;}' );
+
+	// Hover pseudo-state emitted alongside the base rule.
+	expect( $rendered )->toContain( 'a:hover{color: #0f172a !important;}' );
+} );
+
 it( 'emits items-justified-* class from layout.justifyContent (Keystone #52)', function () {
 	// Gutenberg writes the modern flex-layout justification to
 	// `attributes.layout.justifyContent`. The legacy top-level
