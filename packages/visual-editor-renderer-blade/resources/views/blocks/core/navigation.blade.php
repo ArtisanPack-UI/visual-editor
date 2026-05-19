@@ -1,6 +1,7 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\ElementsSupport;
 
 	$overlayMenu = isset( $attributes['overlayMenu'] ) && is_string( $attributes['overlayMenu'] ) ? $attributes['overlayMenu'] : 'mobile';
 
@@ -23,6 +24,20 @@
 	$ariaLabel = isset( $attributes['ariaLabel'] ) && is_string( $attributes['ariaLabel'] ) ? $attributes['ariaLabel'] : '';
 
 	$baseClasses = [ 'wp-block-navigation' ];
+
+	// Elements-API support (Keystone #56). The dedicated Link color
+	// picker writes to `style.elements.link.color.text` — a path
+	// separate from `textColor` / `customTextColor` (which color the
+	// nav wrapper itself, not its `<a>` descendants). Compile the
+	// elements subtree into a per-block `wp-elements-{hash}` scoping
+	// class + scoped inline `<style>` so the picked color reaches only
+	// this nav block's links, not bleeding across other nav blocks on
+	// the same page.
+	$elementsSupport = ElementsSupport::compile( $attributes );
+
+	if ( '' !== $elementsSupport['class'] ) {
+		$baseClasses[] = $elementsSupport['class'];
+	}
 
 	if ( 'horizontal' === $orientation ) {
 		$baseClasses[] = 'is-horizontal';
@@ -165,6 +180,9 @@
 	$hamburgerIcon = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><rect x="4" y="7.5" width="16" height="1.5"/><rect x="4" y="15" width="16" height="1.5"/></svg>';
 	$closeIcon     = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true" focusable="false"><path d="M13 11.8l6.1-6.3-1-1-6.1 6.2-6.1-6.2-1 1 6.1 6.3-6.5 6.7 1 1 6.5-6.6 6.5 6.6 1-1z"/></svg>';
 @endphp
+@if ( '' !== $elementsSupport['style'] )
+<style>{!! $elementsSupport['style'] !!}</style>
+@endif
 <nav{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}{!! $navAttrs !!}>
 @if ( $wantsOverlay )
 	<button type="button" aria-haspopup="dialog" aria-label="{{ $openLabel }}" class="wp-block-navigation__responsive-container-open" data-ap-nav-overlay-open="{{ $overlayId }}">
