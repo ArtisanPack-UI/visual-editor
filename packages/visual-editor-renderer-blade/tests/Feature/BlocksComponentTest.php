@@ -101,6 +101,153 @@ it( 'passes the nav-block tree through unchanged when cms-framework is not insta
 		->toContain( '<ul class="wp-block-navigation__container"></ul>' );
 } );
 
+/**
+ * Bind a stub under cms-framework's TemplatePartResolver FQCN so the
+ * nav block's `class_exists()` gate passes (the real class autoloads
+ * in this monorepo) AND `app($fqcn)` returns our controllable stub
+ * instead of the real resolver (which needs an active theme + DB row).
+ * `$resolved` is what the stub's `resolve()` hands back.
+ */
+function bindOverlayResolverStub( ?object $resolved ): void {
+	$stub = new class( $resolved ) {
+		public function __construct( private ?object $resolved ) {}
+
+		public function resolve( string $slug ): ?object
+		{
+			return $this->resolved;
+		}
+	};
+
+	app()->bind(
+		'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplatePartResolver',
+		fn () => $stub,
+	);
+}
+
+it( 'renders the overlay template-part contents inside the responsive container when overlay attr resolves (Keystone #58)', function () {
+	// The overlay points at a navigation-overlay template-part whose
+	// blocks should REPLACE the duplicate inline-menu fallback in
+	// the responsive container. WP core renders the picked overlay's
+	// blocks here (custom layout, search, etc.) so the mobile drawer
+	// can diverge from the desktop nav.
+	bindOverlayResolverStub( (object) [
+		'area'   => 'navigation-overlay',
+		'blocks' => [
+			[
+				'clientId'    => 'p-1',
+				'name'        => 'core/paragraph',
+				'attributes'  => [ 'content' => 'Welcome to the overlay' ],
+				'innerBlocks' => [],
+			],
+		],
+	] );
+
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [ 'overlay' => 'mobile-overlay' ],
+			'innerBlocks' => [
+				[
+					'clientId'    => 'l-1',
+					'name'        => 'core/navigation-link',
+					'attributes'  => [ 'label' => 'Home', 'url' => '/' ],
+					'innerBlocks' => [],
+				],
+			],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		// Overlay content rendered for the open-drawer view.
+		->toContain( '<p class="wp-block-paragraph">Welcome to the overlay</p>' )
+		->and( $rendered )->toContain( '<div class="wp-block-navigation__overlay-content">' )
+		// Dual-render (Keystone #58): the regular menu is STILL present
+		// for the inline desktop / closed-drawer view — the overlay
+		// adds to the DOM, it doesn't erase the navigation.
+		->and( $rendered )->toContain( '<ul class="wp-block-navigation__container">' )
+		->and( $rendered )->toContain( '<a class="wp-block-navigation-item__content" href="/">' )
+		// The content container is marked so the emitted toggle CSS can
+		// swap menu ↔ overlay based on `is-menu-open`.
+		->and( $rendered )->toContain( 'wp-block-navigation__responsive-container-content has-overlay-template' );
+} );
+
+it( 'falls back to the duplicate inline-menu container when overlay slug resolves to a non-overlay area (Keystone #58)', function () {
+	// Defensive: a stale overlay slug that now points at a header /
+	// footer template-part must NOT render that part's blocks in the
+	// nav-block's drawer — the author meant a navigation-overlay,
+	// and rendering a header inside the mobile menu would surprise
+	// everyone. Bail to the inline-menu duplicate.
+	bindOverlayResolverStub( (object) [
+		'area'   => 'header',
+		'blocks' => [
+			[
+				'clientId'    => 'p-1',
+				'name'        => 'core/paragraph',
+				'attributes'  => [ 'content' => 'I am a header — do not render me' ],
+				'innerBlocks' => [],
+			],
+		],
+	] );
+
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [ 'overlay' => 'header' ],
+			'innerBlocks' => [
+				[
+					'clientId'    => 'l-1',
+					'name'        => 'core/navigation-link',
+					'attributes'  => [ 'label' => 'Home', 'url' => '/' ],
+					'innerBlocks' => [],
+				],
+			],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		->not->toContain( 'I am a header — do not render me' )
+		// No overlay swap: no marker class, no overlay-content wrapper.
+		->and( $rendered )->not->toContain( 'responsive-container-content has-overlay-template' )
+		->and( $rendered )->not->toContain( '<div class="wp-block-navigation__overlay-content">' )
+		// The regular menu still renders.
+		->and( $rendered )->toContain( '<ul class="wp-block-navigation__container">' );
+} );
+
+it( 'falls back to the duplicate inline-menu container when the overlay slug resolves to null (Keystone #58)', function () {
+	bindOverlayResolverStub( null );
+
+	$tree = [
+		[
+			'clientId'    => 'nav-1',
+			'name'        => 'core/navigation',
+			'attributes'  => [ 'overlay' => 'deleted-overlay' ],
+			'innerBlocks' => [
+				[
+					'clientId'    => 'l-1',
+					'name'        => 'core/navigation-link',
+					'attributes'  => [ 'label' => 'Home', 'url' => '/' ],
+					'innerBlocks' => [],
+				],
+			],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	expect( $rendered )
+		// A deleted / unresolvable overlay slug never swaps in overlay
+		// markup — the menu renders as if no overlay were set.
+		->not->toContain( 'responsive-container-content has-overlay-template' )
+		->and( $rendered )->not->toContain( '<div class="wp-block-navigation__overlay-content">' )
+		->and( $rendered )->toContain( '<ul class="wp-block-navigation__container">' );
+} );
+
 it( 'renders style.elements.link.color.text on the nav block as a scoped style + class (Keystone #56)', function () {
 	// The dedicated Link color picker on core/navigation writes to
 	// `style.elements.link.color.text` — a path separate from the
