@@ -135,10 +135,14 @@ class SampleContentRepository
 
 			// Templates — unique key: (slug, theme)
 			$counts['templates'] = 0;
-			foreach ( $fixtures['templates'] ?? [] as $record ) {
+			$seenTemplates       = [];
+			foreach ( $fixtures['templates'] ?? [] as $name => $record ) {
+				$slug  = $this->requireNonEmptyString( $record, 'slug' );
+				$theme = $this->requireNonEmptyString( $record, 'theme' );
+				$this->assertUniqueKey( $seenTemplates, $slug . '|' . $theme, (string) $name, 'template' );
 				$model = VisualEditorTemplate::firstOrNew( [
-					'slug'  => $this->requireNonEmptyString( $record, 'slug' ),
-					'theme' => $this->requireNonEmptyString( $record, 'theme' ),
+					'slug'  => $slug,
+					'theme' => $theme,
 				] );
 				$model->fill( [
 					'title'       => $this->resolveTitle( $record ),
@@ -154,10 +158,14 @@ class SampleContentRepository
 
 			// Template parts — unique key: (slug, theme)
 			$counts['template-parts'] = 0;
-			foreach ( $fixtures['template-parts'] ?? [] as $record ) {
+			$seenTemplateParts        = [];
+			foreach ( $fixtures['template-parts'] ?? [] as $name => $record ) {
+				$slug  = $this->requireNonEmptyString( $record, 'slug' );
+				$theme = $this->requireNonEmptyString( $record, 'theme' );
+				$this->assertUniqueKey( $seenTemplateParts, $slug . '|' . $theme, (string) $name, 'template part' );
 				$model = VisualEditorTemplatePart::firstOrNew( [
-					'slug'  => $this->requireNonEmptyString( $record, 'slug' ),
-					'theme' => $this->requireNonEmptyString( $record, 'theme' ),
+					'slug'  => $slug,
+					'theme' => $theme,
 				] );
 				$model->fill( [
 					'title' => $this->resolveTitle( $record ),
@@ -170,8 +178,11 @@ class SampleContentRepository
 
 			// Navigation — unique key: slug
 			$counts['navigation'] = 0;
-			foreach ( $fixtures['navigation'] ?? [] as $record ) {
-				$model = VisualEditorNavigation::firstOrNew( [ 'slug' => $this->requireNonEmptyString( $record, 'slug' ) ] );
+			$seenNavigation       = [];
+			foreach ( $fixtures['navigation'] ?? [] as $name => $record ) {
+				$slug = $this->requireNonEmptyString( $record, 'slug' );
+				$this->assertUniqueKey( $seenNavigation, $slug, (string) $name, 'navigation' );
+				$model = VisualEditorNavigation::firstOrNew( [ 'slug' => $slug ] );
 				$model->fill( [
 					'title'      => $this->resolveTitle( $record ),
 					'status'     => $record['status'] ?? VisualEditorNavigation::STATUS_PUBLISH,
@@ -184,8 +195,11 @@ class SampleContentRepository
 
 			// Patterns — unique key: slug; categories synced via pivot
 			$counts['patterns'] = 0;
-			foreach ( $fixtures['patterns'] ?? [] as $record ) {
-				$model = VisualEditorPattern::firstOrNew( [ 'slug' => $this->requireNonEmptyString( $record, 'slug' ) ] );
+			$seenPatterns       = [];
+			foreach ( $fixtures['patterns'] ?? [] as $name => $record ) {
+				$slug = $this->requireNonEmptyString( $record, 'slug' );
+				$this->assertUniqueKey( $seenPatterns, $slug, (string) $name, 'pattern' );
+				$model = VisualEditorPattern::firstOrNew( [ 'slug' => $slug ] );
 				$model->fill( [
 					'title'  => $this->resolveTitle( $record ),
 					'synced' => (bool) ( $record['synced'] ?? false ),
@@ -201,8 +215,10 @@ class SampleContentRepository
 
 			// GlobalStyles — unique key: theme (no setContentEnvelope; settings/styles stored directly)
 			$counts['global-styles'] = 0;
-			foreach ( $fixtures['global-styles'] ?? [] as $record ) {
+			$seenGlobalStyles        = [];
+			foreach ( $fixtures['global-styles'] ?? [] as $name => $record ) {
 				$theme = $this->resolveGlobalStylesTheme( $record );
+				$this->assertUniqueKey( $seenGlobalStyles, $theme, (string) $name, 'global-styles' );
 				$model = VisualEditorGlobalStyles::firstOrNew( [ 'theme' => $theme ] );
 				$model->fill( [
 					'version'  => (int) ( $record['version'] ?? 3 ),
@@ -215,6 +231,36 @@ class SampleContentRepository
 
 			return $counts;
 		} );
+	}
+
+	/**
+	 * Records a fixture's resolved natural key for its kind and fails fast
+	 * when a second fixture in the same set maps to the same key. Without
+	 * this guard, two files sorted by filename would silently overwrite one
+	 * another and inflate the per-kind seed counts.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, string>  $seen  Map of key => fixture name, passed by reference.
+	 * @param  string                 $key   The resolved natural key.
+	 * @param  string                 $name  The current fixture's basename.
+	 * @param  string                 $kind  Human-readable entity kind for the message.
+	 */
+	protected function assertUniqueKey( array &$seen, string $key, string $name, string $kind ): void
+	{
+		if ( isset( $seen[ $key ] ) ) {
+			throw new RuntimeException(
+				sprintf(
+					'Duplicate %s natural key `%s` in sample-content fixtures `%s` and `%s`.',
+					$kind,
+					$key,
+					$seen[ $key ],
+					$name
+				)
+			);
+		}
+
+		$seen[ $key ] = $name;
 	}
 
 	/**

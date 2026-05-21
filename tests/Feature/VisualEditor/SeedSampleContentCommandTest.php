@@ -155,6 +155,51 @@ it( 'rejects fixture files whose top-level JSON is a list rather than an object'
 	rmdir( $fixturesDir );
 } );
 
+it( 'rejects two fixtures that resolve to the same natural key', function (): void {
+	$fixturesDir = sys_get_temp_dir() . '/ve-seed-test-' . uniqid();
+	mkdir( $fixturesDir . '/templates', 0o777, true );
+
+	file_put_contents(
+		$fixturesDir . '/templates/a.json',
+		json_encode( [ 'slug' => 'home', 'theme' => 'artisanpack-base', 'title' => 'First' ] )
+	);
+	file_put_contents(
+		$fixturesDir . '/templates/b.json',
+		json_encode( [ 'slug' => 'home', 'theme' => 'artisanpack-base', 'title' => 'Second' ] )
+	);
+
+	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $fixturesDir ] )
+		->expectsOutputToContain( 'Duplicate template natural key' )
+		->assertFailed();
+
+	expect( VisualEditorTemplate::count() )->toBe( 0 );
+
+	unlink( $fixturesDir . '/templates/a.json' );
+	unlink( $fixturesDir . '/templates/b.json' );
+	rmdir( $fixturesDir . '/templates' );
+	rmdir( $fixturesDir );
+} );
+
+it( 'rejects a fixture missing a required natural-key field', function (): void {
+	$fixturesDir = sys_get_temp_dir() . '/ve-seed-test-' . uniqid();
+	mkdir( $fixturesDir . '/templates', 0o777, true );
+
+	file_put_contents(
+		$fixturesDir . '/templates/no-theme.json',
+		json_encode( [ 'slug' => 'home', 'title' => 'Missing theme' ] )
+	);
+
+	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $fixturesDir ] )
+		->expectsOutputToContain( 'missing required `theme`' )
+		->assertFailed();
+
+	expect( VisualEditorTemplate::count() )->toBe( 0 );
+
+	unlink( $fixturesDir . '/templates/no-theme.json' );
+	rmdir( $fixturesDir . '/templates' );
+	rmdir( $fixturesDir );
+} );
+
 it( 'surfaces per-kind row counts in the command output', function (): void {
 	$this->artisan( 'visual-editor:seed-sample-content' )
 		->expectsOutputToContain( 'templates' )
