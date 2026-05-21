@@ -180,6 +180,32 @@ it( 'rejects two fixtures that resolve to the same natural key', function (): vo
 	rmdir( $fixturesDir );
 } );
 
+it( 'does not falsely flag distinct keys that share a delimiter-joined form', function (): void {
+	$fixturesDir = sys_get_temp_dir() . '/ve-seed-test-' . uniqid();
+	mkdir( $fixturesDir . '/templates', 0o777, true );
+
+	// ['home|x', 'base'] and ['home', 'x|base'] both collapse to "home|x|base"
+	// under naive string joining but are genuinely distinct (slug, theme) pairs.
+	file_put_contents(
+		$fixturesDir . '/templates/a.json',
+		json_encode( [ 'slug' => 'home|x', 'theme' => 'base', 'title' => 'A' ] )
+	);
+	file_put_contents(
+		$fixturesDir . '/templates/b.json',
+		json_encode( [ 'slug' => 'home', 'theme' => 'x|base', 'title' => 'B' ] )
+	);
+
+	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $fixturesDir ] )
+		->assertSuccessful();
+
+	expect( VisualEditorTemplate::count() )->toBe( 2 );
+
+	unlink( $fixturesDir . '/templates/a.json' );
+	unlink( $fixturesDir . '/templates/b.json' );
+	rmdir( $fixturesDir . '/templates' );
+	rmdir( $fixturesDir );
+} );
+
 it( 'rejects a fixture missing a required natural-key field', function (): void {
 	$fixturesDir = sys_get_temp_dir() . '/ve-seed-test-' . uniqid();
 	mkdir( $fixturesDir . '/templates', 0o777, true );

@@ -139,7 +139,7 @@ class SampleContentRepository
 			foreach ( $fixtures['templates'] ?? [] as $name => $record ) {
 				$slug  = $this->requireNonEmptyString( $record, 'slug' );
 				$theme = $this->requireNonEmptyString( $record, 'theme' );
-				$this->assertUniqueKey( $seenTemplates, $slug . '|' . $theme, (string) $name, 'template' );
+				$this->assertUniqueKey( $seenTemplates, [ $slug, $theme ], (string) $name, 'template' );
 				$model = VisualEditorTemplate::firstOrNew( [
 					'slug'  => $slug,
 					'theme' => $theme,
@@ -162,7 +162,7 @@ class SampleContentRepository
 			foreach ( $fixtures['template-parts'] ?? [] as $name => $record ) {
 				$slug  = $this->requireNonEmptyString( $record, 'slug' );
 				$theme = $this->requireNonEmptyString( $record, 'theme' );
-				$this->assertUniqueKey( $seenTemplateParts, $slug . '|' . $theme, (string) $name, 'template part' );
+				$this->assertUniqueKey( $seenTemplateParts, [ $slug, $theme ], (string) $name, 'template part' );
 				$model = VisualEditorTemplatePart::firstOrNew( [
 					'slug'  => $slug,
 					'theme' => $theme,
@@ -181,7 +181,7 @@ class SampleContentRepository
 			$seenNavigation       = [];
 			foreach ( $fixtures['navigation'] ?? [] as $name => $record ) {
 				$slug = $this->requireNonEmptyString( $record, 'slug' );
-				$this->assertUniqueKey( $seenNavigation, $slug, (string) $name, 'navigation' );
+				$this->assertUniqueKey( $seenNavigation, [ $slug ], (string) $name, 'navigation' );
 				$model = VisualEditorNavigation::firstOrNew( [ 'slug' => $slug ] );
 				$model->fill( [
 					'title'      => $this->resolveTitle( $record ),
@@ -198,7 +198,7 @@ class SampleContentRepository
 			$seenPatterns       = [];
 			foreach ( $fixtures['patterns'] ?? [] as $name => $record ) {
 				$slug = $this->requireNonEmptyString( $record, 'slug' );
-				$this->assertUniqueKey( $seenPatterns, $slug, (string) $name, 'pattern' );
+				$this->assertUniqueKey( $seenPatterns, [ $slug ], (string) $name, 'pattern' );
 				$model = VisualEditorPattern::firstOrNew( [ 'slug' => $slug ] );
 				$model->fill( [
 					'title'  => $this->resolveTitle( $record ),
@@ -218,7 +218,7 @@ class SampleContentRepository
 			$seenGlobalStyles        = [];
 			foreach ( $fixtures['global-styles'] ?? [] as $name => $record ) {
 				$theme = $this->resolveGlobalStylesTheme( $record );
-				$this->assertUniqueKey( $seenGlobalStyles, $theme, (string) $name, 'global-styles' );
+				$this->assertUniqueKey( $seenGlobalStyles, [ $theme ], (string) $name, 'global-styles' );
 				$model = VisualEditorGlobalStyles::firstOrNew( [ 'theme' => $theme ] );
 				$model->fill( [
 					'version'  => (int) ( $record['version'] ?? 3 ),
@@ -241,19 +241,23 @@ class SampleContentRepository
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  array<string, string>  $seen  Map of key => fixture name, passed by reference.
-	 * @param  string                 $key   The resolved natural key.
-	 * @param  string                 $name  The current fixture's basename.
-	 * @param  string                 $kind  Human-readable entity kind for the message.
+	 * @param  array<string, string>  $seen      Map of encoded key => fixture name, passed by reference.
+	 * @param  list<string>           $keyParts  The natural-key field values, treated atomically.
+	 * @param  string                 $name      The current fixture's basename.
+	 * @param  string                 $kind      Human-readable entity kind for the message.
 	 */
-	protected function assertUniqueKey( array &$seen, string $key, string $name, string $kind ): void
+	protected function assertUniqueKey( array &$seen, array $keyParts, string $name, string $kind ): void
 	{
+		// Encode the parts so distinct pairs like ['a|b', 'c'] and ['a', 'b|c']
+		// can never collide on a delimiter-joined string.
+		$key = json_encode( $keyParts, JSON_THROW_ON_ERROR );
+
 		if ( isset( $seen[ $key ] ) ) {
 			throw new RuntimeException(
 				sprintf(
 					'Duplicate %s natural key `%s` in sample-content fixtures `%s` and `%s`.',
 					$kind,
-					$key,
+					implode( ', ', $keyParts ),
 					$seen[ $key ],
 					$name
 				)
