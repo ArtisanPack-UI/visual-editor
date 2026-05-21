@@ -1,20 +1,14 @@
 <?php
 
 /**
- * Repository that reads dev-app sample-content fixtures and writes
- * them to a storage disk for the B1 core-data shim to consume.
+ * Repository that reads dev-app sample-content fixtures and seeds
+ * them directly into the C1/C2 database tables.
  *
- * The fixtures model the five site-editor entities that the shim
- * registers by default — `wp_template`, `wp_template_part`,
- * `wp_navigation`, `wp_block` (patterns), and `globalStyles`. Every
- * file is a single-record JSON document laid out under
- * `{fixturesDir}/{slug}/{name}.json`, where `slug` is the REST path
- * fragment (e.g. `templates`, `template-parts`).
- *
- * Storing the loaded fixtures on a disk rather than a database table
- * keeps Phase B2 decoupled from the Phase C migrations: each Phase C
- * entity ticket can take over by pointing its seeder at the same
- * fixtures directory and inserting rows into the real tables.
+ * The fixtures model the five site-editor entities — `wp_template`,
+ * `wp_template_part`, `wp_navigation`, `wp_block` (patterns), and
+ * `globalStyles`. Every file is a single-record JSON document laid out
+ * under `{fixturesDir}/{fragment}/{name}.json`, where `fragment` is
+ * the REST path fragment (e.g. `templates`, `template-parts`).
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -28,8 +22,13 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\SampleContent;
 
-use Illuminate\Contracts\Filesystem\Filesystem;
-use Illuminate\Support\Facades\Storage;
+use ArtisanPackUI\VisualEditor\Models\VisualEditorGlobalStyles;
+use ArtisanPackUI\VisualEditor\Models\VisualEditorNavigation;
+use ArtisanPackUI\VisualEditor\Models\VisualEditorPattern;
+use ArtisanPackUI\VisualEditor\Models\VisualEditorPatternCategory;
+use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplate;
+use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplatePart;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use JsonException;
 use RuntimeException;
@@ -37,9 +36,9 @@ use RuntimeException;
 class SampleContentRepository
 {
 	/**
-	 * Map of REST URL fragment → (kind, name) that the B1 shim
-	 * registers by default. The REST fragment doubles as the
-	 * sub-directory under the fixtures root.
+	 * Map of REST URL fragment → (kind, name) that the site editor
+	 * registers by default. The REST fragment doubles as the sub-directory
+	 * under the fixtures root.
 	 *
 	 * @var array<string, array{kind: string, name: string}>
 	 */
@@ -109,147 +108,188 @@ class SampleContentRepository
 	}
 
 	/**
-	 * Writes every loaded fixture to the target disk, one JSON file
-	 * per record, under `visual-editor/sample-content/{kind}/{name}/{id}.json`.
+	 * Inserts or updates every loaded fixture into the C1/C2 database tables.
 	 *
-	 * Re-running the method overwrites existing files with the same
-	 * payload, which keeps the seeder idempotent without needing a
-	 * hash-vs-hash diff — the target disk always reflects the fixtures
-	 * directory byte-for-byte.
+	 * Each entity kind is resolved by its natural unique key so re-running
+	 * the command is idempotent — an existing record is updated in-place
+	 * rather than duplicated.
+	 *
+	 * Unique keys per kind:
+	 * - templates      → (slug, theme)
+	 * - template-parts → (slug, theme)
+	 * - navigation     → slug
+	 * - patterns       → slug
+	 * - global-styles  → theme (derived from fixture or config fallback)
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  Filesystem                                                     $disk      Storage disk to write to.
-	 * @param  array<string, array<string, array<string, mixed>>>             $fixtures  Fixtures grouped by URL fragment.
+	 * @param  array<string, array<string, array<string, mixed>>>  $fixtures
+	 *     Fixtures grouped by URL fragment, as returned by {@see loadFixtures()}.
 	 *
-	 * @return array<string, int> Map of `urlFragment => recordCount`.
-	 *
-	 * @throws RuntimeException If any fixture is missing a usable primary key.
+	 * @return array<string, int> Map of `urlFragment => upsertedRowCount`.
 	 */
-	public function writeToDisk( Filesystem $disk, array $fixtures ): array
+	public function seedToDatabase( array $fixtures ): array
 	{
-		$root   = 'visual-editor/sample-content';
-		$plan   = [];
-		$counts = [];
+		return DB::transaction( function () use ( $fixtures ): array {
+			$counts = [];
 
-		// Validate + encode every record first so a malformed fixture
-		// aborts the seed before any existing directory is deleted.
-		// Otherwise a bad fixture partway through the loop would wipe
-		// the previously-seeded sample content and leave nothing to
-		// read back.
-		foreach ( self::ENTITY_MAP as $fragment => $identity ) {
-			$records = $fixtures[ $fragment ] ?? [];
-			$counts[ $fragment ] = 0;
-
-			$entityPath = sprintf(
-				'%s/%s/%s',
-				$root,
-				$identity['kind'],
-				$identity['name']
-			);
-
-			$plan[ $fragment ] = [
-				'entityPath' => $entityPath,
-				'writes'     => [],
-			];
-
-			foreach ( $records as $basename => $record ) {
-				$id     = $this->recordIdFor( $fragment, (string) $basename, $record );
-				$target = sprintf( '%s/%s.json', $entityPath, $id );
-
-				$plan[ $fragment ]['writes'][] = [
-					'id'      => $id,
-					'target'  => $target,
-					'payload' => $this->encode( $record ),
-				];
-			}
-		}
-
-		// With every fixture validated, it's safe to reset the entity
-		// directories and commit the writes. `deleteDirectory` is
-		// defined on the `Filesystem` contract, so every driver the
-		// host app might configure (local, s3, memory, …) supports it.
-		foreach ( $plan as $fragment => $entry ) {
-			if ( $disk->exists( $entry['entityPath'] ) ) {
-				$disk->deleteDirectory( $entry['entityPath'] );
+			// Templates — unique key: (slug, theme)
+			$counts['templates'] = 0;
+			$seenTemplates       = [];
+			foreach ( $fixtures['templates'] ?? [] as $name => $record ) {
+				$slug  = $this->requireNonEmptyString( $record, 'slug' );
+				$theme = $this->requireNonEmptyString( $record, 'theme' );
+				$this->assertUniqueKey( $seenTemplates, [ $slug, $theme ], (string) $name, 'template' );
+				$model = VisualEditorTemplate::firstOrNew( [
+					'slug'  => $slug,
+					'theme' => $theme,
+				] );
+				$model->fill( [
+					'title'       => $this->resolveTitle( $record ),
+					'description' => $record['description'] ?? null,
+					'status'      => $record['status'] ?? VisualEditorTemplate::STATUS_PUBLISH,
+					'source'      => $record['source'] ?? VisualEditorTemplate::SOURCE_CUSTOM,
+					'origin'      => $record['origin'] ?? null,
+				] );
+				$model->setContentEnvelope( $record['content'] ?? [] );
+				$model->save();
+				$counts['templates']++;
 			}
 
-			foreach ( $entry['writes'] as $write ) {
-				if ( ! $disk->put( $write['target'], $write['payload'] ) ) {
-					throw new RuntimeException(
-						sprintf(
-							'Failed to write sample-content fixture %s (entity id %s).',
-							$write['target'],
-							$write['id']
-						)
-					);
-				}
-
-				$counts[ $fragment ]++;
+			// Template parts — unique key: (slug, theme)
+			$counts['template-parts'] = 0;
+			$seenTemplateParts        = [];
+			foreach ( $fixtures['template-parts'] ?? [] as $name => $record ) {
+				$slug  = $this->requireNonEmptyString( $record, 'slug' );
+				$theme = $this->requireNonEmptyString( $record, 'theme' );
+				$this->assertUniqueKey( $seenTemplateParts, [ $slug, $theme ], (string) $name, 'template part' );
+				$model = VisualEditorTemplatePart::firstOrNew( [
+					'slug'  => $slug,
+					'theme' => $theme,
+				] );
+				$model->fill( [
+					'title' => $this->resolveTitle( $record ),
+					'area'  => $record['area'] ?? VisualEditorTemplatePart::AREA_UNCATEGORIZED,
+				] );
+				$model->setContentEnvelope( $record['content'] ?? [] );
+				$model->save();
+				$counts['template-parts']++;
 			}
-		}
 
-		return $counts;
+			// Navigation — unique key: slug
+			$counts['navigation'] = 0;
+			$seenNavigation       = [];
+			foreach ( $fixtures['navigation'] ?? [] as $name => $record ) {
+				$slug = $this->requireNonEmptyString( $record, 'slug' );
+				$this->assertUniqueKey( $seenNavigation, [ $slug ], (string) $name, 'navigation' );
+				$model = VisualEditorNavigation::firstOrNew( [ 'slug' => $slug ] );
+				$model->fill( [
+					'title'      => $this->resolveTitle( $record ),
+					'status'     => $record['status'] ?? VisualEditorNavigation::STATUS_PUBLISH,
+					'menu_order' => (int) ( $record['menu_order'] ?? 0 ),
+				] );
+				$model->setContentEnvelope( $record['content'] ?? [] );
+				$model->save();
+				$counts['navigation']++;
+			}
+
+			// Patterns — unique key: slug; categories synced via pivot
+			$counts['patterns'] = 0;
+			$seenPatterns       = [];
+			foreach ( $fixtures['patterns'] ?? [] as $name => $record ) {
+				$slug = $this->requireNonEmptyString( $record, 'slug' );
+				$this->assertUniqueKey( $seenPatterns, [ $slug ], (string) $name, 'pattern' );
+				$model = VisualEditorPattern::firstOrNew( [ 'slug' => $slug ] );
+				$model->fill( [
+					'title'  => $this->resolveTitle( $record ),
+					'synced' => (bool) ( $record['synced'] ?? false ),
+					'status' => $record['status'] ?? VisualEditorPattern::STATUS_PUBLISH,
+				] );
+				$model->setContentEnvelope( $record['content'] ?? [] );
+				$model->save();
+
+				$this->syncPatternCategories( $model, $record['categories'] ?? [] );
+
+				$counts['patterns']++;
+			}
+
+			// GlobalStyles — unique key: theme (no setContentEnvelope; settings/styles stored directly)
+			$counts['global-styles'] = 0;
+			$seenGlobalStyles        = [];
+			foreach ( $fixtures['global-styles'] ?? [] as $name => $record ) {
+				$theme = $this->resolveGlobalStylesTheme( $record );
+				$this->assertUniqueKey( $seenGlobalStyles, [ $theme ], (string) $name, 'global-styles' );
+				$model = VisualEditorGlobalStyles::firstOrNew( [ 'theme' => $theme ] );
+				$model->fill( [
+					'version'  => (int) ( $record['version'] ?? 3 ),
+					'settings' => $record['settings'] ?? [],
+					'styles'   => $record['styles'] ?? [],
+				] );
+				$model->save();
+				$counts['global-styles']++;
+			}
+
+			return $counts;
+		} );
 	}
 
 	/**
-	 * Reads a single previously-seeded record back from the disk.
-	 * Exposed for feature tests and diagnostic tooling — the shim
-	 * itself pulls records through HTTP, not this path.
+	 * Records a fixture's resolved natural key for its kind and fails fast
+	 * when a second fixture in the same set maps to the same key. Without
+	 * this guard, two files sorted by filename would silently overwrite one
+	 * another and inflate the per-kind seed counts.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  Filesystem          $disk      Storage disk to read from.
-	 * @param  string              $fragment  REST URL fragment (e.g. `templates`).
-	 * @param  int|string          $id        Record primary key.
-	 *
-	 * @return array<string, mixed>|null The decoded record, or null if absent.
-	 *
-	 * @throws InvalidArgumentException If `$fragment` is not a known entity.
-	 * @throws RuntimeException         If the stored payload cannot be decoded.
+	 * @param  array<string, string>  $seen      Map of encoded key => fixture name, passed by reference.
+	 * @param  list<string>           $keyParts  The natural-key field values, treated atomically.
+	 * @param  string                 $name      The current fixture's basename.
+	 * @param  string                 $kind      Human-readable entity kind for the message.
 	 */
-	public function readRecord( Filesystem $disk, string $fragment, int | string $id ): ?array
+	protected function assertUniqueKey( array &$seen, array $keyParts, string $name, string $kind ): void
 	{
-		if ( ! array_key_exists( $fragment, self::ENTITY_MAP ) ) {
-			throw new InvalidArgumentException(
-				sprintf( 'Unknown sample-content entity fragment: %s', $fragment )
+		// Encode the parts so distinct pairs like ['a|b', 'c'] and ['a', 'b|c']
+		// can never collide on a delimiter-joined string.
+		$key = json_encode( $keyParts, JSON_THROW_ON_ERROR );
+
+		if ( isset( $seen[ $key ] ) ) {
+			throw new RuntimeException(
+				sprintf(
+					'Duplicate %s natural key `%s` in sample-content fixtures `%s` and `%s`.',
+					$kind,
+					implode( ', ', $keyParts ),
+					$seen[ $key ],
+					$name
+				)
 			);
 		}
 
-		$safeId = $this->assertSafeId( $id );
-
-		$identity = self::ENTITY_MAP[ $fragment ];
-
-		$path = sprintf(
-			'visual-editor/sample-content/%s/%s/%s.json',
-			$identity['kind'],
-			$identity['name'],
-			$safeId
-		);
-
-		if ( ! $disk->exists( $path ) ) {
-			return null;
-		}
-
-		return $this->decode( $disk->get( $path ) ?? '', $path );
+		$seen[ $key ] = $name;
 	}
 
 	/**
-	 * Resolves the default storage disk the command should write to.
-	 * Prefers the host app's `local` disk when available so the seeded
-	 * files land under `storage/app/visual-editor/sample-content/`.
+	 * Returns a required natural-key field from a fixture, failing fast when
+	 * it is missing, non-string, or empty so a malformed fixture cannot
+	 * silently upsert an empty-key row.
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  string|null  $name  Optional disk name override.
+	 * @param  array<string, mixed>  $record  The decoded fixture record.
+	 * @param  string                $key     The required field name.
+	 *
+	 * @return string The non-empty field value.
 	 */
-	public function resolveDisk( ?string $name = null ): Filesystem
+	protected function requireNonEmptyString( array $record, string $key ): string
 	{
-		if ( null !== $name ) {
-			return Storage::disk( $name );
+		$value = $record[ $key ] ?? null;
+
+		if ( ! is_string( $value ) || '' === $value ) {
+			throw new RuntimeException(
+				sprintf( 'Sample-content fixture is missing required `%s`.', $key )
+			);
 		}
 
-		return Storage::disk( config( 'filesystems.default', 'local' ) );
+		return $value;
 	}
 
 	/**
@@ -280,81 +320,73 @@ class SampleContentRepository
 	}
 
 	/**
-	 * Resolves the primary key for a fixture and guards against
-	 * filename-unsafe values. String IDs flow straight into the disk
-	 * path, so anything with a path separator or `..` segment could
-	 * escape `visual-editor/sample-content/{kind}/{name}/` — even
-	 * though the fixtures are dev-authored today, the `--path` option
-	 * lets host apps point the seeder at arbitrary directories.
+	 * Syncs the category pivot for a pattern, auto-creating category rows
+	 * by slug on first use (mirrors the store/update controller behaviour).
+	 *
+	 * @param  array<int, mixed>  $categorySlugs
+	 */
+	protected function syncPatternCategories( VisualEditorPattern $model, array $categorySlugs ): void
+	{
+		$ids = [];
+
+		foreach ( $categorySlugs as $slug ) {
+			if ( ! is_string( $slug ) || '' === $slug ) {
+				continue;
+			}
+
+			$category = VisualEditorPatternCategory::firstOrCreate(
+				[ 'slug' => $slug ],
+				[ 'name' => ucwords( str_replace( [ '-', '_' ], ' ', $slug ) ) ]
+			);
+
+			$ids[] = $category->id;
+		}
+
+		$model->categories()->sync( $ids );
+	}
+
+	/**
+	 * Resolves the theme for a global-styles fixture record.
+	 *
+	 * Checks the record itself first (future fixtures may carry a `theme`
+	 * key), then falls back to the configured sample-content theme, and
+	 * finally to `artisanpack-base` which matches the templates shipped
+	 * in the package fixtures.
+	 */
+	protected function resolveGlobalStylesTheme( array $record ): string
+	{
+		if ( isset( $record['theme'] ) && is_string( $record['theme'] ) && '' !== $record['theme'] ) {
+			return $record['theme'];
+		}
+
+		$configured = config( 'artisanpack.visual-editor.sample_content.theme' );
+
+		if ( is_string( $configured ) && '' !== $configured ) {
+			return $configured;
+		}
+
+		return 'artisanpack-base';
+	}
+
+	/**
+	 * Extracts the human-readable title from a fixture record.
+	 *
+	 * Fixtures use the REST `{ rendered: "…" }` title shape; plain
+	 * string titles are also accepted.
 	 *
 	 * @param  array<string, mixed>  $record
 	 */
-	protected function recordIdFor( string $fragment, string $basename, array $record ): int | string
+	protected function resolveTitle( array $record ): string
 	{
-		$id = $record['id'] ?? null;
+		$title = $record['title'] ?? '';
 
-		if ( is_int( $id ) ) {
-			return $id;
+		if ( is_array( $title ) ) {
+			return isset( $title['rendered'] ) && is_string( $title['rendered'] )
+				? $title['rendered']
+				: '';
 		}
 
-		if ( is_string( $id ) && '' !== $id ) {
-			if ( ! $this->isSafeIdSegment( $id ) ) {
-				throw new RuntimeException(
-					sprintf(
-						'Sample-content fixture %s/%s.json has an unsafe id %s — ids must contain only letters, digits, dot, underscore, or hyphen, and no path-traversal segments.',
-						$fragment,
-						$basename,
-						var_export( $id, true )
-					)
-				);
-			}
-
-			return $id;
-		}
-
-		throw new RuntimeException(
-			sprintf(
-				'Sample-content fixture %s/%s.json is missing a primary key.',
-				$fragment,
-				$basename
-			)
-		);
-	}
-
-	/**
-	 * Validates that `$id` is safe to use as a single path segment
-	 * and returns its string form. Non-integer string ids must match
-	 * the allowed character set and may not contain any `..` segment.
-	 *
-	 * @throws InvalidArgumentException If the id is blank or unsafe.
-	 */
-	protected function assertSafeId( int | string $id ): string
-	{
-		if ( is_int( $id ) ) {
-			return (string) $id;
-		}
-
-		if ( '' === $id || ! $this->isSafeIdSegment( $id ) ) {
-			throw new InvalidArgumentException(
-				sprintf(
-					'Unsafe sample-content id %s — ids must contain only letters, digits, dot, underscore, or hyphen, and no path-traversal segments.',
-					var_export( $id, true )
-				)
-			);
-		}
-
-		return $id;
-	}
-
-	/**
-	 * Whether `$id` is a single filename-safe path segment: ASCII
-	 * letters, digits, dot, underscore, hyphen; and no `..` anywhere
-	 * (which would otherwise satisfy the character class).
-	 */
-	protected function isSafeIdSegment( string $id ): bool
-	{
-		return 1 === preg_match( '/^[A-Za-z0-9._-]+$/', $id )
-			&& ! str_contains( $id, '..' );
+		return is_string( $title ) ? $title : '';
 	}
 
 	/**
@@ -379,21 +411,5 @@ class SampleContentRepository
 		}
 
 		return $decoded;
-	}
-
-	protected function encode( array $record ): string
-	{
-		try {
-			return json_encode(
-				$record,
-				JSON_THROW_ON_ERROR | JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES
-			) . "\n";
-		} catch ( JsonException $e ) {
-			throw new RuntimeException(
-				sprintf( 'Unable to encode sample-content fixture: %s', $e->getMessage() ),
-				0,
-				$e
-			);
-		}
 	}
 }

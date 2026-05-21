@@ -2,118 +2,133 @@
 
 declare( strict_types=1 );
 
-use ArtisanPackUI\VisualEditor\SampleContent\SampleContentRepository;
-use Illuminate\Support\Facades\Storage;
+use ArtisanPackUI\VisualEditor\Models\VisualEditorGlobalStyles;
+use ArtisanPackUI\VisualEditor\Models\VisualEditorNavigation;
+use ArtisanPackUI\VisualEditor\Models\VisualEditorPattern;
+use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplate;
+use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplatePart;
 
-beforeEach( function (): void {
-	// Pin the default disk so `Storage::fake('local')` is the disk
-	// the command resolves via `config('filesystems.default')`,
-	// regardless of what Testbench (or a future host app config)
-	// ships as its default.
-	config( [ 'filesystems.default' => 'local' ] );
-	Storage::fake( 'local' );
-} );
-
-it( 'seeds every B1-shim entity from the packaged fixtures directory', function (): void {
+it( 'seeds all five entity kinds into the database', function (): void {
 	$this->artisan( 'visual-editor:seed-sample-content' )
 		->expectsOutputToContain( 'Seeded sample content from' )
 		->assertSuccessful();
 
-	$disk = Storage::disk( 'local' );
-
-	// One record per fixture file committed under tests/Fixtures/sample-content/.
-	expect( $disk->files( 'visual-editor/sample-content/postType/wp_template' ) )->toHaveCount( 4 );
-	expect( $disk->files( 'visual-editor/sample-content/postType/wp_template_part' ) )->toHaveCount( 3 );
-	expect( $disk->files( 'visual-editor/sample-content/postType/wp_navigation' ) )->toHaveCount( 3 );
-	expect( $disk->files( 'visual-editor/sample-content/postType/wp_block' ) )->toHaveCount( 3 );
-	expect( $disk->files( 'visual-editor/sample-content/root/globalStyles' ) )->toHaveCount( 1 );
+	expect( VisualEditorTemplate::count() )->toBe( 4 );
+	expect( VisualEditorTemplatePart::count() )->toBe( 3 );
+	expect( VisualEditorNavigation::count() )->toBe( 3 );
+	expect( VisualEditorPattern::count() )->toBe( 3 );
+	expect( VisualEditorGlobalStyles::count() )->toBe( 1 );
 } );
 
-it( 'covers the acceptance criteria for each entity kind', function (): void {
+it( 'round-trips template fields correctly', function (): void {
 	$this->artisan( 'visual-editor:seed-sample-content' )->assertSuccessful();
 
-	$repository = app( SampleContentRepository::class );
-	$disk       = Storage::disk( 'local' );
+	$index = VisualEditorTemplate::where( 'slug', 'index' )->first();
 
-	// Templates — four of them, each with a non-empty block tree.
-	foreach ( [ 1, 2, 3, 4 ] as $id ) {
-		$record = $repository->readRecord( $disk, 'templates', $id );
+	expect( $index )->not->toBeNull();
+	expect( $index->title )->toBe( 'Index' );
+	expect( $index->theme )->toBe( 'artisanpack-base' );
+	expect( $index->source )->toBe( 'theme' );
+	expect( $index->origin )->toBe( 'theme' );
+	expect( $index->status )->toBe( 'publish' );
+	expect( $index->getBlocks() )->not->toBeEmpty();
+	expect( $index->getRawContent() )->not->toBe( '' );
+} );
 
-		expect( $record )->not->toBeNull();
-		expect( $record['type'] )->toBe( 'wp_template' );
-		expect( $record['content']['blocks'] )->not->toBeEmpty();
-	}
+it( 'round-trips template-part fields correctly', function (): void {
+	$this->artisan( 'visual-editor:seed-sample-content' )->assertSuccessful();
 
-	// Header template part is referenced by every template fixture.
-	$header = $repository->readRecord( $disk, 'template-parts', 10 );
+	$header = VisualEditorTemplatePart::where( 'slug', 'header' )->first();
+
 	expect( $header )->not->toBeNull();
-	expect( $header['area'] )->toBe( 'header' );
+	expect( $header->title )->toBe( 'Header' );
+	expect( $header->area )->toBe( 'header' );
+	expect( $header->theme )->toBe( 'artisanpack-base' );
+	expect( $header->getBlocks() )->not->toBeEmpty();
+	expect( $header->getRawContent() )->not->toBe( '' );
+} );
 
-	// Nested navigation exercises the submenu shape for Phase D4.
-	$nested = $repository->readRecord( $disk, 'navigation', 22 );
+it( 'seeds all four templates with non-empty block trees', function (): void {
+	$this->artisan( 'visual-editor:seed-sample-content' )->assertSuccessful();
+
+	foreach ( [ 'index', 'single', 'page', '404' ] as $slug ) {
+		$template = VisualEditorTemplate::where( 'slug', $slug )->first();
+
+		expect( $template )->not->toBeNull( "Template '{$slug}' should exist" );
+		expect( $template->getBlocks() )->not->toBeEmpty( "Template '{$slug}' should have blocks" );
+	}
+} );
+
+it( 'round-trips navigation fields correctly', function (): void {
+	$this->artisan( 'visual-editor:seed-sample-content' )->assertSuccessful();
+
+	$nav = VisualEditorNavigation::where( 'slug', 'primary-nav' )->first();
+
+	expect( $nav )->not->toBeNull();
+	expect( $nav->title )->toBe( 'Primary' );
+	expect( $nav->status )->toBe( 'publish' );
+	expect( $nav->menu_order )->toBe( 0 );
+	expect( $nav->getBlocks() )->not->toBeEmpty();
+} );
+
+it( 'seeds the nested navigation with a submenu block', function (): void {
+	$this->artisan( 'visual-editor:seed-sample-content' )->assertSuccessful();
+
+	$nested = VisualEditorNavigation::where( 'slug', 'nested-nav' )->first();
+
 	expect( $nested )->not->toBeNull();
+
 	$submenuBlocks = array_filter(
-		$nested['content']['blocks'],
+		$nested->getBlocks(),
 		static fn ( array $block ): bool => 'core/navigation-submenu' === ( $block['name'] ?? null )
 	);
+
 	expect( $submenuBlocks )->not->toBeEmpty();
+} );
 
-	// Patterns cover both synced and unsynced variants.
-	$synced   = $repository->readRecord( $disk, 'patterns', 30 );
-	$unsynced = $repository->readRecord( $disk, 'patterns', 31 );
-	expect( $synced['synced'] )->toBeTrue();
-	expect( $unsynced['synced'] )->toBeFalse();
+it( 'round-trips pattern fields and syncs categories', function (): void {
+	$this->artisan( 'visual-editor:seed-sample-content' )->assertSuccessful();
 
-	// Global styles is the singleton theme.json record.
-	$globalStyles = $repository->readRecord( $disk, 'global-styles', 40 );
-	expect( $globalStyles )->not->toBeNull();
-	expect( $globalStyles['version'] )->toBe( 3 );
-	expect( $globalStyles['settings']['color']['palette'] )->not->toBeEmpty();
-	expect( $globalStyles['styles']['blocks']['core/button'] )->not->toBeEmpty();
+	$hero = VisualEditorPattern::where( 'slug', 'hero' )->first();
+
+	expect( $hero )->not->toBeNull();
+	expect( $hero->title )->toBe( 'Hero' );
+	expect( $hero->synced )->toBeTrue();
+	expect( $hero->status )->toBe( 'publish' );
+	expect( $hero->getBlocks() )->not->toBeEmpty();
+	expect( $hero->categories )->toHaveCount( 1 );
+	expect( $hero->categories->first()->slug )->toBe( 'featured' );
+} );
+
+it( 'seeds unsynced patterns correctly', function (): void {
+	$this->artisan( 'visual-editor:seed-sample-content' )->assertSuccessful();
+
+	$callout = VisualEditorPattern::where( 'slug', 'call-out-pair' )->first();
+
+	expect( $callout )->not->toBeNull();
+	expect( $callout->synced )->toBeFalse();
+} );
+
+it( 'round-trips global-styles fields correctly', function (): void {
+	$this->artisan( 'visual-editor:seed-sample-content' )->assertSuccessful();
+
+	$gs = VisualEditorGlobalStyles::where( 'theme', 'artisanpack-base' )->first();
+
+	expect( $gs )->not->toBeNull();
+	expect( $gs->version )->toBe( 3 );
+	expect( $gs->settings['color']['palette'] )->not->toBeEmpty();
+	expect( $gs->styles['blocks']['core/button'] )->not->toBeEmpty();
 } );
 
 it( 'is idempotent across repeated runs', function (): void {
 	$this->artisan( 'visual-editor:seed-sample-content' )->assertSuccessful();
-
-	$disk           = Storage::disk( 'local' );
-	$firstSnapshot  = collect( $disk->allFiles( 'visual-editor/sample-content' ) )
-		->mapWithKeys( fn ( string $file ): array => [ $file => $disk->get( $file ) ] )
-		->all();
-
 	$this->artisan( 'visual-editor:seed-sample-content' )->assertSuccessful();
 
-	$secondSnapshot = collect( $disk->allFiles( 'visual-editor/sample-content' ) )
-		->mapWithKeys( fn ( string $file ): array => [ $file => $disk->get( $file ) ] )
-		->all();
-
-	expect( $secondSnapshot )->toEqual( $firstSnapshot );
-} );
-
-it( 'prunes records removed from the fixtures directory on re-seed', function (): void {
-	$fixturesDir = sys_get_temp_dir() . '/visual-editor-b2-fixtures-' . uniqid();
-	mkdir( $fixturesDir . '/templates', 0o777, true );
-
-	file_put_contents(
-		$fixturesDir . '/templates/temp.json',
-		json_encode( [ 'id' => 999, 'slug' => 'temp', 'type' => 'wp_template' ] )
-	);
-
-	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $fixturesDir ] )
-		->assertSuccessful();
-
-	expect( Storage::disk( 'local' )->exists( 'visual-editor/sample-content/postType/wp_template/999.json' ) )
-		->toBeTrue();
-
-	unlink( $fixturesDir . '/templates/temp.json' );
-
-	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $fixturesDir ] )
-		->assertSuccessful();
-
-	expect( Storage::disk( 'local' )->exists( 'visual-editor/sample-content/postType/wp_template/999.json' ) )
-		->toBeFalse();
-
-	rmdir( $fixturesDir . '/templates' );
-	rmdir( $fixturesDir );
+	expect( VisualEditorTemplate::count() )->toBe( 4 );
+	expect( VisualEditorTemplatePart::count() )->toBe( 3 );
+	expect( VisualEditorNavigation::count() )->toBe( 3 );
+	expect( VisualEditorPattern::count() )->toBe( 3 );
+	expect( VisualEditorGlobalStyles::count() )->toBe( 1 );
 } );
 
 it( 'fails fast when the fixtures directory is missing', function (): void {
@@ -122,130 +137,8 @@ it( 'fails fast when the fixtures directory is missing', function (): void {
 		->assertFailed();
 } );
 
-it( 'respects a custom fixtures path via the --path option', function (): void {
-	$fixturesDir = sys_get_temp_dir() . '/visual-editor-b2-fixtures-' . uniqid();
-	mkdir( $fixturesDir . '/patterns', 0o777, true );
-
-	file_put_contents(
-		$fixturesDir . '/patterns/custom.json',
-		json_encode( [
-			'id'      => 500,
-			'slug'    => 'custom',
-			'type'    => 'wp_block',
-			'synced'  => false,
-			'content' => [ 'raw' => '', 'blocks' => [] ],
-		] )
-	);
-
-	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $fixturesDir ] )
-		->assertSuccessful();
-
-	expect( Storage::disk( 'local' )->exists( 'visual-editor/sample-content/postType/wp_block/500.json' ) )
-		->toBeTrue();
-
-	unlink( $fixturesDir . '/patterns/custom.json' );
-	rmdir( $fixturesDir . '/patterns' );
-	rmdir( $fixturesDir );
-} );
-
-it( 'rejects fixtures that are missing a primary key', function (): void {
-	$fixturesDir = sys_get_temp_dir() . '/visual-editor-b2-fixtures-' . uniqid();
-	mkdir( $fixturesDir . '/templates', 0o777, true );
-
-	file_put_contents(
-		$fixturesDir . '/templates/broken.json',
-		json_encode( [ 'slug' => 'broken', 'title' => [ 'rendered' => 'Broken' ] ] )
-	);
-
-	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $fixturesDir ] )
-		->expectsOutputToContain( 'missing a primary key' )
-		->assertFailed();
-
-	unlink( $fixturesDir . '/templates/broken.json' );
-	rmdir( $fixturesDir . '/templates' );
-	rmdir( $fixturesDir );
-} );
-
-it( 'rejects string ids that would escape the sample-content directory', function (): void {
-	$fixturesDir = sys_get_temp_dir() . '/visual-editor-b2-fixtures-' . uniqid();
-	mkdir( $fixturesDir . '/templates', 0o777, true );
-
-	file_put_contents(
-		$fixturesDir . '/templates/traversal.json',
-		json_encode( [ 'id' => '../evil', 'slug' => 'traversal' ] )
-	);
-
-	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $fixturesDir ] )
-		->expectsOutputToContain( 'unsafe id' )
-		->assertFailed();
-
-	unlink( $fixturesDir . '/templates/traversal.json' );
-	rmdir( $fixturesDir . '/templates' );
-	rmdir( $fixturesDir );
-} );
-
-it( 'preserves previously-seeded content when a later fixture fails validation', function (): void {
-	// First seed: a single valid fixture so the disk has known state.
-	$goodDir = sys_get_temp_dir() . '/visual-editor-b2-good-' . uniqid();
-	mkdir( $goodDir . '/templates', 0o777, true );
-	file_put_contents(
-		$goodDir . '/templates/valid.json',
-		json_encode( [ 'id' => 555, 'slug' => 'valid', 'type' => 'wp_template' ] )
-	);
-
-	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $goodDir ] )
-		->assertSuccessful();
-
-	$targetPath = 'visual-editor/sample-content/postType/wp_template/555.json';
-	expect( Storage::disk( 'local' )->exists( $targetPath ) )->toBeTrue();
-
-	// Second seed: a new fixtures directory that mixes a valid
-	// record with one whose id would escape the sample-content root.
-	$mixedDir = sys_get_temp_dir() . '/visual-editor-b2-mixed-' . uniqid();
-	mkdir( $mixedDir . '/templates', 0o777, true );
-	file_put_contents(
-		$mixedDir . '/templates/fresh.json',
-		json_encode( [ 'id' => 777, 'slug' => 'fresh', 'type' => 'wp_template' ] )
-	);
-	file_put_contents(
-		$mixedDir . '/templates/broken.json',
-		json_encode( [ 'id' => '../escape', 'slug' => 'broken' ] )
-	);
-
-	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $mixedDir ] )
-		->assertFailed();
-
-	// The previously-seeded record must still be on disk and the
-	// half-seeded "fresh" record must NOT have been written.
-	expect( Storage::disk( 'local' )->exists( $targetPath ) )->toBeTrue();
-	expect(
-		Storage::disk( 'local' )->exists( 'visual-editor/sample-content/postType/wp_template/777.json' )
-	)->toBeFalse();
-
-	unlink( $goodDir . '/templates/valid.json' );
-	rmdir( $goodDir . '/templates' );
-	rmdir( $goodDir );
-	unlink( $mixedDir . '/templates/fresh.json' );
-	unlink( $mixedDir . '/templates/broken.json' );
-	rmdir( $mixedDir . '/templates' );
-	rmdir( $mixedDir );
-} );
-
-it( 'rejects unsafe ids passed directly to readRecord()', function (): void {
-	$this->artisan( 'visual-editor:seed-sample-content' )->assertSuccessful();
-
-	$repository = app( SampleContentRepository::class );
-	$disk       = Storage::disk( 'local' );
-
-	expect( fn () => $repository->readRecord( $disk, 'templates', '../escape' ) )
-		->toThrow( \InvalidArgumentException::class, 'Unsafe sample-content id' );
-
-	// Integer ids and safe strings still resolve normally.
-	expect( $repository->readRecord( $disk, 'templates', 1 ) )->not->toBeNull();
-} );
-
 it( 'rejects fixture files whose top-level JSON is a list rather than an object', function (): void {
-	$fixturesDir = sys_get_temp_dir() . '/visual-editor-b2-fixtures-' . uniqid();
+	$fixturesDir = sys_get_temp_dir() . '/ve-seed-test-' . uniqid();
 	mkdir( $fixturesDir . '/templates', 0o777, true );
 
 	file_put_contents(
@@ -260,4 +153,85 @@ it( 'rejects fixture files whose top-level JSON is a list rather than an object'
 	unlink( $fixturesDir . '/templates/list.json' );
 	rmdir( $fixturesDir . '/templates' );
 	rmdir( $fixturesDir );
+} );
+
+it( 'rejects two fixtures that resolve to the same natural key', function (): void {
+	$fixturesDir = sys_get_temp_dir() . '/ve-seed-test-' . uniqid();
+	mkdir( $fixturesDir . '/templates', 0o777, true );
+
+	file_put_contents(
+		$fixturesDir . '/templates/a.json',
+		json_encode( [ 'slug' => 'home', 'theme' => 'artisanpack-base', 'title' => 'First' ] )
+	);
+	file_put_contents(
+		$fixturesDir . '/templates/b.json',
+		json_encode( [ 'slug' => 'home', 'theme' => 'artisanpack-base', 'title' => 'Second' ] )
+	);
+
+	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $fixturesDir ] )
+		->expectsOutputToContain( 'Duplicate template natural key' )
+		->assertFailed();
+
+	expect( VisualEditorTemplate::count() )->toBe( 0 );
+
+	unlink( $fixturesDir . '/templates/a.json' );
+	unlink( $fixturesDir . '/templates/b.json' );
+	rmdir( $fixturesDir . '/templates' );
+	rmdir( $fixturesDir );
+} );
+
+it( 'does not falsely flag distinct keys that share a delimiter-joined form', function (): void {
+	$fixturesDir = sys_get_temp_dir() . '/ve-seed-test-' . uniqid();
+	mkdir( $fixturesDir . '/templates', 0o777, true );
+
+	// ['home|x', 'base'] and ['home', 'x|base'] both collapse to "home|x|base"
+	// under naive string joining but are genuinely distinct (slug, theme) pairs.
+	file_put_contents(
+		$fixturesDir . '/templates/a.json',
+		json_encode( [ 'slug' => 'home|x', 'theme' => 'base', 'title' => 'A' ] )
+	);
+	file_put_contents(
+		$fixturesDir . '/templates/b.json',
+		json_encode( [ 'slug' => 'home', 'theme' => 'x|base', 'title' => 'B' ] )
+	);
+
+	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $fixturesDir ] )
+		->assertSuccessful();
+
+	expect( VisualEditorTemplate::count() )->toBe( 2 );
+
+	unlink( $fixturesDir . '/templates/a.json' );
+	unlink( $fixturesDir . '/templates/b.json' );
+	rmdir( $fixturesDir . '/templates' );
+	rmdir( $fixturesDir );
+} );
+
+it( 'rejects a fixture missing a required natural-key field', function (): void {
+	$fixturesDir = sys_get_temp_dir() . '/ve-seed-test-' . uniqid();
+	mkdir( $fixturesDir . '/templates', 0o777, true );
+
+	file_put_contents(
+		$fixturesDir . '/templates/no-theme.json',
+		json_encode( [ 'slug' => 'home', 'title' => 'Missing theme' ] )
+	);
+
+	$this->artisan( 'visual-editor:seed-sample-content', [ '--path' => $fixturesDir ] )
+		->expectsOutputToContain( 'missing required `theme`' )
+		->assertFailed();
+
+	expect( VisualEditorTemplate::count() )->toBe( 0 );
+
+	unlink( $fixturesDir . '/templates/no-theme.json' );
+	rmdir( $fixturesDir . '/templates' );
+	rmdir( $fixturesDir );
+} );
+
+it( 'surfaces per-kind row counts in the command output', function (): void {
+	$this->artisan( 'visual-editor:seed-sample-content' )
+		->expectsOutputToContain( 'templates' )
+		->expectsOutputToContain( 'template-parts' )
+		->expectsOutputToContain( 'navigation' )
+		->expectsOutputToContain( 'patterns' )
+		->expectsOutputToContain( 'global-styles' )
+		->assertSuccessful();
 } );

@@ -2,7 +2,7 @@
 
 /**
  * Artisan command that seeds sample site-editor content for the
- * dev app (or any other host app that wants the shim-backed
+ * dev app (or any other host app that wants the C1/C2 DB-backed
  * entities to render with non-empty data).
  *
  * @package    ArtisanPack_UI
@@ -26,10 +26,9 @@ use Throwable;
 class SeedSampleContentCommand extends Command
 {
 	protected $signature = 'visual-editor:seed-sample-content
-        {--path= : Absolute path to a sample-content fixtures directory.}
-        {--disk= : Storage disk name to write seeded records to (defaults to the app default disk).}';
+        {--path= : Absolute path to a sample-content fixtures directory.}';
 
-	protected $description = 'Seed templates, template parts, navigation, patterns, and global styles from the sample-content fixtures.';
+	protected $description = 'Seed templates, template parts, navigation, patterns, and global styles from the sample-content fixtures into the database.';
 
 	public function handle( SampleContentRepository $repository ): int
 	{
@@ -44,14 +43,9 @@ class SeedSampleContentCommand extends Command
 			return self::FAILURE;
 		}
 
-		$disk = $this->option( 'disk' );
-
 		try {
 			$fixtures = $repository->loadFixtures( $fixturesDir );
-			$counts   = $repository->writeToDisk(
-				$repository->resolveDisk( is_string( $disk ) && '' !== $disk ? $disk : null ),
-				$fixtures
-			);
+			$counts   = $repository->seedToDatabase( $fixtures );
 		} catch ( InvalidArgumentException | RuntimeException $e ) {
 			$this->error( $e->getMessage() );
 
