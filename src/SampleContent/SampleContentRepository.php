@@ -28,6 +28,7 @@ use ArtisanPackUI\VisualEditor\Models\VisualEditorPattern;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPatternCategory;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplate;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorTemplatePart;
+use Illuminate\Support\Facades\DB;
 use InvalidArgumentException;
 use JsonException;
 use RuntimeException;
@@ -129,89 +130,116 @@ class SampleContentRepository
 	 */
 	public function seedToDatabase( array $fixtures ): array
 	{
-		$counts = [];
+		return DB::transaction( function () use ( $fixtures ): array {
+			$counts = [];
 
-		// Templates — unique key: (slug, theme)
-		$counts['templates'] = 0;
-		foreach ( $fixtures['templates'] ?? [] as $record ) {
-			$model = VisualEditorTemplate::firstOrNew( [
-				'slug'  => $record['slug'] ?? '',
-				'theme' => $record['theme'] ?? '',
-			] );
-			$model->fill( [
-				'title'       => $this->resolveTitle( $record ),
-				'description' => $record['description'] ?? null,
-				'status'      => $record['status'] ?? VisualEditorTemplate::STATUS_PUBLISH,
-				'source'      => $record['source'] ?? VisualEditorTemplate::SOURCE_CUSTOM,
-				'origin'      => $record['origin'] ?? null,
-			] );
-			$model->setContentEnvelope( $record['content'] ?? [] );
-			$model->save();
-			$counts['templates']++;
+			// Templates — unique key: (slug, theme)
+			$counts['templates'] = 0;
+			foreach ( $fixtures['templates'] ?? [] as $record ) {
+				$model = VisualEditorTemplate::firstOrNew( [
+					'slug'  => $this->requireNonEmptyString( $record, 'slug' ),
+					'theme' => $this->requireNonEmptyString( $record, 'theme' ),
+				] );
+				$model->fill( [
+					'title'       => $this->resolveTitle( $record ),
+					'description' => $record['description'] ?? null,
+					'status'      => $record['status'] ?? VisualEditorTemplate::STATUS_PUBLISH,
+					'source'      => $record['source'] ?? VisualEditorTemplate::SOURCE_CUSTOM,
+					'origin'      => $record['origin'] ?? null,
+				] );
+				$model->setContentEnvelope( $record['content'] ?? [] );
+				$model->save();
+				$counts['templates']++;
+			}
+
+			// Template parts — unique key: (slug, theme)
+			$counts['template-parts'] = 0;
+			foreach ( $fixtures['template-parts'] ?? [] as $record ) {
+				$model = VisualEditorTemplatePart::firstOrNew( [
+					'slug'  => $this->requireNonEmptyString( $record, 'slug' ),
+					'theme' => $this->requireNonEmptyString( $record, 'theme' ),
+				] );
+				$model->fill( [
+					'title' => $this->resolveTitle( $record ),
+					'area'  => $record['area'] ?? VisualEditorTemplatePart::AREA_UNCATEGORIZED,
+				] );
+				$model->setContentEnvelope( $record['content'] ?? [] );
+				$model->save();
+				$counts['template-parts']++;
+			}
+
+			// Navigation — unique key: slug
+			$counts['navigation'] = 0;
+			foreach ( $fixtures['navigation'] ?? [] as $record ) {
+				$model = VisualEditorNavigation::firstOrNew( [ 'slug' => $this->requireNonEmptyString( $record, 'slug' ) ] );
+				$model->fill( [
+					'title'      => $this->resolveTitle( $record ),
+					'status'     => $record['status'] ?? VisualEditorNavigation::STATUS_PUBLISH,
+					'menu_order' => (int) ( $record['menu_order'] ?? 0 ),
+				] );
+				$model->setContentEnvelope( $record['content'] ?? [] );
+				$model->save();
+				$counts['navigation']++;
+			}
+
+			// Patterns — unique key: slug; categories synced via pivot
+			$counts['patterns'] = 0;
+			foreach ( $fixtures['patterns'] ?? [] as $record ) {
+				$model = VisualEditorPattern::firstOrNew( [ 'slug' => $this->requireNonEmptyString( $record, 'slug' ) ] );
+				$model->fill( [
+					'title'  => $this->resolveTitle( $record ),
+					'synced' => (bool) ( $record['synced'] ?? false ),
+					'status' => $record['status'] ?? VisualEditorPattern::STATUS_PUBLISH,
+				] );
+				$model->setContentEnvelope( $record['content'] ?? [] );
+				$model->save();
+
+				$this->syncPatternCategories( $model, $record['categories'] ?? [] );
+
+				$counts['patterns']++;
+			}
+
+			// GlobalStyles — unique key: theme (no setContentEnvelope; settings/styles stored directly)
+			$counts['global-styles'] = 0;
+			foreach ( $fixtures['global-styles'] ?? [] as $record ) {
+				$theme = $this->resolveGlobalStylesTheme( $record );
+				$model = VisualEditorGlobalStyles::firstOrNew( [ 'theme' => $theme ] );
+				$model->fill( [
+					'version'  => (int) ( $record['version'] ?? 3 ),
+					'settings' => $record['settings'] ?? [],
+					'styles'   => $record['styles'] ?? [],
+				] );
+				$model->save();
+				$counts['global-styles']++;
+			}
+
+			return $counts;
+		} );
+	}
+
+	/**
+	 * Returns a required natural-key field from a fixture, failing fast when
+	 * it is missing, non-string, or empty so a malformed fixture cannot
+	 * silently upsert an empty-key row.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $record  The decoded fixture record.
+	 * @param  string                $key     The required field name.
+	 *
+	 * @return string The non-empty field value.
+	 */
+	protected function requireNonEmptyString( array $record, string $key ): string
+	{
+		$value = $record[ $key ] ?? null;
+
+		if ( ! is_string( $value ) || '' === $value ) {
+			throw new RuntimeException(
+				sprintf( 'Sample-content fixture is missing required `%s`.', $key )
+			);
 		}
 
-		// Template parts — unique key: (slug, theme)
-		$counts['template-parts'] = 0;
-		foreach ( $fixtures['template-parts'] ?? [] as $record ) {
-			$model = VisualEditorTemplatePart::firstOrNew( [
-				'slug'  => $record['slug'] ?? '',
-				'theme' => $record['theme'] ?? '',
-			] );
-			$model->fill( [
-				'title' => $this->resolveTitle( $record ),
-				'area'  => $record['area'] ?? VisualEditorTemplatePart::AREA_UNCATEGORIZED,
-			] );
-			$model->setContentEnvelope( $record['content'] ?? [] );
-			$model->save();
-			$counts['template-parts']++;
-		}
-
-		// Navigation — unique key: slug
-		$counts['navigation'] = 0;
-		foreach ( $fixtures['navigation'] ?? [] as $record ) {
-			$model = VisualEditorNavigation::firstOrNew( [ 'slug' => $record['slug'] ?? '' ] );
-			$model->fill( [
-				'title'      => $this->resolveTitle( $record ),
-				'status'     => $record['status'] ?? VisualEditorNavigation::STATUS_PUBLISH,
-				'menu_order' => (int) ( $record['menu_order'] ?? 0 ),
-			] );
-			$model->setContentEnvelope( $record['content'] ?? [] );
-			$model->save();
-			$counts['navigation']++;
-		}
-
-		// Patterns — unique key: slug; categories synced via pivot
-		$counts['patterns'] = 0;
-		foreach ( $fixtures['patterns'] ?? [] as $record ) {
-			$model = VisualEditorPattern::firstOrNew( [ 'slug' => $record['slug'] ?? '' ] );
-			$model->fill( [
-				'title'  => $this->resolveTitle( $record ),
-				'synced' => (bool) ( $record['synced'] ?? false ),
-				'status' => $record['status'] ?? VisualEditorPattern::STATUS_PUBLISH,
-			] );
-			$model->setContentEnvelope( $record['content'] ?? [] );
-			$model->save();
-
-			$this->syncPatternCategories( $model, $record['categories'] ?? [] );
-
-			$counts['patterns']++;
-		}
-
-		// GlobalStyles — unique key: theme (no setContentEnvelope; settings/styles stored directly)
-		$counts['global-styles'] = 0;
-		foreach ( $fixtures['global-styles'] ?? [] as $record ) {
-			$theme = $this->resolveGlobalStylesTheme( $record );
-			$model = VisualEditorGlobalStyles::firstOrNew( [ 'theme' => $theme ] );
-			$model->fill( [
-				'version'  => (int) ( $record['version'] ?? 3 ),
-				'settings' => $record['settings'] ?? [],
-				'styles'   => $record['styles'] ?? [],
-			] );
-			$model->save();
-			$counts['global-styles']++;
-		}
-
-		return $counts;
+		return $value;
 	}
 
 	/**
