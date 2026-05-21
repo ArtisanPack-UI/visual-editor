@@ -1,11 +1,18 @@
 # Visual Editor — `artisanpack/*` Block Fork Plan
 
 **Package:** `artisanpack-ui/visual-editor`
-**Version Target:** 2.0.0
+**Version Target:** 1.0.0 (Phase I)
 **Created:** April 27, 2026
-**Status:** Planning — V2 (post-V1.0.0)
+**Updated:** May 21, 2026 — moved from V2 into the 1.0.0 release
+**Status:** Active — V1 Phase I (serialized after editor core + Phase G/H + F-series cleanup)
 **Tracks:** #331 (umbrella — port core blocks into the package as `artisanpack/*`)
 **Relates to:** #309 (V1 umbrella), [`11-v1-expansion.md`](11-v1-expansion.md), [`12-cms-framework-integration.md`](12-cms-framework-integration.md), [`block-library-audit.md`](../block-library-audit.md)
+
+---
+
+> **2026-05-21 — moved into 1.0.0.** This plan was originally scoped as V2 (post-GA). Because the CMS (jmwd-keystone-cms) is the long pole on the 1.0.0 timeline, the fork is schedule-neutral, and shipping it inside 1.0.0 — *before* any host app persists `core/*` block trees — means **no migration is ever required**. The no-migration window (§2.1) is therefore permanently open and the `wp:rename-blocks` contingency is dropped.
+>
+> **Naming:** legacy references below to "V2", "2.0.0", `release/2.0`, and "post-GA / once V1 ships" now mean **Phase I of the 1.0.0 release**, on `release/1.0`. The phase letters (I0–I8) and issue numbers (#408–#416) are unchanged. Sections updated for meaning are §1, §2.1, §3 Ship, §5.6, §6.
 
 ---
 
@@ -22,7 +29,7 @@
 
 Past attempts at deep customization through filters alone have run into this ceiling in practice. Owning the block source is the only path that gives full control. The tradeoff is maintenance: each fork still pulls a dozen `@wordpress/*` runtime deps (`block-editor`, `components`, `i18n`, `data`, `hooks`, `rich-text`, …) so we don't escape the WP ecosystem — we just take ownership of the block source, including deprecations, i18n strings, a11y affordances, and shared SCSS, and commit to diffing against upstream on a release cadence.
 
-**This plan is V2.** [`11-v1-expansion.md`](11-v1-expansion.md) §6 explicitly parks #331 in v2.x: V1's premise is to **adopt** upstream blocks; inverting that bet inside V1 is self-contradictory and would push the v1.0.0 ship date past any reasonable horizon. This document captures the plan now so the team can pick it up cleanly once V1 is out the door.
+**This plan now ships in 1.0.0 as Phase I.** [`11-v1-expansion.md`](11-v1-expansion.md) §6 originally parked #331 in v2.x on the grounds that inverting the "adopt upstream blocks" bet mid-V1 would blow the ship date. That reasoning is superseded: the CMS integration is the long pole on the 1.0.0 timeline, so the fork runs **serialized after the V1 editor core + Phase G/H integration + F-series cleanup are settled** — not interleaved — preserving the "don't split reviewer attention" concern while still landing inside 1.0.0 at no net schedule cost. The decisive upside is the migration story: forking before any host persists `core/*` trees means there is never a `core/*` → `artisanpack/*` migration to perform.
 
 ---
 
@@ -30,7 +37,7 @@ Past attempts at deep customization through filters alone have run into this cei
 
 ### 2.1 Namespace
 
-All forked blocks land under `artisanpack/*` (e.g. `artisanpack/paragraph`, `artisanpack/heading`, `artisanpack/post-content`). No stored content uses `core/*` names yet — V1 ships with the upstream blocks under `core/*` and V2 introduces the fork — so we own the "no migration cost" property only as long as we land V2 before any host app starts persisting `core/*` block trees in production. **Decision:** ship V2 alpha within ~6 months of v1.0.0 GA so the no-migration window stays open. If it slips, plan a one-time `wp:rename-blocks` Artisan command that walks `block_content` JSON and rewrites `core/X` → `artisanpack/X` for every forked block.
+All forked blocks land under `artisanpack/*` (e.g. `artisanpack/paragraph`, `artisanpack/heading`, `artisanpack/post-content`). Because the fork ships **inside 1.0.0**, no stored content ever uses `core/*` names: 1.0.0 GA is the first release a host app can persist block trees against, and by then the editor already registers `artisanpack/*`. The "no migration cost" property is therefore permanent — there is no window to miss and no `wp:rename-blocks` command to ship. (The block transforms in §4.6 remain useful for pasting/converting any upstream `core/*` markup a user copies in from elsewhere, but they are a convenience, not a migration path.)
 
 `artisanpack/callout` already lives under the namespace and is the reference pattern for what a forked block looks like end-to-end — `block.json`, edit/save, three renderers (Blade/React/Vue), styles, tests. It is **not** "ported" in this plan — it stays as-is and informs the pilot.
 
@@ -46,7 +53,7 @@ The set of upstream blocks to fork is the union of (a) the current `enabled_bloc
 
 **Media (8):** `image`, `gallery`, `video`, `audio`, `file`, `embed`, `cover`, `media-text`.
 
-**Layout (8):** `columns`, `group`, `row` (group variation), `stack` (group variation), `buttons`, `separator`, `spacer`, `details`.
+**Layout (8):** `columns`, `group`, `row` (group variation), `stack` (group variation), `buttons`, `separator`, `spacer`, `details`. **Customization:** the upstream `grid` group-variation is *not* carried as a variation — it is split into standalone `artisanpack/grid` + `artisanpack/grid-item` blocks at I3 (parity-plus structural change; see §8).
 
 **Widgets (2):** `search`, `latest-posts`.
 
@@ -133,14 +140,14 @@ Phase I — Block fork (V2)
            diff trail is preserved.
          - Update the JS-side mirror in site-editor-app.tsx
            (D2_DISABLED_BLOCKS) to match.
-         - If we're past the no-migration window (§2.1), ship
-           wp:rename-blocks Artisan command alongside the cutover
-           release.
+         - No migration command needed: the fork ships inside 1.0.0,
+           so no host app has ever persisted core/* trees (§2.1).
 
-  Ship
-    I8   v2.0.0-alpha.2 → v2.0.0-beta.1 → v2.0.0.
-         Beta tag at end of I6 once all forks are landed but before
-         cutover; GA after I7 has a soak window in the dev-app.
+  Completion gate
+    I8   #416 — confirm all clusters forked + cutover verified, then
+         hand release-notes inputs (WP version pins, cms-framework
+         version pair) to #325 (M15) for the 1.0.0 tag. A dev-app
+         soak window on the artisanpack/* namespace gates handoff.
 ```
 
 **Critical path:** I0 → (any one cluster) → I6 → I7. I6 cannot start until cms-framework's V1.x release tagged with G4b/G4c is published.
@@ -269,9 +276,9 @@ The package ships three renderers — Blade, React, Vue. Each fork lands in all 
 
 V1 already version-pairs visual-editor and cms-framework (plan 12 §5.5). V2 I6 hardens the pairing — if cms-framework's `QueryRuntime` API shifts post-G4c, the I6 forks break. **Mitigation:** the `QueryRuntime` PHP contract becomes a versioned interface (`ArtisanPackUI\CMSFramework\Contracts\QueryRuntime\V1`). cms-framework V2 introducing `V2` doesn't break our forks; we adopt `V2` as separate post-V2 work.
 
-### 5.6 No-migration window closes early
+### 5.6 No-migration window (resolved)
 
-§2.1 banks on V2 shipping within ~6 months of V1.0.0 GA. If V2 slips past that, host apps are persisting `core/*` block trees and our claim of "no stored content uses `core/*` names yet" no longer holds. **Mitigation:** the `wp:rename-blocks` Artisan command in §2.1 plus I7's cutover. Treated as an escape valve, not the primary plan.
+Originally a risk: the V2 plan banked on shipping within ~6 months of GA before host apps persisted `core/*` trees. **Resolved by moving the fork into 1.0.0** — the editor registers `artisanpack/*` from the first GA release, so there is no window to miss and no migration path to maintain. This risk is closed.
 
 ### 5.7 Diff fatigue across 41 blocks
 
@@ -281,15 +288,12 @@ Even with tooling, a human has to triage every Renovate-driven diff. With 41 for
 
 ## 6. Branching + release strategy
 
-- **Pilot branch:** `feature/I0-paragraph-pilot` cut from `main` per #331's pilot directive — V2 work does not gate on V1's `release/1.0` integration branch.
-- **Integration branch:** `release/2.0` cut from `main` once V1.0.0 is tagged. All I1–I7 work merges into `release/2.0`.
-- **Cluster branches:** `feature/I{n}-{cluster}` cut from + merged into `release/2.0`.
-- **Tags:**
-  - `v2.0.0-alpha.1` — at the end of I4 (content + media + layout + widgets clusters in).
-  - `v2.0.0-alpha.2` — at the end of I5 (entity cluster in).
-  - `v2.0.0-beta.1` — at the end of I6 (loop/feed cluster in; all forks landed; pre-cutover).
-  - `v2.0.0` — after I7 + dev-app soak.
-- `main` remains release-only; V2.0.0 merges back per existing workflow.
+The fork is part of the 1.0.0 release line — it does **not** get its own integration branch.
+
+- **Pilot branch:** `feature/I0-paragraph-pilot` cut from `release/1.0`.
+- **Cluster branches:** `feature/I{n}-{cluster}` cut from + merged into `release/1.0`, started only after the editor core + Phase G/H + F-series cleanup have settled on `release/1.0`.
+- **No intermediate fork tags.** The fork lands on `release/1.0` alongside the rest of V1; the only tag is `v1.0.0` itself, cut by #325 (M15) once I8's completion gate passes.
+- `main` remains release-only; `release/1.0` merges back per the existing workflow at 1.0.0 GA.
 
 ---
 
@@ -297,10 +301,10 @@ Even with tooling, a human has to triage every Renovate-driven diff. With 41 for
 
 Following plan 11 §6 — create milestone-level tracking issues one phase at a time, as each phase kicks off. The cluster breakdown in §3 is provisional until the I0 pilot's cost estimate refines it; filing eight detailed cluster issues now produces stale tickets by the time I1 starts.
 
-- **I0** — file as a single issue under #331 once V1.0.0 ships and the team commits to V2 kickoff.
+- **I0** — file as a single issue under #331 once the editor core + Phase G/H + F-series cleanup have settled on `release/1.0` and the team commits to Phase I kickoff.
 - **I1–I6** — one umbrella issue per cluster, filed at the start of each cluster's work. Each cluster issue spawns one child issue per block in the cluster as the cluster begins. Per-block issues have their own acceptance criteria covering edit/save parity, deprecations, transforms, three-renderer parity, and `__fixtures__` coverage.
 - **I7** — single cutover issue, filed at the start of I7.
-- **#331** stays open through the lifecycle; close only when v2.0.0 is tagged.
+- **#331** stays open through the lifecycle; close only when `v1.0.0` is tagged (via #416 → #325).
 
 `#338` (`core/search` `buttonUseIcon` a11y) is a V1 Phase F issue per plan 11 §6 and is unaffected by this plan — when `artisanpack/search` lands at I4, it inherits whatever fix V1 shipped.
 
@@ -310,9 +314,9 @@ Following plan 11 §6 — create milestone-level tracking issues one phase at a 
 
 Not blocking this plan, but worth naming:
 
-- **I0 pilot location** — `feature/I0-paragraph-pilot` off `main` is per the issue body. Do we *also* land the pilot's `docs/block-fork-workflow.md` and `scripts/upstream-diff.ts` on `main` after I0 even if the rest of V2 stays on `release/2.0`? Leaning yes — the workflow doc is useful before V2 starts and not packaged into the published bundle.
+- **Grid split shape** — I3 splits the group block's `grid` variation into standalone `artisanpack/grid` + `artisanpack/grid-item` blocks (parity-plus customization). Settle the attribute schema and inner-block constraints at I3 kickoff; confirm whether `grid-item` is an explicit child block or an auto-wrapped inner block.
 - **Vendored primitives directory naming** — `_shared/` (mirrors `_legacy/` precedent) vs `vendor/` (mirrors `core-data-shim` location at `resources/js/visual-editor/vendor/`). Settle at I0 once the actual primitives are visible.
-- **Per-block customization budget** — at fork time, each block lands as byte-equivalent to upstream. When does post-fork customization (e.g. swapping `RichText` for Tiptap on `artisanpack/paragraph`) get scoped — alongside the fork or as a separate post-V2 backlog item per block? Leaning post-V2, scoped per block, so V2 itself stays a parity exercise.
+- **Per-block customization budget** — most blocks land byte-equivalent to upstream. A small set of targeted customizations ships in 1.0.0 (confirmed: the I3 grid/grid-item split). Broader customization (e.g. swapping `RichText` for Tiptap on `artisanpack/paragraph`) stays a post-1.0 backlog item per block, so Phase I itself stays mostly a parity exercise plus the agreed structural changes.
 - **`@wordpress/block-library` final disposition** — devDependency for diff tooling, or removed entirely? The `scripts/upstream-diff.ts` workflow needs *some* path to upstream source. devDependency is the simpler answer; "remove and pull from a pinned tarball at CI time" is the smaller-attack-surface answer. Decide at I7.
 - **Style.scss / shared SCSS** — `@wordpress/block-library/src/style.scss` aggregates per-block styles and applies layout normalization. We'll need to fork the equivalent or rebuild. Cost surfaces at I0.
 - **i18n text-domain** — confirm `artisanpack-visual-editor` is the right text-domain for forked `__()` calls (vs reusing `default` or per-package domains). Settle at I0.

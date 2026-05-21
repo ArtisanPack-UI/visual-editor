@@ -9,7 +9,7 @@
 
 ## How to use this doc
 
-Single source of truth for issue ordering across V1 ship, V2 block fork, and 1.1+ deferred work. Pull this up before starting a new work session — the wave structure tells you what's safe to start now without re-deriving dependencies from the plan docs.
+Single source of truth for issue ordering across the 1.0.0 ship (including the Phase I block fork) and 1.x+ deferred work. Pull this up before starting a new work session — the wave structure tells you what's safe to start now without re-deriving dependencies from the plan docs.
 
 When you say *"let's work on the next set of issues for the visual editor"*, read this file first, then verify with `gh issue view {number}` that the issue is still open (some may have closed since this doc was last edited).
 
@@ -20,12 +20,16 @@ This doc captures **ordering**, not detailed acceptance criteria. Per-issue spec
 ## 1. Critical-path summary
 
 ```text
-V1 ship (≈4–6 mo) ──→  V2 block fork (≈10–12 wk) ──→  1.1+ features
+V1 ship ─ editor core + Phase G/H integration + F-series cleanup
+            │
+            └─→ Phase I block fork (≈10–12 wk, serialized) ─→ M15 ship 1.0.0 ─→ 1.x features
    ▲
    └── cms-framework V1.x (Phase G + Phase H backends, parallel)
 ```
 
-V1 umbrella: [`#309`](https://github.com/ArtisanPack-UI/visual-editor/issues/309). V2 umbrella: [`#331`](https://github.com/ArtisanPack-UI/visual-editor/issues/331). Plan-14 site-editor umbrella: [`#406`](https://github.com/ArtisanPack-UI/visual-editor/issues/406).
+> **2026-05-21 — block fork moved into 1.0.0.** Phase I (#331, #408–#416, plan 13) was previously V2/post-GA; it now ships inside 1.0.0, serialized after the editor core + Phase G/H + F-series cleanup. CMS integration is the long pole, so the fork is schedule-neutral, and shipping it before any host persists `core/*` trees eliminates the migration problem. The `v2.x` milestone is retained (empty) for genuinely breaking work down the line.
+
+V1 umbrella: [`#309`](https://github.com/ArtisanPack-UI/visual-editor/issues/309). Phase I block-fork umbrella: [`#331`](https://github.com/ArtisanPack-UI/visual-editor/issues/331) (rolls up under #309). Plan-14 site-editor umbrella: [`#406`](https://github.com/ArtisanPack-UI/visual-editor/issues/406).
 
 ---
 
@@ -40,7 +44,7 @@ These have no upstream dependencies and can run in parallel.
 
 ---
 
-## 3. V1 ship — wave-by-wave
+## 3. 1.0.0 ship — wave-by-wave
 
 ### Wave 1 — Foundation
 
@@ -107,61 +111,64 @@ Independent of Phase G / Phase H. Slot in between blocked waits.
 | `#347` | A1 · Iframe the editor canvas | High | Medium | Before `#382` (legacy reference may still help) |
 | `#348` | A1 · Restore contrast warning | Medium | Low | Defer if time-pressed; can ship in 1.0.1 |
 
-### Wave 6 — Cleanup + ship
+### Wave 6 — Cleanup (pre-fork)
 
 | Issue | Repo | Title | Priority | Effort | Depends on |
 |---|---|---|---|---|---|
 | `#403` | visual-editor | G6 · Integration docs + dev-app smoke flow | Medium | Low | All G work |
 | `#382` | visual-editor | F1 · Delete `_legacy/` | High | High | `#347` |
 | `#383` | visual-editor | F3 · Dev-app integration: surface site editor | High | High | H8, `#403` |
-| `#325` | visual-editor | M15 · Docs, website, release | High | High | Everything |
+
+### Wave 7 — Phase I block fork
+
+Plan 13. Serialized after Wave 6 — editor core + Phase G/H + F-series cleanup must be settled first (preserves the "don't split reviewer attention" concern). I0 pilot and all cluster branches cut from + merge into `release/1.0`. Per-block child issues spawn at each cluster's kickoff (per plan 13 §7).
+
+> **Naming note:** the block-fork phases use the letter **I** (I0–I8) to avoid colliding with plan 14's site-editor **H** phases (H0–H8). Issue titles use the `Block fork I{N}` prefix.
+
+| Issue | Title | Priority | Effort | Depends on |
+|---|---|---|---|---|
+| `#331` | Phase I umbrella · Port core blocks → `artisanpack/*` | High | High | Wave 6 |
+| `#408` | I0 · Paragraph pilot *(gates I1–I6)* | High | Medium | `#331` |
+| `#409` | I1 · Content cluster (8 blocks) | Medium | High | `#408` |
+| `#410` | I2 · Media cluster (8 blocks) | Medium | High | `#408` |
+| `#411` | I3 · Layout cluster (6 source units / 8 logical; + `grid`/`grid-item` split) | Medium | High | `#408` |
+| `#412` | I4 · Widgets cluster (2 blocks) | Medium | Medium | `#408` |
+| `#413` | I5 · Entity cluster (11 blocks) | Medium | High | `#408`, `#399`, `#395` |
+| `#414` | I6 · Loop / feed cluster (5 blocks) | Medium | High | `#401`, cms `#97` |
+| `#415` | I7 · Cutover | High | Medium | I1–I6 |
+| `#416` | I8 · Fork-completion gate → hands to #325 | Medium | Low | `#415` |
+
+**Intra-fork dependencies:**
+
+- I5 reads through `#399` (G3 entity adapter) + `#395` (G0 shim resolution) — both land in Waves 1–4.
+- I6 couples to cms-framework V1.x release tagging G4b (`#401`) and G4c-1 (cms-framework `#97`).
+- `#338` carries forward into `artisanpack/search` at I4.
+
+### Wave 8 — Ship 1.0.0
+
+| Issue | Repo | Title | Priority | Effort | Depends on |
+|---|---|---|---|---|---|
+| `#325` | visual-editor | M15 · Docs, website, release | High | High | Everything incl. Phase I (`#416`) |
 | `#309` | visual-editor | V1 umbrella *(closes when 1.0.0 ships)* | Urgent | High | — |
 
 ---
 
-## 4. V2 — Block fork (after V1.0.0 GA)
+## 4. Deferred — 1.x+ features
 
-Plan 13. I0 pilot branches off `main`, then `release/2.0` cuts from `main` once V1 tags. Per-block child issues spawn at each cluster's kickoff (per plan 13 §7).
+Additive features with no breaking changes, so they bucket as future point releases — not a 2.0. `#388` (per-block locking) sits in the `v1.x` milestone as the likely next minor; the rest sit in `Future Release`, unversioned until pulled into a concrete 1.x. The `v2.x` milestone is retained but empty — reserved for genuinely breaking work, of which none is currently on the horizon (the namespace fork ships in 1.0.0, so it is *not* breaking).
 
-> **Naming note:** the V2 block-fork phases use the letter **I** (I0–I8) to avoid colliding with V1 plan 14's site-editor **H** phases (H0–H8). Plan 13 originally used H; renamed to I after H0 of plan 14 shipped against cms-framework. Issue titles use the `Block fork I{N}` prefix.
-
-| Issue | Title | Priority | Effort |
-|---|---|---|---|
-| `#331` | V2 umbrella · Port core blocks → `artisanpack/*` | High | High |
-| `#408` | I0 · Paragraph pilot *(gates I1–I6)* | High | Medium |
-| `#409` | I1 · Content cluster (8 blocks) | Medium | High |
-| `#410` | I2 · Media cluster (8 blocks) | Medium | High |
-| `#411` | I3 · Layout cluster (6 source units / 8 logical) | Medium | High |
-| `#412` | I4 · Widgets cluster (2 blocks) | Medium | Medium |
-| `#413` | I5 · Entity cluster (11 blocks) | Medium | High |
-| `#414` | I6 · Loop / feed cluster (5 blocks) | Medium | High |
-| `#415` | I7 · Cutover | High | Medium |
-| `#416` | I8 · Ship V2.0.0 | Medium | Low |
-
-**V1 → V2 dependencies:**
-
-- I5 reads through V1's `#399` (G3 entity adapter) + `#395` (G0 shim resolution).
-- I6 hard-couples to cms-framework V1.x release tagging G4b (`#401`) and G4c-1 (cms-framework `#97`).
-- `#338` carries forward into `artisanpack/search` at I4.
+| Issue | Title | Milestone |
+|---|---|---|
+| `#384` | Block revisions / versioning | Future Release |
+| `#385` | A/B testing for blocks and templates | Future Release |
+| `#386` | AI assistant integration | Future Release |
+| `#387` | Offline editing support | Future Release |
+| `#388` | Fine-grained per-block permission locking | v1.x |
+| `#389` | Pattern directory / remote pattern import | Future Release |
 
 ---
 
-## 5. Deferred — 1.1+ (Awaiting Review milestone)
-
-All under `Awaiting Review` per plan 11 §7.
-
-| Issue | Title |
-|---|---|
-| `#384` | Block revisions / versioning |
-| `#385` | A/B testing for blocks and templates |
-| `#386` | AI assistant integration |
-| `#387` | Offline editing support |
-| `#388` | Fine-grained per-block permission locking |
-| `#389` | Pattern directory / remote pattern import |
-
----
-
-## 6. Sequencing rationale (the *why*)
+## 5. Sequencing rationale (the *why*)
 
 Capture once so it doesn't have to be re-derived:
 
@@ -169,20 +176,21 @@ Capture once so it doesn't have to be re-derived:
 - **G3 (`#399`) before G4***: G4 issues explicitly verify against G3 entities.
 - **`#347` before `#382`**: iframe canvas refactor is the kind of thing where having the legacy reference around is useful. Delete `_legacy/` only after the new shape is settled.
 - **`#383` last among features**: dev-app integration is a smoke test for everything else, so it consumes the finished surface.
-- **V2 `#408` (I0 pilot) does not start until V1 GA**: per plan 13 §1, V1's premise is to *adopt* upstream blocks. Inverting that during V1 splits reviewer attention. The pilot branches off `main`, not `release/2.0`.
+- **Phase I (block fork) serialized after Wave 6, not interleaved**: plan 13 §1's original concern was that inverting the "adopt upstream blocks" bet mid-V1 splits reviewer attention. Moving the fork into 1.0.0 keeps that intact by running it as a distinct phase *after* the editor core + Phase G/H + F-series cleanup settle. It branches off `release/1.0`, not a separate `release/2.0`.
+- **Why the fork is in 1.0.0 at all**: CMS integration is the long pole on the timeline, so the ~10–12 wk fork is schedule-neutral; and forking before any host persists `core/*` trees means there is never a migration to perform.
 
 ---
 
-## 7. Outstanding tactical decisions
+## 6. Outstanding tactical decisions
 
 Documented so they're not re-litigated each session:
 
-- **File H1–H4 (cms-framework) + H6–H8 (visual-editor) stub issues now, or wait for phase kickoff?** Plan 11 §6 says wait. Counter-argument: matches V2 I-series treatment, gives full visibility. **Current call:** wait — file at each phase kickoff so acceptance criteria are fresh.
-- **Per-block V2 child issues filed at cluster kickoff, not preemptively** (plan 13 §7). 41 stale tickets in the backlog isn't worth the visibility.
+- **File H1–H4 (cms-framework) + H6–H8 (visual-editor) stub issues now, or wait for phase kickoff?** Plan 11 §6 says wait. Counter-argument: matches the Phase I treatment, gives full visibility. **Current call:** wait — file at each phase kickoff so acceptance criteria are fresh.
+- **Per-block Phase I child issues filed at cluster kickoff, not preemptively** (plan 13 §7). ~41 stale tickets in the backlog isn't worth the visibility.
 
 ---
 
-## 8. Maintaining this doc
+## 7. Maintaining this doc
 
 Update when:
 
