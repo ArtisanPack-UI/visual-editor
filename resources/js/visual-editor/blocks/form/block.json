@@ -1,0 +1,21 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/form",
+    "title": "Form",
+    "category": "artisanpack",
+    "description": "Embed a form from the artisanpack-ui/forms package.",
+    "keywords": ["form", "contact", "lead", "submission"],
+    "textdomain": "visual-editor",
+    "attributes": {
+        "formId": {
+            "type": "number",
+            "default": 0
+        }
+    },
+    "supports": {
+        "className": true,
+        "html": false,
+        "reusable": true
+    }
+}

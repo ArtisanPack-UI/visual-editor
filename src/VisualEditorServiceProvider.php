@@ -6,6 +6,7 @@ use ArtisanPackUI\CMSFramework\Modules\Blog\Managers\BlogManager;
 use ArtisanPackUI\VisualEditor\Blocks\Core\ArchivesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\CategoriesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\TagCloudBlock;
+use ArtisanPackUI\VisualEditor\Blocks\Forms\FormBlock;
 use ArtisanPackUI\VisualEditor\Console\Commands\SeedSampleContentCommand;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
 use ArtisanPackUI\VisualEditor\Services\Adapters\CmsFramework\CmsFrameworkQueryResolver;
@@ -225,6 +226,12 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//     deny-list keeps them out of the inserter.
 		$this->registerTaxonomyAndArchiveBlocks();
 
+		// 4b. Forms — register the `artisanpack/form` block against the
+		//     artisanpack-ui/forms package. Gated on `Form::class` so
+		//     visual-editor still boots when forms is absent; the block
+		//     simply does not appear in the inserter in that case.
+		$this->registerFormBlock();
+
 		// 5. Tag the config file for the scaffold command.
 		if ( $this->app->runningInConsole() ) {
 			$this->publishes( [
@@ -315,6 +322,31 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$editor->registerDynamicBlock( CategoriesBlock::class );
 		$editor->registerDynamicBlock( TagCloudBlock::class );
 		$editor->registerDynamicBlock( ArchivesBlock::class );
+	}
+
+	/**
+	 * Registers the `artisanpack/form` dynamic block against the
+	 * artisanpack-ui/forms package. Loads the bundled block.json so the
+	 * inserter knows about it and the registry can hand attributes to
+	 * the FormBlock's render() at publish time.
+	 *
+	 * @since 1.1.0
+	 */
+	protected function registerFormBlock(): void
+	{
+		if ( ! class_exists( \ArtisanPackUI\Forms\Models\Form::class ) ) {
+			return;
+		}
+
+		$editor = $this->app->make( VisualEditor::class );
+
+		$blockJsonPath = __DIR__ . '/../resources/js/visual-editor/blocks/form/block.json';
+
+		if ( file_exists( $blockJsonPath ) ) {
+			$editor->registerBlock( $blockJsonPath );
+		}
+
+		$editor->registerDynamicBlock( FormBlock::class );
 	}
 
 	/**
