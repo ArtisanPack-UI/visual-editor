@@ -17,6 +17,7 @@ namespace ArtisanPackUI\VisualEditor\Blocks\Forms;
 
 use ArtisanPackUI\Forms\Models\Form;
 use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
+use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 
 /**
  * Renders a placeholder DIV that the artisanpack-ui/forms React island
@@ -33,6 +34,16 @@ use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
  * Keystone CMS ships one at `resources/js/keystone-form-island.tsx`; any
  * other consumer can ship an equivalent that scans for
  * `[data-keystone-form]` elements and calls FormRenderer on each.
+ *
+ * Styling: the block declares the full Gutenberg-parity supports surface
+ * (typography, color, border, spacing, plus `className`/`anchor`) in its
+ * block.json. Wrapper class + style attributes are compiled via
+ * {@see BlockSupports::wrapperAttrs()} — the same path every other
+ * server-rendered block in the visual-editor stack goes through. That
+ * makes the form a first-class citizen of theme.json / the site editor's
+ * global styles: presets serialize as `has-{slug}-*` classes; custom
+ * values land as inline declarations referencing `--wp--preset--*` so
+ * theme-token changes flow through without a republish.
  */
 class FormBlock extends DynamicBlock
 {
@@ -48,10 +59,28 @@ class FormBlock extends DynamicBlock
 	 */
 	public function validateAttrs( array $attrs ): array
 	{
-		return [
-			'formId'    => $this->normalizeFormId( $attrs['formId'] ?? null ),
-			'className' => isset( $attrs['className'] ) && is_string( $attrs['className'] ) ? $attrs['className'] : '',
-		];
+		// Block-supports attributes pass through verbatim.
+		// `BlockSupports::compile()` already shape-checks each branch —
+		// non-strings collapse to '', non-array `style` is dropped — so
+		// an over-eager validator here would either duplicate that
+		// logic or strip valid editor input. The validator stays
+		// authoritative only over `formId`, which goes through the
+		// strict integer parser in `normalizeFormId()` (CodeRabbit PR
+		// #467: float strings and scientific notation would otherwise
+		// silently coerce into unrelated form ids).
+		$normalized = [ 'formId' => $this->normalizeFormId( $attrs['formId'] ?? null ) ];
+
+		foreach ( [ 'className', 'anchor', 'align', 'textAlign', 'backgroundColor', 'textColor', 'gradient', 'borderColor', 'fontSize', 'fontFamily' ] as $key ) {
+			if ( isset( $attrs[ $key ] ) && is_string( $attrs[ $key ] ) ) {
+				$normalized[ $key ] = $attrs[ $key ];
+			}
+		}
+
+		if ( isset( $attrs['style'] ) && is_array( $attrs['style'] ) ) {
+			$normalized['style'] = $attrs['style'];
+		}
+
+		return $normalized;
 	}
 
 	public function render( array $attrs ): string
@@ -72,11 +101,9 @@ class FormBlock extends DynamicBlock
 			return $this->placeholder( $attrs, __( 'The selected form is inactive.' ) );
 		}
 
-		$classes = $this->wrapperClasses( $attrs );
-
 		return sprintf(
-			'<div class="%s" data-keystone-form="%s" data-form-id="%d"></div>',
-			e( implode( ' ', $classes ) ),
+			'<div%s data-keystone-form="%s" data-form-id="%d"></div>',
+			BlockSupports::wrapperAttrs( $attrs, [ 'wp-block-artisanpack-form' ] ),
 			e( $form->slug ),
 			$form->id
 		);
@@ -87,30 +114,11 @@ class FormBlock extends DynamicBlock
 	 */
 	protected function placeholder( array $attrs, string $message ): string
 	{
-		$classes   = $this->wrapperClasses( $attrs );
-		$classes[] = 'wp-block-artisanpack-form--placeholder';
-
 		return sprintf(
-			'<div class="%s"><p>%s</p></div>',
-			e( implode( ' ', $classes ) ),
+			'<div%s><p>%s</p></div>',
+			BlockSupports::wrapperAttrs( $attrs, [ 'wp-block-artisanpack-form', 'wp-block-artisanpack-form--placeholder' ] ),
 			e( $message )
 		);
-	}
-
-	/**
-	 * @param  array<string, mixed>  $attrs
-	 *
-	 * @return array<int, string>
-	 */
-	protected function wrapperClasses( array $attrs ): array
-	{
-		$classes = [ 'wp-block-artisanpack-form' ];
-
-		if ( isset( $attrs['className'] ) && '' !== $attrs['className'] ) {
-			$classes[] = (string) $attrs['className'];
-		}
-
-		return $classes;
 	}
 
 	/**

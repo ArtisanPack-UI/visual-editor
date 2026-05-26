@@ -56,7 +56,21 @@
     display: flex;
     flex-direction: column;
     min-height: 0;
-    overflow: hidden;
+    /*
+     * Auto-scroll on the sidebar wrapper itself so taller-than-viewport
+     * panel content (Styles → Blocks → typography + color + border +
+     * spacing fields, or the navigator's deep block trees) stays
+     * reachable. The inner `__styles-inspector` / navigator content
+     * areas declare their own `flex: 1 + min-height: 0 + overflow-y:
+     * auto` chain for the canonical case where the panel fills the
+     * sidebar exactly; in practice taller content slips past the flex
+     * scroll-trap because non-flex children inside the panel push the
+     * computed height up, so the auto-scroll never engages. Falling
+     * back to wrapper-level overflow handles both cases without
+     * changing the flex layout intent.
+     */
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .ap-site-editor__sidebar--navigator {
