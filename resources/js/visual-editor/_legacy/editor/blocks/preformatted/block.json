@@ -6,7 +6,7 @@
     "description": "Preserve whitespace and line breaks in a monospaced block.",
     "icon": "terminal",
     "keywords": ["pre", "ascii", "whitespace"],
-    "textdomain": "visual-editor",
+    "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "content": {
             "type": "rich-text",

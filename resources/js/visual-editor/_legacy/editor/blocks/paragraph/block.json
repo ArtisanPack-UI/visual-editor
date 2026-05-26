@@ -6,7 +6,7 @@
     "description": "Start with the basic building block of all narrative.",
     "icon": "paragraph",
     "keywords": ["text", "body", "p"],
-    "textdomain": "visual-editor",
+    "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "content": {
             "type": "rich-text",

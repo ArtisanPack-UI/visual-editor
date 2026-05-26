@@ -6,7 +6,7 @@
     "category": "artisanpack",
     "description": "Highlight a short message with a severity badge and icon.",
     "keywords": ["callout", "notice", "alert", "tip"],
-    "textdomain": "visual-editor",
+    "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "severity": {
             "type": "string",

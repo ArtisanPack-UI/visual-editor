@@ -6,7 +6,7 @@
     "description": "Display code snippets with monospaced formatting.",
     "icon": "code",
     "keywords": ["pre", "snippet", "syntax"],
-    "textdomain": "visual-editor",
+    "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "content": {
             "type": "string",
