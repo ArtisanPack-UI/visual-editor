@@ -6,7 +6,7 @@
     "description": "Create a bulleted or numbered list.",
     "icon": "list",
     "keywords": ["ul", "ol", "bullet", "numbered", "ordered", "unordered"],
-    "textdomain": "visual-editor",
+    "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "ordered": {
             "type": "boolean",

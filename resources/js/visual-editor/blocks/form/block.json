@@ -6,7 +6,7 @@
     "category": "artisanpack",
     "description": "Embed a form from the artisanpack-ui/forms package.",
     "keywords": ["form", "contact", "lead", "submission"],
-    "textdomain": "visual-editor",
+    "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "formId": {
             "type": "number",

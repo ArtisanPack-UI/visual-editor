@@ -48,18 +48,15 @@ class FormBlock extends DynamicBlock
 	 */
 	public function validateAttrs( array $attrs ): array
 	{
-		$rawId = $attrs['formId'] ?? null;
-		$formId = is_numeric( $rawId ) ? (int) $rawId : 0;
-
 		return [
-			'formId'    => $formId,
+			'formId'    => $this->normalizeFormId( $attrs['formId'] ?? null ),
 			'className' => isset( $attrs['className'] ) && is_string( $attrs['className'] ) ? $attrs['className'] : '',
 		];
 	}
 
 	public function render( array $attrs ): string
 	{
-		$formId = (int) ( $attrs['formId'] ?? 0 );
+		$formId = $this->normalizeFormId( $attrs['formId'] ?? null );
 
 		if ( $formId <= 0 ) {
 			return $this->placeholder( $attrs, __( 'Select a form to display.' ) );
@@ -114,5 +111,34 @@ class FormBlock extends DynamicBlock
 		}
 
 		return $classes;
+	}
+
+	/**
+	 * Coerce the incoming `formId` into a strict positive integer or 0.
+	 *
+	 * The editor saves the attribute as a JSON number, but block-tree
+	 * deserialization can hand back strings ("12") or floats ("12.9",
+	 * "1e2"). `is_numeric` + `(int)` accepts and truncates floats /
+	 * scientific notation, which would silently coerce non-IDs (e.g.,
+	 * "1e2" → 100) into real lookup attempts. `FILTER_VALIDATE_INT`
+	 * rejects anything that isn't a clean integer literal, and the
+	 * positive-only guard keeps `0` / negatives funneling into the
+	 * "select a form" placeholder branch in {@see render()}.
+	 *
+	 * @since 1.1.0
+	 */
+	protected function normalizeFormId( mixed $value ): int
+	{
+		if ( is_int( $value ) ) {
+			return $value > 0 ? $value : 0;
+		}
+
+		if ( is_string( $value ) ) {
+			$parsed = filter_var( $value, FILTER_VALIDATE_INT );
+
+			return false !== $parsed && $parsed > 0 ? $parsed : 0;
+		}
+
+		return 0;
 	}
 }

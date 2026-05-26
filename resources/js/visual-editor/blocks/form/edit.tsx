@@ -16,7 +16,7 @@ import {
     InspectorControls,
     useBlockProps,
 } from '@wordpress/block-editor';
-import { Placeholder, PanelBody, SelectControl, Spinner } from '@wordpress/components';
+import { Button, Placeholder, PanelBody, SelectControl, Spinner } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
@@ -238,10 +238,15 @@ function FormPreview({ formId }: { readonly formId: number }): ReactElement {
                     credentials: 'include',
                 });
                 if (404 === response.status) {
-                    // The package's /render endpoint 404s for inactive forms.
-                    // Surface that as actionable copy rather than a raw status.
+                    // The package's /render endpoint 404s for both deleted
+                    // and inactive forms (see FormBlock::render, which
+                    // distinguishes the two server-side). The editor only
+                    // sees a status code here, so the message stays neutral
+                    // — "unavailable" covers both states without misleading
+                    // the author into hunting for an activate toggle on a
+                    // form that no longer exists.
                     throw new Error(
-                        'This form is inactive — activate it from the Forms admin to preview the layout here.',
+                        'This form is unavailable — it may have been deleted or deactivated. Pick a different form in the block sidebar.',
                     );
                 }
                 if (!response.ok) {
@@ -390,6 +395,18 @@ export default function FormEdit({
         className: 'wp-block-artisanpack-form',
     });
 
+    // Stale selection: a previous editor session picked a form that's
+    // since been deleted (or 404s out of `/api/v1/forms?per_page=100`
+    // for any other reason). Without this branch the canvas falls
+    // through to `<FormPreview>` and silently displays the 404 message
+    // — misleading the author into thinking the form just needs to be
+    // re-activated, when actually it no longer exists in the list.
+    // Render an explicit reset path instead.
+    const isStaleSelection =
+        formId > 0 &&
+        null !== forms &&
+        !forms.some((form) => form.id === formId);
+
     return (
         <>
             <InspectorControls>
@@ -412,7 +429,23 @@ export default function FormEdit({
             </InspectorControls>
 
             <div {...blockProps}>
-                {formId > 0 ? (
+                {isStaleSelection ? (
+                    <Placeholder
+                        icon={<FormInserterIcon />}
+                        label={__('Form', TEXT_DOMAIN)}
+                        instructions={__(
+                            'The selected form is no longer available. It may have been deleted. Reset the selection to pick a different form.',
+                            TEXT_DOMAIN,
+                        )}
+                    >
+                        <Button
+                            variant="secondary"
+                            onClick={() => setAttributes({ formId: 0 })}
+                        >
+                            {__('Reset selection', TEXT_DOMAIN)}
+                        </Button>
+                    </Placeholder>
+                ) : formId > 0 ? (
                     <FormPreview formId={formId} />
                 ) : (
                     <Placeholder

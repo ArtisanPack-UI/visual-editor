@@ -6,7 +6,7 @@
     "description": "Give quoted text visual emphasis.",
     "icon": "quote-left",
     "keywords": ["blockquote", "citation", "pullquote"],
-    "textdomain": "visual-editor",
+    "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "content": {
             "type": "rich-text",
