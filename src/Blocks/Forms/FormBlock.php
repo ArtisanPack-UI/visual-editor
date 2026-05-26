@@ -18,6 +18,7 @@ namespace ArtisanPackUI\VisualEditor\Blocks\Forms;
 use ArtisanPackUI\Forms\Models\Form;
 use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+use Closure;
 
 /**
  * Renders a placeholder DIV that the artisanpack-ui/forms React island
@@ -47,6 +48,29 @@ use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
  */
 class FormBlock extends DynamicBlock
 {
+	/**
+	 * Resolver for the form record keyed off the validated `formId`.
+	 *
+	 * Injected so tests can exercise the missing / inactive / active
+	 * branches of {@see render()} without booting the
+	 * `artisanpack-ui/forms` package and migrating its tables. The
+	 * closure receives a positive integer id and returns either a
+	 * `Form`-shaped object exposing `id`, `slug`, and `is_active`, or
+	 * `null` when no record matches. Production callers fall through to
+	 * the default Eloquent lookup.
+	 *
+	 * @var Closure(int): ?object
+	 */
+	private Closure $resolveForm;
+
+	/**
+	 * @param  (Closure(int): ?object)|null  $resolveForm  Optional form resolver. Defaults to an Eloquent `Form` lookup.
+	 */
+	public function __construct( ?Closure $resolveForm = null )
+	{
+		$this->resolveForm = $resolveForm ?? static fn ( int $id ): ?Form => Form::query()->find( $id );
+	}
+
 	public function name(): string
 	{
 		return 'artisanpack/form';
@@ -91,7 +115,7 @@ class FormBlock extends DynamicBlock
 			return $this->placeholder( $attrs, __( 'Select a form to display.' ) );
 		}
 
-		$form = Form::query()->find( $formId );
+		$form = ( $this->resolveForm )( $formId );
 
 		if ( null === $form ) {
 			return $this->placeholder( $attrs, __( 'The selected form is no longer available.' ) );
