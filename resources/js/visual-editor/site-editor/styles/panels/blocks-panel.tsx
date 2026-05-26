@@ -57,6 +57,12 @@ function getBlockFields(): readonly BlockField[] {
             kind: 'color',
         },
         {
+            label: __('Link color', TEXT_DOMAIN),
+            key: ['elements', 'link', 'color', 'text'],
+            testId: 'block-color-link',
+            kind: 'color',
+        },
+        {
             label: __('Font family', TEXT_DOMAIN),
             key: ['typography', 'fontFamily'],
             testId: 'block-font-family',
@@ -69,9 +75,64 @@ function getBlockFields(): readonly BlockField[] {
             kind: 'font-size',
         },
         {
+            label: __('Font weight', TEXT_DOMAIN),
+            key: ['typography', 'fontWeight'],
+            testId: 'block-font-weight',
+            kind: 'font-weight',
+        },
+        {
+            label: __('Line height', TEXT_DOMAIN),
+            key: ['typography', 'lineHeight'],
+            testId: 'block-line-height',
+            kind: 'size',
+        },
+        {
+            label: __('Letter spacing', TEXT_DOMAIN),
+            key: ['typography', 'letterSpacing'],
+            testId: 'block-letter-spacing',
+            kind: 'size',
+        },
+        {
+            label: __('Border color', TEXT_DOMAIN),
+            key: ['border', 'color'],
+            testId: 'block-border-color',
+            kind: 'color',
+        },
+        {
+            label: __('Border width', TEXT_DOMAIN),
+            key: ['border', 'width'],
+            testId: 'block-border-width',
+            kind: 'size',
+        },
+        {
             label: __('Border radius', TEXT_DOMAIN),
             key: ['border', 'radius'],
             testId: 'block-border-radius',
+            kind: 'size',
+        },
+        // Spacing: single-value (uniform on all sides) at the site-editor
+        // global level. Per-side overrides are still authored from the
+        // per-block inspector — adding box-model controls here would
+        // require a new `kind: 'spacing'` renderer and is out of scope
+        // for the surface-expansion pass. `BlockSupports::applyBoxModel()`
+        // already accepts a single string and applies it to all four sides,
+        // so the global-styles payload round-trips correctly today.
+        {
+            label: __('Padding', TEXT_DOMAIN),
+            key: ['spacing', 'padding'],
+            testId: 'block-padding',
+            kind: 'size',
+        },
+        {
+            label: __('Margin', TEXT_DOMAIN),
+            key: ['spacing', 'margin'],
+            testId: 'block-margin',
+            kind: 'size',
+        },
+        {
+            label: __('Block gap', TEXT_DOMAIN),
+            key: ['spacing', 'blockGap'],
+            testId: 'block-block-gap',
             kind: 'size',
         },
     ];
@@ -80,14 +141,24 @@ function getBlockFields(): readonly BlockField[] {
 /**
  * Stable key list used for iteration in `customizedCount` detection —
  * derived once from a single cached descriptor set so the render path
- * doesn't re-translate on every isPathCustomized check.
+ * doesn't re-translate on every isPathCustomized check. Keep in sync
+ * with {@see getBlockFields}.
  */
 const BLOCK_FIELD_KEYS: readonly (readonly string[])[] = [
     ['color', 'background'],
     ['color', 'text'],
+    ['elements', 'link', 'color', 'text'],
     ['typography', 'fontFamily'],
     ['typography', 'fontSize'],
+    ['typography', 'fontWeight'],
+    ['typography', 'lineHeight'],
+    ['typography', 'letterSpacing'],
+    ['border', 'color'],
+    ['border', 'width'],
     ['border', 'radius'],
+    ['spacing', 'padding'],
+    ['spacing', 'margin'],
+    ['spacing', 'blockGap'],
 ];
 
 export function BlocksIndexPanel(

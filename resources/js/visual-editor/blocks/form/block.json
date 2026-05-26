@@ -16,6 +16,34 @@
     "supports": {
         "className": true,
         "html": false,
-        "reusable": true
+        "reusable": true,
+        "anchor": true,
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "fontFamily": true,
+            "fontStyle": true,
+            "fontWeight": true,
+            "letterSpacing": true,
+            "textTransform": true,
+            "textDecoration": true
+        },
+        "color": {
+            "background": true,
+            "text": true,
+            "link": true,
+            "gradients": true
+        },
+        "border": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true
+        },
+        "spacing": {
+            "padding": true,
+            "margin": true,
+            "blockGap": true
+        }
     }
 }

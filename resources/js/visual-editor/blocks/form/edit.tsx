@@ -96,40 +96,89 @@ const TEXTAREA_TYPES = new Set(['textarea', 'paragraph']);
 const CHOICE_TYPES = new Set(['select', 'radio', 'checkbox', 'checkbox_group', 'select_multiple']);
 const LAYOUT_TYPES = new Set(['heading', 'paragraph_layout', 'divider', 'html']);
 
+/*
+ * Inline-style tokens tuned to approximate the front-end's daisyUI v5
+ * form rendering. Hex values rather than `var(--color-…)` references
+ * because the editor canvas iframe doesn't load daisyUI's CSS — using
+ * a real `<link>` would require host-side plumbing, and the goal here
+ * is "close enough that the author recognizes it" without dragging
+ * stylesheet wiring across the visual-editor / forms / host boundary.
+ *
+ * If keystone-form-island.css ever lands in the canvas via a host hook,
+ * these inline styles get out of its way (selectors below targeting
+ * `.input`, `.label`, `.btn` are deliberately left absent) and the
+ * canvas stylesheet wins on full daisyUI fidelity.
+ */
+const PREVIEW_TOKENS = {
+    labelColor: '#1f2937',
+    labelFontSize: '0.875rem',
+    labelFontWeight: 500,
+    labelMargin: '0 0 0.375rem',
+    requiredColor: '#dc2626',
+    inputBorder: '1px solid #d1d5db',
+    inputRadius: '0.5rem',
+    inputPadding: '0.5rem 0.75rem',
+    inputBackground: '#ffffff',
+    inputColor: '#1f2937',
+    inputFontSize: '0.9375rem',
+    helpColor: '#6b7280',
+    helpFontSize: '0.75rem',
+    submitBackground: '#0855b1',
+    submitColor: '#ffffff',
+    submitRadius: '0.5rem',
+    submitPadding: '0.625rem 1.25rem',
+    submitFontWeight: 600,
+    submitFontSize: '0.9375rem',
+} as const;
+
 function FieldPreview({ field }: { readonly field: FormField }): ReactElement {
     const label = field.label ?? field.name;
     const inputId = `form-block-preview-${field.id}`;
     const options = field.field_config?.options ?? field.options ?? [];
 
     if ('divider' === field.type) {
-        return <hr aria-hidden="true" style={{ margin: '12px 0', borderColor: 'rgba(0,0,0,0.1)' }} />;
+        return <hr aria-hidden="true" style={{ margin: '0.75rem 0', border: 'none', borderTop: '1px solid #e5e7eb' }} />;
     }
 
     if ('heading' === field.type) {
-        return <h3 style={{ margin: '8px 0', fontWeight: 600 }}>{label}</h3>;
+        return <h3 style={{ margin: '0.5rem 0', fontWeight: 600, fontSize: '1.125rem' }}>{label}</h3>;
     }
 
     if (LAYOUT_TYPES.has(field.type)) {
-        return <p style={{ margin: '8px 0', color: 'rgba(0,0,0,0.6)' }}>{label}</p>;
+        return <p style={{ margin: '0.5rem 0', color: PREVIEW_TOKENS.helpColor }}>{label}</p>;
     }
 
     const labelEl = (
-        <label htmlFor={inputId} style={{ display: 'block', fontWeight: 500, fontSize: 13, marginBottom: 4 }}>
+        <label
+            htmlFor={inputId}
+            style={{
+                display: 'block',
+                fontWeight: PREVIEW_TOKENS.labelFontWeight,
+                fontSize: PREVIEW_TOKENS.labelFontSize,
+                color: PREVIEW_TOKENS.labelColor,
+                margin: PREVIEW_TOKENS.labelMargin,
+                lineHeight: 1.4,
+            }}
+        >
             {label}
             {field.is_required && (
-                <span aria-hidden="true" style={{ color: '#cf2e2e', marginLeft: 4 }}>*</span>
+                <span aria-hidden="true" style={{ color: PREVIEW_TOKENS.requiredColor, marginLeft: '0.25rem' }}>*</span>
             )}
         </label>
     );
 
     const inputStyle: React.CSSProperties = {
+        display: 'block',
         width: '100%',
-        padding: '6px 8px',
-        border: '1px solid rgba(0,0,0,0.15)',
-        borderRadius: 4,
-        background: 'rgba(0,0,0,0.02)',
+        boxSizing: 'border-box',
+        padding: PREVIEW_TOKENS.inputPadding,
+        border: PREVIEW_TOKENS.inputBorder,
+        borderRadius: PREVIEW_TOKENS.inputRadius,
+        background: PREVIEW_TOKENS.inputBackground,
+        color: PREVIEW_TOKENS.inputColor,
         font: 'inherit',
-        color: 'inherit',
+        fontSize: PREVIEW_TOKENS.inputFontSize,
+        lineHeight: 1.4,
     };
 
     let control: ReactElement;
@@ -138,19 +187,19 @@ function FieldPreview({ field }: { readonly field: FormField }): ReactElement {
         control = (
             <textarea
                 id={inputId}
-                rows={3}
+                rows={4}
                 placeholder={field.placeholder ?? ''}
                 defaultValue={field.default_value ?? ''}
-                style={inputStyle}
+                style={{ ...inputStyle, minHeight: '6rem', resize: 'vertical' }}
                 disabled
             />
         );
     } else if (CHOICE_TYPES.has(field.type) && options.length > 0) {
         if ('radio' === field.type) {
             control = (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                     {options.map((opt) => (
-                        <label key={opt.value} style={{ display: 'flex', gap: 6, fontSize: 13 }}>
+                        <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: PREVIEW_TOKENS.inputFontSize }}>
                             <input type="radio" name={`${inputId}-${field.name}`} value={opt.value} disabled />
                             {opt.label}
                         </label>
@@ -159,9 +208,9 @@ function FieldPreview({ field }: { readonly field: FormField }): ReactElement {
             );
         } else if ('checkbox_group' === field.type || 'checkbox' === field.type) {
             control = (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
                     {options.map((opt) => (
-                        <label key={opt.value} style={{ display: 'flex', gap: 6, fontSize: 13 }}>
+                        <label key={opt.value} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: PREVIEW_TOKENS.inputFontSize }}>
                             <input type="checkbox" value={opt.value} disabled />
                             {opt.label}
                         </label>
@@ -181,7 +230,7 @@ function FieldPreview({ field }: { readonly field: FormField }): ReactElement {
             );
         }
     } else if ('file' === field.type) {
-        control = <input id={inputId} type="file" disabled style={{ ...inputStyle, padding: 4 }} />;
+        control = <input id={inputId} type="file" disabled style={{ ...inputStyle, padding: '0.375rem 0.5rem' }} />;
     } else {
         const htmlType =
             'email' === field.type
@@ -210,11 +259,11 @@ function FieldPreview({ field }: { readonly field: FormField }): ReactElement {
     }
 
     return (
-        <div style={{ marginBottom: 12 }}>
+        <div style={{ marginBottom: '1.25rem' }}>
             {labelEl}
             {control}
             {field.help_text && (
-                <p style={{ margin: '4px 0 0', fontSize: 11, color: 'rgba(0,0,0,0.55)' }}>
+                <p style={{ margin: '0.375rem 0 0', fontSize: PREVIEW_TOKENS.helpFontSize, color: PREVIEW_TOKENS.helpColor }}>
                     {field.help_text}
                 </p>
             )}
@@ -295,27 +344,9 @@ function FormPreview({ formId }: { readonly formId: number }): ReactElement {
     const fields = detail.fields ?? [];
 
     return (
-        <div
-            style={{
-                border: '1px dashed rgba(0,0,0,0.15)',
-                borderRadius: 6,
-                padding: 16,
-                background: 'rgba(0,0,0,0.015)',
-            }}
-        >
-            <p
-                style={{
-                    margin: '0 0 12px',
-                    fontSize: 11,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5,
-                    color: 'rgba(0,0,0,0.55)',
-                }}
-            >
-                {__('Form preview', TEXT_DOMAIN)} · {detail.name}
-            </p>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
             {0 === fields.length ? (
-                <p style={{ margin: 0, fontSize: 13, color: 'rgba(0,0,0,0.55)' }}>
+                <p style={{ margin: 0, fontSize: PREVIEW_TOKENS.helpFontSize, color: PREVIEW_TOKENS.helpColor }}>
                     {__('This form has no fields yet. Add some from the Forms admin.', TEXT_DOMAIN)}
                 </p>
             ) : (
@@ -327,13 +358,15 @@ function FormPreview({ formId }: { readonly formId: number }): ReactElement {
                         type="button"
                         disabled
                         style={{
-                            marginTop: 4,
-                            padding: '8px 16px',
-                            background: '#2271b1',
-                            color: 'white',
+                            alignSelf: 'flex-start',
+                            marginTop: '0.5rem',
+                            padding: PREVIEW_TOKENS.submitPadding,
+                            background: PREVIEW_TOKENS.submitBackground,
+                            color: PREVIEW_TOKENS.submitColor,
                             border: 'none',
-                            borderRadius: 4,
-                            opacity: 0.7,
+                            borderRadius: PREVIEW_TOKENS.submitRadius,
+                            fontWeight: PREVIEW_TOKENS.submitFontWeight,
+                            fontSize: PREVIEW_TOKENS.submitFontSize,
                             cursor: 'not-allowed',
                         }}
                     >
