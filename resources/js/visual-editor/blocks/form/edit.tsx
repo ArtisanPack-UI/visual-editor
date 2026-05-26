@@ -246,7 +246,10 @@ function FormPreview({ formId }: { readonly formId: number }): ReactElement {
                     // the author into hunting for an activate toggle on a
                     // form that no longer exists.
                     throw new Error(
-                        'This form is unavailable — it may have been deleted or deactivated. Pick a different form in the block sidebar.',
+                        __(
+                            'This form is unavailable — it may have been deleted or deactivated. Pick a different form in the block sidebar.',
+                            TEXT_DOMAIN,
+                        ),
                     );
                 }
                 if (!response.ok) {
@@ -396,16 +399,49 @@ export default function FormEdit({
     });
 
     // Stale selection: a previous editor session picked a form that's
-    // since been deleted (or 404s out of `/api/v1/forms?per_page=100`
-    // for any other reason). Without this branch the canvas falls
-    // through to `<FormPreview>` and silently displays the 404 message
-    // — misleading the author into thinking the form just needs to be
-    // re-activated, when actually it no longer exists in the list.
-    // Render an explicit reset path instead.
-    const isStaleSelection =
-        formId > 0 &&
-        null !== forms &&
-        !forms.some((form) => form.id === formId);
+    // since become unavailable. We can't infer that purely from the
+    // first page of `/api/v1/forms?per_page=100` — on sites with more
+    // than 100 forms a perfectly valid selection can land on another
+    // page. So when the selected id isn't in the loaded list, confirm
+    // with a targeted `/render` HEAD: a 404 means the form is truly
+    // gone (or inactive) and we show the reset path; anything else
+    // means it just paginated off-screen and we let `<FormPreview>`
+    // load it normally.
+    const [isStaleSelection, setIsStaleSelection] = useState(false);
+
+    useEffect(() => {
+        if (formId <= 0 || null === forms) {
+            setIsStaleSelection(false);
+            return;
+        }
+        if (forms.some((form) => form.id === formId)) {
+            setIsStaleSelection(false);
+            return;
+        }
+
+        let cancelled = false;
+        async function confirm() {
+            try {
+                const response = await fetch(`/api/v1/forms/${formId}/render`, {
+                    method: 'HEAD',
+                    headers: buildHeaders(),
+                    credentials: 'include',
+                });
+                if (!cancelled) {
+                    setIsStaleSelection(404 === response.status);
+                }
+            } catch {
+                if (!cancelled) {
+                    setIsStaleSelection(false);
+                }
+            }
+        }
+        void confirm();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [formId, forms]);
 
     return (
         <>
