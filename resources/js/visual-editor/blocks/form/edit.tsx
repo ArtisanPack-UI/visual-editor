@@ -399,14 +399,15 @@ export default function FormEdit({
     });
 
     // Stale selection: a previous editor session picked a form that's
-    // since become unavailable. We can't infer that purely from the
-    // first page of `/api/v1/forms?per_page=100` — on sites with more
-    // than 100 forms a perfectly valid selection can land on another
-    // page. So when the selected id isn't in the loaded list, confirm
-    // with a targeted `/render` HEAD: a 404 means the form is truly
-    // gone (or inactive) and we show the reset path; anything else
-    // means it just paginated off-screen and we let `<FormPreview>`
-    // load it normally.
+    // since been deleted. We can't infer that purely from the first
+    // page of `/api/v1/forms?per_page=100` — on sites with more than
+    // 100 forms a valid selection can land on another page — and we
+    // can't use the `/render` endpoint either, since that 404s for
+    // both deleted *and* inactive forms. So when the selected id
+    // isn't in the loaded list, confirm with a HEAD against the
+    // resource endpoint, which uses Eloquent route model binding and
+    // only 404s when the form record is actually gone. Inactive forms
+    // fall through to `<FormPreview>`'s neutral "unavailable" copy.
     const [isStaleSelection, setIsStaleSelection] = useState(false);
 
     useEffect(() => {
@@ -422,7 +423,7 @@ export default function FormEdit({
         let cancelled = false;
         async function confirm() {
             try {
-                const response = await fetch(`/api/v1/forms/${formId}/render`, {
+                const response = await fetch(`/api/v1/forms/${formId}`, {
                     method: 'HEAD',
                     headers: buildHeaders(),
                     credentials: 'include',
