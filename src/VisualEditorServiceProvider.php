@@ -7,7 +7,6 @@ use ArtisanPackUI\VisualEditor\Blocks\Core\ArchivesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\CategoriesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\TagCloudBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Forms\FormBlock;
-use ArtisanPackUI\VisualEditor\Console\Commands\SeedSampleContentCommand;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
 use ArtisanPackUI\VisualEditor\Services\Adapters\CmsFramework\CmsFrameworkQueryResolver;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
@@ -237,10 +236,6 @@ class VisualEditorServiceProvider extends ServiceProvider
 			$this->publishes( [
 								  __DIR__ . '/../config/visual-editor.php' => config_path( 'artisanpack/visual-editor.php' ),
 							  ], 'artisanpack-package-config' );
-
-			$this->commands( [
-				SeedSampleContentCommand::class,
-			] );
 		}
 	}
 
