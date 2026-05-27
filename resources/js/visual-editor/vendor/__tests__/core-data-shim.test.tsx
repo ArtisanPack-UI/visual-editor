@@ -5,6 +5,8 @@ import { dispatch, resolveSelect, select } from '@wordpress/data';
 import {
     DEFAULT_ENTITIES,
     EntityProvider,
+    MISSING_RECORD_MARKER,
+    RestRequestError,
     __resetCoreDataShimConfig,
     configureCoreDataShim,
     store,
@@ -607,6 +609,176 @@ describe('core-data-shim fetch → cache', () => {
         expect(
             coreSelect().getEntityRecord('postType', 'wp_template', 7),
         ).toBeNull();
+    });
+
+    it('fetchEntityRecord synthesizes a missing-record placeholder on 404 for a numeric id (#419)', async () => {
+        // Entity-backed core blocks (`core/navigation`, `core/post-*`,
+        // `core/template-part`) crash through to the editor's error
+        // boundary when `useEntityRecord` returns null for a ref that
+        // points at a deleted / never-seeded record. The shim
+        // synthesizes a `{id, _missing: true, status: 'missing'}`
+        // placeholder on 404 so the block's null-check passes and
+        // it can render its own missing-state UI instead.
+        const { fetcher } = mockFetcher(async () => jsonResponse({}, 404));
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        const record = await coreDispatch().fetchEntityRecord(
+            'postType',
+            'wp_navigation',
+            21,
+        );
+
+        expect(record).toEqual({
+            id: 21,
+            [MISSING_RECORD_MARKER]: true,
+            status: 'missing',
+        });
+
+        // Cached for subsequent reads — including `getEditedEntityRecord`,
+        // which is what block-library's `useNavigationMenu` reads to
+        // flip its `isNavigationMenuMissing` flag (status !== 'publish'
+        // / 'draft' → missing).
+        expect(
+            coreSelect().getEntityRecord('postType', 'wp_navigation', 21),
+        ).toMatchObject({ id: 21, [MISSING_RECORD_MARKER]: true });
+        expect(
+            coreSelect().getEditedEntityRecord(
+                'postType',
+                'wp_navigation',
+                21,
+            ),
+        ).toMatchObject({ status: 'missing' });
+    });
+
+    it('fetchEntityRecord falls back to null for non-404 errors (#419)', async () => {
+        // 5xx / network failures are transient — the cache must stay
+        // empty so the resolver remains retryable rather than poisoned
+        // with a permanent missing-record sentinel.
+        const { fetcher } = mockFetcher(async () => jsonResponse({}, 503));
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        const record = await coreDispatch().fetchEntityRecord(
+            'postType',
+            'wp_navigation',
+            42,
+        );
+
+        expect(record).toBeNull();
+        expect(
+            coreSelect().getEntityRecord('postType', 'wp_navigation', 42),
+        ).toBeNull();
+    });
+
+    it('fetchEntityRecord synthesizes a missing-record placeholder when a composite-id lookup returns no matches (#419)', async () => {
+        // `core/template-part` looks up its referenced part by the
+        // composite `<theme>//<slug>` id. The shim bridges this through
+        // the index endpoint with a theme+slug filter; an empty list
+        // response means the referenced part isn't on the server.
+        // Same placeholder treatment as the numeric-id 404 path so the
+        // block doesn't crash on a null record.
+        const { fetcher } = mockFetcher(async () =>
+            jsonResponse({ data: [], meta: { total: 0, last_page: 1 } }),
+        );
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        const record = await coreDispatch().fetchEntityRecord(
+            'postType',
+            'wp_template_part',
+            'artisanpack-base//missing-part',
+        );
+
+        expect(record).toEqual({
+            id: 'artisanpack-base//missing-part',
+            [MISSING_RECORD_MARKER]: true,
+            status: 'missing',
+        });
+        expect(
+            coreSelect().getEntityRecord(
+                'postType',
+                'wp_template_part',
+                'artisanpack-base//missing-part',
+            ),
+        ).toMatchObject({ [MISSING_RECORD_MARKER]: true });
+    });
+
+    it('clears a stale composite-id missing placeholder when the real record later lands (#419)', async () => {
+        // After a composite-id lookup synthesizes a `_missing`
+        // placeholder under `items[<theme>//<slug>]`, a subsequent
+        // fetch that returns the real record stores it under the
+        // numeric primary key and registers a composite alias. Without
+        // explicit invalidation, `selectEntityRecord`'s direct-lookup
+        // path would keep returning the stale placeholder for the
+        // composite id.
+        let respondWithMissing = true;
+        const { fetcher } = mockFetcher(async () => {
+            if (respondWithMissing) {
+                return jsonResponse({
+                    data: [],
+                    meta: { total: 0, last_page: 1 },
+                });
+            }
+
+            return jsonResponse({
+                data: [
+                    {
+                        id: 7,
+                        slug: 'header',
+                        theme: 'artisanpack-base',
+                        title: { rendered: 'Header' },
+                    },
+                ],
+                meta: { total: 1, last_page: 1 },
+            });
+        });
+
+        configureCoreDataShim({ apiBase: '/api', fetcher });
+
+        const compositeId = 'artisanpack-base//header';
+
+        const missing = await coreDispatch().fetchEntityRecord(
+            'postType',
+            'wp_template_part',
+            compositeId,
+        );
+
+        expect(missing).toMatchObject({ [MISSING_RECORD_MARKER]: true });
+
+        // Now the real record lands (e.g. via a seeder or a refresh).
+        respondWithMissing = false;
+
+        await coreDispatch().fetchEntityRecord(
+            'postType',
+            'wp_template_part',
+            compositeId,
+        );
+
+        const resolved = coreSelect().getEntityRecord(
+            'postType',
+            'wp_template_part',
+            compositeId,
+        );
+
+        // The composite-id lookup now resolves to the real record
+        // through the alias map; the stale placeholder is gone.
+        expect(resolved).toMatchObject({ id: 7, slug: 'header' });
+        expect(resolved).not.toHaveProperty(MISSING_RECORD_MARKER);
+    });
+
+    it('RestRequestError carries the response status (#419)', () => {
+        // Callers (notably `fetchEntityRecord`) need to distinguish a
+        // 404 from a 5xx so they can decide whether to synthesize a
+        // missing-record placeholder or leave the cache empty for a
+        // retry. The structured error class exposes `.status` for that.
+        const error = new RestRequestError(404, '/api/menus/21', 'GET');
+
+        expect(error).toBeInstanceOf(Error);
+        expect(error.status).toBe(404);
+        expect(error.url).toBe('/api/menus/21');
+        expect(error.method).toBe('GET');
+        expect(error.name).toBe('RestRequestError');
     });
 
     it('fetchEntityRecords accepts a Laravel { data, meta } envelope', async () => {
