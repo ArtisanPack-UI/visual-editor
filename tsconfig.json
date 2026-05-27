@@ -17,10 +17,7 @@
         "allowSyntheticDefaultImports": true,
         "useDefineForClassFields": true,
         "types": ["vitest/globals", "@testing-library/jest-dom"],
-        "baseUrl": ".",
-        "paths": {
-            "@editor/*": ["resources/js/visual-editor/_legacy/editor/*"]
-        }
+        "baseUrl": "."
     },
     "include": [
         "resources/js/visual-editor/**/*"
