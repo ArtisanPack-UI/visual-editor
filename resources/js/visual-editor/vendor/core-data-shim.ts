@@ -363,6 +363,37 @@ function queryKey(query?: Record<string, unknown> | null): string {
         .join('&');
 }
 
+/**
+ * Property on a synthesized record signalling that the upstream
+ * `GET /{entity}/{id}` returned 404 — the ref points at a record that no
+ * longer exists. Block-library entity consumers see a non-null record
+ * (so their `if (!record) {…}` guards don't fire) and can read this flag
+ * to render their own missing-state UI rather than crashing.
+ *
+ * @see {@link buildMissingEntityRecord}
+ * @see https://github.com/ArtisanPack-UI/visual-editor/issues/419
+ */
+export const MISSING_RECORD_MARKER = '_missing' as const;
+
+/**
+ * Synthesizes a minimal entity record representing a referenced row that
+ * was not found on the server. Carries the requested `id` on the entity's
+ * primary key field, a `status: 'missing'` (so the navigation block's
+ * `editedNavigationMenu.status === 'publish'` check resolves to false and
+ * `isNavigationMenuMissing` flips true), and the {@link MISSING_RECORD_MARKER}
+ * sentinel for callers that want to branch on the missing state directly.
+ */
+function buildMissingEntityRecord(
+    config: EntityConfig,
+    id: EntityKey,
+): EntityRecord {
+    return {
+        [config.key]: id,
+        [MISSING_RECORD_MARKER]: true,
+        status: 'missing',
+    };
+}
+
 function recordIdOf(
     record: EntityRecord,
     config: EntityConfig,
@@ -504,6 +535,31 @@ async function parseJson(response: Response): Promise<unknown> {
     }
 }
 
+/**
+ * Error thrown by {@link restRequest} when the upstream response is not OK.
+ *
+ * Carries the HTTP `status` so callers can distinguish a missing-resource
+ * 404 from a transient 5xx / network failure and react accordingly — e.g.
+ * the entity-record fetcher synthesizes a `_missing` placeholder on 404
+ * so entity-backed blocks can render their own missing-state UI instead
+ * of crashing through to the editor's error boundary (#419).
+ */
+export class RestRequestError extends Error {
+    public readonly status: number;
+
+    public readonly url: string;
+
+    public readonly method: string;
+
+    public constructor(status: number, url: string, method: string) {
+        super(`core-data-shim: ${method} ${url} failed with status ${status}`);
+        this.name = 'RestRequestError';
+        this.status = status;
+        this.url = url;
+        this.method = method;
+    }
+}
+
 async function restRequest(
     url: string,
     init: RequestInit,
@@ -516,9 +572,7 @@ async function restRequest(
     const body = await parseJson(response);
 
     if (!response.ok) {
-        throw new Error(
-            `core-data-shim: ${init.method ?? 'GET'} ${url} failed with status ${response.status}`,
-        );
+        throw new RestRequestError(response.status, url, init.method ?? 'GET');
     }
 
     return body;
@@ -605,6 +659,18 @@ function reducer(
 
                 if (compositeKey !== null && compositeKey !== primaryKey) {
                     nextAliases[compositeKey] = primaryKey;
+
+                    // #419: A prior composite-id resolver pass may have
+                    // stored a `_missing` placeholder directly under the
+                    // composite key in `items` (the composite id is the
+                    // record's id because the placeholder has no
+                    // theme/slug to derive an alias from). Drop that
+                    // stale entry now that the real numeric-keyed
+                    // record is authoritative — `selectEntityRecord`'s
+                    // direct-lookup path runs before the alias fallback,
+                    // so without this delete the placeholder would
+                    // continue to win for the composite-id lookup.
+                    delete nextItems[compositeKey];
                 }
             }
 
@@ -1441,9 +1507,33 @@ const actions = {
                             undefined,
                             false,
                         );
+
+                        return record;
                     }
 
-                    return record;
+                    // #419: A successful but empty list response for a
+                    // unique theme+slug filter means the referenced
+                    // template / template-part isn't on the server.
+                    // Synthesize the missing placeholder so the consumer
+                    // (e.g. `core/template-part`) doesn't crash on a
+                    // null record. Matches the numeric-id 404 path
+                    // below.
+                    const placeholder = buildMissingEntityRecord(
+                        config,
+                        id,
+                    );
+
+                    dispatch.receiveEntityRecords(
+                        kind,
+                        name,
+                        [placeholder],
+                        undefined,
+                        undefined,
+                        undefined,
+                        false,
+                    );
+
+                    return placeholder;
                 }
 
                 const record = (await restRequest(entityUrl(config, id), {
@@ -1464,7 +1554,40 @@ const actions = {
                 }
 
                 return record;
-            } catch {
+            } catch (error) {
+                // #419: When a numeric-id show endpoint 404s the referenced
+                // entity is gone (deleted, never seeded, etc.) — return a
+                // sentinel placeholder so entity-backed core blocks
+                // (`core/navigation`, `core/post-*`, `core/template-part`)
+                // see a non-null record and can render their own
+                // missing-state UI instead of crashing the upstream
+                // `useEntityRecord` consumer through to the editor's
+                // error boundary. Mirrors how upstream WP surfaces a
+                // trashed referenced post: the block keeps rendering
+                // and the author can replace or remove the ref.
+                //
+                // Other failure modes (5xx, network, parse) still resolve
+                // to `null` — those are transient and should leave the
+                // resolver retryable rather than poisoning the cache.
+                if (
+                    error instanceof RestRequestError &&
+                    error.status === 404
+                ) {
+                    const placeholder = buildMissingEntityRecord(config, id);
+
+                    dispatch.receiveEntityRecords(
+                        kind,
+                        name,
+                        [placeholder],
+                        undefined,
+                        undefined,
+                        undefined,
+                        false,
+                    );
+
+                    return placeholder;
+                }
+
                 return null;
             }
         },
