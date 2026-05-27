@@ -2,12 +2,6 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'node:path';
 
-// Legacy editor root — reference-only custom-React implementation retained
-// under _legacy/ during the Gutenberg adoption. M1 introduces the sandbox
-// entry at resources/js/visual-editor/sandbox/ while the new editor tree
-// (M3+) will live at resources/js/visual-editor/editor/.
-// See docs/gutenberg-adoption.md and issue #309.
-const editorRoot = resolve(__dirname, 'resources/js/visual-editor/_legacy/editor');
 const sandboxEntry = resolve(__dirname, 'resources/js/visual-editor/sandbox/main.tsx');
 const visualEditorEntry = resolve(
     __dirname,
@@ -52,12 +46,12 @@ const wordpressSingletonAliases = Object.fromEntries(
     ]),
 );
 
-export default defineConfig(({ command, mode }) => {
+export default defineConfig(({ mode }) => {
     const isLibraryBuild = mode === 'lib';
 
     return {
         plugins: [react()],
-        root: command === 'serve' ? editorRoot : __dirname,
+        root: __dirname,
         // The app-mode build is consumed by Keystone (and other host apps)
         // by copying `dist/editor/*` to `public/visual-editor/`. The bundle
         // emits relative `chunks/...` imports plus `__vitePreload` CSS deps
@@ -68,7 +62,6 @@ export default defineConfig(({ command, mode }) => {
         resolve: {
             alias: {
                 ...wordpressSingletonAliases,
-                '@editor': editorRoot,
                 // M2 (#312): every `@wordpress/core-data` import in the
                 // editor bundle resolves to our in-repo empty-state shim.
                 // cms-framework will replace the shim with a real
@@ -90,7 +83,7 @@ export default defineConfig(({ command, mode }) => {
                 emptyOutDir: true,
                 sourcemap: true,
                 lib: {
-                    entry: resolve(editorRoot, 'index.ts'),
+                    entry: visualEditorEntry,
                     formats: ['es'],
                     fileName: 'visual-editor',
                 },
@@ -125,7 +118,6 @@ export default defineConfig(({ command, mode }) => {
                 sourcemap: true,
                 rollupOptions: {
                     input: {
-                        editor: resolve(editorRoot, 'main.tsx'),
                         sandbox: sandboxEntry,
                         'visual-editor': visualEditorEntry,
                         'site-editor': siteEditorEntry,

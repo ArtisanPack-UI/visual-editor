@@ -5,14 +5,13 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>ArtisanPack Visual Editor</title>
 	@viteReactRefresh
-	{{-- Legacy editor entry — see docs/gutenberg-adoption.md. M3 replaces this with the new Blade component. --}}
-	@vite(['resources/js/visual-editor/_legacy/editor/main.tsx'])
+	@vite(['resources/js/visual-editor/editor/main.tsx'])
 </head>
 <body>
 	<div
-		id="ve-root"
-		data-post-id="{{ $postId }}"
-		data-post-type="{{ $postType }}"
+		data-ap-visual-editor
+		data-resource="{{ $resource }}"
+		data-id="{{ $modelId }}"
 		data-api-base="{{ $apiBase }}"
 	></div>
 </body>

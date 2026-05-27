@@ -6,11 +6,19 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+// Package-level demo / fallback post-editor route. Host apps render the
+// editor via `<x-visual-editor :model="$post" />` against their own models.
+// This route exists so `route('visual-editor.editor')` resolves — it is
+// surfaced as the site-editor exit link (#446) and in the install-gate
+// copy (`CmsFrameworkInstallGate`). The mounted page bootstraps the
+// editor against placeholder data attributes; without a backing host
+// resource the editor will surface API errors, which is acceptable for
+// the fallback / sample URL.
 Route::get('/editor', function () {
     return view('visual-editor::editor.mount', [
-        'postId' => '1',
-        'postType' => 'page',
-        'apiBase' => '/api',
+        'resource' => 'pages',
+        'modelId' => '1',
+        'apiBase' => '/visual-editor/api',
     ]);
 })->name('visual-editor.editor');
 
