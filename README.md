@@ -22,8 +22,12 @@ gate (#432) surfaces a "cms-framework required" page instead of mounting.
 | v0.x          | v0.x          | Pre-v1 — no site-editor integration            |
 
 Bumping the major on either package without bumping the partner is
-unsupported. The H8 smoke flow ([`docs/h8-smoke-flow.md`](docs/h8-smoke-flow.md))
-runs against this version pair before every release tag.
+unsupported. Both smoke flows run against this version pair before every
+release tag:
+[`docs/g6-smoke-flow.md`](docs/g6-smoke-flow.md) covers Phase G
+(cms-framework content integration — posts, pages, site-meta, query
+loop); [`docs/h8-smoke-flow.md`](docs/h8-smoke-flow.md) covers Phase H
+(site-editor — templates, parts, patterns, global styles, navigation).
 
 ## Peer Dependencies
 
