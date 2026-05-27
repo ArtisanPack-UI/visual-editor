@@ -65,6 +65,47 @@ These blocks will be re-enabled once `artisanpack-ui/cms-framework` replaces the
 
 Override the defaults by publishing the config to `config/artisanpack/visual-editor.php` and editing the `enabled_blocks` / `disabled_blocks` arrays. The deny-list always wins over the allow-list.
 
+## Using with cms-framework
+
+The visual editor is fully usable standalone, but pairs with [`artisanpack-ui/cms-framework`](https://github.com/ArtisanPack-UI/cms-framework) to unlock editable `Post` and `Page` content, a real backing for `core/site-*` blocks, working `core/post-*` / `core/query` / taxonomy widget blocks, and seeded `visual_editor.*` permissions. The full integration contract lives in [`docs/plans/12-cms-framework-integration.md`](docs/plans/12-cms-framework-integration.md).
+
+### Install both packages
+
+```bash
+composer require artisanpack-ui/visual-editor artisanpack-ui/cms-framework
+```
+
+Both packages are loosely coupled — cms-framework's editor wiring is guarded by `class_exists(\ArtisanPackUI\VisualEditor\VisualEditor::class)`, so each package remains usable on its own.
+
+### Run migrations
+
+```bash
+php artisan migrate
+```
+
+cms-framework's V1.x migration set adds a `block_content json nullable` column to its `posts` and `pages` tables (the legacy `content` longText column is preserved for search / excerpt / backwards-compatibility — see plan 12 §4.2 for the dual-state guidance).
+
+### Resource map
+
+When both packages are installed, cms-framework registers its `Post` and `Page` into the `ap.visual-editor.resources` filter automatically. The merged map ends up shaped like:
+
+```php
+// Effective config('artisanpack.visual-editor.resources') after the
+// ap.visual-editor.resources filter has run with both packages installed.
+[
+    'posts' => \ArtisanPackUI\CMSFramework\Modules\Blog\Models\Post::class,
+    'pages' => \ArtisanPackUI\CMSFramework\Modules\Pages\Models\Page::class,
+    // …plus any slug → model entries the host app added to
+    //   config/artisanpack/visual-editor.php (static config wins on collision).
+]
+```
+
+Host-app overrides in `config/artisanpack/visual-editor.php` always take precedence on key collision, so swapping `posts` to a custom `App\Models\Post` is just a config edit.
+
+### Version pairing
+
+visual-editor V1.0.x ships against cms-framework V1.x. The compatibility matrix is in [Version compatibility](#version-compatibility) above; the [`docs/g6-smoke-flow.md`](docs/g6-smoke-flow.md) and [`docs/h8-smoke-flow.md`](docs/h8-smoke-flow.md) flows run against the version pair before every release tag.
+
 ## Extensibility
 
 The package exposes a small filter surface so other packages can contribute editor wiring at runtime without forcing host apps to publish-and-edit the package config.

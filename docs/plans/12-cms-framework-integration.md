@@ -371,14 +371,50 @@ Per [`11-v1-expansion.md`](11-v1-expansion.md) §6: create milestone-level track
 
 ---
 
-## 8. Open questions to answer at phase kickoff
+## 8. Decisions made during phase implementation
 
-Not blocking this plan, but worth naming so they don't surface mid-implementation:
+The phase-kickoff open questions resolved as follows. Recording the actual
+decisions here (rather than the original "leanings") so the plan doc stays
+the canonical reference once each phase ships.
 
-- **G1a column name** — `block_content` (chosen) vs. `editor_content`. Settled: `block_content`.
-- **G1c custom-type criteria** — auto-pickup if `HasBlockContent` present, or also require an explicit `supports => ['editor']` flag in the type registration? Leaning purely trait-based; the trait *is* the opt-in.
-- **G2a `site.url` default** — use `config('app.url')` as default, or require explicit set during cms-framework install? Leaning: default to `config('app.url')`, override via admin UI.
-- **G3 inspector sidebar fields** — beyond status / slug / author / taxonomies / featured-image: include excerpt, parent (pages), menu-order (pages), template (pages). Custom fields defer to V1.1.
-- **G4c renderer/runtime contract** — REST-only call from all renderers (uniform) or direct manager call from Blade (faster, but two seams)? Leaning: direct call from Blade because the in-process win is real and the contract stays the same shape; document both code paths.
-- **G5 permission list completeness** — confirmed list above covers core entities. Add per-action granularity (`visual_editor.posts.publish`) at G5 kickoff if RBAC users want it; otherwise keep the coarser list.
-- **Site-meta read on the public front-end** — visual-editor's renderers use `apGetSetting()` when present, but what does the dev-app *itself* use for the site title in its layout chrome? Should be consistent. Decide at G2 kickoff.
+- **G1a column name** — **`block_content`**. The `HasBlockContent`
+  trait reads `$blockContentColumn`, and both cms-framework's `Post`
+  and `Page` migrations add `block_content json nullable` after the
+  legacy `content` column. The original column stays untouched for
+  search / excerpt compatibility.
+- **G1c custom-type criteria** — **trait-based opt-in only**. Any model
+  registered through `ContentTypeManager` that uses `HasBlockContent`
+  is auto-registered into the resource filter; no extra
+  `supports => ['editor']` flag is required. cms-framework logs a
+  warning when a registered content type's model lacks the trait so
+  the silent skip is observable (§5.3).
+- **G2a `site.url` default** — **`config('app.url')`**. cms-framework
+  registers `site.url` with `config('app.url')` as the default during
+  install. Hosts override via the admin settings UI or by writing the
+  setting directly with `apUpdateSetting()`.
+- **G3 inspector sidebar fields** — **status, slug, author,
+  taxonomies, featured image, excerpt, plus parent / menu-order /
+  template for pages**. Custom-fields surface deferred to V1.1 as
+  originally scoped (§2.7).
+- **G4c renderer/runtime contract** — **direct call from Blade,
+  REST from React/Vue clients**. `QueryRuntime::resolve()` is the
+  single source of truth; the Blade renderer calls it in-process,
+  and the React/Vue renderers hit `POST /visual-editor/api/query/resolve`
+  which wraps the same service. Both code paths are documented in §4.5
+  and exercised by the smoke flow in §G6 / `docs/g6-smoke-flow.md`.
+- **G5 permission list completeness** — **coarse per-entity list ships
+  in V1.0**. The eight permissions listed in §4.6 (`visual_editor.access`
+  plus seven entity-specific `*.edit` permissions) cover the entities
+  V1 surfaces. Per-action granularity
+  (`visual_editor.posts.publish` etc.) waits until V1.1 when the
+  delegation flag (`artisanpack.visual-editor.authorization.delegate_to_cms_framework`)
+  is exercised in real apps — adding granularity earlier would seed
+  permissions that no policy ever checks.
+- **Site-meta read on the public front-end** — **the dev app reads
+  the same `apGetSetting('site.*')` values** through cms-framework's
+  settings helper. Layout chrome (site title in the navbar, footer
+  copyright) reads `apGetSetting('site.title')` directly so the editor
+  preview and the public site can never drift. The G6 smoke flow
+  asserts this parity by changing `site.title` from the admin and
+  verifying both the editor canvas and the rendered front-end pick up
+  the new value without a cache clear.
