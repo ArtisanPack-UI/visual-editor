@@ -236,28 +236,6 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
-	| Sample content
-	|--------------------------------------------------------------------------
-	|
-	| The `visual-editor:seed-sample-content` Artisan command loads fixtures
-	| for the five B1 shim entities (templates, template parts, navigation,
-	| patterns, global styles) and writes them to a storage disk so the dev
-	| app has something to render against before Phase C endpoints land.
-	|
-	| `fixtures_path` is an absolute directory path. When null, the command
-	| falls back to the package's own `tests/Fixtures/sample-content/`
-	| directory (only available while the package is installed from source,
-	| e.g. a path repository or cloned checkout). Host apps that want to
-	| vendor their own fixtures should point this at their own directory.
-	|
-	*/
-
-	'sample_content' => [
-		'fixtures_path' => null,
-	],
-
-	/*
-	|--------------------------------------------------------------------------
 	| Global styles
 	|--------------------------------------------------------------------------
 	|
@@ -277,36 +255,6 @@ return [
 		'theme'          => 'artisanpack-base',
 		'schema_version' => 3,
 		'base_path'      => null,
-	],
-
-	/*
-	|--------------------------------------------------------------------------
-	| Navigation
-	|--------------------------------------------------------------------------
-	|
-	| `locations` maps a theme-exposed menu-location slug to a navigation
-	| record id (by primary key) along with a human-readable label for the
-	| site editor UI. When `primary_id` is null or points at a missing
-	| record, the `MenuLocationResolver` falls back to the first published
-	| nav in `menu_order`. Menu-location admin CRUD is deferred to 1.1+;
-	| V1 is intentionally config-driven (see the V1 plan doc §8).
-	|
-	| Each entry:
-	|   - `slug`       (string)  Location identifier used by theme blocks.
-	|   - `label`      (string)  Human label shown in the site editor.
-	|   - `primary_id` (int|null) VisualEditorNavigation id, or null to
-	|                            always use the fallback.
-	|
-	*/
-
-	'navigation' => [
-		'locations' => [
-			// 'primary' => [
-			//     'slug'       => 'primary',
-			//     'label'      => 'Primary Menu',
-			//     'primary_id' => null,
-			// ],
-		],
 	],
 
 	/*
