@@ -28,6 +28,10 @@ import { EntityProvider } from '@wordpress/core-data';
 // empty (#343).
 import '@wordpress/format-library';
 import { __ } from '@wordpress/i18n';
+import {
+    getBlockType,
+    setDefaultBlockName,
+} from '@wordpress/blocks';
 import type { BlockInstance } from '@wordpress/blocks';
 
 import { addFilter } from '@wordpress/hooks';
@@ -182,7 +186,65 @@ function registerOnce(): void {
     // `registerCoreBlocks` so custom-block category registration sees
     // the full core category list.
     discoverAndRegisterCustomBlocks();
+    // I0 cutover: replace core/paragraph with artisanpack/paragraph as
+    // the editor's default block. Unregistering core/paragraph keeps it
+    // out of the inserter; pressing Enter inside the canvas now inserts
+    // artisanpack/paragraph instead.
+    cutoverParagraphFork();
     blocksRegistered = true;
+}
+
+const PARAGRAPH_CUTOVER_FILTER = 'artisanpack-ui/visual-editor/paragraph-cutover';
+let paragraphCutoverFilterRegistered = false;
+
+function cutoverParagraphFork(): void {
+    const ARTISANPACK_PARAGRAPH = 'artisanpack/paragraph';
+    const CORE_PARAGRAPH = 'core/paragraph';
+
+    if (getBlockType(ARTISANPACK_PARAGRAPH) === undefined) {
+        return;
+    }
+
+    // Make the fork the default block: Enter / slash-menu / appender all
+    // emit artisanpack/paragraph from now on.
+    setDefaultBlockName(ARTISANPACK_PARAGRAPH);
+
+    // Hide core/paragraph from the inserter without unregistering it.
+    // Keeping the block registered means legacy posts with `<!-- wp:paragraph -->`
+    // markup still deserialize correctly via the upstream block's
+    // deprecation chain; the only user-facing change is that the inserter
+    // surface advertises only `artisanpack/paragraph`. The filter has to
+    // run inside `blocks.registerBlockType` (rather than mutating the
+    // already-registered type) so the inserter-items selector picks up
+    // the change.
+    if (!paragraphCutoverFilterRegistered) {
+        addFilter(
+            'blocks.registerBlockType',
+            PARAGRAPH_CUTOVER_FILTER,
+            (settings: Record<string, unknown>, name: string) => {
+                if (name !== CORE_PARAGRAPH) {
+                    return settings;
+                }
+                const supports = (settings.supports as Record<string, unknown> | undefined) ?? {};
+                return {
+                    ...settings,
+                    supports: { ...supports, inserter: false },
+                };
+            }
+        );
+        paragraphCutoverFilterRegistered = true;
+    }
+
+    // Re-stamp the already-registered core/paragraph (registerCoreBlocks
+    // ran before our filter was attached) so the inserter selector picks
+    // up the inserter=false flag immediately.
+    const coreParagraph = getBlockType(CORE_PARAGRAPH) as
+        | { supports?: Record<string, unknown> }
+        | undefined;
+    if (coreParagraph !== undefined) {
+        const supports = coreParagraph.supports ?? {};
+        coreParagraph.supports = { ...supports, inserter: false };
+    }
 }
 
 const VALID_STATUSES: readonly PostStatus[] = [

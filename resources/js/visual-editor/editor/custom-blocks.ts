@@ -42,6 +42,20 @@ export interface CustomBlockModule {
      * to be loaded.
      */
     readonly icon?: BlockConfiguration['icon'];
+    /**
+     * Optional deprecation chain — forwarded verbatim to
+     * `registerBlockType`. Forked core blocks (`artisanpack/paragraph`,
+     * etc.) must ship the full upstream deprecation array so legacy saved
+     * markup deserializes cleanly.
+     */
+    readonly deprecated?: BlockConfiguration['deprecated'];
+    /**
+     * Optional `{ from, to }` transforms object — forwarded to
+     * `registerBlockType`. Used by forks that want bidirectional
+     * conversions with their upstream namespace (e.g.
+     * `core/paragraph` ↔ `artisanpack/paragraph`).
+     */
+    readonly transforms?: BlockConfiguration['transforms'];
 }
 
 /**
@@ -99,7 +113,7 @@ export function registerCustomBlocks(
             continue;
         }
 
-        const { metadata, edit, save, icon } = module;
+        const { metadata, edit, save, icon, deprecated, transforms } = module;
         const { name: _metadataName, ...rest } = metadata;
 
         const settings: BlockConfiguration = {
@@ -107,6 +121,8 @@ export function registerCustomBlocks(
             edit,
             ...(save !== undefined ? { save } : {}),
             ...(icon !== undefined ? { icon } : {}),
+            ...(deprecated !== undefined ? { deprecated } : {}),
+            ...(transforms !== undefined ? { transforms } : {}),
         } as BlockConfiguration;
 
         try {
@@ -130,6 +146,8 @@ interface GlobbedModule {
     readonly save?: unknown;
     readonly metadata?: unknown;
     readonly icon?: unknown;
+    readonly deprecated?: unknown;
+    readonly transforms?: unknown;
 }
 
 /**
@@ -217,6 +235,8 @@ function resolveCustomBlockModule(module: GlobbedModule): CustomBlockModule | nu
 
     const save = candidate.save;
     const icon = candidate.icon;
+    const deprecated = candidate.deprecated;
+    const transforms = candidate.transforms;
 
     return {
         metadata: metadata as CustomBlockModule['metadata'],
@@ -226,6 +246,12 @@ function resolveCustomBlockModule(module: GlobbedModule): CustomBlockModule | nu
             : {}),
         ...(icon !== undefined
             ? { icon: icon as CustomBlockModule['icon'] }
+            : {}),
+        ...(Array.isArray(deprecated)
+            ? { deprecated: deprecated as CustomBlockModule['deprecated'] }
+            : {}),
+        ...(typeof transforms === 'object' && transforms !== null
+            ? { transforms: transforms as CustomBlockModule['transforms'] }
             : {}),
     };
 }

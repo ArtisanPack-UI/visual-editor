@@ -13,14 +13,34 @@ export function ParagraphBlock({ attributes }: BlockRendererProps): JSX.Element 
     const align = attrString(attributes.align);
     const className = attrString(attributes.className);
     const content = attrString(attributes.content);
+    const dropCap = attrBoolean(attributes.dropCap);
+    const direction = attrString(attributes.direction);
 
+    // Upstream save.js disables the drop-cap when the text alignment
+    // matches the reading-end side — `right` in LTR, `left` in RTL —
+    // or when it's centered. The block's own `direction` attribute
+    // ('ltr' | 'rtl') is the per-block override; absent that we
+    // assume LTR (the renderer has no signal for global page RTL).
+    const isRtl = direction === 'rtl';
+    const dropCapDisabled =
+        align === 'center' || align === (isRtl ? 'left' : 'right');
     const classes = classList([
         'wp-block-paragraph',
         align !== '' ? `has-text-align-${align}` : null,
+        dropCap && !dropCapDisabled ? 'has-drop-cap' : null,
         className,
     ]);
 
-    return <p className={classes} dangerouslySetInnerHTML={{ __html: content }} />;
+    const props: Record<string, unknown> = {
+        className: classes,
+        dangerouslySetInnerHTML: { __html: content },
+    };
+
+    if (direction === 'ltr' || direction === 'rtl') {
+        props.dir = direction;
+    }
+
+    return <p {...props} />;
 }
 
 export function HeadingBlock({ attributes }: BlockRendererProps): JSX.Element {
