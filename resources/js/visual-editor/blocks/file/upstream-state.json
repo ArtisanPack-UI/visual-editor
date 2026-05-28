@@ -1,0 +1,40 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/file",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/file",
+        "pinnedVersion": "9.43.0",
+        "subpath": "file"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js + inspector.js", "status": "adapted", "notes": "TypeScript port. Omits the blob-URL upload path (useUploadMediaFromBlobURL), the clipboard toolbar button (useCopyToClipboard), and the PDF preview ResizableBox + PDF inspector panel — all depend on block-library internals not exposed via the package's exports field. The inspector link-destination/open-in-new-tab/show-download-button ToolsPanel is inlined directly; useToolsPanelDropdownMenuProps and removeAnchorTag are inlined as local helpers." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent to upstream." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "All three deprecation entries (v3, v2, v1) ported verbatim." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream files + cross-media block transforms preserved; added bidirectional core/file ↔ artisanpack/file block transforms." },
+        { "fork": "file.css", "upstream": "style.scss + editor.scss", "status": "adapted", "notes": "Sass @use base-styles/colors inlined as literal #fff (only $white was referenced). Nested rules flattened to plain CSS." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (matches @wordpress/icons file path)." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract; upstream init.js / index.php server-side wiring is intentionally absent." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx omits the upstream blob-URL upload mount-effect (useUploadMediaFromBlobURL). Practical impact: drag-and-dropped files are not eagerly uploaded as soon as they hit the block; the user uploads via MediaPlaceholder or MediaReplaceFlow as usual.",
+        "edit.tsx omits the upstream ClipboardToolbarButton (depends on @wordpress/compose useCopyToClipboard). Practical impact: the 'Copy URL' toolbar button is not present; users copy the file URL via the inspector or the rendered <a href> directly.",
+        "edit.tsx omits the PDF preview ResizableBox and the PDF settings ToolsPanel (show inline embed / height in pixels). The displayPreview and previewHeight attributes are still saved verbatim — only the editor-side preview surface is simplified to a non-resizable rendering.",
+        "edit.tsx inlines the FileBlockInspector ToolsPanel directly and replaces useToolsPanelDropdownMenuProps + removeAnchorTag with local equivalents so the fork doesn't depend on block-library internals not exposed via the package's exports."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I2 media cluster"
+    }
+}
