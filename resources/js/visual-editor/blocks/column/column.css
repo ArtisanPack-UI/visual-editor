@@ -1,0 +1,18 @@
+/*
+ * Column — editor-only styles.
+ *
+ * Upstream `@wordpress/block-library/src/column/` ships no frontend
+ * style.scss — the layout rules for `.wp-block-column` live in
+ * `columns/style.scss` and are vendored alongside columns.css. The
+ * editor-side margin reset from `columns/editor.scss` is duplicated
+ * here so the column block has its own scoped editor stylesheet.
+ */
+
+html :where(.wp-block-column) {
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.block-editor-block-list__block[data-type="artisanpack/column"] {
+    /* editor-only anchor; styling lives in artisanpack/columns. */
+}

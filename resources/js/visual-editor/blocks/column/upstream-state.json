@@ -1,0 +1,41 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/column",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/column",
+        "pinnedVersion": "9.43.0",
+        "subpath": "column"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; parent rewired from core/columns to artisanpack/columns; attributes/supports verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Adds explicit 'wp-block-column' class to useBlockProps so editor matches frontend." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; class list adds 'wp-block-column' explicitly." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Single v1 entry ported verbatim under the artisanpack namespace." },
+        { "fork": "transforms.ts", "upstream": "n/a", "status": "added", "notes": "Upstream ships no column/transforms.js — column is child-only. Added bidirectional core/column ↔ artisanpack/column block transforms so mixed documents survive paste/conversion during the V2 rollout." },
+        { "fork": "column.css", "upstream": "(none — column has no upstream style.scss)", "status": "added", "notes": "Editor-only stylesheet. Duplicates the upstream columns/editor.scss margin reset so the column block has a scoped editor stylesheet; runtime layout still lives in artisanpack/columns columns.css." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (editor doesn't bundle dashicons)." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract. Upstream's PHP-side init wiring is not carried." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "block.json parent rewired from core/columns to artisanpack/columns — required so the fork only nests inside artisanpack/columns.",
+        "edit.tsx + save.tsx add 'wp-block-column' to useBlockProps explicitly; upstream relies on __experimentalSelector to inject it.",
+        "transforms.ts is added in the fork (upstream ships none) to provide bidirectional core/column ↔ artisanpack/column block transforms during the V2 rollout.",
+        "column.css is added in the fork (upstream ships no style.scss for column). Layout rules still live in artisanpack/columns columns.css.",
+        "Native files (edit.native.js, column-preview.native.js, editor.native.scss) are intentionally not ported — desktop web only."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I3 layout cluster"
+    }
+}

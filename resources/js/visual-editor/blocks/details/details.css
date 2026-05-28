@@ -1,0 +1,21 @@
+/*
+ * Details — combined editor + frontend styles.
+ *
+ * Vendored from `@wordpress/block-library/src/details/{style,editor}.scss`
+ * (v9.43.0). Sass converted to plain CSS; `data-type="core/details"`
+ * selectors rewritten to `data-type="artisanpack/details"`.
+ */
+
+/* style.scss */
+.wp-block-details {
+    box-sizing: border-box;
+}
+
+.wp-block-details summary {
+    cursor: pointer;
+}
+
+/* editor.scss */
+.wp-block-details summary div {
+    display: inline;
+}

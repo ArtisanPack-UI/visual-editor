@@ -151,6 +151,19 @@ return [
 		'core/query',
 		'core/post-template',
 		'artisanpack/callout',
+		// I3 (#411) — layout cluster fork. The artisanpack/* equivalents
+		// register alongside their core/* siblings so authors can compare
+		// during the V1 rollout. Cutover (I7) removes the core/* names.
+		'artisanpack/group',
+		'artisanpack/row',
+		'artisanpack/stack',
+		'artisanpack/columns',
+		'artisanpack/column',
+		'artisanpack/buttons',
+		'artisanpack/button',
+		'artisanpack/separator',
+		'artisanpack/spacer',
+		'artisanpack/details',
 	],
 
 	'disabled_blocks' => [

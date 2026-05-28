@@ -1,0 +1,40 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/separator",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/separator",
+        "pinnedVersion": "9.43.0",
+        "subpath": "separator"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports/styles verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Adds explicit 'wp-block-separator' class to useBlockProps so the editor canvas matches frontend independent of __experimentalSelector internals." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; class list adds 'wp-block-separator' explicitly (parity with edit)." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Single v1 entry ported verbatim." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream input/raw transforms preserved (target the new namespace via metadata.name); added bidirectional block transforms for core/separator ↔ artisanpack/separator round-tripping." },
+        { "fork": "use-deprecated-opacity.ts", "upstream": "use-deprecated-opacity.js", "status": "adapted", "notes": "TypeScript port; behavior unchanged." },
+        { "fork": "separator.css", "upstream": "style.scss + editor.scss + theme.scss + deprecated.scss", "status": "adapted", "notes": "Combined SCSS-to-CSS port. data-type selectors rewritten from core/separator to artisanpack/separator." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (editor doesn't bundle dashicons)." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract. Upstream's PHP-side init wiring and example settings are not carried." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx + save.tsx add 'wp-block-separator' to useBlockProps explicitly; upstream relies on __experimentalSelector to inject it.",
+        "transforms.ts adds bidirectional block transforms that don't exist upstream — required to coexist with core/separator during the V2 rollout.",
+        "index.ts replaces upstream's PHP-side init wiring with the visual-editor auto-discovery contract; the `example` settings object isn't carried."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I3 layout cluster"
+    }
+}

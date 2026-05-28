@@ -58,6 +58,13 @@ export interface CustomBlockModule {
      * `core/paragraph` ↔ `artisanpack/paragraph`).
      */
     readonly transforms?: BlockConfiguration['transforms'];
+    /**
+     * Optional array of block variations — forwarded to
+     * `registerBlockType` so the variation picker (e.g. the columns +
+     * group layout placeholders) renders selectable tiles. Phase I3
+     * (#411) added this when forking `core/columns` + `core/group`.
+     */
+    readonly variations?: BlockConfiguration['variations'];
 }
 
 /**
@@ -115,7 +122,7 @@ export function registerCustomBlocks(
             continue;
         }
 
-        const { metadata, edit, save, icon, deprecated, transforms } = module;
+        const { metadata, edit, save, icon, deprecated, transforms, variations } = module;
         const { name: _metadataName, ...rest } = metadata;
 
         const settings: BlockConfiguration = {
@@ -125,6 +132,7 @@ export function registerCustomBlocks(
             ...(icon !== undefined ? { icon } : {}),
             ...(deprecated !== undefined ? { deprecated } : {}),
             ...(transforms !== undefined ? { transforms } : {}),
+            ...(variations !== undefined ? { variations } : {}),
         } as BlockConfiguration;
 
         try {
@@ -246,6 +254,8 @@ function resolveCustomBlockModule(module: GlobbedModule): CustomBlockModule | nu
     const icon = candidate.icon;
     const deprecated = candidate.deprecated;
     const transforms = candidate.transforms;
+    const variations = (candidate as GlobbedModule & { variations?: unknown })
+        .variations;
 
     return {
         metadata: metadata as CustomBlockModule['metadata'],
@@ -261,6 +271,9 @@ function resolveCustomBlockModule(module: GlobbedModule): CustomBlockModule | nu
             : {}),
         ...(typeof transforms === 'object' && transforms !== null
             ? { transforms: transforms as CustomBlockModule['transforms'] }
+            : {}),
+        ...(Array.isArray(variations)
+            ? { variations: variations as CustomBlockModule['variations'] }
             : {}),
     };
 }

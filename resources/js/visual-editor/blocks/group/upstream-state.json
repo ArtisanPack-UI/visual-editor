@@ -1,0 +1,46 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/group",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/group",
+        "pinnedVersion": "9.43.0",
+        "subpath": "group"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Adds explicit 'wp-block-group' class. Upstream's `HTMLElementControl` is reached through `blockEditorPrivateApis` via `unlock`; the fork swaps it for a plain `<SelectControl>` so we don't depend on private APIs. The `<View>` primitive is replaced with a plain `<div>`." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; adds explicit 'wp-block-group' class to useBlockProps.save() for renderer parity." },
+        { "fork": "placeholder.tsx", "upstream": "placeholder.js", "status": "adapted", "notes": "TypeScript port. Variation icons inlined as plain <svg>; only group / group-row / group-stack icons are retained (no `group-grid` since the grid variation is excluded — see variations.ts)." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full upstream chain (5 entries) ported. Type annotations added; logic byte-equivalent. The 4th entry's color: textClass ? undefined : customTextColor branch is preserved as `customTextColor` since textClass is always undefined for that entry's class list (matching the historical 'text color class not applied' bug semantics)." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream multi-block __experimentalConvert preserved (now targets artisanpack/group). Added bidirectional core/group ↔ artisanpack/group block transforms for V2 rollout coexistence." },
+        { "fork": "variations.ts", "upstream": "variations.js", "status": "adapted", "notes": "Ports group / row / stack variations (renamed from upstream 'group-row' / 'group-stack' to bare 'row' / 'stack' since they now live under the artisanpack namespace). Upstream `grid` variation EXCLUDED — grid will ship as a separate artisanpack/grid + artisanpack/grid-item block pair (docs/plans/13-block-fork.md §2.2.1). Icons dropped (variations no longer reference @wordpress/icons)." },
+        { "fork": "group.css", "upstream": "style.scss + editor.scss + theme.scss", "status": "adapted", "notes": "Combined SCSS-to-CSS port. data-type selectors rewritten from core/group to artisanpack/group. base-styles variables inlined to default px values." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (editor doesn't bundle dashicons)." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract. Also exports `variations`. Upstream's PHP-side init wiring and `example` settings are not carried." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx: Replaces upstream's private `HTMLElementControl` (loaded via blockEditorPrivateApis + unlock) with a plain SelectControl. Functionally equivalent UX; avoids private-API coupling.",
+        "edit.tsx: Replaces `@wordpress/primitives` `<View>` with `<div>`.",
+        "edit.tsx + save.tsx add 'wp-block-group' to useBlockProps explicitly; upstream relies on the auto-injected block class.",
+        "transforms.ts adds bidirectional block transforms that don't exist upstream — required to coexist with core/group during the V2 rollout.",
+        "variations.ts EXCLUDES the upstream `grid` variation. Grid will ship as a standalone artisanpack/grid + artisanpack/grid-item block pair per docs/plans/13-block-fork.md §2.2.1. Row + stack are kept as variations of artisanpack/group (NOT as separate blocks) — they share group's save/edit upstream, and the renderer-blade row/stack templates simply @include core/row and core/stack.",
+        "variations.ts: Variation names changed from 'group-row' / 'group-stack' to bare 'row' / 'stack' since they're now namespaced under artisanpack/group. Variation icons (@wordpress/icons imports) are dropped to keep the bundle lean.",
+        "placeholder.tsx: Dropped `group-grid` icon entry since the grid variation is excluded.",
+        "index.ts replaces upstream's PHP-side init wiring with the visual-editor auto-discovery contract; the `example` settings object isn't carried."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I3 layout cluster"
+    }
+}

@@ -1,0 +1,84 @@
+/*
+ * Columns — combined editor + frontend styles.
+ *
+ * Vendored from `@wordpress/block-library/src/columns/{style,editor}.scss`
+ * (v9.43.0). Sass converted to plain CSS; the `$break-medium` breakpoint
+ * is materialized as `782px` (upstream constant).
+ */
+
+/* style.scss */
+.wp-block-columns {
+    display: flex;
+    box-sizing: border-box;
+    flex-wrap: wrap !important;
+    align-items: initial !important;
+}
+
+@media (min-width: 782px) {
+    .wp-block-columns {
+        flex-wrap: nowrap !important;
+    }
+}
+
+.wp-block-columns.are-vertically-aligned-top {
+    align-items: flex-start;
+}
+
+.wp-block-columns.are-vertically-aligned-center {
+    align-items: center;
+}
+
+.wp-block-columns.are-vertically-aligned-bottom {
+    align-items: flex-end;
+}
+
+@media (max-width: 781px) {
+    .wp-block-columns:not(.is-not-stacked-on-mobile) > .wp-block-column {
+        flex-basis: 100% !important;
+    }
+}
+
+@media (min-width: 782px) {
+    .wp-block-columns:not(.is-not-stacked-on-mobile) > .wp-block-column {
+        flex-basis: 0;
+        flex-grow: 1;
+    }
+
+    .wp-block-columns:not(.is-not-stacked-on-mobile)
+        > .wp-block-column[style*="flex-basis"] {
+        flex-grow: 0;
+    }
+}
+
+.wp-block-columns.is-not-stacked-on-mobile {
+    flex-wrap: nowrap !important;
+}
+
+.wp-block-columns.is-not-stacked-on-mobile > .wp-block-column {
+    flex-basis: 0;
+    flex-grow: 1;
+}
+
+.wp-block-columns.is-not-stacked-on-mobile
+    > .wp-block-column[style*="flex-basis"] {
+    flex-grow: 0;
+}
+
+:where(.wp-block-columns) {
+    margin-bottom: 1.75em;
+}
+
+:where(.wp-block-columns.has-background) {
+    padding: 1.25em 2.375em;
+}
+
+/* editor.scss */
+.wp-block-columns :where(.wp-block) {
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.block-editor-block-list__block[data-type="artisanpack/columns"] {
+    /* no-op anchor for editor-only adjustments */
+}

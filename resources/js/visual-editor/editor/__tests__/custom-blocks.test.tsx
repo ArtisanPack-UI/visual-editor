@@ -131,6 +131,12 @@ vi.mock('@wordpress/block-editor', () => ({
     ),
     HeightControl: () => null,
     store: { name: 'core/block-editor' },
+    // I3 layout-cluster forks (spacer, columns) reach for the
+    // `privateApis` lock-and-unlock surface. Stub the unlocked shape
+    // they consume so importing the block doesn't blow up.
+    privateApis: { useSpacingSizes: () => [] },
+    __experimentalUseSpacingSizes: () => [],
+    __experimentalBlockVariationPicker: () => null,
 }));
 
 vi.mock('@wordpress/components', () => ({
