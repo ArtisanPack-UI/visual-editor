@@ -20,7 +20,7 @@
             "status": "adapted",
             "notes": "TypeScript port; upstream `useDeprecatedTextAlign` hook is replaced by the inline migrate-text-align deprecation path so the heading edit doesn't reach into block-library private utilities.",
             "result": "skipped-status",
-            "forkDigest": "5494744dc230"
+            "forkDigest": "b474675f0a2c"
         },
         {
             "fork": "save.tsx",
@@ -28,7 +28,7 @@
             "status": "adapted",
             "notes": "TypeScript port; verbatim semantics.",
             "result": "skipped-status",
-            "forkDigest": "bd1a88dfd5b1"
+            "forkDigest": "0fd6c1d1fe60"
         },
         {
             "fork": "deprecated.tsx",

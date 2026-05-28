@@ -98,4 +98,30 @@ describe('HeadingEdit', () => {
         fireEvent.click(screen.getByRole('textbox', { name: 'heading-rich-text' }));
         expect(setAttributes).toHaveBeenCalledWith({ content: 'changed' });
     });
+
+    it('clamps an out-of-range level (0) up to h1', () => {
+        const setAttributes = vi.fn();
+        render(
+            <HeadingEdit
+                attributes={{ content: 'hi', level: 0 }}
+                setAttributes={setAttributes}
+                clientId="abc"
+            />
+        );
+        const textbox = screen.getByRole('textbox', { name: 'heading-rich-text' });
+        expect(textbox.getAttribute('data-tag')).toBe('h1');
+    });
+
+    it('clamps an out-of-range level (7) down to h6', () => {
+        const setAttributes = vi.fn();
+        render(
+            <HeadingEdit
+                attributes={{ content: 'hi', level: 7 }}
+                setAttributes={setAttributes}
+                clientId="abc"
+            />
+        );
+        const textbox = screen.getByRole('textbox', { name: 'heading-rich-text' });
+        expect(textbox.getAttribute('data-tag')).toBe('h6');
+    });
 });

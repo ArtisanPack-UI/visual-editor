@@ -142,6 +142,42 @@ function getListContentFlat(
     });
 }
 
+/**
+ * Recursively rename a list-item block name across an inner-block tree.
+ *
+ * The `core/list` ↔ `artisanpack/list` round-trip transforms must remap
+ * every `core/list-item` → `artisanpack/list-item` (and vice versa) on
+ * the way through — leaving the children at the old namespace would
+ * mean `artisanpack/list` contains `core/list-item` children, which
+ * violates the block's `allowedBlocks` contract.
+ */
+function remapListItemNames(
+    blocks: Array<{
+        name: string;
+        attributes: Record<string, unknown>;
+        innerBlocks?: unknown[];
+    }>,
+    from: 'core/list-item' | 'artisanpack/list-item',
+    to: 'core/list-item' | 'artisanpack/list-item'
+): Array<{
+    name: string;
+    attributes: Record<string, unknown>;
+    innerBlocks: unknown[];
+}> {
+    return blocks.map((block) => {
+        const childBlocks = (block.innerBlocks ?? []) as Array<{
+            name: string;
+            attributes: Record<string, unknown>;
+            innerBlocks?: unknown[];
+        }>;
+        return {
+            name: block.name === from ? to : block.name,
+            attributes: block.attributes,
+            innerBlocks: remapListItemNames(childBlocks, from, to),
+        };
+    });
+}
+
 const transforms = {
     from: [
         {
@@ -212,7 +248,15 @@ const transforms = {
                     innerBlocks: unknown[];
                 }>
             ) =>
-                createBlock(name, attributes, innerBlocks),
+                createBlock(
+                    name,
+                    attributes,
+                    remapListItemNames(
+                        innerBlocks,
+                        'core/list-item',
+                        'artisanpack/list-item'
+                    )
+                ),
         },
     ],
     to: [
@@ -237,8 +281,21 @@ const transforms = {
             blocks: ['core/list'],
             transform: (
                 attributes: ListAttributes,
-                innerBlocks: Array<unknown>
-            ) => createBlock('core/list', attributes, innerBlocks),
+                innerBlocks: Array<{
+                    name: string;
+                    attributes: Record<string, unknown>;
+                    innerBlocks: unknown[];
+                }>
+            ) =>
+                createBlock(
+                    'core/list',
+                    attributes,
+                    remapListItemNames(
+                        innerBlocks,
+                        'artisanpack/list-item',
+                        'core/list-item'
+                    )
+                ),
         },
     ],
 };

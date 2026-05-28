@@ -36,7 +36,7 @@
             "status": "adapted",
             "notes": "Full 4-entry chain ported (v3 → v0). `migrateToListV2` rewritten to a lightweight DOM parse — upstream uses `rawHandler` which would pull the entire paste pipeline.",
             "result": "skipped-status",
-            "forkDigest": "4f50203b33e2"
+            "forkDigest": "de1dc9a0ceab"
         },
         {
             "fork": "transforms.ts",
@@ -44,7 +44,7 @@
             "status": "extended",
             "notes": "Upstream paragraph/heading/raw/prefix transforms preserved; added bidirectional core/list ↔ artisanpack/list. Raw transform creates artisanpack/list-item inner blocks.",
             "result": "skipped-status",
-            "forkDigest": "273bf647c60a"
+            "forkDigest": "d527a2b8e5d2"
         },
         {
             "fork": "list.css",

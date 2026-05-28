@@ -15,11 +15,23 @@ interface ContentValue {
 }
 
 interface CodeSaveAttributes {
-    readonly content: string | ContentValue;
+    readonly content: string | ContentValue | null | undefined;
 }
 
 interface CodeSaveProps {
     readonly attributes: CodeSaveAttributes;
+}
+
+function resolveContent(
+    content: string | ContentValue | null | undefined
+): string {
+    if (typeof content === 'string') {
+        return content;
+    }
+    // Guard the optional rich-text value: legacy serialized attributes can
+    // arrive null/undefined for empty code blocks; the `toHTMLString` call
+    // chain would otherwise blow up on the first paint.
+    return content?.toHTMLString?.({ preserveWhiteSpace: true }) ?? '';
 }
 
 export default function CodeSave({ attributes }: CodeSaveProps): ReactElement {
@@ -27,13 +39,7 @@ export default function CodeSave({ attributes }: CodeSaveProps): ReactElement {
         <pre {...useBlockProps.save()}>
             <RichText.Content
                 tagName="code"
-                value={escape(
-                    typeof attributes.content === 'string'
-                        ? attributes.content
-                        : attributes.content.toHTMLString?.({
-                              preserveWhiteSpace: true,
-                          }) ?? ''
-                )}
+                value={escape(resolveContent(attributes.content))}
             />
         </pre>
     );

@@ -20,7 +20,7 @@
             "status": "rewritten",
             "notes": "Simplified edit owned by the fork. Ships the empty-table placeholder, RichText cell editing, caption, and the fixed-layout toggle. The heavier toolbar surface (row/col add/delete, cell tag switching, scope/alignment per cell, header/footer toggles) is intentionally deferred to a post-I7 customization phase. The fork keeps a single `<figure>` element across the placeholder → populated transition — swapping it leaves dangling refs in gutenberg's post-insert focus handler. CSS parity comes from the `_shared/fork-class-name-alias.ts` filter that remaps the I1 fork class names back to their `wp-block-{slug}` upstream forms.",
             "result": "skipped-status",
-            "forkDigest": "f5628c85642a"
+            "forkDigest": "a1fe42e92daa"
         },
         {
             "fork": "save.tsx",
@@ -52,7 +52,7 @@
             "status": "adapted",
             "notes": "TypeScript port of `normalizeRowColSpan`.",
             "result": "skipped-status",
-            "forkDigest": "61b2491d8bb6"
+            "forkDigest": "19be89642938"
         },
         {
             "fork": "table.css",

@@ -192,7 +192,9 @@ export default function TableEdit({
                             label={__('Column count')}
                             value={String(initialColumnCount)}
                             onChange={(value) =>
-                                setInitialColumnCount(parseInt(value, 10) || 1)
+                                setInitialColumnCount(
+                                    Math.max(1, parseInt(value, 10) || 1)
+                                )
                             }
                             min={1}
                         />
@@ -201,7 +203,9 @@ export default function TableEdit({
                             label={__('Row count')}
                             value={String(initialRowCount)}
                             onChange={(value) =>
-                                setInitialRowCount(parseInt(value, 10) || 1)
+                                setInitialRowCount(
+                                    Math.max(1, parseInt(value, 10) || 1)
+                                )
                             }
                             min={1}
                         />

@@ -4,7 +4,8 @@
  * Ported from `@wordpress/block-library/src/quote/edit.js` (v9.43.0).
  * Behaviour parity with upstream: inner-block paragraph template, citation
  * RichText, alignment control. The upstream `useMigrateOnLoad` hook is
- * preserved; the deprecation chain mirrors upstream's `migrateToQuoteV2`.
+ * NOT ported here — the deprecation chain handles legacy `value` →
+ * inner-blocks migration via `migrateToQuoteV2` on block load instead.
  */
 
 import type { ReactElement } from 'react';

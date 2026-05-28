@@ -46,7 +46,7 @@ describe('table transforms', () => {
     it('block transform from core/table → artisanpack/table', () => {
         const fromBlock = transforms.from.find(
             (t: { type: string; blocks?: string[] }) =>
-                t.type === 'block' && t.blocks?.[0] === 'core/table'
+                t.type === 'block' && !!t.blocks?.includes('core/table')
         ) as { transform: (a: Record<string, unknown>) => { name: string } };
         expect(fromBlock.transform({}).name).toBe('artisanpack/table');
     });
@@ -54,7 +54,7 @@ describe('table transforms', () => {
     it('block transform to core/table', () => {
         const toBlock = transforms.to.find(
             (t: { type: string; blocks?: string[] }) =>
-                t.type === 'block' && t.blocks?.[0] === 'core/table'
+                t.type === 'block' && !!t.blocks?.includes('core/table')
         ) as { transform: (a: Record<string, unknown>) => { name: string } };
         expect(toBlock.transform({}).name).toBe('core/table');
     });

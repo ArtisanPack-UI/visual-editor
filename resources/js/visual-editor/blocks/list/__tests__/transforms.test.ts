@@ -40,7 +40,7 @@ describe('list transforms', () => {
         expect(result.innerBlocks[0].name).toBe('artisanpack/list-item');
     });
 
-    it('block transform from core/list → artisanpack/list preserves innerBlocks', () => {
+    it('core/list → artisanpack/list remaps core/list-item children to artisanpack/list-item', () => {
         const fromBlock = transforms.from.find(
             (t: { type: string; blocks?: string[] }) =>
                 t.type === 'block' &&
@@ -50,15 +50,70 @@ describe('list transforms', () => {
             transform: (
                 a: Record<string, unknown>,
                 inner: unknown[]
-            ) => { name: string; innerBlocks: unknown[] };
+            ) => {
+                name: string;
+                innerBlocks: Array<{ name: string; innerBlocks: unknown[] }>;
+            };
         };
-        const inner = [{ name: 'core/list-item', attributes: { content: 'x' }, innerBlocks: [] }];
+        const inner = [
+            {
+                name: 'core/list-item',
+                attributes: { content: 'x' },
+                innerBlocks: [
+                    {
+                        name: 'core/list',
+                        attributes: {},
+                        innerBlocks: [
+                            {
+                                name: 'core/list-item',
+                                attributes: { content: 'nested' },
+                                innerBlocks: [],
+                            },
+                        ],
+                    },
+                ],
+            },
+        ];
         const result = fromBlock.transform({ ordered: true }, inner);
         expect(result.name).toBe('artisanpack/list');
-        expect(result.innerBlocks).toEqual(inner);
+        expect(result.innerBlocks[0].name).toBe('artisanpack/list-item');
+        // Nested list-items are remapped too — `core/list` containers stay
+        // because the transform only renames list-items.
+        const nestedList = result.innerBlocks[0].innerBlocks[0] as {
+            name: string;
+            innerBlocks: Array<{ name: string }>;
+        };
+        expect(nestedList.innerBlocks[0].name).toBe('artisanpack/list-item');
     });
 
-    it('block transform to core/list', () => {
+    it('artisanpack/list → core/list remaps artisanpack/list-item children back to core/list-item', () => {
+        const toBlock = transforms.to.find(
+            (t: { type: string; blocks?: string[] }) =>
+                t.type === 'block' &&
+                t.blocks?.length === 1 &&
+                t.blocks[0] === 'core/list'
+        ) as {
+            transform: (
+                a: Record<string, unknown>,
+                inner: unknown[]
+            ) => {
+                name: string;
+                innerBlocks: Array<{ name: string }>;
+            };
+        };
+        const inner = [
+            {
+                name: 'artisanpack/list-item',
+                attributes: { content: 'x' },
+                innerBlocks: [],
+            },
+        ];
+        const result = toBlock.transform({ ordered: true }, inner);
+        expect(result.name).toBe('core/list');
+        expect(result.innerBlocks[0].name).toBe('core/list-item');
+    });
+
+    it('block transform to core/list (smoke)', () => {
         const toBlock = transforms.to.find(
             (t: { type: string; blocks?: string[] }) =>
                 t.type === 'block' && t.blocks?.[0] === 'core/list'

@@ -28,7 +28,7 @@
             "status": "adapted",
             "notes": "TypeScript port; verbatim escape() handling.",
             "result": "skipped-status",
-            "forkDigest": "4bec7abce058"
+            "forkDigest": "40217da11be8"
         },
         {
             "fork": "deprecated.tsx",
@@ -60,7 +60,7 @@
             "status": "adapted",
             "notes": "Three SCSS files combined.",
             "result": "skipped-status",
-            "forkDigest": "607300b27afb"
+            "forkDigest": "01bb17e65907"
         },
         {
             "fork": "inserter-icon.tsx",

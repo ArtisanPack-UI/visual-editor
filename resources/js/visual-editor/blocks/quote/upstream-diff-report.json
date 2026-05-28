@@ -20,7 +20,7 @@
             "status": "adapted",
             "notes": "TypeScript port. Inlines a minimal citation editor using RichText; the upstream Caption utility is not vendored (single-use, post-V2 enhancement target).",
             "result": "skipped-status",
-            "forkDigest": "9a3a5059060c"
+            "forkDigest": "0347c7ebe9a7"
         },
         {
             "fork": "save.tsx",

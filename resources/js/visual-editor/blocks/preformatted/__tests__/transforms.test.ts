@@ -24,13 +24,15 @@ describe('preformatted transforms', () => {
         const fromBlock = transforms.from.find(
             (t: { type: string; blocks?: string[] }) =>
                 t.type === 'block' && t.blocks?.includes('core/paragraph')
-        ) as {
+        );
+        expect(fromBlock).toBeDefined();
+        const typed = fromBlock as {
             transform: (a: Record<string, unknown>) => {
                 name: string;
                 attributes: Record<string, unknown>;
             };
         };
-        const result = fromBlock.transform({ content: 'x', anchor: 'a' });
+        const result = typed.transform({ content: 'x', anchor: 'a' });
         expect(result.name).toBe('artisanpack/preformatted');
         expect(result.attributes).toEqual({ content: 'x', anchor: 'a' });
     });
@@ -41,19 +43,23 @@ describe('preformatted transforms', () => {
                 t.type === 'block' &&
                 t.blocks?.length === 1 &&
                 t.blocks[0] === 'core/preformatted'
-        ) as {
+        );
+        expect(fromBlock).toBeDefined();
+        const typed = fromBlock as {
             transform: (a: Record<string, unknown>) => { name: string };
         };
-        expect(fromBlock.transform({}).name).toBe('artisanpack/preformatted');
+        expect(typed.transform({}).name).toBe('artisanpack/preformatted');
     });
 
     it('block transform to core/preformatted', () => {
         const toBlock = transforms.to.find(
             (t: { type: string; blocks?: string[] }) =>
-                t.type === 'block' && t.blocks?.[0] === 'core/preformatted'
-        ) as {
+                t.type === 'block' && t.blocks?.includes('core/preformatted')
+        );
+        expect(toBlock).toBeDefined();
+        const typed = toBlock as {
             transform: (a: Record<string, unknown>) => { name: string };
         };
-        expect(toBlock.transform({}).name).toBe('core/preformatted');
+        expect(typed.transform({}).name).toBe('core/preformatted');
     });
 });

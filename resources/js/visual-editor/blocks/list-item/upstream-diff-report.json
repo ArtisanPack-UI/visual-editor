@@ -44,7 +44,7 @@
             "status": "extended",
             "notes": "Upstream paragraph transform preserved; added bidirectional core/list-item ↔ artisanpack/list-item.",
             "result": "skipped-status",
-            "forkDigest": "46a23ebb6dec"
+            "forkDigest": "874b4d3ae6f8"
         },
         {
             "fork": "list-item.css",
