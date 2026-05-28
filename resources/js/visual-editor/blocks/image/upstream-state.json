@@ -1,0 +1,52 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/image",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/image",
+        "pinnedVersion": "9.43.0",
+        "subpath": "image"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports/selectors/styles verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Omits the blob-URL upload effect (useUploadMediaFromBlobURL), the gallery-replacement code path for multi-file selection, the link-destination resolution against window.wp.media.view.settings.defaultProps.link, and the duotone/border style hook usage. Render path (figure → Image → maxWidthObserver) preserved." },
+        { "fork": "image-editor.tsx", "upstream": "image.js", "status": "adapted", "notes": "Simplified TypeScript port of upstream image.js (~1300 LOC). Toolbar uses MediaReplaceFlow only; inspector uses ToolsPanel with alt-text + title. Drops upstream's DimensionsTool, ResolutionTool, ImageURLInputUI, ImageEditor (cropper), FocalPointPicker, ResizableBox, lightbox toggle UI, MediaControl, and BlockSettingsMenuControls — all depend on block-library/private-apis internals blocked by the package exports field. The serialized markup is still produced by save.tsx so the divergence is editor-only." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent to upstream including border/shadow/focalPoint serialization." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full v1–v8 deprecation chain ported verbatim with their migrate/isEligible callbacks." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream raw (figure → img) + files + caption-shortcode transforms preserved; added bidirectional core/image ↔ artisanpack/image block transforms." },
+        { "fork": "constants.ts", "upstream": "constants.js", "status": "adapted", "notes": "TypeScript port; values verbatim." },
+        { "fork": "utils.ts", "upstream": "utils.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent." },
+        { "fork": "use-max-width-observer.tsx", "upstream": "use-max-width-observer.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent." },
+        { "fork": "image.css", "upstream": "style.scss + editor.scss + theme.scss", "status": "adapted", "notes": "Sass caption-style() and caption-style-theme() mixins inlined; $grid-unit-20/$border-width/$white literals inlined; lightbox keyframes preserved verbatim; data-type selectors duplicated for both core/image and artisanpack/image." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (matches @wordpress/icons image path)." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract; upstream init.js / index.php / view.js server-side + interactivity wiring is intentionally absent." }
+    ],
+    "vendoredPrimitives": [
+        "constants.ts",
+        "utils.ts",
+        "use-max-width-observer.tsx",
+        "image-editor.tsx"
+    ],
+    "knownDivergences": [
+        "edit.tsx omits the upstream blob-URL upload mount-effect (useUploadMediaFromBlobURL). Practical impact: drag-and-dropped image files are not eagerly uploaded as soon as they hit the block; users upload via MediaPlaceholder or MediaReplaceFlow as usual.",
+        "edit.tsx does not branch on `window.wp.media.view.settings.defaultProps.link` when resolving linkDestination. Newly selected images do not pre-fill `href`; users set it explicitly via the link UI.",
+        "edit.tsx does not auto-convert multi-file drops into a gallery block. Multi-file selection emits a snackbar notice instead.",
+        "image-editor.tsx replaces upstream's shared `Caption` component (from `@wordpress/block-library/src/utils/caption`) with an inline RichText figcaption because the package's `exports` field does not expose utils/caption.",
+        "image-editor.tsx omits `useToolsPanelDropdownMenuProps` (a `utils/hooks` private helper) on its ToolsPanel — defaults are used instead.",
+        "image-editor.tsx omits the upstream toolbar/inspector tools that depend on `block-editor` private APIs (`DimensionsTool`, `ResolutionTool`, `ImageURLInputUI`, `ImageEditor`/cropper, `FocalPointPicker`, `ResizableBox`, `MediaControl`, `BlockSettingsMenuControls`, the lightbox toggle UI). Their corresponding attributes (`width`, `height`, `aspectRatio`, `scale`, `focalPoint`, `sizeSlug`, `linkDestination`, `linkClass`, `linkTarget`, `rel`, `lightbox`) still serialize via save.tsx and round-trip through transforms; consumers can populate them via the block's stored attributes.",
+        "edit.tsx omits the upstream `pickRelevantMediaFiles` size resolution for newly selected media. The fork records the raw `media.url` returned by MediaPlaceholder; consumers wanting size-variant selection should add a sizeSlug control downstream."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I2 media cluster"
+    }
+}
