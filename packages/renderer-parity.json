@@ -68,6 +68,16 @@
         "artisanpack/file",
         "artisanpack/embed",
         "artisanpack/cover",
-        "artisanpack/media-text"
+        "artisanpack/media-text",
+        "artisanpack/group",
+        "artisanpack/row",
+        "artisanpack/stack",
+        "artisanpack/columns",
+        "artisanpack/column",
+        "artisanpack/buttons",
+        "artisanpack/button",
+        "artisanpack/separator",
+        "artisanpack/spacer",
+        "artisanpack/details"
     ]
 }

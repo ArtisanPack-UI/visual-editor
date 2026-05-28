@@ -1,0 +1,41 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/buttons",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/buttons",
+        "pinnedVersion": "9.43.0",
+        "subpath": "buttons"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; allowedBlocks swapped to artisanpack/button so the parent forces its own forked child." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Adds explicit 'wp-block-buttons' class to useBlockProps. Swaps DEFAULT_BLOCK.name + template + allowedBlocks to 'artisanpack/button'. Drops the useSelect(blocksStore) hasButtonVariations branch — directInsert is forced true (we don't ship button variations yet)." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; explicit 'wp-block-buttons' class added for renderer parity." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Both v1 (contentJustification/orientation → layout) and v2 (legacy align center/left/right) entries ported." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream multi-block transforms preserved (now producing artisanpack/button children); the rich-text createElement+innerText flow is simplified to a regex extraction to avoid pulling in @wordpress/rich-text + the private getTransformedAttributes util. Added bidirectional block transforms for core/buttons ↔ artisanpack/buttons round-tripping." },
+        { "fork": "buttons.css", "upstream": "style.scss + editor.scss", "status": "adapted", "notes": "Combined SCSS-to-CSS port. SCSS $blocks-block__margin variable inlined as 0.5em. data-type selectors rewritten." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG (stacked pills) for the inserter." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract. Upstream's PHP-side init wiring is not carried." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "block.json + edit.tsx force allowedBlocks/template/DEFAULT_BLOCK to 'artisanpack/button' instead of 'core/button' — the parent only accepts the forked child so the cluster ships as a coherent unit.",
+        "edit.tsx drops the upstream useSelect hasButtonVariations check and always sets directInsert=true. The fork doesn't register button variations yet.",
+        "transforms.ts simplifies the upstream paragraph→buttons transform (regex-based href/text extraction instead of @wordpress/rich-text + the private utils/get-transformed-attributes helper).",
+        "transforms.ts adds bidirectional block transforms (core/buttons ↔ artisanpack/buttons) that don't exist upstream — required for V2 coexistence.",
+        "index.ts replaces upstream's PHP-side init wiring with the visual-editor auto-discovery contract."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I3 layout cluster"
+    }
+}

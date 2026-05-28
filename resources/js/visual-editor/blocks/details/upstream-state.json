@@ -1,0 +1,42 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/details",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/details",
+        "pinnedVersion": "9.43.0",
+        "subpath": "details"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports/styles verbatim (inner-block + summary attribute schema preserved)." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Adds explicit 'wp-block-details' class to useBlockProps so the editor canvas matches frontend independent of __experimentalSelector internals. Drops the private withIgnoreIMEEvents wrapper from componentsPrivateApis." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; class list adds 'wp-block-details' explicitly (parity with edit). Preserves InnerBlocks.Content rendering." },
+        { "fork": "deprecated.tsx", "upstream": "n/a", "status": "added", "notes": "Upstream ships no deprecated.js; fork exports an empty array from index.ts to preserve the standard contract." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream multi-block conversion preserved (targets the new namespace via metadata.name); added bidirectional block transforms for core/details ↔ artisanpack/details round-tripping including inner blocks." },
+        { "fork": "details.css", "upstream": "style.scss + editor.scss", "status": "adapted", "notes": "Combined SCSS-to-CSS port. No data-type selectors in upstream, but namespace would map to artisanpack/details if added." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG mirroring @wordpress/icons' details icon (editor doesn't bundle dashicons)." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract. Upstream's PHP-side init wiring (index.php) and example settings are not carried." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx + save.tsx add 'wp-block-details' to useBlockProps explicitly; upstream relies on __experimentalSelector to inject it.",
+        "edit.tsx drops the private withIgnoreIMEEvents wrapper from componentsPrivateApis; key handlers run unconditionally. Acceptable since IME composition events do not fire 'Enter' on commit in modern browsers.",
+        "edit.tsx omits useToolsPanelDropdownMenuProps (a private hook from `../utils/hooks`) — the ToolsPanel renders without the dropdown menu props.",
+        "transforms.ts adds bidirectional block transforms that don't exist upstream — required to coexist with core/details during the V2 rollout. Inner blocks are cloned in both directions.",
+        "index.ts replaces upstream's PHP-side init wiring (index.php) with the visual-editor auto-discovery contract; the `example` settings object isn't carried.",
+        "Frontend rendering delegates to the renderer-blade core/details template via the artisanpack/details.blade.php shim — upstream relies on a dynamic block (index.php) which is unused here."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I3 layout cluster"
+    }
+}
