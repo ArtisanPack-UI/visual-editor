@@ -41,6 +41,8 @@ import { useRef, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { link as linkIcon, linkOff as linkOffIcon } from '@wordpress/icons';
 
+import { getUpdatedLinkAttributes } from './get-updated-link-attributes';
+
 import { getWidthClasses } from './utils';
 
 interface ButtonAttributes {
@@ -185,11 +187,15 @@ export default function ButtonEdit({
                                     url?: string;
                                     opensInNewTab?: boolean;
                                 }) => {
+                                    const updated = getUpdatedLinkAttributes({
+                                        rel,
+                                        url: next.url ?? '',
+                                        opensInNewTab: next.opensInNewTab,
+                                    });
                                     setAttributes({
-                                        url: next.url || undefined,
-                                        ...(next.opensInNewTab
-                                            ? { linkTarget: '_blank', rel: 'noreferrer noopener' }
-                                            : { linkTarget: undefined }),
+                                        url: updated.url || undefined,
+                                        linkTarget: updated.linkTarget,
+                                        rel: updated.rel,
                                     } as Partial<ButtonAttributes>);
                                 }}
                                 onRemove={unlinkButton}

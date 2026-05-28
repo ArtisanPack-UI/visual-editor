@@ -19,6 +19,33 @@ const { name } = metadata;
 const COLUMN_BLOCK = 'artisanpack/column';
 const MAXIMUM_SELECTED_BLOCKS = 6;
 
+interface InnerBlock {
+    name?: string;
+    attributes?: Record<string, unknown>;
+    innerBlocks?: InnerBlock[];
+    [key: string]: unknown;
+}
+
+/**
+ * Recursively rename `from` → `to` on every block in the tree. Used when
+ * round-tripping `core/columns` ↔ `artisanpack/columns` so the child
+ * `core/column` blocks come along to the new namespace (and back).
+ */
+function remapBlockNames(
+    blocks: readonly InnerBlock[] | undefined,
+    from: string,
+    to: string
+): InnerBlock[] {
+    if (!Array.isArray(blocks)) {
+        return [];
+    }
+    return blocks.map((block) => ({
+        ...block,
+        name: block.name === from ? to : block.name,
+        innerBlocks: remapBlockNames(block.innerBlocks, from, to),
+    }));
+}
+
 const transforms = {
     from: [
         {
@@ -116,7 +143,11 @@ const transforms = {
             type: 'block',
             blocks: ['core/columns'],
             transform: (attributes: any, innerBlocks: any[]) =>
-                createBlock(name, attributes, innerBlocks),
+                createBlock(
+                    name,
+                    attributes,
+                    remapBlockNames(innerBlocks, 'core/column', COLUMN_BLOCK)
+                ),
         },
     ],
     to: [
@@ -124,7 +155,11 @@ const transforms = {
             type: 'block',
             blocks: ['core/columns'],
             transform: (attributes: any, innerBlocks: any[]) =>
-                createBlock('core/columns', attributes, innerBlocks),
+                createBlock(
+                    'core/columns',
+                    attributes,
+                    remapBlockNames(innerBlocks, COLUMN_BLOCK, 'core/column')
+                ),
         },
     ],
     ungroup: (_attributes: any, innerBlocks: any[]): any[] =>

@@ -106,6 +106,7 @@ export default function DetailsEdit({
                         setAttributes({
                             showContent: false,
                         });
+                        setIsOpen(false);
                     }}
                 >
                     {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
@@ -117,6 +118,7 @@ export default function DetailsEdit({
                             setAttributes({
                                 showContent: false,
                             });
+                            setIsOpen(false);
                         }}
                     >
                         <ToggleControl
@@ -124,11 +126,11 @@ export default function DetailsEdit({
                             __nextHasNoMarginBottom
                             label={__('Open by default')}
                             checked={!!showContent}
-                            onChange={() =>
-                                setAttributes({
-                                    showContent: !showContent,
-                                })
-                            }
+                            onChange={() => {
+                                const next = !showContent;
+                                setAttributes({ showContent: next });
+                                setIsOpen(next);
+                            }}
                         />
                     </ToolsPanelItem>
                 </ToolsPanel>

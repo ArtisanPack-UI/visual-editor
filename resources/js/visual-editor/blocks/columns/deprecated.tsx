@@ -21,7 +21,9 @@ function getDeprecatedLayoutColumn(originalContent: string): number | undefined 
         (getDeprecatedLayoutColumn as any).doc = doc;
     }
     doc.body.innerHTML = originalContent;
-    const firstChild = doc.body.firstChild as HTMLElement | null;
+    // `firstElementChild` skips text nodes (whitespace-prefixed legacy
+    // content) which would otherwise blow up on `classList`.
+    const firstChild = doc.body.firstElementChild as HTMLElement | null;
     if (!firstChild) {
         return undefined;
     }

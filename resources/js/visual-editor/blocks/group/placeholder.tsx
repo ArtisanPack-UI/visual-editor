@@ -89,7 +89,8 @@ export function useShouldShowPlaceHolder({
             !!fontSize ||
             !!textColor ||
             !!style ||
-            usedLayoutType === 'flex'
+            usedLayoutType === 'flex' ||
+            usedLayoutType === 'grid'
         ) {
             setShowPlaceholder(false);
         }

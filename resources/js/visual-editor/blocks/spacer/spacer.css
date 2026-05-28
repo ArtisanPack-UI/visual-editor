@@ -19,10 +19,8 @@
     display: block;
     position: absolute;
     z-index: 1;
-
     width: 100%;
     min-height: 8px;
-
     min-width: 8px;
     height: 100%;
 }

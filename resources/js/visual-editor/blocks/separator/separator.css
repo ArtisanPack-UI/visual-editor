@@ -8,7 +8,7 @@
 
 /* style.scss */
 .wp-block-separator {
-    border-top: 2px solid currentColor;
+    border-top: 2px solid currentcolor;
     border-left: none;
     border-right: none;
     border-bottom: none;
@@ -22,10 +22,10 @@
 
 :root :where(.wp-block-separator.is-style-dots)::before {
     content: "\00b7 \00b7 \00b7";
-    color: currentColor;
+    color: currentcolor;
     font-size: 1.5em;
     letter-spacing: 2em;
-    /*rtl:ignore*/
+    /* rtl:ignore */
     padding-left: 2em;
     font-family: serif;
 }
@@ -44,7 +44,7 @@
 /* theme.scss */
 .wp-block-separator {
     border: none;
-    border-bottom: 2px solid currentColor;
+    border-bottom: 2px solid currentcolor;
     margin-left: auto;
     margin-right: auto;
 }
