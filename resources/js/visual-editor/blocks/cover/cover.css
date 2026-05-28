@@ -430,3 +430,25 @@ section.wp-block-cover-image > h2,
 .color-block-support-panel__inner-wrapper > :not(.block-editor-tools-panel-color-gradient-settings__item) {
     margin-top: 24px;
 }
+
+/*
+ * --------------------------------------------------------------------
+ * Layout-flex baseline fallback for cover (parity with gallery).
+ *
+ * The `.wp-block-cover` rule earlier in this file already sets
+ * `display: flex`, but the upstream `useLayoutStyles` / `WP_Block_Supports_Layout`
+ * also emit `flex-wrap: wrap` + child-margin reset for any block with
+ * `supports.layout.default.type = "flex"`. Cover's block.json declares
+ * a flex layout but our ThemeJsonTokensCompiler doesn't yet emit those
+ * dynamic rules — so we ship them statically here so `content-position`
+ * actually moves the inner container.
+ */
+
+.wp-block-cover.is-layout-flex {
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+.wp-block-cover.is-layout-flex > :is(*, div) {
+    margin: 0;
+}
