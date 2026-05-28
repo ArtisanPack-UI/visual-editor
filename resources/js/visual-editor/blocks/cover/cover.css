@@ -134,6 +134,16 @@
 .wp-block-cover-image .wp-block-cover__inner-container,
 .wp-block-cover .wp-block-cover__inner-container {
     position: relative;
+    /*
+     * Sit above the overlay span (`__background`) and any media
+     * background (`__image-background` / `__video-background`), both
+     * of which set `z-index: 1` further down. Without this rule the
+     * inner container stays at the auto stack position and clicks on
+     * inner blocks (paragraph, heading, etc.) are absorbed by the
+     * overlay sitting on top — the visual-editor symptom is having
+     * to navigate the layers panel to select the inner paragraph.
+     */
+    z-index: 2;
     width: 100%;
     color: inherit;
 }
