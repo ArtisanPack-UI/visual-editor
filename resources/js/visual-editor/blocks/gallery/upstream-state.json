@@ -16,7 +16,7 @@
         "added": "file unique to the fork (no upstream)"
     },
     "files": [
-        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports/providesContext/allowedBlocks verbatim. `allowedBlocks` still lists `core/image` because inner image blocks remain core during Phase I2 — the image fork lands separately and will coexist via transforms." },
+        { "fork": "block.json", "upstream": "block.json", "status": "extended", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports verbatim. `allowedBlocks` still lists `core/image` because inner image blocks remain core during Phase I2 — the image fork lands separately and will coexist via transforms. `providesContext` removed (see knownDivergences) so inner `core/image` blocks render their full inspector instead of the gallery-suppressed subset upstream ships." },
         { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port of the upstream `GalleryEdit`. The shared `Caption` component from `block-library/src/utils/caption` is replaced by an inline `RichText` figcaption; `useToolsPanelDropdownMenuProps` is inlined from `block-library/src/utils/hooks` since neither is reachable via the package's `exports` field. Native (`Platform.isNative`) branches are dropped — this fork is web-only." },
         { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent to upstream." },
         { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "All seven deprecation entries (v1–v7) ported verbatim, including the `getHrefAndDestination`, `getImageBlock`, and `runV2Migration` helpers used by their `migrate` callbacks." },
@@ -35,6 +35,7 @@
     ],
     "vendoredPrimitives": [],
     "knownDivergences": [
+        "block.json drops the upstream `providesContext` block (`allowResize` / `imageCrop` / `fixedHeight` / `navigationButtonType`). Upstream uses these to suppress portions of the inner `core/image` block's inspector (resize handles, aspect-ratio / size / link controls) so every gallery image shares uniform cropping. The fork keeps those attributes on the gallery itself but no longer forwards them as context, so an image inside an `artisanpack/gallery` shows its full inspector. Practical impact: per-image aspect-ratio / link / size controls remain available inside a gallery; gallery-uniform cropping driven by the `imageCrop` toggle no longer suppresses inner-image overrides (the user can opt out per image).",
         "edit.tsx replaces the shared `Caption` component (block-library/src/utils/caption) with an inline `RichText` figcaption. Practical impact: the toolbar caption-toggle affordance shipped by `Caption` is replaced by an always-rendered figcaption when the block is selected or the caption is non-empty.",
         "edit.tsx inlines `useToolsPanelDropdownMenuProps` from block-library/src/utils/hooks. Practical impact: behavioural parity, but updates to upstream's offset must be back-ported manually.",
         "edit.tsx drops the upstream `Platform.isNative` branches — the fork is web-only.",

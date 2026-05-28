@@ -27,6 +27,7 @@
 import { addFilter } from '@wordpress/hooks';
 
 const I1_FORK_SLUGS: ReadonlyArray<string> = [
+    // I1 content cluster
     'heading',
     'list',
     'list-item',
@@ -36,6 +37,15 @@ const I1_FORK_SLUGS: ReadonlyArray<string> = [
     'pullquote',
     'verse',
     'table',
+    // I2 media cluster
+    'image',
+    'gallery',
+    'video',
+    'audio',
+    'file',
+    'embed',
+    'cover',
+    'media-text',
 ];
 
 const FORK_NAMESPACE_PREFIX = 'artisanpack/';

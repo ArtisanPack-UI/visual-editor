@@ -115,12 +115,6 @@
             "default": "auto"
         }
     },
-    "providesContext": {
-        "allowResize": "allowResize",
-        "imageCrop": "imageCrop",
-        "fixedHeight": "fixedHeight",
-        "navigationButtonType": "navigationButtonType"
-    },
     "supports": {
         "anchor": true,
         "align": true,
