@@ -1,0 +1,82 @@
+{
+    "block": "code",
+    "status": "in-sync",
+    "upstream": {
+        "pinnedVersion": "9.43.0",
+        "subpath": "code"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped.",
+            "result": "skipped-status",
+            "forkDigest": "71769a7d763e"
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "adapted",
+            "notes": "TypeScript port.",
+            "result": "skipped-status",
+            "forkDigest": "9df372547e5f"
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "save.js",
+            "status": "adapted",
+            "notes": "TypeScript port; verbatim escape() handling.",
+            "result": "skipped-status",
+            "forkDigest": "4bec7abce058"
+        },
+        {
+            "fork": "deprecated.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "No upstream deprecation chain; empty array preserves the file shape across forks.",
+            "result": "skipped-status",
+            "forkDigest": "d72b88a6dc74"
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "transforms.js",
+            "status": "extended",
+            "notes": "Upstream raw/input/block transforms preserved; added bidirectional core/code ↔ artisanpack/code + accepts artisanpack/paragraph.",
+            "result": "skipped-status",
+            "forkDigest": "e6f0a721ae1b"
+        },
+        {
+            "fork": "utils.ts",
+            "upstream": "utils.js",
+            "status": "adapted",
+            "notes": "TypeScript port; dropped @wordpress/compose `pipe` dependency in favor of direct composition.",
+            "result": "skipped-status",
+            "forkDigest": "becdd7541046"
+        },
+        {
+            "fork": "code.css",
+            "upstream": "style.scss + theme.scss + editor.scss",
+            "status": "adapted",
+            "notes": "Three SCSS files combined.",
+            "result": "skipped-status",
+            "forkDigest": "607300b27afb"
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG.",
+            "result": "skipped-status",
+            "forkDigest": "26509e754542"
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract.",
+            "result": "skipped-status",
+            "forkDigest": "b67345f8aad6"
+        }
+    ]
+}

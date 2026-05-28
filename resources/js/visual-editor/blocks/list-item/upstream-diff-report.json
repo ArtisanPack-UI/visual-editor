@@ -1,0 +1,74 @@
+{
+    "block": "list-item",
+    "status": "in-sync",
+    "upstream": {
+        "pinnedVersion": "9.43.0",
+        "subpath": "list-item"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain + parent + allowedBlocks updated to artisanpack/* names.",
+            "result": "skipped-status",
+            "forkDigest": "3c945bc637f2"
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Simplified edit. Upstream's `hooks.js` ships `useEnter`, `useSpace`, `useIndentListItem`, `useOutdentListItem`, `useMerge` — all reach into block-editor private dispatch surface for nested-list keyboard navigation. Deferred to post-I7. RichText editing and inner-block nesting still work.",
+            "result": "skipped-status",
+            "forkDigest": "3d1af5528bd3"
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "save.js",
+            "status": "adapted",
+            "notes": "TypeScript port; verbatim save shape.",
+            "result": "skipped-status",
+            "forkDigest": "65c263caeb7f"
+        },
+        {
+            "fork": "deprecated.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "No upstream deprecation chain; empty array preserves the file shape.",
+            "result": "skipped-status",
+            "forkDigest": "a9fcc4fcd2b7"
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "transforms.js",
+            "status": "extended",
+            "notes": "Upstream paragraph transform preserved; added bidirectional core/list-item ↔ artisanpack/list-item.",
+            "result": "skipped-status",
+            "forkDigest": "46a23ebb6dec"
+        },
+        {
+            "fork": "list-item.css",
+            "upstream": "n/a (only style.native.scss)",
+            "status": "added",
+            "notes": "Empty stylesheet; upstream ships only a native-mobile style.",
+            "result": "skipped-status",
+            "forkDigest": "3874eddfb79a"
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG.",
+            "result": "skipped-status",
+            "forkDigest": "f36c8e7cd420"
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Auto-discovery contract.",
+            "result": "skipped-status",
+            "forkDigest": "8dff279ef478"
+        }
+    ]
+}

@@ -1,0 +1,74 @@
+{
+    "block": "verse",
+    "status": "in-sync",
+    "upstream": {
+        "pinnedVersion": "9.43.0",
+        "subpath": "verse"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped.",
+            "result": "skipped-status",
+            "forkDigest": "84a267f33923"
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "adapted",
+            "notes": "TypeScript port. `useDeprecatedTextAlign` not vendored; deprecation chain handles legacy `textAlign`.",
+            "result": "skipped-status",
+            "forkDigest": "c7982858f0dd"
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "save.js",
+            "status": "adapted",
+            "notes": "TypeScript port.",
+            "result": "skipped-status",
+            "forkDigest": "48c922f51bb3"
+        },
+        {
+            "fork": "deprecated.tsx",
+            "upstream": "deprecated.js",
+            "status": "adapted",
+            "notes": "Full 3-entry chain ported verbatim (v3 → v1). Imports `migrate-text-align` and `migrate-font-family` from blocks/_shared.",
+            "result": "skipped-status",
+            "forkDigest": "39f256eb7bd4"
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "transforms.js",
+            "status": "extended",
+            "notes": "Upstream paragraph transforms preserved; added bidirectional core/verse ↔ artisanpack/verse and accepts artisanpack/paragraph.",
+            "result": "skipped-status",
+            "forkDigest": "f803527d2f74"
+        },
+        {
+            "fork": "verse.css",
+            "upstream": "style.scss",
+            "status": "adapted",
+            "notes": "Sass nesting flattened; no variables.",
+            "result": "skipped-status",
+            "forkDigest": "55f946331b7e"
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG.",
+            "result": "skipped-status",
+            "forkDigest": "6591e6e20d15"
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Auto-discovery contract.",
+            "result": "skipped-status",
+            "forkDigest": "8d381252ee3a"
+        }
+    ]
+}

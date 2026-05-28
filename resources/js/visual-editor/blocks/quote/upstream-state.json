@@ -1,0 +1,37 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/quote",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/quote",
+        "pinnedVersion": "9.43.0",
+        "subpath": "quote"
+    },
+    "forkedAt": "2026-05-27",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Inlines a minimal citation editor using RichText; the upstream Caption utility is not vendored (single-use, post-V2 enhancement target)." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; verbatim save shape." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full 5-entry chain ported verbatim (v4 → v0). `migrateToQuoteV2` exported for the edit-side hook." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream raw/prefix/multi-block transforms preserved; added bidirectional block transforms for core/quote ↔ artisanpack/quote and accepts artisanpack/* peers (verse, pullquote, paragraph, heading, list)." },
+        { "fork": "quote.css", "upstream": "style.scss", "status": "adapted", "notes": "Sass nesting flattened." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx omits the upstream `useMigrateOnLoad` hook + Caption utility. The deprecation chain still handles legacy `value`→inner-blocks migration via `migrateToQuoteV2` on block load."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-27",
+        "reviewer": "I1 content cluster"
+    }
+}

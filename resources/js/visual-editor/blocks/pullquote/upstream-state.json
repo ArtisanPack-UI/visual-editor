@@ -1,0 +1,40 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/pullquote",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/pullquote",
+        "pinnedVersion": "9.43.0",
+        "subpath": "pullquote"
+    },
+    "forkedAt": "2026-05-27",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Figure/BlockQuote string aliases inlined (no separate files)." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full 6-entry chain ported (v5 → v0). v2.save omits the named-color → hex lookup that upstream did via `select(blockEditorStore)` — calling a store inside save() is impure. Migration semantics preserved." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream paragraph/heading transforms preserved; added bidirectional core/pullquote ↔ artisanpack/pullquote and accepts artisanpack/paragraph + artisanpack/heading." },
+        { "fork": "shared.ts", "upstream": "shared.js", "status": "adapted", "notes": "TypeScript port of a single constant. Logically equivalent — upstream uses a template literal, the fork uses a single-quoted string." },
+        { "fork": "pullquote.css", "upstream": "style.scss", "status": "adapted", "notes": "Sass `$content-width * 0.5` resolved inline to 350px (Gutenberg's default content-width is 700)." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Auto-discovery contract." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "deprecated.tsx v2.save drops the upstream `select(blockEditorStore).getSettings().colors` named-color lookup. Legacy pullquote blocks persisted with default style + a named `mainColor` (no `customMainColor`) may not validate against v2's save shape and will fall through to v1 or get re-serialized as the current shape on first edit.",
+        "edit.tsx inlines Figure ('figure') and BlockQuote ('blockquote') as direct JSX rather than importing the single-line string-alias files from upstream.",
+        "transforms.ts adds bidirectional block transforms with core/pullquote."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-27",
+        "reviewer": "I1 content cluster"
+    }
+}

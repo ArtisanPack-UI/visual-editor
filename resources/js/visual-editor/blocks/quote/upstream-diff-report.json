@@ -1,0 +1,74 @@
+{
+    "block": "quote",
+    "status": "in-sync",
+    "upstream": {
+        "pinnedVersion": "9.43.0",
+        "subpath": "quote"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to artisanpack namespace.",
+            "result": "skipped-status",
+            "forkDigest": "77137856d4c1"
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "adapted",
+            "notes": "TypeScript port. Inlines a minimal citation editor using RichText; the upstream Caption utility is not vendored (single-use, post-V2 enhancement target).",
+            "result": "skipped-status",
+            "forkDigest": "9a3a5059060c"
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "save.js",
+            "status": "adapted",
+            "notes": "TypeScript port; verbatim save shape.",
+            "result": "skipped-status",
+            "forkDigest": "23f4d5382bb2"
+        },
+        {
+            "fork": "deprecated.tsx",
+            "upstream": "deprecated.js",
+            "status": "adapted",
+            "notes": "Full 5-entry chain ported verbatim (v4 → v0). `migrateToQuoteV2` exported for the edit-side hook.",
+            "result": "skipped-status",
+            "forkDigest": "880320e205b2"
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "transforms.js",
+            "status": "extended",
+            "notes": "Upstream raw/prefix/multi-block transforms preserved; added bidirectional block transforms for core/quote ↔ artisanpack/quote and accepts artisanpack/* peers (verse, pullquote, paragraph, heading, list).",
+            "result": "skipped-status",
+            "forkDigest": "7ab5feb357e9"
+        },
+        {
+            "fork": "quote.css",
+            "upstream": "style.scss",
+            "status": "adapted",
+            "notes": "Sass nesting flattened.",
+            "result": "skipped-status",
+            "forkDigest": "b6cb83b46ccb"
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG for the inserter.",
+            "result": "skipped-status",
+            "forkDigest": "bdd1599ebeaf"
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract.",
+            "result": "skipped-status",
+            "forkDigest": "dbf9d0c4e608"
+        }
+    ]
+}

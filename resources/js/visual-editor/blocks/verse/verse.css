@@ -1,0 +1,17 @@
+/*
+ * Verse — frontend styles.
+ *
+ * Ported from `@wordpress/block-library/src/verse/style.scss` (v9.43.0).
+ */
+
+pre.wp-block-verse {
+    box-sizing: border-box;
+    overflow: auto;
+    white-space: pre-wrap;
+    min-width: 1em;
+    word-break: break-word;
+}
+
+:where(pre.wp-block-verse) {
+    font-family: inherit;
+}
