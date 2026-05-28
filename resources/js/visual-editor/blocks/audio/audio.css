@@ -1,0 +1,45 @@
+/**
+ * Audio — combined editor + frontend styles.
+ *
+ * Ported from `@wordpress/block-library/src/audio/style.scss` and
+ * `editor.scss` (v9.43.0). The Sass `caption-style()` mixin from
+ * `@wordpress/base-styles/mixins` is inlined as plain CSS (font-size,
+ * margin-top, text-align) so the fork does not depend on the base-styles
+ * package at runtime.
+ */
+
+.wp-block-audio {
+    box-sizing: border-box;
+}
+
+.wp-block-audio :where(figcaption) {
+    margin-top: 0.5em;
+    margin-bottom: 1em;
+    color: currentColor;
+    font-size: 13px;
+    text-align: center;
+}
+
+.wp-block-audio audio {
+    width: 100%;
+    min-width: 300px;
+}
+
+/* Editor-only affordances. */
+.wp-block-audio {
+    margin-left: 0;
+    margin-right: 0;
+    position: relative;
+}
+
+.wp-block-audio.is-transient audio {
+    opacity: 0.3;
+}
+
+.wp-block-audio .components-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: -9px;
+    margin-left: -9px;
+}
