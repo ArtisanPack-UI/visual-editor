@@ -196,7 +196,7 @@ figure.wp-block-gallery.has-nested-images {
 .blocks-gallery-caption {
     margin-top: 0.5em;
     margin-bottom: 1em;
-    color: currentColor;
+    color: currentcolor;
     font-size: 13px;
     text-align: center;
 }

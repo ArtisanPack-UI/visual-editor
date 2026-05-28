@@ -50,7 +50,7 @@
 .wp-block-embed :where(figcaption) {
     margin-top: 0.5em;
     margin-bottom: 1em;
-    color: currentColor;
+    color: currentcolor;
     font-size: 13px;
     text-align: center;
 }
@@ -128,7 +128,8 @@
 
 /* Stops long URLs from breaking out of the no preview available screen. */
 .wp-block-embed .components-placeholder__error {
-    word-break: break-word;
+    overflow-wrap: anywhere;
+    word-break: normal;
 }
 
 .wp-block-post-content .wp-block-embed__learn-more a {

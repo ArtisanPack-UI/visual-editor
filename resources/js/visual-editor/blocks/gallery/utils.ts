@@ -130,6 +130,19 @@ export function getUpdatedLinkTargetSettings(
     let updatedRel: string | undefined;
     if (!linkTarget && !rel) {
         updatedRel = undefined;
+    } else if (linkTarget) {
+        // When the link opens in a new tab, ensure the protective
+        // `noopener noreferrer` tokens are present (and de-duplicated)
+        // so the opener can't access `window.opener` and the referrer
+        // isn't leaked. Start from whatever `removeNewTabRel` returns
+        // (so we don't double up if the rel already carried them).
+        const stripped = removeNewTabRel(rel);
+        const tokens = new Set(
+            (stripped ?? '').split(/\s+/).filter(Boolean)
+        );
+        tokens.add('noopener');
+        tokens.add('noreferrer');
+        updatedRel = Array.from(tokens).join(' ');
     } else {
         updatedRel = removeNewTabRel(rel);
     }

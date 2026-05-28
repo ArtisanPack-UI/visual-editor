@@ -39,6 +39,23 @@ interface EmbedPreviewProps {
     readonly label: string;
 }
 
+/**
+ * Only allow `http:` and `https:` URLs to bind to an editor anchor — keeps
+ * the placeholder error link from rendering an unsafe scheme (e.g.
+ * `javascript:`) when the user pasted an arbitrary string.
+ */
+function safeHttpUrl(value: unknown): boolean {
+    if (typeof value !== 'string' || value === '') {
+        return false;
+    }
+    try {
+        const parsed = new URL(value);
+        return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+    } catch {
+        return false;
+    }
+}
+
 export default function EmbedPreview({
     preview,
     previewable,
@@ -128,7 +145,11 @@ export default function EmbedPreview({
                     label={label}
                 >
                     <p className="components-placeholder__error">
-                        <a href={url}>{url}</a>
+                        {safeHttpUrl(url) ? (
+                            <a href={url}>{url}</a>
+                        ) : (
+                            url
+                        )}
                     </p>
                     <p className="components-placeholder__error">
                         {sprintf(

@@ -36,6 +36,12 @@ export default function WpEmbedPreview({
     html,
 }: WpEmbedPreviewProps): ReactElement {
     const ref = useRef<HTMLIFrameElement | null>(null);
+    // Keep the current data-secret in a ref so the resize listener
+    // (registered once on mount) reads the latest secret instead of
+    // the one captured at registration time — the iframe's html /
+    // secret rotates per oEmbed refresh.
+    const secretRef = useRef(props['data-secret']);
+    secretRef.current = props['data-secret'];
     const props = useMemo<IframeProps>(() => {
         const doc = new window.DOMParser().parseFromString(html, 'text/html');
         const iframe = doc.querySelector('iframe');
@@ -70,7 +76,7 @@ export default function WpEmbedPreview({
             if (
                 !ref.current ||
                 message !== 'height' ||
-                secret !== props['data-secret']
+                secret !== secretRef.current
             ) {
                 return;
             }

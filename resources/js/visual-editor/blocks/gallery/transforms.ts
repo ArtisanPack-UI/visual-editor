@@ -136,8 +136,12 @@ function updateThirdPartyTransformFromGallery(
             })
         );
         const ids = images.map(({ id }) => id);
-        galleryBlock.attributes.images = images;
-        galleryBlock.attributes.ids = ids;
+        // The transform filter returns `toBlock` — the legacy
+        // images/ids payload must land on it, not on the source
+        // `galleryBlock`, or third-party targets observing this
+        // filter never see the legacy shape.
+        toBlock.attributes.images = images;
+        toBlock.attributes.ids = ids;
     }
 
     return toBlock;

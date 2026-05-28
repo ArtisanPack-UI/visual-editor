@@ -296,10 +296,7 @@ function CoverEdit({
             averageBackgroundColor
         );
 
-        if (
-            backgroundType === IMAGE_BACKGROUND_TYPE &&
-            mediaAttributes?.id
-        ) {
+        if (isImage && mediaAttributes?.id) {
             const { imageDefaultSize } = getSettings() as {
                 imageDefaultSize?: string;
             };

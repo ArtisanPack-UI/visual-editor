@@ -65,19 +65,19 @@ const transforms = {
                     if (file.type.startsWith('video/')) {
                         blocks.push(
                             createBlock('core/video', {
-                                blob: createBlobURL(file),
+                                blob: blobURL,
                             })
                         );
                     } else if (file.type.startsWith('image/')) {
                         blocks.push(
                             createBlock('core/image', {
-                                blob: createBlobURL(file),
+                                blob: blobURL,
                             })
                         );
                     } else if (file.type.startsWith('audio/')) {
                         blocks.push(
                             createBlock('core/audio', {
-                                blob: createBlobURL(file),
+                                blob: blobURL,
                             })
                         );
                     } else {

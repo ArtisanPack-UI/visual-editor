@@ -173,6 +173,7 @@ function ImageEdit({
             id: media.id,
             alt: media.alt,
             caption: media.caption,
+            title: media.title,
             blob: undefined,
         };
 

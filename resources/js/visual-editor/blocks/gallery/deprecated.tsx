@@ -781,12 +781,13 @@ const v2 = {
             images.length > 0 &&
             ((!ids && !!images) ||
                 (!!ids && !!images && ids.length !== images.length) ||
-                images.some((id, index) => {
-                    if (!id && ids && ids[index] !== null) {
+                images.some((image, index) => {
+                    const imageId = (image as { id?: number | string }).id;
+                    if (!imageId && ids && ids[index] !== null) {
                         return true;
                     }
                     return (
-                        parseInt(String(id), 10) !==
+                        parseInt(String(imageId), 10) !==
                         (ids ? ids[index] : undefined)
                     );
                 }))
