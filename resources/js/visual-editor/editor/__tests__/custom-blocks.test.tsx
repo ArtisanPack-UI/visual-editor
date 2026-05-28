@@ -71,6 +71,66 @@ vi.mock('@wordpress/block-editor', () => ({
         (props?: Record<string, unknown>) => ({ ...props }),
         { save: (props?: Record<string, unknown>) => ({ ...props }) }
     ),
+    // I2 media-cluster forks (cover) use these block-editor HOCs at module load.
+    // Provide minimal stubs so the discovery test can import the block index.
+    withColors:
+        (..._args: unknown[]) =>
+        (Component: unknown) =>
+            Component,
+    useSettings: () => [undefined],
+    useBlockEditingMode: () => 'default',
+    BlockControls: ({ children }: { children: React.ReactNode }) => (
+        <div data-testid="block-controls">{children}</div>
+    ),
+    BlockIcon: () => null,
+    MediaPlaceholder: () => null,
+    MediaReplaceFlow: () => null,
+    MediaUpload: () => null,
+    MediaUploadCheck: ({ children }: { children: React.ReactNode }) => (
+        <>{children}</>
+    ),
+    BlockVerticalAlignmentToolbar: () => null,
+    InnerBlocks: Object.assign(() => null, {
+        Content: () => null,
+        ButtonBlockAppender: () => null,
+        DefaultBlockAppender: () => null,
+    }),
+    ColorPalette: () => null,
+    ContrastChecker: () => null,
+    PanelColorSettings: ({ children }: { children?: React.ReactNode }) => (
+        <>{children}</>
+    ),
+    URLInput: () => null,
+    URLPopover: () => null,
+    AlignmentControl: () => null,
+    BlockAlignmentControl: () => null,
+    __experimentalImageURLInputUI: () => null,
+    __experimentalImageSizeControl: () => null,
+    __experimentalGetElementClassName: (name: string) =>
+        `wp-element-${name}`,
+    __experimentalGetBorderClassesAndStyles: () => ({ className: '', style: {} }),
+    __experimentalGetShadowClassesAndStyles: () => ({ className: '', style: {} }),
+    __experimentalUseBorderProps: () => ({ className: '', style: {} }),
+    __experimentalUseColorProps: () => ({ className: '', style: {} }),
+    __experimentalUseGradient: () => ({
+        gradientClass: undefined,
+        gradientValue: undefined,
+        setGradient: () => {},
+    }),
+    __experimentalGetGradientClass: () => '',
+    __experimentalGetGradientObjectByGradientValue: () => undefined,
+    __experimentalPanelColorGradientSettings: () => null,
+    __experimentalColorGradientSettingsDropdown: () => null,
+    __experimentalUseMultipleOriginColorsAndGradients: () => ({
+        colors: [],
+        gradients: [],
+    }),
+    __experimentalLinkControl: () => null,
+    BlockControlsBlock: ({ children }: { children: React.ReactNode }) => (
+        <>{children}</>
+    ),
+    HeightControl: () => null,
+    store: { name: 'core/block-editor' },
 }));
 
 vi.mock('@wordpress/components', () => ({
@@ -115,6 +175,14 @@ vi.mock('@wordpress/components', () => ({
 
 vi.mock('@wordpress/i18n', () => ({
     __: (text: string) => text,
+    _x: (text: string) => text,
+    _n: (single: string, plural: string, n: number) => (n === 1 ? single : plural),
+    _nx: (single: string, plural: string, n: number) => (n === 1 ? single : plural),
+    sprintf: (format: string, ...args: unknown[]) => {
+        let i = 0;
+        return format.replace(/%[sdif]/g, () => String(args[i++] ?? ''));
+    },
+    isRTL: () => false,
 }));
 
 import {

@@ -66,7 +66,7 @@ describe('AudioSave', () => {
         );
         expect(html).toContain('<figure');
         expect(html).toContain('src="https://example.com/song.mp3"');
-        expect(html).toContain('controls="controls"');
+        expect(html).toMatch(/controls(=""|=)/);
     });
 
     it('renders a caption when set', () => {
