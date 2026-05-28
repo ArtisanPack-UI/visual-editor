@@ -1,0 +1,74 @@
+{
+    "block": "preformatted",
+    "status": "in-sync",
+    "upstream": {
+        "pinnedVersion": "9.43.0",
+        "subpath": "preformatted"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped.",
+            "result": "skipped-status",
+            "forkDigest": "466f47c6524e"
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "adapted",
+            "notes": "TypeScript port; semantics verbatim.",
+            "result": "skipped-status",
+            "forkDigest": "1de53881dfa8"
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "save.js",
+            "status": "adapted",
+            "notes": "TypeScript port; semantics verbatim.",
+            "result": "skipped-status",
+            "forkDigest": "9d92de9b278f"
+        },
+        {
+            "fork": "deprecated.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "No upstream deprecation chain; empty array preserves the file shape.",
+            "result": "skipped-status",
+            "forkDigest": "84e634d2530d"
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "transforms.js",
+            "status": "extended",
+            "notes": "Upstream raw/block transforms preserved; added bidirectional core/preformatted ↔ artisanpack/preformatted and accepts artisanpack/code, artisanpack/paragraph, artisanpack/verse as from-sources.",
+            "result": "skipped-status",
+            "forkDigest": "ef4d93815ece"
+        },
+        {
+            "fork": "preformatted.css",
+            "upstream": "style.scss",
+            "status": "adapted",
+            "notes": "Sass variables resolved inline.",
+            "result": "skipped-status",
+            "forkDigest": "2c4f11fb226e"
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG.",
+            "result": "skipped-status",
+            "forkDigest": "036764c60981"
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Auto-discovery contract.",
+            "result": "skipped-status",
+            "forkDigest": "1ce5fac20a16"
+        }
+    ]
+}

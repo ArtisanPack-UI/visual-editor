@@ -1,0 +1,16 @@
+/*
+ * Preformatted — frontend styles.
+ *
+ * Ported from `@wordpress/block-library/src/preformatted/style.scss`
+ * (v9.43.0). Sass variable `$block-bg-padding--v / --h` resolved inline
+ * to 1.25em / 2.375em (matching paragraph and heading forks).
+ */
+
+.wp-block-preformatted {
+    box-sizing: border-box;
+    white-space: pre-wrap;
+}
+
+:where(.wp-block-preformatted.has-background) {
+    padding: 1.25em 2.375em;
+}

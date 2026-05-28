@@ -1,0 +1,372 @@
+/**
+ * Heading — deprecation chain.
+ *
+ * Full port of `@wordpress/block-library/src/heading/deprecated.js` (v9.43.0).
+ * Every historical save shape is preserved so saved markup from
+ * `core/heading` in old posts deserializes cleanly when opened against
+ * the editor that now registers `artisanpack/heading`.
+ */
+
+import clsx from 'clsx';
+import {
+    getColorClassName,
+    RichText,
+    useBlockProps,
+} from '@wordpress/block-editor';
+
+import migrateTextAlignAttributeToBlockSupport from '../_shared/migrate-text-align';
+
+const blockSupports = {
+    className: false,
+    anchor: true,
+};
+
+const blockAttributes = {
+    align: {
+        type: 'string',
+    },
+    content: {
+        type: 'string',
+        source: 'html',
+        selector: 'h1,h2,h3,h4,h5,h6',
+        default: '',
+    },
+    level: {
+        type: 'number',
+        default: 2,
+    },
+    placeholder: {
+        type: 'string',
+    },
+} as const;
+
+interface LegacyHeadingAttributes {
+    align?: string;
+    content?: string;
+    level?: number;
+    placeholder?: string;
+    textColor?: string;
+    customTextColor?: string;
+    textAlign?: string;
+    className?: string;
+    style?: Record<string, unknown>;
+    [key: string]: unknown;
+}
+
+const migrateCustomColors = (
+    attributes: LegacyHeadingAttributes
+): LegacyHeadingAttributes => {
+    if (!attributes.customTextColor) {
+        return attributes;
+    }
+    const style = {
+        color: {
+            text: attributes.customTextColor,
+        },
+    };
+
+    const { customTextColor, ...restAttributes } = attributes;
+
+    return {
+        ...restAttributes,
+        style,
+    };
+};
+
+const TEXT_ALIGN_OPTIONS = ['left', 'right', 'center'] as const;
+
+const migrateTextAlign = (
+    attributes: LegacyHeadingAttributes
+): LegacyHeadingAttributes => {
+    const { align, ...rest } = attributes;
+    return TEXT_ALIGN_OPTIONS.includes(align as 'left' | 'right' | 'center')
+        ? { ...rest, textAlign: align }
+        : attributes;
+};
+
+const v1 = {
+    supports: blockSupports,
+    attributes: {
+        ...blockAttributes,
+        customTextColor: { type: 'string' },
+        textColor: { type: 'string' },
+    },
+    migrate: (attributes: LegacyHeadingAttributes) =>
+        migrateTextAlignAttributeToBlockSupport(
+            migrateCustomColors(migrateTextAlign(attributes))
+        ),
+    save({ attributes }: { attributes: LegacyHeadingAttributes }) {
+        const { align, level = 2, content, textColor, customTextColor } = attributes;
+        const tagName = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+        const textClass = getColorClassName('color', textColor);
+
+        const className = clsx({
+            [textClass as string]: textClass,
+        });
+
+        return (
+            <RichText.Content
+                className={className ? className : undefined}
+                tagName={tagName}
+                style={{
+                    textAlign: align,
+                    color: textClass ? undefined : customTextColor,
+                }}
+                value={content}
+            />
+        );
+    },
+};
+
+const v2 = {
+    attributes: {
+        ...blockAttributes,
+        customTextColor: { type: 'string' },
+        textColor: { type: 'string' },
+    },
+    migrate: (attributes: LegacyHeadingAttributes) =>
+        migrateTextAlignAttributeToBlockSupport(
+            migrateCustomColors(migrateTextAlign(attributes))
+        ),
+    save({ attributes }: { attributes: LegacyHeadingAttributes }) {
+        const { align, content, customTextColor, level = 2, textColor } = attributes;
+        const tagName = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+        const textClass = getColorClassName('color', textColor);
+
+        const className = clsx({
+            [textClass as string]: textClass,
+            [`has-text-align-${align}`]: align,
+        });
+
+        return (
+            <RichText.Content
+                className={className ? className : undefined}
+                tagName={tagName}
+                style={{
+                    color: textClass ? undefined : customTextColor,
+                }}
+                value={content}
+            />
+        );
+    },
+    supports: blockSupports,
+};
+
+const v3 = {
+    supports: blockSupports,
+    attributes: {
+        ...blockAttributes,
+        customTextColor: { type: 'string' },
+        textColor: { type: 'string' },
+    },
+    migrate: (attributes: LegacyHeadingAttributes) =>
+        migrateTextAlignAttributeToBlockSupport(
+            migrateCustomColors(migrateTextAlign(attributes))
+        ),
+    save({ attributes }: { attributes: LegacyHeadingAttributes }) {
+        const { align, content, customTextColor, level = 2, textColor } = attributes;
+        const tagName = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+        const textClass = getColorClassName('color', textColor);
+
+        const className = clsx({
+            [textClass as string]: textClass,
+            'has-text-color': textColor || customTextColor,
+            [`has-text-align-${align}`]: align,
+        });
+
+        return (
+            <RichText.Content
+                className={className ? className : undefined}
+                tagName={tagName}
+                style={{
+                    color: textClass ? undefined : customTextColor,
+                }}
+                value={content}
+            />
+        );
+    },
+};
+
+const v4 = {
+    supports: {
+        align: ['wide', 'full'],
+        anchor: true,
+        className: false,
+        color: { link: true },
+        fontSize: true,
+        lineHeight: true,
+        __experimentalSelector: {
+            'core/heading/h1': 'h1',
+            'core/heading/h2': 'h2',
+            'core/heading/h3': 'h3',
+            'core/heading/h4': 'h4',
+            'core/heading/h5': 'h5',
+            'core/heading/h6': 'h6',
+        },
+        __unstablePasteTextInline: true,
+    },
+    attributes: blockAttributes,
+    isEligible: ({ align }: LegacyHeadingAttributes) =>
+        TEXT_ALIGN_OPTIONS.includes(align as 'left' | 'right' | 'center'),
+    migrate: (attributes: LegacyHeadingAttributes) =>
+        migrateTextAlignAttributeToBlockSupport(
+            migrateCustomColors(migrateTextAlign(attributes))
+        ),
+    save({ attributes }: { attributes: LegacyHeadingAttributes }) {
+        const { align, content, level = 2 } = attributes;
+        const TagName = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+
+        const className = clsx({
+            [`has-text-align-${align}`]: align,
+        });
+
+        return (
+            <TagName {...useBlockProps.save({ className })}>
+                <RichText.Content value={content} />
+            </TagName>
+        );
+    },
+};
+
+const v5 = {
+    supports: {
+        align: ['wide', 'full'],
+        anchor: true,
+        className: false,
+        color: {
+            gradients: true,
+            link: true,
+            __experimentalDefaultControls: { background: true, text: true },
+        },
+        spacing: {
+            margin: true,
+            padding: true,
+        },
+        typography: {
+            fontSize: true,
+            lineHeight: true,
+            __experimentalFontFamily: true,
+            __experimentalFontStyle: true,
+            __experimentalFontWeight: true,
+            __experimentalLetterSpacing: true,
+            __experimentalTextTransform: true,
+            __experimentalTextDecoration: true,
+            __experimentalDefaultControls: {
+                fontSize: true,
+                fontAppearance: true,
+                textTransform: true,
+            },
+        },
+        __experimentalSelector: 'h1,h2,h3,h4,h5,h6',
+        __unstablePasteTextInline: true,
+        __experimentalSlashInserter: true,
+    },
+    attributes: {
+        textAlign: { type: 'string' },
+        content: {
+            type: 'string',
+            source: 'html',
+            selector: 'h1,h2,h3,h4,h5,h6',
+            default: '',
+            role: 'content',
+        },
+        level: { type: 'number', default: 2 },
+        placeholder: { type: 'string' },
+    },
+    save({ attributes }: { attributes: LegacyHeadingAttributes }) {
+        const { textAlign, content, level = 2 } = attributes;
+        const TagName = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+
+        const className = clsx({
+            [`has-text-align-${textAlign}`]: textAlign,
+        });
+
+        return (
+            <TagName {...useBlockProps.save({ className })}>
+                <RichText.Content value={content} />
+            </TagName>
+        );
+    },
+    migrate: (attributes: LegacyHeadingAttributes) =>
+        migrateTextAlignAttributeToBlockSupport(
+            migrateCustomColors(migrateTextAlign(attributes))
+        ),
+};
+
+const v6 = {
+    supports: {
+        align: ['wide', 'full'],
+        anchor: true,
+        className: true,
+        splitting: true,
+        __experimentalBorder: {
+            color: true,
+            radius: true,
+            style: true,
+            width: true,
+        },
+        color: {
+            gradients: true,
+            link: true,
+            __experimentalDefaultControls: { background: true, text: true },
+        },
+        spacing: { margin: true, padding: true },
+        typography: {
+            fontSize: true,
+            lineHeight: true,
+            __experimentalFontFamily: true,
+            __experimentalFontStyle: true,
+            __experimentalFontWeight: true,
+            __experimentalLetterSpacing: true,
+            __experimentalTextTransform: true,
+            __experimentalTextDecoration: true,
+            __experimentalWritingMode: true,
+            fitText: true,
+            __experimentalDefaultControls: { fontSize: true },
+        },
+        __unstablePasteTextInline: true,
+        __experimentalSlashInserter: true,
+        interactivity: { clientNavigation: true },
+    },
+    attributes: {
+        textAlign: { type: 'string' },
+        content: {
+            type: 'string',
+            source: 'html',
+            selector: 'h1,h2,h3,h4,h5,h6',
+            default: '',
+            role: 'content',
+        },
+        level: { type: 'number', default: 2 },
+        levelOptions: { type: 'array' },
+        placeholder: { type: 'string' },
+    },
+    save({ attributes }: { attributes: LegacyHeadingAttributes }) {
+        const { textAlign, content, level = 2 } = attributes;
+        const TagName = `h${level}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
+
+        const className = clsx({
+            [`has-text-align-${textAlign}`]: textAlign,
+        });
+
+        return (
+            <TagName {...useBlockProps.save({ className })}>
+                <RichText.Content value={content} />
+            </TagName>
+        );
+    },
+    migrate: (attributes: LegacyHeadingAttributes) =>
+        migrateTextAlignAttributeToBlockSupport(
+            migrateCustomColors(migrateTextAlign(attributes))
+        ),
+    isEligible(attributes: LegacyHeadingAttributes) {
+        return (
+            !!attributes.textAlign ||
+            !!attributes.className?.match(/\bhas-text-align-(left|center|right)\b/)
+        );
+    },
+};
+
+const deprecated = [v6, v5, v4, v3, v2, v1];
+
+export default deprecated;

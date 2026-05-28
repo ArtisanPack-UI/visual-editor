@@ -1,0 +1,39 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/code",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/code",
+        "pinnedVersion": "9.43.0",
+        "subpath": "code"
+    },
+    "forkedAt": "2026-05-27",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; verbatim escape() handling." },
+        { "fork": "deprecated.tsx", "upstream": "n/a", "status": "added", "notes": "No upstream deprecation chain; empty array preserves the file shape across forks." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream raw/input/block transforms preserved; added bidirectional core/code ↔ artisanpack/code + accepts artisanpack/paragraph." },
+        { "fork": "utils.ts", "upstream": "utils.js", "status": "adapted", "notes": "TypeScript port; dropped @wordpress/compose `pipe` dependency in favor of direct composition." },
+        { "fork": "code.css", "upstream": "style.scss + theme.scss + editor.scss", "status": "adapted", "notes": "Three SCSS files combined." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "utils.ts inlines the upstream `pipe` composition rather than depending on `@wordpress/compose.pipe`.",
+        "transforms.ts adds bidirectional block transforms with core/code."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-27",
+        "reviewer": "I1 content cluster"
+    }
+}

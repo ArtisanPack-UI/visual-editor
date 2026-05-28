@@ -1,0 +1,82 @@
+{
+    "block": "table",
+    "status": "in-sync",
+    "upstream": {
+        "pinnedVersion": "9.43.0",
+        "subpath": "table"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped.",
+            "result": "skipped-status",
+            "forkDigest": "f6e534e0f0ca"
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Simplified edit owned by the fork. Ships the empty-table placeholder, RichText cell editing, caption, and the fixed-layout toggle. The heavier toolbar surface (row/col add/delete, cell tag switching, scope/alignment per cell, header/footer toggles) is intentionally deferred to a post-I7 customization phase. The fork keeps a single `<figure>` element across the placeholder → populated transition — swapping it leaves dangling refs in gutenberg's post-insert focus handler. CSS parity comes from the `_shared/fork-class-name-alias.ts` filter that remaps the I1 fork class names back to their `wp-block-{slug}` upstream forms.",
+            "result": "skipped-status",
+            "forkDigest": "a1fe42e92daa"
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "save.js",
+            "status": "adapted",
+            "notes": "TypeScript port; markup verbatim to upstream.",
+            "result": "skipped-status",
+            "forkDigest": "a729c5f5152b"
+        },
+        {
+            "fork": "deprecated.tsx",
+            "upstream": "deprecated.js",
+            "status": "adapted",
+            "notes": "Full 4-entry chain ported verbatim (v4 → v1). v2 carries the legacy `subtle-light-gray`/etc. backgroundColor → style.color.background migration.",
+            "result": "skipped-status",
+            "forkDigest": "2009ddc56795"
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "transforms.js",
+            "status": "extended",
+            "notes": "Upstream raw HTML paste schema preserved; added bidirectional core/table ↔ artisanpack/table.",
+            "result": "skipped-status",
+            "forkDigest": "4259de94d9c6"
+        },
+        {
+            "fork": "utils.ts",
+            "upstream": "utils.js",
+            "status": "adapted",
+            "notes": "TypeScript port of `normalizeRowColSpan`.",
+            "result": "skipped-status",
+            "forkDigest": "19be89642938"
+        },
+        {
+            "fork": "table.css",
+            "upstream": "style.scss + theme.scss + editor.scss",
+            "status": "adapted",
+            "notes": "Sass nesting flattened; Sass variables resolved inline. The block-supports `border-color: inherit` chain is preserved.",
+            "result": "skipped-status",
+            "forkDigest": "ff13c6330f94"
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG.",
+            "result": "skipped-status",
+            "forkDigest": "efa04897a824"
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Auto-discovery contract.",
+            "result": "skipped-status",
+            "forkDigest": "3ffbe061e2d3"
+        }
+    ]
+}

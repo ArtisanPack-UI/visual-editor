@@ -1,0 +1,74 @@
+{
+    "block": "list",
+    "status": "in-sync",
+    "upstream": {
+        "pinnedVersion": "9.43.0",
+        "subpath": "list"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped; allowedBlocks updated to artisanpack/list-item.",
+            "result": "skipped-status",
+            "forkDigest": "be992d451934"
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Simplified edit. Upstream's indent/outdent toolbar reaches into private block-editor dispatch surface (replaceBlocks via useOutdentList hook) — deferred to post-I7 customization. The Unordered/Ordered toggle and ordered-list settings panel are preserved. Inner-block template uses artisanpack/list-item.",
+            "result": "skipped-status",
+            "forkDigest": "d759cb75e642"
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "save.js",
+            "status": "adapted",
+            "notes": "TypeScript port; verbatim.",
+            "result": "skipped-status",
+            "forkDigest": "0f33f88e9450"
+        },
+        {
+            "fork": "deprecated.tsx",
+            "upstream": "deprecated.js",
+            "status": "adapted",
+            "notes": "Full 4-entry chain ported (v3 → v0). `migrateToListV2` rewritten to a lightweight DOM parse — upstream uses `rawHandler` which would pull the entire paste pipeline.",
+            "result": "skipped-status",
+            "forkDigest": "de1dc9a0ceab"
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "transforms.js",
+            "status": "extended",
+            "notes": "Upstream paragraph/heading/raw/prefix transforms preserved; added bidirectional core/list ↔ artisanpack/list. Raw transform creates artisanpack/list-item inner blocks.",
+            "result": "skipped-status",
+            "forkDigest": "d527a2b8e5d2"
+        },
+        {
+            "fork": "list.css",
+            "upstream": "style.scss",
+            "status": "adapted",
+            "notes": "Sass variables resolved inline.",
+            "result": "skipped-status",
+            "forkDigest": "3f61e3772031"
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG.",
+            "result": "skipped-status",
+            "forkDigest": "afb5d34a5859"
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Auto-discovery contract.",
+            "result": "skipped-status",
+            "forkDigest": "110c15543f0c"
+        }
+    ]
+}

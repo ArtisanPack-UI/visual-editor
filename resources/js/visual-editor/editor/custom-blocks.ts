@@ -17,6 +17,8 @@
 import { getCategories, registerBlockType, setCategories } from '@wordpress/blocks';
 import type { BlockConfiguration } from '@wordpress/blocks';
 
+import { registerForkClassNameAlias } from '../blocks/_shared/fork-class-name-alias';
+
 export const ARTISANPACK_CATEGORY_SLUG = 'artisanpack';
 
 export interface CustomBlockModule {
@@ -160,6 +162,13 @@ interface GlobbedModule {
  * Returns the registered block names for diagnostic logging.
  */
 export function discoverAndRegisterCustomBlocks(): ReadonlyArray<string> {
+    // Register the I1 fork class-name alias filter BEFORE any block
+    // registers — `getBlockDefaultClassName` is consulted during
+    // `registerBlockType` for the saved-markup CSS class, and once the
+    // first block is registered, the filter has to be in place or the
+    // bundled gutenberg CSS won't match the fork's wrapper element.
+    registerForkClassNameAlias();
+
     // `import.meta.glob` is a Vite-specific API that Vite transforms at
     // build time — the string literal + options object MUST appear
     // inline, otherwise Vite leaves the call in place and the runtime

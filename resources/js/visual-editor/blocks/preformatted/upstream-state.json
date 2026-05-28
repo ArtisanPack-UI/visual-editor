@@ -1,0 +1,37 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/preformatted",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/preformatted",
+        "pinnedVersion": "9.43.0",
+        "subpath": "preformatted"
+    },
+    "forkedAt": "2026-05-27",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port; semantics verbatim." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; semantics verbatim." },
+        { "fork": "deprecated.tsx", "upstream": "n/a", "status": "added", "notes": "No upstream deprecation chain; empty array preserves the file shape." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream raw/block transforms preserved; added bidirectional core/preformatted ↔ artisanpack/preformatted and accepts artisanpack/code, artisanpack/paragraph, artisanpack/verse as from-sources." },
+        { "fork": "preformatted.css", "upstream": "style.scss", "status": "adapted", "notes": "Sass variables resolved inline." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Auto-discovery contract." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "transforms.ts adds bidirectional core/preformatted ↔ artisanpack/preformatted."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-27",
+        "reviewer": "I1 content cluster"
+    }
+}

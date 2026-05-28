@@ -1,0 +1,82 @@
+{
+    "block": "heading",
+    "status": "in-sync",
+    "upstream": {
+        "pinnedVersion": "9.43.0",
+        "subpath": "heading"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to artisanpack namespace; supports/attributes verbatim.",
+            "result": "skipped-status",
+            "forkDigest": "00e94bf238de"
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "adapted",
+            "notes": "TypeScript port; upstream `useDeprecatedTextAlign` hook is replaced by the inline migrate-text-align deprecation path so the heading edit doesn't reach into block-library private utilities.",
+            "result": "skipped-status",
+            "forkDigest": "b474675f0a2c"
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "save.js",
+            "status": "adapted",
+            "notes": "TypeScript port; verbatim semantics.",
+            "result": "skipped-status",
+            "forkDigest": "0fd6c1d1fe60"
+        },
+        {
+            "fork": "deprecated.tsx",
+            "upstream": "deprecated.js",
+            "status": "adapted",
+            "notes": "Full 6-entry chain ported verbatim (v6 → v1). Imports the shared migrate-text-align primitive from blocks/_shared/.",
+            "result": "skipped-status",
+            "forkDigest": "12ce02d62709"
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "transforms.js",
+            "status": "extended",
+            "notes": "Upstream raw/prefix/enter transforms preserved (namespaced to artisanpack/heading); added bidirectional block transforms for core/heading ↔ artisanpack/heading and accepts artisanpack/paragraph as a from-source.",
+            "result": "skipped-status",
+            "forkDigest": "2519507b7789"
+        },
+        {
+            "fork": "autogenerate-anchors.ts",
+            "upstream": "autogenerate-anchors.js",
+            "status": "adapted",
+            "notes": "TypeScript port; behavior unchanged.",
+            "result": "skipped-status",
+            "forkDigest": "030b7dc4a62d"
+        },
+        {
+            "fork": "heading.css",
+            "upstream": "style.scss",
+            "status": "adapted",
+            "notes": "Sass variables resolved inline ($block-bg-padding--v → 1.25em, --h → 2.375em).",
+            "result": "skipped-status",
+            "forkDigest": "bb7474a4f53f"
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG for the inserter (editor doesn't bundle dashicons).",
+            "result": "skipped-status",
+            "forkDigest": "9642479e4ff2"
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract (custom-blocks.ts glob). Upstream index.js wires `init` and PHP server-side init; we don't need either.",
+            "result": "skipped-status",
+            "forkDigest": "5a52c3c95b4e"
+        }
+    ]
+}

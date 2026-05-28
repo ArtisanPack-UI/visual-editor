@@ -51,6 +51,15 @@
         "core/navigation-link",
         "core/navigation-submenu",
         "artisanpack/callout",
-        "artisanpack/paragraph"
+        "artisanpack/paragraph",
+        "artisanpack/heading",
+        "artisanpack/list",
+        "artisanpack/list-item",
+        "artisanpack/quote",
+        "artisanpack/code",
+        "artisanpack/preformatted",
+        "artisanpack/verse",
+        "artisanpack/pullquote",
+        "artisanpack/table"
     ]
 }

@@ -71,19 +71,27 @@ import type { BlockRenderer } from '../types';
 
 const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/paragraph': ParagraphBlock,
-    // Fork: artisanpack/paragraph reuses the same renderer as core/paragraph.
-    // Both blocks emit identical markup so mixed documents (during the V2
-    // migration window) render identically regardless of which namespace
-    // the editor persisted.
+    // Fork: artisanpack/* reuses the same renderer as the upstream core/*
+    // because the saved markup is byte-equivalent across the two
+    // namespaces. Mixed documents render identically regardless of which
+    // namespace the editor persisted. Phase I1 content cluster (#409).
     'artisanpack/paragraph': ParagraphBlock,
     'core/heading': HeadingBlock,
+    'artisanpack/heading': HeadingBlock,
     'core/list': ListBlock,
+    'artisanpack/list': ListBlock,
     'core/list-item': ListItemBlock,
+    'artisanpack/list-item': ListItemBlock,
     'core/quote': QuoteBlock,
+    'artisanpack/quote': QuoteBlock,
     'core/code': CodeBlock,
+    'artisanpack/code': CodeBlock,
     'core/preformatted': PreformattedBlock,
+    'artisanpack/preformatted': PreformattedBlock,
     'core/verse': VerseBlock,
+    'artisanpack/verse': VerseBlock,
     'core/pullquote': PullquoteBlock,
+    'artisanpack/pullquote': PullquoteBlock,
     'core/image': ImageBlock,
     'core/gallery': GalleryBlock,
     'core/video': VideoBlock,
@@ -100,6 +108,7 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/cover': CoverBlock,
     'core/media-text': MediaTextBlock,
     'core/table': TableBlock,
+    'artisanpack/table': TableBlock,
     'core/details': DetailsBlock,
     'core/search': SearchBlock,
     'core/separator': SeparatorBlock,
