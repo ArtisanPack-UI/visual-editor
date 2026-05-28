@@ -1,0 +1,265 @@
+/**
+ * Tests for the `artisanpack/cover` edit component.
+ */
+
+import { describe, it, expect, vi } from 'vitest';
+import { render } from '@testing-library/react';
+
+vi.mock('@wordpress/i18n', () => ({
+    __: (text: string) => text,
+}));
+
+vi.mock('@wordpress/icons', () => ({
+    cover: 'cover-icon',
+    link: 'link-icon',
+}));
+
+vi.mock('@wordpress/data', () => ({
+    useDispatch: () => ({
+        createErrorNotice: vi.fn(),
+        __unstableMarkNextChangeAsNotPersistent: vi.fn(),
+    }),
+    useSelect: (selector: unknown) => {
+        const store = {
+            getEntityRecord: () => null,
+            getEmbedPreview: () => undefined,
+            isRequestingEmbedPreview: () => false,
+            getSettings: () => ({ imageSizes: [] }),
+            getBlock: () => ({ innerBlocks: [] }),
+        };
+        if (typeof selector === 'function') {
+            return (selector as (s: unknown) => unknown)(() => store);
+        }
+        // Called as useSelect(store, deps) — return the store directly.
+        return store;
+    },
+}));
+
+vi.mock('@wordpress/core-data', () => ({
+    store: 'core-store',
+    useEntityProp: () => [undefined, vi.fn()],
+}));
+
+vi.mock('@wordpress/notices', () => ({
+    store: 'notices-store',
+}));
+
+vi.mock('@wordpress/blob', () => ({
+    isBlobURL: () => false,
+    createBlobURL: (file: File) => `blob:mock/${file.name}`,
+}));
+
+vi.mock('@wordpress/blocks', () => ({
+    createBlock: (
+        name: string,
+        attributes?: Record<string, unknown>,
+        innerBlocks?: unknown[]
+    ) => ({ name, attributes: attributes ?? {}, innerBlocks: innerBlocks ?? [] }),
+    getBlockVariations: () => [],
+}));
+
+vi.mock('@wordpress/element', async (importOriginal) => {
+    const actual = (await importOriginal()) as Record<string, unknown>;
+    return actual;
+});
+
+vi.mock('@wordpress/hooks', () => ({
+    applyFilters: (_hook: string, value: unknown) => value,
+}));
+
+vi.mock('@wordpress/components', () => ({
+    Placeholder: ({ children }: { children?: React.ReactNode }) => (
+        <div data-testid="placeholder">{children}</div>
+    ),
+    Spinner: () => <div data-testid="spinner" />,
+    ColorPalette: () => null,
+    Button: ({ children }: { children?: React.ReactNode }) => (
+        <button>{children}</button>
+    ),
+    MenuItem: ({ children }: { children?: React.ReactNode }) => (
+        <div>{children}</div>
+    ),
+    Notice: ({ children }: { children?: React.ReactNode }) => (
+        <div>{children}</div>
+    ),
+    TextControl: () => null,
+    TextareaControl: () => null,
+    SelectControl: () => null,
+    RangeControl: () => null,
+    ToggleControl: () => null,
+    FocalPointPicker: () => null,
+    ExternalLink: ({ children }: { children?: React.ReactNode }) => (
+        <a>{children}</a>
+    ),
+    ResizableBox: ({ children }: { children?: React.ReactNode }) => (
+        <div data-testid="resizable">{children}</div>
+    ),
+    __experimentalConfirmDialog: ({
+        children,
+    }: {
+        children?: React.ReactNode;
+    }) => <div>{children}</div>,
+    __experimentalVStack: ({ children }: { children?: React.ReactNode }) => (
+        <div>{children}</div>
+    ),
+    __experimentalUseCustomUnits: () => [],
+    __experimentalToolsPanel: ({
+        children,
+    }: {
+        children?: React.ReactNode;
+    }) => <div>{children}</div>,
+    __experimentalToolsPanelItem: ({
+        children,
+    }: {
+        children?: React.ReactNode;
+    }) => <div>{children}</div>,
+    __experimentalUnitControl: () => null,
+    __experimentalParseQuantityAndUnitFromRawValue: () => [undefined, 'px'],
+}));
+
+vi.mock('@wordpress/compose', () => ({
+    useInstanceId: () => 'instance-1',
+}));
+
+vi.mock('@wordpress/block-editor', () => {
+    const useBlockProps = Object.assign(
+        (props?: Record<string, unknown>) => ({ ...props }),
+        { save: (props?: Record<string, unknown>) => ({ ...props }) }
+    );
+    const useInnerBlocksProps = Object.assign(
+        (props?: Record<string, unknown>) => ({ ...props }),
+        { save: (props?: Record<string, unknown>) => ({ ...props }) }
+    );
+    return {
+        BlockControls: ({ children }: { children?: React.ReactNode }) => (
+            <div data-testid="block-controls">{children}</div>
+        ),
+        BlockIcon: () => null,
+        InspectorControls: ({
+            children,
+        }: {
+            children?: React.ReactNode;
+        }) => <div data-testid="inspector">{children}</div>,
+        MediaPlaceholder: ({
+            children,
+        }: {
+            children?: React.ReactNode;
+        }) => <div data-testid="placeholder">{children}</div>,
+        MediaReplaceFlow: ({
+            children,
+        }: {
+            children?: React.ReactNode;
+        }) => <div data-testid="replace-flow">{children}</div>,
+        MediaUpload: ({ render }: { render: (args: { open: () => void }) => React.ReactNode }) =>
+            <>{render({ open: () => {} })}</>,
+        MediaUploadCheck: ({ children }: { children?: React.ReactNode }) => (
+            <>{children}</>
+        ),
+        ColorPalette: () => null,
+        RichText: ({ value }: { value?: string }) => (
+            <span dangerouslySetInnerHTML={{ __html: value ?? '' }} />
+        ),
+        useBlockProps,
+        useInnerBlocksProps,
+        useSettings: () => [[]],
+        useBlockEditingMode: () => 'default',
+        getColorClassName: (prefix: string, name?: string) =>
+            name ? `has-${name}-${prefix}` : undefined,
+        store: 'block-editor-store',
+        withColors:
+            () =>
+            (Component: React.ComponentType<unknown>) =>
+            (props: Record<string, unknown>) => (
+                <Component
+                    {...props}
+                    overlayColor={{ color: undefined, class: undefined }}
+                    setOverlayColor={() => {}}
+                />
+            ),
+        __experimentalUseGradient: () => ({
+            gradientClass: undefined,
+            gradientValue: undefined,
+            setGradient: () => {},
+        }),
+        __experimentalGetGradientClass: (name?: string) =>
+            name ? `has-${name}-gradient-background` : undefined,
+        __experimentalColorGradientSettingsDropdown: ({
+            children,
+        }: {
+            children?: React.ReactNode;
+        }) => <div>{children}</div>,
+        __experimentalUseMultipleOriginColorsAndGradients: () => ({
+            hasColorsOrGradients: false,
+        }),
+        __experimentalBlockAlignmentMatrixControl: () => null,
+        __experimentalBlockFullHeightAligmentControl: () => null,
+    };
+});
+
+vi.mock('colord', () => ({
+    colord: (value: string) => ({
+        toRgb: () => ({ r: 0, g: 0, b: 0, a: 1 }),
+        alpha: () => ({ toRgb: () => ({ r: 0, g: 0, b: 0, a: 0.5 }) }),
+        isDark: () => true,
+    }),
+    extend: () => {},
+}));
+
+vi.mock('colord/plugins/names', () => ({ default: {} }));
+
+vi.mock('fast-average-color', () => ({
+    FastAverageColor: class {
+        async getColorAsync(): Promise<{ hex: string }> {
+            return { hex: '#000000' };
+        }
+    },
+}));
+
+vi.mock('memize', () => ({
+    default: (fn: unknown) => fn,
+}));
+
+(globalThis as { React?: unknown }).React = require('react');
+
+import CoverEdit from '../edit';
+
+describe('CoverEdit', () => {
+    it('renders the placeholder TagName when there is no background and no inner blocks', () => {
+        const setAttributes = vi.fn();
+        const { container } = render(
+            <CoverEdit
+                attributes={{ tagName: 'div', dimRatio: 100 }}
+                clientId="abc"
+                isSelected
+                overlayColor={{ color: undefined, class: undefined }}
+                setAttributes={setAttributes}
+                setOverlayColor={() => {}}
+                toggleSelection={() => {}}
+            />
+        );
+        expect(container.querySelector('.is-placeholder')).not.toBeNull();
+    });
+
+    it('renders an image background when backgroundType=image and url is set', () => {
+        const setAttributes = vi.fn();
+        const { container } = render(
+            <CoverEdit
+                attributes={{
+                    tagName: 'div',
+                    backgroundType: 'image',
+                    url: 'https://example.com/photo.jpg',
+                    dimRatio: 50,
+                }}
+                clientId="abc"
+                isSelected
+                overlayColor={{ color: '#fff', class: undefined }}
+                setAttributes={setAttributes}
+                setOverlayColor={() => {}}
+                toggleSelection={() => {}}
+            />
+        );
+        const img = container.querySelector('img.wp-block-cover__image-background');
+        expect(img).not.toBeNull();
+        expect(img?.getAttribute('src')).toBe('https://example.com/photo.jpg');
+    });
+});

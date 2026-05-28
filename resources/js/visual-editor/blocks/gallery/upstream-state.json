@@ -1,0 +1,49 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/gallery",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/gallery",
+        "pinnedVersion": "9.43.0",
+        "subpath": "gallery"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "extended", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports verbatim. `allowedBlocks` still lists `core/image` because inner image blocks remain core during Phase I2 — the image fork lands separately and will coexist via transforms. `providesContext` removed (see knownDivergences) so inner `core/image` blocks render their full inspector instead of the gallery-suppressed subset upstream ships." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port of the upstream `GalleryEdit`. The shared `Caption` component from `block-library/src/utils/caption` is replaced by an inline `RichText` figcaption; `useToolsPanelDropdownMenuProps` is inlined from `block-library/src/utils/hooks` since neither is reachable via the package's `exports` field. Native (`Platform.isNative`) branches are dropped — this fork is web-only." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent to upstream." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "All seven deprecation entries (v1–v7) ported verbatim, including the `getHrefAndDestination`, `getImageBlock`, and `runV2Migration` helpers used by their `migrate` callbacks." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream block-to-gallery, shortcode, and multi-file drop transforms preserved; the `switchToBlockType.transformedBlock` filters now match both `core/gallery` and `artisanpack/gallery`. Added bidirectional `core/gallery` ↔ `artisanpack/gallery` block transforms (forwarding `attributes` + `innerBlocks`)." },
+        { "fork": "constants.ts", "upstream": "constants.js", "status": "ported", "notes": "Verbatim port of the link-destination + default-size constants." },
+        { "fork": "shared.ts", "upstream": "shared.js", "status": "adapted", "notes": "`defaultColumnsNumber` and `pickRelevantMediaFiles` ported as TypeScript with explicit types; behaviour identical." },
+        { "fork": "shared-icon.tsx", "upstream": "shared-icon.js", "status": "ported", "notes": "Verbatim port of the `BlockIcon` wrapper used by the edit-time `MediaPlaceholder`." },
+        { "fork": "utils.ts", "upstream": "utils.js (+ image/utils.js partial)", "status": "extended", "notes": "Ports `getHrefAndDestination` verbatim, then inlines `getUpdatedLinkTargetSettings`, `removeNewTabRel`, and `getImageSizeAttributes` from `block-library/src/image/utils.js` — and the `NEW_TAB_REL` constant from `image/constants.js` — because none of them are exposed via the package's `exports` field." },
+        { "fork": "use-get-media.ts", "upstream": "use-get-media.js", "status": "adapted", "notes": "Direct TypeScript port using `@wordpress/data` + `@wordpress/core-data`. Behaviour identical." },
+        { "fork": "use-get-new-images.ts", "upstream": "use-get-new-images.js", "status": "adapted", "notes": "Direct TypeScript port. Behaviour identical." },
+        { "fork": "use-image-sizes.ts", "upstream": "use-image-sizes.js", "status": "adapted", "notes": "Direct TypeScript port. Behaviour identical." },
+        { "fork": "gap-styles.ts", "upstream": "gap-styles.js", "status": "adapted", "notes": "Direct TypeScript port using `__experimentalGetGapCSSValue` + `useStyleOverride` from `@wordpress/block-editor`." },
+        { "fork": "gallery.css", "upstream": "style.scss + editor.scss + theme.scss + deprecated.scss", "status": "adapted", "notes": "Sass `@use` directives, `caption-style-theme()` mixin, `math.div`, `break-small`, and `custom-scrollbars-on-hover` mixins inlined as plain CSS. Per-column widths unrolled from the `@for` loop. `break-small` rewritten as `@media (min-width: 600px)`. The deprecated `.wp-block-gallery:not(.has-nested-images)` block is folded into this file so legacy markup keeps rendering." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG mirroring the upstream `@wordpress/icons` `gallery` path." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract; upstream init.js / index.php server-side wiring is intentionally absent." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "block.json drops the upstream `providesContext` block (`allowResize` / `imageCrop` / `fixedHeight` / `navigationButtonType`). Upstream uses these to suppress portions of the inner `core/image` block's inspector (resize handles, aspect-ratio / size / link controls) so every gallery image shares uniform cropping. The fork keeps those attributes on the gallery itself but no longer forwards them as context, so an image inside an `artisanpack/gallery` shows its full inspector. Practical impact: per-image aspect-ratio / link / size controls remain available inside a gallery; gallery-uniform cropping driven by the `imageCrop` toggle no longer suppresses inner-image overrides (the user can opt out per image).",
+        "edit.tsx replaces the shared `Caption` component (block-library/src/utils/caption) with an inline `RichText` figcaption. Practical impact: the toolbar caption-toggle affordance shipped by `Caption` is replaced by an always-rendered figcaption when the block is selected or the caption is non-empty.",
+        "edit.tsx inlines `useToolsPanelDropdownMenuProps` from block-library/src/utils/hooks. Practical impact: behavioural parity, but updates to upstream's offset must be back-ported manually.",
+        "edit.tsx drops the upstream `Platform.isNative` branches — the fork is web-only.",
+        "utils.ts inlines `getUpdatedLinkTargetSettings` + `getImageSizeAttributes` + `removeNewTabRel` + `NEW_TAB_REL` from block-library's image internals. Practical impact: behavioural parity, but the image-block upstream is responsible for keeping the new-tab rel scrub list in sync; manual back-port required if upstream changes it."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I2 media cluster"
+    }
+}

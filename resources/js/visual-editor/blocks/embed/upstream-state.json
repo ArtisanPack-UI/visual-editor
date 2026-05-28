@@ -1,0 +1,60 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/embed",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/embed",
+        "pinnedVersion": "9.43.0",
+        "subpath": "embed"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Replaces the shared Caption component (from block-library/src/utils/caption) with an inline RichText figcaption, and the @wordpress/primitives View with a plain div, because neither is exposed via @wordpress/block-library exports." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent to upstream." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Both upstream deprecation entries (v2: pre wp-element-caption classname, v1: pre figure-wrapping markup) ported verbatim." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream raw P-with-URL → embed and embed → paragraph transforms preserved; added bidirectional core/embed ↔ artisanpack/embed block transforms." },
+        { "fork": "constants.ts", "upstream": "constants.js", "status": "added", "notes": "TypeScript port of the aspect-ratio table and WP-embed sentinel; vendored as a sibling so util.ts/edit.tsx can import without going through block-library internals." },
+        { "fork": "util.tsx", "upstream": "util.js", "status": "extended", "notes": "TypeScript port (renamed to .tsx because getPhotoHtml returns inline JSX). createUpgradedEmbedBlock returns artisanpack/embed instead of core/embed (so future audio/video forks can opt in). The upstream `kebabCase` import from @wordpress/components private APIs is replaced with a small local implementation." },
+        { "fork": "variations.ts", "upstream": "variations.js", "status": "adapted", "notes": "TypeScript port of all provider variations (Twitter, YouTube, Facebook, Instagram, WordPress, SoundCloud, Spotify, Flickr, Vimeo, Animoto, Cloudup, CollegeHumor, Crowdsignal, Dailymotion, Imgur, Issuu, Kickstarter, Mixcloud, Pocket Casts, Reddit, ReverbNation, Scribd, SmugMug, Speaker Deck, TikTok, TED, Tumblr, VideoPress, WordPress.tv, Amazon Kindle, Pinterest, Wolfram, Bluesky)." },
+        { "fork": "icons.tsx", "upstream": "icons.js", "status": "adapted", "notes": "TypeScript port. Uses @wordpress/primitives (SVG/Path/G) instead of the @wordpress/components re-export." },
+        { "fork": "embed-controls.tsx", "upstream": "embed-controls.js", "status": "adapted", "notes": "TypeScript port. Drops the useToolsPanelDropdownMenuProps hook (block-library internal) and uses ToolsPanel default dropdown behaviour." },
+        { "fork": "embed-loading.tsx", "upstream": "embed-loading.js", "status": "adapted", "notes": "TypeScript port; byte-equivalent markup." },
+        { "fork": "embed-placeholder.tsx", "upstream": "embed-placeholder.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent to upstream." },
+        { "fork": "embed-preview.tsx", "upstream": "embed-preview.js", "status": "adapted", "notes": "TypeScript port. Accepts the same prop shape as upstream; caption/isSelected/insertBlocksAfter/setAttributes are preserved on the type but not forwarded to the rendered output (the figcaption is rendered by edit.tsx instead, mirroring the Caption-component pattern)." },
+        { "fork": "wp-embed-preview.tsx", "upstream": "wp-embed-preview.js", "status": "adapted", "notes": "TypeScript port; ref merging and postMessage resize behaviour preserved." },
+        { "fork": "embed.css", "upstream": "style.scss + editor.scss + theme.scss", "status": "adapted", "notes": "Sass caption-style() + caption-style-theme() mixins inlined and $break-zoomed-in (280px) inlined inline. data-type selectors swapped to artisanpack/embed." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (matches @wordpress/icons embedContent path)." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract; upstream init.js / index.php server-side wiring is intentionally absent." }
+    ],
+    "vendoredPrimitives": [
+        "constants.ts",
+        "util.tsx",
+        "variations.ts",
+        "icons.tsx",
+        "embed-controls.tsx",
+        "embed-loading.tsx",
+        "embed-placeholder.tsx",
+        "embed-preview.tsx",
+        "wp-embed-preview.tsx"
+    ],
+    "knownDivergences": [
+        "edit.tsx uses an inline RichText figcaption instead of the upstream shared Caption component. Practical impact: the toolbar/caption-toggle affordance Caption provides is replaced by always-showing the figcaption when selected or non-empty.",
+        "edit.tsx replaces the @wordpress/primitives View primitive with a plain div for the placeholder/loading wrappers. Behaviour is identical on web; native targets are out of scope for the fork.",
+        "util.ts createUpgradedEmbedBlock returns artisanpack/embed instead of core/embed. This means an embed-pattern match upgrades into the fork's namespace, which is the desired behaviour for future audio/video forks importing from `../embed/util`.",
+        "util.ts replaces the upstream `kebabCase` import from @wordpress/components private APIs with a small local implementation so the fork does not depend on block-library or components internals.",
+        "embed-controls.tsx drops the upstream `useToolsPanelDropdownMenuProps` hook (a block-library internal not exposed via exports). The ToolsPanel falls back to default dropdown behaviour."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I2 media cluster"
+    }
+}

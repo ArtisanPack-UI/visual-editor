@@ -1,0 +1,157 @@
+/**
+ * Embed — combined editor + frontend + theme styles.
+ *
+ * Ported from `@wordpress/block-library/src/embed/style.scss`,
+ * `editor.scss`, and `theme.scss` (v9.43.0). The Sass
+ * `caption-style()` and `caption-style-theme()` mixins from
+ * `@wordpress/base-styles/mixins` are inlined as plain CSS so the
+ * fork does not depend on the base-styles package at runtime.
+ *
+ * The upstream `$break-zoomed-in` breakpoint variable (280px) is
+ * inlined inline below.
+ */
+
+/* Apply max-width to floated items that have no intrinsic width. */
+.wp-block[data-align="left"] > [data-type="artisanpack/embed"],
+.wp-block[data-align="right"] > [data-type="artisanpack/embed"],
+.wp-block-embed.alignleft,
+.wp-block-embed.alignright {
+    /* Instagram widgets have a min-width of 326px, so go a bit beyond that. */
+    max-width: 360px;
+    width: 100%;
+}
+
+.wp-block[data-align="left"] > [data-type="artisanpack/embed"] .wp-block-embed__wrapper,
+.wp-block[data-align="right"] > [data-type="artisanpack/embed"] .wp-block-embed__wrapper,
+.wp-block-embed.alignleft .wp-block-embed__wrapper,
+.wp-block-embed.alignright .wp-block-embed__wrapper {
+    /* Unless these have a min-width, they collapse when floated. */
+    min-width: 280px;
+}
+
+/* Supply a min-width when inside a cover block, to prevent it from collapsing. */
+.wp-block-cover .wp-block-embed {
+    min-width: 320px;
+    min-height: 240px;
+}
+
+/* Allow embeds to grow and shrink inside flex group blocks. */
+.wp-block-group.is-layout-flex .wp-block-embed {
+    flex: 1 1 0%;
+    min-width: 0;
+}
+
+.wp-block-embed {
+    overflow-wrap: break-word;
+    margin: 0 0 1em 0;
+}
+
+/* Inlined caption-style() + caption-style-theme() mixins. */
+.wp-block-embed :where(figcaption) {
+    margin-top: 0.5em;
+    margin-bottom: 1em;
+    color: currentcolor;
+    font-size: 13px;
+    text-align: center;
+}
+
+/* Don't allow iframe to overflow its container. */
+.wp-block-embed iframe {
+    max-width: 100%;
+}
+
+.wp-block-embed__wrapper {
+    position: relative;
+}
+
+/* Add responsiveness to embeds with aspect ratios. */
+.wp-embed-responsive .wp-has-aspect-ratio .wp-block-embed__wrapper::before {
+    content: "";
+    display: block;
+    padding-top: 50%; /* Default to 2:1 aspect ratio. */
+}
+
+.wp-embed-responsive .wp-has-aspect-ratio iframe {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+}
+
+.wp-embed-responsive .wp-embed-aspect-21-9 .wp-block-embed__wrapper::before {
+    padding-top: 42.85%; /* 9 / 21 * 100 */
+}
+
+.wp-embed-responsive .wp-embed-aspect-18-9 .wp-block-embed__wrapper::before {
+    padding-top: 50%; /* 9 / 18 * 100 */
+}
+
+.wp-embed-responsive .wp-embed-aspect-16-9 .wp-block-embed__wrapper::before {
+    padding-top: 56.25%; /* 9 / 16 * 100 */
+}
+
+.wp-embed-responsive .wp-embed-aspect-4-3 .wp-block-embed__wrapper::before {
+    padding-top: 75%; /* 3 / 4 * 100 */
+}
+
+.wp-embed-responsive .wp-embed-aspect-1-1 .wp-block-embed__wrapper::before {
+    padding-top: 100%;
+}
+
+.wp-embed-responsive .wp-embed-aspect-9-16 .wp-block-embed__wrapper::before {
+    padding-top: 177.77%; /* 16 / 9 * 100 */
+}
+
+.wp-embed-responsive .wp-embed-aspect-1-2 .wp-block-embed__wrapper::before {
+    padding-top: 200%;
+}
+
+/* Editor-only affordances. */
+.wp-block-embed {
+    margin-left: 0;
+    margin-right: 0;
+    /* Necessary because we use responsive trickery to set width/height. */
+    clear: both;
+}
+
+.wp-block-embed.is-loading {
+    display: flex;
+    justify-content: center;
+}
+
+.wp-block-embed .wp-block-embed__placeholder-input {
+    flex: 1 1 auto;
+}
+
+/* Stops long URLs from breaking out of the no preview available screen. */
+.wp-block-embed .components-placeholder__error {
+    overflow-wrap: anywhere;
+    word-break: normal;
+}
+
+.wp-block-post-content .wp-block-embed__learn-more a {
+    color: var(--wp-admin-theme-color);
+}
+
+.block-library-embed__interactive-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    opacity: 0;
+}
+
+.wp-block[data-align="left"] > .wp-block-embed,
+.wp-block[data-align="right"] > .wp-block-embed {
+    max-width: 360px;
+    width: 100%;
+}
+
+.wp-block[data-align="left"] > .wp-block-embed .wp-block-embed__wrapper,
+.wp-block[data-align="right"] > .wp-block-embed .wp-block-embed__wrapper {
+    min-width: 280px;
+}

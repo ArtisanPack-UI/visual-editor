@@ -60,6 +60,14 @@
         "artisanpack/preformatted",
         "artisanpack/verse",
         "artisanpack/pullquote",
-        "artisanpack/table"
+        "artisanpack/table",
+        "artisanpack/image",
+        "artisanpack/gallery",
+        "artisanpack/video",
+        "artisanpack/audio",
+        "artisanpack/file",
+        "artisanpack/embed",
+        "artisanpack/cover",
+        "artisanpack/media-text"
     ]
 }
