@@ -199,7 +199,14 @@ class BlockSupports
 	 */
 	protected static function applyTextAlign( array $attributes, array &$classes ): void
 	{
-		$value = $attributes['textAlign'] ?? null;
+		// Pre-`supports.typography.textAlign` blocks stored the value
+		// at the top level. Newer blocks (paragraph, heading, list,
+		// quote, …) declare the support via block.json typography and
+		// the editor stores it under `style.typography.textAlign`.
+		// Check both — top-level wins if both are present (matches the
+		// editor's serialization precedence).
+		$value = $attributes['textAlign']
+			?? ( $attributes['style']['typography']['textAlign'] ?? null );
 
 		if ( ! is_string( $value ) || ! in_array( $value, [ 'left', 'center', 'right', 'justify' ], true ) ) {
 			return;
