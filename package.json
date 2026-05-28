@@ -20,7 +20,9 @@
         "build:lib": "vite build --mode lib",
         "test": "vitest run",
         "test:watch": "vitest",
-        "i18n:extract": "node scripts/extract-pot.mjs"
+        "i18n:extract": "node scripts/extract-pot.mjs",
+        "verify:parity": "node scripts/verify-renderer-parity.mjs",
+        "upstream-diff": "node scripts/upstream-diff.mjs"
     },
     "devDependencies": {
         "@testing-library/dom": "^10.4.0",

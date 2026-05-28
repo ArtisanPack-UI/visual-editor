@@ -1,0 +1,42 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/paragraph",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/paragraph",
+        "pinnedVersion": "9.43.0",
+        "subpath": "paragraph"
+    },
+    "forkedAt": "2026-05-27",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; supports/attributes verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Adds explicit 'wp-block-paragraph' class to useBlockProps so the editor canvas matches frontend without depending on __experimentalSelector internals." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; class list adds 'wp-block-paragraph' explicitly (parity with edit)." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full 7-entry chain ported verbatim (v6 → v0)." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream raw-transform preserved; added bidirectional block transforms for core/paragraph ↔ artisanpack/paragraph round-tripping." },
+        { "fork": "use-enter.ts", "upstream": "use-enter.js", "status": "adapted", "notes": "TypeScript port; behavior unchanged." },
+        { "fork": "use-deprecated-align.ts", "upstream": "deprecated-attributes.js", "status": "adapted", "notes": "TypeScript port; renamed file to match the exported hook." },
+        { "fork": "paragraph.css", "upstream": "style.scss + editor.scss", "status": "adapted", "notes": "Sass variables resolved inline ($block-bg-padding--v → 1.25em, --h → 2.375em). data-type selectors rewritten from 'core/paragraph' to 'artisanpack/paragraph'." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (editor doesn't bundle dashicons)." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract (custom-blocks.ts glob). Upstream index.js wires `init` and PHP server-side init; we don't need either." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx + save.tsx add 'wp-block-paragraph' to useBlockProps explicitly. Upstream relies on the __experimentalSelector private path to inject this. We prefer the explicit class so renderers (Blade/React/Vue) don't have to special-case the namespace.",
+        "transforms.ts adds bidirectional block transforms that don't exist upstream — the fork must coexist with core/paragraph in mixed documents during the V2 rollout.",
+        "index.ts replaces upstream's PHP-side init wiring with the visual-editor auto-discovery contract.",
+        "use-enter.ts adds a defensive null-check + parent-equality guard inside the ancestor-climbing while-loop. Upstream omits both; the fork's guard prevents a theoretical infinite loop when no ancestor accepts the block."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-27",
+        "reviewer": "I0 pilot"
+    }
+}

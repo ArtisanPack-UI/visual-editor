@@ -1,0 +1,73 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "https://artisanpack-ui.example.com/schemas/upstream-state.json",
+    "title": "upstream-state.json",
+    "description": "Per-forked-block decision log for the V2 block-fork phase. Lives next to each block's index.ts and is consumed by scripts/upstream-diff.mjs to detect drift between fork files and the pinned upstream @wordpress/block-library version.",
+    "type": "object",
+    "required": ["block", "upstream", "files"],
+    "additionalProperties": true,
+    "properties": {
+        "block": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*/[a-z0-9-]+$",
+            "description": "The forked block's namespaced name (e.g. 'artisanpack/paragraph')."
+        },
+        "upstream": {
+            "type": "object",
+            "required": ["package", "namespace", "pinnedVersion", "subpath"],
+            "properties": {
+                "package": { "type": "string", "description": "Upstream NPM package (almost always @wordpress/block-library)." },
+                "namespace": { "type": "string", "description": "Upstream block name (e.g. 'core/paragraph')." },
+                "pinnedVersion": { "type": "string", "description": "Semver of the upstream package the fork was last reconciled against." },
+                "subpath": { "type": "string", "description": "Subpath inside the upstream package's `src/` directory (e.g. 'paragraph' for core/paragraph)." }
+            }
+        },
+        "forkedAt": {
+            "type": "string",
+            "format": "date",
+            "description": "Original fork date (ISO 8601)."
+        },
+        "files": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "required": ["fork", "upstream", "status"],
+                "properties": {
+                    "fork": { "type": "string", "description": "Filename inside the block directory." },
+                    "upstream": { "type": "string", "description": "Filename inside the upstream src/<subpath>/. Use 'n/a' for fork-only files." },
+                    "status": {
+                        "type": "string",
+                        "enum": ["ported", "adapted", "extended", "rewritten", "added"],
+                        "description": "ported = byte-equivalent (CI fails on drift). adapted = TypeScript port / namespace swap (logically equivalent). extended = fork adds behavior on top. rewritten = fork replaced upstream entirely. added = file unique to the fork."
+                    },
+                    "notes": { "type": "string" }
+                }
+            }
+        },
+        "vendoredPrimitives": {
+            "type": "array",
+            "description": "Upstream block-library-private utilities vendored into blocks/_shared/ for this fork. Empty when the block uses only public @wordpress/* surface.",
+            "items": {
+                "type": "object",
+                "required": ["shared", "upstream"],
+                "properties": {
+                    "shared": { "type": "string", "description": "Path under blocks/_shared/." },
+                    "upstream": { "type": "string", "description": "Upstream path under @wordpress/block-library/src/." }
+                }
+            }
+        },
+        "knownDivergences": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Free-text notes explaining intentional deviations from upstream. Read by reviewers when triaging diff output."
+        },
+        "triage": {
+            "type": "object",
+            "properties": {
+                "label": { "type": "string", "enum": ["in-sync", "drift-acknowledged", "drift-pending", "blocked"] },
+                "lastReviewed": { "type": "string", "format": "date" },
+                "reviewer": { "type": "string" }
+            }
+        }
+    }
+}

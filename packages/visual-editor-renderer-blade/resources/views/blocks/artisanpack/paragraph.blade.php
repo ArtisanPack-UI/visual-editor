@@ -2,13 +2,13 @@
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 
 	/**
-	 * core/paragraph — server-rendered partial.
+	 * artisanpack/paragraph — server-rendered partial.
 	 *
-	 * Kept in lockstep with the artisanpack/paragraph partial so mixed
-	 * documents (during the V2 fork rollout window) render identically.
-	 * BlockSupports::applyAlign emits both `align{value}` and
-	 * `has-text-align-{value}` for left/center/right; the latter is the
-	 * class theme stylesheets actually target for paragraphs.
+	 * Output matches the upstream `core/paragraph` Blade partial so
+	 * documents containing either namespace render identically. The
+	 * `wp-block-paragraph` class is preserved; `has-drop-cap` is added
+	 * when the editor persisted `dropCap=true` and the text-align value
+	 * does not disable it (center, right in LTR, left in RTL).
 	 */
 
 	$content   = ( string ) ( $attributes['content'] ?? '' );
