@@ -59,6 +59,37 @@ export interface CanvasStyle {
  * no wrapper selector, so the CSS is injected into the iframe verbatim
  * (`transformStyles` is a no-op without a scope or `baseURL`).
  */
+/**
+ * Layout baseline rules — flex + grid.
+ *
+ * Upstream WP emits these rules at PAGE RENDER time via
+ * `WP_Block_Supports_Layout` (PHP front-end) and `useLayoutStyles`
+ * (editor — but only when the block has a non-default layout attribute
+ * like `justifyContent`; the `display: flex` rule itself is NOT
+ * emitted by `useLayoutStyles.getLayoutStyle` in
+ * `@wordpress/block-editor`). Neither the bundled
+ * `@wordpress/block-library/style.css` nor `editor.css` define
+ * `.is-layout-flex { display: flex }` as a static rule.
+ *
+ * Result inside the visual-editor iframe: blocks with
+ * `supports.layout.default.type = "flex"` in block.json (gallery,
+ * buttons, cover, group's row/stack variations) render with
+ * `is-layout-flex` on the wrapper but no flex display rule, so they
+ * fall back to block flow and inner blocks stack vertically.
+ *
+ * Ship the baseline rules statically here so the canvas matches the
+ * front-end (which gets the same rules via `<x-ve-blocks-styles>`).
+ * Generic `.is-layout-flex` / `.is-layout-grid` selectors mean
+ * per-block compound classes (`wp-block-gallery-is-layout-flex`, …)
+ * inherit without enumerating block names.
+ */
+const LAYOUT_BASELINE_STYLES = `
+.is-layout-flex { display: flex; flex-wrap: wrap; align-items: center; }
+.is-layout-flex > :is(*, div) { margin: 0; }
+.is-layout-grid { display: grid; }
+.is-layout-grid > :is(*, div) { margin: 0; }
+`;
+
 export const canvasStyles: readonly CanvasStyle[] = [
     { css: canvasThemeTokens },
     { css: componentsStyle },
@@ -66,6 +97,7 @@ export const canvasStyles: readonly CanvasStyle[] = [
     { css: blockEditorContent },
     { css: blockLibraryStyle },
     { css: blockLibraryEditor },
+    { css: LAYOUT_BASELINE_STYLES },
     { css: DEFAULT_CANVAS_STYLES },
     // Per-block wide/full overrides. Shared with the site editor —
     // both need the toolbar's alignment buttons to actually resize
