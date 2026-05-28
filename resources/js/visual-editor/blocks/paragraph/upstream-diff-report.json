@@ -20,7 +20,7 @@
             "status": "adapted",
             "notes": "TypeScript port. Adds explicit 'wp-block-paragraph' class to useBlockProps so the editor canvas matches frontend without depending on __experimentalSelector internals.",
             "result": "skipped-status",
-            "forkDigest": "6ca468016db9"
+            "forkDigest": "4027ad8ac9d4"
         },
         {
             "fork": "save.tsx",
@@ -28,7 +28,7 @@
             "status": "adapted",
             "notes": "TypeScript port; class list adds 'wp-block-paragraph' explicitly (parity with edit).",
             "result": "skipped-status",
-            "forkDigest": "037a8f7cb4f7"
+            "forkDigest": "32265eb64034"
         },
         {
             "fork": "deprecated.tsx",
@@ -52,7 +52,7 @@
             "status": "adapted",
             "notes": "TypeScript port; behavior unchanged.",
             "result": "skipped-status",
-            "forkDigest": "6dd7dff7ff34"
+            "forkDigest": "607f95bc0703"
         },
         {
             "fork": "use-deprecated-align.ts",

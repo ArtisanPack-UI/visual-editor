@@ -7,7 +7,7 @@
  */
 
 import { defineComponent, h } from 'vue';
-import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
+import { attrBoolean, attrInt, attrRecord, attrString, classList } from '../../support/attributes';
 import { blockRendererProps } from '../shared';
 
 export const ParagraphBlock = defineComponent({
@@ -15,7 +15,9 @@ export const ParagraphBlock = defineComponent({
     props: blockRendererProps,
     setup(props) {
         return () => {
-            const align = attrString(props.attributes.align);
+            const style = attrRecord(props.attributes.style);
+            const typography = attrRecord(style.typography);
+            const align = attrString(typography.textAlign, attrString(props.attributes.align));
             const className = attrString(props.attributes.className);
             const content = attrString(props.attributes.content);
             const dropCap = attrBoolean(props.attributes.dropCap);

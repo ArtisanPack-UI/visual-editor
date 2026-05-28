@@ -52,7 +52,7 @@ estimate.
 
 | Cluster | Blocks | Per-block factor | Why                                                                                                            |
 |---------|-------:|-----------------:|----------------------------------------------------------------------------------------------------------------|
-| I1 Content    |  8 | 1.0× | Heading, quote, list, list-item, code, preformatted, pullquote, verse, table. Shape similar to paragraph. Table adds a richer attribute surface (~1.3× for table alone). |
+| I1 Content    |  8 | 1.0× | Heading, quote, list, code, preformatted, pullquote, verse, table. Shape similar to paragraph. Table adds a richer attribute surface (~1.3× for table alone). |
 | I2 Media      |  8 | 1.4× | Image/gallery/video/audio/file/embed/cover/media-text touch the media-bridge contract. No bridge changes per plan 13 §3, but each block has 2–3× paragraph's attribute count. |
 | I3 Layout     |  8 logical / 6 source | 1.3× | Columns, group (+row +stack variations), buttons (+button), separator, spacer, details. Variations halve the porting cost for row/stack. The `grid`/`grid-item` split is a structural change worth +1 day on top of the cluster. |
 | I4 Widgets    |  2 | 1.2× | Search, latest-posts. Latest-posts is a dynamic block that requires a Blade dynamic renderer in addition to the static three-way parity. |

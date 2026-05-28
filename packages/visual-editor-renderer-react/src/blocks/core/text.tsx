@@ -6,11 +6,13 @@
  * React-rendered pages ship identical markup.
  */
 
-import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
+import { attrBoolean, attrInt, attrRecord, attrString, classList } from '../../support/attributes';
 import type { BlockRendererProps } from '../../types';
 
 export function ParagraphBlock({ attributes }: BlockRendererProps): JSX.Element {
-    const align = attrString(attributes.align);
+    const style = attrRecord(attributes.style);
+    const typography = attrRecord(style.typography);
+    const align = attrString(typography.textAlign, attrString(attributes.align));
     const className = attrString(attributes.className);
     const content = attrString(attributes.content);
     const dropCap = attrBoolean(attributes.dropCap);

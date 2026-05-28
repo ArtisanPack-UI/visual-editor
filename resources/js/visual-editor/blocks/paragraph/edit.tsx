@@ -79,8 +79,12 @@ function ParagraphRTLControl({ direction, setDirection }: ParagraphRTLControlPro
     );
 }
 
-function hasDropCapDisabled(align: string | undefined): boolean {
-    return align === (isRTL() ? 'left' : 'right') || align === 'center';
+function hasDropCapDisabled(
+    align: string | undefined,
+    direction: 'ltr' | 'rtl' | undefined
+): boolean {
+    const effectiveIsRtl = direction ? direction === 'rtl' : isRTL();
+    return align === (effectiveIsRtl ? 'left' : 'right') || align === 'center';
 }
 
 interface DropCapControlProps {
@@ -104,11 +108,11 @@ function DropCapControl({
         return null;
     }
 
-    const { style, dropCap } = attributes;
+    const { style, dropCap, direction } = attributes;
     const textAlign = style?.typography?.textAlign;
 
     let helpText;
-    if (hasDropCapDisabled(textAlign)) {
+    if (hasDropCapDisabled(textAlign, direction)) {
         helpText = __('Not available for aligned text.');
     } else if (dropCap) {
         helpText = __('Showing large initial letter.');
@@ -137,7 +141,7 @@ function DropCapControl({
                     checked={!!dropCap}
                     onChange={() => setAttributes({ dropCap: !dropCap })}
                     help={helpText}
-                    disabled={hasDropCapDisabled(textAlign)}
+                    disabled={hasDropCapDisabled(textAlign, direction)}
                 />
             </ToolsPanelItem>
         </InspectorControls>
@@ -160,7 +164,7 @@ export default function ParagraphEdit({
     const blockProps = useBlockProps({
         ref: useOnEnter({ clientId, content }),
         className: clsx('wp-block-paragraph', {
-            'has-drop-cap': hasDropCapDisabled(textAlign) ? false : dropCap,
+            'has-drop-cap': hasDropCapDisabled(textAlign, direction) ? false : dropCap,
         }),
         style: { direction },
     });

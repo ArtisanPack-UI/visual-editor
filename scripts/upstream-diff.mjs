@@ -50,6 +50,10 @@ for (let i = 0; i < args.length; i++) {
             console.error('--block requires a block name argument');
             process.exit(2);
         }
+        if (!/^[a-z0-9][a-z0-9-]*$/i.test(value)) {
+            console.error('--block must match ^[a-z0-9][a-z0-9-]*$ (no slashes, dots, or leading dash)');
+            process.exit(2);
+        }
         opts.block = value;
         i++;
     }
@@ -126,7 +130,7 @@ function analyzeBlock(blockName) {
     if (!upstreamSubpath) {
         return {
             block: blockName,
-            status: 'malformed-state',
+            status: 'error',
             note: 'upstream.subpath missing',
             files: [],
         };
@@ -165,6 +169,7 @@ function analyzeBlock(blockName) {
 
         if (!hasUpstream || file.upstream === 'n/a' || !fs.existsSync(upstreamPath)) {
             files.push({ ...file, result: 'upstream-missing' });
+            driftDetected = true;
             continue;
         }
 
@@ -217,21 +222,29 @@ function main() {
 
     const reports = targets.map(analyzeBlock);
     let anyDrift = false;
+    let anyError = false;
 
     for (const report of reports) {
         if (report.status === 'no-state') continue;
-        writeReport(report.block, report);
+        if (report.status !== 'error') {
+            writeReport(report.block, report);
+        }
         if (report.status === 'drift') anyDrift = true;
+        if (report.status === 'error') anyError = true;
     }
 
     if (opts.json) {
         console.log(JSON.stringify(reports, null, 4));
-        process.exit(anyDrift ? 1 : 0);
+        process.exit(anyError ? 2 : anyDrift ? 1 : 0);
     }
 
     for (const report of reports) {
         if (report.status === 'no-state') {
             console.log(`  --   ${report.block}: (not tracked)`);
+            continue;
+        }
+        if (report.status === 'error') {
+            console.error(`  ERR  ${report.block}: ${report.note ?? 'upstream-state.json validation failed'}`);
             continue;
         }
         const symbol = report.status === 'drift' ? 'fail' : ' ok ';
@@ -249,6 +262,11 @@ function main() {
                 console.log(file.diff.split('\n').map((l) => `           ${l}`).join('\n'));
             }
         }
+    }
+
+    if (anyError) {
+        console.error('\nupstream-state.json validation failed. Fix the state files above before retrying.');
+        process.exit(2);
     }
 
     if (anyDrift) {

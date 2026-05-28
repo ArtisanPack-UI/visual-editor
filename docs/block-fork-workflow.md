@@ -16,7 +16,7 @@ in sync with upstream after I0 lands.
 
 ## Anatomy of a forked block
 
-```
+```text
 resources/js/visual-editor/blocks/<name>/
 ├── block.json                  # name swapped to artisanpack/<name>
 ├── index.ts                    # auto-discovery entrypoint

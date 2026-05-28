@@ -32,9 +32,10 @@ interface ParagraphSaveProps {
 export default function ParagraphSave({ attributes }: ParagraphSaveProps): ReactElement {
     const { content, dropCap, direction, style } = attributes;
     const textAlign = style?.typography?.textAlign;
+    const effectiveIsRtl = direction ? direction === 'rtl' : isRTL();
     const className = clsx('wp-block-paragraph', {
         'has-drop-cap':
-            textAlign === (isRTL() ? 'left' : 'right') ||
+            textAlign === (effectiveIsRtl ? 'left' : 'right') ||
             textAlign === 'center'
                 ? false
                 : dropCap,
