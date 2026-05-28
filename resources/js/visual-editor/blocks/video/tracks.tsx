@@ -23,8 +23,8 @@ interface TracksProps {
 }
 
 export default function Tracks({ tracks = [] }: TracksProps): ReactElement[] {
-    return tracks.map((track) => {
+    return tracks.map((track, index) => {
         const { id, ...trackAttrs } = track;
-        return <track key={id ?? trackAttrs.src} {...trackAttrs} />;
+        return <track key={id ?? trackAttrs.src ?? index} {...trackAttrs} />;
     });
 }

@@ -66,7 +66,7 @@ export function stripFirstImage(
     return body.innerHTML.trim();
 }
 
-function getFirstAnchorAttributeFormHTML(
+function getFirstAnchorAttributeFromHTML(
     html: string,
     attributeName: string
 ): string | undefined {
@@ -217,7 +217,7 @@ const transforms = {
                         _attributes: unknown,
                         { shortcode }: ShortcodeContext
                     ) => {
-                        return getFirstAnchorAttributeFormHTML(
+                        return getFirstAnchorAttributeFromHTML(
                             shortcode.content,
                             'href'
                         );
@@ -228,7 +228,7 @@ const transforms = {
                         _attributes: unknown,
                         { shortcode }: ShortcodeContext
                     ) => {
-                        return getFirstAnchorAttributeFormHTML(
+                        return getFirstAnchorAttributeFromHTML(
                             shortcode.content,
                             'rel'
                         );
@@ -239,7 +239,7 @@ const transforms = {
                         _attributes: unknown,
                         { shortcode }: ShortcodeContext
                     ) => {
-                        return getFirstAnchorAttributeFormHTML(
+                        return getFirstAnchorAttributeFromHTML(
                             shortcode.content,
                             'class'
                         );

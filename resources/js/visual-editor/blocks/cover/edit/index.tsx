@@ -580,7 +580,7 @@ function CoverEdit({
             url: undefined,
             useFeaturedImage: newUseFeaturedImage,
             dimRatio: newDimRatio,
-            backgroundType: useFeaturedImage
+            backgroundType: newUseFeaturedImage
                 ? IMAGE_BACKGROUND_TYPE
                 : undefined,
             isDark: newIsDark,

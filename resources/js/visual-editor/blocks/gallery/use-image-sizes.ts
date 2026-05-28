@@ -31,7 +31,7 @@ export default function useImageSizes(
     isSelected: boolean,
     getSettings: GetSettings
 ): readonly ImageSizeOption[] | undefined {
-    return useMemo(getImageSizing, [images, isSelected]);
+    return useMemo(getImageSizing, [images, isSelected, getSettings]);
 
     function getImageSizing(): readonly ImageSizeOption[] | undefined {
         if (!images || images.length === 0) {

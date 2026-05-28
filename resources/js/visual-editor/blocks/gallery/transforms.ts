@@ -187,9 +187,7 @@ const transforms = {
             transform({
                 named: { ids, columns = 3, link, orderby, size },
             }: ShortcodeArgs) {
-                const imageIds = parseShortcodeIds(ids).map((id) =>
-                    parseInt(String(id), 10)
-                );
+                const imageIds = parseShortcodeIds(ids);
 
                 let linkTo: string = LINK_DESTINATION_NONE;
                 if (link === 'post') {

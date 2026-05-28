@@ -212,9 +212,9 @@ export const removeAspectRatioClasses = (
     );
     let outputClassNames = existingClassNames;
     for (const className of aspectRatioClassNames) {
-        outputClassNames = outputClassNames.replace(className, '');
+        outputClassNames = outputClassNames.split(className).join('');
     }
-    return outputClassNames.trim();
+    return outputClassNames.replace(/\s+/g, ' ').trim();
 };
 
 /**
