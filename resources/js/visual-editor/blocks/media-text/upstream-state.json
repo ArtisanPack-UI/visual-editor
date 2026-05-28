@@ -1,0 +1,45 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/media-text",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/media-text",
+        "pinnedVersion": "9.43.0",
+        "subpath": "media-text"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports/usesContext verbatim." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent to upstream including image-fill objectPosition styling and right-position layout branch." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full seven-entry deprecation chain (v1…v7) ported verbatim with TypeScript signatures; migrate functions (migrateDefaultAlign, migrateCustomColors, compose) preserved." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream block transforms for core/image, core/video, core/cover preserved both directions; added bidirectional core/media-text ↔ artisanpack/media-text block transforms (passing innerBlocks through)." },
+        { "fork": "constants.ts", "upstream": "constants.js", "status": "adapted", "notes": "TypeScript port; values byte-equivalent to upstream." },
+        { "fork": "image-fill.ts", "upstream": "image-fill.js", "status": "adapted", "notes": "TypeScript port of imageFillStyles; objectPosition math byte-equivalent." },
+        { "fork": "media-container.tsx", "upstream": "media-container.js", "status": "adapted", "notes": "TypeScript port of the resizable media container including ToolbarEditButton + PlaceholderContainer subcomponents and the ResizableBoxContainer forwardRef wrapper. ALLOWED_MEDIA_TYPES + behaviour preserved." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Replaces block-library-private imports (useToolsPanelDropdownMenuProps, ResolutionTool via unlock/blockEditorPrivateApis) with inline equivalents: a no-op dropdownMenuProps stub, and ResolutionTool omitted from the ToolsPanel. Everything else (linkDestination resolution, focal-point preview, width constraints, vertical alignment, inserter template, useEntityProp + useSelect featured-image wiring) is verbatim." },
+        { "fork": "media-text.css", "upstream": "style.scss + editor.scss", "status": "adapted", "notes": "Sass $break-small token from @wordpress/base-styles/breakpoints inlined as the 600px media query; nested selectors flattened to plain CSS." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (matches @wordpress/icons mediaAndText path)." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract; upstream init.js / index.php server-side wiring is intentionally absent." }
+    ],
+    "vendoredPrimitives": [
+        "media-container.tsx",
+        "image-fill.ts",
+        "constants.ts"
+    ],
+    "knownDivergences": [
+        "edit.tsx replaces the upstream `useToolsPanelDropdownMenuProps` helper (sourced from `@wordpress/block-library`'s private `utils/hooks`) with an inline no-op that returns an empty object. The ToolsPanel reset menu still works; only the optional dropdown affordance the hook adds is absent.",
+        "edit.tsx omits the per-block image-size ResolutionTool (sourced from `blockEditorPrivateApis` via the `unlock` helper). That UI is gated on private block-editor APIs not part of the package's `exports` field. Image-size selection still works via the standard image controls; only the per-block size picker is missing."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I2 media cluster"
+    }
+}
