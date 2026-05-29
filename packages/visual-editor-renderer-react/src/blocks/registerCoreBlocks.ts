@@ -127,6 +127,10 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/details': DetailsBlock,
     'artisanpack/details': DetailsBlock,
     'core/search': SearchBlock,
+    // Fork: artisanpack/search reuses the core/search renderer, which
+    // already carries the #338 button-icon a11y fix, so the forked block's
+    // front-end output is byte-equivalent. Phase I4 widgets cluster (#412).
+    'artisanpack/search': SearchBlock,
     'core/separator': SeparatorBlock,
     'artisanpack/separator': SeparatorBlock,
     'core/spacer': SpacerBlock,

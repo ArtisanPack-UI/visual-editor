@@ -1,0 +1,47 @@
+/**
+ * Search — styles.
+ *
+ * The fork reuses the upstream `wp-block-search*` class names, so the bulk
+ * of the front-end and editor styling is provided by the shared
+ * block-library stylesheet shipped with the renderer packages
+ * (`packages/visual-editor-renderer-blade/resources/assets/block-library/style.css`)
+ * and the editor's block-library baseline. Only the editor-canvas
+ * affordances that the resizable placeholder field needs are vendored here
+ * (ported from `@wordpress/block-library/src/search/editor.scss`,
+ * v9.43.0).
+ */
+
+.wp-block-search__inside-wrapper {
+	display: flex;
+	flex: auto;
+	flex-wrap: nowrap;
+	max-width: 100%;
+}
+
+.wp-block-search__input {
+	flex-grow: 1;
+	min-width: 3rem;
+	border: 1px solid #949494;
+}
+
+.wp-block-search__button {
+	display: flex;
+	align-items: center;
+	cursor: pointer;
+}
+
+.wp-block-search__button.has-icon {
+	padding: 6px;
+}
+
+.wp-block-search__button-icon {
+	width: 24px;
+	height: 24px;
+	min-width: 24px;
+	background-position: center;
+	background-repeat: no-repeat;
+}
+
+.wp-block-search__button-only .wp-block-search__inside-wrapper {
+	width: min-content;
+}

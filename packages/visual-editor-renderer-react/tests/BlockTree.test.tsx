@@ -574,6 +574,17 @@ describe('Core design blocks', () => {
         expect(renderTree(tree)).toContain('aria-label="Find stuff"');
     });
 
+    it('carries the #338 a11y fix forward to artisanpack/search (I4 fork)', () => {
+        const tree = [makeBlock('artisanpack/search', { buttonText: 'Go', buttonUseIcon: true })];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('class="wp-block-search__button has-icon"');
+        expect(html).toContain('aria-label="Go"');
+        expect(html).toContain('<svg class="wp-block-search__button-icon"');
+        expect(html).not.toContain('<button type="submit" class="wp-block-search__button"></button>');
+    });
+
     it('renders the artisanpack/callout reference block', () => {
         const tree = [
             makeBlock('artisanpack/callout', {
