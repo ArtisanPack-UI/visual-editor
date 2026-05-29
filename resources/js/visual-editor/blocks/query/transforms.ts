@@ -28,22 +28,25 @@ const transforms = {
         {
             type: 'block',
             blocks: [ 'core/query' ],
-            transform: ( attributes: QueryAttributes ) =>
-                createBlock( name, attributes ),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            transform: ( attributes: QueryAttributes, innerBlocks: any[] ) =>
+                createBlock( name, attributes, innerBlocks ),
         },
         {
             type: 'block',
             blocks: [ 'core/query-loop' ],
-            transform: ( attributes: QueryAttributes ) =>
-                createBlock( name, attributes ),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            transform: ( attributes: QueryAttributes, innerBlocks: any[] ) =>
+                createBlock( name, attributes, innerBlocks ),
         },
     ],
     to: [
         {
             type: 'block',
             blocks: [ 'core/query' ],
-            transform: ( attributes: QueryAttributes ) =>
-                createBlock( 'core/query', attributes ),
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            transform: ( attributes: QueryAttributes, innerBlocks: any[] ) =>
+                createBlock( 'core/query', attributes, innerBlocks ),
         },
     ],
 };

@@ -9,7 +9,7 @@
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "queryId": {
-            "type": "number"
+            "type": "string"
         },
         "query": {
             "type": "object",
