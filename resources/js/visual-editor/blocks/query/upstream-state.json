@@ -1,0 +1,39 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/query",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/query",
+        "pinnedVersion": "9.43.0",
+        "subpath": "query"
+    },
+    "forkedAt": "2026-05-29",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to the artisanpack namespace; attribute schema (incl. the nested query object defaults), usesContext + providesContext + supports carried verbatim. editorStyle handle dropped." },
+        { "fork": "edit.tsx", "upstream": "edit/index.js (+ 16 subcomponents)", "status": "rewritten", "notes": "Upstream's Edit pulls getTaxonomies/getEntityRecords selectors the post editor's core-data shim does not implement (variation picker, toolbar, per-record preview). The fork mirrors the V1 core/query override: a thin Edit that previews the first matching post via useQueryPreview (POST /visual-editor/api/query/resolve), pushes its postId into a BlockContextProvider, and renders <InnerBlocks />. The 16-file upstream edit/ tree is not carried." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "ported", "notes": "tagName wrapper around useInnerBlocksProps.save(useBlockProps.save()) — byte-equivalent saved markup. Expanded per-result by the server-side QueryInliner." },
+        { "fork": "transforms.ts", "upstream": "n/a (variation-driven)", "status": "added", "notes": "Upstream transforms are variation-driven and not carried. The fork adds bidirectional core/query ↔ artisanpack/query rollout transforms plus a one-way core/query-loop → artisanpack/query conversion (query-loop is the deprecated upstream alias for core/query)." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG mirroring @wordpress/icons' loop icon." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract; variations + deprecated not carried (see knownDivergences)." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx previews via useQueryPreview instead of upstream's client-side core-data query + variation picker — the shim does not implement getTaxonomies/getEntityRecords; the saved page renders every matching post via the server-side QueryInliner. Mirrors the V1 core/query override.",
+        "variations.js (Title & Date / Title & Excerpt / Title, Date & Excerpt / Image, Date & Title) is NOT carried — the variation picker mounts toolbar chrome that calls getTaxonomies({per_page:-1}), a selector the shim does not implement. Same reason the V1 override strips them. Variations are an editor-UI convenience and are not part of the saved block shape, so dropping them is attribute-compatible.",
+        "deprecated.js (the upstream 6-entry deprecation chain) is NOT carried. It only migrates legacy core/query saved markup — which still deserializes through the still-registered core/query block and its own chain — and imports the block-library-private ../lock-unlock. No content can be persisted under the new artisanpack/query name before 1.0 GA (the no-migration window, plan 13 §2.1), so the chain would never fire on artisanpack/query content. Carrying it (and vendoring lock-unlock) is deferred to a later customization pass.",
+        "core/query-loop is the deprecated upstream alias for core/query (no standalone block source in @wordpress/block-library v9.43.0); the fork folds it in via a one-way transform rather than registering a separate artisanpack/query-loop block.",
+        "Renderer parity reuses the existing core/query QueryBlock / PostTemplateBlock wrappers (react/vue) and the bladeDynamic path — artisanpack/query + artisanpack/post-template are added to packages/renderer-parity.json."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-29",
+        "reviewer": "I6 loop / feed cluster"
+    }
+}

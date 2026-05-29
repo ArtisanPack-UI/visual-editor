@@ -1,0 +1,39 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/tag-cloud",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/tag-cloud",
+        "pinnedVersion": "9.43.0",
+        "subpath": "tag-cloud"
+    },
+    "forkedAt": "2026-05-29",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to the artisanpack namespace; attribute schema, styles (default/outline), and supports carried verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "rewritten", "notes": "Upstream calls getTaxonomies({per_page:-1}) via @wordpress/core-data; the shim does not implement that selector and tags are resolved server-side, so the fork previews through the package's <ServerSideRender> seam and ports the inspector controls (number of tags, show counts, smallest/largest size) to PanelBody. Mirrors the V1 taxonomy-archive override's TagCloudEdit." },
+        { "fork": "save.tsx", "upstream": "n/a", "status": "added", "notes": "Dynamic block — returns null; markup produced by TagCloudBlock::render()." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "adapted", "notes": "Carries the upstream categories↔tag-cloud convenience transform (renamespaced to artisanpack/categories) and adds the bidirectional core/tag-cloud ↔ artisanpack/tag-cloud rollout transforms." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG mirroring @wordpress/icons' tag icon." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract; upstream PHP-side init wiring not carried." },
+        { "fork": "../../../../src/Blocks/Core/TagCloudBlock.php", "upstream": "index.php", "status": "rewritten", "notes": "Server renderer reimplemented against cms-framework's PostTag model (a DynamicBlock) rather than WP_Query. name() renamed core/tag-cloud → artisanpack/tag-cloud at the I6 fork (mirroring LatestPostsBlock at I4)." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx previews via <ServerSideRender> instead of upstream's client-side core-data query — the core-data shim does not implement getTaxonomies and tags are resolved server-side.",
+        "Inspector ported to PanelBody instead of upstream's ToolsPanel (drops the block-library-internal useToolsPanelDropdownMenuProps hook); smallest/largest size use fixed SelectControl option lists rather than the upstream UnitControl.",
+        "tag-cloud is a dynamic block, so (like core/categories, core/archives, artisanpack/latest-posts, artisanpack/form) it is handled by the Blade DynamicBlockRegistry and is not listed in packages/renderer-parity.json — the React/Vue static renderers do not register it.",
+        "transforms.ts adds bidirectional core/tag-cloud ↔ artisanpack/tag-cloud block transforms that don't exist upstream — required to coexist with core/tag-cloud during the V1 rollout."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-29",
+        "reviewer": "I6 loop / feed cluster"
+    }
+}

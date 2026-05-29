@@ -55,11 +55,17 @@ it( 'expands core/query into one post-template instance per result', function ()
 
 	$query = $inlined[0];
 
+	// The query keeps one post-template child; its innerBlocks hold
+	// one _query-iteration per result, each wrapping the stamped template.
+	$postTemplate = $query['innerBlocks'][0];
+
 	expect( $query['name'] )->toBe( 'core/query' )
-		->and( count( $query['innerBlocks'] ) )->toBe( 2 )
-		->and( $query['innerBlocks'][0]['name'] )->toBe( 'core/post-template' )
-		->and( $query['innerBlocks'][0]['innerBlocks'][0]['attributes']['_resolvedTitle'] )->toBe( 'First' )
-		->and( $query['innerBlocks'][1]['innerBlocks'][0]['attributes']['_resolvedTitle'] )->toBe( 'Second' );
+		->and( count( $query['innerBlocks'] ) )->toBe( 1 )
+		->and( $postTemplate['name'] )->toBe( 'core/post-template' )
+		->and( count( $postTemplate['innerBlocks'] ) )->toBe( 2 )
+		->and( $postTemplate['innerBlocks'][0]['name'] )->toBe( '_query-iteration' )
+		->and( $postTemplate['innerBlocks'][0]['innerBlocks'][0]['attributes']['_resolvedTitle'] )->toBe( 'First' )
+		->and( $postTemplate['innerBlocks'][1]['innerBlocks'][0]['attributes']['_resolvedTitle'] )->toBe( 'Second' );
 } );
 
 it( 'forwards the nested query attribute payload to the resolver', function () {
@@ -162,8 +168,10 @@ it( 'deep-clones the template subtree per result so mutations do not leak', func
 
 	$inlined = $this->inliner->inline( $tree );
 
-	$first  = $inlined[0]['innerBlocks'][0]['innerBlocks'][0];
-	$second = $inlined[0]['innerBlocks'][1]['innerBlocks'][0];
+	// Post-template → _query-iteration[0] → post-title, iteration[1] → post-title.
+	$postTemplate = $inlined[0]['innerBlocks'][0];
+	$first  = $postTemplate['innerBlocks'][0]['innerBlocks'][0];
+	$second = $postTemplate['innerBlocks'][1]['innerBlocks'][0];
 
 	expect( $first['attributes']['_resolvedTitle'] )->toBe( 'A' )
 		->and( $second['attributes']['_resolvedTitle'] )->toBe( 'B' );

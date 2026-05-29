@@ -60,12 +60,23 @@ export function PostTemplateBlock({ attributes, children }: BlockRendererProps):
     const layout = attrString(attributes.layout);
     const layoutType = attrString(attributes.layoutType);
     const isGrid = layout === 'grid' || layoutType === 'grid';
+    const columns = typeof attributes.columns === 'number' ? attributes.columns : 3;
 
     const classes = classList([
         'wp-block-post-template',
         isGrid ? 'is-layout-grid' : 'is-layout-flow',
+        isGrid ? `columns-${columns}` : '',
         className,
     ]);
 
     return <ul className={classes}>{children}</ul>;
+}
+
+export function QueryIterationBlock({ attributes, children }: BlockRendererProps): JSX.Element {
+    const postId = typeof attributes.postId === 'number' ? attributes.postId : 0;
+    const className = attrString(attributes.className);
+
+    const classes = classList(['wp-block-post', className]);
+
+    return <li id={`post-${postId}`} className={classes}>{children}</li>;
 }

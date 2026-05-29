@@ -31,7 +31,7 @@ class TagCloudBlock extends DynamicBlock
 {
 	public function name(): string
 	{
-		return 'core/tag-cloud';
+		return 'artisanpack/tag-cloud';
 	}
 
 	public function validateAttrs( array $attrs ): array

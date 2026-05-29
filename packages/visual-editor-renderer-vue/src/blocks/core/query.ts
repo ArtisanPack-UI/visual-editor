@@ -61,6 +61,7 @@ export const PostTemplateBlock = defineComponent({
             const layout = attrString(props.attributes.layout);
             const layoutType = attrString(props.attributes.layoutType);
             const isGrid = layout === 'grid' || layoutType === 'grid';
+            const columns = typeof props.attributes.columns === 'number' ? props.attributes.columns : 3;
 
             return h(
                 'ul',
@@ -68,8 +69,29 @@ export const PostTemplateBlock = defineComponent({
                     class: classList([
                         'wp-block-post-template',
                         isGrid ? 'is-layout-grid' : 'is-layout-flow',
+                        isGrid ? `columns-${columns}` : '',
                         className,
                     ]),
+                },
+                slots.default?.()
+            );
+        };
+    },
+});
+
+export const QueryIterationBlock = defineComponent({
+    name: 'QueryIterationBlock',
+    props: blockRendererProps,
+    setup(props, { slots }) {
+        return () => {
+            const postId = typeof props.attributes.postId === 'number' ? props.attributes.postId : 0;
+            const className = attrString(props.attributes.className);
+
+            return h(
+                'li',
+                {
+                    id: `post-${postId}`,
+                    class: classList(['wp-block-post', className]),
                 },
                 slots.default?.()
             );

@@ -30,7 +30,7 @@ class CategoriesBlock extends DynamicBlock
 {
 	public function name(): string
 	{
-		return 'core/categories';
+		return 'artisanpack/categories';
 	}
 
 	public function validateAttrs( array $attrs ): array

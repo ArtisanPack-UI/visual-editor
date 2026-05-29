@@ -35,7 +35,7 @@ class ArchivesBlock extends DynamicBlock
 {
 	public function name(): string
 	{
-		return 'core/archives';
+		return 'artisanpack/archives';
 	}
 
 	public function validateAttrs( array $attrs ): array
