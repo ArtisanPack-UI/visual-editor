@@ -79,6 +79,17 @@
         "artisanpack/separator",
         "artisanpack/spacer",
         "artisanpack/details",
-        "artisanpack/search"
+        "artisanpack/search",
+        "artisanpack/template-part",
+        "artisanpack/post-title",
+        "artisanpack/post-content",
+        "artisanpack/post-excerpt",
+        "artisanpack/post-date",
+        "artisanpack/post-author",
+        "artisanpack/post-featured-image",
+        "artisanpack/site-title",
+        "artisanpack/site-tagline",
+        "artisanpack/site-logo",
+        "artisanpack/navigation"
     ]
 }

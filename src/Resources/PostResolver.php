@@ -46,6 +46,13 @@ class PostResolver
 		'core/post-date',
 		'core/post-author',
 		'core/post-featured-image',
+		// Phase I5 forks (#413) — same `_resolved*` contract, new namespace.
+		'artisanpack/post-title',
+		'artisanpack/post-content',
+		'artisanpack/post-excerpt',
+		'artisanpack/post-date',
+		'artisanpack/post-author',
+		'artisanpack/post-featured-image',
 	];
 
 	/**
@@ -114,14 +121,19 @@ class PostResolver
 	 */
 	protected function resolveAttributesFor( string $name, object $post ): array
 	{
-		return match ( $name ) {
-			'core/post-title'          => $this->resolveTitle( $post ),
-			'core/post-content'        => $this->resolveContent( $post ),
-			'core/post-excerpt'        => $this->resolveExcerpt( $post ),
-			'core/post-date'           => $this->resolveDate( $post ),
-			'core/post-author'         => $this->resolveAuthor( $post ),
-			'core/post-featured-image' => $this->resolveFeaturedImage( $post ),
-			default                    => [],
+		// Match on the unqualified block slug so both the `core/*` blocks
+		// and their Phase I5 `artisanpack/*` forks (#413) resolve through
+		// the same branch.
+		$slug = str_contains( $name, '/' ) ? substr( $name, strpos( $name, '/' ) + 1 ) : $name;
+
+		return match ( $slug ) {
+			'post-title'          => $this->resolveTitle( $post ),
+			'post-content'        => $this->resolveContent( $post ),
+			'post-excerpt'        => $this->resolveExcerpt( $post ),
+			'post-date'           => $this->resolveDate( $post ),
+			'post-author'         => $this->resolveAuthor( $post ),
+			'post-featured-image' => $this->resolveFeaturedImage( $post ),
+			default               => [],
 		};
 	}
 

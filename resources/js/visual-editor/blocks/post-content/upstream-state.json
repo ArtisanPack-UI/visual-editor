@@ -1,0 +1,67 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/post-content",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/post-content",
+        "pinnedVersion": "9.43.0",
+        "subpath": "post-content"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; attribute schema, supports, usesContext/providesContext carried verbatim for parity."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Previews via the lightweight createEntityPlaceholderEdit helper (renders the stamped _resolved* value when present, otherwise a labelled placeholder). Upstream edit.js is intentionally NOT delegated for the post-*/site-* display blocks: it queries the page/site/user entity through @wordpress/core-data, which the post editor does not populate, so upstream renders empty (site-*) or crashes (post-author unlocks block-editor private APIs). Front-end markup is produced server-side from the stamped _resolved* attributes."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Dynamic block — returns null; markup produced server-side from stamped _resolved* attributes."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Bidirectional core/post-content ↔ artisanpack/post-content block transforms for the rollout window."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG inserter icon (editor lacks dashicons.css)."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx previews via createEntityPlaceholderEdit rather than upstream edit.js — the core-data shim does not expose the page/site/user entity to the post editor, so the upstream entity-querying edit renders empty or crashes. Live in-editor entity values would require expanding the shim (out of scope for the fork).",
+        "post-content is server-rendered: the front-end markup is produced by the Blade/React/Vue renderers from stamped _resolved* attributes, not by save().",
+        "transforms.ts adds bidirectional block transforms that do not exist upstream — required to coexist with core/post-content during the V1 rollout."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I5 entity cluster"
+    }
+}

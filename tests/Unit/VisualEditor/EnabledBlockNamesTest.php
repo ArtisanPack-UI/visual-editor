@@ -16,7 +16,9 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 	// post-, site-, navigation, and template-part blocks on the back of
 	// B1's expanded core-data shim and the C-series REST surface. G4b
 	// (#401) added the taxonomy/feed widgets that the cms-framework
-	// term + post APIs back through the dynamic-block registry.
+	// term + post APIs back through the dynamic-block registry. I5 (#413)
+	// forked the entity cluster, so those eleven entries now expose only
+	// the artisanpack/* names.
 	expect( $editor->getEnabledBlockNames() )->toBe( [
 		// Forked clusters expose only the artisanpack/* names; the core/*
 		// counterparts stay registered but are dropped from the allow-list.
@@ -37,17 +39,17 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 		'artisanpack/embed',
 		'artisanpack/cover',
 		'artisanpack/media-text',
-		'core/template-part',
-		'core/post-title',
-		'core/post-content',
-		'core/post-excerpt',
-		'core/post-date',
-		'core/post-author',
-		'core/post-featured-image',
-		'core/site-title',
-		'core/site-tagline',
-		'core/site-logo',
-		'core/navigation',
+		'artisanpack/template-part',
+		'artisanpack/post-title',
+		'artisanpack/post-content',
+		'artisanpack/post-excerpt',
+		'artisanpack/post-date',
+		'artisanpack/post-author',
+		'artisanpack/post-featured-image',
+		'artisanpack/site-title',
+		'artisanpack/site-tagline',
+		'artisanpack/site-logo',
+		'artisanpack/navigation',
 		'core/categories',
 		'core/tag-cloud',
 		'core/archives',
