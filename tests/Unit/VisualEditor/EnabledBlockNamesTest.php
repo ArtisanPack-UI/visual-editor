@@ -20,8 +20,8 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 	// forked the entity cluster, so those eleven entries now expose only
 	// the artisanpack/* names.
 	expect( $editor->getEnabledBlockNames() )->toBe( [
-		// Forked clusters expose only the artisanpack/* names; the core/*
-		// counterparts stay registered but are dropped from the allow-list.
+		// I7 (#415): all blocks now use the artisanpack/* namespace.
+		// Core blocks are no longer registered.
 		'artisanpack/paragraph',
 		'artisanpack/heading',
 		'artisanpack/list',
@@ -50,11 +50,11 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 		'artisanpack/site-tagline',
 		'artisanpack/site-logo',
 		'artisanpack/navigation',
-		'core/categories',
-		'core/tag-cloud',
-		'core/archives',
-		'core/query',
-		'core/post-template',
+		'artisanpack/categories',
+		'artisanpack/tag-cloud',
+		'artisanpack/archives',
+		'artisanpack/query',
+		'artisanpack/post-template',
 		'artisanpack/callout',
 		'artisanpack/group',
 		'artisanpack/row',

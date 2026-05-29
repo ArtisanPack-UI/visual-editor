@@ -2,18 +2,12 @@ import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Stub the Gutenberg block-library registration pathway: loading it
-// under jsdom pulls in the full block catalog which fails on strict
-// JSON-attribute ESM rules. The shell tests don't exercise block
-// rendering; they only care that the shell wires regions correctly.
-vi.mock('@wordpress/blocks', () => ({
-    getBlockType: (): undefined => undefined,
-    getBlockTypes: (): never[] => [],
-    unregisterBlockType: (): void => undefined,
-}));
-
-vi.mock('@wordpress/block-library', () => ({
-    registerCoreBlocks: (): void => undefined,
+// Stub the artisanpack block registration entrypoint: loading it under
+// jsdom pulls in the full block catalog via Vite's import.meta.glob
+// which fails outside a Vite transform. The shell tests don't exercise
+// block rendering; they only care that the shell wires regions correctly.
+vi.mock('../../blocks', () => ({
+    registerArtisanPackBlocks: (): void => undefined,
 }));
 
 // #436: the shell now imports `BlockEditorBoundary` directly to wrap
@@ -197,18 +191,6 @@ vi.mock('../navigation/navigation-section', () => {
 
 vi.mock('../../editor/synced-pattern-indicator', () => ({
     registerSyncedPatternIndicator: () => undefined,
-}));
-
-// G4b — stub the taxonomy/archive Edit override registration to avoid
-// pulling `@wordpress/block-editor` + `@wordpress/components` into the
-// shell test's import graph.
-vi.mock('../../editor/taxonomy-archive-block-overrides', () => ({
-    registerTaxonomyAndArchiveBlockOverrides: () => undefined,
-}));
-
-// G4c-2 — same reasoning for the `core/query` override.
-vi.mock('../../editor/query-block-override', () => ({
-    registerCoreQueryBlockOverride: () => undefined,
 }));
 
 import { SiteEditorApp } from '../site-editor-app';

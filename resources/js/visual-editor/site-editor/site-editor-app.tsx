@@ -16,8 +16,6 @@
  */
 
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
-import { getBlockType, getBlockTypes, unregisterBlockType } from '@wordpress/blocks';
-import { registerCoreBlocks } from '@wordpress/block-library';
 import { __, sprintf } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN, bootI18n } from '../vendor/i18n';
@@ -47,11 +45,11 @@ import {
 } from './template-parts-section';
 import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
+import { registerArtisanPackBlocks } from '../blocks';
+
 import { BlockLibrarySidebar } from '../editor/block-library-sidebar';
 import { TopBar } from '../editor/top-bar';
-import { registerCoreQueryBlockOverride } from '../editor/query-block-override';
 import { registerSyncedPatternIndicator } from '../editor/synced-pattern-indicator';
-import { registerTaxonomyAndArchiveBlockOverrides } from '../editor/taxonomy-archive-block-overrides';
 
 import './site-editor-app.css';
 
@@ -149,35 +147,6 @@ export interface SiteEditorAppProps {
 
 let editorBooted = false;
 
-/**
- * Core blocks the site-editor deliberately leaves unregistered.
- *
- * D2 originally disabled the entity-scoped post-/site-/template-part
- * blocks alongside the loop + feed widgets because their `Edit`
- * components depended on core-data selectors the M2 shim did not
- * implement. E4 re-enables every entity-scoped block on the back of
- * B1's expanded shim plus the C1–C5 REST surface. G4b (#401) re-enables
- * `core/categories`, `core/tag-cloud`, and `core/archives` because
- * their upstream `Edit` components render through `ServerSideRender`
- * — the visual-editor's preview endpoint resolves them via the
- * dynamic-block registry against cms-framework's term and post APIs.
- * The loop and comments widgets stay disabled because they still need
- * a real loop runtime (V1 G4c) and a Comments module in cms-framework
- * (V1.1+) respectively.
- *
- * Mirrors the PHP `disabled_blocks` list in
- * `config/visual-editor.php` — the two lists want to agree, and the
- * commit that promotes a block out of one promotes it out of the other.
- */
-const D2_DISABLED_BLOCKS: ReadonlyArray<string> = [
-    // G4c-2 (#402) leaves the deprecated `core/query-loop` alias in
-    // the deny-list (upstream no longer ships an `Edit`) plus
-    // `core/latest-comments` which needs the V1.1 cms-framework
-    // Comments module before it can resolve.
-    'core/query-loop',
-    'core/latest-comments',
-];
-
 function ensureEditorBoot(): void {
     if (editorBooted) {
         return;
@@ -186,42 +155,13 @@ function ensureEditorBoot(): void {
     bootI18n();
 
     // Mount D5's synced-pattern indicator filter before block
-    // registration so `core/block` reference blocks get the badge from
-    // the first render. Idempotent across HMR.
+    // registration so `artisanpack/block` reference blocks get the badge
+    // from the first render. Idempotent across HMR.
     registerSyncedPatternIndicator();
 
-    // G4b — swap the broken upstream Edit components for
-    // `core/categories`, `core/tag-cloud`, and `core/archives` with our
-    // ServerSideRender-backed wrappers BEFORE `registerCoreBlocks()` so
-    // the override applies during initial registration.
-    registerTaxonomyAndArchiveBlockOverrides();
-    // G4c-2 — `core/query` Edit override.
-    registerCoreQueryBlockOverride();
-
-    // Register core blocks before the first template loads so `parse()`
-    // can turn the saved raw serialization back into BlockInstances
-    // Gutenberg can render. Probe for `core/paragraph` specifically —
-    // a length > 0 registry isn't enough, since a host app may have
-    // registered an unrelated block before this boot runs and we'd
-    // silently skip the core set. Paragraph is the canonical "is core
-    // loaded?" sentinel.
-    if (getBlockType('core/paragraph') === undefined) {
-        registerCoreBlocks();
-    }
-
-    // Strip out the out-of-scope blocks. `unregisterBlockType` throws a
-    // console warning when the target was never registered (e.g. a
-    // narrower `registerCoreBlocks` build) — check the registry first so
-    // host apps that ship a trimmed core don't see spurious noise.
-    const registered = new Set(
-        getBlockTypes().map((type: { name: string }) => type.name)
-    );
-
-    for (const name of D2_DISABLED_BLOCKS) {
-        if (registered.has(name)) {
-            unregisterBlockType(name);
-        }
-    }
+    // I7 (#415): register all artisanpack/* blocks and set the default
+    // block to artisanpack/paragraph. Core blocks are no longer loaded.
+    registerArtisanPackBlocks();
 
     editorBooted = true;
 }

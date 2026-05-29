@@ -1,7 +1,76 @@
 # Block Library Audit
 
+> **I7 cutover (#415):** As of V1, all enabled blocks use the
+> `artisanpack/*` namespace. `@wordpress/block-library`'s
+> `registerCoreBlocks()` is no longer called — the editor registers only
+> the forked blocks discovered under `resources/js/visual-editor/blocks/`.
+> The `core/*` column below is preserved for the upstream diff trail.
+
+## Fork mapping — `core/*` → `artisanpack/*`
+
+| Upstream (`core/*`) | Fork (`artisanpack/*`) | Cluster |
+| --- | --- | --- |
+| `core/paragraph` | `artisanpack/paragraph` | I0 |
+| `core/heading` | `artisanpack/heading` | I1 |
+| `core/list` | `artisanpack/list` | I1 |
+| `core/list-item` | `artisanpack/list-item` | I1 |
+| `core/quote` | `artisanpack/quote` | I1 |
+| `core/code` | `artisanpack/code` | I1 |
+| `core/preformatted` | `artisanpack/preformatted` | I1 |
+| `core/pullquote` | `artisanpack/pullquote` | I1 |
+| `core/verse` | `artisanpack/verse` | I1 |
+| `core/table` | `artisanpack/table` | I1 |
+| `core/image` | `artisanpack/image` | I2 |
+| `core/gallery` | `artisanpack/gallery` | I2 |
+| `core/video` | `artisanpack/video` | I2 |
+| `core/audio` | `artisanpack/audio` | I2 |
+| `core/file` | `artisanpack/file` | I2 |
+| `core/embed` | `artisanpack/embed` | I2 |
+| `core/cover` | `artisanpack/cover` | I2 |
+| `core/media-text` | `artisanpack/media-text` | I2 |
+| `core/columns` | `artisanpack/columns` | I3 |
+| `core/column` | `artisanpack/column` | I3 |
+| `core/group` | `artisanpack/group` | I3 |
+| `core/row` | `artisanpack/row` (variation of group) | I3 |
+| `core/stack` | `artisanpack/stack` (variation of group) | I3 |
+| `core/buttons` | `artisanpack/buttons` | I3 |
+| `core/button` | `artisanpack/button` | I3 |
+| `core/separator` | `artisanpack/separator` | I3 |
+| `core/spacer` | `artisanpack/spacer` | I3 |
+| `core/details` | `artisanpack/details` | I3 |
+| `core/search` | `artisanpack/search` | I4 |
+| `core/latest-posts` | `artisanpack/latest-posts` | I4 |
+| `core/template-part` | `artisanpack/template-part` | I5 |
+| `core/post-title` | `artisanpack/post-title` | I5 |
+| `core/post-content` | `artisanpack/post-content` | I5 |
+| `core/post-excerpt` | `artisanpack/post-excerpt` | I5 |
+| `core/post-date` | `artisanpack/post-date` | I5 |
+| `core/post-author` | `artisanpack/post-author` | I5 |
+| `core/post-featured-image` | `artisanpack/post-featured-image` | I5 |
+| `core/site-title` | `artisanpack/site-title` | I5 |
+| `core/site-tagline` | `artisanpack/site-tagline` | I5 |
+| `core/site-logo` | `artisanpack/site-logo` | I5 |
+| `core/navigation` | `artisanpack/navigation` | I5 |
+| `core/archives` | `artisanpack/archives` | I6 |
+| `core/categories` | `artisanpack/categories` | I6 |
+| `core/tag-cloud` | `artisanpack/tag-cloud` | I6 |
+| `core/query` | `artisanpack/query` | I6 |
+| `core/post-template` | `artisanpack/post-template` | I6 |
+
+Additional package-native block (no upstream counterpart):
+- `artisanpack/callout`
+- `artisanpack/form` (V1.1+)
+
+---
+
+The sections below document the original upstream audit against
+`@wordpress/block-library` v9.44.0 and the `@wordpress/core-data` shim.
+They are preserved for the diff trail — the upstream `core/*` names
+below correspond to the `artisanpack/*` forks listed in the mapping
+table above.
+
 Classification of every block registered by `@wordpress/block-library` (v9.44.0)
-against the current editor's empty-state `@wordpress/core-data` shim
+against the editor's `@wordpress/core-data` shim
 (`resources/js/visual-editor/vendor/core-data-shim.ts`).
 
 Each block falls into one of four buckets:
@@ -21,8 +90,7 @@ Each block falls into one of four buckets:
   as **disabled-by-default** until the `artisanpack-ui/cms-framework` package
   provides a real Laravel-backed `core` store.
 - **crash** — throws on insert or first render because the shim does not
-  implement the selector or action the block expects. Permanently in
-  `disabled_blocks` until the offending surface is implemented.
+  implement the selector or action the block expects. Not registered.
 
 The frozen config defaults follow this audit exactly — see
 `config/visual-editor.php`.

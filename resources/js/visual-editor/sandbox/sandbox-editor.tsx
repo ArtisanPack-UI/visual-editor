@@ -6,10 +6,10 @@ import {
     BlockTools,
     WritingFlow,
 } from '@wordpress/block-editor';
-import { registerCoreBlocks } from '@wordpress/block-library';
 import { Popover, SlotFillProvider } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
+import { registerArtisanPackBlocks } from '../blocks';
 import { bootI18n, TEXT_DOMAIN } from '../vendor/i18n';
 import {
     ensureMediaBridgeFilter,
@@ -24,15 +24,13 @@ import '@wordpress/block-library/build-style/editor.css';
 
 bootI18n();
 ensureMediaBridgeFilter();
-registerCoreBlocks();
+registerArtisanPackBlocks();
 
 const initialBlocks: BlockInstance[] = [
-    createBlock('core/paragraph', {
+    createBlock('artisanpack/paragraph', {
         content: __('Hello from the Gutenberg sandbox.', TEXT_DOMAIN),
     }),
-    // Sanity-check for the M2 core-data shim: the image block's placeholder
-    // renders against the (empty) `core` store without crashing. See #312.
-    createBlock('core/image', {}),
+    createBlock('artisanpack/image', {}),
 ];
 
 // `MediaUploadCheck` (in @wordpress/block-editor) hides the "Media Library"

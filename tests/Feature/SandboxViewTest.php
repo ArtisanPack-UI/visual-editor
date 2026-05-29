@@ -45,11 +45,10 @@ test('sandbox editor component mounts BlockEditorProvider against a hardcoded bl
 
     expect($contents)->toContain("from '@wordpress/blocks'");
     expect($contents)->toContain("from '@wordpress/block-editor'");
-    expect($contents)->toContain("from '@wordpress/block-library'");
     expect($contents)->toContain("from '@wordpress/components'");
     expect($contents)->toContain("from '@wordpress/i18n'");
     expect($contents)->toContain('BlockEditorProvider');
-    expect($contents)->toContain('registerCoreBlocks()');
+    expect($contents)->toContain('registerArtisanPackBlocks()');
     expect($contents)->toContain('createBlock(');
 });
 
@@ -58,10 +57,11 @@ test('package.json pins the @wordpress/* dependencies exactly', function () use 
 
     expect($packageJson)->toBeArray();
 
+    // Runtime @wordpress/* dependencies (block-library is devDependency
+    // since I7 — it provides CSS only, no runtime JS).
     $required = [
         '@wordpress/blocks',
         '@wordpress/block-editor',
-        '@wordpress/block-library',
         '@wordpress/components',
         '@wordpress/i18n',
     ];
@@ -75,6 +75,14 @@ test('package.json pins the @wordpress/* dependencies exactly', function () use 
             ->not->toStartWith('~')
             ->toMatch('/^\d+\.\d+\.\d+/', "{$pkg} must be exact-pinned, got: {$version}");
     }
+
+    // block-library is pinned as a devDependency (CSS-only after I7).
+    expect($packageJson['devDependencies'])->toHaveKey('@wordpress/block-library');
+    $blVersion = $packageJson['devDependencies']['@wordpress/block-library'];
+    expect($blVersion)
+        ->not->toStartWith('^')
+        ->not->toStartWith('~')
+        ->toMatch('/^\d+\.\d+\.\d+/', "@wordpress/block-library must be exact-pinned, got: {$blVersion}");
 });
 
 test('package.json pins react and react-dom exactly to match Gutenberg peers', function () use ($packageJsonPath) {

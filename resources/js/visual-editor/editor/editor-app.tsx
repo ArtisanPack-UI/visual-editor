@@ -17,7 +17,6 @@ import {
 } from 'react';
 import { Alert, ToastProvider } from '@artisanpack-ui/react/feedback';
 import { BlockEditorProvider } from '@wordpress/block-editor';
-import { registerCoreBlocks } from '@wordpress/block-library';
 import { Popover, SlotFillProvider } from '@wordpress/components';
 import { useDispatch, useSelect } from '@wordpress/data';
 import { EntityProvider } from '@wordpress/core-data';
@@ -28,10 +27,6 @@ import { EntityProvider } from '@wordpress/core-data';
 // empty (#343).
 import '@wordpress/format-library';
 import { __ } from '@wordpress/i18n';
-import {
-    getBlockType,
-    setDefaultBlockName,
-} from '@wordpress/blocks';
 import type { BlockInstance } from '@wordpress/blocks';
 
 import { addFilter } from '@wordpress/hooks';
@@ -40,15 +35,13 @@ import { bootI18n, TEXT_DOMAIN } from '../vendor/i18n';
 import { editorSettings } from '../editor-settings';
 import { ensureMediaBridgeFilter } from '../media-bridge';
 
+import { registerArtisanPackBlocks } from '../blocks';
+
 import { BlockLibrarySidebar } from './block-library-sidebar';
 import { registerContrastWarning } from './contrast-warning';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
-import { discoverAndRegisterCustomBlocks } from './custom-blocks';
-import { registerForkedBlockCutoverFilter } from './forked-block-cutover';
 import { EditorCanvas } from './editor-canvas';
-import { registerCoreQueryBlockOverride } from './query-block-override';
 import { registerSyncedPatternIndicator } from './synced-pattern-indicator';
-import { registerTaxonomyAndArchiveBlockOverrides } from './taxonomy-archive-block-overrides';
 import {
     DocumentPanels,
     type AuthorOption,
@@ -158,101 +151,15 @@ function registerOnce(): void {
 
     bootI18n();
     ensureMediaBridgeFilter();
-    // Install the filter *before* `registerCoreBlocks` so the override
-    // reaches every block as it registers. Doing it after would leave
-    // already-registered blocks with the default (buggy) checker on.
+    // Install the contrast-checker suppression filter before blocks
+    // register so it reaches every block at registration time.
     disableContrastCheckerOnBlocks();
-    // Replace the disabled upstream checker with our attribute-driven
-    // implementation (#348). Registers an `editor.BlockEdit` HOC, so it
-    // also belongs before `registerCoreBlocks` to wrap every block at
-    // first render rather than retroactively.
     registerContrastWarning();
-    // Register D5's synced-pattern indicator filter pre-`registerCoreBlocks`
-    // for the same reason — the wrapper sees `core/block` once the
-    // block registers and applies the badge from then on.
     registerSyncedPatternIndicator();
-    // G4b — swap the broken upstream Edit components for
-    // `core/categories`, `core/tag-cloud`, and `core/archives` with our
-    // ServerSideRender-backed wrappers BEFORE `registerCoreBlocks()` so
-    // the override applies during initial registration.
-    registerTaxonomyAndArchiveBlockOverrides();
-    // G4c-2 — same idea for `core/query`: swap the upstream Edit (which
-    // pulls a heavy chain of unsupported core-data selectors) with a
-    // wrapper that previews via /visual-editor/api/query/resolve.
-    registerCoreQueryBlockOverride();
-    // I1–I4 cutover: install the filter that hides every forked core/*
-    // block from the inserter BEFORE registerCoreBlocks() so they register
-    // with `inserter: false` directly. They stay registered, so legacy
-    // markup still deserializes — only the inserter entry is suppressed.
-    // (core/paragraph is handled by cutoverParagraphFork below, which also
-    // re-homes the default block.)
-    registerForkedBlockCutoverFilter();
-    registerCoreBlocks();
-    // Discover host-app custom blocks under
-    // `resources/js/visual-editor/blocks/{block-name}/index.ts` and
-    // register them plus the `artisanpack` category. Runs after
-    // `registerCoreBlocks` so custom-block category registration sees
-    // the full core category list.
-    discoverAndRegisterCustomBlocks();
-    // I0 cutover: replace core/paragraph with artisanpack/paragraph as
-    // the editor's default block. Unregistering core/paragraph keeps it
-    // out of the inserter; pressing Enter inside the canvas now inserts
-    // artisanpack/paragraph instead.
-    cutoverParagraphFork();
+    // I7 (#415): register all artisanpack/* blocks and set the default
+    // block to artisanpack/paragraph. Core blocks are no longer loaded.
+    registerArtisanPackBlocks();
     blocksRegistered = true;
-}
-
-const PARAGRAPH_CUTOVER_FILTER = 'artisanpack-ui/visual-editor/paragraph-cutover';
-let paragraphCutoverFilterRegistered = false;
-
-function cutoverParagraphFork(): void {
-    const ARTISANPACK_PARAGRAPH = 'artisanpack/paragraph';
-    const CORE_PARAGRAPH = 'core/paragraph';
-
-    if (getBlockType(ARTISANPACK_PARAGRAPH) === undefined) {
-        return;
-    }
-
-    // Make the fork the default block: Enter / slash-menu / appender all
-    // emit artisanpack/paragraph from now on.
-    setDefaultBlockName(ARTISANPACK_PARAGRAPH);
-
-    // Hide core/paragraph from the inserter without unregistering it.
-    // Keeping the block registered means legacy posts with `<!-- wp:paragraph -->`
-    // markup still deserialize correctly via the upstream block's
-    // deprecation chain; the only user-facing change is that the inserter
-    // surface advertises only `artisanpack/paragraph`. The filter has to
-    // run inside `blocks.registerBlockType` (rather than mutating the
-    // already-registered type) so the inserter-items selector picks up
-    // the change.
-    if (!paragraphCutoverFilterRegistered) {
-        addFilter(
-            'blocks.registerBlockType',
-            PARAGRAPH_CUTOVER_FILTER,
-            (settings: Record<string, unknown>, name: string) => {
-                if (name !== CORE_PARAGRAPH) {
-                    return settings;
-                }
-                const supports = (settings.supports as Record<string, unknown> | undefined) ?? {};
-                return {
-                    ...settings,
-                    supports: { ...supports, inserter: false },
-                };
-            }
-        );
-        paragraphCutoverFilterRegistered = true;
-    }
-
-    // Re-stamp the already-registered core/paragraph (registerCoreBlocks
-    // ran before our filter was attached) so the inserter selector picks
-    // up the inserter=false flag immediately.
-    const coreParagraph = getBlockType(CORE_PARAGRAPH) as
-        | { supports?: Record<string, unknown> }
-        | undefined;
-    if (coreParagraph !== undefined) {
-        const supports = coreParagraph.supports ?? {};
-        coreParagraph.supports = { ...supports, inserter: false };
-    }
 }
 
 const VALID_STATUSES: readonly PostStatus[] = [
