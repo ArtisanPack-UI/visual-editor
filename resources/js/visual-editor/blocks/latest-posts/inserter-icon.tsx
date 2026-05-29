@@ -1,0 +1,22 @@
+/**
+ * Latest Posts — inserter icon.
+ *
+ * Inline SVG mirroring `@wordpress/icons`' `postList` icon so the editor
+ * canvas does not have to load `dashicons.css` to render it.
+ */
+
+import type { ReactElement } from 'react';
+
+export default function LatestPostsInserterIcon(): ReactElement {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width={24}
+            height={24}
+            aria-hidden="true"
+        >
+            <path d="M18 5.5H6a.5.5 0 0 0-.5.5v12a.5.5 0 0 0 .5.5h12a.5.5 0 0 0 .5-.5V6a.5.5 0 0 0-.5-.5ZM6 4h12a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2Zm1 5h1.5v1.5H7V9Zm1.5 4.5H7V15h1.5v-1.5ZM10 9h7v1.5h-7V9Zm7 4.5h-7V15h7v-1.5Z" />
+        </svg>
+    );
+}

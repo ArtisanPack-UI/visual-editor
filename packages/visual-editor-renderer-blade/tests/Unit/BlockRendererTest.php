@@ -469,6 +469,17 @@ it( 'falls back to label when buttonText is empty and buttonUseIcon is true', fu
 	expect( $html )->toContain( 'aria-label="Find stuff"' );
 } );
 
+it( 'carries the #338 a11y fix forward to artisanpack/search (I4 fork)', function () {
+	$tree = [ makeBlock( 'artisanpack/search', [ 'buttonText' => 'Go', 'buttonUseIcon' => true ] ) ];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'class="wp-block-search__button has-icon"' )
+		->toContain( 'aria-label="Go"' )
+		->toContain( '<svg class="wp-block-search__button-icon"' )
+		->not->toContain( '<button type="submit" class="wp-block-search__button"></button>' );
+} );
+
 it( 'preserves fractional column widths', function () {
 	$tree = [
 		makeBlock( 'core/columns', [], [

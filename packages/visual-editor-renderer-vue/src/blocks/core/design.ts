@@ -300,8 +300,22 @@ export const SearchBlock = defineComponent({
             const buttonText = attrString(props.attributes.buttonText, 'Search');
             const useIcon = attrBoolean(props.attributes.buttonUseIcon);
             const queryName = attrString(attrRecord(props.attributes.query).name, 's');
-            const buttonLabel = useIcon ? '' : buttonText;
             const className = attrString(props.attributes.className);
+
+            // #338: an icon-only button must still expose an accessible
+            // name. Precedence matches the Blade + React renderers so all
+            // three stay byte-identical: buttonText → label → "Search".
+            const ariaLabel =
+                buttonText.trim() !== ''
+                    ? buttonText
+                    : label.trim() !== ''
+                      ? label
+                      : 'Search';
+
+            const buttonClasses = classList([
+                'wp-block-search__button',
+                useIcon ? 'has-icon' : null,
+            ]);
 
             const classes = classList([
                 'wp-block-search',
@@ -330,11 +344,39 @@ export const SearchBlock = defineComponent({
                         name: queryName,
                         placeholder: placeholder === '' ? undefined : placeholder,
                     }),
-                    h(
-                        'button',
-                        { type: 'submit', class: 'wp-block-search__button' },
-                        buttonLabel
-                    ),
+                    useIcon
+                        ? h(
+                              'button',
+                              {
+                                  type: 'submit',
+                                  class: buttonClasses,
+                                  'aria-label': ariaLabel,
+                              },
+                              [
+                                  h(
+                                      'svg',
+                                      {
+                                          class: 'wp-block-search__button-icon',
+                                          xmlns: 'http://www.w3.org/2000/svg',
+                                          viewBox: '0 0 24 24',
+                                          width: '24',
+                                          height: '24',
+                                          'aria-hidden': 'true',
+                                          focusable: 'false',
+                                      },
+                                      [
+                                          h('path', {
+                                              d: 'M13.5 6C10.5 6 8 8.5 8 11.5c0 1.1.3 2.1.9 3l-3.4 3 1 1.1 3.4-3c1 .9 2.2 1.4 3.6 1.4 3 0 5.5-2.5 5.5-5.5C19 8.5 16.5 6 13.5 6zm0 9.5c-2.2 0-4-1.8-4-4s1.8-4 4-4 4 1.8 4 4-1.8 4-4 4z',
+                                          }),
+                                      ]
+                                  ),
+                              ]
+                          )
+                        : h(
+                              'button',
+                              { type: 'submit', class: buttonClasses },
+                              buttonText
+                          ),
                 ])
             );
 

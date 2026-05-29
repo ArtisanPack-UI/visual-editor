@@ -5,6 +5,7 @@ namespace ArtisanPackUI\VisualEditor;
 use ArtisanPackUI\CMSFramework\Modules\Blog\Managers\BlogManager;
 use ArtisanPackUI\VisualEditor\Blocks\Core\ArchivesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\CategoriesBlock;
+use ArtisanPackUI\VisualEditor\Blocks\Core\LatestPostsBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\TagCloudBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Forms\FormBlock;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
@@ -299,7 +300,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 	/**
 	 * Registers the G4b dynamic blocks (`core/categories`, `core/tag-cloud`,
-	 * `core/archives`) against cms-framework's term + post APIs.
+	 * `core/archives`) plus the I4 widgets-cluster fork
+	 * (`artisanpack/latest-posts`) against cms-framework's term + post APIs.
+	 *
+	 * The forked `artisanpack/latest-posts` block also loads its bundled
+	 * `block.json` so the inserter knows about it (the editor JS registers
+	 * the edit component via auto-discovery; the PHP registry owns the
+	 * server-side render + attribute schema).
 	 *
 	 * @since 1.0.0
 	 */
@@ -314,6 +321,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$editor->registerDynamicBlock( CategoriesBlock::class );
 		$editor->registerDynamicBlock( TagCloudBlock::class );
 		$editor->registerDynamicBlock( ArchivesBlock::class );
+
+		$latestPostsBlockJson = __DIR__ . '/../resources/js/visual-editor/blocks/latest-posts/block.json';
+
+		if ( file_exists( $latestPostsBlockJson ) ) {
+			$editor->registerBlock( $latestPostsBlockJson );
+		}
+
+		$editor->registerDynamicBlock( LatestPostsBlock::class );
 	}
 
 	/**

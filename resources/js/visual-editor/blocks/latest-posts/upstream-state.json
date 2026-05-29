@@ -1,0 +1,43 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/latest-posts",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/latest-posts",
+        "pinnedVersion": "9.43.0",
+        "subpath": "latest-posts"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to the artisanpack namespace; full attribute schema + supports carried verbatim for round-trip parity." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "rewritten", "notes": "Upstream builds a client-side preview from @wordpress/core-data post queries; the core-data shim exposes no post entity and this package renders posts server-side, so the fork previews through the package's <ServerSideRender> seam (same as the taxonomy/archive dynamic blocks) and ports the inspector controls to PanelBody (dropping the block-library-internal ToolsPanel dropdown hook). Day-one controls: post content (excerpt/full + length), author/date meta, featured image (+ link), post count, order/orderBy, list/grid layout + columns. Remaining upstream attributes are carried in block.json and surface in a later customization pass." },
+        { "fork": "save.tsx", "upstream": "n/a", "status": "added", "notes": "Dynamic block — returns null; markup produced by LatestPostsBlock::render()." },
+        { "fork": "deprecated.ts", "upstream": "deprecated.js", "status": "adapted", "notes": "Single v1 entry ported: migrates the legacy string `categories` id to the array-of-objects shape. save returns null." },
+        { "fork": "transforms.ts", "upstream": "n/a", "status": "extended", "notes": "Upstream has no transforms.js; the fork adds bidirectional core/latest-posts ↔ artisanpack/latest-posts block transforms for the rollout window." },
+        { "fork": "constants.ts", "upstream": "constants.js", "status": "ported", "notes": "Excerpt + column bounds ported verbatim." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG mirroring @wordpress/icons' `postList` icon." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract; upstream PHP-side init wiring not carried." },
+        { "fork": "../../../../src/Blocks/Core/LatestPostsBlock.php", "upstream": "index.php", "status": "rewritten", "notes": "Server renderer reimplemented against cms-framework's Post model (a DynamicBlock, mirroring ArchivesBlock/CategoriesBlock) rather than WP_Query. Emits the upstream wp-block-latest-posts markup." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx previews via <ServerSideRender> instead of upstream's client-side core-data query — the core-data shim exposes no post entity and posts are resolved server-side.",
+        "Inspector ported to PanelBody instead of upstream's ToolsPanel (drops the block-library-internal useToolsPanelDropdownMenuProps hook).",
+        "Server rendering is a DynamicBlock against cms-framework's Post model, not WP_Query/index.php.",
+        "A subset of upstream attributes (featuredImageAlign/SizeSlug/Width/Height) is carried in block.json for round-trip parity but not yet wired into controls/render; tracked for a follow-up customization pass.",
+        "transforms.ts adds bidirectional block transforms that don't exist upstream — required to coexist with core/latest-posts during the V1 rollout.",
+        "latest-posts is a dynamic block, so (like core/categories, core/archives, core/tag-cloud, artisanpack/form) it is handled by the Blade DynamicBlockRegistry and is not listed in packages/renderer-parity.json — the React/Vue static renderers do not register it."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I4 widgets cluster"
+    }
+}

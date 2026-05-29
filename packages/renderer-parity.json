@@ -78,6 +78,7 @@
         "artisanpack/button",
         "artisanpack/separator",
         "artisanpack/spacer",
-        "artisanpack/details"
+        "artisanpack/details",
+        "artisanpack/search"
     ]
 }

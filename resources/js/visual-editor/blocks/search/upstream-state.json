@@ -1,0 +1,43 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/search",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/search",
+        "pinnedVersion": "9.43.0",
+        "subpath": "search"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to the artisanpack namespace; attributes/supports verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Drops the block-library-internal `useToolsPanelDropdownMenuProps` hook (ToolsPanel falls back to its default dropdown). The icon button's aria-label falls back buttonText → label → 'Search' so the canvas matches the renderers' #338 a11y output. Native branches dropped (web-only)." },
+        { "fork": "save.tsx", "upstream": "n/a", "status": "added", "notes": "core/search ships no save (rendered outside save); the fork returns null so the block serializes to its delimiter and the front-end renderers build the form from attributes." },
+        { "fork": "deprecated.ts", "upstream": "n/a", "status": "added", "notes": "Upstream has no deprecated.js; empty array exported for symmetry." },
+        { "fork": "transforms.ts", "upstream": "n/a", "status": "extended", "notes": "Upstream has no transforms.js; the fork adds bidirectional core/search ↔ artisanpack/search block transforms for the rollout window." },
+        { "fork": "variations.ts", "upstream": "variations.js", "status": "ported", "notes": "Single default variation seeding buttonText/label with 'Search'." },
+        { "fork": "constants.ts", "upstream": "utils.js", "status": "ported", "notes": "Width constants + isPercentageUnit ported verbatim." },
+        { "fork": "search.css", "upstream": "editor.scss + style.scss + theme.scss", "status": "adapted", "notes": "Minimal editor-canvas affordances; the bulk of styling comes from the shared block-library stylesheet because the fork reuses the wp-block-search* class names." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG mirroring @wordpress/icons' `search` icon (editor doesn't bundle dashicons)." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract. Upstream's privateApis content-only inspector fields (fieldsKey/formKey behind window.__experimentalContentOnlyInspectorFields) and PHP-side init wiring are not carried." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx drops the upstream `useToolsPanelDropdownMenuProps` hook (a block-library internal not exposed via exports). The ToolsPanel uses its default dropdown behaviour.",
+        "edit.tsx labels the icon button via buttonText → label → 'Search', matching the renderers' #338 fix, where upstream falls back only buttonText → 'Search'.",
+        "save returns null (dynamic); the front-end markup is produced by the Blade/React/Vue renderers, which reuse the core/search renderers carrying the #338 fix.",
+        "transforms.ts adds bidirectional block transforms that don't exist upstream — required to coexist with core/search during the V1 rollout.",
+        "index.ts drops upstream's privateApis content-only inspector fields and PHP-side init wiring."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I4 widgets cluster"
+    }
+}
