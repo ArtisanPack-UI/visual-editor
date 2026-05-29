@@ -68,11 +68,13 @@ describe('I5 deprecation chains', () => {
         expect(migrated.className).toContain('wp-block-post-date__modified-date');
     });
 
-    it('site-title + site-tagline migrate textAlign (v2) and font family (v1)', () => {
+    it('site-title + site-tagline migrate textAlign (v2) and gate font family (v1)', () => {
         for (const chain of [siteTitleDeprecated, siteTaglineDeprecated]) {
             const v2 = chain[0] as Dep;
             const v1 = chain[1] as Dep;
             expect(v2.isEligible!({ textAlign: 'center' })).toBe(true);
+            // v2 migrate must move textAlign off the attribute (onto block support).
+            expect(v2.migrate!({ textAlign: 'center' }).textAlign).toBeUndefined();
             expect(v1.isEligible!({ style: { typography: { fontFamily: 'Inter' } } })).toBe(true);
             expect(v1.isEligible!({})).toBe(false);
         }

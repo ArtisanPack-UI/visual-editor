@@ -55,6 +55,26 @@ function asString( value: unknown ): string {
 }
 
 /**
+ * Reduce an HTML string to its text content for the editor preview.
+ *
+ * The placeholder edit is only a canvas preview — the real, fully-formatted
+ * markup is produced by the server-side renderers. Rendering the resolved
+ * HTML as text (rather than via `dangerouslySetInnerHTML`) keeps the
+ * preview dependency-free and removes any HTML-injection surface from the
+ * editor. Falls back to a tag-strip when `DOMParser` is unavailable.
+ */
+function htmlToText( html: string ): string {
+    if ( typeof DOMParser === 'undefined' ) {
+        return html.replace( /<[^>]*>/g, '' );
+    }
+
+    return (
+        new DOMParser().parseFromString( html, 'text/html' ).body
+            .textContent ?? ''
+    );
+}
+
+/**
  * Build an `edit` component for a server-rendered entity display fork.
  */
 export function createEntityPlaceholderEdit(
@@ -67,12 +87,9 @@ export function createEntityPlaceholderEdit(
 
         if ( resolved !== '' ) {
             if ( config.kind === 'html' ) {
-                return (
-                    <div
-                        { ...blockProps }
-                        dangerouslySetInnerHTML={ { __html: resolved } }
-                    />
-                );
+                // Text-only preview — see `htmlToText`. The server-side
+                // renderers emit the full formatted markup on the front end.
+                return <div { ...blockProps }>{ htmlToText( resolved ) }</div>;
             }
 
             if ( config.kind === 'image' ) {

@@ -13,7 +13,15 @@ use Illuminate\Support\Carbon;
  */
 
 beforeEach( function (): void {
+	// Pin the locale to English so `translatedFormat()` is deterministic,
+	// and remember the previous locale so afterEach can restore the global
+	// Carbon state for the rest of the suite.
+	$this->originalCarbonLocale = Carbon::getLocale();
 	Carbon::setLocale( 'en' );
+} );
+
+afterEach( function (): void {
+	Carbon::setLocale( $this->originalCarbonLocale );
 } );
 
 function fakeArtisanPackPost(): object

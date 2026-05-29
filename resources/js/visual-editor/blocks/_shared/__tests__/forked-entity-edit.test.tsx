@@ -102,17 +102,40 @@ describe('createEntityPlaceholderEdit', () => {
         expect(getByText('Post Author')).not.toBeNull();
     });
 
-    it('renders resolved HTML for html-kind blocks', () => {
+    it('renders html-kind content as text (no markup injected into the canvas)', () => {
+        const Edit = createEntityPlaceholderEdit({
+            label: 'Post Content',
+            resolvedKey: '_resolvedContent',
+            kind: 'html',
+        });
+        const { container, getByText } = render(
+            <Edit attributes={{ _resolvedContent: '<p>Body copy</p>' }} />
+        );
+
+        // The resolved value is rendered as text — the preview must not
+        // inject the markup into the editor DOM (XSS surface).
+        expect(getByText('Body copy')).not.toBeNull();
+        expect(container.querySelector('p')).toBeNull();
+    });
+
+    it('neutralizes script/handler payloads in html-kind previews', () => {
         const Edit = createEntityPlaceholderEdit({
             label: 'Post Content',
             resolvedKey: '_resolvedContent',
             kind: 'html',
         });
         const { container } = render(
-            <Edit attributes={{ _resolvedContent: '<p>Body copy</p>' }} />
+            <Edit
+                attributes={{
+                    _resolvedContent:
+                        '<img src=x onerror="alert(1)">Safe text<script>alert(2)</script>',
+                }}
+            />
         );
 
-        expect(container.querySelector('p')?.textContent).toBe('Body copy');
+        expect(container.querySelector('img')).toBeNull();
+        expect(container.querySelector('script')).toBeNull();
+        expect(container.textContent).toContain('Safe text');
     });
 
     it('renders an image for image-kind blocks', () => {
