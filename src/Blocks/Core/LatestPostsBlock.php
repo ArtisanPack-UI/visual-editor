@@ -269,7 +269,9 @@ class LatestPostsBlock extends DynamicBlock
 		}
 
 		if ( is_object( $media ) && isset( $media->url ) ) {
-			return (string) $media->url;
+			$resolved = trim( (string) $media->url );
+
+			return '' !== $resolved ? $resolved : null;
 		}
 
 		return null;

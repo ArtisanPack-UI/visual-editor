@@ -31,10 +31,19 @@ const deprecated = [
         },
         migrate: ( oldAttributes: LegacyLatestPostsAttributes ) => {
             // The current schema needs the full category object, not just
-            // the id.
+            // the id. Guard the numeric conversion so a malformed legacy
+            // value doesn't migrate to `{ id: NaN }` (which would silently
+            // break category filtering) — drop the category instead.
+            const id = Number( oldAttributes.categories );
+
+            if ( Number.isNaN( id ) ) {
+                const { categories: _legacy, ...rest } = oldAttributes;
+                return rest;
+            }
+
             return {
                 ...oldAttributes,
-                categories: [ { id: Number( oldAttributes.categories ) } ],
+                categories: [ { id } ],
             };
         },
         isEligible: ( { categories }: LegacyLatestPostsAttributes ): boolean =>

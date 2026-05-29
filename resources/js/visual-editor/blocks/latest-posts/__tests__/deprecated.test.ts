@@ -34,6 +34,13 @@ describe('latest-posts deprecation chain', () => {
         expect(migrated.postsToShow).toBe(3);
     });
 
+    it('v1 migrate() drops a malformed category instead of emitting { id: NaN }', () => {
+        const v1 = deprecated[0];
+        const migrated = v1.migrate({ categories: 'not-a-number', postsToShow: 3 });
+        expect(migrated.categories).toBeUndefined();
+        expect(migrated.postsToShow).toBe(3);
+    });
+
     it('v1 save() returns null (dynamic block)', () => {
         const v1 = deprecated[0];
         expect(v1.save()).toBeNull();

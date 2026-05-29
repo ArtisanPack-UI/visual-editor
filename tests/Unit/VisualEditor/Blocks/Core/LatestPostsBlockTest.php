@@ -125,6 +125,27 @@ it( 'renders the featured image with an optional link', function () {
 		->and( $withLink )->toContain( '<img src="https://example.test/img.jpg"' );
 } );
 
+it( 'renders the featured image from the media relation when no direct url is set', function () {
+	$post                     = fakeLatestPost( 1, 'Relational', 'relational' );
+	$post->featuredImageMedia = (object) [ 'url' => 'https://example.test/from-relation.jpg' ];
+	test()->block->posts      = new Collection( [ $post ] );
+
+	$html = test()->block->render( test()->block->validateAttrs( [ 'displayFeaturedImage' => true ] ) );
+
+	expect( $html )->toContain( '<img src="https://example.test/from-relation.jpg"' );
+} );
+
+it( 'treats an empty featured image media url as no image (no src="")', function () {
+	$post                     = fakeLatestPost( 1, 'Blank media', 'blank-media' );
+	$post->featuredImageMedia = (object) [ 'url' => '   ' ];
+	test()->block->posts      = new Collection( [ $post ] );
+
+	$html = test()->block->render( test()->block->validateAttrs( [ 'displayFeaturedImage' => true ] ) );
+
+	expect( $html )->not->toContain( '<img' )
+		->and( $html )->not->toContain( 'src=""' );
+} );
+
 it( 'adds grid layout classes with a clamped column count', function () {
 	test()->block->posts = new Collection( [ fakeLatestPost( 1, 'Grid', 'grid' ) ] );
 
