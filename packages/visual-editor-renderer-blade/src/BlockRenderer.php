@@ -41,6 +41,10 @@ class BlockRenderer
 		'core/site-title',
 		'core/site-tagline',
 		'core/site-logo',
+		// Phase I5 forks (#413) — same `_resolved*` contract, new namespace.
+		'artisanpack/site-title',
+		'artisanpack/site-tagline',
+		'artisanpack/site-logo',
 	];
 
 	public function __construct(

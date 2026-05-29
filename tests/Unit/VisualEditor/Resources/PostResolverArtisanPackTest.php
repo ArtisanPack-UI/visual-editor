@@ -1,0 +1,122 @@
+<?php
+
+declare( strict_types=1 );
+
+use ArtisanPackUI\VisualEditor\Resources\PostResolver;
+use Illuminate\Support\Carbon;
+
+/**
+ * Phase I5 entity-cluster (#413) — the PostResolver must stamp the forked
+ * `artisanpack/post-*` blocks through the exact same branches as their
+ * `core/post-*` counterparts, so the Blade / React / Vue partials render
+ * identically regardless of namespace.
+ */
+
+beforeEach( function (): void {
+	// Pin the locale to English so `translatedFormat()` is deterministic,
+	// and remember the previous locale so afterEach can restore the global
+	// Carbon state for the rest of the suite.
+	$this->originalCarbonLocale = Carbon::getLocale();
+	Carbon::setLocale( 'en' );
+} );
+
+afterEach( function (): void {
+	Carbon::setLocale( $this->originalCarbonLocale );
+} );
+
+function fakeArtisanPackPost(): object
+{
+	$post               = new stdClass();
+	$post->title        = 'Hello world';
+	$post->content      = '<p>Body.</p>';
+	$post->excerpt      = 'A brief excerpt';
+	$post->published_at = Carbon::create( 2026, 4, 20, 12, 0, 0, 'UTC' );
+	$post->updated_at   = Carbon::create( 2026, 4, 21, 9, 0, 0, 'UTC' );
+	$post->permalink    = 'https://example.test/posts/hello';
+	$post->author       = (object) [
+		'name'       => 'Jane Doe',
+		'bio'        => 'Writer',
+		'url'        => 'https://example.test/jane',
+		'avatar_url' => 'https://example.test/avatar.jpg',
+	];
+
+	return $post;
+}
+
+it( 'stamps artisanpack/post-title the same as core/post-title', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/post-title', 'attributes' => [], 'innerBlocks' => [] ],
+		fakeArtisanPackPost()
+	);
+
+	expect( $resolved['attributes']['_resolvedTitle'] )->toBe( 'Hello world' )
+		->and( $resolved['attributes']['_resolvedPermalink'] )->toBe( 'https://example.test/posts/hello' );
+} );
+
+it( 'stamps artisanpack/post-content', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/post-content', 'attributes' => [], 'innerBlocks' => [] ],
+		fakeArtisanPackPost()
+	);
+
+	expect( $resolved['attributes']['_resolvedContent'] )->toBe( '<p>Body.</p>' );
+} );
+
+it( 'stamps artisanpack/post-excerpt', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ],
+		fakeArtisanPackPost()
+	);
+
+	expect( $resolved['attributes']['_resolvedExcerpt'] )->toBe( 'A brief excerpt' );
+} );
+
+it( 'stamps artisanpack/post-date including the modified date', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/post-date', 'attributes' => [], 'innerBlocks' => [] ],
+		fakeArtisanPackPost()
+	);
+
+	expect( $resolved['attributes']['_resolvedDateFormatted'] )->toBe( 'April 20, 2026' )
+		->and( $resolved['attributes']['_resolvedModifiedDateFormatted'] )->toBe( 'April 21, 2026' );
+} );
+
+it( 'stamps artisanpack/post-author from the loaded relation', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/post-author', 'attributes' => [], 'innerBlocks' => [] ],
+		fakeArtisanPackPost()
+	);
+
+	expect( $resolved['attributes']['_resolvedAuthorName'] )->toBe( 'Jane Doe' )
+		->and( $resolved['attributes']['_resolvedAuthorUrl'] )->toBe( 'https://example.test/jane' );
+} );
+
+it( 'recurses into inner blocks so an artisanpack/query template stamps too', function () {
+	$tree = [
+		[
+			'name'        => 'artisanpack/post-title',
+			'attributes'  => [],
+			'innerBlocks' => [
+				[ 'name' => 'artisanpack/post-date', 'attributes' => [], 'innerBlocks' => [] ],
+			],
+		],
+	];
+
+	$stamped = ( new PostResolver() )->stampTree( $tree, fakeArtisanPackPost() );
+
+	expect( $stamped[0]['attributes']['_resolvedTitle'] )->toBe( 'Hello world' )
+		->and( $stamped[0]['innerBlocks'][0]['attributes']['_resolvedDateFormatted'] )->toBe( 'April 20, 2026' );
+} );
+
+it( 'leaves a pre-existing _resolved* value untouched (host wins)', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[
+			'name'        => 'artisanpack/post-title',
+			'attributes'  => [ '_resolvedTitle' => 'Host override' ],
+			'innerBlocks' => [],
+		],
+		fakeArtisanPackPost()
+	);
+
+	expect( $resolved['attributes']['_resolvedTitle'] )->toBe( 'Host override' );
+} );

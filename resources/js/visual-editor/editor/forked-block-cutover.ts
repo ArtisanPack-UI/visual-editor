@@ -55,6 +55,21 @@ export const FORKED_CORE_BLOCKS: readonly string[] = [
     // Widgets (I4)
     'core/search',
     'core/latest-posts',
+    // Entity cluster (I5) — site / post entity blocks.
+    // `core/navigation-link` and `core/navigation-submenu` are not forked
+    // (they are parent-locked children of the navigation block) and so are
+    // intentionally absent.
+    'core/template-part',
+    'core/post-title',
+    'core/post-content',
+    'core/post-excerpt',
+    'core/post-date',
+    'core/post-author',
+    'core/post-featured-image',
+    'core/site-title',
+    'core/site-tagline',
+    'core/site-logo',
+    'core/navigation',
 ];
 
 const FORKED_BLOCK_CUTOVER_FILTER =

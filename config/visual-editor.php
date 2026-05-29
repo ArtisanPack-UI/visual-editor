@@ -113,22 +113,24 @@ return [
 		'artisanpack/embed',
 		'artisanpack/cover',
 		'artisanpack/media-text',
-		// E4 — re-enabled on the back of B1's expanded core-data shim
-		// and the C1–C5 REST surface. Each block has a renderer in
-		// every renderer package (Blade / React / Vue) and round-trips
-		// against the empty-state shim without crashing. See
-		// docs/block-library-audit.md for the per-block notes.
-		'core/template-part',
-		'core/post-title',
-		'core/post-content',
-		'core/post-excerpt',
-		'core/post-date',
-		'core/post-author',
-		'core/post-featured-image',
-		'core/site-title',
-		'core/site-tagline',
-		'core/site-logo',
-		'core/navigation',
+		// Entity cluster — forked to artisanpack/* (I5 #413). The core/*
+		// counterparts stay registered (so existing content deserializes
+		// and the from:core/* transforms keep working) but are dropped
+		// from this allow-list, so only the forks surface in the inserter.
+		// The forks read entity data through the same core-data shim
+		// selectors the core blocks use (#395 G0, #399 G3) and render
+		// server-side from stamped _resolved* attributes.
+		'artisanpack/template-part',
+		'artisanpack/post-title',
+		'artisanpack/post-content',
+		'artisanpack/post-excerpt',
+		'artisanpack/post-date',
+		'artisanpack/post-author',
+		'artisanpack/post-featured-image',
+		'artisanpack/site-title',
+		'artisanpack/site-tagline',
+		'artisanpack/site-logo',
+		'artisanpack/navigation',
 		// G4b (#401) — taxonomy/feed widgets backed by cms-framework's
 		// term + post APIs through the dynamic-block registry. Hosts
 		// without cms-framework leave them registered client-side but

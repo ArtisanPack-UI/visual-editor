@@ -1,0 +1,68 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/navigation",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/navigation",
+        "pinnedVersion": "9.43.0",
+        "subpath": "navigation"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; attribute schema, supports, usesContext/providesContext carried verbatim for parity."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Delegates to the registered core/navigation edit (forked-block cutover keeps it registered) so the fork inherits the upstream + V1 editor surface and the same @wordpress/core-data shim selectors. Re-porting was rejected to avoid regressing the V1 nav-editor / template-part editing surfaces (#413 acceptance criterion)."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "save.js",
+            "status": "rewritten",
+            "notes": "Delegates to the registered core/navigation save so stored inner-block markup stays byte-identical."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Bidirectional core/navigation ↔ artisanpack/navigation block transforms for the rollout window."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG inserter icon (editor lacks dashicons.css)."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx delegates to the registered core/navigation edit rather than re-porting upstream edit.js — chosen to inherit the V1 editor surface unchanged and read entity data through the same core-data shim selectors.",
+        "navigation is server-rendered: the front-end markup is produced by the Blade/React/Vue renderers from stamped _resolved* attributes, not by save().",
+        "transforms.ts adds bidirectional block transforms that do not exist upstream — required to coexist with core/navigation during the V1 rollout.",
+        "Upstream deprecated.js (the multi-version migrateIdToRef / migrateWithLayout / typography-preset chain) is NOT ported: the fork ships inside 1.0.0 before any host persists artisanpack/navigation markup (plan 13 §2.1 — no migration window), so the only legacy path is pasted core/navigation markup, which the core/navigation ↔ artisanpack/navigation transform handles. Revisit if a host ever persists a pre-fork artisanpack/navigation shape."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I5 entity cluster"
+    }
+}

@@ -64,8 +64,10 @@ describe('suppressForkedBlockInserter', () => {
     });
 
     it('passes non-forked core blocks through unchanged', () => {
-        const settings = { title: 'Post Title', supports: { anchor: true } };
-        expect(suppressForkedBlockInserter(settings, 'core/post-title')).toBe(settings);
+        // `core/navigation-link` is a parent-locked child of the navigation
+        // block and is intentionally not forked (see FORKED_CORE_BLOCKS).
+        const settings = { title: 'Navigation Link', supports: { anchor: true } };
+        expect(suppressForkedBlockInserter(settings, 'core/navigation-link')).toBe(settings);
     });
 
     it('passes the artisanpack forks themselves through unchanged', () => {
