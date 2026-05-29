@@ -44,6 +44,7 @@ import { BlockLibrarySidebar } from './block-library-sidebar';
 import { registerContrastWarning } from './contrast-warning';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
 import { discoverAndRegisterCustomBlocks } from './custom-blocks';
+import { registerForkedBlockCutoverFilter } from './forked-block-cutover';
 import { EditorCanvas } from './editor-canvas';
 import { registerCoreQueryBlockOverride } from './query-block-override';
 import { registerSyncedPatternIndicator } from './synced-pattern-indicator';
@@ -179,6 +180,13 @@ function registerOnce(): void {
     // pulls a heavy chain of unsupported core-data selectors) with a
     // wrapper that previews via /visual-editor/api/query/resolve.
     registerCoreQueryBlockOverride();
+    // I1–I4 cutover: install the filter that hides every forked core/*
+    // block from the inserter BEFORE registerCoreBlocks() so they register
+    // with `inserter: false` directly. They stay registered, so legacy
+    // markup still deserializes — only the inserter entry is suppressed.
+    // (core/paragraph is handled by cutoverParagraphFork below, which also
+    // re-homes the default block.)
+    registerForkedBlockCutoverFilter();
     registerCoreBlocks();
     // Discover host-app custom blocks under
     // `resources/js/visual-editor/blocks/{block-name}/index.ts` and

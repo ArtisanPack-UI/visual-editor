@@ -90,33 +90,29 @@ return [
 	*/
 
 	'enabled_blocks' => [
-		'core/paragraph',
-		'core/heading',
-		'core/list',
-		'core/quote',
-		'core/code',
-		'core/preformatted',
-		'core/pullquote',
-		'core/verse',
-		'core/table',
-		'core/image',
-		'core/gallery',
-		'core/video',
-		'core/audio',
-		'core/file',
-		'core/embed',
-		'core/cover',
-		'core/media-text',
-		'core/columns',
-		'core/group',
-		'core/row',
-		'core/stack',
-		'core/buttons',
-		'core/separator',
-		'core/spacer',
-		'core/details',
-		'core/search',
-		'core/latest-posts',
+		// Content cluster — forked to artisanpack/* (I0 #408, I1 #409).
+		// The core/* counterparts stay registered (so existing content
+		// deserializes and the from:core/* transforms keep working) but are
+		// dropped from this allow-list, so only the forks surface in the
+		// inserter.
+		'artisanpack/paragraph',
+		'artisanpack/heading',
+		'artisanpack/list',
+		'artisanpack/quote',
+		'artisanpack/code',
+		'artisanpack/preformatted',
+		'artisanpack/pullquote',
+		'artisanpack/verse',
+		'artisanpack/table',
+		// Media cluster — forked to artisanpack/* (I2 #410).
+		'artisanpack/image',
+		'artisanpack/gallery',
+		'artisanpack/video',
+		'artisanpack/audio',
+		'artisanpack/file',
+		'artisanpack/embed',
+		'artisanpack/cover',
+		'artisanpack/media-text',
 		// E4 — re-enabled on the back of B1's expanded core-data shim
 		// and the C1–C5 REST surface. Each block has a renderer in
 		// every renderer package (Blade / React / Vue) and round-trips
@@ -151,9 +147,7 @@ return [
 		'core/query',
 		'core/post-template',
 		'artisanpack/callout',
-		// I3 (#411) — layout cluster fork. The artisanpack/* equivalents
-		// register alongside their core/* siblings so authors can compare
-		// during the V1 rollout. Cutover (I7) removes the core/* names.
+		// Layout cluster — forked to artisanpack/* (I3 #411).
 		'artisanpack/group',
 		'artisanpack/row',
 		'artisanpack/stack',
@@ -164,6 +158,9 @@ return [
 		'artisanpack/separator',
 		'artisanpack/spacer',
 		'artisanpack/details',
+		// Widgets cluster — forked to artisanpack/* (I4 #412).
+		'artisanpack/search',
+		'artisanpack/latest-posts',
 	],
 
 	'disabled_blocks' => [
