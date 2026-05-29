@@ -95,6 +95,10 @@ class BlockRenderer
 		$attributes      = $this->stampSiteMeta( $name, $attributes );
 		$innerBlocksHtml = $this->render( $this->normalizeInnerBlocks( $block['innerBlocks'] ?? [] ) );
 
+		if ( '_query-iteration' === $name ) {
+			return $this->renderQueryIteration( $attributes, $innerBlocksHtml );
+		}
+
 		if ( $this->dynamicBlocks->has( $name ) ) {
 			return $this->renderDynamic( $name, $attributes, $innerBlocksHtml );
 		}
@@ -227,6 +231,33 @@ class BlockRenderer
 	 *
 	 * @since 1.0.0
 	 */
+	/**
+	 * Render a single query-loop iteration as an `<li>` with post classes.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 */
+	protected function renderQueryIteration( array $attributes, string $innerBlocksHtml ): string
+	{
+		$postId    = isset( $attributes['postId'] ) ? (int) $attributes['postId'] : 0;
+		$className = isset( $attributes['className'] ) && is_string( $attributes['className'] )
+			? $attributes['className']
+			: '';
+
+		$classes = array_filter( [
+			'wp-block-post',
+			$className,
+		] );
+
+		return sprintf(
+			'<li id="post-%d" class="%s">%s</li>',
+			$postId,
+			e( implode( ' ', $classes ) ),
+			$innerBlocksHtml
+		);
+	}
+
 	protected function renderFallback( string $name, string $innerBlocksHtml ): string
 	{
 		$safeName = htmlspecialchars( $name, ENT_QUOTES | ENT_HTML5, 'UTF-8' );

@@ -85,7 +85,10 @@ class QueryInliner
 	{
 		$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
 
-		if ( 'core/query' === $name ) {
+		// `artisanpack/query` is the I6 fork of `core/query`; both share the
+		// nested `query` attribute shape and inner-template structure, so the
+		// same expansion applies to either namespace.
+		if ( 'core/query' === $name || 'artisanpack/query' === $name ) {
 			return $this->expandQuery( $block );
 		}
 
@@ -130,10 +133,10 @@ class QueryInliner
 			return $this->markFailed( $block, self::ERROR_RESOLVER_ERROR );
 		}
 
-		$results  = $paginator->items();
-		$template = isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ? $block['innerBlocks'] : [];
+		$results    = $paginator->items();
+		$queryInner = isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ? $block['innerBlocks'] : [];
 
-		if ( [] === $results || [] === $template ) {
+		if ( [] === $results || [] === $queryInner ) {
 			return array_merge( $block, [
 				'innerBlocks' => [],
 				'attributes'  => array_merge( $attributes, [
@@ -143,6 +146,106 @@ class QueryInliner
 			] );
 		}
 
+		// Find the post-template child block. Its inner blocks are the
+		// per-iteration template that gets cloned once per result.
+		// Everything else (pagination, no-results) stays alongside it.
+		$postTemplateIndex = null;
+		$iterationTemplate = [];
+
+		foreach ( $queryInner as $i => $child ) {
+			if ( ! is_array( $child ) ) {
+				continue;
+			}
+
+			$childName = isset( $child['name'] ) && is_string( $child['name'] ) ? $child['name'] : '';
+
+			if ( 'core/post-template' === $childName || 'artisanpack/post-template' === $childName ) {
+				$postTemplateIndex = $i;
+				$iterationTemplate = isset( $child['innerBlocks'] ) && is_array( $child['innerBlocks'] )
+					? $child['innerBlocks']
+					: [];
+				break;
+			}
+		}
+
+		// No post-template found — fall back to cloning whatever is
+		// there so hosts that drop a custom template without the
+		// post-template wrapper are not regressed.
+		if ( null === $postTemplateIndex ) {
+			return $this->expandFlat( $block, $attributes, $queryInner, $results, $paginator );
+		}
+
+		// Expand: clone the iteration template once per result, stamp
+		// _resolved* attributes, and wrap each iteration in an <li>
+		// block with post-specific classes.
+		$expandedIterations = [];
+
+		foreach ( $results as $post ) {
+			if ( ! is_object( $post ) ) {
+				continue;
+			}
+
+			$postId = isset( $post->id ) ? (int) $post->id : 0;
+			$iterationBlocks = [];
+
+			foreach ( $iterationTemplate as $tmplChild ) {
+				if ( ! is_array( $tmplChild ) ) {
+					continue;
+				}
+
+				$iterationBlocks[] = $this->postResolver->stampBlock(
+					$this->cloneBlock( $tmplChild ),
+					$post
+				);
+			}
+
+			$expandedIterations[] = [
+				'clientId'    => 'qi-' . $postId,
+				'name'        => '_query-iteration',
+				'attributes'  => [
+					'postId'    => $postId,
+					'className' => 'post-' . $postId
+					. ' post'
+					. ' type-' . ( isset( $post->post_type ) ? (string) $post->post_type : ( isset( $post->type ) ? (string) $post->type : 'post' ) )
+					. ' status-' . ( isset( $post->status ) && is_object( $post->status ) && isset( $post->status->value ) ? (string) $post->status->value : ( isset( $post->status ) && is_string( $post->status ) ? $post->status : 'publish' ) ),
+				],
+				'innerBlocks' => $iterationBlocks,
+			];
+		}
+
+		// Replace post-template's inner blocks with the expanded
+		// iterations; preserve its own attributes (layout, columns).
+		$expandedTemplate = array_merge( $queryInner[ $postTemplateIndex ], [
+			'innerBlocks' => $expandedIterations,
+		] );
+
+		$newQueryInner = $queryInner;
+		$newQueryInner[ $postTemplateIndex ] = $expandedTemplate;
+
+		return array_merge( $block, [
+			'innerBlocks' => $newQueryInner,
+			'attributes'  => array_merge( $attributes, [
+				'_resolvedTotal' => $paginator->total(),
+				'_resolvedItems' => count( $results ),
+			] ),
+		] );
+	}
+
+	/**
+	 * @param  array<string, mixed>  $block
+	 *
+	 * @return array<string, mixed>
+	 */
+	/**
+	 * Legacy flat expansion for query blocks without a post-template child.
+	 *
+	 * @param  array<string, mixed>               $block
+	 * @param  array<string, mixed>               $attributes
+	 * @param  array<int, array<string, mixed>>   $template
+	 * @param  array<int, object>                 $results
+	 */
+	protected function expandFlat( array $block, array $attributes, array $template, array $results, \Illuminate\Contracts\Pagination\LengthAwarePaginator $paginator ): array
+	{
 		$expanded = [];
 
 		foreach ( $results as $post ) {
@@ -171,11 +274,6 @@ class QueryInliner
 		] );
 	}
 
-	/**
-	 * @param  array<string, mixed>  $block
-	 *
-	 * @return array<string, mixed>
-	 */
 	protected function markFailed( array $block, string $reason ): array
 	{
 		$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] ) ? $block['attributes'] : [];

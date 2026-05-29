@@ -70,6 +70,16 @@ export const FORKED_CORE_BLOCKS: readonly string[] = [
     'core/site-tagline',
     'core/site-logo',
     'core/navigation',
+    // Loop / feed cluster (I6) — dynamic feed + query blocks.
+    // `core/post-template` is forked alongside `core/query` (it is a
+    // parent-locked child of the query block); `core/query-loop` is the
+    // deprecated alias for `core/query` and carries no inserter entry of
+    // its own, so it is intentionally absent.
+    'core/archives',
+    'core/categories',
+    'core/tag-cloud',
+    'core/query',
+    'core/post-template',
 ];
 
 const FORKED_BLOCK_CUTOVER_FILTER =

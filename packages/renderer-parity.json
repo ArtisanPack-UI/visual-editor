@@ -1,9 +1,6 @@
 {
     "$comment": "Canonical list of block names every renderer (blade/react/vue) MUST register. Sourced from packages/visual-editor-renderer-{blade,react,vue}. Updated whenever the V2 fork lands a new artisanpack/* block. CI runs scripts/verify-renderer-parity.mjs to fail the build on drift.",
-    "bladeDynamic": [
-        "core/query",
-        "core/post-template"
-    ],
+    "bladeDynamic": [],
     "blocks": [
         "core/paragraph",
         "core/heading",
@@ -90,6 +87,8 @@
         "artisanpack/site-title",
         "artisanpack/site-tagline",
         "artisanpack/site-logo",
-        "artisanpack/navigation"
+        "artisanpack/navigation",
+        "artisanpack/query",
+        "artisanpack/post-template"
     ]
 }

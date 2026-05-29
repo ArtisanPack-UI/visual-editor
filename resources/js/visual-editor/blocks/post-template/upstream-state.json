@@ -1,0 +1,37 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/post-template",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/post-template",
+        "pinnedVersion": "9.43.0",
+        "subpath": "post-template"
+    },
+    "forkedAt": "2026-05-29",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to the artisanpack namespace; ancestor repointed core/query → artisanpack/query; usesContext + supports carried verbatim. editorStyle/style handles dropped." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "rewritten", "notes": "Upstream queries the loop's posts via getEntityRecords; the post editor's core-data shim returns empty, so the fork renders <InnerBlocks /> with a default artisanpack/post-title template and relies on the wrapping artisanpack/query BlockContextProvider for entity resolution. Mirrors the V1 query override's PostTemplateEdit." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "ported", "notes": "Returns <InnerBlocks.Content /> — serialized inner-block template cloned per resolved post by the server-side QueryInliner." },
+        { "fork": "transforms.ts", "upstream": "n/a", "status": "added", "notes": "Upstream has no transforms.js; the fork adds bidirectional core/post-template ↔ artisanpack/post-template block transforms for the rollout window." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG mirroring @wordpress/icons' layout icon." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx renders a static <InnerBlocks /> template instead of upstream's per-record editable iteration — the core-data shim does not expose the loop's post records to the post editor; the front-end iteration is produced server-side by QueryInliner.",
+        "post-template parity covers the editor save + the renderer packages' thin PostTemplateBlock wrapper; the deep upstream edit/ machinery (block preview, layout toolbar) is not carried.",
+        "transforms.ts adds bidirectional block transforms that don't exist upstream — required to coexist with core/post-template during the V1 rollout."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-29",
+        "reviewer": "I6 loop / feed cluster"
+    }
+}

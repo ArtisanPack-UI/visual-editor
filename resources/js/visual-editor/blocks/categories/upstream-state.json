@@ -1,0 +1,41 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/categories",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/categories",
+        "pinnedVersion": "9.43.0",
+        "subpath": "categories"
+    },
+    "forkedAt": "2026-05-29",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to the artisanpack namespace; attribute schema + supports carried verbatim. editorStyle/style handles and the variations array dropped — the variation picker pulls getTaxonomies selectors the post editor's core-data shim does not implement (same reason the upstream taxonomy/archive override strips them)." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "rewritten", "notes": "Upstream queries the taxonomy entity via @wordpress/core-data; the shim exposes no taxonomy entity and terms are resolved server-side, so the fork previews through the package's <ServerSideRender> seam and ports the inspector controls to PanelBody. Mirrors the V1 taxonomy-archive override's CategoriesEdit." },
+        { "fork": "save.tsx", "upstream": "n/a", "status": "added", "notes": "Dynamic block — returns null; markup produced by CategoriesBlock::render()." },
+        { "fork": "transforms.ts", "upstream": "n/a", "status": "added", "notes": "Upstream has no transforms.js; the fork adds bidirectional core/categories ↔ artisanpack/categories block transforms for the rollout window." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG mirroring @wordpress/icons' category icon." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract; upstream PHP-side init wiring not carried." },
+        { "fork": "../../../../src/Blocks/Core/CategoriesBlock.php", "upstream": "index.php", "status": "rewritten", "notes": "Server renderer reimplemented against cms-framework's PostCategory model (a DynamicBlock) rather than WP_Query. name() renamed core/categories → artisanpack/categories at the I6 fork (mirroring LatestPostsBlock at I4)." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx previews via <ServerSideRender> instead of upstream's client-side core-data query — the core-data shim exposes no taxonomy entity and terms are resolved server-side.",
+        "Inspector ported to PanelBody instead of upstream's ToolsPanel (drops the block-library-internal useToolsPanelDropdownMenuProps hook).",
+        "The categories variations array (Terms List / Categories List taxonomy picker) is not carried — the picker pulls getTaxonomies selectors the shim does not implement.",
+        "displayAsDropdown falls back to the list rendering server-side (the upstream dropdown ships a JS handler that is not run server-side); the attribute is carried for round-trip parity.",
+        "categories is a dynamic block, so (like core/tag-cloud, core/archives, artisanpack/latest-posts, artisanpack/form) it is handled by the Blade DynamicBlockRegistry and is not listed in packages/renderer-parity.json — the React/Vue static renderers do not register it.",
+        "transforms.ts adds bidirectional block transforms that don't exist upstream — required to coexist with core/categories during the V1 rollout."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-29",
+        "reviewer": "I6 loop / feed cluster"
+    }
+}
