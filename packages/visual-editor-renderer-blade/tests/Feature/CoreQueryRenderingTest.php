@@ -66,9 +66,13 @@ it( 'renders core/query results through the full Blade pipeline', function () {
 		->and( $html )->toContain( 'Second post' )
 		->and( $html )->toContain( '/posts/1' )
 		->and( $html )->toContain( '/posts/2' )
-		// Each result should be wrapped in its own post-template
-		// instance — the rendered HTML contains two anchors.
-		->and( substr_count( $html, 'href="/posts/' ) )->toBe( 2 );
+		->and( substr_count( $html, 'href="/posts/' ) )->toBe( 2 )
+		// Semantic markup: a single `<ul class="wp-block-post-template">`
+		// wraps N `<li class="wp-block-post-template-item">` items
+		// rather than N single-item `<ul>`s.
+		->and( substr_count( $html, '<ul' ) )->toBe( 1 )
+		->and( substr_count( $html, '<li' ) )->toBe( 2 )
+		->and( substr_count( $html, 'wp-block-post-template-item' ) )->toBe( 2 );
 } );
 
 it( 'preserves the surrounding tree when the resolver fails', function () {

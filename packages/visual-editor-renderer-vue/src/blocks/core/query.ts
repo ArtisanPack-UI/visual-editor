@@ -79,22 +79,29 @@ export const PostTemplateBlock = defineComponent({
     },
 });
 
-export const QueryIterationBlock = defineComponent({
-    name: 'QueryIterationBlock',
+export const PostTemplateItemBlock = defineComponent({
+    name: 'PostTemplateItemBlock',
     props: blockRendererProps,
     setup(props, { slots }) {
         return () => {
-            const postId = typeof props.attributes.postId === 'number' ? props.attributes.postId : 0;
+            // Coerce numeric strings ("123") so the `post-{id}` id stamps
+            // regardless of whether the host serialized postId as a number or
+            // a string — matches the Blade partial's `(int)` cast.
+            const rawPostId = props.attributes.postId;
+            const parsedPostId =
+                typeof rawPostId === 'number' ? rawPostId : Number(rawPostId);
+            const postId = Number.isFinite(parsedPostId) ? parsedPostId : 0;
             const className = attrString(props.attributes.className);
 
-            return h(
-                'li',
-                {
-                    id: `post-${postId}`,
-                    class: classList(['wp-block-post', className]),
-                },
-                slots.default?.()
-            );
+            const attrs: Record<string, unknown> = {
+                class: classList(['wp-block-post-template-item', className]),
+            };
+
+            if (postId > 0) {
+                attrs.id = `post-${postId}`;
+            }
+
+            return h('li', attrs, slots.default?.());
         };
     },
 });

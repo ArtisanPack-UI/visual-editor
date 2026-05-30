@@ -275,19 +275,6 @@ cms-framework `QueryRuntime` contract from G4c-1. `core/query-loop`
 no-results / read-more wrappers stay in the deny-list; they need
 follow-up renderer wiring that's out of scope for #402.
 
-#### Known V1 limitation: per-iteration list-item wrapping
-
-The current expansion produces one `core/post-template` clone per result
-(each rendering as `<ul class="wp-block-post-template">`). Browsers
-render this as N single-item lists rather than one N-item list — the
-visual output is correct, but the markup is semantically a list of
-single-item lists rather than upstream's `<ul><li>...</li></ul>` shape.
-A follow-up issue should refactor the inliner to emit a single
-post-template wrapping N synthetic `core/post-template-item` blocks
-(each rendering as `<li>`); deferring to a follow-up keeps #402
-scope-bounded since the architectural change touches every renderer
-plus a new block-type registration.
-
 ## Crash or backend-required — disabled by default
 
 These blocks call selectors the shim returns `null` for but which the block's

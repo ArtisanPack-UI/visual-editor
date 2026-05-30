@@ -37,6 +37,10 @@ export interface ResolvedPost {
     modifiedAt?: string;
     author?: ResolvedAuthor | null;
     featuredImage?: ResolvedFeaturedImage | null;
+    /** Post type used for the `type-{value}` class on the iteration `<li>`. Defaults to `post`. */
+    type?: string;
+    /** Publication status used for the `status-{value}` class on the iteration `<li>`. Defaults to `publish`. */
+    status?: string;
 }
 
 export interface ResolvedAuthor {
@@ -66,6 +70,9 @@ const POST_CONTEXT_BLOCKS = new Set([
     'core/post-featured-image',
 ]);
 
+const QUERY_BLOCK_NAMES = new Set(['core/query', 'artisanpack/query']);
+const POST_TEMPLATE_BLOCK_NAMES = new Set(['core/post-template', 'artisanpack/post-template']);
+
 export function inlineQueries(tree: Block[], options: InlineQueriesOptions): Block[] {
     const queriesById = new Map<string, ResolvedQuery>();
 
@@ -84,7 +91,7 @@ function walk(tree: Block[], queries: Map<string, ResolvedQuery>): Block[] {
             continue;
         }
 
-        if (block.name === 'core/query') {
+        if (typeof block.name === 'string' && QUERY_BLOCK_NAMES.has(block.name)) {
             out.push(expandQuery(block, queries));
             continue;
         }
@@ -128,23 +135,104 @@ function expandQuery(block: Block, queries: Map<string, ResolvedQuery>): Block {
         };
     }
 
-    const template = Array.isArray(block.innerBlocks) ? (block.innerBlocks as Block[]) : [];
-    const expanded: Block[] = [];
+    const queryInner = Array.isArray(block.innerBlocks) ? (block.innerBlocks as Block[]) : [];
+    const resolvedAttributes = {
+        ...attributes,
+        _resolvedTotal: resolved.total ?? resolved.posts.length,
+        _resolvedItems: resolved.posts.length,
+    };
 
-    for (const post of resolved.posts) {
-        for (const child of template) {
-            expanded.push(stampPost(cloneBlock(child), post));
+    if (resolved.posts.length === 0 || queryInner.length === 0) {
+        return {
+            ...block,
+            attributes: resolvedAttributes,
+            innerBlocks: [],
+        };
+    }
+
+    // Find the post-template child block. Its inner blocks are the
+    // per-iteration template that gets cloned once per result;
+    // everything else (pagination, no-results) stays alongside it.
+    let postTemplateIndex = -1;
+    let iterationTemplate: Block[] = [];
+
+    for (let i = 0; i < queryInner.length; i += 1) {
+        const child = queryInner[i];
+        if (child === null || typeof child !== 'object') {
+            continue;
+        }
+
+        if (typeof child.name === 'string' && POST_TEMPLATE_BLOCK_NAMES.has(child.name)) {
+            postTemplateIndex = i;
+            iterationTemplate = Array.isArray(child.innerBlocks) ? (child.innerBlocks as Block[]) : [];
+            break;
         }
     }
 
+    // No post-template found — fall back to expanding the query's
+    // direct inner blocks once per result, so hosts that drop a custom
+    // template without the post-template wrapper are not regressed.
+    if (postTemplateIndex === -1) {
+        const expandedFlat: Block[] = [];
+
+        for (const post of resolved.posts) {
+            for (const child of queryInner) {
+                expandedFlat.push(stampPost(cloneBlock(child), post));
+            }
+        }
+
+        return {
+            ...block,
+            attributes: resolvedAttributes,
+            innerBlocks: expandedFlat,
+        };
+    }
+
+    const expandedIterations: Block[] = [];
+    // Track occurrences so a duplicate post.id within a single result set
+    // gets a unique clientId (avoids Vue key collisions when the renderer
+    // uses block.clientId as the `v-for` key).
+    const seenIds = new Map<number, number>();
+
+    for (const post of resolved.posts) {
+        const iterationBlocks: Block[] = [];
+
+        for (const tmplChild of iterationTemplate) {
+            iterationBlocks.push(stampPost(cloneBlock(tmplChild), post));
+        }
+
+        const postType = typeof post.type === 'string' && post.type !== '' ? post.type : 'post';
+        const postStatus =
+            typeof post.status === 'string' && post.status !== '' ? post.status : 'publish';
+
+        const occurrence = seenIds.get(post.id) ?? 0;
+        seenIds.set(post.id, occurrence + 1);
+        const clientId = occurrence === 0 ? `pti-${post.id}` : `pti-${post.id}-${occurrence}`;
+
+        expandedIterations.push({
+            clientId,
+            name: 'core/post-template-item',
+            attributes: {
+                postId: post.id,
+                className: `post-${post.id} post type-${postType} status-${postStatus}`,
+            },
+            innerBlocks: iterationBlocks,
+        });
+    }
+
+    const postTemplate = queryInner[postTemplateIndex];
+    const expandedTemplate: Block = {
+        ...postTemplate,
+        innerBlocks: expandedIterations,
+    };
+
+    const newQueryInner = queryInner.slice();
+    newQueryInner[postTemplateIndex] = expandedTemplate;
+
     return {
         ...block,
-        attributes: {
-            ...attributes,
-            _resolvedTotal: resolved.total ?? resolved.posts.length,
-            _resolvedItems: resolved.posts.length,
-        },
-        innerBlocks: expanded,
+        attributes: resolvedAttributes,
+        innerBlocks: newQueryInner,
     };
 }
 
