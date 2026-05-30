@@ -38,10 +38,10 @@
     "usesContext": [
         "postType",
         "postId",
-        "queryId"
+        "queryId",
+        "artisanpack/postPreview"
     ],
     "supports": {
-        "inserter": false,
         "anchor": true,
         "html": false,
         "spacing": {

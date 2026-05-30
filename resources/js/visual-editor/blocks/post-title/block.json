@@ -9,7 +9,8 @@
     "usesContext": [
         "postId",
         "postType",
-        "queryId"
+        "queryId",
+        "artisanpack/postPreview"
     ],
     "attributes": {
         "level": {

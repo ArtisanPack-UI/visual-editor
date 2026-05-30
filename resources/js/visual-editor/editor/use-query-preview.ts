@@ -24,6 +24,13 @@ export interface QueryPreviewPost {
     content?: string;
     permalink?: string;
     publishedAt?: string;
+    /**
+     * Server-formatted display date, mirroring the `F j, Y` format the
+     * `PostResolver` stamps onto `_resolvedDateFormatted` for the
+     * front-end render. Used by the `artisanpack/post-date` editor
+     * preview (#483).
+     */
+    dateFormatted?: string;
     modifiedAt?: string;
     author?: {
         name?: string;
@@ -325,6 +332,11 @@ function mapWpEntityToPost(entity: Record<string, unknown>): QueryPreviewPost {
             ? String((entity.excerpt as Record<string, unknown>).rendered ?? '')
             : '';
 
+    const preview =
+        typeof entity._preview === 'object' && entity._preview !== null
+            ? (entity._preview as Record<string, unknown>)
+            : {};
+
     return {
         id,
         title: titleRendered,
@@ -332,5 +344,60 @@ function mapWpEntityToPost(entity: Record<string, unknown>): QueryPreviewPost {
         publishedAt: typeof entity.date === 'string' ? entity.date : undefined,
         modifiedAt: typeof entity.modified === 'string' ? entity.modified : undefined,
         permalink: typeof entity.link === 'string' ? entity.link : undefined,
+        dateFormatted:
+            typeof preview.dateFormatted === 'string' ? preview.dateFormatted : undefined,
+        author: mapPreviewAuthor(preview.author),
+        featuredImage: mapPreviewFeaturedImage(preview.featuredImage),
     };
+}
+
+function mapPreviewAuthor(value: unknown): QueryPreviewPost['author'] {
+    if (value === null || typeof value !== 'object') {
+        return null;
+    }
+
+    const record = value as Record<string, unknown>;
+    const author: NonNullable<QueryPreviewPost['author']> = {};
+
+    if (typeof record.name === 'string') {
+        author.name = record.name;
+    }
+    if (typeof record.bio === 'string') {
+        author.bio = record.bio;
+    }
+    if (typeof record.url === 'string') {
+        author.url = record.url;
+    }
+    if (typeof record.avatarUrl === 'string') {
+        author.avatarUrl = record.avatarUrl;
+    }
+
+    return Object.keys(author).length === 0 ? null : author;
+}
+
+function mapPreviewFeaturedImage(value: unknown): QueryPreviewPost['featuredImage'] {
+    if (value === null || typeof value !== 'object') {
+        return null;
+    }
+
+    const record = value as Record<string, unknown>;
+    const url = typeof record.url === 'string' ? record.url : '';
+
+    if (url === '') {
+        return null;
+    }
+
+    const image: NonNullable<QueryPreviewPost['featuredImage']> = { url };
+
+    if (typeof record.alt === 'string') {
+        image.alt = record.alt;
+    }
+    if (typeof record.width === 'number') {
+        image.width = record.width;
+    }
+    if (typeof record.height === 'number') {
+        image.height = record.height;
+    }
+
+    return image;
 }
