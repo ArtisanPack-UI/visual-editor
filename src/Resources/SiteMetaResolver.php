@@ -31,6 +31,8 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Resources;
 
+use Throwable;
+
 class SiteMetaResolver
 {
 	/**
@@ -123,7 +125,11 @@ class SiteMetaResolver
 
 	/**
 	 * Resolves a media id to a public URL via `apGetMediaUrl()`. Returns
-	 * the empty string when the helper is unavailable or the id is missing.
+	 * the empty string when the helper is unavailable, the id is missing,
+	 * or the helper throws (a host's media-library implementation that
+	 * fails — e.g. DB error, invalid id — must not crash the editor's
+	 * site-meta fetch). Mirrors the defensive pattern in
+	 * {@see \ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\WpEntityResource::featuredImageEnvelope()}.
 	 *
 	 * @since 1.0.0
 	 */
@@ -133,7 +139,11 @@ class SiteMetaResolver
 			return '';
 		}
 
-		$url = apGetMediaUrl( $id );
+		try {
+			$url = apGetMediaUrl( $id );
+		} catch ( Throwable ) {
+			return '';
+		}
 
 		return is_string( $url ) ? $url : '';
 	}

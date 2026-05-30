@@ -81,14 +81,19 @@ function seedPostEntity(
     id: number,
     record: Record<string, unknown>,
 ): void {
+    // Merge the explicit `id` argument last so a future test that
+    // happens to pass `id` inside `record` cannot silently override
+    // the seed's primary-key slot — `receiveEntityRecords` keys by
+    // the entity's `key` field (`'id'`) and a mismatched record
+    // would be cached under the wrong slot.
     coreDispatch().receiveEntityRecords('postType', postType, [
-        { id, ...record },
+        { ...record, id },
     ]);
 }
 
 function seedSiteEntity(record: Record<string, unknown>): void {
     coreDispatch().receiveEntityRecords('root', '__unstableBase', [
-        { id: SITE_ENTITY_ID, ...record },
+        { ...record, id: SITE_ENTITY_ID },
     ]);
 }
 

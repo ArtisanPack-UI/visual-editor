@@ -45,9 +45,13 @@ class SiteController extends Controller
 	/**
 	 * Returns the singleton site-meta record.
 	 *
+	 * The `{id}` route segment is constrained to `[A-Za-z0-9_-]+`, so
+	 * Laravel always hands the controller a string — the parameter is
+	 * a sentinel echoed back on the record, not a primary key.
+	 *
 	 * @since 1.0.0
 	 */
-	public function show( int|string $id ): JsonResponse
+	public function show( string $id ): JsonResponse
 	{
 		$meta = $this->resolver->resolve();
 
@@ -71,7 +75,7 @@ class SiteController extends Controller
 	 *
 	 * @return array<string, mixed>
 	 */
-	protected function shape( int|string $id, array $meta ): array
+	protected function shape( string $id, array $meta ): array
 	{
 		return [
 			'id'          => $id,
