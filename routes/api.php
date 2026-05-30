@@ -24,6 +24,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\SiteController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\GlobalStylesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\MenuController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\MenuItemController;
@@ -243,3 +244,12 @@ Route::delete( 'pages/{id}', [ PageController::class, 'destroy' ] )
 Route::get( 'attachments/{id}', [ AttachmentController::class, 'show' ] )
 	->where( 'id', '[0-9]+' )
 	->name( 'visual-editor.api.attachments.show' );
+
+// #481 — singleton site-meta envelope consumed by the editor's
+// `artisanpack/site-*` block previews. The shim's URL builder always
+// appends an id segment to a single-record fetch, so the route accepts
+// any short alphanumeric token and treats it as a sentinel — the
+// controller always returns the same record.
+Route::get( 'site/{id}', [ SiteController::class, 'show' ] )
+	->where( 'id', '[A-Za-z0-9_-]+' )
+	->name( 'visual-editor.api.site.show' );
