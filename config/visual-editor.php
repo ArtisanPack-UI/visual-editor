@@ -83,10 +83,9 @@ return [
 
 	'enabled_blocks' => [
 		// Content cluster — forked to artisanpack/* (I0 #408, I1 #409).
-		// The core/* counterparts stay registered (so existing content
-		// deserializes and the from:core/* transforms keep working) but are
-		// dropped from this allow-list, so only the forks surface in the
-		// inserter.
+		// I7 (#415): core/* counterparts are no longer registered; only the
+		// artisanpack/* forks surface in the inserter. The `from:core/*`
+		// transforms still migrate existing core/* content on deserialize.
 		'artisanpack/paragraph',
 		'artisanpack/heading',
 		'artisanpack/list',
@@ -105,13 +104,13 @@ return [
 		'artisanpack/embed',
 		'artisanpack/cover',
 		'artisanpack/media-text',
-		// Entity cluster — forked to artisanpack/* (I5 #413). The core/*
-		// counterparts stay registered (so existing content deserializes
-		// and the from:core/* transforms keep working) but are dropped
-		// from this allow-list, so only the forks surface in the inserter.
-		// The forks read entity data through the same core-data shim
-		// selectors the core blocks use (#395 G0, #399 G3) and render
-		// server-side from stamped _resolved* attributes.
+		// Entity cluster — forked to artisanpack/* (I5 #413). I7 (#415):
+		// core/* counterparts are no longer registered; only the
+		// artisanpack/* forks surface in the inserter. The forks read
+		// entity data through the same core-data shim selectors the core
+		// blocks used (#395 G0, #399 G3) and render server-side from
+		// stamped _resolved* attributes. The `from:core/*` transforms
+		// still migrate existing core/* content on deserialize.
 		'artisanpack/template-part',
 		'artisanpack/post-title',
 		'artisanpack/post-content',
@@ -135,10 +134,10 @@ return [
 		'artisanpack/query',
 		'artisanpack/post-template',
 		'artisanpack/callout',
-		// Layout cluster — forked to artisanpack/* (I3 #411).
+		// Layout cluster — forked to artisanpack/* (I3 #411). `row` and
+		// `stack` ship as variations of artisanpack/group (registered name
+		// stays `artisanpack/group`), so they are not listed here.
 		'artisanpack/group',
-		'artisanpack/row',
-		'artisanpack/stack',
 		'artisanpack/columns',
 		'artisanpack/column',
 		'artisanpack/buttons',

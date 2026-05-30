@@ -57,8 +57,6 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 		'artisanpack/post-template',
 		'artisanpack/callout',
 		'artisanpack/group',
-		'artisanpack/row',
-		'artisanpack/stack',
 		'artisanpack/columns',
 		'artisanpack/column',
 		'artisanpack/buttons',

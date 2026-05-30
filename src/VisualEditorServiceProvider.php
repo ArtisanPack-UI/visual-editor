@@ -211,7 +211,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
 
 		// 3. Register all artisanpack/* blocks from their block.json manifests.
-		$this->registerCoreBlocks();
+		$this->registerForkedBlocks();
 
 		// 4. Register package-native blocks (artisanpack/callout, etc.).
 		$this->registerReferenceBlocks();
@@ -244,7 +244,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 *
 	 * @since 1.0.0
 	 */
-	protected function registerCoreBlocks(): void
+	protected function registerForkedBlocks(): void
 	{
 		$editor    = $this->app->make( VisualEditor::class );
 		$blocksDir = __DIR__ . '/../resources/js/visual-editor/blocks';
