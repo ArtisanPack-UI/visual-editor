@@ -97,10 +97,19 @@ export default function QueryEdit( {
     const preview = useQueryPreview( query );
 
     const firstPost = preview.status === 'ready' ? preview.posts[ 0 ] : undefined;
+    // The `artisanpack/postPreview` key piggybacks on the
+    // `BlockContextProvider` `postId` path so inner `post-*` block edits
+    // can render the first matched post's actual data in the canvas
+    // (#483). The value is null when no preview is ready so consumers
+    // fall back to their placeholder.
     const blockContext =
         firstPost === undefined
-            ? { postType }
-            : { postType, postId: firstPost.id };
+            ? { postType, 'artisanpack/postPreview': null }
+            : {
+                postType,
+                postId: firstPost.id,
+                'artisanpack/postPreview': firstPost,
+            };
 
     return (
         <div { ...blockProps }>

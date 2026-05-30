@@ -27,6 +27,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
+use Illuminate\Support\Carbon;
 use Throwable;
 
 /**
@@ -78,9 +79,153 @@ abstract class WpEntityResource extends JsonResource
 			'author'         => $this->intField( $model, [ 'author_id' ] ),
 			'featured_media' => $this->intField( $model, [ 'featured_media', 'featured_image_id' ] ),
 			'date'           => $this->date( $model ),
+			// Editor-preview envelope (issue #483). The WP REST shape
+			// above exposes author/featured-media as ids only; the
+			// `_preview` block carries the same resolved name/url/etc.
+			// data the server-side PostResolver stamps onto front-end
+			// `_resolved*` attributes so the editor canvas can preview
+			// `artisanpack/post-*` blocks inside a query loop without a
+			// follow-up `@wordpress/core-data` fetch.
+			'_preview'       => $this->previewEnvelope( $model ),
 		];
 
 		return array_merge( $base, $this->extraFields( $model ) );
+	}
+
+	/**
+	 * Editor-canvas preview envelope used by `artisanpack/query`'s
+	 * inner `post-*` blocks (#483). Mirrors the `_resolved*` keys the
+	 * server-side `PostResolver` stamps for the front-end renderers so
+	 * the editor preview and the public render show the same author /
+	 * date / featured image data.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function previewEnvelope( Model $model ): array
+	{
+		return [
+			'dateFormatted' => $this->formattedDate( $model ),
+			'author'        => $this->authorEnvelope( $model ),
+			'featuredImage' => $this->featuredImageEnvelope( $model ),
+		];
+	}
+
+	/**
+	 * Resolve the post's canonical date and format it for display.
+	 * Matches `PostResolver::resolveDate()`'s `F j, Y` format so the
+	 * editor preview and the server-rendered front end agree.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function formattedDate( Model $model ): ?string
+	{
+		$iso = $this->date( $model );
+
+		if ( null === $iso ) {
+			return null;
+		}
+
+		try {
+			return Carbon::parse( $iso )->translatedFormat( 'F j, Y' );
+		} catch ( Throwable ) {
+			return null;
+		}
+	}
+
+	/**
+	 * Resolve the post's author into the preview envelope shape used
+	 * by `mapWpEntityToPost()` on the client. Returns null when the
+	 * model does not expose an `author` relation/property.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	protected function authorEnvelope( Model $model ): ?array
+	{
+		$author = $model->author ?? null;
+
+		if ( null === $author ) {
+			return null;
+		}
+
+		return [
+			'name'      => isset( $author->name ) && is_scalar( $author->name ) ? (string) $author->name : '',
+			'bio'       => isset( $author->bio ) && is_scalar( $author->bio )
+				? (string) $author->bio
+				: ( isset( $author->description ) && is_scalar( $author->description ) ? (string) $author->description : '' ),
+			'url'       => isset( $author->url ) && is_scalar( $author->url )
+				? (string) $author->url
+				: ( isset( $author->website ) && is_scalar( $author->website ) ? (string) $author->website : '' ),
+			'avatarUrl' => isset( $author->avatar_url ) && is_scalar( $author->avatar_url ) ? (string) $author->avatar_url : '',
+		];
+	}
+
+	/**
+	 * Resolve the featured image into the preview envelope shape used
+	 * by `mapWpEntityToPost()` on the client. Uses the media-library
+	 * helpers (`apGetMediaUrl()` / `apGetMedia()`) when available so
+	 * a visual-editor install without media-library degrades to null
+	 * instead of erroring.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>|null
+	 */
+	protected function featuredImageEnvelope( Model $model ): ?array
+	{
+		$mediaId = $this->intField( $model, [ 'featured_media', 'featured_image_id' ] );
+
+		if ( null === $mediaId ) {
+			return null;
+		}
+
+		$url    = '';
+		$alt    = '';
+		$width  = 0;
+		$height = 0;
+
+		// `function_exists()` only guards against missing helpers — a
+		// host implementation that throws would otherwise bubble out
+		// through `toArray()` and fail the entire response. Mirrors
+		// the defensive pattern in `relationIds()` below.
+		if ( function_exists( 'apGetMediaUrl' ) ) {
+			try {
+				$resolved = apGetMediaUrl( $mediaId, 'full' );
+				$url      = is_string( $resolved ) ? $resolved : '';
+			} catch ( Throwable ) {
+				$url = '';
+			}
+		}
+
+		if ( function_exists( 'apGetMedia' ) ) {
+			try {
+				$media = apGetMedia( $mediaId );
+
+				if ( is_object( $media ) ) {
+					$alt    = isset( $media->alt_text ) && is_scalar( $media->alt_text ) ? (string) $media->alt_text : '';
+					$width  = isset( $media->width ) && is_numeric( $media->width ) ? (int) $media->width : 0;
+					$height = isset( $media->height ) && is_numeric( $media->height ) ? (int) $media->height : 0;
+				}
+			} catch ( Throwable ) {
+				$alt    = '';
+				$width  = 0;
+				$height = 0;
+			}
+		}
+
+		if ( '' === $url ) {
+			return null;
+		}
+
+		return [
+			'url'    => $url,
+			'alt'    => $alt,
+			'width'  => $width,
+			'height' => $height,
+		];
 	}
 
 	/**

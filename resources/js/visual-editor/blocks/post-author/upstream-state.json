@@ -57,7 +57,8 @@
     "knownDivergences": [
         "edit.tsx previews via createEntityPlaceholderEdit rather than upstream edit.js — the core-data shim does not expose the page/site/user entity to the post editor, so the upstream entity-querying edit renders empty or crashes. Live in-editor entity values would require expanding the shim (out of scope for the fork).",
         "post-author is server-rendered: the front-end markup is produced by the Blade/React/Vue renderers from stamped _resolved* attributes, not by save().",
-        "transforms.ts adds bidirectional block transforms that do not exist upstream — required to coexist with core/post-author during the V1 rollout."
+        "transforms.ts adds bidirectional block transforms that do not exist upstream — required to coexist with core/post-author during the V1 rollout.",
+        "supports.inserter: upstream sets it to false (the block is deprecated in favor of post-author-name + post-author-biography + avatar — none of which the fork ships yet). The fork drops the flag so post-author can be inserted alongside post-title / post-date / post-excerpt / post-featured-image while it remains the only author-rendering block in the catalog (#483)."
     ],
     "triage": {
         "label": "in-sync",

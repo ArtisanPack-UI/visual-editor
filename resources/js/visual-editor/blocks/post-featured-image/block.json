@@ -63,7 +63,8 @@
     "usesContext": [
         "postId",
         "postType",
-        "queryId"
+        "queryId",
+        "artisanpack/postPreview"
     ],
     "example": {
         "viewportWidth": 350

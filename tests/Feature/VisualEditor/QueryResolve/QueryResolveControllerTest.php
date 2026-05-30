@@ -119,6 +119,36 @@ it( 'rejects perPage above the documented cap', function () {
 	] )->assertUnprocessable();
 } );
 
+it( 'includes the editor-preview envelope on resolved posts (#483)', function () {
+	actingResolver();
+
+	$post = TestBlockContentModel::create( [
+		'title'   => 'Hello',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	test()->fake->setItems( [ $post ] );
+
+	$response = $this->postJson( '/visual-editor/api/query/resolve', [
+		'postType' => 'post',
+		'perPage'  => 1,
+	] )->assertOk();
+
+	// The envelope must always be present — the editor canvas reads
+	// it through `mapWpEntityToPost` — even when the underlying
+	// model exposes no author / featured-media data (the fixture
+	// model has neither), in which case both fields are null.
+	$response->assertJsonStructure( [
+		'data' => [
+			[ '_preview' => [ 'dateFormatted', 'author', 'featuredImage' ] ],
+		],
+	] );
+
+	$response->assertJsonPath( 'data.0._preview.author', null );
+	$response->assertJsonPath( 'data.0._preview.featuredImage', null );
+} );
+
 it( 'returns 400 when the resolver throws', function () {
 	actingResolver();
 

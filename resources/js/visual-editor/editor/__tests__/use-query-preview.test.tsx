@@ -245,4 +245,105 @@ describe('useQueryPreview', () => {
         expect(result.current.error).toBe('runtime missing');
         expect(result.current.posts).toEqual([]);
     });
+
+    it('extracts the `_preview` envelope so post-* editor previews can read it (#483)', async () => {
+        fetchMock.mockResolvedValue(
+            new Response(
+                JSON.stringify({
+                    data: [
+                        {
+                            id: 1,
+                            title: { rendered: 'Hello' },
+                            excerpt: { rendered: 'World' },
+                            link: '/posts/1',
+                            date: '2026-04-30T12:00:00+00:00',
+                            _preview: {
+                                dateFormatted: 'April 30, 2026',
+                                author: { name: 'Jane Doe', avatarUrl: 'https://cdn/jane.png' },
+                                featuredImage: {
+                                    url: 'https://cdn/hero.jpg',
+                                    alt: 'Hero',
+                                    width: 1200,
+                                    height: 800,
+                                },
+                            },
+                        },
+                    ],
+                    meta: { total: 1 },
+                }),
+                { status: 200, headers: { 'Content-Type': 'application/json' } }
+            )
+        );
+
+        const { result } = renderHook(() =>
+            useQueryPreview({ postType: 'post' }, { debounceMs: 5 })
+        );
+
+        await waitFor(() => expect(result.current.status).toBe('ready'));
+
+        expect(result.current.posts[0]).toMatchObject({
+            id: 1,
+            dateFormatted: 'April 30, 2026',
+            author: { name: 'Jane Doe', avatarUrl: 'https://cdn/jane.png' },
+            featuredImage: { url: 'https://cdn/hero.jpg', alt: 'Hero', width: 1200, height: 800 },
+        });
+    });
+
+    it('returns null author / featured image when the `_preview` envelope omits them', async () => {
+        fetchMock.mockResolvedValue(
+            new Response(
+                JSON.stringify({
+                    data: [
+                        {
+                            id: 2,
+                            title: { rendered: 'No extras' },
+                            excerpt: { rendered: '' },
+                            date: '2026-04-30T12:00:00+00:00',
+                            _preview: { dateFormatted: 'April 30, 2026' },
+                        },
+                    ],
+                    meta: { total: 1 },
+                }),
+                { status: 200, headers: { 'Content-Type': 'application/json' } }
+            )
+        );
+
+        const { result } = renderHook(() =>
+            useQueryPreview({ postType: 'post' }, { debounceMs: 5 })
+        );
+
+        await waitFor(() => expect(result.current.status).toBe('ready'));
+
+        expect(result.current.posts[0].author).toBeNull();
+        expect(result.current.posts[0].featuredImage).toBeNull();
+        expect(result.current.posts[0].dateFormatted).toBe('April 30, 2026');
+    });
+
+    it('drops a featured image without a URL', async () => {
+        fetchMock.mockResolvedValue(
+            new Response(
+                JSON.stringify({
+                    data: [
+                        {
+                            id: 3,
+                            title: { rendered: 'No image' },
+                            excerpt: { rendered: '' },
+                            date: '2026-04-30T12:00:00+00:00',
+                            _preview: { featuredImage: { url: '' } },
+                        },
+                    ],
+                    meta: { total: 1 },
+                }),
+                { status: 200, headers: { 'Content-Type': 'application/json' } }
+            )
+        );
+
+        const { result } = renderHook(() =>
+            useQueryPreview({ postType: 'post' }, { debounceMs: 5 })
+        );
+
+        await waitFor(() => expect(result.current.status).toBe('ready'));
+
+        expect(result.current.posts[0].featuredImage).toBeNull();
+    });
 });
