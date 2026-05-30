@@ -270,7 +270,35 @@ export const DEFAULT_ENTITIES: readonly EntityConfig[] = Object.freeze([
         label: 'Attachment',
         plural: 'attachments',
     },
+    // #481 — singleton site-meta entity consumed by the editor's
+    // `artisanpack/site-*` block previews (`createEntityPlaceholderEdit`
+    // with `fromSiteEntity`). The endpoint is a singleton but the
+    // shim's URL builder always appends an id; consumers pass the
+    // sentinel `'self'` id, which the controller ignores. The record
+    // shape mirrors a lightweight WP REST `wp/v2/` site envelope so
+    // `flattenRawProperties()` collapses `title.raw` / `description.raw`
+    // through the same path post entities take.
+    {
+        kind: 'root',
+        name: '__unstableBase',
+        baseURL: '/site',
+        key: 'id',
+        label: 'Site',
+        plural: 'site',
+    },
 ]);
+
+/**
+ * Sentinel id used by editor consumers (`createEntityPlaceholderEdit`)
+ * to read the singleton site-meta entity from the shim via
+ * `useEntityRecord('root', '__unstableBase', SITE_ENTITY_ID)`. The
+ * controller backing `/visual-editor/api/site/{id}` ignores the id
+ * and always returns the same record, but the shim's URL builder
+ * still needs *some* id to fetch.
+ *
+ * @see issue #481
+ */
+export const SITE_ENTITY_ID = 'self' as const;
 
 // ---------------------------------------------------------------------------
 // Shim configuration

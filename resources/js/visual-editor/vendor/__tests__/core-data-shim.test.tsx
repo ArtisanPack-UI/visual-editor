@@ -118,6 +118,11 @@ describe('core-data-shim entity registry', () => {
             // `apGetMedia()` and falls back to 404 when no media
             // library is installed.
             'postType|attachment',
+            // #481 — singleton site-meta entity consumed by the
+            // editor's `artisanpack/site-*` block previews. Backed
+            // by `/visual-editor/api/site/{id}` which is a singleton
+            // (the id is ignored).
+            'root|__unstableBase',
         ]);
     });
 
