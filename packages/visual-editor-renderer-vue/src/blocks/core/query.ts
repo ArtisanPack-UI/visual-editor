@@ -84,7 +84,13 @@ export const PostTemplateItemBlock = defineComponent({
     props: blockRendererProps,
     setup(props, { slots }) {
         return () => {
-            const postId = typeof props.attributes.postId === 'number' ? props.attributes.postId : 0;
+            // Coerce numeric strings ("123") so the `post-{id}` id stamps
+            // regardless of whether the host serialized postId as a number or
+            // a string — matches the Blade partial's `(int)` cast.
+            const rawPostId = props.attributes.postId;
+            const parsedPostId =
+                typeof rawPostId === 'number' ? rawPostId : Number(rawPostId);
+            const postId = Number.isFinite(parsedPostId) ? parsedPostId : 0;
             const className = attrString(props.attributes.className);
 
             const attrs: Record<string, unknown> = {

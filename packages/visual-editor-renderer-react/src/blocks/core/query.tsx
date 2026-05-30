@@ -73,7 +73,12 @@ export function PostTemplateBlock({ attributes, children }: BlockRendererProps):
 }
 
 export function PostTemplateItemBlock({ attributes, children }: BlockRendererProps): JSX.Element {
-    const postId = typeof attributes.postId === 'number' ? attributes.postId : 0;
+    // Coerce numeric strings ("123") to numbers so the `post-{id}` id stamps
+    // regardless of whether the host serialized the attribute as a number or a
+    // string — matches the Blade partial's `(int)` cast.
+    const rawPostId = attributes.postId;
+    const parsedPostId = typeof rawPostId === 'number' ? rawPostId : Number(rawPostId);
+    const postId = Number.isFinite(parsedPostId) ? parsedPostId : 0;
     const className = attrString(attributes.className);
 
     const classes = classList(['wp-block-post-template-item', className]);
