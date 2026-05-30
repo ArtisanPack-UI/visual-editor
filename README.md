@@ -55,17 +55,11 @@ Both shims will be replaced by `artisanpack-ui/cms-framework` (the real Laravel-
 
 ## Block defaults
 
-V1 ships with a frozen allow-list of blocks from `@wordpress/block-library`. The defaults in `config/visual-editor.php` expose only blocks that render correctly against the empty-state `@wordpress/core-data` shim — content, media, layout, and simple widget blocks that do not need a WordPress backend to work.
+V1 ships with a frozen allow-list of forked blocks under the `artisanpack/*` namespace. The defaults in `config/visual-editor.php` expose every block that landed during the Phase I block fork (plan 13) — `@wordpress/block-library`'s `registerCoreBlocks()` is no longer called, and the editor registers only the in-package forks discovered under `resources/js/visual-editor/blocks/`. The `core/*` → `artisanpack/*` mapping table in [`docs/block-library-audit.md`](docs/block-library-audit.md) is the source of truth for which forks exist.
 
-**Disabled by default.** Every block in the following categories is listed in `disabled_blocks` because it relies on data the shim does not provide:
+The forked allow-list covers the content, media, layout, widget, entity, and loop/feed clusters. The entity blocks (`artisanpack/post-*`, `artisanpack/site-*`, `artisanpack/template-part`, `artisanpack/navigation`) and the loop / feed cluster (`artisanpack/query`, `artisanpack/post-template`, `artisanpack/archives`, `artisanpack/categories`, `artisanpack/tag-cloud`) need an entity in scope to render meaningful content — pair the editor with [`artisanpack-ui/cms-framework`](https://github.com/ArtisanPack-UI/cms-framework) (see [Using with cms-framework](#using-with-cms-framework)) and they resolve against Posts / Pages / templates / site settings end-to-end. Standalone, they fall back to empty shells rather than crashing.
 
-- **Site / theme** — `core/navigation`, `core/site-logo`, `core/site-title`, `core/site-tagline`, `core/template-part`
-- **Query loop** — `core/query`, `core/query-loop`
-- **Post context** — `core/post-content`, `core/post-title`, `core/post-excerpt`, `core/post-date`, `core/post-author`, `core/post-featured-image`
-- **Taxonomy widgets** — `core/categories`, `core/tag-cloud`, `core/archives`
-- **Comments feeds** — `core/latest-comments`
-
-These blocks will be re-enabled once `artisanpack-ui/cms-framework` replaces the shim with a real Laravel-backed `core-data` store. The full per-block classification — including blocks that render empty but do not crash — lives in [`docs/block-library-audit.md`](docs/block-library-audit.md). Because the defaults populate `enabled_blocks` as an explicit allow-list, new blocks introduced by a future `@wordpress/block-library` upgrade are implicitly disabled until the audit is revisited.
+`disabled_blocks` is empty by default: with the I7 cutover (#415) the editor no longer registers any `core/*` block, so there is nothing to deny-list. New `@wordpress/block-library` releases similarly bring no new registrations into this package — additions land only when a fork is added to the in-package blocks directory and to the allow-list. `from:core/*` transforms still ship on each fork so existing `core/*` markup pasted from upstream converts on insert.
 
 Override the defaults by publishing the config to `config/artisanpack/visual-editor.php` and editing the `enabled_blocks` / `disabled_blocks` arrays. The deny-list always wins over the allow-list.
 

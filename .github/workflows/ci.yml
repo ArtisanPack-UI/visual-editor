@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'release/**']
   pull_request:
-    branches: [main]
+    branches: [main, 'release/**']
 
 jobs:
   build:
@@ -66,3 +66,22 @@ jobs:
       - name: Run tests
         run: chmod +x ./vendor/bin/pest && ./vendor/bin/pest --ci
 
+  upstream-diff:
+    runs-on: ubuntu-latest
+
+    name: Block fork upstream-diff
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Run upstream-diff (fails on drift in status=ported files)
+        run: npm run upstream-diff -- --json

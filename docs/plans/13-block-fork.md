@@ -3,8 +3,8 @@
 **Package:** `artisanpack-ui/visual-editor`
 **Version Target:** 1.0.0 (Phase I)
 **Created:** April 27, 2026
-**Updated:** May 21, 2026 — moved from V2 into the 1.0.0 release
-**Status:** Active — V1 Phase I (serialized after editor core + Phase G/H + F-series cleanup)
+**Updated:** May 29, 2026 — Phase I8 fork-completion gate closed (#416). Hand-off to #325 in flight.
+**Status:** Complete — clusters I0–I7 landed, I8 gate (#416) closes the fork; v1.0.0 tag handoff lives with #325. See [`docs/release-notes-inputs-1.0.0.md`](../release-notes-inputs-1.0.0.md) for the handoff payload.
 **Tracks:** #331 (umbrella — port core blocks into the package as `artisanpack/*`)
 **Relates to:** #309 (V1 umbrella), [`11-v1-expansion.md`](11-v1-expansion.md), [`12-cms-framework-integration.md`](12-cms-framework-integration.md), [`block-library-audit.md`](../block-library-audit.md)
 

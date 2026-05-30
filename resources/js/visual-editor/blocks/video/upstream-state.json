@@ -22,7 +22,7 @@
         { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Single deprecation entry ported verbatim (figcaption className upgrade)." },
         { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream files + shortcode + raw transforms preserved; added bidirectional core/video ↔ artisanpack/video block transforms." },
         { "fork": "video.css", "upstream": "style.scss + editor.scss", "status": "adapted", "notes": "Sass caption-style() mixin and base-styles colors/variables/z-index inlined as plain CSS." },
-        { "fork": "tracks.tsx", "upstream": "tracks.js", "status": "ported", "notes": "Sibling renderer used by both edit.tsx and save.tsx; logic byte-equivalent to upstream." },
+        { "fork": "tracks.tsx", "upstream": "tracks.js", "status": "adapted", "notes": "Sibling renderer used by both edit.tsx and save.tsx; body logic is byte-equivalent to upstream. The fork adds a JSDoc file-header pointing at the upstream source so the lineage is visible without consulting this state file. No semantic drift from upstream." },
         { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG matching @wordpress/icons' video path." },
         { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract; upstream init.js / index.php server-side wiring is intentionally absent." }
     ],
