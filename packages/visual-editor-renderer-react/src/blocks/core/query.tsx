@@ -72,11 +72,11 @@ export function PostTemplateBlock({ attributes, children }: BlockRendererProps):
     return <ul className={classes}>{children}</ul>;
 }
 
-export function QueryIterationBlock({ attributes, children }: BlockRendererProps): JSX.Element {
+export function PostTemplateItemBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const postId = typeof attributes.postId === 'number' ? attributes.postId : 0;
     const className = attrString(attributes.className);
 
-    const classes = classList(['wp-block-post', className]);
+    const classes = classList(['wp-block-post-template-item', className]);
 
-    return <li id={`post-${postId}`} className={classes}>{children}</li>;
+    return <li id={postId > 0 ? `post-${postId}` : undefined} className={classes}>{children}</li>;
 }

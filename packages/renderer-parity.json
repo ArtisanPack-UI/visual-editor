@@ -35,6 +35,7 @@
         "core/block",
         "core/query",
         "core/post-template",
+        "core/post-template-item",
         "core/post-title",
         "core/post-content",
         "core/post-excerpt",

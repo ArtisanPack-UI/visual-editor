@@ -37,6 +37,17 @@ interface QueryEditProps {
     clientId: string;
 }
 
+// Seed every newly-inserted query with a post-template child so the saved
+// tree has the structure the inliner expects (one post-template wrapping
+// N post-template-item clones). Without this, users can add per-post
+// blocks directly inside the query and the inliner falls back to a flat
+// expansion that skips the semantic <ul>/<li> wrapping. The InnerBlocks
+// `template` only applies on first mount, so it does not overwrite an
+// existing user-arranged tree.
+const DEFAULT_TEMPLATE: ReadonlyArray<[ string ]> = [
+    [ 'artisanpack/post-template' ],
+];
+
 function getQuery( attributes: Record<string, unknown> ): Record<string, unknown> {
     if (
         attributes.query !== null &&
@@ -169,7 +180,7 @@ export default function QueryEdit( {
             </InspectorControls>
             <PreviewBanner preview={ preview } />
             <BlockContextProvider value={ blockContext }>
-                <InnerBlocks />
+                <InnerBlocks template={ [ ...DEFAULT_TEMPLATE ] } />
             </BlockContextProvider>
         </div>
     );

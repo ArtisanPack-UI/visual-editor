@@ -52,7 +52,7 @@ import {
     PostFeaturedImageBlock,
     PostTitleBlock,
 } from './core/postContext';
-import { PostTemplateBlock, QueryBlock, QueryIterationBlock } from './core/query';
+import { PostTemplateBlock, PostTemplateItemBlock, QueryBlock } from './core/query';
 import { SiteLogoBlock, SiteTaglineBlock, SiteTitleBlock } from './core/siteContext';
 import { SyncedPatternBlock } from './core/syncedPattern';
 import { TemplatePartBlock } from './core/templatePart';
@@ -142,7 +142,7 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/post-template': PostTemplateBlock,
     'artisanpack/query': QueryBlock,
     'artisanpack/post-template': PostTemplateBlock,
-    '_query-iteration': QueryIterationBlock,
+    'core/post-template-item': PostTemplateItemBlock,
     'core/post-title': PostTitleBlock,
     'artisanpack/post-title': PostTitleBlock,
     'core/post-content': PostContentBlock,

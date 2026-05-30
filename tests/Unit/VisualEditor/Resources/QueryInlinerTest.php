@@ -44,7 +44,7 @@ beforeEach( function (): void {
 	$this->inliner = new QueryInliner( $this->app, new PostResolver() );
 } );
 
-it( 'expands core/query into one post-template instance per result', function () {
+it( 'expands core/query into one post-template wrapping N post-template-item blocks', function () {
 	$this->fake->setItems( [ postFixture( 1, 'First' ), postFixture( 2, 'Second' ) ] );
 
 	$tree = [ makeQueryBlock( [
@@ -56,14 +56,17 @@ it( 'expands core/query into one post-template instance per result', function ()
 	$query = $inlined[0];
 
 	// The query keeps one post-template child; its innerBlocks hold
-	// one _query-iteration per result, each wrapping the stamped template.
+	// one core/post-template-item per result, each wrapping the
+	// stamped template. The synthetic item blocks render as `<li>` so
+	// the parent post-template emits a single `<ul>` with N items.
 	$postTemplate = $query['innerBlocks'][0];
 
 	expect( $query['name'] )->toBe( 'core/query' )
 		->and( count( $query['innerBlocks'] ) )->toBe( 1 )
 		->and( $postTemplate['name'] )->toBe( 'core/post-template' )
 		->and( count( $postTemplate['innerBlocks'] ) )->toBe( 2 )
-		->and( $postTemplate['innerBlocks'][0]['name'] )->toBe( '_query-iteration' )
+		->and( $postTemplate['innerBlocks'][0]['name'] )->toBe( 'core/post-template-item' )
+		->and( $postTemplate['innerBlocks'][1]['name'] )->toBe( 'core/post-template-item' )
 		->and( $postTemplate['innerBlocks'][0]['innerBlocks'][0]['attributes']['_resolvedTitle'] )->toBe( 'First' )
 		->and( $postTemplate['innerBlocks'][1]['innerBlocks'][0]['attributes']['_resolvedTitle'] )->toBe( 'Second' );
 } );
@@ -168,7 +171,7 @@ it( 'deep-clones the template subtree per result so mutations do not leak', func
 
 	$inlined = $this->inliner->inline( $tree );
 
-	// Post-template → _query-iteration[0] → post-title, iteration[1] → post-title.
+	// Post-template → core/post-template-item[0] → post-title, item[1] → post-title.
 	$postTemplate = $inlined[0]['innerBlocks'][0];
 	$first  = $postTemplate['innerBlocks'][0]['innerBlocks'][0];
 	$second = $postTemplate['innerBlocks'][1]['innerBlocks'][0];

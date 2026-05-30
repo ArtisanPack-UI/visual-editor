@@ -176,8 +176,12 @@ class QueryInliner
 		}
 
 		// Expand: clone the iteration template once per result, stamp
-		// _resolved* attributes, and wrap each iteration in an <li>
-		// block with post-specific classes.
+		// _resolved* attributes, and wrap each iteration in a synthetic
+		// `core/post-template-item` block. The renderers turn that into
+		// an `<li>` so the parent `core/post-template` emits a single
+		// `<ul>` containing N `<li>` items — matching upstream
+		// Gutenberg's `<ul><li>...</li></ul>` shape rather than N
+		// single-item lists.
 		$expandedIterations = [];
 
 		foreach ( $results as $post ) {
@@ -200,8 +204,8 @@ class QueryInliner
 			}
 
 			$expandedIterations[] = [
-				'clientId'    => 'qi-' . $postId,
-				'name'        => '_query-iteration',
+				'clientId'    => 'pti-' . $postId,
+				'name'        => 'core/post-template-item',
 				'attributes'  => [
 					'postId'    => $postId,
 					'className' => 'post-' . $postId

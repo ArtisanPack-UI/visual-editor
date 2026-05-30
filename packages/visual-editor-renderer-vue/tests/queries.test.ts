@@ -31,7 +31,7 @@ function fakePost(id: number, title: string): ResolvedPost {
 }
 
 describe('inlineQueries', () => {
-    it('expands core/query into one post-template instance per result', () => {
+    it('expands core/query into one post-template wrapping N post-template-item blocks', () => {
         const tree = [
             makeQueryBlock([
                 { name: 'core/post-title', attributes: {}, innerBlocks: [] } as Block,
@@ -43,14 +43,20 @@ describe('inlineQueries', () => {
         ];
 
         const result = inlineQueries(tree, { queries });
-        const innerBlocks = result[0].innerBlocks ?? [];
+        const queryInner = result[0].innerBlocks ?? [];
+        const postTemplate = queryInner[0];
+        const items = postTemplate.innerBlocks ?? [];
 
-        expect(innerBlocks).toHaveLength(2);
+        expect(queryInner).toHaveLength(1);
+        expect(postTemplate.name).toBe('core/post-template');
+        expect(items).toHaveLength(2);
+        expect(items[0].name).toBe('core/post-template-item');
+        expect(items[1].name).toBe('core/post-template-item');
         expect(
-            (innerBlocks[0].innerBlocks?.[0].attributes as Record<string, unknown>)?._resolvedTitle
+            (items[0].innerBlocks?.[0].attributes as Record<string, unknown>)?._resolvedTitle
         ).toBe('A');
         expect(
-            (innerBlocks[1].innerBlocks?.[0].attributes as Record<string, unknown>)?._resolvedTitle
+            (items[1].innerBlocks?.[0].attributes as Record<string, unknown>)?._resolvedTitle
         ).toBe('B');
     });
 
@@ -90,7 +96,7 @@ describe('inlineQueries', () => {
         ];
 
         const result = inlineQueries(tree, { queries });
-        const stamped = result[0].innerBlocks?.[0].innerBlocks ?? [];
+        const stamped = result[0].innerBlocks?.[0].innerBlocks?.[0].innerBlocks ?? [];
 
         expect((stamped[0].attributes as Record<string, unknown>)._resolvedTitle).toBe('Post');
         expect((stamped[1].attributes as Record<string, unknown>)._resolvedExcerpt).toBe('Excerpt');
@@ -121,7 +127,7 @@ describe('inlineQueries', () => {
 
         const result = inlineQueries(tree as Block[], { queries });
         const innerQuery = result[0].innerBlocks?.[0];
-        const stamped = innerQuery?.innerBlocks?.[0]?.innerBlocks?.[0];
+        const stamped = innerQuery?.innerBlocks?.[0]?.innerBlocks?.[0]?.innerBlocks?.[0];
 
         expect(innerQuery?.name).toBe('core/query');
         expect((stamped?.attributes as Record<string, unknown>)?._resolvedTitle).toBe('Inner');
@@ -143,7 +149,7 @@ describe('inlineQueries', () => {
         ];
 
         const result = inlineQueries(tree, { queries });
-        const stamped = result[0].innerBlocks?.[0].innerBlocks?.[0];
+        const stamped = result[0].innerBlocks?.[0].innerBlocks?.[0].innerBlocks?.[0];
 
         expect((stamped?.attributes as Record<string, unknown>)?._resolvedTitle).toBe(
             'Host override'
