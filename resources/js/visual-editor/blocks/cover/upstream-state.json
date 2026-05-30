@@ -20,7 +20,7 @@
         { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent to upstream." },
         { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full 14-entry deprecation chain (v1..v14) ported. v10..v14 share a helper renderer (renderModernSave) to keep the file readable; markup is equivalent." },
         { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream image/video/group transforms ported; added bidirectional core/cover ↔ artisanpack/cover block transforms. cleanEmptyObject from unlock(blockEditorPrivateApis) is inlined." },
-        { "fork": "constants.ts", "upstream": "constants.js", "status": "ported", "notes": "Single constant; byte-equivalent." },
+        { "fork": "constants.ts", "upstream": "constants.js", "status": "adapted", "notes": "Single constant; body byte-equivalent. The fork adds a JSDoc file-header pointing at the upstream source so the lineage is visible without consulting this state file. No semantic drift from upstream." },
         { "fork": "shared.ts", "upstream": "shared.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent to upstream." },
         { "fork": "embed-video-utils.ts", "upstream": "embed-video-utils.js", "status": "adapted", "notes": "TypeScript port. The dependency on ../embed/util.matchesPatterns is replaced by an inline matchesPatterns helper so the fork does not depend on block-library internals not exposed via the package's exports field." },
         { "fork": "variations.ts", "upstream": "variations.js", "status": "adapted", "notes": "TypeScript port; single 'cover' variation preserved verbatim." },

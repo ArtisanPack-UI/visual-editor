@@ -4,3 +4,11 @@ node_modules/
 dist/
 .vite/
 *.log
+
+# upstream-diff CLI writes per-block reports next to each block's
+# upstream-state.json. The reports are transient build artifacts —
+# regenerated on every run, including in CI — so they should never
+# enter the working tree's diff. The 10 already-tracked report files
+# predate this rule and stay tracked until a dedicated cleanup PR
+# removes them.
+resources/js/visual-editor/blocks/**/upstream-diff-report.json

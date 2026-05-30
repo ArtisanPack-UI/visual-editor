@@ -2,12 +2,20 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'release/**']
   pull_request:
-    branches: [main]
+    branches: [main, 'release/**']
+
+permissions:
+  contents: read
 
 jobs:
   build:
+    # Restricted to main until the composer.json ../cms-framework path
+    # repository is teardown'd in CI (tracked in #434). On release/** the
+    # `composer install` step fails because the sibling cms-framework
+    # checkout the path repo points at does not exist on the runner.
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
     runs-on: ubuntu-latest
 
     steps:
@@ -16,7 +24,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.4'
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
           coverage: none
 
@@ -42,6 +50,9 @@ jobs:
           retention-days: 1
 
   test:
+    # See `build`. The `test` job depends on `build`'s vendor artifact, so
+    # the same scope applies.
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
     needs: build
     runs-on: ubuntu-latest
 
@@ -53,7 +64,7 @@ jobs:
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.4'
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
           coverage: none
 
@@ -66,3 +77,22 @@ jobs:
       - name: Run tests
         run: chmod +x ./vendor/bin/pest && ./vendor/bin/pest --ci
 
+  upstream-diff:
+    runs-on: ubuntu-latest
+
+    name: Block fork upstream-diff
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Run upstream-diff (fails on drift in status=ported files)
+        run: npm run upstream-diff -- --json

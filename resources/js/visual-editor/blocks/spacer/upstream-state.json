@@ -22,7 +22,7 @@
         { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Single v1 entry ported verbatim (legacy numeric height/width → string px)." },
         { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream → core/separator transform preserved; added bidirectional block transforms for core/spacer ↔ artisanpack/spacer round-tripping." },
         { "fork": "controls.tsx", "upstream": "controls.js", "status": "adapted", "notes": "TypeScript port of the ToolsPanel-based spacer controls; private-API access via defensive accessor instead of `unlock`." },
-        { "fork": "constants.ts", "upstream": "constants.js", "status": "ported", "notes": "Single MIN_SPACER_SIZE constant." },
+        { "fork": "constants.ts", "upstream": "constants.js", "status": "adapted", "notes": "Body declares the single MIN_SPACER_SIZE constant verbatim; the fork adds a JSDoc file-header pointing at the upstream source so the lineage is visible without consulting this state file. No semantic drift from upstream." },
         { "fork": "spacer.css", "upstream": "style.scss + editor.scss", "status": "adapted", "notes": "Combined SCSS-to-CSS port. data-type selectors rewritten from core/spacer to artisanpack/spacer; Sass variables resolved ($grid-unit-10 → 8px, $black/$white → rgba); `.is-dark-theme &` parent selectors expanded." },
         { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (editor doesn't bundle dashicons)." },
         { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract. Upstream's PHP-side init wiring and example settings are not carried." }
