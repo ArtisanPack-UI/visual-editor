@@ -210,20 +210,15 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
 
-		// 3. Register core blocks from their block.json manifests.
-		$this->registerCoreBlocks();
+		// 3. Register all artisanpack/* blocks from their block.json manifests.
+		$this->registerForkedBlocks();
 
-		// 4. Register the bundled reference custom block
-		//    (`artisanpack/callout`). Demonstrates the auto-discovered
-		//    block pattern for host apps and exercises the `artisanpack`
-		//    category end-to-end.
+		// 4. Register package-native blocks (artisanpack/callout, etc.).
 		$this->registerReferenceBlocks();
 
-		// 4a. G4b — register the three taxonomy/feed core blocks against
-		//     cms-framework's term + post APIs. Gated on the package's
-		//     presence so visual-editor still boots when cms-framework is
-		//     absent; without it these blocks stay deferred and the
-		//     deny-list keeps them out of the inserter.
+		// 4a. Register taxonomy/feed dynamic blocks against cms-framework's
+		//     term + post APIs. Gated on the package's presence so
+		//     visual-editor still boots when cms-framework is absent.
 		$this->registerTaxonomyAndArchiveBlocks();
 
 		// 4b. Forms — register the `artisanpack/form` block against the
@@ -241,25 +236,72 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
-	 * Registers the core block types from their block.json manifest files.
+	 * Registers the forked block types from their block.json manifests.
+	 *
+	 * I7 (#415): all blocks now live under `resources/js/visual-editor/blocks/`
+	 * using the `artisanpack/*` namespace. The legacy `core-blocks/` directory
+	 * is no longer the canonical source.
 	 *
 	 * @since 1.0.0
 	 */
-	protected function registerCoreBlocks(): void
+	protected function registerForkedBlocks(): void
 	{
 		$editor    = $this->app->make( VisualEditor::class );
-		$blocksDir = __DIR__ . '/../resources/js/visual-editor/core-blocks';
+		$blocksDir = __DIR__ . '/../resources/js/visual-editor/blocks';
 
-		$coreBlocks = [
+		$forkedBlocks = [
+			// Content (I0/I1)
 			'paragraph',
 			'heading',
 			'list',
+			'list-item',
 			'quote',
 			'code',
 			'preformatted',
+			'pullquote',
+			'verse',
+			'table',
+			// Media (I2)
+			'image',
+			'gallery',
+			'video',
+			'audio',
+			'file',
+			'embed',
+			'cover',
+			'media-text',
+			// Layout (I3)
+			'group',
+			'columns',
+			'column',
+			'buttons',
+			'button',
+			'separator',
+			'spacer',
+			'details',
+			// Widgets (I4)
+			'search',
+			// Entity (I5)
+			'template-part',
+			'post-title',
+			'post-content',
+			'post-excerpt',
+			'post-date',
+			'post-author',
+			'post-featured-image',
+			'site-title',
+			'site-tagline',
+			'site-logo',
+			'navigation',
+			// Loop / feed (I6)
+			'archives',
+			'categories',
+			'tag-cloud',
+			'query',
+			'post-template',
 		];
 
-		foreach ( $coreBlocks as $block ) {
+		foreach ( $forkedBlocks as $block ) {
 			$blockJsonPath = $blocksDir . '/' . $block . '/block.json';
 
 			if ( file_exists( $blockJsonPath ) ) {
@@ -299,14 +341,9 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
-	 * Registers the G4b dynamic blocks (`core/categories`, `core/tag-cloud`,
-	 * `core/archives`) plus the I4 widgets-cluster fork
-	 * (`artisanpack/latest-posts`) against cms-framework's term + post APIs.
-	 *
-	 * The forked `artisanpack/latest-posts` block also loads its bundled
-	 * `block.json` so the inserter knows about it (the editor JS registers
-	 * the edit component via auto-discovery; the PHP registry owns the
-	 * server-side render + attribute schema).
+	 * Registers the taxonomy/feed dynamic blocks against cms-framework's
+	 * term + post APIs. The `artisanpack/latest-posts` block also loads its
+	 * bundled `block.json` for the inserter.
 	 *
 	 * @since 1.0.0
 	 */

@@ -70,31 +70,22 @@ return [
 	| `enabled_blocks` acts as an allow-list: when non-empty, only the listed
 	| block names are exposed to the inserter. `disabled_blocks` is an
 	| always-applied deny-list. The deny-list wins when both are set. Use
-	| fully-qualified block names (e.g. `core/paragraph`, `core/query`).
+	| fully-qualified block names (e.g. `artisanpack/paragraph`).
 	|
-	| The V1 defaults follow the M5 block-library audit
-	| (see docs/block-library-audit.md), updated by E4 (#381) and G4b
-	| (#401). The allow-list now includes the entity-scoped blocks that
-	| B1's expanded `core-data` shim plus the C1–C5 REST surface can
-	| round-trip (`core/template-part`, `core/post-*`, `core/site-*`,
-	| `core/navigation`) and the taxonomy/feed widgets that G4b wires to
-	| cms-framework's term + post APIs (`core/categories`,
-	| `core/tag-cloud`, `core/archives`). The deny-list still removes
-	| the loop runtime (`core/query`, `core/query-loop` — V1 G4c) and
-	| the comments widgets (`core/latest-comments` — V1.1+, requires a
-	| Comments module in cms-framework). Keep the JS-side mirror in
-	| `resources/js/visual-editor/site-editor/site-editor-app.tsx`
-	| (`D2_DISABLED_BLOCKS`) in sync with the deny-list — the two lists
-	| want to agree.
+	| I7 (#415) cutover: all blocks now use the `artisanpack/*` namespace.
+	| `@wordpress/block-library`'s `registerCoreBlocks()` is no longer
+	| called — the editor registers only the forked blocks discovered
+	| under `resources/js/visual-editor/blocks/`. The deny-list is empty
+	| because core/* blocks are never registered; blocks deferred to
+	| future releases simply stay off the allow-list.
 	|
 	*/
 
 	'enabled_blocks' => [
 		// Content cluster — forked to artisanpack/* (I0 #408, I1 #409).
-		// The core/* counterparts stay registered (so existing content
-		// deserializes and the from:core/* transforms keep working) but are
-		// dropped from this allow-list, so only the forks surface in the
-		// inserter.
+		// I7 (#415): core/* counterparts are no longer registered; only the
+		// artisanpack/* forks surface in the inserter. The `from:core/*`
+		// transforms still migrate existing core/* content on deserialize.
 		'artisanpack/paragraph',
 		'artisanpack/heading',
 		'artisanpack/list',
@@ -113,13 +104,13 @@ return [
 		'artisanpack/embed',
 		'artisanpack/cover',
 		'artisanpack/media-text',
-		// Entity cluster — forked to artisanpack/* (I5 #413). The core/*
-		// counterparts stay registered (so existing content deserializes
-		// and the from:core/* transforms keep working) but are dropped
-		// from this allow-list, so only the forks surface in the inserter.
-		// The forks read entity data through the same core-data shim
-		// selectors the core blocks use (#395 G0, #399 G3) and render
-		// server-side from stamped _resolved* attributes.
+		// Entity cluster — forked to artisanpack/* (I5 #413). I7 (#415):
+		// core/* counterparts are no longer registered; only the
+		// artisanpack/* forks surface in the inserter. The forks read
+		// entity data through the same core-data shim selectors the core
+		// blocks used (#395 G0, #399 G3) and render server-side from
+		// stamped _resolved* attributes. The `from:core/*` transforms
+		// still migrate existing core/* content on deserialize.
 		'artisanpack/template-part',
 		'artisanpack/post-title',
 		'artisanpack/post-content',
@@ -131,28 +122,22 @@ return [
 		'artisanpack/site-tagline',
 		'artisanpack/site-logo',
 		'artisanpack/navigation',
-		// G4b (#401) — taxonomy/feed widgets backed by cms-framework's
-		// term + post APIs through the dynamic-block registry. Hosts
-		// without cms-framework leave them registered client-side but
-		// the server-side renderer falls back to the unknown-block
-		// shell since no DynamicBlock is registered.
-		'core/categories',
-		'core/tag-cloud',
-		'core/archives',
-		// G4c-2 (#402) — `core/query` + its inner `core/post-template`
-		// are pre-resolved server-side by `QueryInliner` against
-		// cms-framework's `QueryRuntime`. The editor preview hits the
-		// `/visual-editor/api/query/resolve` endpoint via a custom
-		// `useQueryPreview` hook. Each renderer package (Blade, React,
-		// Vue) ships its own thin `core/query` renderer that walks the
-		// pre-expanded inner blocks.
-		'core/query',
-		'core/post-template',
+		// G4b (#401) / I6 (#414) — taxonomy/feed widgets forked to
+		// artisanpack/*, backed by cms-framework's term + post APIs
+		// through the dynamic-block registry.
+		'artisanpack/categories',
+		'artisanpack/tag-cloud',
+		'artisanpack/archives',
+		// G4c-2 (#402) / I6 (#414) — query + post-template forked to
+		// artisanpack/*. Pre-resolved server-side by `QueryInliner`
+		// against cms-framework's `QueryRuntime`.
+		'artisanpack/query',
+		'artisanpack/post-template',
 		'artisanpack/callout',
-		// Layout cluster — forked to artisanpack/* (I3 #411).
+		// Layout cluster — forked to artisanpack/* (I3 #411). `row` and
+		// `stack` ship as variations of artisanpack/group (registered name
+		// stays `artisanpack/group`), so they are not listed here.
 		'artisanpack/group',
-		'artisanpack/row',
-		'artisanpack/stack',
 		'artisanpack/columns',
 		'artisanpack/column',
 		'artisanpack/buttons',
@@ -166,24 +151,11 @@ return [
 	],
 
 	'disabled_blocks' => [
-		// `core/navigation` was enabled by D4 and stays enabled in E4.
-		// `core/template-part`, `core/post-*`, and `core/site-*` are
-		// promoted to the allow-list above by E4 (#381). G4b (#401)
-		// promotes `core/categories`, `core/tag-cloud`, and
-		// `core/archives`. G4c-2 (#402) promotes `core/query` and
-		// `core/post-template`. The blocks listed here remain
-		// deliberately deferred:
-		//
-		//  - core/query-loop is the deprecated alias for `core/query`;
-		//    upstream registers it but no `Edit` ships any longer, so
-		//    it stays in the deny-list to keep it out of the inserter.
-		//  - core/latest-comments needs a Comments module in
-		//    cms-framework that does not exist yet (V1.1+).
-		//
-		// The JS-side mirror in site-editor-app.tsx is updated
-		// alongside this entry.
-		'core/query-loop',
-		'core/latest-comments',
+		// I7 (#415): with the cutover to artisanpack/*, core/* blocks
+		// are no longer registered. The deny-list is empty — all
+		// artisanpack/* blocks surface through the `enabled_blocks`
+		// allow-list above. Blocks deferred to future releases
+		// (e.g. comments, V1.1+) simply stay off the allow-list.
 	],
 
 	/*
