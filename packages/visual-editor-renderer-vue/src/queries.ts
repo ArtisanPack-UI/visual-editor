@@ -189,6 +189,10 @@ function expandQuery(block: Block, queries: Map<string, ResolvedQuery>): Block {
     }
 
     const expandedIterations: Block[] = [];
+    // Track occurrences so a duplicate post.id within a single result set
+    // gets a unique clientId (avoids Vue key collisions when the renderer
+    // uses block.clientId as the `v-for` key).
+    const seenIds = new Map<number, number>();
 
     for (const post of resolved.posts) {
         const iterationBlocks: Block[] = [];
@@ -201,8 +205,12 @@ function expandQuery(block: Block, queries: Map<string, ResolvedQuery>): Block {
         const postStatus =
             typeof post.status === 'string' && post.status !== '' ? post.status : 'publish';
 
+        const occurrence = seenIds.get(post.id) ?? 0;
+        seenIds.set(post.id, occurrence + 1);
+        const clientId = occurrence === 0 ? `pti-${post.id}` : `pti-${post.id}-${occurrence}`;
+
         expandedIterations.push({
-            clientId: `pti-${post.id}`,
+            clientId,
             name: 'core/post-template-item',
             attributes: {
                 postId: post.id,
