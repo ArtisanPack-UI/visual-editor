@@ -187,18 +187,32 @@ abstract class WpEntityResource extends JsonResource
 		$width  = 0;
 		$height = 0;
 
+		// `function_exists()` only guards against missing helpers — a
+		// host implementation that throws would otherwise bubble out
+		// through `toArray()` and fail the entire response. Mirrors
+		// the defensive pattern in `relationIds()` below.
 		if ( function_exists( 'apGetMediaUrl' ) ) {
-			$resolved = apGetMediaUrl( $mediaId, 'full' );
-			$url      = is_string( $resolved ) ? $resolved : '';
+			try {
+				$resolved = apGetMediaUrl( $mediaId, 'full' );
+				$url      = is_string( $resolved ) ? $resolved : '';
+			} catch ( Throwable ) {
+				$url = '';
+			}
 		}
 
 		if ( function_exists( 'apGetMedia' ) ) {
-			$media = apGetMedia( $mediaId );
+			try {
+				$media = apGetMedia( $mediaId );
 
-			if ( is_object( $media ) ) {
-				$alt    = isset( $media->alt_text ) && is_scalar( $media->alt_text ) ? (string) $media->alt_text : '';
-				$width  = isset( $media->width ) && is_numeric( $media->width ) ? (int) $media->width : 0;
-				$height = isset( $media->height ) && is_numeric( $media->height ) ? (int) $media->height : 0;
+				if ( is_object( $media ) ) {
+					$alt    = isset( $media->alt_text ) && is_scalar( $media->alt_text ) ? (string) $media->alt_text : '';
+					$width  = isset( $media->width ) && is_numeric( $media->width ) ? (int) $media->width : 0;
+					$height = isset( $media->height ) && is_numeric( $media->height ) ? (int) $media->height : 0;
+				}
+			} catch ( Throwable ) {
+				$alt    = '';
+				$width  = 0;
+				$height = 0;
 			}
 		}
 
