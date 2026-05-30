@@ -11,6 +11,11 @@ permissions:
 
 jobs:
   build:
+    # Restricted to main until the composer.json ../cms-framework path
+    # repository is teardown'd in CI (tracked in #434). On release/** the
+    # `composer install` step fails because the sibling cms-framework
+    # checkout the path repo points at does not exist on the runner.
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
     runs-on: ubuntu-latest
 
     steps:
@@ -45,6 +50,9 @@ jobs:
           retention-days: 1
 
   test:
+    # See `build`. The `test` job depends on `build`'s vendor artifact, so
+    # the same scope applies.
+    if: github.ref == 'refs/heads/main' || github.base_ref == 'main'
     needs: build
     runs-on: ubuntu-latest
 
