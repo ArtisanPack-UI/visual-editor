@@ -72,6 +72,13 @@
         "interactivity": {
             "clientNavigation": true
         },
-        "allowedBlocks": true
+        "allowedBlocks": true,
+        "artisanpackResponsive": {
+            "attributes": [
+                "spacing",
+                "align",
+                "width"
+            ]
+        }
     }
 }

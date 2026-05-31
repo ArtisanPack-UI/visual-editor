@@ -29,6 +29,8 @@
 import { BlockInspector } from '@wordpress/block-editor';
 import { useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
+
+import { InspectorScopeChip } from '../responsive/InspectorScopeChip';
 import {
     useCallback,
     useEffect,
@@ -257,7 +259,10 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
                 data-testid="ap-visual-editor-inspector-block-panel"
             >
                 {hasSelectedBlock ? (
-                    <BlockInspector />
+                    <>
+                        <InspectorScopeChip />
+                        <BlockInspector />
+                    </>
                 ) : (
                     <p
                         className="ap-visual-editor-inspector-sidebar__empty"

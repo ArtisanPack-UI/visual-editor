@@ -17,9 +17,13 @@ use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditor\Console\AuditBreakpointsCommand;
 use ArtisanPackUI\VisualEditor\Resources\PostResolver;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
+use ArtisanPackUI\VisualEditor\Responsive\AttributeMigrator;
+use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
+use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
 use ArtisanPackUI\VisualEditor\Search\BlockTreeSearchExtractor;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\GlobalStylesResolver as SiteEditorGlobalStylesResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\MenuResolver as SiteEditorMenuResolver;
@@ -123,6 +127,27 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// the first one served by the worker.
 		$this->app->scoped( GlobalStylesEmissionTracker::class, function () {
 			return new GlobalStylesEmissionTracker();
+		} );
+
+		// #487 — responsive design tools. The registry is scoped per
+		// request because theme.json overrides can change between
+		// requests when the host swaps themes; singletons would leak
+		// the resolved registry across requests. The resolver and
+		// migrator are stateless wrappers and could be singletons, but
+		// scoping them keeps lifetimes uniform with the registry they
+		// depend on.
+		$this->app->scoped( BreakpointRegistry::class, function ( $app ) {
+			$config = (array) $app['config']->get( 'artisanpack.visual-editor.breakpoints', [] );
+
+			return BreakpointRegistry::fromLayers( $config );
+		} );
+
+		$this->app->scoped( ResponsiveValueResolver::class, function ( $app ) {
+			return new ResponsiveValueResolver( $app->make( BreakpointRegistry::class ) );
+		} );
+
+		$this->app->singleton( AttributeMigrator::class, function () {
+			return new AttributeMigrator();
 		} );
 
 		// #434: `GlobalStylesCssProvider` + `GlobalStylesCacheInvalidator`
@@ -232,6 +257,11 @@ class VisualEditorServiceProvider extends ServiceProvider
 			$this->publishes( [
 								  __DIR__ . '/../config/visual-editor.php' => config_path( 'artisanpack/visual-editor.php' ),
 							  ], 'artisanpack-package-config' );
+
+			// #487 — surface the breakpoint audit command.
+			$this->commands( [
+				AuditBreakpointsCommand::class,
+			] );
 		}
 	}
 

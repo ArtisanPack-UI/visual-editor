@@ -141,7 +141,14 @@
         "interactivity": {
             "clientNavigation": true
         },
-        "allowedBlocks": true
+        "allowedBlocks": true,
+        "artisanpackResponsive": {
+            "attributes": [
+                "spacing",
+                "align",
+                "mediaWidth"
+            ]
+        }
     },
     "editorStyle": "wp-block-media-text-editor",
     "style": "wp-block-media-text"

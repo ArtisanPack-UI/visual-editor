@@ -18,6 +18,9 @@
         "templateLock": {
             "type": [ "string", "boolean" ],
             "enum": [ "all", "insert", "contentOnly", false ]
+        },
+        "columnCount": {
+            "type": "number"
         }
     },
     "supports": {
@@ -83,7 +86,14 @@
         "interactivity": {
             "clientNavigation": true
         },
-        "shadow": true
+        "shadow": true,
+        "artisanpackResponsive": {
+            "attributes": [
+                "spacing",
+                "align",
+                "columnCount"
+            ]
+        }
     },
     "editorStyle": "wp-block-columns-editor",
     "style": "wp-block-columns"

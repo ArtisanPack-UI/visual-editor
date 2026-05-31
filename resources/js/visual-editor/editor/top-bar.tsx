@@ -32,8 +32,18 @@ import {
 import { __ } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../vendor/i18n';
+import { BreakpointRegistry, TAILWIND_V4_DEFAULTS } from '../responsive/registry';
+import { ViewportSwitcher } from '../responsive/ViewportSwitcher';
 
 import './top-bar.css';
+import './top-bar-viewport.css';
+
+// Default registry used when the host app hasn't stamped its own
+// breakpoint snapshot into the bootstrap settings. Constructed once at
+// module load so every top-bar instance shares the same identity.
+const DEFAULT_VIEWPORT_REGISTRY = new BreakpointRegistry(
+    TAILWIND_V4_DEFAULTS,
+);
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
@@ -437,6 +447,12 @@ export function TopBar(props: TopBarProps): JSX.Element {
                         />
                     </svg>
                 </button>
+            </div>
+            <div className="ap-visual-editor-top-bar__group ap-visual-editor-top-bar__group--center">
+                <ViewportSwitcher
+                    registry={DEFAULT_VIEWPORT_REGISTRY}
+                    className="ap-visual-editor-viewport-switcher"
+                />
             </div>
             <div className="ap-visual-editor-top-bar__group ap-visual-editor-top-bar__group--end">
                 <span

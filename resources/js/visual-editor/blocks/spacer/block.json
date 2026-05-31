@@ -26,6 +26,13 @@
         },
         "interactivity": {
             "clientNavigation": true
+        },
+        "artisanpackResponsive": {
+            "attributes": [
+                "height",
+                "width",
+                "spacing"
+            ]
         }
     },
     "editorStyle": "wp-block-spacer-editor",

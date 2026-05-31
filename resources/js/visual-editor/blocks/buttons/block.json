@@ -64,7 +64,14 @@
             "clientNavigation": true
         },
         "listView": true,
-        "contentRole": true
+        "contentRole": true,
+        "artisanpackResponsive": {
+            "attributes": [
+                "spacing",
+                "align",
+                "layout.flexDirection"
+            ]
+        }
     },
     "editorStyle": "wp-block-buttons-editor",
     "style": "wp-block-buttons"

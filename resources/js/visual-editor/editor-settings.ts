@@ -58,6 +58,23 @@ export const DEFAULT_FONT_SIZES = [
     { name: __('Huge', TEXT_DOMAIN), slug: 'huge', size: '36px' },
 ];
 
+/**
+ * Default spacing scale exposed to the spacing panel when a theme hasn't
+ * shipped its own `settings.spacing.spacingSizes`. Slugs run `20 → 70`,
+ * matching WordPress core's numeric-stepped slug convention so saved
+ * markup stays portable when a theme overrides with its own scale.
+ */
+export const DEFAULT_SPACING_SIZES = [
+    { slug: '20', name: __('Tight', TEXT_DOMAIN), size: '0.5rem' },
+    { slug: '30', name: __('Small', TEXT_DOMAIN), size: '1rem' },
+    { slug: '40', name: __('Medium', TEXT_DOMAIN), size: '1.5rem' },
+    { slug: '50', name: __('Large', TEXT_DOMAIN), size: '3rem' },
+    { slug: '60', name: __('X-Large', TEXT_DOMAIN), size: '5rem' },
+    { slug: '70', name: __('Section', TEXT_DOMAIN), size: '7rem' },
+];
+
+export const DEFAULT_SPACING_UNITS = ['px', 'em', 'rem', '%', 'vh', 'vw'];
+
 export const DEFAULT_FONT_FAMILIES = [
     {
         name: __('System', TEXT_DOMAIN),
@@ -302,11 +319,20 @@ export const editorSettings = {
     // haven't migrated to `__experimentalFeatures`.
     colors: DEFAULT_PALETTE,
     fontSizes: DEFAULT_FONT_SIZES,
-    // Minimal `__experimentalFeatures` — only the keys needed for the
-    // Typography panel's font-family picker and the text-alignment
-    // toolbar. Turning on more keys (border, spacing, duotone, default
-    // palettes) re-introduces the color-picker drag loop we're hunting;
-    // keep this config narrow until the upstream fix lands.
+    // `__experimentalFeatures` lights up the inspector panels
+    // (Color, Typography, Dimensions, Border) plus the toolbar
+    // text-alignment control.
+    //
+    // History: this block previously excluded `spacing`, `border`,
+    // `dimensions`, `defaultPalette`, `defaultGradients`, and
+    // `defaultDuotone` to avoid an upstream Gutenberg drag-loop bug
+    // that fired when color/spacing controls escaped the editor frame.
+    // The Phase A iframe migration scopes those events to the canvas
+    // iframe, so `spacing`/`border`/`dimensions` are now re-enabled
+    // here. Default palette/gradient/duotone keys are still left off —
+    // they pull in upstream preset data we don't ship, and the
+    // palette/font-size data is already surfaced via the explicit
+    // `palette` and `fontSizes` entries below.
     __experimentalFeatures: {
         layout: {
             contentSize: '720px',
@@ -355,6 +381,35 @@ export const editorSettings = {
             textTransform: true,
             fontSizes: { custom: DEFAULT_FONT_SIZES },
             fontFamilies: { custom: DEFAULT_FONT_FAMILIES },
+        },
+        spacing: {
+            // Padding, margin, blockGap → the Dimensions panel on
+            // every block that declares `supports.spacing`. The
+            // spacing scale below is the default theme.json mirror;
+            // host themes override via `settings.spacing.spacingSizes`.
+            padding: true,
+            margin: true,
+            blockGap: true,
+            customSpacingSize: true,
+            units: DEFAULT_SPACING_UNITS,
+            spacingScale: { steps: 0 },
+            spacingSizes: { theme: DEFAULT_SPACING_SIZES, custom: [] },
+        },
+        border: {
+            // Border controls (color, radius, style, width) → the
+            // Border panel on every block that declares
+            // `supports.__experimentalBorder`.
+            color: true,
+            radius: true,
+            style: true,
+            width: true,
+        },
+        dimensions: {
+            // Min-height + aspect-ratio → the Dimensions panel on
+            // blocks like core/cover, core/post-featured-image, and
+            // our `artisanpack/cover` / `artisanpack/group` forks.
+            minHeight: true,
+            aspectRatio: true,
         },
     },
 };

@@ -148,3 +148,26 @@ pragmatic answer is:
 - **Popovers from `@wordpress/components`.** Their shadow and border
   radius are tokenized; their default background is `#fff` hardcoded in
   some cases. Monitor on upgrade; file a follow-up if it regresses.
+
+## Breakpoints (#487)
+
+The editor's viewport switcher and the responsive value resolver share
+a single registry resolved in this order — highest layer wins:
+
+1. **Active theme's `theme.json`** —
+   `settings.custom.artisanpack.breakpoints`
+2. **Application config** —
+   `config('artisanpack.visual-editor.breakpoints')`
+3. **Package defaults** — `BreakpointRegistry::DEFAULTS`
+   (Tailwind v4: `sm 640`, `md 768`, `lg 1024`, `xl 1280`, `2xl 1536`)
+
+Merging is by key, so a theme can resize an existing breakpoint
+(`"lg": "1100px"`), add a new one (`"3xl": 1920`), or replace defaults
+wholesale. Values are integer pixels or CSS `Npx` strings; anything
+else throws a descriptive error at load time.
+
+The implicit `base` slot (no min-width, applies everywhere) is
+reserved and cannot be redefined.
+
+See [`responsive-design-tools.md`](responsive-design-tools.md) for the
+editor + developer workflow built on top of this registry.

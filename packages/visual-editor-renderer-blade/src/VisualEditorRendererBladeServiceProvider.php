@@ -21,9 +21,13 @@ namespace ArtisanPackUI\VisualEditorRendererBlade;
 
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
+use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
+use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksComponent;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksStylesComponent;
@@ -75,6 +79,23 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// script to fire at most once per response (Keystone #54).
 		$this->app->scoped( NavigationOverlayTracker::class, function () {
 			return new NavigationOverlayTracker();
+		} );
+
+		// #487 — server-side responsive class / @media emitter. Scoped
+		// to match the lifetime of the registry it depends on.
+		$this->app->scoped( ResponsiveClassResolver::class, function ( $app ) {
+			return new ResponsiveClassResolver(
+				$app->make( BreakpointRegistry::class ),
+				$app->make( ResponsiveValueResolver::class ),
+			);
+		} );
+
+		// #509 — per-request accumulator that collects every block's
+		// responsive CSS into one `<style data-ve-responsive>` block
+		// at the top of the render output. Scoped so a long-lived
+		// worker (Octane / queue) doesn't leak rules across requests.
+		$this->app->scoped( ResponsiveCssAccumulator::class, function () {
+			return new ResponsiveCssAccumulator();
 		} );
 	}
 
