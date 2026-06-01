@@ -114,3 +114,23 @@ it( 'supports comma-separated selector lists', function () {
 
 	expect( $css )->toContain( '.ap-block-abc:disabled, .ap-block-abc[aria-disabled="true"]' );
 } );
+
+it( 'drops boolean overrides without emitting `0` / `1` declarations', function () {
+	$emitter = makeEmitter();
+
+	$css = $emitter->emit( '.ap-block-abc', [
+		'background-color' => [ 'idle' => true, 'hover' => false ],
+	] );
+
+	expect( $css )->toBe( '' );
+} );
+
+it( 'drops non-scalar overrides instead of casting them to garbage strings', function () {
+	$emitter = makeEmitter();
+
+	$css = $emitter->emit( '.ap-block-abc', [
+		'background-color' => [ 'idle' => [ 'nested' => 'wrong' ] ],
+	] );
+
+	expect( $css )->toBe( '' );
+} );

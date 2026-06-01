@@ -185,11 +185,19 @@ class StateCssEmitter
 				// `attributes.states` bag could shape its leaves as
 				// arrays/objects, and casting those to string produces
 				// PHP notices and "Array" literals in the emitted CSS.
-				if ( null === $resolved || '' === $resolved || ! is_scalar( $resolved ) ) {
+				// Booleans pass `is_scalar()` but cast to `''`/`1`, which
+				// would emit invalid CSS like `background-color: 1;` —
+				// drop them too.
+				if ( null === $resolved || ! is_scalar( $resolved ) || is_bool( $resolved ) ) {
 					continue;
 				}
 
-				$buckets[ $state ][ $property ] = (string) $resolved;
+				$value = is_string( $resolved ) ? $resolved : (string) $resolved;
+				if ( '' === $value ) {
+					continue;
+				}
+
+				$buckets[ $state ][ $property ] = $value;
 			}
 		}
 

@@ -261,9 +261,21 @@ class BlockSupports
 			return [ 'class' => '', 'rules' => '' ];
 		}
 
-		$scopeId = isset( $bag['_scopeId'] ) && is_string( $bag['_scopeId'] ) && '' !== $bag['_scopeId']
-			? $bag['_scopeId']
-			: null;
+		// `_scopeId` is interpolated raw into the emitted `<style>` block
+		// and into the wrapper's class attribute, so its content has to
+		// be a safe identifier-style token. A crafted value containing
+		// `<`, `>`, `"`, `'`, whitespace, or other CSS punctuation could
+		// otherwise break out of the `<style>` context (XSS) or out of
+		// the selector (rule injection). The JS minter only ever produces
+		// alphanumeric base-36 strings; anything else is treated as
+		// hostile / corrupted and dropped.
+		$scopeId = null;
+		if ( isset( $bag['_scopeId'] ) && is_string( $bag['_scopeId'] ) ) {
+			$candidate = $bag['_scopeId'];
+			if ( 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $candidate ) && strlen( $candidate ) <= 64 ) {
+				$scopeId = $candidate;
+			}
+		}
 
 		if ( null === $scopeId ) {
 			return [ 'class' => '', 'rules' => '' ];

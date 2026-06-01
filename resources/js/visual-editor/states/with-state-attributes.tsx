@@ -47,7 +47,7 @@ import {
 	setPath,
 } from '../responsive/attribute-paths'
 import { getActiveState, subscribeActiveState } from './active-state'
-import { DEFAULT_STATES, StateRegistry } from './registry'
+import { getStateRegistry } from './registry'
 import { BASE_KEY } from './types'
 
 const FILTER_HOOK      = 'editor.BlockEdit'
@@ -102,18 +102,17 @@ function getStateRoots( name: string ): string[] | null {
 	return roots
 }
 
-// Module-level registry used to walk the inheritance chain when
-// building the overlay. The editor hydrates this off the bootstrap
-// snapshot later (see plan §7.2); for now we resolve against the
-// built-in defaults so the cascade lines up with the PHP layer.
-const DEFAULT_REGISTRY = new StateRegistry( DEFAULT_STATES )
-
 /**
  * Build the overlay object that, when deep-merged into the base
  * attributes, produces the read view for the active state.
  *
  * Mirrors the PHP `StateValueResolver` cascade: every state path is
  * walked, taking the first non-null value in the inheritance chain.
+ *
+ * Resolves the chain against the *current* runtime registry via
+ * {@link getStateRegistry} so custom states declared in theme.json
+ * participate in the cascade. Pinning to a module-level default
+ * registry here would silently strand any host-configured chains.
  */
 function buildOverlay(
 	states: StateOverridesByPath | null | undefined,
@@ -123,7 +122,7 @@ function buildOverlay(
 		return {}
 	}
 
-	const chain = DEFAULT_REGISTRY.inheritanceChain( activeState )
+	const chain = getStateRegistry().inheritanceChain( activeState )
 
 	// Skip `idle` — it's the base attribute already, not an overlay
 	// source.

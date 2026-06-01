@@ -19,11 +19,11 @@ This document covers both the editor-facing workflow and the developer integrati
 
 When you select a block that opts into state styling, the Inspector's Block tab shows a strip of state chips at the top of the panel:
 
-```
+```text
 [ Idle ] [ Hover ] [ Focus ] [ Focus visible ] [ Active ] [ Disabled ]
 ```
 
-The strip is **block-specific** — it appears for buttons, navigation, image, cover, media-text, details, and any block that declares `supports.artisanpackStates`. Blocks that don't opt in show a short explanatory message instead.
+The strip is **block-specific** — it appears for buttons, image, cover, media-text, details, and any block that declares `supports.artisanpackStates`. Blocks that don't opt in show a short explanatory message instead.
 
 Selecting a chip scopes the next style edit to that state. The currently selected chip is highlighted, and chips for states that already have an override show a small dot.
 

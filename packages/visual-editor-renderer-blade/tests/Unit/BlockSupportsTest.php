@@ -508,6 +508,43 @@ describe( 'compile() — state design tools (#488)', function (): void {
 		expect( $result['statesRules'] )->toContain( ':is(a, button)' );
 	} );
 
+	it( 'rejects a `_scopeId` that contains CSS-breaking characters', function (): void {
+		$result = BlockSupports::compile( [
+			'states' => [
+				'_scopeId'        => 'abc"</style><script>x</script>',
+				'backgroundColor' => [ 'idle' => 'accent', 'hover' => 'accent-700' ],
+			],
+		] );
+
+		// The crafted scope id must be rejected outright — no class,
+		// no rules — so the hostile string can never reach the
+		// rendered `<style>` block.
+		expect( $result['statesClass'] )->toBe( '' );
+		expect( $result['statesRules'] )->toBe( '' );
+	} );
+
+	it( 'rejects a `_scopeId` containing whitespace', function (): void {
+		$result = BlockSupports::compile( [
+			'states' => [
+				'_scopeId'        => 'has space',
+				'backgroundColor' => [ 'idle' => 'accent', 'hover' => 'accent-700' ],
+			],
+		] );
+
+		expect( $result['statesClass'] )->toBe( '' );
+	} );
+
+	it( 'rejects a `_scopeId` longer than the safe identifier cap', function (): void {
+		$result = BlockSupports::compile( [
+			'states' => [
+				'_scopeId'        => str_repeat( 'a', 65 ),
+				'backgroundColor' => [ 'idle' => 'accent' ],
+			],
+		] );
+
+		expect( $result['statesClass'] )->toBe( '' );
+	} );
+
 	it( 'preserves raw hex / var() values without preset wrapping', function (): void {
 		$result = BlockSupports::compile( [
 			'style'  => [ 'color' => [ 'background' => '#abc123' ] ],

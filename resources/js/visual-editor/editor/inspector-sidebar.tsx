@@ -33,7 +33,7 @@ import { __ } from '@wordpress/i18n';
 
 import { InspectorScopeChip } from '../responsive/InspectorScopeChip';
 import { setActiveBlock } from '../states/active-state';
-import { StateRegistry, DEFAULT_STATES } from '../states/registry';
+import { getStateRegistry } from '../states/registry';
 import { StateSwitcher } from '../states/StateSwitcher';
 import {
     useCallback,
@@ -50,11 +50,9 @@ import { TEXT_DOMAIN } from '../vendor/i18n';
 
 import './inspector-sidebar.css';
 
-// Default state registry, constructed once at module load so every
-// inspector instance shares the same identity. The host app can swap
-// this out later by stamping a state snapshot into the bootstrap
-// settings — see `editor-settings`.
-const DEFAULT_STATE_REGISTRY = new StateRegistry(DEFAULT_STATES);
+// Resolves to whichever registry the bootstrap path has registered
+// via `setStateRegistry`, falling back to the built-in defaults when
+// no host snapshot has been stamped in.
 
 interface StateSupportsConfig {
     /**
@@ -375,7 +373,7 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
                 {hasSelectedBlock ? (
                     <>
                         <StateSwitcher
-                            registry={DEFAULT_STATE_REGISTRY}
+                            registry={getStateRegistry()}
                             supportsStates={stateSupports !== null}
                             allowedStates={stateSupports?.states}
                             attributes={

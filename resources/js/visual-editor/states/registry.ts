@@ -156,3 +156,24 @@ export function registryFromSnapshot( snapshot: StateRegistrySnapshot | undefine
 
 	return new StateRegistry( snapshot.states )
 }
+
+/**
+ * Singleton wrapper around the active registry. The bootstrap path
+ * calls {@see setStateRegistry} once with the host's resolved
+ * theme/config registry; every consumer (HOC overlay, CSS emitter,
+ * inspector switcher) reads through {@see getStateRegistry} so
+ * custom states declared in theme.json actually participate in the
+ * inheritance cascade.
+ *
+ * Defaults to the built-in registry so headless tests and bootstrap-
+ * less environments still resolve correctly.
+ */
+let activeRegistry: StateRegistry = new StateRegistry( DEFAULT_STATES )
+
+export function getStateRegistry(): StateRegistry {
+	return activeRegistry
+}
+
+export function setStateRegistry( registry: StateRegistry ): void {
+	activeRegistry = registry
+}

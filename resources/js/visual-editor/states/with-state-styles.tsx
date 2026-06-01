@@ -29,10 +29,10 @@ import { hasBlockSupport, getBlockType } from '@wordpress/blocks'
 import { createHigherOrderComponent } from '@wordpress/compose'
 import { addFilter } from '@wordpress/hooks'
 import { Fragment, createElement, useEffect, useMemo, useRef } from 'react'
-import type { ComponentType } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 
 import { emitStateCss, type StatesByPath } from './css-emitter'
-import { DEFAULT_STATES, StateRegistry } from './registry'
+import { getStateRegistry } from './registry'
 
 const BLOCK_FILTER_HOOK = 'editor.BlockListBlock'
 const SAVE_PROPS_HOOK   = 'blocks.getSaveContent.extraProps'
@@ -67,10 +67,6 @@ interface BlockSettingsLike {
 	attributes?: Record<string, unknown>
 	[key: string]: unknown
 }
-
-// Re-use the same default registry the HOC overlays against so the
-// emitted CSS lines up with what the inspector controls write.
-const REGISTRY = new StateRegistry( DEFAULT_STATES )
 
 function blockSupportsStates( name: string ): boolean {
 	const blockType = getBlockType( name )
@@ -118,10 +114,35 @@ function mintScopeId(): string {
 	return Math.random().toString( 36 ).slice( 2, 11 )
 }
 
+/**
+ * Tracks which clientId currently owns each scope id so duplicated
+ * blocks (which inherit the parent's `_scopeId` via attribute copy)
+ * can detect the collision and re-mint. Living at module scope so
+ * every HOC instance shares the same ledger; cleared via WeakMap-style
+ * write semantics in {@see takeScopeId} / {@see releaseScopeId}.
+ */
+const scopeIdOwners = new Map<string, string>()
+
+function claimScopeId( scopeId: string, clientId: string ): boolean {
+	const owner = scopeIdOwners.get( scopeId )
+	if ( ! owner ) {
+		scopeIdOwners.set( scopeId, clientId )
+		return true
+	}
+
+	return owner === clientId
+}
+
+function releaseScopeId( scopeId: string, clientId: string ): void {
+	if ( scopeIdOwners.get( scopeId ) === clientId ) {
+		scopeIdOwners.delete( scopeId )
+	}
+}
+
 export const withStateStyles = createHigherOrderComponent(
 	( BlockListBlock: ComponentType<BlockListBlockProps> ) => {
 		function StateStyledBlock( props: BlockListBlockProps ): JSX.Element {
-			const { name, attributes, setAttributes, wrapperProps } = props
+			const { name, clientId, attributes, setAttributes, wrapperProps } = props
 
 			// Compute support up front, then run every hook unconditionally —
 			// the React Rules of Hooks require a stable hook order across
@@ -143,18 +164,46 @@ export const withStateStyles = createHigherOrderComponent(
 			}, [ scopeId ] )
 
 			useEffect( () => {
-				if ( ! supportsStates || scopeId || ! hasAuthoredOverrides( paths ) || ! setAttributes ) {
+				if ( ! supportsStates || ! setAttributes ) {
+					return
+				}
+
+				// Re-mint when the block has overrides but no scope id
+				// yet, OR when its scope id is already claimed by a
+				// different clientId (block duplication copies the
+				// attribute bag verbatim, including `_scopeId`, which
+				// would otherwise produce two blocks sharing one CSS
+				// scope and bleed state styles across them).
+				const needsMint    = ! scopeId && hasAuthoredOverrides( paths )
+				const hasCollision = scopeId !== null && ! claimScopeId( scopeId, clientId )
+
+				if ( ! needsMint && ! hasCollision ) {
 					return
 				}
 
 				const nextId   = mintScopeId()
+				claimScopeId( nextId, clientId )
+
 				const nextBag  = {
 					...( ( attributes.states as StateBag | null | undefined ) ?? {} ),
 					_scopeId: nextId,
 				}
 
 				setAttributes( { states: nextBag } )
-			}, [ supportsStates, scopeId, paths, attributes.states, setAttributes ] )
+			}, [ supportsStates, scopeId, paths, attributes.states, setAttributes, clientId ] )
+
+			// Release the scope id when this block instance unmounts so
+			// later blocks can re-use it cleanly. The ledger only needs
+			// to enforce uniqueness *within the lifetime of the editor
+			// tree*; once the owning block is gone, the scope id is
+			// free again.
+			useEffect( () => {
+				if ( ! scopeId ) {
+					return
+				}
+
+				return () => releaseScopeId( scopeId, clientId )
+			}, [ scopeId, clientId ] )
 
 			const effectiveScopeId = scopeId ?? persistedRef.current
 
@@ -163,7 +212,7 @@ export const withStateStyles = createHigherOrderComponent(
 					return ''
 				}
 
-				return emitStateCss( `.${ scopeIdToClass( effectiveScopeId ) }`, paths, REGISTRY )
+				return emitStateCss( `.${ scopeIdToClass( effectiveScopeId ) }`, paths, getStateRegistry() )
 			}, [ supportsStates, effectiveScopeId, paths ] )
 
 			const effectiveWrapperProps: Record<string, unknown> = useMemo( () => {
@@ -214,12 +263,23 @@ export const withStateStyles = createHigherOrderComponent(
 	'withStateStyles',
 )
 
+/**
+ * Returns true only when the block's `supports.artisanpackStates`
+ * carries a truthy value (object or `true`). Key-only checks would
+ * green-light blocks that explicitly opted out via
+ * `supports.artisanpackStates: false`.
+ */
+function blockSupportsConfig( blockType: BlockSettingsLike | undefined ): boolean {
+	const support = blockType?.supports?.artisanpackStates
+	return Boolean( support )
+}
+
 function addSaveProps(
 	extraProps: Record<string, unknown>,
 	blockType: BlockSettingsLike,
 	attributes: Record<string, unknown>,
 ): Record<string, unknown> {
-	if ( ! blockType?.supports || ! ( 'artisanpackStates' in blockType.supports ) ) {
+	if ( ! blockSupportsConfig( blockType ) ) {
 		return extraProps
 	}
 
@@ -246,7 +306,7 @@ function wrapSaveElement(
 	blockType: BlockSettingsLike,
 	attributes: Record<string, unknown>,
 ): unknown {
-	if ( ! blockType?.supports || ! ( 'artisanpackStates' in blockType.supports ) ) {
+	if ( ! blockSupportsConfig( blockType ) ) {
 		return element
 	}
 
@@ -255,13 +315,13 @@ function wrapSaveElement(
 		return element
 	}
 
-	const css = emitStateCss( `.${ scopeIdToClass( scopeId ) }`, paths, REGISTRY )
+	const css = emitStateCss( `.${ scopeIdToClass( scopeId ) }`, paths, getStateRegistry() )
 	if ( '' === css ) {
 		return element
 	}
 
 	return createElement( Fragment, null,
-		element,
+		element as ReactNode,
 		createElement( 'style', { 'data-ap-state-scope': scopeId }, css ),
 	)
 }

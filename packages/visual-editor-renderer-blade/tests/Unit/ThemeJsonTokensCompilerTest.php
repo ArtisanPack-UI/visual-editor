@@ -329,10 +329,18 @@ describe( 'styles.* CSS rule emission', function (): void {
 		] );
 
 		// Order: :root presets → layout rules → utility classes → styles rules.
+		// Guard each strpos against false up front — without the guard a
+		// missing section silently makes `false < positive-int` succeed
+		// and the ordering check would pass for the wrong reason.
 		$rootPos     = strpos( $css, ':root' );
 		$layoutPos   = strpos( $css, '.wp-block-group' );
 		$utilityPos  = strpos( $css, '.has-primary-color' );
 		$bodyPos     = strpos( $css, 'body {' );
+
+		expect( $rootPos )->not->toBeFalse()
+			->and( $layoutPos )->not->toBeFalse()
+			->and( $utilityPos )->not->toBeFalse()
+			->and( $bodyPos )->not->toBeFalse();
 
 		expect( $rootPos )->toBeLessThan( $layoutPos )
 			->and( $layoutPos )->toBeLessThan( $utilityPos )
