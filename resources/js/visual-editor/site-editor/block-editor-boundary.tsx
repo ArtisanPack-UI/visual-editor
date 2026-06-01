@@ -61,10 +61,9 @@ export interface BlockEditorBoundaryProps {
     apiBase?: string;
     /**
      * Test-only override for the active theme's compiled CSS. In
-     * production the boundary fetches this through
-     * {@see useThemeGlobalStylesCss} keyed on `apiBase`; tests pass an
-     * explicit string to avoid hitting the network. When `undefined`
-     * the hook drives the value (Keystone #47).
+     * production {@see useThemedEditorSettings} fetches this
+     * internally; tests pass an explicit string to avoid hitting the
+     * network. When `undefined` the hook drives the value.
      */
     themeGlobalStylesCss?: string;
     /**
