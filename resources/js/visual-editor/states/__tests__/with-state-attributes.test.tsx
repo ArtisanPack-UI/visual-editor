@@ -115,7 +115,7 @@ describe( 'withStateAttributes — non-idle routing', () => {
 		} )
 	} )
 
-	it( 'routes a top-level palette write to attributes.states.backgroundColor.hover', () => {
+	it( 'routes a top-level palette write to attributes.states.backgroundColor.hover and mirrors to base (#515)', () => {
 		const setAttributes = vi.fn()
 		render(
 			<Wrapped
@@ -130,7 +130,10 @@ describe( 'withStateAttributes — non-idle routing', () => {
 		expect( setAttributes ).toHaveBeenCalledTimes( 1 )
 		const actual = setAttributes.mock.calls[ 0 ][ 0 ]
 
-		expect( actual.backgroundColor ).toBeUndefined()
+		// #515: the base is mirrored so the data store (read by
+		// panels via useSelect) stays in lockstep with the active
+		// state. The pristine idle value is restored before save.
+		expect( actual.backgroundColor ).toBe( 'pale-pink' )
 		expect( actual.states ).toEqual( {
 			backgroundColor: { hover: 'pale-pink' },
 		} )
@@ -151,7 +154,7 @@ describe( 'withStateAttributes — non-idle routing', () => {
 		expect( captured?.attributes.backgroundColor ).toBe( 'pale-pink' )
 	} )
 
-	it( 'preserves the idle base attribute when writing a non-idle override', () => {
+	it( 'mirrors state-eligible writes to the base so the data store stays in lockstep (#515)', () => {
 		const setAttributes = vi.fn()
 		render(
 			<Wrapped
@@ -163,7 +166,11 @@ describe( 'withStateAttributes — non-idle routing', () => {
 
 		captured?.setAttributes( { backgroundColor: 'pale-pink' } )
 
-		expect( setAttributes.mock.calls[ 0 ][ 0 ] ).not.toHaveProperty( 'backgroundColor' )
+		const actual = setAttributes.mock.calls[ 0 ][ 0 ]
+		expect( actual ).toHaveProperty( 'backgroundColor', 'pale-pink' )
+		expect( actual.states ).toEqual( {
+			backgroundColor: { hover: 'pale-pink' },
+		} )
 	} )
 
 	it( 'falls through to base for paths outside the state roots', () => {

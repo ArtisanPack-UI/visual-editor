@@ -80,6 +80,15 @@ export function consumeExpectedSyncedAttrs(
 }
 
 /**
+ * Returns all clientIds that currently have a pristine snapshot.
+ * Used by `flushBeforeSave` to restore every block's pristine base
+ * before host serialization.
+ */
+export function getAllPristineClientIds(): string[] {
+	return Array.from( pristineSnapshots.keys() )
+}
+
+/**
  * Test-only — wipe coordination state between specs.
  */
 export function resetStateBridge(): void {

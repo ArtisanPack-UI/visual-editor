@@ -42,10 +42,17 @@
  */
 
 import { hasBlockSupport, getBlockType } from '@wordpress/blocks'
-import { useDispatch, useSelect } from '@wordpress/data'
+import {
+	dispatch as dispatchStore,
+	select as selectStore,
+	useDispatch,
+	useSelect,
+} from '@wordpress/data'
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 
 import {
+	buildTopLevelPatch,
+	deepClone,
 	pathMatchesAnyRoot,
 	readPath,
 } from '../responsive/attribute-paths'
@@ -54,6 +61,7 @@ import { getStateRegistry } from './registry'
 import { resolveStateValue } from './resolver'
 import {
 	clearPristineSnapshot,
+	getAllPristineClientIds,
 	getPristineSnapshot,
 	hasPristineSnapshot,
 	setExpectedSyncedAttrs,
@@ -102,73 +110,6 @@ function getStateRoots( name: string | null ): string[] | null {
 }
 
 type StatesByPath = Record<string, Record<string, unknown>>
-
-function deepClone<T>( value: T ): T {
-	if ( null === value || undefined === value || 'object' !== typeof value ) {
-		return value
-	}
-
-	if ( Array.isArray( value ) ) {
-		return value.map( ( item ) => deepClone( item ) ) as unknown as T
-	}
-
-	const result: Record<string, unknown> = {}
-	for ( const key of Object.keys( value as Record<string, unknown> ) ) {
-		result[ key ] = deepClone( ( value as Record<string, unknown> )[ key ] )
-	}
-
-	return result as unknown as T
-}
-
-/**
- * Build a top-level patch where each touched key carries a full
- * subtree (deep-cloned from `attributes`) with the supplied leaves
- * overwritten. `value` of `undefined` is preserved as an explicit
- * leaf so restore can unset previously-overlaid paths.
- */
-function buildTopLevelPatch(
-	attributes: Record<string, unknown>,
-	entriesByTopKey: Map<string, Array<{ path: string; value: unknown }>>,
-): Record<string, unknown> {
-	const patch: Record<string, unknown> = {}
-
-	for ( const [ topKey, entries ] of entriesByTopKey ) {
-		const current = attributes[ topKey ]
-		let topValue: unknown =
-			current && 'object' === typeof current && ! Array.isArray( current )
-				? deepClone( current )
-				: current
-
-		for ( const { path, value } of entries ) {
-			const segments = path.split( '.' )
-
-			if ( 1 === segments.length ) {
-				topValue = value
-				continue
-			}
-
-			if ( ! topValue || 'object' !== typeof topValue || Array.isArray( topValue ) ) {
-				topValue = {}
-			}
-
-			let cursor = topValue as Record<string, unknown>
-			for ( let i = 1; i < segments.length - 1; i++ ) {
-				const segment  = segments[ i ]
-				const existing = cursor[ segment ]
-				if ( ! existing || 'object' !== typeof existing || Array.isArray( existing ) ) {
-					cursor[ segment ] = {}
-				}
-				cursor = cursor[ segment ] as Record<string, unknown>
-			}
-
-			cursor[ segments[ segments.length - 1 ] ] = value
-		}
-
-		patch[ topKey ] = topValue
-	}
-
-	return patch
-}
 
 interface OverlayPlan {
 	entriesByTopKey: Map<string, Array<{ path: string; value: unknown }>>
@@ -336,6 +277,39 @@ export function restorePristine(
 	clearPristineSnapshot( clientId )
 }
 
+/**
+ * Host-agnostic save flush. Call this BEFORE serializing block
+ * content whenever the host does not register `core/editor` (so
+ * `isSavingPost` never fires). It restores every block's pristine
+ * idle base into the data store, ensuring the saved markup keeps
+ * idle as the canonical base attribute value.
+ *
+ * After serialization, the host should call this function's
+ * companion — or re-render the affected blocks — to re-overlay
+ * the active state's view.
+ */
+export function flushBeforeSave(): void {
+	const clientIds = getAllPristineClientIds()
+	if ( 0 === clientIds.length ) {
+		return
+	}
+
+	const blockEditor = selectStore( 'core/block-editor' ) as
+		| { getBlockAttributes?: ( id: string ) => Record<string, unknown> | null }
+		| undefined
+	const { updateBlockAttributes } = dispatchStore( 'core/block-editor' ) as {
+		updateBlockAttributes: (
+			clientId: string,
+			updates: Record<string, unknown>,
+		) => void
+	}
+
+	for ( const clientId of clientIds ) {
+		const attrs = blockEditor?.getBlockAttributes?.( clientId ) ?? {}
+		restorePristine( clientId, attrs, updateBlockAttributes )
+	}
+}
+
 export function StateInspectorSync(): null {
 	const activeState = useSyncExternalStore(
 		subscribeActiveState,
@@ -402,6 +376,18 @@ export function StateInspectorSync(): null {
 		const activeStateChanged = activeState !== prevActiveState
 		const saveLifecycleEnded = prevIsSaving && ! slice.isSaving
 
+		// When the selected block changes, the PREVIOUS block's
+		// pristine base must be restored so its data-store attributes
+		// reflect the canonical idle view. Without this, serialization
+		// at save time would persist the synced overlay values.
+		if ( blockChanged && prevClientId && hasPristineSnapshot( prevClientId ) ) {
+			const blockEditor = selectStore( 'core/block-editor' ) as
+				| { getBlockAttributes?: ( id: string ) => Record<string, unknown> | null }
+				| undefined
+			const prevBlockAttrs = blockEditor?.getBlockAttributes?.( prevClientId ) ?? {}
+			restorePristine( prevClientId, prevBlockAttrs, updateBlockAttributes )
+		}
+
 		if ( ! blockChanged && ! activeStateChanged && ! saveLifecycleEnded ) {
 			prevClientIdRef.current    = slice.clientId
 			prevActiveStateRef.current = activeState
@@ -423,9 +409,6 @@ export function StateInspectorSync(): null {
 		}
 
 		if ( BASE_KEY === activeState ) {
-			// Idle — restore pristine if we have one. Selection
-			// changes hit this branch too because `setActiveBlock`
-			// resets active state to idle on block change.
 			restorePristine( slice.clientId, slice.attributes, updateBlockAttributes )
 			return
 		}

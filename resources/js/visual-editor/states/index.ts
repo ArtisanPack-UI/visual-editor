@@ -52,6 +52,8 @@ export type { StateControlProps } from './StateControl'
 export { PreviewStateToggle } from './PreviewStateToggle'
 export type { PreviewStateToggleProps } from './PreviewStateToggle'
 
+export { flushBeforeSave } from './StateInspectorSync'
+
 export { BASE_KEY } from './types'
 export type { StateDefinition, StateKey, StateRegistrySnapshot, StatefulAttribute } from './types'
 

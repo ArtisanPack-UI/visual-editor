@@ -24,6 +24,45 @@ import {
     VE_EDITOR_SAVE,
     dispatchEditorEvent,
 } from './editor-events';
+import { setPath } from '../responsive/attribute-paths';
+import {
+    getAllPristineClientIds,
+    getPristineSnapshot,
+} from '../states/state-bridge';
+
+/**
+ * Patch blocks in-memory so the saved markup has pristine idle base
+ * values rather than the synced overlay that `StateInspectorSync`
+ * applies for panel lockstep. Operates on a shallow copy — the
+ * original block tree (and the data store) is untouched, so the
+ * user's editing session keeps the active-state overlay.
+ */
+function patchBlocksWithPristine(
+    blocks: readonly BlockInstance[],
+    snapshotIds: ReadonlySet<string>,
+): BlockInstance[] {
+    return blocks.map( ( block ) => {
+        const inner = block.innerBlocks.length > 0
+            ? patchBlocksWithPristine( block.innerBlocks, snapshotIds )
+            : block.innerBlocks;
+
+        if ( ! snapshotIds.has( block.clientId ) ) {
+            return inner === block.innerBlocks ? block : { ...block, innerBlocks: inner };
+        }
+
+        const snapshot = getPristineSnapshot( block.clientId );
+        if ( ! snapshot ) {
+            return inner === block.innerBlocks ? block : { ...block, innerBlocks: inner };
+        }
+
+        let attributes: Record<string, unknown> = block.attributes as Record<string, unknown>;
+        for ( const [ path, value ] of Object.entries( snapshot ) ) {
+            attributes = setPath( attributes, path, value );
+        }
+
+        return { ...block, attributes, innerBlocks: inner };
+    } );
+}
 
 type LoadStatus = 'loading' | 'ready' | 'error';
 type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
@@ -261,9 +300,18 @@ export function usePersistence(
 
             try {
                 if (nextBlocks !== null) {
+                    // #515: replace overlaid base values with the
+                    // pristine idle snapshot so the saved markup keeps
+                    // idle as the canonical base. The overlay stays in
+                    // the data store for the live editing session.
+                    const pristineIds = getAllPristineClientIds();
+                    const blocksToSave = pristineIds.length > 0
+                        ? patchBlocksWithPristine( nextBlocks, new Set( pristineIds ) )
+                        : nextBlocks;
+
                     const response = await saveContent(
                         { apiBase, resource, id },
-                        nextBlocks
+                        blocksToSave
                     );
 
                     if (unmountedRef.current || version !== targetVersionRef.current) {

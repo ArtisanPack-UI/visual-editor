@@ -41,6 +41,7 @@ import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import type { ComponentType } from 'react'
 
 import {
+	buildTopLevelPatch,
 	deepMerge,
 	diffPaths,
 	pathMatchesAnyRoot,
@@ -223,8 +224,9 @@ export const withStateAttributes = createHigherOrderComponent(
 						return
 					}
 
-					const baseUpdates: Record<string, unknown> = {}
 					let statesPatch: StateOverridesByPath | null = null
+					const stateEntriesByTopKey = new Map<string, Array<{ path: string; value: unknown }>>()
+					const baseEntriesByTopKey  = new Map<string, Array<{ path: string; value: unknown }>>()
 
 					for ( const { path, value } of changedLeaves ) {
 						if ( pathMatchesAnyRoot( path, roots ) ) {
@@ -233,16 +235,40 @@ export const withStateAttributes = createHigherOrderComponent(
 								...( states?.[ path ] ?? {} ),
 								[ activeState ]: value,
 							}
+
+							// #515: also mirror to the base so the data store
+							// (read by panels via useSelect) stays in lockstep
+							// with the active state. The pristine idle base is
+							// preserved in the bridge's snapshot and restored
+							// before save.
+							const topKey = path.split( '.' )[ 0 ]
+							const list   = stateEntriesByTopKey.get( topKey ) ?? []
+							list.push( { path, value } )
+							stateEntriesByTopKey.set( topKey, list )
 							continue
 						}
 
+						const topKey = path.split( '.' )[ 0 ]
+						const list   = baseEntriesByTopKey.get( topKey ) ?? []
+						list.push( { path, value } )
+						baseEntriesByTopKey.set( topKey, list )
+					}
+
+					const finalUpdates: Record<string, unknown> = {}
+
+					if ( baseEntriesByTopKey.size > 0 ) {
 						Object.assign(
-							baseUpdates,
-							setPath( baseUpdates, path, value ),
+							finalUpdates,
+							buildTopLevelPatch( mergedAttributes, baseEntriesByTopKey ),
 						)
 					}
 
-					const finalUpdates: Record<string, unknown> = { ...baseUpdates }
+					if ( stateEntriesByTopKey.size > 0 ) {
+						Object.assign(
+							finalUpdates,
+							buildTopLevelPatch( mergedAttributes, stateEntriesByTopKey ),
+						)
+					}
 
 					if ( statesPatch ) {
 						finalUpdates.states = {
