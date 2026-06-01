@@ -274,6 +274,50 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Interactive states (#488)
+	|--------------------------------------------------------------------------
+	|
+	| Interactive states the InspectorControls state switcher and the
+	| state value resolver use. Resolved in priority order:
+	|
+	|   1. Active theme's `theme.json` → `settings.custom.artisanpack.states`
+	|   2. This config array (host-app overrides)
+	|   3. `StateRegistry::DEFAULTS` (idle, hover, focus, focus-visible,
+	|      active, disabled)
+	|
+	| Each state is an associative array with these keys:
+	|
+	|   - label          (string)   Human-readable label shown in the inspector.
+	|   - selector       (string)   CSS pseudo or attribute selector. The token
+	|                               `&` is replaced with the block's unique
+	|                               class scope. Reserved `idle` must use `''`.
+	|   - icon           (string)   Optional icon slug for the inspector chip.
+	|   - inheritsFrom   (string)   Parent state key for null-fallback. The
+	|                               `idle` slot is the implicit root.
+	|   - hoverMediaWrap (bool)     When true, the renderer wraps the rule in
+	|                               `@media (hover: hover)`. Default `false`.
+	|
+	| Merging is by key, so an entry here for `hover` extends the default
+	| hover state without disturbing the others. A new key like
+	| `aria-current` adds a state. To remove a built-in state, set its
+	| key to `null` — the registry will skip it.
+	|
+	| The reserved `idle` state is the implicit base of every inheritance
+	| chain and cannot be removed or aliased.
+	|
+	*/
+
+	'states' => [
+		// 'aria-current' => [
+		//     'label'        => 'Current',
+		//     'selector'     => '&[aria-current="page"]',
+		//     'icon'         => 'flag',
+		//     'inheritsFrom' => 'idle',
+		// ],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Site editor (H5)
 	|--------------------------------------------------------------------------
 	|

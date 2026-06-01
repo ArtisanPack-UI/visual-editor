@@ -36,6 +36,7 @@ use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
@@ -74,6 +75,7 @@ class TemplateComponent extends Component
 		protected GlobalStylesEmissionResolver $globalStyles,
 		protected GlobalStylesEmissionTracker $emissionTracker,
 		protected ResponsiveCssAccumulator $responsiveAccumulator,
+		protected StateCssAccumulator $stateAccumulator,
 		string $slug,
 		?string $theme = null,
 	) {
@@ -114,6 +116,7 @@ class TemplateComponent extends Component
 		// has had a chance to push its responsive rules in by now.
 		// See BlocksComponent::render() for the same pattern.
 		$responsiveCss = $this->responsiveAccumulator->flush();
+		$statesCss     = $this->stateAccumulator->flush();
 
 		return view( 'visual-editor-renderer-blade::components.template', [
 			'slug'            => $this->slug,
@@ -125,6 +128,7 @@ class TemplateComponent extends Component
 			'html'            => $this->html,
 			'globalStylesCss' => $this->resolveGlobalStylesCss(),
 			'responsiveCss'   => $responsiveCss,
+			'statesCss'       => $statesCss,
 		] );
 	}
 

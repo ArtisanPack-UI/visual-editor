@@ -27,14 +27,19 @@
  */
 
 import { BlockInspector } from '@wordpress/block-editor';
+import { hasBlockSupport, getBlockType } from '@wordpress/blocks';
 import { useSelect } from '@wordpress/data';
 import { __ } from '@wordpress/i18n';
 
 import { InspectorScopeChip } from '../responsive/InspectorScopeChip';
+import { setActiveBlock } from '../states/active-state';
+import { StateRegistry, DEFAULT_STATES } from '../states/registry';
+import { StateSwitcher } from '../states/StateSwitcher';
 import {
     useCallback,
     useEffect,
     useId,
+    useMemo,
     useRef,
     useState,
     type KeyboardEvent as ReactKeyboardEvent,
@@ -44,6 +49,85 @@ import {
 import { TEXT_DOMAIN } from '../vendor/i18n';
 
 import './inspector-sidebar.css';
+
+// Default state registry, constructed once at module load so every
+// inspector instance shares the same identity. The host app can swap
+// this out later by stamping a state snapshot into the bootstrap
+// settings — see `editor-settings`.
+const DEFAULT_STATE_REGISTRY = new StateRegistry(DEFAULT_STATES);
+
+interface StateSupportsConfig {
+    /**
+     * Allow-list of attribute paths the block supports state overrides
+     * on. Consumed by future per-state inspector controls — the
+     * switcher itself does not filter against it (the chip strip
+     * always shows every registered state once the block has opted
+     * in).
+     */
+    attributes?: string[];
+    /**
+     * Optional allow-list of state keys this block opts into. When
+     * omitted, every registered state is available. `idle` is always
+     * available regardless.
+     */
+    states?: string[];
+}
+
+interface SelectedBlockSnapshot {
+    clientId: string | null;
+    name: string | null;
+    attributes: Record<string, unknown>;
+}
+
+function readSelectedBlock(
+    select: (store: string) => unknown
+): SelectedBlockSnapshot {
+    const store = select('core/block-editor') as
+        | {
+              getSelectedBlockClientId?: () => string | null;
+              getBlockName?: (clientId: string) => string | null;
+              getBlockAttributes?: (
+                  clientId: string
+              ) => Record<string, unknown> | null;
+          }
+        | undefined;
+
+    const clientId = store?.getSelectedBlockClientId?.() ?? null;
+    if (!clientId) {
+        return { clientId: null, name: null, attributes: {} };
+    }
+
+    return {
+        clientId,
+        name: store?.getBlockName?.(clientId) ?? null,
+        attributes: store?.getBlockAttributes?.(clientId) ?? {},
+    };
+}
+
+function readStateSupports(name: string | null): StateSupportsConfig | null {
+    if (!name) {
+        return null;
+    }
+
+    const blockType = getBlockType(name);
+    if (!blockType) {
+        return null;
+    }
+
+    if (!hasBlockSupport(blockType, 'artisanpackStates', false)) {
+        return null;
+    }
+
+    const raw = (blockType.supports as Record<string, unknown>)
+        .artisanpackStates;
+
+    if (!raw || 'object' !== typeof raw) {
+        // Bare `true` opt-in — supported but no allow-list, all states OK.
+        return { attributes: undefined };
+    }
+
+    return raw as StateSupportsConfig;
+}
 
 export type InspectorTab = 'block' | 'document';
 
@@ -71,25 +155,55 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
         showDocumentTab = true,
     } = props;
 
-    const liveHasSelectedBlock = useSelect(
+    const liveSelection = useSelect(
         (select) => {
             if (hasSelectedBlockOverride !== undefined) {
-                return hasSelectedBlockOverride;
+                return {
+                    hasSelectedBlock: hasSelectedBlockOverride,
+                    selected: {
+                        clientId: null,
+                        name: null,
+                        attributes: {},
+                    } as SelectedBlockSnapshot,
+                };
             }
 
-            const store = select('core/block-editor') as
-                | { hasSelectedBlock?: () => boolean }
-                | undefined;
-
-            return store?.hasSelectedBlock?.() ?? false;
+            const snapshot = readSelectedBlock(select);
+            return {
+                hasSelectedBlock: snapshot.clientId !== null,
+                selected: snapshot,
+            };
         },
         [hasSelectedBlockOverride]
     );
 
+    // Tests mock `useSelect` to return a bare boolean for the legacy
+    // shape. Normalize either form so the rest of the component can
+    // read structured fields without guarding every access.
     const hasSelectedBlock =
-        hasSelectedBlockOverride !== undefined
-            ? hasSelectedBlockOverride
-            : liveHasSelectedBlock;
+        'boolean' === typeof liveSelection
+            ? (liveSelection as boolean)
+            : (liveSelection.hasSelectedBlock ?? false);
+    const selectedBlock: SelectedBlockSnapshot =
+        'object' === typeof liveSelection && liveSelection !== null
+            ? (liveSelection.selected ?? {
+                  clientId: null,
+                  name: null,
+                  attributes: {},
+              })
+            : { clientId: null, name: null, attributes: {} };
+
+    const stateSupports = useMemo(
+        () => readStateSupports(selectedBlock.name),
+        [selectedBlock.name]
+    );
+
+    // Reset the active-state and preview-state stores whenever the
+    // selected block changes so state styling never bleeds from one
+    // block to the next.
+    useEffect(() => {
+        setActiveBlock(selectedBlock.clientId);
+    }, [selectedBlock.clientId]);
 
     // Both tabs are always mounted; `activeTab` just tracks which panel
     // is visible. On load we land on Document unless a block is already
@@ -260,6 +374,17 @@ export function InspectorSidebar(props: InspectorSidebarProps): JSX.Element {
             >
                 {hasSelectedBlock ? (
                     <>
+                        <StateSwitcher
+                            registry={DEFAULT_STATE_REGISTRY}
+                            supportsStates={stateSupports !== null}
+                            allowedStates={stateSupports?.states}
+                            attributes={
+                                selectedBlock.attributes as Record<
+                                    string,
+                                    unknown
+                                >
+                            }
+                        />
                         <InspectorScopeChip />
                         <BlockInspector />
                     </>

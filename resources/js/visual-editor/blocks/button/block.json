@@ -137,6 +137,24 @@
         },
         "interactivity": {
             "clientNavigation": true
+        },
+        "artisanpackStates": {
+            "attributes": [
+                "backgroundColor",
+                "textColor",
+                "gradient",
+                "color.background",
+                "color.text",
+                "color.gradient",
+                "border.color",
+                "border.width",
+                "border.style",
+                "border.radius",
+                "shadow",
+                "typography.textDecoration",
+                "dimensions.transform",
+                "transition"
+            ]
         }
     },
     "styles": [

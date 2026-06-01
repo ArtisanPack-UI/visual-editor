@@ -153,6 +153,22 @@
                 "align",
                 "minHeight"
             ]
+        },
+        "artisanpackStates": {
+            "attributes": [
+                "backgroundColor",
+                "textColor",
+                "gradient",
+                "color.background",
+                "color.text",
+                "border.color",
+                "border.width",
+                "border.style",
+                "border.radius",
+                "shadow",
+                "dimensions.transform",
+                "transition"
+            ]
         }
     },
     "selectors": {

@@ -74,7 +74,21 @@
 		"interactivity": {
 			"clientNavigation": true
 		},
-		"allowedBlocks": true
+		"allowedBlocks": true,
+		"artisanpackStates": {
+			"attributes": [
+				"backgroundColor",
+				"textColor",
+				"color.background",
+				"color.text",
+				"border.color",
+				"border.width",
+				"border.style",
+				"border.radius",
+				"typography.textDecoration",
+				"transition"
+			]
+		}
 	},
 	"editorStyle": "wp-block-details-editor",
 	"style": "wp-block-details"

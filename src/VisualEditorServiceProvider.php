@@ -24,6 +24,10 @@ use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Responsive\AttributeMigrator;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
+use ArtisanPackUI\VisualEditor\States\StateAttributeMigrator;
+use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
+use ArtisanPackUI\VisualEditor\States\StateRegistry;
+use ArtisanPackUI\VisualEditor\States\StateValueResolver;
 use ArtisanPackUI\VisualEditor\Search\BlockTreeSearchExtractor;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\GlobalStylesResolver as SiteEditorGlobalStylesResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\MenuResolver as SiteEditorMenuResolver;
@@ -148,6 +152,31 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( AttributeMigrator::class, function () {
 			return new AttributeMigrator();
+		} );
+
+		// #488 — state design tools. Same lifetime story as the
+		// breakpoint registry: scoped per request because theme.json
+		// can swap a state set between requests, and singletons would
+		// leak the resolved registry across them.
+		$this->app->scoped( StateRegistry::class, function ( $app ) {
+			$config = (array) $app['config']->get( 'artisanpack.visual-editor.states', [] );
+
+			return StateRegistry::fromLayers( $config );
+		} );
+
+		$this->app->scoped( StateValueResolver::class, function ( $app ) {
+			return new StateValueResolver( $app->make( StateRegistry::class ) );
+		} );
+
+		$this->app->scoped( StateCssEmitter::class, function ( $app ) {
+			return new StateCssEmitter(
+				$app->make( StateRegistry::class ),
+				$app->make( StateValueResolver::class ),
+			);
+		} );
+
+		$this->app->singleton( StateAttributeMigrator::class, function () {
+			return new StateAttributeMigrator();
 		} );
 
 		// #434: `GlobalStylesCssProvider` + `GlobalStylesCacheInvalidator`
