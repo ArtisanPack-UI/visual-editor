@@ -37,9 +37,7 @@ import '@wordpress/format-library';
 import { type ReactNode } from 'react';
 
 import { ConvertToPatternControl } from '../editor/convert-to-pattern-control';
-import { editorSettings } from '../editor-settings';
-import { useThemeGlobalStylesCss } from './use-theme-global-styles-css';
-import { useThemeGlobalStylesSettings } from './use-theme-global-styles-settings';
+import { useThemedEditorSettings } from '../use-themed-editor-settings';
 
 // Gutenberg editor-surface stylesheets. Previously imported by each
 // canvas component; they follow the provider here so the boundary owns
@@ -186,92 +184,16 @@ export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Elemen
         };
     }, [onNavigateToEntityRecord]);
 
-    // Tests can short-circuit the network by passing a string directly;
-    // production drives the value through the hook keyed on `apiBase`.
-    const fetchedCss = useThemeGlobalStylesCss(apiBase);
-    const themeCss = themeGlobalStylesCss !== undefined ? themeGlobalStylesCss : fetchedCss;
+    const extraSettings = useMemo(
+        () => ({ onNavigateToEntityRecord: navigateToEntityRecord }),
+        [navigateToEntityRecord],
+    );
 
-    // Pull the active theme's `settings` (palette, font-sizes, etc.)
-    // so the picker UIs source their swatches from the same slugs the
-    // server-side emitter binds via `.has-{slug}-*` rules. Without
-    // this the editor used a hard-coded default palette while the
-    // emitter bound the theme palette — picker choices didn't
-    // visually apply because the two palettes don't share slugs
-    // (Keystone #53).
-    const themeBase = useThemeGlobalStylesSettings(apiBase);
-
-    // Append the theme's compiled global-styles CSS to the editor's
-    // `styles` array so Gutenberg cascades it into the canvas, and
-    // override the palette / font-sizes in `__experimentalFeatures`
-    // when the theme defines them. Memoized so identity-stable
-    // `editorSettings` doesn't bust the provider's effects on every
-    // parent re-render. When no theme data is available we hand the
-    // provider the original `editorSettings` object — no allocation,
-    // no diff.
-    const settings = useMemo(() => {
-        const themeSettings = themeBase?.settings ?? {};
-        const themePalette = extractThemePalette(themeSettings);
-        const themeFontSizes = extractThemeFontSizes(themeSettings);
-        const themeGradients = extractThemeGradients(themeSettings);
-
-        const needsStyles = themeCss !== undefined && themeCss !== '';
-        const needsPalette = themePalette !== null;
-        const needsFontSizes = themeFontSizes !== null;
-        const needsGradients = themeGradients !== null;
-
-        if (!needsStyles && !needsPalette && !needsFontSizes && !needsGradients) {
-            return {
-                ...editorSettings,
-                onNavigateToEntityRecord: navigateToEntityRecord,
-            };
-        }
-
-        const nextStyles = needsStyles
-            ? [...editorSettings.styles, { css: themeCss as string }]
-            : editorSettings.styles;
-
-        const baseFeatures = editorSettings.__experimentalFeatures ?? {};
-        const baseColor = (baseFeatures as { color?: Record<string, unknown> }).color ?? {};
-        const baseTypography =
-            (baseFeatures as { typography?: Record<string, unknown> }).typography ?? {};
-
-        return {
-            ...editorSettings,
-            styles: nextStyles,
-            onNavigateToEntityRecord: navigateToEntityRecord,
-            // Mirror onto the legacy top-level keys too so older
-            // blocks that still read `settings.colors` / `fontSizes`
-            // pick up the theme's slugs.
-            ...(needsPalette ? { colors: themePalette } : {}),
-            ...(needsFontSizes ? { fontSizes: themeFontSizes } : {}),
-            __experimentalFeatures: {
-                ...baseFeatures,
-                color: {
-                    ...baseColor,
-                    ...(needsPalette || needsGradients
-                        ? {
-                              palette: needsPalette
-                                  ? { theme: themePalette, custom: [] }
-                                  : (baseColor as { palette?: unknown }).palette,
-                              gradients: needsGradients
-                                  ? { theme: themeGradients, custom: [] }
-                                  : (baseColor as { gradients?: unknown }).gradients,
-                          }
-                        : {}),
-                },
-                typography: needsFontSizes
-                    ? {
-                          ...baseTypography,
-                          fontSizes: {
-                              ...(((baseTypography as { fontSizes?: Record<string, unknown> })
-                                  .fontSizes) ?? {}),
-                              theme: themeFontSizes,
-                          },
-                      }
-                    : baseTypography,
-            },
-        };
-    }, [themeCss, themeBase, navigateToEntityRecord]);
+    const settings = useThemedEditorSettings({
+        apiBase,
+        themeGlobalStylesCss,
+        extraSettings,
+    });
 
     return (
         <SlotFillProvider>
@@ -289,24 +211,6 @@ export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Elemen
             </BlockEditorProvider>
         </SlotFillProvider>
     );
-}
-
-interface PaletteEntry {
-    slug: string;
-    name: string;
-    color: string;
-}
-
-interface FontSizeEntry {
-    slug: string;
-    name: string;
-    size: string;
-}
-
-interface GradientEntry {
-    slug: string;
-    name: string;
-    gradient: string;
 }
 
 /**
@@ -360,114 +264,3 @@ function resolveNavigationId(
     return encodeURIComponent(composite);
 }
 
-/**
- * Pull `settings.color.palette` out of the `/global-styles/base`
- * payload as a normalized `{ slug, name, color }` list. Returns
- * `null` (not an empty array) when the theme didn't define one so
- * the boundary can keep `editorSettings`'s default palette as a
- * fallback rather than blanking the picker.
- */
-function extractThemePalette(
-    settings: Record<string, unknown>,
-): readonly PaletteEntry[] | null {
-    const palette = (settings.color as { palette?: unknown })?.palette;
-
-    if (!Array.isArray(palette) || palette.length === 0) {
-        return null;
-    }
-
-    const out: PaletteEntry[] = [];
-
-    for (const entry of palette) {
-        if (entry === null || typeof entry !== 'object') {
-            continue;
-        }
-
-        const slug = (entry as { slug?: unknown }).slug;
-        const color = (entry as { color?: unknown }).color;
-
-        if (typeof slug !== 'string' || slug === '' || typeof color !== 'string') {
-            continue;
-        }
-
-        const name = (entry as { name?: unknown }).name;
-
-        out.push({
-            slug,
-            color,
-            name: typeof name === 'string' ? name : slug,
-        });
-    }
-
-    return out.length === 0 ? null : out;
-}
-
-function extractThemeFontSizes(
-    settings: Record<string, unknown>,
-): readonly FontSizeEntry[] | null {
-    const sizes = (settings.typography as { fontSizes?: unknown })?.fontSizes;
-
-    if (!Array.isArray(sizes) || sizes.length === 0) {
-        return null;
-    }
-
-    const out: FontSizeEntry[] = [];
-
-    for (const entry of sizes) {
-        if (entry === null || typeof entry !== 'object') {
-            continue;
-        }
-
-        const slug = (entry as { slug?: unknown }).slug;
-        const size = (entry as { size?: unknown }).size;
-
-        if (typeof slug !== 'string' || slug === '' || typeof size !== 'string') {
-            continue;
-        }
-
-        const name = (entry as { name?: unknown }).name;
-
-        out.push({
-            slug,
-            size,
-            name: typeof name === 'string' ? name : slug,
-        });
-    }
-
-    return out.length === 0 ? null : out;
-}
-
-function extractThemeGradients(
-    settings: Record<string, unknown>,
-): readonly GradientEntry[] | null {
-    const gradients = (settings.color as { gradients?: unknown })?.gradients;
-
-    if (!Array.isArray(gradients) || gradients.length === 0) {
-        return null;
-    }
-
-    const out: GradientEntry[] = [];
-
-    for (const entry of gradients) {
-        if (entry === null || typeof entry !== 'object') {
-            continue;
-        }
-
-        const slug = (entry as { slug?: unknown }).slug;
-        const gradient = (entry as { gradient?: unknown }).gradient;
-
-        if (typeof slug !== 'string' || slug === '' || typeof gradient !== 'string') {
-            continue;
-        }
-
-        const name = (entry as { name?: unknown }).name;
-
-        out.push({
-            slug,
-            gradient,
-            name: typeof name === 'string' ? name : slug,
-        });
-    }
-
-    return out.length === 0 ? null : out;
-}

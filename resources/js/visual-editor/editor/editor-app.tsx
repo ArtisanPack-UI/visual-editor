@@ -32,8 +32,8 @@ import type { BlockInstance } from '@wordpress/blocks';
 import { addFilter } from '@wordpress/hooks';
 
 import { bootI18n, TEXT_DOMAIN } from '../vendor/i18n';
-import { editorSettings } from '../editor-settings';
 import { ensureMediaBridgeFilter } from '../media-bridge';
+import { useThemedEditorSettings } from '../use-themed-editor-settings';
 
 import { registerArtisanPackBlocks } from '../blocks';
 
@@ -282,6 +282,8 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         previewUrl = null,
         onMetadataChange,
     } = props;
+
+    const themedSettings = useThemedEditorSettings({ apiBase: props.apiBase });
 
     const documentType = entityTypeForResource(props.resource);
     // Validate against a whole-digit regex *before* parsing so malformed
@@ -849,7 +851,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     const editorBody = (
         <BlockEditorProvider
             value={blocks}
-            settings={editorSettings}
+            settings={themedSettings}
             onInput={handleInput}
             onChange={handleChange}
         >
