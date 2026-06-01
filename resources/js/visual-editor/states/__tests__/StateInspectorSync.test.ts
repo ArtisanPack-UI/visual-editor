@@ -14,8 +14,18 @@ vi.mock( '@wordpress/data', () => ( {
 	} ),
 } ) )
 
-import { buildOverlay } from '../StateInspectorSync'
-import { resetStateBridge } from '../state-bridge'
+import {
+	applySyncDispatch,
+	buildOverlay,
+	restorePristine,
+	snapshotPristineFor,
+} from '../StateInspectorSync'
+import {
+	consumeExpectedSyncedAttrs,
+	getPristineSnapshot,
+	hasPristineSnapshot,
+	resetStateBridge,
+} from '../state-bridge'
 
 beforeEach( () => {
 	resetStateBridge()
@@ -168,5 +178,146 @@ describe( 'buildOverlay (#511)', () => {
 			backgroundColor: 'error',
 			textColor:       'background',
 		} )
+	} )
+} )
+
+describe( 'sync → save → restore lifecycle (#511)', () => {
+	const clientId = 'block-1'
+
+	function makeAttributes(): Record<string, unknown> {
+		return {
+			backgroundColor: 'warning',
+			style:           {
+				color:   { background: '#e11919' },
+				spacing: { padding: '20px' },
+			},
+			states: {
+				_scopeId: 'abc123',
+				'style.color.background': { hover: '#2eccc6' },
+			},
+		}
+	}
+
+	const roots = [ 'backgroundColor', 'color.background' ]
+
+	it( 'snapshots pristine values once per session and ignores subsequent calls', () => {
+		const attrs   = makeAttributes()
+		const overlay = buildOverlay( attrs, roots, 'hover' )!
+
+		snapshotPristineFor( clientId, attrs, [ 'style.color.background' ] )
+
+		expect( hasPristineSnapshot( clientId ) ).toBe( true )
+		const snapshot = getPristineSnapshot( clientId )
+		expect( snapshot ).toEqual( { 'style.color.background': '#e11919' } )
+
+		// A second call with the synced attrs must not overwrite the
+		// pristine snapshot — otherwise the user's panel writes during
+		// sync would pollute the pristine view used for save restore.
+		const syncedAttrs = {
+			...attrs,
+			style: { ...( attrs.style as Record<string, unknown> ), color: { background: '#2eccc6' } },
+		}
+		const overlay2 = buildOverlay( syncedAttrs, roots, 'hover' )
+		if ( overlay2 ) {
+			snapshotPristineFor( clientId, syncedAttrs, [ 'style.color.background' ] )
+		}
+
+		expect( getPristineSnapshot( clientId ) ).toEqual( {
+			'style.color.background': '#e11919',
+		} )
+	} )
+
+	it( 'captures undefined for paths that were unset at sync time so restore can unset them', () => {
+		const attrs: Record<string, unknown> = {
+			backgroundColor: 'warning',
+			states: { 'style.color.background': { hover: '#2eccc6' } },
+		}
+		const overlay = buildOverlay( attrs, roots, 'hover' )!
+
+		snapshotPristineFor( clientId, attrs, [ 'style.color.background' ] )
+
+		const snapshot = getPristineSnapshot( clientId )
+		expect( snapshot ).toHaveProperty( 'style.color.background' )
+		expect( snapshot![ 'style.color.background' ] ).toBeUndefined()
+	} )
+
+	it( 'restores pristine values on a top-level subtree without clobbering siblings', () => {
+		const attrs   = makeAttributes()
+		const overlay = buildOverlay( attrs, roots, 'hover' )!
+
+		const dispatch = vi.fn()
+
+		applySyncDispatch( clientId, attrs, overlay, dispatch )
+
+		expect( dispatch ).toHaveBeenCalledWith( clientId, {
+			style: {
+				color:   { background: '#2eccc6' },
+				spacing: { padding: '20px' },
+			},
+		} )
+
+		// Synced attrs in the data store (what `useSelect` would now return).
+		const syncedAttrs: Record<string, unknown> = {
+			...attrs,
+			style: {
+				color:   { background: '#2eccc6' },
+				spacing: { padding: '20px' },
+			},
+		}
+
+		// Take a fresh snapshot if the sync would have set one — for the
+		// lifecycle test we did NOT call snapshotPristineFor before
+		// applySyncDispatch, so seed it manually here so restorePristine
+		// has something to unwind.
+		snapshotPristineFor( clientId, attrs, [ 'style.color.background' ] )
+
+		dispatch.mockClear()
+
+		restorePristine( clientId, syncedAttrs, dispatch )
+
+		expect( dispatch ).toHaveBeenCalledTimes( 1 )
+		const [ dispatchedClientId, patch ] = dispatch.mock.calls[ 0 ]
+		expect( dispatchedClientId ).toBe( clientId )
+
+		const restoredStyle = ( patch as Record<string, unknown> ).style as Record<
+			string,
+			Record<string, unknown>
+		>
+
+		expect( restoredStyle.color.background ).toBe( '#e11919' )
+		// The padding sibling MUST survive the restore — otherwise any
+		// non-state-eligible edits made during sync would be lost on save.
+		expect( restoredStyle.spacing.padding ).toBe( '20px' )
+
+		// Restore clears the snapshot so the next sync session starts fresh.
+		expect( hasPristineSnapshot( clientId ) ).toBe( false )
+	} )
+
+	it( 'stamps the expected post-dispatch shape so the write-interceptor can detect the sync', () => {
+		const attrs   = makeAttributes()
+		const overlay = buildOverlay( attrs, roots, 'hover' )!
+
+		const dispatch = vi.fn()
+		applySyncDispatch( clientId, attrs, overlay, dispatch )
+
+		const expected = consumeExpectedSyncedAttrs( clientId )
+		expect( expected ).not.toBeUndefined()
+		// `applySyncDispatch` uses a shallow merge to match
+		// `updateBlockAttributes` reducer behaviour — top-level keys in
+		// the overlay replace the corresponding keys on `attrs`.
+		expect( ( expected as Record<string, unknown> ).style ).toEqual( {
+			color:   { background: '#2eccc6' },
+			spacing: { padding: '20px' },
+		} )
+
+		// The sentinel is consumed by the read so a follow-up write
+		// (panel pick) flows through the interceptor's correction path.
+		expect( consumeExpectedSyncedAttrs( clientId ) ).toBeUndefined()
+	} )
+
+	it( 'restoring without a snapshot is a no-op', () => {
+		const dispatch = vi.fn()
+		restorePristine( clientId, makeAttributes(), dispatch )
+		expect( dispatch ).not.toHaveBeenCalled()
 	} )
 } )

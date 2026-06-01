@@ -170,17 +170,26 @@ function buildTopLevelPatch(
 	return patch
 }
 
+interface OverlayPlan {
+	entriesByTopKey: Map<string, Array<{ path: string; value: unknown }>>
+	paths: string[]
+}
+
 /**
- * Compute the overlay top-level patch that, when dispatched via
- * `updateBlockAttributes`, makes the data store reflect the merged
- * view at `activeState` for every state-eligible path that has an
- * authored override. Returns `null` when no change is required.
+ * Walk the state bag and return the resolved overlay leaves at
+ * `activeState` for every state-eligible path that has an authored
+ * override. The flat `paths` list is the source of truth for the
+ * pristine snapshot — using it (instead of walking the dispatched
+ * overlay subtree) ensures non-state-eligible siblings that were
+ * deep-cloned along for sibling preservation never make it into
+ * the snapshot, where they would clobber any concurrent panel
+ * writes on restore.
  */
-export function buildOverlay(
+function planOverlay(
 	attributes: Record<string, unknown>,
 	roots: string[],
 	activeState: string,
-): Record<string, unknown> | null {
+): OverlayPlan | null {
 	if ( BASE_KEY === activeState ) {
 		return null
 	}
@@ -192,6 +201,7 @@ export function buildOverlay(
 
 	const registry = getStateRegistry()
 	const entriesByTopKey = new Map<string, Array<{ path: string; value: unknown }>>()
+	const paths: string[] = []
 
 	for ( const [ path, value ] of Object.entries( states ) ) {
 		if ( ! value || 'object' !== typeof value || Array.isArray( value ) ) {
@@ -224,25 +234,50 @@ export function buildOverlay(
 		const list   = entriesByTopKey.get( topKey ) ?? []
 		list.push( { path, value: resolved } )
 		entriesByTopKey.set( topKey, list )
+		paths.push( path )
 	}
 
 	if ( 0 === entriesByTopKey.size ) {
 		return null
 	}
 
-	return buildTopLevelPatch( attributes, entriesByTopKey )
+	return { entriesByTopKey, paths }
 }
 
 /**
- * Snapshot pristine values for every overlay leaf in a flat path map
- * so restore can unset paths that were `undefined` at sync time.
- * Captured once per sync session — subsequent ticks reuse the
- * initial snapshot so panel writes during sync don't pollute it.
+ * Compute the overlay top-level patch that, when dispatched via
+ * `updateBlockAttributes`, makes the data store reflect the merged
+ * view at `activeState` for every state-eligible path that has an
+ * authored override. Returns `null` when no change is required.
  */
-function snapshotPristineFor(
+export function buildOverlay(
+	attributes: Record<string, unknown>,
+	roots: string[],
+	activeState: string,
+): Record<string, unknown> | null {
+	const plan = planOverlay( attributes, roots, activeState )
+	if ( ! plan ) {
+		return null
+	}
+	return buildTopLevelPatch( attributes, plan.entriesByTopKey )
+}
+
+/**
+ * Snapshot pristine values for every state-eligible overlay leaf in
+ * a flat path map so restore can unset paths that were `undefined`
+ * at sync time. Captured once per sync session — subsequent ticks
+ * reuse the initial snapshot so panel writes during sync (including
+ * writes to non-state-eligible siblings inside the same subtree)
+ * don't pollute it.
+ *
+ * Only the explicit `paths` are snapshotted — never the sibling
+ * leaves that `buildTopLevelPatch` deep-cloned along to preserve
+ * the rest of the subtree.
+ */
+export function snapshotPristineFor(
 	clientId: string,
 	attributes: Record<string, unknown>,
-	overlay: Record<string, unknown>,
+	paths: string[],
 ): void {
 	if ( hasPristineSnapshot( clientId ) ) {
 		return
@@ -250,25 +285,14 @@ function snapshotPristineFor(
 
 	const snapshot: Record<string, unknown> = {}
 
-	const walk = ( source: Record<string, unknown>, prefix: string ): void => {
-		for ( const [ key, value ] of Object.entries( source ) ) {
-			const path = '' === prefix ? key : `${ prefix }.${ key }`
-
-			if ( value && 'object' === typeof value && ! Array.isArray( value ) ) {
-				walk( value as Record<string, unknown>, path )
-				continue
-			}
-
-			snapshot[ path ] = readPath( attributes, path )
-		}
+	for ( const path of paths ) {
+		snapshot[ path ] = readPath( attributes, path )
 	}
-
-	walk( overlay, '' )
 
 	setPristineSnapshot( clientId, snapshot )
 }
 
-function applySyncDispatch(
+export function applySyncDispatch(
 	clientId: string,
 	attributes: Record<string, unknown>,
 	patch: Record<string, unknown>,
@@ -285,7 +309,7 @@ function applySyncDispatch(
 	updateBlockAttributes( clientId, patch )
 }
 
-function restorePristine(
+export function restorePristine(
 	clientId: string,
 	attributes: Record<string, unknown>,
 	updateBlockAttributes: (
@@ -424,12 +448,14 @@ export function StateInspectorSync(): null {
 			baselineAttributes  = { ...slice.attributes, ...baselinePatch }
 		}
 
-		const overlay = buildOverlay( baselineAttributes, roots, activeState )
-		if ( ! overlay ) {
+		const plan = planOverlay( baselineAttributes, roots, activeState )
+		if ( ! plan ) {
 			return
 		}
 
-		snapshotPristineFor( slice.clientId, baselineAttributes, overlay )
+		const overlay = buildTopLevelPatch( baselineAttributes, plan.entriesByTopKey )
+
+		snapshotPristineFor( slice.clientId, baselineAttributes, plan.paths )
 		applySyncDispatch( slice.clientId, slice.attributes, overlay, updateBlockAttributes )
 	}, [
 		activeState,
