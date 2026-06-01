@@ -73,11 +73,170 @@ class ThemeJsonTokensCompiler
 
 		$layout = $this->compileLayoutRules( $settings );
 
+		$utilities = $this->compilePresetUtilityClasses( $settings );
+
 		$stylesCss = $this->compileStyles( $styles );
 
-		$parts = array_values( array_filter( [ $root, $layout, $stylesCss ], static fn ( string $section ): bool => '' !== $section ) );
+		$parts = array_values( array_filter( [ $root, $layout, $utilities, $stylesCss ], static fn ( string $section ): bool => '' !== $section ) );
 
 		return implode( "\n\n", $parts );
+	}
+
+	/**
+	 * Emit the `.has-{slug}-*` utility-class rules WordPress core binds
+	 * to theme.json palette / font-size / gradient slugs. Without these
+	 * a block that carries `has-accent-background-color` has no CSS
+	 * rule pointing the class at `var(--wp--preset--color--accent)`.
+	 *
+	 * Mirrors core's `_wp_get_iframed_editor_assets()` / global-styles
+	 * output: one rule per slug per property, marked `!important` so
+	 * specificity matches inline styles.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param  array<string, mixed>  $settings  `themeJson.settings` payload.
+	 */
+	protected function compilePresetUtilityClasses( array $settings ): string
+	{
+		$rules = [];
+
+		$colorPalette = $this->compileColorUtilityRules( $settings );
+		if ( '' !== $colorPalette ) {
+			$rules[] = $colorPalette;
+		}
+
+		$gradients = $this->compileGradientUtilityRules( $settings );
+		if ( '' !== $gradients ) {
+			$rules[] = $gradients;
+		}
+
+		$fontSizes = $this->compileFontSizeUtilityRules( $settings );
+		if ( '' !== $fontSizes ) {
+			$rules[] = $fontSizes;
+		}
+
+		return implode( "\n\n", $rules );
+	}
+
+	/**
+	 * Emit `.has-{slug}-color`, `.has-{slug}-background-color`, and
+	 * `.has-{slug}-border-color` for each entry in
+	 * `settings.color.palette`.
+	 *
+	 * @param  array<string, mixed>  $settings
+	 */
+	protected function compileColorUtilityRules( array $settings ): string
+	{
+		$palette = $settings['color']['palette'] ?? null;
+		if ( ! is_array( $palette ) ) {
+			return '';
+		}
+
+		$lines = [];
+
+		foreach ( $palette as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+
+			$slug  = isset( $entry['slug'] ) && is_string( $entry['slug'] ) ? trim( $entry['slug'] ) : '';
+			$value = isset( $entry['color'] ) && is_string( $entry['color'] ) ? trim( $entry['color'] ) : '';
+
+			// Skip entries that aren't a complete pair — the `:root`
+			// emitter does the same. Emitting a utility class pointing
+			// at an undefined `--wp--preset--*` variable would just be
+			// dead CSS.
+			if ( '' === $slug || '' === $value ) {
+				continue;
+			}
+
+			$slug = $this->slug( $slug );
+			$var  = sprintf( 'var(--wp--preset--color--%s)', $slug );
+
+			$lines[] = sprintf( '.has-%s-color { color: %s !important; }', $slug, $var );
+			$lines[] = sprintf( '.has-%s-background-color { background-color: %s !important; }', $slug, $var );
+			$lines[] = sprintf( '.has-%s-border-color { border-color: %s !important; }', $slug, $var );
+		}
+
+		return implode( "\n", $lines );
+	}
+
+	/**
+	 * Emit `.has-{slug}-gradient-background` for each entry in
+	 * `settings.color.gradient`.
+	 *
+	 * @param  array<string, mixed>  $settings
+	 */
+	protected function compileGradientUtilityRules( array $settings ): string
+	{
+		$gradients = $settings['color']['gradient'] ?? null;
+		if ( ! is_array( $gradients ) ) {
+			return '';
+		}
+
+		$lines = [];
+
+		foreach ( $gradients as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+
+			$slug  = isset( $entry['slug'] ) && is_string( $entry['slug'] ) ? trim( $entry['slug'] ) : '';
+			$value = isset( $entry['gradient'] ) && is_string( $entry['gradient'] ) ? trim( $entry['gradient'] ) : '';
+
+			if ( '' === $slug || '' === $value ) {
+				continue;
+			}
+
+			$slug = $this->slug( $slug );
+
+			$lines[] = sprintf(
+				'.has-%s-gradient-background { background: var(--wp--preset--gradient--%s) !important; }',
+				$slug,
+				$slug
+			);
+		}
+
+		return implode( "\n", $lines );
+	}
+
+	/**
+	 * Emit `.has-{slug}-font-size` for each entry in
+	 * `settings.typography.fontSizes`.
+	 *
+	 * @param  array<string, mixed>  $settings
+	 */
+	protected function compileFontSizeUtilityRules( array $settings ): string
+	{
+		$fontSizes = $settings['typography']['fontSizes'] ?? null;
+		if ( ! is_array( $fontSizes ) ) {
+			return '';
+		}
+
+		$lines = [];
+
+		foreach ( $fontSizes as $entry ) {
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+
+			$slug  = isset( $entry['slug'] ) && is_string( $entry['slug'] ) ? trim( $entry['slug'] ) : '';
+			$value = isset( $entry['size'] ) && is_string( $entry['size'] ) ? trim( $entry['size'] ) : '';
+
+			if ( '' === $slug || '' === $value ) {
+				continue;
+			}
+
+			$slug = $this->slug( $slug );
+
+			$lines[] = sprintf(
+				'.has-%s-font-size { font-size: var(--wp--preset--font-size--%s) !important; }',
+				$slug,
+				$slug
+			);
+		}
+
+		return implode( "\n", $lines );
 	}
 
 	/**

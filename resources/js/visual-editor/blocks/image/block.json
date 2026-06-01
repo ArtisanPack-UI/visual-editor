@@ -134,6 +134,17 @@
         },
         "shadow": {
             "__experimentalSkipSerialization": true
+        },
+        "artisanpackStates": {
+            "attributes": [
+                "border.color",
+                "border.width",
+                "border.style",
+                "border.radius",
+                "shadow",
+                "dimensions.transform",
+                "transition"
+            ]
         }
     },
     "selectors": {

@@ -451,6 +451,8 @@ describe( 'BlockSupports::compile (composition)', function (): void {
 			'responsiveCss'   => '',
 			'responsiveClass' => '',
 			'responsiveRules' => '',
+			'statesClass'     => '',
+			'statesRules'     => '',
 		] );
 	} );
 
@@ -465,5 +467,94 @@ describe( 'BlockSupports::compile (composition)', function (): void {
 
 		expect( $result['classes'] )->toContain( 'has-accent-background-color' );
 		expect( $result['style'] )->toBe( '' );
+	} );
+} );
+
+describe( 'compile() — state design tools (#488)', function (): void {
+	it( 'returns empty state slots when no states bag is set', function (): void {
+		$result = BlockSupports::compile( [ 'backgroundColor' => 'accent' ] );
+
+		expect( $result['statesClass'] )->toBe( '' );
+		expect( $result['statesRules'] )->toBe( '' );
+	} );
+
+	it( 'returns empty state slots when scopeId is missing even if overrides exist', function (): void {
+		$result = BlockSupports::compile( [
+			'backgroundColor' => 'accent',
+			'states'          => [
+				'backgroundColor' => [ 'idle' => 'accent', 'hover' => 'accent-700' ],
+			],
+		] );
+
+		expect( $result['statesClass'] )->toBe( '' );
+		expect( $result['statesRules'] )->toBe( '' );
+	} );
+
+	it( 'emits a scoped state class and CSS rules when scopeId + overrides are present', function (): void {
+		$result = BlockSupports::compile( [
+			'backgroundColor' => 'accent',
+			'states'          => [
+				'_scopeId'        => 'abc12345',
+				'backgroundColor' => [ 'idle' => 'accent', 'hover' => 'accent-700' ],
+			],
+		] );
+
+		expect( $result['statesClass'] )->toBe( 'ap-state-abc12345' );
+		expect( $result['classes'] )->toContain( 'ap-state-abc12345' );
+		expect( $result['statesRules'] )->toContain( '.ap-state-abc12345' );
+		expect( $result['statesRules'] )->toContain( 'background-color: var(--wp--preset--color--accent) !important;' );
+		expect( $result['statesRules'] )->toContain( '@media (hover: hover)' );
+		expect( $result['statesRules'] )->toContain( 'background-color: var(--wp--preset--color--accent-700) !important;' );
+		expect( $result['statesRules'] )->toContain( ':is(a, button)' );
+	} );
+
+	it( 'rejects a `_scopeId` that contains CSS-breaking characters', function (): void {
+		$result = BlockSupports::compile( [
+			'states' => [
+				'_scopeId'        => 'abc"</style><script>x</script>',
+				'backgroundColor' => [ 'idle' => 'accent', 'hover' => 'accent-700' ],
+			],
+		] );
+
+		// The crafted scope id must be rejected outright — no class,
+		// no rules — so the hostile string can never reach the
+		// rendered `<style>` block.
+		expect( $result['statesClass'] )->toBe( '' );
+		expect( $result['statesRules'] )->toBe( '' );
+	} );
+
+	it( 'rejects a `_scopeId` containing whitespace', function (): void {
+		$result = BlockSupports::compile( [
+			'states' => [
+				'_scopeId'        => 'has space',
+				'backgroundColor' => [ 'idle' => 'accent', 'hover' => 'accent-700' ],
+			],
+		] );
+
+		expect( $result['statesClass'] )->toBe( '' );
+	} );
+
+	it( 'rejects a `_scopeId` longer than the safe identifier cap', function (): void {
+		$result = BlockSupports::compile( [
+			'states' => [
+				'_scopeId'        => str_repeat( 'a', 65 ),
+				'backgroundColor' => [ 'idle' => 'accent' ],
+			],
+		] );
+
+		expect( $result['statesClass'] )->toBe( '' );
+	} );
+
+	it( 'preserves raw hex / var() values without preset wrapping', function (): void {
+		$result = BlockSupports::compile( [
+			'style'  => [ 'color' => [ 'background' => '#abc123' ] ],
+			'states' => [
+				'_scopeId'              => 'def',
+				'style.color.background' => [ 'idle' => '#abc123', 'hover' => '#fff' ],
+			],
+		] );
+
+		expect( $result['statesRules'] )->toContain( 'background-color: #abc123 !important;' );
+		expect( $result['statesRules'] )->toContain( 'background-color: #fff !important;' );
 	} );
 } );

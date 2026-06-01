@@ -8,4 +8,9 @@
 {!! $responsiveCss !!}
 @endif
 @endisset
+@isset( $statesCss )
+@if( '' !== $statesCss )
+{!! $statesCss !!}
+@endif
+@endisset
 {!! $html !!}

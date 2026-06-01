@@ -328,12 +328,84 @@ describe( 'styles.* CSS rule emission', function (): void {
 			],
 		] );
 
-		// Order: :root presets → layout rules → styles rules.
-		$rootPos   = strpos( $css, ':root' );
-		$layoutPos = strpos( $css, '.wp-block-group' );
-		$bodyPos   = strpos( $css, 'body {' );
+		// Order: :root presets → layout rules → utility classes → styles rules.
+		// Guard each strpos against false up front — without the guard a
+		// missing section silently makes `false < positive-int` succeed
+		// and the ordering check would pass for the wrong reason.
+		$rootPos     = strpos( $css, ':root' );
+		$layoutPos   = strpos( $css, '.wp-block-group' );
+		$utilityPos  = strpos( $css, '.has-primary-color' );
+		$bodyPos     = strpos( $css, 'body {' );
+
+		expect( $rootPos )->not->toBeFalse()
+			->and( $layoutPos )->not->toBeFalse()
+			->and( $utilityPos )->not->toBeFalse()
+			->and( $bodyPos )->not->toBeFalse();
 
 		expect( $rootPos )->toBeLessThan( $layoutPos )
-			->and( $layoutPos )->toBeLessThan( $bodyPos );
+			->and( $layoutPos )->toBeLessThan( $utilityPos )
+			->and( $utilityPos )->toBeLessThan( $bodyPos );
+	} );
+
+	it( 'emits has-{slug}-color / -background-color / -border-color utility classes for each palette entry', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [
+				'color' => [
+					'palette' => [
+						[ 'slug' => 'accent', 'color' => '#ff0000' ],
+						[ 'slug' => 'muted',  'color' => '#888888' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( '.has-accent-color { color: var(--wp--preset--color--accent) !important; }' );
+		expect( $css )->toContain( '.has-accent-background-color { background-color: var(--wp--preset--color--accent) !important; }' );
+		expect( $css )->toContain( '.has-accent-border-color { border-color: var(--wp--preset--color--accent) !important; }' );
+		expect( $css )->toContain( '.has-muted-background-color { background-color: var(--wp--preset--color--muted) !important; }' );
+	} );
+
+	it( 'emits has-{slug}-gradient-background for each gradient preset', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [
+				'color' => [
+					'gradient' => [
+						[ 'slug' => 'sunset', 'gradient' => 'linear-gradient(45deg, red, orange)' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( '.has-sunset-gradient-background { background: var(--wp--preset--gradient--sunset) !important; }' );
+	} );
+
+	it( 'emits has-{slug}-font-size for each font-size preset', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [
+				'typography' => [
+					'fontSizes' => [
+						[ 'slug' => 'large', 'size' => '1.5rem' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( '.has-large-font-size { font-size: var(--wp--preset--font-size--large) !important; }' );
+	} );
+
+	it( 'skips palette entries missing a slug', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [
+				'color' => [
+					'palette' => [
+						[ 'color' => '#abc' ],
+						[ 'slug' => 'real', 'color' => '#def' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )->toContain( '.has-real-background-color' );
+		expect( $css )->not->toContain( 'has--background-color' );
 	} );
 } );

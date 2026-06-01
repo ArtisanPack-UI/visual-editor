@@ -71,6 +71,22 @@
                 "align",
                 "layout.flexDirection"
             ]
+        },
+        "artisanpackStates": {
+            "attributes": [
+                "backgroundColor",
+                "textColor",
+                "gradient",
+                "color.background",
+                "color.text",
+                "color.gradient",
+                "border.color",
+                "border.width",
+                "border.style",
+                "border.radius",
+                "typography.textDecoration",
+                "transition"
+            ]
         }
     },
     "editorStyle": "wp-block-buttons-editor",

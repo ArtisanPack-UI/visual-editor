@@ -15,6 +15,11 @@
 {!! $responsiveCss !!}
 @endif
 @endisset
+@isset( $statesCss )
+@if( '' !== $statesCss )
+{!! $statesCss !!}
+@endif
+@endisset
 <div class="{{ implode( ' ', $wrapperClasses ) }}" data-ve-template="{{ $slug }}"@if( null !== $matchedSlug && $matchedSlug !== $slug ) data-ve-matched-template="{{ $matchedSlug }}"@endif>
 @if( null !== $resolutionError )
 @if( $inDev )

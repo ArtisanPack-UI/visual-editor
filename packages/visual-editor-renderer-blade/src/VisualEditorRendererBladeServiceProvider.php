@@ -28,6 +28,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ThemeJsonTokensCompiler;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksComponent;
 use ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksStylesComponent;
@@ -96,6 +97,13 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// worker (Octane / queue) doesn't leak rules across requests.
 		$this->app->scoped( ResponsiveCssAccumulator::class, function () {
 			return new ResponsiveCssAccumulator();
+		} );
+
+		// #488 — sibling accumulator for the state design tools'
+		// `<style data-ve-states>` block. Same lifetime story as the
+		// responsive accumulator above.
+		$this->app->scoped( StateCssAccumulator::class, function () {
+			return new StateCssAccumulator();
 		} );
 	}
 

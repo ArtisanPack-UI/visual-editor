@@ -48,7 +48,11 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade\Support;
 
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
+use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
+use ArtisanPackUI\VisualEditor\States\StateRegistry;
+use ArtisanPackUI\VisualEditor\States\StateValueResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 
 class BlockSupports
 {
@@ -146,6 +150,14 @@ class BlockSupports
 			self::pushResponsive( $responsive['class'], $responsive['rules'] );
 		}
 
+		$states = self::compileStates( $attributes );
+
+		if ( '' !== $states['class'] ) {
+			$classes[] = $states['class'];
+
+			self::pushStates( $states['class'], $states['rules'] );
+		}
+
 		return [
 			'classes'         => $classes,
 			'style'           => $styleString,
@@ -153,6 +165,8 @@ class BlockSupports
 			'responsiveCss'   => '',
 			'responsiveClass' => $responsive['class'],
 			'responsiveRules' => $responsive['rules'],
+			'statesClass'     => $states['class'],
+			'statesRules'     => $states['rules'],
 		];
 	}
 
@@ -200,6 +214,261 @@ class BlockSupports
 			// idempotent and the accumulator is the side channel,
 			// not the data path.
 		}
+	}
+
+	/**
+	 * Mirror of {@see pushResponsive} for state design tools (#488).
+	 *
+	 * @since 1.0.0
+	 */
+	public static function pushStates( string $scope, string $rules ): void
+	{
+		if ( '' === $scope || '' === $rules ) {
+			return;
+		}
+
+		if ( ! function_exists( 'app' ) ) {
+			return;
+		}
+
+		try {
+			app( StateCssAccumulator::class )->push( $scope, $rules );
+		} catch ( \Throwable $e ) {
+			// See pushResponsive() — same drop-silently rationale.
+		}
+	}
+
+	/**
+	 * Compile the `attributes.states` payload into a `{class, rules}`
+	 * pair the wrapper can merge in and the accumulator can dedupe (#488).
+	 *
+	 * The payload shape is path-keyed
+	 * (`{ "backgroundColor": { idle: 'a', hover: 'b' }, "_scopeId": 'abc' }` —
+	 * same shape `withStateAttributes` writes from the editor). The
+	 * `_scopeId` key is reserved for the unique-class housekeeping field
+	 * minted by `withStateStyles`.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{class: string, rules: string}
+	 */
+	protected static function compileStates( array $attributes ): array
+	{
+		$bag = $attributes['states'] ?? null;
+		if ( ! is_array( $bag ) || [] === $bag ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+
+		// `_scopeId` is interpolated raw into the emitted `<style>` block
+		// and into the wrapper's class attribute, so its content has to
+		// be a safe identifier-style token. A crafted value containing
+		// `<`, `>`, `"`, `'`, whitespace, or other CSS punctuation could
+		// otherwise break out of the `<style>` context (XSS) or out of
+		// the selector (rule injection). The JS minter only ever produces
+		// alphanumeric base-36 strings; anything else is treated as
+		// hostile / corrupted and dropped.
+		$scopeId = null;
+		if ( isset( $bag['_scopeId'] ) && is_string( $bag['_scopeId'] ) ) {
+			$candidate = $bag['_scopeId'];
+			if ( 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $candidate ) && strlen( $candidate ) <= 64 ) {
+				$scopeId = $candidate;
+			}
+		}
+
+		if ( null === $scopeId ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+
+		$paths = $bag;
+		unset( $paths['_scopeId'] );
+
+		if ( [] === $paths ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+
+		$bucket = self::normaliseStatePaths( $paths );
+
+		if ( [] === $bucket ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+
+		try {
+			$registry = self::resolveStateRegistry();
+			$resolver = new StateValueResolver( $registry );
+			$emitter  = new StateCssEmitter( $registry, $resolver );
+
+			$scope = '.ap-state-' . $scopeId;
+			$css   = $emitter->emit( $scope, $bucket );
+
+			if ( '' === $css ) {
+				return [ 'class' => '', 'rules' => '' ];
+			}
+
+			// Mirror the JS-side selector cascade so server-rendered
+			// markup matches the editor preview: re-emit each rule
+			// against descendant interactive elements
+			// (`.scope :is(a, button)`).
+			$css = self::expandStateSelectors( $css, $scope );
+
+			return [
+				'class' => 'ap-state-' . $scopeId,
+				'rules' => $css,
+			];
+		} catch ( \Throwable $e ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+	}
+
+	/**
+	 * Map the state path → CSS property mapping the JS emitter uses
+	 * back to a `{ cssProperty => stateful-value }` bag that the PHP
+	 * {@see StateCssEmitter} consumes.
+	 *
+	 * Palette slugs are translated to `var(--wp--preset--{kind}--{slug})`
+	 * so server output matches the editor canvas.
+	 *
+	 * @param  array<string, mixed>  $paths
+	 *
+	 * @return array<string, array<string, mixed>>
+	 */
+	protected static function normaliseStatePaths( array $paths ): array
+	{
+		$config = self::statePathConfig();
+		$out    = [];
+
+		foreach ( $paths as $path => $value ) {
+			if ( ! is_string( $path ) || ! is_array( $value ) ) {
+				continue;
+			}
+
+			$normalised = str_starts_with( $path, 'style.' ) ? substr( $path, 6 ) : $path;
+
+			if ( ! isset( $config[ $normalised ] ) ) {
+				continue;
+			}
+
+			$entry = $config[ $normalised ];
+
+			$converted = [];
+			foreach ( $value as $state => $raw ) {
+				if ( ! is_string( $state ) ) {
+					continue;
+				}
+
+				$converted[ $state ] = self::convertStateValue( $raw, $entry );
+			}
+
+			if ( [] === $converted ) {
+				continue;
+			}
+
+			$out[ $entry['property'] ] = $converted;
+		}
+
+		return $out;
+	}
+
+	/**
+	 * @return array<string, array{property: string, preset?: string}>
+	 */
+	protected static function statePathConfig(): array
+	{
+		return [
+			'backgroundColor'           => [ 'property' => 'background-color', 'preset' => 'color' ],
+			'textColor'                 => [ 'property' => 'color',            'preset' => 'color' ],
+			'gradient'                  => [ 'property' => 'background',       'preset' => 'gradient' ],
+			'color.background'          => [ 'property' => 'background-color' ],
+			'color.text'                => [ 'property' => 'color' ],
+			'color.gradient'            => [ 'property' => 'background' ],
+			'border.color'              => [ 'property' => 'border-color' ],
+			'border.width'              => [ 'property' => 'border-width' ],
+			'border.style'              => [ 'property' => 'border-style' ],
+			'border.radius'             => [ 'property' => 'border-radius' ],
+			'shadow'                    => [ 'property' => 'box-shadow' ],
+			'typography.textDecoration' => [ 'property' => 'text-decoration' ],
+			'dimensions.transform'      => [ 'property' => 'transform' ],
+			'transition'                => [ 'property' => 'transition' ],
+		];
+	}
+
+	/**
+	 * @param  array{property: string, preset?: string}  $entry
+	 */
+	protected static function convertStateValue( mixed $raw, array $entry ): mixed
+	{
+		if ( null === $raw ) {
+			return null;
+		}
+
+		if ( ! is_string( $raw ) ) {
+			return $raw;
+		}
+
+		if ( '' === $raw ) {
+			return null;
+		}
+
+		if ( isset( $entry['preset'] ) && 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $raw ) ) {
+			return sprintf( 'var(--wp--preset--%s--%s)', $entry['preset'], $raw );
+		}
+
+		return $raw;
+	}
+
+	protected static function resolveStateRegistry(): StateRegistry
+	{
+		try {
+			return app( StateRegistry::class );
+		} catch ( \Throwable $e ) {
+			return StateRegistry::fromLayers();
+		}
+	}
+
+	/**
+	 * Append descendant-element selectors (`scope :is(a, button)`) to
+	 * each pseudo-state selector in the emitted CSS so the rules apply
+	 * to inner interactive elements (e.g. `wp-block-button__link`).
+	 *
+	 * The emitter outputs rules in the form
+	 * `selector { props } @media (hover: hover) { selector { props } }`.
+	 * This rewrite re-emits each pseudo selector as
+	 * `selector, selector :is(a, button)`.
+	 *
+	 * Idle (bare scope) selectors are LEFT UNCHANGED — mirroring there
+	 * would leak the block-level idle color into every descendant
+	 * link, which is wrong for container blocks like cover and
+	 * media-text. The WP `has-{slug}-*` utility classes plus the
+	 * block's own root selector already handle the idle case.
+	 *
+	 * Kept conservative: only matches selectors that start with the
+	 * known scope class to avoid mangling unrelated CSS literals.
+	 */
+	protected static function expandStateSelectors( string $css, string $scope ): string
+	{
+		$escaped = preg_quote( $scope, '/' );
+
+		return (string) preg_replace_callback(
+			'/(' . $escaped . '[^{,]*?)\s*(\{|,)/',
+			static function ( array $matches ) use ( $scope ) : string {
+				$selector = trim( $matches[1] );
+				$delim    = $matches[2];
+
+				if ( '' === $selector || str_contains( $selector, ':is(a, button)' ) ) {
+					return $selector . ' ' . $delim;
+				}
+
+				// Bare-scope (idle) selectors get no descendant mirror;
+				// only pseudo / attribute-extended state selectors do.
+				if ( $selector === $scope ) {
+					return $selector . ' ' . $delim;
+				}
+
+				return $selector . ', ' . $selector . ' :is(a, button) ' . $delim;
+			},
+			$css
+		);
 	}
 
 	/**

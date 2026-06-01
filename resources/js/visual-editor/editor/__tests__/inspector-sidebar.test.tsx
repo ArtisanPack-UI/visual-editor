@@ -13,6 +13,16 @@ vi.mock('@wordpress/block-editor', () => ({
     ),
 }));
 
+// Stub `@wordpress/blocks` so we don't transitively pull in its JSON
+// modules (which require import attributes vitest can't supply). The
+// sidebar only uses `hasBlockSupport` + `getBlockType` to read state
+// supports; tests can return `null` because the override path skips
+// the state-supports lookup anyway.
+vi.mock('@wordpress/blocks', () => ({
+    hasBlockSupport: () => false,
+    getBlockType: () => null,
+}));
+
 import { InspectorSidebar } from '../inspector-sidebar';
 
 function renderSidebar(props: {

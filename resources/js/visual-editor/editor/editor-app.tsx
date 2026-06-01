@@ -41,6 +41,10 @@ import { BlockLibrarySidebar } from './block-library-sidebar';
 import { registerContrastWarning } from './contrast-warning';
 import { registerResponsiveAttribute } from '../responsive/register-attribute';
 import { registerResponsiveAttributesFilter } from '../responsive/with-responsive-attributes';
+import { registerStateAttribute } from '../states/register-attribute';
+import { registerStateAttributesFilter } from '../states/with-state-attributes';
+import { registerStateStylesFilters } from '../states/with-state-styles';
+import { StateWriteInterceptor } from '../states/state-write-interceptor';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
 import { EditorCanvas } from './editor-canvas';
 import { registerSyncedPatternIndicator } from './synced-pattern-indicator';
@@ -164,6 +168,13 @@ function registerOnce(): void {
     // edit component on first render.
     registerResponsiveAttribute();
     registerResponsiveAttributesFilter();
+    // #488 — register the state feature filters BEFORE blocks load so
+    // opted-in blocks pick up the auto-injected `states` attribute at
+    // registration time and the BlockEdit HOC wraps every edit
+    // component on first render.
+    registerStateAttribute();
+    registerStateAttributesFilter();
+    registerStateStylesFilters();
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();
@@ -866,6 +877,14 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 blockContext={blockContextValue}
                 apiBase={props.apiBase}
             />
+            {/*
+             * #488 — watch the selected block's attributes and re-route
+             * writes from WP's color/border panels (which dispatch
+             * directly to the block-editor store, bypassing the
+             * editor.BlockEdit prop chain) into `attributes.states`
+             * when the active state is non-idle.
+             */}
+            <StateWriteInterceptor />
             <Popover.Slot />
             <ConvertToPatternControl apiBase={props.apiBase} />
             {inspectorOpen ? (
