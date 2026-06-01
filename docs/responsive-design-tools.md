@@ -185,7 +185,7 @@ $result = $resolver->emit(
 // $result['css']   → '' (every value tokenized)
 ```
 
-When the value can't be tokenized, the resolver falls back to a generated wrapper class plus a scoped `<style>` block:
+When the value can't be tokenized, the resolver falls back to a generated wrapper class plus the scoped CSS rules:
 
 ```php
 $result = $resolver->emit(
@@ -198,7 +198,7 @@ $result = $resolver->emit(
 // $result['css']   → '.ve-r-abcd123456{font-size:13px}@media (min-width:768px){.ve-r-abcd123456{font-size:18px}}'
 ```
 
-Block partials merge `$result['class']` into the wrapper class list and accumulate `$result['css']` into a single per-block `<style>` block.
+Block partials merge `$result['class']` into the wrapper class list and push `$result['css']` into the request-scoped `ResponsiveCssAccumulator`. The `<x-ve-blocks>` and `<x-ve-template>` components drain the accumulator at the top of the render output and emit one consolidated `<style data-ve-responsive>` block — there is no per-block `<style>` tag interleaved with the wrapper's children. Duplicate payloads (the same overrides on N siblings) collapse to one rule set, keyed by scope class.
 
 ### 2.6 Lazy migration
 

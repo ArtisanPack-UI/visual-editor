@@ -71,40 +71,44 @@ class AuditBreakpointsCommand extends Command
 		}
 
 		foreach ( $models as $slug => $modelClass ) {
+			// Wraps BOTH `query()` and the cursor iteration in one
+			// try/catch — a DB/hydration error mid-cursor would
+			// otherwise abort the entire audit instead of skipping
+			// the offending resource with a warning.
 			try {
 				/** @var \Illuminate\Database\Eloquent\Builder $query */
 				$query = $modelClass::query();
+
+				foreach ( $query->cursor() as $record ) {
+					$scanned++;
+
+					$column = method_exists( $record, 'getBlockContentColumn' )
+						? (string) $record->getBlockContentColumn()
+						: 'blocks';
+
+					$blocks = $record->{$column} ?? null;
+
+					if ( ! is_array( $blocks ) ) {
+						continue;
+					}
+
+					$orphans = [];
+					$this->walkBlocks( $blocks, $resolver, $known, $orphans );
+
+					if ( [] === $orphans ) {
+						continue;
+					}
+
+					$report[] = [
+						'resource' => $slug,
+						'id'       => $record->getKey(),
+						'orphans'  => $orphans,
+					];
+				}
 			} catch ( Throwable $e ) {
 				$this->warn( sprintf( 'Skipping resource "%s": %s', $slug, $e->getMessage() ) );
 
 				continue;
-			}
-
-			foreach ( $query->cursor() as $record ) {
-				$scanned++;
-
-				$column = method_exists( $record, 'getBlockContentColumn' )
-					? (string) $record->getBlockContentColumn()
-					: 'blocks';
-
-				$blocks = $record->{$column} ?? null;
-
-				if ( ! is_array( $blocks ) ) {
-					continue;
-				}
-
-				$orphans = [];
-				$this->walkBlocks( $blocks, $resolver, $known, $orphans );
-
-				if ( [] === $orphans ) {
-					continue;
-				}
-
-				$report[] = [
-					'resource' => $slug,
-					'id'       => $record->getKey(),
-					'orphans'  => $orphans,
-				];
 			}
 		}
 

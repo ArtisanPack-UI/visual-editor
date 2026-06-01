@@ -182,17 +182,18 @@ class ResponsiveClassResolver
 
 	/**
 	 * Whitelists characters legal in a CSS value expression — letters,
-	 * digits, the units / operators / punctuation real CSS values use,
-	 * and whitespace. Drops everything else so values can never close
-	 * out of the declaration (`;`, `}`) or escape the `<style>` tag
-	 * (`<`, `>`). Returns an empty string when the input contains no
-	 * allowed characters.
+	 * digits, the units / operators / punctuation real CSS values use
+	 * (including calc() operators `+`, `-`, `*`, `/`), and whitespace.
+	 * Drops everything else so values can never close out of the
+	 * declaration (`;`, `}`) or escape the `<style>` tag (`<`, `>`).
+	 * Returns an empty string when the input contains no allowed
+	 * characters.
 	 *
 	 * @since 1.0.0
 	 */
 	protected static function sanitizeCssValue( string $value ): string
 	{
-		return (string) preg_replace( '/[^a-zA-Z0-9_\-.,()%#\/\s]/', '', $value );
+		return (string) preg_replace( '/[^a-zA-Z0-9_+\-*\/.,()%#\s]/', '', $value );
 	}
 
 	/**

@@ -76,7 +76,6 @@
         "artisanpackResponsive": {
             "attributes": [
                 "spacing",
-                "align",
                 "width"
             ]
         }

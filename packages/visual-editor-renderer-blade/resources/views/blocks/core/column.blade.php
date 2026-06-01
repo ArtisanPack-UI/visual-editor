@@ -126,7 +126,10 @@
 	}
 
 	if ( [] !== $responsiveWidths ) {
-		$widthRegistry = BreakpointRegistry::fromLayers();
+		// Use the request-scoped registry from the container so
+		// host-configured breakpoints are respected — see the matching
+		// comment in columns.blade.php for the full rationale.
+		$widthRegistry = app( BreakpointRegistry::class );
 		$widthScope    = 've-w-' . substr( hash( 'xxh3', (string) json_encode( $responsiveWidths ) ), 0, 10 );
 		$widthRules    = [];
 		// Triple-class selector matches the (0,0,3,0) specificity of

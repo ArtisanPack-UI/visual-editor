@@ -20,7 +20,14 @@
 	$columnCountOverrides = $attributes['responsive']['columnCount'] ?? null;
 
 	if ( is_array( $columnCountOverrides ) && [] !== $columnCountOverrides ) {
-		$columnsRegistry = BreakpointRegistry::fromLayers();
+		// Pull the request-scoped registry from the container so
+		// host-configured breakpoints (theme.json + config) are
+		// respected. `fromLayers()` without arguments would silently
+		// return only the Tailwind defaults — any custom key (e.g.
+		// `3xl`) would resolve to `null` here and the override would
+		// be skipped at render even though it's persisted in the
+		// block tree.
+		$columnsRegistry = app( BreakpointRegistry::class );
 		$columnsScope    = 've-cols-' . substr( hash( 'xxh3', (string) json_encode( $columnCountOverrides ) ), 0, 10 );
 		$columnsRules    = [];
 

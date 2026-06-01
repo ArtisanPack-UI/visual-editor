@@ -46,12 +46,25 @@ export function readPath<T = unknown>( source: unknown, path: string ): T | unde
 }
 
 /**
+ * Defense-in-depth guard against prototype-pollution via crafted
+ * dotted paths or object keys. Internal callers pass Gutenberg
+ * attribute trees that never contain these segments, but the helpers
+ * are exported reusable utilities — a single guard keeps the public
+ * surface safe even if a future caller routes externally-influenced
+ * keys through them.
+ */
+const FORBIDDEN_KEYS = new Set( [ '__proto__', 'constructor', 'prototype' ] )
+
+/**
  * Returns a new tree with `path` set to `value`. Intermediate objects
  * are created as plain `{}`; arrays are NOT created. Used both for
  * applying responsive overrides back into the merged read view and
  * for shimming a write under `attributes.responsive.<path>.<bp>`.
  *
  * Setting `undefined` deletes the leaf and prunes empty parents.
+ *
+ * Path segments matching `__proto__`, `constructor`, or `prototype`
+ * are silently dropped — see `FORBIDDEN_KEYS` for rationale.
  */
 export function setPath<T extends Record<string, unknown>>(
     source: T | undefined | null,
@@ -65,6 +78,11 @@ export function setPath<T extends Record<string, unknown>>(
 
     for ( let i = 0; i < segments.length - 1; i++ ) {
         const segment = segments[ i ]
+
+        if ( FORBIDDEN_KEYS.has( segment ) ) {
+            return root
+        }
+
         const existing = cursor[ segment ]
 
         const next: Record<string, unknown> =
@@ -77,6 +95,10 @@ export function setPath<T extends Record<string, unknown>>(
     }
 
     const leaf = segments[ segments.length - 1 ]
+
+    if ( FORBIDDEN_KEYS.has( leaf ) ) {
+        return root
+    }
 
     if ( undefined === value ) {
         delete cursor[ leaf ]
@@ -203,6 +225,10 @@ export function deepMerge<T extends Record<string, unknown>>(
     const result: Record<string, unknown> = { ...base }
 
     for ( const [ key, value ] of Object.entries( overlay ) ) {
+        if ( FORBIDDEN_KEYS.has( key ) ) {
+            continue
+        }
+
         const baseValue = result[ key ]
 
         if (

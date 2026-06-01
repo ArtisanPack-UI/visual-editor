@@ -157,6 +157,22 @@ class BlockSupports
 	}
 
 	/**
+	 * Resolve the request-scoped breakpoint registry from the
+	 * container, falling back to package defaults when the container
+	 * isn't booted (very-early call path / unit-test isolation).
+	 *
+	 * @since 1.0.0
+	 */
+	protected static function resolveRegistry(): BreakpointRegistry
+	{
+		try {
+			return app( BreakpointRegistry::class );
+		} catch ( \Throwable $e ) {
+			return BreakpointRegistry::fromLayers();
+		}
+	}
+
+	/**
 	 * Push a scope's rules into the request-scoped accumulator so the
 	 * consolidated `<style data-ve-responsive>` block at the top of the
 	 * render output picks them up. Called automatically from compile();
@@ -224,7 +240,17 @@ class BlockSupports
 			return [ 'class' => '', 'rules' => '' ];
 		}
 
-		$registry = BreakpointRegistry::fromLayers();
+		// Pull the request-scoped registry from the container so
+		// host-configured breakpoints (theme.json → config) are
+		// respected. `fromLayers()` without args only returns the
+		// Tailwind defaults — any custom key (e.g. `3xl`) would
+		// resolve to null here and the override would be silently
+		// dropped at render time. The fallback to defaults preserves
+		// the behavior for callers (mostly tests) that hit
+		// `compileResponsive` outside the container.
+		$registry = function_exists( 'app' )
+			? self::resolveRegistry()
+			: BreakpointRegistry::fromLayers();
 		$rules    = [];
 		$scope    = self::generateResponsiveScopeClass( $responsive );
 
@@ -309,7 +335,13 @@ class BlockSupports
 	protected static function responsiveDeclarations( string $property, $value ): string
 	{
 		if ( is_scalar( $value ) ) {
-			return $property . ':' . self::resolvePresetVar( (string) $value ) . '!important';
+			$resolved = self::sanitizeCssValue( self::resolvePresetVar( (string) $value ) );
+
+			if ( '' === $resolved ) {
+				return '';
+			}
+
+			return $property . ':' . $resolved . '!important';
 		}
 
 		if ( ! is_array( $value ) ) {
@@ -323,11 +355,17 @@ class BlockSupports
 				continue;
 			}
 
+			$resolved = self::sanitizeCssValue( self::resolvePresetVar( (string) $value[ $side ] ) );
+
+			if ( '' === $resolved ) {
+				continue;
+			}
+
 			$pieces[] = sprintf(
 				'%s-%s:%s!important',
 				$property,
 				$side,
-				self::resolvePresetVar( (string) $value[ $side ] )
+				$resolved
 			);
 		}
 
@@ -351,6 +389,26 @@ class BlockSupports
 		) );
 
 		return sprintf( 'var(--wp--preset--%s)', $slug );
+	}
+
+	/**
+	 * Whitelists characters legal in a CSS value expression — letters,
+	 * digits, units, calc() operators (`+`, `-`, `*`, `/`), CSS var
+	 * punctuation, whitespace. Drops everything else so a stored block
+	 * tree with a hostile value (e.g. `</style><script>…`) can never
+	 * close the `<style data-ve-responsive>` block we emit it inside.
+	 *
+	 * Defense-in-depth: block-tree JSON is editor-authored content that
+	 * WordPress treats as trusted, but the responsive payload reaches
+	 * the renderer via `{!! !!}` (raw output) inside a `<style>` tag,
+	 * so an escaping bypass anywhere upstream would land directly in
+	 * the DOM. The whitelist is the last line of defense.
+	 *
+	 * @since 1.0.0
+	 */
+	protected static function sanitizeCssValue( string $value ): string
+	{
+		return (string) preg_replace( '/[^a-zA-Z0-9_+\-*\/.,()%#\s]/', '', $value );
 	}
 
 	/**
