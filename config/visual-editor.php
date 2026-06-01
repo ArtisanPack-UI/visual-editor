@@ -243,6 +243,37 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Breakpoints (#487)
+	|--------------------------------------------------------------------------
+	|
+	| Named breakpoints the editor's viewport switcher and the responsive
+	| value resolver use. Resolved in priority order:
+	|
+	|   1. Active theme's `theme.json` → `settings.custom.artisanpack.breakpoints`
+	|   2. This config array (host-app overrides)
+	|   3. `BreakpointRegistry::DEFAULTS` (Tailwind v4 mins)
+	|
+	| Merging is by key, so an entry here for `sm` resizes the default
+	| `sm` breakpoint without affecting the others; a new key like `3xl`
+	| adds a breakpoint. Values may be integer pixels (`640`) or CSS
+	| length strings (`'640px'`). Validation runs at registry-build time
+	| and throws on bad input — see `BreakpointRegistry::validate()`.
+	|
+	| The implicit `base` slot (no min-width, applies everywhere) is
+	| reserved and cannot be redefined here.
+	|
+	*/
+
+	'breakpoints' => [
+		// 'sm'  => '640px',
+		// 'md'  => '768px',
+		// 'lg'  => '1024px',
+		// 'xl'  => '1280px',
+		// '2xl' => '1536px',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Site editor (H5)
 	|--------------------------------------------------------------------------
 	|

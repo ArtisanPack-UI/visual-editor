@@ -39,6 +39,8 @@ import { registerArtisanPackBlocks } from '../blocks';
 
 import { BlockLibrarySidebar } from './block-library-sidebar';
 import { registerContrastWarning } from './contrast-warning';
+import { registerResponsiveAttribute } from '../responsive/register-attribute';
+import { registerResponsiveAttributesFilter } from '../responsive/with-responsive-attributes';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
 import { EditorCanvas } from './editor-canvas';
 import { registerSyncedPatternIndicator } from './synced-pattern-indicator';
@@ -156,6 +158,12 @@ function registerOnce(): void {
     disableContrastCheckerOnBlocks();
     registerContrastWarning();
     registerSyncedPatternIndicator();
+    // #487 — register the responsive feature filters BEFORE blocks load
+    // so opted-in blocks pick up the auto-injected `responsive`
+    // attribute at registration time and the BlockEdit HOC wraps every
+    // edit component on first render.
+    registerResponsiveAttribute();
+    registerResponsiveAttributesFilter();
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();

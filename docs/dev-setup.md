@@ -63,3 +63,15 @@ Canonical fixtures ship under the package's
 distributed composer tarball via `.gitattributes`). Host apps that
 want to vendor their own can copy the tree into, for example,
 `database/seeders/fixtures/visual-editor/` and point `--path` at it.
+
+## Breakpoints (#487)
+
+The editor reads its registered breakpoints from the same hierarchy
+documented in [`theming.md`](theming.md#breakpoints-487): theme.json →
+config → package defaults. The JS bootstrap snapshot exposes the
+resolved registry on `window.artisanpackVisualEditor.settings`, and
+block edit components hydrate a client-side `BreakpointRegistry`
+through `registryFromSnapshot()`.
+
+See [`responsive-design-tools.md`](responsive-design-tools.md) for the
+editor + developer workflow.

@@ -47,8 +47,35 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Support;
 
+use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
+
 class BlockSupports
 {
+	/**
+	 * Path → CSS property mapping for responsive overrides. Paths
+	 * outside this map are ignored by the generic emitter; blocks
+	 * with bespoke layout concerns (e.g. `artisanpack/columns` and
+	 * its `columnCount`) handle their own responsive paths inside
+	 * the partial.
+	 */
+	protected const RESPONSIVE_CSS_PROPERTY_MAP = [
+		'style.spacing.padding'  => 'padding',
+		'style.spacing.margin'   => 'margin',
+		'style.spacing.blockGap' => 'gap',
+		'style.border.radius'    => 'border-radius',
+		'style.border.width'     => 'border-width',
+		'style.border.style'     => 'border-style',
+		'style.border.color'     => 'border-color',
+		// `width` is intentionally absent. The artisanpack/column block
+		// translates its `width` attribute to a `flex-basis` declaration
+		// (not `width`), and the WP core `.wp-block-columns:not(.is-not-stacked-on-mobile) > .wp-block-column { flex-basis: 100% !important }`
+		// stacking rule only loses to another `flex-basis` rule of
+		// equal-or-greater specificity. The column partial handles
+		// `responsive.width` itself (see column.blade.php) — same
+		// pattern as columns.blade.php handles `responsive.columnCount`.
+	];
+
 	/**
 	 * Recognized values for the block-level `align` attribute. Values
 	 * outside this set are dropped to keep stored data from injecting
@@ -106,11 +133,331 @@ class BlockSupports
 
 		$styleString = '' === implode( '', $style ) ? '' : implode( '; ', $style ) . ';';
 
+		$responsive = self::compileResponsive( $attributes );
+
+		if ( '' !== $responsive['class'] ) {
+			$classes[] = $responsive['class'];
+
+			// Push into the per-request accumulator so a single
+			// `<style data-ve-responsive>` block at the top of the
+			// render output picks up every block's rules. The push is
+			// keyed by scope class so the same payload on N siblings
+			// only emits once.
+			self::pushResponsive( $responsive['class'], $responsive['rules'] );
+		}
+
 		return [
-			'classes' => $classes,
-			'style'   => $styleString,
-			'id'      => $id,
+			'classes'         => $classes,
+			'style'           => $styleString,
+			'id'              => $id,
+			'responsiveCss'   => '',
+			'responsiveClass' => $responsive['class'],
+			'responsiveRules' => $responsive['rules'],
 		];
+	}
+
+	/**
+	 * Resolve the request-scoped breakpoint registry from the
+	 * container, falling back to package defaults when the container
+	 * isn't booted (very-early call path / unit-test isolation).
+	 *
+	 * @since 1.0.0
+	 */
+	protected static function resolveRegistry(): BreakpointRegistry
+	{
+		try {
+			return app( BreakpointRegistry::class );
+		} catch ( \Throwable $e ) {
+			return BreakpointRegistry::fromLayers();
+		}
+	}
+
+	/**
+	 * Push a scope's rules into the request-scoped accumulator so the
+	 * consolidated `<style data-ve-responsive>` block at the top of the
+	 * render output picks them up. Called automatically from compile();
+	 * the columns/column partial helpers below call it too for their
+	 * own bespoke rules (columnCount, flex-basis).
+	 *
+	 * @since 1.0.0
+	 */
+	public static function pushResponsive( string $scope, string $rules ): void
+	{
+		if ( '' === $scope || '' === $rules ) {
+			return;
+		}
+
+		if ( ! function_exists( 'app' ) ) {
+			return;
+		}
+
+		try {
+			app( ResponsiveCssAccumulator::class )->push( $scope, $rules );
+		} catch ( \Throwable $e ) {
+			// Container not booted (very-early call path or a unit
+			// test that exercises BlockSupports without the package
+			// service provider). Silently drop — the call is
+			// idempotent and the accumulator is the side channel,
+			// not the data path.
+		}
+	}
+
+	/**
+	 * Walk the `attributes.responsive` payload and emit a scoped
+	 * `<style>` block that overrides the base wrapper styles at each
+	 * declared breakpoint.
+	 *
+	 * The payload is path-keyed (`{ "style.spacing.padding": { md: "2rem" } }`
+	 * — same shape the `withResponsiveAttributes` editor HOC writes).
+	 * Paths in {@see self::RESPONSIVE_CSS_PROPERTY_MAP} are handled by
+	 * the generic CSS emitter; everything else (e.g. the columns
+	 * block's `columnCount` override) is the partial's responsibility.
+	 *
+	 * Returns `{class, rules}` — the class merges into the wrapper
+	 * class list so the emitted `@media` rules target it; `rules` is
+	 * the bare CSS body (no surrounding `<style>` tag) that gets
+	 * pushed into the per-request {@see ResponsiveCssAccumulator}.
+	 * Both are empty when no actionable overrides are present.
+	 *
+	 * #509 — consolidated emission. compile() automatically pushes
+	 * these rules into the accumulator, and `<x-ve-blocks>` /
+	 * `<x-ve-template>` drain the accumulator into one
+	 * `<style data-ve-responsive>` block at the top of the render
+	 * output. Per-block partials no longer emit their own `<style>`
+	 * tags inline.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{class: string, rules: string}
+	 */
+	public static function compileResponsive( array $attributes ): array
+	{
+		$responsive = $attributes['responsive'] ?? null;
+
+		if ( ! is_array( $responsive ) || [] === $responsive ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+
+		// Pull the request-scoped registry from the container so
+		// host-configured breakpoints (theme.json → config) are
+		// respected. `fromLayers()` without args only returns the
+		// Tailwind defaults — any custom key (e.g. `3xl`) would
+		// resolve to null here and the override would be silently
+		// dropped at render time. The fallback to defaults preserves
+		// the behavior for callers (mostly tests) that hit
+		// `compileResponsive` outside the container.
+		$registry = function_exists( 'app' )
+			? self::resolveRegistry()
+			: BreakpointRegistry::fromLayers();
+		$rules    = [];
+		$scope    = self::generateResponsiveScopeClass( $responsive );
+
+		// Tripled scope class boosts the rule's specificity to
+		// (0,0,3,0), matching WP core's own
+		// `.wp-block-columns:not(.is-not-stacked-on-mobile) > .wp-block-column`
+		// rule. Both rules then carry `!important`, so source order
+		// decides — and this `<style>` block is emitted right before
+		// the wrapper, after every WP core stylesheet, so we win.
+		$selector = sprintf( '.%1$s.%1$s.%1$s', $scope );
+
+		foreach ( $responsive as $path => $overrides ) {
+			if ( ! is_array( $overrides ) ) {
+				continue;
+			}
+
+			if ( ! isset( self::RESPONSIVE_CSS_PROPERTY_MAP[ $path ] ) ) {
+				continue;
+			}
+
+			$property = self::RESPONSIVE_CSS_PROPERTY_MAP[ $path ];
+
+			foreach ( $overrides as $breakpoint => $value ) {
+				if ( null === $value || '' === $value ) {
+					continue;
+				}
+
+				$declarations = self::responsiveDeclarations( $property, $value );
+
+				if ( '' === $declarations ) {
+					continue;
+				}
+
+				if ( BreakpointRegistry::BASE_KEY === $breakpoint ) {
+					$rules[] = sprintf( '%s{%s}', $selector, $declarations );
+
+					continue;
+				}
+
+				$minWidth = $registry->get( (string) $breakpoint );
+
+				if ( null === $minWidth ) {
+					continue;
+				}
+
+				$rules[] = sprintf(
+					'@media (min-width:%dpx){%s{%s}}',
+					$minWidth,
+					$selector,
+					$declarations
+				);
+			}
+		}
+
+		if ( [] === $rules ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+
+		return [
+			'class' => $scope,
+			'rules' => implode( '', $rules ),
+		];
+	}
+
+	/**
+	 * Turn a single override value into one or more CSS declarations.
+	 * Scalars become `property: value`. Per-side objects (the shape
+	 * Gutenberg uses for spacing/border: `{top, right, bottom, left}`)
+	 * become per-side declarations (`padding-top: ...`, etc.). The
+	 * resulting declaration list is `;`-joined with no trailing
+	 * semicolon — callers add the wrapping `{}` and any trailing `;`
+	 * they need.
+	 *
+	 * Every declaration is suffixed with `!important` because the
+	 * block-supports compiler also writes scalar values into the
+	 * wrapper's inline `style="…"` attribute (Gutenberg's default
+	 * shape for padding/margin/border). Inline styles always beat
+	 * class-based rules on specificity, so without `!important` the
+	 * per-breakpoint overrides emit but never apply on the front end.
+	 * #509 (consolidated emission) will keep the same suffix.
+	 */
+	protected static function responsiveDeclarations( string $property, $value ): string
+	{
+		if ( is_scalar( $value ) ) {
+			$resolved = self::sanitizeCssValue( self::resolvePresetVar( (string) $value ) );
+
+			if ( '' === $resolved ) {
+				return '';
+			}
+
+			return $property . ':' . $resolved . '!important';
+		}
+
+		if ( ! is_array( $value ) ) {
+			return '';
+		}
+
+		$pieces = [];
+
+		foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
+			if ( ! isset( $value[ $side ] ) || null === $value[ $side ] || '' === $value[ $side ] ) {
+				continue;
+			}
+
+			$resolved = self::sanitizeCssValue( self::resolvePresetVar( (string) $value[ $side ] ) );
+
+			if ( '' === $resolved ) {
+				continue;
+			}
+
+			$pieces[] = sprintf(
+				'%s-%s:%s!important',
+				$property,
+				$side,
+				$resolved
+			);
+		}
+
+		return implode( ';', $pieces );
+	}
+
+	/**
+	 * `var:preset|color|primary` → `var(--wp--preset--color--primary)`,
+	 * mirroring Gutenberg's serializer. Plain values pass through.
+	 */
+	protected static function resolvePresetVar( string $value ): string
+	{
+		if ( ! str_starts_with( $value, 'var:preset|' ) ) {
+			return $value;
+		}
+
+		$segments = explode( '|', substr( $value, strlen( 'var:preset|' ) ) );
+		$slug     = implode( '--', array_map(
+			static fn ( string $segment ): string => str_replace( '_', '-', $segment ),
+			$segments
+		) );
+
+		return sprintf( 'var(--wp--preset--%s)', $slug );
+	}
+
+	/**
+	 * Whitelists characters legal in a CSS value expression — letters,
+	 * digits, units, calc() operators (`+`, `-`, `*`, `/`), CSS var
+	 * punctuation, whitespace. Drops everything else so a stored block
+	 * tree with a hostile value (e.g. `</style><script>…`) can never
+	 * close the `<style data-ve-responsive>` block we emit it inside.
+	 *
+	 * Defense-in-depth: block-tree JSON is editor-authored content that
+	 * WordPress treats as trusted, but the responsive payload reaches
+	 * the renderer via `{!! !!}` (raw output) inside a `<style>` tag,
+	 * so an escaping bypass anywhere upstream would land directly in
+	 * the DOM. The whitelist is the last line of defense.
+	 *
+	 * @since 1.0.0
+	 */
+	protected static function sanitizeCssValue( string $value ): string
+	{
+		return (string) preg_replace( '/[^a-zA-Z0-9_+\-*\/.,()%#\s]/', '', $value );
+	}
+
+	/**
+	 * Generates a stable, content-derived class so the same responsive
+	 * payload re-renders to the same scope (cache-friendly + idempotent).
+	 */
+	protected static function generateResponsiveScopeClass( array $responsive ): string
+	{
+		$hash = substr(
+			hash( 'xxh3', (string) json_encode( $responsive ) ),
+			0,
+			10
+		);
+
+		return 've-r-' . $hash;
+	}
+
+	/**
+	 * Back-compat shim. Previously emitted a per-block `<style>` tag
+	 * before the wrapper; now a no-op because compile() pushes the
+	 * rules into the per-request accumulator and
+	 * `<x-ve-blocks>` / `<x-ve-template>` drain it into one
+	 * consolidated `<style data-ve-responsive>` block at the top of
+	 * the render output. Kept so partials calling
+	 * `{!! BlockSupports::wrapperCss( $attributes ) !!}` continue to
+	 * compile — the call becomes harmless.
+	 *
+	 * Forked or host-app partials that referenced this should drop
+	 * the line; nothing else needs to change.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @deprecated 1.0.0 — accumulator-based emission supersedes per-block tags.
+	 */
+	public static function wrapperCss( array $attributes ): string
+	{
+		// Trigger the side-effect (accumulator push) for partials
+		// that don't go through compile() — though every shipped
+		// partial does. Keeps behavior consistent if a host calls
+		// wrapperCss() without first calling wrapperAttrs().
+		$responsive = self::compileResponsive( $attributes );
+
+		if ( '' !== $responsive['class'] ) {
+			self::pushResponsive( $responsive['class'], $responsive['rules'] );
+		}
+
+		return '';
 	}
 
 	/**

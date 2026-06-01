@@ -1,0 +1,61 @@
+/**
+ * Inspector scope chip styles (#487).
+ *
+ * Reads from the inspector sidebar tokens where possible so it sits
+ * coherently inside the panel. Falls back to neutral defaults so the
+ * chip still reads outside a themed host.
+ */
+
+.ap-visual-editor-inspector-scope-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    margin: 8px 12px 0;
+    background: color-mix(
+        in oklch,
+        var(--ap-visual-editor-top-bar-accent, #2563eb) 8%,
+        transparent
+    );
+    border: 1px solid
+        color-mix(
+            in oklch,
+            var(--ap-visual-editor-top-bar-accent, #2563eb) 30%,
+            transparent
+        );
+    border-radius: var(--ap-visual-editor-top-bar-radius, 6px);
+    font-size: 12px;
+    line-height: 1.4;
+    color: var(--ap-visual-editor-top-bar-foreground, #1f2937);
+}
+
+.ap-visual-editor-inspector-scope-chip__label strong {
+    font-weight: 600;
+}
+
+.ap-visual-editor-inspector-scope-chip__key {
+    margin-left: 4px;
+    opacity: 0.65;
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.ap-visual-editor-inspector-scope-chip__reset {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: var(--ap-visual-editor-top-bar-accent, #2563eb);
+    cursor: pointer;
+    font: inherit;
+    padding: 2px 6px;
+    border-radius: calc(var(--ap-visual-editor-top-bar-radius, 6px) - 2px);
+    transition: background-color 120ms ease;
+}
+
+.ap-visual-editor-inspector-scope-chip__reset:hover {
+    background: color-mix(
+        in oklch,
+        var(--ap-visual-editor-top-bar-accent, #2563eb) 15%,
+        transparent
+    );
+}

@@ -31,6 +31,7 @@ use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use Illuminate\Contracts\View\View;
 use Illuminate\View\Component;
 
@@ -57,6 +58,7 @@ class BlocksComponent extends Component
 		protected NavigationBlockRefResolver $navigationResolver,
 		protected GlobalStylesEmissionResolver $globalStyles,
 		protected GlobalStylesEmissionTracker $emissionTracker,
+		protected ResponsiveCssAccumulator $responsiveAccumulator,
 		mixed $tree = null,
 		?string $defaultTheme = null,
 		bool $resolveParts = true,
@@ -103,9 +105,17 @@ class BlocksComponent extends Component
 
 	public function render(): View
 	{
+		// Render the block tree FIRST so every partial's
+		// `BlockSupports::pushResponsive()` side-effect has happened
+		// by the time we drain the accumulator. The drained block
+		// is then prepended to the output by the view template.
+		$html         = $this->renderer->render( $this->tree );
+		$responsiveCss = $this->responsiveAccumulator->flush();
+
 		return view( 'visual-editor-renderer-blade::components.blocks', [
-			'html'            => $this->renderer->render( $this->tree ),
+			'html'            => $html,
 			'globalStylesCss' => $this->resolveGlobalStylesCss(),
+			'responsiveCss'   => $responsiveCss,
 		] );
 	}
 

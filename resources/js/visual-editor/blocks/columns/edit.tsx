@@ -42,6 +42,8 @@ import {
     toWidthPrecision,
 } from './utils';
 
+import { getActiveBreakpoint, BASE_KEY } from '../../responsive';
+
 const COLUMN_BLOCK = 'artisanpack/column';
 const DEFAULT_BLOCK = { name: COLUMN_BLOCK };
 
@@ -49,6 +51,7 @@ interface ColumnsAttributes {
     readonly verticalAlignment?: string;
     readonly isStackedOnMobile?: boolean;
     readonly templateLock?: string | boolean;
+    readonly columnCount?: number;
 }
 
 interface ColumnsEditProps {
@@ -62,10 +65,12 @@ function ColumnInspectorControls({
     clientId,
     setAttributes,
     isStackedOnMobile,
+    columnCount,
 }: {
     clientId: string;
     setAttributes: (attrs: Partial<ColumnsAttributes>) => void;
     isStackedOnMobile?: boolean;
+    columnCount?: number;
 }): ReactElement {
     const { count, canInsertColumnBlock, minCount } = useSelect(
         (select: any) => {
@@ -147,14 +152,35 @@ function ColumnInspectorControls({
                         // @ts-expect-error - upstream prop
                         __next40pxDefaultSize
                         label={__('Columns')}
-                        value={count}
-                        onChange={(value: number) =>
-                            updateColumns(count, Math.max(minCount, value))
-                        }
+                        // The HOC merges responsive overrides into the
+                        // `columnCount` attribute, so `columnCount`
+                        // reflects the resolved value for the active
+                        // breakpoint. At base it's typically undefined
+                        // (the inner-block count is the source of
+                        // truth), so fall back to `count`.
+                        value={columnCount ?? count}
+                        onChange={(value: number) => {
+                            const next = Math.max(minCount, value);
+                            // At `base`, reshape the inner blocks
+                            // physically (today's behavior) AND record
+                            // the count attribute so the responsive
+                            // cascade has a base to inherit from.
+                            // At non-base, the HOC routes
+                            // `columnCount` into
+                            // `attributes.responsive.columnCount.<bp>`
+                            // — the inner block tree stays intact
+                            // because that breakpoint is editor-only
+                            // at v1.0; the server renderer applies
+                            // the override on publish.
+                            if (getActiveBreakpoint() === BASE_KEY) {
+                                updateColumns(count, next);
+                            }
+                            setAttributes({ columnCount: next });
+                        }}
                         min={Math.max(1, minCount)}
-                        max={Math.max(6, count)}
+                        max={Math.max(6, columnCount ?? count)}
                     />
-                    {count > 6 && (
+                    {(columnCount ?? count) > 6 && (
                         <Notice status="warning" isDismissible={false}>
                             {__(
                                 'This column count exceeds the recommended amount and may cause visual breakage.'
@@ -190,7 +216,12 @@ function ColumnsEditContainer({
     setAttributes,
     clientId,
 }: ColumnsEditProps): ReactElement {
-    const { isStackedOnMobile, verticalAlignment, templateLock } = attributes;
+    const {
+        isStackedOnMobile,
+        verticalAlignment,
+        templateLock,
+        columnCount,
+    } = attributes;
     const registry = useRegistry();
     const { getBlockOrder } = useSelect(blockEditorStore) as any;
     const { updateBlockAttributes } = useDispatch(blockEditorStore) as any;
@@ -234,6 +265,7 @@ function ColumnsEditContainer({
                     clientId={clientId}
                     setAttributes={setAttributes}
                     isStackedOnMobile={isStackedOnMobile}
+                    columnCount={columnCount}
                 />
             </InspectorControls>
             <div {...innerBlocksProps} />

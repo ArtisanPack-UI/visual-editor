@@ -1,0 +1,53 @@
+/**
+ * Viewport switcher styles for the editor top bar (#487).
+ *
+ * Reads from the existing `--ap-visual-editor-top-bar-*` custom
+ * properties so the switcher matches the surrounding chrome and
+ * inherits the host theme's DaisyUI tokens.
+ */
+
+.ap-visual-editor-top-bar__group--center {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 1 auto;
+}
+
+.ap-visual-editor-viewport-switcher {
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    padding: 2px;
+    background: color-mix(
+        in oklch,
+        var(--ap-visual-editor-top-bar-foreground, #1f2937) 6%,
+        transparent
+    );
+    border: 1px solid var(--ap-visual-editor-top-bar-border, #e5e7eb);
+    border-radius: var(--ap-visual-editor-top-bar-radius, 6px);
+    font-size: 12px;
+    line-height: 1;
+}
+
+.ap-visual-editor-viewport-switcher button {
+    appearance: none;
+    background: transparent;
+    border: 0;
+    color: var(--ap-visual-editor-top-bar-foreground, #1f2937);
+    cursor: pointer;
+    padding: 4px 10px;
+    border-radius: calc(var(--ap-visual-editor-top-bar-radius, 6px) - 2px);
+    transition:
+        background-color 120ms ease,
+        color 120ms ease;
+    font: inherit;
+}
+
+.ap-visual-editor-viewport-switcher button:hover {
+    background: var(--ap-visual-editor-top-bar-hover, rgba(37, 99, 235, 0.1));
+}
+
+.ap-visual-editor-viewport-switcher button[aria-pressed='true'] {
+    background: var(--ap-visual-editor-top-bar-accent, #2563eb);
+    color: var(--ap-visual-editor-top-bar-accent-contrast, #ffffff);
+}
