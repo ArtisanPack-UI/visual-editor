@@ -1,5 +1,5 @@
 /**
- * State-write interceptor (#488).
+ * State-write interceptor (#488, #511).
  *
  * WordPress's newer block-support panels (color, border, shadow on
  * apiVersion 3 blocks) dispatch attribute writes directly via
@@ -12,18 +12,18 @@
  * and — when the active state is non-idle and the diff lands on a
  * state-eligible attribute path — re-dispatches a correction that:
  *
- *   - Restores the base attribute to its pre-write value.
- *   - Moves the new value into
+ *   - Mirrors the new value into
  *     `attributes.states.<path>.<activeState>`.
+ *   - Keeps the base attribute equal to the new value too, so WP's
+ *     panels (which read the base via `useSelect`) stay in lockstep
+ *     with the active state. The actual idle base is preserved in the
+ *     bridge's `pristineSnapshots` and restored before save by the
+ *     companion `StateInspectorSync` component.
  *
- * The result is identical to what {@link withStateAttributes} would
- * produce if the panel had used `props.setAttributes`; this just
- * catches writes the HOC chain never sees.
- *
- * Loop guard: `prevAttributesRef` is updated to the *corrected*
- * attributes shape before dispatching, so the next subscriber tick
- * compares the corrected attrs to themselves and exits without
- * re-routing.
+ * Loop guard: when the interceptor's effect observes attributes that
+ * match the bridge's expected synced shape, it recognises the change
+ * as a sync — not a panel write — consumes the sentinel, and exits
+ * without routing.
  *
  * @package @artisanpack-ui/visual-editor
  * @since 1.0.0
@@ -36,10 +36,10 @@ import { useEffect, useRef, useSyncExternalStore } from 'react'
 import {
 	diffPaths,
 	pathMatchesAnyRoot,
-	readPath,
 	setPath,
 } from '../responsive/attribute-paths'
 import { getActiveState, subscribeActiveState } from './active-state'
+import { consumeExpectedSyncedAttrs } from './state-bridge'
 import { BASE_KEY } from './types'
 
 interface StateSupports {
@@ -92,6 +92,13 @@ interface CorrectionResult {
  * Compute the correction payload + the attribute shape we expect to
  * see after dispatching it. Returns `null` when no correction is
  * required.
+ *
+ * Sync model (#511): every state-eligible leaf write lands in BOTH
+ * the per-state slot at `states.<path>.<activeState>` AND the base
+ * attribute. The base mirror keeps WP's panels visually in lockstep
+ * with the active state. `StateInspectorSync` is responsible for
+ * restoring the pristine base before save so the persisted markup
+ * still treats idle as the canonical base.
  */
 export function planCorrection(
 	prev: Record<string, unknown>,
@@ -104,8 +111,8 @@ export function planCorrection(
 		return null
 	}
 
-	let restorePatch: Record<string, unknown> | null = null
-	let statesPatch: StatesByPath | null             = null
+	let basePatch: Record<string, unknown> | null = null
+	let statesPatch: StatesByPath | null          = null
 
 	for ( const { path, value } of changedLeaves ) {
 		// Ignore writes to the states bag itself — those are either
@@ -120,8 +127,6 @@ export function planCorrection(
 			continue
 		}
 
-		const previousValue = readPath( prev, path )
-
 		statesPatch = statesPatch ?? {}
 		const currentForPath = ( curr.states as StatesByPath | undefined | null )?.[ path ] ?? {}
 		statesPatch[ path ] = {
@@ -129,10 +134,10 @@ export function planCorrection(
 			[ activeState ]: value,
 		}
 
-		restorePatch = setPath( restorePatch ?? {}, path, previousValue )
+		basePatch = setPath( basePatch ?? {}, path, value )
 	}
 
-	if ( ! statesPatch || ! restorePatch ) {
+	if ( ! statesPatch ) {
 		return null
 	}
 
@@ -142,13 +147,13 @@ export function planCorrection(
 	}
 
 	const updatePayload: Record<string, unknown> = {
-		...restorePatch,
+		...( basePatch ?? {} ),
 		states: nextStates,
 	}
 
 	const correctedAttributes: Record<string, unknown> = {
 		...curr,
-		...restorePatch,
+		...( basePatch ?? {} ),
 		states: nextStates,
 	}
 
@@ -205,7 +210,28 @@ export function StateWriteInterceptor(): null {
 			return
 		}
 
-		if ( ! selection.clientId || ! selection.name || BASE_KEY === activeState ) {
+		if ( ! selection.clientId ) {
+			prevAttributesRef.current = selection.attributes
+			return
+		}
+
+		// `StateInspectorSync` stamps the attribute shape it expects
+		// the data store to take immediately before dispatching its
+		// overlay. If `selection.attributes` matches, treat the
+		// change as a sync — not a panel write — and exit cleanly.
+		// Without this hop the interceptor would diff the sync
+		// dispatch and try to route it, undoing the overlay it just
+		// landed.
+		const expected = consumeExpectedSyncedAttrs( selection.clientId )
+		if ( expected ) {
+			const drift = diffPaths( selection.attributes, expected )
+			if ( 0 === drift.length ) {
+				prevAttributesRef.current = selection.attributes
+				return
+			}
+		}
+
+		if ( ! selection.name || BASE_KEY === activeState ) {
 			prevAttributesRef.current = selection.attributes
 			return
 		}

@@ -68,8 +68,17 @@ function chipHasOverride(
 		return false
 	}
 
-	for ( const value of Object.values( attributes ) ) {
-		if ( null === value || undefined === value || 'object' !== typeof value ) {
+	const states = ( attributes as Record<string, unknown> ).states as
+		| Record<string, unknown>
+		| null
+		| undefined
+
+	if ( ! states || 'object' !== typeof states || Array.isArray( states ) ) {
+		return false
+	}
+
+	for ( const value of Object.values( states ) ) {
+		if ( null === value || 'object' !== typeof value || Array.isArray( value ) ) {
 			continue
 		}
 

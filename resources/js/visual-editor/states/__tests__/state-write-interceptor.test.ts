@@ -36,7 +36,7 @@ describe( 'planCorrection', () => {
 		).toBeNull()
 	} )
 
-	it( 'routes a top-level palette write into states and restores the base', () => {
+	it( 'routes a top-level palette write into states and keeps base synced to the new value (#511)', () => {
 		const correction = planCorrection(
 			{ backgroundColor: 'vivid-purple' },
 			{ backgroundColor: 'pale-pink' },
@@ -45,11 +45,13 @@ describe( 'planCorrection', () => {
 		)
 
 		expect( correction ).not.toBeNull()
-		expect( correction!.updatePayload.backgroundColor ).toBe( 'vivid-purple' )
+		// Sync model: base mirrors the new value so the inspector
+		// panel stays visually aligned with the active state.
+		expect( correction!.updatePayload.backgroundColor ).toBe( 'pale-pink' )
 		expect( correction!.updatePayload.states ).toEqual( {
 			backgroundColor: { hover: 'pale-pink' },
 		} )
-		expect( correction!.correctedAttributes.backgroundColor ).toBe( 'vivid-purple' )
+		expect( correction!.correctedAttributes.backgroundColor ).toBe( 'pale-pink' )
 		expect( correction!.correctedAttributes.states ).toEqual( {
 			backgroundColor: { hover: 'pale-pink' },
 		} )
@@ -88,7 +90,7 @@ describe( 'planCorrection', () => {
 		).toBeNull()
 	} )
 
-	it( 'handles nested style.color.background paths', () => {
+	it( 'handles nested style.color.background paths with base synced to the new value', () => {
 		const correction = planCorrection(
 			{ style: { color: { background: '#000' } } },
 			{ style: { color: { background: '#fff' } } },
@@ -97,14 +99,14 @@ describe( 'planCorrection', () => {
 		)
 
 		expect( correction ).not.toBeNull()
-		const restoredStyle = correction!.updatePayload.style as { color: { background: string } }
-		expect( restoredStyle.color.background ).toBe( '#000' )
+		const baseStyle = correction!.updatePayload.style as { color: { background: string } }
+		expect( baseStyle.color.background ).toBe( '#fff' )
 		expect( correction!.updatePayload.states ).toEqual( {
 			'style.color.background': { hover: '#fff' },
 		} )
 	} )
 
-	it( 'routes multiple state-eligible changes in one diff', () => {
+	it( 'routes multiple state-eligible changes in one diff and keeps base synced', () => {
 		const correction = planCorrection(
 			{ backgroundColor: 'a', textColor: 'b' },
 			{ backgroundColor: 'a2', textColor: 'b2' },
@@ -113,8 +115,8 @@ describe( 'planCorrection', () => {
 		)
 
 		expect( correction ).not.toBeNull()
-		expect( correction!.updatePayload.backgroundColor ).toBe( 'a' )
-		expect( correction!.updatePayload.textColor ).toBe( 'b' )
+		expect( correction!.updatePayload.backgroundColor ).toBe( 'a2' )
+		expect( correction!.updatePayload.textColor ).toBe( 'b2' )
 		expect( correction!.updatePayload.states ).toEqual( {
 			backgroundColor: { hover: 'a2' },
 			textColor:       { hover: 'b2' },

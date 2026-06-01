@@ -44,6 +44,7 @@ import { registerResponsiveAttributesFilter } from '../responsive/with-responsiv
 import { registerStateAttribute } from '../states/register-attribute';
 import { registerStateAttributesFilter } from '../states/with-state-attributes';
 import { registerStateStylesFilters } from '../states/with-state-styles';
+import { StateInspectorSync } from '../states/StateInspectorSync';
 import { StateWriteInterceptor } from '../states/state-write-interceptor';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
 import { EditorCanvas } from './editor-canvas';
@@ -885,6 +886,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
              * when the active state is non-idle.
              */}
             <StateWriteInterceptor />
+            <StateInspectorSync />
             <Popover.Slot />
             <ConvertToPatternControl apiBase={props.apiBase} />
             {inspectorOpen ? (
