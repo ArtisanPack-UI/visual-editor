@@ -1,29 +1,12 @@
 {
     "$schema": "https://schemas.wp.org/trunk/block.json",
     "apiVersion": 3,
-    "name": "artisanpack/post-author",
-    "title": "Author (deprecated)",
+    "name": "artisanpack/post-author-name",
+    "title": "Author Name",
     "category": "theme",
-    "description": "This block is deprecated. Please use the Avatar block, the Author Name block, and the Author Biography block instead.",
+    "description": "The author name.",
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
-        "textAlign": {
-            "type": "string"
-        },
-        "avatarSize": {
-            "type": "number",
-            "default": 48
-        },
-        "showAvatar": {
-            "type": "boolean",
-            "default": true
-        },
-        "showBio": {
-            "type": "boolean"
-        },
-        "byline": {
-            "type": "string"
-        },
         "isLink": {
             "type": "boolean",
             "default": false,
@@ -41,17 +24,29 @@
         "queryId",
         "artisanpack/postPreview"
     ],
+    "example": {
+        "viewportWidth": 350
+    },
     "supports": {
-        "inserter": false,
         "anchor": true,
         "html": false,
         "spacing": {
             "margin": true,
             "padding": true
         },
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true,
+                "link": true
+            }
+        },
         "typography": {
             "fontSize": true,
             "lineHeight": true,
+            "textAlign": true,
             "__experimentalFontFamily": true,
             "__experimentalFontWeight": true,
             "__experimentalFontStyle": true,
@@ -60,14 +55,6 @@
             "__experimentalLetterSpacing": true,
             "__experimentalDefaultControls": {
                 "fontSize": true
-            }
-        },
-        "color": {
-            "gradients": true,
-            "link": true,
-            "__experimentalDefaultControls": {
-                "background": true,
-                "text": true
             }
         },
         "interactivity": {
@@ -84,16 +71,7 @@
                 "width": true,
                 "style": true
             }
-        },
-        "filter": {
-            "duotone": true
         }
     },
-    "selectors": {
-        "filter": {
-            "duotone": ".wp-block-post-author .wp-block-post-author__avatar img"
-        }
-    },
-    "editorStyle": "wp-block-post-author-editor",
-    "style": "wp-block-post-author"
+    "style": "wp-block-post-author-name"
 }

@@ -91,6 +91,75 @@ it( 'stamps artisanpack/post-author from the loaded relation', function () {
 		->and( $resolved['attributes']['_resolvedAuthorUrl'] )->toBe( 'https://example.test/jane' );
 } );
 
+it( 'stamps artisanpack/post-author-name from the loaded relation (#518)', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/post-author-name', 'attributes' => [], 'innerBlocks' => [] ],
+		fakeArtisanPackPost()
+	);
+
+	expect( $resolved['attributes']['_resolvedAuthorName'] )->toBe( 'Jane Doe' )
+		->and( $resolved['attributes']['_resolvedAuthorUrl'] )->toBe( 'https://example.test/jane' );
+} );
+
+it( 'stamps artisanpack/post-author-biography from the loaded relation (#518)', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/post-author-biography', 'attributes' => [], 'innerBlocks' => [] ],
+		fakeArtisanPackPost()
+	);
+
+	expect( $resolved['attributes']['_resolvedAuthorBio'] )->toBe( 'Writer' );
+} );
+
+it( 'stamps artisanpack/avatar with the author avatar URL and name (#518)', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/avatar', 'attributes' => [], 'innerBlocks' => [] ],
+		fakeArtisanPackPost()
+	);
+
+	expect( $resolved['attributes']['_resolvedAuthorAvatar'] )->toBe( 'https://example.test/avatar.jpg' )
+		->and( $resolved['attributes']['_resolvedAuthorName'] )->toBe( 'Jane Doe' );
+} );
+
+it( 'stamps the core/* counterparts for the author family identically to the artisanpack/* forks (#518)', function () {
+	$resolver = new PostResolver();
+	$post     = fakeArtisanPackPost();
+
+	$artisanName = $resolver->stampBlock(
+		[ 'name' => 'artisanpack/post-author-name', 'attributes' => [], 'innerBlocks' => [] ],
+		$post
+	);
+	$coreName = $resolver->stampBlock(
+		[ 'name' => 'core/post-author-name', 'attributes' => [], 'innerBlocks' => [] ],
+		$post
+	);
+
+	$artisanBio = $resolver->stampBlock(
+		[ 'name' => 'artisanpack/post-author-biography', 'attributes' => [], 'innerBlocks' => [] ],
+		$post
+	);
+	$coreBio = $resolver->stampBlock(
+		[ 'name' => 'core/post-author-biography', 'attributes' => [], 'innerBlocks' => [] ],
+		$post
+	);
+
+	$artisanAvatar = $resolver->stampBlock(
+		[ 'name' => 'artisanpack/avatar', 'attributes' => [], 'innerBlocks' => [] ],
+		$post
+	);
+	$coreAvatar = $resolver->stampBlock(
+		[ 'name' => 'core/avatar', 'attributes' => [], 'innerBlocks' => [] ],
+		$post
+	);
+
+	// Compare the resolved attribute bags directly so a regression on
+	// either side (e.g. artisanpack/post-author-name silently stops
+	// stamping `_resolvedAuthorUrl`) trips the assertion instead of
+	// passing because the literal-value baseline didn't move.
+	expect( $coreName['attributes'] )->toEqual( $artisanName['attributes'] )
+		->and( $coreBio['attributes'] )->toEqual( $artisanBio['attributes'] )
+		->and( $coreAvatar['attributes'] )->toEqual( $artisanAvatar['attributes'] );
+} );
+
 it( 'recurses into inner blocks so an artisanpack/query template stamps too', function () {
 	$tree = [
 		[

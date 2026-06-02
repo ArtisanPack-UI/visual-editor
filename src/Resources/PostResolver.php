@@ -46,6 +46,13 @@ class PostResolver
 		'core/post-date',
 		'core/post-author',
 		'core/post-featured-image',
+		// Author-family forks (#518) — recommended replacements for the
+		// deprecated `core/post-author`. Resolved through the same
+		// `resolveAuthor()` branch since all three derive from the same
+		// post-author relation.
+		'core/post-author-name',
+		'core/post-author-biography',
+		'core/avatar',
 		// Phase I5 forks (#413) — same `_resolved*` contract, new namespace.
 		'artisanpack/post-title',
 		'artisanpack/post-content',
@@ -53,6 +60,10 @@ class PostResolver
 		'artisanpack/post-date',
 		'artisanpack/post-author',
 		'artisanpack/post-featured-image',
+		// Author-family forks (#518).
+		'artisanpack/post-author-name',
+		'artisanpack/post-author-biography',
+		'artisanpack/avatar',
 	];
 
 	/**
@@ -127,13 +138,16 @@ class PostResolver
 		$slug = str_contains( $name, '/' ) ? substr( $name, strpos( $name, '/' ) + 1 ) : $name;
 
 		return match ( $slug ) {
-			'post-title'          => $this->resolveTitle( $post ),
-			'post-content'        => $this->resolveContent( $post ),
-			'post-excerpt'        => $this->resolveExcerpt( $post ),
-			'post-date'           => $this->resolveDate( $post ),
-			'post-author'         => $this->resolveAuthor( $post ),
-			'post-featured-image' => $this->resolveFeaturedImage( $post ),
-			default               => [],
+			'post-title'              => $this->resolveTitle( $post ),
+			'post-content'            => $this->resolveContent( $post ),
+			'post-excerpt'            => $this->resolveExcerpt( $post ),
+			'post-date'               => $this->resolveDate( $post ),
+			'post-author',
+			'post-author-name',
+			'post-author-biography',
+			'avatar'                  => $this->resolveAuthor( $post ),
+			'post-featured-image'     => $this->resolveFeaturedImage( $post ),
+			default                   => [],
 		};
 	}
 

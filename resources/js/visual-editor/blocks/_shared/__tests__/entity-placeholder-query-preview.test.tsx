@@ -18,12 +18,18 @@ import PostTitleEdit from '../../post-title/edit';
 import PostDateEdit from '../../post-date/edit';
 import PostExcerptEdit from '../../post-excerpt/edit';
 import PostAuthorEdit from '../../post-author/edit';
+import PostAuthorNameEdit from '../../post-author-name/edit';
+import PostAuthorBiographyEdit from '../../post-author-biography/edit';
+import AvatarEdit from '../../avatar/edit';
 import PostFeaturedImageEdit from '../../post-featured-image/edit';
 
 import postTitleMeta from '../../post-title/block.json';
 import postDateMeta from '../../post-date/block.json';
 import postExcerptMeta from '../../post-excerpt/block.json';
 import postAuthorMeta from '../../post-author/block.json';
+import postAuthorNameMeta from '../../post-author-name/block.json';
+import postAuthorBiographyMeta from '../../post-author-biography/block.json';
+import avatarMeta from '../../avatar/block.json';
 import postFeaturedImageMeta from '../../post-featured-image/block.json';
 
 const previewKey = 'artisanpack/postPreview';
@@ -241,6 +247,86 @@ describe('post-* edit components — query-preview integration', () => {
         expect(getByText('Post Author')).not.toBeNull();
     });
 
+    it('post-author-name shows the author name from context (#518)', () => {
+        const { getByText } = render(
+            <PostAuthorNameEdit
+                attributes={{}}
+                context={{
+                    [previewKey]: {
+                        id: 1,
+                        author: { name: 'Jane Doe' },
+                    },
+                }}
+            />
+        );
+        expect(getByText('Jane Doe')).not.toBeNull();
+    });
+
+    it('post-author-name falls back to placeholder when context has no author name (#518)', () => {
+        const { getByText } = render(
+            <PostAuthorNameEdit
+                attributes={{}}
+                context={{ [previewKey]: { id: 1 } }}
+            />
+        );
+        expect(getByText('Author Name')).not.toBeNull();
+    });
+
+    it('post-author-biography shows the author bio from context (#518)', () => {
+        const { getByText } = render(
+            <PostAuthorBiographyEdit
+                attributes={{}}
+                context={{
+                    [previewKey]: {
+                        id: 1,
+                        author: { bio: 'A passionate writer.' },
+                    },
+                }}
+            />
+        );
+        expect(getByText('A passionate writer.')).not.toBeNull();
+    });
+
+    it('post-author-biography falls back to placeholder when context has no author bio (#518)', () => {
+        const { getByText } = render(
+            <PostAuthorBiographyEdit
+                attributes={{}}
+                context={{ [previewKey]: { id: 1, author: { name: 'Jane Doe' } } }}
+            />
+        );
+        expect(getByText('Author Biography')).not.toBeNull();
+    });
+
+    it('avatar renders the author avatar from context (#518)', () => {
+        const { container } = render(
+            <AvatarEdit
+                attributes={{}}
+                context={{
+                    [previewKey]: {
+                        id: 1,
+                        author: {
+                            name: 'Jane Doe',
+                            avatarUrl: 'https://example.test/avatar.jpg',
+                        },
+                    },
+                }}
+            />
+        );
+        const img = container.querySelector('img');
+        expect(img?.getAttribute('src')).toBe('https://example.test/avatar.jpg');
+        expect(img?.getAttribute('alt')).toBe('Jane Doe');
+    });
+
+    it('avatar falls back to placeholder when context has no avatar URL (#518)', () => {
+        const { getByText } = render(
+            <AvatarEdit
+                attributes={{}}
+                context={{ [previewKey]: { id: 1, author: { name: 'Jane Doe' } } }}
+            />
+        );
+        expect(getByText('Avatar')).not.toBeNull();
+    });
+
     it('post-featured-image renders the image from context', () => {
         const { container } = render(
             <PostFeaturedImageEdit
@@ -271,15 +357,16 @@ describe('post-* edit components — query-preview integration', () => {
         expect(getByText('Featured Image')).not.toBeNull();
     });
 
-    it('post-author is insertable so it can be added to a query loop (#483)', () => {
+    it('post-author is hidden from the inserter now that the replacement blocks ship (#518)', () => {
         // Upstream `core/post-author` sets `supports.inserter: false`
         // because it's deprecated in favor of post-author-name /
-        // post-author-biography / avatar — none of which the fork
-        // ships. Hiding it from the inserter would make the #483 fix
-        // unusable for the author block, so the fork drops the flag.
+        // post-author-biography / avatar. The fork dropped the flag
+        // during I5 (#413) because none of the replacements were
+        // forked yet. Now that all three ship via #518, the fork
+        // restores the flag to match upstream's deprecation contract.
         const supports = (postAuthorMeta as { supports?: Record<string, unknown> })
             .supports ?? {};
-        expect(supports.inserter).not.toBe(false);
+        expect(supports.inserter).toBe(false);
     });
 
     it('each post-* block.json declares `artisanpack/postPreview` in usesContext', () => {
@@ -288,6 +375,9 @@ describe('post-* edit components — query-preview integration', () => {
             postDateMeta,
             postExcerptMeta,
             postAuthorMeta,
+            postAuthorNameMeta,
+            postAuthorBiographyMeta,
+            avatarMeta,
             postFeaturedImageMeta,
         ];
 
