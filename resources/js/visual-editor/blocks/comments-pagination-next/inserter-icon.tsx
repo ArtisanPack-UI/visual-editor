@@ -1,0 +1,22 @@
+/**
+ * CommentsPaginationNext — inserter icon.
+ *
+ * Inline SVG so the editor canvas does not have to load `dashicons.css`.
+ * A right-pointing chevron (next page). Comments family fork (#519) Pass 2.
+ */
+
+import type { ReactElement } from 'react';
+
+export default function CommentsPaginationNextInserterIcon(): ReactElement {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 24 24"
+            width={ 24 }
+            height={ 24 }
+            aria-hidden="true"
+        >
+            <path d="M8.59 16.59 13.17 12 8.59 7.41 10 6l6 6-6 6z" />
+        </svg>
+    );
+}

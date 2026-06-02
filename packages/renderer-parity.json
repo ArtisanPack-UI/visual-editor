@@ -96,6 +96,22 @@
         "artisanpack/site-logo",
         "artisanpack/navigation",
         "artisanpack/query",
-        "artisanpack/post-template"
+        "artisanpack/post-template",
+        "artisanpack/comments",
+        "artisanpack/comment-template",
+        "artisanpack/comment-author-avatar",
+        "artisanpack/comment-author-name",
+        "artisanpack/comment-content",
+        "artisanpack/comment-date",
+        "artisanpack/comment-edit-link",
+        "artisanpack/comment-reply-link",
+        "artisanpack/post-comments-form",
+        "artisanpack/post-comments-count",
+        "artisanpack/post-comments-link",
+        "artisanpack/post-comments-title",
+        "artisanpack/comments-pagination",
+        "artisanpack/comments-pagination-next",
+        "artisanpack/comments-pagination-numbers",
+        "artisanpack/comments-pagination-previous"
     ]
 }

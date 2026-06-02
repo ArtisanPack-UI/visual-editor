@@ -1,0 +1,72 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/post-comments-title",
+    "title": "Comments Title",
+    "category": "theme",
+    "description": "Displays a title with the number of comments.",
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "textAlign": {
+            "type": "string"
+        },
+        "showPostTitle": {
+            "type": "boolean",
+            "default": false
+        },
+        "showCommentsCount": {
+            "type": "boolean",
+            "default": true
+        },
+        "level": {
+            "type": "number",
+            "default": 2
+        },
+        "levelOptions": {
+            "type": "array"
+        }
+    },
+    "usesContext": [
+        "postId",
+        "postType",
+        "artisanpack/postPreview"
+    ],
+    "supports": {
+        "anchor": false,
+        "align": [ "wide", "full" ],
+        "html": false,
+        "__experimentalBorder": {
+            "radius": true,
+            "color": true,
+            "width": true,
+            "style": true
+        },
+        "color": {
+            "gradients": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "spacing": {
+            "margin": true,
+            "padding": true
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "__experimentalFontFamily": true,
+            "__experimentalFontWeight": true,
+            "__experimentalFontStyle": true,
+            "__experimentalTextTransform": true,
+            "__experimentalTextDecoration": true,
+            "__experimentalLetterSpacing": true,
+            "__experimentalDefaultControls": {
+                "fontSize": true
+            }
+        },
+        "interactivity": {
+            "clientNavigation": true
+        }
+    }
+}

@@ -155,6 +155,15 @@ export interface EntityPlaceholderConfig {
      * generic placeholder chip.
      */
     readonly fromSiteEntity?: ( site: SiteEntityRecord ) => EntityPreviewValue | null;
+    /**
+     * Realistic dummy data to display in the editor canvas when no
+     * resolved value, no `artisanpack/postPreview` context, and no
+     * live core-data entity is available. Authors editing a template
+     * (in the site editor or post editor) get a representative block
+     * they can style — much more useful than a generic chip. Front-end
+     * render never sees this; only the editor does.
+     */
+    readonly dummyValue?: EntityPreviewValue;
 }
 
 const PREVIEW_CONTEXT_KEY = 'artisanpack/postPreview';
@@ -364,6 +373,17 @@ export function createEntityPlaceholderEdit(
 
         if ( liveSiteEntityValue !== null && hasPreviewValue( config.kind, liveSiteEntityValue ) ) {
             return renderResolved( config.kind, liveSiteEntityValue, blockProps );
+        }
+
+        // No resolved data, no query/entity context — render the
+        // configured dummy value so authors editing a template (with
+        // no specific entity in scope) see what the block will look
+        // like styled. Final fallback is the original labelled chip.
+        if (
+            config.dummyValue !== undefined &&
+            hasPreviewValue( config.kind, config.dummyValue )
+        ) {
+            return renderResolved( config.kind, config.dummyValue, blockProps );
         }
 
         return (

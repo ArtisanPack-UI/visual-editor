@@ -15,4 +15,5 @@ export default createCommentPlaceholderEdit( {
     label: __( 'Reply', TEXT_DOMAIN ),
     resolvedKey: '_resolvedReplyLinkLabel',
     kind: 'text',
+    dummyValue: { text: 'Reply' },
 } );

@@ -20,4 +20,7 @@ export default createCommentPlaceholderEdit( {
         const content = comment.content;
         return typeof content === 'string' && content !== '' ? { text: content } : null;
     },
+    dummyValue: {
+        text: '<p>This is a sample comment. Authors editing a template see this representative content so they can style the block before any real comments exist.</p>',
+    },
 } );

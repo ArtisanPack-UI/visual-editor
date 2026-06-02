@@ -149,8 +149,7 @@ return [
 		'artisanpack/search',
 		'artisanpack/latest-posts',
 		// Comments family — Pass 1 forks (#519): wrapper + template +
-		// per-comment display blocks. Post-level comments metadata and
-		// pagination blocks are deferred to Pass 2.
+		// per-comment display blocks.
 		'artisanpack/comments',
 		'artisanpack/comment-template',
 		'artisanpack/comment-author-avatar',
@@ -159,6 +158,18 @@ return [
 		'artisanpack/comment-date',
 		'artisanpack/comment-edit-link',
 		'artisanpack/comment-reply-link',
+		// Comments family — Pass 2 forks (#519): post-level comments
+		// metadata + pagination cluster. Post-level display blocks
+		// resolve through PostResolver; pagination blocks render
+		// against request-time state.
+		'artisanpack/post-comments-form',
+		'artisanpack/post-comments-count',
+		'artisanpack/post-comments-link',
+		'artisanpack/post-comments-title',
+		'artisanpack/comments-pagination',
+		'artisanpack/comments-pagination-next',
+		'artisanpack/comments-pagination-numbers',
+		'artisanpack/comments-pagination-previous',
 	],
 
 	'disabled_blocks' => [
