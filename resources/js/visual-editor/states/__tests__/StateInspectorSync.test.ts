@@ -28,10 +28,12 @@ import {
 } from '../StateInspectorSync'
 import {
 	consumeExpectedSyncedAttrs,
+	extendPristineSnapshot,
 	getPristineSnapshot,
 	hasPristineSnapshot,
 	resetStateBridge,
 } from '../state-bridge'
+import { readPath } from '../../responsive/attribute-paths'
 
 beforeEach( () => {
 	resetStateBridge()
@@ -359,5 +361,76 @@ describe( 'flushBeforeSave (#515)', () => {
 	it( 'is a no-op when no snapshots exist', () => {
 		flushBeforeSave()
 		expect( mockUpdateBlockAttributes ).not.toHaveBeenCalled()
+	} )
+} )
+
+describe( 'extendPristineSnapshot (#515 follow-up)', () => {
+	it( 'creates a fresh snapshot when none exists', () => {
+		extendPristineSnapshot(
+			'cid-1',
+			{ backgroundColor: 'palette-red' },
+			[ 'backgroundColor' ],
+			readPath,
+		)
+
+		expect( getPristineSnapshot( 'cid-1' ) ).toEqual( {
+			backgroundColor: 'palette-red',
+		} )
+	} )
+
+	it( 'extends an existing snapshot with new paths', () => {
+		extendPristineSnapshot(
+			'cid-1',
+			{ backgroundColor: 'palette-red' },
+			[ 'backgroundColor' ],
+			readPath,
+		)
+		extendPristineSnapshot(
+			'cid-1',
+			{ backgroundColor: 'palette-red', textColor: 'palette-blue' },
+			[ 'textColor' ],
+			readPath,
+		)
+
+		expect( getPristineSnapshot( 'cid-1' ) ).toEqual( {
+			backgroundColor: 'palette-red',
+			textColor:       'palette-blue',
+		} )
+	} )
+
+	it( 'never overwrites an already-captured path', () => {
+		extendPristineSnapshot(
+			'cid-1',
+			{ backgroundColor: 'palette-red' },
+			[ 'backgroundColor' ],
+			readPath,
+		)
+		// Simulate a second pick on the same path after the base has
+		// been mirrored to the hover value — the snapshot must still
+		// hold the ORIGINAL idle value.
+		extendPristineSnapshot(
+			'cid-1',
+			{ backgroundColor: 'palette-blue' },
+			[ 'backgroundColor' ],
+			readPath,
+		)
+
+		expect( getPristineSnapshot( 'cid-1' ) ).toEqual( {
+			backgroundColor: 'palette-red',
+		} )
+	} )
+
+	it( 'captures undefined for paths the block has never set', () => {
+		extendPristineSnapshot(
+			'cid-1',
+			{ /* no backgroundColor */ },
+			[ 'backgroundColor' ],
+			readPath,
+		)
+
+		const snapshot = getPristineSnapshot( 'cid-1' )
+		expect( snapshot ).not.toBeUndefined()
+		expect( 'backgroundColor' in ( snapshot as Record<string, unknown> ) ).toBe( true )
+		expect( ( snapshot as Record<string, unknown> ).backgroundColor ).toBeUndefined()
 	} )
 } )

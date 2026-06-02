@@ -45,10 +45,12 @@ import {
 	deepMerge,
 	diffPaths,
 	pathMatchesAnyRoot,
+	readPath,
 	setPath,
 } from '../responsive/attribute-paths'
 import { getActiveState, subscribeActiveState } from './active-state'
 import { getStateRegistry } from './registry'
+import { extendPristineSnapshot } from './state-bridge'
 import { BASE_KEY } from './types'
 
 const FILTER_HOOK      = 'editor.BlockEdit'
@@ -64,6 +66,7 @@ interface GlobalSentinelHost {
 
 interface BlockEditProps {
 	name: string
+	clientId?: string
 	attributes: Record<string, unknown>
 	setAttributes: ( updates: Record<string, unknown> ) => void
 	[key: string]: unknown
@@ -182,7 +185,7 @@ function writeInto( target: Record<string, unknown>, path: string, value: unknow
 export const withStateAttributes = createHigherOrderComponent(
 	( BlockEdit: ComponentType<BlockEditProps> ) => {
 		function StateBlockEdit( props: BlockEditProps ): JSX.Element {
-			const { name, attributes, setAttributes } = props
+			const { name, attributes, setAttributes, clientId } = props
 
 			const roots = useMemo( () => getStateRoots( name ), [ name ] )
 
@@ -275,11 +278,38 @@ export const withStateAttributes = createHigherOrderComponent(
 							...( states ?? {} ),
 							...statesPatch,
 						}
+
+						// #515 follow-up: before the mirror overwrites the
+						// base attribute, capture the original idle value at
+						// every path we're about to mirror. Switching back
+						// to idle would otherwise read the mirrored
+						// non-idle value from the data store and surface it
+						// as the idle base — most visibly when the idle
+						// pick was a palette slug. The snapshot is keyed by
+						// clientId and only adds paths it doesn't already
+						// hold, so subsequent picks on the same path leave
+						// the original capture intact and picks on new
+						// paths extend the snapshot.
+						if ( 'string' === typeof clientId ) {
+							const pathsToSnapshot: string[] = []
+							for ( const list of stateEntriesByTopKey.values() ) {
+								for ( const entry of list ) {
+									pathsToSnapshot.push( entry.path )
+								}
+							}
+
+							extendPristineSnapshot(
+								clientId,
+								attributes,
+								pathsToSnapshot,
+								readPath,
+							)
+						}
 					}
 
 					setAttributes( finalUpdates )
 				},
-				[ activeState, mergedAttributes, states, roots, setAttributes ],
+				[ activeState, attributes, clientId, mergedAttributes, states, roots, setAttributes ],
 			)
 
 			if ( ! roots ) {

@@ -32,6 +32,10 @@ vi.mock( '@wordpress/blocks', () => {
 
 import { __setBlockType, __clearBlockTypes } from '@wordpress/blocks'
 import { withStateAttributes } from '../with-state-attributes'
+import {
+	getPristineSnapshot,
+	resetStateBridge,
+} from '../state-bridge'
 
 interface CapturedProps {
 	attributes: Record<string, unknown>
@@ -52,6 +56,7 @@ beforeEach( () => {
 	act( () => {
 		resetStateStores()
 	} )
+	resetStateBridge()
 	__clearBlockTypes()
 } )
 
@@ -59,6 +64,7 @@ afterEach( () => {
 	act( () => {
 		resetStateStores()
 	} )
+	resetStateBridge()
 	__clearBlockTypes()
 } )
 
@@ -186,5 +192,118 @@ describe( 'withStateAttributes — non-idle routing', () => {
 		captured?.setAttributes( { url: 'https://b.test' } )
 
 		expect( setAttributes ).toHaveBeenCalledWith( { url: 'https://b.test' } )
+	} )
+
+	it( 'snapshots the pristine idle base before mirroring the first hover pick (#515 follow-up)', () => {
+		// Reproduces the user-reported regression: idle is a palette
+		// slug, hover overwrites the base via the mirror, and switching
+		// back to idle reads the mirrored hover value because no
+		// pristine snapshot was ever taken.
+		const setAttributes = vi.fn()
+		render(
+			<Wrapped
+				clientId="cid-1"
+				name="artisanpack/button"
+				attributes={ { backgroundColor: 'palette-red' } }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		captured?.setAttributes( { backgroundColor: 'palette-blue' } )
+
+		expect( getPristineSnapshot( 'cid-1' ) ).toEqual( {
+			backgroundColor: 'palette-red',
+		} )
+	} )
+
+	it( 'preserves the original idle value when the same path is picked twice on hover', () => {
+		const setAttributes = vi.fn()
+		const { rerender } = render(
+			<Wrapped
+				clientId="cid-1"
+				name="artisanpack/button"
+				attributes={ { backgroundColor: 'palette-red' } }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		captured?.setAttributes( { backgroundColor: 'palette-blue' } )
+
+		// After the first pick, the parent has updated attributes —
+		// simulate the next render that reflects the mirrored base.
+		rerender(
+			<Wrapped
+				clientId="cid-1"
+				name="artisanpack/button"
+				attributes={ {
+					backgroundColor: 'palette-blue',
+					states:          { backgroundColor: { hover: 'palette-blue' } },
+				} }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		captured?.setAttributes( { backgroundColor: 'palette-green' } )
+
+		// Still the very first idle value — the snapshot is never
+		// overwritten by subsequent picks on the same path.
+		expect( getPristineSnapshot( 'cid-1' ) ).toEqual( {
+			backgroundColor: 'palette-red',
+		} )
+	} )
+
+	it( 'extends the snapshot when a different state-eligible path is picked next', () => {
+		const setAttributes = vi.fn()
+		const { rerender } = render(
+			<Wrapped
+				clientId="cid-1"
+				name="artisanpack/button"
+				attributes={ {
+					backgroundColor: 'palette-red',
+					textColor:       'palette-black',
+				} }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		captured?.setAttributes( { backgroundColor: 'palette-blue' } )
+
+		rerender(
+			<Wrapped
+				clientId="cid-1"
+				name="artisanpack/button"
+				attributes={ {
+					backgroundColor: 'palette-blue',
+					textColor:       'palette-black',
+					states:          { backgroundColor: { hover: 'palette-blue' } },
+				} }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		captured?.setAttributes( { textColor: 'palette-white' } )
+
+		expect( getPristineSnapshot( 'cid-1' ) ).toEqual( {
+			backgroundColor: 'palette-red',
+			textColor:       'palette-black',
+		} )
+	} )
+
+	it( 'does not snapshot when no clientId is provided', () => {
+		// Defensive: hosts that wrap BlockEdit components without
+		// forwarding clientId (mostly test harnesses) shouldn't trip
+		// an exception — the snapshot is simply skipped.
+		const setAttributes = vi.fn()
+		render(
+			<Wrapped
+				name="artisanpack/button"
+				attributes={ { backgroundColor: 'palette-red' } }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		captured?.setAttributes( { backgroundColor: 'palette-blue' } )
+
+		expect( setAttributes ).toHaveBeenCalledTimes( 1 )
 	} )
 } )
