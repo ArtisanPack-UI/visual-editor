@@ -1,0 +1,60 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/comment-reply-link",
+    "title": "Comment Reply Link",
+    "category": "theme",
+    "description": "Displays a link to reply to a comment.",
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "textAlign": {
+            "type": "string"
+        }
+    },
+    "usesContext": [
+        "commentId",
+        "artisanpack/commentId",
+        "artisanpack/commentPreview"
+    ],
+    "example": {
+        "viewportWidth": 300
+    },
+    "supports": {
+        "color": {
+            "gradients": true,
+            "link": true,
+            "text": false,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "link": true
+            }
+        },
+        "html": false,
+        "spacing": {
+            "margin": true,
+            "padding": true
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "__experimentalFontFamily": true,
+            "__experimentalFontWeight": true,
+            "__experimentalFontStyle": true,
+            "__experimentalTextTransform": true,
+            "__experimentalTextDecoration": true,
+            "__experimentalLetterSpacing": true,
+            "__experimentalDefaultControls": {
+                "fontSize": true
+            }
+        },
+        "interactivity": {
+            "clientNavigation": true
+        },
+        "__experimentalBorder": {
+            "radius": true,
+            "color": true,
+            "width": true,
+            "style": true
+        }
+    }
+}

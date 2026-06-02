@@ -148,6 +148,17 @@ return [
 		// Widgets cluster — forked to artisanpack/* (I4 #412).
 		'artisanpack/search',
 		'artisanpack/latest-posts',
+		// Comments family — Pass 1 forks (#519): wrapper + template +
+		// per-comment display blocks. Post-level comments metadata and
+		// pagination blocks are deferred to Pass 2.
+		'artisanpack/comments',
+		'artisanpack/comment-template',
+		'artisanpack/comment-author-avatar',
+		'artisanpack/comment-author-name',
+		'artisanpack/comment-content',
+		'artisanpack/comment-date',
+		'artisanpack/comment-edit-link',
+		'artisanpack/comment-reply-link',
 	],
 
 	'disabled_blocks' => [

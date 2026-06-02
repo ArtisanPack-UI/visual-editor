@@ -1,0 +1,67 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/comment-content",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/comment-content",
+        "pinnedVersion": "9.43.0",
+        "subpath": "comment-content"
+    },
+    "forkedAt": "2026-06-02",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; usesContext extended with artisanpack/commentId + artisanpack/commentPreview where applicable so the block previews inside a comment-template loop. Attribute schema and supports carried verbatim for parity."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Previews via the lightweight createCommentPlaceholderEdit helper. Upstream edit.js queries the comment entity through @wordpress/core-data, which the post editor does not populate, so upstream renders empty. Front-end markup is produced server-side from stamped _resolved* attributes."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Dynamic block (or InnerBlocks delegate for wrappers) — markup produced server-side from stamped _resolved* attributes."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "transforms.js",
+            "status": "rewritten",
+            "notes": "Bidirectional core/comment-content ↔ artisanpack/comment-content block transforms for the rollout window."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG inserter icon (editor lacks dashicons.css)."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx previews via createCommentPlaceholderEdit rather than upstream edit.js — the core-data shim does not expose the comment entity to the post editor, so the upstream entity-querying edit renders empty.",
+        "Server-rendered: front-end markup produced by Blade/React/Vue renderers from stamped _resolved* attributes, not by save().",
+        "transforms.ts adds bidirectional block transforms that do not exist upstream — required to coexist with core/comment-content during the V1 rollout."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-06-02",
+        "reviewer": "Comments family fork (#519)"
+    }
+}
