@@ -260,6 +260,84 @@ export const PostAuthorBlock = defineComponent({
     },
 });
 
+export const PostAuthorNameBlock = defineComponent({
+    name: 'PostAuthorNameBlock',
+    props: blockRendererProps,
+    setup(props) {
+        return () => {
+            const isLink = attrBoolean(props.attributes.isLink);
+            const linkTarget = attrString(props.attributes.linkTarget, '_self');
+            const className = attrString(props.attributes.className);
+
+            const name = attrString(props.attributes._resolvedAuthorName);
+            const authorUrl = safeUrl(props.attributes._resolvedAuthorUrl);
+
+            const classes = classList(['wp-block-post-author-name', className]);
+
+            if (isLink && authorUrl !== '') {
+                const linkProps = buildLinkProps(authorUrl, linkTarget, '');
+
+                return h('div', { class: classes }, [h('a', linkProps, name)]);
+            }
+
+            return h('div', { class: classes }, name);
+        };
+    },
+});
+
+export const PostAuthorBiographyBlock = defineComponent({
+    name: 'PostAuthorBiographyBlock',
+    props: blockRendererProps,
+    setup(props) {
+        return () => {
+            const className = attrString(props.attributes.className);
+            const bio = attrString(props.attributes._resolvedAuthorBio);
+
+            const classes = classList(['wp-block-post-author-biography', className]);
+
+            return h('p', { class: classes, innerHTML: bio });
+        };
+    },
+});
+
+export const AvatarBlock = defineComponent({
+    name: 'AvatarBlock',
+    props: blockRendererProps,
+    setup(props) {
+        return () => {
+            const size = Math.max(1, attrInt(props.attributes.size, 96));
+            const isLink = attrBoolean(props.attributes.isLink);
+            const linkTarget = attrString(props.attributes.linkTarget, '_self');
+            const className = attrString(props.attributes.className);
+
+            const avatarUrl = safeUrl(props.attributes._resolvedAuthorAvatar);
+            const alt = attrString(props.attributes._resolvedAuthorName);
+            const authorUrl = safeUrl(props.attributes._resolvedAuthorUrl);
+
+            const classes = classList(['wp-block-avatar', className]);
+
+            if (avatarUrl === '') {
+                return h('div', { class: classes });
+            }
+
+            const img = h('img', {
+                alt,
+                width: size,
+                height: size,
+                src: avatarUrl,
+            });
+
+            if (isLink && authorUrl !== '') {
+                const linkProps = buildLinkProps(authorUrl, linkTarget, '');
+
+                return h('div', { class: classes }, [h('a', linkProps, [img])]);
+            }
+
+            return h('div', { class: classes }, [img]);
+        };
+    },
+});
+
 export const PostFeaturedImageBlock = defineComponent({
     name: 'PostFeaturedImageBlock',
     props: blockRendererProps,

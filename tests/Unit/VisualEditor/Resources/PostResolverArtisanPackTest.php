@@ -91,6 +91,57 @@ it( 'stamps artisanpack/post-author from the loaded relation', function () {
 		->and( $resolved['attributes']['_resolvedAuthorUrl'] )->toBe( 'https://example.test/jane' );
 } );
 
+it( 'stamps artisanpack/post-author-name from the loaded relation (#518)', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/post-author-name', 'attributes' => [], 'innerBlocks' => [] ],
+		fakeArtisanPackPost()
+	);
+
+	expect( $resolved['attributes']['_resolvedAuthorName'] )->toBe( 'Jane Doe' )
+		->and( $resolved['attributes']['_resolvedAuthorUrl'] )->toBe( 'https://example.test/jane' );
+} );
+
+it( 'stamps artisanpack/post-author-biography from the loaded relation (#518)', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/post-author-biography', 'attributes' => [], 'innerBlocks' => [] ],
+		fakeArtisanPackPost()
+	);
+
+	expect( $resolved['attributes']['_resolvedAuthorBio'] )->toBe( 'Writer' );
+} );
+
+it( 'stamps artisanpack/avatar with the author avatar URL and name (#518)', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/avatar', 'attributes' => [], 'innerBlocks' => [] ],
+		fakeArtisanPackPost()
+	);
+
+	expect( $resolved['attributes']['_resolvedAuthorAvatar'] )->toBe( 'https://example.test/avatar.jpg' )
+		->and( $resolved['attributes']['_resolvedAuthorName'] )->toBe( 'Jane Doe' );
+} );
+
+it( 'stamps the core/* counterparts for the author family the same as the artisanpack/* forks (#518)', function () {
+	$resolver = new PostResolver();
+	$post     = fakeArtisanPackPost();
+
+	$coreName = $resolver->stampBlock(
+		[ 'name' => 'core/post-author-name', 'attributes' => [], 'innerBlocks' => [] ],
+		$post
+	);
+	$coreBio = $resolver->stampBlock(
+		[ 'name' => 'core/post-author-biography', 'attributes' => [], 'innerBlocks' => [] ],
+		$post
+	);
+	$coreAvatar = $resolver->stampBlock(
+		[ 'name' => 'core/avatar', 'attributes' => [], 'innerBlocks' => [] ],
+		$post
+	);
+
+	expect( $coreName['attributes']['_resolvedAuthorName'] )->toBe( 'Jane Doe' )
+		->and( $coreBio['attributes']['_resolvedAuthorBio'] )->toBe( 'Writer' )
+		->and( $coreAvatar['attributes']['_resolvedAuthorAvatar'] )->toBe( 'https://example.test/avatar.jpg' );
+} );
+
 it( 'recurses into inner blocks so an artisanpack/query template stamps too', function () {
 	$tree = [
 		[

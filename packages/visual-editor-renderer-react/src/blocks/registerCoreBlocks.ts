@@ -45,7 +45,10 @@ import {
     NavigationSubmenuBlock,
 } from './core/navigation';
 import {
+    AvatarBlock,
+    PostAuthorBiographyBlock,
     PostAuthorBlock,
+    PostAuthorNameBlock,
     PostContentBlock,
     PostDateBlock,
     PostExcerptBlock,
@@ -153,6 +156,15 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/post-date': PostDateBlock,
     'core/post-author': PostAuthorBlock,
     'artisanpack/post-author': PostAuthorBlock,
+    // Author family forks (#518) — recommended replacements for the
+    // deprecated core/post-author. Both namespaces share the same
+    // renderer because the saved markup is byte-equivalent.
+    'core/post-author-name': PostAuthorNameBlock,
+    'artisanpack/post-author-name': PostAuthorNameBlock,
+    'core/post-author-biography': PostAuthorBiographyBlock,
+    'artisanpack/post-author-biography': PostAuthorBiographyBlock,
+    'core/avatar': AvatarBlock,
+    'artisanpack/avatar': AvatarBlock,
     'core/post-featured-image': PostFeaturedImageBlock,
     'artisanpack/post-featured-image': PostFeaturedImageBlock,
     'core/site-title': SiteTitleBlock,

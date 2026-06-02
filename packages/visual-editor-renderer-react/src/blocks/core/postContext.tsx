@@ -210,6 +210,69 @@ export function PostAuthorBlock({ attributes }: BlockRendererProps): JSX.Element
     );
 }
 
+export function PostAuthorNameBlock({ attributes }: BlockRendererProps): JSX.Element {
+    const isLink = attrBoolean(attributes.isLink);
+    const linkTarget = attrString(attributes.linkTarget, '_self');
+    const className = attrString(attributes.className);
+
+    const name = attrString(attributes._resolvedAuthorName);
+    const authorUrl = safeUrl(attrString(attributes._resolvedAuthorUrl));
+
+    const classes = classList(['wp-block-post-author-name', className]);
+
+    if (isLink && authorUrl !== '') {
+        const linkProps = buildLinkProps(authorUrl, linkTarget, '');
+
+        return (
+            <div className={classes}>
+                <a {...linkProps}>{name}</a>
+            </div>
+        );
+    }
+
+    return <div className={classes}>{name}</div>;
+}
+
+export function PostAuthorBiographyBlock({ attributes }: BlockRendererProps): JSX.Element {
+    const className = attrString(attributes.className);
+    const bio = attrString(attributes._resolvedAuthorBio);
+
+    const classes = classList(['wp-block-post-author-biography', className]);
+
+    return <p className={classes} dangerouslySetInnerHTML={{ __html: bio }} />;
+}
+
+export function AvatarBlock({ attributes }: BlockRendererProps): JSX.Element {
+    const size = Math.max(1, attrInt(attributes.size, 96));
+    const isLink = attrBoolean(attributes.isLink);
+    const linkTarget = attrString(attributes.linkTarget, '_self');
+    const className = attrString(attributes.className);
+
+    const avatarUrl = safeUrl(attrString(attributes._resolvedAuthorAvatar));
+    const alt = attrString(attributes._resolvedAuthorName);
+    const authorUrl = safeUrl(attrString(attributes._resolvedAuthorUrl));
+
+    const classes = classList(['wp-block-avatar', className]);
+
+    if (avatarUrl === '') {
+        return <div className={classes} />;
+    }
+
+    const img = <img alt={alt} width={size} height={size} src={avatarUrl} />;
+
+    if (isLink && authorUrl !== '') {
+        const linkProps = buildLinkProps(authorUrl, linkTarget, '');
+
+        return (
+            <div className={classes}>
+                <a {...linkProps}>{img}</a>
+            </div>
+        );
+    }
+
+    return <div className={classes}>{img}</div>;
+}
+
 export function PostFeaturedImageBlock({ attributes }: BlockRendererProps): JSX.Element {
     const isLink = attrBoolean(attributes.isLink);
     const linkTarget = attrString(attributes.linkTarget);
