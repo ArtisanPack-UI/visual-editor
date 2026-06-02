@@ -41,13 +41,16 @@ import { useCallback, useMemo, useSyncExternalStore } from 'react'
 import type { ComponentType } from 'react'
 
 import {
+	buildTopLevelPatch,
 	deepMerge,
 	diffPaths,
 	pathMatchesAnyRoot,
+	readPath,
 	setPath,
 } from '../responsive/attribute-paths'
 import { getActiveState, subscribeActiveState } from './active-state'
 import { getStateRegistry } from './registry'
+import { extendPristineSnapshot } from './state-bridge'
 import { BASE_KEY } from './types'
 
 const FILTER_HOOK      = 'editor.BlockEdit'
@@ -63,6 +66,7 @@ interface GlobalSentinelHost {
 
 interface BlockEditProps {
 	name: string
+	clientId?: string
 	attributes: Record<string, unknown>
 	setAttributes: ( updates: Record<string, unknown> ) => void
 	[key: string]: unknown
@@ -181,7 +185,7 @@ function writeInto( target: Record<string, unknown>, path: string, value: unknow
 export const withStateAttributes = createHigherOrderComponent(
 	( BlockEdit: ComponentType<BlockEditProps> ) => {
 		function StateBlockEdit( props: BlockEditProps ): JSX.Element {
-			const { name, attributes, setAttributes } = props
+			const { name, attributes, setAttributes, clientId } = props
 
 			const roots = useMemo( () => getStateRoots( name ), [ name ] )
 
@@ -223,8 +227,9 @@ export const withStateAttributes = createHigherOrderComponent(
 						return
 					}
 
-					const baseUpdates: Record<string, unknown> = {}
 					let statesPatch: StateOverridesByPath | null = null
+					const stateEntriesByTopKey = new Map<string, Array<{ path: string; value: unknown }>>()
+					const baseEntriesByTopKey  = new Map<string, Array<{ path: string; value: unknown }>>()
 
 					for ( const { path, value } of changedLeaves ) {
 						if ( pathMatchesAnyRoot( path, roots ) ) {
@@ -233,27 +238,95 @@ export const withStateAttributes = createHigherOrderComponent(
 								...( states?.[ path ] ?? {} ),
 								[ activeState ]: value,
 							}
+
+							// #515: also mirror to the base so the data store
+							// (read by panels via useSelect) stays in lockstep
+							// with the active state. The pristine idle base is
+							// preserved in the bridge's snapshot and restored
+							// before save.
+							const topKey = path.split( '.' )[ 0 ]
+							const list   = stateEntriesByTopKey.get( topKey ) ?? []
+							list.push( { path, value } )
+							stateEntriesByTopKey.set( topKey, list )
 							continue
 						}
 
-						Object.assign(
-							baseUpdates,
-							setPath( baseUpdates, path, value ),
-						)
+						const topKey = path.split( '.' )[ 0 ]
+						const list   = baseEntriesByTopKey.get( topKey ) ?? []
+						list.push( { path, value } )
+						baseEntriesByTopKey.set( topKey, list )
 					}
 
-					const finalUpdates: Record<string, unknown> = { ...baseUpdates }
+					const finalUpdates: Record<string, unknown> = {}
+
+					// Merge the two entry maps before patching so a single
+					// top-level subtree (e.g. `style`) that has BOTH a
+					// state-eligible leaf (`style.color.background`) and a
+					// non-state-eligible sibling (`style.spacing.padding`)
+					// is rebuilt once. Calling buildTopLevelPatch twice
+					// produces two independent deep-clones from
+					// mergedAttributes; Object.assign would then keep the
+					// second clone — silently reverting the first patch's
+					// sibling change.
+					if ( baseEntriesByTopKey.size > 0 || stateEntriesByTopKey.size > 0 ) {
+						const mergedEntries = new Map<string, Array<{ path: string; value: unknown }>>()
+
+						for ( const [ topKey, list ] of baseEntriesByTopKey ) {
+							mergedEntries.set( topKey, list.slice() )
+						}
+
+						for ( const [ topKey, list ] of stateEntriesByTopKey ) {
+							const existing = mergedEntries.get( topKey )
+							if ( existing ) {
+								existing.push( ...list )
+							} else {
+								mergedEntries.set( topKey, list.slice() )
+							}
+						}
+
+						Object.assign(
+							finalUpdates,
+							buildTopLevelPatch( mergedAttributes, mergedEntries ),
+						)
+					}
 
 					if ( statesPatch ) {
 						finalUpdates.states = {
 							...( states ?? {} ),
 							...statesPatch,
 						}
+
+						// #515 follow-up: before the mirror overwrites the
+						// base attribute, capture the original idle value at
+						// every path we're about to mirror. Switching back
+						// to idle would otherwise read the mirrored
+						// non-idle value from the data store and surface it
+						// as the idle base — most visibly when the idle
+						// pick was a palette slug. The snapshot is keyed by
+						// clientId and only adds paths it doesn't already
+						// hold, so subsequent picks on the same path leave
+						// the original capture intact and picks on new
+						// paths extend the snapshot.
+						if ( 'string' === typeof clientId ) {
+							const pathsToSnapshot: string[] = []
+							for ( const list of stateEntriesByTopKey.values() ) {
+								for ( const entry of list ) {
+									pathsToSnapshot.push( entry.path )
+								}
+							}
+
+							extendPristineSnapshot(
+								clientId,
+								attributes,
+								pathsToSnapshot,
+								readPath,
+							)
+						}
 					}
 
 					setAttributes( finalUpdates )
 				},
-				[ activeState, mergedAttributes, states, roots, setAttributes ],
+				[ activeState, attributes, clientId, mergedAttributes, states, roots, setAttributes ],
 			)
 
 			if ( ! roots ) {

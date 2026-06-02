@@ -209,6 +209,79 @@ export function pathMatchesAnyRoot( path: string, roots: string[] ): boolean {
 }
 
 /**
+ * Recursively clone a plain JSON value. Arrays are cloned element-wise;
+ * plain objects are cloned key-by-key. Non-object scalars pass through
+ * unchanged.
+ */
+export function deepClone<T>( value: T ): T {
+    if ( null === value || undefined === value || 'object' !== typeof value ) {
+        return value
+    }
+
+    if ( Array.isArray( value ) ) {
+        return value.map( ( item ) => deepClone( item ) ) as unknown as T
+    }
+
+    const result: Record<string, unknown> = {}
+    for ( const key of Object.keys( value as Record<string, unknown> ) ) {
+        result[ key ] = deepClone( ( value as Record<string, unknown> )[ key ] )
+    }
+
+    return result as unknown as T
+}
+
+/**
+ * Build a top-level patch where each touched key carries a full
+ * subtree (deep-cloned from `attributes`) with the supplied leaves
+ * overwritten. This ensures that `updateBlockAttributes` (which does
+ * a shallow merge at the top level) does NOT clobber siblings of the
+ * changed leaves.
+ */
+export function buildTopLevelPatch(
+    attributes: Record<string, unknown>,
+    entriesByTopKey: Map<string, Array<{ path: string; value: unknown }>>,
+): Record<string, unknown> {
+    const patch: Record<string, unknown> = {}
+
+    for ( const [ topKey, entries ] of entriesByTopKey ) {
+        const current = attributes[ topKey ]
+        let topValue: unknown =
+            current && 'object' === typeof current && ! Array.isArray( current )
+                ? deepClone( current )
+                : current
+
+        for ( const { path, value } of entries ) {
+            const segments = path.split( '.' )
+
+            if ( 1 === segments.length ) {
+                topValue = value
+                continue
+            }
+
+            if ( ! topValue || 'object' !== typeof topValue || Array.isArray( topValue ) ) {
+                topValue = {}
+            }
+
+            let cursor = topValue as Record<string, unknown>
+            for ( let i = 1; i < segments.length - 1; i++ ) {
+                const segment  = segments[ i ]
+                const existing = cursor[ segment ]
+                if ( ! existing || 'object' !== typeof existing || Array.isArray( existing ) ) {
+                    cursor[ segment ] = {}
+                }
+                cursor = cursor[ segment ] as Record<string, unknown>
+            }
+
+            cursor[ segments[ segments.length - 1 ] ] = value
+        }
+
+        patch[ topKey ] = topValue
+    }
+
+    return patch
+}
+
+/**
  * Deep-merge two plain objects. Right wins on scalar collisions;
  * nested objects merge recursively. Arrays are replaced (not merged).
  * Used to overlay the active breakpoint's overrides on top of base

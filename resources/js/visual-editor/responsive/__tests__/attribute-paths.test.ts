@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+	buildTopLevelPatch,
+	deepClone,
 	deepMerge,
 	diffPaths,
 	pathMatchesAnyRoot,
@@ -127,6 +129,76 @@ describe( 'pathMatchesAnyRoot', () => {
 
 	it( 'matches any root in the list', () => {
 		expect( pathMatchesAnyRoot( 'columnCount', [ 'spacing', 'columnCount' ] ) ).toBe( true )
+	} )
+} )
+
+describe( 'deepClone', () => {
+	it( 'clones scalars and null passthrough', () => {
+		expect( deepClone( 42 ) ).toBe( 42 )
+		expect( deepClone( 'text' ) ).toBe( 'text' )
+		expect( deepClone( null ) ).toBeNull()
+		expect( deepClone( undefined ) ).toBeUndefined()
+	} )
+
+	it( 'deep-clones nested objects without sharing references', () => {
+		const original = { a: { b: { c: 1 } } }
+		const cloned   = deepClone( original )
+
+		expect( cloned ).toEqual( original )
+		expect( cloned ).not.toBe( original )
+		expect( ( cloned as Record<string, unknown> ).a ).not.toBe( original.a )
+	} )
+
+	it( 'clones arrays element-wise', () => {
+		const original = [ { x: 1 }, { x: 2 } ]
+		const cloned   = deepClone( original )
+
+		expect( cloned ).toEqual( original )
+		expect( cloned[ 0 ] ).not.toBe( original[ 0 ] )
+	} )
+} )
+
+describe( 'buildTopLevelPatch', () => {
+	it( 'preserves siblings when applying a nested leaf change', () => {
+		const attributes = {
+			style: {
+				color:   { background: '#000' },
+				spacing: { padding: '10px' },
+			},
+		}
+
+		const entries = new Map( [
+			[ 'style', [ { path: 'style.color.background', value: '#fff' } ] ],
+		] )
+
+		const patch = buildTopLevelPatch( attributes, entries )
+
+		expect( ( patch.style as Record<string, unknown> ) ).toEqual( {
+			color:   { background: '#fff' },
+			spacing: { padding: '10px' },
+		} )
+	} )
+
+	it( 'handles top-level scalar entries', () => {
+		const attributes = { backgroundColor: 'old' }
+		const entries    = new Map( [
+			[ 'backgroundColor', [ { path: 'backgroundColor', value: 'new' } ] ],
+		] )
+
+		expect( buildTopLevelPatch( attributes, entries ) ).toEqual( {
+			backgroundColor: 'new',
+		} )
+	} )
+
+	it( 'does not mutate the original attributes', () => {
+		const attributes = { style: { color: { background: '#000' } } }
+		const entries    = new Map( [
+			[ 'style', [ { path: 'style.color.background', value: '#fff' } ] ],
+		] )
+
+		buildTopLevelPatch( attributes, entries )
+
+		expect( ( attributes.style as Record<string, unknown> ).color ).toEqual( { background: '#000' } )
 	} )
 } )
 

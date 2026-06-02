@@ -34,9 +34,9 @@ import { useDispatch, useSelect } from '@wordpress/data'
 import { useEffect, useRef, useSyncExternalStore } from 'react'
 
 import {
+	buildTopLevelPatch,
 	diffPaths,
 	pathMatchesAnyRoot,
-	setPath,
 } from '../responsive/attribute-paths'
 import { getActiveState, subscribeActiveState } from './active-state'
 import { consumeExpectedSyncedAttrs } from './state-bridge'
@@ -111,8 +111,8 @@ export function planCorrection(
 		return null
 	}
 
-	let basePatch: Record<string, unknown> | null = null
-	let statesPatch: StatesByPath | null          = null
+	const entriesByTopKey = new Map<string, Array<{ path: string; value: unknown }>>()
+	let statesPatch: StatesByPath | null = null
 
 	for ( const { path, value } of changedLeaves ) {
 		// Ignore writes to the states bag itself — those are either
@@ -134,7 +134,10 @@ export function planCorrection(
 			[ activeState ]: value,
 		}
 
-		basePatch = setPath( basePatch ?? {}, path, value )
+		const topKey = path.split( '.' )[ 0 ]
+		const list   = entriesByTopKey.get( topKey ) ?? []
+		list.push( { path, value } )
+		entriesByTopKey.set( topKey, list )
 	}
 
 	if ( ! statesPatch ) {
@@ -146,14 +149,21 @@ export function planCorrection(
 		...statesPatch,
 	}
 
+	// Build a sibling-preserving top-level patch. Each touched
+	// subtree (e.g. `style`) is deep-cloned from `curr` with the
+	// changed leaves applied, so `updateBlockAttributes` (shallow
+	// merge at top level) does not clobber siblings like `spacing`
+	// when only `style.color.background` changed.
+	const basePatch = buildTopLevelPatch( curr, entriesByTopKey )
+
 	const updatePayload: Record<string, unknown> = {
-		...( basePatch ?? {} ),
+		...basePatch,
 		states: nextStates,
 	}
 
 	const correctedAttributes: Record<string, unknown> = {
 		...curr,
-		...( basePatch ?? {} ),
+		...basePatch,
 		states: nextStates,
 	}
 

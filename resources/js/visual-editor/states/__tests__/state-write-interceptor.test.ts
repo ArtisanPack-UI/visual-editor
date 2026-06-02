@@ -106,6 +106,75 @@ describe( 'planCorrection', () => {
 		} )
 	} )
 
+	it( 'preserves style siblings when routing a nested path (#515)', () => {
+		const correction = planCorrection(
+			{
+				style: {
+					color:   { background: '#2eccc6' },
+					spacing: { padding: '10px' },
+					border:  { radius: '4px' },
+				},
+			},
+			{
+				style: {
+					color:   { background: '#e11919' },
+					spacing: { padding: '10px' },
+					border:  { radius: '4px' },
+				},
+			},
+			ROOTS,
+			'hover',
+		)
+
+		expect( correction ).not.toBeNull()
+
+		const payloadStyle = correction!.updatePayload.style as Record<string, unknown>
+		expect( ( payloadStyle.color as Record<string, unknown> ).background ).toBe( '#e11919' )
+		// Siblings must survive the shallow merge dispatched by
+		// updateBlockAttributes — otherwise spacing and border would
+		// be clobbered.
+		expect( ( payloadStyle.spacing as Record<string, unknown> ).padding ).toBe( '10px' )
+		expect( ( payloadStyle.border as Record<string, unknown> ).radius ).toBe( '4px' )
+
+		const correctedStyle = correction!.correctedAttributes.style as Record<string, unknown>
+		expect( ( correctedStyle.spacing as Record<string, unknown> ).padding ).toBe( '10px' )
+		expect( ( correctedStyle.border as Record<string, unknown> ).radius ).toBe( '4px' )
+	} )
+
+	it( 'routes a custom hex write on a non-idle state into states (#515)', () => {
+		const correction = planCorrection(
+			{
+				style:  {
+					color:   { background: '#2eccc6' },
+					spacing: { padding: '10px' },
+				},
+				states: {
+					'style.color.background': { hover: '#2eccc6' },
+				},
+			},
+			{
+				style:  {
+					color:   { background: '#e11919' },
+					spacing: { padding: '10px' },
+				},
+				states: {
+					'style.color.background': { hover: '#2eccc6' },
+				},
+			},
+			ROOTS,
+			'hover',
+		)
+
+		expect( correction ).not.toBeNull()
+		expect( correction!.updatePayload.states ).toEqual( {
+			'style.color.background': { hover: '#e11919' },
+		} )
+
+		const payloadStyle = correction!.updatePayload.style as Record<string, unknown>
+		expect( ( payloadStyle.color as Record<string, unknown> ).background ).toBe( '#e11919' )
+		expect( ( payloadStyle.spacing as Record<string, unknown> ).padding ).toBe( '10px' )
+	} )
+
 	it( 'routes multiple state-eligible changes in one diff and keeps base synced', () => {
 		const correction = planCorrection(
 			{ backgroundColor: 'a', textColor: 'b' },

@@ -4,6 +4,9 @@ vi.mock( '@wordpress/blocks', () => ( {
 	getBlockType:    () => null,
 	hasBlockSupport: () => false,
 } ) )
+const mockUpdateBlockAttributes = vi.fn()
+const mockGetBlockAttributes   = vi.fn( () => ( {} ) )
+
 vi.mock( '@wordpress/data', () => ( {
 	useDispatch: () => ( { updateBlockAttributes: vi.fn() } ),
 	useSelect:   () => ( {
@@ -12,23 +15,31 @@ vi.mock( '@wordpress/data', () => ( {
 		attributes: {},
 		isSaving:   false,
 	} ),
+	select:   () => ( { getBlockAttributes: mockGetBlockAttributes } ),
+	dispatch: () => ( { updateBlockAttributes: mockUpdateBlockAttributes } ),
 } ) )
 
 import {
 	applySyncDispatch,
 	buildOverlay,
+	flushBeforeSave,
 	restorePristine,
 	snapshotPristineFor,
 } from '../StateInspectorSync'
 import {
 	consumeExpectedSyncedAttrs,
+	extendPristineSnapshot,
 	getPristineSnapshot,
 	hasPristineSnapshot,
 	resetStateBridge,
 } from '../state-bridge'
+import { readPath } from '../../responsive/attribute-paths'
 
 beforeEach( () => {
 	resetStateBridge()
+	mockUpdateBlockAttributes.mockClear()
+	mockGetBlockAttributes.mockReset()
+	mockGetBlockAttributes.mockReturnValue( {} )
 } )
 
 describe( 'buildOverlay (#511)', () => {
@@ -319,5 +330,107 @@ describe( 'sync → save → restore lifecycle (#511)', () => {
 		const dispatch = vi.fn()
 		restorePristine( clientId, makeAttributes(), dispatch )
 		expect( dispatch ).not.toHaveBeenCalled()
+	} )
+} )
+
+describe( 'flushBeforeSave (#515)', () => {
+	it( 'restores pristine for every block that has a snapshot', () => {
+		const blockA = 'block-a'
+		const blockB = 'block-b'
+
+		snapshotPristineFor( blockA, { backgroundColor: 'idle-a' }, [ 'backgroundColor' ] )
+		snapshotPristineFor( blockB, { backgroundColor: 'idle-b' }, [ 'backgroundColor' ] )
+
+		mockGetBlockAttributes.mockImplementation( ( id: string ) => {
+			if ( 'block-a' === id ) {
+				return { backgroundColor: 'hover-a', states: {} }
+			}
+			if ( 'block-b' === id ) {
+				return { backgroundColor: 'hover-b', states: {} }
+			}
+			return {}
+		} )
+
+		flushBeforeSave()
+
+		expect( mockUpdateBlockAttributes ).toHaveBeenCalledTimes( 2 )
+		expect( hasPristineSnapshot( blockA ) ).toBe( false )
+		expect( hasPristineSnapshot( blockB ) ).toBe( false )
+	} )
+
+	it( 'is a no-op when no snapshots exist', () => {
+		flushBeforeSave()
+		expect( mockUpdateBlockAttributes ).not.toHaveBeenCalled()
+	} )
+} )
+
+describe( 'extendPristineSnapshot (#515 follow-up)', () => {
+	it( 'creates a fresh snapshot when none exists', () => {
+		extendPristineSnapshot(
+			'cid-1',
+			{ backgroundColor: 'palette-red' },
+			[ 'backgroundColor' ],
+			readPath,
+		)
+
+		expect( getPristineSnapshot( 'cid-1' ) ).toEqual( {
+			backgroundColor: 'palette-red',
+		} )
+	} )
+
+	it( 'extends an existing snapshot with new paths', () => {
+		extendPristineSnapshot(
+			'cid-1',
+			{ backgroundColor: 'palette-red' },
+			[ 'backgroundColor' ],
+			readPath,
+		)
+		extendPristineSnapshot(
+			'cid-1',
+			{ backgroundColor: 'palette-red', textColor: 'palette-blue' },
+			[ 'textColor' ],
+			readPath,
+		)
+
+		expect( getPristineSnapshot( 'cid-1' ) ).toEqual( {
+			backgroundColor: 'palette-red',
+			textColor:       'palette-blue',
+		} )
+	} )
+
+	it( 'never overwrites an already-captured path', () => {
+		extendPristineSnapshot(
+			'cid-1',
+			{ backgroundColor: 'palette-red' },
+			[ 'backgroundColor' ],
+			readPath,
+		)
+		// Simulate a second pick on the same path after the base has
+		// been mirrored to the hover value — the snapshot must still
+		// hold the ORIGINAL idle value.
+		extendPristineSnapshot(
+			'cid-1',
+			{ backgroundColor: 'palette-blue' },
+			[ 'backgroundColor' ],
+			readPath,
+		)
+
+		expect( getPristineSnapshot( 'cid-1' ) ).toEqual( {
+			backgroundColor: 'palette-red',
+		} )
+	} )
+
+	it( 'captures undefined for paths the block has never set', () => {
+		extendPristineSnapshot(
+			'cid-1',
+			{ /* no backgroundColor */ },
+			[ 'backgroundColor' ],
+			readPath,
+		)
+
+		const snapshot = getPristineSnapshot( 'cid-1' )
+		expect( snapshot ).not.toBeUndefined()
+		expect( 'backgroundColor' in ( snapshot as Record<string, unknown> ) ).toBe( true )
+		expect( ( snapshot as Record<string, unknown> ).backgroundColor ).toBeUndefined()
 	} )
 } )

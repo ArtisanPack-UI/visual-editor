@@ -80,6 +80,52 @@ export function consumeExpectedSyncedAttrs(
 }
 
 /**
+ * Returns all clientIds that currently have a pristine snapshot.
+ * Used by `flushBeforeSave` to restore every block's pristine base
+ * before host serialization.
+ */
+export function getAllPristineClientIds(): string[] {
+	return Array.from( pristineSnapshots.keys() )
+}
+
+/**
+ * Create or extend a pristine snapshot for `clientId`, recording the
+ * value at each `path` in `attributes` — but only for paths not already
+ * captured. Idempotent on revisits: subsequent calls for the same path
+ * never overwrite the original capture.
+ *
+ * This complements {@link setPristineSnapshot}, which {@link
+ * StateInspectorSync}'s own overlay flow uses to take a one-shot
+ * snapshot keyed on the paths returned by its `planOverlay`. That flow
+ * never captures the FIRST authored state pick, because at that
+ * moment the states bag is still empty and `planOverlay` returns null.
+ * `withStateAttributes` calls this function instead so the original
+ * idle base values are captured before its mirror-to-base step
+ * overwrites them.
+ */
+export function extendPristineSnapshot(
+	clientId: string,
+	attributes: Record<string, unknown>,
+	paths: string[],
+	readPath: ( source: unknown, path: string ) => unknown,
+): void {
+	let snapshot = pristineSnapshots.get( clientId )
+
+	if ( ! snapshot ) {
+		snapshot = {}
+		pristineSnapshots.set( clientId, snapshot )
+	}
+
+	for ( const path of paths ) {
+		if ( path in snapshot ) {
+			continue
+		}
+
+		snapshot[ path ] = readPath( attributes, path )
+	}
+}
+
+/**
  * Test-only — wipe coordination state between specs.
  */
 export function resetStateBridge(): void {
