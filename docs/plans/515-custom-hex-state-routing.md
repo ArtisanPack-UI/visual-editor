@@ -19,7 +19,7 @@ The `withStateAttributes` HOC intercepts `setAttributes` calls from the color pa
 This matters because WordPress's newer block-support panels (color, border, shadow on apiVersion 3 blocks) read attributes via `useSelect('core/block-editor').getBlockAttributes()` — bypassing the HOC's `mergedAttributes` prop entirely. So even though the HOC correctly updated `states.hover`, the inspector panel still read the **old overlaid value** from the data store, making it appear as though the pick had no effect.
 
 **Debug evidence:** Console logs confirmed:
-```
+```text
 [HOC] wrappedSetAttributes called {activeState: "hover", changedPaths: ["style.color.background", "backgroundColor"]}
 [HOC] routed to states: "style.color.background" = "#1ae61d"
 [HOC] dispatching finalUpdates ["states"]   ← only states, NOT the base
@@ -75,7 +75,7 @@ The visual editor does not register a `core/editor` store, so `isSavingPost()` n
 
 ## Testing status
 
-- All 1674 JS tests pass (vitest)
+- All 1683 JS tests pass (vitest)
 - All 805 PHP tests pass (pest)
 - **Not yet verified in browser** — the `jmwd-keystone-cms` host app serves visual-editor assets through a Laravel controller (`VisualEditorAssetController`) with a 1-hour `Cache-Control: max-age=3600` header. This made it very difficult to test new builds during this session because browsers kept serving stale chunks even after hard refresh and private windows. The cache header was temporarily changed to `no-cache` for testing but the stale cache persisted.
 

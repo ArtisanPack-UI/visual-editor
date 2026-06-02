@@ -52,7 +52,6 @@ import { useEffect, useRef, useSyncExternalStore } from 'react'
 
 import {
 	buildTopLevelPatch,
-	deepClone,
 	pathMatchesAnyRoot,
 	readPath,
 } from '../responsive/attribute-paths'
