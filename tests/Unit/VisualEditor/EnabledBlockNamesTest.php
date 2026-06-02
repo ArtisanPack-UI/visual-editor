@@ -66,6 +66,15 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 		'artisanpack/details',
 		'artisanpack/search',
 		'artisanpack/latest-posts',
+		// Comments family — Pass 1 forks (#519).
+		'artisanpack/comments',
+		'artisanpack/comment-template',
+		'artisanpack/comment-author-avatar',
+		'artisanpack/comment-author-name',
+		'artisanpack/comment-content',
+		'artisanpack/comment-date',
+		'artisanpack/comment-edit-link',
+		'artisanpack/comment-reply-link',
 	] );
 } );
 
