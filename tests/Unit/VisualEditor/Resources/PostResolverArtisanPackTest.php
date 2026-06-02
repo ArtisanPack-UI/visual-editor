@@ -120,16 +120,30 @@ it( 'stamps artisanpack/avatar with the author avatar URL and name (#518)', func
 		->and( $resolved['attributes']['_resolvedAuthorName'] )->toBe( 'Jane Doe' );
 } );
 
-it( 'stamps the core/* counterparts for the author family the same as the artisanpack/* forks (#518)', function () {
+it( 'stamps the core/* counterparts for the author family identically to the artisanpack/* forks (#518)', function () {
 	$resolver = new PostResolver();
 	$post     = fakeArtisanPackPost();
 
+	$artisanName = $resolver->stampBlock(
+		[ 'name' => 'artisanpack/post-author-name', 'attributes' => [], 'innerBlocks' => [] ],
+		$post
+	);
 	$coreName = $resolver->stampBlock(
 		[ 'name' => 'core/post-author-name', 'attributes' => [], 'innerBlocks' => [] ],
 		$post
 	);
+
+	$artisanBio = $resolver->stampBlock(
+		[ 'name' => 'artisanpack/post-author-biography', 'attributes' => [], 'innerBlocks' => [] ],
+		$post
+	);
 	$coreBio = $resolver->stampBlock(
 		[ 'name' => 'core/post-author-biography', 'attributes' => [], 'innerBlocks' => [] ],
+		$post
+	);
+
+	$artisanAvatar = $resolver->stampBlock(
+		[ 'name' => 'artisanpack/avatar', 'attributes' => [], 'innerBlocks' => [] ],
 		$post
 	);
 	$coreAvatar = $resolver->stampBlock(
@@ -137,9 +151,13 @@ it( 'stamps the core/* counterparts for the author family the same as the artisa
 		$post
 	);
 
-	expect( $coreName['attributes']['_resolvedAuthorName'] )->toBe( 'Jane Doe' )
-		->and( $coreBio['attributes']['_resolvedAuthorBio'] )->toBe( 'Writer' )
-		->and( $coreAvatar['attributes']['_resolvedAuthorAvatar'] )->toBe( 'https://example.test/avatar.jpg' );
+	// Compare the resolved attribute bags directly so a regression on
+	// either side (e.g. artisanpack/post-author-name silently stops
+	// stamping `_resolvedAuthorUrl`) trips the assertion instead of
+	// passing because the literal-value baseline didn't move.
+	expect( $coreName['attributes'] )->toEqual( $artisanName['attributes'] )
+		->and( $coreBio['attributes'] )->toEqual( $artisanBio['attributes'] )
+		->and( $coreAvatar['attributes'] )->toEqual( $artisanAvatar['attributes'] );
 } );
 
 it( 'recurses into inner blocks so an artisanpack/query template stamps too', function () {

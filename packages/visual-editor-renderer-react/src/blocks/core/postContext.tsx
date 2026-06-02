@@ -211,6 +211,7 @@ export function PostAuthorBlock({ attributes }: BlockRendererProps): JSX.Element
 }
 
 export function PostAuthorNameBlock({ attributes }: BlockRendererProps): JSX.Element {
+    const align = attrString(attributes.textAlign);
     const isLink = attrBoolean(attributes.isLink);
     const linkTarget = attrString(attributes.linkTarget, '_self');
     const className = attrString(attributes.className);
@@ -218,7 +219,11 @@ export function PostAuthorNameBlock({ attributes }: BlockRendererProps): JSX.Ele
     const name = attrString(attributes._resolvedAuthorName);
     const authorUrl = safeUrl(attrString(attributes._resolvedAuthorUrl));
 
-    const classes = classList(['wp-block-post-author-name', className]);
+    const classes = classList([
+        'wp-block-post-author-name',
+        align !== '' ? `has-text-align-${align}` : null,
+        className,
+    ]);
 
     if (isLink && authorUrl !== '') {
         const linkProps = buildLinkProps(authorUrl, linkTarget, '');
@@ -234,10 +239,15 @@ export function PostAuthorNameBlock({ attributes }: BlockRendererProps): JSX.Ele
 }
 
 export function PostAuthorBiographyBlock({ attributes }: BlockRendererProps): JSX.Element {
+    const align = attrString(attributes.textAlign);
     const className = attrString(attributes.className);
     const bio = attrString(attributes._resolvedAuthorBio);
 
-    const classes = classList(['wp-block-post-author-biography', className]);
+    const classes = classList([
+        'wp-block-post-author-biography',
+        align !== '' ? `has-text-align-${align}` : null,
+        className,
+    ]);
 
     return <p className={classes} dangerouslySetInnerHTML={{ __html: bio }} />;
 }

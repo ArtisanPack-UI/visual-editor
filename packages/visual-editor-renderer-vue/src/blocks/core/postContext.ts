@@ -265,6 +265,7 @@ export const PostAuthorNameBlock = defineComponent({
     props: blockRendererProps,
     setup(props) {
         return () => {
+            const align = attrString(props.attributes.textAlign);
             const isLink = attrBoolean(props.attributes.isLink);
             const linkTarget = attrString(props.attributes.linkTarget, '_self');
             const className = attrString(props.attributes.className);
@@ -272,7 +273,11 @@ export const PostAuthorNameBlock = defineComponent({
             const name = attrString(props.attributes._resolvedAuthorName);
             const authorUrl = safeUrl(props.attributes._resolvedAuthorUrl);
 
-            const classes = classList(['wp-block-post-author-name', className]);
+            const classes = classList([
+                'wp-block-post-author-name',
+                align !== '' ? `has-text-align-${align}` : null,
+                className,
+            ]);
 
             if (isLink && authorUrl !== '') {
                 const linkProps = buildLinkProps(authorUrl, linkTarget, '');
@@ -290,10 +295,15 @@ export const PostAuthorBiographyBlock = defineComponent({
     props: blockRendererProps,
     setup(props) {
         return () => {
+            const align = attrString(props.attributes.textAlign);
             const className = attrString(props.attributes.className);
             const bio = attrString(props.attributes._resolvedAuthorBio);
 
-            const classes = classList(['wp-block-post-author-biography', className]);
+            const classes = classList([
+                'wp-block-post-author-biography',
+                align !== '' ? `has-text-align-${align}` : null,
+                className,
+            ]);
 
             return h('p', { class: classes, innerHTML: bio });
         };
