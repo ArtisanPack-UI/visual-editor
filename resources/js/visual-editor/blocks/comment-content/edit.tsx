@@ -7,10 +7,13 @@
  * Comments family fork (#519).
  */
 
+import { __ } from '@wordpress/i18n';
+
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 import { createCommentPlaceholderEdit } from '../_shared/comment-placeholder-edit';
 
 export default createCommentPlaceholderEdit( {
-    label: 'Comment Content',
+    label: __( 'Comment Content', TEXT_DOMAIN ),
     resolvedKey: '_resolvedContent',
     kind: 'html',
     fromCommentPreview: ( comment ) => {

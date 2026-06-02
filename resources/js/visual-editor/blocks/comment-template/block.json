@@ -7,6 +7,16 @@
     "ancestor": [ "artisanpack/comments" ],
     "description": "Contains the block elements used to display a comment, like the title, date, author, avatar and more.",
     "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "commentId": {
+            "type": [ "number", "string", "null" ],
+            "default": null
+        },
+        "commentPreview": {
+            "type": [ "object", "null" ],
+            "default": null
+        }
+    },
     "usesContext": [
         "postId",
         "postType"

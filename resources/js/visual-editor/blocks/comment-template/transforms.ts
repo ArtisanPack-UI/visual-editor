@@ -15,21 +15,30 @@ interface EntityAttributes {
     readonly [ key: string ]: unknown;
 }
 
+type InnerBlocks = Parameters<typeof createBlock>[ 2 ];
+
 const transforms = {
     from: [
         {
             type: 'block',
             blocks: [ 'core/comment-template' ],
-            transform: ( attributes: EntityAttributes ) =>
-                createBlock( name, attributes ),
+            // Loop wrapper — pass innerBlocks through so the per-iteration
+            // template (the leaf comment-* blocks) is preserved across the
+            // namespace swap.
+            transform: (
+                attributes: EntityAttributes,
+                innerBlocks: InnerBlocks = []
+            ) => createBlock( name, attributes, innerBlocks ),
         },
     ],
     to: [
         {
             type: 'block',
             blocks: [ 'core/comment-template' ],
-            transform: ( attributes: EntityAttributes ) =>
-                createBlock( 'core/comment-template', attributes ),
+            transform: (
+                attributes: EntityAttributes,
+                innerBlocks: InnerBlocks = []
+            ) => createBlock( 'core/comment-template', attributes, innerBlocks ),
         },
     ],
 };

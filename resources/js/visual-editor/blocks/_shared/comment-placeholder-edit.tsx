@@ -57,6 +57,16 @@ export interface CommentPlaceholderConfig {
     readonly fromCommentPreview?: (
         comment: CommentPreview
     ) => CommentPreviewValue | null;
+    /**
+     * Optional hook for `image` kind blocks that need to project block
+     * attributes onto the rendered `<img>` (e.g. comment-author-avatar's
+     * `width` / `height`). Returned props are spread before the helper's
+     * default `style` so the helper's `maxWidth: 100%` cap still wins
+     * when no explicit sizing is supplied.
+     */
+    readonly getImageProps?: (
+        attributes: Record<string, unknown>
+    ) => Record<string, unknown>;
 }
 
 const COMMENT_PREVIEW_CONTEXT_KEY = 'artisanpack/commentPreview';
@@ -123,20 +133,25 @@ function hasPreviewValue( kind: CommentPreviewKind, value: CommentPreviewValue )
 }
 
 function renderResolved(
-    kind: CommentPreviewKind,
+    config: CommentPlaceholderConfig,
     value: CommentPreviewValue,
-    blockProps: AnyProps
+    blockProps: AnyProps,
+    attributes: AnyProps
 ): ReactElement {
+    const { kind } = config;
+
     if ( kind === 'html' ) {
         return <div { ...blockProps }>{ htmlToText( value.text ?? '' ) }</div>;
     }
     if ( kind === 'image' ) {
+        const imageProps = config.getImageProps?.( attributes ) ?? {};
         return (
             <div { ...blockProps }>
                 { /* eslint-disable-next-line jsx-a11y/alt-text */ }
                 <img
                     src={ value.imageUrl ?? '' }
                     alt={ value.imageAlt ?? '' }
+                    { ...imageProps }
                     style={ { maxWidth: '100%' } }
                 />
             </div>
@@ -155,7 +170,7 @@ export function createCommentPlaceholderEdit(
 
         const resolvedValue = readResolvedAttributes( config, attributes );
         if ( hasPreviewValue( config.kind, resolvedValue ) ) {
-            return renderResolved( config.kind, resolvedValue, blockProps );
+            return renderResolved( config, resolvedValue, blockProps, attributes );
         }
 
         if ( config.fromCommentPreview !== undefined ) {
@@ -166,7 +181,7 @@ export function createCommentPlaceholderEdit(
                     fromContext !== null &&
                     hasPreviewValue( config.kind, fromContext )
                 ) {
-                    return renderResolved( config.kind, fromContext, blockProps );
+                    return renderResolved( config, fromContext, blockProps, attributes );
                 }
             }
         }

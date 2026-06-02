@@ -13,10 +13,14 @@ import { describe, it, expect, vi } from 'vitest';
 import type { ReactElement } from 'react';
 
 vi.mock('@wordpress/blocks', () => ({
-    createBlock: (name: string, attributes?: Record<string, unknown>) => ({
+    createBlock: (
+        name: string,
+        attributes?: Record<string, unknown>,
+        innerBlocks?: unknown[]
+    ) => ({
         name,
         attributes: attributes ?? {},
-        innerBlocks: [],
+        innerBlocks: innerBlocks ?? [],
     }),
 }));
 
@@ -147,6 +151,44 @@ describe('Comments family transforms', () => {
     );
 });
 
+describe('Comments family wrapper transforms preserve innerBlocks', () => {
+    const WRAPPERS = [
+        { slug: 'comments', transforms: commentsTransforms },
+        { slug: 'comment-template', transforms: commentTemplateTransforms },
+    ] as const;
+
+    it.each(WRAPPERS)(
+        '$slug from-transform passes innerBlocks through',
+        ({ slug, transforms }) => {
+            const t = transforms as TransformsModule;
+            const from = t.from.find((e) => e.blocks?.includes(`core/${slug}`))!;
+            const inner = [{ name: 'core/comment-template', attributes: {}, innerBlocks: [] }];
+            // The transform callback is `(attributes, innerBlocks)` per the
+            // Gutenberg API; wrappers must thread innerBlocks through so the
+            // saved tree survives a core/* ↔ artisanpack/* round-trip.
+            const result = (from.transform as (
+                a: Record<string, unknown>,
+                b?: unknown[]
+            ) => { innerBlocks: unknown[] })({}, inner);
+            expect(result.innerBlocks).toEqual(inner);
+        }
+    );
+
+    it.each(WRAPPERS)(
+        '$slug to-transform passes innerBlocks through',
+        ({ slug, transforms }) => {
+            const t = transforms as TransformsModule;
+            const to = t.to.find((e) => e.blocks?.includes(`core/${slug}`))!;
+            const inner = [{ name: 'artisanpack/comment-template', attributes: {}, innerBlocks: [] }];
+            const result = (to.transform as (
+                a: Record<string, unknown>,
+                b?: unknown[]
+            ) => { innerBlocks: unknown[] })({}, inner);
+            expect(result.innerBlocks).toEqual(inner);
+        }
+    );
+});
+
 describe('Comments family usesContext wiring', () => {
     const PER_COMMENT_BLOCKS = COMMENT_BLOCKS.filter(({ slug }) =>
         slug.startsWith('comment-') && slug !== 'comment-template'
@@ -165,5 +207,20 @@ describe('Comments family usesContext wiring', () => {
         expect(provides).toBeDefined();
         expect(provides!['artisanpack/commentId']).toBe('commentId');
         expect(provides!['artisanpack/commentPreview']).toBe('commentPreview');
+    });
+
+    it('comment-template providesContext keys are backed by declared attributes', () => {
+        // WordPress's block context system reads `providesContext` values
+        // from the block's own `attributes`. Without a matching attributes
+        // declaration, descendants would receive `undefined`. See:
+        // https://developer.wordpress.org/block-editor/reference-guides/block-api/block-context/
+        const provides = (commentTemplateMeta as { providesContext?: Record<string, string> })
+            .providesContext ?? {};
+        const attrs = (commentTemplateMeta as { attributes?: Record<string, unknown> })
+            .attributes ?? {};
+
+        for (const attributeName of Object.values(provides)) {
+            expect(attrs).toHaveProperty(attributeName);
+        }
     });
 });
