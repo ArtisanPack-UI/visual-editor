@@ -289,6 +289,52 @@ describe( 'withStateAttributes — non-idle routing', () => {
 		} )
 	} )
 
+	it( 'preserves both state and non-state writes when they share a top-level key', () => {
+		// Regression for a CodeRabbit-flagged correctness bug:
+		// rebuilding the same top-level subtree twice via two
+		// Object.assign calls clobbered the first patch's siblings. A
+		// single panel write that touches both style.color.background
+		// (state-eligible) and style.spacing.padding (not) must keep
+		// both changes intact.
+		__setBlockType( 'artisanpack/button', {
+			artisanpackStates: { attributes: [ 'backgroundColor', 'style.color.background' ] },
+		} )
+
+		const setAttributes = vi.fn()
+		render(
+			<Wrapped
+				clientId="cid-1"
+				name="artisanpack/button"
+				attributes={ {
+					style: {
+						color:   { background: '#old' },
+						spacing: { padding: '10px' },
+					},
+				} }
+				setAttributes={ setAttributes }
+			/> as never,
+		)
+
+		captured?.setAttributes( {
+			style: {
+				color:   { background: '#new' },
+				spacing: { padding: '20px' },
+			},
+		} )
+
+		const actual = setAttributes.mock.calls[ 0 ][ 0 ]
+		const style  = actual.style as {
+			color: { background: string }
+			spacing: { padding: string }
+		}
+
+		expect( style.color.background ).toBe( '#new' )
+		expect( style.spacing.padding ).toBe( '20px' )
+		expect( actual.states ).toEqual( {
+			'style.color.background': { hover: '#new' },
+		} )
+	} )
+
 	it( 'does not snapshot when no clientId is provided', () => {
 		// Defensive: hosts that wrap BlockEdit components without
 		// forwarding clientId (mostly test harnesses) shouldn't trip

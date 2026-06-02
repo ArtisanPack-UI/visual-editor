@@ -8,7 +8,7 @@ Palette slug picks on the same non-idle chip work correctly — both `attributes
 
 ## Root cause analysis
 
-Three contributing issues were identified. All three are addressed by the code on this branch.
+Four contributing issues were identified. All four are addressed by the code on this branch.
 
 ### 1. HOC did not mirror state-eligible writes to the base attribute
 

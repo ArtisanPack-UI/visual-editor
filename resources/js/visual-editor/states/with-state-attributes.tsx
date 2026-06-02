@@ -259,17 +259,34 @@ export const withStateAttributes = createHigherOrderComponent(
 
 					const finalUpdates: Record<string, unknown> = {}
 
-					if ( baseEntriesByTopKey.size > 0 ) {
-						Object.assign(
-							finalUpdates,
-							buildTopLevelPatch( mergedAttributes, baseEntriesByTopKey ),
-						)
-					}
+					// Merge the two entry maps before patching so a single
+					// top-level subtree (e.g. `style`) that has BOTH a
+					// state-eligible leaf (`style.color.background`) and a
+					// non-state-eligible sibling (`style.spacing.padding`)
+					// is rebuilt once. Calling buildTopLevelPatch twice
+					// produces two independent deep-clones from
+					// mergedAttributes; Object.assign would then keep the
+					// second clone — silently reverting the first patch's
+					// sibling change.
+					if ( baseEntriesByTopKey.size > 0 || stateEntriesByTopKey.size > 0 ) {
+						const mergedEntries = new Map<string, Array<{ path: string; value: unknown }>>()
 
-					if ( stateEntriesByTopKey.size > 0 ) {
+						for ( const [ topKey, list ] of baseEntriesByTopKey ) {
+							mergedEntries.set( topKey, list.slice() )
+						}
+
+						for ( const [ topKey, list ] of stateEntriesByTopKey ) {
+							const existing = mergedEntries.get( topKey )
+							if ( existing ) {
+								existing.push( ...list )
+							} else {
+								mergedEntries.set( topKey, list.slice() )
+							}
+						}
+
 						Object.assign(
 							finalUpdates,
-							buildTopLevelPatch( mergedAttributes, stateEntriesByTopKey ),
+							buildTopLevelPatch( mergedAttributes, mergedEntries ),
 						)
 					}
 
