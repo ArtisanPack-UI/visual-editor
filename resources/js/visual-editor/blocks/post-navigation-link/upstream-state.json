@@ -1,0 +1,73 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/post-navigation-link",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/post-navigation-link",
+        "pinnedVersion": "9.43.0",
+        "subpath": "post-navigation-link"
+    },
+    "forkedAt": "2026-06-02",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; queryId + artisanpack/postPreview added to usesContext so the editor preview can read the query-loop context. attribute schema and supports carried verbatim for parity."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Previews via the lightweight createEntityPlaceholderEdit helper. The adjacent-post identity is a derived sibling-of-current-post relation the server computes at render time, so the editor preview synthesizes a styled fallback from the block's label / arrow / type attributes instead of querying core-data. Front-end markup is produced server-side from the stamped _resolvedAdjacent* attributes."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Dynamic block — returns null; markup produced server-side from stamped _resolvedAdjacent* attributes."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Bidirectional core/post-navigation-link ↔ artisanpack/post-navigation-link block transforms for the rollout window."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG inserter icon (editor lacks dashicons.css)."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract."
+        },
+        {
+            "fork": "deprecated.ts",
+            "upstream": "deprecated.js",
+            "status": "adapted",
+            "notes": "Single v1 entry ported to TypeScript: migrates the legacy top-level textAlign attribute into the canonical block-support shape via the vendored migrate-text-align helper. Save returns null — block is server-rendered."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx previews via createEntityPlaceholderEdit rather than upstream edit.js — the adjacent-post identity isn't computable in the editor without a network round-trip the upstream edit also lacks (upstream just renders the configured label or a placeholder).",
+        "post-navigation-link is server-rendered: the front-end markup is produced by the Blade/React/Vue renderers from stamped _resolvedAdjacent* attributes, not by save().",
+        "transforms.ts adds bidirectional block transforms that do not exist upstream — required to coexist with core/post-navigation-link during the V1 rollout."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-06-02",
+        "reviewer": "Issue #520 — post navigation / metadata family"
+    }
+}

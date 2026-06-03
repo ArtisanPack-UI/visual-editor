@@ -44,6 +44,36 @@ export interface QueryPreviewPost {
         width?: number;
         height?: number;
     } | null;
+    /**
+     * Taxonomy terms keyed by taxonomy slug. Powers the
+     * `artisanpack/post-terms` editor preview when inside a resolved
+     * query loop (#520).
+     */
+    terms?: Record<string, ReadonlyArray<{
+        name?: string;
+        slug?: string;
+        url?: string;
+    }>>;
+    /**
+     * Adjacent post pair (previous / next). Powers the
+     * `artisanpack/post-navigation-link` editor preview when inside a
+     * resolved query loop (#520).
+     */
+    adjacent?: {
+        previous?: { title?: string; url?: string } | null;
+        next?: { title?: string; url?: string } | null;
+    } | null;
+    /**
+     * Primary term for the post. Powers the
+     * `artisanpack/term-description` editor preview when inside a
+     * resolved query loop (#520).
+     */
+    term?: {
+        name?: string;
+        slug?: string;
+        url?: string;
+        description?: string;
+    } | null;
 }
 
 export type QueryPreviewStatus = 'idle' | 'loading' | 'ready' | 'error';
@@ -348,7 +378,96 @@ function mapWpEntityToPost(entity: Record<string, unknown>): QueryPreviewPost {
             typeof preview.dateFormatted === 'string' ? preview.dateFormatted : undefined,
         author: mapPreviewAuthor(preview.author),
         featuredImage: mapPreviewFeaturedImage(preview.featuredImage),
+        terms: mapPreviewTerms(preview.terms),
+        adjacent: mapPreviewAdjacent(preview.adjacent),
+        term: mapPreviewTerm(preview.term),
     };
+}
+
+function mapPreviewTerms(value: unknown): QueryPreviewPost['terms'] {
+    if (value === null || typeof value !== 'object') {
+        return undefined;
+    }
+
+    const out: NonNullable<QueryPreviewPost['terms']> = {};
+
+    for (const [taxonomy, raw] of Object.entries(value as Record<string, unknown>)) {
+        if (!Array.isArray(raw)) {
+            continue;
+        }
+
+        const normalized = raw
+            .filter(
+                (term): term is Record<string, unknown> =>
+                    term !== null && typeof term === 'object'
+            )
+            .map((term) => {
+                const record: { name?: string; slug?: string; url?: string } = {};
+
+                if (typeof term.name === 'string') record.name = term.name;
+                if (typeof term.slug === 'string') record.slug = term.slug;
+                if (typeof term.url === 'string') record.url = term.url;
+
+                return record;
+            })
+            // Drop blank records (no name/slug/url) so consumers don't
+            // iterate over empty placeholders — mirrors the
+            // mapAdjacentEntry / mapPreviewTerm pruning below.
+            .filter((record) => Object.keys(record).length > 0);
+
+        if (normalized.length > 0) {
+            out[taxonomy] = normalized;
+        }
+    }
+
+    return Object.keys(out).length === 0 ? undefined : out;
+}
+
+function mapPreviewAdjacent(value: unknown): QueryPreviewPost['adjacent'] {
+    if (value === null || typeof value !== 'object') {
+        return null;
+    }
+
+    const record = value as Record<string, unknown>;
+
+    return {
+        previous: mapAdjacentEntry(record.previous),
+        next: mapAdjacentEntry(record.next),
+    };
+}
+
+function mapAdjacentEntry(value: unknown): { title?: string; url?: string } | null {
+    if (value === null || typeof value !== 'object') {
+        return null;
+    }
+
+    const record = value as Record<string, unknown>;
+    const entry: { title?: string; url?: string } = {};
+
+    if (typeof record.title === 'string') entry.title = record.title;
+    if (typeof record.url === 'string') entry.url = record.url;
+
+    if (entry.title === undefined && entry.url === undefined) {
+        return null;
+    }
+
+    return entry;
+}
+
+function mapPreviewTerm(value: unknown): QueryPreviewPost['term'] {
+    if (value === null || typeof value !== 'object') {
+        return null;
+    }
+
+    const record = value as Record<string, unknown>;
+    const term: { name?: string; slug?: string; url?: string; description?: string } = {};
+
+    if (typeof record.name === 'string') term.name = record.name;
+    if (typeof record.slug === 'string') term.slug = record.slug;
+    if (typeof record.url === 'string') term.url = record.url;
+    if (typeof record.description === 'string') term.description = record.description;
+
+    return Object.keys(term).length === 0 ? null : term;
 }
 
 function mapPreviewAuthor(value: unknown): QueryPreviewPost['author'] {

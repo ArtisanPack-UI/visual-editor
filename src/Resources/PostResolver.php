@@ -77,6 +77,18 @@ class PostResolver
 		'artisanpack/post-comments-link',
 		'artisanpack/post-comments-title',
 		'artisanpack/post-comments-form',
+		// Post navigation / metadata family forks (#520) — same `_resolved*`
+		// contract, new namespace. `term-description` is archive-context
+		// only, but we stamp the post's primary-term description on it so
+		// hosts that drop the block inside a query loop still get content.
+		'core/post-navigation-link',
+		'core/post-terms',
+		'core/read-more',
+		'core/term-description',
+		'artisanpack/post-navigation-link',
+		'artisanpack/post-terms',
+		'artisanpack/read-more',
+		'artisanpack/term-description',
 	];
 
 	/**
@@ -164,6 +176,10 @@ class PostResolver
 			'post-comments-count'     => $this->resolveCommentsCount( $post ),
 			'post-comments-link'      => $this->resolveCommentsLink( $post ),
 			'post-comments-title'     => $this->resolveCommentsTitle( $post ),
+			'post-navigation-link'    => $this->resolvePostNavigationLink( $post ),
+			'post-terms'              => $this->resolvePostTerms( $post ),
+			'read-more'               => $this->resolveReadMore( $post ),
+			'term-description'        => $this->resolveTermDescription( $post ),
 			default                   => [],
 		};
 	}
@@ -336,6 +352,301 @@ class PostResolver
 				$count,
 				[ 'count' => $count ]
 			),
+		];
+	}
+
+	/**
+	 * Stamp the adjacent (previous + next) post links onto a
+	 * `post-navigation-link` block. The block's `type` attribute decides
+	 * which pair the renderer picks at render time — the resolver always
+	 * stamps both so a single iteration covers either configuration.
+	 *
+	 * The adjacent posts are read from one of the common host
+	 * conventions ($post->previous_post / $post->prev / $post->next /
+	 * $post->next_post). Hosts that don't expose an adjacency relation
+	 * get empty values; the renderer emits a no-link shell.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function resolvePostNavigationLink( object $post ): array
+	{
+		$previous = $this->adjacentPost( $post, 'previous' );
+		$next     = $this->adjacentPost( $post, 'next' );
+
+		return [
+			'_resolvedPrevUrl'   => null === $previous ? '' : $this->permalink( $previous ),
+			'_resolvedPrevTitle' => null === $previous ? '' : (string) ( $previous->title ?? '' ),
+			'_resolvedNextUrl'   => null === $next ? '' : $this->permalink( $next ),
+			'_resolvedNextTitle' => null === $next ? '' : (string) ( $next->title ?? '' ),
+			// Hosts that don't expose a `previous_post` / `next_post`
+			// accessor on their Post model see both directions resolve to
+			// empty. The renderer collapses that to a no-link shell so
+			// the surrounding template still lays out correctly; wire the
+			// accessors on the host model to populate the front end.
+		];
+	}
+
+	/**
+	 * Stamp the post's taxonomy terms onto a `post-terms` block. Stamps
+	 * a `_resolvedTermsByTaxonomy` map keyed by taxonomy slug — the
+	 * renderer picks the relevant entry using the block's own `term`
+	 * attribute and joins them using `separator` / `prefix` / `suffix`.
+	 *
+	 * Reads terms from whichever convention the underlying model
+	 * exposes:
+	 *
+	 *  - `$post->terms` — an iterable of term-shaped objects with a
+	 *     `taxonomy` property (matches the WP convention).
+	 *  - `$post->categories` / `$post->tags` — well-known shortcuts that
+	 *     map onto the `category` / `post_tag` taxonomies.
+	 *
+	 * Each term is normalised to `{name, slug, url}` so the renderer
+	 * doesn't have to know the underlying object shape.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function resolvePostTerms( object $post ): array
+	{
+		return [
+			'_resolvedTermsByTaxonomy' => $this->termsByTaxonomy( $post ),
+		];
+	}
+
+	/**
+	 * Stamp the post's permalink onto a `read-more` block. The block's
+	 * own `content` attribute carries the link text; the renderer just
+	 * needs the `href`.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function resolveReadMore( object $post ): array
+	{
+		return [
+			'_resolvedPermalink' => $this->permalink( $post ),
+		];
+	}
+
+	/**
+	 * Allow-list for HTML tags surviving the term-description sanitizer.
+	 * Mirrors {@see CommentResolver::COMMENT_CONTENT_ALLOWED_TAGS} so
+	 * descriptions can carry basic formatting (paragraphs, emphasis,
+	 * inline code, anchors) without giving the host an unsanitized
+	 * `dangerouslySetInnerHTML` injection vector on the editor and
+	 * front-end renderers.
+	 */
+	protected const TERM_DESCRIPTION_ALLOWED_TAGS = '<a><abbr><b><blockquote><br><cite><code><em><i><p><q><s><strong>';
+
+	/**
+	 * Stamp the post's primary-term description onto a `term-description`
+	 * block. `term-description` is an archive-context block in upstream
+	 * Gutenberg, but stamping the primary-term description lets hosts
+	 * drop the block inside a query loop and still get meaningful content
+	 * (e.g. "showing posts in <category>"). When no primary term is
+	 * available the renderer falls back to a no-content shell.
+	 *
+	 * The description is sanitized through an allow-list strip_tags +
+	 * the same on-event-attribute / javascript: scrub `CommentResolver`
+	 * uses, so the front-end renderer (Blade `{!! !!}`) and editor
+	 * preview (React `dangerouslySetInnerHTML`) can trust the stamped
+	 * string without a follow-up escape.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function resolveTermDescription( object $post ): array
+	{
+		$term = $this->primaryTerm( $post );
+
+		if ( null === $term ) {
+			return [
+				'_resolvedTermDescription' => '',
+				'_resolvedTermName'        => '',
+				'_resolvedTermUrl'         => '',
+			];
+		}
+
+		$termUrl = '';
+		if ( isset( $term->url ) && is_scalar( $term->url ) ) {
+			$termUrl = (string) $term->url;
+		} elseif ( isset( $term->permalink ) && is_scalar( $term->permalink ) ) {
+			$termUrl = (string) $term->permalink;
+		}
+
+		$rawDescription = isset( $term->description ) && is_scalar( $term->description )
+			? (string) $term->description
+			: '';
+
+		return [
+			'_resolvedTermDescription' => $this->sanitizeTermDescription( $rawDescription ),
+			'_resolvedTermName'        => isset( $term->name ) && is_scalar( $term->name ) ? (string) $term->name : '',
+			'_resolvedTermUrl'         => $termUrl,
+		];
+	}
+
+	/**
+	 * Strip everything outside {@see self::TERM_DESCRIPTION_ALLOWED_TAGS}
+	 * and scrub any `on*` event-handler attributes / `javascript:` URLs
+	 * that survive the allow-list. Mirrors `CommentResolver::sanitize()`'s
+	 * sequence so the two resolvers stay in sync.
+	 */
+	protected function sanitizeTermDescription( string $description ): string
+	{
+		if ( '' === $description ) {
+			return '';
+		}
+
+		$description = strip_tags( $description, self::TERM_DESCRIPTION_ALLOWED_TAGS );
+		$description = preg_replace( '/\son[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $description ) ?? '';
+		$description = preg_replace( '/(href|src)\s*=\s*(["\']?)\s*javascript:[^"\'\s>]*\2/i', '$1=$2#$2', $description ) ?? '';
+
+		return $description;
+	}
+
+	/**
+	 * Resolve the adjacent post for the given direction. Tries the
+	 * commonly-named accessors first; returns null when the model does
+	 * not expose any adjacency.
+	 */
+	protected function adjacentPost( object $post, string $direction ): ?object
+	{
+		$candidates = 'previous' === $direction
+			? [ 'previous_post', 'previousPost', 'prev_post', 'prevPost', 'prev', 'previous' ]
+			: [ 'next_post', 'nextPost', 'next' ];
+
+		foreach ( $candidates as $key ) {
+			$value = $post->{$key} ?? null;
+
+			if ( is_object( $value ) ) {
+				return $value;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Normalise the post's terms into a `{taxonomy: [{name, slug, url}]}`
+	 * map. Tolerant to several common model shapes; degrades to an empty
+	 * map when the model does not expose any taxonomy relations.
+	 *
+	 * @return array<string, array<int, array<string, string>>>
+	 */
+	protected function termsByTaxonomy( object $post ): array
+	{
+		$out = [];
+
+		$general = $post->terms ?? null;
+
+		if ( is_iterable( $general ) ) {
+			foreach ( $general as $term ) {
+				if ( ! is_object( $term ) ) {
+					continue;
+				}
+
+				$taxonomy = isset( $term->taxonomy ) && is_scalar( $term->taxonomy )
+					? (string) $term->taxonomy
+					: '';
+
+				if ( '' === $taxonomy ) {
+					continue;
+				}
+
+				$out[ $taxonomy ] ??= [];
+				$out[ $taxonomy ][] = $this->normaliseTerm( $term );
+			}
+		}
+
+		foreach ( [ 'categories' => 'category', 'tags' => 'post_tag' ] as $relation => $taxonomy ) {
+			$collection = $post->{$relation} ?? null;
+
+			if ( ! is_iterable( $collection ) ) {
+				continue;
+			}
+
+			$out[ $taxonomy ] ??= [];
+
+			foreach ( $collection as $term ) {
+				if ( ! is_object( $term ) ) {
+					continue;
+				}
+
+				$out[ $taxonomy ][] = $this->normaliseTerm( $term );
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Resolve the post's "primary" term. Hosts that expose a
+	 * `primary_term` / `primaryTerm` accessor (e.g. via a Yoast-style
+	 * meta) win; otherwise the first term from the first taxonomy with
+	 * any terms is used. Returns null when the post has no terms at all.
+	 */
+	protected function primaryTerm( object $post ): ?object
+	{
+		foreach ( [ 'primary_term', 'primaryTerm' ] as $key ) {
+			$value = $post->{$key} ?? null;
+
+			if ( is_object( $value ) ) {
+				return $value;
+			}
+		}
+
+		$general = $post->terms ?? null;
+
+		if ( is_iterable( $general ) ) {
+			foreach ( $general as $term ) {
+				if ( is_object( $term ) ) {
+					return $term;
+				}
+			}
+		}
+
+		foreach ( [ 'categories', 'tags' ] as $relation ) {
+			$collection = $post->{$relation} ?? null;
+
+			if ( ! is_iterable( $collection ) ) {
+				continue;
+			}
+
+			foreach ( $collection as $term ) {
+				if ( is_object( $term ) ) {
+					return $term;
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * @return array<string, string>
+	 */
+	protected function normaliseTerm( object $term ): array
+	{
+		// `url` is preferred for hosts that expose a generic URL accessor,
+		// but `permalink` is the cms-framework convention (PostCategory /
+		// PostTag use `getPermalinkAttribute()`). Fall through so the
+		// renderer-side link target populates regardless.
+		$url = '';
+		if ( isset( $term->url ) && is_scalar( $term->url ) ) {
+			$url = (string) $term->url;
+		} elseif ( isset( $term->permalink ) && is_scalar( $term->permalink ) ) {
+			$url = (string) $term->permalink;
+		}
+
+		return [
+			'name' => isset( $term->name ) && is_scalar( $term->name ) ? (string) $term->name : '',
+			'slug' => isset( $term->slug ) && is_scalar( $term->slug ) ? (string) $term->slug : '',
+			'url'  => $url,
 		];
 	}
 
