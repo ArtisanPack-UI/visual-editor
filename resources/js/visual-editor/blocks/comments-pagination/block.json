@@ -1,0 +1,55 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/comments-pagination",
+    "title": "Comments Pagination",
+    "category": "theme",
+    "description": "Displays a paginated navigation to next/previous set of comments, when applicable.",
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "paginationArrow": {
+            "type": "string",
+            "default": "none"
+        }
+    },
+    "providesContext": {
+        "comments/paginationArrow": "paginationArrow"
+    },
+    "supports": {
+        "align": true,
+        "reusable": false,
+        "html": false,
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true,
+                "link": true
+            }
+        },
+        "layout": {
+            "allowSwitching": false,
+            "allowInheriting": false,
+            "default": {
+                "type": "flex"
+            }
+        },
+        "interactivity": {
+            "clientNavigation": true
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "__experimentalFontFamily": true,
+            "__experimentalFontWeight": true,
+            "__experimentalFontStyle": true,
+            "__experimentalTextTransform": true,
+            "__experimentalTextDecoration": true,
+            "__experimentalLetterSpacing": true,
+            "__experimentalDefaultControls": {
+                "fontSize": true
+            }
+        }
+    }
+}

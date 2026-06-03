@@ -64,6 +64,31 @@ it( 'stamps comment-content attributes', function () {
 	expect( $resolved['attributes']['_resolvedContent'] )->toBe( '<p>Great post!</p>' );
 } );
 
+it( 'sanitizes comment-content against stored XSS payloads', function () {
+	$resolver = new CommentResolver();
+
+	// Script tags and disallowed structural tags are stripped wholesale.
+	$scripted = $resolver->stampBlock(
+		[ 'name' => 'artisanpack/comment-content', 'attributes' => [], 'innerBlocks' => [] ],
+		fakeComment( [ 'content' => '<p>Hi</p><script>alert(1)</script><iframe src="https://evil"></iframe>' ] )
+	);
+	expect( $scripted['attributes']['_resolvedContent'] )->toBe( '<p>Hi</p>alert(1)' );
+
+	// Inline event handlers on otherwise-safe tags are stripped.
+	$handler = $resolver->stampBlock(
+		[ 'name' => 'artisanpack/comment-content', 'attributes' => [], 'innerBlocks' => [] ],
+		fakeComment( [ 'content' => '<a href="https://example.test" onclick="alert(1)">link</a>' ] )
+	);
+	expect( $handler['attributes']['_resolvedContent'] )->toBe( '<a href="https://example.test">link</a>' );
+
+	// `javascript:` URLs on safe tags are neutralized to a harmless anchor.
+	$jsUrl = $resolver->stampBlock(
+		[ 'name' => 'artisanpack/comment-content', 'attributes' => [], 'innerBlocks' => [] ],
+		fakeComment( [ 'content' => '<a href="javascript:alert(1)">click</a>' ] )
+	);
+	expect( $jsUrl['attributes']['_resolvedContent'] )->toBe( '<a href="#">click</a>' );
+} );
+
 it( 'stamps comment-date attributes', function () {
 	$resolved = ( new CommentResolver() )->stampBlock(
 		[ 'name' => 'core/comment-date', 'attributes' => [], 'innerBlocks' => [] ],

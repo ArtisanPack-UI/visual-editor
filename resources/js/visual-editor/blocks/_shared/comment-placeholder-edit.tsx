@@ -67,6 +67,15 @@ export interface CommentPlaceholderConfig {
     readonly getImageProps?: (
         attributes: Record<string, unknown>
     ) => Record<string, unknown>;
+    /**
+     * Realistic dummy data to display in the editor canvas when no
+     * resolved value and no `artisanpack/commentPreview` context is
+     * available. Authors editing a template (in the site editor or
+     * post editor) get a representative block they can style — much
+     * more useful than a generic "Comment Author Name" placeholder
+     * chip. Front-end render never sees this; only the editor does.
+     */
+    readonly dummyValue?: CommentPreviewValue;
 }
 
 const COMMENT_PREVIEW_CONTEXT_KEY = 'artisanpack/commentPreview';
@@ -184,6 +193,17 @@ export function createCommentPlaceholderEdit(
                     return renderResolved( config, fromContext, blockProps, attributes );
                 }
             }
+        }
+
+        // No resolved data + no commentPreview context — render the
+        // configured dummy value so authors editing a template (with
+        // no specific post in scope) see what the block will look like
+        // styled. Final fallback is the original labelled chip.
+        if (
+            config.dummyValue !== undefined &&
+            hasPreviewValue( config.kind, config.dummyValue )
+        ) {
+            return renderResolved( config, config.dummyValue, blockProps, attributes );
         }
 
         return (

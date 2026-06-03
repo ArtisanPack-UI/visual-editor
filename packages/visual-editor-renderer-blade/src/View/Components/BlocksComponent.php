@@ -24,7 +24,9 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\View\Components;
 
+use ArtisanPackUI\VisualEditor\Resources\CommentInliner;
 use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
+use ArtisanPackUI\VisualEditor\Resources\PostResolver;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
@@ -56,6 +58,8 @@ class BlocksComponent extends Component
 		protected TemplatePartInliner $inliner,
 		protected PatternInliner $patternInliner,
 		protected QueryInliner $queryInliner,
+		protected CommentInliner $commentInliner,
+		protected PostResolver $postResolver,
 		protected NavigationBlockRefResolver $navigationResolver,
 		protected GlobalStylesEmissionResolver $globalStyles,
 		protected GlobalStylesEmissionTracker $emissionTracker,
@@ -63,9 +67,12 @@ class BlocksComponent extends Component
 		protected StateCssAccumulator $stateAccumulator,
 		mixed $tree = null,
 		?string $defaultTheme = null,
+		mixed $post = null,
 		bool $resolveParts = true,
 		bool $resolvePatterns = true,
 		bool $resolveQueries = true,
+		bool $resolveComments = true,
+		bool $resolvePost = true,
 		bool $resolveNavigation = true,
 	) {
 		$this->defaultTheme = $defaultTheme;
@@ -88,6 +95,31 @@ class BlocksComponent extends Component
 		// gets each cloned nav block resolved to its menu items.
 		$resolved = $resolveQueries
 			? $this->queryInliner->inline( $resolved )
+			: $resolved;
+
+		// Comment inlining runs after query inlining so a `core/query` loop
+		// of posts where each iteration includes an `artisanpack/comments`
+		// block still works — though in that nested scenario the inliner
+		// will mark the comments block as unresolved unless the iteration
+		// stamped `$post` through a follow-up pass (tracked separately).
+		// For the common case (single-post template with a top-level
+		// `comments` block + the host post in scope), the supplied `$post`
+		// drives per-comment expansion via CommentResolver.
+		$resolved = ( $resolveComments && is_object( $post ) )
+			? $this->commentInliner->inline( $resolved, $post )
+			: $resolved;
+
+		// Top-level post resolution. When `$post` is supplied (e.g. a
+		// single-post or single-page template), `PostResolver` stamps the
+		// `_resolved*` keys on every `post-*` block in the saved tree —
+		// post-title, post-content, post-author-name, post-featured-image,
+		// post-comments-count, post-comments-link, post-comments-title,
+		// etc. — so they render against the current entity without each
+		// host having to wire a separate resolver pass. QueryInliner has
+		// already stamped per-iteration posts inside `post-template`
+		// expansions; this pass handles everything outside those loops.
+		$resolved = ( $resolvePost && is_object( $post ) )
+			? $this->postResolver->stampTree( $resolved, $post )
 			: $resolved;
 
 		// Navigation resolution mirrors the editor's read path

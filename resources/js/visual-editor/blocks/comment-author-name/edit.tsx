@@ -20,4 +20,5 @@ export default createCommentPlaceholderEdit( {
         const name = comment.authorName;
         return typeof name === 'string' && name !== '' ? { text: name } : null;
     },
+    dummyValue: { text: 'Jane Doe' },
 } );

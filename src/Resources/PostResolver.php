@@ -64,6 +64,19 @@ class PostResolver
 		'artisanpack/post-author-name',
 		'artisanpack/post-author-biography',
 		'artisanpack/avatar',
+		// Comments-family forks (#519) Pass 2 — post-level comment metadata.
+		// The per-comment cluster (`comment-*` inside `comment-template`)
+		// resolves through {@see CommentResolver}; these post-level blocks
+		// resolve from the parent post's comment counters / URL the same
+		// way `post-author-*` resolves from `$post->author`.
+		'core/post-comments-count',
+		'core/post-comments-link',
+		'core/post-comments-title',
+		'core/post-comments-form',
+		'artisanpack/post-comments-count',
+		'artisanpack/post-comments-link',
+		'artisanpack/post-comments-title',
+		'artisanpack/post-comments-form',
 	];
 
 	/**
@@ -147,6 +160,10 @@ class PostResolver
 			'post-author-biography',
 			'avatar'                  => $this->resolveAuthor( $post ),
 			'post-featured-image'     => $this->resolveFeaturedImage( $post ),
+			'post-comments-form'      => $this->resolveCommentsForm( $post ),
+			'post-comments-count'     => $this->resolveCommentsCount( $post ),
+			'post-comments-link'      => $this->resolveCommentsLink( $post ),
+			'post-comments-title'     => $this->resolveCommentsTitle( $post ),
 			default                   => [],
 		};
 	}
@@ -258,6 +275,106 @@ class PostResolver
 			'_resolvedImageHeight' => $height,
 			'_resolvedPermalink'   => $this->permalink( $post ),
 		];
+	}
+
+	/**
+	 * Stamp the post's id on a `post-comments-form` block so its
+	 * renderer can emit a hidden `<input name="post_id">` and route
+	 * the submission to the right post. Without this, a standalone
+	 * comments-form (one not nested inside an `artisanpack/comments`
+	 * wrapper) sends an empty `post_id` and the host's form-handler
+	 * rejects on validation.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function resolveCommentsForm( object $post ): array
+	{
+		return [
+			'_resolvedPostId' => isset( $post->id ) ? (int) $post->id : 0,
+		];
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	protected function resolveCommentsCount( object $post ): array
+	{
+		return [
+			'_resolvedCommentCount' => $this->commentCount( $post ),
+		];
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	protected function resolveCommentsLink( object $post ): array
+	{
+		$count = $this->commentCount( $post );
+
+		return [
+			'_resolvedCommentCount'   => $count,
+			'_resolvedCommentsUrl'    => $this->commentsUrl( $post ),
+			'_resolvedCommentsLabel'  => trans_choice(
+				'{0} :count Comments|{1} :count Comment|[2,*] :count Comments',
+				$count,
+				[ 'count' => $count ]
+			),
+		];
+	}
+
+	/**
+	 * @return array<string, mixed>
+	 */
+	protected function resolveCommentsTitle( object $post ): array
+	{
+		$count = $this->commentCount( $post );
+
+		return [
+			'_resolvedCommentCount'   => $count,
+			'_resolvedCommentsTitle'  => trans_choice(
+				'{0} No Comments|{1} 1 Comment|[2,*] :count Comments',
+				$count,
+				[ 'count' => $count ]
+			),
+		];
+	}
+
+	/**
+	 * Read the comment count from whichever convention the underlying
+	 * model exposes — Eloquent's `comments_count` accessor (when the
+	 * relation has been counted), a `comment_count` column (matches
+	 * WP's posts table), or a counted `comments` collection. Defaults
+	 * to zero so the partials render "0 Comments" rather than a
+	 * placeholder shell.
+	 */
+	protected function commentCount( object $post ): int
+	{
+		$raw = $post->comments_count ?? $post->comment_count ?? null;
+
+		if ( is_int( $raw ) || ( is_string( $raw ) && ctype_digit( $raw ) ) ) {
+			return (int) $raw;
+		}
+
+		$comments = $post->comments ?? null;
+
+		if ( is_countable( $comments ) ) {
+			return count( $comments );
+		}
+
+		return 0;
+	}
+
+	protected function commentsUrl( object $post ): string
+	{
+		$url = $post->comments_url ?? null;
+
+		if ( is_string( $url ) && '' !== $url ) {
+			return $url;
+		}
+
+		$permalink = $this->permalink( $post );
+
+		return '' === $permalink ? '' : $permalink . '#comments';
 	}
 
 	protected function permalink( object $post ): string

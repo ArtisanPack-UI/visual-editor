@@ -37,4 +37,11 @@ export default createCommentPlaceholderEdit( {
         }
         return props;
     },
+    // Default Gravatar "mp" (mystery person) silhouette so the avatar
+    // block paints as a real image in the editor even when authoring
+    // outside a specific comment context.
+    dummyValue: {
+        imageUrl: 'https://www.gravatar.com/avatar/?d=mp&s=96',
+        imageAlt: 'Jane Doe',
+    },
 } );

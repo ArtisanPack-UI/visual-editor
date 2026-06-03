@@ -22,4 +22,5 @@ export default createCommentPlaceholderEdit( {
             ? { text: formatted }
             : null;
     },
+    dummyValue: { text: 'October 25, 2024' },
 } );

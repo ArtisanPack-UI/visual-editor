@@ -55,6 +55,24 @@ import {
     PostFeaturedImageBlock,
     PostTitleBlock,
 } from './core/postContext';
+import {
+    CommentAuthorAvatarBlock,
+    CommentAuthorNameBlock,
+    CommentContentBlock,
+    CommentDateBlock,
+    CommentEditLinkBlock,
+    CommentReplyLinkBlock,
+    CommentTemplateBlock,
+    CommentsBlock,
+    CommentsPaginationBlock,
+    CommentsPaginationNextBlock,
+    CommentsPaginationNumbersBlock,
+    CommentsPaginationPreviousBlock,
+    PostCommentsCountBlock,
+    PostCommentsFormBlock,
+    PostCommentsLinkBlock,
+    PostCommentsTitleBlock,
+} from './artisanpack/commentContext';
 import { PostTemplateBlock, PostTemplateItemBlock, QueryBlock } from './core/query';
 import { SiteLogoBlock, SiteTaglineBlock, SiteTitleBlock } from './core/siteContext';
 import { SyncedPatternBlock } from './core/syncedPattern';
@@ -178,6 +196,25 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/navigation-link': NavigationLinkBlock,
     'core/navigation-submenu': NavigationSubmenuBlock,
     'artisanpack/callout': CalloutBlock,
+    // Comments family (#519) — registered under the artisanpack/* namespace
+    // only; the comments cluster never shipped as `core/*` in v1 so there
+    // are no core counterparts to mirror.
+    'artisanpack/comments': CommentsBlock,
+    'artisanpack/comment-template': CommentTemplateBlock,
+    'artisanpack/comment-author-avatar': CommentAuthorAvatarBlock,
+    'artisanpack/comment-author-name': CommentAuthorNameBlock,
+    'artisanpack/comment-content': CommentContentBlock,
+    'artisanpack/comment-date': CommentDateBlock,
+    'artisanpack/comment-edit-link': CommentEditLinkBlock,
+    'artisanpack/comment-reply-link': CommentReplyLinkBlock,
+    'artisanpack/post-comments-form': PostCommentsFormBlock,
+    'artisanpack/post-comments-count': PostCommentsCountBlock,
+    'artisanpack/post-comments-link': PostCommentsLinkBlock,
+    'artisanpack/post-comments-title': PostCommentsTitleBlock,
+    'artisanpack/comments-pagination': CommentsPaginationBlock,
+    'artisanpack/comments-pagination-next': CommentsPaginationNextBlock,
+    'artisanpack/comments-pagination-numbers': CommentsPaginationNumbersBlock,
+    'artisanpack/comments-pagination-previous': CommentsPaginationPreviousBlock,
 };
 
 export function registerCoreBlocks(): void {

@@ -17,4 +17,5 @@ export default createCommentPlaceholderEdit( {
     label: __( 'Edit', TEXT_DOMAIN ),
     resolvedKey: '_resolvedEditLinkLabel',
     kind: 'text',
+    dummyValue: { text: 'Edit' },
 } );

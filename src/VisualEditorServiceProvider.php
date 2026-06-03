@@ -19,6 +19,8 @@ use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Console\AuditBreakpointsCommand;
 use ArtisanPackUI\VisualEditor\Resources\PostResolver;
+use ArtisanPackUI\VisualEditor\Resources\CommentInliner;
+use ArtisanPackUI\VisualEditor\Resources\CommentResolver;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Responsive\AttributeMigrator;
@@ -108,6 +110,20 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new QueryInliner(
 				$app,
 				$app->make( PostResolver::class ),
+			);
+		} );
+
+		// #519 — `CommentResolver` stamps `_resolved*` keys on
+		// `comment-*` blocks; `CommentInliner` orchestrates the
+		// per-comment expansion of `artisanpack/comments` blocks.
+		// Both are stateless so binding as singletons is safe.
+		$this->app->singleton( CommentResolver::class, function () {
+			return new CommentResolver();
+		} );
+
+		$this->app->singleton( CommentInliner::class, function ( $app ) {
+			return new CommentInliner(
+				$app->make( CommentResolver::class ),
 			);
 		} );
 
