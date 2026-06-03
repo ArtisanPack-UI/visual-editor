@@ -139,9 +139,11 @@ class CommentInliner
 			'_resolvedPostId'        => $postId,
 			'_resolvedCommentCount'  => $commentCount,
 			'_resolvedCommentsUrl'   => $commentsUrl,
-			'_resolvedCommentsLabel' => 1 === $commentCount
-				? '1 Comment'
-				: sprintf( '%d Comments', $commentCount ),
+			'_resolvedCommentsLabel' => trans_choice(
+				'{0} :count Comments|{1} :count Comment|[2,*] :count Comments',
+				$commentCount,
+				[ 'count' => $commentCount ]
+			),
 		] );
 
 		$expandedChildren = [];

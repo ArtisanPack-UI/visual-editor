@@ -5,7 +5,7 @@
     "title": "Comments Next Page",
     "category": "theme",
     "parent": [ "artisanpack/comments-pagination" ],
-    "description": "Displays the next comment's page link.",
+    "description": "Displays the next comments page link.",
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "label": {

@@ -314,9 +314,11 @@ class PostResolver
 		return [
 			'_resolvedCommentCount'   => $count,
 			'_resolvedCommentsUrl'    => $this->commentsUrl( $post ),
-			'_resolvedCommentsLabel'  => 1 === $count
-				? '1 Comment'
-				: sprintf( '%d Comments', $count ),
+			'_resolvedCommentsLabel'  => trans_choice(
+				'{0} :count Comments|{1} :count Comment|[2,*] :count Comments',
+				$count,
+				[ 'count' => $count ]
+			),
 		];
 	}
 
@@ -329,11 +331,11 @@ class PostResolver
 
 		return [
 			'_resolvedCommentCount'   => $count,
-			'_resolvedCommentsTitle'  => 0 === $count
-				? 'No Comments'
-				: ( 1 === $count
-					? '1 Comment'
-					: sprintf( '%d Comments', $count ) ),
+			'_resolvedCommentsTitle'  => trans_choice(
+				'{0} No Comments|{1} 1 Comment|[2,*] :count Comments',
+				$count,
+				[ 'count' => $count ]
+			),
 		];
 	}
 

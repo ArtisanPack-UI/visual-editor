@@ -12,8 +12,14 @@
 			$href   = UrlSanitizer::safe( isset( $page['url'] ) && is_string( $page['url'] ) ? $page['url'] : '' );
 		@endphp
 		@if ( 0 !== $number )
-			@if ( $number === $current || '' === $href )
+			@if ( $number === $current )
+				{{-- Only the actual current page gets aria-current="page". A
+					non-current page with an empty href still renders as a
+					plain span (no link target) but must not claim to be the
+					current page. Mirrors the React / Vue renderer parity. --}}
 				<span class="page-numbers current" aria-current="page">{{ $number }}</span>
+			@elseif ( '' === $href )
+				<span class="page-numbers">{{ $number }}</span>
 			@else
 				<a class="page-numbers" href="{{ $href }}">{{ $number }}</a>
 			@endif

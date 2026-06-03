@@ -176,6 +176,15 @@ class CommentResolver
 	}
 
 	/**
+	 * Safe inline tags retained when sanitizing comment content. Mirrors
+	 * the conservative subset WordPress allows for unauthenticated
+	 * commenters, dropping structural / scripted tags entirely.
+	 *
+	 * @var string
+	 */
+	protected const COMMENT_CONTENT_ALLOWED_TAGS = '<a><abbr><acronym><b><blockquote><br><cite><code><del><em><i><p><q><s><strike><strong>';
+
+	/**
 	 * @return array<string, mixed>
 	 */
 	protected function resolveContent( object $comment ): array
@@ -183,8 +192,31 @@ class CommentResolver
 		$content = $comment->content ?? null;
 
 		return [
-			'_resolvedContent' => is_string( $content ) ? $content : '',
+			'_resolvedContent' => $this->sanitizeCommentContent( is_string( $content ) ? $content : '' ),
 		];
+	}
+
+	/**
+	 * Defensively sanitize comment HTML before it is stamped onto
+	 * `_resolvedContent` and rendered raw by the per-framework templates.
+	 * Comment bodies are user-supplied and the host model layer does not
+	 * filter them, so the resolver strips disallowed tags, inline event
+	 * handlers, and `javascript:` URLs to make the stamped value safe
+	 * against stored XSS regardless of which renderer consumes it.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function sanitizeCommentContent( string $content ): string
+	{
+		if ( '' === $content ) {
+			return '';
+		}
+
+		$content = strip_tags( $content, self::COMMENT_CONTENT_ALLOWED_TAGS );
+		$content = preg_replace( '/\son[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $content ) ?? '';
+		$content = preg_replace( '/(href|src)\s*=\s*(["\']?)\s*javascript:[^"\'\s>]*\2/i', '$1=$2#$2', $content ) ?? '';
+
+		return $content;
 	}
 
 	/**

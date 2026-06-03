@@ -9,10 +9,10 @@
 	$count     = isset( $attributes['_resolvedCommentCount'] ) && is_numeric( $attributes['_resolvedCommentCount'] ) ? (int) $attributes['_resolvedCommentCount'] : 0;
 	$title     = isset( $attributes['_resolvedCommentsTitle'] ) && is_string( $attributes['_resolvedCommentsTitle'] )
 		? $attributes['_resolvedCommentsTitle']
-		: ( 0 === $count ? 'No Comments' : ( 1 === $count ? '1 Comment' : $count . ' Comments' ) );
+		: trans_choice( '{0} No Comments|{1} 1 Comment|[2,*] :count Comments', $count, [ 'count' => $count ] );
 
 	if ( ! $showCount ) {
-		$title = 'Comments';
+		$title = __( 'Comments' );
 	}
 
 	$align   = isset( $attributes['textAlign'] ) && is_string( $attributes['textAlign'] ) ? $attributes['textAlign'] : '';
