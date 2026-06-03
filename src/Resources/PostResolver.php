@@ -433,12 +433,28 @@ class PostResolver
 	}
 
 	/**
+	 * Allow-list for HTML tags surviving the term-description sanitizer.
+	 * Mirrors {@see CommentResolver::COMMENT_CONTENT_ALLOWED_TAGS} so
+	 * descriptions can carry basic formatting (paragraphs, emphasis,
+	 * inline code, anchors) without giving the host an unsanitized
+	 * `dangerouslySetInnerHTML` injection vector on the editor and
+	 * front-end renderers.
+	 */
+	protected const TERM_DESCRIPTION_ALLOWED_TAGS = '<a><abbr><b><blockquote><br><cite><code><em><i><p><q><s><strong>';
+
+	/**
 	 * Stamp the post's primary-term description onto a `term-description`
 	 * block. `term-description` is an archive-context block in upstream
 	 * Gutenberg, but stamping the primary-term description lets hosts
 	 * drop the block inside a query loop and still get meaningful content
 	 * (e.g. "showing posts in <category>"). When no primary term is
 	 * available the renderer falls back to a no-content shell.
+	 *
+	 * The description is sanitized through an allow-list strip_tags +
+	 * the same on-event-attribute / javascript: scrub `CommentResolver`
+	 * uses, so the front-end renderer (Blade `{!! !!}`) and editor
+	 * preview (React `dangerouslySetInnerHTML`) can trust the stamped
+	 * string without a follow-up escape.
 	 *
 	 * @since 1.0.0
 	 *
@@ -463,11 +479,34 @@ class PostResolver
 			$termUrl = (string) $term->permalink;
 		}
 
+		$rawDescription = isset( $term->description ) && is_scalar( $term->description )
+			? (string) $term->description
+			: '';
+
 		return [
-			'_resolvedTermDescription' => isset( $term->description ) && is_scalar( $term->description ) ? (string) $term->description : '',
+			'_resolvedTermDescription' => $this->sanitizeTermDescription( $rawDescription ),
 			'_resolvedTermName'        => isset( $term->name ) && is_scalar( $term->name ) ? (string) $term->name : '',
 			'_resolvedTermUrl'         => $termUrl,
 		];
+	}
+
+	/**
+	 * Strip everything outside {@see self::TERM_DESCRIPTION_ALLOWED_TAGS}
+	 * and scrub any `on*` event-handler attributes / `javascript:` URLs
+	 * that survive the allow-list. Mirrors `CommentResolver::sanitize()`'s
+	 * sequence so the two resolvers stay in sync.
+	 */
+	protected function sanitizeTermDescription( string $description ): string
+	{
+		if ( '' === $description ) {
+			return '';
+		}
+
+		$description = strip_tags( $description, self::TERM_DESCRIPTION_ALLOWED_TAGS );
+		$description = preg_replace( '/\son[a-z]+\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i', '', $description ) ?? '';
+		$description = preg_replace( '/(href|src)\s*=\s*(["\']?)\s*javascript:[^"\'\s>]*\2/i', '$1=$2#$2', $description ) ?? '';
+
+		return $description;
 	}
 
 	/**

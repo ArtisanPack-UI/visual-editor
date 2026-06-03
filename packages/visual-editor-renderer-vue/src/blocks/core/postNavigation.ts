@@ -181,11 +181,14 @@ export const ReadMoreBlock = defineComponent({
 
             const classes = classList(['wp-block-read-more', className]);
 
-            const anchorProps: Record<string, string> = { class: classes };
-
-            if (permalink !== '') {
-                anchorProps.href = permalink;
+            // No resolved permalink — degrade to a non-interactive <span>
+            // so we don't emit a focusable anchor with an empty `href`
+            // (keyboard / screen-reader trap). Matches Blade + React.
+            if (permalink === '') {
+                return h('span', { class: classes }, content);
             }
+
+            const anchorProps: Record<string, string> = { class: classes, href: permalink };
 
             if (linkTarget === '_blank') {
                 anchorProps.target = '_blank';

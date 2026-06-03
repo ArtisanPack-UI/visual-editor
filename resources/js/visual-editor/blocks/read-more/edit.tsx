@@ -16,42 +16,15 @@
  * Phase I-Block-Fork — post navigation / metadata family (#520).
  */
 
-import {
-    createEntityPlaceholderEdit,
-    type EntityPreviewValue,
-} from '../_shared/entity-placeholder-edit';
+import { createEntityPlaceholderEdit } from '../_shared/entity-placeholder-edit';
 
-interface ReadMoreAttributes {
-    readonly content?: string;
-    readonly _resolvedPermalink?: string;
-}
-
-const PlaceholderEdit = createEntityPlaceholderEdit( {
+// `resolvedKey: 'content'` makes the placeholder helper treat the block's
+// own `content` attribute as the resolved value — so a non-empty `content`
+// previews the configured link text, and an empty one falls through to
+// the `dummyValue` ("Read more"). No wrapper logic needed.
+export default createEntityPlaceholderEdit( {
     label: 'Read More',
     resolvedKey: 'content',
     kind: 'text',
     dummyValue: { text: 'Read more' },
 } );
-
-export default function ReadMoreEdit( props: {
-    attributes?: ReadMoreAttributes;
-    context?: unknown;
-} ): ReturnType<typeof PlaceholderEdit > {
-    const attributes = props.attributes ?? {};
-    const content = typeof attributes.content === 'string' ? attributes.content : '';
-
-    // Pass through to the placeholder helper. The `resolvedKey: 'content'`
-    // wiring above means a non-empty `content` attribute is treated as
-    // the resolved value, so the canvas previews exactly what the
-    // renderer will emit; an empty `content` falls through to the
-    // configured `dummyValue` ("Read more").
-    if ( content !== '' ) {
-        return PlaceholderEdit( props );
-    }
-
-    const synthesizedAttributes: ReadMoreAttributes & EntityPreviewValue = {
-        ...attributes,
-    };
-
-    return PlaceholderEdit( { ...props, attributes: synthesizedAttributes } );
-}

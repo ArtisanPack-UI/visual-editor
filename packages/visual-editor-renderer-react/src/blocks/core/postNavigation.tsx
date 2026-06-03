@@ -166,11 +166,14 @@ export function ReadMoreBlock({ attributes }: BlockRendererProps): JSX.Element {
 
     const classes = classList(['wp-block-read-more', className]);
 
-    const props: Record<string, string> = { className: classes };
-
-    if (permalink !== '') {
-        props.href = permalink;
+    // No resolved permalink — degrade to a non-interactive <span> so we
+    // don't emit a focusable anchor with an empty `href` (keyboard /
+    // screen-reader trap). Matches the Blade partial's fallback.
+    if (permalink === '') {
+        return <span className={classes}>{content}</span>;
     }
+
+    const props: Record<string, string> = { className: classes, href: permalink };
 
     if (linkTarget === '_blank') {
         props.target = '_blank';

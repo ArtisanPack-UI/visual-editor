@@ -19,6 +19,7 @@
 
 import {
     createEntityPlaceholderEdit,
+    PREVIEW_CONTEXT_KEY,
     type EntityPreviewValue,
 } from '../_shared/entity-placeholder-edit';
 import type { QueryPreviewPost } from '../../editor/use-query-preview';
@@ -82,7 +83,7 @@ function readQueryPreviewTerms(
         return [];
     }
 
-    const preview = ( context as Record<string, unknown> )[ 'artisanpack/postPreview' ];
+    const preview = ( context as Record<string, unknown> )[ PREVIEW_CONTEXT_KEY ];
 
     if ( preview === null || typeof preview !== 'object' ) {
         return [];

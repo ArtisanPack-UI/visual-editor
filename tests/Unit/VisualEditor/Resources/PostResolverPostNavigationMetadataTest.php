@@ -203,6 +203,33 @@ it( 'falls back to the cms-framework permalink accessor for term URLs', function
 		->toBe( 'https://example.test/blog/category/news' );
 } );
 
+it( 'sanitizes script tags / event handlers / javascript: URLs out of term descriptions', function (): void {
+	$post = new stdClass();
+	$post->categories = [
+		(object) [
+			'name'        => 'Risky',
+			'permalink'   => 'https://example.test/category/risky',
+			'description' => '<p onclick="alert(1)">Hello</p>'
+				. '<script>alert(2)</script>'
+				. '<a href="javascript:alert(3)">click</a>'
+				. '<strong>safe</strong>',
+		],
+	];
+
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/term-description', 'attributes' => [], 'innerBlocks' => [] ],
+		$post
+	);
+
+	$description = $resolved['attributes']['_resolvedTermDescription'];
+
+	expect( $description )->not->toContain( '<script>' )
+		->and( $description )->not->toContain( 'onclick=' )
+		->and( $description )->not->toContain( 'javascript:' )
+		->and( $description )->toContain( '<p>Hello</p>' )
+		->and( $description )->toContain( '<strong>safe</strong>' );
+} );
+
 it( 'returns empty term-description when the post has no terms', function (): void {
 	$post = new stdClass();
 	$post->title = 'Termless';

@@ -166,7 +166,7 @@ export interface EntityPlaceholderConfig {
     readonly dummyValue?: EntityPreviewValue;
 }
 
-const PREVIEW_CONTEXT_KEY = 'artisanpack/postPreview';
+export const PREVIEW_CONTEXT_KEY = 'artisanpack/postPreview';
 const POST_ID_CONTEXT_KEY = 'postId';
 const POST_TYPE_CONTEXT_KEY = 'postType';
 
