@@ -106,10 +106,241 @@ abstract class WpEntityResource extends JsonResource
 	protected function previewEnvelope( Model $model ): array
 	{
 		return [
-			'dateFormatted' => $this->formattedDate( $model ),
-			'author'        => $this->authorEnvelope( $model ),
-			'featuredImage' => $this->featuredImageEnvelope( $model ),
+			'dateFormatted'   => $this->formattedDate( $model ),
+			'author'          => $this->authorEnvelope( $model ),
+			'featuredImage'   => $this->featuredImageEnvelope( $model ),
+			// Post navigation / metadata family (#520). `terms` powers
+			// the `artisanpack/post-terms` editor preview; `adjacent`
+			// powers `artisanpack/post-navigation-link`; `term` carries
+			// the post's primary-term description for the
+			// `artisanpack/term-description` preview when the block is
+			// placed inside a query loop.
+			'terms'           => $this->termsEnvelope( $model ),
+			'adjacent'        => $this->adjacentEnvelope( $model ),
+			'term'            => $this->primaryTermEnvelope( $model ),
 		];
+	}
+
+	/**
+	 * Resolve the post's taxonomy terms into the preview envelope shape
+	 * used by the `artisanpack/post-terms` editor preview. Map keyed by
+	 * taxonomy slug, each value an array of `{name, slug, url}` records.
+	 * Returns an empty map when the model does not expose any taxonomy
+	 * relations.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, array<int, array<string, string>>>
+	 */
+	protected function termsEnvelope( Model $model ): array
+	{
+		$out = [];
+
+		// Mirror the defensive lazy-load pattern below (categories/tags
+		// branch and `primaryTermEnvelope()`): a host whose `terms`
+		// relation throws should degrade to an empty envelope rather
+		// than crash the entire WP-shape response.
+		try {
+			$general = $model->terms ?? null;
+		} catch ( Throwable ) {
+			$general = null;
+		}
+
+		if ( is_iterable( $general ) ) {
+			foreach ( $general as $term ) {
+				if ( ! is_object( $term ) ) {
+					continue;
+				}
+
+				$taxonomy = isset( $term->taxonomy ) && is_scalar( $term->taxonomy )
+					? (string) $term->taxonomy
+					: '';
+
+				if ( '' === $taxonomy ) {
+					continue;
+				}
+
+				$out[ $taxonomy ] ??= [];
+				$out[ $taxonomy ][] = $this->normaliseTerm( $term );
+			}
+		}
+
+		foreach ( [ 'categories' => 'category', 'tags' => 'post_tag' ] as $relation => $taxonomy ) {
+			try {
+				$collection = $model->{$relation} ?? null;
+			} catch ( Throwable ) {
+				continue;
+			}
+
+			if ( ! is_iterable( $collection ) ) {
+				continue;
+			}
+
+			$out[ $taxonomy ] ??= [];
+
+			foreach ( $collection as $term ) {
+				if ( ! is_object( $term ) ) {
+					continue;
+				}
+
+				$out[ $taxonomy ][] = $this->normaliseTerm( $term );
+			}
+		}
+
+		return $out;
+	}
+
+	/**
+	 * Resolve the post's adjacent (previous + next) post links into the
+	 * preview envelope shape used by the
+	 * `artisanpack/post-navigation-link` editor preview. Returns
+	 * `{previous: null, next: null}` when the model does not expose any
+	 * adjacency relation.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, array<string, mixed>|null>
+	 */
+	protected function adjacentEnvelope( Model $model ): array
+	{
+		return [
+			'previous' => $this->adjacentEntry( $model, 'previous' ),
+			'next'     => $this->adjacentEntry( $model, 'next' ),
+		];
+	}
+
+	/**
+	 * @return array<string, mixed>|null
+	 */
+	protected function adjacentEntry( Model $model, string $direction ): ?array
+	{
+		$candidates = 'previous' === $direction
+			? [ 'previous_post', 'previousPost', 'prev_post', 'prevPost', 'prev', 'previous' ]
+			: [ 'next_post', 'nextPost', 'next' ];
+
+		foreach ( $candidates as $key ) {
+			try {
+				$value = $model->{$key} ?? null;
+			} catch ( Throwable ) {
+				continue;
+			}
+
+			if ( ! is_object( $value ) ) {
+				continue;
+			}
+
+			$title = isset( $value->title ) && is_scalar( $value->title ) ? (string) $value->title : '';
+			$url   = '';
+			if ( isset( $value->permalink ) && is_scalar( $value->permalink ) ) {
+				$url = (string) $value->permalink;
+			} elseif ( isset( $value->url ) && is_scalar( $value->url ) ) {
+				$url = (string) $value->url;
+			}
+
+			if ( '' === $title && '' === $url ) {
+				continue;
+			}
+
+			return [
+				'title' => $title,
+				'url'   => $url,
+			];
+		}
+
+		return null;
+	}
+
+	/**
+	 * Resolve the post's primary term into the preview envelope shape
+	 * used by the `artisanpack/term-description` editor preview. Returns
+	 * null when the model does not expose any terms.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, string>|null
+	 */
+	protected function primaryTermEnvelope( Model $model ): ?array
+	{
+		foreach ( [ 'primary_term', 'primaryTerm' ] as $key ) {
+			try {
+				$value = $model->{$key} ?? null;
+			} catch ( Throwable ) {
+				continue;
+			}
+
+			if ( is_object( $value ) ) {
+				return $this->normaliseTermWithDescription( $value );
+			}
+		}
+
+		try {
+			$general = $model->terms ?? null;
+		} catch ( Throwable ) {
+			$general = null;
+		}
+
+		if ( is_iterable( $general ) ) {
+			foreach ( $general as $term ) {
+				if ( is_object( $term ) ) {
+					return $this->normaliseTermWithDescription( $term );
+				}
+			}
+		}
+
+		foreach ( [ 'categories', 'tags' ] as $relation ) {
+			try {
+				$collection = $model->{$relation} ?? null;
+			} catch ( Throwable ) {
+				continue;
+			}
+
+			if ( ! is_iterable( $collection ) ) {
+				continue;
+			}
+
+			foreach ( $collection as $term ) {
+				if ( is_object( $term ) ) {
+					return $this->normaliseTermWithDescription( $term );
+				}
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * @return array<string, string>
+	 */
+	protected function normaliseTerm( object $term ): array
+	{
+		// `url` is preferred for hosts that expose a generic URL accessor,
+		// but `permalink` is the cms-framework convention (PostCategory /
+		// PostTag use `getPermalinkAttribute()`). Fall through so the
+		// editor-preview link target populates regardless.
+		$url = '';
+		if ( isset( $term->url ) && is_scalar( $term->url ) ) {
+			$url = (string) $term->url;
+		} elseif ( isset( $term->permalink ) && is_scalar( $term->permalink ) ) {
+			$url = (string) $term->permalink;
+		}
+
+		return [
+			'name' => isset( $term->name ) && is_scalar( $term->name ) ? (string) $term->name : '',
+			'slug' => isset( $term->slug ) && is_scalar( $term->slug ) ? (string) $term->slug : '',
+			'url'  => $url,
+		];
+	}
+
+	/**
+	 * @return array<string, string>
+	 */
+	protected function normaliseTermWithDescription( object $term ): array
+	{
+		return array_merge( $this->normaliseTerm( $term ), [
+			'description' => isset( $term->description ) && is_scalar( $term->description )
+				? (string) $term->description
+				: '',
+		] );
 	}
 
 	/**

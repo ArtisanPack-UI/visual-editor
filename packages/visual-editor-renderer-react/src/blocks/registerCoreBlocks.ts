@@ -73,6 +73,12 @@ import {
     PostCommentsLinkBlock,
     PostCommentsTitleBlock,
 } from './artisanpack/commentContext';
+import {
+    PostNavigationLinkBlock,
+    PostTermsBlock,
+    ReadMoreBlock,
+    TermDescriptionBlock,
+} from './core/postNavigation';
 import { PostTemplateBlock, PostTemplateItemBlock, QueryBlock } from './core/query';
 import { SiteLogoBlock, SiteTaglineBlock, SiteTitleBlock } from './core/siteContext';
 import { SyncedPatternBlock } from './core/syncedPattern';
@@ -196,6 +202,16 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/navigation-link': NavigationLinkBlock,
     'core/navigation-submenu': NavigationSubmenuBlock,
     'artisanpack/callout': CalloutBlock,
+    // Post navigation / metadata family (#520) — same renderer for both
+    // namespaces; PostResolver stamps the same `_resolved*` attributes.
+    'core/post-navigation-link': PostNavigationLinkBlock,
+    'artisanpack/post-navigation-link': PostNavigationLinkBlock,
+    'core/post-terms': PostTermsBlock,
+    'artisanpack/post-terms': PostTermsBlock,
+    'core/read-more': ReadMoreBlock,
+    'artisanpack/read-more': ReadMoreBlock,
+    'core/term-description': TermDescriptionBlock,
+    'artisanpack/term-description': TermDescriptionBlock,
     // Comments family (#519) — registered under the artisanpack/* namespace
     // only; the comments cluster never shipped as `core/*` in v1 so there
     // are no core counterparts to mirror.
