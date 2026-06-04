@@ -58,6 +58,33 @@ it( 'stamps post-content attributes', function () {
 	expect( $resolved['attributes']['_resolvedContent'] )->toBe( '<p>Body.</p>' );
 } );
 
+it( 'prefers rendered_content over content when the host exposes the accessor', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ],
+		fakePost( [
+			'content'          => [ [ 'name' => 'core/paragraph' ] ],
+			'rendered_content' => '<p>Rendered HTML.</p>',
+		] )
+	);
+
+	expect( $resolved['attributes']['_resolvedContent'] )->toBe( '<p>Rendered HTML.</p>' );
+} );
+
+it( 'falls back to content when rendered_content is missing or empty', function () {
+	$emptyRendered = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ],
+		fakePost( [ 'rendered_content' => '' ] )
+	);
+
+	$nonStringContent = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ],
+		fakePost( [ 'content' => [ [ 'name' => 'core/paragraph' ] ] ] )
+	);
+
+	expect( $emptyRendered['attributes']['_resolvedContent'] )->toBe( '<p>Body.</p>' )
+		->and( $nonStringContent['attributes']['_resolvedContent'] )->toBe( '' );
+} );
+
 it( 'stamps post-excerpt attributes', function () {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ],
