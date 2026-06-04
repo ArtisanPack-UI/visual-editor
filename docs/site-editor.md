@@ -141,7 +141,7 @@ The site editor is a single Laravel route (`GET /visual-editor/site/{path?}`)
 that hands off to React routing client-side. Direct links to a specific
 entity work:
 
-```
+```text
 /visual-editor/site/templates/single
 /visual-editor/site/template-parts/header
 /visual-editor/site/patterns/hero

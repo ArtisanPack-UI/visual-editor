@@ -16,7 +16,7 @@ and how the renderer turns it all into HTML.
 A request for a single post (slug `hello-world`, post type `post`)
 resolves templates in this order, stopping at the first match:
 
-```
+```text
 single-post-hello-world  (slug-specific)
 single-post              (post-type-specific)
 single                   (single-record default)

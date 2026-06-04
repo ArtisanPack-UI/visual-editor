@@ -111,10 +111,11 @@ app's published config is authoritative — packages can suggest a default,
 the app can override.
 
 **Validation timing:** the map is not validated at boot. The first
-request that resolves a missing resource or a model without
-`HasBlockContent` throws `InvalidArgumentException`. This is deliberate —
-contributor packages that aren't installed in a given environment never
-trip boot.
+request that resolves a missing resource raises `NotFoundHttpException`
+(returned to the client as 404); a model that's registered but doesn't
+use `HasBlockContent` raises `InvalidArgumentException`. This is
+deliberate — contributor packages that aren't installed in a given
+environment never trip boot.
 
 ### Resolution flow
 
@@ -134,8 +135,9 @@ Resource models use **their own Laravel policies**. The package does not
 inject a "visual editor policy" on top of them. If your `PostPolicy`
 already gates `update`, the editor's save endpoint inherits it.
 
-The controllers call `$this->authorize('update', $model)` (or
-`'view'` on the show endpoint) before reading/writing block content.
+The controllers call `Gate::authorize('update', $model)` (or
+`Gate::authorize('view', $model)` on the show endpoint) before
+reading/writing block content.
 
 ### Site-editor access gate
 

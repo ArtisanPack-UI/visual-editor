@@ -103,9 +103,20 @@ unmount.
 To preserve unsaved edits during programmatic navigation, gate
 `Inertia.visit()` on the editor's `getBlocks()` returning a clean state:
 
+Inside the `useEffect`, hold the editor handle in a ref so it survives
+between renders:
+
 ```tsx
+const editorRef = useRef<ReturnType<typeof mountVisualEditor>>();
+
+useEffect(() => {
+    if (!mountRef.current) return;
+    editorRef.current = mountVisualEditor(mountRef.current, { /* …config */ });
+    return () => editorRef.current?.unmount();
+}, [post.id]);
+
 const handleNavigate = (href: string) => {
-    if (editor.current?.isDirty()) {
+    if (editorRef.current?.isDirty()) {
         if (!confirm('You have unsaved changes. Leave?')) return;
     }
     Inertia.visit(href);
@@ -145,6 +156,10 @@ defineProps<{
 
 const onSave = (detail) => {
     // Sync Inertia state, show toast, etc.
+};
+
+const onChange = (detail) => {
+    // Edits in-flight — mark dirty, defer navigation, etc.
 };
 </script>
 

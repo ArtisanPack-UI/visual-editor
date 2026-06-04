@@ -165,7 +165,7 @@ one to re-verify against Gutenberg upgrades. See
 ## Block defaults
 
 V1 ships a frozen allow-list of forked blocks under the `artisanpack/*`
-namespace. The defaults in `config/visual-editor.php` expose every block
+namespace. The defaults in `config/artisanpack/visual-editor.php` expose every block
 that landed during the Phase I block fork — `@wordpress/block-library`'s
 `registerCoreBlocks()` is no longer called, and the editor registers
 only the in-package forks discovered under

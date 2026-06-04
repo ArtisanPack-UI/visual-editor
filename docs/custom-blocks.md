@@ -234,11 +234,22 @@ Use a dynamic block when:
 abstract class DynamicBlock
 {
     abstract public function name(): string;
-    abstract public function render(array $attrs): View|Stringable|string;
+    abstract public function render(array $attrs); // : View|Stringable|string
 
-    public function validateAttrs(array $attrs): array;
-    public function searchableText(array $attrs): string;
-    public function authorize(?Authenticatable $user, array $attrs): bool;
+    public function validateAttrs(array $attrs): array
+    {
+        return $attrs;
+    }
+
+    public function searchableText(array $attrs): string
+    {
+        return '';
+    }
+
+    public function authorize(?Authenticatable $user, array $attrs): bool
+    {
+        return true;
+    }
 }
 ```
 

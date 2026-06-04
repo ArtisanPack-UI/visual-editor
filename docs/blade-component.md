@@ -51,7 +51,7 @@ The component passes its `$attributes` bag through to the root div, so
 If you omit `resource`, the component reverse-looks-up the model class in
 `config('artisanpack.visual-editor.resources')` and uses the first
 matching slug. If the class isn't in the map, it throws
-`InvalidArgumentException` at render time so misconfiguration surfaces
+`RuntimeException` at render time so misconfiguration surfaces
 loudly.
 
 Always set `resource="…"` explicitly when:
