@@ -256,6 +256,18 @@ return [
 	| Jetstream / Fortify all use `redirect_to`, the upstream WP
 	| `wp_loginout()` default).
 	|
+	| ⚠️  POST-vs-GET caveat for `logout_route`: the block always emits a
+	| plain `<a>`, but Breeze / Jetstream / Fortify register `logout` as
+	| POST + CSRF — clicking the rendered link will hit a 405 unless the
+	| host either (a) registers a GET-side logout endpoint and points
+	| `logout_route` / `logout_path` at it, or (b) rewrites the resolved
+	| envelope through the `ap.visual-editor.loginout.envelope` filter
+	| (e.g. swap in a `URL::signedRoute()` link to a GET handler that
+	| invalidates the session). The default of `logout` is kept because
+	| dropping it would mean `logout_path` shows through as a relative
+	| URL even when the host *has* wired a GET endpoint under that name;
+	| the right knob to flip on a Breeze install is the envelope filter.
+	|
 	| For fully custom URL resolution (per-tenant routes, SSO, etc.)
 	| override the resolved envelope through the
 	| `ap.visual-editor.loginout.envelope` filter hook instead.

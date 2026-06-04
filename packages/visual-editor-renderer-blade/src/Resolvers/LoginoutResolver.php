@@ -87,8 +87,13 @@ class LoginoutResolver
 			? $this->resolveLoginFormHtml( $currentUrl )
 			: '';
 
+		// Gate `has-login-form` on the resolved HTML being non-empty so
+		// the wrapper class stays consistent with what the partial
+		// actually renders. The Blade / React / Vue renderers all fall
+		// back to the link variant when the form HTML is empty, even
+		// with `displayLoginAsForm` on — the class needs to match.
 		$classes = $isUserLoggedIn ? 'logged-in' : 'logged-out';
-		if ( ! $isUserLoggedIn && $displayLoginAsForm ) {
+		if ( ! $isUserLoggedIn && $displayLoginAsForm && '' !== $loginFormHtml ) {
 			$classes .= ' has-login-form';
 		}
 

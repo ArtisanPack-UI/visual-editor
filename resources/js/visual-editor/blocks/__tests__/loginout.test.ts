@@ -122,4 +122,26 @@ describe('loginout transforms', () => {
             attributes: { redirectToCurrent: false },
         });
     });
+
+    it('preserves both display toggles in both directions', () => {
+        // Single-attribute cases (above) prove each direction wires up,
+        // but a host document is more likely to carry both attributes —
+        // a future regression that drops one on round-trip would silently
+        // reset the toggle in the editor. Cover the full-attributes path
+        // explicitly on both directions.
+        const t = loginoutTransforms as TransformsModule;
+        const from = t.from.find((e) => e.blocks?.includes('core/loginout'));
+        const to = t.to.find((e) => e.blocks?.includes('core/loginout'));
+
+        const bothAttrs = { displayLoginAsForm: true, redirectToCurrent: false };
+
+        expect(from!.transform(bothAttrs)).toMatchObject({
+            name: 'artisanpack/loginout',
+            attributes: bothAttrs,
+        });
+        expect(to!.transform(bothAttrs)).toMatchObject({
+            name: 'core/loginout',
+            attributes: bothAttrs,
+        });
+    });
 });

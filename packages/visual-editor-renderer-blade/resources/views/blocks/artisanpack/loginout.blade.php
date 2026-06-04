@@ -1,11 +1,18 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer;
 
 	$isUserLoggedIn = isset( $attributes['_resolvedIsUserLoggedIn'] )
 		&& true === $attributes['_resolvedIsUserLoggedIn'];
-	$url   = isset( $attributes['_resolvedLoginoutUrl'] ) && is_string( $attributes['_resolvedLoginoutUrl'] )
-		? $attributes['_resolvedLoginoutUrl']
-		: '';
+	// Run the resolved URL through the same sanitizer the React / Vue
+	// renderers apply so a stored block tree can't smuggle a
+	// `javascript:` / `data:` href onto the rendered page, and so the
+	// empty-URL guard below stays in lockstep with the parity contract.
+	$url = UrlSanitizer::safe(
+		isset( $attributes['_resolvedLoginoutUrl'] ) && is_string( $attributes['_resolvedLoginoutUrl'] )
+			? $attributes['_resolvedLoginoutUrl']
+			: ''
+	);
 	$label = isset( $attributes['_resolvedLoginoutLabel'] ) && is_string( $attributes['_resolvedLoginoutLabel'] )
 		? $attributes['_resolvedLoginoutLabel']
 		: ( $isUserLoggedIn ? __( 'Log out' ) : __( 'Log in' ) );
@@ -29,6 +36,12 @@
 <div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 @if ( $showForm )
 {!! $loginFormHtml !!}
+@elseif ( '' === $url )
+{{-- React + Vue parity: when the sanitized URL is empty (resolver
+     skipped or the host stamped a disallowed scheme), emit the label
+     in a plain text node so the wrapper still tells consumers what
+     would have been a link without rendering an inert `href=""`. --}}
+{{ $label }}
 @else
 <a href="{{ $url }}">{{ $label }}</a>
 @endif
