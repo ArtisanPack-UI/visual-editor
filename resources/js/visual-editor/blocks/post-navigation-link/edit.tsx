@@ -196,7 +196,9 @@ export default function PostNavigationLinkEdit(
                             __next40pxDefaultSize
                             __nextHasNoMarginBottom
                             onChange={ ( value: string | number ) =>
-                                setAttributes( { type: String( value ) } )
+                                setAttributes( {
+                                    type: value === 'previous' ? 'previous' : 'next',
+                                } )
                             }
                         >
                             <ToggleGroupControlOption

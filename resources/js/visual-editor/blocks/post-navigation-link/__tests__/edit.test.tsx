@@ -75,24 +75,52 @@ vi.mock( '@wordpress/components', () => ( {
     __experimentalToggleGroupControl: ( {
         label,
         value,
+        onChange,
         children,
     }: {
         label?: string;
         value?: string;
+        onChange?: ( value: string | number ) => void;
         children?: React.ReactNode;
-    } ) => (
-        <div data-testid="direction-toggle-group" data-value={ value } aria-label={ label }>
-            { children }
-        </div>
-    ),
+    } ) => {
+        const React = require( 'react' );
+
+        // Wire each child option through `onChange` so clicking an
+        // option exercises the real `setAttributes` write path. The
+        // production `ToggleGroupControl` does the same plumbing through
+        // a context; cloneElement is a lighter equivalent for the mock.
+        const wired = React.Children.map(
+            children,
+            ( child: React.ReactNode ) =>
+                React.isValidElement( child )
+                    ? React.cloneElement( child, { onChange } )
+                    : child,
+        );
+
+        return (
+            <div data-testid="direction-toggle-group" data-value={ value } aria-label={ label }>
+                { wired }
+            </div>
+        );
+    },
     __experimentalToggleGroupControlOption: ( {
         value,
         label,
+        onChange,
     }: {
         value?: string;
         label?: string;
+        onChange?: ( value: string | number ) => void;
     } ) => (
-        <button data-testid={ `direction-${ value }` } type="button">
+        <button
+            data-testid={ `direction-${ value }` }
+            type="button"
+            onClick={ () => {
+                if ( value !== undefined ) {
+                    onChange?.( value );
+                }
+            } }
+        >
             { label }
         </button>
     ),
@@ -175,6 +203,22 @@ describe( 'PostNavigationLinkEdit InspectorControls', () => {
         expect(
             getByTestId( 'direction-toggle-group' ).getAttribute( 'data-value' ),
         ).toBe( 'next' );
+    } );
+
+    it( 'routes the Direction toggle through setAttributes for both options', () => {
+        const setAttributes = vi.fn();
+        const { getByTestId } = render(
+            <PostNavigationLinkEdit
+                attributes={ { type: 'next' } }
+                setAttributes={ setAttributes }
+            />,
+        );
+
+        fireEvent.click( getByTestId( 'direction-previous' ) );
+        expect( setAttributes ).toHaveBeenCalledWith( { type: 'previous' } );
+
+        fireEvent.click( getByTestId( 'direction-next' ) );
+        expect( setAttributes ).toHaveBeenCalledWith( { type: 'next' } );
     } );
 
     it( 'routes the showTitle toggle through setAttributes', () => {
