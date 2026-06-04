@@ -200,10 +200,20 @@ class PostResolver
 	 */
 	protected function resolveContent( object $post ): array
 	{
-		// `content` may be a saved block tree (HasBlockContent stores
-		// it as JSON), a pre-rendered HTML string, or null. The block
-		// partial just needs a string; pass HTML through, otherwise
+		// Prefer `$post->rendered_content` when the host model exposes a
+		// rendered-HTML accessor (cms-framework's HasBlockContent trait
+		// provides one). Falls back to `$post->content`, which may be a
+		// saved block tree, a pre-rendered HTML string, or null. The
+		// block partial just needs a string; pass HTML through, otherwise
 		// leave empty so the partial emits its placeholder shell.
+		$rendered = $post->rendered_content ?? null;
+
+		if ( is_string( $rendered ) && '' !== $rendered ) {
+			return [
+				'_resolvedContent' => $rendered,
+			];
+		}
+
 		$content = $post->content ?? null;
 
 		return [

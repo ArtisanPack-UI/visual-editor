@@ -71,8 +71,15 @@ abstract class WpEntityResource extends JsonResource
 				// matching renderer package. Kept on the envelope so
 				// shim selectors that probe `content.raw` don't see
 				// `undefined`.
-				'raw'    => '',
-				'blocks' => $this->blocks( $model ),
+				'raw'      => '',
+				// `rendered` mirrors the front-end `_resolvedContent`
+				// stamping (#526). Hosts whose model exposes a
+				// `rendered_content` accessor (cms-framework's
+				// HasBlockContent trait provides one) get the rendered
+				// HTML on the editor-preview envelope; everything else
+				// sees an empty string and falls back to the block tree.
+				'rendered' => $this->stringField( $model, 'rendered_content' ),
+				'blocks'   => $this->blocks( $model ),
 			],
 			'status'         => $this->stringField( $model, 'status', 'publish' ),
 			'type'           => $this->type(),
