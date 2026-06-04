@@ -52,8 +52,6 @@ into the `selectors` map. Both files are tested by `vitest run` —
 adding a fixture for the new entity and asserting the shim returns it
 catches regressions.
 
-Full inventory: [`docs/core-data-shim.md`](core-data-shim.md).
-
 ---
 
 ## 3. WordPress package upgrades
@@ -80,7 +78,7 @@ mid-stream minor bumps invalidate weeks of UI work.
    bump its `upstream-state.json`. Reject the change → annotate the
    `upstream-state.json` with the rejection reason.
 6. **Schema-version check.** If theme.json schema bumped, follow
-   [Global styles §8](global-styles.md#8-handling-a-future-schema-bump).
+   [Global styles §8](site-editor/Global-Styles.md#8-handling-a-future-schema-bump).
 7. **Run the full test suite.** `./vendor/bin/pest && npm test`.
 
 ### Symptoms of an unaudited upgrade
@@ -107,7 +105,7 @@ The pinned schema version (currently 3) is enforced by
 3. Update `resources/theme-json/default-base.php` defaults.
 4. Ship a migration that either rewrites existing user records into the
    new schema or documents a manual upgrade path for customized records.
-5. Update [Global styles](global-styles.md#1-pinned-schema-version).
+5. Update [Global styles](site-editor/Global-Styles.md#1-pinned-schema-version).
 
 The pin exists precisely so this is conscious work — not silent drift on
 `npm update`.
@@ -137,7 +135,7 @@ component pack. Restyling is best-effort — some quirks:
   freeze the canvas. Use inline manual patterns or
   `@wordpress/components` Popover / Dropdown directly.
 
-Full theme contract: [Theming](theming.md).
+Full theme contract: [Theming](post-editor/Theming.md).
 
 ---
 
@@ -179,7 +177,8 @@ The default `SiteEditorAccessGate` is `DenyByDefaultGate` — fail-closed.
 Either:
 
 - Bind a permissive gate in your app service provider (see
-  [Content model §3](content-model.md#3-policies-and-authorization)).
+  [Content model §3](content-model.md#3-policies-and-authorization) and
+  [Access Gate](site-editor/Access-Gate.md)).
 - Install cms-framework, which binds `CmsFrameworkInstallGate`
   automatically.
 
@@ -220,7 +219,6 @@ debugging the production editor.
 
 ## See also
 
-- [Getting started](getting-started.md)
-- [Core-data shim](core-data-shim.md)
-- [Global styles](global-styles.md)
-- [Theming](theming.md)
+- [Quick Start](Quick-Start.md)
+- [Global styles](site-editor/Global-Styles.md)
+- [Theming](post-editor/Theming.md)

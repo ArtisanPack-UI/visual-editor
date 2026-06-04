@@ -2,7 +2,7 @@
 
 The post editor is the surface authors use to edit a single resource
 (post, page, custom CPT). It's mounted via the
-[`<x-visual-editor />` Blade component](blade-component.md) and built on
+[`<x-visual-editor />` Blade component](post-editor/Blade-Component.md) and built on
 top of `@wordpress/block-editor`, with chrome restyled to DaisyUI through
 [`@artisanpack-ui/react`](https://www.npmjs.com/package/@artisanpack-ui/react).
 
@@ -48,7 +48,7 @@ theme's typography and color CSS without leaking editor chrome styles
 into the content.
 
 Theme CSS injection is driven by the active global-styles record (see
-[Global styles](global-styles.md)). The CSS is fetched from
+[Global styles](site-editor/Global-Styles.md)). The CSS is fetched from
 `GET /visual-editor/api/global-styles/lookup` → `GET /global-styles/{id}`
 on boot and injected into the iframe via the React renderer's
 `<GlobalStyles>` component.
@@ -71,7 +71,7 @@ block. Every forked `artisanpack/*` block ships a complete control set:
 - Advanced (HTML anchor, additional CSS class)
 
 Block authors add their own controls inside `<InspectorControls>` from
-their `edit.tsx` — see [Custom blocks §5](custom-blocks.md).
+their `edit.tsx` — see [Custom blocks §5](blocks/Custom-Blocks.md).
 
 The sidebar is also where the document-settings panel renders (status,
 slug, excerpt, featured image, author, comments). Visibility is controlled
@@ -88,7 +88,7 @@ and filtered by the enabled-block allow/deny lists.
 
 The same panel also surfaces **patterns** — both synced (referenced from
 the pattern store) and unsynced (template snippets to drop inline). See
-[Patterns](patterns.md).
+[Patterns](site-editor/Patterns.md).
 
 Slash command (typed inline in any rich-text block) routes through the
 same registry — `/heading`, `/image`, `/pattern hero`, etc.
@@ -148,7 +148,7 @@ Inside the inspector sidebar, the document panel exposes:
 | Comments | `:initialCommentsOpen` | `comments` |
 
 Pass `supports = ['excerpt' => true, 'featuredImage' => false, 'comments' => true]`
-to opt fields in or out — see [Blade component reference](blade-component.md).
+to opt fields in or out — see [Blade component reference](post-editor/Blade-Component.md).
 
 Document-field changes write back to the model via the same content
 endpoint, batched with block changes.
@@ -165,7 +165,7 @@ endpoint, batched with block changes.
 5. ⌘S or topbar Save bypasses the debounce and dispatches `ve:editor:save`
    with the same payload.
 
-See [Livewire](livewire.md) for the pattern of bridging these events back
+See [Livewire integration](post-editor/Livewire-Integration.md) for the pattern of bridging these events back
 to a server-rendered shell.
 
 ---
@@ -186,14 +186,14 @@ The shortcut help modal is restyled with `@artisanpack-ui/react`'s
 The post editor is the same surface whether mounted via Blade, Livewire,
 or Inertia. Embedding recipes:
 
-- [Livewire](livewire.md)
-- [Inertia](inertia.md)
+- [Livewire integration](post-editor/Livewire-Integration.md)
+- [Inertia integration](post-editor/Inertia-Integration.md)
 
 ---
 
 ## See also
 
-- [Blade component reference](blade-component.md)
-- [Custom blocks](custom-blocks.md)
+- [Blade component reference](post-editor/Blade-Component.md)
+- [Custom blocks](blocks/Custom-Blocks.md)
 - [Renderers](renderers.md) — get saved content back onto the public site
-- [Theming](theming.md) — restyle editor chrome
+- [Theming](post-editor/Theming.md) — restyle editor chrome

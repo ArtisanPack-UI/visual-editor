@@ -175,7 +175,7 @@ A single editor mount edits one resource at a time, scoped by the
 `data-resource` and `data-id` attributes that the Blade component emits.
 You can mount more than one editor on the same page — every editor event
 includes `{ resource, id }` in its `detail`, so listeners can
-disambiguate. See the [Livewire recipe](livewire.md) for an example of
+disambiguate. See the [Livewire recipe](post-editor/Livewire-Integration.md) for an example of
 multiple editors coexisting.
 
 ---
@@ -192,6 +192,7 @@ and never grows.
 
 ## See also
 
-- [Blade component reference](blade-component.md) — attribute-by-attribute
-- [Custom blocks](custom-blocks.md) — extending what authors can insert
+- [Blade component reference](post-editor/Blade-Component.md) — attribute-by-attribute
+- [Custom blocks](blocks/Custom-Blocks.md) — extending what authors can insert
 - [Renderers](renderers.md) — getting saved content back onto the page
+- [Site editor — Access Gate](site-editor/Access-Gate.md) — the site-editor access contract

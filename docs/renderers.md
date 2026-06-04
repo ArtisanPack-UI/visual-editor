@@ -57,7 +57,7 @@ For full-template rendering (with template-part resolution and the
 
 `<x-ve-template>` looks up the template via `TemplateResolver`, applies
 the fallback chain (theme file → user override → custom), and inlines
-template parts. See [Templates](templates.md) for hierarchy details.
+template parts. See [Templates](site-editor/Templates.md) for hierarchy details.
 
 ### Registering a custom block renderer
 
@@ -172,7 +172,7 @@ React renderer's API.
   `/visual-editor/api/{resource}/{id}/content` and render with the React
   or Vue package.
 
-See [Inertia recipes](inertia.md) for end-to-end examples.
+See [Inertia recipes](post-editor/Inertia-Integration.md) for end-to-end examples.
 
 ---
 
@@ -197,13 +197,13 @@ are split out to:
 
 V1.0.0 publishes the Blade renderer; React and Vue renderers ship from
 the dev app via a path/file repository until their first Packagist/npm
-publish. See [PACKAGING.md](../PACKAGING.md).
+publish.
 
 ---
 
 ## See also
 
-- [Custom blocks](custom-blocks.md) — authoring blocks that need renderers
-- [Templates](templates.md) — template fallback chain and `core/template-part`
-- [Global styles](global-styles.md) — CSS emission contract
-- [Inertia](inertia.md) — embedding the renderers inside Inertia apps
+- [Custom blocks](blocks/Custom-Blocks.md) — authoring blocks that need renderers
+- [Templates](site-editor/Templates.md) — template fallback chain and `core/template-part`
+- [Global styles](site-editor/Global-Styles.md) — CSS emission contract
+- [Inertia](post-editor/Inertia-Integration.md) — embedding the renderers inside Inertia apps

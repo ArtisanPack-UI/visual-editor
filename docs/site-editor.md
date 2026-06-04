@@ -65,7 +65,8 @@ which:
    permission (or the legacy "any authenticated" baseline in V1.0).
 
 Override the binding to integrate with your own RBAC. See
-[Content model §3](content-model.md#3-policies-and-authorization).
+[Content model §3](content-model.md#3-policies-and-authorization) and
+[Access Gate](site-editor/Access-Gate.md).
 
 ---
 
@@ -78,7 +79,7 @@ full-page rendering. The navigator lists every template the resolver
 knows about — both theme-provided defaults and user overrides — and the
 editor lets authors edit either.
 
-See [Templates](templates.md) for the hierarchy, fallback chain, and
+See [Templates](site-editor/Templates.md) for the hierarchy, fallback chain, and
 how the front-end renderer picks a template for a route.
 
 ### Template parts
@@ -87,7 +88,7 @@ Reusable chunks (`wp_template_part` shape) that get included into
 templates via the `core/template-part` block. Headers, footers, sidebars
 — anything shared across templates lives here.
 
-See [Templates §3](templates.md#3-template-parts) for the
+See [Templates §3](site-editor/Templates.md#3-template-parts) for the
 `core/template-part` contract.
 
 ### Patterns
@@ -99,7 +100,7 @@ Reusable block snippets. Two flavours:
 - **Unsynced** — the snippet is dropped inline at insert time; later
   edits to the pattern don't propagate.
 
-See [Patterns](patterns.md).
+See [Patterns](site-editor/Patterns.md).
 
 ### Styles
 
@@ -107,7 +108,7 @@ The theme-wide style record (theme.json-shaped). Edits here change typography,
 color palette, spacing scale, layout defaults, and per-block style overrides
 for every page on the site.
 
-See [Global styles](global-styles.md).
+See [Global styles](site-editor/Global-Styles.md).
 
 ### Navigation
 
@@ -115,7 +116,7 @@ Menus and menu items. Each menu can be assigned to one or more theme-declared
 menu locations; the `core/navigation` block resolves location → menu at
 render time.
 
-See [Navigation](navigation.md).
+See [Navigation](site-editor/Navigation.md).
 
 ---
 
@@ -209,12 +210,13 @@ app's theme:
 ```
 
 Static configs are merged with DB-stored user overrides via the fallback
-chain — user records win on the same slug. See [Templates §4](templates.md#4-fallback-chain).
+chain — user records win on the same slug. See [Templates §4](site-editor/Templates.md#4-fallback-chain).
 
 ---
 
 ## See also
 
-- [Templates](templates.md) · [Global styles](global-styles.md) · [Navigation](navigation.md) · [Patterns](patterns.md)
-- [Content model](content-model.md) — site-editor access gate
+- [Templates](site-editor/Templates.md) · [Global styles](site-editor/Global-Styles.md) · [Navigation](site-editor/Navigation.md) · [Patterns](site-editor/Patterns.md)
+- [Access Gate](site-editor/Access-Gate.md) — site-editor access gate contract
+- [Content model](content-model.md) — `HasBlockContent` and authorization
 - [Renderers](renderers.md) — render saved entities on the public site

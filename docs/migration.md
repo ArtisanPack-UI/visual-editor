@@ -143,6 +143,6 @@ database seeder, an artisan command, or a one-off migration script.
 
 ## See also
 
-- [Getting started](getting-started.md)
+- [Quick Start](Quick-Start.md)
 - [Content model](content-model.md) — `HasBlockContent`, resource map
 - [`visual-editor-wp-import` repo](https://github.com/ArtisanPack-UI/visual-editor-wp-import) (when published)

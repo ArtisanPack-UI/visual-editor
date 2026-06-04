@@ -19,7 +19,7 @@ V1.0 ships:
   for Posts, Pages, site-meta, navigation, and global-styles persistence.
   Both packages remain usable standalone.
 
-Full documentation: see [`docs/`](docs/). Start with [Getting started](docs/getting-started.md).
+Full documentation: see [`docs/`](docs/). Start with [Quick Start](docs/Quick-Start.md), or browse the [documentation home](docs/home.md) for the full surface.
 
 ---
 
@@ -37,7 +37,7 @@ composer require artisanpack-ui/cms-framework
 php artisan migrate
 ```
 
-See [Getting started](docs/getting-started.md) for the full setup.
+See the [Installation Guide](docs/Installation-Guide.md) and [Quick Start](docs/Quick-Start.md) for the full setup.
 
 ---
 
@@ -55,12 +55,7 @@ surfaces a "cms-framework required" page instead of mounting.
 | v0.x          | v0.x          | Pre-v1 — no site-editor integration            |
 
 Bumping the major on either package without bumping the partner is
-unsupported. Both smoke flows run against this version pair before every
-release tag: [`docs/g6-smoke-flow.md`](docs/g6-smoke-flow.md) covers
-Phase G (cms-framework content integration — posts, pages, site-meta,
-query loop); [`docs/h8-smoke-flow.md`](docs/h8-smoke-flow.md) covers
-Phase H (site-editor — templates, parts, patterns, global styles,
-navigation).
+unsupported.
 
 ---
 
@@ -108,7 +103,7 @@ The site editor mounts automatically at `/visual-editor/site` when
 cms-framework is installed and the configured `SiteEditorAccessGate`
 permits the request.
 
-See [`docs/blade-component.md`](docs/blade-component.md) for the full
+See [`docs/post-editor/Blade-Component.md`](docs/post-editor/Blade-Component.md) for the full
 component reference and [`docs/site-editor.md`](docs/site-editor.md) for
 the site-editor surface.
 
@@ -116,24 +111,60 @@ the site-editor surface.
 
 ## Documentation
 
+📚 **[Complete Documentation](docs/home.md)**
+
+### Getting Started
+
+- **[Installation Guide](docs/Installation-Guide.md)** — Setup and configuration
+- **[Quick Start](docs/Quick-Start.md)** — Ship your first post in under an hour
+- **[Configuration](docs/Configuration.md)** — Full configuration reference
+
+### Core Concepts
+
 | Topic | Doc |
 |-------|-----|
-| Install and first post | [`docs/getting-started.md`](docs/getting-started.md) |
 | `HasBlockContent` + resource map | [`docs/content-model.md`](docs/content-model.md) |
-| `<x-visual-editor />` reference | [`docs/blade-component.md`](docs/blade-component.md) |
-| Post editor surface tour | [`docs/post-editor.md`](docs/post-editor.md) |
-| Authoring custom blocks | [`docs/custom-blocks.md`](docs/custom-blocks.md) |
 | Blade / React / Vue renderers | [`docs/renderers.md`](docs/renderers.md) |
-| Site editor surface tour | [`docs/site-editor.md`](docs/site-editor.md) |
-| Template hierarchy + parts | [`docs/templates.md`](docs/templates.md) |
-| theme.json-backed global styles | [`docs/global-styles.md`](docs/global-styles.md) |
-| Menus, locations, fallbacks | [`docs/navigation.md`](docs/navigation.md) |
-| Synced vs unsynced patterns | [`docs/patterns.md`](docs/patterns.md) |
-| Embedding in Livewire | [`docs/livewire.md`](docs/livewire.md) |
-| Embedding in Inertia (React/Vue) | [`docs/inertia.md`](docs/inertia.md) |
-| Theming editor chrome | [`docs/theming.md`](docs/theming.md) |
-| Common problems | [`docs/troubleshooting.md`](docs/troubleshooting.md) |
+| Filters, actions, browser events | [`docs/Hooks-and-Events.md`](docs/Hooks-and-Events.md) |
 | Migration & WP import | [`docs/migration.md`](docs/migration.md) |
+| Common problems | [`docs/troubleshooting.md`](docs/troubleshooting.md) |
+
+### Post Editor
+
+| Topic | Doc |
+|-------|-----|
+| Surface tour | [`docs/post-editor.md`](docs/post-editor.md) |
+| Quick start | [`docs/post-editor/Getting-Started.md`](docs/post-editor/Getting-Started.md) |
+| `<x-visual-editor />` reference | [`docs/post-editor/Blade-Component.md`](docs/post-editor/Blade-Component.md) |
+| Embedding in Livewire | [`docs/post-editor/Livewire-Integration.md`](docs/post-editor/Livewire-Integration.md) |
+| Embedding in Inertia (React/Vue) | [`docs/post-editor/Inertia-Integration.md`](docs/post-editor/Inertia-Integration.md) |
+| Theming editor chrome | [`docs/post-editor/Theming.md`](docs/post-editor/Theming.md) |
+
+### Site Editor
+
+| Topic | Doc |
+|-------|-----|
+| Surface tour | [`docs/site-editor.md`](docs/site-editor.md) |
+| Quick start | [`docs/site-editor/Getting-Started.md`](docs/site-editor/Getting-Started.md) |
+| `SiteEditorAccessGate` contract | [`docs/site-editor/Access-Gate.md`](docs/site-editor/Access-Gate.md) |
+| Template hierarchy + parts | [`docs/site-editor/Templates.md`](docs/site-editor/Templates.md) |
+| theme.json-backed global styles | [`docs/site-editor/Global-Styles.md`](docs/site-editor/Global-Styles.md) |
+| Menus, locations, fallbacks | [`docs/site-editor/Navigation.md`](docs/site-editor/Navigation.md) |
+| Synced vs unsynced patterns | [`docs/site-editor/Patterns.md`](docs/site-editor/Patterns.md) |
+
+### Blocks
+
+| Topic | Doc |
+|-------|-----|
+| Block library overview | [`docs/blocks.md`](docs/blocks.md) |
+| Authoring custom blocks | [`docs/blocks/Custom-Blocks.md`](docs/blocks/Custom-Blocks.md) |
+| Per-breakpoint values | [`docs/blocks/Responsive-Design-Tools.md`](docs/blocks/Responsive-Design-Tools.md) |
+| Per-state overrides | [`docs/blocks/State-Design-Tools.md`](docs/blocks/State-Design-Tools.md) |
+
+### Developer Resources
+
+- **[Developer Guide](docs/Developer-Guide.md)** — Extending the editor
+- **[Hooks and Events](docs/Hooks-and-Events.md)** — Filters, actions, and browser events
 
 ---
 
@@ -157,7 +188,6 @@ so we ship temporary shims under `resources/js/visual-editor/vendor/`:
 Both shims will be replaced over the V1.x release line as the cms-framework
 side surfaces real backings. Every selector or filter implemented here is
 one to re-verify against Gutenberg upgrades. See
-[`docs/core-data-shim.md`](docs/core-data-shim.md) and
 [`docs/troubleshooting.md`](docs/troubleshooting.md#2-core-data-shim-entities-and-missing-data).
 
 ---
@@ -169,9 +199,9 @@ namespace. The defaults in `config/artisanpack/visual-editor.php` expose every b
 that landed during the Phase I block fork — `@wordpress/block-library`'s
 `registerCoreBlocks()` is no longer called, and the editor registers
 only the in-package forks discovered under
-`resources/js/visual-editor/blocks/`. The `core/*` → `artisanpack/*`
-mapping table in [`docs/block-library-audit.md`](docs/block-library-audit.md)
-is the source of truth for which forks exist.
+`resources/js/visual-editor/blocks/`. See [`docs/blocks.md`](docs/blocks.md)
+for the full block library overview and the `core/*` → `artisanpack/*`
+mapping.
 
 The forked allow-list covers the content, media, layout, widget, entity,
 loop/feed, comments, query/pagination, and authentication clusters.
@@ -221,8 +251,9 @@ php artisan migrate
 
 Both packages are loosely coupled — cms-framework's editor wiring is
 guarded by `class_exists(\ArtisanPackUI\VisualEditor\VisualEditor::class)`,
-so each remains usable on its own. The full integration contract lives in
-[`docs/plans/12-cms-framework-integration.md`](docs/plans/12-cms-framework-integration.md).
+so each remains usable on its own. See
+[`docs/site-editor/Getting-Started.md`](docs/site-editor/Getting-Started.md)
+for the site-editor pairing walkthrough.
 
 ---
 
@@ -247,8 +278,8 @@ addFilter('ap.visual-editor.resources', function (array $resources): array {
 });
 ```
 
-Full contract:
-[`docs/plans/12-cms-framework-integration.md`](docs/plans/12-cms-framework-integration.md) §4.1.
+Full contract: [`docs/content-model.md`](docs/content-model.md#2-the-resource-map) and
+[`docs/Hooks-and-Events.md`](docs/Hooks-and-Events.md#ap-visual-editor-resources).
 
 ### `ap.icons.register-icon-sets`
 
