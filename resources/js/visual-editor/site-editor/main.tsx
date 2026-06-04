@@ -15,6 +15,8 @@
 import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
+import '../a11y.css';
+
 const MOUNT_SELECTOR = '[data-ap-site-editor]';
 const ROOT_SYMBOL: unique symbol = Symbol('ap-site-editor-root');
 const READY_SYMBOL: unique symbol = Symbol('ap-site-editor-ready');

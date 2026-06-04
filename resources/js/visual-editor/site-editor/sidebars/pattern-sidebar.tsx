@@ -8,6 +8,8 @@
  * H7's UI rescope.
  */
 
+import { useId } from 'react';
+
 import { useEntityRecord } from '../../vendor/core-data-shim';
 import { __ } from '@wordpress/i18n';
 
@@ -66,10 +68,17 @@ export function PatternSidebar({ id }: PatternSidebarProps): JSX.Element {
 }
 
 function Field({ label, value }: { label: string; value: string }): JSX.Element {
+    const labelId = useId();
+
     return (
         <div className="ap-site-editor-sidebar__field">
-            <span className="ap-site-editor-sidebar__field-label">{label}</span>
-            <span className="ap-site-editor-sidebar__field-value">{value || '—'}</span>
+            <span id={labelId} className="ap-site-editor-sidebar__field-label">{label}</span>
+            <span
+                className="ap-site-editor-sidebar__field-value"
+                aria-labelledby={labelId}
+            >
+                {value || '—'}
+            </span>
         </div>
     );
 }
@@ -83,11 +92,16 @@ function ChipList({
     chips: readonly string[];
     emptyHint: string;
 }): JSX.Element {
+    const labelId = useId();
+
     return (
         <div className="ap-site-editor-sidebar__field">
-            <span className="ap-site-editor-sidebar__field-label">{label}</span>
+            <span id={labelId} className="ap-site-editor-sidebar__field-label">{label}</span>
             {chips.length > 0 ? (
-                <ul className="ap-site-editor-sidebar__chip-list">
+                <ul
+                    className="ap-site-editor-sidebar__chip-list"
+                    aria-labelledby={labelId}
+                >
                     {chips.map((chip) => (
                         <li key={chip} className="ap-site-editor-sidebar__chip">
                             {chip}
@@ -95,7 +109,10 @@ function ChipList({
                     ))}
                 </ul>
             ) : (
-                <span className="ap-site-editor-sidebar__field-value">
+                <span
+                    className="ap-site-editor-sidebar__field-value"
+                    aria-labelledby={labelId}
+                >
                     {emptyHint}
                 </span>
             )}

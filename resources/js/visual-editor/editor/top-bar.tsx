@@ -366,8 +366,6 @@ export function TopBar(props: TopBarProps): JSX.Element {
     return (
         <header
             className="ap-visual-editor-top-bar"
-            role="toolbar"
-            aria-label={__('Editor top bar', TEXT_DOMAIN)}
             data-testid="ap-visual-editor-top-bar"
         >
             <div className="ap-visual-editor-top-bar__group ap-visual-editor-top-bar__group--start">

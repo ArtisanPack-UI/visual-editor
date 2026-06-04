@@ -57,6 +57,9 @@ export function PatternDocumentPanel(
     const slugId = useId();
     const categoriesId = useId();
     const statusId = useId();
+    const titleErrorId = useId();
+    const slugErrorId = useId();
+    const statusErrorId = useId();
 
     const handleCategoriesChange = useCallback(
         (value: string): void => {
@@ -110,9 +113,14 @@ export function PatternDocumentPanel(
                         onFieldsChange({ title: event.target.value })
                     }
                     data-testid="ap-pattern-inspector-title"
+                    aria-invalid={Boolean(titleError) || undefined}
+                    aria-describedby={
+                        titleError !== null ? titleErrorId : undefined
+                    }
                 />
                 {titleError !== null ? (
                     <p
+                        id={titleErrorId}
                         className="ap-pattern-inspector__error"
                         role="alert"
                     >
@@ -139,9 +147,14 @@ export function PatternDocumentPanel(
                         })
                     }
                     data-testid="ap-pattern-inspector-slug"
+                    aria-invalid={Boolean(slugError) || undefined}
+                    aria-describedby={
+                        slugError !== null ? slugErrorId : undefined
+                    }
                 />
                 {slugError !== null ? (
                     <p
+                        id={slugErrorId}
                         className="ap-pattern-inspector__error"
                         role="alert"
                     >
@@ -216,6 +229,10 @@ export function PatternDocumentPanel(
                         })
                     }
                     data-testid="ap-pattern-inspector-status"
+                    aria-invalid={Boolean(statusError) || undefined}
+                    aria-describedby={
+                        statusError !== null ? statusErrorId : undefined
+                    }
                 >
                     <option value="publish">
                         {__('Published', TEXT_DOMAIN)}
@@ -227,6 +244,7 @@ export function PatternDocumentPanel(
                 </select>
                 {statusError !== null ? (
                     <p
+                        id={statusErrorId}
                         className="ap-pattern-inspector__error"
                         role="alert"
                     >

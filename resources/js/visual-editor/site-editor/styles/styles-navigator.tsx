@@ -88,7 +88,6 @@ export function StylesNavigator(
             data-testid="ap-site-editor-styles-navigator"
         >
             <ul
-                role="list"
                 className="ap-site-editor__styles-navigator-list"
             >
                 {PANEL_ORDER.map((panel) => {
@@ -99,7 +98,6 @@ export function StylesNavigator(
                     return (
                         <li
                             key={panel}
-                            role="listitem"
                             className="ap-site-editor__styles-navigator-item"
                             data-panel={panel}
                             data-active={isSelected}
@@ -122,7 +120,6 @@ export function StylesNavigator(
 
                             {panel === 'blocks' && isOpen ? (
                                 <ul
-                                    role="list"
                                     className="ap-site-editor__styles-navigator-children"
                                     data-testid="ap-site-editor-styles-nav-blocks-children"
                                 >
@@ -164,7 +161,6 @@ export function StylesNavigator(
                                         return (
                                             <li
                                                 key={block.name}
-                                                role="listitem"
                                                 className="ap-site-editor__styles-navigator-child"
                                             >
                                                 <button
@@ -195,7 +191,6 @@ export function StylesNavigator(
 
                             {panel === 'elements' && isOpen ? (
                                 <ul
-                                    role="list"
                                     className="ap-site-editor__styles-navigator-children"
                                     data-testid="ap-site-editor-styles-nav-elements-children"
                                 >
@@ -207,7 +202,6 @@ export function StylesNavigator(
                                             return (
                                                 <li
                                                     key={element}
-                                                    role="listitem"
                                                     className="ap-site-editor__styles-navigator-child"
                                                 >
                                                     <button

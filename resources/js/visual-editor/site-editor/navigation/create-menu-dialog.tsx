@@ -44,6 +44,9 @@ export function CreateMenuDialog(props: CreateMenuDialogProps): JSX.Element {
     const slugId = useId();
     const titleId = useId();
     const locationId = useId();
+    const titleErrorId = useId();
+    const slugErrorId = useId();
+    const locationErrorId = useId();
 
     const [slug, setSlug] = useState('');
     const [title, setTitle] = useState('');
@@ -191,9 +194,18 @@ export function CreateMenuDialog(props: CreateMenuDialogProps): JSX.Element {
                                     setTitle(event.target.value)
                                 }
                                 data-testid="ap-create-menu-title"
+                                aria-invalid={
+                                    Boolean(errors.title) || undefined
+                                }
+                                aria-describedby={
+                                    errors.title !== undefined
+                                        ? titleErrorId
+                                        : undefined
+                                }
                             />
                             {errors.title !== undefined ? (
                                 <p
+                                    id={titleErrorId}
                                     className="ap-site-editor__dialog-field-error"
                                     role="alert"
                                 >
@@ -221,9 +233,18 @@ export function CreateMenuDialog(props: CreateMenuDialogProps): JSX.Element {
                                 }
                                 placeholder={__('e.g. primary', TEXT_DOMAIN)}
                                 data-testid="ap-create-menu-slug"
+                                aria-invalid={
+                                    Boolean(errors.slug) || undefined
+                                }
+                                aria-describedby={
+                                    errors.slug !== undefined
+                                        ? slugErrorId
+                                        : undefined
+                                }
                             />
                             {errors.slug !== undefined ? (
                                 <p
+                                    id={slugErrorId}
                                     className="ap-site-editor__dialog-field-error"
                                     role="alert"
                                 >
@@ -247,6 +268,14 @@ export function CreateMenuDialog(props: CreateMenuDialogProps): JSX.Element {
                                     setLocation(event.target.value)
                                 }
                                 data-testid="ap-create-menu-location"
+                                aria-invalid={
+                                    Boolean(errors.location) || undefined
+                                }
+                                aria-describedby={
+                                    errors.location !== undefined
+                                        ? locationErrorId
+                                        : undefined
+                                }
                             >
                                 <option value="">
                                     {__('— No location —', TEXT_DOMAIN)}
@@ -262,6 +291,7 @@ export function CreateMenuDialog(props: CreateMenuDialogProps): JSX.Element {
                             </select>
                             {errors.location !== undefined ? (
                                 <p
+                                    id={locationErrorId}
                                     className="ap-site-editor__dialog-field-error"
                                     role="alert"
                                 >

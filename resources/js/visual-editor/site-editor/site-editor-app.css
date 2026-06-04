@@ -118,10 +118,11 @@
         var(--color-base-content, #1f2937) 8%,
         transparent
     );
-    outline: none;
 }
 
 .ap-site-editor__top-bar-back:focus-visible {
+    outline: 2px solid var(--color-primary, #2563eb);
+    outline-offset: 2px;
     border-color: var(--color-primary, #2563eb);
 }
 

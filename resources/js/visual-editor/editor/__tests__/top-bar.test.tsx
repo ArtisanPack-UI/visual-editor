@@ -31,12 +31,13 @@ afterEach(() => {
 });
 
 describe('TopBar', () => {
-    it('renders an accessible toolbar landmark', () => {
+    it('renders the top bar as a banner header', () => {
         render(<TopBar {...defaultProps()} />);
 
-        const toolbar = screen.getByRole('toolbar', { name: 'Editor top bar' });
+        const header = screen.getByTestId('ap-visual-editor-top-bar');
 
-        expect(toolbar).toBeInTheDocument();
+        expect(header).toBeInTheDocument();
+        expect(header.tagName).toBe('HEADER');
     });
 
     it('does not render title, slug, or status inputs (moved to canvas/sidebar)', () => {

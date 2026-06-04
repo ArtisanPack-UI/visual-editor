@@ -200,8 +200,9 @@
  * longer rendered (the wrapper moved inside `TreeGridItem` divs in a
  * recent refactor), so the two buttons stack with the table cell's
  * natural vertical-align spacing, leaving a big gap between ^ and v.
- * These overrides shrink the buttons to 16px tall and zero their
- * surrounding margins so the arrows sit snugly one atop the other.
+ * These overrides zero the surrounding margins so the arrows sit snugly
+ * one atop the other, while maintaining the 24x24px minimum required by
+ * WCAG 2.5.5 Level AA (Target Size).
  */
 .ap-visual-editor-block-library__panel--layouts
     .block-editor-list-view-block__mover-cell {
@@ -218,9 +219,9 @@
 .ap-visual-editor-block-library__panel--layouts
     .block-editor-list-view-leaf
     .block-editor-block-mover-button {
-    height: 16px;
-    min-height: 16px;
+    min-height: 24px;
     width: 28px;
+    min-width: 24px;
     margin: 0;
     padding: 0;
 }

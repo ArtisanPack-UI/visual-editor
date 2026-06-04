@@ -101,6 +101,9 @@ export function CreatePatternDialog(
     const categoriesId = useId();
     const syncedRadioId = useId();
     const unsyncedRadioId = useId();
+    const nameErrorId = useId();
+    const slugErrorId = useId();
+    const syncErrorId = useId();
 
     const rawContent = useMemo<string>(() => {
         if (sourceBlocks === null || sourceBlocks.length === 0) {
@@ -255,10 +258,14 @@ export function CreatePatternDialog(
                             handleNameChange(event.target.value)
                         }
                         data-testid="ap-pattern-dialog-create-name"
-                        autoFocus
+                        aria-invalid={Boolean(titleError) || undefined}
+                        aria-describedby={
+                            titleError !== null ? nameErrorId : undefined
+                        }
                     />
                     {titleError !== null ? (
                         <p
+                            id={nameErrorId}
                             className="ap-pattern-dialog__error"
                             role="alert"
                         >
@@ -283,9 +290,14 @@ export function CreatePatternDialog(
                             handleSlugChange(event.target.value)
                         }
                         data-testid="ap-pattern-dialog-create-slug"
+                        aria-invalid={Boolean(slugError) || undefined}
+                        aria-describedby={
+                            slugError !== null ? slugErrorId : undefined
+                        }
                     />
                     {slugError !== null ? (
                         <p
+                            id={slugErrorId}
                             className="ap-pattern-dialog__error"
                             role="alert"
                         >
@@ -294,7 +306,14 @@ export function CreatePatternDialog(
                     ) : null}
                 </div>
 
-                <fieldset className="ap-pattern-dialog__field">
+                <fieldset
+                    className="ap-pattern-dialog__field"
+                    aria-describedby={
+                        validationErrors?.sync?.[0] !== undefined
+                            ? syncErrorId
+                            : undefined
+                    }
+                >
                     <legend className="ap-pattern-dialog__label">
                         {__('Sync type', TEXT_DOMAIN)}
                     </legend>
@@ -348,6 +367,7 @@ export function CreatePatternDialog(
                     </div>
                     {validationErrors?.sync?.[0] !== undefined ? (
                         <p
+                            id={syncErrorId}
                             className="ap-pattern-dialog__error"
                             role="alert"
                             data-testid="ap-pattern-dialog-create-sync-error"
