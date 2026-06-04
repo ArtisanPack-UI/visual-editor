@@ -242,6 +242,37 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Loginout block (#522)
+	|--------------------------------------------------------------------------
+	|
+	| Configures the `artisanpack/loginout` block's server-side renderer.
+	| The package does not ship login / logout routes of its own — the
+	| resolver looks up the configured named routes first, falling back
+	| to the literal paths when the names are not registered. Hosts on
+	| a non-default guard (e.g. `sanctum`, `api`) set `guard` here.
+	|
+	| Set `redirect_param` to whatever query key your auth stack reads
+	| when redirecting after login / logout (Laravel Breeze /
+	| Jetstream / Fortify all use `redirect_to`, the upstream WP
+	| `wp_loginout()` default).
+	|
+	| For fully custom URL resolution (per-tenant routes, SSO, etc.)
+	| override the resolved envelope through the
+	| `ap.visual-editor.loginout.envelope` filter hook instead.
+	|
+	*/
+
+	'loginout' => [
+		'guard'          => '',
+		'login_route'    => 'login',
+		'login_path'     => '/login',
+		'logout_route'   => 'logout',
+		'logout_path'    => '/logout',
+		'redirect_param' => 'redirect_to',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Global styles
 	|--------------------------------------------------------------------------
 	|

@@ -13,6 +13,7 @@
 
 import { registerBlockRenderer } from '../registry';
 import { CalloutBlock } from './artisanpack/callout';
+import { LoginoutBlock } from './artisanpack/loginout';
 import {
     CoverBlock,
     DetailsBlock,
@@ -249,6 +250,10 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/query-pagination-numbers': QueryPaginationNumbersBlock,
     'artisanpack/query-pagination-previous': QueryPaginationPreviousBlock,
     'artisanpack/query-title': QueryTitleBlock,
+    // Auth family (#522) — registered under the artisanpack/* namespace
+    // only; loginout never shipped as `core/*` in v1 so there is no
+    // core counterpart to mirror here.
+    'artisanpack/loginout': LoginoutBlock,
 };
 
 export function registerCoreBlocks(): void {
