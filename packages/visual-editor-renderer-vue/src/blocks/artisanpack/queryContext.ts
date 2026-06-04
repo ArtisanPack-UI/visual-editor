@@ -97,10 +97,18 @@ export const QueryPaginationNumbersBlock = defineComponent({
 
             const children = pages
                 .map((page, idx) => {
-                    const number =
-                        typeof page.number === 'number' && Number.isFinite(page.number)
-                            ? page.number
-                            : 0;
+                    // Accept either a number or a numeric string for `page.number` so the
+                    // React / Vue renderers stay in parity with the Blade partial, whose
+                    // `is_numeric()` check passes for both `2` and `"2"`. Hosts that pass
+                    // JSON-decoded payloads through PHP's `json_encode` typically get strings.
+                    const rawNumber = page.number;
+                    const parsed =
+                        typeof rawNumber === 'number'
+                            ? rawNumber
+                            : typeof rawNumber === 'string' && rawNumber.trim() !== ''
+                              ? Number(rawNumber)
+                              : Number.NaN;
+                    const number = Number.isFinite(parsed) ? parsed : 0;
                     if (number === 0) {
                         return null;
                     }
@@ -153,20 +161,18 @@ export const QueryTitleBlock = defineComponent({
             }
             const className = attrString(props.attributes.className);
             const classes = classList(['wp-block-query-title', className]);
-            // Clamp level to the WP heading range (0 = paragraph, 1-6 = h1-h6).
-            // Mirrors the Blade renderer's tag allow-list and the editor
-            // preview's sanitizer so a malformed saved value never
-            // produces `<h7>`.
+            // Validate `level` against the WP heading range (0 = paragraph,
+            // 1-6 = h1-h6) and fall back to h1 for out-of-range values —
+            // mirrors the Blade partial's tag allow-list so the React / Vue
+            // / Blade renderers stay byte-equivalent.
             const rawLevel = attrInt(props.attributes.level, 1);
-            const level = rawLevel === 0 ? 0 : Math.min(6, Math.max(1, rawLevel));
-            const tag = (level === 0 ? 'p' : `h${level}`) as
-                | 'p'
-                | 'h1'
-                | 'h2'
-                | 'h3'
-                | 'h4'
-                | 'h5'
-                | 'h6';
+            const tag = (
+                rawLevel === 0
+                    ? 'p'
+                    : rawLevel >= 1 && rawLevel <= 6
+                      ? (`h${rawLevel}` as const)
+                      : 'h1'
+            ) as 'p' | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6';
 
             return h(tag, { class: classes }, title);
         };

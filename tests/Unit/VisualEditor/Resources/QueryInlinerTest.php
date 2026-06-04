@@ -257,7 +257,11 @@ it( 'keeps artisanpack/query-no-results when the query has zero rows', function 
 		static fn ( array $block ): bool => 'artisanpack/query-no-results' === ( $block['name'] ?? '' )
 	) )[0];
 
-	expect( $noResults['innerBlocks'][0]['attributes']['content'] )->toBe( 'No matches.' );
+	expect( $noResults['innerBlocks'][0]['attributes']['content'] )->toBe( 'No matches.' )
+		// The wrapper picks up the paginator snapshot too (zero rows, current page)
+		// so downstream consumers can read the state off the surviving block.
+		->and( $noResults['attributes']['_resolvedTotal'] )->toBe( 0 )
+		->and( $noResults['attributes']['_resolvedCurrentPage'] )->toBe( 1 );
 } );
 
 it( 'stamps pagination URLs on the next / previous / numbers leaves', function () {

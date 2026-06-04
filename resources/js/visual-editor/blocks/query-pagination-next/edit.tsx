@@ -16,5 +16,5 @@ export default createEntityPlaceholderEdit( {
     label: __( 'Next Page', TEXT_DOMAIN ),
     resolvedKey: '_resolvedNextPageUrl',
     kind: 'text',
-    dummyValue: { text: 'Next Page →' },
+    dummyValue: { text: __( 'Next Page →', TEXT_DOMAIN ) },
 } );

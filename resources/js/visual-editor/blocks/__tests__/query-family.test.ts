@@ -154,9 +154,14 @@ describe('query family block.json', () => {
 
     it('query-pagination allows only the previous / numbers / next children', () => {
         const allowed = (queryPaginationMeta as { allowedBlocks?: string[] }).allowedBlocks ?? [];
-        expect(allowed).toContain('artisanpack/query-pagination-previous');
-        expect(allowed).toContain('artisanpack/query-pagination-numbers');
-        expect(allowed).toContain('artisanpack/query-pagination-next');
+        // Exact equality (not `toContain`) — the wrapper must reject every
+        // other child so the editor inserter cannot smuggle unrelated blocks
+        // into the pagination row.
+        expect(allowed).toEqual([
+            'artisanpack/query-pagination-previous',
+            'artisanpack/query-pagination-numbers',
+            'artisanpack/query-pagination-next',
+        ]);
     });
 });
 
@@ -202,17 +207,17 @@ describe('query family transforms', () => {
     it.each([
         { slug: 'query-no-results', transforms: queryNoResultsTransforms },
         { slug: 'query-pagination', transforms: queryPaginationTransforms },
-    ])('$slug wrapper transforms thread innerBlocks through', ({ slug, transforms }) => {
-        // Wrapper transforms must preserve the nested tree — otherwise
-        // the user's empty-state / pagination layout disappears on
-        // namespace round-trip.
+    ])('$slug wrapper transforms thread innerBlocks through in both directions', ({ slug, transforms }) => {
+        // Wrapper transforms must preserve the nested tree on BOTH directions —
+        // otherwise the user's empty-state / pagination layout disappears on
+        // namespace round-trip in one direction even when the other still works.
         const t = transforms as TransformsModule;
         const innerBlocks = [{ name: 'artisanpack/paragraph', attributes: {}, innerBlocks: [] }];
 
         const from = t.from.find((e) => e.blocks?.includes(`core/${slug}`));
+        const to = t.to.find((e) => e.blocks?.includes(`core/${slug}`));
 
-        const result = from!.transform({}, innerBlocks);
-
-        expect(result.innerBlocks).toEqual(innerBlocks);
+        expect(from!.transform({}, innerBlocks).innerBlocks).toEqual(innerBlocks);
+        expect(to!.transform({}, innerBlocks).innerBlocks).toEqual(innerBlocks);
     });
 });

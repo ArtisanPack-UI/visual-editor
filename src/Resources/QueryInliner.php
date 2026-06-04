@@ -320,8 +320,11 @@ class QueryInliner
 				// author-configured empty-state markup. The inner
 				// tree is intentionally NOT recursed into — its
 				// blocks (paragraphs, headings, etc.) don't carry
-				// query-family stamps.
-				$out[] = $block;
+				// query-family stamps. Stamp the standard
+				// `_resolved*` defaults (total / current page) so
+				// downstream consumers can read the paginator
+				// state off the wrapper attributes.
+				$out[] = $this->stampQueryControls( $block, $paginator, $queryAttrs );
 				continue;
 			}
 

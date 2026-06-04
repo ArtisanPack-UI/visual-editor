@@ -17,5 +17,5 @@ export default createEntityPlaceholderEdit( {
     label: __( 'Previous Page', TEXT_DOMAIN ),
     resolvedKey: '_resolvedPreviousPageUrl',
     kind: 'text',
-    dummyValue: { text: '← Previous Page' },
+    dummyValue: { text: __( '← Previous Page', TEXT_DOMAIN ) },
 } );
