@@ -128,14 +128,21 @@ it( 'marks core/query with _resolutionError when the resolver throws', function 
 	expect( $inlined[0]['attributes']['_resolutionError'] )->toBe( QueryInliner::ERROR_RESOLVER_ERROR );
 } );
 
-it( 'leaves the inner blocks empty when the result set is empty', function () {
+it( 'clears the post-template iterations when the result set is empty but keeps the wrapper', function () {
+	// Empty-result behavior changed in #521 so artisanpack/query-no-results
+	// siblings can render alongside an empty post-template. The post-template
+	// wrapper survives but its inner-block tree is cleared (zero iterations)
+	// so the renderer emits an empty `<ul>` rather than rendering N copies
+	// of the un-stamped template.
 	$tree = [ makeQueryBlock( [
 		[ 'name' => 'core/post-title', 'attributes' => [], 'innerBlocks' => [] ],
 	] ) ];
 
 	$inlined = $this->inliner->inline( $tree );
 
-	expect( $inlined[0]['innerBlocks'] )->toBe( [] )
+	expect( count( $inlined[0]['innerBlocks'] ) )->toBe( 1 )
+		->and( $inlined[0]['innerBlocks'][0]['name'] )->toBe( 'core/post-template' )
+		->and( $inlined[0]['innerBlocks'][0]['innerBlocks'] )->toBe( [] )
 		->and( $inlined[0]['attributes']['_resolvedTotal'] )->toBe( 0 );
 } );
 
@@ -178,4 +185,224 @@ it( 'deep-clones the template subtree per result so mutations do not leak', func
 
 	expect( $first['attributes']['_resolvedTitle'] )->toBe( 'A' )
 		->and( $second['attributes']['_resolvedTitle'] )->toBe( 'B' );
+} );
+
+// --- Query family wiring (#521) -----------------------------------------
+
+/**
+ * Build a query block with an `artisanpack/post-template` child plus
+ * additional siblings (typically the new query-* control blocks the
+ * inliner's filter pass should resolve).
+ *
+ * @param array<int, array<string, mixed>> $siblings
+ */
+function makeQueryBlockWithSiblings( array $siblings = [], array $queryAttrs = [ 'postType' => 'post', 'perPage' => 1 ] ): array
+{
+	return [
+		'name'        => 'artisanpack/query',
+		'attributes'  => [ 'query' => $queryAttrs ],
+		'innerBlocks' => array_merge( [
+			[
+				'name'        => 'artisanpack/post-template',
+				'attributes'  => [],
+				'innerBlocks' => [
+					[ 'name' => 'artisanpack/post-title', 'attributes' => [], 'innerBlocks' => [] ],
+				],
+			],
+		], $siblings ),
+	];
+}
+
+it( 'drops artisanpack/query-no-results when the query has results', function () {
+	$this->fake->setItems( [ postFixture( 1, 'A' ) ] );
+
+	$noResultsMarkup = [
+		'name'        => 'artisanpack/query-no-results',
+		'attributes'  => [],
+		'innerBlocks' => [
+			[ 'name' => 'artisanpack/paragraph', 'attributes' => [ 'content' => 'No matches.' ], 'innerBlocks' => [] ],
+		],
+	];
+
+	$tree = [ makeQueryBlockWithSiblings( [ $noResultsMarkup ] ) ];
+
+	$inlined = $this->inliner->inline( $tree );
+
+	$names = array_column( $inlined[0]['innerBlocks'], 'name' );
+
+	expect( $names )->toBe( [ 'artisanpack/post-template' ] );
+} );
+
+it( 'keeps artisanpack/query-no-results when the query has zero rows', function () {
+	$noResultsMarkup = [
+		'name'        => 'artisanpack/query-no-results',
+		'attributes'  => [],
+		'innerBlocks' => [
+			[ 'name' => 'artisanpack/paragraph', 'attributes' => [ 'content' => 'No matches.' ], 'innerBlocks' => [] ],
+		],
+	];
+
+	$tree = [ makeQueryBlockWithSiblings( [ $noResultsMarkup ] ) ];
+
+	$inlined = $this->inliner->inline( $tree );
+
+	$names = array_column( $inlined[0]['innerBlocks'], 'name' );
+
+	expect( $names )->toContain( 'artisanpack/query-no-results' );
+
+	// The empty-state markup survives intact — the inliner only gates
+	// the wrapper, not its inner-block tree.
+	$noResults = array_values( array_filter(
+		$inlined[0]['innerBlocks'],
+		static fn ( array $block ): bool => 'artisanpack/query-no-results' === ( $block['name'] ?? '' )
+	) )[0];
+
+	expect( $noResults['innerBlocks'][0]['attributes']['content'] )->toBe( 'No matches.' );
+} );
+
+it( 'stamps pagination URLs on the next / previous / numbers leaves', function () {
+	// Three posts spread over multiple pages so the paginator reports a
+	// meaningful next + previous + page range.
+	$this->fake->setItems( [ postFixture( 1, 'A' ), postFixture( 2, 'B' ) ] );
+	$this->fake->totalOverride = 6;
+	$this->fake->perPage       = 2;
+	$this->fake->currentPage   = 2;
+
+	$paginationMarkup = [
+		'name'        => 'artisanpack/query-pagination',
+		'attributes'  => [],
+		'innerBlocks' => [
+			[ 'name' => 'artisanpack/query-pagination-previous', 'attributes' => [], 'innerBlocks' => [] ],
+			[ 'name' => 'artisanpack/query-pagination-numbers', 'attributes' => [], 'innerBlocks' => [] ],
+			[ 'name' => 'artisanpack/query-pagination-next', 'attributes' => [], 'innerBlocks' => [] ],
+		],
+	];
+
+	$tree = [ makeQueryBlockWithSiblings( [ $paginationMarkup ] ) ];
+
+	$inlined = $this->inliner->inline( $tree );
+
+	$pagination = array_values( array_filter(
+		$inlined[0]['innerBlocks'],
+		static fn ( array $block ): bool => 'artisanpack/query-pagination' === ( $block['name'] ?? '' )
+	) )[0];
+
+	$leaves = [];
+	foreach ( $pagination['innerBlocks'] as $child ) {
+		$leaves[ $child['name'] ] = $child['attributes'];
+	}
+
+	expect( $leaves['artisanpack/query-pagination-previous']['_resolvedCurrentPage'] )->toBe( 2 )
+		->and( $leaves['artisanpack/query-pagination-previous']['_resolvedTotalPages'] )->toBe( 3 )
+		->and( is_string( $leaves['artisanpack/query-pagination-previous']['_resolvedPreviousPageUrl'] ) )->toBeTrue()
+		->and( $leaves['artisanpack/query-pagination-next']['_resolvedCurrentPage'] )->toBe( 2 )
+		->and( is_string( $leaves['artisanpack/query-pagination-next']['_resolvedNextPageUrl'] ) )->toBeTrue()
+		->and( count( $leaves['artisanpack/query-pagination-numbers']['_resolvedPageNumbers'] ) )->toBe( 3 )
+		->and( $leaves['artisanpack/query-pagination-numbers']['_resolvedPageNumbers'][0]['number'] )->toBe( 1 )
+		->and( $leaves['artisanpack/query-pagination-numbers']['_resolvedPageNumbers'][2]['number'] )->toBe( 3 )
+		->and( $leaves['artisanpack/query-pagination-numbers']['_resolvedCurrentPage'] )->toBe( 2 );
+} );
+
+it( 'emits an empty previous-page url on page 1 and stamps the next link', function () {
+	$this->fake->setItems( [ postFixture( 1, 'A' ) ] );
+	$this->fake->totalOverride = 4;
+	$this->fake->perPage       = 2;
+	$this->fake->currentPage   = 1;
+
+	$paginationMarkup = [
+		'name'        => 'artisanpack/query-pagination',
+		'attributes'  => [],
+		'innerBlocks' => [
+			[ 'name' => 'artisanpack/query-pagination-previous', 'attributes' => [], 'innerBlocks' => [] ],
+			[ 'name' => 'artisanpack/query-pagination-next', 'attributes' => [], 'innerBlocks' => [] ],
+		],
+	];
+
+	$tree = [ makeQueryBlockWithSiblings( [ $paginationMarkup ] ) ];
+
+	$inlined = $this->inliner->inline( $tree );
+
+	$pagination = array_values( array_filter(
+		$inlined[0]['innerBlocks'],
+		static fn ( array $block ): bool => 'artisanpack/query-pagination' === ( $block['name'] ?? '' )
+	) )[0];
+
+	$leaves = [];
+	foreach ( $pagination['innerBlocks'] as $child ) {
+		$leaves[ $child['name'] ] = $child['attributes'];
+	}
+
+	expect( $leaves['artisanpack/query-pagination-previous']['_resolvedPreviousPageUrl'] )->toBe( '' )
+		->and( $leaves['artisanpack/query-pagination-previous']['_resolvedCurrentPage'] )->toBe( 1 )
+		->and( is_string( $leaves['artisanpack/query-pagination-next']['_resolvedNextPageUrl'] ) )->toBeTrue()
+		->and( '' )->not->toBe( $leaves['artisanpack/query-pagination-next']['_resolvedNextPageUrl'] );
+} );
+
+it( 'stamps query-title with the configured type label', function () {
+	$this->fake->setItems( [ postFixture( 1, 'A' ) ] );
+
+	$titleMarkup = [
+		'name'        => 'artisanpack/query-title',
+		'attributes'  => [ 'type' => 'search' ],
+		'innerBlocks' => [],
+	];
+
+	$tree = [ makeQueryBlockWithSiblings( [ $titleMarkup ], [
+		'postType' => 'post',
+		'search'   => 'laravel',
+	] ) ];
+
+	$inlined = $this->inliner->inline( $tree );
+
+	$title = array_values( array_filter(
+		$inlined[0]['innerBlocks'],
+		static fn ( array $block ): bool => 'artisanpack/query-title' === ( $block['name'] ?? '' )
+	) )[0];
+
+	expect( $title['attributes']['_resolvedQueryTitle'] )->toContain( 'laravel' );
+} );
+
+it( 'stamps post-type query-title even when the result set is empty', function () {
+	// No items configured — the resolver returns zero rows but the title
+	// should still resolve from the query attributes.
+	$titleMarkup = [
+		'name'        => 'artisanpack/query-title',
+		'attributes'  => [ 'type' => 'post-type' ],
+		'innerBlocks' => [],
+	];
+
+	$tree = [ makeQueryBlockWithSiblings( [ $titleMarkup ], [ 'postType' => 'page' ] ) ];
+
+	$inlined = $this->inliner->inline( $tree );
+
+	$title = array_values( array_filter(
+		$inlined[0]['innerBlocks'],
+		static fn ( array $block ): bool => 'artisanpack/query-title' === ( $block['name'] ?? '' )
+	) )[0];
+
+	expect( $title['attributes']['_resolvedQueryTitle'] )->toBe( 'Pages' );
+} );
+
+it( 'preserves host-stamped _resolvedQueryTitle overrides', function () {
+	$this->fake->setItems( [ postFixture( 1, 'A' ) ] );
+
+	$titleMarkup = [
+		'name'        => 'artisanpack/query-title',
+		// Host has already resolved the title (e.g. via a custom adapter
+		// upstream of the inliner) and stamped the attribute — the
+		// inliner must not clobber it.
+		'attributes'  => [ 'type' => 'archive', '_resolvedQueryTitle' => 'Custom: 2026 Posts' ],
+		'innerBlocks' => [],
+	];
+
+	$tree = [ makeQueryBlockWithSiblings( [ $titleMarkup ] ) ];
+
+	$inlined = $this->inliner->inline( $tree );
+
+	$title = array_values( array_filter(
+		$inlined[0]['innerBlocks'],
+		static fn ( array $block ): bool => 'artisanpack/query-title' === ( $block['name'] ?? '' )
+	) )[0];
+
+	expect( $title['attributes']['_resolvedQueryTitle'] )->toBe( 'Custom: 2026 Posts' );
 } );

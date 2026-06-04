@@ -1,0 +1,67 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/query-title",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/query-title",
+        "pinnedVersion": "9.43.0",
+        "subpath": "query-title"
+    },
+    "forkedAt": "2026-06-03",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; attribute schema (type / level / levelOptions / showPrefix / showSearchTerm) + example + supports carried verbatim. usesContext stays on the unprefixed `query` key provided by artisanpack/query. style handle dropped."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Upstream's Edit pulls archive-label + post-type-label data through @wordpress/core-data selectors that are not part of the post editor's minimal core-data shim. The fork ships a thin heading preview keyed on the `type` attribute; the front end emits the resolved title from `_resolvedQueryTitle` stamped server-side. The 5 helper sub-files (use-archive-label / use-post-type-label / variations / deprecated) are not carried."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "n/a (dynamic block)",
+            "status": "added",
+            "notes": "Dynamic block — `save` returns null; markup produced server-side from `_resolvedQueryTitle`."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Upstream has no transforms.js; the fork adds bidirectional core/query-title ↔ artisanpack/query-title block transforms for the V1 rollout window."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG mirroring @wordpress/icons' heading glyph (the icon upstream uses for query-title)."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract; variations + deprecated not carried."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx renders a typed placeholder instead of upstream's live archive / search / post-type label resolution — the core-data shim does not expose the taxonomy or current-archive selectors the upstream hooks depend on. The front-end renderer emits the resolved title from `_resolvedQueryTitle` stamped by QueryInliner.",
+        "variations.js (the archive / search / post-type variation picker) is NOT carried — variations are an editor-UI convenience and are not part of the saved block shape, so dropping them is attribute-compatible.",
+        "deprecated.js (the upstream textAlign migration) is NOT carried; no persisted artisanpack/* content predates 1.0 GA, so the chain would never fire."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-06-03",
+        "reviewer": "Query family fork (#521)"
+    }
+}

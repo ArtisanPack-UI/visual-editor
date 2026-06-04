@@ -1,0 +1,67 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/query-pagination",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/query-pagination",
+        "pinnedVersion": "9.43.0",
+        "subpath": "query-pagination"
+    },
+    "forkedAt": "2026-06-03",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; ancestor + allowedBlocks repointed core/* → artisanpack/*. usesContext stays on the unprefixed `queryId` / `query` keys provided by artisanpack/query (matching post-template). Attribute schema + supports carried verbatim. editorStyle / style handles dropped."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Upstream's Edit drives the ToolsPanel + arrow / show-label controls through @wordpress/data selectors that are not part of the post editor's minimal core-data shim, and previewing the live pagination state requires server-side query resolution that the editor does not run. The fork ships a thin `<InnerBlocks />` wrapper with the previous / numbers / next default template; the pagination controls are deferred to a later customization pass."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "save.js",
+            "status": "adapted",
+            "notes": "Wrapper block — body returns `<InnerBlocks.Content />`. Renderer wraps the children in a `<nav>` element. No semantic drift from upstream."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Upstream has no transforms.js; the fork adds bidirectional core/query-pagination ↔ artisanpack/query-pagination block transforms. Wrapper variant threads innerBlocks so the nested previous/numbers/next tree round-trips losslessly."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG mirroring @wordpress/icons' queryPagination glyph."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "Pagination arrow / show-label inspector controls are not carried — the upstream controls hook the post editor's ToolsPanel + interactive navigation. The renderer respects the saved `paginationArrow` / `showLabel` attribute defaults; bespoke controls are deferred.",
+        "Server-rendered pagination metadata: front-end markup is produced by Blade / React / Vue renderers from `_resolved*` attributes stamped by QueryInliner. The editor canvas previews the static structure only.",
+        "transforms.ts adds bidirectional block transforms that don't exist upstream — required to coexist with core/query-pagination during the V1 rollout."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-06-03",
+        "reviewer": "Query family fork (#521)"
+    }
+}
