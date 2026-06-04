@@ -27,104 +27,112 @@ vi.mock( '@wordpress/block-editor', () => ( {
     } ),
 } ) );
 
-vi.mock( '@wordpress/components', () => ( {
-    PanelBody: ( { children }: { children?: React.ReactNode } ) => (
-        <div data-testid="panel">{ children }</div>
-    ),
-    SelectControl: ( {
-        label,
-        value,
-        options,
-        onChange,
-    }: {
-        label?: string;
-        value?: string;
-        options?: ReadonlyArray<{ label: string; value: string }>;
-        onChange?: ( value: string ) => void;
-    } ) => (
-        <select
-            data-testid="arrow-select"
-            aria-label={ label }
-            value={ value }
-            onChange={ ( event ) => onChange?.( event.target.value ) }
-        >
-            { ( options ?? [] ).map( ( option ) => (
-                <option key={ option.value } value={ option.value }>
-                    { option.label }
-                </option>
-            ) ) }
-        </select>
-    ),
-    ToggleControl: ( {
-        label,
-        checked,
-        onChange,
-    }: {
-        label?: string;
-        checked?: boolean;
-        onChange?: ( value: boolean ) => void;
-    } ) => (
-        <input
-            type="checkbox"
-            data-testid="show-title-toggle"
-            aria-label={ label }
-            checked={ Boolean( checked ) }
-            onChange={ ( event ) => onChange?.( event.target.checked ) }
-        />
-    ),
-    __experimentalToggleGroupControl: ( {
-        label,
-        value,
-        onChange,
-        children,
-    }: {
-        label?: string;
-        value?: string;
-        onChange?: ( value: string | number ) => void;
-        children?: React.ReactNode;
-    } ) => {
-        const React = require( 'react' );
+vi.mock( '@wordpress/components', () => {
+    // `vi.mock` factories are hoisted above the file's imports, so we
+    // can't pull React in via the top-level `import React from 'react'`
+    // line — `require()` is the supported escape hatch for getting
+    // React inside a hoisted factory. Lifting it to mock scope keeps
+    // the call once-per-mount instead of once-per-render.
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const React = require( 'react' );
 
-        // Wire each child option through `onChange` so clicking an
-        // option exercises the real `setAttributes` write path. The
-        // production `ToggleGroupControl` does the same plumbing through
-        // a context; cloneElement is a lighter equivalent for the mock.
-        const wired = React.Children.map(
+    return {
+        PanelBody: ( { children }: { children?: React.ReactNode } ) => (
+            <div data-testid="panel">{ children }</div>
+        ),
+        SelectControl: ( {
+            label,
+            value,
+            options,
+            onChange,
+        }: {
+            label?: string;
+            value?: string;
+            options?: ReadonlyArray<{ label: string; value: string }>;
+            onChange?: ( value: string ) => void;
+        } ) => (
+            <select
+                data-testid="arrow-select"
+                aria-label={ label }
+                value={ value }
+                onChange={ ( event ) => onChange?.( event.target.value ) }
+            >
+                { ( options ?? [] ).map( ( option ) => (
+                    <option key={ option.value } value={ option.value }>
+                        { option.label }
+                    </option>
+                ) ) }
+            </select>
+        ),
+        ToggleControl: ( {
+            label,
+            checked,
+            onChange,
+        }: {
+            label?: string;
+            checked?: boolean;
+            onChange?: ( value: boolean ) => void;
+        } ) => (
+            <input
+                type="checkbox"
+                data-testid="show-title-toggle"
+                aria-label={ label }
+                checked={ Boolean( checked ) }
+                onChange={ ( event ) => onChange?.( event.target.checked ) }
+            />
+        ),
+        __experimentalToggleGroupControl: ( {
+            label,
+            value,
+            onChange,
             children,
-            ( child: React.ReactNode ) =>
-                React.isValidElement( child )
-                    ? React.cloneElement( child, { onChange } )
-                    : child,
-        );
+        }: {
+            label?: string;
+            value?: string;
+            onChange?: ( value: string | number ) => void;
+            children?: React.ReactNode;
+        } ) => {
+            // Wire each child option through `onChange` so clicking an
+            // option exercises the real `setAttributes` write path. The
+            // production `ToggleGroupControl` does the same plumbing through
+            // a context; cloneElement is a lighter equivalent for the mock.
+            const wired = React.Children.map(
+                children,
+                ( child: React.ReactNode ) =>
+                    React.isValidElement( child )
+                        ? React.cloneElement( child, { onChange } )
+                        : child,
+            );
 
-        return (
-            <div data-testid="direction-toggle-group" data-value={ value } aria-label={ label }>
-                { wired }
-            </div>
-        );
-    },
-    __experimentalToggleGroupControlOption: ( {
-        value,
-        label,
-        onChange,
-    }: {
-        value?: string;
-        label?: string;
-        onChange?: ( value: string | number ) => void;
-    } ) => (
-        <button
-            data-testid={ `direction-${ value }` }
-            type="button"
-            onClick={ () => {
-                if ( value !== undefined ) {
-                    onChange?.( value );
-                }
-            } }
-        >
-            { label }
-        </button>
-    ),
-} ) );
+            return (
+                <div data-testid="direction-toggle-group" data-value={ value } aria-label={ label }>
+                    { wired }
+                </div>
+            );
+        },
+        __experimentalToggleGroupControlOption: ( {
+            value,
+            label,
+            onChange,
+        }: {
+            value?: string;
+            label?: string;
+            onChange?: ( value: string | number ) => void;
+        } ) => (
+            <button
+                data-testid={ `direction-${ value }` }
+                type="button"
+                onClick={ () => {
+                    if ( value !== undefined ) {
+                        onChange?.( value );
+                    }
+                } }
+            >
+                { label }
+            </button>
+        ),
+    };
+} );
 
 // Stub the shared placeholder edit factory so the suite focuses on the
 // InspectorControls wiring this test owns. The real factory pulls in
