@@ -521,8 +521,10 @@ class PostResolver
 
 	/**
 	 * Resolve the adjacent post for the given direction. Tries the
-	 * commonly-named accessors first; returns null when the model does
-	 * not expose any adjacency.
+	 * commonly-named accessors first; falls back to an Eloquent query
+	 * against `published_at` when the host opts in via
+	 * `artisanpack.visual-editor.resolver.adjacency.auto_query`. Returns
+	 * null when neither path yields a row.
 	 */
 	protected function adjacentPost( object $post, string $direction ): ?object
 	{
@@ -538,7 +540,50 @@ class PostResolver
 			}
 		}
 
-		return null;
+		return $this->queryAdjacentPost( $post, $direction );
+	}
+
+	/**
+	 * Generic safety-net for hosts whose Post model does not expose
+	 * `previous_post` / `next_post` accessors but DOES expose an
+	 * Eloquent query builder and a `published_at` timestamp.
+	 *
+	 * Gated behind `artisanpack.visual-editor.resolver.adjacency.auto_query`
+	 * (default `false`) so hosts opt-in to the extra query per render.
+	 * Returns null when the host has opted out, the model is not Eloquent,
+	 * `published_at` is missing, or no adjacent row is found.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function queryAdjacentPost( object $post, string $direction ): ?object
+	{
+		if ( true !== config( 'artisanpack.visual-editor.resolver.adjacency.auto_query', false ) ) {
+			return null;
+		}
+
+		if ( ! method_exists( $post, 'newQuery' ) ) {
+			return null;
+		}
+
+		$publishedAt = $post->published_at ?? null;
+
+		if ( null === $publishedAt || '' === $publishedAt ) {
+			return null;
+		}
+
+		$isPrevious = 'previous' === $direction;
+
+		try {
+			$query = $post->newQuery()
+				->where( 'published_at', $isPrevious ? '<' : '>', $publishedAt )
+				->orderBy( 'published_at', $isPrevious ? 'desc' : 'asc' );
+
+			$result = $query->first();
+		} catch ( \Throwable ) {
+			return null;
+		}
+
+		return is_object( $result ) ? $result : null;
 	}
 
 	/**

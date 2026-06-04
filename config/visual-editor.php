@@ -64,6 +64,36 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Resolver
+	|--------------------------------------------------------------------------
+	|
+	| Behaviour knobs for the server-side `_resolved*` stamping pipeline.
+	|
+	| `adjacency.auto_query` controls the generic query-fallback used by
+	| `PostResolver::adjacentPost()` when stamping `post-navigation-link`
+	| blocks (#527). The resolver first tries common accessors
+	| (`previous_post`, `next_post`, etc.) on the host's Post model. When
+	| no accessor is present and this flag is `true`, the resolver issues
+	| an Eloquent query against `published_at` to find the adjacent
+	| published row. Costs one extra query per `post-navigation-link`
+	| render per direction, so hosts whose Post model already exposes
+	| explicit adjacency accessors should leave this off.
+	|
+	| Requirements for the fallback to run:
+	|
+	|   - the Post model exposes `newQuery()` (Eloquent default), AND
+	|   - the post being rendered has a non-empty `published_at` value.
+	|
+	*/
+
+	'resolver' => [
+		'adjacency' => [
+			'auto_query' => false,
+		],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Block registry filters
 	|--------------------------------------------------------------------------
 	|
