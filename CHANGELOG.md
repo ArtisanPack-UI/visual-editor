@@ -1,6 +1,41 @@
-# Digital Shopfront CMS Package Changelog
+# ArtisanPack UI Visual Editor — Changelog
 
-## [Unreleased]
+All notable changes to this project are documented in this file.
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
+this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.0.0] — V1 release
+
+V1 ships the post editor, the site editor, the block fork to the
+`artisanpack/*` namespace, and first-class pairing with
+`artisanpack-ui/cms-framework`. See the [README](README.md) and the
+[`docs/`](docs/) directory for the full V1 surface.
+
+### Added
+
+- **Site editor (Phase H).** Mounted at `/visual-editor/site`. Templates,
+  template parts, theme.json-backed global styles, navigation menus, and
+  patterns — all editable through a custom shell built on
+  `@wordpress/block-editor`. Backed by cms-framework's
+  `Template`/`TemplatePart`/`GlobalStyles`/`Menu`/`Pattern` models when
+  cms-framework is installed; fail-closed `SiteEditorAccessGate`
+  defaults to deny until the host binds a permissive gate (or installs
+  cms-framework, which auto-binds `CmsFrameworkInstallGate`).
+- **Documentation set.** Fifteen new / refreshed docs covering install,
+  content model, Blade component reference, post-editor surface, custom
+  blocks, renderers, site-editor surface, templates, global styles,
+  navigation, patterns, Livewire and Inertia embedding recipes,
+  theming, troubleshooting, and migration. Entry point:
+  [`docs/getting-started.md`](docs/getting-started.md).
+- **V1 expansion plan retained as historical record:**
+  [`docs/plans/11-v1-expansion.md`](docs/plans/11-v1-expansion.md).
+
+### Changed
+
+- README rewritten to reflect final V1 scope: post editor + site editor
+  + patterns + Livewire/Inertia embedding.
+
+## [1.0.0-alpha.1] — Gutenberg adoption marker
 
 ### Added
 

@@ -225,6 +225,83 @@ Use a dynamic block when:
   render (latest posts, cart totals, stock levels).
 - The block needs to run Laravel authorization before exposing data.
 
+### Dynamic block hooks
+
+`DynamicBlock` exposes four overridable methods. Only `name()` and
+`render()` are required; the others have safe defaults.
+
+```php
+abstract class DynamicBlock
+{
+    abstract public function name(): string;
+    abstract public function render(array $attrs); // : View|Stringable|string
+
+    public function validateAttrs(array $attrs): array
+    {
+        return $attrs;
+    }
+
+    public function searchableText(array $attrs): string
+    {
+        return '';
+    }
+
+    public function authorize(?Authenticatable $user, array $attrs): bool
+    {
+        return true;
+    }
+}
+```
+
+- **`validateAttrs(array $attrs): array`** — runs before `render()` and
+  before persistence. Normalize, coerce, and reject bad input. Throw
+  `InvalidArgumentException` to abort. Defaults to passthrough.
+
+  ```php
+  public function validateAttrs(array $attrs): array
+  {
+      $limit = filter_var($attrs['limit'] ?? 5, FILTER_VALIDATE_INT);
+      if ($limit === false || $limit < 1 || $limit > 50) {
+          throw new \InvalidArgumentException('limit must be 1–50');
+      }
+
+      return ['limit' => $limit];
+  }
+  ```
+
+- **`searchableText(array $attrs): string`** — plain-text extract used by
+  `HasBlockContent::blockContentSearchableText()` and the Scout searchable
+  array. Return whatever the block contributes to full-text search.
+  Defaults to empty string.
+
+  ```php
+  public function searchableText(array $attrs): string
+  {
+      return (string) ($attrs['heading'] ?? '');
+  }
+  ```
+
+- **`authorize(?Authenticatable $user, array $attrs): bool`** — gates
+  preview rendering during authoring. Return `false` to render an
+  authorization-denied placeholder instead of the block. Defaults to
+  `true`. Public-site renders go through the renderer package directly
+  and run the host app's own authorization.
+
+  ```php
+  public function authorize(?Authenticatable $user, array $attrs): bool
+  {
+      return $user?->can('view-internal-block') ?? false;
+  }
+  ```
+
+### Block preview endpoint
+
+While authoring, dynamic blocks render via
+`POST /visual-editor/api/blocks/preview`. The editor sends
+`{ blockName, attributes }`; the controller resolves the block, runs
+`validateAttrs` → `authorize` → `render`, and returns HTML. Cache misses
+during typing are amortized by the editor's per-block debounce.
+
 ---
 
 ## 5. Rendering on the public frontend
