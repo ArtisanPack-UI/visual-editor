@@ -209,7 +209,7 @@ export function CreateEntityDialog<K extends EntityKind>(
                         onClick={onClose}
                         data-testid={`ap-site-editor-create-dialog-close-${kind}`}
                     >
-                        {'×'}
+                        <span aria-hidden="true">{'×'}</span>
                     </button>
                 </header>
                 <form

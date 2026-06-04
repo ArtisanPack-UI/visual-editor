@@ -15,7 +15,7 @@
  * slot when they ship.
  */
 
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useId, useMemo, useState } from 'react';
 import { __, sprintf } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN, bootI18n } from '../vendor/i18n';
@@ -211,6 +211,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
         () => getSection(routing.section),
         [routing.section]
     );
+    const mainHeadingId = useId();
 
     const activeEntityId = routing.entityId;
     const isD2Section = D2_SECTIONS.has(activeSection.id);
@@ -735,15 +736,24 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                 extraActions={extraActions}
                 leadingActions={leadingActions}
             />
-            <div
-                className="ap-site-editor__body"
-                id={NAVIGATOR_PANEL_ID}
-                role="tabpanel"
-                aria-labelledby={navigatorTabId(activeSection.id)}
-                tabIndex={0}
-            >
-                {body}
-            </div>
+            <main aria-labelledby={mainHeadingId}>
+                <h1 id={mainHeadingId} className="screen-reader-text">
+                    {sprintf(
+                        /* translators: %s: active site editor section. */
+                        __('Site Editor — %s', TEXT_DOMAIN),
+                        activeSection.label
+                    )}
+                </h1>
+                <div
+                    className="ap-site-editor__body"
+                    id={NAVIGATOR_PANEL_ID}
+                    role="tabpanel"
+                    aria-labelledby={navigatorTabId(activeSection.id)}
+                    tabIndex={0}
+                >
+                    {body}
+                </div>
+            </main>
             {dialogKind === 'template' ? (
                 <TemplateCreateDialog
                     apiConfig={apiConfig}

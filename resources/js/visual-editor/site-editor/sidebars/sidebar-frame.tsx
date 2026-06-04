@@ -33,9 +33,13 @@ export function SidebarFrame<TRecord>(
             <section
                 className="ap-site-editor-sidebar"
                 data-testid={`${testId}-loading`}
+                aria-busy={true}
             >
                 <h2 className="ap-site-editor-sidebar__heading">{label}</h2>
-                <p className="ap-site-editor-sidebar__placeholder">
+                <p
+                    className="ap-site-editor-sidebar__placeholder"
+                    role="status"
+                >
                     {__('Loading…', TEXT_DOMAIN)}
                 </p>
             </section>
@@ -49,7 +53,10 @@ export function SidebarFrame<TRecord>(
                 data-testid={`${testId}-empty`}
             >
                 <h2 className="ap-site-editor-sidebar__heading">{label}</h2>
-                <p className="ap-site-editor-sidebar__placeholder">
+                <p
+                    className="ap-site-editor-sidebar__placeholder"
+                    role="status"
+                >
                     {__(
                         'No record found. The id may not exist or cms-framework may not be installed.',
                         TEXT_DOMAIN

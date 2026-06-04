@@ -11,6 +11,8 @@
 import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
+import '../a11y.css';
+
 import type {
     AuthorOption,
     DocumentSupports,

@@ -253,7 +253,6 @@ export function NavigationCanvas(props: NavigationCanvasProps): JSX.Element {
                 >
                     <ul
                         className="ap-nav-canvas__tree"
-                        role="tree"
                         aria-label={__('Menu items', TEXT_DOMAIN)}
                     >
                         {visibleFlat.map((entry) => (
@@ -333,9 +332,6 @@ function SortableMenuItemRow(props: SortableMenuItemRowProps): JSX.Element {
             ref={sortable.setNodeRef}
             style={style}
             className="ap-nav-canvas__item"
-            role="treeitem"
-            aria-level={renderDepth + 1}
-            aria-selected={selectedItemId === flat.item.localId}
             data-testid={`ap-nav-canvas-item-${flat.item.localId}`}
             data-dragging={sortable.isDragging}
         >
@@ -433,7 +429,7 @@ function MenuItemRowBody(props: RowBodyProps): JSX.Element {
                     data-testid={`ap-nav-canvas-drag-${item.localId}`}
                     {...dragHandleProps}
                 >
-                    {'⋮⋮'}
+                    <span aria-hidden="true">{'⋮⋮'}</span>
                 </button>
             ) : null}
             <button

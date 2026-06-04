@@ -166,6 +166,10 @@ function EntityPanel(props: EntityPanelProps): JSX.Element {
     const titleId = useId();
     const slugId = useId();
     const locationId = useId();
+    const titleErrorId = useId();
+    const slugErrorId = useId();
+    const locationErrorId = useId();
+    const locationsErrorId = useId();
 
     const titleError = validationErrors?.title?.[0];
     const slugError = validationErrors?.slug?.[0];
@@ -189,9 +193,14 @@ function EntityPanel(props: EntityPanelProps): JSX.Element {
                         onFieldsChange({ title: event.target.value })
                     }
                     data-testid="ap-nav-inspector-title"
+                    aria-invalid={Boolean(titleError) || undefined}
+                    aria-describedby={
+                        titleError !== undefined ? titleErrorId : undefined
+                    }
                 />
                 {titleError !== undefined ? (
                     <p
+                        id={titleErrorId}
                         className="ap-site-editor__dialog-field-error"
                         role="alert"
                     >
@@ -216,9 +225,14 @@ function EntityPanel(props: EntityPanelProps): JSX.Element {
                         onFieldsChange({ slug: event.target.value })
                     }
                     data-testid="ap-nav-inspector-slug"
+                    aria-invalid={Boolean(slugError) || undefined}
+                    aria-describedby={
+                        slugError !== undefined ? slugErrorId : undefined
+                    }
                 />
                 {slugError !== undefined ? (
                     <p
+                        id={slugErrorId}
                         className="ap-site-editor__dialog-field-error"
                         role="alert"
                     >
@@ -248,6 +262,17 @@ function EntityPanel(props: EntityPanelProps): JSX.Element {
                     }
                     disabled={isLocationsLoading}
                     data-testid="ap-nav-inspector-location"
+                    aria-invalid={
+                        Boolean(locationError) || Boolean(locationsError) ||
+                            undefined
+                    }
+                    aria-describedby={
+                        locationError !== undefined
+                            ? locationErrorId
+                            : locationsError !== null
+                                ? locationsErrorId
+                                : undefined
+                    }
                 >
                     <option value="">
                         {__('— No location —', TEXT_DOMAIN)}
@@ -263,6 +288,7 @@ function EntityPanel(props: EntityPanelProps): JSX.Element {
                 </select>
                 {locationsError !== null ? (
                     <p
+                        id={locationsErrorId}
                         className="ap-site-editor__dialog-field-error"
                         role="alert"
                     >
@@ -271,6 +297,7 @@ function EntityPanel(props: EntityPanelProps): JSX.Element {
                 ) : null}
                 {locationError !== undefined ? (
                     <p
+                        id={locationErrorId}
                         className="ap-site-editor__dialog-field-error"
                         role="alert"
                     >

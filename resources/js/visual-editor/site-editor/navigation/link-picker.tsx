@@ -64,6 +64,7 @@ export function LinkPicker(props: LinkPickerProps): JSX.Element {
     const typeId = useId();
     const queryId = useId();
     const urlId = useId();
+    const searchErrorId = useId();
 
     const typeOptions = useMemo(() => getTypeOptions(), []);
     const activeType = typeOptions.find((option) => option.value === item.type);
@@ -187,11 +188,20 @@ export function LinkPicker(props: LinkPickerProps): JSX.Element {
                             onChange={(event) => setQuery(event.target.value)}
                             placeholder={__('Type to search…', TEXT_DOMAIN)}
                             data-testid="ap-nav-link-picker-query"
+                            aria-invalid={
+                                Boolean(searchError) || undefined
+                            }
+                            aria-describedby={
+                                searchError !== null
+                                    ? searchErrorId
+                                    : undefined
+                            }
                         />
                     </div>
 
                     {searchError !== null ? (
                         <p
+                            id={searchErrorId}
                             className="ap-site-editor__dialog-field-error"
                             role="alert"
                         >
@@ -201,7 +211,6 @@ export function LinkPicker(props: LinkPickerProps): JSX.Element {
 
                     <ul
                         className="ap-nav-inspector__results"
-                        role="listbox"
                         aria-label={__('Search results', TEXT_DOMAIN)}
                         aria-busy={isSearching}
                         data-testid="ap-nav-link-picker-results"
@@ -220,8 +229,6 @@ export function LinkPicker(props: LinkPickerProps): JSX.Element {
                                 <li
                                     key={`${result.type}-${result.id}`}
                                     className="ap-nav-inspector__result"
-                                    role="option"
-                                    aria-selected={selected}
                                 >
                                     <button
                                         type="button"

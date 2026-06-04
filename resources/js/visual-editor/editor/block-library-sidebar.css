@@ -219,8 +219,9 @@
     .block-editor-list-view-leaf
     .block-editor-block-mover-button {
     height: 16px;
-    min-height: 16px;
+    min-height: 24px;
     width: 28px;
+    min-width: 24px;
     margin: 0;
     padding: 0;
 }

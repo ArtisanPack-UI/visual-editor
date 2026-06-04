@@ -144,7 +144,7 @@ export function PatternDialog(props: PatternDialogProps): JSX.Element {
                         onClick={onClose}
                         data-testid={`ap-pattern-dialog-close-${testKey}`}
                     >
-                        {'×'}
+                        <span aria-hidden="true">{'×'}</span>
                     </button>
                 </header>
                 {children}

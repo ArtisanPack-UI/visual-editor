@@ -11,6 +11,7 @@
 import {
     useCallback,
     useEffect,
+    useId,
     useMemo,
     useRef,
     useState,
@@ -26,7 +27,7 @@ import { EntityProvider } from '@wordpress/core-data';
 // blocks. Without this import the toolbar renders but the formats are
 // empty (#343).
 import '@wordpress/format-library';
-import { __ } from '@wordpress/i18n';
+import { __, sprintf } from '@wordpress/i18n';
 import type { BlockInstance } from '@wordpress/blocks';
 
 import { addFilter } from '@wordpress/hooks';
@@ -416,6 +417,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         saveErrorMessage: saveError?.message ?? null,
     });
 
+    const mainHeadingId = useId();
     const [title, setTitle] = useState<string>(initialTitle);
     const [slug, setSlug] = useState<string>(initialSlug);
     const [status, setStatus] = useState<PostStatus>(
@@ -925,6 +927,12 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             editorBody
         );
 
+    const mainHeadingText = sprintf(
+        /* translators: %s: post title or fallback. */
+        __('Editing: %s', TEXT_DOMAIN),
+        title === '' ? __('Untitled', TEXT_DOMAIN) : title
+    );
+
     return (
         <SlotFillProvider>
             <div
@@ -934,7 +942,15 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 data-document-type={documentType ?? 'unset'}
             >
                 {topBar}
-                <div className="ap-visual-editor__body">{wrappedBody}</div>
+                <main
+                    className="ap-visual-editor__body"
+                    aria-labelledby={mainHeadingId}
+                >
+                    <h1 id={mainHeadingId} className="screen-reader-text">
+                        {mainHeadingText}
+                    </h1>
+                    {wrappedBody}
+                </main>
                 {shortcutsModal}
             </div>
         </SlotFillProvider>
