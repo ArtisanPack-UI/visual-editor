@@ -157,3 +157,56 @@ the dev-app soak.
 - 🟡 Dev-app soak window — exercised against this branch as part of the
   #416 PR; sign-off recorded in the PR description before the gate
   merges.
+
+---
+
+## 5. V1.0.0 audit conclusion (#325)
+
+Plan 11 §4.1 requires "one audited upgrade pass near the end of Phase E
+before beta tagging." Performed against the pins recorded in §1 above on
+the branch carrying #325.
+
+**Decision: hold the pins. No `@wordpress/*` bumps in V1.0.0.**
+
+Upstream state at audit time:
+
+| Package | Pinned | Latest minor | Δ |
+|---------|--------|--------------|---|
+| `@wordpress/block-editor` | `15.16.0` | `15.21.0` | +5 minors |
+| `@wordpress/blocks` | `15.16.0` | `15.21.0` | +5 minors |
+| `@wordpress/components` | `32.5.0` | `35.0.0` | +3 **majors** |
+| `@wordpress/core-data` | `7.43.0` | `7.48.0` | +5 minors |
+| `@wordpress/format-library` | `5.43.0` | `5.48.0` | +5 minors |
+| `@wordpress/hooks` | `4.43.0` | `4.48.0` | +5 minors |
+| `@wordpress/i18n` | `6.17.0` | `6.21.0` | +5 minors |
+| `@wordpress/patterns` | `2.43.0` | `2.48.0` | +5 minors |
+| `@wordpress/reusable-blocks` | `5.43.0` | `5.48.0` | +5 minors |
+| `@wordpress/block-library` (dev) | `9.43.0` | `9.48.0` | +5 minors |
+
+Rationale for holding:
+
+1. `@wordpress/components` is three majors behind. Adopting requires
+   restyling work across every place we override Gutenberg component
+   styles (buttons, modals, popovers, panels). That's V1.1 work, not
+   V1.0.0 work.
+2. Gutenberg's cross-package version coupling assumes lockstep — moving
+   one minor without the others risks runtime breakage. The `components`
+   major blocker means the whole group stays put.
+3. The pinned baseline has been soaked through the entire Phase G + H
+   + I work — adopting fresh versions hours before beta inverts the
+   risk profile the plan deliberately built in.
+4. Renovate resumes on the post-fork baseline (§3.1) so the next minor
+   bump cycle starts immediately after V1.0.0 ships; the audited upgrade
+   pass for V1.1 will exercise the new versions on a working tree, not
+   a release-candidate tree.
+
+**Action for the V1.0.0 ship:**
+
+- Keep `package.json` pins exactly as listed in §1. No file changes.
+- The pinned table in §1 becomes the v1.0.0 release notes' "shipped
+  against" section.
+- Note in the release notes: theme.json schema version 3 stays pinned
+  (matches the `@wordpress/*` baseline above).
+- First post-V1.0.0 Renovate PR — assign to the maintainer running the
+  upstream-diff CI cycle (§3.2). Triage drift; decide whether to adopt
+  per cluster.
