@@ -1,0 +1,68 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/query-pagination",
+    "title": "Pagination",
+    "category": "theme",
+    "ancestor": [ "artisanpack/query" ],
+    "allowedBlocks": [
+        "artisanpack/query-pagination-previous",
+        "artisanpack/query-pagination-numbers",
+        "artisanpack/query-pagination-next"
+    ],
+    "description": "Displays a paginated navigation to next/previous set of posts, when applicable.",
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "paginationArrow": {
+            "type": "string",
+            "default": "none"
+        },
+        "showLabel": {
+            "type": "boolean",
+            "default": true
+        }
+    },
+    "usesContext": [ "queryId", "query" ],
+    "providesContext": {
+        "paginationArrow": "paginationArrow",
+        "showLabel": "showLabel"
+    },
+    "supports": {
+        "anchor": true,
+        "align": true,
+        "reusable": false,
+        "html": false,
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true,
+                "link": true
+            }
+        },
+        "layout": {
+            "allowSwitching": false,
+            "allowInheriting": false,
+            "default": {
+                "type": "flex"
+            }
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "__experimentalFontFamily": true,
+            "__experimentalFontWeight": true,
+            "__experimentalFontStyle": true,
+            "__experimentalTextTransform": true,
+            "__experimentalTextDecoration": true,
+            "__experimentalLetterSpacing": true,
+            "__experimentalDefaultControls": {
+                "fontSize": true
+            }
+        },
+        "interactivity": {
+            "clientNavigation": true
+        }
+    }
+}

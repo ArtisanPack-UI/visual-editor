@@ -1,0 +1,67 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/query-no-results",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/query-no-results",
+        "pinnedVersion": "9.43.0",
+        "subpath": "query-no-results"
+    },
+    "forkedAt": "2026-06-03",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; ancestor repointed core/query → artisanpack/query. usesContext stays on the unprefixed `queryId` / `query` keys because that's what artisanpack/query already provides (matching upstream + sibling artisanpack/post-template); the issue's `artisanpack/queryId` checklist note is deferred until artisanpack/query providesContext gains the prefixed aliases. Supports carried verbatim."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "adapted",
+            "notes": "TypeScript port mirroring upstream's `<InnerBlocks />` shell with a default paragraph child. The default child is swapped to artisanpack/paragraph so the inserter previews the fork's namespace from the first insertion."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "save.js",
+            "status": "adapted",
+            "notes": "Body returns `<InnerBlocks.Content />` — serialized inner-block template the server-side QueryInliner only emits when the surrounding query resolves to zero results. No semantic drift from upstream."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Upstream has no transforms.js; the fork adds bidirectional core/query-no-results ↔ artisanpack/query-no-results block transforms for the V1 rollout window."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG mirroring @wordpress/icons' close-small glyph (the icon upstream uses for the no-results block)."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract; deprecated chain not carried (no persisted artisanpack/* content predates 1.0 GA)."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "Default inserter template uses artisanpack/paragraph instead of core/paragraph so the fork's namespace stays consistent from first insert.",
+        "Server-rendered conditional: the wrapper is emitted on the front end only when QueryInliner has stamped a zero-result paginator on the surrounding artisanpack/query. Upstream relies on PHP-side `render_block_core_query_no_results` to do the same gating; the renderer-parity adapter replicates it across Blade / React / Vue.",
+        "transforms.ts adds bidirectional block transforms that don't exist upstream — required to coexist with core/query-no-results during the V1 rollout."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-06-03",
+        "reviewer": "Query family fork (#521)"
+    }
+}

@@ -37,15 +37,19 @@ interface QueryEditProps {
     clientId: string;
 }
 
-// Seed every newly-inserted query with a post-template child so the saved
-// tree has the structure the inliner expects (one post-template wrapping
-// N post-template-item clones). Without this, users can add per-post
-// blocks directly inside the query and the inliner falls back to a flat
-// expansion that skips the semantic <ul>/<li> wrapping. The InnerBlocks
-// `template` only applies on first mount, so it does not overwrite an
-// existing user-arranged tree.
+// Seed every newly-inserted query with a post-template + pagination +
+// no-results trio so the saved tree has the structure QueryInliner
+// expects (one post-template wrapping N post-template-item clones,
+// plus the request-time pagination + empty-state siblings). Without
+// this, users have to discover that the pagination / no-results
+// children are ancestor-locked to artisanpack/query and dig into the
+// in-block inserter to add them. The InnerBlocks `template` only
+// applies on first mount, so it does not overwrite an existing
+// user-arranged tree (#521).
 const DEFAULT_TEMPLATE: ReadonlyArray<[ string ]> = [
     [ 'artisanpack/post-template' ],
+    [ 'artisanpack/query-pagination' ],
+    [ 'artisanpack/query-no-results' ],
 ];
 
 function getQuery( attributes: Record<string, unknown> ): Record<string, unknown> {

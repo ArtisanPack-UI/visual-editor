@@ -120,6 +120,12 @@
         "artisanpack/comments-pagination",
         "artisanpack/comments-pagination-next",
         "artisanpack/comments-pagination-numbers",
-        "artisanpack/comments-pagination-previous"
+        "artisanpack/comments-pagination-previous",
+        "artisanpack/query-no-results",
+        "artisanpack/query-pagination",
+        "artisanpack/query-pagination-next",
+        "artisanpack/query-pagination-numbers",
+        "artisanpack/query-pagination-previous",
+        "artisanpack/query-title"
     ]
 }

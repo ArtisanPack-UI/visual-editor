@@ -74,6 +74,14 @@ import {
     PostCommentsTitleBlock,
 } from './artisanpack/commentContext';
 import {
+    QueryNoResultsBlock,
+    QueryPaginationBlock,
+    QueryPaginationNextBlock,
+    QueryPaginationNumbersBlock,
+    QueryPaginationPreviousBlock,
+    QueryTitleBlock,
+} from './artisanpack/queryContext';
+import {
     PostNavigationLinkBlock,
     PostTermsBlock,
     ReadMoreBlock,
@@ -231,6 +239,16 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/comments-pagination-next': CommentsPaginationNextBlock,
     'artisanpack/comments-pagination-numbers': CommentsPaginationNumbersBlock,
     'artisanpack/comments-pagination-previous': CommentsPaginationPreviousBlock,
+    // Query family (#521) — registered under the artisanpack/* namespace
+    // only; the new query-pagination / query-no-results / query-title
+    // forks never shipped as `core/*` in v1 so there are no core
+    // counterparts to mirror here.
+    'artisanpack/query-no-results': QueryNoResultsBlock,
+    'artisanpack/query-pagination': QueryPaginationBlock,
+    'artisanpack/query-pagination-next': QueryPaginationNextBlock,
+    'artisanpack/query-pagination-numbers': QueryPaginationNumbersBlock,
+    'artisanpack/query-pagination-previous': QueryPaginationPreviousBlock,
+    'artisanpack/query-title': QueryTitleBlock,
 };
 
 export function registerCoreBlocks(): void {

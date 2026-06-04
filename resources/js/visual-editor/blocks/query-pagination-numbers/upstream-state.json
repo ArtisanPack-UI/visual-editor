@@ -1,0 +1,67 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/query-pagination-numbers",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/query-pagination-numbers",
+        "pinnedVersion": "9.43.0",
+        "subpath": "query-pagination-numbers"
+    },
+    "forkedAt": "2026-06-03",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; parent repointed core/query-pagination → artisanpack/query-pagination. usesContext stays on the unprefixed `queryId` / `query` keys provided by artisanpack/query. Attribute schema (including `midSize` default of 2) + supports carried verbatim. editorStyle handle dropped."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Lightweight placeholder edit using the shared `createEntityPlaceholderEdit` factory. Upstream renders the live page-number list from a client-side selector + interactive navigation surface; the fork resolves the numbers server-side and previews a representative placeholder in the canvas."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Dynamic block — `save` returns null; markup produced server-side from `_resolvedPageNumbers` / `_resolvedCurrentPage`."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Upstream has no transforms.js; the fork adds bidirectional core/query-pagination-numbers ↔ artisanpack/query-pagination-numbers block transforms for the V1 rollout window."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG mirroring upstream's pagination-numbers glyph."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "Server-rendered: front-end markup produced by Blade / React / Vue renderers from `_resolvedPageNumbers` (one entry per visible page with `{number, url}`) and `_resolvedCurrentPage` stamped by QueryInliner.",
+        "`midSize` shapes the number of surrounding pages; the resolver respects the attribute on the way into the renderer (same contract as upstream's `paginate_links` mid_size).",
+        "Interactive (`enhancedPagination`) navigation is not carried — the renderer emits standard pagination links."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-06-03",
+        "reviewer": "Query family fork (#521)"
+    }
+}
