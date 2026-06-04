@@ -126,6 +126,7 @@
         "artisanpack/query-pagination-next",
         "artisanpack/query-pagination-numbers",
         "artisanpack/query-pagination-previous",
-        "artisanpack/query-title"
+        "artisanpack/query-title",
+        "artisanpack/loginout"
     ]
 }

@@ -22,6 +22,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade;
 
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Support\Htmlable;
@@ -47,10 +48,21 @@ class BlockRenderer
 		'artisanpack/site-logo',
 	];
 
+	/**
+	 * Block names that consume loginout `_resolved*` attributes (#522).
+	 *
+	 * @var array<int, string>
+	 */
+	protected const LOGINOUT_BLOCKS = [
+		'core/loginout',
+		'artisanpack/loginout',
+	];
+
 	public function __construct(
 		protected ViewFactory $views,
 		protected DynamicBlockRegistry $dynamicBlocks,
 		protected ?SiteMetaResolver $siteMeta = null,
+		protected ?LoginoutResolver $loginout = null,
 	) {
 	}
 
@@ -93,6 +105,7 @@ class BlockRenderer
 
 		$attributes      = $this->normalizeAttributes( $block['attributes'] ?? [] );
 		$attributes      = $this->stampSiteMeta( $name, $attributes );
+		$attributes      = $this->stampLoginout( $name, $attributes );
 		$innerBlocksHtml = $this->render( $this->normalizeInnerBlocks( $block['innerBlocks'] ?? [] ) );
 
 		if ( $this->dynamicBlocks->has( $name ) ) {
@@ -135,6 +148,43 @@ class BlockRenderer
 
 		// Existing values win — array_merge with the resolver defaults
 		// first, host-supplied attributes layered on top.
+		return array_merge( $stamped, $attributes );
+	}
+
+	/**
+	 * Stamps `_resolved*` attributes onto `loginout` blocks so the
+	 * partial can emit the right link / form for the current viewer
+	 * without each renderer reaching into Laravel's auth stack. The
+	 * loggedIn flag, URL, label, wrapper classes, and pre-rendered
+	 * login form (when opted in) come from {@see LoginoutResolver}.
+	 *
+	 * Pre-existing `_resolved*` keys win — hosts that have already
+	 * resolved the envelope upstream (Inertia payload, custom auth
+	 * middleware, etc.) keep control. The resolver is the default
+	 * fallback, not an override. Mirrors {@see stampSiteMeta}.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function stampLoginout( string $name, array $attributes ): array
+	{
+		if ( null === $this->loginout || ! in_array( $name, self::LOGINOUT_BLOCKS, true ) ) {
+			return $attributes;
+		}
+
+		$envelope = $this->loginout->resolve( $attributes );
+
+		$stamped = [
+			'_resolvedIsUserLoggedIn' => $envelope['isUserLoggedIn'],
+			'_resolvedLoginoutUrl'    => $envelope['url'],
+			'_resolvedLoginoutLabel'  => $envelope['label'],
+			'_resolvedLoginoutClass'  => $envelope['classes'],
+			'_resolvedLoginFormHtml'  => $envelope['loginFormHtml'],
+		];
+
 		return array_merge( $stamped, $attributes );
 	}
 

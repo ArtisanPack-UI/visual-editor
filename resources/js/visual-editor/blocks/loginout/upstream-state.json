@@ -1,0 +1,67 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/loginout",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/loginout",
+        "pinnedVersion": "9.43.0",
+        "subpath": "loginout"
+    },
+    "forkedAt": "2026-06-03",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; attribute schema (displayLoginAsForm / redirectToCurrent) + example + supports carried verbatim. style handle dropped — the host theme is expected to style its own auth links."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "adapted",
+            "notes": "TypeScript port of upstream's Edit. Ports the InspectorControls / ToolsPanel inspector + the hardcoded 'Log out' placeholder upstream renders in the canvas. Upstream's `useToolsPanelDropdownMenuProps` helper is not carried — it is an internal block-editor utility unavailable to forks; ToolsPanel still renders without it. The real auth-state-aware link is emitted by the renderers from the `_resolved*` attributes stamped server-side."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "n/a (dynamic block)",
+            "status": "added",
+            "notes": "Dynamic block — `save` returns null; markup produced server-side from the auth-state-aware `_resolved*` attributes."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Upstream has no transforms.js; the fork adds bidirectional core/loginout ↔ artisanpack/loginout block transforms for the V1 rollout window."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG mirroring @wordpress/icons' `login` glyph (the icon upstream uses for loginout)."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract; upstream's wp.i18n / wp.blockEditor side-effect imports are not carried."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx hardcodes a 'Log out' anchor placeholder matching upstream's behaviour (upstream always renders 'Log out' in the editor preview regardless of viewer state). The actual login / logout link is emitted by the renderers at request time.",
+        "Upstream's `index.php` server render is replaced by the visual-editor's three renderer-side implementations (Blade in packages/visual-editor-renderer-blade/resources/views/blocks/artisanpack/loginout.blade.php, React + Vue in their respective queryContext-style modules). All three read `_resolvedIsUserLoggedIn`, `_resolvedLoginoutUrl`, `_resolvedLoginoutLabel`, and (logged-out + displayLoginAsForm only) `_resolvedLoginFormHtml`, which the renderer-blade BlockRenderer stamps via LoginoutResolver before the tree reaches the partial.",
+        "Upstream pulls `wp_loginout()` + `wp_login_form()` from WordPress core. The fork delegates those URLs and form HTML to the host application's auth stack (Laravel session-auth by default), configured via `config('artisanpack.visual-editor.loginout.*')` and the `ap.visual-editor.loginout.*` filter hooks."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-06-03",
+        "reviewer": "Auth family fork (#522)"
+    }
+}

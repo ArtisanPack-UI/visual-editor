@@ -23,6 +23,7 @@ use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
@@ -49,6 +50,14 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 			return new SiteMetaResolver();
 		} );
 
+		// Scoped to match SiteMetaResolver's lifetime — the resolver
+		// reads the current request's auth state and current URL on
+		// every call, so a long-lived worker (Octane / queue) must
+		// not pin the first request's resolver. #522.
+		$this->app->scoped( LoginoutResolver::class, function () {
+			return new LoginoutResolver();
+		} );
+
 		// Scoped (not singleton) so the BlockRenderer captures the
 		// current request's SiteMetaResolver — also scoped — instead of
 		// pinning the first request's resolver for the lifetime of a
@@ -59,6 +68,7 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 				$app->make( ViewFactory::class ),
 				$app->make( DynamicBlockRegistry::class ),
 				$app->make( SiteMetaResolver::class ),
+				$app->make( LoginoutResolver::class ),
 			);
 		} );
 
