@@ -4,12 +4,12 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] — V1 release
+## [1.0.0-beta1] — V1 beta release
 
-V1 ships the post editor, the site editor, the block fork to the
-`artisanpack/*` namespace, and first-class pairing with
-`artisanpack-ui/cms-framework`. See the [README](README.md) and the
-[`docs/`](docs/) directory for the full V1 surface.
+First public beta of the V1 surface. Ships the post editor, the site
+editor, the block fork to the `artisanpack/*` namespace, and first-class
+pairing with `artisanpack-ui/cms-framework`. See the [README](README.md)
+and the [`docs/`](docs/) directory for the full V1 surface.
 
 ### Added
 

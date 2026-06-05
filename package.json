@@ -1,6 +1,6 @@
 {
     "name": "@artisanpack-ui/visual-editor",
-    "version": "1.0.0-spike",
+    "version": "1.0.0-beta1",
     "private": true,
     "type": "module",
     "exports": {
