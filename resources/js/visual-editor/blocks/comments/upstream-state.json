@@ -1,0 +1,67 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/comments",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/comments",
+        "pinnedVersion": "9.43.0",
+        "subpath": "comments"
+    },
+    "forkedAt": "2026-06-02",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace. The wrapper itself only consumes postId / postType; the per-comment contexts (artisanpack/commentId, artisanpack/commentPreview) are provided by the inner artisanpack/comment-template block and consumed by the leaf comment-* display blocks. Attribute schema and supports carried verbatim for parity."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Wrapper edit just renders <InnerBlocks /> with a default template (comment-template + leaf comment-* blocks). The leaf blocks are the ones that use createCommentPlaceholderEdit to preview against stamped _resolved* attributes or the artisanpack/commentPreview context. Front-end markup is produced server-side."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Dynamic block (or InnerBlocks delegate for wrappers) — markup produced server-side from stamped _resolved* attributes."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "transforms.js",
+            "status": "rewritten",
+            "notes": "Bidirectional core/comments ↔ artisanpack/comments block transforms for the rollout window."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG inserter icon (editor lacks dashicons.css)."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx renders <InnerBlocks /> rather than upstream's entity-querying edit — the wrapper's job is to host the inner comment-template + leaf blocks, not preview comment data itself.",
+        "Server-rendered: front-end markup produced by Blade/React/Vue renderers from stamped _resolved* attributes, not by save().",
+        "transforms.ts adds bidirectional block transforms that do not exist upstream — required to coexist with core/comments during the V1 rollout."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-06-02",
+        "reviewer": "Comments family fork (#519)"
+    }
+}

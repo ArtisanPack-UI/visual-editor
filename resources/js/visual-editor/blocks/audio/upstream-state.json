@@ -1,0 +1,39 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/audio",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/audio",
+        "pinnedVersion": "9.43.0",
+        "subpath": "audio"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Omits the blob-URL upload path (useUploadMediaFromBlobURL) and the URL → embed-block upgrade (createUpgradedEmbedBlock) — both depend on block-library internals not exposed via the package's exports field. Inline RichText replaces the shared Caption component for the same reason." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent to upstream." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Single deprecation entry ported verbatim." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream files + shortcode transforms preserved; added bidirectional core/audio ↔ artisanpack/audio block transforms." },
+        { "fork": "audio.css", "upstream": "style.scss + editor.scss", "status": "adapted", "notes": "Sass caption-style() mixin inlined. data-type selectors not needed (none in upstream)." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (matches @wordpress/icons audio path)." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract; upstream init.js / index.php server-side wiring is intentionally absent." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx omits the upstream blob-URL upload mount-effect (useUploadMediaFromBlobURL). Practical impact: drag-and-dropped audio files are not eagerly uploaded as soon as they hit the block; the user uploads via MediaPlaceholder or MediaReplaceFlow as usual.",
+        "edit.tsx omits the audio-URL → embed-block upgrade (createUpgradedEmbedBlock). Practical impact: pasting a SoundCloud/Spotify URL into the audio URL field does not auto-convert to an embed block; users insert the embed block directly.",
+        "edit.tsx uses an inline RichText figcaption instead of the upstream shared Caption component. Practical impact: the toolbar/caption-toggle affordance Caption provides is replaced by always-showing the figcaption when selected or non-empty."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I2 media cluster"
+    }
+}

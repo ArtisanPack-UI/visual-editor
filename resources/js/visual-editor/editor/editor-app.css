@@ -1,0 +1,201 @@
+/**
+ * Visual editor shell layout.
+ *
+ * Provides the three-region layout (top bar + optional inserter/inspector
+ * sidebars + canvas) used by M7 (#317). Every visual token is driven by
+ * CSS custom properties under the `--ap-visual-editor-*` namespace. The
+ * defaults read DaisyUI tokens (`--color-*`) first with hex fallbacks so
+ * the shell renders correctly outside a DaisyUI host. Light/dark theming
+ * is driven by DaisyUI's `data-theme`, not the OS `prefers-color-scheme`.
+ */
+
+.ap-visual-editor__shell {
+    /*
+     * The editor is a self-contained light-mode surface — both the
+     * chrome (top bar + sidebars) and the canvas always render in
+     * light mode regardless of the host admin's theme. WP component
+     * primitives (`@wordpress/components`) hardcode light-mode
+     * foreground colors that we can't easily flip per WP minor
+     * release, so coexisting with a dark host means the editor
+     * stays light. Hosts that want a dark editor can override
+     * `--ap-visual-editor-shell-*` and the `--color-base-*` tokens
+     * scoped below in tandem.
+     */
+    color-scheme: light;
+
+    /*
+     * Token reset: force DaisyUI / Tailwind theme variables to
+     * light-mode values within the editor shell so block CSS that
+     * reads `--color-base-content`, etc., doesn't pick up dark
+     * values from `html[data-theme="dark"]` on the host.
+     */
+    --color-base-100: #ffffff;
+    --color-base-200: #f3f4f6;
+    --color-base-300: #e5e7eb;
+    --color-base-content: #1f2937;
+
+    --ap-visual-editor-shell-background: var(--color-base-200, #f9fafb);
+    --ap-visual-editor-shell-foreground: var(--color-base-content, #1f2937);
+    --ap-visual-editor-shell-border: var(--color-base-300, #e5e7eb);
+    --ap-visual-editor-shell-sidebar-background: var(--color-base-100, #ffffff);
+    /* Right (inspector) rail sticks at 280px — matches the Gutenberg
+     * post-editor inspector. The left (block library) rail is widened
+     * separately below because the inserter's 3-up block grid + 20px
+     * panel padding is designed around Gutenberg's $secondary-sidebar
+     * width of 350px; at 280px the last column of tiles overflowed. */
+    --ap-visual-editor-shell-sidebar-width: 280px;
+    --ap-visual-editor-shell-inserter-width: 350px;
+    --ap-visual-editor-shell-gap: 0;
+
+    display: flex;
+    flex-direction: column;
+    background: var(--ap-visual-editor-shell-background);
+    color: var(--ap-visual-editor-shell-foreground);
+    /* Fill the viewport so both sidebars and the canvas trap their own
+     * overflow. Falling back to `100vh` covers browsers without
+     * `dvh` support; the editor host page is expected to own the
+     * viewport anyway. Host apps that embed the editor inside a
+     * smaller fixed-height container can override this property. */
+    height: 100dvh;
+    max-height: 100dvh;
+    overflow: hidden;
+}
+
+@supports not (height: 100dvh) {
+    .ap-visual-editor__shell {
+        height: 100vh;
+        max-height: 100vh;
+    }
+}
+
+.ap-visual-editor__body {
+    display: flex;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+}
+
+/*
+ * #347: the canvas region is a vertical stack — `PostTitle` (editor
+ * chrome, in the parent document) above the iframed `BlockCanvas`. The
+ * region traps its own overflow; the iframe scrolls its content
+ * internally, so this column does not scroll.
+ */
+.ap-visual-editor__canvas {
+    flex: 1 1 auto;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/*
+ * Flex cell the `BlockCanvas` iframe fills. `BlockCanvas` is mounted
+ * with `height="100%"`, which resolves against this frame; keeping it
+ * a separate element (rather than sizing `BlockCanvas` against
+ * `.ap-visual-editor__canvas` directly) leaves room for `PostTitle` to
+ * take its natural height above the iframe.
+ *
+ * The canvas *surface* background is now painted inside the iframe via
+ * `canvas-theme-tokens.css` — the parent-document rule that used to do
+ * it (`.ap-visual-editor__canvas.editor-styles-wrapper`) can't reach
+ * the iframe document. Hosts still override `--ap-editor-canvas-bg` /
+ * `--ap-editor-canvas-fg`; once the theme.json reader lands it'll
+ * supply these from `settings.color.background`.
+ */
+.ap-visual-editor__canvas-frame {
+    flex: 1 1 auto;
+    min-height: 0;
+}
+
+.ap-visual-editor__sidebar {
+    flex: 0 0 var(--ap-visual-editor-shell-sidebar-width);
+    background: var(--ap-visual-editor-shell-sidebar-background);
+    border-right: 1px solid var(--ap-visual-editor-shell-border);
+    box-sizing: border-box;
+}
+
+.ap-visual-editor__sidebar--inserter {
+    flex: 0 0 var(--ap-visual-editor-shell-inserter-width);
+    padding: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.ap-visual-editor__sidebar--inspector {
+    flex: 0 0 var(--ap-visual-editor-shell-sidebar-width);
+    border-right: 0;
+    border-left: 1px solid var(--ap-visual-editor-shell-border);
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.ap-visual-editor__status {
+    margin: 24px;
+    font-size: 14px;
+    color: color-mix(
+        in oklch,
+        var(--color-base-content, #6b7280) 65%,
+        transparent
+    );
+}
+
+.ap-visual-editor__status--error {
+    color: var(--color-error, #dc2626);
+    font-weight: 600;
+}
+
+/**
+ * Keyboard shortcuts modal contents. The modal chrome is drawn by
+ * `@artisanpack-ui/react`'s `Modal`; these rules only style the
+ * `<dl>` we render as its body.
+ */
+.ap-visual-editor-shortcuts {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin: 0;
+    padding: 0;
+}
+
+.ap-visual-editor-shortcuts__row {
+    display: grid;
+    grid-template-columns: minmax(120px, auto) 1fr;
+    gap: 16px;
+    align-items: center;
+}
+
+.ap-visual-editor-shortcuts__keys {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin: 0;
+    font-weight: 600;
+}
+
+.ap-visual-editor-shortcuts__key {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    padding: 2px 8px;
+    background: var(--color-base-200, #f3f4f6);
+    color: var(--color-base-content, #1f2937);
+    border: 1px solid var(--color-base-300, #e5e7eb);
+    border-radius: var(--rounded-btn, 0.375rem);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.ap-visual-editor-shortcuts__label {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--color-base-content, #374151);
+}

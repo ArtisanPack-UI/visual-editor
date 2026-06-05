@@ -1,0 +1,120 @@
+/**
+ * State switcher styles (#488).
+ *
+ * The state switcher renders as a strip of icon-and-label chips in
+ * the InspectorControls header. Inherits inspector tokens where
+ * available so it sits coherently inside the panel.
+ */
+
+.ap-visual-editor-state-switcher {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 8px 12px;
+    margin: 0 0 8px;
+    border-bottom: 1px solid
+        color-mix(
+            in oklch,
+            var(--ap-visual-editor-top-bar-foreground, #1f2937) 12%,
+            transparent
+        );
+}
+
+.ap-visual-editor-state-switcher__chip {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    font: inherit;
+    font-size: 11px;
+    line-height: 1.4;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--ap-visual-editor-top-bar-radius, 6px);
+    cursor: pointer;
+    color: var(--ap-visual-editor-top-bar-foreground, #1f2937);
+    transition: background-color 120ms ease, border-color 120ms ease;
+}
+
+.ap-visual-editor-state-switcher__chip:hover {
+    background: color-mix(
+        in oklch,
+        var(--ap-visual-editor-top-bar-accent, #2563eb) 8%,
+        transparent
+    );
+}
+
+.ap-visual-editor-state-switcher__chip[aria-pressed='true'] {
+    background: color-mix(
+        in oklch,
+        var(--ap-visual-editor-top-bar-accent, #2563eb) 15%,
+        transparent
+    );
+    border-color: color-mix(
+        in oklch,
+        var(--ap-visual-editor-top-bar-accent, #2563eb) 35%,
+        transparent
+    );
+    color: var(--ap-visual-editor-top-bar-accent, #2563eb);
+    font-weight: 600;
+}
+
+.ap-visual-editor-state-switcher__chip[data-has-override='true']::after {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ap-visual-editor-top-bar-accent, #2563eb);
+    display: inline-block;
+    flex: 0 0 auto;
+}
+
+.ap-visual-editor-state-switcher__preview {
+    margin-left: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--ap-visual-editor-top-bar-foreground, #1f2937);
+}
+
+.ap-visual-editor-state-switcher__preview button {
+    appearance: none;
+    background: transparent;
+    border: 1px solid
+        color-mix(
+            in oklch,
+            var(--ap-visual-editor-top-bar-foreground, #1f2937) 15%,
+            transparent
+        );
+    border-radius: calc(var(--ap-visual-editor-top-bar-radius, 6px) - 2px);
+    padding: 3px 8px;
+    cursor: pointer;
+    font: inherit;
+    color: inherit;
+}
+
+.ap-visual-editor-state-switcher__preview button[aria-pressed='true'] {
+    background: color-mix(
+        in oklch,
+        var(--ap-visual-editor-top-bar-accent, #2563eb) 18%,
+        transparent
+    );
+    border-color: color-mix(
+        in oklch,
+        var(--ap-visual-editor-top-bar-accent, #2563eb) 40%,
+        transparent
+    );
+}
+
+.ap-visual-editor-state-switcher__unsupported {
+    padding: 8px 12px;
+    margin: 0;
+    font-size: 11px;
+    color: color-mix(
+        in oklch,
+        var(--ap-visual-editor-top-bar-foreground, #1f2937) 60%,
+        transparent
+    );
+}

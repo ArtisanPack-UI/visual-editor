@@ -1,0 +1,110 @@
+.ap-pattern-inspector {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px 20px;
+}
+
+.ap-pattern-inspector__empty {
+    padding: 12px;
+    font-size: 13px;
+    color: var(--ap-site-editor-muted, #4b5563);
+    margin: 0;
+}
+
+.ap-pattern-inspector__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ap-pattern-inspector__field--destructive {
+    margin-top: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--ap-site-editor-border, #e5e7eb);
+}
+
+.ap-pattern-inspector__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ap-site-editor-muted, #4b5563);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ap-pattern-inspector__input,
+.ap-pattern-inspector__select {
+    appearance: none;
+    border: 1px solid var(--ap-site-editor-border, #d1d5db);
+    border-radius: 4px;
+    padding: 6px 8px;
+    font-size: 13px;
+    background: #fff;
+    color: inherit;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.ap-pattern-inspector__input--slug {
+    font-family: ui-monospace, SFMono-Regular, monospace;
+}
+
+.ap-pattern-inspector__input:focus-visible,
+.ap-pattern-inspector__select:focus-visible {
+    outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+    outline-offset: 0;
+    border-color: var(--ap-site-editor-accent, #1d4ed8);
+}
+
+.ap-pattern-inspector__error {
+    margin: 0;
+    font-size: 12px;
+    color: var(--ap-site-editor-error-fg, #991b1b);
+}
+
+.ap-pattern-inspector__sync-status {
+    display: inline-flex;
+    align-items: center;
+    align-self: flex-start;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 999px;
+    border: 1px solid currentcolor;
+    color: var(--ap-site-editor-muted, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    font-weight: 600;
+}
+
+.ap-pattern-inspector__sync-status[data-synced='true'] {
+    color: var(--ap-site-editor-accent, #1d4ed8);
+    background: rgba(29, 78, 216, 0.08);
+}
+
+.ap-pattern-inspector__help {
+    margin: 0;
+    font-size: 12px;
+    color: var(--ap-site-editor-muted, #6b7280);
+    line-height: 1.5;
+}
+
+.ap-pattern-inspector__convert {
+    appearance: none;
+    background: transparent;
+    border: 1px solid var(--ap-site-editor-border, #d1d5db);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 13px;
+    cursor: pointer;
+    color: inherit;
+    align-self: flex-start;
+}
+
+.ap-pattern-inspector__convert:hover {
+    background: var(--ap-site-editor-row-hover, #f3f4f6);
+}
+
+.ap-pattern-inspector__convert:focus-visible {
+    outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+    outline-offset: 2px;
+}

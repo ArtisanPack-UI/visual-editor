@@ -1,0 +1,85 @@
+/**
+ * Visual editor DaisyUI theme overlay.
+ *
+ * Loaded *after* the `@wordpress/components`, `@wordpress/block-editor`, and
+ * `@wordpress/block-library` stylesheets so DaisyUI tokens win the cascade
+ * without touching upstream CSS. Scoped to `.ap-visual-editor__shell` so the
+ * overrides never leak into the host Laravel admin.
+ *
+ * The `--ap-visual-editor-*` tokens consumed by our shell and top bar
+ * already read DaisyUI tokens directly in `editor-app.css` and
+ * `top-bar.css`. This file's job is narrower: re-point the documented
+ * Gutenberg / `@wordpress/components` CSS custom properties at the same
+ * DaisyUI tokens so block toolbars, inspector panels, and inline block
+ * chrome share the palette.
+ *
+ * Every mapping falls back to a sensible hex default so the editor still
+ * renders correctly when mounted outside a DaisyUI host. Light/dark
+ * switching is driven by DaisyUI's `data-theme` attribute on the host
+ * element -- there is no OS-level `prefers-color-scheme` override here.
+ *
+ * See: docs/theming.md for the full token map.
+ */
+
+.ap-visual-editor__shell {
+    /* Primary admin color used for focus rings, toolbar highlights, and
+     * the "add block" accent. Swapping this is the single biggest win for
+     * making Gutenberg stop looking like WP-blue. */
+    --wp-admin-theme-color: var(--color-primary, #2563eb);
+    --wp-admin-theme-color-darker-10: var(--color-primary, #2271b1);
+    --wp-admin-theme-color-darker-20: var(--color-primary, #135e96);
+
+    /* Focus outline width. DaisyUI uses 2px focus rings. */
+    --wp-admin-border-width-focus: 2px;
+
+    /* @wordpress/components accent + surface tokens (32.x). */
+    --wp-components-color-accent: var(--color-primary, #2563eb);
+    --wp-components-color-accent-darker-10: var(--color-primary, #2271b1);
+    --wp-components-color-accent-darker-20: var(--color-primary, #135e96);
+    --wp-components-color-accent-inverted: var(--color-primary-content, #ffffff);
+    --wp-components-color-background: var(--color-base-100, #ffffff);
+    --wp-components-color-foreground: var(--color-base-content, #1f2937);
+    --wp-components-color-foreground-inverted: var(--color-base-100, #ffffff);
+    --wp-components-color-gray-100: var(--color-base-200, #f3f4f6);
+    --wp-components-color-gray-200: var(--color-base-200, #f3f4f6);
+    --wp-components-color-gray-300: var(--color-base-300, #e5e7eb);
+    --wp-components-color-gray-400: var(--color-base-300, #d1d5db);
+    --wp-components-color-gray-600: var(--color-base-content, #6b7280);
+    --wp-components-color-gray-700: var(--color-base-content, #374151);
+    --wp-components-color-gray-800: var(--color-base-content, #1f2937);
+    --wp-components-color-gray-900: var(--color-base-content, #111827);
+
+    /* Block editor chrome tokens. */
+    --wp-block-editor-type-color: var(--color-base-content, #1f2937);
+    --wp-block-synced-color: var(--color-secondary, #7f54b3);
+
+    /* Typography. */
+    font-family: var(
+        --ap-visual-editor-font-family,
+        'Inter',
+        ui-sans-serif,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        'Segoe UI',
+        sans-serif
+    );
+}
+
+/**
+ * Scope Gutenberg's serif block canvas typography inside the editor shell
+ * so block content retains the expected editorial feel without bleeding
+ * the host admin's sans-serif into block headings and paragraphs.
+ */
+.ap-visual-editor__shell .editor-styles-wrapper {
+    --wp-admin-theme-color: var(--color-primary, #2563eb);
+
+    /*
+     * Canvas typography reads the canvas-specific `--ap-editor-canvas-fg`
+     * token so host dark-mode tokens (DaisyUI `--color-base-content`,
+     * Tailwind's text-base, etc.) can't bleed in — the canvas is always
+     * a light-mode surface regardless of admin chrome theme. Hosts (or
+     * the theme.json bridge) can override the token per surface.
+     */
+    color: var(--ap-editor-canvas-fg, #1f2937);
+}

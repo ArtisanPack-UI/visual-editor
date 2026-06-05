@@ -1,0 +1,68 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/post-author-biography",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/post-author-biography",
+        "pinnedVersion": "9.43.0",
+        "subpath": "post-author-biography"
+    },
+    "forkedAt": "2026-06-01",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; usesContext extended with queryId + artisanpack/postPreview so the block previews inside a query loop (#483). Supports carried verbatim for parity."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Previews via the lightweight createEntityPlaceholderEdit helper (renders the stamped _resolvedAuthorBio when present, otherwise a labelled placeholder). Upstream edit.js is intentionally NOT delegated: it queries the user entity through @wordpress/core-data, which the post editor does not populate, so upstream renders empty. Front-end markup is produced server-side from the stamped _resolvedAuthorBio attribute."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Dynamic block — returns null; markup produced server-side from stamped _resolved* attributes."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Bidirectional core/post-author-biography ↔ artisanpack/post-author-biography block transforms for the rollout window. Upstream has no transforms.js for this block."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG inserter icon (editor lacks dashicons.css)."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx previews via createEntityPlaceholderEdit rather than upstream edit.js — the core-data shim does not expose the user entity to the post editor, so the upstream entity-querying edit renders empty. Live in-editor entity values would require expanding the shim (out of scope for the fork).",
+        "post-author-biography is server-rendered: the front-end markup is produced by the Blade/React/Vue renderers from the stamped _resolvedAuthorBio attribute, not by save().",
+        "transforms.ts adds bidirectional block transforms that do not exist upstream — required to coexist with core/post-author-biography during the V1 rollout.",
+        "Upstream ships a deprecated.js chain migrating legacy textAlign attribute shapes; the fork omits it because the namespace is brand new and has no legacy saved instances."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-06-01",
+        "reviewer": "Author family fork (#518)"
+    }
+}

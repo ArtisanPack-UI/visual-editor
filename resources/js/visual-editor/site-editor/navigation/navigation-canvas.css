@@ -1,0 +1,190 @@
+/*
+ * Navigation canvas — native tree editor styles.
+ *
+ * Rows render in a flat <ul> (the dnd-kit "tree" recipe is depth-by-
+ * padding, not depth-by-nesting). Indentation is applied inline via
+ * `padding-left` on `.ap-nav-canvas__row` so the projected drop depth
+ * during a drag can animate without rebuilding the DOM.
+ */
+
+.ap-nav-canvas {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 16px 20px;
+	height: 100%;
+	overflow: auto;
+	background: var(--ap-site-editor-canvas-bg, #f5f7fa);
+}
+
+.ap-nav-canvas[data-empty='true'] {
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+}
+
+.ap-nav-canvas__empty {
+	max-width: 340px;
+	color: var(--ap-site-editor-muted, #4b5563);
+	margin: 0;
+}
+
+.ap-nav-canvas__tree {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 4px;
+}
+
+.ap-nav-canvas__item {
+	list-style: none;
+}
+
+/* The dragged source row carries a soft shadow + accent border so the
+ * user has clear feedback as it follows the cursor. The simpler
+ * sortable pattern (no DragOverlay) means the source row IS the
+ * visual — keeping it fully opaque is intentional. `position: relative`
+ * on the row below activates the `z-index` so the dragged row stacks
+ * above its in-place neighbors. */
+.ap-nav-canvas__item[data-dragging='true'] .ap-nav-canvas__row {
+	box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+	border-color: var(--ap-site-editor-accent, #1d4ed8);
+	z-index: 1;
+}
+
+.ap-nav-canvas__row {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	padding: 6px 8px;
+	background: #fff;
+	border: 1px solid var(--ap-site-editor-border, #d1d5db);
+	border-radius: 4px;
+	position: relative;
+	transition: border-color 120ms, padding-left 120ms;
+}
+
+.ap-nav-canvas__row[data-selected='true'] {
+	border-color: var(--ap-site-editor-accent, #1d4ed8);
+	box-shadow: 0 0 0 1px var(--ap-site-editor-accent, #1d4ed8);
+}
+
+.ap-nav-canvas__drag-handle {
+	cursor: grab;
+	background: transparent;
+	border: 0;
+	color: var(--ap-site-editor-muted, #4b5563);
+	font-size: 14px;
+	padding: 4px;
+	border-radius: 2px;
+	min-width: 24px;
+	min-height: 24px;
+}
+
+.ap-nav-canvas__drag-handle:active {
+	cursor: grabbing;
+}
+
+.ap-nav-canvas__drag-handle:focus-visible {
+	outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+}
+
+.ap-nav-canvas__row-main {
+	flex: 1;
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	background: transparent;
+	border: 0;
+	padding: 4px;
+	cursor: pointer;
+	text-align: left;
+	min-width: 0;
+	border-radius: 3px;
+}
+
+.ap-nav-canvas__row-main:focus-visible {
+	outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+	outline-offset: 2px;
+}
+
+.ap-nav-canvas__type {
+	font-size: 16px;
+	width: 20px;
+	text-align: center;
+	color: var(--ap-site-editor-muted, #4b5563);
+}
+
+.ap-nav-canvas__label {
+	font-weight: 500;
+	color: inherit;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	flex: 1;
+}
+
+.ap-nav-canvas__type-label {
+	font-size: 11px;
+	text-transform: uppercase;
+	color: var(--ap-site-editor-muted, #4b5563);
+	letter-spacing: 0.04em;
+}
+
+.ap-nav-canvas__row-actions {
+	display: flex;
+	gap: 4px;
+}
+
+.ap-nav-canvas__row-action {
+	font-size: 12px;
+	padding: 4px 8px;
+	background: transparent;
+	border: 1px solid transparent;
+	border-radius: 3px;
+	color: inherit;
+	cursor: pointer;
+}
+
+.ap-nav-canvas__row-action:hover {
+	border-color: var(--ap-site-editor-border, #d1d5db);
+}
+
+.ap-nav-canvas__row-action:focus-visible {
+	outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+	outline-offset: 1px;
+	border-color: var(--ap-site-editor-border, #d1d5db);
+}
+
+.ap-nav-canvas__row-action--danger[data-confirming='true'] {
+	background: var(--ap-site-editor-error-fg, #991b1b);
+	color: #fff;
+	border-color: var(--ap-site-editor-error-fg, #991b1b);
+}
+
+.ap-nav-canvas__row-action--danger:focus-visible {
+	outline-color: var(--ap-site-editor-error-fg, #991b1b);
+	border-color: var(--ap-site-editor-error-fg, #991b1b);
+}
+
+.ap-nav-canvas__add {
+	align-self: flex-start;
+	font-size: 13px;
+	padding: 6px 12px;
+	background: var(--ap-site-editor-accent, #1d4ed8);
+	color: #fff;
+	border: 0;
+	border-radius: 4px;
+	cursor: pointer;
+}
+
+.ap-nav-canvas__add:hover {
+	filter: brightness(1.05);
+}
+
+.ap-nav-canvas__add:focus-visible {
+	outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+	outline-offset: 2px;
+}

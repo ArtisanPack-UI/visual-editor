@@ -1,0 +1,43 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/spacer",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/spacer",
+        "pinnedVersion": "9.43.0",
+        "subpath": "spacer"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Adds explicit 'wp-block-spacer' class to useBlockProps so the editor canvas matches frontend independent of __experimentalSelector internals. Upstream's `unlock(blockEditorPrivateApis)` swapped for a defensive accessor since the private-API key isn't exposed to fork consumers." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; class list adds 'wp-block-spacer' explicitly (parity with edit)." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Single v1 entry ported verbatim (legacy numeric height/width → string px)." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream → core/separator transform preserved; added bidirectional block transforms for core/spacer ↔ artisanpack/spacer round-tripping." },
+        { "fork": "controls.tsx", "upstream": "controls.js", "status": "adapted", "notes": "TypeScript port of the ToolsPanel-based spacer controls; private-API access via defensive accessor instead of `unlock`." },
+        { "fork": "constants.ts", "upstream": "constants.js", "status": "adapted", "notes": "Body declares the single MIN_SPACER_SIZE constant verbatim; the fork adds a JSDoc file-header pointing at the upstream source so the lineage is visible without consulting this state file. No semantic drift from upstream." },
+        { "fork": "spacer.css", "upstream": "style.scss + editor.scss", "status": "adapted", "notes": "Combined SCSS-to-CSS port. data-type selectors rewritten from core/spacer to artisanpack/spacer; Sass variables resolved ($grid-unit-10 → 8px, $black/$white → rgba); `.is-dark-theme &` parent selectors expanded." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (editor doesn't bundle dashicons)." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract. Upstream's PHP-side init wiring and example settings are not carried." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx + save.tsx add 'wp-block-spacer' to useBlockProps explicitly; upstream relies on __experimentalSelector to inject it.",
+        "edit.tsx + controls.tsx replace `unlock(privateApis).useSpacingSizes` with a defensive accessor — the fork can't import `../lock-unlock` from outside the block-library package.",
+        "transforms.ts adds bidirectional block transforms that don't exist upstream — required to coexist with core/spacer during the V2 rollout.",
+        "index.ts replaces upstream's PHP-side init wiring with the visual-editor auto-discovery contract; the `example` settings object isn't carried.",
+        "spacer.css inlines Sass color/grid variables rather than re-importing @wordpress/base-styles, and expands `.is-dark-theme &` to a flat selector list."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I3 layout cluster"
+    }
+}

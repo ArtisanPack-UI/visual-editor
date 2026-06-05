@@ -1,0 +1,66 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/query-pagination-previous",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/query-pagination-previous",
+        "pinnedVersion": "9.43.0",
+        "subpath": "query-pagination-previous"
+    },
+    "forkedAt": "2026-06-03",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; parent repointed core/query-pagination → artisanpack/query-pagination. usesContext stays on the unprefixed `queryId` / `query` keys provided by artisanpack/query. Attribute schema + supports carried verbatim."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Lightweight placeholder edit using the shared `createEntityPlaceholderEdit` factory. Upstream queries pagination state via @wordpress/data + interactive navigation; the fork resolves the previous-page link server-side and previews a representative placeholder in the canvas."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Dynamic block — `save` returns null; markup produced server-side from `_resolvedPreviousPageUrl`."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Upstream has no transforms.js; the fork adds bidirectional core/query-pagination-previous ↔ artisanpack/query-pagination-previous block transforms for the V1 rollout window."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG mirroring @wordpress/icons' chevronLeft glyph (the icon upstream uses)."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "Server-rendered: front-end markup produced by Blade / React / Vue renderers from `_resolvedPreviousPageUrl` stamped by QueryInliner.",
+        "Interactive (`enhancedPagination`) navigation is not carried — the renderer emits a standard pagination link."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-06-03",
+        "reviewer": "Query family fork (#521)"
+    }
+}

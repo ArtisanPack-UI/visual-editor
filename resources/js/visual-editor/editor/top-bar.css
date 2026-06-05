@@ -1,0 +1,203 @@
+/**
+ * Editor top bar styles.
+ *
+ * Every color, spacing, and border value is expressed as a CSS custom
+ * property under the `--ap-visual-editor-top-bar-*` namespace. Defaults
+ * read DaisyUI tokens (`--color-*`, `--rounded-btn`) first and fall back
+ * to hex values so the top bar still renders correctly outside a DaisyUI
+ * host. Light/dark switching is driven by DaisyUI's `data-theme`; there
+ * is no OS-level `prefers-color-scheme` override here because that would
+ * fight the host's theme choice (see docs/theming.md).
+ */
+
+.ap-visual-editor-top-bar {
+    --ap-visual-editor-top-bar-background: var(--color-base-100, #ffffff);
+    --ap-visual-editor-top-bar-foreground: var(--color-base-content, #1f2937);
+    --ap-visual-editor-top-bar-muted: color-mix(
+        in oklch,
+        var(--color-base-content, #6b7280) 65%,
+        transparent
+    );
+    --ap-visual-editor-top-bar-border: var(--color-base-300, #e5e7eb);
+    --ap-visual-editor-top-bar-accent: var(--color-primary, #2563eb);
+    --ap-visual-editor-top-bar-accent-contrast: var(
+        --color-primary-content,
+        #ffffff
+    );
+    --ap-visual-editor-top-bar-error: var(--color-error, #dc2626);
+    --ap-visual-editor-top-bar-hover: color-mix(
+        in oklch,
+        var(--color-primary, #2563eb) 10%,
+        transparent
+    );
+    --ap-visual-editor-top-bar-disabled: color-mix(
+        in oklch,
+        var(--color-base-content, #9ca3af) 40%,
+        transparent
+    );
+    --ap-visual-editor-top-bar-radius: var(--rounded-btn, 6px);
+    --ap-visual-editor-top-bar-gap: 8px;
+    --ap-visual-editor-top-bar-padding-x: 12px;
+    --ap-visual-editor-top-bar-padding-y: 8px;
+    --ap-visual-editor-top-bar-height: 56px;
+    --ap-visual-editor-top-bar-menu-background: var(--color-base-100, #ffffff);
+    --ap-visual-editor-top-bar-menu-shadow: 0 10px 30px
+        color-mix(in oklch, var(--color-neutral, #0f172a) 25%, transparent);
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--ap-visual-editor-top-bar-gap);
+    min-height: var(--ap-visual-editor-top-bar-height);
+    padding: var(--ap-visual-editor-top-bar-padding-y)
+        var(--ap-visual-editor-top-bar-padding-x);
+    background: var(--ap-visual-editor-top-bar-background);
+    color: var(--ap-visual-editor-top-bar-foreground);
+    border-bottom: 1px solid var(--ap-visual-editor-top-bar-border);
+    font-size: 14px;
+    box-sizing: border-box;
+}
+
+.ap-visual-editor-top-bar *,
+.ap-visual-editor-top-bar *::before,
+.ap-visual-editor-top-bar *::after {
+    box-sizing: border-box;
+}
+
+.ap-visual-editor-top-bar__group {
+    display: flex;
+    align-items: center;
+    gap: var(--ap-visual-editor-top-bar-gap);
+}
+
+.ap-visual-editor-top-bar__group--end {
+    flex: 1 1 auto;
+    justify-content: flex-end;
+}
+
+.ap-visual-editor-top-bar__icon-button:focus-visible,
+.ap-visual-editor-top-bar__preview:focus-visible,
+.ap-visual-editor-top-bar__menu-item:focus-visible {
+    outline: 2px solid var(--ap-visual-editor-top-bar-accent);
+    outline-offset: 2px;
+}
+
+.ap-visual-editor-top-bar__icon-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: transparent;
+    color: var(--ap-visual-editor-top-bar-foreground);
+    border: 1px solid transparent;
+    border-radius: var(--ap-visual-editor-top-bar-radius);
+    cursor: pointer;
+}
+
+.ap-visual-editor-top-bar__icon-button:hover:not(:disabled) {
+    background: var(--ap-visual-editor-top-bar-hover);
+}
+
+.ap-visual-editor-top-bar__icon-button[data-open='true'] {
+    background: var(--ap-visual-editor-top-bar-accent);
+    color: var(--ap-visual-editor-top-bar-accent-contrast);
+}
+
+.ap-visual-editor-top-bar__icon-button:disabled {
+    color: var(--ap-visual-editor-top-bar-disabled);
+    cursor: not-allowed;
+}
+
+.ap-visual-editor-top-bar__save-status {
+    display: inline-flex;
+    align-items: center;
+    min-height: 24px;
+    padding: 0 8px;
+    font-size: 13px;
+    color: var(--ap-visual-editor-top-bar-muted);
+    white-space: nowrap;
+}
+
+.ap-visual-editor-top-bar__save-status[data-save-status='error'] {
+    color: var(--ap-visual-editor-top-bar-error);
+    font-weight: 600;
+}
+
+.ap-visual-editor-top-bar__save-status[data-save-status='saving']::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    margin-right: 6px;
+    border-radius: 50%;
+    background: var(--ap-visual-editor-top-bar-accent);
+    animation: ap-visual-editor-top-bar-pulse 1s ease-in-out infinite;
+}
+
+@keyframes ap-visual-editor-top-bar-pulse {
+    0%, 100% {
+        opacity: 0.4;
+        transform: scale(0.85);
+    }
+
+    50% {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.ap-visual-editor-top-bar__preview {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border: 1px solid var(--ap-visual-editor-top-bar-border);
+    border-radius: var(--ap-visual-editor-top-bar-radius);
+    font-size: 13px;
+    color: var(--ap-visual-editor-top-bar-foreground);
+    text-decoration: none;
+}
+
+.ap-visual-editor-top-bar__preview:hover {
+    background: var(--ap-visual-editor-top-bar-hover);
+}
+
+.ap-visual-editor-top-bar__menu {
+    position: relative;
+}
+
+.ap-visual-editor-top-bar__menu-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 220px;
+    padding: 6px 0;
+    background: var(--ap-visual-editor-top-bar-menu-background);
+    border: 1px solid var(--ap-visual-editor-top-bar-border);
+    border-radius: var(--ap-visual-editor-top-bar-radius);
+    box-shadow: var(--ap-visual-editor-top-bar-menu-shadow);
+    z-index: 20;
+}
+
+.ap-visual-editor-top-bar__menu-item {
+    display: block;
+    width: 100%;
+    padding: 8px 14px;
+    background: transparent;
+    color: var(--ap-visual-editor-top-bar-foreground);
+    border: 0;
+    text-align: left;
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.ap-visual-editor-top-bar__menu-item:hover:not(:disabled),
+.ap-visual-editor-top-bar__menu-item:focus-visible {
+    background: var(--ap-visual-editor-top-bar-hover);
+}
+
+.ap-visual-editor-top-bar__menu-item:disabled {
+    color: var(--ap-visual-editor-top-bar-disabled);
+    cursor: not-allowed;
+}

@@ -1,0 +1,45 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/button",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/button",
+        "pinnedVersion": "9.43.0",
+        "subpath": "button"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; parent swapped to artisanpack/buttons. Attributes/supports/styles/selectors verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "Simplified port. Upstream pulls in unlock(blockEditorPrivateApis) for HTMLElementControl, a useEnter ENTER-splitter that calls replaceBlocks on the parent block, a dimensions-preset width resolver, and useSettings for fluid typography. The fork uses a plain SelectControl for tagName, the public __experimentalLinkControl inside a Popover for the URL editor (with getUpdatedLinkAttributes preserving the rel/linkTarget contract on tab toggles), a TextControl for rel, and applies width via getWidthClasses without resolving presets. The createPageEntity / LinkControl suggestion flow is dropped." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; adds explicit 'wp-block-button' wrapper class for renderer parity. Falls back to a dangerouslySetInnerHTML <a> when RichText.Content is unavailable (test environments)." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "SIMPLIFIED — upstream ships a 12-entry, ~1750-LOC deprecation chain spanning every save-output change since 2017. The fork ports only the legacy width (1-4 → percentage) migration and the v1 customBackgroundColor/customTextColor → style.color migration. Older deprecations are not carried; documents shaped to them need a CLI migration before they load." },
+        { "fork": "transforms.ts", "upstream": "n/a (upstream has no transforms)", "status": "added", "notes": "Adds bidirectional block transforms for core/button ↔ artisanpack/button so mixed documents round-trip during the V2 rollout. Upstream owns multi-block button grouping in the parent buttons block." },
+        { "fork": "constants.ts", "upstream": "constants.js", "status": "adapted", "notes": "Body is a verbatim TypeScript port; the fork adds a JSDoc file-header pointing at the upstream source so the lineage is visible without consulting this state file. No semantic drift from upstream." },
+        { "fork": "utils.ts", "upstream": "utils.js", "status": "adapted", "notes": "TypeScript port of getWidthClasses + isPercentageWidth; behavior unchanged." },
+        { "fork": "get-updated-link-attributes.ts", "upstream": "get-updated-link-attributes.js", "status": "adapted", "notes": "TypeScript port; behavior unchanged." },
+        { "fork": "button.css", "upstream": "style.scss + editor.scss", "status": "adapted", "notes": "Combined SCSS-to-CSS port. $blocks-block__margin inlined as 0.5em via the --wp--style--block-gap fallback. data-type selectors rewritten. The @use of @wordpress/base-styles colors is replaced with a hardcoded #fff focus shadow." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline pill SVG for the inserter." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract. Upstream's PHP-side init wiring is not carried." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx uses the public __experimentalLinkControl inside a Popover for the URL editor (matching upstream's UX) but drops the onEnter splitter and the createPageEntity / withCreateSuggestion page-creation flow — links are URLs only, no inline page creation.",
+        "edit.tsx drops the dimension-preset width resolver (var:preset|dimension|<slug> → preset size lookup). Preset widths render as CSS variables in the canvas instead.",
+        "edit.tsx drops useDeprecatedTextAlign — the fork doesn't need the legacy text-align attribute migration in the editor.",
+        "deprecated.tsx drops 10 of upstream's 12 deprecation entries. Documents containing button blocks saved before the v1 customColor → style.color migration (i.e. very old WP 5.x exports) won't load and must be migrated via a one-shot CLI script.",
+        "transforms.ts is fork-only (upstream button has no transforms.js). Required for V2 coexistence with core/button.",
+        "block.json parent swapped to artisanpack/buttons — the child only inserts under the forked parent."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I3 layout cluster"
+    }
+}

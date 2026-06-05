@@ -1,0 +1,67 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/read-more",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/read-more",
+        "pinnedVersion": "9.43.0",
+        "subpath": "read-more"
+    },
+    "forkedAt": "2026-06-02",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; queryId + artisanpack/postPreview added to usesContext. attribute schema and supports carried verbatim."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Previews via createEntityPlaceholderEdit reading the block's own `content` attribute (with a `Read more` dummy when empty). Upstream edit.js renders a `RichText` editor in-place; the fork's preview is a styled chip — the configured `content` round-trips through block storage as a normal attribute, so authors can still edit it via the InspectorControls panel."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Dynamic block — returns null; markup produced server-side from the block's `content` attribute + stamped `_resolvedPermalink`."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Bidirectional core/read-more ↔ artisanpack/read-more block transforms for the rollout window."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG inserter icon (editor lacks dashicons.css)."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx replaces upstream's in-place RichText editing surface with a stamped-attribute preview chip — the `content` attribute is still editable via the Inspector and round-trips through block storage unchanged.",
+        "read-more is server-rendered: the front-end markup is produced by the Blade/React/Vue renderers from the block's `content` attribute + the stamped `_resolvedPermalink`, not by save().",
+        "Upstream ships no `deprecated.js`; the fork mirrors that — read-more landed in a single revision and has no legacy migration."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-06-02",
+        "reviewer": "Issue #520 — post navigation / metadata family"
+    }
+}

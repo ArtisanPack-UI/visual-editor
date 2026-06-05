@@ -5,30 +5,86 @@ on:
     tags:
       - 'v*'
 
-jobs:
-  test:
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
-    name: Test
+jobs:
+  test-php:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    name: Test PHP before release
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: '8.4'
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
           coverage: none
 
+      - name: Remove dev-only path repository
+        # composer.json declares a `path` repository pointing at
+        # ../cms-framework for the symlinked dev-app workflow. CI has no
+        # sibling checkout, so strip it before `composer install` and let
+        # Composer resolve cms-framework from Packagist via the ^2.0
+        # constraint. Tracked in #434.
+        run: |
+          jq 'del(.repositories)' composer.json > composer.json.tmp
+          mv composer.json.tmp composer.json
+
+      - name: Get Composer cache directory
+        id: composer-cache
+        run: echo "dir=$(composer config cache-files-dir)" >> $GITHUB_OUTPUT
+
+      - name: Cache Composer dependencies
+        uses: actions/cache@v4
+        with:
+          path: ${{ steps.composer-cache.outputs.dir }}
+          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-composer-
+
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+        run: composer update --no-interaction --prefer-dist
 
       - name: Run tests
-        run: chmod +x ./vendor/bin/pest && ./vendor/bin/pest --ci
+        env:
+          XDEBUG_MODE: off
+        run: ./vendor/bin/pest --ci --no-coverage
+
+  test-js:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    name: Test JS before release
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Run Vitest
+        run: npm test
+
+      - name: Build library bundle
+        run: npm run build:lib
+
+      - name: Build app bundle
+        run: npm run build
 
   release:
-    needs: test
+    needs: [test-php, test-js]
     runs-on: ubuntu-latest
     name: Create Release
 
@@ -37,30 +93,74 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Extract version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Extract release notes from CHANGELOG
         id: changelog
+        env:
+          # Pass the tag through an env var instead of interpolating it directly
+          # into the shell script — keeps the value as a plain string regardless
+          # of what the tag contains and silences zizmor template-injection.
+          VERSION_INPUT: ${{ steps.version.outputs.version }}
         run: |
-          VERSION=${GITHUB_REF#refs/tags/v}
+          VERSION="$VERSION_INPUT"
+          case "$VERSION" in
+            ''|*[!0-9A-Za-z.+-]*)
+              echo "Invalid version extracted from tag: $VERSION" >&2
+              exit 1
+              ;;
+          esac
           echo "Extracting notes for version $VERSION"
 
-          if [ -f "CHANGELOG.md" ]; then
-            # Extract section for this version
-            NOTES=$(sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '1d;$d' | sed '/^$/d')
-            if [ -z "$NOTES" ]; then
-              NOTES="Release $VERSION. See CHANGELOG.md for details."
-            fi
-          else
-            NOTES="Release $VERSION"
+          if [ ! -f "CHANGELOG.md" ]; then
+            echo "Release v$VERSION" > release_notes.txt
+            exit 0
           fi
 
-          # Save to file for multi-line support
+          # Extract the section between this version header and the next version header
+          NOTES=$(awk -v ver="$VERSION" '
+            /^## \[/ {
+              if (found) exit
+              if (index($0, "[" ver "]")) { found=1; next }
+            }
+            found { print }
+          ' CHANGELOG.md)
+
+          # Remove leading/trailing blank lines
+          NOTES=$(echo "$NOTES" | sed '/./,$!d' | sed -e :a -e '/^\n*$/{$d;N;ba' -e '}')
+
+          if [ -z "$NOTES" ]; then
+            NOTES="Release v$VERSION — see CHANGELOG.md for details."
+          fi
+
+          # Write to file for multi-line support
           echo "$NOTES" > release_notes.txt
 
-      - name: Create Release
+      - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          name: v${{ steps.version.outputs.version }}
           body_path: release_notes.txt
           generate_release_notes: false
+          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Notify Packagist
+        # The first release (v1.0.0-beta1) must be registered manually at
+        # https://packagist.org/packages/submit before this step can succeed.
+        # `continue-on-error` lets that first tag publish a GitHub release
+        # without failing the workflow; once the package is registered, every
+        # subsequent tag push keeps Packagist in sync automatically.
+        if: success()
+        continue-on-error: true
+        run: |
+          curl --fail-with-body -sS -X POST \
+            "https://packagist.org/api/update-package?username=${{ secrets.PACKAGIST_USERNAME }}&apiToken=${{ secrets.PACKAGIST_API_TOKEN }}" \
+            -d "{\"repository\":{\"url\":\"https://github.com/${{ github.repository }}\"}}" \
+            -H "Content-Type: application/json"

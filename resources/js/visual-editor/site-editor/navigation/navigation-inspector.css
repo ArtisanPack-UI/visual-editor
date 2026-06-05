@@ -1,0 +1,113 @@
+/*
+ * Navigation inspector — nav-specific layout only.
+ *
+ * Form fields (input, select, textarea, label, error, help) reuse the
+ * shared `.ap-site-editor__dialog-*` classes from
+ * `create-entity-dialog.css` so the templates / parts inspector and
+ * the navigation inspector render identical controls. This file only
+ * holds the bits that are nav-specific: the scope header, the
+ * link-picker results list, and the advanced details disclosure.
+ */
+
+.ap-nav-inspector {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+	padding: 16px;
+	height: 100%;
+	overflow: auto;
+	background: var(--ap-site-editor-sidebar-bg, #fff);
+}
+
+.ap-nav-inspector__header {
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px;
+	padding-bottom: 8px;
+	border-bottom: 1px solid var(--ap-site-editor-border, #e5e7eb);
+}
+
+.ap-nav-inspector__scope {
+	font-size: 11px;
+	font-weight: 600;
+	letter-spacing: 0.06em;
+	text-transform: uppercase;
+	color: var(--ap-site-editor-muted, #4b5563);
+}
+
+.ap-nav-inspector__back {
+	background: transparent;
+	border: 0;
+	color: var(--ap-site-editor-accent, #1d4ed8);
+	cursor: pointer;
+	font-size: 12px;
+	padding: 2px 4px;
+}
+
+.ap-nav-inspector__field-checkbox {
+	display: flex;
+	align-items: center;
+	gap: 6px;
+	font-size: 13px;
+}
+
+.ap-nav-inspector__results {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+	max-height: 240px;
+	overflow: auto;
+	border: 1px solid var(--ap-site-editor-border, #d1d5db);
+	border-radius: 4px;
+}
+
+.ap-nav-inspector__result {
+	border-bottom: 1px solid var(--ap-site-editor-border, #e5e7eb);
+}
+
+.ap-nav-inspector__result:last-child {
+	border-bottom: 0;
+}
+
+.ap-nav-inspector__result-button {
+	width: 100%;
+	text-align: left;
+	background: transparent;
+	border: 0;
+	padding: 8px 10px;
+	font-size: 13px;
+	cursor: pointer;
+}
+
+.ap-nav-inspector__result-button:hover {
+	background: var(--ap-site-editor-canvas-bg, #f5f7fa);
+}
+
+.ap-nav-inspector__result-button[data-selected='true'] {
+	background: var(--ap-site-editor-accent, #1d4ed8);
+	color: #fff;
+}
+
+.ap-nav-inspector__result-empty {
+	padding: 8px 10px;
+	font-size: 12px;
+	color: var(--ap-site-editor-muted, #6b7280);
+}
+
+.ap-nav-inspector__advanced summary {
+	font-size: 13px;
+	cursor: pointer;
+	padding: 4px 0;
+	color: var(--ap-site-editor-muted, #4b5563);
+}
+
+.ap-nav-inspector__advanced[open] summary {
+	color: inherit;
+}
+
+.ap-nav-inspector__advanced[open] {
+	display: flex;
+	flex-direction: column;
+	gap: 12px;
+}

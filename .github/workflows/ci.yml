@@ -2,23 +2,45 @@ name: CI
 
 on:
   push:
-    branches: [main]
+    branches: [main, 'release/**']
   pull_request:
-    branches: [main]
+    branches: [main, 'release/**']
+
+permissions:
+  contents: read
 
 jobs:
-  build:
+  test-php:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    name: PHP Tests (PHP ${{ matrix.php }})
+
+    strategy:
+      fail-fast: true
+      matrix:
+        php: ['8.2', '8.3', '8.4']
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
+          php-version: ${{ matrix.php }}
           extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
           coverage: none
+
+      - name: Remove dev-only path repository
+        # composer.json declares a `path` repository pointing at
+        # ../cms-framework for the symlinked dev-app workflow. CI has no
+        # sibling checkout, so strip it before `composer install` and let
+        # Composer resolve cms-framework from Packagist via the ^2.0
+        # constraint. Tracked in #434.
+        run: |
+          jq 'del(.repositories)' composer.json > composer.json.tmp
+          mv composer.json.tmp composer.json
 
       - name: Get Composer cache directory
         id: composer-cache
@@ -28,41 +50,63 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ${{ steps.composer-cache.outputs.dir }}
-          key: ${{ runner.os }}-composer-${{ hashFiles('**/composer.lock') }}
-          restore-keys: ${{ runner.os }}-composer-
+          key: ${{ runner.os }}-php${{ matrix.php }}-composer-${{ hashFiles('**/composer.json') }}
+          restore-keys: ${{ runner.os }}-php${{ matrix.php }}-composer-
 
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --optimize-autoloader
+        run: composer update --no-interaction --prefer-dist
 
-      - name: Upload vendor directory
-        uses: actions/upload-artifact@v4
-        with:
-          name: vendor
-          path: vendor/
-          retention-days: 1
+      - name: Run tests
+        env:
+          XDEBUG_MODE: off
+        run: ./vendor/bin/pest --ci --no-coverage
 
-  test:
-    needs: build
+  test-js:
     runs-on: ubuntu-latest
-
-    name: Test
+    timeout-minutes: 15
+    name: JS Tests
 
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
         with:
-          php-version: '8.2'
-          extensions: dom, curl, libxml, mbstring, zip, pcntl, pdo, sqlite, pdo_sqlite
-          coverage: none
+          persist-credentials: false
 
-      - name: Download vendor directory
-        uses: actions/download-artifact@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          name: vendor
-          path: vendor/
+          node-version: '20'
+          cache: 'npm'
 
-      - name: Run tests
-        run: chmod +x ./vendor/bin/pest && ./vendor/bin/pest --ci
+      - name: Install npm dependencies
+        run: npm ci
 
+      - name: Run Vitest
+        run: npm test
+
+      - name: Build library bundle
+        run: npm run build:lib
+
+      - name: Build app bundle
+        run: npm run build
+
+  upstream-diff:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    name: Block fork upstream-diff
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Run upstream-diff (fails on drift in status=ported files)
+        run: npm run upstream-diff -- --json

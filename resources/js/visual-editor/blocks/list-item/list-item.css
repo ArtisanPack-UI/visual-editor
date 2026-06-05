@@ -1,0 +1,7 @@
+/*
+ * List item — frontend styles.
+ *
+ * Upstream `@wordpress/block-library/src/list-item/` ships no top-level
+ * style.scss (only native styles). Empty stylesheet preserves the
+ * auto-discovery shape so the css import in index.ts succeeds.
+ */

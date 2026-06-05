@@ -1,0 +1,26 @@
+/*
+ * Code — frontend + editor styles.
+ *
+ * Combined port of `@wordpress/block-library/src/code/style.scss`,
+ * `theme.scss`, and `editor.scss` (v9.43.0).
+ */
+
+.wp-block-code {
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    font-family: Menlo, Consolas, monaco, monospace;
+    padding: 0.8em 1em;
+}
+
+.wp-block-code code {
+    display: block;
+    font-family: inherit;
+    overflow-wrap: break-word;
+    white-space: pre-wrap;
+    background: none;
+    /*!rtl:begin:ignore*/
+    direction: ltr;
+    text-align: initial;
+    /*!rtl:end:ignore*/
+}

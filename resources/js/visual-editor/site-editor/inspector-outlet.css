@@ -1,0 +1,47 @@
+/**
+ * Site-editor inspector rail styling.
+ *
+ * Mirrors the layout of the post-editor inspector (`editor-app.css`) so
+ * a user moving between the two surfaces sees the same right-rail
+ * geometry.
+ */
+
+.ap-site-editor__inspector {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    background: var(--ap-site-editor-sidebar-background, var(--color-base-100, #ffffff));
+    border-left: 1px solid var(--ap-site-editor-border, var(--color-base-300, #e5e7eb));
+}
+
+.ap-site-editor__inspector-header {
+    padding: 16px 16px 12px;
+    border-bottom: 1px solid var(--ap-site-editor-border, var(--color-base-300, #e5e7eb));
+}
+
+.ap-site-editor__inspector-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-base-content, #1f2937);
+}
+
+.ap-site-editor__inspector-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 16px;
+}
+
+.ap-site-editor__inspector-placeholder {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: color-mix(
+        in oklch,
+        var(--color-base-content, #1f2937) 65%,
+        transparent
+    );
+}

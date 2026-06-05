@@ -1,0 +1,67 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/query-pagination-next",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/query-pagination-next",
+        "pinnedVersion": "9.43.0",
+        "subpath": "query-pagination-next"
+    },
+    "forkedAt": "2026-06-03",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; parent repointed core/query-pagination → artisanpack/query-pagination. usesContext stays on the unprefixed `queryId` / `query` keys provided by artisanpack/query (matching post-template). Attribute schema + supports carried verbatim."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Lightweight placeholder edit using the shared `createEntityPlaceholderEdit` factory. Upstream queries pagination state via @wordpress/data + interactive navigation, which the post editor's core-data shim does not populate; the real next-page link is emitted server-side by the Blade / React / Vue renderers from `_resolvedNextPageUrl`."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Dynamic block — `save` returns null; markup produced server-side. Upstream blocks under `block-library` register their `render_callback` via PHP; the fork's renderers consume the stamped `_resolved*` attributes instead."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Upstream has no transforms.js; the fork adds bidirectional core/query-pagination-next ↔ artisanpack/query-pagination-next block transforms for the V1 rollout window."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG mirroring @wordpress/icons' chevronRight glyph (the icon upstream uses)."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "Server-rendered: front-end markup produced by Blade / React / Vue renderers from `_resolvedNextPageUrl` stamped by QueryInliner.",
+        "Interactive (`enhancedPagination`) navigation is not carried — upstream attaches a client-side fetch handler; the fork falls back to standard pagination links so the rendered markup degrades cleanly outside the visual-editor runtime.",
+        "transforms.ts adds bidirectional block transforms that don't exist upstream — required to coexist with core/query-pagination-next during the V1 rollout."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-06-03",
+        "reviewer": "Query family fork (#521)"
+    }
+}

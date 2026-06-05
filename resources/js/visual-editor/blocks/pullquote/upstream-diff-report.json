@@ -1,0 +1,82 @@
+{
+    "block": "pullquote",
+    "status": "in-sync",
+    "upstream": {
+        "pinnedVersion": "9.43.0",
+        "subpath": "pullquote"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped.",
+            "result": "skipped-status",
+            "forkDigest": "ef5a94f1fa23"
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "adapted",
+            "notes": "TypeScript port. Figure/BlockQuote string aliases inlined (no separate files).",
+            "result": "skipped-status",
+            "forkDigest": "f6c359ed6493"
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "save.js",
+            "status": "adapted",
+            "notes": "TypeScript port.",
+            "result": "skipped-status",
+            "forkDigest": "0835297809f7"
+        },
+        {
+            "fork": "deprecated.tsx",
+            "upstream": "deprecated.js",
+            "status": "adapted",
+            "notes": "Full 6-entry chain ported (v5 → v0). v2.save omits the named-color → hex lookup that upstream did via `select(blockEditorStore)` — calling a store inside save() is impure. Migration semantics preserved.",
+            "result": "skipped-status",
+            "forkDigest": "7ddd41d68c33"
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "transforms.js",
+            "status": "extended",
+            "notes": "Upstream paragraph/heading transforms preserved; added bidirectional core/pullquote ↔ artisanpack/pullquote and accepts artisanpack/paragraph + artisanpack/heading.",
+            "result": "skipped-status",
+            "forkDigest": "84ac9137c550"
+        },
+        {
+            "fork": "shared.ts",
+            "upstream": "shared.js",
+            "status": "adapted",
+            "notes": "TypeScript port of a single constant. Logically equivalent — upstream uses a template literal, the fork uses a single-quoted string.",
+            "result": "skipped-status",
+            "forkDigest": "377d31cf329d"
+        },
+        {
+            "fork": "pullquote.css",
+            "upstream": "style.scss",
+            "status": "adapted",
+            "notes": "Sass `$content-width * 0.5` resolved inline to 350px (Gutenberg's default content-width is 700).",
+            "result": "skipped-status",
+            "forkDigest": "971acccc3b12"
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG.",
+            "result": "skipped-status",
+            "forkDigest": "9fc69a31f3a9"
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Auto-discovery contract.",
+            "result": "skipped-status",
+            "forkDigest": "c7c53d1c9198"
+        }
+    ]
+}

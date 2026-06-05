@@ -1,12 +1,12 @@
 {
   "name": "artisanpack-ui/visual-editor",
-  "description": "package name",
+  "description": "A Gutenberg-powered visual editor for Laravel — post editor, site editor, and Blade/React/Vue block renderers.",
   "type": "library",
   "license": "GPL-3.0-or-later",
-  "version": "1.0.0",
   "autoload": {
     "psr-4": {
-      "ArtisanPackUI\\VisualEditor\\": "src/"
+      "ArtisanPackUI\\VisualEditor\\": "src/",
+      "ArtisanPackUI\\VisualEditorRendererBlade\\": "packages/visual-editor-renderer-blade/src/"
     },
     "files": [
       "src/helpers.php"
@@ -14,7 +14,8 @@
   },
   "autoload-dev": {
     "psr-4": {
-      "Tests\\": "tests/"
+      "Tests\\": "tests/",
+      "ArtisanPackUI\\VisualEditorRendererBlade\\Tests\\": "packages/visual-editor-renderer-blade/tests/"
     }
   },
   "authors": [
@@ -26,11 +27,33 @@
   "require": {
     "php": "^8.2",
     "illuminate/support": ">=5.3",
-    "artisanpack-ui/core": "^1.0"
+    "artisanpack-ui/core": "^1.0",
+    "artisanpack-ui/hooks": "^1.0"
   },
   "require-dev": {
     "pestphp/pest": "^3.8",
-    "pestphp/pest-plugin-laravel": "^3.1"
+    "pestphp/pest-plugin-laravel": "^3.1",
+    "orchestra/testbench": "^10.2",
+    "artisanpack-ui/cms-framework": "^2.0"
+  },
+  "repositories": [
+    {
+      "type": "path",
+      "url": "../cms-framework",
+      "options": {
+        "symlink": true
+      }
+    }
+  ],
+  "suggest": {
+    "artisanpack-ui/media-library": "Recommended ^1.2 — default media library integration. Wire MediaModal + uploadMedia through registerArtisanpackMediaBridge() in the editor bootstrap to power Gutenberg's media picker and upload flows. Not enforced by Composer; host apps are free to install a different library and register a custom bridge instead.",
+    "artisanpack-ui/cms-framework": "Required ^2.0 for the site editor + comments family — the `/visual-editor/site-editor` route is hard-coupled to cms-framework's templates, parts, patterns, global styles, and menus modules (plan 14), and the comments-family forks (#519) consume the Blog module's `Comment` model + `Post::comments` relation introduced in 2.1. Without it, the post-content editor still works but the site editor route returns an install gate and the comments-family blocks render against an empty data set."
+  },
+  "_comments": {
+    "repositories": "The path repository to ../cms-framework is a development-only convenience for the symlinked workflow used in the dev-app (see ../artisanpack-ui-dev/composer.json). On a fresh clone without the sibling cms-framework checkout, composer install will fail to resolve cms-framework — that's expected for now; the package's release pipeline pulls cms-framework from Packagist via the ^2.0 constraint. CI removes this entry before installing. Tracked for a permanent fix (e.g. an env-gated repository) in #434."
+  },
+  "scripts": {
+    "test": "./vendor/bin/pest"
   },
   "config": {
     "allow-plugins": {

@@ -1,0 +1,41 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/list",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/list",
+        "pinnedVersion": "9.43.0",
+        "subpath": "list"
+    },
+    "forkedAt": "2026-05-27",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped; allowedBlocks updated to artisanpack/list-item." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "rewritten", "notes": "Simplified edit. Upstream's indent/outdent toolbar reaches into private block-editor dispatch surface (replaceBlocks via useOutdentList hook) — deferred to post-I7 customization. The Unordered/Ordered toggle and ordered-list settings panel are preserved. Inner-block template uses artisanpack/list-item." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; verbatim." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full 4-entry chain ported (v3 → v0). `migrateToListV2` rewritten to a lightweight DOM parse — upstream uses `rawHandler` which would pull the entire paste pipeline." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream paragraph/heading/raw/prefix transforms preserved; added bidirectional core/list ↔ artisanpack/list. Raw transform creates artisanpack/list-item inner blocks." },
+        { "fork": "list.css", "upstream": "style.scss", "status": "adapted", "notes": "Sass variables resolved inline." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Auto-discovery contract." }
+    ],
+    "vendoredPrimitives": [
+        "_shared/migrate-font-family.ts"
+    ],
+    "knownDivergences": [
+        "edit.tsx ships a simpler edit experience — no indent/outdent toolbar. Save shape is byte-equivalent so host content deserializes correctly.",
+        "deprecated.tsx `migrateToListV2` uses a direct DOM parse instead of `rawHandler`. The migration outcome is equivalent for well-formed list markup.",
+        "transforms.ts adds bidirectional block transforms with core/list and produces artisanpack/list-item innerBlocks."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-27",
+        "reviewer": "I1 content cluster"
+    }
+}

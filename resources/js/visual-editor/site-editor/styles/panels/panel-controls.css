@@ -1,0 +1,132 @@
+/*
+ * Styles panels — Gutenberg primitives with per-row customization chrome.
+ *
+ * The inner controls (TextControl / SelectControl / ColorPalette /
+ * UnitControl) inherit their visual language from `@wordpress/components`.
+ * This stylesheet only wires the Styles-specific decorations (customized
+ * highlight, reset affordance, theme-default hint) onto each row.
+ */
+
+.ap-site-editor__style-panel-wrapper {
+    min-width: 0;
+}
+
+.ap-site-editor__style-panel-meta {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    justify-content: flex-start;
+    margin-bottom: 0.5rem;
+}
+
+.ap-site-editor__style-panel-customized {
+    background: color-mix(in srgb, #f59e0b 15%, transparent);
+    border-radius: 0.25rem;
+    color: #b45309;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.125rem 0.375rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.ap-site-editor__style-panel-description {
+    font-size: 0.8125rem;
+    margin: 0;
+    opacity: 0.75;
+}
+
+.ap-site-editor__style-control-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+    padding-block: 0.375rem;
+    width: 100%;
+}
+
+.ap-site-editor__style-control-row[data-customized='true'] {
+    background: color-mix(in srgb, #f59e0b 6%, transparent);
+    border-left: 2px solid color-mix(in srgb, #f59e0b 40%, transparent);
+    margin-inline: -0.75rem;
+    padding: 0.5rem 0.5rem;
+}
+
+.ap-site-editor__style-control-row-control {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    min-width: 0;
+    width: 100%;
+}
+
+.ap-site-editor__style-control-row-control > * {
+    width: 100%;
+}
+
+.ap-site-editor__style-control-row-aside {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.25rem 0.5rem;
+    justify-content: flex-start;
+    min-width: 0;
+}
+
+.ap-site-editor__style-control-row-base {
+    font-size: 0.75rem;
+    margin: 0;
+    opacity: 0.75;
+    overflow-wrap: anywhere;
+}
+
+.ap-site-editor__style-control-row-base > code {
+    overflow-wrap: anywhere;
+}
+
+.ap-site-editor__style-control-row-error {
+    color: #b91c1c;
+    font-size: 0.75rem;
+    margin: 0;
+}
+
+/* Make sure the Gutenberg wrappers don't overflow the narrow inspector. */
+
+.ap-site-editor__styles-inspector .components-base-control,
+.ap-site-editor__styles-inspector .components-panel__body,
+.ap-site-editor__styles-inspector .components-panel__row,
+.ap-site-editor__styles-inspector .components-input-control__container {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.ap-site-editor__styles-inspector .components-panel__body {
+    padding: 0.75rem 1rem;
+}
+
+/*
+ * The base PanelRow clamps children to a 32px min-height and arranges
+ * them in a horizontal flex row. The Styles panels need vertical
+ * stacking so labels, controls, and reset affordances layer top-to-
+ * bottom — we keep PanelRow for the semantic grouping + rhythm, but
+ * override the flex direction + add visible separation between rows
+ * inside the same PanelBody.
+ */
+.ap-site-editor__styles-inspector .components-panel__row {
+    align-items: stretch;
+    flex-direction: column;
+    margin: 0;
+    min-height: 0;
+    padding-block: 0.5rem;
+}
+
+.ap-site-editor__styles-inspector
+    .components-panel__row
+    + .components-panel__row {
+    border-top: 1px solid color-mix(in srgb, currentcolor 8%, transparent);
+}
+
+.ap-site-editor__styles-inspector .components-color-palette {
+    min-width: 0;
+}

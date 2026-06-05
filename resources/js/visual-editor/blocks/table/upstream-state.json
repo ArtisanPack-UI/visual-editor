@@ -1,0 +1,41 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/table",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/table",
+        "pinnedVersion": "9.43.0",
+        "subpath": "table"
+    },
+    "forkedAt": "2026-05-27",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "rewritten", "notes": "Simplified edit owned by the fork. Ships the empty-table placeholder, RichText cell editing, caption, and the fixed-layout toggle. The heavier toolbar surface (row/col add/delete, cell tag switching, scope/alignment per cell, header/footer toggles) is intentionally deferred to a post-I7 customization phase. The fork keeps a single `<figure>` element across the placeholder → populated transition — swapping it leaves dangling refs in gutenberg's post-insert focus handler. CSS parity comes from the `_shared/fork-class-name-alias.ts` filter that remaps the I1 fork class names back to their `wp-block-{slug}` upstream forms." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; markup verbatim to upstream." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full 4-entry chain ported verbatim (v4 → v1). v2 carries the legacy `subtle-light-gray`/etc. backgroundColor → style.color.background migration." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream raw HTML paste schema preserved; added bidirectional core/table ↔ artisanpack/table." },
+        { "fork": "utils.ts", "upstream": "utils.js", "status": "adapted", "notes": "TypeScript port of `normalizeRowColSpan`." },
+        { "fork": "table.css", "upstream": "style.scss + theme.scss + editor.scss", "status": "adapted", "notes": "Sass nesting flattened; Sass variables resolved inline. The block-supports `border-color: inherit` chain is preserved." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Auto-discovery contract." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx ships a simpler edit experience than upstream. Row/col add/delete, cell tag switching, scope/alignment per cell, and header/footer toggles are NOT in the fork. Upstream's `state.js` (347 lines of table-mutation helpers) is not vendored; the simplified edit only needs `createTable` and one `updateCell` helper, both inlined.",
+        "transforms.ts adds bidirectional block transforms with core/table.",
+        "save.tsx and deprecated.tsx are byte-equivalent to upstream — host content saved against any upstream save shape still deserializes correctly.",
+        "CSS parity with upstream depends on the `_shared/fork-class-name-alias.ts` filter (registered at editor boot), which remaps `wp-block-artisanpack-table` to `wp-block-table` so the bundled gutenberg stylesheet applies."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-27",
+        "reviewer": "I1 content cluster"
+    }
+}

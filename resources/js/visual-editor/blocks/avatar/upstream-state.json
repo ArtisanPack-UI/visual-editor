@@ -1,0 +1,68 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/avatar",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/avatar",
+        "pinnedVersion": "9.43.0",
+        "subpath": "avatar"
+    },
+    "forkedAt": "2026-06-01",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; usesContext extended with queryId + artisanpack/postPreview so the block previews inside a query loop (#483). Attribute schema, supports, and selectors carried verbatim for parity. commentId is retained in usesContext for forward-compat with the comments family fork (#519)."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Previews via the lightweight createEntityPlaceholderEdit helper (kind='image'). Renders the stamped _resolvedAuthorAvatar URL with _resolvedAuthorName alt text when present, otherwise a labelled placeholder. Upstream edit.js is intentionally NOT delegated: it queries the user entity through @wordpress/core-data, which the post editor does not populate. Front-end markup is produced server-side from the stamped _resolved* attributes."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Dynamic block — returns null; markup produced server-side from stamped _resolved* attributes."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Bidirectional core/avatar ↔ artisanpack/avatar block transforms for the rollout window. Upstream has no transforms.js for this block."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG inserter icon (editor lacks dashicons.css)."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx previews via createEntityPlaceholderEdit rather than upstream edit.js — the core-data shim does not expose the user entity to the post editor. Live in-editor entity values would require expanding the shim (out of scope for the fork).",
+        "avatar is server-rendered: the front-end markup is produced by the Blade/React/Vue renderers from stamped _resolvedAuthorAvatar / _resolvedAuthorName attributes, not by save().",
+        "transforms.ts adds bidirectional block transforms that do not exist upstream — required to coexist with core/avatar during the V1 rollout.",
+        "Per-comment avatar resolution (commentId context, comment author lookup) is not yet implemented; the fork retains commentId in usesContext so the comments family fork (#519) can wire it up without a block.json bump. For now an avatar block placed inside a post-context loop renders the post author's avatar; outside a post context it renders nothing."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-06-01",
+        "reviewer": "Author family fork (#518)"
+    }
+}

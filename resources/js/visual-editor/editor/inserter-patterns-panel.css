@@ -1,0 +1,126 @@
+.ap-inserter-patterns {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    height: 100%;
+    overflow: auto;
+}
+
+.ap-inserter-patterns__heading {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--ap-site-editor-muted, #6b7280);
+}
+
+.ap-inserter-patterns__status,
+.ap-inserter-patterns__error,
+.ap-inserter-patterns__empty {
+    margin: 0;
+    padding: 12px;
+    font-size: 13px;
+    color: var(--ap-site-editor-muted, #6b7280);
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+}
+
+.ap-inserter-patterns__error {
+    background: #fef2f2;
+    color: #991b1b;
+    border-color: #fecaca;
+}
+
+.ap-inserter-patterns__retry {
+    margin-top: 6px;
+    appearance: none;
+    background: transparent;
+    border: 1px solid currentcolor;
+    border-radius: 4px;
+    padding: 2px 8px;
+    font-size: 12px;
+    cursor: pointer;
+    color: inherit;
+}
+
+.ap-inserter-patterns__group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.ap-inserter-patterns__group-title {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: inherit;
+}
+
+.ap-inserter-patterns__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ap-inserter-patterns__row {
+    appearance: none;
+    background: #fff;
+    border: 1px solid var(--ap-site-editor-border, #e5e7eb);
+    border-radius: 8px;
+    padding: 8px;
+    text-align: left;
+    cursor: pointer;
+    width: 100%;
+    color: inherit;
+    font: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    overflow: hidden;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.ap-inserter-patterns__row:hover {
+    border-color: var(--ap-site-editor-accent, #1d4ed8);
+    box-shadow: 0 2px 8px rgba(29, 78, 216, 0.08);
+}
+
+.ap-inserter-patterns__row:focus-visible {
+    outline: 2px solid var(--ap-site-editor-accent, #1d4ed8);
+    outline-offset: 2px;
+}
+
+.ap-inserter-patterns__preview {
+    display: block;
+    width: 100%;
+    border-radius: 4px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.ap-inserter-patterns__row-title {
+    font-weight: 600;
+    font-size: 13px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.ap-inserter-patterns__row-meta {
+    font-size: 11px;
+    color: var(--ap-site-editor-muted, #6b7280);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+.ap-inserter-patterns__row-categories {
+    font-style: italic;
+}

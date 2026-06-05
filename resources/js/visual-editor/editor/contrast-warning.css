@@ -1,0 +1,11 @@
+/*
+ * The contrast warning is rendered as a fill on
+ * `InspectorControls group="color"`, which lands inside Gutenberg's
+ * color `ToolsPanel`. That panel is a two-column CSS grid, so without
+ * an override the Notice would only span the first column. Telling the
+ * wrapper to occupy every column matches the upstream
+ * `.block-editor-contrast-checker` rule and keeps the warning legible.
+ */
+.ap-visual-editor-contrast-warning {
+    grid-column: 1 / -1;
+}

@@ -1,0 +1,45 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/columns",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/columns",
+        "pinnedVersion": "9.43.0",
+        "subpath": "columns"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; allowedBlocks rewired from core/column to artisanpack/column; attributes/supports/styles otherwise verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Inner-block defaultBlock and column inserter checks target artisanpack/column. Adds explicit 'wp-block-columns' class to useBlockProps so editor matches frontend." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; class list adds 'wp-block-columns' explicitly." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Three legacy entries ported. v2 migrate() now creates artisanpack/column children." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream multi-block + media-text transforms preserved (now emit artisanpack/column inner blocks). Added bidirectional block transforms for core/columns ↔ artisanpack/columns. ungroup behavior preserved." },
+        { "fork": "variations.tsx", "upstream": "variations.js", "status": "adapted", "notes": "TypeScript port; inline SVG icons (no @wordpress/components Path/SVG dep); all inner-block templates target artisanpack/column." },
+        { "fork": "utils.ts", "upstream": "utils.js", "status": "adapted", "notes": "TypeScript port; behaviour unchanged." },
+        { "fork": "columns.css", "upstream": "style.scss + editor.scss", "status": "adapted", "notes": "Combined SCSS-to-CSS port. The Sass $break-medium variable (782px) is inlined as a literal media query. native-only RTL ignore comments dropped." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (editor doesn't bundle dashicons)." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract. Exports variations so they can be registered via @wordpress/blocks.registerBlockVariation." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "block.json allowedBlocks rewired from core/column to artisanpack/column — required so the artisanpack/columns parent only accepts the artisanpack/column fork.",
+        "edit.tsx hard-codes COLUMN_BLOCK = 'artisanpack/column' across defaultBlock, canInsertBlockType, updateColumns, and the placeholder so child columns never fall back to core/column.",
+        "transforms.ts adds bidirectional block transforms between core/columns and artisanpack/columns and rewrites all inner-block templates to artisanpack/column.",
+        "variations.tsx replaces @wordpress/components Path/SVG with raw inline SVG so the variation picker doesn't depend on extra runtime imports, and rewrites every inner-block template to artisanpack/column.",
+        "columns.css inlines the upstream Sass $break-medium breakpoint (782px) as literal media queries.",
+        "index.ts swaps upstream's PHP-side init wiring for the visual-editor auto-discovery contract and exports variations.",
+        "Native files (edit.native.js, editor.native.scss, transforms.native.js, columnCalculations.native.js, test/) are intentionally not ported — desktop web only."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I3 layout cluster"
+    }
+}

@@ -1,0 +1,41 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/verse",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/verse",
+        "pinnedVersion": "9.43.0",
+        "subpath": "verse"
+    },
+    "forkedAt": "2026-05-27",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. `useDeprecatedTextAlign` not vendored; deprecation chain handles legacy `textAlign`." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full 3-entry chain ported verbatim (v3 → v1). Imports `migrate-text-align` and `migrate-font-family` from blocks/_shared." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream paragraph transforms preserved; added bidirectional core/verse ↔ artisanpack/verse and accepts artisanpack/paragraph." },
+        { "fork": "verse.css", "upstream": "style.scss", "status": "adapted", "notes": "Sass nesting flattened; no variables." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Auto-discovery contract." }
+    ],
+    "vendoredPrimitives": [
+        "_shared/migrate-text-align.ts",
+        "_shared/migrate-font-family.ts"
+    ],
+    "knownDivergences": [
+        "_shared/migrate-font-family.ts inlines a self-contained `cleanEmptyObject` rather than depending on @wordpress/block-editor's privateApis-gated helper.",
+        "edit.tsx omits the upstream `useDeprecatedTextAlign` hook."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-27",
+        "reviewer": "I1 content cluster"
+    }
+}

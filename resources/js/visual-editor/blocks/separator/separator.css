@@ -1,0 +1,72 @@
+/*
+ * Separator — combined editor + frontend styles.
+ *
+ * Vendored from `@wordpress/block-library/src/separator/{style,editor,theme,deprecated}.scss`
+ * (v9.43.0). Sass converted to plain CSS; `data-type="core/separator"`
+ * selectors rewritten to `data-type="artisanpack/separator"`.
+ */
+
+/* style.scss */
+.wp-block-separator {
+    border-top: 2px solid currentcolor;
+    border-left: none;
+    border-right: none;
+    border-bottom: none;
+}
+
+:root :where(.wp-block-separator.is-style-dots) {
+    text-align: center;
+    line-height: 1;
+    height: auto;
+}
+
+:root :where(.wp-block-separator.is-style-dots)::before {
+    content: "\00b7 \00b7 \00b7";
+    color: currentcolor;
+    font-size: 1.5em;
+    letter-spacing: 2em;
+    /* rtl:ignore */
+    padding-left: 2em;
+    font-family: serif;
+}
+
+.wp-block-separator.is-style-dots {
+    background: none !important;
+    border: none !important;
+}
+
+/* editor.scss */
+.block-editor-block-list__block[data-type="artisanpack/separator"] {
+    padding-top: 0.1px;
+    padding-bottom: 0.1px;
+}
+
+/* theme.scss */
+.wp-block-separator {
+    border: none;
+    border-bottom: 2px solid currentcolor;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.wp-block-separator.has-alpha-channel-opacity {
+    opacity: initial;
+}
+
+.wp-block-separator:not(.is-style-wide):not(.is-style-dots) {
+    width: 100px;
+}
+
+.wp-block-separator.has-background:not(.is-style-dots) {
+    border-bottom: none;
+    height: 1px;
+}
+
+.wp-block-separator.has-background:not(.is-style-wide):not(.is-style-dots) {
+    height: 2px;
+}
+
+/* deprecated.scss */
+.wp-block-separator.has-css-opacity {
+    opacity: 0.4;
+}

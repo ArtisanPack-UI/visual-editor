@@ -1,0 +1,218 @@
+<?php
+
+/**
+ * Resolved template value object.
+ *
+ * Carries the merged authoritative content for a single template slug, in
+ * the shape H6's WP-style REST adapters consume. Constructed lazily by
+ * {@see TemplateResolver} from raw filter arrays.
+ *
+ * @package    ArtisanPack_UI
+ * @subpackage VisualEditor
+ *
+ * @author     Jacob Martella <me@jacobmartella.com>
+ *
+ * @since      1.0.0
+ */
+
+declare( strict_types=1 );
+
+namespace ArtisanPackUI\VisualEditor\SiteEditor\Resolution;
+
+use ArtisanPackUI\VisualEditor\SiteEditor\Exceptions\SiteEditorRegistrationException;
+
+class ResolvedTemplate
+{
+	/**
+	 * The filter slug that produced this entry — used in exceptions to point
+	 * back at the misconfigured contributor.
+	 *
+	 * @since 1.0.0
+	 */
+	protected const FILTER_NAME = 'ap.visual-editor.templates';
+
+	/**
+	 * @since 1.0.0
+	 *
+	 * @param  string  $slug          Stable identifier within the active theme.
+	 * @param  string  $theme         Active theme slug.
+	 * @param  string  $title         Display title.
+	 * @param  string  $description   Display description.
+	 * @param  string  $status        WP status (`'publish'` etc).
+	 * @param  string  $source        `'db'` or `'theme'`.
+	 * @param  string  $rawContent    The serialized block-markup string.
+	 *                                Empty for DB-stored entities (per the
+	 *                                cms-framework convention) and populated
+	 *                                for theme files.
+	 * @param  array<int, array<string, mixed>>  $blocks  The parsed block
+	 *                                tree. Populated for DB-stored entities;
+	 *                                empty for theme files.
+	 * @param  bool    $hasThemeFile  True when a theme file backs this slug.
+	 * @param  bool    $isCustom      True when the entity has no theme-file backing.
+	 * @param  int|null  $wpId        DB row id, or null when only a theme file backs.
+	 * @param  int|null  $authorId    Author user id, or null.
+	 * @param  string|null  $modifiedAt  ISO-8601 last-modified timestamp.
+	 */
+	public function __construct(
+		public readonly string $slug,
+		public readonly string $theme,
+		public readonly string $title,
+		public readonly string $description,
+		public readonly string $status,
+		public readonly string $source,
+		public readonly string $rawContent,
+		public readonly array $blocks,
+		public readonly bool $hasThemeFile,
+		public readonly bool $isCustom,
+		public readonly ?int $wpId,
+		public readonly ?int $authorId,
+		public readonly ?string $modifiedAt,
+	) {
+	}
+
+	/**
+	 * Build from a raw filter-array entry. Throws lazily on missing required
+	 * fields or invalid types so misconfigured filter contributors surface a
+	 * clear error on the editor's first request.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $data
+	 */
+	public static function fromArray( array $data ): self
+	{
+		$slug = self::requireString( $data, 'slug' );
+
+		// Guard the nested `content.*` fallbacks with an is_array check on
+		// `content` itself before drilling in. `isset($str['raw'])` on a
+		// string would return true (PHP coerces 'raw' → int 0 → checks
+		// offset 0 of the string, which is set for any non-empty string),
+		// so without this guard a string-shaped `content` would silently
+		// corrupt `rawContent` to a single character. The guard also
+		// prevents the warning PHP emits on string-offset access with
+		// non-numeric keys.
+		$content = is_array( $data['content'] ?? null ) ? $data['content'] : [];
+
+		// Use coerceScalarString instead of an unconditional cast — a
+		// non-scalar `content.raw` (array/object) would otherwise stringify
+		// to the literal `"Array"` and ship as rawContent.
+		$rawFallback    = self::coerceScalarString( $content['raw'] ?? null ) ?? '';
+		$blocksFallback = is_array( $content['blocks'] ?? null ) ? $content['blocks'] : [];
+
+		// Route the top-level `raw_content` through coerceScalarString too —
+		// otherwise a non-string scalar (e.g. `42`, `true`) at the top level
+		// is silently dropped by `optionalString`'s is_string check while
+		// the same value at the nested `content.raw` slot is coerced to its
+		// string form. Matches ResolvedPattern's pattern.
+		$rawContent = self::coerceScalarString( $data['raw_content'] ?? null ) ?? $rawFallback;
+
+		return new self(
+			slug         : $slug,
+			theme        : self::requireString( $data, 'theme', $slug ),
+			title        : self::optionalString( $data, 'title', '' ),
+			description  : self::optionalString( $data, 'description', '' ),
+			status       : self::optionalString( $data, 'status', 'publish' ),
+			source       : self::requireSourceEnum( $data, $slug ),
+			rawContent   : $rawContent,
+			blocks       : self::optionalArray( $data, 'blocks', $blocksFallback ),
+			hasThemeFile : (bool) ( $data['has_theme_file'] ?? false ),
+			isCustom     : (bool) ( $data['is_custom'] ?? false ),
+			wpId         : isset( $data['wp_id'] ) ? (int) $data['wp_id'] : null,
+			authorId     : isset( $data['author_id'] ) ? (int) $data['author_id'] : null,
+			modifiedAt   : isset( $data['modified_at'] ) ? (string) $data['modified_at'] : null,
+		);
+	}
+
+	/**
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $data
+	 */
+	protected static function requireString( array $data, string $field, string $entryKey = '(unknown)' ): string
+	{
+		if ( ! isset( $data[ $field ] ) ) {
+			throw SiteEditorRegistrationException::missingRequiredField( static::FILTER_NAME, $entryKey, $field );
+		}
+
+		if ( ! is_string( $data[ $field ] ) ) {
+			throw SiteEditorRegistrationException::invalidField( static::FILTER_NAME, $entryKey, $field, 'a string' );
+		}
+
+		return $data[ $field ];
+	}
+
+	/**
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $data
+	 */
+	protected static function optionalString( array $data, string $field, string $default ): string
+	{
+		if ( ! array_key_exists( $field, $data ) ) {
+			return $default;
+		}
+
+		if ( null === $data[ $field ] ) {
+			return $default;
+		}
+
+		return is_string( $data[ $field ] ) ? $data[ $field ] : $default;
+	}
+
+	/**
+	 * Safely cast a filter-supplied value to a string when it is sensibly
+	 * stringable, returning null otherwise. Used at the contributor boundary
+	 * to guard against arrays or unsupported objects landing in string-typed
+	 * value-object fields — `(string) $array` would otherwise produce the
+	 * literal `"Array"` and silently corrupt `rawContent`.
+	 *
+	 * @since 1.0.0
+	 */
+	protected static function coerceScalarString( mixed $value ): ?string
+	{
+		if ( is_string( $value ) ) {
+			return $value;
+		}
+
+		if ( is_scalar( $value ) ) {
+			return (string) $value;
+		}
+
+		return null;
+	}
+
+	/**
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $data
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected static function optionalArray( array $data, string $field, mixed $fallback ): array
+	{
+		$value = $data[ $field ] ?? $fallback;
+
+		return is_array( $value ) ? $value : [];
+	}
+
+	/**
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $data
+	 */
+	protected static function requireSourceEnum( array $data, string $entryKey ): string
+	{
+		$source = $data['source'] ?? 'theme';
+
+		if ( ! in_array( $source, [ 'db', 'theme' ], true ) ) {
+			throw SiteEditorRegistrationException::invalidField(
+				static::FILTER_NAME,
+				$entryKey,
+				'source',
+				"'db' or 'theme'",
+			);
+		}
+
+		return (string) $source;
+	}
+}

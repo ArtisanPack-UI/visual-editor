@@ -1,0 +1,39 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/archives",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/archives",
+        "pinnedVersion": "9.43.0",
+        "subpath": "archives"
+    },
+    "forkedAt": "2026-05-29",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to the artisanpack namespace; attribute schema + supports carried verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "rewritten", "notes": "Upstream renders through @wordpress/server-side-render (POSTs to wp/v2/block-renderer/core/archives); this package's preview endpoint is /visual-editor/api/blocks/preview and archives are resolved server-side, so the fork previews through the package's <ServerSideRender> seam and ports the inspector controls (display as dropdown, show counts, group by) to PanelBody. Mirrors the V1 taxonomy-archive override's ArchivesEdit." },
+        { "fork": "save.tsx", "upstream": "n/a", "status": "added", "notes": "Dynamic block — returns null; markup produced by ArchivesBlock::render()." },
+        { "fork": "transforms.ts", "upstream": "n/a", "status": "added", "notes": "Upstream has no transforms.js; the fork adds bidirectional core/archives ↔ artisanpack/archives block transforms for the rollout window." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG mirroring @wordpress/icons' archive icon." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract; upstream PHP-side init wiring not carried." },
+        { "fork": "../../../../src/Blocks/Core/ArchivesBlock.php", "upstream": "index.php", "status": "rewritten", "notes": "Server renderer reimplemented against cms-framework's Post model (a DynamicBlock) rather than WP_Query. name() renamed core/archives → artisanpack/archives at the I6 fork (mirroring LatestPostsBlock at I4)." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx previews via the package's <ServerSideRender> seam instead of upstream's @wordpress/server-side-render (different preview endpoint).",
+        "Inspector ported to PanelBody instead of upstream's ToolsPanel; the Group by control offers monthly/yearly only (the server renderer buckets by month or year), not upstream's weekly/daily.",
+        "archives is a dynamic block, so (like core/categories, core/tag-cloud, artisanpack/latest-posts, artisanpack/form) it is handled by the Blade DynamicBlockRegistry and is not listed in packages/renderer-parity.json — the React/Vue static renderers do not register it.",
+        "transforms.ts adds bidirectional core/archives ↔ artisanpack/archives block transforms that don't exist upstream — required to coexist with core/archives during the V1 rollout."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-29",
+        "reviewer": "I6 loop / feed cluster"
+    }
+}

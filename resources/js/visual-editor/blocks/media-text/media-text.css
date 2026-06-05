@@ -1,0 +1,202 @@
+/**
+ * Media & Text — combined editor + frontend styles.
+ *
+ * Ported from `@wordpress/block-library/src/media-text/style.scss` and
+ * `editor.scss` (v9.43.0). The Sass `$break-small` token from
+ * `@wordpress/base-styles/breakpoints` (600px) is inlined as a plain CSS
+ * media query so the fork does not depend on the base-styles package at
+ * runtime.
+ */
+
+.wp-block-media-text {
+    /* This block's direction should not be manipulated by rtl, as the
+       mediaPosition control does. */
+    /*rtl:begin:ignore*/
+    direction: ltr;
+    /*rtl:end:ignore*/
+    display: grid;
+    grid-template-columns: 50% 1fr;
+    grid-template-rows: auto;
+    /* This block has customizable padding, border-box makes that more
+       predictable. */
+    box-sizing: border-box;
+}
+
+.wp-block-media-text.has-media-on-the-right {
+    grid-template-columns: 1fr 50%;
+}
+
+.wp-block-media-text.is-vertically-aligned-top > .wp-block-media-text__content,
+.wp-block-media-text.is-vertically-aligned-top > .wp-block-media-text__media {
+    align-self: start;
+}
+
+.wp-block-media-text > .wp-block-media-text__content,
+.wp-block-media-text > .wp-block-media-text__media,
+.wp-block-media-text.is-vertically-aligned-center > .wp-block-media-text__content,
+.wp-block-media-text.is-vertically-aligned-center > .wp-block-media-text__media {
+    align-self: center;
+}
+
+.wp-block-media-text.is-vertically-aligned-bottom > .wp-block-media-text__content,
+.wp-block-media-text.is-vertically-aligned-bottom > .wp-block-media-text__media {
+    align-self: end;
+}
+
+.wp-block-media-text > .wp-block-media-text__media {
+    /*rtl:begin:ignore*/
+    grid-column: 1;
+    grid-row: 1;
+    /*rtl:end:ignore*/
+    margin: 0;
+}
+
+.wp-block-media-text > .wp-block-media-text__content {
+    direction: ltr;
+    /*rtl:begin:ignore*/
+    grid-column: 2;
+    grid-row: 1;
+    /*rtl:end:ignore*/
+    padding: 0 8% 0 8%;
+    word-break: break-word;
+}
+
+.wp-block-media-text.has-media-on-the-right > .wp-block-media-text__media {
+    /*rtl:begin:ignore*/
+    grid-column: 2;
+    grid-row: 1;
+    /*rtl:end:ignore*/
+}
+
+.wp-block-media-text.has-media-on-the-right > .wp-block-media-text__content {
+    /*rtl:begin:ignore*/
+    grid-column: 1;
+    grid-row: 1;
+    /*rtl:end:ignore*/
+}
+
+.wp-block-media-text__media a {
+    display: block;
+}
+
+.wp-block-media-text__media img,
+.wp-block-media-text__media video {
+    height: auto;
+    max-width: unset;
+    width: 100%;
+    vertical-align: middle;
+}
+
+/* `is-image-fill` is deprecated and the styles are kept for backwards
+   compatibility. */
+.wp-block-media-text.is-image-fill > .wp-block-media-text__media {
+    height: 100%;
+    min-height: 250px;
+    background-size: cover;
+}
+
+.wp-block-media-text.is-image-fill > .wp-block-media-text__media > a {
+    display: block;
+    height: 100%;
+}
+
+.wp-block-media-text.is-image-fill > .wp-block-media-text__media img {
+    /* The image is visually hidden but accessible to assistive
+       technologies. */
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+/* Image fill for versions 8 and onwards */
+.wp-block-media-text.is-image-fill-element > .wp-block-media-text__media {
+    position: relative;
+    height: 100%;
+    min-height: 250px;
+}
+
+.wp-block-media-text.is-image-fill-element > .wp-block-media-text__media > a {
+    display: block;
+    height: 100%;
+}
+
+.wp-block-media-text.is-image-fill-element > .wp-block-media-text__media img {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/*
+ * Here we are not able to use a mobile first CSS approach. Custom widths
+ * are set using inline styles, and on mobile, we need 100% width, so we
+ * use important to overwrite the inline style. If the style were set on
+ * mobile first, on desktop styles, we would have no way of setting the
+ * style again to the inline style.
+ */
+@media (max-width: 600px) {
+    .wp-block-media-text.is-stacked-on-mobile {
+        grid-template-columns: 100% !important;
+    }
+    .wp-block-media-text.is-stacked-on-mobile > .wp-block-media-text__media {
+        grid-column: 1;
+        grid-row: 1;
+    }
+    .wp-block-media-text.is-stacked-on-mobile > .wp-block-media-text__content {
+        grid-column: 1;
+        grid-row: 2;
+    }
+}
+
+/* Editor-only affordances. */
+.wp-block-media-text__media {
+    position: relative;
+}
+
+.wp-block-media-text__media.is-transient img {
+    opacity: 0.3;
+}
+
+/* Shown while image is being uploaded */
+.wp-block-media-text__media .components-spinner {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    margin-top: -9px;
+    margin-left: -9px;
+}
+
+.wp-block-media-text .__resizable_base__ {
+    grid-column: 1 / span 2;
+    grid-row: 2;
+}
+
+.wp-block-media-text .editor-media-container__resizer {
+    /* The resizer sets an inline width but as we are using a grid layout,
+       we set the width on container. */
+    width: 100% !important;
+}
+
+.wp-block-media-text.is-image-fill .editor-media-container__resizer,
+.wp-block-media-text.is-image-fill .components-placeholder.has-illustration,
+.wp-block-media-text.is-image-fill-element .editor-media-container__resizer,
+.wp-block-media-text.is-image-fill-element .components-placeholder.has-illustration {
+    /* The resizer sets an inline height but for the image fill we set it
+       to full height. */
+    height: 100% !important;
+}
+
+.wp-block-media-text > .block-editor-block-list__layout > .block-editor-block-list__block {
+    max-width: unset;
+}
+
+/* Make the featured image placeholder the same height as the media
+   selection area. */
+.wp-block-media-text--placeholder-image {
+    min-height: 205px;
+}

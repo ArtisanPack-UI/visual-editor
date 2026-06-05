@@ -1,0 +1,40 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/spacer",
+    "title": "Spacer",
+    "category": "design",
+    "description": "Add white space between blocks and customize its height.",
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "height": {
+            "type": "string",
+            "default": "100px"
+        },
+        "width": {
+            "type": "string"
+        }
+    },
+    "usesContext": [ "orientation" ],
+    "supports": {
+        "anchor": true,
+        "spacing": {
+            "margin": [ "top", "bottom" ],
+            "__experimentalDefaultControls": {
+                "margin": true
+            }
+        },
+        "interactivity": {
+            "clientNavigation": true
+        },
+        "artisanpackResponsive": {
+            "attributes": [
+                "height",
+                "width",
+                "spacing"
+            ]
+        }
+    },
+    "editorStyle": "wp-block-spacer-editor",
+    "style": "wp-block-spacer"
+}

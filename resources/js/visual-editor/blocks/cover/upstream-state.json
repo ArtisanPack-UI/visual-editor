@@ -1,0 +1,53 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/cover",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/cover",
+        "pinnedVersion": "9.43.0",
+        "subpath": "cover"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports verbatim." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent to upstream." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Full 14-entry deprecation chain (v1..v14) ported. v10..v14 share a helper renderer (renderModernSave) to keep the file readable; markup is equivalent." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream image/video/group transforms ported; added bidirectional core/cover ↔ artisanpack/cover block transforms. cleanEmptyObject from unlock(blockEditorPrivateApis) is inlined." },
+        { "fork": "constants.ts", "upstream": "constants.js", "status": "adapted", "notes": "Single constant; body byte-equivalent. The fork adds a JSDoc file-header pointing at the upstream source so the lineage is visible without consulting this state file. No semantic drift from upstream." },
+        { "fork": "shared.ts", "upstream": "shared.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent to upstream." },
+        { "fork": "embed-video-utils.ts", "upstream": "embed-video-utils.js", "status": "adapted", "notes": "TypeScript port. The dependency on ../embed/util.matchesPatterns is replaced by an inline matchesPatterns helper so the fork does not depend on block-library internals not exposed via the package's exports field." },
+        { "fork": "variations.ts", "upstream": "variations.js", "status": "adapted", "notes": "TypeScript port; single 'cover' variation preserved verbatim." },
+        { "fork": "edit/index.tsx", "upstream": "edit/index.js", "status": "adapted", "notes": "TypeScript port of the main CoverEdit component. Uses sibling fork modules instead of block-library deep imports." },
+        { "fork": "edit/color-utils.ts", "upstream": "edit/color-utils.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent." },
+        { "fork": "edit/cover-placeholder.tsx", "upstream": "edit/cover-placeholder.js", "status": "adapted", "notes": "TypeScript port. Uses inline CoverInserterIcon instead of @wordpress/icons.cover so the editor canvas does not have to load dashicons.css." },
+        { "fork": "edit/embed-video-url-input.tsx", "upstream": "edit/embed-video-url-input.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent." },
+        { "fork": "edit/block-controls.tsx", "upstream": "edit/block-controls.js", "status": "adapted", "notes": "TypeScript port. cleanEmptyObject from unlock(blockEditorPrivateApis) is inlined." },
+        { "fork": "edit/inspector-controls.tsx", "upstream": "edit/inspector-controls.js", "status": "adapted", "notes": "TypeScript port. Inlines cleanEmptyObject. Replaces private ResolutionTool with a plain SelectControl in a ToolsPanelItem. Replaces private HTMLElementControl with a plain SelectControl rendered under InspectorControls group='advanced'. Replaces ../utils/poster-image with an inline MediaUploadCheck + MediaUpload pair. Drops useToolsPanelDropdownMenuProps (../utils/hooks) so the optional dropdown menu is omitted." },
+        { "fork": "edit/resizable-cover-popover.tsx", "upstream": "edit/resizable-cover-popover.js", "status": "adapted", "notes": "TypeScript port. Upstream wraps the private ResizableBoxPopover API; the fork wraps a plain ResizableBox so it does not depend on lock-unlock block-library internals. The popover is rendered in-flow instead of via the popover slot." },
+        { "fork": "cover.css", "upstream": "style.scss + editor.scss", "status": "adapted", "notes": "Sass @use references to @wordpress/base-styles/{colors,variables,z-index} inlined: $black → #000, $white → #fff, $content-width → 840px, $grid-unit-30 → 24px. @for loops expanded to literal CSS rules for has-background-dim-{10..100}." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG for the inserter (matches @wordpress/icons cover path)." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract; upstream init.js / index.php server-side wiring is intentionally absent." }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "transforms.ts and inspector-controls.tsx / block-controls.tsx inline cleanEmptyObject rather than importing it from unlock(@wordpress/block-editor.privateApis). Practical impact: none — semantics are equivalent.",
+        "edit/resizable-cover-popover.tsx uses ResizableBox in-flow rather than the private ResizableBoxPopover. Practical impact: the resize handle renders inline under the block instead of as a slotted popover; resize behaviour itself is unchanged.",
+        "edit/inspector-controls.tsx replaces the private ResolutionTool with a plain SelectControl wrapped in a ToolsPanelItem. Practical impact: the same options/value/onChange surface is presented, but without the upstream tool's panel-id wiring.",
+        "edit/inspector-controls.tsx replaces the private HTMLElementControl with a plain SelectControl rendered in InspectorControls group='advanced'. Practical impact: the tagName select is identical; the upstream tool's extra a11y affordances (label associations) are not duplicated.",
+        "edit/inspector-controls.tsx replaces ../utils/poster-image with an inline MediaUploadCheck + MediaUpload pair. Practical impact: the user can pick a poster image; the upstream-only 'remove poster' affordance is omitted (use the panel's reset-all to clear).",
+        "embed-video-utils.ts inlines matchesPatterns rather than importing from ../embed/util. Practical impact: none — the inline implementation matches upstream byte-for-byte.",
+        "Cover does NOT vendor a Caption component (the block doesn't use one in upstream)."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I2 media cluster"
+    }
+}

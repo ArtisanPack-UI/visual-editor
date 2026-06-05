@@ -1,0 +1,73 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/post-terms",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/post-terms",
+        "pinnedVersion": "9.43.0",
+        "subpath": "post-terms"
+    },
+    "forkedAt": "2026-06-02",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        {
+            "fork": "block.json",
+            "upstream": "block.json",
+            "status": "adapted",
+            "notes": "name + textdomain swapped to the artisanpack namespace; queryId + artisanpack/postPreview added to usesContext for editor-preview parity. attribute schema and supports carried verbatim."
+        },
+        {
+            "fork": "edit.tsx",
+            "upstream": "edit.js",
+            "status": "rewritten",
+            "notes": "Previews via createEntityPlaceholderEdit. Reads the stamped _resolvedTermsLabel attribute, then the resolved post's terms[taxonomy] map from artisanpack/postPreview context, then the live page entity's _preview.terms envelope. Upstream edit.js queries the terms collection through @wordpress/core-data, which the post editor doesn't expose."
+        },
+        {
+            "fork": "save.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Dynamic block — returns null; markup produced server-side from stamped _resolvedTerms* attributes."
+        },
+        {
+            "fork": "transforms.ts",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Bidirectional core/post-terms ↔ artisanpack/post-terms block transforms for the rollout window."
+        },
+        {
+            "fork": "inserter-icon.tsx",
+            "upstream": "n/a",
+            "status": "added",
+            "notes": "Inline SVG inserter icon (editor lacks dashicons.css)."
+        },
+        {
+            "fork": "index.ts",
+            "upstream": "index.js",
+            "status": "rewritten",
+            "notes": "Adapted to the visual-editor auto-discovery contract."
+        },
+        {
+            "fork": "deprecated.ts",
+            "upstream": "deprecated.js",
+            "status": "adapted",
+            "notes": "Single v1 entry ported to TypeScript: migrates the legacy top-level textAlign attribute into the canonical block-support shape via the vendored migrate-text-align helper. Save returns null — block is server-rendered."
+        }
+    ],
+    "vendoredPrimitives": [],
+    "knownDivergences": [
+        "edit.tsx previews via createEntityPlaceholderEdit rather than upstream edit.js — the core-data shim does not expose the terms collection to the post editor, so the upstream entity-querying edit renders empty.",
+        "post-terms is server-rendered: the front-end markup is produced by the Blade/React/Vue renderers from stamped _resolvedTerms* attributes, not by save().",
+        "transforms.ts adds bidirectional block transforms that do not exist upstream — required to coexist with core/post-terms during the V1 rollout."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-06-02",
+        "reviewer": "Issue #520 — post navigation / metadata family"
+    }
+}

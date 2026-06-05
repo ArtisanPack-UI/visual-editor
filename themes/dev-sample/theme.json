@@ -1,0 +1,59 @@
+{
+    "$schema": "https://schemas.wp.org/wp/6.8/theme.json",
+    "name": "Dev Sample",
+    "slug": "dev-sample",
+    "version": "1.0.0",
+    "description": "Smallest possible theme that exercises every Phase H surface — templates, template parts, patterns (synced + unsynced), global styles, and menu locations. Used by the H8 smoke flow as a regression net.",
+    "author": "ArtisanPack UI",
+    "settings": {
+        "color": {
+            "palette": [
+                { "slug": "primary", "name": "Primary", "color": "#1f2937" },
+                { "slug": "accent",  "name": "Accent",  "color": "#3b82f6" },
+                { "slug": "background", "name": "Background", "color": "#ffffff" },
+                { "slug": "text",    "name": "Text",    "color": "#0f172a" }
+            ]
+        },
+        "typography": {
+            "fontSizes": [
+                { "slug": "small",  "name": "Small",  "size": "0.875rem" },
+                { "slug": "medium", "name": "Medium", "size": "1rem" },
+                { "slug": "large",  "name": "Large",  "size": "1.5rem" }
+            ]
+        },
+        "layout": {
+            "contentSize": "640px",
+            "wideSize":    "1024px"
+        }
+    },
+    "styles": {
+        "color": {
+            "background": "#ffffff",
+            "text":       "#0f172a"
+        },
+        "typography": {
+            "fontFamily": "ui-sans-serif, system-ui, sans-serif",
+            "lineHeight": "1.6"
+        },
+        "elements": {
+            "link":   { "color": { "text": "#3b82f6" } },
+            "button": {
+                "color":  { "background": "#3b82f6", "text": "#ffffff" },
+                "border": { "radius": "0.375rem" }
+            }
+        }
+    },
+    "templateParts": [
+        { "name": "header", "title": "Header", "area": "header" },
+        { "name": "footer", "title": "Footer", "area": "footer" }
+    ],
+    "customTemplates": [
+        { "name": "blank", "title": "Blank", "postTypes": ["page"] }
+    ],
+    "menus": {
+        "locations": {
+            "primary":   "Primary menu",
+            "footer":    "Footer menu"
+        }
+    }
+}

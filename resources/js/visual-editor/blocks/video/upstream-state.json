@@ -1,0 +1,44 @@
+{
+    "$schema": "../../../../scripts/upstream-state.schema.json",
+    "block": "artisanpack/video",
+    "upstream": {
+        "package": "@wordpress/block-library",
+        "namespace": "core/video",
+        "pinnedVersion": "9.43.0",
+        "subpath": "video"
+    },
+    "forkedAt": "2026-05-28",
+    "$statusLegend": {
+        "ported": "byte-equivalent to upstream (CI fails on drift)",
+        "adapted": "TypeScript port and/or namespace swap; logically equivalent",
+        "extended": "fork adds behavior on top of upstream",
+        "rewritten": "fork replaced upstream entirely",
+        "added": "file unique to the fork (no upstream)"
+    },
+    "files": [
+        { "fork": "block.json", "upstream": "block.json", "status": "adapted", "notes": "name + textdomain swapped to artisanpack namespace; attributes/supports verbatim." },
+        { "fork": "edit.tsx", "upstream": "edit.js", "status": "adapted", "notes": "TypeScript port. Omits the blob-URL upload mount-effect (useUploadMediaFromBlobURL), the URL → embed-block upgrade (createUpgradedEmbedBlock), the shared Caption component, the PosterImage helper, and the TracksEditor toolbar dropdown — each depends on block-library internals that are not exposed via the package's exports field. Replaced with inline RichText figcaption + inline MediaUpload for the poster. The tracks attribute still round-trips through edit/save." },
+        { "fork": "save.tsx", "upstream": "save.js", "status": "adapted", "notes": "TypeScript port; behaviour byte-equivalent to upstream. Tracks are rendered via the vendored sibling tracks.tsx." },
+        { "fork": "deprecated.tsx", "upstream": "deprecated.js", "status": "adapted", "notes": "Single deprecation entry ported verbatim (figcaption className upgrade)." },
+        { "fork": "transforms.ts", "upstream": "transforms.js", "status": "extended", "notes": "Upstream files + shortcode + raw transforms preserved; added bidirectional core/video ↔ artisanpack/video block transforms." },
+        { "fork": "video.css", "upstream": "style.scss + editor.scss", "status": "adapted", "notes": "Sass caption-style() mixin and base-styles colors/variables/z-index inlined as plain CSS." },
+        { "fork": "tracks.tsx", "upstream": "tracks.js", "status": "adapted", "notes": "Sibling renderer used by both edit.tsx and save.tsx; body logic is byte-equivalent to upstream. The fork adds a JSDoc file-header pointing at the upstream source so the lineage is visible without consulting this state file. No semantic drift from upstream." },
+        { "fork": "inserter-icon.tsx", "upstream": "n/a", "status": "added", "notes": "Inline SVG matching @wordpress/icons' video path." },
+        { "fork": "index.ts", "upstream": "index.js", "status": "rewritten", "notes": "Adapted to the visual-editor auto-discovery contract; upstream init.js / index.php server-side wiring is intentionally absent." }
+    ],
+    "vendoredPrimitives": [
+        { "name": "tracks.tsx", "upstreamPath": "video/tracks.js", "reason": "Used by both edit and save to keep editor preview and saved markup in lockstep." }
+    ],
+    "knownDivergences": [
+        "edit.tsx omits the upstream blob-URL upload mount-effect (useUploadMediaFromBlobURL). Practical impact: drag-and-dropped video files are not eagerly uploaded as soon as they hit the block; the user uploads via MediaPlaceholder or MediaReplaceFlow as usual.",
+        "edit.tsx omits the video-URL → embed-block upgrade (createUpgradedEmbedBlock). Practical impact: pasting a YouTube/Vimeo URL into the video URL field does not auto-convert to an embed block; users insert the embed block directly.",
+        "edit.tsx uses an inline RichText figcaption instead of the upstream shared Caption component. Practical impact: the toolbar caption-toggle affordance Caption provides is replaced by always-showing the figcaption when selected or non-empty.",
+        "edit.tsx replaces the upstream PosterImage helper with an inline MediaUpload button in the settings ToolsPanel. Practical impact: no preview thumbnail of the chosen poster in the sidebar — only a 'replace poster image' button.",
+        "edit.tsx omits the TracksEditor toolbar dropdown (it depends on the block-library `lock-unlock` private API). Practical impact: text-track (.vtt) management UI is unavailable in the fork; the `tracks` attribute itself still round-trips losslessly through save/edit so tracks defined via core/video transforms persist."
+    ],
+    "triage": {
+        "label": "in-sync",
+        "lastReviewed": "2026-05-28",
+        "reviewer": "I2 media cluster"
+    }
+}
