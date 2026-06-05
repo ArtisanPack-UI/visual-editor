@@ -16,6 +16,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -60,6 +62,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -89,6 +93,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - name: Extract version from tag
         id: version
@@ -96,8 +102,19 @@ jobs:
 
       - name: Extract release notes from CHANGELOG
         id: changelog
+        env:
+          # Pass the tag through an env var instead of interpolating it directly
+          # into the shell script — keeps the value as a plain string regardless
+          # of what the tag contains and silences zizmor template-injection.
+          VERSION_INPUT: ${{ steps.version.outputs.version }}
         run: |
-          VERSION=${{ steps.version.outputs.version }}
+          VERSION="$VERSION_INPUT"
+          case "$VERSION" in
+            ''|*[!0-9A-Za-z.+-]*)
+              echo "Invalid version extracted from tag: $VERSION" >&2
+              exit 1
+              ;;
+          esac
           echo "Extracting notes for version $VERSION"
 
           if [ ! -f "CHANGELOG.md" ]; then
