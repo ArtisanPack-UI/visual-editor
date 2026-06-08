@@ -9,6 +9,7 @@
 
 import { describe, expect, it } from 'vitest';
 
+import { editorSettings } from '../editor-settings';
 import {
     extractThemeFontFamilies,
     extractThemeFontSizes,
@@ -54,6 +55,21 @@ describe('extractThemePalette', () => {
         const result = extractThemePalette(settings);
         expect(result).toEqual([{ slug: 'brand', name: 'brand', color: '#ff0000' }]);
     });
+
+    it('dedupes by slug, keeping the first occurrence (#547)', () => {
+        const settings = {
+            color: {
+                palette: [
+                    { slug: 'primary', name: 'Primary', color: '#3b82f6' },
+                    { slug: 'primary', name: 'Primary Dupe', color: '#000000' },
+                ],
+            },
+        };
+
+        expect(extractThemePalette(settings)).toEqual([
+            { slug: 'primary', name: 'Primary', color: '#3b82f6' },
+        ]);
+    });
 });
 
 describe('extractThemeFontSizes', () => {
@@ -79,6 +95,24 @@ describe('extractThemeFontSizes', () => {
         expect(result).toEqual([
             { slug: 'small', name: 'Small', size: '0.875rem' },
             { slug: 'large', name: 'large', size: '1.5rem' },
+        ]);
+    });
+
+    it('dedupes by slug to prevent React duplicate-key warnings in FontSizePicker (#547)', () => {
+        const settings = {
+            typography: {
+                fontSizes: [
+                    { slug: 'small', name: 'Small', size: '0.875rem' },
+                    { slug: 'large', name: 'Large', size: '1.25rem' },
+                    { slug: 'small', name: 'Small Dupe', size: '0.75rem' },
+                    { slug: 'large', name: 'Large Dupe', size: '1.5rem' },
+                ],
+            },
+        };
+
+        expect(extractThemeFontSizes(settings)).toEqual([
+            { slug: 'small', name: 'Small', size: '0.875rem' },
+            { slug: 'large', name: 'Large', size: '1.25rem' },
         ]);
     });
 });
@@ -150,6 +184,38 @@ describe('extractThemeSpacingSizes', () => {
             { slug: '20', name: 'Tight', size: '0.5rem' },
             { slug: '40', name: '40', size: '1.5rem' },
         ]);
+    });
+});
+
+describe('editorSettings typography origins (#547)', () => {
+    /*
+     * Regression guard: Gutenberg's `TypographyPanel.getMergedFontSizes`
+     * concatenates `[...custom, ...theme, ...default]`. If our defaults
+     * sit under `custom` while the themed-settings hook adds a host
+     * theme under `theme`, slug overlaps produce duplicate React keys
+     * in `FontSizePickerSelect`. Defaults must ship under `theme`
+     * (with `custom: []`) so the hook's `theme:` override replaces
+     * them cleanly instead of stacking.
+     */
+    const features = editorSettings.__experimentalFeatures as {
+        typography?: {
+            fontSizes?: { theme?: unknown; custom?: unknown };
+            fontFamilies?: { theme?: unknown; custom?: unknown };
+        };
+    };
+
+    it('ships fontSizes under the theme origin with an empty custom array', () => {
+        const fontSizes = features.typography?.fontSizes;
+        expect(Array.isArray(fontSizes?.theme)).toBe(true);
+        expect((fontSizes?.theme as unknown[]).length).toBeGreaterThan(0);
+        expect(fontSizes?.custom).toEqual([]);
+    });
+
+    it('ships fontFamilies under the theme origin with an empty custom array', () => {
+        const fontFamilies = features.typography?.fontFamilies;
+        expect(Array.isArray(fontFamilies?.theme)).toBe(true);
+        expect((fontFamilies?.theme as unknown[]).length).toBeGreaterThan(0);
+        expect(fontFamilies?.custom).toEqual([]);
     });
 });
 
