@@ -219,7 +219,7 @@ class MenuController extends Controller
 	 *   - Array `{ raw?, blocks? }` → `blocks` wins when both are
 	 *     set (lossless); `raw` is parsed otherwise
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */

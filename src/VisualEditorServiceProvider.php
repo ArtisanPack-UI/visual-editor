@@ -449,7 +449,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 * inserter knows about it and the registry can hand attributes to
 	 * the FormBlock's render() at publish time.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	protected function registerFormBlock(): void
 	{
@@ -611,7 +611,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 * This method ensures that the user's settings in `config/artisanpack.php`
 	 * take precedence over the package's default values.
 	 *
-	 * @since 2.0.0
+	 * @since 1.0.0
 	 * @return void
 	 */
 	protected function mergeConfiguration(): void

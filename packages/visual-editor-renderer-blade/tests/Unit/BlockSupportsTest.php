@@ -7,7 +7,7 @@
  * Gutenberg serializes into `block_content` JSON — captured from the
  * jmwd-default seed and from the WP block.json reference.
  *
- * @since 1.1.0
+ * @since 1.0.0
  */
 
 declare( strict_types=1 );

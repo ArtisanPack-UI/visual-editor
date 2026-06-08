@@ -121,7 +121,7 @@ class MenuItemBlockBridge
 	 * Gutenberg's nav block that there are no items, the same way an
 	 * empty menu would.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<int, mixed>  $blocks
 	 */
@@ -160,7 +160,7 @@ class MenuItemBlockBridge
 	 * Lets a recursive structure (submenu containing submenu containing
 	 * link) come back out the way it went in without juggling indices.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
@@ -178,7 +178,7 @@ class MenuItemBlockBridge
 	 * name (with `core/` prefix re-added) and, for openers, the
 	 * decoded attributes array.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
@@ -254,7 +254,7 @@ class MenuItemBlockBridge
 	 * Recursive tree builder. Consumes tokens until it hits a `close`
 	 * (which the caller is responsible for skipping) or runs out.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $tokens
 	 *
@@ -331,7 +331,7 @@ class MenuItemBlockBridge
 	 * truncated markup) or mismatched name (let the parent frame handle
 	 * its own close).
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $tokens
 	 */
@@ -351,7 +351,7 @@ class MenuItemBlockBridge
 	 * Drops unknown block names so a malformed input doesn't slip an
 	 * unsupported block type through the serializer.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  mixed  $block
 	 */
@@ -407,7 +407,7 @@ class MenuItemBlockBridge
 	 *
 	 * Reference: WP core `wp-includes/blocks.php :: serialize_block_attributes()`.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 */

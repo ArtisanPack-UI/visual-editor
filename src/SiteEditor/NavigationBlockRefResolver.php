@@ -27,7 +27,7 @@
  *
  * @author     Jacob Martella <me@jacobmartella.com>
  *
- * @since      1.1.0
+ * @since      1.0.0
  */
 
 declare( strict_types=1 );
@@ -70,7 +70,7 @@ class NavigationBlockRefResolver
 	 * gives us tree sharing where nothing changed), so the projection
 	 * is cheap for trees that don't contain nav blocks.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<int, mixed>  $blocks
 	 * @param  string             $theme  Active theme slug; pinned per
@@ -142,7 +142,7 @@ class NavigationBlockRefResolver
 	 * at the same menu only fetches once. Returns an empty array
 	 * when cms-framework isn't installed or the menu isn't found.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
@@ -202,7 +202,7 @@ class NavigationBlockRefResolver
 	 * receive and the entire tree fails to mount silently (no
 	 * console error, just an empty canvas). Keystone #48.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $blocks
 	 *
@@ -284,7 +284,7 @@ class NavigationBlockRefResolver
 	 * unassigned, when cms-framework isn't installed, or when the
 	 * model's container binding hasn't been registered.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	protected function lookupMenuIdForLocation( string $theme, string $location ): ?int
 	{

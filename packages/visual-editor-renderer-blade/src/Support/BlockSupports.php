@@ -40,7 +40,7 @@
  *
  * @author     Jacob Martella <me@jacobmartella.com>
  *
- * @since      1.1.0
+ * @since      1.0.0
  */
 
 declare( strict_types=1 );
@@ -92,7 +92,7 @@ class BlockSupports
 	 * triple every Blade partial merges with its own block-specific
 	 * classes.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $attributes  Raw block attributes from
 	 *                                            the persisted block tree.
@@ -741,7 +741,7 @@ class BlockSupports
 	 * block partial can declare its own `wp-block-{name}` / layout class
 	 * list without the compiler knowing about them.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>    $baseClasses
@@ -780,7 +780,7 @@ class BlockSupports
 	 * emits both and lets the consuming stylesheet pick the
 	 * semantically relevant one based on block type.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$classes
@@ -808,7 +808,7 @@ class BlockSupports
 	 * allowed alongside left/center/right (matches WP's attribute
 	 * enum).
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$classes
@@ -839,7 +839,7 @@ class BlockSupports
 	 * is added so theme stylesheets can target the parent without
 	 * caring whether the value came from a slug or a custom picker.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$classes
@@ -891,7 +891,7 @@ class BlockSupports
 	 * `blockGap` (string or per-axis object → `--wp--style--block-gap`
 	 * custom property).
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$style
@@ -931,7 +931,7 @@ class BlockSupports
 	 * single-string value (all four sides) or a per-side associative
 	 * array.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<int, string>  &$style
 	 */
@@ -968,7 +968,7 @@ class BlockSupports
 	 * `style.border.width = "2px"`) actually renders the border —
 	 * matching WP core which adds the same fallback when serializing.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$classes
@@ -1090,7 +1090,7 @@ class BlockSupports
 	 * style, line height, letter spacing, text transform, and text
 	 * decoration.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$classes
@@ -1159,7 +1159,7 @@ class BlockSupports
 	 * whitespace-separated token is added as its own class so the
 	 * deduplication pass {@see compile} runs covers them.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 * @param  array<int, string>   &$classes
@@ -1190,7 +1190,7 @@ class BlockSupports
 	 * is on the editor not to write bad values, but cheap to enforce
 	 * at the boundary.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $attributes
 	 */
@@ -1212,7 +1212,7 @@ class BlockSupports
 	 * a real CSS `var(--wp--preset--{taxonomy}--{slug})` reference. A
 	 * non-preset value passes through untouched.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	protected static function expandPresetReference( string $value ): string
 	{
@@ -1231,7 +1231,7 @@ class BlockSupports
 	 * arrays, and non-scalar types collapse to `''` so callers can
 	 * treat the result as "value is unset".
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	protected static function stringAttr( mixed $value ): string
 	{
@@ -1251,7 +1251,7 @@ class BlockSupports
 	 * `Primary Accent` lands as `primary-accent` in the class list.
 	 * Mirrors WP core's behavior for class generation.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	protected static function slugify( string $value ): string
 	{
@@ -1267,7 +1267,7 @@ class BlockSupports
 	 * names. Single-pass regex; no need to handle leading caps because
 	 * the input is always a fixed enum.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	protected static function kebabCase( string $value ): string
 	{
@@ -1282,7 +1282,7 @@ class BlockSupports
 	 * stomping a user-supplied `border-style` with the automatic
 	 * `solid` fallback.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<int, string>  $style
 	 */

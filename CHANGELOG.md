@@ -6,6 +6,16 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.0.0] — 2026-06-08
+
+First stable release of the V1 surface. Promotes `1.0.0-beta1` to GA
+with the additions and fixes listed below. The post editor, site
+editor, `artisanpack/*` block fork, and first-class
+`artisanpack-ui/cms-framework` pairing — all introduced across
+`1.0.0-alpha.1` and `1.0.0-beta1` — are now considered stable. See the
+[README](README.md) and the [`docs/`](docs/) directory for the full V1
+surface.
+
 ### Added
 
 - **Laravel 13 support.** `illuminate/support` constraint updated to
@@ -21,6 +31,16 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 - **Paragraph block-gap spacing.** Paragraph blocks now correctly
   inherit `is-layout-flow` block-gap spacing in the rendered output
   (#540).
+- **`artisanpack/post-title` editable inline.** The post-title block
+  now edits the live entity directly instead of getting stuck on its
+  initial value (#546).
+- **FontSizePicker duplicate-key warnings.** Font-size presets are
+  now deduplicated before being handed to `FontSizePicker`, silencing
+  the React duplicate-key warning that surfaced under certain
+  theme.json configurations (#547).
+- **`tsc --noEmit` errors in the core-data shim.** Resolved the
+  TypeScript errors surfaced by `tsc --noEmit` in the core-data shim
+  and its tests (#543).
 
 ## [1.0.0-beta1] — V1 beta release
 

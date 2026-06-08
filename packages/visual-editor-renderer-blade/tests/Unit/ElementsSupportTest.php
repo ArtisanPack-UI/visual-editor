@@ -6,7 +6,7 @@
  * color picker (Keystone #56) — preset slug, custom hex, pseudo-state
  * nesting, and absence-of-style no-ops.
  *
- * @since 1.1.0
+ * @since 1.0.0
  */
 
 declare( strict_types=1 );

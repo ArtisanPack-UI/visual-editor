@@ -225,7 +225,7 @@ export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Elemen
  * the helper testable and gives standalone installs a deterministic
  * URL even before the entity registry warms up.
  *
- * @since 1.1.0
+ * @since 1.0.0
  */
 function resolveNavigationId(
     postId: number | string,
