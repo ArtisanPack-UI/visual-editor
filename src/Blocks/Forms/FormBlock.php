@@ -8,7 +8,7 @@
  *
  * @author     Jacob Martella <me@jacobmartella.com>
  *
- * @since      1.1.0
+ * @since      1.0.0
  */
 
 declare( strict_types=1 );
@@ -157,7 +157,7 @@ class FormBlock extends DynamicBlock
 	 * positive-only guard keeps `0` / negatives funneling into the
 	 * "select a form" placeholder branch in {@see render()}.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	protected function normalizeFormId( mixed $value ): int
 	{

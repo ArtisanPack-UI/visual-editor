@@ -10,6 +10,25 @@ import { render } from '@testing-library/react';
 
 vi.mock('@wordpress/block-editor', () => ({
     useBlockProps: () => ({ className: 'fallback-wrapper' }),
+    // Minimal PlainText stub; the query-preview tests never reach the
+    // editable post-title path, but the import has to resolve when the
+    // edit module loads.
+    PlainText: ({
+        value,
+        onChange,
+        placeholder,
+    }: {
+        value: string;
+        onChange: (next: string) => void;
+        placeholder?: string;
+    }) => (
+        <textarea
+            aria-label="Post title"
+            value={value}
+            placeholder={placeholder}
+            onChange={(event) => onChange(event.target.value)}
+        />
+    ),
 }));
 
 import { createEntityPlaceholderEdit } from '../entity-placeholder-edit';

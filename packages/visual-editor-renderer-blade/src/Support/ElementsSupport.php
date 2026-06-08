@@ -26,7 +26,7 @@
  *
  * @author     Jacob Martella <me@jacobmartella.com>
  *
- * @since      1.1.0
+ * @since      1.0.0
  */
 
 declare( strict_types=1 );
@@ -61,7 +61,7 @@ class ElementsSupport
 	 * Compile a block's `style.elements.*` tree into a per-block scoping
 	 * class plus the inline `<style>` rules scoped under that class.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $attributes  Raw block attributes from the
 	 *                                            persisted block tree.
@@ -162,7 +162,7 @@ class ElementsSupport
 	 * picker actually wins on the front-end. Without it, a theme that
 	 * sets a hard-coded link color would silently swallow the choice.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<string, mixed>  $node  A single element node (or
 	 *                                      pseudo-state nested node).
@@ -209,7 +209,7 @@ class ElementsSupport
 	 * Anything outside those shapes drops to `''` so the caller skips
 	 * the declaration entirely.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	protected static function sanitizeColorValue( string $value ): string
 	{
@@ -254,7 +254,7 @@ class ElementsSupport
 	 * across class boundaries — both compilers are entry points used
 	 * independently and the helper is a couple of lines.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	protected static function expandPresetReference( string $value ): string
 	{
@@ -272,7 +272,7 @@ class ElementsSupport
 	 * Coerce an arbitrary attribute value to a trimmed string. Mirrors
 	 * the behavior of {@see BlockSupports::stringAttr}.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	protected static function stringAttr( mixed $value ): string
 	{
@@ -291,7 +291,7 @@ class ElementsSupport
 	 * Convert `camelCase` → `kebab-case` for preset taxonomy / slug
 	 * segments. Mirrors {@see BlockSupports::kebabCase}.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	protected static function kebabCase( string $value ): string
 	{

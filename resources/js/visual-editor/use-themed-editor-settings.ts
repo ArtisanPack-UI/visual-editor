@@ -81,6 +81,7 @@ export function extractThemePalette(
     }
 
     const out: PaletteEntry[] = [];
+    const seen = new Set<string>();
 
     for (const entry of palette) {
         if (entry === null || typeof entry !== 'object') {
@@ -93,6 +94,11 @@ export function extractThemePalette(
         if (typeof slug !== 'string' || slug === '' || typeof color !== 'string') {
             continue;
         }
+
+        if (seen.has(slug)) {
+            continue;
+        }
+        seen.add(slug);
 
         const name = (entry as { name?: unknown }).name;
 
@@ -116,6 +122,7 @@ export function extractThemeFontSizes(
     }
 
     const out: FontSizeEntry[] = [];
+    const seen = new Set<string>();
 
     for (const entry of sizes) {
         if (entry === null || typeof entry !== 'object') {
@@ -128,6 +135,11 @@ export function extractThemeFontSizes(
         if (typeof slug !== 'string' || slug === '' || typeof size !== 'string') {
             continue;
         }
+
+        if (seen.has(slug)) {
+            continue;
+        }
+        seen.add(slug);
 
         const name = (entry as { name?: unknown }).name;
 
@@ -151,6 +163,7 @@ export function extractThemeFontFamilies(
     }
 
     const out: FontFamilyEntry[] = [];
+    const seen = new Set<string>();
 
     for (const entry of families) {
         if (entry === null || typeof entry !== 'object') {
@@ -163,6 +176,11 @@ export function extractThemeFontFamilies(
         if (typeof slug !== 'string' || slug === '' || typeof fontFamily !== 'string') {
             continue;
         }
+
+        if (seen.has(slug)) {
+            continue;
+        }
+        seen.add(slug);
 
         const name = (entry as { name?: unknown }).name;
 
@@ -186,6 +204,7 @@ export function extractThemeSpacingSizes(
     }
 
     const out: SpacingSizeEntry[] = [];
+    const seen = new Set<string>();
 
     for (const entry of sizes) {
         if (entry === null || typeof entry !== 'object') {
@@ -198,6 +217,11 @@ export function extractThemeSpacingSizes(
         if (typeof slug !== 'string' || slug === '' || typeof size !== 'string') {
             continue;
         }
+
+        if (seen.has(slug)) {
+            continue;
+        }
+        seen.add(slug);
 
         const name = (entry as { name?: unknown }).name;
 
@@ -221,6 +245,7 @@ export function extractThemeGradients(
     }
 
     const out: GradientEntry[] = [];
+    const seen = new Set<string>();
 
     for (const entry of gradients) {
         if (entry === null || typeof entry !== 'object') {
@@ -233,6 +258,11 @@ export function extractThemeGradients(
         if (typeof slug !== 'string' || slug === '' || typeof gradient !== 'string') {
             continue;
         }
+
+        if (seen.has(slug)) {
+            continue;
+        }
+        seen.add(slug);
 
         const name = (entry as { name?: unknown }).name;
 

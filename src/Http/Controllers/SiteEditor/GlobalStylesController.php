@@ -184,7 +184,7 @@ class GlobalStylesController extends Controller
 	 * installed; the canvas treats that the same as "no theme styles"
 	 * and falls back to the package's `DEFAULT_CANVAS_STYLES`.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	public function css(): Response
 	{
@@ -213,7 +213,7 @@ class GlobalStylesController extends Controller
 	 * themes directory (path-traversal guard — the theme slug rides in
 	 * from the DB / `theme.json`, but cheap to verify).
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	protected function readThemeStylesheet(): string
 	{

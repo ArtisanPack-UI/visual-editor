@@ -4,6 +4,44 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+## [1.0.0] — 2026-06-08
+
+First stable release of the V1 surface. Promotes `1.0.0-beta1` to GA
+with the additions and fixes listed below. The post editor, site
+editor, `artisanpack/*` block fork, and first-class
+`artisanpack-ui/cms-framework` pairing — all introduced across
+`1.0.0-alpha.1` and `1.0.0-beta1` — are now considered stable. See the
+[README](README.md) and the [`docs/`](docs/) directory for the full V1
+surface.
+
+### Added
+
+- **Laravel 13 support.** `illuminate/support` constraint updated to
+  `^11.0|^12.0|^13.0` (Laravel 5.3–10 are no longer supported — the
+  previous `>=5.3` floor was effectively dead code, since `orchestra/
+  testbench` already pinned us to Laravel 11+). Laravel 13 requires
+  PHP 8.3+, which is enforced transitively through L13's own `php`
+  constraint; the package PHP floor (`^8.2`) is unchanged for users
+  staying on Laravel 11/12.
+
+### Fixed
+
+- **Paragraph block-gap spacing.** Paragraph blocks now correctly
+  inherit `is-layout-flow` block-gap spacing in the rendered output
+  (#540).
+- **`artisanpack/post-title` editable inline.** The post-title block
+  now edits the live entity directly instead of getting stuck on its
+  initial value (#546).
+- **FontSizePicker duplicate-key warnings.** Font-size presets are
+  now deduplicated before being handed to `FontSizePicker`, silencing
+  the React duplicate-key warning that surfaced under certain
+  theme.json configurations (#547).
+- **`tsc --noEmit` errors in the core-data shim.** Resolved the
+  TypeScript errors surfaced by `tsc --noEmit` in the core-data shim
+  and its tests (#542).
+
 ## [1.0.0-beta1] — V1 beta release
 
 First public beta of the V1 surface. Ships the post editor, the site

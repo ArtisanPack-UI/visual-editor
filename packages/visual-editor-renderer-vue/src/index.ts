@@ -19,6 +19,7 @@ export { DynamicBlock } from './DynamicBlock';
 export type { DynamicBlockProps } from './DynamicBlock';
 export { GlobalStyles } from './GlobalStyles';
 export type { GlobalStylesProps } from './GlobalStyles';
+export { LayoutBaseline } from './LayoutBaseline';
 export { UnknownBlock } from './blocks/unknownBlock';
 export {
     getBlockRenderer,

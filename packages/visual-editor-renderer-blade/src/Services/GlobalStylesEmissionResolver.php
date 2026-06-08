@@ -20,7 +20,7 @@
  *
  * @author     Jacob Martella <me@jacobmartella.com>
  *
- * @since      1.1.0
+ * @since      1.0.0
  */
 
 declare( strict_types=1 );
@@ -43,7 +43,7 @@ class GlobalStylesEmissionResolver
 	 * resolves to an empty document — no active theme, no global-styles
 	 * record).
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	public function emit(): string
 	{

@@ -8,10 +8,40 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
+import { select } from '@wordpress/data';
 
 vi.mock('@wordpress/block-editor', () => ({
     useBlockProps: () => ({ className: 'fallback-wrapper' }),
+    // Minimal PlainText stub: renders a controlled textarea so the
+    // editable post-title path can be asserted with RTL queries.
+    PlainText: ({
+        value,
+        onChange,
+        placeholder,
+        tagName: _tagName,
+        __experimentalVersion: _version,
+        ...rest
+    }: {
+        value: string;
+        onChange: (next: string) => void;
+        placeholder?: string;
+        tagName?: string;
+        __experimentalVersion?: number;
+        [key: string]: unknown;
+    }) => {
+        const className =
+            typeof rest.className === 'string' ? rest.className : undefined;
+        return (
+            <textarea
+                aria-label="Post title"
+                value={value}
+                placeholder={placeholder}
+                className={className}
+                onChange={(event) => onChange(event.target.value)}
+            />
+        );
+    },
 }));
 
 import {
@@ -98,17 +128,18 @@ function seedSiteEntity(record: Record<string, unknown>): void {
 }
 
 describe('post-* live entity preview (#481)', () => {
-    it('post-title reads the live page entity title when block context provides postId/postType', () => {
+    it('post-title renders an editable input bound to the live page entity title', () => {
         seedPostEntity('page', 42, { title: 'About us' });
 
-        const { getByText, queryByText } = render(
+        const { getByDisplayValue, queryByText } = render(
             <PostTitleEdit
                 attributes={{}}
                 context={{ postId: 42, postType: 'page' }}
             />
         );
 
-        expect(getByText('About us')).not.toBeNull();
+        // Editable PlainText surfaces the loaded title as its value (#546).
+        expect(getByDisplayValue('About us')).not.toBeNull();
         // The placeholder label must not appear when the entity resolves.
         expect(queryByText('Post Title')).toBeNull();
     });
@@ -118,7 +149,7 @@ describe('post-* live entity preview (#481)', () => {
             title: { raw: 'Raw title', rendered: 'Rendered title' },
         });
 
-        const { getByText } = render(
+        const { getByDisplayValue } = render(
             <PostTitleEdit
                 attributes={{}}
                 context={{ postId: 42, postType: 'page' }}
@@ -126,7 +157,7 @@ describe('post-* live entity preview (#481)', () => {
         );
 
         // `readEntityString` prefers the `raw` form.
-        expect(getByText('Raw title')).not.toBeNull();
+        expect(getByDisplayValue('Raw title')).not.toBeNull();
     });
 
     it('post-excerpt reads the live entity excerpt', () => {
@@ -276,14 +307,71 @@ describe('post-* live entity preview (#481)', () => {
     it('accepts a numeric-string `postId` from block context', () => {
         seedPostEntity('page', 42, { title: 'About us' });
 
-        const { getByText } = render(
+        const { getByDisplayValue } = render(
             <PostTitleEdit
                 attributes={{}}
                 context={{ postId: '42', postType: 'page' }}
             />
         );
 
-        expect(getByText('About us')).not.toBeNull();
+        expect(getByDisplayValue('About us')).not.toBeNull();
+    });
+
+    it('post-title typing updates the displayed value and stages an entity edit (#546)', () => {
+        seedPostEntity('post', 1, { title: 'Hello' });
+
+        const { getByDisplayValue } = render(
+            <PostTitleEdit
+                attributes={{}}
+                context={{ postId: 1, postType: 'post' }}
+            />
+        );
+
+        const textarea = getByDisplayValue('Hello') as HTMLTextAreaElement;
+
+        act(() => {
+            fireEvent.change(textarea, { target: { value: 'Hello, world' } });
+        });
+
+        // The mounted consumer must reflect the new value on re-render
+        // — this is the regression #546 addresses.
+        expect(
+            (getByDisplayValue('Hello, world') as HTMLTextAreaElement).value
+        ).toBe('Hello, world');
+
+        // And the typed value must round-trip through `editEntityRecord`
+        // so the metadata-save loop picks it up.
+        const coreStore = select('core') as {
+            getEntityRecordEdits: (
+                kind: string,
+                name: string,
+                id: number
+            ) => Record<string, unknown> | null;
+        };
+        expect(coreStore.getEntityRecordEdits('postType', 'post', 1)).toEqual({
+            title: 'Hello, world',
+        });
+    });
+
+    it('renders a readonly preview (not editable) when the block is inside a query loop (#546)', () => {
+        seedPostEntity('page', 42, { title: 'About us' });
+
+        const { container } = render(
+            <PostTitleEdit
+                attributes={{}}
+                context={{
+                    postId: 42,
+                    postType: 'page',
+                    queryId: 3,
+                    [previewKey]: { id: 99, title: 'Query preview title' },
+                }}
+            />
+        );
+
+        // Query-loop preview wins over the editable live-entity path and
+        // renders as a non-editable element.
+        expect(container.querySelector('textarea')).toBeNull();
+        expect(container.textContent).toContain('Query preview title');
     });
 });
 

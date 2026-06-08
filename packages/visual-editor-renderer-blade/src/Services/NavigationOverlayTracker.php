@@ -27,7 +27,7 @@
  *
  * @author     Jacob Martella <me@jacobmartella.com>
  *
- * @since      1.1.0
+ * @since      1.0.0
  */
 
 declare( strict_types=1 );
@@ -45,7 +45,7 @@ class NavigationOverlayTracker
 	 * `modal-nav-{n}` convention so the editor canvas and front-end
 	 * resolve identical selectors.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	public function nextOverlayId(): string
 	{
@@ -68,7 +68,7 @@ class NavigationOverlayTracker
 	 * Resets both the counter and the script-emitted flag. Used by
 	 * tests that exercise multiple renders inside a single process.
 	 *
-	 * @since 1.1.0
+	 * @since 1.0.0
 	 */
 	public function reset(): void
 	{

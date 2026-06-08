@@ -35,7 +35,7 @@
  *
  * @author     Jacob Martella <me@jacobmartella.com>
  *
- * @since      2.0.0
+ * @since      1.0.0
  */
 
 declare( strict_types=1 );
@@ -55,7 +55,7 @@ class CommentInliner
 	 * `artisanpack/comments` block carrying expanded
 	 * `artisanpack/comment-template` instances under `innerBlocks`.
 	 *
-	 * @since 2.0.0
+	 * @since 1.0.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $tree
 	 * @param  object|null                       $post  Post in scope (provides the `comments` relation).
