@@ -1765,6 +1765,10 @@ const actions = {
 
             const edited = select.getEditedEntityRecord(kind, name, id);
 
+            if (edited === null) {
+                return null;
+            }
+
             const config = select.getEntityConfig(kind, name);
             const payload: EntityRecord = config
                 ? { ...edited, [config.key]: id }
@@ -1986,11 +1990,8 @@ export function useEntityProp<T = unknown>(
     const ambientId = useEntityId();
     const resolvedId = id !== undefined && id !== null ? id : ambientId;
 
-    const { editedValue, fullValue } = useSelect<{
-        editedValue: T | undefined;
-        fullValue: T | undefined;
-    }>(
-        (select) => {
+    const { editedValue, fullValue } = useSelect(
+        (select: <S>(store: S) => unknown) => {
             if (
                 kind === undefined ||
                 name === undefined ||
