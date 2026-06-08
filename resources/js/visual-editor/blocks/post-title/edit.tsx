@@ -129,6 +129,7 @@ export default function PostTitleEdit( props: AnyProps ): ReactElement {
     const identity = readPostEntityIdentity( context );
     const inQueryLoop = isInQueryLoop( context );
     const TagName = tagNameForLevel( attributes.level );
+    const hasLiveEntity = identity !== null && ! inQueryLoop;
 
     // Hooks must fire unconditionally. The shim returns `[undefined,
     // noop, undefined]` when any of the args are missing, so the
@@ -136,10 +137,10 @@ export default function PostTitleEdit( props: AnyProps ): ReactElement {
     const [ editedTitle, setTitle ] = useEntityProp<
         string | { raw?: string; rendered?: string }
     >(
-        identity !== null && ! inQueryLoop ? 'postType' : undefined,
-        identity !== null && ! inQueryLoop ? identity.postType : undefined,
-        identity !== null && ! inQueryLoop ? 'title' : undefined,
-        identity !== null && ! inQueryLoop ? identity.postId : null,
+        hasLiveEntity ? 'postType' : undefined,
+        hasLiveEntity ? identity.postType : undefined,
+        hasLiveEntity ? 'title' : undefined,
+        hasLiveEntity ? identity.postId : null,
     );
 
     // 1. Stamped `_resolvedTitle` — server-rendered preview.
@@ -155,7 +156,7 @@ export default function PostTitleEdit( props: AnyProps ): ReactElement {
     }
 
     // 3. Live entity, not in a query loop — editable inline.
-    if ( identity !== null && ! inQueryLoop ) {
+    if ( hasLiveEntity ) {
         const titleText = readEntityString( editedTitle );
 
         // Render the editable PlainText once the entity has resolved
@@ -166,6 +167,15 @@ export default function PostTitleEdit( props: AnyProps ): ReactElement {
         // placeholder. The placeholder branch (4) therefore only fires
         // while the resolver is still in flight.
         if ( titleText !== '' || editedTitle !== undefined ) {
+            // `tagName` and `__experimentalVersion={2}` are supported by
+            // `PlainText` at runtime in `@wordpress/block-editor` >= 14
+            // (the version pinned by this release — see
+            // `docs/release-notes-inputs-1.0.0.md`), but
+            // `@types/wordpress__block-editor` doesn't expose them yet,
+            // hence the `as never` cast. We intentionally use
+            // `PlainText` over `RichText` so the heading stays
+            // plain-text only — inline formatting on a `core/post-title`
+            // would diverge from the rendered output.
             return (
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 <PlainText

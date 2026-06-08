@@ -27,11 +27,8 @@ export const LayoutBaseline = defineComponent({
         return (): VNode =>
             h(
                 'style',
-                {
-                    'data-ve-layout-baseline': '',
-                    innerHTML: LAYOUT_BASELINE_CSS,
-                },
-                []
+                { 'data-ve-layout-baseline': '' },
+                LAYOUT_BASELINE_CSS
             );
     },
 });

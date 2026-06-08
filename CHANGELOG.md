@@ -40,7 +40,7 @@ surface.
   theme.json configurations (#547).
 - **`tsc --noEmit` errors in the core-data shim.** Resolved the
   TypeScript errors surfaced by `tsc --noEmit` in the core-data shim
-  and its tests (#543).
+  and its tests (#542).
 
 ## [1.0.0-beta1] — V1 beta release
 
