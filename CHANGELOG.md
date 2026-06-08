@@ -8,10 +8,13 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
-- **Laravel 13 support.** `illuminate/support` constraint widened to
-  `^11.0|^12.0|^13.0`. Laravel 13 requires PHP 8.3+, which is enforced
-  transitively through L13's own `php` constraint; the package PHP
-  floor (`^8.2`) is unchanged for users staying on Laravel 11/12.
+- **Laravel 13 support.** `illuminate/support` constraint updated to
+  `^11.0|^12.0|^13.0` (Laravel 5.3–10 are no longer supported — the
+  previous `>=5.3` floor was effectively dead code, since `orchestra/
+  testbench` already pinned us to Laravel 11+). Laravel 13 requires
+  PHP 8.3+, which is enforced transitively through L13's own `php`
+  constraint; the package PHP floor (`^8.2`) is unchanged for users
+  staying on Laravel 11/12.
 
 ## [1.0.0-beta1] — V1 beta release
 
