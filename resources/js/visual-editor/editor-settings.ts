@@ -379,8 +379,17 @@ export const editorSettings = {
             textAlign: true,
             textDecoration: true,
             textTransform: true,
-            fontSizes: { custom: DEFAULT_FONT_SIZES },
-            fontFamilies: { custom: DEFAULT_FONT_FAMILIES },
+            // Mirror the palette/spacingSizes pattern below: ship presets
+            // under the `theme` origin (not `custom`) so that when the
+            // themed-editor-settings hook overrides with a host theme's
+            // `theme:` array, the two don't stack. Gutenberg's
+            // `TypographyPanel.getMergedFontSizes` concatenates
+            // `[...custom, ...theme, ...default]` — keeping defaults under
+            // `custom` while the hook adds `theme:` produced duplicate
+            // React keys (e.g. `small`, `large`) in `FontSizePickerSelect`
+            // when slug sets overlapped (#547).
+            fontSizes: { theme: DEFAULT_FONT_SIZES, custom: [] },
+            fontFamilies: { theme: DEFAULT_FONT_FAMILIES, custom: [] },
         },
         spacing: {
             // Padding, margin, blockGap → the Dimensions panel on
