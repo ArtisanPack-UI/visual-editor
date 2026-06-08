@@ -258,6 +258,31 @@ describe( 'styles.* CSS rule emission', function (): void {
 			->toContain( 'padding: var(--wp--preset--spacing--40);' );
 	} );
 
+	it( 'emits per-block --wp--style--block-gap overrides that cascade to flow children', function (): void {
+		// Issue #539 — verify that a block-level spacing.blockGap is
+		// emitted as a per-container custom-property override, so the
+		// renderer-static `:where(.is-layout-flow) > * + *` rule
+		// (emitted by `<x-ve-blocks-styles />`) picks it up via the
+		// `var(--wp--style--block-gap, …)` reference and produces the
+		// correct sibling spacing inside that block.
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'styles' => [
+				'spacing' => [ 'blockGap' => '2em' ],
+				'blocks'  => [
+					'artisanpack/group' => [
+						'spacing' => [ 'blockGap' => '3rem' ],
+					],
+				],
+			],
+		] );
+
+		expect( $css )
+			->toContain( 'body {' )
+			->toContain( '--wp--style--block-gap: 2em;' )
+			->toContain( '.wp-block-artisanpack-group {' )
+			->toContain( '--wp--style--block-gap: 3rem;' );
+	} );
+
 	it( 'descends into styles.blocks[X].elements with a descendant selector', function (): void {
 		$css = ( new ThemeJsonTokensCompiler() )->compile( [
 			'styles' => [

@@ -98,6 +98,21 @@ it( 'silently skips theme.json entries missing slug or value', function () {
 		->not->toContain( 'missing-value' );
 } );
 
+it( 'emits the layout-flow block-gap baseline rule for sibling spacing', function () {
+	// Issue #539 — paragraphs (and any flow-layout children) had no
+	// vertical spacing because the canonical
+	// `:where(.is-layout-flow) > * + * { margin-block-start:
+	// var(--wp--style--block-gap, …) }` rule was not emitted anywhere.
+	// Assert the rule is present in the renderer-static baseline.
+	$rendered = Blade::render( '<x-ve-blocks-styles />' );
+
+	expect( $rendered )
+		->toContain( 'data-ve-layout-baseline' )
+		->toContain( ':where(.is-layout-flow) > * + *' )
+		->toContain( ':where(.is-layout-constrained) > * + *' )
+		->toContain( 'margin-block-start: var(--wp--style--block-gap, 24px)' );
+} );
+
 it( 'publishes block-library assets under the visual-editor-renderer-blade-assets tag', function () {
 	$artisan = $this->artisan( 'vendor:publish', [
 		'--tag'   => 'visual-editor-renderer-blade-assets',
