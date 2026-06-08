@@ -1534,6 +1534,42 @@ describe('core-data-shim hooks', () => {
         ).toEqual({ title: 'Updated Title' });
     });
 
+    it('useEntityProp setter causes the same mounted consumer to re-render with the edited value', () => {
+        // Mirrors how `core/post-title`'s Edit consumes the hook: mount
+        // once, type a character, expect the displayed value to update
+        // on the next render via the `useSelect` subscription — without
+        // re-mounting the component (#546).
+        coreDispatch().receiveEntityRecords('postType', 'post', [
+            {
+                id: 1,
+                title: { rendered: 'Hello World', raw: 'Hello World' },
+                status: 'publish',
+                type: 'post',
+            },
+        ]);
+
+        let captured: [unknown, (value: string) => void, unknown] = [
+            undefined,
+            () => undefined,
+            undefined,
+        ];
+
+        function Probe(): null {
+            captured = useEntityProp<string>('postType', 'post', 'title', 1);
+            return null;
+        }
+
+        render(<Probe />);
+
+        expect(captured[0]).toBe('Hello World');
+
+        act(() => {
+            captured[1]('Hello World!');
+        });
+
+        expect(captured[0]).toBe('Hello World!');
+    });
+
     it('useEntityProp re-renders the same consumer when the resolver populates the cache', async () => {
         // The previous renderHook-based test mounted a fresh React tree
         // after the fetch settled. Real consumers (e.g. core/post-title's
