@@ -158,6 +158,13 @@ export default function PostTitleEdit( props: AnyProps ): ReactElement {
     if ( identity !== null && ! inQueryLoop ) {
         const titleText = readEntityString( editedTitle );
 
+        // Render the editable PlainText once the entity has resolved
+        // (`editedTitle !== undefined`) OR once the user has typed
+        // something non-empty. Both halves matter: an empty-but-resolved
+        // title (`title: ''`) still needs an editable surface, and a
+        // typed-then-cleared title must not collapse back to the
+        // placeholder. The placeholder branch (4) therefore only fires
+        // while the resolver is still in flight.
         if ( titleText !== '' || editedTitle !== undefined ) {
             return (
                 // eslint-disable-next-line @typescript-eslint/no-explicit-any
