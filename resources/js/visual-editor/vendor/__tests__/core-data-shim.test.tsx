@@ -507,7 +507,8 @@ describe('core-data-shim fetch → cache', () => {
         // wiped but `hasFinishedResolution` stayed true, so the next
         // read returned the empty wiped cache forever — until the user
         // refreshed the page.
-        const listFetcher = vi.fn(async (url: string) => {
+        const listFetcher = vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+            const url = String(input);
             if (url.includes('per_page=-1')) {
                 return jsonResponse({
                     data: [
@@ -569,7 +570,8 @@ describe('core-data-shim fetch → cache', () => {
 
         configureCoreDataShim({
             apiBase: '/api',
-            fetcher: vi.fn(async (url: string) => {
+            fetcher: vi.fn(async (input: RequestInfo | URL, _init?: RequestInit) => {
+                const url = String(input);
                 if (url.includes('per_page=-1')) {
                     listFetchCount += 1;
 
@@ -1725,9 +1727,10 @@ describe('core-data-shim hooks', () => {
             },
         ]);
 
-        const [blocks] = renderHook(() =>
+        const [rawBlocks] = renderHook(() =>
             useEntityBlockEditor('postType', 'wp_template_part', { id: 1 }),
-        ) as readonly Array<{
+        );
+        const blocks = rawBlocks as ReadonlyArray<{
             name: string;
             clientId: string;
             isValid: true;
@@ -1774,9 +1777,10 @@ describe('core-data-shim hooks', () => {
             },
         ]);
 
-        const [blocks] = renderHook(() =>
+        const [rawBlocks] = renderHook(() =>
             useEntityBlockEditor('postType', 'wp_navigation', { id: 42 }),
-        ) as readonly Array<{
+        );
+        const blocks = rawBlocks as ReadonlyArray<{
             name: string;
             clientId: string;
             attributes: Record<string, unknown>;
