@@ -16,6 +16,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   constraint; the package PHP floor (`^8.2`) is unchanged for users
   staying on Laravel 11/12.
 
+### Fixed
+
+- **Paragraph block-gap spacing.** Paragraph blocks now correctly
+  inherit `is-layout-flow` block-gap spacing in the rendered output
+  (#540).
+
 ## [1.0.0-beta1] — V1 beta release
 
 First public beta of the V1 surface. Ships the post editor, the site
