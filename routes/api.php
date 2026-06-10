@@ -22,6 +22,9 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PostContro
 use ArtisanPackUI\VisualEditor\Http\Controllers\AttachmentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSearchController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSvgController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteController;
@@ -195,6 +198,19 @@ Route::get( 'menu-locations', [ MenuLocationsController::class, 'index' ] )
 // template parts. Read-only.
 Route::get( 'search', [ EntitySearchController::class, 'index' ] )
 	->name( 'visual-editor.api.search.index' );
+
+// Icon Block Phase 4 (#555) — picker search + set-family chips.
+// Both routes are read-only; the catalog is backed by the bundled
+// `index.json` manifest and exposes paginated results so the editor
+// never has to ship the full FA Free term index to the browser.
+Route::get( 'icons/sets', [ IconSetsController::class, 'index' ] )
+	->name( 'visual-editor.api.icons.sets' );
+
+Route::get( 'icons/search', [ IconSearchController::class, 'index' ] )
+	->name( 'visual-editor.api.icons.search' );
+
+Route::get( 'icons/svg', [ IconSvgController::class, 'show' ] )
+	->name( 'visual-editor.api.icons.svg' );
 
 // G3 cms-framework Post + Page entity adapters — see plan 12 §4.4.
 // Both controllers resolve their model through `ResourceResolver`, so

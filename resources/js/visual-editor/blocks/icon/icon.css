@@ -39,6 +39,14 @@
     text-decoration: none;
 }
 
+/* Phase 4 picker grid — make inlined FA SVGs fill the cell and
+   inherit the cell's text color so dark/light themes look right. */
+.wp-block-artisanpack-icon__picker-grid svg {
+    width: 100%;
+    height: 100%;
+    fill: currentcolor;
+}
+
 /* Placeholder shown when neither iconRef nor customSvg is set. */
 .wp-block-artisanpack-icon__placeholder {
     border: 1px dashed currentcolor;

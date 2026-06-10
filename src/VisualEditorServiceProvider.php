@@ -11,6 +11,7 @@ use ArtisanPackUI\VisualEditor\Blocks\Forms\FormBlock;
 use ArtisanPackUI\Icons\Registries\IconSetRegistration;
 use ArtisanPackUI\VisualEditor\Blocks\Icon\IconBlock;
 use ArtisanPackUI\VisualEditor\Services\Icon\FontAwesomeFreeIconSets;
+use ArtisanPackUI\VisualEditor\Services\Icon\IconCatalog;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
 use ArtisanPackUI\VisualEditor\Services\Icon\SvgSanitizer;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
@@ -99,6 +100,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 				return $paths;
 			} );
+		} );
+
+		// Icon Block Phase 4 (#555): the picker's search + sets endpoints
+		// resolve the catalog out of the container so host apps can swap
+		// in a custom manifest (e.g. extending the bundled FA Free set
+		// with their own brand icons) via `$app->extend()`.
+		$this->app->singleton( IconCatalog::class, function (): IconCatalog {
+			return new IconCatalog();
 		} );
 
 		$this->app->singleton( VisualEditor::class, function ( $app ) {
