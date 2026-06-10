@@ -235,12 +235,19 @@ final class IconCatalog
 			return null;
 		}
 
-		$contents = @file_get_contents( $path );
+		$contents = file_get_contents( $path );
 		if ( false === $contents ) {
 			return null;
 		}
 
+		// `json_last_error()` separates a genuine parse failure from a
+		// valid `null` payload; the catalog only accepts the array
+		// shape, so a parse error and a non-array payload both fall
+		// through to `null` here.
 		$decoded = json_decode( $contents, true );
+		if ( JSON_ERROR_NONE !== json_last_error() ) {
+			return null;
+		}
 
 		return is_array( $decoded ) ? $decoded : null;
 	}

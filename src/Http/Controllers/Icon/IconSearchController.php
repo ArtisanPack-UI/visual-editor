@@ -35,10 +35,14 @@ class IconSearchController extends Controller
 
 	public function index( Request $request ): JsonResponse
 	{
-		$query   = (string) $request->query( 'q', '' );
-		$set     = $request->query( 'set' );
-		$page    = max( 1, (int) $request->query( 'page', 1 ) );
-		$perPage = max( 1, (int) $request->query( 'per_page', IconCatalog::DEFAULT_PER_PAGE ) );
+		// Explicit `is_string` guards before string-cast — `?q[]=foo`
+		// would otherwise cast to the literal "Array" and become the
+		// search needle.
+		$rawQuery = $request->query( 'q', '' );
+		$query    = is_string( $rawQuery ) ? $rawQuery : '';
+		$set      = $request->query( 'set' );
+		$page     = max( 1, (int) $request->query( 'page', 1 ) );
+		$perPage  = max( 1, (int) $request->query( 'per_page', IconCatalog::DEFAULT_PER_PAGE ) );
 
 		$result = $this->catalog->search(
 			$query,

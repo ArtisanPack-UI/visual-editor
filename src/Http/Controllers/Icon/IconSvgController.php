@@ -35,8 +35,14 @@ class IconSvgController extends Controller
 
 	public function show( Request $request ): JsonResponse
 	{
-		$set  = (string) $request->query( 'set', '' );
-		$name = (string) $request->query( 'name', '' );
+		// Explicit `is_string` guards before string-cast so array-style
+		// query params (`?set[]=fas`) don't pass through as the literal
+		// "Array" — the resolver would reject them anyway via its set/
+		// name allowlist, but guarding here keeps the 400 path clean.
+		$rawSet  = $request->query( 'set', '' );
+		$rawName = $request->query( 'name', '' );
+		$set     = is_string( $rawSet ) ? $rawSet : '';
+		$name    = is_string( $rawName ) ? $rawName : '';
 
 		if ( '' === $set || '' === $name ) {
 			return response()->json( [ 'svg' => null ], 400 );
