@@ -43,6 +43,25 @@ it( 'returns null when no sets are registered at all', function () {
 	expect( $resolver->resolve( 'fab', 'github' ) )->toBeNull();
 } );
 
+it( 'rejects a name containing parent-directory hops', function () {
+	// Even if a name passes the regex (allows dots), `..` substring must
+	// be refused so a clever (set, name) pair can't escape the set dir.
+	mkdir( test()->base . '/escaped', 0o755, true );
+	file_put_contents( test()->base . '/escaped.svg', 'leak' );
+
+	expect( test()->resolver->resolve( 'fab', 'a..b' ) )->toBeNull()
+		->and( test()->resolver->resolve( 'fab', '..escape' ) )->toBeNull();
+} );
+
+it( 'rejects a set that does not match the allowlist', function () {
+	expect( test()->resolver->resolve( 'fab/..', 'github' ) )->toBeNull()
+		->and( test()->resolver->resolve( '', 'github' ) )->toBeNull();
+} );
+
+it( 'rejects a name with a path separator', function () {
+	expect( test()->resolver->resolve( 'fab', 'sub/github' ) )->toBeNull();
+} );
+
 it( 'evaluates a closure source lazily — not at construction time', function () {
 	$callCount = 0;
 	$paths     = [ 'fab' => test()->base . '/fab' ];

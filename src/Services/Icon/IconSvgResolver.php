@@ -71,9 +71,23 @@ final class IconSvgResolver
 	/**
 	 * Return the raw SVG markup for `(set, name)`, or `null` if no
 	 * registered set serves the requested icon.
+	 *
+	 * Inputs are re-validated at the service boundary instead of trusting
+	 * callers' normalization — `IconBlock::normalizeIconRef()` is the
+	 * primary gate, but the resolver is a public service that other
+	 * callers (admin upload preview in Phase 6, future REST endpoints)
+	 * can reach, and a path-traversal escape here would expose the host
+	 * file system. Set/name allowlist mirrors the icons-registry folder
+	 * shape; `..` is explicitly rejected so a name that satisfies the
+	 * regex but encodes a parent-directory hop (e.g. `a..b`) can't
+	 * resolve to a file outside the set's directory.
 	 */
 	public function resolve( string $set, string $name ): ?string
 	{
+		if ( ! $this->isValidSet( $set ) || ! $this->isValidName( $name ) ) {
+			return null;
+		}
+
 		$paths = $this->setPaths();
 		if ( ! isset( $paths[ $set ] ) ) {
 			return null;
@@ -87,6 +101,20 @@ final class IconSvgResolver
 		$contents = @file_get_contents( $file );
 
 		return false === $contents ? null : $contents;
+	}
+
+	private function isValidSet( string $set ): bool
+	{
+		return 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $set );
+	}
+
+	private function isValidName( string $name ): bool
+	{
+		if ( str_contains( $name, '..' ) ) {
+			return false;
+		}
+
+		return 1 === preg_match( '/^[a-z0-9][a-z0-9_.-]*$/i', $name );
 	}
 
 	/**

@@ -401,7 +401,15 @@ class IconBlock extends DynamicBlock
 		return preg_replace_callback(
 			'/<svg\b([^>]*)>/i',
 			static function ( array $match ): string {
-				$attrs = preg_replace( '/\s+(width|height)\s*=\s*"[^"]*"/i', '', $match[1] ) ?? $match[1];
+				// Match any value quoting style — `width="24"`, `width='24'`,
+				// or unquoted `width=24` — so an admin-uploaded set with an
+				// HTML-lenient SVG can't smuggle a duplicate sizing attr
+				// past the rewrite.
+				$attrs = preg_replace(
+					'/\s+(width|height)\s*=\s*(?:"[^"]*"|\'[^\']*\'|[^\s>]+)/i',
+					'',
+					$match[1],
+				) ?? $match[1];
 
 				return '<svg width="100%" height="100%"' . $attrs . '>';
 			},

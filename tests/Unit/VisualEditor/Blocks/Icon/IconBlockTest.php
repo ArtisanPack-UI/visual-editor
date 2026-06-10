@@ -69,6 +69,30 @@ it( 'falls back to a placeholder when the iconRef cannot be resolved', function 
 		->and( $html )->not->toContain( '<svg' );
 } );
 
+it( 'strips width/height regardless of value quoting style', function () {
+	$base = test()->iconBase;
+	file_put_contents(
+		$base . '/fab/mixed-quotes.svg',
+		// One double-quoted, one single-quoted, plus an unquoted variant in
+		// the wild — admin-uploaded SVGs are not guaranteed to be XML-strict.
+		"<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height='24' preserveAspectRatio=xMidYMid viewBox=\"0 0 24 24\"><path d=\"M0 0\"/></svg>",
+	);
+
+	$resolver = new IconSvgResolver( [ 'fab' => $base . '/fab' ] );
+	$block    = new IconBlock( new SvgSanitizer(), $resolver );
+
+	$html = $block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'mixed-quotes' ],
+	] );
+
+	expect( substr_count( $html, 'width=' ) )->toBe( 1 )
+		->and( substr_count( $html, 'height=' ) )->toBe( 1 )
+		->and( $html )->toContain( 'width="100%"' )
+		->and( $html )->toContain( 'height="100%"' )
+		->and( $html )->not->toContain( "width=\"24\"" )
+		->and( $html )->not->toContain( "height='24'" );
+} );
+
 it( 'strips existing width/height from the SVG root before injecting wrapper-fill values', function () {
 	$base = test()->iconBase;
 	file_put_contents(
