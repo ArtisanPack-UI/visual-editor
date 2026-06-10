@@ -13,6 +13,7 @@ import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import { Button, PanelBody } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
+import CustomSvgControl from './custom-svg-control';
 import IconPicker from './icon-picker';
 import type { IconAttributes, IconRef } from './types';
 import {
@@ -116,23 +117,28 @@ export default function IconEdit( { attributes, setAttributes }: IconEditProps )
     let body: ReactElement = placeholder;
 
     if ( normalized.customSvg.trim().length > 0 ) {
-        // Phase 1: NEVER render saved customSvg raw in the editor. The
-        // client-side sanitizer lands in Phase 5 (#556); until then a
-        // pasted SVG that bypassed server sanitization (or was edited
-        // by hand in the post DB) would otherwise mount unsanitized
-        // markup inside the editor iframe. Render an inert preview
-        // chip so authors can see the block exists and round-trips,
-        // and let the live front end (which always passes through
-        // IconBlock::render → SvgSanitizer) handle the real display.
+        // Phase 5 (#556): customSvg is only ever written through the
+        // server-side sanitize endpoint (see CustomSvgControl), so the
+        // markup at this point has already been DOM-walked + scrubbed
+        // by `SvgSanitizer`. Mounting it via `dangerouslySetInnerHTML`
+        // is safe in the same sense that the iconRef path below is —
+        // both render trusted, server-sanitized SVG markup. The live
+        // front-end render still re-sanitizes at output time, so a
+        // hand-edited post DB that bypasses the editor can't escape
+        // the sanitizer either.
         body = (
             <span
-                className="wp-block-artisanpack-icon__svg-preview"
+                className="wp-block-artisanpack-icon__svg"
                 style={ { ...sizedStyle, ...innerStyle } }
-                aria-hidden="true"
-                title={ __( 'Custom SVG (rendered on the front end)', 'artisanpack-visual-editor' ) }
-            >
-                <code>{ __( 'SVG', 'artisanpack-visual-editor' ) }</code>
-            </span>
+                aria-hidden={ normalized.isDecorative ? 'true' : undefined }
+                aria-label={
+                    ! normalized.isDecorative && normalized.ariaLabel.length > 0
+                        ? normalized.ariaLabel
+                        : undefined
+                }
+                title={ normalized.titleAttr || undefined }
+                dangerouslySetInnerHTML={ { __html: normalized.customSvg } }
+            />
         );
     } else if ( normalized.iconRef ) {
         body = resolvedSvg ? (
@@ -195,6 +201,18 @@ export default function IconEdit( { attributes, setAttributes }: IconEditProps )
                         </p>
                     ) }
                 </PanelBody>
+                <CustomSvgControl
+                    customSvg={ normalized.customSvg }
+                    onApplied={ ( sanitized ) => {
+                        // Mirror the picker flow: setting a customSvg
+                        // clears any existing iconRef so the two render
+                        // paths never overlap.
+                        setAttributes( { customSvg: sanitized, iconRef: null } );
+                    } }
+                    onCleared={ () => {
+                        setAttributes( { customSvg: '' } );
+                    } }
+                />
             </InspectorControls>
             { pickerOpen && (
                 <IconPicker onSelect={ handlePicked } onClose={ closePicker } />
