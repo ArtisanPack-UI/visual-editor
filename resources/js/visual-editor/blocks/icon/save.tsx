@@ -52,15 +52,18 @@ export default function IconSave( { attributes }: IconSaveProps ): ReactElement 
 
     const innerStyle = { ...sizedStyle, transform, transformOrigin: 'center' as const };
 
-    const body =
-        normalized.customSvg.trim().length > 0 ? (
+    let body;
+    if ( normalized.customSvg.trim().length > 0 ) {
+        body = (
             <span
                 className="wp-block-artisanpack-icon__svg"
                 style={ innerStyle }
                 { ...ariaProps }
                 dangerouslySetInnerHTML={ { __html: normalized.customSvg } }
             />
-        ) : (
+        );
+    } else if ( normalized.iconRef ) {
+        body = (
             <span
                 className="wp-block-artisanpack-icon__ref"
                 style={ innerStyle }
@@ -68,6 +71,18 @@ export default function IconSave( { attributes }: IconSaveProps ): ReactElement 
                 { ...dataAttrs }
             />
         );
+    } else {
+        // No icon selected — emit a true placeholder so the saved markup
+        // matches IconBlock::renderBody()'s placeholder branch and screen
+        // readers don't see a phantom "ref" element with iconRef data.
+        body = (
+            <span
+                className="wp-block-artisanpack-icon__placeholder"
+                style={ innerStyle }
+                aria-hidden="true"
+            />
+        );
+    }
 
     if ( shouldRenderLink( normalized ) ) {
         const target = normalizeLinkTarget( normalized.linkTarget );

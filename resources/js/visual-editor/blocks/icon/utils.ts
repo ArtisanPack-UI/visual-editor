@@ -62,6 +62,14 @@ function asNumber( value: unknown, fallback: number ): number {
     return typeof value === 'number' && Number.isFinite( value ) ? value : fallback;
 }
 
+const MIN_SIZE = 1;
+const MAX_SIZE = 1024;
+
+function clampSize( raw: unknown ): number {
+    const n = asNumber( raw, 32 );
+    return Math.max( MIN_SIZE, Math.min( MAX_SIZE, n ) );
+}
+
 function asSizeUnit( value: unknown ): SizeUnit {
     return typeof value === 'string' && ALLOWED_SIZE_UNITS.has( value as SizeUnit )
         ? ( value as SizeUnit )
@@ -95,7 +103,9 @@ export function normalizeAttributes( attributes: IconAttributes ): NormalizedIco
     return {
         iconRef: asIconRef( attributes.iconRef ),
         customSvg: asString( attributes.customSvg ),
-        size: asNumber( attributes.size, 32 ),
+        // Mirror IconBlock::validateAttrs's 1..1024 clamp so a server
+        // re-render produces the same size the editor previewed.
+        size: clampSize( attributes.size ),
         sizeUnit: asSizeUnit( attributes.sizeUnit ),
         color: asString( attributes.color ),
         backgroundColor: asString( attributes.backgroundColor ),

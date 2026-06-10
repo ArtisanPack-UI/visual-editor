@@ -68,6 +68,20 @@ describe( 'normalizeAttributes', () => {
         } ).not.toThrow();
     } );
 
+    it( 'clamps size to the 1..1024 range mirroring the server', () => {
+        const small = normalizeAttributes( {
+            ...baseAttrs,
+            size: -50,
+        } as never );
+        const huge = normalizeAttributes( {
+            ...baseAttrs,
+            size: 99999,
+        } as never );
+
+        expect( small.size ).toBe( 1 );
+        expect( huge.size ).toBe( 1024 );
+    } );
+
     it( 'falls back to safe defaults for invalid size/sizeUnit/rotation', () => {
         const normalized = normalizeAttributes( {
             iconRef: null,

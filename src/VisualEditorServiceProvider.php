@@ -9,6 +9,7 @@ use ArtisanPackUI\VisualEditor\Blocks\Core\LatestPostsBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\TagCloudBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Forms\FormBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Icon\IconBlock;
+use ArtisanPackUI\VisualEditor\Services\Icon\SvgSanitizer;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
 use ArtisanPackUI\VisualEditor\Services\Adapters\CmsFramework\CmsFrameworkQueryResolver;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
@@ -57,6 +58,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( DynamicBlockRegistry::class, function () {
 			return new DynamicBlockRegistry();
+		} );
+
+		// Icon Block Phase 1 (#552): the sanitizer is stateless, so bind
+		// it as a shared singleton — IconBlock and any future consumers
+		// (the admin-upload pipeline in Phase 6 #557) can reuse one copy.
+		$this->app->singleton( SvgSanitizer::class, function () {
+			return new SvgSanitizer();
 		} );
 
 		$this->app->singleton( VisualEditor::class, function ( $app ) {

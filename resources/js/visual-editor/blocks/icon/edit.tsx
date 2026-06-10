@@ -69,15 +69,23 @@ export default function IconEdit( { attributes, setAttributes }: IconEditProps )
     let body: ReactElement = placeholder;
 
     if ( normalized.customSvg.trim().length > 0 ) {
-        // Custom SVG is dangerously-set only after Phase 2's sanitizer
-        // runs server-side. In the editor we still render it raw because
-        // it never leaves the author's own browser session before save.
+        // Phase 1: NEVER render saved customSvg raw in the editor. The
+        // client-side sanitizer lands in Phase 5 (#556); until then a
+        // pasted SVG that bypassed server sanitization (or was edited
+        // by hand in the post DB) would otherwise mount unsanitized
+        // markup inside the editor iframe. Render an inert preview
+        // chip so authors can see the block exists and round-trips,
+        // and let the live front end (which always passes through
+        // IconBlock::render → SvgSanitizer) handle the real display.
         body = (
             <span
-                className="wp-block-artisanpack-icon__svg"
+                className="wp-block-artisanpack-icon__svg-preview"
                 style={ { ...sizedStyle, ...innerStyle } }
-                dangerouslySetInnerHTML={ { __html: normalized.customSvg } }
-            />
+                aria-hidden="true"
+                title={ __( 'Custom SVG (rendered on the front end)', 'artisanpack-visual-editor' ) }
+            >
+                <code>{ __( 'SVG', 'artisanpack-visual-editor' ) }</code>
+            </span>
         );
     } else if ( normalized.iconRef ) {
         body = (
