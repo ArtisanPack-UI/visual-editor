@@ -8,7 +8,10 @@ use ArtisanPackUI\VisualEditor\Blocks\Core\CategoriesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\LatestPostsBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\TagCloudBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Forms\FormBlock;
+use ArtisanPackUI\Icons\Registries\IconSetRegistration;
 use ArtisanPackUI\VisualEditor\Blocks\Icon\IconBlock;
+use ArtisanPackUI\VisualEditor\Services\Icon\FontAwesomeFreeIconSets;
+use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
 use ArtisanPackUI\VisualEditor\Services\Icon\SvgSanitizer;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
 use ArtisanPackUI\VisualEditor\Services\Adapters\CmsFramework\CmsFrameworkQueryResolver;
@@ -65,6 +68,37 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// (the admin-upload pipeline in Phase 6 #557) can reuse one copy.
 		$this->app->singleton( SvgSanitizer::class, function () {
 			return new SvgSanitizer();
+		} );
+
+		// Icon Block Phase 3 (#554): defer the icon-sets-registry walk
+		// until the first `resolve()` call. IconBlock is constructed
+		// inside boot() (via registerReferenceBlocks), which happens
+		// BEFORE every provider's `addFilter('ap.icons.register-icon-sets',
+		// …)` has fired. Computing the path map eagerly here would race
+		// against those registrations and produce an empty resolver. The
+		// closure runs at request time, by which point boot is finished
+		// and the filter chain is complete.
+		$this->app->singleton( IconSvgResolver::class, function (): IconSvgResolver {
+			return new IconSvgResolver( static function (): array {
+				if ( ! class_exists( IconSetRegistration::class ) || ! function_exists( 'applyFilters' ) ) {
+					return [];
+				}
+
+				$registry = applyFilters( 'ap.icons.register-icon-sets', new IconSetRegistration() );
+				if ( ! $registry instanceof IconSetRegistration ) {
+					return [];
+				}
+
+				$paths = [];
+				foreach ( $registry->getSets() as $prefix => $details ) {
+					$path = $details['path'] ?? null;
+					if ( is_string( $path ) && '' !== $path ) {
+						$paths[ (string) $prefix ] = $path;
+					}
+				}
+
+				return $paths;
+			} );
 		} );
 
 		$this->app->singleton( VisualEditor::class, function ( $app ) {
@@ -295,6 +329,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// 4. Register package-native blocks (artisanpack/callout, etc.).
 		$this->registerReferenceBlocks();
 
+		// 4.1. Icon Block Phase 3 (#554) — hand the FA Free SVG sets to
+		//      the `artisanpack-ui/icons` registry. The directories are
+		//      mirrored by `scripts/sync-fa-icons.mjs` (runs in `prebuild`)
+		//      and gitignored; the discovery step no-ops cleanly when the
+		//      sync hasn't run yet, so app boot stays robust.
+		$this->registerFontAwesomeFreeIconSets();
+
 		// 4a. Register taxonomy/feed dynamic blocks against cms-framework's
 		//     term + post APIs. Gated on the package's presence so
 		//     visual-editor still boots when cms-framework is absent.
@@ -427,8 +468,36 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// Phase 1 of the Icon Block (#552/#494): the block.json above gives
 		// the inserter its metadata; this line wires the server-side renderer
 		// so the preview endpoint can produce real markup. Phase 3 (#554)
-		// adds the FA 6 Free registry that turns iconRefs into inline SVG.
+		// adds the FA Free registry that turns iconRefs into inline SVG.
 		$editor->registerDynamicBlock( IconBlock::class );
+	}
+
+	/**
+	 * Hook the FA Free SVG sets into the `ap.icons.register-icon-sets`
+	 * filter.
+	 *
+	 * Gated on the icons package being present so visual-editor still
+	 * boots in setups that haven't pulled `artisanpack-ui/icons` (the
+	 * filter would never fire there anyway, but skipping the registration
+	 * keeps the boot trace clean). Gated on `IconSetRegistration` rather
+	 * than a service-container key so a partial install doesn't NPE.
+	 *
+	 * @since 1.1.0
+	 */
+	protected function registerFontAwesomeFreeIconSets(): void
+	{
+		if ( ! class_exists( IconSetRegistration::class ) || ! function_exists( 'addFilter' ) ) {
+			return;
+		}
+
+		$baseDir = __DIR__ . '/../resources/icons/font-awesome';
+
+		addFilter(
+			'ap.icons.register-icon-sets',
+			static function ( IconSetRegistration $registry ) use ( $baseDir ): IconSetRegistration {
+				return FontAwesomeFreeIconSets::register( $registry, $baseDir );
+			}
+		);
 	}
 
 	/**

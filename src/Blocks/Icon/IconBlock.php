@@ -7,7 +7,7 @@
  * style/transform computation, link wrapping, a11y attribute emission,
  * and custom-SVG sanitization via {@see SvgSanitizer}. The icon-registry
  * resolution path (turning an `iconRef` into inline SVG markup) is wired
- * in Phase 3 (#554) when the FA 6 Free SVGs ship.
+ * in Phase 3 (#554) when the FA Free SVGs ship.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -22,6 +22,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Blocks\Icon;
 
 use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
+use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
 use ArtisanPackUI\VisualEditor\Services\Icon\SvgSanitizer;
 
 class IconBlock extends DynamicBlock
@@ -30,8 +31,10 @@ class IconBlock extends DynamicBlock
 	private const ALLOWED_ROTATIONS     = [ 0, 90, 180, 270 ];
 	private const ALLOWED_LINK_TARGETS  = [ '_blank', '_self', '_parent', '_top' ];
 
-	public function __construct( private readonly SvgSanitizer $sanitizer )
-	{
+	public function __construct(
+		private readonly SvgSanitizer $sanitizer,
+		private readonly ?IconSvgResolver $resolver = null,
+	) {
 	}
 
 	public function name(): string
@@ -128,15 +131,30 @@ class IconBlock extends DynamicBlock
 		}
 
 		if ( null !== $attrs['iconRef'] ) {
-			// Phase 3 (#554) swaps this `data-*` carrier for the resolved
-			// inline `<svg>` once the FA 6 Free SVGs are bundled and the
-			// icons registry is consulted at render time.
+			$resolved = null !== $this->resolver
+				? $this->resolver->resolve( $attrs['iconRef']['set'], $attrs['iconRef']['name'] )
+				: null;
+
+			if ( null !== $resolved ) {
+				return sprintf(
+					'<span class="wp-block-artisanpack-icon__ref" data-icon-set="%s" data-icon-name="%s" style="%s"%s>%s</span>',
+					e( $attrs['iconRef']['set'] ),
+					e( $attrs['iconRef']['name'] ),
+					e( $bodyStyle ),
+					$ariaAttrs,
+					$this->prepareInlineSvg( $resolved )
+				);
+			}
+
+			// Resolver miss — sync hasn't run, set not registered, or icon
+			// removed upstream. Falling back to the placeholder keeps the
+			// layout stable rather than leaving an empty `data-*` carrier
+			// the front end has no way to fill.
 			return sprintf(
-				'<span class="wp-block-artisanpack-icon__ref" data-icon-set="%s" data-icon-name="%s" style="%s"%s></span>',
+				'<span class="wp-block-artisanpack-icon__placeholder" data-icon-set="%s" data-icon-name="%s" style="%s" aria-hidden="true"></span>',
 				e( $attrs['iconRef']['set'] ),
 				e( $attrs['iconRef']['name'] ),
-				e( $bodyStyle ),
-				$ariaAttrs
+				e( $bodyStyle )
 			);
 		}
 
@@ -353,6 +371,43 @@ class IconBlock extends DynamicBlock
 		}
 
 		return $trimmed;
+	}
+
+	/**
+	 * Inline-ready SVG markup.
+	 *
+	 * FA Free SVGs ship without `width`/`height` attributes, which means
+	 * an inline `<svg>` falls back to the spec's 300×150 default and
+	 * overflows the sized wrapper span. Inject `width="100%"` /
+	 * `height="100%"` on the root `<svg>` so the SVG fills the wrapper's
+	 * declared box. Strip any existing `width`/`height` first so an icon
+	 * set with intrinsic dimensions (e.g. an admin-uploaded set in Phase 6)
+	 * doesn't fight the wrapper.
+	 *
+	 * The bundled FA Free SVGs are trusted (pinned npm dep, npm-supply-
+	 * chain risk only) — we do NOT route them through {@see SvgSanitizer}
+	 * because doing so on every render would burn DOMDocument cost for no
+	 * security gain. Admin-uploaded sets in Phase 6 (#557) will sanitize
+	 * at upload time, not at render time.
+	 */
+	private function prepareInlineSvg( string $svg ): string
+	{
+		// Single-pass rewrite of the opening `<svg …>` tag: strip every
+		// existing `width`/`height` attribute, then prepend the wrapper-
+		// fill pair. Doing this in two preg_replace calls leaks duplicate
+		// attributes when both are present, because `preg_replace` won't
+		// match a second `width|height` inside the same `<svg …>` opener
+		// once its lazy-match starting cursor has advanced past it.
+		return preg_replace_callback(
+			'/<svg\b([^>]*)>/i',
+			static function ( array $match ): string {
+				$attrs = preg_replace( '/\s+(width|height)\s*=\s*"[^"]*"/i', '', $match[1] ) ?? $match[1];
+
+				return '<svg width="100%" height="100%"' . $attrs . '>';
+			},
+			$svg,
+			1,
+		) ?? $svg;
 	}
 
 	private function formatNumber( float $value ): string
