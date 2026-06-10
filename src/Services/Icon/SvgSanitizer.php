@@ -115,6 +115,17 @@ class SvgSanitizer
 		'gradientUnits',
 		'gradientTransform',
 		'spreadMethod',
+		// Modern authoring tools (Illustrator, Figma, Inkscape) write
+		// presentation rules into `style="…"` rather than discrete
+		// `fill=` / `stroke=` attributes — stripping it wholesale turns
+		// any of those exports into a black silhouette. We let it
+		// through and scrub the value below (`expression()`, external
+		// `url()`, `javascript:` are rejected).
+		'style',
+		// Harmless metadata that Illustrator stamps onto the root.
+		// Excluding them just produces noisy warnings on every paste.
+		'version',
+		'xml:space',
 		// URI attributes — passed through the allowlist gate so the
 		// downstream `isSafeUri` check gets a chance to keep internal
 		// anchor references (`#gradient1`) and reject everything else.
@@ -226,11 +237,13 @@ class SvgSanitizer
 
 			$value = (string) $attr->nodeValue;
 
-			// `style` is not in the allowlist; this guard catches any future
-			// addition that forgets to filter `expression()`.
-			if ( 'style' === $name && false !== stripos( $value, 'expression' ) ) {
-				$drop[]     = $name;
-				$warnings[] = sprintf( 'removed CSS expression() from style on <%s>', $element->localName );
+			if ( 'style' === $name ) {
+				$cleaned = $this->scrubStyleValue( $value, $element->localName, $warnings );
+				if ( '' === $cleaned ) {
+					$drop[] = $name;
+				} elseif ( $cleaned !== $value ) {
+					$attr->nodeValue = $cleaned;
+				}
 				continue;
 			}
 
@@ -244,6 +257,57 @@ class SvgSanitizer
 		foreach ( $drop as $attrName ) {
 			$element->removeAttribute( $attrName );
 		}
+	}
+
+	/**
+	 * Filter individual CSS declarations from a `style="…"` value.
+	 *
+	 * We keep declarations whose values are inert (`fill: #abc`, `opacity: 0.5`)
+	 * and reject anything carrying a known script vector — `expression(…)`
+	 * (IE legacy), `javascript:` / `vbscript:` URIs, `-moz-binding`, and
+	 * external `url(http://…)` / `url(data:…)` references. Internal anchor
+	 * refs (`url(#gradient1)`) are preserved because gradients depend on
+	 * them.
+	 *
+	 * @param  array<int, string> $warnings
+	 */
+	private function scrubStyleValue( string $value, string $tag, array &$warnings ): string
+	{
+		$kept = [];
+		foreach ( explode( ';', $value ) as $declaration ) {
+			$trimmed = trim( $declaration );
+			if ( '' === $trimmed ) {
+				continue;
+			}
+
+			$lower = strtolower( $trimmed );
+			$bad   = false;
+
+			if ( false !== strpos( $lower, 'expression(' ) ) {
+				$bad = true;
+			} elseif ( false !== strpos( $lower, 'javascript:' ) || false !== strpos( $lower, 'vbscript:' ) ) {
+				$bad = true;
+			} elseif ( false !== strpos( $lower, '-moz-binding' ) ) {
+				$bad = true;
+			} elseif ( preg_match( '/url\(\s*["\']?\s*(?!#)/i', $lower ) ) {
+				// Any `url(…)` whose target isn't an internal fragment.
+				// That covers `url(http://…)`, `url(//host/…)`,
+				// `url(data:…)`, AND relative paths like `url(/a.svg)`
+				// or `url(icon.svg)` — all external references in the
+				// same threat class (tracking pixels, asset leaks,
+				// chained navigation away from the page).
+				$bad = true;
+			}
+
+			if ( $bad ) {
+				$warnings[] = sprintf( 'removed unsafe style declaration on <%s>', $tag );
+				continue;
+			}
+
+			$kept[] = $trimmed;
+		}
+
+		return implode( '; ', $kept );
 	}
 
 	private function isUriAttr( string $name ): bool

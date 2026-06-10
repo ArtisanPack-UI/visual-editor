@@ -25,6 +25,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSvgController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSvgSanitizeController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteController;
@@ -211,6 +212,15 @@ Route::get( 'icons/search', [ IconSearchController::class, 'index' ] )
 
 Route::get( 'icons/svg', [ IconSvgController::class, 'show' ] )
 	->name( 'visual-editor.api.icons.svg' );
+
+// Icon Block Phase 5 (#556) — custom SVG paste/upload sanitization. The
+// editor POSTs the pasted/uploaded markup, gets back the SvgSanitizer
+// output + warnings, and persists the sanitized result into the block's
+// `customSvg` attribute. Authoritative sanitization still runs at render
+// time inside IconBlock; this endpoint is what lets the editor surface
+// warnings inline before save.
+Route::post( 'icons/svg/sanitize', [ IconSvgSanitizeController::class, 'store' ] )
+	->name( 'visual-editor.api.icons.svg.sanitize' );
 
 // G3 cms-framework Post + Page entity adapters — see plan 12 §4.4.
 // Both controllers resolve their model through `ResourceResolver`, so

@@ -82,6 +82,71 @@ it( 'rejects unparseable input', function () {
 	expect( $result->isEmpty() )->toBeTrue();
 } );
 
+it( 'preserves inline style declarations carrying inert presentation rules', function () {
+	$svg = '<svg xmlns="http://www.w3.org/2000/svg" style="fill:#abc">'
+		. '<path d="M0 0" style="fill:#123;opacity:0.5"/>'
+		. '</svg>';
+
+	$result = test()->sanitizer->sanitize( $svg );
+
+	expect( $result->sanitized )->toContain( 'fill:#abc' )
+		->and( $result->sanitized )->toContain( 'fill:#123' )
+		->and( $result->sanitized )->toContain( 'opacity:0.5' )
+		->and( $result->hasWarnings() )->toBeFalse();
+} );
+
+it( 'strips javascript:, expression(), and external url() from style', function () {
+	$svg = '<svg xmlns="http://www.w3.org/2000/svg">'
+		. '<path d="M0 0" style="fill:#abc;background:expression(alert(1))"/>'
+		. '<path d="M0 0" style="fill:url(http://evil.example/x.png)"/>'
+		. '<path d="M0 0" style="fill:javascript:alert(1)"/>'
+		. '</svg>';
+
+	$result = test()->sanitizer->sanitize( $svg );
+
+	expect( $result->sanitized )->not->toContain( 'expression' )
+		->and( $result->sanitized )->not->toContain( 'javascript:' )
+		->and( $result->sanitized )->not->toContain( 'evil.example' )
+		->and( $result->sanitized )->toContain( 'fill:#abc' )
+		->and( $result->warnings )->not->toBeEmpty();
+} );
+
+it( 'strips relative-path url() references from style (any non-fragment target)', function () {
+	$svg = '<svg xmlns="http://www.w3.org/2000/svg">'
+		. '<path d="M0 0" style="fill:url(/asset.svg)"/>'
+		. '<path d="M0 0" style="fill:url(icon.svg)"/>'
+		. '</svg>';
+
+	$result = test()->sanitizer->sanitize( $svg );
+
+	expect( $result->sanitized )->not->toContain( '/asset.svg' )
+		->and( $result->sanitized )->not->toContain( 'icon.svg' )
+		->and( $result->warnings )->not->toBeEmpty();
+} );
+
+it( 'keeps internal url(#…) references inside style', function () {
+	$svg = '<svg xmlns="http://www.w3.org/2000/svg">'
+		. '<defs><linearGradient id="g1"/></defs>'
+		. '<rect style="fill:url(#g1)" width="10" height="10"/>'
+		. '</svg>';
+
+	$result = test()->sanitizer->sanitize( $svg );
+
+	expect( $result->sanitized )->toContain( 'url(#g1)' )
+		->and( $result->hasWarnings() )->toBeFalse();
+} );
+
+it( 'allows harmless version and xml:space root attributes', function () {
+	$svg = '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" xml:space="preserve">'
+		. '<path d="M0 0"/></svg>';
+
+	$result = test()->sanitizer->sanitize( $svg );
+
+	expect( $result->sanitized )->toContain( 'version="1.1"' )
+		->and( $result->sanitized )->toContain( 'xml:space="preserve"' )
+		->and( $result->hasWarnings() )->toBeFalse();
+} );
+
 it( 'strips DOCTYPEs without trying to resolve external entities', function () {
 	$svg = '<!DOCTYPE svg [<!ENTITY xxe SYSTEM "file:///etc/passwd">]>'
 		. '<svg xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>';

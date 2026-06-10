@@ -153,3 +153,71 @@ it( 'returns 400 from the svg endpoint when set or name is missing', function ()
 		->assertStatus( 400 )
 		->assertJsonPath( 'svg', null );
 } );
+
+// Phase 5 (#556) — custom SVG paste/upload sanitize endpoint.
+it( 'strips a malicious svg and reports warnings via the sanitize endpoint', function () {
+	actingAsIconPickerUser();
+
+	$hostile = '<svg xmlns="http://www.w3.org/2000/svg" onload="alert(1)">'
+		. '<script>steal()</script>'
+		. '<path d="M0 0h10v10H0z" onclick="alert(2)"/>'
+		. '</svg>';
+
+	$response = $this->postJson(
+		'/visual-editor/api/icons/svg/sanitize',
+		[ 'svg' => $hostile ],
+	)->assertOk();
+
+	$sanitized = $response->json( 'svg' );
+	$warnings  = $response->json( 'warnings' );
+
+	expect( $sanitized )->toBeString()
+		->not->toContain( '<script' )
+		->not->toContain( 'onload' )
+		->not->toContain( 'onclick' )
+		->not->toContain( 'alert' )
+		->toContain( '<path' );
+
+	expect( $warnings )->toBeArray()->not->toBeEmpty();
+	expect( implode( "\n", $warnings ) )->toContain( '<script>' );
+} );
+
+it( 'returns 422 from the sanitize endpoint when svg is not a string', function () {
+	actingAsIconPickerUser();
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => [ 'not', 'a', 'string' ] ] )
+		->assertStatus( 422 )
+		->assertJsonPath( 'svg', '' );
+} );
+
+it( 'returns 413 from the sanitize endpoint when the payload exceeds the size limit', function () {
+	actingAsIconPickerUser();
+
+	// 256 KB cap + 1 byte. The endpoint never even calls the parser.
+	$oversize = '<svg>' . str_repeat( 'x', 262_144 ) . '</svg>';
+
+	$this->postJson( '/visual-editor/api/icons/svg/sanitize', [ 'svg' => $oversize ] )
+		->assertStatus( 413 )
+		->assertJsonPath( 'svg', '' );
+} );
+
+it( 'returns 413 when the raw request body exceeds the cap even if `svg` decodes smaller', function () {
+	actingAsIconPickerUser();
+
+	// JSON escaping of a string of double-quotes blows the wire size
+	// well past 256 KB even though the decoded `svg` value is shorter.
+	$bigField = str_repeat( '\"x\"', 80_000 );
+
+	$this->call(
+		'POST',
+		'/visual-editor/api/icons/svg/sanitize',
+		[],
+		[],
+		[],
+		[
+			'HTTP_ACCEPT'       => 'application/json',
+			'CONTENT_TYPE'      => 'application/json',
+		],
+		'{"svg":"' . $bigField . '"}',
+	)->assertStatus( 413 );
+} );
