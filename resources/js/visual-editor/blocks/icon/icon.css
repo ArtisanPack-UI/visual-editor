@@ -17,6 +17,7 @@
 
 .wp-block-artisanpack-icon__ref,
 .wp-block-artisanpack-icon__svg,
+.wp-block-artisanpack-icon__svg-preview,
 .wp-block-artisanpack-icon__placeholder {
     display: inline-flex;
     align-items: center;
