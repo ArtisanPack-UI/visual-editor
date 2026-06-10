@@ -200,3 +200,24 @@ it( 'returns 413 from the sanitize endpoint when the payload exceeds the size li
 		->assertStatus( 413 )
 		->assertJsonPath( 'svg', '' );
 } );
+
+it( 'returns 413 when the raw request body exceeds the cap even if `svg` decodes smaller', function () {
+	actingAsIconPickerUser();
+
+	// JSON escaping of a string of double-quotes blows the wire size
+	// well past 256 KB even though the decoded `svg` value is shorter.
+	$bigField = str_repeat( '\"x\"', 80_000 );
+
+	$this->call(
+		'POST',
+		'/visual-editor/api/icons/svg/sanitize',
+		[],
+		[],
+		[],
+		[
+			'HTTP_ACCEPT'       => 'application/json',
+			'CONTENT_TYPE'      => 'application/json',
+		],
+		'{"svg":"' . $bigField . '"}',
+	)->assertStatus( 413 );
+} );

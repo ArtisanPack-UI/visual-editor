@@ -36,6 +36,11 @@ export default function CustomSvgControl( {
     const [ error, setError ] = useState< string >( '' );
     const [ pending, setPending ] = useState< boolean >( false );
     const fileInputRef = useRef< HTMLInputElement | null >( null );
+    // Monotonic counter so a slow earlier sanitize response can't clobber
+    // the result of a newer paste / upload. Each call to `applyRaw`
+    // captures its own id; the resolution path only commits state if it
+    // still matches the latest.
+    const requestSeqRef = useRef< number >( 0 );
 
     // Resync `draft` when the prop changes from outside this component —
     // most notably when picking an icon clears `customSvg`, or when the
@@ -46,6 +51,7 @@ export default function CustomSvgControl( {
     }, [ customSvg ] );
 
     const applyRaw = async ( raw: string ): Promise< void > => {
+        const requestId = ++requestSeqRef.current;
         setError( '' );
         // Send the raw paste straight to the server so the warning list
         // reflects everything the authoritative sanitizer stripped —
@@ -62,6 +68,9 @@ export default function CustomSvgControl( {
         setPending( true );
         try {
             const result = await sanitizeOnServer( raw, fetchImpl );
+            if ( requestId !== requestSeqRef.current ) {
+                return;
+            }
             setDraft( result.svg );
             setWarnings( result.warnings );
             if ( result.svg.trim().length === 0 ) {
@@ -74,9 +83,14 @@ export default function CustomSvgControl( {
                 onApplied( result.svg, result.warnings );
             }
         } catch ( err ) {
+            if ( requestId !== requestSeqRef.current ) {
+                return;
+            }
             setError( err instanceof Error ? err.message : String( err ) );
         } finally {
-            setPending( false );
+            if ( requestId === requestSeqRef.current ) {
+                setPending( false );
+            }
         }
     };
 

@@ -41,6 +41,18 @@ class IconSvgSanitizeController extends Controller
 
 	public function store( Request $request ): JsonResponse
 	{
+		// Gate the raw body first so the JSON-escaped payload size — not
+		// just the decoded `svg` field — is bounded. A 200 KB SVG of
+		// nested quotes can blow past 256 KB after JSON escaping; without
+		// this the framework would still allocate + parse the whole body
+		// before the per-field cap below caught it.
+		if ( strlen( (string) $request->getContent() ) > self::MAX_INPUT_BYTES ) {
+			return response()->json( [
+				'svg'      => '',
+				'warnings' => [ 'request exceeds the 256 KB size limit' ],
+			], 413 );
+		}
+
 		$rawSvg = $request->input( 'svg', '' );
 		if ( ! is_string( $rawSvg ) ) {
 			return response()->json( [

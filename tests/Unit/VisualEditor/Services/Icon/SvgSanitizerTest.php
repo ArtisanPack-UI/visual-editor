@@ -111,6 +111,19 @@ it( 'strips javascript:, expression(), and external url() from style', function 
 		->and( $result->warnings )->not->toBeEmpty();
 } );
 
+it( 'strips relative-path url() references from style (any non-fragment target)', function () {
+	$svg = '<svg xmlns="http://www.w3.org/2000/svg">'
+		. '<path d="M0 0" style="fill:url(/asset.svg)"/>'
+		. '<path d="M0 0" style="fill:url(icon.svg)"/>'
+		. '</svg>';
+
+	$result = test()->sanitizer->sanitize( $svg );
+
+	expect( $result->sanitized )->not->toContain( '/asset.svg' )
+		->and( $result->sanitized )->not->toContain( 'icon.svg' )
+		->and( $result->warnings )->not->toBeEmpty();
+} );
+
 it( 'keeps internal url(#…) references inside style', function () {
 	$svg = '<svg xmlns="http://www.w3.org/2000/svg">'
 		. '<defs><linearGradient id="g1"/></defs>'

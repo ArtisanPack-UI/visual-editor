@@ -289,10 +289,13 @@ class SvgSanitizer
 				$bad = true;
 			} elseif ( false !== strpos( $lower, '-moz-binding' ) ) {
 				$bad = true;
-			} elseif ( preg_match( '/url\(\s*["\']?\s*(?!#)([a-z]+:|\/\/)/i', $lower ) ) {
-				// `url(http://…)`, `url(//host/…)`, `url(data:…)` — any
-				// scheme-bearing or protocol-relative reference. The
-				// `(?!#)` negative lookahead keeps `url(#gradient1)`.
+			} elseif ( preg_match( '/url\(\s*["\']?\s*(?!#)/i', $lower ) ) {
+				// Any `url(…)` whose target isn't an internal fragment.
+				// That covers `url(http://…)`, `url(//host/…)`,
+				// `url(data:…)`, AND relative paths like `url(/a.svg)`
+				// or `url(icon.svg)` — all external references in the
+				// same threat class (tracking pixels, asset leaks,
+				// chained navigation away from the page).
 				$bad = true;
 			}
 

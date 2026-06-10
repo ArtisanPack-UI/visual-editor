@@ -13,6 +13,7 @@ import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import { Button, PanelBody } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
+import { sanitizeOnServer } from './custom-svg';
 import CustomSvgControl from './custom-svg-control';
 import IconPicker from './icon-picker';
 import type { IconAttributes, IconRef } from './types';
@@ -43,6 +44,43 @@ export default function IconEdit( { attributes, setAttributes }: IconEditProps )
         // overriding the freshly-picked iconRef on the front end.
         setAttributes( { iconRef: ref, customSvg: '' } );
     };
+
+    // Re-sanitize the hydrated `customSvg` before rendering it into the
+    // canvas. The attribute is normally written through CustomSvgControl
+    // (which already routes through the sanitize endpoint), but a hand-
+    // edited post DB / REST write / migration / older release without
+    // Phase 5 could persist raw SVG. Re-running the sanitize endpoint
+    // here closes that gap so the editor canvas never injects markup
+    // that hasn't been DOM-walked by `SvgSanitizer`. The first paint
+    // shows the placeholder; the sanitized markup mounts as soon as
+    // the request resolves.
+    const [ trustedCustomSvg, setTrustedCustomSvg ] = useState< string >( '' );
+    useEffect( () => {
+        if ( normalized.customSvg.trim().length === 0 ) {
+            setTrustedCustomSvg( '' );
+            return;
+        }
+
+        let cancelled = false;
+        ( async () => {
+            try {
+                const { svg } = await sanitizeOnServer( normalized.customSvg );
+                if ( ! cancelled ) {
+                    setTrustedCustomSvg( svg );
+                }
+            } catch {
+                if ( ! cancelled ) {
+                    // Fail closed — better to show the placeholder than
+                    // mount markup we couldn't verify.
+                    setTrustedCustomSvg( '' );
+                }
+            }
+        } )();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [ normalized.customSvg ] );
 
     // Resolve the saved iconRef into inline SVG so the canvas mirrors
     // what the front end will render. Re-runs whenever the saved ref
@@ -116,16 +154,14 @@ export default function IconEdit( { attributes, setAttributes }: IconEditProps )
 
     let body: ReactElement = placeholder;
 
-    if ( normalized.customSvg.trim().length > 0 ) {
-        // Phase 5 (#556): customSvg is only ever written through the
-        // server-side sanitize endpoint (see CustomSvgControl), so the
-        // markup at this point has already been DOM-walked + scrubbed
-        // by `SvgSanitizer`. Mounting it via `dangerouslySetInnerHTML`
-        // is safe in the same sense that the iconRef path below is —
-        // both render trusted, server-sanitized SVG markup. The live
-        // front-end render still re-sanitizes at output time, so a
-        // hand-edited post DB that bypasses the editor can't escape
-        // the sanitizer either.
+    if ( trustedCustomSvg.trim().length > 0 ) {
+        // Phase 5 (#556): we mount the SERVER-sanitized copy of the
+        // saved `customSvg`, never the raw attribute. The async
+        // hydration effect above pipes `normalized.customSvg` through
+        // `sanitizeOnServer` first, so even hand-edited markup gets a
+        // round trip through `SvgSanitizer` before reaching the DOM
+        // here. On the first paint (or if sanitization fails) the
+        // placeholder shows instead — fail-closed by design.
         body = (
             <span
                 className="wp-block-artisanpack-icon__svg"
@@ -137,7 +173,7 @@ export default function IconEdit( { attributes, setAttributes }: IconEditProps )
                         : undefined
                 }
                 title={ normalized.titleAttr || undefined }
-                dangerouslySetInnerHTML={ { __html: normalized.customSvg } }
+                dangerouslySetInnerHTML={ { __html: trustedCustomSvg } }
             />
         );
     } else if ( normalized.iconRef ) {
