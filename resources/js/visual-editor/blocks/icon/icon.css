@@ -1,0 +1,37 @@
+/**
+ * Icon block — base styles.
+ *
+ * Layout-only; color/size/transform are emitted as inline styles by
+ * edit.tsx and save.tsx so the same attribute values produce identical
+ * markup in the canvas and on the front end.
+ */
+.wp-block-artisanpack-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+    max-width: 100%;
+}
+
+.wp-block-artisanpack-icon svg {
+    width: 100%;
+    height: 100%;
+    fill: currentColor;
+}
+
+.wp-block-artisanpack-icon a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Placeholder shown when neither iconRef nor customSvg is set. */
+.wp-block-artisanpack-icon__placeholder {
+    width: 100%;
+    height: 100%;
+    border: 1px dashed currentColor;
+    border-radius: 4px;
+    opacity: 0.4;
+}

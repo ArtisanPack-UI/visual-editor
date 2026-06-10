@@ -8,6 +8,7 @@ use ArtisanPackUI\VisualEditor\Blocks\Core\CategoriesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\LatestPostsBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\TagCloudBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Forms\FormBlock;
+use ArtisanPackUI\VisualEditor\Blocks\Icon\IconBlock;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
 use ArtisanPackUI\VisualEditor\Services\Adapters\CmsFramework\CmsFrameworkQueryResolver;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
@@ -404,6 +405,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$referenceBlocks = [
 			'callout',
+			'icon',
 		];
 
 		foreach ( $referenceBlocks as $block ) {
@@ -413,6 +415,12 @@ class VisualEditorServiceProvider extends ServiceProvider
 				$editor->registerBlock( $blockJsonPath );
 			}
 		}
+
+		// Phase 1 of the Icon Block (#552/#494): the block.json above gives
+		// the inserter its metadata; this line wires the server-side renderer
+		// so the preview endpoint can produce real markup. Phase 3 (#554)
+		// adds the FA 6 Free registry that turns iconRefs into inline SVG.
+		$editor->registerDynamicBlock( IconBlock::class );
 	}
 
 	/**
