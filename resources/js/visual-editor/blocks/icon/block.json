@@ -1,0 +1,110 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/icon",
+    "title": "Icon",
+    "category": "design",
+    "description": "Insert an SVG icon from a registered set, or paste your own.",
+    "keywords": [ "svg", "icon", "fontawesome", "glyph" ],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "iconRef": {
+            "type": "object",
+            "default": null
+        },
+        "customSvg": {
+            "type": "string",
+            "default": ""
+        },
+        "size": {
+            "type": "number",
+            "default": 32
+        },
+        "sizeUnit": {
+            "type": "string",
+            "enum": [ "px", "em", "rem" ],
+            "default": "px"
+        },
+        "color": {
+            "type": "string"
+        },
+        "backgroundColor": {
+            "type": "string"
+        },
+        "rotation": {
+            "type": "number",
+            "enum": [ 0, 90, 180, 270 ],
+            "default": 0
+        },
+        "flipH": {
+            "type": "boolean",
+            "default": false
+        },
+        "flipV": {
+            "type": "boolean",
+            "default": false
+        },
+        "link": {
+            "type": "string",
+            "default": ""
+        },
+        "linkTarget": {
+            "type": "string",
+            "default": ""
+        },
+        "linkRel": {
+            "type": "string",
+            "default": ""
+        },
+        "titleAttr": {
+            "type": "string",
+            "default": ""
+        },
+        "ariaLabel": {
+            "type": "string",
+            "default": ""
+        },
+        "isDecorative": {
+            "type": "boolean",
+            "default": false
+        }
+    },
+    "supports": {
+        "anchor": true,
+        "align": [ "left", "center", "right", "wide", "full" ],
+        "color": {
+            "__experimentalSkipSerialization": true,
+            "gradients": false,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "spacing": {
+            "margin": true,
+            "padding": true,
+            "__experimentalSkipSerialization": true,
+            "__experimentalDefaultControls": {
+                "margin": false,
+                "padding": false
+            }
+        },
+        "__experimentalBorder": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true,
+            "__experimentalSkipSerialization": true,
+            "__experimentalDefaultControls": {
+                "color": true,
+                "radius": true,
+                "style": true,
+                "width": true
+            }
+        },
+        "interactivity": {
+            "clientNavigation": true
+        }
+    },
+    "style": "wp-block-artisanpack-icon"
+}
