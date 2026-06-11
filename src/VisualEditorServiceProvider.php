@@ -882,10 +882,33 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return $bundled;
 		}
 
+		// Resolve which prefixes the icon-set registry actually accepted
+		// so the picker never surfaces an icon whose prefix didn't make
+		// it through `registerUploadedIconSets()` — `IconSvgResolver`
+		// otherwise can't serve the SVG at click time, and the picker
+		// would render a black tile or a 404. Both paths now share one
+		// source of truth: the result of `ap.icons.register-icon-sets`.
+		$registeredPrefixes = [];
+		if ( class_exists( IconSetRegistration::class ) && function_exists( 'applyFilters' ) ) {
+			$registry = applyFilters( 'ap.icons.register-icon-sets', new IconSetRegistration() );
+			if ( $registry instanceof IconSetRegistration ) {
+				$registeredPrefixes = array_flip( array_keys( $registry->getSets() ) );
+			}
+		}
+
 		$uploadedSets  = [];
 		$uploadedIcons = [];
 
 		foreach ( $persisted->all() as $set ) {
+			// When the filter ran cleanly, gate every uploaded set on
+			// having survived it. With no filter available (icons
+			// package absent, hooks helper missing) we fall back to
+			// the pre-filter `is_dir()` check so a working install
+			// without those plumbing pieces still surfaces uploads.
+			if ( [] !== $registeredPrefixes && ! isset( $registeredPrefixes[ $set->prefix ] ) ) {
+				continue;
+			}
+
 			$dir = $persisted->pathFor( $set->prefix );
 			if ( ! is_dir( $dir ) ) {
 				continue;
