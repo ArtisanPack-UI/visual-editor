@@ -216,6 +216,22 @@ it( 'promotes ariaLabel onto the <a> when the icon is decorative + linked', func
 		->and( $html )->toContain( 'aria-hidden="true"' );
 } );
 
+it( 'treats a whitespace-only ariaLabel as missing on a decorative + linked icon', function () {
+	// `"   "` and an empty string are equivalently inaccessible — both
+	// leave the anchor unlabeled. Treating them the same way keeps the
+	// editor warning honest: if the author has to put a real label
+	// somewhere, whitespace doesn't count.
+	$html = test()->block->render( [
+		'iconRef'      => [ 'set' => 'fab', 'name' => 'github' ],
+		'link'         => 'https://example.com',
+		'isDecorative' => true,
+		'ariaLabel'    => '   ',
+	] );
+
+	expect( $html )->toContain( '<a href="https://example.com"' )
+		->and( $html )->not->toContain( 'aria-label=' );
+} );
+
 it( 'leaves the <a> aria-label off when the icon is decorative + linked + has NO ariaLabel', function () {
 	// Without an ariaLabel the editor-side warning still fires;
 	// the server preserves the missing label so the warning state

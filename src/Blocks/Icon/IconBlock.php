@@ -210,9 +210,12 @@ class IconBlock extends DynamicBlock
 		// unlabeled. Promote any author-supplied `ariaLabel` onto the
 		// `<a>` itself so screen readers can announce the destination.
 		// The non-decorative path already pushes `ariaLabel` onto the
-		// body span — no double-labeling there.
-		if ( $attrs['isDecorative'] && '' !== $attrs['ariaLabel'] ) {
-			$attrParts[] = sprintf( 'aria-label="%s"', e( $attrs['ariaLabel'] ) );
+		// body span — no double-labeling there. Trim before testing so
+		// whitespace-only labels (e.g. `"   "`) read as missing rather
+		// than as a present-but-empty accessible name.
+		$ariaLabel = trim( $attrs['ariaLabel'] );
+		if ( $attrs['isDecorative'] && '' !== $ariaLabel ) {
+			$attrParts[] = sprintf( 'aria-label="%s"', e( $ariaLabel ) );
 		}
 
 		return sprintf( '<a %s>%s</a>', implode( ' ', $attrParts ), $body );

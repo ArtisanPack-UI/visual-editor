@@ -92,9 +92,12 @@ export default function IconSave( { attributes }: IconSaveProps ): ReactElement 
         const rel = composeRel( normalized.linkTarget, normalized.linkRel );
         // Decorative icons hide the body's ariaLabel via aria-hidden; promote
         // the label onto the anchor so the link still has an accessible name.
+        // Trim so whitespace-only labels (e.g. `"   "`) read as missing
+        // rather than as a present-but-empty accessible name.
+        const trimmedAriaLabel = normalized.ariaLabel.trim();
         const anchorAriaLabel =
-            normalized.isDecorative && normalized.ariaLabel
-                ? normalized.ariaLabel
+            normalized.isDecorative && trimmedAriaLabel
+                ? trimmedAriaLabel
                 : undefined;
 
         return (
