@@ -55,6 +55,7 @@
         "core/post-terms",
         "core/read-more",
         "core/term-description",
+        "artisanpack/breadcrumbs",
         "artisanpack/callout",
         "artisanpack/paragraph",
         "artisanpack/heading",

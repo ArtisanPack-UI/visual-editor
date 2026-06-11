@@ -615,6 +615,81 @@ describe('Core design blocks', () => {
         expect(html).toContain('ap-callout--info');
         expect(html).toContain('data-severity="info"');
     });
+
+    it('renders the artisanpack/breadcrumbs block with a resolved trail and schema microdata', () => {
+        const tree = [
+            makeBlock('artisanpack/breadcrumbs', {
+                separatorIcon: 'chevron-right',
+                breadcrumbsSchema: true,
+                _resolvedTrail: [
+                    { label: 'Home', url: '/' },
+                    { label: 'Blog', url: '/blog' },
+                    { label: 'Hello World', current: true },
+                ],
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('<nav');
+        expect(html).toContain('class="ap-breadcrumbs"');
+        expect(html).toContain('aria-label="Breadcrumb"');
+        expect(html).toContain('itemtype="https://schema.org/BreadcrumbList"');
+        expect(html).toContain('itemtype="https://schema.org/ListItem"');
+        expect(html).toContain('<a class="ap-breadcrumbs__link" href="/"');
+        expect(html).toContain('<a class="ap-breadcrumbs__link" href="/blog"');
+        expect(html).toContain('Hello World');
+        expect(html).toContain('aria-current="page"');
+        expect(html).toContain('itemprop="position" content="1"');
+        expect(html).toContain('itemprop="position" content="3"');
+        expect(html).toContain('d="m9 6 6 6-6 6"');
+    });
+
+    it('normalizes invalid breadcrumbs separator and omits schema when disabled', () => {
+        const tree = [
+            makeBlock('artisanpack/breadcrumbs', {
+                separatorIcon: 'spinning-rocket',
+                breadcrumbsSchema: false,
+                _resolvedTrail: [
+                    { label: 'Home', url: '/' },
+                    { label: 'Page', current: true },
+                ],
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('d="m9 6 6 6-6 6"');
+        expect(html).not.toContain('schema.org/BreadcrumbList');
+        expect(html).not.toContain('itemprop="position"');
+    });
+
+    it('drops unsafe URLs from breadcrumbs trail entries', () => {
+        const tree = [
+            makeBlock('artisanpack/breadcrumbs', {
+                _resolvedTrail: [
+                    { label: 'Home', url: '/' },
+                    { label: 'XSS', url: 'javascript:alert(1)' },
+                    { label: 'Page', current: true },
+                ],
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).not.toContain('javascript:');
+        expect(html).toContain('href="/"');
+        expect(html).toContain('>XSS<');
+    });
+
+    it('renders an empty breadcrumbs list when the trail is missing', () => {
+        const tree = [makeBlock('artisanpack/breadcrumbs', {})];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('ap-breadcrumbs__list');
+        expect(html).not.toContain('<li class="ap-breadcrumbs__item');
+    });
 });
 
 describe('Registry + dynamic fallback', () => {

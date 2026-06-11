@@ -526,6 +526,85 @@ it( 'falls back to safe defaults when callout severity or icon is invalid', func
 		->and( $html )->toContain( 'data-severity="info"' );
 } );
 
+it( 'renders the artisanpack/breadcrumbs block with a resolved trail and schema microdata', function () {
+	$tree = [
+		makeBlock( 'artisanpack/breadcrumbs', [
+			'separatorIcon'     => 'chevron-right',
+			'breadcrumbsSchema' => true,
+			'_resolvedTrail'    => [
+				[ 'label' => 'Home', 'url' => '/' ],
+				[ 'label' => 'Blog', 'url' => '/blog' ],
+				[ 'label' => 'Hello World', 'current' => true ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<nav' )
+		->and( $html )->toContain( 'ap-breadcrumbs' )
+		->and( $html )->toContain( 'aria-label="Breadcrumb"' )
+		->and( $html )->toContain( 'itemtype="https://schema.org/BreadcrumbList"' )
+		->and( $html )->toContain( 'itemtype="https://schema.org/ListItem"' )
+		->and( $html )->toContain( '<a class="ap-breadcrumbs__link" href="/"' )
+		->and( $html )->toContain( '<a class="ap-breadcrumbs__link" href="/blog"' )
+		->and( $html )->toContain( 'Hello World' )
+		->and( $html )->toContain( 'aria-current="page"' )
+		->and( $html )->toContain( 'itemprop="position" content="1"' )
+		->and( $html )->toContain( 'itemprop="position" content="3"' )
+		->and( $html )->toContain( '<svg' )
+		->and( $html )->toContain( 'd="m9 6 6 6-6 6"' );
+} );
+
+it( 'falls back to safe defaults when breadcrumbs separator is invalid and omits schema when disabled', function () {
+	$tree = [
+		makeBlock( 'artisanpack/breadcrumbs', [
+			'separatorIcon'     => 'spinning-rocket',
+			'breadcrumbsSchema' => false,
+			'_resolvedTrail'    => [
+				[ 'label' => 'Home', 'url' => '/' ],
+				[ 'label' => 'Page', 'current' => true ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'd="m9 6 6 6-6 6"' )
+		->and( $html )->not->toContain( 'schema.org/BreadcrumbList' )
+		->and( $html )->not->toContain( 'itemprop="position"' );
+} );
+
+it( 'drops unsafe URLs from breadcrumbs trail entries', function () {
+	$tree = [
+		makeBlock( 'artisanpack/breadcrumbs', [
+			'_resolvedTrail' => [
+				[ 'label' => 'Home', 'url' => '/' ],
+				[ 'label' => 'XSS', 'url' => 'javascript:alert(1)' ],
+				[ 'label' => 'Page', 'current' => true ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->not->toContain( 'javascript:' )
+		->and( $html )->not->toContain( 'href="javascript:alert(1)"' )
+		->and( $html )->toContain( 'href="/"' )
+		->and( $html )->toContain( '>XSS<' );
+} );
+
+it( 'renders an empty list when breadcrumbs trail is missing', function () {
+	$tree = [
+		makeBlock( 'artisanpack/breadcrumbs', [] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'ap-breadcrumbs__list' )
+		->and( $html )->not->toContain( '<li class="ap-breadcrumbs__item' );
+} );
+
 describe( 'Keystone #50 — block-supports compilation on the rendered HTML', function (): void {
 	it( 'renders a custom background color on core/group as both class marker and inline style', function (): void {
 		$tree = [ makeBlock( 'core/group', [
