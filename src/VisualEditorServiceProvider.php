@@ -12,8 +12,10 @@ use ArtisanPackUI\Icons\Registries\IconSetRegistration;
 use ArtisanPackUI\VisualEditor\Blocks\Icon\IconBlock;
 use ArtisanPackUI\VisualEditor\Services\Icon\FontAwesomeFreeIconSets;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconCatalog;
+use ArtisanPackUI\VisualEditor\Services\Icon\IconSetUploader;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
 use ArtisanPackUI\VisualEditor\Services\Icon\SvgSanitizer;
+use ArtisanPackUI\VisualEditor\Services\Icon\UploadedIconSetRegistry;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
 use ArtisanPackUI\VisualEditor\Services\Adapters\CmsFramework\CmsFrameworkQueryResolver;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
@@ -106,8 +108,34 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// resolve the catalog out of the container so host apps can swap
 		// in a custom manifest (e.g. extending the bundled FA Free set
 		// with their own brand icons) via `$app->extend()`.
-		$this->app->singleton( IconCatalog::class, function (): IconCatalog {
-			return new IconCatalog();
+		//
+		// Phase 6 (#557): hand the catalog a closure that merges the
+		// bundled FA Free manifest with whatever the
+		// `UploadedIconSetRegistry` has on disk so admin-uploaded sets
+		// show up in the picker without a code change. The closure runs
+		// lazily on first `search()` / `sets()` call — at request time,
+		// after every provider's boot has finished — so it can safely
+		// reach into the container for the registry.
+		$this->app->singleton( IconCatalog::class, function ( $app ): IconCatalog {
+			return new IconCatalog( function () use ( $app ): array {
+				return $this->buildMergedIconManifest( $app );
+			} );
+		} );
+
+		// Phase 6 (#557): the persisted registry of host-uploaded icon
+		// sets. The base directory under `storage/app/...` is created
+		// on first write — binding here keeps the path resolution in
+		// one place so the uploader and the boot-time registration
+		// loop see the exact same location.
+		$this->app->singleton( UploadedIconSetRegistry::class, function ( $app ): UploadedIconSetRegistry {
+			return new UploadedIconSetRegistry( $this->resolveIconSetsBaseDir( $app ) );
+		} );
+
+		$this->app->singleton( IconSetUploader::class, function ( $app ): IconSetUploader {
+			return new IconSetUploader(
+				$app->make( UploadedIconSetRegistry::class ),
+				$app->make( SvgSanitizer::class ),
+			);
 		} );
 
 		$this->app->singleton( VisualEditor::class, function ( $app ) {
@@ -344,6 +372,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//      and gitignored; the discovery step no-ops cleanly when the
 		//      sync hasn't run yet, so app boot stays robust.
 		$this->registerFontAwesomeFreeIconSets();
+
+		// 4.2. Icon Block Phase 6 (#557) — re-register host-uploaded
+		//      icon sets on every boot. Reads the persisted registry
+		//      and hooks the same `ap.icons.register-icon-sets` filter
+		//      the bundled FA sets use, so the picker, the SVG
+		//      resolver, and the catalog all surface uploaded icons
+		//      without any further wiring.
+		$this->registerUploadedIconSets();
 
 		// 4a. Register taxonomy/feed dynamic blocks against cms-framework's
 		//     term + post APIs. Gated on the package's presence so
@@ -721,6 +757,217 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		// Set the final, correctly merged configuration.
 		config( [ 'artisanpack.visual-editor' => $mergedConfig ] );
+	}
+
+	/**
+	 * Hand the persisted uploaded icon sets to the
+	 * `ap.icons.register-icon-sets` filter.
+	 *
+	 * Phase 6 (#557). The {@see UploadedIconSetRegistry} only carries
+	 * metadata; the directories are managed by {@see IconSetUploader}.
+	 * We tolerate (and log) a missing directory rather than throwing,
+	 * so a stale metadata row left over from a manual rm doesn't break
+	 * boot — the admin can delete the dangling row from the settings
+	 * screen.
+	 *
+	 * Prefix collisions raised by the icons-registry are swallowed at
+	 * boot time so a host with overlapping uploads (or a config that
+	 * also registers a same-prefix set) still boots; the management
+	 * controller catches collisions on upload, which is when the admin
+	 * can act on the error.
+	 *
+	 * @since 1.1.0
+	 */
+	protected function registerUploadedIconSets(): void
+	{
+		if ( ! class_exists( IconSetRegistration::class ) || ! function_exists( 'addFilter' ) ) {
+			return;
+		}
+
+		$app = $this->app;
+
+		addFilter(
+			'ap.icons.register-icon-sets',
+			static function ( IconSetRegistration $registry ) use ( $app ): IconSetRegistration {
+				$persisted = $app->make( UploadedIconSetRegistry::class );
+
+				foreach ( $persisted->all() as $set ) {
+					$path = $persisted->pathFor( $set->prefix );
+					if ( ! is_dir( $path ) ) {
+						continue;
+					}
+
+					try {
+						$registry->addSet( $path, $set->prefix );
+					} catch ( \InvalidArgumentException $e ) {
+						// Mirrors the bundled FA registration loop: keep
+						// boot resilient to bad rows. The settings UI is
+						// the place to surface the underlying conflict.
+						continue;
+					}
+				}
+
+				return $registry;
+			}
+		);
+	}
+
+	/**
+	 * Resolve the absolute filesystem directory under which host-
+	 * uploaded icon sets are persisted.
+	 *
+	 * Defaults to `storage/app/artisanpack/visual-editor/icons/`. Hosts
+	 * can override via `artisanpack.visual-editor.icons.uploaded_path`.
+	 *
+	 * @since 1.1.0
+	 */
+	protected function resolveIconSetsBaseDir( $app ): string
+	{
+		$configured = $app['config']->get( 'artisanpack.visual-editor.icons.uploaded_path' );
+		if ( is_string( $configured ) && '' !== $configured ) {
+			return $configured;
+		}
+
+		$storage = method_exists( $app, 'storagePath' )
+			? $app->storagePath()
+			: ( $app['path.storage'] ?? sys_get_temp_dir() );
+
+		return $storage
+			. DIRECTORY_SEPARATOR . 'app'
+			. DIRECTORY_SEPARATOR . 'artisanpack'
+			. DIRECTORY_SEPARATOR . 'visual-editor'
+			. DIRECTORY_SEPARATOR . 'icons';
+	}
+
+	/**
+	 * Build the catalog manifest by merging the bundled FA Free
+	 * `index.json` with whatever the {@see UploadedIconSetRegistry}
+	 * tracks. Each uploaded SVG file becomes one catalog entry whose
+	 * name is the filename without the `.svg` extension — there is no
+	 * separate manifest for uploaded sets, the on-disk layout IS the
+	 * manifest.
+	 *
+	 * Returns the manifest shape {@see IconCatalog} consumes:
+	 * `{version, sets, icons}`. An unreadable / missing bundled manifest
+	 * does not block the uploaded entries from surfacing in the picker.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array{
+	 *     version?: string,
+	 *     sets: list<array{prefix: string, label: string, source?: string}>,
+	 *     icons: list<array{name: string, set: string, label: string, terms: list<string>}>
+	 * }
+	 */
+	protected function buildMergedIconManifest( $app ): array
+	{
+		$bundled = [ 'version' => '', 'sets' => [], 'icons' => [] ];
+
+		$bundledPath = __DIR__ . '/../resources/icons/font-awesome/index.json';
+		if ( is_file( $bundledPath ) ) {
+			$contents = file_get_contents( $bundledPath );
+			if ( false !== $contents ) {
+				$decoded = json_decode( $contents, true );
+				if ( is_array( $decoded ) ) {
+					$bundled['version'] = isset( $decoded['version'] ) ? (string) $decoded['version'] : '';
+					$bundled['sets']    = is_array( $decoded['sets'] ?? null ) ? array_values( $decoded['sets'] ) : [];
+					$bundled['icons']   = is_array( $decoded['icons'] ?? null ) ? array_values( $decoded['icons'] ) : [];
+				}
+			}
+		}
+
+		try {
+			$persisted = $app->make( UploadedIconSetRegistry::class );
+		} catch ( \Throwable $e ) {
+			return $bundled;
+		}
+
+		// Resolve which prefixes the icon-set registry actually accepted
+		// so the picker never surfaces an icon whose prefix didn't make
+		// it through `registerUploadedIconSets()` — `IconSvgResolver`
+		// otherwise can't serve the SVG at click time, and the picker
+		// would render a black tile or a 404. Both paths now share one
+		// source of truth: the result of `ap.icons.register-icon-sets`.
+		$registeredPrefixes = [];
+		if ( class_exists( IconSetRegistration::class ) && function_exists( 'applyFilters' ) ) {
+			$registry = applyFilters( 'ap.icons.register-icon-sets', new IconSetRegistration() );
+			if ( $registry instanceof IconSetRegistration ) {
+				$registeredPrefixes = array_flip( array_keys( $registry->getSets() ) );
+			}
+		}
+
+		$uploadedSets  = [];
+		$uploadedIcons = [];
+
+		foreach ( $persisted->all() as $set ) {
+			// When the filter ran cleanly, gate every uploaded set on
+			// having survived it. With no filter available (icons
+			// package absent, hooks helper missing) we fall back to
+			// the pre-filter `is_dir()` check so a working install
+			// without those plumbing pieces still surfaces uploads.
+			if ( [] !== $registeredPrefixes && ! isset( $registeredPrefixes[ $set->prefix ] ) ) {
+				continue;
+			}
+
+			$dir = $persisted->pathFor( $set->prefix );
+			if ( ! is_dir( $dir ) ) {
+				continue;
+			}
+
+			$uploadedSets[] = [
+				'prefix' => $set->prefix,
+				'label'  => $set->label,
+				'source' => 'uploaded',
+			];
+
+			$entries = scandir( $dir );
+			if ( false === $entries ) {
+				continue;
+			}
+
+			foreach ( $entries as $entry ) {
+				if ( '.' === $entry || '..' === $entry ) {
+					continue;
+				}
+				if ( '.svg' !== strtolower( substr( $entry, -4 ) ) ) {
+					continue;
+				}
+
+				$name = substr( $entry, 0, -4 );
+				if ( '' === $name ) {
+					// A bare `.svg` filename would produce an empty
+					// catalog entry — drop it so the picker grid
+					// never tries to render an unnamed icon.
+					continue;
+				}
+				$uploadedIcons[] = [
+					'name'  => $name,
+					'set'   => $set->prefix,
+					'label' => $this->humanizeIconName( $name ),
+					'terms' => [],
+				];
+			}
+		}
+
+		return [
+			'version' => $bundled['version'],
+			'sets'    => array_merge( $bundled['sets'], $uploadedSets ),
+			'icons'   => array_merge( $bundled['icons'], $uploadedIcons ),
+		];
+	}
+
+	/**
+	 * Turn an icon basename (`arrow-up`, `user_circle`) into the label
+	 * the picker surfaces (`Arrow Up`, `User Circle`). Used for
+	 * uploaded sets that don't ship a labelled manifest.
+	 *
+	 * @since 1.1.0
+	 */
+	protected function humanizeIconName( string $name ): string
+	{
+		$spaced = preg_replace( '/[-_]+/', ' ', $name ) ?? $name;
+
+		return ucwords( trim( $spaced ) );
 	}
 
 }

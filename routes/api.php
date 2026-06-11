@@ -24,6 +24,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsManagementController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSvgController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSvgSanitizeController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
@@ -221,6 +222,27 @@ Route::get( 'icons/svg', [ IconSvgController::class, 'show' ] )
 // warnings inline before save.
 Route::post( 'icons/svg/sanitize', [ IconSvgSanitizeController::class, 'store' ] )
 	->name( 'visual-editor.api.icons.svg.sanitize' );
+
+// Icon Block Phase 6 (#557) — admin icon-set management endpoints.
+// Each action runs through the bound `SiteEditorAccessGate` (the
+// package's existing visual-editor management policy) inside the
+// controller, so the unauthorised path returns the gate's response
+// rather than a flat 403. The prefix route constraint mirrors the
+// uploader's allow-list to keep `../`-laced inputs from reaching the
+// registry.
+Route::get( 'admin/icon-sets', [ IconSetsManagementController::class, 'index' ] )
+	->name( 'visual-editor.api.admin.icon-sets.index' );
+
+Route::post( 'admin/icon-sets', [ IconSetsManagementController::class, 'store' ] )
+	->name( 'visual-editor.api.admin.icon-sets.store' );
+
+Route::patch( 'admin/icon-sets/{prefix}', [ IconSetsManagementController::class, 'update' ] )
+	->where( 'prefix', '[a-z0-9][a-z0-9_-]{1,31}' )
+	->name( 'visual-editor.api.admin.icon-sets.update' );
+
+Route::delete( 'admin/icon-sets/{prefix}', [ IconSetsManagementController::class, 'destroy' ] )
+	->where( 'prefix', '[a-z0-9][a-z0-9_-]{1,31}' )
+	->name( 'visual-editor.api.admin.icon-sets.destroy' );
 
 // G3 cms-framework Post + Page entity adapters — see plan 12 §4.4.
 // Both controllers resolve their model through `ResourceResolver`, so
