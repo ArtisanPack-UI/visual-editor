@@ -53,8 +53,8 @@ describe( 'artisanpack/icon block.json', () => {
         }
     } );
 
-    it( 'restricts sizeUnit to px, em, rem', () => {
-        expect( metadata.attributes.sizeUnit.enum ).toEqual( [ 'px', 'em', 'rem' ] );
+    it( 'restricts sizeUnit to the supported CSS units', () => {
+        expect( metadata.attributes.sizeUnit.enum ).toEqual( [ 'px', 'em', 'rem', '%', 'vw', 'vh' ] );
     } );
 
     it( 'restricts rotation to multiples of 90', () => {

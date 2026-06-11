@@ -27,9 +27,10 @@ use ArtisanPackUI\VisualEditor\Services\Icon\SvgSanitizer;
 
 class IconBlock extends DynamicBlock
 {
-	private const ALLOWED_SIZE_UNITS    = [ 'px', 'em', 'rem' ];
+	private const ALLOWED_SIZE_UNITS    = [ 'px', 'em', 'rem', '%', 'vw', 'vh' ];
 	private const ALLOWED_ROTATIONS     = [ 0, 90, 180, 270 ];
 	private const ALLOWED_LINK_TARGETS  = [ '_blank', '_self', '_parent', '_top' ];
+	private const ALLOWED_BORDER_STYLES = [ 'none', 'hidden', 'dotted', 'dashed', 'solid', 'double', 'groove', 'ridge', 'inset', 'outset' ];
 
 	public function __construct(
 		private readonly SvgSanitizer $sanitizer,
@@ -53,6 +54,15 @@ class IconBlock extends DynamicBlock
 			? (string) $attrs['sizeUnit']
 			: 'px';
 
+		$width       = $this->normalizeDimension( $attrs['width'] ?? null );
+		$widthUnit   = null === $width
+			? null
+			: ( $this->normalizeSizeUnit( $attrs['widthUnit'] ?? null ) ?? $sizeUnit );
+		$height      = $this->normalizeDimension( $attrs['height'] ?? null );
+		$heightUnit  = null === $height
+			? null
+			: ( $this->normalizeSizeUnit( $attrs['heightUnit'] ?? null ) ?? $sizeUnit );
+
 		$rotation = isset( $attrs['rotation'] ) && in_array( (int) $attrs['rotation'], self::ALLOWED_ROTATIONS, true )
 			? (int) $attrs['rotation']
 			: 0;
@@ -62,22 +72,37 @@ class IconBlock extends DynamicBlock
 			: '';
 
 		return [
-			'iconRef'         => $this->normalizeIconRef( $attrs['iconRef'] ?? null ),
-			'customSvg'       => is_string( $attrs['customSvg'] ?? null ) ? $attrs['customSvg'] : '',
-			'size'            => $size,
-			'sizeUnit'        => $sizeUnit,
-			'color'           => $this->normalizeColor( $attrs['color'] ?? null ),
-			'backgroundColor' => $this->normalizeColor( $attrs['backgroundColor'] ?? null ),
-			'rotation'        => $rotation,
-			'flipH'           => (bool) ( $attrs['flipH'] ?? false ),
-			'flipV'           => (bool) ( $attrs['flipV'] ?? false ),
-			'link'            => $this->normalizeLink( $attrs['link'] ?? null ),
-			'linkTarget'      => $linkTarget,
-			'linkRel'         => is_string( $attrs['linkRel'] ?? null ) ? (string) $attrs['linkRel'] : '',
-			'titleAttr'       => is_string( $attrs['titleAttr'] ?? null ) ? (string) $attrs['titleAttr'] : '',
-			'ariaLabel'       => is_string( $attrs['ariaLabel'] ?? null ) ? (string) $attrs['ariaLabel'] : '',
-			'isDecorative'    => (bool) ( $attrs['isDecorative'] ?? false ),
-			'className'       => is_string( $attrs['className'] ?? null ) ? (string) $attrs['className'] : '',
+			'iconRef'             => $this->normalizeIconRef( $attrs['iconRef'] ?? null ),
+			'customSvg'           => is_string( $attrs['customSvg'] ?? null ) ? $attrs['customSvg'] : '',
+			'size'                => $size,
+			'sizeUnit'            => $sizeUnit,
+			'width'               => $width,
+			'widthUnit'           => $widthUnit,
+			'height'              => $height,
+			'heightUnit'          => $heightUnit,
+			// Legacy top-level slots kept around so blocks saved before
+			// the iconColor + WP-style-envelope work still render their
+			// picked colors.
+			'color'               => $this->normalizeColor( $attrs['color'] ?? null ),
+			'backgroundColor'     => $this->normalizeColor( $attrs['backgroundColor'] ?? null ),
+			'iconColor'           => $this->normalizeColor( $attrs['iconColor'] ?? null ),
+			// Palette-color slugs from WP `supports.color` /
+			// `supports.__experimentalBorder` — only the palette
+			// `backgroundColor`/`borderColor` slugs reach top-level
+			// attrs; custom hex values land inside `style`.
+			'paletteBackground'   => $this->normalizePaletteSlug( $attrs['backgroundColor'] ?? null ),
+			'paletteBorderColor'  => $this->normalizePaletteSlug( $attrs['borderColor'] ?? null ),
+			'rotation'            => $rotation,
+			'flipH'               => (bool) ( $attrs['flipH'] ?? false ),
+			'flipV'               => (bool) ( $attrs['flipV'] ?? false ),
+			'link'                => $this->normalizeLink( $attrs['link'] ?? null ),
+			'linkTarget'          => $linkTarget,
+			'linkRel'             => is_string( $attrs['linkRel'] ?? null ) ? (string) $attrs['linkRel'] : '',
+			'titleAttr'           => is_string( $attrs['titleAttr'] ?? null ) ? (string) $attrs['titleAttr'] : '',
+			'ariaLabel'           => is_string( $attrs['ariaLabel'] ?? null ) ? (string) $attrs['ariaLabel'] : '',
+			'isDecorative'        => (bool) ( $attrs['isDecorative'] ?? false ),
+			'className'           => is_string( $attrs['className'] ?? null ) ? (string) $attrs['className'] : '',
+			'style'               => is_array( $attrs['style'] ?? null ) ? $attrs['style'] : [],
 		];
 	}
 
@@ -92,14 +117,19 @@ class IconBlock extends DynamicBlock
 		}
 
 		$wrapperClasses = $this->wrapperClasses( $attrs );
+		$wrapperStyle   = $this->wrapperStyle( $attrs );
 
 		// The wrapper is a plain block element so the editor's
 		// `is-layout-constrained` parent keeps the icon inside the
 		// content column. The inline-flex sizing lives on the body
-		// span — see `innerStyle()`.
+		// span — see `bodyStyle()`. Margin is the one style we apply
+		// here because `display: inline-flex` on the body span
+		// (correctly) participates in inline-layout vertical metrics,
+		// whereas margin is a block-level concern.
 		return sprintf(
-			'<div class="%s">%s</div>',
+			'<div class="%s"%s>%s</div>',
 			e( implode( ' ', $wrapperClasses ) ),
+			'' !== $wrapperStyle ? sprintf( ' style="%s"', e( $wrapperStyle ) ) : '',
 			$body
 		);
 	}
@@ -195,6 +225,29 @@ class IconBlock extends DynamicBlock
 			$classes[] = $attrs['className'];
 		}
 
+		$style = is_array( $attrs['style'] ?? null ) ? $attrs['style'] : [];
+
+		// WP `supports.color` palette selections (slugs) need their
+		// `has-{slug}-background-color` + `has-background` class pair to
+		// pick up the theme.json CSS variable. Custom hex values arrive
+		// inside `style.color.background` and are applied as inline CSS
+		// in `wrapperStyle()` instead.
+		if ( '' !== $attrs['paletteBackground'] ) {
+			$classes[] = sprintf( 'has-%s-background-color', $attrs['paletteBackground'] );
+			$classes[] = 'has-background';
+		} elseif ( null !== $this->normalizeColor( $style['color']['background'] ?? null ) ) {
+			$classes[] = 'has-background';
+		}
+
+		// `supports.__experimentalBorder` mirrors the same palette/custom
+		// split for border color.
+		if ( '' !== $attrs['paletteBorderColor'] ) {
+			$classes[] = sprintf( 'has-%s-border-color', $attrs['paletteBorderColor'] );
+			$classes[] = 'has-border-color';
+		} elseif ( null !== $this->normalizeColor( $style['border']['color'] ?? null ) ) {
+			$classes[] = 'has-border-color';
+		}
+
 		return $classes;
 	}
 
@@ -205,24 +258,33 @@ class IconBlock extends DynamicBlock
 	 * outer wrapper `<div>`, so the wrapper stays a plain block-flow
 	 * element and the editor's layout-constrained parent keeps the
 	 * icon inside the content column.
+	 *
+	 * The body span also carries the icon's `color` — which the bundled
+	 * SVGs pick up via `fill: currentcolor` (declared on
+	 * `.wp-block-artisanpack-icon svg` in `icon.css`). Precedence:
+	 * explicit `iconColor` wins, then the WP `style.color.text` slot
+	 * (kept for blocks that still carry it), then the legacy top-level
+	 * `color` attribute.
 	 */
 	private function bodyStyle( array $attrs ): string
 	{
-		$dimension = sprintf( '%s%s', $this->formatNumber( $attrs['size'] ), $attrs['sizeUnit'] );
-		$parts     = [
-			'width: ' . $dimension,
-			'height: ' . $dimension,
+		$width  = sprintf( '%s%s', $this->formatNumber( $attrs['width']  ?? $attrs['size'] ), $attrs['widthUnit']  ?? $attrs['sizeUnit'] );
+		$height = sprintf( '%s%s', $this->formatNumber( $attrs['height'] ?? $attrs['size'] ), $attrs['heightUnit'] ?? $attrs['sizeUnit'] );
+
+		$parts = [
+			'width: ' . $width,
+			'height: ' . $height,
 			'display: inline-flex',
 			'align-items: center',
 			'justify-content: center',
 			'line-height: 0',
 		];
 
-		if ( null !== $attrs['color'] ) {
-			$parts[] = 'color: ' . $attrs['color'];
-		}
-		if ( null !== $attrs['backgroundColor'] ) {
-			$parts[] = 'background-color: ' . $attrs['backgroundColor'];
+		$style  = is_array( $attrs['style'] ?? null ) ? $attrs['style'] : [];
+		$wpText = $this->normalizeColor( $style['color']['text'] ?? null );
+		$color  = $attrs['iconColor'] ?? $wpText ?? $attrs['color'];
+		if ( null !== $color ) {
+			$parts[] = 'color: ' . $color;
 		}
 
 		$transform = $this->computeTransform( $attrs );
@@ -232,6 +294,151 @@ class IconBlock extends DynamicBlock
 		}
 
 		return implode( '; ', $parts ) . ';';
+	}
+
+	/**
+	 * Wrapper `<div>` style.
+	 *
+	 * Carries the WP-managed background/border/padding/margin from the
+	 * `attributes.style` envelope plus the legacy top-level
+	 * `backgroundColor` for pre-fix blocks. The icon's foreground color
+	 * stays on the body span via `bodyStyle()` so the SVG's
+	 * `fill: currentcolor` picks it up without spilling onto the wrapper.
+	 * Returns an empty string (not `style=""`) when nothing applies so
+	 * the wrapper markup stays attribute-clean.
+	 */
+	private function wrapperStyle( array $attrs ): string
+	{
+		$style = is_array( $attrs['style'] ?? null ) ? $attrs['style'] : [];
+		$parts = [];
+
+		// Custom hex background (style.color.background); the palette
+		// slug case is handled via `has-{slug}-background-color` in
+		// `wrapperClasses()`. The legacy top-level `backgroundColor`
+		// hex is the fallback for blocks saved before the WP-managed
+		// envelope reached this block.
+		$wpBackground = $this->normalizeColor( $style['color']['background'] ?? null );
+		$background   = '' === $attrs['paletteBackground'] ? ( $wpBackground ?? $attrs['backgroundColor'] ) : null;
+		if ( null !== $background ) {
+			$parts[] = 'background-color: ' . $background;
+		}
+
+		foreach ( $this->borderDeclarations( $style['border'] ?? null ) as $decl ) {
+			$parts[] = $decl;
+		}
+		foreach ( $this->boxDeclarations( $style['spacing']['padding'] ?? null, 'padding' ) as $decl ) {
+			$parts[] = $decl;
+		}
+		foreach ( $this->boxDeclarations( $style['spacing']['margin'] ?? null, 'margin' ) as $decl ) {
+			$parts[] = $decl;
+		}
+
+		if ( [] === $parts ) {
+			return '';
+		}
+
+		return implode( '; ', $parts ) . ';';
+	}
+
+	/**
+	 * Emit CSS declarations for a WP border envelope.
+	 *
+	 * Accepts uniform (`width`/`color`/`style`/`radius` at the top level)
+	 * and per-side (`top`/`right`/`bottom`/`left` objects) forms. Values
+	 * are passed through {@see normalizeColor} for colors and
+	 * {@see normalizeDimensionString} for widths/radii, so anything that
+	 * smuggles a `;` or quote into the inline style falls back to the
+	 * empty string and is dropped.
+	 *
+	 * @param  mixed  $border
+	 *
+	 * @return \Generator<int, string>
+	 */
+	private function borderDeclarations( mixed $border ): \Generator
+	{
+		if ( ! is_array( $border ) ) {
+			return;
+		}
+
+		$radius = $border['radius'] ?? null;
+		if ( is_string( $radius ) ) {
+			$safe = $this->normalizeDimensionString( $radius );
+			if ( null !== $safe ) {
+				yield 'border-radius: ' . $safe;
+			}
+		} elseif ( is_array( $radius ) ) {
+			foreach ( [
+				'topLeft'     => 'border-top-left-radius',
+				'topRight'    => 'border-top-right-radius',
+				'bottomRight' => 'border-bottom-right-radius',
+				'bottomLeft'  => 'border-bottom-left-radius',
+			] as $key => $cssName ) {
+				$safe = $this->normalizeDimensionString( $radius[ $key ] ?? null );
+				if ( null !== $safe ) {
+					yield $cssName . ': ' . $safe;
+				}
+			}
+		}
+
+		foreach ( [ 'color' => 'border-color', 'style' => 'border-style', 'width' => 'border-width' ] as $key => $cssName ) {
+			$value = $border[ $key ] ?? null;
+			$safe  = 'color' === $key
+				? $this->normalizeColor( $value )
+				: ( 'style' === $key ? $this->normalizeBorderStyle( $value ) : $this->normalizeDimensionString( $value ) );
+			if ( null !== $safe ) {
+				yield $cssName . ': ' . $safe;
+			}
+		}
+
+		foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
+			$entry = $border[ $side ] ?? null;
+			if ( ! is_array( $entry ) ) {
+				continue;
+			}
+			$sideColor = $this->normalizeColor( $entry['color'] ?? null );
+			$sideStyle = $this->normalizeBorderStyle( $entry['style'] ?? null );
+			$sideWidth = $this->normalizeDimensionString( $entry['width'] ?? null );
+			if ( null !== $sideColor ) {
+				yield sprintf( 'border-%s-color: %s', $side, $sideColor );
+			}
+			if ( null !== $sideStyle ) {
+				yield sprintf( 'border-%s-style: %s', $side, $sideStyle );
+			}
+			if ( null !== $sideWidth ) {
+				yield sprintf( 'border-%s-width: %s', $side, $sideWidth );
+			}
+		}
+	}
+
+	/**
+	 * Emit CSS declarations for a WP box (padding|margin) envelope.
+	 *
+	 * @param  mixed   $value
+	 * @param  string  $shorthand  `padding` or `margin`.
+	 *
+	 * @return \Generator<int, string>
+	 */
+	private function boxDeclarations( mixed $value, string $shorthand ): \Generator
+	{
+		if ( null === $value ) {
+			return;
+		}
+		if ( is_string( $value ) ) {
+			$safe = $this->normalizeDimensionString( $value );
+			if ( null !== $safe ) {
+				yield $shorthand . ': ' . $safe;
+			}
+			return;
+		}
+		if ( ! is_array( $value ) ) {
+			return;
+		}
+		foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
+			$safe = $this->normalizeDimensionString( $value[ $side ] ?? null );
+			if ( null !== $safe ) {
+				yield sprintf( '%s-%s: %s', $shorthand, $side, $safe );
+			}
+		}
 	}
 
 	private function computeTransform( array $attrs ): string
@@ -351,6 +558,38 @@ class IconBlock extends DynamicBlock
 		return $trimmed;
 	}
 
+	/**
+	 * Coerce a WP palette-color slug into a kebab-case safe form.
+	 *
+	 * WP writes the slug of a palette pick into the top-level
+	 * `backgroundColor` / `borderColor` attributes (NOT inside `style`).
+	 * The slug is interpolated into a `has-{slug}-background-color`
+	 * class, so anything that isn't `[a-z0-9-]+` would break the
+	 * markup. Returns the empty string for missing / malformed values
+	 * so the caller can just check `'' !== $slug`.
+	 *
+	 * Also rejects values that look like hex/rgb/etc. — those reach
+	 * `backgroundColor` only on already-saved blocks where the slot was
+	 * being used as the legacy hex storage; the hex fallback path in
+	 * `wrapperStyle()` keeps them honored without misclassing them.
+	 */
+	private function normalizePaletteSlug( mixed $value ): string
+	{
+		if ( ! is_string( $value ) ) {
+			return '';
+		}
+		$trimmed = trim( $value );
+		if ( '' === $trimmed ) {
+			return '';
+		}
+		// A WP palette slug is always lowercase kebab-case; the legacy
+		// hex/CSS-value forms all start with `#`, contain `(`, etc.
+		if ( ! preg_match( '/^[a-z][a-z0-9-]*$/', $trimmed ) ) {
+			return '';
+		}
+		return $trimmed;
+	}
+
 	private function normalizeColor( mixed $value ): ?string
 	{
 		if ( ! is_string( $value ) ) {
@@ -371,6 +610,68 @@ class IconBlock extends DynamicBlock
 		}
 
 		return $trimmed;
+	}
+
+	/**
+	 * Coerce a raw width/height attribute into a clamped float.
+	 *
+	 * Returns `null` (not a default size) when the value is missing or
+	 * non-numeric so the caller can distinguish "author cleared the
+	 * override" from "author typed 0" — null means fall back to `size`,
+	 * which is the correct behavior for an unset width/height.
+	 */
+	private function normalizeDimension( mixed $value ): ?float
+	{
+		if ( null === $value || ! is_numeric( $value ) ) {
+			return null;
+		}
+		return max( 1.0, min( 1024.0, (float) $value ) );
+	}
+
+	private function normalizeSizeUnit( mixed $value ): ?string
+	{
+		if ( ! is_string( $value ) ) {
+			return null;
+		}
+		return in_array( $value, self::ALLOWED_SIZE_UNITS, true ) ? $value : null;
+	}
+
+	/**
+	 * Allowlist a CSS dimension string (e.g. `48px`, `1.5em`, `var(--gap)`).
+	 *
+	 * Returns `null` for anything else so the value is dropped from the
+	 * rendered style rather than reaching the markup. The grammar accepts
+	 * the same units as {@see ALLOWED_SIZE_UNITS}, plus `vmin`/`vmax`
+	 * (read-only — never written here) and the `var(--token)` form WP's
+	 * theme.json uses for global-style references.
+	 */
+	private function normalizeDimensionString( mixed $value ): ?string
+	{
+		if ( ! is_string( $value ) ) {
+			return null;
+		}
+		$trimmed = trim( $value );
+		if ( '' === $trimmed ) {
+			return null;
+		}
+		if ( preg_match( '/^var\(--[a-z0-9_-]+\)$/i', $trimmed ) ) {
+			return $trimmed;
+		}
+		// Whitespace-separated list of `<number><unit>?` tokens to cover
+		// `padding: 4px 8px 4px 8px` and the like.
+		if ( ! preg_match( '/^(-?\d+(\.\d+)?(px|em|rem|%|vw|vh|vmin|vmax)?)(\s+-?\d+(\.\d+)?(px|em|rem|%|vw|vh|vmin|vmax)?)*$/i', $trimmed ) ) {
+			return null;
+		}
+		return $trimmed;
+	}
+
+	private function normalizeBorderStyle( mixed $value ): ?string
+	{
+		if ( ! is_string( $value ) ) {
+			return null;
+		}
+		$trimmed = strtolower( trim( $value ) );
+		return in_array( $trimmed, self::ALLOWED_BORDER_STYLES, true ) ? $trimmed : null;
 	}
 
 	/**

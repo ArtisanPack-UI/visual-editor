@@ -28,6 +28,9 @@ interface IconSaveProps {
 export default function IconSave( { attributes }: IconSaveProps ): ReactElement {
     const normalized = normalizeAttributes( attributes );
     const transform = computeTransform( normalized );
+    // No wrapper style here — `useBlockProps.save` already serializes
+    // WP-managed background/border/spacing onto the wrapper div via the
+    // block.json `supports` map.
     const blockProps = useBlockProps.save();
     const sizedStyle = computeIconStyle( normalized );
 

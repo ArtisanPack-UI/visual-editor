@@ -9,14 +9,26 @@
 
 import { useEffect, useState } from 'react';
 import type { ReactElement } from 'react';
-import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
-import { Button, PanelBody } from '@wordpress/components';
+import {
+    InspectorControls,
+    PanelColorSettings,
+    useBlockProps,
+} from '@wordpress/block-editor';
+import {
+    Button,
+    PanelBody,
+    PanelRow,
+    // eslint-disable-next-line @typescript-eslint/naming-convention -- WP component name
+    __experimentalNumberControl as NumberControl,
+    // eslint-disable-next-line @typescript-eslint/naming-convention -- WP component name
+    __experimentalUnitControl as UnitControl,
+} from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { sanitizeOnServer } from './custom-svg';
 import CustomSvgControl from './custom-svg-control';
 import IconPicker from './icon-picker';
-import type { IconAttributes, IconRef } from './types';
+import type { IconAttributes, IconRef, SizeUnit } from './types';
 import {
     composeRel,
     computeIconStyle,
@@ -27,6 +39,56 @@ import {
     shouldRenderLink,
 } from './utils';
 
+const SIZE_UNIT_OPTIONS: ReadonlyArray< { value: SizeUnit; label: string } > = [
+    { value: 'px', label: 'px' },
+    { value: 'em', label: 'em' },
+    { value: 'rem', label: 'rem' },
+    { value: '%', label: '%' },
+    { value: 'vw', label: 'vw' },
+    { value: 'vh', label: 'vh' },
+];
+
+const ALLOWED_UNITS: ReadonlySet< SizeUnit > = new Set(
+    SIZE_UNIT_OPTIONS.map( ( option ) => option.value ),
+);
+
+interface ParsedUnitValue {
+    readonly value: number | null;
+    readonly unit: SizeUnit | null;
+}
+
+/**
+ * Parse the `'48px'` / `'1.5em'` strings that `UnitControl` emits.
+ *
+ * Returns nulls (not zeros) when either component is missing so the
+ * caller can persist "author cleared the field" as a distinct state
+ * from "author typed 0" — `width: null` falls back to `size`, while
+ * `width: 0` would render a zero-size box. Negative inputs are
+ * rejected outright so authors can't dial in a negative dimension
+ * that would clamp into 1 on the server but render as 0 in the
+ * canvas mid-flight.
+ */
+function parseUnitValue( raw: string | undefined | null ): ParsedUnitValue {
+    if ( typeof raw !== 'string' ) {
+        return { value: null, unit: null };
+    }
+    const trimmed = raw.trim();
+    if ( trimmed.length === 0 ) {
+        return { value: null, unit: null };
+    }
+    const match = trimmed.match( /^(\d+(?:\.\d+)?)([a-z%]+)?$/i );
+    if ( ! match ) {
+        return { value: null, unit: null };
+    }
+    const value = Number.parseFloat( match[ 1 ] );
+    if ( ! Number.isFinite( value ) || value < 0 ) {
+        return { value: null, unit: null };
+    }
+    const unitRaw = ( match[ 2 ] ?? 'px' ).toLowerCase() as SizeUnit;
+    const unit = ALLOWED_UNITS.has( unitRaw ) ? unitRaw : 'px';
+    return { value, unit };
+}
+
 interface IconEditProps {
     readonly attributes: IconAttributes;
     readonly setAttributes: ( next: Partial< IconAttributes > ) => void;
@@ -34,8 +96,56 @@ interface IconEditProps {
 
 export default function IconEdit( { attributes, setAttributes }: IconEditProps ): ReactElement {
     const normalized = normalizeAttributes( attributes );
+    // No wrapper style is computed here — `useBlockProps()` already
+    // injects WP-managed background/border/padding/margin onto the
+    // wrapper div via the block.json `supports` map. See utils.ts.
     const blockProps = useBlockProps();
     const [ pickerOpen, setPickerOpen ] = useState( false );
+
+    const widthDisplay  = normalized.widthExplicit  ? `${ normalized.width }${ normalized.widthUnit }`   : '';
+    const heightDisplay = normalized.heightExplicit ? `${ normalized.height }${ normalized.heightUnit }` : '';
+
+    const onSizeChange = ( next: string | number | undefined ): void => {
+        // NumberControl emits `string | number | undefined`. Coerce
+        // through `Number.parseFloat` on string input so the size
+        // attribute stays a number; skip the update when the input is
+        // cleared so the old value is preserved rather than persisting
+        // `NaN`.
+        let parsed: number;
+        if ( typeof next === 'number' ) {
+            parsed = next;
+        } else if ( typeof next === 'string' ) {
+            parsed = Number.parseFloat( next );
+        } else {
+            return;
+        }
+        if ( ! Number.isFinite( parsed ) ) {
+            return;
+        }
+        setAttributes( { size: parsed } );
+    };
+
+    const onWidthChange = ( next: string | undefined ): void => {
+        const parsed = parseUnitValue( next );
+        if ( parsed.value === null ) {
+            setAttributes( { width: null, widthUnit: null } );
+            return;
+        }
+        setAttributes( { width: parsed.value, widthUnit: parsed.unit ?? 'px' } );
+    };
+
+    const onHeightChange = ( next: string | undefined ): void => {
+        const parsed = parseUnitValue( next );
+        if ( parsed.value === null ) {
+            setAttributes( { height: null, heightUnit: null } );
+            return;
+        }
+        setAttributes( { height: parsed.value, heightUnit: parsed.unit ?? 'px' } );
+    };
+
+    const onIconColorChange = ( next: string | undefined ): void => {
+        setAttributes( { iconColor: typeof next === 'string' ? next : '' } );
+    };
 
     const openPicker = (): void => setPickerOpen( true );
     const closePicker = (): void => setPickerOpen( false );
@@ -236,6 +346,56 @@ export default function IconEdit( { attributes, setAttributes }: IconEditProps )
                             </code>
                         </p>
                     ) }
+                </PanelBody>
+                <PanelColorSettings
+                    title={ __( 'Color', 'artisanpack-visual-editor' ) }
+                    initialOpen={ false }
+                    colorSettings={ [
+                        {
+                            value: normalized.iconColor || undefined,
+                            onChange: onIconColorChange,
+                            label: __( 'Icon', 'artisanpack-visual-editor' ),
+                        },
+                    ] }
+                />
+                <PanelBody
+                    title={ __( 'Dimensions', 'artisanpack-visual-editor' ) }
+                    initialOpen={ false }
+                >
+                    <PanelRow>
+                        <NumberControl
+                            label={ __( 'Size', 'artisanpack-visual-editor' ) }
+                            help={ __(
+                                'Sets width and height together. Override either below.',
+                                'artisanpack-visual-editor',
+                            ) }
+                            value={ normalized.size }
+                            min={ 1 }
+                            max={ 1024 }
+                            onChange={ onSizeChange }
+                            __next40pxDefaultSize
+                        />
+                    </PanelRow>
+                    <PanelRow>
+                        <UnitControl
+                            label={ __( 'Width', 'artisanpack-visual-editor' ) }
+                            value={ widthDisplay }
+                            units={ [ ...SIZE_UNIT_OPTIONS ] }
+                            onChange={ onWidthChange }
+                            placeholder={ __( 'Same as size', 'artisanpack-visual-editor' ) }
+                            __next40pxDefaultSize
+                        />
+                    </PanelRow>
+                    <PanelRow>
+                        <UnitControl
+                            label={ __( 'Height', 'artisanpack-visual-editor' ) }
+                            value={ heightDisplay }
+                            units={ [ ...SIZE_UNIT_OPTIONS ] }
+                            onChange={ onHeightChange }
+                            placeholder={ __( 'Same as size', 'artisanpack-visual-editor' ) }
+                            __next40pxDefaultSize
+                        />
+                    </PanelRow>
                 </PanelBody>
                 <CustomSvgControl
                     customSvg={ normalized.customSvg }

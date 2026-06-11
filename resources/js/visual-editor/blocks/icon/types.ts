@@ -19,8 +19,36 @@ export interface IconRef {
     readonly name: string;
 }
 
-export type SizeUnit = 'px' | 'em' | 'rem';
+export type SizeUnit = 'px' | 'em' | 'rem' | '%' | 'vw' | 'vh';
 export type Rotation = 0 | 90 | 180 | 270;
+
+/**
+ * Subset of WordPress's `style` attribute that the icon block reads.
+ *
+ * `supports.color`, `supports.spacing`, and `supports.__experimentalBorder`
+ * all write into the same `style` envelope. We declare just the slots we
+ * consume — the wider WP shape is wider but irrelevant here.
+ */
+export interface WpStyleAttribute {
+    readonly color?: {
+        readonly text?: string | null;
+        readonly background?: string | null;
+    } | null;
+    readonly border?: {
+        readonly color?: string | null;
+        readonly radius?: string | { readonly topLeft?: string | null; readonly topRight?: string | null; readonly bottomLeft?: string | null; readonly bottomRight?: string | null } | null;
+        readonly style?: string | null;
+        readonly width?: string | null;
+        readonly top?: { readonly color?: string | null; readonly style?: string | null; readonly width?: string | null } | null;
+        readonly right?: { readonly color?: string | null; readonly style?: string | null; readonly width?: string | null } | null;
+        readonly bottom?: { readonly color?: string | null; readonly style?: string | null; readonly width?: string | null } | null;
+        readonly left?: { readonly color?: string | null; readonly style?: string | null; readonly width?: string | null } | null;
+    } | null;
+    readonly spacing?: {
+        readonly padding?: string | { readonly top?: string | null; readonly right?: string | null; readonly bottom?: string | null; readonly left?: string | null } | null;
+        readonly margin?: string | { readonly top?: string | null; readonly right?: string | null; readonly bottom?: string | null; readonly left?: string | null } | null;
+    } | null;
+}
 
 /**
  * Every string attribute is typed `string | null | undefined` because
@@ -34,8 +62,13 @@ export interface IconAttributes {
     readonly customSvg: string | null | undefined;
     readonly size: number | null | undefined;
     readonly sizeUnit: SizeUnit | null | undefined;
+    readonly width?: number | null;
+    readonly widthUnit?: SizeUnit | null;
+    readonly height?: number | null;
+    readonly heightUnit?: SizeUnit | null;
     readonly color?: string | null;
     readonly backgroundColor?: string | null;
+    readonly iconColor?: string | null;
     readonly rotation: Rotation | null | undefined;
     readonly flipH: boolean | null | undefined;
     readonly flipV: boolean | null | undefined;
@@ -45,20 +78,34 @@ export interface IconAttributes {
     readonly titleAttr: string | null | undefined;
     readonly ariaLabel: string | null | undefined;
     readonly isDecorative: boolean | null | undefined;
+    readonly style?: WpStyleAttribute | null;
 }
 
 /**
  * The "always present, always the right type" form used internally
  * by the render helpers. Authors never construct this directly —
  * {@link normalizeAttributes} produces it from the raw `IconAttributes`.
+ *
+ * `width`/`height` are the resolved render-time dimensions: when the
+ * author left them unset, {@link normalizeAttributes} fills them from
+ * `size`/`sizeUnit` so downstream helpers only have to read one pair.
+ * `widthExplicit` / `heightExplicit` flag whether the author actually
+ * overrode `size` — useful for UI hints, never for rendering.
  */
 export interface NormalizedIconAttributes {
     readonly iconRef: IconRef | null;
     readonly customSvg: string;
     readonly size: number;
     readonly sizeUnit: SizeUnit;
+    readonly width: number;
+    readonly widthUnit: SizeUnit;
+    readonly widthExplicit: boolean;
+    readonly height: number;
+    readonly heightUnit: SizeUnit;
+    readonly heightExplicit: boolean;
     readonly color: string;
     readonly backgroundColor: string;
+    readonly iconColor: string;
     readonly rotation: Rotation;
     readonly flipH: boolean;
     readonly flipV: boolean;
@@ -68,4 +115,5 @@ export interface NormalizedIconAttributes {
     readonly titleAttr: string;
     readonly ariaLabel: string;
     readonly isDecorative: boolean;
+    readonly style: WpStyleAttribute;
 }

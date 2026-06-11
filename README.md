@@ -13,6 +13,10 @@ V1.0 ships:
   styles, navigation menus, and patterns; mounted at `/visual-editor/site`.
 - **42 forked core blocks** under the `artisanpack/*` namespace.
   `core/*` markup pasted from upstream auto-converts on insert.
+- **Icon block** (`artisanpack/icon`, v1.1) — Font Awesome 6 Free
+  bundled, custom SVG paste with server-side sanitization, and admin
+  upload for licensed sets (e.g. Font Awesome Pro). See
+  [`docs/blocks/Icon-Block.md`](docs/blocks/Icon-Block.md).
 - **Three renderer packages** — Blade (server-side), React, and Vue —
   for rendering saved block content on the public site.
 - **First-class pairing** with [`artisanpack-ui/cms-framework`](https://github.com/ArtisanPack-UI/cms-framework)
