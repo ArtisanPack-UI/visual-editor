@@ -20,6 +20,7 @@ import {
 } from './artisanpack/accordion';
 import { BreadcrumbsBlock } from './artisanpack/breadcrumbs';
 import { CalloutBlock } from './artisanpack/callout';
+import { GridBlock, GridItemBlock } from './artisanpack/grid';
 import { TabSectionBlock, TabsBlock } from './artisanpack/tabs';
 import { LoginoutBlock } from './artisanpack/loginout';
 import {
@@ -228,6 +229,11 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/accordion-body': AccordionBodyBlock,
     'artisanpack/tabs': TabsBlock,
     'artisanpack/tab-section': TabSectionBlock,
+    // Grid family (#498). Parent grid owns the responsive column count
+    // classes + inline gap declarations; each grid item owns its
+    // per-breakpoint span classes and inner-layout flex class.
+    'artisanpack/grid': GridBlock,
+    'artisanpack/grid-item': GridItemBlock,
     // Post navigation / metadata family (#520) — same renderer for both
     // namespaces; PostResolver stamps the same `_resolved*` attributes.
     'core/post-navigation-link': PostNavigationLinkBlock,

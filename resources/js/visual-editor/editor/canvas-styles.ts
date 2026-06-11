@@ -35,6 +35,7 @@ import {
 } from '../editor-settings';
 
 import accordionStyles from '../blocks/accordion/accordion.css?inline';
+import gridStyles from '../blocks/grid/grid.css?inline';
 import tabsStyles from '../blocks/tabs/tabs.css?inline';
 
 import canvasThemeTokens from './canvas-theme-tokens.css?inline';
@@ -109,6 +110,10 @@ export const canvasStyles: readonly CanvasStyle[] = [
     // editability) are appended after the front-end rules.
     { css: accordionStyles },
     { css: tabsStyles },
+    // Grid family (#498) — same iframe-doesn't-see-`?inline` story as
+    // accordion/tabs above. Ship the rules here so authors get an
+    // accurate preview of the responsive column layout.
+    { css: gridStyles },
     {
         css: `
             /* Editor preview overrides — keep every panel and tab

@@ -878,6 +878,106 @@ describe('Core design blocks', () => {
         expect(html).not.toContain('aria-labelledby=');
         expect(html).toContain('Naked');
     });
+
+    it('renders an artisanpack/grid tree with per-breakpoint column + span classes', () => {
+        const tree = [
+            makeBlock(
+                'artisanpack/grid',
+                { numColumns: 4 },
+                [
+                    makeBlock(
+                        'artisanpack/grid-item',
+                        {
+                            innerLayout: 'center',
+                            gridColumnSpan: 2,
+                            gridRowSpan: 1,
+                        },
+                        [makeBlock('core/paragraph', { content: 'Cell content' })]
+                    ),
+                ]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('ap-grid');
+        expect(html).toContain('ap-grid-has-4-base-columns');
+        expect(html).toContain('ap-grid-item');
+        expect(html).toContain('ap-grid-item-layout-center');
+        expect(html).toContain('ap-grid-item-span-2-base-columns');
+        expect(html).toContain('ap-grid-item-span-1-base-row');
+        expect(html).toContain('Cell content');
+    });
+
+    it('emits per-breakpoint grid column classes from responsive.numColumns', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/grid', {
+                numColumns: 1,
+                responsive: { numColumns: { md: 2, lg: 4 } },
+            }),
+        ]);
+
+        expect(html).toContain('ap-grid-has-1-base-columns');
+        expect(html).toContain('ap-grid-has-2-md-columns');
+        expect(html).toContain('ap-grid-has-4-lg-columns');
+    });
+
+    it('emits per-breakpoint span classes from responsive.gridColumnSpan / gridRowSpan', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/grid-item', {
+                gridColumnSpan: 1,
+                gridRowSpan: 1,
+                responsive: {
+                    gridColumnSpan: { md: 2, lg: 3 },
+                    gridRowSpan: { md: 2 },
+                },
+            }),
+        ]);
+
+        expect(html).toContain('ap-grid-item-span-1-base-columns');
+        expect(html).toContain('ap-grid-item-span-1-base-row');
+        expect(html).toContain('ap-grid-item-span-2-md-columns');
+        expect(html).toContain('ap-grid-item-span-3-lg-columns');
+        expect(html).toContain('ap-grid-item-span-2-md-row');
+    });
+
+    it('clamps grid column counts outside 1-12 to safe defaults', () => {
+        const tooHigh = renderTree([
+            makeBlock('artisanpack/grid', { numColumns: 99 }),
+        ]);
+        const tooLow = renderTree([
+            makeBlock('artisanpack/grid', { numColumns: 0 }),
+        ]);
+
+        expect(tooHigh).toContain('ap-grid-has-12-base-columns');
+        expect(tooLow).toContain('ap-grid-has-1-base-columns');
+    });
+
+    it('clamps grid-item spans outside 1-12 to safe defaults', () => {
+        const tooHigh = renderTree([
+            makeBlock('artisanpack/grid-item', {
+                gridColumnSpan: 99,
+                gridRowSpan: 0,
+            }),
+        ]);
+
+        expect(tooHigh).toContain('ap-grid-item-span-12-base-columns');
+        expect(tooHigh).toContain('ap-grid-item-span-1-base-row');
+    });
+
+    it('falls back to a safe default when grid-item innerLayout is invalid', () => {
+        const tree = [
+            makeBlock('artisanpack/grid-item', {
+                innerLayout: 'evil"><script>',
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('ap-grid-item-layout-normal');
+        expect(html).not.toContain('<script>');
+        expect(html).not.toContain('ap-grid-item-layout-evil');
+    });
 });
 
 describe('Registry + dynamic fallback', () => {

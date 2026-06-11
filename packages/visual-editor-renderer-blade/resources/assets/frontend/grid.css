@@ -1,0 +1,312 @@
+/**
+ * Grid family styles (#498).
+ *
+ * Loaded in the editor via `blocks/{grid,grid-item}/index.ts`. On the
+ * public frontend the Blade renderer serves an identical copy from
+ * `packages/visual-editor-renderer-blade/resources/assets/frontend/grid.css`,
+ * wired up by `<x-ve-blocks-styles />`. React and Vue renderers emit
+ * the same class names so a single stylesheet covers all three.
+ *
+ * Per-breakpoint column count and item span are encoded as static
+ * classes — `ap-grid-has-N-{bp}-columns`, `ap-grid-item-span-N-{bp}-columns`,
+ * `ap-grid-item-span-N-{bp}-row` — and emitted by the renderers on each
+ * instance. Mobile-first cascade: base rules first, then each registered
+ * Tailwind breakpoint (sm 640, md 768, lg 1024, xl 1280, 2xl 1536) in
+ * ascending min-width order, so a later breakpoint's class overrides the
+ * earlier one for the wider viewport.
+ */
+
+.ap-grid {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    height: 100%;
+}
+
+.ap-grid-item {
+    display: flex;
+    flex-grow: 1;
+    min-width: 0;
+    margin-block-start: 0;
+    margin-block-end: 0;
+}
+
+.ap-grid-item > * {
+    width: 100%;
+}
+
+.ap-grid-item.ap-grid-item-layout-normal {
+    align-items: stretch;
+    justify-content: flex-start;
+}
+
+.ap-grid-item.ap-grid-item-layout-equal {
+    align-items: stretch;
+    justify-content: space-between;
+    flex-direction: column;
+}
+
+.ap-grid-item.ap-grid-item-layout-center {
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+.ap-grid-item.ap-grid-item-layout-bottom {
+    align-items: flex-end;
+    flex-direction: column;
+}
+
+.ap-grid-item.ap-grid-item-layout-last-bottom {
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+/* === base (no media query) === */
+.ap-grid.ap-grid-has-1-base-columns { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+.ap-grid.ap-grid-has-2-base-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ap-grid.ap-grid-has-3-base-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ap-grid.ap-grid-has-4-base-columns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.ap-grid.ap-grid-has-5-base-columns { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.ap-grid.ap-grid-has-6-base-columns { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+.ap-grid.ap-grid-has-7-base-columns { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.ap-grid.ap-grid-has-8-base-columns { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+.ap-grid.ap-grid-has-9-base-columns { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+.ap-grid.ap-grid-has-10-base-columns { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+.ap-grid.ap-grid-has-11-base-columns { grid-template-columns: repeat(11, minmax(0, 1fr)); }
+.ap-grid.ap-grid-has-12-base-columns { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+
+.ap-grid-item.ap-grid-item-span-1-base-columns { grid-column: span 1; }
+.ap-grid-item.ap-grid-item-span-2-base-columns { grid-column: span 2; }
+.ap-grid-item.ap-grid-item-span-3-base-columns { grid-column: span 3; }
+.ap-grid-item.ap-grid-item-span-4-base-columns { grid-column: span 4; }
+.ap-grid-item.ap-grid-item-span-5-base-columns { grid-column: span 5; }
+.ap-grid-item.ap-grid-item-span-6-base-columns { grid-column: span 6; }
+.ap-grid-item.ap-grid-item-span-7-base-columns { grid-column: span 7; }
+.ap-grid-item.ap-grid-item-span-8-base-columns { grid-column: span 8; }
+.ap-grid-item.ap-grid-item-span-9-base-columns { grid-column: span 9; }
+.ap-grid-item.ap-grid-item-span-10-base-columns { grid-column: span 10; }
+.ap-grid-item.ap-grid-item-span-11-base-columns { grid-column: span 11; }
+.ap-grid-item.ap-grid-item-span-12-base-columns { grid-column: span 12; }
+
+.ap-grid-item.ap-grid-item-span-1-base-row { grid-row: span 1; }
+.ap-grid-item.ap-grid-item-span-2-base-row { grid-row: span 2; }
+.ap-grid-item.ap-grid-item-span-3-base-row { grid-row: span 3; }
+.ap-grid-item.ap-grid-item-span-4-base-row { grid-row: span 4; }
+.ap-grid-item.ap-grid-item-span-5-base-row { grid-row: span 5; }
+.ap-grid-item.ap-grid-item-span-6-base-row { grid-row: span 6; }
+.ap-grid-item.ap-grid-item-span-7-base-row { grid-row: span 7; }
+.ap-grid-item.ap-grid-item-span-8-base-row { grid-row: span 8; }
+.ap-grid-item.ap-grid-item-span-9-base-row { grid-row: span 9; }
+.ap-grid-item.ap-grid-item-span-10-base-row { grid-row: span 10; }
+.ap-grid-item.ap-grid-item-span-11-base-row { grid-row: span 11; }
+.ap-grid-item.ap-grid-item-span-12-base-row { grid-row: span 12; }
+
+/* === sm: 640px === */
+@media (min-width: 640px) {
+    .ap-grid.ap-grid-has-1-sm-columns { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-2-sm-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-3-sm-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-4-sm-columns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-5-sm-columns { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-6-sm-columns { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-7-sm-columns { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-8-sm-columns { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-9-sm-columns { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-10-sm-columns { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-11-sm-columns { grid-template-columns: repeat(11, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-12-sm-columns { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+
+    .ap-grid-item.ap-grid-item-span-1-sm-columns { grid-column: span 1; }
+    .ap-grid-item.ap-grid-item-span-2-sm-columns { grid-column: span 2; }
+    .ap-grid-item.ap-grid-item-span-3-sm-columns { grid-column: span 3; }
+    .ap-grid-item.ap-grid-item-span-4-sm-columns { grid-column: span 4; }
+    .ap-grid-item.ap-grid-item-span-5-sm-columns { grid-column: span 5; }
+    .ap-grid-item.ap-grid-item-span-6-sm-columns { grid-column: span 6; }
+    .ap-grid-item.ap-grid-item-span-7-sm-columns { grid-column: span 7; }
+    .ap-grid-item.ap-grid-item-span-8-sm-columns { grid-column: span 8; }
+    .ap-grid-item.ap-grid-item-span-9-sm-columns { grid-column: span 9; }
+    .ap-grid-item.ap-grid-item-span-10-sm-columns { grid-column: span 10; }
+    .ap-grid-item.ap-grid-item-span-11-sm-columns { grid-column: span 11; }
+    .ap-grid-item.ap-grid-item-span-12-sm-columns { grid-column: span 12; }
+
+    .ap-grid-item.ap-grid-item-span-1-sm-row { grid-row: span 1; }
+    .ap-grid-item.ap-grid-item-span-2-sm-row { grid-row: span 2; }
+    .ap-grid-item.ap-grid-item-span-3-sm-row { grid-row: span 3; }
+    .ap-grid-item.ap-grid-item-span-4-sm-row { grid-row: span 4; }
+    .ap-grid-item.ap-grid-item-span-5-sm-row { grid-row: span 5; }
+    .ap-grid-item.ap-grid-item-span-6-sm-row { grid-row: span 6; }
+    .ap-grid-item.ap-grid-item-span-7-sm-row { grid-row: span 7; }
+    .ap-grid-item.ap-grid-item-span-8-sm-row { grid-row: span 8; }
+    .ap-grid-item.ap-grid-item-span-9-sm-row { grid-row: span 9; }
+    .ap-grid-item.ap-grid-item-span-10-sm-row { grid-row: span 10; }
+    .ap-grid-item.ap-grid-item-span-11-sm-row { grid-row: span 11; }
+    .ap-grid-item.ap-grid-item-span-12-sm-row { grid-row: span 12; }
+}
+
+/* === md: 768px === */
+@media (min-width: 768px) {
+    .ap-grid.ap-grid-has-1-md-columns { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-2-md-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-3-md-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-4-md-columns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-5-md-columns { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-6-md-columns { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-7-md-columns { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-8-md-columns { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-9-md-columns { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-10-md-columns { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-11-md-columns { grid-template-columns: repeat(11, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-12-md-columns { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+
+    .ap-grid-item.ap-grid-item-span-1-md-columns { grid-column: span 1; }
+    .ap-grid-item.ap-grid-item-span-2-md-columns { grid-column: span 2; }
+    .ap-grid-item.ap-grid-item-span-3-md-columns { grid-column: span 3; }
+    .ap-grid-item.ap-grid-item-span-4-md-columns { grid-column: span 4; }
+    .ap-grid-item.ap-grid-item-span-5-md-columns { grid-column: span 5; }
+    .ap-grid-item.ap-grid-item-span-6-md-columns { grid-column: span 6; }
+    .ap-grid-item.ap-grid-item-span-7-md-columns { grid-column: span 7; }
+    .ap-grid-item.ap-grid-item-span-8-md-columns { grid-column: span 8; }
+    .ap-grid-item.ap-grid-item-span-9-md-columns { grid-column: span 9; }
+    .ap-grid-item.ap-grid-item-span-10-md-columns { grid-column: span 10; }
+    .ap-grid-item.ap-grid-item-span-11-md-columns { grid-column: span 11; }
+    .ap-grid-item.ap-grid-item-span-12-md-columns { grid-column: span 12; }
+
+    .ap-grid-item.ap-grid-item-span-1-md-row { grid-row: span 1; }
+    .ap-grid-item.ap-grid-item-span-2-md-row { grid-row: span 2; }
+    .ap-grid-item.ap-grid-item-span-3-md-row { grid-row: span 3; }
+    .ap-grid-item.ap-grid-item-span-4-md-row { grid-row: span 4; }
+    .ap-grid-item.ap-grid-item-span-5-md-row { grid-row: span 5; }
+    .ap-grid-item.ap-grid-item-span-6-md-row { grid-row: span 6; }
+    .ap-grid-item.ap-grid-item-span-7-md-row { grid-row: span 7; }
+    .ap-grid-item.ap-grid-item-span-8-md-row { grid-row: span 8; }
+    .ap-grid-item.ap-grid-item-span-9-md-row { grid-row: span 9; }
+    .ap-grid-item.ap-grid-item-span-10-md-row { grid-row: span 10; }
+    .ap-grid-item.ap-grid-item-span-11-md-row { grid-row: span 11; }
+    .ap-grid-item.ap-grid-item-span-12-md-row { grid-row: span 12; }
+}
+
+/* === lg: 1024px === */
+@media (min-width: 1024px) {
+    .ap-grid.ap-grid-has-1-lg-columns { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-2-lg-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-3-lg-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-4-lg-columns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-5-lg-columns { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-6-lg-columns { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-7-lg-columns { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-8-lg-columns { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-9-lg-columns { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-10-lg-columns { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-11-lg-columns { grid-template-columns: repeat(11, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-12-lg-columns { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+
+    .ap-grid-item.ap-grid-item-span-1-lg-columns { grid-column: span 1; }
+    .ap-grid-item.ap-grid-item-span-2-lg-columns { grid-column: span 2; }
+    .ap-grid-item.ap-grid-item-span-3-lg-columns { grid-column: span 3; }
+    .ap-grid-item.ap-grid-item-span-4-lg-columns { grid-column: span 4; }
+    .ap-grid-item.ap-grid-item-span-5-lg-columns { grid-column: span 5; }
+    .ap-grid-item.ap-grid-item-span-6-lg-columns { grid-column: span 6; }
+    .ap-grid-item.ap-grid-item-span-7-lg-columns { grid-column: span 7; }
+    .ap-grid-item.ap-grid-item-span-8-lg-columns { grid-column: span 8; }
+    .ap-grid-item.ap-grid-item-span-9-lg-columns { grid-column: span 9; }
+    .ap-grid-item.ap-grid-item-span-10-lg-columns { grid-column: span 10; }
+    .ap-grid-item.ap-grid-item-span-11-lg-columns { grid-column: span 11; }
+    .ap-grid-item.ap-grid-item-span-12-lg-columns { grid-column: span 12; }
+
+    .ap-grid-item.ap-grid-item-span-1-lg-row { grid-row: span 1; }
+    .ap-grid-item.ap-grid-item-span-2-lg-row { grid-row: span 2; }
+    .ap-grid-item.ap-grid-item-span-3-lg-row { grid-row: span 3; }
+    .ap-grid-item.ap-grid-item-span-4-lg-row { grid-row: span 4; }
+    .ap-grid-item.ap-grid-item-span-5-lg-row { grid-row: span 5; }
+    .ap-grid-item.ap-grid-item-span-6-lg-row { grid-row: span 6; }
+    .ap-grid-item.ap-grid-item-span-7-lg-row { grid-row: span 7; }
+    .ap-grid-item.ap-grid-item-span-8-lg-row { grid-row: span 8; }
+    .ap-grid-item.ap-grid-item-span-9-lg-row { grid-row: span 9; }
+    .ap-grid-item.ap-grid-item-span-10-lg-row { grid-row: span 10; }
+    .ap-grid-item.ap-grid-item-span-11-lg-row { grid-row: span 11; }
+    .ap-grid-item.ap-grid-item-span-12-lg-row { grid-row: span 12; }
+}
+
+/* === xl: 1280px === */
+@media (min-width: 1280px) {
+    .ap-grid.ap-grid-has-1-xl-columns { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-2-xl-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-3-xl-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-4-xl-columns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-5-xl-columns { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-6-xl-columns { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-7-xl-columns { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-8-xl-columns { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-9-xl-columns { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-10-xl-columns { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-11-xl-columns { grid-template-columns: repeat(11, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-12-xl-columns { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+
+    .ap-grid-item.ap-grid-item-span-1-xl-columns { grid-column: span 1; }
+    .ap-grid-item.ap-grid-item-span-2-xl-columns { grid-column: span 2; }
+    .ap-grid-item.ap-grid-item-span-3-xl-columns { grid-column: span 3; }
+    .ap-grid-item.ap-grid-item-span-4-xl-columns { grid-column: span 4; }
+    .ap-grid-item.ap-grid-item-span-5-xl-columns { grid-column: span 5; }
+    .ap-grid-item.ap-grid-item-span-6-xl-columns { grid-column: span 6; }
+    .ap-grid-item.ap-grid-item-span-7-xl-columns { grid-column: span 7; }
+    .ap-grid-item.ap-grid-item-span-8-xl-columns { grid-column: span 8; }
+    .ap-grid-item.ap-grid-item-span-9-xl-columns { grid-column: span 9; }
+    .ap-grid-item.ap-grid-item-span-10-xl-columns { grid-column: span 10; }
+    .ap-grid-item.ap-grid-item-span-11-xl-columns { grid-column: span 11; }
+    .ap-grid-item.ap-grid-item-span-12-xl-columns { grid-column: span 12; }
+
+    .ap-grid-item.ap-grid-item-span-1-xl-row { grid-row: span 1; }
+    .ap-grid-item.ap-grid-item-span-2-xl-row { grid-row: span 2; }
+    .ap-grid-item.ap-grid-item-span-3-xl-row { grid-row: span 3; }
+    .ap-grid-item.ap-grid-item-span-4-xl-row { grid-row: span 4; }
+    .ap-grid-item.ap-grid-item-span-5-xl-row { grid-row: span 5; }
+    .ap-grid-item.ap-grid-item-span-6-xl-row { grid-row: span 6; }
+    .ap-grid-item.ap-grid-item-span-7-xl-row { grid-row: span 7; }
+    .ap-grid-item.ap-grid-item-span-8-xl-row { grid-row: span 8; }
+    .ap-grid-item.ap-grid-item-span-9-xl-row { grid-row: span 9; }
+    .ap-grid-item.ap-grid-item-span-10-xl-row { grid-row: span 10; }
+    .ap-grid-item.ap-grid-item-span-11-xl-row { grid-row: span 11; }
+    .ap-grid-item.ap-grid-item-span-12-xl-row { grid-row: span 12; }
+}
+
+/* === 2xl: 1536px === */
+@media (min-width: 1536px) {
+    .ap-grid.ap-grid-has-1-2xl-columns { grid-template-columns: repeat(1, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-2-2xl-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-3-2xl-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-4-2xl-columns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-5-2xl-columns { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-6-2xl-columns { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-7-2xl-columns { grid-template-columns: repeat(7, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-8-2xl-columns { grid-template-columns: repeat(8, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-9-2xl-columns { grid-template-columns: repeat(9, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-10-2xl-columns { grid-template-columns: repeat(10, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-11-2xl-columns { grid-template-columns: repeat(11, minmax(0, 1fr)); }
+    .ap-grid.ap-grid-has-12-2xl-columns { grid-template-columns: repeat(12, minmax(0, 1fr)); }
+
+    .ap-grid-item.ap-grid-item-span-1-2xl-columns { grid-column: span 1; }
+    .ap-grid-item.ap-grid-item-span-2-2xl-columns { grid-column: span 2; }
+    .ap-grid-item.ap-grid-item-span-3-2xl-columns { grid-column: span 3; }
+    .ap-grid-item.ap-grid-item-span-4-2xl-columns { grid-column: span 4; }
+    .ap-grid-item.ap-grid-item-span-5-2xl-columns { grid-column: span 5; }
+    .ap-grid-item.ap-grid-item-span-6-2xl-columns { grid-column: span 6; }
+    .ap-grid-item.ap-grid-item-span-7-2xl-columns { grid-column: span 7; }
+    .ap-grid-item.ap-grid-item-span-8-2xl-columns { grid-column: span 8; }
+    .ap-grid-item.ap-grid-item-span-9-2xl-columns { grid-column: span 9; }
+    .ap-grid-item.ap-grid-item-span-10-2xl-columns { grid-column: span 10; }
+    .ap-grid-item.ap-grid-item-span-11-2xl-columns { grid-column: span 11; }
+    .ap-grid-item.ap-grid-item-span-12-2xl-columns { grid-column: span 12; }
+
+    .ap-grid-item.ap-grid-item-span-1-2xl-row { grid-row: span 1; }
+    .ap-grid-item.ap-grid-item-span-2-2xl-row { grid-row: span 2; }
+    .ap-grid-item.ap-grid-item-span-3-2xl-row { grid-row: span 3; }
+    .ap-grid-item.ap-grid-item-span-4-2xl-row { grid-row: span 4; }
+    .ap-grid-item.ap-grid-item-span-5-2xl-row { grid-row: span 5; }
+    .ap-grid-item.ap-grid-item-span-6-2xl-row { grid-row: span 6; }
+    .ap-grid-item.ap-grid-item-span-7-2xl-row { grid-row: span 7; }
+    .ap-grid-item.ap-grid-item-span-8-2xl-row { grid-row: span 8; }
+    .ap-grid-item.ap-grid-item-span-9-2xl-row { grid-row: span 9; }
+    .ap-grid-item.ap-grid-item-span-10-2xl-row { grid-row: span 10; }
+    .ap-grid-item.ap-grid-item-span-11-2xl-row { grid-row: span 11; }
+    .ap-grid-item.ap-grid-item-span-12-2xl-row { grid-row: span 12; }
+}

@@ -5,6 +5,7 @@
 @if( $emitInteractive )
 <link rel="stylesheet" href="{{ $accordionStyleHref }}" data-ve-accordion>
 <link rel="stylesheet" href="{{ $tabsStyleHref }}" data-ve-tabs>
+<link rel="stylesheet" href="{{ $gridStyleHref }}" data-ve-grid>
 <script src="{{ $interactivityScriptSrc }}" defer data-ve-interactivity></script>
 @endif
 @if( '' !== $themeTokensCss )
