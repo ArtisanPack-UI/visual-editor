@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use ArtisanPackUI\VisualEditor\Http\Requests\Icon\UploadIconSetRequest;
+use ArtisanPackUI\VisualEditor\Services\Icon\UploadedIconSetRegistry;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -28,6 +30,32 @@ Route::get('/editor', function () {
 Route::get('/ve-sandbox', function () {
     return view('visual-editor::sandbox.index');
 })->name('visual-editor.sandbox');
+
+// Icon Block Phase 6 (#557) — admin icon-sets settings page.
+//
+// Server-rendered settings screen that lists uploaded icon sets and
+// offers the upload / rename / delete forms. Access runs through the
+// same `SiteEditorAccessGate` binding that protects the site editor
+// SPA — the issue forbids introducing a new capability for this
+// surface, so this is "the existing visual-editor management policy".
+// Inline-styled like the install-gate page so it stands alone without
+// the SPA's Vite bundle.
+Route::middleware('web')
+    ->group(function (): void {
+        Route::get('/visual-editor/admin/icon-sets', function (Request $request, SiteEditorAccessGate $gate) {
+            if ($denial = $gate->check($request)) {
+                return $denial;
+            }
+
+            $registry = app(UploadedIconSetRegistry::class);
+
+            return view('visual-editor::admin.icon-sets', [
+                'sets'         => $registry->all(),
+                'apiBase'      => '/visual-editor/api/admin/icon-sets',
+                'maxKilobytes' => UploadIconSetRequest::MAX_ZIP_KILOBYTES,
+            ]);
+        })->name('visual-editor.admin.icon-sets');
+    });
 
 // D1 (#368). Site-editor shell. A single catch-all entry mounts the SPA and
 // hands routing inside the shell to the React app via `history.pushState`.
