@@ -80,13 +80,13 @@
 .ap-tabs__list a[aria-selected="true"],
 .ap-tabs__list button[aria-selected="true"] {
     font-weight: 600;
-    border-bottom: 2px solid currentColor;
+    border-bottom: 2px solid currentcolor;
 }
 
 .ap-tabs.align-tabs-vertical .ap-tabs__list a[aria-selected="true"],
 .ap-tabs.align-tabs-vertical .ap-tabs__list button[aria-selected="true"] {
     border-bottom: 0;
-    border-right: 2px solid currentColor;
+    border-right: 2px solid currentcolor;
 }
 
 .ap-tabs__container {

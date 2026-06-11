@@ -37,7 +37,7 @@
 }
 
 .ap-accordion__title-content:focus-visible {
-    outline: 2px solid currentColor;
+    outline: 2px solid currentcolor;
     outline-offset: -2px;
 }
 
@@ -55,7 +55,7 @@
 .ap-accordion__icon::after {
     content: "";
     position: absolute;
-    background: currentColor;
+    background: currentcolor;
     transition: transform 0.15s ease-out;
 }
 
