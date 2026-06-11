@@ -22,13 +22,34 @@
         },
         "sizeUnit": {
             "type": "string",
-            "enum": [ "px", "em", "rem" ],
+            "enum": [ "px", "em", "rem", "%", "vw", "vh" ],
             "default": "px"
+        },
+        "width": {
+            "type": [ "number", "null" ],
+            "default": null
+        },
+        "widthUnit": {
+            "type": [ "string", "null" ],
+            "enum": [ "px", "em", "rem", "%", "vw", "vh", null ],
+            "default": null
+        },
+        "height": {
+            "type": [ "number", "null" ],
+            "default": null
+        },
+        "heightUnit": {
+            "type": [ "string", "null" ],
+            "enum": [ "px", "em", "rem", "%", "vw", "vh", null ],
+            "default": null
         },
         "color": {
             "type": "string"
         },
         "backgroundColor": {
+            "type": "string"
+        },
+        "iconColor": {
             "type": "string"
         },
         "rotation": {
@@ -73,17 +94,16 @@
         "anchor": true,
         "align": [ "left", "center", "right", "wide", "full" ],
         "color": {
-            "__experimentalSkipSerialization": true,
+            "text": false,
+            "background": true,
             "gradients": false,
             "__experimentalDefaultControls": {
-                "background": true,
-                "text": true
+                "background": true
             }
         },
         "spacing": {
             "margin": true,
             "padding": true,
-            "__experimentalSkipSerialization": true,
             "__experimentalDefaultControls": {
                 "margin": false,
                 "padding": false
@@ -94,7 +114,6 @@
             "radius": true,
             "style": true,
             "width": true,
-            "__experimentalSkipSerialization": true,
             "__experimentalDefaultControls": {
                 "color": true,
                 "radius": true,

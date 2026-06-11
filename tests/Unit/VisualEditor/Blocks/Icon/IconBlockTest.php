@@ -200,6 +200,66 @@ it( 'emits aria-label for accessible non-decorative icons', function () {
 	expect( $html )->toContain( 'aria-label="GitHub Profile"' );
 } );
 
+it( 'promotes ariaLabel onto the <a> when the icon is decorative + linked', function () {
+	// The body span is `aria-hidden` (decorative), so the supplied
+	// ariaLabel can't live there without contradicting the hide. Pushing
+	// it onto the anchor keeps the link reachable + labeled for screen
+	// readers.
+	$html = test()->block->render( [
+		'iconRef'      => [ 'set' => 'fab', 'name' => 'github' ],
+		'link'         => 'https://example.com',
+		'isDecorative' => true,
+		'ariaLabel'    => 'GitHub Profile',
+	] );
+
+	expect( $html )->toMatch( '/<a href="https:\/\/example\.com"[^>]*aria-label="GitHub Profile"/' )
+		->and( $html )->toContain( 'aria-hidden="true"' );
+} );
+
+it( 'treats a whitespace-only ariaLabel as missing on a decorative + linked icon', function () {
+	// `"   "` and an empty string are equivalently inaccessible — both
+	// leave the anchor unlabeled. Treating them the same way keeps the
+	// editor warning honest: if the author has to put a real label
+	// somewhere, whitespace doesn't count.
+	$html = test()->block->render( [
+		'iconRef'      => [ 'set' => 'fab', 'name' => 'github' ],
+		'link'         => 'https://example.com',
+		'isDecorative' => true,
+		'ariaLabel'    => '   ',
+	] );
+
+	expect( $html )->toContain( '<a href="https://example.com"' )
+		->and( $html )->not->toContain( 'aria-label=' );
+} );
+
+it( 'leaves the <a> aria-label off when the icon is decorative + linked + has NO ariaLabel', function () {
+	// Without an ariaLabel the editor-side warning still fires;
+	// the server preserves the missing label so the warning state
+	// doesn't silently go away post-render.
+	$html = test()->block->render( [
+		'iconRef'      => [ 'set' => 'fab', 'name' => 'github' ],
+		'link'         => 'https://example.com',
+		'isDecorative' => true,
+	] );
+
+	expect( $html )->toContain( '<a href="https://example.com"' )
+		->and( $html )->not->toContain( 'aria-label=' );
+} );
+
+it( 'leaves the <a> aria-label off when the icon is non-decorative + linked + has ariaLabel', function () {
+	// In the non-decorative branch the body span already carries the
+	// aria-label, so doubling it on the anchor would be redundant.
+	$html = test()->block->render( [
+		'iconRef'   => [ 'set' => 'fab', 'name' => 'github' ],
+		'link'      => 'https://example.com',
+		'ariaLabel' => 'GitHub Profile',
+	] );
+
+	expect( $html )->toContain( '<a href="https://example.com"' )
+		->and( $html )->not->toMatch( '/<a [^>]*aria-label="GitHub Profile"/' )
+		->and( $html )->toMatch( '/<span [^>]*aria-label="GitHub Profile"/' );
+} );
+
 it( 'composes a transform from rotation + flip', function () {
 	$html = test()->block->render( [
 		'iconRef'  => [ 'set' => 'fab', 'name' => 'github' ],
@@ -218,7 +278,7 @@ it( 'rejects out-of-range rotations', function () {
 } );
 
 it( 'rejects invalid size units', function () {
-	$normalized = test()->block->validateAttrs( [ 'sizeUnit' => 'vh' ] );
+	$normalized = test()->block->validateAttrs( [ 'sizeUnit' => 'pt' ] );
 
 	expect( $normalized['sizeUnit'] )->toBe( 'px' );
 } );
@@ -299,4 +359,314 @@ it( 'exposes ariaLabel + title via searchableText', function () {
 
 	expect( $text )->toContain( 'GitHub Profile' )
 		->and( $text )->toContain( 'Visit on GitHub' );
+} );
+
+// --- WP `attributes.style` envelope (color/border/spacing) ---
+
+it( 'applies text color from the WP style envelope', function () {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'style'   => [ 'color' => [ 'text' => '#abc123' ] ],
+	] );
+
+	expect( $html )->toContain( 'color: #abc123' );
+} );
+
+it( 'applies background color from the WP style envelope', function () {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'style'   => [ 'color' => [ 'background' => '#facade' ] ],
+	] );
+
+	expect( $html )->toContain( 'background-color: #facade' );
+} );
+
+it( 'lets the WP style envelope override the legacy top-level color', function () {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'color'   => '#111111',
+		'style'   => [ 'color' => [ 'text' => '#222222' ] ],
+	] );
+
+	expect( $html )->toContain( 'color: #222222' )
+		->and( $html )->not->toContain( 'color: #111111' );
+} );
+
+it( 'falls back to the legacy top-level color when WP style is empty', function () {
+	$html = test()->block->render( [
+		'iconRef'         => [ 'set' => 'fab', 'name' => 'github' ],
+		'color'           => '#cafe00',
+		'backgroundColor' => '#beef00',
+	] );
+
+	expect( $html )->toContain( 'color: #cafe00' )
+		->and( $html )->toContain( 'background-color: #beef00' );
+} );
+
+it( 'applies uniform border declarations to the body span', function () {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'style'   => [
+			'border' => [
+				'color'  => '#000000',
+				'style'  => 'solid',
+				'width'  => '2px',
+				'radius' => '6px',
+			],
+		],
+	] );
+
+	expect( $html )->toContain( 'border-color: #000000' )
+		->and( $html )->toContain( 'border-style: solid' )
+		->and( $html )->toContain( 'border-width: 2px' )
+		->and( $html )->toContain( 'border-radius: 6px' );
+} );
+
+it( 'applies per-corner radius from a radius object', function () {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'style'   => [
+			'border' => [
+				'radius' => [
+					'topLeft'     => '1px',
+					'topRight'    => '2px',
+					'bottomRight' => '3px',
+					'bottomLeft'  => '4px',
+				],
+			],
+		],
+	] );
+
+	expect( $html )->toContain( 'border-top-left-radius: 1px' )
+		->and( $html )->toContain( 'border-top-right-radius: 2px' )
+		->and( $html )->toContain( 'border-bottom-right-radius: 3px' )
+		->and( $html )->toContain( 'border-bottom-left-radius: 4px' );
+} );
+
+it( 'applies padding shorthand on the body span', function () {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'style'   => [ 'spacing' => [ 'padding' => '8px' ] ],
+	] );
+
+	expect( $html )->toContain( 'padding: 8px' );
+} );
+
+it( 'applies per-side padding on the body span', function () {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'style'   => [
+			'spacing' => [
+				'padding' => [
+					'top'    => '1px',
+					'right'  => '2px',
+					'bottom' => '3px',
+					'left'   => '4px',
+				],
+			],
+		],
+	] );
+
+	expect( $html )->toContain( 'padding-top: 1px' )
+		->and( $html )->toContain( 'padding-right: 2px' )
+		->and( $html )->toContain( 'padding-bottom: 3px' )
+		->and( $html )->toContain( 'padding-left: 4px' );
+} );
+
+it( 'applies margin to the wrapper, not the body span', function () {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'style'   => [ 'spacing' => [ 'margin' => '12px' ] ],
+	] );
+
+	expect( $html )->toMatch( '/<div class="wp-block-artisanpack-icon" style="margin: 12px;">/' );
+} );
+
+it( 'omits the wrapper style attribute when no wrapper-level styles apply', function () {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+	] );
+
+	expect( $html )->toMatch( '/<div class="wp-block-artisanpack-icon">/' );
+} );
+
+it( 'drops style values that fail the safe-CSS allowlist', function () {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'style'   => [
+			'color'  => [ 'text' => 'expression(alert(1))' ],
+			'border' => [ 'width' => '2px; background: url(evil)' ],
+			'spacing'=> [ 'padding' => "8px;</style><script>alert('xss')</script>" ],
+		],
+	] );
+
+	expect( $html )->not->toContain( 'expression(' )
+		->and( $html )->not->toContain( 'url(evil)' )
+		->and( $html )->not->toContain( '<script' )
+		->and( $html )->not->toContain( '</style' );
+} );
+
+// --- width / height override ---
+
+it( 'uses size for both width and height when no override is set', function () {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'size'    => 48,
+	] );
+
+	expect( $html )->toContain( 'width: 48px' )
+		->and( $html )->toContain( 'height: 48px' );
+} );
+
+it( 'overrides the width axis when a width attribute is set', function () {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'size'    => 32,
+		'width'   => 64,
+	] );
+
+	expect( $html )->toContain( 'width: 64px' )
+		->and( $html )->toContain( 'height: 32px' );
+} );
+
+it( 'inherits sizeUnit for width when widthUnit is null', function () {
+	$attrs = test()->block->validateAttrs( [
+		'iconRef'  => [ 'set' => 'fab', 'name' => 'github' ],
+		'size'     => 32,
+		'sizeUnit' => 'rem',
+		'width'    => 4,
+	] );
+
+	expect( $attrs['width'] )->toBe( 4.0 )
+		->and( $attrs['widthUnit'] )->toBe( 'rem' );
+} );
+
+it( 'accepts new sizeUnit values (%, vw, vh)', function () {
+	$normalized = test()->block->validateAttrs( [ 'sizeUnit' => 'vh' ] );
+	expect( $normalized['sizeUnit'] )->toBe( 'vh' );
+
+	$normalized = test()->block->validateAttrs( [ 'sizeUnit' => 'vw' ] );
+	expect( $normalized['sizeUnit'] )->toBe( 'vw' );
+
+	$normalized = test()->block->validateAttrs( [ 'sizeUnit' => '%' ] );
+	expect( $normalized['sizeUnit'] )->toBe( '%' );
+} );
+
+it( 'clamps explicit width and height to the 1..1024 range', function () {
+	$normalized = test()->block->validateAttrs( [ 'width' => -10, 'height' => 99999 ] );
+	expect( $normalized['width'] )->toBe( 1.0 )
+		->and( $normalized['height'] )->toBe( 1024.0 );
+} );
+
+it( 'normalizes missing width/height back to null', function () {
+	$normalized = test()->block->validateAttrs( [] );
+	expect( $normalized['width'] )->toBeNull()
+		->and( $normalized['height'] )->toBeNull();
+} );
+
+// --- iconColor + palette-class wiring ---
+
+it( 'applies the explicit iconColor to the body span', function () {
+	$html = test()->block->render( [
+		'iconRef'   => [ 'set' => 'fab', 'name' => 'github' ],
+		'iconColor' => '#abc123',
+	] );
+
+	expect( $html )->toContain( 'color: #abc123' );
+} );
+
+it( 'lets iconColor override the WP style.color.text fallback', function () {
+	$html = test()->block->render( [
+		'iconRef'   => [ 'set' => 'fab', 'name' => 'github' ],
+		'iconColor' => '#aaaaaa',
+		'style'     => [ 'color' => [ 'text' => '#bbbbbb' ] ],
+	] );
+
+	expect( $html )->toContain( 'color: #aaaaaa' )
+		->and( $html )->not->toContain( 'color: #bbbbbb' );
+} );
+
+it( 'falls back to style.color.text when iconColor is unset', function () {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'style'   => [ 'color' => [ 'text' => '#cccccc' ] ],
+	] );
+
+	expect( $html )->toContain( 'color: #cccccc' );
+} );
+
+it( 'emits has-X-background-color + has-background for palette background slugs', function () {
+	$html = test()->block->render( [
+		'iconRef'         => [ 'set' => 'fab', 'name' => 'github' ],
+		'backgroundColor' => 'primary',
+	] );
+
+	expect( $html )->toContain( 'has-primary-background-color' )
+		->and( $html )->toContain( 'has-background' );
+} );
+
+it( 'emits has-X-border-color + has-border-color for palette border slugs', function () {
+	$html = test()->block->render( [
+		'iconRef'     => [ 'set' => 'fab', 'name' => 'github' ],
+		'borderColor' => 'accent',
+	] );
+
+	expect( $html )->toContain( 'has-accent-border-color' )
+		->and( $html )->toContain( 'has-border-color' );
+} );
+
+it( 'does NOT emit a has-X class when backgroundColor carries a hex value', function () {
+	$html = test()->block->render( [
+		'iconRef'         => [ 'set' => 'fab', 'name' => 'github' ],
+		'backgroundColor' => '#abc123',
+	] );
+
+	// `#abc123` falls through to the inline background path instead of
+	// producing a bogus `has-#abc123-background-color` class.
+	expect( $html )->not->toContain( 'has-#abc123' )
+		->and( $html )->toContain( 'background-color: #abc123' );
+} );
+
+it( 'puts WP-managed background/border/padding/margin on the wrapper', function () {
+	$html = test()->block->render( [
+		'iconRef' => [ 'set' => 'fab', 'name' => 'github' ],
+		'style'   => [
+			'color'   => [ 'background' => '#facade' ],
+			'border'  => [ 'color' => '#000000', 'width' => '2px' ],
+			'spacing' => [
+				'padding' => '8px',
+				'margin'  => '12px',
+			],
+		],
+	] );
+
+	// Wrapper carries background/border/padding/margin; the body span
+	// no longer does. Pulling the wrapper's `style="…"` attribute out
+	// and asserting on each declaration in isolation keeps the test
+	// resilient to incidental ordering / spacing changes inside the
+	// inline style string.
+	expect( $html )->toContain( 'wp-block-artisanpack-icon' )
+		->and( $html )->toContain( 'has-background' )
+		->and( $html )->toContain( 'has-border-color' );
+
+	preg_match( '/<div\b[^>]*\bstyle="([^"]*)"/', $html, $wrapperMatch );
+	$wrapperStyle = $wrapperMatch[1] ?? '';
+
+	expect( $wrapperStyle )->toContain( 'background-color: #facade' )
+		->and( $wrapperStyle )->toContain( 'border-color: #000000' )
+		->and( $wrapperStyle )->toContain( 'border-width: 2px' )
+		->and( $wrapperStyle )->toContain( 'padding: 8px' )
+		->and( $wrapperStyle )->toContain( 'margin: 12px' );
+
+	// And the body span's style does NOT pick up any of those — a
+	// future regression that moves them back onto the body span gets
+	// caught here.
+	preg_match( '/<span\b[^>]*class="wp-block-artisanpack-icon__ref"[^>]*\bstyle="([^"]*)"/', $html, $bodyMatch );
+	$bodyStyle = $bodyMatch[1] ?? '';
+
+	expect( $bodyStyle )->not->toContain( 'background-color' )
+		->and( $bodyStyle )->not->toContain( 'border-color' )
+		->and( $bodyStyle )->not->toContain( 'border-width' )
+		->and( $bodyStyle )->not->toContain( 'padding' )
+		->and( $bodyStyle )->not->toContain( 'margin' );
 } );

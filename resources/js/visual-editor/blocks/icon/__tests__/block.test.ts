@@ -53,8 +53,16 @@ describe( 'artisanpack/icon block.json', () => {
         }
     } );
 
-    it( 'restricts sizeUnit to px, em, rem', () => {
-        expect( metadata.attributes.sizeUnit.enum ).toEqual( [ 'px', 'em', 'rem' ] );
+    it( 'restricts every unit-bearing attribute to the supported CSS units', () => {
+        // sizeUnit is required and required to be one of the kept units.
+        // widthUnit / heightUnit are optional overrides; they share the
+        // same allowlist plus `null` for "fall back to sizeUnit". Asserting
+        // all three in lockstep keeps the JS + PHP normalizers from
+        // drifting when a unit is added or removed from block.json.
+        const baseUnits = [ 'px', 'em', 'rem', '%', 'vw', 'vh' ];
+        expect( metadata.attributes.sizeUnit.enum ).toEqual( baseUnits );
+        expect( metadata.attributes.widthUnit.enum ).toEqual( [ ...baseUnits, null ] );
+        expect( metadata.attributes.heightUnit.enum ).toEqual( [ ...baseUnits, null ] );
     } );
 
     it( 'restricts rotation to multiples of 90', () => {

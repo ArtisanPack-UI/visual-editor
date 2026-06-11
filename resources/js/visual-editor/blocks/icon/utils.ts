@@ -15,6 +15,7 @@ import type {
     NormalizedIconAttributes,
     Rotation,
     SizeUnit,
+    WpStyleAttribute,
 } from './types';
 
 const ALLOWED_TARGETS = new Set([ '_blank', '_self', '_parent', '_top' ]);
@@ -47,8 +48,37 @@ function isSafeLinkUrl( raw: string ): boolean {
     const scheme = trimmed.slice( 0, colon ).toLowerCase();
     return scheme === 'http' || scheme === 'https' || scheme === 'mailto' || scheme === 'tel';
 }
-const ALLOWED_SIZE_UNITS: ReadonlySet< SizeUnit > = new Set( [ 'px', 'em', 'rem' ] );
+const ALLOWED_SIZE_UNITS: ReadonlySet< SizeUnit > = new Set( [ 'px', 'em', 'rem', '%', 'vw', 'vh' ] );
 const ALLOWED_ROTATIONS: ReadonlySet< Rotation > = new Set( [ 0, 90, 180, 270 ] );
+
+/**
+ * Author-supplied CSS values reach inline style attributes unquoted, so
+ * any escape sequence (`"`, `'`, `<`, `;`, parens that don't pair, the
+ * `url(` / `expression(` / `javascript:` triplets) would let an attacker
+ * smuggle a second declaration. We allowlist a conservative grammar:
+ * digits + units, `var(--token)` references, `currentcolor`, and the
+ * standard color keywords / hex / rgb / hsl forms already in use.
+ *
+ * Anything that fails this gate falls back to the empty string and is
+ * dropped from the rendered style — fail-closed, no warning shown.
+ */
+const SAFE_STYLE_VALUE_RE =
+    /^(#[0-9a-f]{3,8}|rgba?\([0-9.,%\s/-]+\)|hsla?\([0-9.,%\s/-]+\)|var\(--[a-z0-9_-]+\)|[a-z][a-z0-9_-]*|-?\d+(\.\d+)?(px|em|rem|%|vw|vh|vmin|vmax)?(\s+(-?\d+(\.\d+)?(px|em|rem|%|vw|vh|vmin|vmax)?|#[0-9a-f]{3,8}|rgba?\([0-9.,%\s/-]+\)|hsla?\([0-9.,%\s/-]+\)|[a-z][a-z0-9_-]*))*)$/i;
+
+function isSafeStyleValue( raw: unknown ): raw is string {
+    if ( typeof raw !== 'string' ) {
+        return false;
+    }
+    const trimmed = raw.trim();
+    if ( trimmed.length === 0 ) {
+        return false;
+    }
+    return SAFE_STYLE_VALUE_RE.test( trimmed );
+}
+
+function safeStyleValue( raw: unknown ): string {
+    return isSafeStyleValue( raw ) ? raw.trim() : '';
+}
 
 function asString( value: unknown ): string {
     return typeof value === 'string' ? value : '';
@@ -82,6 +112,18 @@ function asRotation( value: unknown ): Rotation {
         : 0;
 }
 
+function asStyleObject( value: unknown ): WpStyleAttribute {
+    if ( value === null || value === undefined || typeof value !== 'object' ) {
+        return {};
+    }
+    // The shape is structurally validated as it's read by `computeBodyStyle`
+    // and `computeWrapperStyle` — those helpers walk the slots they
+    // actually consume and ignore the rest. Casting here keeps
+    // {@link normalizeAttributes} simple without losing type info on
+    // the consumer side.
+    return value as WpStyleAttribute;
+}
+
 function asIconRef( value: unknown ): IconRef | null {
     if ( value === null || value === undefined || typeof value !== 'object' ) {
         return null;
@@ -100,15 +142,36 @@ function asIconRef( value: unknown ): IconRef | null {
  * loop keeps the rest of the helpers blissfully unaware.
  */
 export function normalizeAttributes( attributes: IconAttributes ): NormalizedIconAttributes {
+    const size     = clampSize( attributes.size );
+    const sizeUnit = asSizeUnit( attributes.sizeUnit );
+
+    // Width/height override `size` per-axis when the author sets them.
+    // Leaving either unset (the null/undefined case) lets `size` continue
+    // to drive that axis — preserving the "single slider sets both"
+    // ergonomic that already shipped.
+    const widthExplicit = typeof attributes.width === 'number' && Number.isFinite( attributes.width );
+    const heightExplicit = typeof attributes.height === 'number' && Number.isFinite( attributes.height );
+
     return {
         iconRef: asIconRef( attributes.iconRef ),
         customSvg: asString( attributes.customSvg ),
         // Mirror IconBlock::validateAttrs's 1..1024 clamp so a server
         // re-render produces the same size the editor previewed.
-        size: clampSize( attributes.size ),
-        sizeUnit: asSizeUnit( attributes.sizeUnit ),
+        size,
+        sizeUnit,
+        width: widthExplicit ? clampSize( attributes.width ) : size,
+        widthUnit: widthExplicit
+            ? asSizeUnit( attributes.widthUnit ?? sizeUnit )
+            : sizeUnit,
+        widthExplicit,
+        height: heightExplicit ? clampSize( attributes.height ) : size,
+        heightUnit: heightExplicit
+            ? asSizeUnit( attributes.heightUnit ?? sizeUnit )
+            : sizeUnit,
+        heightExplicit,
         color: asString( attributes.color ),
         backgroundColor: asString( attributes.backgroundColor ),
+        iconColor: asString( attributes.iconColor ),
         rotation: asRotation( attributes.rotation ),
         flipH: asBoolean( attributes.flipH ),
         flipV: asBoolean( attributes.flipV ),
@@ -118,6 +181,7 @@ export function normalizeAttributes( attributes: IconAttributes ): NormalizedIco
         titleAttr: asString( attributes.titleAttr ),
         ariaLabel: asString( attributes.ariaLabel ),
         isDecorative: asBoolean( attributes.isDecorative ),
+        style: asStyleObject( attributes.style ),
     };
 }
 
@@ -129,28 +193,62 @@ export function normalizeAttributes( attributes: IconAttributes ): NormalizedIco
  * is applied to the inline `<span>` that actually carries the icon —
  * letting the icon stay 32px wide without dragging the whole block
  * out of the document flow.
+ *
+ * The body span carries TWO things only:
+ *
+ *  1. The sized box (`width` + `height` + `inline-flex` shell).
+ *  2. The icon's `color` — which the bundled SVGs pick up through
+ *     `fill: currentcolor` (declared on `.wp-block-artisanpack-icon svg`
+ *     in `icon.css`). Author choices flow through `iconColor` first;
+ *     the legacy top-level `color` attribute (and the WP-managed
+ *     `style.color.text` envelope for blocks that still carry it) are
+ *     kept as fallbacks so already-saved posts keep their picked colors.
+ *
+ * Background, border, and spacing all flow through `useBlockProps()`
+ * onto the WRAPPER element — `block.json`'s `supports.color`,
+ * `supports.spacing`, and `supports.__experimentalBorder` no longer
+ * skip serialization, so the editor's standard inspector controls
+ * apply directly without this helper having to read them back.
  */
 export function computeIconStyle( attributes: NormalizedIconAttributes ): CSSProperties {
-    const dimension = `${ attributes.size }${ attributes.sizeUnit }`;
+    const widthDimension  = `${ attributes.width }${ attributes.widthUnit }`;
+    const heightDimension = `${ attributes.height }${ attributes.heightUnit }`;
 
     const style: CSSProperties = {
-        width: dimension,
-        height: dimension,
+        width: widthDimension,
+        height: heightDimension,
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
         lineHeight: 0,
     };
 
-    if ( attributes.color.length > 0 ) {
-        style.color = attributes.color;
-    }
+    const wpText = safeStyleValue( attributes.style.color?.text );
+    const iconColor = safeStyleValue( attributes.iconColor );
+    const legacyColor = safeStyleValue( attributes.color );
 
-    if ( attributes.backgroundColor.length > 0 ) {
-        style.backgroundColor = attributes.backgroundColor;
+    // Precedence: explicit `iconColor` wins; the WP `style.color.text`
+    // envelope is honored for any pre-fix posts that still carry it;
+    // top-level `color` is the original v1.1-beta legacy slot.
+    const text = iconColor !== '' ? iconColor : ( wpText !== '' ? wpText : legacyColor );
+    if ( text !== '' ) {
+        style.color = text;
     }
 
     return style;
+}
+
+/**
+ * Compose the wrapper `<div>` style.
+ *
+ * The block now lets WordPress handle background, border, padding, and
+ * margin via the standard `useBlockProps()` serialization path — those
+ * styles are merged in by the editor itself rather than computed here.
+ * This helper stays around (returning an empty object) so callers can
+ * keep their merge points without conditionally including it.
+ */
+export function computeWrapperStyle( _attributes: NormalizedIconAttributes ): CSSProperties {
+    return {};
 }
 
 /**

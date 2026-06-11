@@ -8,6 +8,7 @@ import {
     composeRel,
     computeIconStyle,
     computeTransform,
+    computeWrapperStyle,
     hasDecorativeLinkConflict,
     normalizeAttributes,
     normalizeLinkTarget,
@@ -20,8 +21,15 @@ const baseAttrs: NormalizedIconAttributes = {
     customSvg: '',
     size: 32,
     sizeUnit: 'px',
+    width: 32,
+    widthUnit: 'px',
+    widthExplicit: false,
+    height: 32,
+    heightUnit: 'px',
+    heightExplicit: false,
     color: '',
     backgroundColor: '',
+    iconColor: '',
     rotation: 0,
     flipH: false,
     flipV: false,
@@ -31,6 +39,7 @@ const baseAttrs: NormalizedIconAttributes = {
     titleAttr: '',
     ariaLabel: '',
     isDecorative: false,
+    style: {},
 };
 
 describe( 'normalizeAttributes', () => {
@@ -87,7 +96,7 @@ describe( 'normalizeAttributes', () => {
             iconRef: null,
             customSvg: '',
             size: NaN,
-            sizeUnit: 'vh' as never,
+            sizeUnit: 'pt' as never,
             color: '',
             backgroundColor: '',
             rotation: 45 as never,
@@ -130,16 +139,184 @@ describe( 'normalizeAttributes', () => {
 } );
 
 describe( 'computeIconStyle', () => {
-    it( 'emits width and height from size + unit', () => {
-        const style = computeIconStyle( { ...baseAttrs, size: 24, sizeUnit: 'rem' } );
+    it( 'emits width and height from the normalized width/height + units', () => {
+        const style = computeIconStyle( {
+            ...baseAttrs,
+            width: 24,
+            widthUnit: 'rem',
+            height: 24,
+            heightUnit: 'rem',
+        } );
         expect( style.width ).toBe( '24rem' );
         expect( style.height ).toBe( '24rem' );
     } );
 
-    it( 'omits color and backgroundColor when unset', () => {
+    it( 'omits color when no icon color or legacy fallback is set', () => {
         const style = computeIconStyle( baseAttrs );
         expect( style.color ).toBeUndefined();
+        // Background no longer flows through this helper — WP serializes
+        // it onto the wrapper via `useBlockProps()`.
         expect( style.backgroundColor ).toBeUndefined();
+    } );
+
+    it( 'applies the explicit iconColor as the body-span color', () => {
+        const style = computeIconStyle( { ...baseAttrs, iconColor: '#abc' } );
+        expect( style.color ).toBe( '#abc' );
+    } );
+
+    it( 'lets iconColor override the WP style.color.text fallback', () => {
+        const style = computeIconStyle( {
+            ...baseAttrs,
+            iconColor: '#abc',
+            style: { color: { text: '#def' } },
+        } );
+        expect( style.color ).toBe( '#abc' );
+    } );
+
+    it( 'falls back to style.color.text when iconColor is empty', () => {
+        const style = computeIconStyle( {
+            ...baseAttrs,
+            style: { color: { text: '#def' } },
+        } );
+        expect( style.color ).toBe( '#def' );
+    } );
+
+    it( 'falls back to the legacy top-level color attribute last', () => {
+        const style = computeIconStyle( { ...baseAttrs, color: '#333' } );
+        expect( style.color ).toBe( '#333' );
+    } );
+
+    it( 'reads independent width and height from per-axis overrides', () => {
+        const style = computeIconStyle( {
+            ...baseAttrs,
+            width: 48,
+            widthUnit: 'px',
+            height: 24,
+            heightUnit: 'rem',
+        } );
+        expect( style.width ).toBe( '48px' );
+        expect( style.height ).toBe( '24rem' );
+    } );
+
+    it( 'drops a style value that fails the safe-CSS allowlist', () => {
+        const style = computeIconStyle( {
+            ...baseAttrs,
+            style: { color: { text: 'expression(alert(1))' } },
+        } );
+        expect( style.color ).toBeUndefined();
+    } );
+} );
+
+describe( 'computeWrapperStyle', () => {
+    it( 'returns an empty object — WP serializes wrapper styles via useBlockProps()', () => {
+        expect( computeWrapperStyle( baseAttrs ) ).toEqual( {} );
+        expect(
+            computeWrapperStyle( {
+                ...baseAttrs,
+                style: { spacing: { margin: '8px' } },
+            } ),
+        ).toEqual( {} );
+    } );
+} );
+
+describe( 'normalizeAttributes width/height override', () => {
+    it( 'leaves width and height equal to size when both unset', () => {
+        const normalized = normalizeAttributes( {
+            iconRef: null,
+            customSvg: '',
+            size: 48,
+            sizeUnit: 'px',
+            color: '',
+            backgroundColor: '',
+            rotation: 0,
+            flipH: false,
+            flipV: false,
+            link: '',
+            linkTarget: '',
+            linkRel: '',
+            titleAttr: '',
+            ariaLabel: '',
+            isDecorative: false,
+        } );
+        expect( normalized.width ).toBe( 48 );
+        expect( normalized.widthUnit ).toBe( 'px' );
+        expect( normalized.widthExplicit ).toBe( false );
+        expect( normalized.height ).toBe( 48 );
+        expect( normalized.heightUnit ).toBe( 'px' );
+        expect( normalized.heightExplicit ).toBe( false );
+    } );
+
+    it( 'lets width override size on a single axis without disturbing height', () => {
+        const normalized = normalizeAttributes( {
+            iconRef: null,
+            customSvg: '',
+            size: 32,
+            sizeUnit: 'px',
+            width: 64,
+            widthUnit: 'px',
+            color: '',
+            backgroundColor: '',
+            rotation: 0,
+            flipH: false,
+            flipV: false,
+            link: '',
+            linkTarget: '',
+            linkRel: '',
+            titleAttr: '',
+            ariaLabel: '',
+            isDecorative: false,
+        } );
+        expect( normalized.width ).toBe( 64 );
+        expect( normalized.widthExplicit ).toBe( true );
+        expect( normalized.height ).toBe( 32 );
+        expect( normalized.heightExplicit ).toBe( false );
+    } );
+
+    it( 'inherits sizeUnit for width when widthUnit is null', () => {
+        const normalized = normalizeAttributes( {
+            iconRef: null,
+            customSvg: '',
+            size: 32,
+            sizeUnit: 'rem',
+            width: 4,
+            widthUnit: null,
+            color: '',
+            backgroundColor: '',
+            rotation: 0,
+            flipH: false,
+            flipV: false,
+            link: '',
+            linkTarget: '',
+            linkRel: '',
+            titleAttr: '',
+            ariaLabel: '',
+            isDecorative: false,
+        } );
+        expect( normalized.widthUnit ).toBe( 'rem' );
+    } );
+
+    it( 'clamps explicit width and height to the 1..1024 range', () => {
+        const normalized = normalizeAttributes( {
+            iconRef: null,
+            customSvg: '',
+            size: 32,
+            sizeUnit: 'px',
+            width: -10,
+            height: 99999,
+            color: '',
+            backgroundColor: '',
+            rotation: 0,
+            flipH: false,
+            flipV: false,
+            link: '',
+            linkTarget: '',
+            linkRel: '',
+            titleAttr: '',
+            ariaLabel: '',
+            isDecorative: false,
+        } );
+        expect( normalized.width ).toBe( 1 );
+        expect( normalized.height ).toBe( 1024 );
     } );
 } );
 

@@ -28,6 +28,9 @@ interface IconSaveProps {
 export default function IconSave( { attributes }: IconSaveProps ): ReactElement {
     const normalized = normalizeAttributes( attributes );
     const transform = computeTransform( normalized );
+    // No wrapper style here — `useBlockProps.save` already serializes
+    // WP-managed background/border/spacing onto the wrapper div via the
+    // block.json `supports` map.
     const blockProps = useBlockProps.save();
     const sizedStyle = computeIconStyle( normalized );
 
@@ -87,6 +90,15 @@ export default function IconSave( { attributes }: IconSaveProps ): ReactElement 
     if ( shouldRenderLink( normalized ) ) {
         const target = normalizeLinkTarget( normalized.linkTarget );
         const rel = composeRel( normalized.linkTarget, normalized.linkRel );
+        // Decorative icons hide the body's ariaLabel via aria-hidden; promote
+        // the label onto the anchor so the link still has an accessible name.
+        // Trim so whitespace-only labels (e.g. `"   "`) read as missing
+        // rather than as a present-but-empty accessible name.
+        const trimmedAriaLabel = normalized.ariaLabel.trim();
+        const anchorAriaLabel =
+            normalized.isDecorative && trimmedAriaLabel
+                ? trimmedAriaLabel
+                : undefined;
 
         return (
             <div { ...blockProps }>
@@ -94,6 +106,7 @@ export default function IconSave( { attributes }: IconSaveProps ): ReactElement 
                     href={ normalized.link }
                     target={ target || undefined }
                     rel={ rel || undefined }
+                    aria-label={ anchorAriaLabel }
                 >
                     { body }
                 </a>

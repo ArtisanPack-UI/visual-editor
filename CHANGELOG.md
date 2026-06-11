@@ -6,6 +6,54 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **Icon block Phase 7 — end-to-end coverage and docs (#558).** Cross-
+  phase Pest tests now stitch the registration filter, catalog, picker
+  endpoints, admin uploader, sanitizer, and block renderer together so
+  regressions that only surface end-to-end are caught. New Vitest
+  coverage exercises the WP-style envelope plumbing and the
+  width/height override path. Docs add a dedicated [[blocks/Icon Block]]
+  page covering the block usage walkthrough, the developer recipe for
+  `ap.icons.register-icon-sets`, the admin upload walkthrough, and FA
+  Pro guidance (BYO SVGs, no token storage).
+- **Icon block — independent width/height overrides.** The
+  `artisanpack/icon` block now supports per-axis `width` and `height`
+  attributes that override the uniform `size`. The inspector ships a
+  `Dimensions` panel with a `NumberControl`-backed size and width/
+  height `UnitControl`s (`px` / `em` / `rem` / `%` / `vw` / `vh`). All
+  three controls emit changes on every keystroke so the canvas
+  updates live.
+- **Icon block — dedicated Icon color field.** The standard WordPress
+  text-color control is replaced by a `Sidebar → Color → Icon` picker
+  that writes to a new `iconColor` attribute and is applied directly
+  to the body span as `color`. The bundled SVGs ship with
+  `fill: currentcolor`, so the picked color flows through to the
+  icon's fill. Mirrors the ndiego reference Icon Block split.
+
+### Fixed
+
+- **Icon block — WP style controls now apply on the canvas and front
+  end.** Background, border, padding, and margin set via the
+  inspector's standard controls now reach the rendered block. The
+  block previously declared `__experimentalSkipSerialization: true`
+  for every support and then never read the styles back, so author
+  selections silently no-op'd. The block now lets WordPress serialize
+  background/border/spacing onto the wrapper via `useBlockProps()`,
+  and the server renderer applies the same envelope to the wrapper
+  div (with the legacy top-level `backgroundColor` attribute kept as
+  a fallback for posts saved before the fix). Palette-color slugs
+  resolve through the standard `has-{slug}-background-color` /
+  `has-{slug}-border-color` classes.
+- **Icon block — decorative + linked icons now produce labeled
+  anchors.** When `isDecorative`, `link`, and `ariaLabel` are all set,
+  the supplied `ariaLabel` is now promoted onto the `<a>` itself
+  rather than dropped. The body span remains `aria-hidden="true"`
+  (the SVG is the decorative element), but the anchor finally has an
+  accessible name. The editor-side `hasDecorativeLinkConflict()`
+  warning still fires when no `ariaLabel` is supplied, which is the
+  scenario the warning was always meant to flag.
+
 ## [1.0.0] — 2026-06-08
 
 First stable release of the V1 surface. Promotes `1.0.0-beta1` to GA
