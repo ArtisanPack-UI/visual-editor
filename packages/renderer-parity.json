@@ -128,6 +128,12 @@
         "artisanpack/query-pagination-numbers",
         "artisanpack/query-pagination-previous",
         "artisanpack/query-title",
-        "artisanpack/loginout"
+        "artisanpack/loginout",
+        "artisanpack/accordions",
+        "artisanpack/accordion",
+        "artisanpack/accordion-title",
+        "artisanpack/accordion-body",
+        "artisanpack/tabs",
+        "artisanpack/tab-section"
     ]
 }

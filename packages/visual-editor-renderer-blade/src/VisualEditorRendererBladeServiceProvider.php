@@ -132,9 +132,12 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 
 			// Asset publish path: copies the bundled `@wordpress/block-library`
 			// CSS to the consumer's `public/vendor/visual-editor-renderer-blade/`,
-			// which `<x-ve-blocks-styles />` links to by default.
+			// which `<x-ve-blocks-styles />` links to by default. Also ships the
+			// accordion + tabs front-end stylesheets and interactivity script
+			// under `public/vendor/visual-editor-renderer-blade/frontend/`.
 			$this->publishes( [
 				__DIR__ . '/../resources/assets/block-library' => public_path( 'vendor/visual-editor-renderer-blade' ),
+				__DIR__ . '/../resources/assets/frontend'      => public_path( 'vendor/visual-editor-renderer-blade/frontend' ),
 			], 'visual-editor-renderer-blade-assets' );
 		}
 	}

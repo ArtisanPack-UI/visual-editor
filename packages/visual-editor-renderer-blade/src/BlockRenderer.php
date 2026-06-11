@@ -106,13 +106,14 @@ class BlockRenderer
 		$attributes      = $this->normalizeAttributes( $block['attributes'] ?? [] );
 		$attributes      = $this->stampSiteMeta( $name, $attributes );
 		$attributes      = $this->stampLoginout( $name, $attributes );
-		$innerBlocksHtml = $this->render( $this->normalizeInnerBlocks( $block['innerBlocks'] ?? [] ) );
+		$innerBlocks     = $this->normalizeInnerBlocks( $block['innerBlocks'] ?? [] );
+		$innerBlocksHtml = $this->render( $innerBlocks );
 
 		if ( $this->dynamicBlocks->has( $name ) ) {
 			return $this->renderDynamic( $name, $attributes, $innerBlocksHtml );
 		}
 
-		return $this->renderStatic( $name, $attributes, $innerBlocksHtml );
+		return $this->renderStatic( $name, $attributes, $innerBlocksHtml, $innerBlocks );
 	}
 
 	/**
@@ -222,9 +223,10 @@ class BlockRenderer
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  array<string, mixed>  $attributes
+	 * @param  array<string, mixed>          $attributes
+	 * @param  array<int, array<string, mixed>> $innerBlocks
 	 */
-	protected function renderStatic( string $name, array $attributes, string $innerBlocksHtml ): string
+	protected function renderStatic( string $name, array $attributes, string $innerBlocksHtml, array $innerBlocks = [] ): string
 	{
 		$partial = $this->resolvePartial( $name );
 
@@ -236,6 +238,7 @@ class BlockRenderer
 			'blockName'       => $name,
 			'attributes'      => $attributes,
 			'attrs'           => $attributes,
+			'innerBlocks'     => $innerBlocks,
 			'innerBlocksHtml' => $innerBlocksHtml,
 		];
 

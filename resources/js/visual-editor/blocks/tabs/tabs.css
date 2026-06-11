@@ -1,0 +1,106 @@
+/**
+ * Tabs family styles (#497).
+ *
+ * Loaded in the editor via `blocks/{tabs,tab-section}/index.ts`. On
+ * the public frontend the Blade renderer serves an identical copy
+ * from `packages/visual-editor-renderer-blade/resources/assets/frontend/tabs.css`,
+ * wired up by `<x-ve-blocks-styles />`. React/Vue renderers emit the
+ * same class names so a single stylesheet covers all three.
+ */
+
+.ap-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-block-end: var(--wp--style--block-gap, 1.5rem);
+}
+
+.ap-tabs.align-tabs-vertical {
+    flex-direction: row;
+    align-items: stretch;
+}
+
+.ap-tabs__list {
+    border-bottom: 1px solid var(--ap-tabs-separator, rgba(0, 0, 0, 0.1));
+}
+
+.ap-tabs.align-tabs-vertical .ap-tabs__list {
+    border-right: 1px solid var(--ap-tabs-separator, rgba(0, 0, 0, 0.1));
+    border-bottom: 0;
+}
+
+.ap-tabs__list ul {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+}
+
+.ap-tabs.align-tabs-vertical .ap-tabs__list ul {
+    flex-direction: column;
+}
+
+/* Tab spacing modes: start / end / center pack the triggers; equal
+   distributes them evenly across the tablist. */
+.ap-tabs.space-tabs-start .ap-tabs__list ul {
+    justify-content: flex-start;
+}
+
+.ap-tabs.space-tabs-end .ap-tabs__list ul {
+    justify-content: flex-end;
+}
+
+.ap-tabs.space-tabs-center .ap-tabs__list ul {
+    justify-content: center;
+}
+
+.ap-tabs.space-tabs-equal .ap-tabs__list ul li {
+    flex: 1;
+}
+
+.ap-tabs.space-tabs-equal .ap-tabs__list ul li a,
+.ap-tabs.space-tabs-equal .ap-tabs__list ul li button {
+    text-align: center;
+    width: 100%;
+}
+
+.ap-tabs__list a,
+.ap-tabs__list button {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    background: transparent;
+    border: 0;
+    font: inherit;
+}
+
+.ap-tabs__list a[aria-selected="true"],
+.ap-tabs__list button[aria-selected="true"] {
+    font-weight: 600;
+    border-bottom: 2px solid currentColor;
+}
+
+.ap-tabs.align-tabs-vertical .ap-tabs__list a[aria-selected="true"],
+.ap-tabs.align-tabs-vertical .ap-tabs__list button[aria-selected="true"] {
+    border-bottom: 0;
+    border-right: 2px solid currentColor;
+}
+
+.ap-tabs__container {
+    flex: 1;
+}
+
+.ap-tab-section {
+    padding: 1rem 0;
+}
+
+/* Hide inactive sections on the front-end. The interactivity script
+   toggles the `hidden` attribute when switching tabs. In the editor,
+   all sections stay visible so authors can edit each panel without
+   constantly toggling tabs. */
+.ap-tab-section[hidden] {
+    display: none;
+}

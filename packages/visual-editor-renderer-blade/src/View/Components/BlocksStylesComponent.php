@@ -57,7 +57,15 @@ class BlocksStylesComponent extends Component
 
 	public string $themeHref;
 
+	public string $accordionStyleHref;
+
+	public string $tabsStyleHref;
+
+	public string $interactivityScriptSrc;
+
 	public bool $emitBlockLibrary;
+
+	public bool $emitInteractive;
 
 	public string $themeTokensCss;
 
@@ -69,19 +77,26 @@ class BlocksStylesComponent extends Component
 	 *                                  Defaults to {@see self::DEFAULT_ASSET_BASE}.
 	 * @param  bool  $bundle  Set to false to skip the block-library `<link>` tags (consumers who
 	 *                        already load Gutenberg's CSS from elsewhere).
+	 * @param  bool  $interactive  Set to false to skip the accordion + tabs front-end stylesheets
+	 *                             and interactivity script. Defaults to on.
 	 */
 	public function __construct(
 		protected ThemeJsonTokensCompiler $compiler,
 		?array $themeJson = null,
 		?string $assetBase = null,
 		bool $bundle = true,
+		bool $interactive = true,
 	) {
 		$base = $this->normaliseBase( $assetBase ?? self::DEFAULT_ASSET_BASE );
 
-		$this->styleHref        = $base . '/style.css';
-		$this->themeHref        = $base . '/theme.css';
-		$this->emitBlockLibrary = $bundle;
-		$this->themeTokensCss   = null === $themeJson ? '' : $this->compiler->compile( $themeJson );
+		$this->styleHref              = $base . '/style.css';
+		$this->themeHref              = $base . '/theme.css';
+		$this->accordionStyleHref     = $base . '/frontend/accordion.css';
+		$this->tabsStyleHref          = $base . '/frontend/tabs.css';
+		$this->interactivityScriptSrc = $base . '/frontend/interactivity.js';
+		$this->emitBlockLibrary       = $bundle;
+		$this->emitInteractive        = $interactive;
+		$this->themeTokensCss         = null === $themeJson ? '' : $this->compiler->compile( $themeJson );
 	}
 
 	public function render(): View

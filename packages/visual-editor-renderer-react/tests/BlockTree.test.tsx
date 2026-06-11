@@ -692,6 +692,193 @@ describe('Core design blocks', () => {
         expect(html).toContain('ap-breadcrumbs__list');
         expect(html).not.toContain('<li class="ap-breadcrumbs__item');
     });
+
+    it('renders the artisanpack/accordions family with nested grandchildren', () => {
+        const tree = [
+            makeBlock('artisanpack/accordions', {}, [
+                makeBlock(
+                    'artisanpack/accordion',
+                    { panelId: 'faq-1', panelIcon: 'arrows' },
+                    [
+                        makeBlock('artisanpack/accordion-title', {}, [
+                            makeBlock('core/heading', {
+                                level: 3,
+                                content: 'Question',
+                            }),
+                        ]),
+                        makeBlock('artisanpack/accordion-body', {}, [
+                            makeBlock('core/paragraph', { content: 'Answer.' }),
+                        ]),
+                    ]
+                ),
+            ]),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('class="ap-accordions"');
+        expect(html).toContain('class="ap-accordion"');
+        expect(html).toContain('data-panel-id="faq-1"');
+        expect(html).toContain('data-panel-icon="arrows"');
+        expect(html).toContain('id="faq-1-control"');
+        expect(html).toContain('aria-controls="faq-1"');
+        expect(html).toContain('aria-expanded="false"');
+        expect(html).toContain('ap-accordion__icon--arrows');
+        expect(html).toContain('id="faq-1"');
+        expect(html).toContain('aria-labelledby="faq-1-control"');
+        expect(html).toContain('<p class="wp-block-paragraph">Answer.</p>');
+    });
+
+    it('falls back to safe defaults when accordion panelIcon is invalid', () => {
+        const tree = [
+            makeBlock('artisanpack/accordion', {
+                panelId: 'faq-1',
+                panelIcon: 'evil"><script>',
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('data-panel-icon="plus-minus"');
+        expect(html).not.toContain('<script>');
+    });
+
+    it('omits accordion aria wiring when the parent panel id is empty', () => {
+        const tree = [
+            makeBlock(
+                'artisanpack/accordion',
+                { panelId: '', panelIcon: 'plus-minus' },
+                [
+                    makeBlock('artisanpack/accordion-title', {}),
+                    makeBlock('artisanpack/accordion-body', {}),
+                ]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).not.toContain('aria-controls=');
+        expect(html).not.toContain('aria-labelledby=');
+        expect(html).not.toContain('id="-control"');
+    });
+
+    it('renders the artisanpack/tabs family with triggers derived from tab-section children', () => {
+        const tree = [
+            makeBlock(
+                'artisanpack/tabs',
+                {
+                    tabsAlign: 'horizontal',
+                    tabsSpacing: 'center',
+                },
+                [
+                    makeBlock(
+                        'artisanpack/tab-section',
+                        { label: 'Overview', tabId: 'overview' },
+                        [makeBlock('core/paragraph', { content: 'Tab body' })]
+                    ),
+                    makeBlock('artisanpack/tab-section', {
+                        label: 'Specs',
+                        tabId: 'specs',
+                    }),
+                ]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('align-tabs-horizontal');
+        expect(html).toContain('space-tabs-center');
+        expect(html).toContain('data-ap-tabs');
+        expect(html).toContain('role="tablist"');
+        expect(html).toContain('href="#tabs-panel-overview"');
+        expect(html).toContain('aria-controls="tabs-panel-overview"');
+        expect(html).toContain('id="tabs-tab-overview"');
+        expect(html).toContain('aria-selected="true"');
+        expect(html).toContain('aria-selected="false"');
+        expect(html).toContain('>Overview</a>');
+        expect(html).toContain('>Specs</a>');
+        expect(html).toContain('id="tabs-panel-overview"');
+        expect(html).toContain('aria-labelledby="tabs-tab-overview"');
+        expect(html).toContain('role="tabpanel"');
+        expect(html).toContain('Tab body');
+    });
+
+    it('falls back to safe defaults when tabsAlign / tabsSpacing are invalid', () => {
+        const tree = [
+            makeBlock('artisanpack/tabs', {
+                tabsAlign: 'diagonal',
+                tabsSpacing: 'sprawl',
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('align-tabs-horizontal');
+        expect(html).toContain('space-tabs-start');
+    });
+
+    it('deduplicates tab ids when two sections share the same slug', () => {
+        const tree = [
+            makeBlock('artisanpack/tabs', {}, [
+                makeBlock('artisanpack/tab-section', {
+                    label: 'One',
+                    tabId: 'overview',
+                }),
+                makeBlock('artisanpack/tab-section', {
+                    label: 'Two',
+                    tabId: 'overview',
+                }),
+                makeBlock('artisanpack/tab-section', {
+                    label: 'Three',
+                    tabId: 'overview',
+                }),
+            ]),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('id="tabs-panel-overview"');
+        expect(html).toContain('id="tabs-panel-overview-2"');
+        expect(html).toContain('id="tabs-panel-overview-3"');
+        expect(html).toContain('href="#tabs-panel-overview-2"');
+        expect(html).toContain('href="#tabs-panel-overview-3"');
+    });
+
+    it('auto-fills tab labels and ids by position when sections leave them blank', () => {
+        const tree = [
+            makeBlock('artisanpack/tabs', {}, [
+                makeBlock('artisanpack/tab-section', {}),
+                makeBlock('artisanpack/tab-section', {}),
+            ]),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('>Tab 1</a>');
+        expect(html).toContain('>Tab 2</a>');
+        expect(html).toContain('href="#tabs-panel-tab-1"');
+        expect(html).toContain('href="#tabs-panel-tab-2"');
+        // Triggers and panels MUST share the same resolved id so the
+        // aria-controls / id hookup actually resolves.
+        expect(html).toContain('id="tabs-panel-tab-1"');
+        expect(html).toContain('id="tabs-panel-tab-2"');
+        expect(html).toContain('aria-labelledby="tabs-tab-tab-1"');
+        expect(html).toContain('aria-labelledby="tabs-tab-tab-2"');
+    });
+
+    it('renders a tab-section without aria wiring when tabId is empty', () => {
+        const tree = [
+            makeBlock('artisanpack/tab-section', { tabId: '' }, [
+                makeBlock('core/paragraph', { content: 'Naked' }),
+            ]),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).not.toContain('id="tabs-panel-"');
+        expect(html).not.toContain('aria-labelledby=');
+        expect(html).toContain('Naked');
+    });
 });
 
 describe('Registry + dynamic fallback', () => {

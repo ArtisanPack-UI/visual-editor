@@ -1,0 +1,92 @@
+/**
+ * Front-end styles for the tabs family (artisanpack/tabs,
+ * artisanpack/tab-section — #497).
+ *
+ * Mirrors the editor preview styles in
+ * `resources/js/visual-editor/blocks/tabs/tabs.css`. Host apps load
+ * this stylesheet on any page that renders a tabs block.
+ */
+
+.ap-tabs {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    margin-block-end: var(--wp--style--block-gap, 1.5rem);
+}
+
+.ap-tabs.align-tabs-vertical {
+    flex-direction: row;
+    align-items: stretch;
+}
+
+.ap-tabs__list {
+    border-bottom: 1px solid var(--ap-tabs-separator, rgba(0, 0, 0, 0.1));
+}
+
+.ap-tabs.align-tabs-vertical .ap-tabs__list {
+    border-right: 1px solid var(--ap-tabs-separator, rgba(0, 0, 0, 0.1));
+    border-bottom: 0;
+}
+
+.ap-tabs__list ul {
+    display: flex;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    gap: 0;
+}
+
+.ap-tabs.align-tabs-vertical .ap-tabs__list ul {
+    flex-direction: column;
+}
+
+.ap-tabs.space-tabs-start .ap-tabs__list ul {
+    justify-content: flex-start;
+}
+
+.ap-tabs.space-tabs-end .ap-tabs__list ul {
+    justify-content: flex-end;
+}
+
+.ap-tabs.space-tabs-center .ap-tabs__list ul {
+    justify-content: center;
+}
+
+.ap-tabs.space-tabs-equal .ap-tabs__list ul li {
+    flex: 1;
+}
+
+.ap-tabs.space-tabs-equal .ap-tabs__list ul li a {
+    text-align: center;
+    width: 100%;
+}
+
+.ap-tabs__list a {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+}
+
+.ap-tabs__list a[aria-selected="true"] {
+    font-weight: 600;
+    border-bottom: 2px solid currentColor;
+}
+
+.ap-tabs.align-tabs-vertical .ap-tabs__list a[aria-selected="true"] {
+    border-bottom: 0;
+    border-right: 2px solid currentColor;
+}
+
+.ap-tabs__container {
+    flex: 1;
+}
+
+.ap-tab-section {
+    padding: 1rem 0;
+}
+
+.ap-tab-section[hidden] {
+    display: none;
+}

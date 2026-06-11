@@ -34,6 +34,9 @@ import {
     POST_EDITOR_FRAMING_STYLES,
 } from '../editor-settings';
 
+import accordionStyles from '../blocks/accordion/accordion.css?inline';
+import tabsStyles from '../blocks/tabs/tabs.css?inline';
+
 import canvasThemeTokens from './canvas-theme-tokens.css?inline';
 
 /** A single stylesheet entry in the shape `BlockCanvas`'s `styles` prop expects. */
@@ -98,6 +101,49 @@ export const canvasStyles: readonly CanvasStyle[] = [
     { css: blockLibraryStyle },
     { css: blockLibraryEditor },
     { css: LAYOUT_BASELINE_STYLES },
+    // Interactive block families (#497) — accordion + tabs.
+    // The editor canvas runs in a sandboxed iframe so the per-block
+    // CSS imports in `blocks/{accordion,tabs}/index.ts` don't reach
+    // it; ship the rules here too so authors get an accurate preview.
+    // Editor-specific overrides (showing all panels at once for
+    // editability) are appended after the front-end rules.
+    { css: accordionStyles },
+    { css: tabsStyles },
+    {
+        css: `
+            /* Editor preview overrides — keep every panel and tab
+               section expanded so authors can edit each one without
+               toggling. The front-end interactivity script restores
+               normal accordion / tab behavior at render time. */
+            .ap-accordion__body[hidden] { display: block !important; }
+            .ap-tab-section[hidden] { display: block !important; }
+
+            /* Drop list bullets from the tab list — Gutenberg's editor
+               stylesheet adds them back inside the iframe. */
+            .ap-tabs__list ul { list-style: none !important; padding-left: 0 !important; }
+            .ap-tabs__list ul li { margin: 0 !important; padding: 0 !important; }
+
+            /* Inner-block reset: Gutenberg's editor stylesheet adds
+               generous top/bottom margins to headings and paragraphs
+               (the "is-layout-flow" baseline), which doubles up with
+               our wrapper padding. Collapse the first/last child
+               margin so the accordion title + body and tab section
+               line up tight against the wrapper edges in the canvas. */
+            .ap-accordion__title-content > :first-child,
+            .ap-accordion__body > :first-child,
+            .ap-tab-section > :first-child { margin-block-start: 0 !important; }
+            .ap-accordion__title-content > :last-child,
+            .ap-accordion__body > :last-child,
+            .ap-tab-section > :last-child { margin-block-end: 0 !important; }
+
+            /* The block-editor wraps every block in a .block-editor-block-list__block
+               div that adds its own margin. Inside the accordion / tab containers,
+               trim that wrapper margin so the visual cadence matches the
+               front-end. */
+            .ap-accordion__body .block-editor-block-list__block,
+            .ap-tab-section .block-editor-block-list__block { margin-top: 0; margin-bottom: 0; }
+        `,
+    },
     { css: DEFAULT_CANVAS_STYLES },
     // Per-block wide/full overrides. Shared with the site editor —
     // both need the toolbar's alignment buttons to actually resize

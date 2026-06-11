@@ -2,6 +2,11 @@
 <link rel="stylesheet" href="{{ $styleHref }}" data-ve-block-library>
 <link rel="stylesheet" href="{{ $themeHref }}" data-ve-block-library-theme>
 @endif
+@if( $emitInteractive )
+<link rel="stylesheet" href="{{ $accordionStyleHref }}" data-ve-accordion>
+<link rel="stylesheet" href="{{ $tabsStyleHref }}" data-ve-tabs>
+<script src="{{ $interactivityScriptSrc }}" defer data-ve-interactivity></script>
+@endif
 @if( '' !== $themeTokensCss )
 <style data-ve-theme-tokens>{!! $themeTokensCss !!}</style>
 @endif
