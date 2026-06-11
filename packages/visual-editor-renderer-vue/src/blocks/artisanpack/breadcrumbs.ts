@@ -132,10 +132,9 @@ export const BreadcrumbsBlock = defineComponent({
                         h('a', linkAttrs, [h('span', labelAttrs, item.label)])
                     );
                 } else {
-                    const labelAttrs: Record<string, unknown> = {
-                        class: 'ap-breadcrumbs__current',
-                    };
+                    const labelAttrs: Record<string, unknown> = {};
                     if (item.current) {
+                        labelAttrs.class = 'ap-breadcrumbs__current';
                         labelAttrs['aria-current'] = 'page';
                     }
                     if (breadcrumbsSchema) {

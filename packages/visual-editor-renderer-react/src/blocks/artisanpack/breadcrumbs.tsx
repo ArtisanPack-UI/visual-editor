@@ -111,7 +111,7 @@ export function BreadcrumbsBlock({ attributes }: BlockRendererProps): ReactEleme
                         : { className: 'ap-breadcrumbs__item' };
 
                     return (
-                        <li key={`${position}-${item.label}`} {...itemProps}>
+                        <li key={index} {...itemProps}>
                             {item.url !== null && !item.current ? (
                                 <a
                                     className="ap-breadcrumbs__link"
@@ -126,8 +126,12 @@ export function BreadcrumbsBlock({ attributes }: BlockRendererProps): ReactEleme
                                 </a>
                             ) : (
                                 <span
-                                    className="ap-breadcrumbs__current"
-                                    {...(item.current ? { 'aria-current': 'page' as const } : {})}
+                                    {...(item.current
+                                        ? {
+                                              className: 'ap-breadcrumbs__current',
+                                              'aria-current': 'page' as const,
+                                          }
+                                        : {})}
                                     {...(breadcrumbsSchema ? { itemProp: 'name' } : {})}
                                 >
                                     {item.label}

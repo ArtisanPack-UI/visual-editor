@@ -681,6 +681,7 @@ describe('Core design blocks', () => {
         expect(html).not.toContain('javascript:');
         expect(html).toContain('href="/"');
         expect(html).toContain('>XSS<');
+        expect((html.match(/ap-breadcrumbs__current/g) ?? []).length).toBe(1);
     });
 
     it('renders an empty breadcrumbs list when the trail is missing', () => {

@@ -69,7 +69,7 @@
 							<span @if ( $breadcrumbsSchema ) itemprop="name"@endif>{{ $item['label'] }}</span>
 						</a>
 					@else
-						<span class="ap-breadcrumbs__current" @if ( $item['current'] ) aria-current="page"@endif @if ( $breadcrumbsSchema ) itemprop="name"@endif>{{ $item['label'] }}</span>
+						<span @if ( $item['current'] ) class="ap-breadcrumbs__current" aria-current="page"@endif @if ( $breadcrumbsSchema ) itemprop="name"@endif>{{ $item['label'] }}</span>
 					@endif
 					@if ( $breadcrumbsSchema )
 						<meta itemprop="position" content="{{ $position }}" />

@@ -591,7 +591,11 @@ it( 'drops unsafe URLs from breadcrumbs trail entries', function () {
 	expect( $html )->not->toContain( 'javascript:' )
 		->and( $html )->not->toContain( 'href="javascript:alert(1)"' )
 		->and( $html )->toContain( 'href="/"' )
-		->and( $html )->toContain( '>XSS<' );
+		->and( $html )->toContain( '>XSS<' )
+		// Non-current entries whose URL was sanitized away render as plain
+		// spans — never with the "current" class, which only marks the
+		// trail's final crumb.
+		->and( substr_count( $html, 'ap-breadcrumbs__current' ) )->toBe( 1 );
 } );
 
 it( 'renders an empty list when breadcrumbs trail is missing', function () {
