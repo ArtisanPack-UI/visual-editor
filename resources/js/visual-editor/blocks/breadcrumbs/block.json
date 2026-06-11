@@ -1,0 +1,70 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/breadcrumbs",
+    "title": "Breadcrumbs",
+    "category": "artisanpack",
+    "description": "Display a breadcrumbs trail so visitors know where they are on your site.",
+    "keywords": ["breadcrumbs", "navigation", "trail"],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "separatorIcon": {
+            "type": "string",
+            "enum": ["arrow-right", "chevron-right", "chevron-double-right", "long-arrow-right"],
+            "default": "chevron-right"
+        },
+        "breadcrumbsSchema": {
+            "type": "boolean",
+            "default": true
+        }
+    },
+    "supports": {
+        "align": ["wide", "full"],
+        "ariaLabel": true,
+        "className": true,
+        "html": false,
+        "spacing": {
+            "margin": ["top", "bottom"],
+            "padding": true,
+            "blockGap": true,
+            "__experimentalDefaultControls": {
+                "padding": true,
+                "blockGap": true
+            }
+        },
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "shadow": true,
+        "__experimentalBorder": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true,
+            "__experimentalDefaultControls": {
+                "color": true,
+                "radius": true,
+                "style": true,
+                "width": true
+            }
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "__experimentalFontFamily": true,
+            "__experimentalFontWeight": true,
+            "__experimentalFontStyle": true,
+            "__experimentalTextTransform": true,
+            "__experimentalTextDecoration": true,
+            "__experimentalLetterSpacing": true,
+            "__experimentalDefaultControls": {
+                "fontSize": true
+            }
+        }
+    }
+}

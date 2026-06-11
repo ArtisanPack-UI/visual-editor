@@ -12,6 +12,7 @@
  */
 
 import { registerBlockRenderer } from '../registry';
+import { BreadcrumbsBlock } from './artisanpack/breadcrumbs';
 import { CalloutBlock } from './artisanpack/callout';
 import { LoginoutBlock } from './artisanpack/loginout';
 import {
@@ -210,6 +211,7 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/navigation': NavigationBlock,
     'core/navigation-link': NavigationLinkBlock,
     'core/navigation-submenu': NavigationSubmenuBlock,
+    'artisanpack/breadcrumbs': BreadcrumbsBlock,
     'artisanpack/callout': CalloutBlock,
     // Post navigation / metadata family (#520) — same renderer for both
     // namespaces; PostResolver stamps the same `_resolved*` attributes.
