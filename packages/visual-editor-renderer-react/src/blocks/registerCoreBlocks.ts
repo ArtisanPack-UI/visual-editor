@@ -12,8 +12,15 @@
  */
 
 import { registerBlockRenderer } from '../registry';
+import {
+    AccordionBlock,
+    AccordionBodyBlock,
+    AccordionTitleBlock,
+    AccordionsBlock,
+} from './artisanpack/accordion';
 import { BreadcrumbsBlock } from './artisanpack/breadcrumbs';
 import { CalloutBlock } from './artisanpack/callout';
+import { TabSectionBlock, TabsBlock } from './artisanpack/tabs';
 import { LoginoutBlock } from './artisanpack/loginout';
 import {
     CoverBlock,
@@ -213,6 +220,14 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/navigation-submenu': NavigationSubmenuBlock,
     'artisanpack/breadcrumbs': BreadcrumbsBlock,
     'artisanpack/callout': CalloutBlock,
+    // Accordion + tabs families (#497). Interactive blocks with
+    // parent/child inner-block relationships preserved across renderers.
+    'artisanpack/accordions': AccordionsBlock,
+    'artisanpack/accordion': AccordionBlock,
+    'artisanpack/accordion-title': AccordionTitleBlock,
+    'artisanpack/accordion-body': AccordionBodyBlock,
+    'artisanpack/tabs': TabsBlock,
+    'artisanpack/tab-section': TabSectionBlock,
     // Post navigation / metadata family (#520) — same renderer for both
     // namespaces; PostResolver stamps the same `_resolved*` attributes.
     'core/post-navigation-link': PostNavigationLinkBlock,

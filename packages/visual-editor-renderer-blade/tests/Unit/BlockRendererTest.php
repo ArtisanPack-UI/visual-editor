@@ -609,6 +609,174 @@ it( 'renders an empty list when breadcrumbs trail is missing', function () {
 		->and( $html )->not->toContain( '<li class="ap-breadcrumbs__item' );
 } );
 
+it( 'renders an artisanpack/accordions tree with its nested panel + title/body grandchildren', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [], [
+			makeBlock( 'artisanpack/accordion', [
+				'panelId'   => 'faq-1',
+				'panelIcon' => 'arrows',
+			], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Question' ], [], 'h-1' ),
+				], 'title-1' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'Answer.' ], [], 'p-1' ),
+				], 'body-1' ),
+			], 'panel-1' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'class="ap-accordions"' )
+		->and( $html )->toContain( 'class="ap-accordion"' )
+		->and( $html )->toContain( 'data-panel-id="faq-1"' )
+		->and( $html )->toContain( 'data-panel-icon="arrows"' )
+		->and( $html )->toContain( 'id="faq-1-control"' )
+		->and( $html )->toContain( 'aria-controls="faq-1"' )
+		->and( $html )->toContain( 'aria-expanded="false"' )
+		->and( $html )->toContain( 'ap-accordion__icon--arrows' )
+		->and( $html )->toContain( 'id="faq-1"' )
+		->and( $html )->toContain( 'aria-labelledby="faq-1-control"' )
+		->and( $html )->toContain( '<p class="wp-block-paragraph">Answer.</p>' )
+		->and( $html )->toContain( '<h3 class="wp-block-heading">Question</h3>' );
+} );
+
+it( 'falls back to safe defaults when accordion panelIcon is invalid', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordion', [
+			'panelId'   => 'faq-1',
+			'panelIcon' => 'evil"><script>',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'data-panel-icon="plus-minus"' )
+		->and( $html )->not->toContain( '<script>' );
+} );
+
+it( 'omits accordion-title aria wiring when the parent panel id is empty', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordion', [ 'panelId' => '', 'panelIcon' => 'plus-minus' ], [
+			makeBlock( 'artisanpack/accordion-title', [], [], 'title-1' ),
+			makeBlock( 'artisanpack/accordion-body', [], [], 'body-1' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->not->toContain( 'aria-controls=' )
+		->and( $html )->not->toContain( 'aria-labelledby=' )
+		->and( $html )->not->toContain( 'id="-control"' );
+} );
+
+it( 'renders an artisanpack/tabs tree with triggers derived from tab-section children', function () {
+	$tree = [
+		makeBlock( 'artisanpack/tabs', [
+			'tabsAlign'   => 'horizontal',
+			'tabsSpacing' => 'center',
+		], [
+			makeBlock( 'artisanpack/tab-section', [
+				'label' => 'Overview',
+				'tabId' => 'overview',
+			], [
+				makeBlock( 'core/paragraph', [ 'content' => 'Tab body' ], [], 'p-1' ),
+			], 'sec-1' ),
+			makeBlock( 'artisanpack/tab-section', [
+				'label' => 'Specs',
+				'tabId' => 'specs',
+			], [], 'sec-2' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'align-tabs-horizontal' )
+		->and( $html )->toContain( 'space-tabs-center' )
+		->and( $html )->toContain( 'data-ap-tabs' )
+		->and( $html )->toContain( 'role="tablist"' )
+		->and( $html )->toContain( 'href="#tabs-panel-overview"' )
+		->and( $html )->toContain( 'aria-controls="tabs-panel-overview"' )
+		->and( $html )->toContain( 'id="tabs-tab-overview"' )
+		->and( $html )->toContain( 'aria-selected="true"' )
+		->and( $html )->toContain( 'aria-selected="false"' )
+		->and( $html )->toContain( '>Overview</a>' )
+		->and( $html )->toContain( '>Specs</a>' )
+		->and( $html )->toContain( 'id="tabs-panel-overview"' )
+		->and( $html )->toContain( 'aria-labelledby="tabs-tab-overview"' )
+		->and( $html )->toContain( 'role="tabpanel"' )
+		->and( $html )->toContain( 'Tab body' );
+} );
+
+it( 'falls back to safe defaults when tabsAlign / tabsSpacing are invalid', function () {
+	$tree = [
+		makeBlock( 'artisanpack/tabs', [
+			'tabsAlign'   => 'diagonal',
+			'tabsSpacing' => 'sprawl',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'align-tabs-horizontal' )
+		->and( $html )->toContain( 'space-tabs-start' );
+} );
+
+it( 'deduplicates tab ids when two sections share the same slug', function () {
+	$tree = [
+		makeBlock( 'artisanpack/tabs', [], [
+			makeBlock( 'artisanpack/tab-section', [ 'label' => 'One', 'tabId' => 'overview' ], [], 'sec-1' ),
+			makeBlock( 'artisanpack/tab-section', [ 'label' => 'Two', 'tabId' => 'overview' ], [], 'sec-2' ),
+			makeBlock( 'artisanpack/tab-section', [ 'label' => 'Three', 'tabId' => 'overview' ], [], 'sec-3' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'id="tabs-panel-overview"' )
+		->and( $html )->toContain( 'id="tabs-panel-overview-2"' )
+		->and( $html )->toContain( 'id="tabs-panel-overview-3"' )
+		->and( $html )->toContain( 'href="#tabs-panel-overview-2"' )
+		->and( $html )->toContain( 'href="#tabs-panel-overview-3"' );
+} );
+
+it( 'auto-fills tab labels and ids by position when sections leave them blank', function () {
+	$tree = [
+		makeBlock( 'artisanpack/tabs', [], [
+			makeBlock( 'artisanpack/tab-section', [], [], 'sec-1' ),
+			makeBlock( 'artisanpack/tab-section', [], [], 'sec-2' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '>Tab 1</a>' )
+		->and( $html )->toContain( '>Tab 2</a>' )
+		// Triggers and panels MUST share the same resolved id so the
+		// aria-controls / id hookup actually resolves.
+		->and( $html )->toContain( 'href="#tabs-panel-tab-1"' )
+		->and( $html )->toContain( 'href="#tabs-panel-tab-2"' )
+		->and( $html )->toContain( 'id="tabs-panel-tab-1"' )
+		->and( $html )->toContain( 'id="tabs-panel-tab-2"' )
+		->and( $html )->toContain( 'aria-labelledby="tabs-tab-tab-1"' )
+		->and( $html )->toContain( 'aria-labelledby="tabs-tab-tab-2"' );
+} );
+
+it( 'renders a tab-section without aria wiring when tabId is empty', function () {
+	$tree = [
+		makeBlock( 'artisanpack/tab-section', [ 'tabId' => '' ], [
+			makeBlock( 'core/paragraph', [ 'content' => 'Naked' ], [], 'p-1' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->not->toContain( 'id="tabs-panel-"' )
+		->and( $html )->not->toContain( 'aria-labelledby=' )
+		->and( $html )->toContain( 'Naked' );
+} );
+
 describe( 'Keystone #50 — block-supports compilation on the rendered HTML', function (): void {
 	it( 'renders a custom background color on core/group as both class marker and inline style', function (): void {
 		$tree = [ makeBlock( 'core/group', [
