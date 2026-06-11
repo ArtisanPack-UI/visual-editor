@@ -7,6 +7,10 @@
 <link rel="stylesheet" href="{{ $tabsStyleHref }}" data-ve-tabs>
 <script src="{{ $interactivityScriptSrc }}" defer data-ve-interactivity></script>
 @endif
+{{-- Grid family CSS is layout-only (no interactivity script), so it
+	loads independently of $emitInteractive. Hosts that opt out of
+	accordion/tabs interactivity still want grid blocks to render. --}}
+<link rel="stylesheet" href="{{ $gridStyleHref }}" data-ve-grid>
 @if( '' !== $themeTokensCss )
 <style data-ve-theme-tokens>{!! $themeTokensCss !!}</style>
 @endif

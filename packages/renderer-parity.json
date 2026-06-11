@@ -134,6 +134,8 @@
         "artisanpack/accordion-title",
         "artisanpack/accordion-body",
         "artisanpack/tabs",
-        "artisanpack/tab-section"
+        "artisanpack/tab-section",
+        "artisanpack/grid",
+        "artisanpack/grid-item"
     ]
 }

@@ -777,6 +777,131 @@ it( 'renders a tab-section without aria wiring when tabId is empty', function ()
 		->and( $html )->toContain( 'Naked' );
 } );
 
+it( 'renders an artisanpack/grid tree with per-breakpoint column + span classes', function () {
+	$tree = [
+		makeBlock( 'artisanpack/grid', [
+			'numColumns' => 4,
+		], [
+			makeBlock( 'artisanpack/grid-item', [
+				'innerLayout'    => 'center',
+				'gridColumnSpan' => 2,
+				'gridRowSpan'    => 1,
+			], [
+				makeBlock( 'core/paragraph', [ 'content' => 'Cell content' ], [], 'p-1' ),
+			], 'item-1' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'ap-grid' )
+		->and( $html )->toContain( 'ap-grid-has-4-base-columns' )
+		->and( $html )->toContain( 'ap-grid-item' )
+		->and( $html )->toContain( 'ap-grid-item-layout-center' )
+		->and( $html )->toContain( 'ap-grid-item-span-2-base-columns' )
+		->and( $html )->toContain( 'ap-grid-item-span-1-base-row' )
+		->and( $html )->toContain( 'Cell content' );
+} );
+
+it( 'emits an `ap-grid-has-N-{bp}-columns` class for every responsive.numColumns override', function () {
+	$tree = [
+		makeBlock( 'artisanpack/grid', [
+			'numColumns' => 1,
+			'responsive' => [
+				'numColumns' => [
+					'md' => 2,
+					'lg' => 4,
+				],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'ap-grid-has-1-base-columns' )
+		->and( $html )->toContain( 'ap-grid-has-2-md-columns' )
+		->and( $html )->toContain( 'ap-grid-has-4-lg-columns' );
+} );
+
+it( 'clamps grid column counts outside 1-12 to safe defaults', function () {
+	$tooHigh = [
+		makeBlock( 'artisanpack/grid', [ 'numColumns' => 99 ] ),
+	];
+	$tooLow = [
+		makeBlock( 'artisanpack/grid', [ 'numColumns' => 0 ] ),
+	];
+
+	expect( makeRenderer()->render( $tooHigh ) )->toContain( 'ap-grid-has-12-base-columns' );
+	expect( makeRenderer()->render( $tooLow ) )->toContain( 'ap-grid-has-1-base-columns' );
+} );
+
+it( 'emits per-breakpoint grid-item span classes for both columns and rows', function () {
+	$tree = [
+		makeBlock( 'artisanpack/grid-item', [
+			'gridColumnSpan' => 1,
+			'gridRowSpan'    => 1,
+			'responsive'     => [
+				'gridColumnSpan' => [ 'md' => 2, 'lg' => 3 ],
+				'gridRowSpan'    => [ 'md' => 2 ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'ap-grid-item-span-1-base-columns' )
+		->and( $html )->toContain( 'ap-grid-item-span-1-base-row' )
+		->and( $html )->toContain( 'ap-grid-item-span-2-md-columns' )
+		->and( $html )->toContain( 'ap-grid-item-span-3-lg-columns' )
+		->and( $html )->toContain( 'ap-grid-item-span-2-md-row' );
+} );
+
+it( 'skips numColumns / span overrides at unknown breakpoints', function () {
+	$tree = [
+		makeBlock( 'artisanpack/grid', [
+			'numColumns' => 2,
+			'responsive' => [ 'numColumns' => [ 'orphan' => 6 ] ],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'ap-grid-has-2-base-columns' )
+		->and( $html )->not->toContain( 'orphan-columns' )
+		->and( $html )->not->toContain( '-orphan-' );
+} );
+
+it( 'falls back to a safe default when grid-item innerLayout is invalid', function () {
+	$tree = [
+		makeBlock( 'artisanpack/grid-item', [
+			'innerLayout' => 'evil"><script>',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'ap-grid-item-layout-normal' )
+		->and( $html )->not->toContain( '<script>' )
+		->and( $html )->not->toContain( 'ap-grid-item-layout-evil' );
+} );
+
+it( 'compiles spacing.blockGap with horizontal/vertical sides into row-gap + column-gap', function () {
+	$tree = [
+		makeBlock( 'artisanpack/grid', [
+			'style' => [
+				'spacing' => [
+					'blockGap' => [ 'top' => '2rem', 'left' => '1rem' ],
+				],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'row-gap: 2rem' )
+		->and( $html )->toContain( 'column-gap: 1rem' );
+} );
+
 describe( 'Keystone #50 — block-supports compilation on the rendered HTML', function (): void {
 	it( 'renders a custom background color on core/group as both class marker and inline style', function (): void {
 		$tree = [ makeBlock( 'core/group', [
