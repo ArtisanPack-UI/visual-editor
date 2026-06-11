@@ -133,8 +133,13 @@ it( 'rejects path traversal in the zip entry names', function (): void {
 
 	// `../escape.svg` reduces to `escape.svg` via basename(), which is
 	// safe — the rule is that the joined target must never escape the
-	// set directory, and basename() guarantees that.
+	// set directory, and basename() guarantees that. Verify both that
+	// the sanitized name lands inside the per-set directory AND that
+	// nothing was written one level up where the unsanitized name
+	// would have escaped to.
 	expect( $result->stored )->toContain( 'safe.svg' )
+		->and( $result->stored )->toContain( 'escape.svg' )
+		->and( file_exists( test()->baseDir . '/brand/escape.svg' ) )->toBeTrue()
 		->and( file_exists( test()->baseDir . '/escape.svg' ) )->toBeFalse();
 } );
 

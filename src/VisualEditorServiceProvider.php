@@ -910,8 +910,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 					continue;
 				}
 
-				$name             = substr( $entry, 0, -4 );
-				$uploadedIcons[]  = [
+				$name = substr( $entry, 0, -4 );
+				if ( '' === $name ) {
+					// A bare `.svg` filename would produce an empty
+					// catalog entry — drop it so the picker grid
+					// never tries to render an unnamed icon.
+					continue;
+				}
+				$uploadedIcons[] = [
 					'name'  => $name,
 					'set'   => $set->prefix,
 					'label' => $this->humanizeIconName( $name ),
