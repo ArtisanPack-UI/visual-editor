@@ -966,6 +966,20 @@ describe('Core design blocks', () => {
         expect(tooHigh).toContain('ap-grid-item-span-1-base-row');
     });
 
+    it('skips non-numeric responsive.numColumns overrides instead of clamping them to 1', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/grid', {
+                numColumns: 3,
+                responsive: { numColumns: { md: 'evil', lg: 4 } },
+            }),
+        ]);
+
+        expect(html).toContain('ap-grid-has-3-base-columns');
+        expect(html).not.toContain('ap-grid-has-1-md-columns');
+        expect(html).not.toContain('md-columns');
+        expect(html).toContain('ap-grid-has-4-lg-columns');
+    });
+
     it('falls back to a safe default when grid-item innerLayout is invalid', () => {
         const tree = [
             makeBlock('artisanpack/grid-item', {

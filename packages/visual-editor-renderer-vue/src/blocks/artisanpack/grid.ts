@@ -58,11 +58,15 @@ function responsiveSpanClasses(
             continue;
         }
 
-        const value = clampInt(raw, 1, 12, 0);
-        if (value === 0) {
+        // Validate raw is a parseable finite number BEFORE clamping —
+        // otherwise non-numeric values like 'evil' silently snap to the
+        // clamp min (1) and emit a bogus `ap-grid-*-1-{bp}-…` class.
+        const numeric = typeof raw === 'number' ? raw : Number(raw);
+        if (!Number.isFinite(numeric)) {
             continue;
         }
 
+        const value = clampInt(numeric, 1, 12, 1);
         classes.push(`${prefix}-${value}-${bp}-${suffix}`);
     }
 

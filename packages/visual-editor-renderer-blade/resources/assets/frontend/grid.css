@@ -52,8 +52,8 @@
 }
 
 .ap-grid-item.ap-grid-item-layout-bottom {
-    align-items: flex-end;
     flex-direction: column;
+    justify-content: flex-end;
 }
 
 .ap-grid-item.ap-grid-item-layout-last-bottom {
