@@ -90,6 +90,12 @@ export default function IconSave( { attributes }: IconSaveProps ): ReactElement 
     if ( shouldRenderLink( normalized ) ) {
         const target = normalizeLinkTarget( normalized.linkTarget );
         const rel = composeRel( normalized.linkTarget, normalized.linkRel );
+        // Decorative icons hide the body's ariaLabel via aria-hidden; promote
+        // the label onto the anchor so the link still has an accessible name.
+        const anchorAriaLabel =
+            normalized.isDecorative && normalized.ariaLabel
+                ? normalized.ariaLabel
+                : undefined;
 
         return (
             <div { ...blockProps }>
@@ -97,6 +103,7 @@ export default function IconSave( { attributes }: IconSaveProps ): ReactElement 
                     href={ normalized.link }
                     target={ target || undefined }
                     rel={ rel || undefined }
+                    aria-label={ anchorAriaLabel }
                 >
                     { body }
                 </a>

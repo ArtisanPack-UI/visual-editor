@@ -200,6 +200,50 @@ it( 'emits aria-label for accessible non-decorative icons', function () {
 	expect( $html )->toContain( 'aria-label="GitHub Profile"' );
 } );
 
+it( 'promotes ariaLabel onto the <a> when the icon is decorative + linked', function () {
+	// The body span is `aria-hidden` (decorative), so the supplied
+	// ariaLabel can't live there without contradicting the hide. Pushing
+	// it onto the anchor keeps the link reachable + labeled for screen
+	// readers.
+	$html = test()->block->render( [
+		'iconRef'      => [ 'set' => 'fab', 'name' => 'github' ],
+		'link'         => 'https://example.com',
+		'isDecorative' => true,
+		'ariaLabel'    => 'GitHub Profile',
+	] );
+
+	expect( $html )->toMatch( '/<a href="https:\/\/example\.com"[^>]*aria-label="GitHub Profile"/' )
+		->and( $html )->toContain( 'aria-hidden="true"' );
+} );
+
+it( 'leaves the <a> aria-label off when the icon is decorative + linked + has NO ariaLabel', function () {
+	// Without an ariaLabel the editor-side warning still fires;
+	// the server preserves the missing label so the warning state
+	// doesn't silently go away post-render.
+	$html = test()->block->render( [
+		'iconRef'      => [ 'set' => 'fab', 'name' => 'github' ],
+		'link'         => 'https://example.com',
+		'isDecorative' => true,
+	] );
+
+	expect( $html )->toContain( '<a href="https://example.com"' )
+		->and( $html )->not->toContain( 'aria-label=' );
+} );
+
+it( 'leaves the <a> aria-label off when the icon is non-decorative + linked + has ariaLabel', function () {
+	// In the non-decorative branch the body span already carries the
+	// aria-label, so doubling it on the anchor would be redundant.
+	$html = test()->block->render( [
+		'iconRef'   => [ 'set' => 'fab', 'name' => 'github' ],
+		'link'      => 'https://example.com',
+		'ariaLabel' => 'GitHub Profile',
+	] );
+
+	expect( $html )->toContain( '<a href="https://example.com"' )
+		->and( $html )->not->toMatch( '/<a [^>]*aria-label="GitHub Profile"/' )
+		->and( $html )->toMatch( '/<span [^>]*aria-label="GitHub Profile"/' );
+} );
+
 it( 'composes a transform from rotation + flip', function () {
 	$html = test()->block->render( [
 		'iconRef'  => [ 'set' => 'fab', 'name' => 'github' ],
@@ -484,6 +528,9 @@ it( 'inherits sizeUnit for width when widthUnit is null', function () {
 it( 'accepts new sizeUnit values (%, vw, vh)', function () {
 	$normalized = test()->block->validateAttrs( [ 'sizeUnit' => 'vh' ] );
 	expect( $normalized['sizeUnit'] )->toBe( 'vh' );
+
+	$normalized = test()->block->validateAttrs( [ 'sizeUnit' => 'vw' ] );
+	expect( $normalized['sizeUnit'] )->toBe( 'vw' );
 
 	$normalized = test()->block->validateAttrs( [ 'sizeUnit' => '%' ] );
 	expect( $normalized['sizeUnit'] )->toBe( '%' );

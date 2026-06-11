@@ -45,6 +45,14 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   a fallback for posts saved before the fix). Palette-color slugs
   resolve through the standard `has-{slug}-background-color` /
   `has-{slug}-border-color` classes.
+- **Icon block — decorative + linked icons now produce labeled
+  anchors.** When `isDecorative`, `link`, and `ariaLabel` are all set,
+  the supplied `ariaLabel` is now promoted onto the `<a>` itself
+  rather than dropped. The body span remains `aria-hidden="true"`
+  (the SVG is the decorative element), but the anchor finally has an
+  accessible name. The editor-side `hasDecorativeLinkConflict()`
+  warning still fires when no `ariaLabel` is supplied, which is the
+  scenario the warning was always meant to flag.
 
 ## [1.0.0] — 2026-06-08
 

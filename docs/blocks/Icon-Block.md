@@ -59,7 +59,7 @@ The Inspector's link controls produce a wrapping `<a>` on the rendered icon. `ta
 
 ## Developer recipe — registering custom sets
 
-Packages register additional icon sets through the existing [`ap.icons.register-icon-sets`](../../../icons) filter from `artisanpack-ui/icons`. The Icon Block picks them up automatically — no Icon Block-specific registration is needed.
+Packages register additional icon sets through the existing [`ap.icons.register-icon-sets`](https://github.com/ArtisanPack-UI/icons) filter from `artisanpack-ui/icons`. The Icon Block picks them up automatically — no Icon Block-specific registration is needed.
 
 ```php
 use ArtisanPackUI\Icons\Registries\IconSetRegistration;
@@ -130,4 +130,4 @@ If the referenced icon set has been deleted (or never registered), the renderer 
 
 - Parent issue: [#494](https://github.com/ArtisanPack-UI/visual-editor/issues/494)
 - Phase 7 (cross-phase tests + docs): [#558](https://github.com/ArtisanPack-UI/visual-editor/issues/558)
-- Icon Sets API: `artisanpack-ui/icons` ([`ap.icons.register-icon-sets`](../../../icons))
+- Icon Sets API: `artisanpack-ui/icons` ([`ap.icons.register-icon-sets`](https://github.com/ArtisanPack-UI/icons))

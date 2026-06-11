@@ -205,6 +205,15 @@ class IconBlock extends DynamicBlock
 		if ( '' !== $rel ) {
 			$attrParts[] = sprintf( 'rel="%s"', e( $rel ) );
 		}
+		// Decorative icons get `aria-hidden="true"` on the body span, so
+		// the only naming node is suppressed and the link reads as
+		// unlabeled. Promote any author-supplied `ariaLabel` onto the
+		// `<a>` itself so screen readers can announce the destination.
+		// The non-decorative path already pushes `ariaLabel` onto the
+		// body span — no double-labeling there.
+		if ( $attrs['isDecorative'] && '' !== $attrs['ariaLabel'] ) {
+			$attrParts[] = sprintf( 'aria-label="%s"', e( $attrs['ariaLabel'] ) );
+		}
 
 		return sprintf( '<a %s>%s</a>', implode( ' ', $attrParts ), $body );
 	}

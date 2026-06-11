@@ -416,7 +416,9 @@ it( 'still emits aria-hidden on a decorative linked icon — the editor surfaces
 	// Decorative + linked + no aria-label is a known a11y conflict —
 	// `edit.tsx` surfaces an inline warning so the author fixes it
 	// before save. The server still emits exactly what was saved so
-	// the editor warning doesn't go away post-render.
+	// the editor warning doesn't go away post-render. The `<a>` has
+	// no accessible name in this scenario — which is precisely what
+	// the warning exists to call out.
 	$html = $block->render( [
 		'iconRef'      => [ 'set' => 'fab', 'name' => 'github' ],
 		'link'         => 'https://example.com',
@@ -442,13 +444,13 @@ it( 'lets a decorative + linked combo recover when an aria-label is supplied', f
 		'ariaLabel'    => 'Visit on GitHub',
 	] );
 
-	// `aria-hidden` wins on the body (decorative is authoritative) but
-	// the link itself stays reachable thanks to the anchor markup —
-	// pairing this with the supplied label in the editor warning
-	// satisfies the a11y rule.
-	expect( $html )->toContain( '<a href="https://example.com"' )
-		->and( $html )->toContain( 'aria-hidden="true"' )
-		->and( $html )->not->toContain( 'aria-label="Visit on GitHub"' );
+	// `aria-hidden` stays on the body span (the SVG is decorative), but
+	// the supplied ariaLabel is promoted onto the `<a>` so the link
+	// itself has an accessible name. Without that promotion the link
+	// would still read as unlabeled to screen readers — which is the
+	// scenario the editor warning is supposed to prevent.
+	expect( $html )->toMatch( '/<a href="https:\/\/example\.com"[^>]*aria-label="Visit on GitHub"/' )
+		->and( $html )->toContain( 'aria-hidden="true"' );
 } );
 
 // -------------------------------------------------------------------
@@ -463,6 +465,19 @@ it( 'collects bundled FA Free sets via the ap.icons.register-icon-sets filter', 
 	// gate cleanly skips registration — so do the same here.
 	if ( ! class_exists( $registrationClass ) || ! function_exists( 'applyFilters' ) ) {
 		test()->markTestSkipped( 'artisanpack-ui/icons is not installed in this test environment' );
+	}
+
+	// The FA Free SVGs are mirrored into `resources/icons/font-awesome/`
+	// by `scripts/sync-fa-icons.mjs` as the `npm run build` prebuild
+	// step. CI's PHP job doesn't run that step (the SVGs ship only in
+	// the published package or after `npm run build`), so
+	// `FontAwesomeFreeIconSets::discover()` returns an empty array
+	// there and the filter callback no-ops. Skip in that case rather
+	// than failing on a sync that lives downstream of `composer
+	// install`.
+	$faFreeDir = __DIR__ . '/../../../resources/icons/font-awesome';
+	if ( ! is_dir( $faFreeDir . '/fas' ) ) {
+		test()->markTestSkipped( 'FA Free SVGs not synced — run `npm run sync:fa-icons` first' );
 	}
 
 	$registry = applyFilters( 'ap.icons.register-icon-sets', new $registrationClass() );
