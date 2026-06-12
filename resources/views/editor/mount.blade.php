@@ -13,7 +13,7 @@
 		data-resource="{{ $resource }}"
 		data-id="{{ $modelId }}"
 		data-api-base="{{ $apiBase }}"
-		data-content-types="{{ json_encode( $contentTypes ?? [] ) }}"
+		data-content-types="{{ json_encode( $contentTypes ?? [], JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 	></div>
 </body>
 </html>

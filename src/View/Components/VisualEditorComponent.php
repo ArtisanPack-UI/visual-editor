@@ -22,6 +22,7 @@ namespace ArtisanPackUI\VisualEditor\View\Components;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use Illuminate\View\Component;
 use RuntimeException;
 
@@ -126,7 +127,13 @@ class VisualEditorComponent extends Component
 				continue;
 			}
 
-			$singular = $this->singularize( $plural );
+			// Laravel's inflector handles English plural -> singular
+			// reliably (handles `pages` -> `page`, `categories` ->
+			// `category`, `classes` -> `class`, irregulars like
+			// `children` -> `child`). Avoids the hand-rolled
+			// `-es` heuristic mis-stripping the tail of legitimate
+			// stems like `types`.
+			$singular = Str::singular( $plural );
 
 			$types[] = [
 				// Match the WP convention — `postType` on a block is the
@@ -139,31 +146,6 @@ class VisualEditorComponent extends Component
 		}
 
 		return $types;
-	}
-
-	/**
-	 * Lightweight singularizer for content-type slugs. The resources map
-	 * is keyed by plural slugs by convention (`posts`, `pages`, `events`,
-	 * `categories`); the visual editor's block attributes need the
-	 * singular form. Covers the common -s / -es / -ies cases.
-	 *
-	 * @since 1.0.0
-	 */
-	protected function singularize( string $plural ): string
-	{
-		if ( strlen( $plural ) > 3 && str_ends_with( $plural, 'ies' ) ) {
-			return substr( $plural, 0, -3 ) . 'y';
-		}
-
-		if ( strlen( $plural ) > 2 && str_ends_with( $plural, 'es' ) ) {
-			return substr( $plural, 0, -2 );
-		}
-
-		if ( strlen( $plural ) > 1 && str_ends_with( $plural, 's' ) ) {
-			return substr( $plural, 0, -1 );
-		}
-
-		return $plural;
 	}
 
 	public function render(): View

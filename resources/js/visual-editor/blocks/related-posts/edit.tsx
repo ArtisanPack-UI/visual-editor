@@ -107,6 +107,21 @@ function clampOffset(value: number | undefined): number {
     return next < 0 ? 0 : next;
 }
 
+// The REST surface mirrors WP's `excerpt.rendered` shape, which ships
+// `<p>...</p>` wrappers and entity-encoded punctuation. The preview
+// card only needs a one-line plain-text excerpt — strip tags + decode
+// entities client-side so we never feed unsanitized HTML through
+// `dangerouslySetInnerHTML`.
+function stripHtml(value: string): string {
+    if (typeof document === 'undefined') {
+        return value.replace(/<[^>]*>/g, '').trim();
+    }
+
+    const parser = document.createElement('div');
+    parser.innerHTML = value;
+    return (parser.textContent ?? '').trim();
+}
+
 function extractStringField(record: Record<string, unknown>, key: string): string {
     const value = record[key];
     if (typeof value === 'string') {
@@ -337,12 +352,9 @@ export default function RelatedPostsEdit({
                             </p>
                         )}
                         {post.excerpt !== '' && (
-                            <p
-                                className="ap-related-posts__preview-excerpt"
-                                dangerouslySetInnerHTML={{
-                                    __html: post.excerpt,
-                                }}
-                            />
+                            <p className="ap-related-posts__preview-excerpt">
+                                {stripHtml(post.excerpt)}
+                            </p>
                         )}
                     </article>
                 ))}

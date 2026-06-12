@@ -7,6 +7,7 @@ use ArtisanPackUI\VisualEditor\Services\Icon\UploadedIconSetRegistry;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 // Package-level demo / fallback post-editor route. Host apps render the
 // editor via `<x-visual-editor :model="$post" />` against their own models.
@@ -25,13 +26,7 @@ Route::get('/editor', function () {
             continue;
         }
 
-        $singular = str_ends_with($plural, 'ies') && strlen($plural) > 3
-            ? substr($plural, 0, -3).'y'
-            : (str_ends_with($plural, 'es') && strlen($plural) > 2
-                ? substr($plural, 0, -2)
-                : (str_ends_with($plural, 's') && strlen($plural) > 1
-                    ? substr($plural, 0, -1)
-                    : $plural));
+        $singular = Str::singular($plural);
 
         $contentTypes[] = [
             'slug'   => $singular,

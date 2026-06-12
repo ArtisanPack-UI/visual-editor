@@ -53,11 +53,26 @@ function clampPostId(value: number | string | undefined): number {
     return Math.trunc(parsed);
 }
 
+const DEFAULT_COLLECTION = 'posts';
+
+// Match the host's registered content-type slugs verbatim — anything
+// outside `[a-z0-9_-]` (slashes, dots, path traversal characters)
+// would compose into the REST URL we fetch from, so we never let an
+// unvetted attribute through. Unknown-but-syntactically-clean slugs
+// still pluralize so a host that hasn't published its content-types
+// list yet (fallback registry) gets a best-effort fetch instead of
+// hard-failing.
+const SAFE_SLUG_PATTERN = /^[a-z0-9_-]+$/;
+
 function resolveCollection(rawType: string): string {
-    const type = (rawType || 'post').trim();
+    const type = (rawType || 'post').trim().toLowerCase();
     const match = getContentTypes().find((entry) => entry.slug === type);
     if (match !== undefined) {
         return match.plural;
+    }
+
+    if (!SAFE_SLUG_PATTERN.test(type)) {
+        return DEFAULT_COLLECTION;
     }
 
     if (type.endsWith('s')) {
