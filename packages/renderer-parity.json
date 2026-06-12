@@ -138,6 +138,9 @@
         "artisanpack/grid",
         "artisanpack/grid-item",
         "artisanpack/next-post",
-        "artisanpack/previous-post"
+        "artisanpack/previous-post",
+        "artisanpack/copyright",
+        "artisanpack/marquee",
+        "artisanpack/comments-number"
     ]
 }

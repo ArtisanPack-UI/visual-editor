@@ -63,6 +63,8 @@ class BlocksStylesComponent extends Component
 
 	public string $gridStyleHref;
 
+	public string $marqueeStyleHref;
+
 	public string $interactivityScriptSrc;
 
 	public bool $emitBlockLibrary;
@@ -96,6 +98,7 @@ class BlocksStylesComponent extends Component
 		$this->accordionStyleHref     = $base . '/frontend/accordion.css';
 		$this->tabsStyleHref          = $base . '/frontend/tabs.css';
 		$this->gridStyleHref          = $base . '/frontend/grid.css';
+		$this->marqueeStyleHref       = $base . '/frontend/marquee.css';
 		$this->interactivityScriptSrc = $base . '/frontend/interactivity.js';
 		$this->emitBlockLibrary       = $bundle;
 		$this->emitInteractive        = $interactive;

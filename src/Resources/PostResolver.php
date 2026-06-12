@@ -77,6 +77,10 @@ class PostResolver
 		'artisanpack/post-comments-link',
 		'artisanpack/post-comments-title',
 		'artisanpack/post-comments-form',
+		// Site-chrome comments-number block (#500). Reuses the
+		// existing `_resolvedCommentCount` stamp — the renderer
+		// combines it with the saved singular / plural labels.
+		'artisanpack/comments-number',
 		// Post navigation / metadata family forks (#520) — same `_resolved*`
 		// contract, new namespace. `term-description` is archive-context
 		// only, but we stamp the post's primary-term description on it so
@@ -216,7 +220,8 @@ class PostResolver
 			'avatar'                  => $this->resolveAuthor( $post ),
 			'post-featured-image'     => $this->resolveFeaturedImage( $post ),
 			'post-comments-form'      => $this->resolveCommentsForm( $post ),
-			'post-comments-count'     => $this->resolveCommentsCount( $post ),
+			'post-comments-count',
+			'comments-number'         => $this->resolveCommentsCount( $post ),
 			'post-comments-link'      => $this->resolveCommentsLink( $post ),
 			'post-comments-title'     => $this->resolveCommentsTitle( $post ),
 			'post-navigation-link'    => $this->resolvePostNavigationLink( $post ),

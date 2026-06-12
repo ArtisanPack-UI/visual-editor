@@ -11,6 +11,9 @@
 	loads independently of $emitInteractive. Hosts that opt out of
 	accordion/tabs interactivity still want grid blocks to render. --}}
 <link rel="stylesheet" href="{{ $gridStyleHref }}" data-ve-grid>
+{{-- Marquee CSS ships the keyframes the inline `animation` declaration
+	on the inner `<p>` references. Layout-only, same story as grid. --}}
+<link rel="stylesheet" href="{{ $marqueeStyleHref }}" data-ve-marquee>
 @if( '' !== $themeTokensCss )
 <style data-ve-theme-tokens>{!! $themeTokensCss !!}</style>
 @endif

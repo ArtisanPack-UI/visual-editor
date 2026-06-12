@@ -36,6 +36,7 @@ import {
 
 import accordionStyles from '../blocks/accordion/accordion.css?inline';
 import gridStyles from '../blocks/grid/grid.css?inline';
+import marqueeStyles from '../blocks/marquee/marquee.css?inline';
 import tabsStyles from '../blocks/tabs/tabs.css?inline';
 
 import canvasThemeTokens from './canvas-theme-tokens.css?inline';
@@ -114,6 +115,10 @@ export const canvasStyles: readonly CanvasStyle[] = [
     // accordion/tabs above. Ship the rules here so authors get an
     // accurate preview of the responsive column layout.
     { css: gridStyles },
+    // Marquee block (#500) — keyframes + wrapper baseline. Same
+    // iframe-isolation story: the per-block import in
+    // `blocks/marquee/index.ts` lands in the parent document only.
+    { css: marqueeStyles },
     {
         css: `
             /* Editor preview overrides — keep every panel and tab
@@ -147,6 +152,13 @@ export const canvasStyles: readonly CanvasStyle[] = [
                front-end. */
             .ap-accordion__body .block-editor-block-list__block,
             .ap-tab-section .block-editor-block-list__block { margin-top: 0; margin-bottom: 0; }
+
+            /* Marquee (#500) — the front-end CSS translates the text
+               off-screen and the renderers' inline animation slides it
+               back. The editor preview drops the animation so authors
+               can edit the RichText without it scrolling out from under
+               their cursor; pin the text in place so it's readable. */
+            .ap-marquee__text { transform: none !important; white-space: normal !important; }
         `,
     },
     { css: DEFAULT_CANVAS_STYLES },

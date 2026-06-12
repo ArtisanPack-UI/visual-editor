@@ -20,7 +20,10 @@ import {
 } from './artisanpack/accordion';
 import { BreadcrumbsBlock } from './artisanpack/breadcrumbs';
 import { CalloutBlock } from './artisanpack/callout';
+import { CommentsNumberBlock } from './artisanpack/commentsNumber';
+import { CopyrightBlock } from './artisanpack/copyright';
 import { GridBlock, GridItemBlock } from './artisanpack/grid';
+import { MarqueeBlock } from './artisanpack/marquee';
 import { TabSectionBlock, TabsBlock } from './artisanpack/tabs';
 import { LoginoutBlock } from './artisanpack/loginout';
 import {
@@ -287,6 +290,13 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     // only; loginout never shipped as `core/*` in v1 so there is no
     // core counterpart to mirror here.
     'artisanpack/loginout': LoginoutBlock,
+    // Site-chrome cluster (#500) — registered under the artisanpack/*
+    // namespace only. These three blocks (copyright + marquee +
+    // comments-number) never shipped as `core/*` in v1 so there are
+    // no core counterparts to mirror here.
+    'artisanpack/copyright': CopyrightBlock,
+    'artisanpack/marquee': MarqueeBlock,
+    'artisanpack/comments-number': CommentsNumberBlock,
 };
 
 export function registerCoreBlocks(): void {

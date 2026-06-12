@@ -1,0 +1,40 @@
+/**
+ * Marquee block styles.
+ *
+ * Loaded in the editor via `blocks/marquee/index.ts`. Host apps are
+ * expected to ship matching (or compatible) rules on the public
+ * frontend — the Blade / React / Vue renderers emit the same class
+ * names and the same `ap-marquee-scroll` keyframe name.
+ */
+
+.ap-marquee {
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden;
+}
+
+.ap-marquee__text {
+    margin: 0;
+    transform: translateX(100%);
+    white-space: nowrap;
+    will-change: transform;
+}
+
+@keyframes ap-marquee-scroll {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(-100%);
+    }
+}
+
+/* Respect prefers-reduced-motion. Mirrors the frontend stylesheet at
+   `packages/visual-editor-renderer-blade/resources/assets/frontend/marquee.css`. */
+@media (prefers-reduced-motion: reduce) {
+    .ap-marquee__text {
+        animation: none !important;
+        transform: none;
+        white-space: normal;
+    }
+}

@@ -609,6 +609,132 @@ it( 'renders an empty list when breadcrumbs trail is missing', function () {
 		->and( $html )->not->toContain( '<li class="ap-breadcrumbs__item' );
 } );
 
+it( 'renders the artisanpack/copyright block with the © + text + current year (icon-text default)', function () {
+	$tree = [
+		makeBlock( 'artisanpack/copyright', [
+			'copyrightType' => 'icon-text',
+			'copyrightText' => 'Acme, Inc.',
+		] ),
+	];
+
+	$year = gmdate( 'Y' );
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'class="ap-copyright"' )
+		->and( $html )->toContain( '© Acme, Inc. ' . $year )
+		->and( $html )->toContain( '<p' );
+} );
+
+it( 'omits the text when copyright type is icon-only and drops the icon when text-only', function () {
+	$iconOnly = makeRenderer()->render( [
+		makeBlock( 'artisanpack/copyright', [
+			'copyrightType' => 'icon-only',
+			'copyrightText' => 'Should not appear',
+		] ),
+	] );
+
+	$textOnly = makeRenderer()->render( [
+		makeBlock( 'artisanpack/copyright', [
+			'copyrightType' => 'text-only',
+			'copyrightText' => 'Plain',
+		] ),
+	] );
+
+	$year = gmdate( 'Y' );
+
+	expect( $iconOnly )->toContain( '© ' . $year )
+		->and( $iconOnly )->not->toContain( 'Should not appear' )
+		->and( $textOnly )->toContain( 'Plain ' . $year )
+		->and( $textOnly )->not->toContain( '©' );
+} );
+
+it( 'falls back to icon-text when copyright type is invalid', function () {
+	$tree = [
+		makeBlock( 'artisanpack/copyright', [
+			'copyrightType' => 'made-up-mode',
+			'copyrightText' => 'Fallback',
+		] ),
+	];
+
+	$year = gmdate( 'Y' );
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '© Fallback ' . $year );
+} );
+
+it( 'renders the artisanpack/marquee block with width + animation styles applied', function () {
+	$tree = [
+		makeBlock( 'artisanpack/marquee', [
+			'marqueeContent' => 'Breaking news',
+			'marqueeWidth'   => 60,
+			'marqueeSpeed'   => 10,
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'class="ap-marquee"' )
+		->and( $html )->toContain( 'width: 60%' )
+		->and( $html )->toContain( 'animation: ap-marquee-scroll 10s linear infinite' )
+		->and( $html )->toContain( 'class="ap-marquee__text"' )
+		->and( $html )->toContain( 'Breaking news' );
+} );
+
+it( 'clamps marquee width and speed to their valid range and falls back on non-numeric input', function () {
+	$tree = [
+		makeBlock( 'artisanpack/marquee', [
+			'marqueeContent' => 'x',
+			'marqueeWidth'   => 999,
+			'marqueeSpeed'   => 'fast',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'width: 100%' )
+		->and( $html )->toContain( 'animation: ap-marquee-scroll 5s linear infinite' );
+} );
+
+it( 'renders the artisanpack/comments-number block with the resolved count and plural label', function () {
+	$tree = [
+		makeBlock( 'artisanpack/comments-number', [
+			'_resolvedCommentCount' => 5,
+			'singularCommentText'   => 'Reply',
+			'pluralCommentText'     => 'Replies',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'class="ap-comments-number"' )
+		->and( $html )->toContain( '5 Replies' )
+		->and( $html )->not->toContain( 'Reply<' );
+} );
+
+it( 'uses the singular comments-number label when the resolved count is exactly one', function () {
+	$tree = [
+		makeBlock( 'artisanpack/comments-number', [
+			'_resolvedCommentCount' => 1,
+			'singularCommentText'   => 'Reply',
+			'pluralCommentText'     => 'Replies',
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '1 Reply' );
+} );
+
+it( 'falls back to zero comments and default labels when the resolved count is missing', function () {
+	$tree = [
+		makeBlock( 'artisanpack/comments-number', [] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '0 Comments' );
+} );
+
 it( 'renders an artisanpack/accordions tree with its nested panel + title/body grandchildren', function () {
 	$tree = [
 		makeBlock( 'artisanpack/accordions', [], [

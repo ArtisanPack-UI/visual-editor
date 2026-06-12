@@ -21,6 +21,18 @@ it( 'omits the block-library links when bundle is false', function () {
 		->not->toContain( 'data-ve-block-library' );
 } );
 
+it( 'emits the grid + marquee frontend stylesheet links independently of $emitInteractive', function () {
+	$rendered = Blade::render( '<x-ve-blocks-styles :interactive="false" />' );
+
+	expect( $rendered )
+		->toContain( '/vendor/visual-editor-renderer-blade/frontend/grid.css' )
+		->toContain( 'data-ve-grid' )
+		->toContain( '/vendor/visual-editor-renderer-blade/frontend/marquee.css' )
+		->toContain( 'data-ve-marquee' )
+		->not->toContain( 'data-ve-accordion' )
+		->not->toContain( 'data-ve-tabs' );
+} );
+
 it( 'rebases the link href when assetBase is supplied', function () {
 	$rendered = Blade::render(
 		'<x-ve-blocks-styles asset-base="https://cdn.example.com/ve" />'

@@ -1,6 +1,6 @@
 import { defineComponent, h } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import '../src/index';
 import { BlockTree } from '../src/BlockTree';
@@ -690,6 +690,132 @@ describe('Core design blocks', () => {
 
         expect(html).toContain('ap-breadcrumbs__list');
         expect(html).not.toContain('<li class="ap-breadcrumbs__item');
+    });
+
+    describe('artisanpack/copyright (year is read at render time)', () => {
+        // Pin the clock so these specs don't drift on the Dec 31 → Jan 1
+        // boundary; the renderer reads `new Date().getUTCFullYear()` so
+        // any test that hard-codes a year would otherwise need a real
+        // calendar to stay accurate.
+        const PINNED_YEAR = 2030;
+        const PINNED_DATE = new Date(Date.UTC(PINNED_YEAR, 5, 15));
+
+        beforeEach(() => {
+            vi.useFakeTimers();
+            vi.setSystemTime(PINNED_DATE);
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it('renders the artisanpack/copyright block with © text and the current year', () => {
+            const tree = [
+                makeBlock('artisanpack/copyright', {
+                    copyrightType: 'icon-text',
+                    copyrightText: 'Acme, Inc.',
+                }),
+            ];
+
+            const html = renderTree(tree);
+
+            expect(html).toContain('class="ap-copyright"');
+            expect(html).toContain(`© Acme, Inc. ${PINNED_YEAR}`);
+        });
+
+        it('omits the text when copyright type is icon-only and drops the © when text-only', () => {
+            const iconOnly = renderTree([
+                makeBlock('artisanpack/copyright', {
+                    copyrightType: 'icon-only',
+                    copyrightText: 'Should not appear',
+                }),
+            ]);
+            const textOnly = renderTree([
+                makeBlock('artisanpack/copyright', {
+                    copyrightType: 'text-only',
+                    copyrightText: 'Plain',
+                }),
+            ]);
+
+            expect(iconOnly).toContain(`© ${PINNED_YEAR}`);
+            expect(iconOnly).not.toContain('Should not appear');
+            expect(textOnly).toContain(`Plain ${PINNED_YEAR}`);
+            expect(textOnly).not.toContain('©');
+        });
+
+        it('falls back to icon-text when copyright type is invalid', () => {
+            const html = renderTree([
+                makeBlock('artisanpack/copyright', {
+                    copyrightType: 'made-up-mode',
+                    copyrightText: 'Fallback',
+                }),
+            ]);
+
+            expect(html).toContain(`© Fallback ${PINNED_YEAR}`);
+        });
+    });
+
+    it('renders the artisanpack/marquee block with width + animation styles applied', () => {
+        const tree = [
+            makeBlock('artisanpack/marquee', {
+                marqueeContent: 'Breaking news',
+                marqueeWidth: 60,
+                marqueeSpeed: 10,
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('class="ap-marquee"');
+        expect(html).toContain('width: 60%');
+        expect(html).toContain('animation: ap-marquee-scroll 10s linear infinite');
+        expect(html).toContain('class="ap-marquee__text"');
+        expect(html).toContain('Breaking news');
+    });
+
+    it('clamps marquee width and speed to their valid range and falls back on non-numeric input', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/marquee', {
+                marqueeContent: 'x',
+                marqueeWidth: 999,
+                marqueeSpeed: 'fast',
+            }),
+        ]);
+
+        expect(html).toContain('width: 100%');
+        expect(html).toContain('animation: ap-marquee-scroll 5s linear infinite');
+    });
+
+    it('renders the artisanpack/comments-number block with resolved count + plural label', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/comments-number', {
+                _resolvedCommentCount: 5,
+                singularCommentText: 'Reply',
+                pluralCommentText: 'Replies',
+            }),
+        ]);
+
+        expect(html).toContain('class="ap-comments-number"');
+        expect(html).toContain('5 Replies');
+        expect(html).not.toContain('Reply<');
+    });
+
+    it('uses the singular comments-number label when the resolved count is exactly one', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/comments-number', {
+                _resolvedCommentCount: 1,
+                singularCommentText: 'Reply',
+                pluralCommentText: 'Replies',
+            }),
+        ]);
+
+        expect(html).toContain('1 Reply');
+    });
+
+    it('falls back to zero comments and default labels when the resolved count is missing', () => {
+        const html = renderTree([makeBlock('artisanpack/comments-number', {})]);
+
+        expect(html).toContain('0 Comments');
     });
 
     it('renders the artisanpack/accordions family with nested grandchildren', () => {
