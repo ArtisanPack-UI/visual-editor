@@ -33,7 +33,6 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Resolvers;
 
-use Illuminate\Http\Request;
 use Throwable;
 
 class BreadcrumbsResolver
@@ -168,14 +167,10 @@ class BreadcrumbsResolver
 			],
 		];
 
-		// Homepage — when no post is in scope and the request URL matches
-		// the configured home URL, the trail collapses to a single Home
-		// entry. The finalizer marks it `current: true` so the renderer
-		// drops the link.
-		if ( null === $post && $this->onHomepage( $homeUrl ) ) {
-			return $trail;
-		}
-
+		// No post in scope (homepage, 404, archive without a single record).
+		// The trail collapses to the single Home entry the finalizer will
+		// mark `current: true`, so the renderer drops the link and emits
+		// `aria-current="page"`.
 		if ( null === $post ) {
 			return $trail;
 		}
@@ -441,33 +436,5 @@ class BreadcrumbsResolver
 		}
 
 		return __( 'Home' );
-	}
-
-	/**
-	 * Best-effort detection of whether the current request is the
-	 * configured home URL — used to short-circuit the default trail to
-	 * a single Home entry. Compares paths so query strings / hashes
-	 * don't make a homepage look like an inner page.
-	 *
-	 * @since 1.0.0
-	 */
-	protected function onHomepage( string $homeUrl ): bool
-	{
-		try {
-			$request = app( Request::class );
-		} catch ( Throwable ) {
-			return false;
-		}
-
-		try {
-			$requestPath = '/' . ltrim( (string) $request->path(), '/' );
-		} catch ( Throwable ) {
-			return false;
-		}
-
-		$homePath = '' === $homeUrl ? '/' : ( parse_url( $homeUrl, PHP_URL_PATH ) ?? '/' );
-		$homePath = '/' . ltrim( (string) $homePath, '/' );
-
-		return $requestPath === $homePath;
 	}
 }
