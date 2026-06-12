@@ -692,6 +692,117 @@ describe('Core design blocks', () => {
         expect(html).not.toContain('<li class="ap-breadcrumbs__item');
     });
 
+    it('renders the artisanpack/copyright block with © text and the current year', () => {
+        const tree = [
+            makeBlock('artisanpack/copyright', {
+                copyrightType: 'icon-text',
+                copyrightText: 'Acme, Inc.',
+            }),
+        ];
+
+        const year = new Date().getUTCFullYear();
+        const html = renderTree(tree);
+
+        expect(html).toContain('class="ap-copyright"');
+        expect(html).toContain(`© Acme, Inc. ${year}`);
+    });
+
+    it('omits the text when copyright type is icon-only and drops the © when text-only', () => {
+        const iconOnly = renderTree([
+            makeBlock('artisanpack/copyright', {
+                copyrightType: 'icon-only',
+                copyrightText: 'Should not appear',
+            }),
+        ]);
+        const textOnly = renderTree([
+            makeBlock('artisanpack/copyright', {
+                copyrightType: 'text-only',
+                copyrightText: 'Plain',
+            }),
+        ]);
+        const year = new Date().getUTCFullYear();
+
+        expect(iconOnly).toContain(`© ${year}`);
+        expect(iconOnly).not.toContain('Should not appear');
+        expect(textOnly).toContain(`Plain ${year}`);
+        expect(textOnly).not.toContain('©');
+    });
+
+    it('falls back to icon-text when copyright type is invalid', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/copyright', {
+                copyrightType: 'made-up-mode',
+                copyrightText: 'Fallback',
+            }),
+        ]);
+        const year = new Date().getUTCFullYear();
+
+        expect(html).toContain(`© Fallback ${year}`);
+    });
+
+    it('renders the artisanpack/marquee block with width + animation styles applied', () => {
+        const tree = [
+            makeBlock('artisanpack/marquee', {
+                marqueeContent: 'Breaking news',
+                marqueeWidth: 60,
+                marqueeSpeed: 10,
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('class="ap-marquee"');
+        expect(html).toContain('width: 60%');
+        expect(html).toContain('animation: ap-marquee-scroll 10s linear infinite');
+        expect(html).toContain('class="ap-marquee__text"');
+        expect(html).toContain('Breaking news');
+    });
+
+    it('clamps marquee width and speed to their valid range and falls back on non-numeric input', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/marquee', {
+                marqueeContent: 'x',
+                marqueeWidth: 999,
+                marqueeSpeed: 'fast',
+            }),
+        ]);
+
+        expect(html).toContain('width: 100%');
+        expect(html).toContain('animation: ap-marquee-scroll 5s linear infinite');
+    });
+
+    it('renders the artisanpack/comments-number block with resolved count + plural label', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/comments-number', {
+                _resolvedCommentCount: 5,
+                singularCommentText: 'Reply',
+                pluralCommentText: 'Replies',
+            }),
+        ]);
+
+        expect(html).toContain('class="ap-comments-number"');
+        expect(html).toContain('5 Replies');
+        expect(html).not.toContain('Reply<');
+    });
+
+    it('uses the singular comments-number label when the resolved count is exactly one', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/comments-number', {
+                _resolvedCommentCount: 1,
+                singularCommentText: 'Reply',
+                pluralCommentText: 'Replies',
+            }),
+        ]);
+
+        expect(html).toContain('1 Reply');
+    });
+
+    it('falls back to zero comments and default labels when the resolved count is missing', () => {
+        const html = renderTree([makeBlock('artisanpack/comments-number', {})]);
+
+        expect(html).toContain('0 Comments');
+    });
+
     it('renders the artisanpack/accordions family with nested grandchildren', () => {
         const tree = [
             makeBlock('artisanpack/accordions', {}, [
