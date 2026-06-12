@@ -37,7 +37,7 @@ export const QueryPaginationBlock = defineComponent({
                 'nav',
                 {
                     class: classList(['wp-block-query-pagination', className]),
-                    'aria-label': 'Pagination',
+                    'aria-label': 'Pagination navigation',
                 },
                 slots.default?.()
             );

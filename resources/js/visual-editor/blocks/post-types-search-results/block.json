@@ -1,0 +1,25 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/post-types-search-results",
+    "title": "Post Types Search Results",
+    "category": "artisanpack",
+    "description": "Wrap a set of post-type-specific result sections that render conditionally based on the searched post type.",
+    "keywords": ["search", "results", "post types"],
+    "textdomain": "artisanpack-visual-editor",
+    "supports": {
+        "align": ["wide", "full"],
+        "ariaLabel": true,
+        "className": true,
+        "html": false,
+        "spacing": {
+            "margin": ["top", "bottom"],
+            "padding": true,
+            "blockGap": true,
+            "__experimentalDefaultControls": {
+                "padding": true,
+                "blockGap": true
+            }
+        }
+    }
+}
