@@ -121,7 +121,7 @@
 <div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	@foreach ( $chips as $chip )
 		<div class="ap-social-share-content__item">
-			<a class="ap-social-share-content__chip {{ $chip['slug'] }}" href="{{ $chip['url'] }}"{!! $styleAttr !!}>
+			<a class="ap-social-share-content__chip {{ $chip['slug'] }}" href="{{ $chip['url'] }}" aria-label="{{ 'Share on ' . $chip['label'] }}"{!! $styleAttr !!}>
 				@if ( $showIcon )
 					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" focusable="false" class="ap-social-share-content__icon" fill="currentColor"><path d="{{ $chip['path'] }}"></path></svg>
 				@endif

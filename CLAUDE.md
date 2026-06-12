@@ -57,7 +57,7 @@ The crosswinds-blocks → ArtisanPack UI port (umbrella #495, CW0–CW7 clusters
 - 1993 / 1993 JS tests passing; renderer-parity script clean.
 - 1075 PHP tests passing. The 2 pre-existing failures in `tests/Unit/VisualEditor/Services/Icon/FontAwesomeFreeIconSetsTest.php` ("Class `ArtisanPackUI\\Icons\\Registries\\IconSetRegistration` not found") predate this branch — verified by stashing and re-running. Do NOT spend time on them in this PR.
 
-**Resume here (mac mini, pick up tomorrow):**
+**Resume here (Mac mini, pick up tomorrow):**
 
 1. **Manual browser verification** in the dev app at `~/Herd/artisanpack-ui-dev` (`npm run dev` + `composer run dev`). Insert each of the 4 new blocks from the inserter (ArtisanPack category), exercise the inspector controls, and confirm the editor preview matches expectations:
    - `single-content`: post-id + post-type inputs; canvas previews inner blocks against the host post.

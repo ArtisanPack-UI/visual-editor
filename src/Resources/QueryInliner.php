@@ -40,6 +40,7 @@ namespace ArtisanPackUI\VisualEditor\Resources;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Str;
 use Throwable;
 
 class QueryInliner
@@ -187,15 +188,11 @@ class QueryInliner
 
 		// Tolerate blocks saved before #501's variation pass moved to
 		// singular slugs — `posts`, `pages`, `categories` come back from
-		// the JSON as plural. Strip the suffix when present so the
-		// QueryResolver matches the registered content type either way.
-		if ( strlen( $postType ) > 3 && str_ends_with( $postType, 'ies' ) ) {
-			$postType = substr( $postType, 0, -3 ) . 'y';
-		} elseif ( strlen( $postType ) > 2 && str_ends_with( $postType, 'es' ) ) {
-			$postType = substr( $postType, 0, -2 );
-		} elseif ( strlen( $postType ) > 1 && str_ends_with( $postType, 's' ) ) {
-			$postType = substr( $postType, 0, -1 );
-		}
+		// the JSON as plural. `Str::singular` is the same inflector the
+		// dev-app variations registry uses, so the round-trip stays
+		// consistent (avoids the `types` -> `typ` class of mistakes
+		// the prior hand-rolled `-es` strip was prone to).
+		$postType = Str::singular( $postType );
 
 		// Implicit "render against the host post" mode: no id picked, the
 		// block sits in a single-post template, so PostResolver alone

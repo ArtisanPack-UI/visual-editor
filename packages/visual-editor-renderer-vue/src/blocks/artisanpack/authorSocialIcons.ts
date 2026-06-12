@@ -185,6 +185,13 @@ export const AuthorSocialIconsBlock = defineComponent({
                         };
                     }
 
+                    // Insert `aria-label` AFTER `style` so Vue's
+                    // attribute serialization order matches the React
+                    // JSX attribute source order (class, href, style,
+                    // aria-label) — the parity harness compares the
+                    // two HTML strings byte-for-byte.
+                    linkAttrs['aria-label'] = `Author on ${chip.label}`;
+
                     return h('div', { class: 'ap-author-social-icons__item', key: chip.slug }, [
                         h(
                             'a',

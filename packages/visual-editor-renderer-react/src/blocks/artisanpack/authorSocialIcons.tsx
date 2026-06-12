@@ -171,6 +171,7 @@ export function AuthorSocialIconsBlock({
                         className={`ap-author-social-icons__chip ${chip.slug}`}
                         href={chip.url}
                         style={chipStyle}
+                        aria-label={`Author on ${chip.label}`}
                     >
                         {showIcon && (
                             <svg

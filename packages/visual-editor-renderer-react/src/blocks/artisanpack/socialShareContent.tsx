@@ -171,6 +171,7 @@ export function SocialShareContentBlock({
                         className={`ap-social-share-content__chip ${chip.slug}`}
                         href={chip.url}
                         style={chipStyle}
+                        aria-label={`Share on ${chip.label}`}
                     >
                         {showIcon && (
                             <svg

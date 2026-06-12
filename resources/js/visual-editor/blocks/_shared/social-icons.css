@@ -51,7 +51,7 @@
     gap: 0.5rem;
     padding: 0.5rem;
     text-decoration: none;
-    color: var(--ap-social-color, currentColor);
+    color: var(--ap-social-color, currentcolor);
     background-color: var(--ap-social-bg, transparent);
     transition: color 150ms ease, background-color 150ms ease;
 }
@@ -65,7 +65,7 @@
 .ap-social-share-content__chip:focus-visible,
 .ap-author-social-icons__chip:hover,
 .ap-author-social-icons__chip:focus-visible {
-    color: var(--ap-social-hover-color, var(--ap-social-color, currentColor));
+    color: var(--ap-social-hover-color, var(--ap-social-color, currentcolor));
     background-color: var(--ap-social-hover-bg, var(--ap-social-bg, transparent));
 }
 
@@ -74,7 +74,7 @@
     width: 1em;
     height: 1em;
     flex-shrink: 0;
-    fill: currentColor;
+    fill: currentcolor;
 }
 
 .ap-social-share-content__label,
