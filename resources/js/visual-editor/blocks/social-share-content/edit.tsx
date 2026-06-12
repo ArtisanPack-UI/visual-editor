@@ -9,7 +9,11 @@
  */
 
 import type { ReactElement } from 'react';
-import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
+import {
+    InspectorControls,
+    PanelColorSettings,
+    useBlockProps,
+} from '@wordpress/block-editor';
 import {
     CheckboxControl,
     PanelBody,
@@ -25,6 +29,7 @@ import {
     SHARE_SOCIAL_PLATFORM_SLUGS,
     type SocialIconDefinition,
 } from '../_shared/social-icons';
+import { buildSocialColorStyle } from '../_shared/social-color-style';
 
 type IconStyle = 'show-label-icon' | 'show-icon' | 'show-label';
 type IconsDirection = 'horizontal' | 'vertical';
@@ -36,6 +41,10 @@ interface SocialShareContentAttributes {
     readonly iconsDirection: IconsDirection;
     readonly iconsStretch: IconsStretch;
     readonly iconsBorderRadius: number;
+    readonly iconColor: string;
+    readonly iconHoverColor: string;
+    readonly iconBackgroundColor: string;
+    readonly iconHoverBackgroundColor: string;
 }
 
 interface SocialShareContentEditProps {
@@ -116,6 +125,8 @@ export default function SocialShareContentEdit({
         className: `ap-social-share-content ap-social-share-content--${attributes.iconsDirection} ap-social-share-content--${attributes.iconsStretch}`,
     });
 
+    const colorStyle = buildSocialColorStyle(attributes);
+
     const renderChip = (platform: SocialIconDefinition): ReactElement => {
         const showIcon = attributes.iconStyle !== 'show-label';
         const showLabel = attributes.iconStyle !== 'show-icon';
@@ -124,7 +135,7 @@ export default function SocialShareContentEdit({
             <div className="ap-social-share-content__item" key={platform.slug}>
                 <span
                     className={`ap-social-share-content__chip ${platform.slug}`}
-                    style={{ borderRadius: `${radius}px` }}
+                    style={{ borderRadius: `${radius}px`, ...colorStyle }}
                 >
                     {showIcon && (
                         <svg
@@ -135,6 +146,7 @@ export default function SocialShareContentEdit({
                             aria-hidden="true"
                             focusable="false"
                             className="ap-social-share-content__icon"
+                            fill="currentColor"
                         >
                             <path d={platform.path} />
                         </svg>
@@ -230,6 +242,43 @@ export default function SocialShareContentEdit({
                         __nextHasNoMarginBottom
                     />
                 </PanelBody>
+                <PanelColorSettings
+                    title={__('Color settings', TEXT_DOMAIN)}
+                    initialOpen={false}
+                    colorSettings={[
+                        {
+                            value: attributes.iconColor,
+                            onChange: (value: string | undefined) =>
+                                setAttributes({ iconColor: value ?? '' }),
+                            label: __('Icon color', TEXT_DOMAIN),
+                        },
+                        {
+                            value: attributes.iconHoverColor,
+                            onChange: (value: string | undefined) =>
+                                setAttributes({ iconHoverColor: value ?? '' }),
+                            label: __('Icon hover color', TEXT_DOMAIN),
+                        },
+                        {
+                            value: attributes.iconBackgroundColor,
+                            onChange: (value: string | undefined) =>
+                                setAttributes({
+                                    iconBackgroundColor: value ?? '',
+                                }),
+                            label: __('Icon background color', TEXT_DOMAIN),
+                        },
+                        {
+                            value: attributes.iconHoverBackgroundColor,
+                            onChange: (value: string | undefined) =>
+                                setAttributes({
+                                    iconHoverBackgroundColor: value ?? '',
+                                }),
+                            label: __(
+                                'Icon hover background color',
+                                TEXT_DOMAIN
+                            ),
+                        },
+                    ]}
+                />
             </InspectorControls>
             <div {...blockProps}>
                 {selected.length === 0 ? (

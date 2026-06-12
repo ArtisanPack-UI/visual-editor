@@ -30,6 +30,22 @@
         "iconsBorderRadius": {
             "type": "number",
             "default": 0
+        },
+        "iconColor": {
+            "type": "string",
+            "default": ""
+        },
+        "iconHoverColor": {
+            "type": "string",
+            "default": ""
+        },
+        "iconBackgroundColor": {
+            "type": "string",
+            "default": ""
+        },
+        "iconHoverBackgroundColor": {
+            "type": "string",
+            "default": ""
         }
     },
     "supports": {

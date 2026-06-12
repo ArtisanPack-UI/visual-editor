@@ -16,6 +16,7 @@ import {
     attrString,
     classList,
 } from '../../support/attributes';
+import { buildSocialColorStyle } from '../../support/socialColorStyle';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -141,8 +142,23 @@ export function AuthorSocialIconsBlock({
         className,
     ]);
 
+    const colorStyle = buildSocialColorStyle({
+        iconColor: attrString(attributes.iconColor),
+        iconHoverColor: attrString(attributes.iconHoverColor),
+        iconBackgroundColor: attrString(attributes.iconBackgroundColor),
+        iconHoverBackgroundColor: attrString(
+            attributes.iconHoverBackgroundColor
+        ),
+    });
+
+    const hasColorStyle = Object.keys(colorStyle).length > 0;
     const chipStyle: CSSProperties | undefined =
-        radius > 0 ? { borderRadius: `${radius}px` } : undefined;
+        radius > 0 || hasColorStyle
+            ? {
+                  ...(radius > 0 ? { borderRadius: `${radius}px` } : {}),
+                  ...(colorStyle as CSSProperties),
+              }
+            : undefined;
 
     const showIcon = iconStyle !== 'show-label';
     const showLabel = iconStyle !== 'show-icon';
@@ -165,6 +181,7 @@ export function AuthorSocialIconsBlock({
                                 aria-hidden="true"
                                 focusable="false"
                                 className="ap-author-social-icons__icon"
+                                fill="currentColor"
                             >
                                 <path d={chip.path} />
                             </svg>

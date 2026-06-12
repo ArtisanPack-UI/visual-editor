@@ -62,6 +62,11 @@ class VisualEditorComponent extends Component
 
 	public ?string $previewUrl;
 
+	/**
+	 * @var array<int, array{slug: string, label: string}>
+	 */
+	public array $contentTypes;
+
 	public function __construct(
 		public Model $model,
 		?string $resource = null,
@@ -99,6 +104,66 @@ class VisualEditorComponent extends Component
 		$this->authorOptions        = $authorOptions;
 		$this->supports             = $supports;
 		$this->previewUrl           = $previewUrl;
+		$this->contentTypes         = $this->resolveContentTypes();
+	}
+
+	/**
+	 * Lists the registered cms-framework content types so the editor can
+	 * surface variations of `artisanpack/single-content` (one per type)
+	 * and any other block that wants to enumerate available resources.
+	 *
+	 * @return array<int, array{slug: string, label: string}>
+	 *
+	 * @since 1.0.0
+	 */
+	protected function resolveContentTypes(): array
+	{
+		$map = (array) config( 'artisanpack.visual-editor.resources', [] );
+		$types = [];
+
+		foreach ( $map as $plural => $modelClass ) {
+			if ( ! is_string( $plural ) || '' === $plural ) {
+				continue;
+			}
+
+			$singular = $this->singularize( $plural );
+
+			$types[] = [
+				// Match the WP convention — `postType` on a block is the
+				// singular slug (`post`, `page`) so `useEntityProp` /
+				// `getEntityRecord` find a matching entity descriptor.
+				'slug'   => $singular,
+				'plural' => $plural,
+				'label'  => ucwords( str_replace( [ '-', '_' ], ' ', $singular ) ),
+			];
+		}
+
+		return $types;
+	}
+
+	/**
+	 * Lightweight singularizer for content-type slugs. The resources map
+	 * is keyed by plural slugs by convention (`posts`, `pages`, `events`,
+	 * `categories`); the visual editor's block attributes need the
+	 * singular form. Covers the common -s / -es / -ies cases.
+	 *
+	 * @since 1.0.0
+	 */
+	protected function singularize( string $plural ): string
+	{
+		if ( strlen( $plural ) > 3 && str_ends_with( $plural, 'ies' ) ) {
+			return substr( $plural, 0, -3 ) . 'y';
+		}
+
+		if ( strlen( $plural ) > 2 && str_ends_with( $plural, 'es' ) ) {
+			return substr( $plural, 0, -2 );
+		}
+
+		if ( strlen( $plural ) > 1 && str_ends_with( $plural, 's' ) ) {
+			return substr( $plural, 0, -1 );
+		}
+
+		return $plural;
 	}
 
 	public function render(): View

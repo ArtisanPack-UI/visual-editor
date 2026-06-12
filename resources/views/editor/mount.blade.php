@@ -13,6 +13,7 @@
 		data-resource="{{ $resource }}"
 		data-id="{{ $modelId }}"
 		data-api-base="{{ $apiBase }}"
+		data-content-types="{{ json_encode( $contentTypes ?? [] ) }}"
 	></div>
 </body>
 </html>

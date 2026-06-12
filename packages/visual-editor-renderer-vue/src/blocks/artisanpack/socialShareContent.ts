@@ -16,6 +16,7 @@ import {
     attrString,
     classList,
 } from '../../support/attributes';
+import { buildSocialColorStyle } from '../../support/socialColorStyle';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -149,6 +150,19 @@ export const SocialShareContentBlock = defineComponent({
             const showIcon = iconStyle !== 'show-label';
             const showLabel = iconStyle !== 'show-icon';
 
+            const colorStyle = buildSocialColorStyle({
+                iconColor: attrString(props.attributes.iconColor),
+                iconHoverColor: attrString(props.attributes.iconHoverColor),
+                iconBackgroundColor: attrString(
+                    props.attributes.iconBackgroundColor
+                ),
+                iconHoverBackgroundColor: attrString(
+                    props.attributes.iconHoverBackgroundColor
+                ),
+            });
+
+            const hasColorStyle = Object.keys(colorStyle).length > 0;
+
             return h(
                 'div',
                 { class: classes },
@@ -161,9 +175,14 @@ export const SocialShareContentBlock = defineComponent({
                     // Vue's SSR serializes `style: undefined` as
                     // `style=""`, which breaks parity with React (which
                     // omits the attribute). Only set the key when there
-                    // is a non-zero radius to encode.
-                    if (radius > 0) {
-                        linkAttrs.style = { 'border-radius': `${radius}px` };
+                    // is a non-zero radius or color value to encode.
+                    if (radius > 0 || hasColorStyle) {
+                        linkAttrs.style = {
+                            ...(radius > 0
+                                ? { 'border-radius': `${radius}px` }
+                                : {}),
+                            ...colorStyle,
+                        };
                     }
 
                     return h('div', { class: 'ap-social-share-content__item', key: chip.slug }, [
@@ -182,6 +201,7 @@ export const SocialShareContentBlock = defineComponent({
                                               'aria-hidden': 'true',
                                               focusable: 'false',
                                               class: 'ap-social-share-content__icon',
+                                              fill: 'currentColor',
                                           },
                                           [h('path', { d: chip.path })]
                                       )

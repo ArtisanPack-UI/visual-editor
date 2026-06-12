@@ -65,6 +65,8 @@ class BlocksStylesComponent extends Component
 
 	public string $marqueeStyleHref;
 
+	public string $socialIconsStyleHref;
+
 	public string $interactivityScriptSrc;
 
 	public bool $emitBlockLibrary;
@@ -99,6 +101,7 @@ class BlocksStylesComponent extends Component
 		$this->tabsStyleHref          = $base . '/frontend/tabs.css';
 		$this->gridStyleHref          = $base . '/frontend/grid.css';
 		$this->marqueeStyleHref       = $base . '/frontend/marquee.css';
+		$this->socialIconsStyleHref   = $base . '/frontend/social-icons.css';
 		$this->interactivityScriptSrc = $base . '/frontend/interactivity.js';
 		$this->emitBlockLibrary       = $bundle;
 		$this->emitInteractive        = $interactive;

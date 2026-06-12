@@ -17,10 +17,34 @@ use Illuminate\Support\Facades\Route;
 // resource the editor will surface API errors, which is acceptable for
 // the fallback / sample URL.
 Route::get('/editor', function () {
+    $resources = (array) config('artisanpack.visual-editor.resources', []);
+    $contentTypes = [];
+
+    foreach ($resources as $plural => $modelClass) {
+        if (! is_string($plural) || $plural === '') {
+            continue;
+        }
+
+        $singular = str_ends_with($plural, 'ies') && strlen($plural) > 3
+            ? substr($plural, 0, -3).'y'
+            : (str_ends_with($plural, 'es') && strlen($plural) > 2
+                ? substr($plural, 0, -2)
+                : (str_ends_with($plural, 's') && strlen($plural) > 1
+                    ? substr($plural, 0, -1)
+                    : $plural));
+
+        $contentTypes[] = [
+            'slug'   => $singular,
+            'plural' => $plural,
+            'label'  => ucwords(str_replace(['-', '_'], ' ', $singular)),
+        ];
+    }
+
     return view('visual-editor::editor.mount', [
         'resource' => 'pages',
         'modelId' => '1',
         'apiBase' => '/visual-editor/api',
+        'contentTypes' => $contentTypes,
     ]);
 })->name('visual-editor.editor');
 

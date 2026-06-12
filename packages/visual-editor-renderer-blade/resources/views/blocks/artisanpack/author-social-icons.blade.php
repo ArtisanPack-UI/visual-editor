@@ -85,7 +85,35 @@
 		'ap-author-social-icons--' . $stretch,
 	];
 
-	$styleAttr = $radius > 0 ? ' style="border-radius:' . $radius . 'px"' : '';
+	$styleParts = [];
+	if ( $radius > 0 ) {
+		$styleParts[] = 'border-radius:' . $radius . 'px';
+	}
+
+	$iconColor      = is_string( $attributes['iconColor'] ?? null ) ? trim( $attributes['iconColor'] ) : '';
+	$iconHoverColor = is_string( $attributes['iconHoverColor'] ?? null ) ? trim( $attributes['iconHoverColor'] ) : '';
+	$iconBgColor    = is_string( $attributes['iconBackgroundColor'] ?? null ) ? trim( $attributes['iconBackgroundColor'] ) : '';
+	$iconHoverBg    = is_string( $attributes['iconHoverBackgroundColor'] ?? null ) ? trim( $attributes['iconHoverBackgroundColor'] ) : '';
+
+	// Emit ONLY CSS custom properties — the base color / background
+	// come from `var(--ap-social-color)` / `var(--ap-social-bg)` rules
+	// in social-icons.css. Inline `color: X` would have higher
+	// specificity than the `:hover { color: var(--ap-social-hover-color) }`
+	// rule and silently break hover swaps.
+	if ( '' !== $iconColor ) {
+		$styleParts[] = '--ap-social-color:' . $iconColor;
+	}
+	if ( '' !== $iconBgColor ) {
+		$styleParts[] = '--ap-social-bg:' . $iconBgColor;
+	}
+	if ( '' !== $iconHoverColor ) {
+		$styleParts[] = '--ap-social-hover-color:' . $iconHoverColor;
+	}
+	if ( '' !== $iconHoverBg ) {
+		$styleParts[] = '--ap-social-hover-bg:' . $iconHoverBg;
+	}
+
+	$styleAttr = empty( $styleParts ) ? '' : ' style="' . e( implode( ';', $styleParts ) ) . '"';
 
 	$showIcon  = 'show-label' !== $iconStyle;
 	$showLabel = 'show-icon' !== $iconStyle;
@@ -95,7 +123,7 @@
 		<div class="ap-author-social-icons__item">
 			<a class="ap-author-social-icons__chip {{ $chip['slug'] }}" href="{{ $chip['url'] }}"{!! $styleAttr !!}>
 				@if ( $showIcon )
-					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" focusable="false" class="ap-author-social-icons__icon"><path d="{{ $chip['path'] }}"></path></svg>
+					<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="1em" height="1em" aria-hidden="true" focusable="false" class="ap-author-social-icons__icon" fill="currentColor"><path d="{{ $chip['path'] }}"></path></svg>
 				@endif
 				@if ( $showLabel )
 					<span class="ap-author-social-icons__label">{{ $chip['label'] }}</span>

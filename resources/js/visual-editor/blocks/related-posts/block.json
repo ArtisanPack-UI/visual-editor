@@ -4,7 +4,7 @@
     "name": "artisanpack/related-posts",
     "title": "Related Posts",
     "category": "artisanpack",
-    "description": "Render a grid of posts related to the host entry so visitors can keep reading.",
+    "description": "Render a query loop of posts related to the host entry so visitors can keep reading.",
     "keywords": ["related", "posts", "loop", "feed"],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
@@ -15,7 +15,40 @@
         "numColumns": {
             "type": "number",
             "default": 1
+        },
+        "queryId": {
+            "type": "string"
+        },
+        "query": {
+            "type": "object",
+            "default": {
+                "perPage": 3,
+                "offset": 0,
+                "order": "desc",
+                "orderBy": "date",
+                "postType": "post",
+                "inherit": false,
+                "taxQuery": null
+            }
+        },
+        "displayLayout": {
+            "type": "object",
+            "default": {
+                "type": "list",
+                "columns": 1
+            }
+        },
+        "enhancedPagination": {
+            "type": "boolean",
+            "default": false
         }
+    },
+    "usesContext": ["postId", "postType"],
+    "providesContext": {
+        "queryId": "queryId",
+        "query": "query",
+        "displayLayout": "displayLayout",
+        "enhancedPagination": "enhancedPagination"
     },
     "supports": {
         "anchor": true,

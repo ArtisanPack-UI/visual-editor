@@ -185,6 +185,18 @@ class QueryInliner
 			$postType = 'post';
 		}
 
+		// Tolerate blocks saved before #501's variation pass moved to
+		// singular slugs — `posts`, `pages`, `categories` come back from
+		// the JSON as plural. Strip the suffix when present so the
+		// QueryResolver matches the registered content type either way.
+		if ( strlen( $postType ) > 3 && str_ends_with( $postType, 'ies' ) ) {
+			$postType = substr( $postType, 0, -3 ) . 'y';
+		} elseif ( strlen( $postType ) > 2 && str_ends_with( $postType, 'es' ) ) {
+			$postType = substr( $postType, 0, -2 );
+		} elseif ( strlen( $postType ) > 1 && str_ends_with( $postType, 's' ) ) {
+			$postType = substr( $postType, 0, -1 );
+		}
+
 		// Implicit "render against the host post" mode: no id picked, the
 		// block sits in a single-post template, so PostResolver alone
 		// stamps the inner tree against the host post downstream.
@@ -275,13 +287,37 @@ class QueryInliner
 			? $block['innerBlocks']
 			: [];
 
-		$numPosts = isset( $attributes['numPosts'] ) ? (int) $attributes['numPosts'] : 3;
+		// Prefer the query-block-shape `query.perPage` so authors can
+		// drive related-posts the same way they drive `artisanpack/query`;
+		// fall back to the legacy `numPosts` attribute for posts saved
+		// before the query-loop refactor (#501 follow-up).
+		$query = isset( $attributes['query'] ) && is_array( $attributes['query'] )
+			? $attributes['query']
+			: [];
+
+		if ( isset( $query['perPage'] ) && is_numeric( $query['perPage'] ) ) {
+			$numPosts = (int) $query['perPage'];
+		} elseif ( isset( $attributes['numPosts'] ) && is_numeric( $attributes['numPosts'] ) ) {
+			$numPosts = (int) $attributes['numPosts'];
+		} else {
+			$numPosts = 3;
+		}
 
 		if ( $numPosts < 1 ) {
 			$numPosts = 1;
 		} elseif ( $numPosts > 10 ) {
 			$numPosts = 10;
 		}
+
+		$order   = isset( $query['order'] ) && in_array( $query['order'], [ 'asc', 'desc' ], true )
+			? $query['order']
+			: 'desc';
+		$orderBy = isset( $query['orderBy'] ) && is_string( $query['orderBy'] ) && '' !== $query['orderBy']
+			? $query['orderBy']
+			: 'date';
+		$offset  = isset( $query['offset'] ) && is_numeric( $query['offset'] ) && (int) $query['offset'] >= 0
+			? (int) $query['offset']
+			: 0;
 
 		// No host post in scope → nothing to compute "related" against.
 		// Mark the block resolved-but-empty so the renderer drops the
@@ -308,6 +344,9 @@ class QueryInliner
 		$queryAttrs = [
 			'postType' => $hostType,
 			'perPage'  => $numPosts,
+			'offset'   => $offset,
+			'order'    => $order,
+			'orderBy'  => $orderBy,
 			'exclude'  => 0 === $hostId ? [] : [ $hostId ],
 			'taxonomy' => 'category',
 			'terms'    => $termIds,

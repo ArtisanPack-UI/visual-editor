@@ -2,7 +2,8 @@
  * Single Content — editor-side component (#501).
  *
  * Container block that scopes its inner-block tree to one specific entry.
- * The author picks the entry id + type from the inspector; the canvas
+ * The author picks the entry via a searchable post dropdown backed by the
+ * visual editor's `/posts` (or `/{postType}`) REST surface; the canvas
  * previews the inner blocks against whatever post the host has in scope.
  * Server-side `QueryInliner` resolves the entry through the visual
  * editor's `QueryResolverContract` and re-stamps the inner-block tree
@@ -10,15 +11,17 @@
  */
 
 import type { ReactElement } from 'react';
+import { useEffect, useState } from '@wordpress/element';
 import {
     InspectorControls,
     useBlockProps,
     useInnerBlocksProps,
 } from '@wordpress/block-editor';
-import { PanelBody, TextControl } from '@wordpress/components';
+import { ComboboxControl, PanelBody, TextControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
+import { getContentTypes } from '../../editor/content-type-registry';
 
 interface SingleContentAttributes {
     readonly postId: number;
@@ -30,10 +33,17 @@ interface SingleContentEditProps {
     readonly setAttributes: (next: Partial<SingleContentAttributes>) => void;
 }
 
+interface PostSummary {
+    readonly id: number;
+    readonly label: string;
+}
+
 const TEMPLATE: [string, Record<string, unknown>][] = [
     ['artisanpack/post-title', {}],
     ['artisanpack/post-content', {}],
 ];
+
+const API_BASE = '/visual-editor/api';
 
 function clampPostId(value: number | string | undefined): number {
     const parsed = typeof value === 'number' ? value : Number(value);
@@ -43,11 +53,149 @@ function clampPostId(value: number | string | undefined): number {
     return Math.trunc(parsed);
 }
 
+function resolveCollection(rawType: string): string {
+    const type = (rawType || 'post').trim();
+    const match = getContentTypes().find((entry) => entry.slug === type);
+    if (match !== undefined) {
+        return match.plural;
+    }
+
+    if (type.endsWith('s')) {
+        return type;
+    }
+    if (type.endsWith('y')) {
+        return `${type.slice(0, -1)}ies`;
+    }
+    return `${type}s`;
+}
+
+function extractLabel(record: Record<string, unknown>, id: number): string {
+    const title = record.title;
+    if (typeof title === 'string' && title !== '') {
+        return title;
+    }
+    if (title !== null && typeof title === 'object') {
+        const envelope = title as { rendered?: unknown; raw?: unknown };
+        if (typeof envelope.rendered === 'string' && envelope.rendered !== '') {
+            return envelope.rendered;
+        }
+        if (typeof envelope.raw === 'string' && envelope.raw !== '') {
+            return envelope.raw;
+        }
+    }
+    if (typeof record.slug === 'string' && record.slug !== '') {
+        return record.slug;
+    }
+    return `#${id}`;
+}
+
 export default function SingleContentEdit({
     attributes,
     setAttributes,
 }: SingleContentEditProps): ReactElement {
     const { postId, postType } = attributes;
+    const [search, setSearch] = useState<string>('');
+    const [records, setRecords] = useState<ReadonlyArray<PostSummary>>([]);
+    const [selectedLabel, setSelectedLabel] = useState<string | null>(null);
+
+    useEffect(() => {
+        const collection = resolveCollection(postType);
+        const params = new URLSearchParams({ per_page: '50' });
+        if (search.trim() !== '') {
+            params.set('search', search.trim());
+        }
+
+        const controller = new AbortController();
+        const url = `${API_BASE}/${collection}?${params.toString()}`;
+
+        void fetch(url, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+            signal: controller.signal,
+        })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((body) => {
+                if (body === null) {
+                    setRecords([]);
+                    return;
+                }
+                const raw = Array.isArray(body)
+                    ? body
+                    : Array.isArray((body as { data?: unknown }).data)
+                      ? ((body as { data: unknown[] }).data)
+                      : [];
+                const next: PostSummary[] = [];
+                for (const entry of raw) {
+                    if (entry === null || typeof entry !== 'object') {
+                        continue;
+                    }
+                    const record = entry as Record<string, unknown>;
+                    const id = clampPostId(record.id as number | string);
+                    if (id === 0) {
+                        continue;
+                    }
+                    next.push({ id, label: extractLabel(record, id) });
+                }
+                setRecords(next);
+            })
+            .catch((error) => {
+                if ((error as { name?: string }).name !== 'AbortError') {
+                    setRecords([]);
+                }
+            });
+
+        return () => controller.abort();
+    }, [postType, search]);
+
+    useEffect(() => {
+        if (!postId) {
+            setSelectedLabel(null);
+            return;
+        }
+
+        const match = records.find((record) => record.id === postId);
+        if (match !== undefined) {
+            setSelectedLabel(match.label);
+            return;
+        }
+
+        const collection = resolveCollection(postType);
+        const controller = new AbortController();
+        void fetch(`${API_BASE}/${collection}/${postId}`, {
+            credentials: 'same-origin',
+            headers: { Accept: 'application/json' },
+            signal: controller.signal,
+        })
+            .then((res) => (res.ok ? res.json() : null))
+            .then((body) => {
+                if (body === null || typeof body !== 'object') {
+                    return;
+                }
+                const envelope = body as { data?: unknown };
+                const record = (envelope.data ?? body) as Record<string, unknown>;
+                setSelectedLabel(extractLabel(record, postId));
+            })
+            .catch(() => {
+                /* swallowed — falls back to the id-only label below */
+            });
+
+        return () => controller.abort();
+    }, [postId, postType, records]);
+
+    const options = records.map((record) => ({
+        label: record.label,
+        value: String(record.id),
+    }));
+
+    if (
+        postId &&
+        !options.some((option) => option.value === String(postId))
+    ) {
+        options.unshift({
+            label: selectedLabel ?? `#${postId}`,
+            value: String(postId),
+        });
+    }
 
     const blockProps = useBlockProps({ className: 'ap-single-content' });
     const innerBlocksProps = useInnerBlocksProps(blockProps, {
@@ -61,16 +209,18 @@ export default function SingleContentEdit({
                     title={__('Single content settings', TEXT_DOMAIN)}
                     initialOpen
                 >
-                    <TextControl
-                        label={__('Post ID', TEXT_DOMAIN)}
+                    <ComboboxControl
+                        label={__('Post', TEXT_DOMAIN)}
                         help={__(
-                            'ID of the entry to render. Leave at 0 to render the host post in scope.',
+                            'Pick the entry to render. Leave empty to render the host post in scope.',
                             TEXT_DOMAIN
                         )}
-                        value={postId ? String(postId) : ''}
+                        value={postId ? String(postId) : null}
+                        options={options}
                         onChange={(value) =>
-                            setAttributes({ postId: clampPostId(value) })
+                            setAttributes({ postId: clampPostId(value ?? 0) })
                         }
+                        onFilterValueChange={(value) => setSearch(value)}
                         __nextHasNoMarginBottom
                     />
                     <TextControl
@@ -81,7 +231,10 @@ export default function SingleContentEdit({
                         )}
                         value={postType}
                         onChange={(value) =>
-                            setAttributes({ postType: value.trim() || 'post' })
+                            setAttributes({
+                                postType: value.trim() || 'post',
+                                postId: 0,
+                            })
                         }
                         __nextHasNoMarginBottom
                     />
