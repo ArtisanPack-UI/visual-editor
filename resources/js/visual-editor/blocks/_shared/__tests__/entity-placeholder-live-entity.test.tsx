@@ -13,6 +13,13 @@ import { select } from '@wordpress/data';
 
 vi.mock('@wordpress/block-editor', () => ({
     useBlockProps: () => ({ className: 'fallback-wrapper' }),
+    // The post-title edit exposes an InspectorControls panel for the
+    // isLink / linkTarget / rel attributes — stub it out as a no-op
+    // wrapper so the test environment doesn't have to mount the real
+    // sidebar slot.
+    InspectorControls: ({ children }: { children: React.ReactNode }) => (
+        <>{children}</>
+    ),
     // Minimal PlainText stub: renders a controlled textarea so the
     // editable post-title path can be asserted with RTL queries.
     PlainText: ({
@@ -42,6 +49,12 @@ vi.mock('@wordpress/block-editor', () => ({
             />
         );
     },
+}));
+
+vi.mock('@wordpress/components', () => ({
+    PanelBody: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    ToggleControl: () => null,
+    TextControl: () => null,
 }));
 
 import {

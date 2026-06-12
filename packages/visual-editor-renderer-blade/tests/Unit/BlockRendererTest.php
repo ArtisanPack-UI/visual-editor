@@ -902,6 +902,66 @@ it( 'compiles spacing.blockGap with horizontal/vertical sides into row-gap + col
 		->and( $html )->toContain( 'column-gap: 1rem' );
 } );
 
+it( 'renders artisanpack/next-post wrapper around its inner blocks when an adjacent post is resolved', function () {
+	$tree = [
+		makeBlock(
+			'artisanpack/next-post',
+			[ '_resolvedHasAdjacent' => true ],
+			[ makeBlock( 'core/paragraph', [ 'content' => 'Adjacent body' ] ) ]
+		),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'wp-block-artisanpack-next-post' )
+		->and( $html )->toContain( 'navigation-post' )
+		->and( $html )->toContain( 'Adjacent body' );
+} );
+
+it( 'emits nothing for artisanpack/next-post when no adjacent post is resolved', function () {
+	$tree = [
+		makeBlock(
+			'artisanpack/next-post',
+			[ '_resolvedHasAdjacent' => false ],
+			[ makeBlock( 'core/paragraph', [ 'content' => 'Hidden' ] ) ]
+		),
+	];
+
+	$html = trim( makeRenderer()->render( $tree ) );
+
+	expect( $html )->toBe( '' );
+} );
+
+it( 'renders artisanpack/previous-post wrapper around its inner blocks when an adjacent post is resolved', function () {
+	$tree = [
+		makeBlock(
+			'artisanpack/previous-post',
+			[ '_resolvedHasAdjacent' => true ],
+			[ makeBlock( 'core/paragraph', [ 'content' => 'Older neighbor' ] ) ]
+		),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'wp-block-artisanpack-previous-post' )
+		->and( $html )->toContain( 'navigation-post' )
+		->and( $html )->toContain( 'Older neighbor' );
+} );
+
+it( 'emits nothing for artisanpack/previous-post when no adjacent post is resolved', function () {
+	$tree = [
+		makeBlock(
+			'artisanpack/previous-post',
+			[ '_resolvedHasAdjacent' => false ],
+			[ makeBlock( 'core/paragraph', [ 'content' => 'Hidden' ] ) ]
+		),
+	];
+
+	$html = trim( makeRenderer()->render( $tree ) );
+
+	expect( $html )->toBe( '' );
+} );
+
 describe( 'Keystone #50 — block-supports compilation on the rendered HTML', function (): void {
 	it( 'renders a custom background color on core/group as both class marker and inline style', function (): void {
 		$tree = [ makeBlock( 'core/group', [

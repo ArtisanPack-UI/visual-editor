@@ -92,6 +92,21 @@ class PostResolver
 	];
 
 	/**
+	 * Container blocks that swap the post context of their inner blocks
+	 * to the adjacent post in the same post type (#499). The block
+	 * itself gets a `_resolvedHasAdjacent` flag so the renderer can
+	 * decide whether to emit a wrapper or nothing; the inner tree is
+	 * recursively stamped against the resolved adjacent post so every
+	 * `post-*` child renders the neighbor's data.
+	 *
+	 * @var array<int, string>
+	 */
+	protected const ADJACENT_POST_CONTAINERS = [
+		'artisanpack/next-post'     => 'next',
+		'artisanpack/previous-post' => 'previous',
+	];
+
+	/**
 	 * Recursively walk a block subtree and stamp every supported
 	 * `core/post-*` block against the given post.
 	 *
@@ -130,6 +145,34 @@ class PostResolver
 		$name = isset( $block['name'] ) && is_string( $block['name'] ) ? $block['name'] : '';
 
 		$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] ) ? $block['attributes'] : [];
+
+		// Adjacent-post container blocks (#499): swap the post context
+		// for the inner tree to the resolved adjacent post so every
+		// `post-*` child renders the neighbor's data. The block itself
+		// gets a `_resolvedHasAdjacent` flag so the renderer can emit a
+		// no-op shell when no neighbor exists.
+		if ( array_key_exists( $name, self::ADJACENT_POST_CONTAINERS ) ) {
+			$direction = self::ADJACENT_POST_CONTAINERS[ $name ];
+			$adjacent  = $this->adjacentPost( $post, $direction );
+
+			$rawInner = isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] )
+				? $block['innerBlocks']
+				: [];
+
+			$inner = null === $adjacent
+				? $rawInner
+				: $this->stampTree( $rawInner, $adjacent );
+
+			$attributes = array_merge(
+				[ '_resolvedHasAdjacent' => null !== $adjacent ],
+				$attributes
+			);
+
+			return array_merge( $block, [
+				'attributes'  => $attributes,
+				'innerBlocks' => $inner,
+			] );
+		}
 
 		if ( in_array( $name, self::SUPPORTED_BLOCKS, true ) ) {
 			$attributes = array_merge( $this->resolveAttributesFor( $name, $post ), $attributes );

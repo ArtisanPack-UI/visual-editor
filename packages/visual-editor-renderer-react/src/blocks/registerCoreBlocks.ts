@@ -24,6 +24,10 @@ import { GridBlock, GridItemBlock } from './artisanpack/grid';
 import { TabSectionBlock, TabsBlock } from './artisanpack/tabs';
 import { LoginoutBlock } from './artisanpack/loginout';
 import {
+    NextPostBlock,
+    PreviousPostBlock,
+} from './artisanpack/postNavigation';
+import {
     CoverBlock,
     DetailsBlock,
     MediaTextBlock,
@@ -234,6 +238,12 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     // per-breakpoint span classes and inner-layout flex class.
     'artisanpack/grid': GridBlock,
     'artisanpack/grid-item': GridItemBlock,
+    // Adjacent-post container family (#499). PostResolver re-stamps the
+    // inner-block tree against the resolved neighbor and sets
+    // `_resolvedHasAdjacent`; renderer emits the `<div>` wrapper when
+    // that flag is true and nothing otherwise.
+    'artisanpack/next-post': NextPostBlock,
+    'artisanpack/previous-post': PreviousPostBlock,
     // Post navigation / metadata family (#520) — same renderer for both
     // namespaces; PostResolver stamps the same `_resolved*` attributes.
     'core/post-navigation-link': PostNavigationLinkBlock,

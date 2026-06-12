@@ -136,6 +136,8 @@
         "artisanpack/tabs",
         "artisanpack/tab-section",
         "artisanpack/grid",
-        "artisanpack/grid-item"
+        "artisanpack/grid-item",
+        "artisanpack/next-post",
+        "artisanpack/previous-post"
     ]
 }

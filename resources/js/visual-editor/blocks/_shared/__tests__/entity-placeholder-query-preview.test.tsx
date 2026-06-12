@@ -10,6 +10,13 @@ import { render } from '@testing-library/react';
 
 vi.mock('@wordpress/block-editor', () => ({
     useBlockProps: () => ({ className: 'fallback-wrapper' }),
+    // The post-title edit exposes an InspectorControls panel for the
+    // isLink / linkTarget / rel attributes — stub it out as a no-op
+    // wrapper so the test environment doesn't have to mount the real
+    // sidebar slot.
+    InspectorControls: ({ children }: { children: React.ReactNode }) => (
+        <>{children}</>
+    ),
     // Minimal PlainText stub; the query-preview tests never reach the
     // editable post-title path, but the import has to resolve when the
     // edit module loads.
@@ -29,6 +36,12 @@ vi.mock('@wordpress/block-editor', () => ({
             onChange={(event) => onChange(event.target.value)}
         />
     ),
+}));
+
+vi.mock('@wordpress/components', () => ({
+    PanelBody: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    ToggleControl: () => null,
+    TextControl: () => null,
 }));
 
 import { createEntityPlaceholderEdit } from '../entity-placeholder-edit';

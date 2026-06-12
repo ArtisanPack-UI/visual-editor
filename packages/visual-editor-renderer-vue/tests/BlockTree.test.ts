@@ -992,6 +992,66 @@ describe('Core design blocks', () => {
         expect(html).not.toContain('<script>');
         expect(html).not.toContain('ap-grid-item-layout-evil');
     });
+
+    it('renders artisanpack/next-post wrapper around its inner blocks when an adjacent post is resolved', () => {
+        const tree = [
+            makeBlock(
+                'artisanpack/next-post',
+                { _resolvedHasAdjacent: true },
+                [makeBlock('core/paragraph', { content: 'Adjacent body' })]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('wp-block-artisanpack-next-post');
+        expect(html).toContain('navigation-post');
+        expect(html).toContain('Adjacent body');
+    });
+
+    it('emits nothing for artisanpack/next-post when no adjacent post is resolved', () => {
+        const tree = [
+            makeBlock(
+                'artisanpack/next-post',
+                { _resolvedHasAdjacent: false },
+                [makeBlock('core/paragraph', { content: 'Hidden' })]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toBe('');
+    });
+
+    it('renders artisanpack/previous-post wrapper around its inner blocks when an adjacent post is resolved', () => {
+        const tree = [
+            makeBlock(
+                'artisanpack/previous-post',
+                { _resolvedHasAdjacent: true },
+                [makeBlock('core/paragraph', { content: 'Older neighbor' })]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('wp-block-artisanpack-previous-post');
+        expect(html).toContain('navigation-post');
+        expect(html).toContain('Older neighbor');
+    });
+
+    it('emits nothing for artisanpack/previous-post when no adjacent post is resolved', () => {
+        const tree = [
+            makeBlock(
+                'artisanpack/previous-post',
+                { _resolvedHasAdjacent: false },
+                [makeBlock('core/paragraph', { content: 'Hidden' })]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toBe('');
+    });
 });
 
 describe('Registry + dynamic fallback', () => {
