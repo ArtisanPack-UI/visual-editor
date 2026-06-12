@@ -1,0 +1,45 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/related-posts",
+    "title": "Related Posts",
+    "category": "artisanpack",
+    "description": "Render a grid of posts related to the host entry so visitors can keep reading.",
+    "keywords": ["related", "posts", "loop", "feed"],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "numPosts": {
+            "type": "number",
+            "default": 3
+        },
+        "numColumns": {
+            "type": "number",
+            "default": 1
+        }
+    },
+    "supports": {
+        "anchor": true,
+        "align": ["wide", "full"],
+        "ariaLabel": true,
+        "className": true,
+        "html": false,
+        "reusable": false,
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "spacing": {
+            "margin": ["top", "bottom"],
+            "padding": true,
+            "blockGap": true,
+            "__experimentalDefaultControls": {
+                "padding": true,
+                "blockGap": true
+            }
+        }
+    }
+}

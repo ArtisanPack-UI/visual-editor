@@ -141,6 +141,10 @@
         "artisanpack/previous-post",
         "artisanpack/copyright",
         "artisanpack/marquee",
-        "artisanpack/comments-number"
+        "artisanpack/comments-number",
+        "artisanpack/single-content",
+        "artisanpack/related-posts",
+        "artisanpack/author-social-icons",
+        "artisanpack/social-share-content"
     ]
 }

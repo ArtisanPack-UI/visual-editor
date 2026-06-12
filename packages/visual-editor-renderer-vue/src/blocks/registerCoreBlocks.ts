@@ -30,6 +30,10 @@ import {
     NextPostBlock,
     PreviousPostBlock,
 } from './artisanpack/postNavigation';
+import { AuthorSocialIconsBlock } from './artisanpack/authorSocialIcons';
+import { RelatedPostsBlock } from './artisanpack/relatedPosts';
+import { SingleContentBlock } from './artisanpack/singleContent';
+import { SocialShareContentBlock } from './artisanpack/socialShareContent';
 import {
     CommentAuthorAvatarBlock,
     CommentAuthorNameBlock,
@@ -296,6 +300,15 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/copyright': CopyrightBlock,
     'artisanpack/marquee': MarqueeBlock,
     'artisanpack/comments-number': CommentsNumberBlock,
+    // Single-post content cluster (#501) — registered under the
+    // artisanpack/* namespace only. `single-content` + `related-posts`
+    // resolve through `QueryInliner` via `QueryResolverContract`; the
+    // two social blocks resolve through `PostResolver` so the per-post
+    // chip list arrives pre-stamped on the attributes.
+    'artisanpack/single-content': SingleContentBlock,
+    'artisanpack/related-posts': RelatedPostsBlock,
+    'artisanpack/author-social-icons': AuthorSocialIconsBlock,
+    'artisanpack/social-share-content': SocialShareContentBlock,
 };
 
 export function registerCoreBlocks(): void {
