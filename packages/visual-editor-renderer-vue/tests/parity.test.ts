@@ -643,6 +643,38 @@ const FIXTURES: Array<{ name: string; tree: Block[] }> = [
             ),
         ],
     },
+    {
+        name: 'artisanpack/skills-slider with defaults',
+        tree: [makeBlock('artisanpack/skills-slider', {}, [], 'ss-1')],
+    },
+    {
+        name: 'artisanpack/skills-slider with custom level + colours',
+        tree: [
+            makeBlock(
+                'artisanpack/skills-slider',
+                {
+                    skillLevel: 75,
+                    barHeight: 12,
+                    barColor: '#ff0000',
+                    trackColor: '#eeeeee',
+                    ariaLabel: 'PHP proficiency',
+                },
+                [],
+                'ss-2'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/skills-slider clamps out-of-range values',
+        tree: [
+            makeBlock(
+                'artisanpack/skills-slider',
+                { skillLevel: 250, barHeight: 0 },
+                [],
+                'ss-3'
+            ),
+        ],
+    },
 ];
 
 describe('React/Vue renderer parity', () => {
