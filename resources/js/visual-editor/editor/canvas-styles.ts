@@ -37,6 +37,7 @@ import {
 import accordionStyles from '../blocks/accordion/accordion.css?inline';
 import gridStyles from '../blocks/grid/grid.css?inline';
 import marqueeStyles from '../blocks/marquee/marquee.css?inline';
+import socialIconsStyles from '../blocks/_shared/social-icons.css?inline';
 import tabsStyles from '../blocks/tabs/tabs.css?inline';
 
 import canvasThemeTokens from './canvas-theme-tokens.css?inline';
@@ -119,6 +120,9 @@ export const canvasStyles: readonly CanvasStyle[] = [
     // iframe-isolation story: the per-block import in
     // `blocks/marquee/index.ts` lands in the parent document only.
     { css: marqueeStyles },
+    // Social-share / author-social-icons (#501) — chip baseline +
+    // layout modifiers. Same iframe-doesn't-see-`?inline` story.
+    { css: socialIconsStyles },
     {
         css: `
             /* Editor preview overrides — keep every panel and tab

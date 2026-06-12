@@ -94,7 +94,7 @@ class BlocksComponent extends Component
 		// loop with a navigation block inside it (rare but legal) still
 		// gets each cloned nav block resolved to its menu items.
 		$resolved = $resolveQueries
-			? $this->queryInliner->inline( $resolved )
+			? $this->queryInliner->inline( $resolved, is_object( $post ) ? $post : null )
 			: $resolved;
 
 		// Comment inlining runs after query inlining so a `core/query` loop

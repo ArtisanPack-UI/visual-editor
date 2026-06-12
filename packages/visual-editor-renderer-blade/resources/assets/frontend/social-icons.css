@@ -1,0 +1,110 @@
+/* Layout + chip baseline for the social-share / author-social-icons
+ * blocks (#501). Reads the `--ap-social-*` custom properties stamped by
+ * the renderers so theme colors, hover colors, and background colors
+ * apply identically in the editor canvas and the front-end render.
+ */
+
+.ap-social-share-content,
+.ap-author-social-icons {
+	display: flex;
+	gap: 0.5rem;
+}
+
+.ap-social-share-content--vertical,
+.ap-author-social-icons--vertical {
+	flex-direction: column;
+	align-items: stretch;
+}
+
+.ap-social-share-content--horizontal,
+.ap-author-social-icons--horizontal {
+	flex-direction: row;
+	flex-wrap: wrap;
+	align-items: center;
+}
+
+.ap-social-share-content--full-width .ap-social-share-content__item,
+.ap-author-social-icons--full-width .ap-author-social-icons__item {
+	flex: 1 1 auto;
+}
+
+.ap-social-share-content--auto-width .ap-social-share-content__item,
+.ap-author-social-icons--auto-width .ap-author-social-icons__item {
+	flex: 0 0 auto;
+}
+
+.ap-social-share-content__chip,
+.ap-author-social-icons__chip {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	gap: 0.5rem;
+	padding: 0.5rem;
+	text-decoration: none;
+	color: var(--ap-social-color, currentcolor);
+	background-color: var(--ap-social-bg, transparent);
+	transition: color 150ms ease, background-color 150ms ease;
+}
+
+.ap-social-share-content--full-width .ap-social-share-content__chip,
+.ap-author-social-icons--full-width .ap-author-social-icons__chip {
+	width: 100%;
+}
+
+.ap-social-share-content__chip:hover,
+.ap-social-share-content__chip:focus-visible,
+.ap-author-social-icons__chip:hover,
+.ap-author-social-icons__chip:focus-visible {
+	color: var(--ap-social-hover-color, var(--ap-social-color, currentcolor));
+	background-color: var(--ap-social-hover-bg, var(--ap-social-bg, transparent));
+}
+
+.ap-social-share-content__icon,
+.ap-author-social-icons__icon {
+	width: 1em;
+	height: 1em;
+	flex-shrink: 0;
+	fill: currentcolor;
+}
+
+.ap-social-share-content__label,
+.ap-author-social-icons__label {
+	font-weight: 500;
+}
+
+.ap-related-posts {
+	display: grid;
+	gap: 1rem;
+	list-style: none;
+	padding-inline-start: 0;
+}
+
+.ap-related-posts > li,
+.ap-related-posts > .ap-related-posts__item,
+.ap-related-posts .wp-block-post-template-item {
+	list-style: none;
+	margin: 0;
+}
+
+.ap-related-posts .wp-block-post-template-item {
+	display: block;
+}
+
+.ap-related-posts-has-2-columns { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.ap-related-posts-has-3-columns { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.ap-related-posts-has-4-columns { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.ap-related-posts__item {
+	border: 1px solid rgba(0, 0, 0, 0.08);
+	border-radius: 6px;
+	padding: 1rem;
+}
+
+.ap-social-share-content__empty,
+.ap-author-social-icons__empty {
+	margin: 0;
+	padding: 0.5rem 0.75rem;
+	color: #6b7280;
+	font-size: 0.875rem;
+	font-style: italic;
+}

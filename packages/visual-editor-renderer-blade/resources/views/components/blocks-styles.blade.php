@@ -14,6 +14,10 @@
 {{-- Marquee CSS ships the keyframes the inline `animation` declaration
 	on the inner `<p>` references. Layout-only, same story as grid. --}}
 <link rel="stylesheet" href="{{ $marqueeStyleHref }}" data-ve-marquee>
+{{-- Social-share / author-social-icons layout + chip baseline. Reads
+	the `--ap-social-*` custom properties stamped by the renderers so
+	icon / hover / background color choices apply on the front end. --}}
+<link rel="stylesheet" href="{{ $socialIconsStyleHref }}" data-ve-social-icons>
 @if( '' !== $themeTokensCss )
 <style data-ve-theme-tokens>{!! $themeTokensCss !!}</style>
 @endif

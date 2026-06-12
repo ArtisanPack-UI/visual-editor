@@ -33,12 +33,13 @@ describe('canvasStyles', () => {
         // token bridge + components + block-editor (style + content)
         // + block-library (style + editor) + LAYOUT_BASELINE
         // + accordion + tabs + editor-tweaks (interactive blocks; #497)
-        // + grid (#498) + marquee (#500) + DEFAULT_CANVAS_STYLES
-        // + ALIGNMENT_OVERRIDE_STYLES + POST_EDITOR_FRAMING_STYLES
-        // (Keystone #47 — site-editor canvases skip the framing entry
-        // but keep the alignment overrides so the wide/full toolbar
-        // buttons take effect there too).
-        expect(canvasStyles).toHaveLength(15);
+        // + grid (#498) + marquee (#500) + social-icons (#501)
+        // + DEFAULT_CANVAS_STYLES + ALIGNMENT_OVERRIDE_STYLES
+        // + POST_EDITOR_FRAMING_STYLES (Keystone #47 — site-editor
+        // canvases skip the framing entry but keep the alignment
+        // overrides so the wide/full toolbar buttons take effect there
+        // too).
+        expect(canvasStyles).toHaveLength(16);
     });
 
     it('places DEFAULT_CANVAS_STYLES before POST_EDITOR_FRAMING_STYLES so the framing wins the cascade', () => {

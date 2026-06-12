@@ -93,6 +93,12 @@ class PostResolver
 		'artisanpack/post-terms',
 		'artisanpack/read-more',
 		'artisanpack/term-description',
+		// Single-post content cluster (#501). Both blocks render against
+		// the host post: `author-social-icons` resolves the post author's
+		// stored profile URLs; `social-share-content` builds per-platform
+		// share URLs from the post's permalink, title, and featured image.
+		'artisanpack/author-social-icons',
+		'artisanpack/social-share-content',
 	];
 
 	/**
@@ -228,6 +234,8 @@ class PostResolver
 			'post-terms'              => $this->resolvePostTerms( $post ),
 			'read-more'               => $this->resolveReadMore( $post ),
 			'term-description'        => $this->resolveTermDescription( $post ),
+			'author-social-icons'     => $this->resolveAuthorSocialIcons( $post ),
+			'social-share-content'    => $this->resolveSocialShareContent( $post ),
 			default                   => [],
 		};
 	}
@@ -800,6 +808,232 @@ class PostResolver
 		$permalink = $post->permalink ?? null;
 
 		return is_string( $permalink ) ? $permalink : '';
+	}
+
+	/**
+	 * Author social profile slugs the resolver knows how to pull from a
+	 * post's author relation. The author-social-icons renderer trims
+	 * `_resolvedAuthorSocialLinks` to whatever slugs the author has
+	 * filled in; the block's own `socialIcons` attribute is the
+	 * intersection picker applied at render time.
+	 *
+	 * @var array<int, string>
+	 */
+	protected const AUTHOR_SOCIAL_SLUGS = [
+		'facebook',
+		'twitter',
+		'mastodon',
+		'instagram',
+		'tumblr',
+		'email',
+		'website',
+	];
+
+	/**
+	 * Share-platform slugs the resolver knows how to build share URLs for.
+	 * The social-share-content renderer respects the block's own
+	 * `socialIcons` attribute as the visibility picker; the stamp here
+	 * just provides the canonical `{slug, url}` pair for every platform
+	 * so the renderer never has to know about share-URL syntax.
+	 *
+	 * @var array<int, string>
+	 */
+	protected const SHARE_PLATFORM_SLUGS = [
+		'facebook',
+		'twitter',
+		'mastodon',
+		'reddit',
+		'pinterest',
+		'email',
+	];
+
+	/**
+	 * Stamp the post author's social profile URLs onto the
+	 * `artisanpack/author-social-icons` block as `_resolvedAuthorSocialLinks`.
+	 * Each entry is `{ slug, url }` — labels and SVG paths live in the
+	 * renderer so an author exposing only a subset of platforms still
+	 * produces a tight chip list.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function resolveAuthorSocialIcons( object $post ): array
+	{
+		$author = $post->author ?? null;
+		$links  = [];
+
+		if ( null !== $author ) {
+			foreach ( self::AUTHOR_SOCIAL_SLUGS as $slug ) {
+				$url = $this->authorSocialUrl( $author, $slug );
+
+				if ( '' === $url ) {
+					continue;
+				}
+
+				$links[] = [
+					'slug' => $slug,
+					'url'  => $url,
+				];
+			}
+		}
+
+		return [
+			'_resolvedAuthorSocialLinks' => $links,
+		];
+	}
+
+	/**
+	 * Stamp pre-built share URLs for the host post onto the
+	 * `artisanpack/social-share-content` block as `_resolvedShareLinks`.
+	 * Each entry is `{ slug, url }`. The renderer maps `slug` to the
+	 * shared icon path / human label registry.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function resolveSocialShareContent( object $post ): array
+	{
+		$permalink = $this->permalink( $post );
+		$title     = (string) ( $post->title ?? '' );
+		$image     = $this->featuredImageUrl( $post );
+
+		$encodedUrl   = '' === $permalink ? '' : rawurlencode( $permalink );
+		$encodedTitle = '' === $title ? '' : rawurlencode( $title );
+		$encodedImage = '' === $image ? '' : rawurlencode( $image );
+
+		$links = [];
+
+		foreach ( self::SHARE_PLATFORM_SLUGS as $slug ) {
+			$url = $this->shareUrl( $slug, $encodedUrl, $encodedTitle, $encodedImage );
+
+			if ( '' === $url ) {
+				continue;
+			}
+
+			$links[] = [
+				'slug' => $slug,
+				'url'  => $url,
+			];
+		}
+
+		return [
+			'_resolvedShareLinks' => $links,
+		];
+	}
+
+	/**
+	 * Best-effort lookup of one social-profile URL on the author model.
+	 * Hosts may store the URL on a same-named property (`$author->facebook`)
+	 * or through a generic `social` array (`$author->social['facebook']`).
+	 * The first non-empty hit wins.
+	 */
+	protected function authorSocialUrl( object $author, string $slug ): string
+	{
+		$candidates = [];
+
+		$direct = $author->{$slug} ?? null;
+
+		if ( is_string( $direct ) && '' !== trim( $direct ) ) {
+			$candidates[] = trim( $direct );
+		}
+
+		$social = $author->social ?? null;
+
+		if ( is_array( $social ) && isset( $social[ $slug ] ) && is_string( $social[ $slug ] ) ) {
+			$value = trim( $social[ $slug ] );
+
+			if ( '' !== $value ) {
+				$candidates[] = $value;
+			}
+		}
+
+		// `website` falls back to `url` / `website` accessors so hosts
+		// that don't model a dedicated `website` field still surface a
+		// link.
+		if ( 'website' === $slug && [] === $candidates ) {
+			foreach ( [ 'website', 'url' ] as $key ) {
+				$url = $author->{$key} ?? null;
+
+				if ( is_string( $url ) && '' !== trim( $url ) ) {
+					$candidates[] = trim( $url );
+					break;
+				}
+			}
+		}
+
+		if ( [] === $candidates ) {
+			return '';
+		}
+
+		$value = $candidates[0];
+
+		// Normalize bare email addresses to `mailto:` so the renderer
+		// can route the chip as a real link without per-renderer URL
+		// fixups.
+		if ( 'email' === $slug && ! str_starts_with( $value, 'mailto:' ) ) {
+			return 'mailto:' . $value;
+		}
+
+		return $value;
+	}
+
+	/**
+	 * Read the post's featured-image URL through the visual-editor's
+	 * media-library helper when available. Returns an empty string when
+	 * the host has no featured image (or no media-library install).
+	 */
+	protected function featuredImageUrl( object $post ): string
+	{
+		$mediaId = $post->featured_image_id ?? $post->featured_media ?? null;
+
+		if ( null === $mediaId || ! function_exists( 'apGetMediaUrl' ) ) {
+			return '';
+		}
+
+		$resolved = apGetMediaUrl( (int) $mediaId, 'full' );
+
+		return is_string( $resolved ) ? $resolved : '';
+	}
+
+	/**
+	 * Build the share URL for a single platform. Returns an empty
+	 * string when the platform's required pieces are missing so the
+	 * renderer can drop the chip rather than emit a broken link.
+	 */
+	protected function shareUrl(
+		string $slug,
+		string $encodedUrl,
+		string $encodedTitle,
+		string $encodedImage
+	): string {
+		return match ( $slug ) {
+			'facebook'  => '' === $encodedUrl
+				? ''
+				: 'https://www.facebook.com/sharer.php?u=' . $encodedUrl,
+			'twitter'   => '' === $encodedUrl
+				? ''
+				: 'https://twitter.com/share?url=' . $encodedUrl
+					. ( '' === $encodedTitle ? '' : '&text=' . $encodedTitle ),
+			'mastodon'  => '' === $encodedUrl
+				? ''
+				: 'https://mastodonshare.com/?url=' . $encodedUrl
+					. ( '' === $encodedTitle ? '' : '&text=' . $encodedTitle ),
+			'reddit'    => '' === $encodedUrl
+				? ''
+				: 'https://www.reddit.com/submit?url=' . $encodedUrl,
+			'pinterest' => '' === $encodedUrl
+				? ''
+				: 'https://pinterest.com/pin/create/bookmarklet/?url=' . $encodedUrl
+					. ( '' === $encodedImage ? '' : '&media=' . $encodedImage )
+					. ( '' === $encodedTitle ? '' : '&description=' . $encodedTitle ),
+			'email'     => '' === $encodedUrl
+				? ''
+				: 'mailto:?subject=' . ( '' === $encodedTitle ? '' : $encodedTitle )
+					. '&body=' . $encodedUrl,
+			default     => '',
+		};
 	}
 
 	protected function toCarbon( mixed $value ): ?Carbon
