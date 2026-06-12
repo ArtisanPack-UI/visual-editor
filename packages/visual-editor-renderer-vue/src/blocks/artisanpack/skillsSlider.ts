@@ -17,6 +17,19 @@ function clampInt(value: number, min: number, max: number, fallback: number): nu
     return Math.min(max, Math.max(min, Math.round(value)));
 }
 
+const SAFE_HEX = /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+const SAFE_FN = /^(?:rgb|rgba|hsl|hsla)\(\s*[0-9.,%\s/]+\)$/;
+
+function safeColor(value: string): string {
+    if (value === '') {
+        return '';
+    }
+    if (SAFE_HEX.test(value) || SAFE_FN.test(value)) {
+        return value;
+    }
+    return '';
+}
+
 export const SkillsSliderBlock = defineComponent({
     name: 'SkillsSliderBlock',
     props: blockRendererProps,
@@ -34,8 +47,8 @@ export const SkillsSliderBlock = defineComponent({
                 100,
                 5
             );
-            const barColor = attrString(props.attributes.barColor);
-            const trackColor = attrString(props.attributes.trackColor);
+            const barColor = safeColor(attrString(props.attributes.barColor));
+            const trackColor = safeColor(attrString(props.attributes.trackColor));
             const ariaLabel = attrString(props.attributes.ariaLabel);
             const className = attrString(props.attributes.className);
 

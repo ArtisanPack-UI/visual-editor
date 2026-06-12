@@ -17,11 +17,24 @@ function clampInt(value: number, min: number, max: number, fallback: number): nu
     return Math.min(max, Math.max(min, Math.round(value)));
 }
 
+const SAFE_HEX = /^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+const SAFE_FN = /^(?:rgb|rgba|hsl|hsla)\(\s*[0-9.,%\s/]+\)$/;
+
+function safeColor(value: string): string {
+    if (value === '') {
+        return '';
+    }
+    if (SAFE_HEX.test(value) || SAFE_FN.test(value)) {
+        return value;
+    }
+    return '';
+}
+
 export function SkillsSliderBlock({ attributes }: BlockRendererProps): JSX.Element {
     const level = clampInt(attrFloat(attributes.skillLevel, 50), 1, 100, 50);
     const height = clampInt(attrFloat(attributes.barHeight, 5), 1, 100, 5);
-    const barColor = attrString(attributes.barColor);
-    const trackColor = attrString(attributes.trackColor);
+    const barColor = safeColor(attrString(attributes.barColor));
+    const trackColor = safeColor(attrString(attributes.trackColor));
     const ariaLabel = attrString(attributes.ariaLabel);
     const className = attrString(attributes.className);
 
