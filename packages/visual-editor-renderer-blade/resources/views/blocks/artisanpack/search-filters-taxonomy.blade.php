@@ -18,7 +18,13 @@
 	$label        = (string) ( $attributes['label'] ?? 'Choose' );
 	$taxonomy     = strtolower( (string) ( $attributes['taxonomy'] ?? 'category' ) );
 	$taxonomy     = preg_replace( '/[^a-z0-9_-]/', '', $taxonomy );
-	$taxonomyName = (string) ( $attributes['taxonomyName'] ?? 'Category' );
+	// Derive `$taxonomyName` from the sanitized slug when the author has
+	// not supplied an explicit display name. Title-cases the slug parts
+	// (`post_tag` → `Post Tag`) so the placeholder option reads
+	// correctly regardless of which taxonomy the block points at.
+	$taxonomyName = isset( $attributes['taxonomyName'] ) && '' !== (string) $attributes['taxonomyName']
+		? (string) $attributes['taxonomyName']
+		: ucwords( str_replace( [ '-', '_' ], ' ', $taxonomy ) );
 
 	$termsRaw = $attributes['_resolvedTerms'] ?? null;
 	$terms    = [];
@@ -75,7 +81,14 @@
 		$selectedTerm = is_scalar( $raw ) ? (string) $raw : '';
 	}
 
-	$selectId = 'ap-search-filters-taxonomy-' . $taxonomy;
+	// Suffix the id with a deterministic hash of the block's attributes
+	// so the same template instance always lands on the same id (stable
+	// for SSR + hydration) while two instances pointing at the same
+	// taxonomy on the same page get distinct ids — the latter being
+	// the actual a11y concern when label `for=` references would
+	// otherwise collide.
+	$selectIdSuffix = substr( md5( (string) json_encode( $attributes ) ), 0, 8 );
+	$selectId       = 'ap-search-filters-taxonomy-' . $taxonomy . '-' . $selectIdSuffix;
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-search-filters-taxonomy' ] ) !!}>
 	<label class="ap-search-filters-taxonomy__label" for="{{ $selectId }}">{{ $label }}</label>

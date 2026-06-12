@@ -28,7 +28,7 @@ export function QueryPaginationBlock({ attributes, children }: BlockRendererProp
     const classes = classList(['wp-block-query-pagination', className]);
 
     return (
-        <nav className={classes} aria-label="Pagination">
+        <nav className={classes} aria-label="Pagination navigation">
             {children}
         </nav>
     );

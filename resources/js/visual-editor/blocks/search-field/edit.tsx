@@ -6,7 +6,7 @@
  * current `s` query parameter.
  */
 
-import type { ReactElement } from 'react';
+import { useId, type ReactElement } from 'react';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import { PanelBody, TextControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
@@ -30,6 +30,7 @@ export default function SearchFieldEdit({
     const { label, placeholder } = attributes;
 
     const blockProps = useBlockProps({ className: 'ap-search-field' });
+    const previewId = useId();
 
     return (
         <>
@@ -50,13 +51,13 @@ export default function SearchFieldEdit({
                 </PanelBody>
             </InspectorControls>
             <div {...blockProps}>
-                <label className="ap-search-field__label" htmlFor="ap-search-field-preview">
+                <label className="ap-search-field__label" htmlFor={previewId}>
                     {label}
                 </label>
                 <input
                     type="search"
                     className="ap-search-field__input"
-                    id="ap-search-field-preview"
+                    id={previewId}
                     placeholder={placeholder}
                     disabled
                 />

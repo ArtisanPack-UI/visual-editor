@@ -21,6 +21,11 @@
 			$raw       = request()->query( 'post_type', null );
 			$requested = is_scalar( $raw ) ? (string) $raw : '';
 		}
+		// Normalize the incoming query value the same way the saved
+		// `$postType` was sanitized so a request for `?post_type=Post`
+		// still matches a block configured for `post`.
+		$requested = strtolower( $requested );
+		$requested = preg_replace( '/[^a-z0-9_-]/', '', $requested );
 
 		if ( '' === $requested ) {
 			$isActive = 'all' === $postType;

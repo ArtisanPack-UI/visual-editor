@@ -6,7 +6,7 @@
  * the actual term list from the host's `_resolvedTerms` stamp.
  */
 
-import type { ReactElement } from 'react';
+import { useId, type ReactElement } from 'react';
 import { InspectorControls, useBlockProps } from '@wordpress/block-editor';
 import { PanelBody, TextControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
@@ -33,6 +33,7 @@ export default function SearchFiltersTaxonomyEdit({
     const { label, taxonomy, taxonomyName } = attributes;
 
     const blockProps = useBlockProps({ className: 'ap-search-filters-taxonomy' });
+    const previewId = useId();
 
     return (
         <>
@@ -74,13 +75,13 @@ export default function SearchFiltersTaxonomyEdit({
             <div {...blockProps}>
                 <label
                     className="ap-search-filters-taxonomy__label"
-                    htmlFor={`ap-search-filters-taxonomy-${taxonomy || 'unset'}-preview`}
+                    htmlFor={previewId}
                 >
                     {label}
                 </label>
                 <select
                     className="ap-search-filters-taxonomy__select"
-                    id={`ap-search-filters-taxonomy-${taxonomy || 'unset'}-preview`}
+                    id={previewId}
                     disabled
                 >
                     <option value="">

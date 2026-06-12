@@ -4,8 +4,8 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 
-	$searchLabel = (string) ( $attributes['searchLabel'] ?? 'Search' );
-	$clearLabel  = (string) ( $attributes['clearLabel'] ?? 'Clear' );
+	$searchLabel = (string) ( $attributes['searchLabel'] ?? __( 'Search' ) );
+	$clearLabel  = (string) ( $attributes['clearLabel'] ?? __( 'Clear' ) );
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-search-filters-buttons' ] ) !!}>
 	<input
