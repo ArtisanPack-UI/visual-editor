@@ -28,3 +28,13 @@
         transform: translateX(-100%);
     }
 }
+
+/* Respect prefers-reduced-motion. Mirrors the frontend stylesheet at
+   `packages/visual-editor-renderer-blade/resources/assets/frontend/marquee.css`. */
+@media (prefers-reduced-motion: reduce) {
+    .ap-marquee__text {
+        animation: none !important;
+        transform: none;
+        white-space: normal;
+    }
+}

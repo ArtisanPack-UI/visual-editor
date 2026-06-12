@@ -12,6 +12,8 @@
 import type { CSSProperties, ReactElement } from 'react';
 import { RichText, useBlockProps } from '@wordpress/block-editor';
 
+import { clampPercent, clampSpeed } from './clamp';
+
 interface MarqueeAttributes {
     readonly marqueeContent: string;
     readonly marqueeWidth: number;
@@ -22,27 +24,13 @@ interface MarqueeSaveProps {
     readonly attributes: MarqueeAttributes;
 }
 
-function clampPercent(value: number | null | undefined, fallback: number): number {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-        return fallback;
-    }
-    return Math.min(100, Math.max(1, Math.round(value)));
-}
-
-function clampSpeed(value: number | null | undefined, fallback: number): number {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-        return fallback;
-    }
-    return Math.min(100, Math.max(1, Math.round(value)));
-}
-
 export default function MarqueeSave({
     attributes,
 }: MarqueeSaveProps): ReactElement {
     const { marqueeContent, marqueeWidth, marqueeSpeed } = attributes;
 
-    const safeWidth = clampPercent(marqueeWidth, 100);
-    const safeSpeed = clampSpeed(marqueeSpeed, 5);
+    const safeWidth = clampPercent(marqueeWidth);
+    const safeSpeed = clampSpeed(marqueeSpeed);
 
     const blockProps = useBlockProps.save({
         className: 'ap-marquee',

@@ -67,7 +67,7 @@ describe('site-chrome cluster block.json', () => {
         expect(attrs?.marqueeContent?.selector).toBe('p');
     });
 
-    it('comments-number declares singular + plural labels and the postId context', () => {
+    it('comments-number declares singular + plural labels and the postId / postType context', () => {
         const attrs = (commentsNumberMeta as { attributes?: Record<string, { default?: unknown }> })
             .attributes;
         expect(attrs?.singularCommentText?.default).toBe('Comment');
@@ -76,6 +76,7 @@ describe('site-chrome cluster block.json', () => {
         const usesContext = (commentsNumberMeta as { usesContext?: ReadonlyArray<string> })
             .usesContext;
         expect(usesContext).toContain('postId');
+        expect(usesContext).toContain('postType');
     });
 });
 

@@ -32,3 +32,16 @@
         transform: translateX(-100%);
     }
 }
+
+/* Respect prefers-reduced-motion. Visitors who've opted out of
+   animations get the text pinned in place inside the wrapper instead
+   of an endless horizontal scroll — the inline `animation` declaration
+   on `.ap-marquee__text` is overridden and the base
+   `translateX(100%)` (which hides the text off-screen) is reset. */
+@media (prefers-reduced-motion: reduce) {
+    .ap-marquee__text {
+        animation: none !important;
+        transform: none;
+        white-space: normal;
+    }
+}

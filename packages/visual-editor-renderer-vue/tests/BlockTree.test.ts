@@ -1,6 +1,6 @@
 import { defineComponent, h } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import '../src/index';
 import { BlockTree } from '../src/BlockTree';
@@ -692,52 +692,67 @@ describe('Core design blocks', () => {
         expect(html).not.toContain('<li class="ap-breadcrumbs__item');
     });
 
-    it('renders the artisanpack/copyright block with © text and the current year', () => {
-        const tree = [
-            makeBlock('artisanpack/copyright', {
-                copyrightType: 'icon-text',
-                copyrightText: 'Acme, Inc.',
-            }),
-        ];
+    describe('artisanpack/copyright (year is read at render time)', () => {
+        // Pin the clock so these specs don't drift on the Dec 31 → Jan 1
+        // boundary; the renderer reads `new Date().getUTCFullYear()` so
+        // any test that hard-codes a year would otherwise need a real
+        // calendar to stay accurate.
+        const PINNED_YEAR = 2030;
+        const PINNED_DATE = new Date(Date.UTC(PINNED_YEAR, 5, 15));
 
-        const year = new Date().getUTCFullYear();
-        const html = renderTree(tree);
+        beforeEach(() => {
+            vi.useFakeTimers();
+            vi.setSystemTime(PINNED_DATE);
+        });
 
-        expect(html).toContain('class="ap-copyright"');
-        expect(html).toContain(`© Acme, Inc. ${year}`);
-    });
+        afterEach(() => {
+            vi.useRealTimers();
+        });
 
-    it('omits the text when copyright type is icon-only and drops the © when text-only', () => {
-        const iconOnly = renderTree([
-            makeBlock('artisanpack/copyright', {
-                copyrightType: 'icon-only',
-                copyrightText: 'Should not appear',
-            }),
-        ]);
-        const textOnly = renderTree([
-            makeBlock('artisanpack/copyright', {
-                copyrightType: 'text-only',
-                copyrightText: 'Plain',
-            }),
-        ]);
-        const year = new Date().getUTCFullYear();
+        it('renders the artisanpack/copyright block with © text and the current year', () => {
+            const tree = [
+                makeBlock('artisanpack/copyright', {
+                    copyrightType: 'icon-text',
+                    copyrightText: 'Acme, Inc.',
+                }),
+            ];
 
-        expect(iconOnly).toContain(`© ${year}`);
-        expect(iconOnly).not.toContain('Should not appear');
-        expect(textOnly).toContain(`Plain ${year}`);
-        expect(textOnly).not.toContain('©');
-    });
+            const html = renderTree(tree);
 
-    it('falls back to icon-text when copyright type is invalid', () => {
-        const html = renderTree([
-            makeBlock('artisanpack/copyright', {
-                copyrightType: 'made-up-mode',
-                copyrightText: 'Fallback',
-            }),
-        ]);
-        const year = new Date().getUTCFullYear();
+            expect(html).toContain('class="ap-copyright"');
+            expect(html).toContain(`© Acme, Inc. ${PINNED_YEAR}`);
+        });
 
-        expect(html).toContain(`© Fallback ${year}`);
+        it('omits the text when copyright type is icon-only and drops the © when text-only', () => {
+            const iconOnly = renderTree([
+                makeBlock('artisanpack/copyright', {
+                    copyrightType: 'icon-only',
+                    copyrightText: 'Should not appear',
+                }),
+            ]);
+            const textOnly = renderTree([
+                makeBlock('artisanpack/copyright', {
+                    copyrightType: 'text-only',
+                    copyrightText: 'Plain',
+                }),
+            ]);
+
+            expect(iconOnly).toContain(`© ${PINNED_YEAR}`);
+            expect(iconOnly).not.toContain('Should not appear');
+            expect(textOnly).toContain(`Plain ${PINNED_YEAR}`);
+            expect(textOnly).not.toContain('©');
+        });
+
+        it('falls back to icon-text when copyright type is invalid', () => {
+            const html = renderTree([
+                makeBlock('artisanpack/copyright', {
+                    copyrightType: 'made-up-mode',
+                    copyrightText: 'Fallback',
+                }),
+            ]);
+
+            expect(html).toContain(`© Fallback ${PINNED_YEAR}`);
+        });
     });
 
     it('renders the artisanpack/marquee block with width + animation styles applied', () => {

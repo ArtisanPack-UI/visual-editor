@@ -21,6 +21,13 @@ import { __ } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 
+import {
+    clampPercent,
+    clampSpeed,
+    MARQUEE_SPEED_DEFAULT,
+    MARQUEE_WIDTH_DEFAULT,
+} from './clamp';
+
 interface MarqueeAttributes {
     readonly marqueeContent: string;
     readonly marqueeWidth: number;
@@ -32,28 +39,14 @@ interface MarqueeEditProps {
     readonly setAttributes: (next: Partial<MarqueeAttributes>) => void;
 }
 
-function clampPercent(value: number | null | undefined, fallback: number): number {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-        return fallback;
-    }
-    return Math.min(100, Math.max(1, Math.round(value)));
-}
-
-function clampSpeed(value: number | null | undefined, fallback: number): number {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-        return fallback;
-    }
-    return Math.min(100, Math.max(1, Math.round(value)));
-}
-
 export default function MarqueeEdit({
     attributes,
     setAttributes,
 }: MarqueeEditProps): ReactElement {
     const { marqueeContent, marqueeWidth, marqueeSpeed } = attributes;
 
-    const safeWidth = clampPercent(marqueeWidth, 100);
-    const safeSpeed = clampSpeed(marqueeSpeed, 5);
+    const safeWidth = clampPercent(marqueeWidth);
+    const safeSpeed = clampSpeed(marqueeSpeed);
 
     const blockProps = useBlockProps({
         className: 'ap-marquee',
@@ -69,13 +62,13 @@ export default function MarqueeEdit({
                         help={__('Percentage of the container width.', TEXT_DOMAIN)}
                         value={safeWidth}
                         onChange={(value) =>
-                            setAttributes({ marqueeWidth: clampPercent(value, 100) })
+                            setAttributes({ marqueeWidth: clampPercent(value) })
                         }
                         min={1}
                         max={100}
-                        initialPosition={100}
+                        initialPosition={MARQUEE_WIDTH_DEFAULT}
                         allowReset
-                        resetFallbackValue={100}
+                        resetFallbackValue={MARQUEE_WIDTH_DEFAULT}
                         __nextHasNoMarginBottom
                     />
                     <RangeControl
@@ -86,13 +79,13 @@ export default function MarqueeEdit({
                         )}
                         value={safeSpeed}
                         onChange={(value) =>
-                            setAttributes({ marqueeSpeed: clampSpeed(value, 5) })
+                            setAttributes({ marqueeSpeed: clampSpeed(value) })
                         }
                         min={1}
                         max={100}
-                        initialPosition={5}
+                        initialPosition={MARQUEE_SPEED_DEFAULT}
                         allowReset
-                        resetFallbackValue={5}
+                        resetFallbackValue={MARQUEE_SPEED_DEFAULT}
                         __nextHasNoMarginBottom
                     />
                 </PanelBody>
