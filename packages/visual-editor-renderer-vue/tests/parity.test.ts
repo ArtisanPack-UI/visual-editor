@@ -505,6 +505,144 @@ const FIXTURES: Array<{ name: string; tree: Block[] }> = [
             ),
         ],
     },
+    {
+        name: 'artisanpack/search-field with no resolved value',
+        tree: [
+            makeBlock(
+                'artisanpack/search-field',
+                { label: 'Find', placeholder: 'Type a query …' },
+                [],
+                'sf-1'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/search-field with a resolved query',
+        tree: [
+            makeBlock(
+                'artisanpack/search-field',
+                {
+                    label: 'Find',
+                    placeholder: 'Type a query …',
+                    _resolvedSearchValue: 'hello',
+                },
+                [],
+                'sf-2'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/search-filters wraps inner blocks in a GET form',
+        tree: [
+            makeBlock(
+                'artisanpack/search-filters',
+                { postType: 'project', _resolvedFormAction: 'https://example.test/' },
+                [
+                    makeBlock(
+                        'artisanpack/search-field',
+                        { label: 'Find', placeholder: 'Type …' },
+                        [],
+                        'sf-inner'
+                    ),
+                ],
+                'sfilters-1'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/search-filters drops unsafe action URLs',
+        tree: [
+            makeBlock(
+                'artisanpack/search-filters',
+                {
+                    postType: 'post',
+                    _resolvedFormAction: 'javascript:alert(1)',
+                },
+                [],
+                'sfilters-2'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/search-filters-buttons renders submit + reset pair',
+        tree: [
+            makeBlock(
+                'artisanpack/search-filters-buttons',
+                { searchLabel: 'Go', clearLabel: 'Reset' },
+                [],
+                'sfb-1'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/search-filters-taxonomy with resolved terms + selection',
+        tree: [
+            makeBlock(
+                'artisanpack/search-filters-taxonomy',
+                {
+                    label: 'Topic',
+                    taxonomy: 'topic',
+                    taxonomyName: 'Topic',
+                    _resolvedTerms: [
+                        { slug: 'news', name: 'News' },
+                        { slug: 'guides', name: 'Guides' },
+                    ],
+                    _resolvedSelectedTerm: 'guides',
+                },
+                [],
+                'sft-1'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/search-filters-taxonomy with no resolved terms',
+        tree: [
+            makeBlock(
+                'artisanpack/search-filters-taxonomy',
+                { label: 'Topic', taxonomy: 'topic', taxonomyName: 'Topic' },
+                [],
+                'sft-2'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/post-types-search-results wraps active children only',
+        tree: [
+            makeBlock(
+                'artisanpack/post-types-search-results',
+                {},
+                [
+                    makeBlock(
+                        'artisanpack/single-post-types-search-results',
+                        { postType: 'post', _resolvedActive: true },
+                        [
+                            makeBlock(
+                                'core/paragraph',
+                                { content: 'Active section' },
+                                [],
+                                'p-active'
+                            ),
+                        ],
+                        'spr-active'
+                    ),
+                    makeBlock(
+                        'artisanpack/single-post-types-search-results',
+                        { postType: 'project', _resolvedActive: false },
+                        [
+                            makeBlock(
+                                'core/paragraph',
+                                { content: 'Inactive section' },
+                                [],
+                                'p-inactive'
+                            ),
+                        ],
+                        'spr-inactive'
+                    ),
+                ],
+                'ptsr-1'
+            ),
+        ],
+    },
 ];
 
 describe('React/Vue renderer parity', () => {

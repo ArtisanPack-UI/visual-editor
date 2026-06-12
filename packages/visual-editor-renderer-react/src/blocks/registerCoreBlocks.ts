@@ -32,6 +32,14 @@ import {
 } from './artisanpack/postNavigation';
 import { AuthorSocialIconsBlock } from './artisanpack/authorSocialIcons';
 import { RelatedPostsBlock } from './artisanpack/relatedPosts';
+import {
+    PostTypesSearchResultsBlock,
+    SearchFieldBlock,
+    SearchFiltersBlock,
+    SearchFiltersButtonsBlock,
+    SearchFiltersTaxonomyBlock,
+    SinglePostTypesSearchResultsBlock,
+} from './artisanpack/searchCluster';
 import { SingleContentBlock } from './artisanpack/singleContent';
 import { SocialShareContentBlock } from './artisanpack/socialShareContent';
 import {
@@ -310,6 +318,17 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/related-posts': RelatedPostsBlock,
     'artisanpack/author-social-icons': AuthorSocialIconsBlock,
     'artisanpack/social-share-content': SocialShareContentBlock,
+    // Generic search cluster (#502) — registered under the
+    // artisanpack/* namespace only. Every request-time value
+    // (`?s=`, `?taxonomy=`, `?post_type=`) arrives via a
+    // `_resolved*` stamp so the renderers stay declarative.
+    'artisanpack/search-field': SearchFieldBlock,
+    'artisanpack/search-filters': SearchFiltersBlock,
+    'artisanpack/search-filters-buttons': SearchFiltersButtonsBlock,
+    'artisanpack/search-filters-taxonomy': SearchFiltersTaxonomyBlock,
+    'artisanpack/post-types-search-results': PostTypesSearchResultsBlock,
+    'artisanpack/single-post-types-search-results':
+        SinglePostTypesSearchResultsBlock,
 };
 
 export function registerCoreBlocks(): void {
