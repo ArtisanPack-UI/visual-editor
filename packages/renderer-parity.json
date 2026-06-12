@@ -151,6 +151,7 @@
         "artisanpack/search-filters-buttons",
         "artisanpack/search-filters-taxonomy",
         "artisanpack/post-types-search-results",
-        "artisanpack/single-post-types-search-results"
+        "artisanpack/single-post-types-search-results",
+        "artisanpack/skills-slider"
     ]
 }

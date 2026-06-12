@@ -1,0 +1,44 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/skills-slider",
+    "title": "Skills Slider",
+    "category": "artisanpack",
+    "description": "Visualise a skill level as a horizontal progress bar.",
+    "keywords": ["skill", "skills", "progress", "bar", "level"],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "skillLevel": {
+            "type": "number",
+            "default": 50
+        },
+        "barHeight": {
+            "type": "number",
+            "default": 5
+        },
+        "barColor": {
+            "type": "string",
+            "default": ""
+        },
+        "trackColor": {
+            "type": "string",
+            "default": ""
+        },
+        "ariaLabel": {
+            "type": "string",
+            "default": ""
+        }
+    },
+    "supports": {
+        "anchor": true,
+        "className": true,
+        "html": false,
+        "spacing": {
+            "margin": ["top", "bottom"],
+            "padding": true,
+            "__experimentalDefaultControls": {
+                "padding": true
+            }
+        }
+    }
+}

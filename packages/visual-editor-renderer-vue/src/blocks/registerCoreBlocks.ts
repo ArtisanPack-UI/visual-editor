@@ -41,6 +41,7 @@ import {
     SinglePostTypesSearchResultsBlock,
 } from './artisanpack/searchCluster';
 import { SingleContentBlock } from './artisanpack/singleContent';
+import { SkillsSliderBlock } from './artisanpack/skillsSlider';
 import { SocialShareContentBlock } from './artisanpack/socialShareContent';
 import {
     CommentAuthorAvatarBlock,
@@ -328,6 +329,9 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/post-types-search-results': PostTypesSearchResultsBlock,
     'artisanpack/single-post-types-search-results':
         SinglePostTypesSearchResultsBlock,
+    // Skills slider (#503) — registered under the artisanpack/*
+    // namespace only. Static block; no resolver round-trip.
+    'artisanpack/skills-slider': SkillsSliderBlock,
 };
 
 export function registerCoreBlocks(): void {
