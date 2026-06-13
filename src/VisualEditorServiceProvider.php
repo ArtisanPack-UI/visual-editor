@@ -292,9 +292,26 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->app->scoped( KeyframeRegistry::class, function ( $app ) {
 			$themeKeyframes = (array) $app['config']->get( 'artisanpack.visual-editor.keyframes', [] );
 
-			$globalStyles = (array) $app['config']->get( 'artisanpack.visual-editor.site-editor.global-styles.styles.custom.artisanpack.keyframes', [] );
+			// Resolve editor-authored keyframes from the same filter-
+			// merged global-styles payload that `SiteEditorGlobalStylesResolver`
+			// consumes, so a host that registers global styles through
+			// the `ap.visual-editor.global-styles` filter (cms-framework
+			// being the canonical caller) sees its custom keyframes
+			// reach the editor and renderer. Reading directly from
+			// config would miss the filter contributions.
+			try {
+				$resolver     = $app->make( SiteEditorGlobalStylesResolver::class );
+				$globalStyles = $resolver->raw();
+			} catch ( \Throwable $e ) {
+				$globalStyles = null;
+			}
 
-			return KeyframeRegistry::fromLayers( $themeKeyframes, $globalStyles );
+			$editorKeyframes = [];
+			if ( is_array( $globalStyles['styles']['custom']['artisanpack']['keyframes'] ?? null ) ) {
+				$editorKeyframes = $globalStyles['styles']['custom']['artisanpack']['keyframes'];
+			}
+
+			return KeyframeRegistry::fromLayers( $themeKeyframes, $editorKeyframes );
 		} );
 
 		$this->app->scoped( AnimationAttributeResolver::class, function ( $app ) {

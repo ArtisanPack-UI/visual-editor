@@ -121,7 +121,25 @@ class KeyframeRegistry
 			}
 		}
 
-		return new self( array_values( $merged ) );
+		// `fromLayers()` is wired into a Laravel scoped binding, so a
+		// throw here would crash every request that resolves the
+		// registry (e.g. via `<x-ve-blocks>`). Skip + log invalid
+		// entries instead. The strict-throw behaviour stays on the
+		// direct constructor path for tests and programmatic use.
+		$registry = new self();
+
+		foreach ( array_values( $merged ) as $entry ) {
+			try {
+				$normalised = $registry->validateOne( $entry );
+				$registry->custom[ $normalised['name'] ] = $normalised['stops'];
+			} catch ( InvalidArgumentException $e ) {
+				if ( function_exists( 'logger' ) ) {
+					logger()->warning( '[block-animations] Skipping invalid custom keyframe: ' . $e->getMessage() );
+				}
+			}
+		}
+
+		return $registry;
 	}
 
 	/**
@@ -274,11 +292,17 @@ class KeyframeRegistry
 			) );
 		}
 
-		if ( array_key_exists( $name, self::BUILT_INS ) ) {
-			throw new InvalidArgumentException( sprintf(
-				'Custom keyframe name "%s" collides with a built-in. Built-in names are reserved.',
-				$name
-			) );
+		// Case-insensitive collision check mirrors the client-side
+		// CustomKeyframeEditor so a `apfadein` config can't end-run the
+		// reservation that the editor UI enforces on `apFadeIn`.
+		$nameLower = strtolower( $name );
+		foreach ( array_keys( self::BUILT_INS ) as $builtIn ) {
+			if ( strtolower( $builtIn ) === $nameLower ) {
+				throw new InvalidArgumentException( sprintf(
+					'Custom keyframe name "%s" collides with a built-in. Built-in names are reserved.',
+					$name
+				) );
+			}
 		}
 
 		$stops = $entry['stops'] ?? [];

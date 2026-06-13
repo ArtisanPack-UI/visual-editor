@@ -8,6 +8,9 @@ import {
 
 describe( 'getMediaColor', () => {
 	afterEach( () => {
+		// Restore real timers FIRST so a thrown assertion in a fake-
+		// timer test can't leak fake timers into subsequent tests.
+		vi.useRealTimers()
 		vi.restoreAllMocks()
 	} )
 
@@ -43,7 +46,5 @@ describe( 'getMediaColor', () => {
 
 		const color = await pending
 		expect( color ).toBe( DEFAULT_BACKGROUND_COLOR )
-
-		vi.useRealTimers()
 	} )
 } )

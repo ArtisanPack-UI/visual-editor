@@ -228,8 +228,11 @@ export function AnimationPanel( {
 							patchContinuous( { count: 'infinite' } );
 							return;
 						}
-						const parsed = parseInt( next, 10 );
-						if ( ! Number.isNaN( parsed ) && parsed > 0 ) {
+						// `Number.isInteger` rejects mixed input like
+						// `"2abc"` that `parseInt` would silently accept
+						// as `2`.
+						const parsed = Number( next );
+						if ( Number.isInteger( parsed ) && parsed > 0 ) {
 							patchContinuous( { count: parsed } );
 						}
 					} }

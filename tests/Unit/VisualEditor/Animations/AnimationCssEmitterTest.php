@@ -121,6 +121,36 @@ it( 'returns the noscript fallback CSS for entrance blocks', function () {
 		->toContain( 'opacity: 1' );
 } );
 
+it( 'composes entrance + continuous so the continuous loop survives the play class swap', function () {
+	$css = makeAnimEmitter()->emit( '.ap-block-x', [
+		'entrance'   => [ 'name' => 'fade-in-up' ],
+		'continuous' => [ 'name' => 'pulse' ],
+	] );
+
+	// Both keyframes must appear comma-joined on the same play-class
+	// rule so adding `.ap-anim-play` doesn't clobber the continuous
+	// pulse loop emitted on the base scope.
+	expect( $css )->toMatch( '/\.ap-block-x\.ap-anim-play\s*\{\s*animation:\s*apFadeInUp[^,]*,\s*apPulse/' );
+
+	// Continuous still emits its own base-scope rule so it starts
+	// running before the entrance fires.
+	expect( $css )->toMatch( '/\.ap-block-x\s*\{\s*animation:\s*apPulse/' );
+} );
+
+it( 'emits the pre-state and data attr for responsive-only entrance configs', function () {
+	$emitter = makeAnimEmitter();
+
+	$attributes = [
+		'entrance' => [ 'name' => [ 'md' => 'fade-in-up' ] ],
+	];
+
+	$css  = $emitter->emit( '.ap-block-x', $attributes );
+	$data = $emitter->dataAttributes( $attributes );
+
+	expect( $css )->toContain( '.ap-block-x.ap-anim-pre { opacity: 0; }' );
+	expect( $data['data-ap-anim-entrance'] )->toBe( 'fade-in-up' );
+} );
+
 it( 'rejects easing values containing CSS-injection characters', function () {
 	$css = makeAnimEmitter()->emit( '.ap-block-x', [
 		'entrance' => [ 'name' => 'fade-in', 'easing' => 'ease; } body {' ],

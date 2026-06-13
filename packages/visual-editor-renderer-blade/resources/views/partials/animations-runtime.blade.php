@@ -50,25 +50,14 @@ the editor's exported `bootstrapAnimationsRuntime`. --}}
 			return;
 		}
 
-		var byThreshold = {};
 		var entries = new Map();
+		var observersByThreshold = {};
 
-		Array.prototype.forEach.call(
-			document.querySelectorAll( '[data-ap-anim-entrance]' ),
-			function ( el ) {
-				if ( reducedMotion && 'allow' !== el.getAttribute( 'data-ap-anim-reduced' ) ) {
-					play( el );
-					return;
-				}
-				var t = thresholdFor( el );
-				var key = String( t );
-				var once = 'false' !== el.getAttribute( 'data-ap-anim-once' );
-				entries.set( el, { threshold: t, once: once, played: false } );
-				( byThreshold[ key ] = byThreshold[ key ] || [] ).push( el );
+		function observerFor( t ) {
+			var key = String( t );
+			if ( observersByThreshold[ key ] ) {
+				return observersByThreshold[ key ];
 			}
-		);
-
-		Object.keys( byThreshold ).forEach( function ( key ) {
 			var observer = new IntersectionObserver(
 				function ( ioEntries ) {
 					ioEntries.forEach( function ( ioEntry ) {
@@ -89,10 +78,51 @@ the editor's exported `bootstrapAnimationsRuntime`. --}}
 						}
 					} );
 				},
-				{ threshold: parseFloat( key ) }
+				{ threshold: t }
 			);
-			byThreshold[ key ].forEach( function ( el ) { observer.observe( el ); } );
-		} );
+			observersByThreshold[ key ] = observer;
+			return observer;
+		}
+
+		function observeEntry( el ) {
+			if ( entries.has( el ) ) return;
+			if ( reducedMotion && 'allow' !== el.getAttribute( 'data-ap-anim-reduced' ) ) {
+				play( el );
+				return;
+			}
+			var t = thresholdFor( el );
+			var once = 'false' !== el.getAttribute( 'data-ap-anim-once' );
+			entries.set( el, { threshold: t, once: once, played: false } );
+			observerFor( t ).observe( el );
+		}
+
+		Array.prototype.forEach.call(
+			document.querySelectorAll( '[data-ap-anim-entrance]' ),
+			observeEntry
+		);
+
+		// Mirror the TS runtime: pick up entrance elements that arrive
+		// after init() — e.g. inserted by a client-side accordion expand
+		// or a query-loop pagination swap — so they animate on first
+		// reveal instead of staying in the pre-state.
+		if ( 'undefined' !== typeof MutationObserver ) {
+			new MutationObserver( function ( mutations ) {
+				mutations.forEach( function ( mutation ) {
+					Array.prototype.forEach.call( mutation.addedNodes, function ( node ) {
+						if ( ! node || 1 !== node.nodeType ) return;
+						if ( node.matches && node.matches( '[data-ap-anim-entrance]' ) ) {
+							observeEntry( node );
+						}
+						if ( node.querySelectorAll ) {
+							Array.prototype.forEach.call(
+								node.querySelectorAll( '[data-ap-anim-entrance]' ),
+								observeEntry
+							);
+						}
+					} );
+				} );
+			} ).observe( document.body, { childList: true, subtree: true } );
+		}
 	}
 
 	if ( 'loading' === document.readyState ) {

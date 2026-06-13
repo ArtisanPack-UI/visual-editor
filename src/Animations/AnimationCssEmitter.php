@@ -103,11 +103,18 @@ class AnimationCssEmitter
 			return '';
 		}
 
+		$entrance   = $attributes['entrance'] ?? [];
+		$continuous = $attributes['continuous'] ?? [];
+
 		$css = '';
 
-		$css .= $this->emitEntrance( $scope, $attributes['entrance'] ?? [] );
+		// Entrance + continuous compose by sharing the `animation`
+		// property — the play-class rule emits a comma-joined shorthand
+		// when both families resolve, so the entrance doesn't clobber
+		// the continuous loop the moment `.ap-anim-play` is added.
+		$css .= $this->emitEntrance( $scope, $entrance, $continuous );
 		$css .= $this->emitHover( $scope, $attributes['hover'] ?? [] );
-		$css .= $this->emitContinuous( $scope, $attributes['continuous'] ?? [] );
+		$css .= $this->emitContinuous( $scope, $continuous );
 
 		if ( $this->respectsReducedMotion( $attributes ) ) {
 			$css .= $this->emitReducedMotionGuard( $scope );
@@ -162,9 +169,15 @@ class AnimationCssEmitter
 
 		$entrance = $attributes['entrance'] ?? [];
 		$base     = $this->resolver->resolve( $entrance['name'] ?? null, BreakpointRegistry::BASE_KEY );
+		// Fall back to the first responsive-only entrance value so
+		// `{ md: 'fade-in' }` configs still surface the data attr the
+		// runtime needs to know the block is an entrance candidate.
+		$effective = is_string( $base ) && '' !== $base
+			? $base
+			: $this->firstConfiguredEntrance( $entrance['name'] ?? null );
 
-		if ( is_string( $base ) && '' !== $base ) {
-			$data['data-ap-anim-entrance'] = $base;
+		if ( is_string( $effective ) && '' !== $effective ) {
+			$data['data-ap-anim-entrance'] = $effective;
 
 			$threshold = $entrance['threshold'] ?? null;
 			if ( is_numeric( $threshold ) ) {
@@ -217,38 +230,122 @@ class AnimationCssEmitter
 	/**
 	 * @param  array<string, mixed>  $entrance
 	 */
-	protected function emitEntrance( string $scope, array $entrance ): string
+	protected function emitEntrance( string $scope, array $entrance, array $continuous = [] ): string
 	{
 		if ( ! $this->hasEntranceAnywhere( [ 'entrance' => $entrance ] ) ) {
 			return '';
 		}
 
-		$base = $this->resolver->resolve( $entrance['name'] ?? null, BreakpointRegistry::BASE_KEY );
-		$css  = '';
+		$base   = $this->resolver->resolve( $entrance['name'] ?? null, BreakpointRegistry::BASE_KEY );
+		$effect = is_string( $base ) && $this->registry->has( AnimationRegistry::FAMILY_ENTRANCE, $base )
+			? $base
+			: $this->firstConfiguredEntrance( $entrance['name'] ?? null );
+
+		$css = '';
+
+		if ( null !== $effect ) {
+			// Pre-state always emitted when ANY entrance breakpoint
+			// configures a valid name — covers responsive-only entrance
+			// configs (e.g. `{ md: 'fade-in' }`) so the block hides
+			// before the runtime swaps the play class.
+			$css .= $this->preStateRule( $scope );
+		}
 
 		if ( is_string( $base ) && $this->registry->has( AnimationRegistry::FAMILY_ENTRANCE, $base ) ) {
-			$definition = $this->registry->get( AnimationRegistry::FAMILY_ENTRANCE, $base );
-			$css       .= $this->preStateRule( $scope );
-			$css       .= sprintf(
-				'%s.%s { animation: %s %dms %s %dms both; }',
-				$scope,
-				self::PLAY_CLASS,
+			$definition  = $this->registry->get( AnimationRegistry::FAMILY_ENTRANCE, $base );
+			$entranceCss = $this->animationShorthand(
 				$definition['keyframe'],
 				$this->intOr( $entrance['duration'] ?? null, (int) $definition['duration'] ),
 				$this->easingOr( $entrance['easing'] ?? null, (string) $definition['easing'] ),
 				$this->intOr( $entrance['delay'] ?? null, 0 ),
+				'both',
+			);
+
+			$continuousCss = $this->resolvedContinuousShorthand( $continuous );
+
+			$animation = null !== $continuousCss
+				? $entranceCss . ', ' . $continuousCss
+				: $entranceCss;
+
+			$css .= sprintf(
+				'%s.%s { animation: %s; }',
+				$scope,
+				self::PLAY_CLASS,
+				$animation,
 			);
 		}
 
-		$css .= $this->emitEntranceBreakpointOverrides( $scope, $entrance );
+		$css .= $this->emitEntranceBreakpointOverrides( $scope, $entrance, $continuous );
 
 		return $css;
 	}
 
 	/**
+	 * Returns the first responsive-named entrance value that resolves to
+	 * a registered animation, or `null`. Used to drive pre-state CSS +
+	 * `data-ap-anim-entrance` even when only a non-`base` breakpoint
+	 * configures an entrance.
+	 */
+	protected function firstConfiguredEntrance( $name ): ?string
+	{
+		if ( is_string( $name ) && $this->registry->has( AnimationRegistry::FAMILY_ENTRANCE, $name ) ) {
+			return $name;
+		}
+
+		if ( ! is_array( $name ) ) {
+			return null;
+		}
+
+		foreach ( $name as $value ) {
+			if ( is_string( $value ) && $this->registry->has( AnimationRegistry::FAMILY_ENTRANCE, $value ) ) {
+				return $value;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Builds an `animation`-shorthand value for the given parameters.
+	 */
+	protected function animationShorthand( string $keyframe, int $duration, string $easing, int $delay, string $tail ): string
+	{
+		return sprintf( '%s %dms %s %dms %s', $keyframe, $duration, $easing, $delay, $tail );
+	}
+
+	/**
+	 * Returns the continuous animation shorthand (without `animation:`
+	 * prefix) when the base breakpoint resolves cleanly. Used by the
+	 * entrance emitter to compose entrance + continuous on the play
+	 * class so the entrance doesn't override the continuous loop.
+	 */
+	protected function resolvedContinuousShorthand( array $continuous ): ?string
+	{
+		if ( [] === $continuous ) {
+			return null;
+		}
+
+		$base = $this->resolver->resolve( $continuous['name'] ?? null, BreakpointRegistry::BASE_KEY );
+
+		if ( ! is_string( $base ) || ! $this->registry->has( AnimationRegistry::FAMILY_CONTINUOUS, $base ) ) {
+			return null;
+		}
+
+		$definition = $this->registry->get( AnimationRegistry::FAMILY_CONTINUOUS, $base );
+
+		return sprintf(
+			'%s %dms %s 0ms %s',
+			$definition['keyframe'],
+			$this->intOr( $continuous['duration'] ?? null, (int) $definition['duration'] ),
+			$this->easingOr( $continuous['easing'] ?? null, (string) $definition['easing'] ),
+			$this->countOr( $continuous['count'] ?? null ),
+		);
+	}
+
+	/**
 	 * @param  array<string, mixed>  $entrance
 	 */
-	protected function emitEntranceBreakpointOverrides( string $scope, array $entrance ): string
+	protected function emitEntranceBreakpointOverrides( string $scope, array $entrance, array $continuous = [] ): string
 	{
 		$name = $entrance['name'] ?? null;
 		if ( ! is_array( $name ) ) {
@@ -285,15 +382,26 @@ class AnimationCssEmitter
 
 			$definition = $this->registry->get( AnimationRegistry::FAMILY_ENTRANCE, $value );
 
-			$css .= sprintf(
-				'@media (min-width: %dpx) { %s.%s { animation: %s %dms %s %dms both; } }',
-				$minWidth,
-				$scope,
-				self::PLAY_CLASS,
+			$entranceShorthand = $this->animationShorthand(
 				$definition['keyframe'],
 				$this->intOr( $entrance['duration'] ?? null, (int) $definition['duration'] ),
 				$this->easingOr( $entrance['easing'] ?? null, (string) $definition['easing'] ),
 				$this->intOr( $entrance['delay'] ?? null, 0 ),
+				'both',
+			);
+
+			$continuousShorthand = $this->resolvedContinuousShorthand( $continuous );
+
+			$animation = null !== $continuousShorthand
+				? $entranceShorthand . ', ' . $continuousShorthand
+				: $entranceShorthand;
+
+			$css .= sprintf(
+				'@media (min-width: %dpx) { %s.%s { animation: %s; } }',
+				$minWidth,
+				$scope,
+				self::PLAY_CLASS,
+				$animation,
 			);
 		}
 

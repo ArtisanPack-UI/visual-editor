@@ -14,8 +14,11 @@ it( 'returns a scalar value unchanged at base', function () {
 	expect( makeAnimResolver()->resolve( 'fade-in', 'base' ) )->toBe( 'fade-in' );
 } );
 
-it( 'returns null for a scalar value at a non-base breakpoint', function () {
-	expect( makeAnimResolver()->resolve( 'fade-in', 'md' ) )->toBeNull();
+it( 'treats a scalar value as the base shape at every breakpoint', function () {
+	// Mirrors `ResponsiveValueResolver::resolve()`: a scalar applies
+	// uniformly across the cascade.
+	expect( makeAnimResolver()->resolve( 'fade-in', 'md' ) )->toBe( 'fade-in' );
+	expect( makeAnimResolver()->resolve( 'fade-in', 'xl' ) )->toBe( 'fade-in' );
 } );
 
 it( 'returns the base value when no breakpoint overrides exist', function () {

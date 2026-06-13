@@ -824,11 +824,14 @@ class BlockSupports
 			return null;
 		}
 
-		$hashSource = json_encode( $attributes );
-		$scopeSuffix = false === $hashSource
-			? substr( spl_object_hash( (object) $attributes ), 0, 8 )
-			: substr( hash( 'sha1', $hashSource ), 0, 8 );
-		$scope = '.ap-block-' . $scopeSuffix;
+		// `serialize()` is the deterministic content-stable fallback —
+		// `spl_object_hash()` keys on object identity, which would
+		// break dedupe across identical bags rendered in separate
+		// passes (e.g. cached fragments).
+		$hashSource  = json_encode( $attributes );
+		$source      = false === $hashSource ? serialize( $attributes ) : $hashSource;
+		$scopeSuffix = substr( hash( 'sha1', $source ), 0, 8 );
+		$scope       = '.ap-block-' . $scopeSuffix;
 
 		$markup = $resolver->resolve( $scope, $bag );
 

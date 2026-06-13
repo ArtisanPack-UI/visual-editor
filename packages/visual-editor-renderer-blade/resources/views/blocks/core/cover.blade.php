@@ -96,10 +96,15 @@
 		// Scope-hash logic mirrors BlockSupports::resolveAnimations so a
 		// block rendered by either path collides on the same scope key
 		// and the accumulator dedupes correctly.
+		// `serialize()` is the deterministic content-stable fallback —
+		// `spl_object_hash()` would key on object identity, which would
+		// break dedupe across identical attribute bags rendered in
+		// separate passes (e.g. cached fragments).
 		$animationsJson   = json_encode( $attributes );
-		$animationsSuffix = false === $animationsJson
-			? substr( spl_object_hash( (object) $attributes ), 0, 8 )
-			: substr( hash( 'sha1', $animationsJson ), 0, 8 );
+		$animationsSource = false === $animationsJson
+			? serialize( $attributes )
+			: $animationsJson;
+		$animationsSuffix = substr( hash( 'sha1', $animationsSource ), 0, 8 );
 		$animationsScope    = '.ap-block-' . $animationsSuffix;
 		$animationsResolver = app( AnimationMarkupResolver::class );
 		$animationsMarkup   = $animationsResolver->resolve( $animationsScope, $animationsAttr );

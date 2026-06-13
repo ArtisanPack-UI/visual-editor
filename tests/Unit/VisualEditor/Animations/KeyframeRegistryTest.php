@@ -39,10 +39,44 @@ it( 'accepts and emits a custom keyframe', function () {
 	expect( $registry->emitOne( 'confetti' ) )->toContain( 'translateY(-12px)' );
 } );
 
+it( 'fromLayers skips and logs invalid entries instead of throwing', function () {
+	// Mixed: one valid + two invalid. Boot must never crash on a
+	// malformed host config — the scoped service-provider binding
+	// resolves on every request, so a throw here would 500 the editor.
+	$registry = KeyframeRegistry::fromLayers(
+		[
+			[
+				'name'  => 'confetti',
+				'stops' => [
+					[ 'at' => '0%',   'transform' => 'translateY(0)' ],
+					[ 'at' => '100%', 'transform' => 'translateY(0)' ],
+				],
+			],
+			[ 'stops' => [] ],
+			[ 'name' => 'broken', 'stops' => [ [ 'at' => '0%', 'opacity' => '0' ] ] ],
+		],
+		[]
+	);
+
+	expect( $registry->customNames() )->toBe( [ 'confetti' ] );
+} );
+
 it( 'rejects a custom keyframe whose name collides with a built-in', function () {
 	new KeyframeRegistry( [
 		[
 			'name'  => 'apFadeIn',
+			'stops' => [
+				[ 'at' => '0%',   'opacity' => '0' ],
+				[ 'at' => '100%', 'opacity' => '1' ],
+			],
+		],
+	] );
+} )->throws( InvalidArgumentException::class, 'reserved' );
+
+it( 'rejects case-variant collisions with a built-in keyframe name', function () {
+	new KeyframeRegistry( [
+		[
+			'name'  => 'apfadein',
 			'stops' => [
 				[ 'at' => '0%',   'opacity' => '0' ],
 				[ 'at' => '100%', 'opacity' => '1' ],

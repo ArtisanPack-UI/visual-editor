@@ -24,8 +24,17 @@ export interface AnimationsAttributeShape {
 		threshold?: number;
 		once?: boolean;
 	};
-	hover?: { name?: string | Record<string, string | null> };
-	continuous?: { name?: string | Record<string, string | null> };
+	hover?: {
+		name?: string | Record<string, string | null>;
+		duration?: number;
+		easing?: string;
+	};
+	continuous?: {
+		name?: string | Record<string, string | null>;
+		duration?: number;
+		easing?: string;
+		count?: number | 'infinite';
+	};
 	reducedMotion?: 'respect' | 'allow';
 }
 
@@ -74,9 +83,21 @@ function hasAnyName( name: unknown ): boolean {
  */
 export function resolveAnimationMarkup( attributes: AnimationsAttributeShape | undefined ): AnimationMarkup {
 	const entrance = attributes?.entrance ?? {};
+	const hover = attributes?.hover;
+	const continuous = attributes?.continuous;
 	const hasEntrance = hasAnyName( entrance.name );
-	const hasHover = hasAnyName( attributes?.hover?.name );
-	const hasContinuous = hasAnyName( attributes?.continuous?.name );
+	// Mirrors `AnimationCssEmitter::hasHover`: treat as enabled when a
+	// preset name OR a duration/easing curve is authored, so a custom
+	// timing on the hover state alone produces a transition.
+	const hasHover =
+		hasAnyName( hover?.name ) ||
+		undefined !== hover?.duration ||
+		undefined !== hover?.easing;
+	// Mirrors `AnimationCssEmitter::hasContinuousAnywhere`: any
+	// configured name in the shape (base or per-breakpoint) qualifies.
+	// Duration/easing alone do not enable continuous (the loop needs a
+	// keyframe), matching the server.
+	const hasContinuous = hasAnyName( continuous?.name );
 	const hasAnimations = hasEntrance || hasHover || hasContinuous;
 
 	const classes: string[] = [];

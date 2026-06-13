@@ -38,8 +38,6 @@ interface ObservedEntry {
 	played: boolean;
 }
 
-const observers: IntersectionObserver[] = [];
-
 function defaultReducedMotion(): boolean {
 	if ( 'undefined' === typeof window || ! window.matchMedia ) {
 		return false;
@@ -87,6 +85,11 @@ export function bootstrap( options: RuntimeOptions = {} ): () => void {
 	if ( null === root ) {
 		return () => undefined;
 	}
+
+	// Per-bootstrap observer list so the returned disposer only tears
+	// down THIS instance — concurrent mounts on different roots stay
+	// isolated.
+	const observers: IntersectionObserver[] = [];
 
 	const reducedMotion = ( options.prefersReducedMotion ?? defaultReducedMotion )();
 

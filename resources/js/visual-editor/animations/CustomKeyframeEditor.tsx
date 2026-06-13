@@ -30,6 +30,10 @@ const ALLOWED_PROPERTIES: ( keyof CustomKeyframeStop )[] = [
 ];
 
 const NAME_PATTERN = /^[a-z][a-z0-9_-]*$/i;
+// Matches the backend `KeyframeRegistry::validateOne()` rule: 0–100
+// with an optional `%` suffix. Surfacing the error inline prevents
+// the save → reject → fix cycle the user would otherwise hit.
+const STOP_AT_PATTERN = /^(0|[1-9]\d?|100)(%)?$/;
 
 export interface CustomKeyframeEditorProps {
 	value: CustomKeyframe[];
@@ -122,6 +126,17 @@ export function CustomKeyframeEditor( {
 		return null;
 	}
 
+	function stopAtError( at: string ): string | null {
+		const trimmed = at.trim();
+		if ( '' === trimmed ) {
+			return __( 'Required.', 'visual-editor' );
+		}
+		if ( ! STOP_AT_PATTERN.test( trimmed ) ) {
+			return __( 'Use a percentage from 0 to 100 (e.g. 50 or 50%).', 'visual-editor' );
+		}
+		return null;
+	}
+
 	return (
 		<div className="ap-custom-keyframes">
 			<p>
@@ -152,6 +167,7 @@ export function CustomKeyframeEditor( {
 									label={ __( 'At', 'visual-editor' ) }
 									value={ stop.at }
 									onChange={ ( next: string ) => setStop( index, stopIndex, { at: next } ) }
+									help={ stopAtError( stop.at ) ?? undefined }
 								/>
 
 								{ ALLOWED_PROPERTIES.map( ( property ) => (

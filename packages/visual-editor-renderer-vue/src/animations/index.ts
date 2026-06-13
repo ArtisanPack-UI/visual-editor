@@ -16,8 +16,17 @@ export interface AnimationsAttributeShape {
 		threshold?: number;
 		once?: boolean;
 	};
-	hover?: { name?: string | Record<string, string | null> };
-	continuous?: { name?: string | Record<string, string | null> };
+	hover?: {
+		name?: string | Record<string, string | null>;
+		duration?: number;
+		easing?: string;
+	};
+	continuous?: {
+		name?: string | Record<string, string | null>;
+		duration?: number;
+		easing?: string;
+		count?: number | 'infinite';
+	};
 	reducedMotion?: 'respect' | 'allow';
 }
 
@@ -55,9 +64,15 @@ function hasAnyName( name: unknown ): boolean {
 
 export function resolveAnimationMarkup( attributes: AnimationsAttributeShape | undefined ): AnimationMarkup {
 	const entrance = attributes?.entrance ?? {};
+	const hover = attributes?.hover;
+	const continuous = attributes?.continuous;
 	const hasEntrance = hasAnyName( entrance.name );
-	const hasHover = hasAnyName( attributes?.hover?.name );
-	const hasContinuous = hasAnyName( attributes?.continuous?.name );
+	// Mirrors `AnimationCssEmitter::hasHover`: name OR custom timing.
+	const hasHover =
+		hasAnyName( hover?.name ) ||
+		undefined !== hover?.duration ||
+		undefined !== hover?.easing;
+	const hasContinuous = hasAnyName( continuous?.name );
 	const hasAnimations = hasEntrance || hasHover || hasContinuous;
 
 	const classes: string[] = [];

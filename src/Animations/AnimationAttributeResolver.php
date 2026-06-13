@@ -45,8 +45,11 @@ class AnimationAttributeResolver
 	 */
 	public function resolve( $value, string $breakpoint = BreakpointRegistry::BASE_KEY ): mixed
 	{
+		// A scalar value is the "base shape" and applies across every
+		// breakpoint — matches `ResponsiveValueResolver::resolve()` and
+		// the documented behaviour in `types.ts`.
 		if ( ! is_array( $value ) ) {
-			return BreakpointRegistry::BASE_KEY === $breakpoint ? $value : null;
+			return $value;
 		}
 
 		$order = $this->breakpoints->keysWithBase();
