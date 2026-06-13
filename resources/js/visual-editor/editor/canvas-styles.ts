@@ -34,12 +34,6 @@ import {
     POST_EDITOR_FRAMING_STYLES,
 } from '../editor-settings';
 
-import accordionStyles from '../blocks/accordion/accordion.css?inline';
-import gridStyles from '../blocks/grid/grid.css?inline';
-import marqueeStyles from '../blocks/marquee/marquee.css?inline';
-import socialIconsStyles from '../blocks/_shared/social-icons.css?inline';
-import tabsStyles from '../blocks/tabs/tabs.css?inline';
-
 import canvasThemeTokens from './canvas-theme-tokens.css?inline';
 
 /** A single stylesheet entry in the shape `BlockCanvas`'s `styles` prop expects. */
@@ -48,23 +42,34 @@ export interface CanvasStyle {
 }
 
 /**
- * Ordered `{ css }` entries handed to `BlockCanvas`'s `styles` prop.
- * The order is the cascade order inside the iframe:
+ * Auto-discovered block stylesheets — #566.
  *
- *   1. the token bridge first, so every rule below it can read the
- *      `--wp-*` / `--color-*` custom properties;
- *   2. the `@wordpress/*` stylesheets (components → block-editor →
- *      block-library), matching the parent-document import order in
- *      `editor-app.tsx`;
- *   3. `DEFAULT_CANVAS_STYLES` last, so the package's typographic
- *      baseline wins over the Gutenberg defaults — a theme.json
- *      stylesheet will append after this entry and win in turn once
- *      the theme.json bridge lands.
+ * Every block ships its own `.css` file as a side-effect import from
+ * its `index.ts`. That import lands in the parent document only; the
+ * editor's sandboxed `BlockCanvas` iframe never sees it, so blocks
+ * with their own stylesheet (callout, breadcrumbs, the interactive
+ * families, future blocks) render unstyled in the canvas unless the
+ * sheet is re-resolved as inline CSS and handed to `BlockCanvas`.
  *
- * `BlockCanvas` passes this straight to `__unstableEditorStyles` with
- * no wrapper selector, so the CSS is injected into the iframe verbatim
- * (`transformStyles` is a no-op without a scope or `baseURL`).
+ * The glob pattern `../blocks/*` + `/*.css` matches per-block sheets
+ * (`breadcrumbs/breadcrumbs.css`, `callout/callout.css`, …) and the
+ * shared baselines that live in sibling directories
+ * (`_shared/social-icons.css`). Entries are sorted by path so the
+ * cascade order inside the iframe is deterministic across builds.
  */
+const blockStylesheetModules = import.meta.glob<string>(
+    '../blocks/*/*.css',
+    { eager: true, query: '?inline', import: 'default' }
+);
+
+export const blockStylesheetPaths: readonly string[] = Object.keys(
+    blockStylesheetModules
+).sort();
+
+const blockStylesheets: readonly CanvasStyle[] = blockStylesheetPaths.map(
+    (path) => ({ css: blockStylesheetModules[path] })
+);
+
 /**
  * Layout baseline rules — flex + grid.
  *
@@ -96,6 +101,79 @@ const LAYOUT_BASELINE_STYLES = `
 .is-layout-grid > :is(*, div) { margin: 0; }
 `;
 
+/**
+ * Editor-only overrides for the interactive block families.
+ *
+ * These rules sit downstream of the block-authored stylesheets so they
+ * win when the editor needs a different visual than the front-end:
+ * expanded panels for editability, dropped marquee animation so the
+ * RichText cursor stays anchored, etc. Keep adjustments here rather
+ * than inside the block's own stylesheet so the front-end CSS stays
+ * lean.
+ */
+const EDITOR_BLOCK_TWEAKS = `
+    /* Editor preview overrides — keep every panel and tab
+       section expanded so authors can edit each one without
+       toggling. The front-end interactivity script restores
+       normal accordion / tab behavior at render time. */
+    .ap-accordion__body[hidden] { display: block !important; }
+    .ap-tab-section[hidden] { display: block !important; }
+
+    /* Drop list bullets from the tab list — Gutenberg's editor
+       stylesheet adds them back inside the iframe. */
+    .ap-tabs__list ul { list-style: none !important; padding-left: 0 !important; }
+    .ap-tabs__list ul li { margin: 0 !important; padding: 0 !important; }
+
+    /* Inner-block reset: Gutenberg's editor stylesheet adds
+       generous top/bottom margins to headings and paragraphs
+       (the "is-layout-flow" baseline), which doubles up with
+       our wrapper padding. Collapse the first/last child
+       margin so the accordion title + body and tab section
+       line up tight against the wrapper edges in the canvas. */
+    .ap-accordion__title-content > :first-child,
+    .ap-accordion__body > :first-child,
+    .ap-tab-section > :first-child { margin-block-start: 0 !important; }
+    .ap-accordion__title-content > :last-child,
+    .ap-accordion__body > :last-child,
+    .ap-tab-section > :last-child { margin-block-end: 0 !important; }
+
+    /* The block-editor wraps every block in a .block-editor-block-list__block
+       div that adds its own margin. Inside the accordion / tab containers,
+       trim that wrapper margin so the visual cadence matches the
+       front-end. */
+    .ap-accordion__body .block-editor-block-list__block,
+    .ap-tab-section .block-editor-block-list__block { margin-top: 0; margin-bottom: 0; }
+
+    /* Marquee — the front-end CSS translates the text off-screen
+       and the renderers' inline animation slides it back. The
+       editor preview drops the animation so authors can edit the
+       RichText without it scrolling out from under their cursor;
+       pin the text in place so it's readable. */
+    .ap-marquee__text { transform: none !important; white-space: normal !important; }
+`;
+
+/**
+ * Ordered `{ css }` entries handed to `BlockCanvas`'s `styles` prop.
+ * The order is the cascade order inside the iframe:
+ *
+ *   1. the token bridge first, so every rule below it can read the
+ *      `--wp-*` / `--color-*` custom properties;
+ *   2. the `@wordpress/*` stylesheets (components → block-editor →
+ *      block-library), matching the parent-document import order in
+ *      `editor-app.tsx`;
+ *   3. the layout baseline, then every block-authored stylesheet
+ *      (auto-discovered via the `blocks/* /*.css` glob, #566), then
+ *      the editor-only tweaks that override them where the iframe
+ *      needs a different visual than the front-end;
+ *   4. `DEFAULT_CANVAS_STYLES` last, so the package's typographic
+ *      baseline wins over the Gutenberg defaults — a theme.json
+ *      stylesheet will append after this entry and win in turn once
+ *      the theme.json bridge lands.
+ *
+ * `BlockCanvas` passes this straight to `__unstableEditorStyles` with
+ * no wrapper selector, so the CSS is injected into the iframe verbatim
+ * (`transformStyles` is a no-op without a scope or `baseURL`).
+ */
 export const canvasStyles: readonly CanvasStyle[] = [
     { css: canvasThemeTokens },
     { css: componentsStyle },
@@ -104,67 +182,12 @@ export const canvasStyles: readonly CanvasStyle[] = [
     { css: blockLibraryStyle },
     { css: blockLibraryEditor },
     { css: LAYOUT_BASELINE_STYLES },
-    // Interactive block families (#497) — accordion + tabs.
-    // The editor canvas runs in a sandboxed iframe so the per-block
-    // CSS imports in `blocks/{accordion,tabs}/index.ts` don't reach
-    // it; ship the rules here too so authors get an accurate preview.
-    // Editor-specific overrides (showing all panels at once for
-    // editability) are appended after the front-end rules.
-    { css: accordionStyles },
-    { css: tabsStyles },
-    // Grid family (#498) — same iframe-doesn't-see-`?inline` story as
-    // accordion/tabs above. Ship the rules here so authors get an
-    // accurate preview of the responsive column layout.
-    { css: gridStyles },
-    // Marquee block (#500) — keyframes + wrapper baseline. Same
-    // iframe-isolation story: the per-block import in
-    // `blocks/marquee/index.ts` lands in the parent document only.
-    { css: marqueeStyles },
-    // Social-share / author-social-icons (#501) — chip baseline +
-    // layout modifiers. Same iframe-doesn't-see-`?inline` story.
-    { css: socialIconsStyles },
-    {
-        css: `
-            /* Editor preview overrides — keep every panel and tab
-               section expanded so authors can edit each one without
-               toggling. The front-end interactivity script restores
-               normal accordion / tab behavior at render time. */
-            .ap-accordion__body[hidden] { display: block !important; }
-            .ap-tab-section[hidden] { display: block !important; }
-
-            /* Drop list bullets from the tab list — Gutenberg's editor
-               stylesheet adds them back inside the iframe. */
-            .ap-tabs__list ul { list-style: none !important; padding-left: 0 !important; }
-            .ap-tabs__list ul li { margin: 0 !important; padding: 0 !important; }
-
-            /* Inner-block reset: Gutenberg's editor stylesheet adds
-               generous top/bottom margins to headings and paragraphs
-               (the "is-layout-flow" baseline), which doubles up with
-               our wrapper padding. Collapse the first/last child
-               margin so the accordion title + body and tab section
-               line up tight against the wrapper edges in the canvas. */
-            .ap-accordion__title-content > :first-child,
-            .ap-accordion__body > :first-child,
-            .ap-tab-section > :first-child { margin-block-start: 0 !important; }
-            .ap-accordion__title-content > :last-child,
-            .ap-accordion__body > :last-child,
-            .ap-tab-section > :last-child { margin-block-end: 0 !important; }
-
-            /* The block-editor wraps every block in a .block-editor-block-list__block
-               div that adds its own margin. Inside the accordion / tab containers,
-               trim that wrapper margin so the visual cadence matches the
-               front-end. */
-            .ap-accordion__body .block-editor-block-list__block,
-            .ap-tab-section .block-editor-block-list__block { margin-top: 0; margin-bottom: 0; }
-
-            /* Marquee (#500) — the front-end CSS translates the text
-               off-screen and the renderers' inline animation slides it
-               back. The editor preview drops the animation so authors
-               can edit the RichText without it scrolling out from under
-               their cursor; pin the text in place so it's readable. */
-            .ap-marquee__text { transform: none !important; white-space: normal !important; }
-        `,
-    },
+    // Every block-authored stylesheet, auto-discovered via the
+    // `blocks/*/*.css` glob (#566). Replaces the per-block manual
+    // entries that used to sit here and forced an edit to
+    // canvas-styles.ts every time a new custom block landed.
+    ...blockStylesheets,
+    { css: EDITOR_BLOCK_TWEAKS },
     { css: DEFAULT_CANVAS_STYLES },
     // Per-block wide/full overrides. Shared with the site editor —
     // both need the toolbar's alignment buttons to actually resize
