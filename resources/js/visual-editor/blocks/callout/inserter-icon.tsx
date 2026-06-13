@@ -1,9 +1,12 @@
 /**
- * Inline SVG icon used by the block-library inserter.
+ * Callout — inserter icon.
  *
- * Mirrors the lightbulb glyph rather than the severity glyph — the
- * inserter icon should communicate "tip / highlight," not a specific
- * severity state the author hasn't chosen yet.
+ * Inline SVG of Font Awesome Free Solid's `lightbulb` glyph,
+ * copied verbatim from the bundled FA asset so the canvas does
+ * not need to load the Font Awesome stylesheet. Font Awesome
+ * Free is © Fonticons, Inc., licensed under CC BY 4.0
+ * (https://creativecommons.org/licenses/by/4.0/). See
+ * NOTICE.md at the package root for the full per-icon credit list.
  */
 
 import type { ReactElement } from 'react';
@@ -12,13 +15,13 @@ export default function CalloutInserterIcon(): ReactElement {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
-            width="24"
-            height="24"
+            viewBox="0 0 512 512"
+            width={24}
+            height={24}
             aria-hidden="true"
             focusable="false"
         >
-            <path d="M9 21h6v-1H9Zm3-19a7 7 0 0 0-4 12.74V17h8v-2.26A7 7 0 0 0 12 2Zm1 12h-2v-2h2Z" />
+            <path fill="currentColor" d="M292.9 384c7.3-22.3 21.9-42.5 38.4-59.9 32.7-34.4 52.7-80.9 52.7-132.1 0-106-86-192-192-192S0 86 0 192c0 51.2 20 97.7 52.7 132.1 16.5 17.4 31.2 37.6 38.4 59.9l201.7 0zM288 432l-192 0 0 16c0 44.2 35.8 80 80 80l32 0c44.2 0 80-35.8 80-80l0-16zM184 112c-39.8 0-72 32.2-72 72 0 13.3-10.7 24-24 24s-24-10.7-24-24c0-66.3 53.7-120 120-120 13.3 0 24 10.7 24 24s-10.7 24-24 24z" />
         </svg>
     );
 }

@@ -7,6 +7,7 @@ use ArtisanPackUI\VisualEditor\Services\Icon\UploadedIconSetRegistry;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Str;
 
 // Package-level demo / fallback post-editor route. Host apps render the
 // editor via `<x-visual-editor :model="$post" />` against their own models.
@@ -17,10 +18,28 @@ use Illuminate\Support\Facades\Route;
 // resource the editor will surface API errors, which is acceptable for
 // the fallback / sample URL.
 Route::get('/editor', function () {
+    $resources = (array) config('artisanpack.visual-editor.resources', []);
+    $contentTypes = [];
+
+    foreach ($resources as $plural => $modelClass) {
+        if (! is_string($plural) || $plural === '') {
+            continue;
+        }
+
+        $singular = Str::singular($plural);
+
+        $contentTypes[] = [
+            'slug'   => $singular,
+            'plural' => $plural,
+            'label'  => ucwords(str_replace(['-', '_'], ' ', $singular)),
+        ];
+    }
+
     return view('visual-editor::editor.mount', [
         'resource' => 'pages',
         'modelId' => '1',
         'apiBase' => '/visual-editor/api',
+        'contentTypes' => $contentTypes,
     ]);
 })->name('visual-editor.editor');
 

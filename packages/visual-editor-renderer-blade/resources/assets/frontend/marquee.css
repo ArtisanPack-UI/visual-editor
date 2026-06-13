@@ -1,0 +1,47 @@
+/**
+ * Front-end styles for the marquee block (artisanpack/marquee — #500).
+ *
+ * Mirrors the editor preview styles in
+ * `resources/js/visual-editor/blocks/marquee/marquee.css`. Host apps
+ * load this stylesheet on any page that renders a marquee block — the
+ * `<x-ve-blocks-styles />` component emits the `<link>`.
+ *
+ * The block's `marqueeSpeed` attribute lands as an inline
+ * `animation: ap-marquee-scroll Ns linear infinite` on the inner `<p>`,
+ * so the keyframe definition here is all the frontend needs.
+ */
+
+.ap-marquee {
+    margin-left: auto;
+    margin-right: auto;
+    overflow: hidden;
+}
+
+.ap-marquee__text {
+    margin: 0;
+    transform: translateX(100%);
+    white-space: nowrap;
+    will-change: transform;
+}
+
+@keyframes ap-marquee-scroll {
+    from {
+        transform: translateX(100%);
+    }
+    to {
+        transform: translateX(-100%);
+    }
+}
+
+/* Respect prefers-reduced-motion. Visitors who've opted out of
+   animations get the text pinned in place inside the wrapper instead
+   of an endless horizontal scroll — the inline `animation` declaration
+   on `.ap-marquee__text` is overridden and the base
+   `translateX(100%)` (which hides the text off-screen) is reset. */
+@media (prefers-reduced-motion: reduce) {
+    .ap-marquee__text {
+        animation: none !important;
+        transform: none;
+        white-space: normal;
+    }
+}

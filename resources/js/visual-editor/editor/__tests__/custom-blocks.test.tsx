@@ -193,8 +193,10 @@ vi.mock('@wordpress/i18n', () => ({
 
 import {
     ARTISANPACK_CATEGORY_SLUG,
+    SEARCH_CATEGORY_SLUG,
     __resetCustomBlockRegistrationCache,
     ensureArtisanpackCategory,
+    ensureSearchCategory,
     registerCustomBlocks,
 } from '../custom-blocks';
 
@@ -234,6 +236,34 @@ describe('ensureArtisanpackCategory', () => {
 
     it('preserves pre-existing categories', () => {
         ensureArtisanpackCategory();
+
+        const slugs = categoriesState.map((cat) => cat.slug);
+        expect(slugs).toContain('text');
+        expect(slugs).toContain('media');
+    });
+});
+
+describe('ensureSearchCategory', () => {
+    it('adds the search category when missing', () => {
+        ensureSearchCategory('Search');
+
+        expect(categoriesState.map((cat) => cat.slug)).toContain(
+            SEARCH_CATEGORY_SLUG
+        );
+    });
+
+    it('does not duplicate the category on repeat calls', () => {
+        ensureSearchCategory();
+        ensureSearchCategory();
+
+        const matches = categoriesState.filter(
+            (cat) => cat.slug === SEARCH_CATEGORY_SLUG
+        );
+        expect(matches).toHaveLength(1);
+    });
+
+    it('preserves pre-existing categories', () => {
+        ensureSearchCategory();
 
         const slugs = categoriesState.map((cat) => cat.slug);
         expect(slugs).toContain('text');
@@ -293,7 +323,7 @@ describe('registerCustomBlocks', () => {
 
         expect(settings.edit).toBe(calloutEdit);
         expect(settings.save).toBe(calloutSave);
-        expect(settings.category).toBe(ARTISANPACK_CATEGORY_SLUG);
+        expect(settings.category).toBe('design');
     });
 
     it('forwards an icon override to registerBlockType settings', () => {
@@ -317,7 +347,7 @@ describe('registerCustomBlocks', () => {
 describe('artisanpack/callout block.json', () => {
     it('declares severity + icon attributes with enum defaults', () => {
         expect(calloutMetadata.name).toBe('artisanpack/callout');
-        expect(calloutMetadata.category).toBe(ARTISANPACK_CATEGORY_SLUG);
+        expect(calloutMetadata.category).toBe('design');
         expect(calloutMetadata.attributes.severity.default).toBe('info');
         expect(calloutMetadata.attributes.icon.default).toBe('info');
         expect(calloutMetadata.attributes.severity.enum).toContain('warning');

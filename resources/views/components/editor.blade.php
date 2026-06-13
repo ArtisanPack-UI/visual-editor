@@ -14,4 +14,5 @@
 	@isset($authorOptions) data-author-options="{{ json_encode( $authorOptions ) }}" @endisset
 	@isset($supports) data-supports="{{ json_encode( $supports ) }}" @endisset
 	@isset($previewUrl) data-preview-url="{{ $previewUrl }}" @endisset
+	data-content-types="{{ json_encode( $contentTypes, JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 ></div>

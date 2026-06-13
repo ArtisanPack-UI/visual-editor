@@ -22,6 +22,7 @@ namespace ArtisanPackUI\VisualEditor\View\Components;
 
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 use Illuminate\View\Component;
 use RuntimeException;
 
@@ -62,6 +63,11 @@ class VisualEditorComponent extends Component
 
 	public ?string $previewUrl;
 
+	/**
+	 * @var array<int, array{slug: string, label: string}>
+	 */
+	public array $contentTypes;
+
 	public function __construct(
 		public Model $model,
 		?string $resource = null,
@@ -99,6 +105,47 @@ class VisualEditorComponent extends Component
 		$this->authorOptions        = $authorOptions;
 		$this->supports             = $supports;
 		$this->previewUrl           = $previewUrl;
+		$this->contentTypes         = $this->resolveContentTypes();
+	}
+
+	/**
+	 * Lists the registered cms-framework content types so the editor can
+	 * surface variations of `artisanpack/single-content` (one per type)
+	 * and any other block that wants to enumerate available resources.
+	 *
+	 * @return array<int, array{slug: string, label: string}>
+	 *
+	 * @since 1.0.0
+	 */
+	protected function resolveContentTypes(): array
+	{
+		$map = (array) config( 'artisanpack.visual-editor.resources', [] );
+		$types = [];
+
+		foreach ( $map as $plural => $modelClass ) {
+			if ( ! is_string( $plural ) || '' === $plural ) {
+				continue;
+			}
+
+			// Laravel's inflector handles English plural -> singular
+			// reliably (handles `pages` -> `page`, `categories` ->
+			// `category`, `classes` -> `class`, irregulars like
+			// `children` -> `child`). Avoids the hand-rolled
+			// `-es` heuristic mis-stripping the tail of legitimate
+			// stems like `types`.
+			$singular = Str::singular( $plural );
+
+			$types[] = [
+				// Match the WP convention — `postType` on a block is the
+				// singular slug (`post`, `page`) so `useEntityProp` /
+				// `getEntityRecord` find a matching entity descriptor.
+				'slug'   => $singular,
+				'plural' => $plural,
+				'label'  => ucwords( str_replace( [ '-', '_' ], ' ', $singular ) ),
+			];
+		}
+
+		return $types;
 	}
 
 	public function render(): View

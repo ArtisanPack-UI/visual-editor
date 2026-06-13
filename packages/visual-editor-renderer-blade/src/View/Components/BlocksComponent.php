@@ -32,6 +32,7 @@ use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
+use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
@@ -60,6 +61,7 @@ class BlocksComponent extends Component
 		protected QueryInliner $queryInliner,
 		protected CommentInliner $commentInliner,
 		protected PostResolver $postResolver,
+		protected BreadcrumbsResolver $breadcrumbsResolver,
 		protected NavigationBlockRefResolver $navigationResolver,
 		protected GlobalStylesEmissionResolver $globalStyles,
 		protected GlobalStylesEmissionTracker $emissionTracker,
@@ -73,6 +75,7 @@ class BlocksComponent extends Component
 		bool $resolveQueries = true,
 		bool $resolveComments = true,
 		bool $resolvePost = true,
+		bool $resolveBreadcrumbs = true,
 		bool $resolveNavigation = true,
 	) {
 		$this->defaultTheme = $defaultTheme;
@@ -94,7 +97,7 @@ class BlocksComponent extends Component
 		// loop with a navigation block inside it (rare but legal) still
 		// gets each cloned nav block resolved to its menu items.
 		$resolved = $resolveQueries
-			? $this->queryInliner->inline( $resolved )
+			? $this->queryInliner->inline( $resolved, is_object( $post ) ? $post : null )
 			: $resolved;
 
 		// Comment inlining runs after query inlining so a `core/query` loop
@@ -120,6 +123,17 @@ class BlocksComponent extends Component
 		// expansions; this pass handles everything outside those loops.
 		$resolved = ( $resolvePost && is_object( $post ) )
 			? $this->postResolver->stampTree( $resolved, $post )
+			: $resolved;
+
+		// Breadcrumbs resolution (#565) stamps `_resolvedTrail` on every
+		// `artisanpack/breadcrumbs` block. Runs unconditionally — unlike
+		// `PostResolver` it tolerates a null `$post` (homepage, 404,
+		// archive without a single record in scope) and still produces a
+		// usable trail (just the "Home" entry, marked current). Hosts
+		// extend the trail through the `ap.visual-editor.breadcrumbs.trail`
+		// filter; see `BreadcrumbsResolver::buildTrail()`.
+		$resolved = $resolveBreadcrumbs
+			? $this->breadcrumbsResolver->stampTree( $resolved, is_object( $post ) ? $post : null )
 			: $resolved;
 
 		// Navigation resolution mirrors the editor's read path

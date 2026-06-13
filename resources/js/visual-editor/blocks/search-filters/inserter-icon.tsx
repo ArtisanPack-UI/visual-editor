@@ -1,0 +1,27 @@
+/**
+ * Search Filters — inserter icon.
+ *
+ * Inline SVG of Font Awesome Free Solid's `filter` glyph,
+ * copied verbatim from the bundled FA asset so the canvas does
+ * not need to load the Font Awesome stylesheet. Font Awesome
+ * Free is © Fonticons, Inc., licensed under CC BY 4.0
+ * (https://creativecommons.org/licenses/by/4.0/). See
+ * NOTICE.md at the package root for the full per-icon credit list.
+ */
+
+import type { ReactElement } from 'react';
+
+export default function SearchFiltersInserterIcon(): ReactElement {
+    return (
+        <svg
+            xmlns="http://www.w3.org/2000/svg"
+            viewBox="0 0 512 512"
+            width={24}
+            height={24}
+            aria-hidden="true"
+            focusable="false"
+        >
+            <path fill="currentColor" d="M32 64C19.1 64 7.4 71.8 2.4 83.8S.2 109.5 9.4 118.6L192 301.3 192 416c0 8.5 3.4 16.6 9.4 22.6l64 64c9.2 9.2 22.9 11.9 34.9 6.9S320 492.9 320 480l0-178.7 182.6-182.6c9.2-9.2 11.9-22.9 6.9-34.9S492.9 64 480 64L32 64z" />
+        </svg>
+    );
+}

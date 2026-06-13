@@ -81,7 +81,7 @@ it( 'registers the bundled callout reference block by default', function () {
 	$block = app( BlockTypeRegistry::class )->get( 'artisanpack/callout' );
 
 	expect( $block )->not->toBeNull()
-		->and( $block['category'] )->toBe( 'artisanpack' )
+		->and( $block['category'] )->toBe( 'design' )
 		->and( $block['attributes'] )->toHaveKey( 'severity' )
 		->and( $block['attributes'] )->toHaveKey( 'icon' )
 		->and( $block['attributes'] )->toHaveKey( 'content' );

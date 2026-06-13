@@ -1,0 +1,78 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/related-posts",
+    "title": "Related Posts",
+    "category": "theme",
+    "description": "Render a query loop of posts related to the host entry so visitors can keep reading.",
+    "keywords": ["related", "posts", "loop", "feed"],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "numPosts": {
+            "type": "number",
+            "default": 3
+        },
+        "numColumns": {
+            "type": "number",
+            "default": 1
+        },
+        "queryId": {
+            "type": "string"
+        },
+        "query": {
+            "type": "object",
+            "default": {
+                "perPage": 3,
+                "offset": 0,
+                "order": "desc",
+                "orderBy": "date",
+                "postType": "post",
+                "inherit": false,
+                "taxQuery": null
+            }
+        },
+        "displayLayout": {
+            "type": "object",
+            "default": {
+                "type": "list",
+                "columns": 1
+            }
+        },
+        "enhancedPagination": {
+            "type": "boolean",
+            "default": false
+        }
+    },
+    "usesContext": ["postId", "postType"],
+    "providesContext": {
+        "queryId": "queryId",
+        "query": "query",
+        "displayLayout": "displayLayout",
+        "enhancedPagination": "enhancedPagination"
+    },
+    "supports": {
+        "anchor": true,
+        "align": ["wide", "full"],
+        "ariaLabel": true,
+        "className": true,
+        "html": false,
+        "reusable": false,
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "spacing": {
+            "margin": ["top", "bottom"],
+            "padding": true,
+            "blockGap": true,
+            "__experimentalDefaultControls": {
+                "padding": true,
+                "blockGap": true
+            }
+        }
+    }
+}

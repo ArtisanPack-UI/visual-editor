@@ -197,6 +197,33 @@ it( 'stamps post-comments-count as zero when no count or collection is exposed',
 	expect( $resolved['attributes']['_resolvedCommentCount'] )->toBe( 0 );
 } );
 
+it( 'stamps artisanpack/comments-number with the resolved count from comments_count accessor', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[
+			'name'        => 'artisanpack/comments-number',
+			'attributes'  => [
+				'singularCommentText' => 'Reply',
+				'pluralCommentText'   => 'Replies',
+			],
+			'innerBlocks' => [],
+		],
+		fakePost( [ 'comments_count' => 4 ] )
+	);
+
+	expect( $resolved['attributes']['_resolvedCommentCount'] )->toBe( 4 )
+		->and( $resolved['attributes']['singularCommentText'] )->toBe( 'Reply' )
+		->and( $resolved['attributes']['pluralCommentText'] )->toBe( 'Replies' );
+} );
+
+it( 'stamps artisanpack/comments-number as zero when the post exposes neither count nor collection', function () {
+	$resolved = ( new PostResolver() )->stampBlock(
+		[ 'name' => 'artisanpack/comments-number', 'attributes' => [], 'innerBlocks' => [] ],
+		fakePost( [ 'comments_count' => null ] )
+	);
+
+	expect( $resolved['attributes']['_resolvedCommentCount'] )->toBe( 0 );
+} );
+
 it( 'stamps post-comments-link with permalink anchor when no explicit URL is set', function () {
 	$resolved = ( new PostResolver() )->stampBlock(
 		[ 'name' => 'core/post-comments-link', 'attributes' => [], 'innerBlocks' => [] ],

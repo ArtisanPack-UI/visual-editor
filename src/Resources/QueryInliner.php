@@ -40,6 +40,7 @@ namespace ArtisanPackUI\VisualEditor\Resources;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Str;
 use Throwable;
 
 class QueryInliner
@@ -70,28 +71,51 @@ class QueryInliner
 	) {}
 
 	/**
+	 * Host post passed through `inline()` so the related-posts expansion
+	 * can derive taxonomy terms from it without re-threading the value
+	 * through every internal helper.
+	 */
+	protected ?object $hostPost = null;
+
+	/**
 	 * Walks `$tree` and returns a copy with every `core/query` block
 	 * carrying expanded post-template instances under `innerBlocks`.
 	 *
 	 * @since 1.0.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $tree
+	 * @param  object|null                       $hostPost  Optional host
+	 *                                                     post the page is
+	 *                                                     resolving against.
+	 *                                                     `artisanpack/related-posts`
+	 *                                                     needs it to build
+	 *                                                     a "same-taxonomy"
+	 *                                                     query; the other
+	 *                                                     expansions ignore
+	 *                                                     it.
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	public function inline( array $tree ): array
+	public function inline( array $tree, ?object $hostPost = null ): array
 	{
-		$out = [];
+		$previousHostPost = $this->hostPost;
+		$this->hostPost   = $hostPost;
 
-		foreach ( $tree as $block ) {
-			if ( ! is_array( $block ) ) {
-				continue;
+		try {
+			$out = [];
+
+			foreach ( $tree as $block ) {
+				if ( ! is_array( $block ) ) {
+					continue;
+				}
+
+				$out[] = $this->inlineBlock( $block );
 			}
 
-			$out[] = $this->inlineBlock( $block );
+			return $out;
+		} finally {
+			$this->hostPost = $previousHostPost;
 		}
-
-		return $out;
 	}
 
 	/**
@@ -110,14 +134,381 @@ class QueryInliner
 			return $this->expandQuery( $block );
 		}
 
+		// Single-post content cluster (#501) — both blocks rely on the
+		// same `QueryResolverContract` plumbing as `core/query` but
+		// resolve a single entry or a related-by-taxonomy set rather
+		// than a full pagination payload.
+		if ( 'artisanpack/single-content' === $name ) {
+			return $this->expandSingleContent( $block );
+		}
+
+		if ( 'artisanpack/related-posts' === $name ) {
+			return $this->expandRelatedPosts( $block );
+		}
+
 		// Recurse into inner blocks so nested queries (and queries
 		// inside template parts that have already been inlined) still
 		// get their loop expanded.
 		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
-			$block['innerBlocks'] = $this->inline( $block['innerBlocks'] );
+			$block['innerBlocks'] = $this->inline( $block['innerBlocks'], $this->hostPost );
 		}
 
 		return $block;
+	}
+
+	/**
+	 * Resolve the post the `artisanpack/single-content` block points at
+	 * and re-stamp the saved inner-block tree against it via
+	 * `PostResolver`. Falls back to the host post when the block has no
+	 * `postId` set so authors can drop a "this entry" container into a
+	 * single-post template without configuring the id by hand.
+	 *
+	 * @param  array<string, mixed>  $block
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function expandSingleContent( array $block ): array
+	{
+		$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] )
+			? $block['attributes']
+			: [];
+
+		$inner = isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] )
+			? $block['innerBlocks']
+			: [];
+
+		$postId   = isset( $attributes['postId'] ) ? (int) $attributes['postId'] : 0;
+		$postType = isset( $attributes['postType'] ) && is_string( $attributes['postType'] )
+			? trim( $attributes['postType'] )
+			: 'post';
+
+		if ( '' === $postType ) {
+			$postType = 'post';
+		}
+
+		// Tolerate blocks saved before #501's variation pass moved to
+		// singular slugs — `posts`, `pages`, `categories` come back from
+		// the JSON as plural. `Str::singular` is the same inflector the
+		// dev-app variations registry uses, so the round-trip stays
+		// consistent (avoids the `types` -> `typ` class of mistakes
+		// the prior hand-rolled `-es` strip was prone to).
+		$postType = Str::singular( $postType );
+
+		// Implicit "render against the host post" mode: no id picked, the
+		// block sits in a single-post template, so PostResolver alone
+		// stamps the inner tree against the host post downstream.
+		if ( 0 === $postId ) {
+			$attributes = array_merge( [ '_resolvedHasPost' => null !== $this->hostPost ], $attributes );
+
+			return array_merge( $block, [
+				'attributes'  => $attributes,
+				'innerBlocks' => $inner,
+			] );
+		}
+
+		if ( ! $this->container->bound( QueryResolverContract::class ) ) {
+			return $this->markFailed( $block, self::ERROR_NO_RUNTIME );
+		}
+
+		try {
+			/** @var QueryResolverContract $resolver */
+			$resolver  = $this->container->make( QueryResolverContract::class );
+			$paginator = $resolver->resolve( [
+				'postType' => $postType,
+				'include'  => [ $postId ],
+				'perPage'  => 1,
+			] );
+		} catch ( Throwable $e ) {
+			report( $e );
+
+			return $this->markFailed( $block, self::ERROR_RESOLVER_ERROR );
+		}
+
+		$items = $paginator->items();
+		$post  = null;
+
+		foreach ( $items as $candidate ) {
+			if ( is_object( $candidate ) ) {
+				$post = $candidate;
+				break;
+			}
+		}
+
+		if ( null === $post ) {
+			return array_merge( $block, [
+				'attributes'  => array_merge( [ '_resolvedHasPost' => false ], $attributes ),
+				'innerBlocks' => [],
+			] );
+		}
+
+		$stamped = [];
+
+		foreach ( $inner as $child ) {
+			if ( ! is_array( $child ) ) {
+				continue;
+			}
+
+			$stamped[] = $this->postResolver->stampBlock( $this->cloneBlock( $child ), $post );
+		}
+
+		return array_merge( $block, [
+			'attributes'  => array_merge( [ '_resolvedHasPost' => true ], $attributes ),
+			'innerBlocks' => $stamped,
+		] );
+	}
+
+	/**
+	 * Resolve N related posts for the host post and clone the
+	 * `artisanpack/related-posts` block's saved inner-block tree once
+	 * per result with `_resolved*` stamps applied through `PostResolver`.
+	 * Each iteration is wrapped in a synthetic `core/post-template-item`
+	 * so the renderers can apply per-item layout / class-name attributes
+	 * without re-implementing the iteration logic.
+	 *
+	 * Resolution defers to the bound `QueryResolverContract`; the related
+	 * filter is "same post type, sharing at least one term in the post's
+	 * primary taxonomy (categories / tags), excluding the host". Hosts
+	 * that want a different relatedness rule can bind a custom resolver.
+	 *
+	 * @param  array<string, mixed>  $block
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function expandRelatedPosts( array $block ): array
+	{
+		$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] )
+			? $block['attributes']
+			: [];
+
+		$inner = isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] )
+			? $block['innerBlocks']
+			: [];
+
+		// Prefer the query-block-shape `query.perPage` so authors can
+		// drive related-posts the same way they drive `artisanpack/query`;
+		// fall back to the legacy `numPosts` attribute for posts saved
+		// before the query-loop refactor (#501 follow-up).
+		$query = isset( $attributes['query'] ) && is_array( $attributes['query'] )
+			? $attributes['query']
+			: [];
+
+		if ( isset( $query['perPage'] ) && is_numeric( $query['perPage'] ) ) {
+			$numPosts = (int) $query['perPage'];
+		} elseif ( isset( $attributes['numPosts'] ) && is_numeric( $attributes['numPosts'] ) ) {
+			$numPosts = (int) $attributes['numPosts'];
+		} else {
+			$numPosts = 3;
+		}
+
+		if ( $numPosts < 1 ) {
+			$numPosts = 1;
+		} elseif ( $numPosts > 10 ) {
+			$numPosts = 10;
+		}
+
+		$order   = isset( $query['order'] ) && in_array( $query['order'], [ 'asc', 'desc' ], true )
+			? $query['order']
+			: 'desc';
+		$orderBy = isset( $query['orderBy'] ) && is_string( $query['orderBy'] ) && '' !== $query['orderBy']
+			? $query['orderBy']
+			: 'date';
+		$offset  = isset( $query['offset'] ) && is_numeric( $query['offset'] ) && (int) $query['offset'] >= 0
+			? (int) $query['offset']
+			: 0;
+
+		// No host post in scope → nothing to compute "related" against.
+		// Mark the block resolved-but-empty so the renderer drops the
+		// wrapper instead of cloning the un-stamped iteration template.
+		if ( null === $this->hostPost ) {
+			return array_merge( $block, [
+				'attributes'  => array_merge( [
+					'_resolvedTotal' => 0,
+					'_resolvedItems' => 0,
+				], $attributes ),
+				'innerBlocks' => [],
+			] );
+		}
+
+		if ( ! $this->container->bound( QueryResolverContract::class ) ) {
+			return $this->markFailed( $block, self::ERROR_NO_RUNTIME );
+		}
+
+		$host                     = $this->hostPost;
+		$hostId                   = isset( $host->id ) ? (int) $host->id : 0;
+		$hostType                 = $this->hostPostType( $host );
+		[ $taxonomy, $termIds ]   = $this->hostRelatedTerms( $host );
+
+		$queryAttrs = [
+			'postType' => $hostType,
+			'perPage'  => $numPosts,
+			'offset'   => $offset,
+			'order'    => $order,
+			'orderBy'  => $orderBy,
+			'exclude'  => 0 === $hostId ? [] : [ $hostId ],
+			'taxonomy' => $taxonomy,
+			'terms'    => $termIds,
+		];
+
+		try {
+			/** @var QueryResolverContract $resolver */
+			$resolver  = $this->container->make( QueryResolverContract::class );
+			$paginator = $resolver->resolve( $queryAttrs );
+		} catch ( Throwable $e ) {
+			report( $e );
+
+			return $this->markFailed( $block, self::ERROR_RESOLVER_ERROR );
+		}
+
+		$results = $paginator->items();
+
+		if ( [] === $results ) {
+			return array_merge( $block, [
+				'attributes'  => array_merge( [
+					'_resolvedTotal' => $paginator->total(),
+					'_resolvedItems' => 0,
+				], $attributes ),
+				'innerBlocks' => [],
+			] );
+		}
+
+		$expanded = [];
+
+		foreach ( $results as $post ) {
+			if ( ! is_object( $post ) ) {
+				continue;
+			}
+
+			$postId          = isset( $post->id ) ? (int) $post->id : 0;
+			$iterationBlocks = [];
+
+			foreach ( $inner as $child ) {
+				if ( ! is_array( $child ) ) {
+					continue;
+				}
+
+				$iterationBlocks[] = $this->postResolver->stampBlock(
+					$this->cloneBlock( $child ),
+					$post
+				);
+			}
+
+			$expanded[] = [
+				'clientId'    => 'rp-' . $postId,
+				'name'        => 'core/post-template-item',
+				'attributes'  => [
+					'postId'    => $postId,
+					'className' => 'related-post post-' . $postId,
+				],
+				'innerBlocks' => $iterationBlocks,
+			];
+		}
+
+		return array_merge( $block, [
+			'attributes'  => array_merge( [
+				'_resolvedTotal' => $paginator->total(),
+				'_resolvedItems' => count( $expanded ),
+			], $attributes ),
+			'innerBlocks' => $expanded,
+		] );
+	}
+
+	/**
+	 * Read the host post's post-type slug via the same conventions
+	 * `PostResolver` uses (the `post_type` column, the `type` accessor,
+	 * etc.). Defaults to `'post'` so the query resolver always gets a
+	 * valid slug.
+	 */
+	protected function hostPostType( object $post ): string
+	{
+		foreach ( [ 'post_type', 'type' ] as $key ) {
+			$value = $post->{$key} ?? null;
+
+			if ( is_string( $value ) && '' !== trim( $value ) ) {
+				return trim( $value );
+			}
+		}
+
+		return 'post';
+	}
+
+	/**
+	 * Best-effort lookup of the host post's term ids across whichever
+	 * taxonomy the model exposes (`categories`, `tags`, generic `terms`).
+	 * Returned as a flat int list so the query resolver receives a
+	 * consistent shape regardless of host model.
+	 *
+	 * @return array<int, int>
+	 */
+	protected function hostTermIds( object $post ): array
+	{
+		$ids = [];
+
+		foreach ( [ 'categories', 'tags', 'terms' ] as $relation ) {
+			$collection = $post->{$relation} ?? null;
+
+			if ( ! is_iterable( $collection ) ) {
+				continue;
+			}
+
+			foreach ( $collection as $term ) {
+				if ( is_object( $term ) && isset( $term->id ) ) {
+					$ids[] = (int) $term->id;
+				}
+			}
+		}
+
+		return array_values( array_unique( $ids ) );
+	}
+
+	/**
+	 * Resolve the host post's relatedness signal as a
+	 * `[taxonomy, termIds]` pair so the related-posts query targets
+	 * the right taxonomy. Prefers categories; falls back to tags;
+	 * finally falls back to the generic `terms` collection scoped to
+	 * `category` so tag-only posts still get a related-posts query
+	 * that exercises the right index.
+	 *
+	 * @return array{0: string, 1: array<int, int>}
+	 */
+	protected function hostRelatedTerms( object $post ): array
+	{
+		$categoryIds = $this->termIdsFromRelation( $post, 'categories' );
+
+		if ( [] !== $categoryIds ) {
+			return [ 'category', $categoryIds ];
+		}
+
+		$tagIds = $this->termIdsFromRelation( $post, 'tags' );
+
+		if ( [] !== $tagIds ) {
+			return [ 'post_tag', $tagIds ];
+		}
+
+		return [ 'category', $this->hostTermIds( $post ) ];
+	}
+
+	/**
+	 * Pluck integer term ids from one named relation on the post.
+	 *
+	 * @return array<int, int>
+	 */
+	protected function termIdsFromRelation( object $post, string $relation ): array
+	{
+		$collection = $post->{$relation} ?? null;
+
+		if ( ! is_iterable( $collection ) ) {
+			return [];
+		}
+
+		$ids = [];
+
+		foreach ( $collection as $term ) {
+			if ( is_object( $term ) && isset( $term->id ) ) {
+				$ids[] = (int) $term->id;
+			}
+		}
+
+		return array_values( array_unique( $ids ) );
 	}
 
 	/**

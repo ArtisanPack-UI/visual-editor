@@ -200,6 +200,34 @@ return [
 		'artisanpack/comments-pagination-next',
 		'artisanpack/comments-pagination-numbers',
 		'artisanpack/comments-pagination-previous',
+		// First-party blocks added under umbrella #495. Child blocks are
+		// listed alongside their parents so the inserter allow-list does
+		// not filter them out of the parent's template.
+		'artisanpack/breadcrumbs',
+		'artisanpack/accordions',
+		'artisanpack/accordion',
+		'artisanpack/accordion-title',
+		'artisanpack/accordion-body',
+		'artisanpack/tabs',
+		'artisanpack/tab-section',
+		'artisanpack/grid',
+		'artisanpack/grid-item',
+		'artisanpack/next-post',
+		'artisanpack/previous-post',
+		'artisanpack/copyright',
+		'artisanpack/marquee',
+		'artisanpack/comments-number',
+		'artisanpack/single-content',
+		'artisanpack/related-posts',
+		'artisanpack/author-social-icons',
+		'artisanpack/social-share-content',
+		'artisanpack/search-field',
+		'artisanpack/search-filters',
+		'artisanpack/search-filters-buttons',
+		'artisanpack/search-filters-taxonomy',
+		'artisanpack/post-types-search-results',
+		'artisanpack/single-post-types-search-results',
+		'artisanpack/skills-slider',
 	],
 
 	'disabled_blocks' => [
@@ -311,6 +339,29 @@ return [
 		'logout_route'   => 'logout',
 		'logout_path'    => '/logout',
 		'redirect_param' => 'redirect_to',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Breadcrumbs block (#565)
+	|--------------------------------------------------------------------------
+	|
+	| Configures the `artisanpack/breadcrumbs` block's server-side trail
+	| resolver. The resolver builds a default trail
+	| (`Home → …ancestors → current`) for every breadcrumbs block on
+	| render; hosts customize the trail through the
+	| `ap.visual-editor.breadcrumbs.trail` filter (e.g. to insert a
+	| "Category" hop between Home and a blog post).
+	|
+	| `home_url` overrides the root link target — leave null to fall back
+	| to `url('/')`. `home_label` overrides the human-readable label — leave
+	| null to fall back to the translated "Home" string.
+	|
+	*/
+
+	'breadcrumbs' => [
+		'home_url'   => null,
+		'home_label' => null,
 	],
 
 	/*

@@ -1,6 +1,6 @@
 import { defineComponent, h } from 'vue';
 import { mount, flushPromises } from '@vue/test-utils';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import '../src/index';
 import { BlockTree } from '../src/BlockTree';
@@ -614,6 +614,569 @@ describe('Core design blocks', () => {
 
         expect(html).toContain('ap-callout--info');
         expect(html).toContain('data-severity="info"');
+    });
+
+    it('renders the artisanpack/breadcrumbs block with a resolved trail and schema microdata', () => {
+        const tree = [
+            makeBlock('artisanpack/breadcrumbs', {
+                separatorIcon: 'chevron-right',
+                breadcrumbsSchema: true,
+                _resolvedTrail: [
+                    { label: 'Home', url: '/' },
+                    { label: 'Blog', url: '/blog' },
+                    { label: 'Hello World', current: true },
+                ],
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('<nav');
+        expect(html).toContain('class="ap-breadcrumbs"');
+        expect(html).toContain('aria-label="Breadcrumb"');
+        expect(html).toContain('itemtype="https://schema.org/BreadcrumbList"');
+        expect(html).toContain('itemtype="https://schema.org/ListItem"');
+        expect(html).toContain('<a class="ap-breadcrumbs__link" href="/"');
+        expect(html).toContain('<a class="ap-breadcrumbs__link" href="/blog"');
+        expect(html).toContain('Hello World');
+        expect(html).toContain('aria-current="page"');
+        expect(html).toContain('itemprop="position" content="1"');
+        expect(html).toContain('itemprop="position" content="3"');
+        expect(html).toContain('d="m9 6 6 6-6 6"');
+    });
+
+    it('normalizes invalid breadcrumbs separator and omits schema when disabled', () => {
+        const tree = [
+            makeBlock('artisanpack/breadcrumbs', {
+                separatorIcon: 'spinning-rocket',
+                breadcrumbsSchema: false,
+                _resolvedTrail: [
+                    { label: 'Home', url: '/' },
+                    { label: 'Page', current: true },
+                ],
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('d="m9 6 6 6-6 6"');
+        expect(html).not.toContain('schema.org/BreadcrumbList');
+        expect(html).not.toContain('itemprop="position"');
+    });
+
+    it('drops unsafe URLs from breadcrumbs trail entries', () => {
+        const tree = [
+            makeBlock('artisanpack/breadcrumbs', {
+                _resolvedTrail: [
+                    { label: 'Home', url: '/' },
+                    { label: 'XSS', url: 'javascript:alert(1)' },
+                    { label: 'Page', current: true },
+                ],
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).not.toContain('javascript:');
+        expect(html).toContain('href="/"');
+        expect(html).toContain('>XSS<');
+        expect((html.match(/ap-breadcrumbs__current/g) ?? []).length).toBe(1);
+    });
+
+    it('renders an empty breadcrumbs list when the trail is missing', () => {
+        const tree = [makeBlock('artisanpack/breadcrumbs', {})];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('ap-breadcrumbs__list');
+        expect(html).not.toContain('<li class="ap-breadcrumbs__item');
+    });
+
+    describe('artisanpack/copyright (year is read at render time)', () => {
+        // Pin the clock so these specs don't drift on the Dec 31 → Jan 1
+        // boundary; the renderer reads `new Date().getUTCFullYear()` so
+        // any test that hard-codes a year would otherwise need a real
+        // calendar to stay accurate.
+        const PINNED_YEAR = 2030;
+        const PINNED_DATE = new Date(Date.UTC(PINNED_YEAR, 5, 15));
+
+        beforeEach(() => {
+            vi.useFakeTimers();
+            vi.setSystemTime(PINNED_DATE);
+        });
+
+        afterEach(() => {
+            vi.useRealTimers();
+        });
+
+        it('renders the artisanpack/copyright block with © text and the current year', () => {
+            const tree = [
+                makeBlock('artisanpack/copyright', {
+                    copyrightType: 'icon-text',
+                    copyrightText: 'Acme, Inc.',
+                }),
+            ];
+
+            const html = renderTree(tree);
+
+            expect(html).toContain('class="ap-copyright"');
+            expect(html).toContain(`© Acme, Inc. ${PINNED_YEAR}`);
+        });
+
+        it('omits the text when copyright type is icon-only and drops the © when text-only', () => {
+            const iconOnly = renderTree([
+                makeBlock('artisanpack/copyright', {
+                    copyrightType: 'icon-only',
+                    copyrightText: 'Should not appear',
+                }),
+            ]);
+            const textOnly = renderTree([
+                makeBlock('artisanpack/copyright', {
+                    copyrightType: 'text-only',
+                    copyrightText: 'Plain',
+                }),
+            ]);
+
+            expect(iconOnly).toContain(`© ${PINNED_YEAR}`);
+            expect(iconOnly).not.toContain('Should not appear');
+            expect(textOnly).toContain(`Plain ${PINNED_YEAR}`);
+            expect(textOnly).not.toContain('©');
+        });
+
+        it('falls back to icon-text when copyright type is invalid', () => {
+            const html = renderTree([
+                makeBlock('artisanpack/copyright', {
+                    copyrightType: 'made-up-mode',
+                    copyrightText: 'Fallback',
+                }),
+            ]);
+
+            expect(html).toContain(`© Fallback ${PINNED_YEAR}`);
+        });
+    });
+
+    it('renders the artisanpack/marquee block with width + animation styles applied', () => {
+        const tree = [
+            makeBlock('artisanpack/marquee', {
+                marqueeContent: 'Breaking news',
+                marqueeWidth: 60,
+                marqueeSpeed: 10,
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('class="ap-marquee"');
+        expect(html).toContain('width: 60%');
+        expect(html).toContain('animation: ap-marquee-scroll 10s linear infinite');
+        expect(html).toContain('class="ap-marquee__text"');
+        expect(html).toContain('Breaking news');
+    });
+
+    it('clamps marquee width and speed to their valid range and falls back on non-numeric input', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/marquee', {
+                marqueeContent: 'x',
+                marqueeWidth: 999,
+                marqueeSpeed: 'fast',
+            }),
+        ]);
+
+        expect(html).toContain('width: 100%');
+        expect(html).toContain('animation: ap-marquee-scroll 5s linear infinite');
+    });
+
+    it('renders the artisanpack/comments-number block with resolved count + plural label', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/comments-number', {
+                _resolvedCommentCount: 5,
+                singularCommentText: 'Reply',
+                pluralCommentText: 'Replies',
+            }),
+        ]);
+
+        expect(html).toContain('class="ap-comments-number"');
+        expect(html).toContain('5 Replies');
+        expect(html).not.toContain('Reply<');
+    });
+
+    it('uses the singular comments-number label when the resolved count is exactly one', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/comments-number', {
+                _resolvedCommentCount: 1,
+                singularCommentText: 'Reply',
+                pluralCommentText: 'Replies',
+            }),
+        ]);
+
+        expect(html).toContain('1 Reply');
+    });
+
+    it('falls back to zero comments and default labels when the resolved count is missing', () => {
+        const html = renderTree([makeBlock('artisanpack/comments-number', {})]);
+
+        expect(html).toContain('0 Comments');
+    });
+
+    it('renders the artisanpack/accordions family with nested grandchildren', () => {
+        const tree = [
+            makeBlock('artisanpack/accordions', {}, [
+                makeBlock(
+                    'artisanpack/accordion',
+                    { panelId: 'faq-1', panelIcon: 'arrows' },
+                    [
+                        makeBlock('artisanpack/accordion-title', {}, [
+                            makeBlock('core/heading', {
+                                level: 3,
+                                content: 'Question',
+                            }),
+                        ]),
+                        makeBlock('artisanpack/accordion-body', {}, [
+                            makeBlock('core/paragraph', { content: 'Answer.' }),
+                        ]),
+                    ]
+                ),
+            ]),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('class="ap-accordions"');
+        expect(html).toContain('class="ap-accordion"');
+        expect(html).toContain('data-panel-id="faq-1"');
+        expect(html).toContain('data-panel-icon="arrows"');
+        expect(html).toContain('id="faq-1-control"');
+        expect(html).toContain('aria-controls="faq-1"');
+        expect(html).toContain('aria-expanded="false"');
+        expect(html).toContain('ap-accordion__icon--arrows');
+        expect(html).toContain('id="faq-1"');
+        expect(html).toContain('aria-labelledby="faq-1-control"');
+        expect(html).toContain('<p class="wp-block-paragraph">Answer.</p>');
+    });
+
+    it('falls back to safe defaults when accordion panelIcon is invalid', () => {
+        const tree = [
+            makeBlock('artisanpack/accordion', {
+                panelId: 'faq-1',
+                panelIcon: 'evil"><script>',
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('data-panel-icon="plus-minus"');
+        expect(html).not.toContain('<script>');
+    });
+
+    it('omits accordion aria wiring when the parent panel id is empty', () => {
+        const tree = [
+            makeBlock(
+                'artisanpack/accordion',
+                { panelId: '', panelIcon: 'plus-minus' },
+                [
+                    makeBlock('artisanpack/accordion-title', {}),
+                    makeBlock('artisanpack/accordion-body', {}),
+                ]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).not.toContain('aria-controls=');
+        expect(html).not.toContain('aria-labelledby=');
+        expect(html).not.toContain('id="-control"');
+    });
+
+    it('renders the artisanpack/tabs family with triggers derived from tab-section children', () => {
+        const tree = [
+            makeBlock(
+                'artisanpack/tabs',
+                {
+                    tabsAlign: 'horizontal',
+                    tabsSpacing: 'center',
+                },
+                [
+                    makeBlock(
+                        'artisanpack/tab-section',
+                        { label: 'Overview', tabId: 'overview' },
+                        [makeBlock('core/paragraph', { content: 'Tab body' })]
+                    ),
+                    makeBlock('artisanpack/tab-section', {
+                        label: 'Specs',
+                        tabId: 'specs',
+                    }),
+                ]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('align-tabs-horizontal');
+        expect(html).toContain('space-tabs-center');
+        expect(html).toContain('data-ap-tabs');
+        expect(html).toContain('role="tablist"');
+        expect(html).toContain('href="#tabs-panel-overview"');
+        expect(html).toContain('aria-controls="tabs-panel-overview"');
+        expect(html).toContain('id="tabs-tab-overview"');
+        expect(html).toContain('aria-selected="true"');
+        expect(html).toContain('aria-selected="false"');
+        expect(html).toContain('>Overview</a>');
+        expect(html).toContain('>Specs</a>');
+        expect(html).toContain('id="tabs-panel-overview"');
+        expect(html).toContain('aria-labelledby="tabs-tab-overview"');
+        expect(html).toContain('role="tabpanel"');
+        expect(html).toContain('Tab body');
+    });
+
+    it('falls back to safe defaults when tabsAlign / tabsSpacing are invalid', () => {
+        const tree = [
+            makeBlock('artisanpack/tabs', {
+                tabsAlign: 'diagonal',
+                tabsSpacing: 'sprawl',
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('align-tabs-horizontal');
+        expect(html).toContain('space-tabs-start');
+    });
+
+    it('deduplicates tab ids when two sections share the same slug', () => {
+        const tree = [
+            makeBlock('artisanpack/tabs', {}, [
+                makeBlock('artisanpack/tab-section', {
+                    label: 'One',
+                    tabId: 'overview',
+                }),
+                makeBlock('artisanpack/tab-section', {
+                    label: 'Two',
+                    tabId: 'overview',
+                }),
+                makeBlock('artisanpack/tab-section', {
+                    label: 'Three',
+                    tabId: 'overview',
+                }),
+            ]),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('id="tabs-panel-overview"');
+        expect(html).toContain('id="tabs-panel-overview-2"');
+        expect(html).toContain('id="tabs-panel-overview-3"');
+        expect(html).toContain('href="#tabs-panel-overview-2"');
+        expect(html).toContain('href="#tabs-panel-overview-3"');
+    });
+
+    it('auto-fills tab labels and ids by position when sections leave them blank', () => {
+        const tree = [
+            makeBlock('artisanpack/tabs', {}, [
+                makeBlock('artisanpack/tab-section', {}),
+                makeBlock('artisanpack/tab-section', {}),
+            ]),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('>Tab 1</a>');
+        expect(html).toContain('>Tab 2</a>');
+        expect(html).toContain('href="#tabs-panel-tab-1"');
+        expect(html).toContain('href="#tabs-panel-tab-2"');
+        // Triggers and panels MUST share the same resolved id so the
+        // aria-controls / id hookup actually resolves.
+        expect(html).toContain('id="tabs-panel-tab-1"');
+        expect(html).toContain('id="tabs-panel-tab-2"');
+        expect(html).toContain('aria-labelledby="tabs-tab-tab-1"');
+        expect(html).toContain('aria-labelledby="tabs-tab-tab-2"');
+    });
+
+    it('renders a tab-section without aria wiring when tabId is empty', () => {
+        const tree = [
+            makeBlock('artisanpack/tab-section', { tabId: '' }, [
+                makeBlock('core/paragraph', { content: 'Naked' }),
+            ]),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).not.toContain('id="tabs-panel-"');
+        expect(html).not.toContain('aria-labelledby=');
+        expect(html).toContain('Naked');
+    });
+
+    it('renders an artisanpack/grid tree with per-breakpoint column + span classes', () => {
+        const tree = [
+            makeBlock(
+                'artisanpack/grid',
+                { numColumns: 4 },
+                [
+                    makeBlock(
+                        'artisanpack/grid-item',
+                        {
+                            innerLayout: 'center',
+                            gridColumnSpan: 2,
+                            gridRowSpan: 1,
+                        },
+                        [makeBlock('core/paragraph', { content: 'Cell content' })]
+                    ),
+                ]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('ap-grid');
+        expect(html).toContain('ap-grid-has-4-base-columns');
+        expect(html).toContain('ap-grid-item');
+        expect(html).toContain('ap-grid-item-layout-center');
+        expect(html).toContain('ap-grid-item-span-2-base-columns');
+        expect(html).toContain('ap-grid-item-span-1-base-row');
+        expect(html).toContain('Cell content');
+    });
+
+    it('emits per-breakpoint grid column classes from responsive.numColumns', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/grid', {
+                numColumns: 1,
+                responsive: { numColumns: { md: 2, lg: 4 } },
+            }),
+        ]);
+
+        expect(html).toContain('ap-grid-has-1-base-columns');
+        expect(html).toContain('ap-grid-has-2-md-columns');
+        expect(html).toContain('ap-grid-has-4-lg-columns');
+    });
+
+    it('emits per-breakpoint span classes from responsive.gridColumnSpan / gridRowSpan', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/grid-item', {
+                gridColumnSpan: 1,
+                gridRowSpan: 1,
+                responsive: {
+                    gridColumnSpan: { md: 2, lg: 3 },
+                    gridRowSpan: { md: 2 },
+                },
+            }),
+        ]);
+
+        expect(html).toContain('ap-grid-item-span-1-base-columns');
+        expect(html).toContain('ap-grid-item-span-1-base-row');
+        expect(html).toContain('ap-grid-item-span-2-md-columns');
+        expect(html).toContain('ap-grid-item-span-3-lg-columns');
+        expect(html).toContain('ap-grid-item-span-2-md-row');
+    });
+
+    it('clamps grid column counts outside 1-12 to safe defaults', () => {
+        const tooHigh = renderTree([
+            makeBlock('artisanpack/grid', { numColumns: 99 }),
+        ]);
+        const tooLow = renderTree([
+            makeBlock('artisanpack/grid', { numColumns: 0 }),
+        ]);
+
+        expect(tooHigh).toContain('ap-grid-has-12-base-columns');
+        expect(tooLow).toContain('ap-grid-has-1-base-columns');
+    });
+
+    it('clamps grid-item spans outside 1-12 to safe defaults', () => {
+        const tooHigh = renderTree([
+            makeBlock('artisanpack/grid-item', {
+                gridColumnSpan: 99,
+                gridRowSpan: 0,
+            }),
+        ]);
+
+        expect(tooHigh).toContain('ap-grid-item-span-12-base-columns');
+        expect(tooHigh).toContain('ap-grid-item-span-1-base-row');
+    });
+
+    it('skips non-numeric responsive.numColumns overrides instead of clamping them to 1', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/grid', {
+                numColumns: 3,
+                responsive: { numColumns: { md: 'evil', lg: 4 } },
+            }),
+        ]);
+
+        expect(html).toContain('ap-grid-has-3-base-columns');
+        expect(html).not.toContain('ap-grid-has-1-md-columns');
+        expect(html).not.toContain('md-columns');
+        expect(html).toContain('ap-grid-has-4-lg-columns');
+    });
+
+    it('falls back to a safe default when grid-item innerLayout is invalid', () => {
+        const tree = [
+            makeBlock('artisanpack/grid-item', {
+                innerLayout: 'evil"><script>',
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('ap-grid-item-layout-normal');
+        expect(html).not.toContain('<script>');
+        expect(html).not.toContain('ap-grid-item-layout-evil');
+    });
+
+    it('renders artisanpack/next-post wrapper around its inner blocks when an adjacent post is resolved', () => {
+        const tree = [
+            makeBlock(
+                'artisanpack/next-post',
+                { _resolvedHasAdjacent: true },
+                [makeBlock('core/paragraph', { content: 'Adjacent body' })]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('wp-block-artisanpack-next-post');
+        expect(html).toContain('navigation-post');
+        expect(html).toContain('Adjacent body');
+    });
+
+    it('emits nothing for artisanpack/next-post when no adjacent post is resolved', () => {
+        const tree = [
+            makeBlock(
+                'artisanpack/next-post',
+                { _resolvedHasAdjacent: false },
+                [makeBlock('core/paragraph', { content: 'Hidden' })]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toBe('');
+    });
+
+    it('renders artisanpack/previous-post wrapper around its inner blocks when an adjacent post is resolved', () => {
+        const tree = [
+            makeBlock(
+                'artisanpack/previous-post',
+                { _resolvedHasAdjacent: true },
+                [makeBlock('core/paragraph', { content: 'Older neighbor' })]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('wp-block-artisanpack-previous-post');
+        expect(html).toContain('navigation-post');
+        expect(html).toContain('Older neighbor');
+    });
+
+    it('emits nothing for artisanpack/previous-post when no adjacent post is resolved', () => {
+        const tree = [
+            makeBlock(
+                'artisanpack/previous-post',
+                { _resolvedHasAdjacent: false },
+                [makeBlock('core/paragraph', { content: 'Hidden' })]
+            ),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toBe('');
     });
 });
 

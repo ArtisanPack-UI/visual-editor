@@ -365,6 +365,316 @@ const FIXTURES: Array<{ name: string; tree: Block[] }> = [
             ),
         ],
     },
+    {
+        name: 'artisanpack/single-content with resolved host post',
+        tree: [
+            makeBlock(
+                'artisanpack/single-content',
+                { _resolvedHasPost: true },
+                [makeBlock('core/paragraph', { content: 'Hello' }, [], 'p1')],
+                'sc-1'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/single-content with no resolved post',
+        tree: [
+            makeBlock(
+                'artisanpack/single-content',
+                { _resolvedHasPost: false },
+                [makeBlock('core/paragraph', { content: 'Hidden' }, [], 'p1')],
+                'sc-2'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/related-posts with two resolved items',
+        tree: [
+            makeBlock(
+                'artisanpack/related-posts',
+                { _resolvedItems: 2, numColumns: 2 },
+                [
+                    makeBlock('core/paragraph', { content: 'Related A' }, [], 'pa'),
+                    makeBlock('core/paragraph', { content: 'Related B' }, [], 'pb'),
+                ],
+                'rp-1'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/related-posts with zero items',
+        tree: [
+            makeBlock(
+                'artisanpack/related-posts',
+                { _resolvedItems: 0, numColumns: 3 },
+                [],
+                'rp-2'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/author-social-icons icon + label chips',
+        tree: [
+            makeBlock(
+                'artisanpack/author-social-icons',
+                {
+                    socialIcons: ['facebook', 'email'],
+                    iconStyle: 'show-label-icon',
+                    iconsDirection: 'horizontal',
+                    iconsStretch: 'auto-width',
+                    iconsBorderRadius: 8,
+                    _resolvedAuthorSocialLinks: [
+                        { slug: 'facebook', url: 'https://example.test/fb' },
+                        { slug: 'email', url: 'mailto:author@example.test' },
+                    ],
+                },
+                [],
+                'asi-1'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/author-social-icons drops unselected platforms',
+        tree: [
+            makeBlock(
+                'artisanpack/author-social-icons',
+                {
+                    socialIcons: ['twitter'],
+                    iconStyle: 'show-icon',
+                    iconsDirection: 'vertical',
+                    iconsStretch: 'full-width',
+                    iconsBorderRadius: 0,
+                    _resolvedAuthorSocialLinks: [
+                        { slug: 'twitter', url: 'https://example.test/tw' },
+                        { slug: 'instagram', url: 'https://example.test/ig' },
+                    ],
+                },
+                [],
+                'asi-2'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/social-share-content icon + label chips',
+        tree: [
+            makeBlock(
+                'artisanpack/social-share-content',
+                {
+                    socialIcons: ['facebook', 'reddit'],
+                    iconStyle: 'show-label-icon',
+                    iconsDirection: 'horizontal',
+                    iconsStretch: 'auto-width',
+                    iconsBorderRadius: 4,
+                    _resolvedShareLinks: [
+                        {
+                            slug: 'facebook',
+                            url: 'https://www.facebook.com/sharer.php?u=https%3A%2F%2Fexample.test%2Fpost',
+                        },
+                        {
+                            slug: 'reddit',
+                            url: 'https://www.reddit.com/submit?url=https%3A%2F%2Fexample.test%2Fpost',
+                        },
+                    ],
+                },
+                [],
+                'ssc-1'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/social-share-content drops unsafe javascript URLs',
+        tree: [
+            makeBlock(
+                'artisanpack/social-share-content',
+                {
+                    socialIcons: ['twitter', 'pinterest'],
+                    iconStyle: 'show-label',
+                    iconsDirection: 'vertical',
+                    iconsStretch: 'full-width',
+                    iconsBorderRadius: 0,
+                    _resolvedShareLinks: [
+                        { slug: 'twitter', url: 'javascript:alert(1)' },
+                        {
+                            slug: 'pinterest',
+                            url: 'https://pinterest.com/pin/create/bookmarklet/?url=https%3A%2F%2Fexample.test',
+                        },
+                    ],
+                },
+                [],
+                'ssc-2'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/search-field with no resolved value',
+        tree: [
+            makeBlock(
+                'artisanpack/search-field',
+                { label: 'Find', placeholder: 'Type a query …' },
+                [],
+                'sf-1'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/search-field with a resolved query',
+        tree: [
+            makeBlock(
+                'artisanpack/search-field',
+                {
+                    label: 'Find',
+                    placeholder: 'Type a query …',
+                    _resolvedSearchValue: 'hello',
+                },
+                [],
+                'sf-2'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/search-filters wraps inner blocks in a GET form',
+        tree: [
+            makeBlock(
+                'artisanpack/search-filters',
+                { postType: 'project', _resolvedFormAction: 'https://example.test/' },
+                [
+                    makeBlock(
+                        'artisanpack/search-field',
+                        { label: 'Find', placeholder: 'Type …' },
+                        [],
+                        'sf-inner'
+                    ),
+                ],
+                'sfilters-1'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/search-filters drops unsafe action URLs',
+        tree: [
+            makeBlock(
+                'artisanpack/search-filters',
+                {
+                    postType: 'post',
+                    _resolvedFormAction: 'javascript:alert(1)',
+                },
+                [],
+                'sfilters-2'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/search-filters-buttons renders submit + reset pair',
+        tree: [
+            makeBlock(
+                'artisanpack/search-filters-buttons',
+                { searchLabel: 'Go', clearLabel: 'Reset' },
+                [],
+                'sfb-1'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/search-filters-taxonomy with resolved terms + selection',
+        tree: [
+            makeBlock(
+                'artisanpack/search-filters-taxonomy',
+                {
+                    label: 'Topic',
+                    taxonomy: 'topic',
+                    taxonomyName: 'Topic',
+                    _resolvedTerms: [
+                        { slug: 'news', name: 'News' },
+                        { slug: 'guides', name: 'Guides' },
+                    ],
+                    _resolvedSelectedTerm: 'guides',
+                },
+                [],
+                'sft-1'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/search-filters-taxonomy with no resolved terms',
+        tree: [
+            makeBlock(
+                'artisanpack/search-filters-taxonomy',
+                { label: 'Topic', taxonomy: 'topic', taxonomyName: 'Topic' },
+                [],
+                'sft-2'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/post-types-search-results wraps active children only',
+        tree: [
+            makeBlock(
+                'artisanpack/post-types-search-results',
+                {},
+                [
+                    makeBlock(
+                        'artisanpack/single-post-types-search-results',
+                        { postType: 'post', _resolvedActive: true },
+                        [
+                            makeBlock(
+                                'core/paragraph',
+                                { content: 'Active section' },
+                                [],
+                                'p-active'
+                            ),
+                        ],
+                        'spr-active'
+                    ),
+                    makeBlock(
+                        'artisanpack/single-post-types-search-results',
+                        { postType: 'project', _resolvedActive: false },
+                        [
+                            makeBlock(
+                                'core/paragraph',
+                                { content: 'Inactive section' },
+                                [],
+                                'p-inactive'
+                            ),
+                        ],
+                        'spr-inactive'
+                    ),
+                ],
+                'ptsr-1'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/skills-slider with defaults',
+        tree: [makeBlock('artisanpack/skills-slider', {}, [], 'ss-1')],
+    },
+    {
+        name: 'artisanpack/skills-slider with custom level + colours',
+        tree: [
+            makeBlock(
+                'artisanpack/skills-slider',
+                {
+                    skillLevel: 75,
+                    barHeight: 12,
+                    barColor: '#ff0000',
+                    trackColor: '#eeeeee',
+                    ariaLabel: 'PHP proficiency',
+                },
+                [],
+                'ss-2'
+            ),
+        ],
+    },
+    {
+        name: 'artisanpack/skills-slider clamps out-of-range values',
+        tree: [
+            makeBlock(
+                'artisanpack/skills-slider',
+                { skillLevel: 250, barHeight: 0 },
+                [],
+                'ss-3'
+            ),
+        ],
+    },
 ];
 
 describe('React/Vue renderer parity', () => {

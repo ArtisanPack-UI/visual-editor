@@ -58,6 +58,20 @@ class BlockRenderer
 		'artisanpack/loginout',
 	];
 
+	/**
+	 * Per-render counter exposed to Blade partials as `$renderIndex`
+	 * so templates that need a per-instance suffix (e.g. form-control
+	 * `id` ↔ `for` bindings on `artisanpack/search-field` /
+	 * `search-filters-taxonomy`) can stay unique even when two
+	 * instances carry identical attributes.
+	 *
+	 * Resets on every public {@see render} call so each request gets a
+	 * stable, monotonically-increasing per-tree sequence.
+	 *
+	 * @since 1.1.0
+	 */
+	protected int $renderIndex = 0;
+
 	public function __construct(
 		protected ViewFactory $views,
 		protected DynamicBlockRegistry $dynamicBlocks,
@@ -75,6 +89,8 @@ class BlockRenderer
 	 */
 	public function render( array $tree ): string
 	{
+		$this->renderIndex = 0;
+
 		$out = '';
 
 		foreach ( $tree as $block ) {
@@ -103,16 +119,47 @@ class BlockRenderer
 			return '';
 		}
 
+		// Take this block's render index BEFORE walking innerBlocks so
+		// the parent's index is stable even though child blocks bump
+		// the counter recursively. Partials receive this value via the
+		// `$renderIndex` Blade variable so they can mint per-instance
+		// IDs without colliding when two blocks share attributes.
+		$renderIndex = $this->renderIndex++;
+
 		$attributes      = $this->normalizeAttributes( $block['attributes'] ?? [] );
 		$attributes      = $this->stampSiteMeta( $name, $attributes );
 		$attributes      = $this->stampLoginout( $name, $attributes );
-		$innerBlocksHtml = $this->render( $this->normalizeInnerBlocks( $block['innerBlocks'] ?? [] ) );
+		$innerBlocks     = $this->normalizeInnerBlocks( $block['innerBlocks'] ?? [] );
+		$innerBlocksHtml = $this->renderInner( $innerBlocks );
 
 		if ( $this->dynamicBlocks->has( $name ) ) {
-			return $this->renderDynamic( $name, $attributes, $innerBlocksHtml );
+			return $this->renderDynamic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
 		}
 
-		return $this->renderStatic( $name, $attributes, $innerBlocksHtml );
+		return $this->renderStatic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
+	}
+
+	/**
+	 * Recursive sibling of {@see render} that walks `innerBlocks`
+	 * without resetting the per-tree {@see $renderIndex} counter.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<int, array<string, mixed>>  $tree
+	 */
+	protected function renderInner( array $tree ): string
+	{
+		$out = '';
+
+		foreach ( $tree as $block ) {
+			if ( ! is_array( $block ) ) {
+				continue;
+			}
+
+			$out .= $this->renderBlock( $block );
+		}
+
+		return $out;
 	}
 
 	/**
@@ -194,14 +241,20 @@ class BlockRenderer
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  array<string, mixed>  $attributes
+	 * @param  array<string, mixed>             $attributes
+	 * @param  array<int, array<string, mixed>> $innerBlocks  Normalized child tree forwarded to the static
+	 *                                                        fallback so partials can read `$innerBlocks` even
+	 *                                                        when the dynamic handler is missing or throws.
+	 * @param  int                              $renderIndex  Per-tree visit counter forwarded to the static
+	 *                                                        fallback so partials still see a stable
+	 *                                                        `$renderIndex` value.
 	 */
-	protected function renderDynamic( string $name, array $attributes, string $innerBlocksHtml ): string
+	protected function renderDynamic( string $name, array $attributes, string $innerBlocksHtml, array $innerBlocks = [], int $renderIndex = 0 ): string
 	{
 		$block = $this->dynamicBlocks->get( $name );
 
 		if ( null === $block ) {
-			return $this->renderStatic( $name, $attributes, $innerBlocksHtml );
+			return $this->renderStatic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
 		}
 
 		try {
@@ -212,7 +265,7 @@ class BlockRenderer
 		} catch ( Throwable $e ) {
 			report( $e );
 
-			return $this->renderStatic( $name, $attributes, $innerBlocksHtml );
+			return $this->renderStatic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
 		}
 	}
 
@@ -222,9 +275,15 @@ class BlockRenderer
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  array<string, mixed>  $attributes
+	 * @param  array<string, mixed>             $attributes
+	 * @param  array<int, array<string, mixed>> $innerBlocks
+	 * @param  int                              $renderIndex  Per-tree visit counter exposed to the partial
+	 *                                                        as `$renderIndex`. Templates that need a
+	 *                                                        per-instance suffix (e.g. form-control ids)
+	 *                                                        should mix it into their id strings to keep
+	 *                                                        identical-attribute siblings unique.
 	 */
-	protected function renderStatic( string $name, array $attributes, string $innerBlocksHtml ): string
+	protected function renderStatic( string $name, array $attributes, string $innerBlocksHtml, array $innerBlocks = [], int $renderIndex = 0 ): string
 	{
 		$partial = $this->resolvePartial( $name );
 
@@ -236,7 +295,9 @@ class BlockRenderer
 			'blockName'       => $name,
 			'attributes'      => $attributes,
 			'attrs'           => $attributes,
+			'innerBlocks'     => $innerBlocks,
 			'innerBlocksHtml' => $innerBlocksHtml,
+			'renderIndex'     => $renderIndex,
 		];
 
 		try {

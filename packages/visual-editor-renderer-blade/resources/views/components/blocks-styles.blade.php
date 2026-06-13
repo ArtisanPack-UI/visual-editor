@@ -2,6 +2,27 @@
 <link rel="stylesheet" href="{{ $styleHref }}" data-ve-block-library>
 <link rel="stylesheet" href="{{ $themeHref }}" data-ve-block-library-theme>
 @endif
+@if( $emitInteractive )
+<link rel="stylesheet" href="{{ $accordionStyleHref }}" data-ve-accordion>
+<link rel="stylesheet" href="{{ $tabsStyleHref }}" data-ve-tabs>
+<script src="{{ $interactivityScriptSrc }}" defer data-ve-interactivity></script>
+@endif
+{{-- Grid family CSS is layout-only (no interactivity script), so it
+	loads independently of $emitInteractive. Hosts that opt out of
+	accordion/tabs interactivity still want grid blocks to render. --}}
+<link rel="stylesheet" href="{{ $gridStyleHref }}" data-ve-grid>
+{{-- Marquee CSS ships the keyframes the inline `animation` declaration
+	on the inner `<p>` references. Layout-only, same story as grid. --}}
+<link rel="stylesheet" href="{{ $marqueeStyleHref }}" data-ve-marquee>
+{{-- Social-share / author-social-icons layout + chip baseline. Reads
+	the `--ap-social-*` custom properties stamped by the renderers so
+	icon / hover / background color choices apply on the front end. --}}
+<link rel="stylesheet" href="{{ $socialIconsStyleHref }}" data-ve-social-icons>
+{{-- Breadcrumbs layout + separator baseline (#565). Matches the rules
+	the editor loads from `blocks/breadcrumbs/breadcrumbs.css` so the
+	server-stamped `<ol>` lays out inline with the chosen separator on
+	the public frontend. --}}
+<link rel="stylesheet" href="{{ $breadcrumbsStyleHref }}" data-ve-breadcrumbs>
 @if( '' !== $themeTokensCss )
 <style data-ve-theme-tokens>{!! $themeTokensCss !!}</style>
 @endif

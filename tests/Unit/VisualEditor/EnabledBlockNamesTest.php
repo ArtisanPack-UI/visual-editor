@@ -84,6 +84,34 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 		'artisanpack/comments-pagination-next',
 		'artisanpack/comments-pagination-numbers',
 		'artisanpack/comments-pagination-previous',
+		// First-party blocks added under umbrella #495. Child blocks
+		// are listed alongside their parents so the inserter allow-list
+		// does not filter them out of the parent's template.
+		'artisanpack/breadcrumbs',
+		'artisanpack/accordions',
+		'artisanpack/accordion',
+		'artisanpack/accordion-title',
+		'artisanpack/accordion-body',
+		'artisanpack/tabs',
+		'artisanpack/tab-section',
+		'artisanpack/grid',
+		'artisanpack/grid-item',
+		'artisanpack/next-post',
+		'artisanpack/previous-post',
+		'artisanpack/copyright',
+		'artisanpack/marquee',
+		'artisanpack/comments-number',
+		'artisanpack/single-content',
+		'artisanpack/related-posts',
+		'artisanpack/author-social-icons',
+		'artisanpack/social-share-content',
+		'artisanpack/search-field',
+		'artisanpack/search-filters',
+		'artisanpack/search-filters-buttons',
+		'artisanpack/search-filters-taxonomy',
+		'artisanpack/post-types-search-results',
+		'artisanpack/single-post-types-search-results',
+		'artisanpack/skills-slider',
 	] );
 } );
 

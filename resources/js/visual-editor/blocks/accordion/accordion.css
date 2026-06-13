@@ -1,0 +1,116 @@
+/**
+ * Accordion family styles (#497).
+ *
+ * Loaded in the editor via `blocks/{accordions,accordion}/index.ts`.
+ * On the public frontend the Blade renderer serves an identical copy
+ * from `packages/visual-editor-renderer-blade/resources/assets/frontend/accordion.css`,
+ * wired up by `<x-ve-blocks-styles />`. React/Vue renderers emit the
+ * same class names so a single stylesheet covers all three.
+ */
+
+.ap-accordions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    margin-block-end: var(--wp--style--block-gap, 1.5rem);
+}
+
+.ap-accordion {
+    border: 1px solid var(--ap-accordion-border, rgba(0, 0, 0, 0.1));
+    border-radius: 0.25rem;
+    overflow: hidden;
+}
+
+.ap-accordion__title {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-right: 2.5rem;
+}
+
+.ap-accordion__title-content {
+    flex: 1;
+    cursor: pointer;
+    padding: 0.75rem 1rem;
+}
+
+.ap-accordion__title-content:focus-visible {
+    outline: 2px solid currentcolor;
+    outline-offset: -2px;
+}
+
+.ap-accordion__icon {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1rem;
+    height: 1rem;
+    pointer-events: none;
+}
+
+.ap-accordion__icon::before,
+.ap-accordion__icon::after {
+    content: "";
+    position: absolute;
+    background: currentcolor;
+    transition: transform 0.15s ease-out;
+}
+
+/* Plus / minus icon */
+.ap-accordion__icon--plus-minus::before {
+    left: 50%;
+    top: 0;
+    width: 2px;
+    height: 100%;
+    margin-left: -1px;
+}
+
+.ap-accordion__icon--plus-minus::after {
+    left: 0;
+    top: 50%;
+    width: 100%;
+    height: 2px;
+    margin-top: -1px;
+}
+
+.ap-accordion__title-content[aria-expanded="true"] ~ .ap-accordion__icon--plus-minus::before {
+    transform: scaleY(0);
+}
+
+/* Arrows icon — a chevron rendered with two rotated bars. */
+.ap-accordion__icon--arrows::before {
+    left: 15%;
+    top: 35%;
+    width: 50%;
+    height: 2px;
+    transform-origin: left center;
+    transform: rotate(45deg);
+}
+
+.ap-accordion__icon--arrows::after {
+    right: 15%;
+    top: 35%;
+    width: 50%;
+    height: 2px;
+    transform-origin: right center;
+    transform: rotate(-45deg);
+}
+
+.ap-accordion__title-content[aria-expanded="true"] ~ .ap-accordion__icon--arrows::before {
+    transform: rotate(-45deg);
+}
+
+.ap-accordion__title-content[aria-expanded="true"] ~ .ap-accordion__icon--arrows::after {
+    transform: rotate(45deg);
+}
+
+.ap-accordion__body {
+    padding: 0.75rem 1rem;
+    transition: max-height 0.15s ease-out;
+}
+
+.ap-accordion__body[hidden] {
+    display: none;
+}

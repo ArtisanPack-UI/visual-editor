@@ -20,6 +20,7 @@ import type { BlockConfiguration } from '@wordpress/blocks';
 import { registerForkClassNameAlias } from '../blocks/_shared/fork-class-name-alias';
 
 export const ARTISANPACK_CATEGORY_SLUG = 'artisanpack';
+export const SEARCH_CATEGORY_SLUG = 'search';
 
 export interface CustomBlockModule {
     /**
@@ -73,6 +74,11 @@ export interface CustomBlockModule {
  * `setCategories` replaces the full list, so we append to whatever the
  * host (or `@wordpress/block-library`) has already seeded. Subsequent
  * calls are no-ops.
+ *
+ * Retained for downstream apps that still ship blocks under the
+ * `artisanpack` category. The bundled first-party blocks now live in
+ * the standard WP categories (text/media/design/widgets/theme) plus
+ * the new `search` category — see `ensureSearchCategory`.
  */
 export function ensureArtisanpackCategory(
     title: string = 'ArtisanPack'
@@ -89,6 +95,29 @@ export function ensureArtisanpackCategory(
     ]);
 }
 
+/**
+ * Register the `search` block category on the first call.
+ *
+ * Groups the search-cluster blocks (`search-field`, `search-filters`,
+ * `*-filters-buttons`, `*-filters-taxonomy`, `post-types-search-results`,
+ * `single-post-types-search-results`) under a dedicated inserter
+ * heading. Subsequent calls are no-ops.
+ */
+export function ensureSearchCategory(
+    title: string = 'Search'
+): void {
+    const categories = getCategories() as ReadonlyArray<{ slug: string }>;
+
+    if (categories.some((category) => category.slug === SEARCH_CATEGORY_SLUG)) {
+        return;
+    }
+
+    setCategories([
+        ...categories,
+        { slug: SEARCH_CATEGORY_SLUG, title },
+    ]);
+}
+
 const registered = new Set<string>();
 
 /**
@@ -102,7 +131,7 @@ const registered = new Set<string>();
 export function registerCustomBlocks(
     modules: ReadonlyArray<CustomBlockModule>
 ): ReadonlyArray<string> {
-    ensureArtisanpackCategory();
+    ensureSearchCategory();
 
     const names: string[] = [];
 
