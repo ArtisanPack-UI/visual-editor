@@ -92,9 +92,9 @@ describe( 'BlockSupports::compile (gradient border)', function (): void {
 	} );
 
 	it( 'survives even when only a per-state override is present (no idle)', function (): void {
-		// Border-radius support flag set but no idle gradient — the
-		// hover still gets emitted, idle ::before falls back to
-		// `transparent` so the cascade has a base.
+		// Gradient border configured only on hover (no idle gradient) —
+		// the hover still gets emitted, idle ::before falls back to
+		// `transparent` so the cascade has a base to override.
 		$result = BlockSupports::compile( [
 			'states' => [
 				'style.border.gradient' => [ 'hover' => 'accent-glow' ],

@@ -5,7 +5,11 @@
     "category": "text",
     "description": "Display code snippets with monospaced formatting.",
     "icon": "code",
-    "keywords": ["pre", "snippet", "syntax"],
+    "keywords": [
+        "pre",
+        "snippet",
+        "syntax"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "content": {
@@ -16,9 +20,21 @@
             "type": "string",
             "default": "plaintext",
             "enum": [
-                "plaintext", "html", "css", "javascript", "typescript",
-                "php", "python", "ruby", "go", "rust", "json", "yaml",
-                "bash", "sql", "markdown"
+                "plaintext",
+                "html",
+                "css",
+                "javascript",
+                "typescript",
+                "php",
+                "python",
+                "ruby",
+                "go",
+                "rust",
+                "json",
+                "yaml",
+                "bash",
+                "sql",
+                "markdown"
             ]
         }
     },
@@ -37,7 +53,8 @@
             "color": true,
             "radius": true,
             "style": true,
-            "width": true
+            "width": true,
+            "gradient": true
         }
     }
 }

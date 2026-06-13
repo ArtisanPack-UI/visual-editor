@@ -10,9 +10,18 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
 
-const BLOCKS_DIR = path.resolve( 'resources/js/visual-editor/blocks' )
+const SCAN_DIRS = [
+	path.resolve( 'resources/js/visual-editor/blocks' ),
+	path.resolve( 'resources/js/visual-editor/core-blocks' ),
+]
 
 async function listBlockJsonFiles( dir ) {
+	try {
+		await fs.access( dir )
+	} catch {
+		return []
+	}
+
 	const entries = await fs.readdir( dir, { withFileTypes: true } )
 	const out     = []
 
@@ -97,15 +106,18 @@ async function processOne( file ) {
 }
 
 async function main() {
-	const files   = await listBlockJsonFiles( BLOCKS_DIR )
-	let touched   = 0
-	let total     = 0
+	let touched = 0
+	let total   = 0
 
-	for ( const file of files ) {
-		total++
-		if ( await processOne( file ) ) {
-			touched++
-			console.log( `[updated] ${ path.relative( process.cwd(), file ) }` )
+	for ( const dir of SCAN_DIRS ) {
+		const files = await listBlockJsonFiles( dir )
+
+		for ( const file of files ) {
+			total++
+			if ( await processOne( file ) ) {
+				touched++
+				console.log( `[updated] ${ path.relative( process.cwd(), file ) }` )
+			}
 		}
 	}
 
