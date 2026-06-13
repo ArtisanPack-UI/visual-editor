@@ -30,6 +30,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "className": true,
         "html": false,

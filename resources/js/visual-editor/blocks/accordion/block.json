@@ -20,6 +20,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "align": ["wide", "full"],
         "ariaLabel": true,
         "className": true,

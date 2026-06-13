@@ -17,6 +17,7 @@
         "numColumns": "numColumns"
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": ["wide", "full"],
         "ariaLabel": true,

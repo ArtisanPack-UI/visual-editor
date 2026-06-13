@@ -27,6 +27,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": [ "left", "right", "wide", "full" ],
         "html": false,

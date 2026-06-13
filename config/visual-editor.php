@@ -464,6 +464,65 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Block animations (#489)
+	|--------------------------------------------------------------------------
+	|
+	| Animations the InspectorControls "Animations" panel offers and the
+	| renderer emits CSS for. Three families:
+	|
+	|   - entrance  : plays once on viewport entry (IntersectionObserver)
+	|   - hover     : transition curve + preset on `:hover`
+	|   - continuous: loop animation
+	|
+	| Resolved in priority order:
+	|
+	|   1. Active theme's `theme.json` → `settings.custom.artisanpack.animations`
+	|   2. This config array (host-app overrides)
+	|   3. `AnimationRegistry::DEFAULTS`
+	|
+	| Each entry is `[family => [key => definition]]`. To remove a built-in,
+	| set its key to `null`. See `AnimationRegistry::validate()` for the
+	| required shape per family.
+	|
+	*/
+
+	'animations' => [
+		// 'entrance' => [
+		//     'fade-in-blur' => [
+		//         'label'    => 'Fade in (blur)',
+		//         'keyframe' => 'apFadeInBlur',
+		//         'duration' => 700,
+		//         'easing'   => 'ease-out',
+		//     ],
+		// ],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Custom keyframes (#489)
+	|--------------------------------------------------------------------------
+	|
+	| Named `@keyframes` blocks the host wants available in the editor's
+	| animation dropdowns. These are merged with whatever the active
+	| theme.json declares under `settings.custom.artisanpack.keyframes`
+	| and with editor-authored keyframes persisted in the Global Styles
+	| JSON. Built-in names are reserved.
+	|
+	*/
+
+	'keyframes' => [
+		// [
+		//     'name'  => 'confetti',
+		//     'stops' => [
+		//         [ 'at' => '0%',   'transform' => 'translateY(0)' ],
+		//         [ 'at' => '50%',  'transform' => 'translateY(-12px) rotate(10deg)' ],
+		//         [ 'at' => '100%', 'transform' => 'translateY(0)' ],
+		//     ],
+		// ],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Site editor (H5)
 	|--------------------------------------------------------------------------
 	|

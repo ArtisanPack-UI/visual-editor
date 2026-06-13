@@ -8,6 +8,7 @@
     "keywords": ["search", "results", "post types"],
     "textdomain": "artisanpack-visual-editor",
     "supports": {
+        "artisanpackAnimations": true,
         "align": ["wide", "full"],
         "ariaLabel": true,
         "className": true,

@@ -125,6 +125,7 @@
         "maxNestingLevel": "maxNestingLevel"
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": [
             "wide",

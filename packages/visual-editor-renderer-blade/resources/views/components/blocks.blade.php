@@ -13,4 +13,19 @@
 {!! $statesCss !!}
 @endif
 @endisset
+@isset( $animationsCss )
+@if( '' !== $animationsCss )
+{!! $animationsCss !!}
+@endif
+@endisset
+@isset( $animationsNoscript )
+@if( '' !== $animationsNoscript )
+{!! $animationsNoscript !!}
+@endif
+@endisset
 {!! $html !!}
+@isset( $animationsRuntimeNeeded )
+@if( $animationsRuntimeNeeded )
+@include('visual-editor-renderer-blade::partials.animations-runtime')
+@endif
+@endisset

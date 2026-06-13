@@ -91,6 +91,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": [ "left", "center", "right", "wide", "full" ],
         "color": {

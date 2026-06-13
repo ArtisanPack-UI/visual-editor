@@ -35,6 +35,7 @@
         { "name": "outline", "label": "Outline" }
     ],
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "html": false,
         "align": true,

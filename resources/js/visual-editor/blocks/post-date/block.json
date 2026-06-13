@@ -30,6 +30,7 @@
         "viewportWidth": 350
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "html": false,
         "color": {

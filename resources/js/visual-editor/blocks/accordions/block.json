@@ -9,6 +9,7 @@
     "textdomain": "artisanpack-visual-editor",
     "attributes": {},
     "supports": {
+        "artisanpackAnimations": true,
         "align": ["wide", "full"],
         "ariaLabel": true,
         "className": true,
