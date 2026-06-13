@@ -111,9 +111,7 @@ describe('blockStylesheetPaths (#566 glob)', () => {
         );
         expect(defaultsIndex).toBeGreaterThanOrEqual(0);
 
-        const blockStyleStrings = new Set(
-            blockStylesheetPaths.map((path) => path)
-        );
+        const blockStyleStrings = new Set(blockStylesheetPaths);
 
         // Every discovered block stylesheet must land in canvasStyles
         // ahead of DEFAULT_CANVAS_STYLES. We can't equality-compare
