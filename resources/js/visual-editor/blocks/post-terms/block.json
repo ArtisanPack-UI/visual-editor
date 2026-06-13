@@ -77,7 +77,8 @@
                 "color": true,
                 "width": true,
                 "style": true
-            }
+            },
+            "gradient": true
         }
     },
     "style": "wp-block-post-terms"

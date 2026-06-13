@@ -5,7 +5,14 @@
     "category": "text",
     "description": "Create a bulleted or numbered list.",
     "icon": "list",
-    "keywords": ["ul", "ol", "bullet", "numbered", "ordered", "unordered"],
+    "keywords": [
+        "ul",
+        "ol",
+        "bullet",
+        "numbered",
+        "ordered",
+        "unordered"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "ordered": {
@@ -26,7 +33,8 @@
         "color": {
             "background": true,
             "text": true,
-            "link": true
+            "link": true,
+            "gradients": true
         },
         "spacing": {
             "margin": true,

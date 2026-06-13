@@ -193,6 +193,14 @@ vi.mock('../../editor/synced-pattern-indicator', () => ({
     registerSyncedPatternIndicator: () => undefined,
 }));
 
+// #490: the gradient-border registrars pull in `@wordpress/blocks`
+// through the BlockEdit HOC, which trips the JSON-import-attribute
+// requirement under jsdom. Same rationale as the `../../blocks`
+// stub above — the shell tests don't exercise gradient picker UI.
+vi.mock('../../gradient-borders/register', () => ({
+    registerGradientBorders: (): void => undefined,
+}));
+
 import { SiteEditorApp } from '../site-editor-app';
 
 const ROUTE_BASE = '/visual-editor/site';

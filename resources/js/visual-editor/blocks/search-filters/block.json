@@ -5,7 +5,11 @@
     "title": "Search Filters",
     "category": "search",
     "description": "Wrap a set of filter controls (search field, taxonomy dropdowns, submit + reset buttons) in a single GET form that posts back to the host site.",
-    "keywords": ["search", "filters", "form"],
+    "keywords": [
+        "search",
+        "filters",
+        "form"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "postType": {
@@ -14,12 +18,18 @@
         }
     },
     "supports": {
-        "align": ["wide", "full"],
+        "align": [
+            "wide",
+            "full"
+        ],
         "ariaLabel": true,
         "className": true,
         "html": false,
         "spacing": {
-            "margin": ["top", "bottom"],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "blockGap": true,
             "__experimentalDefaultControls": {
@@ -46,7 +56,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "typography": {
             "fontSize": true,

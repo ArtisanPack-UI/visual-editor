@@ -16,7 +16,9 @@
         }
     },
     "supports": {
-        "align": [ "wide" ],
+        "align": [
+            "wide"
+        ],
         "anchor": true,
         "typography": {
             "fontSize": true,
@@ -32,7 +34,10 @@
             }
         },
         "spacing": {
-            "margin": [ "top", "bottom" ],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "__experimentalDefaultControls": {
                 "margin": false,
@@ -47,7 +52,8 @@
             "__experimentalDefaultControls": {
                 "width": true,
                 "color": true
-            }
+            },
+            "gradient": true
         },
         "color": {
             "text": true,

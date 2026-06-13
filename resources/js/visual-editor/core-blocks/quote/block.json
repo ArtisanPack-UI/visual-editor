@@ -5,7 +5,11 @@
     "category": "text",
     "description": "Give quoted text visual emphasis.",
     "icon": "quote-left",
-    "keywords": ["blockquote", "citation", "pullquote"],
+    "keywords": [
+        "blockquote",
+        "citation",
+        "pullquote"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "content": {
@@ -26,7 +30,8 @@
         "color": {
             "background": true,
             "text": true,
-            "link": true
+            "link": true,
+            "gradients": true
         },
         "spacing": {
             "margin": true,
@@ -44,7 +49,14 @@
         }
     },
     "styles": [
-        { "name": "default", "label": "Default", "isDefault": true },
-        { "name": "plain", "label": "Plain" }
+        {
+            "name": "default",
+            "label": "Default",
+            "isDefault": true
+        },
+        {
+            "name": "plain",
+            "label": "Plain"
+        }
     ]
 }

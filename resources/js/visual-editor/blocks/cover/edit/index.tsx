@@ -17,10 +17,11 @@ import { useEffect, useMemo, useRef } from '@wordpress/element';
 import { Placeholder, Spinner } from '@wordpress/components';
 import {
     withColors,
-    ColorPalette,
     useBlockProps,
     useSettings,
     useInnerBlocksProps,
+    // eslint-disable-next-line camelcase
+    __experimentalColorGradientControl as ColorGradientControl,
     // eslint-disable-next-line camelcase
     __experimentalUseGradient as useGradient,
     store as blockEditorStore,
@@ -249,9 +250,10 @@ function CoverEdit({
             options?: { type?: string }
         ) => void;
     };
-    const { gradientClass, gradientValue } = useGradient() as {
+    const { gradientClass, gradientValue, setGradient } = useGradient() as {
         gradientClass?: string;
         gradientValue?: string;
+        setGradient: (next: string | undefined) => void;
     };
 
     const onSelectMedia = async (
@@ -665,13 +667,22 @@ function CoverEdit({
                         toggleUseFeaturedImage={toggleUseFeaturedImage}
                     >
                         <div className="wp-block-cover__placeholder-background-options">
-                            <ColorPalette
-                                disableCustomColors
-                                value={overlayColor.color}
-                                onChange={onSetOverlayColor}
+                            { /* #490 — surface Color | Gradient tabs here so the
+                                 placeholder matches the full overlay picker
+                                 in `inspector-controls.tsx`. Same control,
+                                 same UX expectation across the editor. */ }
+                            <ColorGradientControl
+                                label={__('Overlay')}
+                                showTitle={false}
+                                colorValue={overlayColor.color}
+                                gradientValue={gradientValue}
+                                onColorChange={onSetOverlayColor}
+                                onGradientChange={setGradient}
                                 clearable={false}
-                                asButtons
-                                aria-label={__('Overlay color')}
+                                enableAlpha={false}
+                                disableCustomColors={true}
+                                disableCustomGradients={false}
+                                __experimentalIsRenderedInSidebar
                             />
                         </div>
                     </CoverPlaceholder>

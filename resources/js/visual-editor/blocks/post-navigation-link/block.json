@@ -42,7 +42,8 @@
         "reusable": false,
         "html": false,
         "color": {
-            "link": true
+            "link": true,
+            "gradients": true
         },
         "typography": {
             "fontSize": true,

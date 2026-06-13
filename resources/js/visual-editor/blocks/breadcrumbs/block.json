@@ -5,12 +5,21 @@
     "title": "Breadcrumbs",
     "category": "theme",
     "description": "Display a breadcrumbs trail so visitors know where they are on your site.",
-    "keywords": ["breadcrumbs", "navigation", "trail"],
+    "keywords": [
+        "breadcrumbs",
+        "navigation",
+        "trail"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "separatorIcon": {
             "type": "string",
-            "enum": ["arrow-right", "chevron-right", "chevron-double-right", "long-arrow-right"],
+            "enum": [
+                "arrow-right",
+                "chevron-right",
+                "chevron-double-right",
+                "long-arrow-right"
+            ],
             "default": "chevron-right"
         },
         "breadcrumbsSchema": {
@@ -19,12 +28,18 @@
         }
     },
     "supports": {
-        "align": ["wide", "full"],
+        "align": [
+            "wide",
+            "full"
+        ],
         "ariaLabel": true,
         "className": true,
         "html": false,
         "spacing": {
-            "margin": ["top", "bottom"],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "blockGap": true,
             "__experimentalDefaultControls": {
@@ -51,7 +66,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "typography": {
             "fontSize": true,

@@ -5,16 +5,27 @@
     "title": "Accordions",
     "category": "design",
     "description": "Group one or more accordion panels into a collapsible section.",
-    "keywords": ["accordion", "accordions", "collapsible", "faq"],
+    "keywords": [
+        "accordion",
+        "accordions",
+        "collapsible",
+        "faq"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {},
     "supports": {
-        "align": ["wide", "full"],
+        "align": [
+            "wide",
+            "full"
+        ],
         "ariaLabel": true,
         "className": true,
         "html": false,
         "spacing": {
-            "margin": ["top", "bottom"],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "blockGap": true,
             "__experimentalDefaultControls": {
@@ -33,7 +44,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "typography": {
             "fontSize": true,

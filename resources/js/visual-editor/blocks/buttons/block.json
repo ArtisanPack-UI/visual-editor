@@ -4,13 +4,20 @@
     "name": "artisanpack/buttons",
     "title": "Buttons",
     "category": "design",
-    "allowedBlocks": [ "artisanpack/button" ],
+    "allowedBlocks": [
+        "artisanpack/button"
+    ],
     "description": "Prompt visitors to take action with a group of button-style links.",
-    "keywords": [ "link" ],
+    "keywords": [
+        "link"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "supports": {
         "anchor": true,
-        "align": [ "wide", "full" ],
+        "align": [
+            "wide",
+            "full"
+        ],
         "html": false,
         "__experimentalExposeControlsToChildren": true,
         "color": {
@@ -21,9 +28,15 @@
             }
         },
         "spacing": {
-            "blockGap": [ "horizontal", "vertical" ],
+            "blockGap": [
+                "horizontal",
+                "vertical"
+            ],
             "padding": true,
-            "margin": [ "top", "bottom" ],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "__experimentalDefaultControls": {
                 "blockGap": true
             }
@@ -51,7 +64,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "layout": {
             "allowSwitching": false,

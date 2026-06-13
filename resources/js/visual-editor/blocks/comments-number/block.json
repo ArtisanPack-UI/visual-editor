@@ -5,9 +5,16 @@
     "title": "Comments Number",
     "category": "theme",
     "description": "Display the number of comments on a post with custom singular and plural labels.",
-    "keywords": ["comments", "count", "comments number"],
+    "keywords": [
+        "comments",
+        "count",
+        "comments number"
+    ],
     "textdomain": "artisanpack-visual-editor",
-    "usesContext": ["postId", "postType"],
+    "usesContext": [
+        "postId",
+        "postType"
+    ],
     "attributes": {
         "singularCommentText": {
             "type": "string",
@@ -19,12 +26,18 @@
         }
     },
     "supports": {
-        "align": ["wide", "full"],
+        "align": [
+            "wide",
+            "full"
+        ],
         "ariaLabel": true,
         "className": true,
         "html": false,
         "spacing": {
-            "margin": ["top", "bottom"],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "blockGap": true,
             "__experimentalDefaultControls": {
@@ -51,7 +64,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "typography": {
             "fontSize": true,

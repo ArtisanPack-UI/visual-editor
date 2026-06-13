@@ -4,14 +4,21 @@
     "name": "artisanpack/button",
     "title": "Button",
     "category": "design",
-    "parent": [ "artisanpack/buttons" ],
+    "parent": [
+        "artisanpack/buttons"
+    ],
     "description": "Prompt visitors to take action with a button-style link.",
-    "keywords": [ "link" ],
+    "keywords": [
+        "link"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "tagName": {
             "type": "string",
-            "enum": [ "a", "button" ],
+            "enum": [
+                "a",
+                "button"
+            ],
             "default": "a"
         },
         "type": {
@@ -80,7 +87,9 @@
         },
         "dimensions": {
             "width": true,
-            "__experimentalSkipSerialization": [ "width" ],
+            "__experimentalSkipSerialization": [
+                "width"
+            ],
             "__experimentalDefaultControls": {
                 "width": true
             }
@@ -117,7 +126,10 @@
         },
         "spacing": {
             "__experimentalSkipSerialization": true,
-            "padding": [ "horizontal", "vertical" ],
+            "padding": [
+                "horizontal",
+                "vertical"
+            ],
             "__experimentalDefaultControls": {
                 "padding": true
             }
@@ -133,7 +145,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "interactivity": {
             "clientNavigation": true
@@ -158,8 +171,15 @@
         }
     },
     "styles": [
-        { "name": "fill", "label": "Fill", "isDefault": true },
-        { "name": "outline", "label": "Outline" }
+        {
+            "name": "fill",
+            "label": "Fill",
+            "isDefault": true
+        },
+        {
+            "name": "outline",
+            "label": "Outline"
+        }
     ],
     "editorStyle": "wp-block-button-editor",
     "style": "wp-block-button",

@@ -5,28 +5,46 @@
     "title": "Tabs",
     "category": "design",
     "description": "Group content into a tabbed interface.",
-    "keywords": ["tabs", "tabbed", "navigation"],
+    "keywords": [
+        "tabs",
+        "tabbed",
+        "navigation"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "tabsAlign": {
             "type": "string",
-            "enum": ["horizontal", "vertical"],
+            "enum": [
+                "horizontal",
+                "vertical"
+            ],
             "default": "horizontal"
         },
         "tabsSpacing": {
             "type": "string",
-            "enum": ["start", "end", "center", "equal"],
+            "enum": [
+                "start",
+                "end",
+                "center",
+                "equal"
+            ],
             "default": "start"
         }
     },
     "supports": {
-        "align": ["wide", "full"],
+        "align": [
+            "wide",
+            "full"
+        ],
         "anchor": true,
         "ariaLabel": true,
         "className": true,
         "html": false,
         "spacing": {
-            "margin": ["top", "bottom"],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "blockGap": true,
             "__experimentalDefaultControls": {
@@ -55,7 +73,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "typography": {
             "fontSize": true,

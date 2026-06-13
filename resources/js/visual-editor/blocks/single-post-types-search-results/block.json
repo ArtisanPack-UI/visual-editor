@@ -5,8 +5,14 @@
     "title": "Single Post Type Search Results",
     "category": "search",
     "description": "Render its inner blocks only when the host page's `?post_type=` query parameter matches the configured post type (or `all` when no parameter is set).",
-    "keywords": ["search", "results", "post type"],
-    "parent": ["artisanpack/post-types-search-results"],
+    "keywords": [
+        "search",
+        "results",
+        "post type"
+    ],
+    "parent": [
+        "artisanpack/post-types-search-results"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "postType": {
@@ -19,7 +25,10 @@
         "className": true,
         "html": false,
         "spacing": {
-            "margin": ["top", "bottom"],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "blockGap": true,
             "__experimentalDefaultControls": {
@@ -46,7 +55,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "typography": {
             "fontSize": true,

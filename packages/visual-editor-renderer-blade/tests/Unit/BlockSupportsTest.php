@@ -445,14 +445,16 @@ describe( 'BlockSupports::compile (composition)', function (): void {
 		$result = BlockSupports::compile( [] );
 
 		expect( $result )->toBe( [
-			'classes'         => [],
-			'style'           => '',
-			'id'              => null,
-			'responsiveCss'   => '',
-			'responsiveClass' => '',
-			'responsiveRules' => '',
-			'statesClass'     => '',
-			'statesRules'     => '',
+			'classes'             => [],
+			'style'               => '',
+			'id'                  => null,
+			'responsiveCss'       => '',
+			'responsiveClass'     => '',
+			'responsiveRules'     => '',
+			'statesClass'         => '',
+			'statesRules'         => '',
+			'gradientBorderClass' => '',
+			'gradientBorderRules' => '',
 		] );
 	} );
 

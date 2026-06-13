@@ -5,7 +5,11 @@
     "category": "text",
     "description": "Preserve whitespace and line breaks in a monospaced block.",
     "icon": "terminal",
-    "keywords": ["pre", "ascii", "whitespace"],
+    "keywords": [
+        "pre",
+        "ascii",
+        "whitespace"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "content": {
@@ -21,7 +25,8 @@
         "className": true,
         "color": {
             "background": true,
-            "text": true
+            "text": true,
+            "gradients": true
         },
         "spacing": {
             "margin": true,

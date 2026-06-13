@@ -51,7 +51,8 @@
             "style": true,
             "__experimentalDefaultControls": {
                 "radius": true
-            }
+            },
+            "gradient": true
         },
         "color": {
             "text": false,

@@ -31,8 +31,15 @@
         }
     },
     "styles": [
-        { "name": "default", "label": "Default", "isDefault": true },
-        { "name": "outline", "label": "Outline" }
+        {
+            "name": "default",
+            "label": "Default",
+            "isDefault": true
+        },
+        {
+            "name": "outline",
+            "label": "Outline"
+        }
     ],
     "supports": {
         "anchor": true,
@@ -63,7 +70,8 @@
                 "color": true,
                 "width": true,
                 "style": true
-            }
+            },
+            "gradient": true
         }
     }
 }

@@ -83,7 +83,8 @@
                 "color": true,
                 "width": true,
                 "style": true
-            }
+            },
+            "gradient": true
         },
         "filter": {
             "duotone": true

@@ -28,6 +28,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
@@ -124,6 +125,14 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// responsive accumulator above.
 		$this->app->scoped( StateCssAccumulator::class, function () {
 			return new StateCssAccumulator();
+		} );
+
+		// #490 — sibling accumulator for the gradient border feature's
+		// `<style data-ve-gradient-borders>` block. Same scoped lifetime
+		// rationale as the two above; the rules cover the wrapper +
+		// `::before` mask pseudo a gradient border installs.
+		$this->app->scoped( GradientBorderCssAccumulator::class, function () {
+			return new GradientBorderCssAccumulator();
 		} );
 	}
 

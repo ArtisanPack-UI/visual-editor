@@ -5,7 +5,11 @@
     "title": "Grid",
     "category": "design",
     "description": "Add a responsive grid with a custom number of columns per breakpoint.",
-    "keywords": ["grid", "columns", "layout"],
+    "keywords": [
+        "grid",
+        "columns",
+        "layout"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "numColumns": {
@@ -18,16 +22,25 @@
     },
     "supports": {
         "anchor": true,
-        "align": ["wide", "full"],
+        "align": [
+            "wide",
+            "full"
+        ],
         "ariaLabel": true,
         "className": true,
         "html": false,
         "spacing": {
             "blockGap": {
                 "__experimentalDefault": "1.5rem",
-                "sides": ["horizontal", "vertical"]
+                "sides": [
+                    "horizontal",
+                    "vertical"
+                ]
             },
-            "margin": ["top", "bottom"],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "__experimentalDefaultControls": {
                 "padding": true,
@@ -53,7 +66,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "artisanpackResponsive": {
             "attributes": [

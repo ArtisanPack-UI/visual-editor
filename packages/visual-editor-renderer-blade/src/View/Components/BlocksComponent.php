@@ -34,6 +34,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use Illuminate\Contracts\View\View;
@@ -67,6 +68,7 @@ class BlocksComponent extends Component
 		protected GlobalStylesEmissionTracker $emissionTracker,
 		protected ResponsiveCssAccumulator $responsiveAccumulator,
 		protected StateCssAccumulator $stateAccumulator,
+		protected GradientBorderCssAccumulator $gradientBorderAccumulator,
 		mixed $tree = null,
 		?string $defaultTheme = null,
 		mixed $post = null,
@@ -157,15 +159,17 @@ class BlocksComponent extends Component
 		// `BlockSupports::pushResponsive()` side-effect has happened
 		// by the time we drain the accumulator. The drained block
 		// is then prepended to the output by the view template.
-		$html          = $this->renderer->render( $this->tree );
-		$responsiveCss = $this->responsiveAccumulator->flush();
-		$statesCss     = $this->stateAccumulator->flush();
+		$html               = $this->renderer->render( $this->tree );
+		$responsiveCss      = $this->responsiveAccumulator->flush();
+		$statesCss          = $this->stateAccumulator->flush();
+		$gradientBordersCss = $this->gradientBorderAccumulator->flush();
 
 		return view( 'visual-editor-renderer-blade::components.blocks', [
-			'html'            => $html,
-			'globalStylesCss' => $this->resolveGlobalStylesCss(),
-			'responsiveCss'   => $responsiveCss,
-			'statesCss'       => $statesCss,
+			'html'               => $html,
+			'globalStylesCss'    => $this->resolveGlobalStylesCss(),
+			'responsiveCss'      => $responsiveCss,
+			'statesCss'          => $statesCss,
+			'gradientBordersCss' => $gradientBordersCss,
 		] );
 	}
 

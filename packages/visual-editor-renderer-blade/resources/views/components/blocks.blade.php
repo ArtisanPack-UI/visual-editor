@@ -13,4 +13,9 @@
 {!! $statesCss !!}
 @endif
 @endisset
+@isset( $gradientBordersCss )
+@if( '' !== $gradientBordersCss )
+{!! $gradientBordersCss !!}
+@endif
+@endisset
 {!! $html !!}

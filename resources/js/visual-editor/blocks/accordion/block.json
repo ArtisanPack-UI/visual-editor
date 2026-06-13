@@ -5,8 +5,14 @@
     "title": "Accordion Panel",
     "category": "design",
     "description": "Add an accordion panel containing a title and a body.",
-    "keywords": ["accordion", "collapsible", "panel"],
-    "parent": ["artisanpack/accordions"],
+    "keywords": [
+        "accordion",
+        "collapsible",
+        "panel"
+    ],
+    "parent": [
+        "artisanpack/accordions"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "panelId": {
@@ -15,17 +21,26 @@
         },
         "panelIcon": {
             "type": "string",
-            "enum": ["plus-minus", "arrows"],
+            "enum": [
+                "plus-minus",
+                "arrows"
+            ],
             "default": "plus-minus"
         }
     },
     "supports": {
-        "align": ["wide", "full"],
+        "align": [
+            "wide",
+            "full"
+        ],
         "ariaLabel": true,
         "className": true,
         "html": false,
         "spacing": {
-            "margin": ["top", "bottom"],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "blockGap": true,
             "__experimentalDefaultControls": {
@@ -52,7 +67,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "typography": {
             "fontSize": true,
