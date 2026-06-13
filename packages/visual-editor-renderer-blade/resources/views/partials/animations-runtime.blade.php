@@ -83,15 +83,25 @@ the editor's exported `bootstrapAnimationsRuntime`. --}}
 
 		function observeEntry( el ) {
 			if ( entries.has( el ) ) return;
+			// Reduced-motion must be checked BEFORE the hasIO gate —
+			// otherwise no-IntersectionObserver browsers play the
+			// entrance even when the user prefers reduced motion. The
+			// per-block `data-ap-anim-reduced="allow"` override still
+			// lets a designer keep motion on essential animations.
+			if ( reducedMotion && 'allow' !== el.getAttribute( 'data-ap-anim-reduced' ) ) {
+				play( el );
+				// Record a played entry so a later MutationObserver
+				// callback for the same node (e.g. it was re-parented)
+				// short-circuits at `entries.has( el )` above.
+				entries.set( el, { threshold: 0, once: true, played: true } );
+				return;
+			}
 			// No IntersectionObserver → reveal immediately. The noscript
 			// fallback handles the no-JS case; this branch handles
 			// JS-but-stone-age-browser.
 			if ( ! hasIO ) {
 				play( el );
-				return;
-			}
-			if ( reducedMotion && 'allow' !== el.getAttribute( 'data-ap-anim-reduced' ) ) {
-				play( el );
+				entries.set( el, { threshold: 0, once: true, played: true } );
 				return;
 			}
 			var t = thresholdFor( el );

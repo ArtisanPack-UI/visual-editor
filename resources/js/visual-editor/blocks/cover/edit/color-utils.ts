@@ -62,10 +62,26 @@ export function retrieveFastAverageColor(): FastAverageColor {
  */
 const GET_MEDIA_COLOR_TIMEOUT_MS = 5000;
 
-function timeout( ms: number ): Promise<typeof TIMEOUT_SENTINEL> {
-    return new Promise( ( resolve ) => {
-        setTimeout( () => resolve( TIMEOUT_SENTINEL ), ms );
+/**
+ * Build a cancellable timeout promise. The `cancel` callback clears
+ * the pending `setTimeout` so a winning `colorPromise` doesn't leave
+ * a timer scheduled for the full window — under frequent calls (e.g.
+ * dragging a color across the picker) the unused timers would
+ * otherwise pile up until they fire.
+ */
+function timeout( ms: number ): { promise: Promise<typeof TIMEOUT_SENTINEL>; cancel: () => void } {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    const promise = new Promise<typeof TIMEOUT_SENTINEL>( ( resolve ) => {
+        timeoutId = setTimeout( () => resolve( TIMEOUT_SENTINEL ), ms );
     } );
+    return {
+        promise,
+        cancel: () => {
+            if ( undefined !== timeoutId ) {
+                clearTimeout( timeoutId );
+            }
+        },
+    };
 }
 
 const TIMEOUT_SENTINEL = Symbol( 'getMediaColor.timeout' );
@@ -89,10 +105,16 @@ export const getMediaColor = memoize(async (url: string | undefined) => {
             crossOrigin: imgCrossOrigin as string | undefined,
         });
 
-        const winner = await Promise.race( [
-            colorPromise,
-            timeout( GET_MEDIA_COLOR_TIMEOUT_MS ),
-        ] );
+        const timer = timeout( GET_MEDIA_COLOR_TIMEOUT_MS );
+        let winner;
+        try {
+            winner = await Promise.race( [ colorPromise, timer.promise ] );
+        } finally {
+            // Clear the timer whether the colorPromise won, threw, or
+            // the timer itself fired — no point keeping a fired timer
+            // around but no harm calling clearTimeout on it either.
+            timer.cancel();
+        }
 
         if ( winner === TIMEOUT_SENTINEL ) {
             if ( 'production' !== process.env.NODE_ENV ) {

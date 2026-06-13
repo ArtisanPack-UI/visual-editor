@@ -172,4 +172,40 @@ describe( 'block-animations runtime', () => {
 		expect( observers.length ).toBe( 1 )
 		expect( observers[ 0 ].observed.size ).toBe( 2 )
 	} )
+
+	it( 'isolates teardown between concurrent bootstrap instances', () => {
+		// Two roots → two bootstrap() calls. Disposing the first must
+		// not disconnect the second instance's observers, otherwise
+		// a host that mounts the editor into multiple iframes / shadow
+		// roots would silently break later mounts.
+		const blockA = placeBlock(
+			'<div class="ap-anim ap-anim-pre" data-ap-anim-entrance="fade-in" data-ap-anim-threshold="0.1"></div>'
+		)
+		const disposeA = bootstrap( { root: document, prefersReducedMotion: () => false } )
+		const observerA = observers[ observers.length - 1 ]
+
+		const blockB = placeBlock(
+			'<div class="ap-anim ap-anim-pre" data-ap-anim-entrance="fade-in-up" data-ap-anim-threshold="0.9"></div>'
+		)
+		const disposeB = bootstrap( { root: document, prefersReducedMotion: () => false } )
+		const observerB = observers[ observers.length - 1 ]
+
+		// Sanity: the two bootstraps produced two distinct observers
+		// keyed off their distinct thresholds.
+		expect( observerA ).not.toBe( observerB )
+
+		// Tear down only the first instance.
+		disposeA()
+
+		// The second instance's observer must still respond to
+		// intersection events.
+		observerB.trigger( blockB, true )
+		expect( blockB.classList.contains( 'ap-anim-play' ) ).toBe( true )
+
+		// And the first block must not have animated as a side effect.
+		expect( blockA.classList.contains( 'ap-anim-pre' ) ).toBe( true )
+		expect( blockA.classList.contains( 'ap-anim-play' ) ).toBe( false )
+
+		disposeB()
+	} )
 } )

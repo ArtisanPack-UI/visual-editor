@@ -73,6 +73,41 @@ it( 'wires the block-animations bag into the image blade partial via wrapperAttr
 	expect( $rendered )->toContain( 'IntersectionObserver' );
 } );
 
+it( 'inlines the runtime with the reduced-motion check before the no-IO branch', function () {
+	// Regression for the CodeRabbit critical finding: the inline
+	// runtime must respect `prefers-reduced-motion: reduce` in
+	// no-IntersectionObserver browsers too. Verifying the source
+	// ordering is the closest the Pest layer can get without a JS
+	// engine — vitest can't reach the Blade-embedded script.
+	$tree = [
+		[
+			'clientId'    => 'image-1',
+			'name'        => 'artisanpack/image',
+			'attributes'  => [
+				'url'                   => 'https://example.test/photo.jpg',
+				'artisanpackAnimations' => [ 'entrance' => [ 'name' => 'fade-in' ] ],
+			],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = \Illuminate\Support\Facades\Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	// Find the `observeEntry` body specifically — `! hasIO` also
+	// appears earlier as part of the comment / variable declaration,
+	// which would confuse a naïve `strpos`.
+	$observe = strpos( $rendered, 'function observeEntry' );
+	expect( $observe )->not->toBeFalse();
+
+	$body      = substr( $rendered, $observe );
+	$reducedAt = strpos( $body, 'reducedMotion &&' );
+	$hasIoAt   = strpos( $body, 'if ( ! hasIO )' );
+
+	expect( $reducedAt )->not->toBeFalse();
+	expect( $hasIoAt )->not->toBeFalse();
+	expect( $reducedAt < $hasIoAt )->toBeTrue();
+} );
+
 it( 'omits the animation infrastructure entirely when no block opts in', function () {
 	$tree = [
 		[
