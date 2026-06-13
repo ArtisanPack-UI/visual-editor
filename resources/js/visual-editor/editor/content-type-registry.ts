@@ -27,6 +27,13 @@ const FALLBACK_TYPES: ReadonlyArray<ContentTypeDescriptor> = Object.freeze([
     Object.freeze({ slug: 'page', plural: 'pages', label: 'Page' }),
 ]);
 
+// Plural is later interpolated into the REST collection URL by
+// `single-content/edit.tsx` (`${API_BASE}/${plural}`). Mirror the
+// `SAFE_SLUG_PATTERN` over there so a malformed registry entry can't
+// produce a broken URL or — worst case — pin a path-traversal segment
+// into the fetch.
+const SAFE_PLURAL_PATTERN = /^[a-z0-9_-]+$/;
+
 let cached: ReadonlyArray<ContentTypeDescriptor> | null = null;
 
 function parseFromElement(
@@ -61,10 +68,17 @@ function parseFromElement(
             const slug = ((entry as { slug: string }).slug).trim();
             const label = ((entry as { label: string }).label).trim();
             const rawPlural = (entry as { plural?: unknown }).plural;
-            const plural =
-                typeof rawPlural === 'string' && rawPlural.trim() !== ''
-                    ? rawPlural.trim()
-                    : `${slug}s`;
+            // Constrain plural to the same character set as a safe URL
+            // path segment so it can be interpolated into the REST
+            // collection URL (`${API_BASE}/${plural}`) without escaping.
+            // Anything else falls back to the slug-based pluralization.
+            const normalizedPlural =
+                typeof rawPlural === 'string'
+                    ? rawPlural.trim().toLowerCase()
+                    : '';
+            const plural = SAFE_PLURAL_PATTERN.test(normalizedPlural)
+                ? normalizedPlural
+                : `${slug}s`;
 
             if (slug !== '' && label !== '') {
                 result.push(Object.freeze({ slug, plural, label }));

@@ -26,7 +26,15 @@
 	// on objects (closures, resources) that a host might smuggle into
 	// the attributes envelope. `json_encode` drops what it can't encode
 	// and still yields a stable suffix for the id.
-	$inputId = 'ap-search-field-' . substr( md5( (string) json_encode( $attributes ) ), 0, 8 );
+	//
+	// `$renderIndex` is the per-tree visit counter handed in by
+	// {@see BlockRenderer::renderStatic} — it disambiguates two
+	// search-field instances that carry byte-identical attributes
+	// (the actual a11y concern, when label `for=` references would
+	// otherwise collide), while the hash keeps the id stable for the
+	// common single-instance case.
+	$attrHash = substr( md5( (string) json_encode( $attributes ) ), 0, 8 );
+	$inputId  = sprintf( 'ap-search-field-%d-%s', $renderIndex ?? 0, $attrHash );
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-search-field' ] ) !!}>
 	<label class="ap-search-field__label" for="{{ $inputId }}">{{ $label }}</label>

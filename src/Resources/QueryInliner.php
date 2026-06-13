@@ -333,10 +333,10 @@ class QueryInliner
 			return $this->markFailed( $block, self::ERROR_NO_RUNTIME );
 		}
 
-		$host        = $this->hostPost;
-		$hostId      = isset( $host->id ) ? (int) $host->id : 0;
-		$hostType    = $this->hostPostType( $host );
-		$termIds     = $this->hostTermIds( $host );
+		$host                     = $this->hostPost;
+		$hostId                   = isset( $host->id ) ? (int) $host->id : 0;
+		$hostType                 = $this->hostPostType( $host );
+		[ $taxonomy, $termIds ]   = $this->hostRelatedTerms( $host );
 
 		$queryAttrs = [
 			'postType' => $hostType,
@@ -345,7 +345,7 @@ class QueryInliner
 			'order'    => $order,
 			'orderBy'  => $orderBy,
 			'exclude'  => 0 === $hostId ? [] : [ $hostId ],
-			'taxonomy' => 'category',
+			'taxonomy' => $taxonomy,
 			'terms'    => $termIds,
 		];
 
@@ -454,6 +454,57 @@ class QueryInliner
 				if ( is_object( $term ) && isset( $term->id ) ) {
 					$ids[] = (int) $term->id;
 				}
+			}
+		}
+
+		return array_values( array_unique( $ids ) );
+	}
+
+	/**
+	 * Resolve the host post's relatedness signal as a
+	 * `[taxonomy, termIds]` pair so the related-posts query targets
+	 * the right taxonomy. Prefers categories; falls back to tags;
+	 * finally falls back to the generic `terms` collection scoped to
+	 * `category` so tag-only posts still get a related-posts query
+	 * that exercises the right index.
+	 *
+	 * @return array{0: string, 1: array<int, int>}
+	 */
+	protected function hostRelatedTerms( object $post ): array
+	{
+		$categoryIds = $this->termIdsFromRelation( $post, 'categories' );
+
+		if ( [] !== $categoryIds ) {
+			return [ 'category', $categoryIds ];
+		}
+
+		$tagIds = $this->termIdsFromRelation( $post, 'tags' );
+
+		if ( [] !== $tagIds ) {
+			return [ 'post_tag', $tagIds ];
+		}
+
+		return [ 'category', $this->hostTermIds( $post ) ];
+	}
+
+	/**
+	 * Pluck integer term ids from one named relation on the post.
+	 *
+	 * @return array<int, int>
+	 */
+	protected function termIdsFromRelation( object $post, string $relation ): array
+	{
+		$collection = $post->{$relation} ?? null;
+
+		if ( ! is_iterable( $collection ) ) {
+			return [];
+		}
+
+		$ids = [];
+
+		foreach ( $collection as $term ) {
+			if ( is_object( $term ) && isset( $term->id ) ) {
+				$ids[] = (int) $term->id;
 			}
 		}
 

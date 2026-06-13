@@ -634,6 +634,30 @@ class PostResolver
 				->where( 'published_at', $isPrevious ? '<' : '>', $publishedAt )
 				->orderBy( 'published_at', $isPrevious ? 'desc' : 'asc' );
 
+			// Constrain the fallback to the same post type — the public
+			// frontend renders adjacent-post containers per single-type
+			// archive, so returning a different type as the "next post"
+			// would surface the wrong template. `post_type` is the
+			// convention; hosts that don't model it skip this scope.
+			$postType = isset( $post->post_type ) && is_string( $post->post_type )
+				? trim( $post->post_type )
+				: '';
+
+			if ( '' !== $postType ) {
+				$query->where( 'post_type', $postType );
+			}
+
+			// Exclude the current post and add a deterministic tiebreaker
+			// so equal `published_at` timestamps don't return $post itself
+			// (or order non-deterministically across drivers).
+			$postId = $post->id ?? null;
+
+			if ( is_int( $postId ) || ( is_string( $postId ) && '' !== $postId ) ) {
+				$query
+					->where( 'id', '!=', $postId )
+					->orderBy( 'id', $isPrevious ? 'desc' : 'asc' );
+			}
+
 			$result = $query->first();
 		} catch ( \Throwable ) {
 			return null;
@@ -971,9 +995,26 @@ class PostResolver
 
 		// Normalize bare email addresses to `mailto:` so the renderer
 		// can route the chip as a real link without per-renderer URL
-		// fixups.
+		// fixups. Validate the address first — author profile fields
+		// may be user-editable, and an unvalidated value would let a
+		// malformed `mailto:` body through.
 		if ( 'email' === $slug && ! str_starts_with( $value, 'mailto:' ) ) {
+			if ( false === filter_var( $value, FILTER_VALIDATE_EMAIL ) ) {
+				return '';
+			}
+
 			return 'mailto:' . $value;
+		}
+
+		// Scheme allow-list: the chip URL is rendered as the `href` of
+		// an `<a>` on the public frontend, so any `javascript:` /
+		// `data:` / `vbscript:` value here would become stored XSS the
+		// moment an author profile field is editable. Allow only
+		// http(s), mailto, and tel; anything else is dropped.
+		$scheme = strtolower( (string) parse_url( $value, PHP_URL_SCHEME ) );
+
+		if ( ! in_array( $scheme, [ 'http', 'https', 'mailto', 'tel' ], true ) ) {
+			return '';
 		}
 
 		return $value;

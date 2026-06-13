@@ -81,14 +81,20 @@
 		$selectedTerm = is_scalar( $raw ) ? (string) $raw : '';
 	}
 
-	// Suffix the id with a deterministic hash of the block's attributes
-	// so the same template instance always lands on the same id (stable
-	// for SSR + hydration) while two instances pointing at the same
-	// taxonomy on the same page get distinct ids — the latter being
-	// the actual a11y concern when label `for=` references would
-	// otherwise collide.
+	// `$renderIndex` is the per-tree visit counter handed in by
+	// {@see BlockRenderer::renderStatic} — it disambiguates two
+	// `search-filters-taxonomy` instances that point at the same
+	// taxonomy with identical attributes (the actual a11y concern,
+	// when label `for=` references would otherwise collide). The
+	// attribute hash is kept as a secondary stabilizer so the id
+	// stays readable in the single-instance case.
 	$selectIdSuffix = substr( md5( (string) json_encode( $attributes ) ), 0, 8 );
-	$selectId       = 'ap-search-filters-taxonomy-' . $taxonomy . '-' . $selectIdSuffix;
+	$selectId       = sprintf(
+		'ap-search-filters-taxonomy-%s-%d-%s',
+		$taxonomy,
+		$renderIndex ?? 0,
+		$selectIdSuffix
+	);
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-search-filters-taxonomy' ] ) !!}>
 	<label class="ap-search-filters-taxonomy__label" for="{{ $selectId }}">{{ $label }}</label>
