@@ -18,6 +18,11 @@
 	the `--ap-social-*` custom properties stamped by the renderers so
 	icon / hover / background color choices apply on the front end. --}}
 <link rel="stylesheet" href="{{ $socialIconsStyleHref }}" data-ve-social-icons>
+{{-- Breadcrumbs layout + separator baseline (#565). Matches the rules
+	the editor loads from `blocks/breadcrumbs/breadcrumbs.css` so the
+	server-stamped `<ol>` lays out inline with the chosen separator on
+	the public frontend. --}}
+<link rel="stylesheet" href="{{ $breadcrumbsStyleHref }}" data-ve-breadcrumbs>
 @if( '' !== $themeTokensCss )
 <style data-ve-theme-tokens>{!! $themeTokensCss !!}</style>
 @endif

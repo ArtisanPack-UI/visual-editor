@@ -315,6 +315,29 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Breadcrumbs block (#565)
+	|--------------------------------------------------------------------------
+	|
+	| Configures the `artisanpack/breadcrumbs` block's server-side trail
+	| resolver. The resolver builds a default trail
+	| (`Home → …ancestors → current`) for every breadcrumbs block on
+	| render; hosts customize the trail through the
+	| `ap.visual-editor.breadcrumbs.trail` filter (e.g. to insert a
+	| "Category" hop between Home and a blog post).
+	|
+	| `home_url` overrides the root link target — leave null to fall back
+	| to `url('/')`. `home_label` overrides the human-readable label — leave
+	| null to fall back to the translated "Home" string.
+	|
+	*/
+
+	'breadcrumbs' => [
+		'home_url'   => null,
+		'home_label' => null,
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Global styles
 	|--------------------------------------------------------------------------
 	|

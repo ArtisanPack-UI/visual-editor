@@ -23,6 +23,7 @@ use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
@@ -56,6 +57,15 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// not pin the first request's resolver. #522.
 		$this->app->scoped( LoginoutResolver::class, function () {
 			return new LoginoutResolver();
+		} );
+
+		// Scoped — the breadcrumbs resolver reads the current request's
+		// URL when checking for the homepage short-circuit and walks the
+		// in-flight post's parent chain. Pinning the first request's
+		// resolver in a long-running worker (Octane / queue) would feed
+		// stale request context to every subsequent render. #565.
+		$this->app->scoped( BreadcrumbsResolver::class, function () {
+			return new BreadcrumbsResolver();
 		} );
 
 		// Scoped (not singleton) so the BlockRenderer captures the
