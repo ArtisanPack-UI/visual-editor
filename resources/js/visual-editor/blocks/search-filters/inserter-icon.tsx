@@ -1,9 +1,12 @@
 /**
  * Search Filters — inserter icon.
  *
- * Inline SVG of Font Awesome Free Solid's `filter` glyph
- * (CC BY 4.0). Path data copied verbatim so the editor canvas can
- * render the icon without loading the Font Awesome stylesheet.
+ * Inline SVG of Font Awesome Free Solid's `filter` glyph,
+ * copied verbatim from the bundled FA asset so the canvas does
+ * not need to load the Font Awesome stylesheet. Font Awesome
+ * Free is © Fonticons, Inc., licensed under CC BY 4.0
+ * (https://creativecommons.org/licenses/by/4.0/). See
+ * NOTICE.md at the package root for the full per-icon credit list.
  */
 
 import type { ReactElement } from 'react';
