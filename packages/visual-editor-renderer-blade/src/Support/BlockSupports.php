@@ -324,17 +324,23 @@ class BlockSupports
 	 */
 	protected static function injectClassIntoFirstTag( string $html, string $class ): string
 	{
-		// Existing `class="..."` on the first opening tag — append.
-		if ( 1 === preg_match( '/^(\s*<[a-zA-Z][^>]*?)\bclass="([^"]*)"([^>]*>)/s', $html, $matches ) ) {
-			$existing = trim( $matches[2] );
-			$tokens   = '' === $existing ? [] : preg_split( '/\s+/', $existing );
+		// Existing class attribute on the first opening tag — append.
+		// Case-insensitive (`/i`) so `CLASS` / `Class` variants are
+		// still detected, and the quote-style is captured as a back-
+		// reference so single AND double quotes are merged (instead of
+		// either being missed → the injector falls through to the
+		// add-new-attribute branch and writes a SECOND `class`
+		// attribute, which is invalid HTML).
+		if ( 1 === preg_match( '/^(\s*<[a-zA-Z][^>]*?)\bclass\s*=\s*(["\'])(.*?)\2([^>]*>)/is', $html, $matches ) ) {
+			$existing = trim( $matches[3] );
+			$tokens   = '' === $existing ? [] : ( preg_split( '/\s+/', $existing ) ?: [] );
 
-			if ( false !== $tokens && in_array( $class, $tokens, true ) ) {
+			if ( in_array( $class, $tokens, true ) ) {
 				return $html;
 			}
 
 			$nextClass = '' === $existing ? $class : $existing . ' ' . $class;
-			$prefix    = $matches[1] . 'class="' . $nextClass . '"' . $matches[3];
+			$prefix    = $matches[1] . 'class="' . $nextClass . '"' . $matches[4];
 
 			return $prefix . substr( $html, strlen( $matches[0] ) );
 		}

@@ -81,6 +81,17 @@ interface BorderSubtreeWithScope {
 
 const SCOPE_ID_KEY = '_gradientScopeId'
 
+// Whitelist of characters allowed in a persisted scope id. The id is
+// interpolated directly into the wrapper's class attribute AND into
+// emitted CSS rule selectors (`.ve-gb-<id>::before { ... }`), so a
+// crafted block tree carrying selector control characters in
+// `_gradientScopeId` could escape the scope and inject arbitrary CSS.
+// The mint function below produces base-36 (`[a-z0-9]{9}`) ids that
+// trivially pass; anything that fails is treated as hostile /
+// corrupted and re-minted. Mirrors the PHP-side guard in
+// `BlockSupports::resolveGradientBorderScopeClass`.
+const SCOPE_ID_PATTERN = /^[a-z0-9][a-z0-9_-]{0,63}$/i
+
 // Module-level registries — same instances used by the PHP server-side
 // emitter via `fromLayers()` defaults. Eventually these should be
 // hydrated from the editor's themed settings so custom states/
@@ -116,7 +127,12 @@ function readScopeId(
 	const border = attributes?.style?.border as BorderSubtreeWithScope | undefined | null
 	const raw    = border?.[ SCOPE_ID_KEY ]
 
-	return 'string' === typeof raw && '' !== raw ? raw : null
+	if ( 'string' !== typeof raw ) {
+		return null
+	}
+
+	const trimmed = raw.trim()
+	return SCOPE_ID_PATTERN.test( trimmed ) ? trimmed : null
 }
 
 function hasAuthoredAnyGradient(

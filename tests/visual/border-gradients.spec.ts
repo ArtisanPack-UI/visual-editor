@@ -15,7 +15,7 @@
  * matrix so the implementation here doesn't drift from the contract.
  *
  * When Playwright lands:
- *   - Rename to `border-gradients.spec.ts`, remove the skip guard.
+ *   - Remove the `PLAYWRIGHT_AVAILABLE` skip guard at the bottom.
  *   - Replace `serveBlockFixture` with the real harness call (likely
  *     `await mountBlock(page, 'fixtures/gradient-border.json', vars)`
  *     or similar).

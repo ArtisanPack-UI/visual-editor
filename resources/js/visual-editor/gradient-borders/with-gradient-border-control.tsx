@@ -295,9 +295,23 @@ export const withGradientBorderControl = createHigherOrderComponent(
 						     The `<style>` MUST live inside `<InspectorControls>`
 						     so it portals into the inspector sidebar's document. */ }
 						<style>{ `
-							button[aria-label*="Border color and style picker"],
-							button[aria-label*="Border color picker"],
-							button[aria-label*="Border style picker"] {
+							/* Hide Gutenberg's native BorderControlDropdown
+							   trigger via STRUCTURAL selectors — Emotion
+							   hashes the wrapper class names so we can't
+							   target those directly, but \`ColorIndicator\`
+							   ships a stable \`component-color-indicator\`
+							   class. Combined with \`:has()\` we can find
+							   the trigger button without depending on
+							   English aria-label text (which would miss
+							   the native trigger in translated editors). The
+							   scoping rule says "any color-indicator button
+							   that lives in the same ToolsPanel as MY
+							   marker item" — that's exactly the Border
+							   panel and only the Border panel. Our own
+							   trigger carries \`.ap-border-picker__toggle\`
+							   so it's excluded from the hide. */
+							.components-tools-panel:has(.ap-border-picker-item)
+								button:has(.component-color-indicator):not(.ap-border-picker__toggle) {
 								display: none !important;
 							}
 							/* Render our picker as the first item in the

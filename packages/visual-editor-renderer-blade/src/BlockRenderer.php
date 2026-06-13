@@ -268,9 +268,13 @@ class BlockRenderer
 			// gradient-border pipeline never sees them by default.
 			// Post-process the rendered HTML to push the rule into the
 			// per-request accumulator AND stamp the scope class onto
-			// the first opening tag. No-op when the block has no
-			// gradient configured.
-			$html = BlockSupports::applyGradientBorder( $html, $attributes );
+			// the first opening tag. Use `$validated` (not raw
+			// `$attributes`) so the scope class + emitted CSS stay
+			// aligned with the input the dynamic block actually
+			// rendered from — keeping editor preview and saved markup
+			// in lockstep across attribute normalization passes.
+			// No-op when the block has no gradient configured.
+			$html = BlockSupports::applyGradientBorder( $html, $validated );
 
 			return $html;
 		} catch ( Throwable $e ) {

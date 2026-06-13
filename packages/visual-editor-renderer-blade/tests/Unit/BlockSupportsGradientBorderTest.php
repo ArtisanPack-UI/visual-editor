@@ -154,6 +154,35 @@ describe( 'BlockSupports::applyGradientBorder', function (): void {
 		expect( $twice )->toBe( $once );
 	} );
 
+	it( 'merges into a single-quoted class attribute instead of duplicating it', function (): void {
+		$html       = "<div class='wp-block-icon'>inner</div>";
+		$attributes = [
+			'style' => [ 'border' => [ 'gradient' => 'primary-glow' ] ],
+		];
+
+		$out = BlockSupports::applyGradientBorder( $html, $attributes );
+
+		// Token order: existing first, then injected; quotes normalised
+		// to double on rewrite so downstream parsers don't trip on the
+		// mixed-quote shape.
+		expect( $out )->toMatch( '/<div class="wp-block-icon ve-gb-[a-z0-9]+">inner<\/div>/' );
+		// Guard against the regression where a second `class` attribute
+		// gets appended because the regex missed the single-quoted form.
+		expect( substr_count( $out, 'class=' ) )->toBe( 1 );
+	} );
+
+	it( 'handles case-variant `CLASS=` attribute names', function (): void {
+		$html       = '<div CLASS="wp-block-icon">inner</div>';
+		$attributes = [
+			'style' => [ 'border' => [ 'gradient' => 'primary-glow' ] ],
+		];
+
+		$out = BlockSupports::applyGradientBorder( $html, $attributes );
+
+		expect( substr_count( strtolower( $out ), 'class=' ) )->toBe( 1 );
+		expect( $out )->toMatch( '/wp-block-icon ve-gb-[a-z0-9]+/' );
+	} );
+
 	it( 'respects an editor-minted `_gradientScopeId` so editor and renderer agree', function (): void {
 		$html       = '<div class="wp-block-icon">inner</div>';
 		$attributes = [

@@ -104,6 +104,21 @@ function selectorFor( scope: string, selector: string ): string {
 }
 
 /**
+ * Append a pseudo-element suffix to every selector in a
+ * comma-separated list. Mirrors the PHP-side `appendPseudoToList`
+ * — see that docblock for the failure mode this prevents (a naive
+ * `${selector}::before` only suffixes the last selector).
+ */
+function appendPseudoToList( selector: string, pseudo: string ): string {
+	return selector
+		.split( ',' )
+		.map( ( s ) => s.trim() )
+		.filter( ( s ) => '' !== s )
+		.map( ( s ) => s + pseudo )
+		.join( ', ' )
+}
+
+/**
  * Emit the scoped CSS for a single block scope. Empty string when
  * the payload contains no actionable values.
  */
@@ -170,7 +185,7 @@ export function emitGradientBorderCss(
 			continue
 		}
 
-		const rule = `${ selector }::before{background:${ sanitizeGradient( stateMap[ stateKey ] ) }}`
+		const rule = `${ appendPseudoToList( selector, '::before' ) }{background:${ sanitizeGradient( stateMap[ stateKey ] ) }}`
 
 		if ( definition.hoverMediaWrap ) {
 			hoverParts.push( rule )

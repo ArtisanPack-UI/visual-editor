@@ -70,10 +70,18 @@ function gradientEnabled( supports: BlockSupports | undefined ): boolean {
 function ensureRouted(
 	supports: BlockSupports,
 	key: 'artisanpackStates' | 'artisanpackResponsive',
-): RoutingSupport {
+): RoutingSupport | false {
 	const raw = supports[ key ]
 
-	if ( ! raw || 'boolean' === typeof raw ) {
+	// Explicit opt-out — a block.json that declares the feature as
+	// `false` is asking for the state/responsive routing to be off
+	// entirely. Flipping that into the default routing list would
+	// reverse a deliberate decision; preserve it instead.
+	if ( false === raw ) {
+		return false
+	}
+
+	if ( raw === undefined || raw === null || true === raw ) {
 		return { attributes: [ ROUTING_PATH ] }
 	}
 

@@ -180,7 +180,7 @@ class GradientBorderEmitter
 				continue;
 			}
 
-			$rule = sprintf( '%s::before{background:%s}', $selector, $gradient );
+			$rule = sprintf( '%s{background:%s}', self::appendPseudoToList( $selector, '::before' ), $gradient );
 
 			if ( ! empty( $definition['hoverMediaWrap'] ) ) {
 				$hoverParts[] = $rule;
@@ -277,6 +277,37 @@ class GradientBorderEmitter
 			$mapped[] = str_contains( $piece, '&' )
 				? str_replace( '&', $scope, $piece )
 				: $scope . $piece;
+		}
+
+		return implode( ', ', $mapped );
+	}
+
+	/**
+	 * Append a pseudo-element suffix (e.g. `::before`) to EVERY
+	 * selector in a comma-separated list.
+	 *
+	 * `selectorFor()` resolves state definitions whose `selector` field
+	 * may itself be a comma-separated list (e.g. the disabled state
+	 * `&:disabled, &[aria-disabled="true"]`). A naive `$selector . '::before'`
+	 * appends the pseudo to the LAST selector only — the earlier
+	 * selectors then target the host element instead of the
+	 * pseudo-element, painting the gradient as a regular background
+	 * underneath the block content. Splitting + re-appending guarantees
+	 * each selector picks up the suffix.
+	 *
+	 * @since 1.1.0
+	 */
+	protected static function appendPseudoToList( string $selector, string $pseudo ): string
+	{
+		$pieces = array_map( 'trim', explode( ',', $selector ) );
+		$mapped = [];
+
+		foreach ( $pieces as $piece ) {
+			if ( '' === $piece ) {
+				continue;
+			}
+
+			$mapped[] = $piece . $pseudo;
 		}
 
 		return implode( ', ', $mapped );

@@ -96,11 +96,16 @@ Each block with a gradient border gets a stable, content-derived
 scope class (`ve-gb-<hash>`) and the rules below:
 
 ```css
-.ve-gb-abc123 { position: relative; }
+.ve-gb-abc123 {
+    position: relative;
+    border-color: transparent !important;  /* suppress any stale border-color */
+}
 .ve-gb-abc123::before {
     content: '';
     position: absolute;
-    inset: 0;
+    inset: calc(-1 * 2px);       /* extend OUT past the padding-box edge
+                                    by the border-width so the ring sits
+                                    on the actual border-box edge */
     padding: 2px;                /* the border width */
     border-radius: inherit;      /* matches the wrapper's radius */
     background: linear-gradient(135deg, #ff0080, #7928ca);
