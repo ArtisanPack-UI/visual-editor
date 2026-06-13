@@ -65,13 +65,23 @@ function parseFromElement(
                 continue;
             }
 
-            const slug = ((entry as { slug: string }).slug).trim();
+            const slug = ((entry as { slug: string }).slug).trim().toLowerCase();
             const label = ((entry as { label: string }).label).trim();
             const rawPlural = (entry as { plural?: unknown }).plural;
+
+            // Skip entries whose slug doesn't match the safe URL-path
+            // character set — `${slug}s` would otherwise leak through
+            // as a malformed REST collection segment when the plural
+            // fallback below kicks in.
+            if (!SAFE_PLURAL_PATTERN.test(slug)) {
+                continue;
+            }
+
             // Constrain plural to the same character set as a safe URL
             // path segment so it can be interpolated into the REST
             // collection URL (`${API_BASE}/${plural}`) without escaping.
-            // Anything else falls back to the slug-based pluralization.
+            // Anything else falls back to the slug-based pluralization,
+            // which is now safe because the slug was validated above.
             const normalizedPlural =
                 typeof rawPlural === 'string'
                     ? rawPlural.trim().toLowerCase()
@@ -80,7 +90,7 @@ function parseFromElement(
                 ? normalizedPlural
                 : `${slug}s`;
 
-            if (slug !== '' && label !== '') {
+            if (label !== '') {
                 result.push(Object.freeze({ slug, plural, label }));
             }
         }

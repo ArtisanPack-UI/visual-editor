@@ -200,9 +200,9 @@ return [
 		'artisanpack/comments-pagination-next',
 		'artisanpack/comments-pagination-numbers',
 		'artisanpack/comments-pagination-previous',
-		// First-party blocks ported from crosswinds-blocks (#495). CW0
-		// pilot through CW7; child blocks are also listed so the inserter
-		// allow-list does not filter them out of their parent's template.
+		// First-party blocks added under umbrella #495. Child blocks are
+		// listed alongside their parents so the inserter allow-list does
+		// not filter them out of the parent's template.
 		'artisanpack/breadcrumbs',
 		'artisanpack/accordions',
 		'artisanpack/accordion',
