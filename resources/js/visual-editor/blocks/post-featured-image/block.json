@@ -70,6 +70,7 @@
         "viewportWidth": 350
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": [
             "left",

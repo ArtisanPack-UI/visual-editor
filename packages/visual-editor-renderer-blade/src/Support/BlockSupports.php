@@ -755,6 +755,20 @@ class BlockSupports
 			static fn ( string $class ): bool => '' !== trim( $class ),
 		) ) );
 
+		// #489 — drop the animation wrapper classes, scope class, and
+		// data-* attributes onto any block carrying an
+		// `artisanpackAnimations` attribute bag. Centralising it here
+		// means every block partial that uses `wrapperAttrs` (image,
+		// table, navigation, etc.) picks up animations for free; cover
+		// builds its attrs by hand and handles this inline.
+		$animations = self::resolveAnimations( $attributes );
+
+		if ( null !== $animations ) {
+			foreach ( $animations['classes'] as $class ) {
+				$classes[] = $class;
+			}
+		}
+
 		$parts = [];
 
 		if ( [] !== $classes ) {
@@ -769,7 +783,73 @@ class BlockSupports
 			$parts[] = sprintf( 'id="%s"', e( $compiled['id'] ) );
 		}
 
+		if ( null !== $animations && '' !== $animations['dataString'] ) {
+			$parts[] = $animations['dataString'];
+		}
+
 		return [] === $parts ? '' : ' ' . implode( ' ', $parts );
+	}
+
+	/**
+	 * Resolves the animation markup pieces for a block scope and pushes
+	 * the per-block CSS into the request-scoped accumulator. Returns
+	 * `null` when the block has no animations configured.
+	 *
+	 * The scope class is derived from a stable hash of the block's
+	 * attribute bag so identical render passes (e.g. the same block
+	 * inside a query loop) collide on key, letting the accumulator
+	 * dedupe.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{classes: array<int, string>, dataString: string}|null
+	 */
+	protected static function resolveAnimations( array $attributes ): ?array
+	{
+		$bag = $attributes['artisanpackAnimations'] ?? null;
+		if ( ! is_array( $bag ) || [] === $bag ) {
+			return null;
+		}
+
+		if ( ! function_exists( 'app' ) ) {
+			return null;
+		}
+
+		try {
+			$resolver = app( \ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver::class );
+			$accumulator = app( \ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator::class );
+		} catch ( \Throwable $e ) {
+			return null;
+		}
+
+		$hashSource = json_encode( $attributes );
+		$scopeSuffix = false === $hashSource
+			? substr( spl_object_hash( (object) $attributes ), 0, 8 )
+			: substr( hash( 'sha1', $hashSource ), 0, 8 );
+		$scope = '.ap-block-' . $scopeSuffix;
+
+		$markup = $resolver->resolve( $scope, $bag );
+
+		if ( ! $markup['hasAnimations'] ) {
+			return null;
+		}
+
+		$accumulator->push(
+			$scope,
+			$markup['css'],
+			$markup['noscriptCss'],
+			$markup['hasEntrance'],
+		);
+
+		$classes = $markup['classes'];
+		$classes[] = ltrim( $scope, '.' );
+
+		return [
+			'classes'    => $classes,
+			'dataString' => $resolver->dataString( $markup['data'] ),
+		];
 	}
 
 	/**

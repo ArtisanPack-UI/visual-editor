@@ -20,6 +20,16 @@
 {!! $statesCss !!}
 @endif
 @endisset
+@isset( $animationsCss )
+@if( '' !== $animationsCss )
+{!! $animationsCss !!}
+@endif
+@endisset
+@isset( $animationsNoscript )
+@if( '' !== $animationsNoscript )
+{!! $animationsNoscript !!}
+@endif
+@endisset
 <div class="{{ implode( ' ', $wrapperClasses ) }}" data-ve-template="{{ $slug }}"@if( null !== $matchedSlug && $matchedSlug !== $slug ) data-ve-matched-template="{{ $matchedSlug }}"@endif>
 @if( null !== $resolutionError )
 @if( $inDev )
@@ -29,3 +39,8 @@
 {!! $html !!}
 @endif
 </div>
+@isset( $animationsRuntimeNeeded )
+@if( $animationsRuntimeNeeded )
+@include('visual-editor-renderer-blade::partials.animations-runtime')
+@endif
+@endisset

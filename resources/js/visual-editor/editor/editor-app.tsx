@@ -45,6 +45,8 @@ import { registerResponsiveAttributesFilter } from '../responsive/with-responsiv
 import { registerStateAttribute } from '../states/register-attribute';
 import { registerStateAttributesFilter } from '../states/with-state-attributes';
 import { registerStateStylesFilters } from '../states/with-state-styles';
+import { registerAnimationsAttribute } from '../animations/register-attribute';
+import { registerAnimationsPanel } from '../animations/with-animations-panel';
 import { StateInspectorSync } from '../states/StateInspectorSync';
 import { StateWriteInterceptor } from '../states/state-write-interceptor';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
@@ -177,6 +179,13 @@ function registerOnce(): void {
     registerStateAttribute();
     registerStateAttributesFilter();
     registerStateStylesFilters();
+    // #489 — register the animation feature filters BEFORE blocks load
+    // so opted-in blocks pick up the auto-injected
+    // `artisanpackAnimations` attribute at registration time and the
+    // BlockEdit HOC drops the AnimationPanel into the inspector on
+    // first render.
+    registerAnimationsAttribute();
+    registerAnimationsPanel();
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();

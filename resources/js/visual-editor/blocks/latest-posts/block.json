@@ -83,6 +83,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": true,
         "html": false,

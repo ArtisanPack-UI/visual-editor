@@ -97,6 +97,7 @@
     },
     "usesContext": [ "postId", "postType" ],
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": [ "wide", "full" ],
         "html": false,

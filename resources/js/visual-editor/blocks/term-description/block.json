@@ -8,6 +8,7 @@
     "textdomain": "artisanpack-visual-editor",
     "usesContext": [ "termId", "taxonomy" ],
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": [ "wide", "full" ],
         "html": false,

@@ -26,7 +26,11 @@ use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
+use ArtisanPackUI\VisualEditor\Animations\AnimationCssEmitter;
+use ArtisanPackUI\VisualEditor\Animations\KeyframeRegistry;
+use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
@@ -124,6 +128,21 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// responsive accumulator above.
 		$this->app->scoped( StateCssAccumulator::class, function () {
 			return new StateCssAccumulator();
+		} );
+
+		// #489 — block-animations resolver + accumulator. Same lifetime
+		// story as the responsive / state accumulators: scoped per
+		// request so worker-runtime hosts don't leak across requests.
+		$this->app->scoped( AnimationMarkupResolver::class, function ( $app ) {
+			return new AnimationMarkupResolver(
+				$app->make( AnimationCssEmitter::class ),
+			);
+		} );
+
+		$this->app->scoped( AnimationCssAccumulator::class, function ( $app ) {
+			return new AnimationCssAccumulator(
+				$app->make( KeyframeRegistry::class ),
+			);
 		} );
 	}
 

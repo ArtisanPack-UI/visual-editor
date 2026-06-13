@@ -34,6 +34,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use Illuminate\Contracts\View\View;
@@ -67,6 +68,7 @@ class BlocksComponent extends Component
 		protected GlobalStylesEmissionTracker $emissionTracker,
 		protected ResponsiveCssAccumulator $responsiveAccumulator,
 		protected StateCssAccumulator $stateAccumulator,
+		protected AnimationCssAccumulator $animationAccumulator,
 		mixed $tree = null,
 		?string $defaultTheme = null,
 		mixed $post = null,
@@ -158,14 +160,18 @@ class BlocksComponent extends Component
 		// by the time we drain the accumulator. The drained block
 		// is then prepended to the output by the view template.
 		$html          = $this->renderer->render( $this->tree );
-		$responsiveCss = $this->responsiveAccumulator->flush();
-		$statesCss     = $this->stateAccumulator->flush();
+		$responsiveCss   = $this->responsiveAccumulator->flush();
+		$statesCss       = $this->stateAccumulator->flush();
+		$animationOutput = $this->animationAccumulator->flush();
 
 		return view( 'visual-editor-renderer-blade::components.blocks', [
 			'html'            => $html,
 			'globalStylesCss' => $this->resolveGlobalStylesCss(),
 			'responsiveCss'   => $responsiveCss,
 			'statesCss'       => $statesCss,
+			'animationsCss'   => $animationOutput['styleTag'],
+			'animationsNoscript' => $animationOutput['noscriptTag'],
+			'animationsRuntimeNeeded' => $animationOutput['runtimeNeeded'],
 		] );
 	}
 

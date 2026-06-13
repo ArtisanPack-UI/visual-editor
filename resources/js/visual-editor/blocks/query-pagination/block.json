@@ -28,6 +28,7 @@
         "showLabel": "showLabel"
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": true,
         "reusable": false,

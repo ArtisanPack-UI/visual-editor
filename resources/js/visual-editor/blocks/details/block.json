@@ -29,6 +29,7 @@
 		}
 	},
 	"supports": {
+		"artisanpackAnimations": true,
 		"__experimentalOnEnter": true,
 		"align": [ "wide", "full" ],
 		"anchor": true,

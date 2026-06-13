@@ -18,6 +18,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "__experimentalOnEnter": true,
         "__experimentalOnMerge": true,
         "__experimentalSettings": true,
