@@ -121,6 +121,7 @@
             "full"
         ],
         "anchor": true,
+        "artisanpackAnimations": true,
         "color": {
             "text": false,
             "background": false

@@ -33,6 +33,7 @@ use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
@@ -68,6 +69,7 @@ class BlocksComponent extends Component
 		protected GlobalStylesEmissionTracker $emissionTracker,
 		protected ResponsiveCssAccumulator $responsiveAccumulator,
 		protected StateCssAccumulator $stateAccumulator,
+		protected AnimationCssAccumulator $animationAccumulator,
 		protected GradientBorderCssAccumulator $gradientBorderAccumulator,
 		mixed $tree = null,
 		?string $defaultTheme = null,
@@ -162,14 +164,18 @@ class BlocksComponent extends Component
 		$html               = $this->renderer->render( $this->tree );
 		$responsiveCss      = $this->responsiveAccumulator->flush();
 		$statesCss          = $this->stateAccumulator->flush();
+		$animationOutput    = $this->animationAccumulator->flush();
 		$gradientBordersCss = $this->gradientBorderAccumulator->flush();
 
 		return view( 'visual-editor-renderer-blade::components.blocks', [
-			'html'               => $html,
-			'globalStylesCss'    => $this->resolveGlobalStylesCss(),
-			'responsiveCss'      => $responsiveCss,
-			'statesCss'          => $statesCss,
-			'gradientBordersCss' => $gradientBordersCss,
+			'html'                    => $html,
+			'globalStylesCss'         => $this->resolveGlobalStylesCss(),
+			'responsiveCss'           => $responsiveCss,
+			'statesCss'               => $statesCss,
+			'animationsCss'           => $animationOutput['styleTag'],
+			'animationsNoscript'      => $animationOutput['noscriptTag'],
+			'animationsRuntimeNeeded' => $animationOutput['runtimeNeeded'],
+			'gradientBordersCss'      => $gradientBordersCss,
 		] );
 	}
 

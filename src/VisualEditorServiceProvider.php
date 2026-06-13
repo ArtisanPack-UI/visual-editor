@@ -31,6 +31,10 @@ use ArtisanPackUI\VisualEditor\Resources\CommentInliner;
 use ArtisanPackUI\VisualEditor\Resources\CommentResolver;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
+use ArtisanPackUI\VisualEditor\Animations\AnimationAttributeResolver;
+use ArtisanPackUI\VisualEditor\Animations\AnimationCssEmitter;
+use ArtisanPackUI\VisualEditor\Animations\AnimationRegistry;
+use ArtisanPackUI\VisualEditor\Animations\KeyframeRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\AttributeMigrator;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
@@ -273,6 +277,54 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( StateAttributeMigrator::class, function () {
 			return new StateAttributeMigrator();
+		} );
+
+		// #489 — block animations. Scoped per request, same as the
+		// responsive and state registries: theme.json overrides can
+		// swap between requests, and a singleton would leak the
+		// resolved animations across them.
+		$this->app->scoped( AnimationRegistry::class, function ( $app ) {
+			$config = (array) $app['config']->get( 'artisanpack.visual-editor.animations', [] );
+
+			return AnimationRegistry::fromLayers( $config );
+		} );
+
+		$this->app->scoped( KeyframeRegistry::class, function ( $app ) {
+			$themeKeyframes = (array) $app['config']->get( 'artisanpack.visual-editor.keyframes', [] );
+
+			// Resolve editor-authored keyframes from the same filter-
+			// merged global-styles payload that `SiteEditorGlobalStylesResolver`
+			// consumes, so a host that registers global styles through
+			// the `ap.visual-editor.global-styles` filter (cms-framework
+			// being the canonical caller) sees its custom keyframes
+			// reach the editor and renderer. Reading directly from
+			// config would miss the filter contributions.
+			try {
+				$resolver     = $app->make( SiteEditorGlobalStylesResolver::class );
+				$globalStyles = $resolver->raw();
+			} catch ( \Throwable $e ) {
+				$globalStyles = null;
+			}
+
+			$editorKeyframes = [];
+			if ( is_array( $globalStyles['styles']['custom']['artisanpack']['keyframes'] ?? null ) ) {
+				$editorKeyframes = $globalStyles['styles']['custom']['artisanpack']['keyframes'];
+			}
+
+			return KeyframeRegistry::fromLayers( $themeKeyframes, $editorKeyframes );
+		} );
+
+		$this->app->scoped( AnimationAttributeResolver::class, function ( $app ) {
+			return new AnimationAttributeResolver( $app->make( BreakpointRegistry::class ) );
+		} );
+
+		$this->app->scoped( AnimationCssEmitter::class, function ( $app ) {
+			return new AnimationCssEmitter(
+				$app->make( AnimationRegistry::class ),
+				$app->make( KeyframeRegistry::class ),
+				$app->make( BreakpointRegistry::class ),
+				$app->make( AnimationAttributeResolver::class ),
+			);
 		} );
 
 		// #434: `GlobalStylesCssProvider` + `GlobalStylesCacheInvalidator`

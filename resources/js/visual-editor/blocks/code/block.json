@@ -16,6 +16,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "align": [
             "wide"
         ],

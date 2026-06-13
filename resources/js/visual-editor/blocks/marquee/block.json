@@ -29,6 +29,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "ariaLabel": true,
         "className": true,

@@ -136,6 +136,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": [
             "left",

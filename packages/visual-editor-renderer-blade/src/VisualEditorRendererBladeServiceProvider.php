@@ -26,7 +26,11 @@ use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
+use ArtisanPackUI\VisualEditor\Animations\AnimationCssEmitter;
+use ArtisanPackUI\VisualEditor\Animations\KeyframeRegistry;
+use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
@@ -127,9 +131,24 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 			return new StateCssAccumulator();
 		} );
 
+		// #489 — block-animations resolver + accumulator. Same lifetime
+		// story as the responsive / state accumulators: scoped per
+		// request so worker-runtime hosts don't leak across requests.
+		$this->app->scoped( AnimationMarkupResolver::class, function ( $app ) {
+			return new AnimationMarkupResolver(
+				$app->make( AnimationCssEmitter::class ),
+			);
+		} );
+
+		$this->app->scoped( AnimationCssAccumulator::class, function ( $app ) {
+			return new AnimationCssAccumulator(
+				$app->make( KeyframeRegistry::class ),
+			);
+		} );
+
 		// #490 — sibling accumulator for the gradient border feature's
 		// `<style data-ve-gradient-borders>` block. Same scoped lifetime
-		// rationale as the two above; the rules cover the wrapper +
+		// rationale as the others; the rules cover the wrapper +
 		// `::before` mask pseudo a gradient border installs.
 		$this->app->scoped( GradientBorderCssAccumulator::class, function () {
 			return new GradientBorderCssAccumulator();

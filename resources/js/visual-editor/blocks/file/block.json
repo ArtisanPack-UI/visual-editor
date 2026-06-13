@@ -67,6 +67,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": true,
         "spacing": {

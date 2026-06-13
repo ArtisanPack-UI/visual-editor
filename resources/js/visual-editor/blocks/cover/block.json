@@ -104,6 +104,7 @@
         "align": true,
         "html": false,
         "shadow": true,
+        "artisanpackAnimations": true,
         "spacing": {
             "padding": true,
             "margin": [

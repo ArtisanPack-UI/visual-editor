@@ -46,6 +46,8 @@ import { registerStateAttribute } from '../states/register-attribute';
 import { registerStateAttributesFilter } from '../states/with-state-attributes';
 import { registerGradientBorders } from '../gradient-borders/register';
 import { registerStateStylesFilters } from '../states/with-state-styles';
+import { registerAnimationsAttribute } from '../animations/register-attribute';
+import { registerAnimationsPanel } from '../animations/with-animations-panel';
 import { StateInspectorSync } from '../states/StateInspectorSync';
 import { StateWriteInterceptor } from '../states/state-write-interceptor';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
@@ -178,6 +180,13 @@ function registerOnce(): void {
     registerStateAttribute();
     registerStateAttributesFilter();
     registerStateStylesFilters();
+    // #489 — register the animation feature filters BEFORE blocks load
+    // so opted-in blocks pick up the auto-injected
+    // `artisanpackAnimations` attribute at registration time and the
+    // BlockEdit HOC drops the AnimationPanel into the inspector on
+    // first render.
+    registerAnimationsAttribute();
+    registerAnimationsPanel();
     // #490 — register the gradient-border feature filters BEFORE
     // blocks load so the supports-extension fires at registration
     // time (extending opted-in blocks' state/responsive routing lists

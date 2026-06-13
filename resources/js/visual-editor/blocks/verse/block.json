@@ -24,6 +24,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "background": {
             "backgroundImage": true,

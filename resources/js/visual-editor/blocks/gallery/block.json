@@ -127,6 +127,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": true,
         "__experimentalBorder": {

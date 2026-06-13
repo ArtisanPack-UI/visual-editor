@@ -1,4 +1,6 @@
 @php
+	use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
+	use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 
 	$url    = (string) ( $attributes['url'] ?? '' );
@@ -81,8 +83,53 @@
 
 	$styleAttr = '' !== $style ? sprintf( ' style="%s"', e( $style . ';' ) ) : '';
 	$idAttr    = null !== $compiled['id'] ? sprintf( ' id="%s"', e( $compiled['id'] ) ) : '';
+
+	// #489 — resolve any block-animation attribute bag, attach the
+	// wrapper classes + data attributes, and push the per-block CSS
+	// into the accumulator so the BlocksComponent emits a single
+	// `<style data-ve-animations>` block at the top of the response.
+	$animationsAttr = is_array( $attributes['artisanpackAnimations'] ?? null )
+		? (array) $attributes['artisanpackAnimations']
+		: [];
+	$animationsString = '';
+	if ( [] !== $animationsAttr ) {
+		// Scope-hash logic mirrors BlockSupports::resolveAnimations so a
+		// block rendered by either path collides on the same scope key
+		// and the accumulator dedupes correctly.
+		// `serialize()` is the deterministic content-stable fallback —
+		// `spl_object_hash()` would key on object identity, which would
+		// break dedupe across identical attribute bags rendered in
+		// separate passes (e.g. cached fragments).
+		$animationsJson   = json_encode( $attributes );
+		$animationsSource = false === $animationsJson
+			? serialize( $attributes )
+			: $animationsJson;
+		$animationsSuffix = substr( hash( 'sha1', $animationsSource ), 0, 8 );
+		$animationsScope    = '.ap-block-' . $animationsSuffix;
+		$animationsResolver = app( AnimationMarkupResolver::class );
+		$animationsMarkup   = $animationsResolver->resolve( $animationsScope, $animationsAttr );
+
+		if ( $animationsMarkup['hasAnimations'] ) {
+			foreach ( $animationsMarkup['classes'] as $animationsClass ) {
+				$classes[] = $animationsClass;
+			}
+			$classes[] = ltrim( $animationsScope, '.' );
+
+			app( AnimationCssAccumulator::class )->push(
+				$animationsScope,
+				$animationsMarkup['css'],
+				$animationsMarkup['noscriptCss'],
+				$animationsMarkup['hasEntrance'],
+			);
+
+			$animationsString = $animationsResolver->dataString( $animationsMarkup['data'] );
+			if ( '' !== $animationsString ) {
+				$animationsString = ' ' . $animationsString;
+			}
+		}
+	}
 @endphp
-<div class="{{ implode( ' ', $classes ) }}"{!! $styleAttr !!}{!! $idAttr !!}>
+<div class="{{ implode( ' ', $classes ) }}"{!! $styleAttr !!}{!! $idAttr !!}{!! $animationsString !!}>
 	<span aria-hidden="true" class="wp-block-cover__background has-background-dim" style="opacity: {{ $dimRatio / 100 }};"></span>
 	@if ( '' !== $url )
 		<img class="wp-block-cover__image-background" alt="{{ $alt }}" src="{{ $url }}"/>

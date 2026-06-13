@@ -19,6 +19,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "className": true,
         "html": false,
         "reusable": true,

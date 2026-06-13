@@ -103,6 +103,7 @@
         "postType"
     ],
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": [
             "wide",

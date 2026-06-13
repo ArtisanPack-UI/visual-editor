@@ -38,6 +38,7 @@
         "artisanpack/postPreview"
     ],
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "reusable": false,
         "html": false,

@@ -42,6 +42,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "html": false,
         "__experimentalBorder": {
