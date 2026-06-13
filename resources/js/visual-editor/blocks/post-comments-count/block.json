@@ -53,7 +53,8 @@
             "radius": true,
             "color": true,
             "width": true,
-            "style": true
+            "style": true,
+            "gradient": true
         }
     }
 }

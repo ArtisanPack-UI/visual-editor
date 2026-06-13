@@ -30,6 +30,11 @@
 {!! $animationsNoscript !!}
 @endif
 @endisset
+@isset( $gradientBordersCss )
+@if( '' !== $gradientBordersCss )
+{!! $gradientBordersCss !!}
+@endif
+@endisset
 <div class="{{ implode( ' ', $wrapperClasses ) }}" data-ve-template="{{ $slug }}"@if( null !== $matchedSlug && $matchedSlug !== $slug ) data-ve-matched-template="{{ $matchedSlug }}"@endif>
 @if( null !== $resolutionError )
 @if( $inDev )

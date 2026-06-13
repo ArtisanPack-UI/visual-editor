@@ -188,6 +188,15 @@ vi.mock('@wordpress/block-editor', () => {
         }: {
             children?: React.ReactNode;
         }) => <div>{children}</div>,
+        // #490 — cover placeholder now uses ColorGradientControl
+        // (tabbed Color | Gradient) in place of the color-only
+        // ColorPalette. Mock as a passthrough since the placeholder
+        // tests only assert the surrounding TagName.
+        __experimentalColorGradientControl: ({
+            children,
+        }: {
+            children?: React.ReactNode;
+        }) => <div>{children}</div>,
         __experimentalUseMultipleOriginColorsAndGradients: () => ({
             hasColorsOrGradients: false,
         }),

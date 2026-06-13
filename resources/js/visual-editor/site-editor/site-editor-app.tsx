@@ -46,6 +46,7 @@ import {
 import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
 import { registerArtisanPackBlocks } from '../blocks';
+import { registerGradientBorders } from '../gradient-borders/register';
 
 import { BlockLibrarySidebar } from '../editor/block-library-sidebar';
 import { TopBar } from '../editor/top-bar';
@@ -158,6 +159,11 @@ function ensureEditorBoot(): void {
     // registration so `artisanpack/block` reference blocks get the badge
     // from the first render. Idempotent across HMR.
     registerSyncedPatternIndicator();
+
+    // #490 — gradient border feature filters; same "before
+    // registerArtisanPackBlocks" placement as the post-editor so opted-in
+    // blocks pick up the routed `border.gradient` path at registration.
+    registerGradientBorders();
 
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.

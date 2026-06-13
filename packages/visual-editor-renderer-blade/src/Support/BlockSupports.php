@@ -47,10 +47,13 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Support;
 
+use ArtisanPackUI\VisualEditor\GradientBorder\GradientBorderEmitter;
+use ArtisanPackUI\VisualEditor\GradientBorder\GradientBorderResolver;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
 use ArtisanPackUI\VisualEditor\States\StateValueResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 
@@ -158,15 +161,25 @@ class BlockSupports
 			self::pushStates( $states['class'], $states['rules'] );
 		}
 
+		$gradientBorder = self::compileGradientBorder( $attributes );
+
+		if ( '' !== $gradientBorder['class'] ) {
+			$classes[] = $gradientBorder['class'];
+
+			self::pushGradientBorder( $gradientBorder['class'], $gradientBorder['rules'] );
+		}
+
 		return [
-			'classes'         => $classes,
-			'style'           => $styleString,
-			'id'              => $id,
-			'responsiveCss'   => '',
-			'responsiveClass' => $responsive['class'],
-			'responsiveRules' => $responsive['rules'],
-			'statesClass'     => $states['class'],
-			'statesRules'     => $states['rules'],
+			'classes'             => $classes,
+			'style'               => $styleString,
+			'id'                  => $id,
+			'responsiveCss'       => '',
+			'responsiveClass'     => $responsive['class'],
+			'responsiveRules'     => $responsive['rules'],
+			'statesClass'         => $states['class'],
+			'statesRules'         => $states['rules'],
+			'gradientBorderClass' => $gradientBorder['class'],
+			'gradientBorderRules' => $gradientBorder['rules'],
 		];
 	}
 
@@ -236,6 +249,110 @@ class BlockSupports
 		} catch ( \Throwable $e ) {
 			// See pushResponsive() — same drop-silently rationale.
 		}
+	}
+
+	/**
+	 * Mirror of {@see pushResponsive} for gradient borders (#490).
+	 *
+	 * @since 1.1.0
+	 */
+	public static function pushGradientBorder( string $scope, string $rules ): void
+	{
+		if ( '' === $scope || '' === $rules ) {
+			return;
+		}
+
+		if ( ! function_exists( 'app' ) ) {
+			return;
+		}
+
+		try {
+			app( GradientBorderCssAccumulator::class )->push( $scope, $rules );
+		} catch ( \Throwable $e ) {
+			// See pushResponsive() — same drop-silently rationale.
+		}
+	}
+
+	/**
+	 * Apply the gradient border feature to an already-rendered block's
+	 * HTML output (#490).
+	 *
+	 * Static blocks (Blade partials) get gradient border handling for
+	 * free via {@see wrapperAttrs} → {@see compile}. Dynamic blocks
+	 * (subclasses of `DynamicBlock`) render their own HTML and never
+	 * call into the compile pipeline — so the renderer pipes their
+	 * output through this method to push the scope's CSS rule into the
+	 * accumulator AND stamp the scope class onto the first opening
+	 * tag.
+	 *
+	 * No-op when the block carries no gradient border configuration at
+	 * any cascade level. Idempotent on the class injection — calling
+	 * twice with the same scope is harmless (the class is deduped at
+	 * the wrapper level by the consumer).
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  string               $html       Block's pre-rendered HTML.
+	 * @param  array<string, mixed> $attributes Block's attribute payload
+	 *                                          (the same shape `compile`
+	 *                                          would receive).
+	 */
+	public static function applyGradientBorder( string $html, array $attributes ): string
+	{
+		if ( '' === $html ) {
+			return $html;
+		}
+
+		$compiled = self::compileGradientBorder( $attributes );
+
+		if ( '' === $compiled['class'] || '' === $compiled['rules'] ) {
+			return $html;
+		}
+
+		self::pushGradientBorder( $compiled['class'], $compiled['rules'] );
+
+		return self::injectClassIntoFirstTag( $html, $compiled['class'] );
+	}
+
+	/**
+	 * Merge a single class token into the `class` attribute of the
+	 * first opening tag in `$html`. Adds the attribute when missing.
+	 * Returns the input unchanged when no opening tag is found (broken
+	 * markup, comment-only output, etc.).
+	 *
+	 * @since 1.1.0
+	 */
+	protected static function injectClassIntoFirstTag( string $html, string $class ): string
+	{
+		// Existing class attribute on the first opening tag — append.
+		// Case-insensitive (`/i`) so `CLASS` / `Class` variants are
+		// still detected, and the quote-style is captured as a back-
+		// reference so single AND double quotes are merged (instead of
+		// either being missed → the injector falls through to the
+		// add-new-attribute branch and writes a SECOND `class`
+		// attribute, which is invalid HTML).
+		if ( 1 === preg_match( '/^(\s*<[a-zA-Z][^>]*?)\bclass\s*=\s*(["\'])(.*?)\2([^>]*>)/is', $html, $matches ) ) {
+			$existing = trim( $matches[3] );
+			$tokens   = '' === $existing ? [] : ( preg_split( '/\s+/', $existing ) ?: [] );
+
+			if ( in_array( $class, $tokens, true ) ) {
+				return $html;
+			}
+
+			$nextClass = '' === $existing ? $class : $existing . ' ' . $class;
+			$prefix    = $matches[1] . 'class="' . $nextClass . '"' . $matches[4];
+
+			return $prefix . substr( $html, strlen( $matches[0] ) );
+		}
+
+		// No `class` attribute — add one to the first opening tag.
+		if ( 1 === preg_match( '/^(\s*<[a-zA-Z][^>]*?)(\/?>)/s', $html, $matches ) ) {
+			$prefix = $matches[1] . ' class="' . $class . '"' . $matches[2];
+
+			return $prefix . substr( $html, strlen( $matches[0] ) );
+		}
+
+		return $html;
 	}
 
 	/**
@@ -469,6 +586,91 @@ class BlockSupports
 			},
 			$css
 		);
+	}
+
+	/**
+	 * Compile the `style.border` gradient payload into a `{class, rules}`
+	 * pair the wrapper merges in and the accumulator dedupes (#490).
+	 *
+	 * Returns `{class: '', rules: ''}` when no gradient configuration
+	 * is present at any cascade level — callers should treat empty as
+	 * a signal to skip both wrapper merge and accumulator push.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{class: string, rules: string}
+	 */
+	protected static function compileGradientBorder( array $attributes ): array
+	{
+		$payload = GradientBorderResolver::resolve( $attributes );
+
+		if ( null === $payload ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+
+		try {
+			$states      = self::resolveStateRegistry();
+			$breakpoints = function_exists( 'app' )
+				? self::resolveRegistry()
+				: BreakpointRegistry::fromLayers();
+
+			$emitter = new GradientBorderEmitter( $states, $breakpoints );
+
+			$scopeClass = self::resolveGradientBorderScopeClass( $attributes, $payload );
+			$scope      = '.' . $scopeClass;
+			$css        = $emitter->emit( $scope, $payload );
+
+			if ( '' === $css ) {
+				return [ 'class' => '', 'rules' => '' ];
+			}
+
+			return [
+				'class' => $scopeClass,
+				'rules' => $css,
+			];
+		} catch ( \Throwable $e ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+	}
+
+	/**
+	 * Prefer the editor-minted `style.border._gradientScopeId` so the
+	 * editor preview and the server-rendered output target the same
+	 * scope class. Falls back to a content-derived hash when no id was
+	 * stamped (legacy content, hand-authored blocks, server-only
+	 * pipelines).
+	 *
+	 * The minted id is interpolated into both the `<style>` block and
+	 * the wrapper's `class` attribute, so its content has to be a
+	 * safe identifier-style token — same defense-in-depth check the
+	 * state pipeline runs on its `_scopeId`.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 * @param  array<string, mixed>  $payload
+	 */
+	protected static function resolveGradientBorderScopeClass( array $attributes, array $payload ): string
+	{
+		$border = $attributes['style']['border'] ?? null;
+
+		if ( is_array( $border ) && isset( $border['_gradientScopeId'] ) && is_string( $border['_gradientScopeId'] ) ) {
+			$candidate = $border['_gradientScopeId'];
+
+			if ( 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $candidate ) && strlen( $candidate ) <= 64 ) {
+				return 've-gb-' . $candidate;
+			}
+		}
+
+		$hash = substr(
+			hash( 'xxh3', (string) json_encode( $payload ) ),
+			0,
+			10
+		);
+
+		return 've-gb-' . $hash;
 	}
 
 	/**

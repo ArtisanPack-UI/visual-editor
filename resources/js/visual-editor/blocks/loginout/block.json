@@ -5,7 +5,11 @@
     "title": "Login/out",
     "category": "theme",
     "description": "Show login & logout links.",
-    "keywords": [ "login", "logout", "form" ],
+    "keywords": [
+        "login",
+        "logout",
+        "form"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "displayLoginAsForm": {
@@ -55,7 +59,8 @@
             "radius": true,
             "color": true,
             "width": true,
-            "style": true
+            "style": true,
+            "gradient": true
         },
         "interactivity": {
             "clientNavigation": true

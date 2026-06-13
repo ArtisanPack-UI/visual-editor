@@ -5,7 +5,16 @@
     "category": "text",
     "description": "Introduce new sections and organize content to help readers scan.",
     "icon": "heading",
-    "keywords": ["title", "subtitle", "h1", "h2", "h3", "h4", "h5", "h6"],
+    "keywords": [
+        "title",
+        "subtitle",
+        "h1",
+        "h2",
+        "h3",
+        "h4",
+        "h5",
+        "h6"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "content": {
@@ -49,7 +58,8 @@
             "color": true,
             "radius": true,
             "style": true,
-            "width": true
+            "width": true,
+            "gradient": true
         }
     }
 }

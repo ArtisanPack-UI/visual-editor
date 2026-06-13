@@ -23,6 +23,11 @@
 {!! $animationsNoscript !!}
 @endif
 @endisset
+@isset( $gradientBordersCss )
+@if( '' !== $gradientBordersCss )
+{!! $gradientBordersCss !!}
+@endif
+@endisset
 {!! $html !!}
 @isset( $animationsRuntimeNeeded )
 @if( $animationsRuntimeNeeded )

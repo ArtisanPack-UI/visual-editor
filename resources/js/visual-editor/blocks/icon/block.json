@@ -5,7 +5,12 @@
     "title": "Icon",
     "category": "design",
     "description": "Insert an SVG icon from a registered set, or paste your own.",
-    "keywords": [ "svg", "icon", "fontawesome", "glyph" ],
+    "keywords": [
+        "svg",
+        "icon",
+        "fontawesome",
+        "glyph"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "iconRef": {
@@ -22,25 +27,60 @@
         },
         "sizeUnit": {
             "type": "string",
-            "enum": [ "px", "em", "rem", "%", "vw", "vh" ],
+            "enum": [
+                "px",
+                "em",
+                "rem",
+                "%",
+                "vw",
+                "vh"
+            ],
             "default": "px"
         },
         "width": {
-            "type": [ "number", "null" ],
+            "type": [
+                "number",
+                "null"
+            ],
             "default": null
         },
         "widthUnit": {
-            "type": [ "string", "null" ],
-            "enum": [ "px", "em", "rem", "%", "vw", "vh", null ],
+            "type": [
+                "string",
+                "null"
+            ],
+            "enum": [
+                "px",
+                "em",
+                "rem",
+                "%",
+                "vw",
+                "vh",
+                null
+            ],
             "default": null
         },
         "height": {
-            "type": [ "number", "null" ],
+            "type": [
+                "number",
+                "null"
+            ],
             "default": null
         },
         "heightUnit": {
-            "type": [ "string", "null" ],
-            "enum": [ "px", "em", "rem", "%", "vw", "vh", null ],
+            "type": [
+                "string",
+                "null"
+            ],
+            "enum": [
+                "px",
+                "em",
+                "rem",
+                "%",
+                "vw",
+                "vh",
+                null
+            ],
             "default": null
         },
         "color": {
@@ -54,7 +94,12 @@
         },
         "rotation": {
             "type": "number",
-            "enum": [ 0, 90, 180, 270 ],
+            "enum": [
+                0,
+                90,
+                180,
+                270
+            ],
             "default": 0
         },
         "flipH": {
@@ -93,11 +138,17 @@
     "supports": {
         "artisanpackAnimations": true,
         "anchor": true,
-        "align": [ "left", "center", "right", "wide", "full" ],
+        "align": [
+            "left",
+            "center",
+            "right",
+            "wide",
+            "full"
+        ],
         "color": {
             "text": false,
             "background": true,
-            "gradients": false,
+            "gradients": true,
             "__experimentalDefaultControls": {
                 "background": true
             }
@@ -120,7 +171,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "interactivity": {
             "clientNavigation": true

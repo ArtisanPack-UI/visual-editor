@@ -24,6 +24,7 @@ namespace ArtisanPackUI\VisualEditorRendererBlade;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 use Illuminate\Contracts\Container\BindingResolutionException;
 use Illuminate\Contracts\Support\Htmlable;
 use Illuminate\Contracts\View\Factory as ViewFactory;
@@ -260,8 +261,22 @@ class BlockRenderer
 		try {
 			$validated = $block->validateAttrs( $attributes );
 			$result    = $block->render( $validated );
+			$html      = $this->coerceToString( $result );
 
-			return $this->coerceToString( $result );
+			// #490 — dynamic blocks build their own wrapper HTML and
+			// don't go through `BlockSupports::compile`, so the
+			// gradient-border pipeline never sees them by default.
+			// Post-process the rendered HTML to push the rule into the
+			// per-request accumulator AND stamp the scope class onto
+			// the first opening tag. Use `$validated` (not raw
+			// `$attributes`) so the scope class + emitted CSS stay
+			// aligned with the input the dynamic block actually
+			// rendered from — keeping editor preview and saved markup
+			// in lockstep across attribute normalization passes.
+			// No-op when the block has no gradient configured.
+			$html = BlockSupports::applyGradientBorder( $html, $validated );
+
+			return $html;
 		} catch ( Throwable $e ) {
 			report( $e );
 

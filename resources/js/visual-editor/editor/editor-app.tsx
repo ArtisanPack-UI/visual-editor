@@ -44,6 +44,7 @@ import { registerResponsiveAttribute } from '../responsive/register-attribute';
 import { registerResponsiveAttributesFilter } from '../responsive/with-responsive-attributes';
 import { registerStateAttribute } from '../states/register-attribute';
 import { registerStateAttributesFilter } from '../states/with-state-attributes';
+import { registerGradientBorders } from '../gradient-borders/register';
 import { registerStateStylesFilters } from '../states/with-state-styles';
 import { registerAnimationsAttribute } from '../animations/register-attribute';
 import { registerAnimationsPanel } from '../animations/with-animations-panel';
@@ -186,6 +187,12 @@ function registerOnce(): void {
     // first render.
     registerAnimationsAttribute();
     registerAnimationsPanel();
+    // #490 — register the gradient-border feature filters BEFORE
+    // blocks load so the supports-extension fires at registration
+    // time (extending opted-in blocks' state/responsive routing lists
+    // automatically) and the BlockEdit HOC wraps every edit component
+    // on first render.
+    registerGradientBorders();
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();

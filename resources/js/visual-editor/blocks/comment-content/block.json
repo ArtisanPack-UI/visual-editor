@@ -31,7 +31,10 @@
             }
         },
         "spacing": {
-            "padding": [ "horizontal", "vertical" ],
+            "padding": [
+                "horizontal",
+                "vertical"
+            ],
             "__experimentalDefaultControls": {
                 "padding": true
             }
@@ -56,7 +59,8 @@
             "radius": true,
             "color": true,
             "width": true,
-            "style": true
+            "style": true,
+            "gradient": true
         }
     }
 }

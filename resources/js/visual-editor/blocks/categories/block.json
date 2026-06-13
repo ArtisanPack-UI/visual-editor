@@ -5,7 +5,9 @@
     "title": "Terms List",
     "category": "widgets",
     "description": "Display a list of all terms of a given taxonomy.",
-    "keywords": [ "categories" ],
+    "keywords": [
+        "categories"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "taxonomy": {
@@ -41,7 +43,9 @@
             "default": true
         }
     },
-    "usesContext": [ "enhancedPagination" ],
+    "usesContext": [
+        "enhancedPagination"
+    ],
     "supports": {
         "artisanpackAnimations": true,
         "anchor": true,
@@ -90,7 +94,8 @@
                 "color": true,
                 "width": true,
                 "style": true
-            }
+            },
+            "gradient": true
         }
     }
 }

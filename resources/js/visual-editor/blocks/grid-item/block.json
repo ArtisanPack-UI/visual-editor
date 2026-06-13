@@ -5,14 +5,28 @@
     "title": "Grid Item",
     "category": "design",
     "description": "A single cell inside a grid, with per-breakpoint column/row spans.",
-    "keywords": ["grid", "grid-item", "cell"],
-    "parent": ["artisanpack/grid"],
+    "keywords": [
+        "grid",
+        "grid-item",
+        "cell"
+    ],
+    "parent": [
+        "artisanpack/grid"
+    ],
     "textdomain": "artisanpack-visual-editor",
-    "usesContext": ["numColumns"],
+    "usesContext": [
+        "numColumns"
+    ],
     "attributes": {
         "innerLayout": {
             "type": "string",
-            "enum": ["normal", "equal", "center", "bottom", "last-bottom"],
+            "enum": [
+                "normal",
+                "equal",
+                "center",
+                "bottom",
+                "last-bottom"
+            ],
             "default": "normal"
         },
         "gridColumnSpan": {
@@ -26,12 +40,18 @@
     },
     "supports": {
         "anchor": true,
-        "align": ["wide", "full"],
+        "align": [
+            "wide",
+            "full"
+        ],
         "ariaLabel": true,
         "className": true,
         "html": false,
         "spacing": {
-            "margin": ["top", "bottom"],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "blockGap": true,
             "__experimentalDefaultControls": {
@@ -58,7 +78,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "typography": {
             "fontSize": true,

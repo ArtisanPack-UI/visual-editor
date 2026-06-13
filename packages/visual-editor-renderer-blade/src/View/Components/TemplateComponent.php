@@ -34,8 +34,9 @@ use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
-use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use Illuminate\Contracts\Foundation\Application;
@@ -78,6 +79,7 @@ class TemplateComponent extends Component
 		protected ResponsiveCssAccumulator $responsiveAccumulator,
 		protected StateCssAccumulator $stateAccumulator,
 		protected AnimationCssAccumulator $animationAccumulator,
+		protected GradientBorderCssAccumulator $gradientBorderAccumulator,
 		string $slug,
 		?string $theme = null,
 	) {
@@ -117,24 +119,26 @@ class TemplateComponent extends Component
 		// where `$this->html` is assigned), so every block partial
 		// has had a chance to push its responsive rules in by now.
 		// See BlocksComponent::render() for the same pattern.
-		$responsiveCss   = $this->responsiveAccumulator->flush();
-		$statesCss       = $this->stateAccumulator->flush();
-		$animationOutput = $this->animationAccumulator->flush();
+		$responsiveCss      = $this->responsiveAccumulator->flush();
+		$statesCss          = $this->stateAccumulator->flush();
+		$animationOutput    = $this->animationAccumulator->flush();
+		$gradientBordersCss = $this->gradientBorderAccumulator->flush();
 
 		return view( 'visual-editor-renderer-blade::components.template', [
-			'slug'            => $this->slug,
-			'theme'           => $this->theme,
-			'matchedSlug'     => $this->matchedSlug,
-			'fallbackChain'   => $this->fallbackChain,
-			'resolutionError' => $this->resolutionError,
-			'inDev'           => ! $this->app->environment( 'production' ),
-			'html'            => $this->html,
-			'globalStylesCss' => $this->resolveGlobalStylesCss(),
-			'responsiveCss'   => $responsiveCss,
-			'statesCss'       => $statesCss,
-			'animationsCss'   => $animationOutput['styleTag'],
-			'animationsNoscript' => $animationOutput['noscriptTag'],
+			'slug'                    => $this->slug,
+			'theme'                   => $this->theme,
+			'matchedSlug'             => $this->matchedSlug,
+			'fallbackChain'           => $this->fallbackChain,
+			'resolutionError'         => $this->resolutionError,
+			'inDev'                   => ! $this->app->environment( 'production' ),
+			'html'                    => $this->html,
+			'globalStylesCss'         => $this->resolveGlobalStylesCss(),
+			'responsiveCss'           => $responsiveCss,
+			'statesCss'               => $statesCss,
+			'animationsCss'           => $animationOutput['styleTag'],
+			'animationsNoscript'      => $animationOutput['noscriptTag'],
 			'animationsRuntimeNeeded' => $animationOutput['runtimeNeeded'],
+			'gradientBordersCss'      => $gradientBordersCss,
 		] );
 	}
 

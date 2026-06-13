@@ -44,7 +44,10 @@
             }
         },
         "spacing": {
-            "margin": [ "top", "bottom" ],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "__experimentalDefaultControls": {
                 "padding": true
@@ -56,7 +59,8 @@
             "width": true,
             "__experimentalDefaultControls": {
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "interactivity": {
             "clientNavigation": true

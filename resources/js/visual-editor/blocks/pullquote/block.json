@@ -26,7 +26,12 @@
     "supports": {
         "artisanpackAnimations": true,
         "anchor": true,
-        "align": [ "left", "right", "wide", "full" ],
+        "align": [
+            "left",
+            "right",
+            "wide",
+            "full"
+        ],
         "background": {
             "backgroundImage": true,
             "backgroundSize": true,
@@ -76,7 +81,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "__experimentalStyle": {
             "typography": {

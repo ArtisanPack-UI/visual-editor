@@ -5,7 +5,9 @@
     "title": "Tab Section",
     "category": "design",
     "description": "A single tab panel shown when its matching tab is active.",
-    "parent": ["artisanpack/tabs"],
+    "parent": [
+        "artisanpack/tabs"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "label": {
@@ -22,7 +24,10 @@
         "className": true,
         "html": false,
         "spacing": {
-            "margin": ["top", "bottom"],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "blockGap": true,
             "__experimentalDefaultControls": {
@@ -41,7 +46,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         }
     }
 }

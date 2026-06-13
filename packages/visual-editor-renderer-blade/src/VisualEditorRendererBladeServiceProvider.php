@@ -32,6 +32,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
@@ -143,6 +144,14 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 			return new AnimationCssAccumulator(
 				$app->make( KeyframeRegistry::class ),
 			);
+		} );
+
+		// #490 — sibling accumulator for the gradient border feature's
+		// `<style data-ve-gradient-borders>` block. Same scoped lifetime
+		// rationale as the others; the rules cover the wrapper +
+		// `::before` mask pseudo a gradient border installs.
+		$this->app->scoped( GradientBorderCssAccumulator::class, function () {
+			return new GradientBorderCssAccumulator();
 		} );
 	}
 

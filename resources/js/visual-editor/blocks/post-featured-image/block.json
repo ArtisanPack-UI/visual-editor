@@ -92,7 +92,8 @@
                 "color": true,
                 "radius": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "filter": {
             "duotone": true
