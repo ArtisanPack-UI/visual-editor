@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/breadcrumbs",
     "title": "Breadcrumbs",
-    "category": "artisanpack",
+    "category": "theme",
     "description": "Display a breadcrumbs trail so visitors know where they are on your site.",
     "keywords": ["breadcrumbs", "navigation", "trail"],
     "textdomain": "artisanpack-visual-editor",

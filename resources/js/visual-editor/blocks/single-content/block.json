@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/single-content",
     "title": "Single Content",
-    "category": "artisanpack",
+    "category": "theme",
     "description": "Highlight a single post, page, or custom post type with the inner blocks scoped to the chosen entry.",
     "keywords": ["single", "content", "post", "feature"],
     "textdomain": "artisanpack-visual-editor",

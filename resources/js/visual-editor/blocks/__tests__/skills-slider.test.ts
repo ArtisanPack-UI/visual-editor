@@ -28,7 +28,7 @@ describe('skills-slider block.json', () => {
     it('declares the artisanpack namespace + textdomain + category', () => {
         expect(meta.name).toBe('artisanpack/skills-slider');
         expect(meta.textdomain).toBe('artisanpack-visual-editor');
-        expect(meta.category).toBe('artisanpack');
+        expect(meta.category).toBe('widgets');
     });
 
     it('declares the skillLevel / barHeight / colour / aria attributes with safe defaults', () => {

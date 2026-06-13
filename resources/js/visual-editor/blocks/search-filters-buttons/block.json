@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/search-filters-buttons",
     "title": "Search Filters Buttons",
-    "category": "artisanpack",
+    "category": "search",
     "description": "Render the submit + reset buttons that drive the surrounding search filters form.",
     "keywords": ["search", "filters", "submit", "reset"],
     "textdomain": "artisanpack-visual-editor",

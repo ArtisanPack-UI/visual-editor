@@ -68,7 +68,7 @@ describe('search cluster block.json', () => {
         ({ slug, meta }) => {
             expect(meta.name).toBe(`artisanpack/${slug}`);
             expect(meta.textdomain).toBe('artisanpack-visual-editor');
-            expect(meta.category).toBe('artisanpack');
+            expect(meta.category).toBe('search');
         }
     );
 

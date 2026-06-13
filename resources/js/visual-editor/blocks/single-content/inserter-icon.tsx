@@ -1,8 +1,9 @@
 /**
  * Single Content — inserter icon.
  *
- * Inline SVG (a framed document) so the editor canvas does not have to
- * load `dashicons.css` for the inserter preview.
+ * Inline SVG of Font Awesome Free Solid's `file-lines` glyph
+ * (CC BY 4.0). Path data copied verbatim so the editor canvas can
+ * render the icon without loading the Font Awesome stylesheet.
  */
 
 import type { ReactElement } from 'react';
@@ -11,13 +12,13 @@ export default function SingleContentInserterIcon(): ReactElement {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
+            viewBox="0 0 512 512"
             width={24}
             height={24}
             aria-hidden="true"
             focusable="false"
         >
-            <path d="M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 2v14h14V5H5Zm2 3h10v2H7V8Zm0 4h10v2H7v-2Zm0 4h6v2H7v-2Z" />
+            <path fill="currentColor" d="M0 64C0 28.7 28.7 0 64 0L213.5 0c17 0 33.3 6.7 45.3 18.7L365.3 125.3c12 12 18.7 28.3 18.7 45.3L384 448c0 35.3-28.7 64-64 64L64 512c-35.3 0-64-28.7-64-64L0 64zm208-5.5l0 93.5c0 13.3 10.7 24 24 24L325.5 176 208 58.5zM120 256c-13.3 0-24 10.7-24 24s10.7 24 24 24l144 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-144 0zm0 96c-13.3 0-24 10.7-24 24s10.7 24 24 24l144 0c13.3 0 24-10.7 24-24s-10.7-24-24-24l-144 0z" />
         </svg>
     );
 }

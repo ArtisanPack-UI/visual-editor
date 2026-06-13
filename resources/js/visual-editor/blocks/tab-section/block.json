@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/tab-section",
     "title": "Tab Section",
-    "category": "artisanpack",
+    "category": "design",
     "description": "A single tab panel shown when its matching tab is active.",
     "parent": ["artisanpack/tabs"],
     "textdomain": "artisanpack-visual-editor",

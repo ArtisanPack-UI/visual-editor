@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/marquee",
     "title": "Marquee",
-    "category": "artisanpack",
+    "category": "design",
     "description": "Scroll a line of text horizontally across the screen.",
     "keywords": ["marquee", "scroll", "ticker", "banner"],
     "textdomain": "artisanpack-visual-editor",

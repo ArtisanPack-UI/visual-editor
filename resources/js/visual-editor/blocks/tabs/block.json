@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/tabs",
     "title": "Tabs",
-    "category": "artisanpack",
+    "category": "design",
     "description": "Group content into a tabbed interface.",
     "keywords": ["tabs", "tabbed", "navigation"],
     "textdomain": "artisanpack-visual-editor",

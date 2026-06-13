@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/grid-item",
     "title": "Grid Item",
-    "category": "artisanpack",
+    "category": "design",
     "description": "A single cell inside a grid, with per-breakpoint column/row spans.",
     "keywords": ["grid", "grid-item", "cell"],
     "parent": ["artisanpack/grid"],

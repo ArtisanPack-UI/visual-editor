@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/grid",
     "title": "Grid",
-    "category": "artisanpack",
+    "category": "design",
     "description": "Add a responsive grid with a custom number of columns per breakpoint.",
     "keywords": ["grid", "columns", "layout"],
     "textdomain": "artisanpack-visual-editor",

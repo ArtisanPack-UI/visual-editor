@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/form",
     "title": "Form",
-    "category": "artisanpack",
+    "category": "widgets",
     "description": "Embed a form from the artisanpack-ui/forms package.",
     "keywords": ["form", "contact", "lead", "submission"],
     "textdomain": "artisanpack-visual-editor",

@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/related-posts",
     "title": "Related Posts",
-    "category": "artisanpack",
+    "category": "theme",
     "description": "Render a query loop of posts related to the host entry so visitors can keep reading.",
     "keywords": ["related", "posts", "loop", "feed"],
     "textdomain": "artisanpack-visual-editor",

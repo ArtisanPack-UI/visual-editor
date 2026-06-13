@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/accordion",
     "title": "Accordion Panel",
-    "category": "artisanpack",
+    "category": "design",
     "description": "Add an accordion panel containing a title and a body.",
     "keywords": ["accordion", "collapsible", "panel"],
     "parent": ["artisanpack/accordions"],

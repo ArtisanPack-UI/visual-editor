@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/skills-slider",
     "title": "Skills Slider",
-    "category": "artisanpack",
+    "category": "widgets",
     "description": "Visualise a skill level as a horizontal progress bar.",
     "keywords": ["skill", "skills", "progress", "bar", "level"],
     "textdomain": "artisanpack-visual-editor",

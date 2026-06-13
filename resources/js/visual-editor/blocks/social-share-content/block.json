@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/social-share-content",
     "title": "Social Share Content",
-    "category": "artisanpack",
+    "category": "theme",
     "description": "Render share-to-social buttons for the current entry so visitors can spread the word.",
     "keywords": ["social", "share", "icons", "links"],
     "textdomain": "artisanpack-visual-editor",

@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/author-social-icons",
     "title": "Author Social Icons",
-    "category": "artisanpack",
+    "category": "theme",
     "description": "Display the author's social media links as icons.",
     "keywords": ["author", "social", "icons", "links"],
     "textdomain": "artisanpack-visual-editor",

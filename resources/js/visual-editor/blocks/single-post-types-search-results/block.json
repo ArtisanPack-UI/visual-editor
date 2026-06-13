@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/single-post-types-search-results",
     "title": "Single Post Type Search Results",
-    "category": "artisanpack",
+    "category": "search",
     "description": "Render its inner blocks only when the host page's `?post_type=` query parameter matches the configured post type (or `all` when no parameter is set).",
     "keywords": ["search", "results", "post type"],
     "parent": ["artisanpack/post-types-search-results"],

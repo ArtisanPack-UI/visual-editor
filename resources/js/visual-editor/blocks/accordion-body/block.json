@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/accordion-body",
     "title": "Accordion Body",
-    "category": "artisanpack",
+    "category": "design",
     "description": "The expandable content of an accordion panel.",
     "parent": ["artisanpack/accordion"],
     "textdomain": "artisanpack-visual-editor",

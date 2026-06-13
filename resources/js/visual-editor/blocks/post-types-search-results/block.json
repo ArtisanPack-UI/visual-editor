@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/post-types-search-results",
     "title": "Post Types Search Results",
-    "category": "artisanpack",
+    "category": "search",
     "description": "Wrap a set of post-type-specific result sections that render conditionally based on the searched post type.",
     "keywords": ["search", "results", "post types"],
     "textdomain": "artisanpack-visual-editor",

@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/search-field",
     "title": "Search Field",
-    "category": "artisanpack",
+    "category": "search",
     "description": "Render a labelled search input that posts the keyword to the host page as the `s` query parameter.",
     "keywords": ["search", "keyword", "filter", "input"],
     "textdomain": "artisanpack-visual-editor",

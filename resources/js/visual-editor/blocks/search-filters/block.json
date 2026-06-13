@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/search-filters",
     "title": "Search Filters",
-    "category": "artisanpack",
+    "category": "search",
     "description": "Wrap a set of filter controls (search field, taxonomy dropdowns, submit + reset buttons) in a single GET form that posts back to the host site.",
     "keywords": ["search", "filters", "form"],
     "textdomain": "artisanpack-visual-editor",

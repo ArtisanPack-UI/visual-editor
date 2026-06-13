@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/comments-number",
     "title": "Comments Number",
-    "category": "artisanpack",
+    "category": "theme",
     "description": "Display the number of comments on a post with custom singular and plural labels.",
     "keywords": ["comments", "count", "comments number"],
     "textdomain": "artisanpack-visual-editor",

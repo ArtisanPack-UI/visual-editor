@@ -29,18 +29,18 @@ import marqueeSave from '../marquee/save';
 import commentsNumberSave from '../comments-number/save';
 
 const FAMILY = [
-    { slug: 'copyright', meta: copyrightMeta },
-    { slug: 'marquee', meta: marqueeMeta },
-    { slug: 'comments-number', meta: commentsNumberMeta },
+    { slug: 'copyright', meta: copyrightMeta, category: 'theme' },
+    { slug: 'marquee', meta: marqueeMeta, category: 'design' },
+    { slug: 'comments-number', meta: commentsNumberMeta, category: 'theme' },
 ] as const;
 
 describe('site-chrome cluster block.json', () => {
     it.each(FAMILY)(
         '$slug declares the artisanpack namespace + textdomain + category',
-        ({ slug, meta }) => {
+        ({ slug, meta, category }) => {
             expect(meta.name).toBe(`artisanpack/${slug}`);
             expect(meta.textdomain).toBe('artisanpack-visual-editor');
-            expect(meta.category).toBe('artisanpack');
+            expect(meta.category).toBe(category);
         }
     );
 

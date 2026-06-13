@@ -1,14 +1,14 @@
 /**
- * Search Filters — inserter icon.
+ * Grid Item — inserter icon.
  *
- * Inline SVG of Font Awesome Free Solid's `filter` glyph
+ * Inline SVG of Font Awesome Free Solid's `square` glyph
  * (CC BY 4.0). Path data copied verbatim so the editor canvas can
  * render the icon without loading the Font Awesome stylesheet.
  */
 
 import type { ReactElement } from 'react';
 
-export default function SearchFiltersInserterIcon(): ReactElement {
+export default function GridItemInserterIcon(): ReactElement {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -18,7 +18,7 @@ export default function SearchFiltersInserterIcon(): ReactElement {
             aria-hidden="true"
             focusable="false"
         >
-            <path fill="currentColor" d="M32 64C19.1 64 7.4 71.8 2.4 83.8S.2 109.5 9.4 118.6L192 301.3 192 416c0 8.5 3.4 16.6 9.4 22.6l64 64c9.2 9.2 22.9 11.9 34.9 6.9S320 492.9 320 480l0-178.7 182.6-182.6c9.2-9.2 11.9-22.9 6.9-34.9S492.9 64 480 64L32 64z" />
+            <path fill="currentColor" d="M64 32l320 0c35.3 0 64 28.7 64 64l0 320c0 35.3-28.7 64-64 64L64 480c-35.3 0-64-28.7-64-64L0 96C0 60.7 28.7 32 64 32z" />
         </svg>
     );
 }

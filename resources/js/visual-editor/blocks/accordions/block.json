@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/accordions",
     "title": "Accordions",
-    "category": "artisanpack",
+    "category": "design",
     "description": "Group one or more accordion panels into a collapsible section.",
     "keywords": ["accordion", "accordions", "collapsible", "faq"],
     "textdomain": "artisanpack-visual-editor",

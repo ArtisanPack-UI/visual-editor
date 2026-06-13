@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/accordion-title",
     "title": "Accordion Title",
-    "category": "artisanpack",
+    "category": "design",
     "description": "The clickable header of an accordion panel.",
     "parent": ["artisanpack/accordion"],
     "textdomain": "artisanpack-visual-editor",

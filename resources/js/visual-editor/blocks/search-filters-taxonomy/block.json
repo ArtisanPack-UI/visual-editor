@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/search-filters-taxonomy",
     "title": "Search Filters Taxonomy",
-    "category": "artisanpack",
+    "category": "search",
     "description": "Render a labelled `<select>` populated from a taxonomy so visitors can narrow search results by term.",
     "keywords": ["search", "filters", "taxonomy", "select"],
     "textdomain": "artisanpack-visual-editor",

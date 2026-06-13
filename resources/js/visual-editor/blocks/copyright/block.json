@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/copyright",
     "title": "Copyright",
-    "category": "artisanpack",
+    "category": "theme",
     "description": "Display a copyright line that always shows the current year.",
     "keywords": ["copyright", "footer", "site"],
     "textdomain": "artisanpack-visual-editor",

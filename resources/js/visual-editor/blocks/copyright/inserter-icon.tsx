@@ -1,8 +1,9 @@
 /**
  * Copyright — inserter icon.
  *
- * Inline SVG (a circled "C") so the editor canvas does not have to load
- * `dashicons.css` for the block-library inserter preview.
+ * Inline SVG of Font Awesome Free Solid's `copyright` glyph
+ * (CC BY 4.0). Path data copied verbatim so the editor canvas can
+ * render the icon without loading the Font Awesome stylesheet.
  */
 
 import type { ReactElement } from 'react';
@@ -11,13 +12,13 @@ export default function CopyrightInserterIcon(): ReactElement {
     return (
         <svg
             xmlns="http://www.w3.org/2000/svg"
-            viewBox="0 0 24 24"
+            viewBox="0 0 512 512"
             width={24}
             height={24}
             aria-hidden="true"
             focusable="false"
         >
-            <path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2Zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8Zm0-13a5 5 0 0 0 0 10 5 5 0 0 0 3.54-1.46l-1.42-1.42A3 3 0 1 1 12 9a3 3 0 0 1 2.12.88l1.42-1.42A5 5 0 0 0 12 7Z" />
+            <path fill="currentColor" d="M256 512a256 256 0 1 0 0-512 256 256 0 1 0 0 512zM205.1 306.9c28.1 28.1 73.7 28.1 101.8 0 9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9c-46.9 46.9-122.8 46.9-169.7 0s-46.9-122.8 0-169.7 122.8-46.9 169.7 0c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0c-28.1-28.1-73.7-28.1-101.8 0s-28.1 73.7 0 101.8z" />
         </svg>
     );
 }

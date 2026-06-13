@@ -3,7 +3,7 @@
     "apiVersion": 3,
     "name": "artisanpack/callout",
     "title": "Callout",
-    "category": "artisanpack",
+    "category": "design",
     "description": "Highlight a short message with a severity badge and icon.",
     "keywords": ["callout", "notice", "alert", "tip"],
     "textdomain": "artisanpack-visual-editor",
