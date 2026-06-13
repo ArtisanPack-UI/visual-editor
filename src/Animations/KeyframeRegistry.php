@@ -110,17 +110,6 @@ class KeyframeRegistry
 	 */
 	public static function fromLayers( array $themeKeyframes = [], array $globalStylesKeyframes = [] ): self
 	{
-		// Global Styles wins on name collision — the editor UI is the
-		// most recently authored layer.
-		$merged = [];
-		foreach ( [ $themeKeyframes, $globalStylesKeyframes ] as $layer ) {
-			foreach ( $layer as $entry ) {
-				if ( is_array( $entry ) && isset( $entry['name'] ) && is_string( $entry['name'] ) ) {
-					$merged[ $entry['name'] ] = $entry;
-				}
-			}
-		}
-
 		// `fromLayers()` is wired into a Laravel scoped binding, so a
 		// throw here would crash every request that resolves the
 		// registry (e.g. via `<x-ve-blocks>`). Skip + log invalid
@@ -128,13 +117,23 @@ class KeyframeRegistry
 		// direct constructor path for tests and programmatic use.
 		$registry = new self();
 
-		foreach ( array_values( $merged ) as $entry ) {
-			try {
-				$normalised = $registry->validateOne( $entry );
-				$registry->custom[ $normalised['name'] ] = $normalised['stops'];
-			} catch ( InvalidArgumentException $e ) {
-				if ( function_exists( 'logger' ) ) {
-					logger()->warning( '[block-animations] Skipping invalid custom keyframe: ' . $e->getMessage() );
+		// Validate as we iterate, in layer order. Global Styles wins on
+		// name collision only when its entry is VALID — an invalid
+		// global-styles entry must not overwrite a valid theme entry,
+		// otherwise the theme keyframe vanishes entirely.
+		foreach ( [ $themeKeyframes, $globalStylesKeyframes ] as $layer ) {
+			foreach ( $layer as $entry ) {
+				if ( ! is_array( $entry ) ) {
+					continue;
+				}
+
+				try {
+					$normalised = $registry->validateOne( $entry );
+					$registry->custom[ $normalised['name'] ] = $normalised['stops'];
+				} catch ( InvalidArgumentException $e ) {
+					if ( function_exists( 'logger' ) ) {
+						logger()->warning( '[block-animations] Skipping invalid custom keyframe: ' . $e->getMessage() );
+					}
 				}
 			}
 		}

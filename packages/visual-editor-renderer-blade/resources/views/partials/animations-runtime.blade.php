@@ -41,14 +41,11 @@ the editor's exported `bootstrapAnimationsRuntime`. --}}
 
 	function init() {
 		var reducedMotion = reduced();
-
-		if ( 'undefined' === typeof IntersectionObserver ) {
-			Array.prototype.forEach.call(
-				document.querySelectorAll( '.' + PRE ),
-				play
-			);
-			return;
-		}
+		// No-IO browsers reveal everything synchronously — but the
+		// MutationObserver path below still wires up so late-inserted
+		// nodes get revealed too (they'd otherwise stay frozen in the
+		// pre-state forever).
+		var hasIO = 'undefined' !== typeof IntersectionObserver;
 
 		var entries = new Map();
 		var observersByThreshold = {};
@@ -86,6 +83,13 @@ the editor's exported `bootstrapAnimationsRuntime`. --}}
 
 		function observeEntry( el ) {
 			if ( entries.has( el ) ) return;
+			// No IntersectionObserver → reveal immediately. The noscript
+			// fallback handles the no-JS case; this branch handles
+			// JS-but-stone-age-browser.
+			if ( ! hasIO ) {
+				play( el );
+				return;
+			}
 			if ( reducedMotion && 'allow' !== el.getAttribute( 'data-ap-anim-reduced' ) ) {
 				play( el );
 				return;

@@ -61,6 +61,62 @@ it( 'fromLayers skips and logs invalid entries instead of throwing', function ()
 	expect( $registry->customNames() )->toBe( [ 'confetti' ] );
 } );
 
+it( 'does not let an invalid global-styles entry overwrite a valid theme entry of the same name', function () {
+	// Regression for the validate-then-merge fix: if global-styles
+	// stomps the merge dict pre-validation, the (valid) theme entry
+	// vanishes because the (invalid) global entry replaces it and is
+	// then dropped at validate time. Both layers reference the same
+	// name so we can isolate the precedence behaviour.
+	$registry = KeyframeRegistry::fromLayers(
+		[
+			[
+				'name'  => 'confetti',
+				'stops' => [
+					[ 'at' => '0%',   'transform' => 'translateY(0)' ],
+					[ 'at' => '100%', 'transform' => 'translateY(0)' ],
+				],
+			],
+		],
+		[
+			// Invalid: only one stop. Must NOT overwrite the theme
+			// entry above.
+			[ 'name' => 'confetti', 'stops' => [ [ 'at' => '0%', 'opacity' => '0' ] ] ],
+		]
+	);
+
+	expect( $registry->customNames() )->toBe( [ 'confetti' ] );
+	expect( $registry->emitOne( 'confetti' ) )->toContain( 'translateY(0)' );
+} );
+
+it( 'global-styles wins over theme when both layers are valid', function () {
+	$registry = KeyframeRegistry::fromLayers(
+		[
+			[
+				'name'  => 'confetti',
+				'stops' => [
+					[ 'at' => '0%',   'opacity' => '0' ],
+					[ 'at' => '100%', 'opacity' => '1' ],
+				],
+			],
+		],
+		[
+			[
+				'name'  => 'confetti',
+				'stops' => [
+					[ 'at' => '0%',   'transform' => 'translateY(0)' ],
+					[ 'at' => '100%', 'transform' => 'translateY(-12px)' ],
+				],
+			],
+		]
+	);
+
+	$emitted = $registry->emitOne( 'confetti' );
+	// The Global Styles version (transforms) wins, not the theme one
+	// (opacity).
+	expect( $emitted )->toContain( 'translateY(-12px)' );
+	expect( $emitted )->not->toContain( 'opacity' );
+} );
+
 it( 'rejects a custom keyframe whose name collides with a built-in', function () {
 	new KeyframeRegistry( [
 		[
