@@ -75,6 +75,9 @@ The block library — what ships, how to author your own, and how to wire respon
 - [[blocks/Icon Block]] — The `artisanpack/icon` block (FA Free + admin upload)
 - [[blocks/Responsive Design Tools]] — Per-breakpoint values on block controls
 - [[blocks/State Design Tools]] — Per-state overrides (hover, focus, active, etc.)
+- [[Animations]] — Block entrance, hover, and continuous animations (v1.1)
+- [[Border Gradients]] — Linear / radial / conic borders + tabbed color/gradient picker (v1.1)
+- [[Block Bindings]] — Bind block attributes to parent post/page/CPT data (v1.1)
 
 ---
 
@@ -168,4 +171,4 @@ For issues, feature requests, and contributions:
 
 ---
 
-*This documentation covers visual-editor v1.0.0*
+*This documentation covers visual-editor v1.1.0*

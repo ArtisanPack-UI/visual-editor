@@ -6,9 +6,83 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.1.0] — 2026-06-14
+
+The 1.1.0 release ships the full `artisanpack/icon` block (Phases 1–7),
+a wave of ported `crosswinds-blocks` first-party blocks (CW0–CW7),
+block bindings for parent post/page/CPT data, block animations,
+border-gradient borders, an auto-injected custom-block CSS pipeline
+for the editor canvas iframe, a `BreadcrumbsResolver`, and a set of
+Cover block fixes. See the new [[blocks/Icon Block]] page for the
+icon-block surface and the per-block docs under `docs/blocks/` for
+the ported block families.
+
 ### Added
 
-- **Icon block Phase 7 — end-to-end coverage and docs (#558).** Cross-
+- **Block bindings — connect block attrs to parent post/page/CPT
+  data (#504).** Block attributes can now bind to fields on the
+  surrounding post/page/CPT record, so editor placeholders render the
+  live value and front-end output stays in sync without hand-rolled
+  `render_callback` wiring.
+- **Block animations — entrance / hover / continuous + custom
+  keyframes (#489).** New animation panel on every supported block
+  with entrance, hover, and continuous animation types plus a custom
+  keyframe escape hatch. Animations are emitted as standard CSS on
+  the wrapper so they survive both the editor canvas and the
+  rendered front end.
+- **Border gradients — linear / radial / conic borders + tabbed
+  color/gradient picker (#490).** Border controls now accept a
+  gradient as well as a solid color. Linear, radial, and conic
+  gradient types are supported and exposed through a tabbed picker
+  that shares its color/gradient surface with the existing palette
+  controls.
+- **Auto-inject custom block CSS into the editor canvas iframe
+  (#566).** Custom CSS registered against a block via the block API
+  is now mirrored into the editor canvas iframe so the canvas
+  matches the rendered front end without the host app having to
+  enqueue editor styles by hand.
+- **`BreadcrumbsResolver` for `artisanpack/breadcrumbs` (#565).**
+  The breadcrumbs block now resolves its trail through a dedicated
+  resolver, decoupling the trail computation from the block's
+  server renderer so host apps can override how a trail is built
+  for custom post types and routes.
+- **Crosswinds blocks port (CW0–CW7).** The first-party
+  `artisanpack/*` block library grows with ports of the
+  `crosswinds-blocks` families:
+  - **CW0 — `artisanpack/breadcrumbs`** pilot port (#496).
+  - **CW1 — `artisanpack/accordion` + `artisanpack/tabs`** families
+    (#497).
+  - **CW2 — `artisanpack/grid` + `artisanpack/grid-item`** families
+    (#498).
+  - **`artisanpack/next-post` + `artisanpack/previous-post`**
+    container blocks (#499).
+  - **Site-chrome blocks — `artisanpack/copyright`,
+    `artisanpack/marquee`, `artisanpack/comments-number`** (#500).
+  - **Single-post content cluster — `artisanpack/single-content`,
+    `artisanpack/related-posts`, `artisanpack/author-social-icons`,
+    `artisanpack/social-share-content`** (#501).
+  - **CW6 — search cluster** (#502).
+  - **CW7 — `artisanpack/skills-slider`** (#503).
+  All ported blocks ship under the `artisanpack/*` namespace as
+  first-party blocks; the inserter icons and categories were
+  restyled and recategorised in the same wave (#495).
+- **Icon block — full Phase 1–7 surface (#552, #554, #555, #556,
+  #557, #558).** The `artisanpack/icon` block lands across seven
+  phases:
+  - **Phase 1 — block scaffold** with server render + SVG
+    sanitizer (#552).
+  - **Phase 2 — bundled FA Free SVGs** (Solid, Regular, Brands)
+    auto-registered against the icons package via the
+    `ap.icons.register-icon-sets` filter, with inline-rendered
+    SVGs on the front end (#554).
+  - **Phase 4 — picker UI** with search, set chips, a recent
+    tray, and a paginated grid (#555).
+  - **Phase 5 — custom SVG paste / upload** for one-off icons
+    sanitized through the same SVG sanitizer (#556).
+  - **Phase 6 — admin icon-sets settings** + zip-upload pipeline
+    for registering whole icon families through the admin UI
+    (#557).
+  - **Phase 7 — end-to-end coverage and docs (#558).** Cross-
   phase Pest tests now stitch the registration filter, catalog, picker
   endpoints, admin uploader, sanitizer, and block renderer together so
   regressions that only surface end-to-end are caught. New Vitest
@@ -53,6 +127,16 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   accessible name. The editor-side `hasDecorativeLinkConflict()`
   warning still fires when no `ariaLabel` is supplied, which is the
   scenario the warning was always meant to flag.
+- **Cover block — background classes now route to the overlay span
+  (#583).** Palette-color background classes on the Cover block now
+  reach the overlay span where the legacy markup expects them,
+  instead of being applied to the wrapper and producing a flat,
+  unblended fill.
+- **Cover block — unfreeze editor on overlay color pick + media
+  select (#578).** Picking an overlay color or a media item in the
+  Cover block no longer hangs the editor. Stale refinement results
+  are guarded against and the block's effect chain no longer
+  reschedules itself in a tight loop.
 
 ## [1.0.0] — 2026-06-08
 
