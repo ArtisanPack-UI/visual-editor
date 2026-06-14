@@ -420,6 +420,147 @@ it( 'clamps cover dimRatio to 0-100 and whitelists minHeightUnit', function () {
 		->not->toContain( 'javascript:' );
 } );
 
+it( 'routes cover palette gradient class to the overlay span, not the wrapper', function () {
+	$tree = [
+		makeBlock( 'core/cover', [
+			'gradient' => 'sunset',
+			'dimRatio' => 50,
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '/<div class="([^"]*wp-block-cover[^"]*)"/', $html, $wrapperMatches );
+	preg_match( '/<span aria-hidden="true" class="([^"]*wp-block-cover__background[^"]*)"/', $html, $overlayMatches );
+
+	$wrapperClasses = $wrapperMatches[1] ?? '';
+	$overlayClasses = $overlayMatches[1] ?? '';
+
+	expect( $overlayClasses )->toContain( 'has-sunset-gradient-background' )
+		->toContain( 'has-background' );
+
+	expect( $wrapperClasses )->not->toContain( 'has-sunset-gradient-background' )
+		->not->toContain( 'has-background' );
+} );
+
+it( 'routes cover custom background-color inline declaration to the overlay span', function () {
+	$tree = [
+		makeBlock( 'core/cover', [
+			'style'    => [ 'color' => [ 'background' => '#bada55' ] ],
+			'dimRatio' => 40,
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '/<div class="[^"]*wp-block-cover[^"]*"([^>]*)>/', $html, $wrapperMatches );
+	preg_match( '/<span aria-hidden="true"[^>]*style="([^"]*)"/', $html, $overlayMatches );
+
+	$wrapperAttrs = $wrapperMatches[1] ?? '';
+	$overlayStyle = $overlayMatches[1] ?? '';
+
+	expect( $overlayStyle )->toContain( 'background-color: #bada55' )
+		->toContain( 'opacity: 0.4' );
+
+	expect( $wrapperAttrs )->not->toContain( 'background-color' )
+		->not->toContain( '#bada55' );
+} );
+
+it( 'routes cover overlayColor palette slug to the overlay span', function () {
+	$tree = [
+		makeBlock( 'core/cover', [
+			'overlayColor' => 'primary',
+			'dimRatio'     => 60,
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '/<div class="([^"]*wp-block-cover[^"]*)"/', $html, $wrapperMatches );
+	preg_match( '/<span aria-hidden="true" class="([^"]*wp-block-cover__background[^"]*)"/', $html, $overlayMatches );
+
+	$wrapperClasses = $wrapperMatches[1] ?? '';
+	$overlayClasses = $overlayMatches[1] ?? '';
+
+	expect( $overlayClasses )->toContain( 'has-primary-background-color' )
+		->toContain( 'has-background' );
+
+	expect( $wrapperClasses )->not->toContain( 'has-primary-background-color' )
+		->not->toContain( 'has-background' );
+} );
+
+it( 'routes cover customOverlayColor inline declaration to the overlay span', function () {
+	$tree = [
+		makeBlock( 'core/cover', [
+			'customOverlayColor' => '#eb3824',
+			'dimRatio'           => 50,
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '/<div class="[^"]*wp-block-cover[^"]*"([^>]*)>/', $html, $wrapperMatches );
+	preg_match( '/<span aria-hidden="true" class="([^"]*wp-block-cover__background[^"]*)"[^>]*style="([^"]*)"/', $html, $overlayMatches );
+
+	$wrapperAttrs   = $wrapperMatches[1] ?? '';
+	$overlayClasses = $overlayMatches[1] ?? '';
+	$overlayStyle   = $overlayMatches[2] ?? '';
+
+	expect( $overlayStyle )->toContain( 'background-color: #eb3824' )
+		->toContain( 'opacity: 0.5' );
+	expect( $overlayClasses )->toContain( 'has-background' );
+
+	expect( $wrapperAttrs )->not->toContain( '#eb3824' )
+		->not->toContain( 'has-background' );
+} );
+
+it( 'routes cover customGradient inline declaration to the overlay span', function () {
+	$tree = [
+		makeBlock( 'core/cover', [
+			'customGradient' => 'linear-gradient(135deg, red, blue)',
+			'dimRatio'       => 50,
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '/<div class="[^"]*wp-block-cover[^"]*"([^>]*)>/', $html, $wrapperMatches );
+	preg_match( '/<span aria-hidden="true" class="([^"]*wp-block-cover__background[^"]*)"[^>]*style="([^"]*)"/', $html, $overlayMatches );
+
+	$wrapperAttrs   = $wrapperMatches[1] ?? '';
+	$overlayClasses = $overlayMatches[1] ?? '';
+	$overlayStyle   = $overlayMatches[2] ?? '';
+
+	expect( $overlayStyle )->toContain( 'background: linear-gradient(135deg, red, blue)' );
+	expect( $overlayClasses )->toContain( 'has-background' );
+
+	expect( $wrapperAttrs )->not->toContain( 'linear-gradient' )
+		->not->toContain( 'has-background' );
+} );
+
+it( 'keeps cover text-color output on the wrapper, not the overlay span', function () {
+	$tree = [
+		makeBlock( 'core/cover', [
+			'textColor' => 'midnight',
+			'dimRatio'  => 50,
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '/<div class="([^"]*wp-block-cover[^"]*)"/', $html, $wrapperMatches );
+	preg_match( '/<span aria-hidden="true" class="([^"]*wp-block-cover__background[^"]*)"/', $html, $overlayMatches );
+
+	$wrapperClasses = $wrapperMatches[1] ?? '';
+	$overlayClasses = $overlayMatches[1] ?? '';
+
+	expect( $wrapperClasses )->toContain( 'has-midnight-color' )
+		->toContain( 'has-text-color' );
+
+	expect( $overlayClasses )->not->toContain( 'has-midnight-color' )
+		->not->toContain( 'has-text-color' );
+} );
+
 it( 'validates table cell alignment against an allowlist', function () {
 	$tree = [
 		makeBlock( 'core/table', [
