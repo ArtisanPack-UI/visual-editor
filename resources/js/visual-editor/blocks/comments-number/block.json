@@ -1,0 +1,85 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/comments-number",
+    "title": "Comments Number",
+    "category": "theme",
+    "description": "Display the number of comments on a post with custom singular and plural labels.",
+    "keywords": [
+        "comments",
+        "count",
+        "comments number"
+    ],
+    "textdomain": "artisanpack-visual-editor",
+    "usesContext": [
+        "postId",
+        "postType"
+    ],
+    "attributes": {
+        "singularCommentText": {
+            "type": "string",
+            "default": "Comment"
+        },
+        "pluralCommentText": {
+            "type": "string",
+            "default": "Comments"
+        }
+    },
+    "supports": {
+        "artisanpackAnimations": true,
+        "align": [
+            "wide",
+            "full"
+        ],
+        "ariaLabel": true,
+        "className": true,
+        "html": false,
+        "spacing": {
+            "margin": [
+                "top",
+                "bottom"
+            ],
+            "padding": true,
+            "blockGap": true,
+            "__experimentalDefaultControls": {
+                "padding": true,
+                "blockGap": true
+            }
+        },
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "shadow": true,
+        "__experimentalBorder": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true,
+            "__experimentalDefaultControls": {
+                "color": true,
+                "radius": true,
+                "style": true,
+                "width": true
+            },
+            "gradient": true
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "__experimentalFontFamily": true,
+            "__experimentalFontWeight": true,
+            "__experimentalFontStyle": true,
+            "__experimentalTextTransform": true,
+            "__experimentalTextDecoration": true,
+            "__experimentalLetterSpacing": true,
+            "__experimentalDefaultControls": {
+                "fontSize": true
+            }
+        }
+    }
+}

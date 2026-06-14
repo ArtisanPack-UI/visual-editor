@@ -300,6 +300,28 @@ export function useThemedEditorSettings(
         const themeSpacingSizes = extractThemeSpacingSizes(themeSettings);
         const themeGradients = extractThemeGradients(themeSettings);
 
+        // #490 — propagate the theme's color-customization booleans so
+        // Gutenberg's `useSettings('color.customGradient')` / `'color.custom'`
+        // hooks return the configured value (used by `ColorGradientControl`
+        // to decide whether to surface the custom-authoring UI inside the
+        // Gradient tab). Without these the auto-injected Background picker
+        // shows only the theme palette with no way to author a fresh
+        // gradient. `?? true` mirrors WP core's defaults so themes that
+        // omit these keys still get the standard authoring affordances.
+        const themeColor = ( themeSettings.color as Record<string, unknown> | undefined ) ?? {};
+        const themeCustomGradient = 'customGradient' in themeColor
+            ? Boolean( themeColor.customGradient )
+            : true;
+        const themeDefaultGradients = 'defaultGradients' in themeColor
+            ? Boolean( themeColor.defaultGradients )
+            : true;
+        const themeCustomColor = 'custom' in themeColor
+            ? Boolean( themeColor.custom )
+            : true;
+        const themeDefaultPalette = 'defaultPalette' in themeColor
+            ? Boolean( themeColor.defaultPalette )
+            : true;
+
         const needsStyles = themeCss !== undefined && themeCss !== '';
         const needsPalette = themePalette !== null;
         const needsFontSizes = themeFontSizes !== null;
@@ -343,6 +365,16 @@ export function useThemedEditorSettings(
                 ...baseFeatures,
                 color: {
                     ...baseColor,
+                    // Authoring affordance flags — see comment above the
+                    // `themeCustomGradient` extraction in this function for
+                    // why these must be forwarded explicitly. WP's
+                    // `useSettings` reads these by dotted path; missing
+                    // keys make `disableCustomGradients` default to true
+                    // and the Gradient tab loses its custom-authoring UI.
+                    custom: themeCustomColor,
+                    customGradient: themeCustomGradient,
+                    defaultPalette: themeDefaultPalette,
+                    defaultGradients: themeDefaultGradients,
                     ...(needsPalette || needsGradients
                         ? {
                               palette: needsPalette

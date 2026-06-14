@@ -6,17 +6,25 @@
     "category": "theme",
     "description": "Display the description of categories, tags and custom taxonomies when viewing an archive.",
     "textdomain": "artisanpack-visual-editor",
-    "usesContext": [ "termId", "taxonomy" ],
+    "usesContext": [
+        "termId",
+        "taxonomy"
+    ],
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
-        "align": [ "wide", "full" ],
+        "align": [
+            "wide",
+            "full"
+        ],
         "html": false,
         "color": {
             "link": true,
             "__experimentalDefaultControls": {
                 "background": true,
                 "text": true
-            }
+            },
+            "gradients": true
         },
         "spacing": {
             "padding": true,
@@ -49,7 +57,8 @@
                 "color": true,
                 "width": true,
                 "style": true
-            }
+            },
+            "gradient": true
         }
     }
 }

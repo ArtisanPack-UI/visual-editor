@@ -47,10 +47,13 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Support;
 
+use ArtisanPackUI\VisualEditor\GradientBorder\GradientBorderEmitter;
+use ArtisanPackUI\VisualEditor\GradientBorder\GradientBorderResolver;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
 use ArtisanPackUI\VisualEditor\States\StateValueResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 
@@ -158,15 +161,25 @@ class BlockSupports
 			self::pushStates( $states['class'], $states['rules'] );
 		}
 
+		$gradientBorder = self::compileGradientBorder( $attributes );
+
+		if ( '' !== $gradientBorder['class'] ) {
+			$classes[] = $gradientBorder['class'];
+
+			self::pushGradientBorder( $gradientBorder['class'], $gradientBorder['rules'] );
+		}
+
 		return [
-			'classes'         => $classes,
-			'style'           => $styleString,
-			'id'              => $id,
-			'responsiveCss'   => '',
-			'responsiveClass' => $responsive['class'],
-			'responsiveRules' => $responsive['rules'],
-			'statesClass'     => $states['class'],
-			'statesRules'     => $states['rules'],
+			'classes'             => $classes,
+			'style'               => $styleString,
+			'id'                  => $id,
+			'responsiveCss'       => '',
+			'responsiveClass'     => $responsive['class'],
+			'responsiveRules'     => $responsive['rules'],
+			'statesClass'         => $states['class'],
+			'statesRules'         => $states['rules'],
+			'gradientBorderClass' => $gradientBorder['class'],
+			'gradientBorderRules' => $gradientBorder['rules'],
 		];
 	}
 
@@ -236,6 +249,333 @@ class BlockSupports
 		} catch ( \Throwable $e ) {
 			// See pushResponsive() — same drop-silently rationale.
 		}
+	}
+
+	/**
+	 * Mirror of {@see pushResponsive} for gradient borders (#490).
+	 *
+	 * @since 1.1.0
+	 */
+	public static function pushGradientBorder( string $scope, string $rules ): void
+	{
+		if ( '' === $scope || '' === $rules ) {
+			return;
+		}
+
+		if ( ! function_exists( 'app' ) ) {
+			return;
+		}
+
+		try {
+			app( GradientBorderCssAccumulator::class )->push( $scope, $rules );
+		} catch ( \Throwable $e ) {
+			// See pushResponsive() — same drop-silently rationale.
+		}
+	}
+
+	/**
+	 * Split {@see compile}'s class / style output into a `background`
+	 * bucket and a `wrapper` bucket (#583).
+	 *
+	 * Most blocks paint their background on the same element that
+	 * carries the wrapper class — so {@see wrapperAttrs} just merges
+	 * everything onto that element and the partial never needs to
+	 * worry about routing. The `core/cover` block is the exception:
+	 * the painted surface is the `wp-block-cover__background` overlay
+	 * span layered on top of the image, not the outer `<div>`. Background
+	 * classes / inline declarations applied to the wrapper sit behind
+	 * the image and never render. This helper carves the
+	 * background-affecting output out of `compile`'s return so the
+	 * cover partial can route it onto the overlay while keeping
+	 * everything else (layout, alignment, text color, anchor, border,
+	 * spacing, typography, animations) on the wrapper.
+	 *
+	 * Classes routed to the `background` bucket:
+	 * - `has-background` marker.
+	 * - `has-{slug}-background-color` (palette background slug).
+	 * - `has-{slug}-gradient-background` (palette gradient slug).
+	 *
+	 * Inline declarations routed to the `background` bucket:
+	 * - `background-color: ...`
+	 * - `background-image: ...`
+	 * - `background: ...` (shorthand / custom gradient).
+	 *
+	 * Every other class / declaration is kept in the `wrapper` bucket
+	 * untouched.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<int, string>  $classes  `compile`'s `classes` return.
+	 * @param  string              $style    `compile`'s `style` return
+	 *                                       (semicolon-separated
+	 *                                       declaration list).
+	 *
+	 * @return array{
+	 *     background: array{classes: array<int, string>, style: string},
+	 *     wrapper:    array{classes: array<int, string>, style: string},
+	 * }
+	 */
+	public static function splitBackgroundOutput( array $classes, string $style ): array
+	{
+		$backgroundClasses = [];
+		$wrapperClasses    = [];
+
+		foreach ( $classes as $class ) {
+			if ( ! is_string( $class ) ) {
+				continue;
+			}
+
+			if ( self::isBackgroundClass( $class ) ) {
+				$backgroundClasses[] = $class;
+
+				continue;
+			}
+
+			$wrapperClasses[] = $class;
+		}
+
+		[ $backgroundStyle, $wrapperStyle ] = self::partitionBackgroundStyle( $style );
+
+		return [
+			'background' => [
+				'classes' => $backgroundClasses,
+				'style'   => $backgroundStyle,
+			],
+			'wrapper'    => [
+				'classes' => $wrapperClasses,
+				'style'   => $wrapperStyle,
+			],
+		];
+	}
+
+	/**
+	 * Compile the cover block's overlay-specific color / gradient
+	 * attributes into a `{classes, style}` bundle the cover partial
+	 * merges into the overlay span (#583).
+	 *
+	 * The cover block stores its overlay color under bespoke top-level
+	 * attribute names (`overlayColor`, `customOverlayColor`,
+	 * `customGradient`) instead of the generic `backgroundColor` /
+	 * `style.color.background` slots that {@see compile} understands.
+	 * Without this helper those values land on neither the wrapper nor
+	 * the overlay — they're silently dropped — because `compile`
+	 * doesn't look at the cover-only attribute names. The `gradient`
+	 * palette slug shares its attribute name with the generic block-
+	 * supports input, so it already flows through `compile` → split →
+	 * overlay and is intentionally NOT re-emitted here.
+	 *
+	 * Precedence (matches WordPress core's `render_block_core_cover`):
+	 * palette `overlayColor` wins over `customOverlayColor`; the
+	 * `customGradient` declaration layers on top of either color
+	 * because `background` shorthand and `background-color` map to
+	 * different cascade slots on the overlay span.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{classes: array<int, string>, style: string}
+	 */
+	public static function compileCoverOverlay( array $attributes ): array
+	{
+		$classes = [];
+		$style   = [];
+
+		$overlaySlug      = self::stringAttr( $attributes['overlayColor'] ?? null );
+		$customOverlay    = self::stringAttr( $attributes['customOverlayColor'] ?? null );
+		$customGradient   = self::stringAttr( $attributes['customGradient'] ?? null );
+
+		if ( '' !== $overlaySlug ) {
+			$classes[] = 'has-' . self::slugify( $overlaySlug ) . '-background-color';
+			$classes[] = 'has-background';
+		} elseif ( '' !== $customOverlay ) {
+			$style[]   = 'background-color: ' . self::expandPresetReference( $customOverlay );
+			$classes[] = 'has-background';
+		}
+
+		if ( '' !== $customGradient ) {
+			$style[]   = 'background: ' . self::expandPresetReference( $customGradient );
+			$classes[] = 'has-background';
+		}
+
+		return [
+			'classes' => array_values( array_unique( $classes ) ),
+			'style'   => [] === $style ? '' : implode( '; ', $style ) . ';',
+		];
+	}
+
+	/**
+	 * Identify the class tokens emitted by {@see applyColor} that
+	 * correspond to background painting — the `has-background` marker
+	 * and the slug-derived `has-{slug}-background-color` /
+	 * `has-{slug}-gradient-background` classes. Text-color classes
+	 * (`has-text-color`, `has-{slug}-color`) and every non-color class
+	 * fall through to `false` so they stay on the wrapper.
+	 *
+	 * @since 1.1.0
+	 */
+	protected static function isBackgroundClass( string $class ): bool
+	{
+		if ( 'has-background' === $class ) {
+			return true;
+		}
+
+		return 1 === preg_match(
+			'/^has-[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-(?:background-color|gradient-background)$/',
+			$class
+		);
+	}
+
+	/**
+	 * Carve `background-color`, `background-image`, and shorthand
+	 * `background` declarations out of a semicolon-separated style
+	 * string, returning `[backgroundStyle, wrapperStyle]`. Each output
+	 * string is `;`-suffixed iff non-empty so callers can splice them
+	 * back into a wrapper attribute without re-checking emptiness.
+	 *
+	 * Declarations with a leading custom-property name (e.g.
+	 * `--wp--style--block-gap`) are NOT background output and stay on
+	 * the wrapper.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array{0: string, 1: string}
+	 */
+	protected static function partitionBackgroundStyle( string $style ): array
+	{
+		if ( '' === $style ) {
+			return [ '', '' ];
+		}
+
+		$background = [];
+		$wrapper    = [];
+
+		foreach ( explode( ';', rtrim( $style, ';' ) ) as $declaration ) {
+			$declaration = trim( $declaration );
+
+			if ( '' === $declaration ) {
+				continue;
+			}
+
+			if ( self::isBackgroundDeclaration( $declaration ) ) {
+				$background[] = $declaration;
+
+				continue;
+			}
+
+			$wrapper[] = $declaration;
+		}
+
+		$backgroundString = [] === $background ? '' : implode( '; ', $background ) . ';';
+		$wrapperString    = [] === $wrapper    ? '' : implode( '; ', $wrapper )    . ';';
+
+		return [ $backgroundString, $wrapperString ];
+	}
+
+	/**
+	 * Check a single trimmed CSS declaration for a `background-color`,
+	 * `background-image`, or shorthand `background` property name. The
+	 * match is anchored to the property — declarations with a value
+	 * containing the literal `background` keyword (e.g.
+	 * `transition: background 200ms`) are left on the wrapper.
+	 *
+	 * @since 1.1.0
+	 */
+	protected static function isBackgroundDeclaration( string $declaration ): bool
+	{
+		$colonPosition = strpos( $declaration, ':' );
+
+		if ( false === $colonPosition ) {
+			return false;
+		}
+
+		$property = strtolower( rtrim( substr( $declaration, 0, $colonPosition ) ) );
+
+		return 'background' === $property
+			|| 'background-color' === $property
+			|| 'background-image' === $property;
+	}
+
+	/**
+	 * Apply the gradient border feature to an already-rendered block's
+	 * HTML output (#490).
+	 *
+	 * Static blocks (Blade partials) get gradient border handling for
+	 * free via {@see wrapperAttrs} → {@see compile}. Dynamic blocks
+	 * (subclasses of `DynamicBlock`) render their own HTML and never
+	 * call into the compile pipeline — so the renderer pipes their
+	 * output through this method to push the scope's CSS rule into the
+	 * accumulator AND stamp the scope class onto the first opening
+	 * tag.
+	 *
+	 * No-op when the block carries no gradient border configuration at
+	 * any cascade level. Idempotent on the class injection — calling
+	 * twice with the same scope is harmless (the class is deduped at
+	 * the wrapper level by the consumer).
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  string               $html       Block's pre-rendered HTML.
+	 * @param  array<string, mixed> $attributes Block's attribute payload
+	 *                                          (the same shape `compile`
+	 *                                          would receive).
+	 */
+	public static function applyGradientBorder( string $html, array $attributes ): string
+	{
+		if ( '' === $html ) {
+			return $html;
+		}
+
+		$compiled = self::compileGradientBorder( $attributes );
+
+		if ( '' === $compiled['class'] || '' === $compiled['rules'] ) {
+			return $html;
+		}
+
+		self::pushGradientBorder( $compiled['class'], $compiled['rules'] );
+
+		return self::injectClassIntoFirstTag( $html, $compiled['class'] );
+	}
+
+	/**
+	 * Merge a single class token into the `class` attribute of the
+	 * first opening tag in `$html`. Adds the attribute when missing.
+	 * Returns the input unchanged when no opening tag is found (broken
+	 * markup, comment-only output, etc.).
+	 *
+	 * @since 1.1.0
+	 */
+	protected static function injectClassIntoFirstTag( string $html, string $class ): string
+	{
+		// Existing class attribute on the first opening tag — append.
+		// Case-insensitive (`/i`) so `CLASS` / `Class` variants are
+		// still detected, and the quote-style is captured as a back-
+		// reference so single AND double quotes are merged (instead of
+		// either being missed → the injector falls through to the
+		// add-new-attribute branch and writes a SECOND `class`
+		// attribute, which is invalid HTML).
+		if ( 1 === preg_match( '/^(\s*<[a-zA-Z][^>]*?)\bclass\s*=\s*(["\'])(.*?)\2([^>]*>)/is', $html, $matches ) ) {
+			$existing = trim( $matches[3] );
+			$tokens   = '' === $existing ? [] : ( preg_split( '/\s+/', $existing ) ?: [] );
+
+			if ( in_array( $class, $tokens, true ) ) {
+				return $html;
+			}
+
+			$nextClass = '' === $existing ? $class : $existing . ' ' . $class;
+			$prefix    = $matches[1] . 'class="' . $nextClass . '"' . $matches[4];
+
+			return $prefix . substr( $html, strlen( $matches[0] ) );
+		}
+
+		// No `class` attribute — add one to the first opening tag.
+		if ( 1 === preg_match( '/^(\s*<[a-zA-Z][^>]*?)(\/?>)/s', $html, $matches ) ) {
+			$prefix = $matches[1] . ' class="' . $class . '"' . $matches[2];
+
+			return $prefix . substr( $html, strlen( $matches[0] ) );
+		}
+
+		return $html;
 	}
 
 	/**
@@ -469,6 +809,91 @@ class BlockSupports
 			},
 			$css
 		);
+	}
+
+	/**
+	 * Compile the `style.border` gradient payload into a `{class, rules}`
+	 * pair the wrapper merges in and the accumulator dedupes (#490).
+	 *
+	 * Returns `{class: '', rules: ''}` when no gradient configuration
+	 * is present at any cascade level — callers should treat empty as
+	 * a signal to skip both wrapper merge and accumulator push.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{class: string, rules: string}
+	 */
+	protected static function compileGradientBorder( array $attributes ): array
+	{
+		$payload = GradientBorderResolver::resolve( $attributes );
+
+		if ( null === $payload ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+
+		try {
+			$states      = self::resolveStateRegistry();
+			$breakpoints = function_exists( 'app' )
+				? self::resolveRegistry()
+				: BreakpointRegistry::fromLayers();
+
+			$emitter = new GradientBorderEmitter( $states, $breakpoints );
+
+			$scopeClass = self::resolveGradientBorderScopeClass( $attributes, $payload );
+			$scope      = '.' . $scopeClass;
+			$css        = $emitter->emit( $scope, $payload );
+
+			if ( '' === $css ) {
+				return [ 'class' => '', 'rules' => '' ];
+			}
+
+			return [
+				'class' => $scopeClass,
+				'rules' => $css,
+			];
+		} catch ( \Throwable $e ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+	}
+
+	/**
+	 * Prefer the editor-minted `style.border._gradientScopeId` so the
+	 * editor preview and the server-rendered output target the same
+	 * scope class. Falls back to a content-derived hash when no id was
+	 * stamped (legacy content, hand-authored blocks, server-only
+	 * pipelines).
+	 *
+	 * The minted id is interpolated into both the `<style>` block and
+	 * the wrapper's `class` attribute, so its content has to be a
+	 * safe identifier-style token — same defense-in-depth check the
+	 * state pipeline runs on its `_scopeId`.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 * @param  array<string, mixed>  $payload
+	 */
+	protected static function resolveGradientBorderScopeClass( array $attributes, array $payload ): string
+	{
+		$border = $attributes['style']['border'] ?? null;
+
+		if ( is_array( $border ) && isset( $border['_gradientScopeId'] ) && is_string( $border['_gradientScopeId'] ) ) {
+			$candidate = $border['_gradientScopeId'];
+
+			if ( 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $candidate ) && strlen( $candidate ) <= 64 ) {
+				return 've-gb-' . $candidate;
+			}
+		}
+
+		$hash = substr(
+			hash( 'xxh3', (string) json_encode( $payload ) ),
+			0,
+			10
+		);
+
+		return 've-gb-' . $hash;
 	}
 
 	/**
@@ -755,6 +1180,20 @@ class BlockSupports
 			static fn ( string $class ): bool => '' !== trim( $class ),
 		) ) );
 
+		// #489 — drop the animation wrapper classes, scope class, and
+		// data-* attributes onto any block carrying an
+		// `artisanpackAnimations` attribute bag. Centralising it here
+		// means every block partial that uses `wrapperAttrs` (image,
+		// table, navigation, etc.) picks up animations for free; cover
+		// builds its attrs by hand and handles this inline.
+		$animations = self::resolveAnimations( $attributes );
+
+		if ( null !== $animations ) {
+			foreach ( $animations['classes'] as $class ) {
+				$classes[] = $class;
+			}
+		}
+
 		$parts = [];
 
 		if ( [] !== $classes ) {
@@ -769,7 +1208,76 @@ class BlockSupports
 			$parts[] = sprintf( 'id="%s"', e( $compiled['id'] ) );
 		}
 
+		if ( null !== $animations && '' !== $animations['dataString'] ) {
+			$parts[] = $animations['dataString'];
+		}
+
 		return [] === $parts ? '' : ' ' . implode( ' ', $parts );
+	}
+
+	/**
+	 * Resolves the animation markup pieces for a block scope and pushes
+	 * the per-block CSS into the request-scoped accumulator. Returns
+	 * `null` when the block has no animations configured.
+	 *
+	 * The scope class is derived from a stable hash of the block's
+	 * attribute bag so identical render passes (e.g. the same block
+	 * inside a query loop) collide on key, letting the accumulator
+	 * dedupe.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{classes: array<int, string>, dataString: string}|null
+	 */
+	protected static function resolveAnimations( array $attributes ): ?array
+	{
+		$bag = $attributes['artisanpackAnimations'] ?? null;
+		if ( ! is_array( $bag ) || [] === $bag ) {
+			return null;
+		}
+
+		if ( ! function_exists( 'app' ) ) {
+			return null;
+		}
+
+		try {
+			$resolver = app( \ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver::class );
+			$accumulator = app( \ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator::class );
+		} catch ( \Throwable $e ) {
+			return null;
+		}
+
+		// `serialize()` is the deterministic content-stable fallback —
+		// `spl_object_hash()` keys on object identity, which would
+		// break dedupe across identical bags rendered in separate
+		// passes (e.g. cached fragments).
+		$hashSource  = json_encode( $attributes );
+		$source      = false === $hashSource ? serialize( $attributes ) : $hashSource;
+		$scopeSuffix = substr( hash( 'sha1', $source ), 0, 8 );
+		$scope       = '.ap-block-' . $scopeSuffix;
+
+		$markup = $resolver->resolve( $scope, $bag );
+
+		if ( ! $markup['hasAnimations'] ) {
+			return null;
+		}
+
+		$accumulator->push(
+			$scope,
+			$markup['css'],
+			$markup['noscriptCss'],
+			$markup['hasEntrance'],
+		);
+
+		$classes = $markup['classes'];
+		$classes[] = ltrim( $scope, '.' );
+
+		return [
+			'classes'    => $classes,
+			'dataString' => $resolver->dataString( $markup['data'] ),
+		];
 	}
 
 	/**

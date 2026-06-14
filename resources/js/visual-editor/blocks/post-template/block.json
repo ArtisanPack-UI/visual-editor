@@ -4,7 +4,9 @@
     "name": "artisanpack/post-template",
     "title": "Post Template",
     "category": "theme",
-    "ancestor": [ "artisanpack/query" ],
+    "ancestor": [
+        "artisanpack/query"
+    ],
     "description": "Contains the block elements used to render a post, like the title, date, featured image, content or excerpt, and more.",
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
@@ -30,7 +32,10 @@
         "anchor": true,
         "reusable": false,
         "html": false,
-        "align": [ "wide", "full" ],
+        "align": [
+            "wide",
+            "full"
+        ],
         "layout": true,
         "color": {
             "gradients": true,
@@ -72,7 +77,8 @@
             "radius": true,
             "color": true,
             "width": true,
-            "style": true
+            "style": true,
+            "gradient": true
         }
     }
 }

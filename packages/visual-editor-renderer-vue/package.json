@@ -1,6 +1,6 @@
 {
     "name": "@artisanpack-ui/visual-editor-renderer-vue",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "description": "Vue renderer for ArtisanPack UI visual-editor block trees. Designed for Inertia+Vue apps.",
     "license": "GPL-3.0-or-later",
     "author": "Jacob Martella <me@jacobmartella.com>",

@@ -12,3 +12,9 @@ dist/
 # predate this rule and stay tracked until a dedicated cleanup PR
 # removes them.
 resources/js/visual-editor/blocks/**/upstream-diff-report.json
+
+# Font Awesome Free SVGs are mirrored from `@fortawesome/fontawesome-free`
+# (a devDependency) by `scripts/sync-fa-icons.mjs` on every `npm run build`.
+# Tracking ~2,800 SVGs would bloat the repo for no gain — the script is
+# deterministic and the source is pinned in package.json. See #554.
+resources/icons/font-awesome/

@@ -5,7 +5,10 @@
     "title": "Media & Text",
     "category": "media",
     "description": "Set media and words side-by-side for a richer layout.",
-    "keywords": [ "image", "video" ],
+    "keywords": [
+        "image",
+        "video"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "align": {
@@ -95,10 +98,17 @@
             "default": false
         }
     },
-    "usesContext": [ "postId", "postType" ],
+    "usesContext": [
+        "postId",
+        "postType"
+    ],
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
-        "align": [ "wide", "full" ],
+        "align": [
+            "wide",
+            "full"
+        ],
         "html": false,
         "__experimentalBorder": {
             "color": true,
@@ -110,7 +120,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "color": {
             "gradients": true,

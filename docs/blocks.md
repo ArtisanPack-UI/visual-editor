@@ -1,6 +1,6 @@
 # Blocks
 
-The visual editor's block library is the catalog of authoring primitives available to content editors. V1 ships **42 forked core blocks** under the `artisanpack/*` namespace, plus the two bespoke blocks (`artisanpack/callout` and `artisanpack/form`). Host apps and packages can register their own blocks under any namespace.
+The visual editor's block library is the catalog of authoring primitives available to content editors. V1 ships **42 forked core blocks** under the `artisanpack/*` namespace, plus the bespoke blocks (`artisanpack/callout`, `artisanpack/form`, and — new in v1.1 — `artisanpack/icon`; see [[blocks/Icon Block]]). Host apps and packages can register their own blocks under any namespace.
 
 This page is the overview. For authoring patterns and the registration API, see [[blocks/Custom Blocks]].
 
@@ -35,7 +35,8 @@ The forked allow-list covers the following clusters:
 | **Loop / Feed** | categories, tag-cloud, archives, query, post-template |
 | **Comments** | comments, comment-template, comment-author-avatar, comment-author-name, comment-content, comment-date, comment-edit-link, comment-reply-link, post-comments-form, post-comments-count, post-comments-link, post-comments-title, comments-pagination (+ next / numbers / previous) |
 | **Authentication** | loginout |
-| **ArtisanPack bespoke** | callout, form |
+| **ArtisanPack bespoke** | callout, form, icon (v1.1 — see [[blocks/Icon Block]]) |
+| **ArtisanPack first-party (v1.1, CW0–CW7 ports)** | breadcrumbs, accordion, tabs, grid, grid-item, next-post, previous-post, copyright, marquee, comments-number, single-content, related-posts, author-social-icons, social-share-content, search cluster, skills-slider |
 
 Entity blocks (`artisanpack/post-*`, `artisanpack/site-*`, `artisanpack/template-part`, `artisanpack/navigation`) and the loop / feed cluster need an entity in scope to render meaningful content — pair the editor with [`artisanpack-ui/cms-framework`](https://github.com/ArtisanPack-UI/cms-framework) and they resolve against Posts / Pages / templates / site settings end-to-end. Standalone, they fall back to empty shells rather than crashing.
 

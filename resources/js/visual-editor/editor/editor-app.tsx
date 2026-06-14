@@ -44,7 +44,16 @@ import { registerResponsiveAttribute } from '../responsive/register-attribute';
 import { registerResponsiveAttributesFilter } from '../responsive/with-responsive-attributes';
 import { registerStateAttribute } from '../states/register-attribute';
 import { registerStateAttributesFilter } from '../states/with-state-attributes';
+import { registerGradientBorders } from '../gradient-borders/register';
 import { registerStateStylesFilters } from '../states/with-state-styles';
+import { registerAnimationsAttribute } from '../animations/register-attribute';
+import { registerAnimationsPanel } from '../animations/with-animations-panel';
+import {
+    setBindingsApiConfig,
+    setBindingsResourceContext,
+} from '../bindings';
+import { registerBindingsAttribute } from '../bindings/register-attribute';
+import { registerBindingsPanel } from '../bindings/with-bindings-panel';
 import { StateInspectorSync } from '../states/StateInspectorSync';
 import { StateWriteInterceptor } from '../states/state-write-interceptor';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
@@ -177,6 +186,25 @@ function registerOnce(): void {
     registerStateAttribute();
     registerStateAttributesFilter();
     registerStateStylesFilters();
+    // #489 — register the animation feature filters BEFORE blocks load
+    // so opted-in blocks pick up the auto-injected
+    // `artisanpackAnimations` attribute at registration time and the
+    // BlockEdit HOC drops the AnimationPanel into the inspector on
+    // first render.
+    registerAnimationsAttribute();
+    registerAnimationsPanel();
+    // #504 — register the bindings sidecar attribute on every block
+    // and inject the inspector panel. Runs at editor-bootstrap time so
+    // the `bindings` storage key is in every block's schema by the time
+    // `registerArtisanPackBlocks()` runs below.
+    registerBindingsAttribute();
+    registerBindingsPanel();
+    // #490 — register the gradient-border feature filters BEFORE
+    // blocks load so the supports-extension fires at registration
+    // time (extending opted-in blocks' state/responsive routing lists
+    // automatically) and the BlockEdit HOC wraps every edit component
+    // on first render.
+    registerGradientBorders();
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();
@@ -256,6 +284,13 @@ const EMPTY_HISTORY: HistoryState = { past: [], future: [] };
 
 export function EditorApp(props: EditorAppProps): JSX.Element {
     registerOnce();
+
+    // #504 — push the current editor's apiBase + resource + record id
+    // into the bindings module so the inspector panel resolves its
+    // API calls, its picker, and the live canvas overlay against the
+    // right parent record.
+    setBindingsApiConfig({ apiBase: props.apiBase });
+    setBindingsResourceContext(props.resource ?? null, props.id ?? null);
 
     return (
         <ToastProvider>

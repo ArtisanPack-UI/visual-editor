@@ -2,8 +2,17 @@
  * Tests for the `artisanpack/cover` edit component.
  */
 
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render } from '@testing-library/react';
+
+// #578 — capture the handlers passed to the placeholder's ColorPalette
+// and MediaPlaceholder so the regression tests below can invoke them
+// directly and assert that the cover-block edit component calls
+// `setAttributes` synchronously (without awaiting `getMediaColor`).
+const capturedProps: {
+    placeholderColorPaletteOnChange?: (color: string | undefined) => void;
+    placeholderMediaOnSelect?: (media: unknown) => void;
+} = {};
 
 vi.mock('@wordpress/i18n', () => ({
     __: (text: string) => text,
@@ -142,9 +151,14 @@ vi.mock('@wordpress/block-editor', () => {
         }) => <div data-testid="inspector">{children}</div>,
         MediaPlaceholder: ({
             children,
+            onSelect,
         }: {
             children?: React.ReactNode;
-        }) => <div data-testid="placeholder">{children}</div>,
+            onSelect?: (media: unknown) => void;
+        }) => {
+            capturedProps.placeholderMediaOnSelect = onSelect;
+            return <div data-testid="placeholder">{children}</div>;
+        },
         MediaReplaceFlow: ({
             children,
         }: {
@@ -155,7 +169,14 @@ vi.mock('@wordpress/block-editor', () => {
         MediaUploadCheck: ({ children }: { children?: React.ReactNode }) => (
             <>{children}</>
         ),
-        ColorPalette: () => null,
+        ColorPalette: ({
+            onChange,
+        }: {
+            onChange?: (color: string | undefined) => void;
+        }) => {
+            capturedProps.placeholderColorPaletteOnChange = onChange;
+            return null;
+        },
         RichText: ({ value }: { value?: string }) => (
             <span dangerouslySetInnerHTML={{ __html: value ?? '' }} />
         ),
@@ -171,9 +192,9 @@ vi.mock('@wordpress/block-editor', () => {
             (Component: React.ComponentType<unknown>) =>
             (props: Record<string, unknown>) => (
                 <Component
-                    {...props}
                     overlayColor={{ color: undefined, class: undefined }}
                     setOverlayColor={() => {}}
+                    {...props}
                 />
             ),
         __experimentalUseGradient: () => ({
@@ -224,6 +245,11 @@ vi.mock('memize', () => ({
 import CoverEdit from '../edit';
 
 describe('CoverEdit', () => {
+    beforeEach(() => {
+        capturedProps.placeholderColorPaletteOnChange = undefined;
+        capturedProps.placeholderMediaOnSelect = undefined;
+    });
+
     it('renders the placeholder TagName when there is no background and no inner blocks', () => {
         const setAttributes = vi.fn();
         const { container } = render(
@@ -261,5 +287,135 @@ describe('CoverEdit', () => {
         const img = container.querySelector('img.wp-block-cover__image-background');
         expect(img).not.toBeNull();
         expect(img?.getAttribute('src')).toBe('https://example.com/photo.jpg');
+    });
+
+    // #578 — regression: the picker click must apply the overlay color
+    // synchronously. Awaiting `getMediaColor` here piles RAF callbacks
+    // from the upstream contrast checker faster than React can flush,
+    // hangs the editor, and eventually crashes the block via
+    // `BlockCrashBoundary`. The handler now commits the picked color
+    // and `isUserOverlayColor` flag in the same tick, then refines
+    // `isDark` in a background task.
+    it('onSetOverlayColor: commits the overlay color and isUserOverlayColor synchronously', () => {
+        const setAttributes = vi.fn();
+        const setOverlayColor = vi.fn();
+
+        render(
+            <CoverEdit
+                attributes={{ tagName: 'div', dimRatio: 100 }}
+                clientId="abc"
+                isSelected
+                overlayColor={{ color: undefined, class: undefined }}
+                setAttributes={setAttributes}
+                setOverlayColor={setOverlayColor}
+                toggleSelection={() => {}}
+            />
+        );
+
+        expect(capturedProps.placeholderColorPaletteOnChange).toBeDefined();
+
+        capturedProps.placeholderColorPaletteOnChange?.('#ff0000');
+
+        // Both calls must land before the test yields to the
+        // microtask / RAF queue — otherwise the editor render loop
+        // can't settle and the RAF storm reproduces.
+        expect(setOverlayColor).toHaveBeenCalledWith('#ff0000');
+        expect(setAttributes).toHaveBeenCalledWith({
+            isUserOverlayColor: true,
+        });
+        // Exactly one synchronous setAttributes call — the `isDark`
+        // refinement must remain deferred to the background task.
+        expect(setAttributes).toHaveBeenCalledTimes(1);
+    });
+
+    // #578 — race-guard: if the user picks a second overlay color
+    // before the first pick's background `getMediaColor` resolves, the
+    // first task must NOT overwrite the second pick's `isDark`. The
+    // handler bumps a version ref and the background task bails out
+    // when the captured version no longer matches.
+    it('onSetOverlayColor: a superseded background task does not write isDark', async () => {
+        const setAttributes = vi.fn();
+        const setOverlayColor = vi.fn();
+
+        render(
+            <CoverEdit
+                attributes={{ tagName: 'div', dimRatio: 100 }}
+                clientId="abc"
+                isSelected
+                overlayColor={{ color: undefined, class: undefined }}
+                setAttributes={setAttributes}
+                setOverlayColor={setOverlayColor}
+                toggleSelection={() => {}}
+            />
+        );
+
+        // Two picks before any microtask flush — second supersedes first.
+        capturedProps.placeholderColorPaletteOnChange?.('#ff0000');
+        capturedProps.placeholderColorPaletteOnChange?.('#00ff00');
+
+        // Flush microtasks so both background tasks resolve.
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        // Both sync calls happened, in order.
+        expect(setOverlayColor).toHaveBeenNthCalledWith(1, '#ff0000');
+        expect(setOverlayColor).toHaveBeenNthCalledWith(2, '#00ff00');
+
+        // Exactly one background task should have written isDark — the
+        // second pick's task. The first pick's captured version was
+        // already stale by the time its `getMediaColor` resolved, so it
+        // must bail out without calling setAttributes.
+        const isDarkCalls = setAttributes.mock.calls.filter(
+            (args) =>
+                typeof args[0] === 'object' &&
+                args[0] !== null &&
+                'isDark' in (args[0] as Record<string, unknown>)
+        );
+        expect(isDarkCalls).toHaveLength(1);
+    });
+
+    // #578 — regression: the media-select click must apply the
+    // media-driven attributes (url, backgroundType, id, etc.)
+    // synchronously. Anything else lets the modal close while the
+    // block remains in placeholder state — the editor then freezes
+    // during the await and crashes via `BlockCrashBoundary`.
+    it('onSelectMedia: commits the media attributes synchronously', () => {
+        const setAttributes = vi.fn();
+        const setOverlayColor = vi.fn();
+
+        render(
+            <CoverEdit
+                attributes={{ tagName: 'div', dimRatio: 100 }}
+                clientId="abc"
+                isSelected
+                overlayColor={{ color: undefined, class: undefined }}
+                setAttributes={setAttributes}
+                setOverlayColor={setOverlayColor}
+                toggleSelection={() => {}}
+            />
+        );
+
+        expect(capturedProps.placeholderMediaOnSelect).toBeDefined();
+
+        capturedProps.placeholderMediaOnSelect?.({
+            id: 42,
+            url: 'https://example.com/photo.jpg',
+            type: 'image',
+            media_type: 'image',
+            mime: 'image/jpeg',
+        });
+
+        // Exactly one synchronous setAttributes call — the overlay
+        // color / `isDark` refinement must remain deferred.
+        expect(setAttributes).toHaveBeenCalledTimes(1);
+        const callArgs = setAttributes.mock.calls[0]?.[0] as Record<
+            string,
+            unknown
+        >;
+        expect(callArgs.url).toBe('https://example.com/photo.jpg');
+        expect(callArgs.id).toBe(42);
+        expect(callArgs.focalPoint).toBeUndefined();
+        expect(callArgs.useFeaturedImage).toBeUndefined();
     });
 });

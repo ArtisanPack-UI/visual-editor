@@ -20,8 +20,15 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PageController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PostController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\AttachmentController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\BindingResolveController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\BindingSourcesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSearchController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsManagementController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSvgController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSvgSanitizeController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\MenuLocationsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\QueryResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteController;
@@ -47,6 +54,21 @@ Route::put( '{resource}/{id}/content', [ ResourceContentController::class, 'upda
 
 Route::post( 'blocks/preview', [ BlockPreviewController::class, 'preview' ] )
 	->name( 'visual-editor.api.blocks.preview' );
+
+// #504 — Bindings inspector: list registered sources + their field
+// catalogs so the editor can render the "link to data" picker.
+Route::get( 'bindings/sources', [ BindingSourcesController::class, 'index' ] )
+	->name( 'visual-editor.api.bindings.sources.index' );
+
+Route::get( 'bindings/sources/{source}/fields', [ BindingSourcesController::class, 'fields' ] )
+	->where( 'source', '[a-z][a-z0-9_]*' )
+	->name( 'visual-editor.api.bindings.sources.fields' );
+
+// #504 — Canvas live-preview: resolve a block's bindings into
+// structured values so the editor's `edit` component can overlay them
+// on top of the static attrs without waiting for a server render pass.
+Route::post( 'bindings/resolve', [ BindingResolveController::class, 'resolve' ] )
+	->name( 'visual-editor.api.bindings.resolve' );
 
 // G4c-2 — `core/query` block resolution. Wraps cms-framework's
 // `QueryRuntime` (or any host-bound `QueryResolverContract`
@@ -195,6 +217,49 @@ Route::get( 'menu-locations', [ MenuLocationsController::class, 'index' ] )
 // template parts. Read-only.
 Route::get( 'search', [ EntitySearchController::class, 'index' ] )
 	->name( 'visual-editor.api.search.index' );
+
+// Icon Block Phase 4 (#555) — picker search + set-family chips.
+// Both routes are read-only; the catalog is backed by the bundled
+// `index.json` manifest and exposes paginated results so the editor
+// never has to ship the full FA Free term index to the browser.
+Route::get( 'icons/sets', [ IconSetsController::class, 'index' ] )
+	->name( 'visual-editor.api.icons.sets' );
+
+Route::get( 'icons/search', [ IconSearchController::class, 'index' ] )
+	->name( 'visual-editor.api.icons.search' );
+
+Route::get( 'icons/svg', [ IconSvgController::class, 'show' ] )
+	->name( 'visual-editor.api.icons.svg' );
+
+// Icon Block Phase 5 (#556) — custom SVG paste/upload sanitization. The
+// editor POSTs the pasted/uploaded markup, gets back the SvgSanitizer
+// output + warnings, and persists the sanitized result into the block's
+// `customSvg` attribute. Authoritative sanitization still runs at render
+// time inside IconBlock; this endpoint is what lets the editor surface
+// warnings inline before save.
+Route::post( 'icons/svg/sanitize', [ IconSvgSanitizeController::class, 'store' ] )
+	->name( 'visual-editor.api.icons.svg.sanitize' );
+
+// Icon Block Phase 6 (#557) — admin icon-set management endpoints.
+// Each action runs through the bound `SiteEditorAccessGate` (the
+// package's existing visual-editor management policy) inside the
+// controller, so the unauthorised path returns the gate's response
+// rather than a flat 403. The prefix route constraint mirrors the
+// uploader's allow-list to keep `../`-laced inputs from reaching the
+// registry.
+Route::get( 'admin/icon-sets', [ IconSetsManagementController::class, 'index' ] )
+	->name( 'visual-editor.api.admin.icon-sets.index' );
+
+Route::post( 'admin/icon-sets', [ IconSetsManagementController::class, 'store' ] )
+	->name( 'visual-editor.api.admin.icon-sets.store' );
+
+Route::patch( 'admin/icon-sets/{prefix}', [ IconSetsManagementController::class, 'update' ] )
+	->where( 'prefix', '[a-z0-9][a-z0-9_-]{1,31}' )
+	->name( 'visual-editor.api.admin.icon-sets.update' );
+
+Route::delete( 'admin/icon-sets/{prefix}', [ IconSetsManagementController::class, 'destroy' ] )
+	->where( 'prefix', '[a-z0-9][a-z0-9_-]{1,31}' )
+	->name( 'visual-editor.api.admin.icon-sets.destroy' );
 
 // G3 cms-framework Post + Page entity adapters — see plan 12 §4.4.
 // Both controllers resolve their model through `ResourceResolver`, so

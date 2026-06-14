@@ -1,0 +1,182 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/icon",
+    "title": "Icon",
+    "category": "design",
+    "description": "Insert an SVG icon from a registered set, or paste your own.",
+    "keywords": [
+        "svg",
+        "icon",
+        "fontawesome",
+        "glyph"
+    ],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "iconRef": {
+            "type": "object",
+            "default": null
+        },
+        "customSvg": {
+            "type": "string",
+            "default": ""
+        },
+        "size": {
+            "type": "number",
+            "default": 32
+        },
+        "sizeUnit": {
+            "type": "string",
+            "enum": [
+                "px",
+                "em",
+                "rem",
+                "%",
+                "vw",
+                "vh"
+            ],
+            "default": "px"
+        },
+        "width": {
+            "type": [
+                "number",
+                "null"
+            ],
+            "default": null
+        },
+        "widthUnit": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "enum": [
+                "px",
+                "em",
+                "rem",
+                "%",
+                "vw",
+                "vh",
+                null
+            ],
+            "default": null
+        },
+        "height": {
+            "type": [
+                "number",
+                "null"
+            ],
+            "default": null
+        },
+        "heightUnit": {
+            "type": [
+                "string",
+                "null"
+            ],
+            "enum": [
+                "px",
+                "em",
+                "rem",
+                "%",
+                "vw",
+                "vh",
+                null
+            ],
+            "default": null
+        },
+        "color": {
+            "type": "string"
+        },
+        "backgroundColor": {
+            "type": "string"
+        },
+        "iconColor": {
+            "type": "string"
+        },
+        "rotation": {
+            "type": "number",
+            "enum": [
+                0,
+                90,
+                180,
+                270
+            ],
+            "default": 0
+        },
+        "flipH": {
+            "type": "boolean",
+            "default": false
+        },
+        "flipV": {
+            "type": "boolean",
+            "default": false
+        },
+        "link": {
+            "type": "string",
+            "default": ""
+        },
+        "linkTarget": {
+            "type": "string",
+            "default": ""
+        },
+        "linkRel": {
+            "type": "string",
+            "default": ""
+        },
+        "titleAttr": {
+            "type": "string",
+            "default": ""
+        },
+        "ariaLabel": {
+            "type": "string",
+            "default": ""
+        },
+        "isDecorative": {
+            "type": "boolean",
+            "default": false
+        }
+    },
+    "supports": {
+        "artisanpackAnimations": true,
+        "anchor": true,
+        "align": [
+            "left",
+            "center",
+            "right",
+            "wide",
+            "full"
+        ],
+        "color": {
+            "text": false,
+            "background": true,
+            "gradients": true,
+            "__experimentalDefaultControls": {
+                "background": true
+            }
+        },
+        "spacing": {
+            "margin": true,
+            "padding": true,
+            "__experimentalDefaultControls": {
+                "margin": false,
+                "padding": false
+            }
+        },
+        "__experimentalBorder": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true,
+            "__experimentalDefaultControls": {
+                "color": true,
+                "radius": true,
+                "style": true,
+                "width": true
+            },
+            "gradient": true
+        },
+        "interactivity": {
+            "clientNavigation": true
+        }
+    },
+    "style": "wp-block-artisanpack-icon"
+}

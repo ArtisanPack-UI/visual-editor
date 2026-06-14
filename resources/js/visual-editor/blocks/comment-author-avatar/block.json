@@ -33,7 +33,8 @@
             "radius": true,
             "width": true,
             "color": true,
-            "style": true
+            "style": true,
+            "gradient": true
         }
     }
 }

@@ -5,7 +5,9 @@
     "title": "Search",
     "category": "widgets",
     "description": "Help visitors find your content.",
-    "keywords": [ "find" ],
+    "keywords": [
+        "find"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "label": {
@@ -49,8 +51,13 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
-        "align": [ "left", "center", "right" ],
+        "align": [
+            "left",
+            "center",
+            "right"
+        ],
         "color": {
             "gradients": true,
             "__experimentalSkipSerialization": true,
@@ -84,7 +91,8 @@
                 "color": true,
                 "radius": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "spacing": {
             "margin": true

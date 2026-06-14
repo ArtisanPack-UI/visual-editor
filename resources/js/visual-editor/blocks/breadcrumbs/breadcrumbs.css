@@ -1,0 +1,40 @@
+/**
+ * Breadcrumbs block styles.
+ *
+ * Loaded in the editor via `blocks/breadcrumbs/index.ts`. Host apps
+ * are expected to ship matching (or compatible) rules on the public
+ * frontend — the Blade / React / Vue renderers emit the same class names.
+ */
+
+.ap-breadcrumbs__list {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.ap-breadcrumbs__item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.ap-breadcrumbs__separator {
+    display: inline-flex;
+    align-items: center;
+    width: 1em;
+    height: 1em;
+    opacity: 0.6;
+}
+
+.ap-breadcrumbs__separator svg {
+    width: 100%;
+    height: 100%;
+}
+
+.ap-breadcrumbs__current {
+    font-weight: 600;
+}

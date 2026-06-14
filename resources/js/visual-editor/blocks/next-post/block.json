@@ -1,0 +1,46 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/next-post",
+    "title": "Next Post",
+    "category": "theme",
+    "description": "Wrap inner blocks against the next post in the same post type so post-* children render the newer neighbor's data.",
+    "keywords": ["next", "post", "navigation", "adjacent"],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "postType": {
+            "type": "string",
+            "default": "post"
+        },
+        "queryId": {
+            "type": "number"
+        },
+        "tagName": {
+            "type": "string",
+            "default": "div"
+        }
+    },
+    "providesContext": {
+        "postType": "postType",
+        "queryId": "queryId"
+    },
+    "supports": {
+        "artisanpackAnimations": true,
+        "anchor": true,
+        "align": ["wide", "full"],
+        "html": false,
+        "reusable": false,
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "spacing": {
+            "margin": ["top", "bottom"],
+            "padding": true
+        }
+    }
+}

@@ -1,0 +1,85 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/marquee",
+    "title": "Marquee",
+    "category": "design",
+    "description": "Scroll a line of text horizontally across the screen.",
+    "keywords": [
+        "marquee",
+        "scroll",
+        "ticker",
+        "banner"
+    ],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "marqueeContent": {
+            "type": "string",
+            "source": "html",
+            "selector": "p",
+            "default": ""
+        },
+        "marqueeWidth": {
+            "type": "number",
+            "default": 100
+        },
+        "marqueeSpeed": {
+            "type": "number",
+            "default": 5
+        }
+    },
+    "supports": {
+        "artisanpackAnimations": true,
+        "anchor": true,
+        "ariaLabel": true,
+        "className": true,
+        "html": false,
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "spacing": {
+            "margin": [
+                "top",
+                "bottom"
+            ],
+            "padding": true,
+            "blockGap": true,
+            "__experimentalDefaultControls": {
+                "padding": true,
+                "blockGap": true
+            }
+        },
+        "shadow": true,
+        "__experimentalBorder": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true,
+            "__experimentalDefaultControls": {
+                "color": true,
+                "radius": true,
+                "style": true,
+                "width": true
+            },
+            "gradient": true
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "__experimentalFontFamily": true,
+            "__experimentalFontWeight": true,
+            "__experimentalFontStyle": true,
+            "__experimentalTextTransform": true,
+            "__experimentalTextDecoration": true,
+            "__experimentalLetterSpacing": true,
+            "__experimentalDefaultControls": {
+                "fontSize": true
+            }
+        }
+    }
+}

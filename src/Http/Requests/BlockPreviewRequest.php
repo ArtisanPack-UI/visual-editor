@@ -34,8 +34,13 @@ class BlockPreviewRequest extends FormRequest
 	public function rules(): array
 	{
 		return [
-			'name'       => [ 'required', 'string', 'regex:/^[a-z][a-z0-9-]*\/[a-z][a-z0-9-]*$/' ],
-			'attributes' => [ 'sometimes', 'array' ],
+			'name'             => [ 'required', 'string', 'regex:/^[a-z][a-z0-9-]*\/[a-z][a-z0-9-]*$/' ],
+			'attributes'       => [ 'sometimes', 'array' ],
+			'bindings'         => [ 'sometimes', 'array' ],
+			'context'          => [ 'sometimes', 'array' ],
+			'context.resource' => [ 'sometimes', 'string' ],
+			'context.id'       => [ 'sometimes' ],
+			'context.draft'    => [ 'sometimes', 'array' ],
 		];
 	}
 }

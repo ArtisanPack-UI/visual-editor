@@ -21,6 +21,7 @@
         "viewportWidth": 350
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": [
             "wide",
@@ -82,7 +83,8 @@
                 "color": true,
                 "width": true,
                 "style": true
-            }
+            },
+            "gradient": true
         }
     },
     "style": "wp-block-post-content",

@@ -1,0 +1,79 @@
+<?php
+
+/**
+ * Font Awesome Free icon-set discovery + filter registration.
+ *
+ * Phase 3 of the Icon Block feature (#494, issue #554). The actual SVGs
+ * are mirrored from `@fortawesome/fontawesome-free` into
+ * `resources/icons/font-awesome/{fas,far,fab}/` by `scripts/sync-fa-icons.mjs`.
+ * This helper turns the on-disk layout into icon-set entries that the
+ * `artisanpack-ui/icons` registry consumes via the
+ * `ap.icons.register-icon-sets` filter.
+ *
+ * @package    ArtisanPack_UI
+ * @subpackage VisualEditor
+ *
+ * @author     Jacob Martella <me@jacobmartella.com>
+ *
+ * @since      1.1.0
+ */
+
+declare( strict_types=1 );
+
+namespace ArtisanPackUI\VisualEditor\Services\Icon;
+
+use ArtisanPackUI\Icons\Registries\IconSetRegistration;
+
+/**
+ * The discovery + registration step is split from the service provider so
+ * Pest can drive it against fixture directories without booting Testbench.
+ * `discover()` is the pure path-collection step; `register()` walks the
+ * discovered sets into the registry and tolerates a missing base directory
+ * (e.g. a fresh checkout that hasn't run `npm run build` yet — boot must
+ * not fail in that case).
+ */
+final class FontAwesomeFreeIconSets
+{
+	/**
+	 * @var array<int, string>
+	 */
+	public const SET_PREFIXES = [ 'fas', 'far', 'fab' ];
+
+	/**
+	 * Return the absolute path for each FA Free set whose directory exists
+	 * under `$baseDir`. Missing sets are silently skipped so a partial
+	 * sync still surfaces the sets that did land.
+	 *
+	 * @return array<string, string> Map of prefix → absolute path.
+	 */
+	public static function discover( string $baseDir ): array
+	{
+		$found = [];
+		foreach ( self::SET_PREFIXES as $prefix ) {
+			$path = $baseDir . DIRECTORY_SEPARATOR . $prefix;
+			if ( is_dir( $path ) ) {
+				$found[ $prefix ] = $path;
+			}
+		}
+
+		return $found;
+	}
+
+	/**
+	 * Register each discovered set on the supplied `IconSetRegistration`.
+	 *
+	 * Returns the same registry instance so this method can be used as the
+	 * body of an `ap.icons.register-icon-sets` filter callback. The
+	 * registry's `addSet()` throws when handed a non-existent path, which
+	 * is exactly why `discover()` filters them first — we want to no-op,
+	 * not blow up, when the FA Free directory is missing.
+	 */
+	public static function register( IconSetRegistration $registry, string $baseDir ): IconSetRegistration
+	{
+		foreach ( self::discover( $baseDir ) as $prefix => $path ) {
+			$registry->addSet( $path, $prefix );
+		}
+
+		return $registry;
+	}
+}

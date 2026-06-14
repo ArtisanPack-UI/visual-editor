@@ -8,6 +8,14 @@ use ArtisanPackUI\VisualEditor\Blocks\Core\CategoriesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\LatestPostsBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\TagCloudBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Forms\FormBlock;
+use ArtisanPackUI\Icons\Registries\IconSetRegistration;
+use ArtisanPackUI\VisualEditor\Blocks\Icon\IconBlock;
+use ArtisanPackUI\VisualEditor\Services\Icon\FontAwesomeFreeIconSets;
+use ArtisanPackUI\VisualEditor\Services\Icon\IconCatalog;
+use ArtisanPackUI\VisualEditor\Services\Icon\IconSetUploader;
+use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
+use ArtisanPackUI\VisualEditor\Services\Icon\SvgSanitizer;
+use ArtisanPackUI\VisualEditor\Services\Icon\UploadedIconSetRegistry;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
 use ArtisanPackUI\VisualEditor\Services\Adapters\CmsFramework\CmsFrameworkQueryResolver;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
@@ -15,14 +23,23 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Gates\DenyByDefaultGate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
+use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
+use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\CustomFieldSource;
+use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\PostCoreSource;
+use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\RelationSource;
 use ArtisanPackUI\VisualEditor\Console\AuditBreakpointsCommand;
 use ArtisanPackUI\VisualEditor\Resources\PostResolver;
 use ArtisanPackUI\VisualEditor\Resources\CommentInliner;
 use ArtisanPackUI\VisualEditor\Resources\CommentResolver;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
+use ArtisanPackUI\VisualEditor\Animations\AnimationAttributeResolver;
+use ArtisanPackUI\VisualEditor\Animations\AnimationCssEmitter;
+use ArtisanPackUI\VisualEditor\Animations\AnimationRegistry;
+use ArtisanPackUI\VisualEditor\Animations\KeyframeRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\AttributeMigrator;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
@@ -56,6 +73,92 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( DynamicBlockRegistry::class, function () {
 			return new DynamicBlockRegistry();
+		} );
+
+		// #504 — Block bindings: a single shared registry of source drivers
+		// (custom_field, post_core, relation, plus host-registered
+		// extensions) and a singleton resolver that the preview controller
+		// and the frontend renderers both call into.
+		$this->app->singleton( BlockBindingSourceRegistry::class, function () {
+			return new BlockBindingSourceRegistry();
+		} );
+
+		$this->app->singleton( BindingResolver::class, function ( $app ) {
+			return new BindingResolver(
+				$app->make( BlockBindingSourceRegistry::class ),
+			);
+		} );
+
+		// Icon Block Phase 1 (#552): the sanitizer is stateless, so bind
+		// it as a shared singleton — IconBlock and any future consumers
+		// (the admin-upload pipeline in Phase 6 #557) can reuse one copy.
+		$this->app->singleton( SvgSanitizer::class, function () {
+			return new SvgSanitizer();
+		} );
+
+		// Icon Block Phase 3 (#554): defer the icon-sets-registry walk
+		// until the first `resolve()` call. IconBlock is constructed
+		// inside boot() (via registerReferenceBlocks), which happens
+		// BEFORE every provider's `addFilter('ap.icons.register-icon-sets',
+		// …)` has fired. Computing the path map eagerly here would race
+		// against those registrations and produce an empty resolver. The
+		// closure runs at request time, by which point boot is finished
+		// and the filter chain is complete.
+		$this->app->singleton( IconSvgResolver::class, function (): IconSvgResolver {
+			return new IconSvgResolver( static function (): array {
+				if ( ! class_exists( IconSetRegistration::class ) || ! function_exists( 'applyFilters' ) ) {
+					return [];
+				}
+
+				$registry = applyFilters( 'ap.icons.register-icon-sets', new IconSetRegistration() );
+				if ( ! $registry instanceof IconSetRegistration ) {
+					return [];
+				}
+
+				$paths = [];
+				foreach ( $registry->getSets() as $prefix => $details ) {
+					$path = $details['path'] ?? null;
+					if ( is_string( $path ) && '' !== $path ) {
+						$paths[ (string) $prefix ] = $path;
+					}
+				}
+
+				return $paths;
+			} );
+		} );
+
+		// Icon Block Phase 4 (#555): the picker's search + sets endpoints
+		// resolve the catalog out of the container so host apps can swap
+		// in a custom manifest (e.g. extending the bundled FA Free set
+		// with their own brand icons) via `$app->extend()`.
+		//
+		// Phase 6 (#557): hand the catalog a closure that merges the
+		// bundled FA Free manifest with whatever the
+		// `UploadedIconSetRegistry` has on disk so admin-uploaded sets
+		// show up in the picker without a code change. The closure runs
+		// lazily on first `search()` / `sets()` call — at request time,
+		// after every provider's boot has finished — so it can safely
+		// reach into the container for the registry.
+		$this->app->singleton( IconCatalog::class, function ( $app ): IconCatalog {
+			return new IconCatalog( function () use ( $app ): array {
+				return $this->buildMergedIconManifest( $app );
+			} );
+		} );
+
+		// Phase 6 (#557): the persisted registry of host-uploaded icon
+		// sets. The base directory under `storage/app/...` is created
+		// on first write — binding here keeps the path resolution in
+		// one place so the uploader and the boot-time registration
+		// loop see the exact same location.
+		$this->app->singleton( UploadedIconSetRegistry::class, function ( $app ): UploadedIconSetRegistry {
+			return new UploadedIconSetRegistry( $this->resolveIconSetsBaseDir( $app ) );
+		} );
+
+		$this->app->singleton( IconSetUploader::class, function ( $app ): IconSetUploader {
+			return new IconSetUploader(
+				$app->make( UploadedIconSetRegistry::class ),
+				$app->make( SvgSanitizer::class ),
+			);
 		} );
 
 		$this->app->singleton( VisualEditor::class, function ( $app ) {
@@ -195,6 +298,54 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new StateAttributeMigrator();
 		} );
 
+		// #489 — block animations. Scoped per request, same as the
+		// responsive and state registries: theme.json overrides can
+		// swap between requests, and a singleton would leak the
+		// resolved animations across them.
+		$this->app->scoped( AnimationRegistry::class, function ( $app ) {
+			$config = (array) $app['config']->get( 'artisanpack.visual-editor.animations', [] );
+
+			return AnimationRegistry::fromLayers( $config );
+		} );
+
+		$this->app->scoped( KeyframeRegistry::class, function ( $app ) {
+			$themeKeyframes = (array) $app['config']->get( 'artisanpack.visual-editor.keyframes', [] );
+
+			// Resolve editor-authored keyframes from the same filter-
+			// merged global-styles payload that `SiteEditorGlobalStylesResolver`
+			// consumes, so a host that registers global styles through
+			// the `ap.visual-editor.global-styles` filter (cms-framework
+			// being the canonical caller) sees its custom keyframes
+			// reach the editor and renderer. Reading directly from
+			// config would miss the filter contributions.
+			try {
+				$resolver     = $app->make( SiteEditorGlobalStylesResolver::class );
+				$globalStyles = $resolver->raw();
+			} catch ( \Throwable $e ) {
+				$globalStyles = null;
+			}
+
+			$editorKeyframes = [];
+			if ( is_array( $globalStyles['styles']['custom']['artisanpack']['keyframes'] ?? null ) ) {
+				$editorKeyframes = $globalStyles['styles']['custom']['artisanpack']['keyframes'];
+			}
+
+			return KeyframeRegistry::fromLayers( $themeKeyframes, $editorKeyframes );
+		} );
+
+		$this->app->scoped( AnimationAttributeResolver::class, function ( $app ) {
+			return new AnimationAttributeResolver( $app->make( BreakpointRegistry::class ) );
+		} );
+
+		$this->app->scoped( AnimationCssEmitter::class, function ( $app ) {
+			return new AnimationCssEmitter(
+				$app->make( AnimationRegistry::class ),
+				$app->make( KeyframeRegistry::class ),
+				$app->make( BreakpointRegistry::class ),
+				$app->make( AnimationAttributeResolver::class ),
+			);
+		} );
+
 		// #434: `GlobalStylesCssProvider` + `GlobalStylesCacheInvalidator`
 		// were deleted with the rest of the plan-11 Phase D legacy.
 		// The renderer-blade package's `<x-ve-blocks>` /
@@ -286,6 +437,28 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// 4. Register package-native blocks (artisanpack/callout, etc.).
 		$this->registerReferenceBlocks();
 
+		// 4.0. #504 — Register the built-in block binding sources. Hosts
+		//      and third-party packages register additional sources in
+		//      their own provider's boot() phase; the order of
+		//      registration does not matter because the resolver consults
+		//      the registry per-binding at render time.
+		$this->registerBlockBindingSources();
+
+		// 4.1. Icon Block Phase 3 (#554) — hand the FA Free SVG sets to
+		//      the `artisanpack-ui/icons` registry. The directories are
+		//      mirrored by `scripts/sync-fa-icons.mjs` (runs in `prebuild`)
+		//      and gitignored; the discovery step no-ops cleanly when the
+		//      sync hasn't run yet, so app boot stays robust.
+		$this->registerFontAwesomeFreeIconSets();
+
+		// 4.2. Icon Block Phase 6 (#557) — re-register host-uploaded
+		//      icon sets on every boot. Reads the persisted registry
+		//      and hooks the same `ap.icons.register-icon-sets` filter
+		//      the bundled FA sets use, so the picker, the SVG
+		//      resolver, and the catalog all surface uploaded icons
+		//      without any further wiring.
+		$this->registerUploadedIconSets();
+
 		// 4a. Register taxonomy/feed dynamic blocks against cms-framework's
 		//     term + post APIs. Gated on the package's presence so
 		//     visual-editor still boots when cms-framework is absent.
@@ -308,6 +481,23 @@ class VisualEditorServiceProvider extends ServiceProvider
 				AuditBreakpointsCommand::class,
 			] );
 		}
+	}
+
+	/**
+	 * Registers the built-in block binding source drivers — `custom_field`,
+	 * `post_core`, and `relation`. Host applications and third-party
+	 * packages register their own drivers by resolving the registry out
+	 * of the container in their own provider's boot() phase.
+	 *
+	 * @since 1.1.0
+	 */
+	protected function registerBlockBindingSources(): void
+	{
+		$registry = $this->app->make( BlockBindingSourceRegistry::class );
+
+		$registry->register( new CustomFieldSource() );
+		$registry->register( new PostCoreSource() );
+		$registry->register( new RelationSource() );
 	}
 
 	/**
@@ -404,6 +594,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$referenceBlocks = [
 			'callout',
+			'icon',
 		];
 
 		foreach ( $referenceBlocks as $block ) {
@@ -413,6 +604,40 @@ class VisualEditorServiceProvider extends ServiceProvider
 				$editor->registerBlock( $blockJsonPath );
 			}
 		}
+
+		// Phase 1 of the Icon Block (#552/#494): the block.json above gives
+		// the inserter its metadata; this line wires the server-side renderer
+		// so the preview endpoint can produce real markup. Phase 3 (#554)
+		// adds the FA Free registry that turns iconRefs into inline SVG.
+		$editor->registerDynamicBlock( IconBlock::class );
+	}
+
+	/**
+	 * Hook the FA Free SVG sets into the `ap.icons.register-icon-sets`
+	 * filter.
+	 *
+	 * Gated on the icons package being present so visual-editor still
+	 * boots in setups that haven't pulled `artisanpack-ui/icons` (the
+	 * filter would never fire there anyway, but skipping the registration
+	 * keeps the boot trace clean). Gated on `IconSetRegistration` rather
+	 * than a service-container key so a partial install doesn't NPE.
+	 *
+	 * @since 1.1.0
+	 */
+	protected function registerFontAwesomeFreeIconSets(): void
+	{
+		if ( ! class_exists( IconSetRegistration::class ) || ! function_exists( 'addFilter' ) ) {
+			return;
+		}
+
+		$baseDir = __DIR__ . '/../resources/icons/font-awesome';
+
+		addFilter(
+			'ap.icons.register-icon-sets',
+			static function ( IconSetRegistration $registry ) use ( $baseDir ): IconSetRegistration {
+				return FontAwesomeFreeIconSets::register( $registry, $baseDir );
+			}
+		);
 	}
 
 	/**
@@ -627,6 +852,217 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		// Set the final, correctly merged configuration.
 		config( [ 'artisanpack.visual-editor' => $mergedConfig ] );
+	}
+
+	/**
+	 * Hand the persisted uploaded icon sets to the
+	 * `ap.icons.register-icon-sets` filter.
+	 *
+	 * Phase 6 (#557). The {@see UploadedIconSetRegistry} only carries
+	 * metadata; the directories are managed by {@see IconSetUploader}.
+	 * We tolerate (and log) a missing directory rather than throwing,
+	 * so a stale metadata row left over from a manual rm doesn't break
+	 * boot — the admin can delete the dangling row from the settings
+	 * screen.
+	 *
+	 * Prefix collisions raised by the icons-registry are swallowed at
+	 * boot time so a host with overlapping uploads (or a config that
+	 * also registers a same-prefix set) still boots; the management
+	 * controller catches collisions on upload, which is when the admin
+	 * can act on the error.
+	 *
+	 * @since 1.1.0
+	 */
+	protected function registerUploadedIconSets(): void
+	{
+		if ( ! class_exists( IconSetRegistration::class ) || ! function_exists( 'addFilter' ) ) {
+			return;
+		}
+
+		$app = $this->app;
+
+		addFilter(
+			'ap.icons.register-icon-sets',
+			static function ( IconSetRegistration $registry ) use ( $app ): IconSetRegistration {
+				$persisted = $app->make( UploadedIconSetRegistry::class );
+
+				foreach ( $persisted->all() as $set ) {
+					$path = $persisted->pathFor( $set->prefix );
+					if ( ! is_dir( $path ) ) {
+						continue;
+					}
+
+					try {
+						$registry->addSet( $path, $set->prefix );
+					} catch ( \InvalidArgumentException $e ) {
+						// Mirrors the bundled FA registration loop: keep
+						// boot resilient to bad rows. The settings UI is
+						// the place to surface the underlying conflict.
+						continue;
+					}
+				}
+
+				return $registry;
+			}
+		);
+	}
+
+	/**
+	 * Resolve the absolute filesystem directory under which host-
+	 * uploaded icon sets are persisted.
+	 *
+	 * Defaults to `storage/app/artisanpack/visual-editor/icons/`. Hosts
+	 * can override via `artisanpack.visual-editor.icons.uploaded_path`.
+	 *
+	 * @since 1.1.0
+	 */
+	protected function resolveIconSetsBaseDir( $app ): string
+	{
+		$configured = $app['config']->get( 'artisanpack.visual-editor.icons.uploaded_path' );
+		if ( is_string( $configured ) && '' !== $configured ) {
+			return $configured;
+		}
+
+		$storage = method_exists( $app, 'storagePath' )
+			? $app->storagePath()
+			: ( $app['path.storage'] ?? sys_get_temp_dir() );
+
+		return $storage
+			. DIRECTORY_SEPARATOR . 'app'
+			. DIRECTORY_SEPARATOR . 'artisanpack'
+			. DIRECTORY_SEPARATOR . 'visual-editor'
+			. DIRECTORY_SEPARATOR . 'icons';
+	}
+
+	/**
+	 * Build the catalog manifest by merging the bundled FA Free
+	 * `index.json` with whatever the {@see UploadedIconSetRegistry}
+	 * tracks. Each uploaded SVG file becomes one catalog entry whose
+	 * name is the filename without the `.svg` extension — there is no
+	 * separate manifest for uploaded sets, the on-disk layout IS the
+	 * manifest.
+	 *
+	 * Returns the manifest shape {@see IconCatalog} consumes:
+	 * `{version, sets, icons}`. An unreadable / missing bundled manifest
+	 * does not block the uploaded entries from surfacing in the picker.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array{
+	 *     version?: string,
+	 *     sets: list<array{prefix: string, label: string, source?: string}>,
+	 *     icons: list<array{name: string, set: string, label: string, terms: list<string>}>
+	 * }
+	 */
+	protected function buildMergedIconManifest( $app ): array
+	{
+		$bundled = [ 'version' => '', 'sets' => [], 'icons' => [] ];
+
+		$bundledPath = __DIR__ . '/../resources/icons/font-awesome/index.json';
+		if ( is_file( $bundledPath ) ) {
+			$contents = file_get_contents( $bundledPath );
+			if ( false !== $contents ) {
+				$decoded = json_decode( $contents, true );
+				if ( is_array( $decoded ) ) {
+					$bundled['version'] = isset( $decoded['version'] ) ? (string) $decoded['version'] : '';
+					$bundled['sets']    = is_array( $decoded['sets'] ?? null ) ? array_values( $decoded['sets'] ) : [];
+					$bundled['icons']   = is_array( $decoded['icons'] ?? null ) ? array_values( $decoded['icons'] ) : [];
+				}
+			}
+		}
+
+		try {
+			$persisted = $app->make( UploadedIconSetRegistry::class );
+		} catch ( \Throwable $e ) {
+			return $bundled;
+		}
+
+		// Resolve which prefixes the icon-set registry actually accepted
+		// so the picker never surfaces an icon whose prefix didn't make
+		// it through `registerUploadedIconSets()` — `IconSvgResolver`
+		// otherwise can't serve the SVG at click time, and the picker
+		// would render a black tile or a 404. Both paths now share one
+		// source of truth: the result of `ap.icons.register-icon-sets`.
+		$registeredPrefixes = [];
+		if ( class_exists( IconSetRegistration::class ) && function_exists( 'applyFilters' ) ) {
+			$registry = applyFilters( 'ap.icons.register-icon-sets', new IconSetRegistration() );
+			if ( $registry instanceof IconSetRegistration ) {
+				$registeredPrefixes = array_flip( array_keys( $registry->getSets() ) );
+			}
+		}
+
+		$uploadedSets  = [];
+		$uploadedIcons = [];
+
+		foreach ( $persisted->all() as $set ) {
+			// When the filter ran cleanly, gate every uploaded set on
+			// having survived it. With no filter available (icons
+			// package absent, hooks helper missing) we fall back to
+			// the pre-filter `is_dir()` check so a working install
+			// without those plumbing pieces still surfaces uploads.
+			if ( [] !== $registeredPrefixes && ! isset( $registeredPrefixes[ $set->prefix ] ) ) {
+				continue;
+			}
+
+			$dir = $persisted->pathFor( $set->prefix );
+			if ( ! is_dir( $dir ) ) {
+				continue;
+			}
+
+			$uploadedSets[] = [
+				'prefix' => $set->prefix,
+				'label'  => $set->label,
+				'source' => 'uploaded',
+			];
+
+			$entries = scandir( $dir );
+			if ( false === $entries ) {
+				continue;
+			}
+
+			foreach ( $entries as $entry ) {
+				if ( '.' === $entry || '..' === $entry ) {
+					continue;
+				}
+				if ( '.svg' !== strtolower( substr( $entry, -4 ) ) ) {
+					continue;
+				}
+
+				$name = substr( $entry, 0, -4 );
+				if ( '' === $name ) {
+					// A bare `.svg` filename would produce an empty
+					// catalog entry — drop it so the picker grid
+					// never tries to render an unnamed icon.
+					continue;
+				}
+				$uploadedIcons[] = [
+					'name'  => $name,
+					'set'   => $set->prefix,
+					'label' => $this->humanizeIconName( $name ),
+					'terms' => [],
+				];
+			}
+		}
+
+		return [
+			'version' => $bundled['version'],
+			'sets'    => array_merge( $bundled['sets'], $uploadedSets ),
+			'icons'   => array_merge( $bundled['icons'], $uploadedIcons ),
+		];
+	}
+
+	/**
+	 * Turn an icon basename (`arrow-up`, `user_circle`) into the label
+	 * the picker surfaces (`Arrow Up`, `User Circle`). Used for
+	 * uploaded sets that don't ship a labelled manifest.
+	 *
+	 * @since 1.1.0
+	 */
+	protected function humanizeIconName( string $name ): string
+	{
+		$spaced = preg_replace( '/[-_]+/', ' ', $name ) ?? $name;
+
+		return ucwords( trim( $spaced ) );
 	}
 
 }

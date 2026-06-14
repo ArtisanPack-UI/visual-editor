@@ -15,7 +15,11 @@
         "galleryId"
     ],
     "description": "Insert an image to make a visual statement.",
-    "keywords": [ "img", "photo", "picture" ],
+    "keywords": [
+        "img",
+        "photo",
+        "picture"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "blob": {
@@ -109,8 +113,15 @@
     },
     "supports": {
         "interactivity": true,
-        "align": [ "left", "center", "right", "wide", "full" ],
+        "align": [
+            "left",
+            "center",
+            "right",
+            "wide",
+            "full"
+        ],
         "anchor": true,
+        "artisanpackAnimations": true,
         "color": {
             "text": false,
             "background": false
@@ -130,7 +141,8 @@
                 "color": true,
                 "radius": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "shadow": {
             "__experimentalSkipSerialization": true
@@ -160,7 +172,10 @@
             "label": "Default",
             "isDefault": true
         },
-        { "name": "rounded", "label": "Rounded" }
+        {
+            "name": "rounded",
+            "label": "Rounded"
+        }
     ],
     "editorStyle": "wp-block-image-editor",
     "style": "wp-block-image"

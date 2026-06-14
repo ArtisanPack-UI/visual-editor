@@ -4,7 +4,9 @@
     "name": "artisanpack/columns",
     "title": "Columns",
     "category": "design",
-    "allowedBlocks": [ "artisanpack/column" ],
+    "allowedBlocks": [
+        "artisanpack/column"
+    ],
     "description": "Display content in multiple columns, with blocks added to each column.",
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
@@ -16,16 +18,28 @@
             "default": true
         },
         "templateLock": {
-            "type": [ "string", "boolean" ],
-            "enum": [ "all", "insert", "contentOnly", false ]
+            "type": [
+                "string",
+                "boolean"
+            ],
+            "enum": [
+                "all",
+                "insert",
+                "contentOnly",
+                false
+            ]
         },
         "columnCount": {
             "type": "number"
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
-        "align": [ "wide", "full" ],
+        "align": [
+            "wide",
+            "full"
+        ],
         "html": false,
         "color": {
             "gradients": true,
@@ -40,9 +54,15 @@
         "spacing": {
             "blockGap": {
                 "__experimentalDefault": "2em",
-                "sides": [ "horizontal", "vertical" ]
+                "sides": [
+                    "horizontal",
+                    "vertical"
+                ]
             },
-            "margin": [ "top", "bottom" ],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "__experimentalDefaultControls": {
                 "padding": true,
@@ -68,7 +88,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "typography": {
             "fontSize": true,

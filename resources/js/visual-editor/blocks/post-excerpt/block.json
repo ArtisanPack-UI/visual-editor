@@ -30,6 +30,7 @@
         "viewportWidth": 350
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "html": false,
         "color": {
@@ -73,7 +74,8 @@
                 "color": true,
                 "width": true,
                 "style": true
-            }
+            },
+            "gradient": true
         }
     },
     "editorStyle": "wp-block-post-excerpt-editor",

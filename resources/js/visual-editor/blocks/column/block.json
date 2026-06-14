@@ -4,7 +4,9 @@
     "name": "artisanpack/column",
     "title": "Column",
     "category": "design",
-    "parent": [ "artisanpack/columns" ],
+    "parent": [
+        "artisanpack/columns"
+    ],
     "description": "A single column within a columns block.",
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
@@ -15,8 +17,16 @@
             "type": "string"
         },
         "templateLock": {
-            "type": [ "string", "boolean" ],
-            "enum": [ "all", "insert", "contentOnly", false ]
+            "type": [
+                "string",
+                "boolean"
+            ],
+            "enum": [
+                "all",
+                "insert",
+                "contentOnly",
+                false
+            ]
         }
     },
     "supports": {
@@ -53,7 +63,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "typography": {
             "fontSize": true,

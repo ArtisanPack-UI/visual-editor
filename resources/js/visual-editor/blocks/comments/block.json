@@ -25,8 +25,12 @@
         "postType"
     ],
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
-        "align": [ "wide", "full" ],
+        "align": [
+            "wide",
+            "full"
+        ],
         "html": false,
         "color": {
             "gradients": true,
@@ -62,7 +66,8 @@
             "radius": true,
             "color": true,
             "width": true,
-            "style": true
+            "style": true,
+            "gradient": true
         }
     }
 }

@@ -31,6 +31,7 @@
         "artisanpack/postPreview"
     ],
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "html": false,
         "align": true,
@@ -51,7 +52,8 @@
             "style": true,
             "__experimentalDefaultControls": {
                 "radius": true
-            }
+            },
+            "gradient": true
         },
         "color": {
             "text": false,

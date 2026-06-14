@@ -1,0 +1,55 @@
+/**
+ * Icon block — base styles.
+ *
+ * Layout-only; color/size/transform are emitted as inline styles by
+ * edit.tsx and save.tsx so the same attribute values produce identical
+ * markup in the canvas and on the front end.
+ *
+ * The outer wrapper stays a plain block element so the editor's
+ * `is-layout-constrained` parent can position it inside the content
+ * column. Inline-flex sizing lives on the inner body span via the
+ * `__ref`, `__svg`, and `__placeholder` selectors below.
+ */
+.wp-block-artisanpack-icon {
+    display: block;
+    max-width: 100%;
+}
+
+.wp-block-artisanpack-icon__ref,
+.wp-block-artisanpack-icon__svg,
+.wp-block-artisanpack-icon__svg-preview,
+.wp-block-artisanpack-icon__placeholder {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+}
+
+.wp-block-artisanpack-icon svg {
+    width: 100%;
+    height: 100%;
+    fill: currentcolor;
+}
+
+.wp-block-artisanpack-icon a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: inherit;
+    text-decoration: none;
+}
+
+/* Phase 4 picker grid — make inlined FA SVGs fill the cell and
+   inherit the cell's text color so dark/light themes look right. */
+.wp-block-artisanpack-icon__picker-grid svg {
+    width: 100%;
+    height: 100%;
+    fill: currentcolor;
+}
+
+/* Placeholder shown when neither iconRef nor customSvg is set. */
+.wp-block-artisanpack-icon__placeholder {
+    border: 1px dashed currentcolor;
+    border-radius: 4px;
+    opacity: 0.4;
+}

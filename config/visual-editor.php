@@ -200,6 +200,34 @@ return [
 		'artisanpack/comments-pagination-next',
 		'artisanpack/comments-pagination-numbers',
 		'artisanpack/comments-pagination-previous',
+		// First-party blocks added under umbrella #495. Child blocks are
+		// listed alongside their parents so the inserter allow-list does
+		// not filter them out of the parent's template.
+		'artisanpack/breadcrumbs',
+		'artisanpack/accordions',
+		'artisanpack/accordion',
+		'artisanpack/accordion-title',
+		'artisanpack/accordion-body',
+		'artisanpack/tabs',
+		'artisanpack/tab-section',
+		'artisanpack/grid',
+		'artisanpack/grid-item',
+		'artisanpack/next-post',
+		'artisanpack/previous-post',
+		'artisanpack/copyright',
+		'artisanpack/marquee',
+		'artisanpack/comments-number',
+		'artisanpack/single-content',
+		'artisanpack/related-posts',
+		'artisanpack/author-social-icons',
+		'artisanpack/social-share-content',
+		'artisanpack/search-field',
+		'artisanpack/search-filters',
+		'artisanpack/search-filters-buttons',
+		'artisanpack/search-filters-taxonomy',
+		'artisanpack/post-types-search-results',
+		'artisanpack/single-post-types-search-results',
+		'artisanpack/skills-slider',
 	],
 
 	'disabled_blocks' => [
@@ -315,6 +343,29 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Breadcrumbs block (#565)
+	|--------------------------------------------------------------------------
+	|
+	| Configures the `artisanpack/breadcrumbs` block's server-side trail
+	| resolver. The resolver builds a default trail
+	| (`Home → …ancestors → current`) for every breadcrumbs block on
+	| render; hosts customize the trail through the
+	| `ap.visual-editor.breadcrumbs.trail` filter (e.g. to insert a
+	| "Category" hop between Home and a blog post).
+	|
+	| `home_url` overrides the root link target — leave null to fall back
+	| to `url('/')`. `home_label` overrides the human-readable label — leave
+	| null to fall back to the translated "Home" string.
+	|
+	*/
+
+	'breadcrumbs' => [
+		'home_url'   => null,
+		'home_label' => null,
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Global styles
 	|--------------------------------------------------------------------------
 	|
@@ -408,6 +459,65 @@ return [
 		//     'selector'     => '&[aria-current="page"]',
 		//     'icon'         => 'flag',
 		//     'inheritsFrom' => 'idle',
+		// ],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Block animations (#489)
+	|--------------------------------------------------------------------------
+	|
+	| Animations the InspectorControls "Animations" panel offers and the
+	| renderer emits CSS for. Three families:
+	|
+	|   - entrance  : plays once on viewport entry (IntersectionObserver)
+	|   - hover     : transition curve + preset on `:hover`
+	|   - continuous: loop animation
+	|
+	| Resolved in priority order:
+	|
+	|   1. Active theme's `theme.json` → `settings.custom.artisanpack.animations`
+	|   2. This config array (host-app overrides)
+	|   3. `AnimationRegistry::DEFAULTS`
+	|
+	| Each entry is `[family => [key => definition]]`. To remove a built-in,
+	| set its key to `null`. See `AnimationRegistry::validate()` for the
+	| required shape per family.
+	|
+	*/
+
+	'animations' => [
+		// 'entrance' => [
+		//     'fade-in-blur' => [
+		//         'label'    => 'Fade in (blur)',
+		//         'keyframe' => 'apFadeInBlur',
+		//         'duration' => 700,
+		//         'easing'   => 'ease-out',
+		//     ],
+		// ],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Custom keyframes (#489)
+	|--------------------------------------------------------------------------
+	|
+	| Named `@keyframes` blocks the host wants available in the editor's
+	| animation dropdowns. These are merged with whatever the active
+	| theme.json declares under `settings.custom.artisanpack.keyframes`
+	| and with editor-authored keyframes persisted in the Global Styles
+	| JSON. Built-in names are reserved.
+	|
+	*/
+
+	'keyframes' => [
+		// [
+		//     'name'  => 'confetti',
+		//     'stops' => [
+		//         [ 'at' => '0%',   'transform' => 'translateY(0)' ],
+		//         [ 'at' => '50%',  'transform' => 'translateY(-12px) rotate(10deg)' ],
+		//         [ 'at' => '100%', 'transform' => 'translateY(0)' ],
+		//     ],
 		// ],
 	],
 

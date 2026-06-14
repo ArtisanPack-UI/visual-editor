@@ -32,7 +32,10 @@ use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
+use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use Illuminate\Contracts\View\View;
@@ -60,11 +63,14 @@ class BlocksComponent extends Component
 		protected QueryInliner $queryInliner,
 		protected CommentInliner $commentInliner,
 		protected PostResolver $postResolver,
+		protected BreadcrumbsResolver $breadcrumbsResolver,
 		protected NavigationBlockRefResolver $navigationResolver,
 		protected GlobalStylesEmissionResolver $globalStyles,
 		protected GlobalStylesEmissionTracker $emissionTracker,
 		protected ResponsiveCssAccumulator $responsiveAccumulator,
 		protected StateCssAccumulator $stateAccumulator,
+		protected AnimationCssAccumulator $animationAccumulator,
+		protected GradientBorderCssAccumulator $gradientBorderAccumulator,
 		mixed $tree = null,
 		?string $defaultTheme = null,
 		mixed $post = null,
@@ -73,6 +79,7 @@ class BlocksComponent extends Component
 		bool $resolveQueries = true,
 		bool $resolveComments = true,
 		bool $resolvePost = true,
+		bool $resolveBreadcrumbs = true,
 		bool $resolveNavigation = true,
 	) {
 		$this->defaultTheme = $defaultTheme;
@@ -94,7 +101,7 @@ class BlocksComponent extends Component
 		// loop with a navigation block inside it (rare but legal) still
 		// gets each cloned nav block resolved to its menu items.
 		$resolved = $resolveQueries
-			? $this->queryInliner->inline( $resolved )
+			? $this->queryInliner->inline( $resolved, is_object( $post ) ? $post : null )
 			: $resolved;
 
 		// Comment inlining runs after query inlining so a `core/query` loop
@@ -122,6 +129,17 @@ class BlocksComponent extends Component
 			? $this->postResolver->stampTree( $resolved, $post )
 			: $resolved;
 
+		// Breadcrumbs resolution (#565) stamps `_resolvedTrail` on every
+		// `artisanpack/breadcrumbs` block. Runs unconditionally — unlike
+		// `PostResolver` it tolerates a null `$post` (homepage, 404,
+		// archive without a single record in scope) and still produces a
+		// usable trail (just the "Home" entry, marked current). Hosts
+		// extend the trail through the `ap.visual-editor.breadcrumbs.trail`
+		// filter; see `BreadcrumbsResolver::buildTrail()`.
+		$resolved = $resolveBreadcrumbs
+			? $this->breadcrumbsResolver->stampTree( $resolved, is_object( $post ) ? $post : null )
+			: $resolved;
+
 		// Navigation resolution mirrors the editor's read path
 		// (Keystone #48 → #51): `core/navigation` blocks ship with
 		// `__unstableLocation` and/or `ref` but empty `innerBlocks`.
@@ -143,15 +161,21 @@ class BlocksComponent extends Component
 		// `BlockSupports::pushResponsive()` side-effect has happened
 		// by the time we drain the accumulator. The drained block
 		// is then prepended to the output by the view template.
-		$html          = $this->renderer->render( $this->tree );
-		$responsiveCss = $this->responsiveAccumulator->flush();
-		$statesCss     = $this->stateAccumulator->flush();
+		$html               = $this->renderer->render( $this->tree );
+		$responsiveCss      = $this->responsiveAccumulator->flush();
+		$statesCss          = $this->stateAccumulator->flush();
+		$animationOutput    = $this->animationAccumulator->flush();
+		$gradientBordersCss = $this->gradientBorderAccumulator->flush();
 
 		return view( 'visual-editor-renderer-blade::components.blocks', [
-			'html'            => $html,
-			'globalStylesCss' => $this->resolveGlobalStylesCss(),
-			'responsiveCss'   => $responsiveCss,
-			'statesCss'       => $statesCss,
+			'html'                    => $html,
+			'globalStylesCss'         => $this->resolveGlobalStylesCss(),
+			'responsiveCss'           => $responsiveCss,
+			'statesCss'               => $statesCss,
+			'animationsCss'           => $animationOutput['styleTag'],
+			'animationsNoscript'      => $animationOutput['noscriptTag'],
+			'animationsRuntimeNeeded' => $animationOutput['runtimeNeeded'],
+			'gradientBordersCss'      => $gradientBordersCss,
 		] );
 	}
 

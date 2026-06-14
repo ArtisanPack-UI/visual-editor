@@ -42,6 +42,7 @@
         "artisanpack/postPreview"
     ],
     "supports": {
+        "artisanpackAnimations": true,
         "inserter": false,
         "anchor": true,
         "html": false,
@@ -83,7 +84,8 @@
                 "color": true,
                 "width": true,
                 "style": true
-            }
+            },
+            "gradient": true
         },
         "filter": {
             "duotone": true

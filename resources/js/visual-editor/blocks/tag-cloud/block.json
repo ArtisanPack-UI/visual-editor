@@ -31,10 +31,18 @@
         }
     },
     "styles": [
-        { "name": "default", "label": "Default", "isDefault": true },
-        { "name": "outline", "label": "Outline" }
+        {
+            "name": "default",
+            "label": "Default",
+            "isDefault": true
+        },
+        {
+            "name": "outline",
+            "label": "Outline"
+        }
     ],
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "html": false,
         "align": true,
@@ -63,7 +71,8 @@
                 "color": true,
                 "width": true,
                 "style": true
-            }
+            },
+            "gradient": true
         }
     }
 }

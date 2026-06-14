@@ -16,6 +16,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "color": {
             "gradients": true,
@@ -54,7 +55,8 @@
                 "color": true,
                 "width": true,
                 "style": true
-            }
+            },
+            "gradient": true
         }
     },
     "style": "wp-block-preformatted"

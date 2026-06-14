@@ -34,7 +34,8 @@
     "pestphp/pest": "^3.8",
     "pestphp/pest-plugin-laravel": "^3.1",
     "orchestra/testbench": "^10.2",
-    "artisanpack-ui/cms-framework": "^2.0"
+    "artisanpack-ui/cms-framework": "^2.0",
+    "artisanpack-ui/icons": "^2.1"
   },
   "repositories": [
     {
@@ -43,11 +44,19 @@
       "options": {
         "symlink": true
       }
+    },
+    {
+      "type": "path",
+      "url": "../icons",
+      "options": {
+        "symlink": true
+      }
     }
   ],
   "suggest": {
     "artisanpack-ui/media-library": "Recommended ^1.2 — default media library integration. Wire MediaModal + uploadMedia through registerArtisanpackMediaBridge() in the editor bootstrap to power Gutenberg's media picker and upload flows. Not enforced by Composer; host apps are free to install a different library and register a custom bridge instead.",
-    "artisanpack-ui/cms-framework": "Required ^2.0 for the site editor + comments family — the `/visual-editor/site-editor` route is hard-coupled to cms-framework's templates, parts, patterns, global styles, and menus modules (plan 14), and the comments-family forks (#519) consume the Blog module's `Comment` model + `Post::comments` relation introduced in 2.1. Without it, the post-content editor still works but the site editor route returns an install gate and the comments-family blocks render against an empty data set."
+    "artisanpack-ui/cms-framework": "Required ^2.0 for the site editor + comments family — the `/visual-editor/site-editor` route is hard-coupled to cms-framework's templates, parts, patterns, global styles, and menus modules (plan 14), and the comments-family forks (#519) consume the Blog module's `Comment` model + `Post::comments` relation introduced in 2.1. Without it, the post-content editor still works but the site editor route returns an install gate and the comments-family blocks render against an empty data set.",
+    "artisanpack-ui/icons": "Recommended ^2.1 — bundled FA Free Solid/Regular/Brands sets are registered against the icons package via the `ap.icons.register-icon-sets` filter. Without it, the icon block's `iconRef` paths render as `data-*` carriers (Phase 3, #554) and the picker has no registered icons to surface."
   },
   "_comments": {
     "repositories": "The path repository to ../cms-framework is a development-only convenience for the symlinked workflow used in the dev-app (see ../artisanpack-ui-dev/composer.json). On a fresh clone without the sibling cms-framework checkout, composer install will fail to resolve cms-framework — that's expected for now; the package's release pipeline pulls cms-framework from Packagist via the ^2.0 constraint. CI removes this entry before installing. Tracked for a permanent fix (e.g. an env-gated repository) in #434."

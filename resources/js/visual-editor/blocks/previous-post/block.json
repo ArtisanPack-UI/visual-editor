@@ -1,0 +1,46 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/previous-post",
+    "title": "Previous Post",
+    "category": "theme",
+    "description": "Wrap inner blocks against the previous post in the same post type so post-* children render the older neighbor's data.",
+    "keywords": ["previous", "post", "navigation", "adjacent"],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "postType": {
+            "type": "string",
+            "default": "post"
+        },
+        "queryId": {
+            "type": "number"
+        },
+        "tagName": {
+            "type": "string",
+            "default": "div"
+        }
+    },
+    "providesContext": {
+        "postType": "postType",
+        "queryId": "queryId"
+    },
+    "supports": {
+        "artisanpackAnimations": true,
+        "anchor": true,
+        "align": ["wide", "full"],
+        "html": false,
+        "reusable": false,
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "spacing": {
+            "margin": ["top", "bottom"],
+            "padding": true
+        }
+    }
+}

@@ -23,10 +23,16 @@ use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
+use ArtisanPackUI\VisualEditor\Animations\AnimationCssEmitter;
+use ArtisanPackUI\VisualEditor\Animations\KeyframeRegistry;
+use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
@@ -56,6 +62,15 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// not pin the first request's resolver. #522.
 		$this->app->scoped( LoginoutResolver::class, function () {
 			return new LoginoutResolver();
+		} );
+
+		// Scoped — the breadcrumbs resolver reads the current request's
+		// URL when checking for the homepage short-circuit and walks the
+		// in-flight post's parent chain. Pinning the first request's
+		// resolver in a long-running worker (Octane / queue) would feed
+		// stale request context to every subsequent render. #565.
+		$this->app->scoped( BreadcrumbsResolver::class, function () {
+			return new BreadcrumbsResolver();
 		} );
 
 		// Scoped (not singleton) so the BlockRenderer captures the
@@ -115,6 +130,29 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		$this->app->scoped( StateCssAccumulator::class, function () {
 			return new StateCssAccumulator();
 		} );
+
+		// #489 — block-animations resolver + accumulator. Same lifetime
+		// story as the responsive / state accumulators: scoped per
+		// request so worker-runtime hosts don't leak across requests.
+		$this->app->scoped( AnimationMarkupResolver::class, function ( $app ) {
+			return new AnimationMarkupResolver(
+				$app->make( AnimationCssEmitter::class ),
+			);
+		} );
+
+		$this->app->scoped( AnimationCssAccumulator::class, function ( $app ) {
+			return new AnimationCssAccumulator(
+				$app->make( KeyframeRegistry::class ),
+			);
+		} );
+
+		// #490 — sibling accumulator for the gradient border feature's
+		// `<style data-ve-gradient-borders>` block. Same scoped lifetime
+		// rationale as the others; the rules cover the wrapper +
+		// `::before` mask pseudo a gradient border installs.
+		$this->app->scoped( GradientBorderCssAccumulator::class, function () {
+			return new GradientBorderCssAccumulator();
+		} );
 	}
 
 	public function boot(): void
@@ -132,9 +170,12 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 
 			// Asset publish path: copies the bundled `@wordpress/block-library`
 			// CSS to the consumer's `public/vendor/visual-editor-renderer-blade/`,
-			// which `<x-ve-blocks-styles />` links to by default.
+			// which `<x-ve-blocks-styles />` links to by default. Also ships the
+			// accordion + tabs front-end stylesheets and interactivity script
+			// under `public/vendor/visual-editor-renderer-blade/frontend/`.
 			$this->publishes( [
 				__DIR__ . '/../resources/assets/block-library' => public_path( 'vendor/visual-editor-renderer-blade' ),
+				__DIR__ . '/../resources/assets/frontend'      => public_path( 'vendor/visual-editor-renderer-blade/frontend' ),
 			], 'visual-editor-renderer-blade-assets' );
 		}
 	}

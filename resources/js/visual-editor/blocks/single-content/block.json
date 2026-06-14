@@ -1,0 +1,49 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/single-content",
+    "title": "Single Content",
+    "category": "theme",
+    "description": "Highlight a single post, page, or custom post type with the inner blocks scoped to the chosen entry.",
+    "keywords": ["single", "content", "post", "feature"],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "postId": {
+            "type": "number",
+            "default": 0
+        },
+        "postType": {
+            "type": "string",
+            "default": "post"
+        }
+    },
+    "providesContext": {
+        "postId": "postId",
+        "postType": "postType"
+    },
+    "supports": {
+        "anchor": true,
+        "align": ["wide", "full"],
+        "ariaLabel": true,
+        "className": true,
+        "html": false,
+        "reusable": false,
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "spacing": {
+            "margin": ["top", "bottom"],
+            "padding": true,
+            "blockGap": true,
+            "__experimentalDefaultControls": {
+                "padding": true,
+                "blockGap": true
+            }
+        }
+    }
+}

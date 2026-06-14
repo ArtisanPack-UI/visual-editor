@@ -38,6 +38,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": [
             "wide",
@@ -82,7 +83,8 @@
             "radius": true,
             "color": true,
             "width": true,
-            "style": true
+            "style": true,
+            "gradient": true
         }
     },
     "editorStyle": "wp-block-site-tagline-editor",

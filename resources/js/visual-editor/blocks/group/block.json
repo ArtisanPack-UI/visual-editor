@@ -5,7 +5,12 @@
     "title": "Group",
     "category": "design",
     "description": "Gather blocks in a layout container.",
-    "keywords": [ "container", "wrapper", "row", "section" ],
+    "keywords": [
+        "container",
+        "wrapper",
+        "row",
+        "section"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "tagName": {
@@ -13,15 +18,27 @@
             "default": "div"
         },
         "templateLock": {
-            "type": [ "string", "boolean" ],
-            "enum": [ "all", "insert", "contentOnly", false ]
+            "type": [
+                "string",
+                "boolean"
+            ],
+            "enum": [
+                "all",
+                "insert",
+                "contentOnly",
+                false
+            ]
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "__experimentalOnEnter": true,
         "__experimentalOnMerge": true,
         "__experimentalSettings": true,
-        "align": [ "wide", "full" ],
+        "align": [
+            "wide",
+            "full"
+        ],
         "anchor": true,
         "ariaLabel": true,
         "html": false,
@@ -46,7 +63,10 @@
         },
         "shadow": true,
         "spacing": {
-            "margin": [ "top", "bottom" ],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "blockGap": true,
             "__experimentalDefaultControls": {
@@ -67,7 +87,8 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "position": {
             "sticky": true

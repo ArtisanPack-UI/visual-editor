@@ -1,0 +1,105 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/grid-item",
+    "title": "Grid Item",
+    "category": "design",
+    "description": "A single cell inside a grid, with per-breakpoint column/row spans.",
+    "keywords": [
+        "grid",
+        "grid-item",
+        "cell"
+    ],
+    "parent": [
+        "artisanpack/grid"
+    ],
+    "textdomain": "artisanpack-visual-editor",
+    "usesContext": [
+        "numColumns"
+    ],
+    "attributes": {
+        "innerLayout": {
+            "type": "string",
+            "enum": [
+                "normal",
+                "equal",
+                "center",
+                "bottom",
+                "last-bottom"
+            ],
+            "default": "normal"
+        },
+        "gridColumnSpan": {
+            "type": "number",
+            "default": 1
+        },
+        "gridRowSpan": {
+            "type": "number",
+            "default": 1
+        }
+    },
+    "supports": {
+        "anchor": true,
+        "align": [
+            "wide",
+            "full"
+        ],
+        "ariaLabel": true,
+        "className": true,
+        "html": false,
+        "spacing": {
+            "margin": [
+                "top",
+                "bottom"
+            ],
+            "padding": true,
+            "blockGap": true,
+            "__experimentalDefaultControls": {
+                "padding": true,
+                "blockGap": true
+            }
+        },
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "shadow": true,
+        "__experimentalBorder": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true,
+            "__experimentalDefaultControls": {
+                "color": true,
+                "radius": true,
+                "style": true,
+                "width": true
+            },
+            "gradient": true
+        },
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "__experimentalFontFamily": true,
+            "__experimentalFontWeight": true,
+            "__experimentalFontStyle": true,
+            "__experimentalTextTransform": true,
+            "__experimentalTextDecoration": true,
+            "__experimentalLetterSpacing": true,
+            "__experimentalDefaultControls": {
+                "fontSize": true
+            }
+        },
+        "artisanpackResponsive": {
+            "attributes": [
+                "spacing",
+                "gridColumnSpan",
+                "gridRowSpan"
+            ]
+        }
+    }
+}

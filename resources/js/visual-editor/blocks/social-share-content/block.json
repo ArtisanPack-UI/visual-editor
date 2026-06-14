@@ -1,0 +1,76 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/social-share-content",
+    "title": "Social Share Content",
+    "category": "theme",
+    "description": "Render share-to-social buttons for the current entry so visitors can spread the word.",
+    "keywords": ["social", "share", "icons", "links"],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "socialIcons": {
+            "type": "array",
+            "default": []
+        },
+        "iconStyle": {
+            "type": "string",
+            "enum": ["show-label-icon", "show-icon", "show-label"],
+            "default": "show-label-icon"
+        },
+        "iconsDirection": {
+            "type": "string",
+            "enum": ["horizontal", "vertical"],
+            "default": "vertical"
+        },
+        "iconsStretch": {
+            "type": "string",
+            "enum": ["full-width", "auto-width"],
+            "default": "full-width"
+        },
+        "iconsBorderRadius": {
+            "type": "number",
+            "default": 0
+        },
+        "iconColor": {
+            "type": "string",
+            "default": ""
+        },
+        "iconHoverColor": {
+            "type": "string",
+            "default": ""
+        },
+        "iconBackgroundColor": {
+            "type": "string",
+            "default": ""
+        },
+        "iconHoverBackgroundColor": {
+            "type": "string",
+            "default": ""
+        }
+    },
+    "supports": {
+        "artisanpackAnimations": true,
+        "anchor": true,
+        "align": ["wide", "full"],
+        "ariaLabel": true,
+        "className": true,
+        "html": false,
+        "color": {
+            "gradients": true,
+            "link": true,
+            "__experimentalDefaultControls": {
+                "background": true,
+                "text": true
+            }
+        },
+        "spacing": {
+            "margin": ["top", "bottom"],
+            "padding": true,
+            "blockGap": true,
+            "__experimentalDefaultControls": {
+                "padding": true,
+                "blockGap": true
+            }
+        }
+    }
+}

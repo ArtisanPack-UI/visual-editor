@@ -38,11 +38,13 @@
         "artisanpack/postPreview"
     ],
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "reusable": false,
         "html": false,
         "color": {
-            "link": true
+            "link": true,
+            "gradients": true
         },
         "typography": {
             "fontSize": true,

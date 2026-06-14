@@ -1,0 +1,24 @@
+/**
+ * Skills Slider block styles.
+ *
+ * Loaded in the editor via `blocks/skills-slider/index.ts`. Host apps
+ * are expected to ship matching rules on the public frontend — the
+ * Blade / React / Vue renderers emit the same class names.
+ */
+
+.ap-skills-slider {
+    width: 100%;
+}
+
+.ap-skills-slider__track {
+    background-color: var(--wp--preset--color--primary, #e5e7eb);
+    border-radius: 9999px;
+    overflow: hidden;
+    width: 100%;
+}
+
+.ap-skills-slider__bar {
+    background-color: var(--wp--preset--color--tertiary, #2563eb);
+    border-radius: 9999px;
+    height: 100%;
+}

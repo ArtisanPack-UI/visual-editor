@@ -25,6 +25,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "align": true,
         "html": false,
@@ -65,7 +66,8 @@
             "radius": true,
             "color": true,
             "width": true,
-            "style": true
+            "style": true,
+            "gradient": true
         }
     }
 }

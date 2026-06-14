@@ -70,8 +70,16 @@
             "default": true
         },
         "templateLock": {
-            "type": ["string", "boolean"],
-            "enum": ["all", "insert", "contentOnly", false]
+            "type": [
+                "string",
+                "boolean"
+            ],
+            "enum": [
+                "all",
+                "insert",
+                "contentOnly",
+                false
+            ]
         },
         "tagName": {
             "type": "string",
@@ -87,15 +95,22 @@
             "attribute": "poster"
         }
     },
-    "usesContext": ["postId", "postType"],
+    "usesContext": [
+        "postId",
+        "postType"
+    ],
     "supports": {
         "anchor": true,
         "align": true,
         "html": false,
         "shadow": true,
+        "artisanpackAnimations": true,
         "spacing": {
             "padding": true,
-            "margin": ["top", "bottom"],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "blockGap": true,
             "__experimentalDefaultControls": {
                 "padding": true,
@@ -112,14 +127,18 @@
                 "radius": true,
                 "style": true,
                 "width": true
-            }
+            },
+            "gradient": true
         },
         "color": {
             "heading": true,
             "text": true,
             "background": false,
-            "__experimentalSkipSerialization": ["gradients"],
-            "enableContrastChecker": false
+            "__experimentalSkipSerialization": [
+                "gradients"
+            ],
+            "enableContrastChecker": false,
+            "gradients": true
         },
         "dimensions": {
             "aspectRatio": true

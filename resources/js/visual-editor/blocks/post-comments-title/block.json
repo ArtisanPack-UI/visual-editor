@@ -32,14 +32,19 @@
         "artisanpack/postPreview"
     ],
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": false,
-        "align": [ "wide", "full" ],
+        "align": [
+            "wide",
+            "full"
+        ],
         "html": false,
         "__experimentalBorder": {
             "radius": true,
             "color": true,
             "width": true,
-            "style": true
+            "style": true,
+            "gradient": true
         },
         "color": {
             "gradients": true,

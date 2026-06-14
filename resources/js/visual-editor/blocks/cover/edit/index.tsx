@@ -101,7 +101,12 @@ function getInnerBlocksTemplate(
 ): unknown[][] {
     return [
         [
-            'core/paragraph',
+            // #578 — must reference the forked block name. `core/paragraph`
+            // is not registered in this editor (the paragraph block is
+            // forked at `artisanpack/paragraph`), so the inner-blocks
+            // template insertion fails when the cover transitions out of
+            // its placeholder state, contributing to the editor hang.
+            'artisanpack/paragraph',
             {
                 style: {
                     typography: {
@@ -170,6 +175,14 @@ function CoverEdit({
         __unstableMarkNextChangeAsNotPersistent: () => void;
     };
 
+    // #578 — refinement-task version guard. Each user-triggered handler
+    // (overlay color pick, media select, media clear) bumps this counter
+    // and captures the new value. The background `getMediaColor` task
+    // checks the captured value before applying its result so a newer
+    // user action can't be overwritten by a stale completion — e.g. user
+    // picks color A, then color B, then A's task resolves last.
+    const refinementVersionRef = useRef(0);
+
     const { media } = useSelect(
         (select) => {
             return {
@@ -208,12 +221,20 @@ function CoverEdit({
         media?.source_url;
 
     useEffect(() => {
+        // #578 — capture the refinement version so a concurrent
+        // `onClearMedia` / `onSelectMedia` / `onSetOverlayColor` can
+        // invalidate this featured-image refinement before its
+        // `getMediaColor` promise resolves.
+        const version = ++refinementVersionRef.current;
         (async () => {
             if (!useFeaturedImage) {
                 return;
             }
 
             const averageBackgroundColor = await getMediaColor(mediaUrl);
+            if (version !== refinementVersionRef.current) {
+                return;
+            }
 
             let newOverlayColor = overlayColor.color;
             if (!isUserOverlayColor) {
@@ -254,7 +275,12 @@ function CoverEdit({
         gradientValue?: string;
     };
 
-    const onSelectMedia = async (
+    // #578 — commit the media-driven attributes (url, backgroundType, etc.)
+    // synchronously so the modal's "Select 1 item" click returns and the
+    // editor render loop settles before any async work resumes. The
+    // overlay-color / `isDark` refinements depend on `getMediaColor`, so
+    // they run in a background task and surface failures via console.error.
+    const onSelectMedia = (
         newMedia:
             | {
                   type?: string;
@@ -267,7 +293,7 @@ function CoverEdit({
                   };
               }
             | undefined
-    ): Promise<void> => {
+    ): void => {
         const mediaAttributes = attributesFromMedia(newMedia);
         if (!mediaAttributes) {
             return;
@@ -276,25 +302,10 @@ function CoverEdit({
             IMAGE_BACKGROUND_TYPE
         );
 
-        const averageBackgroundColor = await getMediaColor(
-            isImage ? newMedia?.url : undefined
-        );
-
-        let newOverlayColor = overlayColor.color;
-        if (!isUserOverlayColor) {
-            newOverlayColor = averageBackgroundColor;
-            setOverlayColor(newOverlayColor);
-            __unstableMarkNextChangeAsNotPersistent();
-        }
+        const version = ++refinementVersionRef.current;
 
         const newDimRatio =
             originalUrl === undefined && dimRatio === 100 ? 50 : dimRatio;
-
-        const newIsDark = compositeIsDark(
-            newDimRatio,
-            newOverlayColor,
-            averageBackgroundColor
-        );
 
         if (isImage && mediaAttributes?.id) {
             const { imageDefaultSize } = getSettings() as {
@@ -332,12 +343,53 @@ function CoverEdit({
             focalPoint: undefined,
             useFeaturedImage: undefined,
             dimRatio: newDimRatio,
-            isDark: newIsDark,
             isUserOverlayColor: isUserOverlayColor || false,
         });
+
+        const refinementUrl = isImage
+            ? (mediaAttributes.url as string | undefined)
+            : undefined;
+
+        void (async () => {
+            try {
+                const averageBackgroundColor = await getMediaColor(
+                    refinementUrl
+                );
+                if (version !== refinementVersionRef.current) {
+                    return;
+                }
+
+                let newOverlayColor = overlayColor.color;
+                if (!isUserOverlayColor) {
+                    newOverlayColor = averageBackgroundColor;
+                    __unstableMarkNextChangeAsNotPersistent();
+                    setOverlayColor(newOverlayColor);
+                }
+
+                const newIsDark = compositeIsDark(
+                    newDimRatio,
+                    newOverlayColor,
+                    averageBackgroundColor
+                );
+
+                __unstableMarkNextChangeAsNotPersistent();
+                setAttributes({ isDark: newIsDark });
+            } catch (error) {
+                // eslint-disable-next-line no-console
+                console.error(
+                    '[cover] failed to refine overlay color and isDark after media select',
+                    error
+                );
+            }
+        })();
     };
 
     const onClearMedia = (): void => {
+        // #578 — invalidate any in-flight refinement from the previous
+        // media so a late `getMediaColor` resolution can't overwrite the
+        // cleared overlay color / `isDark`.
+        ++refinementVersionRef.current;
+
         let newOverlayColor = overlayColor.color;
         if (!isUserOverlayColor) {
             newOverlayColor = DEFAULT_OVERLAY_COLOR;
@@ -363,23 +415,49 @@ function CoverEdit({
         });
     };
 
-    const onSetOverlayColor = async (
+    // #578 — apply the user's picked overlay color synchronously so the
+    // picker click returns immediately and React can settle. Awaiting
+    // `getMediaColor` here piles RAF callbacks from the upstream contrast
+    // checker faster than React can flush, tripping its "Maximum update
+    // depth exceeded" guard and crashing the block via `BlockCrashBoundary`.
+    // The `isDark` refinement is deferred to a background task.
+    const onSetOverlayColor = (
         newOverlayColor: string | undefined
-    ): Promise<void> => {
-        const averageBackgroundColor = await getMediaColor(url);
-        const newIsDark = compositeIsDark(
-            dimRatio,
-            newOverlayColor,
-            averageBackgroundColor
-        );
+    ): void => {
+        const version = ++refinementVersionRef.current;
 
         setOverlayColor(newOverlayColor);
         __unstableMarkNextChangeAsNotPersistent();
 
         setAttributes({
             isUserOverlayColor: true,
-            isDark: newIsDark,
         });
+
+        void (async () => {
+            try {
+                const averageBackgroundColor = await getMediaColor(url);
+                if (version !== refinementVersionRef.current) {
+                    return;
+                }
+                const newIsDark = compositeIsDark(
+                    dimRatio,
+                    newOverlayColor,
+                    averageBackgroundColor
+                );
+
+                __unstableMarkNextChangeAsNotPersistent();
+                setAttributes({ isDark: newIsDark });
+            } catch (error) {
+                // Surface the swallowed error path so a future regression
+                // of the picker-hang class is visible in the console
+                // instead of a blank tab.
+                // eslint-disable-next-line no-console
+                console.error(
+                    '[cover] failed to refine isDark after overlay color change',
+                    error
+                );
+            }
+        })();
     };
 
     const onUpdateDimRatio = async (newDimRatio: number): Promise<void> => {

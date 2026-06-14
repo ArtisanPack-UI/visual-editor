@@ -12,8 +12,37 @@
  */
 
 import { registerBlockRenderer } from '../registry';
+import {
+    AccordionBlock,
+    AccordionBodyBlock,
+    AccordionTitleBlock,
+    AccordionsBlock,
+} from './artisanpack/accordion';
+import { BreadcrumbsBlock } from './artisanpack/breadcrumbs';
 import { CalloutBlock } from './artisanpack/callout';
+import { CommentsNumberBlock } from './artisanpack/commentsNumber';
+import { CopyrightBlock } from './artisanpack/copyright';
+import { GridBlock, GridItemBlock } from './artisanpack/grid';
+import { MarqueeBlock } from './artisanpack/marquee';
+import { TabSectionBlock, TabsBlock } from './artisanpack/tabs';
 import { LoginoutBlock } from './artisanpack/loginout';
+import {
+    NextPostBlock,
+    PreviousPostBlock,
+} from './artisanpack/postNavigation';
+import { AuthorSocialIconsBlock } from './artisanpack/authorSocialIcons';
+import { RelatedPostsBlock } from './artisanpack/relatedPosts';
+import {
+    PostTypesSearchResultsBlock,
+    SearchFieldBlock,
+    SearchFiltersBlock,
+    SearchFiltersButtonsBlock,
+    SearchFiltersTaxonomyBlock,
+    SinglePostTypesSearchResultsBlock,
+} from './artisanpack/searchCluster';
+import { SingleContentBlock } from './artisanpack/singleContent';
+import { SkillsSliderBlock } from './artisanpack/skillsSlider';
+import { SocialShareContentBlock } from './artisanpack/socialShareContent';
 import {
     CommentAuthorAvatarBlock,
     CommentAuthorNameBlock,
@@ -210,7 +239,27 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/navigation': NavigationBlock,
     'core/navigation-link': NavigationLinkBlock,
     'core/navigation-submenu': NavigationSubmenuBlock,
+    'artisanpack/breadcrumbs': BreadcrumbsBlock,
     'artisanpack/callout': CalloutBlock,
+    // Accordion + tabs families (#497). Interactive blocks with
+    // parent/child inner-block relationships preserved across renderers.
+    'artisanpack/accordions': AccordionsBlock,
+    'artisanpack/accordion': AccordionBlock,
+    'artisanpack/accordion-title': AccordionTitleBlock,
+    'artisanpack/accordion-body': AccordionBodyBlock,
+    'artisanpack/tabs': TabsBlock,
+    'artisanpack/tab-section': TabSectionBlock,
+    // Grid family (#498). Parent grid owns the responsive column count
+    // classes + inline gap declarations; each grid item owns its
+    // per-breakpoint span classes and inner-layout flex class.
+    'artisanpack/grid': GridBlock,
+    'artisanpack/grid-item': GridItemBlock,
+    // Adjacent-post container family (#499). PostResolver re-stamps the
+    // inner-block tree against the resolved neighbor and sets
+    // `_resolvedHasAdjacent`; renderer emits the `<div>` wrapper when
+    // that flag is true and nothing otherwise.
+    'artisanpack/next-post': NextPostBlock,
+    'artisanpack/previous-post': PreviousPostBlock,
     // Post navigation / metadata family (#520) — same renderer for both
     // namespaces; PostResolver stamps the same `_resolved*` attributes.
     'core/post-navigation-link': PostNavigationLinkBlock,
@@ -253,6 +302,36 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     // only; loginout never shipped as `core/*` in v1 so there is no
     // core counterpart to mirror here.
     'artisanpack/loginout': LoginoutBlock,
+    // Site-chrome cluster (#500) — registered under the artisanpack/*
+    // namespace only. These three blocks (copyright + marquee +
+    // comments-number) never shipped as `core/*` in v1 so there are
+    // no core counterparts to mirror here.
+    'artisanpack/copyright': CopyrightBlock,
+    'artisanpack/marquee': MarqueeBlock,
+    'artisanpack/comments-number': CommentsNumberBlock,
+    // Single-post content cluster (#501) — registered under the
+    // artisanpack/* namespace only. `single-content` + `related-posts`
+    // resolve through `QueryInliner` via `QueryResolverContract`; the
+    // two social blocks resolve through `PostResolver` so the per-post
+    // chip list arrives pre-stamped on the attributes.
+    'artisanpack/single-content': SingleContentBlock,
+    'artisanpack/related-posts': RelatedPostsBlock,
+    'artisanpack/author-social-icons': AuthorSocialIconsBlock,
+    'artisanpack/social-share-content': SocialShareContentBlock,
+    // Generic search cluster (#502) — registered under the
+    // artisanpack/* namespace only. Every request-time value
+    // (`?s=`, `?taxonomy=`, `?post_type=`) arrives via a
+    // `_resolved*` stamp so the renderers stay declarative.
+    'artisanpack/search-field': SearchFieldBlock,
+    'artisanpack/search-filters': SearchFiltersBlock,
+    'artisanpack/search-filters-buttons': SearchFiltersButtonsBlock,
+    'artisanpack/search-filters-taxonomy': SearchFiltersTaxonomyBlock,
+    'artisanpack/post-types-search-results': PostTypesSearchResultsBlock,
+    'artisanpack/single-post-types-search-results':
+        SinglePostTypesSearchResultsBlock,
+    // Skills slider (#503) — registered under the artisanpack/*
+    // namespace only. Static block; no resolver round-trip.
+    'artisanpack/skills-slider': SkillsSliderBlock,
 };
 
 export function registerCoreBlocks(): void {

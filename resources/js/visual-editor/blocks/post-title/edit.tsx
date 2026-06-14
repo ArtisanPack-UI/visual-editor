@@ -23,7 +23,16 @@
  */
 
 import type { CSSProperties, ReactElement } from 'react';
-import { useBlockProps, PlainText } from '@wordpress/block-editor';
+import {
+    InspectorControls,
+    useBlockProps,
+    PlainText,
+} from '@wordpress/block-editor';
+import {
+    PanelBody,
+    TextControl,
+    ToggleControl,
+} from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { useEntityProp } from '../../vendor/core-data-shim';
@@ -120,10 +129,57 @@ function tagNameForLevel( level: unknown ): string {
     return 'h2';
 }
 
+interface LinkSettingsProps {
+    readonly attributes: AnyProps;
+    readonly setAttributes: ( next: AnyProps ) => void;
+}
+
+function LinkSettings( { attributes, setAttributes }: LinkSettingsProps ): ReactElement {
+    const isLink = Boolean( attributes.isLink );
+    const linkTarget = typeof attributes.linkTarget === 'string' ? attributes.linkTarget : '_self';
+    const rel = typeof attributes.rel === 'string' ? attributes.rel : '';
+
+    return (
+        <InspectorControls>
+            <PanelBody title={ __( 'Link settings', TEXT_DOMAIN ) } initialOpen={ false }>
+                <ToggleControl
+                    // @ts-expect-error - upstream prop
+                    __nextHasNoMarginBottom
+                    label={ __( 'Make title a link to the post', TEXT_DOMAIN ) }
+                    checked={ isLink }
+                    onChange={ ( value: boolean ) => setAttributes( { isLink: value } ) }
+                />
+                { isLink && (
+                    <>
+                        <ToggleControl
+                            // @ts-expect-error - upstream prop
+                            __nextHasNoMarginBottom
+                            label={ __( 'Open in new tab', TEXT_DOMAIN ) }
+                            checked={ linkTarget === '_blank' }
+                            onChange={ ( value: boolean ) =>
+                                setAttributes( { linkTarget: value ? '_blank' : '_self' } )
+                            }
+                        />
+                        <TextControl
+                            // @ts-expect-error - upstream prop
+                            __next40pxDefaultSize
+                            __nextHasNoMarginBottom
+                            label={ __( 'Link rel', TEXT_DOMAIN ) }
+                            value={ rel }
+                            onChange={ ( value: string ) => setAttributes( { rel: value } ) }
+                        />
+                    </>
+                ) }
+            </PanelBody>
+        </InspectorControls>
+    );
+}
+
 export default function PostTitleEdit( props: AnyProps ): ReactElement {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blockProps = ( useBlockProps as any )();
     const attributes = props.attributes ?? {};
+    const setAttributes = props.setAttributes ?? ( () => undefined );
     const context = props.context ?? {};
 
     const identity = readPostEntityIdentity( context );
@@ -143,16 +199,30 @@ export default function PostTitleEdit( props: AnyProps ): ReactElement {
         hasLiveEntity ? identity.postId : null,
     );
 
+    const settings = (
+        <LinkSettings attributes={ attributes } setAttributes={ setAttributes } />
+    );
+
     // 1. Stamped `_resolvedTitle` — server-rendered preview.
     const stamped = asString( attributes._resolvedTitle );
     if ( stamped !== '' ) {
-        return <div { ...blockProps }>{ stamped }</div>;
+        return (
+            <>
+                { settings }
+                <div { ...blockProps }>{ stamped }</div>
+            </>
+        );
     }
 
     // 2. Query-loop preview — readonly first-post title.
     const queryPreviewTitle = readQueryPreviewTitle( context );
     if ( queryPreviewTitle !== null ) {
-        return <div { ...blockProps }>{ queryPreviewTitle }</div>;
+        return (
+            <>
+                { settings }
+                <div { ...blockProps }>{ queryPreviewTitle }</div>
+            </>
+        );
     }
 
     // 3. Live entity, not in a query loop — editable inline.
@@ -177,25 +247,33 @@ export default function PostTitleEdit( props: AnyProps ): ReactElement {
             // plain-text only — inline formatting on a `core/post-title`
             // would diverge from the rendered output.
             return (
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                <PlainText
-                    tagName={ TagName as never }
-                    placeholder={ __( '(no title)', TEXT_DOMAIN ) }
-                    value={ titleText }
-                    onChange={ ( next: string ) => setTitle( next ) }
-                    __experimentalVersion={ 2 }
-                    { ...blockProps }
-                />
+                <>
+                    { settings }
+                    {
+                        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                        <PlainText
+                            tagName={ TagName as never }
+                            placeholder={ __( '(no title)', TEXT_DOMAIN ) }
+                            value={ titleText }
+                            onChange={ ( next: string ) => setTitle( next ) }
+                            __experimentalVersion={ 2 }
+                            { ...blockProps }
+                        />
+                    }
+                </>
             );
         }
     }
 
     // 4. Placeholder.
     return (
-        <div { ...blockProps }>
-            <span style={ placeholderStyle } contentEditable={ false }>
-                { __( 'Post Title', TEXT_DOMAIN ) }
-            </span>
-        </div>
+        <>
+            { settings }
+            <div { ...blockProps }>
+                <span style={ placeholderStyle } contentEditable={ false }>
+                    { __( 'Post Title', TEXT_DOMAIN ) }
+                </span>
+            </div>
+        </>
     );
 }

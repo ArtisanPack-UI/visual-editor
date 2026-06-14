@@ -5,7 +5,14 @@
     "title": "Poetry",
     "category": "text",
     "description": "Insert poetry. Use special spacing formats. Or quote song lyrics.",
-    "keywords": [ "poetry", "poem", "verse", "stanza", "song", "lyrics" ],
+    "keywords": [
+        "poetry",
+        "poem",
+        "verse",
+        "stanza",
+        "song",
+        "lyrics"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "content": {
@@ -17,6 +24,7 @@
         }
     },
     "supports": {
+        "artisanpackAnimations": true,
         "anchor": true,
         "background": {
             "backgroundImage": true,
@@ -66,7 +74,8 @@
             "radius": true,
             "width": true,
             "color": true,
-            "style": true
+            "style": true,
+            "gradient": true
         },
         "interactivity": {
             "clientNavigation": true
