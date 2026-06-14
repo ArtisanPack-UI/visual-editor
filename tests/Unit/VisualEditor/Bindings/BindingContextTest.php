@@ -21,6 +21,21 @@ it( 'returns the supplied draft snapshot verbatim', function () {
 		->and( $context->draftValue( 'missing' ) )->toBeNull();
 } );
 
+it( 'distinguishes "no draft entry" from "draft entry set to null / empty"', function () {
+	$context = new BindingContext( null, [
+		'title'   => null,
+		'excerpt' => '',
+		'slug'    => 'present',
+	] );
+
+	expect( $context->hasDraftValue( 'title' ) )->toBeTrue()
+		->and( $context->hasDraftValue( 'excerpt' ) )->toBeTrue()
+		->and( $context->hasDraftValue( 'slug' ) )->toBeTrue()
+		->and( $context->hasDraftValue( 'missing' ) )->toBeFalse()
+		->and( $context->draftValue( 'title' ) )->toBeNull()
+		->and( $context->draftValue( 'excerpt' ) )->toBe( '' );
+} );
+
 it( 'is immutable — withModel returns a new instance', function () {
 	$original = new BindingContext( null, [ 'a' => 1 ], [ 'b' => 2 ] );
 	$model    = new TestBlockContentModel( [ 'title' => 'X' ] );

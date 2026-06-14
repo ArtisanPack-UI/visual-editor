@@ -23,6 +23,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers;
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BlockBindingSource;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
@@ -106,6 +107,16 @@ class BindingSourcesController extends Controller
 
 		$class = $resources[ $resource ] ?? null;
 
-		return is_string( $class ) && '' !== $class && class_exists( $class ) ? $class : null;
+		// Hard-gate non-Eloquent classes so a misconfigured resource
+		// entry can't leak through to source drivers expecting a
+		// `class-string<Model>`. The picker just returns an empty field
+		// catalog for that resource — surfacing a 500 here would break
+		// the inspector for every block.
+		return is_string( $class )
+			&& '' !== $class
+			&& class_exists( $class )
+			&& is_subclass_of( $class, Model::class )
+				? $class
+				: null;
 	}
 }

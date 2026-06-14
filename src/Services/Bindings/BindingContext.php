@@ -80,6 +80,22 @@ class BindingContext
 	}
 
 	/**
+	 * True when the draft snapshot carries an override for the given key,
+	 * regardless of the override's value (null and empty-string included).
+	 *
+	 * Source drivers consult this to distinguish "the user didn't touch
+	 * this field in the editor" (no draft entry — fall through to the
+	 * saved column) from "the user explicitly cleared this field"
+	 * (entry present, value null/empty — empty-value policy fires).
+	 *
+	 * @since 1.1.0
+	 */
+	public function hasDraftValue( string $key ): bool
+	{
+		return array_key_exists( $key, $this->draft );
+	}
+
+	/**
 	 * The free-form extras bag for custom source drivers.
 	 *
 	 * @since 1.1.0

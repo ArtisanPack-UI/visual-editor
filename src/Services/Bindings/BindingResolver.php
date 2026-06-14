@@ -259,7 +259,17 @@ class BindingResolver
 				continue;
 			}
 
-			foreach ( $source->eagerLoadRelations( $argsList ) as $relation ) {
+			try {
+				$declaredRelations = $source->eagerLoadRelations( $argsList );
+			} catch ( Throwable $e ) {
+				// A misbehaving source driver must not break the wider
+				// render pass — report the failure and treat it as if
+				// the driver declared no eager loads.
+				report( $e );
+				continue;
+			}
+
+			foreach ( $declaredRelations as $relation ) {
 				if ( is_string( $relation ) && '' !== $relation ) {
 					$relations[ $relation ] = true;
 				}
@@ -276,7 +286,14 @@ class BindingResolver
 		);
 
 		if ( [] !== $missing ) {
-			$model->loadMissing( $missing );
+			try {
+				$model->loadMissing( $missing );
+			} catch ( Throwable $e ) {
+				// DB errors / missing relations / etc. — bindings on
+				// dotted paths will degrade to fallback at resolve
+				// time. Don't take the whole render down.
+				report( $e );
+			}
 		}
 	}
 

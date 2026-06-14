@@ -49,6 +49,23 @@ it( 'prefers the draft value over the saved column', function () {
 	expect( $source->resolve( $ctx, [ 'key' => 'title' ] ) )->toBe( 'Unsaved Draft' );
 } );
 
+it( 'honors an explicit empty draft entry instead of falling through to saved value', function () {
+	$model = TestBindingsModel::query()->create( [
+		'title'   => 'Saved',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	$source = new CustomFieldSource();
+
+	// User cleared the field in the editor — draft has an explicit
+	// null entry. The source must return null so the resolver's
+	// empty-value policy fires instead of resurrecting the saved value.
+	$ctx = new BindingContext( $model, [ 'title' => null ] );
+
+	expect( $source->resolve( $ctx, [ 'key' => 'title' ] ) )->toBeNull();
+} );
+
 it( 'returns null when the column does not exist on the model', function () {
 	$model = TestBindingsModel::query()->create( [
 		'title'   => 'X',

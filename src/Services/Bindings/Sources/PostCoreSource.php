@@ -75,10 +75,12 @@ class PostCoreSource implements BlockBindingSource
 			return null;
 		}
 
-		$draft = $context->draftValue( $key );
-
-		if ( null !== $draft && '' !== $draft ) {
-			return $draft;
+		// Draft presence wins over the saved column: when the editor
+		// hands us a draft entry — even null / empty-string — that's
+		// the unsaved edit the inspector preview should reflect. The
+		// empty-value policy in the resolver runs on the result.
+		if ( $context->hasDraftValue( $key ) ) {
+			return $context->draftValue( $key );
 		}
 
 		$model = $context->model();
