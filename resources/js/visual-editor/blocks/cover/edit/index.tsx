@@ -17,11 +17,10 @@ import { useEffect, useMemo, useRef } from '@wordpress/element';
 import { Placeholder, Spinner } from '@wordpress/components';
 import {
     withColors,
+    ColorPalette,
     useBlockProps,
     useSettings,
     useInnerBlocksProps,
-    // eslint-disable-next-line camelcase
-    __experimentalColorGradientControl as ColorGradientControl,
     // eslint-disable-next-line camelcase
     __experimentalUseGradient as useGradient,
     store as blockEditorStore,
@@ -102,7 +101,12 @@ function getInnerBlocksTemplate(
 ): unknown[][] {
     return [
         [
-            'core/paragraph',
+            // #578 — must reference the forked block name. `core/paragraph`
+            // is not registered in this editor (the paragraph block is
+            // forked at `artisanpack/paragraph`), so the inner-blocks
+            // template insertion fails when the cover transitions out of
+            // its placeholder state, contributing to the editor hang.
+            'artisanpack/paragraph',
             {
                 style: {
                     typography: {
@@ -250,13 +254,17 @@ function CoverEdit({
             options?: { type?: string }
         ) => void;
     };
-    const { gradientClass, gradientValue, setGradient } = useGradient() as {
+    const { gradientClass, gradientValue } = useGradient() as {
         gradientClass?: string;
         gradientValue?: string;
-        setGradient: (next: string | undefined) => void;
     };
 
-    const onSelectMedia = async (
+    // #578 — commit the media-driven attributes (url, backgroundType, etc.)
+    // synchronously so the modal's "Select 1 item" click returns and the
+    // editor render loop settles before any async work resumes. The
+    // overlay-color / `isDark` refinements depend on `getMediaColor`, so
+    // they run in a background task and surface failures via console.error.
+    const onSelectMedia = (
         newMedia:
             | {
                   type?: string;
@@ -269,7 +277,7 @@ function CoverEdit({
                   };
               }
             | undefined
-    ): Promise<void> => {
+    ): void => {
         const mediaAttributes = attributesFromMedia(newMedia);
         if (!mediaAttributes) {
             return;
@@ -278,25 +286,8 @@ function CoverEdit({
             IMAGE_BACKGROUND_TYPE
         );
 
-        const averageBackgroundColor = await getMediaColor(
-            isImage ? newMedia?.url : undefined
-        );
-
-        let newOverlayColor = overlayColor.color;
-        if (!isUserOverlayColor) {
-            newOverlayColor = averageBackgroundColor;
-            setOverlayColor(newOverlayColor);
-            __unstableMarkNextChangeAsNotPersistent();
-        }
-
         const newDimRatio =
             originalUrl === undefined && dimRatio === 100 ? 50 : dimRatio;
-
-        const newIsDark = compositeIsDark(
-            newDimRatio,
-            newOverlayColor,
-            averageBackgroundColor
-        );
 
         if (isImage && mediaAttributes?.id) {
             const { imageDefaultSize } = getSettings() as {
@@ -334,9 +325,42 @@ function CoverEdit({
             focalPoint: undefined,
             useFeaturedImage: undefined,
             dimRatio: newDimRatio,
-            isDark: newIsDark,
             isUserOverlayColor: isUserOverlayColor || false,
         });
+
+        const refinementUrl = isImage
+            ? (mediaAttributes.url as string | undefined)
+            : undefined;
+
+        void (async () => {
+            try {
+                const averageBackgroundColor = await getMediaColor(
+                    refinementUrl
+                );
+
+                let newOverlayColor = overlayColor.color;
+                if (!isUserOverlayColor) {
+                    newOverlayColor = averageBackgroundColor;
+                    __unstableMarkNextChangeAsNotPersistent();
+                    setOverlayColor(newOverlayColor);
+                }
+
+                const newIsDark = compositeIsDark(
+                    newDimRatio,
+                    newOverlayColor,
+                    averageBackgroundColor
+                );
+
+                __unstableMarkNextChangeAsNotPersistent();
+                setAttributes({ isDark: newIsDark });
+            } catch (error) {
+                // eslint-disable-next-line no-console
+                console.error(
+                    '[cover] failed to refine overlay color and isDark after media select',
+                    error
+                );
+            }
+        })();
     };
 
     const onClearMedia = (): void => {
@@ -365,23 +389,44 @@ function CoverEdit({
         });
     };
 
-    const onSetOverlayColor = async (
+    // #578 — apply the user's picked overlay color synchronously so the
+    // picker click returns immediately and React can settle. Awaiting
+    // `getMediaColor` here piles RAF callbacks from the upstream contrast
+    // checker faster than React can flush, tripping its "Maximum update
+    // depth exceeded" guard and crashing the block via `BlockCrashBoundary`.
+    // The `isDark` refinement is deferred to a background task.
+    const onSetOverlayColor = (
         newOverlayColor: string | undefined
-    ): Promise<void> => {
-        const averageBackgroundColor = await getMediaColor(url);
-        const newIsDark = compositeIsDark(
-            dimRatio,
-            newOverlayColor,
-            averageBackgroundColor
-        );
-
+    ): void => {
         setOverlayColor(newOverlayColor);
         __unstableMarkNextChangeAsNotPersistent();
 
         setAttributes({
             isUserOverlayColor: true,
-            isDark: newIsDark,
         });
+
+        void (async () => {
+            try {
+                const averageBackgroundColor = await getMediaColor(url);
+                const newIsDark = compositeIsDark(
+                    dimRatio,
+                    newOverlayColor,
+                    averageBackgroundColor
+                );
+
+                __unstableMarkNextChangeAsNotPersistent();
+                setAttributes({ isDark: newIsDark });
+            } catch (error) {
+                // Surface the swallowed error path so a future regression
+                // of the picker-hang class is visible in the console
+                // instead of a blank tab.
+                // eslint-disable-next-line no-console
+                console.error(
+                    '[cover] failed to refine isDark after overlay color change',
+                    error
+                );
+            }
+        })();
     };
 
     const onUpdateDimRatio = async (newDimRatio: number): Promise<void> => {
@@ -667,22 +712,13 @@ function CoverEdit({
                         toggleUseFeaturedImage={toggleUseFeaturedImage}
                     >
                         <div className="wp-block-cover__placeholder-background-options">
-                            { /* #490 — surface Color | Gradient tabs here so the
-                                 placeholder matches the full overlay picker
-                                 in `inspector-controls.tsx`. Same control,
-                                 same UX expectation across the editor. */ }
-                            <ColorGradientControl
-                                label={__('Overlay')}
-                                showTitle={false}
-                                colorValue={overlayColor.color}
-                                gradientValue={gradientValue}
-                                onColorChange={onSetOverlayColor}
-                                onGradientChange={setGradient}
+                            <ColorPalette
+                                disableCustomColors
+                                value={overlayColor.color}
+                                onChange={onSetOverlayColor}
                                 clearable={false}
-                                enableAlpha={false}
-                                disableCustomColors={true}
-                                disableCustomGradients={false}
-                                __experimentalIsRenderedInSidebar
+                                asButtons
+                                aria-label={__('Overlay color')}
                             />
                         </div>
                     </CoverPlaceholder>
