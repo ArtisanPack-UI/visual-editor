@@ -47,7 +47,7 @@ describe( 'AnimationRegistry', () => {
 		expect( registry.customs().map( ( kf ) => kf.name ) ).toEqual( [ 'confetti' ] )
 	} )
 
-	it( 'returns an empty registry when given no snapshot', () => {
+	it( 'returns a default registry when given no snapshot', () => {
 		const registry = registryFromSnapshot( undefined )
 
 		expect( registry.has( FAMILY_ENTRANCE, 'fade-in' ) ).toBe( true )

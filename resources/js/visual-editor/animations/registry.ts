@@ -3,9 +3,10 @@
  *
  * Mirrors the PHP `AnimationRegistry` so the editor can resolve
  * animations and surface metadata without round-tripping to the
- * server. Hydrated from `editor-settings`'s `animations` snapshot,
- * which the bootstrap path stamps from the merged PHP config + theme.json
- * + Global Styles.
+ * server. In v1.1.0 the registry is seeded from `DEFAULT_ANIMATIONS`;
+ * `registryFromSnapshot()` is the planned hydration entry point for a
+ * follow-up that stamps a merged PHP config + theme.json + Global
+ * Styles snapshot from the bootstrap path.
  *
  * @package @artisanpack-ui/visual-editor
  * @since 1.1.0

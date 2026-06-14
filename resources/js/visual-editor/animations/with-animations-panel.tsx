@@ -43,6 +43,11 @@ interface BlockEditProps {
 }
 
 function getRegistry(): AnimationRegistry {
+	// v1.1.0 seeds from DEFAULT_ANIMATIONS. Hydration from a merged
+	// PHP config + theme.json + Global Styles snapshot (via
+	// `registryFromSnapshot`) is the planned follow-up — host apps
+	// can pre-stamp `globalThis.__artisanpackAnimationRegistry`
+	// today as an escape hatch.
 	const host = globalThis as unknown as GlobalSentinelHost;
 	if ( ! host.__artisanpackAnimationRegistry ) {
 		host.__artisanpackAnimationRegistry = new AnimationRegistry( DEFAULT_ANIMATIONS );

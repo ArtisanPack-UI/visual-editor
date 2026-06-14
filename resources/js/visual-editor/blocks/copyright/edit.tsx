@@ -58,7 +58,7 @@ export default function CopyrightEdit({
 
     const blockProps = useBlockProps({ className: 'ap-copyright' });
 
-    const currentYear = new Date().getFullYear();
+    const currentYear = new Date().getUTCFullYear();
     const line = buildLine(copyrightType, copyrightText, currentYear);
 
     return (

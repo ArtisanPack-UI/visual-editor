@@ -1,5 +1,5 @@
 /**
- * Vue renderer for the `artisanpack/breadcrumbs` block (CW0 pilot — #496).
+ * Vue renderer for the `artisanpack/breadcrumbs` block (#496).
  *
  * Mirrors the Blade partial and the React renderer so every environment
  * emits identical markup. The trail is server-resolved and arrives on
