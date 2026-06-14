@@ -274,6 +274,229 @@ class BlockSupports
 	}
 
 	/**
+	 * Split {@see compile}'s class / style output into a `background`
+	 * bucket and a `wrapper` bucket (#583).
+	 *
+	 * Most blocks paint their background on the same element that
+	 * carries the wrapper class — so {@see wrapperAttrs} just merges
+	 * everything onto that element and the partial never needs to
+	 * worry about routing. The `core/cover` block is the exception:
+	 * the painted surface is the `wp-block-cover__background` overlay
+	 * span layered on top of the image, not the outer `<div>`. Background
+	 * classes / inline declarations applied to the wrapper sit behind
+	 * the image and never render. This helper carves the
+	 * background-affecting output out of `compile`'s return so the
+	 * cover partial can route it onto the overlay while keeping
+	 * everything else (layout, alignment, text color, anchor, border,
+	 * spacing, typography, animations) on the wrapper.
+	 *
+	 * Classes routed to the `background` bucket:
+	 * - `has-background` marker.
+	 * - `has-{slug}-background-color` (palette background slug).
+	 * - `has-{slug}-gradient-background` (palette gradient slug).
+	 *
+	 * Inline declarations routed to the `background` bucket:
+	 * - `background-color: ...`
+	 * - `background-image: ...`
+	 * - `background: ...` (shorthand / custom gradient).
+	 *
+	 * Every other class / declaration is kept in the `wrapper` bucket
+	 * untouched.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<int, string>  $classes  `compile`'s `classes` return.
+	 * @param  string              $style    `compile`'s `style` return
+	 *                                       (semicolon-separated
+	 *                                       declaration list).
+	 *
+	 * @return array{
+	 *     background: array{classes: array<int, string>, style: string},
+	 *     wrapper:    array{classes: array<int, string>, style: string},
+	 * }
+	 */
+	public static function splitBackgroundOutput( array $classes, string $style ): array
+	{
+		$backgroundClasses = [];
+		$wrapperClasses    = [];
+
+		foreach ( $classes as $class ) {
+			if ( ! is_string( $class ) ) {
+				continue;
+			}
+
+			if ( self::isBackgroundClass( $class ) ) {
+				$backgroundClasses[] = $class;
+
+				continue;
+			}
+
+			$wrapperClasses[] = $class;
+		}
+
+		[ $backgroundStyle, $wrapperStyle ] = self::partitionBackgroundStyle( $style );
+
+		return [
+			'background' => [
+				'classes' => $backgroundClasses,
+				'style'   => $backgroundStyle,
+			],
+			'wrapper'    => [
+				'classes' => $wrapperClasses,
+				'style'   => $wrapperStyle,
+			],
+		];
+	}
+
+	/**
+	 * Compile the cover block's overlay-specific color / gradient
+	 * attributes into a `{classes, style}` bundle the cover partial
+	 * merges into the overlay span (#583).
+	 *
+	 * The cover block stores its overlay color under bespoke top-level
+	 * attribute names (`overlayColor`, `customOverlayColor`,
+	 * `customGradient`) instead of the generic `backgroundColor` /
+	 * `style.color.background` slots that {@see compile} understands.
+	 * Without this helper those values land on neither the wrapper nor
+	 * the overlay — they're silently dropped — because `compile`
+	 * doesn't look at the cover-only attribute names. The `gradient`
+	 * palette slug shares its attribute name with the generic block-
+	 * supports input, so it already flows through `compile` → split →
+	 * overlay and is intentionally NOT re-emitted here.
+	 *
+	 * Precedence (matches WordPress core's `render_block_core_cover`):
+	 * palette `overlayColor` wins over `customOverlayColor`; the
+	 * `customGradient` declaration layers on top of either color
+	 * because `background` shorthand and `background-color` map to
+	 * different cascade slots on the overlay span.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{classes: array<int, string>, style: string}
+	 */
+	public static function compileCoverOverlay( array $attributes ): array
+	{
+		$classes = [];
+		$style   = [];
+
+		$overlaySlug      = self::stringAttr( $attributes['overlayColor'] ?? null );
+		$customOverlay    = self::stringAttr( $attributes['customOverlayColor'] ?? null );
+		$customGradient   = self::stringAttr( $attributes['customGradient'] ?? null );
+
+		if ( '' !== $overlaySlug ) {
+			$classes[] = 'has-' . self::slugify( $overlaySlug ) . '-background-color';
+			$classes[] = 'has-background';
+		} elseif ( '' !== $customOverlay ) {
+			$style[]   = 'background-color: ' . self::expandPresetReference( $customOverlay );
+			$classes[] = 'has-background';
+		}
+
+		if ( '' !== $customGradient ) {
+			$style[]   = 'background: ' . self::expandPresetReference( $customGradient );
+			$classes[] = 'has-background';
+		}
+
+		return [
+			'classes' => array_values( array_unique( $classes ) ),
+			'style'   => [] === $style ? '' : implode( '; ', $style ) . ';',
+		];
+	}
+
+	/**
+	 * Identify the class tokens emitted by {@see applyColor} that
+	 * correspond to background painting — the `has-background` marker
+	 * and the slug-derived `has-{slug}-background-color` /
+	 * `has-{slug}-gradient-background` classes. Text-color classes
+	 * (`has-text-color`, `has-{slug}-color`) and every non-color class
+	 * fall through to `false` so they stay on the wrapper.
+	 *
+	 * @since 1.1.0
+	 */
+	protected static function isBackgroundClass( string $class ): bool
+	{
+		if ( 'has-background' === $class ) {
+			return true;
+		}
+
+		return 1 === preg_match(
+			'/^has-[a-z0-9](?:[a-z0-9-]*[a-z0-9])?-(?:background-color|gradient-background)$/',
+			$class
+		);
+	}
+
+	/**
+	 * Carve `background-color`, `background-image`, and shorthand
+	 * `background` declarations out of a semicolon-separated style
+	 * string, returning `[backgroundStyle, wrapperStyle]`. Each output
+	 * string is `;`-suffixed iff non-empty so callers can splice them
+	 * back into a wrapper attribute without re-checking emptiness.
+	 *
+	 * Declarations with a leading custom-property name (e.g.
+	 * `--wp--style--block-gap`) are NOT background output and stay on
+	 * the wrapper.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @return array{0: string, 1: string}
+	 */
+	protected static function partitionBackgroundStyle( string $style ): array
+	{
+		if ( '' === $style ) {
+			return [ '', '' ];
+		}
+
+		$background = [];
+		$wrapper    = [];
+
+		foreach ( explode( ';', rtrim( $style, ';' ) ) as $declaration ) {
+			$declaration = trim( $declaration );
+
+			if ( '' === $declaration ) {
+				continue;
+			}
+
+			if ( self::isBackgroundDeclaration( $declaration ) ) {
+				$background[] = $declaration;
+
+				continue;
+			}
+
+			$wrapper[] = $declaration;
+		}
+
+		$backgroundString = [] === $background ? '' : implode( '; ', $background ) . ';';
+		$wrapperString    = [] === $wrapper    ? '' : implode( '; ', $wrapper )    . ';';
+
+		return [ $backgroundString, $wrapperString ];
+	}
+
+	/**
+	 * Check a single trimmed CSS declaration for a `background-color`,
+	 * `background-image`, or shorthand `background` property name. The
+	 * match is anchored to the property — declarations with a value
+	 * containing the literal `background` keyword (e.g.
+	 * `transition: background 200ms`) are left on the wrapper.
+	 *
+	 * @since 1.1.0
+	 */
+	protected static function isBackgroundDeclaration( string $declaration ): bool
+	{
+		$colonPosition = strpos( $declaration, ':' );
+
+		if ( false === $colonPosition ) {
+			return false;
+		}
+
+		$property = strtolower( rtrim( substr( $declaration, 0, $colonPosition ) ) );
+
+		return 'background' === $property
+			|| 'background-color' === $property
+			|| 'background-image' === $property;
+	}
+
+	/**
 	 * Apply the gradient border feature to an already-rendered block's
 	 * HTML output (#490).
 	 *
