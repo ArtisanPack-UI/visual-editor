@@ -1,5 +1,5 @@
 /**
- * React renderer for the `artisanpack/breadcrumbs` block (CW0 pilot — #496).
+ * React renderer for the `artisanpack/breadcrumbs` block (#496).
  *
  * Mirrors the Blade partial at
  * `packages/visual-editor-renderer-blade/resources/views/blocks/artisanpack/breadcrumbs.blade.php`

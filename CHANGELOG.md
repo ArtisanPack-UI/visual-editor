@@ -9,13 +9,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 ## [1.1.0] — 2026-06-14
 
 The 1.1.0 release ships the full `artisanpack/icon` block (Phases 1–7),
-a wave of ported `crosswinds-blocks` first-party blocks (CW0–CW7),
-block bindings for parent post/page/CPT data, block animations,
-border-gradient borders, an auto-injected custom-block CSS pipeline
-for the editor canvas iframe, a `BreadcrumbsResolver`, and a set of
-Cover block fixes. See the new [[blocks/Icon Block]] page for the
-icon-block surface and the per-block docs under `docs/blocks/` for
-the ported block families.
+a wave of new first-party `artisanpack/*` blocks, block bindings for
+parent post/page/CPT data, block animations, border-gradient borders,
+an auto-injected custom-block CSS pipeline for the editor canvas
+iframe, a `BreadcrumbsResolver`, and a set of Cover block fixes. See
+the new [[blocks/Icon Block]] page for the icon-block surface and the
+per-block docs under `docs/blocks/` for the new block families.
 
 ### Added
 
@@ -46,13 +45,12 @@ the ported block families.
   resolver, decoupling the trail computation from the block's
   server renderer so host apps can override how a trail is built
   for custom post types and routes.
-- **Crosswinds blocks port (CW0–CW7).** The first-party
-  `artisanpack/*` block library grows with ports of the
-  `crosswinds-blocks` families:
-  - **CW0 — `artisanpack/breadcrumbs`** pilot port (#496).
-  - **CW1 — `artisanpack/accordion` + `artisanpack/tabs`** families
+- **New first-party `artisanpack/*` block families (#495).** The
+  block library grows with:
+  - **`artisanpack/breadcrumbs`** (#496).
+  - **`artisanpack/accordion` + `artisanpack/tabs`** families
     (#497).
-  - **CW2 — `artisanpack/grid` + `artisanpack/grid-item`** families
+  - **`artisanpack/grid` + `artisanpack/grid-item`** families
     (#498).
   - **`artisanpack/next-post` + `artisanpack/previous-post`**
     container blocks (#499).
@@ -61,9 +59,9 @@ the ported block families.
   - **Single-post content cluster — `artisanpack/single-content`,
     `artisanpack/related-posts`, `artisanpack/author-social-icons`,
     `artisanpack/social-share-content`** (#501).
-  - **CW6 — search cluster** (#502).
-  - **CW7 — `artisanpack/skills-slider`** (#503).
-  All ported blocks ship under the `artisanpack/*` namespace as
+  - **Search cluster** (#502).
+  - **`artisanpack/skills-slider`** (#503).
+  All new blocks ship under the `artisanpack/*` namespace as
   first-party blocks; the inserter icons and categories were
   restyled and recategorised in the same wave (#495).
 - **Icon block — full Phase 1–7 surface (#552, #554, #555, #556,
