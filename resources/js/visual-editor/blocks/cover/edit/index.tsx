@@ -221,12 +221,20 @@ function CoverEdit({
         media?.source_url;
 
     useEffect(() => {
+        // #578 — capture the refinement version so a concurrent
+        // `onClearMedia` / `onSelectMedia` / `onSetOverlayColor` can
+        // invalidate this featured-image refinement before its
+        // `getMediaColor` promise resolves.
+        const version = ++refinementVersionRef.current;
         (async () => {
             if (!useFeaturedImage) {
                 return;
             }
 
             const averageBackgroundColor = await getMediaColor(mediaUrl);
+            if (version !== refinementVersionRef.current) {
+                return;
+            }
 
             let newOverlayColor = overlayColor.color;
             if (!isUserOverlayColor) {

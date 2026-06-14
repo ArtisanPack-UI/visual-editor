@@ -359,15 +359,17 @@ describe('CoverEdit', () => {
         expect(setOverlayColor).toHaveBeenNthCalledWith(1, '#ff0000');
         expect(setOverlayColor).toHaveBeenNthCalledWith(2, '#00ff00');
 
-        // Only the second background task should have written isDark —
-        // the first one's captured version was already stale.
+        // Exactly one background task should have written isDark — the
+        // second pick's task. The first pick's captured version was
+        // already stale by the time its `getMediaColor` resolved, so it
+        // must bail out without calling setAttributes.
         const isDarkCalls = setAttributes.mock.calls.filter(
             (args) =>
                 typeof args[0] === 'object' &&
                 args[0] !== null &&
                 'isDark' in (args[0] as Record<string, unknown>)
         );
-        expect(isDarkCalls.length).toBeLessThanOrEqual(1);
+        expect(isDarkCalls).toHaveLength(1);
     });
 
     // #578 — regression: the media-select click must apply the
