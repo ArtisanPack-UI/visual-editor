@@ -323,6 +323,9 @@ describe('CoverEdit', () => {
         expect(setAttributes).toHaveBeenCalledWith({
             isUserOverlayColor: true,
         });
+        // Exactly one synchronous setAttributes call — the `isDark`
+        // refinement must remain deferred to the background task.
+        expect(setAttributes).toHaveBeenCalledTimes(1);
     });
 
     // #578 — race-guard: if the user picks a second overlay color
@@ -403,7 +406,9 @@ describe('CoverEdit', () => {
             mime: 'image/jpeg',
         });
 
-        expect(setAttributes).toHaveBeenCalled();
+        // Exactly one synchronous setAttributes call — the overlay
+        // color / `isDark` refinement must remain deferred.
+        expect(setAttributes).toHaveBeenCalledTimes(1);
         const callArgs = setAttributes.mock.calls[0]?.[0] as Record<
             string,
             unknown
