@@ -20,6 +20,8 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PageController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PostController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\AttachmentController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\BindingResolveController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\BindingSourcesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSearchController;
@@ -52,6 +54,21 @@ Route::put( '{resource}/{id}/content', [ ResourceContentController::class, 'upda
 
 Route::post( 'blocks/preview', [ BlockPreviewController::class, 'preview' ] )
 	->name( 'visual-editor.api.blocks.preview' );
+
+// #504 — Bindings inspector: list registered sources + their field
+// catalogs so the editor can render the "link to data" picker.
+Route::get( 'bindings/sources', [ BindingSourcesController::class, 'index' ] )
+	->name( 'visual-editor.api.bindings.sources.index' );
+
+Route::get( 'bindings/sources/{source}/fields', [ BindingSourcesController::class, 'fields' ] )
+	->where( 'source', '[a-z][a-z0-9_]*' )
+	->name( 'visual-editor.api.bindings.sources.fields' );
+
+// #504 — Canvas live-preview: resolve a block's bindings into
+// structured values so the editor's `edit` component can overlay them
+// on top of the static attrs without waiting for a server render pass.
+Route::post( 'bindings/resolve', [ BindingResolveController::class, 'resolve' ] )
+	->name( 'visual-editor.api.bindings.resolve' );
 
 // G4c-2 — `core/query` block resolution. Wraps cms-framework's
 // `QueryRuntime` (or any host-bound `QueryResolverContract`

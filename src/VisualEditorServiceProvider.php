@@ -23,8 +23,13 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Gates\DenyByDefaultGate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
+use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
+use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\CustomFieldSource;
+use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\PostCoreSource;
+use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\RelationSource;
 use ArtisanPackUI\VisualEditor\Console\AuditBreakpointsCommand;
 use ArtisanPackUI\VisualEditor\Resources\PostResolver;
 use ArtisanPackUI\VisualEditor\Resources\CommentInliner;
@@ -68,6 +73,20 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( DynamicBlockRegistry::class, function () {
 			return new DynamicBlockRegistry();
+		} );
+
+		// #504 — Block bindings: a single shared registry of source drivers
+		// (custom_field, post_core, relation, plus host-registered
+		// extensions) and a singleton resolver that the preview controller
+		// and the frontend renderers both call into.
+		$this->app->singleton( BlockBindingSourceRegistry::class, function () {
+			return new BlockBindingSourceRegistry();
+		} );
+
+		$this->app->singleton( BindingResolver::class, function ( $app ) {
+			return new BindingResolver(
+				$app->make( BlockBindingSourceRegistry::class ),
+			);
 		} );
 
 		// Icon Block Phase 1 (#552): the sanitizer is stateless, so bind
@@ -418,6 +437,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// 4. Register package-native blocks (artisanpack/callout, etc.).
 		$this->registerReferenceBlocks();
 
+		// 4.0. #504 — Register the built-in block binding sources. Hosts
+		//      and third-party packages register additional sources in
+		//      their own provider's boot() phase; the order of
+		//      registration does not matter because the resolver consults
+		//      the registry per-binding at render time.
+		$this->registerBlockBindingSources();
+
 		// 4.1. Icon Block Phase 3 (#554) — hand the FA Free SVG sets to
 		//      the `artisanpack-ui/icons` registry. The directories are
 		//      mirrored by `scripts/sync-fa-icons.mjs` (runs in `prebuild`)
@@ -455,6 +481,23 @@ class VisualEditorServiceProvider extends ServiceProvider
 				AuditBreakpointsCommand::class,
 			] );
 		}
+	}
+
+	/**
+	 * Registers the built-in block binding source drivers — `custom_field`,
+	 * `post_core`, and `relation`. Host applications and third-party
+	 * packages register their own drivers by resolving the registry out
+	 * of the container in their own provider's boot() phase.
+	 *
+	 * @since 1.1.0
+	 */
+	protected function registerBlockBindingSources(): void
+	{
+		$registry = $this->app->make( BlockBindingSourceRegistry::class );
+
+		$registry->register( new CustomFieldSource() );
+		$registry->register( new PostCoreSource() );
+		$registry->register( new RelationSource() );
 	}
 
 	/**
