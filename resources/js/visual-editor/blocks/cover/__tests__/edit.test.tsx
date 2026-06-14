@@ -325,6 +325,51 @@ describe('CoverEdit', () => {
         });
     });
 
+    // #578 — race-guard: if the user picks a second overlay color
+    // before the first pick's background `getMediaColor` resolves, the
+    // first task must NOT overwrite the second pick's `isDark`. The
+    // handler bumps a version ref and the background task bails out
+    // when the captured version no longer matches.
+    it('onSetOverlayColor: a superseded background task does not write isDark', async () => {
+        const setAttributes = vi.fn();
+        const setOverlayColor = vi.fn();
+
+        render(
+            <CoverEdit
+                attributes={{ tagName: 'div', dimRatio: 100 }}
+                clientId="abc"
+                isSelected
+                overlayColor={{ color: undefined, class: undefined }}
+                setAttributes={setAttributes}
+                setOverlayColor={setOverlayColor}
+                toggleSelection={() => {}}
+            />
+        );
+
+        // Two picks before any microtask flush — second supersedes first.
+        capturedProps.placeholderColorPaletteOnChange?.('#ff0000');
+        capturedProps.placeholderColorPaletteOnChange?.('#00ff00');
+
+        // Flush microtasks so both background tasks resolve.
+        await Promise.resolve();
+        await Promise.resolve();
+        await Promise.resolve();
+
+        // Both sync calls happened, in order.
+        expect(setOverlayColor).toHaveBeenNthCalledWith(1, '#ff0000');
+        expect(setOverlayColor).toHaveBeenNthCalledWith(2, '#00ff00');
+
+        // Only the second background task should have written isDark —
+        // the first one's captured version was already stale.
+        const isDarkCalls = setAttributes.mock.calls.filter(
+            (args) =>
+                typeof args[0] === 'object' &&
+                args[0] !== null &&
+                'isDark' in (args[0] as Record<string, unknown>)
+        );
+        expect(isDarkCalls.length).toBeLessThanOrEqual(1);
+    });
+
     // #578 — regression: the media-select click must apply the
     // media-driven attributes (url, backgroundType, id, etc.)
     // synchronously. Anything else lets the modal close while the

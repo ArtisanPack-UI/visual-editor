@@ -175,6 +175,14 @@ function CoverEdit({
         __unstableMarkNextChangeAsNotPersistent: () => void;
     };
 
+    // #578 — refinement-task version guard. Each user-triggered handler
+    // (overlay color pick, media select, media clear) bumps this counter
+    // and captures the new value. The background `getMediaColor` task
+    // checks the captured value before applying its result so a newer
+    // user action can't be overwritten by a stale completion — e.g. user
+    // picks color A, then color B, then A's task resolves last.
+    const refinementVersionRef = useRef(0);
+
     const { media } = useSelect(
         (select) => {
             return {
@@ -286,6 +294,8 @@ function CoverEdit({
             IMAGE_BACKGROUND_TYPE
         );
 
+        const version = ++refinementVersionRef.current;
+
         const newDimRatio =
             originalUrl === undefined && dimRatio === 100 ? 50 : dimRatio;
 
@@ -337,6 +347,9 @@ function CoverEdit({
                 const averageBackgroundColor = await getMediaColor(
                     refinementUrl
                 );
+                if (version !== refinementVersionRef.current) {
+                    return;
+                }
 
                 let newOverlayColor = overlayColor.color;
                 if (!isUserOverlayColor) {
@@ -364,6 +377,11 @@ function CoverEdit({
     };
 
     const onClearMedia = (): void => {
+        // #578 — invalidate any in-flight refinement from the previous
+        // media so a late `getMediaColor` resolution can't overwrite the
+        // cleared overlay color / `isDark`.
+        ++refinementVersionRef.current;
+
         let newOverlayColor = overlayColor.color;
         if (!isUserOverlayColor) {
             newOverlayColor = DEFAULT_OVERLAY_COLOR;
@@ -398,6 +416,8 @@ function CoverEdit({
     const onSetOverlayColor = (
         newOverlayColor: string | undefined
     ): void => {
+        const version = ++refinementVersionRef.current;
+
         setOverlayColor(newOverlayColor);
         __unstableMarkNextChangeAsNotPersistent();
 
@@ -408,6 +428,9 @@ function CoverEdit({
         void (async () => {
             try {
                 const averageBackgroundColor = await getMediaColor(url);
+                if (version !== refinementVersionRef.current) {
+                    return;
+                }
                 const newIsDark = compositeIsDark(
                     dimRatio,
                     newOverlayColor,
