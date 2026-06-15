@@ -75,3 +75,35 @@ it( 'does not throw when the base directory is missing', function () {
 
 	expect( $registry->getSets() )->toBe( [] );
 } );
+
+it( 'skips registration when owenvoke/blade-fontawesome is installed (issue #587)', function () {
+	mkdir( test()->fixtureBase . '/fas' );
+	mkdir( test()->fixtureBase . '/far' );
+	mkdir( test()->fixtureBase . '/fab' );
+
+	$registry = new IconSetRegistration();
+	// `stdClass` always exists, so the probe short-circuits to the same
+	// branch that would fire when the real blade-fontawesome provider is
+	// installed alongside visual-editor.
+	$result = FontAwesomeFreeIconSets::register( $registry, test()->fixtureBase, stdClass::class );
+
+	expect( $result )->toBe( $registry )
+		->and( $result->getSets() )->toBe( [] );
+} );
+
+it( 'still registers discovered sets when blade-fontawesome is absent', function () {
+	mkdir( test()->fixtureBase . '/fas' );
+	mkdir( test()->fixtureBase . '/far' );
+	mkdir( test()->fixtureBase . '/fab' );
+
+	$registry = new IconSetRegistration();
+	// Probe a deliberately-missing FQCN so the skip path doesn't fire,
+	// then assert the bundled sets land on the registry as before.
+	$result = FontAwesomeFreeIconSets::register(
+		$registry,
+		test()->fixtureBase,
+		'ArtisanPackUI\\VisualEditor\\__DoesNotExist__',
+	);
+
+	expect( $result->getSets() )->toHaveKeys( [ 'fas', 'far', 'fab' ] );
+} );
