@@ -6,6 +6,26 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.1.1] — 2026-06-15
+
+### Fixed
+
+- **Icon registration no longer collides with `owenvoke/blade-fontawesome`
+  (#587).** In consumer apps that pull both `artisanpack-ui/visual-editor`
+  and `owenvoke/blade-fontawesome` (the default path via
+  `livewire-ui-components`), the visual-editor's `fas` / `far` / `fab`
+  icon sets collided with the prefixes blade-fontawesome registers,
+  causing `BladeUI\Icons\Exceptions\CannotRegisterIconSet` on every
+  `<x-...>` render and breaking Blade-rendered routes and Livewire tests.
+  `FontAwesomeFreeIconSets::register()` now detects the blade-fontawesome
+  service provider and stops publishing the FA Free sets through
+  `ap.icons.register-icon-sets`, so the icons-package no longer forwards
+  the conflicting prefixes to `BladeUI\Icons\Factory::add()`. The
+  visual-editor's own `IconSvgResolver` seeds its FA Free path map
+  directly from `FontAwesomeFreeIconSets::discover()`, so the icon
+  picker preview and the rendered Icon Block still resolve the bundled
+  SVGs.
+
 ## [1.1.0] — 2026-06-14
 
 The 1.1.0 release ships the full `artisanpack/icon` block (Phases 1–7),
