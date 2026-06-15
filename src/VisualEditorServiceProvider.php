@@ -104,18 +104,31 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// against those registrations and produce an empty resolver. The
 		// closure runs at request time, by which point boot is finished
 		// and the filter chain is complete.
-		$this->app->singleton( IconSvgResolver::class, function (): IconSvgResolver {
-			return new IconSvgResolver( static function (): array {
+		//
+		// Issue #587: when `owenvoke/blade-fontawesome` is installed,
+		// `FontAwesomeFreeIconSets::register()` defers to it and stops
+		// publishing `fas` / `far` / `fab` through the
+		// `ap.icons.register-icon-sets` filter (so the icons-package
+		// service provider doesn't collide on `BladeUI\Icons\Factory::add()`).
+		// The resolver still needs those paths to inline bundled FA Free
+		// SVGs for the picker and the rendered block, so we always seed
+		// it directly from `FontAwesomeFreeIconSets::discover()` — paths
+		// that come back from the filter then layer on top for any
+		// non-FA sets and uploaded sets.
+		$faFreeBaseDir = __DIR__ . '/../resources/icons/font-awesome';
+		$this->app->singleton( IconSvgResolver::class, function () use ( $faFreeBaseDir ): IconSvgResolver {
+			return new IconSvgResolver( static function () use ( $faFreeBaseDir ): array {
+				$paths = FontAwesomeFreeIconSets::discover( $faFreeBaseDir );
+
 				if ( ! class_exists( IconSetRegistration::class ) || ! function_exists( 'applyFilters' ) ) {
-					return [];
+					return $paths;
 				}
 
 				$registry = applyFilters( 'ap.icons.register-icon-sets', new IconSetRegistration() );
 				if ( ! $registry instanceof IconSetRegistration ) {
-					return [];
+					return $paths;
 				}
 
-				$paths = [];
 				foreach ( $registry->getSets() as $prefix => $details ) {
 					$path = $details['path'] ?? null;
 					if ( is_string( $path ) && '' !== $path ) {
