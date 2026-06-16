@@ -53,7 +53,12 @@ class FlexSupport
 		$css = $support->buildArbitraryStyles( $result[ 'arbitraryRules' ] );
 		if ( '' !== $css ) {
 			try {
-				app( ResponsiveCssAccumulator::class )->push( 'flex-arbitrary', $css );
+				// Per-block scope keyed by the CSS content so identical
+				// rules dedupe but blocks with different arbitrary values
+				// (e.g. `ap-gap-x-[16px]` vs `ap-gap-x-[24px]`) each land
+				// in the accumulator instead of one overwriting the other.
+				$scope = 'flex-arbitrary-' . substr( sha1( $css ), 0, 12 );
+				app( ResponsiveCssAccumulator::class )->push( $scope, $css );
 			} catch ( \Throwable $e ) {
 				// Accumulator not booted (early or test path) — silently drop.
 			}
@@ -164,9 +169,14 @@ class FlexSupport
 			return $result;
 		}
 
+		// Emit a matching `ap-flex-none` reset for `false` overrides so a
+		// cascade like `{ base: true, md: false }` actually un-flexes at
+		// `md+`. See serializer.ts for the TS-side mirror.
 		$this->emitForEachBreakpoint( $container[ 'enabled' ] ?? null, function ( $value, string $bp ) use ( &$result ): void {
 			if ( true === $value ) {
 				$result[ 'classes' ][] = $this->prefix( $bp ) . 'ap-flex';
+			} elseif ( false === $value ) {
+				$result[ 'classes' ][] = $this->prefix( $bp ) . 'ap-flex-none';
 			}
 		} );
 
@@ -390,7 +400,13 @@ class FlexSupport
 		array $canonical,
 		array &$result,
 	): void {
-		if ( is_numeric( $value ) && in_array( (int) $value, $canonical, true ) ) {
+		// Match the TS serializer's `/^-?\d+$/` semantics — accept only
+		// plain integer strings/ints so `"1.5"` no longer collapses to
+		// `1` via `(int)` casting and emits a wrong canonical class.
+		if (
+			( is_int( $value ) || ( is_string( $value ) && 1 === preg_match( '/^-?\d+$/', $value ) ) )
+			&& in_array( (int) $value, $canonical, true )
+		) {
 			$result[ 'classes' ][] = $this->prefix( $bp ) . $prefix . '-' . (int) $value;
 			return;
 		}

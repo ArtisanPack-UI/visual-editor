@@ -14,6 +14,7 @@ import transforms from './transforms';
 import icon from './inserter-icon';
 
 import './column.css';
+import '../../../../css/flex-layout.css';
 
 export { edit, save, metadata, icon, deprecated, transforms };
 

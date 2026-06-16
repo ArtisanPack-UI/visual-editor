@@ -23,6 +23,10 @@
 	server-stamped `<ol>` lays out inline with the chosen separator on
 	the public frontend. --}}
 <link rel="stylesheet" href="{{ $breadcrumbsStyleHref }}" data-ve-breadcrumbs>
+{{-- #595 — Flex layout utility classes (ap-flex, ap-flex-row, ap-gap-x-*, …)
+	emitted by the shared serializer onto group/column/columns/grid-item
+	wrappers. Static, layout-only, no interactivity needed. --}}
+<link rel="stylesheet" href="{{ $flexLayoutStyleHref }}" data-ve-flex-layout>
 @if( '' !== $themeTokensCss )
 <style data-ve-theme-tokens>{!! $themeTokensCss !!}</style>
 @endif

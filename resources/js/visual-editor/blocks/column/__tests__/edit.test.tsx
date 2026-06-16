@@ -41,7 +41,13 @@ vi.mock('@wordpress/components', () => ({
 }));
 
 vi.mock('@wordpress/element', () => ({
-    useState: <T,>(initial: T): [T, (v: T) => void] => [initial, () => undefined],
+    // Honor React's lazy initializer semantics — if `initial` is a function,
+    // call it to derive the initial state (matches `useActiveBreakpointValue`'s
+    // `useState(() => ...)` usage in the controls under test).
+    useState: <T,>(initial: T | (() => T)): [T, (v: T) => void] => [
+        typeof initial === 'function' ? (initial as () => T)() : initial,
+        () => undefined,
+    ],
     useEffect: () => undefined,
     useMemo: <T,>(fn: () => T): T => fn(),
     useRef: <T,>(): { current: T | undefined } => ({ current: undefined }),

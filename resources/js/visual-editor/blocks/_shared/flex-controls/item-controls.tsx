@@ -22,7 +22,6 @@ import { __ } from '@wordpress/i18n'
 import { useEffect, useMemo, useState } from '@wordpress/element'
 
 import { BreakpointRegistry } from '../../../responsive/registry'
-import { ViewportSwitcher } from '../../../responsive/ViewportSwitcher'
 import {
 	getActiveBreakpoint,
 	subscribeActiveBreakpoint,
@@ -89,23 +88,37 @@ export function FlexItemControls( {
 	}
 
 	const disabled = ! parent.isFlexChild
-	const fieldsetStyle = disabled ? { opacity: 0.5, pointerEvents: 'none' as const } : undefined
 
 	return (
 		<PanelBody title={ __( 'Flex Item', 'artisanpack-visual-editor' ) } initialOpen={ false }>
-			<ViewportSwitcher registry={ breakpointRegistry } />
-
 			{ disabled && (
 				<p style={ { fontSize: '12px', opacity: 0.7 } }>
 					{ __( 'Parent is not a flex container. Re-parent under a flex block to apply these values.', 'artisanpack-visual-editor' ) }
 				</p>
 			) }
 
-			<div style={ fieldsetStyle }>
+			{ /*
+			   * Render the controls inside a real <fieldset disabled> so each input/button
+			   * is semantically disabled — keyboard focus + form submission are blocked,
+			   * matching how WP a11y review expects "not applicable" UI to behave. A
+			   * `pointerEvents: 'none'` wrapper alone only stops mouse interaction.
+			   */ }
+			<fieldset
+				disabled={ disabled }
+				aria-disabled={ disabled || undefined }
+				style={ {
+					border: 0,
+					padding: 0,
+					margin: 0,
+					minInlineSize: 0,
+					opacity: disabled ? 0.5 : undefined,
+				} }
+			>
 				<ToggleGroupControl
 					label={ __( 'Align Self', 'artisanpack-visual-editor' ) }
 					value={ alignSelf ?? '' }
 					isBlock
+					disabled={ disabled }
 					onChange={ ( v: any ) => setItemSlot( 'alignSelf', v || null ) }
 				>
 					<ToggleGroupControlOption value="auto" label={ __( 'Auto', 'artisanpack-visual-editor' ) } />
@@ -121,6 +134,7 @@ export function FlexItemControls( {
 					value={ null === grow ? '' : String( grow ) }
 					min={ 0 }
 					max={ 999 }
+					disabled={ disabled }
 					onChange={ ( v: string | undefined ) => {
 						const parsed = '' === v || undefined === v ? null : Number( v )
 						setItemSlot( 'grow', null === parsed || Number.isNaN( parsed ) ? null : parsed )
@@ -131,6 +145,7 @@ export function FlexItemControls( {
 					value={ null === shrink ? '' : String( shrink ) }
 					min={ 0 }
 					max={ 999 }
+					disabled={ disabled }
 					onChange={ ( v: string | undefined ) => {
 						const parsed = '' === v || undefined === v ? null : Number( v )
 						setItemSlot( 'shrink', null === parsed || Number.isNaN( parsed ) ? null : parsed )
@@ -140,6 +155,7 @@ export function FlexItemControls( {
 					label={ __( 'Basis', 'artisanpack-visual-editor' ) }
 					value={ basis ?? '' }
 					placeholder={ __( 'auto, 50%, 200px…', 'artisanpack-visual-editor' ) }
+					disabled={ disabled }
 					onChange={ ( v: string ) => setItemSlot( 'basis', v ? v : null ) }
 				/>
 				<NumberControl
@@ -147,12 +163,13 @@ export function FlexItemControls( {
 					value={ null === order ? '' : String( order ) }
 					min={ -999 }
 					max={ 999 }
+					disabled={ disabled }
 					onChange={ ( v: string | undefined ) => {
 						const parsed = '' === v || undefined === v ? null : Number( v )
 						setItemSlot( 'order', null === parsed || Number.isNaN( parsed ) ? null : parsed )
 					} }
 				/>
-			</div>
+			</fieldset>
 		</PanelBody>
 	)
 }

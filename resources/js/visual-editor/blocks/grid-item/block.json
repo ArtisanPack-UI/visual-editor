@@ -102,8 +102,7 @@
             "attributes": [
                 "spacing",
                 "gridColumnSpan",
-                "gridRowSpan",
-                "artisanpackFlex"
+                "gridRowSpan"
             ]
         }
     }

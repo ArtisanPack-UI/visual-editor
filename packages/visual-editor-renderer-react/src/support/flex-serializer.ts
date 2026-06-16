@@ -193,6 +193,8 @@ export function serializeFlex( flex: unknown ): SerializeResult {
 		emitFor<boolean | null>( container.enabled, ( v, bp ) => {
 			if ( true === v ) {
 				classes.push( `${ prefix( bp ) }ap-flex` )
+			} else if ( false === v ) {
+				classes.push( `${ prefix( bp ) }ap-flex-none` )
 			}
 		} )
 
@@ -303,4 +305,69 @@ function emitNumeric(
 
 export function flexClassNames( flex: unknown ): string[] {
 	return serializeFlex( flex ).classes
+}
+
+/**
+ * Convert `arbitraryRules` (from {@link serializeFlex}) into a scoped CSS
+ * string. Mirrors the Blade `FlexSupport::buildArbitraryStyles` so React
+ * consumers can inject a `<style>` tag and reach byte-identical output
+ * with the front-end shipped by the Blade renderer.
+ *
+ * Groups rules by breakpoint, escapes CSS-significant characters in the
+ * class selector (matches Tailwind's arbitrary-value escaping for `[`,
+ * `]`, `:`, `.`, etc.), and wraps non-base breakpoints in a
+ * `@media (min-width: …)` block.
+ *
+ * Returns an empty string when no rules are present so callers can
+ * conditionally skip rendering the `<style>` element.
+ */
+export function buildArbitraryStyles( rules: readonly ArbitraryRule[] ): string {
+	if ( 0 === rules.length ) {
+		return ''
+	}
+
+	const grouped: Record<string, ArbitraryRule[]> = {}
+	for ( const rule of rules ) {
+		const bucket = grouped[ rule.breakpoint ] ?? []
+		bucket.push( rule )
+		grouped[ rule.breakpoint ] = bucket
+	}
+
+	const ordered: string[] = [ BASE_KEY, ...TAILWIND_DEFAULTS.map( ( bp ) => bp.key ) ]
+
+	let out = ''
+	for ( const bp of ordered ) {
+		const bucket = grouped[ bp ]
+		if ( ! bucket || 0 === bucket.length ) {
+			continue
+		}
+
+		let body = ''
+		for ( const rule of bucket ) {
+			body += `.${ escapeSelector( rule.className ) } { ${ rule.property }: ${ rule.value }; } `
+		}
+
+		if ( BASE_KEY === bp ) {
+			out += body
+			continue
+		}
+
+		const def = TAILWIND_DEFAULTS.find( ( entry ) => entry.key === bp )
+		if ( ! def ) {
+			continue
+		}
+
+		out += `@media (min-width: ${ def.minWidthPx }px) { ${ body }} `
+	}
+
+	return out.trim()
+}
+
+/**
+ * Escape characters that are CSS-significant inside a class selector
+ * (`[`, `]`, `(`, `)`, `:`, `.`, `,`, `#`, `%`, `/`, whitespace).
+ * Mirrors `FlexSupport::escapeSelector` in the Blade renderer.
+ */
+function escapeSelector( className: string ): string {
+	return className.replace( /[\[\]():.,#%/\s]/g, ( char ) => `\\${ char }` )
 }

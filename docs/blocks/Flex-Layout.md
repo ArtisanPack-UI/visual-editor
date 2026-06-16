@@ -73,6 +73,22 @@ Arbitrary values (e.g. `ap-gap-x-[3.5rem]`, `ap-basis-[200px]`) come
 with a per-page `<style>` snippet emitted by the renderer — they don't
 balloon the static stylesheet.
 
+Each renderer has its own emission path:
+
+- **Blade** — `FlexSupport::wrapperForBlock()` pushes the rule body
+  into the shared `ResponsiveCssAccumulator` (keyed by a hash of the
+  CSS so distinct values across blocks don't dedupe each other), which
+  flushes the aggregated CSS through `<x-ve-blocks-styles />`.
+- **React** — `BlockTree` walks the block tree once on render, calls
+  `serializeFlex()` per block to collect `arbitraryRules`, and emits a
+  single `<style data-ve-flex-arbitrary>` element above the rendered
+  blocks via `buildArbitraryStyles()`.
+- **Vue** — same approach as React inside the Vue `BlockTree`.
+
+The `<style data-ve-flex-arbitrary>` selector is the cross-renderer
+contract; the CSS payload is byte-identical across Blade/React/Vue
+because all three call into the same `buildArbitraryStyles` logic.
+
 ## Theme.json defaults
 
 Themes can opt out or set defaults via `settings.artisanpack.flex` in

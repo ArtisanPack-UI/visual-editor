@@ -22,7 +22,6 @@ import {
 import { __ } from '@wordpress/i18n'
 
 import { BreakpointRegistry } from '../../../responsive/registry'
-import { ViewportSwitcher } from '../../../responsive/ViewportSwitcher'
 import {
 	getActiveBreakpoint,
 	subscribeActiveBreakpoint,
@@ -113,8 +112,6 @@ export function FlexContainerControls( {
 
 	return (
 		<PanelBody title={ __( 'Flex Layout', 'artisanpack-visual-editor' ) } initialOpen={ false }>
-			<ViewportSwitcher registry={ breakpointRegistry } />
-
 			<ToggleControl
 				label={ __( 'Enable Flex', 'artisanpack-visual-editor' ) }
 				checked={ true === enabled }

@@ -12,6 +12,7 @@ import save from './save';
 import icon from './inserter-icon';
 
 import '../grid/grid.css';
+import '../../../../css/flex-layout.css';
 
 export { edit, save, metadata, icon };
 

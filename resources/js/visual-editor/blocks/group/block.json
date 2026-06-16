@@ -120,8 +120,7 @@
         "artisanpackResponsive": {
             "attributes": [
                 "spacing",
-                "align",
-                "artisanpackFlex"
+                "align"
             ]
         }
     },

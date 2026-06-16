@@ -186,9 +186,15 @@ export function serializeFlexContainer(
 
 	const container = flex.container
 
+	// Emit a matching reset class for `false` overrides so a cascade like
+	// `{ base: true, md: false }` actually un-flexes at `md+`. Without an
+	// explicit class, the min-width cascade leaves earlier `ap-flex`
+	// untouched and the block stays flex past the breakpoint.
 	emitForEachBreakpoint<boolean | null>( container.enabled, registry, ( value, bp ) => {
 		if ( true === value ) {
 			classes.push( `${ prefix( bp ) }ap-flex` )
+		} else if ( false === value ) {
+			classes.push( `${ prefix( bp ) }ap-flex-none` )
 		}
 	} )
 

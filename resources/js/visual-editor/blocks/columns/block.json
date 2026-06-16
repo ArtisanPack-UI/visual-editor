@@ -116,8 +116,7 @@
             "attributes": [
                 "spacing",
                 "align",
-                "columnCount",
-                "artisanpackFlex"
+                "columnCount"
             ]
         }
     },
