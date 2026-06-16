@@ -129,6 +129,25 @@ See [[post-editor/Livewire Integration]] for the full Livewire recipe and [[post
 
 ---
 
+### `apve_query_variant_match_<name>`
+
+Resolve a `custom`-kind matcher on an `artisanpack/post-variant` block (see [[blocks/Post Variants]]). The filter name is composed from the variant's `matcher.value` of the form `callback:<name>`.
+
+**Signature:** `bool $matches, object $post, array $context -> bool`
+
+```php
+use function ArtisanPackUI\Hooks\addFilter;
+
+addFilter('apve_query_variant_match_premium', function (bool $matches, object $post, array $context): bool {
+    // $context => ['index' => int (0-based loop position), 'total' => int]
+    return true === ($post->is_premium ?? false);
+}, 10, 3);
+```
+
+Return `true` to make the variant match the current post. Variant precedence is fixed (instance > position > pattern > meta > custom > base) so a callback can be overridden by a higher-tier rule.
+
+---
+
 ## Authorization gates
 
 The site editor's access surface is controlled by a single boot-time contract:

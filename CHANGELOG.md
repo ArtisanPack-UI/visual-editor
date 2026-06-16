@@ -8,6 +8,29 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **Per-post layout overrides on the Query Loop via post-variants
+  (#591).** New `artisanpack/post-variant` block, child of
+  `artisanpack/post-template`, declares an override template that
+  swaps in for posts matching its `matcher` attribute. Four matcher
+  kinds ship in V1: `position` (`first` / `last` / `nth:<n>` /
+  `range:<from>-<to>`), `pattern` (`odd` / `even` /
+  `every-nth:<step>[:start:<offset>]`), `meta` (`sticky`, `featured`,
+  `has-featured-image`, `author:<id>`, `taxonomy:<tax>:<slug>`), and
+  `custom` (`callback:<name>` → `apve_query_variant_match_<name>`
+  filter hook). A new "Post Variants" panel in the query inspector
+  lists, adds, reorders, and deletes variants. Static rules
+  (position / pattern) precompile to a 0-based `position →
+  variantOrder` map stored on the parent post-template as
+  `_compiledVariantMap` for O(1) lookup; dynamic rules (`meta`,
+  `custom`) resolve at render time via the new
+  `ArtisanPackUI\VisualEditor\Resources\VariantResolver`. Precedence
+  is fixed: instance > position > pattern > meta > custom > base,
+  with `priority` ascending as the tie-breaker. All three renderers
+  (Blade, React, Vue) consume the same inlined tree — variants are
+  stripped server-side by `QueryInliner`, so existing query loops
+  with no variants render identically to before. Items rendered via
+  a variant carry an extra `is-variant` class on their
+  `core/post-template-item` wrapper for downstream styling.
 - **Native flex layout panel on group / column / columns / grid-item
   (#595).** New `Flex Layout` + `Flex Item` inspector panels expose
   every CSS flexbox property — direction, wrap, justify, align-items,
