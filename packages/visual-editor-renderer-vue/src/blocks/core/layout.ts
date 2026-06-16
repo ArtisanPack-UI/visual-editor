@@ -13,6 +13,7 @@ import {
     classList,
     formatPercent,
 } from '../../support/attributes';
+import { flexClassNames } from '../../support/flex-serializer';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -40,7 +41,8 @@ export const GroupBlock = defineComponent({
                     : 'is-layout-flow';
 
             const className = attrString(props.attributes.className);
-            const classes = classList(['wp-block-group', layoutClass, className]);
+            const flexClasses = flexClassNames(props.attributes.artisanpackFlex);
+            const classes = classList(['wp-block-group', layoutClass, ...flexClasses, className]);
 
             return h(tag, { class: classes }, slots.default ? slots.default() : []);
         };
@@ -85,10 +87,12 @@ export const ColumnsBlock = defineComponent({
                     : attrBoolean(props.attributes.isStackedOnMobile);
             const verticalAlignment = attrString(props.attributes.verticalAlignment);
 
+            const flexClasses = flexClassNames(props.attributes.artisanpackFlex);
             const classes = classList([
                 'wp-block-columns',
                 isStacked ? 'is-stacked-on-mobile' : null,
                 verticalAlignment !== '' ? `are-vertically-aligned-${verticalAlignment}` : null,
+                ...flexClasses,
                 className,
             ]);
 
@@ -104,10 +108,12 @@ export const ColumnBlock = defineComponent({
         return () => {
             const className = attrString(props.attributes.className);
             const verticalAlignment = attrString(props.attributes.verticalAlignment);
+            const flexClasses = flexClassNames(props.attributes.artisanpackFlex);
 
             const classes = classList([
                 'wp-block-column',
                 verticalAlignment !== '' ? `is-vertically-aligned-${verticalAlignment}` : null,
+                ...flexClasses,
                 className,
             ]);
 

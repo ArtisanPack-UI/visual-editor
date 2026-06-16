@@ -11,9 +11,16 @@ import type { ReactElement } from 'react';
 import clsx from 'clsx';
 import { useInnerBlocksProps, useBlockProps } from '@wordpress/block-editor';
 
+import {
+    serializeFlex,
+    type ArtisanpackFlexAttribute,
+} from '../_shared/flex-controls';
+import { BreakpointRegistry } from '../../responsive/registry';
+
 interface ColumnSaveAttributes {
     readonly verticalAlignment?: string;
     readonly width?: string | number;
+    readonly artisanpackFlex?: ArtisanpackFlexAttribute | null;
 }
 
 export default function columnSave({
@@ -22,9 +29,17 @@ export default function columnSave({
     attributes: ColumnSaveAttributes;
 }): ReactElement {
     const { verticalAlignment, width } = attributes;
-    const wrapperClasses = clsx('wp-block-column', {
-        [`is-vertically-aligned-${verticalAlignment}`]: verticalAlignment,
-    });
+    const flexResult = serializeFlex(
+        attributes.artisanpackFlex ?? null,
+        new BreakpointRegistry(),
+    );
+    const wrapperClasses = clsx(
+        'wp-block-column',
+        {
+            [`is-vertically-aligned-${verticalAlignment}`]: verticalAlignment,
+        },
+        flexResult.classes,
+    );
 
     let style: { flexBasis: string } | undefined;
     if (width && /\d/.test(String(width))) {

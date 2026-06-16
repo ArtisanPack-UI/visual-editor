@@ -57,6 +57,18 @@ return [
 			'contentSize' => '720px',
 			'wideSize'    => '1120px',
 		],
+		// #595 — flex layout panel defaults. Themes can disable the
+		// panel entirely by setting `enable` to false (already-saved
+		// content keeps rendering through the wrapper classes).
+		'artisanpack' => [
+			'flex' => [
+				'enable'                => true,
+				'defaultDirection'      => 'row',
+				'defaultJustifyContent' => null,
+				'defaultAlignItems'     => null,
+				'defaultGap'            => [ 'row' => null, 'column' => null ],
+			],
+		],
 	],
 	'styles'   => [
 		'color'      => [

@@ -61,6 +61,118 @@ const migrateAttributes = (
     };
 };
 
+// Maps core's flex `layout` object onto the new `artisanpackFlex` shape (#595).
+// Keys core does not carry (alignContent, gap, place-content) remain unset.
+const CORE_JUSTIFY_MAP: Record<string, string> = {
+    left: 'flex-start',
+    center: 'center',
+    right: 'flex-end',
+    'space-between': 'space-between',
+    'space-around': 'space-around',
+    'space-evenly': 'space-evenly',
+};
+
+const CORE_VERTICAL_ALIGN_MAP: Record<string, string> = {
+    top: 'flex-start',
+    center: 'center',
+    bottom: 'flex-end',
+    stretch: 'stretch',
+    'space-between': 'space-between',
+};
+
+function migrateCoreFlexLayout(
+    layout: LegacyAttributes['layout'],
+): Record<string, unknown> {
+    if (!layout || layout.type !== 'flex') {
+        return {};
+    }
+
+    const orientation = (layout as { orientation?: string }).orientation;
+    const direction = orientation === 'vertical' ? 'column' : 'row';
+
+    const flexWrap = (layout as { flexWrap?: string }).flexWrap;
+    const justifyContent = CORE_JUSTIFY_MAP[
+        String((layout as { justifyContent?: string }).justifyContent ?? '')
+    ];
+    const alignItems = CORE_VERTICAL_ALIGN_MAP[
+        String((layout as { verticalAlignment?: string }).verticalAlignment ?? '')
+    ];
+
+    const container: Record<string, unknown> = {
+        enabled: { base: true },
+        direction: { base: direction },
+    };
+
+    if (flexWrap === 'wrap' || flexWrap === 'nowrap' || flexWrap === 'wrap-reverse') {
+        container.wrap = { base: flexWrap };
+    }
+    if (justifyContent) {
+        container.justifyContent = { base: justifyContent };
+    }
+    if (alignItems) {
+        container.alignItems = { base: alignItems };
+    }
+
+    return { container };
+}
+
+const FLEX_LAYOUT_MIGRATION_DEPRECATION = {
+    attributes: {
+        tagName: { type: 'string', default: 'div' },
+        templateLock: {
+            type: ['string', 'boolean'],
+            enum: ['all', 'insert', 'contentOnly', false],
+        },
+        layout: { type: 'object' },
+    },
+    supports: {
+        align: ['wide', 'full'],
+        anchor: true,
+    },
+    isEligible: ({
+        layout,
+        artisanpackFlex,
+    }: {
+        layout?: { type?: string };
+        artisanpackFlex?: unknown;
+    }): boolean => layout?.type === 'flex' && !artisanpackFlex,
+    migrate: (
+        attributes: LegacyAttributes,
+    ): LegacyAttributes | undefined => {
+        const flex = migrateCoreFlexLayout(attributes.layout);
+        const { layout = null, ...rest } = attributes;
+        const nextLayout = layout ? { ...layout } : null;
+        if (nextLayout) {
+            delete (nextLayout as Record<string, unknown>).type;
+            delete (nextLayout as Record<string, unknown>).orientation;
+            delete (nextLayout as Record<string, unknown>).flexWrap;
+            delete (nextLayout as Record<string, unknown>).justifyContent;
+            delete (nextLayout as Record<string, unknown>).verticalAlignment;
+        }
+        return {
+            ...rest,
+            layout:
+                nextLayout && Object.keys(nextLayout).length > 0
+                    ? nextLayout
+                    : undefined,
+            artisanpackFlex: flex,
+        } as LegacyAttributes;
+    },
+    save({
+        attributes,
+    }: {
+        attributes: LegacyAttributes;
+    }): ReactElement {
+        const Tag = (attributes.tagName ?? 'div') as keyof JSX.IntrinsicElements;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const inner = (useInnerBlocksProps.save as any)(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            (useBlockProps.save as any)({ className: 'wp-block-group' }),
+        );
+        return <Tag {...inner} />;
+    },
+};
+
 const deprecated = [
     // Version with default layout.
     {
@@ -273,6 +385,8 @@ const deprecated = [
             );
         },
     },
+    // #595: migrate core `layout.type === 'flex'` to `artisanpackFlex`.
+    FLEX_LAYOUT_MIGRATION_DEPRECATION,
 ];
 
 export default deprecated;

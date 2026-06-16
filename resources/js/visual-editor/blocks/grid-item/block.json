@@ -36,6 +36,10 @@
         "gridRowSpan": {
             "type": "number",
             "default": 1
+        },
+        "artisanpackFlex": {
+            "type": "object",
+            "default": null
         }
     },
     "supports": {
@@ -98,7 +102,8 @@
             "attributes": [
                 "spacing",
                 "gridColumnSpan",
-                "gridRowSpan"
+                "gridRowSpan",
+                "artisanpackFlex"
             ]
         }
     }

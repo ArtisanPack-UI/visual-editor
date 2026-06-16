@@ -28,6 +28,23 @@ vi.mock('@wordpress/components', () => ({
     }: {
         children?: React.ReactNode;
     }) => <div>{children}</div>,
+    PanelBody: ({ children }: { children?: React.ReactNode }) => (
+        <div data-testid="panel-body">{children}</div>
+    ),
+    ToggleControl: () => null,
+    __experimentalToggleGroupControl: ({ children }: { children?: React.ReactNode }) => (
+        <div>{children}</div>
+    ),
+    __experimentalToggleGroupControlOption: () => null,
+    __experimentalNumberControl: () => null,
+    TextControl: () => null,
+}));
+
+vi.mock('@wordpress/element', () => ({
+    useState: <T,>(initial: T): [T, (v: T) => void] => [initial, () => undefined],
+    useEffect: () => undefined,
+    useMemo: <T,>(fn: () => T): T => fn(),
+    useRef: <T,>(): { current: T | undefined } => ({ current: undefined }),
 }));
 
 vi.mock('@wordpress/data', () => ({
@@ -35,6 +52,8 @@ vi.mock('@wordpress/data', () => ({
         cb(() => ({
             getBlockOrder: () => [],
             getBlockRootClientId: () => 'root',
+            getBlockName: () => null,
+            getBlockAttributes: () => ({}),
         })),
     useDispatch: () => ({ updateBlockAttributes: () => undefined }),
 }));

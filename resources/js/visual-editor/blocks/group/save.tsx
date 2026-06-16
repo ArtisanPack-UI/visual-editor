@@ -3,14 +3,24 @@
  *
  * Ported from `@wordpress/block-library/src/group/save.js` (v9.43.0).
  * Adds an explicit `wp-block-group` class to `useBlockProps.save()` so
- * the saved markup matches the editor regardless of namespace.
+ * the saved markup matches the editor regardless of namespace, and
+ * appends the flex layout serializer's classes so frontend rendering
+ * mirrors the editor.
  */
 
 import type { ReactElement } from 'react';
 import { useInnerBlocksProps, useBlockProps } from '@wordpress/block-editor';
+import clsx from 'clsx';
+
+import {
+    serializeFlex,
+    type ArtisanpackFlexAttribute,
+} from '../_shared/flex-controls';
+import { BreakpointRegistry } from '../../responsive/registry';
 
 interface GroupSaveAttributes {
     readonly tagName?: string;
+    readonly artisanpackFlex?: ArtisanpackFlexAttribute | null;
 }
 
 export default function groupSave({
@@ -19,9 +29,13 @@ export default function groupSave({
     attributes: GroupSaveAttributes;
 }): ReactElement {
     const Tag = (attributes.tagName ?? 'div') as keyof JSX.IntrinsicElements;
+    const flexResult = serializeFlex(
+        attributes.artisanpackFlex ?? null,
+        new BreakpointRegistry(),
+    );
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blockProps = (useBlockProps.save as any)({
-        className: 'wp-block-group',
+        className: clsx('wp-block-group', flexResult.classes),
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const innerBlocksProps = (useInnerBlocksProps.save as any)(blockProps);

@@ -1,6 +1,7 @@
 @php
 	use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\FlexSupport;
 
 	$validInnerLayouts = [ 'normal', 'equal', 'center', 'bottom', 'last-bottom' ];
 
@@ -68,6 +69,7 @@
 			'ap-grid-item-layout-' . $innerLayout,
 		],
 		$spanClasses,
+		FlexSupport::wrapperForBlock( $attributes ),
 	);
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>

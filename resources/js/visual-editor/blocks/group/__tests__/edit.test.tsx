@@ -13,6 +13,7 @@ vi.mock('@wordpress/i18n', () => ({
 vi.mock('@wordpress/element', () => ({
     useState: <T,>(initial: T): [T, (v: T) => void] => [initial, () => undefined],
     useEffect: () => undefined,
+    useMemo: <T,>(fn: () => T): T => fn(),
     useRef: <T,>(): { current: T | undefined } => ({ current: undefined }),
 }));
 
@@ -22,6 +23,16 @@ vi.mock('@wordpress/components', () => ({
         <div data-testid="placeholder">{children}</div>
     ),
     Button: () => null,
+    PanelBody: ({ children }: { children?: React.ReactNode }) => (
+        <div data-testid="panel-body">{children}</div>
+    ),
+    ToggleControl: () => null,
+    __experimentalToggleGroupControl: ({ children }: { children?: React.ReactNode }) => (
+        <div>{children}</div>
+    ),
+    __experimentalToggleGroupControlOption: () => null,
+    __experimentalNumberControl: () => null,
+    TextControl: () => null,
 }));
 
 vi.mock('@wordpress/data', () => ({
@@ -30,6 +41,9 @@ vi.mock('@wordpress/data', () => ({
             getBlock: () => ({ innerBlocks: [] }),
             getSettings: () => ({ supportsLayout: true }),
             getBlockVariations: () => [],
+            getBlockRootClientId: () => null,
+            getBlockName: () => null,
+            getBlockAttributes: () => ({}),
         })),
     useDispatch: () => ({ selectBlock: () => undefined }),
 }));
@@ -69,7 +83,7 @@ describe('GroupEdit', () => {
     });
 
     it('mounts inspector controls', () => {
-        const { getByTestId } = render(
+        const { getAllByTestId } = render(
             <GroupEdit
                 attributes={{ tagName: 'div', backgroundColor: 'red' }}
                 name="artisanpack/group"
@@ -77,7 +91,10 @@ describe('GroupEdit', () => {
                 clientId="abc"
             />
         );
-        expect(getByTestId('inspector')).toBeTruthy();
+        // One inspector slot for tagName (advanced) + one for the
+        // #595 flex layout panels — both are valid `<InspectorControls>`
+        // mounts in the mock.
+        expect(getAllByTestId('inspector').length).toBeGreaterThanOrEqual(1);
     });
 
     it('renders the configured tagName when layout support is enabled', () => {
