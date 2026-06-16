@@ -68,6 +68,8 @@ vi.mock('@wordpress/block-editor', () => ({
         ...props,
         children: null,
     }),
+    // #594 — Photo Grid controls read theme defaults via `useSettings`.
+    useSettings: (...paths: string[]): unknown[] => paths.map(() => undefined),
     store: 'block-editor-store',
 }));
 

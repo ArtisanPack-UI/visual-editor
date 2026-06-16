@@ -36,6 +36,7 @@ import {
 
 import canvasThemeTokens from './canvas-theme-tokens.css?inline';
 import flexLayoutStyles from '../../../css/flex-layout.css?inline';
+import photoGridStyles from '../blocks/_shared/photo-grid/photo-grid.css?inline';
 
 /** A single stylesheet entry in the shape `BlockCanvas`'s `styles` prop expects. */
 export interface CanvasStyle {
@@ -193,6 +194,13 @@ export const canvasStyles: readonly CanvasStyle[] = [
     // entries that used to sit here and forced an edit to
     // canvas-styles.ts every time a new custom block landed.
     ...blockStylesheets,
+    // Photo Grid container support (#594). Lives at
+    // `blocks/_shared/photo-grid/photo-grid.css` — three levels deep,
+    // so the two-level `blocks/*/*.css` glob above skips it. Hand
+    // it to the iframe explicitly. Loaded *after* the per-block
+    // stylesheets so the cascade matches the front-end order in
+    // `blocks-styles.blade.php` (block-family CSS before photo-grid).
+    { css: photoGridStyles },
     { css: EDITOR_BLOCK_TWEAKS },
     { css: DEFAULT_CANVAS_STYLES },
     // Per-block wide/full overrides. Shared with the site editor —

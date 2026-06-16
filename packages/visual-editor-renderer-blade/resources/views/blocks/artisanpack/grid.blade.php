@@ -1,6 +1,7 @@
 @php
 	use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\PhotoGridSupport;
 
 	$clampColumns = static function ( $value, int $fallback ): int {
 		$int = is_numeric( $value ) ? (int) $value : $fallback;
@@ -41,7 +42,7 @@
 		}
 	}
 
-	$baseClasses = array_merge( [ 'ap-grid' ], $breakpointClasses );
+	$baseClasses = array_merge( [ 'ap-grid' ], $breakpointClasses, PhotoGridSupport::wrapperForBlock( $attributes ) );
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	{!! $innerBlocksHtml !!}

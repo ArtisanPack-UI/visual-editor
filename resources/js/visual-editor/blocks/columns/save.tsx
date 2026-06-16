@@ -16,12 +16,17 @@ import {
     serializeFlex,
     type ArtisanpackFlexAttribute,
 } from '../_shared/flex-controls';
+import {
+    getPhotoGridWrapperProps,
+    type PhotoGridAttribute,
+} from '../_shared/photo-grid';
 import { BreakpointRegistry } from '../../responsive/registry';
 
 interface ColumnsSaveAttributes {
     readonly verticalAlignment?: string;
     readonly isStackedOnMobile?: boolean;
     readonly artisanpackFlex?: ArtisanpackFlexAttribute | null;
+    readonly photoGrid?: PhotoGridAttribute | null;
 }
 
 export default function columnsSave({
@@ -34,6 +39,7 @@ export default function columnsSave({
         attributes.artisanpackFlex ?? null,
         new BreakpointRegistry(),
     );
+    const photoGridWrapper = getPhotoGridWrapperProps(attributes);
     const className = clsx(
         'wp-block-columns',
         {
@@ -41,9 +47,13 @@ export default function columnsSave({
             ['is-not-stacked-on-mobile']: !isStackedOnMobile,
         },
         flexResult.classes,
+        photoGridWrapper.className,
     );
 
-    const blockProps = (useBlockProps.save as any)({ className });
+    const blockProps = (useBlockProps.save as any)({
+        className,
+        style: photoGridWrapper.style,
+    });
     const innerBlocksProps = (useInnerBlocksProps.save as any)(blockProps);
 
     return <div {...innerBlocksProps} />;

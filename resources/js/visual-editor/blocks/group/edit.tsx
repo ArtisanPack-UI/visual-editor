@@ -30,6 +30,11 @@ import {
     serializeFlex,
     type ArtisanpackFlexAttribute,
 } from '../_shared/flex-controls';
+import {
+    PhotoGridControls,
+    getPhotoGridWrapperProps,
+    type PhotoGridAttribute,
+} from '../_shared/photo-grid';
 import { BreakpointRegistry } from '../../responsive/registry';
 
 interface GroupAttributes {
@@ -42,6 +47,7 @@ interface GroupAttributes {
     readonly textColor?: string;
     readonly fontSize?: string;
     readonly artisanpackFlex?: ArtisanpackFlexAttribute | null;
+    readonly photoGrid?: PhotoGridAttribute | null;
 }
 
 interface GroupEditControlsProps {
@@ -116,10 +122,16 @@ export default function GroupEdit({
         attributes.artisanpackFlex ?? null,
         flexRegistry,
     );
+    const photoGridWrapper = getPhotoGridWrapperProps(attributes);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blockProps = (useBlockProps as any)({
         ref,
-        className: clsx('wp-block-group', flexResult.classes),
+        className: clsx(
+            'wp-block-group',
+            flexResult.classes,
+            photoGridWrapper.className,
+        ),
+        style: photoGridWrapper.style,
     });
 
     const [showPlaceholder, setShowPlaceholder] = useShouldShowPlaceHolder({
@@ -183,6 +195,10 @@ export default function GroupEdit({
                         setAttributes({ artisanpackFlex: next })
                     }
                     registry={flexRegistry}
+                />
+                <PhotoGridControls
+                    photoGrid={attributes.photoGrid ?? null}
+                    onChange={(next) => setAttributes({ photoGrid: next })}
                 />
             </InspectorControls>
             {showPlaceholder && (
