@@ -116,6 +116,15 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 			);
 		} );
 
+		// #595 — flex layout serializer. Scoped so it shares lifetime
+		// with the responsive registry / resolver it depends on.
+		$this->app->scoped( \ArtisanPackUI\VisualEditorRendererBlade\Support\FlexSupport::class, function ( $app ) {
+			return new \ArtisanPackUI\VisualEditorRendererBlade\Support\FlexSupport(
+				$app->make( BreakpointRegistry::class ),
+				$app->make( ResponsiveValueResolver::class ),
+			);
+		} );
+
 		// #509 — per-request accumulator that collects every block's
 		// responsive CSS into one `<style data-ve-responsive>` block
 		// at the top of the render output. Scoped so a long-lived

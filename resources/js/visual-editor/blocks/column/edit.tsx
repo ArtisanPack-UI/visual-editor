@@ -28,11 +28,20 @@ import {
 import { useSelect, useDispatch } from '@wordpress/data';
 import { sprintf, __ } from '@wordpress/i18n';
 
+import {
+    FlexContainerControls,
+    FlexItemControls,
+    serializeFlex,
+    type ArtisanpackFlexAttribute,
+} from '../_shared/flex-controls';
+import { BreakpointRegistry } from '../../responsive/registry';
+
 interface ColumnAttributes {
     readonly verticalAlignment?: string;
     readonly width?: string;
     readonly templateLock?: string | boolean;
     readonly allowedBlocks?: string[];
+    readonly artisanpackFlex?: ArtisanpackFlexAttribute | null;
 }
 
 interface ColumnEditProps {
@@ -83,13 +92,23 @@ function ColumnInspectorControls({
 }
 
 export default function ColumnEdit({
-    attributes: { verticalAlignment, width, templateLock, allowedBlocks },
+    attributes,
     setAttributes,
     clientId,
 }: ColumnEditProps): ReactElement {
-    const classes = clsx('wp-block-column', {
-        [`is-vertically-aligned-${verticalAlignment}`]: verticalAlignment,
-    });
+    const { verticalAlignment, width, templateLock, allowedBlocks } = attributes;
+    const flexRegistry = new BreakpointRegistry();
+    const flexResult = serializeFlex(
+        attributes.artisanpackFlex ?? null,
+        flexRegistry,
+    );
+    const classes = clsx(
+        'wp-block-column',
+        {
+            [`is-vertically-aligned-${verticalAlignment}`]: verticalAlignment,
+        },
+        flexResult.classes,
+    );
     const { columnsIds, hasChildBlocks, rootClientId } = useSelect(
         (select: any) => {
             const { getBlockOrder, getBlockRootClientId } =
@@ -154,6 +173,21 @@ export default function ColumnEdit({
                 <ColumnInspectorControls
                     width={width}
                     setAttributes={setAttributes}
+                />
+                <FlexContainerControls
+                    flex={attributes.artisanpackFlex ?? null}
+                    onChange={(next) =>
+                        setAttributes({ artisanpackFlex: next })
+                    }
+                    registry={flexRegistry}
+                />
+                <FlexItemControls
+                    flex={attributes.artisanpackFlex ?? null}
+                    clientId={clientId}
+                    onChange={(next) =>
+                        setAttributes({ artisanpackFlex: next })
+                    }
+                    registry={flexRegistry}
                 />
             </InspectorControls>
             <div {...innerBlocksProps} />

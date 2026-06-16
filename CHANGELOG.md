@@ -6,6 +6,23 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **Native flex layout panel on group / column / columns / grid-item
+  (#595).** New `Flex Layout` + `Flex Item` inspector panels expose
+  every CSS flexbox property — direction, wrap, justify, align-items,
+  align-content, place-content, row/column gap, plus per-item
+  align-self, grow, shrink, basis, order — each per-breakpoint via the
+  existing `<ViewportSwitcher />`. Replaces WordPress core's narrow
+  Flex layout variation on `artisanpack/group` (suppressed via filter)
+  and layers on top of the default `artisanpack/columns` distribution.
+  Class output mirrors Tailwind's utility convention (`ap-flex`,
+  `md:ap-justify-between`, `ap-gap-x-[16px]`, …) and is asserted
+  byte-identical across the Blade, React, and Vue renderers via a
+  shared fixture set. Legacy `layout.type === 'flex'` content on
+  `artisanpack/group` migrates automatically on first edit. See
+  [[blocks/Flex Layout]] for the full surface.
+
 ## [1.1.0] — 2026-06-14
 
 The 1.1.0 release ships the full `artisanpack/icon` block (Phases 1–7),

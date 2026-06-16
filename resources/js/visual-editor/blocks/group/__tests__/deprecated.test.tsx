@@ -22,9 +22,10 @@ vi.mock('@wordpress/block-editor', () => ({
 import deprecated from '../deprecated';
 
 describe('group deprecation chain', () => {
-    it('ships five deprecation entries matching upstream', () => {
+    it('ships the upstream five entries plus the #595 flex-layout migration', () => {
         expect(Array.isArray(deprecated)).toBe(true);
-        expect(deprecated).toHaveLength(5);
+        // 5 upstream-ported entries + 1 #595 flex-layout migration appended.
+        expect(deprecated).toHaveLength(6);
     });
 
     it('v1 (entry 0) declares tagName + templateLock schema', () => {

@@ -35,6 +35,7 @@ import {
 } from '../editor-settings';
 
 import canvasThemeTokens from './canvas-theme-tokens.css?inline';
+import flexLayoutStyles from '../../../css/flex-layout.css?inline';
 
 /** A single stylesheet entry in the shape `BlockCanvas`'s `styles` prop expects. */
 export interface CanvasStyle {
@@ -182,6 +183,11 @@ export const canvasStyles: readonly CanvasStyle[] = [
     { css: blockLibraryStyle },
     { css: blockLibraryEditor },
     { css: LAYOUT_BASELINE_STYLES },
+    // Flex layout utility stylesheet (#595). Lives outside the
+    // `blocks/*/` tree so it isn't picked up by the glob below; hand
+    // it to the iframe explicitly so `.ap-flex` and per-breakpoint
+    // utilities resolve inside the canvas.
+    { css: flexLayoutStyles },
     // Every block-authored stylesheet, auto-discovered via the
     // `blocks/*/*.css` glob (#566). Replaces the per-block manual
     // entries that used to sit here and forced an edit to

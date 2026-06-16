@@ -1,6 +1,7 @@
 @php
 	use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\FlexSupport;
 
 	$baseClasses = [ 'wp-block-columns' ];
 
@@ -11,6 +12,8 @@
 	if ( ! empty( $attributes['verticalAlignment'] ) ) {
 		$baseClasses[] = 'are-vertically-aligned-' . $attributes['verticalAlignment'];
 	}
+
+	$baseClasses = array_merge( $baseClasses, FlexSupport::wrapperForBlock( $attributes ) );
 
 	// #487 — columns-specific responsive layout. `columnCount` overrides
 	// translate to per-breakpoint `grid-template-columns` rules. The

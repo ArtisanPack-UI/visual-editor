@@ -17,6 +17,8 @@ import variations from './variations';
 import icon from './inserter-icon';
 
 import './group.css';
+import '../../../../css/flex-layout.css';
+import './suppress-core-flex';
 
 export { edit, save, metadata, icon, deprecated, transforms, variations };
 

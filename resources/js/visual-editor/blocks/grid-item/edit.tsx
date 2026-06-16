@@ -18,6 +18,13 @@ import { PanelBody, RangeControl, SelectControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
+import {
+    FlexContainerControls,
+    FlexItemControls,
+    serializeFlex,
+    type ArtisanpackFlexAttribute,
+} from '../_shared/flex-controls';
+import { BreakpointRegistry } from '../../responsive/registry';
 
 type InnerLayout = 'normal' | 'equal' | 'center' | 'bottom' | 'last-bottom';
 
@@ -33,6 +40,7 @@ interface GridItemAttributes {
     readonly innerLayout: InnerLayout;
     readonly gridColumnSpan: number;
     readonly gridRowSpan: number;
+    readonly artisanpackFlex?: ArtisanpackFlexAttribute | null;
 }
 
 interface GridItemContext {
@@ -43,6 +51,7 @@ interface GridItemEditProps {
     readonly attributes: GridItemAttributes;
     readonly setAttributes: (next: Partial<GridItemAttributes>) => void;
     readonly context: GridItemContext;
+    readonly clientId: string;
 }
 
 function clampSpan(value: number | undefined, max: number, fallback: number): number {
@@ -60,6 +69,7 @@ export default function GridItemEdit({
     attributes,
     setAttributes,
     context,
+    clientId,
 }: GridItemEditProps): ReactElement {
     const numColumns = clampSpan(context.numColumns, 12, 12);
     const gridColumnSpan = clampSpan(attributes.gridColumnSpan, numColumns, 1);
@@ -70,11 +80,18 @@ export default function GridItemEdit({
         ? attributes.innerLayout
         : 'normal';
 
+    const flexRegistry = new BreakpointRegistry();
+    const flexResult = serializeFlex(
+        attributes.artisanpackFlex ?? null,
+        flexRegistry,
+    );
+
     const className = [
         'ap-grid-item',
         `ap-grid-item-layout-${innerLayout}`,
         `ap-grid-item-span-${gridColumnSpan}-base-columns`,
         `ap-grid-item-span-${gridRowSpan}-base-row`,
+        ...flexResult.classes,
     ].join(' ');
 
     const blockProps = useBlockProps({ className });
@@ -128,6 +145,21 @@ export default function GridItemEdit({
                         __nextHasNoMarginBottom
                     />
                 </PanelBody>
+                <FlexContainerControls
+                    flex={attributes.artisanpackFlex ?? null}
+                    onChange={(next) =>
+                        setAttributes({ artisanpackFlex: next })
+                    }
+                    registry={flexRegistry}
+                />
+                <FlexItemControls
+                    flex={attributes.artisanpackFlex ?? null}
+                    clientId={clientId}
+                    onChange={(next) =>
+                        setAttributes({ artisanpackFlex: next })
+                    }
+                    registry={flexRegistry}
+                />
             </InspectorControls>
             <div {...innerBlocksProps} />
         </>

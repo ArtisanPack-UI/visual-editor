@@ -31,6 +31,10 @@
         },
         "columnCount": {
             "type": "number"
+        },
+        "artisanpackFlex": {
+            "type": "object",
+            "default": null
         }
     },
     "supports": {

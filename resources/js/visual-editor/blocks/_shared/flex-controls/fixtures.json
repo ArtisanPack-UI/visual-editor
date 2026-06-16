@@ -1,0 +1,232 @@
+{
+    "_": "Cross-renderer parity fixtures for #595. Each entry maps an artisanpackFlex input to the exact class string and arbitrary-value rules every serializer (TS in editor + Vue + React, PHP in Blade) must produce. Keep this file the single source of truth — editor tests, Blade Pest tests, and renderer vitest suites all consume it.",
+    "fixtures": [
+        {
+            "name": "empty",
+            "input": null,
+            "expected": {
+                "containerClasses": [],
+                "itemClasses": [],
+                "arbitraryRules": []
+            }
+        },
+        {
+            "name": "enabled-base",
+            "input": {
+                "container": {
+                    "enabled": { "base": true }
+                }
+            },
+            "expected": {
+                "containerClasses": [ "ap-flex" ],
+                "itemClasses": [],
+                "arbitraryRules": []
+            }
+        },
+        {
+            "name": "direction-and-wrap",
+            "input": {
+                "container": {
+                    "enabled": { "base": true },
+                    "direction": { "base": "row" },
+                    "wrap": { "base": "wrap" }
+                }
+            },
+            "expected": {
+                "containerClasses": [ "ap-flex", "ap-flex-row", "ap-flex-wrap" ],
+                "itemClasses": [],
+                "arbitraryRules": []
+            }
+        },
+        {
+            "name": "column-reverse",
+            "input": {
+                "container": {
+                    "enabled": { "base": true },
+                    "direction": { "base": "column-reverse" }
+                }
+            },
+            "expected": {
+                "containerClasses": [ "ap-flex", "ap-flex-col-reverse" ],
+                "itemClasses": [],
+                "arbitraryRules": []
+            }
+        },
+        {
+            "name": "justify-and-items",
+            "input": {
+                "container": {
+                    "enabled": { "base": true },
+                    "justifyContent": { "base": "space-between" },
+                    "alignItems": { "base": "center" }
+                }
+            },
+            "expected": {
+                "containerClasses": [ "ap-flex", "ap-justify-between", "ap-items-center" ],
+                "itemClasses": [],
+                "arbitraryRules": []
+            }
+        },
+        {
+            "name": "align-content-with-wrap",
+            "input": {
+                "container": {
+                    "enabled": { "base": true },
+                    "wrap": { "base": "wrap" },
+                    "alignContent": { "base": "space-around" }
+                }
+            },
+            "expected": {
+                "containerClasses": [ "ap-flex", "ap-flex-wrap", "ap-content-around" ],
+                "itemClasses": [],
+                "arbitraryRules": []
+            }
+        },
+        {
+            "name": "responsive-direction",
+            "input": {
+                "container": {
+                    "enabled": { "base": true },
+                    "direction": { "base": "column", "md": "row" }
+                }
+            },
+            "expected": {
+                "containerClasses": [ "ap-flex", "ap-flex-col", "md:ap-flex-row" ],
+                "itemClasses": [],
+                "arbitraryRules": []
+            }
+        },
+        {
+            "name": "gap-arbitrary",
+            "input": {
+                "container": {
+                    "enabled": { "base": true },
+                    "gap": {
+                        "row": { "base": "16px" },
+                        "column": { "base": "1rem", "lg": "2rem" }
+                    }
+                }
+            },
+            "expected": {
+                "containerClasses": [
+                    "ap-flex",
+                    "ap-gap-y-[16px]",
+                    "ap-gap-x-[1rem]",
+                    "lg:ap-gap-x-[2rem]"
+                ],
+                "itemClasses": [],
+                "arbitraryRules": [
+                    { "className": "ap-gap-y-[16px]", "property": "row-gap", "value": "16px", "breakpoint": "base" },
+                    { "className": "ap-gap-x-[1rem]", "property": "column-gap", "value": "1rem", "breakpoint": "base" },
+                    { "className": "lg:ap-gap-x-[2rem]", "property": "column-gap", "value": "2rem", "breakpoint": "lg" }
+                ]
+            }
+        },
+        {
+            "name": "place-content-shorthand",
+            "input": {
+                "container": {
+                    "enabled": { "base": true },
+                    "placeContent": { "base": "center" }
+                }
+            },
+            "expected": {
+                "containerClasses": [ "ap-flex", "ap-place-content-[center]" ],
+                "itemClasses": [],
+                "arbitraryRules": [
+                    { "className": "ap-place-content-[center]", "property": "place-content", "value": "center", "breakpoint": "base" }
+                ]
+            }
+        },
+        {
+            "name": "item-align-self-and-order",
+            "input": {
+                "item": {
+                    "alignSelf": { "base": "center" },
+                    "order": { "base": 2 }
+                }
+            },
+            "expected": {
+                "containerClasses": [],
+                "itemClasses": [ "ap-self-center", "ap-order-2" ],
+                "arbitraryRules": []
+            }
+        },
+        {
+            "name": "item-grow-shrink-basis",
+            "input": {
+                "item": {
+                    "grow": { "base": 1 },
+                    "shrink": { "base": 0 },
+                    "basis": { "base": "auto" }
+                }
+            },
+            "expected": {
+                "containerClasses": [],
+                "itemClasses": [ "ap-grow-1", "ap-shrink-0", "ap-basis-auto" ],
+                "arbitraryRules": []
+            }
+        },
+        {
+            "name": "item-basis-arbitrary",
+            "input": {
+                "item": {
+                    "basis": { "base": "200px", "sm": "50%" }
+                }
+            },
+            "expected": {
+                "containerClasses": [],
+                "itemClasses": [ "ap-basis-[200px]", "sm:ap-basis-[50%]" ],
+                "arbitraryRules": [
+                    { "className": "ap-basis-[200px]", "property": "flex-basis", "value": "200px", "breakpoint": "base" },
+                    { "className": "sm:ap-basis-[50%]", "property": "flex-basis", "value": "50%", "breakpoint": "sm" }
+                ]
+            }
+        },
+        {
+            "name": "item-order-negative-arbitrary",
+            "input": {
+                "item": {
+                    "order": { "base": -5 }
+                }
+            },
+            "expected": {
+                "containerClasses": [],
+                "itemClasses": [ "ap-order-[-5]" ],
+                "arbitraryRules": [
+                    { "className": "ap-order-[-5]", "property": "order", "value": "-5", "breakpoint": "base" }
+                ]
+            }
+        },
+        {
+            "name": "full-mixed",
+            "input": {
+                "container": {
+                    "enabled": { "base": true },
+                    "direction": { "base": "row" },
+                    "justifyContent": { "base": "center", "lg": "flex-end" },
+                    "alignItems": { "base": "stretch" },
+                    "gap": { "column": { "base": "8px" } }
+                },
+                "item": {
+                    "grow": { "base": 1 },
+                    "alignSelf": { "md": "flex-end" }
+                }
+            },
+            "expected": {
+                "containerClasses": [
+                    "ap-flex",
+                    "ap-flex-row",
+                    "ap-justify-center",
+                    "lg:ap-justify-end",
+                    "ap-items-stretch",
+                    "ap-gap-x-[8px]"
+                ],
+                "itemClasses": [ "md:ap-self-end", "ap-grow-1" ],
+                "arbitraryRules": [
+                    { "className": "ap-gap-x-[8px]", "property": "column-gap", "value": "8px", "breakpoint": "base" }
+                ]
+            }
+        }
+    ]
+}

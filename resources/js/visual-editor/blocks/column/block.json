@@ -27,6 +27,10 @@
                 "contentOnly",
                 false
             ]
+        },
+        "artisanpackFlex": {
+            "type": "object",
+            "default": null
         }
     },
     "supports": {

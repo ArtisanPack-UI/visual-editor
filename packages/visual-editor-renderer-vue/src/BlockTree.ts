@@ -24,6 +24,11 @@ import { DynamicBlock } from './DynamicBlock';
 import { GlobalStyles } from './GlobalStyles';
 import { UnknownBlock } from './blocks/unknownBlock';
 import {
+    buildArbitraryStyles,
+    serializeFlex,
+    type ArbitraryRule,
+} from './support/flex-serializer';
+import {
     DEFAULT_MAX_PATTERN_DEPTH,
     inlinePatterns,
 } from './patterns';
@@ -175,6 +180,10 @@ export const BlockTree = defineComponent({
                 : inlineQueries(withSiteMeta, { queries: props.queryResults });
         });
 
+        const flexArbitraryCss = computed(() =>
+            buildArbitraryStyles(collectFlexArbitraryRules(blocks.value))
+        );
+
         return () => {
             const endpoint = props.dynamicBlockEndpoint ?? DEFAULT_ENDPOINT;
             const children: VNode[] = [];
@@ -182,6 +191,16 @@ export const BlockTree = defineComponent({
             const styleNode = h(GlobalStyles, { css: props.globalStylesCss });
 
             children.push(styleNode);
+
+            if (flexArbitraryCss.value !== '') {
+                children.push(
+                    h(
+                        'style',
+                        { 'data-ve-flex-arbitrary': '' },
+                        flexArbitraryCss.value
+                    )
+                );
+            }
 
             blocks.value
                 .map((block, index) => renderBlock(block, index, endpoint, props.fetchOptions))
@@ -192,6 +211,49 @@ export const BlockTree = defineComponent({
         };
     },
 });
+
+/**
+ * Walk a normalized block tree collecting every `artisanpackFlex`
+ * attribute's arbitrary-value rules. The result is handed to
+ * {@link buildArbitraryStyles} so the page emits a single
+ * `<style data-ve-flex-arbitrary>` block matching what the Blade
+ * renderer's `ResponsiveCssAccumulator` flushes on the front-end.
+ */
+function collectFlexArbitraryRules(blocks: Block[]): ArbitraryRule[] {
+    const rules: ArbitraryRule[] = [];
+    const stack: Block[] = [...blocks];
+
+    while (stack.length > 0) {
+        const block = stack.pop();
+        if (!block) {
+            continue;
+        }
+
+        const flex =
+            block.attributes !== null &&
+            typeof block.attributes === 'object' &&
+            !Array.isArray(block.attributes)
+                ? (block.attributes as Record<string, unknown>).artisanpackFlex
+                : null;
+
+        if (flex && typeof flex === 'object') {
+            const { arbitraryRules } = serializeFlex(flex);
+            if (arbitraryRules.length > 0) {
+                rules.push(...arbitraryRules);
+            }
+        }
+
+        if (Array.isArray(block.innerBlocks)) {
+            for (const child of block.innerBlocks) {
+                if (child && typeof child === 'object') {
+                    stack.push(child as Block);
+                }
+            }
+        }
+    }
+
+    return rules;
+}
 
 function renderBlock(
     block: Block,

@@ -13,6 +13,7 @@
 import { defineComponent, h } from 'vue';
 
 import { attrInt, attrRecord, attrString, classList } from '../../support/attributes';
+import { flexClassNames } from '../../support/flex-serializer';
 import { blockRendererProps } from '../shared';
 
 const BREAKPOINTS: ReadonlyArray<string> = ['sm', 'md', 'lg', 'xl', '2xl'];
@@ -119,6 +120,7 @@ export const GridItemBlock = defineComponent({
                 `ap-grid-item-span-${baseRowSpan}-base-row`,
                 ...responsiveSpanClasses(responsiveColumnSpan, 'columns', 'ap-grid-item-span'),
                 ...responsiveSpanClasses(responsiveRowSpan, 'row', 'ap-grid-item-span'),
+                ...flexClassNames(props.attributes.artisanpackFlex),
                 className,
             ]);
 

@@ -1,12 +1,15 @@
 @php
 	use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\FlexSupport;
 
 	$baseClasses = [ 'wp-block-column' ];
 
 	if ( ! empty( $attributes['verticalAlignment'] ) ) {
 		$baseClasses[] = 'is-vertically-aligned-' . $attributes['verticalAlignment'];
 	}
+
+	$baseClasses = array_merge( $baseClasses, FlexSupport::wrapperForBlock( $attributes ) );
 
 	// `flex-basis` from the column's `width` attribute has to merge
 	// with any block-supports inline style — compile() lets us splice
