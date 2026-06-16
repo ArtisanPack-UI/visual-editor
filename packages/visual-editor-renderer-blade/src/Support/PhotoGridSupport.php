@@ -185,7 +185,16 @@ class PhotoGridSupport
 			return '50% 50%';
 		}
 		$trimmed = trim( $value );
+		if ( '' === $trimmed ) {
+			return '50% 50%';
+		}
+		// Reject CSS declaration / rule delimiters so a tampered
+		// `objectPosition` cannot break out of the `--ap-photo-grid-
+		// position` declaration and inject sibling rules.
+		if ( 1 === preg_match( '/[;{}<>]/', $trimmed ) ) {
+			return '50% 50%';
+		}
 
-		return '' === $trimmed ? '50% 50%' : $trimmed;
+		return $trimmed;
 	}
 }

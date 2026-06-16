@@ -67,7 +67,17 @@ function normaliseObjectPosition(value: unknown): string {
 		return '50% 50%'
 	}
 	const trimmed = value.trim()
-	return trimmed === '' ? '50% 50%' : trimmed
+	if (trimmed === '') {
+		return '50% 50%'
+	}
+	// Reject CSS declaration / rule delimiters so a tampered
+	// `objectPosition` cannot break out of the `--ap-photo-grid-
+	// position` declaration and inject sibling rules. Mirrors
+	// `PhotoGridSupport::normaliseObjectPosition()` on the PHP side.
+	if (/[;{}<>]/.test(trimmed)) {
+		return '50% 50%'
+	}
+	return trimmed
 }
 
 /**

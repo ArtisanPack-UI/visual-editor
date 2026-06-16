@@ -189,18 +189,18 @@ export const canvasStyles: readonly CanvasStyle[] = [
     // it to the iframe explicitly so `.ap-flex` and per-breakpoint
     // utilities resolve inside the canvas.
     { css: flexLayoutStyles },
-    // Photo Grid container support (#594). Lives at
-    // `blocks/_shared/photo-grid/photo-grid.css` — three levels deep,
-    // so the two-level `blocks/*/*.css` glob below skips it. Hand it
-    // to the iframe explicitly so `.has-photo-grid` rules and the
-    // `--ap-photo-grid-*` custom property fallbacks resolve inside
-    // the canvas.
-    { css: photoGridStyles },
     // Every block-authored stylesheet, auto-discovered via the
     // `blocks/*/*.css` glob (#566). Replaces the per-block manual
     // entries that used to sit here and forced an edit to
     // canvas-styles.ts every time a new custom block landed.
     ...blockStylesheets,
+    // Photo Grid container support (#594). Lives at
+    // `blocks/_shared/photo-grid/photo-grid.css` — three levels deep,
+    // so the two-level `blocks/*/*.css` glob above skips it. Hand
+    // it to the iframe explicitly. Loaded *after* the per-block
+    // stylesheets so the cascade matches the front-end order in
+    // `blocks-styles.blade.php` (block-family CSS before photo-grid).
+    { css: photoGridStyles },
     { css: EDITOR_BLOCK_TWEAKS },
     { css: DEFAULT_CANVAS_STYLES },
     // Per-block wide/full overrides. Shared with the site editor —

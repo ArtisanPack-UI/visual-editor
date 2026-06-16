@@ -143,6 +143,21 @@ it( 'defaults objectPosition to 50% 50% for empty / non-string values', function
 	}
 } );
 
+it( 'rejects CSS-breakout attempts in objectPosition', function () {
+	foreach ( [ '50% 50%; color: red', '50% 50%}{background:red', '50%<script>', 'top}', '{x' ] as $bad ) {
+		$result = PhotoGridSupport::wrapper( [
+			'photoGrid' => [
+				'enabled'        => true,
+				'aspectRatio'    => '1/1',
+				'objectFit'      => 'cover',
+				'objectPosition' => $bad,
+			],
+		] );
+
+		expect( $result[ 'styles' ][ '--ap-photo-grid-position' ] )->toBe( '50% 50%' );
+	}
+} );
+
 it( 'inlineStyle renders declarations as a `key:value;…` string', function () {
 	$css = PhotoGridSupport::inlineStyle( [
 		'--ap-photo-grid-fit'      => 'cover',
@@ -169,6 +184,13 @@ it( 'wrapperForBlock returns the class list including a scope class when enabled
 
 	expect( $classes )->toContain( 'has-photo-grid' )
 		->and( count( $classes ) )->toBe( 2 );
+
+	$scope = array_values( array_filter(
+		$classes,
+		static fn ( string $c ): bool => str_starts_with( $c, 'photo-grid-' )
+	) );
+	expect( $scope )->toHaveCount( 1 )
+		->and( $scope[ 0 ] )->toMatch( '/^photo-grid-[a-f0-9]{12}$/' );
 
 	// Scope class follows `photo-grid-{12-char-sha1}` and is stable
 	// for identical declarations — same input twice should produce

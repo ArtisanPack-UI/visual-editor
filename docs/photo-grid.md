@@ -16,7 +16,10 @@ Grid**:
 
 - **Enable** toggle — turn the feature on for this container.
 - **Aspect ratio** dropdown — 1:1, 4:3, 3:2, 16:9, 3:4, 9:16, "Inherit
-  container", or a **Custom…** option that reveals a `W/H` text input.
+  container" (do not force an aspect ratio; descendant images keep
+  their natural height and stretch to fill the parent layout slot
+  when the container provides one), or a **Custom…** option that
+  reveals a `W/H` text input.
 - **Object fit** — `cover` (default) or `contain`.
 - **Object position** — 9-cell focal-point grid plus a numeric
   `x% y%` text input.

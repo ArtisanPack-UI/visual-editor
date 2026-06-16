@@ -66,14 +66,14 @@
 	width: 100%;
 }
 
-.has-photo-grid :is(.wp-block-image, .wp-block-artisanpack-image) > picture {
+.has-photo-grid :is(.wp-block-image, .wp-block-artisanpack-image) > :is(picture, a) {
 	display: flex;
 	flex: 1 1 auto;
 	min-height: 0;
 	width: 100%;
 }
 
-.has-photo-grid :is(.wp-block-image, .wp-block-artisanpack-image) > :is(img, picture > img) {
+.has-photo-grid :is(.wp-block-image, .wp-block-artisanpack-image) > :is(img, a > img, picture > img) {
 	aspect-ratio: var(--ap-photo-grid-aspect, auto);
 	flex: 1 1 auto;
 	min-height: 0;

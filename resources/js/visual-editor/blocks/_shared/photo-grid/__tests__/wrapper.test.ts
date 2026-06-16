@@ -109,6 +109,42 @@ describe( 'getPhotoGridWrapperProps', () => {
 		expect( ( result.style as Record< string, string > )[ '--ap-photo-grid-position' ] ).toBe( '50% 50%' )
 	} )
 
+	it.each( [ null, 0, false, [], {} ] as const )(
+		'defaults objectPosition to 50%% 50%% for malformed value %p',
+		( bad ) => {
+			const result = getPhotoGridWrapperProps( {
+				photoGrid: {
+					enabled: true,
+					aspectRatio: '1/1',
+					objectFit: 'cover',
+					objectPosition: bad as unknown as string,
+				},
+			} )
+
+			expect(
+				( result.style as Record< string, string > )[ '--ap-photo-grid-position' ],
+			).toBe( '50% 50%' )
+		},
+	)
+
+	it.each( [ '50% 50%; color: red', '50% 50%}{background: red', '50%<script>' ] )(
+		'rejects CSS-breakout attempts in objectPosition (%s)',
+		( bad ) => {
+			const result = getPhotoGridWrapperProps( {
+				photoGrid: {
+					enabled: true,
+					aspectRatio: '1/1',
+					objectFit: 'cover',
+					objectPosition: bad,
+				},
+			} )
+
+			expect(
+				( result.style as Record< string, string > )[ '--ap-photo-grid-position' ],
+			).toBe( '50% 50%' )
+		},
+	)
+
 	it( 'defaults objectFit to cover for unknown tokens', () => {
 		const result = getPhotoGridWrapperProps( {
 			photoGrid: {
