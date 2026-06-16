@@ -22,8 +22,15 @@ it( 'matches shared fixtures byte-for-byte', function ( string $name, $input, ar
 	expect( $result[ 'classes' ] )->toEqual( $expectedClasses )
 		->and( $result[ 'arbitraryRules' ] )->toEqual( $expected[ 'arbitraryRules' ] );
 } )->with( function () {
-	$json     = file_get_contents( __DIR__ . '/../../../../resources/js/visual-editor/blocks/_shared/flex-controls/fixtures.json' );
-	$decoded  = json_decode( (string) $json, true );
+	$path = __DIR__ . '/../../../../resources/js/visual-editor/blocks/_shared/flex-controls/fixtures.json';
+	$json = file_get_contents( $path );
+	if ( false === $json ) {
+		throw new RuntimeException( "Failed to read fixtures file: {$path}" );
+	}
+	$decoded = json_decode( $json, true );
+	if ( null === $decoded || JSON_ERROR_NONE !== json_last_error() ) {
+		throw new RuntimeException( 'Failed to decode fixtures JSON: ' . json_last_error_msg() );
+	}
 	$fixtures = $decoded[ 'fixtures' ] ?? [];
 
 	$cases = [];

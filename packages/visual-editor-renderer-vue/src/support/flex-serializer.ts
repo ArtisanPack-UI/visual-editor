@@ -1,12 +1,12 @@
 /**
- * Flex layout serializer — React renderer (#595).
+ * Flex layout serializer — Vue renderer (#595).
  *
  * Mirrors `resources/js/visual-editor/blocks/_shared/flex-controls/
  * serializer.ts`. The single source of truth lives in the editor; this
  * copy plus the matching vitest suite over the shared fixtures keeps
- * the React renderer in lockstep.
+ * the Vue renderer in lockstep.
  *
- * @package @artisanpack-ui/visual-editor-renderer-react
+ * @package @artisanpack-ui/visual-editor-renderer-vue
  * @since 1.2.0
  */
 
