@@ -27,6 +27,12 @@
 	emitted by the shared serializer onto group/column/columns/grid-item
 	wrappers. Static, layout-only, no interactivity needed. --}}
 <link rel="stylesheet" href="{{ $flexLayoutStyleHref }}" data-ve-flex-layout>
+{{-- #594 — Photo Grid container support. Targets descendant images of
+	any container carrying `has-photo-grid` and reads the CSS custom
+	properties stamped onto the wrapper via the inline rules emitted
+	through `PhotoGridSupport::wrapperForBlock` + the responsive CSS
+	accumulator. --}}
+<link rel="stylesheet" href="{{ $photoGridStyleHref }}" data-ve-photo-grid>
 @if( '' !== $themeTokensCss )
 <style data-ve-theme-tokens>{!! $themeTokensCss !!}</style>
 @endif

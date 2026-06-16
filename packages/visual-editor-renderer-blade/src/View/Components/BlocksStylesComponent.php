@@ -71,6 +71,8 @@ class BlocksStylesComponent extends Component
 
 	public string $flexLayoutStyleHref;
 
+	public string $photoGridStyleHref;
+
 	public string $interactivityScriptSrc;
 
 	public bool $emitBlockLibrary;
@@ -108,6 +110,7 @@ class BlocksStylesComponent extends Component
 		$this->socialIconsStyleHref   = $base . '/frontend/social-icons.css';
 		$this->breadcrumbsStyleHref   = $base . '/frontend/breadcrumbs.css';
 		$this->flexLayoutStyleHref    = $base . '/frontend/flex-layout.css';
+		$this->photoGridStyleHref     = $base . '/frontend/photo-grid.css';
 		$this->interactivityScriptSrc = $base . '/frontend/interactivity.js';
 		$this->emitBlockLibrary       = $bundle;
 		$this->emitInteractive        = $interactive;

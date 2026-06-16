@@ -36,6 +36,7 @@ import {
 
 import canvasThemeTokens from './canvas-theme-tokens.css?inline';
 import flexLayoutStyles from '../../../css/flex-layout.css?inline';
+import photoGridStyles from '../blocks/_shared/photo-grid/photo-grid.css?inline';
 
 /** A single stylesheet entry in the shape `BlockCanvas`'s `styles` prop expects. */
 export interface CanvasStyle {
@@ -188,6 +189,13 @@ export const canvasStyles: readonly CanvasStyle[] = [
     // it to the iframe explicitly so `.ap-flex` and per-breakpoint
     // utilities resolve inside the canvas.
     { css: flexLayoutStyles },
+    // Photo Grid container support (#594). Lives at
+    // `blocks/_shared/photo-grid/photo-grid.css` — three levels deep,
+    // so the two-level `blocks/*/*.css` glob below skips it. Hand it
+    // to the iframe explicitly so `.has-photo-grid` rules and the
+    // `--ap-photo-grid-*` custom property fallbacks resolve inside
+    // the canvas.
+    { css: photoGridStyles },
     // Every block-authored stylesheet, auto-discovered via the
     // `blocks/*/*.css` glob (#566). Replaces the per-block manual
     // entries that used to sit here and forced an edit to

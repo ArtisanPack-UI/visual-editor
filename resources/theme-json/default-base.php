@@ -61,12 +61,23 @@ return [
 		// panel entirely by setting `enable` to false (already-saved
 		// content keeps rendering through the wrapper classes).
 		'artisanpack' => [
-			'flex' => [
+			'flex'      => [
 				'enable'                => true,
 				'defaultDirection'      => 'row',
 				'defaultJustifyContent' => null,
 				'defaultAlignItems'     => null,
 				'defaultGap'            => [ 'row' => null, 'column' => null ],
+			],
+			// #594 — Photo Grid container support. Themes can disable
+			// the feature entirely by setting `enable` to false; already-
+			// saved content continues to render because the renderer
+			// reads the per-block `photoGrid` attribute independently
+			// of the inspector visibility flag.
+			'photoGrid' => [
+				'enable'                => true,
+				'defaultAspectRatio'    => '1/1',
+				'defaultObjectFit'      => 'cover',
+				'defaultObjectPosition' => '50% 50%',
 			],
 		],
 	],

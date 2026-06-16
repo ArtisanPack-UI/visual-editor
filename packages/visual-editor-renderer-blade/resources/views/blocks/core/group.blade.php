@@ -1,6 +1,7 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\FlexSupport;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\PhotoGridSupport;
 
 	$tag = isset( $attributes['tagName'] ) && in_array( $attributes['tagName'], [ 'div', 'section', 'article', 'aside', 'header', 'footer', 'main', 'nav' ], true )
 		? $attributes['tagName']
@@ -36,7 +37,9 @@
 		$layoutClass = 'is-layout-flex';
 	}
 
-	$wrapperBaseClasses = array_merge( [ 'wp-block-group', $layoutClass ], $flexClasses );
+	$photoGridClasses = PhotoGridSupport::wrapperForBlock( $attributes );
+
+	$wrapperBaseClasses = array_merge( [ 'wp-block-group', $layoutClass ], $flexClasses, $photoGridClasses );
 @endphp
 <{{ $tag }}{!! BlockSupports::wrapperAttrs( $attributes, $wrapperBaseClasses ) !!}>
 	{!! $innerBlocksHtml !!}

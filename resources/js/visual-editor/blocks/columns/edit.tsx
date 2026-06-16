@@ -49,6 +49,11 @@ import {
     serializeFlex,
     type ArtisanpackFlexAttribute,
 } from '../_shared/flex-controls';
+import {
+    PhotoGridControls,
+    getPhotoGridWrapperProps,
+    type PhotoGridAttribute,
+} from '../_shared/photo-grid';
 
 const COLUMN_BLOCK = 'artisanpack/column';
 const DEFAULT_BLOCK = { name: COLUMN_BLOCK };
@@ -59,6 +64,7 @@ interface ColumnsAttributes {
     readonly templateLock?: string | boolean;
     readonly columnCount?: number;
     readonly artisanpackFlex?: ArtisanpackFlexAttribute | null;
+    readonly photoGrid?: PhotoGridAttribute | null;
 }
 
 interface ColumnsEditProps {
@@ -238,6 +244,7 @@ function ColumnsEditContainer({
         attributes.artisanpackFlex ?? null,
         flexRegistry,
     );
+    const photoGridWrapper = getPhotoGridWrapperProps(attributes);
     const classes = clsx(
         'wp-block-columns',
         {
@@ -245,9 +252,13 @@ function ColumnsEditContainer({
             ['is-not-stacked-on-mobile']: !isStackedOnMobile,
         },
         flexResult.classes,
+        photoGridWrapper.className,
     );
 
-    const blockProps = (useBlockProps as any)({ className: classes });
+    const blockProps = (useBlockProps as any)({
+        className: classes,
+        style: photoGridWrapper.style,
+    });
     const innerBlocksProps = (useInnerBlocksProps as any)(blockProps, {
         defaultBlock: DEFAULT_BLOCK,
         directInsert: true,
@@ -289,6 +300,10 @@ function ColumnsEditContainer({
                         setAttributes({ artisanpackFlex: next })
                     }
                     registry={flexRegistry}
+                />
+                <PhotoGridControls
+                    photoGrid={attributes.photoGrid ?? null}
+                    onChange={(next) => setAttributes({ photoGrid: next })}
                 />
             </InspectorControls>
             <div {...innerBlocksProps} />

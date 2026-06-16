@@ -1,0 +1,113 @@
+/**
+ * Photo Grid stylesheet (#594).
+ *
+ * Loaded by every container block that opts into the feature
+ * (group / columns / grid) as well as the Blade renderer. Scoped to
+ * `.has-photo-grid` so it never leaks into other containers.
+ *
+ * The container stamps three CSS custom properties on its wrapper:
+ *
+ *   --ap-photo-grid-aspect    e.g. `1/1`, `16/9` (omitted = inherit)
+ *   --ap-photo-grid-fit       `cover` | `contain`
+ *   --ap-photo-grid-position  e.g. `50% 50%`
+ *
+ * Image-bearing descendants (the WP image / cover blocks and raw
+ * `<img>` / `<picture>` markup) inherit them via `var()` lookups so
+ * an inner Photo Grid setting wins by virtue of being closer in the
+ * tree (`var()` resolves on the nearest ancestor that defined the
+ * property).
+ *
+ * Two sizing strategies coexist:
+ *
+ *  1. **Explicit aspect ratio set** — `aspect-ratio + width:100%`
+ *     computes the image height. `flex: 1` is harmless because the
+ *     intrinsic ratio dominates.
+ *  2. **Inherit container** (no aspect set) — the figure is made a
+ *     flex item with `flex: 1 1 auto` so it stretches to fill its
+ *     parent layout slot (e.g. a `wp-block-column`'s main axis), and
+ *     the image inside fills the figure via `height: 100%` + object-
+ *     fit. This is the mode that makes columns of mixed-ratio images
+ *     line up to the tallest column.
+ *
+ * @package @artisanpack-ui/visual-editor
+ * @since 1.2.0
+ */
+
+/*
+ * Make every column inside a Photo Grid columns container a flex
+ * column. WP's `.wp-block-column` is only a flex *item* by default
+ * (it grows inside `.wp-block-columns`), not a flex container — so
+ * the figure inside has no main axis to stretch along until we set
+ * one. `align-items: stretch` on the parent already makes the
+ * columns equal-height; this gives the figure inside a slot to fill.
+ */
+.has-photo-grid :is(.wp-block-column, .wp-block-artisanpack-column) {
+	display: flex;
+	flex-direction: column;
+}
+
+/*
+ * Stretch the image-block wrapper to fill its parent layout slot.
+ * Inside the now-flex column above, `flex: 1 1 auto` causes the
+ * figure to claim the column's remaining main-axis space. Inside
+ * non-flex parents the `flex` shorthand is a no-op, so the figure
+ * falls back to natural sizing.
+ *
+ * `display: flex; flex-direction: column` on the figure itself lets
+ * `height: 100%` resolve against the figure's flex-resolved height
+ * for the image, while a sibling `<figcaption>` keeps its natural
+ * height (flex item with default `flex: 0 1 auto`).
+ */
+.has-photo-grid :is(.wp-block-image, .wp-block-artisanpack-image) {
+	display: flex;
+	flex: 1 1 auto;
+	flex-direction: column;
+	min-height: 0;
+	width: 100%;
+}
+
+.has-photo-grid :is(.wp-block-image, .wp-block-artisanpack-image) > picture {
+	display: flex;
+	flex: 1 1 auto;
+	min-height: 0;
+	width: 100%;
+}
+
+.has-photo-grid :is(.wp-block-image, .wp-block-artisanpack-image) > :is(img, picture > img) {
+	aspect-ratio: var(--ap-photo-grid-aspect, auto);
+	flex: 1 1 auto;
+	min-height: 0;
+	object-fit: var(--ap-photo-grid-fit, cover);
+	object-position: var(--ap-photo-grid-position, 50% 50%);
+	width: 100%;
+	height: 100%;
+}
+
+.has-photo-grid :is(.wp-block-cover, .wp-block-artisanpack-cover) {
+	aspect-ratio: var(--ap-photo-grid-aspect, auto);
+	flex: 1 1 auto;
+	min-height: 0;
+	width: 100%;
+}
+
+.has-photo-grid :is(.wp-block-cover, .wp-block-artisanpack-cover) > :is(img, video, .wp-block-cover__image-background, .wp-block-cover__video-background) {
+	object-fit: var(--ap-photo-grid-fit, cover);
+	object-position: var(--ap-photo-grid-position, 50% 50%);
+	width: 100%;
+	height: 100%;
+}
+
+/*
+ * Raw markup catch-all. Applies the cascade at any depth so authors do
+ * not need to re-enable the setting on nested containers. Uses
+ * `:where()` to keep specificity at (0,0,1,0) — any deliberate per-image
+ * rule from the theme or block-level inline styles wins, mirroring how
+ * WordPress core scopes its own layout rules.
+ */
+:where(.has-photo-grid) :is(img, picture) {
+	aspect-ratio: var(--ap-photo-grid-aspect, auto);
+	object-fit: var(--ap-photo-grid-fit, cover);
+	object-position: var(--ap-photo-grid-position, 50% 50%);
+	width: 100%;
+	height: 100%;
+}

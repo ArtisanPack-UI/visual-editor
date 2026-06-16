@@ -20,9 +20,15 @@ import { PanelBody, RangeControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
+import {
+    PhotoGridControls,
+    getPhotoGridWrapperProps,
+    type PhotoGridAttribute,
+} from '../_shared/photo-grid';
 
 interface GridAttributes {
     readonly numColumns: number;
+    readonly photoGrid?: PhotoGridAttribute | null;
 }
 
 interface GridEditProps {
@@ -53,8 +59,15 @@ function clampColumns(value: number | undefined, fallback: number): number {
 export default function GridEdit({ attributes, setAttributes }: GridEditProps): ReactElement {
     const numColumns = clampColumns(attributes.numColumns, 4);
 
-    const className = `ap-grid ap-grid-has-${numColumns}-base-columns`;
-    const blockProps = useBlockProps({ className });
+    const photoGridWrapper = getPhotoGridWrapperProps(attributes);
+    const className = [
+        'ap-grid',
+        `ap-grid-has-${numColumns}-base-columns`,
+        photoGridWrapper.className,
+    ]
+        .filter(Boolean)
+        .join(' ');
+    const blockProps = useBlockProps({ className, style: photoGridWrapper.style });
     const innerBlocksProps = useInnerBlocksProps(blockProps, {
         allowedBlocks: ALLOWED_BLOCKS,
         template: TEMPLATE,
@@ -77,6 +90,10 @@ export default function GridEdit({ attributes, setAttributes }: GridEditProps): 
                         __nextHasNoMarginBottom
                     />
                 </PanelBody>
+                <PhotoGridControls
+                    photoGrid={attributes.photoGrid ?? null}
+                    onChange={(next) => setAttributes({ photoGrid: next })}
+                />
             </InspectorControls>
             <div {...innerBlocksProps} />
         </>

@@ -2,6 +2,7 @@
 	use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\FlexSupport;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\PhotoGridSupport;
 
 	$baseClasses = [ 'wp-block-columns' ];
 
@@ -14,6 +15,7 @@
 	}
 
 	$baseClasses = array_merge( $baseClasses, FlexSupport::wrapperForBlock( $attributes ) );
+	$baseClasses = array_merge( $baseClasses, PhotoGridSupport::wrapperForBlock( $attributes ) );
 
 	// #487 — columns-specific responsive layout. `columnCount` overrides
 	// translate to per-breakpoint `grid-template-columns` rules. The

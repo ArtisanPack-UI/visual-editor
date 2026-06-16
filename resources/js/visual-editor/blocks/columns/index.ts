@@ -16,6 +16,7 @@ import icon from './inserter-icon';
 
 import './columns.css';
 import '../../../../css/flex-layout.css';
+import '../_shared/photo-grid/photo-grid.css';
 
 export {
     edit,

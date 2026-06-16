@@ -16,11 +16,16 @@ import {
     serializeFlex,
     type ArtisanpackFlexAttribute,
 } from '../_shared/flex-controls';
+import {
+    getPhotoGridWrapperProps,
+    type PhotoGridAttribute,
+} from '../_shared/photo-grid';
 import { BreakpointRegistry } from '../../responsive/registry';
 
 interface GroupSaveAttributes {
     readonly tagName?: string;
     readonly artisanpackFlex?: ArtisanpackFlexAttribute | null;
+    readonly photoGrid?: PhotoGridAttribute | null;
 }
 
 export default function groupSave({
@@ -33,9 +38,15 @@ export default function groupSave({
         attributes.artisanpackFlex ?? null,
         new BreakpointRegistry(),
     );
+    const photoGridWrapper = getPhotoGridWrapperProps(attributes);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blockProps = (useBlockProps.save as any)({
-        className: clsx('wp-block-group', flexResult.classes),
+        className: clsx(
+            'wp-block-group',
+            flexResult.classes,
+            photoGridWrapper.className,
+        ),
+        style: photoGridWrapper.style,
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const innerBlocksProps = (useInnerBlocksProps.save as any)(blockProps);
