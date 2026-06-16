@@ -153,10 +153,14 @@ export default function PostVariantsPanel( {
     // `variantRows` reference, recompiles the map (identical bytes,
     // new object identity), and the effect fires again forever.
     const { compiledMap, compiledSignature } = useMemo( () => {
-        const total = Math.max( previewTotal, 1 );
+        // `previewTotal` is the count from the editor preview pipeline.
+        // Pass it through verbatim — the static map only carries
+        // `instance:` rules now, so a zero / loading preview just
+        // produces an empty map and the render-time resolver handles
+        // everything else with the live total.
         const map = compileStaticMap(
             variantRows.map( ( row ) => row.descriptor ),
-            total
+            previewTotal
         );
         return { compiledMap: map, compiledSignature: JSON.stringify( map ) };
     }, [ variantRows, previewTotal ] );

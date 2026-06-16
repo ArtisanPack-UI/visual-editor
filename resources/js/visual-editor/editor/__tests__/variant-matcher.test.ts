@@ -91,33 +91,32 @@ describe( 'sortVariants precedence', () => {
 } );
 
 describe( 'compileStaticMap', () => {
-    it( 'compiles position + pattern rules into an index → order map', () => {
+    it( 'returns an empty map when total is 0', () => {
+        const variants: VariantDescriptor[] = [
+            { order: 0, priority: 10, matcher: { kind: 'position', value: 'last' } },
+            { order: 1, priority: 10, matcher: { kind: 'pattern', value: 'odd' } },
+            { order: 2, priority: 10, matcher: { kind: 'position', value: 'instance:1' } },
+        ];
+        expect( compileStaticMap( variants, 0 ) ).toEqual( {} );
+    } );
+
+    it( 'only compiles instance:<n1> matchers — position / pattern resolve at render time', () => {
         const variants: VariantDescriptor[] = [
             { order: 0, priority: 10, matcher: { kind: 'position', value: 'first' } },
             { order: 1, priority: 10, matcher: { kind: 'pattern', value: 'odd' } },
+            { order: 2, priority: 10, matcher: { kind: 'position', value: 'last' } },
+            { order: 3, priority: 10, matcher: { kind: 'position', value: 'instance:2' } },
         ];
         const map = compileStaticMap( variants, 4 );
-        // index 0 is "first" AND "odd" — position wins (higher tier).
-        expect( map ).toEqual( { 0: 0, 2: 1 } );
+        expect( map ).toEqual( { 1: 3 } );
     } );
 
     it( 'leaves meta / custom matchers out of the static map', () => {
         const variants: VariantDescriptor[] = [
             { order: 0, priority: 10, matcher: { kind: 'meta', value: 'sticky' } },
             { order: 1, priority: 10, matcher: { kind: 'custom', value: 'callback:x' } },
-            { order: 2, priority: 10, matcher: { kind: 'position', value: 'last' } },
         ];
-        const map = compileStaticMap( variants, 3 );
-        expect( map ).toEqual( { 2: 2 } );
-    } );
-
-    it( 'compiles instance:<n1> as fixed-position match', () => {
-        const variants: VariantDescriptor[] = [
-            { order: 0, priority: 10, matcher: { kind: 'position', value: 'instance:2' } },
-            { order: 1, priority: 10, matcher: { kind: 'position', value: 'first' } },
-        ];
-        const map = compileStaticMap( variants, 3 );
-        expect( map ).toEqual( { 0: 1, 1: 0 } );
+        expect( compileStaticMap( variants, 3 ) ).toEqual( {} );
     } );
 } );
 
@@ -127,12 +126,39 @@ describe( 'resolveVariant', () => {
         expect( resolveVariant( 0, 3, {}, [], map ) ).toBe( 4 );
     } );
 
+    it( 'walks position matchers against the live total when the static map missed', () => {
+        const variants: VariantDescriptor[] = [
+            { order: 0, priority: 10, matcher: { kind: 'position', value: 'last' } },
+        ];
+        // total=3 → "last" matches index 2
+        expect( resolveVariant( 2, 3, {}, variants, {} ) ).toBe( 0 );
+        // total=5 → "last" matches index 4, not 2
+        expect( resolveVariant( 2, 5, {}, variants, {} ) ).toBe( null );
+    } );
+
+    it( 'walks pattern matchers when the static map missed', () => {
+        const variants: VariantDescriptor[] = [
+            { order: 1, priority: 10, matcher: { kind: 'pattern', value: 'odd' } },
+        ];
+        expect( resolveVariant( 0, 5, {}, variants, {} ) ).toBe( 1 );
+        expect( resolveVariant( 1, 5, {}, variants, {} ) ).toBe( null );
+    } );
+
     it( 'walks meta matchers when the static map missed', () => {
         const variants: VariantDescriptor[] = [
             { order: 2, priority: 10, matcher: { kind: 'meta', value: 'sticky' } },
         ];
         expect( resolveVariant( 1, 3, { sticky: true }, variants, {} ) ).toBe( 2 );
         expect( resolveVariant( 1, 3, { sticky: false }, variants, {} ) ).toBe( null );
+    } );
+
+    it( 'honors precedence when multiple matchers would hit at render time', () => {
+        const variants: VariantDescriptor[] = [
+            { order: 0, priority: 10, matcher: { kind: 'meta', value: 'sticky' } },
+            { order: 1, priority: 10, matcher: { kind: 'position', value: 'first' } },
+        ];
+        // First post is sticky AND in position 1 — position wins (higher tier).
+        expect( resolveVariant( 0, 3, { sticky: true }, variants, {} ) ).toBe( 1 );
     } );
 
     it( 'never resolves custom matchers client-side', () => {

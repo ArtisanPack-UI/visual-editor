@@ -248,16 +248,21 @@ export function matchMeta( matcher: MetaMatcher, post: PreviewPostMeta ): boolea
 }
 
 /**
- * Compile every `position` / `pattern` variant in `variants` into a
- * sparse `index → variantId` map for the given loop length. Static
- * rules cost nothing at render time once compiled. Returns indices
- * 0-based so the renderer can do a direct array lookup.
+ * Compile `instance:` position matchers into a sparse `index →
+ * variantOrder` map.
  *
- * Variants are walked in precedence order (`sortVariants`) and the
- * FIRST match for each index wins, mirroring the server-side cascade.
+ * **Only `instance:<n1>` rules go in the static map.** Earlier
+ * iterations also baked `position` (first/last/nth/range) and
+ * `pattern` (odd/even/every-nth) rules here, but those depend on the
+ * loop's `total` and become stale the moment the live query returns
+ * a different count than what was previewed at save time —
+ * `position:last` would point at the wrong index, etc. So we keep the
+ * map narrowly scoped to the canvas click-to-edit pins (which are
+ * fixed by definition), and `resolveVariant` walks all other matchers
+ * at render time with the actual `total` and `post`.
  *
- * `meta` and `custom` matchers are skipped here — they need post
- * context only available at render time.
+ * Variants are walked in precedence order so `instance:` wins over
+ * any other rule that would also target the same index.
  */
 export function compileStaticMap(
     variants: ReadonlyArray<VariantDescriptor>,
@@ -267,34 +272,18 @@ export function compileStaticMap(
     const map: Record<number, number> = {};
 
     for ( const variant of sorted ) {
-        if ( variant.matcher.kind !== 'position' && variant.matcher.kind !== 'pattern' ) {
+        if ( ! isInstance( variant.matcher ) ) {
             continue;
         }
-        if ( isInstance( variant.matcher ) ) {
-            // instance:<index1> form — the value is a 1-based loop
-            // position. Treat it as a fixed-position match.
-            const raw = variant.matcher.value.slice( 'instance:'.length );
-            const idx1 = Number.parseInt( raw, 10 );
-            if ( Number.isFinite( idx1 ) && idx1 >= 1 && idx1 <= total ) {
-                const i0 = idx1 - 1;
-                if ( map[ i0 ] === undefined ) {
-                    map[ i0 ] = variant.order;
-                }
-            }
+        // instance:<index1> form — value is a 1-based loop position.
+        const raw = variant.matcher.value.slice( 'instance:'.length );
+        const idx1 = Number.parseInt( raw, 10 );
+        if ( ! Number.isFinite( idx1 ) || idx1 < 1 || idx1 > total ) {
             continue;
         }
-
-        for ( let i = 0; i < total; i++ ) {
-            if ( map[ i ] !== undefined ) {
-                continue;
-            }
-            const matches =
-                variant.matcher.kind === 'position'
-                    ? matchPosition( variant.matcher, i, total )
-                    : matchPattern( variant.matcher, i );
-            if ( matches ) {
-                map[ i ] = variant.order;
-            }
+        const i0 = idx1 - 1;
+        if ( map[ i0 ] === undefined ) {
+            map[ i0 ] = variant.order;
         }
     }
 
@@ -310,7 +299,7 @@ export function compileStaticMap(
  */
 export function resolveVariant(
     index: number,
-    _total: number,
+    total: number,
     post: PreviewPostMeta,
     variants: ReadonlyArray<VariantDescriptor>,
     staticMap: Record<number, number>
@@ -321,9 +310,21 @@ export function resolveVariant(
     }
     const sorted = sortVariants( variants );
     for ( const variant of sorted ) {
+        if ( isInstance( variant.matcher ) ) {
+            // instance:<n1> only resolves via the static map; if it
+            // missed there it doesn't match this iteration.
+            continue;
+        }
+        if ( variant.matcher.kind === 'position' && matchPosition( variant.matcher, index, total ) ) {
+            return variant.order;
+        }
+        if ( variant.matcher.kind === 'pattern' && matchPattern( variant.matcher, index ) ) {
+            return variant.order;
+        }
         if ( variant.matcher.kind === 'meta' && matchMeta( variant.matcher, post ) ) {
             return variant.order;
         }
+        // `custom` is server-side only; never resolved in the editor.
     }
     return null;
 }

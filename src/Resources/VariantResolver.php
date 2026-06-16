@@ -55,6 +55,15 @@ class VariantResolver
 	protected array $variants = [];
 
 	/**
+	 * Variants sorted once in {@see prime()} by precedence tier →
+	 * priority → document order. Reused for every {@see resolve()}
+	 * call on the same primed batch.
+	 *
+	 * @var array<int, array<string, mixed>>
+	 */
+	protected array $sortedVariants = [];
+
+	/**
 	 * @var array<int, int>
 	 */
 	protected array $compiledMap = [];
@@ -78,6 +87,24 @@ class VariantResolver
 		$this->variants    = $this->describeVariants( $variants );
 		$this->compiledMap = $this->normalizeMap( $compiledMap );
 		$this->total       = $total;
+
+		$this->sortedVariants = $this->variants;
+
+		usort( $this->sortedVariants, function ( array $a, array $b ): int {
+			$tierDiff = $a['tier'] - $b['tier'];
+
+			if ( 0 !== $tierDiff ) {
+				return $tierDiff;
+			}
+
+			$priorityDiff = $a['priority'] - $b['priority'];
+
+			if ( 0 !== $priorityDiff ) {
+				return $priorityDiff;
+			}
+
+			return $a['order'] - $b['order'];
+		} );
 	}
 
 	/**
@@ -99,25 +126,7 @@ class VariantResolver
 			}
 		}
 
-		$sorted = $this->variants;
-
-		usort( $sorted, function ( array $a, array $b ): int {
-			$tierDiff = $a['tier'] - $b['tier'];
-
-			if ( 0 !== $tierDiff ) {
-				return $tierDiff;
-			}
-
-			$priorityDiff = $a['priority'] - $b['priority'];
-
-			if ( 0 !== $priorityDiff ) {
-				return $priorityDiff;
-			}
-
-			return $a['order'] - $b['order'];
-		} );
-
-		foreach ( $sorted as $variant ) {
+		foreach ( $this->sortedVariants as $variant ) {
 			if ( $this->matches( $variant, $index, $post ) ) {
 				return $variant['order'];
 			}

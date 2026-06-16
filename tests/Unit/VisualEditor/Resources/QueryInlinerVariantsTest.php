@@ -177,19 +177,21 @@ it( 'resolves custom matchers via the apve_query_variant_match_<name> filter hoo
 		10
 	);
 
-	$base    = [ [ 'name' => 'core/post-title', 'attributes' => [], 'innerBlocks' => [] ] ];
-	$variant = variantBlock(
-		[ 'kind' => 'custom', 'value' => 'callback:premium' ],
-		[ [ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ] ]
-	);
+	try {
+		$base    = [ [ 'name' => 'core/post-title', 'attributes' => [], 'innerBlocks' => [] ] ];
+		$variant = variantBlock(
+			[ 'kind' => 'custom', 'value' => 'callback:premium' ],
+			[ [ 'name' => 'core/post-content', 'attributes' => [], 'innerBlocks' => [] ] ]
+		);
 
-	$inlined = $this->inliner->inline( [ queryWithVariants( $base, [ $variant ] ) ] );
-	$items   = $inlined[0]['innerBlocks'][0]['innerBlocks'];
+		$inlined = $this->inliner->inline( [ queryWithVariants( $base, [ $variant ] ) ] );
+		$items   = $inlined[0]['innerBlocks'][0]['innerBlocks'];
 
-	expect( $items[0]['innerBlocks'][0]['name'] )->toBe( 'core/post-content' )
-		->and( $items[1]['innerBlocks'][0]['name'] )->toBe( 'core/post-title' );
-
-	\ArtisanPackUI\Hooks\removeAllFilters( 'apve_query_variant_match_premium' );
+		expect( $items[0]['innerBlocks'][0]['name'] )->toBe( 'core/post-content' )
+			->and( $items[1]['innerBlocks'][0]['name'] )->toBe( 'core/post-title' );
+	} finally {
+		\ArtisanPackUI\Hooks\removeAllFilters( 'apve_query_variant_match_premium' );
+	}
 } );
 
 it( 'honors the precedence cascade: position > pattern > meta > custom', function () {
