@@ -72,6 +72,19 @@ export function PostTemplateBlock({ attributes, children }: BlockRendererProps):
     return <ul className={classes}>{children}</ul>;
 }
 
+/**
+ * `artisanpack/post-variant` (#591) is stripped from the inner-block
+ * tree by the server-side `QueryInliner` before the renderer ever
+ * walks it: variant children survive only as the per-iteration
+ * template clone, never as their own block. The renderer still
+ * registers the block so the parity check stays green and so any
+ * client-rendered preview tree (which can include un-inlined variants)
+ * has somewhere to fall through.
+ */
+export function PostVariantBlock({ children }: BlockRendererProps): JSX.Element {
+    return <>{children}</>;
+}
+
 export function PostTemplateItemBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     // Coerce numeric strings ("123") to numbers so the `post-{id}` id stamps
     // regardless of whether the host serialized the attribute as a number or a

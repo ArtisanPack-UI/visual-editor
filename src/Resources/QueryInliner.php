@@ -68,7 +68,12 @@ class QueryInliner
 	public function __construct(
 		protected Container $container,
 		protected PostResolver $postResolver,
-	) {}
+		protected ?VariantResolver $variantResolver = null,
+	) {
+		if ( null === $this->variantResolver ) {
+			$this->variantResolver = new VariantResolver();
+		}
+	}
 
 	/**
 	 * Host post passed through `inline()` so the related-posts expansion
@@ -603,6 +608,27 @@ class QueryInliner
 			return $this->expandFlat( $block, $attributes, $queryInner, $results, $paginator );
 		}
 
+		// Variants (#591): an `artisanpack/post-variant` child of the
+		// post-template is NOT part of the per-iteration template —
+		// it's a per-post override template. Pull variants out of the
+		// iteration template, prime the resolver, and the loop below
+		// asks the resolver per post which template to use.
+		[ $baseTemplate, $variantBlocks ] = $this->extractVariants( $iterationTemplate );
+
+		$postTemplateAttrs = isset( $queryInner[ $postTemplateIndex ]['attributes'] )
+			&& is_array( $queryInner[ $postTemplateIndex ]['attributes'] )
+				? $queryInner[ $postTemplateIndex ]['attributes']
+				: [];
+
+		$compiledMap = isset( $postTemplateAttrs['_compiledVariantMap'] )
+			&& is_array( $postTemplateAttrs['_compiledVariantMap'] )
+				? $postTemplateAttrs['_compiledVariantMap']
+				: [];
+
+		$resultsList = is_array( $results ) ? array_values( $results ) : iterator_to_array( $results, false );
+
+		$this->variantResolver->prime( $variantBlocks, $compiledMap, count( $resultsList ) );
+
 		// Expand: clone the iteration template once per result, stamp
 		// _resolved* attributes, and wrap each iteration in a synthetic
 		// `core/post-template-item` block. The renderers turn that into
@@ -612,15 +638,20 @@ class QueryInliner
 		// single-item lists.
 		$expandedIterations = [];
 
-		foreach ( $results as $post ) {
+		foreach ( $resultsList as $loopIndex => $post ) {
 			if ( ! is_object( $post ) ) {
 				continue;
 			}
 
-			$postId = isset( $post->id ) ? (int) $post->id : 0;
+			$postId          = isset( $post->id ) ? (int) $post->id : 0;
 			$iterationBlocks = [];
 
-			foreach ( $iterationTemplate as $tmplChild ) {
+			$variantOrder = $this->variantResolver->resolve( $loopIndex, $post );
+			$activeTmpl   = null !== $variantOrder
+				? $this->variantResolver->innerBlocksFor( $variantOrder, $variantBlocks )
+				: $baseTemplate;
+
+			foreach ( $activeTmpl as $tmplChild ) {
 				if ( ! is_array( $tmplChild ) ) {
 					continue;
 				}
@@ -638,6 +669,7 @@ class QueryInliner
 					'postId'    => $postId,
 					'className' => 'post-' . $postId
 					. ' post'
+					. ( null !== $variantOrder ? ' is-variant' : '' )
 					. ' type-' . ( isset( $post->post_type ) ? (string) $post->post_type : ( isset( $post->type ) ? (string) $post->type : 'post' ) )
 					. ' status-' . ( isset( $post->status ) && is_object( $post->status ) && isset( $post->status->value ) ? (string) $post->status->value : ( isset( $post->status ) && is_string( $post->status ) ? $post->status : 'publish' ) ),
 				],
@@ -985,6 +1017,40 @@ class QueryInliner
 				'_resolvedItems' => count( $results ),
 			] ),
 		] );
+	}
+
+	/**
+	 * Split a post-template's inner-block tree into the base iteration
+	 * template (everything that is NOT a `post-variant`) and the list
+	 * of `artisanpack/post-variant` overrides. Variants stay in their
+	 * saved document order so the resolver's `order` index lines up
+	 * with what the editor's `_compiledVariantMap` was built against.
+	 *
+	 * @param  array<int, array<string, mixed>>  $template
+	 *
+	 * @return array{0: array<int, array<string, mixed>>, 1: array<int, array<string, mixed>>}
+	 */
+	protected function extractVariants( array $template ): array
+	{
+		$base     = [];
+		$variants = [];
+
+		foreach ( $template as $child ) {
+			if ( ! is_array( $child ) ) {
+				continue;
+			}
+
+			$childName = isset( $child['name'] ) && is_string( $child['name'] ) ? $child['name'] : '';
+
+			if ( 'artisanpack/post-variant' === $childName ) {
+				$variants[] = $child;
+				continue;
+			}
+
+			$base[] = $child;
+		}
+
+		return [ $base, $variants ];
 	}
 
 	protected function markFailed( array $block, string $reason ): array

@@ -30,6 +30,7 @@ import { __ } from '@wordpress/i18n';
 
 import { useQueryPreview } from '../../editor/use-query-preview';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
+import PostVariantsPanel from './post-variants-panel';
 
 interface QueryEditProps {
     attributes: Record<string, unknown>;
@@ -190,6 +191,10 @@ export default function QueryEdit( {
                 <PanelBody title={ __( 'Preview', TEXT_DOMAIN ) } initialOpen={ false }>
                     <PreviewStatus preview={ preview } />
                 </PanelBody>
+                <PostVariantsPanel
+                    queryClientId={ clientId }
+                    previewTotal={ preview.status === 'ready' ? preview.total : 0 }
+                />
             </InspectorControls>
             <PreviewBanner preview={ preview } />
             <BlockContextProvider value={ blockContext }>

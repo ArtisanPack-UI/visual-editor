@@ -564,6 +564,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			'tag-cloud',
 			'query',
 			'post-template',
+			'post-variant',
 		];
 
 		foreach ( $forkedBlocks as $block ) {

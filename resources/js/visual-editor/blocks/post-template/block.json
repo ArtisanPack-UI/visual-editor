@@ -17,6 +17,10 @@
         "columns": {
             "type": "number",
             "default": 3
+        },
+        "_compiledVariantMap": {
+            "type": "object",
+            "default": {}
         }
     },
     "usesContext": [

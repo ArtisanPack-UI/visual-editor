@@ -79,6 +79,21 @@ export const PostTemplateBlock = defineComponent({
     },
 });
 
+/**
+ * `artisanpack/post-variant` (#591) is stripped from the inner-block
+ * tree by the server-side `QueryInliner` before render — the variant's
+ * children survive only as the per-iteration clone. The renderer
+ * registers the block as a pass-through so the parity check stays
+ * green and so any client-rendered preview tree has a fall-through.
+ */
+export const PostVariantBlock = defineComponent({
+    name: 'PostVariantBlock',
+    props: blockRendererProps,
+    setup(_props, { slots }) {
+        return () => slots.default?.();
+    },
+});
+
 export const PostTemplateItemBlock = defineComponent({
     name: 'PostTemplateItemBlock',
     props: blockRendererProps,
