@@ -369,5 +369,8 @@ export function buildArbitraryStyles( rules: readonly ArbitraryRule[] ): string 
  * Mirrors `FlexSupport::escapeSelector` in the Blade renderer.
  */
 function escapeSelector( className: string ): string {
-	return className.replace( /[\[\]():.,#%/\s]/g, ( char ) => `\\${ char }` )
+	// CSS-significant characters inside a class selector. Includes `+`
+	// so arbitrary values such as `ap-gap-x-[calc(100%+1rem)]` produce
+	// a valid escaped selector instead of breaking on the `+`.
+	return className.replace( /[\[\]():.,#%/+\s]/g, ( char ) => `\\${ char }` )
 }

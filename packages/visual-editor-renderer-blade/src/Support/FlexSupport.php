@@ -435,7 +435,10 @@ class FlexSupport
 
 	private function escapeSelector( string $className ): string
 	{
-		// Escape `:`, `[`, `]`, `(`, `)`, `.`, `,`, `/`, `%` for CSS selectors.
-		return preg_replace( '/([:\[\]\(\)\.,\/%])/', '\\\\$1', $className );
+		// Escape `:`, `[`, `]`, `(`, `)`, `.`, `,`, `/`, `%`, `+` for CSS
+		// selectors. `+` is included so arbitrary values such as
+		// `ap-gap-x-[calc(100%+1rem)]` produce a valid escaped selector
+		// instead of breaking on the `+`. Mirrors the TS port.
+		return preg_replace( '/([:\[\]\(\)\.,\/%+])/', '\\\\$1', $className );
 	}
 }

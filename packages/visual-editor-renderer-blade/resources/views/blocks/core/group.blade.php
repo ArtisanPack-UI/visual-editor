@@ -20,17 +20,18 @@
 
 	$flexClasses = FlexSupport::wrapperForBlock( $attributes );
 
-	// #595 — when our Flex Layout panel is active anywhere in the
-	// cascade, switch the layout class to `is-layout-flex` so the
-	// baseline `is-layout-flow > * + * { margin-block-start: gap }`
-	// rule does not push children apart along the cross axis.
-	$hasFlexEnabled = false;
-	foreach ( $flexClasses as $cls ) {
-		if ( 'ap-flex' === $cls || str_ends_with( $cls, ':ap-flex' ) ) {
-			$hasFlexEnabled = true;
-			break;
-		}
-	}
+	// #595 — when our Flex Layout panel is active at the base breakpoint,
+	// switch the layout class to `is-layout-flex` so the baseline
+	// `is-layout-flow > * + * { margin-block-start: gap }` rule does
+	// not push children apart along the cross axis.
+	//
+	// Match only the unprefixed `ap-flex` (the base-breakpoint emit).
+	// Breakpoint-prefixed variants like `md:ap-flex` mean "flex starts
+	// at md+"; flipping the wrapper to `is-layout-flex` for them would
+	// apply flex below the breakpoint too. The matching reset comes
+	// from the defensive `:where(.md\:ap-flex) > * + * { margin-block-start: 0 }`
+	// rule in flex-layout.css scoped to its own media query.
+	$hasFlexEnabled = in_array( 'ap-flex', $flexClasses, true );
 	if ( '' === $layoutType && $hasFlexEnabled ) {
 		$layoutClass = 'is-layout-flex';
 	}

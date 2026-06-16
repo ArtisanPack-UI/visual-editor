@@ -20,13 +20,13 @@
  * on every non-first child. When a block sits inside a flex container
  * (ours), that margin pushes children apart along the cross axis and
  * looks wrong. Zero it out for any direct child of an `ap-flex` wrapper.
+ *
+ * The base reset applies unconditionally. Each responsive-prefixed
+ * variant is scoped inside its own `@media` query further down so a
+ * block with only `sm:ap-flex` set doesn't get the reset applied below
+ * the 640px breakpoint (where the block is still block-flow).
  */
-:where(.ap-flex) > * + *,
-:where(.sm\:ap-flex) > * + *,
-:where(.md\:ap-flex) > * + *,
-:where(.lg\:ap-flex) > * + *,
-:where(.xl\:ap-flex) > * + *,
-:where(.\32xl\:ap-flex) > * + * { margin-block-start: 0; }
+:where(.ap-flex) > * + * { margin-block-start: 0; }
 
 .ap-flex-row { flex-direction: row; }
 .ap-flex-row-reverse { flex-direction: row-reverse; }
@@ -118,6 +118,7 @@
 
 /* ── Responsive prefixes ───────────────────────────────────── */
 @media (min-width: 640px) {
+	:where(.sm\:ap-flex) > * + * { margin-block-start: 0; }
 	.sm\:ap-flex { display: flex; }
 	.sm\:ap-flex-none { display: block; }
 	.sm\:ap-flex-row { flex-direction: row; }
@@ -160,6 +161,7 @@
 }
 
 @media (min-width: 768px) {
+	:where(.md\:ap-flex) > * + * { margin-block-start: 0; }
 	.md\:ap-flex { display: flex; }
 	.md\:ap-flex-none { display: block; }
 	.md\:ap-flex-row { flex-direction: row; }
@@ -201,6 +203,7 @@
 }
 
 @media (min-width: 1024px) {
+	:where(.lg\:ap-flex) > * + * { margin-block-start: 0; }
 	.lg\:ap-flex { display: flex; }
 	.lg\:ap-flex-none { display: block; }
 	.lg\:ap-flex-row { flex-direction: row; }
@@ -242,25 +245,87 @@
 }
 
 @media (min-width: 1280px) {
+	:where(.xl\:ap-flex) > * + * { margin-block-start: 0; }
 	.xl\:ap-flex { display: flex; }
 	.xl\:ap-flex-none { display: block; }
 	.xl\:ap-flex-row { flex-direction: row; }
+	.xl\:ap-flex-row-reverse { flex-direction: row-reverse; }
 	.xl\:ap-flex-col { flex-direction: column; }
+	.xl\:ap-flex-col-reverse { flex-direction: column-reverse; }
 	.xl\:ap-flex-nowrap { flex-wrap: nowrap; }
 	.xl\:ap-flex-wrap { flex-wrap: wrap; }
+	.xl\:ap-flex-wrap-reverse { flex-wrap: wrap-reverse; }
 	.xl\:ap-justify-start { justify-content: flex-start; }
 	.xl\:ap-justify-center { justify-content: center; }
 	.xl\:ap-justify-end { justify-content: flex-end; }
 	.xl\:ap-justify-between { justify-content: space-between; }
+	.xl\:ap-justify-around { justify-content: space-around; }
+	.xl\:ap-justify-evenly { justify-content: space-evenly; }
 	.xl\:ap-items-stretch { align-items: stretch; }
+	.xl\:ap-items-start { align-items: flex-start; }
+	.xl\:ap-items-end { align-items: flex-end; }
 	.xl\:ap-items-center { align-items: center; }
+	.xl\:ap-items-baseline { align-items: baseline; }
+	.xl\:ap-content-stretch { align-content: stretch; }
+	.xl\:ap-content-start { align-content: flex-start; }
+	.xl\:ap-content-end { align-content: flex-end; }
+	.xl\:ap-content-center { align-content: center; }
+	.xl\:ap-content-between { align-content: space-between; }
+	.xl\:ap-self-auto { align-self: auto; }
+	.xl\:ap-self-start { align-self: flex-start; }
+	.xl\:ap-self-end { align-self: flex-end; }
+	.xl\:ap-self-center { align-self: center; }
+	.xl\:ap-self-stretch { align-self: stretch; }
+	.xl\:ap-grow-0 { flex-grow: 0; }
+	.xl\:ap-grow-1 { flex-grow: 1; }
+	.xl\:ap-grow-2 { flex-grow: 2; }
+	.xl\:ap-shrink-0 { flex-shrink: 0; }
+	.xl\:ap-shrink-1 { flex-shrink: 1; }
+	.xl\:ap-basis-auto { flex-basis: auto; }
+	.xl\:ap-basis-full { flex-basis: 100%; }
+	.xl\:ap-order-0 { order: 0; }
+	.xl\:ap-order-1 { order: 1; }
 }
 
 @media (min-width: 1536px) {
+	:where(.\32xl\:ap-flex) > * + * { margin-block-start: 0; }
 	.\32xl\:ap-flex { display: flex; }
 	.\32xl\:ap-flex-none { display: block; }
 	.\32xl\:ap-flex-row { flex-direction: row; }
+	.\32xl\:ap-flex-row-reverse { flex-direction: row-reverse; }
 	.\32xl\:ap-flex-col { flex-direction: column; }
+	.\32xl\:ap-flex-col-reverse { flex-direction: column-reverse; }
+	.\32xl\:ap-flex-nowrap { flex-wrap: nowrap; }
+	.\32xl\:ap-flex-wrap { flex-wrap: wrap; }
+	.\32xl\:ap-flex-wrap-reverse { flex-wrap: wrap-reverse; }
+	.\32xl\:ap-justify-start { justify-content: flex-start; }
 	.\32xl\:ap-justify-center { justify-content: center; }
+	.\32xl\:ap-justify-end { justify-content: flex-end; }
+	.\32xl\:ap-justify-between { justify-content: space-between; }
+	.\32xl\:ap-justify-around { justify-content: space-around; }
+	.\32xl\:ap-justify-evenly { justify-content: space-evenly; }
+	.\32xl\:ap-items-stretch { align-items: stretch; }
+	.\32xl\:ap-items-start { align-items: flex-start; }
+	.\32xl\:ap-items-end { align-items: flex-end; }
 	.\32xl\:ap-items-center { align-items: center; }
+	.\32xl\:ap-items-baseline { align-items: baseline; }
+	.\32xl\:ap-content-stretch { align-content: stretch; }
+	.\32xl\:ap-content-start { align-content: flex-start; }
+	.\32xl\:ap-content-end { align-content: flex-end; }
+	.\32xl\:ap-content-center { align-content: center; }
+	.\32xl\:ap-content-between { align-content: space-between; }
+	.\32xl\:ap-self-auto { align-self: auto; }
+	.\32xl\:ap-self-start { align-self: flex-start; }
+	.\32xl\:ap-self-end { align-self: flex-end; }
+	.\32xl\:ap-self-center { align-self: center; }
+	.\32xl\:ap-self-stretch { align-self: stretch; }
+	.\32xl\:ap-grow-0 { flex-grow: 0; }
+	.\32xl\:ap-grow-1 { flex-grow: 1; }
+	.\32xl\:ap-grow-2 { flex-grow: 2; }
+	.\32xl\:ap-shrink-0 { flex-shrink: 0; }
+	.\32xl\:ap-shrink-1 { flex-shrink: 1; }
+	.\32xl\:ap-basis-auto { flex-basis: auto; }
+	.\32xl\:ap-basis-full { flex-basis: 100%; }
+	.\32xl\:ap-order-0 { order: 0; }
+	.\32xl\:ap-order-1 { order: 1; }
 }
