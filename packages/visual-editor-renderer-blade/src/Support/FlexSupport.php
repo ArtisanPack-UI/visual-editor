@@ -435,10 +435,14 @@ class FlexSupport
 
 	private function escapeSelector( string $className ): string
 	{
-		// Escape `:`, `[`, `]`, `(`, `)`, `.`, `,`, `/`, `%`, `+` for CSS
-		// selectors. `+` is included so arbitrary values such as
-		// `ap-gap-x-[calc(100%+1rem)]` produce a valid escaped selector
-		// instead of breaking on the `+`. Mirrors the TS port.
-		return preg_replace( '/([:\[\]\(\)\.,\/%+])/', '\\\\$1', $className );
+		// Denylist approach — escape anything that isn't a valid CSS
+		// identifier character. The safe set is `[A-Za-z0-9_-]`; every
+		// other byte gets a leading backslash. This covers arbitrary
+		// values that arrive with characters we haven't enumerated yet
+		// (`+`, `*`, `~`, `>`, `=`, `&`, `^`, `$`, `|`, etc.) without
+		// needing to revisit the regex every time a new Tailwind-style
+		// arbitrary value lands. Mirrors the TS ports in the React/Vue
+		// renderers.
+		return preg_replace( '/([^A-Za-z0-9_-])/', '\\\\$1', $className );
 	}
 }

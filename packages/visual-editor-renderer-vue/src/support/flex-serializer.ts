@@ -359,8 +359,13 @@ export function buildArbitraryStyles( rules: readonly ArbitraryRule[] ): string 
 }
 
 function escapeSelector( className: string ): string {
-	// CSS-significant characters inside a class selector. Includes `+`
-	// so arbitrary values such as `ap-gap-x-[calc(100%+1rem)]` produce
-	// a valid escaped selector instead of breaking on the `+`.
-	return className.replace( /[\[\]():.,#%/+\s]/g, ( char ) => `\\${ char }` )
+	// Denylist approach — escape anything that isn't a valid CSS
+	// identifier character. The safe set is `[a-zA-Z0-9_-]`; every
+	// other code unit gets a leading backslash. This covers arbitrary
+	// values that arrive with characters we haven't enumerated yet
+	// (`+`, `*`, `~`, `>`, `=`, `&`, `^`, `$`, `|`, etc.) without
+	// needing to revisit the regex every time a new Tailwind-style
+	// arbitrary value lands. Mirrors `FlexSupport::escapeSelector`
+	// in the Blade renderer.
+	return className.replace( /[^a-zA-Z0-9_-]/g, ( char ) => `\\${ char }` )
 }
