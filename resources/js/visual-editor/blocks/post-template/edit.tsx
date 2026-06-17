@@ -1,18 +1,19 @@
 /**
  * Post Template — edit component.
  *
- * Renders `<InnerBlocks />` with a default `artisanpack/post-title`
- * template so users can build the per-iteration layout. Provides a
- * toolbar toggle to switch between list and grid display, plus a columns
- * control when grid is active. The wrapping `artisanpack/query`
- * `BlockContextProvider` resolves the inner `artisanpack/post-*` blocks
- * against the right post. Phase I6 loop / feed cluster (#414).
+ * Renders one editable iteration of the per-post template (driven by
+ * `<InnerBlocks />`) plus N read-only ghosts for the rest of the
+ * resolved record set, via the shared `<QueryPreviewIterations>`
+ * renderer. Provides a toolbar toggle to switch between list and grid
+ * display, plus a columns control when grid is active. The wrapping
+ * `artisanpack/query` block pipes the resolved record set down through
+ * `artisanpack/queryPreview` block context (#599). Phase I6 loop /
+ * feed cluster (#414).
  */
 
 import type { ReactElement } from 'react';
 import {
     BlockControls,
-    InnerBlocks,
     InspectorControls,
     useBlockProps,
 } from '@wordpress/block-editor';
@@ -25,6 +26,8 @@ import {
 import { __ } from '@wordpress/i18n';
 import { list, grid } from '@wordpress/icons';
 
+import { readQueryPreviewContext } from '../../editor/query-preview-context';
+import { QueryPreviewIterations } from '../../editor/query-preview-iterations';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 const DEFAULT_TEMPLATE: ReadonlyArray<[string]> = [ [ 'artisanpack/post-title' ] ];
@@ -32,24 +35,37 @@ const DEFAULT_TEMPLATE: ReadonlyArray<[string]> = [ [ 'artisanpack/post-title' ]
 interface PostTemplateEditProps {
     attributes: Record<string, unknown>;
     setAttributes: ( changes: Record<string, unknown> ) => void;
+    clientId: string;
+    context?: Record<string, unknown>;
 }
 
 export default function PostTemplateEdit( {
     attributes,
     setAttributes,
+    clientId,
+    context,
 }: PostTemplateEditProps ): ReactElement {
     const layout = typeof attributes.layout === 'string' ? attributes.layout : 'list';
     const columns = typeof attributes.columns === 'number' ? attributes.columns : 3;
     const isGrid = layout === 'grid';
 
+    // Use upstream Gutenberg's `core/post-template` class names so the
+    // shipped block-library CSS (`.wp-block-post-template.is-flex-container
+    // > li` + `.columns-{n} > li`) applies without a parallel rule set
+    // — see `@wordpress/block-library/build-style/style.css`.
     const className = [
         'wp-block-post-template',
-        isGrid ? 'is-layout-grid' : 'is-layout-flow',
+        isGrid ? 'is-flex-container' : '',
         isGrid ? `columns-${ columns }` : '',
     ].filter( Boolean ).join( ' ' );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blockProps = ( useBlockProps as any )( { className } );
+
+    const previewValue = readQueryPreviewContext( context );
+    const postType = typeof context?.postType === 'string' && context.postType !== ''
+        ? context.postType
+        : 'post';
 
     return (
         <>
@@ -89,9 +105,13 @@ export default function PostTemplateEdit( {
                 </InspectorControls>
             ) }
 
-            <div { ...blockProps }>
-                <InnerBlocks template={ [ ...DEFAULT_TEMPLATE ] } />
-            </div>
+            <QueryPreviewIterations
+                clientId={ clientId }
+                preview={ previewValue }
+                postType={ postType }
+                defaultTemplate={ DEFAULT_TEMPLATE }
+                outerProps={ blockProps as Record<string, unknown> }
+            />
         </>
     );
 }

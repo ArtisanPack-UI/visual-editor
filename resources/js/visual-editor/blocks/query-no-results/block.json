@@ -7,7 +7,13 @@
     "description": "Contains the block elements used to render content when a query returns no results.",
     "ancestor": [ "artisanpack/query" ],
     "textdomain": "artisanpack-visual-editor",
-    "usesContext": [ "queryId", "query" ],
+    "attributes": {
+        "showInEditor": {
+            "type": "boolean",
+            "default": false
+        }
+    },
+    "usesContext": [ "queryId", "query", "artisanpack/queryPreview" ],
     "supports": {
         "anchor": true,
         "align": true,

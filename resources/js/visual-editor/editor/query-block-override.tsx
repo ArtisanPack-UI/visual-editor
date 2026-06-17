@@ -16,15 +16,18 @@
  * preview, this filter swaps both Edits with thin wrappers:
  *
  *   - `core/query` calls `/visual-editor/api/query/resolve` via the
- *     {@link useQueryPreview} hook, pushes the first result's `postId`
- *     into a `BlockContextProvider`, and renders `<InnerBlocks />` so
- *     the editable `core/post-template` shell renders inside.
- *   - `core/post-template` ignores its upstream entity-records call
- *     and just renders `<InnerBlocks />` with a default
- *     `core/post-title` template, so users can build the per-iteration
- *     layout. The wrapping `BlockContextProvider` from `core/query`
- *     means inner `core/post-*` blocks resolve against the right
- *     post via G3's entity adapter.
+ *     {@link useQueryPreview} hook and pipes the resolved record set
+ *     down through a `BlockContextProvider` keyed by
+ *     `artisanpack/queryPreview`. Descendant blocks
+ *     (`core/post-template`, `core/query-pagination`, `core/query-title`,
+ *     `core/query-no-results`, and the artisanpack mirrors) read this
+ *     context to render against the real resolved data instead of
+ *     placeholder values (#599).
+ *   - `core/post-template` iterates the resolved posts: index 0 is an
+ *     editable `<InnerBlocks />` (with a default `core/post-title`
+ *     template) and indices 1..N are read-only ghosts wrapped in
+ *     their own `BlockContextProvider` so inner `core/post-*` blocks
+ *     resolve per-iteration via G3's entity adapter.
  *
  * Idempotent across HMR via a global Symbol guard.
  */
@@ -42,6 +45,12 @@ import { __ } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../vendor/i18n';
 
+import {
+    QUERY_PREVIEW_CONTEXT_KEY,
+    readQueryPreviewContext,
+    type QueryPreviewContextValue,
+} from './query-preview-context';
+import { QueryPreviewIterations } from './query-preview-iterations';
 import { useQueryPreview } from './use-query-preview';
 
 const FILTER_HOOK = 'blocks.registerBlockType';
@@ -65,6 +74,7 @@ interface GlobalSentinelHost {
 interface BlockSettings {
     name?: string;
     edit?: unknown;
+    usesContext?: ReadonlyArray<string>;
     [key: string]: unknown;
 }
 
@@ -116,18 +126,33 @@ function QueryEdit({ attributes, setAttributes, clientId }: QueryEditProps): JSX
             ? queryFromAttrs.postType
             : 'post';
 
-    // Only consume `preview.posts` when the resolver has actually
-    // finished — `useQueryPreview` keeps the previous fetch's posts
-    // visible during a new fetch's loading window so the canvas does
-    // not flicker on every inspector tweak. Skipping that read here
-    // means the inner `core/post-*` blocks fall back to their empty
-    // shells while a new query is in flight rather than rendering with
-    // a postId that no longer matches the saved query payload.
-    const firstPost = preview.status === 'ready' ? preview.posts[0] : undefined;
-    const blockContext =
-        firstPost === undefined
-            ? { postType }
-            : { postType, postId: firstPost.id };
+    // Default mirrors the first-party `artisanpack/query` block's
+    // `perPage: 5` so the iteration cap + pagination-numbers preview
+    // get a sensible value when the saved tree omits the attribute.
+    // A zero would skip pagination-numbers computation entirely (the
+    // descendants guard on `perPage <= 0`), but the override is supposed
+    // to behave like a configured query in the canvas.
+    const perPage = typeof queryFromAttrs.perPage === 'number' ? queryFromAttrs.perPage : 5;
+
+    // Pipe the resolved record set + paginator state down to
+    // descendants via block context. `post-template` iterates against
+    // `posts`; `query-pagination` reads `total` + `currentPage` +
+    // `perPage`; `query-title` reads `queryTitle`. The canvas always
+    // previews page 1 — pagination is not interactive in the editor by
+    // design (issue #599 scope).
+    const queryPreviewContext: QueryPreviewContextValue = {
+        posts: preview.status === 'ready' ? preview.posts : [],
+        total: preview.total,
+        currentPage: 1,
+        queryTitle: '',
+        perPage,
+        status: preview.status,
+    };
+
+    const blockContext = {
+        postType,
+        [ QUERY_PREVIEW_CONTEXT_KEY ]: queryPreviewContext,
+    };
 
     return (
         <div {...blockProps}>
@@ -136,7 +161,6 @@ function QueryEdit({ attributes, setAttributes, clientId }: QueryEditProps): JSX
                     <PreviewStatus preview={preview} />
                 </PanelBody>
             </InspectorControls>
-            <PreviewBanner preview={preview} />
             <BlockContextProvider value={blockContext}>
                 <InnerBlocks />
             </BlockContextProvider>
@@ -172,40 +196,27 @@ function PreviewStatus({ preview }: PreviewSummaryProps): JSX.Element {
     return <p>{__('Configure the query to see a preview.', TEXT_DOMAIN)}</p>;
 }
 
-function PreviewBanner({ preview }: PreviewSummaryProps): JSX.Element | null {
-    if (preview.status !== 'ready') {
-        return null;
-    }
-
-    if (preview.total === 0) {
-        return (
-            <Notice status="warning" isDismissible={false}>
-                {__('No posts matched the current query.', TEXT_DOMAIN)}
-            </Notice>
-        );
-    }
-
-    if (preview.total === 1) {
-        return null;
-    }
-
-    return (
-        <Notice status="info" isDismissible={false}>
-            {__(
-                'The canvas previews the first matching post. The saved page renders all matching posts.',
-                TEXT_DOMAIN
-            )}
-        </Notice>
-    );
+interface PostTemplateEditProps {
+    clientId: string;
+    context?: Record<string, unknown>;
 }
 
-function PostTemplateEdit(): JSX.Element {
+function PostTemplateEdit({ clientId, context }: PostTemplateEditProps): JSX.Element {
     const blockProps = useBlockProps({ className: 'wp-block-post-template' });
 
+    const previewValue = readQueryPreviewContext(context);
+    const postType = typeof context?.postType === 'string' && context.postType !== ''
+        ? context.postType
+        : 'post';
+
     return (
-        <div {...blockProps}>
-            <InnerBlocks template={[...POST_TEMPLATE_DEFAULT_TEMPLATE]} />
-        </div>
+        <QueryPreviewIterations
+            clientId={ clientId }
+            preview={ previewValue }
+            postType={ postType }
+            defaultTemplate={ POST_TEMPLATE_DEFAULT_TEMPLATE }
+            outerProps={ blockProps as Record<string, unknown> }
+        />
     );
 }
 
@@ -229,9 +240,22 @@ function overrideEdit(settings: BlockSettings, name: string): BlockSettings {
     }
 
     if (name === POST_TEMPLATE_BLOCK) {
+        // Extend upstream `usesContext` with the `artisanpack/queryPreview`
+        // key so the override Edit receives the resolved record set its
+        // iteration loop needs. `postType` is already on the upstream
+        // declaration; appending guards against future upstream additions
+        // we'd otherwise drop.
+        const upstreamUsesContext = Array.isArray( settings.usesContext )
+            ? settings.usesContext
+            : [];
+        const usesContext = upstreamUsesContext.includes( QUERY_PREVIEW_CONTEXT_KEY )
+            ? upstreamUsesContext
+            : [ ...upstreamUsesContext, QUERY_PREVIEW_CONTEXT_KEY ];
+
         return {
             ...settings,
             edit: PostTemplateEdit,
+            usesContext,
         };
     }
 

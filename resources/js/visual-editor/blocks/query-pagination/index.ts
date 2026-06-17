@@ -17,6 +17,8 @@ import save from './save';
 import transforms from './transforms';
 import icon from './inserter-icon';
 
+import './query-pagination.css';
+
 export { edit, save, metadata, icon, transforms };
 
 export default {

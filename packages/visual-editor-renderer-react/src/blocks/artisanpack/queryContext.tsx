@@ -34,14 +34,18 @@ export function QueryPaginationBlock({ attributes, children }: BlockRendererProp
     );
 }
 
-export function QueryPaginationNextBlock({ attributes }: BlockRendererProps): JSX.Element {
+// Inactive states render nothing on the front end (issue #599) — the
+// editor still shows a muted placeholder so authors can edit the
+// block; the public renderer stays quiet so themes don't have to
+// style an always-present-but-sometimes-inactive affordance.
+export function QueryPaginationNextBlock({ attributes }: BlockRendererProps): JSX.Element | null {
     const url = safeUrl(attrString(attributes._resolvedNextPageUrl));
     const label = attrString(attributes.label, 'Next Page');
     const className = attrString(attributes.className);
     const classes = classList(['wp-block-query-pagination-next', className]);
 
     if (url === '') {
-        return <span className={classes}>{label}</span>;
+        return null;
     }
     return (
         <a className={classes} href={url}>
@@ -50,14 +54,14 @@ export function QueryPaginationNextBlock({ attributes }: BlockRendererProps): JS
     );
 }
 
-export function QueryPaginationPreviousBlock({ attributes }: BlockRendererProps): JSX.Element {
+export function QueryPaginationPreviousBlock({ attributes }: BlockRendererProps): JSX.Element | null {
     const url = safeUrl(attrString(attributes._resolvedPreviousPageUrl));
     const label = attrString(attributes.label, 'Previous Page');
     const className = attrString(attributes.className);
     const classes = classList(['wp-block-query-pagination-previous', className]);
 
     if (url === '') {
-        return <span className={classes}>{label}</span>;
+        return null;
     }
     return (
         <a className={classes} href={url}>

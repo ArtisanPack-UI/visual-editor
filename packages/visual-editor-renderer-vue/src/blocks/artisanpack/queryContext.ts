@@ -45,6 +45,10 @@ export const QueryPaginationBlock = defineComponent({
     },
 });
 
+// Inactive states render nothing on the front end (issue #599) — the
+// editor still shows a muted placeholder so authors can edit the
+// block; the public renderer stays quiet so themes don't have to
+// style an always-present-but-sometimes-inactive affordance.
 export const QueryPaginationNextBlock = defineComponent({
     name: 'QueryPaginationNextBlock',
     props: blockRendererProps,
@@ -55,7 +59,7 @@ export const QueryPaginationNextBlock = defineComponent({
             const className = attrString(props.attributes.className);
             const classes = classList(['wp-block-query-pagination-next', className]);
             if (url === '') {
-                return h('span', { class: classes }, label);
+                return null;
             }
             return h('a', { class: classes, href: url }, `${label} →`);
         };
@@ -72,7 +76,7 @@ export const QueryPaginationPreviousBlock = defineComponent({
             const className = attrString(props.attributes.className);
             const classes = classList(['wp-block-query-pagination-previous', className]);
             if (url === '') {
-                return h('span', { class: classes }, label);
+                return null;
             }
             return h('a', { class: classes, href: url }, `← ${label}`);
         };

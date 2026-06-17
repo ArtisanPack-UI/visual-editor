@@ -108,6 +108,7 @@ vi.mock('@wordpress/block-editor', () => ({
     __experimentalImageSizeControl: () => null,
     __experimentalGetElementClassName: (name: string) =>
         `wp-element-${name}`,
+    __experimentalUseBlockPreview: () => ({}),
     __experimentalGetBorderClassesAndStyles: () => ({ className: '', style: {} }),
     __experimentalGetShadowClassesAndStyles: () => ({ className: '', style: {} }),
     __experimentalUseBorderProps: () => ({ className: '', style: {} }),
