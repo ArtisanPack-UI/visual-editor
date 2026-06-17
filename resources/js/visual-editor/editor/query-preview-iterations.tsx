@@ -70,10 +70,11 @@ export interface QueryPreviewIterationsProps {
     /**
      * Wrapper element name. Defaults to `ul` to match upstream
      * Gutenberg's grid CSS (`.wp-block-post-template.is-flex-container
-     * > li`). Callers can override to `div` etc. if they're styling
-     * with a custom layout.
+     * > li`). Restricted to list-shaped tags because every iteration
+     * renders as a `<li>` — a `<div>` wrapper would produce invalid
+     * HTML (`<div> > <li>`).
      */
-    readonly tag?: 'div' | 'ul' | 'ol';
+    readonly tag?: 'ul' | 'ol';
     /**
      * Class name applied to every iteration's wrapper element.
      * Defaults to `wp-block-post` — the class upstream Gutenberg uses
@@ -158,11 +159,19 @@ export function QueryPreviewIterations(
 
     if ( visiblePosts.length === 0 ) {
         const Tag = tag;
+        // Keep the list-element invariant: the only valid child of
+        // `<ul>` / `<ol>` is `<li>`, so wrap the placeholder iteration
+        // in an `<li>` and render the explanatory `Notice` as a
+        // sibling of the list rather than as a direct child.
         return (
-            <Tag {...outerProps as Record<string, unknown>}>
-                <BlockContextProvider value={{ postType }}>
-                    <InnerBlocks template={ editableTemplate } />
-                </BlockContextProvider>
+            <>
+                <Tag {...outerProps as Record<string, unknown>}>
+                    <BlockContextProvider value={{ postType }}>
+                        <li className={ itemClassName } data-query-iteration="editable">
+                            <InnerBlocks template={ editableTemplate } />
+                        </li>
+                    </BlockContextProvider>
+                </Tag>
                 { preview?.status === 'ready' && (
                     <Notice status="info" isDismissible={ false }>
                         { __(
@@ -171,7 +180,7 @@ export function QueryPreviewIterations(
                         ) }
                     </Notice>
                 ) }
-            </Tag>
+            </>
         );
     }
 
@@ -188,30 +197,35 @@ export function QueryPreviewIterations(
 
     const Tag = tag;
     return (
-        <Tag {...outerProps as Record<string, unknown>}>
-            { visiblePosts.map( ( post ) => {
-                const iterationContext = { postType, postId: post.id, 'artisanpack/postPreview': post };
-                const isActive = post.id === effectiveActiveId;
+        <>
+            <Tag {...outerProps as Record<string, unknown>}>
+                { visiblePosts.map( ( post ) => {
+                    const iterationContext = { postType, postId: post.id, 'artisanpack/postPreview': post };
+                    const isActive = post.id === effectiveActiveId;
 
-                return (
-                    <BlockContextProvider key={ post.id } value={ iterationContext }>
-                        { isActive ? (
-                            <EditableIteration
-                                className={ itemClassName }
-                                template={ editableTemplate }
-                            />
-                        ) : (
-                            <PreviewIteration
-                                className={ itemClassName }
-                                blocks={ ghostBlocks }
-                                onActivate={ () => setActiveId( post.id ) }
-                            />
-                        ) }
-                    </BlockContextProvider>
-                );
-            } ) }
+                    return (
+                        <BlockContextProvider key={ post.id } value={ iterationContext }>
+                            { isActive ? (
+                                <EditableIteration
+                                    className={ itemClassName }
+                                    template={ editableTemplate }
+                                />
+                            ) : (
+                                <PreviewIteration
+                                    className={ itemClassName }
+                                    blocks={ ghostBlocks }
+                                    onActivate={ () => setActiveId( post.id ) }
+                                />
+                            ) }
+                        </BlockContextProvider>
+                    );
+                } ) }
+            </Tag>
+            { /* Notices live outside the list so the ul/ol only
+                 contains `<li>` children — direct text/non-list
+                 nodes in a `<ul>` are invalid markup. */ }
             { ghostNotice }
-        </Tag>
+        </>
     );
 }
 
