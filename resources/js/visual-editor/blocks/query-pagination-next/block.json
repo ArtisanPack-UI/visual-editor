@@ -17,7 +17,8 @@
         "query",
         "paginationArrow",
         "showLabel",
-        "enhancedPagination"
+        "enhancedPagination",
+        "artisanpack/queryPreview"
     ],
     "supports": {
         "anchor": true,

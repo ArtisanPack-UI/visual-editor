@@ -69,6 +69,8 @@ class BlocksStylesComponent extends Component
 
 	public string $breadcrumbsStyleHref;
 
+	public string $queryPaginationStyleHref;
+
 	public string $flexLayoutStyleHref;
 
 	public string $photoGridStyleHref;
@@ -109,6 +111,7 @@ class BlocksStylesComponent extends Component
 		$this->marqueeStyleHref       = $base . '/frontend/marquee.css';
 		$this->socialIconsStyleHref   = $base . '/frontend/social-icons.css';
 		$this->breadcrumbsStyleHref   = $base . '/frontend/breadcrumbs.css';
+		$this->queryPaginationStyleHref = $base . '/frontend/query-pagination.css';
 		$this->flexLayoutStyleHref    = $base . '/frontend/flex-layout.css';
 		$this->photoGridStyleHref     = $base . '/frontend/photo-grid.css';
 		$this->interactivityScriptSrc = $base . '/frontend/interactivity.js';

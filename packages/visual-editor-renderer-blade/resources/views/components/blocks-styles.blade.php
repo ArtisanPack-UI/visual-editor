@@ -23,6 +23,11 @@
 	server-stamped `<ol>` lays out inline with the chosen separator on
 	the public frontend. --}}
 <link rel="stylesheet" href="{{ $breadcrumbsStyleHref }}" data-ve-breadcrumbs>
+{{-- Query Pagination layout baseline (#599). Matches the rules the
+	editor loads from `blocks/query-pagination/query-pagination.css`
+	so the server-rendered nav lays out horizontally with previous /
+	numbers / next at start / center / end on the public frontend. --}}
+<link rel="stylesheet" href="{{ $queryPaginationStyleHref }}" data-ve-query-pagination>
 {{-- #595 — Flex layout utility classes (ap-flex, ap-flex-row, ap-gap-x-*, …)
 	emitted by the shared serializer onto group/column/columns/grid-item
 	wrappers. Static, layout-only, no interactivity needed. --}}

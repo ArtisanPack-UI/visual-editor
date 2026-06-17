@@ -7,8 +7,10 @@
 		? $attributes['label']
 		: __( 'Next Page' );
 @endphp
+{{-- When the inliner could not resolve a next-page URL (e.g. on the
+	last page), the leaf renders nothing at all on the front end. The
+	editor still shows the muted placeholder so authors can edit the
+	block; the renderers stay quiet. Issue #599. --}}
 @if ( '' !== $url )
 	<a{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-query-pagination-next' ] ) !!} href="{{ $url }}">{{ $label }} &rarr;</a>
-@else
-	<span{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-query-pagination-next' ] ) !!}>{{ $label }}</span>
 @endif

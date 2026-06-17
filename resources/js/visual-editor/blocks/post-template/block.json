@@ -30,7 +30,8 @@
         "templateSlug",
         "previewPostType",
         "enhancedPagination",
-        "postType"
+        "postType",
+        "artisanpack/queryPreview"
     ],
     "supports": {
         "anchor": true,

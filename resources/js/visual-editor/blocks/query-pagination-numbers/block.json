@@ -13,7 +13,7 @@
             "default": 2
         }
     },
-    "usesContext": [ "queryId", "query", "enhancedPagination" ],
+    "usesContext": [ "queryId", "query", "enhancedPagination", "artisanpack/queryPreview" ],
     "supports": {
         "anchor": true,
         "reusable": false,

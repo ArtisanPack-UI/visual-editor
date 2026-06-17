@@ -32,7 +32,8 @@
         }
     },
     "usesContext": [
-        "query"
+        "query",
+        "artisanpack/queryPreview"
     ],
     "supports": {
         "artisanpackAnimations": true,

@@ -41,6 +41,14 @@ it( 'emits the breadcrumbs frontend stylesheet link independently of $emitIntera
 		->toContain( 'data-ve-breadcrumbs' );
 } );
 
+it( 'emits the query-pagination frontend stylesheet link independently of $emitInteractive', function () {
+	$rendered = Blade::render( '<x-ve-blocks-styles :interactive="false" />' );
+
+	expect( $rendered )
+		->toContain( '/vendor/visual-editor-renderer-blade/frontend/query-pagination.css' )
+		->toContain( 'data-ve-query-pagination' );
+} );
+
 it( 'rebases the link href when assetBase is supplied', function () {
 	$rendered = Blade::render(
 		'<x-ve-blocks-styles asset-base="https://cdn.example.com/ve" />'
