@@ -198,9 +198,21 @@ export default function PostVariantsPanel( {
         const store = dataSelect( 'core/block-editor' ) as unknown as CoreBlockEditorSelect;
         const postTemplate = store.getBlock( postTemplateClientId );
         const templateChildren = postTemplate?.innerBlocks ?? [];
-        const baseChildren: BlockInstance[] = templateChildren
+        let baseChildren: BlockInstance[] = templateChildren
             .filter( ( child ) => child.name !== 'artisanpack/post-variant' )
             .map( ( child ) => cloneBlock( child as unknown as BlockInstance ) );
+
+        // Fallback: when the post-template hasn't committed any base
+        // children to the store yet (the `<InnerBlocks template>`
+        // placeholder hasn't been touched), seed the variant with a
+        // single `artisanpack/post-title` so the editable iteration
+        // doesn't collapse to the "type / to choose a block" appender
+        // the moment the variant matches. Matches the post-template's
+        // own default seed so the canvas stays continuous between the
+        // base preview and the variant-matched iteration.
+        if ( baseChildren.length === 0 ) {
+            baseChildren = [ createBlock( 'artisanpack/post-title' ) ];
+        }
 
         // Compute the insertion index from the template's actual child
         // list — not from the variant count. With non-variant base

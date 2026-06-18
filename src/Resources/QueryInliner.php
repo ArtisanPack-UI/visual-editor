@@ -37,6 +37,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Resources;
 
+use ArtisanPackUI\VisualEditor\Services\HostRelatedTermsResolver;
 use ArtisanPackUI\VisualEditor\Services\QueryResolverContract;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -338,10 +339,15 @@ class QueryInliner
 			return $this->markFailed( $block, self::ERROR_NO_RUNTIME );
 		}
 
-		$host                     = $this->hostPost;
-		$hostId                   = isset( $host->id ) ? (int) $host->id : 0;
-		$hostType                 = $this->hostPostType( $host );
-		[ $taxonomy, $termIds ]   = $this->hostRelatedTerms( $host );
+		/** @var QueryResolverContract $resolver */
+		$resolver = $this->container->make( QueryResolverContract::class );
+
+		$host   = $this->hostPost;
+		$helper = new HostRelatedTermsResolver( $resolver );
+
+		$hostId                 = isset( $host->id ) ? (int) $host->id : 0;
+		$hostType               = $helper->hostPostType( $host );
+		[ $taxonomy, $termIds ] = $helper->hostRelatedTerms( $host );
 
 		$queryAttrs = [
 			'postType' => $hostType,
@@ -355,8 +361,6 @@ class QueryInliner
 		];
 
 		try {
-			/** @var QueryResolverContract $resolver */
-			$resolver  = $this->container->make( QueryResolverContract::class );
 			$paginator = $resolver->resolve( $queryAttrs );
 		} catch ( Throwable $e ) {
 			report( $e );
@@ -365,6 +369,25 @@ class QueryInliner
 		}
 
 		$results = $paginator->items();
+
+		// #601: when the saved tree nests an `artisanpack/post-template`,
+		// run the iteration expansion under that template so per-post
+		// variants, grid column/row spans, and masonry packing inherit
+		// from the same path Query Loop uses. Pre-#601 saves with flat
+		// inner blocks (no post-template wrapper) fall through to the
+		// legacy expansion below.
+		$postTemplateIndex = $this->findPostTemplateIndex( $inner );
+
+		if ( null !== $postTemplateIndex ) {
+			return $this->expandRelatedPostsUnderPostTemplate(
+				$block,
+				$attributes,
+				$inner,
+				$postTemplateIndex,
+				$results,
+				$paginator
+			);
+		}
 
 		if ( [] === $results ) {
 			return array_merge( $block, [
@@ -418,102 +441,165 @@ class QueryInliner
 	}
 
 	/**
-	 * Read the host post's post-type slug via the same conventions
-	 * `PostResolver` uses (the `post_type` column, the `type` accessor,
-	 * etc.). Defaults to `'post'` so the query resolver always gets a
-	 * valid slug.
-	 */
-	protected function hostPostType( object $post ): string
-	{
-		foreach ( [ 'post_type', 'type' ] as $key ) {
-			$value = $post->{$key} ?? null;
-
-			if ( is_string( $value ) && '' !== trim( $value ) ) {
-				return trim( $value );
-			}
-		}
-
-		return 'post';
-	}
-
-	/**
-	 * Best-effort lookup of the host post's term ids across whichever
-	 * taxonomy the model exposes (`categories`, `tags`, generic `terms`).
-	 * Returned as a flat int list so the query resolver receives a
-	 * consistent shape regardless of host model.
+	 * Find the index of the first `core/post-template` or
+	 * `artisanpack/post-template` child in a saved inner-blocks array,
+	 * or `null` when none is present. Shared between expandQuery and
+	 * the #601 post-template path on expandRelatedPosts.
 	 *
-	 * @return array<int, int>
+	 * @param  array<int, array<string, mixed>>  $inner
 	 */
-	protected function hostTermIds( object $post ): array
+	protected function findPostTemplateIndex( array $inner ): ?int
 	{
-		$ids = [];
-
-		foreach ( [ 'categories', 'tags', 'terms' ] as $relation ) {
-			$collection = $post->{$relation} ?? null;
-
-			if ( ! is_iterable( $collection ) ) {
+		foreach ( $inner as $i => $child ) {
+			if ( ! is_array( $child ) ) {
 				continue;
 			}
 
-			foreach ( $collection as $term ) {
-				if ( is_object( $term ) && isset( $term->id ) ) {
-					$ids[] = (int) $term->id;
+			$name = isset( $child['name'] ) && is_string( $child['name'] ) ? $child['name'] : '';
+
+			if ( 'core/post-template' === $name || 'artisanpack/post-template' === $name ) {
+				return $i;
+			}
+		}
+
+		return null;
+	}
+
+	/**
+	 * Related-posts iteration expansion that runs through a nested
+	 * `artisanpack/post-template` (#601). Mirrors expandQuery's variant
+	 * resolution + grid-span stamping so the editor canvas, server
+	 * renderers, and the cross-renderer parity remain a single source of
+	 * truth. Skips pagination / query-title / no-results stamping
+	 * because the issue scopes those siblings as out of scope for
+	 * related-posts.
+	 *
+	 * @param  array<string, mixed>              $block
+	 * @param  array<string, mixed>              $attributes
+	 * @param  array<int, array<string, mixed>>  $inner
+	 * @param  iterable<int, object>             $results
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function expandRelatedPostsUnderPostTemplate(
+		array $block,
+		array $attributes,
+		array $inner,
+		int $postTemplateIndex,
+		iterable $results,
+		LengthAwarePaginator $paginator
+	): array {
+		$postTemplate      = $inner[ $postTemplateIndex ];
+		$iterationTemplate = isset( $postTemplate['innerBlocks'] ) && is_array( $postTemplate['innerBlocks'] )
+			? $postTemplate['innerBlocks']
+			: [];
+
+		$resultsList = is_array( $results ) ? array_values( $results ) : iterator_to_array( $results, false );
+
+		// Zero-result path: keep the saved tree (so the editable
+		// iteration template stays put) but clear the post-template's
+		// inner blocks so the renderer emits an empty `<ul>` rather
+		// than N copies of the un-stamped template.
+		if ( [] === $resultsList ) {
+			$emptyPostTemplate     = array_merge( $postTemplate, [ 'innerBlocks' => [] ] );
+			$newInner              = $inner;
+			$newInner[ $postTemplateIndex ] = $emptyPostTemplate;
+
+			return array_merge( $block, [
+				'attributes'  => array_merge( [
+					'_resolvedTotal' => $paginator->total(),
+					'_resolvedItems' => 0,
+				], $attributes ),
+				'innerBlocks' => $newInner,
+			] );
+		}
+
+		[ $baseTemplate, $variantBlocks ] = $this->extractVariants( $iterationTemplate );
+
+		$postTemplateAttrs = isset( $postTemplate['attributes'] ) && is_array( $postTemplate['attributes'] )
+			? $postTemplate['attributes']
+			: [];
+
+		$compiledMap = isset( $postTemplateAttrs['_compiledVariantMap'] )
+			&& is_array( $postTemplateAttrs['_compiledVariantMap'] )
+				? $postTemplateAttrs['_compiledVariantMap']
+				: [];
+
+		$postTemplateIsGrid = $this->postTemplateLayoutIsGrid( $postTemplateAttrs );
+
+		if ( null !== $this->variantResolver ) {
+			$this->variantResolver->prime( $variantBlocks, $compiledMap, count( $resultsList ) );
+		}
+
+		$expandedIterations = [];
+
+		foreach ( $resultsList as $loopIndex => $post ) {
+			if ( ! is_object( $post ) ) {
+				continue;
+			}
+
+			$postId          = isset( $post->id ) ? (int) $post->id : 0;
+			$iterationBlocks = [];
+
+			$variantOrder = null !== $this->variantResolver
+				? $this->variantResolver->resolve( $loopIndex, $post )
+				: null;
+
+			$activeTmpl = null !== $variantOrder && null !== $this->variantResolver
+				? $this->variantResolver->innerBlocksFor( $variantOrder, $variantBlocks )
+				: $baseTemplate;
+
+			foreach ( $activeTmpl as $tmplChild ) {
+				if ( ! is_array( $tmplChild ) ) {
+					continue;
+				}
+
+				$iterationBlocks[] = $this->postResolver->stampBlock(
+					$this->cloneBlock( $tmplChild ),
+					$post
+				);
+			}
+
+			$itemAttributes = [
+				'postId'    => $postId,
+				'className' => 'related-post post-' . $postId
+					. ( null !== $variantOrder ? ' is-variant' : '' ),
+			];
+
+			if ( null !== $variantOrder && $postTemplateIsGrid ) {
+				$variantBlock = $variantBlocks[ $variantOrder ] ?? null;
+
+				if ( is_array( $variantBlock ) ) {
+					$spans = $this->resolveVariantSpans( $variantBlock );
+
+					if ( null !== $spans ) {
+						$itemAttributes['_resolvedGridSpan'] = $spans;
+					}
 				}
 			}
+
+			$expandedIterations[] = [
+				'clientId'    => 'rp-pti-' . $postId,
+				'name'        => 'core/post-template-item',
+				'attributes'  => $itemAttributes,
+				'innerBlocks' => $iterationBlocks,
+			];
 		}
 
-		return array_values( array_unique( $ids ) );
-	}
+		$expandedPostTemplate = array_merge( $postTemplate, [
+			'innerBlocks' => $expandedIterations,
+		] );
 
-	/**
-	 * Resolve the host post's relatedness signal as a
-	 * `[taxonomy, termIds]` pair so the related-posts query targets
-	 * the right taxonomy. Prefers categories; falls back to tags;
-	 * finally falls back to the generic `terms` collection scoped to
-	 * `category` so tag-only posts still get a related-posts query
-	 * that exercises the right index.
-	 *
-	 * @return array{0: string, 1: array<int, int>}
-	 */
-	protected function hostRelatedTerms( object $post ): array
-	{
-		$categoryIds = $this->termIdsFromRelation( $post, 'categories' );
+		$newInner = $inner;
+		$newInner[ $postTemplateIndex ] = $expandedPostTemplate;
 
-		if ( [] !== $categoryIds ) {
-			return [ 'category', $categoryIds ];
-		}
-
-		$tagIds = $this->termIdsFromRelation( $post, 'tags' );
-
-		if ( [] !== $tagIds ) {
-			return [ 'post_tag', $tagIds ];
-		}
-
-		return [ 'category', $this->hostTermIds( $post ) ];
-	}
-
-	/**
-	 * Pluck integer term ids from one named relation on the post.
-	 *
-	 * @return array<int, int>
-	 */
-	protected function termIdsFromRelation( object $post, string $relation ): array
-	{
-		$collection = $post->{$relation} ?? null;
-
-		if ( ! is_iterable( $collection ) ) {
-			return [];
-		}
-
-		$ids = [];
-
-		foreach ( $collection as $term ) {
-			if ( is_object( $term ) && isset( $term->id ) ) {
-				$ids[] = (int) $term->id;
-			}
-		}
-
-		return array_values( array_unique( $ids ) );
+		return array_merge( $block, [
+			'attributes'  => array_merge( [
+				'_resolvedTotal' => $paginator->total(),
+				'_resolvedItems' => count( $expandedIterations ),
+			], $attributes ),
+			'innerBlocks' => $newInner,
+		] );
 	}
 
 	/**

@@ -5,7 +5,8 @@
     "title": "Post Template",
     "category": "theme",
     "ancestor": [
-        "artisanpack/query"
+        "artisanpack/query",
+        "artisanpack/related-posts"
     ],
     "description": "Contains the block elements used to render a post, like the title, date, featured image, content or excerpt, and more.",
     "textdomain": "artisanpack-visual-editor",

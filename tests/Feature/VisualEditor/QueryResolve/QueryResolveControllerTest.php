@@ -167,3 +167,96 @@ it( 'returns 400 when the resolver throws', function () {
 		->assertStatus( 400 )
 		->assertJsonPath( 'message', 'Failed to resolve the query payload.' );
 } );
+
+it( 'returns an empty paginator for relatedTo when the host post cannot be loaded (#601)', function () {
+	actingResolver();
+
+	test()->fake->setItems( [] );
+
+	$this->postJson( '/visual-editor/api/query/resolve', [
+		'relatedTo' => 999,
+		'perPage'   => 3,
+	] )
+		->assertOk()
+		->assertJsonPath( 'meta.total', 0 )
+		->assertJsonPath( 'meta.per_page', 3 )
+		->assertJsonPath( 'data', [] );
+} );
+
+it( 'rejects relatedTo paired with taxQuery (#601)', function () {
+	actingResolver();
+
+	$this->postJson( '/visual-editor/api/query/resolve', [
+		'relatedTo' => 1,
+		'taxQuery'  => [ 'taxonomy' => 'category', 'terms' => [ 1 ] ],
+	] )
+		->assertStatus( 422 );
+} );
+
+it( 'expands relatedTo into a taxonomy query against the host post (#601)', function () {
+	actingResolver();
+
+	$related = TestBlockContentModel::create( [
+		'title'   => 'Related',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	$term      = new \stdClass();
+	$term->id  = 7;
+
+	$host             = new \stdClass();
+	$host->id         = 5;
+	$host->title      = 'Host';
+	$host->post_type  = 'post';
+	$host->categories = [ $term ];
+
+	// Two consecutive resolve() calls: first loads the host, second
+	// runs the expanded related query. Track each invocation so we
+	// can assert on the second payload.
+	$smartFake = new class( $host, $related ) extends FakeQueryResolver {
+		/** @var array<int, array<string, mixed>> */
+		public array $callLog = [];
+
+		// phpcs:ignore
+		public function __construct( private object $hostPost, private mixed $relatedPost ) {}
+
+		public function resolve( array $attributes ): \Illuminate\Contracts\Pagination\LengthAwarePaginator
+		{
+			$this->callLog[] = $attributes;
+
+			if ( isset( $attributes['include'] ) ) {
+				return new \Illuminate\Pagination\LengthAwarePaginator(
+					[ $this->hostPost ],
+					1,
+					1,
+					1
+				);
+			}
+
+			return new \Illuminate\Pagination\LengthAwarePaginator(
+				[ $this->relatedPost ],
+				1,
+				isset( $attributes['perPage'] ) ? (int) $attributes['perPage'] : 3,
+				1
+			);
+		}
+	};
+
+	$this->app->instance( QueryResolverContract::class, $smartFake );
+
+	$this->postJson( '/visual-editor/api/query/resolve', [
+		'relatedTo' => 5,
+		'postType'  => 'post',
+		'perPage'   => 3,
+	] )
+		->assertOk()
+		->assertJsonPath( 'data.0.id', $related->id );
+
+	expect( $smartFake->callLog )->toHaveCount( 2 );
+	expect( $smartFake->callLog[1] )->toHaveKey( 'taxQuery' )
+		->and( $smartFake->callLog[1]['taxQuery']['taxonomy'] )->toBe( 'category' )
+		->and( $smartFake->callLog[1]['taxQuery']['terms'] )->toBe( [ 7 ] )
+		->and( $smartFake->callLog[1]['exclude'] )->toBe( [ 5 ] )
+		->and( $smartFake->callLog[1] )->not->toHaveKey( 'relatedTo' );
+} );
