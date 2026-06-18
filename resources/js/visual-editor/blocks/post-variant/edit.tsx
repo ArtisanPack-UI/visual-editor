@@ -50,11 +50,17 @@ interface PostVariantEditProps {
     context?: PostVariantContext;
 }
 
-const MAX_ROW_SPAN = 12;
+// Hard ceiling matches the renderer-side CSS rule set in
+// `post-variant.css` and the `QueryInliner::clampSpanValue()` cap.
+// Keeping the same ceiling here means the editor slider never
+// exposes a value the renderers would silently clamp away.
+const HARD_MAX_SPAN = 12;
+const MAX_ROW_SPAN = HARD_MAX_SPAN;
 const ROW_SPAN_WARN_THRESHOLD = 4;
 const DEFAULT_NUM_COLUMNS = 3;
 
 function clampSpan( value: number | undefined, max: number, fallback: number ): number {
+    const effectiveMax = Math.min( max, HARD_MAX_SPAN );
     const next = typeof value === 'number' && Number.isFinite( value )
         ? Math.trunc( value )
         : fallback;
@@ -63,8 +69,8 @@ function clampSpan( value: number | undefined, max: number, fallback: number ): 
         return 1;
     }
 
-    if ( next > max ) {
-        return max;
+    if ( next > effectiveMax ) {
+        return effectiveMax;
     }
 
     return next;
@@ -89,12 +95,24 @@ function resolveNumColumns( context: PostVariantContext | undefined ): number {
         return 1;
     }
 
+    if ( parsed > HARD_MAX_SPAN ) {
+        return HARD_MAX_SPAN;
+    }
+
     return parsed;
 }
 
 function isGridLayout( context: PostVariantContext | undefined ): boolean {
-    if ( context?.[ 'artisanpack/postTemplateLayout' ] === 'grid' ) {
-        return true;
+    // The post-template's own `layout` attribute is authoritative when
+    // present in context — even when it's set to a non-grid value,
+    // because the variant lives inside the post-template and inherits
+    // its layout. Only fall back to the parent query's `displayLayout`
+    // when the post-template hasn't published a layout key at all
+    // (older saves, hosts driving grids from the query block).
+    const fromPostTemplate = context?.[ 'artisanpack/postTemplateLayout' ];
+
+    if ( typeof fromPostTemplate === 'string' ) {
+        return 'grid' === fromPostTemplate;
     }
 
     return context?.displayLayout?.type === 'grid';

@@ -67,6 +67,23 @@ function queryWithLayout( array $baseInner, array $variants, string $layout = 'l
 	];
 }
 
+function queryWithPostTemplateAttrs( array $baseInner, array $variants, array $postTemplateAttrs ): array
+{
+	$postTemplateChildren = array_merge( $baseInner, $variants );
+
+	return [
+		'name'        => 'core/query',
+		'attributes'  => [ 'query' => [ 'postType' => 'post', 'perPage' => 5 ] ],
+		'innerBlocks' => [
+			[
+				'name'        => 'core/post-template',
+				'attributes'  => $postTemplateAttrs,
+				'innerBlocks' => $postTemplateChildren,
+			],
+		],
+	];
+}
+
 function variantSpanPostFixture( int $id, string $title, array $extras = [] ): object
 {
 	$post                    = new stdClass();
@@ -211,6 +228,49 @@ it( 'clamps span values into the renderer-supported 1..12 range', function () {
 	expect( $items[0]['attributes']['_resolvedGridSpan'] )->toEqual( [
 		'columns' => [ 'base' => 1 ],
 		'rows'    => [ 'base' => 12 ],
+	] );
+} );
+
+it( 'detects grid layout from the object-form layout attribute and the layoutType sibling', function () {
+	$this->fake->setItems( [
+		variantSpanPostFixture( 1, 'Hero' ),
+	] );
+
+	$base    = [ [ 'name' => 'core/post-title', 'attributes' => [], 'innerBlocks' => [] ] ];
+	$variant = variantBlockWithSpans(
+		[ 'kind' => 'position', 'value' => 'first' ],
+		[ [ 'name' => 'core/post-excerpt', 'attributes' => [], 'innerBlocks' => [] ] ],
+		2,
+		2
+	);
+
+	// Hosts that wire the post-template through Gutenberg's
+	// block-supports layout system save the layout as either a nested
+	// object (`layout = { type: 'grid' }`) or as a sibling
+	// `layoutType` attribute. The inliner must recognise both shapes
+	// as grid, in addition to the canonical string form.
+	$objectFormTree = queryWithPostTemplateAttrs(
+		$base,
+		[ $variant ],
+		[ 'layout' => [ 'type' => 'grid', 'columns' => 3 ] ]
+	);
+
+	$objectFormItems = $this->inliner->inline( [ $objectFormTree ] )[0]['innerBlocks'][0]['innerBlocks'];
+	expect( $objectFormItems[0]['attributes']['_resolvedGridSpan'] )->toEqual( [
+		'columns' => [ 'base' => 2 ],
+		'rows'    => [ 'base' => 2 ],
+	] );
+
+	$layoutTypeTree = queryWithPostTemplateAttrs(
+		$base,
+		[ $variant ],
+		[ 'layoutType' => 'grid' ]
+	);
+
+	$layoutTypeItems = $this->inliner->inline( [ $layoutTypeTree ] )[0]['innerBlocks'][0]['innerBlocks'];
+	expect( $layoutTypeItems[0]['attributes']['_resolvedGridSpan'] )->toEqual( [
+		'columns' => [ 'base' => 2 ],
+		'rows'    => [ 'base' => 2 ],
 	] );
 } );
 

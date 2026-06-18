@@ -625,8 +625,7 @@ class QueryInliner
 				? $postTemplateAttrs['_compiledVariantMap']
 				: [];
 
-		$postTemplateIsGrid = isset( $postTemplateAttrs['layout'] )
-			&& 'grid' === $postTemplateAttrs['layout'];
+		$postTemplateIsGrid = $this->postTemplateLayoutIsGrid( $postTemplateAttrs );
 
 		$resultsList = is_array( $results ) ? array_values( $results ) : iterator_to_array( $results, false );
 
@@ -1034,6 +1033,34 @@ class QueryInliner
 				'_resolvedItems' => count( $results ),
 			] ),
 		] );
+	}
+
+	/**
+	 * Detect whether a post-template's saved attributes describe a
+	 * grid layout. Three shapes are supported so the inliner stays
+	 * tolerant of variation across the ArtisanPack post-template
+	 * (plain `layout` string), upstream `core/post-template` mirrors
+	 * (object-form `layout = ['type' => 'grid']`), and Gutenberg's
+	 * generic block-supports layout system (sibling `layoutType`
+	 * attribute).
+	 *
+	 * @param  array<string, mixed>  $postTemplateAttrs
+	 */
+	protected function postTemplateLayoutIsGrid( array $postTemplateAttrs ): bool
+	{
+		$layout = $postTemplateAttrs['layout'] ?? null;
+
+		if ( is_string( $layout ) && 'grid' === $layout ) {
+			return true;
+		}
+
+		if ( is_array( $layout ) && isset( $layout['type'] ) && 'grid' === $layout['type'] ) {
+			return true;
+		}
+
+		$layoutType = $postTemplateAttrs['layoutType'] ?? null;
+
+		return is_string( $layoutType ) && 'grid' === $layoutType;
 	}
 
 	/**
