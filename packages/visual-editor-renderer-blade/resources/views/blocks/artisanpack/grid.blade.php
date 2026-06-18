@@ -42,8 +42,25 @@
 		}
 	}
 
-	$baseClasses = array_merge( [ 'ap-grid' ], $breakpointClasses, PhotoGridSupport::wrapperForBlock( $attributes ) );
+	$layoutMode = isset( $attributes['layoutMode'] ) && 'masonry' === $attributes['layoutMode']
+		? 'masonry'
+		: 'fixed';
+	$isMasonry = 'masonry' === $layoutMode;
+
+	$layoutClass = $isMasonry ? 'ap-grid-layout-masonry' : 'ap-grid-layout-fixed';
+
+	$baseClasses = array_merge(
+		[ 'ap-grid' ],
+		$breakpointClasses,
+		[ $layoutClass ],
+		PhotoGridSupport::wrapperForBlock( $attributes )
+	);
+
+	$attrs = BlockSupports::wrapperAttrs( $attributes, $baseClasses );
+	if ( $isMasonry ) {
+		$attrs .= sprintf( ' data-ap-cols="%d"', $baseColumns );
+	}
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
+<div{!! $attrs !!}>
 	{!! $innerBlocksHtml !!}
 </div>

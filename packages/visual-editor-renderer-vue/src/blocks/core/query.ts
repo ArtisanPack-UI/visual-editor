@@ -61,20 +61,32 @@ export const PostTemplateBlock = defineComponent({
             const layout = attrString(props.attributes.layout);
             const layoutType = attrString(props.attributes.layoutType);
             const isGrid = layout === 'grid' || layoutType === 'grid';
+            const isMasonry = layout === 'masonry';
+            const usesColumns = isGrid || isMasonry;
             const columns = typeof props.attributes.columns === 'number' ? props.attributes.columns : 3;
 
-            return h(
-                'ul',
-                {
-                    class: classList([
-                        'wp-block-post-template',
-                        isGrid ? 'is-layout-grid' : 'is-layout-flow',
-                        isGrid ? `columns-${columns}` : '',
-                        className,
-                    ]),
-                },
-                slots.default?.()
-            );
+            const attrs: Record<string, unknown> = {
+                class: classList([
+                    'wp-block-post-template',
+                    // Masonry layers `is-layout-grid` underneath
+                    // `is-layout-masonry` so the existing grid CSS
+                    // provides the baseline layout, and the masonry
+                    // stylesheet adds `grid-template-rows: masonry` on
+                    // top via `@supports` for browsers that ship native
+                    // CSS Grid masonry. The JS bootstrap packs the rest.
+                    (isGrid || isMasonry) ? 'is-layout-grid' : '',
+                    isMasonry ? 'is-layout-masonry' : '',
+                    !usesColumns ? 'is-layout-flow' : '',
+                    usesColumns ? `columns-${columns}` : '',
+                    className,
+                ]),
+            };
+
+            if (isMasonry) {
+                attrs['data-ap-cols'] = columns;
+            }
+
+            return h('ul', attrs, slots.default?.());
         };
     },
 });

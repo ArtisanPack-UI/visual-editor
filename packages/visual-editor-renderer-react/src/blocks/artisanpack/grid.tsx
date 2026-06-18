@@ -79,15 +79,23 @@ export function GridBlock({ attributes, children }: BlockRendererProps): JSX.Ele
     const responsive = attrRecord(attributes.responsive);
     const responsiveColumns = attrRecord(responsive.numColumns);
     const className = attrString(attributes.className);
+    const layoutMode = attrString(attributes.layoutMode);
+    const isMasonry = 'masonry' === layoutMode;
 
     const classes = classList([
         'ap-grid',
         `ap-grid-has-${baseColumns}-base-columns`,
         ...responsiveSpanClasses(responsiveColumns, 'columns', 'ap-grid-has'),
+        isMasonry ? 'ap-grid-layout-masonry' : 'ap-grid-layout-fixed',
         className,
     ]);
 
-    return <div className={classes}>{children as ReactNode}</div>;
+    const props: Record<string, unknown> = { className: classes };
+    if (isMasonry) {
+        props['data-ap-cols'] = baseColumns;
+    }
+
+    return <div {...props}>{children as ReactNode}</div>;
 }
 
 export function GridItemBlock({ attributes, children }: BlockRendererProps): JSX.Element {

@@ -60,16 +60,30 @@ export function PostTemplateBlock({ attributes, children }: BlockRendererProps):
     const layout = attrString(attributes.layout);
     const layoutType = attrString(attributes.layoutType);
     const isGrid = layout === 'grid' || layoutType === 'grid';
+    const isMasonry = layout === 'masonry';
+    const usesColumns = isGrid || isMasonry;
     const columns = typeof attributes.columns === 'number' ? attributes.columns : 3;
 
     const classes = classList([
         'wp-block-post-template',
-        isGrid ? 'is-layout-grid' : 'is-layout-flow',
-        isGrid ? `columns-${columns}` : '',
+        // Masonry layers `is-layout-grid` underneath `is-layout-masonry`
+        // so the existing grid CSS provides the baseline layout, and
+        // the masonry stylesheet adds `grid-template-rows: masonry` on
+        // top via `@supports` for browsers that ship native CSS Grid
+        // masonry. The JS bootstrap takes over for the rest.
+        (isGrid || isMasonry) ? 'is-layout-grid' : '',
+        isMasonry ? 'is-layout-masonry' : '',
+        !usesColumns ? 'is-layout-flow' : '',
+        usesColumns ? `columns-${columns}` : '',
         className,
     ]);
 
-    return <ul className={classes}>{children}</ul>;
+    const props: Record<string, unknown> = { className: classes };
+    if (isMasonry) {
+        props['data-ap-cols'] = columns;
+    }
+
+    return <ul {...props}>{children}</ul>;
 }
 
 /**

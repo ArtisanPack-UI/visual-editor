@@ -1,0 +1,82 @@
+/**
+ * Shared masonry layout styles (#593).
+ *
+ * Mirror of `resources/js/visual-editor/blocks/_shared/masonry/masonry.css`
+ * — kept byte-for-byte identical so the editor canvas and the public
+ * frontend layer the same rules. Loaded on the public frontend via
+ * `<x-ve-blocks-styles />`. Targets:
+ *
+ *   - `artisanpack/post-template` rendered with `layout: masonry`
+ *     (`.wp-block-post-template.is-layout-masonry`)
+ *   - `artisanpack/grid` rendered with `layoutMode: masonry`
+ *     (`.ap-grid.ap-grid-layout-masonry`)
+ *
+ * Two paths:
+ *
+ *   1. Native CSS Grid Level 3 (`grid-template-rows: masonry`). Picked up
+ *      by browsers that ship support; the @supports gate keeps the rule
+ *      from polluting non-supporting browsers' layout.
+ *   2. The JS fallback (`masonry-fallback.js`). When the fallback runs,
+ *      it stamps the wrapper with `ap-masonry-js-fallback` and
+ *      absolute-positions each child. The `:not(.ap-masonry-js-fallback)`
+ *      guard prevents the native rule from fighting with the fallback
+ *      while it is active.
+ */
+
+/* === Native CSS Grid masonry path =================================== */
+
+@supports (grid-template-rows: masonry) {
+    .wp-block-post-template.is-layout-masonry:not(.ap-masonry-js-fallback) {
+        grid-template-rows: masonry;
+    }
+
+    .ap-grid.ap-grid-layout-masonry:not(.ap-masonry-js-fallback) {
+        grid-template-rows: masonry;
+    }
+}
+
+/* === Shared baseline for both paths ================================= */
+
+.wp-block-post-template.is-layout-masonry:not(.ap-masonry-js-fallback) {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: var(--wp--style--block-gap, 1.25em);
+    list-style: none;
+    padding: 0;
+}
+
+.wp-block-post-template.is-layout-masonry.columns-2:not(.ap-masonry-js-fallback) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.wp-block-post-template.is-layout-masonry.columns-3:not(.ap-masonry-js-fallback) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.wp-block-post-template.is-layout-masonry.columns-4:not(.ap-masonry-js-fallback) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.wp-block-post-template.is-layout-masonry.columns-5:not(.ap-masonry-js-fallback) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.wp-block-post-template.is-layout-masonry.columns-6:not(.ap-masonry-js-fallback) { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+.wp-block-post-template.is-layout-masonry:not(.ap-masonry-js-fallback) > .wp-block-post-template-item {
+    margin: 0;
+    width: auto;
+    min-width: 0;
+}
+
+/* === JS fallback positioning context ================================ */
+
+/* When the JS fallback is active it owns the layout: `display: block`
+ * so children can lift into `position: absolute` without competing
+ * with the baseline grid rules above. The compound selectors match the
+ * baseline's specificity so the fallback wins deterministically without
+ * resorting to `!important`. */
+.wp-block-post-template.is-layout-masonry.ap-masonry-js-fallback,
+.ap-grid.ap-grid-layout-masonry.ap-masonry-js-fallback,
+.ap-masonry-js-fallback {
+    position: relative;
+    display: block;
+    list-style: none;
+    padding: 0;
+    grid-template-columns: none;
+    grid-template-rows: none;
+}
+
+.ap-masonry-js-fallback > .ap-masonry-item {
+    position: absolute;
+    box-sizing: border-box;
+    margin: 0;
+}

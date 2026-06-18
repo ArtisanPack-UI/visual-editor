@@ -12,6 +12,11 @@
     "attributes": {
         "layout": {
             "type": "string",
+            "enum": [
+                "list",
+                "grid",
+                "masonry"
+            ],
             "default": "list"
         },
         "columns": {

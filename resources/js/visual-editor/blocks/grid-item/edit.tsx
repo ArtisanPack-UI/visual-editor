@@ -45,6 +45,7 @@ interface GridItemAttributes {
 
 interface GridItemContext {
     readonly numColumns?: number;
+    readonly 'artisanpack/gridLayoutMode'?: string;
 }
 
 interface GridItemEditProps {
@@ -79,6 +80,7 @@ export default function GridItemEdit({
     )
         ? attributes.innerLayout
         : 'normal';
+    const isMasonryParent = 'masonry' === context['artisanpack/gridLayoutMode'];
 
     const flexRegistry = new BreakpointRegistry();
     const flexResult = serializeFlex(
@@ -133,7 +135,14 @@ export default function GridItemEdit({
                     />
                     <RangeControl
                         label={__('Row Span', TEXT_DOMAIN)}
-                        help={__('How many grid rows this item spans.', TEXT_DOMAIN)}
+                        help={
+                            isMasonryParent
+                                ? __(
+                                      "Row span doesn't apply in masonry layouts — rows pack automatically.",
+                                      TEXT_DOMAIN
+                                  )
+                                : __('How many grid rows this item spans.', TEXT_DOMAIN)
+                        }
                         value={gridRowSpan}
                         onChange={(value) =>
                             setAttributes({ gridRowSpan: clampSpan(value, 12, 1) })
@@ -142,6 +151,7 @@ export default function GridItemEdit({
                         max={12}
                         allowReset
                         resetFallbackValue={1}
+                        disabled={isMasonryParent}
                         __nextHasNoMarginBottom
                     />
                 </PanelBody>

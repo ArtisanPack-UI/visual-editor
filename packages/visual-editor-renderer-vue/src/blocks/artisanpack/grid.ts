@@ -83,17 +83,25 @@ export const GridBlock = defineComponent({
             const responsive = attrRecord(props.attributes.responsive);
             const responsiveColumns = attrRecord(responsive.numColumns);
             const className = attrString(props.attributes.className);
+            const layoutMode = attrString(props.attributes.layoutMode);
+            const isMasonry = 'masonry' === layoutMode;
 
             const classes = classList([
                 'ap-grid',
                 `ap-grid-has-${baseColumns}-base-columns`,
                 ...responsiveSpanClasses(responsiveColumns, 'columns', 'ap-grid-has'),
+                isMasonry ? 'ap-grid-layout-masonry' : 'ap-grid-layout-fixed',
                 className,
             ]);
 
+            const attrs: Record<string, unknown> = { class: classes };
+            if (isMasonry) {
+                attrs['data-ap-cols'] = baseColumns;
+            }
+
             return h(
                 'div',
-                { class: classes },
+                attrs,
                 slots.default ? slots.default() : []
             );
         };

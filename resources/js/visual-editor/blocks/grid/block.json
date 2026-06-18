@@ -16,13 +16,22 @@
             "type": "number",
             "default": 4
         },
+        "layoutMode": {
+            "type": "string",
+            "enum": [
+                "fixed",
+                "masonry"
+            ],
+            "default": "fixed"
+        },
         "photoGrid": {
             "type": "object",
             "default": null
         }
     },
     "providesContext": {
-        "numColumns": "numColumns"
+        "numColumns": "numColumns",
+        "artisanpack/gridLayoutMode": "layoutMode"
     },
     "supports": {
         "artisanpackAnimations": true,

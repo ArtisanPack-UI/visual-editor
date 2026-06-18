@@ -1106,6 +1106,29 @@ describe('Core design blocks', () => {
         expect(html).toContain('ap-grid-has-4-lg-columns');
     });
 
+    it('emits the masonry layout-mode class + data-ap-cols on the grid wrapper when layoutMode is masonry (#593)', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/grid', {
+                numColumns: 3,
+                layoutMode: 'masonry',
+            }),
+        ]);
+
+        expect(html).toContain('ap-grid-layout-masonry');
+        expect(html).toContain('data-ap-cols="3"');
+        expect(html).not.toContain('ap-grid-layout-fixed');
+    });
+
+    it('emits the fixed layout-mode class on the grid wrapper by default (#593)', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/grid', { numColumns: 3 }),
+        ]);
+
+        expect(html).toContain('ap-grid-layout-fixed');
+        expect(html).not.toContain('ap-grid-layout-masonry');
+        expect(html).not.toContain('data-ap-cols');
+    });
+
     it('falls back to a safe default when grid-item innerLayout is invalid', () => {
         const tree = [
             makeBlock('artisanpack/grid-item', {
