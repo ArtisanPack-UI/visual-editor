@@ -83,17 +83,41 @@ export const GridBlock = defineComponent({
             const responsive = attrRecord(props.attributes.responsive);
             const responsiveColumns = attrRecord(responsive.numColumns);
             const className = attrString(props.attributes.className);
+            const layoutMode = attrString(props.attributes.layoutMode);
+            const isMasonry = 'masonry' === layoutMode;
 
             const classes = classList([
                 'ap-grid',
                 `ap-grid-has-${baseColumns}-base-columns`,
                 ...responsiveSpanClasses(responsiveColumns, 'columns', 'ap-grid-has'),
+                isMasonry ? 'ap-grid-layout-masonry' : 'ap-grid-layout-fixed',
                 className,
             ]);
 
+            const attrs: Record<string, unknown> = { class: classes };
+            if (isMasonry) {
+                attrs['data-ap-cols'] = baseColumns;
+
+                // Per-breakpoint overrides ride alongside the base
+                // count so the JS bootstrap can pick the active
+                // breakpoint at runtime instead of locking masonry to
+                // the base `data-ap-cols`.
+                for (const bp of BREAKPOINTS) {
+                    const raw = responsiveColumns[bp];
+                    if (raw === undefined || raw === null) {
+                        continue;
+                    }
+                    const numeric = typeof raw === 'number' ? raw : Number(raw);
+                    if (!Number.isFinite(numeric)) {
+                        continue;
+                    }
+                    attrs[`data-ap-cols-${bp}`] = clampInt(numeric, 1, 12, baseColumns);
+                }
+            }
+
             return h(
                 'div',
-                { class: classes },
+                attrs,
                 slots.default ? slots.default() : []
             );
         };

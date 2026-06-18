@@ -19,6 +19,7 @@ import transforms from './transforms';
 import icon from './inserter-icon';
 
 import './post-template.css';
+import '../_shared/masonry/masonry.css';
 
 export { edit, save, metadata, icon, transforms };
 

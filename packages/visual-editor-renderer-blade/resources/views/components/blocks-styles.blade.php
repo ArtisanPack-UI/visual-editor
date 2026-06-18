@@ -48,6 +48,12 @@
 	so a variant's per-breakpoint `gridColumnSpan` / `gridRowSpan` only takes
 	effect inside a grid-layout Query Loop. --}}
 <link rel="stylesheet" href="{{ $postVariantStyleHref }}" data-ve-post-variant>
+{{-- #593 — Masonry layout. Powers `post-template` (layout: masonry) and
+	`grid` (layoutMode: masonry). Native CSS Grid masonry lights up
+	automatically where supported via `@supports`; the JS fallback
+	bootstrap below handles the rest. --}}
+<link rel="stylesheet" href="{{ $masonryStyleHref }}" data-ve-masonry>
+<script src="{{ $masonryScriptSrc }}" defer data-ve-masonry-fallback></script>
 @if( '' !== $themeTokensCss )
 <style data-ve-theme-tokens>{!! $themeTokensCss !!}</style>
 @endif

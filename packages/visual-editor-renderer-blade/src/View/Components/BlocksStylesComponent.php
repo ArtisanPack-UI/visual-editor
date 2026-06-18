@@ -79,6 +79,10 @@ class BlocksStylesComponent extends Component
 
 	public string $postVariantStyleHref;
 
+	public string $masonryStyleHref;
+
+	public string $masonryScriptSrc;
+
 	public string $interactivityScriptSrc;
 
 	public bool $emitBlockLibrary;
@@ -120,6 +124,8 @@ class BlocksStylesComponent extends Component
 		$this->photoGridStyleHref     = $base . '/frontend/photo-grid.css';
 		$this->postTemplateStyleHref  = $base . '/frontend/post-template.css';
 		$this->postVariantStyleHref   = $base . '/frontend/post-variant.css';
+		$this->masonryStyleHref       = $base . '/frontend/masonry.css';
+		$this->masonryScriptSrc       = $base . '/frontend/masonry-fallback.js';
 		$this->interactivityScriptSrc = $base . '/frontend/interactivity.js';
 		$this->emitBlockLibrary       = $bundle;
 		$this->emitInteractive        = $interactive;

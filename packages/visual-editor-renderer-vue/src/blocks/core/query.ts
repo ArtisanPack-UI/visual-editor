@@ -13,8 +13,27 @@
  */
 
 import { defineComponent, h } from 'vue';
-import { attrString, classList, postTemplateItemSpanClasses } from '../../support/attributes';
+import { attrInt, attrString, classList, postTemplateItemSpanClasses } from '../../support/attributes';
 import { blockRendererProps } from '../shared';
+
+/**
+ * Coerce a host-supplied `columns` attribute into a safe integer in [1, 12].
+ *
+ * Delegates to {@link attrInt} so numeric strings ("4") survive serializers
+ * that don't preserve number types, while NaN / Infinity / unparseable
+ * strings fall through to the caller's fallback. The result is clamped
+ * to the same bounds the stylesheet supports.
+ */
+function clampColumns(value: unknown, fallback: number): number {
+    const parsed = attrInt(value, fallback);
+    if (parsed < 1) {
+        return 1;
+    }
+    if (parsed > 12) {
+        return 12;
+    }
+    return parsed;
+}
 
 function isDevelopment(): boolean {
     if (typeof process === 'undefined') {
@@ -61,20 +80,32 @@ export const PostTemplateBlock = defineComponent({
             const layout = attrString(props.attributes.layout);
             const layoutType = attrString(props.attributes.layoutType);
             const isGrid = layout === 'grid' || layoutType === 'grid';
-            const columns = typeof props.attributes.columns === 'number' ? props.attributes.columns : 3;
+            const isMasonry = layout === 'masonry';
+            const usesColumns = isGrid || isMasonry;
+            const columns = clampColumns(props.attributes.columns, 3);
 
-            return h(
-                'ul',
-                {
-                    class: classList([
-                        'wp-block-post-template',
-                        isGrid ? 'is-layout-grid' : 'is-layout-flow',
-                        isGrid ? `columns-${columns}` : '',
-                        className,
-                    ]),
-                },
-                slots.default?.()
-            );
+            const attrs: Record<string, unknown> = {
+                class: classList([
+                    'wp-block-post-template',
+                    // Masonry layers `is-layout-grid` underneath
+                    // `is-layout-masonry` so the existing grid CSS
+                    // provides the baseline layout, and the masonry
+                    // stylesheet adds `grid-template-rows: masonry` on
+                    // top via `@supports` for browsers that ship native
+                    // CSS Grid masonry. The JS bootstrap packs the rest.
+                    (isGrid || isMasonry) ? 'is-layout-grid' : '',
+                    isMasonry ? 'is-layout-masonry' : '',
+                    !usesColumns ? 'is-layout-flow' : '',
+                    usesColumns ? `columns-${columns}` : '',
+                    className,
+                ]),
+            };
+
+            if (isMasonry) {
+                attrs['data-ap-cols'] = columns;
+            }
+
+            return h('ul', attrs, slots.default?.());
         };
     },
 });

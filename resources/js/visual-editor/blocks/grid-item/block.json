@@ -15,7 +15,8 @@
     ],
     "textdomain": "artisanpack-visual-editor",
     "usesContext": [
-        "numColumns"
+        "numColumns",
+        "artisanpack/gridLayoutMode"
     ],
     "attributes": {
         "innerLayout": {
