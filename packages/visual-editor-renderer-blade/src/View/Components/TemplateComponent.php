@@ -81,10 +81,14 @@ class TemplateComponent extends Component
 		protected StateCssAccumulator $stateAccumulator,
 		protected AnimationCssAccumulator $animationAccumulator,
 		protected GradientBorderCssAccumulator $gradientBorderAccumulator,
-		protected BoxShadowCssAccumulator $boxShadowAccumulator,
 		string $slug,
 		?string $theme = null,
+		protected ?BoxShadowCssAccumulator $boxShadowAccumulator = null,
 	) {
+		if ( null === $this->boxShadowAccumulator ) {
+			$this->boxShadowAccumulator = $this->app->make( BoxShadowCssAccumulator::class );
+		}
+
 		$this->slug          = $slug;
 		$this->theme         = $theme;
 		$this->fallbackChain = $this->buildFallbackChain( $slug );

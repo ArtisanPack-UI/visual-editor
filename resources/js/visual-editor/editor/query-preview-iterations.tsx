@@ -51,7 +51,8 @@ import {
 } from './query-preview-context';
 import type { QueryPreviewPost } from './use-query-preview';
 import {
-    resolveVariant,
+    resolveVariantPresorted,
+    sortVariants,
     type Matcher,
     type PreviewPostMeta,
     type VariantDescriptor,
@@ -263,22 +264,37 @@ export function QueryPreviewIterations(
 
     const posts = preview?.posts ?? [];
     const cap = getQueryPreviewIterationCount( posts, preview?.perPage );
-    const visiblePosts = posts.slice( 0, cap );
+    // Memoize the slice so its reference is stable across renders. Without
+    // this, `resolvedOrders` (which lists `visiblePosts` in its deps) rebuilds
+    // every keystroke in any descendant block — defeating the per-iteration
+    // cache #604 introduced.
+    const visiblePosts = useMemo(
+        () => posts.slice( 0, cap ),
+        [ posts, cap ]
+    );
     const total = visiblePosts.length;
+
+    // Sort variants by precedence once per descriptors change; reused across
+    // every iteration below to avoid an O(N*M log M) sort per render.
+    const sortedDescriptors = useMemo(
+        () => sortVariants( descriptors ),
+        [ descriptors ]
+    );
 
     // Resolve each visible iteration to a variant order (or null = base).
     const resolvedOrders = useMemo<ReadonlyArray<number | null>>(
         () =>
             visiblePosts.map( ( post, idx ) =>
-                resolveVariant(
+                resolveVariantPresorted(
                     idx,
                     total,
                     toPreviewMeta( post ),
-                    descriptors,
+                    sortedDescriptors,
+                    descriptors.length,
                     compiledVariantMap
                 )
             ),
-        [ visiblePosts, total, descriptors, compiledVariantMap ]
+        [ visiblePosts, total, sortedDescriptors, descriptors.length, compiledVariantMap ]
     );
 
     // Track which iteration is the editable one. Clicking on a ghost

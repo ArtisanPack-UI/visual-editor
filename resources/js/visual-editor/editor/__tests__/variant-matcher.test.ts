@@ -122,8 +122,27 @@ describe( 'compileStaticMap', () => {
 
 describe( 'resolveVariant', () => {
     it( 'returns the static-map hit when present', () => {
-        const map = { 0: 4 };
-        expect( resolveVariant( 0, 3, {}, [], map ) ).toBe( 4 );
+        const map = { 0: 1 };
+        // Five variants present, map points at order 1 — in range, returns 1.
+        const variants: VariantDescriptor[] = [
+            { order: 0, priority: 10, matcher: { kind: 'position', value: 'first' } },
+            { order: 1, priority: 10, matcher: { kind: 'position', value: 'last' } },
+            { order: 2, priority: 10, matcher: { kind: 'pattern', value: 'odd' } },
+            { order: 3, priority: 10, matcher: { kind: 'pattern', value: 'even' } },
+            { order: 4, priority: 10, matcher: { kind: 'meta', value: 'sticky' } },
+        ];
+        expect( resolveVariant( 0, 3, {}, variants, map ) ).toBe( 1 );
+    } );
+
+    it( 'returns null when the static-map points at a deleted variant (stale map)', () => {
+        // Map was stamped when 3 variants existed; one was deleted.
+        // Out-of-range entries must yield null instead of falling through
+        // to matcher evaluation, to keep parity with the PHP resolver.
+        const map = { 0: 2 };
+        const variants: VariantDescriptor[] = [
+            { order: 0, priority: 10, matcher: { kind: 'position', value: 'first' } },
+        ];
+        expect( resolveVariant( 0, 3, {}, variants, map ) ).toBe( null );
     } );
 
     it( 'walks position matchers against the live total when the static map missed', () => {

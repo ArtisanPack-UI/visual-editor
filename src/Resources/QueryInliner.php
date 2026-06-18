@@ -339,28 +339,28 @@ class QueryInliner
 			return $this->markFailed( $block, self::ERROR_NO_RUNTIME );
 		}
 
-		/** @var QueryResolverContract $resolver */
-		$resolver = $this->container->make( QueryResolverContract::class );
-
-		$host   = $this->hostPost;
-		$helper = new HostRelatedTermsResolver( $resolver );
-
-		$hostId                 = isset( $host->id ) ? (int) $host->id : 0;
-		$hostType               = $helper->hostPostType( $host );
-		[ $taxonomy, $termIds ] = $helper->hostRelatedTerms( $host );
-
-		$queryAttrs = [
-			'postType' => $hostType,
-			'perPage'  => $numPosts,
-			'offset'   => $offset,
-			'order'    => $order,
-			'orderBy'  => $orderBy,
-			'exclude'  => 0 === $hostId ? [] : [ $hostId ],
-			'taxonomy' => $taxonomy,
-			'terms'    => $termIds,
-		];
-
 		try {
+			/** @var QueryResolverContract $resolver */
+			$resolver = $this->container->make( QueryResolverContract::class );
+
+			$host   = $this->hostPost;
+			$helper = new HostRelatedTermsResolver( $resolver );
+
+			$hostId                 = isset( $host->id ) ? (int) $host->id : 0;
+			$hostType               = $helper->hostPostType( $host );
+			[ $taxonomy, $termIds ] = $helper->hostRelatedTerms( $host );
+
+			$queryAttrs = [
+				'postType' => $hostType,
+				'perPage'  => $numPosts,
+				'offset'   => $offset,
+				'order'    => $order,
+				'orderBy'  => $orderBy,
+				'exclude'  => 0 === $hostId ? [] : [ $hostId ],
+				'taxonomy' => $taxonomy,
+				'terms'    => $termIds,
+			];
+
 			$paginator = $resolver->resolve( $queryAttrs );
 		} catch ( Throwable $e ) {
 			report( $e );
@@ -1195,7 +1195,15 @@ class QueryInliner
 				continue;
 			}
 
-			$columns[ $bp ] = $this->clampSpanValue( $value, $baseColumns );
+			$clamped = $this->clampSpanValue( $value, $baseColumns );
+
+			// Drop responsive entries that resolve to the same span as the
+			// base — emitting `ap-post-span-1-md-columns` alongside
+			// `ap-post-span-1-base-columns` would duplicate the rule and
+			// inflate the class list for no visual change.
+			if ( $clamped !== $baseColumns ) {
+				$columns[ $bp ] = $clamped;
+			}
 		}
 
 		$rowOverrides = isset( $responsive['gridRowSpan'] ) && is_array( $responsive['gridRowSpan'] )
@@ -1211,7 +1219,11 @@ class QueryInliner
 				continue;
 			}
 
-			$rows[ $bp ] = $this->clampSpanValue( $value, $baseRows );
+			$clamped = $this->clampSpanValue( $value, $baseRows );
+
+			if ( $clamped !== $baseRows ) {
+				$rows[ $bp ] = $clamped;
+			}
 		}
 
 		$hasOverrides = count( $columns ) > 1 || count( $rows ) > 1;

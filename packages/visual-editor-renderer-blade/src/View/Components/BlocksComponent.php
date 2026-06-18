@@ -72,7 +72,6 @@ class BlocksComponent extends Component
 		protected StateCssAccumulator $stateAccumulator,
 		protected AnimationCssAccumulator $animationAccumulator,
 		protected GradientBorderCssAccumulator $gradientBorderAccumulator,
-		protected BoxShadowCssAccumulator $boxShadowAccumulator,
 		mixed $tree = null,
 		?string $defaultTheme = null,
 		mixed $post = null,
@@ -83,7 +82,12 @@ class BlocksComponent extends Component
 		bool $resolvePost = true,
 		bool $resolveBreadcrumbs = true,
 		bool $resolveNavigation = true,
+		protected ?BoxShadowCssAccumulator $boxShadowAccumulator = null,
 	) {
+		if ( null === $this->boxShadowAccumulator ) {
+			$this->boxShadowAccumulator = app( BoxShadowCssAccumulator::class );
+		}
+
 		$this->defaultTheme = $defaultTheme;
 
 		$normalized = $this->normalizeTree( $tree );

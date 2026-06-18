@@ -306,8 +306,16 @@ export function resolveVariant(
 ): number | null {
     const fromStatic = staticMap[ index ];
     if ( typeof fromStatic === 'number' ) {
-        return fromStatic;
+        // Bounds-check: if the variant the static map points at no
+        // longer exists (deleted after the map was stamped), treat as
+        // "no variant" to keep parity with the PHP-side VariantResolver.
+        if ( fromStatic >= 0 && fromStatic < variants.length ) {
+            return fromStatic;
+        }
+        return null;
     }
+    // Sort defensively for ad-hoc callers. Hot-loop callers should
+    // use `resolveVariantPresorted` to avoid re-sorting per post.
     const sorted = sortVariants( variants );
     for ( const variant of sorted ) {
         if ( isInstance( variant.matcher ) ) {
@@ -325,6 +333,44 @@ export function resolveVariant(
             return variant.order;
         }
         // `custom` is server-side only; never resolved in the editor.
+    }
+    return null;
+}
+
+/**
+ * Hot-path variant of {@see resolveVariant}: the caller has already
+ * sorted `sortedVariants` by precedence (typically once per render via
+ * `useMemo`) and reuses the result across every iteration. Avoids the
+ * per-post `sortVariants(...)` allocation `resolveVariant` does.
+ */
+export function resolveVariantPresorted(
+    index: number,
+    total: number,
+    post: PreviewPostMeta,
+    sortedVariants: ReadonlyArray<VariantDescriptor>,
+    variantCount: number,
+    staticMap: Record<number, number>
+): number | null {
+    const fromStatic = staticMap[ index ];
+    if ( typeof fromStatic === 'number' ) {
+        if ( fromStatic >= 0 && fromStatic < variantCount ) {
+            return fromStatic;
+        }
+        return null;
+    }
+    for ( const variant of sortedVariants ) {
+        if ( isInstance( variant.matcher ) ) {
+            continue;
+        }
+        if ( variant.matcher.kind === 'position' && matchPosition( variant.matcher, index, total ) ) {
+            return variant.order;
+        }
+        if ( variant.matcher.kind === 'pattern' && matchPattern( variant.matcher, index ) ) {
+            return variant.order;
+        }
+        if ( variant.matcher.kind === 'meta' && matchMeta( variant.matcher, post ) ) {
+            return variant.order;
+        }
     }
     return null;
 }

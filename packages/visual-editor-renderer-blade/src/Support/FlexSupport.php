@@ -388,6 +388,14 @@ class FlexSupport
 				continue;
 			}
 
+			// Skip empty-string overrides — they would flow through
+			// `bracket('')` and emit `ap-basis-[]` + an invalid
+			// `flex-basis: ;` declaration that can poison the rest of
+			// the accumulator output on strict CSS parsers.
+			if ( is_string( $value ) && '' === trim( $value ) ) {
+				continue;
+			}
+
 			$cb( $value, $bp );
 		}
 	}

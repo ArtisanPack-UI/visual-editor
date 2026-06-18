@@ -188,10 +188,12 @@ class PhotoGridSupport
 		if ( '' === $trimmed ) {
 			return '50% 50%';
 		}
-		// Reject CSS declaration / rule delimiters so a tampered
-		// `objectPosition` cannot break out of the `--ap-photo-grid-
-		// position` declaration and inject sibling rules.
-		if ( 1 === preg_match( '/[;{}<>]/', $trimmed ) ) {
+		// Allowlist: digits, percent, decimal, sign, whitespace, and the
+		// CSS keywords (top/right/bottom/left/center). Anything else —
+		// including `(` `)` `/` `*` `\` — falls back to the default so a
+		// tampered `objectPosition` cannot break out of the declaration
+		// and inject sibling rules (or open an unterminated comment).
+		if ( 1 !== preg_match( '/^[0-9%.+\-\s a-z]+$/i', $trimmed ) ) {
 			return '50% 50%';
 		}
 

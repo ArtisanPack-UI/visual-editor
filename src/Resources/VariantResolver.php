@@ -124,6 +124,13 @@ class VariantResolver
 			if ( $mapped >= 0 && $mapped < count( $this->variants ) ) {
 				return $mapped;
 			}
+
+			// Stale map entry (variant was deleted after the editor
+			// stamped the map). Treat as "no variant" to keep the
+			// server output aligned with the editor's JS resolver,
+			// which also returns null for a missing variant order
+			// instead of falling through to matcher evaluation.
+			return null;
 		}
 
 		foreach ( $this->sortedVariants as $variant ) {
