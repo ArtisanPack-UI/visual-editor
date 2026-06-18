@@ -46,6 +46,7 @@ import {
 import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
 import { registerArtisanPackBlocks } from '../blocks';
+import { registerBoxShadows } from '../box-shadows/register';
 import { registerGradientBorders } from '../gradient-borders/register';
 
 import { BlockLibrarySidebar } from '../editor/block-library-sidebar';
@@ -164,6 +165,7 @@ function ensureEditorBoot(): void {
     // registerArtisanPackBlocks" placement as the post-editor so opted-in
     // blocks pick up the routed `border.gradient` path at registration.
     registerGradientBorders();
+    registerBoxShadows();
 
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.

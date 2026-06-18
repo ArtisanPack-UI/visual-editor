@@ -35,6 +35,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
@@ -71,6 +72,7 @@ class BlocksComponent extends Component
 		protected StateCssAccumulator $stateAccumulator,
 		protected AnimationCssAccumulator $animationAccumulator,
 		protected GradientBorderCssAccumulator $gradientBorderAccumulator,
+		protected BoxShadowCssAccumulator $boxShadowAccumulator,
 		mixed $tree = null,
 		?string $defaultTheme = null,
 		mixed $post = null,
@@ -166,6 +168,7 @@ class BlocksComponent extends Component
 		$statesCss          = $this->stateAccumulator->flush();
 		$animationOutput    = $this->animationAccumulator->flush();
 		$gradientBordersCss = $this->gradientBorderAccumulator->flush();
+		$boxShadowsCss      = $this->boxShadowAccumulator->flush();
 
 		return view( 'visual-editor-renderer-blade::components.blocks', [
 			'html'                    => $html,
@@ -176,6 +179,7 @@ class BlocksComponent extends Component
 			'animationsNoscript'      => $animationOutput['noscriptTag'],
 			'animationsRuntimeNeeded' => $animationOutput['runtimeNeeded'],
 			'gradientBordersCss'      => $gradientBordersCss,
+			'boxShadowsCss'           => $boxShadowsCss,
 		] );
 	}
 
