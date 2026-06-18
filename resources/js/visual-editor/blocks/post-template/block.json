@@ -5,18 +5,28 @@
     "title": "Post Template",
     "category": "theme",
     "ancestor": [
-        "artisanpack/query"
+        "artisanpack/query",
+        "artisanpack/related-posts"
     ],
     "description": "Contains the block elements used to render a post, like the title, date, featured image, content or excerpt, and more.",
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "layout": {
             "type": "string",
+            "enum": [
+                "list",
+                "grid",
+                "masonry"
+            ],
             "default": "list"
         },
         "columns": {
             "type": "number",
             "default": 3
+        },
+        "_compiledVariantMap": {
+            "type": "object",
+            "default": {}
         }
     },
     "usesContext": [
@@ -26,8 +36,13 @@
         "templateSlug",
         "previewPostType",
         "enhancedPagination",
-        "postType"
+        "postType",
+        "artisanpack/queryPreview"
     ],
+    "providesContext": {
+        "artisanpack/postTemplateLayout": "layout",
+        "artisanpack/postTemplateColumns": "columns"
+    },
     "supports": {
         "anchor": true,
         "reusable": false,

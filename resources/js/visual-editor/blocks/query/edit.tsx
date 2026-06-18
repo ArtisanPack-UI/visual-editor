@@ -28,8 +28,13 @@ import {
 } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
+import {
+    QUERY_PREVIEW_CONTEXT_KEY,
+    type QueryPreviewContextValue,
+} from '../../editor/query-preview-context';
 import { useQueryPreview } from '../../editor/use-query-preview';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
+import PostVariantsPanel from './post-variants-panel';
 
 interface QueryEditProps {
     attributes: Record<string, unknown>;
@@ -100,20 +105,25 @@ export default function QueryEdit( {
 
     const preview = useQueryPreview( query );
 
-    const firstPost = preview.status === 'ready' ? preview.posts[ 0 ] : undefined;
-    // The `artisanpack/postPreview` key piggybacks on the
-    // `BlockContextProvider` `postId` path so inner `post-*` block edits
-    // can render the first matched post's actual data in the canvas
-    // (#483). The value is null when no preview is ready so consumers
-    // fall back to their placeholder.
-    const blockContext =
-        firstPost === undefined
-            ? { postType, 'artisanpack/postPreview': null }
-            : {
-                postType,
-                postId: firstPost.id,
-                'artisanpack/postPreview': firstPost,
-            };
+    // Pipe the resolved record set + paginator state down to
+    // descendants via block context — `post-template` iterates against
+    // `posts`, `query-pagination` consumes `total` / `currentPage` /
+    // `perPage`, `query-title` consumes `queryTitle`. The canvas always
+    // previews page 1 because pagination is not interactive in the
+    // editor (issue #599 scope).
+    const queryPreviewContext: QueryPreviewContextValue = {
+        posts: preview.status === 'ready' ? preview.posts : [],
+        total: preview.total,
+        currentPage: 1,
+        queryTitle: '',
+        perPage,
+        status: preview.status,
+    };
+
+    const blockContext = {
+        postType,
+        [ QUERY_PREVIEW_CONTEXT_KEY ]: queryPreviewContext,
+    };
 
     return (
         <div { ...blockProps }>
@@ -190,8 +200,11 @@ export default function QueryEdit( {
                 <PanelBody title={ __( 'Preview', TEXT_DOMAIN ) } initialOpen={ false }>
                     <PreviewStatus preview={ preview } />
                 </PanelBody>
+                <PostVariantsPanel
+                    queryClientId={ clientId }
+                    previewTotal={ preview.status === 'ready' ? preview.total : 0 }
+                />
             </InspectorControls>
-            <PreviewBanner preview={ preview } />
             <BlockContextProvider value={ blockContext }>
                 <InnerBlocks template={ [ ...DEFAULT_TEMPLATE ] } />
             </BlockContextProvider>
@@ -227,29 +240,3 @@ function PreviewStatus( { preview }: PreviewSummaryProps ): ReactElement {
     return <p>{ __( 'Configure the query to see a preview.', TEXT_DOMAIN ) }</p>;
 }
 
-function PreviewBanner( { preview }: PreviewSummaryProps ): ReactElement | null {
-    if ( preview.status !== 'ready' ) {
-        return null;
-    }
-
-    if ( preview.total === 0 ) {
-        return (
-            <Notice status="warning" isDismissible={ false }>
-                { __( 'No posts matched the current query.', TEXT_DOMAIN ) }
-            </Notice>
-        );
-    }
-
-    if ( preview.total === 1 ) {
-        return null;
-    }
-
-    return (
-        <Notice status="info" isDismissible={ false }>
-            { __(
-                'The canvas previews the first matching post. The saved page renders all matching posts.',
-                TEXT_DOMAIN
-            ) }
-        </Notice>
-    );
-}

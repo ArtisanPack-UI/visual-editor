@@ -31,6 +31,14 @@
         },
         "columnCount": {
             "type": "number"
+        },
+        "artisanpackFlex": {
+            "type": "object",
+            "default": null
+        },
+        "photoGrid": {
+            "type": "object",
+            "default": null
         }
     },
     "supports": {

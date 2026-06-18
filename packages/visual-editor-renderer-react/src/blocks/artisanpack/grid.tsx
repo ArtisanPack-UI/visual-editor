@@ -13,6 +13,7 @@
 import type { JSX, ReactNode } from 'react';
 
 import { attrInt, attrRecord, attrString, classList } from '../../support/attributes';
+import { flexClassNames } from '../../support/flex-serializer';
 import type { BlockRendererProps } from '../../types';
 
 const BREAKPOINTS: ReadonlyArray<string> = ['sm', 'md', 'lg', 'xl', '2xl'];
@@ -78,15 +79,38 @@ export function GridBlock({ attributes, children }: BlockRendererProps): JSX.Ele
     const responsive = attrRecord(attributes.responsive);
     const responsiveColumns = attrRecord(responsive.numColumns);
     const className = attrString(attributes.className);
+    const layoutMode = attrString(attributes.layoutMode);
+    const isMasonry = 'masonry' === layoutMode;
 
     const classes = classList([
         'ap-grid',
         `ap-grid-has-${baseColumns}-base-columns`,
         ...responsiveSpanClasses(responsiveColumns, 'columns', 'ap-grid-has'),
+        isMasonry ? 'ap-grid-layout-masonry' : 'ap-grid-layout-fixed',
         className,
     ]);
 
-    return <div className={classes}>{children as ReactNode}</div>;
+    const props: Record<string, unknown> = { className: classes };
+    if (isMasonry) {
+        props['data-ap-cols'] = baseColumns;
+
+        // Per-breakpoint overrides ride alongside the base count so the
+        // JS bootstrap can pick the active breakpoint at runtime
+        // instead of locking masonry to the base `data-ap-cols`.
+        for (const bp of BREAKPOINTS) {
+            const raw = responsiveColumns[bp];
+            if (raw === undefined || raw === null) {
+                continue;
+            }
+            const numeric = typeof raw === 'number' ? raw : Number(raw);
+            if (!Number.isFinite(numeric)) {
+                continue;
+            }
+            props[`data-ap-cols-${bp}`] = clampInt(numeric, 1, 12, baseColumns);
+        }
+    }
+
+    return <div {...props}>{children as ReactNode}</div>;
 }
 
 export function GridItemBlock({ attributes, children }: BlockRendererProps): JSX.Element {
@@ -105,6 +129,7 @@ export function GridItemBlock({ attributes, children }: BlockRendererProps): JSX
         `ap-grid-item-span-${baseRowSpan}-base-row`,
         ...responsiveSpanClasses(responsiveColumnSpan, 'columns', 'ap-grid-item-span'),
         ...responsiveSpanClasses(responsiveRowSpan, 'row', 'ap-grid-item-span'),
+        ...flexClassNames(attributes.artisanpackFlex),
         className,
     ]);
 

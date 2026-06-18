@@ -35,6 +35,8 @@ import {
 } from '../editor-settings';
 
 import canvasThemeTokens from './canvas-theme-tokens.css?inline';
+import flexLayoutStyles from '../../../css/flex-layout.css?inline';
+import photoGridStyles from '../blocks/_shared/photo-grid/photo-grid.css?inline';
 
 /** A single stylesheet entry in the shape `BlockCanvas`'s `styles` prop expects. */
 export interface CanvasStyle {
@@ -182,11 +184,23 @@ export const canvasStyles: readonly CanvasStyle[] = [
     { css: blockLibraryStyle },
     { css: blockLibraryEditor },
     { css: LAYOUT_BASELINE_STYLES },
+    // Flex layout utility stylesheet (#595). Lives outside the
+    // `blocks/*/` tree so it isn't picked up by the glob below; hand
+    // it to the iframe explicitly so `.ap-flex` and per-breakpoint
+    // utilities resolve inside the canvas.
+    { css: flexLayoutStyles },
     // Every block-authored stylesheet, auto-discovered via the
     // `blocks/*/*.css` glob (#566). Replaces the per-block manual
     // entries that used to sit here and forced an edit to
     // canvas-styles.ts every time a new custom block landed.
     ...blockStylesheets,
+    // Photo Grid container support (#594). Lives at
+    // `blocks/_shared/photo-grid/photo-grid.css` — three levels deep,
+    // so the two-level `blocks/*/*.css` glob above skips it. Hand
+    // it to the iframe explicitly. Loaded *after* the per-block
+    // stylesheets so the cascade matches the front-end order in
+    // `blocks-styles.blade.php` (block-family CSS before photo-grid).
+    { css: photoGridStyles },
     { css: EDITOR_BLOCK_TWEAKS },
     { css: DEFAULT_CANVAS_STYLES },
     // Per-block wide/full overrides. Shared with the site editor —

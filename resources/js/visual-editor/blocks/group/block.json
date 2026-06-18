@@ -28,6 +28,14 @@
                 "contentOnly",
                 false
             ]
+        },
+        "artisanpackFlex": {
+            "type": "object",
+            "default": null
+        },
+        "photoGrid": {
+            "type": "object",
+            "default": null
         }
     },
     "supports": {

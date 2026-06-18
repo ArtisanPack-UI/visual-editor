@@ -43,6 +43,17 @@ import {
 } from './utils';
 
 import { getActiveBreakpoint, BASE_KEY } from '../../responsive';
+import { BreakpointRegistry } from '../../responsive/registry';
+import {
+    FlexContainerControls,
+    serializeFlex,
+    type ArtisanpackFlexAttribute,
+} from '../_shared/flex-controls';
+import {
+    PhotoGridControls,
+    getPhotoGridWrapperProps,
+    type PhotoGridAttribute,
+} from '../_shared/photo-grid';
 
 const COLUMN_BLOCK = 'artisanpack/column';
 const DEFAULT_BLOCK = { name: COLUMN_BLOCK };
@@ -52,6 +63,8 @@ interface ColumnsAttributes {
     readonly isStackedOnMobile?: boolean;
     readonly templateLock?: string | boolean;
     readonly columnCount?: number;
+    readonly artisanpackFlex?: ArtisanpackFlexAttribute | null;
+    readonly photoGrid?: PhotoGridAttribute | null;
 }
 
 interface ColumnsEditProps {
@@ -226,12 +239,26 @@ function ColumnsEditContainer({
     const { getBlockOrder } = useSelect(blockEditorStore) as any;
     const { updateBlockAttributes } = useDispatch(blockEditorStore) as any;
 
-    const classes = clsx('wp-block-columns', {
-        [`are-vertically-aligned-${verticalAlignment}`]: verticalAlignment,
-        ['is-not-stacked-on-mobile']: !isStackedOnMobile,
-    });
+    const flexRegistry = new BreakpointRegistry();
+    const flexResult = serializeFlex(
+        attributes.artisanpackFlex ?? null,
+        flexRegistry,
+    );
+    const photoGridWrapper = getPhotoGridWrapperProps(attributes);
+    const classes = clsx(
+        'wp-block-columns',
+        {
+            [`are-vertically-aligned-${verticalAlignment}`]: verticalAlignment,
+            ['is-not-stacked-on-mobile']: !isStackedOnMobile,
+        },
+        flexResult.classes,
+        photoGridWrapper.className,
+    );
 
-    const blockProps = (useBlockProps as any)({ className: classes });
+    const blockProps = (useBlockProps as any)({
+        className: classes,
+        style: photoGridWrapper.style,
+    });
     const innerBlocksProps = (useInnerBlocksProps as any)(blockProps, {
         defaultBlock: DEFAULT_BLOCK,
         directInsert: true,
@@ -266,6 +293,17 @@ function ColumnsEditContainer({
                     setAttributes={setAttributes}
                     isStackedOnMobile={isStackedOnMobile}
                     columnCount={columnCount}
+                />
+                <FlexContainerControls
+                    flex={attributes.artisanpackFlex ?? null}
+                    onChange={(next) =>
+                        setAttributes({ artisanpackFlex: next })
+                    }
+                    registry={flexRegistry}
+                />
+                <PhotoGridControls
+                    photoGrid={attributes.photoGrid ?? null}
+                    onChange={(next) => setAttributes({ photoGrid: next })}
                 />
             </InspectorControls>
             <div {...innerBlocksProps} />

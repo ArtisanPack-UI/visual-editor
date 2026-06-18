@@ -69,6 +69,20 @@ class BlocksStylesComponent extends Component
 
 	public string $breadcrumbsStyleHref;
 
+	public string $queryPaginationStyleHref;
+
+	public string $flexLayoutStyleHref;
+
+	public string $photoGridStyleHref;
+
+	public string $postTemplateStyleHref;
+
+	public string $postVariantStyleHref;
+
+	public string $masonryStyleHref;
+
+	public string $masonryScriptSrc;
+
 	public string $interactivityScriptSrc;
 
 	public bool $emitBlockLibrary;
@@ -105,6 +119,13 @@ class BlocksStylesComponent extends Component
 		$this->marqueeStyleHref       = $base . '/frontend/marquee.css';
 		$this->socialIconsStyleHref   = $base . '/frontend/social-icons.css';
 		$this->breadcrumbsStyleHref   = $base . '/frontend/breadcrumbs.css';
+		$this->queryPaginationStyleHref = $base . '/frontend/query-pagination.css';
+		$this->flexLayoutStyleHref    = $base . '/frontend/flex-layout.css';
+		$this->photoGridStyleHref     = $base . '/frontend/photo-grid.css';
+		$this->postTemplateStyleHref  = $base . '/frontend/post-template.css';
+		$this->postVariantStyleHref   = $base . '/frontend/post-variant.css';
+		$this->masonryStyleHref       = $base . '/frontend/masonry.css';
+		$this->masonryScriptSrc       = $base . '/frontend/masonry-fallback.js';
 		$this->interactivityScriptSrc = $base . '/frontend/interactivity.js';
 		$this->emitBlockLibrary       = $bundle;
 		$this->emitInteractive        = $interactive;

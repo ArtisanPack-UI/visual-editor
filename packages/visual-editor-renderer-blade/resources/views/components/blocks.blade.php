@@ -28,6 +28,11 @@
 {!! $gradientBordersCss !!}
 @endif
 @endisset
+@isset( $boxShadowsCss )
+@if( '' !== $boxShadowsCss )
+{!! $boxShadowsCss !!}
+@endif
+@endisset
 {!! $html !!}
 @isset( $animationsRuntimeNeeded )
 @if( $animationsRuntimeNeeded )

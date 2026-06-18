@@ -1,0 +1,56 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/post-variant",
+    "title": "Post Variant",
+    "category": "theme",
+    "parent": [
+        "artisanpack/post-template"
+    ],
+    "description": "Per-position override template for the Query Loop. Posts matching the variant's rule render with the variant's inner blocks instead of the base Post Template.",
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "matcher": {
+            "type": "object",
+            "default": {
+                "kind": "position",
+                "value": "first"
+            }
+        },
+        "priority": {
+            "type": "number",
+            "default": 10
+        },
+        "label": {
+            "type": "string"
+        },
+        "gridColumnSpan": {
+            "type": "number",
+            "default": 1
+        },
+        "gridRowSpan": {
+            "type": "number",
+            "default": 1
+        }
+    },
+    "usesContext": [
+        "queryId",
+        "query",
+        "displayLayout",
+        "postType",
+        "artisanpack/postTemplateLayout",
+        "artisanpack/postTemplateColumns"
+    ],
+    "supports": {
+        "html": false,
+        "reusable": false,
+        "layout": false,
+        "inserter": false,
+        "artisanpackResponsive": {
+            "attributes": [
+                "gridColumnSpan",
+                "gridRowSpan"
+            ]
+        }
+    }
+}

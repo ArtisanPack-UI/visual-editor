@@ -1,0 +1,96 @@
+/**
+ * Shared masonry layout styles (#593).
+ *
+ * Used by `artisanpack/post-template` (layout: masonry) and
+ * `artisanpack/grid` (layoutMode: masonry). The Blade renderer publishes
+ * an identical copy under `packages/visual-editor-renderer-blade/resources/
+ * assets/frontend/masonry.css` so the public frontend, React, and Vue
+ * renderers all read the same class names.
+ *
+ * Two paths:
+ *
+ *   1. Native CSS Grid Level 3 (`grid-template-rows: masonry`). Picked up
+ *      by browsers that ship support; the @supports gate keeps the rule
+ *      from polluting non-supporting browsers' layout.
+ *   2. The JS fallback (`_shared/masonry/fallback.ts`). When the fallback
+ *      runs, it stamps the wrapper with `ap-masonry-js-fallback` and
+ *      absolute-positions each child. The `:not(.ap-masonry-js-fallback)`
+ *      guard prevents the native rule from fighting with the fallback
+ *      while it is active.
+ *
+ * Class layering:
+ *
+ *   - `.is-layout-masonry`               — post-template wrapper
+ *   - `.ap-grid.ap-grid-layout-masonry`  — grid wrapper
+ *   - `.ap-masonry-js-fallback`          — added by the JS fallback on init
+ *   - `.ap-masonry-item`                 — added by the fallback to each child
+ *                                          for absolute positioning
+ */
+
+/* === Native CSS Grid masonry path =================================== */
+
+@supports (grid-template-rows: masonry) {
+    .wp-block-post-template.is-layout-masonry:not(.ap-masonry-js-fallback) {
+        grid-template-rows: masonry;
+    }
+
+    .ap-grid.ap-grid-layout-masonry:not(.ap-masonry-js-fallback) {
+        grid-template-rows: masonry;
+    }
+}
+
+/* === Shared baseline for both paths ================================= */
+
+/* Mirror the post-template fixed-grid rules so the column count is the
+ * same when the native path is not available and the JS fallback has
+ * not yet hydrated. The `:not(.ap-masonry-js-fallback)` guard keeps
+ * these baseline rules from competing with the fallback once it stamps
+ * the wrapper. */
+.wp-block-post-template.is-layout-masonry:not(.ap-masonry-js-fallback) {
+    display: grid;
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: var(--wp--style--block-gap, 1.25em);
+    list-style: none;
+    padding: 0;
+}
+
+.wp-block-post-template.is-layout-masonry.columns-2:not(.ap-masonry-js-fallback) { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.wp-block-post-template.is-layout-masonry.columns-3:not(.ap-masonry-js-fallback) { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.wp-block-post-template.is-layout-masonry.columns-4:not(.ap-masonry-js-fallback) { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.wp-block-post-template.is-layout-masonry.columns-5:not(.ap-masonry-js-fallback) { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.wp-block-post-template.is-layout-masonry.columns-6:not(.ap-masonry-js-fallback) { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+.wp-block-post-template.is-layout-masonry:not(.ap-masonry-js-fallback) > .wp-block-post-template-item {
+    margin: 0;
+    width: auto;
+    min-width: 0;
+}
+
+/* === JS fallback positioning context ================================ */
+
+/* When the JS fallback is active it owns the layout: `display: block`
+ * so children can lift into `position: absolute` without competing
+ * with the baseline grid rules above. The compound selectors below
+ * match the baseline's specificity so the fallback wins
+ * deterministically without resorting to `!important`.
+ *
+ * `gap` is intentionally preserved here — `readGapPx()` in the
+ * fallback reads the computed value to derive item spacing, so a
+ * missing gap would pack items with zero whitespace. */
+.wp-block-post-template.is-layout-masonry.ap-masonry-js-fallback,
+.ap-grid.ap-grid-layout-masonry.ap-masonry-js-fallback,
+.ap-masonry-js-fallback {
+    position: relative;
+    display: block;
+    list-style: none;
+    padding: 0;
+    gap: var(--wp--style--block-gap, 1.25em);
+    grid-template-columns: none;
+    grid-template-rows: none;
+}
+
+.ap-masonry-js-fallback > .ap-masonry-item {
+    position: absolute;
+    box-sizing: border-box;
+    margin: 0;
+}

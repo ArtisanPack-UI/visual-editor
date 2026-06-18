@@ -1,0 +1,33 @@
+/**
+ * Post Template grid container styles (#592).
+ *
+ * Upstream `core/post-template` uses a flex-with-percent-widths layout
+ * for its grid view via `is-flex-container` + `columns-N`. The
+ * ArtisanPack fork renders the same block as a real CSS grid via
+ * `is-layout-grid` + `columns-N`, both in the editor canvas and the
+ * Blade / Vue / React renderers, so per-post column / row spans on
+ * post-variants (#592) actually have a grid to span across.
+ *
+ * `.is-layout-grid` already picks up `display: grid` from the layout
+ * baseline emitted by <x-ve-blocks-styles />. These rules add the
+ * track definition and item reset that the baseline doesn't supply.
+ */
+
+.wp-block-post-template.is-layout-grid {
+    grid-template-columns: repeat(1, minmax(0, 1fr));
+    gap: var(--wp--style--block-gap, 1.25em);
+    list-style: none;
+    padding: 0;
+}
+
+.wp-block-post-template.is-layout-grid.columns-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.wp-block-post-template.is-layout-grid.columns-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.wp-block-post-template.is-layout-grid.columns-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.wp-block-post-template.is-layout-grid.columns-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.wp-block-post-template.is-layout-grid.columns-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item {
+    margin: 0;
+    width: auto;
+    min-width: 0;
+}

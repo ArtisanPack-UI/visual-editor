@@ -13,16 +13,7 @@
 
 	$rawItems = $attributes['_resolvedItems'] ?? 0;
 	$items    = is_numeric( $rawItems ) ? (int) $rawItems : 0;
-
-	$rawColumns = $attributes['numColumns'] ?? 1;
-	$columns    = is_numeric( $rawColumns ) ? (int) $rawColumns : 1;
-
-	if ( $columns < 1 ) {
-		$columns = 1;
-	} elseif ( $columns > 4 ) {
-		$columns = 4;
-	}
 @endphp
 @if ( $items > 0 )
-	<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-related-posts', 'ap-related-posts-has-' . $columns . '-columns' ] ) !!}>{!! $innerBlocksHtml !!}</div>
+	<div{!! BlockSupports::wrapperAttrs( $attributes, [ 'ap-related-posts' ] ) !!}>{!! $innerBlocksHtml !!}</div>
 @endif

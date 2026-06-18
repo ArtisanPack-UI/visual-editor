@@ -47,12 +47,15 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Support;
 
+use ArtisanPackUI\VisualEditor\BoxShadow\BoxShadowEmitter;
+use ArtisanPackUI\VisualEditor\BoxShadow\BoxShadowResolver;
 use ArtisanPackUI\VisualEditor\GradientBorder\GradientBorderEmitter;
 use ArtisanPackUI\VisualEditor\GradientBorder\GradientBorderResolver;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
 use ArtisanPackUI\VisualEditor\States\StateValueResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
@@ -169,6 +172,14 @@ class BlockSupports
 			self::pushGradientBorder( $gradientBorder['class'], $gradientBorder['rules'] );
 		}
 
+		$boxShadow = self::compileBoxShadow( $attributes );
+
+		if ( '' !== $boxShadow['class'] ) {
+			$classes[] = $boxShadow['class'];
+
+			self::pushBoxShadow( $boxShadow['class'], $boxShadow['rules'] );
+		}
+
 		return [
 			'classes'             => $classes,
 			'style'               => $styleString,
@@ -180,6 +191,8 @@ class BlockSupports
 			'statesRules'         => $states['rules'],
 			'gradientBorderClass' => $gradientBorder['class'],
 			'gradientBorderRules' => $gradientBorder['rules'],
+			'boxShadowClass'      => $boxShadow['class'],
+			'boxShadowRules'      => $boxShadow['rules'],
 		];
 	}
 
@@ -268,6 +281,28 @@ class BlockSupports
 
 		try {
 			app( GradientBorderCssAccumulator::class )->push( $scope, $rules );
+		} catch ( \Throwable $e ) {
+			// See pushResponsive() — same drop-silently rationale.
+		}
+	}
+
+	/**
+	 * Mirror of {@see pushResponsive} for box shadows (#607).
+	 *
+	 * @since 1.2.0
+	 */
+	public static function pushBoxShadow( string $scope, string $rules ): void
+	{
+		if ( '' === $scope || '' === $rules ) {
+			return;
+		}
+
+		if ( ! function_exists( 'app' ) ) {
+			return;
+		}
+
+		try {
+			app( BoxShadowCssAccumulator::class )->push( $scope, $rules );
 		} catch ( \Throwable $e ) {
 			// See pushResponsive() — same drop-silently rationale.
 		}
@@ -894,6 +929,86 @@ class BlockSupports
 		);
 
 		return 've-gb-' . $hash;
+	}
+
+	/**
+	 * Compile the `style.shadow` payload into a `{class, rules}` pair
+	 * the wrapper merges in and the accumulator dedupes (#607).
+	 *
+	 * Returns `{class: '', rules: ''}` when no shadow configuration
+	 * is present at any cascade level — callers should treat empty as
+	 * a signal to skip both wrapper merge and accumulator push.
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{class: string, rules: string}
+	 */
+	protected static function compileBoxShadow( array $attributes ): array
+	{
+		$payload = BoxShadowResolver::resolve( $attributes );
+
+		if ( null === $payload ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+
+		try {
+			$states      = self::resolveStateRegistry();
+			$breakpoints = function_exists( 'app' )
+				? self::resolveRegistry()
+				: BreakpointRegistry::fromLayers();
+
+			$emitter = new BoxShadowEmitter( $states, $breakpoints );
+
+			$scopeClass = self::resolveBoxShadowScopeClass( $attributes, $payload );
+			$scope      = '.' . $scopeClass;
+			$css        = $emitter->emit( $scope, $payload );
+
+			if ( '' === $css ) {
+				return [ 'class' => '', 'rules' => '' ];
+			}
+
+			return [
+				'class' => $scopeClass,
+				'rules' => $css,
+			];
+		} catch ( \Throwable $e ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+	}
+
+	/**
+	 * Prefer the editor-minted `style.shadow._shadowScopeId` so the
+	 * editor preview and the server-rendered output target the same
+	 * scope class. Falls back to a content-derived hash when no id was
+	 * stamped (legacy content, hand-authored blocks, server-only
+	 * pipelines).
+	 *
+	 * @since 1.2.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 * @param  array<string, mixed>  $payload
+	 */
+	protected static function resolveBoxShadowScopeClass( array $attributes, array $payload ): string
+	{
+		$shadow = $attributes['style']['shadow'] ?? null;
+
+		if ( is_array( $shadow ) && isset( $shadow['_shadowScopeId'] ) && is_string( $shadow['_shadowScopeId'] ) ) {
+			$candidate = $shadow['_shadowScopeId'];
+
+			if ( 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $candidate ) && strlen( $candidate ) <= 64 ) {
+				return 've-bs-' . $candidate;
+			}
+		}
+
+		$hash = substr(
+			hash( 'xxh3', (string) json_encode( $payload ) ),
+			0,
+			10
+		);
+
+		return 've-bs-' . $hash;
 	}
 
 	/**

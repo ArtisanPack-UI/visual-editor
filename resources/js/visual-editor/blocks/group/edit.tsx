@@ -21,8 +21,21 @@ import {
 import { useRef } from '@wordpress/element';
 import { SelectControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
+import clsx from 'clsx';
 
 import GroupPlaceHolder, { useShouldShowPlaceHolder } from './placeholder';
+import {
+    FlexContainerControls,
+    FlexItemControls,
+    serializeFlex,
+    type ArtisanpackFlexAttribute,
+} from '../_shared/flex-controls';
+import {
+    PhotoGridControls,
+    getPhotoGridWrapperProps,
+    type PhotoGridAttribute,
+} from '../_shared/photo-grid';
+import { BreakpointRegistry } from '../../responsive/registry';
 
 interface GroupAttributes {
     readonly tagName?: string;
@@ -33,6 +46,8 @@ interface GroupAttributes {
     readonly backgroundColor?: string;
     readonly textColor?: string;
     readonly fontSize?: string;
+    readonly artisanpackFlex?: ArtisanpackFlexAttribute | null;
+    readonly photoGrid?: PhotoGridAttribute | null;
 }
 
 interface GroupEditControlsProps {
@@ -102,10 +117,21 @@ export default function GroupEdit({
         themeSupportsLayout || type === 'flex' || type === 'grid';
 
     const ref = useRef<HTMLElement | undefined>(undefined);
+    const flexRegistry = new BreakpointRegistry();
+    const flexResult = serializeFlex(
+        attributes.artisanpackFlex ?? null,
+        flexRegistry,
+    );
+    const photoGridWrapper = getPhotoGridWrapperProps(attributes);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blockProps = (useBlockProps as any)({
         ref,
-        className: 'wp-block-group',
+        className: clsx(
+            'wp-block-group',
+            flexResult.classes,
+            photoGridWrapper.className,
+        ),
+        style: photoGridWrapper.style,
     });
 
     const [showPlaceholder, setShowPlaceholder] = useShouldShowPlaceHolder({
@@ -154,6 +180,27 @@ export default function GroupEdit({
                 tagName={TagName}
                 onSelectTagName={(value) => setAttributes({ tagName: value })}
             />
+            <InspectorControls>
+                <FlexContainerControls
+                    flex={attributes.artisanpackFlex ?? null}
+                    onChange={(next) =>
+                        setAttributes({ artisanpackFlex: next })
+                    }
+                    registry={flexRegistry}
+                />
+                <FlexItemControls
+                    flex={attributes.artisanpackFlex ?? null}
+                    clientId={clientId}
+                    onChange={(next) =>
+                        setAttributes({ artisanpackFlex: next })
+                    }
+                    registry={flexRegistry}
+                />
+                <PhotoGridControls
+                    photoGrid={attributes.photoGrid ?? null}
+                    onChange={(next) => setAttributes({ photoGrid: next })}
+                />
+            </InspectorControls>
             {showPlaceholder && (
                 <div {...blockProps}>
                     {innerBlocksProps.children}

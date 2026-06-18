@@ -117,7 +117,7 @@ import {
     ReadMoreBlock,
     TermDescriptionBlock,
 } from './core/postNavigation';
-import { PostTemplateBlock, PostTemplateItemBlock, QueryBlock } from './core/query';
+import { PostTemplateBlock, PostTemplateItemBlock, PostVariantBlock, QueryBlock } from './core/query';
 import { SiteLogoBlock, SiteTaglineBlock, SiteTitleBlock } from './core/siteContext';
 import { SyncedPatternBlock } from './core/syncedPattern';
 import { TemplatePartBlock } from './core/templatePart';
@@ -206,6 +206,7 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/post-template': PostTemplateBlock,
     'artisanpack/query': QueryBlock,
     'artisanpack/post-template': PostTemplateBlock,
+    'artisanpack/post-variant': PostVariantBlock,
     'core/post-template-item': PostTemplateItemBlock,
     'core/block': SyncedPatternBlock,
     'core/post-title': PostTitleBlock,

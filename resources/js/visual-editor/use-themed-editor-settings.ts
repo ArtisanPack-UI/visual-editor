@@ -235,6 +235,22 @@ export function extractThemeSpacingSizes(
     return out.length === 0 ? null : out;
 }
 
+/**
+ * Pull `settings.artisanpack.photoGrid` defaults out of the
+ * `/global-styles/base` payload (#594). Returns `null` when the theme
+ * has not defined them so the editor falls back to package-level
+ * defaults shipped in `_shared/photo-grid/types.ts`.
+ */
+export function extractThemePhotoGrid(
+    settings: Record<string, unknown>,
+): Record<string, unknown> | null {
+    const ap = (settings.artisanpack as { photoGrid?: unknown } | undefined)?.photoGrid;
+    if (ap === null || ap === undefined || typeof ap !== 'object' || Array.isArray(ap)) {
+        return null;
+    }
+    return ap as Record<string, unknown>;
+}
+
 export function extractThemeGradients(
     settings: Record<string, unknown>,
 ): readonly GradientEntry[] | null {
@@ -299,6 +315,7 @@ export function useThemedEditorSettings(
         const themeFontFamilies = extractThemeFontFamilies(themeSettings);
         const themeSpacingSizes = extractThemeSpacingSizes(themeSettings);
         const themeGradients = extractThemeGradients(themeSettings);
+        const themePhotoGrid = extractThemePhotoGrid(themeSettings);
 
         // #490 — propagate the theme's color-customization booleans so
         // Gutenberg's `useSettings('color.customGradient')` / `'color.custom'`
@@ -328,6 +345,7 @@ export function useThemedEditorSettings(
         const needsFontFamilies = themeFontFamilies !== null;
         const needsSpacingSizes = themeSpacingSizes !== null;
         const needsGradients = themeGradients !== null;
+        const needsPhotoGrid = themePhotoGrid !== null;
 
         if (
             !needsStyles &&
@@ -335,7 +353,8 @@ export function useThemedEditorSettings(
             !needsFontSizes &&
             !needsFontFamilies &&
             !needsSpacingSizes &&
-            !needsGradients
+            !needsGradients &&
+            !needsPhotoGrid
         ) {
             if (extraSettings !== undefined && Object.keys(extraSettings).length > 0) {
                 return { ...editorSettings, ...extraSettings };
@@ -354,6 +373,8 @@ export function useThemedEditorSettings(
             (baseFeatures as { typography?: Record<string, unknown> }).typography ?? {};
         const baseSpacing =
             (baseFeatures as { spacing?: Record<string, unknown> }).spacing ?? {};
+        const baseArtisanpack =
+            (baseFeatures as { artisanpack?: Record<string, unknown> }).artisanpack ?? {};
 
         return {
             ...editorSettings,
@@ -415,6 +436,18 @@ export function useThemedEditorSettings(
                                   ...((baseSpacing as { spacingSizes?: Record<string, unknown> })
                                       .spacingSizes ?? {}),
                                   theme: themeSpacingSizes,
+                              },
+                          }
+                        : {}),
+                },
+                artisanpack: {
+                    ...baseArtisanpack,
+                    ...(needsPhotoGrid
+                        ? {
+                              photoGrid: {
+                                  ...((baseArtisanpack as { photoGrid?: Record<string, unknown> })
+                                      .photoGrid ?? {}),
+                                  ...(themePhotoGrid as Record<string, unknown>),
                               },
                           }
                         : {}),

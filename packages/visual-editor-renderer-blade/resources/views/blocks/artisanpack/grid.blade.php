@@ -1,6 +1,7 @@
 @php
 	use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\PhotoGridSupport;
 
 	$clampColumns = static function ( $value, int $fallback ): int {
 		$int = is_numeric( $value ) ? (int) $value : $fallback;
@@ -41,8 +42,48 @@
 		}
 	}
 
-	$baseClasses = array_merge( [ 'ap-grid' ], $breakpointClasses );
+	$layoutMode = isset( $attributes['layoutMode'] ) && 'masonry' === $attributes['layoutMode']
+		? 'masonry'
+		: 'fixed';
+	$isMasonry = 'masonry' === $layoutMode;
+
+	$layoutClass = $isMasonry ? 'ap-grid-layout-masonry' : 'ap-grid-layout-fixed';
+
+	$baseClasses = array_merge(
+		[ 'ap-grid' ],
+		$breakpointClasses,
+		[ $layoutClass ],
+		PhotoGridSupport::wrapperForBlock( $attributes )
+	);
+
+	$attrs = BlockSupports::wrapperAttrs( $attributes, $baseClasses );
+	if ( $isMasonry ) {
+		$attrs .= sprintf( ' data-ap-cols="%d"', $baseColumns );
+
+		// Per-breakpoint column overrides ride alongside the base count
+		// so the JS bootstrap can pick the active breakpoint at runtime
+		// instead of locking the masonry layout to `data-ap-cols`.
+		if ( is_array( $responsiveColumns ) ) {
+			foreach ( $responsiveColumns as $bp => $value ) {
+				if ( BreakpointRegistry::BASE_KEY === $bp ) {
+					continue;
+				}
+				if ( ! is_numeric( $value ) ) {
+					continue;
+				}
+				if ( null === $registry->get( (string) $bp ) ) {
+					continue;
+				}
+
+				$attrs .= sprintf(
+					' data-ap-cols-%s="%d"',
+					e( (string) $bp ),
+					$clampColumns( $value, $baseColumns )
+				);
+			}
+		}
+	}
 @endphp
-<div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
+<div{!! $attrs !!}>
 	{!! $innerBlocksHtml !!}
 </div>

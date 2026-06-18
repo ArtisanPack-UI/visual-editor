@@ -106,6 +106,7 @@
         "artisanpack/term-description",
         "artisanpack/query",
         "artisanpack/post-template",
+        "artisanpack/post-variant",
         "artisanpack/comments",
         "artisanpack/comment-template",
         "artisanpack/comment-author-avatar",

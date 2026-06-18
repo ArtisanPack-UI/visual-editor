@@ -12,6 +12,8 @@ import save from './save';
 import icon from './inserter-icon';
 
 import './grid.css';
+import '../_shared/photo-grid/photo-grid.css';
+import '../_shared/masonry/masonry.css';
 
 export { edit, save, metadata, icon };
 

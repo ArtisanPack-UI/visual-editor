@@ -220,3 +220,4 @@ chain — user records win on the same slug. See [Templates §4](site-editor/Tem
 - [Access Gate](site-editor/Access-Gate.md) — site-editor access gate contract
 - [Content model](content-model.md) — `HasBlockContent` and authorization
 - [Renderers](renderers.md) — render saved entities on the public site
+- [Photo Grid](photo-grid.md) — container-level Photo Grid setting (group / columns / grid). theme.json defaults live under `settings.artisanpack.photoGrid` and ride the same global-styles plumbing.

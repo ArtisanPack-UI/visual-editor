@@ -63,6 +63,13 @@ class QueryResolveRequest extends FormRequest
 			'taxQuery.operator'     => [ 'sometimes', 'string', 'in:IN' ],
 			'search'                => [ 'sometimes', 'string', 'max:255' ],
 			'status'                => [ 'sometimes', 'string', 'max:32' ],
+			// Related-Posts editor preview (#601). When present, the
+			// controller resolves the host post's primary taxonomy +
+			// terms and runs the related-by-taxonomy query instead of
+			// the literal `taxQuery` payload. Mutually exclusive with
+			// `taxQuery` at the request level so the two paths don't
+			// silently fight.
+			'relatedTo'             => [ 'sometimes', 'integer', 'min:1', 'prohibits:taxQuery' ],
 		];
 	}
 }

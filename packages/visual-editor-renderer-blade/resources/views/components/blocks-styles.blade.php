@@ -23,6 +23,37 @@
 	server-stamped `<ol>` lays out inline with the chosen separator on
 	the public frontend. --}}
 <link rel="stylesheet" href="{{ $breadcrumbsStyleHref }}" data-ve-breadcrumbs>
+{{-- Query Pagination layout baseline (#599). Matches the rules the
+	editor loads from `blocks/query-pagination/query-pagination.css`
+	so the server-rendered nav lays out horizontally with previous /
+	numbers / next at start / center / end on the public frontend. --}}
+<link rel="stylesheet" href="{{ $queryPaginationStyleHref }}" data-ve-query-pagination>
+{{-- #595 — Flex layout utility classes (ap-flex, ap-flex-row, ap-gap-x-*, …)
+	emitted by the shared serializer onto group/column/columns/grid-item
+	wrappers. Static, layout-only, no interactivity needed. --}}
+<link rel="stylesheet" href="{{ $flexLayoutStyleHref }}" data-ve-flex-layout>
+{{-- #594 — Photo Grid container support. Targets descendant images of
+	any container carrying `has-photo-grid` and reads the CSS custom
+	properties stamped onto the wrapper via the inline rules emitted
+	through `PhotoGridSupport::wrapperForBlock` + the responsive CSS
+	accumulator. --}}
+<link rel="stylesheet" href="{{ $photoGridStyleHref }}" data-ve-photo-grid>
+{{-- #592 — Post Template grid container. Sets `grid-template-columns`
+	on `.wp-block-post-template.is-layout-grid.columns-N` so the
+	post-template's `is-layout-grid` wrapper renders as an actual
+	N-column CSS grid (the layout baseline only supplies `display: grid`). --}}
+<link rel="stylesheet" href="{{ $postTemplateStyleHref }}" data-ve-post-template>
+{{-- #592 — Post Variant grid spans. Adds `ap-post-span-N-{bp}-{columns,row}`
+	rules scoped to `.wp-block-post-template.is-layout-grid > .wp-block-post-template-item`
+	so a variant's per-breakpoint `gridColumnSpan` / `gridRowSpan` only takes
+	effect inside a grid-layout Query Loop. --}}
+<link rel="stylesheet" href="{{ $postVariantStyleHref }}" data-ve-post-variant>
+{{-- #593 — Masonry layout. Powers `post-template` (layout: masonry) and
+	`grid` (layoutMode: masonry). Native CSS Grid masonry lights up
+	automatically where supported via `@supports`; the JS fallback
+	bootstrap below handles the rest. --}}
+<link rel="stylesheet" href="{{ $masonryStyleHref }}" data-ve-masonry>
+<script src="{{ $masonryScriptSrc }}" defer data-ve-masonry-fallback></script>
 @if( '' !== $themeTokensCss )
 <style data-ve-theme-tokens>{!! $themeTokensCss !!}</style>
 @endif

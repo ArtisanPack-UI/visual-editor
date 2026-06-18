@@ -15,7 +15,8 @@
     ],
     "textdomain": "artisanpack-visual-editor",
     "usesContext": [
-        "numColumns"
+        "numColumns",
+        "artisanpack/gridLayoutMode"
     ],
     "attributes": {
         "innerLayout": {
@@ -36,6 +37,10 @@
         "gridRowSpan": {
             "type": "number",
             "default": 1
+        },
+        "artisanpackFlex": {
+            "type": "object",
+            "default": null
         }
     },
     "supports": {

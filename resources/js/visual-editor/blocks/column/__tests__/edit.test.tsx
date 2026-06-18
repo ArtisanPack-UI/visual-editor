@@ -28,6 +28,29 @@ vi.mock('@wordpress/components', () => ({
     }: {
         children?: React.ReactNode;
     }) => <div>{children}</div>,
+    PanelBody: ({ children }: { children?: React.ReactNode }) => (
+        <div data-testid="panel-body">{children}</div>
+    ),
+    ToggleControl: () => null,
+    __experimentalToggleGroupControl: ({ children }: { children?: React.ReactNode }) => (
+        <div>{children}</div>
+    ),
+    __experimentalToggleGroupControlOption: () => null,
+    __experimentalNumberControl: () => null,
+    TextControl: () => null,
+}));
+
+vi.mock('@wordpress/element', () => ({
+    // Honor React's lazy initializer semantics — if `initial` is a function,
+    // call it to derive the initial state (matches `useActiveBreakpointValue`'s
+    // `useState(() => ...)` usage in the controls under test).
+    useState: <T,>(initial: T | (() => T)): [T, (v: T) => void] => [
+        typeof initial === 'function' ? (initial as () => T)() : initial,
+        () => undefined,
+    ],
+    useEffect: () => undefined,
+    useMemo: <T,>(fn: () => T): T => fn(),
+    useRef: <T,>(): { current: T | undefined } => ({ current: undefined }),
 }));
 
 vi.mock('@wordpress/data', () => ({
@@ -35,6 +58,8 @@ vi.mock('@wordpress/data', () => ({
         cb(() => ({
             getBlockOrder: () => [],
             getBlockRootClientId: () => 'root',
+            getBlockName: () => null,
+            getBlockAttributes: () => ({}),
         })),
     useDispatch: () => ({ updateBlockAttributes: () => undefined }),
 }));

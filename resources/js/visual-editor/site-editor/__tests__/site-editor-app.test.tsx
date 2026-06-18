@@ -201,6 +201,11 @@ vi.mock('../../gradient-borders/register', () => ({
     registerGradientBorders: (): void => undefined,
 }));
 
+// #607: same JSON-import-attribute trip for the box-shadow registrar.
+vi.mock('../../box-shadows/register', () => ({
+    registerBoxShadows: (): void => undefined,
+}));
+
 import { SiteEditorApp } from '../site-editor-app';
 
 const ROUTE_BASE = '/visual-editor/site';

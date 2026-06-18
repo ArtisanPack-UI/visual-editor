@@ -14,13 +14,32 @@
  */
 
 import type { JSX, ReactNode } from 'react';
-import { attrString, classList } from '../../support/attributes';
+import { attrInt, attrString, classList, postTemplateItemSpanClasses } from '../../support/attributes';
 import type { BlockRendererProps } from '../../types';
 
 interface WrapperProps {
     children: ReactNode;
     className: string;
     'data-ve-resolution-error'?: string;
+}
+
+/**
+ * Coerce a host-supplied `columns` attribute into a safe integer in [1, 12].
+ *
+ * Delegates to {@link attrInt} so numeric strings ("4") survive serializers
+ * that don't preserve number types, while NaN / Infinity / unparseable
+ * strings fall through to the caller's fallback. The result is clamped
+ * to the same bounds the stylesheet supports.
+ */
+function clampColumns(value: unknown, fallback: number): number {
+    const parsed = attrInt(value, fallback);
+    if (parsed < 1) {
+        return 1;
+    }
+    if (parsed > 12) {
+        return 12;
+    }
+    return parsed;
 }
 
 function isDevelopment(): boolean {
@@ -60,16 +79,43 @@ export function PostTemplateBlock({ attributes, children }: BlockRendererProps):
     const layout = attrString(attributes.layout);
     const layoutType = attrString(attributes.layoutType);
     const isGrid = layout === 'grid' || layoutType === 'grid';
-    const columns = typeof attributes.columns === 'number' ? attributes.columns : 3;
+    const isMasonry = layout === 'masonry';
+    const usesColumns = isGrid || isMasonry;
+    const columns = clampColumns(attributes.columns, 3);
 
     const classes = classList([
         'wp-block-post-template',
-        isGrid ? 'is-layout-grid' : 'is-layout-flow',
-        isGrid ? `columns-${columns}` : '',
+        // Masonry layers `is-layout-grid` underneath `is-layout-masonry`
+        // so the existing grid CSS provides the baseline layout, and
+        // the masonry stylesheet adds `grid-template-rows: masonry` on
+        // top via `@supports` for browsers that ship native CSS Grid
+        // masonry. The JS bootstrap takes over for the rest.
+        (isGrid || isMasonry) ? 'is-layout-grid' : '',
+        isMasonry ? 'is-layout-masonry' : '',
+        !usesColumns ? 'is-layout-flow' : '',
+        usesColumns ? `columns-${columns}` : '',
         className,
     ]);
 
-    return <ul className={classes}>{children}</ul>;
+    const props: Record<string, unknown> = { className: classes };
+    if (isMasonry) {
+        props['data-ap-cols'] = columns;
+    }
+
+    return <ul {...props}>{children}</ul>;
+}
+
+/**
+ * `artisanpack/post-variant` (#591) is stripped from the inner-block
+ * tree by the server-side `QueryInliner` before the renderer ever
+ * walks it: variant children survive only as the per-iteration
+ * template clone, never as their own block. The renderer still
+ * registers the block so the parity check stays green and so any
+ * client-rendered preview tree (which can include un-inlined variants)
+ * has somewhere to fall through.
+ */
+export function PostVariantBlock({ children }: BlockRendererProps): JSX.Element {
+    return <>{children}</>;
 }
 
 export function PostTemplateItemBlock({ attributes, children }: BlockRendererProps): JSX.Element {
@@ -80,8 +126,9 @@ export function PostTemplateItemBlock({ attributes, children }: BlockRendererPro
     const parsedPostId = typeof rawPostId === 'number' ? rawPostId : Number(rawPostId);
     const postId = Number.isFinite(parsedPostId) ? parsedPostId : 0;
     const className = attrString(attributes.className);
+    const spanClasses = postTemplateItemSpanClasses(attributes._resolvedGridSpan);
 
-    const classes = classList(['wp-block-post-template-item', className]);
+    const classes = classList(['wp-block-post-template-item', className, ...spanClasses]);
 
     return <li id={postId > 0 ? `post-${postId}` : undefined} className={classes}>{children}</li>;
 }

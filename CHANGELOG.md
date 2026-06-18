@@ -6,6 +6,82 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-06-18
+
+### Added
+
+- **Box / drop shadow control with solid + gradient color (#607).**
+  New Shadow tools panel in the inspector's Styles group, auto-enabled
+  on every block with `__experimentalBorder` support (~94 blocks, no
+  block.json changes required). Exposes X/Y offset, blur, spread,
+  solid color, gradient color (with theme palette), inset toggle, and
+  a preset chip row backed by the new `settings.shadow.presets` slot
+  in `theme.json`. Writes route through the standard `artisanpackStates`
+  / `artisanpackResponsive` HOCs so per-state and per-breakpoint
+  shadow overrides land in the right cascade bag automatically. Three
+  emission modes (preset / solid / gradient) share one scoped `<style>`
+  code path; gradient and inset-gradient shadows render through a
+  `::before` / `::after` pseudo-element with `filter: blur()` and a
+  `mask-composite: exclude` ring mask for the inset variant. PHP
+  `BoxShadowResolver` + `BoxShadowEmitter` mirror the TS pair
+  byte-for-byte so editor canvas, saved markup, and Blade-rendered
+  output stay in lockstep. New scope class `ve-bs-<id>` persisted on
+  `attributes.style.shadow._shadowScopeId`. Front-end Blade rendering
+  goes through a new `BoxShadowCssAccumulator` +
+  `BlockSupports::pushBoxShadow()` + auto-stamping in
+  `BlockSupports::compile()`, so every block already routed through
+  the supports compiler picks up shadow rendering with zero
+  per-template changes. The supports-extension filter also strips the
+  native WordPress `supports.shadow` on opted-in blocks to keep the
+  two systems from fighting over the `style.shadow` attribute slot.
+  Mirrors the architecture established by gradient borders (#490).
+  **Known limitation:** outer gradient shadows on blocks with
+  `overflow: hidden` (e.g. Cover) are visually clipped at the wrapper
+  edge — gradient shadows need a `::before` pseudo-element because
+  the native `box-shadow` property doesn't accept gradient fills, and
+  pseudo-elements (unlike box-shadow) are clipped by their host's
+  overflow. Solid shadows and preset shadows are unaffected. See
+  [`docs/box-shadows.md`](docs/box-shadows.md) for the full authoring
+  guide and workarounds.
+
+- **Per-post layout overrides on the Query Loop via post-variants
+  (#591).** New `artisanpack/post-variant` block, child of
+  `artisanpack/post-template`, declares an override template that
+  swaps in for posts matching its `matcher` attribute. Four matcher
+  kinds ship in V1: `position` (`first` / `last` / `nth:<n>` /
+  `range:<from>-<to>`), `pattern` (`odd` / `even` /
+  `every-nth:<step>[:start:<offset>]`), `meta` (`sticky`, `featured`,
+  `has-featured-image`, `author:<id>`, `taxonomy:<tax>:<slug>`), and
+  `custom` (`callback:<name>` → `apve_query_variant_match_<name>`
+  filter hook). A new "Post Variants" panel in the query inspector
+  lists, adds, reorders, and deletes variants. Static rules
+  (position / pattern) precompile to a 0-based `position →
+  variantOrder` map stored on the parent post-template as
+  `_compiledVariantMap` for O(1) lookup; dynamic rules (`meta`,
+  `custom`) resolve at render time via the new
+  `ArtisanPackUI\VisualEditor\Resources\VariantResolver`. Precedence
+  is fixed: instance > position > pattern > meta > custom > base,
+  with `priority` ascending as the tie-breaker. All three renderers
+  (Blade, React, Vue) consume the same inlined tree — variants are
+  stripped server-side by `QueryInliner`, so existing query loops
+  with no variants render identically to before. Items rendered via
+  a variant carry an extra `is-variant` class on their
+  `core/post-template-item` wrapper for downstream styling.
+- **Native flex layout panel on group / column / columns / grid-item
+  (#595).** New `Flex Layout` + `Flex Item` inspector panels expose
+  every CSS flexbox property — direction, wrap, justify, align-items,
+  align-content, place-content, row/column gap, plus per-item
+  align-self, grow, shrink, basis, order — each per-breakpoint via the
+  existing `<ViewportSwitcher />`. Replaces WordPress core's narrow
+  Flex layout variation on `artisanpack/group` (suppressed via filter)
+  and layers on top of the default `artisanpack/columns` distribution.
+  Class output mirrors Tailwind's utility convention (`ap-flex`,
+  `md:ap-justify-between`, `ap-gap-x-[16px]`, …) and is asserted
+  byte-identical across the Blade, React, and Vue renderers via a
+  shared fixture set. Legacy `layout.type === 'flex'` content on
+  `artisanpack/group` migrates automatically on first edit. See
+  [[blocks/Flex Layout]] for the full surface.
+
 ## [1.1.1] — 2026-06-15
 
 ### Fixed

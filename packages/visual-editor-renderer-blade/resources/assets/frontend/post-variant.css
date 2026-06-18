@@ -1,0 +1,347 @@
+/**
+ * Post Variant grid-span styles (#592).
+ *
+ * Variants can declare per-breakpoint `gridColumnSpan` and `gridRowSpan`
+ * attributes. When the parent Query Loop's post-template renders in
+ * grid layout and a post matches a variant, the QueryInliner stamps
+ * `_resolvedGridSpan` onto the synthetic `core/post-template-item`
+ * wrapper and the renderers emit `ap-post-span-N-{bp}-{columns,row}`
+ * classes for each defined breakpoint.
+ *
+ * The class scheme mirrors `ap-grid-item-span-*` from the standalone
+ * Grid block (grid.css) so authors who know one know the other. Rules
+ * are gated on `.wp-block-post-template.is-layout-grid > li` so spans
+ * never leak into list / stack / flex layouts.
+ *
+ * Two parallel selectors per rule:
+ *
+ *   1. `> .wp-block-post-template-item.ap-post-span-*` — the public
+ *      frontend renderer (Blade / Vue / React) emits the span class
+ *      directly on the `<li>`, so the direct compound selector wins.
+ *   2. `> .wp-block-post:has(.ap-post-span-*)` — the editor canvas
+ *      wraps each iteration in a Gutenberg-shaped `<li class="wp-block-post">`
+ *      and renders the post-variant block as a nested `<div>` that
+ *      carries the span class. The `:has()` selector promotes the
+ *      span up to the `<li>` so the grid actually sees the span.
+ *
+ * Mobile-first cascade: base rules first, then each Tailwind
+ * breakpoint (sm 640, md 768, lg 1024, xl 1280, 2xl 1536) in
+ * ascending min-width order, so a later breakpoint's class overrides
+ * the earlier one for the wider viewport.
+ */
+
+/* === base (no media query) === */
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-1-base-columns,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-1-base-columns) { grid-column: span 1; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-2-base-columns,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-2-base-columns) { grid-column: span 2; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-3-base-columns,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-3-base-columns) { grid-column: span 3; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-4-base-columns,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-4-base-columns) { grid-column: span 4; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-5-base-columns,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-5-base-columns) { grid-column: span 5; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-6-base-columns,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-6-base-columns) { grid-column: span 6; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-7-base-columns,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-7-base-columns) { grid-column: span 7; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-8-base-columns,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-8-base-columns) { grid-column: span 8; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-9-base-columns,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-9-base-columns) { grid-column: span 9; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-10-base-columns,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-10-base-columns) { grid-column: span 10; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-11-base-columns,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-11-base-columns) { grid-column: span 11; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-12-base-columns,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-12-base-columns) { grid-column: span 12; }
+
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-1-base-row,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-1-base-row) { grid-row: span 1; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-2-base-row,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-2-base-row) { grid-row: span 2; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-3-base-row,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-3-base-row) { grid-row: span 3; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-4-base-row,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-4-base-row) { grid-row: span 4; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-5-base-row,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-5-base-row) { grid-row: span 5; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-6-base-row,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-6-base-row) { grid-row: span 6; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-7-base-row,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-7-base-row) { grid-row: span 7; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-8-base-row,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-8-base-row) { grid-row: span 8; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-9-base-row,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-9-base-row) { grid-row: span 9; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-10-base-row,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-10-base-row) { grid-row: span 10; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-11-base-row,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-11-base-row) { grid-row: span 11; }
+.wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-12-base-row,
+.wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-12-base-row) { grid-row: span 12; }
+
+/* === sm: 640px === */
+@media (min-width: 640px) {
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-1-sm-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-1-sm-columns) { grid-column: span 1; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-2-sm-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-2-sm-columns) { grid-column: span 2; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-3-sm-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-3-sm-columns) { grid-column: span 3; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-4-sm-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-4-sm-columns) { grid-column: span 4; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-5-sm-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-5-sm-columns) { grid-column: span 5; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-6-sm-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-6-sm-columns) { grid-column: span 6; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-7-sm-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-7-sm-columns) { grid-column: span 7; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-8-sm-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-8-sm-columns) { grid-column: span 8; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-9-sm-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-9-sm-columns) { grid-column: span 9; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-10-sm-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-10-sm-columns) { grid-column: span 10; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-11-sm-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-11-sm-columns) { grid-column: span 11; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-12-sm-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-12-sm-columns) { grid-column: span 12; }
+
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-1-sm-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-1-sm-row) { grid-row: span 1; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-2-sm-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-2-sm-row) { grid-row: span 2; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-3-sm-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-3-sm-row) { grid-row: span 3; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-4-sm-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-4-sm-row) { grid-row: span 4; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-5-sm-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-5-sm-row) { grid-row: span 5; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-6-sm-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-6-sm-row) { grid-row: span 6; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-7-sm-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-7-sm-row) { grid-row: span 7; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-8-sm-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-8-sm-row) { grid-row: span 8; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-9-sm-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-9-sm-row) { grid-row: span 9; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-10-sm-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-10-sm-row) { grid-row: span 10; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-11-sm-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-11-sm-row) { grid-row: span 11; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-12-sm-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-12-sm-row) { grid-row: span 12; }
+}
+
+/* === md: 768px === */
+@media (min-width: 768px) {
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-1-md-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-1-md-columns) { grid-column: span 1; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-2-md-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-2-md-columns) { grid-column: span 2; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-3-md-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-3-md-columns) { grid-column: span 3; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-4-md-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-4-md-columns) { grid-column: span 4; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-5-md-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-5-md-columns) { grid-column: span 5; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-6-md-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-6-md-columns) { grid-column: span 6; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-7-md-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-7-md-columns) { grid-column: span 7; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-8-md-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-8-md-columns) { grid-column: span 8; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-9-md-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-9-md-columns) { grid-column: span 9; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-10-md-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-10-md-columns) { grid-column: span 10; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-11-md-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-11-md-columns) { grid-column: span 11; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-12-md-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-12-md-columns) { grid-column: span 12; }
+
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-1-md-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-1-md-row) { grid-row: span 1; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-2-md-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-2-md-row) { grid-row: span 2; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-3-md-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-3-md-row) { grid-row: span 3; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-4-md-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-4-md-row) { grid-row: span 4; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-5-md-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-5-md-row) { grid-row: span 5; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-6-md-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-6-md-row) { grid-row: span 6; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-7-md-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-7-md-row) { grid-row: span 7; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-8-md-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-8-md-row) { grid-row: span 8; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-9-md-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-9-md-row) { grid-row: span 9; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-10-md-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-10-md-row) { grid-row: span 10; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-11-md-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-11-md-row) { grid-row: span 11; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-12-md-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-12-md-row) { grid-row: span 12; }
+}
+
+/* === lg: 1024px === */
+@media (min-width: 1024px) {
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-1-lg-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-1-lg-columns) { grid-column: span 1; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-2-lg-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-2-lg-columns) { grid-column: span 2; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-3-lg-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-3-lg-columns) { grid-column: span 3; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-4-lg-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-4-lg-columns) { grid-column: span 4; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-5-lg-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-5-lg-columns) { grid-column: span 5; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-6-lg-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-6-lg-columns) { grid-column: span 6; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-7-lg-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-7-lg-columns) { grid-column: span 7; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-8-lg-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-8-lg-columns) { grid-column: span 8; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-9-lg-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-9-lg-columns) { grid-column: span 9; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-10-lg-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-10-lg-columns) { grid-column: span 10; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-11-lg-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-11-lg-columns) { grid-column: span 11; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-12-lg-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-12-lg-columns) { grid-column: span 12; }
+
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-1-lg-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-1-lg-row) { grid-row: span 1; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-2-lg-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-2-lg-row) { grid-row: span 2; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-3-lg-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-3-lg-row) { grid-row: span 3; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-4-lg-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-4-lg-row) { grid-row: span 4; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-5-lg-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-5-lg-row) { grid-row: span 5; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-6-lg-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-6-lg-row) { grid-row: span 6; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-7-lg-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-7-lg-row) { grid-row: span 7; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-8-lg-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-8-lg-row) { grid-row: span 8; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-9-lg-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-9-lg-row) { grid-row: span 9; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-10-lg-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-10-lg-row) { grid-row: span 10; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-11-lg-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-11-lg-row) { grid-row: span 11; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-12-lg-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-12-lg-row) { grid-row: span 12; }
+}
+
+/* === xl: 1280px === */
+@media (min-width: 1280px) {
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-1-xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-1-xl-columns) { grid-column: span 1; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-2-xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-2-xl-columns) { grid-column: span 2; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-3-xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-3-xl-columns) { grid-column: span 3; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-4-xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-4-xl-columns) { grid-column: span 4; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-5-xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-5-xl-columns) { grid-column: span 5; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-6-xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-6-xl-columns) { grid-column: span 6; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-7-xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-7-xl-columns) { grid-column: span 7; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-8-xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-8-xl-columns) { grid-column: span 8; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-9-xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-9-xl-columns) { grid-column: span 9; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-10-xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-10-xl-columns) { grid-column: span 10; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-11-xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-11-xl-columns) { grid-column: span 11; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-12-xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-12-xl-columns) { grid-column: span 12; }
+
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-1-xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-1-xl-row) { grid-row: span 1; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-2-xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-2-xl-row) { grid-row: span 2; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-3-xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-3-xl-row) { grid-row: span 3; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-4-xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-4-xl-row) { grid-row: span 4; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-5-xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-5-xl-row) { grid-row: span 5; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-6-xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-6-xl-row) { grid-row: span 6; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-7-xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-7-xl-row) { grid-row: span 7; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-8-xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-8-xl-row) { grid-row: span 8; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-9-xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-9-xl-row) { grid-row: span 9; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-10-xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-10-xl-row) { grid-row: span 10; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-11-xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-11-xl-row) { grid-row: span 11; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-12-xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-12-xl-row) { grid-row: span 12; }
+}
+
+/* === 2xl: 1536px === */
+@media (min-width: 1536px) {
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-1-2xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-1-2xl-columns) { grid-column: span 1; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-2-2xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-2-2xl-columns) { grid-column: span 2; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-3-2xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-3-2xl-columns) { grid-column: span 3; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-4-2xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-4-2xl-columns) { grid-column: span 4; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-5-2xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-5-2xl-columns) { grid-column: span 5; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-6-2xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-6-2xl-columns) { grid-column: span 6; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-7-2xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-7-2xl-columns) { grid-column: span 7; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-8-2xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-8-2xl-columns) { grid-column: span 8; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-9-2xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-9-2xl-columns) { grid-column: span 9; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-10-2xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-10-2xl-columns) { grid-column: span 10; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-11-2xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-11-2xl-columns) { grid-column: span 11; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-12-2xl-columns,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-12-2xl-columns) { grid-column: span 12; }
+
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-1-2xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-1-2xl-row) { grid-row: span 1; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-2-2xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-2-2xl-row) { grid-row: span 2; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-3-2xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-3-2xl-row) { grid-row: span 3; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-4-2xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-4-2xl-row) { grid-row: span 4; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-5-2xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-5-2xl-row) { grid-row: span 5; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-6-2xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-6-2xl-row) { grid-row: span 6; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-7-2xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-7-2xl-row) { grid-row: span 7; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-8-2xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-8-2xl-row) { grid-row: span 8; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-9-2xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-9-2xl-row) { grid-row: span 9; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-10-2xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-10-2xl-row) { grid-row: span 10; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-11-2xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-11-2xl-row) { grid-row: span 11; }
+    .wp-block-post-template.is-layout-grid > .wp-block-post-template-item.ap-post-span-12-2xl-row,
+    .wp-block-post-template.is-layout-grid > .wp-block-post:has(.ap-post-span-12-2xl-row) { grid-row: span 12; }
+}

@@ -44,6 +44,7 @@ use ArtisanPackUI\VisualEditor\Responsive\AttributeMigrator;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
 use ArtisanPackUI\VisualEditor\States\StateAttributeMigrator;
+use ArtisanPackUI\VisualEditor\BoxShadow\BoxShadowEmitter;
 use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
 use ArtisanPackUI\VisualEditor\States\StateValueResolver;
@@ -304,6 +305,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new StateCssEmitter(
 				$app->make( StateRegistry::class ),
 				$app->make( StateValueResolver::class ),
+			);
+		} );
+
+		// #607: Box-shadow emitter. Parallels GradientBorderEmitter
+		// (currently unwired) — bound here so future render-pipeline
+		// integration can resolve it from the container.
+		$this->app->scoped( BoxShadowEmitter::class, function ( $app ) {
+			return new BoxShadowEmitter(
+				$app->make( StateRegistry::class ),
+				$app->make( BreakpointRegistry::class ),
 			);
 		} );
 
@@ -577,6 +588,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			'tag-cloud',
 			'query',
 			'post-template',
+			'post-variant',
 		];
 
 		foreach ( $forkedBlocks as $block ) {

@@ -24,6 +24,11 @@ import { DynamicBlock } from './DynamicBlock';
 import { GlobalStyles } from './GlobalStyles';
 import { UnknownBlock } from './blocks/unknownBlock';
 import {
+    buildArbitraryStyles,
+    serializeFlex,
+    type ArbitraryRule,
+} from './support/flex-serializer';
+import {
     DEFAULT_MAX_PATTERN_DEPTH,
     inlinePatterns,
 } from './patterns';
@@ -148,14 +153,65 @@ export function BlockTree({
         queryResults,
     ]);
 
+    const flexArbitraryCss = useMemo(
+        () => buildArbitraryStyles(collectFlexArbitraryRules(blocks)),
+        [blocks]
+    );
+
     return (
         <>
             <GlobalStyles css={globalStylesCss} />
+            {flexArbitraryCss !== '' && (
+                <style data-ve-flex-arbitrary>{flexArbitraryCss}</style>
+            )}
             {blocks.map((block, index) =>
                 renderBlock(block, index, dynamicBlockEndpoint, fetchOptions)
             )}
         </>
     );
+}
+
+/**
+ * Walk a normalized block tree collecting every `artisanpackFlex`
+ * attribute's arbitrary-value rules. The result is handed to
+ * {@link buildArbitraryStyles} so the page emits a single
+ * `<style data-ve-flex-arbitrary>` block matching what the Blade
+ * renderer's `ResponsiveCssAccumulator` flushes on the front-end.
+ */
+function collectFlexArbitraryRules(blocks: Block[]): ArbitraryRule[] {
+    const rules: ArbitraryRule[] = [];
+    const stack: Block[] = [...blocks];
+
+    while (stack.length > 0) {
+        const block = stack.pop();
+        if (!block) {
+            continue;
+        }
+
+        const flex =
+            block.attributes !== null &&
+            typeof block.attributes === 'object' &&
+            !Array.isArray(block.attributes)
+                ? (block.attributes as Record<string, unknown>).artisanpackFlex
+                : null;
+
+        if (flex && typeof flex === 'object') {
+            const { arbitraryRules } = serializeFlex(flex);
+            if (arbitraryRules.length > 0) {
+                rules.push(...arbitraryRules);
+            }
+        }
+
+        if (Array.isArray(block.innerBlocks)) {
+            for (const child of block.innerBlocks) {
+                if (child && typeof child === 'object') {
+                    stack.push(child as Block);
+                }
+            }
+        }
+    }
+
+    return rules;
 }
 
 function renderBlock(

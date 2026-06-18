@@ -22,7 +22,7 @@
             "default": true
         }
     },
-    "usesContext": [ "queryId", "query" ],
+    "usesContext": [ "queryId", "query", "artisanpack/queryPreview" ],
     "providesContext": {
         "paginationArrow": "paginationArrow",
         "showLabel": "showLabel"

@@ -1,0 +1,72 @@
+/*
+ * Post Variants panel (#591). Scoped to the inspector so it picks up
+ * the WordPress Components 13px panel base font-size — the canvas
+ * default of 16px otherwise leaks into the panel and oversizes
+ * everything (hint paragraph, action buttons, row labels).
+ */
+
+.ap-post-variants-panel__hint {
+    font-size: 12px;
+    line-height: 1.4;
+    color: rgb(117, 117, 117);
+    margin: 0 0 12px;
+}
+
+.ap-post-variants-panel__list {
+    list-style: none;
+    margin: 0 0 12px;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.ap-post-variants-panel__row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    background: rgb(247, 247, 247);
+    border-radius: 2px;
+    font-size: 12px;
+}
+
+.ap-post-variants-panel__row-label {
+    flex: 1;
+    background: transparent;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+    padding: 0;
+    font-size: 12px;
+    line-height: 1.3;
+    color: inherit;
+}
+
+.ap-post-variants-panel__row-label:focus-visible {
+    outline: 2px solid var(--wp-admin-theme-color, #007cba);
+    outline-offset: 1px;
+}
+
+.ap-post-variants-panel__row-rule {
+    color: rgb(117, 117, 117);
+    font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-size: 11px;
+}
+
+.ap-post-variants-panel__row-actions {
+    display: flex;
+    gap: 2px;
+    flex: 0 0 auto;
+}
+
+.ap-post-variants-panel__add {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: stretch;
+}
+
+.ap-post-variants-panel__add .components-button {
+    justify-content: center;
+}

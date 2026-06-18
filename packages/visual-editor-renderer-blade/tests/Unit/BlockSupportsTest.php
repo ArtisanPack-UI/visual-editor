@@ -441,6 +441,44 @@ describe( 'BlockSupports::compile (composition)', function (): void {
 		expect( substr_count( $result['style'], 'background-color:' ) )->toBe( 1 );
 	} );
 
+	it( 'stamps a ve-bs-* scope class and emits box-shadow rules for a solid shadow (#607)', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [
+				'shadow' => [
+					'offsetX'        => '2px',
+					'offsetY'        => '4px',
+					'blur'           => '8px',
+					'spread'         => '0',
+					'color'          => '#000',
+					'_shadowScopeId' => 'abc123def',
+				],
+			],
+		] );
+
+		expect( $result['boxShadowClass'] )->toBe( 've-bs-abc123def' );
+		expect( $result['boxShadowRules'] )->toContain( '.ve-bs-abc123def{box-shadow:2px 4px 8px 0 #000}' );
+		expect( $result['classes'] )->toContain( 've-bs-abc123def' );
+	} );
+
+	it( 'stamps a ve-bs-* scope class and emits gradient ::before for a gradient shadow (#607)', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [
+				'shadow' => [
+					'offsetX'        => '4px',
+					'offsetY'        => '6px',
+					'blur'           => '12px',
+					'spread'         => '2px',
+					'gradient'       => 'linear-gradient(135deg, #ff0000, #0000ff)',
+					'_shadowScopeId' => 'gradblob01',
+				],
+			],
+		] );
+
+		expect( $result['boxShadowClass'] )->toBe( 've-bs-gradblob01' );
+		expect( $result['boxShadowRules'] )->toContain( '.ve-bs-gradblob01::before{' );
+		expect( $result['boxShadowRules'] )->toContain( 'background:linear-gradient(135deg, #ff0000, #0000ff)' );
+	} );
+
 	it( 'returns empty result for a block with no supported attributes', function (): void {
 		$result = BlockSupports::compile( [] );
 
@@ -455,6 +493,8 @@ describe( 'BlockSupports::compile (composition)', function (): void {
 			'statesRules'         => '',
 			'gradientBorderClass' => '',
 			'gradientBorderRules' => '',
+			'boxShadowClass'      => '',
+			'boxShadowRules'      => '',
 		] );
 	} );
 
