@@ -50,17 +50,15 @@ vi.mock( '@wordpress/blocks', () => ( {
         createBlockCalls.push( { name, attributes, innerBlocks } );
         return block;
     },
-    cloneBlock: ( source: FakeBlock ): FakeBlock => ( {
-        clientId: newClientId(),
-        name: source.name,
-        attributes: { ...source.attributes },
-        innerBlocks: ( source.innerBlocks ?? [] ).map( ( child ) => ( {
+    cloneBlock: ( source: FakeBlock ): FakeBlock => {
+        const cloneDeep = ( block: FakeBlock ): FakeBlock => ( {
             clientId: newClientId(),
-            name: child.name,
-            attributes: { ...child.attributes },
-            innerBlocks: child.innerBlocks ?? [],
-        } ) ),
-    } ),
+            name: block.name,
+            attributes: { ...block.attributes },
+            innerBlocks: ( block.innerBlocks ?? [] ).map( cloneDeep ),
+        } );
+        return cloneDeep( source );
+    },
 } ) );
 
 vi.mock( '@wordpress/data', () => {

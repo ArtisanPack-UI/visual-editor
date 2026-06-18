@@ -350,6 +350,11 @@ export function QueryPreviewIterations(
     // Computed unconditionally (before the early-return below) so the
     // hook count is stable across renders, regardless of whether the
     // preview has resolved any posts yet.
+    //
+    // The rules are instance-scoped via `data-query-preview-root="<clientId>"`
+    // on the outer wrapper so a second Query Loop block on the same
+    // canvas can't accidentally collapse children in this one.
+    const scopedRootSelector = '[data-query-preview-root="' + clientId + '"]';
     const variantCollapseStyles = useMemo( () => {
         if ( variantBlocks.length === 0 ) {
             return '';
@@ -358,7 +363,8 @@ export function QueryPreviewIterations(
         // When resolved=base: hide every post-variant child of the
         // editable iteration.
         rules.push(
-            'li[data-query-iteration="editable"][data-resolved-variant-order="base"] [data-type="' +
+            scopedRootSelector +
+                ' li[data-query-iteration="editable"][data-resolved-variant-order="base"] [data-type="' +
                 POST_VARIANT_BLOCK_NAME +
                 '"]{display:none!important;}'
         );
@@ -368,7 +374,8 @@ export function QueryPreviewIterations(
         variantBlocks.forEach( ( variant, order ) => {
             const cid = variant.clientId;
             rules.push(
-                'li[data-query-iteration="editable"][data-resolved-variant-order="' +
+                scopedRootSelector +
+                    ' li[data-query-iteration="editable"][data-resolved-variant-order="' +
                     String( order ) +
                     '"] > .block-editor-inner-blocks > .block-editor-block-list__layout > :not([data-block="' +
                     cid +
@@ -376,7 +383,7 @@ export function QueryPreviewIterations(
             );
         } );
         return rules.join( '' );
-    }, [ variantBlocks ] );
+    }, [ variantBlocks, scopedRootSelector ] );
 
     if ( visiblePosts.length === 0 ) {
         const Tag = tag;
@@ -386,7 +393,10 @@ export function QueryPreviewIterations(
         // sibling of the list rather than as a direct child.
         return (
             <>
-                <Tag {...outerProps as Record<string, unknown>}>
+                <Tag
+                    {...outerProps as Record<string, unknown>}
+                    data-query-preview-root={ clientId }
+                >
                     <BlockContextProvider value={{ postType }}>
                         <li className={ itemClassName } data-query-iteration="editable">
                             <InnerBlocks template={ editableTemplate } />

@@ -197,9 +197,24 @@ export default function PostVariantsPanel( {
         // clientIds recursively so the clones are independent.
         const store = dataSelect( 'core/block-editor' ) as unknown as CoreBlockEditorSelect;
         const postTemplate = store.getBlock( postTemplateClientId );
-        const baseChildren: BlockInstance[] = ( postTemplate?.innerBlocks ?? [] )
+        const templateChildren = postTemplate?.innerBlocks ?? [];
+        const baseChildren: BlockInstance[] = templateChildren
             .filter( ( child ) => child.name !== 'artisanpack/post-variant' )
             .map( ( child ) => cloneBlock( child as unknown as BlockInstance ) );
+
+        // Compute the insertion index from the template's actual child
+        // list — not from the variant count. With non-variant base
+        // children present (the common case), `variantRows.length`
+        // would drop the new variant into the middle of the base
+        // children and shift variant document order, changing
+        // precedence in ways the author can't see.
+        const lastVariantIndex = templateChildren.reduce(
+            ( last, child, index ) =>
+                child.name === 'artisanpack/post-variant' ? index : last,
+            -1
+        );
+        const insertIndex =
+            lastVariantIndex >= 0 ? lastVariantIndex + 1 : templateChildren.length;
 
         const block = createBlock(
             'artisanpack/post-variant',
@@ -209,7 +224,7 @@ export default function PostVariantsPanel( {
             },
             baseChildren
         );
-        insertBlock( block, variantRows.length, postTemplateClientId );
+        insertBlock( block, insertIndex, postTemplateClientId );
         // Focus the new variant so its inspector controls open
         // immediately — auto-jump in the canvas (#604) then surfaces
         // the matching iteration as the editable one.
