@@ -97,6 +97,22 @@ export const GridBlock = defineComponent({
             const attrs: Record<string, unknown> = { class: classes };
             if (isMasonry) {
                 attrs['data-ap-cols'] = baseColumns;
+
+                // Per-breakpoint overrides ride alongside the base
+                // count so the JS bootstrap can pick the active
+                // breakpoint at runtime instead of locking masonry to
+                // the base `data-ap-cols`.
+                for (const bp of BREAKPOINTS) {
+                    const raw = responsiveColumns[bp];
+                    if (raw === undefined || raw === null) {
+                        continue;
+                    }
+                    const numeric = typeof raw === 'number' ? raw : Number(raw);
+                    if (!Number.isFinite(numeric)) {
+                        continue;
+                    }
+                    attrs[`data-ap-cols-${bp}`] = clampInt(numeric, 1, 12, baseColumns);
+                }
             }
 
             return h(

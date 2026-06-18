@@ -16,6 +16,26 @@ import { defineComponent, h } from 'vue';
 import { attrString, classList, postTemplateItemSpanClasses } from '../../support/attributes';
 import { blockRendererProps } from '../shared';
 
+/**
+ * Coerce a host-supplied `columns` attribute into a safe integer in [1, 12].
+ * Rejects NaN / Infinity / fractions / non-numbers so the emitted
+ * `columns-N` class and `data-ap-cols` attribute always carry a value the
+ * stylesheet + JS bootstrap can use.
+ */
+function clampColumns(value: unknown, fallback: number): number {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+        return fallback;
+    }
+    const truncated = Math.trunc(value);
+    if (truncated < 1) {
+        return 1;
+    }
+    if (truncated > 12) {
+        return 12;
+    }
+    return truncated;
+}
+
 function isDevelopment(): boolean {
     if (typeof process === 'undefined') {
         return false;
@@ -63,7 +83,7 @@ export const PostTemplateBlock = defineComponent({
             const isGrid = layout === 'grid' || layoutType === 'grid';
             const isMasonry = layout === 'masonry';
             const usesColumns = isGrid || isMasonry;
-            const columns = typeof props.attributes.columns === 'number' ? props.attributes.columns : 3;
+            const columns = clampColumns(props.attributes.columns, 3);
 
             const attrs: Record<string, unknown> = {
                 class: classList([

@@ -13,6 +13,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
     initMasonry,
     supportsNativeMasonry,
+    type MasonryController,
 } from '../fallback';
 
 let supportsImpl: ((property: string, value?: string) => boolean) | null = null;
@@ -68,6 +69,20 @@ function makeContainer(
     return { container, measured };
 }
 
+// Track every controller spawned during a test so afterEach can tear
+// them down — the controllers attach ResizeObserver / MutationObserver /
+// window resize listeners that survive `document.body.innerHTML = ''`.
+const liveControllers: MasonryController[] = [];
+
+function initMasonryTracked(
+    container: HTMLElement,
+    options: Parameters<typeof initMasonry>[1] = {},
+): MasonryController {
+    const controller = initMasonry(container, options);
+    liveControllers.push(controller);
+    return controller;
+}
+
 beforeEach(() => {
     // Reset the cached native-support flag so each test starts from a
     // clean detection — different tests stub `CSS.supports` differently.
@@ -78,6 +93,9 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+    while (liveControllers.length > 0) {
+        liveControllers.pop()?.destroy();
+    }
     vi.restoreAllMocks();
 });
 
@@ -113,7 +131,7 @@ describe('initMasonry — native path', () => {
             { height: 200 },
         ]);
 
-        const controller = initMasonry(container, { columns: 2 });
+        const controller = initMasonryTracked(container, { columns: 2 });
 
         // The fallback class is only stamped on the fallback path.
         expect(container.classList.contains('ap-masonry-js-fallback')).toBe(false);
@@ -131,7 +149,7 @@ describe('initMasonry — native path', () => {
             { height: 100 },
         ]);
 
-        initMasonry(container, { columns: 2, forceFallback: true });
+        initMasonryTracked(container, { columns: 2, forceFallback: true });
 
         expect(container.classList.contains('ap-masonry-js-fallback')).toBe(true);
     });
@@ -153,7 +171,7 @@ describe('initMasonry — fallback packing', () => {
             300,
         );
 
-        initMasonry(container, { columns: 2, gap: 0, forceFallback: true });
+        initMasonryTracked(container, { columns: 2, gap: 0, forceFallback: true });
 
         // Column 0: items at top 0 and top 100.
         // Column 1: item at top 0.
@@ -182,7 +200,7 @@ describe('initMasonry — fallback packing', () => {
             300,
         );
 
-        initMasonry(container, { columns: 3, gap: 0, forceFallback: true });
+        initMasonryTracked(container, { columns: 3, gap: 0, forceFallback: true });
 
         // Each column is 100px wide.
         expect(measured[0].el.style.width).toBe('100px');
@@ -202,11 +220,56 @@ describe('initMasonry — fallback packing', () => {
         );
         container.setAttribute('data-ap-cols', '4');
 
-        initMasonry(container, { gap: 0, forceFallback: true });
+        initMasonryTracked(container, { gap: 0, forceFallback: true });
 
         // Each of 4 columns is 100px wide.
         expect(measured[0].el.style.width).toBe('100px');
         expect(measured[1].el.style.left).toBe('100px');
+    });
+
+    it('picks the per-breakpoint column count from data-ap-cols-{bp} attributes', () => {
+        const { container, measured } = makeContainer(
+            [
+                { height: 50 },
+                { height: 50 },
+            ],
+            400,
+        );
+        container.setAttribute('data-ap-cols', '1');
+        container.setAttribute('data-ap-cols-md', '4');
+        container.setAttribute('data-ap-cols-lg', '8');
+
+        Object.defineProperty(window, 'innerWidth', {
+            configurable: true,
+            value: 800, // > md (768), < lg (1024) — should pick md = 4 columns
+        });
+
+        initMasonryTracked(container, { gap: 0, forceFallback: true });
+
+        // Container is 400px wide / 4 columns → each item is 100px.
+        expect(measured[0].el.style.width).toBe('100px');
+    });
+
+    it('falls back to the base data-ap-cols when no breakpoint matches the viewport', () => {
+        const { container, measured } = makeContainer(
+            [
+                { height: 50 },
+                { height: 50 },
+            ],
+            400,
+        );
+        container.setAttribute('data-ap-cols', '2');
+        container.setAttribute('data-ap-cols-md', '4');
+
+        Object.defineProperty(window, 'innerWidth', {
+            configurable: true,
+            value: 500, // < md (768) — base 2 columns wins
+        });
+
+        initMasonryTracked(container, { gap: 0, forceFallback: true });
+
+        // Container is 400px / 2 columns → each item is 200px.
+        expect(measured[0].el.style.width).toBe('200px');
     });
 
     it('clamps column counts outside 1-12 to safe defaults', () => {
@@ -219,7 +282,7 @@ describe('initMasonry — fallback packing', () => {
             300,
         );
 
-        const controller = initMasonry(container, {
+        const controller = initMasonryTracked(container, {
             columns: 99,
             gap: 0,
             forceFallback: true,
@@ -241,7 +304,7 @@ describe('initMasonry — fallback packing', () => {
             300,
         );
 
-        initMasonry(container, { columns: 2, gap: 0, forceFallback: true });
+        initMasonryTracked(container, { columns: 2, gap: 0, forceFallback: true });
 
         expect(container.style.height).toBe('200px');
     });
@@ -255,7 +318,7 @@ describe('initMasonry — fallback packing', () => {
             300,
         );
 
-        const controller = initMasonry(container, {
+        const controller = initMasonryTracked(container, {
             columns: 2,
             gap: 0,
             forceFallback: true,
@@ -281,7 +344,7 @@ describe('initMasonry — fallback packing', () => {
             300,
         );
 
-        const controller = initMasonry(container, {
+        const controller = initMasonryTracked(container, {
             columns: 2,
             gap: 0,
             forceFallback: true,
@@ -311,7 +374,7 @@ describe('initMasonry — fallback packing', () => {
             300,
         );
 
-        const controller = initMasonry(container, {
+        const controller = initMasonryTracked(container, {
             columns: 2,
             gap: 0,
             forceFallback: true,
@@ -334,7 +397,7 @@ describe('initMasonry — fallback packing', () => {
         container.appendChild(item);
         document.body.appendChild(container);
 
-        initMasonry(container, { columns: 3, gap: 0, forceFallback: true });
+        initMasonryTracked(container, { columns: 3, gap: 0, forceFallback: true });
 
         // 3-span item gets full 300px width.
         expect(item.style.width).toBe('300px');

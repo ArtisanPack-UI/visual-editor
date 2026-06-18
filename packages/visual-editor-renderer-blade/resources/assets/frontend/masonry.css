@@ -63,7 +63,11 @@
  * so children can lift into `position: absolute` without competing
  * with the baseline grid rules above. The compound selectors match the
  * baseline's specificity so the fallback wins deterministically without
- * resorting to `!important`. */
+ * resorting to `!important`.
+ *
+ * `gap` is intentionally preserved here — `readGapPx()` in the
+ * fallback reads the computed value to derive item spacing, so a
+ * missing gap would pack items with zero whitespace. */
 .wp-block-post-template.is-layout-masonry.ap-masonry-js-fallback,
 .ap-grid.ap-grid-layout-masonry.ap-masonry-js-fallback,
 .ap-masonry-js-fallback {
@@ -71,6 +75,7 @@
     display: block;
     list-style: none;
     padding: 0;
+    gap: var(--wp--style--block-gap, 1.25em);
     grid-template-columns: none;
     grid-template-rows: none;
 }

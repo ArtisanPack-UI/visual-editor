@@ -59,6 +59,29 @@
 	$attrs = BlockSupports::wrapperAttrs( $attributes, $baseClasses );
 	if ( $isMasonry ) {
 		$attrs .= sprintf( ' data-ap-cols="%d"', $baseColumns );
+
+		// Per-breakpoint column overrides ride alongside the base count
+		// so the JS bootstrap can pick the active breakpoint at runtime
+		// instead of locking the masonry layout to `data-ap-cols`.
+		if ( is_array( $responsiveColumns ) ) {
+			foreach ( $responsiveColumns as $bp => $value ) {
+				if ( BreakpointRegistry::BASE_KEY === $bp ) {
+					continue;
+				}
+				if ( ! is_numeric( $value ) ) {
+					continue;
+				}
+				if ( null === $registry->get( (string) $bp ) ) {
+					continue;
+				}
+
+				$attrs .= sprintf(
+					' data-ap-cols-%s="%d"',
+					e( (string) $bp ),
+					$clampColumns( $value, $baseColumns )
+				);
+			}
+		}
 	}
 @endphp
 <div{!! $attrs !!}>

@@ -30,6 +30,20 @@ const ITEM_CLASS = 'ap-masonry-item';
 const WRAPPER_CLASS = 'ap-masonry-js-fallback';
 const SUPPORTS_CACHE_KEY = '__apMasonrySupports';
 
+/**
+ * Tailwind-style breakpoint min-widths in ascending order. Mirrors
+ * `resources/js/visual-editor/responsive/registry.ts`. Encoded inline
+ * here because the JS fallback is renderer-agnostic and must stay
+ * decoupled from the editor's responsive registry.
+ */
+const BREAKPOINT_MIN_WIDTHS: ReadonlyArray<readonly [string, number]> = [
+    ['sm', 640],
+    ['md', 768],
+    ['lg', 1024],
+    ['xl', 1280],
+    ['2xl', 1536],
+];
+
 interface SupportsCacheHost {
     [SUPPORTS_CACHE_KEY]?: boolean;
 }
@@ -108,6 +122,36 @@ function readColumnsFromAttr(container: HTMLElement, fallback: number): number {
     }
     const parsed = Number(attr);
     return clampColumns(parsed, fallback);
+}
+
+/**
+ * Walk the breakpoint table in ascending min-width order and pick the
+ * column count from the widest breakpoint whose min-width the current
+ * viewport meets. Falls back to the base `data-ap-cols` (or the given
+ * fallback) when no breakpoint matches.
+ */
+function readActiveColumnsFromAttrs(container: HTMLElement, fallback: number): number {
+    const base = readColumnsFromAttr(container, fallback);
+    if (typeof window === 'undefined') {
+        return base;
+    }
+    const viewportWidth = window.innerWidth ?? 0;
+    let active = base;
+    for (const [bp, minWidth] of BREAKPOINT_MIN_WIDTHS) {
+        if (viewportWidth < minWidth) {
+            break;
+        }
+        const attr = container.getAttribute(`data-ap-cols-${bp}`);
+        if (attr === null || attr === '') {
+            continue;
+        }
+        const parsed = Number(attr);
+        if (!Number.isFinite(parsed)) {
+            continue;
+        }
+        active = clampColumns(parsed, active);
+    }
+    return active;
 }
 
 function readItemSpan(el: HTMLElement, maxColumns: number): number {
@@ -190,6 +234,10 @@ export function initMasonry(container: HTMLElement, options: MasonryOptions = {}
 
     let destroyed = false;
     let placements: ItemPlacement[] = [];
+    // Forward-declared so `relayout()` can call `unobserve()` on items
+    // that disappear between layout passes. Assigned just before the
+    // first `relayout()` invocation below.
+    let resizeObserver: ResizeObserver | null = null;
 
     const initialWrapperStyle = {
         position: container.style.position,
@@ -220,17 +268,20 @@ export function initMasonry(container: HTMLElement, options: MasonryOptions = {}
 
         const items = collectItems(container);
         const columns = clampColumns(
-            options.columns ?? readColumnsFromAttr(container, 3),
+            options.columns ?? readActiveColumnsFromAttrs(container, 3),
             3,
         );
         const gap = readGapPx(container, options.gap);
 
         // Refresh placement tracking so newly added items are styled and
-        // removed items have their styles restored.
+        // removed items have their styles restored. Unobserve removed
+        // items from the ResizeObserver so the observer set doesn't
+        // accumulate detached targets across mutations.
         const liveSet = new Set(items);
         for (const placement of placements) {
             if (!liveSet.has(placement.el)) {
                 restoreStyle(placement.el, placement.prevStyle);
+                resizeObserver?.unobserve(placement.el);
             }
         }
         const placementByEl = new Map(placements.map((p) => [p.el, p] as const));
@@ -289,7 +340,7 @@ export function initMasonry(container: HTMLElement, options: MasonryOptions = {}
     // item's content first paints (editor canvas case) its size jumps
     // from 0 to N, but the container's size doesn't, so the
     // container-only observation misses it.
-    const resizeObserver = typeof ResizeObserver !== 'undefined'
+    resizeObserver = typeof ResizeObserver !== 'undefined'
         ? new ResizeObserver(() => relayout())
         : null;
     resizeObserver?.observe(container);

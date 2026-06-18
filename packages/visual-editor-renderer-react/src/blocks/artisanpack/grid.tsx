@@ -93,6 +93,21 @@ export function GridBlock({ attributes, children }: BlockRendererProps): JSX.Ele
     const props: Record<string, unknown> = { className: classes };
     if (isMasonry) {
         props['data-ap-cols'] = baseColumns;
+
+        // Per-breakpoint overrides ride alongside the base count so the
+        // JS bootstrap can pick the active breakpoint at runtime
+        // instead of locking masonry to the base `data-ap-cols`.
+        for (const bp of BREAKPOINTS) {
+            const raw = responsiveColumns[bp];
+            if (raw === undefined || raw === null) {
+                continue;
+            }
+            const numeric = typeof raw === 'number' ? raw : Number(raw);
+            if (!Number.isFinite(numeric)) {
+                continue;
+            }
+            props[`data-ap-cols-${bp}`] = clampInt(numeric, 1, 12, baseColumns);
+        }
     }
 
     return <div {...props}>{children as ReactNode}</div>;

@@ -91,6 +91,35 @@ it( 'emits the masonry layout-mode class + data-ap-cols on the grid wrapper when
 		->not->toContain( 'ap-grid-layout-fixed' );
 } );
 
+it( 'emits per-breakpoint data-ap-cols-{bp} attributes when the grid carries responsive numColumns overrides in masonry mode', function () {
+	$html = view( 'visual-editor-renderer-blade::blocks.artisanpack.grid', [
+		'attributes' => [
+			'numColumns' => 2,
+			'layoutMode' => 'masonry',
+			'responsive' => [ 'numColumns' => [ 'md' => 4, 'lg' => 6 ] ],
+		],
+		'innerBlocksHtml' => '',
+	] )->render();
+
+	expect( $html )
+		->toContain( 'data-ap-cols="2"' )
+		->toContain( 'data-ap-cols-md="4"' )
+		->toContain( 'data-ap-cols-lg="6"' );
+} );
+
+it( 'skips responsive data attributes when the grid is in fixed mode', function () {
+	$html = view( 'visual-editor-renderer-blade::blocks.artisanpack.grid', [
+		'attributes' => [
+			'numColumns' => 2,
+			'responsive' => [ 'numColumns' => [ 'md' => 4 ] ],
+		],
+		'innerBlocksHtml' => '',
+	] )->render();
+
+	expect( $html )
+		->not->toContain( 'data-ap-cols' );
+} );
+
 it( 'emits the fixed layout-mode class on the grid wrapper by default', function () {
 	$html = view( 'visual-editor-renderer-blade::blocks.artisanpack.grid', [
 		'attributes' => [ 'numColumns' => 3 ],
