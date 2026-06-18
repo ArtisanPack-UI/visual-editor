@@ -38,6 +38,16 @@
 	through `PhotoGridSupport::wrapperForBlock` + the responsive CSS
 	accumulator. --}}
 <link rel="stylesheet" href="{{ $photoGridStyleHref }}" data-ve-photo-grid>
+{{-- #592 — Post Template grid container. Sets `grid-template-columns`
+	on `.wp-block-post-template.is-layout-grid.columns-N` so the
+	post-template's `is-layout-grid` wrapper renders as an actual
+	N-column CSS grid (the layout baseline only supplies `display: grid`). --}}
+<link rel="stylesheet" href="{{ $postTemplateStyleHref }}" data-ve-post-template>
+{{-- #592 — Post Variant grid spans. Adds `ap-post-span-N-{bp}-{columns,row}`
+	rules scoped to `.wp-block-post-template.is-layout-grid > .wp-block-post-template-item`
+	so a variant's per-breakpoint `gridColumnSpan` / `gridRowSpan` only takes
+	effect inside a grid-layout Query Loop. --}}
+<link rel="stylesheet" href="{{ $postVariantStyleHref }}" data-ve-post-variant>
 @if( '' !== $themeTokensCss )
 <style data-ve-theme-tokens>{!! $themeTokensCss !!}</style>
 @endif

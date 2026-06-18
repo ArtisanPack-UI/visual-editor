@@ -23,18 +23,34 @@
         },
         "label": {
             "type": "string"
+        },
+        "gridColumnSpan": {
+            "type": "number",
+            "default": 1
+        },
+        "gridRowSpan": {
+            "type": "number",
+            "default": 1
         }
     },
     "usesContext": [
         "queryId",
         "query",
         "displayLayout",
-        "postType"
+        "postType",
+        "artisanpack/postTemplateLayout",
+        "artisanpack/postTemplateColumns"
     ],
     "supports": {
         "html": false,
         "reusable": false,
         "layout": false,
-        "inserter": false
+        "inserter": false,
+        "artisanpackResponsive": {
+            "attributes": [
+                "gridColumnSpan",
+                "gridRowSpan"
+            ]
+        }
     }
 }

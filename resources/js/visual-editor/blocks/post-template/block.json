@@ -33,6 +33,10 @@
         "postType",
         "artisanpack/queryPreview"
     ],
+    "providesContext": {
+        "artisanpack/postTemplateLayout": "layout",
+        "artisanpack/postTemplateColumns": "columns"
+    },
     "supports": {
         "anchor": true,
         "reusable": false,
