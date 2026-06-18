@@ -625,6 +625,9 @@ class QueryInliner
 				? $postTemplateAttrs['_compiledVariantMap']
 				: [];
 
+		$postTemplateIsGrid = isset( $postTemplateAttrs['layout'] )
+			&& 'grid' === $postTemplateAttrs['layout'];
+
 		$resultsList = is_array( $results ) ? array_values( $results ) : iterator_to_array( $results, false );
 
 		$this->variantResolver->prime( $variantBlocks, $compiledMap, count( $resultsList ) );
@@ -662,17 +665,31 @@ class QueryInliner
 				);
 			}
 
+			$itemAttributes = [
+				'postId'    => $postId,
+				'className' => 'post-' . $postId
+				. ' post'
+				. ( null !== $variantOrder ? ' is-variant' : '' )
+				. ' type-' . ( isset( $post->post_type ) ? (string) $post->post_type : ( isset( $post->type ) ? (string) $post->type : 'post' ) )
+				. ' status-' . ( isset( $post->status ) && is_object( $post->status ) && isset( $post->status->value ) ? (string) $post->status->value : ( isset( $post->status ) && is_string( $post->status ) ? $post->status : 'publish' ) ),
+			];
+
+			if ( null !== $variantOrder && $postTemplateIsGrid ) {
+				$variantBlock = $variantBlocks[ $variantOrder ] ?? null;
+
+				if ( is_array( $variantBlock ) ) {
+					$spans = $this->resolveVariantSpans( $variantBlock );
+
+					if ( null !== $spans ) {
+						$itemAttributes['_resolvedGridSpan'] = $spans;
+					}
+				}
+			}
+
 			$expandedIterations[] = [
 				'clientId'    => 'pti-' . $postId,
 				'name'        => 'core/post-template-item',
-				'attributes'  => [
-					'postId'    => $postId,
-					'className' => 'post-' . $postId
-					. ' post'
-					. ( null !== $variantOrder ? ' is-variant' : '' )
-					. ' type-' . ( isset( $post->post_type ) ? (string) $post->post_type : ( isset( $post->type ) ? (string) $post->type : 'post' ) )
-					. ' status-' . ( isset( $post->status ) && is_object( $post->status ) && isset( $post->status->value ) ? (string) $post->status->value : ( isset( $post->status ) && is_string( $post->status ) ? $post->status : 'publish' ) ),
-				],
+				'attributes'  => $itemAttributes,
 				'innerBlocks' => $iterationBlocks,
 			];
 		}
@@ -1017,6 +1034,109 @@ class QueryInliner
 				'_resolvedItems' => count( $results ),
 			] ),
 		] );
+	}
+
+	/**
+	 * Read the matched variant's grid span attributes — both base
+	 * values and any per-breakpoint responsive overrides — and
+	 * normalize them into a flat shape the renderers can consume
+	 * without touching the variant block tree directly.
+	 *
+	 * Returns `null` when the variant carries no span data (defaults
+	 * 1×1 with no breakpoint overrides) so the renderers can skip the
+	 * extra class emission for the common case.
+	 *
+	 * @param  array<string, mixed>  $variantBlock
+	 *
+	 * @return array{
+	 *     columns: array<string, int>,
+	 *     rows: array<string, int>
+	 * }|null
+	 */
+	protected function resolveVariantSpans( array $variantBlock ): ?array
+	{
+		$attributes = isset( $variantBlock['attributes'] ) && is_array( $variantBlock['attributes'] )
+			? $variantBlock['attributes']
+			: [];
+
+		$baseColumns = $this->clampSpanValue( $attributes['gridColumnSpan'] ?? null, 1 );
+		$baseRows    = $this->clampSpanValue( $attributes['gridRowSpan'] ?? null, 1 );
+
+		$columns = [ 'base' => $baseColumns ];
+		$rows    = [ 'base' => $baseRows ];
+
+		$responsive = isset( $attributes['responsive'] ) && is_array( $attributes['responsive'] )
+			? $attributes['responsive']
+			: [];
+
+		$columnOverrides = isset( $responsive['gridColumnSpan'] ) && is_array( $responsive['gridColumnSpan'] )
+			? $responsive['gridColumnSpan']
+			: [];
+
+		foreach ( $columnOverrides as $bp => $value ) {
+			if ( ! is_string( $bp ) || 'base' === $bp ) {
+				continue;
+			}
+
+			if ( null === $value ) {
+				continue;
+			}
+
+			$columns[ $bp ] = $this->clampSpanValue( $value, $baseColumns );
+		}
+
+		$rowOverrides = isset( $responsive['gridRowSpan'] ) && is_array( $responsive['gridRowSpan'] )
+			? $responsive['gridRowSpan']
+			: [];
+
+		foreach ( $rowOverrides as $bp => $value ) {
+			if ( ! is_string( $bp ) || 'base' === $bp ) {
+				continue;
+			}
+
+			if ( null === $value ) {
+				continue;
+			}
+
+			$rows[ $bp ] = $this->clampSpanValue( $value, $baseRows );
+		}
+
+		$hasOverrides = count( $columns ) > 1 || count( $rows ) > 1;
+
+		if ( 1 === $baseColumns && 1 === $baseRows && ! $hasOverrides ) {
+			return null;
+		}
+
+		return [
+			'columns' => $columns,
+			'rows'    => $rows,
+		];
+	}
+
+	/**
+	 * Clamp a single span value to the renderer's supported 1..12 range
+	 * so a malformed save never produces a CSS class that has no
+	 * matching rule in the stylesheet.
+	 *
+	 * @param  mixed  $value
+	 */
+	protected function clampSpanValue( mixed $value, int $fallback ): int
+	{
+		if ( ! is_numeric( $value ) ) {
+			return $fallback;
+		}
+
+		$int = (int) $value;
+
+		if ( $int < 1 ) {
+			return 1;
+		}
+
+		if ( $int > 12 ) {
+			return 12;
+		}
+
+		return $int;
 	}
 
 	/**

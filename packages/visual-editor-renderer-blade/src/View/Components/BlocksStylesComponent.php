@@ -75,6 +75,10 @@ class BlocksStylesComponent extends Component
 
 	public string $photoGridStyleHref;
 
+	public string $postTemplateStyleHref;
+
+	public string $postVariantStyleHref;
+
 	public string $interactivityScriptSrc;
 
 	public bool $emitBlockLibrary;
@@ -114,6 +118,8 @@ class BlocksStylesComponent extends Component
 		$this->queryPaginationStyleHref = $base . '/frontend/query-pagination.css';
 		$this->flexLayoutStyleHref    = $base . '/frontend/flex-layout.css';
 		$this->photoGridStyleHref     = $base . '/frontend/photo-grid.css';
+		$this->postTemplateStyleHref  = $base . '/frontend/post-template.css';
+		$this->postVariantStyleHref   = $base . '/frontend/post-variant.css';
 		$this->interactivityScriptSrc = $base . '/frontend/interactivity.js';
 		$this->emitBlockLibrary       = $bundle;
 		$this->emitInteractive        = $interactive;

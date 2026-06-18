@@ -29,11 +29,75 @@ interface PostVariantAttributes {
     readonly matcher?: Matcher;
     readonly priority?: number;
     readonly label?: string;
+    readonly gridColumnSpan?: number;
+    readonly gridRowSpan?: number;
+}
+
+interface DisplayLayoutContext {
+    readonly type?: string;
+    readonly columns?: number;
+}
+
+interface PostVariantContext {
+    readonly displayLayout?: DisplayLayoutContext | null;
+    readonly 'artisanpack/postTemplateLayout'?: string | null;
+    readonly 'artisanpack/postTemplateColumns'?: number | null;
 }
 
 interface PostVariantEditProps {
     attributes: PostVariantAttributes;
     setAttributes: ( changes: Partial<PostVariantAttributes> ) => void;
+    context?: PostVariantContext;
+}
+
+const MAX_ROW_SPAN = 12;
+const ROW_SPAN_WARN_THRESHOLD = 4;
+const DEFAULT_NUM_COLUMNS = 3;
+
+function clampSpan( value: number | undefined, max: number, fallback: number ): number {
+    const next = typeof value === 'number' && Number.isFinite( value )
+        ? Math.trunc( value )
+        : fallback;
+
+    if ( next < 1 ) {
+        return 1;
+    }
+
+    if ( next > max ) {
+        return max;
+    }
+
+    return next;
+}
+
+function resolveNumColumns( context: PostVariantContext | undefined ): number {
+    // Prefer the post-template's own `columns` attribute (exposed via
+    // `artisanpack/postTemplateColumns` context) because the post-template
+    // is the source of truth for the grid the variant lives inside. Fall
+    // back to the parent query's `displayLayout.columns` for hosts that
+    // drive grids from the query block instead.
+    const fromPostTemplate = context?.[ 'artisanpack/postTemplateColumns' ];
+    const fromDisplayLayout = context?.displayLayout?.columns;
+
+    const raw = typeof fromPostTemplate === 'number'
+        ? fromPostTemplate
+        : fromDisplayLayout;
+
+    const parsed = typeof raw === 'number' && Number.isFinite( raw ) ? Math.trunc( raw ) : DEFAULT_NUM_COLUMNS;
+
+    if ( parsed < 1 ) {
+        return 1;
+    }
+
+    return parsed;
+}
+
+function isGridLayout( context: PostVariantContext | undefined ): boolean {
+    if ( context?.[ 'artisanpack/postTemplateLayout' ] === 'grid' ) {
+        return true;
+    }
+
+    return context?.displayLayout?.type === 'grid';
 }
 
 const POSITION_PRESETS: ReadonlyArray<{ value: string; label: string }> = [
@@ -84,14 +148,27 @@ function defaultValueForKind( kind: MatcherKind ): string {
 export default function PostVariantEdit( {
     attributes,
     setAttributes,
+    context,
 }: PostVariantEditProps ): ReactElement {
     const matcher = getMatcher( attributes );
     const priority = typeof attributes.priority === 'number' ? attributes.priority : 10;
     const label = typeof attributes.label === 'string' ? attributes.label : '';
+    const showGridSpans = isGridLayout( context );
+    const numColumns = resolveNumColumns( context );
+    const gridColumnSpan = clampSpan( attributes.gridColumnSpan, numColumns, 1 );
+    const gridRowSpan = clampSpan( attributes.gridRowSpan, MAX_ROW_SPAN, 1 );
+
+    const wrapperClassName = [
+        'wp-block-artisanpack-post-variant',
+        showGridSpans ? `ap-post-span-${ gridColumnSpan }-base-columns` : '',
+        showGridSpans ? `ap-post-span-${ gridRowSpan }-base-row` : '',
+    ]
+        .filter( ( value: string ) => '' !== value )
+        .join( ' ' );
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const blockProps = ( useBlockProps as any )( {
-        className: 'wp-block-artisanpack-post-variant',
+        className: wrapperClassName,
         'data-variant-kind': matcher.kind,
         'data-variant-value': matcher.value,
     } );
@@ -198,6 +275,43 @@ export default function PostVariantEdit( {
                         </Notice>
                     ) }
                 </PanelBody>
+                { showGridSpans && (
+                    <PanelBody title={ __( 'Grid Spans', TEXT_DOMAIN ) } initialOpen={ false }>
+                        <RangeControl
+                            __nextHasNoMarginBottom
+                            __next40pxDefaultSize
+                            label={ __( 'Column Span', TEXT_DOMAIN ) }
+                            value={ gridColumnSpan }
+                            onChange={ ( value?: number ) =>
+                                setAttributes( { gridColumnSpan: clampSpan( value, numColumns, 1 ) } )
+                            }
+                            min={ 1 }
+                            max={ numColumns }
+                            allowReset
+                            resetFallbackValue={ 1 }
+                            help={ __( 'How many grid columns this post spans when it matches this variant.', TEXT_DOMAIN ) }
+                        />
+                        <RangeControl
+                            __nextHasNoMarginBottom
+                            __next40pxDefaultSize
+                            label={ __( 'Row Span', TEXT_DOMAIN ) }
+                            value={ gridRowSpan }
+                            onChange={ ( value?: number ) =>
+                                setAttributes( { gridRowSpan: clampSpan( value, MAX_ROW_SPAN, 1 ) } )
+                            }
+                            min={ 1 }
+                            max={ MAX_ROW_SPAN }
+                            allowReset
+                            resetFallbackValue={ 1 }
+                            help={ __( 'How many grid rows this post spans when it matches this variant.', TEXT_DOMAIN ) }
+                        />
+                        { gridRowSpan > ROW_SPAN_WARN_THRESHOLD && (
+                            <Notice status="warning" isDismissible={ false }>
+                                { __( 'A row span larger than 4 can produce very tall cells. Make sure your layout still makes sense at smaller viewports.', TEXT_DOMAIN ) }
+                            </Notice>
+                        ) }
+                    </PanelBody>
+                ) }
             </InspectorControls>
             <div className="wp-block-artisanpack-post-variant__summary" aria-hidden="true">
                 <span>{ summary }</span>

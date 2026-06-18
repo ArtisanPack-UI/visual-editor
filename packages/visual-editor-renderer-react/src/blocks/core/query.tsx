@@ -14,7 +14,7 @@
  */
 
 import type { JSX, ReactNode } from 'react';
-import { attrString, classList } from '../../support/attributes';
+import { attrString, classList, postTemplateItemSpanClasses } from '../../support/attributes';
 import type { BlockRendererProps } from '../../types';
 
 interface WrapperProps {
@@ -93,8 +93,9 @@ export function PostTemplateItemBlock({ attributes, children }: BlockRendererPro
     const parsedPostId = typeof rawPostId === 'number' ? rawPostId : Number(rawPostId);
     const postId = Number.isFinite(parsedPostId) ? parsedPostId : 0;
     const className = attrString(attributes.className);
+    const spanClasses = postTemplateItemSpanClasses(attributes._resolvedGridSpan);
 
-    const classes = classList(['wp-block-post-template-item', className]);
+    const classes = classList(['wp-block-post-template-item', className, ...spanClasses]);
 
     return <li id={postId > 0 ? `post-${postId}` : undefined} className={classes}>{children}</li>;
 }

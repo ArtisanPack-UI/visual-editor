@@ -49,13 +49,14 @@ export default function PostTemplateEdit( {
     const columns = typeof attributes.columns === 'number' ? attributes.columns : 3;
     const isGrid = layout === 'grid';
 
-    // Use upstream Gutenberg's `core/post-template` class names so the
-    // shipped block-library CSS (`.wp-block-post-template.is-flex-container
-    // > li` + `.columns-{n} > li`) applies without a parallel rule set
-    // — see `@wordpress/block-library/build-style/style.css`.
+    // Match the Blade renderer's class set so the editor canvas and the
+    // public frontend use the same CSS-grid layout. `is-layout-grid` +
+    // `columns-{n}` together activate the rules shipped via the
+    // post-variant stylesheet, which also powers per-post column / row
+    // spans (#592).
     const className = [
         'wp-block-post-template',
-        isGrid ? 'is-flex-container' : '',
+        isGrid ? 'is-layout-grid' : 'is-layout-flow',
         isGrid ? `columns-${ columns }` : '',
     ].filter( Boolean ).join( ' ' );
 

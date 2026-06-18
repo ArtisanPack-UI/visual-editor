@@ -13,7 +13,7 @@
  */
 
 import { defineComponent, h } from 'vue';
-import { attrString, classList } from '../../support/attributes';
+import { attrString, classList, postTemplateItemSpanClasses } from '../../support/attributes';
 import { blockRendererProps } from '../shared';
 
 function isDevelopment(): boolean {
@@ -107,9 +107,12 @@ export const PostTemplateItemBlock = defineComponent({
                 typeof rawPostId === 'number' ? rawPostId : Number(rawPostId);
             const postId = Number.isFinite(parsedPostId) ? parsedPostId : 0;
             const className = attrString(props.attributes.className);
+            const spanClasses = postTemplateItemSpanClasses(
+                props.attributes._resolvedGridSpan,
+            );
 
             const attrs: Record<string, unknown> = {
-                class: classList(['wp-block-post-template-item', className]),
+                class: classList(['wp-block-post-template-item', className, ...spanClasses]),
             };
 
             if (postId > 0) {
