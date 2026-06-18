@@ -1,6 +1,7 @@
 {
   "name": "artisanpack-ui/visual-editor",
   "description": "A Gutenberg-powered visual editor for Laravel — post editor, site editor, and Blade/React/Vue block renderers.",
+  "version": "1.2.0",
   "type": "library",
   "license": "GPL-3.0-or-later",
   "autoload": {
