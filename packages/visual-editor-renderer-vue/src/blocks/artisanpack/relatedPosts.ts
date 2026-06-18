@@ -14,17 +14,6 @@ import { defineComponent, h, type VNode } from 'vue';
 import { attrInt, attrString, classList } from '../../support/attributes';
 import { blockRendererProps } from '../shared';
 
-function clampColumns(value: unknown, fallback: number): number {
-    const parsed = attrInt(value, fallback);
-    if (parsed < 1) {
-        return 1;
-    }
-    if (parsed > 4) {
-        return 4;
-    }
-    return parsed;
-}
-
 export const RelatedPostsBlock = defineComponent({
     name: 'RelatedPostsBlock',
     props: blockRendererProps,
@@ -36,14 +25,8 @@ export const RelatedPostsBlock = defineComponent({
                 return null;
             }
 
-            const columns = clampColumns(props.attributes.numColumns, 1);
             const className = attrString(props.attributes.className);
-
-            const classes = classList([
-                'ap-related-posts',
-                `ap-related-posts-has-${columns}-columns`,
-                className,
-            ]);
+            const classes = classList([ 'ap-related-posts', className ]);
 
             return h('div', { class: classes }, slots.default?.());
         };

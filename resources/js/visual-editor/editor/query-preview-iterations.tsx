@@ -434,7 +434,10 @@ export function QueryPreviewIterations(
                     { variantCollapseStyles }
                 </style>
             ) }
-            <Tag {...outerProps as Record<string, unknown>}>
+            <Tag
+                {...outerProps as Record<string, unknown>}
+                data-query-preview-root={ clientId }
+            >
                 { visiblePosts.map( ( post, idx ) => {
                     const iterationContext = { postType, postId: post.id, 'artisanpack/postPreview': post };
                     const isActive = post.id === effectiveActiveId;

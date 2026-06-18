@@ -1,32 +1,46 @@
 /**
- * Related Posts — editor-side component (#501).
+ * Related Posts — editor-side component (#501, #601).
  *
- * Mirrors `artisanpack/query` for the inspector UX (posts-per-page,
- * order, columns, offset) but locks the relation rule to "same post
- * type as the host entry, sharing at least one term in the host's
- * primary taxonomy". The `query` attribute uses the query-block shape
- * because the renderers + server-side `QueryInliner` consume it; the
- * `postType` comes from the host post in scope and is not pickable here.
+ * Mirrors `artisanpack/query` for the WYSIWYG canvas: the saved tree
+ * nests an `artisanpack/post-template` whose inner blocks are the
+ * per-post iteration template (post-title, post-date, etc.). The query
+ * preview hook resolves N related posts via the editor's
+ * `/visual-editor/api/query/resolve` endpoint using the `relatedTo`
+ * shortcut, and that result set is piped down through the
+ * `artisanpack/queryPreview` block context so the nested post-template
+ * renders one editable iteration plus N read-only ghosts via
+ * `<QueryPreviewIterations>` — same code path Query Loop uses, so
+ * variants, grid spans, and masonry packing all work uniformly.
  *
- * The canvas previews the editable inner-block tree once against the
- * host post, then renders N − 1 read-only stub cards below it so authors
- * can see at a glance how many related posts will render. Server-side
- * `QueryInliner.expandRelatedPosts` resolves the real list via the
- * bound `QueryResolverContract` and stamps each clone through
- * `PostResolver` at render time.
+ * Pre-#601 saved content (flat inner blocks with no post-template
+ * wrapper) is handled server-side by the QueryInliner's legacy
+ * expansion branch — see `expandRelatedPosts()` for the
+ * backward-compat path.
  */
 
 import type { ReactElement } from 'react';
-import { useEffect, useState } from '@wordpress/element';
+import { useEffect, useMemo } from '@wordpress/element';
 import {
+    BlockContextProvider,
+    InnerBlocks,
     InspectorControls,
     useBlockProps,
-    useInnerBlocksProps,
 } from '@wordpress/block-editor';
-import { PanelBody, RangeControl, SelectControl } from '@wordpress/components';
+import {
+    Notice,
+    PanelBody,
+    RangeControl,
+    SelectControl,
+} from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 
+import {
+    QUERY_PREVIEW_CONTEXT_KEY,
+    type QueryPreviewContextValue,
+} from '../../editor/query-preview-context';
+import { useQueryPreview } from '../../editor/use-query-preview';
 import { TEXT_DOMAIN } from '../../vendor/i18n';
+import PostVariantsPanel from '../query/post-variants-panel';
 
 interface RelatedPostsQuery {
     readonly perPage?: number;
@@ -38,7 +52,7 @@ interface RelatedPostsQuery {
 }
 
 interface RelatedPostsDisplayLayout {
-    readonly type?: string;
+    readonly type?: 'list' | 'grid' | 'masonry' | string;
     readonly columns?: number;
 }
 
@@ -48,28 +62,33 @@ interface RelatedPostsAttributes {
     readonly queryId?: string;
     readonly query?: RelatedPostsQuery;
     readonly displayLayout?: RelatedPostsDisplayLayout;
+    readonly enhancedPagination?: boolean;
 }
 
 interface RelatedPostsEditProps {
     readonly attributes: RelatedPostsAttributes;
     readonly setAttributes: (next: Partial<RelatedPostsAttributes>) => void;
     readonly clientId: string;
+    readonly context?: Record<string, unknown>;
 }
 
-interface PreviewPost {
-    readonly id: number;
-    readonly title: string;
-    readonly excerpt: string;
-    readonly date: string;
-}
-
-const TEMPLATE: [string, Record<string, unknown>][] = [
-    ['artisanpack/post-title', {}],
-    ['artisanpack/post-date', {}],
-    ['artisanpack/post-excerpt', {}],
+// Seed every newly-inserted related-posts block with a post-template
+// so authors land on the WYSIWYG iteration path immediately rather
+// than discovering they need to add the wrapper by hand. Matches
+// Query Loop's pattern — the nested post-template seeds its own
+// `post-title` default through QueryPreviewIterations, so authors get
+// a working preview from the first click; date/excerpt/etc. are added
+// inside the post-template the same way as Query Loop. Keeping this
+// minimal also guarantees the Post Variants panel's "clone the base
+// children" seeding sees a stable tree (one post-title) on first
+// "Add variant" click — a richer nested template here would race the
+// post-template's own mount and produce empty variant clones.
+// The `template` only applies on first mount, so it does not overwrite
+// an existing user-arranged tree (pre-#601 flat saves continue to
+// render through the QueryInliner's legacy expansion branch).
+const DEFAULT_TEMPLATE: ReadonlyArray<[string]> = [
+    ['artisanpack/post-template'],
 ];
-
-const API_BASE = '/visual-editor/api';
 
 function clampPosts(value: number | undefined, fallback: number): number {
     const next =
@@ -85,20 +104,6 @@ function clampPosts(value: number | undefined, fallback: number): number {
     return next;
 }
 
-function clampColumns(value: number | undefined, fallback: number): number {
-    const next =
-        typeof value === 'number' && Number.isFinite(value)
-            ? Math.trunc(value)
-            : fallback;
-    if (next < 1) {
-        return 1;
-    }
-    if (next > 4) {
-        return 4;
-    }
-    return next;
-}
-
 function clampOffset(value: number | undefined): number {
     const next =
         typeof value === 'number' && Number.isFinite(value)
@@ -107,63 +112,47 @@ function clampOffset(value: number | undefined): number {
     return next < 0 ? 0 : next;
 }
 
-// The REST surface mirrors WP's `excerpt.rendered` shape, which ships
-// `<p>...</p>` wrappers and entity-encoded punctuation. The preview
-// card only needs a one-line plain-text excerpt — strip tags + decode
-// entities client-side so we never feed unsanitized HTML through
-// `dangerouslySetInnerHTML`.
-function stripHtml(value: string): string {
-    if (typeof document === 'undefined') {
-        return value.replace(/<[^>]*>/g, '').trim();
+function readHostPostId(context?: Record<string, unknown>): number {
+    if (!context) {
+        return 0;
     }
-
-    const parser = document.createElement('div');
-    parser.innerHTML = value;
-    return (parser.textContent ?? '').trim();
+    const value = context.postId;
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return Math.trunc(value);
+    }
+    if (typeof value === 'string' && value !== '') {
+        const parsed = Number(value);
+        return Number.isFinite(parsed) ? Math.trunc(parsed) : 0;
+    }
+    return 0;
 }
 
-function extractStringField(record: Record<string, unknown>, key: string): string {
-    const value = record[key];
-    if (typeof value === 'string') {
-        return value;
+function readHostPostType(context?: Record<string, unknown>): string {
+    if (!context) {
+        return 'post';
     }
-    if (value !== null && typeof value === 'object') {
-        const envelope = value as { rendered?: unknown; raw?: unknown };
-        if (typeof envelope.rendered === 'string') {
-            return envelope.rendered;
-        }
-        if (typeof envelope.raw === 'string') {
-            return envelope.raw;
-        }
-    }
-    return '';
+    const value = context.postType;
+    return typeof value === 'string' && value !== '' ? value : 'post';
 }
 
 export default function RelatedPostsEdit({
     attributes,
     setAttributes,
     clientId,
+    context,
 }: RelatedPostsEditProps): ReactElement {
     const query = attributes.query ?? {};
-    const displayLayout = attributes.displayLayout ?? {};
 
     const numPosts = clampPosts(
         typeof query.perPage === 'number' ? query.perPage : attributes.numPosts,
         3
     );
-    const numColumns = clampColumns(
-        typeof displayLayout.columns === 'number'
-            ? displayLayout.columns
-            : attributes.numColumns,
-        1
-    );
     const offset = clampOffset(query.offset);
     const order = query.order === 'asc' ? 'asc' : 'desc';
     const orderBy = typeof query.orderBy === 'string' ? query.orderBy : 'date';
 
-    const [previewPosts, setPreviewPosts] = useState<ReadonlyArray<PreviewPost>>(
-        []
-    );
+    const hostPostId = readHostPostId(context);
+    const hostPostType = readHostPostType(context);
 
     useEffect(() => {
         if (attributes.queryId === clientId) {
@@ -173,85 +162,52 @@ export default function RelatedPostsEdit({
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [attributes.queryId, clientId]);
 
-    useEffect(() => {
-        const controller = new AbortController();
-        const params = new URLSearchParams({
-            per_page: String(numPosts),
-            orderby: orderBy,
-            order,
-        });
-        if (offset > 0) {
-            params.set('offset', String(offset));
+    // Build the resolver payload via the `relatedTo` shortcut. When
+    // no host post is in editor scope (e.g. inside a template editor
+    // without a preview post selected), skip the preview entirely and
+    // surface a Notice so authors know the canvas can't show real
+    // matches yet.
+    const previewQuery = useMemo(() => {
+        if (hostPostId === 0) {
+            return null;
         }
+        return {
+            relatedTo: hostPostId,
+            postType: hostPostType,
+            perPage: numPosts,
+            offset,
+            order,
+            orderBy,
+        };
+    }, [hostPostId, hostPostType, numPosts, offset, order, orderBy]);
 
-        void fetch(`${API_BASE}/posts?${params.toString()}`, {
-            credentials: 'same-origin',
-            headers: { Accept: 'application/json' },
-            signal: controller.signal,
-        })
-            .then((res) => (res.ok ? res.json() : null))
-            .then((body) => {
-                if (body === null) {
-                    setPreviewPosts([]);
-                    return;
-                }
-                const raw = Array.isArray(body)
-                    ? body
-                    : Array.isArray((body as { data?: unknown }).data)
-                      ? ((body as { data: unknown[] }).data)
-                      : [];
-                const next: PreviewPost[] = [];
-                for (const entry of raw) {
-                    if (entry === null || typeof entry !== 'object') {
-                        continue;
-                    }
-                    const record = entry as Record<string, unknown>;
-                    const id = Number(record.id);
-                    if (!Number.isFinite(id) || id <= 0) {
-                        continue;
-                    }
-                    next.push({
-                        id: Math.trunc(id),
-                        title:
-                            extractStringField(record, 'title') ||
-                            (typeof record.slug === 'string'
-                                ? record.slug
-                                : `#${id}`),
-                        excerpt: extractStringField(record, 'excerpt'),
-                        date:
-                            typeof record.date === 'string'
-                                ? record.date
-                                : '',
-                    });
-                }
-                setPreviewPosts(next.slice(0, numPosts));
-            })
-            .catch((error) => {
-                if ((error as { name?: string }).name !== 'AbortError') {
-                    setPreviewPosts([]);
-                }
-            });
+    const preview = useQueryPreview(previewQuery);
 
-        return () => controller.abort();
-    }, [numPosts, order, orderBy, offset]);
+    const queryPreviewContext: QueryPreviewContextValue = {
+        posts: preview.status === 'ready' ? preview.posts : [],
+        total: preview.total,
+        currentPage: 1,
+        queryTitle: '',
+        perPage: numPosts,
+        status: preview.status,
+    };
+
+    const blockContext = {
+        postType: hostPostType,
+        [QUERY_PREVIEW_CONTEXT_KEY]: queryPreviewContext,
+    };
 
     const updateQuery = (changes: Partial<RelatedPostsQuery>): void => {
         setAttributes({ query: { ...query, ...changes } });
     };
 
-    const updateLayout = (changes: Partial<RelatedPostsDisplayLayout>): void => {
-        setAttributes({ displayLayout: { ...displayLayout, ...changes } });
-    };
-
     const blockProps = useBlockProps({
-        className: `ap-related-posts ap-related-posts-has-${numColumns}-columns`,
+        className: 'ap-related-posts',
     });
-    const innerBlocksProps = useInnerBlocksProps(
-        { className: 'ap-related-posts__item ap-related-posts__item--editable' },
-        { template: TEMPLATE }
-    );
 
-    const additionalPreview = previewPosts.slice(1);
+    const showHostMissingNotice = hostPostId === 0;
+    const showZeroResultNotice =
+        hostPostId !== 0 && preview.status === 'ready' && preview.total === 0;
 
     return (
         <>
@@ -261,6 +217,8 @@ export default function RelatedPostsEdit({
                     initialOpen
                 >
                     <RangeControl
+                        // @ts-expect-error - upstream prop
+                        __nextHasNoMarginBottom
                         label={__('Number of related posts', TEXT_DOMAIN)}
                         value={numPosts}
                         onChange={(value) => {
@@ -272,23 +230,10 @@ export default function RelatedPostsEdit({
                         max={10}
                         allowReset
                         resetFallbackValue={3}
-                        __nextHasNoMarginBottom
                     />
                     <RangeControl
-                        label={__('Columns', TEXT_DOMAIN)}
-                        value={numColumns}
-                        onChange={(value) => {
-                            const next = clampColumns(value, 1);
-                            setAttributes({ numColumns: next });
-                            updateLayout({ columns: next });
-                        }}
-                        min={1}
-                        max={4}
-                        allowReset
-                        resetFallbackValue={1}
+                        // @ts-expect-error - upstream prop
                         __nextHasNoMarginBottom
-                    />
-                    <RangeControl
                         label={__('Offset', TEXT_DOMAIN)}
                         value={offset}
                         onChange={(value) =>
@@ -298,9 +243,10 @@ export default function RelatedPostsEdit({
                         max={50}
                         allowReset
                         resetFallbackValue={0}
-                        __nextHasNoMarginBottom
                     />
                     <SelectControl
+                        // @ts-expect-error - upstream prop
+                        __nextHasNoMarginBottom
                         label={__('Order by', TEXT_DOMAIN)}
                         value={`${orderBy}/${order}`}
                         options={[
@@ -328,44 +274,35 @@ export default function RelatedPostsEdit({
                                 order: newOrder === 'asc' ? 'asc' : 'desc',
                             });
                         }}
-                        __nextHasNoMarginBottom
                     />
                 </PanelBody>
+                <PostVariantsPanel
+                    queryClientId={clientId}
+                    previewTotal={
+                        preview.status === 'ready' ? preview.total : 0
+                    }
+                />
             </InspectorControls>
             <div {...blockProps}>
-                <div {...innerBlocksProps} />
-                {additionalPreview.map((post) => (
-                    <article
-                        key={post.id}
-                        className="ap-related-posts__item ap-related-posts__item--preview"
-                        aria-label={__(
-                            'Read-only preview of an additional related post',
-                            TEXT_DOMAIN
-                        )}
-                    >
-                        <h3 className="ap-related-posts__preview-title">
-                            {post.title}
-                        </h3>
-                        {post.date !== '' && (
-                            <p className="ap-related-posts__preview-date">
-                                {post.date.slice(0, 10)}
-                            </p>
-                        )}
-                        {post.excerpt !== '' && (
-                            <p className="ap-related-posts__preview-excerpt">
-                                {stripHtml(post.excerpt)}
-                            </p>
-                        )}
-                    </article>
-                ))}
-                {previewPosts.length === 0 && numPosts > 1 && (
-                    <p className="ap-related-posts__preview-empty">
+                {showHostMissingNotice && (
+                    <Notice status="info" isDismissible={false}>
                         {__(
-                            'Editor preview only shows the editable template above. The published page renders one entry per related post.',
+                            'Select a preview post to see related-posts matches in the canvas. The published page resolves matches against each visitor’s host entry.',
                             TEXT_DOMAIN
                         )}
-                    </p>
+                    </Notice>
                 )}
+                {showZeroResultNotice && (
+                    <Notice status="warning" isDismissible={false}>
+                        {__(
+                            'No related posts matched the host entry’s primary taxonomy. The editable iteration below is shown so you can keep editing the template.',
+                            TEXT_DOMAIN
+                        )}
+                    </Notice>
+                )}
+                <BlockContextProvider value={blockContext}>
+                    <InnerBlocks template={[...DEFAULT_TEMPLATE]} />
+                </BlockContextProvider>
             </div>
         </>
     );

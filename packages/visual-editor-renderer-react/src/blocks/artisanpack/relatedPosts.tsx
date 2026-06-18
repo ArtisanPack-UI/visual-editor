@@ -14,17 +14,6 @@ import type { ReactElement } from 'react';
 import { attrInt, attrString, classList } from '../../support/attributes';
 import type { BlockRendererProps } from '../../types';
 
-function clampColumns(value: unknown, fallback: number): number {
-    const parsed = attrInt(value, fallback);
-    if (parsed < 1) {
-        return 1;
-    }
-    if (parsed > 4) {
-        return 4;
-    }
-    return parsed;
-}
-
 export function RelatedPostsBlock({
     attributes,
     children,
@@ -35,14 +24,8 @@ export function RelatedPostsBlock({
         return null;
     }
 
-    const columns = clampColumns(attributes.numColumns, 1);
     const className = attrString(attributes.className);
-
-    const classes = classList([
-        'ap-related-posts',
-        `ap-related-posts-has-${columns}-columns`,
-        className,
-    ]);
+    const classes = classList([ 'ap-related-posts', className ]);
 
     return <div className={classes}>{children}</div>;
 }
