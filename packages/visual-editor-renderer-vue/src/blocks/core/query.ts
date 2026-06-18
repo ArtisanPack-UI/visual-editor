@@ -13,27 +13,26 @@
  */
 
 import { defineComponent, h } from 'vue';
-import { attrString, classList, postTemplateItemSpanClasses } from '../../support/attributes';
+import { attrInt, attrString, classList, postTemplateItemSpanClasses } from '../../support/attributes';
 import { blockRendererProps } from '../shared';
 
 /**
  * Coerce a host-supplied `columns` attribute into a safe integer in [1, 12].
- * Rejects NaN / Infinity / fractions / non-numbers so the emitted
- * `columns-N` class and `data-ap-cols` attribute always carry a value the
- * stylesheet + JS bootstrap can use.
+ *
+ * Delegates to {@link attrInt} so numeric strings ("4") survive serializers
+ * that don't preserve number types, while NaN / Infinity / unparseable
+ * strings fall through to the caller's fallback. The result is clamped
+ * to the same bounds the stylesheet supports.
  */
 function clampColumns(value: unknown, fallback: number): number {
-    if (typeof value !== 'number' || !Number.isFinite(value)) {
-        return fallback;
-    }
-    const truncated = Math.trunc(value);
-    if (truncated < 1) {
+    const parsed = attrInt(value, fallback);
+    if (parsed < 1) {
         return 1;
     }
-    if (truncated > 12) {
+    if (parsed > 12) {
         return 12;
     }
-    return truncated;
+    return parsed;
 }
 
 function isDevelopment(): boolean {

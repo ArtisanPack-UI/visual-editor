@@ -57,6 +57,31 @@ describe('artisanpack/post-template — masonry layout (#593)', () => {
         expect(html).not.toContain('data-ap-cols');
     });
 
+    it('accepts numeric-string columns from hosts that round-trip attributes as strings', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/post-template', {
+                layout: 'masonry',
+                columns: '4',
+            }),
+        ]);
+
+        expect(html).toContain('columns-4');
+        expect(html).toContain('data-ap-cols="4"');
+    });
+
+    it('falls back to the default columns when the value is unparseable', () => {
+        const html = renderTree([
+            makeBlock('artisanpack/post-template', {
+                layout: 'masonry',
+                columns: 'evil',
+            }),
+        ]);
+
+        // Default columns = 3.
+        expect(html).toContain('columns-3');
+        expect(html).toContain('data-ap-cols="3"');
+    });
+
     it('defaults to is-layout-flow without columns-N or data-ap-cols', () => {
         const html = renderTree([
             makeBlock('artisanpack/post-template', {}),
