@@ -4,8 +4,32 @@
  * state of non-first iterations, and the zero-result fallback.
  */
 
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render } from '@testing-library/react';
+
+interface FakeStoreState {
+    innerBlocks: Array<{
+        name: string;
+        clientId?: string;
+        attributes?: Record<string, unknown>;
+        innerBlocks?: unknown[];
+    }>;
+    attributes: Record<string, unknown>;
+    selectedClientId?: string | null;
+    blockNames?: Record<string, string>;
+    blockParents?: Record<string, string[]>;
+}
+
+const fakeStoreState: FakeStoreState = {
+    innerBlocks: [
+        { name: 'core/post-title', attributes: {}, innerBlocks: [] },
+        { name: 'core/post-excerpt', attributes: {}, innerBlocks: [] },
+    ],
+    attributes: {},
+    selectedClientId: null,
+    blockNames: {},
+    blockParents: {},
+};
 
 vi.mock( '@wordpress/block-editor', async () => {
     const { createElement } = await import( 'react' );
@@ -43,7 +67,14 @@ vi.mock( '@wordpress/block-editor', async () => {
             className: 'block-editor-block-preview__live-content',
             children: createElement(
                 'div',
-                { 'data-testid': 'ghost-preview-content' },
+                {
+                    'data-testid': 'ghost-preview-content',
+                    'data-ghost-block-names': Array.isArray( opts.blocks )
+                        ? opts.blocks
+                              .map( ( block ) => ( block as { name?: string } ).name ?? '' )
+                              .join( ',' )
+                        : '',
+                },
                 `Preview of ${ Array.isArray( opts.blocks ) ? opts.blocks.length : 0 } block(s)`
             ),
         } ),
@@ -56,11 +87,12 @@ vi.mock( '@wordpress/data', () => ( {
     useSelect: ( callback: ( select: ( storeName: unknown ) => unknown ) => unknown ) => {
         const fakeStore = {
             getBlock: () => ( {
-                innerBlocks: [
-                    { name: 'core/post-title', attributes: {}, innerBlocks: [] },
-                    { name: 'core/post-excerpt', attributes: {}, innerBlocks: [] },
-                ],
+                innerBlocks: fakeStoreState.innerBlocks,
+                attributes: fakeStoreState.attributes,
             } ),
+            getSelectedBlockClientId: () => fakeStoreState.selectedClientId ?? null,
+            getBlockName: ( clientId: string ) => fakeStoreState.blockNames?.[ clientId ],
+            getBlockParents: ( clientId: string ) => fakeStoreState.blockParents?.[ clientId ] ?? [],
         };
         return callback( () => fakeStore );
     },
@@ -97,6 +129,17 @@ function makePreview( overrides: Partial<QueryPreviewContextValue> = {} ): Query
         ...overrides,
     };
 }
+
+beforeEach( () => {
+    fakeStoreState.innerBlocks = [
+        { name: 'core/post-title', attributes: {}, innerBlocks: [] },
+        { name: 'core/post-excerpt', attributes: {}, innerBlocks: [] },
+    ];
+    fakeStoreState.attributes = {};
+    fakeStoreState.selectedClientId = null;
+    fakeStoreState.blockNames = {};
+    fakeStoreState.blockParents = {};
+} );
 
 describe( 'QueryPreviewIterations', () => {
     it( 'renders one editable iteration plus N-1 read-only ghosts for a 3-post query', () => {
@@ -300,5 +343,188 @@ describe( 'QueryPreviewIterations', () => {
         );
 
         expect( getByRole( 'note' ) ).not.toBeNull();
+    } );
+
+    // ---------- Per-iteration variant resolution (#604) ----------
+
+    it( 'renders a position:first variant only on iteration #1; other iterations render base', () => {
+        fakeStoreState.innerBlocks = [
+            { name: 'core/post-title', attributes: {}, innerBlocks: [] },
+            { name: 'core/post-excerpt', attributes: {}, innerBlocks: [] },
+            {
+                name: 'artisanpack/post-variant',
+                clientId: 'variant-1',
+                attributes: { matcher: { kind: 'position', value: 'first' }, priority: 10 },
+                innerBlocks: [
+                    { name: 'core/heading', attributes: { content: 'testing' }, innerBlocks: [] },
+                    { name: 'core/cover', attributes: {}, innerBlocks: [] },
+                ],
+            },
+        ];
+
+        const posts = [ makePost( 1 ), makePost( 2 ), makePost( 3 ) ];
+        const { container } = render(
+            <QueryPreviewIterations
+                clientId="abc"
+                preview={ makePreview( { posts, total: 3, perPage: 3 } ) }
+                postType="post"
+            />
+        );
+
+        // Iteration 1 is editable; iterations 2 and 3 are ghosts.
+        const ghosts = Array.from(
+            container.querySelectorAll( '[data-query-iteration="preview"]' )
+        );
+        expect( ghosts ).toHaveLength( 2 );
+
+        // Ghosts (#2 and #3) should preview the base children, NOT the variant content.
+        for ( const ghost of ghosts ) {
+            const blockNames = ghost
+                .querySelector( '[data-ghost-block-names]' )
+                ?.getAttribute( 'data-ghost-block-names' );
+            expect( blockNames ).toBe( 'core/post-title,core/post-excerpt' );
+            expect( ghost.getAttribute( 'data-resolved-variant-order' ) ).toBe( 'base' );
+        }
+
+        // The editable iteration #1 resolves to the variant.
+        const editable = container.querySelector( '[data-query-iteration="editable"]' );
+        expect( editable?.getAttribute( 'data-resolved-variant-order' ) ).toBe( '0' );
+    } );
+
+    it( 'renders a pattern:odd variant on iterations 1, 3, 5; base on 2, 4', () => {
+        fakeStoreState.innerBlocks = [
+            { name: 'core/post-title', attributes: {}, innerBlocks: [] },
+            {
+                name: 'artisanpack/post-variant',
+                clientId: 'variant-odd',
+                attributes: { matcher: { kind: 'pattern', value: 'odd' }, priority: 10 },
+                innerBlocks: [
+                    { name: 'core/heading', attributes: {}, innerBlocks: [] },
+                ],
+            },
+        ];
+
+        const posts = Array.from( { length: 5 }, ( _v, i ) => makePost( i + 1 ) );
+        const { container } = render(
+            <QueryPreviewIterations
+                clientId="abc"
+                preview={ makePreview( { posts, total: 5, perPage: 5 } ) }
+                postType="post"
+            />
+        );
+
+        const iterations = Array.from(
+            container.querySelectorAll( '[data-query-iteration]' )
+        );
+        const resolved = iterations.map( ( node ) =>
+            node.getAttribute( 'data-resolved-variant-order' )
+        );
+        // Iteration 1 is editable; 2-5 are ghosts. All odd-positioned
+        // iterations (1, 3, 5) resolve to the variant (order 0);
+        // even-positioned (2, 4) resolve to base.
+        expect( resolved ).toEqual( [ '0', 'base', '0', 'base', '0' ] );
+    } );
+
+    it( 'renders a meta:has-featured-image variant only on posts with a featured image', () => {
+        fakeStoreState.innerBlocks = [
+            { name: 'core/post-title', attributes: {}, innerBlocks: [] },
+            {
+                name: 'artisanpack/post-variant',
+                clientId: 'variant-meta',
+                attributes: {
+                    matcher: { kind: 'meta', value: 'has-featured-image' },
+                    priority: 10,
+                },
+                innerBlocks: [
+                    { name: 'core/image', attributes: {}, innerBlocks: [] },
+                ],
+            },
+        ];
+
+        const posts: QueryPreviewPost[] = [
+            { id: 1, title: 'Post 1' },
+            {
+                id: 2,
+                title: 'Post 2',
+                featuredImage: { url: 'https://example.com/img.jpg' },
+            },
+            { id: 3, title: 'Post 3' },
+        ];
+
+        const { container } = render(
+            <QueryPreviewIterations
+                clientId="abc"
+                preview={ makePreview( { posts, total: 3, perPage: 3 } ) }
+                postType="post"
+            />
+        );
+
+        const iterations = Array.from(
+            container.querySelectorAll( '[data-query-iteration]' )
+        );
+        const resolved = iterations.map( ( node ) =>
+            node.getAttribute( 'data-resolved-variant-order' )
+        );
+        // Post 2 has a featured image → variant; 1 and 3 → base.
+        expect( resolved ).toEqual( [ 'base', '0', 'base' ] );
+    } );
+
+    it( 'honors compiled instance map from _compiledVariantMap', () => {
+        fakeStoreState.innerBlocks = [
+            { name: 'core/post-title', attributes: {}, innerBlocks: [] },
+            {
+                name: 'artisanpack/post-variant',
+                clientId: 'variant-instance',
+                attributes: {
+                    matcher: { kind: 'position', value: 'instance:2' },
+                    priority: 10,
+                },
+                innerBlocks: [ { name: 'core/heading', attributes: {}, innerBlocks: [] } ],
+            },
+        ];
+        fakeStoreState.attributes = { _compiledVariantMap: { 1: 0 } };
+
+        const posts = [ makePost( 1 ), makePost( 2 ), makePost( 3 ) ];
+        const { container } = render(
+            <QueryPreviewIterations
+                clientId="abc"
+                preview={ makePreview( { posts, total: 3, perPage: 3 } ) }
+                postType="post"
+            />
+        );
+
+        const resolved = Array.from(
+            container.querySelectorAll( '[data-query-iteration]' )
+        ).map( ( node ) => node.getAttribute( 'data-resolved-variant-order' ) );
+        // Static map pins iteration index 1 (i.e. post #2) to variant order 0.
+        expect( resolved ).toEqual( [ 'base', '0', 'base' ] );
+    } );
+
+    it( 'auto-jumps the editable iteration to the first post matching the selected variant', () => {
+        fakeStoreState.innerBlocks = [
+            { name: 'core/post-title', attributes: {}, innerBlocks: [] },
+            {
+                name: 'artisanpack/post-variant',
+                clientId: 'variant-last',
+                attributes: { matcher: { kind: 'position', value: 'last' }, priority: 10 },
+                innerBlocks: [],
+            },
+        ];
+        fakeStoreState.selectedClientId = 'variant-last';
+        fakeStoreState.blockNames = { 'variant-last': 'artisanpack/post-variant' };
+
+        const posts = [ makePost( 1 ), makePost( 2 ), makePost( 3 ) ];
+        const { container } = render(
+            <QueryPreviewIterations
+                clientId="abc"
+                preview={ makePreview( { posts, total: 3, perPage: 3 } ) }
+                postType="post"
+            />
+        );
+
+        // `position:last` on a 3-post loop matches iteration #3 → post id 3.
+        const editable = container.querySelector( '[data-query-iteration="editable"]' );
+        expect( editable?.closest( '[data-block-context]' )?.getAttribute( 'data-block-context' ) )
+            .toContain( '"postId":3' );
     } );
 } );

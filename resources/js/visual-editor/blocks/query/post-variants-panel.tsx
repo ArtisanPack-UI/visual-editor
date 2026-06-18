@@ -12,8 +12,8 @@
 
 import { useEffect, useMemo, type ReactElement } from 'react';
 import { Button, PanelBody } from '@wordpress/components';
-import { useDispatch, useSelect } from '@wordpress/data';
-import { createBlock } from '@wordpress/blocks';
+import { select as dataSelect, useDispatch, useSelect } from '@wordpress/data';
+import { cloneBlock, createBlock, type BlockInstance } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
@@ -34,6 +34,7 @@ interface BlockEditorBlock {
 
 interface CoreBlockEditorSelect {
     getBlocks: ( clientId?: string ) => BlockEditorBlock[];
+    getBlock: ( clientId: string ) => BlockEditorBlock | null;
 }
 
 interface CoreBlockEditorDispatch {
@@ -187,11 +188,47 @@ export default function PostVariantsPanel( {
         if ( postTemplateClientId === null ) {
             return;
         }
-        const block = createBlock( 'artisanpack/post-variant', {
-            matcher: defaultMatcherFor( kind ),
-            priority: 10,
-        } );
-        insertBlock( block, variantRows.length, postTemplateClientId );
+        // Seed the new variant's inner blocks with a deep clone of the
+        // post-template's current non-variant children. Authors almost
+        // always want to start from the base template and tweak rather
+        // than rebuild the title / image / etc. from scratch. Read
+        // through `select` (not the captured `subscription`) so we get
+        // the latest tree at click time — `cloneBlock` regenerates
+        // clientIds recursively so the clones are independent.
+        const store = dataSelect( 'core/block-editor' ) as unknown as CoreBlockEditorSelect;
+        const postTemplate = store.getBlock( postTemplateClientId );
+        const templateChildren = postTemplate?.innerBlocks ?? [];
+        const baseChildren: BlockInstance[] = templateChildren
+            .filter( ( child ) => child.name !== 'artisanpack/post-variant' )
+            .map( ( child ) => cloneBlock( child as unknown as BlockInstance ) );
+
+        // Compute the insertion index from the template's actual child
+        // list — not from the variant count. With non-variant base
+        // children present (the common case), `variantRows.length`
+        // would drop the new variant into the middle of the base
+        // children and shift variant document order, changing
+        // precedence in ways the author can't see.
+        const lastVariantIndex = templateChildren.reduce(
+            ( last, child, index ) =>
+                child.name === 'artisanpack/post-variant' ? index : last,
+            -1
+        );
+        const insertIndex =
+            lastVariantIndex >= 0 ? lastVariantIndex + 1 : templateChildren.length;
+
+        const block = createBlock(
+            'artisanpack/post-variant',
+            {
+                matcher: defaultMatcherFor( kind ),
+                priority: 10,
+            },
+            baseChildren
+        );
+        insertBlock( block, insertIndex, postTemplateClientId );
+        // Focus the new variant so its inspector controls open
+        // immediately — auto-jump in the canvas (#604) then surfaces
+        // the matching iteration as the editable one.
+        selectBlock( block.clientId );
     };
 
     const handleMove = ( clientId: string, currentIndex: number, delta: number ): void => {
