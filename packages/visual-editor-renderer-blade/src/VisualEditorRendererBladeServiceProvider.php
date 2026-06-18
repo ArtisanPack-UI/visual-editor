@@ -32,6 +32,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Animations\AnimationMarkupResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Responsive\ResponsiveClassResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
@@ -161,6 +162,15 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// `::before` mask pseudo a gradient border installs.
 		$this->app->scoped( GradientBorderCssAccumulator::class, function () {
 			return new GradientBorderCssAccumulator();
+		} );
+
+		// #607 — sibling accumulator for the box-shadow feature's
+		// `<style data-ve-box-shadows>` block. Same scoped lifetime
+		// rationale as the others; the rules cover stock `box-shadow`
+		// declarations plus the `::before`/`::after` pseudo a gradient
+		// shadow installs.
+		$this->app->scoped( BoxShadowCssAccumulator::class, function () {
+			return new BoxShadowCssAccumulator();
 		} );
 	}
 

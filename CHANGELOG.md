@@ -8,6 +8,40 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **Box / drop shadow control with solid + gradient color (#607).**
+  New Shadow tools panel in the inspector's Styles group, auto-enabled
+  on every block with `__experimentalBorder` support (~94 blocks, no
+  block.json changes required). Exposes X/Y offset, blur, spread,
+  solid color, gradient color (with theme palette), inset toggle, and
+  a preset chip row backed by the new `settings.shadow.presets` slot
+  in `theme.json`. Writes route through the standard `artisanpackStates`
+  / `artisanpackResponsive` HOCs so per-state and per-breakpoint
+  shadow overrides land in the right cascade bag automatically. Three
+  emission modes (preset / solid / gradient) share one scoped `<style>`
+  code path; gradient and inset-gradient shadows render through a
+  `::before` / `::after` pseudo-element with `filter: blur()` and a
+  `mask-composite: exclude` ring mask for the inset variant. PHP
+  `BoxShadowResolver` + `BoxShadowEmitter` mirror the TS pair
+  byte-for-byte so editor canvas, saved markup, and Blade-rendered
+  output stay in lockstep. New scope class `ve-bs-<id>` persisted on
+  `attributes.style.shadow._shadowScopeId`. Front-end Blade rendering
+  goes through a new `BoxShadowCssAccumulator` +
+  `BlockSupports::pushBoxShadow()` + auto-stamping in
+  `BlockSupports::compile()`, so every block already routed through
+  the supports compiler picks up shadow rendering with zero
+  per-template changes. The supports-extension filter also strips the
+  native WordPress `supports.shadow` on opted-in blocks to keep the
+  two systems from fighting over the `style.shadow` attribute slot.
+  Mirrors the architecture established by gradient borders (#490).
+  **Known limitation:** outer gradient shadows on blocks with
+  `overflow: hidden` (e.g. Cover) are visually clipped at the wrapper
+  edge — gradient shadows need a `::before` pseudo-element because
+  the native `box-shadow` property doesn't accept gradient fills, and
+  pseudo-elements (unlike box-shadow) are clipped by their host's
+  overflow. Solid shadows and preset shadows are unaffected. See
+  [`docs/box-shadows.md`](docs/box-shadows.md) for the full authoring
+  guide and workarounds.
+
 - **Per-post layout overrides on the Query Loop via post-variants
   (#591).** New `artisanpack/post-variant` block, child of
   `artisanpack/post-template`, declares an override template that

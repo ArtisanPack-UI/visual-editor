@@ -57,6 +57,19 @@ return [
 			'contentSize' => '720px',
 			'wideSize'    => '1120px',
 		],
+		// #607 — Box shadow presets. Themes can extend, override, or
+		// clear this list; the box-shadow inspector surfaces every entry
+		// as a preset chip and the resolver expands `style.shadow.preset`
+		// slug references to `var(--wp--preset--shadow--{slug})` at
+		// render time.
+		'shadow'     => [
+			'presets' => [
+				[ 'slug' => 'shadow-sm', 'name' => 'Small', 'shadow' => '0 1px 2px 0 rgba(0,0,0,0.05)' ],
+				[ 'slug' => 'shadow-md', 'name' => 'Medium', 'shadow' => '0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1)' ],
+				[ 'slug' => 'shadow-lg', 'name' => 'Large', 'shadow' => '0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1)' ],
+				[ 'slug' => 'shadow-elevated', 'name' => 'Elevated', 'shadow' => '0 25px 50px -12px rgba(0,0,0,0.25)' ],
+			],
+		],
 		// #595 — flex layout panel defaults. Themes can disable the
 		// panel entirely by setting `enable` to false (already-saved
 		// content keeps rendering through the wrapper classes).
