@@ -6,6 +6,88 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-07
+
+### Added
+
+- **AI-powered authoring affordances (#610–#614).** Five optional
+  AI-assisted authoring features built on top of
+  [`artisanpack-ui/ai`](https://github.com/ArtisanPack-UI/ai). All
+  default to *off* and honor per-feature toggles from the AI package's
+  `FeatureRegistry`; each surfaces suggestions the author must
+  explicitly accept — no automatic mutations. Auto-registered via
+  `VisualEditorServiceProvider::aiFeatures()`, so hosts with the AI
+  package installed pick up every affordance with zero manual wiring.
+
+  Three agents live in this package under `src/Ai/Agents/`:
+
+  - **`ContentBlockSuggestionAgent` (#610)** — `visual_editor.suggest_next_block`.
+    Inline "+ suggest next block" affordance that ranks likely next
+    blocks given the document so far. Ships as
+    `<SuggestNextBlockButton />`.
+  - **`LayoutSuggestionAgent` (#611)** — `visual_editor.suggest_layout`.
+    Given a section's content and your available pattern library,
+    ranks matching section patterns from a whitelist. Ships as
+    `<SuggestLayoutPanel />`.
+  - **`HeadingHierarchyAgent` (#614)** — `visual_editor.heading_hierarchy`.
+    Audits the document for skipped heading levels, duplicate h1s,
+    and ambiguous headings; returns suggested fixes with nested
+    `innerBlocks` traversal. Ships as `<HeadingHierarchyPanel />`.
+
+  Two agents are consumed directly from `artisanpack-ui/ai` so the
+  same prompt + feature toggle powers them across every package that
+  opts in:
+
+  - **`AltTextGenerationAgent` (#612)** — `ai.alt_text`. Suggests
+    accessibility-friendly alt text when an image block is added or
+    its `src` changes and `alt` is empty. Ships as
+    `<AltTextSuggestionCard />`.
+  - **`ContentRewriteAgent` (#613)** — `ai.content_rewrite`.
+    Selection-toolbar / slash-command surface for "make shorter",
+    "more formal", "reading level 6", and similar rewrites. Ships as
+    `<RewriteToolbar />`.
+
+  **Transports.** Every affordance is reachable from any host stack:
+
+  - **HTTP** — six JSON endpoints under `/visual-editor/api/ai/*`:
+    `GET /features`, `POST /suggest-next-block`,
+    `POST /suggest-layout`, `POST /alt-text`, `POST /rewrite`,
+    `POST /heading-hierarchy`. Each endpoint has a dedicated Form
+    Request class in `src/Http/Requests/Ai/` and a consistent error
+    envelope. All routes are guarded on
+    `class_exists(FeatureRegistry)` so hosts without the AI package
+    installed don't 500.
+  - **Livewire** — `artisanpack-visual-editor.ai.tools` component
+    listens for `ap-ve-ai:*` browser events and dispatches shaped
+    `success` / `invalid-input` / `disabled` /
+    `missing-credentials` / `error` events back. Blade/Livewire
+    hosts get the same behavior as the React surface without pulling
+    in a client bundle.
+  - **React** — `resources/js/visual-editor/ai/` ships
+    `createAiApiClient`, `useAiFeatures` gate, per-feature hooks,
+    and 5 UI components. See
+    [`docs/ai-features.md`](docs/ai-features.md) for the full
+    authoring guide.
+
+  **Requirements:** `artisanpack-ui/ai` `^1.0` installed and
+  configured, per-feature toggle enabled in the AI settings surface,
+  and CSRF middleware active on `/visual-editor/api/*` so the shipped
+  JS client's `X-CSRF-TOKEN` header is honored.
+
+### Changed
+
+- `composer.json` now requires PHP 8.2+ and `artisanpack-ui/ai` `^1.0`
+  as an optional-but-recommended companion dependency. Hosts without
+  the AI package installed continue to work — the AI surface simply
+  stays hidden and the routes short-circuit before dispatching an
+  agent.
+
+### CI
+
+- Test suite runs on PHP 8.2 with AI dev deps excluded so hosts still
+  targeting 8.2 have a green matrix even before adopting the AI
+  package.
+
 ## [1.2.0] - 2026-06-18
 
 ### Added

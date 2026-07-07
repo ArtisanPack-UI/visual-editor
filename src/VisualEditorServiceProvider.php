@@ -36,6 +36,9 @@ use ArtisanPackUI\VisualEditor\Resources\CommentInliner;
 use ArtisanPackUI\VisualEditor\Resources\CommentResolver;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
+use ArtisanPackUI\VisualEditor\Ai\Agents\ContentBlockSuggestionAgent;
+use ArtisanPackUI\VisualEditor\Ai\Agents\HeadingHierarchyAgent;
+use ArtisanPackUI\VisualEditor\Ai\Agents\LayoutSuggestionAgent;
 use ArtisanPackUI\VisualEditor\Animations\AnimationAttributeResolver;
 use ArtisanPackUI\VisualEditor\Animations\AnimationCssEmitter;
 use ArtisanPackUI\VisualEditor\Animations\AnimationRegistry;
@@ -65,6 +68,62 @@ use Illuminate\Support\ServiceProvider;
 
 class VisualEditorServiceProvider extends ServiceProvider
 {
+	/**
+	 * The full set of AI feature keys the visual editor exposes in its UI.
+	 *
+	 * Single source of truth: `AiController::features()`, `AiTools::enabledFeatures()`,
+	 * and the JS editor bundle (via `/ai/features`) all read from here so a
+	 * future 6th feature only lands in one place (see review #6). Two of
+	 * the keys (`ai.alt_text`, `ai.content_rewrite`) are cross-cutting —
+	 * the visual editor consumes them but the `artisanpack-ui/ai` package
+	 * owns their registration.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @var array<int, string>
+	 */
+	public const AI_FEATURE_KEYS = [
+		'visual_editor.suggest_next_block',
+		'visual_editor.suggest_layout',
+		'visual_editor.heading_hierarchy',
+		'ai.alt_text',
+		'ai.content_rewrite',
+	];
+
+	/**
+	 * Declare the AI features this package owns.
+	 *
+	 * Auto-discovered by `artisanpack-ui/ai`'s `FeatureRegistry` (see AI RFC).
+	 * When the AI package is absent, this method is simply never called and
+	 * has no effect — the visual-editor still boots without AI wiring.
+	 *
+	 * The three keys below are owned by this package. The cross-cutting
+	 * `ai.alt_text` and `ai.content_rewrite` features are consumed via the
+	 * ai package's registration; visual-editor's UI checks those toggles
+	 * before rendering the corresponding editor affordances (see #612,
+	 * #613).
+	 *
+	 * @since 1.3.0
+	 *
+	 * @return array<string, array{ agent: class-string, package: string }>
+	 */
+	public function aiFeatures(): array
+	{
+		return [
+			'visual_editor.suggest_next_block' => [
+				'agent'   => ContentBlockSuggestionAgent::class,
+				'package' => 'artisanpack-ui/visual-editor',
+			],
+			'visual_editor.suggest_layout'     => [
+				'agent'   => LayoutSuggestionAgent::class,
+				'package' => 'artisanpack-ui/visual-editor',
+			],
+			'visual_editor.heading_hierarchy'  => [
+				'agent'   => HeadingHierarchyAgent::class,
+				'package' => 'artisanpack-ui/visual-editor',
+			],
+		];
+	}
 
 	public function register(): void
 	{
@@ -452,6 +511,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->registerApiRoutes();
 		$this->registerBladeComponents();
+		$this->registerAiLivewireComponents();
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
 
@@ -743,6 +803,31 @@ class VisualEditorServiceProvider extends ServiceProvider
 	protected function registerBladeComponents(): void
 	{
 		Blade::component( VisualEditorComponent::class, 'visual-editor' );
+	}
+
+	/**
+	 * Register the AI trigger Livewire component when both Livewire and
+	 * the artisanpack-ui/ai foundation are present. Guarded so the visual
+	 * editor still boots on hosts that opt out of AI or Livewire.
+	 *
+	 * @since 1.3.0
+	 *
+	 * @return void
+	 */
+	protected function registerAiLivewireComponents(): void
+	{
+		if ( ! class_exists( \Livewire\Livewire::class ) ) {
+			return;
+		}
+
+		if ( ! class_exists( \ArtisanPackUI\Ai\Agents\ArtisanPackAgent::class ) ) {
+			return;
+		}
+
+		\Livewire\Livewire::component(
+			'artisanpack-visual-editor.ai.tools',
+			\ArtisanPackUI\VisualEditor\Livewire\Ai\AiTools::class,
+		);
 	}
 
 

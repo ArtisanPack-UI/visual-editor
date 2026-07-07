@@ -86,6 +86,7 @@ The block library — what ships, how to author your own, and how to wire respon
 - [[Developer Guide]] — Extending and customizing the editor
 - [[Hooks and Events]] — Filters, actions, and browser events for extending functionality
 - [[Renderers]] — Blade, React, and Vue renderers for the public site
+- [[AI Features]] — Optional AI-powered authoring affordances (suggest next block, layout, alt text, rewrite, heading hierarchy) built on `artisanpack-ui/ai` (v1.3)
 
 ---
 
@@ -171,4 +172,4 @@ For issues, feature requests, and contributions:
 
 ---
 
-*This documentation covers visual-editor v1.1.1*
+*This documentation covers visual-editor v1.3.0*
