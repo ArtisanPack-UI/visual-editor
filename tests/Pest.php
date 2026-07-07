@@ -15,6 +15,9 @@ pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Feature/VisualEditor');
 
+pest()->extend(Tests\Feature\Ai\AiTestCase::class)
+    ->in('Feature/Ai');
+
 pest()->extend(Tests\TestCase::class)
     ->use(Illuminate\Foundation\Testing\RefreshDatabase::class)
     ->in('Unit/VisualEditor');

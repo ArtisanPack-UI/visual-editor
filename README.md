@@ -293,6 +293,89 @@ additional icon sets in a service provider — see the
 
 ---
 
+## AI features
+
+The visual editor ships five optional AI-powered authoring affordances
+that build on top of the [`artisanpack-ui/ai`][ai-pkg] foundation. All
+five default to *off* — hosts opt in by enabling the corresponding
+feature key from the AI package's settings surface, and each affordance
+honors that toggle before rendering.
+
+| Feature key | Agent | What it does |
+|---|---|---|
+| `visual_editor.suggest_next_block` | `ContentBlockSuggestionAgent` | Inline "+ suggest" affordance ranks likely next blocks given the document so far. |
+| `visual_editor.suggest_layout` | `LayoutSuggestionAgent` | Given a section's content + your available pattern library, ranks matching section patterns. |
+| `visual_editor.heading_hierarchy` | `HeadingHierarchyAgent` | Audits the document for skipped levels, duplicate h1s, and ambiguous headings. |
+| `ai.alt_text` | `AltTextGenerationAgent` (from `ai`) | Suggests accessibility-friendly alt text when an image block is added or its `src` changes and `alt` is empty. |
+| `ai.content_rewrite` | `ContentRewriteAgent` (from `ai`) | Selection-toolbar / slash-command surface for "make shorter", "more formal", "reading level 6", etc. |
+
+The first three agents live in this package (`src/Ai/Agents/`); the last
+two are cross-cutting agents consumed directly from `artisanpack-ui/ai`
+so the same prompt + feature toggle powers alt-text and content rewrites
+across every package that opts in.
+
+### Server-side surface
+
+The features are auto-registered with the AI package's `FeatureRegistry`
+via `VisualEditorServiceProvider::aiFeatures()` — no manual wiring
+required. Each has a JSON endpoint under `/visual-editor/api/ai/*` for
+the React editor to hit:
+
+```
+GET  /visual-editor/api/ai/features             # { features: { <key>: bool, ... } }
+POST /visual-editor/api/ai/suggest-next-block
+POST /visual-editor/api/ai/suggest-layout
+POST /visual-editor/api/ai/alt-text
+POST /visual-editor/api/ai/rewrite
+POST /visual-editor/api/ai/heading-hierarchy
+```
+
+Blade / Livewire hosts can consume the same triggers through the shipped
+Livewire component `artisanpack-visual-editor.ai.tools`, which listens
+for `ap-ve-ai:*` browser events and re-dispatches results as
+`ap-ve-ai:{feature}:{status}`.
+
+### React surface
+
+```tsx
+import {
+    createAiApiClient,
+    useAiFeatures,
+    SuggestNextBlockButton,
+    HeadingHierarchyPanel,
+} from '../visual-editor/ai';
+
+const client = createAiApiClient({ apiBase: '/visual-editor/api' });
+const { isEnabled } = useAiFeatures(client);
+
+{isEnabled('visual_editor.suggest_next_block') && (
+    <SuggestNextBlockButton
+        client={client}
+        existingBlocks={blocks}
+        cursorPosition={insertionIndex}
+        onPick={(suggestion) => insertBlock(suggestion.block_type)}
+    />
+)}
+```
+
+Full component list: `resources/js/visual-editor/ai/index.ts`.
+
+### Requirements
+
+- `artisanpack-ui/ai` ^1.0 installed and configured with credentials.
+- The individual feature toggle enabled (default: off) from the AI
+  settings admin surface.
+- CSRF middleware active on the `/visual-editor/api/*` route group so
+  the shipped JS client's `X-CSRF-TOKEN` header is honored.
+
+Every affordance surfaces as a **suggestion** — never an automatic
+mutation. Accepting a suggestion is always explicit user action, per
+the AI RFC.
+
+[ai-pkg]: https://github.com/ArtisanPack-UI/ai
+
+---
+
 ## i18n
 
 Editor strings use `@wordpress/i18n` with the `artisanpack-visual-editor`
