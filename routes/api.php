@@ -17,6 +17,7 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\VisualEditor\Http\Controllers\Ai\AiController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PageController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PostController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\AttachmentController;
@@ -318,3 +319,27 @@ Route::get( 'attachments/{id}', [ AttachmentController::class, 'show' ] )
 Route::get( 'site/{id}', [ SiteController::class, 'show' ] )
 	->where( 'id', '[A-Za-z0-9_-]+' )
 	->name( 'visual-editor.api.site.show' );
+
+// #610-#614 — AI trigger surface. Each POST runs one agent and returns
+// its shaped output; enforcement of feature toggles + credentials lives
+// inside the ai package's `ArtisanPackAgent`, so this controller is a
+// thin JSON wrapper. Guarded by the same middleware stack as the rest
+// of the visual-editor API. The whole block is gated on the ai package
+// being present because it is a `suggest` (not `require`) dependency —
+// without this guard, `composer install --no-dev` in production would
+// 500 on every /ai/* endpoint the moment the controller tries to
+// resolve `FeatureRegistry` from the container.
+if ( class_exists( \ArtisanPackUI\Ai\Contracts\FeatureRegistry::class ) ) {
+	Route::get( 'ai/features', [ AiController::class, 'features' ] )
+		->name( 'visual-editor.api.ai.features' );
+	Route::post( 'ai/suggest-next-block', [ AiController::class, 'suggestNextBlock' ] )
+		->name( 'visual-editor.api.ai.suggest-next-block' );
+	Route::post( 'ai/suggest-layout', [ AiController::class, 'suggestLayout' ] )
+		->name( 'visual-editor.api.ai.suggest-layout' );
+	Route::post( 'ai/alt-text', [ AiController::class, 'altText' ] )
+		->name( 'visual-editor.api.ai.alt-text' );
+	Route::post( 'ai/rewrite', [ AiController::class, 'rewrite' ] )
+		->name( 'visual-editor.api.ai.rewrite' );
+	Route::post( 'ai/heading-hierarchy', [ AiController::class, 'headingHierarchy' ] )
+		->name( 'visual-editor.api.ai.heading-hierarchy' );
+}

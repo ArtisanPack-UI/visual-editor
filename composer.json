@@ -36,10 +36,19 @@
     "pestphp/pest-plugin-laravel": "^3.1",
     "orchestra/testbench": "^10.2",
     "nesbot/carbon": "^3.8.4 <3.12.0",
+    "artisanpack-ui/ai": "^1.0",
     "artisanpack-ui/cms-framework": "^2.0",
-    "artisanpack-ui/icons": "^2.1"
+    "artisanpack-ui/icons": "^2.1",
+    "livewire/livewire": "^3.6"
   },
   "repositories": [
+    {
+      "type": "path",
+      "url": "../ai",
+      "options": {
+        "symlink": true
+      }
+    },
     {
       "type": "path",
       "url": "../cms-framework",
@@ -56,6 +65,7 @@
     }
   ],
   "suggest": {
+    "artisanpack-ui/ai": "Recommended ^1.0 — enables the visual-editor's AI-assisted authoring features (next-block suggestion, layout suggestion, heading-hierarchy check, plus alt-text + content-rewrite integrations that consume the cross-cutting agents shipped by the ai package). Without it the `aiFeatures()` service-provider hook is a no-op and the editor's AI trigger surfaces stay hidden.",
     "artisanpack-ui/media-library": "Recommended ^1.2 — default media library integration. Wire MediaModal + uploadMedia through registerArtisanpackMediaBridge() in the editor bootstrap to power Gutenberg's media picker and upload flows. Not enforced by Composer; host apps are free to install a different library and register a custom bridge instead.",
     "artisanpack-ui/cms-framework": "Required ^2.0 for the site editor + comments family — the `/visual-editor/site-editor` route is hard-coupled to cms-framework's templates, parts, patterns, global styles, and menus modules (plan 14), and the comments-family forks (#519) consume the Blog module's `Comment` model + `Post::comments` relation introduced in 2.1. Without it, the post-content editor still works but the site editor route returns an install gate and the comments-family blocks render against an empty data set.",
     "artisanpack-ui/icons": "Recommended ^2.1 — bundled FA Free Solid/Regular/Brands sets are registered against the icons package via the `ap.icons.register-icon-sets` filter. Without it, the icon block's `iconRef` paths render as `data-*` carriers (Phase 3, #554) and the picker has no registered icons to surface."
