@@ -27,6 +27,7 @@ import blockEditorStyle from '@wordpress/block-editor/build-style/style.css?inli
 import blockLibraryEditor from '@wordpress/block-library/build-style/editor.css?inline';
 import blockLibraryStyle from '@wordpress/block-library/build-style/style.css?inline';
 import componentsStyle from '@wordpress/components/build-style/style.css?inline';
+import { applyFilters } from '@wordpress/hooks';
 
 import {
     ALIGNMENT_OVERRIDE_STYLES,
@@ -176,7 +177,11 @@ const EDITOR_BLOCK_TWEAKS = `
  * no wrapper selector, so the CSS is injected into the iframe verbatim
  * (`transformStyles` is a no-op without a scope or `baseURL`).
  */
-export const canvasStyles: readonly CanvasStyle[] = [
+/**
+ * Base ordered list. Third parties extend this via
+ * `ap.visual-editor.canvas-styles` — see the export below.
+ */
+const baseCanvasStyles: CanvasStyle[] = [
     { css: canvasThemeTokens },
     { css: componentsStyle },
     { css: blockEditorStyle },
@@ -213,3 +218,33 @@ export const canvasStyles: readonly CanvasStyle[] = [
     // front-end (#47).
     { css: POST_EDITOR_FRAMING_STYLES },
 ];
+
+/**
+ * Iframe-injected stylesheet list, pipeable through the
+ * `ap.visual-editor.canvas-styles` filter so third-party packages can
+ * push their CSS into the canvas without editing this file.
+ *
+ * Filter callbacks receive the ordered `CanvasStyle[]` and must return
+ * a new `CanvasStyle[]`. Non-array returns are ignored (the base list
+ * is used as-is), non-object entries are dropped, and each entry's
+ * `css` property must be a string — the filter is a hard boundary
+ * because the array feeds directly into `BlockCanvas`'s
+ * `__unstableEditorStyles` prop.
+ */
+export const canvasStyles: readonly CanvasStyle[] = ( (): CanvasStyle[] => {
+    const filtered = applyFilters(
+        'ap.visual-editor.canvas-styles',
+        [...baseCanvasStyles],
+    );
+
+    if ( ! Array.isArray( filtered ) ) {
+        return baseCanvasStyles;
+    }
+
+    return filtered.filter(
+        ( entry ): entry is CanvasStyle =>
+            entry !== null &&
+            typeof entry === 'object' &&
+            typeof ( entry as { css?: unknown } ).css === 'string',
+    );
+} )();

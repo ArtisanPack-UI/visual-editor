@@ -133,11 +133,26 @@ class BlockRenderer
 		$innerBlocks     = $this->normalizeInnerBlocks( $block['innerBlocks'] ?? [] );
 		$innerBlocksHtml = $this->renderInner( $innerBlocks );
 
-		if ( $this->dynamicBlocks->has( $name ) ) {
-			return $this->renderDynamic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
+		$html = $this->dynamicBlocks->has( $name )
+			? $this->renderDynamic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex )
+			: $this->renderStatic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
+
+		// `ap.visual-editor.rendered-block` — last-mile hook for packages
+		// that need to post-process a rendered block. Runs on every block
+		// (static or dynamic) so cross-cutting effects (frosted glass,
+		// motion wrappers, contrast overlays, etc.) can decorate output
+		// without each host having to modify the renderer. Callbacks
+		// receive the final HTML, the block name, and the normalized
+		// attributes; they must return an HTML string.
+		if ( function_exists( 'applyFilters' ) ) {
+			$filtered = applyFilters( 'ap.visual-editor.rendered-block', $html, $name, $attributes );
+
+			if ( is_string( $filtered ) ) {
+				$html = $filtered;
+			}
 		}
 
-		return $this->renderStatic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
+		return $html;
 	}
 
 	/**
