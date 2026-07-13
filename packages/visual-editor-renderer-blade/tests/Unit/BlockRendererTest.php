@@ -1229,6 +1229,156 @@ it( 'emits nothing for artisanpack/previous-post when no adjacent post is resolv
 	expect( $html )->toBe( '' );
 } );
 
+describe( 'ap.visual-editor.rendered-block filter', function (): void {
+	beforeEach( function (): void {
+		if ( function_exists( 'removeAllFilters' ) ) {
+			removeAllFilters( 'ap.visual-editor.rendered-block' );
+		}
+	} );
+
+	it( 'lets a callback wrap the rendered HTML of a static (partial) block', function (): void {
+		if ( ! function_exists( 'addFilter' ) ) {
+			expect( true )->toBeTrue();
+
+			return;
+		}
+
+		addFilter( 'ap.visual-editor.rendered-block', function ( string $html, string $name ): string {
+			if ( 'core/paragraph' !== $name ) {
+				return $html;
+			}
+
+			return sprintf( '<div class="wrap">%s</div>', $html );
+		} );
+
+		$html = makeRenderer()->render( [ makeBlock( 'core/paragraph', [ 'content' => 'Hi' ] ) ] );
+
+		expect( $html )->toContain( '<div class="wrap">' )
+			->toContain( '<p class="wp-block-paragraph">Hi</p>' )
+			->toContain( '</div>' );
+	} );
+
+	it( 'lets a callback wrap the rendered HTML of a dynamic block', function (): void {
+		if ( ! function_exists( 'addFilter' ) ) {
+			expect( true )->toBeTrue();
+
+			return;
+		}
+
+		$registry = app( DynamicBlockRegistry::class );
+
+		$registry->register( new class extends DynamicBlock {
+			public function name(): string
+			{
+				return 'acme/filter-target';
+			}
+
+			public function render( array $attrs )
+			{
+				return '<section data-dyn="true">body</section>';
+			}
+		} );
+
+		addFilter( 'ap.visual-editor.rendered-block', function ( string $html, string $name ): string {
+			if ( 'acme/filter-target' !== $name ) {
+				return $html;
+			}
+
+			return sprintf( '<article data-decorated="1">%s</article>', $html );
+		} );
+
+		$html = makeRenderer()->render( [ makeBlock( 'acme/filter-target' ) ] );
+
+		expect( $html )->toContain( '<article data-decorated="1">' )
+			->toContain( '<section data-dyn="true">body</section>' )
+			->toContain( '</article>' );
+	} );
+
+	it( 'fires once per block at every level of the tree (documented recursion behavior)', function (): void {
+		if ( ! function_exists( 'addFilter' ) ) {
+			expect( true )->toBeTrue();
+
+			return;
+		}
+
+		$names = [];
+
+		addFilter( 'ap.visual-editor.rendered-block', function ( string $html, string $name ) use ( &$names ): string {
+			$names[] = $name;
+
+			return $html;
+		} );
+
+		$tree = [
+			makeBlock( 'core/group', [], [
+				makeBlock( 'core/paragraph', [ 'content' => 'A' ], [], 'p1' ),
+				makeBlock( 'core/paragraph', [ 'content' => 'B' ], [], 'p2' ),
+			] ),
+		];
+
+		makeRenderer()->render( $tree );
+
+		// Children fire before the parent because the recursion resolves
+		// innerBlocks (and thus their filter calls) inside `renderInner`
+		// before the outer `renderBlock` calls `applyFilters`.
+		expect( $names )->toBe( [ 'core/paragraph', 'core/paragraph', 'core/group' ] );
+	} );
+
+	it( 'discards a non-string return so a misbehaving callback cannot corrupt the output', function (): void {
+		if ( ! function_exists( 'addFilter' ) ) {
+			expect( true )->toBeTrue();
+
+			return;
+		}
+
+		addFilter( 'ap.visual-editor.rendered-block', function ( string $html ): array {
+			// A callback that forgets to return a string must not
+			// replace the HTML — otherwise the renderer would emit
+			// something like `Array` on `__toString`.
+			return [ 'not', 'a', 'string' ];
+		} );
+
+		$html = $this->normalizeHtml( makeRenderer()->render( [ makeBlock( 'core/paragraph', [ 'content' => 'Hi' ] ) ] ) );
+
+		expect( $html )->toBe( '<p class="wp-block-paragraph">Hi</p>' );
+	} );
+
+	it( 'passes the normalized attributes (including resolver-stamped keys) to the callback', function (): void {
+		if ( ! function_exists( 'addFilter' ) ) {
+			expect( true )->toBeTrue();
+
+			return;
+		}
+
+		$capturedAttrs = null;
+
+		addFilter( 'ap.visual-editor.rendered-block', function ( string $html, string $name, array $attributes ) use ( &$capturedAttrs ): string {
+			if ( 'core/site-title' === $name ) {
+				$capturedAttrs = $attributes;
+			}
+
+			return $html;
+		} );
+
+		$tree = [ makeBlock( 'core/site-title', [ 'level' => 2, '_resolvedSiteTitle' => 'Filtered Site' ] ) ];
+
+		makeRenderer()->render( $tree );
+
+		expect( $capturedAttrs )->toBeArray();
+		// Author-supplied attribute survives.
+		expect( $capturedAttrs['level'] ?? null )->toBe( 2 );
+		// The stamped `_resolved*` key is part of the shape the
+		// callback receives — that's the documented (internal) contract.
+		expect( $capturedAttrs['_resolvedSiteTitle'] ?? null )->toBe( 'Filtered Site' );
+	} );
+
+	it( 'leaves the HTML untouched when no callbacks are registered', function (): void {
+		$html = $this->normalizeHtml( makeRenderer()->render( [ makeBlock( 'core/paragraph', [ 'content' => 'Untouched' ] ) ] ) );
+
+		expect( $html )->toBe( '<p class="wp-block-paragraph">Untouched</p>' );
+	} );
+} );
+
 describe( 'Keystone #50 — block-supports compilation on the rendered HTML', function (): void {
 	it( 'renders a custom background color on core/group as both class marker and inline style', function (): void {
 		$tree = [ makeBlock( 'core/group', [

@@ -133,11 +133,43 @@ class BlockRenderer
 		$innerBlocks     = $this->normalizeInnerBlocks( $block['innerBlocks'] ?? [] );
 		$innerBlocksHtml = $this->renderInner( $innerBlocks );
 
-		if ( $this->dynamicBlocks->has( $name ) ) {
-			return $this->renderDynamic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
+		$html = $this->dynamicBlocks->has( $name )
+			? $this->renderDynamic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex )
+			: $this->renderStatic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
+
+		// `ap.visual-editor.rendered-block` — last-mile hook for packages
+		// that need to post-process a rendered block. Runs on every block
+		// (static or dynamic) so cross-cutting effects (frosted glass,
+		// motion wrappers, contrast overlays, etc.) can decorate output
+		// without each host having to modify the renderer. Callbacks
+		// receive the final HTML, the block name, and the normalized
+		// attributes; they must return an HTML string.
+		//
+		// RECURSION: `renderInner` walks `innerBlocks` through this same
+		// method, so the filter fires once per block AT EVERY LEVEL of
+		// the tree — a callback that wraps `$html` on a container block
+		// (e.g. `core/group`) will ALSO wrap every descendant block
+		// unless it gates on `$name` / `$attributes`. Decorators that
+		// mean "wrap the outer container only" should branch on the
+		// block name before mutating the HTML.
+		//
+		// ATTRIBUTES SHAPE: `$attributes` is the post-normalization
+		// array, which for site-meta and loginout blocks already carries
+		// the internal `_resolved*` keys stamped by {@see stampSiteMeta}
+		// / {@see stampLoginout} (`_resolvedSiteTitle`,
+		// `_resolvedIsUserLoggedIn`, `_resolvedLoginFormHtml`, etc.).
+		// Those keys are a package-internal contract and may change
+		// without notice — callbacks should treat them as read-only
+		// side-channel data, not stable public attributes.
+		if ( function_exists( 'applyFilters' ) ) {
+			$filtered = applyFilters( 'ap.visual-editor.rendered-block', $html, $name, $attributes );
+
+			if ( is_string( $filtered ) ) {
+				$html = $filtered;
+			}
 		}
 
-		return $this->renderStatic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
+		return $html;
 	}
 
 	/**
