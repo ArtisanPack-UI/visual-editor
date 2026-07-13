@@ -44,6 +44,7 @@ import { registerResponsiveAttribute } from '../responsive/register-attribute';
 import { registerResponsiveAttributesFilter } from '../responsive/with-responsive-attributes';
 import { registerStateAttribute } from '../states/register-attribute';
 import { registerStateAttributesFilter } from '../states/with-state-attributes';
+import { registerBackgroundControls } from '../background-controls';
 import { registerBoxShadows } from '../box-shadows/register';
 import { registerGradientBorders } from '../gradient-borders/register';
 import { registerStateStylesFilters } from '../states/with-state-styles';
@@ -207,6 +208,11 @@ function registerOnce(): void {
     // on first render.
     registerGradientBorders();
     registerBoxShadows();
+    // #649 — register the background-controls BlockEdit HOC so external
+    // packages can contribute panels to any block that opts into a
+    // background support via the shared
+    // `ap.visual-editor.background-controls` filter.
+    registerBackgroundControls();
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();
