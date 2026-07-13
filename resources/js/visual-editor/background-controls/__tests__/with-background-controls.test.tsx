@@ -232,6 +232,133 @@ describe('withBackgroundControls', () => {
         });
     });
 
+    it('freezes context.attributes so filter callbacks cannot mutate them in place', async () => {
+        registeredBlockSupports.set('artisanpack/group', { background: true });
+
+        let mutationError: unknown = null;
+        const attributes = { liquidGlass: { blur: 4 } };
+
+        registerFilter((value, context) => {
+            const ctx = context as { attributes: Record<string, unknown> };
+            try {
+                (ctx.attributes as { liquidGlass?: unknown }).liquidGlass = {
+                    blur: 999,
+                };
+            } catch (error) {
+                mutationError = error;
+            }
+            return value;
+        });
+
+        const { withBackgroundControls } = await loadHOC();
+        const Wrapped = withBackgroundControls(InnerEdit);
+
+        render(
+            <Wrapped
+                name="artisanpack/group"
+                clientId="c-freeze"
+                attributes={attributes}
+                setAttributes={() => undefined}
+            />
+        );
+
+        // In strict mode the assignment throws `TypeError`; in sloppy
+        // mode it silently no-ops. Either way, the source `attributes`
+        // reference the parent handed us must NOT reflect the mutation.
+        expect(attributes.liquidGlass.blur).toBe(4);
+        // If it did throw, it was the expected TypeError from freeze.
+        if (mutationError !== null) {
+            expect(mutationError).toBeInstanceOf(TypeError);
+        }
+    });
+
+    it('deep-clones context.blockSupports so a filter callback cannot corrupt the block registry', async () => {
+        // Live-reference mutation of `getBlockType(name).supports` would
+        // silently break every other block-support gate in the session.
+        const registered = { color: { background: true, text: true } };
+        registeredBlockSupports.set('artisanpack/group', registered);
+
+        registerFilter((value, context) => {
+            const ctx = context as {
+                blockSupports: Record<string, unknown>;
+            };
+            const color = ctx.blockSupports.color as Record<string, unknown>;
+            try {
+                color.background = false;
+            } catch {
+                // frozen — expected
+            }
+            return value;
+        });
+
+        const { withBackgroundControls } = await loadHOC();
+        const Wrapped = withBackgroundControls(InnerEdit);
+
+        render(
+            <Wrapped
+                name="artisanpack/group"
+                clientId="c-clone"
+                attributes={{}}
+                setAttributes={() => undefined}
+            />
+        );
+
+        // The registered object must NOT have been touched.
+        expect(registered.color.background).toBe(true);
+    });
+
+    it('always returns a Fragment so BlockEdit does not remount when the controls list transitions from empty to non-empty', async () => {
+        // React reconciler treats a top-level switch between
+        // `<BlockEdit/>` and `<><BlockEdit/>...</>` as a change in
+        // parent slot type, forcing a remount that discards RichText
+        // cursor, drag state, and child hook state. Verify the HOC
+        // always renders BlockEdit inside a stable Fragment.
+        registeredBlockSupports.set('artisanpack/group', { background: true });
+
+        const { withBackgroundControls } = await loadHOC();
+        const Wrapped = withBackgroundControls(InnerEdit);
+
+        const { rerender, getByTestId, queryByTestId } = render(
+            <Wrapped
+                name="artisanpack/group"
+                clientId="c-stable"
+                attributes={{}}
+                setAttributes={() => undefined}
+            />
+        );
+
+        const innerBefore = getByTestId('inner-edit');
+        expect(queryByTestId('inspector-controls')).toBeNull();
+
+        // Register a filter and force a re-render — controls list
+        // transitions from [] to [glass].
+        registerFilter((value) => {
+            const list = value as unknown[];
+            return [
+                ...list,
+                {
+                    id: 'glass',
+                    label: 'Glass',
+                    render: () => <span data-testid="glass-panel">glass</span>,
+                },
+            ];
+        });
+
+        rerender(
+            <Wrapped
+                name="artisanpack/group"
+                clientId="c-stable"
+                attributes={{}}
+                setAttributes={() => undefined}
+            />
+        );
+
+        // Same DOM node — no remount.
+        expect(getByTestId('inner-edit')).toBe(innerBefore);
+        expect(getByTestId('inspector-controls')).toBeInTheDocument();
+        expect(getByTestId('glass-panel')).toBeInTheDocument();
+    });
+
     it('renders controls in priority order (lower first)', async () => {
         registeredBlockSupports.set('artisanpack/group', { background: true });
 

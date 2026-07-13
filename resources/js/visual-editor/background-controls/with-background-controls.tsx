@@ -57,9 +57,16 @@ interface BlockEditProps {
 }
 
 /**
- * Resolve the block type's `supports` object. Returns an empty object
- * when the block type is unknown so callers can uniformly probe keys
- * without null-guarding first.
+ * Resolve the block type's `supports` object as a defensive deep
+ * clone. Returns an empty object when the block type is unknown so
+ * callers can uniformly probe keys without null-guarding first.
+ *
+ * The clone matters — the raw `supports` object is a live reference to
+ * the `@wordpress/blocks` registry, and this value is handed to every
+ * third-party `ap.visual-editor.background-controls` filter callback
+ * as `context.blockSupports`. A callback that mutates the received
+ * object would (without the clone) silently tamper with the shared
+ * registry entry every other block-support consumer reads from.
  */
 function resolveBlockSupports(name: string): Record<string, unknown> {
     const blockType = getBlockType(name);
@@ -74,7 +81,12 @@ function resolveBlockSupports(name: string): Record<string, unknown> {
         return {};
     }
 
-    return supports as Record<string, unknown>;
+    // `structuredClone` is available in every browser that ships a
+    // modern Gutenberg (Safari 15.4+, Chrome/Edge 98+, Firefox 94+),
+    // matches Node ≥17 for tests, and is the correct primitive here:
+    // block `supports` objects are plain data (no functions, no
+    // symbols) so structuredClone reproduces them losslessly.
+    return structuredClone(supports) as Record<string, unknown>;
 }
 
 /**
@@ -123,36 +135,46 @@ export const withBackgroundControls = createHigherOrderComponent(
                 return <BlockEdit {...props} />;
             }
 
+            // `Object.freeze` on a shallow copy is enough to signal
+            // read-only at the top level and to defend against the most
+            // common footgun (a filter callback assigning to
+            // `context.attributes.foo = ...`). Deep-freezing would
+            // require walking the tree on every render — too expensive
+            // for a hot path; the type is `Readonly<...>` and the
+            // context docstring calls it out.
             const context: BackgroundControlContext = {
-                attributes: props.attributes,
+                attributes: Object.freeze({ ...props.attributes }),
                 setAttributes: props.setAttributes,
                 clientId: props.clientId ?? '',
                 blockName: props.name,
-                blockSupports,
+                blockSupports: Object.freeze(blockSupports),
             };
 
             const controls = getFilteredBackgroundControls(context);
 
-            if (controls.length === 0) {
-                return <BlockEdit {...props} />;
-            }
-
+            // Always return the Fragment shape so the child `BlockEdit`
+            // keeps a stable parent slot type as `controls` transitions
+            // from empty to non-empty (e.g. HMR, lazy-loaded package
+            // bundles, filter callbacks reading external stores). A
+            // top-level switch between `<BlockEdit/>` and a Fragment
+            // would remount BlockEdit and lose RichText cursor, drag,
+            // and child hook state.
             return (
                 <>
                     <BlockEdit {...props} />
-                    <InspectorControls>
-                        {controls.map((control) => (
-                            <PanelBody
-                                key={control.id}
-                                title={control.label}
-                                initialOpen={false}
-                            >
-                                <div data-background-control={control.id}>
+                    {controls.length > 0 && (
+                        <InspectorControls>
+                            {controls.map((control) => (
+                                <PanelBody
+                                    key={control.id}
+                                    title={control.label}
+                                    initialOpen={false}
+                                >
                                     {control.render()}
-                                </div>
-                            </PanelBody>
-                        ))}
-                    </InspectorControls>
+                                </PanelBody>
+                            ))}
+                        </InspectorControls>
+                    )}
                 </>
             );
         }

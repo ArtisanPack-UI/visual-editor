@@ -69,47 +69,95 @@ export interface BackgroundControl {
  * Context passed to filter callbacks so a package can decide whether to
  * contribute a control (and what to render) based on the currently-
  * selected block.
+ *
+ * All fields except `setAttributes` are **read-only** — the HOC freezes
+ * `attributes` and hands out a defensive clone of `blockSupports`, but
+ * treat every field as immutable regardless. Mutating `attributes`
+ * bypasses React reconciliation and undo history; mutating
+ * `blockSupports` would (if it weren't cloned) corrupt the shared
+ * `@wordpress/blocks` registry that gate-checks every other feature in
+ * the editor.
  */
 export interface BackgroundControlContext {
-    /** Live block attributes. Treat as read-only inside the filter. */
-    attributes: Record<string, unknown>;
+    /**
+     * Frozen block attributes. Treat as read-only. To modify, call
+     * `setAttributes({...})` — the standard Gutenberg pattern.
+     */
+    attributes: Readonly<Record<string, unknown>>;
     /** Standard Gutenberg attribute setter for the selected block. */
     setAttributes: (attrs: Record<string, unknown>) => void;
     /** Selected block's clientId. */
     clientId: string;
-    /** Selected block's registered name (e.g. `core/group`). */
+    /** Selected block's registered name (e.g. `artisanpack/group`). */
     blockName: string;
     /**
-     * Resolved `supports` object from the block type. Packages use
+     * Deep-cloned `supports` object from the block type. Packages use
      * `blockSupports.background` (or a nested key like
      * `blockSupports.color?.background`) to gate their contribution.
+     * Treat as read-only.
      */
-    blockSupports: Record<string, unknown>;
+    blockSupports: Readonly<Record<string, unknown>>;
 }
 
 function isBackgroundControl(value: unknown): value is BackgroundControl {
-    return (
-        value !== null &&
-        typeof value === 'object' &&
-        typeof (value as BackgroundControl).id === 'string' &&
-        typeof (value as BackgroundControl).label === 'string' &&
-        typeof (value as BackgroundControl).render === 'function'
-    );
+    if (
+        value === null ||
+        typeof value !== 'object' ||
+        typeof (value as BackgroundControl).id !== 'string' ||
+        (value as BackgroundControl).id === '' ||
+        typeof (value as BackgroundControl).label !== 'string' ||
+        typeof (value as BackgroundControl).render !== 'function'
+    ) {
+        return false;
+    }
+
+    // `priority` is optional, but if present it must be a finite number.
+    // A `NaN` or string priority would make the sort comparator return
+    // `NaN`, giving engine-dependent order across browsers.
+    const priority = (value as BackgroundControl).priority;
+    if (priority !== undefined && !Number.isFinite(priority)) {
+        return false;
+    }
+
+    return true;
 }
 
 /**
- * Apply the filter, drop malformed entries, sort by `priority` (stable),
- * and dedupe by `id` (last-wins). Kept pure so the HOC can call it
- * inside render without scheduling work.
+ * Apply the filter, drop malformed entries, dedupe by `id` (last-wins),
+ * then sort by `priority` (default `10`, lower first). Dedupe happens
+ * BEFORE sort so "last-wins" tracks registration order, not sort order
+ * — a later `addFilter` with a lower priority still overrides an
+ * earlier registration at the same id.
+ *
+ * If a filter callback throws (a third-party bug), the exception is
+ * caught, logged, and the function returns an empty list. Without the
+ * guard, one bad callback would trip Gutenberg's `BlockCrashBoundary`
+ * on every affected block for the rest of the session.
+ *
+ * Kept pure so the HOC can call it inside render without scheduling
+ * work.
  */
 export function getFilteredBackgroundControls(
     context: BackgroundControlContext
 ): BackgroundControl[] {
-    const raw = applyFilters(
-        BACKGROUND_CONTROLS_FILTER,
-        [] as BackgroundControl[],
-        context
-    );
+    let raw: unknown;
+
+    try {
+        raw = applyFilters(
+            BACKGROUND_CONTROLS_FILTER,
+            [] as BackgroundControl[],
+            context
+        );
+    } catch (error) {
+        // eslint-disable-next-line no-console
+        console.error(
+            '[artisanpack-ui/visual-editor] A ' +
+                `"${BACKGROUND_CONTROLS_FILTER}" filter callback threw. ` +
+                'Skipping background controls for this render.',
+            error
+        );
+        return [];
+    }
 
     if (!Array.isArray(raw)) {
         return [];
@@ -117,39 +165,28 @@ export function getFilteredBackgroundControls(
 
     const valid = raw.filter(isBackgroundControl);
 
-    // Pair with the original index before comparing so we get a stable
-    // sort on engines whose `Array.prototype.sort` isn't stable, and so
-    // ties fall back to registration order.
-    const sorted = valid
-        .map((control, index) => ({ control, index }))
-        .sort((a, b) => {
-            const priorityA =
-                a.control.priority ?? DEFAULT_BACKGROUND_CONTROL_PRIORITY;
-            const priorityB =
-                b.control.priority ?? DEFAULT_BACKGROUND_CONTROL_PRIORITY;
-
-            if (priorityA !== priorityB) {
-                return priorityA - priorityB;
-            }
-
-            return a.index - b.index;
-        })
-        .map(({ control }) => control);
-
     // Dedupe by id — two packages racing on the same identifier, or a
     // single package re-registering after HMR, would otherwise render
-    // twice with duplicate React keys. Last-wins policy mirrors
-    // `@wordpress/hooks` filter composition. `Map#set` on an existing
-    // key updates in-place, so delete-then-reinsert to move the later
-    // entry to its later position.
-    const deduped = new Map<string, BackgroundControl>();
+    // twice with duplicate React keys. Last-wins mirrors how
+    // `@wordpress/hooks` composes filters: a later `addFilter` at the
+    // same namespace/priority overrides an earlier one. Doing the
+    // dedupe here (pre-sort) means the surviving entry is always the
+    // last one the filter chain contributed, regardless of its
+    // priority relative to the earlier duplicate.
+    const dedupedByRegistration = new Map<string, BackgroundControl>();
 
-    for (const control of sorted) {
-        if (deduped.has(control.id)) {
-            deduped.delete(control.id);
+    for (const control of valid) {
+        if (dedupedByRegistration.has(control.id)) {
+            dedupedByRegistration.delete(control.id);
         }
-        deduped.set(control.id, control);
+        dedupedByRegistration.set(control.id, control);
     }
 
-    return Array.from(deduped.values());
+    // ES2019 mandates `Array.prototype.sort` be stable, so ties fall
+    // back to insertion (= registration) order automatically.
+    return Array.from(dedupedByRegistration.values()).sort((a, b) => {
+        const priorityA = a.priority ?? DEFAULT_BACKGROUND_CONTROL_PRIORITY;
+        const priorityB = b.priority ?? DEFAULT_BACKGROUND_CONTROL_PRIORITY;
+        return priorityA - priorityB;
+    });
 }

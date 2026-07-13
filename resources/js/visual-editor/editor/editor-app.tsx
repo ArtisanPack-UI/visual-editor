@@ -175,6 +175,16 @@ function registerOnce(): void {
     disableContrastCheckerOnBlocks();
     registerContrastWarning();
     registerSyncedPatternIndicator();
+    // #649 — register the background-controls BlockEdit HOC FIRST so
+    // it wraps innermost. `@wordpress/hooks` composes filters in
+    // registration order, so the LAST-registered HOC wraps outermost;
+    // registering background-controls before the responsive + state
+    // HOCs below makes those wrap around it, which means the
+    // `context.attributes` this HOC hands to filter callbacks is the
+    // breakpoint-merged / state-resolved view — not the raw idle
+    // attributes — and `context.setAttributes` routes writes through
+    // the responsive/state wrappers.
+    registerBackgroundControls();
     // #487 — register the responsive feature filters BEFORE blocks load
     // so opted-in blocks pick up the auto-injected `responsive`
     // attribute at registration time and the BlockEdit HOC wraps every
@@ -208,11 +218,6 @@ function registerOnce(): void {
     // on first render.
     registerGradientBorders();
     registerBoxShadows();
-    // #649 — register the background-controls BlockEdit HOC so external
-    // packages can contribute panels to any block that opts into a
-    // background support via the shared
-    // `ap.visual-editor.background-controls` filter.
-    registerBackgroundControls();
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();

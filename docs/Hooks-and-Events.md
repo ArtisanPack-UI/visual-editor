@@ -2,9 +2,9 @@
 
 The visual editor exposes extension points through four mechanisms:
 
-- **PHP filters** — `applyFilters('ap.visual-editor.*', ...)` for value transformation (resource map, site-editor entities, etc.)
+- **PHP filters** — `applyFilters('ap.visual-editor.*', ...)` for value transformation (resource map, site-editor entities, server-rendered block HTML, etc.)
 - **PHP actions** — `doAction('ap.visual-editor.*', ...)` for side effects
-- **JavaScript filters** — `addFilter('ap.visual-editor.*', ...)` via `@wordpress/hooks` for editor-side extension (document panels, background controls, canvas styles, rendered blocks)
+- **JavaScript filters** — `addFilter('ap.visual-editor.*', ...)` via `@wordpress/hooks` for editor-side extension (document panels, background controls, canvas styles)
 - **Browser events** — `CustomEvent` dispatched on `window` for client-side integration (autosave, change, save)
 
 All PHP hooks use the global helpers from [`artisanpack-ui/hooks`](https://github.com/ArtisanPack-UI/hooks). All browser events are plain `CustomEvent` instances dispatched on `window`.
@@ -92,6 +92,28 @@ See the [`artisanpack-ui/icons`](https://github.com/ArtisanPack-UI/icons) docs f
 
 ---
 
+### `ap.visual-editor.rendered-block`
+
+Last-mile PHP filter applied to the rendered HTML of every block (static or dynamic) inside `packages/visual-editor-renderer-blade`'s `BlockRenderer::renderBlock()`. Runs on the server, at render-time, on every request that emits post content — not at save-time and not in JavaScript. Callbacks decorate output without each host having to fork the renderer.
+
+**Signature:** `string $html, string $blockName, array $attributes -> string`
+
+```php
+addFilter('ap.visual-editor.rendered-block', function (string $html, string $name, array $attributes): string {
+    if ('artisanpack/group' !== $name) {
+        return $html;
+    }
+    // …wrap, sanitize, inject data-* attributes, etc.
+    return $html;
+}, 10, 3);
+```
+
+**Recursion:** the renderer walks inner blocks through the same code path, so the filter fires once per block **at every level** of the tree. A callback that wraps a container block will also wrap every descendant unless it gates on `$name` / `$attributes`.
+
+**Attributes shape:** `$attributes` is post-normalization and may already carry package-internal `_resolved*` side-channel keys (site-meta, loginout). Treat those as read-only; they're not stable public attributes.
+
+---
+
 ## JavaScript filters
 
 Editor-side filters run through `@wordpress/hooks` inside the browser. Register callbacks with `addFilter(name, namespace, callback)` at editor bootstrap (the moment the app imports your package's entry module is enough — the editor evaluates each filter on every relevant render).
@@ -111,11 +133,13 @@ type BackgroundControl = {
 }
 
 type BackgroundControlContext = {
-    attributes: Record<string, unknown>
+    // Frozen — call setAttributes to modify.
+    attributes: Readonly<Record<string, unknown>>
     setAttributes: (attrs: Record<string, unknown>) => void
     clientId: string
     blockName: string
-    blockSupports: Record<string, unknown>
+    // Deep-cloned from the block-type registry — treat as read-only.
+    blockSupports: Readonly<Record<string, unknown>>
 }
 ```
 
@@ -128,8 +152,18 @@ addFilter(
     'ap.visual-editor.background-controls',
     'artisanpack-ui/liquid-glass',
     (controls, { attributes, setAttributes, blockSupports }) => {
-        // Only contribute when the block actually has a background support.
-        if (! blockSupports.background) {
+        // The HOC gates on either `supports.background` (image / gradient
+        // background) or `supports.color.background` (color background),
+        // so a block with only text-color support won't fire this filter.
+        // Narrow further to the shape your control cares about:
+        const hasBackground =
+            Boolean(blockSupports.background) ||
+            (typeof blockSupports.color === 'object' &&
+                blockSupports.color !== null &&
+                (blockSupports.color as Record<string, unknown>).background !==
+                    false)
+
+        if (! hasBackground) {
             return controls
         }
 
@@ -151,9 +185,11 @@ addFilter(
 )
 ```
 
-Controls are sorted by `priority` (default `10`, lower first) with ties falling back to registration order. Duplicate ids are deduped last-wins, mirroring how `@wordpress/hooks` composes filters at the same priority.
+Controls are deduped by `id` **before** sorting — a later `addFilter` at the same id overrides an earlier one regardless of priority, mirroring how `@wordpress/hooks` composes filters. Surviving controls are then sorted by `priority` (default `10`, lower first) with ties falling back to registration order.
 
-Attributes are declared the standard Gutenberg way (`blocks.registerBlockType` filter). For static blocks, save-side rendering continues to go through `blocks.getSaveContent.extraProps`; for dynamic blocks, use the block's PHP render or the `ap.visual-editor.rendered-block` filter.
+If a filter callback throws, the exception is caught, logged to `console.error`, and the block renders without any contributed panels for that render — one buggy third-party filter can't trip Gutenberg's per-block crash boundary. Callbacks with a non-numeric `priority` are silently rejected.
+
+Attributes are declared the standard Gutenberg way (`blocks.registerBlockType` filter). For static blocks, save-side rendering continues to go through `blocks.getSaveContent.extraProps`; for dynamic blocks, use the block's PHP render or the `ap.visual-editor.rendered-block` PHP filter (see the PHP filters section above).
 
 ---
 
@@ -184,14 +220,6 @@ Contribute additional stylesheets injected into the block canvas iframe. Applied
 **Signature:** `CanvasStyle[] -> CanvasStyle[]` where `CanvasStyle = { css: string }`.
 
 Entries whose `css` isn't a string are dropped. Non-array return values fall back to the built-in list.
-
----
-
-### `ap.visual-editor.rendered-block`
-
-Transform the HTML the editor emits for each block at save time. Runs after the block's own save function; the return value is the string written to the post content.
-
-**Signature:** `string html, { block, blockName, attributes } -> string`
 
 ---
 
