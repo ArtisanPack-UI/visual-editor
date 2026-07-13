@@ -10,6 +10,16 @@ vi.mock('../../blocks', () => ({
     registerArtisanPackBlocks: (): void => undefined,
 }));
 
+// #649 — same reason as the BlockEditorBoundary + BlockLibrarySidebar
+// stubs below: the real background-controls barrel pulls
+// `@wordpress/block-editor` (and its `block-compare` → `diff` subpath)
+// into the graph, which doesn't resolve under jsdom. The shell test
+// only checks that `ensureEditorBoot()` runs the registrars; the HOC
+// itself has its own focused test suite.
+vi.mock('../../background-controls', () => ({
+    registerBackgroundControls: (): void => undefined,
+}));
+
 // #436: the shell now imports `BlockEditorBoundary` directly to wrap
 // the D2 canvas + inspector in one `BlockEditorProvider`. The real
 // boundary pulls `@wordpress/block-editor` (and its `block-compare` →
