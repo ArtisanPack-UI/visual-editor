@@ -44,6 +44,7 @@ import { registerResponsiveAttribute } from '../responsive/register-attribute';
 import { registerResponsiveAttributesFilter } from '../responsive/with-responsive-attributes';
 import { registerStateAttribute } from '../states/register-attribute';
 import { registerStateAttributesFilter } from '../states/with-state-attributes';
+import { registerBackgroundControls } from '../background-controls';
 import { registerBoxShadows } from '../box-shadows/register';
 import { registerGradientBorders } from '../gradient-borders/register';
 import { registerStateStylesFilters } from '../states/with-state-styles';
@@ -174,6 +175,16 @@ function registerOnce(): void {
     disableContrastCheckerOnBlocks();
     registerContrastWarning();
     registerSyncedPatternIndicator();
+    // #649 — register the background-controls BlockEdit HOC FIRST so
+    // it wraps innermost. `@wordpress/hooks` composes filters in
+    // registration order, so the LAST-registered HOC wraps outermost;
+    // registering background-controls before the responsive + state
+    // HOCs below makes those wrap around it, which means the
+    // `context.attributes` this HOC hands to filter callbacks is the
+    // breakpoint-merged / state-resolved view — not the raw idle
+    // attributes — and `context.setAttributes` routes writes through
+    // the responsive/state wrappers.
+    registerBackgroundControls();
     // #487 — register the responsive feature filters BEFORE blocks load
     // so opted-in blocks pick up the auto-injected `responsive`
     // attribute at registration time and the BlockEdit HOC wraps every

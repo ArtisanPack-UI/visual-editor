@@ -45,6 +45,7 @@ import {
 } from './template-parts-section';
 import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
+import { registerBackgroundControls } from '../background-controls';
 import { registerArtisanPackBlocks } from '../blocks';
 import { registerBoxShadows } from '../box-shadows/register';
 import { registerGradientBorders } from '../gradient-borders/register';
@@ -160,6 +161,13 @@ function ensureEditorBoot(): void {
     // registration so `artisanpack/block` reference blocks get the badge
     // from the first render. Idempotent across HMR.
     registerSyncedPatternIndicator();
+
+    // #649 — register the background-controls BlockEdit HOC so external
+    // packages can contribute panels to any block that opts into a
+    // background support via the shared
+    // `ap.visual-editor.background-controls` filter. Idempotent across
+    // the post-editor and site-editor bootstrap paths.
+    registerBackgroundControls();
 
     // #490 — gradient border feature filters; same "before
     // registerArtisanPackBlocks" placement as the post-editor so opted-in
