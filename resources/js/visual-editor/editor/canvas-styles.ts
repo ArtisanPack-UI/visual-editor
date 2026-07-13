@@ -156,7 +156,9 @@ const EDITOR_BLOCK_TWEAKS = `
 `;
 
 /**
- * Ordered `{ css }` entries handed to `BlockCanvas`'s `styles` prop.
+ * Base ordered list — third parties extend this via
+ * `ap.visual-editor.canvas-styles` (see the export below).
+ *
  * The order is the cascade order inside the iframe:
  *
  *   1. the token bridge first, so every rule below it can read the
@@ -173,13 +175,10 @@ const EDITOR_BLOCK_TWEAKS = `
  *      stylesheet will append after this entry and win in turn once
  *      the theme.json bridge lands.
  *
- * `BlockCanvas` passes this straight to `__unstableEditorStyles` with
- * no wrapper selector, so the CSS is injected into the iframe verbatim
- * (`transformStyles` is a no-op without a scope or `baseURL`).
- */
-/**
- * Base ordered list. Third parties extend this via
- * `ap.visual-editor.canvas-styles` — see the export below.
+ * `BlockCanvas` passes the final (post-filter) list straight to
+ * `__unstableEditorStyles` with no wrapper selector, so the CSS is
+ * injected into the iframe verbatim (`transformStyles` is a no-op
+ * without a scope or `baseURL`).
  */
 const baseCanvasStyles: CanvasStyle[] = [
     { css: canvasThemeTokens },
@@ -230,6 +229,15 @@ const baseCanvasStyles: CanvasStyle[] = [
  * `css` property must be a string — the filter is a hard boundary
  * because the array feeds directly into `BlockCanvas`'s
  * `__unstableEditorStyles` prop.
+ *
+ * TIMING: `applyFilters` runs synchronously at module-load time inside
+ * the IIFE below and the resulting `canvasStyles` export is frozen for
+ * the rest of the session. Callbacks MUST be registered
+ * (`addFilter('ap.visual-editor.canvas-styles', …)`) before this
+ * module is first imported — typically from a top-level side-effect
+ * import that appears before the editor bundle in the app's entry
+ * graph. Filters registered after the first import silently no-op:
+ * their CSS will not appear in the iframe.
  */
 export const canvasStyles: readonly CanvasStyle[] = ( (): CanvasStyle[] => {
     const filtered = applyFilters(
