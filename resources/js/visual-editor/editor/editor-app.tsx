@@ -50,6 +50,9 @@ import { registerGradientBorders } from '../gradient-borders/register';
 import { registerStateStylesFilters } from '../states/with-state-styles';
 import { registerAnimationsAttribute } from '../animations/register-attribute';
 import { registerAnimationsPanel } from '../animations/with-animations-panel';
+import { registryFromSnapshot } from '../responsive/registry';
+import type { BreakpointRegistrySnapshot } from '../responsive/types';
+import { useCanvasPreviewWidth } from '../responsive/use-canvas-preview-width';
 import {
     setBindingsApiConfig,
     setBindingsResourceContext,
@@ -284,6 +287,13 @@ export interface EditorAppProps {
     supports?: DocumentSupports;
     previewUrl?: string | null;
     onMetadataChange?: (change: MetadataChange) => void;
+    /**
+     * Serialised breakpoint registry (#617). When present, hydrated
+     * via `registryFromSnapshot()` and passed to `TopBar` as
+     * `viewportRegistry` so host-configured `label` and
+     * `previewWidthPx` overrides reach the viewport switcher.
+     */
+    breakpoints?: BreakpointRegistrySnapshot | null;
 }
 
 export { entityTypeForResource } from './entity-type';
@@ -487,6 +497,20 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     const [inserterOpen, setInserterOpen] = useState<boolean>(false);
     const [inspectorOpen, setInspectorOpen] = useState<boolean>(true);
     const [shortcutsOpen, setShortcutsOpen] = useState<boolean>(false);
+    // #617 — viewport preset selection resizes the canvas frame.
+    // The shared hook holds the `null | positive-int` slot and the
+    // `onViewportChange` callback so post + site editors can't
+    // drift on the base-vs-named-preset contract.
+    const { canvasPreviewWidthPx, handleViewportChange } = useCanvasPreviewWidth();
+    // #617 — hydrate the viewport switcher's registry from the
+    // Blade-stamped `data-breakpoints` payload so host-configured
+    // `label` / `previewWidthPx` overrides reach the UI. When the
+    // host omits the snapshot, `registryFromSnapshot` falls back to
+    // the ship defaults.
+    const viewportRegistry = useMemo(
+        () => registryFromSnapshot(props.breakpoints ?? undefined),
+        [props.breakpoints]
+    );
     const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
     // Mirror history in a ref so undo/redo handlers can read the latest
     // snapshot without taking a dep on `history` (which would re-memoize the
@@ -803,6 +827,8 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 previewUrl={previewUrl}
                 onSave={flush}
                 onShowKeyboardShortcuts={handleShowShortcuts}
+                onViewportChange={handleViewportChange}
+                viewportRegistry={viewportRegistry}
             />
         ),
         [
@@ -812,6 +838,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             handleToggleInserter,
             handleToggleInspector,
             handleUndo,
+            handleViewportChange,
             history.future.length,
             history.past.length,
             inserterOpen,
@@ -820,6 +847,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             previewUrl,
             saveError,
             saveStatus,
+            viewportRegistry,
         ]
     );
 
@@ -929,6 +957,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 onTitleChange={handleTitleChange}
                 blockContext={blockContextValue}
                 apiBase={props.apiBase}
+                previewWidthPx={canvasPreviewWidthPx}
             />
             {/*
              * #488 — watch the selected block's attributes and re-route

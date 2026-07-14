@@ -16,6 +16,7 @@ import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
 import '../a11y.css';
+import type { BreakpointRegistrySnapshot } from '../responsive/types';
 
 const MOUNT_SELECTOR = '[data-ap-site-editor]';
 const ROOT_SYMBOL: unique symbol = Symbol('ap-site-editor-root');
@@ -50,6 +51,14 @@ export interface SiteEditorMountConfig {
      */
     exitLabel?: string;
     theme?: string;
+    /**
+     * Serialised breakpoint registry (#617). Hosts stamp this via
+     * `data-breakpoints` on the mount element; the shell hydrates it
+     * via `registryFromSnapshot()` and forwards the resulting
+     * registry to `TopBar` so the viewport switcher respects
+     * host-configured `label` / `previewWidthPx` overrides.
+     */
+    breakpoints?: BreakpointRegistrySnapshot | null;
 }
 
 export interface MountedSiteEditor {
@@ -97,12 +106,31 @@ function readMountConfig(element: HTMLElement): SiteEditorMountConfig | null {
         );
     }
 
+    // #617 — the host stamps the merged breakpoint registry as
+    // `data-breakpoints`. Passed through unchanged to the shell.
+    const rawBreakpoints = element.dataset.breakpoints?.trim();
+    let breakpoints: BreakpointRegistrySnapshot | null = null;
+    if (rawBreakpoints !== undefined && rawBreakpoints !== '') {
+        try {
+            const parsed = JSON.parse(rawBreakpoints);
+            if (Array.isArray(parsed)) {
+                breakpoints = { breakpoints: parsed as BreakpointRegistrySnapshot['breakpoints'] };
+            }
+        } catch (error) {
+            console.warn(
+                'site-editor: could not parse data-breakpoints as JSON.',
+                error
+            );
+        }
+    }
+
     return {
         routeBase,
         apiBase,
         ...(exitUrl !== undefined && exitUrl !== '' ? { exitUrl } : {}),
         ...(exitLabel !== undefined && exitLabel !== '' ? { exitLabel } : {}),
         ...(theme !== undefined && theme !== '' ? { theme } : {}),
+        ...(breakpoints !== null ? { breakpoints } : {}),
     };
 }
 

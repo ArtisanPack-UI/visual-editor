@@ -15,6 +15,32 @@ export type BreakpointKey = typeof BASE_KEY | string;
 export interface Breakpoint {
 	key: string;
 	minWidthPx: number;
+	/**
+	 * Human-readable label rendered in the viewport switcher (#617).
+	 * When omitted, the UI falls back to the breakpoint key.
+	 */
+	label?: string;
+	/**
+	 * Canvas iframe width, in pixels, used when the switcher previews
+	 * this breakpoint (#617). When omitted, the UI falls back to
+	 * `minWidthPx`. Split from `minWidthPx` because Tailwind's `sm`
+	 * cascade activates at `640px` but you preview it on a phone-sized
+	 * `375px` viewport.
+	 */
+	previewWidthPx?: number;
+}
+
+/**
+ * Wire form used by the PHP → JS bootstrap payload. Mirrors the
+ * `BreakpointRegistry::toArray()` shape so a snapshot round-trips
+ * losslessly between server and client.
+ *
+ * @since 1.0.0
+ */
+export interface BreakpointWireEntry {
+	minWidthPx: number;
+	label?: string;
+	previewWidthPx?: number;
 }
 
 /**

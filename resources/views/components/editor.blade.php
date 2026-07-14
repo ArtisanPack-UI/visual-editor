@@ -15,4 +15,8 @@
 	@isset($supports) data-supports="{{ json_encode( $supports ) }}" @endisset
 	@isset($previewUrl) data-preview-url="{{ $previewUrl }}" @endisset
 	data-content-types="{{ json_encode( $contentTypes, JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
+	{{-- #617 — merged breakpoint registry (config + theme.json +
+	     defaults) so the viewport switcher's registry hydrates with
+	     host-configured `label` / `previewWidthPx` overrides. --}}
+	data-breakpoints="{{ json_encode( $breakpoints ) }}"
 ></div>

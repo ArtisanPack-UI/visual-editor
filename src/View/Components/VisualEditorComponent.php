@@ -20,6 +20,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\View\Components;
 
+use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
@@ -68,6 +69,15 @@ class VisualEditorComponent extends Component
 	 */
 	public array $contentTypes;
 
+	/**
+	 * Serialised breakpoint registry (#617) — the merged config +
+	 * theme.json + defaults snapshot the React shell hydrates the
+	 * viewport switcher against.
+	 *
+	 * @var array<int, array{key: string, minWidthPx: int, previewWidthPx: int, label: string}>
+	 */
+	public array $breakpoints;
+
 	public function __construct(
 		public Model $model,
 		?string $resource = null,
@@ -106,6 +116,7 @@ class VisualEditorComponent extends Component
 		$this->supports             = $supports;
 		$this->previewUrl           = $previewUrl;
 		$this->contentTypes         = $this->resolveContentTypes();
+		$this->breakpoints          = app( BreakpointRegistry::class )->toArray();
 	}
 
 	/**
