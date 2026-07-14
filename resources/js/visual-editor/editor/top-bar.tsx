@@ -100,6 +100,23 @@ export interface TopBarProps {
      * inspector panel) and the site editor (the section inspector).
      */
     inspectorToggleAriaLabel?: { open: string; close: string };
+    /**
+     * Optional override of the viewport switcher's breakpoint registry
+     * (#617). Falls back to the module-level default (Tailwind v4 +
+     * Mobile/Tablet/Desktop labels). Host shells that hydrate a
+     * registry from the server bootstrap pass it in here so the
+     * switcher renders the same set as the responsive-value resolver.
+     */
+    viewportRegistry?: BreakpointRegistry;
+    /**
+     * Side-effect fired when the user selects a viewport preset (#617).
+     * Receives the breakpoint key and the canvas preview width — `0`
+     * for `base` (unconstrained), a positive int for named
+     * breakpoints. Host shells wire this to their canvas container's
+     * inline width. Omitting it leaves the switcher purely
+     * edit-scoping (the pre-#617 behavior).
+     */
+    onViewportChange?: (breakpoint: string, previewWidthPx: number) => void;
 }
 
 function saveStatusLabel(
@@ -190,7 +207,11 @@ export function TopBar(props: TopBarProps): JSX.Element {
         leadingActions,
         inserterToggleAriaLabel,
         inspectorToggleAriaLabel,
+        viewportRegistry,
+        onViewportChange,
     } = props;
+
+    const viewportRegistryValue = viewportRegistry ?? DEFAULT_VIEWPORT_REGISTRY;
 
     const inserterOpenLabel =
         inserterToggleAriaLabel?.open ?? __('Open block inserter', TEXT_DOMAIN);
@@ -448,7 +469,8 @@ export function TopBar(props: TopBarProps): JSX.Element {
             </div>
             <div className="ap-visual-editor-top-bar__group ap-visual-editor-top-bar__group--center">
                 <ViewportSwitcher
-                    registry={DEFAULT_VIEWPORT_REGISTRY}
+                    registry={viewportRegistryValue}
+                    onChange={onViewportChange}
                     className="ap-visual-editor-viewport-switcher"
                 />
             </div>

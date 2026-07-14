@@ -12,8 +12,35 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    /*
+     * #617 — allow the canvas to scroll horizontally so a wide
+     * preset (Desktop 1440px) in a narrower editor scrolls instead
+     * of being clipped. Y-axis stays hidden because the block
+     * canvas' own iframe/scroll region handles vertical overflow.
+     */
+    overflow-x: auto;
+    overflow-y: hidden;
     background: var(--ap-site-editor-canvas-background, var(--color-base-100, #ffffff));
+}
+
+/*
+ * #617 — when a device preset is active `site-editor-app.tsx`
+ * stamps `--ap-site-editor-canvas-preview-width` on the canvas
+ * container and the child (entity canvas / patterns canvas / lazy
+ * section slot) becomes a fixed-width preview. Wider than the
+ * editor area? The parent above scrolls horizontally — matching the
+ * #617 spec ("wide desktop presets will horizontally-scroll in a
+ * narrow editor for v1"). Narrower? `margin-inline: auto` centers
+ * the shrunk preview so it reads as a device viewport.
+ *
+ * `flex-shrink: 0` prevents the flex-column parent from
+ * squeezing the preset back down to the container's width.
+ */
+.ap-site-editor__canvas[data-preview-width]:not([data-preview-width="base"]) > * {
+    width: var(--ap-site-editor-canvas-preview-width, 100%);
+    max-width: none;
+    flex-shrink: 0;
+    margin-inline: auto;
 }
 
 .ap-site-editor__canvas-iframe {

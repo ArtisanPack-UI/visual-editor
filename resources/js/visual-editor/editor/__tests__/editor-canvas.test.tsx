@@ -173,4 +173,78 @@ describe('EditorCanvas', () => {
         ).not.toBeInTheDocument();
         expect(screen.getByTestId('ap-stub-block-list')).toBeInTheDocument();
     });
+
+    /*
+     * #617 — the post editor stamps a preview width onto the canvas
+     * frame when the viewport switcher selects a device preset. These
+     * tests confirm the frame reflects it via inline max-width +
+     * data-attribute so both CSS and the RTL wiring test can react.
+     */
+    describe('#617 preview width prop', () => {
+        it('marks the frame as base when no preview width is provided', () => {
+            render(
+                <EditorCanvas
+                    showTitle
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                />
+            );
+
+            const frame = screen.getByTestId('ap-visual-editor-canvas-frame');
+
+            expect(frame).toHaveAttribute('data-preview-width', 'base');
+            expect(frame.style.width).toBe('');
+        });
+
+        it('applies an inline width and data attribute when a preview width is set', () => {
+            render(
+                <EditorCanvas
+                    showTitle
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    previewWidthPx={375}
+                />
+            );
+
+            const frame = screen.getByTestId('ap-visual-editor-canvas-frame');
+
+            // #617 — inline `width` (not `max-width`) so wide presets
+            // scroll horizontally on the parent instead of clamping.
+            expect(frame).toHaveAttribute('data-preview-width', '375');
+            expect(frame.style.width).toBe('375px');
+            expect(frame.style.flexShrink).toBe('0');
+        });
+
+        it('treats null / non-positive previewWidthPx as base', () => {
+            const { rerender } = render(
+                <EditorCanvas
+                    showTitle
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    previewWidthPx={null}
+                />
+            );
+
+            expect(
+                screen.getByTestId('ap-visual-editor-canvas-frame')
+            ).toHaveAttribute('data-preview-width', 'base');
+
+            rerender(
+                <EditorCanvas
+                    showTitle
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    previewWidthPx={0}
+                />
+            );
+
+            const frame = screen.getByTestId('ap-visual-editor-canvas-frame');
+            expect(frame).toHaveAttribute('data-preview-width', 'base');
+            expect(frame.style.width).toBe('');
+        });
+    });
 });

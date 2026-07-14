@@ -24,6 +24,7 @@ import { __ } from '@wordpress/i18n';
 import type { BlockInstance } from '@wordpress/blocks';
 
 import { TEXT_DOMAIN } from '../vendor/i18n';
+import { siteEditorCanvasPreviewProps } from '../responsive/use-canvas-preview-width';
 
 import './canvas-frame.css';
 
@@ -44,6 +45,12 @@ export interface CanvasFrameProps {
      * inside the iframe.
      */
     children?: ReactNode;
+    /**
+     * Preview width (px) applied to the canvas container so the empty
+     * state honours the viewport switcher just like the entity + lazy
+     * branches (#617). `null` leaves the canvas at full editor width.
+     */
+    canvasPreviewWidthPx?: number | null;
 }
 
 const EMPTY_BLOCKS: BlockInstance[] = [];
@@ -51,7 +58,7 @@ const EMPTY_BLOCKS: BlockInstance[] = [];
 const EMPTY_SETTINGS = Object.freeze({});
 
 export function CanvasFrame(props: CanvasFrameProps): JSX.Element {
-    const { sectionLabel, hasEntity = false, children } = props;
+    const { sectionLabel, hasEntity = false, children, canvasPreviewWidthPx = null } = props;
 
     const emptyState = useMemo(
         () => (
@@ -80,6 +87,7 @@ export function CanvasFrame(props: CanvasFrameProps): JSX.Element {
             className="ap-site-editor__canvas"
             data-has-entity={hasEntity}
             data-testid="ap-site-editor-canvas"
+            {...siteEditorCanvasPreviewProps(canvasPreviewWidthPx)}
         >
             {hasEntity ? (
                 <SlotFillProvider>

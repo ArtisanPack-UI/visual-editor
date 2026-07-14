@@ -1,7 +1,9 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+import { resetActiveBreakpoint } from '../../responsive/active-breakpoint';
+import { BreakpointRegistry } from '../../responsive/registry';
 import { TopBar, type TopBarProps } from '../top-bar';
 
 function defaultProps(overrides: Partial<TopBarProps> = {}): TopBarProps {
@@ -28,6 +30,10 @@ function defaultProps(overrides: Partial<TopBarProps> = {}): TopBarProps {
 
 afterEach(() => {
     vi.restoreAllMocks();
+    // #617 — the viewport switcher owns a module-level active
+    // breakpoint store; without a reset, cross-test residue would
+    // flip a fresh <TopBar>'s aria-pressed on the wrong preset.
+    resetActiveBreakpoint();
 });
 
 describe('TopBar', () => {
@@ -366,5 +372,85 @@ describe('TopBar', () => {
 
         fireEvent.keyDown(window, { key: 'z', metaKey: true });
         expect(onUndo).not.toHaveBeenCalled();
+    });
+
+    /*
+     * #617 — the top-bar hosts the ViewportSwitcher and forwards
+     * `onViewportChange` / `viewportRegistry` down to it. These tests
+     * confirm the wiring reaches the switcher rather than getting lost
+     * in the top-bar shell.
+     */
+    describe('viewport switcher wiring (#617)', () => {
+        it('renders Mobile/Tablet/Desktop labels from the default registry', () => {
+            render(<TopBar {...defaultProps()} />);
+
+            expect(
+                screen.getByRole('button', { name: 'Mobile' })
+            ).toBeInTheDocument();
+            expect(
+                screen.getByRole('button', { name: 'Tablet' })
+            ).toBeInTheDocument();
+            expect(
+                screen.getByRole('button', { name: 'Desktop' })
+            ).toBeInTheDocument();
+        });
+
+        it('forwards a preset selection to onViewportChange with previewWidthPx', () => {
+            const onViewportChange = vi.fn();
+
+            render(
+                <TopBar
+                    {...defaultProps({
+                        onViewportChange,
+                    })}
+                />
+            );
+
+            act(() => {
+                fireEvent.click(screen.getByRole('button', { name: 'Mobile' }));
+            });
+            expect(onViewportChange).toHaveBeenLastCalledWith('sm', 375);
+
+            act(() => {
+                fireEvent.click(screen.getByRole('button', { name: 'Desktop' }));
+            });
+            expect(onViewportChange).toHaveBeenLastCalledWith('lg', 1440);
+
+            act(() => {
+                fireEvent.click(
+                    screen.getByRole('button', { name: 'All sizes' })
+                );
+            });
+            expect(onViewportChange).toHaveBeenLastCalledWith('base', 0);
+        });
+
+        it('uses a host-supplied viewportRegistry when provided', () => {
+            const onViewportChange = vi.fn();
+            const registry = new BreakpointRegistry([
+                { key: 'sm', minWidthPx: 640, previewWidthPx: 390, label: 'iPhone' },
+                { key: 'md', minWidthPx: 900, previewWidthPx: 900, label: 'Slate' },
+            ]);
+
+            render(
+                <TopBar
+                    {...defaultProps({
+                        viewportRegistry: registry,
+                        onViewportChange,
+                    })}
+                />
+            );
+
+            expect(
+                screen.getByRole('button', { name: 'iPhone' })
+            ).toBeInTheDocument();
+            expect(
+                screen.queryByRole('button', { name: 'Mobile' })
+            ).not.toBeInTheDocument();
+
+            act(() => {
+                fireEvent.click(screen.getByRole('button', { name: 'iPhone' }));
+            });
+            expect(onViewportChange).toHaveBeenLastCalledWith('sm', 390);
+        });
     });
 });

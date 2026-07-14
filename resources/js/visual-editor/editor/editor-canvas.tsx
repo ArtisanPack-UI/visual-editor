@@ -70,6 +70,14 @@ export interface EditorCanvasProps {
      * the canvas on the package-default baseline.
      */
     apiBase?: string;
+    /**
+     * Preview width (px) for the canvas iframe container (#617).
+     * When set to a positive int the canvas frame renders at that
+     * width so the editor can visually preview the layout at a device
+     * breakpoint. `null` leaves the frame unconstrained (fills the
+     * available editor area) — the `base` viewport state.
+     */
+    previewWidthPx?: number | null;
 }
 
 /**
@@ -77,7 +85,14 @@ export interface EditorCanvasProps {
  * `BlockEditorProvider` ancestor (mounted in `editor-app.tsx`).
  */
 export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
-    const { showTitle, title, onTitleChange, blockContext, apiBase } = props;
+    const {
+        showTitle,
+        title,
+        onTitleChange,
+        blockContext,
+        apiBase,
+        previewWidthPx,
+    } = props;
 
     // Keystone #47: pull the compiled theme CSS once per `apiBase` and
     // append it to the iframe's styles array so the canvas surface
@@ -95,6 +110,20 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
 
     const blockList = <BlockList layout={ROOT_CANVAS_LAYOUT} />;
 
+    // #617 — an inline `width` (rather than `max-width`) means the
+    // frame renders at exactly the requested preview size; wide
+    // presets in a narrow editor scroll horizontally on the parent
+    // (`.ap-visual-editor__canvas`, styled with `overflow-x: auto`)
+    // instead of being clamped. `margin: 0 auto` in the stylesheet
+    // centers the shrunk frame when the editor is wider than the
+    // preset. Emit `data-preview-width` so tests can assert the
+    // applied preset without reading inline style.
+    const hasPreviewWidth =
+        typeof previewWidthPx === 'number' && previewWidthPx > 0;
+    const canvasFrameStyle = hasPreviewWidth
+        ? { width: `${previewWidthPx}px`, maxWidth: 'none', flexShrink: 0 }
+        : undefined;
+
     return (
         <div
             className="ap-visual-editor__canvas"
@@ -103,7 +132,14 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
             {showTitle ? (
                 <PostTitle value={title} onChange={onTitleChange} />
             ) : null}
-            <div className="ap-visual-editor__canvas-frame">
+            <div
+                className="ap-visual-editor__canvas-frame"
+                data-preview-width={
+                    hasPreviewWidth ? String(previewWidthPx) : 'base'
+                }
+                data-testid="ap-visual-editor-canvas-frame"
+                style={canvasFrameStyle}
+            >
                 <BlockCanvas height="100%" styles={styles}>
                     {blockContext !== null ? (
                         <BlockContextProvider value={blockContext}>

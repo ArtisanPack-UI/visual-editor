@@ -53,6 +53,12 @@ import { registerGradientBorders } from '../gradient-borders/register';
 import { BlockLibrarySidebar } from '../editor/block-library-sidebar';
 import { TopBar } from '../editor/top-bar';
 import { registerSyncedPatternIndicator } from '../editor/synced-pattern-indicator';
+import { registryFromSnapshot } from '../responsive/registry';
+import type { BreakpointRegistrySnapshot } from '../responsive/types';
+import {
+    siteEditorCanvasPreviewProps,
+    useCanvasPreviewWidth,
+} from '../responsive/use-canvas-preview-width';
 
 import './site-editor-app.css';
 
@@ -146,6 +152,13 @@ export interface SiteEditorAppProps {
     exitLabel?: string;
     /** Theme slug used when creating new templates / parts. */
     theme?: string;
+    /**
+     * Serialised breakpoint registry (#617). When present, hydrated
+     * via `registryFromSnapshot()` and forwarded to `TopBar` as
+     * `viewportRegistry` so host-configured `label` /
+     * `previewWidthPx` overrides reach the viewport switcher.
+     */
+    breakpoints?: BreakpointRegistrySnapshot | null;
 }
 
 let editorBooted = false;
@@ -244,6 +257,21 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
 
     const [entityState, setEntityState] =
         useState<EntityEditorState>(IDLE_ENTITY_STATE);
+
+    // #617 — viewport preset resizes the site-editor canvas. All three
+    // canvas surfaces (templates/parts, patterns, styles slots) render
+    // into the same `.ap-site-editor__canvas` container so a single
+    // shell-level width slot covers them.
+    const { canvasPreviewWidthPx, handleViewportChange } = useCanvasPreviewWidth();
+    // #617 — hydrate the viewport switcher's registry from the
+    // Blade-stamped `data-breakpoints` payload so host-configured
+    // `label` / `previewWidthPx` overrides reach the UI. When the
+    // host omits the snapshot, `registryFromSnapshot` falls back to
+    // the ship defaults.
+    const viewportRegistry = useMemo(
+        () => registryFromSnapshot(props.breakpoints ?? undefined),
+        [props.breakpoints]
+    );
 
     const handleEntityStateChange = useCallback(
         (state: EntityEditorState): void => {
@@ -655,6 +683,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                     className="ap-site-editor__canvas"
                     data-has-entity="true"
                     data-testid="ap-site-editor-canvas"
+                    {...siteEditorCanvasPreviewProps(canvasPreviewWidthPx)}
                 >
                     {editorViews.canvas}
                 </div>
@@ -667,6 +696,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                         showPatternsEditor
                     }
                     data-testid="ap-site-editor-canvas"
+                    {...siteEditorCanvasPreviewProps(canvasPreviewWidthPx)}
                 >
                     <div
                         className="ap-site-editor__canvas-slot"
@@ -678,6 +708,7 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                 <CanvasFrame
                     sectionLabel={activeSection.modeLabel}
                     hasEntity={false}
+                    canvasPreviewWidthPx={canvasPreviewWidthPx}
                 />
             )}
             {inspectorOpen ? (
@@ -751,6 +782,8 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
                 inspectorToggleAriaLabel={inspectorToggleAriaLabel}
                 extraActions={extraActions}
                 leadingActions={leadingActions}
+                onViewportChange={handleViewportChange}
+                viewportRegistry={viewportRegistry}
             />
             <main aria-labelledby={mainHeadingId}>
                 <h1 id={mainHeadingId} className="screen-reader-text">
