@@ -5,13 +5,7 @@
     "title": "Query Loop",
     "category": "theme",
     "description": "An advanced block that allows displaying post types based on different query parameters and visual configurations.",
-    "keywords": [
-        "posts",
-        "list",
-        "blog",
-        "blogs",
-        "custom post types"
-    ],
+    "keywords": [ "posts", "list", "blog", "blogs", "custom post types" ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "queryId": {
@@ -51,9 +45,7 @@
             "type": "object"
         }
     },
-    "usesContext": [
-        "templateSlug"
-    ],
+    "usesContext": [ "templateSlug" ],
     "providesContext": {
         "queryId": "queryId",
         "query": "query",
@@ -63,10 +55,7 @@
     "supports": {
         "position": true,
         "anchor": true,
-        "align": [
-            "wide",
-            "full"
-        ],
+        "align": [ "wide", "full" ],
         "html": false,
         "layout": true,
         "interactivity": true

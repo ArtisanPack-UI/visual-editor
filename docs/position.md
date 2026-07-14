@@ -175,6 +175,6 @@ the wrapper's `class` + `style` attributes).
 
 ## Related
 
-- [Animations](animations.md) — same accumulator / scope-class pattern.
-- [Box Shadows](box-shadows.md) — same accumulator pattern.
-- [Border Gradients](border-gradients.md) — same accumulator pattern.
+- [[Animations]] — same accumulator / scope-class pattern.
+- [[Box Shadows]] — same accumulator pattern.
+- [[Border Gradients]] — same accumulator pattern.

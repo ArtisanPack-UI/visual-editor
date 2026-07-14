@@ -81,7 +81,12 @@ describe( 'position support — full round-trip across breakpoints', () => {
 		const merged  = mergedBreakpointLayers( payload, registry )
 		const css     = emitPositionCss( '.ve-pos-roundtrip1', payload, registry, merged )
 
-		expect( css ).toContain( '.ve-pos-roundtrip1{position:sticky !important;top:0px !important;z-index:10 !important}' )
+		// Assert declarations individually (order/whitespace-agnostic)
+		// so a benign emitter refactor doesn't break the test.
+		expect( css ).toContain( '.ve-pos-roundtrip1{' )
+		expect( css ).toContain( 'position:sticky !important' )
+		expect( css ).toContain( 'top:0px !important' )
+		expect( css ).toContain( 'z-index:10 !important' )
 		expect( css ).toContain( '@media (min-width:768px){' )
 		expect( css ).toContain( 'top:8px !important' )
 		expect( css ).toContain( '@media (min-width:1024px){' )

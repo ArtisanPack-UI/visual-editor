@@ -5,12 +5,7 @@
     "title": "Previous Post",
     "category": "theme",
     "description": "Wrap inner blocks against the previous post in the same post type so post-* children render the older neighbor's data.",
-    "keywords": [
-        "previous",
-        "post",
-        "navigation",
-        "adjacent"
-    ],
+    "keywords": ["previous", "post", "navigation", "adjacent"],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "postType": {
@@ -33,10 +28,7 @@
         "position": true,
         "artisanpackAnimations": true,
         "anchor": true,
-        "align": [
-            "wide",
-            "full"
-        ],
+        "align": ["wide", "full"],
         "html": false,
         "reusable": false,
         "color": {
@@ -48,10 +40,7 @@
             }
         },
         "spacing": {
-            "margin": [
-                "top",
-                "bottom"
-            ],
+            "margin": ["top", "bottom"],
             "padding": true
         }
     }

@@ -7,10 +7,12 @@
  *  - A position dropdown (`static / relative / absolute / fixed / sticky`).
  *  - When non-`static`: number+unit UnitControls for top/right/bottom/
  *    left and an integer input for z-index.
- *  - A breakpoint switcher — clicking a breakpoint tab flips the
- *    editor's active-breakpoint store so ALL responsive controls
- *    (spacing, typography, etc.) follow along, mirroring the pattern
- *    used elsewhere in the package.
+ *  - Follows the editor's top-bar `ViewportSwitcher` via the shared
+ *    active-breakpoint store. Every field re-reads its effective
+ *    value when the switcher flips, and surfaces an "Inherited" hint
+ *    on any field not overridden at the currently-viewed breakpoint.
+ *    Matches every sibling responsive-aware panel — no per-panel
+ *    breakpoint control.
  *  - An "Inherited from smaller breakpoint" affordance when the
  *    currently-viewed breakpoint doesn't override the field.
  *  - #644 warning notice when the effective position at the active

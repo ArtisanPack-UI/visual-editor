@@ -5,12 +5,7 @@
     "title": "Search Field",
     "category": "search",
     "description": "Render a labelled search input that posts the keyword to the host page as the `s` query parameter.",
-    "keywords": [
-        "search",
-        "keyword",
-        "filter",
-        "input"
-    ],
+    "keywords": ["search", "keyword", "filter", "input"],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "label": {
@@ -28,10 +23,7 @@
         "className": true,
         "html": false,
         "spacing": {
-            "margin": [
-                "top",
-                "bottom"
-            ],
+            "margin": ["top", "bottom"],
             "padding": true,
             "blockGap": true,
             "__experimentalDefaultControls": {

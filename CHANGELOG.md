@@ -18,7 +18,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   in the editor canvas and inline styles + a `<style
   data-ve-position>` block on the frontend via the Blade renderer.
   Inspector shows a warning notice when `position: absolute` is
-  applied but no ancestor is positioned.
+  applied but no ancestor is positioned. Per-breakpoint authoring
+  follows the top-bar viewport switcher (via the shared
+  active-breakpoint store) — no separate control lives in the panel,
+  matching every sibling responsive-aware inspector panel.
 - **Enabled `supports.position: true` on 82 top-level artisanpack
   blocks (#645).** Every `resources/js/visual-editor/blocks/*/block.json`
   that doesn't declare a `parent` or `ancestor` restriction now
@@ -40,7 +43,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   integration tests exercising resolver + emitter for a full
   base + per-breakpoint payload, legacy sticky no-churn, and the
   static-toggle-preserves-orphan-fields flow. Playwright e2e
-  spec (`tests/e2e/positioning.spec.ts`) documents the runtime
+  spec (`tests/E2E/positioning.spec.ts`) documents the runtime
   contract for sticky groups, absolute covers, ancestor
   warnings, per-breakpoint viewport switching, and legacy
   sticky — commented pending the Playwright runner (matches

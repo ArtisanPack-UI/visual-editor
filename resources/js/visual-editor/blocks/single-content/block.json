@@ -5,12 +5,7 @@
     "title": "Single Content",
     "category": "theme",
     "description": "Highlight a single post, page, or custom post type with the inner blocks scoped to the chosen entry.",
-    "keywords": [
-        "single",
-        "content",
-        "post",
-        "feature"
-    ],
+    "keywords": ["single", "content", "post", "feature"],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "postId": {
@@ -29,10 +24,7 @@
     "supports": {
         "position": true,
         "anchor": true,
-        "align": [
-            "wide",
-            "full"
-        ],
+        "align": ["wide", "full"],
         "ariaLabel": true,
         "className": true,
         "html": false,
@@ -46,10 +38,7 @@
             }
         },
         "spacing": {
-            "margin": [
-                "top",
-                "bottom"
-            ],
+            "margin": ["top", "bottom"],
             "padding": true,
             "blockGap": true,
             "__experimentalDefaultControls": {

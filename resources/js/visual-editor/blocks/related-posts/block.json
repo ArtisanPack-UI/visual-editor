@@ -5,12 +5,7 @@
     "title": "Related Posts",
     "category": "theme",
     "description": "Render a query loop of posts related to the host entry so visitors can keep reading.",
-    "keywords": [
-        "related",
-        "posts",
-        "loop",
-        "feed"
-    ],
+    "keywords": ["related", "posts", "loop", "feed"],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "numPosts": {
@@ -48,10 +43,7 @@
             "default": false
         }
     },
-    "usesContext": [
-        "postId",
-        "postType"
-    ],
+    "usesContext": ["postId", "postType"],
     "providesContext": {
         "queryId": "queryId",
         "query": "query",
@@ -62,10 +54,7 @@
         "position": true,
         "artisanpackAnimations": true,
         "anchor": true,
-        "align": [
-            "wide",
-            "full"
-        ],
+        "align": ["wide", "full"],
         "ariaLabel": true,
         "className": true,
         "html": false,
@@ -79,10 +68,7 @@
             }
         },
         "spacing": {
-            "margin": [
-                "top",
-                "bottom"
-            ],
+            "margin": ["top", "bottom"],
             "padding": true,
             "blockGap": true,
             "__experimentalDefaultControls": {

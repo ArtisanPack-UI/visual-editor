@@ -15,18 +15,13 @@
             "type": "string"
         }
     },
-    "usesContext": [
-        "orientation"
-    ],
+    "usesContext": [ "orientation" ],
     "supports": {
         "position": true,
         "artisanpackAnimations": true,
         "anchor": true,
         "spacing": {
-            "margin": [
-                "top",
-                "bottom"
-            ],
+            "margin": [ "top", "bottom" ],
             "__experimentalDefaultControls": {
                 "margin": true
             }
