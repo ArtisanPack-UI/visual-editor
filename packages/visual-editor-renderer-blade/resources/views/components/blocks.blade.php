@@ -33,6 +33,11 @@
 {!! $boxShadowsCss !!}
 @endif
 @endisset
+@isset( $positionCss )
+@if( '' !== $positionCss )
+{!! $positionCss !!}
+@endif
+@endisset
 {!! $html !!}
 @isset( $animationsRuntimeNeeded )
 @if( $animationsRuntimeNeeded )

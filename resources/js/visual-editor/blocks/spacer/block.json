@@ -17,6 +17,7 @@
     },
     "usesContext": [ "orientation" ],
     "supports": {
+        "position": true,
         "artisanpackAnimations": true,
         "anchor": true,
         "spacing": {

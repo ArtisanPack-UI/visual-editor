@@ -13,6 +13,7 @@
     ],
     "textdomain": "artisanpack-visual-editor",
     "supports": {
+        "position": true,
         "artisanpackAnimations": true,
         "anchor": true,
         "align": [

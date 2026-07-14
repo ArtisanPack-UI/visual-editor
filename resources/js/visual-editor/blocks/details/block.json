@@ -33,6 +33,7 @@
         }
     },
     "supports": {
+        "position": true,
         "artisanpackAnimations": true,
         "__experimentalOnEnter": true,
         "align": [

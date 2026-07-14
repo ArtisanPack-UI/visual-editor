@@ -51,12 +51,15 @@ use ArtisanPackUI\VisualEditor\BoxShadow\BoxShadowEmitter;
 use ArtisanPackUI\VisualEditor\BoxShadow\BoxShadowResolver;
 use ArtisanPackUI\VisualEditor\GradientBorder\GradientBorderEmitter;
 use ArtisanPackUI\VisualEditor\GradientBorder\GradientBorderResolver;
+use ArtisanPackUI\VisualEditor\Position\PositionEmitter;
+use ArtisanPackUI\VisualEditor\Position\PositionResolver;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
 use ArtisanPackUI\VisualEditor\States\StateValueResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 
@@ -92,6 +95,17 @@ class BlockSupports
 	 * arbitrary class names into the wrapper.
 	 */
 	protected const ALIGN_VALUES = [ 'wide', 'full', 'left', 'center', 'right' ];
+
+	/**
+	 * Per-request cache for the position payload produced at the top of
+	 * {@see compile()} so {@see compilePosition()} can reuse it without
+	 * walking the resolver a second time (#640). Not a permanent cache
+	 * — cleared after {@see compilePosition()} reads it so the next
+	 * `compile()` invocation captures its own block's payload.
+	 *
+	 * @var array<string, mixed>|null
+	 */
+	protected static ?array $positionPayloadCache = null;
 
 	/**
 	 * Compile a block's attributes into the wrapper class / style / id
@@ -141,6 +155,23 @@ class BlockSupports
 		// `array_values` flattens the keys for predictable iteration.
 		$classes = array_values( array_unique( array_filter( $classes, static fn ( string $class ): bool => '' !== trim( $class ) ) ) );
 
+		// #640 — resolve the position payload once and thread it through
+		// both the inline-style stamp (below) and compilePosition() (via
+		// self::$positionPayloadCache). The inline stamp runs BEFORE
+		// `$styleString` composition so the base declarations land in
+		// the wrapper's `style` attribute; compilePosition emits the
+		// scoped `<style>` rules for the same payload later. Guard
+		// against `resolve()` returning null so the array offset on
+		// line below doesn't trip a PHP 8 warning for every block that
+		// has no position attributes (the default path).
+		$positionPayload            = PositionResolver::resolve( $attributes );
+		self::$positionPayloadCache = $positionPayload;
+		$positionInlineBase         = self::baseInlinePositionStyle( $positionPayload['base'] ?? null );
+
+		if ( '' !== $positionInlineBase ) {
+			$style[] = $positionInlineBase;
+		}
+
 		$styleString = '' === implode( '', $style ) ? '' : implode( '; ', $style ) . ';';
 
 		$responsive = self::compileResponsive( $attributes );
@@ -180,6 +211,14 @@ class BlockSupports
 			self::pushBoxShadow( $boxShadow['class'], $boxShadow['rules'] );
 		}
 
+		$position = self::compilePosition( $attributes );
+
+		if ( '' !== $position['class'] ) {
+			$classes[] = $position['class'];
+
+			self::pushPosition( $position['class'], $position['rules'] );
+		}
+
 		return [
 			'classes'             => $classes,
 			'style'               => $styleString,
@@ -193,6 +232,8 @@ class BlockSupports
 			'gradientBorderRules' => $gradientBorder['rules'],
 			'boxShadowClass'      => $boxShadow['class'],
 			'boxShadowRules'      => $boxShadow['rules'],
+			'positionClass'       => $position['class'],
+			'positionRules'       => $position['rules'],
 		];
 	}
 
@@ -213,99 +254,119 @@ class BlockSupports
 	}
 
 	/**
-	 * Push a scope's rules into the request-scoped accumulator so the
-	 * consolidated `<style data-ve-responsive>` block at the top of the
-	 * render output picks them up. Called automatically from compile();
-	 * the columns/column partial helpers below call it too for their
-	 * own bespoke rules (columnCount, flex-basis).
+	 * Push a scope's rules into a request-scoped accumulator (#640
+	 * consolidation of the previously copy-pasted per-feature push*
+	 * methods).
+	 *
+	 * Container-not-booted paths (very-early call sites, unit tests
+	 * that exercise BlockSupports without the package service
+	 * provider) silently drop — the call is idempotent and the
+	 * accumulator is a side channel, not the data path.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  class-string  $accumulator  Fully-qualified accumulator class.
+	 */
+	/**
+	 * Compose a `ve-<prefix>-<id>` scope class from an
+	 * editor-minted id or a content-derived hash fallback (#640
+	 * consolidation of the previously copy-pasted per-feature
+	 * `resolve*ScopeClass` helpers).
+	 *
+	 * The editor-minted id has to pass a strict allowlist regex + a
+	 * length cap — it lands unescaped in the wrapper's `class`
+	 * attribute, so its content has to be a safe identifier-style
+	 * token.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  string                $prefix      Class prefix without the trailing dash (e.g. `ve-bs`).
+	 * @param  string|null           $candidate   Editor-minted id or null.
+	 * @param  array<string, mixed>  $payload     Fallback hash source when the candidate is absent or invalid.
+	 */
+	protected static function composeScopeClass( string $prefix, ?string $candidate, array $payload ): string
+	{
+		if ( is_string( $candidate ) && 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $candidate ) && strlen( $candidate ) <= 64 ) {
+			return $prefix . '-' . $candidate;
+		}
+
+		$hash = substr(
+			hash( 'xxh3', (string) json_encode( $payload ) ),
+			0,
+			10
+		);
+
+		return $prefix . '-' . $hash;
+	}
+
+	protected static function pushToAccumulator( string $accumulator, string $scope, string $rules ): void
+	{
+		if ( '' === $scope || '' === $rules ) {
+			return;
+		}
+
+		if ( ! function_exists( 'app' ) ) {
+			return;
+		}
+
+		try {
+			app( $accumulator )->push( $scope, $rules );
+		} catch ( \Throwable $e ) {
+			// Silently drop — see method docblock.
+		}
+	}
+
+	/**
+	 * Push responsive CSS rules into the per-request accumulator.
+	 * Called automatically from {@see compile}; the columns/column
+	 * partial helpers below call it too for their own bespoke rules
+	 * (columnCount, flex-basis).
 	 *
 	 * @since 1.0.0
 	 */
 	public static function pushResponsive( string $scope, string $rules ): void
 	{
-		if ( '' === $scope || '' === $rules ) {
-			return;
-		}
-
-		if ( ! function_exists( 'app' ) ) {
-			return;
-		}
-
-		try {
-			app( ResponsiveCssAccumulator::class )->push( $scope, $rules );
-		} catch ( \Throwable $e ) {
-			// Container not booted (very-early call path or a unit
-			// test that exercises BlockSupports without the package
-			// service provider). Silently drop — the call is
-			// idempotent and the accumulator is the side channel,
-			// not the data path.
-		}
+		self::pushToAccumulator( ResponsiveCssAccumulator::class, $scope, $rules );
 	}
 
 	/**
-	 * Mirror of {@see pushResponsive} for state design tools (#488).
+	 * Push state design tool CSS rules into the per-request accumulator (#488).
 	 *
 	 * @since 1.0.0
 	 */
 	public static function pushStates( string $scope, string $rules ): void
 	{
-		if ( '' === $scope || '' === $rules ) {
-			return;
-		}
-
-		if ( ! function_exists( 'app' ) ) {
-			return;
-		}
-
-		try {
-			app( StateCssAccumulator::class )->push( $scope, $rules );
-		} catch ( \Throwable $e ) {
-			// See pushResponsive() — same drop-silently rationale.
-		}
+		self::pushToAccumulator( StateCssAccumulator::class, $scope, $rules );
 	}
 
 	/**
-	 * Mirror of {@see pushResponsive} for gradient borders (#490).
+	 * Push gradient border CSS rules into the per-request accumulator (#490).
 	 *
 	 * @since 1.1.0
 	 */
 	public static function pushGradientBorder( string $scope, string $rules ): void
 	{
-		if ( '' === $scope || '' === $rules ) {
-			return;
-		}
-
-		if ( ! function_exists( 'app' ) ) {
-			return;
-		}
-
-		try {
-			app( GradientBorderCssAccumulator::class )->push( $scope, $rules );
-		} catch ( \Throwable $e ) {
-			// See pushResponsive() — same drop-silently rationale.
-		}
+		self::pushToAccumulator( GradientBorderCssAccumulator::class, $scope, $rules );
 	}
 
 	/**
-	 * Mirror of {@see pushResponsive} for box shadows (#607).
+	 * Push box shadow CSS rules into the per-request accumulator (#607).
 	 *
 	 * @since 1.2.0
 	 */
 	public static function pushBoxShadow( string $scope, string $rules ): void
 	{
-		if ( '' === $scope || '' === $rules ) {
-			return;
-		}
+		self::pushToAccumulator( BoxShadowCssAccumulator::class, $scope, $rules );
+	}
 
-		if ( ! function_exists( 'app' ) ) {
-			return;
-		}
-
-		try {
-			app( BoxShadowCssAccumulator::class )->push( $scope, $rules );
-		} catch ( \Throwable $e ) {
-			// See pushResponsive() — same drop-silently rationale.
-		}
+	/**
+	 * Push CSS position rules into the per-request accumulator (#640).
+	 *
+	 * @since 1.4.0
+	 */
+	public static function pushPosition( string $scope, string $rules ): void
+	{
+		self::pushToAccumulator( PositionCssAccumulator::class, $scope, $rules );
 	}
 
 	/**
@@ -912,23 +973,12 @@ class BlockSupports
 	 */
 	protected static function resolveGradientBorderScopeClass( array $attributes, array $payload ): string
 	{
-		$border = $attributes['style']['border'] ?? null;
+		$border    = $attributes['style']['border'] ?? null;
+		$candidate = is_array( $border ) && isset( $border['_gradientScopeId'] ) && is_string( $border['_gradientScopeId'] )
+			? $border['_gradientScopeId']
+			: null;
 
-		if ( is_array( $border ) && isset( $border['_gradientScopeId'] ) && is_string( $border['_gradientScopeId'] ) ) {
-			$candidate = $border['_gradientScopeId'];
-
-			if ( 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $candidate ) && strlen( $candidate ) <= 64 ) {
-				return 've-gb-' . $candidate;
-			}
-		}
-
-		$hash = substr(
-			hash( 'xxh3', (string) json_encode( $payload ) ),
-			0,
-			10
-		);
-
-		return 've-gb-' . $hash;
+		return self::composeScopeClass( 've-gb', $candidate, $payload );
 	}
 
 	/**
@@ -992,23 +1042,135 @@ class BlockSupports
 	 */
 	protected static function resolveBoxShadowScopeClass( array $attributes, array $payload ): string
 	{
-		$shadow = $attributes['style']['shadow'] ?? null;
+		$shadow    = $attributes['style']['shadow'] ?? null;
+		$candidate = is_array( $shadow ) && isset( $shadow['_shadowScopeId'] ) && is_string( $shadow['_shadowScopeId'] )
+			? $shadow['_shadowScopeId']
+			: null;
 
-		if ( is_array( $shadow ) && isset( $shadow['_shadowScopeId'] ) && is_string( $shadow['_shadowScopeId'] ) ) {
-			$candidate = $shadow['_shadowScopeId'];
+		return self::composeScopeClass( 've-bs', $candidate, $payload );
+	}
 
-			if ( 1 === preg_match( '/^[a-z0-9][a-z0-9_-]*$/i', $candidate ) && strlen( $candidate ) <= 64 ) {
-				return 've-bs-' . $candidate;
-			}
+	/**
+	 * Compile the CSS positioning payload into a `{class, rules}` pair
+	 * that {@see compile} merges into the wrapper class list and pushes
+	 * into the per-request {@see PositionCssAccumulator} (#640).
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 *
+	 * @return array{class: string, rules: string}
+	 */
+	protected static function compilePosition( array $attributes ): array
+	{
+		// Prefer the payload cached at the top of compile() (#640) so a
+		// single resolver walk feeds both the inline stamp and the
+		// scoped `<style>` rules. Fall back to a fresh resolve when
+		// called from a code path that didn't seed the cache (tests,
+		// direct callers).
+		$payload = self::$positionPayloadCache ?? PositionResolver::resolve( $attributes );
+		self::$positionPayloadCache = null;
+
+		if ( null === $payload ) {
+			return [ 'class' => '', 'rules' => '' ];
 		}
 
-		$hash = substr(
-			hash( 'xxh3', (string) json_encode( $payload ) ),
-			0,
-			10
-		);
+		try {
+			$breakpoints = function_exists( 'app' )
+				? self::resolveRegistry()
+				: BreakpointRegistry::fromLayers();
 
-		return 've-bs-' . $hash;
+			$emitter = new PositionEmitter( $breakpoints );
+
+			$scopeClass = self::resolvePositionScopeClass( $attributes, $payload );
+			$scope      = '.' . $scopeClass;
+			$css        = $emitter->emit( $scope, $payload );
+
+			if ( '' === $css ) {
+				return [ 'class' => '', 'rules' => '' ];
+			}
+
+			return [
+				'class' => $scopeClass,
+				'rules' => $css,
+			];
+		} catch ( \Throwable $e ) {
+			return [ 'class' => '', 'rules' => '' ];
+		}
+	}
+
+	/**
+	 * Build the semicolon-joined declaration list for the base layer.
+	 * Skips a `static` value (matches emitter semantics — no CSS while
+	 * static). Returns an empty string when the layer contributes
+	 * nothing.
+	 *
+	 * @param  array<string, mixed>|null  $base
+	 */
+	protected static function baseInlinePositionStyle( ?array $base ): string
+	{
+		if ( null === $base ) {
+			return '';
+		}
+
+		$value = $base['value'] ?? null;
+		if ( null === $value || 'static' === $value ) {
+			return '';
+		}
+
+		// `!important` mirrors PositionEmitter's scoped rules so the
+		// inline stamp survives theme resets that use `!important` on
+		// wrapper classes (e.g. `.wp-block-cover { position: relative
+		// !important }`). Without it, the inline fallback loses in
+		// exactly the sanitizer scenario it was added for.
+		$parts = [ 'position: ' . $value . ' !important' ];
+
+		$offsets = $base['offsets'] ?? [];
+		foreach ( [ 'top', 'right', 'bottom', 'left' ] as $side ) {
+			$offset = $offsets[ $side ] ?? null;
+			if ( null === $offset || ! is_array( $offset ) ) {
+				continue;
+			}
+
+			$unit = $offset['unit'] ?? '';
+			if ( 'auto' === $unit ) {
+				$parts[] = $side . ': auto !important';
+				continue;
+			}
+
+			$offsetValue = $offset['value'] ?? null;
+			if ( ! is_int( $offsetValue ) && ! is_float( $offsetValue ) ) {
+				continue;
+			}
+
+			$parts[] = $side . ': ' . $offsetValue . $unit . ' !important';
+		}
+
+		if ( isset( $base['zIndex'] ) && null !== $base['zIndex'] ) {
+			$parts[] = 'z-index: ' . (int) $base['zIndex'] . ' !important';
+		}
+
+		return implode( '; ', $parts );
+	}
+
+	/**
+	 * Prefer the editor-minted `style.position._positionScopeId` so the
+	 * editor preview and the server-rendered output target the same
+	 * scope class. Falls back to a content-derived hash otherwise.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 * @param  array<string, mixed>  $payload
+	 */
+	protected static function resolvePositionScopeClass( array $attributes, array $payload ): string
+	{
+		$position  = $attributes['style']['position'] ?? null;
+		$candidate = is_array( $position ) && isset( $position['_positionScopeId'] ) && is_string( $position['_positionScopeId'] )
+			? $position['_positionScopeId']
+			: null;
+
+		return self::composeScopeClass( 've-pos', $candidate, $payload );
 	}
 
 	/**

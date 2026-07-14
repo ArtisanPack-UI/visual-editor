@@ -49,6 +49,7 @@ import { registerBackgroundControls } from '../background-controls';
 import { registerArtisanPackBlocks } from '../blocks';
 import { registerBoxShadows } from '../box-shadows/register';
 import { registerGradientBorders } from '../gradient-borders/register';
+import { registerPositioning } from '../positioning/register';
 
 import { BlockLibrarySidebar } from '../editor/block-library-sidebar';
 import { TopBar } from '../editor/top-bar';
@@ -187,6 +188,7 @@ function ensureEditorBoot(): void {
     // blocks pick up the routed `border.gradient` path at registration.
     registerGradientBorders();
     registerBoxShadows();
+    registerPositioning();
 
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.

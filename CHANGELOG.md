@@ -6,6 +6,68 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **CSS positioning support for blocks (#640).** Per-block Position
+  panel in the inspector with a `static / relative / absolute / fixed
+  / sticky` dropdown, per-side offset inputs (`px / % / rem / em /
+  vh / vw / auto`), z-index, and per-breakpoint overrides via the
+  responsive tab pattern from #487. Opt-in per block via
+  `supports.position: true` in `block.json` (Gutenberg's native
+  `{ sticky: true }` object shape also counts). Emits scoped CSS
+  in the editor canvas and inline styles + a `<style
+  data-ve-position>` block on the frontend via the Blade renderer.
+  Inspector shows a warning notice when `position: absolute` is
+  applied but no ancestor is positioned. Per-breakpoint authoring
+  follows the top-bar viewport switcher (via the shared
+  active-breakpoint store) — no separate control lives in the panel,
+  matching every sibling responsive-aware inspector panel.
+- **Enabled `supports.position: true` on 82 top-level artisanpack
+  blocks (#645).** Every `resources/js/visual-editor/blocks/*/block.json`
+  that doesn't declare a `parent` or `ancestor` restriction now
+  opts in. Child-only blocks (accordion internals, list items,
+  columns, buttons children, query pagination, etc.) are
+  deliberately skipped — positioning a child that a container
+  relies on for layout breaks the container's contract.
+  `artisanpack/group` already carried Gutenberg's
+  `supports.position: { sticky: true }` object shape, which
+  `positionEnabled()` also recognizes; no change needed.
+- **Position support on core containers (#646).** Functionally
+  subsumed by #645 given the I7 (#415) cutover — this repo no
+  longer calls `registerCoreBlocks()`, so no `core/*` block enters
+  the editor. Every container listed in the parent issue
+  (`core/group`, `core/columns`, `core/column`, `core/cover`,
+  `core/row`, `core/stack`, `core/grid`, `core/buttons`,
+  `core/image`) has an `artisanpack/*` fork covered by #645.
+- **Integration + e2e test coverage (#647).** Round-trip
+  integration tests exercising resolver + emitter for a full
+  base + per-breakpoint payload, legacy sticky no-churn, and the
+  static-toggle-preserves-orphan-fields flow. Playwright e2e
+  spec (`tests/E2E/positioning.spec.ts`) documents the runtime
+  contract for sticky groups, absolute covers, ancestor
+  warnings, per-breakpoint viewport switching, and legacy
+  sticky — commented pending the Playwright runner (matches
+  the `animations.spec.ts` precedent).
+- **Docs (#648).** New `docs/position.md` covering opt-in,
+  attribute shape, position values, offset units, per-breakpoint
+  inheritance, the ancestor warning, the two frontend emission
+  channels (inline + `<style data-ve-position>`), and a
+  troubleshooting section. Linked from `docs/home.md`.
+
+### Upgrade notes
+
+- **Hosts that ran `php artisan vendor:publish
+  --tag=visual-editor-blade-views` on a prior version must
+  re-publish with `--force` when upgrading.** The published
+  `blocks.blade.php` and `template.blade.php` files shadow the
+  package source; the pre-1.4 published copies don't include the
+  new `<style data-ve-position>` output block, so the position CSS
+  accumulator will flush its rules but they'll never land in the
+  response body — sticky/absolute blocks render unpositioned on the
+  frontend. Command:
+  `php artisan vendor:publish --tag=visual-editor-blade-views --force`.
+
+
 ## [1.3.0] - 2026-07-07
 
 ### Added

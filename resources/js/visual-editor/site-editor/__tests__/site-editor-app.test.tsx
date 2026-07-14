@@ -216,6 +216,11 @@ vi.mock('../../box-shadows/register', () => ({
     registerBoxShadows: (): void => undefined,
 }));
 
+// #640: same JSON-import-attribute trip for the positioning registrar.
+vi.mock('../../positioning/register', () => ({
+    registerPositioning: (): void => undefined,
+}));
+
 import { resetActiveBreakpoint } from '../../responsive/active-breakpoint';
 import { SiteEditorApp } from '../site-editor-app';
 
