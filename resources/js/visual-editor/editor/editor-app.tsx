@@ -47,6 +47,7 @@ import { registerStateAttributesFilter } from '../states/with-state-attributes';
 import { registerBackgroundControls } from '../background-controls';
 import { registerBoxShadows } from '../box-shadows/register';
 import { registerGradientBorders } from '../gradient-borders/register';
+import { registerPositioning } from '../positioning/register';
 import { registerStateStylesFilters } from '../states/with-state-styles';
 import { registerAnimationsAttribute } from '../animations/register-attribute';
 import { registerAnimationsPanel } from '../animations/with-animations-panel';
@@ -221,6 +222,7 @@ function registerOnce(): void {
     // on first render.
     registerGradientBorders();
     registerBoxShadows();
+    registerPositioning();
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();

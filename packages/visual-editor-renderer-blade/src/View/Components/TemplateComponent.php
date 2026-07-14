@@ -38,6 +38,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use Illuminate\Contracts\Foundation\Application;
@@ -84,9 +85,14 @@ class TemplateComponent extends Component
 		string $slug,
 		?string $theme = null,
 		protected ?BoxShadowCssAccumulator $boxShadowAccumulator = null,
+		protected ?PositionCssAccumulator $positionAccumulator = null,
 	) {
 		if ( null === $this->boxShadowAccumulator ) {
 			$this->boxShadowAccumulator = $this->app->make( BoxShadowCssAccumulator::class );
+		}
+
+		if ( null === $this->positionAccumulator ) {
+			$this->positionAccumulator = $this->app->make( PositionCssAccumulator::class );
 		}
 
 		$this->slug          = $slug;
@@ -130,6 +136,7 @@ class TemplateComponent extends Component
 		$animationOutput    = $this->animationAccumulator->flush();
 		$gradientBordersCss = $this->gradientBorderAccumulator->flush();
 		$boxShadowsCss      = $this->boxShadowAccumulator->flush();
+		$positionCss        = $this->positionAccumulator->flush();
 
 		return view( 'visual-editor-renderer-blade::components.template', [
 			'slug'                    => $this->slug,
@@ -147,6 +154,7 @@ class TemplateComponent extends Component
 			'animationsRuntimeNeeded' => $animationOutput['runtimeNeeded'],
 			'gradientBordersCss'      => $gradientBordersCss,
 			'boxShadowsCss'           => $boxShadowsCss,
+			'positionCss'             => $positionCss,
 		] );
 	}
 

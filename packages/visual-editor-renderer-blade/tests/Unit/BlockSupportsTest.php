@@ -495,6 +495,8 @@ describe( 'BlockSupports::compile (composition)', function (): void {
 			'gradientBorderRules' => '',
 			'boxShadowClass'      => '',
 			'boxShadowRules'      => '',
+			'positionClass'       => '',
+			'positionRules'       => '',
 		] );
 	} );
 
@@ -598,5 +600,50 @@ describe( 'compile() — state design tools (#488)', function (): void {
 
 		expect( $result['statesRules'] )->toContain( 'background-color: #abc123 !important;' );
 		expect( $result['statesRules'] )->toContain( 'background-color: #fff !important;' );
+	} );
+} );
+
+describe( 'compile() — CSS position (#640)', function (): void {
+	it( 'stamps a ve-pos-* scope class and the base declarations as inline styles', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [
+				'position' => [
+					'value'   => 'sticky',
+					'offsets' => [ 'top' => [ 'value' => 0, 'unit' => 'px' ] ],
+					'_positionScopeId' => 'abc1234',
+				],
+			],
+		] );
+
+		expect( $result['positionClass'] )->toBe( 've-pos-abc1234' );
+		expect( $result['classes'] )->toContain( 've-pos-abc1234' );
+		expect( $result['positionRules'] )->toContain( 'position:sticky !important' );
+		expect( $result['positionRules'] )->toContain( 'top:0px !important' );
+		// Base layer also stamps as inline style so hosts that strip
+		// the accumulated `<style data-ve-position>` on frontend render
+		// still get the wrapper's sticky behaviour. `!important`
+		// mirrors the emitter's scoped rule so the inline fallback
+		// survives theme resets that use `!important`.
+		expect( $result['style'] )->toContain( 'position: sticky !important' );
+		expect( $result['style'] )->toContain( 'top: 0px !important' );
+	} );
+
+	it( 'emits nothing when the base value is static (offsets preserved but silent)', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'position' => [ 'value' => 'static' ] ],
+		] );
+
+		expect( $result['positionClass'] )->toBe( '' );
+		expect( $result['positionRules'] )->toBe( '' );
+		expect( $result['style'] )->toBe( '' );
+	} );
+
+	it( 'widens a legacy sticky string to inline styles + scope class', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'position' => 'sticky' ],
+		] );
+
+		expect( $result['style'] )->toContain( 'position: sticky !important' );
+		expect( $result['positionRules'] )->toContain( 'position:sticky !important' );
 	} );
 } );
