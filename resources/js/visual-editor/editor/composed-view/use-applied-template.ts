@@ -59,7 +59,7 @@ export function useAppliedTemplate(
 
             const next: AppliedTemplateState =
                 result.status === 'ok'
-                    ? { status: 'ok', template: result.template }
+                    ? { status: 'ok', template: result }
                     : { status: 'missing', missing: result };
 
             cacheRef.current = { key: cacheKey, state: next };

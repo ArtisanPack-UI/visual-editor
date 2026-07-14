@@ -18,6 +18,13 @@ export {
     composeBlocks,
 } from './compose';
 export { extractContentBlocks } from './extract';
+export { hydrateAppliedTemplate } from './hydrate';
+export {
+    splitTemplateAroundContentSlot,
+    type SplitTemplateResult,
+} from './split';
+export { ChromePreviewPanel } from './ChromePreviewPanel';
+export type { ChromePreviewPanelProps } from './ChromePreviewPanel';
 export {
     useAppliedTemplate,
     type AppliedTemplateState,

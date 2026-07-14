@@ -78,8 +78,8 @@ import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 import { useSaveNotifications } from './save-notifications';
 import { TopBar, type ViewMode } from './top-bar';
 import {
-    composeBlocks,
-    extractContentBlocks,
+    ChromePreviewPanel,
+    splitTemplateAroundContentSlot,
     useAppliedTemplate,
 } from './composed-view';
 import { usePersistence } from './use-persistence';
@@ -770,13 +770,19 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         [onBlocksChange]
     );
 
-    // #621 — composed-view wiring. When `viewMode === 'with-template'` and
-    // the applied-template fetch resolves, we hand `BlockEditorProvider` a
-    // composed tree that wraps the raw content list in the template's
-    // chrome (locked) — the iframe canvas stays mounted, so selection /
-    // undo history / unsaved-changes survive the toggle. handleInput /
-    // handleChange extract the content region back out before persistence
-    // so the server never sees chrome blocks in the block tree.
+    // #621 — composed-view wiring.
+    //
+    // Iteration note: an earlier approach swapped the BlockEditorProvider
+    // `value` for a composed tree that wove the template's blocks around
+    // the content list. That fought Gutenberg's stateful sync too
+    // directly — every attempt surfaced a new failure (block-validation
+    // warnings, render loops, editor freezes). The safer pivot: keep the
+    // block canvas exactly as it is (raw content, one BlockEditorProvider)
+    // and render the template chrome as inert preview panels around the
+    // canvas when composed mode is on. That gives authors the "content
+    // in-context" feel without touching the block-editor state, so
+    // selection / undo / unsaved-changes survive the toggle by
+    // construction. Full inline chrome rendering is a follow-up.
     const appliedTemplateState = useAppliedTemplate({
         apiBase: props.apiBase,
         resource: props.resource,
@@ -784,7 +790,11 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         enabled: viewMode === 'with-template',
     });
 
-    const composedBlocks = useMemo((): BlockInstance[] | null => {
+    const composedChromePreview: {
+        header: readonly BlockInstance[];
+        footer: readonly BlockInstance[];
+        templateName: string;
+    } | null = useMemo(() => {
         if (
             viewMode !== 'with-template' ||
             appliedTemplateState.status !== 'ok'
@@ -792,44 +802,12 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             return null;
         }
 
-        return composeBlocks(blocks, appliedTemplateState.template);
-    }, [appliedTemplateState, blocks, viewMode]);
-
-    const displayBlocks = composedBlocks ?? blocks;
-
-    const handleComposedInput = useCallback(
-        (next: BlockInstance[]): void => {
-            if (composedBlocks === null) {
-                handleInput(next);
-
-                return;
-            }
-
-            const extracted = extractContentBlocks(next);
-
-            if (extracted !== null) {
-                handleInput(extracted);
-            }
-        },
-        [composedBlocks, handleInput]
-    );
-
-    const handleComposedChange = useCallback(
-        (next: BlockInstance[]): void => {
-            if (composedBlocks === null) {
-                handleChange(next);
-
-                return;
-            }
-
-            const extracted = extractContentBlocks(next);
-
-            if (extracted !== null) {
-                handleChange(extracted);
-            }
-        },
-        [composedBlocks, handleChange]
-    );
+        return splitTemplateAroundContentSlot(
+            appliedTemplateState.template.blocks,
+            appliedTemplateState.template.template_parts,
+            appliedTemplateState.template.name
+        );
+    }, [appliedTemplateState, viewMode]);
 
     const viewModeDisabledReason =
         viewMode === 'with-template' &&
@@ -1033,10 +1011,10 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
 
     const editorBody = (
         <BlockEditorProvider
-            value={displayBlocks}
+            value={blocks}
             settings={themedSettings}
-            onInput={handleComposedInput}
-            onChange={handleComposedChange}
+            onInput={handleInput}
+            onChange={handleChange}
         >
             {inserterOpen ? (
                 <div
@@ -1056,14 +1034,33 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
              * an entity-mounted canvas it's null and the blocks render
              * their placeholder shell.
              */}
-            <EditorCanvas
-                showTitle={supports?.title !== false}
-                title={title}
-                onTitleChange={handleTitleChange}
-                blockContext={blockContextValue}
-                apiBase={props.apiBase}
-                previewWidthPx={canvasPreviewWidthPx}
-            />
+            <div
+                className="ap-visual-editor__canvas-stack"
+                data-composed={composedChromePreview !== null}
+            >
+                {composedChromePreview !== null ? (
+                    <ChromePreviewPanel
+                        label={__('Header', TEXT_DOMAIN)}
+                        templateName={composedChromePreview.templateName}
+                        blocks={composedChromePreview.header}
+                    />
+                ) : null}
+                <EditorCanvas
+                    showTitle={supports?.title !== false}
+                    title={title}
+                    onTitleChange={handleTitleChange}
+                    blockContext={blockContextValue}
+                    apiBase={props.apiBase}
+                    previewWidthPx={canvasPreviewWidthPx}
+                />
+                {composedChromePreview !== null ? (
+                    <ChromePreviewPanel
+                        label={__('Footer', TEXT_DOMAIN)}
+                        templateName={composedChromePreview.templateName}
+                        blocks={composedChromePreview.footer}
+                    />
+                ) : null}
+            </div>
             {/*
              * #488 — watch the selected block's attributes and re-route
              * writes from WP's color/border panels (which dispatch

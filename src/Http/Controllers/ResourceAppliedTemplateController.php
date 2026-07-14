@@ -33,7 +33,6 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplateResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Gate;
 
@@ -60,9 +59,13 @@ class ResourceAppliedTemplateController extends Controller
 	 *   }
 	 *
 	 * When the model's `template` attribute is empty *or* the referenced slug
-	 * cannot be resolved, returns 404 with a discriminated body the client
+	 * cannot be resolved, returns 200 with a discriminated body the client
 	 * uses to fall back to the default template:
 	 *   { status: 'missing', reason: 'empty' | 'unknown-slug', slug?: string }
+	 *
+	 * A 200 status (rather than 404) keeps the browser devtools quiet on
+	 * every editor mount — the "missing" state is the endpoint's normal,
+	 * routine response for any content that hasn't chosen a template.
 	 *
 	 * @since 1.1.0
 	 */
@@ -75,22 +78,21 @@ class ResourceAppliedTemplateController extends Controller
 		$slug = $this->readTemplateSlug( $model );
 
 		if ( '' === $slug ) {
-			return response()->json(
-				[ 'status' => 'missing', 'reason' => 'empty' ],
-				Response::HTTP_NOT_FOUND,
-			);
+			return response()->json( [ 'status' => 'missing', 'reason' => 'empty' ] );
 		}
 
 		$resolved = $this->templates->find( $slug );
 
 		if ( ! $resolved instanceof ResolvedTemplate ) {
-			return response()->json(
-				[ 'status' => 'missing', 'reason' => 'unknown-slug', 'slug' => $slug ],
-				Response::HTTP_NOT_FOUND,
-			);
+			return response()->json( [
+				'status' => 'missing',
+				'reason' => 'unknown-slug',
+				'slug'   => $slug,
+			] );
 		}
 
 		return response()->json( [
+			'status'         => 'ok',
 			'slug'           => $resolved->slug,
 			'name'           => $resolved->title,
 			'source'         => $resolved->source,

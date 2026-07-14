@@ -55,6 +55,7 @@ describe('useAppliedTemplate', () => {
             {
                 status: 200,
                 body: {
+                    status: 'ok',
                     slug: 'single-post',
                     name: 'Single Post',
                     source: 'theme',
@@ -77,10 +78,10 @@ describe('useAppliedTemplate', () => {
         }
     });
 
-    it('transitions loading → missing on the discriminated 404', async () => {
+    it('transitions loading → missing on the discriminated 200 payload', async () => {
         mockFetch([
             {
-                status: 404,
+                status: 200,
                 body: { status: 'missing', reason: 'unknown-slug', slug: 'x' },
             },
         ]);
@@ -103,6 +104,7 @@ describe('useAppliedTemplate', () => {
             {
                 status: 200,
                 body: {
+                    status: 'ok',
                     slug: 's',
                     name: 'S',
                     source: 'theme',

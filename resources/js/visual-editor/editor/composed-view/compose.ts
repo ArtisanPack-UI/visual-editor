@@ -41,11 +41,16 @@ export const COMPOSED_CHROME_MARKER = '__apVisualEditorChrome';
  */
 export const COMPOSED_CONTENT_SLOT_MARKER = '__apVisualEditorContentSlot';
 
-/** Block names treated as the composed view's content slot. */
-const CONTENT_SLOT_BLOCK_NAMES = new Set<string>([
-    'core/post-content',
-    'core/post-title',
-]);
+/**
+ * Block names treated as the composed view's content slot.
+ *
+ * Only `core/post-content` — the block whose entire purpose is to render
+ * the entity's block list. `core/post-title` is a leaf block: it renders
+ * the entity's title via bindings and does not accept innerBlocks, so
+ * using it as a slot host would hand Gutenberg a shape it can't render
+ * and lock the editor mid-update.
+ */
+const CONTENT_SLOT_BLOCK_NAMES = new Set<string>([ 'core/post-content' ]);
 
 const LOCKED_ATTRS = {
     lock: { move: true, remove: true, edit: true },
