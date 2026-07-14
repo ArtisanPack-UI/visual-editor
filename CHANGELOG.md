@@ -6,6 +6,34 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **CSS positioning support for blocks (#640).** Per-block Position
+  panel in the inspector with a `static / relative / absolute / fixed
+  / sticky` dropdown, per-side offset inputs (`px / % / rem / em /
+  vh / vw / auto`), z-index, and per-breakpoint overrides via the
+  responsive tab pattern from #487. Opt-in per block via
+  `supports.position: true` in `block.json` (Gutenberg's native
+  `{ sticky: true }` object shape also counts). Emits scoped CSS
+  in the editor canvas and inline styles + a `<style
+  data-ve-position>` block on the frontend via the Blade renderer.
+  Inspector shows a warning notice when `position: absolute` is
+  applied but no ancestor is positioned.
+
+### Upgrade notes
+
+- **Hosts that ran `php artisan vendor:publish
+  --tag=visual-editor-blade-views` on a prior version must
+  re-publish with `--force` when upgrading.** The published
+  `blocks.blade.php` and `template.blade.php` files shadow the
+  package source; the pre-1.4 published copies don't include the
+  new `<style data-ve-position>` output block, so the position CSS
+  accumulator will flush its rules but they'll never land in the
+  response body — sticky/absolute blocks render unpositioned on the
+  frontend. Command:
+  `php artisan vendor:publish --tag=visual-editor-blade-views --force`.
+
+
 ## [1.3.0] - 2026-07-07
 
 ### Added

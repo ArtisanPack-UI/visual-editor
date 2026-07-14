@@ -34,6 +34,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
@@ -171,6 +172,12 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// shadow installs.
 		$this->app->scoped( BoxShadowCssAccumulator::class, function () {
 			return new BoxShadowCssAccumulator();
+		} );
+
+		// #640 — sibling accumulator for the CSS positioning feature's
+		// `<style data-ve-position>` block.
+		$this->app->scoped( PositionCssAccumulator::class, function () {
+			return new PositionCssAccumulator();
 		} );
 	}
 
