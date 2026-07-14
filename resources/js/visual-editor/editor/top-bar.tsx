@@ -47,6 +47,12 @@ const DEFAULT_VIEWPORT_REGISTRY = new BreakpointRegistry(
 
 export type SaveStatus = 'idle' | 'saving' | 'saved' | 'error';
 
+/**
+ * Composed-view toggle state (#620). `content` renders the raw block list;
+ * `with-template` composes the resolved template around it.
+ */
+export type ViewMode = 'content' | 'with-template';
+
 export interface TopBarProps {
     saveStatus: SaveStatus;
     lastSavedAt?: string | null;
@@ -117,6 +123,22 @@ export interface TopBarProps {
      * edit-scoping (the pre-#617 behavior).
      */
     onViewportChange?: (breakpoint: string, previewWidthPx: number) => void;
+    /**
+     * Composed-view toggle (#620). When `viewMode` is defined the top bar
+     * renders the Content ⇄ With Template toggle next to the save
+     * indicator. Omit both `viewMode` and `onViewModeChange` to hide the
+     * toggle entirely (site editor, resources without a resolvable
+     * template).
+     */
+    viewMode?: ViewMode;
+    onViewModeChange?: (next: ViewMode) => void;
+    /**
+     * When set, disables the view-mode toggle and uses this string as
+     * the disabled-state tooltip / accessible-description. Used while
+     * the applied-template endpoint is still loading and while the
+     * fallback path is being evaluated.
+     */
+    viewModeDisabledReason?: string | null;
 }
 
 function saveStatusLabel(
@@ -209,7 +231,24 @@ export function TopBar(props: TopBarProps): JSX.Element {
         inspectorToggleAriaLabel,
         viewportRegistry,
         onViewportChange,
+        viewMode,
+        onViewModeChange,
+        viewModeDisabledReason,
     } = props;
+
+    const isComposedView = viewMode === 'with-template';
+    const viewModeAvailable =
+        viewMode !== undefined && onViewModeChange !== undefined;
+    const viewModeDisabled =
+        viewModeDisabledReason !== null && viewModeDisabledReason !== undefined;
+
+    const handleViewModeClick = useCallback((): void => {
+        if (onViewModeChange === undefined || viewModeDisabled) {
+            return;
+        }
+
+        onViewModeChange(isComposedView ? 'content' : 'with-template');
+    }, [isComposedView, onViewModeChange, viewModeDisabled]);
 
     const viewportRegistryValue = viewportRegistry ?? DEFAULT_VIEWPORT_REGISTRY;
 
@@ -484,6 +523,24 @@ export function TopBar(props: TopBarProps): JSX.Element {
                 >
                     {saveStatusText}
                 </span>
+                {viewModeAvailable ? (
+                    <button
+                        type="button"
+                        className="ap-visual-editor-top-bar__view-mode-toggle"
+                        role="switch"
+                        aria-checked={isComposedView}
+                        aria-label={__('View with template', TEXT_DOMAIN)}
+                        title={viewModeDisabledReason ?? undefined}
+                        disabled={viewModeDisabled}
+                        data-view-mode={viewMode}
+                        data-testid="ap-visual-editor-top-bar-view-mode-toggle"
+                        onClick={handleViewModeClick}
+                    >
+                        {isComposedView
+                            ? __('With template', TEXT_DOMAIN)
+                            : __('Content only', TEXT_DOMAIN)}
+                    </button>
+                ) : null}
                 {previewUrl ? (
                     <a
                         className="ap-visual-editor-top-bar__preview"

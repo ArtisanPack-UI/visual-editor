@@ -76,7 +76,12 @@ import { entityTypeForResource } from './entity-type';
 import { InspectorSidebar } from './inspector-sidebar';
 import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 import { useSaveNotifications } from './save-notifications';
-import { TopBar } from './top-bar';
+import { TopBar, type ViewMode } from './top-bar';
+import {
+    ChromePreviewPanel,
+    splitTemplateAroundContentSlot,
+    useAppliedTemplate,
+} from './composed-view';
 import { usePersistence } from './use-persistence';
 
 // Side-effect imports for the editor *chrome* — the top bar, block
@@ -312,8 +317,25 @@ export function EditorApp(props: EditorAppProps): JSX.Element {
     // into the bindings module so the inspector panel resolves its
     // API calls, its picker, and the live canvas overlay against the
     // right parent record.
+    //
+    // #622 — the composed view renders template-chrome bindings
+    // consumers (`core/post-title`, `core/post-author`, `core/post-date`,
+    // `core/post-featured-image`, and any other bound blocks) inside
+    // this same context, so they resolve against the *current* content
+    // item — not against the template's own sample data.
     setBindingsApiConfig({ apiBase: props.apiBase });
     setBindingsResourceContext(props.resource ?? null, props.id ?? null);
+
+    // #622 — clear the bindings context on editor unmount so a
+    // subsequent editor mount for a different resource doesn't
+    // inherit stale sentinel state between renders. Setting during
+    // render (above) keeps the context in lockstep with props while
+    // the editor is alive.
+    useEffect(() => {
+        return (): void => {
+            setBindingsResourceContext(null, null);
+        };
+    }, []);
 
     return (
         <ToastProvider>
@@ -497,6 +519,10 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     const [inserterOpen, setInserterOpen] = useState<boolean>(false);
     const [inspectorOpen, setInspectorOpen] = useState<boolean>(true);
     const [shortcutsOpen, setShortcutsOpen] = useState<boolean>(false);
+    // #620 — Composed-view toggle. Ephemeral: every editor mount starts
+    // in `content` mode; the applied-template fetch (#621) is only
+    // triggered on the first flip to `with-template`.
+    const [viewMode, setViewMode] = useState<ViewMode>('content');
     // #617 — viewport preset selection resizes the canvas frame.
     // The shared hook holds the `null | positive-int` slot and the
     // `onViewportChange` callback so post + site editors can't
@@ -744,6 +770,51 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         [onBlocksChange]
     );
 
+    // #621 — composed-view wiring.
+    //
+    // Iteration note: an earlier approach swapped the BlockEditorProvider
+    // `value` for a composed tree that wove the template's blocks around
+    // the content list. That fought Gutenberg's stateful sync too
+    // directly — every attempt surfaced a new failure (block-validation
+    // warnings, render loops, editor freezes). The safer pivot: keep the
+    // block canvas exactly as it is (raw content, one BlockEditorProvider)
+    // and render the template chrome as inert preview panels around the
+    // canvas when composed mode is on. That gives authors the "content
+    // in-context" feel without touching the block-editor state, so
+    // selection / undo / unsaved-changes survive the toggle by
+    // construction. Full inline chrome rendering is a follow-up.
+    const appliedTemplateState = useAppliedTemplate({
+        apiBase: props.apiBase,
+        resource: props.resource,
+        id: props.id,
+        enabled: viewMode === 'with-template',
+    });
+
+    const composedChromePreview: {
+        header: readonly BlockInstance[];
+        footer: readonly BlockInstance[];
+        templateName: string;
+    } | null = useMemo(() => {
+        if (
+            viewMode !== 'with-template' ||
+            appliedTemplateState.status !== 'ok'
+        ) {
+            return null;
+        }
+
+        return splitTemplateAroundContentSlot(
+            appliedTemplateState.template.blocks,
+            appliedTemplateState.template.template_parts,
+            appliedTemplateState.template.name
+        );
+    }, [appliedTemplateState, viewMode]);
+
+    const viewModeDisabledReason =
+        viewMode === 'with-template' &&
+        appliedTemplateState.status === 'loading'
+            ? __('Loading applied template…', TEXT_DOMAIN)
+            : null;
+
     const handleUndo = useCallback((): void => {
         const current = historyRef.current;
 
@@ -806,6 +877,12 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         setShortcutsOpen(true);
     }, []);
 
+    // #620 — flip the ephemeral composed-view state. Presentational only:
+    // #621 owns the actual composition of the template around the canvas.
+    const handleViewModeChange = useCallback((next: ViewMode): void => {
+        setViewMode(next);
+    }, []);
+
     const handleCloseShortcuts = useCallback((): void => {
         setShortcutsOpen(false);
     }, []);
@@ -829,6 +906,9 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 onShowKeyboardShortcuts={handleShowShortcuts}
                 onViewportChange={handleViewportChange}
                 viewportRegistry={viewportRegistry}
+                viewMode={viewMode}
+                onViewModeChange={handleViewModeChange}
+                viewModeDisabledReason={viewModeDisabledReason}
             />
         ),
         [
@@ -838,6 +918,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             handleToggleInserter,
             handleToggleInspector,
             handleUndo,
+            handleViewModeChange,
             handleViewportChange,
             history.future.length,
             history.past.length,
@@ -847,6 +928,8 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             previewUrl,
             saveError,
             saveStatus,
+            viewMode,
+            viewModeDisabledReason,
             viewportRegistry,
         ]
     );
@@ -951,14 +1034,33 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
              * an entity-mounted canvas it's null and the blocks render
              * their placeholder shell.
              */}
-            <EditorCanvas
-                showTitle={supports?.title !== false}
-                title={title}
-                onTitleChange={handleTitleChange}
-                blockContext={blockContextValue}
-                apiBase={props.apiBase}
-                previewWidthPx={canvasPreviewWidthPx}
-            />
+            <div
+                className="ap-visual-editor__canvas-stack"
+                data-composed={composedChromePreview !== null}
+            >
+                {composedChromePreview !== null ? (
+                    <ChromePreviewPanel
+                        label={__('Header', TEXT_DOMAIN)}
+                        templateName={composedChromePreview.templateName}
+                        blocks={composedChromePreview.header}
+                    />
+                ) : null}
+                <EditorCanvas
+                    showTitle={supports?.title !== false}
+                    title={title}
+                    onTitleChange={handleTitleChange}
+                    blockContext={blockContextValue}
+                    apiBase={props.apiBase}
+                    previewWidthPx={canvasPreviewWidthPx}
+                />
+                {composedChromePreview !== null ? (
+                    <ChromePreviewPanel
+                        label={__('Footer', TEXT_DOMAIN)}
+                        templateName={composedChromePreview.templateName}
+                        blocks={composedChromePreview.footer}
+                    />
+                ) : null}
+            </div>
             {/*
              * #488 — watch the selected block's attributes and re-route
              * writes from WP's color/border panels (which dispatch
