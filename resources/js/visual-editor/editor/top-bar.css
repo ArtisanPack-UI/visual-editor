@@ -159,6 +159,32 @@
     text-decoration: none;
 }
 
+.ap-visual-editor-top-bar__view-mode-toggle {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border: 1px solid var(--ap-visual-editor-top-bar-border);
+    border-radius: var(--ap-visual-editor-top-bar-radius);
+    background: transparent;
+    font-size: 13px;
+    color: var(--ap-visual-editor-top-bar-foreground);
+    cursor: pointer;
+}
+
+.ap-visual-editor-top-bar__view-mode-toggle:hover:not(:disabled) {
+    background: var(--ap-visual-editor-top-bar-hover);
+}
+
+.ap-visual-editor-top-bar__view-mode-toggle[aria-checked='true'] {
+    background: var(--ap-visual-editor-top-bar-hover);
+    font-weight: 600;
+}
+
+.ap-visual-editor-top-bar__view-mode-toggle:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
 .ap-visual-editor-top-bar__preview:hover {
     background: var(--ap-visual-editor-top-bar-hover);
 }
