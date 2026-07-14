@@ -53,6 +53,7 @@
         "enhancedPagination": "enhancedPagination"
     },
     "supports": {
+        "position": true,
         "anchor": true,
         "align": [ "wide", "full" ],
         "html": false,

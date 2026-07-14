@@ -22,6 +22,7 @@
         "postType": "postType"
     },
     "supports": {
+        "position": true,
         "anchor": true,
         "align": ["wide", "full"],
         "ariaLabel": true,

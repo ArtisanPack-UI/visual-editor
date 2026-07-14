@@ -16,6 +16,7 @@
         "comments/paginationArrow": "paginationArrow"
     },
     "supports": {
+        "position": true,
         "align": true,
         "reusable": false,
         "html": false,

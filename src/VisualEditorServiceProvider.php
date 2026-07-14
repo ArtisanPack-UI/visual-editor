@@ -48,7 +48,6 @@ use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
 use ArtisanPackUI\VisualEditor\States\StateAttributeMigrator;
 use ArtisanPackUI\VisualEditor\BoxShadow\BoxShadowEmitter;
-use ArtisanPackUI\VisualEditor\Position\PositionEmitter;
 use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
 use ArtisanPackUI\VisualEditor\States\StateValueResolver;
@@ -374,16 +373,6 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->app->scoped( BoxShadowEmitter::class, function ( $app ) {
 			return new BoxShadowEmitter(
 				$app->make( StateRegistry::class ),
-				$app->make( BreakpointRegistry::class ),
-			);
-		} );
-
-		// #640: CSS position emitter. Bound here so future
-		// render-pipeline integration can resolve it from the
-		// container; the Blade renderer's BlockSupports already
-		// constructs one directly with the request-scoped registry.
-		$this->app->scoped( PositionEmitter::class, function ( $app ) {
-			return new PositionEmitter(
 				$app->make( BreakpointRegistry::class ),
 			);
 		} );

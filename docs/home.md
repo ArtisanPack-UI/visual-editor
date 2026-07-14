@@ -78,6 +78,7 @@ The block library — what ships, how to author your own, and how to wire respon
 - [[Animations]] — Block entrance, hover, and continuous animations (v1.1)
 - [[Border Gradients]] — Linear / radial / conic borders + tabbed color/gradient picker (v1.1)
 - [[Block Bindings]] — Bind block attributes to parent post/page/CPT data (v1.1)
+- [[Position]] — CSS positioning (static / relative / absolute / fixed / sticky) with per-side offsets, z-index, and per-breakpoint overrides (v1.4)
 
 ---
 
