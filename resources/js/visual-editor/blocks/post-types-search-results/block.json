@@ -5,16 +5,27 @@
     "title": "Post Types Search Results",
     "category": "search",
     "description": "Wrap a set of post-type-specific result sections that render conditionally based on the searched post type.",
-    "keywords": ["search", "results", "post types"],
+    "keywords": [
+        "search",
+        "results",
+        "post types"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "supports": {
+        "position": true,
         "artisanpackAnimations": true,
-        "align": ["wide", "full"],
+        "align": [
+            "wide",
+            "full"
+        ],
         "ariaLabel": true,
         "className": true,
         "html": false,
         "spacing": {
-            "margin": ["top", "bottom"],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "blockGap": true,
             "__experimentalDefaultControls": {

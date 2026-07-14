@@ -5,7 +5,12 @@
     "title": "Search Filters Buttons",
     "category": "search",
     "description": "Render the submit + reset buttons that drive the surrounding search filters form.",
-    "keywords": ["search", "filters", "submit", "reset"],
+    "keywords": [
+        "search",
+        "filters",
+        "submit",
+        "reset"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "searchLabel": {
@@ -18,6 +23,7 @@
         }
     },
     "supports": {
+        "position": true,
         "ariaLabel": true,
         "className": true,
         "html": false,

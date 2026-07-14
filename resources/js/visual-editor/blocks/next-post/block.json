@@ -5,7 +5,12 @@
     "title": "Next Post",
     "category": "theme",
     "description": "Wrap inner blocks against the next post in the same post type so post-* children render the newer neighbor's data.",
-    "keywords": ["next", "post", "navigation", "adjacent"],
+    "keywords": [
+        "next",
+        "post",
+        "navigation",
+        "adjacent"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "postType": {
@@ -25,9 +30,13 @@
         "queryId": "queryId"
     },
     "supports": {
+        "position": true,
         "artisanpackAnimations": true,
         "anchor": true,
-        "align": ["wide", "full"],
+        "align": [
+            "wide",
+            "full"
+        ],
         "html": false,
         "reusable": false,
         "color": {
@@ -39,7 +48,10 @@
             }
         },
         "spacing": {
-            "margin": ["top", "bottom"],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true
         }
     }

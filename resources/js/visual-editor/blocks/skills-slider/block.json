@@ -5,7 +5,13 @@
     "title": "Skills Slider",
     "category": "widgets",
     "description": "Visualise a skill level as a horizontal progress bar.",
-    "keywords": ["skill", "skills", "progress", "bar", "level"],
+    "keywords": [
+        "skill",
+        "skills",
+        "progress",
+        "bar",
+        "level"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "skillLevel": {
@@ -30,12 +36,16 @@
         }
     },
     "supports": {
+        "position": true,
         "artisanpackAnimations": true,
         "anchor": true,
         "className": true,
         "html": false,
         "spacing": {
-            "margin": ["top", "bottom"],
+            "margin": [
+                "top",
+                "bottom"
+            ],
             "padding": true,
             "__experimentalDefaultControls": {
                 "padding": true

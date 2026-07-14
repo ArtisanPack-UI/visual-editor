@@ -5,7 +5,9 @@
 	"title": "Video",
 	"category": "media",
 	"description": "Embed a video from your media library or upload a new one.",
-	"keywords": [ "movie" ],
+	"keywords": [
+		"movie"
+	],
 	"textdomain": "artisanpack-visual-editor",
 	"attributes": {
 		"autoplay": {
@@ -83,6 +85,7 @@
 		}
 	},
 	"supports": {
+		"position": true,
 		"artisanpackAnimations": true,
 		"anchor": true,
 		"align": true,

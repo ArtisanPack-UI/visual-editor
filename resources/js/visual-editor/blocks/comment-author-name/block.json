@@ -25,6 +25,7 @@
         "viewportWidth": 300
     },
     "supports": {
+        "position": true,
         "html": false,
         "spacing": {
             "margin": true,

@@ -26,7 +26,6 @@
 
 import {
 	BaseControl,
-	Button,
 	Notice,
 	SelectControl,
 	__experimentalNumberControl as NumberControl,
@@ -45,7 +44,6 @@ import type { ComponentType } from 'react'
 
 import {
 	getActiveBreakpoint,
-	setActiveBreakpoint,
 	subscribeActiveBreakpoint,
 } from '../responsive/active-breakpoint'
 import { BreakpointRegistry, TAILWIND_V4_DEFAULTS } from '../responsive/registry'
@@ -416,8 +414,6 @@ export const withPositionControl = createHigherOrderComponent(
 				{ label: __( 'Sticky', 'artisanpack-visual-editor' ),   value: 'sticky' },
 			]
 
-			const breakpointTabs = [ BASE_KEY, ...breakpoints.prefixes() ]
-
 			const hasAnyValue =
 				null !== rawValue
 				|| null !== rawZ
@@ -443,32 +439,6 @@ export const withPositionControl = createHigherOrderComponent(
 								isShownByDefault
 							>
 								<BaseControl __nextHasNoMarginBottom>
-									<div
-										className="ap-position__breakpoint-tabs"
-										role="tablist"
-										aria-label={ __( 'Breakpoint', 'artisanpack-visual-editor' ) }
-										style={ { display: 'flex', gap: 4, marginBottom: 12, flexWrap: 'wrap' } }
-									>
-										{ breakpointTabs.map( ( key ) => {
-											const isActive = key === activeBreakpoint
-											const label    = BASE_KEY === key
-												? __( 'Base', 'artisanpack-visual-editor' )
-												: breakpoints.label( key )
-											return (
-												<Button
-													key={ key }
-													role="tab"
-													aria-selected={ isActive }
-													variant={ isActive ? 'primary' : 'secondary' }
-													size="small"
-													onClick={ () => setActiveBreakpoint( key ) }
-												>
-													{ label }
-												</Button>
-											)
-										} ) }
-									</div>
-
 									<SelectControl
 										label={ __( 'Position', 'artisanpack-visual-editor' ) }
 										value={ effectiveValue }

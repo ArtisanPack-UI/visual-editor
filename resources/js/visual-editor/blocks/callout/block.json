@@ -5,17 +5,33 @@
     "title": "Callout",
     "category": "design",
     "description": "Highlight a short message with a severity badge and icon.",
-    "keywords": ["callout", "notice", "alert", "tip"],
+    "keywords": [
+        "callout",
+        "notice",
+        "alert",
+        "tip"
+    ],
     "textdomain": "artisanpack-visual-editor",
     "attributes": {
         "severity": {
             "type": "string",
-            "enum": ["info", "success", "warning", "error"],
+            "enum": [
+                "info",
+                "success",
+                "warning",
+                "error"
+            ],
             "default": "info"
         },
         "icon": {
             "type": "string",
-            "enum": ["info", "check", "warning", "error", "lightbulb"],
+            "enum": [
+                "info",
+                "check",
+                "warning",
+                "error",
+                "lightbulb"
+            ],
             "default": "info"
         },
         "content": {
@@ -26,6 +42,7 @@
         }
     },
     "supports": {
+        "position": true,
         "artisanpackAnimations": true,
         "className": true,
         "html": false
