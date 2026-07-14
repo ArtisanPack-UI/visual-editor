@@ -93,7 +93,7 @@ it( 'returns 401 for an unauthenticated request', function () {
 		->assertUnauthorized();
 } );
 
-it( 'returns 404 with reason=empty when the model has no template set', function () {
+it( 'returns 200 with status=missing/reason=empty when the model has no template set', function () {
 	actingAsAppliedTemplateUser();
 	registerSingleTemplate( 'single-post' );
 
@@ -104,11 +104,11 @@ it( 'returns 404 with reason=empty when the model has no template set', function
 	] );
 
 	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template" )
-		->assertNotFound()
+		->assertOk()
 		->assertJson( [ 'status' => 'missing', 'reason' => 'empty' ] );
 } );
 
-it( 'returns 404 with reason=unknown-slug when the template does not resolve', function () {
+it( 'returns 200 with status=missing/reason=unknown-slug when the template does not resolve', function () {
 	actingAsAppliedTemplateUser();
 	registerSingleTemplate( 'single-post' );
 
@@ -119,7 +119,7 @@ it( 'returns 404 with reason=unknown-slug when the template does not resolve', f
 	] );
 
 	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template" )
-		->assertNotFound()
+		->assertOk()
 		->assertJsonPath( 'status', 'missing' )
 		->assertJsonPath( 'reason', 'unknown-slug' )
 		->assertJsonPath( 'slug', 'does-not-exist' );
@@ -149,6 +149,7 @@ it( 'returns the resolved template with referenced template-parts', function () 
 
 	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template" )
 		->assertOk()
+		->assertJsonPath( 'status', 'ok' )
 		->assertJsonPath( 'slug', 'single-post' )
 		->assertJsonPath( 'name', 'Single Post' )
 		->assertJsonPath( 'source', 'theme' )
@@ -170,7 +171,7 @@ it( 'treats whitespace-only template values as empty', function () {
 	] );
 
 	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template" )
-		->assertNotFound()
+		->assertOk()
 		->assertJsonPath( 'reason', 'empty' );
 } );
 

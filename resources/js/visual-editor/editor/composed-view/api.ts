@@ -22,6 +22,7 @@ export interface AppliedTemplatePart {
 }
 
 export interface AppliedTemplate {
+    status: 'ok';
     slug: string;
     name: string;
     source: 'db' | 'theme';
@@ -58,9 +59,12 @@ function appliedTemplateUrl(config: AppliedTemplateConfig): string {
 }
 
 /**
- * Fetch the applied template for a resource+id. Returns the discriminated
- * `AppliedTemplateResult` — never throws for a 404 with the missing body,
- * only for real network / auth / unexpected errors.
+ * Fetch the applied template for a resource+id. The endpoint always
+ * responds 200 with a discriminated `{status: 'ok' | 'missing', ...}`
+ * body — a 200 (vs 404) keeps the browser devtools clean since the
+ * missing state is a normal, routine response for any content that
+ * hasn't chosen a template. Throws only on real network / auth /
+ * unexpected errors.
  */
 export async function fetchAppliedTemplate(
     config: AppliedTemplateConfig
@@ -85,10 +89,6 @@ export async function fetchAppliedTemplate(
         }
     }
 
-    if (response.status === 404 && isMissingPayload(body)) {
-        return body;
-    }
-
     if (!response.ok) {
         throw new ApiError(
             `Applied-template request failed with status ${response.status}`,
@@ -97,7 +97,11 @@ export async function fetchAppliedTemplate(
         );
     }
 
-    return { status: 'ok', template: body as AppliedTemplate };
+    if (isMissingPayload(body)) {
+        return body;
+    }
+
+    return body as AppliedTemplate;
 }
 
 function isMissingPayload(body: unknown): body is AppliedTemplateMissing {
