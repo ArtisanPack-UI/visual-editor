@@ -109,6 +109,19 @@ export interface MountConfig {
      * Hosts pass via `data-template`.
      */
     initialTemplate?: string;
+    /**
+     * ISO-8601 timestamp when the underlying record was created (#639).
+     * Together with {@link initialUpdatedAt} this drives the "never
+     * saved" heuristic that gates the page-pattern-inserter modal from
+     * auto-opening on already-saved pages. Hosts pass via
+     * `data-created-at`; omit both to leave the modal manual-only.
+     */
+    initialCreatedAt?: string;
+    /**
+     * ISO-8601 timestamp when the underlying record was last updated
+     * (#639). See {@link initialCreatedAt}.
+     */
+    initialUpdatedAt?: string;
     authorOptions?: ReadonlyArray<AuthorOption>;
     supports?: DocumentSupports;
     previewUrl?: string | null;
@@ -179,6 +192,8 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
     const rawParent = element.dataset.parent?.trim();
     const rawMenuOrder = element.dataset.menuOrder?.trim();
     const initialTemplate = element.dataset.template?.trim();
+    const initialCreatedAt = element.dataset.createdAt?.trim();
+    const initialUpdatedAt = element.dataset.updatedAt?.trim();
 
     const initialCategories = parseIdListDataset(
         element.dataset.categories,
@@ -272,6 +287,8 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
             ? { initialMenuOrder }
             : {}),
         ...(initialTemplate ? { initialTemplate } : {}),
+        ...(initialCreatedAt ? { initialCreatedAt } : {}),
+        ...(initialUpdatedAt ? { initialUpdatedAt } : {}),
         ...(breakpoints !== null ? { breakpoints } : {}),
         previewUrl: previewUrl ?? null,
     };

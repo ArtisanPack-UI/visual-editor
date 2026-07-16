@@ -44,6 +44,14 @@ export interface PatternRecord {
     categories: readonly string[];
     status: PatternStatus;
     type: 'wp_block';
+    /**
+     * Optional post-type scope (Gutenberg convention — #639). `null` means
+     * the pattern is available in every post-type context. An array means
+     * the pattern is scoped to exactly those post types. The field is
+     * optional on the client type so responses from an older backend
+     * (which never emits the key) still parse.
+     */
+    post_types?: readonly string[] | null;
 }
 
 export interface PatternListParams {
@@ -55,6 +63,21 @@ export interface PatternListParams {
     categories?: readonly string[];
     slug?: string;
     status?: PatternStatus;
+    /**
+     * Restrict to patterns applicable to the given post type (#639).
+     * Patterns registered without a `post_types` scope match every
+     * request; patterns with a scope match only when this slug appears
+     * in that scope. Omit to skip filtering.
+     */
+    postType?: string;
+    /**
+     * Restrict to a specific source. `'theme'` returns developer- /
+     * theme-shipped patterns (the page-pattern-inserter modal uses
+     * this to hide user-created snippet patterns); `'user'` returns
+     * user-authored ones (via `Convert to pattern` in the sidebar).
+     * Omit to return both.
+     */
+    source?: 'theme' | 'user';
 }
 
 export interface PatternCreatePayload {
@@ -211,6 +234,8 @@ export async function listPatterns(
                   : '0',
         slug: params.slug,
         status: params.status,
+        post_type: params.postType,
+        source: params.source,
     });
 
     let withCategories = url;

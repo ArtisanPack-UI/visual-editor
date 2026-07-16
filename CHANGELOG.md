@@ -8,6 +8,40 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **Page pattern inserter modal (#639).** WordPress-style "Choose a
+  pattern" modal that auto-opens when the editor loads a
+  never-saved record with no content, and can be re-opened at any
+  time from a new top-bar button next to the `+` inserter.
+  Patterns are grouped by category in a responsive grid, and — for
+  the `pages` resource — an optional template selector renders
+  site-editor templates (`/visual-editor/api/templates`) alongside
+  the pattern grid; picking one writes through the existing
+  `template` field on the page. Auto-open is gated by a
+  self-contained "never saved" heuristic (empty content plus
+  `created_at === updated_at`), so any save — even a blank canvas
+  — permanently suppresses the auto-open. Zero patterns for the
+  current post-type context suppresses both auto-open and the
+  toolbar button; a Blank starter (`page/blank`) ships as the
+  seed so the modal always has at least one entry. The modal
+  fetches with `?source=theme` so user-created snippet patterns
+  (saved via "Convert to pattern" in the sidebar inserter) don't
+  leak into the whole-page picker — those still surface in the
+  block inserter panel where they belong. Client-side the modal
+  further tightens the fetch to patterns whose `post_types` array
+  explicitly includes the current context (with a carve-out that
+  always keeps the built-in `page/blank` seed) — the whole-page
+  picker is meant for starter layouts a developer or theme
+  deliberately declared, not the general pattern library.
+- **Pattern registration `post_types` scope (#639).** Every
+  contributor entry to the `ap.visual-editor.patterns` filter may
+  now carry an optional `post_types: string[]` array (Gutenberg
+  convention). Patterns without a scope stay available in every
+  post-type context; patterns with a scope surface only when the
+  requested slug matches. The scope reaches the client via the
+  new `post_types` field on `PatternAdapter`'s WP-shape output,
+  and the `PatternController` index accepts a new
+  `?post_type={slug}` query param that applies the scope filter
+  server-side.
 - **CSS positioning support for blocks (#640).** Per-block Position
   panel in the inspector with a `static / relative / absolute / fixed
   / sticky` dropdown, per-side offset inputs (`px / % / rem / em /

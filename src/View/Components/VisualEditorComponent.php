@@ -65,6 +65,28 @@ class VisualEditorComponent extends Component
 	public ?string $previewUrl;
 
 	/**
+	 * ISO-8601 timestamp when the underlying model was created. Optional.
+	 *
+	 * Together with {@see $initialUpdatedAt}, the React editor uses these
+	 * to derive the "never saved" signal that gates the #639 page-pattern
+	 * inserter modal from auto-opening on already-saved-but-empty pages.
+	 * Hosts that don't pass either can safely omit both — the detection
+	 * hook falls back to "not fresh" and the modal never auto-opens
+	 * (safe default; the toolbar button still works).
+	 *
+	 * @since 1.4.0
+	 */
+	public ?string $initialCreatedAt;
+
+	/**
+	 * ISO-8601 timestamp when the underlying model was last updated. See
+	 * {@see $initialCreatedAt}.
+	 *
+	 * @since 1.4.0
+	 */
+	public ?string $initialUpdatedAt;
+
+	/**
 	 * @var array<int, array{slug: string, label: string}>
 	 */
 	public array $contentTypes;
@@ -115,8 +137,45 @@ class VisualEditorComponent extends Component
 		$this->authorOptions        = $authorOptions;
 		$this->supports             = $supports;
 		$this->previewUrl           = $previewUrl;
+		$this->initialCreatedAt     = $this->resolveTimestamp( $model, 'created_at' );
+		$this->initialUpdatedAt     = $this->resolveTimestamp( $model, 'updated_at' );
 		$this->contentTypes         = $this->resolveContentTypes();
 		$this->breakpoints          = app( BreakpointRegistry::class )->toArray();
+	}
+
+	/**
+	 * Read a timestamp column off the model and normalize to an ISO-8601
+	 * string with microsecond precision, or `null` when the column is
+	 * absent / unparseable.
+	 *
+	 * `created_at` and `updated_at` are the conventional Eloquent
+	 * timestamp columns; hosts with disabled timestamps or custom column
+	 * names simply return `null` and the modal auto-open falls back to
+	 * "not fresh" (safe default).
+	 *
+	 * Microsecond precision is intentional (#639): Carbon's default
+	 * `toIso8601String()` collapses to whole-second `Y-m-d\TH:i:sP` — any
+	 * save that lands in the same integer second as row creation then
+	 * leaves `created_at === updated_at` byte-for-byte identical, and
+	 * the JS-side "never saved" heuristic misfires as a permanent
+	 * auto-open loop. Emitting sub-second precision keeps the first-save
+	 * suppression tight without needing a separate boolean flag.
+	 *
+	 * @since 1.4.0
+	 */
+	protected function resolveTimestamp( Model $model, string $column ): ?string
+	{
+		$value = $model->getAttribute( $column );
+
+		if ( null === $value ) {
+			return null;
+		}
+
+		if ( is_object( $value ) && method_exists( $value, 'format' ) ) {
+			return (string) $value->format( 'Y-m-d\TH:i:s.uP' );
+		}
+
+		return is_string( $value ) ? $value : null;
 	}
 
 	/**

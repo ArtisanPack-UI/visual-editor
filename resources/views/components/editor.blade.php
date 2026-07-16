@@ -14,6 +14,13 @@
 	@isset($authorOptions) data-author-options="{{ json_encode( $authorOptions ) }}" @endisset
 	@isset($supports) data-supports="{{ json_encode( $supports ) }}" @endisset
 	@isset($previewUrl) data-preview-url="{{ $previewUrl }}" @endisset
+	{{-- #639 — created_at/updated_at drive the "never saved" heuristic
+	     that gates the page-pattern-inserter modal from auto-opening on
+	     saved-but-empty pages. Both are optional; when either is missing,
+	     the detection hook falls back to "not fresh" and the modal never
+	     auto-opens. --}}
+	@isset($initialCreatedAt) data-created-at="{{ $initialCreatedAt }}" @endisset
+	@isset($initialUpdatedAt) data-updated-at="{{ $initialUpdatedAt }}" @endisset
 	data-content-types="{{ json_encode( $contentTypes, JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 	{{-- #617 — merged breakpoint registry (config + theme.json +
 	     defaults) so the viewport switcher's registry hydrates with
