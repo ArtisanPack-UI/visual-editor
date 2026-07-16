@@ -535,6 +535,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//      sync hasn't run yet, so app boot stays robust.
 		$this->registerFontAwesomeFreeIconSets();
 
+		// 4.1a. #639 — seed the built-in `page` pattern category with a
+		//       single `Blank` starter so the page-pattern-inserter modal
+		//       has at least one entry to render before host apps register
+		//       their own patterns. Registered against the pre-booted
+		//       filter so the boot()-late resolver refresh above picks it
+		//       up alongside third-party contributions.
+		$this->registerBuiltInPatterns();
+
 		// 4.2. Icon Block Phase 6 (#557) — re-register host-uploaded
 		//      icon sets on every boot. Reads the persisted registry
 		//      and hooks the same `ap.icons.register-icon-sets` filter
@@ -722,6 +730,57 @@ class VisualEditorServiceProvider extends ServiceProvider
 			static function ( IconSetRegistration $registry ) use ( $baseDir ): IconSetRegistration {
 				return FontAwesomeFreeIconSets::register( $registry, $baseDir );
 			}
+		);
+	}
+
+	/**
+	 * Seed the built-in `page` pattern category with a `Blank` starter.
+	 *
+	 * The page-pattern-inserter modal (#639) needs at least one entry to
+	 * render even before third-party packages register their own patterns.
+	 * Shipping a `Blank` seed with no blocks gives users the "start from
+	 * scratch" affordance and keeps the modal from rendering an empty
+	 * grid on a fresh install.
+	 *
+	 * Left unscoped (`post_types => null`) so the seed appears in every
+	 * post-type context — the goal is a universally-available empty-canvas
+	 * shortcut, not a page-only entry.
+	 *
+	 * Gated on `addFilter` to keep visual-editor bootable when hooks isn't
+	 * on the classpath.
+	 *
+	 * @since 1.4.0
+	 */
+	protected function registerBuiltInPatterns(): void
+	{
+		if ( ! function_exists( 'addFilter' ) ) {
+			return;
+		}
+
+		addFilter(
+			'ap.visual-editor.patterns',
+			static function ( mixed $patterns ): array {
+				$patterns = is_array( $patterns ) ? $patterns : [];
+
+				// Contributor entries always win — a host that registers
+				// its own `page/blank` (e.g. to swap in a themed skeleton)
+				// takes precedence over the seed. Merge the seed only when
+				// no entry exists for the slug.
+				if ( ! array_key_exists( 'page/blank', $patterns ) ) {
+					$patterns['page/blank'] = [
+						'slug'       => 'page/blank',
+						'title'      => __( 'Blank' ),
+						'source'     => 'theme',
+						'synced'     => false,
+						'categories' => [ 'page' ],
+						'blocks'     => [],
+						'raw_content' => '',
+						'post_types' => null,
+					];
+				}
+
+				return $patterns;
+			},
 		);
 	}
 

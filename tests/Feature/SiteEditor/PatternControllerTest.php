@@ -42,15 +42,23 @@ function rebuildSiteEditorResolversForPatternTest(): void
 }
 
 describe( 'GET /visual-editor/api/patterns', function (): void {
-	it( 'returns an empty list when no patterns exist', function (): void {
+	it( 'returns only the built-in `page/blank` seed pattern when no cms-framework patterns exist', function (): void {
 		rebuildSiteEditorResolversForPatternTest();
 
+		// #639 — visual-editor ships a `page/blank` starter so the
+		// page-pattern-inserter modal has an entry to render out of the
+		// box. Without cms-framework patterns, the index is exactly
+		// that seed.
 		$this->getJson( '/visual-editor/api/patterns' )
 			->assertOk()
-			->assertExactJson( [] );
+			->assertJsonCount( 1 )
+			->assertJsonPath( '0.slug', 'page/blank' )
+			->assertJsonPath( '0.source', 'theme' )
+			->assertJsonPath( '0.categories.0', 'page' )
+			->assertJsonPath( '0.post_types', null );
 	} );
 
-	it( 'lists user-source patterns merged from cms-framework', function (): void {
+	it( 'lists user-source patterns merged from cms-framework alongside the seed', function (): void {
 		BlockPattern::create( [
 			'slug'          => 'cta',
 			'title'         => 'CTA',
@@ -64,13 +72,14 @@ describe( 'GET /visual-editor/api/patterns', function (): void {
 
 		rebuildSiteEditorResolversForPatternTest();
 
-		$this->getJson( '/visual-editor/api/patterns' )
+		$response = $this->getJson( '/visual-editor/api/patterns' )
 			->assertOk()
-			->assertJsonCount( 1 )
-			->assertJsonPath( '0.slug', 'user/cta' )
-			->assertJsonPath( '0.type', 'wp_block' )
-			->assertJsonPath( '0.source', 'user' )
-			->assertJsonPath( '0.synced', true );
+			->assertJsonCount( 2 );
+
+		$slugs = array_column( $response->json(), 'slug' );
+
+		expect( $slugs )->toContain( 'user/cta' )
+			->and( $slugs )->toContain( 'page/blank' );
 	} );
 
 	it( 'filters by source via ?source query parameter', function (): void {
@@ -89,11 +98,78 @@ describe( 'GET /visual-editor/api/patterns', function (): void {
 
 		$this->getJson( '/visual-editor/api/patterns?source=user' )
 			->assertOk()
-			->assertJsonCount( 1 );
+			->assertJsonCount( 1 )
+			->assertJsonPath( '0.slug', 'user/cta' );
 
+		// Only the built-in `page/blank` seed lives under `theme`.
 		$this->getJson( '/visual-editor/api/patterns?source=theme' )
 			->assertOk()
-			->assertJsonCount( 0 );
+			->assertJsonCount( 1 )
+			->assertJsonPath( '0.slug', 'page/blank' );
+	} );
+
+	// #639 — the modal fetches patterns scoped to the current post
+	// type via `?post_type=`. Contributor patterns registered with a
+	// `post_types` whitelist match only when the requested slug is
+	// present; unscoped patterns (post_types null) match everywhere.
+	it( 'filters by ?post_type using each pattern\'s post_types scope (#639)', function (): void {
+		addFilter( 'ap.visual-editor.patterns', function ( mixed $patterns ): array {
+			$patterns = is_array( $patterns ) ? $patterns : [];
+
+			$patterns['landing-hero'] = [
+				'slug'       => 'landing-hero',
+				'title'      => 'Landing hero',
+				'source'     => 'theme',
+				'synced'     => false,
+				'categories' => [ 'page' ],
+				'post_types' => [ 'page' ],
+				'blocks'     => [],
+				'raw_content' => '',
+			];
+
+			$patterns['recipe-intro'] = [
+				'slug'       => 'recipe-intro',
+				'title'      => 'Recipe intro',
+				'source'     => 'theme',
+				'synced'     => false,
+				'categories' => [ 'post' ],
+				'post_types' => [ 'post' ],
+				'blocks'     => [],
+				'raw_content' => '',
+			];
+
+			return $patterns;
+		} );
+
+		rebuildSiteEditorResolversForPatternTest();
+
+		// `page` context: seed (unscoped) + landing-hero, but not recipe-intro.
+		$page = $this->getJson( '/visual-editor/api/patterns?post_type=page' )
+			->assertOk()
+			->assertJsonCount( 2 );
+
+		$pageSlugs = array_column( $page->json(), 'slug' );
+
+		expect( $pageSlugs )->toContain( 'landing-hero' )
+			->and( $pageSlugs )->toContain( 'page/blank' )
+			->and( $pageSlugs )->not->toContain( 'recipe-intro' );
+
+		// `post` context: seed (unscoped) + recipe-intro, but not landing-hero.
+		$post = $this->getJson( '/visual-editor/api/patterns?post_type=post' )
+			->assertOk()
+			->assertJsonCount( 2 );
+
+		$postSlugs = array_column( $post->json(), 'slug' );
+
+		expect( $postSlugs )->toContain( 'recipe-intro' )
+			->and( $postSlugs )->toContain( 'page/blank' )
+			->and( $postSlugs )->not->toContain( 'landing-hero' );
+
+		// `custom` context with no scoped patterns: seed only.
+		$this->getJson( '/visual-editor/api/patterns?post_type=custom' )
+			->assertOk()
+			->assertJsonCount( 1 )
+			->assertJsonPath( '0.slug', 'page/blank' );
 	} );
 
 	it( 'filters by synced flag via ?synced query parameter', function (): void {
@@ -126,10 +202,16 @@ describe( 'GET /visual-editor/api/patterns', function (): void {
 			->assertJsonCount( 1 )
 			->assertJsonPath( '0.slug', 'user/synced-pattern' );
 
-		$this->getJson( '/visual-editor/api/patterns?synced=0' )
+		// `?synced=0` matches both the DB unsynced pattern and the
+		// unsynced built-in seed.
+		$unsynced = $this->getJson( '/visual-editor/api/patterns?synced=0' )
 			->assertOk()
-			->assertJsonCount( 1 )
-			->assertJsonPath( '0.slug', 'user/unsynced-pattern' );
+			->assertJsonCount( 2 );
+
+		$unsyncedSlugs = array_column( $unsynced->json(), 'slug' );
+
+		expect( $unsyncedSlugs )->toContain( 'user/unsynced-pattern' )
+			->and( $unsyncedSlugs )->toContain( 'page/blank' );
 	} );
 } );
 

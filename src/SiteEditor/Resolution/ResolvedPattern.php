@@ -42,6 +42,14 @@ class ResolvedPattern
 	 * @param  array<int, string>  $categories  Pattern category slugs.
 	 * @param  array<int, string>  $blockTypes  WP `blockTypes` hint for the inserter.
 	 * @param  int|null  $wpId        DB row id for user-source patterns; null otherwise.
+	 * @param  array<int, string>|null  $postTypes  Post-type slug whitelist (Gutenberg
+	 *                                convention). `null` means the pattern is available
+	 *                                to every post-type context. An empty array means
+	 *                                the pattern was explicitly registered with a scope
+	 *                                that matches nothing — treated the same as an
+	 *                                unmatchable filter, not as "available everywhere",
+	 *                                so a misregistered scope surfaces as "no matches"
+	 *                                instead of leaking into every context.
 	 */
 	public function __construct(
 		public readonly string $slug,
@@ -53,7 +61,33 @@ class ResolvedPattern
 		public readonly array $categories,
 		public readonly array $blockTypes,
 		public readonly ?int $wpId,
+		public readonly ?array $postTypes = null,
 	) {
+	}
+
+	/**
+	 * True when this pattern is available in the given post-type context.
+	 *
+	 * A pattern with a null `postTypes` matches every context (unscoped —
+	 * the default). A pattern with an array `postTypes` matches only when
+	 * the requested slug is present.
+	 *
+	 * Normalizes the input the same way {@see normalizePostTypes()}
+	 * normalizes stored slugs (lower-case, trimmed) so callers that
+	 * pass a mixed-case or padded slug — e.g. `matchesPostType('Page')`
+	 * — don't silently miss a match. The `PatternController` already
+	 * lower-cases the query param, but this keeps the method safe for
+	 * any other consumer that reaches for it directly.
+	 *
+	 * @since 1.4.0
+	 */
+	public function matchesPostType( string $postType ): bool
+	{
+		if ( null === $this->postTypes ) {
+			return true;
+		}
+
+		return in_array( strtolower( trim( $postType ) ), $this->postTypes, true );
 	}
 
 	/**
@@ -124,7 +158,47 @@ class ResolvedPattern
 				'is_string',
 			) ),
 			wpId       : isset( $data['wp_id'] ) ? (int) $data['wp_id'] : null,
+			postTypes  : self::normalizePostTypes( $data['post_types'] ?? null ),
 		);
+	}
+
+	/**
+	 * Normalize the raw `post_types` field into either `null` (omitted /
+	 * unrecognized) or a de-duplicated list of non-empty string slugs.
+	 *
+	 * Any non-array value collapses to `null` so a malformed contributor
+	 * entry defaults to "available everywhere" rather than crashing the
+	 * resolver. Non-string members are filtered out; the remaining slugs
+	 * are lower-cased for stable comparison against the requested
+	 * post-type in {@see matchesPostType()}.
+	 *
+	 * @since 1.4.0
+	 *
+	 * @return array<int, string>|null
+	 */
+	protected static function normalizePostTypes( mixed $raw ): ?array
+	{
+		if ( ! is_array( $raw ) ) {
+			return null;
+		}
+
+		$slugs = [];
+
+		foreach ( $raw as $candidate ) {
+			if ( ! is_string( $candidate ) ) {
+				continue;
+			}
+
+			$slug = strtolower( trim( $candidate ) );
+
+			if ( '' === $slug || in_array( $slug, $slugs, true ) ) {
+				continue;
+			}
+
+			$slugs[] = $slug;
+		}
+
+		return $slugs;
 	}
 
 	/**

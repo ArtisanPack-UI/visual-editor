@@ -43,7 +43,8 @@ class PatternAdapter
 	 *     source: string,
 	 *     synced: bool,
 	 *     categories: array<int, string>,
-	 *     block_types: array<int, string>
+	 *     block_types: array<int, string>,
+	 *     post_types: array<int, string>|null
 	 * }
 	 */
 	public function toArray( ResolvedPattern $pattern ): array
@@ -65,6 +66,11 @@ class PatternAdapter
 			'synced'      => $pattern->synced,
 			'categories'  => $pattern->categories,
 			'block_types' => $pattern->blockTypes,
+			// `null` means "available everywhere" (Gutenberg convention);
+			// preserve it verbatim so the editor can distinguish an
+			// unscoped pattern from a pattern that explicitly scoped
+			// itself to zero post types.
+			'post_types'  => $pattern->postTypes,
 		];
 	}
 

@@ -46,6 +46,32 @@ describe('TopBar', () => {
         expect(header.tagName).toBe('HEADER');
     });
 
+    // #639 — the page-pattern-inserter button is opt-in. Absent handler
+    // means "no button" so users aren't invited into an empty modal
+    // when no patterns apply to the current post-type context.
+    it('does not render the pattern-modal button when no handler is supplied (#639)', () => {
+        render(<TopBar {...defaultProps()} />);
+
+        expect(
+            screen.queryByTestId('ap-visual-editor-top-bar-pattern-modal')
+        ).not.toBeInTheDocument();
+    });
+
+    it('renders the pattern-modal button when a handler is supplied and fires it on click (#639)', async () => {
+        const onOpenPatternModal = vi.fn();
+        const user = userEvent.setup();
+
+        render(<TopBar {...defaultProps({ onOpenPatternModal })} />);
+
+        const button = screen.getByTestId('ap-visual-editor-top-bar-pattern-modal');
+
+        expect(button).toBeInTheDocument();
+
+        await user.click(button);
+
+        expect(onOpenPatternModal).toHaveBeenCalledTimes(1);
+    });
+
     it('does not render title, slug, or status inputs (moved to canvas/sidebar)', () => {
         render(<TopBar {...defaultProps()} />);
 
