@@ -1,13 +1,22 @@
 /**
  * Inspector "Visibility" panel that hosts a subsection per rule
- * family. Subsections only render once the editor has *added* the
- * corresponding rule (via a per-family "Add rule" button) so an
- * unused panel stays uncluttered — no expanded-but-empty rows.
+ * family. Each subsection is gated by a top-level ToggleControl; when
+ * the toggle is on, the subsection's controls render underneath. The
+ * toggle's "active" state is derived from **presence of the rule
+ * slice on the attribute bag**, not from the depth of its contents —
+ * otherwise a rule with an empty list (e.g. `breakpoints: []`) would
+ * snap the toggle back off on the next render.
  *
  * The panel writes back a normalized `VisibilityAttribute` on every
- * mutation. Empty rule slices are dropped so the persisted attribute
- * is the minimal shape possible (no trailing `screenSize: {}` when
- * the editor removed all breakpoints, for instance).
+ * mutation. Empty rule slices are dropped only when the editor
+ * explicitly toggles them off — an active-but-empty rule stays on the
+ * bag so the corresponding subsection stays expanded.
+ *
+ * Layout note: `PanelRow` is a flex container built for one label + one
+ * value. Grouped controls (a query-string clause's KEY + VALUE + Remove,
+ * a recurring window's DAY + START + END + Remove, etc.) go inside a
+ * plain `<div>` with a column layout instead. Only the top-level
+ * toggles get a `PanelRow`.
  *
  * @package @artisanpack-ui/visual-editor
  * @since 1.4.0
@@ -87,15 +96,38 @@ const DAY_OPTIONS = [
     { value: '6', label: 'Saturday' },
 ];
 
+const SUBSECTION_STYLE: React.CSSProperties = {
+    display:       'flex',
+    flexDirection: 'column',
+    gap:           '8px',
+    padding:       '8px 0 16px 24px',
+    borderLeft:    '2px solid rgba(0,0,0,0.08)',
+    marginLeft:    '8px',
+    marginBottom:  '8px',
+};
+
+const ROW_STYLE: React.CSSProperties = {
+    display:  'flex',
+    flexWrap: 'wrap',
+    gap:      '8px',
+    alignItems: 'flex-end',
+};
+
+const REMOVE_BUTTON_STYLE: React.CSSProperties = {
+    alignSelf: 'flex-end',
+    marginTop: '4px',
+};
+
 export function VisibilityPanel({ value, onChange, breakpointOptions, roleOptions, searchUsers }: Props): JSX.Element {
     const v: VisibilityAttribute = value ?? {};
 
     function patch(next: VisibilityAttribute): void {
-        // Drop empty slices so persisted attribute stays minimal.
+        // Drop `undefined` slices explicitly toggled off; keep active-
+        // but-empty slices so their subsections stay expanded.
         const cleaned: VisibilityAttribute = {};
         (Object.keys(next) as Array<keyof VisibilityAttribute>).forEach((key) => {
             const slice = next[key];
-            if (slice && Object.keys(slice as object).length > 0) {
+            if (slice !== undefined) {
                 (cleaned as Record<string, unknown>)[key] = slice;
             }
         });
@@ -163,7 +195,7 @@ function HidePanel({ value, onChange }: { value: VisibilityAttribute['hide']; on
 }
 
 function ScreenSizePanel({ value, onChange, breakpoints }: { value: ScreenSizeRuleAttrs | undefined; onChange: (next: ScreenSizeRuleAttrs | undefined) => void; breakpoints: Array<{ key: string; label: string }> }): JSX.Element {
-    const active = (value?.breakpoints ?? []).length > 0;
+    const active = value !== undefined;
 
     return (
         <>
@@ -175,33 +207,32 @@ function ScreenSizePanel({ value, onChange, breakpoints }: { value: ScreenSizeRu
                 />
             </PanelRow>
             {active && (
-                <>
+                <div style={SUBSECTION_STYLE}>
                     <DirectionToggle
                         value={value?.direction ?? 'hide'}
                         onChange={(direction) => onChange({ ...(value ?? {}), direction, breakpoints: value?.breakpoints ?? [] })}
                     />
                     {breakpoints.map((bp) => (
-                        <PanelRow key={bp.key}>
-                            <CheckboxControl
-                                label={bp.label}
-                                checked={(value?.breakpoints ?? []).includes(bp.key)}
-                                onChange={(checked) => {
-                                    const current = new Set(value?.breakpoints ?? []);
-                                    if (checked) { current.add(bp.key); } else { current.delete(bp.key); }
-                                    onChange({ ...(value ?? {}), direction: value?.direction ?? 'hide', breakpoints: Array.from(current) });
-                                }}
-                            />
-                        </PanelRow>
+                        <CheckboxControl
+                            key={bp.key}
+                            label={bp.label}
+                            checked={(value?.breakpoints ?? []).includes(bp.key)}
+                            onChange={(checked) => {
+                                const current = new Set(value?.breakpoints ?? []);
+                                if (checked) { current.add(bp.key); } else { current.delete(bp.key); }
+                                onChange({ ...(value ?? {}), direction: value?.direction ?? 'hide', breakpoints: Array.from(current) });
+                            }}
+                        />
                     ))}
-                </>
+                </div>
             )}
         </>
     );
 }
 
 function QueryStringPanel({ value, onChange }: { value: QueryStringRuleAttrs | undefined; onChange: (next: QueryStringRuleAttrs | undefined) => void }): JSX.Element {
+    const active = value !== undefined;
     const clauses = value?.clauses ?? [];
-    const active = clauses.length > 0;
 
     return (
         <>
@@ -213,11 +244,11 @@ function QueryStringPanel({ value, onChange }: { value: QueryStringRuleAttrs | u
                 />
             </PanelRow>
             {active && (
-                <>
+                <div style={SUBSECTION_STYLE}>
                     <DirectionToggle value={value?.direction ?? 'show'} onChange={(direction) => onChange({ ...(value ?? {}), direction, clauses })} />
                     <CombinatorToggle value={value?.combinator ?? 'any'} onChange={(combinator) => onChange({ ...(value ?? {}), combinator, clauses })} />
                     {clauses.map((clause: QueryStringClause, index: number) => (
-                        <PanelRow key={index}>
+                        <div key={index} style={{ ...SUBSECTION_STYLE, borderLeft: 'none', padding: '0', margin: '0' }}>
                             <TextControl
                                 label={__('Key', 'artisanpack-visual-editor')}
                                 value={clause.key}
@@ -237,27 +268,27 @@ function QueryStringPanel({ value, onChange }: { value: QueryStringRuleAttrs | u
                                 }}
                             />
                             <Button
-                                variant="secondary"
+                                variant="link"
+                                isDestructive
+                                style={REMOVE_BUTTON_STYLE}
                                 onClick={() => onChange({ ...(value ?? {}), clauses: clauses.filter((_c, i) => i !== index) })}
                             >
-                                {__('Remove', 'artisanpack-visual-editor')}
+                                {__('Remove clause', 'artisanpack-visual-editor')}
                             </Button>
-                        </PanelRow>
+                        </div>
                     ))}
-                    <PanelRow>
-                        <Button variant="secondary" onClick={() => onChange({ ...(value ?? {}), clauses: [...clauses, { key: '', value: '' }] })}>
-                            {__('Add clause', 'artisanpack-visual-editor')}
-                        </Button>
-                    </PanelRow>
-                </>
+                    <Button variant="secondary" onClick={() => onChange({ ...(value ?? {}), clauses: [...clauses, { key: '', value: '' }] })}>
+                        {__('Add clause', 'artisanpack-visual-editor')}
+                    </Button>
+                </div>
             )}
         </>
     );
 }
 
 function ReferrerPanel({ value, onChange }: { value: ReferrerRuleAttrs | undefined; onChange: (next: ReferrerRuleAttrs | undefined) => void }): JSX.Element {
+    const active = value !== undefined;
     const patterns = value?.patterns ?? [];
-    const active = patterns.length > 0;
 
     return (
         <>
@@ -269,13 +300,14 @@ function ReferrerPanel({ value, onChange }: { value: ReferrerRuleAttrs | undefin
                 />
             </PanelRow>
             {active && (
-                <>
+                <div style={SUBSECTION_STYLE}>
                     <DirectionToggle value={value?.direction ?? 'show'} onChange={(direction) => onChange({ ...(value ?? {}), direction, patterns })} />
                     <CombinatorToggle value={value?.combinator ?? 'any'} onChange={(combinator) => onChange({ ...(value ?? {}), combinator, patterns })} />
                     {patterns.map((pattern: string, index: number) => (
-                        <PanelRow key={index}>
+                        <div key={index}>
                             <TextControl
-                                label={__('Pattern (e.g. twitter.com, *.example.com, (direct))', 'artisanpack-visual-editor')}
+                                label={__('Pattern', 'artisanpack-visual-editor')}
+                                help={__('e.g. twitter.com, *.example.com, (direct)', 'artisanpack-visual-editor')}
                                 value={pattern}
                                 onChange={(next) => {
                                     const copy = [...patterns];
@@ -283,24 +315,27 @@ function ReferrerPanel({ value, onChange }: { value: ReferrerRuleAttrs | undefin
                                     onChange({ ...(value ?? {}), patterns: copy });
                                 }}
                             />
-                            <Button variant="secondary" onClick={() => onChange({ ...(value ?? {}), patterns: patterns.filter((_p, i) => i !== index) })}>
-                                {__('Remove', 'artisanpack-visual-editor')}
+                            <Button
+                                variant="link"
+                                isDestructive
+                                style={REMOVE_BUTTON_STYLE}
+                                onClick={() => onChange({ ...(value ?? {}), patterns: patterns.filter((_p, i) => i !== index) })}
+                            >
+                                {__('Remove pattern', 'artisanpack-visual-editor')}
                             </Button>
-                        </PanelRow>
+                        </div>
                     ))}
-                    <PanelRow>
-                        <Button variant="secondary" onClick={() => onChange({ ...(value ?? {}), patterns: [...patterns, ''] })}>
-                            {__('Add pattern', 'artisanpack-visual-editor')}
-                        </Button>
-                    </PanelRow>
-                </>
+                    <Button variant="secondary" onClick={() => onChange({ ...(value ?? {}), patterns: [...patterns, ''] })}>
+                        {__('Add pattern', 'artisanpack-visual-editor')}
+                    </Button>
+                </div>
             )}
         </>
     );
 }
 
 function BrowserOsDevicePanel({ value, onChange }: { value: BrowserOsDeviceRuleAttrs | undefined; onChange: (next: BrowserOsDeviceRuleAttrs | undefined) => void }): JSX.Element {
-    const active = (value?.browsers?.length ?? 0) + (value?.operatingSystems?.length ?? 0) + (value?.deviceTypes?.length ?? 0) > 0;
+    const active = value !== undefined;
 
     return (
         <>
@@ -312,12 +347,12 @@ function BrowserOsDevicePanel({ value, onChange }: { value: BrowserOsDeviceRuleA
                 />
             </PanelRow>
             {active && (
-                <>
+                <div style={SUBSECTION_STYLE}>
                     <DirectionToggle value={value?.direction ?? 'show'} onChange={(direction) => onChange({ ...(value ?? {}), direction })} />
                     <ChipList label={__('Browsers', 'artisanpack-visual-editor')} options={BROWSER_OPTIONS} value={value?.browsers ?? []} onChange={(next) => onChange({ ...(value ?? {}), browsers: next })} />
                     <ChipList label={__('Operating systems', 'artisanpack-visual-editor')} options={OS_OPTIONS} value={value?.operatingSystems ?? []} onChange={(next) => onChange({ ...(value ?? {}), operatingSystems: next })} />
                     <ChipList label={__('Device types', 'artisanpack-visual-editor')} options={DEVICE_OPTIONS} value={value?.deviceTypes ?? []} onChange={(next) => onChange({ ...(value ?? {}), deviceTypes: next })} />
-                </>
+                </div>
             )}
         </>
     );
@@ -341,7 +376,7 @@ function LoginStatePanel({ value, onChange }: { value: 'loggedIn' | 'loggedOut' 
 }
 
 function UserRolePanel({ value, onChange, roles }: { value: UserRoleRuleAttrs | undefined; onChange: (next: UserRoleRuleAttrs | undefined) => void; roles: Array<{ slug: string; label: string }> }): JSX.Element {
-    const active = (value?.roles?.length ?? 0) > 0;
+    const active = value !== undefined;
 
     return (
         <>
@@ -353,24 +388,29 @@ function UserRolePanel({ value, onChange, roles }: { value: UserRoleRuleAttrs | 
                 />
             </PanelRow>
             {active && (
-                <>
+                <div style={SUBSECTION_STYLE}>
                     <DirectionToggle value={value?.direction ?? 'show'} onChange={(direction) => onChange({ ...(value ?? {}), direction, roles: value?.roles ?? [] })} />
                     <CombinatorToggle value={value?.combinator ?? 'any'} onChange={(combinator) => onChange({ ...(value ?? {}), combinator, roles: value?.roles ?? [] })} />
+                    {roles.length === 0 && (
+                        <em style={{ opacity: 0.7 }}>
+                            {__('No roles are registered. Add roles to your app to use this rule.', 'artisanpack-visual-editor')}
+                        </em>
+                    )}
                     <ChipList
                         label={__('Roles', 'artisanpack-visual-editor')}
                         options={roles.map((r) => ({ value: r.slug, label: r.label }))}
                         value={value?.roles ?? []}
                         onChange={(next) => onChange({ ...(value ?? {}), roles: next })}
                     />
-                </>
+                </div>
             )}
         </>
     );
 }
 
 function SpecificUserPanel({ value, onChange, searchUsers }: { value: SpecificUserRuleAttrs | undefined; onChange: (next: SpecificUserRuleAttrs | undefined) => void; searchUsers: (term: string) => Promise<SpecificUserRef[]> }): JSX.Element {
+    const active = value !== undefined;
     const users = value?.users ?? [];
-    const active = users.length > 0;
 
     return (
         <>
@@ -382,7 +422,7 @@ function SpecificUserPanel({ value, onChange, searchUsers }: { value: SpecificUs
                 />
             </PanelRow>
             {active && (
-                <>
+                <div style={SUBSECTION_STYLE}>
                     <DirectionToggle value={value?.direction ?? 'show'} onChange={(direction) => onChange({ ...(value ?? {}), direction, users })} />
                     <UserAutocomplete
                         searchUsers={searchUsers}
@@ -391,22 +431,30 @@ function SpecificUserPanel({ value, onChange, searchUsers }: { value: SpecificUs
                             onChange({ ...(value ?? {}), users: [...users, user] });
                         }}
                     />
-                    {users.map((user: SpecificUserRef) => (
-                        <PanelRow key={user.id}>
-                            <span>{user.name ? `${user.name} (${user.email})` : user.email}</span>
-                            <Button variant="secondary" onClick={() => onChange({ ...(value ?? {}), users: users.filter((u) => u.id !== user.id) })}>
-                                {__('Remove', 'artisanpack-visual-editor')}
-                            </Button>
-                        </PanelRow>
-                    ))}
-                </>
+                    {users.length > 0 && (
+                        <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {users.map((user: SpecificUserRef) => (
+                                <li key={user.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
+                                    <span>{user.name ? `${user.name} (${user.email})` : user.email}</span>
+                                    <Button
+                                        variant="link"
+                                        isDestructive
+                                        onClick={() => onChange({ ...(value ?? {}), users: users.filter((u) => u.id !== user.id) })}
+                                    >
+                                        {__('Remove', 'artisanpack-visual-editor')}
+                                    </Button>
+                                </li>
+                            ))}
+                        </ul>
+                    )}
+                </div>
             )}
         </>
     );
 }
 
 function DateTimeWindowPanel({ value, onChange }: { value: DateTimeWindowRuleAttrs | undefined; onChange: (next: DateTimeWindowRuleAttrs | undefined) => void }): JSX.Element {
-    const active = Boolean(value?.start || value?.end);
+    const active = value !== undefined;
 
     return (
         <>
@@ -418,36 +466,32 @@ function DateTimeWindowPanel({ value, onChange }: { value: DateTimeWindowRuleAtt
                 />
             </PanelRow>
             {active && (
-                <>
-                    <PanelRow>
-                        <DateTimePicker
-                            currentDate={value?.start ?? undefined}
-                            onChange={(next) => onChange({ ...(value ?? {}), start: next ?? '' })}
-                        />
-                    </PanelRow>
-                    <PanelRow>
-                        <DateTimePicker
-                            currentDate={value?.end ?? undefined}
-                            onChange={(next) => onChange({ ...(value ?? {}), end: next ?? '' })}
-                        />
-                    </PanelRow>
-                    <PanelRow>
-                        <TextControl
-                            label={__('Timezone override (optional)', 'artisanpack-visual-editor')}
-                            help={__('e.g. America/Chicago. Falls back to the app\'s configured timezone.', 'artisanpack-visual-editor')}
-                            value={value?.timezone ?? ''}
-                            onChange={(next) => onChange({ ...(value ?? {}), timezone: next })}
-                        />
-                    </PanelRow>
-                </>
+                <div style={SUBSECTION_STYLE}>
+                    <strong>{__('Start', 'artisanpack-visual-editor')}</strong>
+                    <DateTimePicker
+                        currentDate={value?.start || undefined}
+                        onChange={(next) => onChange({ ...(value ?? {}), start: next ?? '' })}
+                    />
+                    <strong>{__('End', 'artisanpack-visual-editor')}</strong>
+                    <DateTimePicker
+                        currentDate={value?.end || undefined}
+                        onChange={(next) => onChange({ ...(value ?? {}), end: next ?? '' })}
+                    />
+                    <TextControl
+                        label={__('Timezone override (optional)', 'artisanpack-visual-editor')}
+                        help={__('e.g. America/Chicago. Falls back to the app\'s configured timezone.', 'artisanpack-visual-editor')}
+                        value={value?.timezone ?? ''}
+                        onChange={(next) => onChange({ ...(value ?? {}), timezone: next })}
+                    />
+                </div>
             )}
         </>
     );
 }
 
 function RecurringPanel({ value, onChange }: { value: RecurringScheduleRuleAttrs | undefined; onChange: (next: RecurringScheduleRuleAttrs | undefined) => void }): JSX.Element {
+    const active = value !== undefined;
     const windows = value?.windows ?? [];
-    const active = windows.length > 0;
 
     return (
         <>
@@ -459,59 +503,70 @@ function RecurringPanel({ value, onChange }: { value: RecurringScheduleRuleAttrs
                 />
             </PanelRow>
             {active && (
-                <>
+                <div style={SUBSECTION_STYLE}>
                     {windows.map((win: RecurringWindow, index: number) => (
-                        <PanelRow key={index}>
-                            <SelectControl
-                                label={__('Day', 'artisanpack-visual-editor')}
-                                value={String(win.day)}
-                                options={DAY_OPTIONS}
-                                onChange={(next) => {
-                                    const copy = [...windows];
-                                    copy[index] = { ...win, day: Number(next) };
-                                    onChange({ ...(value ?? {}), windows: copy });
-                                }}
-                            />
-                            <TextControl
-                                label={__('Start (HH:MM)', 'artisanpack-visual-editor')}
-                                value={win.start}
-                                onChange={(next) => {
-                                    const copy = [...windows];
-                                    copy[index] = { ...win, start: next };
-                                    onChange({ ...(value ?? {}), windows: copy });
-                                }}
-                            />
-                            <TextControl
-                                label={__('End (HH:MM)', 'artisanpack-visual-editor')}
-                                value={win.end}
-                                onChange={(next) => {
-                                    const copy = [...windows];
-                                    copy[index] = { ...win, end: next };
-                                    onChange({ ...(value ?? {}), windows: copy });
-                                }}
-                            />
-                            <Button variant="secondary" onClick={() => onChange({ ...(value ?? {}), windows: windows.filter((_w, i) => i !== index) })}>
-                                {__('Remove', 'artisanpack-visual-editor')}
+                        <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: '4px', paddingBottom: '8px', borderBottom: '1px dashed rgba(0,0,0,0.08)' }}>
+                            <div style={ROW_STYLE}>
+                                <div style={{ flex: '1 1 100px', minWidth: '100px' }}>
+                                    <SelectControl
+                                        label={__('Day', 'artisanpack-visual-editor')}
+                                        value={String(win.day)}
+                                        options={DAY_OPTIONS}
+                                        onChange={(next) => {
+                                            const copy = [...windows];
+                                            copy[index] = { ...win, day: Number(next) };
+                                            onChange({ ...(value ?? {}), windows: copy });
+                                        }}
+                                    />
+                                </div>
+                                <div style={{ flex: '1 1 80px', minWidth: '80px' }}>
+                                    <TextControl
+                                        label={__('Start', 'artisanpack-visual-editor')}
+                                        placeholder="HH:MM"
+                                        value={win.start}
+                                        onChange={(next) => {
+                                            const copy = [...windows];
+                                            copy[index] = { ...win, start: next };
+                                            onChange({ ...(value ?? {}), windows: copy });
+                                        }}
+                                    />
+                                </div>
+                                <div style={{ flex: '1 1 80px', minWidth: '80px' }}>
+                                    <TextControl
+                                        label={__('End', 'artisanpack-visual-editor')}
+                                        placeholder="HH:MM"
+                                        value={win.end}
+                                        onChange={(next) => {
+                                            const copy = [...windows];
+                                            copy[index] = { ...win, end: next };
+                                            onChange({ ...(value ?? {}), windows: copy });
+                                        }}
+                                    />
+                                </div>
+                            </div>
+                            <Button
+                                variant="link"
+                                isDestructive
+                                style={REMOVE_BUTTON_STYLE}
+                                onClick={() => onChange({ ...(value ?? {}), windows: windows.filter((_w, i) => i !== index) })}
+                            >
+                                {__('Remove window', 'artisanpack-visual-editor')}
                             </Button>
-                        </PanelRow>
+                        </div>
                     ))}
-                    <PanelRow>
-                        <Button
-                            variant="secondary"
-                            disabled={windows.length >= 14}
-                            onClick={() => onChange({ ...(value ?? {}), windows: [...windows, { day: 1, start: '09:00', end: '17:00' }] })}
-                        >
-                            {__('Add window', 'artisanpack-visual-editor')}
-                        </Button>
-                    </PanelRow>
-                    <PanelRow>
-                        <TextControl
-                            label={__('Timezone override (optional)', 'artisanpack-visual-editor')}
-                            value={value?.timezone ?? ''}
-                            onChange={(next) => onChange({ ...(value ?? {}), timezone: next, windows })}
-                        />
-                    </PanelRow>
-                </>
+                    <Button
+                        variant="secondary"
+                        disabled={windows.length >= 14}
+                        onClick={() => onChange({ ...(value ?? {}), windows: [...windows, { day: 1, start: '09:00', end: '17:00' }] })}
+                    >
+                        {__('Add window', 'artisanpack-visual-editor')}
+                    </Button>
+                    <TextControl
+                        label={__('Timezone override (optional)', 'artisanpack-visual-editor')}
+                        value={value?.timezone ?? ''}
+                        onChange={(next) => onChange({ ...(value ?? {}), timezone: next, windows })}
+                    />
+                </div>
             )}
         </>
     );
@@ -519,31 +574,27 @@ function RecurringPanel({ value, onChange }: { value: RecurringScheduleRuleAttrs
 
 function DirectionToggle({ value, onChange }: { value: 'show' | 'hide'; onChange: (next: 'show' | 'hide') => void }): JSX.Element {
     return (
-        <PanelRow>
-            <ButtonGroup>
-                <Button variant={value === 'show' ? 'primary' : 'secondary'} onClick={() => onChange('show')}>{__('Show when', 'artisanpack-visual-editor')}</Button>
-                <Button variant={value === 'hide' ? 'primary' : 'secondary'} onClick={() => onChange('hide')}>{__('Hide when', 'artisanpack-visual-editor')}</Button>
-            </ButtonGroup>
-        </PanelRow>
+        <ButtonGroup>
+            <Button variant={value === 'show' ? 'primary' : 'secondary'} onClick={() => onChange('show')}>{__('Show when', 'artisanpack-visual-editor')}</Button>
+            <Button variant={value === 'hide' ? 'primary' : 'secondary'} onClick={() => onChange('hide')}>{__('Hide when', 'artisanpack-visual-editor')}</Button>
+        </ButtonGroup>
     );
 }
 
 function CombinatorToggle({ value, onChange }: { value: 'any' | 'all'; onChange: (next: 'any' | 'all') => void }): JSX.Element {
     return (
-        <PanelRow>
-            <ButtonGroup>
-                <Button variant={value === 'any' ? 'primary' : 'secondary'} onClick={() => onChange('any')}>{__('Any', 'artisanpack-visual-editor')}</Button>
-                <Button variant={value === 'all' ? 'primary' : 'secondary'} onClick={() => onChange('all')}>{__('All', 'artisanpack-visual-editor')}</Button>
-            </ButtonGroup>
-        </PanelRow>
+        <ButtonGroup>
+            <Button variant={value === 'any' ? 'primary' : 'secondary'} onClick={() => onChange('any')}>{__('Any', 'artisanpack-visual-editor')}</Button>
+            <Button variant={value === 'all' ? 'primary' : 'secondary'} onClick={() => onChange('all')}>{__('All', 'artisanpack-visual-editor')}</Button>
+        </ButtonGroup>
     );
 }
 
 function ChipList({ label, options, value, onChange }: { label: string; options: Array<{ value: string; label: string }>; value: string[]; onChange: (next: string[]) => void }): JSX.Element {
     return (
-        <PanelRow>
-            <fieldset>
-                <legend>{label}</legend>
+        <fieldset style={{ border: 'none', padding: 0, margin: 0 }}>
+            <legend style={{ padding: 0, marginBottom: '4px', fontWeight: 600 }}>{label}</legend>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                 {options.map((opt) => (
                     <CheckboxControl
                         key={opt.value}
@@ -556,21 +607,13 @@ function ChipList({ label, options, value, onChange }: { label: string; options:
                         }}
                     />
                 ))}
-            </fieldset>
-        </PanelRow>
+            </div>
+        </fieldset>
     );
 }
 
 function UserAutocomplete({ searchUsers, onSelect }: { searchUsers: (term: string) => Promise<SpecificUserRef[]>; onSelect: (user: SpecificUserRef) => void }): JSX.Element {
-    return (
-        <PanelRow>
-            <UserAutocompleteInner searchUsers={searchUsers} onSelect={onSelect} />
-        </PanelRow>
-    );
-}
-
-function UserAutocompleteInner({ searchUsers, onSelect }: { searchUsers: (term: string) => Promise<SpecificUserRef[]>; onSelect: (user: SpecificUserRef) => void }): JSX.Element {
-    const [term, setTerm] = useState('');
+    const [term, setTerm]       = useState('');
     const [results, setResults] = useState<SpecificUserRef[]>([]);
 
     useEffect(() => {
@@ -581,18 +624,23 @@ function UserAutocompleteInner({ searchUsers, onSelect }: { searchUsers: (term: 
     }, [term, searchUsers]);
 
     return (
-        <>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
             <TextControl
                 label={__('Search users', 'artisanpack-visual-editor')}
                 value={term}
                 onChange={setTerm}
             />
-            {results.map((user) => (
-                <Button key={user.id} variant="secondary" onClick={() => { onSelect(user); setTerm(''); }}>
-                    {user.name ? `${user.name} (${user.email})` : user.email}
-                </Button>
-            ))}
-        </>
+            {results.length > 0 && (
+                <ul style={{ margin: 0, padding: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: '2px', maxHeight: '200px', overflow: 'auto' }}>
+                    {results.map((user) => (
+                        <li key={user.id}>
+                            <Button variant="tertiary" onClick={() => { onSelect(user); setTerm(''); }}>
+                                {user.name ? `${user.name} (${user.email})` : user.email}
+                            </Button>
+                        </li>
+                    ))}
+                </ul>
+            )}
+        </div>
     );
 }
-

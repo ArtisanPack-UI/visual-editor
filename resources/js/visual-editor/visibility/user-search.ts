@@ -34,10 +34,10 @@ export async function searchUsers(term: string, limit = 10): Promise<SpecificUse
             .filter((row: unknown): row is { id: unknown; email: unknown; name?: unknown } =>
                 row !== null && typeof row === 'object' && 'id' in row && 'email' in row
             )
-            .map((row) => ({
-                id: Number(row.id),
+            .map((row: { id: unknown; email: unknown; name?: unknown }) => ({
+                id:    Number(row.id),
                 email: String(row.email ?? ''),
-                name: typeof row.name === 'string' ? row.name : String(row.email ?? ''),
+                name:  typeof row.name === 'string' ? row.name : String(row.email ?? ''),
             }))
             .filter((u: SpecificUserRef) => Number.isFinite(u.id));
     } catch (_e) {
