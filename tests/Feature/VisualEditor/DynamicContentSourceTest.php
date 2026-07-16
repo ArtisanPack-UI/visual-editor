@@ -74,6 +74,40 @@ it( 'ignores the loop-index scope when the token has an explicit index', functio
 	expect( $this->source->resolve( $ctx, [ 'token' => 'team[0].name' ] ) )->toBe( 'Alice' );
 } );
 
+it( 'applies the mailto: scheme when args.scheme is email', function () {
+	$ctx = new BindingContext();
+
+	expect( $this->source->resolve( $ctx, [
+		'token'  => 'business_info.email',
+		'scheme' => 'mailto',
+	] ) )->toBe( 'mailto:hi@example.com' );
+} );
+
+it( 'applies the tel: scheme when args.scheme is tel and strips formatting', function () {
+	$ctx = new BindingContext();
+
+	expect( $this->source->resolve( $ctx, [
+		'token'  => 'business_info.phone',
+		'scheme' => 'tel',
+	] ) )->toBe( 'tel:5551234567' );
+} );
+
+it( 'does not double-prefix an already-schemed value', function () {
+	app()->instance(
+		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor',
+		new FakeDynamicContentAccessor( [
+			'business_info' => [ 'email' => 'mailto:already@example.com' ],
+		] )
+	);
+
+	$ctx = new BindingContext();
+
+	expect( $this->source->resolve( $ctx, [
+		'token'  => 'business_info.email',
+		'scheme' => 'mailto',
+	] ) )->toBe( 'mailto:already@example.com' );
+} );
+
 it( 'enumerates fields from the registered types', function () {
 	app()->instance(
 		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Managers\\DynamicContentTypeRegistry',

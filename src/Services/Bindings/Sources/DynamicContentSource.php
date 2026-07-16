@@ -74,12 +74,45 @@ class DynamicContentSource implements BlockBindingSource
 		}
 
 		try {
-			return $this->readToken( $token );
+			$value = $this->readToken( $token );
 		} catch ( Throwable $e ) {
 			report( $e );
 
 			return null;
 		}
+
+		return $this->applyScheme( $value, $args['scheme'] ?? null );
+	}
+
+	/**
+	 * Apply a URL scheme prefix when the binding declared one and the
+	 * value isn't already prefixed.
+	 *
+	 * Supported schemes: `mailto`, `tel`, `url` (no-op — the value is
+	 * already a URL). Used by the Button binding panel when binding a
+	 * link to a phone/email DC field so the raw value renders as a
+	 * clickable href.
+	 *
+	 * @since 1.4.0
+	 */
+	protected function applyScheme( mixed $value, mixed $scheme ): mixed
+	{
+		if ( ! is_string( $scheme ) || ! is_string( $value ) || '' === $value ) {
+			return $value;
+		}
+
+		$lower = strtolower( $value );
+
+		if ( str_starts_with( $lower, 'http://' ) || str_starts_with( $lower, 'https://' )
+			|| str_starts_with( $lower, 'mailto:' ) || str_starts_with( $lower, 'tel:' ) ) {
+			return $value;
+		}
+
+		return match ( $scheme ) {
+			'mailto' => 'mailto:' . $value,
+			'tel'    => 'tel:' . preg_replace( '/[^\d+]/', '', $value ),
+			default  => $value,
+		};
 	}
 
 	public function eagerLoadRelations( array $bindingArgs ): array

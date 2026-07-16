@@ -125,6 +125,74 @@ class BlockRenderer
 	}
 
 	/**
+	 * Walk the tree resolving `{{token}}` occurrences in every string /
+	 * numeric-string attribute via cms-framework's DynamicContentResolver.
+	 * Attributes that don't contain a `{{` are left untouched so the pass
+	 * is a fast pre-filter — the resolver is invoked at most once per
+	 * bearing attribute.
+	 *
+	 * @param  array<int, array<string, mixed>>  $tree
+	 *
+	 * @return array<int, array<string, mixed>>
+	 *
+	 * @since 1.4.0
+	 */
+	public function resolveInlineTokens( array $tree ): array
+	{
+		$resolverClass = 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentResolver';
+
+		if ( [] === $tree || ! class_exists( $resolverClass ) ) {
+			return $tree;
+		}
+
+		try {
+			$resolver = app( $resolverClass );
+		} catch ( Throwable $e ) {
+			report( $e );
+
+			return $tree;
+		}
+
+		return array_values( array_map(
+			fn ( $block ) => is_array( $block ) ? $this->resolveInlineTokensInBlock( $block, $resolver ) : $block,
+			$tree
+		) );
+	}
+
+	/**
+	 * @param  array<string, mixed>  $block
+	 *
+	 * @return array<string, mixed>
+	 *
+	 * @since 1.4.0
+	 */
+	protected function resolveInlineTokensInBlock( array $block, object $resolver ): array
+	{
+		$attrs = is_array( $block['attrs'] ?? null ) ? $block['attrs'] : [];
+
+		foreach ( $attrs as $key => $value ) {
+			if ( is_string( $value ) && str_contains( $value, '{{' ) ) {
+				try {
+					$attrs[ $key ] = (string) $resolver->render( $value );
+				} catch ( Throwable $e ) {
+					report( $e );
+				}
+			}
+		}
+
+		$block['attrs'] = $attrs;
+
+		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
+			$block['innerBlocks'] = array_values( array_map(
+				fn ( $inner ) => is_array( $inner ) ? $this->resolveInlineTokensInBlock( $inner, $resolver ) : $inner,
+				$block['innerBlocks']
+			) );
+		}
+
+		return $block;
+	}
+
+	/**
 	 * Resolve block bindings for the given tree before it hits the
 	 * renderer's main loop. When a BindingResolver is wired, the tree is
 	 * walked once so every block's `bindings` sidecar is folded into the
@@ -176,6 +244,14 @@ class BlockRenderer
 		// resolver only mutates blocks with a `bindings` sidecar; trees
 		// without bindings round-trip byte-identically.
 		$tree = $this->resolveBindings( $tree );
+
+		// #650 — inline token pass. Walks every block's string /
+		// rich-text attribute looking for `{{token}}` occurrences and
+		// runs them through cms-framework's DynamicContentResolver so
+		// authored inline tokens (typed via `{{` autocomplete or the
+		// Token Inserter) resolve at render time. Silent no-op when
+		// cms-framework is not on the classpath.
+		$tree = $this->resolveInlineTokens( $tree );
 
 		$out = '';
 

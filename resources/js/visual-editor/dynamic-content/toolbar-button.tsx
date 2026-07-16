@@ -8,15 +8,23 @@
  * @since 1.4.0
  */
 
-import { BlockControls, RichTextShortcut } from '@wordpress/block-editor';
-import { ToolbarButton, ToolbarGroup } from '@wordpress/components';
+import { BlockControls } from '@wordpress/block-editor';
+import { ToolbarButton, ToolbarGroup, SVG, Path } from '@wordpress/components';
 import { createHigherOrderComponent } from '@wordpress/compose';
 import { useState } from '@wordpress/element';
 import { addFilter } from '@wordpress/hooks';
 import { __ } from '@wordpress/i18n';
-import { insert, create } from '@wordpress/rich-text';
 
 import TokenInserterModal from './token-inserter-modal';
+
+// Curly-brace token glyph — inline SVG so we don't depend on
+// @wordpress/icons and its default dashicon isn't inconsistently
+// resolved across block-editor versions.
+const TOKEN_ICON = (
+    <SVG xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+        <Path d="M8 4c-2.2 0-3 1-3 3v3c0 1-.5 2-2 2v1c1.5 0 2 1 2 2v3c0 2 .8 3 3 3v-1c-1.4 0-2-.4-2-2v-3c0-1.2-.5-2-1.5-2.5C5.5 12 6 11.2 6 10V7c0-1.6.6-2 2-2V4zM16 4c2.2 0 3 1 3 3v3c0 1 .5 2 2 2v1c-1.5 0-2 1-2 2v3c0 2-.8 3-3 3v-1c1.4 0 2-.4 2-2v-3c0-1.2.5-2 1.5-2.5C18.5 12 18 11.2 18 10V7c0-1.6-.6-2-2-2V4z" />
+    </SVG>
+);
 
 const TARGET_BLOCKS = new Set<string>([
     'artisanpack/paragraph',
@@ -67,9 +75,10 @@ const withDynamicContentToolbar = createHigherOrderComponent(
                     <BlockControls group="other">
                         <ToolbarGroup>
                             <ToolbarButton
-                                icon="editor-code"
+                                icon={TOKEN_ICON}
                                 label={__('Insert Dynamic Content token', 'artisanpack-visual-editor')}
                                 onClick={() => setOpen(true)}
+                                showTooltip
                             />
                         </ToolbarGroup>
                     </BlockControls>

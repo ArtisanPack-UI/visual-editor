@@ -12,6 +12,9 @@ import { registerDynamicContentAutocomplete } from './autocomplete';
 import { registerDynamicContentChipFormat } from './token-chip-format';
 import { registerDynamicContentToolbarButton } from './toolbar-button';
 import { registerImageBindingPanel } from './image-binding-panel';
+import { registerButtonBindingPanel } from './button-binding-panel';
+
+import './dynamic-content.css';
 
 export {
     DC_API_BASE,
@@ -24,7 +27,13 @@ export {
 } from './api';
 export { default as ArtisanPackLinkControl } from './link-control';
 export { default as TokenInserterModal } from './token-inserter-modal';
-export { registerDynamicContentAutocomplete, registerDynamicContentChipFormat, registerDynamicContentToolbarButton, registerImageBindingPanel };
+export {
+    registerDynamicContentAutocomplete,
+    registerDynamicContentChipFormat,
+    registerDynamicContentToolbarButton,
+    registerImageBindingPanel,
+    registerButtonBindingPanel,
+};
 
 let registered = false;
 
@@ -41,4 +50,5 @@ export function registerDynamicContent(): void {
     registerDynamicContentAutocomplete();
     registerDynamicContentToolbarButton();
     registerImageBindingPanel();
+    registerButtonBindingPanel();
 }
