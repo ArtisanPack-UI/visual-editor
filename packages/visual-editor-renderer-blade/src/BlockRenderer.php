@@ -22,6 +22,8 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade;
 
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityContext;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityDecision;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator;
@@ -118,7 +120,38 @@ class BlockRenderer
 		protected ?SiteMetaResolver $siteMeta = null,
 		protected ?LoginoutResolver $loginout = null,
 		protected ?VisibilityEvaluator $visibility = null,
+		protected ?BindingResolver $bindingResolver = null,
 	) {
+	}
+
+	/**
+	 * Resolve block bindings for the given tree before it hits the
+	 * renderer's main loop. When a BindingResolver is wired, the tree is
+	 * walked once so every block's `bindings` sidecar is folded into the
+	 * static `attrs` — the downstream walker then renders as if the
+	 * values had been persisted. Silent no-op when the resolver isn't
+	 * bound (VE renderer-blade is installable without the bindings
+	 * layer).
+	 *
+	 * @param  array<int, array<string, mixed>>  $tree
+	 *
+	 * @return array<int, array<string, mixed>>
+	 *
+	 * @since 1.4.0
+	 */
+	public function resolveBindings( array $tree, ?BindingContext $context = null ): array
+	{
+		if ( null === $this->bindingResolver || [] === $tree ) {
+			return $tree;
+		}
+
+		try {
+			return $this->bindingResolver->resolve( $tree, $context );
+		} catch ( Throwable $e ) {
+			report( $e );
+
+			return $tree;
+		}
 	}
 
 	/**
@@ -137,6 +170,12 @@ class BlockRenderer
 		if ( null !== $this->visibility && $this->visibility->enabled() ) {
 			$this->visibilityContext = $this->visibility->contextFromRequest();
 		}
+
+		// #650 — resolve bindings (Dynamic Content, custom fields,
+		// post_core, relation) once before the walker runs. The
+		// resolver only mutates blocks with a `bindings` sidecar; trees
+		// without bindings round-trip byte-identically.
+		$tree = $this->resolveBindings( $tree );
 
 		$out = '';
 
@@ -390,8 +429,19 @@ class BlockRenderer
 
 		try {
 			$validated = $block->validateAttrs( $attributes );
-			$result    = $block->render( $validated );
-			$html      = $this->coerceToString( $result );
+
+			// #650 — dynamic blocks that need their inner tree at render
+			// time (e.g. `artisanpack/dynamic-loop` iterating a template)
+			// implement WantsInnerBlocks; the renderer forwards the
+			// unrendered innerBlocks tree so the block can walk or
+			// duplicate it per iteration.
+			if ( $block instanceof \ArtisanPackUI\VisualEditor\Blocks\WantsInnerBlocks ) {
+				$result = $block->renderWithInner( $validated, $innerBlocks );
+			} else {
+				$result = $block->render( $validated );
+			}
+
+			$html = $this->coerceToString( $result );
 
 			// #490 — dynamic blocks build their own wrapper HTML and
 			// don't go through `BlockSupports::compile`, so the

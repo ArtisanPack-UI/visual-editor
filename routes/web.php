@@ -74,6 +74,19 @@ Route::middleware('web')
                 'maxKilobytes' => UploadIconSetRequest::MAX_ZIP_KILOBYTES,
             ]);
         })->name('visual-editor.admin.icon-sets');
+
+        // #650 — Snippets admin page. Same access model as icon-sets:
+        // static Blade shell, actions POST to the JSON API, gated by
+        // SiteEditorAccessGate.
+        Route::get('/visual-editor/admin/snippets', function (Request $request, SiteEditorAccessGate $gate) {
+            if ($denial = $gate->check($request)) {
+                return $denial;
+            }
+
+            return view('visual-editor::admin.snippets', [
+                'apiBase' => '/visual-editor/api/snippets',
+            ]);
+        })->name('visual-editor.admin.snippets');
     });
 
 // D1 (#368). Site-editor shell. A single catch-all entry mounts the SPA and

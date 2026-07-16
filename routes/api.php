@@ -24,6 +24,9 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\AttachmentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BindingResolveController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BindingSourcesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\DynamicContentResolveController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\DynamicContentSourcesController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\SnippetController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsController;
@@ -71,6 +74,36 @@ Route::get( 'bindings/sources/{source}/fields', [ BindingSourcesController::clas
 // on top of the static attrs without waiting for a server render pass.
 Route::post( 'bindings/resolve', [ BindingResolveController::class, 'resolve' ] )
 	->name( 'visual-editor.api.bindings.resolve' );
+
+// #650 — Dynamic Content editor UX. Sources listing powers the token
+// inserter and `{{` autocomplete; the batched resolve endpoint powers
+// live chip previews so a page with dozens of tokens costs one
+// request rather than N.
+Route::get( 'dynamic-content/sources', [ DynamicContentSourcesController::class, 'index' ] )
+	->name( 'visual-editor.api.dynamic-content.sources' );
+
+Route::post( 'dynamic-content/resolve', [ DynamicContentResolveController::class, 'resolve' ] )
+	->name( 'visual-editor.api.dynamic-content.resolve' );
+
+// #650 — Reusable snippet CRUD. Backing store for the
+// `artisanpack/snippet` block and the Snippets admin UI.
+Route::get( 'snippets', [ SnippetController::class, 'index' ] )
+	->name( 'visual-editor.api.snippets.index' );
+
+Route::post( 'snippets', [ SnippetController::class, 'store' ] )
+	->name( 'visual-editor.api.snippets.store' );
+
+Route::get( 'snippets/{snippet}', [ SnippetController::class, 'show' ] )
+	->whereNumber( 'snippet' )
+	->name( 'visual-editor.api.snippets.show' );
+
+Route::put( 'snippets/{snippet}', [ SnippetController::class, 'update' ] )
+	->whereNumber( 'snippet' )
+	->name( 'visual-editor.api.snippets.update' );
+
+Route::delete( 'snippets/{snippet}', [ SnippetController::class, 'destroy' ] )
+	->whereNumber( 'snippet' )
+	->name( 'visual-editor.api.snippets.destroy' );
 
 // G4c-2 — `core/query` block resolution. Wraps cms-framework's
 // `QueryRuntime` (or any host-bound `QueryResolverContract`

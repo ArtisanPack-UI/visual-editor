@@ -62,6 +62,7 @@ import {
 } from '../bindings';
 import { registerBindingsAttribute } from '../bindings/register-attribute';
 import { registerBindingsPanel } from '../bindings/with-bindings-panel';
+import { registerDynamicContent } from '../dynamic-content';
 import { StateInspectorSync } from '../states/StateInspectorSync';
 import { StateWriteInterceptor } from '../states/state-write-interceptor';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
@@ -238,6 +239,9 @@ function registerOnce(): void {
     // `registerArtisanPackBlocks()` runs below.
     registerBindingsAttribute();
     registerBindingsPanel();
+    // #650 — Dynamic Content editor UX: `{{` autocomplete, token chip
+    // decoration, toolbar Token Inserter, and Image DC binding panel.
+    registerDynamicContent();
     // #490 — register the gradient-border feature filters BEFORE
     // blocks load so the supports-extension fires at registration
     // time (extending opted-in blocks' state/responsive routing lists
