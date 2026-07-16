@@ -168,7 +168,12 @@ class BlockRenderer
 	 */
 	protected function resolveInlineTokensInBlock( array $block, object $resolver ): array
 	{
-		$attrs = is_array( $block['attrs'] ?? null ) ? $block['attrs'] : [];
+		// Support both Gutenberg's `attributes` shape (what the editor
+		// persists into the DB via serializeBlock) and parse_blocks()'s
+		// `attrs` shape (post-content HTML comments). Both round-trip
+		// through the renderer.
+		$attrKey = is_array( $block['attributes'] ?? null ) ? 'attributes' : 'attrs';
+		$attrs   = is_array( $block[ $attrKey ] ?? null ) ? $block[ $attrKey ] : [];
 
 		foreach ( $attrs as $key => $value ) {
 			if ( is_string( $value ) && str_contains( $value, '{{' ) ) {
@@ -180,7 +185,7 @@ class BlockRenderer
 			}
 		}
 
-		$block['attrs'] = $attrs;
+		$block[ $attrKey ] = $attrs;
 
 		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
 			$block['innerBlocks'] = array_values( array_map(

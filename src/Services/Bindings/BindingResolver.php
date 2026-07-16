@@ -86,8 +86,15 @@ class BindingResolver
 	 */
 	protected function resolveBlock( array $block, BindingContext $context ): array
 	{
-		$bindings = $block['bindings'] ?? null;
-		$attrs    = is_array( $block['attrs'] ?? null ) ? $block['attrs'] : [];
+		// Support both Gutenberg's shape (`attributes`, with `bindings`
+		// nested inside) and parse_blocks()'s shape (`attrs` +
+		// top-level `bindings`). The editor persists the former; HTML
+		// comment parsing produces the latter. Both round-trip through
+		// the resolver.
+		$attrKey = is_array( $block['attributes'] ?? null ) ? 'attributes' : 'attrs';
+		$attrs   = is_array( $block[ $attrKey ] ?? null ) ? $block[ $attrKey ] : [];
+
+		$bindings = $block['bindings'] ?? ( is_array( $attrs['bindings'] ?? null ) ? $attrs['bindings'] : null );
 
 		if ( is_array( $bindings ) && [] !== $bindings ) {
 			foreach ( $bindings as $attribute => $binding ) {
@@ -98,7 +105,7 @@ class BindingResolver
 				$attrs = $this->applyBinding( $attribute, $binding, $attrs, $context );
 			}
 
-			$block['attrs'] = $attrs;
+			$block[ $attrKey ] = $attrs;
 		}
 
 		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
@@ -312,7 +319,12 @@ class BindingResolver
 				continue;
 			}
 
-			$bindings = $block['bindings'] ?? null;
+			// Bindings live at top-level in parse_blocks output; nested
+			// under `attributes.bindings` in the editor's serialized
+			// shape. Check both to stay backward compatible.
+			$attrs    = is_array( $block['attributes'] ?? null ) ? $block['attributes']
+				: ( is_array( $block['attrs'] ?? null ) ? $block['attrs'] : [] );
+			$bindings = $block['bindings'] ?? ( is_array( $attrs['bindings'] ?? null ) ? $attrs['bindings'] : null );
 
 			if ( is_array( $bindings ) ) {
 				foreach ( $bindings as $binding ) {

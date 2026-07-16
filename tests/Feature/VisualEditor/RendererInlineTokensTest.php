@@ -95,6 +95,22 @@ it( 'recurses into inner blocks', function () {
 		->toBe( 'Email: hi@example.com' );
 } );
 
+it( 'resolves tokens in Gutenberg-shape blocks (attributes key)', function () {
+	$tree = [
+		[
+			'name'       => 'artisanpack/paragraph',
+			'attributes' => [ 'content' => 'Phone: {{business_info.phone}}' ],
+			'innerBlocks' => [],
+		],
+	];
+
+	$resolved = $this->renderer->resolveInlineTokens( $tree );
+
+	expect( $resolved[0]['attributes']['content'] )->toBe( 'Phone: (555) 123-4567' );
+	// Verify the `attrs` fallback key wasn't accidentally introduced.
+	expect( isset( $resolved[0]['attrs'] ) )->toBeFalse();
+} );
+
 it( 'passes through non-string attrs untouched', function () {
 	$tree = [
 		[
