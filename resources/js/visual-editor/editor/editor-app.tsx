@@ -52,7 +52,7 @@ import { registerStateStylesFilters } from '../states/with-state-styles';
 import { registerAnimationsAttribute } from '../animations/register-attribute';
 import { registerAnimationsPanel } from '../animations/with-animations-panel';
 import { registerVisibilityAttribute } from '../visibility/register-attribute';
-import { registerVisibilityPanel } from '../visibility/with-visibility-panel';
+import { registerVisibilityPanel, setVisibilityBreakpoints } from '../visibility/with-visibility-panel';
 import { registryFromSnapshot } from '../responsive/registry';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
 import { useCanvasPreviewWidth } from '../responsive/use-canvas-preview-width';
@@ -559,6 +559,18 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         () => registryFromSnapshot(props.breakpoints ?? undefined),
         [props.breakpoints]
     );
+    // Publish the hydrated breakpoint list to the Visibility panel so
+    // its Screen Size subsection lists every registered viewport
+    // (sm / md / lg / xl / 2xl + host overrides), not just the three
+    // fallback entries baked into with-visibility-panel.tsx.
+    useEffect(() => {
+        setVisibilityBreakpoints(
+            viewportRegistry.prefixes().map((key: string) => ({
+                key,
+                label: viewportRegistry.label(key),
+            })),
+        );
+    }, [viewportRegistry]);
     const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
     // Mirror history in a ref so undo/redo handlers can read the latest
     // snapshot without taking a dep on `history` (which would re-memoize the
