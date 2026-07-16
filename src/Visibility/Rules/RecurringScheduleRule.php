@@ -93,14 +93,35 @@ class RecurringScheduleRule implements VisibilityRule
 	{
 		$day = isset( $window['day'] ) && is_numeric( $window['day'] ) ? (int) $window['day'] : -1;
 
-		if ( $day !== $currentDay ) {
+		if ( $day < 0 || $day > 6 ) {
 			return false;
 		}
 
 		$start = $this->minutesFromClock( $window['start'] ?? null );
 		$end   = $this->minutesFromClock( $window['end']   ?? null );
 
-		if ( null === $start || null === $end || $end < $start ) {
+		if ( null === $start || null === $end ) {
+			return false;
+		}
+
+		// Overnight window (e.g. Sat 22:00 → Sun 02:00). Match on
+		// EITHER the window's day (from start onwards) OR the next
+		// day-of-week (up to end). Same-day windows fall through to
+		// the simple `start <= now <= end` check.
+		if ( $end < $start ) {
+			if ( $day === $currentDay && $currentMinutes >= $start ) {
+				return true;
+			}
+
+			$nextDay = ( $day + 1 ) % 7;
+			if ( $nextDay === $currentDay && $currentMinutes <= $end ) {
+				return true;
+			}
+
+			return false;
+		}
+
+		if ( $day !== $currentDay ) {
 			return false;
 		}
 

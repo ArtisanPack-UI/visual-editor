@@ -52,7 +52,7 @@ import { registerStateStylesFilters } from '../states/with-state-styles';
 import { registerAnimationsAttribute } from '../animations/register-attribute';
 import { registerAnimationsPanel } from '../animations/with-animations-panel';
 import { registerVisibilityAttribute } from '../visibility/register-attribute';
-import { registerVisibilityPanel, setVisibilityBreakpoints } from '../visibility/with-visibility-panel';
+import { registerVisibilityPanel, setVisibilityBreakpoints, setVisibilityRoles } from '../visibility/with-visibility-panel';
 import { registryFromSnapshot } from '../responsive/registry';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
 import { useCanvasPreviewWidth } from '../responsive/use-canvas-preview-width';
@@ -330,6 +330,16 @@ export interface EditorAppProps {
      * `previewWidthPx` overrides reach the viewport switcher.
      */
     breakpoints?: BreakpointRegistrySnapshot | null;
+    /**
+     * Role list surfaced to the Block Visibility "User Role" rule
+     * panel (#492). Each entry is `{ slug, label }`; slug is the
+     * value persisted into `artisanpackVisibility.userRole.roles`,
+     * label is the display string. The host resolves this from its
+     * own role system (cms-framework `RoleManager`, Spatie, custom)
+     * and passes it through; when omitted, the panel renders the
+     * "No roles registered" hint.
+     */
+    visibilityRoles?: Array<{ slug: string; label: string }>;
 }
 
 export { entityTypeForResource } from './entity-type';
@@ -571,6 +581,12 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             })),
         );
     }, [viewportRegistry]);
+    // Publish the host-supplied role list to the Visibility panel's
+    // User Role subsection (#492). When the prop is omitted the panel
+    // renders the "No roles registered" hint the user can act on.
+    useEffect(() => {
+        setVisibilityRoles(props.visibilityRoles ?? []);
+    }, [props.visibilityRoles]);
     const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
     // Mirror history in a ref so undo/redo handlers can read the latest
     // snapshot without taking a dep on `history` (which would re-memoize the

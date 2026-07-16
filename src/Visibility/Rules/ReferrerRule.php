@@ -107,7 +107,12 @@ class ReferrerRule implements VisibilityRule
 		}
 
 		if ( str_starts_with( $pattern, '*.' ) ) {
-			$suffix = substr( $pattern, 2 );
+			// Lowercase the suffix so brand-cased patterns like
+			// `*.Example.com` match `foo.example.com` — the literal
+			// branch already treats hostnames case-insensitively via
+			// `strcasecmp`, and hostnames are canonical lowercase per
+			// RFC 5891.
+			$suffix = strtolower( substr( $pattern, 2 ) );
 			if ( '' === $suffix ) {
 				return false;
 			}

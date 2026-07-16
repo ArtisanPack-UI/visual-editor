@@ -30,13 +30,14 @@ class VisibilityContext
 	/**
 	 * @param  array<string, string>  $queryString  Flattened query-string pairs.
 	 * @param  array<int, string>     $roles        Authenticated user's role slugs.
+	 * @param  int|string|null        $userId       Numeric primary key or string UUID from `getAuthIdentifier()`.
 	 */
 	public function __construct(
 		public readonly array $queryString = [],
 		public readonly string $referrer = '',
 		public readonly string $userAgent = '',
 		public readonly bool $isAuthenticated = false,
-		public readonly ?int $userId = null,
+		public readonly int|string|null $userId = null,
 		public readonly ?string $userEmail = null,
 		public readonly array $roles = [],
 		public readonly ?CarbonImmutable $now = null,

@@ -95,6 +95,26 @@ it( 'recurring: rejects malformed HH:MM values', function () {
 	expect( $rule->evaluate( $attrs, nowIs( '2026-07-15T12:00:00' ) )->isHidden() )->toBeTrue();
 } );
 
+it( 'recurring: overnight windows (end < start) match both the start-day tail and the following-day head', function () {
+	$rule = new RecurringScheduleRule();
+	// Saturday 22:00 → Sunday 02:00 promo window.
+	$attrs = [
+		'timezone' => 'UTC',
+		'windows'  => [ [ 'day' => 6, 'start' => '22:00', 'end' => '02:00' ] ],
+	];
+
+	// 2026-07-18 is a Saturday. 23:00 Sat should match (tail of start day).
+	expect( $rule->evaluate( $attrs, nowIs( '2026-07-18T23:00:00' ) )->isVisible() )->toBeTrue();
+	// 2026-07-19 is a Sunday. 01:00 Sun should match (head of next day).
+	expect( $rule->evaluate( $attrs, nowIs( '2026-07-19T01:00:00' ) )->isVisible() )->toBeTrue();
+	// 21:59 Sat is before start → hidden.
+	expect( $rule->evaluate( $attrs, nowIs( '2026-07-18T21:59:00' ) )->isHidden() )->toBeTrue();
+	// 02:01 Sun is after end → hidden.
+	expect( $rule->evaluate( $attrs, nowIs( '2026-07-19T02:01:00' ) )->isHidden() )->toBeTrue();
+	// Weekday outside the window is hidden.
+	expect( $rule->evaluate( $attrs, nowIs( '2026-07-15T23:00:00' ) )->isHidden() )->toBeTrue();
+} );
+
 it( 'recurring: DST transition — a "10:00 America/Chicago" window is at 10:00 wall-clock regardless of season', function () {
 	$rule = new RecurringScheduleRule();
 	$attrs = [

@@ -110,9 +110,17 @@ class VisibilityEvaluator
 			$user            = $auth->user();
 
 			if ( is_object( $user ) ) {
-				$userId = method_exists( $user, 'getAuthIdentifier' )
-					? (int) $user->getAuthIdentifier()
-					: null;
+				// Preserve UUID / other string keys (hosts on
+				// `HasUuids`) — casting to int would map them to 0
+				// and silently mis-match specific-user rules.
+				if ( method_exists( $user, 'getAuthIdentifier' ) ) {
+					$raw    = $user->getAuthIdentifier();
+					$userId = is_int( $raw )
+						? $raw
+						: ( is_scalar( $raw ) && '' !== (string) $raw ? (string) $raw : null );
+				} else {
+					$userId = null;
+				}
 
 				if ( property_exists( $user, 'email' ) || isset( $user->email ) ) {
 					$userEmail = is_string( $user->email ?? null ) ? $user->email : null;
@@ -274,6 +282,26 @@ class VisibilityEvaluator
 	 * common Spatie/Laravel patterns: a `getRoleNames()` collection, a
 	 * `roles` relation with `name`/`slug` fields, or a `roles` array
 	 * attribute.
+	 *
+	 * **Identifier-shape contract**: the returned strings MUST match
+	 * the identifiers the Inspector picker persists into
+	 * `artisanpackVisibility.userRole.roles` — otherwise the rule's
+	 * strict `in_array` never matches. Hosts wire the picker's role
+	 * list via `setVisibilityRoles([{slug, label}])` in the editor
+	 * bootstrap; the `slug` value MUST come from the same source this
+	 * method returns:
+	 *
+	 *   - cms-framework hosts: `RoleManager` slugs on both sides.
+	 *   - Spatie hosts: Spatie's role names (which ARE the identifier)
+	 *     on both sides.
+	 *   - Custom `->roles` relation hosts: whichever column the
+	 *     relation exposes as `slug` (or `name` fallback), consistent
+	 *     between picker source and this resolver.
+	 *
+	 * Silent mismatch is the biggest failure mode: installing
+	 * cms-framework after content was authored with Spatie-persisted
+	 * names will break every user-role rule. Document the identifier
+	 * source when publishing a v1 site.
 	 *
 	 * @return array<int, string>
 	 *

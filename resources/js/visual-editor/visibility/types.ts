@@ -59,7 +59,9 @@ export interface UserRoleRuleAttrs {
 }
 
 export interface SpecificUserRef {
-    id: number;
+    // Numeric primary keys OR UUID / other string keys (`HasUuids`
+    // hosts). Both round-trip verbatim through the picker + PHP rule.
+    id: number | string;
     email: string;
     name?: string;
 }

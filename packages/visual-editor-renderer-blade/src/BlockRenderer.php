@@ -39,6 +39,18 @@ use Throwable;
 class BlockRenderer
 {
 	/**
+	 * Hard cap on inner-block recursion depth. A persisted tree
+	 * deeper than this is treated as malformed — the walker stops
+	 * recursing and rendering the subtree, and the incident is
+	 * `report()`-ed so ops can find the offending content. Prevents
+	 * a compromised import or a pathological block payload from
+	 * stack-overflowing the PHP process on every subsequent visit.
+	 *
+	 * @since 1.4.0
+	 */
+	public const MAX_INNER_DEPTH = 128;
+
+	/**
 	 * Block names that consume site-meta `_resolved*` attributes.
 	 *
 	 * @var array<int, string>
@@ -78,6 +90,13 @@ class BlockRenderer
 	protected int $renderIndex = 0;
 
 	/**
+	 * Current depth into `innerBlocks` for the ongoing render call.
+	 * Incremented by {@see renderInner()}, reset to 0 by {@see render()}.
+	 * Read by {@see renderInner()} to short-circuit past {@see MAX_INNER_DEPTH}.
+	 */
+	protected int $innerDepth = 0;
+
+	/**
 	 * Request-scoped {@see VisibilityContext}, cached for the length of
 	 * a single {@see render()} call so a large tree only pays the
 	 * user-agent parse + role lookup once. Rebuilt on every top-level
@@ -112,6 +131,7 @@ class BlockRenderer
 	public function render( array $tree ): string
 	{
 		$this->renderIndex       = 0;
+		$this->innerDepth        = 0;
 		$this->visibilityContext = null;
 
 		if ( null !== $this->visibility && $this->visibility->enabled() ) {
@@ -245,14 +265,29 @@ class BlockRenderer
 	 */
 	protected function renderInner( array $tree ): string
 	{
+		if ( $this->innerDepth >= self::MAX_INNER_DEPTH ) {
+			report( new \RuntimeException( sprintf(
+				'BlockRenderer inner-block depth cap (%d) exceeded — skipping remaining subtree. Likely a malformed or attacker-crafted block payload.',
+				self::MAX_INNER_DEPTH,
+			) ) );
+
+			return '';
+		}
+
+		$this->innerDepth++;
+
 		$out = '';
 
-		foreach ( $tree as $block ) {
-			if ( ! is_array( $block ) ) {
-				continue;
-			}
+		try {
+			foreach ( $tree as $block ) {
+				if ( ! is_array( $block ) ) {
+					continue;
+				}
 
-			$out .= $this->renderBlock( $block );
+				$out .= $this->renderBlock( $block );
+			}
+		} finally {
+			$this->innerDepth--;
 		}
 
 		return $out;

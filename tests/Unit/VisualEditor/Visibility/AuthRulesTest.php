@@ -85,3 +85,17 @@ it( 'specific user rule matches by id as fallback', function () {
 	$attrs = [ 'direction' => 'show', 'users' => [ [ 'id' => 42, 'email' => 'wrong@example.com' ] ] ];
 	expect( $rule->evaluate( $attrs, loggedIn( [], 42, 'other@example.com' ) )->isVisible() )->toBeTrue();
 } );
+
+it( 'specific user rule matches UUID string IDs', function () {
+	$rule = new SpecificUserRule();
+	$uuid  = '018f4d2a-6d3a-7000-b5f3-3f5e8a2e1c9d';
+	$attrs = [ 'direction' => 'show', 'users' => [ [ 'id' => $uuid, 'email' => 'wrong@example.com' ] ] ];
+
+	$context = new VisibilityContext(
+		isAuthenticated: true,
+		userId:          $uuid,
+		userEmail:       'other@example.com',
+	);
+
+	expect( $rule->evaluate( $attrs, $context )->isVisible() )->toBeTrue();
+} );

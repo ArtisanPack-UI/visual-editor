@@ -35,6 +35,17 @@ namespace ArtisanPackUI\VisualEditor\Visibility;
 
 class TreePruner
 {
+	/**
+	 * Hard depth cap on inner-block recursion. A persisted tree
+	 * deeper than this is treated as malformed and passed through
+	 * without pruning (fail-open on visibility) so a compromised
+	 * import or a pathological block payload cannot stack-overflow
+	 * the PHP process on every subsequent visit.
+	 *
+	 * @since 1.4.0
+	 */
+	public const MAX_DEPTH = 128;
+
 	public function __construct( protected VisibilityEvaluator $evaluator )
 	{
 	}
@@ -57,7 +68,7 @@ class TreePruner
 
 		$ctx = $context ?? $this->evaluator->contextFromRequest();
 
-		return $this->walk( $tree, $ctx );
+		return $this->walk( $tree, $ctx, 0 );
 	}
 
 	/**
@@ -65,8 +76,17 @@ class TreePruner
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	protected function walk( array $tree, VisibilityContext $context ): array
+	protected function walk( array $tree, VisibilityContext $context, int $depth ): array
 	{
+		if ( $depth > self::MAX_DEPTH ) {
+			report( new \RuntimeException( sprintf(
+				'TreePruner recursion cap (%d) exceeded — passing subtree through without pruning. Likely a malformed or attacker-crafted block payload.',
+				self::MAX_DEPTH,
+			) ) );
+
+			return $tree;
+		}
+
 		$out = [];
 
 		foreach ( $tree as $block ) {
@@ -81,7 +101,7 @@ class TreePruner
 			}
 
 			if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
-				$block['innerBlocks'] = $this->walk( $block['innerBlocks'], $context );
+				$block['innerBlocks'] = $this->walk( $block['innerBlocks'], $context, $depth + 1 );
 			}
 
 			if ( $decision->isCssHidden() && [] !== $decision->hiddenBreakpoints ) {

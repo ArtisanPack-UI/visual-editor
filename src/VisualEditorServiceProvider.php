@@ -464,8 +464,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 			return new ScheduledBlockCollector();
 		} );
 
+		// The scoped closure only assembles the built-in rule set —
+		// the `ap.visual-editor.visibility.register-rules` filter is
+		// applied via `extend()` in `boot()` (see
+		// `applyVisibilityRulesFilter()`). Extending inside the closure
+		// would freeze the filter chain state at first-resolve time,
+		// which fails when a third-party provider registers its
+		// `addFilter` in its own `boot()` phase and something resolves
+		// the registry before that boot runs.
 		$this->app->scoped( VisibilityRuleRegistry::class, function ( $app ) {
-			$registry = new VisibilityRuleRegistry( [
+			return new VisibilityRuleRegistry( [
 				$app->make( HideRule::class ),
 				$app->make( ScreenSizeRule::class ),
 				$app->make( QueryStringRule::class ),
@@ -477,15 +485,6 @@ class VisualEditorServiceProvider extends ServiceProvider
 				$app->make( DateTimeWindowRule::class ),
 				$app->make( RecurringScheduleRule::class ),
 			] );
-
-			if ( function_exists( 'applyFilters' ) ) {
-				$filtered = applyFilters( 'ap.visual-editor.visibility.register-rules', $registry );
-				if ( $filtered instanceof VisibilityRuleRegistry ) {
-					$registry = $filtered;
-				}
-			}
-
-			return $registry;
 		} );
 
 		$this->app->scoped( VisibilityEvaluator::class, function ( $app ) {
@@ -573,6 +572,35 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
+	 * Layer the `ap.visual-editor.visibility.register-rules` filter
+	 * over every fresh {@see VisibilityRuleRegistry} instance.
+	 *
+	 * Registered in `boot()` via {@see \Illuminate\Container\Container::extend()}
+	 * so the filter chain is guaranteed complete by the time the
+	 * registry is resolved — third-party packages can hook their
+	 * custom rules from their own `boot()` regardless of provider
+	 * order. Firing the filter inside the scoped closure would freeze
+	 * the chain state at first-resolve, breaking any late-boot
+	 * registration.
+	 *
+	 * @since 1.4.0
+	 */
+	protected function applyVisibilityRulesFilter(): void
+	{
+		if ( ! function_exists( 'applyFilters' ) ) {
+			return;
+		}
+
+		$this->app->extend(
+			VisibilityRuleRegistry::class,
+			static function ( VisibilityRuleRegistry $registry ): VisibilityRuleRegistry {
+				$filtered = applyFilters( 'ap.visual-editor.visibility.register-rules', $registry );
+				return $filtered instanceof VisibilityRuleRegistry ? $filtered : $registry;
+			},
+		);
+	}
+
+	/**
 	 * Perform post-registration booting of services.
 	 *
 	 * @since 1.0.0
@@ -594,6 +622,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 			$this->registerResourceResolver();
 			$this->registerSiteEditorResolvers();
 		} );
+
+		// 1b. Layer the `ap.visual-editor.visibility.register-rules`
+		//     filter over the scoped registry via `extend()`. Runs at
+		//     resolve-time (after the closure builds the default set)
+		//     which means addFilter calls from any other provider's
+		//     `boot()` are visible regardless of provider order — the
+		//     failure mode we hit when the filter fired inside the
+		//     scoped closure (an intra-boot resolve captured an empty
+		//     filter chain).
+		$this->applyVisibilityRulesFilter();
 
 		// 2. Load package views, routes, and migrations.
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor' );

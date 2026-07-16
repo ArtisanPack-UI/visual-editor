@@ -84,13 +84,18 @@ class SpecificUserRule implements VisibilityRule
 			}
 
 			$email = isset( $user['email'] ) && is_string( $user['email'] ) ? strtolower( $user['email'] ) : null;
-			$id    = isset( $user['id'] )    && is_numeric( $user['id'] )   ? (int) $user['id'] : null;
+			// Accept both numeric IDs (integer keys) and UUID / other
+			// string keys (`HasUuids`) so persisted picks survive
+			// hosts on either model keying scheme.
+			$id = isset( $user['id'] ) && is_scalar( $user['id'] ) && '' !== (string) $user['id']
+				? (string) $user['id']
+				: null;
 
 			if ( null !== $viewerEmail && null !== $email && $viewerEmail === $email ) {
 				return true;
 			}
 
-			if ( null !== $viewerId && null !== $id && $viewerId === $id ) {
+			if ( null !== $viewerId && null !== $id && (string) $viewerId === $id ) {
 				return true;
 			}
 		}

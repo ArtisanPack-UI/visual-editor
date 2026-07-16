@@ -31,13 +31,14 @@ class PreviewContext
 	/**
 	 * @param  array<string, string>|null  $queryString
 	 * @param  array<int, string>|null     $roles
+	 * @param  int|string|null             $userId       Numeric primary key or string UUID.
 	 */
 	public function __construct(
 		public readonly ?array $queryString = null,
 		public readonly ?string $referrer = null,
 		public readonly ?string $userAgent = null,
 		public readonly ?bool $isAuthenticated = null,
-		public readonly ?int $userId = null,
+		public readonly int|string|null $userId = null,
 		public readonly ?string $userEmail = null,
 		public readonly ?array $roles = null,
 		public readonly ?CarbonImmutable $now = null,
@@ -89,7 +90,9 @@ class PreviewContext
 			referrer:        isset( $payload['referrer'] ) && is_string( $payload['referrer'] ) ? $payload['referrer'] : null,
 			userAgent:       isset( $payload['userAgent'] ) && is_string( $payload['userAgent'] ) ? $payload['userAgent'] : null,
 			isAuthenticated: array_key_exists( 'isAuthenticated', $payload ) ? (bool) $payload['isAuthenticated'] : null,
-			userId:          isset( $payload['userId'] ) && is_numeric( $payload['userId'] ) ? (int) $payload['userId'] : null,
+			userId:          isset( $payload['userId'] ) && is_scalar( $payload['userId'] ) && '' !== (string) $payload['userId']
+				? ( is_int( $payload['userId'] ) ? $payload['userId'] : (string) $payload['userId'] )
+				: null,
 			userEmail:       isset( $payload['userEmail'] ) && is_string( $payload['userEmail'] ) ? $payload['userEmail'] : null,
 			roles:           $roles,
 			now:             $now,

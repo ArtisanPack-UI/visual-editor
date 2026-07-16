@@ -34,12 +34,24 @@ export async function searchUsers(term: string, limit = 10): Promise<SpecificUse
             .filter((row: unknown): row is { id: unknown; email: unknown; name?: unknown } =>
                 row !== null && typeof row === 'object' && 'id' in row && 'email' in row
             )
-            .map((row: { id: unknown; email: unknown; name?: unknown }) => ({
-                id:    Number(row.id),
-                email: String(row.email ?? ''),
-                name:  typeof row.name === 'string' ? row.name : String(row.email ?? ''),
-            }))
-            .filter((u: SpecificUserRef) => Number.isFinite(u.id));
+            .map((row: { id: unknown; email: unknown; name?: unknown }): SpecificUserRef | null => {
+                // Preserve UUID / other string keys verbatim; only
+                // coerce genuine numeric strings so the persisted
+                // shape stays stable across renders.
+                let id: number | string | null = null;
+                if (typeof row.id === 'number' && Number.isFinite(row.id)) {
+                    id = row.id;
+                } else if (typeof row.id === 'string' && row.id !== '') {
+                    id = row.id;
+                }
+                if (id === null) { return null; }
+                return {
+                    id,
+                    email: String(row.email ?? ''),
+                    name:  typeof row.name === 'string' ? row.name : String(row.email ?? ''),
+                };
+            })
+            .filter((u): u is SpecificUserRef => u !== null);
     } catch (_e) {
         return [];
     }

@@ -24,11 +24,11 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\Visibility;
 
+use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Contracts\Container\Container;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Auth;
 use Throwable;
 
 class UsersSearchController
@@ -36,13 +36,23 @@ class UsersSearchController
 	public function __construct(
 		protected Container $container,
 		protected ConfigRepository $config,
+		protected SiteEditorAccessGate $gate,
 	) {
 	}
 
 	public function index( Request $request ): JsonResponse
 	{
-		if ( ! Auth::check() ) {
-			return new JsonResponse( [ 'data' => [] ], 401 );
+		// Gate on the bound `SiteEditorAccessGate` — the same contract
+		// the site-editor SPA mount + admin icon-set management routes
+		// use. `Auth::check()` alone would let any authenticated
+		// visitor (customer-facing accounts, cms-framework
+		// subscribers, e-commerce login sessions, …) enumerate the
+		// full users table via `?q=<letter>` iteration, since the
+		// default `['api', 'auth']` middleware stack accepts every
+		// authenticated principal.
+		$gateResponse = $this->gate->check( $request );
+		if ( null !== $gateResponse ) {
+			return new JsonResponse( [ 'data' => [] ], 403 );
 		}
 
 		$term  = trim( (string) $request->query( 'q', '' ) );
@@ -90,9 +100,21 @@ class UsersSearchController
 
 			$searchable = $this->searchableColumns( $instance );
 
-			$query->where( function ( $inner ) use ( $searchable, $term ) {
+			// Escape LIKE metacharacters (`%` / `_` / `|`) so a caller
+			// sending `?q=%25` cannot collapse the pattern to `%%%`
+			// and dump the first N users in one request. `|` is the
+			// explicit ESCAPE character — matches the pattern used by
+			// `EntitySearchController::buildLikeQuery()`.
+			$escaped = str_replace(
+				[ '|', '%', '_' ],
+				[ '||', '|%', '|_' ],
+				$term
+			);
+			$needle  = '%' . $escaped . '%';
+
+			$query->where( function ( $inner ) use ( $searchable, $needle ) {
 				foreach ( $searchable as $column ) {
-					$inner->orWhere( $column, 'like', '%' . $term . '%' );
+					$inner->orWhereRaw( $column . " LIKE ? ESCAPE '|'", [ $needle ] );
 				}
 			} );
 
@@ -104,12 +126,15 @@ class UsersSearchController
 				$email = is_string( $user->email ?? null ) ? $user->email : '';
 				$name  = is_string( $user->name  ?? null ) ? $user->name  : $email;
 
-				if ( ! is_numeric( $id ) ) {
+				// Accept both integer keys and non-numeric string keys
+				// (UUIDs from `HasUuids`) so hosts on either model
+				// keying scheme surface real results in the picker.
+				if ( ! is_scalar( $id ) || '' === (string) $id ) {
 					continue;
 				}
 
 				$out[] = [
-					'id'    => (int) $id,
+					'id'    => is_int( $id ) ? $id : (string) $id,
 					'email' => $email,
 					'name'  => $name,
 				];

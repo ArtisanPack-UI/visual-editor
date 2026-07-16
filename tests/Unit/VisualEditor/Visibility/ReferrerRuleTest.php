@@ -37,6 +37,13 @@ it( 'recognizes (direct) for empty referer', function () {
 	expect( $rule->evaluate( $attrs, refCtx( 'https://twitter.com/' ) )->isHidden() )->toBeTrue();
 } );
 
+it( 'wildcard suffix is case-insensitive so brand-cased patterns match lowercase referrer hosts', function () {
+	$rule = new ReferrerRule();
+	$attrs = [ 'direction' => 'show', 'patterns' => [ '*.Example.com' ] ];
+	expect( $rule->evaluate( $attrs, refCtx( 'https://sub.example.com/foo' ) )->isVisible() )->toBeTrue();
+	expect( $rule->evaluate( $attrs, refCtx( 'https://example.com/foo' ) )->isVisible() )->toBeTrue();
+} );
+
 it( 'inverts on direction=hide', function () {
 	$rule = new ReferrerRule();
 	$attrs = [ 'direction' => 'hide', 'patterns' => [ 'twitter.com' ] ];
