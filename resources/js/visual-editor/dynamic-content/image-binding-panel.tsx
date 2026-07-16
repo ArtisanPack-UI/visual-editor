@@ -19,6 +19,7 @@ import {
     Spinner,
 } from '@wordpress/components';
 import { createHigherOrderComponent } from '@wordpress/compose';
+import { useSelect } from '@wordpress/data';
 import { useEffect, useState } from '@wordpress/element';
 import { addFilter } from '@wordpress/hooks';
 import { __ } from '@wordpress/i18n';
@@ -118,14 +119,25 @@ function ImageBindingPanel({ attributes, setAttributes }: EditProps) {
 
 const withImageBindingPanel = createHigherOrderComponent(
     (BlockEdit: React.ComponentType<EditProps>) => {
-        return function ImageBindingPanelWrapper(props: EditProps) {
+        return function ImageBindingPanelWrapper(props: EditProps & { clientId?: string }) {
             const name = typeof props.name === 'string' ? props.name : '';
             if (!IMAGE_BLOCKS.has(name)) return <BlockEdit {...props} />;
+
+            // Gate on selection so container blocks that mount inner
+            // instances don't stack duplicate fills.
+            const isCurrentlySelected = useSelect(
+                (select: (store: string) => { getSelectedBlockClientId?: () => string | null }) => {
+                    const store = select('core/block-editor');
+                    return typeof store?.getSelectedBlockClientId === 'function'
+                        && store.getSelectedBlockClientId() === props.clientId;
+                },
+                [ props.clientId ]
+            );
 
             return (
                 <>
                     <BlockEdit {...props} />
-                    <ImageBindingPanel {...props} />
+                    {isCurrentlySelected && <ImageBindingPanel {...props} />}
                 </>
             );
         };

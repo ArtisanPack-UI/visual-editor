@@ -9,21 +9,23 @@
  */
 
 import { BlockControls } from '@wordpress/block-editor';
-import { ToolbarButton, ToolbarGroup, SVG, Path } from '@wordpress/components';
+import { ToolbarButton, ToolbarGroup } from '@wordpress/components';
 import { createHigherOrderComponent } from '@wordpress/compose';
+import { useSelect } from '@wordpress/data';
 import { useState } from '@wordpress/element';
 import { addFilter } from '@wordpress/hooks';
 import { __ } from '@wordpress/i18n';
 
 import TokenInserterModal from './token-inserter-modal';
 
-// Curly-brace token glyph — inline SVG so we don't depend on
-// @wordpress/icons and its default dashicon isn't inconsistently
-// resolved across block-editor versions.
+// Curly-brace token glyph. Plain React <svg> so we don't depend on
+// @wordpress/components' SVG/Path wrappers or @wordpress/icons — both
+// have subtle version-to-version rendering differences in
+// ToolbarButton across block-editor releases.
 const TOKEN_ICON = (
-    <SVG xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-        <Path d="M8 4c-2.2 0-3 1-3 3v3c0 1-.5 2-2 2v1c1.5 0 2 1 2 2v3c0 2 .8 3 3 3v-1c-1.4 0-2-.4-2-2v-3c0-1.2-.5-2-1.5-2.5C5.5 12 6 11.2 6 10V7c0-1.6.6-2 2-2V4zM16 4c2.2 0 3 1 3 3v3c0 1 .5 2 2 2v1c-1.5 0-2 1-2 2v3c0 2-.8 3-3 3v-1c1.4 0 2-.4 2-2v-3c0-1.2.5-2 1.5-2.5C18.5 12 18 11.2 18 10V7c0-1.6-.6-2-2-2V4z" />
-    </SVG>
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
+        <path d="M8 5c-1.7 0-3 1.3-3 3v2.5c0 .8-.7 1.5-1.5 1.5H3v1h.5c.8 0 1.5.7 1.5 1.5V17c0 1.7 1.3 3 3 3h.5v-1H8c-1.1 0-2-.9-2-2v-2.5c0-.9-.5-1.7-1.2-2 .7-.4 1.2-1.2 1.2-2V8c0-1.1.9-2 2-2h.5V5H8zM16 5h-.5v1h.5c1.1 0 2 .9 2 2v2.5c0 .8.5 1.6 1.2 2-.7.4-1.2 1.2-1.2 2V17c0 1.1-.9 2-2 2h-.5v1h.5c1.7 0 3-1.3 3-3v-2.5c0-.8.7-1.5 1.5-1.5h.5v-1h-.5c-.8 0-1.5-.7-1.5-1.5V8c0-1.7-1.3-3-3-3z" />
+    </svg>
 );
 
 const TARGET_BLOCKS = new Set<string>([
@@ -39,6 +41,7 @@ const TARGET_BLOCKS = new Set<string>([
 
 interface EditProps {
     name?: string;
+    clientId?: string;
     attributes?: Record<string, unknown>;
     setAttributes?: (patch: Record<string, unknown>) => void;
 }
@@ -53,6 +56,19 @@ const withDynamicContentToolbar = createHigherOrderComponent(
         return function DynamicContentToolbarWrapper(props: BlockEditProps) {
             const [open, setOpen] = useState(false);
             const name = typeof props.name === 'string' ? props.name : '';
+
+            // Gate on selection — see notes on the button/image binding
+            // panels. Prevents duplicate BlockControls fills when the
+            // block's edit is remounted inside a container's InnerBlocks
+            // render tree.
+            const isCurrentlySelected = useSelect(
+                (select: (store: string) => { getSelectedBlockClientId?: () => string | null }) => {
+                    const store = select('core/block-editor');
+                    return typeof store?.getSelectedBlockClientId === 'function'
+                        && store.getSelectedBlockClientId() === props.clientId;
+                },
+                [ props.clientId ]
+            );
 
             if (!TARGET_BLOCKS.has(name)) {
                 return <BlockEdit {...props} />;
@@ -72,22 +88,26 @@ const withDynamicContentToolbar = createHigherOrderComponent(
 
             return (
                 <>
-                    <BlockControls group="other">
-                        <ToolbarGroup>
-                            <ToolbarButton
-                                icon={TOKEN_ICON}
-                                label={__('Insert Dynamic Content token', 'artisanpack-visual-editor')}
-                                onClick={() => setOpen(true)}
-                                showTooltip
-                            />
-                        </ToolbarGroup>
-                    </BlockControls>
+                    {isCurrentlySelected && (
+                        <BlockControls>
+                            <ToolbarGroup>
+                                <ToolbarButton
+                                    icon={TOKEN_ICON}
+                                    label={__('Insert Dynamic Content token', 'artisanpack-visual-editor')}
+                                    onClick={() => setOpen(true)}
+                                    showTooltip
+                                />
+                            </ToolbarGroup>
+                        </BlockControls>
+                    )}
                     <BlockEdit {...props} />
-                    <TokenInserterModal
-                        isOpen={open}
-                        onClose={() => setOpen(false)}
-                        onInsert={insertToken}
-                    />
+                    {isCurrentlySelected && (
+                        <TokenInserterModal
+                            isOpen={open}
+                            onClose={() => setOpen(false)}
+                            onInsert={insertToken}
+                        />
+                    )}
                 </>
             );
         };

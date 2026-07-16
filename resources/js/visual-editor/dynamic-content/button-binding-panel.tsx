@@ -7,9 +7,14 @@
  * the DC binding through an InspectorControls panel — the same pattern
  * the Image block uses for its `url`/`alt` bindings.
  *
- * Selection binds the `url` attribute; the resolver applies the correct
- * scheme (`mailto:`, `tel:`) via the DynamicContentSource's field-type
- * awareness at render time.
+ * Selection binds the `url` attribute; the source prefixes the value
+ * with `mailto:`/`tel:` for email/phone fields via `args.scheme`.
+ *
+ * Rendering is gated on `useSelect(getSelectedBlockClientId)` so the
+ * fill only mounts once even when the button lives inside a
+ * `core/buttons`/`artisanpack/buttons` container that also mounts each
+ * child's edit component. Without the gate, multiple mounts of the
+ * button's edit tree stack duplicate InspectorControls fills.
  *
  * @since 1.4.0
  */
@@ -23,6 +28,7 @@ import {
     Spinner,
 } from '@wordpress/components';
 import { createHigherOrderComponent } from '@wordpress/compose';
+import { useSelect } from '@wordpress/data';
 import { useEffect, useState } from '@wordpress/element';
 import { addFilter } from '@wordpress/hooks';
 import { __ } from '@wordpress/i18n';
@@ -33,11 +39,13 @@ const BUTTON_BLOCKS = new Set([ 'artisanpack/button', 'core/button' ]);
 const LINK_FIELD_TYPES = new Set([ 'url', 'email', 'phone', 'string' ]);
 
 interface BindingSidecar {
-    [attr: string]: { source: string; args: { token: string } };
+    [attr: string]: { source: string; args: { token: string; scheme?: string } };
 }
 
 interface EditProps {
     name?: string;
+    clientId?: string;
+    isSelected?: boolean;
     attributes?: Record<string, unknown> & { bindings?: BindingSidecar };
     setAttributes?: (patch: Record<string, unknown>) => void;
 }
@@ -89,7 +97,7 @@ function ButtonBindingPanel({ attributes, setAttributes }: EditProps) {
             row?.fieldType === 'phone' ? 'tel' :
             undefined;
 
-        const args: Record<string, string> = { token };
+        const args: { token: string; scheme?: string } = { token };
         if (scheme) args.scheme = scheme;
 
         setAttributes({
@@ -142,10 +150,24 @@ const withButtonBindingPanel = createHigherOrderComponent(
             const name = typeof props.name === 'string' ? props.name : '';
             if (!BUTTON_BLOCKS.has(name)) return <BlockEdit {...props} />;
 
+            // Gate the fill on this block being the *currently selected*
+            // block — buttons often live inside a `buttons` container
+            // that mounts each child's edit; without this gate, every
+            // mounted instance would stack an InspectorControls fill and
+            // the sidebar would show a duplicate panel per instance.
+            const isCurrentlySelected = useSelect(
+                (select: (store: string) => { getSelectedBlockClientId?: () => string | null }) => {
+                    const store = select('core/block-editor');
+                    return typeof store?.getSelectedBlockClientId === 'function'
+                        && store.getSelectedBlockClientId() === props.clientId;
+                },
+                [ props.clientId ]
+            );
+
             return (
                 <>
                     <BlockEdit {...props} />
-                    <ButtonBindingPanel {...props} />
+                    {isCurrentlySelected && <ButtonBindingPanel {...props} />}
                 </>
             );
         };

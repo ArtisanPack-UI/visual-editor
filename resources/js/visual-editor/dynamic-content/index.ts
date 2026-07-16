@@ -13,8 +13,7 @@ import { registerDynamicContentChipFormat } from './token-chip-format';
 import { registerDynamicContentToolbarButton } from './toolbar-button';
 import { registerImageBindingPanel } from './image-binding-panel';
 import { registerButtonBindingPanel } from './button-binding-panel';
-
-import './dynamic-content.css';
+import { injectDynamicContentStyles } from './inject-styles';
 
 export {
     DC_API_BASE,
@@ -46,6 +45,7 @@ export function registerDynamicContent(): void {
     if (registered) return;
     registered = true;
 
+    injectDynamicContentStyles();
     registerDynamicContentChipFormat();
     registerDynamicContentAutocomplete();
     registerDynamicContentToolbarButton();
