@@ -14,6 +14,7 @@ import { registerDynamicContentToolbarButton } from './toolbar-button';
 import { registerImageBindingPanel } from './image-binding-panel';
 import { registerButtonBindingPanel } from './button-binding-panel';
 import { injectDynamicContentStyles } from './inject-styles';
+import { installEditorLivePreview } from './editor-live-preview';
 
 export {
     DC_API_BASE,
@@ -51,4 +52,5 @@ export function registerDynamicContent(): void {
     registerDynamicContentToolbarButton();
     registerImageBindingPanel();
     registerButtonBindingPanel();
+    installEditorLivePreview();
 }
