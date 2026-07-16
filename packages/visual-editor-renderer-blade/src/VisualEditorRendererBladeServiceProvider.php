@@ -81,11 +81,25 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// long-running worker (Octane / queue) and serving stale site
 		// meta on every subsequent request.
 		$this->app->scoped( BlockRenderer::class, function ( $app ) {
+			// #491 · #492 · #493 — Block Visibility. The evaluator is
+			// optional so the renderer keeps working in host apps that
+			// have the visibility feature disabled or removed. The
+			// binding is resolved through `rescue()` so a missing
+			// service (e.g. mid-migration on an older visual-editor
+			// version) doesn't take the whole render path down.
+			$visibility = null;
+			try {
+				$visibility = $app->make( \ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator::class );
+			} catch ( \Throwable $e ) {
+				// Container binding missing — render without the gate.
+			}
+
 			return new BlockRenderer(
 				$app->make( ViewFactory::class ),
 				$app->make( DynamicBlockRegistry::class ),
 				$app->make( SiteMetaResolver::class ),
 				$app->make( LoginoutResolver::class ),
+				$visibility,
 			);
 		} );
 

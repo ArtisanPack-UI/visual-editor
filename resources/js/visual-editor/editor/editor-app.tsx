@@ -51,6 +51,8 @@ import { registerPositioning } from '../positioning/register';
 import { registerStateStylesFilters } from '../states/with-state-styles';
 import { registerAnimationsAttribute } from '../animations/register-attribute';
 import { registerAnimationsPanel } from '../animations/with-animations-panel';
+import { registerVisibilityAttribute } from '../visibility/register-attribute';
+import { registerVisibilityPanel } from '../visibility/with-visibility-panel';
 import { registryFromSnapshot } from '../responsive/registry';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
 import { useCanvasPreviewWidth } from '../responsive/use-canvas-preview-width';
@@ -221,6 +223,15 @@ function registerOnce(): void {
     // first render.
     registerAnimationsAttribute();
     registerAnimationsPanel();
+    // #491 · #492 · #493 — register the block-visibility feature
+    // filters BEFORE blocks load so opted-in blocks pick up the
+    // auto-injected `artisanpackVisibility` attribute at registration
+    // time and the BlockEdit HOC drops the VisibilityPanel into the
+    // inspector on first render. Every block opts in by default;
+    // blocks that must not be conditionally hidden declare
+    // `supports.artisanpackVisibility: false` in their block.json.
+    registerVisibilityAttribute();
+    registerVisibilityPanel();
     // #504 — register the bindings sidecar attribute on every block
     // and inject the inspector panel. Runs at editor-bootstrap time so
     // the `bindings` storage key is in every block's schema by the time

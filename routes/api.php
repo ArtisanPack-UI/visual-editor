@@ -40,6 +40,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\PatternController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\ResourceContentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplateController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor\TemplatePartController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Visibility\UsersSearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\VisualEditorBlocksController;
 use Illuminate\Support\Facades\Route;
 
@@ -218,6 +219,13 @@ Route::get( 'menu-locations', [ MenuLocationsController::class, 'index' ] )
 // template parts. Read-only.
 Route::get( 'search', [ EntitySearchController::class, 'index' ] )
 	->name( 'visual-editor.api.search.index' );
+
+// #492 — user autocomplete for the "Specific User" visibility rule's
+// InspectorControls picker. Read-only; short-circuits to an empty
+// list when the current session isn't authenticated. Hosts can filter
+// results via `ap.visual-editor.visibility.user-search-results`.
+Route::get( 'users/search', [ UsersSearchController::class, 'index' ] )
+	->name( 'visual-editor.api.visibility.users.search' );
 
 // Icon Block Phase 4 (#555) — picker search + set-family chips.
 // Both routes are read-only; the catalog is backed by the bundled
