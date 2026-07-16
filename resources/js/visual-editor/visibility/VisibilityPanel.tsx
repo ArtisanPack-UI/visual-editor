@@ -202,16 +202,14 @@ function ScreenSizePanel({ value, onChange, breakpoints }: { value: ScreenSizeRu
             <PanelRow>
                 <ToggleControl
                     label={__('Screen size', 'artisanpack-visual-editor')}
+                    help={__('Hide this block at specific viewport widths.', 'artisanpack-visual-editor')}
                     checked={active}
                     onChange={(next) => onChange(next ? { direction: 'hide', breakpoints: [] } : undefined)}
                 />
             </PanelRow>
             {active && (
                 <div style={SUBSECTION_STYLE}>
-                    <DirectionToggle
-                        value={value?.direction ?? 'hide'}
-                        onChange={(direction) => onChange({ ...(value ?? {}), direction, breakpoints: value?.breakpoints ?? [] })}
-                    />
+                    <strong>{__('Hide on:', 'artisanpack-visual-editor')}</strong>
                     {breakpoints.map((bp) => (
                         <CheckboxControl
                             key={bp.key}
@@ -220,7 +218,11 @@ function ScreenSizePanel({ value, onChange, breakpoints }: { value: ScreenSizeRu
                             onChange={(checked) => {
                                 const current = new Set(value?.breakpoints ?? []);
                                 if (checked) { current.add(bp.key); } else { current.delete(bp.key); }
-                                onChange({ ...(value ?? {}), direction: value?.direction ?? 'hide', breakpoints: Array.from(current) });
+                                // `direction: 'hide'` is pinned — the UI has no
+                                // inverse mode. The attribute is still written
+                                // so the persisted shape stays stable with
+                                // the rule's schema.
+                                onChange({ ...(value ?? {}), direction: 'hide', breakpoints: Array.from(current) });
                             }}
                         />
                     ))}
