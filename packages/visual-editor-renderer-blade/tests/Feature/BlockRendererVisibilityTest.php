@@ -65,10 +65,11 @@ it( 'CSS-hides a screen-sized block without dropping it', function () {
 
 	$html = $renderer->render( $tree );
 
-	// Screen-hidden blocks stay in the DOM but get a scope class + media rule.
+	// Screen-hidden blocks stay in the DOM but get a scope class + ranged media rule.
+	// md range: 768-1023 (next breakpoint lg starts at 1024).
 	expect( $html )->toContain( 'target' );
 	expect( $html )->toContain( 've-vis-' );
-	expect( $html )->toContain( '@media (min-width:768px)' );
+	expect( $html )->toContain( '@media (min-width:768px) and (max-width:1023px)' );
 } );
 
 it( 'preserves the parent block CSS wrapping when the parent itself has a screen-size rule and children do not', function () {
@@ -92,5 +93,5 @@ it( 'preserves the parent block CSS wrapping when the parent itself has a screen
 	$html = $renderer->render( $tree );
 
 	expect( $html )->toContain( 'child' );
-	expect( $html )->toContain( '@media (min-width:768px)' );
+	expect( $html )->toContain( '@media (min-width:768px) and (max-width:1023px)' );
 } );

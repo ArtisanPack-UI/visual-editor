@@ -91,7 +91,16 @@ export function filterVisibleBlocks(tree: Block[]): Block[] {
 export function stampVisibilityScopes(tree: Block[]): { tree: Block[]; css: string } {
     let counter = 0;
     const css: string[] = [];
-    const bpByKey = new Map(breakpoints.map((bp) => [bp.key, bp.minWidthPx]));
+
+    // Sort breakpoints ascending by min-width so each named breakpoint
+    // can pair with the NEXT breakpoint's min-width — 1 as its upper
+    // bound. Turns each checkbox into an independent RANGE, matching
+    // the semantic of the server-side emitter in `BlockRenderer.php`.
+    const ordered = [...breakpoints]
+        .filter((bp) => Number.isFinite(bp.minWidthPx) && bp.minWidthPx > 0)
+        .sort((a, b) => a.minWidthPx - b.minWidthPx);
+
+    const indexByKey = new Map(ordered.map((bp, i) => [bp.key, i]));
 
     function walk(nodes: Block[]): Block[] {
         return nodes.map((block) => {
@@ -115,9 +124,17 @@ export function stampVisibilityScopes(tree: Block[]): { tree: Block[]; css: stri
             const rules: string[] = [];
 
             for (const key of bpKeys) {
-                const minPx = bpByKey.get(key);
-                if (typeof minPx === 'number' && minPx > 0) {
-                    rules.push(`@media (min-width:${minPx}px){.${scopeClass}{display:none !important;}}`);
+                const position = indexByKey.get(key);
+                if (position === undefined) {
+                    continue;
+                }
+                const min = ordered[position].minWidthPx;
+                const nextMin = ordered[position + 1]?.minWidthPx;
+
+                if (typeof nextMin === 'number' && nextMin > min) {
+                    rules.push(`@media (min-width:${min}px) and (max-width:${nextMin - 1}px){.${scopeClass}{display:none !important;}}`);
+                } else {
+                    rules.push(`@media (min-width:${min}px){.${scopeClass}{display:none !important;}}`);
                 }
             }
 

@@ -487,24 +487,47 @@ class BlockRenderer
 		$scopeClass = sprintf( 've-vis-%d', $this->visibilityScopeCounter );
 
 		$minWidths = $breakpointRegistry->all();
-		$css       = '';
+
+		// Sort breakpoints ascending by min-width so we can pair each
+		// key with the NEXT breakpoint's min-width — 1 as its upper
+		// bound. The last (widest) breakpoint has no upper bound and
+		// emits a plain `min-width` query. This turns each checkbox
+		// into an independent RANGE ("hide at md" = hide 768–1023 only,
+		// not "hide from 768 and up forever"), matching the checkbox UI
+		// paradigm and letting editors pick non-contiguous ranges.
+		asort( $minWidths );
+		$orderedKeys      = array_keys( $minWidths );
+		$orderedMinWidths = array_values( $minWidths );
+
+		$css = '';
 
 		foreach ( $decision->hiddenBreakpoints as $key ) {
-			$min = $minWidths[ $key ] ?? null;
+			$position = array_search( $key, $orderedKeys, true );
 
-			if ( ! is_int( $min ) || $min <= 0 ) {
-				// Unknown breakpoint — skip silently rather than emit a
-				// broken media query. The evaluator already filtered
-				// against the registry so this is a defense-in-depth
-				// guard for hosts that swap the registry mid-request.
+			if ( false === $position ) {
 				continue;
 			}
 
-			$css .= sprintf(
-				'@media (min-width:%dpx){.%s{display:none !important;}}',
-				$min,
-				$scopeClass
-			);
+			$min = $orderedMinWidths[ $position ];
+
+			if ( ! is_int( $min ) || $min <= 0 ) {
+				continue;
+			}
+
+			$nextMin = $orderedMinWidths[ $position + 1 ] ?? null;
+
+			$css .= is_int( $nextMin ) && $nextMin > $min
+				? sprintf(
+					'@media (min-width:%dpx) and (max-width:%dpx){.%s{display:none !important;}}',
+					$min,
+					$nextMin - 1,
+					$scopeClass
+				)
+				: sprintf(
+					'@media (min-width:%dpx){.%s{display:none !important;}}',
+					$min,
+					$scopeClass
+				);
 		}
 
 		if ( '' === $css ) {

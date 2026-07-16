@@ -27,8 +27,8 @@ import { __ } from '@wordpress/i18n';
 import {
     Button,
     ButtonGroup,
+    BaseControl,
     CheckboxControl,
-    DateTimePicker,
     PanelBody,
     PanelRow,
     SelectControl,
@@ -467,15 +467,15 @@ function DateTimeWindowPanel({ value, onChange }: { value: DateTimeWindowRuleAtt
             </PanelRow>
             {active && (
                 <div style={SUBSECTION_STYLE}>
-                    <strong>{__('Start', 'artisanpack-visual-editor')}</strong>
-                    <DateTimePicker
-                        currentDate={value?.start || undefined}
-                        onChange={(next) => onChange({ ...(value ?? {}), start: next ?? '' })}
+                    <DateTimeInput
+                        label={__('Start', 'artisanpack-visual-editor')}
+                        value={toLocalIsoFormat(value?.start)}
+                        onChange={(next) => onChange({ ...(value ?? {}), start: next })}
                     />
-                    <strong>{__('End', 'artisanpack-visual-editor')}</strong>
-                    <DateTimePicker
-                        currentDate={value?.end || undefined}
-                        onChange={(next) => onChange({ ...(value ?? {}), end: next ?? '' })}
+                    <DateTimeInput
+                        label={__('End', 'artisanpack-visual-editor')}
+                        value={toLocalIsoFormat(value?.end)}
+                        onChange={(next) => onChange({ ...(value ?? {}), end: next })}
                     />
                     <TextControl
                         label={__('Timezone override (optional)', 'artisanpack-visual-editor')}
@@ -610,6 +610,41 @@ function ChipList({ label, options, value, onChange }: { label: string; options:
             </div>
         </fieldset>
     );
+}
+
+function DateTimeInput({ label, value, onChange }: { label: string; value: string; onChange: (next: string) => void }): JSX.Element {
+    // Native `<input type="datetime-local">` produces / accepts
+    // "YYYY-MM-DDTHH:MM" — the same format Carbon parses on the PHP
+    // side. Preferred over `@wordpress/components`'s DateTimePicker
+    // because that component draws a full-panel calendar (~450px tall)
+    // which is too heavy for an inspector row.
+    return (
+        <BaseControl label={label} __nextHasNoMarginBottom={true} id={`ve-vis-datetime-${label}`}>
+            <input
+                type="datetime-local"
+                id={`ve-vis-datetime-${label}`}
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                style={{ width: '100%', padding: '6px 8px', boxSizing: 'border-box' }}
+            />
+        </BaseControl>
+    );
+}
+
+function toLocalIsoFormat(value: string | undefined): string {
+    // Passthrough for values already in the `YYYY-MM-DDTHH:MM[:SS]`
+    // shape (what the native input expects). Falsy → empty. Trailing
+    // seconds are stripped because `datetime-local` rejects strings
+    // with a "Z" suffix or a numeric timezone offset.
+    if (!value) { return ''; }
+
+    // Strip any trailing timezone marker; the PHP side interprets the
+    // string in the rule's `timezone` field, not in the input.
+    const stripped = value.replace(/(Z|[+-]\d{2}:?\d{2})$/, '');
+
+    // Trim to "YYYY-MM-DDTHH:MM" (16 chars) — datetime-local ignores
+    // trailing seconds inconsistently across browsers.
+    return stripped.length >= 16 ? stripped.slice(0, 16) : stripped;
 }
 
 function UserAutocomplete({ searchUsers, onSelect }: { searchUsers: (term: string) => Promise<SpecificUserRef[]>; onSelect: (user: SpecificUserRef) => void }): JSX.Element {

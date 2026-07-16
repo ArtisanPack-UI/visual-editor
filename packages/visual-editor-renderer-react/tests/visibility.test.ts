@@ -56,10 +56,11 @@ describe('stampVisibilityScopes', () => {
         expect(result.tree).toHaveLength(1);
     });
 
-    it('stamps a scope class + emits @media rules for hidden breakpoints', () => {
+    it('stamps a scope class + emits ranged @media rules for hidden breakpoints', () => {
         setBreakpoints([
             { key: 'sm', minWidthPx: 640 },
             { key: 'md', minWidthPx: 768 },
+            { key: 'lg', minWidthPx: 1024 },
         ]);
 
         const tree: Block[] = [
@@ -72,13 +73,38 @@ describe('stampVisibilityScopes', () => {
 
         const result = stampVisibilityScopes(tree);
 
-        expect(result.css).toContain('@media (min-width:640px)');
-        expect(result.css).toContain('@media (min-width:768px)');
+        // sm range: 640-767 (next breakpoint md starts at 768).
+        expect(result.css).toContain('@media (min-width:640px) and (max-width:767px)');
+        // md range: 768-1023 (next breakpoint lg starts at 1024).
+        expect(result.css).toContain('@media (min-width:768px) and (max-width:1023px)');
         expect(result.css).toContain('display:none !important');
 
         const scope = (result.tree[0].attributes as Record<string, unknown>)._veVisScope;
         expect(typeof scope).toBe('string');
         expect((scope as string).startsWith('ve-vis-')).toBe(true);
+    });
+
+    it('emits unbounded min-width for the widest hidden breakpoint', () => {
+        setBreakpoints([
+            { key: 'sm',  minWidthPx: 640 },
+            { key: 'md',  minWidthPx: 768 },
+            { key: 'lg',  minWidthPx: 1024 },
+            { key: '2xl', minWidthPx: 1536 },
+        ]);
+
+        const tree: Block[] = [
+            {
+                name: 'artisanpack/paragraph',
+                attributes: { _veHiddenBreakpoints: ['2xl'] },
+                innerBlocks: [],
+            },
+        ] as unknown as Block[];
+
+        const result = stampVisibilityScopes(tree);
+
+        // Widest breakpoint has no upper bound.
+        expect(result.css).toContain('@media (min-width:1536px){');
+        expect(result.css).not.toContain('and (max-width:');
     });
 
     it('mints unique scope classes per block', () => {
