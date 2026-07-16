@@ -51,6 +51,8 @@ import { registerPositioning } from '../positioning/register';
 import { registerStateStylesFilters } from '../states/with-state-styles';
 import { registerAnimationsAttribute } from '../animations/register-attribute';
 import { registerAnimationsPanel } from '../animations/with-animations-panel';
+import { registerVisibilityAttribute } from '../visibility/register-attribute';
+import { registerVisibilityPanel, setVisibilityBreakpoints, setVisibilityRoles } from '../visibility/with-visibility-panel';
 import { registryFromSnapshot } from '../responsive/registry';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
 import { useCanvasPreviewWidth } from '../responsive/use-canvas-preview-width';
@@ -221,6 +223,15 @@ function registerOnce(): void {
     // first render.
     registerAnimationsAttribute();
     registerAnimationsPanel();
+    // #491 · #492 · #493 — register the block-visibility feature
+    // filters BEFORE blocks load so opted-in blocks pick up the
+    // auto-injected `artisanpackVisibility` attribute at registration
+    // time and the BlockEdit HOC drops the VisibilityPanel into the
+    // inspector on first render. Every block opts in by default;
+    // blocks that must not be conditionally hidden declare
+    // `supports.artisanpackVisibility: false` in their block.json.
+    registerVisibilityAttribute();
+    registerVisibilityPanel();
     // #504 — register the bindings sidecar attribute on every block
     // and inject the inspector panel. Runs at editor-bootstrap time so
     // the `bindings` storage key is in every block's schema by the time
@@ -319,6 +330,16 @@ export interface EditorAppProps {
      * `previewWidthPx` overrides reach the viewport switcher.
      */
     breakpoints?: BreakpointRegistrySnapshot | null;
+    /**
+     * Role list surfaced to the Block Visibility "User Role" rule
+     * panel (#492). Each entry is `{ slug, label }`; slug is the
+     * value persisted into `artisanpackVisibility.userRole.roles`,
+     * label is the display string. The host resolves this from its
+     * own role system (cms-framework `RoleManager`, Spatie, custom)
+     * and passes it through; when omitted, the panel renders the
+     * "No roles registered" hint.
+     */
+    visibilityRoles?: Array<{ slug: string; label: string }>;
 }
 
 export { entityTypeForResource } from './entity-type';
@@ -548,6 +569,24 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         () => registryFromSnapshot(props.breakpoints ?? undefined),
         [props.breakpoints]
     );
+    // Publish the hydrated breakpoint list to the Visibility panel so
+    // its Screen Size subsection lists every registered viewport
+    // (sm / md / lg / xl / 2xl + host overrides), not just the three
+    // fallback entries baked into with-visibility-panel.tsx.
+    useEffect(() => {
+        setVisibilityBreakpoints(
+            viewportRegistry.prefixes().map((key: string) => ({
+                key,
+                label: viewportRegistry.label(key),
+            })),
+        );
+    }, [viewportRegistry]);
+    // Publish the host-supplied role list to the Visibility panel's
+    // User Role subsection (#492). When the prop is omitted the panel
+    // renders the "No roles registered" hint the user can act on.
+    useEffect(() => {
+        setVisibilityRoles(props.visibilityRoles ?? []);
+    }, [props.visibilityRoles]);
     const [history, setHistory] = useState<HistoryState>(EMPTY_HISTORY);
     // Mirror history in a ref so undo/redo handlers can read the latest
     // snapshot without taking a dep on `history` (which would re-memoize the

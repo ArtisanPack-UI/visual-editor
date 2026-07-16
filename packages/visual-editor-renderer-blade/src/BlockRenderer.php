@@ -22,6 +22,10 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade;
 
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditor\Visibility\VisibilityContext;
+use ArtisanPackUI\VisualEditor\Visibility\VisibilityDecision;
+use ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator;
+use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
@@ -34,6 +38,18 @@ use Throwable;
 
 class BlockRenderer
 {
+	/**
+	 * Hard cap on inner-block recursion depth. A persisted tree
+	 * deeper than this is treated as malformed — the walker stops
+	 * recursing and rendering the subtree, and the incident is
+	 * `report()`-ed so ops can find the offending content. Prevents
+	 * a compromised import or a pathological block payload from
+	 * stack-overflowing the PHP process on every subsequent visit.
+	 *
+	 * @since 1.4.0
+	 */
+	public const MAX_INNER_DEPTH = 128;
+
 	/**
 	 * Block names that consume site-meta `_resolved*` attributes.
 	 *
@@ -73,11 +89,35 @@ class BlockRenderer
 	 */
 	protected int $renderIndex = 0;
 
+	/**
+	 * Current depth into `innerBlocks` for the ongoing render call.
+	 * Incremented by {@see renderInner()}, reset to 0 by {@see render()}.
+	 * Read by {@see renderInner()} to short-circuit past {@see MAX_INNER_DEPTH}.
+	 */
+	protected int $innerDepth = 0;
+
+	/**
+	 * Request-scoped {@see VisibilityContext}, cached for the length of
+	 * a single {@see render()} call so a large tree only pays the
+	 * user-agent parse + role lookup once. Rebuilt on every top-level
+	 * `render()` so long-lived workers (Octane / RoadRunner / queues)
+	 * pick up fresh request state.
+	 */
+	protected ?VisibilityContext $visibilityContext = null;
+
+	/**
+	 * Monotonically-increasing counter used to mint unique CSS scope
+	 * classes for CSS-hidden blocks, keeping the emitted `@media`
+	 * rules from bleeding into other blocks that share a wrapper tag.
+	 */
+	protected int $visibilityScopeCounter = 0;
+
 	public function __construct(
 		protected ViewFactory $views,
 		protected DynamicBlockRegistry $dynamicBlocks,
 		protected ?SiteMetaResolver $siteMeta = null,
 		protected ?LoginoutResolver $loginout = null,
+		protected ?VisibilityEvaluator $visibility = null,
 	) {
 	}
 
@@ -90,7 +130,13 @@ class BlockRenderer
 	 */
 	public function render( array $tree ): string
 	{
-		$this->renderIndex = 0;
+		$this->renderIndex       = 0;
+		$this->innerDepth        = 0;
+		$this->visibilityContext = null;
+
+		if ( null !== $this->visibility && $this->visibility->enabled() ) {
+			$this->visibilityContext = $this->visibility->contextFromRequest();
+		}
 
 		$out = '';
 
@@ -120,6 +166,34 @@ class BlockRenderer
 			return '';
 		}
 
+		// #491 · #492 · #493 — Block Visibility gate. Server-side drop
+		// so hidden blocks never emit markup and there is no flash of
+		// hidden content. The visibility context is cached per-render
+		// call, so a large tree only pays the user-agent parse + role
+		// lookup once. Hidden blocks skip the render index bump because
+		// they never reach the partial that would consume it, keeping
+		// the per-instance suffix stable across visitors.
+		//
+		// The decision is a LOCAL variable rather than instance state
+		// because `renderStatic()` / `renderDynamic()` (below) walk
+		// `innerBlocks` recursively via {@see renderInner()} —
+		// stashing the decision on `$this` would let each child
+		// overwrite its parent's decision before line
+		// wrapWithScreenSizeCss reads it.
+		$cssHiddenDecision = null;
+
+		if ( null !== $this->visibility && null !== $this->visibilityContext ) {
+			$decision = $this->visibility->evaluate( array_merge( $block, [ 'name' => $name ] ), $this->visibilityContext );
+
+			if ( $decision->isHidden() ) {
+				return '';
+			}
+
+			if ( $decision->isCssHidden() ) {
+				$cssHiddenDecision = $decision;
+			}
+		}
+
 		// Take this block's render index BEFORE walking innerBlocks so
 		// the parent's index is stable even though child blocks bump
 		// the counter recursively. Partials receive this value via the
@@ -136,6 +210,15 @@ class BlockRenderer
 		$html = $this->dynamicBlocks->has( $name )
 			? $this->renderDynamic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex )
 			: $this->renderStatic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
+
+		// If the screen-size rule flagged this block as CSS-hidden at
+		// certain breakpoints, wrap its markup in a scope class + emit
+		// the matching `@media` rules so the client hides it at those
+		// widths without any runtime JS. Zero-cost when the rule is
+		// inactive.
+		if ( null !== $cssHiddenDecision && [] !== $cssHiddenDecision->hiddenBreakpoints ) {
+			$html = $this->wrapWithScreenSizeCss( $html, $cssHiddenDecision );
+		}
 
 		// `ap.visual-editor.rendered-block` — last-mile hook for packages
 		// that need to post-process a rendered block. Runs on every block
@@ -182,14 +265,29 @@ class BlockRenderer
 	 */
 	protected function renderInner( array $tree ): string
 	{
+		if ( $this->innerDepth >= self::MAX_INNER_DEPTH ) {
+			report( new \RuntimeException( sprintf(
+				'BlockRenderer inner-block depth cap (%d) exceeded — skipping remaining subtree. Likely a malformed or attacker-crafted block payload.',
+				self::MAX_INNER_DEPTH,
+			) ) );
+
+			return '';
+		}
+
+		$this->innerDepth++;
+
 		$out = '';
 
-		foreach ( $tree as $block ) {
-			if ( ! is_array( $block ) ) {
-				continue;
-			}
+		try {
+			foreach ( $tree as $block ) {
+				if ( ! is_array( $block ) ) {
+					continue;
+				}
 
-			$out .= $this->renderBlock( $block );
+				$out .= $this->renderBlock( $block );
+			}
+		} finally {
+			$this->innerDepth--;
 		}
 
 		return $out;
@@ -393,6 +491,89 @@ class BlockRenderer
 			'<!-- visual-editor: no partial for %1$s --><div data-ve-unknown-block="%1$s">%2$s</div>',
 			$safeName,
 			$innerBlocksHtml
+		);
+	}
+
+	/**
+	 * Wrap a rendered block in a CSS scope class + emit `@media`
+	 * `display:none` rules so the screen-size visibility rule can hide
+	 * a block at named breakpoints without any runtime JavaScript.
+	 *
+	 * The wrapper is a single `<div>` that inherits its parent's flow
+	 * so container styles still apply — the block's own root tag stays
+	 * intact for CSS selectors already targeting it. The scope class
+	 * is per-block so two blocks hidden at different breakpoints don't
+	 * accidentally share their rules.
+	 *
+	 * @since 1.4.0
+	 */
+	protected function wrapWithScreenSizeCss( string $html, VisibilityDecision $decision ): string
+	{
+		$breakpointRegistry = null;
+
+		try {
+			$breakpointRegistry = app( BreakpointRegistry::class );
+		} catch ( Throwable $e ) {
+			// Container binding missing — fall back to a no-op wrap.
+			return $html;
+		}
+
+		$this->visibilityScopeCounter++;
+		$scopeClass = sprintf( 've-vis-%d', $this->visibilityScopeCounter );
+
+		$minWidths = $breakpointRegistry->all();
+
+		// Sort breakpoints ascending by min-width so we can pair each
+		// key with the NEXT breakpoint's min-width — 1 as its upper
+		// bound. The last (widest) breakpoint has no upper bound and
+		// emits a plain `min-width` query. This turns each checkbox
+		// into an independent RANGE ("hide at md" = hide 768–1023 only,
+		// not "hide from 768 and up forever"), matching the checkbox UI
+		// paradigm and letting editors pick non-contiguous ranges.
+		asort( $minWidths );
+		$orderedKeys      = array_keys( $minWidths );
+		$orderedMinWidths = array_values( $minWidths );
+
+		$css = '';
+
+		foreach ( $decision->hiddenBreakpoints as $key ) {
+			$position = array_search( $key, $orderedKeys, true );
+
+			if ( false === $position ) {
+				continue;
+			}
+
+			$min = $orderedMinWidths[ $position ];
+
+			if ( ! is_int( $min ) || $min <= 0 ) {
+				continue;
+			}
+
+			$nextMin = $orderedMinWidths[ $position + 1 ] ?? null;
+
+			$css .= is_int( $nextMin ) && $nextMin > $min
+				? sprintf(
+					'@media (min-width:%dpx) and (max-width:%dpx){.%s{display:none !important;}}',
+					$min,
+					$nextMin - 1,
+					$scopeClass
+				)
+				: sprintf(
+					'@media (min-width:%dpx){.%s{display:none !important;}}',
+					$min,
+					$scopeClass
+				);
+		}
+
+		if ( '' === $css ) {
+			return $html;
+		}
+
+		return sprintf(
+			'<div class="%s" data-ve-vis-scope>%s<style>%s</style></div>',
+			$scopeClass,
+			$html,
+			$css
 		);
 	}
 

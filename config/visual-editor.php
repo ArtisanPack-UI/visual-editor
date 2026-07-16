@@ -590,4 +590,30 @@ return [
 		'navigation' => [],
 	],
 
+	/*
+	|--------------------------------------------------------------------------
+	| Block Visibility (#491 · #492 · #493)
+	|--------------------------------------------------------------------------
+	|
+	| Site-wide controls for the Block Visibility feature — contextual
+	| rules, user/auth rules, and date/time scheduling. Every rule is
+	| gated by `enabled` so a host can kill the whole feature in one
+	| line during incident response.
+	|
+	| `user_model` and `user_search_columns` back the `/visual-editor/api/
+	| users/search` autocomplete used by the "Specific User" rule. Leave
+	| `user_model` null to fall back to `auth.providers.users.model`.
+	| `user_search_columns` defaults to `[ 'email', 'name' ]` if either
+	| column is present on the user model.
+	|
+	| Docs: docs/visibility.md
+	|
+	*/
+
+	'visibility' => [
+		'enabled'              => true,
+		'user_model'           => null,
+		'user_search_columns'  => null,
+	],
+
 ];

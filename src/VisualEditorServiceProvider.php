@@ -59,6 +59,22 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver as Sit
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplateResolver as SiteEditorTemplateResolver;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\View\Components\VisualEditorComponent;
+use ArtisanPackUI\VisualEditor\Visibility\RuleRegistry as VisibilityRuleRegistry;
+use ArtisanPackUI\VisualEditor\Visibility\Rules\BrowserOsDeviceRule;
+use ArtisanPackUI\VisualEditor\Visibility\Rules\DateTimeWindowRule;
+use ArtisanPackUI\VisualEditor\Visibility\Rules\HideRule;
+use ArtisanPackUI\VisualEditor\Visibility\Rules\LoginStateRule;
+use ArtisanPackUI\VisualEditor\Visibility\Rules\QueryStringRule;
+use ArtisanPackUI\VisualEditor\Visibility\Rules\RecurringScheduleRule;
+use ArtisanPackUI\VisualEditor\Visibility\Rules\ReferrerRule;
+use ArtisanPackUI\VisualEditor\Visibility\Rules\ScreenSizeRule;
+use ArtisanPackUI\VisualEditor\Visibility\Rules\SpecificUserRule;
+use ArtisanPackUI\VisualEditor\Visibility\Rules\UserRoleRule;
+use ArtisanPackUI\VisualEditor\Visibility\ScheduledBlockCollector;
+use ArtisanPackUI\VisualEditor\Visibility\TreePruner as VisibilityTreePruner;
+use ArtisanPackUI\VisualEditor\Visibility\UserAgentParser;
+use ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator;
+use ArtisanPackUI\VisualEditor\Console\AuditScheduledBlocksCommand;
 use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Support\Facades\Blade;
@@ -429,6 +445,80 @@ class VisualEditorServiceProvider extends ServiceProvider
 			);
 		} );
 
+		// #491 · #492 · #493 — Block Visibility. `UserAgentParser` is
+		// stateless (safe singleton). `ScheduledBlockCollector` is a
+		// pure walker (safe singleton). The `VisibilityRuleRegistry`
+		// is scoped per request because the built-in rule set is
+		// merged with the `ap.visual-editor.visibility.register-rules`
+		// filter, and third-party rule providers may register with
+		// per-request container state (route parameters, tenant
+		// context, etc.). The `VisibilityEvaluator` is also scoped so
+		// it captures the request-scoped Request + Guard at resolve
+		// time — a singleton would leak stale request objects into
+		// subsequent requests under Octane / RoadRunner.
+		$this->app->singleton( UserAgentParser::class, function () {
+			return new UserAgentParser();
+		} );
+
+		$this->app->singleton( ScheduledBlockCollector::class, function () {
+			return new ScheduledBlockCollector();
+		} );
+
+		// The scoped closure only assembles the built-in rule set —
+		// the `ap.visual-editor.visibility.register-rules` filter is
+		// applied via `extend()` in `boot()` (see
+		// `applyVisibilityRulesFilter()`). Extending inside the closure
+		// would freeze the filter chain state at first-resolve time,
+		// which fails when a third-party provider registers its
+		// `addFilter` in its own `boot()` phase and something resolves
+		// the registry before that boot runs.
+		$this->app->scoped( VisibilityRuleRegistry::class, function ( $app ) {
+			return new VisibilityRuleRegistry( [
+				$app->make( HideRule::class ),
+				$app->make( ScreenSizeRule::class ),
+				$app->make( QueryStringRule::class ),
+				$app->make( ReferrerRule::class ),
+				$app->make( BrowserOsDeviceRule::class ),
+				$app->make( LoginStateRule::class ),
+				$app->make( UserRoleRule::class ),
+				$app->make( SpecificUserRule::class ),
+				$app->make( DateTimeWindowRule::class ),
+				$app->make( RecurringScheduleRule::class ),
+			] );
+		} );
+
+		$this->app->scoped( VisibilityEvaluator::class, function ( $app ) {
+			return new VisibilityEvaluator(
+				$app->make( VisibilityRuleRegistry::class ),
+				$app->make( ConfigRepository::class ),
+				$app->bound( 'request' ) ? $app->make( 'request' ) : null,
+				$app->bound( 'auth' ) ? $app->make( 'auth' )->guard() : null,
+			);
+		} );
+
+		// Rules that need injected collaborators — bound explicitly so
+		// tests can rebind a fake without patching the registry.
+		$this->app->singleton( HideRule::class, fn () => new HideRule() );
+		$this->app->singleton( QueryStringRule::class, fn () => new QueryStringRule() );
+		$this->app->singleton( ReferrerRule::class, fn () => new ReferrerRule() );
+		$this->app->singleton( LoginStateRule::class, fn () => new LoginStateRule() );
+		$this->app->singleton( UserRoleRule::class, fn () => new UserRoleRule() );
+		$this->app->singleton( SpecificUserRule::class, fn () => new SpecificUserRule() );
+		$this->app->singleton( DateTimeWindowRule::class, fn () => new DateTimeWindowRule() );
+		$this->app->singleton( RecurringScheduleRule::class, fn () => new RecurringScheduleRule() );
+
+		$this->app->scoped( ScreenSizeRule::class, function ( $app ) {
+			return new ScreenSizeRule( $app->make( BreakpointRegistry::class ) );
+		} );
+
+		$this->app->singleton( BrowserOsDeviceRule::class, function ( $app ) {
+			return new BrowserOsDeviceRule( $app->make( UserAgentParser::class ) );
+		} );
+
+		$this->app->scoped( VisibilityTreePruner::class, function ( $app ) {
+			return new VisibilityTreePruner( $app->make( VisibilityEvaluator::class ) );
+		} );
+
 		// #434: `GlobalStylesCssProvider` + `GlobalStylesCacheInvalidator`
 		// were deleted with the rest of the plan-11 Phase D legacy.
 		// The renderer-blade package's `<x-ve-blocks>` /
@@ -482,6 +572,35 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
+	 * Layer the `ap.visual-editor.visibility.register-rules` filter
+	 * over every fresh {@see VisibilityRuleRegistry} instance.
+	 *
+	 * Registered in `boot()` via {@see \Illuminate\Container\Container::extend()}
+	 * so the filter chain is guaranteed complete by the time the
+	 * registry is resolved — third-party packages can hook their
+	 * custom rules from their own `boot()` regardless of provider
+	 * order. Firing the filter inside the scoped closure would freeze
+	 * the chain state at first-resolve, breaking any late-boot
+	 * registration.
+	 *
+	 * @since 1.4.0
+	 */
+	protected function applyVisibilityRulesFilter(): void
+	{
+		if ( ! function_exists( 'applyFilters' ) ) {
+			return;
+		}
+
+		$this->app->extend(
+			VisibilityRuleRegistry::class,
+			static function ( VisibilityRuleRegistry $registry ): VisibilityRuleRegistry {
+				$filtered = applyFilters( 'ap.visual-editor.visibility.register-rules', $registry );
+				return $filtered instanceof VisibilityRuleRegistry ? $filtered : $registry;
+			},
+		);
+	}
+
+	/**
 	 * Perform post-registration booting of services.
 	 *
 	 * @since 1.0.0
@@ -503,6 +622,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 			$this->registerResourceResolver();
 			$this->registerSiteEditorResolvers();
 		} );
+
+		// 1b. Layer the `ap.visual-editor.visibility.register-rules`
+		//     filter over the scoped registry via `extend()`. Runs at
+		//     resolve-time (after the closure builds the default set)
+		//     which means addFilter calls from any other provider's
+		//     `boot()` are visible regardless of provider order — the
+		//     failure mode we hit when the filter fired inside the
+		//     scoped closure (an intra-boot resolve captured an empty
+		//     filter chain).
+		$this->applyVisibilityRulesFilter();
 
 		// 2. Load package views, routes, and migrations.
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor' );
@@ -569,8 +698,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 							  ], 'artisanpack-package-config' );
 
 			// #487 — surface the breakpoint audit command.
+			// #493 — surface the scheduled-blocks audit command.
 			$this->commands( [
 				AuditBreakpointsCommand::class,
+				AuditScheduledBlocksCommand::class,
 			] );
 		}
 	}

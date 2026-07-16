@@ -43,6 +43,7 @@ import {
     inlineTemplateParts,
 } from './templateParts';
 import type { TemplatePartRecord } from './templateParts';
+import { filterVisibleBlocks, stampVisibilityScopes } from './visibility';
 import type { Block } from './types';
 
 const DEFAULT_ENDPOINT = '/visual-editor/api/blocks/preview';
@@ -158,13 +159,26 @@ export function BlockTree({
         [blocks]
     );
 
+    // Block Visibility (#491 · #492 · #493) — server-side
+    // `TreePruner` has already dropped `hidden()` blocks from the
+    // payload; here we filter defensively (host-assembled trees) and
+    // stamp `_veVisScope` classes + emit the accumulated `@media`
+    // rules so screen-size rules take effect at the same breakpoints
+    // as the Blade renderer.
+    const { tree: visibleBlocks, css: visibilityCss } = useMemo(() => {
+        return stampVisibilityScopes(filterVisibleBlocks(blocks));
+    }, [blocks]);
+
     return (
         <>
             <GlobalStyles css={globalStylesCss} />
             {flexArbitraryCss !== '' && (
                 <style data-ve-flex-arbitrary>{flexArbitraryCss}</style>
             )}
-            {blocks.map((block, index) =>
+            {visibilityCss !== '' && (
+                <style data-ve-visibility>{visibilityCss}</style>
+            )}
+            {visibleBlocks.map((block, index) =>
                 renderBlock(block, index, dynamicBlockEndpoint, fetchOptions)
             )}
         </>
@@ -243,8 +257,8 @@ function renderBlock(
 
     const Renderer = getBlockRenderer(name);
 
-    if (Renderer !== undefined) {
-        return (
+    const element = Renderer !== undefined
+        ? (
             <Renderer
                 key={key}
                 name={name}
@@ -253,18 +267,33 @@ function renderBlock(
             >
                 {renderedChildren === null ? null : <Fragment>{renderedChildren}</Fragment>}
             </Renderer>
+        )
+        : (
+            <DynamicBlock
+                key={key}
+                name={name}
+                attributes={attributes}
+                endpoint={endpoint}
+                fetchOptions={fetchOptions}
+            />
+        );
+
+    // Visibility screen-size scope class stamped by
+    // `stampVisibilityScopes()`. Wrap in a display-contents div so
+    // the emitted `@media (min-width:X) and (max-width:Y-1)` rules
+    // can hide the whole block without perturbing flex / grid parent
+    // layout in the common case (display:none still overrides
+    // display:contents when the rule fires).
+    const scope = attributes._veVisScope;
+    if (typeof scope === 'string' && scope !== '') {
+        return (
+            <div key={key} className={scope} data-ve-vis-scope style={{ display: 'contents' }}>
+                {element}
+            </div>
         );
     }
 
-    return (
-        <DynamicBlock
-            key={key}
-            name={name}
-            attributes={attributes}
-            endpoint={endpoint}
-            fetchOptions={fetchOptions}
-        />
-    );
+    return element;
 }
 
 function normalizeTree(tree: Block[] | string | null | undefined): Block[] {
