@@ -25,6 +25,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Services\Bindings;
 
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
 use Illuminate\Database\Eloquent\Model;
 use Throwable;
 
@@ -86,8 +87,15 @@ class BindingResolver
 	 */
 	protected function resolveBlock( array $block, BindingContext $context ): array
 	{
-		$bindings = $block['bindings'] ?? null;
-		$attrs    = is_array( $block['attrs'] ?? null ) ? $block['attrs'] : [];
+		// Shape-agnostic read via BlockShape — supports both
+		// Gutenberg's `attributes` (editor persistence, bindings under
+		// `attributes.bindings`) and parse_blocks()'s `attrs`
+		// (top-level `bindings`). BlockShape::readBindings guards
+		// against a block that has an unrelated attribute literally
+		// named `bindings` by requiring at least one entry with a
+		// `source` key.
+		[ $attrKey, $attrs ] = BlockShape::readAttrs( $block );
+		$bindings            = BlockShape::readBindings( $block );
 
 		if ( is_array( $bindings ) && [] !== $bindings ) {
 			foreach ( $bindings as $attribute => $binding ) {
@@ -98,7 +106,7 @@ class BindingResolver
 				$attrs = $this->applyBinding( $attribute, $binding, $attrs, $context );
 			}
 
-			$block['attrs'] = $attrs;
+			$block[ $attrKey ] = $attrs;
 		}
 
 		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
@@ -312,7 +320,11 @@ class BindingResolver
 				continue;
 			}
 
-			$bindings = $block['bindings'] ?? null;
+			// Shape-agnostic bindings read via BlockShape — sees both
+			// top-level (parse_blocks) and nested-in-attributes (editor)
+			// placements, and rejects false positives where a block has
+			// an unrelated attribute named `bindings`.
+			$bindings = BlockShape::readBindings( $block );
 
 			if ( is_array( $bindings ) ) {
 				foreach ( $bindings as $binding ) {

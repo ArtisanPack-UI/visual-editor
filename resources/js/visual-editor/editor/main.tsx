@@ -18,6 +18,7 @@ import type {
     DocumentSupports,
     FeaturedImageValue,
 } from './document-panels';
+import type { BreakpointRegistrySnapshot } from '../responsive/types';
 
 export {
     registerArtisanpackMediaBridge,
@@ -108,9 +109,32 @@ export interface MountConfig {
      * Hosts pass via `data-template`.
      */
     initialTemplate?: string;
+    /**
+     * ISO-8601 timestamp when the underlying record was created (#639).
+     * Together with {@link initialUpdatedAt} this drives the "never
+     * saved" heuristic that gates the page-pattern-inserter modal from
+     * auto-opening on already-saved pages. Hosts pass via
+     * `data-created-at`; omit both to leave the modal manual-only.
+     */
+    initialCreatedAt?: string;
+    /**
+     * ISO-8601 timestamp when the underlying record was last updated
+     * (#639). See {@link initialCreatedAt}.
+     */
+    initialUpdatedAt?: string;
     authorOptions?: ReadonlyArray<AuthorOption>;
     supports?: DocumentSupports;
     previewUrl?: string | null;
+    /**
+     * Serialised breakpoint registry (#617) — the merged config +
+     * theme.json + defaults snapshot. Hosts stamp this via
+     * `data-breakpoints` on the mount element; the shell hands it
+     * to `registryFromSnapshot()` and forwards the resulting registry
+     * to `TopBar` so the viewport switcher respects host-configured
+     * `label` / `previewWidthPx` overrides. Omit to fall back to
+     * the ship defaults.
+     */
+    breakpoints?: BreakpointRegistrySnapshot | null;
 }
 
 export interface MountedEditor {
@@ -168,6 +192,8 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
     const rawParent = element.dataset.parent?.trim();
     const rawMenuOrder = element.dataset.menuOrder?.trim();
     const initialTemplate = element.dataset.template?.trim();
+    const initialCreatedAt = element.dataset.createdAt?.trim();
+    const initialUpdatedAt = element.dataset.updatedAt?.trim();
 
     const initialCategories = parseIdListDataset(
         element.dataset.categories,
@@ -221,6 +247,15 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
         element.dataset.supports,
         'data-supports'
     );
+    // #617 — the host stamps the merged breakpoint registry as
+    // `data-breakpoints`. Passed through unchanged to the shell,
+    // which hydrates it via `registryFromSnapshot()`.
+    const rawBreakpoints = parseJsonDataset<
+        ReadonlyArray<{ key: string; minWidthPx: number; previewWidthPx?: number; label?: string }>
+    >(element.dataset.breakpoints, 'data-breakpoints');
+    const breakpoints: BreakpointRegistrySnapshot | null = Array.isArray(rawBreakpoints)
+        ? { breakpoints: rawBreakpoints as BreakpointRegistrySnapshot['breakpoints'] }
+        : null;
 
     // Dataset attributes are always strings, but most Laravel hosts store
     // author IDs as integers. Normalize back to the original type so
@@ -252,6 +287,9 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
             ? { initialMenuOrder }
             : {}),
         ...(initialTemplate ? { initialTemplate } : {}),
+        ...(initialCreatedAt ? { initialCreatedAt } : {}),
+        ...(initialUpdatedAt ? { initialUpdatedAt } : {}),
+        ...(breakpoints !== null ? { breakpoints } : {}),
         previewUrl: previewUrl ?? null,
     };
 }

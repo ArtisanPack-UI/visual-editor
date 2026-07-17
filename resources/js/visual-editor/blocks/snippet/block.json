@@ -1,0 +1,30 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/snippet",
+    "title": "Snippet",
+    "category": "theme",
+    "description": "Insert a reusable block-tree snippet. Edits to the source snippet propagate to every placement.",
+    "keywords": [
+        "snippet",
+        "reusable",
+        "dynamic"
+    ],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "slug": {
+            "type": "string",
+            "default": ""
+        }
+    },
+    "supports": {
+        "html": false,
+        "customClassName": true,
+        "anchor": true,
+        "align": [
+            "wide",
+            "full"
+        ],
+        "reusable": false
+    }
+}

@@ -112,6 +112,7 @@
         }
     },
     "supports": {
+        "position": true,
         "interactivity": true,
         "align": [
             "left",

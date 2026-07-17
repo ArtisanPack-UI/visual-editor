@@ -63,6 +63,10 @@ class PatternController extends Controller
 	 * Optional filters:
 	 * - `?source=user|theme`
 	 * - `?synced=1|0`
+	 * - `?post_type={slug}` — restrict to patterns registered for the
+	 *   given post type. Patterns registered without a `post_types`
+	 *   scope match every request (Gutenberg convention); patterns with
+	 *   a scope match only when the requested slug is present.
 	 *
 	 * @since 1.0.0
 	 */
@@ -78,6 +82,14 @@ class PatternController extends Controller
 		if ( $request->has( 'synced' ) ) {
 			$wantSynced = $request->boolean( 'synced' );
 			$patterns   = array_filter( $patterns, static fn ( ResolvedPattern $p ) => $p->synced === $wantSynced );
+		}
+
+		$postType = strtolower( trim( (string) $request->query( 'post_type', '' ) ) );
+		if ( '' !== $postType ) {
+			$patterns = array_filter(
+				$patterns,
+				static fn ( ResolvedPattern $p ) => $p->matchesPostType( $postType ),
+			);
 		}
 
 		return response()->json( ( new PatternAdapter() )->collection( $patterns ) );

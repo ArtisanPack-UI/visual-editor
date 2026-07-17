@@ -68,4 +68,11 @@ export {
     setDefaultSiteMeta,
 } from './siteMeta';
 export type { SiteMeta } from './siteMeta';
+export {
+    filterVisibleBlocks,
+    getBreakpoints,
+    setBreakpoints,
+    stampVisibilityScopes,
+} from './visibility';
+export type { BreakpointDefinition } from './visibility';
 export type { Block, BlockRenderer, BlockRendererProps } from './types';

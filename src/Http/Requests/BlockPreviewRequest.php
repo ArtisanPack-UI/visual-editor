@@ -36,6 +36,7 @@ class BlockPreviewRequest extends FormRequest
 		return [
 			'name'             => [ 'required', 'string', 'regex:/^[a-z][a-z0-9-]*\/[a-z][a-z0-9-]*$/' ],
 			'attributes'       => [ 'sometimes', 'array' ],
+			'innerBlocks'      => [ 'sometimes', 'array' ],
 			'bindings'         => [ 'sometimes', 'array' ],
 			'context'          => [ 'sometimes', 'array' ],
 			'context.resource' => [ 'sometimes', 'string' ],

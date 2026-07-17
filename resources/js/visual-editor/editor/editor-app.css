@@ -87,7 +87,14 @@
     min-height: 0;
     display: flex;
     flex-direction: column;
-    overflow: hidden;
+    /*
+     * #617 — allow the canvas to scroll horizontally so a wide
+     * preset (Desktop 1440px) in a narrower editor scrolls instead
+     * of being clipped. Y-axis stays hidden because the `BlockCanvas`
+     * iframe handles vertical overflow inside itself.
+     */
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 
 /*
@@ -107,6 +114,17 @@
 .ap-visual-editor__canvas-frame {
     flex: 1 1 auto;
     min-height: 0;
+    /*
+     * #617 — when no device preset is active, the frame fills the
+     * column. When one is active, `editor-canvas.tsx` stamps an
+     * inline `width` (not `max-width`) so wide presets can push past
+     * the editor width and let the parent scroll horizontally;
+     * `margin: 0 auto` still centers the shrunk frame when the
+     * editor is wider than the preset.
+     */
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
 }
 
 .ap-visual-editor__sidebar {

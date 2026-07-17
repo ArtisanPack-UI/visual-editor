@@ -27,6 +27,7 @@ import blockEditorStyle from '@wordpress/block-editor/build-style/style.css?inli
 import blockLibraryEditor from '@wordpress/block-library/build-style/editor.css?inline';
 import blockLibraryStyle from '@wordpress/block-library/build-style/style.css?inline';
 import componentsStyle from '@wordpress/components/build-style/style.css?inline';
+import { applyFilters } from '@wordpress/hooks';
 
 import {
     ALIGNMENT_OVERRIDE_STYLES,
@@ -155,7 +156,9 @@ const EDITOR_BLOCK_TWEAKS = `
 `;
 
 /**
- * Ordered `{ css }` entries handed to `BlockCanvas`'s `styles` prop.
+ * Base ordered list — third parties extend this via
+ * `ap.visual-editor.canvas-styles` (see the export below).
+ *
  * The order is the cascade order inside the iframe:
  *
  *   1. the token bridge first, so every rule below it can read the
@@ -172,11 +175,12 @@ const EDITOR_BLOCK_TWEAKS = `
  *      stylesheet will append after this entry and win in turn once
  *      the theme.json bridge lands.
  *
- * `BlockCanvas` passes this straight to `__unstableEditorStyles` with
- * no wrapper selector, so the CSS is injected into the iframe verbatim
- * (`transformStyles` is a no-op without a scope or `baseURL`).
+ * `BlockCanvas` passes the final (post-filter) list straight to
+ * `__unstableEditorStyles` with no wrapper selector, so the CSS is
+ * injected into the iframe verbatim (`transformStyles` is a no-op
+ * without a scope or `baseURL`).
  */
-export const canvasStyles: readonly CanvasStyle[] = [
+const baseCanvasStyles: CanvasStyle[] = [
     { css: canvasThemeTokens },
     { css: componentsStyle },
     { css: blockEditorStyle },
@@ -213,3 +217,42 @@ export const canvasStyles: readonly CanvasStyle[] = [
     // front-end (#47).
     { css: POST_EDITOR_FRAMING_STYLES },
 ];
+
+/**
+ * Iframe-injected stylesheet list, pipeable through the
+ * `ap.visual-editor.canvas-styles` filter so third-party packages can
+ * push their CSS into the canvas without editing this file.
+ *
+ * Filter callbacks receive the ordered `CanvasStyle[]` and must return
+ * a new `CanvasStyle[]`. Non-array returns are ignored (the base list
+ * is used as-is), non-object entries are dropped, and each entry's
+ * `css` property must be a string — the filter is a hard boundary
+ * because the array feeds directly into `BlockCanvas`'s
+ * `__unstableEditorStyles` prop.
+ *
+ * TIMING: `applyFilters` runs synchronously at module-load time inside
+ * the IIFE below and the resulting `canvasStyles` export is frozen for
+ * the rest of the session. Callbacks MUST be registered
+ * (`addFilter('ap.visual-editor.canvas-styles', …)`) before this
+ * module is first imported — typically from a top-level side-effect
+ * import that appears before the editor bundle in the app's entry
+ * graph. Filters registered after the first import silently no-op:
+ * their CSS will not appear in the iframe.
+ */
+export const canvasStyles: readonly CanvasStyle[] = ( (): CanvasStyle[] => {
+    const filtered = applyFilters(
+        'ap.visual-editor.canvas-styles',
+        [...baseCanvasStyles],
+    );
+
+    if ( ! Array.isArray( filtered ) ) {
+        return baseCanvasStyles;
+    }
+
+    return filtered.filter(
+        ( entry ): entry is CanvasStyle =>
+            entry !== null &&
+            typeof entry === 'object' &&
+            typeof ( entry as { css?: unknown } ).css === 'string',
+    );
+} )();

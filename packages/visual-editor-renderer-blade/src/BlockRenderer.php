@@ -22,6 +22,13 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade;
 
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
+use ArtisanPackUI\VisualEditor\Visibility\VisibilityContext;
+use ArtisanPackUI\VisualEditor\Visibility\VisibilityDecision;
+use ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator;
+use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
@@ -34,6 +41,18 @@ use Throwable;
 
 class BlockRenderer
 {
+	/**
+	 * Hard cap on inner-block recursion depth. A persisted tree
+	 * deeper than this is treated as malformed — the walker stops
+	 * recursing and rendering the subtree, and the incident is
+	 * `report()`-ed so ops can find the offending content. Prevents
+	 * a compromised import or a pathological block payload from
+	 * stack-overflowing the PHP process on every subsequent visit.
+	 *
+	 * @since 1.4.0
+	 */
+	public const MAX_INNER_DEPTH = 128;
+
 	/**
 	 * Block names that consume site-meta `_resolved*` attributes.
 	 *
@@ -73,12 +92,159 @@ class BlockRenderer
 	 */
 	protected int $renderIndex = 0;
 
+	/**
+	 * Current depth into `innerBlocks` for the ongoing render call.
+	 * Incremented by {@see renderInner()}, reset to 0 by {@see render()}.
+	 * Read by {@see renderInner()} to short-circuit past {@see MAX_INNER_DEPTH}.
+	 */
+	protected int $innerDepth = 0;
+
+	/**
+	 * Request-scoped {@see VisibilityContext}, cached for the length of
+	 * a single {@see render()} call so a large tree only pays the
+	 * user-agent parse + role lookup once. Rebuilt on every top-level
+	 * `render()` so long-lived workers (Octane / RoadRunner / queues)
+	 * pick up fresh request state.
+	 */
+	protected ?VisibilityContext $visibilityContext = null;
+
+	/**
+	 * Monotonically-increasing counter used to mint unique CSS scope
+	 * classes for CSS-hidden blocks, keeping the emitted `@media`
+	 * rules from bleeding into other blocks that share a wrapper tag.
+	 */
+	protected int $visibilityScopeCounter = 0;
+
 	public function __construct(
 		protected ViewFactory $views,
 		protected DynamicBlockRegistry $dynamicBlocks,
 		protected ?SiteMetaResolver $siteMeta = null,
 		protected ?LoginoutResolver $loginout = null,
+		protected ?VisibilityEvaluator $visibility = null,
+		protected ?BindingResolver $bindingResolver = null,
 	) {
+	}
+
+	/**
+	 * Walk the tree resolving `{{token}}` occurrences in every string /
+	 * numeric-string attribute via cms-framework's DynamicContentResolver.
+	 * Attributes that don't contain a `{{` are left untouched so the pass
+	 * is a fast pre-filter — the resolver is invoked at most once per
+	 * bearing attribute.
+	 *
+	 * @param  array<int, array<string, mixed>>  $tree
+	 *
+	 * @return array<int, array<string, mixed>>
+	 *
+	 * @since 1.4.0
+	 */
+	public function resolveInlineTokens( array $tree ): array
+	{
+		if ( [] === $tree ) {
+			return $tree;
+		}
+
+		// Callers that reach this method directly (public helper,
+		// isolated unit tests) may hand us a non-normalized tree;
+		// canonicalize first so the internal walker only has to reason
+		// about the `attributes` shape. Normalization runs before the
+		// resolver availability check so a host without cms-framework
+		// on the classpath still gets a canonical tree back.
+		$tree = BlockShape::normalizeTree( $tree );
+
+		$resolverClass = 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentResolver';
+
+		// Accept either a real cms-framework autoload OR a
+		// container-bound test fake keyed by the class string. Without
+		// the second branch, `class_exists()` short-circuits in a CI
+		// environment that installs cms-framework below the 2.4
+		// baseline that introduced the resolver — the fake wired via
+		// `app()->instance($resolverClass, …)` would never be consulted
+		// and the tree ships back unresolved.
+		if ( ! class_exists( $resolverClass ) && ! app()->bound( $resolverClass ) ) {
+			return $tree;
+		}
+
+		try {
+			$resolver = app( $resolverClass );
+		} catch ( Throwable $e ) {
+			report( $e );
+
+			return $tree;
+		}
+
+		return array_values( array_map(
+			fn ( $block ) => is_array( $block ) ? $this->resolveInlineTokensInBlock( $block, $resolver ) : $block,
+			$tree
+		) );
+	}
+
+	/**
+	 * @param  array<string, mixed>  $block
+	 *
+	 * @return array<string, mixed>
+	 *
+	 * @since 1.4.0
+	 */
+	protected function resolveInlineTokensInBlock( array $block, object $resolver ): array
+	{
+		// Tree has already been normalized to Gutenberg shape at the top
+		// of render(), so `attributes` is the canonical key. Reading
+		// through BlockShape keeps this call site robust when the
+		// method is invoked from a caller that skipped normalization
+		// (e.g. via public resolveInlineTokens on a raw tree).
+		[ $attrKey, $attrs ] = BlockShape::readAttrs( $block );
+
+		foreach ( $attrs as $key => $value ) {
+			if ( is_string( $value ) && str_contains( $value, '{{' ) ) {
+				try {
+					$attrs[ $key ] = (string) $resolver->render( $value );
+				} catch ( Throwable $e ) {
+					report( $e );
+				}
+			}
+		}
+
+		$block[ $attrKey ] = $attrs;
+
+		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
+			$block['innerBlocks'] = array_values( array_map(
+				fn ( $inner ) => is_array( $inner ) ? $this->resolveInlineTokensInBlock( $inner, $resolver ) : $inner,
+				$block['innerBlocks']
+			) );
+		}
+
+		return $block;
+	}
+
+	/**
+	 * Resolve block bindings for the given tree before it hits the
+	 * renderer's main loop. When a BindingResolver is wired, the tree is
+	 * walked once so every block's `bindings` sidecar is folded into the
+	 * static `attrs` — the downstream walker then renders as if the
+	 * values had been persisted. Silent no-op when the resolver isn't
+	 * bound (VE renderer-blade is installable without the bindings
+	 * layer).
+	 *
+	 * @param  array<int, array<string, mixed>>  $tree
+	 *
+	 * @return array<int, array<string, mixed>>
+	 *
+	 * @since 1.4.0
+	 */
+	public function resolveBindings( array $tree, ?BindingContext $context = null ): array
+	{
+		if ( null === $this->bindingResolver || [] === $tree ) {
+			return $tree;
+		}
+
+		try {
+			return $this->bindingResolver->resolve( $tree, $context );
+		} catch ( Throwable $e ) {
+			report( $e );
+
+			return $tree;
+		}
 	}
 
 	/**
@@ -90,7 +256,36 @@ class BlockRenderer
 	 */
 	public function render( array $tree ): string
 	{
-		$this->renderIndex = 0;
+		$this->renderIndex       = 0;
+		$this->innerDepth        = 0;
+		$this->visibilityContext = null;
+
+		if ( null !== $this->visibility && $this->visibility->enabled() ) {
+			$this->visibilityContext = $this->visibility->contextFromRequest();
+		}
+
+		// #650 — normalize the tree to Gutenberg's canonical shape
+		// (`attributes` bag, bindings under `attributes.bindings`) so
+		// every downstream pipeline stage reads one shape. Without this
+		// pass, each stage has to re-implement the attributes-vs-attrs
+		// sniff and one that forgets (see the SnippetCycleGuard bug
+		// caught in code review) silently misses editor-persisted
+		// trees.
+		$tree = BlockShape::normalizeTree( $tree );
+
+		// #650 — resolve bindings (Dynamic Content, custom fields,
+		// post_core, relation) once before the walker runs. The
+		// resolver only mutates blocks with a `bindings` sidecar; trees
+		// without bindings round-trip byte-identically.
+		$tree = $this->resolveBindings( $tree );
+
+		// #650 — inline token pass. Walks every block's string /
+		// rich-text attribute looking for `{{token}}` occurrences and
+		// runs them through cms-framework's DynamicContentResolver so
+		// authored inline tokens (typed via `{{` autocomplete or the
+		// Token Inserter) resolve at render time. Silent no-op when
+		// cms-framework is not on the classpath.
+		$tree = $this->resolveInlineTokens( $tree );
 
 		$out = '';
 
@@ -120,6 +315,34 @@ class BlockRenderer
 			return '';
 		}
 
+		// #491 · #492 · #493 — Block Visibility gate. Server-side drop
+		// so hidden blocks never emit markup and there is no flash of
+		// hidden content. The visibility context is cached per-render
+		// call, so a large tree only pays the user-agent parse + role
+		// lookup once. Hidden blocks skip the render index bump because
+		// they never reach the partial that would consume it, keeping
+		// the per-instance suffix stable across visitors.
+		//
+		// The decision is a LOCAL variable rather than instance state
+		// because `renderStatic()` / `renderDynamic()` (below) walk
+		// `innerBlocks` recursively via {@see renderInner()} —
+		// stashing the decision on `$this` would let each child
+		// overwrite its parent's decision before line
+		// wrapWithScreenSizeCss reads it.
+		$cssHiddenDecision = null;
+
+		if ( null !== $this->visibility && null !== $this->visibilityContext ) {
+			$decision = $this->visibility->evaluate( array_merge( $block, [ 'name' => $name ] ), $this->visibilityContext );
+
+			if ( $decision->isHidden() ) {
+				return '';
+			}
+
+			if ( $decision->isCssHidden() ) {
+				$cssHiddenDecision = $decision;
+			}
+		}
+
 		// Take this block's render index BEFORE walking innerBlocks so
 		// the parent's index is stable even though child blocks bump
 		// the counter recursively. Partials receive this value via the
@@ -133,11 +356,52 @@ class BlockRenderer
 		$innerBlocks     = $this->normalizeInnerBlocks( $block['innerBlocks'] ?? [] );
 		$innerBlocksHtml = $this->renderInner( $innerBlocks );
 
-		if ( $this->dynamicBlocks->has( $name ) ) {
-			return $this->renderDynamic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
+		$html = $this->dynamicBlocks->has( $name )
+			? $this->renderDynamic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex )
+			: $this->renderStatic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
+
+		// If the screen-size rule flagged this block as CSS-hidden at
+		// certain breakpoints, wrap its markup in a scope class + emit
+		// the matching `@media` rules so the client hides it at those
+		// widths without any runtime JS. Zero-cost when the rule is
+		// inactive.
+		if ( null !== $cssHiddenDecision && [] !== $cssHiddenDecision->hiddenBreakpoints ) {
+			$html = $this->wrapWithScreenSizeCss( $html, $cssHiddenDecision );
 		}
 
-		return $this->renderStatic( $name, $attributes, $innerBlocksHtml, $innerBlocks, $renderIndex );
+		// `ap.visual-editor.rendered-block` — last-mile hook for packages
+		// that need to post-process a rendered block. Runs on every block
+		// (static or dynamic) so cross-cutting effects (frosted glass,
+		// motion wrappers, contrast overlays, etc.) can decorate output
+		// without each host having to modify the renderer. Callbacks
+		// receive the final HTML, the block name, and the normalized
+		// attributes; they must return an HTML string.
+		//
+		// RECURSION: `renderInner` walks `innerBlocks` through this same
+		// method, so the filter fires once per block AT EVERY LEVEL of
+		// the tree — a callback that wraps `$html` on a container block
+		// (e.g. `core/group`) will ALSO wrap every descendant block
+		// unless it gates on `$name` / `$attributes`. Decorators that
+		// mean "wrap the outer container only" should branch on the
+		// block name before mutating the HTML.
+		//
+		// ATTRIBUTES SHAPE: `$attributes` is the post-normalization
+		// array, which for site-meta and loginout blocks already carries
+		// the internal `_resolved*` keys stamped by {@see stampSiteMeta}
+		// / {@see stampLoginout} (`_resolvedSiteTitle`,
+		// `_resolvedIsUserLoggedIn`, `_resolvedLoginFormHtml`, etc.).
+		// Those keys are a package-internal contract and may change
+		// without notice — callbacks should treat them as read-only
+		// side-channel data, not stable public attributes.
+		if ( function_exists( 'applyFilters' ) ) {
+			$filtered = applyFilters( 'ap.visual-editor.rendered-block', $html, $name, $attributes );
+
+			if ( is_string( $filtered ) ) {
+				$html = $filtered;
+			}
+		}
+
+		return $html;
 	}
 
 	/**
@@ -150,14 +414,29 @@ class BlockRenderer
 	 */
 	protected function renderInner( array $tree ): string
 	{
+		if ( $this->innerDepth >= self::MAX_INNER_DEPTH ) {
+			report( new \RuntimeException( sprintf(
+				'BlockRenderer inner-block depth cap (%d) exceeded — skipping remaining subtree. Likely a malformed or attacker-crafted block payload.',
+				self::MAX_INNER_DEPTH,
+			) ) );
+
+			return '';
+		}
+
+		$this->innerDepth++;
+
 		$out = '';
 
-		foreach ( $tree as $block ) {
-			if ( ! is_array( $block ) ) {
-				continue;
-			}
+		try {
+			foreach ( $tree as $block ) {
+				if ( ! is_array( $block ) ) {
+					continue;
+				}
 
-			$out .= $this->renderBlock( $block );
+				$out .= $this->renderBlock( $block );
+			}
+		} finally {
+			$this->innerDepth--;
 		}
 
 		return $out;
@@ -260,8 +539,19 @@ class BlockRenderer
 
 		try {
 			$validated = $block->validateAttrs( $attributes );
-			$result    = $block->render( $validated );
-			$html      = $this->coerceToString( $result );
+
+			// #650 — dynamic blocks that need their inner tree at render
+			// time (e.g. `artisanpack/dynamic-loop` iterating a template)
+			// implement WantsInnerBlocks; the renderer forwards the
+			// unrendered innerBlocks tree so the block can walk or
+			// duplicate it per iteration.
+			if ( $block instanceof \ArtisanPackUI\VisualEditor\Blocks\WantsInnerBlocks ) {
+				$result = $block->renderWithInner( $validated, $innerBlocks );
+			} else {
+				$result = $block->render( $validated );
+			}
+
+			$html = $this->coerceToString( $result );
 
 			// #490 — dynamic blocks build their own wrapper HTML and
 			// don't go through `BlockSupports::compile`, so the
@@ -361,6 +651,89 @@ class BlockRenderer
 			'<!-- visual-editor: no partial for %1$s --><div data-ve-unknown-block="%1$s">%2$s</div>',
 			$safeName,
 			$innerBlocksHtml
+		);
+	}
+
+	/**
+	 * Wrap a rendered block in a CSS scope class + emit `@media`
+	 * `display:none` rules so the screen-size visibility rule can hide
+	 * a block at named breakpoints without any runtime JavaScript.
+	 *
+	 * The wrapper is a single `<div>` that inherits its parent's flow
+	 * so container styles still apply — the block's own root tag stays
+	 * intact for CSS selectors already targeting it. The scope class
+	 * is per-block so two blocks hidden at different breakpoints don't
+	 * accidentally share their rules.
+	 *
+	 * @since 1.4.0
+	 */
+	protected function wrapWithScreenSizeCss( string $html, VisibilityDecision $decision ): string
+	{
+		$breakpointRegistry = null;
+
+		try {
+			$breakpointRegistry = app( BreakpointRegistry::class );
+		} catch ( Throwable $e ) {
+			// Container binding missing — fall back to a no-op wrap.
+			return $html;
+		}
+
+		$this->visibilityScopeCounter++;
+		$scopeClass = sprintf( 've-vis-%d', $this->visibilityScopeCounter );
+
+		$minWidths = $breakpointRegistry->all();
+
+		// Sort breakpoints ascending by min-width so we can pair each
+		// key with the NEXT breakpoint's min-width — 1 as its upper
+		// bound. The last (widest) breakpoint has no upper bound and
+		// emits a plain `min-width` query. This turns each checkbox
+		// into an independent RANGE ("hide at md" = hide 768–1023 only,
+		// not "hide from 768 and up forever"), matching the checkbox UI
+		// paradigm and letting editors pick non-contiguous ranges.
+		asort( $minWidths );
+		$orderedKeys      = array_keys( $minWidths );
+		$orderedMinWidths = array_values( $minWidths );
+
+		$css = '';
+
+		foreach ( $decision->hiddenBreakpoints as $key ) {
+			$position = array_search( $key, $orderedKeys, true );
+
+			if ( false === $position ) {
+				continue;
+			}
+
+			$min = $orderedMinWidths[ $position ];
+
+			if ( ! is_int( $min ) || $min <= 0 ) {
+				continue;
+			}
+
+			$nextMin = $orderedMinWidths[ $position + 1 ] ?? null;
+
+			$css .= is_int( $nextMin ) && $nextMin > $min
+				? sprintf(
+					'@media (min-width:%dpx) and (max-width:%dpx){.%s{display:none !important;}}',
+					$min,
+					$nextMin - 1,
+					$scopeClass
+				)
+				: sprintf(
+					'@media (min-width:%dpx){.%s{display:none !important;}}',
+					$min,
+					$scopeClass
+				);
+		}
+
+		if ( '' === $css ) {
+			return $html;
+		}
+
+		return sprintf(
+			'<div class="%s" data-ve-vis-scope>%s<style>%s</style></div>',
+			$scopeClass,
+			$html,
+			$css
 		);
 	}
 

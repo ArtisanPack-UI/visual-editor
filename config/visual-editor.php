@@ -389,7 +389,7 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
-	| Breakpoints (#487)
+	| Breakpoints (#487 · #617)
 	|--------------------------------------------------------------------------
 	|
 	| Named breakpoints the editor's viewport switcher and the responsive
@@ -397,13 +397,41 @@ return [
 	|
 	|   1. Active theme's `theme.json` → `settings.custom.artisanpack.breakpoints`
 	|   2. This config array (host-app overrides)
-	|   3. `BreakpointRegistry::DEFAULTS` (Tailwind v4 mins)
+	|   3. `BreakpointRegistry::DEFAULTS` (Tailwind v4 mins + Mobile/Tablet/Desktop labels)
 	|
-	| Merging is by key, so an entry here for `sm` resizes the default
-	| `sm` breakpoint without affecting the others; a new key like `3xl`
-	| adds a breakpoint. Values may be integer pixels (`640`) or CSS
-	| length strings (`'640px'`). Validation runs at registry-build time
-	| and throws on bad input — see `BreakpointRegistry::validate()`.
+	| Merging is by key. Two forms are accepted:
+	|
+	|   * Scalar (pre-#617) — a single pixel value or `Npx` string
+	|     that sets `minWidthPx`. `previewWidthPx` defaults to the same
+	|     value; `label` defaults to the key. Existing configs work
+	|     unchanged.
+	|
+	|         'sm' => '640px'
+	|         'md' => 768
+	|
+	|   * Object (#617) — `[ 'minWidthPx' => ..., 'previewWidthPx' => ...,
+	|     'label' => ... ]`. `minWidthPx` is required; `previewWidthPx`
+	|     falls back to `minWidthPx`; `label` falls back to the key.
+	|     Partial objects merge into the default at the same key, so
+	|     `'lg' => [ 'previewWidthPx' => 1440 ]` keeps the default
+	|     `minWidthPx` and `label`.
+	|
+	|         'sm' => [
+	|             'minWidthPx'     => 640,
+	|             'previewWidthPx' => 390,  // canvas iframe width (iPhone-sized preview)
+	|             'label'          => 'iPhone',
+	|         ],
+	|
+	| The `minWidthPx` field feeds Tailwind media-query prefixes and
+	| the mobile-first cascade — no change from #487. The
+	| `previewWidthPx` field is the canvas iframe width the switcher
+	| previews the layout at; it is intentionally decoupled so the
+	| `sm` cascade (activated at 640px) previews on a phone-sized
+	| 375px viewport rather than a physically impossible 640px phone.
+	|
+	| Validation runs at registry-build time and throws on bad input
+	| (unknown fields, non-positive widths, empty labels, duplicate
+	| min-widths) — see `BreakpointRegistry::validate()`.
 	|
 	| The implicit `base` slot (no min-width, applies everywhere) is
 	| reserved and cannot be redefined here.
@@ -411,9 +439,9 @@ return [
 	*/
 
 	'breakpoints' => [
-		// 'sm'  => '640px',
-		// 'md'  => '768px',
-		// 'lg'  => '1024px',
+		// 'sm'  => [ 'minWidthPx' => 640,  'previewWidthPx' => 375,  'label' => 'Mobile' ],
+		// 'md'  => [ 'minWidthPx' => 768,  'previewWidthPx' => 768,  'label' => 'Tablet' ],
+		// 'lg'  => [ 'minWidthPx' => 1024, 'previewWidthPx' => 1440, 'label' => 'Desktop' ],
 		// 'xl'  => '1280px',
 		// '2xl' => '1536px',
 	],
@@ -560,6 +588,32 @@ return [
 		// array<string, array> keyed by theme-declared menu location.
 		// Each entry: { location, name, items: [...] }
 		'navigation' => [],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Block Visibility (#491 · #492 · #493)
+	|--------------------------------------------------------------------------
+	|
+	| Site-wide controls for the Block Visibility feature — contextual
+	| rules, user/auth rules, and date/time scheduling. Every rule is
+	| gated by `enabled` so a host can kill the whole feature in one
+	| line during incident response.
+	|
+	| `user_model` and `user_search_columns` back the `/visual-editor/api/
+	| users/search` autocomplete used by the "Specific User" rule. Leave
+	| `user_model` null to fall back to `auth.providers.users.model`.
+	| `user_search_columns` defaults to `[ 'email', 'name' ]` if either
+	| column is present on the user model.
+	|
+	| Docs: docs/visibility.md
+	|
+	*/
+
+	'visibility' => [
+		'enabled'              => true,
+		'user_model'           => null,
+		'user_search_columns'  => null,
 	],
 
 ];

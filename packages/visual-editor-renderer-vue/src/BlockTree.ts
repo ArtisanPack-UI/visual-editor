@@ -43,6 +43,7 @@ import {
     inlineTemplateParts,
 } from './templateParts';
 import type { TemplatePartRecord } from './templateParts';
+import { filterVisibleBlocks, stampVisibilityScopes } from './visibility';
 import type { Block } from './types';
 
 const DEFAULT_ENDPOINT = '/visual-editor/api/blocks/preview';
@@ -184,6 +185,15 @@ export const BlockTree = defineComponent({
             buildArbitraryStyles(collectFlexArbitraryRules(blocks.value))
         );
 
+        // Block Visibility (#491 · #492 · #493) — server-side
+        // `TreePruner` has already dropped `hidden()` blocks from the
+        // payload; here we filter defensively and stamp `_veVisScope`
+        // classes + accumulate `@media` rules so screen-size rules
+        // take effect at the same breakpoints as the Blade renderer.
+        const visibility = computed(() =>
+            stampVisibilityScopes(filterVisibleBlocks(blocks.value))
+        );
+
         return () => {
             const endpoint = props.dynamicBlockEndpoint ?? DEFAULT_ENDPOINT;
             const children: VNode[] = [];
@@ -202,7 +212,17 @@ export const BlockTree = defineComponent({
                 );
             }
 
-            blocks.value
+            if (visibility.value.css !== '') {
+                children.push(
+                    h(
+                        'style',
+                        { 'data-ve-visibility': '' },
+                        visibility.value.css
+                    )
+                );
+            }
+
+            visibility.value.tree
                 .map((block, index) => renderBlock(block, index, endpoint, props.fetchOptions))
                 .filter((vnode): vnode is VNode => vnode !== null)
                 .forEach((vnode) => children.push(vnode));
@@ -281,13 +301,8 @@ function renderBlock(
 
     const renderer = getBlockRenderer(name);
 
-    if (renderer !== undefined) {
-        const slots =
-            renderedChildren.length === 0
-                ? undefined
-                : { default: () => renderedChildren };
-
-        return h(
+    const element = renderer !== undefined
+        ? h(
             renderer,
             {
                 key,
@@ -295,17 +310,33 @@ function renderBlock(
                 attributes,
                 innerBlocks,
             },
-            slots
+            renderedChildren.length === 0
+                ? undefined
+                : { default: () => renderedChildren },
+        )
+        : h(DynamicBlock, {
+            key,
+            name,
+            attributes,
+            endpoint,
+            fetchOptions,
+        });
+
+    // Visibility screen-size scope class stamped by
+    // `stampVisibilityScopes()`. `display:contents` keeps the wrapper
+    // out of the layout in the common case; the `@media` rule
+    // overrides with `display:none !important` when the viewport
+    // matches.
+    const scope = attributes._veVisScope;
+    if (typeof scope === 'string' && scope !== '') {
+        return h(
+            'div',
+            { key, class: scope, 'data-ve-vis-scope': '', style: { display: 'contents' } },
+            [ element ],
         );
     }
 
-    return h(DynamicBlock, {
-        key,
-        name,
-        attributes,
-        endpoint,
-        fetchOptions,
-    });
+    return element;
 }
 
 function normalizeTree(tree: Block[] | string | null | undefined): Block[] {

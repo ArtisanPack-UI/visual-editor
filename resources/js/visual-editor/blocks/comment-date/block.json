@@ -24,6 +24,7 @@
         "viewportWidth": 300
     },
     "supports": {
+        "position": true,
         "html": false,
         "color": {
             "gradients": true,

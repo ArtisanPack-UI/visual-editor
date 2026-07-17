@@ -37,6 +37,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
 use Illuminate\Contracts\View\View;
@@ -83,9 +84,14 @@ class BlocksComponent extends Component
 		bool $resolveBreadcrumbs = true,
 		bool $resolveNavigation = true,
 		protected ?BoxShadowCssAccumulator $boxShadowAccumulator = null,
+		protected ?PositionCssAccumulator $positionAccumulator = null,
 	) {
 		if ( null === $this->boxShadowAccumulator ) {
 			$this->boxShadowAccumulator = app( BoxShadowCssAccumulator::class );
+		}
+
+		if ( null === $this->positionAccumulator ) {
+			$this->positionAccumulator = app( PositionCssAccumulator::class );
 		}
 
 		$this->defaultTheme = $defaultTheme;
@@ -173,6 +179,7 @@ class BlocksComponent extends Component
 		$animationOutput    = $this->animationAccumulator->flush();
 		$gradientBordersCss = $this->gradientBorderAccumulator->flush();
 		$boxShadowsCss      = $this->boxShadowAccumulator->flush();
+		$positionCss        = $this->positionAccumulator->flush();
 
 		return view( 'visual-editor-renderer-blade::components.blocks', [
 			'html'                    => $html,
@@ -184,6 +191,7 @@ class BlocksComponent extends Component
 			'animationsRuntimeNeeded' => $animationOutput['runtimeNeeded'],
 			'gradientBordersCss'      => $gradientBordersCss,
 			'boxShadowsCss'           => $boxShadowsCss,
+			'positionCss'             => $positionCss,
 		] );
 	}
 

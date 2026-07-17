@@ -6,6 +6,185 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-16
+
+### Added
+
+- **Dynamic content editor UX (#650).** cms-framework Dynamic Content
+  integration inside the visual editor: new `dynamic_content`
+  block-binding source, batched `POST /dynamic-content/resolve` +
+  `GET /dynamic-content/sources` REST endpoints (gated by the
+  `SiteEditorAccessGate` and throttled at `60,1`), `{{`
+  autocomplete + token chip decoration + a Token Inserter modal, a
+  Dynamic Content tab on the link picker, and an Image block DC
+  binding UI. Ships two new blocks: `artisanpack/snippet` (reusable
+  block with cycle-guarded CRUD + admin surface at
+  `/visual-editor/snippets`) and `artisanpack/dynamic-loop` (iterates
+  a collection source and re-renders inner blocks per record). SSR
+  wires binding resolution into the Blade renderer via an optional
+  `BindingResolver` dependency, and a new `WantsInnerBlocks` marker
+  lets dynamic blocks that need the inner tree at render time (loop)
+  receive it. cms-framework is a soft dependency — everything
+  degrades cleanly when it's not installed. New `docs/dynamic-content.md`
+  covers tokens, block bindings, snippets, the loop block, and the
+  render pipeline; `docs/block-bindings.md` reconciled to cover the
+  bindings sidecar, `fallback` policy, and corrected endpoint paths.
+- **Block Visibility (#491, #492, #493).** Per-block runtime
+  visibility rules that evaluate **server-side** so hidden blocks
+  never emit markup. A single **Visibility** inspector panel exposes
+  three rule families: **contextual** (master Hide, screen size,
+  query string, referrer, browser/OS/device), **user & auth**
+  (login state, user role, specific user via
+  `/visual-editor/users/search` with `SiteEditorAccessGate`
+  authorization + LIKE escaping), and **scheduling** (single
+  date/time window, recurring weekly schedule, per-rule timezone
+  override, overnight window support). The editor canvas dims
+  hidden blocks so authors can still see and select them while
+  they're toggled off; the Blade, React, and Vue renderers each
+  filter the tree through `filterVisibleBlocks()` +
+  `stampVisibilityScopes()` and emit `<style data-ve-visibility>`
+  media queries per hidden breakpoint. Configurable via
+  `config('artisanpack.visual-editor.visibility')` — set
+  `enabled => false` to bypass every rule site-wide during incident
+  response. New `docs/visibility.md`.
+- **Responsive preview device sizes (#617).** Extended the
+  ViewportSwitcher into a unified device-preview + edit-scope
+  control. Selecting a preset atomically resizes the canvas iframe
+  to the breakpoint's `previewWidthPx` and scopes subsequent style
+  edits to that key. `Breakpoint` gains optional `label` and
+  `previewWidthPx` fields (both TS + PHP registries); PHP config
+  accepts either the legacy scalar `'sm' => '640px'` shape or the
+  new object shape
+  `'sm' => ['minWidthPx' => 640, 'previewWidthPx' => 375, 'label' => 'iPhone']`.
+  Ship defaults: Mobile (sm/375px), Tablet (md/768px), Desktop
+  (lg/1440px), xl+ (1280px), 2xl+ (1536px). Both editor shells now
+  stamp `data-breakpoints` with the merged registry snapshot so the
+  React shell can hydrate labels and preview widths without a
+  round-trip. `docs/blocks/Responsive-Design-Tools.md` updated with
+  the object-form config and shipped defaults table.
+- **Page pattern inserter modal (#639).** WordPress-style "Choose a
+  pattern" modal that auto-opens when the editor loads a
+  never-saved record with no content, and can be re-opened at any
+  time from a new top-bar button next to the `+` inserter.
+  Patterns are grouped by category in a responsive grid, and — for
+  the `pages` resource — an optional template selector renders
+  site-editor templates (`/visual-editor/api/templates`) alongside
+  the pattern grid; picking one writes through the existing
+  `template` field on the page. Auto-open is gated by a
+  self-contained "never saved" heuristic (empty content plus
+  `created_at === updated_at`), so any save — even a blank canvas
+  — permanently suppresses the auto-open. Zero patterns for the
+  current post-type context suppresses both auto-open and the
+  toolbar button; a Blank starter (`page/blank`) ships as the
+  seed so the modal always has at least one entry. The modal
+  fetches with `?source=theme` so user-created snippet patterns
+  (saved via "Convert to pattern" in the sidebar inserter) don't
+  leak into the whole-page picker — those still surface in the
+  block inserter panel where they belong. Client-side the modal
+  further tightens the fetch to patterns whose `post_types` array
+  explicitly includes the current context (with a carve-out that
+  always keeps the built-in `page/blank` seed) — the whole-page
+  picker is meant for starter layouts a developer or theme
+  deliberately declared, not the general pattern library.
+- **Pattern registration `post_types` scope (#639).** Every
+  contributor entry to the `ap.visual-editor.patterns` filter may
+  now carry an optional `post_types: string[]` array (Gutenberg
+  convention). Patterns without a scope stay available in every
+  post-type context; patterns with a scope surface only when the
+  requested slug matches. The scope reaches the client via the
+  new `post_types` field on `PatternAdapter`'s WP-shape output,
+  and the `PatternController` index accepts a new
+  `?post_type={slug}` query param that applies the scope filter
+  server-side.
+- **CSS positioning support for blocks (#640).** Per-block Position
+  panel in the inspector with a `static / relative / absolute / fixed
+  / sticky` dropdown, per-side offset inputs (`px / % / rem / em /
+  vh / vw / auto`), z-index, and per-breakpoint overrides via the
+  responsive tab pattern from #487. Opt-in per block via
+  `supports.position: true` in `block.json` (Gutenberg's native
+  `{ sticky: true }` object shape also counts). Emits scoped CSS
+  in the editor canvas and inline styles + a `<style
+  data-ve-position>` block on the frontend via the Blade renderer.
+  Inspector shows a warning notice when `position: absolute` is
+  applied but no ancestor is positioned. Per-breakpoint authoring
+  follows the top-bar viewport switcher (via the shared
+  active-breakpoint store) — no separate control lives in the panel,
+  matching every sibling responsive-aware inspector panel.
+- **Enabled `supports.position: true` on 82 top-level artisanpack
+  blocks (#645).** Every `resources/js/visual-editor/blocks/*/block.json`
+  that doesn't declare a `parent` or `ancestor` restriction now
+  opts in. Child-only blocks (accordion internals, list items,
+  columns, buttons children, query pagination, etc.) are
+  deliberately skipped — positioning a child that a container
+  relies on for layout breaks the container's contract.
+  `artisanpack/group` already carried Gutenberg's
+  `supports.position: { sticky: true }` object shape, which
+  `positionEnabled()` also recognizes; no change needed.
+- **Position support on core containers (#646).** Functionally
+  subsumed by #645 given the I7 (#415) cutover — this repo no
+  longer calls `registerCoreBlocks()`, so no `core/*` block enters
+  the editor. Every container listed in the parent issue
+  (`core/group`, `core/columns`, `core/column`, `core/cover`,
+  `core/row`, `core/stack`, `core/grid`, `core/buttons`,
+  `core/image`) has an `artisanpack/*` fork covered by #645.
+- **Integration + e2e test coverage (#647).** Round-trip
+  integration tests exercising resolver + emitter for a full
+  base + per-breakpoint payload, legacy sticky no-churn, and the
+  static-toggle-preserves-orphan-fields flow. Playwright e2e
+  spec (`tests/E2E/positioning.spec.ts`) documents the runtime
+  contract for sticky groups, absolute covers, ancestor
+  warnings, per-breakpoint viewport switching, and legacy
+  sticky — commented pending the Playwright runner (matches
+  the `animations.spec.ts` precedent).
+- **Docs (#648).** New `docs/position.md` covering opt-in,
+  attribute shape, position values, offset units, per-breakpoint
+  inheritance, the ancestor warning, the two frontend emission
+  channels (inline + `<style data-ve-position>`), and a
+  troubleshooting section. Linked from `docs/home.md`.
+- **`ap.visual-editor.background-controls` filter (#649).** New
+  JS filter that lets third-party packages contribute panels to
+  the background/appearance area of any block that opts into a
+  background support — no per-package `editor.BlockEdit` HOC
+  required. The visual editor now owns the target-block decision
+  via a single HOC that gates on `supports.background` and
+  `supports.color.background`, then renders filter-registered
+  controls sorted by priority (default 10, lower first) and
+  deduped by id (last-wins, mirroring `@wordpress/hooks`). The
+  HOC runs innermost so `context.attributes` is the
+  breakpoint-merged / state-resolved view and
+  `context.setAttributes` routes through the responsive/state
+  wrappers. Wired into both the post-editor and site-editor
+  bootstraps.
+- **`ap.visual-editor.rendered-block` filter (PHP).** Fires in
+  `BlockRenderer::renderBlock` after each block (static or
+  dynamic) finishes rendering. Callbacks receive the HTML, the
+  block name, and the normalized attributes, and must return an
+  HTML string. Lets cross-cutting effects (frosted glass,
+  contrast overlays, motion wrappers) post-process a block's
+  markup without every host having to modify the renderer.
+- **`ap.visual-editor.canvas-styles` filter (JS).** Filters the
+  ordered `CanvasStyle[]` handed to `BlockCanvas`'s
+  `__unstableEditorStyles` prop. Callbacks return a
+  `CanvasStyle[]`; non-array returns fall through to the base
+  list and non-object entries are dropped. Lets packages push
+  their stylesheets into the Gutenberg iframe (which is
+  sandboxed from the parent document's Vite-injected styles)
+  without touching `canvas-styles.ts` for every new integration.
+
+### Upgrade notes
+
+- **Hosts that ran `php artisan vendor:publish
+  --tag=visual-editor-blade-views` on a prior version must
+  re-publish with `--force` when upgrading.** The published
+  `blocks.blade.php` and `template.blade.php` files shadow the
+  package source; the pre-1.4 published copies don't include the
+  new `<style data-ve-position>` output block, so the position CSS
+  accumulator will flush its rules but they'll never land in the
+  response body — sticky/absolute blocks render unpositioned on the
+  frontend. Command:
+  `php artisan vendor:publish --tag=visual-editor-blade-views --force`.
+
+
 ## [1.3.0] - 2026-07-07
 
 ### Added

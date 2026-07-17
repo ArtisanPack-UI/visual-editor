@@ -1,20 +1,25 @@
 /**
- * Viewport switcher (#487).
+ * Viewport switcher (#487 · #617).
  *
- * Toolbar component that lets the editor preview the canvas at a
- * specific breakpoint AND scope subsequent style edits to that
- * breakpoint.
+ * Unified device-preview + edit-scope toolbar. Selecting a button
+ * atomically:
+ *   1. Resizes the host canvas iframe to the breakpoint's
+ *      `previewWidthPx` (#617 — delegated to the `onChange`
+ *      callback so different host shells resize their own surface).
+ *   2. Scopes subsequent style edits to that breakpoint key
+ *      (#487 — mobile-first cascade semantics preserved).
  *
- * Behavior:
- *  - Renders one button per registered breakpoint plus a `base`
- *    button on the left.
- *  - Selecting a button (a) updates the active-breakpoint store,
- *    (b) sets the canvas iframe's width to the breakpoint's
- *    min-width (or unconstrained for `base`), (c) keeps the
- *    selection visible via aria-pressed.
- *  - The actual canvas-resize side-effect is delegated to an
- *    `onChange` callback so different host shells (admin editor,
- *    sandbox, site-editor) can resize their own surface.
+ * The `base` button previews at full editor width (no width
+ * constraint, callback receives `0`) and scopes edits to the cascade
+ * root.
+ *
+ * Display labels come from the registry entry's `label` field first,
+ * falling back to the switcher's `DEFAULT_LABELS`, then the key itself.
+ * The ship defaults expose `Mobile` / `Tablet` / `Desktop` for
+ * `sm` / `md` / `lg` (#617) to match the WordPress site-editor
+ * convention while keeping the internal keys stable so #487's
+ * cascade language and `docs/responsive-design-tools.md` guidance
+ * continue to work.
  *
  * @package @artisanpack-ui/visual-editor
  * @since 1.0.0
@@ -28,26 +33,28 @@ import { BASE_KEY } from './types'
 
 export interface ViewportSwitcherProps {
 	registry: BreakpointRegistry
-	/** Optional side-effect — typically resizes the canvas iframe. */
-	onChange?: ( breakpoint: string, minWidthPx: number ) => void
+	/**
+	 * Side-effect fired when the user selects a preset. Receives the
+	 * breakpoint key and the canvas preview width — the width is `0`
+	 * for `base` (unconstrained), a positive int for named
+	 * breakpoints. Host shells wire this to their canvas container's
+	 * inline width (#617).
+	 */
+	onChange?: ( breakpoint: string, previewWidthPx: number ) => void
 	className?: string
-	/** Override the visible labels (defaults to the breakpoint key, e.g. "sm"). */
+	/** Override the visible labels (highest priority, wins over registry labels). */
 	labels?: Record<string, string>
 }
 
-// Labels are intentionally size-keyed (`sm+`, `md+`) rather than
-// device-named (`Mobile`, `Tablet`). The editor uses mobile-first
-// cascade semantics — `base` applies everywhere, and each named
-// breakpoint is a progressive override at that min-width and up. A
-// label like "Mobile" for `sm` mis-suggests it scopes to phones only;
-// the `+` suffix makes the "this size and up" semantics obvious.
+// Default labels for keys the ship defaults DO NOT relabel from the
+// registry (`base`, `xl`, `2xl`). `sm`/`md`/`lg` get their
+// `Mobile`/`Tablet`/`Desktop` labels from the registry entry itself
+// (#617), so the switcher falls through to `registry.label(key)` for
+// those. Registry labels are authored, so they take precedence over
+// these fallbacks; the `labels` prop still wins over everything so
+// hosts can override on a per-mount basis.
 const DEFAULT_LABELS: Record<string, string> = {
 	[ BASE_KEY ]: 'All sizes',
-	sm:          'sm+',
-	md:          'md+',
-	lg:          'lg+',
-	xl:          'xl+',
-	'2xl':       '2xl+',
 }
 
 function tooltipFor( key: string, minWidth: number ): string {
@@ -59,15 +66,26 @@ function tooltipFor( key: string, minWidth: number ): string {
 }
 
 export function ViewportSwitcher( { registry, onChange, className, labels }: ViewportSwitcherProps ): JSX.Element {
-	const active  = useSyncExternalStore( subscribeActiveBreakpoint, getActiveBreakpoint, getActiveBreakpoint )
-	const display = { ...DEFAULT_LABELS, ...( labels ?? {} ) }
-	const keys    = registry.keysWithBase()
+	const active = useSyncExternalStore( subscribeActiveBreakpoint, getActiveBreakpoint, getActiveBreakpoint )
+	const keys   = registry.keysWithBase()
+
+	const displayFor = ( key: string ): string => {
+		if ( labels && key in labels ) {
+			return labels[ key ] as string
+		}
+
+		if ( key in DEFAULT_LABELS ) {
+			return DEFAULT_LABELS[ key ] as string
+		}
+
+		return registry.label( key )
+	}
 
 	const handleSelect = ( key: string ): void => {
 		setActiveBreakpoint( key )
 
 		if ( onChange ) {
-			onChange( key, registry.get( key ) ?? 0 )
+			onChange( key, registry.previewWidth( key ) ?? 0 )
 		}
 	}
 
@@ -87,7 +105,7 @@ export function ViewportSwitcher( { registry, onChange, className, labels }: Vie
 						title={ tooltipFor( key, minWidth ) }
 						onClick={ () => handleSelect( key ) }
 					>
-						{ display[ key ] ?? key }
+						{ displayFor( key ) }
 					</button>
 				)
 			} ) }

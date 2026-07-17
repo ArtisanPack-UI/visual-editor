@@ -44,9 +44,16 @@ describe( 'standalone install (no contributors, no static config)', function ():
 	it( 'boots cleanly with empty resolvers for every entity type', function (): void {
 		rebuildSiteEditorResolvers();
 
+		// #639 — visual-editor now ships a built-in `page/blank` seed
+		// pattern registered via `ap.visual-editor.patterns` on boot,
+		// so the pattern resolver is no longer strictly empty on a
+		// standalone install. Assert on the shape and the seed's slug
+		// rather than `[]`.
+		$patterns = app( PatternResolver::class )->all();
+
 		expect( app( TemplateResolver::class )->all() )->toBe( [] )
 			->and( app( TemplatePartResolver::class )->all() )->toBe( [] )
-			->and( app( PatternResolver::class )->all() )->toBe( [] )
+			->and( array_keys( $patterns ) )->toBe( [ 'page/blank' ] )
 			->and( app( GlobalStylesResolver::class )->get() )->toBeNull()
 			->and( app( MenuResolver::class )->all() )->toBe( [] );
 	} );

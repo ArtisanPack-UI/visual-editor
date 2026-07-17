@@ -15,18 +15,22 @@ This document covers both the editor-facing workflow and the developer integrati
 
 ### 1.1 The viewport switcher
 
-The editor toolbar shows one button per registered breakpoint, plus an `All` button on the left for the unprefixed base value:
+The editor toolbar shows one button per registered breakpoint, plus an `All sizes` button on the left for the unprefixed base value:
 
 ```
-[ All ] [ Mobile ] [ Tablet ] [ Desktop ] [ Wide ] [ Full ]
+[ All sizes ] [ Mobile ] [ Tablet ] [ Desktop ] [ xl ] [ 2xl ]
 ```
 
-Selecting a button does two things:
+Selecting a button does two things atomically (#617):
 
-1. **Resizes the canvas** to the breakpoint's min-width so you can preview the layout at that size.
+1. **Resizes the canvas** to the breakpoint's `previewWidthPx` so you can preview the layout at that device size. `All sizes` clears the width constraint and the canvas fills the available editor area.
 2. **Scopes the next style edit** to that breakpoint. Any Inspector control that supports responsive overrides records your change at the active breakpoint.
 
-The `All` button writes to the unprefixed base value — the value that applies everywhere unless a larger breakpoint overrides it.
+The `All sizes` button writes to the unprefixed base value — the value that applies everywhere unless a larger breakpoint overrides it.
+
+The three shipped device presets — `Mobile` (`sm`, 375px canvas), `Tablet` (`md`, 768px canvas), `Desktop` (`lg`, 1440px canvas) — preview at real device viewport widths, not at the CSS `min-width` that activates the breakpoint's cascade. The `sm` cascade activates at Tailwind's default 640px, but you preview it on a phone-sized 375px canvas because that is the device the CSS is authored for.
+
+The same switcher drives the post editor, the site editor (templates, template parts), and the patterns editor.
 
 ### 1.2 Setting a per-breakpoint override
 
@@ -64,15 +68,30 @@ Breakpoints resolve in priority order — highest layer wins on key collision:
 2. **Application config** — `artisanpack.visual-editor.breakpoints`
 3. **Package defaults** — `BreakpointRegistry::DEFAULTS` (Tailwind v4 mins)
 
+Each entry accepts two forms:
+
+- **Scalar** — a single pixel value or `Npx` string. `previewWidthPx` defaults to the same value; `label` defaults to the key. Pre-#617 configs work unchanged.
+- **Object** (#617) — `{ minWidthPx, previewWidthPx, label }`. `minWidthPx` is required; `previewWidthPx` falls back to `minWidthPx`; `label` falls back to the key. Partial objects merge into the default at the same key, so you can override just one field without restating the others.
+
 #### Config example
 
 ```php
 // config/artisanpack/visual-editor.php
 return [
     'breakpoints' => [
-        // Resize the default `lg` breakpoint:
-        'lg'  => '1100px',
-        // Add a new `3xl` breakpoint:
+        // Object form — override the switcher label and preview width:
+        'sm'  => [
+            'minWidthPx'     => 640,
+            'previewWidthPx' => 390,  // canvas iframe width (iPhone-sized preview)
+            'label'          => 'iPhone',
+        ],
+
+        // Partial override — keep the default `Desktop` label + 1440px preview,
+        // just move the media-query threshold:
+        'lg'  => [ 'minWidthPx' => 1100 ],
+
+        // Scalar form — still supported. Resolves to
+        // `{ minWidthPx: 1920, previewWidthPx: 1920, label: '3xl' }`.
         '3xl' => 1920,
     ],
 ];
@@ -86,7 +105,7 @@ return [
         "custom": {
             "artisanpack": {
                 "breakpoints": {
-                    "lg":  "1200px",
+                    "lg":  { "previewWidthPx": 1600 },
                     "3xl": 1920
                 }
             }
@@ -95,9 +114,21 @@ return [
 }
 ```
 
-Values may be integer pixels (`640`) or CSS-length strings (`'640px'`). Other lengths (`rem`, `vw`, …) are rejected at load time with a descriptive error.
+`minWidthPx` and `previewWidthPx` accept integer pixels (`640`) or CSS-length strings (`'640px'`). Other lengths (`rem`, `vw`, …) are rejected at load time with a descriptive error. `label` must be a non-empty string.
 
 The implicit `base` slot (no min-width, applies everywhere) is reserved — using it as a key throws.
+
+#### Ship defaults
+
+| Key   | Label     | `minWidthPx` | `previewWidthPx` |
+| ----- | --------- | ------------ | ---------------- |
+| `sm`  | `Mobile`  | 640          | 375              |
+| `md`  | `Tablet`  | 768          | 768              |
+| `lg`  | `Desktop` | 1024         | 1440             |
+| `xl`  | `xl`      | 1280         | 1280             |
+| `2xl` | `2xl`     | 1536         | 1536             |
+
+The `minWidthPx` / `previewWidthPx` split lets the `sm` media query kick in at Tailwind's default 640px while the canvas previews on a 375px phone — the size the CSS is authored for.
 
 ### 2.2 Opting a block into responsive support
 

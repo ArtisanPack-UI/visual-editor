@@ -27,12 +27,17 @@ beforeEach( function (): void {
 	$this->actingAs( $user );
 } );
 
-it( 'lists an empty array for patterns when no contributors are registered', function (): void {
+it( 'returns only the built-in `page/blank` seed pattern when no contributors are registered', function (): void {
 	( new VisualEditorServiceProvider( app() ) )->registerSiteEditorResolvers();
 
+	// #639 — the visual-editor ships a `page/blank` starter regardless
+	// of whether cms-framework is integrated, so the modal has an entry
+	// to render even on standalone installs.
 	$this->getJson( '/visual-editor/api/patterns' )
 		->assertOk()
-		->assertExactJson( [] );
+		->assertJsonCount( 1 )
+		->assertJsonPath( '0.slug', 'page/blank' )
+		->assertJsonPath( '0.categories.0', 'page' );
 } );
 
 it( 'returns 404 on POST patterns when cms-framework is not integrated', function (): void {

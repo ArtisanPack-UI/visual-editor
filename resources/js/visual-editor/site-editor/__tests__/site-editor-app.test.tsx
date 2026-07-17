@@ -10,6 +10,16 @@ vi.mock('../../blocks', () => ({
     registerArtisanPackBlocks: (): void => undefined,
 }));
 
+// #649 — same reason as the BlockEditorBoundary + BlockLibrarySidebar
+// stubs below: the real background-controls barrel pulls
+// `@wordpress/block-editor` (and its `block-compare` → `diff` subpath)
+// into the graph, which doesn't resolve under jsdom. The shell test
+// only checks that `ensureEditorBoot()` runs the registrars; the HOC
+// itself has its own focused test suite.
+vi.mock('../../background-controls', () => ({
+    registerBackgroundControls: (): void => undefined,
+}));
+
 // #436: the shell now imports `BlockEditorBoundary` directly to wrap
 // the D2 canvas + inspector in one `BlockEditorProvider`. The real
 // boundary pulls `@wordpress/block-editor` (and its `block-compare` →
@@ -206,6 +216,12 @@ vi.mock('../../box-shadows/register', () => ({
     registerBoxShadows: (): void => undefined,
 }));
 
+// #640: same JSON-import-attribute trip for the positioning registrar.
+vi.mock('../../positioning/register', () => ({
+    registerPositioning: (): void => undefined,
+}));
+
+import { resetActiveBreakpoint } from '../../responsive/active-breakpoint';
 import { SiteEditorApp } from '../site-editor-app';
 
 const ROUTE_BASE = '/visual-editor/site';
@@ -221,6 +237,12 @@ beforeEach(() => {
 
 afterEach(() => {
     setPath('/');
+    // #617 — the viewport switcher writes to a module-level
+    // active-breakpoint singleton. Without a reset, residue from the
+    // viewport-preset test (or a mid-test early-return) leaks into
+    // subsequent tests in the same worker and cross-contaminates
+    // aria-pressed assertions.
+    resetActiveBreakpoint();
 });
 
 function renderApp(): void {
@@ -458,6 +480,42 @@ describe('SiteEditorApp', () => {
         expect(
             screen.getByTestId('ap-site-editor-mode-indicator')
         ).toHaveAttribute('data-section', 'patterns');
+    });
+
+    /*
+     * #617 — the shell's TopBar hosts the viewport switcher. Clicking
+     * a preset should stamp `data-preview-width` on the site-editor
+     * canvas container so templates/parts/patterns editing surfaces
+     * (which all render into that container) resize.
+     */
+    it('#617: applies the viewport preset width to the site-editor canvas container', async () => {
+        const user = userEvent.setup();
+        renderApp();
+
+        // Land in a section that renders the real canvas div (with
+        // `data-preview-width`) rather than the stubbed `CanvasFrame`
+        // empty state — Styles is a D3 section and takes the lazy
+        // path immediately without needing an entity id.
+        await user.click(screen.getByTestId('ap-site-editor-navigator-styles'));
+
+        const canvas = screen.getByTestId('ap-site-editor-canvas');
+        expect(canvas).toHaveAttribute('data-preview-width', 'base');
+
+        // Pick "Mobile" — matches the shipped `sm` label so tests
+        // don't need to reach into the registry to stay green.
+        await user.click(screen.getByRole('button', { name: 'Mobile' }));
+
+        expect(
+            screen.getByTestId('ap-site-editor-canvas')
+        ).toHaveAttribute('data-preview-width', '375');
+
+        // Switching back to "All sizes" clears the preview width so
+        // the canvas fills the shell area again.
+        await user.click(screen.getByRole('button', { name: 'All sizes' }));
+
+        expect(
+            screen.getByTestId('ap-site-editor-canvas')
+        ).toHaveAttribute('data-preview-width', 'base');
     });
 
     it('marks the body region as the tabpanel and labels it by the active tab', async () => {

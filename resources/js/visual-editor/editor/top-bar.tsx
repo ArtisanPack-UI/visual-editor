@@ -100,6 +100,33 @@ export interface TopBarProps {
      * inspector panel) and the site editor (the section inspector).
      */
     inspectorToggleAriaLabel?: { open: string; close: string };
+    /**
+     * Optional override of the viewport switcher's breakpoint registry
+     * (#617). Falls back to the module-level default (Tailwind v4 +
+     * Mobile/Tablet/Desktop labels). Host shells that hydrate a
+     * registry from the server bootstrap pass it in here so the
+     * switcher renders the same set as the responsive-value resolver.
+     */
+    viewportRegistry?: BreakpointRegistry;
+    /**
+     * Optional handler for the #639 page-pattern-inserter button. When
+     * present, the top bar renders a pattern-inserter button next to
+     * the `+` inserter — clicking it re-opens the pattern modal at any
+     * time, including after the "never saved" heuristic has stopped
+     * matching. Omit when no patterns are registered for the current
+     * post type; the button is suppressed rather than rendered inert
+     * so users aren't invited into an always-empty modal.
+     */
+    onOpenPatternModal?: () => void;
+    /**
+     * Side-effect fired when the user selects a viewport preset (#617).
+     * Receives the breakpoint key and the canvas preview width — `0`
+     * for `base` (unconstrained), a positive int for named
+     * breakpoints. Host shells wire this to their canvas container's
+     * inline width. Omitting it leaves the switcher purely
+     * edit-scoping (the pre-#617 behavior).
+     */
+    onViewportChange?: (breakpoint: string, previewWidthPx: number) => void;
 }
 
 function saveStatusLabel(
@@ -190,7 +217,12 @@ export function TopBar(props: TopBarProps): JSX.Element {
         leadingActions,
         inserterToggleAriaLabel,
         inspectorToggleAriaLabel,
+        viewportRegistry,
+        onViewportChange,
+        onOpenPatternModal,
     } = props;
+
+    const viewportRegistryValue = viewportRegistry ?? DEFAULT_VIEWPORT_REGISTRY;
 
     const inserterOpenLabel =
         inserterToggleAriaLabel?.open ?? __('Open block inserter', TEXT_DOMAIN);
@@ -403,6 +435,33 @@ export function TopBar(props: TopBarProps): JSX.Element {
                         />
                     </svg>
                 </button>
+                {onOpenPatternModal !== undefined ? (
+                    <button
+                        type="button"
+                        className="ap-visual-editor-top-bar__icon-button"
+                        aria-label={__('Choose a pattern', TEXT_DOMAIN)}
+                        data-testid="ap-visual-editor-top-bar-pattern-modal"
+                        onClick={onOpenPatternModal}
+                    >
+                        {/*
+                          * #639 — "grid" glyph matches WordPress's
+                          * pattern-modal affordance without pulling in
+                          * an icon-font dep.
+                          */}
+                        <svg
+                            aria-hidden="true"
+                            focusable="false"
+                            viewBox="0 0 24 24"
+                            width="20"
+                            height="20"
+                        >
+                            <path
+                                fill="currentColor"
+                                d="M4 4h7v7H4V4zm0 9h7v7H4v-7zm9-9h7v7h-7V4zm0 9h7v7h-7v-7z"
+                            />
+                        </svg>
+                    </button>
+                ) : null}
                 <button
                     type="button"
                     className="ap-visual-editor-top-bar__icon-button"
@@ -448,7 +507,8 @@ export function TopBar(props: TopBarProps): JSX.Element {
             </div>
             <div className="ap-visual-editor-top-bar__group ap-visual-editor-top-bar__group--center">
                 <ViewportSwitcher
-                    registry={DEFAULT_VIEWPORT_REGISTRY}
+                    registry={viewportRegistryValue}
+                    onChange={onViewportChange}
                     className="ap-visual-editor-viewport-switcher"
                 />
             </div>

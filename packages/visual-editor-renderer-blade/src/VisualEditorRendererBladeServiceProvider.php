@@ -34,6 +34,7 @@ use ArtisanPackUI\VisualEditorRendererBlade\Services\AnimationCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GlobalStylesEmissionResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\BoxShadowCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\GradientBorderCssAccumulator;
+use ArtisanPackUI\VisualEditorRendererBlade\Services\PositionCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\NavigationOverlayTracker;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\ResponsiveCssAccumulator;
 use ArtisanPackUI\VisualEditorRendererBlade\Services\StateCssAccumulator;
@@ -80,11 +81,36 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// long-running worker (Octane / queue) and serving stale site
 		// meta on every subsequent request.
 		$this->app->scoped( BlockRenderer::class, function ( $app ) {
+			// #491 · #492 · #493 — Block Visibility. The evaluator is
+			// optional so the renderer keeps working in host apps that
+			// have the visibility feature disabled or removed. The
+			// binding is resolved through `rescue()` so a missing
+			// service (e.g. mid-migration on an older visual-editor
+			// version) doesn't take the whole render path down.
+			$visibility = null;
+			try {
+				$visibility = $app->make( \ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator::class );
+			} catch ( \Throwable $e ) {
+				// Container binding missing — render without the gate.
+			}
+
+			// #650 — bindings layer is optional so the renderer keeps
+			// working in host apps that install it standalone. Missing
+			// binding renders no-op through BlockRenderer::resolveBindings().
+			$bindingResolver = null;
+			try {
+				$bindingResolver = $app->make( \ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver::class );
+			} catch ( \Throwable $e ) {
+				// Ignore — bindings layer absent.
+			}
+
 			return new BlockRenderer(
 				$app->make( ViewFactory::class ),
 				$app->make( DynamicBlockRegistry::class ),
 				$app->make( SiteMetaResolver::class ),
 				$app->make( LoginoutResolver::class ),
+				$visibility,
+				$bindingResolver,
 			);
 		} );
 
@@ -171,6 +197,12 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// shadow installs.
 		$this->app->scoped( BoxShadowCssAccumulator::class, function () {
 			return new BoxShadowCssAccumulator();
+		} );
+
+		// #640 — sibling accumulator for the CSS positioning feature's
+		// `<style data-ve-position>` block.
+		$this->app->scoped( PositionCssAccumulator::class, function () {
+			return new PositionCssAccumulator();
 		} );
 	}
 

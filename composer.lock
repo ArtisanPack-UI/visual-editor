@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "c6ad8bd9847164482fa143507014f97d",
+    "content-hash": "fbfdab56e05f0548e0b91bd4b0e43e3d",
     "packages": [
         {
             "name": "artisanpack-ui/core",
@@ -6109,10 +6109,16 @@
         {
             "name": "artisanpack-ui/ai",
             "version": "1.0.0",
-            "dist": {
-                "type": "path",
-                "url": "../ai",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ArtisanPack-UI/ai.git",
                 "reference": "082f1cd337742d34b8035d116c6c5ad8e5453fca"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ArtisanPack-UI/ai/zipball/082f1cd337742d34b8035d116c6c5ad8e5453fca",
+                "reference": "082f1cd337742d34b8035d116c6c5ad8e5453fca",
+                "shasum": ""
             },
             "require": {
                 "artisanpack-ui/core": "^1.0",
@@ -6139,45 +6145,23 @@
             "type": "library",
             "extra": {
                 "laravel": {
-                    "providers": [
-                        "ArtisanPackUI\\Ai\\AiServiceProvider"
-                    ],
                     "aliases": {
                         "Ai": "ArtisanPackUI\\Ai\\Facades\\Ai"
-                    }
+                    },
+                    "providers": [
+                        "ArtisanPackUI\\Ai\\AiServiceProvider"
+                    ]
                 }
             },
             "autoload": {
-                "psr-4": {
-                    "ArtisanPackUI\\Ai\\": "src/"
-                },
                 "files": [
                     "src/helpers.php"
-                ]
-            },
-            "autoload-dev": {
+                ],
                 "psr-4": {
-                    "Tests\\": "tests/"
+                    "ArtisanPackUI\\Ai\\": "src/"
                 }
             },
-            "scripts": {
-                "lint": [
-                    "./vendor/bin/php-cs-fixer fix --dry-run --diff",
-                    "./vendor/bin/phpcs"
-                ],
-                "fix": [
-                    "./vendor/bin/php-cs-fixer fix"
-                ],
-                "cs": [
-                    "./vendor/bin/phpcs"
-                ],
-                "cs:fix": [
-                    "./vendor/bin/phpcbf"
-                ],
-                "test": [
-                    "./vendor/bin/pest"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -6188,18 +6172,25 @@
                 }
             ],
             "description": "Shared AI foundation for the ArtisanPack UI ecosystem, built on top of laravel/ai.",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "issues": "https://github.com/ArtisanPack-UI/ai/issues",
+                "source": "https://github.com/ArtisanPack-UI/ai/tree/v1.0.0"
+            },
+            "time": "2026-07-06T21:25:38+00:00"
         },
         {
             "name": "artisanpack-ui/cms-framework",
             "version": "2.2.2",
-            "dist": {
-                "type": "path",
-                "url": "../cms-framework",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ArtisanPack-UI/cms-framework.git",
                 "reference": "ea984babeddcb5cae5de647282b51bea530e33d8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ArtisanPack-UI/cms-framework/zipball/ea984babeddcb5cae5de647282b51bea530e33d8",
+                "reference": "ea984babeddcb5cae5de647282b51bea530e33d8",
+                "shasum": ""
             },
             "require": {
                 "artisanpack-ui/accessibility": "^2.1.0",
@@ -6234,62 +6225,28 @@
             "type": "library",
             "extra": {
                 "laravel": {
-                    "providers": [
-                        "ArtisanPackUI\\CMSFramework\\CMSFrameworkServiceProvider"
-                    ],
                     "aliases": {
                         "Package": "ArtisanPackUI\\CMSFramework\\Facades\\CMSFramework"
-                    }
+                    },
+                    "providers": [
+                        "ArtisanPackUI\\CMSFramework\\CMSFrameworkServiceProvider"
+                    ]
                 }
             },
             "autoload": {
-                "psr-4": {
-                    "ArtisanPackUI\\CMSFramework\\": "src/",
-                    "ArtisanPackUI\\Database\\": "database/"
-                },
                 "files": [
                     "src/Compatibility/visual-editor.php",
                     "src/Modules/Users/helpers.php",
                     "src/Modules/Admin/helpers.php",
                     "src/Modules/Core/helpers.php",
                     "src/Modules/Settings/helpers.php"
-                ]
-            },
-            "autoload-dev": {
+                ],
                 "psr-4": {
-                    "ArtisanPackUI\\CMSFramework\\Tests\\": "tests/"
+                    "ArtisanPackUI\\Database\\": "database/",
+                    "ArtisanPackUI\\CMSFramework\\": "src/"
                 }
             },
-            "scripts": {
-                "test": [
-                    "vendor/bin/pest"
-                ],
-                "test:coverage": [
-                    "vendor/bin/pest --coverage"
-                ],
-                "test:coverage-min": [
-                    "vendor/bin/pest --coverage --min=80"
-                ],
-                "test:unit": [
-                    "vendor/bin/pest tests/Unit"
-                ],
-                "test:feature": [
-                    "vendor/bin/pest tests/Feature"
-                ],
-                "lint": [
-                    "./vendor/bin/php-cs-fixer fix --dry-run --diff",
-                    "./vendor/bin/phpcs src/ database/ tests/ config/"
-                ],
-                "fix": [
-                    "./vendor/bin/php-cs-fixer fix"
-                ],
-                "cs": [
-                    "./vendor/bin/phpcs src/ database/ tests/ config/"
-                ],
-                "cs:fix": [
-                    "./vendor/bin/phpcbf"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -6300,18 +6257,25 @@
                 }
             ],
             "description": "Adds in the back end support for building a CMS with any front end framework.",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "issues": "https://github.com/ArtisanPack-UI/cms-framework/issues",
+                "source": "https://github.com/ArtisanPack-UI/cms-framework/tree/v2.2.2"
+            },
+            "time": "2026-06-09T16:05:04+00:00"
         },
         {
             "name": "artisanpack-ui/icons",
             "version": "2.1.1",
-            "dist": {
-                "type": "path",
-                "url": "../icons",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/ArtisanPack-UI/icons.git",
                 "reference": "66909169481bb99c6dfd19dc98fc873078d07ded"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/ArtisanPack-UI/icons/zipball/66909169481bb99c6dfd19dc98fc873078d07ded",
+                "reference": "66909169481bb99c6dfd19dc98fc873078d07ded",
+                "shasum": ""
             },
             "require": {
                 "artisanpack-ui/hooks": "^1.0",
@@ -6344,27 +6308,16 @@
                     "ArtisanPackUI\\Icons\\": "src/"
                 }
             },
-            "autoload-dev": {
-                "psr-4": {
-                    "Tests\\": "tests/"
-                }
-            },
-            "scripts": {
-                "test": [
-                    "pest"
-                ],
-                "code-style": [
-                    "./vendor/bin/phpcs --standard=ArtisanPackUIStandard src"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
             "description": "An extensibility layer for Blade Icons that enables flexible registration of custom SVG icon sets via config or events.",
-            "transport-options": {
-                "symlink": true,
-                "relative": true
-            }
+            "support": {
+                "issues": "https://github.com/ArtisanPack-UI/icons/issues",
+                "source": "https://github.com/ArtisanPack-UI/icons/tree/v2.1.1"
+            },
+            "time": "2026-06-09T19:09:38+00:00"
         },
         {
             "name": "artisanpack-ui/rbac",

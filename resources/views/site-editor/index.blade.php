@@ -29,6 +29,11 @@
 		data-exit-label="{{ __('← Post editor') }}"
 		data-api-base="/visual-editor/api"
 		data-theme="{{ config('artisanpack.visual-editor.global_styles.theme', 'default') }}"
+		{{-- #617 — the merged breakpoint registry (config +
+		     theme.json + defaults). The React shell hydrates the
+		     viewport switcher's registry from this so host-configured
+		     `label` / `previewWidthPx` overrides reach the UI. --}}
+		data-breakpoints="{{ json_encode( app( \ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry::class )->toArray() ) }}"
 	></div>
 </body>
 </html>

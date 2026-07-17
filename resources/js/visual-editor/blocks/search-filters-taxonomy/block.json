@@ -22,6 +22,7 @@
         }
     },
     "supports": {
+        "position": true,
         "ariaLabel": true,
         "className": true,
         "html": false,

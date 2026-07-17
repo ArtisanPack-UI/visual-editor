@@ -17,6 +17,7 @@ function makeResolvedPattern( array $overrides = [] ): ResolvedPattern
 		'categories' => [ 'hero' ],
 		'blockTypes' => [ 'core/cover' ],
 		'wpId'       => null,
+		'postTypes'  => null,
 	];
 
 	$args = array_merge( $defaults, $overrides );
@@ -31,6 +32,7 @@ function makeResolvedPattern( array $overrides = [] ): ResolvedPattern
 		categories : $args['categories'],
 		blockTypes : $args['blockTypes'],
 		wpId       : $args['wpId'],
+		postTypes  : $args['postTypes'],
 	);
 }
 
@@ -86,6 +88,24 @@ describe( 'single-record envelope', function (): void {
 
 		expect( $out['categories'] )->toBe( [] )
 			->and( $out['block_types'] )->toBe( [] );
+	} );
+
+	// #639 — the `post_types` field on the adapter output lets the editor
+	// filter the pattern grid to entries applicable to the current post
+	// type. `null` means "available everywhere" (Gutenberg convention).
+	it( 'emits post_types as null for an unscoped pattern (#639)', function (): void {
+		$out = ( new PatternAdapter() )->toArray( makeResolvedPattern() );
+
+		expect( $out )->toHaveKey( 'post_types' )
+			->and( $out['post_types'] )->toBeNull();
+	} );
+
+	it( 'passes through the post_types whitelist verbatim (#639)', function (): void {
+		$pattern = makeResolvedPattern( [ 'postTypes' => [ 'page', 'landing' ] ] );
+
+		$out = ( new PatternAdapter() )->toArray( $pattern );
+
+		expect( $out['post_types'] )->toBe( [ 'page', 'landing' ] );
 	} );
 } );
 

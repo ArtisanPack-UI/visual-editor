@@ -32,6 +32,7 @@
         }
     },
     "supports": {
+        "position": true,
         "artisanpackAnimations": true,
         "align": [
             "wide",
