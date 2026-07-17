@@ -48,7 +48,7 @@ class DynamicContentSourcesController extends Controller
 	{
 		$registryClass = 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Managers\\DynamicContentTypeRegistry';
 
-		if ( ! class_exists( $registryClass ) ) {
+		if ( ! class_exists( $registryClass ) && ! app()->bound( $registryClass ) ) {
 			return response()->json( [ 'sources' => [] ] );
 		}
 

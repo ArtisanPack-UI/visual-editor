@@ -69,7 +69,11 @@ class DynamicContentSource implements BlockBindingSource
 
 		$token = $this->applyLoopIndex( $token, $context );
 
-		if ( ! class_exists( 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor' ) ) {
+		$accessorClass = 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor';
+
+		// Accept either a real cms-framework autoload or a
+		// container-bound test fake keyed by the class string.
+		if ( ! class_exists( $accessorClass ) && ! app()->bound( $accessorClass ) ) {
 			return null;
 		}
 
@@ -153,7 +157,7 @@ class DynamicContentSource implements BlockBindingSource
 	{
 		$registryClass = 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Managers\\DynamicContentTypeRegistry';
 
-		if ( ! class_exists( $registryClass ) ) {
+		if ( ! class_exists( $registryClass ) && ! app()->bound( $registryClass ) ) {
 			return [];
 		}
 

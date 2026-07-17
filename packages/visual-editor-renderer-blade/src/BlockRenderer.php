@@ -140,17 +140,30 @@ class BlockRenderer
 	 */
 	public function resolveInlineTokens( array $tree ): array
 	{
-		$resolverClass = 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentResolver';
-
-		if ( [] === $tree || ! class_exists( $resolverClass ) ) {
+		if ( [] === $tree ) {
 			return $tree;
 		}
 
 		// Callers that reach this method directly (public helper,
 		// isolated unit tests) may hand us a non-normalized tree;
 		// canonicalize first so the internal walker only has to reason
-		// about the `attributes` shape.
+		// about the `attributes` shape. Normalization runs before the
+		// resolver availability check so a host without cms-framework
+		// on the classpath still gets a canonical tree back.
 		$tree = BlockShape::normalizeTree( $tree );
+
+		$resolverClass = 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentResolver';
+
+		// Accept either a real cms-framework autoload OR a
+		// container-bound test fake keyed by the class string. Without
+		// the second branch, `class_exists()` short-circuits in a CI
+		// environment that installs cms-framework below the 2.4
+		// baseline that introduced the resolver — the fake wired via
+		// `app()->instance($resolverClass, …)` would never be consulted
+		// and the tree ships back unresolved.
+		if ( ! class_exists( $resolverClass ) && ! app()->bound( $resolverClass ) ) {
+			return $tree;
+		}
 
 		try {
 			$resolver = app( $resolverClass );

@@ -125,7 +125,7 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 	{
 		$accessorClass = 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor';
 
-		if ( ! class_exists( $accessorClass ) ) {
+		if ( ! class_exists( $accessorClass ) && ! app()->bound( $accessorClass ) ) {
 			return null;
 		}
 
