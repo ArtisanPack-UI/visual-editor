@@ -6,8 +6,62 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-16
+
 ### Added
 
+- **Dynamic content editor UX (#650).** cms-framework Dynamic Content
+  integration inside the visual editor: new `dynamic_content`
+  block-binding source, batched `POST /dynamic-content/resolve` +
+  `GET /dynamic-content/sources` REST endpoints (gated by the
+  `SiteEditorAccessGate` and throttled at `60,1`), `{{`
+  autocomplete + token chip decoration + a Token Inserter modal, a
+  Dynamic Content tab on the link picker, and an Image block DC
+  binding UI. Ships two new blocks: `artisanpack/snippet` (reusable
+  block with cycle-guarded CRUD + admin surface at
+  `/visual-editor/snippets`) and `artisanpack/dynamic-loop` (iterates
+  a collection source and re-renders inner blocks per record). SSR
+  wires binding resolution into the Blade renderer via an optional
+  `BindingResolver` dependency, and a new `WantsInnerBlocks` marker
+  lets dynamic blocks that need the inner tree at render time (loop)
+  receive it. cms-framework is a soft dependency — everything
+  degrades cleanly when it's not installed. New `docs/dynamic-content.md`
+  covers tokens, block bindings, snippets, the loop block, and the
+  render pipeline; `docs/block-bindings.md` reconciled to cover the
+  bindings sidecar, `fallback` policy, and corrected endpoint paths.
+- **Block Visibility (#491, #492, #493).** Per-block runtime
+  visibility rules that evaluate **server-side** so hidden blocks
+  never emit markup. A single **Visibility** inspector panel exposes
+  three rule families: **contextual** (master Hide, screen size,
+  query string, referrer, browser/OS/device), **user & auth**
+  (login state, user role, specific user via
+  `/visual-editor/users/search` with `SiteEditorAccessGate`
+  authorization + LIKE escaping), and **scheduling** (single
+  date/time window, recurring weekly schedule, per-rule timezone
+  override, overnight window support). The editor canvas dims
+  hidden blocks so authors can still see and select them while
+  they're toggled off; the Blade, React, and Vue renderers each
+  filter the tree through `filterVisibleBlocks()` +
+  `stampVisibilityScopes()` and emit `<style data-ve-visibility>`
+  media queries per hidden breakpoint. Configurable via
+  `config('artisanpack.visual-editor.visibility')` — set
+  `enabled => false` to bypass every rule site-wide during incident
+  response. New `docs/visibility.md`.
+- **Responsive preview device sizes (#617).** Extended the
+  ViewportSwitcher into a unified device-preview + edit-scope
+  control. Selecting a preset atomically resizes the canvas iframe
+  to the breakpoint's `previewWidthPx` and scopes subsequent style
+  edits to that key. `Breakpoint` gains optional `label` and
+  `previewWidthPx` fields (both TS + PHP registries); PHP config
+  accepts either the legacy scalar `'sm' => '640px'` shape or the
+  new object shape
+  `'sm' => ['minWidthPx' => 640, 'previewWidthPx' => 375, 'label' => 'iPhone']`.
+  Ship defaults: Mobile (sm/375px), Tablet (md/768px), Desktop
+  (lg/1440px), xl+ (1280px), 2xl+ (1536px). Both editor shells now
+  stamp `data-breakpoints` with the merged registry snapshot so the
+  React shell can hydrate labels and preview widths without a
+  round-trip. `docs/blocks/Responsive-Design-Tools.md` updated with
+  the object-form config and shipped defaults table.
 - **Page pattern inserter modal (#639).** WordPress-style "Choose a
   pattern" modal that auto-opens when the editor loads a
   never-saved record with no content, and can be re-opened at any
@@ -87,6 +141,35 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   inheritance, the ancestor warning, the two frontend emission
   channels (inline + `<style data-ve-position>`), and a
   troubleshooting section. Linked from `docs/home.md`.
+- **`ap.visual-editor.background-controls` filter (#649).** New
+  JS filter that lets third-party packages contribute panels to
+  the background/appearance area of any block that opts into a
+  background support — no per-package `editor.BlockEdit` HOC
+  required. The visual editor now owns the target-block decision
+  via a single HOC that gates on `supports.background` and
+  `supports.color.background`, then renders filter-registered
+  controls sorted by priority (default 10, lower first) and
+  deduped by id (last-wins, mirroring `@wordpress/hooks`). The
+  HOC runs innermost so `context.attributes` is the
+  breakpoint-merged / state-resolved view and
+  `context.setAttributes` routes through the responsive/state
+  wrappers. Wired into both the post-editor and site-editor
+  bootstraps.
+- **`ap.visual-editor.rendered-block` filter (PHP).** Fires in
+  `BlockRenderer::renderBlock` after each block (static or
+  dynamic) finishes rendering. Callbacks receive the HTML, the
+  block name, and the normalized attributes, and must return an
+  HTML string. Lets cross-cutting effects (frosted glass,
+  contrast overlays, motion wrappers) post-process a block's
+  markup without every host having to modify the renderer.
+- **`ap.visual-editor.canvas-styles` filter (JS).** Filters the
+  ordered `CanvasStyle[]` handed to `BlockCanvas`'s
+  `__unstableEditorStyles` prop. Callbacks return a
+  `CanvasStyle[]`; non-array returns fall through to the base
+  list and non-object entries are dropped. Lets packages push
+  their stylesheets into the Gutenberg iframe (which is
+  sandboxed from the parent document's Vite-injected styles)
+  without touching `canvas-styles.ts` for every new integration.
 
 ### Upgrade notes
 

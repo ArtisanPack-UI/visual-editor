@@ -79,6 +79,8 @@ The block library — what ships, how to author your own, and how to wire respon
 - [[Border Gradients]] — Linear / radial / conic borders + tabbed color/gradient picker (v1.1)
 - [[Block Bindings]] — Bind block attributes to parent post/page/CPT data (v1.1)
 - [[Position]] — CSS positioning (static / relative / absolute / fixed / sticky) with per-side offsets, z-index, and per-breakpoint overrides (v1.4)
+- [[Visibility]] — Per-block runtime visibility rules: contextual (screen size, query string, referrer, browser/OS/device), user & auth (login state, role, specific user), and scheduling (v1.4)
+- [[Dynamic Content]] — cms-framework Dynamic Content integration: tokens, block bindings, snippets, and the dynamic-loop block (v1.4)
 
 ---
 
@@ -173,4 +175,4 @@ For issues, feature requests, and contributions:
 
 ---
 
-*This documentation covers visual-editor v1.3.0*
+*This documentation covers visual-editor v1.4.0*
