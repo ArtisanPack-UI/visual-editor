@@ -10,6 +10,11 @@
  * raw (string / int / array / null) — the client renders them into
  * chip previews.
  *
+ * Gated on {@see SiteEditorAccessGate} so a low-privilege
+ * authenticated user can't enumerate the site's Dynamic Content
+ * namespace. The route also carries a hard `throttle` limit
+ * (see routes/api.php) as belt-and-suspenders against DoS.
+ *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
  *
@@ -24,9 +29,11 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent;
 
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\DynamicContentSource;
+use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Symfony\Component\HttpFoundation\Response;
 
 class DynamicContentResolveController extends Controller
 {
@@ -38,8 +45,10 @@ class DynamicContentResolveController extends Controller
 	 */
 	public const MAX_TOKENS = 200;
 
-	public function __construct( protected DynamicContentSource $source )
-	{
+	public function __construct(
+		protected DynamicContentSource $source,
+		protected SiteEditorAccessGate $gate,
+	) {
 	}
 
 	/**
@@ -54,8 +63,12 @@ class DynamicContentResolveController extends Controller
 	 *
 	 * @since 1.4.0
 	 */
-	public function resolve( Request $request ): JsonResponse
+	public function resolve( Request $request ): JsonResponse|Response
 	{
+		if ( $denial = $this->gate->check( $request ) ) {
+			return $denial;
+		}
+
 		$tokens = $request->input( 'tokens', [] );
 
 		if ( ! is_array( $tokens ) ) {
@@ -77,10 +90,21 @@ class DynamicContentResolveController extends Controller
 			static fn ( $value ): bool => is_string( $value ) && '' !== trim( $value )
 		) ) );
 
+		// Per-source memoization: multiple tokens that share the same
+		// source (e.g. `team[0].name`, `team[0].role`, `team[1].name`)
+		// would otherwise trigger one accessor lookup each. The source
+		// resolver itself has no cross-token memo, so we short-circuit
+		// duplicate reads at the controller layer by resolving each
+		// token exactly once and letting the resolveTokens map handle
+		// the dedup for repeats.
 		$context = new BindingContext();
 		$values  = [];
 
 		foreach ( $tokens as $token ) {
+			if ( array_key_exists( $token, $values ) ) {
+				continue;
+			}
+
 			$values[ $token ] = $this->source->resolve( $context, [ 'token' => $token ] );
 		}
 

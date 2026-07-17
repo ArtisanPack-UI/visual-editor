@@ -85,33 +85,62 @@ class DynamicContentSource implements BlockBindingSource
 	}
 
 	/**
-	 * Apply a URL scheme prefix when the binding declared one and the
-	 * value isn't already prefixed.
+	 * Safe URL scheme allowlist. Kept in sync with
+	 * {@see \ArtisanPackUI\VisualEditorRendererBlade\Support\UrlSanitizer::SAFE_SCHEMES}
+	 * so any binding that resolves to an already-schemed value with a
+	 * scheme the renderer would strip downstream is caught here too —
+	 * defense in depth, and the front-end may not always run through
+	 * UrlSanitizer (custom blocks, third-party partials).
 	 *
-	 * Supported schemes: `mailto`, `tel`, `url` (no-op — the value is
-	 * already a URL). Used by the Button binding panel when binding a
-	 * link to a phone/email DC field so the raw value renders as a
-	 * clickable href.
+	 * @since 1.4.0
+	 */
+	protected const SAFE_URL_SCHEMES = [ 'http', 'https', 'mailto', 'tel', 'ftp', 'sms' ];
+
+	/**
+	 * Apply a URL scheme prefix when the binding declared one, and
+	 * strip any value whose existing scheme is not in the allowlist.
+	 *
+	 * Behavior matrix:
+	 *  - Value already carries a safe scheme (http/https/mailto/tel/…):
+	 *    return unchanged; the binding's declared scheme is ignored
+	 *    because the value is already a full URL.
+	 *  - Value carries a non-safe scheme (javascript:, data:, vbscript:,
+	 *    file:): return null so the empty-value policy kicks in.
+	 *  - Value is unschemed and the binding declares `mailto` / `tel`:
+	 *    prefix. `tel` strips non-digit characters.
+	 *  - Value is unschemed and the binding declares any other scheme
+	 *    (or nothing): return null so the caller falls back to the
+	 *    static attribute rather than shipping a raw string into an
+	 *    href. Callers that just want the raw value should not pass a
+	 *    `scheme` at all — this method short-circuits on missing scheme.
 	 *
 	 * @since 1.4.0
 	 */
 	protected function applyScheme( mixed $value, mixed $scheme ): mixed
 	{
-		if ( ! is_string( $scheme ) || ! is_string( $value ) || '' === $value ) {
+		if ( ! is_string( $value ) || '' === $value ) {
 			return $value;
 		}
 
-		$lower = strtolower( $value );
+		// If the value is already a full URL, honor its scheme when
+		// safe, drop it when not — regardless of what the binding
+		// declared.
+		if ( 1 === preg_match( '#^([a-z][a-z0-9+.\-]*):#i', $value, $matches ) ) {
+			$existing = strtolower( $matches[1] );
 
-		if ( str_starts_with( $lower, 'http://' ) || str_starts_with( $lower, 'https://' )
-			|| str_starts_with( $lower, 'mailto:' ) || str_starts_with( $lower, 'tel:' ) ) {
+			return in_array( $existing, self::SAFE_URL_SCHEMES, true ) ? $value : null;
+		}
+
+		// Unschemed value + no binding-declared scheme → return as-is
+		// (relative URL, or a raw scalar that isn't meant to be a URL).
+		if ( ! is_string( $scheme ) || '' === $scheme ) {
 			return $value;
 		}
 
 		return match ( $scheme ) {
 			'mailto' => 'mailto:' . $value,
 			'tel'    => 'tel:' . preg_replace( '/[^\d+]/', '', $value ),
-			default  => $value,
+			default  => null,
 		};
 	}
 

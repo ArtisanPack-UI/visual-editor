@@ -25,6 +25,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Services\Bindings;
 
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
 use Illuminate\Database\Eloquent\Model;
 use Throwable;
 
@@ -86,15 +87,15 @@ class BindingResolver
 	 */
 	protected function resolveBlock( array $block, BindingContext $context ): array
 	{
-		// Support both Gutenberg's shape (`attributes`, with `bindings`
-		// nested inside) and parse_blocks()'s shape (`attrs` +
-		// top-level `bindings`). The editor persists the former; HTML
-		// comment parsing produces the latter. Both round-trip through
-		// the resolver.
-		$attrKey = is_array( $block['attributes'] ?? null ) ? 'attributes' : 'attrs';
-		$attrs   = is_array( $block[ $attrKey ] ?? null ) ? $block[ $attrKey ] : [];
-
-		$bindings = $block['bindings'] ?? ( is_array( $attrs['bindings'] ?? null ) ? $attrs['bindings'] : null );
+		// Shape-agnostic read via BlockShape — supports both
+		// Gutenberg's `attributes` (editor persistence, bindings under
+		// `attributes.bindings`) and parse_blocks()'s `attrs`
+		// (top-level `bindings`). BlockShape::readBindings guards
+		// against a block that has an unrelated attribute literally
+		// named `bindings` by requiring at least one entry with a
+		// `source` key.
+		[ $attrKey, $attrs ] = BlockShape::readAttrs( $block );
+		$bindings            = BlockShape::readBindings( $block );
 
 		if ( is_array( $bindings ) && [] !== $bindings ) {
 			foreach ( $bindings as $attribute => $binding ) {
@@ -319,12 +320,11 @@ class BindingResolver
 				continue;
 			}
 
-			// Bindings live at top-level in parse_blocks output; nested
-			// under `attributes.bindings` in the editor's serialized
-			// shape. Check both to stay backward compatible.
-			$attrs    = is_array( $block['attributes'] ?? null ) ? $block['attributes']
-				: ( is_array( $block['attrs'] ?? null ) ? $block['attrs'] : [] );
-			$bindings = $block['bindings'] ?? ( is_array( $attrs['bindings'] ?? null ) ? $attrs['bindings'] : null );
+			// Shape-agnostic bindings read via BlockShape — sees both
+			// top-level (parse_blocks) and nested-in-attributes (editor)
+			// placements, and rejects false positives where a block has
+			// an unrelated attribute named `bindings`.
+			$bindings = BlockShape::readBindings( $block );
 
 			if ( is_array( $bindings ) ) {
 				foreach ( $bindings as $binding ) {

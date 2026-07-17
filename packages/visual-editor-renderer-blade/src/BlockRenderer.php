@@ -24,6 +24,7 @@ namespace ArtisanPackUI\VisualEditorRendererBlade;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityContext;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityDecision;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator;
@@ -145,6 +146,12 @@ class BlockRenderer
 			return $tree;
 		}
 
+		// Callers that reach this method directly (public helper,
+		// isolated unit tests) may hand us a non-normalized tree;
+		// canonicalize first so the internal walker only has to reason
+		// about the `attributes` shape.
+		$tree = BlockShape::normalizeTree( $tree );
+
 		try {
 			$resolver = app( $resolverClass );
 		} catch ( Throwable $e ) {
@@ -168,12 +175,12 @@ class BlockRenderer
 	 */
 	protected function resolveInlineTokensInBlock( array $block, object $resolver ): array
 	{
-		// Support both Gutenberg's `attributes` shape (what the editor
-		// persists into the DB via serializeBlock) and parse_blocks()'s
-		// `attrs` shape (post-content HTML comments). Both round-trip
-		// through the renderer.
-		$attrKey = is_array( $block['attributes'] ?? null ) ? 'attributes' : 'attrs';
-		$attrs   = is_array( $block[ $attrKey ] ?? null ) ? $block[ $attrKey ] : [];
+		// Tree has already been normalized to Gutenberg shape at the top
+		// of render(), so `attributes` is the canonical key. Reading
+		// through BlockShape keeps this call site robust when the
+		// method is invoked from a caller that skipped normalization
+		// (e.g. via public resolveInlineTokens on a raw tree).
+		[ $attrKey, $attrs ] = BlockShape::readAttrs( $block );
 
 		foreach ( $attrs as $key => $value ) {
 			if ( is_string( $value ) && str_contains( $value, '{{' ) ) {
@@ -243,6 +250,15 @@ class BlockRenderer
 		if ( null !== $this->visibility && $this->visibility->enabled() ) {
 			$this->visibilityContext = $this->visibility->contextFromRequest();
 		}
+
+		// #650 — normalize the tree to Gutenberg's canonical shape
+		// (`attributes` bag, bindings under `attributes.bindings`) so
+		// every downstream pipeline stage reads one shape. Without this
+		// pass, each stage has to re-implement the attributes-vs-attrs
+		// sniff and one that forgets (see the SnippetCycleGuard bug
+		// caught in code review) silently misses editor-persisted
+		// trees.
+		$tree = BlockShape::normalizeTree( $tree );
 
 		// #650 — resolve bindings (Dynamic Content, custom fields,
 		// post_core, relation) once before the walker runs. The

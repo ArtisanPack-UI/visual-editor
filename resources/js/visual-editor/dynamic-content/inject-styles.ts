@@ -111,19 +111,6 @@ const STYLES = `
     border-top: 1px solid #ddd;
 }
 
-/* Chip decoration */
-.ve-dc-chip {
-    display: inline-block;
-    padding: 1px 6px;
-    margin: 0 1px;
-    background: rgba(0, 124, 186, 0.1);
-    border: 1px solid rgba(0, 124, 186, 0.3);
-    border-radius: 3px;
-    color: #1c3b6b;
-    font-family: ui-monospace, "SF Mono", Menlo, monospace;
-    font-size: 0.9em;
-}
-
 /* Snippet block placeholder */
 .ve-snippet-block {
     border: 1px dashed #bbb;
@@ -160,40 +147,6 @@ const STYLES = `
     outline: 1px solid #e5e5e5;
 }
 
-/* Link picker DC tab */
-.ve-dc-link-control { min-width: 320px; }
-.ve-dc-link-list {
-    margin: 0;
-    padding: 8px;
-    list-style: none;
-    max-height: 240px;
-    overflow-y: auto;
-}
-.ve-dc-link-list li { margin-bottom: 4px; }
-.ve-dc-link-list button {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 12px;
-    width: 100%;
-    padding: 8px 10px;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 4px;
-    cursor: pointer;
-    text-align: left;
-    font: inherit;
-    color: inherit;
-}
-.ve-dc-link-list button:hover { background: rgba(0, 0, 0, 0.04); }
-.ve-dc-link-list code {
-    font-size: 12px;
-    padding: 2px 6px;
-    background: #f0f0f1;
-    border-radius: 3px;
-    color: #1e1e1e;
-    white-space: nowrap;
-}
 `;
 
 let injected = false;

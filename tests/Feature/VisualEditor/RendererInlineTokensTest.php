@@ -56,7 +56,7 @@ it( 'resolves inline tokens in string attrs', function () {
 
 	$resolved = $this->renderer->resolveInlineTokens( $tree );
 
-	expect( $resolved[0]['attrs']['content'] )
+	expect( $resolved[0]['attributes']['content'] )
 		->toBe( 'Call us at (555) 123-4567 — CTO is CTO.' );
 } );
 
@@ -71,7 +71,7 @@ it( 'leaves attrs without tokens untouched', function () {
 
 	$resolved = $this->renderer->resolveInlineTokens( $tree );
 
-	expect( $resolved[0]['attrs']['content'] )->toBe( 'Static text only.' );
+	expect( $resolved[0]['attributes']['content'] )->toBe( 'Static text only.' );
 } );
 
 it( 'recurses into inner blocks', function () {
@@ -91,7 +91,9 @@ it( 'recurses into inner blocks', function () {
 
 	$resolved = $this->renderer->resolveInlineTokens( $tree );
 
-	expect( $resolved[0]['innerBlocks'][0]['attrs']['content'] )
+	// After normalization the tree is canonicalized to Gutenberg
+	// shape, so we read from `attributes` regardless of the input key.
+	expect( $resolved[0]['innerBlocks'][0]['attributes']['content'] )
 		->toBe( 'Email: hi@example.com' );
 } );
 
@@ -107,7 +109,8 @@ it( 'resolves tokens in Gutenberg-shape blocks (attributes key)', function () {
 	$resolved = $this->renderer->resolveInlineTokens( $tree );
 
 	expect( $resolved[0]['attributes']['content'] )->toBe( 'Phone: (555) 123-4567' );
-	// Verify the `attrs` fallback key wasn't accidentally introduced.
+	// Post-normalization the tree is canonical Gutenberg shape;
+	// the raw `attrs` key should not survive.
 	expect( isset( $resolved[0]['attrs'] ) )->toBeFalse();
 } );
 
@@ -125,6 +128,6 @@ it( 'passes through non-string attrs untouched', function () {
 
 	$resolved = $this->renderer->resolveInlineTokens( $tree );
 
-	expect( $resolved[0]['attrs']['level'] )->toBe( 2 );
-	expect( $resolved[0]['attrs']['content'] )->toBe( 'CTO is CTO' );
+	expect( $resolved[0]['attributes']['level'] )->toBe( 2 );
+	expect( $resolved[0]['attributes']['content'] )->toBe( 'CTO is CTO' );
 } );

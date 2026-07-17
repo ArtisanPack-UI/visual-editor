@@ -83,6 +83,7 @@ Route::get( 'dynamic-content/sources', [ DynamicContentSourcesController::class,
 	->name( 'visual-editor.api.dynamic-content.sources' );
 
 Route::post( 'dynamic-content/resolve', [ DynamicContentResolveController::class, 'resolve' ] )
+	->middleware( 'throttle:60,1' )
 	->name( 'visual-editor.api.dynamic-content.resolve' );
 
 // #650 — Reusable snippet CRUD. Backing store for the

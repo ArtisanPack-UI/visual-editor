@@ -39,6 +39,18 @@ it( 'throws when a snippet references itself transitively', function () {
 	] ) )->toThrow( SnippetCycleException::class );
 } );
 
+it( 'catches a self-cycle authored in the editor (Gutenberg attributes shape)', function () {
+	$guard = new SnippetCycleGuard();
+
+	expect( fn () => $guard->assertNoCycle( 'cta', [
+		[
+			'name'        => 'artisanpack/snippet',
+			'attributes'  => [ 'slug' => 'cta' ],  // editor persists as `attributes`, not `attrs`
+			'innerBlocks' => [],
+		],
+	] ) )->toThrow( SnippetCycleException::class );
+} );
+
 it( 'allows a snippet that references a different snippet without cycling back', function () {
 	Snippet::factory()->create( [
 		'slug'   => 'inner',

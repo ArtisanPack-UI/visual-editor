@@ -2,6 +2,9 @@
 
 declare( strict_types=1 );
 
+use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\Support\FakeDynamicContentAccessor;
 use Tests\TestUser;
 
@@ -15,6 +18,17 @@ beforeEach( function () {
 	] );
 
 	$this->actingAs( $this->actor );
+
+	// Gate is required to reach the endpoint post-review-hardening.
+	app()->bind( SiteEditorAccessGate::class, function () {
+		return new class implements SiteEditorAccessGate
+		{
+			public function check( Request $request ): ?Response
+			{
+				return null;
+			}
+		};
+	} );
 
 	$fake = new FakeDynamicContentAccessor( [
 		'business_info' => [

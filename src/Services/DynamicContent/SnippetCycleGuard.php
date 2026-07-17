@@ -22,6 +22,7 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Services\DynamicContent;
 
 use ArtisanPackUI\VisualEditor\Models\Snippet;
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
 
 class SnippetCycleGuard
 {
@@ -112,8 +113,14 @@ class SnippetCycleGuard
 			$name = is_string( $block['name'] ?? null ) ? $block['name'] : '';
 
 			if ( 'artisanpack/snippet' === $name ) {
-				$attrs      = is_array( $block['attrs'] ?? null ) ? $block['attrs'] : [];
-				$targetSlug = is_string( $attrs['slug'] ?? null ) ? $attrs['slug'] : '';
+				// Shape-agnostic read — editor-persisted trees use
+				// `attributes`, parse_blocks output uses `attrs`.
+				// Reading only one shape (as an earlier revision did)
+				// silently skipped cycle detection for editor-saved
+				// snippets, letting bad payloads through the 422
+				// gate at save time.
+				[ , $attrs ] = BlockShape::readAttrs( $block );
+				$targetSlug  = is_string( $attrs['slug'] ?? null ) ? $attrs['slug'] : '';
 
 				if ( '' !== $targetSlug && isset( $visited[ $targetSlug ] ) ) {
 					throw new SnippetCycleException( sprintf(

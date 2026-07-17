@@ -108,6 +108,47 @@ it( 'does not double-prefix an already-schemed value', function () {
 	] ) )->toBe( 'mailto:already@example.com' );
 } );
 
+it( 'nulls out unsafe URL schemes so javascript:/data: values never leak to href', function () {
+	app()->instance(
+		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentAccessor',
+		new FakeDynamicContentAccessor( [
+			'business_info' => [
+				'evil'      => 'javascript:alert(document.cookie)',
+				'evil_data' => 'data:text/html,<script>alert(1)</script>',
+				'evil_file' => 'file:///etc/passwd',
+			],
+		] )
+	);
+
+	$ctx = new BindingContext();
+
+	// URL scheme: value is already schemed and the scheme is unsafe →
+	// resolver returns null, letting the empty-value policy kick in.
+	expect( $this->source->resolve( $ctx, [ 'token' => 'business_info.evil' ] ) )->toBeNull();
+	expect( $this->source->resolve( $ctx, [ 'token' => 'business_info.evil_data' ] ) )->toBeNull();
+	expect( $this->source->resolve( $ctx, [ 'token' => 'business_info.evil_file' ] ) )->toBeNull();
+
+	// Even when the binding declares scheme:'mailto', an unsafe existing
+	// scheme takes precedence — we still return null rather than
+	// prefixing "mailto:javascript:…".
+	expect( $this->source->resolve( $ctx, [
+		'token'  => 'business_info.evil',
+		'scheme' => 'mailto',
+	] ) )->toBeNull();
+} );
+
+it( 'returns null for an unschemed value bound with an unrecognized scheme', function () {
+	$ctx = new BindingContext();
+
+	// scheme='url' isn't one of the concrete prefixers — the value has
+	// no scheme of its own, so we return null rather than shipping
+	// whatever the field held into an href.
+	expect( $this->source->resolve( $ctx, [
+		'token'  => 'business_info.phone',
+		'scheme' => 'url',
+	] ) )->toBeNull();
+} );
+
 it( 'enumerates fields from the registered types', function () {
 	app()->instance(
 		'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Managers\\DynamicContentTypeRegistry',

@@ -3,6 +3,9 @@
 declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\Models\Snippet;
+use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
+use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Tests\TestUser;
 
 beforeEach( function () {
@@ -15,6 +18,20 @@ beforeEach( function () {
 	] );
 
 	$this->actingAs( $this->actor );
+
+	// Every action ships behind SiteEditorAccessGate. Bind an
+	// allowing gate here so the auth-focused tests exercise the
+	// happy path; the gate-denies-anonymous test in this file
+	// re-binds to a denying gate to verify the negative path.
+	app()->bind( SiteEditorAccessGate::class, function () {
+		return new class implements SiteEditorAccessGate
+		{
+			public function check( Request $request ): ?Response
+			{
+				return null;
+			}
+		};
+	} );
 } );
 
 it( 'lists snippets', function () {
@@ -75,6 +92,28 @@ it( 'updates and deletes a snippet', function () {
 	$this->deleteJson( "/visual-editor/api/snippets/{$snippet->id}" )->assertNoContent();
 
 	expect( Snippet::find( $snippet->id ) )->toBeNull();
+} );
+
+it( 'refuses every snippet action when the site-editor gate denies access', function () {
+	app()->bind( SiteEditorAccessGate::class, function () {
+		return new class implements SiteEditorAccessGate
+		{
+			public function check( Request $request ): ?Response
+			{
+				return response( 'denied', Response::HTTP_FORBIDDEN );
+			}
+		};
+	} );
+
+	$snippet = Snippet::factory()->create();
+
+	$this->getJson( '/visual-editor/api/snippets' )->assertForbidden();
+	$this->postJson( '/visual-editor/api/snippets', [ 'slug' => 'hi' ] )->assertForbidden();
+	$this->getJson( "/visual-editor/api/snippets/{$snippet->id}" )->assertForbidden();
+	$this->putJson( "/visual-editor/api/snippets/{$snippet->id}", [ 'slug' => 'hi' ] )->assertForbidden();
+	$this->deleteJson( "/visual-editor/api/snippets/{$snippet->id}" )->assertForbidden();
+
+	expect( Snippet::find( $snippet->id ) )->not->toBeNull();
 } );
 
 it( 'rejects a snippet that references itself directly', function () {

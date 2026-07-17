@@ -111,8 +111,16 @@ function flushBatch(): void {
         .then((res) => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
         .then((body) => {
             const values = (body?.values ?? {}) as Record<string, unknown>;
+            // Only cache resolved (non-null) values. Caching misses as
+            // null poisons the client's view of a token that was
+            // simply not yet registered when it was first requested —
+            // authoring the token afterwards would show `[Missing:…]`
+            // forever until a hard refresh, because the null hit
+            // short-circuits every subsequent resolveTokens() call.
             for (const token of tokens) {
-                cache.set(token, token in values ? values[token] : null);
+                if (token in values && values[token] !== null && values[token] !== undefined) {
+                    cache.set(token, values[token]);
+                }
             }
             for (const resolve of batch.resolvers) resolve(values);
         })

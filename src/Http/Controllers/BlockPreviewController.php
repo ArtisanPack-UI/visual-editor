@@ -57,6 +57,9 @@ class BlockPreviewController extends Controller
 		/** @var array<string, mixed> $attributes */
 		$attributes = $request->validated( 'attributes' ) ?? [];
 
+		/** @var array<int, array<string, mixed>> $innerBlocks */
+		$innerBlocks = $request->validated( 'innerBlocks' ) ?? [];
+
 		/** @var array<string, mixed> $bindings */
 		$bindings = $request->validated( 'bindings' ) ?? [];
 
@@ -93,7 +96,7 @@ class BlockPreviewController extends Controller
 		}
 
 		try {
-			$html = $this->renderToString( $block, $validated );
+			$html = $this->renderToString( $block, $validated, $innerBlocks );
 		} catch ( Throwable $e ) {
 			report( $e );
 
@@ -115,11 +118,22 @@ class BlockPreviewController extends Controller
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  array<string, mixed>  $attrs
+	 * @param  array<string, mixed>             $attrs
+	 * @param  array<int, array<string, mixed>> $innerBlocks
 	 */
-	protected function renderToString( DynamicBlock $block, array $attrs ): string
+	protected function renderToString( DynamicBlock $block, array $attrs, array $innerBlocks = [] ): string
 	{
-		$result = $block->render( $attrs );
+		// Blocks that need their inner tree at render time (loop,
+		// snippet-style templates) implement WantsInnerBlocks so the
+		// preview endpoint — the same endpoint the React and Vue
+		// renderers hit for server HTML — forwards the tree. Without
+		// this branch, DynamicLoopBlock returns an empty string on
+		// every non-Blade render surface.
+		if ( $block instanceof \ArtisanPackUI\VisualEditor\Blocks\WantsInnerBlocks ) {
+			$result = $block->renderWithInner( $attrs, $innerBlocks );
+		} else {
+			$result = $block->render( $attrs );
+		}
 
 		if ( $result instanceof View ) {
 			return $result->render();

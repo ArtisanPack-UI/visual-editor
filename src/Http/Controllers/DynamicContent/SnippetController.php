@@ -3,10 +3,13 @@
 /**
  * Snippet CRUD controller.
  *
- * Backs the Snippets admin UI and the editor's snippet inserter. All
- * routes ride the visual-editor `auth` middleware stack — the admin UI
- * is expected to gate access at the `SiteEditorAccessGate` layer
- * before the JSON surface is reached.
+ * Backs the Snippets admin UI and the editor's snippet inserter.
+ * Every action runs through {@see SiteEditorAccessGate} — the same
+ * gate that fronts the site-editor SPA and the icon-set admin — so
+ * a low-privilege authenticated user cannot overwrite or delete
+ * site-wide snippets by hitting the JSON API directly. Snippet edits
+ * propagate to every placement, so the surface has to be gated at
+ * the same tier as templates and patterns.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -23,18 +26,26 @@ namespace ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Requests\SnippetRequest;
 use ArtisanPackUI\VisualEditor\Models\Snippet;
 use ArtisanPackUI\VisualEditor\Services\DynamicContent\SnippetCycleGuard;
+use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Symfony\Component\HttpFoundation\Response;
 
 class SnippetController extends Controller
 {
-	public function __construct( protected SnippetCycleGuard $cycleGuard )
-	{
+	public function __construct(
+		protected SnippetCycleGuard $cycleGuard,
+		protected SiteEditorAccessGate $gate,
+	) {
 	}
 
-	public function index( Request $request ): JsonResponse
+	public function index( Request $request ): JsonResponse|Response
 	{
+		if ( $denial = $this->gate->check( $request ) ) {
+			return $denial;
+		}
+
 		$search = trim( (string) $request->query( 'search', '' ) );
 
 		$query = Snippet::query()->orderBy( 'slug' );
@@ -51,8 +62,12 @@ class SnippetController extends Controller
 		] );
 	}
 
-	public function store( SnippetRequest $request ): JsonResponse
+	public function store( SnippetRequest $request ): JsonResponse|Response
 	{
+		if ( $denial = $this->gate->check( $request ) ) {
+			return $denial;
+		}
+
 		$data          = $request->validated();
 		$data['blocks'] ??= [];
 
@@ -73,13 +88,21 @@ class SnippetController extends Controller
 		return response()->json( [ 'data' => $this->toArray( $snippet ) ], 201 );
 	}
 
-	public function show( Snippet $snippet ): JsonResponse
+	public function show( Request $request, Snippet $snippet ): JsonResponse|Response
 	{
+		if ( $denial = $this->gate->check( $request ) ) {
+			return $denial;
+		}
+
 		return response()->json( [ 'data' => $this->toArray( $snippet ) ] );
 	}
 
-	public function update( SnippetRequest $request, Snippet $snippet ): JsonResponse
+	public function update( SnippetRequest $request, Snippet $snippet ): JsonResponse|Response
 	{
+		if ( $denial = $this->gate->check( $request ) ) {
+			return $denial;
+		}
+
 		$data = $request->validated();
 
 		$this->cycleGuard->assertNoCycle(
@@ -92,8 +115,12 @@ class SnippetController extends Controller
 		return response()->json( [ 'data' => $this->toArray( $snippet->fresh() ) ] );
 	}
 
-	public function destroy( Snippet $snippet ): JsonResponse
+	public function destroy( Request $request, Snippet $snippet ): JsonResponse|Response
 	{
+		if ( $denial = $this->gate->check( $request ) ) {
+			return $denial;
+		}
+
 		$snippet->delete();
 
 		return response()->json( null, 204 );
