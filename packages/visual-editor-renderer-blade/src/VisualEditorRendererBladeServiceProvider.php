@@ -94,12 +94,23 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 				// Container binding missing — render without the gate.
 			}
 
+			// #650 — bindings layer is optional so the renderer keeps
+			// working in host apps that install it standalone. Missing
+			// binding renders no-op through BlockRenderer::resolveBindings().
+			$bindingResolver = null;
+			try {
+				$bindingResolver = $app->make( \ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver::class );
+			} catch ( \Throwable $e ) {
+				// Ignore — bindings layer absent.
+			}
+
 			return new BlockRenderer(
 				$app->make( ViewFactory::class ),
 				$app->make( DynamicBlockRegistry::class ),
 				$app->make( SiteMetaResolver::class ),
 				$app->make( LoginoutResolver::class ),
 				$visibility,
+				$bindingResolver,
 			);
 		} );
 

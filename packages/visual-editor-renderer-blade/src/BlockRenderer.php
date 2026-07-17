@@ -22,6 +22,9 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade;
 
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
+use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockShape;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityContext;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityDecision;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityEvaluator;
@@ -118,7 +121,130 @@ class BlockRenderer
 		protected ?SiteMetaResolver $siteMeta = null,
 		protected ?LoginoutResolver $loginout = null,
 		protected ?VisibilityEvaluator $visibility = null,
+		protected ?BindingResolver $bindingResolver = null,
 	) {
+	}
+
+	/**
+	 * Walk the tree resolving `{{token}}` occurrences in every string /
+	 * numeric-string attribute via cms-framework's DynamicContentResolver.
+	 * Attributes that don't contain a `{{` are left untouched so the pass
+	 * is a fast pre-filter — the resolver is invoked at most once per
+	 * bearing attribute.
+	 *
+	 * @param  array<int, array<string, mixed>>  $tree
+	 *
+	 * @return array<int, array<string, mixed>>
+	 *
+	 * @since 1.4.0
+	 */
+	public function resolveInlineTokens( array $tree ): array
+	{
+		if ( [] === $tree ) {
+			return $tree;
+		}
+
+		// Callers that reach this method directly (public helper,
+		// isolated unit tests) may hand us a non-normalized tree;
+		// canonicalize first so the internal walker only has to reason
+		// about the `attributes` shape. Normalization runs before the
+		// resolver availability check so a host without cms-framework
+		// on the classpath still gets a canonical tree back.
+		$tree = BlockShape::normalizeTree( $tree );
+
+		$resolverClass = 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Services\\DynamicContentResolver';
+
+		// Accept either a real cms-framework autoload OR a
+		// container-bound test fake keyed by the class string. Without
+		// the second branch, `class_exists()` short-circuits in a CI
+		// environment that installs cms-framework below the 2.4
+		// baseline that introduced the resolver — the fake wired via
+		// `app()->instance($resolverClass, …)` would never be consulted
+		// and the tree ships back unresolved.
+		if ( ! class_exists( $resolverClass ) && ! app()->bound( $resolverClass ) ) {
+			return $tree;
+		}
+
+		try {
+			$resolver = app( $resolverClass );
+		} catch ( Throwable $e ) {
+			report( $e );
+
+			return $tree;
+		}
+
+		return array_values( array_map(
+			fn ( $block ) => is_array( $block ) ? $this->resolveInlineTokensInBlock( $block, $resolver ) : $block,
+			$tree
+		) );
+	}
+
+	/**
+	 * @param  array<string, mixed>  $block
+	 *
+	 * @return array<string, mixed>
+	 *
+	 * @since 1.4.0
+	 */
+	protected function resolveInlineTokensInBlock( array $block, object $resolver ): array
+	{
+		// Tree has already been normalized to Gutenberg shape at the top
+		// of render(), so `attributes` is the canonical key. Reading
+		// through BlockShape keeps this call site robust when the
+		// method is invoked from a caller that skipped normalization
+		// (e.g. via public resolveInlineTokens on a raw tree).
+		[ $attrKey, $attrs ] = BlockShape::readAttrs( $block );
+
+		foreach ( $attrs as $key => $value ) {
+			if ( is_string( $value ) && str_contains( $value, '{{' ) ) {
+				try {
+					$attrs[ $key ] = (string) $resolver->render( $value );
+				} catch ( Throwable $e ) {
+					report( $e );
+				}
+			}
+		}
+
+		$block[ $attrKey ] = $attrs;
+
+		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) && [] !== $block['innerBlocks'] ) {
+			$block['innerBlocks'] = array_values( array_map(
+				fn ( $inner ) => is_array( $inner ) ? $this->resolveInlineTokensInBlock( $inner, $resolver ) : $inner,
+				$block['innerBlocks']
+			) );
+		}
+
+		return $block;
+	}
+
+	/**
+	 * Resolve block bindings for the given tree before it hits the
+	 * renderer's main loop. When a BindingResolver is wired, the tree is
+	 * walked once so every block's `bindings` sidecar is folded into the
+	 * static `attrs` — the downstream walker then renders as if the
+	 * values had been persisted. Silent no-op when the resolver isn't
+	 * bound (VE renderer-blade is installable without the bindings
+	 * layer).
+	 *
+	 * @param  array<int, array<string, mixed>>  $tree
+	 *
+	 * @return array<int, array<string, mixed>>
+	 *
+	 * @since 1.4.0
+	 */
+	public function resolveBindings( array $tree, ?BindingContext $context = null ): array
+	{
+		if ( null === $this->bindingResolver || [] === $tree ) {
+			return $tree;
+		}
+
+		try {
+			return $this->bindingResolver->resolve( $tree, $context );
+		} catch ( Throwable $e ) {
+			report( $e );
+
+			return $tree;
+		}
 	}
 
 	/**
@@ -137,6 +263,29 @@ class BlockRenderer
 		if ( null !== $this->visibility && $this->visibility->enabled() ) {
 			$this->visibilityContext = $this->visibility->contextFromRequest();
 		}
+
+		// #650 — normalize the tree to Gutenberg's canonical shape
+		// (`attributes` bag, bindings under `attributes.bindings`) so
+		// every downstream pipeline stage reads one shape. Without this
+		// pass, each stage has to re-implement the attributes-vs-attrs
+		// sniff and one that forgets (see the SnippetCycleGuard bug
+		// caught in code review) silently misses editor-persisted
+		// trees.
+		$tree = BlockShape::normalizeTree( $tree );
+
+		// #650 — resolve bindings (Dynamic Content, custom fields,
+		// post_core, relation) once before the walker runs. The
+		// resolver only mutates blocks with a `bindings` sidecar; trees
+		// without bindings round-trip byte-identically.
+		$tree = $this->resolveBindings( $tree );
+
+		// #650 — inline token pass. Walks every block's string /
+		// rich-text attribute looking for `{{token}}` occurrences and
+		// runs them through cms-framework's DynamicContentResolver so
+		// authored inline tokens (typed via `{{` autocomplete or the
+		// Token Inserter) resolve at render time. Silent no-op when
+		// cms-framework is not on the classpath.
+		$tree = $this->resolveInlineTokens( $tree );
 
 		$out = '';
 
@@ -390,8 +539,19 @@ class BlockRenderer
 
 		try {
 			$validated = $block->validateAttrs( $attributes );
-			$result    = $block->render( $validated );
-			$html      = $this->coerceToString( $result );
+
+			// #650 — dynamic blocks that need their inner tree at render
+			// time (e.g. `artisanpack/dynamic-loop` iterating a template)
+			// implement WantsInnerBlocks; the renderer forwards the
+			// unrendered innerBlocks tree so the block can walk or
+			// duplicate it per iteration.
+			if ( $block instanceof \ArtisanPackUI\VisualEditor\Blocks\WantsInnerBlocks ) {
+				$result = $block->renderWithInner( $validated, $innerBlocks );
+			} else {
+				$result = $block->render( $validated );
+			}
+
+			$html = $this->coerceToString( $result );
 
 			// #490 — dynamic blocks build their own wrapper HTML and
 			// don't go through `BlockSupports::compile`, so the

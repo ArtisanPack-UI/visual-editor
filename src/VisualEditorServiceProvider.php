@@ -28,8 +28,12 @@ use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\CustomFieldSource;
+use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\DynamicContentSource;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\PostCoreSource;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\RelationSource;
+use ArtisanPackUI\VisualEditor\Blocks\DynamicContent\DynamicLoopBlock;
+use ArtisanPackUI\VisualEditor\Blocks\DynamicContent\SnippetBlock;
+use ArtisanPackUI\VisualEditor\Services\DynamicContent\SnippetCycleGuard;
 use ArtisanPackUI\VisualEditor\Console\AuditBreakpointsCommand;
 use ArtisanPackUI\VisualEditor\Resources\PostResolver;
 use ArtisanPackUI\VisualEditor\Resources\CommentInliner;
@@ -657,6 +661,11 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//      the registry per-binding at render time.
 		$this->registerBlockBindingSources();
 
+		// 4.0.1. #650 — Register the Dynamic Content dynamic block
+		//        renderers (`artisanpack/snippet`, `artisanpack/dynamic-loop`)
+		//        and their supporting cycle guard.
+		$this->registerDynamicContentBlocks();
+
 		// 4.1. Icon Block Phase 3 (#554) — hand the FA Free SVG sets to
 		//      the `artisanpack-ui/icons` registry. The directories are
 		//      mirrored by `scripts/sync-fa-icons.mjs` (runs in `prebuild`)
@@ -721,6 +730,33 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$registry->register( new CustomFieldSource() );
 		$registry->register( new PostCoreSource() );
 		$registry->register( new RelationSource() );
+
+		// #650 — cms-framework Dynamic Content is a soft dependency; the
+		// source registers unconditionally and returns null at resolve
+		// time when the accessor class is not on the classpath, so the
+		// editor UI can still surface the source and its empty catalog
+		// consistently.
+		$registry->register( new DynamicContentSource() );
+	}
+
+	/**
+	 * Register the Dynamic Content dynamic blocks and their supporting
+	 * services (cycle guard shared with the CRUD controller).
+	 *
+	 * #650 — snippet + dynamic-loop server-side renderers. Registered
+	 * unconditionally: snippet works standalone; dynamic-loop needs
+	 * cms-framework at render time but registration is safe without it.
+	 *
+	 * @since 1.4.0
+	 */
+	protected function registerDynamicContentBlocks(): void
+	{
+		$this->app->singleton( SnippetCycleGuard::class, static fn () => new SnippetCycleGuard() );
+
+		$blockRegistry = $this->app->make( DynamicBlockRegistry::class );
+
+		$blockRegistry->register( new SnippetBlock( $this->app->make( SnippetCycleGuard::class ) ) );
+		$blockRegistry->register( new DynamicLoopBlock( $this->app->make( BindingResolver::class ) ) );
 	}
 
 	/**

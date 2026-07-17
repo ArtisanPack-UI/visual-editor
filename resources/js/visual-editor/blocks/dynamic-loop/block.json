@@ -1,0 +1,30 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/dynamic-loop",
+    "title": "Dynamic Loop",
+    "category": "theme",
+    "description": "Iterate a Dynamic Content collection (team, testimonials, …) rendering the inner template once per record.",
+    "keywords": [
+        "loop",
+        "collection",
+        "dynamic"
+    ],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "collection": {
+            "type": "string",
+            "default": ""
+        },
+        "emptyMessage": {
+            "type": "string",
+            "default": ""
+        }
+    },
+    "supports": {
+        "html": false,
+        "align": [ "wide", "full" ],
+        "anchor": true,
+        "customClassName": true
+    }
+}
