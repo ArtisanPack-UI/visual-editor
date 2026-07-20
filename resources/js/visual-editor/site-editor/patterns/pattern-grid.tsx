@@ -287,6 +287,7 @@ export function PatternGrid(props: PatternGridProps): JSX.Element {
                             >
                                 <PatternThumbnail
                                     blocks={pattern.content.blocks}
+                                    rawContent={pattern.content.raw}
                                     title={patternTitle(pattern)}
                                 />
                                 <header className="ap-pattern-card__header">
