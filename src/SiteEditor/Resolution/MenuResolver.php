@@ -42,4 +42,14 @@ class MenuResolver extends AbstractMapResolver
 
 		return ResolvedMenu::fromArray( $entry );
 	}
+
+	/**
+	 * @since 1.5.0
+	 *
+	 * @param  ResolvedMenu  $entry
+	 */
+	protected static function identifierOf( object $entry ): string
+	{
+		return $entry->location;
+	}
 }

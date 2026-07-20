@@ -43,4 +43,14 @@ class TemplateResolver extends AbstractMapResolver
 
 		return ResolvedTemplate::fromArray( $entry );
 	}
+
+	/**
+	 * @since 1.5.0
+	 *
+	 * @param  ResolvedTemplate  $entry
+	 */
+	protected static function identifierOf( object $entry ): string
+	{
+		return $entry->slug;
+	}
 }

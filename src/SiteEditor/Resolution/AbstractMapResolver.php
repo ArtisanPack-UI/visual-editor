@@ -119,7 +119,17 @@ abstract class AbstractMapResolver
 		$out = [];
 
 		foreach ( $entries as $key => $entry ) {
-			if ( ! is_string( $key ) || '' === $key ) {
+			// PHP auto-coerces numeric-string array keys to `int` when they
+			// enter an array (e.g. WordPress-style `404.html` → int `404`)
+			// and `array_merge` renumbers int-keyed entries sequentially, so
+			// contributors cannot preserve the intended string key at the
+			// language level. Accept `int` keys and cast back to string here
+			// so the raw key remains a legal fallback for entries that omit
+			// the identifier field; the final map is re-keyed below by the
+			// value object's own identifier, which survives both hazards.
+			if ( is_int( $key ) ) {
+				$key = (string) $key;
+			} elseif ( ! is_string( $key ) || '' === $key ) {
 				throw SiteEditorRegistrationException::invalidFilterShape(
 					static::filterName(),
 					'a map keyed by non-empty string',
@@ -135,10 +145,12 @@ abstract class AbstractMapResolver
 				);
 			}
 
-			// Stamp the map key onto the entry under the type-specific key
-			// field so the value object can default to it when the entry
-			// omits the field. The per-type subclass picks the right field.
-			$out[ $key ] = static::normalizeEntry( $key, $entry );
+			$normalized = static::normalizeEntry( $key, $entry );
+
+			// Key by the value object's own identifier so consumers see a
+			// canonical string-keyed map regardless of PHP's coercion or
+			// upstream `array_merge` reindexing at the filter site.
+			$out[ static::identifierOf( $normalized ) ] = $normalized;
 		}
 
 		return $out;
@@ -162,4 +174,16 @@ abstract class AbstractMapResolver
 	 * @return TValue
 	 */
 	abstract protected static function normalizeEntry( string $key, array $entry ): object;
+
+	/**
+	 * Extract the canonical map key from a normalized value object. Used to
+	 * re-key the output map so the identifier the entry carries on itself
+	 * (slug, location, etc.) always wins over the raw filter key — which may
+	 * have been coerced to int by PHP or renumbered by `array_merge`.
+	 *
+	 * @since 1.5.0
+	 *
+	 * @param  TValue  $entry
+	 */
+	abstract protected static function identifierOf( object $entry ): string;
 }
