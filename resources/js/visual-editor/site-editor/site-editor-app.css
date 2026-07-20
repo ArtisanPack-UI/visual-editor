@@ -11,11 +11,34 @@
 
 @import '../editor/top-bar.css';
 
+/*
+ * #666 — anchor the SPA to the viewport so the three-pane shell can
+ * scroll its panels independently. Without `height: 100%` + `overflow:
+ * hidden` on the document ancestors, a tall sidebar / canvas / inspector
+ * pushes the whole page below the viewport and the panels' inner
+ * `overflow-y: auto` never engages (there's no bounded parent for
+ * `height: 100%` to resolve against). This stylesheet only ships with
+ * the site-editor bundle, so styling `html` unconditionally is safe.
+ */
+html,
+.ap-visual-editor-site-editor-body {
+    height: 100%;
+    overflow: hidden;
+}
+
 .ap-visual-editor-site-editor-body {
     margin: 0;
     background: var(--ap-site-editor-shell-background, var(--color-base-200, #f9fafb));
     color: var(--ap-site-editor-shell-foreground, var(--color-base-content, #1f2937));
     font-family: var(--ap-site-editor-font-family, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif);
+}
+
+.ap-visual-editor-site-editor-body > #ap-visual-editor-site-editor {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
 }
 
 .ap-site-editor__shell {
@@ -43,11 +66,61 @@
     }
 }
 
+/*
+ * #666 — the shell renders `.ap-site-editor__body` inside `<main>`, and
+ * `<main>` is a block-level element with no styling of its own. In a
+ * flex-column parent it collapses to its content, which breaks the
+ * `flex: 1 1 auto` chain below and leaves the body sized by its
+ * children rather than by the viewport. Promoting main to a flex-1
+ * passthrough re-establishes the chain so the sidebar / canvas /
+ * inspector each get a bounded height to constrain their own scroll.
+ */
+.ap-site-editor__shell > main {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+}
+
 .ap-site-editor__body {
     display: flex;
     flex: 1 1 auto;
     min-height: 0;
     overflow: hidden;
+}
+
+/*
+ * #666 — H7 (#432) portal targets for the canvas and inspector. The
+ * lazy sections (styles / navigation / patterns) render their canvas
+ * and inspector content into these slots. Without flex properties the
+ * slots collapse to their intrinsic size, so `height: 100%` inside a
+ * portaled child (e.g. `.ap-pattern-grid`) can't resolve and the child
+ * never scrolls. Both slots live in flex-column parents
+ * (`.ap-site-editor__canvas`, `.ap-site-editor__sidebar--inspector`)
+ * so the flex-1 fill applies.
+ */
+.ap-site-editor__canvas-slot,
+.ap-site-editor__inspector-slot {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    min-width: 0;
+    overflow: hidden;
+}
+
+/*
+ * Navigator slot is a sibling case: its parent
+ * `.ap-site-editor__navigator-outlet` uses block layout (with its own
+ * `overflow-y: auto`), so flex/min-* properties on the slot itself are
+ * inert. Only `display: flex; flex-direction: column;` matter — they
+ * let the portaled PatternsBrowser lay out as a flex column inside
+ * the slot. Height stays content-driven and the outlet handles scroll.
+ */
+.ap-site-editor__navigator-slot {
+    display: flex;
+    flex-direction: column;
 }
 
 .ap-site-editor__sidebar {
