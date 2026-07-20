@@ -89,4 +89,41 @@ class SiteEditorRegistrationException extends RuntimeException
 			$expected,
 		) );
 	}
+
+	/**
+	 * Two entries in a filter return map resolved to the same canonical
+	 * identifier (slug / location). One would silently overwrite the other,
+	 * so we surface it as a configuration error.
+	 *
+	 * @since 1.5.0
+	 *
+	 * @param  string  $filterName  The filter slug.
+	 * @param  string  $identifier  The colliding identifier value.
+	 */
+	public static function duplicateIdentifier( string $filterName, string $identifier ): self
+	{
+		return new self( sprintf(
+			'Filter "%s" produced two entries with the same identifier "%s"; one would silently overwrite the other.',
+			$filterName,
+			$identifier,
+		) );
+	}
+
+	/**
+	 * An entry's normalized value object returned an empty-string identifier,
+	 * which would produce an unaddressable `''` map key.
+	 *
+	 * @since 1.5.0
+	 *
+	 * @param  string  $filterName  The filter slug.
+	 * @param  string  $entryKey    The raw map key the entry arrived under.
+	 */
+	public static function emptyIdentifier( string $filterName, string $entryKey ): self
+	{
+		return new self( sprintf(
+			'Filter "%s" entry "%s" resolved to an empty identifier; expected a non-empty slug or location.',
+			$filterName,
+			$entryKey,
+		) );
+	}
 }

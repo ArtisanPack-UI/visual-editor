@@ -6,8 +6,30 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- **Site-editor resolvers accept numeric-string map keys (cms-framework #203).**
+  WordPress template hierarchy filenames like `404.html` / `500.html` double
+  as slugs. PHP auto-coerces numeric-string array keys to `int` at insertion
+  time and `array_merge` renumbers int-keyed entries sequentially, so
+  contributors of `ap.visual-editor.{templates,template-parts,patterns,navigation}`
+  cannot preserve the intended string key from upstream. `AbstractMapResolver`
+  now accepts `int` keys and re-keys the normalized output map by each value
+  object's own identifier via a new `identifierOf()` hook (`slug` for
+  templates/parts/patterns, `location` for menus). Empty identifiers and
+  identifier collisions across entries now throw
+  `SiteEditorRegistrationException` at first read instead of silently
+  producing an unaddressable / clobbered entry.
+
 ### Changed
 
+- **Site-editor map resolvers key by the entry's own identifier, not the
+  raw filter key.** Previously, `find( $rawKey )` succeeded when a
+  contributor supplied a filter map whose keys diverged from the entries'
+  own `slug` / `location`. That path is gone: `find()` now only resolves
+  by the value object's identifier. Contributors that already stamp the
+  matching `slug` / `location` on their entries (all first-party
+  contributors, including cms-framework) are unaffected.
 - **Canvas CSS endpoint delegates to cms-framework's `ThemeStylesheetReader`.**
   `GET /visual-editor/api/global-styles/css` now delegates the theme-file
   read to `ArtisanPackUI\CMSFramework\Modules\SiteEditor\Support\ThemeStylesheetReader`

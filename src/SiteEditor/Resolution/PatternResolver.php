@@ -43,4 +43,14 @@ class PatternResolver extends AbstractMapResolver
 
 		return ResolvedPattern::fromArray( $entry );
 	}
+
+	/**
+	 * @since 1.5.0
+	 *
+	 * @param  ResolvedPattern  $entry
+	 */
+	protected static function identifierOf( object $entry ): string
+	{
+		return $entry->slug;
+	}
 }

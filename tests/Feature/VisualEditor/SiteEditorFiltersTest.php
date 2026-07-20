@@ -535,6 +535,97 @@ describe( 'lazy validation on first read', function (): void {
 		expect( $part->rawContent )->toBe( '1.5' );
 	} );
 
+	it( 'accepts numeric-string template slugs (404, 500) that PHP coerces to int keys', function (): void {
+		// WordPress template hierarchy uses `404.html` / `500.html`, whose
+		// basenames double as slugs. PHP auto-coerces `'404'` array keys
+		// to int(404), which contributors cannot prevent at the language
+		// level. The resolver must accept int keys and cast them back to
+		// string so the filter's string-map contract holds end-to-end.
+		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+			return array_merge( [
+				'404' => [
+					'slug'   => '404',
+					'theme'  => 'host',
+					'title'  => 'Not Found',
+					'source' => 'theme',
+				],
+				'500' => [
+					'slug'   => '500',
+					'theme'  => 'host',
+					'title'  => 'Server Error',
+					'source' => 'theme',
+				],
+			], $existing );
+		} );
+
+		rebuildSiteEditorResolvers();
+
+		$notFound = app( TemplateResolver::class )->find( '404' );
+		$serverError = app( TemplateResolver::class )->find( '500' );
+
+		expect( $notFound )->not->toBeNull();
+		expect( $notFound->slug )->toBe( '404' );
+		expect( $serverError )->not->toBeNull();
+		expect( $serverError->slug )->toBe( '500' );
+
+		// PHP re-coerces numeric-string map keys back to int on assignment,
+		// so the raw key type in all() is a language-level detail consumers
+		// can't rely on either way — what matters is that find() with the
+		// canonical string identifier resolves to the right value object
+		// and that the entry preserves its slug as a string.
+		expect( app( TemplateResolver::class )->find( '404' )->slug )->toBe( '404' );
+	} );
+
+	it( 'throws when two template entries resolve to the same slug', function (): void {
+		// Re-keying by the value object's slug means two entries with
+		// different raw keys but the same slug would silently overwrite
+		// one another. Surface that as a configuration error instead of
+		// last-wins so contributors know to disambiguate.
+		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+			return array_merge( [
+				'raw-a' => [
+					'slug'   => 'shared',
+					'theme'  => 'host',
+					'title'  => 'A',
+					'source' => 'theme',
+				],
+				'raw-b' => [
+					'slug'   => 'shared',
+					'theme'  => 'host',
+					'title'  => 'B',
+					'source' => 'theme',
+				],
+			], $existing );
+		} );
+
+		rebuildSiteEditorResolvers();
+
+		expect( fn () => app( TemplateResolver::class )->all() )
+			->toThrow( SiteEditorRegistrationException::class, 'shared' );
+	} );
+
+	it( 'throws when a template entry resolves to an empty slug', function (): void {
+		// An empty identifier would produce an unaddressable `''` map
+		// key. The pre-refactor shape guard rejected empty raw keys; the
+		// post-refactor emptyIdentifier check protects the same
+		// invariant on the re-key path.
+		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+			return array_merge( [
+				'raw-key' => [
+					'slug'   => '',
+					'theme'  => 'host',
+					'title'  => 'Empty Slug',
+					'source' => 'theme',
+				],
+			], $existing );
+		} );
+
+		rebuildSiteEditorResolvers();
+
+		expect( fn () => app( TemplateResolver::class )->all() )
+			->toThrow( SiteEditorRegistrationException::class, 'empty identifier' );
+	} );
+
 	it( 'throws when global-styles is missing the theme field', function (): void {
 		addFilter( 'ap.visual-editor.global-styles', function ( $existing ) {
 			return $existing ?? [
