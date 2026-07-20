@@ -6,7 +6,7 @@
  * Phase 6 (#557) of the Icon Block feature (#494). Persists set
  * metadata to `storage/app/artisanpack/visual-editor/icons/sets.json`
  * so the service provider can re-register uploaded sets against the
- * `ap.icons.register-icon-sets` filter on every boot without re-walking
+ * `ap.icons.registerIconSets` filter on every boot without re-walking
  * directories or re-validating zip uploads.
  *
  * @package    ArtisanPack_UI

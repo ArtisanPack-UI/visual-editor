@@ -8,7 +8,7 @@
  * `resources/icons/font-awesome/{fas,far,fab}/` by `scripts/sync-fa-icons.mjs`.
  * This helper turns the on-disk layout into icon-set entries that the
  * `artisanpack-ui/icons` registry consumes via the
- * `ap.icons.register-icon-sets` filter.
+ * `ap.icons.registerIconSets` filter.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -73,7 +73,7 @@ final class FontAwesomeFreeIconSets
 	 * Register each discovered set on the supplied `IconSetRegistration`.
 	 *
 	 * Returns the same registry instance so this method can be used as the
-	 * body of an `ap.icons.register-icon-sets` filter callback. The
+	 * body of an `ap.icons.registerIconSets` filter callback. The
 	 * registry's `addSet()` throws when handed a non-existent path, which
 	 * is exactly why `discover()` filters them first — we want to no-op,
 	 * not blow up, when the FA Free directory is missing.

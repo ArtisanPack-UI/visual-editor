@@ -27,7 +27,7 @@ class ResolvedPattern
 	/**
 	 * @since 1.0.0
 	 */
-	protected const FILTER_NAME = 'ap.visual-editor.patterns';
+	protected const FILTER_NAME = 'ap.visualEditor.patterns';
 
 	/**
 	 * @since 1.0.0

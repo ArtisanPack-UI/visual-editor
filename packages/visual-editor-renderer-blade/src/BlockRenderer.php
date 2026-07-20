@@ -369,7 +369,7 @@ class BlockRenderer
 			$html = $this->wrapWithScreenSizeCss( $html, $cssHiddenDecision );
 		}
 
-		// `ap.visual-editor.rendered-block` — last-mile hook for packages
+		// `ap.visualEditor.renderedBlock` — last-mile hook for packages
 		// that need to post-process a rendered block. Runs on every block
 		// (static or dynamic) so cross-cutting effects (frosted glass,
 		// motion wrappers, contrast overlays, etc.) can decorate output
@@ -394,7 +394,7 @@ class BlockRenderer
 		// without notice — callbacks should treat them as read-only
 		// side-channel data, not stable public attributes.
 		if ( function_exists( 'applyFilters' ) ) {
-			$filtered = applyFilters( 'ap.visual-editor.rendered-block', $html, $name, $attributes );
+			$filtered = applyFilters( 'ap.visualEditor.renderedBlock', $html, $name, $attributes );
 
 			if ( is_string( $filtered ) ) {
 				$html = $filtered;

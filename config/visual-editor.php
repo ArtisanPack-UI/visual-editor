@@ -319,7 +319,7 @@ return [
 	| POST + CSRF — clicking the rendered link will hit a 405 unless the
 	| host either (a) registers a GET-side logout endpoint and points
 	| `logout_route` / `logout_path` at it, or (b) rewrites the resolved
-	| envelope through the `ap.visual-editor.loginout.envelope` filter
+	| envelope through the `ap.visualEditor.loginout.envelope` filter
 	| (e.g. swap in a `URL::signedRoute()` link to a GET handler that
 	| invalidates the session). The default of `logout` is kept because
 	| dropping it would mean `logout_path` shows through as a relative
@@ -328,7 +328,7 @@ return [
 	|
 	| For fully custom URL resolution (per-tenant routes, SSO, etc.)
 	| override the resolved envelope through the
-	| `ap.visual-editor.loginout.envelope` filter hook instead.
+	| `ap.visualEditor.loginout.envelope` filter hook instead.
 	|
 	*/
 
@@ -350,7 +350,7 @@ return [
 	| resolver. The resolver builds a default trail
 	| (`Home → …ancestors → current`) for every breadcrumbs block on
 	| render; hosts customize the trail through the
-	| `ap.visual-editor.breadcrumbs.trail` filter (e.g. to insert a
+	| `ap.visualEditor.breadcrumbs.trail` filter (e.g. to insert a
 	| "Category" hop between Home and a blog post).
 	|
 	| `home_url` overrides the root link target — leave null to fall back
@@ -556,7 +556,7 @@ return [
 	|
 	| Static-config entry points for the five site-editor entity types. Each
 	| key is also a filter slug — packages like cms-framework register their
-	| entities at runtime through `addFilter('ap.visual-editor.{type}', ...)`.
+	| entities at runtime through `addFilter('ap.visualEditor.{type}', ...)`.
 	|
 	| Static config wins on key collision: host-app entries listed here take
 	| precedence over filter-supplied entries with the same key.

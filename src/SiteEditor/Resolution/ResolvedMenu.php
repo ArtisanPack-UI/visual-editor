@@ -5,7 +5,7 @@
  *
  * Maps a theme-declared location (`primary`, `footer`, etc.) to a menu
  * record + its menu items. cms-framework's `MenuResolver` (H4) populates
- * this through the `ap.visual-editor.navigation` filter; H6's
+ * this through the `ap.visualEditor.navigation` filter; H6's
  * `wp_navigation` REST adapter reads it.
  *
  * @package    ArtisanPack_UI
@@ -27,7 +27,7 @@ class ResolvedMenu
 	/**
 	 * @since 1.0.0
 	 */
-	protected const FILTER_NAME = 'ap.visual-editor.navigation';
+	protected const FILTER_NAME = 'ap.visualEditor.navigation';
 
 	/**
 	 * @since 1.0.0

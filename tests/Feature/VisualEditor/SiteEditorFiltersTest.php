@@ -17,11 +17,11 @@ use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 
 afterEach( function (): void {
 	foreach ( [
-		'ap.visual-editor.templates',
-		'ap.visual-editor.template-parts',
-		'ap.visual-editor.patterns',
-		'ap.visual-editor.global-styles',
-		'ap.visual-editor.navigation',
+		'ap.visualEditor.templates',
+		'ap.visualEditor.templateParts',
+		'ap.visualEditor.patterns',
+		'ap.visualEditor.globalStyles',
+		'ap.visualEditor.navigation',
 	] as $filter ) {
 		removeAllFilters( $filter );
 	}
@@ -45,7 +45,7 @@ describe( 'standalone install (no contributors, no static config)', function ():
 		rebuildSiteEditorResolvers();
 
 		// #639 — visual-editor now ships a built-in `page/blank` seed
-		// pattern registered via `ap.visual-editor.patterns` on boot,
+		// pattern registered via `ap.visualEditor.patterns` on boot,
 		// so the pattern resolver is no longer strictly empty on a
 		// standalone install. Assert on the shape and the seed's slug
 		// rather than `[]`.
@@ -61,7 +61,7 @@ describe( 'standalone install (no contributors, no static config)', function ():
 
 describe( 'single-source filter contribution', function (): void {
 	it( 'registers a template via the templates filter', function (): void {
-		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templates', function ( array $existing ): array {
 			return array_merge( [
 				'page' => [
 					'slug'   => 'page',
@@ -83,7 +83,7 @@ describe( 'single-source filter contribution', function (): void {
 	} );
 
 	it( 'registers a template-part with area', function (): void {
-		addFilter( 'ap.visual-editor.template-parts', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templateParts', function ( array $existing ): array {
 			return array_merge( [
 				'header' => [
 					'slug'   => 'header',
@@ -104,7 +104,7 @@ describe( 'single-source filter contribution', function (): void {
 	} );
 
 	it( 'registers a pattern with source flag', function (): void {
-		addFilter( 'ap.visual-editor.patterns', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.patterns', function ( array $existing ): array {
 			return array_merge( [
 				'cta' => [
 					'slug'   => 'cta',
@@ -125,7 +125,7 @@ describe( 'single-source filter contribution', function (): void {
 	} );
 
 	it( 'registers global-styles as a singleton', function (): void {
-		addFilter( 'ap.visual-editor.global-styles', function ( $existing ) {
+		addFilter( 'ap.visualEditor.globalStyles', function ( $existing ) {
 			return $existing ?? [
 				'theme'    => 'digital-shopfront',
 				'settings' => [ 'color' => [ 'palette' => [] ] ],
@@ -142,7 +142,7 @@ describe( 'single-source filter contribution', function (): void {
 	} );
 
 	it( 'registers a menu under its location', function (): void {
-		addFilter( 'ap.visual-editor.navigation', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.navigation', function ( array $existing ): array {
 			return array_merge( [
 				'primary' => [
 					'location' => 'primary',
@@ -173,7 +173,7 @@ describe( 'static config wins on key collision', function (): void {
 			],
 		] );
 
-		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templates', function ( array $existing ): array {
 			return array_merge( [
 				'page' => [
 					'slug'   => 'page',
@@ -202,7 +202,7 @@ describe( 'static config wins on key collision', function (): void {
 			],
 		] );
 
-		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templates', function ( array $existing ): array {
 			return array_merge( [
 				'cms-page' => [
 					'slug'   => 'cms-page',
@@ -228,7 +228,7 @@ describe( 'static config wins on key collision', function (): void {
 			'styles'   => [],
 		] );
 
-		addFilter( 'ap.visual-editor.global-styles', function ( $existing ) {
+		addFilter( 'ap.visualEditor.globalStyles', function ( $existing ) {
 			return $existing ?? [
 				'theme'    => 'cms-theme',
 				'settings' => [ 'cms' => true ],
@@ -247,7 +247,7 @@ describe( 'static config wins on key collision', function (): void {
 
 describe( 'lazy validation on first read', function (): void {
 	it( 'does not throw at boot when a filter returns malformed entries', function (): void {
-		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templates', function ( array $existing ): array {
 			return array_merge( [
 				'broken' => 'this-is-not-an-array',
 			], $existing );
@@ -260,7 +260,7 @@ describe( 'lazy validation on first read', function (): void {
 	} );
 
 	it( 'throws SiteEditorRegistrationException on first all() with a malformed entry', function (): void {
-		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templates', function ( array $existing ): array {
 			return array_merge( [
 				'broken' => 'this-is-not-an-array',
 			], $existing );
@@ -273,7 +273,7 @@ describe( 'lazy validation on first read', function (): void {
 	} );
 
 	it( 'throws when a template entry is missing the required theme field', function (): void {
-		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templates', function ( array $existing ): array {
 			return array_merge( [
 				'no-theme' => [
 					'slug'   => 'no-theme',
@@ -290,7 +290,7 @@ describe( 'lazy validation on first read', function (): void {
 	} );
 
 	it( 'throws when a template-part has an invalid area', function (): void {
-		addFilter( 'ap.visual-editor.template-parts', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templateParts', function ( array $existing ): array {
 			return array_merge( [
 				'banner' => [
 					'slug'   => 'banner',
@@ -308,7 +308,7 @@ describe( 'lazy validation on first read', function (): void {
 	} );
 
 	it( 'throws when a pattern has an invalid source value', function (): void {
-		addFilter( 'ap.visual-editor.patterns', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.patterns', function ( array $existing ): array {
 			return array_merge( [
 				'bad' => [
 					'slug'   => 'bad',
@@ -324,7 +324,7 @@ describe( 'lazy validation on first read', function (): void {
 	} );
 
 	it( 'throws when a pattern is missing the title field', function (): void {
-		addFilter( 'ap.visual-editor.patterns', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.patterns', function ( array $existing ): array {
 			return array_merge( [
 				'titleless' => [
 					'slug'   => 'titleless',
@@ -343,7 +343,7 @@ describe( 'lazy validation on first read', function (): void {
 		// A misconfigured contributor passes a string in the nested
 		// content.blocks slot — should resolve to an empty blocks array
 		// instead of raising a TypeError on the typed constructor param.
-		addFilter( 'ap.visual-editor.patterns', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.patterns', function ( array $existing ): array {
 			return array_merge( [
 				'malformed' => [
 					'slug'    => 'malformed',
@@ -365,7 +365,7 @@ describe( 'lazy validation on first read', function (): void {
 		// content is a string instead of an array. Without the defensive
 		// is_array guard, $data['content']['raw'] would index into the
 		// string and silently corrupt rawContent to its first character.
-		addFilter( 'ap.visual-editor.patterns', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.patterns', function ( array $existing ): array {
 			return array_merge( [
 				'scalar-content' => [
 					'slug'    => 'scalar-content',
@@ -385,7 +385,7 @@ describe( 'lazy validation on first read', function (): void {
 	} );
 
 	it( 'safely handles a scalar content envelope on templates', function (): void {
-		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templates', function ( array $existing ): array {
 			return array_merge( [
 				'scalar-template' => [
 					'slug'    => 'scalar-template',
@@ -405,7 +405,7 @@ describe( 'lazy validation on first read', function (): void {
 	} );
 
 	it( 'safely handles a scalar content envelope on template parts', function (): void {
-		addFilter( 'ap.visual-editor.template-parts', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templateParts', function ( array $existing ): array {
 			return array_merge( [
 				'scalar-part' => [
 					'slug'    => 'scalar-part',
@@ -431,7 +431,7 @@ describe( 'lazy validation on first read', function (): void {
 		// `(string) $array` produces the literal `"Array"` and ships
 		// silently — the resolver should fall back to the empty default
 		// instead.
-		addFilter( 'ap.visual-editor.patterns', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.patterns', function ( array $existing ): array {
 			return array_merge( [
 				'array-raw' => [
 					'slug'        => 'array-raw',
@@ -451,7 +451,7 @@ describe( 'lazy validation on first read', function (): void {
 	} );
 
 	it( 'does not stringify a non-scalar nested content.raw to "Array" on templates', function (): void {
-		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templates', function ( array $existing ): array {
 			return array_merge( [
 				'array-content-raw' => [
 					'slug'    => 'array-content-raw',
@@ -475,7 +475,7 @@ describe( 'lazy validation on first read', function (): void {
 		// is_scalar accepts int, float, bool — these are sensibly stringable
 		// and shouldn't be rejected. Verifies the coercion path exposes the
 		// stringified value rather than dropping it.
-		addFilter( 'ap.visual-editor.patterns', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.patterns', function ( array $existing ): array {
 			return array_merge( [
 				'numeric-raw' => [
 					'slug'        => 'numeric-raw',
@@ -497,7 +497,7 @@ describe( 'lazy validation on first read', function (): void {
 		// Top-level raw_content + nested content.raw should behave the same
 		// way: a non-string scalar (here, an int) coerces to its string form
 		// rather than being silently dropped.
-		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templates', function ( array $existing ): array {
 			return array_merge( [
 				'numeric-template' => [
 					'slug'        => 'numeric-template',
@@ -516,7 +516,7 @@ describe( 'lazy validation on first read', function (): void {
 	} );
 
 	it( 'coerces scalar non-string raw_content to a string on template parts', function (): void {
-		addFilter( 'ap.visual-editor.template-parts', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templateParts', function ( array $existing ): array {
 			return array_merge( [
 				'numeric-part' => [
 					'slug'        => 'numeric-part',
@@ -541,7 +541,7 @@ describe( 'lazy validation on first read', function (): void {
 		// to int(404), which contributors cannot prevent at the language
 		// level. The resolver must accept int keys and cast them back to
 		// string so the filter's string-map contract holds end-to-end.
-		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templates', function ( array $existing ): array {
 			return array_merge( [
 				'404' => [
 					'slug'   => '404',
@@ -581,7 +581,7 @@ describe( 'lazy validation on first read', function (): void {
 		// different raw keys but the same slug would silently overwrite
 		// one another. Surface that as a configuration error instead of
 		// last-wins so contributors know to disambiguate.
-		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templates', function ( array $existing ): array {
 			return array_merge( [
 				'raw-a' => [
 					'slug'   => 'shared',
@@ -609,7 +609,7 @@ describe( 'lazy validation on first read', function (): void {
 		// key. The pre-refactor shape guard rejected empty raw keys; the
 		// post-refactor emptyIdentifier check protects the same
 		// invariant on the re-key path.
-		addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.templates', function ( array $existing ): array {
 			return array_merge( [
 				'raw-key' => [
 					'slug'   => '',
@@ -627,7 +627,7 @@ describe( 'lazy validation on first read', function (): void {
 	} );
 
 	it( 'throws when global-styles is missing the theme field', function (): void {
-		addFilter( 'ap.visual-editor.global-styles', function ( $existing ) {
+		addFilter( 'ap.visualEditor.globalStyles', function ( $existing ) {
 			return $existing ?? [
 				'settings' => [],
 				'styles'   => [],
@@ -641,7 +641,7 @@ describe( 'lazy validation on first read', function (): void {
 	} );
 
 	it( 'auto-stamps the map key as location when a navigation entry omits the field', function (): void {
-		addFilter( 'ap.visual-editor.navigation', function ( array $existing ): array {
+		addFilter( 'ap.visualEditor.navigation', function ( array $existing ): array {
 			return array_merge( [
 				'primary' => [
 					'name' => 'Primary',
@@ -658,7 +658,7 @@ describe( 'lazy validation on first read', function (): void {
 	} );
 
 	it( 'throws when a non-array filter return value would corrupt the resolver', function (): void {
-		addFilter( 'ap.visual-editor.templates', function ( $existing ) {
+		addFilter( 'ap.visualEditor.templates', function ( $existing ) {
 			// Pathological contributor: returns a string.
 			return 'oops';
 		} );

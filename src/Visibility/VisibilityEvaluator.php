@@ -17,7 +17,7 @@
  *      `artisanpackVisibility.{rule.key}` slice, combining the returned
  *      {@see VisibilityDecision}s. Any single `hidden()` wins outright.
  *
- * The `ap.visual-editor.visibility.evaluated` action fires once per
+ * The `ap.visualEditor.visibility.evaluated` action fires once per
  * block after evaluation completes, receiving `[decision, blockName,
  * attributes, context]` so a debug listener can answer "why is this
  * block hidden?" without instrumenting each rule.
@@ -267,7 +267,7 @@ class VisibilityEvaluator
 		}
 
 		try {
-			doAction( 'ap.visual-editor.visibility.evaluated', $decision, $name, $attributes, $context );
+			doAction( 'ap.visualEditor.visibility.evaluated', $decision, $name, $attributes, $context );
 		} catch ( Throwable $e ) {
 			report( $e );
 		}

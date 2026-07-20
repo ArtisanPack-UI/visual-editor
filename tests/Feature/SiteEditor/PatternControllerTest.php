@@ -113,7 +113,7 @@ describe( 'GET /visual-editor/api/patterns', function (): void {
 	// `post_types` whitelist match only when the requested slug is
 	// present; unscoped patterns (post_types null) match everywhere.
 	it( 'filters by ?post_type using each pattern\'s post_types scope (#639)', function (): void {
-		addFilter( 'ap.visual-editor.patterns', function ( mixed $patterns ): array {
+		addFilter( 'ap.visualEditor.patterns', function ( mixed $patterns ): array {
 			$patterns = is_array( $patterns ) ? $patterns : [];
 
 			$patterns['landing-hero'] = [

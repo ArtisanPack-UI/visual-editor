@@ -257,7 +257,7 @@ Route::get( 'search', [ EntitySearchController::class, 'index' ] )
 // #492 — user autocomplete for the "Specific User" visibility rule's
 // InspectorControls picker. Read-only; short-circuits to an empty
 // list when the current session isn't authenticated. Hosts can filter
-// results via `ap.visual-editor.visibility.user-search-results`.
+// results via `ap.visualEditor.visibility.userSearchResults`.
 Route::get( 'users/search', [ UsersSearchController::class, 'index' ] )
 	->name( 'visual-editor.api.visibility.users.search' );
 
@@ -307,7 +307,7 @@ Route::delete( 'admin/icon-sets/{prefix}', [ IconSetsManagementController::class
 // G3 cms-framework Post + Page entity adapters — see plan 12 §4.4.
 // Both controllers resolve their model through `ResourceResolver`, so
 // the host's `posts` / `pages` slugs (registered statically or via
-// the `ap.visual-editor.resources` filter) determine the underlying
+// the `ap.visualEditor.resources` filter) determine the underlying
 // Eloquent class. The legacy `posts/{post}` routes that bound to
 // `VisualEditorPost` were removed at this point in the M3→G3
 // migration — host apps that still reference that model directly

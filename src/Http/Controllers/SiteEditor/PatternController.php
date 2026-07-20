@@ -449,7 +449,7 @@ class PatternController extends Controller
 	protected function refreshResolver(): void
 	{
 		$static = (array) config( 'artisanpack.visual-editor.site-editor.patterns', [] );
-		$merged = applyFilters( 'ap.visual-editor.patterns', $static );
+		$merged = applyFilters( 'ap.visualEditor.patterns', $static );
 		$merged = is_array( $merged ) ? $merged : [];
 		$merged = array_merge( $merged, $static );
 

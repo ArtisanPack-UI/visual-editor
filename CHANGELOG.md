@@ -6,22 +6,47 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-### Fixed
+## [1.5.0]
 
-- **Site-editor resolvers accept numeric-string map keys (cms-framework #203).**
-  WordPress template hierarchy filenames like `404.html` / `500.html` double
-  as slugs. PHP auto-coerces numeric-string array keys to `int` at insertion
-  time and `array_merge` renumbers int-keyed entries sequentially, so
-  contributors of `ap.visual-editor.{templates,template-parts,patterns,navigation}`
-  cannot preserve the intended string key from upstream. `AbstractMapResolver`
-  now accepts `int` keys and re-keys the normalized output map by each value
-  object's own identifier via a new `identifierOf()` hook (`slug` for
-  templates/parts/patterns, `location` for menus). Empty identifiers and
-  identifier collisions across entries now throw
-  `SiteEditorRegistrationException` at first read instead of silently
-  producing an unaddressable / clobbered entry.
+### Changed (BREAKING)
 
-### Changed
+- **Renamed every visual-editor hook to camelCase (#664).** The 13 PHP
+  hooks the package fires or subscribes to, plus the
+  `visual_editor.pre_publish_checks` cross-package hook, the
+  `ap.icons.register-icon-sets` bridge hook, and three JS-only hooks
+  (`background-controls`, `canvas-styles`, `document-panels`), now use
+  camelCase — matching the ArtisanPack UI ecosystem's naming convention.
+  Old names remain functional via `deprecateHook()` aliases registered by
+  `ArtisanPackUI\VisualEditor\Support\HookAliases` on the PHP side and a
+  bidirectional `@wordpress/hooks` shim in
+  `resources/js/visual-editor/support/hook-aliases.ts` on the JS side;
+  the JS shim runs at `Number.MIN_SAFE_INTEGER` priority so real
+  subscribers on the paired name are surfaced before priority-sorted
+  dispatch of the applied name's callbacks. A deprecation notice is
+  logged the first time an alias resolves per process. Rename table:
+
+    - `ap.visual-editor.resources` → `ap.visualEditor.resources`
+    - `ap.visual-editor.templates` → `ap.visualEditor.templates`
+    - `ap.visual-editor.template-parts` → `ap.visualEditor.templateParts`
+    - `ap.visual-editor.patterns` → `ap.visualEditor.patterns`
+    - `ap.visual-editor.global-styles` → `ap.visualEditor.globalStyles`
+    - `ap.visual-editor.navigation` → `ap.visualEditor.navigation`
+    - `ap.visual-editor.visibility.register-rules` → `ap.visualEditor.visibility.registerRules`
+    - `ap.visual-editor.visibility.evaluated` → `ap.visualEditor.visibility.evaluated`
+    - `ap.visual-editor.visibility.user-search-results` → `ap.visualEditor.visibility.userSearchResults`
+    - `ap.visual-editor.rendered-block` → `ap.visualEditor.renderedBlock`
+    - `ap.visual-editor.breadcrumbs.trail` → `ap.visualEditor.breadcrumbs.trail`
+    - `ap.visual-editor.loginout.envelope` → `ap.visualEditor.loginout.envelope`
+    - `ap.visual-editor.loginout.login-form` → `ap.visualEditor.loginout.loginForm`
+    - `visual_editor.pre_publish_checks` → `ap.visualEditor.prePublishChecks`
+    - `ap.icons.register-icon-sets` → `ap.icons.registerIconSets`
+    - `ap.visual-editor.background-controls` → `ap.visualEditor.backgroundControls`
+    - `ap.visual-editor.canvas-styles` → `ap.visualEditor.canvasStyles`
+    - `ap.visual-editor.document-panels` → `ap.visualEditor.documentPanels`
+
+  See `src/Support/HookAliases.php` for the full canonical list. Bumps
+  the `artisanpack-ui/hooks` Composer requirement to `^1.2` (v1.3.x in
+  practice) to pick up the `deprecateHook()` helper (v1.3.0).
 
 - **Site-editor map resolvers key by the entry's own identifier, not the
   raw filter key.** Previously, `find( $rawKey )` succeeded when a
@@ -44,6 +69,21 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   preserves the pre-change behavior (style.css only, historical banner
   text) so themes on older cms-framework releases keep the canvas parity
   the endpoint already delivered.
+
+### Fixed
+
+- **Site-editor resolvers accept numeric-string map keys (cms-framework #203).**
+  WordPress template hierarchy filenames like `404.html` / `500.html` double
+  as slugs. PHP auto-coerces numeric-string array keys to `int` at insertion
+  time and `array_merge` renumbers int-keyed entries sequentially, so
+  contributors of `ap.visualEditor.{templates,templateParts,patterns,navigation}`
+  cannot preserve the intended string key from upstream. `AbstractMapResolver`
+  now accepts `int` keys and re-keys the normalized output map by each value
+  object's own identifier via a new `identifierOf()` hook (`slug` for
+  templates/parts/patterns, `location` for menus). Empty identifiers and
+  identifier collisions across entries now throw
+  `SiteEditorRegistrationException` at first read instead of silently
+  producing an unaddressable / clobbered entry.
 
 ## [1.4.0] - 2026-07-16
 

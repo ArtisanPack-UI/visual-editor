@@ -6,7 +6,7 @@
  * Pinned to the `posts` slug; resolves the underlying model class
  * through {@see ResourceResolver} so cms-framework's
  * `Modules\Blog\Models\Post` (registered via the
- * `ap.visual-editor.resources` filter) — or a host-app override — is
+ * `ap.visualEditor.resources` filter) — or a host-app override — is
  * served without this controller importing the class. That keeps the
  * package booting standalone.
  *

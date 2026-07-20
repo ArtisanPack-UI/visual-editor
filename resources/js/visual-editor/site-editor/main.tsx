@@ -15,6 +15,13 @@
 import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
+import { registerHookAliases } from '../support/hook-aliases';
+
+// Install #664 hook-name aliases at module load. See editor/main.tsx for
+// the rationale — the site-editor shares the same hook surface as the
+// post editor.
+registerHookAliases();
+
 import '../a11y.css';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
 

@@ -5,7 +5,7 @@
  * the rendered Icon Block.
  *
  * The resolver is constructed once per request from the icon-sets
- * registry (`ap.icons.register-icon-sets` filter result) and cached as a
+ * registry (`ap.icons.registerIconSets` filter result) and cached as a
  * singleton. Lookups are file-system reads against the registered set
  * paths — bundled FA Free SVGs live under `resources/icons/font-awesome/`
  * after `scripts/sync-fa-icons.mjs` runs.
@@ -34,7 +34,7 @@ use Closure;
  * The path map can be supplied either eagerly (an `array` for tests +
  * fixtures) or lazily (a `Closure` that returns the array). The lazy
  * form is what production uses: the icon-sets registry is built from
- * the `ap.icons.register-icon-sets` filter, and that filter's
+ * the `ap.icons.registerIconSets` filter, and that filter's
  * callbacks are registered across multiple providers' `boot()` phases.
  * Running the filter at singleton-construction time would race against
  * those registrations — `IconBlock` is constructed early in `boot()`,

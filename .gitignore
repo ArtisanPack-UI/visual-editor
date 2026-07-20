@@ -18,3 +18,7 @@ resources/js/visual-editor/blocks/**/upstream-diff-report.json
 # Tracking ~2,800 SVGs would bloat the repo for no gain — the script is
 # deterministic and the source is pinned in package.json. See #554.
 resources/icons/font-awesome/
+
+# The renderer-blade sub-package's vendor tree is dev-only — never ships.
+/packages/visual-editor-renderer-blade/vendor/
+/packages/visual-editor-renderer-blade/composer.lock

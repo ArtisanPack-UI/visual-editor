@@ -29,7 +29,7 @@ class ResolvedTemplate
 	 *
 	 * @since 1.0.0
 	 */
-	protected const FILTER_NAME = 'ap.visual-editor.templates';
+	protected const FILTER_NAME = 'ap.visualEditor.templates';
 
 	/**
 	 * @since 1.0.0

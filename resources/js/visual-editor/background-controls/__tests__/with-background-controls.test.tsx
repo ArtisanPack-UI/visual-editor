@@ -82,8 +82,8 @@ vi.mock('@wordpress/blocks', () => ({
 }));
 
 function registerFilter(callback: FilterCallback): void {
-    filters.set('ap.visual-editor.background-controls', [
-        ...(filters.get('ap.visual-editor.background-controls') ?? []),
+    filters.set('ap.visualEditor.backgroundControls', [
+        ...(filters.get('ap.visualEditor.backgroundControls') ?? []),
         callback,
     ]);
 }

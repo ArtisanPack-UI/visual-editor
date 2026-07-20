@@ -3,7 +3,7 @@
 /**
  * Site-editor pattern resolver.
  *
- * Consumes the merged `ap.visual-editor.patterns` filter result. Patterns
+ * Consumes the merged `ap.visualEditor.patterns` filter result. Patterns
  * cover both theme-shipped (`source: 'theme'`, read-only) and user-authored
  * (`source: 'user'`, editable) entries — the value object's `synced` field
  * distinguishes WP `wp_block` (synced) from `wp_block_pattern` (unsynced).
@@ -29,7 +29,7 @@ class PatternResolver extends AbstractMapResolver
 	 */
 	protected static function filterName(): string
 	{
-		return 'ap.visual-editor.patterns';
+		return 'ap.visualEditor.patterns';
 	}
 
 	/**

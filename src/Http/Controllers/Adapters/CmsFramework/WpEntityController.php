@@ -5,7 +5,7 @@
  *
  * Generic CRUD scaffolding for any `HasBlockContent` Eloquent model
  * registered in `config('artisanpack.visual-editor.resources')` (or
- * contributed via the `ap.visual-editor.resources` filter from #397).
+ * contributed via the `ap.visualEditor.resources` filter from #397).
  * Handles `index`, `show`, `destroy`, and the shared persistence
  * helpers; concrete subclasses ({@see PostController},
  * {@see PageController}) own their typed `store`/`update` so each
