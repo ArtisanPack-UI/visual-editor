@@ -159,26 +159,34 @@ class GlobalStylesController extends Controller
 
 	/**
 	 * GET `/global-styles/css` — full canvas stylesheet for the active
-	 * theme. Concatenates two sources in order:
+	 * theme. Concatenates three sources in order:
 	 *
 	 *   1. cms-framework's `GlobalStylesEmitter::emit()` — compiled CSS
 	 *      from theme.json `settings` + `styles`, merged with any DB
 	 *      override the user authored through the Styles section.
 	 *   2. The theme's hand-authored `themes/{slug}/style.css` — the
 	 *      same stylesheet the public front-end loads via `<link rel>`.
+	 *   3. The theme's canvas-only `themes/{slug}/editor.css` — the
+	 *      analog of WordPress's `add_editor_style()`. Never emitted
+	 *      on the front-end, so themes can use bare element selectors
+	 *      here without theming inspector-panel mini-previews.
 	 *
 	 * Order matters: the emitter declares `--wp--preset--*` custom
-	 * properties on `:root`; the hand-authored sheet can consume those
-	 * tokens AND override emitter rules (button border-radius / padding
-	 * that the emitter doesn't compile yet, footer list resets, etc.).
+	 * properties on `:root` first; `style.css` can consume those tokens
+	 * and override emitter rules; `editor.css` runs last so canvas-only
+	 * overrides win.
 	 *
 	 * The site-editor canvas appends the full response to its
 	 * `BlockEditorProvider` `settings.styles` array so the iframe surface
-	 * matches the public front-end's branding 1:1 — closes the parity
-	 * gap that Keystone #47 surfaced. Front-end consumes the emitter
-	 * via the renderer-blade Blade components and loads its own
-	 * `<link rel="stylesheet">` to `style.css`; the canvas reaches
-	 * parity by getting both bundled into this one fetch.
+	 * matches the public front-end's branding 1:1 (Keystone #47) and
+	 * gains WordPress-style canvas-only overrides (cms-framework #199).
+	 *
+	 * File reads delegate to cms-framework's `ThemeStylesheetReader` so
+	 * slug validation, path-containment, and memoization stay in one
+	 * place. Falls back to the inline `readThemeStylesheet()` helper
+	 * for older cms-framework installs (`< 2.5`) that don't ship the
+	 * reader binding — the fallback covers `style.css` only, matching
+	 * this endpoint's pre-#199 behavior.
 	 *
 	 * Returns an empty `text/css` body when cms-framework is not
 	 * installed; the canvas treats that the same as "no theme styles"
@@ -197,17 +205,38 @@ class GlobalStylesController extends Controller
 			$emitted = is_string( $result ) ? $result : '';
 		}
 
-		$themeCss = $this->readThemeStylesheet();
+		$readerFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\ThemeStylesheetReader';
+		$parts      = [ rtrim( $emitted ) ];
 
-		$body = '' === $themeCss
-			? $emitted
-			: rtrim( $emitted ) . "\n\n/* === theme stylesheet === */\n" . $themeCss;
+		if ( class_exists( $readerFqcn ) && app()->bound( $readerFqcn ) ) {
+			$reader  = app( $readerFqcn );
+			$parts[] = $reader->readWrapped( 'style.css' );
+			$parts[] = $reader->readWrapped( 'editor.css' );
+		} else {
+			// Fallback for cms-framework < 2.5 (no reader binding yet):
+			// preserve the pre-#199 behavior of concatenating just
+			// `style.css` under its historical banner text so themes
+			// installed against older cms-framework releases keep the
+			// canvas parity the endpoint already delivered.
+			$themeCss = $this->readThemeStylesheet();
+
+			if ( '' !== $themeCss ) {
+				$parts[] = "/* === theme stylesheet === */\n" . $themeCss;
+			}
+		}
+
+		$body = implode( "\n\n", array_filter( $parts, static fn ( string $part ): bool => '' !== $part ) );
 
 		return response( $body, Response::HTTP_OK, [ 'Content-Type' => 'text/css; charset=utf-8' ] );
 	}
 
 	/**
-	 * Read the active theme's hand-authored `style.css` from disk.
+	 * Read the active theme's hand-authored `style.css` from disk —
+	 * fallback for cms-framework installs older than 2.5 that don't
+	 * ship the `ThemeStylesheetReader` binding. When the reader is
+	 * available the primary `css()` path uses it instead and this
+	 * method is not invoked.
+	 *
 	 * Returns an empty string when no theme is active, when the file
 	 * doesn't exist, or when the resolved path escapes the configured
 	 * themes directory (path-traversal guard — the theme slug rides in

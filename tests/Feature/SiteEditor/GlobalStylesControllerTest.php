@@ -32,12 +32,44 @@ beforeEach( function (): void {
 			'name' => 'Digital Shopfront',
 			'slug' => 'digital-shopfront',
 		] );
+		stubThemeManagerHelpersForGlobalStylesTest( $mock );
 	} );
 } );
 
 function rebuildSiteEditorResolversForGlobalStylesTest(): void
 {
 	( new VisualEditorServiceProvider( app() ) )->registerSiteEditorResolvers();
+}
+
+/**
+ * Stub the ThemeManager methods the ThemeStylesheetReader (cms-framework
+ * ≥ 2.5) calls on top of `getActiveTheme()`. Each `$this->mock()` in a
+ * test replaces the outer beforeEach mock, so tests hitting the /css
+ * endpoint need to re-declare these too.
+ */
+function stubThemeManagerHelpersForGlobalStylesTest( \Mockery\MockInterface $mock ): void
+{
+	$mock->shouldReceive( 'validateSlug' )->andReturnUsing(
+		static fn ( string $slug ): bool => (bool) preg_match( '/^[a-zA-Z0-9_-]+$/', $slug ),
+	);
+	$mock->shouldReceive( 'getThemesPath' )->andReturnUsing(
+		static function (): string {
+			$directory = (string) config( 'cms.themes.directory', 'themes' );
+
+			if ( '' === $directory ) {
+				$directory = 'themes';
+			}
+
+			// Match the real ThemeManager::getThemesPath() behavior:
+			// honor absolute paths so tests that point at a temp dir
+			// (e.g. sys_get_temp_dir()) resolve correctly.
+			if ( '/' === $directory[0] || preg_match( '#^[A-Za-z]:[\\\\/]#', $directory ) ) {
+				return $directory;
+			}
+
+			return base_path( $directory );
+		},
+	);
 }
 
 describe( 'GET /visual-editor/api/global-styles/lookup', function (): void {
@@ -77,6 +109,7 @@ describe( 'GET /visual-editor/api/global-styles/base', function (): void {
 				'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#000' ] ] ] ],
 				'styles'   => [ 'typography' => [ 'fontSize' => '14px' ] ],
 			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
 		} );
 
 		// A DB override exists with different styles — base() must NOT
@@ -100,6 +133,7 @@ describe( 'GET /visual-editor/api/global-styles/base', function (): void {
 	it( 'returns empty defaults when no active theme is configured', function (): void {
 		$this->mock( ThemeManager::class, function ( $mock ): void {
 			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
 		} );
 
 		$this->getJson( '/visual-editor/api/global-styles/base' )
@@ -118,6 +152,7 @@ describe( 'GET /visual-editor/api/global-styles/css', function (): void {
 				'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#0f172a' ] ] ] ],
 				'styles'   => [ 'color' => [ 'text' => '#111827' ] ],
 			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
 		} );
 
 		rebuildSiteEditorResolversForGlobalStylesTest();
@@ -137,6 +172,7 @@ describe( 'GET /visual-editor/api/global-styles/css', function (): void {
 	it( 'returns an empty body when no active theme is configured', function (): void {
 		$this->mock( ThemeManager::class, function ( $mock ): void {
 			$mock->shouldReceive( 'getActiveTheme' )->andReturn( null );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
 		} );
 
 		rebuildSiteEditorResolversForGlobalStylesTest();
@@ -164,6 +200,7 @@ describe( 'GET /visual-editor/api/global-styles/css', function (): void {
 				'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#0f172a' ] ] ] ],
 				'styles'   => [ 'elements' => [ 'button' => [ 'color' => [ 'background' => '#2563eb' ] ] ] ],
 			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
 		} );
 
 		rebuildSiteEditorResolversForGlobalStylesTest();
@@ -193,15 +230,67 @@ describe( 'GET /visual-editor/api/global-styles/css', function (): void {
 				'name' => 'Bad slug',
 				'slug' => '../../etc',
 			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
 		} );
 
 		rebuildSiteEditorResolversForGlobalStylesTest();
 
 		$response = $this->get( '/visual-editor/api/global-styles/css' )->assertOk();
 
-		// The stylesheet read short-circuited on the bogus slug —
-		// body should not contain the theme-stylesheet marker.
-		expect( $response->getContent() )->not->toContain( '/* === theme stylesheet === */' );
+		// The stylesheet reader short-circuits on the bogus slug —
+		// no banners land in the body from either convention.
+		expect( $response->getContent() )
+			->not->toContain( '/* === style.css === */' )
+			->not->toContain( '/* === editor.css === */' )
+			->not->toContain( '/* === theme stylesheet === */' );
+	} );
+
+	it( 'concatenates the active theme\'s editor.css after style.css (cms-framework #199)', function (): void {
+		$themesBase = sys_get_temp_dir() . '/cms199-editor-css-' . uniqid();
+		$slug       = 'canvas-only-theme';
+		$themeDir   = $themesBase . '/' . $slug;
+
+		mkdir( $themeDir, 0755, true );
+		file_put_contents( $themeDir . '/style.css', "body { background: papayawhip; }\n" );
+		file_put_contents( $themeDir . '/editor.css', ".editor-only-marker { outline: 3px solid magenta; }\n" );
+
+		config()->set( 'cms.themes.directory', $themesBase );
+
+		$this->mock( ThemeManager::class, function ( $mock ) use ( $slug ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name'     => 'Canvas-only theme',
+				'slug'     => $slug,
+				'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#0f172a' ] ] ] ],
+				'styles'   => [],
+			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
+		} );
+
+		rebuildSiteEditorResolversForGlobalStylesTest();
+
+		$body = $this->get( '/visual-editor/api/global-styles/css' )->assertOk()->getContent();
+
+		// Emitter, style.css, and editor.css all present in that order —
+		// closing the gap flagged in cms-framework #199 where the canvas
+		// used to see style.css only.
+		$emitterPos = strpos( $body, '--wp--preset--color--primary' );
+		$stylePos   = strpos( $body, '/* === style.css === */' );
+		$editorPos  = strpos( $body, '/* === editor.css === */' );
+
+		expect( $emitterPos )->not->toBeFalse()
+			->and( $stylePos )->not->toBeFalse()
+			->and( $editorPos )->not->toBeFalse()
+			->and( $emitterPos )->toBeLessThan( $stylePos )
+			->and( $stylePos )->toBeLessThan( $editorPos );
+
+		expect( $body )
+			->toContain( 'body { background: papayawhip; }' )
+			->toContain( '.editor-only-marker' );
+
+		unlink( $themeDir . '/style.css' );
+		unlink( $themeDir . '/editor.css' );
+		rmdir( $themeDir );
+		rmdir( $themesBase );
 	} );
 } );
 
