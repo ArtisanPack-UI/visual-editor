@@ -6,6 +6,23 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+
+- **Canvas CSS endpoint delegates to cms-framework's `ThemeStylesheetReader`.**
+  `GET /visual-editor/api/global-styles/css` now delegates the theme-file
+  read to `ArtisanPackUI\CMSFramework\Modules\SiteEditor\Support\ThemeStylesheetReader`
+  when it's available (cms-framework ≥ 2.5). The endpoint now concatenates
+  emitter output + `themes/{slug}/style.css` + `themes/{slug}/editor.css`
+  (the last is new — closes the canvas half of cms-framework #199, giving
+  the site editor a WordPress `add_editor_style()` analog). Section banners
+  switch from `/* === theme stylesheet === */` to per-file banners
+  (`/* === style.css === */`, `/* === editor.css === */`) so devtools
+  inspection matches cms-framework's endpoint. Falls back to the inline
+  `readThemeStylesheet()` helper for cms-framework < 2.5 — the fallback
+  preserves the pre-change behavior (style.css only, historical banner
+  text) so themes on older cms-framework releases keep the canvas parity
+  the endpoint already delivered.
+
 ## [1.4.0] - 2026-07-16
 
 ### Added
