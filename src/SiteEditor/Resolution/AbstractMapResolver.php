@@ -150,7 +150,27 @@ abstract class AbstractMapResolver
 			// Key by the value object's own identifier so consumers see a
 			// canonical string-keyed map regardless of PHP's coercion or
 			// upstream `array_merge` reindexing at the filter site.
-			$out[ static::identifierOf( $normalized ) ] = $normalized;
+			$identifier = static::identifierOf( $normalized );
+
+			if ( '' === $identifier ) {
+				throw SiteEditorRegistrationException::emptyIdentifier(
+					static::filterName(),
+					$key,
+				);
+			}
+
+			// Re-keying can collapse two distinct raw entries into one when
+			// they claim the same slug / location. That's a configuration
+			// error, not a silent last-wins — surface it so the contributor
+			// knows to disambiguate.
+			if ( array_key_exists( $identifier, $out ) ) {
+				throw SiteEditorRegistrationException::duplicateIdentifier(
+					static::filterName(),
+					$identifier,
+				);
+			}
+
+			$out[ $identifier ] = $normalized;
 		}
 
 		return $out;
@@ -180,6 +200,11 @@ abstract class AbstractMapResolver
 	 * re-key the output map so the identifier the entry carries on itself
 	 * (slug, location, etc.) always wins over the raw filter key — which may
 	 * have been coerced to int by PHP or renumbered by `array_merge`.
+	 *
+	 * Must return a non-empty string; an empty value throws
+	 * {@see SiteEditorRegistrationException::emptyIdentifier()} at the call
+	 * site so a misconfigured value object surfaces immediately instead of
+	 * producing an unaddressable `''` map key.
 	 *
 	 * @since 1.5.0
 	 *
