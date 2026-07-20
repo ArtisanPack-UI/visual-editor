@@ -46,9 +46,19 @@ function rebuildSiteEditorResolversForGlobalStylesTest(): void
  * ≥ 2.5) calls on top of `getActiveTheme()`. Each `$this->mock()` in a
  * test replaces the outer beforeEach mock, so tests hitting the /css
  * endpoint need to re-declare these too.
+ *
+ * No-op when cms-framework < 2.5 is installed: the controller falls
+ * back to its inline `readThemeStylesheet()` (which only calls
+ * `getActiveTheme()`), and Mockery refuses to stub `validateSlug` /
+ * `getThemesPath` on the older release because they were still
+ * `protected` there.
  */
 function stubThemeManagerHelpersForGlobalStylesTest( \Mockery\MockInterface $mock ): void
 {
+	if ( ! class_exists( 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\ThemeStylesheetReader' ) ) {
+		return;
+	}
+
 	$mock->shouldReceive( 'validateSlug' )->andReturnUsing(
 		static fn ( string $slug ): bool => (bool) preg_match( '/^[a-zA-Z0-9_-]+$/', $slug ),
 	);
@@ -246,6 +256,10 @@ describe( 'GET /visual-editor/api/global-styles/css', function (): void {
 	} );
 
 	it( 'concatenates the active theme\'s editor.css after style.css (cms-framework #199)', function (): void {
+		if ( ! class_exists( 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\ThemeStylesheetReader' ) ) {
+			$this->markTestSkipped( 'editor.css concatenation requires cms-framework >= 2.5 (reader binding not present).' );
+		}
+
 		$themesBase = sys_get_temp_dir() . '/cms199-editor-css-' . uniqid();
 		$slug       = 'canvas-only-theme';
 		$themeDir   = $themesBase . '/' . $slug;
