@@ -1229,10 +1229,10 @@ it( 'emits nothing for artisanpack/previous-post when no adjacent post is resolv
 	expect( $html )->toBe( '' );
 } );
 
-describe( 'ap.visual-editor.rendered-block filter', function (): void {
+describe( 'ap.visualEditor.renderedBlock filter', function (): void {
 	beforeEach( function (): void {
 		if ( function_exists( 'removeAllFilters' ) ) {
-			removeAllFilters( 'ap.visual-editor.rendered-block' );
+			removeAllFilters( 'ap.visualEditor.renderedBlock' );
 		}
 	} );
 
@@ -1243,7 +1243,7 @@ describe( 'ap.visual-editor.rendered-block filter', function (): void {
 			return;
 		}
 
-		addFilter( 'ap.visual-editor.rendered-block', function ( string $html, string $name ): string {
+		addFilter( 'ap.visualEditor.renderedBlock', function ( string $html, string $name ): string {
 			if ( 'core/paragraph' !== $name ) {
 				return $html;
 			}
@@ -1279,7 +1279,7 @@ describe( 'ap.visual-editor.rendered-block filter', function (): void {
 			}
 		} );
 
-		addFilter( 'ap.visual-editor.rendered-block', function ( string $html, string $name ): string {
+		addFilter( 'ap.visualEditor.renderedBlock', function ( string $html, string $name ): string {
 			if ( 'acme/filter-target' !== $name ) {
 				return $html;
 			}
@@ -1303,7 +1303,7 @@ describe( 'ap.visual-editor.rendered-block filter', function (): void {
 
 		$names = [];
 
-		addFilter( 'ap.visual-editor.rendered-block', function ( string $html, string $name ) use ( &$names ): string {
+		addFilter( 'ap.visualEditor.renderedBlock', function ( string $html, string $name ) use ( &$names ): string {
 			$names[] = $name;
 
 			return $html;
@@ -1331,7 +1331,7 @@ describe( 'ap.visual-editor.rendered-block filter', function (): void {
 			return;
 		}
 
-		addFilter( 'ap.visual-editor.rendered-block', function ( string $html ): array {
+		addFilter( 'ap.visualEditor.renderedBlock', function ( string $html ): array {
 			// A callback that forgets to return a string must not
 			// replace the HTML — otherwise the renderer would emit
 			// something like `Array` on `__toString`.
@@ -1352,7 +1352,7 @@ describe( 'ap.visual-editor.rendered-block filter', function (): void {
 
 		$capturedAttrs = null;
 
-		addFilter( 'ap.visual-editor.rendered-block', function ( string $html, string $name, array $attributes ) use ( &$capturedAttrs ): string {
+		addFilter( 'ap.visualEditor.renderedBlock', function ( string $html, string $name, array $attributes ) use ( &$capturedAttrs ): string {
 			if ( 'core/site-title' === $name ) {
 				$capturedAttrs = $attributes;
 			}

@@ -47,7 +47,7 @@ async function loadCanvasStyles(): Promise<
 }
 
 function registerCanvasStylesFilter(callback: FilterCallback): void {
-    filters.set('ap.visual-editor.canvas-styles', [callback]);
+    filters.set('ap.visualEditor.canvasStyles', [callback]);
 }
 
 describe('ap.visual-editor.canvas-styles filter', () => {

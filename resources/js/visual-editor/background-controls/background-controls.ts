@@ -6,7 +6,7 @@
  * External packages register their controls via `@wordpress/hooks`:
  *
  *     addFilter(
- *         'ap.visual-editor.background-controls',
+ *         'ap.visualEditor.backgroundControls',
  *         'my-package/glass',
  *         (controls, { attributes, setAttributes, blockSupports }) => {
  *             if ( ! blockSupports.background ) {
@@ -38,7 +38,7 @@ import { applyFilters } from '@wordpress/hooks';
 import type { ReactNode } from 'react';
 
 /** Filter name — exported so hosts can type against a constant. */
-export const BACKGROUND_CONTROLS_FILTER = 'ap.visual-editor.background-controls';
+export const BACKGROUND_CONTROLS_FILTER = 'ap.visualEditor.backgroundControls';
 
 /** Default priority for controls that don't set one. */
 export const DEFAULT_BACKGROUND_CONTROL_PRIORITY = 10;

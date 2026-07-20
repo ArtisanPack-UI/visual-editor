@@ -10,7 +10,7 @@
  * The lookup is intentionally minimal — hosts with custom user models
  * or additional access constraints can rebind the controller through
  * the container, or filter results via the
- * `ap.visual-editor.visibility.user-search-results` filter.
+ * `ap.visualEditor.visibility.userSearchResults` filter.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -66,7 +66,7 @@ class UsersSearchController
 
 		if ( function_exists( 'applyFilters' ) ) {
 			try {
-				$filtered = applyFilters( 'ap.visual-editor.visibility.user-search-results', $rows, $term, $limit );
+				$filtered = applyFilters( 'ap.visualEditor.visibility.userSearchResults', $rows, $term, $limit );
 				if ( is_array( $filtered ) ) {
 					$rows = $filtered;
 				}

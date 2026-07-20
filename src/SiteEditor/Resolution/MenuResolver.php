@@ -3,7 +3,7 @@
 /**
  * Site-editor menu (navigation) resolver.
  *
- * Consumes the merged `ap.visual-editor.navigation` filter result, keyed by
+ * Consumes the merged `ap.visualEditor.navigation` filter result, keyed by
  * theme-declared menu location.
  *
  * @package    ArtisanPack_UI
@@ -27,7 +27,7 @@ class MenuResolver extends AbstractMapResolver
 	 */
 	protected static function filterName(): string
 	{
-		return 'ap.visual-editor.navigation';
+		return 'ap.visualEditor.navigation';
 	}
 
 	/**

@@ -5,7 +5,7 @@
  *
  * Rules are seeded from the built-in set by
  * {@see \ArtisanPackUI\VisualEditor\VisualEditorServiceProvider} and
- * extended by hosts through the `ap.visual-editor.visibility.register-rules`
+ * extended by hosts through the `ap.visualEditor.visibility.registerRules`
  * filter. The registry is stateless past construction: the evaluator asks
  * it for the full ordered rule list every time it walks a tree.
  *

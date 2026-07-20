@@ -4,8 +4,8 @@
  * Site-editor registration exception.
  *
  * Thrown lazily — on the first {@see TemplateResolver::all()} (or sibling
- * resolver) call, never at boot — when an `ap.visual-editor.{templates,
- * template-parts,patterns,global-styles,navigation}` filter returns a
+ * resolver) call, never at boot — when an `ap.visualEditor.{templates,
+ * templateParts,patterns,globalStyles,navigation}` filter returns a
  * non-conforming shape or an entry is missing a required field.
  *
  * Lazy because `class_exists` registration sites in cms-framework register
@@ -36,7 +36,7 @@ class SiteEditorRegistrationException extends RuntimeException
 	 *
 	 * @since 1.0.0
 	 *
-	 * @param  string  $filterName  The filter slug (e.g. `ap.visual-editor.templates`).
+	 * @param  string  $filterName  The filter slug (e.g. `ap.visualEditor.templates`).
 	 * @param  string  $expected    A short description of the expected shape.
 	 * @param  string  $actual      A short description of the actual shape.
 	 */

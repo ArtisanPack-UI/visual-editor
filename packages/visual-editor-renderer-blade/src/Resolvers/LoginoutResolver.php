@@ -19,7 +19,7 @@
  *
  * Hosts that need fully custom resolution (per-tenant URLs, third-
  * party SSO, etc.) override the envelope through the
- * `ap.visual-editor.loginout.envelope` filter hook — the resolver
+ * `ap.visualEditor.loginout.envelope` filter hook — the resolver
  * applies the filter against the resolved defaults before returning.
  *
  * @package    ArtisanPack_UI
@@ -106,7 +106,7 @@ class LoginoutResolver
 		];
 
 		if ( function_exists( 'applyFilters' ) ) {
-			$filtered = applyFilters( 'ap.visual-editor.loginout.envelope', $envelope, $attributes );
+			$filtered = applyFilters( 'ap.visualEditor.loginout.envelope', $envelope, $attributes );
 
 			if ( is_array( $filtered ) ) {
 				$envelope = array_merge( $envelope, $filtered );
@@ -200,7 +200,7 @@ class LoginoutResolver
 	 *
 	 * The package ships no login form of its own; hosts return their
 	 * preferred form (typically a Blade view) via the
-	 * `ap.visual-editor.loginout.login-form` filter. The empty string
+	 * `ap.visualEditor.loginout.loginForm` filter. The empty string
 	 * disables the form display and the partial falls back to the
 	 * link variant.
 	 *
@@ -212,7 +212,7 @@ class LoginoutResolver
 			return '';
 		}
 
-		$html = applyFilters( 'ap.visual-editor.loginout.login-form', '', $currentUrl );
+		$html = applyFilters( 'ap.visualEditor.loginout.loginForm', '', $currentUrl );
 
 		return $this->coerceString( $html );
 	}

@@ -498,7 +498,7 @@ class GlobalStylesController extends Controller
 	{
 		$static = config( 'artisanpack.visual-editor.site-editor.global-styles' );
 		$static = is_array( $static ) ? $static : null;
-		$merged = applyFilters( 'ap.visual-editor.global-styles', $static );
+		$merged = applyFilters( 'ap.visualEditor.globalStyles', $static );
 		$merged = is_array( $merged ) ? $merged : $static;
 
 		$this->resolver = new GlobalStylesResolver( $merged );

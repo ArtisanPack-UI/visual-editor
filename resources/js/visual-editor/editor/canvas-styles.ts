@@ -233,7 +233,7 @@ const baseCanvasStyles: CanvasStyle[] = [
  * TIMING: `applyFilters` runs synchronously at module-load time inside
  * the IIFE below and the resulting `canvasStyles` export is frozen for
  * the rest of the session. Callbacks MUST be registered
- * (`addFilter('ap.visual-editor.canvas-styles', …)`) before this
+ * (`addFilter('ap.visualEditor.canvasStyles', …)`) before this
  * module is first imported — typically from a top-level side-effect
  * import that appears before the editor bundle in the app's entry
  * graph. Filters registered after the first import silently no-op:
@@ -241,7 +241,7 @@ const baseCanvasStyles: CanvasStyle[] = [
  */
 export const canvasStyles: readonly CanvasStyle[] = ( (): CanvasStyle[] => {
     const filtered = applyFilters(
-        'ap.visual-editor.canvas-styles',
+        'ap.visualEditor.canvasStyles',
         [...baseCanvasStyles],
     );
 

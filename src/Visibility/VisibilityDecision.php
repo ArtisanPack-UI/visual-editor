@@ -16,7 +16,7 @@
  *                        viewport size is a client-only signal.
  *
  * The `reasons` array is opaque and only used by the debug hook
- * (`ap.visual-editor.visibility.evaluated`) so the "why is this hidden?"
+ * (`ap.visualEditor.visibility.evaluated`) so the "why is this hidden?"
  * developer tooling can surface the failing rule name(s) without
  * reserving specific fields on the DTO.
  *

@@ -8,7 +8,7 @@ use Tests\Fixtures\TestBlockContentModel;
 use Tests\Fixtures\TestBlockContentPageModel;
 
 afterEach( function () {
-	removeAllFilters( 'ap.visual-editor.resources' );
+	removeAllFilters( 'ap.visualEditor.resources' );
 } );
 
 function rebuildResourceResolver(): ResourceResolver
@@ -18,8 +18,8 @@ function rebuildResourceResolver(): ResourceResolver
 	return app( ResourceResolver::class );
 }
 
-it( 'registers resources contributed via the ap.visual-editor.resources filter', function () {
-	addFilter( 'ap.visual-editor.resources', function ( array $resources ): array {
+it( 'registers resources contributed via the ap.visualEditor.resources filter', function () {
+	addFilter( 'ap.visualEditor.resources', function ( array $resources ): array {
 		return array_merge( [
 			'posts' => TestBlockContentModel::class,
 		], $resources );
@@ -35,7 +35,7 @@ it( 'lets static config win over filter contributions on key collision', functio
 		'posts' => TestBlockContentPageModel::class, // host override
 	] );
 
-	addFilter( 'ap.visual-editor.resources', function ( array $resources ): array {
+	addFilter( 'ap.visualEditor.resources', function ( array $resources ): array {
 		// Filter contributor naively merges its default; the host config
 		// in the static config map should still win.
 		return array_merge( [
@@ -53,7 +53,7 @@ it( 'merges static config and filter contributions when slugs do not collide', f
 		'pages' => TestBlockContentPageModel::class,
 	] );
 
-	addFilter( 'ap.visual-editor.resources', function ( array $resources ): array {
+	addFilter( 'ap.visualEditor.resources', function ( array $resources ): array {
 		return array_merge( [
 			'posts' => TestBlockContentModel::class,
 		], $resources );
@@ -66,7 +66,7 @@ it( 'merges static config and filter contributions when slugs do not collide', f
 } );
 
 it( 'does not throw at boot when a filter contributes an invalid class — error surfaces on first request', function () {
-	addFilter( 'ap.visual-editor.resources', function ( array $resources ): array {
+	addFilter( 'ap.visualEditor.resources', function ( array $resources ): array {
 		return array_merge( [
 			'invalid' => 'App\\Models\\DoesNotExist',
 		], $resources );

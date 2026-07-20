@@ -11,6 +11,14 @@
 import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
+import { registerHookAliases } from '../support/hook-aliases';
+
+// Install #664 hook-name aliases at module load — before any first-party
+// or downstream block registration runs — so subscribers using the old
+// (kebab-case) hook names continue to fire when the editor applies the
+// new (camelCase) canonical names.
+registerHookAliases();
+
 import '../a11y.css';
 
 import type {

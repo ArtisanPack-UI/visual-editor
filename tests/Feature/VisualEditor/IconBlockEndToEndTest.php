@@ -279,7 +279,7 @@ it( 'uploads an icon set, registers it, and makes it pickable end-to-end', funct
 
 	expect( app( UploadedIconSetRegistry::class )->has( 'uploaded' ) )->toBeTrue();
 
-	// Wire a catalog that mirrors what `ap.icons.register-icon-sets`
+	// Wire a catalog that mirrors what `ap.icons.registerIconSets`
 	// would expose for the newly-uploaded set, then drive the picker
 	// search endpoint and confirm the icon is discoverable.
 	e2eBindCatalogFixture(
@@ -454,10 +454,10 @@ it( 'lets a decorative + linked combo recover when an aria-label is supplied', f
 } );
 
 // -------------------------------------------------------------------
-// `ap.icons.register-icon-sets` filter wires bundled sets at boot
+// `ap.icons.registerIconSets` filter wires bundled sets at boot
 // -------------------------------------------------------------------
 
-it( 'collects bundled FA Free sets via the ap.icons.register-icon-sets filter', function (): void {
+it( 'collects bundled FA Free sets via the ap.icons.registerIconSets filter', function (): void {
 	$registrationClass = 'ArtisanPackUI\\Icons\\Registries\\IconSetRegistration';
 
 	// The icons package is a `suggest`-level dependency. When it's not
@@ -480,7 +480,7 @@ it( 'collects bundled FA Free sets via the ap.icons.register-icon-sets filter', 
 		test()->markTestSkipped( 'FA Free SVGs not synced — run `npm run sync:fa-icons` first' );
 	}
 
-	$registry = applyFilters( 'ap.icons.register-icon-sets', new $registrationClass() );
+	$registry = applyFilters( 'ap.icons.registerIconSets', new $registrationClass() );
 
 	$sets = $registry->getSets();
 

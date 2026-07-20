@@ -26,7 +26,7 @@ class ResolvedGlobalStyles
 	/**
 	 * @since 1.0.0
 	 */
-	protected const FILTER_NAME = 'ap.visual-editor.global-styles';
+	protected const FILTER_NAME = 'ap.visualEditor.globalStyles';
 
 	/**
 	 * @since 1.0.0

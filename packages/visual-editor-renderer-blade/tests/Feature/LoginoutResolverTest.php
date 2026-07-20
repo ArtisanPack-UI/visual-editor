@@ -47,8 +47,8 @@ beforeEach( function (): void {
 	// Reset any custom URL filter from a prior case so each test starts
 	// from the same envelope baseline.
 	if ( function_exists( 'removeAllFilters' ) ) {
-		removeAllFilters( 'ap.visual-editor.loginout.envelope' );
-		removeAllFilters( 'ap.visual-editor.loginout.login-form' );
+		removeAllFilters( 'ap.visualEditor.loginout.envelope' );
+		removeAllFilters( 'ap.visualEditor.loginout.loginForm' );
 	}
 } );
 
@@ -123,7 +123,7 @@ it( 'honors a configured named login route over the literal path fallback', func
 
 it( 'shows the host-supplied login form for logged-out viewers when displayLoginAsForm is on', function () {
 	addFilter(
-		'ap.visual-editor.loginout.login-form',
+		'ap.visualEditor.loginout.loginForm',
 		fn ( string $_, string $current ): string => '<form data-test-form data-redirect="' . htmlspecialchars( $current ) . '"></form>'
 	);
 
@@ -142,7 +142,7 @@ it( 'shows the host-supplied login form for logged-out viewers when displayLogin
 
 it( 'keeps the logout link for logged-in viewers even when displayLoginAsForm is on', function () {
 	addFilter(
-		'ap.visual-editor.loginout.login-form',
+		'ap.visualEditor.loginout.loginForm',
 		fn (): string => '<form data-test-form></form>'
 	);
 
@@ -181,9 +181,9 @@ it( 'lets host-stamped resolved attributes win over the resolver fallback', func
 		->toContain( 'custom-class' );
 } );
 
-it( 'lets a host filter rewrite the resolved envelope through ap.visual-editor.loginout.envelope', function () {
+it( 'lets a host filter rewrite the resolved envelope through ap.visualEditor.loginout.envelope', function () {
 	addFilter(
-		'ap.visual-editor.loginout.envelope',
+		'ap.visualEditor.loginout.envelope',
 		fn ( array $envelope ): array => array_merge( $envelope, [
 			'url'   => 'https://sso.example/login',
 			'label' => 'Continue with SSO',
@@ -242,7 +242,7 @@ it( 'omits the has-login-form class when displayLoginAsForm is on but no host fo
 	// Matches the Blade partial's $showForm gate: the modifier class
 	// should only appear when a form will actually render. The resolver
 	// returns an empty loginFormHtml when the host hasn't wired the
-	// `ap.visual-editor.loginout.login-form` filter, so the wrapper
+	// `ap.visualEditor.loginout.loginForm` filter, so the wrapper
 	// must NOT promise a form that isn't there.
 	$rendered = $this->stripGlobalStyles( loginoutRenderTree( [
 		loginoutBlockNode( [

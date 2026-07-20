@@ -5,7 +5,7 @@
  *
  * Singleton — one resolved object per active theme — distinct from the
  * map-shaped sibling resolvers. cms-framework's H3 GlobalStylesResolver
- * registers via `ap.visual-editor.global-styles`; H6 reads it through
+ * registers via `ap.visualEditor.globalStyles`; H6 reads it through
  * the `__unstableBase` REST adapter.
  *
  * @package    ArtisanPack_UI
@@ -25,7 +25,7 @@ class GlobalStylesResolver
 	/**
 	 * @since 1.0.0
 	 */
-	protected const FILTER_NAME = 'ap.visual-editor.global-styles';
+	protected const FILTER_NAME = 'ap.visualEditor.globalStyles';
 
 	/**
 	 * Raw filter input, deferred until first read.

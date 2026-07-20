@@ -35,7 +35,7 @@ class ResourceResolver
 	 *                                                         from
 	 *                                                         `config('artisanpack.visual-editor.resources')`
 	 *                                                         merged with the
-	 *                                                         `ap.visual-editor.resources` filter result.
+	 *                                                         `ap.visualEditor.resources` filter result.
 	 *                                                         The constructor performs no
 	 *                                                         validation on the entries — invalid
 	 *                                                         classes only surface on the first
