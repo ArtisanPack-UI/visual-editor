@@ -16,7 +16,7 @@
  * link and emits `aria-current="page"`.
  *
  * Hosts customize the trail through the
- * `ap.visual-editor.breadcrumbs.trail` filter — e.g. to insert a
+ * `ap.visualEditor.breadcrumbs.trail` filter — e.g. to insert a
  * "Category" hop between Home and a blog post — without having to
  * subclass the resolver. The filter receives the resolved trail, the
  * current post (or null), and the block's attributes.
@@ -121,7 +121,7 @@ class BreadcrumbsResolver
 	/**
 	 * Build the resolved trail for a single breadcrumbs block. The default
 	 * shape is `[Home, …ancestors, current]`. Hosts override the result
-	 * through the `ap.visual-editor.breadcrumbs.trail` filter when the
+	 * through the `ap.visualEditor.breadcrumbs.trail` filter when the
 	 * `artisanpack-ui/hooks` helper is available.
 	 *
 	 * @since 1.0.0
@@ -138,7 +138,7 @@ class BreadcrumbsResolver
 		$trail = $this->defaultTrail( $post );
 
 		if ( function_exists( 'applyFilters' ) ) {
-			$filtered = applyFilters( 'ap.visual-editor.breadcrumbs.trail', $trail, $post, $attributes );
+			$filtered = applyFilters( 'ap.visualEditor.breadcrumbs.trail', $trail, $post, $attributes );
 
 			if ( is_array( $filtered ) ) {
 				$trail = $filtered;

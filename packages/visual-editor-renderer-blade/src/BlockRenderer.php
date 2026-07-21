@@ -353,6 +353,21 @@ class BlockRenderer
 		$attributes      = $this->normalizeAttributes( $block['attributes'] ?? [] );
 		$attributes      = $this->stampSiteMeta( $name, $attributes );
 		$attributes      = $this->stampLoginout( $name, $attributes );
+
+		// `ap.visualEditor.beforeRender` — last chance for hosts and
+		// extension packages to mutate the attributes a block will render
+		// with. Fires after site-meta / loginout stamping so the resolved
+		// `_resolved*` side-channel keys are already present, giving the
+		// filter access to both the raw attributes and their resolved
+		// values. Callbacks must return an array; non-array returns are
+		// ignored so a mistaken `null` / `false` return doesn't blank the
+		// block.
+		$filteredAttributes = applyFilters( 'ap.visualEditor.beforeRender', $attributes, $name );
+
+		if ( is_array( $filteredAttributes ) ) {
+			$attributes = $filteredAttributes;
+		}
+
 		$innerBlocks     = $this->normalizeInnerBlocks( $block['innerBlocks'] ?? [] );
 		$innerBlocksHtml = $this->renderInner( $innerBlocks );
 
@@ -369,7 +384,7 @@ class BlockRenderer
 			$html = $this->wrapWithScreenSizeCss( $html, $cssHiddenDecision );
 		}
 
-		// `ap.visual-editor.rendered-block` — last-mile hook for packages
+		// `ap.visualEditor.renderedBlock` — last-mile hook for packages
 		// that need to post-process a rendered block. Runs on every block
 		// (static or dynamic) so cross-cutting effects (frosted glass,
 		// motion wrappers, contrast overlays, etc.) can decorate output
@@ -393,12 +408,10 @@ class BlockRenderer
 		// Those keys are a package-internal contract and may change
 		// without notice — callbacks should treat them as read-only
 		// side-channel data, not stable public attributes.
-		if ( function_exists( 'applyFilters' ) ) {
-			$filtered = applyFilters( 'ap.visual-editor.rendered-block', $html, $name, $attributes );
+		$filtered = applyFilters( 'ap.visualEditor.renderedBlock', $html, $name, $attributes );
 
-			if ( is_string( $filtered ) ) {
-				$html = $filtered;
-			}
+		if ( is_string( $filtered ) ) {
+			$html = $filtered;
 		}
 
 		return $html;

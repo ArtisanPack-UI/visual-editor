@@ -146,7 +146,7 @@ class BlocksComponent extends Component
 		// `PostResolver` it tolerates a null `$post` (homepage, 404,
 		// archive without a single record in scope) and still produces a
 		// usable trail (just the "Home" entry, marked current). Hosts
-		// extend the trail through the `ap.visual-editor.breadcrumbs.trail`
+		// extend the trail through the `ap.visualEditor.breadcrumbs.trail`
 		// filter; see `BreadcrumbsResolver::buildTrail()`.
 		$resolved = $resolveBreadcrumbs
 			? $this->breadcrumbsResolver->stampTree( $resolved, is_object( $post ) ? $post : null )

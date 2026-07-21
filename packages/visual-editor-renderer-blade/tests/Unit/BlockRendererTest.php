@@ -1229,10 +1229,10 @@ it( 'emits nothing for artisanpack/previous-post when no adjacent post is resolv
 	expect( $html )->toBe( '' );
 } );
 
-describe( 'ap.visual-editor.rendered-block filter', function (): void {
+describe( 'ap.visualEditor.renderedBlock filter', function (): void {
 	beforeEach( function (): void {
 		if ( function_exists( 'removeAllFilters' ) ) {
-			removeAllFilters( 'ap.visual-editor.rendered-block' );
+			removeAllFilters( 'ap.visualEditor.renderedBlock' );
 		}
 	} );
 
@@ -1243,7 +1243,7 @@ describe( 'ap.visual-editor.rendered-block filter', function (): void {
 			return;
 		}
 
-		addFilter( 'ap.visual-editor.rendered-block', function ( string $html, string $name ): string {
+		addFilter( 'ap.visualEditor.renderedBlock', function ( string $html, string $name ): string {
 			if ( 'core/paragraph' !== $name ) {
 				return $html;
 			}
@@ -1279,7 +1279,7 @@ describe( 'ap.visual-editor.rendered-block filter', function (): void {
 			}
 		} );
 
-		addFilter( 'ap.visual-editor.rendered-block', function ( string $html, string $name ): string {
+		addFilter( 'ap.visualEditor.renderedBlock', function ( string $html, string $name ): string {
 			if ( 'acme/filter-target' !== $name ) {
 				return $html;
 			}
@@ -1303,7 +1303,7 @@ describe( 'ap.visual-editor.rendered-block filter', function (): void {
 
 		$names = [];
 
-		addFilter( 'ap.visual-editor.rendered-block', function ( string $html, string $name ) use ( &$names ): string {
+		addFilter( 'ap.visualEditor.renderedBlock', function ( string $html, string $name ) use ( &$names ): string {
 			$names[] = $name;
 
 			return $html;
@@ -1331,7 +1331,7 @@ describe( 'ap.visual-editor.rendered-block filter', function (): void {
 			return;
 		}
 
-		addFilter( 'ap.visual-editor.rendered-block', function ( string $html ): array {
+		addFilter( 'ap.visualEditor.renderedBlock', function ( string $html ): array {
 			// A callback that forgets to return a string must not
 			// replace the HTML — otherwise the renderer would emit
 			// something like `Array` on `__toString`.
@@ -1352,7 +1352,7 @@ describe( 'ap.visual-editor.rendered-block filter', function (): void {
 
 		$capturedAttrs = null;
 
-		addFilter( 'ap.visual-editor.rendered-block', function ( string $html, string $name, array $attributes ) use ( &$capturedAttrs ): string {
+		addFilter( 'ap.visualEditor.renderedBlock', function ( string $html, string $name, array $attributes ) use ( &$capturedAttrs ): string {
 			if ( 'core/site-title' === $name ) {
 				$capturedAttrs = $attributes;
 			}
@@ -1481,5 +1481,57 @@ describe( 'Keystone #50 — block-supports compilation on the rendered HTML', fu
 
 		// Legitimate values pass through.
 		expect( $good )->toContain( 'is-content-justification-space-between' );
+	} );
+} );
+
+describe( 'ap.visualEditor.beforeRender filter', function (): void {
+	afterEach( function (): void {
+		removeAllFilters( 'ap.visualEditor.beforeRender' );
+	} );
+
+	it( 'lets a callback mutate attributes before the block renders', function (): void {
+		addFilter( 'ap.visualEditor.beforeRender', function ( array $attributes, string $name ): array {
+			if ( 'core/paragraph' !== $name ) {
+				return $attributes;
+			}
+
+			$attributes['content'] = 'Filtered';
+
+			return $attributes;
+		}, 10, 2 );
+
+		$html = makeRenderer()->render( [ makeBlock( 'core/paragraph', [ 'content' => 'Original' ] ) ] );
+
+		expect( $html )->toContain( 'Filtered' )
+			->not->toContain( 'Original' );
+	} );
+
+	it( 'ignores a non-array return so a misbehaving callback cannot corrupt the attributes', function (): void {
+		addFilter( 'ap.visualEditor.beforeRender', function ( array $attributes, string $name ): ?bool {
+			return null;
+		}, 10, 2 );
+
+		$html = makeRenderer()->render( [ makeBlock( 'core/paragraph', [ 'content' => 'Kept' ] ) ] );
+
+		expect( $html )->toContain( 'Kept' );
+	} );
+
+	it( 'receives the block name so callbacks can gate per-type', function (): void {
+		$namesSeen = [];
+
+		addFilter( 'ap.visualEditor.beforeRender', function ( array $attributes, string $name ) use ( &$namesSeen ): array {
+			$namesSeen[] = $name;
+
+			return $attributes;
+		}, 10, 2 );
+
+		makeRenderer()->render( [
+			makeBlock( 'core/group', [], [
+				makeBlock( 'core/paragraph', [ 'content' => 'A' ], [], 'p1' ),
+			] ),
+		] );
+
+		expect( $namesSeen )->toContain( 'core/group' )
+			->toContain( 'core/paragraph' );
 	} );
 } );

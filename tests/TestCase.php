@@ -4,6 +4,7 @@ declare( strict_types=1 );
 
 namespace Tests;
 
+use ArtisanPackUI\Hooks\Providers\HooksServiceProvider;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 use Orchestra\Testbench\TestCase as BaseTestCase;
 
@@ -17,6 +18,7 @@ abstract class TestCase extends BaseTestCase
 	protected function getPackageProviders( $app ): array
 	{
 		return [
+			HooksServiceProvider::class,
 			VisualEditorServiceProvider::class,
 		];
 	}

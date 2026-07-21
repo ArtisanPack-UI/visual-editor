@@ -3,7 +3,7 @@
 /**
  * Site-editor template-part resolver.
  *
- * Consumes the merged `ap.visual-editor.template-parts` filter result.
+ * Consumes the merged `ap.visualEditor.templateParts` filter result.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -26,7 +26,7 @@ class TemplatePartResolver extends AbstractMapResolver
 	 */
 	protected static function filterName(): string
 	{
-		return 'ap.visual-editor.template-parts';
+		return 'ap.visualEditor.templateParts';
 	}
 
 	/**
@@ -39,5 +39,15 @@ class TemplatePartResolver extends AbstractMapResolver
 		$entry['slug'] = $entry['slug'] ?? $key;
 
 		return ResolvedTemplatePart::fromArray( $entry );
+	}
+
+	/**
+	 * @since 1.5.0
+	 *
+	 * @param  ResolvedTemplatePart  $entry
+	 */
+	protected static function identifierOf( object $entry ): string
+	{
+		return $entry->slug;
 	}
 }

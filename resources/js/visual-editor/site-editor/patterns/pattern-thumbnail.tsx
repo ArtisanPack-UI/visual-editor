@@ -15,6 +15,7 @@
  * pattern-preview endpoint ships.
  */
 
+import { parse } from '@wordpress/blocks';
 import { __ } from '@wordpress/i18n';
 import { useMemo } from 'react';
 
@@ -30,6 +31,15 @@ type BlockTreeNode = {
 
 export interface PatternThumbnailProps {
     blocks: readonly unknown[];
+    /**
+     * Serialized Gutenberg HTML for the pattern. When `blocks` is empty
+     * but `rawContent` is present — the case for theme-shipped patterns
+     * where cms-framework's `PatternResolver::buildThemePattern()`
+     * hardcodes `blocks: []` (#667) — parse it here so the thumbnail
+     * shows the real block tree instead of the "Empty pattern"
+     * placeholder.
+     */
+    rawContent?: string;
     title: string;
 }
 
@@ -91,11 +101,47 @@ function describeBlocks(
 }
 
 export function PatternThumbnail(props: PatternThumbnailProps): JSX.Element {
-    const { blocks, title } = props;
+    const { blocks, rawContent, title } = props;
 
-    const summary = useMemo(() => describeBlocks(blocks), [blocks]);
+    // #667 — theme-shipped patterns arrive with `blocks: []` because
+    // cms-framework only serializes `rawContent` for them. Parse the
+    // raw string with the same Gutenberg `parse()` helper `hydrateBlocks`
+    // uses so the summary reflects the real tree instead of falling
+    // through to the empty-state placeholder. Wrapped in try/catch so a
+    // malformed pattern doesn't crash the grid — an unparseable pattern
+    // just renders as empty, matching the existing degraded state.
+    const effectiveBlocks = useMemo<readonly unknown[]>(() => {
+        if (blocks.length > 0) {
+            return blocks;
+        }
 
-    if (blocks.length === 0) {
+        if (typeof rawContent === 'string' && rawContent.trim() !== '') {
+            try {
+                return parse(rawContent);
+            } catch (error) {
+                // Surface the failure so a broken theme pattern is
+                // distinguishable from an actually-empty one in
+                // DevTools — the placeholder fallback below looks
+                // identical in either case (#667).
+                // eslint-disable-next-line no-console
+                console.warn(
+                    '[artisanpack/visual-editor] Failed to parse pattern rawContent for thumbnail; rendering empty placeholder.',
+                    error
+                );
+
+                return [];
+            }
+        }
+
+        return [];
+    }, [blocks, rawContent]);
+
+    const summary = useMemo(
+        () => describeBlocks(effectiveBlocks),
+        [effectiveBlocks]
+    );
+
+    if (effectiveBlocks.length === 0) {
         return (
             <div
                 className="ap-pattern-thumb ap-pattern-thumb--empty"

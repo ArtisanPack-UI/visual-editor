@@ -41,8 +41,8 @@ async function loadModule(): Promise<
 }
 
 function registerFilter(callback: FilterCallback): void {
-    filters.set('ap.visual-editor.background-controls', [
-        ...(filters.get('ap.visual-editor.background-controls') ?? []),
+    filters.set('ap.visualEditor.backgroundControls', [
+        ...(filters.get('ap.visualEditor.backgroundControls') ?? []),
         callback,
     ]);
 }
@@ -334,7 +334,7 @@ describe('getFilteredBackgroundControls', () => {
         const { BACKGROUND_CONTROLS_FILTER } = await loadModule();
 
         expect(BACKGROUND_CONTROLS_FILTER).toBe(
-            'ap.visual-editor.background-controls'
+            'ap.visualEditor.backgroundControls'
         );
     });
 });

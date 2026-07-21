@@ -59,13 +59,13 @@ The Inspector's link controls produce a wrapping `<a>` on the rendered icon. `ta
 
 ## Developer recipe — registering custom sets
 
-Packages register additional icon sets through the existing [`ap.icons.register-icon-sets`](https://github.com/ArtisanPack-UI/icons) filter from `artisanpack-ui/icons`. The Icon Block picks them up automatically — no Icon Block-specific registration is needed.
+Packages register additional icon sets through the existing [`ap.icons.registerIconSets`](https://github.com/ArtisanPack-UI/icons) filter from `artisanpack-ui/icons`. The Icon Block picks them up automatically — no Icon Block-specific registration is needed.
 
 ```php
 use ArtisanPackUI\Icons\Registries\IconSetRegistration;
 
 // In your service provider's boot() method:
-addFilter( 'ap.icons.register-icon-sets', function ( IconSetRegistration $registry ): IconSetRegistration {
+addFilter( 'ap.icons.registerIconSets', function ( IconSetRegistration $registry ): IconSetRegistration {
     $registry->addSet(
         __DIR__ . '/../../resources/icons/myset',
         'myset',
@@ -85,7 +85,7 @@ Admins can also import custom sets directly from the editor UI — useful for sh
 1. Open **Visual Editor → Icon sets** (admin-only; gated by the existing visual-editor management policy).
 2. Click **Upload set**, supply a **prefix**, a human-readable **label**, and a **zip** of SVG files.
 3. The server unpacks the zip, runs each SVG through `SvgSanitizer`, and persists the cleaned files to `storage/app/artisanpack/visual-editor/icons/{prefix}/`.
-4. The set is registered through `ap.icons.register-icon-sets` on the next boot and immediately becomes selectable in the picker.
+4. The set is registered through `ap.icons.registerIconSets` on the next boot and immediately becomes selectable in the picker.
 
 Non-SVG entries are listed in the upload report under `skipped`; SVGs that fail sanitization are listed under `failed`. A prefix collision (an existing bundled or uploaded set already using the same prefix) returns `409 Conflict` with the offending prefix surfaced in the error payload.
 
@@ -130,4 +130,4 @@ If the referenced icon set has been deleted (or never registered), the renderer 
 
 - Parent issue: [#494](https://github.com/ArtisanPack-UI/visual-editor/issues/494)
 - Phase 7 (cross-phase tests + docs): [#558](https://github.com/ArtisanPack-UI/visual-editor/issues/558)
-- Icon Sets API: `artisanpack-ui/icons` ([`ap.icons.register-icon-sets`](https://github.com/ArtisanPack-UI/icons))
+- Icon Sets API: `artisanpack-ui/icons` ([`ap.icons.registerIconSets`](https://github.com/ArtisanPack-UI/icons))

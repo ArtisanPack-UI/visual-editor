@@ -84,7 +84,7 @@ PUT  /visual-editor/api/{resource}/{id}/content
 
 1. **Static config** — `config('artisanpack.visual-editor.resources')`
    in `config/artisanpack/visual-editor.php`.
-2. **Filter** — `ap.visual-editor.resources`, contributed by packages
+2. **Filter** — `ap.visualEditor.resources`, contributed by packages
    like cms-framework.
 
 ```php
@@ -99,7 +99,7 @@ return [
 
 ```php
 // From a package's service provider
-addFilter('ap.visual-editor.resources', function (array $resources): array {
+addFilter('ap.visualEditor.resources', function (array $resources): array {
     return array_merge([
         'posts' => MyPackage\Models\Post::class,
     ], $resources);

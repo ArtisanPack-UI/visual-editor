@@ -57,7 +57,7 @@ return [
 
 The map's slug (`posts` here) becomes part of the REST URL: `/visual-editor/api/posts/{id}/content`. Multiple models can register under different slugs — `posts`, `pages`, `products`, anything.
 
-Models can also be registered at runtime via the `ap.visual-editor.resources` filter — see [[Hooks and Events#ap-visual-editor-resources]].
+Models can also be registered at runtime via the `ap.visualEditor.resources` filter — see [[Hooks and Events#ap-visualeditor-resources]].
 
 ---
 

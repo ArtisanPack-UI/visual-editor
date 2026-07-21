@@ -6,6 +6,127 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.5.0] - 2026-07-21
+
+### Added
+
+- **Six new lifecycle hooks for editor and block integrations (#665).**
+  Fills in high-value extension points across block registration,
+  rendering, post persistence, editor config assembly, and pattern
+  rendering. All hooks live under the canonical `ap.visualEditor.*`
+  namespace introduced in #664:
+
+    - `ap.visualEditor.blockRegistered` — action, fires at the end of
+      block registration with `(string $name, array $config)`. Fires
+      through `BlockTypeRegistry::register()` so both `block.json`
+      registration and programmatic `registerBlockType()` calls emit.
+    - `ap.visualEditor.beforeRender` — filter on `(array $attributes,
+      string $name)` that runs inside `BlockRenderer::renderBlock()`
+      after site-meta / loginout stamping. Non-array returns are
+      discarded so a misbehaving callback can't blank the block.
+    - `ap.visualEditor.postSaved` — action fired from
+      `WpEntityController` after every POST/PUT persistence with
+      `(int|string $postId, array $blocks)`.
+    - `ap.visualEditor.postPublished` — action fired from the same
+      site whenever the current save transitions status into the
+      WP-canonical `publish` value (create-with-publish or
+      non-publish → publish on update). Same payload as `postSaved`.
+    - `ap.visualEditor.editorConfig` — filter applied by
+      `VisualEditorComponent` on the assembled config array with
+      `(array $config, string $screen)`; `$screen` is `'post'` for
+      the current component. Filtered values are re-hydrated onto
+      the component's typed props, so misbehaving returns can't
+      poison a `?string` prop.
+    - `ap.visualEditor.patternRender` — filter applied by
+      `PatternAdapter::toArray()` on the rendered raw content of a
+      pattern with `(string $html, string $slug, array $context)`.
+      Context carries source, synced flag, categories, block_types,
+      and post_types so callbacks can gate per pattern shape.
+
+### Changed
+
+- **Bumped `artisanpack-ui/hooks` requirement to `^1.3` (#665).** The
+  hook fire sites added in #665 assume the helper globals are always
+  available, so the previous `^1.2` constraint's `function_exists()`
+  guards have been dropped in favour of the newer floor.
+
+### Changed (BREAKING)
+
+- **Renamed every visual-editor hook to camelCase (#664).** The 13 PHP
+  hooks the package fires or subscribes to, plus the
+  `visual_editor.pre_publish_checks` cross-package hook, the
+  `ap.icons.register-icon-sets` bridge hook, and three JS-only hooks
+  (`background-controls`, `canvas-styles`, `document-panels`), now use
+  camelCase — matching the ArtisanPack UI ecosystem's naming convention.
+  Old names remain functional via `deprecateHook()` aliases registered by
+  `ArtisanPackUI\VisualEditor\Support\HookAliases` on the PHP side and a
+  bidirectional `@wordpress/hooks` shim in
+  `resources/js/visual-editor/support/hook-aliases.ts` on the JS side;
+  the JS shim runs at `Number.MIN_SAFE_INTEGER` priority so real
+  subscribers on the paired name are surfaced before priority-sorted
+  dispatch of the applied name's callbacks. A deprecation notice is
+  logged the first time an alias resolves per process. Rename table:
+
+    - `ap.visual-editor.resources` → `ap.visualEditor.resources`
+    - `ap.visual-editor.templates` → `ap.visualEditor.templates`
+    - `ap.visual-editor.template-parts` → `ap.visualEditor.templateParts`
+    - `ap.visual-editor.patterns` → `ap.visualEditor.patterns`
+    - `ap.visual-editor.global-styles` → `ap.visualEditor.globalStyles`
+    - `ap.visual-editor.navigation` → `ap.visualEditor.navigation`
+    - `ap.visual-editor.visibility.register-rules` → `ap.visualEditor.visibility.registerRules`
+    - `ap.visual-editor.visibility.evaluated` → `ap.visualEditor.visibility.evaluated`
+    - `ap.visual-editor.visibility.user-search-results` → `ap.visualEditor.visibility.userSearchResults`
+    - `ap.visual-editor.rendered-block` → `ap.visualEditor.renderedBlock`
+    - `ap.visual-editor.breadcrumbs.trail` → `ap.visualEditor.breadcrumbs.trail`
+    - `ap.visual-editor.loginout.envelope` → `ap.visualEditor.loginout.envelope`
+    - `ap.visual-editor.loginout.login-form` → `ap.visualEditor.loginout.loginForm`
+    - `visual_editor.pre_publish_checks` → `ap.visualEditor.prePublishChecks`
+    - `ap.icons.register-icon-sets` → `ap.icons.registerIconSets`
+    - `ap.visual-editor.background-controls` → `ap.visualEditor.backgroundControls`
+    - `ap.visual-editor.canvas-styles` → `ap.visualEditor.canvasStyles`
+    - `ap.visual-editor.document-panels` → `ap.visualEditor.documentPanels`
+
+  See `src/Support/HookAliases.php` for the full canonical list. Bumps
+  the `artisanpack-ui/hooks` Composer requirement to `^1.2` (v1.3.x in
+  practice) to pick up the `deprecateHook()` helper (v1.3.0).
+
+- **Site-editor map resolvers key by the entry's own identifier, not the
+  raw filter key.** Previously, `find( $rawKey )` succeeded when a
+  contributor supplied a filter map whose keys diverged from the entries'
+  own `slug` / `location`. That path is gone: `find()` now only resolves
+  by the value object's identifier. Contributors that already stamp the
+  matching `slug` / `location` on their entries (all first-party
+  contributors, including cms-framework) are unaffected.
+- **Canvas CSS endpoint delegates to cms-framework's `ThemeStylesheetReader`.**
+  `GET /visual-editor/api/global-styles/css` now delegates the theme-file
+  read to `ArtisanPackUI\CMSFramework\Modules\SiteEditor\Support\ThemeStylesheetReader`
+  when it's available (cms-framework ≥ 2.5). The endpoint now concatenates
+  emitter output + `themes/{slug}/style.css` + `themes/{slug}/editor.css`
+  (the last is new — closes the canvas half of cms-framework #199, giving
+  the site editor a WordPress `add_editor_style()` analog). Section banners
+  switch from `/* === theme stylesheet === */` to per-file banners
+  (`/* === style.css === */`, `/* === editor.css === */`) so devtools
+  inspection matches cms-framework's endpoint. Falls back to the inline
+  `readThemeStylesheet()` helper for cms-framework < 2.5 — the fallback
+  preserves the pre-change behavior (style.css only, historical banner
+  text) so themes on older cms-framework releases keep the canvas parity
+  the endpoint already delivered.
+
+### Fixed
+
+- **Site-editor resolvers accept numeric-string map keys (cms-framework #203).**
+  WordPress template hierarchy filenames like `404.html` / `500.html` double
+  as slugs. PHP auto-coerces numeric-string array keys to `int` at insertion
+  time and `array_merge` renumbers int-keyed entries sequentially, so
+  contributors of `ap.visualEditor.{templates,templateParts,patterns,navigation}`
+  cannot preserve the intended string key from upstream. `AbstractMapResolver`
+  now accepts `int` keys and re-keys the normalized output map by each value
+  object's own identifier via a new `identifierOf()` hook (`slug` for
+  templates/parts/patterns, `location` for menus). Empty identifiers and
+  identifier collisions across entries now throw
+  `SiteEditorRegistrationException` at first read instead of silently
+  producing an unaddressable / clobbered entry.
+
 ## [1.4.0] - 2026-07-16
 
 ### Added

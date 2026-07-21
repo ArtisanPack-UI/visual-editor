@@ -2,6 +2,20 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+// #667 — `PatternThumbnail` imports `parse` from `@wordpress/blocks`
+// so the pattern-grid module graph now transitively loads the real
+// package. Under jsdom it trips on a `type: json` import at the top of
+// the build. Stub `parse` so the module chain resolves; the theme-only
+// path we care about in this suite passes it a real Gutenberg comment
+// block and the stub echoes back a single block instance so the
+// thumbnail renders the non-empty summary.
+vi.mock('@wordpress/blocks', () => ({
+    parse: (source: string) =>
+        typeof source === 'string' && source.trim() !== ''
+            ? [{ name: 'core/heading', innerBlocks: [] }]
+            : [],
+}));
+
 import { PatternGrid } from '../pattern-grid';
 import type { PatternRecord } from '../api-client';
 
@@ -158,5 +172,56 @@ describe('<PatternGrid />', () => {
         const empty = await screen.findByTestId('ap-pattern-grid-empty');
 
         expect(empty).toHaveTextContent('No unsynced patterns yet');
+    });
+
+    it('shows the block tree for theme patterns that only ship rawContent (#667)', async () => {
+        // Theme-shipped patterns arrive with `blocks: []` because
+        // cms-framework's `PatternResolver::buildThemePattern()` only
+        // serializes `raw`. `PatternThumbnail` must parse the raw
+        // string client-side rather than falling through to the empty
+        // placeholder — otherwise every theme pattern renders as an
+        // "Empty pattern" card.
+        LIST_MOCK.mockResolvedValue([
+            makePattern({
+                id: 91,
+                slug: 'theme-hero',
+                title: { rendered: 'Theme hero' },
+                synced: false,
+                content: {
+                    raw:
+                        '<!-- wp:heading --><h2>Hi</h2><!-- /wp:heading -->' +
+                        '<!-- wp:paragraph --><p>Body</p><!-- /wp:paragraph -->',
+                    blocks: [],
+                },
+            }),
+        ]);
+
+        render(
+            <PatternGrid
+                apiConfig={API_CONFIG}
+                synced={false}
+                activeEntityId={null}
+                onEdit={() => undefined}
+                onConvertToUnsynced={() => undefined}
+                onDelete={() => undefined}
+                onCreate={() => undefined}
+            />
+        );
+
+        await waitFor(() =>
+            expect(
+                screen.getByTestId('ap-pattern-card-91')
+            ).toBeInTheDocument()
+        );
+
+        expect(screen.queryByTestId('ap-pattern-thumb-empty')).toBeNull();
+        expect(screen.getByTestId('ap-pattern-thumb')).toBeInTheDocument();
+        // The mocked `parse()` at the top of this file returns a
+        // single `core/heading` block for any non-empty source, so a
+        // successful raw-content fallback puts that name into the
+        // thumbnail's block-tree summary. Asserting the text guards
+        // against a regression where the thumbnail renders the
+        // wrapper markup but describeBlocks receives an empty array.
+        expect(screen.getByText('core/heading')).toBeInTheDocument();
     });
 });

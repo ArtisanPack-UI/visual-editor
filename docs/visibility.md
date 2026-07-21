@@ -98,11 +98,11 @@ return (
 ### Debug hook
 
 Every evaluation fires
-`ap.visual-editor.visibility.evaluated( decision, blockName, attributes, context )`.
+`ap.visualEditor.visibility.evaluated( decision, blockName, attributes, context )`.
 Listen from a service provider to answer "why is this block hidden?":
 
 ```php
-addAction( 'ap.visual-editor.visibility.evaluated', function ( $decision, $name, $attrs, $ctx ) {
+addAction( 'ap.visualEditor.visibility.evaluated', function ( $decision, $name, $attrs, $ctx ) {
     if ( $decision->isHidden() ) {
         \Log::debug( sprintf(
             '%s hidden by %s (viewer: %s)',
@@ -117,12 +117,12 @@ addAction( 'ap.visual-editor.visibility.evaluated', function ( $decision, $name,
 ### Adding a custom rule
 
 Implement the `VisibilityRule` interface and register through the
-`ap.visual-editor.visibility.register-rules` filter:
+`ap.visualEditor.visibility.registerRules` filter:
 
 ```php
 use ArtisanPackUI\VisualEditor\Visibility\RuleRegistry;
 
-addFilter( 'ap.visual-editor.visibility.register-rules', function ( RuleRegistry $registry ) {
+addFilter( 'ap.visualEditor.visibility.registerRules', function ( RuleRegistry $registry ) {
     $registry->register( new \App\Visibility\CookieRule() );
     return $registry;
 } );

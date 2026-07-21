@@ -37,7 +37,7 @@ const { Slot, Fill } = createSlotFill(SLOT_NAME);
  * Exported so host code can type-check the filter name against this
  * constant instead of hand-typing the string.
  */
-export const DOCUMENT_PANELS_FILTER = 'ap.visual-editor.document-panels';
+export const DOCUMENT_PANELS_FILTER = 'ap.visualEditor.documentPanels';
 
 export interface DocumentPanelSpec {
     /** Stable identifier; used as the React `key` and `data-panel-name`. */

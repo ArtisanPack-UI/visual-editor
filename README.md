@@ -263,7 +263,17 @@ for the site-editor pairing walkthrough.
 
 ## Extensibility
 
-### `ap.visual-editor.resources`
+> **Hook rename (v1.5.0, #664).** Every visual-editor hook now uses
+> camelCase — the old kebab-case names below (`ap.visual-editor.*`,
+> `ap.icons.register-icon-sets`, `visual_editor.pre_publish_checks`)
+> remain functional through `deprecateHook()` aliases and continue to
+> route callbacks to the canonical name, but log a deprecation notice
+> the first time each alias resolves per process. New code should use
+> the camelCase names. See
+> [`src/Support/HookAliases.php`](src/Support/HookAliases.php) for the
+> full rename table.
+
+### `ap.visualEditor.resources`
 
 Register slug → Eloquent model class mappings used by
 `/visual-editor/api/{resource}/{id}/content`. Filter contributions are
@@ -275,7 +285,7 @@ surface as `InvalidArgumentException` on first request rather than at
 boot, so a contributor's standalone install never trips host boot.
 
 ```php
-addFilter('ap.visual-editor.resources', function (array $resources): array {
+addFilter('ap.visualEditor.resources', function (array $resources): array {
     return array_merge([
         'posts' => App\Models\Post::class,
     ], $resources);
@@ -285,11 +295,27 @@ addFilter('ap.visual-editor.resources', function (array $resources): array {
 Full contract: [`docs/content-model.md`](docs/content-model.md#2-the-resource-map) and
 [`docs/Hooks-and-Events.md`](docs/Hooks-and-Events.md#ap-visual-editor-resources).
 
-### `ap.icons.register-icon-sets`
+### `ap.icons.registerIconSets`
 
 Editor chrome icons resolve through `artisanpack-ui/icons`. Register
 additional icon sets in a service provider — see the
 [`artisanpack-ui/icons`](https://github.com/ArtisanPack-UI/icons) docs.
+
+### Lifecycle hooks (v1.6.0, #665)
+
+Six additional hooks cover the block-registration, block-render,
+post-persistence, editor-config, and pattern-render lifecycles. The
+tables below summarise each; the full contract is documented in
+[`docs/Hooks-and-Events.md`](docs/Hooks-and-Events.md).
+
+| Hook | Type | Fired at | Payload |
+|---|---|---|---|
+| `ap.visualEditor.blockRegistered` | action | `BlockTypeRegistry::register()` end | `(string $name, array $config)` |
+| `ap.visualEditor.beforeRender` | filter | `BlockRenderer::renderBlock()` pre-render | `(array $attributes, string $name)` |
+| `ap.visualEditor.postSaved` | action | `WpEntityController::persistNew()` / `persistUpdate()` after save | `(int\|string $postId, array $blocks)` |
+| `ap.visualEditor.postPublished` | action | same site, only on non-publish → `publish` transitions | `(int\|string $postId, array $blocks)` |
+| `ap.visualEditor.editorConfig` | filter | `VisualEditorComponent::__construct()` config assembly | `(array $config, string $screen)` |
+| `ap.visualEditor.patternRender` | filter | `PatternAdapter::toArray()` on `content.raw` | `(string $html, string $slug, array $context)` |
 
 ---
 

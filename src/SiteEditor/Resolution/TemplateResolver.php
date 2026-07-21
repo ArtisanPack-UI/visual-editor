@@ -3,7 +3,7 @@
 /**
  * Site-editor template resolver.
  *
- * Consumes the merged `ap.visual-editor.templates` filter result and exposes
+ * Consumes the merged `ap.visualEditor.templates` filter result and exposes
  * a stable read surface to H6's WP-style REST adapters. Has no awareness of
  * where the data came from — that's cms-framework's H1 resolution job.
  *
@@ -28,7 +28,7 @@ class TemplateResolver extends AbstractMapResolver
 	 */
 	protected static function filterName(): string
 	{
-		return 'ap.visual-editor.templates';
+		return 'ap.visualEditor.templates';
 	}
 
 	/**
@@ -42,5 +42,15 @@ class TemplateResolver extends AbstractMapResolver
 		$entry['slug'] = $entry['slug'] ?? $key;
 
 		return ResolvedTemplate::fromArray( $entry );
+	}
+
+	/**
+	 * @since 1.5.0
+	 *
+	 * @param  ResolvedTemplate  $entry
+	 */
+	protected static function identifierOf( object $entry ): string
+	{
+		return $entry->slug;
 	}
 }

@@ -56,6 +56,7 @@ use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
 use ArtisanPackUI\VisualEditor\States\StateValueResolver;
 use ArtisanPackUI\VisualEditor\Search\BlockTreeSearchExtractor;
+use ArtisanPackUI\VisualEditor\Support\HookAliases;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\GlobalStylesResolver as SiteEditorGlobalStylesResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\MenuResolver as SiteEditorMenuResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\PatternResolver as SiteEditorPatternResolver;
@@ -179,7 +180,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// Icon Block Phase 3 (#554): defer the icon-sets-registry walk
 		// until the first `resolve()` call. IconBlock is constructed
 		// inside boot() (via registerReferenceBlocks), which happens
-		// BEFORE every provider's `addFilter('ap.icons.register-icon-sets',
+		// BEFORE every provider's `addFilter('ap.icons.registerIconSets',
 		// …)` has fired. Computing the path map eagerly here would race
 		// against those registrations and produce an empty resolver. The
 		// closure runs at request time, by which point boot is finished
@@ -188,7 +189,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// Issue #587: when `owenvoke/blade-fontawesome` is installed,
 		// `FontAwesomeFreeIconSets::register()` defers to it and stops
 		// publishing `fas` / `far` / `fab` through the
-		// `ap.icons.register-icon-sets` filter (so the icons-package
+		// `ap.icons.registerIconSets` filter (so the icons-package
 		// service provider doesn't collide on `BladeUI\Icons\Factory::add()`).
 		// The resolver still needs those paths to inline bundled FA Free
 		// SVGs for the picker and the rendered block, so we always seed
@@ -204,7 +205,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 					return $paths;
 				}
 
-				$registry = applyFilters( 'ap.icons.register-icon-sets', new IconSetRegistration() );
+				$registry = applyFilters( 'ap.icons.registerIconSets', new IconSetRegistration() );
 				if ( ! $registry instanceof IconSetRegistration ) {
 					return $paths;
 				}
@@ -264,7 +265,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// Bound here as a placeholder so other providers' register() phases
 		// can typehint ResourceResolver. The boot() phase rebinds with the
 		// final filter-merged map once all providers have registered their
-		// `ap.visual-editor.resources` callbacks.
+		// `ap.visualEditor.resources` callbacks.
 		$this->app->singleton( ResourceResolver::class, function () {
 			return new ResourceResolver();
 		} );
@@ -272,7 +273,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// H5 — site-editor resolvers. Same pattern as ResourceResolver
 		// above: empty placeholders here; boot() rebinds with the filter-
 		// merged data once all providers have registered their
-		// `ap.visual-editor.{templates,template-parts,patterns,
+		// `ap.visualEditor.{templates,templateParts,patterns,
 		// global-styles,navigation}` callbacks.
 		$this->app->singleton( SiteEditorTemplateResolver::class, function () {
 			return new SiteEditorTemplateResolver();
@@ -417,7 +418,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			// Resolve editor-authored keyframes from the same filter-
 			// merged global-styles payload that `SiteEditorGlobalStylesResolver`
 			// consumes, so a host that registers global styles through
-			// the `ap.visual-editor.global-styles` filter (cms-framework
+			// the `ap.visualEditor.globalStyles` filter (cms-framework
 			// being the canonical caller) sees its custom keyframes
 			// reach the editor and renderer. Reading directly from
 			// config would miss the filter contributions.
@@ -453,7 +454,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// stateless (safe singleton). `ScheduledBlockCollector` is a
 		// pure walker (safe singleton). The `VisibilityRuleRegistry`
 		// is scoped per request because the built-in rule set is
-		// merged with the `ap.visual-editor.visibility.register-rules`
+		// merged with the `ap.visualEditor.visibility.registerRules`
 		// filter, and third-party rule providers may register with
 		// per-request container state (route parameters, tenant
 		// context, etc.). The `VisibilityEvaluator` is also scoped so
@@ -469,7 +470,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		} );
 
 		// The scoped closure only assembles the built-in rule set —
-		// the `ap.visual-editor.visibility.register-rules` filter is
+		// the `ap.visualEditor.visibility.registerRules` filter is
 		// applied via `extend()` in `boot()` (see
 		// `applyVisibilityRulesFilter()`). Extending inside the closure
 		// would freeze the filter chain state at first-resolve time,
@@ -576,7 +577,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
-	 * Layer the `ap.visual-editor.visibility.register-rules` filter
+	 * Layer the `ap.visualEditor.visibility.registerRules` filter
 	 * over every fresh {@see VisibilityRuleRegistry} instance.
 	 *
 	 * Registered in `boot()` via {@see \Illuminate\Container\Container::extend()}
@@ -598,7 +599,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->app->extend(
 			VisibilityRuleRegistry::class,
 			static function ( VisibilityRuleRegistry $registry ): VisibilityRuleRegistry {
-				$filtered = applyFilters( 'ap.visual-editor.visibility.register-rules', $registry );
+				$filtered = applyFilters( 'ap.visualEditor.visibility.registerRules', $registry );
 				return $filtered instanceof VisibilityRuleRegistry ? $filtered : $registry;
 			},
 		);
@@ -612,6 +613,12 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 */
 	public function boot(): void
 	{
+		// 0. Register hook name aliases (old → new) as early as possible in
+		//    boot() so any subsequent hook fire sites route legacy
+		//    subscribers to the canonical (camelCase) hook name. See
+		//    src/Support/HookAliases.php for the full rename table.
+		HookAliases::registerAll();
+
 		// 1. Merge the configuration correctly.
 		$this->mergeConfiguration();
 
@@ -627,7 +634,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			$this->registerSiteEditorResolvers();
 		} );
 
-		// 1b. Layer the `ap.visual-editor.visibility.register-rules`
+		// 1b. Layer the `ap.visualEditor.visibility.registerRules`
 		//     filter over the scoped registry via `extend()`. Runs at
 		//     resolve-time (after the closure builds the default set)
 		//     which means addFilter calls from any other provider's
@@ -683,7 +690,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		// 4.2. Icon Block Phase 6 (#557) — re-register host-uploaded
 		//      icon sets on every boot. Reads the persisted registry
-		//      and hooks the same `ap.icons.register-icon-sets` filter
+		//      and hooks the same `ap.icons.registerIconSets` filter
 		//      the bundled FA sets use, so the picker, the SVG
 		//      resolver, and the catalog all surface uploaded icons
 		//      without any further wiring.
@@ -873,7 +880,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
-	 * Hook the FA Free SVG sets into the `ap.icons.register-icon-sets`
+	 * Hook the FA Free SVG sets into the `ap.icons.registerIconSets`
 	 * filter.
 	 *
 	 * Gated on the icons package being present so visual-editor still
@@ -893,7 +900,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$baseDir = __DIR__ . '/../resources/icons/font-awesome';
 
 		addFilter(
-			'ap.icons.register-icon-sets',
+			'ap.icons.registerIconSets',
 			static function ( IconSetRegistration $registry ) use ( $baseDir ): IconSetRegistration {
 				return FontAwesomeFreeIconSets::register( $registry, $baseDir );
 			}
@@ -925,7 +932,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		}
 
 		addFilter(
-			'ap.visual-editor.patterns',
+			'ap.visualEditor.patterns',
 			static function ( mixed $patterns ): array {
 				$patterns = is_array( $patterns ) ? $patterns : [];
 
@@ -1060,7 +1067,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	/**
 	 * Builds the slug → model class map for ResourceResolver.
 	 *
-	 * Pipes the static config through the `ap.visual-editor.resources` filter
+	 * Pipes the static config through the `ap.visualEditor.resources` filter
 	 * (so packages like cms-framework can register their models at runtime),
 	 * then merges static config back on top so host-app entries always win on
 	 * key collision. ResourceResolver itself does not validate at construction
@@ -1076,7 +1083,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	public function registerResourceResolver(): void
 	{
 		$staticConfig = (array) config( 'artisanpack.visual-editor.resources', [] );
-		$filtered     = applyFilters( 'ap.visual-editor.resources', $staticConfig );
+		$filtered     = applyFilters( 'ap.visualEditor.resources', $staticConfig );
 		$filtered     = is_array( $filtered ) ? $filtered : [];
 
 		// Static config wins on key collision: host app entries take
@@ -1109,7 +1116,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	{
 		// Templates ─ array<string, array> keyed by slug.
 		$templatesStatic = (array) config( 'artisanpack.visual-editor.site-editor.templates', [] );
-		$templatesMerged = applyFilters( 'ap.visual-editor.templates', $templatesStatic );
+		$templatesMerged = applyFilters( 'ap.visualEditor.templates', $templatesStatic );
 		$templatesMerged = is_array( $templatesMerged ) ? $templatesMerged : [];
 		$templatesMerged = array_merge( $templatesMerged, $templatesStatic );
 
@@ -1120,7 +1127,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		// Template parts ─ array<string, array> keyed by slug.
 		$partsStatic = (array) config( 'artisanpack.visual-editor.site-editor.template-parts', [] );
-		$partsMerged = applyFilters( 'ap.visual-editor.template-parts', $partsStatic );
+		$partsMerged = applyFilters( 'ap.visualEditor.templateParts', $partsStatic );
 		$partsMerged = is_array( $partsMerged ) ? $partsMerged : [];
 		$partsMerged = array_merge( $partsMerged, $partsStatic );
 
@@ -1131,7 +1138,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		// Patterns ─ array<string, array> keyed by slug.
 		$patternsStatic = (array) config( 'artisanpack.visual-editor.site-editor.patterns', [] );
-		$patternsMerged = applyFilters( 'ap.visual-editor.patterns', $patternsStatic );
+		$patternsMerged = applyFilters( 'ap.visualEditor.patterns', $patternsStatic );
 		$patternsMerged = is_array( $patternsMerged ) ? $patternsMerged : [];
 		$patternsMerged = array_merge( $patternsMerged, $patternsStatic );
 
@@ -1145,7 +1152,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// static config, the filter result is authoritative.
 		$globalStylesStatic = config( 'artisanpack.visual-editor.site-editor.global-styles', null );
 		$globalStylesStatic = is_array( $globalStylesStatic ) ? $globalStylesStatic : null;
-		$globalStylesMerged = applyFilters( 'ap.visual-editor.global-styles', $globalStylesStatic );
+		$globalStylesMerged = applyFilters( 'ap.visualEditor.globalStyles', $globalStylesStatic );
 		$globalStylesMerged = is_array( $globalStylesMerged ) ? $globalStylesMerged : null;
 		$globalStylesMerged = $globalStylesStatic ?? $globalStylesMerged;
 
@@ -1156,7 +1163,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		// Navigation ─ array<string, array> keyed by location.
 		$menusStatic = (array) config( 'artisanpack.visual-editor.site-editor.navigation', [] );
-		$menusMerged = applyFilters( 'ap.visual-editor.navigation', $menusStatic );
+		$menusMerged = applyFilters( 'ap.visualEditor.navigation', $menusStatic );
 		$menusMerged = is_array( $menusMerged ) ? $menusMerged : [];
 		$menusMerged = array_merge( $menusMerged, $menusStatic );
 
@@ -1192,7 +1199,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 	/**
 	 * Hand the persisted uploaded icon sets to the
-	 * `ap.icons.register-icon-sets` filter.
+	 * `ap.icons.registerIconSets` filter.
 	 *
 	 * Phase 6 (#557). The {@see UploadedIconSetRegistry} only carries
 	 * metadata; the directories are managed by {@see IconSetUploader}.
@@ -1218,7 +1225,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$app = $this->app;
 
 		addFilter(
-			'ap.icons.register-icon-sets',
+			'ap.icons.registerIconSets',
 			static function ( IconSetRegistration $registry ) use ( $app ): IconSetRegistration {
 				$persisted = $app->make( UploadedIconSetRegistry::class );
 
@@ -1318,10 +1325,10 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// it through `registerUploadedIconSets()` — `IconSvgResolver`
 		// otherwise can't serve the SVG at click time, and the picker
 		// would render a black tile or a 404. Both paths now share one
-		// source of truth: the result of `ap.icons.register-icon-sets`.
+		// source of truth: the result of `ap.icons.registerIconSets`.
 		$registeredPrefixes = [];
 		if ( class_exists( IconSetRegistration::class ) && function_exists( 'applyFilters' ) ) {
-			$registry = applyFilters( 'ap.icons.register-icon-sets', new IconSetRegistration() );
+			$registry = applyFilters( 'ap.icons.registerIconSets', new IconSetRegistration() );
 			if ( $registry instanceof IconSetRegistration ) {
 				$registeredPrefixes = array_flip( array_keys( $registry->getSets() ) );
 			}

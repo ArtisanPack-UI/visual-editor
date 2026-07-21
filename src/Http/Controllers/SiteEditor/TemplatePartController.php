@@ -589,7 +589,7 @@ class TemplatePartController extends Controller
 	protected function refreshResolver(): void
 	{
 		$static = (array) config( 'artisanpack.visual-editor.site-editor.template-parts', [] );
-		$merged = applyFilters( 'ap.visual-editor.template-parts', $static );
+		$merged = applyFilters( 'ap.visualEditor.templateParts', $static );
 		$merged = is_array( $merged ) ? $merged : [];
 		$merged = array_merge( $merged, $static );
 

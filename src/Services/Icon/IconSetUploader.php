@@ -38,7 +38,7 @@ use ZipArchive;
  *      icon landed — a zip that yields zero stored files is treated as a
  *      failed upload and no metadata is written.
  *
- * The uploader does NOT call into `ap.icons.register-icon-sets` itself —
+ * The uploader does NOT call into `ap.icons.registerIconSets` itself —
  * that happens at app boot, walking whatever the registry persisted.
  * Doing it here would skip the registration on the next process / queue
  * worker until the application rebooted, which would make uploaded

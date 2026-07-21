@@ -1,4 +1,13 @@
 .ap-pattern-thumb {
+    /*
+     * `content-box` (the default) adds the 12px padding + 1px border on
+     * top of `width: 100%`, so the thumbnail extends ~26px past the
+     * card's inner width and pokes out of the card's rounded corner.
+     * `border-box` keeps the visible box inside the card, and the
+     * aspect-ratio computes from the same border-box so the card
+     * proportions stay stable.
+     */
+    box-sizing: border-box;
     width: 100%;
     aspect-ratio: 16 / 9;
     background: var(--ap-pattern-thumb-bg, #f9fafb);
@@ -30,12 +39,26 @@
     padding: 0;
     display: flex;
     flex-direction: column;
+    /*
+     * Keep the tree inside the thumb's border-box. Without a min-width,
+     * a long block name ("artisanpack/social-share-content") makes the
+     * flex column widen past `100%` and slips out to the right.
+     */
+    min-width: 0;
+    max-width: 100%;
 }
 
 .ap-pattern-thumb__tree li {
+    /*
+     * `white-space: pre` preserves the leading-space indent
+     * `describeBlocks()` emits for nested blocks; `overflow: hidden` +
+     * `text-overflow: ellipsis` clip the rest of a wide name so a
+     * verbose block slug can't spill past the card edge.
+     */
     white-space: pre;
     text-overflow: ellipsis;
     overflow: hidden;
+    max-width: 100%;
 }
 
 .ap-pattern-thumb__more {

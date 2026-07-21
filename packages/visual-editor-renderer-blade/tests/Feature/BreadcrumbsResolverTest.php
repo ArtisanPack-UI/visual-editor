@@ -19,7 +19,7 @@ declare( strict_types=1 );
  * - 404 / no post context still produces a `Home (current)` shell.
  * - The `breadcrumbsSchema` attribute is honored (the resolver is
  *   indifferent; the markup carries Schema.org itemtype attributes).
- * - Host filters through `ap.visual-editor.breadcrumbs.trail` override /
+ * - Host filters through `ap.visualEditor.breadcrumbs.trail` override /
  *   extend the trail without subclassing the resolver.
  * - Pre-stamped `_resolvedTrail` on the saved tree wins over the
  *   resolver fallback so a host that has resolved upstream keeps control.
@@ -62,7 +62,7 @@ function breadcrumbsFakePost( int $id, string $title, string $permalink = '', ?o
 
 beforeEach( function (): void {
 	if ( function_exists( 'removeAllFilters' ) ) {
-		removeAllFilters( 'ap.visual-editor.breadcrumbs.trail' );
+		removeAllFilters( 'ap.visualEditor.breadcrumbs.trail' );
 	}
 
 	config()->set( 'artisanpack.visual-editor.breadcrumbs.home_url', null );
@@ -210,7 +210,7 @@ it( 'allows hosts to override the trail through the filter hook', function () {
 		return;
 	}
 
-	addFilter( 'ap.visual-editor.breadcrumbs.trail', function ( array $trail, ?object $post, array $attributes ): array {
+	addFilter( 'ap.visualEditor.breadcrumbs.trail', function ( array $trail, ?object $post, array $attributes ): array {
 		return [
 			[ 'label' => 'Custom Home', 'url' => 'https://example.test/' ],
 			[ 'label' => 'Category: Travel', 'url' => '/category/travel' ],
@@ -241,7 +241,7 @@ it( 'passes the block attributes to the filter so hosts can branch on them', fun
 
 	$capturedAttrs = null;
 
-	addFilter( 'ap.visual-editor.breadcrumbs.trail', function ( array $trail, ?object $post, array $attributes ) use ( &$capturedAttrs ): array {
+	addFilter( 'ap.visualEditor.breadcrumbs.trail', function ( array $trail, ?object $post, array $attributes ) use ( &$capturedAttrs ): array {
 		$capturedAttrs = $attributes;
 
 		return $trail;
@@ -344,7 +344,7 @@ it( 'drops trail entries with blank labels through the filter', function () {
 		return;
 	}
 
-	addFilter( 'ap.visual-editor.breadcrumbs.trail', function ( array $trail, ?object $post, array $attributes ): array {
+	addFilter( 'ap.visualEditor.breadcrumbs.trail', function ( array $trail, ?object $post, array $attributes ): array {
 		return [
 			[ 'label' => 'Home', 'url' => '/' ],
 			[ 'label' => '', 'url' => '/dropped' ],
