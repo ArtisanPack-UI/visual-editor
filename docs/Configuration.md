@@ -23,7 +23,7 @@ Maps a URL-friendly slug to the Eloquent model class that backs it. The editor's
 
 Every listed model must use the `ArtisanPackUI\VisualEditor\Concerns\HasBlockContent` trait. Adding a new editable content type is a config change — no per-model controllers required.
 
-The map can also be extended at runtime via the `ap.visual-editor.resources` filter (cms-framework registers `Post` and `Page` this way). Static config wins on key collision.
+The map can also be extended at runtime via the `ap.visualEditor.resources` filter (cms-framework registers `Post` and `Page` this way). Static config wins on key collision.
 
 Full contract: [[Content Model#2-the-resource-map]].
 
@@ -134,9 +134,9 @@ Configures the `artisanpack/loginout` block's server-side renderer. The package 
 ],
 ```
 
-⚠️ **POST-vs-GET caveat for `logout_route`:** the block always emits a plain `<a>`, but Breeze / Jetstream / Fortify register `logout` as POST + CSRF — clicking the rendered link will hit a 405 unless the host either (a) registers a GET-side logout endpoint and points `logout_route` / `logout_path` at it, or (b) rewrites the resolved envelope through the `ap.visual-editor.loginout.envelope` filter.
+⚠️ **POST-vs-GET caveat for `logout_route`:** the block always emits a plain `<a>`, but Breeze / Jetstream / Fortify register `logout` as POST + CSRF — clicking the rendered link will hit a 405 unless the host either (a) registers a GET-side logout endpoint and points `logout_route` / `logout_path` at it, or (b) rewrites the resolved envelope through the `ap.visualEditor.loginout.envelope` filter.
 
-For fully custom URL resolution (per-tenant routes, SSO, etc.) override the resolved envelope through the `ap.visual-editor.loginout.envelope` filter hook.
+For fully custom URL resolution (per-tenant routes, SSO, etc.) override the resolved envelope through the `ap.visualEditor.loginout.envelope` filter hook.
 
 ---
 
@@ -221,7 +221,7 @@ See [[blocks/State Design Tools]] for the editor + developer workflow.
 
 ## `site-editor`
 
-Static-config entry points for the five site-editor entity types. Each key is also a filter slug — packages like cms-framework register their entities at runtime through `addFilter('ap.visual-editor.{type}', ...)`. Static config wins on key collision.
+Static-config entry points for the five site-editor entity types. Each key is also a filter slug — packages like cms-framework register their entities at runtime through `addFilter('ap.visualEditor.{type}', ...)`. Static config wins on key collision.
 
 ```php
 'site-editor' => [
@@ -245,11 +245,11 @@ Several configuration keys can also be extended via filter hooks at runtime — 
 
 | Key | Filter | Behaviour |
 |-----|--------|-----------|
-| `resources` | `ap.visual-editor.resources` | Merge slug → model class entries |
-| `site-editor.templates` | `ap.visual-editor.templates` | Merge template entries |
-| `site-editor.template-parts` | `ap.visual-editor.template-parts` | Merge template-part entries |
-| `site-editor.patterns` | `ap.visual-editor.patterns` | Merge pattern entries |
-| `site-editor.navigation` | `ap.visual-editor.navigation` | Merge menu entries |
+| `resources` | `ap.visualEditor.resources` | Merge slug → model class entries |
+| `site-editor.templates` | `ap.visualEditor.templates` | Merge template entries |
+| `site-editor.template-parts` | `ap.visualEditor.templateParts` | Merge template-part entries |
+| `site-editor.patterns` | `ap.visualEditor.patterns` | Merge pattern entries |
+| `site-editor.navigation` | `ap.visualEditor.navigation` | Merge menu entries |
 | `breakpoints` | (theme.json) | Replace/merge breakpoints from active theme |
 | `states` | (theme.json) | Replace/merge states from active theme |
 

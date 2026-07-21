@@ -144,7 +144,7 @@ Full theme contract: [Theming](post-editor/Theming.md).
 `PUT /visual-editor/api/{resource}/{id}/content` returns 404 with
 "Unknown resource '{slug}'". The slug isn't in
 `config('artisanpack.visual-editor.resources')` and no
-`ap.visual-editor.resources` filter contributor added it.
+`ap.visualEditor.resources` filter contributor added it.
 
 Check:
 

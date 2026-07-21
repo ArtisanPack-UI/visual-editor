@@ -6,12 +6,7 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
-### Changed
-
-- **Bumped `artisanpack-ui/hooks` requirement to `^1.3` (#665).** The
-  hook fire sites added in #665 assume the helper globals are always
-  available, so the previous `^1.2` constraint's `function_exists()`
-  guards have been dropped in favour of the newer floor.
+## [1.5.0] - 2026-07-21
 
 ### Added
 
@@ -48,7 +43,12 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
       Context carries source, synced flag, categories, block_types,
       and post_types so callbacks can gate per pattern shape.
 
-## [1.5.0]
+### Changed
+
+- **Bumped `artisanpack-ui/hooks` requirement to `^1.3` (#665).** The
+  hook fire sites added in #665 assume the helper globals are always
+  available, so the previous `^1.2` constraint's `function_exists()`
+  guards have been dropped in favour of the newer floor.
 
 ### Changed (BREAKING)
 
