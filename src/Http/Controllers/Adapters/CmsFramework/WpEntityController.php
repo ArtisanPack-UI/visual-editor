@@ -155,6 +155,8 @@ abstract class WpEntityController extends Controller
 		$model = $this->setBlockContent( $model, $data );
 		$model->save();
 
+		$this->firePostLifecycleHooks( $model, null );
+
 		return $model;
 	}
 
@@ -173,11 +175,52 @@ abstract class WpEntityController extends Controller
 
 		Gate::authorize( 'update', $model );
 
+		$originalStatus = $model->getOriginal( 'status' );
+		$previousStatus = is_string( $originalStatus ) ? $originalStatus : null;
+
 		$model = $this->fill( $model, $data );
 		$model = $this->setBlockContent( $model, $data );
 		$model->save();
 
+		$this->firePostLifecycleHooks( $model, $previousStatus );
+
 		return $model;
+	}
+
+	/**
+	 * Fires `ap.visualEditor.postSaved` on every persistence, and
+	 * `ap.visualEditor.postPublished` when the current save transitions
+	 * the record into the `publish` status (create-with-publish, or
+	 * update from any non-publish status to `publish`). Subsequent saves
+	 * of an already-published record fire `postSaved` only — republishing
+	 * is not treated as a fresh publish event.
+	 *
+	 * `$blocks` is read from the persisted model via
+	 * {@see \ArtisanPackUI\VisualEditor\Concerns\HasBlockContent::getBlockContent()}
+	 * so subscribers see the tree that actually landed on disk (post any
+	 * model-side mutators / observers) rather than the submitted payload.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @param  Model        $model           The freshly-persisted model.
+	 * @param  string|null  $previousStatus  The pre-save `status` value, or `null`
+	 *                                       on create.
+	 */
+	protected function firePostLifecycleHooks( Model $model, ?string $previousStatus ): void
+	{
+		$postId = $model->getKey();
+
+		if ( null === $postId ) {
+			return;
+		}
+
+		$blocks = method_exists( $model, 'getBlockContent' ) ? $model->getBlockContent() : [];
+
+		doAction( 'ap.visualEditor.postSaved', $postId, $blocks );
+
+		if ( 'publish' === $model->getAttribute( 'status' ) && 'publish' !== $previousStatus ) {
+			doAction( 'ap.visualEditor.postPublished', $postId, $blocks );
+		}
 	}
 
 	/**

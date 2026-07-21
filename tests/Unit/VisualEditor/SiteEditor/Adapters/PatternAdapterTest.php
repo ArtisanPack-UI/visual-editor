@@ -109,6 +109,56 @@ describe( 'single-record envelope', function (): void {
 	} );
 } );
 
+describe( 'ap.visualEditor.patternRender filter', function (): void {
+	afterEach( function (): void {
+		removeAllFilters( 'ap.visualEditor.patternRender' );
+	} );
+
+	it( 'lets a callback rewrite the rendered raw content', function (): void {
+		addFilter( 'ap.visualEditor.patternRender', function ( string $html, string $slug, array $context ): string {
+			return $html . '<!-- filtered:' . $slug . ' -->';
+		}, 10, 3 );
+
+		$out = ( new PatternAdapter() )->toArray( makeResolvedPattern() );
+
+		expect( $out['content']['raw'] )->toBe( '<!-- wp:cover /--><!-- filtered:hero-banner -->' );
+	} );
+
+	it( 'passes source/synced/categories/block_types/post_types context so callbacks can gate per pattern shape', function (): void {
+		$captured = null;
+		addFilter( 'ap.visualEditor.patternRender', function ( string $html, string $slug, array $context ) use ( &$captured ): string {
+			$captured = $context;
+
+			return $html;
+		}, 10, 3 );
+
+		( new PatternAdapter() )->toArray( makeResolvedPattern( [
+			'source'     => 'user',
+			'synced'     => true,
+			'categories' => [ 'hero', 'promo' ],
+			'blockTypes' => [ 'core/cover', 'core/heading' ],
+			'postTypes'  => [ 'page' ],
+		] ) );
+
+		expect( $captured )->not->toBeNull()
+			->and( $captured['source'] )->toBe( 'user' )
+			->and( $captured['synced'] )->toBeTrue()
+			->and( $captured['categories'] )->toBe( [ 'hero', 'promo' ] )
+			->and( $captured['block_types'] )->toBe( [ 'core/cover', 'core/heading' ] )
+			->and( $captured['post_types'] )->toBe( [ 'page' ] );
+	} );
+
+	it( 'ignores a non-string filter return so the original content survives', function (): void {
+		addFilter( 'ap.visualEditor.patternRender', function ( string $html ): ?array {
+			return [ 'not', 'a', 'string' ];
+		} );
+
+		$out = ( new PatternAdapter() )->toArray( makeResolvedPattern() );
+
+		expect( $out['content']['raw'] )->toBe( '<!-- wp:cover /-->' );
+	} );
+} );
+
 describe( 'collection envelope', function (): void {
 	it( 'returns a flat list in iteration order', function (): void {
 		$patterns = [

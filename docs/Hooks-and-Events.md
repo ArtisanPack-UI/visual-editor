@@ -114,6 +114,97 @@ addFilter('ap.visual-editor.rendered-block', function (string $html, string $nam
 
 ---
 
+### `ap.visualEditor.beforeRender`
+
+PHP filter applied inside `BlockRenderer::renderBlock()` **before** a block renders, giving hosts a chance to mutate the block's attributes. Fires after site-meta / loginout stamping so the resolved `_resolved*` keys are already present. Sibling of `rendered-block` (which runs after render).
+
+**Signature:** `array $attributes, string $blockName -> array`
+
+```php
+addFilter('ap.visualEditor.beforeRender', function (array $attributes, string $name): array {
+    if ('core/paragraph' !== $name) {
+        return $attributes;
+    }
+    $attributes['content'] = strtoupper($attributes['content'] ?? '');
+    return $attributes;
+}, 10, 2);
+```
+
+Non-array returns are ignored so a misbehaving callback can't blank the block.
+
+---
+
+### `ap.visualEditor.blockRegistered`
+
+PHP action fired at the end of block-type registration, from `BlockTypeRegistry::register()`. Covers both `block.json`-driven registration and programmatic `VisualEditor::registerBlockType()` calls.
+
+**Signature:** `string $name, array $config -> void`
+
+```php
+addAction('ap.visualEditor.blockRegistered', function (string $name, array $config): void {
+    // e.g. register block variations, per-block binding sources,
+    // per-block category assignment, etc.
+}, 10, 2);
+```
+
+---
+
+### `ap.visualEditor.postSaved` / `ap.visualEditor.postPublished`
+
+PHP actions fired by `WpEntityController` after every POST/PUT persistence (`postSaved`) and additionally when the current save transitions the record's `status` into the WP-canonical `publish` value (`postPublished`). Fire on both create-with-publish and non-publish → publish updates; re-saves of an already-published record fire `postSaved` only.
+
+**Signature:** `int|string $postId, array $blocks -> void`
+
+```php
+addAction('ap.visualEditor.postPublished', function ($postId, array $blocks): void {
+    // e.g. queue a search-index rebuild, send a webhook, purge a CDN, …
+}, 10, 2);
+```
+
+`$blocks` reflects the tree the client submitted in the current request under `content.blocks`; missing / malformed payloads collapse to `[]`.
+
+---
+
+### `ap.visualEditor.editorConfig`
+
+PHP filter applied by `VisualEditorComponent` on the assembled editor config before the Blade template emits its `data-*` attributes. `$screen` identifies the surface — `'post'` for the current component; a future site-editor surface would pass `'site'`.
+
+**Signature:** `array $config, string $screen -> array`
+
+```php
+addFilter('ap.visualEditor.editorConfig', function (array $config, string $screen): array {
+    if ('post' !== $screen) {
+        return $config;
+    }
+    $config['apiBase'] = '/custom/api';
+    return $config;
+}, 10, 2);
+```
+
+Only known keys are re-hydrated back onto the component's typed props — extra keys are ignored and non-array returns leave the assembled config intact.
+
+---
+
+### `ap.visualEditor.patternRender`
+
+PHP filter applied by `PatternAdapter::toArray()` on the rendered raw content of a pattern before it ships to the editor / consumer. Runs on every read.
+
+**Signature:** `string $html, string $slug, array $context -> string`
+
+```php
+addFilter('ap.visualEditor.patternRender', function (string $html, string $slug, array $context): string {
+    // $context carries: source, synced, categories, block_types, post_types
+    if ('user' !== $context['source']) {
+        return $html;
+    }
+    return str_replace('{{year}}', (string) date('Y'), $html);
+}, 10, 3);
+```
+
+Non-string returns are ignored so the underlying `rawContent` survives.
+
+---
+
 ## JavaScript filters
 
 Editor-side filters run through `@wordpress/hooks` inside the browser. Register callbacks with `addFilter(name, namespace, callback)` at editor bootstrap (the moment the app imports your package's entry module is enough — the editor evaluates each filter on every relevant render).

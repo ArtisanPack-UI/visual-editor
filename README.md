@@ -301,6 +301,22 @@ Editor chrome icons resolve through `artisanpack-ui/icons`. Register
 additional icon sets in a service provider — see the
 [`artisanpack-ui/icons`](https://github.com/ArtisanPack-UI/icons) docs.
 
+### Lifecycle hooks (v1.6.0, #665)
+
+Six additional hooks cover the block-registration, block-render,
+post-persistence, editor-config, and pattern-render lifecycles. The
+tables below summarise each; the full contract is documented in
+[`docs/Hooks-and-Events.md`](docs/Hooks-and-Events.md).
+
+| Hook | Type | Fired at | Payload |
+|---|---|---|---|
+| `ap.visualEditor.blockRegistered` | action | `BlockTypeRegistry::register()` end | `(string $name, array $config)` |
+| `ap.visualEditor.beforeRender` | filter | `BlockRenderer::renderBlock()` pre-render | `(array $attributes, string $name)` |
+| `ap.visualEditor.postSaved` | action | `WpEntityController::persistNew()` / `persistUpdate()` after save | `(int\|string $postId, array $blocks)` |
+| `ap.visualEditor.postPublished` | action | same site, only on non-publish → `publish` transitions | `(int\|string $postId, array $blocks)` |
+| `ap.visualEditor.editorConfig` | filter | `VisualEditorComponent::__construct()` config assembly | `(array $config, string $screen)` |
+| `ap.visualEditor.patternRender` | filter | `PatternAdapter::toArray()` on `content.raw` | `(string $html, string $slug, array $context)` |
+
 ---
 
 ## AI features

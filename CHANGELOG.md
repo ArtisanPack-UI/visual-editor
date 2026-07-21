@@ -6,6 +6,48 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Changed
+
+- **Bumped `artisanpack-ui/hooks` requirement to `^1.3` (#665).** The
+  hook fire sites added in #665 assume the helper globals are always
+  available, so the previous `^1.2` constraint's `function_exists()`
+  guards have been dropped in favour of the newer floor.
+
+### Added
+
+- **Six new lifecycle hooks for editor and block integrations (#665).**
+  Fills in high-value extension points across block registration,
+  rendering, post persistence, editor config assembly, and pattern
+  rendering. All hooks live under the canonical `ap.visualEditor.*`
+  namespace introduced in #664:
+
+    - `ap.visualEditor.blockRegistered` — action, fires at the end of
+      block registration with `(string $name, array $config)`. Fires
+      through `BlockTypeRegistry::register()` so both `block.json`
+      registration and programmatic `registerBlockType()` calls emit.
+    - `ap.visualEditor.beforeRender` — filter on `(array $attributes,
+      string $name)` that runs inside `BlockRenderer::renderBlock()`
+      after site-meta / loginout stamping. Non-array returns are
+      discarded so a misbehaving callback can't blank the block.
+    - `ap.visualEditor.postSaved` — action fired from
+      `WpEntityController` after every POST/PUT persistence with
+      `(int|string $postId, array $blocks)`.
+    - `ap.visualEditor.postPublished` — action fired from the same
+      site whenever the current save transitions status into the
+      WP-canonical `publish` value (create-with-publish or
+      non-publish → publish on update). Same payload as `postSaved`.
+    - `ap.visualEditor.editorConfig` — filter applied by
+      `VisualEditorComponent` on the assembled config array with
+      `(array $config, string $screen)`; `$screen` is `'post'` for
+      the current component. Filtered values are re-hydrated onto
+      the component's typed props, so misbehaving returns can't
+      poison a `?string` prop.
+    - `ap.visualEditor.patternRender` — filter applied by
+      `PatternAdapter::toArray()` on the rendered raw content of a
+      pattern with `(string $html, string $slug, array $context)`.
+      Context carries source, synced flag, categories, block_types,
+      and post_types so callbacks can gate per pattern shape.
+
 ## [1.5.0]
 
 ### Changed (BREAKING)

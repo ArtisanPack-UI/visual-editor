@@ -173,3 +173,126 @@ it( 'omits optional data attributes when the matching props are not supplied', f
 		->and( $html )->not->toContain( 'data-author-options=' )
 		->and( $html )->not->toContain( 'data-supports=' );
 } );
+
+describe( 'ap.visualEditor.editorConfig filter', function (): void {
+	afterEach( function (): void {
+		removeAllFilters( 'ap.visualEditor.editorConfig' );
+	} );
+
+	it( 'lets a callback rewrite props before render', function (): void {
+		$model = TestBlockContentModel::create( [
+			'title'   => 'Base',
+			'status'  => 'published',
+			'content' => [],
+		] );
+
+		addFilter( 'ap.visualEditor.editorConfig', function ( array $config, string $screen ): array {
+			$config['apiBase']      = '/custom/api';
+			$config['initialTitle'] = 'Filtered';
+
+			return $config;
+		}, 10, 2 );
+
+		$html = Blade::render(
+			'<x-visual-editor :model="$model" :initial-title="\'Base\'" />',
+			[ 'model' => $model ]
+		);
+
+		expect( $html )->toContain( 'data-api-base="/custom/api"' )
+			->and( $html )->toContain( 'data-title="Filtered"' );
+	} );
+
+	it( 'passes the "post" screen identifier so hosts can gate per surface', function (): void {
+		$model = TestBlockContentModel::create( [
+			'title'   => 'Screen',
+			'status'  => 'published',
+			'content' => [],
+		] );
+
+		$screensSeen = [];
+		addFilter( 'ap.visualEditor.editorConfig', function ( array $config, string $screen ) use ( &$screensSeen ): array {
+			$screensSeen[] = $screen;
+
+			return $config;
+		}, 10, 2 );
+
+		Blade::render(
+			'<x-visual-editor :model="$model" />',
+			[ 'model' => $model ]
+		);
+
+		expect( $screensSeen )->toBe( [ 'post' ] );
+	} );
+
+	it( 'ignores a non-array filter return so props survive intact', function (): void {
+		$model = TestBlockContentModel::create( [
+			'title'   => 'Intact',
+			'status'  => 'published',
+			'content' => [],
+		] );
+
+		addFilter( 'ap.visualEditor.editorConfig', function ( array $config, string $screen ): ?bool {
+			return null;
+		}, 10, 2 );
+
+		$html = Blade::render(
+			'<x-visual-editor :model="$model" />',
+			[ 'model' => $model ]
+		);
+
+		expect( $html )->toContain( 'data-resource="posts"' )
+			->and( $html )->toContain( 'data-api-base="/visual-editor/api"' );
+	} );
+
+	it( 'preserves props whose filtered value is a bad shape for the coercer', function (): void {
+		$model = TestBlockContentModel::create( [
+			'title'   => 'Coerce',
+			'status'  => 'published',
+			'content' => [],
+		] );
+
+		addFilter( 'ap.visualEditor.editorConfig', function ( array $config, string $screen ): array {
+			// Malformed values across each coercer type; every one should
+			// be rejected in favour of the current prop value.
+			$config['apiBase']             = 42;              // string coercer
+			$config['initialTitle']        = [ 'not string' ]; // nullableString
+			$config['initialCommentsOpen'] = 'yes';           // nullableBool
+			$config['authorOptions']       = 'oops';          // nullableArray
+			$config['initialAuthorId']     = true;            // nullableIntOrString — must not TypeError
+
+			return $config;
+		}, 10, 2 );
+
+		$html = Blade::render(
+			'<x-visual-editor :model="$model" :initial-title="\'Kept\'" />',
+			[ 'model' => $model ]
+		);
+
+		expect( $html )->toContain( 'data-api-base="/visual-editor/api"' )
+			->and( $html )->toContain( 'data-title="Kept"' )
+			// initialCommentsOpen was null (unset), so no data-comments-open should be emitted.
+			->and( $html )->not->toContain( 'data-comments-open=' )
+			->and( $html )->not->toContain( 'data-author-options=' );
+	} );
+
+	it( 'leaves omitted keys untouched when the filter returns a partial config', function (): void {
+		$model = TestBlockContentModel::create( [
+			'title'   => 'Partial',
+			'status'  => 'published',
+			'content' => [],
+		] );
+
+		addFilter( 'ap.visualEditor.editorConfig', function ( array $config, string $screen ): array {
+			return [ 'apiBase' => '/only-this' ];
+		}, 10, 2 );
+
+		$html = Blade::render(
+			'<x-visual-editor :model="$model" :initial-title="\'Untouched\'" />',
+			[ 'model' => $model ]
+		);
+
+		expect( $html )->toContain( 'data-api-base="/only-this"' )
+			->and( $html )->toContain( 'data-title="Untouched"' )
+			->and( $html )->toContain( 'data-resource="posts"' );
+	} );
+} );
