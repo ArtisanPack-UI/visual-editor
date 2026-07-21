@@ -49,6 +49,30 @@ class PatternAdapter
 	 */
 	public function toArray( ResolvedPattern $pattern ): array
 	{
+		// `ap.visualEditor.patternRender` — filter the rendered raw
+		// content of a pattern before it ships to the editor. Runs on
+		// every read so subscribers can inject dynamic content (shortcode
+		// expansion, per-request personalization tokens, etc.) without
+		// having to mutate the underlying block tree. The context array
+		// carries pattern-level metadata (source, synced flag) so hosts
+		// can gate their transform on theme-vs-user patterns cheaply.
+		// Non-string returns are discarded so a misbehaving callback
+		// can't blank the pattern.
+		$filtered = applyFilters(
+			'ap.visualEditor.patternRender',
+			$pattern->rawContent,
+			$pattern->slug,
+			[
+				'source'      => $pattern->source,
+				'synced'      => $pattern->synced,
+				'categories'  => $pattern->categories,
+				'block_types' => $pattern->blockTypes,
+				'post_types'  => $pattern->postTypes,
+			],
+		);
+
+		$rawContent = is_string( $filtered ) ? $filtered : $pattern->rawContent;
+
 		return [
 			'id'          => $pattern->wpId > 0 ? $pattern->wpId : $pattern->slug,
 			'slug'        => $pattern->slug,
@@ -59,7 +83,7 @@ class PatternAdapter
 				'raw'      => $pattern->title,
 			],
 			'content'     => [
-				'raw'    => $pattern->rawContent,
+				'raw'    => $rawContent,
 				'blocks' => $pattern->blocks,
 			],
 			'source'      => $pattern->source,

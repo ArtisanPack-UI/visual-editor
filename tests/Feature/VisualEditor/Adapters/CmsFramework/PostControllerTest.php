@@ -218,3 +218,150 @@ it( 'returns 404 for a missing post', function () {
 
 	$this->getJson( '/visual-editor/api/posts/9999' )->assertNotFound();
 } );
+
+describe( 'lifecycle hooks', function (): void {
+	afterEach( function (): void {
+		removeAllActions( 'ap.visualEditor.postSaved' );
+		removeAllActions( 'ap.visualEditor.postPublished' );
+	} );
+
+	it( 'fires ap.visualEditor.postSaved on POST /posts', function (): void {
+		actor();
+
+		$captured = [];
+		addAction( 'ap.visualEditor.postSaved', function ( $id, $blocks ) use ( &$captured ): void {
+			$captured = [ 'id' => $id, 'blocks' => $blocks ];
+		}, 10, 2 );
+
+		$this->postJson( '/visual-editor/api/posts', [
+			'title'   => 'Fresh',
+			'status'  => 'draft',
+			'content' => [ 'raw' => '', 'blocks' => blockTree() ],
+		] )->assertCreated();
+
+		expect( $captured )->not->toBeEmpty()
+			->and( $captured['id'] )->toBeInt()
+			->and( $captured['blocks'] )->toEqual( blockTree() );
+	} );
+
+	it( 'fires postPublished on create-with-publish-status', function (): void {
+		actor();
+
+		$publishedCalls = 0;
+		addAction( 'ap.visualEditor.postPublished', function ( $id, $blocks ) use ( &$publishedCalls ): void {
+			$publishedCalls++;
+		}, 10, 2 );
+
+		$this->postJson( '/visual-editor/api/posts', [
+			'title'   => 'Live',
+			'status'  => 'publish',
+			'content' => [ 'raw' => '', 'blocks' => blockTree() ],
+		] )->assertCreated();
+
+		expect( $publishedCalls )->toBe( 1 );
+	} );
+
+	it( 'does not fire postPublished when creating with a non-publish status', function (): void {
+		actor();
+
+		$publishedCalls = 0;
+		addAction( 'ap.visualEditor.postPublished', function () use ( &$publishedCalls ): void {
+			$publishedCalls++;
+		} );
+
+		$this->postJson( '/visual-editor/api/posts', [
+			'title'   => 'Draft',
+			'status'  => 'draft',
+			'content' => [ 'raw' => '', 'blocks' => blockTree() ],
+		] )->assertCreated();
+
+		expect( $publishedCalls )->toBe( 0 );
+	} );
+
+	it( 'fires postPublished when the update transitions status into publish', function (): void {
+		actor();
+
+		// The fixture's `forVisualEditor()` scope filters to
+		// `status === 'published'`, so we can only exercise the update
+		// path with rows that pass the scope. Transitioning that row to
+		// the WP-canonical `publish` on update still crosses the
+		// non-publish → publish boundary the hook is meant to catch.
+		$post = TestBlockContentModel::create( [
+			'title'   => 'Was Not Publish',
+			'status'  => 'published',
+			'content' => [],
+		] );
+
+		$publishedPayloads = [];
+		$savedPayloads     = [];
+		addAction( 'ap.visualEditor.postPublished', function ( $id, $blocks ) use ( &$publishedPayloads ): void {
+			$publishedPayloads[] = [ 'id' => $id, 'blocks' => $blocks ];
+		}, 10, 2 );
+		addAction( 'ap.visualEditor.postSaved', function ( $id, $blocks ) use ( &$savedPayloads ): void {
+			$savedPayloads[] = [ 'id' => $id, 'blocks' => $blocks ];
+		}, 10, 2 );
+
+		$this->putJson( "/visual-editor/api/posts/{$post->id}", [
+			'status'  => 'publish',
+			'content' => [ 'raw' => '', 'blocks' => blockTree() ],
+		] )->assertOk();
+
+		expect( $publishedPayloads )->toHaveCount( 1 )
+			->and( $savedPayloads )->toHaveCount( 1 )
+			->and( $publishedPayloads[0]['id'] )->toBe( $post->id )
+			->and( $publishedPayloads[0]['blocks'] )->toEqual( blockTree() )
+			->and( $savedPayloads[0]['id'] )->toBe( $post->id )
+			->and( $savedPayloads[0]['blocks'] )->toEqual( blockTree() );
+	} );
+
+	it( 'fires postSaved without postPublished when an update makes no status transition', function (): void {
+		actor();
+
+		$post = TestBlockContentModel::create( [
+			'title'   => 'Content-only',
+			'status'  => 'published',
+			'content' => [],
+		] );
+
+		$savedCalls     = 0;
+		$publishedCalls = 0;
+		addAction( 'ap.visualEditor.postSaved', function () use ( &$savedCalls ): void {
+			$savedCalls++;
+		} );
+		addAction( 'ap.visualEditor.postPublished', function () use ( &$publishedCalls ): void {
+			$publishedCalls++;
+		} );
+
+		$this->putJson( "/visual-editor/api/posts/{$post->id}", [
+			'title'   => 'Content-only (revised)',
+			'content' => [ 'raw' => '', 'blocks' => blockTree() ],
+		] )->assertOk();
+
+		expect( $savedCalls )->toBe( 1 )
+			->and( $publishedCalls )->toBe( 0 );
+	} );
+
+	it( 'does not re-fire postPublished when status stays at the same publish value', function (): void {
+		actor();
+
+		$post = TestBlockContentModel::create( [
+			'title'   => 'Already',
+			'status'  => 'published',
+			'content' => [],
+		] );
+
+		$publishedCalls = 0;
+		addAction( 'ap.visualEditor.postPublished', function () use ( &$publishedCalls ): void {
+			$publishedCalls++;
+		} );
+
+		// Same status on both sides — no transition — so no publish event.
+		$this->putJson( "/visual-editor/api/posts/{$post->id}", [
+			'title'   => 'Already (revised)',
+			'status'  => 'published',
+			'content' => [ 'raw' => '', 'blocks' => blockTree() ],
+		] )->assertOk();
+
+		expect( $publishedCalls )->toBe( 0 );
+	} );
+} );

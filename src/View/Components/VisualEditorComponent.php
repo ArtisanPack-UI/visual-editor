@@ -141,6 +141,102 @@ class VisualEditorComponent extends Component
 		$this->initialUpdatedAt     = $this->resolveTimestamp( $model, 'updated_at' );
 		$this->contentTypes         = $this->resolveContentTypes();
 		$this->breakpoints          = app( BreakpointRegistry::class )->toArray();
+
+		$this->applyEditorConfigFilter();
+	}
+
+	/**
+	 * Identifies the editor surface for the `ap.visualEditor.editorConfig`
+	 * filter. Subclasses (e.g. a future site-editor component) override
+	 * to return `'site'` so callbacks can gate their overrides per screen.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @return string
+	 */
+	protected function screen(): string
+	{
+		return 'post';
+	}
+
+	/**
+	 * Runs the assembled editor config through the
+	 * `ap.visualEditor.editorConfig` filter and re-hydrates the
+	 * component's props from the filtered result.
+	 *
+	 * Each known prop declares a coercer that maps a filter-returned
+	 * value to its declared type or falls back to the current value —
+	 * so an extra key from the filter can't leak into unrelated props,
+	 * and a malformed value can't poison a typed prop. To extend, add a
+	 * new row to {@see configSchema()} rather than a fresh assignment.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @return void
+	 */
+	protected function applyEditorConfigFilter(): void
+	{
+		$schema = $this->configSchema();
+		$config = [];
+
+		foreach ( array_keys( $schema ) as $key ) {
+			$config[ $key ] = $this->{$key};
+		}
+
+		$filtered = applyFilters( 'ap.visualEditor.editorConfig', $config, $this->screen() );
+
+		if ( ! is_array( $filtered ) ) {
+			return;
+		}
+
+		foreach ( $schema as $key => $coercer ) {
+			if ( ! array_key_exists( $key, $filtered ) ) {
+				continue;
+			}
+
+			$this->{$key} = $coercer( $filtered[ $key ], $this->{$key} );
+		}
+	}
+
+	/**
+	 * Prop-name → coercer table for the editor config filter.
+	 *
+	 * Each coercer takes the filter-returned value plus the current prop
+	 * value and returns whatever should land on the prop; returning
+	 * `$current` is the "reject bad shape" fallback.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @return array<string, callable(mixed, mixed): mixed>
+	 */
+	protected function configSchema(): array
+	{
+		$string             = static fn ( mixed $v, mixed $current ) => is_string( $v ) ? $v : $current;
+		$nullableString     = static fn ( mixed $v, mixed $current ) => is_string( $v ) || null === $v ? $v : $current;
+		$nullableArray      = static fn ( mixed $v, mixed $current ) => is_array( $v ) || null === $v ? $v : $current;
+		$nullableBool       = static fn ( mixed $v, mixed $current ) => is_bool( $v ) || null === $v ? $v : $current;
+		$nullableIntOrString = static fn ( mixed $v, mixed $current ) => is_int( $v ) || is_string( $v ) || null === $v ? $v : $current;
+		$array              = static fn ( mixed $v, mixed $current ) => is_array( $v ) ? $v : $current;
+
+		return [
+			'resource'             => $string,
+			'modelId'              => $string,
+			'apiBase'              => $string,
+			'initialTitle'         => $nullableString,
+			'initialSlug'          => $nullableString,
+			'initialStatus'        => $nullableString,
+			'initialExcerpt'       => $nullableString,
+			'initialFeaturedImage' => $nullableArray,
+			'initialAuthorId'      => $nullableIntOrString,
+			'initialCommentsOpen'  => $nullableBool,
+			'authorOptions'        => $nullableArray,
+			'supports'             => $nullableArray,
+			'previewUrl'           => $nullableString,
+			'initialCreatedAt'     => $nullableString,
+			'initialUpdatedAt'     => $nullableString,
+			'contentTypes'         => $array,
+			'breakpoints'          => $array,
+		];
 	}
 
 	/**

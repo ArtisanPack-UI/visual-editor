@@ -1483,3 +1483,55 @@ describe( 'Keystone #50 — block-supports compilation on the rendered HTML', fu
 		expect( $good )->toContain( 'is-content-justification-space-between' );
 	} );
 } );
+
+describe( 'ap.visualEditor.beforeRender filter', function (): void {
+	afterEach( function (): void {
+		removeAllFilters( 'ap.visualEditor.beforeRender' );
+	} );
+
+	it( 'lets a callback mutate attributes before the block renders', function (): void {
+		addFilter( 'ap.visualEditor.beforeRender', function ( array $attributes, string $name ): array {
+			if ( 'core/paragraph' !== $name ) {
+				return $attributes;
+			}
+
+			$attributes['content'] = 'Filtered';
+
+			return $attributes;
+		}, 10, 2 );
+
+		$html = makeRenderer()->render( [ makeBlock( 'core/paragraph', [ 'content' => 'Original' ] ) ] );
+
+		expect( $html )->toContain( 'Filtered' )
+			->not->toContain( 'Original' );
+	} );
+
+	it( 'ignores a non-array return so a misbehaving callback cannot corrupt the attributes', function (): void {
+		addFilter( 'ap.visualEditor.beforeRender', function ( array $attributes, string $name ): ?bool {
+			return null;
+		}, 10, 2 );
+
+		$html = makeRenderer()->render( [ makeBlock( 'core/paragraph', [ 'content' => 'Kept' ] ) ] );
+
+		expect( $html )->toContain( 'Kept' );
+	} );
+
+	it( 'receives the block name so callbacks can gate per-type', function (): void {
+		$namesSeen = [];
+
+		addFilter( 'ap.visualEditor.beforeRender', function ( array $attributes, string $name ) use ( &$namesSeen ): array {
+			$namesSeen[] = $name;
+
+			return $attributes;
+		}, 10, 2 );
+
+		makeRenderer()->render( [
+			makeBlock( 'core/group', [], [
+				makeBlock( 'core/paragraph', [ 'content' => 'A' ], [], 'p1' ),
+			] ),
+		] );
+
+		expect( $namesSeen )->toContain( 'core/group' )
+			->toContain( 'core/paragraph' );
+	} );
+} );

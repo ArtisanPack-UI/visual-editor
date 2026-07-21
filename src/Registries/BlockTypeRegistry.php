@@ -58,6 +58,15 @@ class BlockTypeRegistry
 		}
 
 		$this->blocks[ $normalized ] = array_merge( ['name' => $normalized], $definition );
+
+		// `ap.visualEditor.blockRegistered` — fires once per registered block
+		// type, at the end of registration. Payload is the normalized block
+		// name and the merged definition array (block.json plus any
+		// programmatic overrides). Extensions typically use this to attach
+		// server-side runtime concerns (variations, bindings, category
+		// registration) that only make sense once a block has been accepted
+		// by the registry.
+		doAction( 'ap.visualEditor.blockRegistered', $normalized, $this->blocks[ $normalized ] );
 	}
 
 	/**

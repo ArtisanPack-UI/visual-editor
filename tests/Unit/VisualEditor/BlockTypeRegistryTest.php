@@ -55,3 +55,40 @@ it( 'rejects block names missing a namespace', function () {
 
 	$registry->register( 'paragraph', [] );
 } )->throws( InvalidArgumentException::class );
+
+it( 'fires ap.visualEditor.blockRegistered on successful registration', function (): void {
+	$registry = new BlockTypeRegistry();
+	$seen     = [];
+
+	addAction( 'ap.visualEditor.blockRegistered', function ( string $name, array $config ) use ( &$seen ): void {
+		$seen[] = [ 'name' => $name, 'config' => $config ];
+	}, 10, 2 );
+
+	$registry->register( 'acme/hero', [ 'title' => 'Hero', 'category' => 'design' ] );
+
+	removeAllActions( 'ap.visualEditor.blockRegistered' );
+
+	expect( $seen )->toHaveCount( 1 )
+		->and( $seen[0]['name'] )->toBe( 'acme/hero' )
+		->and( $seen[0]['config']['title'] )->toBe( 'Hero' )
+		->and( $seen[0]['config']['name'] )->toBe( 'acme/hero' );
+} );
+
+it( 'does not fire ap.visualEditor.blockRegistered when the name is invalid', function (): void {
+	$registry = new BlockTypeRegistry();
+	$fired    = false;
+
+	addAction( 'ap.visualEditor.blockRegistered', function () use ( &$fired ): void {
+		$fired = true;
+	} );
+
+	try {
+		$registry->register( 'BAD NAME', [] );
+	} catch ( InvalidArgumentException $e ) {
+		// expected
+	}
+
+	removeAllActions( 'ap.visualEditor.blockRegistered' );
+
+	expect( $fired )->toBeFalse();
+} );
