@@ -163,7 +163,7 @@ class TemplateAdapter
 	 * hard-coupled to cms-framework, so a missing parser here is a
 	 * dev-environment signal, not a runtime failure to swallow.
 	 *
-	 * @since 1.5.2
+	 * @since 1.5.1
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
@@ -188,7 +188,7 @@ class TemplateAdapter
 	 * refs are self-closing, so a theme author's non-standard
 	 * nesting doesn't leave a stray unregistered node behind.
 	 *
-	 * @since 1.5.2
+	 * @since 1.5.1
 	 *
 	 * @param  array<int, array<string, mixed>>  $tree
 	 *
@@ -231,7 +231,7 @@ class TemplateAdapter
 	 * the closer `<!-- /wp:template-part -->` for parity, though core
 	 * template-part refs are always self-closing in practice.
 	 *
-	 * @since 1.5.2
+	 * @since 1.5.1
 	 */
 	protected static function rewriteRawTemplatePartToFork( string $raw ): string
 	{
@@ -250,7 +250,7 @@ class TemplateAdapter
 	 * `core/freeform` mystery blocks; the raw stays available via
 	 * `content.raw` if the editor needs to reserialize.
 	 *
-	 * @since 1.5.2
+	 * @since 1.5.1
 	 *
 	 * @param  array<int, array<string, mixed>>  $tree
 	 *
