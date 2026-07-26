@@ -102,6 +102,45 @@ describe( 'GET /visual-editor/api/template-parts', function (): void {
 			->assertOk()
 			->assertJsonCount( 2 );
 	} );
+
+	it( 'filters the list by theme + slug for the composite-id shim fallback', function (): void {
+		foreach ( [ 'header', 'footer' ] as $slug ) {
+			TemplatePart::create( [
+				'theme'         => 'digital-shopfront',
+				'slug'          => $slug,
+				'title'         => ucfirst( $slug ),
+				'area'          => $slug,
+				'status'        => 'publish',
+				'is_custom'     => false,
+				'block_content' => [],
+				'author_id'     => null,
+			] );
+		}
+
+		rebuildSiteEditorResolversForPartTest();
+
+		// Composite `wp_template_part` ids are `theme//slug`, which the
+		// route regex forbids. The core-data shim's fallback (#674) is to
+		// call the index endpoint with `?theme=X&slug=Y` and pluck
+		// `records[0]`. Without server-side filtering the shim picked an
+		// arbitrary part, so `<!-- wp:template-part /-->` references
+		// inside templates mounted the wrong entity — or nothing — and
+		// the canvas showed a blank strip where the header/footer should
+		// have been.
+		$this->getJson( '/visual-editor/api/template-parts?theme=digital-shopfront&slug=footer' )
+			->assertOk()
+			->assertJsonCount( 1 )
+			->assertJsonPath( '0.slug', 'footer' )
+			->assertJsonPath( '0.theme', 'digital-shopfront' );
+
+		$this->getJson( '/visual-editor/api/template-parts?theme=some-other-theme&slug=footer' )
+			->assertOk()
+			->assertExactJson( [] );
+
+		$this->getJson( '/visual-editor/api/template-parts?theme=digital-shopfront' )
+			->assertOk()
+			->assertJsonCount( 2 );
+	} );
 } );
 
 describe( 'GET /visual-editor/api/template-parts/{slug}', function (): void {

@@ -62,6 +62,16 @@ class TemplatePartController extends Controller
 	 * `source` / `synced` filtering already in
 	 * {@see PatternController::index()}.
 	 *
+	 * Also honors `theme` + `slug` — the core-data shim's composite-id
+	 * fallback (`wp_template_part` records are keyed by `theme//slug`)
+	 * calls this endpoint with both params to resolve a single record,
+	 * then reads `records[0]` from the response (#674). Without the
+	 * filter the shim silently picked an arbitrary part, so
+	 * `<!-- wp:template-part {"slug":"header","theme":"foo"} /-->`
+	 * references inside templates mounted the wrong entity — or none —
+	 * and the canvas showed a blank strip where the header/footer
+	 * should have been.
+	 *
 	 * @since 1.0.0
 	 */
 	public function index( Request $request ): JsonResponse
@@ -74,6 +84,24 @@ class TemplatePartController extends Controller
 			$parts = array_filter(
 				$parts,
 				static fn ( ResolvedTemplatePart $part ): bool => $part->area === $area,
+			);
+		}
+
+		$theme = trim( (string) $request->query( 'theme', '' ) );
+
+		if ( '' !== $theme ) {
+			$parts = array_filter(
+				$parts,
+				static fn ( ResolvedTemplatePart $part ): bool => $part->theme === $theme,
+			);
+		}
+
+		$slug = trim( (string) $request->query( 'slug', '' ) );
+
+		if ( '' !== $slug ) {
+			$parts = array_filter(
+				$parts,
+				static fn ( ResolvedTemplatePart $part ): bool => $part->slug === $slug,
 			);
 		}
 

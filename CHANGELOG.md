@@ -6,6 +6,43 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.5.1] - 2026-07-26
+
+### Fixed
+
+- **`<!-- wp:template-part /-->` references inside theme templates now
+  render inline in the site-editor canvas (#674).** Three-layered
+  failure: `TemplatePartController::index()` ignored the `?theme=&slug=`
+  filter the core-data shim sends for composite-id fallback, so the
+  shim silently picked an arbitrary sibling (or the missing-record
+  placeholder). `TemplateAdapter` shipped `content.blocks: []` for
+  theme-file sources because cms-framework's filter contributor only
+  populates `raw_content`, and the shim's raw-fallback parser is
+  scoped to nav-link / nav-submenu blocks. Since the I7 cutover
+  (#415) removed `registerCoreBlocks()`, `core/template-part` blocks
+  land unregistered and get dropped; the `artisanpack/template-part`
+  fork's edit delegated to `core/template-part` via
+  `createForkedEntityEdit`, which fell back to an empty `<div>`
+  because the core lookup returned undefined. Fixed at all three
+  layers — controller now filters by `theme` + `slug`; adapter parses
+  `raw` server-side via cms-framework 2.5+'s `BlockMarkupParser`
+  (guarded with `class_exists` so older versions degrade gracefully)
+  and rewrites `core/template-part` to the fork in both `raw` and
+  `blocks`; the fork ships a real edit that composes the composite id
+  from `slug` + `theme`, hands off to the shim's
+  `useEntityBlockEditor`, and mounts the resolved tree through
+  `useInnerBlocksProps` with `templateLock: 'all'`. The composite
+  call is gated behind a subcomponent so a legacy reference missing
+  `theme` can't leak through the shim's ambient-id fallback and mount
+  the parent template recursively.
+- **Site-editor canvas no longer paints a `padding: 24px` inset + a
+  hardcoded `background: #fff` over the theme's own background
+  (#674).** Templates and template-parts span the full viewport on
+  the front-end, so the inset made full-bleed sections cap short of
+  the shell edges and dark themes read as a pale-rimmed rectangle.
+  Scoped to `.ap-site-editor__entity-canvas-surface`; the pattern
+  editor uses `.ap-pattern-canvas__surface` and is unaffected.
+
 ## [1.5.0] - 2026-07-21
 
 ### Added
