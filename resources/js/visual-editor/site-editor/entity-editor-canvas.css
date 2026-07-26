@@ -46,9 +46,18 @@
 
 .ap-site-editor__entity-canvas-surface {
     flex: 1;
-    padding: 24px;
-    background: #fff;
     min-height: 100%;
+    /*
+     * No padding / hardcoded background here (#674 follow-up). Templates
+     * and template parts span the full viewport on the front-end, so a
+     * 24px inset + a white surface made the canvas frame the content in
+     * a way the published page never will — full-bleed sections were
+     * capped short of the shell edges and dark themes read as a
+     * pale-rimmed rectangle on top of a dark chrome. Leaving both
+     * unset lets the theme's own `body`/`html` background (emitted
+     * through `CanvasThemeStyles`) paint the surface and the theme's
+     * root-layout spacing decide where content sits.
+     */
 }
 
 /* Clickable empty area: when a template has no blocks yet, the default
