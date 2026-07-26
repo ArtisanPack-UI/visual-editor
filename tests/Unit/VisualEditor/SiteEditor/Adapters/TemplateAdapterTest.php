@@ -68,10 +68,128 @@ describe( 'single-record envelope', function (): void {
 				'rendered' => 'Single Post',
 				'raw'      => 'Single Post',
 			] )
-			->and( $out['content'] )->toBe( [
-				'raw'    => '<!-- wp:post-title /-->',
-				'blocks' => [],
+			->and( $out['content']['raw'] )->toBe( '<!-- wp:post-title /-->' )
+			// Theme-file sources reach the adapter with `blocks: []` —
+			// cms-framework's filter contributor doesn't parse the file.
+			// The adapter parses `raw` server-side so the shim doesn't
+			// fall through to the nav-only `parseNavigationContent`
+			// fallback that drops every non-nav block (#674).
+			->and( $out['content']['blocks'] )->toBe( [
+				[ 'name' => 'core/post-title', 'attributes' => [], 'innerBlocks' => [] ],
 			] );
+	} );
+
+	it( 'parses `raw` into editor-shape blocks when `blocks` is empty (#674)', function (): void {
+		$template = makeResolvedTemplate( [
+			'rawContent' => '<!-- wp:group {"tagName":"header"} --><header class="wp-block-group">'
+				. '<!-- wp:site-title /-->'
+				. '<!-- wp:navigation {"ref":42} /-->'
+				. '</header><!-- /wp:group -->',
+			'blocks'     => [],
+		] );
+
+		$out = ( new TemplateAdapter() )->toArray( $template );
+
+		expect( $out['content']['blocks'] )->toHaveCount( 1 )
+			->and( $out['content']['blocks'][0]['name'] )->toBe( 'core/group' )
+			->and( $out['content']['blocks'][0]['attributes'] )->toBe( [ 'tagName' => 'header' ] )
+			->and( $out['content']['blocks'][0]['innerBlocks'] )->toHaveCount( 2 )
+			->and( $out['content']['blocks'][0]['innerBlocks'][0]['name'] )->toBe( 'core/site-title' )
+			->and( $out['content']['blocks'][0]['innerBlocks'][1]['name'] )->toBe( 'core/navigation' )
+			->and( $out['content']['blocks'][0]['innerBlocks'][1]['attributes'] )->toBe( [ 'ref' => 42 ] );
+	} );
+
+	it( 'translates `core/template-part` to the artisanpack fork in both `raw` and `blocks` (#674)', function (): void {
+		// The I7 cutover (#415) removed `registerCoreBlocks()`, so
+		// `core/template-part` reaches the editor unregistered and gets
+		// silently dropped — the visible half of #674. The adapter
+		// rewrites both hydration paths (`content.raw` that
+		// `hydrateBlocks` calls `parse()` on, and the pre-parsed
+		// `content.blocks` tree the shim's `useEntityBlockEditor`
+		// consumes) so the registered `artisanpack/template-part` fork
+		// mounts instead.
+		$template = makeResolvedTemplate( [
+			'rawContent' => '<!-- wp:template-part {"slug":"header","theme":"dev-sample","tagName":"header"} /-->' . "\n"
+				. '<!-- wp:artisanpack/group --><div class="wp-block-group"></div><!-- /wp:artisanpack/group -->' . "\n"
+				. '<!-- wp:template-part {"slug":"footer","theme":"dev-sample","tagName":"footer"} /-->',
+			'blocks'     => [],
+		] );
+
+		$out = ( new TemplateAdapter() )->toArray( $template );
+
+		expect( $out['content']['raw'] )->toContain( 'wp:artisanpack/template-part' )
+			->and( $out['content']['raw'] )->not->toContain( 'wp:template-part ' )
+			->and( $out['content']['blocks'] )->toHaveCount( 3 )
+			->and( $out['content']['blocks'][0]['name'] )->toBe( 'artisanpack/template-part' )
+			->and( $out['content']['blocks'][0]['attributes'] )->toBe( [
+				'slug'    => 'header',
+				'theme'   => 'dev-sample',
+				'tagName' => 'header',
+			] )
+			->and( $out['content']['blocks'][2]['name'] )->toBe( 'artisanpack/template-part' )
+			->and( $out['content']['blocks'][2]['attributes']['slug'] )->toBe( 'footer' );
+	} );
+
+	it( 'translates `core/template-part` in pre-parsed blocks even when raw is empty', function (): void {
+		// Guards the innerBlocks recursion path — a theme author who
+		// (non-standard but syntactically valid) nested template-parts
+		// under another block would leave a stray unregistered node
+		// behind if we only walked the top level.
+		$template = makeResolvedTemplate( [
+			'rawContent' => '',
+			'blocks'     => [
+				[
+					'name'        => 'artisanpack/group',
+					'attributes'  => [],
+					'innerBlocks' => [
+						[
+							'name'        => 'core/template-part',
+							'attributes'  => [ 'slug' => 'nested-header', 'theme' => 'dev-sample' ],
+							'innerBlocks' => [],
+						],
+					],
+				],
+			],
+		] );
+
+		$out = ( new TemplateAdapter() )->toArray( $template );
+
+		expect( $out['content']['blocks'][0]['innerBlocks'][0]['name'] )
+			->toBe( 'artisanpack/template-part' );
+	} );
+
+	it( 'does not rewrite delimiters whose name only starts with `template-part`', function (): void {
+		// Defensive check for the raw-rewrite regex — a hypothetical
+		// `wp:template-parts-listing` block (or any name that shares
+		// the `template-part` prefix but has more chars after) must
+		// not be munged. The delimiter regex anchors on `[\s\/}]` at
+		// the end of the name segment.
+		$template = makeResolvedTemplate( [
+			'rawContent' => '<!-- wp:template-parts-listing {"foo":1} /-->',
+			'blocks'     => [
+				[ 'name' => 'core/template-parts-listing', 'attributes' => [ 'foo' => 1 ], 'innerBlocks' => [] ],
+			],
+		] );
+
+		$out = ( new TemplateAdapter() )->toArray( $template );
+
+		expect( $out['content']['raw'] )->toBe( '<!-- wp:template-parts-listing {"foo":1} /-->' )
+			->and( $out['content']['blocks'][0]['name'] )->toBe( 'core/template-parts-listing' );
+	} );
+
+	it( 'prefers the pre-parsed `blocks` array over re-parsing `raw` when both are populated', function (): void {
+		$template = makeResolvedTemplate( [
+			'rawContent' => '<!-- wp:paragraph -->Raw<!-- /wp:paragraph -->',
+			'blocks'     => [
+				[ 'name' => 'core/heading', 'attributes' => [ 'content' => 'FromBlocks' ], 'innerBlocks' => [] ],
+			],
+		] );
+
+		$out = ( new TemplateAdapter() )->toArray( $template );
+
+		expect( $out['content']['blocks'] )->toBe( [
+			[ 'name' => 'core/heading', 'attributes' => [ 'content' => 'FromBlocks' ], 'innerBlocks' => [] ],
+		] );
 	} );
 
 	it( 'flips `source` to `db` and surfaces wp_id when a DB override exists', function (): void {
