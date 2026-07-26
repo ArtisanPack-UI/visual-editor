@@ -5,6 +5,17 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\TemplateAdapter;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplate;
 
+// The adapter's raw→blocks server-side parse (#674) depends on
+// `BlockMarkupParser`, added in cms-framework 2.5. That version
+// requires PHP 8.3+, so on PHP 8.2 CI the composer resolver picks an
+// older cms-framework and the parser is absent. The adapter's
+// `class_exists` guard keeps runtime safe; tests that assert the
+// parsed output need this skip guard.
+function templatePartParserAvailable(): bool
+{
+	return class_exists( 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\BlockMarkupParser' );
+}
+
 function makeResolvedTemplate( array $overrides = [] ): ResolvedTemplate
 {
 	$defaults = [
@@ -68,15 +79,12 @@ describe( 'single-record envelope', function (): void {
 				'rendered' => 'Single Post',
 				'raw'      => 'Single Post',
 			] )
-			->and( $out['content']['raw'] )->toBe( '<!-- wp:post-title /-->' )
-			// Theme-file sources reach the adapter with `blocks: []` —
-			// cms-framework's filter contributor doesn't parse the file.
-			// The adapter parses `raw` server-side so the shim doesn't
-			// fall through to the nav-only `parseNavigationContent`
-			// fallback that drops every non-nav block (#674).
-			->and( $out['content']['blocks'] )->toBe( [
-				[ 'name' => 'core/post-title', 'attributes' => [], 'innerBlocks' => [] ],
-			] );
+			->and( $out['content']['raw'] )->toBe( '<!-- wp:post-title /-->' );
+		// The `content.blocks` shape for a theme-file source is covered
+		// separately by the parser-dependent tests below — depending on
+		// whether cms-framework 2.5+'s `BlockMarkupParser` resolved,
+		// blocks either stays `[]` (older cms-framework, PHP 8.2 CI) or
+		// gets populated from parsing `raw`.
 	} );
 
 	it( 'parses `raw` into editor-shape blocks when `blocks` is empty (#674)', function (): void {
@@ -97,7 +105,7 @@ describe( 'single-record envelope', function (): void {
 			->and( $out['content']['blocks'][0]['innerBlocks'][0]['name'] )->toBe( 'core/site-title' )
 			->and( $out['content']['blocks'][0]['innerBlocks'][1]['name'] )->toBe( 'core/navigation' )
 			->and( $out['content']['blocks'][0]['innerBlocks'][1]['attributes'] )->toBe( [ 'ref' => 42 ] );
-	} );
+	} )->skip( fn () => ! templatePartParserAvailable(), 'requires cms-framework 2.5+ (PHP 8.3+)' );
 
 	it( 'translates `core/template-part` to the artisanpack fork in both `raw` and `blocks` (#674)', function (): void {
 		// The I7 cutover (#415) removed `registerCoreBlocks()`, so
@@ -128,7 +136,7 @@ describe( 'single-record envelope', function (): void {
 			] )
 			->and( $out['content']['blocks'][2]['name'] )->toBe( 'artisanpack/template-part' )
 			->and( $out['content']['blocks'][2]['attributes']['slug'] )->toBe( 'footer' );
-	} );
+	} )->skip( fn () => ! templatePartParserAvailable(), 'requires cms-framework 2.5+ (PHP 8.3+)' );
 
 	it( 'translates `core/template-part` in pre-parsed blocks even when raw is empty', function (): void {
 		// Guards the innerBlocks recursion path — a theme author who
