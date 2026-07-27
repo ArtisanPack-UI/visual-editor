@@ -1,6 +1,11 @@
 /vendor/
 .idea/
 node_modules/
+# `dist/` is intentionally ignored on every working branch so local
+# builds don't leak into diffs. The `release.yml` workflow force-adds
+# `dist/editor/` and `dist/lib/` when it bakes the release tag so
+# Composer consumers (Keystone CMS etc. — see #678) get the built
+# bundles from `vendor/artisanpack-ui/visual-editor/dist/editor/`.
 dist/
 .vite/
 *.log
