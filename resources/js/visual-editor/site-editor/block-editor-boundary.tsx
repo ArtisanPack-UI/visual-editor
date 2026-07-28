@@ -37,6 +37,8 @@ import '@wordpress/format-library';
 import { type ReactNode } from 'react';
 
 import { ConvertToPatternControl } from '../editor/convert-to-pattern-control';
+import { StateInspectorSync } from '../states/StateInspectorSync';
+import { StateWriteInterceptor } from '../states/state-write-interceptor';
 import { useThemedEditorSettings } from '../use-themed-editor-settings';
 
 // Gutenberg editor-surface stylesheets. Previously imported by each
@@ -203,6 +205,8 @@ export function BlockEditorBoundary(props: BlockEditorBoundaryProps): JSX.Elemen
                 onInput={onInput}
             >
                 {children}
+                <StateWriteInterceptor />
+                <StateInspectorSync />
                 <Popover.Slot />
                 {apiBase !== undefined && apiBase !== '' ? (
                     <ConvertToPatternControl apiBase={apiBase} />

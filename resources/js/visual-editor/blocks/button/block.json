@@ -169,6 +169,12 @@
                 "dimensions.transform",
                 "transition"
             ]
+        },
+        "artisanpackResponsive": {
+            "attributes": [
+                "spacing",
+                "dimensions"
+            ]
         }
     },
     "styles": [

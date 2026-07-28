@@ -66,6 +66,24 @@ vi.mock('../../editor/convert-to-pattern-control', () => ({
     ConvertToPatternControl: (): null => CONVERT_TO_PATTERN_CONTROL_MOCK(),
 }));
 
+// The boundary mounts StateWriteInterceptor + StateInspectorSync so
+// panel writes route through the state bag the same way the post
+// editor's provider does. Their real implementations transitively pull
+// in `@wordpress/blocks`, which trips a JSON-import-attribute error
+// under jsdom — stub them as no-ops so this structural test stays
+// green.
+vi.mock('../../states/state-write-interceptor', () => ({
+    StateWriteInterceptor: (): JSX.Element => (
+        <div data-testid="ap-stub-state-write-interceptor" />
+    ),
+}));
+
+vi.mock('../../states/StateInspectorSync', () => ({
+    StateInspectorSync: (): JSX.Element => (
+        <div data-testid="ap-stub-state-inspector-sync" />
+    ),
+}));
+
 import { BlockEditorBoundary } from '../block-editor-boundary';
 import { DEFAULT_CANVAS_STYLES } from '../../editor-settings';
 import { resetThemeGlobalStylesCssCache } from '../use-theme-global-styles-css';
@@ -92,6 +110,33 @@ describe('BlockEditorBoundary', () => {
         const provider = providers[0]!;
         expect(within(provider).getByTestId('canvas-slot')).toBeInTheDocument();
         expect(within(provider).getByTestId('inspector-slot')).toBeInTheDocument();
+    });
+
+    it('mounts StateWriteInterceptor and StateInspectorSync inside the shared provider (#700)', () => {
+        // Regression for the site-editor per-size/per-state scoping bug:
+        // WordPress's apiVersion-3 color/border/shadow panels dispatch
+        // `updateBlockAttributes` directly, so writes only route through
+        // the state bag if these two components render inside the same
+        // BlockEditorProvider as the canvas. When #436 hoisted the
+        // provider they were left behind, and every scoped write leaked
+        // to the base attribute.
+        render(
+            <BlockEditorBoundary
+                blocks={[]}
+                onChange={() => undefined}
+                onInput={() => undefined}
+            >
+                <div data-testid="canvas-slot" />
+            </BlockEditorBoundary>
+        );
+
+        const provider = screen.getByTestId('ap-stub-block-editor-provider');
+        expect(
+            within(provider).getByTestId('ap-stub-state-write-interceptor')
+        ).toBeInTheDocument();
+        expect(
+            within(provider).getByTestId('ap-stub-state-inspector-sync')
+        ).toBeInTheDocument();
     });
 
     it('omits the convert-to-pattern control when no apiBase is given', () => {
