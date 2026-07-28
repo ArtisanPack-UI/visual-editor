@@ -10,6 +10,22 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **Site editor now exposes the media-bridge registration surface
+  (#677).** The site-editor bundle shipped without installing the
+  `editor.MediaUpload` slot-fill filter and without re-exporting
+  `registerMediaBridge` / `registerArtisanpackMediaBridge` from
+  `site-editor/main.tsx`, so the `core/image` block placeholder in
+  template parts hid the **Media Library** button and clicking
+  **Upload** silently no-op'd — the fallback uploader surfaced an
+  "Uploads are unavailable until a media bridge is registered"
+  snackbar because no host could actually register one on the
+  site-editor entry. `site-editor/main.tsx` now mirrors the
+  post-editor registration surface: the bridge exports ride through
+  the ESM entry, `window.ApSiteEditor` + `window.ApSiteEditorBoot`
+  are installed to match `window.ApVisualEditor`, and
+  `ensureMediaBridgeFilter()` is called at module load so the slot
+  fill is in place even when the host registers the bridge
+  asynchronously.
 - **Composer tarball now ships pre-built editor bundles under
   `dist/editor/` and `dist/lib/` (#678).** Previous releases treated
   `dist/` as a purely local artefact — `.gitignore` excluded it, the
