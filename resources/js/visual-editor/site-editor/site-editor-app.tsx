@@ -50,6 +50,11 @@ import { registerArtisanPackBlocks } from '../blocks';
 import { registerBoxShadows } from '../box-shadows/register';
 import { registerGradientBorders } from '../gradient-borders/register';
 import { registerPositioning } from '../positioning/register';
+import { registerResponsiveAttribute } from '../responsive/register-attribute';
+import { registerResponsiveAttributesFilter } from '../responsive/with-responsive-attributes';
+import { registerStateAttribute } from '../states/register-attribute';
+import { registerStateAttributesFilter } from '../states/with-state-attributes';
+import { registerStateStylesFilters } from '../states/with-state-styles';
 
 import { BlockLibrarySidebar } from '../editor/block-library-sidebar';
 import { TopBar } from '../editor/top-bar';
@@ -182,6 +187,21 @@ function ensureEditorBoot(): void {
     // `ap.visual-editor.background-controls` filter. Idempotent across
     // the post-editor and site-editor bootstrap paths.
     registerBackgroundControls();
+
+    // #700 — responsive + state feature filters. Must be registered
+    // BEFORE `registerArtisanPackBlocks()` below so opted-in blocks
+    // pick up the auto-injected `responsive` / `states` storage keys
+    // at registration time and the `editor.BlockEdit` HOCs wrap every
+    // edit component on first render. Without these, per-breakpoint
+    // and per-state panel writes leak to the base attribute and apply
+    // to every size / state — the site editor was missing the whole
+    // pipeline (the post editor calls the same functions at
+    // `editor/editor-app.tsx:211-219`).
+    registerResponsiveAttribute();
+    registerResponsiveAttributesFilter();
+    registerStateAttribute();
+    registerStateAttributesFilter();
+    registerStateStylesFilters();
 
     // #490 — gradient border feature filters; same "before
     // registerArtisanPackBlocks" placement as the post-editor so opted-in

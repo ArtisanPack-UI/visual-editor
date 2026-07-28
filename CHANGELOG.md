@@ -6,6 +6,40 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.5.4] - 2026-07-28
+
+### Fixed
+
+- **Site editor per-size and per-state style overrides now scope
+  correctly (#700).** The site-editor bootstrap in
+  `site-editor/site-editor-app.tsx` never called the five `register*()`
+  functions that wire the responsive + state pipeline —
+  `registerResponsiveAttribute`, `registerResponsiveAttributesFilter`,
+  `registerStateAttribute`, `registerStateAttributesFilter`, and
+  `registerStateStylesFilters` — so opted-in blocks never got the
+  auto-injected `responsive` / `states` storage keys, the
+  `editor.BlockEdit` HOCs never wrapped `setAttributes` to route writes
+  into `responsive.<bp>.<path>` or `states.<path>.<activeState>`, and
+  the per-state `<style>` scope class was never injected into the
+  canvas. Every panel write landed on the base attribute, so a change
+  on Hover state or Desktop viewport applied to every state / screen
+  size. All five functions are now registered before
+  `registerArtisanPackBlocks()`, mirroring
+  `editor/editor-app.tsx:211-219`. The shared `BlockEditorProvider` in
+  `site-editor/block-editor-boundary.tsx` also mounts
+  `<StateWriteInterceptor />` and `<StateInspectorSync />` (missed when
+  the provider was hoisted in #436) so apiVersion-3 color / border /
+  shadow panels, which dispatch `updateBlockAttributes` directly and
+  bypass the HOC chain, still route through the state bag.
+- **Button block now opts into responsive spacing / dimensions
+  (#700).** The singular `artisanpack/button` block declared
+  `artisanpackStates` but not `artisanpackResponsive`, so
+  per-breakpoint padding / margin writes had no `responsive` storage
+  key to persist into and applied globally. Added
+  `supports.artisanpackResponsive.attributes: ["spacing", "dimensions"]`
+  in `resources/js/visual-editor/blocks/button/block.json`, matching the
+  convention on the `buttons`, `columns`, `group`, and `column` blocks.
+
 ## [1.5.3] - 2026-07-27
 
 ### Fixed

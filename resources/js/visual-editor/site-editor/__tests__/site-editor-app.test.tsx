@@ -221,6 +221,30 @@ vi.mock('../../positioning/register', () => ({
     registerPositioning: (): void => undefined,
 }));
 
+// #700: the responsive + state registrars pull in `@wordpress/blocks`
+// through their BlockEdit HOCs — same JSON-import-attribute trip under
+// jsdom. The shell tests don't exercise per-breakpoint or per-state
+// panel wiring; the pipeline is covered by its own unit tests.
+vi.mock('../../responsive/register-attribute', () => ({
+    registerResponsiveAttribute: (): void => undefined,
+}));
+
+vi.mock('../../responsive/with-responsive-attributes', () => ({
+    registerResponsiveAttributesFilter: (): void => undefined,
+}));
+
+vi.mock('../../states/register-attribute', () => ({
+    registerStateAttribute: (): void => undefined,
+}));
+
+vi.mock('../../states/with-state-attributes', () => ({
+    registerStateAttributesFilter: (): void => undefined,
+}));
+
+vi.mock('../../states/with-state-styles', () => ({
+    registerStateStylesFilters: (): void => undefined,
+}));
+
 import { resetActiveBreakpoint } from '../../responsive/active-breakpoint';
 import { SiteEditorApp } from '../site-editor-app';
 
