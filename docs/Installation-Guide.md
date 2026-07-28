@@ -58,6 +58,10 @@ The full configuration reference lives in [[Configuration]].
 
 ## 5. Build assets
 
+Two consumption patterns are supported. Pick the one that fits your host app's asset pipeline.
+
+### Pattern A — host runs Vite (default)
+
 The editor JS bundle is registered automatically by the package's Vite plugin. From the host app:
 
 ```bash
@@ -67,7 +71,30 @@ npm run dev      # development
 npm run build    # production
 ```
 
-The editor mounts on every page that contains a `[data-ap-visual-editor]` element.
+The editor mounts on every page that contains a `[data-ap-visual-editor]` element. Use this when the host already owns a Vite pipeline and you want editor sources to hot-reload during development.
+
+### Pattern B — serve pre-built bundles from `vendor/`
+
+Since v1.5.2 the Composer tarball ships pre-built editor bundles under `vendor/artisanpack-ui/visual-editor/dist/editor/`:
+
+```
+vendor/artisanpack-ui/visual-editor/dist/editor/
+├── visual-editor.js
+├── site-editor.js
+├── sandbox.js
+└── chunks/
+    ├── gutenberg-*.js
+    ├── editor-app-*.js
+    └── …
+```
+
+Host apps that don't want Node in their asset pipeline (Keystone CMS uses this pattern — see #678) can serve those files directly through a Laravel controller. Route `/visual-editor/{file}` and `/visual-editor/chunks/{file}` to a controller that streams from `base_path('vendor/artisanpack-ui/visual-editor/dist/editor/')`, then point the editor's Blade views at those URLs instead of the Vite-managed asset paths.
+
+`dist/lib/visual-editor.js` (the library entry from `package.json`'s `exports` map) also ships in the tarball, so NPM consumers that resolve the package via Composer's git-tarball install path see the same built artefacts as NPM installers.
+
+**Sourcemaps.** Sourcemaps are stripped from the Composer tarball to keep it lean (~18 MB vs. ~48 MB with maps). Each release attaches a `dist-sourcemaps-vX.Y.Z.tar.gz` archive to the GitHub Release page — download and extract it into `vendor/artisanpack-ui/visual-editor/dist/` if you need to debug production bundles.
+
+**Path-repository / dev-app installs.** When the package is installed via Composer's `path` repository (this dev app, or any sibling checkout), `dist/` reflects your local `npm run build` output — the release-workflow-baked bundles never enter your working tree. If a path-installed consumer needs the pre-built bundles, run `npm run build:lib && npm run build` inside the package checkout.
 
 ---
 

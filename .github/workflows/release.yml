@@ -83,8 +83,155 @@ jobs:
       - name: Build app bundle
         run: npm run build
 
-  release:
+  build-dist:
+    # Rebuilds the editor + library bundles, bakes them into the tag's
+    # release commit, and packages sourcemaps as a separate archive.
+    #
+    # `dist/` is intentionally .gitignored on every working branch so
+    # local builds don't leak into diffs. The release commit is the
+    # ONE place the built assets are supposed to live so consumers
+    # that install via Composer's GitHub-tarball resolution (Keystone
+    # CMS, etc. — see #678) get a `vendor/artisanpack-ui/visual-editor/
+    # dist/editor/` tree without running Node themselves.
     needs: [test-php, test-js]
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    name: Build and bake dist/ into release tag
+
+    permissions:
+      contents: write
+
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      release_sha: ${{ steps.commit-dist.outputs.release_sha }}
+      sourcemap_archive: ${{ steps.package-sourcemaps.outputs.archive }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # We need to push a re-tag from this job, so keep the token.
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          case "$VERSION" in
+            ''|*[!0-9A-Za-z.+-]*)
+              echo "Invalid version extracted from tag: $VERSION" >&2
+              exit 1
+              ;;
+          esac
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install npm dependencies
+        run: npm ci
+
+      - name: Build library bundle
+        run: npm run build:lib
+
+      - name: Build editor bundle
+        run: npm run build
+
+      - name: Package sourcemaps and strip them from dist/
+        id: package-sourcemaps
+        env:
+          VERSION_INPUT: ${{ steps.version.outputs.version }}
+        run: |
+          VERSION="$VERSION_INPUT"
+          ARCHIVE="dist-sourcemaps-v${VERSION}.tar.gz"
+
+          mkdir -p release-artifacts
+
+          # Collect every .map under dist/. If any exist, tar them into
+          # a separate archive and delete from the tree — sourcemaps
+          # would ~triple the composer tarball otherwise (#678).
+          find dist -type f -name '*.map' -print0 > sourcemap-files.txt
+          if [ -s sourcemap-files.txt ]; then
+            tar --null -T sourcemap-files.txt -czf "release-artifacts/${ARCHIVE}"
+            xargs -0 rm -f < sourcemap-files.txt
+          else
+            echo "No sourcemaps produced by the build."
+          fi
+          rm -f sourcemap-files.txt
+
+          echo "archive=${ARCHIVE}" >> $GITHUB_OUTPUT
+
+      - name: Verify dist/ contents
+        # Fail loudly if the build ever stops producing the files hosts
+        # depend on. Prevents shipping another `1.5.1`-shaped release
+        # where `dist/editor/` is silently missing.
+        run: |
+          missing=0
+          for f in \
+            dist/editor/visual-editor.js \
+            dist/editor/site-editor.js \
+            dist/editor/sandbox.js \
+            dist/lib/visual-editor.js
+          do
+            if [ ! -f "$f" ]; then
+              echo "Missing required build output: $f" >&2
+              missing=1
+            fi
+          done
+          if [ ! -d dist/editor/chunks ]; then
+            echo "Missing required build output: dist/editor/chunks/" >&2
+            missing=1
+          fi
+          # Sourcemaps must have been split out — leaked .map files
+          # would bloat every composer install by ~30 MB.
+          if find dist -type f -name '*.map' | grep .; then
+            echo "Sourcemaps leaked into dist/ tree after packaging step" >&2
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit dist/ and re-point the release tag
+        id: commit-dist
+        env:
+          VERSION_INPUT: ${{ steps.version.outputs.version }}
+        run: |
+          VERSION="$VERSION_INPUT"
+
+          # `.gitignore` still lists `dist/` — that's what keeps local
+          # builds out of every non-release working tree. Force-add
+          # here so this one release commit contains the built assets.
+          git add --force dist/editor dist/lib
+          git commit -m "chore(release): bake dist/ for v${VERSION} (#678)"
+          RELEASE_SHA=$(git rev-parse HEAD)
+
+          # Re-point the tag at the new commit so Composer /
+          # Packagist resolve the built tarball. Force-push because
+          # the tag already exists at the pre-build commit.
+          git tag -f "v${VERSION}" "$RELEASE_SHA"
+          git push --force origin "refs/tags/v${VERSION}"
+
+          echo "release_sha=$RELEASE_SHA" >> $GITHUB_OUTPUT
+
+      - name: Upload sourcemap archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: sourcemaps
+          path: release-artifacts/
+          if-no-files-found: warn
+          retention-days: 7
+
+  release:
+    needs: [build-dist]
     runs-on: ubuntu-latest
     name: Create Release
 
@@ -94,11 +241,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          # The tag was re-pointed by `build-dist`; check out the new
+          # commit so release notes are extracted from the correct tree.
+          ref: refs/tags/v${{ needs.build-dist.outputs.version }}
           persist-credentials: false
-
-      - name: Extract version from tag
-        id: version
-        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
 
       - name: Extract release notes from CHANGELOG
         id: changelog
@@ -106,7 +252,7 @@ jobs:
           # Pass the tag through an env var instead of interpolating it directly
           # into the shell script — keeps the value as a plain string regardless
           # of what the tag contains and silences zizmor template-injection.
-          VERSION_INPUT: ${{ steps.version.outputs.version }}
+          VERSION_INPUT: ${{ needs.build-dist.outputs.version }}
         run: |
           VERSION="$VERSION_INPUT"
           case "$VERSION" in
@@ -141,13 +287,27 @@ jobs:
           # Write to file for multi-line support
           echo "$NOTES" > release_notes.txt
 
+      - name: Download sourcemap archive
+        uses: actions/download-artifact@v4
+        with:
+          name: sourcemaps
+          path: release-artifacts
+
+      - name: List release assets
+        run: ls -la release-artifacts/ || true
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: v${{ steps.version.outputs.version }}
+          name: v${{ needs.build-dist.outputs.version }}
           body_path: release_notes.txt
           generate_release_notes: false
-          prerelease: ${{ contains(steps.version.outputs.version, '-') }}
+          prerelease: ${{ contains(needs.build-dist.outputs.version, '-') }}
+          # Sourcemaps ride along as a separate archive so debugging is
+          # still possible without inflating every composer install
+          # by ~30 MB (#678).
+          files: release-artifacts/*.tar.gz
+          fail_on_unmatched_files: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
