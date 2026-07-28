@@ -15,12 +15,34 @@
 import { createElement } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 
+import {
+    ensureMediaBridgeFilter,
+    registerArtisanpackMediaBridge as registerArtisanpackMediaBridgeImpl,
+    registerMediaBridge as registerMediaBridgeImpl,
+} from '../media-bridge';
 import { registerHookAliases } from '../support/hook-aliases';
+
+// Re-export the aliased locals so hosts loading this bundle as an ESM
+// module can wire `MediaModal` + `uploadMedia` without also importing
+// the post-editor entry (#677). Uses the aliased locals rather than a
+// second `export … from '../media-bridge'` re-export so the source of
+// truth stays one import statement.
+export {
+    registerArtisanpackMediaBridgeImpl as registerArtisanpackMediaBridge,
+    registerMediaBridgeImpl as registerMediaBridge,
+};
 
 // Install #664 hook-name aliases at module load. See editor/main.tsx for
 // the rationale — the site-editor shares the same hook surface as the
 // post editor.
 registerHookAliases();
+
+// Install the `editor.MediaUpload` filter eagerly (#677) so the Media
+// Library slot fill is in place even if the host registers its bridge
+// after boot. The filter callback resolves the component lazily on each
+// `apply_filters`, so a late `registerMediaBridge()` still lights up
+// the Media Library button in the core/image placeholder.
+ensureMediaBridgeFilter();
 
 import '../a11y.css';
 import type { BreakpointRegistrySnapshot } from '../responsive/types';
@@ -257,6 +279,31 @@ export function bootSiteEditor(
     const elements = scope.querySelectorAll<HTMLElement>(MOUNT_SELECTOR);
 
     return Promise.all(Array.from(elements).map((element) => mount(element)));
+}
+
+// Expose the boot function and media-bridge registration on `window`
+// (#677) so SPA hosts and hosts loading this bundle via `<script
+// type="module">` can wire `MediaModal` + `uploadMedia` before the
+// site-editor mounts its Gutenberg canvas. Mirrors the `window.ApVisualEditor`
+// surface installed by `editor/main.tsx`.
+declare global {
+    interface Window {
+        ApSiteEditorBoot?: (scope?: ParentNode) => Promise<void[]>;
+        ApSiteEditor?: {
+            boot: typeof bootSiteEditor;
+            registerArtisanpackMediaBridge: typeof registerArtisanpackMediaBridgeImpl;
+            registerMediaBridge: typeof registerMediaBridgeImpl;
+        };
+    }
+}
+
+if (typeof window !== 'undefined') {
+    window.ApSiteEditorBoot = bootSiteEditor;
+    window.ApSiteEditor = {
+        boot: bootSiteEditor,
+        registerArtisanpackMediaBridge: registerArtisanpackMediaBridgeImpl,
+        registerMediaBridge: registerMediaBridgeImpl,
+    };
 }
 
 if (typeof document !== 'undefined') {

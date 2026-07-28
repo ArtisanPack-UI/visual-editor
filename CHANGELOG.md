@@ -6,6 +6,55 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.5.2] - 2026-07-27
+
+### Fixed
+
+- **Site editor now exposes the media-bridge registration surface
+  (#677).** The site-editor bundle shipped without installing the
+  `editor.MediaUpload` slot-fill filter and without re-exporting
+  `registerMediaBridge` / `registerArtisanpackMediaBridge` from
+  `site-editor/main.tsx`, so the `core/image` block placeholder in
+  template parts hid the **Media Library** button and clicking
+  **Upload** silently no-op'd — the fallback uploader surfaced an
+  "Uploads are unavailable until a media bridge is registered"
+  snackbar because no host could actually register one on the
+  site-editor entry. `site-editor/main.tsx` now mirrors the
+  post-editor registration surface: the bridge exports ride through
+  the ESM entry, `window.ApSiteEditor` + `window.ApSiteEditorBoot`
+  are installed to match `window.ApVisualEditor`, and
+  `ensureMediaBridgeFilter()` is called at module load so the slot
+  fill is in place even when the host registers the bridge
+  asynchronously.
+- **Composer tarball now ships pre-built editor bundles under
+  `dist/editor/` and `dist/lib/` (#678).** Previous releases treated
+  `dist/` as a purely local artefact — `.gitignore` excluded it, the
+  release workflow built it in an ephemeral runner and threw it
+  away, and hosts installing via Composer's GitHub-tarball resolution
+  ended up with no `vendor/artisanpack-ui/visual-editor/dist/editor/`
+  directory at all. Downstream consequence: Keystone CMS's
+  `VisualEditorAssetController` (which serves the bundles straight
+  from the vendor tree so hosts don't need Node in their asset
+  pipeline) 500'd on every request. The release workflow now runs a
+  `build-and-tag` job that rebuilds both bundles, verifies the
+  required outputs exist, force-adds `dist/editor/` and `dist/lib/`
+  onto the release commit, and re-points the version tag at that
+  commit so Composer resolves the built tarball. Sourcemaps are
+  stripped from the tarball (would ~triple its size) and attached to
+  the GitHub Release as a separate `dist-sourcemaps-vX.Y.Z.tar.gz`
+  archive.
+
+### Changed
+
+- **`docs/Installation-Guide.md` now documents both consumption
+  patterns.** Pattern A (host runs Vite, existing) and Pattern B
+  (host serves pre-built bundles from `vendor/`, new) are called
+  out explicitly so CMS integrators know which they can rely on.
+- **Tarball size increases by ~18 MB** (uncompressed) to carry the
+  pre-built editor and library bundles. Well within Packagist norms
+  but worth calling out for consumers with strict install-size
+  budgets.
+
 ## [1.5.1] - 2026-07-26
 
 ### Fixed
