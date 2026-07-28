@@ -7,18 +7,22 @@ use Symfony\Component\Yaml\Yaml;
 /**
  * Regression tests for `.github/workflows/release.yml`.
  *
- * The release workflow is the ONE place where `dist/editor/` and
- * `dist/lib/` are baked into the release tag so Composer consumers
- * (Keystone CMS etc. — see #678) get pre-built bundles under
- * `vendor/artisanpack-ui/visual-editor/dist/editor/`. Without these
- * tests a future edit could silently drop the dist-baking step and
- * ship another `1.5.1`-shaped release where the tarball has no
- * `dist/editor/` at all.
+ * The release workflow bakes `dist/editor/` + `dist/lib/` into the
+ * release tag so Composer consumers (Keystone CMS etc. — see #678)
+ * get pre-built bundles under
+ * `vendor/artisanpack-ui/visual-editor/dist/editor/`. #678's original
+ * design triggered on tag push and force-updated the tag mid-run,
+ * which raced Packagist's version-immutability policy and lost
+ * (v1.5.2 shipped without dist/ on Packagist — see #683). The
+ * workflow now triggers on `workflow_dispatch`, builds first, and
+ * pushes the tag exactly ONCE at the built commit.
  *
- * Each test asserts a single invariant of the workflow — the shape
- * of the guard, not its exact wording — so cosmetic edits to
- * comments or shell formatting don't break the suite, but removing
- * the guard itself does.
+ * These tests lock the load-bearing invariants of that design: no
+ * `on: push: tags` trigger, no `git push --force` on a version tag,
+ * a guard that refuses to reship an existing tag, and the
+ * verify/strip/commit/tag pipeline. Each test asserts the shape of
+ * one guard so cosmetic edits to comments or formatting don't break
+ * the suite, but removing the guard itself does.
  */
 
 /**
@@ -26,7 +30,7 @@ use Symfony\Component\Yaml\Yaml;
  *
  * @return array{
  *     workflow: array<string, mixed>,
- *     buildDist: array<string, mixed>,
+ *     buildAndTag: array<string, mixed>,
  *     release: array<string, mixed>
  * }
  */
@@ -42,7 +46,7 @@ function loadReleaseWorkflow(): array
 
 	return [
 		'workflow' => $workflow,
-		'buildDist' => $workflow['jobs']['build-dist'] ?? [],
+		'buildAndTag' => $workflow['jobs']['build-and-tag'] ?? [],
 		'release' => $workflow['jobs']['release'] ?? [],
 	];
 }
@@ -60,26 +64,65 @@ function releaseWorkflowRunScripts( array $job ): string
 		->implode( "\n" );
 }
 
-test( 'build-dist job exists and depends on both test jobs', function () {
+test( 'workflow triggers on workflow_dispatch and NEVER on tag push', function () {
 	$w = loadReleaseWorkflow();
 
-	expect( $w['buildDist'] )->not->toBeEmpty(
-		'build-dist job missing — dist/ will not be baked into the release tag'
+	// The YAML `on:` key is parsed to boolean `true` in PHP — access
+	// the raw value via the special key. Prefer the parsed structure.
+	$on = $w['workflow'][ true ] ?? $w['workflow']['on'] ?? [];
+
+	expect( $on )
+		->toHaveKey( 'workflow_dispatch' )
+		->not->toHaveKey( 'push' );
+
+	// The version input must be required — dispatching without a
+	// version would tag with an empty string.
+	$version = $on['workflow_dispatch']['inputs']['version'] ?? [];
+	expect( $version['required'] ?? null )->toBeTrue();
+} );
+
+test( 'build-and-tag job exists and depends on both test jobs', function () {
+	$w = loadReleaseWorkflow();
+
+	expect( $w['buildAndTag'] )->not->toBeEmpty(
+		'build-and-tag job missing — dist/ will not be baked into the release tag'
 	);
-	expect( $w['buildDist']['needs'] )
+	expect( $w['buildAndTag']['needs'] )
 		->toContain( 'test-php' )
 		->toContain( 'test-js' );
 } );
 
-test( 'build-dist runs both build:lib and build so dist/lib and dist/editor are produced', function () {
-	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildDist'] );
+test( 'build-and-tag refuses to overwrite an existing tag on origin', function () {
+	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildAndTag'] );
+
+	// The guard against re-dispatching for an already-shipped
+	// version — without it we could hit Packagist's immutability
+	// wall a second time. See #683.
+	expect( $runs )
+		->toContain( 'git ls-remote --tags --exit-code origin' )
+		->toContain( 'already exists on origin' );
+} );
+
+test( 'build-and-tag verifies the version input matches the manifests', function () {
+	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildAndTag'] );
+
+	// A `-f version=1.5.3` dispatch against a main that still says
+	// 1.5.2 in the manifests would produce a tag inconsistent with
+	// the source's stated version.
+	expect( $runs )
+		->toContain( 'composer.json' )
+		->toContain( 'package.json' );
+} );
+
+test( 'build-and-tag runs both build:lib and build so dist/lib and dist/editor are produced', function () {
+	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildAndTag'] );
 
 	expect( $runs )->toContain( 'npm run build:lib' );
 	expect( $runs )->toContain( 'npm run build' );
 } );
 
-test( 'build-dist strips sourcemaps before committing', function () {
-	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildDist'] );
+test( 'build-and-tag strips sourcemaps before committing', function () {
+	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildAndTag'] );
 
 	// Sourcemaps must be found, packaged, and removed. Without this
 	// the composer tarball grows by ~30 MB per install (#678).
@@ -89,8 +132,8 @@ test( 'build-dist strips sourcemaps before committing', function () {
 		->toContain( 'rm' );
 } );
 
-test( 'build-dist verifies the required build outputs exist', function () {
-	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildDist'] );
+test( 'build-and-tag verifies the required build outputs exist', function () {
+	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildAndTag'] );
 
 	// The verify step guards against silent build breakage that
 	// would ship a release with missing bundles.
@@ -105,8 +148,8 @@ test( 'build-dist verifies the required build outputs exist', function () {
 	}
 } );
 
-test( 'build-dist force-adds dist/editor and dist/lib onto the release commit', function () {
-	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildDist'] );
+test( 'build-and-tag force-adds dist/editor and dist/lib onto the release commit', function () {
+	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildAndTag'] );
 
 	// `dist/` stays .gitignored on every working branch (see the
 	// comment in .gitignore); the release workflow force-adds so
@@ -117,17 +160,21 @@ test( 'build-dist force-adds dist/editor and dist/lib onto the release commit', 
 		->toContain( 'dist/lib' );
 } );
 
-test( 'build-dist re-points the version tag at the dist-baked commit', function () {
-	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildDist'] );
+test( 'build-and-tag pushes the version tag exactly once — no force-push', function () {
+	$runs = releaseWorkflowRunScripts( loadReleaseWorkflow()['buildAndTag'] );
 
-	// Composer resolves tags to SHAs — the tag must move to the
-	// new commit or consumers keep getting the pre-build SHA.
+	// Packagist immutability blocks any subsequent SHA change on a
+	// stable tag — see #683. The workflow must NEVER force-push a
+	// version tag or use `git tag -f`.
 	expect( $runs )
-		->toContain( 'git tag -f' )
-		->toContain( 'git push --force' );
+		->toContain( 'git tag -a' )
+		->toContain( 'git push origin' )
+		->not->toContain( 'git tag -f' )
+		->not->toContain( 'git push --force' )
+		->not->toContain( 'git push -f' );
 } );
 
-test( 'release job checks out the re-tagged commit before extracting notes', function () {
+test( 'release job checks out the tag created by build-and-tag', function () {
 	$release = loadReleaseWorkflow()['release'];
 
 	$checkout = collect( $release['steps'] ?? [] )
@@ -136,7 +183,7 @@ test( 'release job checks out the re-tagged commit before extracting notes', fun
 	expect( $checkout )->not->toBeNull();
 	expect( $checkout['with']['ref'] ?? '' )
 		->toContain( 'refs/tags/v' )
-		->toContain( 'build-dist.outputs.version' );
+		->toContain( 'build-and-tag.outputs.version' );
 } );
 
 test( 'release job downloads the sourcemap artefact and attaches it to the GitHub Release', function () {
@@ -147,7 +194,7 @@ test( 'release job downloads the sourcemap artefact and attaches it to the GitHu
 		fn ( array $step ) => str_starts_with( (string) ( $step['uses'] ?? '' ), 'actions/download-artifact' )
 	);
 	expect( $download )->not->toBeNull(
-		'release job must download the sourcemap archive from build-dist'
+		'release job must download the sourcemap archive from build-and-tag'
 	);
 
 	$ghRelease = $steps->first(
@@ -157,8 +204,8 @@ test( 'release job downloads the sourcemap artefact and attaches it to the GitHu
 	expect( $ghRelease['with']['files'] ?? '' )->toContain( 'release-artifacts' );
 } );
 
-test( 'build-dist declares contents:write permission (required to push the re-tag)', function () {
-	$buildDist = loadReleaseWorkflow()['buildDist'];
+test( 'build-and-tag declares contents:write permission (required to push the tag)', function () {
+	$job = loadReleaseWorkflow()['buildAndTag'];
 
-	expect( $buildDist['permissions']['contents'] ?? '' )->toBe( 'write' );
+	expect( $job['permissions']['contents'] ?? '' )->toBe( 'write' );
 } );
