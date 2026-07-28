@@ -75,7 +75,7 @@ The editor mounts on every page that contains a `[data-ap-visual-editor]` elemen
 
 ### Pattern B — serve pre-built bundles from `vendor/`
 
-Since v1.5.2 the Composer tarball ships pre-built editor bundles under `vendor/artisanpack-ui/visual-editor/dist/editor/`:
+Since v1.5.3 the Composer tarball ships pre-built editor bundles under `vendor/artisanpack-ui/visual-editor/dist/editor/`. (v1.5.2 attempted this too, but a workflow race with Packagist's version-immutability policy left Packagist frozen at a source-only tarball — see #683. Pin `^1.5.3` if you need Pattern B.)
 
 ```
 vendor/artisanpack-ui/visual-editor/dist/editor/
