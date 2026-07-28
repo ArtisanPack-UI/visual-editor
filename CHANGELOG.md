@@ -6,7 +6,58 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.5.3] - 2026-07-27
+
+### Fixed
+
+- **Release workflow no longer races Packagist's version-immutability
+  policy (#683).** The workflow shipped in #678 triggered on
+  `push: tags: 'v*'` and used a `build-dist` job to force-update the
+  tag mid-run so the composer tarball would carry `dist/editor/` +
+  `dist/lib/`. Packagist's crawler observes new stable tags within
+  seconds and freezes their SHA permanently — the workflow lost that
+  race on v1.5.2, so Packagist ended up pinned at the source-only
+  commit while GitHub's tag advanced to the dist-baked one. Composer
+  consumers of v1.5.2 still got the source-only tarball, same broken
+  state as v1.5.1. The workflow now triggers on `workflow_dispatch`
+  with a `version` input. The maintainer merges the release PR into
+  main, then invokes `gh workflow run release.yml -f version=X.Y.Z`.
+  The workflow guards against re-shipping an existing tag, verifies
+  the version input matches `composer.json` / `package.json`, builds
+  `dist/`, commits it onto a fresh commit, creates the tag on that
+  commit with `git tag -a` (annotated, not `-f`), and pushes it
+  exactly ONCE with `git push origin refs/tags/vX.Y.Z` (no
+  `--force`). Packagist observes the tag exactly once, at the
+  correct SHA. `tests/Feature/Ci/ReleaseWorkflowTest.php` was
+  rewritten to lock the new invariants and explicitly banned
+  `git tag -f` / `git push --force` on version tags so the race
+  can't recur silently.
+
+### Notes
+
+- **v1.5.3 is the first release that actually delivers Pattern B
+  from `docs/Installation-Guide.md` end-to-end.** v1.5.2 attempted
+  the same dist-baking contract described in #678 but Packagist
+  froze it at the source-only tarball (see #683 above). Consumers
+  who pinned to v1.5.2 for the pre-built `dist/editor/` tree should
+  upgrade to v1.5.3 — pin `^1.5.3` if you need Pattern B. The
+  `v1.5.2` GitHub tag still points at the dist-baked commit
+  (`49e6728`) for anyone doing `git clone && git checkout v1.5.2`,
+  but Composer consumers get `442ef80` (source-only) from Packagist
+  regardless; this cosmetic tag/Packagist mismatch was left as-is
+  because GitHub's tag-protection rule blocks a CLI restore and the
+  practical impact is zero for Composer installs.
+
 ## [1.5.2] - 2026-07-27
+
+> **This release did not fully ship its promised dist-baking on
+> Packagist.** #678's release-workflow force-push raced Packagist's
+> version-immutability policy and lost — Packagist froze `v1.5.2`
+> at the source-only commit (`442ef80`) while GitHub's tag advanced
+> to the dist-baked commit (`49e6728`). Composer consumers who
+> pinned to `^1.5.2` for Pattern B still get the source-only
+> tarball. Upgrade to v1.5.3 (fixed in #683) for the actual
+> pre-built bundles.
 
 ### Fixed
 

@@ -1,9 +1,29 @@
 name: Release
 
+# Manual dispatch — do NOT use `on: push: tags` here.
+#
+# Previously the workflow triggered on `push: tags: 'v*'` and used a
+# `build-dist` job to force-update the tag mid-run so the composer
+# tarball would ship `dist/editor/` + `dist/lib/` (#678). Packagist's
+# crawler observes new stable tags within seconds and freezes their
+# SHA permanently under its version-immutability policy — the workflow
+# lost that race on v1.5.2, so Packagist ended up pinned at the
+# source-only commit while GitHub's tag advanced to the dist-baked
+# one. See #683 for the postmortem.
+#
+# The workflow now runs on `workflow_dispatch`: the maintainer merges
+# the release PR into main, then invokes
+# `gh workflow run release.yml -f version=X.Y.Z`. The workflow builds
+# `dist/`, commits it onto a fresh commit, creates the tag on that
+# commit, and pushes the tag ONCE — Packagist observes it exactly
+# once, at the correct SHA.
 on:
-  push:
-    tags:
-      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g. 1.5.3 — no leading v)'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -17,6 +37,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           persist-credentials: false
 
       - name: Setup PHP
@@ -63,6 +84,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: main
           persist-credentials: false
 
       - name: Setup Node.js
@@ -83,47 +105,90 @@ jobs:
       - name: Build app bundle
         run: npm run build
 
-  build-dist:
-    # Rebuilds the editor + library bundles, bakes them into the tag's
-    # release commit, and packages sourcemaps as a separate archive.
+  build-and-tag:
+    # Rebuilds the editor + library bundles, bakes them into a fresh
+    # release commit, creates the version tag, and pushes ONCE.
     #
-    # `dist/` is intentionally .gitignored on every working branch so
-    # local builds don't leak into diffs. The release commit is the
-    # ONE place the built assets are supposed to live so consumers
-    # that install via Composer's GitHub-tarball resolution (Keystone
-    # CMS, etc. — see #678) get a `vendor/artisanpack-ui/visual-editor/
-    # dist/editor/` tree without running Node themselves.
+    # Why a single push? Packagist observes tags within seconds and
+    # freezes stable-version SHAs permanently. #678's earlier design
+    # pushed the tag first and force-updated it after building, losing
+    # the race on v1.5.2. The redesign here (#683) never lets Packagist
+    # see an intermediate SHA: the workflow builds first, then creates
+    # and pushes the tag at the built commit.
     needs: [test-php, test-js]
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    name: Build and bake dist/ into release tag
+    name: Build dist/ and create version tag
 
     permissions:
       contents: write
 
     outputs:
-      version: ${{ steps.version.outputs.version }}
+      version: ${{ inputs.version }}
       release_sha: ${{ steps.commit-dist.outputs.release_sha }}
       sourcemap_archive: ${{ steps.package-sourcemaps.outputs.archive }}
 
     steps:
-      - uses: actions/checkout@v4
-        with:
-          # We need to push a re-tag from this job, so keep the token.
-          persist-credentials: true
-          fetch-depth: 0
-
-      - name: Extract version from tag
-        id: version
+      - name: Validate version input
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
         run: |
-          VERSION="${GITHUB_REF#refs/tags/v}"
+          VERSION="$VERSION_INPUT"
           case "$VERSION" in
-            ''|*[!0-9A-Za-z.+-]*)
-              echo "Invalid version extracted from tag: $VERSION" >&2
+            ''|v*|*[!0-9A-Za-z.+-]*)
+              echo "Invalid version input: '$VERSION' (must be bare semver like 1.5.3, no leading v)" >&2
               exit 1
               ;;
           esac
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+
+      - uses: actions/checkout@v4
+        with:
+          # Tag off main — the release PR is expected to have merged
+          # before dispatch. `persist-credentials: true` so the tag
+          # push later in this job can authenticate.
+          ref: main
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Refuse to overwrite an existing tag
+        # Belt-and-braces guard against re-dispatching for a version
+        # that already shipped. If somebody tries `gh workflow run
+        # release.yml -f version=1.5.2` a second time, this catches
+        # it before we build and would otherwise hit Packagist's
+        # immutability wall again.
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          VERSION="$VERSION_INPUT"
+          if git ls-remote --tags --exit-code origin "refs/tags/v${VERSION}" >/dev/null 2>&1; then
+            echo "Tag v${VERSION} already exists on origin — refusing to reship." >&2
+            echo "If you need to reship, cut a new version." >&2
+            exit 1
+          fi
+
+      - name: Verify version input matches composer.json / package.json
+        # Prevents a `-f version=1.5.3` dispatch against a main that
+        # still says 1.5.2 in its manifests — that would produce a tag
+        # inconsistent with the source's stated version.
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          VERSION="$VERSION_INPUT"
+          COMPOSER_VERSION=$(jq -r '.version // ""' composer.json)
+          PACKAGE_VERSION=$(jq -r '.version // ""' package.json)
+          fail=0
+          if [ "$COMPOSER_VERSION" != "$VERSION" ]; then
+            echo "composer.json version ($COMPOSER_VERSION) != input ($VERSION)" >&2
+            fail=1
+          fi
+          if [ "$PACKAGE_VERSION" != "$VERSION" ]; then
+            echo "package.json version ($PACKAGE_VERSION) != input ($VERSION)" >&2
+            fail=1
+          fi
+          if [ "$fail" -ne 0 ]; then
+            echo "Bump the manifests on main first (via the release PR) before dispatching." >&2
+            exit 1
+          fi
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -143,7 +208,7 @@ jobs:
       - name: Package sourcemaps and strip them from dist/
         id: package-sourcemaps
         env:
-          VERSION_INPUT: ${{ steps.version.outputs.version }}
+          VERSION_INPUT: ${{ inputs.version }}
         run: |
           VERSION="$VERSION_INPUT"
           ARCHIVE="dist-sourcemaps-v${VERSION}.tar.gz"
@@ -200,10 +265,10 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-      - name: Commit dist/ and re-point the release tag
+      - name: Commit dist/ and create the version tag
         id: commit-dist
         env:
-          VERSION_INPUT: ${{ steps.version.outputs.version }}
+          VERSION_INPUT: ${{ inputs.version }}
         run: |
           VERSION="$VERSION_INPUT"
 
@@ -211,14 +276,14 @@ jobs:
           # builds out of every non-release working tree. Force-add
           # here so this one release commit contains the built assets.
           git add --force dist/editor dist/lib
-          git commit -m "chore(release): bake dist/ for v${VERSION} (#678)"
+          git commit -m "chore(release): bake dist/ for v${VERSION} (#683)"
           RELEASE_SHA=$(git rev-parse HEAD)
 
-          # Re-point the tag at the new commit so Composer /
-          # Packagist resolve the built tarball. Force-push because
-          # the tag already exists at the pre-build commit.
-          git tag -f "v${VERSION}" "$RELEASE_SHA"
-          git push --force origin "refs/tags/v${VERSION}"
+          # Create the tag AT the built commit — this is the first
+          # (and only) time this tag will ever be pushed. No force,
+          # no race with Packagist.
+          git tag -a "v${VERSION}" -m "Release v${VERSION}" "$RELEASE_SHA"
+          git push origin "refs/tags/v${VERSION}"
 
           echo "release_sha=$RELEASE_SHA" >> $GITHUB_OUTPUT
 
@@ -231,7 +296,7 @@ jobs:
           retention-days: 7
 
   release:
-    needs: [build-dist]
+    needs: [build-and-tag]
     runs-on: ubuntu-latest
     name: Create Release
 
@@ -241,23 +306,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # The tag was re-pointed by `build-dist`; check out the new
-          # commit so release notes are extracted from the correct tree.
-          ref: refs/tags/v${{ needs.build-dist.outputs.version }}
+          # The tag was just created by `build-and-tag` at the
+          # dist-baked commit; check that out so release notes are
+          # extracted from the correct tree.
+          ref: refs/tags/v${{ needs.build-and-tag.outputs.version }}
           persist-credentials: false
 
       - name: Extract release notes from CHANGELOG
         id: changelog
         env:
-          # Pass the tag through an env var instead of interpolating it directly
-          # into the shell script — keeps the value as a plain string regardless
-          # of what the tag contains and silences zizmor template-injection.
-          VERSION_INPUT: ${{ needs.build-dist.outputs.version }}
+          # Pass the version through an env var instead of interpolating it
+          # directly into the shell script — silences zizmor template-injection.
+          VERSION_INPUT: ${{ needs.build-and-tag.outputs.version }}
         run: |
           VERSION="$VERSION_INPUT"
           case "$VERSION" in
             ''|*[!0-9A-Za-z.+-]*)
-              echo "Invalid version extracted from tag: $VERSION" >&2
+              echo "Invalid version: $VERSION" >&2
               exit 1
               ;;
           esac
@@ -299,10 +364,11 @@ jobs:
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: v${{ needs.build-dist.outputs.version }}
+          tag_name: v${{ needs.build-and-tag.outputs.version }}
+          name: v${{ needs.build-and-tag.outputs.version }}
           body_path: release_notes.txt
           generate_release_notes: false
-          prerelease: ${{ contains(needs.build-dist.outputs.version, '-') }}
+          prerelease: ${{ contains(needs.build-and-tag.outputs.version, '-') }}
           # Sourcemaps ride along as a separate archive so debugging is
           # still possible without inflating every composer install
           # by ~30 MB (#678).
