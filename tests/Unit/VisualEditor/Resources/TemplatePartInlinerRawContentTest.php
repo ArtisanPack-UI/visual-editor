@@ -5,6 +5,7 @@ declare( strict_types=1 );
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Resolution\ResolvedEntity;
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Resolution\TemplatePartResolver;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
+use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
 
 /**
  * #688 — a block theme's `parts/header.html` resolves with `blocks`
@@ -64,7 +65,7 @@ it( 'hydrates a theme-file part whose resolved blocks are empty', function () {
 	expect( $tree[0]['innerBlocks'] )->toHaveCount( 1 );
 	expect( $tree[0]['innerBlocks'][0]['name'] )->toBe( 'artisanpack/paragraph' );
 	expect( $tree[0]['innerBlocks'][0]['attributes']['content'] )->toBe( 'Site header' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'prefers already-parsed blocks over the raw fallback', function () {
 	bindPartResolver( themeFilePart(

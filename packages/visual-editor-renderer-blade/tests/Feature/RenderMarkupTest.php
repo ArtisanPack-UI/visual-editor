@@ -4,6 +4,7 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Resolution\ResolvedEntity;
 use ArtisanPackUI\CMSFramework\Modules\SiteEditor\Resolution\TemplatePartResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
 
 /**
@@ -25,7 +26,7 @@ it( 'renders paragraph text that the markup carries only in its saved HTML', fun
 
 	expect( $html )->toContain( 'Supporting subheading.' );
 	expect( $html )->toContain( 'wp-block-paragraph' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'renders a whole theme-style template including nested blocks', function () {
 	$markup = <<<'HTML'
@@ -42,7 +43,7 @@ it( 'renders a whole theme-style template including nested blocks', function () 
 	expect( $html )->toContain( 'Welcome' );
 	expect( $html )->toContain( 'Body copy.' );
 	expect( $html )->toContain( '<h1' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'renders core-namespaced theme markup', function () {
 	$html = app( BlockRenderer::class )->renderMarkup(
@@ -50,7 +51,7 @@ it( 'renders core-namespaced theme markup', function () {
 	);
 
 	expect( $html )->toContain( 'HELLO' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'returns an empty string for blank markup', function () {
 	expect( app( BlockRenderer::class )->renderMarkup( '' ) )->toBe( '' );
@@ -95,7 +96,7 @@ it( 'inlines template-part references instead of emitting an empty wrapper', fun
 	);
 
 	expect( $html )->toContain( 'Header content' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'still renders an editor-shape tree passed straight to render()', function () {
 	$html = app( BlockRenderer::class )->render( [

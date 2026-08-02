@@ -22,14 +22,14 @@ it( 'recovers paragraph text that lives only in the saved HTML', function () {
 	expect( $tree[0]['name'] )->toBe( 'artisanpack/paragraph' );
 	expect( $tree[0]['attributes']['content'] )->toBe( 'Supporting subheading.' );
 	expect( $tree[0]['attributes']['textColor'] )->toBe( 'text-muted' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'recovers text for core-namespaced theme markup via the artisanpack fork', function () {
 	$tree = $this->hydrator->hydrate( '<!-- wp:paragraph --><p>HELLO</p><!-- /wp:paragraph -->' );
 
 	expect( $tree[0]['name'] )->toBe( 'core/paragraph' );
 	expect( $tree[0]['attributes']['content'] )->toBe( 'HELLO' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'preserves inline formatting inside recovered rich text', function () {
 	$tree = $this->hydrator->hydrate(
@@ -37,7 +37,7 @@ it( 'preserves inline formatting inside recovered rich text', function () {
 	);
 
 	expect( $tree[0]['attributes']['content'] )->toBe( 'Hello <strong>world</strong>.' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'recovers heading content regardless of level', function () {
 	$tree = $this->hydrator->hydrate(
@@ -46,7 +46,7 @@ it( 'recovers heading content regardless of level', function () {
 
 	expect( $tree[0]['attributes']['content'] )->toBe( 'Our Story' );
 	expect( $tree[0]['attributes']['level'] )->toBe( 3 );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'recovers button text and link attributes', function () {
 	$markup = '<!-- wp:artisanpack/button -->'
@@ -59,7 +59,7 @@ it( 'recovers button text and link attributes', function () {
 	expect( $attributes['url'] )->toBe( '/contact' );
 	expect( $attributes['linkTarget'] )->toBe( '_blank' );
 	expect( $attributes['rel'] )->toBe( 'noopener' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'recovers image src, alt and caption from their distinct nodes', function () {
 	$markup = '<!-- wp:artisanpack/image -->'
@@ -73,14 +73,14 @@ it( 'recovers image src, alt and caption from their distinct nodes', function ()
 	expect( $attributes['alt'] )->toBe( 'A cat' );
 	expect( $attributes['caption'] )->toBe( 'Our office cat' );
 	expect( $attributes['href'] )->toBe( '/full' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'recovers multiline list values as whole child elements', function () {
 	$markup = '<!-- wp:artisanpack/list --><ul><li>One</li><li>Two</li></ul><!-- /wp:artisanpack/list -->';
 
 	expect( $this->hydrator->hydrate( $markup )[0]['attributes']['values'] )
 		->toBe( '<li>One</li><li>Two</li>' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'leaves a modern list empty so the partial renders its inner blocks', function () {
 	// The list a real theme emits: items are `list-item` INNER BLOCKS,
@@ -102,7 +102,7 @@ it( 'leaves a modern list empty so the partial renders its inner blocks', functi
 	expect( $list['innerBlocks'] )->toHaveCount( 2 );
 	expect( $list['innerBlocks'][0]['attributes']['content'] )->toBe( 'One' );
 	expect( $list['innerBlocks'][1]['attributes']['content'] )->toBe( 'Two' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'recovers quote value and citation', function () {
 	$markup = '<!-- wp:artisanpack/quote -->'
@@ -113,7 +113,7 @@ it( 'recovers quote value and citation', function () {
 
 	expect( $attributes['value'] )->toBe( '<p>Ship it.</p>' );
 	expect( $attributes['citation'] )->toBe( 'A colleague' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'treats boolean attribute sources as presence, not value', function () {
 	$markup = '<!-- wp:artisanpack/video -->'
@@ -126,7 +126,7 @@ it( 'treats boolean attribute sources as presence, not value', function () {
 	expect( $attributes['loop'] )->toBeTrue();
 	expect( $attributes['autoplay'] )->toBeFalse();
 	expect( $attributes['src'] )->toBe( '/clip.mp4' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'recovers a query source into one entry per match', function () {
 	$markup = '<!-- wp:artisanpack/table -->'
@@ -140,7 +140,7 @@ it( 'recovers a query source into one entry per match', function () {
 	expect( $body )->toHaveCount( 2 );
 	expect( array_column( $body[0]['cells'], 'content' ) )->toBe( [ 'A1', 'B1' ] );
 	expect( $body[1]['cells'][1]['tag'] )->toBe( 'td' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'recurses into inner blocks', function () {
 	$markup = <<<'HTML'
@@ -156,7 +156,7 @@ it( 'recurses into inner blocks', function () {
 	expect( $tree[0]['name'] )->toBe( 'artisanpack/group' );
 	expect( $tree[0]['innerBlocks'] )->toHaveCount( 1 );
 	expect( $tree[0]['innerBlocks'][0]['attributes']['content'] )->toBe( 'Nested' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'lets delimiter attributes win over recovered ones', function () {
 	$markup = '<!-- wp:artisanpack/paragraph {"content":"From the delimiter"} -->'
@@ -165,7 +165,7 @@ it( 'lets delimiter attributes win over recovered ones', function () {
 
 	expect( $this->hydrator->hydrate( $markup )[0]['attributes']['content'] )
 		->toBe( 'From the delimiter' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'passes unregistered blocks through with their delimiter attributes intact', function () {
 	$markup = '<!-- wp:acme/widget {"mode":"compact"} --><div>Body</div><!-- /wp:acme/widget -->';
@@ -175,7 +175,7 @@ it( 'passes unregistered blocks through with their delimiter attributes intact',
 	expect( $block['name'] )->toBe( 'acme/widget' );
 	expect( $block['attributes'] )->toBe( [ 'mode' => 'compact' ] );
 	expect( $block['innerBlocks'] )->toBe( [] );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'keeps the saved HTML of a block whose content lives only in innerHTML', function () {
 	// `core/html` is the canonical case: no sourced attributes, all of
@@ -184,13 +184,13 @@ it( 'keeps the saved HTML of a block whose content lives only in innerHTML', fun
 	$block = $this->hydrator->hydrate( '<!-- wp:html --><div class="x">Raw HTML</div><!-- /wp:html -->' )[0];
 
 	expect( $block['innerHTML'] )->toContain( 'Raw HTML' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'omits innerHTML for a self-closing block that saved none', function () {
 	$block = $this->hydrator->hydrate( '<!-- wp:artisanpack/spacer {"height":"40px"} /-->' )[0];
 
 	expect( $block )->not->toHaveKey( 'innerHTML' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'returns an empty tree for blank markup', function () {
 	expect( $this->hydrator->hydrate( '' ) )->toBe( [] );
@@ -224,7 +224,7 @@ it( 'preserves multibyte text through the DOM round trip', function () {
 
 	expect( $this->hydrator->hydrate( $markup )[0]['attributes']['content'] )
 		->toBe( 'Café — naïve ☕' );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'truncates a pathologically deep tree instead of exhausting the stack', function () {
 	$block = [ 'blockName' => 'artisanpack/paragraph', 'attrs' => [], 'innerBlocks' => [], 'innerHTML' => '<p>deep</p>' ];
@@ -258,4 +258,4 @@ it( 'recovers nothing when the block type declares no sourced attributes', funct
 	$block = $this->hydrator->hydrate( '<!-- wp:acme/plain --><p>ignored</p><!-- /wp:acme/plain -->' )[0];
 
 	expect( $block['attributes'] )->toBe( [] );
-} );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
