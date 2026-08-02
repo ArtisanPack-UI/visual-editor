@@ -217,6 +217,38 @@ debugging the production editor.
 
 ---
 
+## 11. Theme templates render empty (or structure without text)
+
+*Fixed in v1.5.5 (#688).*
+
+**Symptom.** A block theme's `templates/*.html` renders as the right boxes
+and wrappers with no words in them, or a `template-part` reference inlines as
+an empty wrapper.
+
+**Cause.** Gutenberg persists most block text in the block's saved HTML, not
+in the delimiter's JSON — across the `artisanpack-ui` theme, zero of its 130
+paragraph/heading blocks serialize a `content` attribute. Converting the
+parser's `{blockName, attrs, innerHTML}` shape to the renderer's
+`{name, attributes}` shape by renaming keys therefore drops every string on
+the page. Separately, cms-framework's `TemplatePartResolver` does not parse
+theme files, so `.html`-sourced parts arrived with `blocks` empty and their
+markup sitting unread in `rawContent`.
+
+**Fix.** Upgrade to v1.5.5 or later, which hydrates markup through
+`BlockMarkupHydrator` — replaying each block type's `block.json` attribute
+definitions back over the saved HTML — and hydrates `.html`-sourced template
+parts from their raw markup when `blocks` comes back empty. If you are
+starting from a markup string rather than a tree, call
+`BlockRenderer::renderMarkup()`; see
+[Rendering raw block markup](renderers.md#rendering-raw-block-markup).
+
+**Still empty after upgrading?** Hydration needs cms-framework's markup
+parser. Check `BlockMarkupHydrator::canParseMarkup()` — when it returns
+`false`, `artisanpack-ui/cms-framework` is not installed and `renderMarkup()`
+returns an empty string by design.
+
+---
+
 ## See also
 
 - [Quick Start](Quick-Start.md)

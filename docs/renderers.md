@@ -59,6 +59,73 @@ For full-template rendering (with template-part resolution and the
 the fallback chain (theme file → user override → custom), and inlines
 template parts. See [Templates](site-editor/Templates.md) for hierarchy details.
 
+### Rendering raw block markup
+
+*Since v1.5.5 (#688).*
+
+`<x-ve-blocks>` and `<x-ve-template>` both start from a block **tree**. When
+what you have is a raw WP block-markup **string** — a block theme's
+`templates/*.html` or `parts/*.html`, a `.php` pattern, a persisted
+`post_content` column — use `renderMarkup()`:
+
+```php
+use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
+
+$html = app(BlockRenderer::class)->renderMarkup(
+    file_get_contents($theme->path('templates/home.html')),
+    defaultTheme: 'artisanpack-ui',
+);
+```
+
+Markup in, HTML out. The call hydrates the markup into a tree, then inlines
+`template-part` and synced-pattern references before walking it — so a
+standalone theme template renders its parts as real content rather than
+empty wrappers.
+
+The hydration step matters more than it looks. Gutenberg persists most block
+text in the **saved HTML**, not in the delimiter JSON, so a naive
+`{blockName, attrs}` → `{name, attributes}` key-rename yields a
+structurally-correct but completely textless page. Hydration replays each
+registered block type's `block.json` attribute definitions back over the
+saved HTML to recover paragraph and heading `content`, button text and href,
+image `src`/`alt`/`caption`, list values, table cells, and everything else
+declared with a `source`. Recovery is registry-driven, so a block that ships
+a new sourced attribute is picked up with no extra wiring.
+
+To hydrate without rendering — when you need the tree itself, or want to
+pass a `$post` for full-fidelity rendering — use the hydrator directly:
+
+```php
+use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
+
+$tree = app(BlockMarkupHydrator::class)->hydrate($markup);
+```
+
+```blade
+<x-ve-blocks :tree="$tree" :post="$post" />
+```
+
+**Scope.** `renderMarkup()` cannot resolve blocks that need an entity in
+scope — `post-*`, `core/query` loops, comments, breadcrumbs — because a
+string input carries no post. Hydrate to a tree and hand it to
+`<x-ve-blocks :tree="…" :post="…" />` for those.
+
+**Requires cms-framework.** The markup parser lives in
+`artisanpack-ui/cms-framework`. Without it, `renderMarkup()` returns an empty
+string and `hydrate()` returns an empty tree. Gate on
+`BlockMarkupHydrator::canParseMarkup()` if you would rather fail loudly.
+`hydrateTree()`, which takes an already-parsed `parse_blocks()`-shape array,
+works either way.
+
+> **Security.** `$markup` must already be trusted to render. Block partials
+> emit recovered rich-text unescaped — that is what makes a paragraph's
+> `<strong>` survive the round trip — so hydration is safe over theme files,
+> patterns, and editor-authored content that passed the post editor's
+> authorization, and **not** over visitor-submitted markup, which it would
+> turn into stored XSS. It is not a sanitizer. This is the same trust
+> boundary Gutenberg draws around block markup. Run untrusted markup through
+> your own sanitizer (e.g. `kses()` from `artisanpack-ui/security`) first.
+
 ### Registering a custom block renderer
 
 Static blocks: add the partial. Dynamic blocks: register the `DynamicBlock`

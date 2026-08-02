@@ -28,6 +28,8 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Resources;
 
+use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
+
 class TemplatePartInliner
 {
 	/**
@@ -175,8 +177,13 @@ class TemplatePartInliner
 	 * cms-framework's TemplatePartResolver class. Lookups go through it
 	 * when the package is installed; without cms-framework no part
 	 * resolves (Phase H install gate is the user-facing surface).
+	 *
+	 * Written without a leading backslash so it matches the key Laravel's
+	 * container stores `TemplatePartResolver::class` under — with one,
+	 * `app()` treats it as a distinct binding and silently builds a fresh
+	 * instance, ignoring any host- or test-supplied override.
 	 */
-	protected const RESOLVER_CLASS = '\\ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplatePartResolver';
+	protected const RESOLVER_CLASS = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplatePartResolver';
 
 	/**
 	 * Looks the part up via cms-framework's resolver. Returns the part's
@@ -207,6 +214,30 @@ class TemplatePartInliner
 		}
 
 		$blocks = $resolved->blocks ?? null;
+
+		if ( is_array( $blocks ) && [] !== $blocks ) {
+			return $blocks;
+		}
+
+		// #688 — `.html`-sourced parts (a block theme's `parts/header.html`)
+		// reach us with `blocks` empty but `rawContent` populated:
+		// cms-framework's resolver doesn't parse theme files. Left as-is,
+		// the part inlines as an empty wrapper. Hydrate the raw markup
+		// so a theme's own parts render without first being opened and
+		// re-saved in the site editor.
+		// cms-framework's `ResolvedEntity` names the field `raw`;
+		// visual-editor's own `ResolvedTemplatePart` names it
+		// `rawContent`. Accept either so the fallback works whichever
+		// value object a host's resolver hands back.
+		$raw = $resolved->rawContent ?? $resolved->raw ?? null;
+
+		if ( is_string( $raw ) && '' !== trim( $raw ) ) {
+			$hydrated = app( BlockMarkupHydrator::class )->hydrate( $raw );
+
+			if ( [] !== $hydrated ) {
+				return $hydrated;
+			}
+		}
 
 		return is_array( $blocks ) ? $blocks : null;
 	}

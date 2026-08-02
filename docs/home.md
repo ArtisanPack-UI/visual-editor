@@ -175,4 +175,4 @@ For issues, feature requests, and contributions:
 
 ---
 
-*This documentation covers visual-editor v1.5.3*
+*This documentation covers visual-editor v1.5.5*

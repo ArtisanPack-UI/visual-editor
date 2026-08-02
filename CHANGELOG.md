@@ -6,6 +6,93 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.5.5] - 2026-08-02
+
+### Added
+
+- **`BlockMarkupHydrator`** (`Support`) — the supported server-side path
+  from a raw WP block-markup string (a block theme's `templates/*.html`
+  or `parts/*.html`, a `.php` pattern, a persisted `post_content`) to the
+  editor-shape tree the renderers consume. `hydrate( string $markup )`
+  parses the delimiters via cms-framework's `BlockMarkupParser` — resolved
+  by name, so cms-framework stays a non-dependency and the method degrades
+  to an empty tree when it is absent — while `hydrateTree( array $parsed )`
+  takes an already-parsed tree and keeps working either way.
+  `canParseMarkup()` lets hosts that would rather fail loudly gate on
+  parser availability. Carries a `MAX_DEPTH` recursion cap (128, above the
+  parser's own 64) so a hand-built or imported payload cannot blow the PHP
+  stack, and falls back across the `core/` ↔ `artisanpack/` namespace pair
+  so theme files written against WP core's block names resolve against the
+  forks this package registers.
+- **`BlockAttributeSourceResolver`** (`Support`) — server-side port of
+  Gutenberg's save-shape attribute matchers over `DOMDocument` + XPath,
+  covering `attribute`/`property`, `html` (including `multiline`),
+  `rich-text`, `text`, `tag`, `query`, and `raw`. Recovery is driven
+  entirely by the block-type registry's `block.json` definitions rather
+  than a hand-maintained per-block table, so a block that ships a new
+  sourced attribute is picked up with no change here.
+- **`CssSelectorToXPath`** (`Support`) — hand-rolled translator for the
+  narrow CSS subset `block.json` `selector` fields actually use (tag,
+  class, id, attribute presence/equality, `:not()` over a single simple
+  predicate, descendant and child combinators, comma groups), so the
+  package gains no new Composer dependency for this. Selectors outside the
+  subset throw `UnsupportedSelectorException`, which callers degrade to
+  "attribute not recovered" and report once per process rather than
+  silently matching the wrong node.
+- **`BlockRenderer::renderMarkup( string $markup, ?string $defaultTheme )`**
+  (`visual-editor-renderer-blade`) — markup in, HTML out. Hydrates, then
+  inlines `template-part` and synced-pattern references before the walk,
+  so a standalone theme template renders its parts as real content rather
+  than empty wrappers. Blocks that need an entity in scope (`post-*`,
+  `core/query`, comments, breadcrumbs) still require the full
+  `<x-ve-blocks :tree="…" :post="…" />` pipeline.
+
+### Fixed
+
+- **Block-theme markup no longer renders textless server-side (#688).**
+  There was no path from WP-serialized block markup to rendered HTML
+  outside the editor, and the gap was not merely a shape mismatch between
+  cms-framework's `{blockName, attrs, innerHTML}` and the editor's
+  `{name, attributes}`. Gutenberg persists most block text in the **saved
+  HTML**, not in the delimiter JSON — zero of the `artisanpack-ui` theme's
+  130 paragraph/heading blocks serialize a `content` attribute — so a
+  key-rename conversion produced a structurally-correct but completely
+  textless page. Hydration now replays each registered block type's
+  attribute definitions back over the saved HTML, recovering paragraph and
+  heading `content`, button text and href, image `src`/`alt`/`caption`,
+  list values, quote and citation, table cells, and everything else
+  declared with a `source`.
+- **`.html`-sourced template parts now inline with content (#688).**
+  `TemplatePartInliner` resolved a block theme's `parts/header.html` to an
+  entity with `blocks` empty and the raw markup in `rawContent` —
+  cms-framework's resolver does not parse theme files — so the part
+  inlined as an empty wrapper. The inliner now hydrates that raw markup
+  when `blocks` comes back empty, accepting either `rawContent`
+  (visual-editor's `ResolvedTemplatePart`) or `raw` (cms-framework's
+  `ResolvedEntity`) so it works whichever value object a host's resolver
+  hands back. A theme's own parts render without first being opened and
+  re-saved in the site editor.
+- **`TemplatePartInliner` now honors container overrides of the
+  cms-framework resolver.** `RESOLVER_CLASS` carried a leading backslash,
+  which does not match the key Laravel's container stores
+  `TemplatePartResolver::class` under; `app()` treated it as a distinct
+  binding and silently built a fresh instance, ignoring any host- or
+  test-supplied override.
+
+### Security
+
+- `BlockMarkupHydrator` documents an explicit trust boundary. Recovered
+  `rich-text` / `html` attributes are HTML fragments and block partials
+  emit them unescaped (`{!! $content !!}`) — that is what makes a
+  paragraph's `<strong>` survive the round trip. Hydration is therefore
+  only safe over markup you already trust to render: theme files on disk,
+  patterns, and editor-authored content that passed the post editor's
+  authorization. It is **not** a sanitizer, and passing visitor-submitted
+  markup to `hydrate()` turns it into stored XSS. This is the same
+  boundary Gutenberg draws around block markup — neither widened nor
+  narrowed. Hosts rendering untrusted markup should run it through their
+  own sanitizer (e.g. `kses()` from `artisanpack-ui/security`) first.
+
 ## [1.5.4] - 2026-07-28
 
 ### Fixed
