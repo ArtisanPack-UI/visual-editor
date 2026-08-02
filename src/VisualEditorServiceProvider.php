@@ -56,6 +56,7 @@ use ArtisanPackUI\VisualEditor\States\StateCssEmitter;
 use ArtisanPackUI\VisualEditor\States\StateRegistry;
 use ArtisanPackUI\VisualEditor\States\StateValueResolver;
 use ArtisanPackUI\VisualEditor\Search\BlockTreeSearchExtractor;
+use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
 use ArtisanPackUI\VisualEditor\Support\HookAliases;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\GlobalStylesResolver as SiteEditorGlobalStylesResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\MenuResolver as SiteEditorMenuResolver;
@@ -154,6 +155,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( DynamicBlockRegistry::class, function () {
 			return new DynamicBlockRegistry();
+		} );
+
+		// #688 — the server-side bridge from WP block markup to a
+		// renderable tree. Singleton because it carries no request
+		// state: it reads the block-type registry (also a singleton)
+		// and a stateless DOM matcher.
+		$this->app->singleton( BlockMarkupHydrator::class, function ( $app ) {
+			return new BlockMarkupHydrator(
+				$app->make( BlockTypeRegistry::class ),
+			);
 		} );
 
 		// #504 — Block bindings: a single shared registry of source drivers

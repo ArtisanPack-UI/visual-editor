@@ -22,8 +22,11 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditorRendererBlade;
 
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
+use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
+use ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator;
 use ArtisanPackUI\VisualEditor\Support\BlockShape;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityContext;
 use ArtisanPackUI\VisualEditor\Visibility\VisibilityDecision;
@@ -245,6 +248,68 @@ class BlockRenderer
 
 			return $tree;
 		}
+	}
+
+	/**
+	 * Render raw WP block markup to an HTML string.
+	 *
+	 * The server-side counterpart to opening a template in the editor:
+	 * markup goes through {@see BlockMarkupHydrator}, which parses the
+	 * delimiters AND recovers each block's saved-shape attributes from
+	 * its inner HTML, then straight into {@see render()}. Without the
+	 * recovery step a block theme's `templates/*.html` renders as
+	 * structurally-correct but completely textless output, because
+	 * Gutenberg persists paragraph/heading text in the saved HTML
+	 * rather than in the delimiter JSON (#688).
+	 *
+	 * Structural resolution runs too: `template-part` and synced-pattern
+	 * references are inlined before the walk, so a template's
+	 * `parts/header.html` and its patterns render as real content rather
+	 * than empty wrappers. Both passes are entity-independent, which is
+	 * what lets them run from a plain string entry point.
+	 *
+	 * SCOPE: what this canNOT do is resolve blocks that need an entity in
+	 * scope — `post-*`, `core/query` loops, comments, breadcrumbs — because
+	 * a `string` input carries no post. For a full-fidelity render, hydrate
+	 * to a tree with {@see BlockMarkupHydrator::hydrate()} and hand it to
+	 * `<x-ve-blocks :tree="$tree" :post="$post" />`, which runs the complete
+	 * pipeline. This method is the standalone-template shortcut.
+	 *
+	 * Returns an empty string when the markup is blank or when
+	 * cms-framework — which owns the markup parser — is not installed.
+	 *
+	 * SECURITY: `$markup` must already be trusted to render. Block
+	 * partials emit recovered rich-text unescaped, so this method is for
+	 * theme files, patterns, and editor-authored content — never for
+	 * visitor-submitted markup. See {@see BlockMarkupHydrator}'s
+	 * "Trust boundary" note.
+	 *
+	 * @since 1.5.5
+	 *
+	 * @param  string   $markup        Raw block markup, e.g. the contents of a theme `templates/*.html` file.
+	 * @param  ?string  $defaultTheme  Theme assumed for `template-part` blocks that omit a `theme` attribute.
+	 */
+	public function renderMarkup( string $markup, ?string $defaultTheme = null ): string
+	{
+		if ( '' === trim( $markup ) ) {
+			return '';
+		}
+
+		try {
+			$tree = app( BlockMarkupHydrator::class )->hydrate( $markup );
+
+			// Mirrors the ordering in `BlocksComponent`: parts first, so
+			// a part that itself references a synced pattern resolves in
+			// the same pass.
+			$tree = app( TemplatePartInliner::class )->inline( $tree, $defaultTheme );
+			$tree = app( PatternInliner::class )->inline( $tree );
+		} catch ( Throwable $e ) {
+			report( $e );
+
+			return '';
+		}
+
+		return $this->render( $tree );
 	}
 
 	/**
