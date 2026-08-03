@@ -100,14 +100,76 @@ class ResourceAppliedTemplateController extends Controller
 			] );
 		}
 
+		$parts = $this->collectReferencedParts( $resolved->blocks );
+
+		foreach ( $parts as $slug => $part ) {
+			if ( is_array( $part ) && is_array( $part['blocks'] ?? null ) ) {
+				$parts[ $slug ]['blocks'] = $this->rewriteCoreToFork( $part['blocks'] );
+			}
+		}
+
 		return response()->json( [
 			'status'         => 'ok',
 			'slug'           => $resolved->slug,
 			'name'           => $resolved->title,
 			'source'         => $resolved->source,
-			'blocks'         => $resolved->blocks,
-			'template_parts' => $this->collectReferencedParts( $resolved->blocks ),
+			'blocks'         => $this->rewriteCoreToFork( $resolved->blocks ),
+			'template_parts' => $parts,
 		] );
+	}
+
+	/**
+	 * Rewrite every `core/x` block name to its `artisanpack/x` fork.
+	 *
+	 * The I7 cutover (#415) replaced `registerCoreBlocks()` with
+	 * `registerArtisanPackBlocks()`, so the editor only knows the
+	 * `artisanpack/*` namespace. Theme templates on disk are authored in
+	 * core markup (`wp:group`, `wp:heading`, `wp:template-part`), which
+	 * means the resolved blocks would mount as unregistered types and the
+	 * composed view would render nothing where the chrome belongs — the
+	 * same class of failure as #674, one layer up.
+	 *
+	 * The mapping mirrors {@see \ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator::aliasFor()}.
+	 * It is deliberately unconditional rather than gated on a registry
+	 * lookup: {@see BlockTypeRegistry} only knows server-rendered PHP
+	 * blocks, while most forks are JS-only, so gating would silently skip
+	 * nearly every block. A core name with no fork ends up unregistered
+	 * under either namespace, so the blanket rewrite costs nothing there.
+	 *
+	 * Rewriting `core/template-part` in particular hands part resolution
+	 * to the fork's own edit component (#674/#675), which fetches the
+	 * referenced part through the core-data shim.
+	 *
+	 * @since 1.1.0
+	 *
+	 * @param  array<int, array<string, mixed>>  $blocks
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function rewriteCoreToFork( array $blocks ): array
+	{
+		$out = [];
+
+		foreach ( $blocks as $block ) {
+			if ( ! is_array( $block ) ) {
+				$out[] = $block;
+				continue;
+			}
+
+			$name = $block['name'] ?? null;
+
+			if ( is_string( $name ) && str_starts_with( $name, 'core/' ) ) {
+				$block['name'] = 'artisanpack/' . substr( $name, strlen( 'core/' ) );
+			}
+
+			if ( is_array( $block['innerBlocks'] ?? null ) && [] !== $block['innerBlocks'] ) {
+				$block['innerBlocks'] = $this->rewriteCoreToFork( $block['innerBlocks'] );
+			}
+
+			$out[] = $block;
+		}
+
+		return $out;
 	}
 
 	/**

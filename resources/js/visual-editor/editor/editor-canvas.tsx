@@ -35,12 +35,25 @@ import {
     BlockList,
     ObserveTyping,
 } from '@wordpress/block-editor';
+import { __ } from '@wordpress/i18n';
+import type { BlockInstance } from '@wordpress/blocks';
 import { useMemo } from 'react';
 
 import { canvasStyles } from './canvas-styles';
+import { ChromeBlocks } from './composed-view/ChromeBlocks';
 import { PostTitle } from './post-title';
 import { ROOT_CANVAS_LAYOUT } from '../editor-settings';
+import { TEXT_DOMAIN } from '../vendor/i18n';
 import { useThemeGlobalStylesCss } from '../site-editor/use-theme-global-styles-css';
+
+/**
+ * Applied-template chrome to render around the block list (#655). Already
+ * hydrated and split by the caller; `null` in bare-content mode.
+ */
+export interface CanvasChrome {
+    header: readonly BlockInstance[];
+    footer: readonly BlockInstance[];
+}
 
 /** Block context value stamped onto the canvas for cms-framework entities. */
 export interface CanvasBlockContext {
@@ -78,6 +91,14 @@ export interface EditorCanvasProps {
      * available editor area) — the `base` viewport state.
      */
     previewWidthPx?: number | null;
+    /**
+     * Composed-view chrome (#655). When non-null the resolved template's
+     * header and footer render as inert block previews inside the canvas
+     * iframe, above and below the live block list. Rendering them *inside*
+     * the iframe is what lets them pick up the theme's compiled CSS — the
+     * earlier out-of-iframe panel couldn't.
+     */
+    chrome?: CanvasChrome | null;
 }
 
 /**
@@ -92,6 +113,7 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
         blockContext,
         apiBase,
         previewWidthPx,
+        chrome,
     } = props;
 
     // Keystone #47: pull the compiled theme CSS once per `apiBase` and
@@ -108,7 +130,28 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
         [themeCss]
     );
 
-    const blockList = <BlockList layout={ROOT_CANVAS_LAYOUT} />;
+    // Chrome sits as siblings of the block list inside the iframe. The
+    // previews mount isolated block-editor stores of their own, so the
+    // content provider's `value` is untouched and the canvas never
+    // remounts across a composed-view toggle.
+    const blockList =
+        chrome === null || chrome === undefined ? (
+            <BlockList layout={ROOT_CANVAS_LAYOUT} />
+        ) : (
+            <>
+                <ChromeBlocks
+                    blocks={chrome.header}
+                    region="header"
+                    label={__('Template header (read-only)', TEXT_DOMAIN)}
+                />
+                <BlockList layout={ROOT_CANVAS_LAYOUT} />
+                <ChromeBlocks
+                    blocks={chrome.footer}
+                    region="footer"
+                    label={__('Template footer (read-only)', TEXT_DOMAIN)}
+                />
+            </>
+        );
 
     // #617 — an inline `width` (rather than `max-width`) means the
     // frame renders at exactly the requested preview size; wide

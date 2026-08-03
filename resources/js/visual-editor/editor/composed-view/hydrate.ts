@@ -56,7 +56,13 @@ function hydrateParts(
     return out;
 }
 
-function hydrateBlocks(
+/**
+ * Hydrate a bare block list. Exported so the composed view can hydrate the
+ * header and footer chrome *after* splitting — each preview mounts its own
+ * block-editor store, and hydrating per side guarantees the two stores
+ * never receive the same `clientId` for a wrapper the split had to clone.
+ */
+export function hydrateBlocks(
     blocks: readonly BlockInstance[]
 ): BlockInstance[] {
     const out: BlockInstance[] = [];

@@ -12,19 +12,12 @@ export {
     type AppliedTemplatePart,
     type AppliedTemplateResult,
 } from './api';
-export {
-    COMPOSED_CHROME_MARKER,
-    COMPOSED_CONTENT_SLOT_MARKER,
-    composeBlocks,
-} from './compose';
-export { extractContentBlocks } from './extract';
-export { hydrateAppliedTemplate } from './hydrate';
+export { hydrateAppliedTemplate, hydrateBlocks } from './hydrate';
 export {
     splitTemplateAroundContentSlot,
     type SplitTemplateResult,
 } from './split';
-export { ChromePreviewPanel } from './ChromePreviewPanel';
-export type { ChromePreviewPanelProps } from './ChromePreviewPanel';
+export { ChromeBlocks, type ChromeBlocksProps } from './ChromeBlocks';
 export {
     useAppliedTemplate,
     type AppliedTemplateState,

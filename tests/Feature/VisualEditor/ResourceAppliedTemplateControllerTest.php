@@ -153,11 +153,74 @@ it( 'returns the resolved template with referenced template-parts', function () 
 		->assertJsonPath( 'slug', 'single-post' )
 		->assertJsonPath( 'name', 'Single Post' )
 		->assertJsonPath( 'source', 'theme' )
-		->assertJsonPath( 'blocks.0.name', 'core/template-part' )
-		->assertJsonPath( 'blocks.1.name', 'core/post-content' )
+		// Names come back in the `artisanpack/*` fork namespace — since the
+		// I7 cutover (#415) the editor registers nothing else.
+		->assertJsonPath( 'blocks.0.name', 'artisanpack/template-part' )
+		->assertJsonPath( 'blocks.1.name', 'artisanpack/post-content' )
 		->assertJsonPath( 'template_parts.header.slug', 'header' )
 		->assertJsonPath( 'template_parts.header.area', 'header' )
-		->assertJsonPath( 'template_parts.header.blocks.0.name', 'core/site-title' );
+		->assertJsonPath( 'template_parts.header.blocks.0.name', 'artisanpack/site-title' );
+} );
+
+it( 'rewrites nested core block names to their artisanpack forks', function () {
+	actingAsAppliedTemplateUser();
+	registerSingleTemplate( 'single-post', [
+		[
+			'name'        => 'core/group',
+			'attributes'  => [ 'tagName' => 'main' ],
+			'innerBlocks' => [
+				[
+					'name'        => 'core/heading',
+					'attributes'  => [ 'level' => 1 ],
+					'innerBlocks' => [],
+				],
+				[
+					'name'        => 'core/post-content',
+					'attributes'  => [],
+					'innerBlocks' => [],
+				],
+			],
+		],
+	] );
+
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'Nested',
+		'template' => 'single-post',
+		'content'  => [],
+	] );
+
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template" )
+		->assertOk()
+		->assertJsonPath( 'blocks.0.name', 'artisanpack/group' )
+		->assertJsonPath( 'blocks.0.innerBlocks.0.name', 'artisanpack/heading' )
+		->assertJsonPath( 'blocks.0.innerBlocks.1.name', 'artisanpack/post-content' );
+} );
+
+it( 'leaves already-forked and third-party block names untouched', function () {
+	actingAsAppliedTemplateUser();
+	registerSingleTemplate( 'single-post', [
+		[
+			'name'        => 'artisanpack/callout',
+			'attributes'  => [],
+			'innerBlocks' => [],
+		],
+		[
+			'name'        => 'acme/widget',
+			'attributes'  => [],
+			'innerBlocks' => [],
+		],
+	] );
+
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'Mixed namespaces',
+		'template' => 'single-post',
+		'content'  => [],
+	] );
+
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template" )
+		->assertOk()
+		->assertJsonPath( 'blocks.0.name', 'artisanpack/callout' )
+		->assertJsonPath( 'blocks.1.name', 'acme/widget' );
 } );
 
 it( 'treats whitespace-only template values as empty', function () {

@@ -1,105 +1,135 @@
 /**
  * Split an applied template's block list into the chrome that renders
  * before the content slot (header) and the chrome that renders after
- * (footer), with `core/template-part` refs expanded inline from the
- * parts map.
+ * (footer).
  *
- * Used by the composed view's inert chrome preview panels — see
- * `editor-app.tsx` and `ChromePreviewPanel.tsx` for why we render
- * chrome outside the block canvas instead of composing a single tree.
+ * The composed view renders those two lists as inert block previews above
+ * and below the live block canvas (see `ChromeBlocks.tsx`), so the split
+ * point is wherever the template's `post-content` slot sits.
+ *
+ * The slot is rarely a top-level sibling. The conventional template shape
+ * nests it inside a layout wrapper:
+ *
+ *     template-part (header)
+ *     group[tagName=main]
+ *         post-content          <- the slot
+ *     template-part (footer)
+ *
+ * so a top-level-only scan would find no slot and dump the entire template
+ * into the header. Instead the walk descends into `innerBlocks`, and when
+ * the slot is found inside a wrapper the wrapper is *cloned onto both
+ * sides* — the header keeps the children that preceded the slot, the
+ * footer keeps the ones that followed. Wrapper attributes ride along on
+ * both copies so the surrounding layout still reads correctly; a side that
+ * ends up with no children is dropped rather than rendered empty.
+ *
+ * This is an approximation by construction — a constrained wrapper split in
+ * two is not what the front end paints. #618 scopes the composed view to
+ * "close enough to see the shape" and leaves pixel parity to Preview.
+ *
+ * Template-part refs are *not* expanded here. Since #675 the
+ * `artisanpack/template-part` block resolves its own referenced part
+ * through the core-data shim, and the applied-template endpoint rewrites
+ * `core/template-part` into that fork, so expanding them here would render
+ * each part twice.
  *
  * @since 1.1.0
  */
 
 import type { BlockInstance } from '@wordpress/blocks';
 
-import type { AppliedTemplatePart } from './api';
-
-const CONTENT_SLOT_NAME = 'core/post-content';
+/**
+ * Block names treated as the content slot. The endpoint rewrites core
+ * names to their forks, but the raw core name is still accepted so a host
+ * that supplies its own already-forked payload — or an older cached
+ * response — splits the same way.
+ */
+const CONTENT_SLOT_NAMES: ReadonlySet<string> = new Set([
+    'artisanpack/post-content',
+    'core/post-content',
+]);
 
 export interface SplitTemplateResult {
+    /** Chrome rendered above the block canvas. */
     header: readonly BlockInstance[];
+    /** Chrome rendered below the block canvas. */
     footer: readonly BlockInstance[];
     templateName: string;
+    /**
+     * Whether a content slot was found. When `false` the whole template is
+     * returned as `header` — the author still sees the template's shape,
+     * and the caller can flag that the content position is a guess.
+     */
+    slotFound: boolean;
 }
 
 export function splitTemplateAroundContentSlot(
     blocks: readonly BlockInstance[],
-    parts: Readonly<Record<string, AppliedTemplatePart>>,
     templateName: string
 ): SplitTemplateResult {
-    const expanded = expandParts(blocks, parts);
-    const header: BlockInstance[] = [];
-    const footer: BlockInstance[] = [];
-    let seenSlot = false;
+    const split = splitBlocks(blocks);
 
-    for (const block of expanded) {
-        if (!seenSlot && block.name === CONTENT_SLOT_NAME) {
-            seenSlot = true;
+    if (!split.found) {
+        return {
+            header: blocks,
+            footer: [],
+            templateName,
+            slotFound: false,
+        };
+    }
+
+    return {
+        header: split.before,
+        footer: split.after,
+        templateName,
+        slotFound: true,
+    };
+}
+
+interface SplitResult {
+    before: BlockInstance[];
+    after: BlockInstance[];
+    found: boolean;
+}
+
+function splitBlocks(blocks: readonly BlockInstance[]): SplitResult {
+    const before: BlockInstance[] = [];
+    const after: BlockInstance[] = [];
+    let found = false;
+
+    for (const block of blocks) {
+        if (found) {
+            after.push(block);
             continue;
         }
 
-        if (seenSlot) {
-            footer.push(block);
-        } else {
-            header.push(block);
+        if (CONTENT_SLOT_NAMES.has(block.name)) {
+            found = true;
+            continue;
         }
-    }
 
-    // No slot in the template — treat the whole thing as header chrome
-    // so authors still see what the template contains. Frontend fallback
-    // is a separate concern (see the umbrella issue's default-template
-    // path).
-    if (!seenSlot) {
-        return { header: expanded, footer: [], templateName };
-    }
+        const inner = block.innerBlocks;
 
-    return { header, footer, templateName };
-}
+        if (inner !== undefined && inner.length > 0) {
+            const innerSplit = splitBlocks(inner);
 
-/**
- * Inline `core/template-part` refs from the parts map.
- *
- * `visited` carries the slugs currently being expanded on this branch so a
- * self- or mutually-referencing part terminates instead of recursing until
- * the stack blows. Template parts are theme/DB content, so they can't be
- * assumed acyclic — the backend's own collector guards the same way, but it
- * still ships the circular parts in the flat map it returns. A ref whose
- * slug is already on the branch is dropped rather than re-expanded; the
- * cycle has nothing new to contribute to the preview.
- *
- * The set is passed by value per branch (not mutated in place) so sibling
- * refs to the same shared part still expand normally.
- */
-function expandParts(
-    blocks: readonly BlockInstance[],
-    parts: Readonly<Record<string, AppliedTemplatePart>>,
-    visited: ReadonlySet<string> = new Set()
-): BlockInstance[] {
-    const out: BlockInstance[] = [];
+            if (innerSplit.found) {
+                found = true;
 
-    for (const block of blocks) {
-        if (block.name === 'core/template-part') {
-            const attrs = block.attributes as { slug?: unknown } | undefined;
-            const slug = typeof attrs?.slug === 'string' ? attrs.slug.trim() : '';
-            const part = slug !== '' ? parts[slug] : undefined;
-
-            if (part !== undefined) {
-                if (visited.has(slug)) {
-                    continue;
+                if (innerSplit.before.length > 0) {
+                    before.push({ ...block, innerBlocks: innerSplit.before });
                 }
 
-                const nextVisited = new Set(visited).add(slug);
-
-                for (const nested of expandParts(part.blocks, parts, nextVisited)) {
-                    out.push(nested);
+                if (innerSplit.after.length > 0) {
+                    after.push({ ...block, innerBlocks: innerSplit.after });
                 }
+
                 continue;
             }
         }
 
-        out.push(block);
+        before.push(block);
     }
 
-    return out;
+    return { before, after, found };
 }

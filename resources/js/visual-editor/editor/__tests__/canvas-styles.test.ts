@@ -17,6 +17,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
     ALIGNMENT_OVERRIDE_STYLES,
+    COMPOSED_CHROME_STYLES,
     DEFAULT_CANVAS_STYLES,
     POST_EDITOR_FRAMING_STYLES,
 } from '../../editor-settings';
@@ -42,11 +43,23 @@ describe('canvasStyles', () => {
 
         expect(defaultsIndex).toBeGreaterThanOrEqual(0);
         expect(framingIndex).toBeGreaterThan(defaultsIndex);
-        // Framing is the cascade anchor for the post editor's page-like
-        // visual; if anything else were to land after it, that entry
-        // would have to be intentional (theme.json bridge for the post
-        // editor will land after framing).
-        expect(framingIndex).toBe(canvasStyles.length - 1);
+    });
+
+    it('places COMPOSED_CHROME_STYLES last so it can undo the framing inside chrome regions', () => {
+        const framingIndex = canvasStyles.findIndex(
+            (entry) => entry.css === POST_EDITOR_FRAMING_STYLES
+        );
+        const chromeIndex = canvasStyles.findIndex(
+            (entry) => entry.css === COMPOSED_CHROME_STYLES
+        );
+
+        // The framing entry exists to frame post *content* — 48px padding
+        // and a 720px column. Composed-view chrome (#655) renders inside
+        // the same canvas but is a site header/footer, so it has to win
+        // against that framing; hence it lands after. Anything added later
+        // would silently outrank the chrome reset.
+        expect(chromeIndex).toBeGreaterThan(framingIndex);
+        expect(chromeIndex).toBe(canvasStyles.length - 1);
     });
 
     it('keeps the alignment overrides between the canvas defaults and the post-editor framing', () => {

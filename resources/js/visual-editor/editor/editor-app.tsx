@@ -94,7 +94,7 @@ import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 import { useSaveNotifications } from './save-notifications';
 import { TopBar, type ViewMode } from './top-bar';
 import {
-    ChromePreviewPanel,
+    hydrateBlocks,
     splitTemplateAroundContentSlot,
     useAppliedTemplate,
 } from './composed-view';
@@ -850,19 +850,16 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         [onBlocksChange]
     );
 
-    // #621 — composed-view wiring.
+    // #621/#655 — composed-view wiring.
     //
-    // Iteration note: an earlier approach swapped the BlockEditorProvider
-    // `value` for a composed tree that wove the template's blocks around
-    // the content list. That fought Gutenberg's stateful sync too
-    // directly — every attempt surfaced a new failure (block-validation
-    // warnings, render loops, editor freezes). The safer pivot: keep the
-    // block canvas exactly as it is (raw content, one BlockEditorProvider)
-    // and render the template chrome as inert preview panels around the
-    // canvas when composed mode is on. That gives authors the "content
-    // in-context" feel without touching the block-editor state, so
-    // selection / undo / unsaved-changes survive the toggle by
-    // construction. Full inline chrome rendering is a follow-up.
+    // The block canvas stays exactly as it is: raw content, one
+    // BlockEditorProvider, one tree, the existing persistence loop. The
+    // template's chrome renders as inert block previews *inside* the same
+    // iframe (see `ChromeBlocks.tsx`), each mounting its own isolated
+    // block-editor store. Nothing here touches the content provider's
+    // `value`, so selection, undo history, and unsaved-changes survive a
+    // toggle by construction — which is what the earlier composed-tree
+    // approach could not manage without freezing the editor.
     const appliedTemplateState = useAppliedTemplate({
         apiBase: props.apiBase,
         resource: props.resource,
@@ -875,10 +872,11 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         enabled: viewMode === 'with-template',
     });
 
-    const composedChromePreview: {
+    const composedChrome: {
         header: readonly BlockInstance[];
         footer: readonly BlockInstance[];
         templateName: string;
+        slotFound: boolean;
     } | null = useMemo(() => {
         if (
             viewMode !== 'with-template' ||
@@ -887,11 +885,21 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             return null;
         }
 
-        return splitTemplateAroundContentSlot(
+        const split = splitTemplateAroundContentSlot(
             appliedTemplateState.template.blocks,
-            appliedTemplateState.template.template_parts,
             appliedTemplateState.template.name
         );
+
+        // Hydrate each side separately. The split clones a wrapper onto
+        // both sides when the slot is nested inside it, and hydrating
+        // after the split gives each preview store its own clientIds
+        // rather than two stores holding the same one.
+        return {
+            header: hydrateBlocks(split.header),
+            footer: hydrateBlocks(split.footer),
+            templateName: split.templateName,
+            slotFound: split.slotFound,
+        };
     }, [appliedTemplateState, viewMode]);
 
     const viewModeDisabledReason =
@@ -944,8 +952,25 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 };
             }
 
+            // Resolved, but the template never says where content goes, so
+            // the split put all of it above the canvas. Say so rather than
+            // let the author read the position as meaningful.
+            if (composedChrome !== null && !composedChrome.slotFound) {
+                return {
+                    tone: 'warning',
+                    message: sprintf(
+                        /* translators: %s: template name. */
+                        __(
+                            'The template “%s” has no content area, so your content is shown below the whole template.',
+                            TEXT_DOMAIN
+                        ),
+                        composedChrome.templateName
+                    ),
+                };
+            }
+
             return null;
-        }, [appliedTemplateState, viewMode]);
+        }, [appliedTemplateState, composedChrome, viewMode]);
 
     const handleUndo = useCallback((): void => {
         const current = historyRef.current;
@@ -1406,7 +1431,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
              */}
             <div
                 className="ap-visual-editor__canvas-stack"
-                data-composed={composedChromePreview !== null}
+                data-composed={composedChrome !== null}
             >
                 {composedNotice !== null ? (
                     <div className="ap-visual-editor__composed-notice">
@@ -1418,13 +1443,6 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                         </Alert>
                     </div>
                 ) : null}
-                {composedChromePreview !== null ? (
-                    <ChromePreviewPanel
-                        label={__('Header', TEXT_DOMAIN)}
-                        templateName={composedChromePreview.templateName}
-                        blocks={composedChromePreview.header}
-                    />
-                ) : null}
                 <EditorCanvas
                     showTitle={supports?.title !== false}
                     title={title}
@@ -1432,14 +1450,15 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                     blockContext={blockContextValue}
                     apiBase={props.apiBase}
                     previewWidthPx={canvasPreviewWidthPx}
+                    chrome={
+                        composedChrome === null
+                            ? null
+                            : {
+                                header: composedChrome.header,
+                                footer: composedChrome.footer,
+                            }
+                    }
                 />
-                {composedChromePreview !== null ? (
-                    <ChromePreviewPanel
-                        label={__('Footer', TEXT_DOMAIN)}
-                        templateName={composedChromePreview.templateName}
-                        blocks={composedChromePreview.footer}
-                    />
-                ) : null}
             </div>
             {/*
              * #488 — watch the selected block's attributes and re-route
