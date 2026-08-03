@@ -31,6 +31,7 @@ import { applyFilters } from '@wordpress/hooks';
 
 import {
     ALIGNMENT_OVERRIDE_STYLES,
+    COMPOSED_CHROME_STYLES,
     DEFAULT_CANVAS_STYLES,
     POST_EDITOR_FRAMING_STYLES,
 } from '../editor-settings';
@@ -216,6 +217,10 @@ const baseCanvasStyles: CanvasStyle[] = [
     // entry so templates + template parts span full-bleed like the
     // front-end (#47).
     { css: POST_EDITOR_FRAMING_STYLES },
+    // Composed-view chrome (#655). Must follow the framing entry above —
+    // it exists to undo that framing inside the read-only header/footer
+    // regions, which are chrome, not post content.
+    { css: COMPOSED_CHROME_STYLES },
 ];
 
 /**

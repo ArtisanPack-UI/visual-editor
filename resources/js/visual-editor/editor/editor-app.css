@@ -217,3 +217,19 @@
     line-height: 1.5;
     color: var(--color-base-content, #374151);
 }
+
+/* Composed mode with no resolvable template — explains why the canvas is
+   showing bare content while the toggle reads "With template". */
+.ap-visual-editor__composed-notice {
+    margin: 12px 24px 0;
+    flex: 0 0 auto;
+}
+
+/* Stack the chrome preview panels above/below the block canvas
+   without disturbing the parent flex row (inserter | canvas | inspector). */
+.ap-visual-editor__canvas-stack {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+}

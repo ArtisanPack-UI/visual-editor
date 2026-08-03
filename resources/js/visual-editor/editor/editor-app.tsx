@@ -92,7 +92,12 @@ import { entityTypeForResource } from './entity-type';
 import { InspectorSidebar } from './inspector-sidebar';
 import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 import { useSaveNotifications } from './save-notifications';
-import { TopBar } from './top-bar';
+import { TopBar, type ViewMode } from './top-bar';
+import {
+    hydrateBlocks,
+    splitTemplateAroundContentSlot,
+    useAppliedTemplate,
+} from './composed-view';
 import { usePersistence } from './use-persistence';
 
 // Side-effect imports for the editor *chrome* — the top bar, block
@@ -362,8 +367,25 @@ export function EditorApp(props: EditorAppProps): JSX.Element {
     // into the bindings module so the inspector panel resolves its
     // API calls, its picker, and the live canvas overlay against the
     // right parent record.
+    //
+    // #622 — the composed view renders template-chrome bindings
+    // consumers (`core/post-title`, `core/post-author`, `core/post-date`,
+    // `core/post-featured-image`, and any other bound blocks) inside
+    // this same context, so they resolve against the *current* content
+    // item — not against the template's own sample data.
     setBindingsApiConfig({ apiBase: props.apiBase });
     setBindingsResourceContext(props.resource ?? null, props.id ?? null);
+
+    // #622 — clear the bindings context on editor unmount so a
+    // subsequent editor mount for a different resource doesn't
+    // inherit stale sentinel state between renders. Setting during
+    // render (above) keeps the context in lockstep with props while
+    // the editor is alive.
+    useEffect(() => {
+        return (): void => {
+            setBindingsResourceContext(null, null);
+        };
+    }, []);
 
     return (
         <ToastProvider>
@@ -559,6 +581,10 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     const [pagePatternsLoading, setPagePatternsLoading] = useState<boolean>(true);
     const [pagePatternsError, setPagePatternsError] = useState<string | null>(null);
     const [templateOptions, setTemplateOptions] = useState<readonly TemplateOption[]>([]);
+    // #620 — Composed-view toggle. Ephemeral: every editor mount starts
+    // in `content` mode; the applied-template fetch (#621) is only
+    // triggered on the first flip to `with-template`.
+    const [viewMode, setViewMode] = useState<ViewMode>('content');
     // #617 — viewport preset selection resizes the canvas frame.
     // The shared hook holds the `null | positive-int` slot and the
     // `onViewportChange` callback so post + site editors can't
@@ -823,6 +849,152 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         },
         [onBlocksChange]
     );
+
+    // #621/#655 — composed-view wiring.
+    //
+    // The block canvas stays exactly as it is: raw content, one
+    // BlockEditorProvider, one tree, the existing persistence loop. The
+    // template's chrome renders as inert block previews *inside* the same
+    // iframe (see `ChromeBlocks.tsx`), each mounting its own isolated
+    // block-editor store. Nothing here touches the content provider's
+    // `value`, so selection, undo history, and unsaved-changes survive a
+    // toggle by construction — which is what the earlier composed-tree
+    // approach could not manage without freezing the editor.
+    const appliedTemplateState = useAppliedTemplate({
+        apiBase: props.apiBase,
+        resource: props.resource,
+        id: props.id,
+        // Passing the live `template` state (not the persisted value) keys
+        // the hook's cache on the current selection and rides along on the
+        // request, so switching templates in the document panel re-resolves
+        // the preview immediately instead of waiting on the debounced save.
+        template,
+        enabled: viewMode === 'with-template',
+    });
+
+    const composedChrome: {
+        header: readonly BlockInstance[];
+        footer: readonly BlockInstance[];
+        templateName: string;
+        slotFound: boolean;
+    } | null = useMemo(() => {
+        if (
+            viewMode !== 'with-template' ||
+            appliedTemplateState.status !== 'ok'
+        ) {
+            return null;
+        }
+
+        const split = splitTemplateAroundContentSlot(
+            appliedTemplateState.template.blocks,
+            appliedTemplateState.template.name
+        );
+
+        // Hydrate each side separately. The split clones a wrapper onto
+        // both sides when the slot is nested inside it, and hydrating
+        // after the split gives each preview store its own clientIds
+        // rather than two stores holding the same one.
+        return {
+            header: hydrateBlocks(split.header),
+            footer: hydrateBlocks(split.footer),
+            templateName: split.templateName,
+            slotFound: split.slotFound,
+        };
+    }, [appliedTemplateState, viewMode]);
+
+    const viewModeDisabledReason =
+        viewMode === 'with-template' &&
+        appliedTemplateState.status === 'loading'
+            ? __('Loading applied template…', TEXT_DOMAIN)
+            : null;
+
+    // Composed mode with nothing to compose. Without a banner the canvas
+    // renders bare content while the toggle still reads "With template",
+    // which looks like the toggle silently did nothing. Note this is the
+    // review-fix treatment only — the designed fallback (compose against a
+    // minimal default template + toast) is #624.
+    const composedNotice: {
+        tone: 'info' | 'warning' | 'error';
+        message: string;
+    } | null =
+        useMemo(() => {
+            if (viewMode !== 'with-template') {
+                return null;
+            }
+
+            if (appliedTemplateState.status === 'missing') {
+                return {
+                    tone: 'warning',
+                    message:
+                        appliedTemplateState.missing.reason === 'unknown-slug'
+                            ? sprintf(
+                                /* translators: %s: template slug. */
+                                __(
+                                    'The template “%s” could not be found, so no template chrome is shown.',
+                                    TEXT_DOMAIN
+                                ),
+                                appliedTemplateState.missing.slug ?? ''
+                            )
+                            : __(
+                                'This content has no template selected, so no template chrome is shown.',
+                                TEXT_DOMAIN
+                            ),
+                };
+            }
+
+            if (appliedTemplateState.status === 'error') {
+                return {
+                    tone: 'error',
+                    message:
+                        appliedTemplateState.error.message !== ''
+                            ? appliedTemplateState.error.message
+                            : __(
+                                'The applied template could not be loaded.',
+                                TEXT_DOMAIN
+                            ),
+                };
+            }
+
+            // Resolved, but the template never says where content goes, so
+            // the split put all of it above the canvas. Say so rather than
+            // let the author read the position as meaningful.
+            if (composedChrome !== null && !composedChrome.slotFound) {
+                return {
+                    tone: 'warning',
+                    message: sprintf(
+                        /* translators: %s: template name. */
+                        __(
+                            'The template “%s” has no content area, so your content is shown below the whole template.',
+                            TEXT_DOMAIN
+                        ),
+                        composedChrome.templateName
+                    ),
+                };
+            }
+
+            // Composed view is working. Say once, up front, that the
+            // surrounding chrome is a preview — the template areas render
+            // as real blocks but are inert (`useDisabled()` in
+            // `ChromeBlocks`), and without a word for it an author reading
+            // a header they can't click assumes the editor is broken.
+            // Stated here rather than labelled on each region so the
+            // canvas still reads as the page it's previewing.
+            if (composedChrome !== null) {
+                return {
+                    tone: 'info',
+                    message: sprintf(
+                        /* translators: %s: template name. */
+                        __(
+                            'Previewing the “%s” template. Only your content is editable here — the surrounding template areas are edited in the site editor.',
+                            TEXT_DOMAIN
+                        ),
+                        composedChrome.templateName
+                    ),
+                };
+            }
+
+            return null;
+        }, [appliedTemplateState, composedChrome, viewMode]);
 
     const handleUndo = useCallback((): void => {
         const current = historyRef.current;
@@ -1092,6 +1264,12 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         setShortcutsOpen(true);
     }, []);
 
+    // #620 — flip the ephemeral composed-view state. Presentational only:
+    // #621 owns the actual composition of the template around the canvas.
+    const handleViewModeChange = useCallback((next: ViewMode): void => {
+        setViewMode(next);
+    }, []);
+
     const handleCloseShortcuts = useCallback((): void => {
         setShortcutsOpen(false);
     }, []);
@@ -1118,6 +1296,9 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 onOpenPatternModal={
                     patternModalTriggerAvailable ? handleOpenModal : undefined
                 }
+                viewMode={viewMode}
+                onViewModeChange={handleViewModeChange}
+                viewModeDisabledReason={viewModeDisabledReason}
             />
         ),
         [
@@ -1128,6 +1309,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             handleToggleInserter,
             handleToggleInspector,
             handleUndo,
+            handleViewModeChange,
             handleViewportChange,
             history.future.length,
             history.past.length,
@@ -1138,6 +1320,8 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             previewUrl,
             saveError,
             saveStatus,
+            viewMode,
+            viewModeDisabledReason,
             viewportRegistry,
         ]
     );
@@ -1269,14 +1453,37 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
              * an entity-mounted canvas it's null and the blocks render
              * their placeholder shell.
              */}
-            <EditorCanvas
-                showTitle={supports?.title !== false}
-                title={title}
-                onTitleChange={handleTitleChange}
-                blockContext={blockContextValue}
-                apiBase={props.apiBase}
-                previewWidthPx={canvasPreviewWidthPx}
-            />
+            <div
+                className="ap-visual-editor__canvas-stack"
+                data-composed={composedChrome !== null}
+            >
+                {composedNotice !== null ? (
+                    <div className="ap-visual-editor__composed-notice">
+                        <Alert
+                            color={composedNotice.tone}
+                            role="status"
+                        >
+                            {composedNotice.message}
+                        </Alert>
+                    </div>
+                ) : null}
+                <EditorCanvas
+                    showTitle={supports?.title !== false}
+                    title={title}
+                    onTitleChange={handleTitleChange}
+                    blockContext={blockContextValue}
+                    apiBase={props.apiBase}
+                    previewWidthPx={canvasPreviewWidthPx}
+                    chrome={
+                        composedChrome === null
+                            ? null
+                            : {
+                                header: composedChrome.header,
+                                footer: composedChrome.footer,
+                            }
+                    }
+                />
+            </div>
             {/*
              * #488 — watch the selected block's attributes and re-route
              * writes from WP's color/border panels (which dispatch
