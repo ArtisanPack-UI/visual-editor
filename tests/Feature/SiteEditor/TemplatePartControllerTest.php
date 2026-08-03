@@ -212,7 +212,8 @@ describe( 'POST /visual-editor/api/template-parts', function (): void {
 			->assertCreated()
 			->assertJsonPath( 'slug', 'sidebar' )
 			->assertJsonPath( 'area', 'sidebar' )
-			->assertJsonPath( 'content.blocks.0.name', 'core/navigation' );
+			// Forked on read — the editor registers only `artisanpack/*`.
+			->assertJsonPath( 'content.blocks.0.name', 'artisanpack/navigation' );
 
 		// The editor dereferences `entity.id` straight after create to
 		// navigate to the new part. A missing / zero id sends it to

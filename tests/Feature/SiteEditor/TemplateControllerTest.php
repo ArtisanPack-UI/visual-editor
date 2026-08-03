@@ -186,7 +186,15 @@ describe( 'POST /visual-editor/api/templates', function (): void {
 			->assertCreated()
 			->assertJsonPath( 'slug', 'archive' )
 			->assertJsonPath( 'title.raw', 'Archive' )
-			->assertJsonPath( 'content.blocks.0.name', 'core/archives' );
+			// The read envelope forks every core name for the editor, which
+			// has registered only `artisanpack/*` since the I7 cutover.
+			// Storage keeps what was sent — asserted below.
+			->assertJsonPath( 'content.blocks.0.name', 'artisanpack/archives' );
+
+		expect( Template::query()->where( 'slug', 'archive' )->value( 'block_content' ) )
+			->toBe( [
+				[ 'name' => 'core/archives', 'attributes' => [ 'showLabel' => true ], 'innerBlocks' => [] ],
+			] );
 
 		// The editor dereferences `entity.id` straight after create to
 		// navigate to the new template. A missing / zero id sends it to
@@ -268,7 +276,7 @@ describe( 'PUT /visual-editor/api/templates/{slug}', function (): void {
 		] )
 			->assertOk()
 			->assertJsonPath( 'title.raw', 'Single Renamed' )
-			->assertJsonPath( 'content.blocks.0.name', 'core/post-content' );
+			->assertJsonPath( 'content.blocks.0.name', 'artisanpack/post-content' );
 	} );
 
 	it( 'upserts when the slug does not yet exist for the theme', function (): void {

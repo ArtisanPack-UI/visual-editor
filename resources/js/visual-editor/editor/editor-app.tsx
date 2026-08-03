@@ -913,7 +913,10 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     // which looks like the toggle silently did nothing. Note this is the
     // review-fix treatment only — the designed fallback (compose against a
     // minimal default template + toast) is #624.
-    const composedNotice: { tone: 'warning' | 'error'; message: string } | null =
+    const composedNotice: {
+        tone: 'info' | 'warning' | 'error';
+        message: string;
+    } | null =
         useMemo(() => {
             if (viewMode !== 'with-template') {
                 return null;
@@ -962,6 +965,27 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                         /* translators: %s: template name. */
                         __(
                             'The template “%s” has no content area, so your content is shown below the whole template.',
+                            TEXT_DOMAIN
+                        ),
+                        composedChrome.templateName
+                    ),
+                };
+            }
+
+            // Composed view is working. Say once, up front, that the
+            // surrounding chrome is a preview — the template areas render
+            // as real blocks but are inert (`useDisabled()` in
+            // `ChromeBlocks`), and without a word for it an author reading
+            // a header they can't click assumes the editor is broken.
+            // Stated here rather than labelled on each region so the
+            // canvas still reads as the page it's previewing.
+            if (composedChrome !== null) {
+                return {
+                    tone: 'info',
+                    message: sprintf(
+                        /* translators: %s: template name. */
+                        __(
+                            'Previewing the “%s” template. Only your content is editable here — the surrounding template areas are edited in the site editor.',
                             TEXT_DOMAIN
                         ),
                         composedChrome.templateName
