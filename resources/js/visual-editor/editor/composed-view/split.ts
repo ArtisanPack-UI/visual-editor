@@ -57,9 +57,24 @@ export function splitTemplateAroundContentSlot(
     return { header, footer, templateName };
 }
 
+/**
+ * Inline `core/template-part` refs from the parts map.
+ *
+ * `visited` carries the slugs currently being expanded on this branch so a
+ * self- or mutually-referencing part terminates instead of recursing until
+ * the stack blows. Template parts are theme/DB content, so they can't be
+ * assumed acyclic — the backend's own collector guards the same way, but it
+ * still ships the circular parts in the flat map it returns. A ref whose
+ * slug is already on the branch is dropped rather than re-expanded; the
+ * cycle has nothing new to contribute to the preview.
+ *
+ * The set is passed by value per branch (not mutated in place) so sibling
+ * refs to the same shared part still expand normally.
+ */
 function expandParts(
     blocks: readonly BlockInstance[],
-    parts: Readonly<Record<string, AppliedTemplatePart>>
+    parts: Readonly<Record<string, AppliedTemplatePart>>,
+    visited: ReadonlySet<string> = new Set()
 ): BlockInstance[] {
     const out: BlockInstance[] = [];
 
@@ -70,7 +85,13 @@ function expandParts(
             const part = slug !== '' ? parts[slug] : undefined;
 
             if (part !== undefined) {
-                for (const nested of expandParts(part.blocks, parts)) {
+                if (visited.has(slug)) {
+                    continue;
+                }
+
+                const nextVisited = new Set(visited).add(slug);
+
+                for (const nested of expandParts(part.blocks, parts, nextVisited)) {
                     out.push(nested);
                 }
                 continue;

@@ -2,7 +2,7 @@
  * REST client for the composed-view's applied-template endpoint (#619).
  *
  * The endpoint returns a discriminated union: on hit, the resolved
- * template + its referenced template-parts; on miss, a 404 with a
+ * template + its referenced template-parts; on miss, a 200 with a
  * `{ status: 'missing', reason }` body so the client can trigger the
  * fallback flow without a second round-trip.
  *
@@ -40,22 +40,41 @@ export interface AppliedTemplateMissing {
     slug?: string;
 }
 
-export type AppliedTemplateResult =
-    | { status: 'ok'; template: AppliedTemplate }
-    | AppliedTemplateMissing;
+export type AppliedTemplateResult = AppliedTemplate | AppliedTemplateMissing;
 
 export interface AppliedTemplateConfig {
     apiBase: string;
     resource: string;
     id: string;
+    /**
+     * Template slug to resolve, overriding the slug persisted on the model.
+     *
+     * The editor passes whatever the document panel currently has selected,
+     * which may not have been saved yet. Without the override the endpoint
+     * reads the model's stored `template` and a preview taken right after a
+     * template change would race the debounced save and resolve the *old*
+     * template.
+     *
+     * An empty string is meaningful and is sent as a blank `?template=`: it
+     * says the selection has been *cleared*, which the endpoint answers with
+     * `{ status: 'missing', reason: 'empty' }`. Leave the field `undefined`
+     * to send no parameter at all and let the server read the persisted
+     * value.
+     */
+    template?: string;
 }
 
 function appliedTemplateUrl(config: AppliedTemplateConfig): string {
     const base = config.apiBase.replace(/\/$/, '');
+    const url = `${base}/${encodeURIComponent(
+        config.resource
+    )}/${encodeURIComponent(config.id)}/applied-template`;
 
-    return `${base}/${encodeURIComponent(config.resource)}/${encodeURIComponent(
-        config.id
-    )}/applied-template`;
+    if (config.template === undefined) {
+        return url;
+    }
+
+    return `${url}?template=${encodeURIComponent(config.template.trim())}`;
 }
 
 /**
@@ -101,7 +120,20 @@ export async function fetchAppliedTemplate(
         return body;
     }
 
-    return body as AppliedTemplate;
+    // A 2xx that isn't a recognized `missing` payload must still match the
+    // `ok` shape before we hand it on. Casting blindly let an empty or
+    // truncated body (a proxy's HTML error page, a 204, a misrouted
+    // response) reach `splitTemplateAroundContentSlot`, which then threw on
+    // `template.blocks` far from the actual cause.
+    if (!isAppliedTemplatePayload(body)) {
+        throw new ApiError(
+            'Applied-template response did not match the expected shape.',
+            response.status,
+            body
+        );
+    }
+
+    return body;
 }
 
 function isMissingPayload(body: unknown): body is AppliedTemplateMissing {
@@ -114,5 +146,35 @@ function isMissingPayload(body: unknown): body is AppliedTemplateMissing {
     return (
         record.status === 'missing' &&
         (record.reason === 'empty' || record.reason === 'unknown-slug')
+    );
+}
+
+function isAppliedTemplatePayload(body: unknown): body is AppliedTemplate {
+    if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+        return false;
+    }
+
+    const record = body as Record<string, unknown>;
+
+    if (record.status !== 'ok') {
+        return false;
+    }
+
+    if (typeof record.slug !== 'string' || typeof record.name !== 'string') {
+        return false;
+    }
+
+    if (!Array.isArray(record.blocks)) {
+        return false;
+    }
+
+    // `template_parts` is a slug-keyed map. PHP serializes an empty map as
+    // `[]`, so an empty array is valid here — anything else non-object is not.
+    const parts = record.template_parts;
+
+    return (
+        typeof parts === 'object' &&
+        parts !== null &&
+        (!Array.isArray(parts) || parts.length === 0)
     );
 }

@@ -135,4 +135,140 @@ describe('useAppliedTemplate', () => {
 
         expect(fetchMock).toHaveBeenCalledTimes(1);
     });
+
+    it('refetches when the selected template changes', async () => {
+        const fetchMock = mockFetch([
+            {
+                status: 200,
+                body: {
+                    status: 'ok',
+                    slug: 'single-post',
+                    name: 'Single Post',
+                    source: 'theme',
+                    blocks: [],
+                    template_parts: {},
+                },
+            },
+            {
+                status: 200,
+                body: {
+                    status: 'ok',
+                    slug: 'full-width',
+                    name: 'Full Width',
+                    source: 'theme',
+                    blocks: [],
+                    template_parts: {},
+                },
+            },
+        ]);
+
+        const { result, rerender } = renderHook(
+            ({ template }: { template: string }) =>
+                useAppliedTemplate({ ...CONFIG, template, enabled: true }),
+            { initialProps: { template: 'single-post' } }
+        );
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('ok');
+        });
+
+        act(() => rerender({ template: 'full-width' }));
+
+        await waitFor(() => {
+            expect(
+                result.current.status === 'ok' &&
+                    result.current.template.slug === 'full-width'
+            ).toBe(true);
+        });
+
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
+    it('sends the selected template as a query param so the response is not gated on the debounced save', async () => {
+        const fetchMock = mockFetch([
+            {
+                status: 200,
+                body: {
+                    status: 'ok',
+                    slug: 'full-width',
+                    name: 'Full Width',
+                    source: 'theme',
+                    blocks: [],
+                    template_parts: {},
+                },
+            },
+        ]);
+
+        const { result } = renderHook(() =>
+            useAppliedTemplate({
+                ...CONFIG,
+                template: 'full-width',
+                enabled: true,
+            })
+        );
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('ok');
+        });
+
+        expect(String(fetchMock.mock.calls[0][0])).toContain(
+            'template=full-width'
+        );
+    });
+
+    it('sends a blank template param when the selection has been cleared', async () => {
+        const fetchMock = mockFetch([
+            { status: 200, body: { status: 'missing', reason: 'empty' } },
+        ]);
+
+        const { result } = renderHook(() =>
+            useAppliedTemplate({ ...CONFIG, template: '', enabled: true })
+        );
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('missing');
+        });
+
+        // Blank is meaningful — it must reach the server rather than being
+        // dropped, or the endpoint falls back to the stale persisted slug.
+        expect(String(fetchMock.mock.calls[0][0])).toContain('?template=');
+    });
+
+    it('omits the template param entirely when no selection is supplied', async () => {
+        const fetchMock = mockFetch([
+            {
+                status: 200,
+                body: {
+                    status: 'ok',
+                    slug: 's',
+                    name: 'S',
+                    source: 'theme',
+                    blocks: [],
+                    template_parts: {},
+                },
+            },
+        ]);
+
+        const { result } = renderHook(() =>
+            useAppliedTemplate({ ...CONFIG, enabled: true })
+        );
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('ok');
+        });
+
+        expect(String(fetchMock.mock.calls[0][0])).not.toContain('template=');
+    });
+
+    it('surfaces a malformed ok payload as an error rather than a bogus ok', async () => {
+        mockFetch([{ status: 200, body: { status: 'ok' } }]);
+
+        const { result } = renderHook(() =>
+            useAppliedTemplate({ ...CONFIG, enabled: true })
+        );
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('error');
+        });
+    });
 });

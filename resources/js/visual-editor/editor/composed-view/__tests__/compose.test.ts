@@ -178,4 +178,69 @@ describe('composeBlocks (#621)', () => {
 
         expect(extractContentBlocks(raw)).toBeNull();
     });
+
+    it('terminates on a self-referencing template part', () => {
+        const applied = template(
+            [block('core/template-part', { slug: 'header' })],
+            {
+                header: {
+                    slug: 'header',
+                    area: 'header',
+                    title: 'Header',
+                    source: 'theme',
+                    // References itself — theme/DB content, not guaranteed acyclic.
+                    blocks: [block('core/template-part', { slug: 'header' })],
+                },
+            }
+        );
+
+        expect(() => composeBlocks([block('core/paragraph')], applied)).not.toThrow();
+    });
+
+    it('terminates on mutually-referencing template parts', () => {
+        const applied = template([block('core/template-part', { slug: 'a' })], {
+            a: {
+                slug: 'a',
+                area: 'header',
+                title: 'A',
+                source: 'theme',
+                blocks: [block('core/template-part', { slug: 'b' })],
+            },
+            b: {
+                slug: 'b',
+                area: 'footer',
+                title: 'B',
+                source: 'theme',
+                blocks: [block('core/template-part', { slug: 'a' })],
+            },
+        });
+
+        expect(() => composeBlocks([block('core/paragraph')], applied)).not.toThrow();
+    });
+
+    it('still expands a shared part referenced twice as siblings', () => {
+        const applied = template(
+            [
+                block('core/template-part', { slug: 'shared' }),
+                block('core/post-content'),
+                block('core/template-part', { slug: 'shared' }),
+            ],
+            {
+                shared: {
+                    slug: 'shared',
+                    area: 'uncategorized',
+                    title: 'Shared',
+                    source: 'theme',
+                    blocks: [block('core/site-title')],
+                },
+            }
+        );
+
+        const composed = composeBlocks([block('core/paragraph')], applied);
+        const names = composed.map((b) => b.name);
+
+        // Cycle protection is per-branch, so sibling refs to the same part
+        // must both still expand.
+        expect(names.filter((n) => n === 'core/site-title')).toHaveLength(2);
+    });
 });

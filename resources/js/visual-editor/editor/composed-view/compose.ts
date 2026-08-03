@@ -94,10 +94,17 @@ export function composeBlocks(
  * blocks of the referenced part. Refs whose slug is not in the parts map
  * render as an empty part shell (kept as a locked `core/template-part` in
  * place) — the same behavior the site editor uses for unresolved parts.
+ *
+ * `seen` carries the slugs already being expanded on the current branch.
+ * A part that references itself (directly or through another part) would
+ * otherwise recurse until the stack overflows; template parts are theme/DB
+ * content and can't be assumed acyclic. On a cycle the ref is left in place
+ * as an unresolved part shell — the same treatment an unknown slug gets.
  */
 function expandTemplateParts(
     blocks: readonly BlockInstance[],
-    parts: Readonly<Record<string, AppliedTemplatePart>>
+    parts: Readonly<Record<string, AppliedTemplatePart>>,
+    seen: ReadonlySet<string> = new Set()
 ): BlockInstance[] {
     const out: BlockInstance[] = [];
 
@@ -106,9 +113,13 @@ function expandTemplateParts(
             const slug = readSlug(block);
             const part = slug !== null ? parts[slug] : undefined;
 
-            if (part !== undefined) {
+            if (part !== undefined && slug !== null && !seen.has(slug)) {
                 // Expand the part's blocks in place of the ref.
-                for (const nested of expandTemplateParts(part.blocks, parts)) {
+                for (const nested of expandTemplateParts(
+                    part.blocks,
+                    parts,
+                    new Set(seen).add(slug)
+                )) {
                     out.push(nested);
                 }
 
@@ -118,7 +129,7 @@ function expandTemplateParts(
 
         const expandedInner =
             block.innerBlocks.length > 0
-                ? expandTemplateParts(block.innerBlocks, parts)
+                ? expandTemplateParts(block.innerBlocks, parts, seen)
                 : block.innerBlocks;
 
         out.push(

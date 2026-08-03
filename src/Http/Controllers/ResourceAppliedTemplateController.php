@@ -33,6 +33,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplateResolver;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Gate;
 
@@ -58,24 +59,32 @@ class ResourceAppliedTemplateController extends Controller
 	 *     template_parts: array<string, {slug, area, blocks, ...}>,
 	 *   }
 	 *
-	 * When the model's `template` attribute is empty *or* the referenced slug
-	 * cannot be resolved, returns 200 with a discriminated body the client
-	 * uses to fall back to the default template:
+	 * When the resolved slug is empty *or* the referenced slug cannot be
+	 * resolved, returns 200 with a discriminated body the client uses to fall
+	 * back to the default template:
 	 *   { status: 'missing', reason: 'empty' | 'unknown-slug', slug?: string }
 	 *
 	 * A 200 status (rather than 404) keeps the browser devtools quiet on
 	 * every editor mount — the "missing" state is the endpoint's normal,
 	 * routine response for any content that hasn't chosen a template.
 	 *
+	 * An optional `?template=` query parameter overrides the slug stored on
+	 * the model. The editor sends whatever the document panel currently has
+	 * selected, which the debounced save may not have persisted yet; without
+	 * the override a preview taken right after a template change resolves the
+	 * *previous* template. Reading is gated on the same `view` authorization
+	 * either way, and an unresolvable override falls through to the normal
+	 * `unknown-slug` response.
+	 *
 	 * @since 1.1.0
 	 */
-	public function show( string $resource, int|string $id ): JsonResponse
+	public function show( Request $request, string $resource, int|string $id ): JsonResponse
 	{
 		$model = $this->resources->resolve( $resource, $id );
 
 		Gate::authorize( 'view', $model );
 
-		$slug = $this->readTemplateSlug( $model );
+		$slug = $this->readRequestedSlug( $request ) ?? $this->readTemplateSlug( $model );
 
 		if ( '' === $slug ) {
 			return response()->json( [ 'status' => 'missing', 'reason' => 'empty' ] );
@@ -99,6 +108,40 @@ class ResourceAppliedTemplateController extends Controller
 			'blocks'         => $resolved->blocks,
 			'template_parts' => $this->collectReferencedParts( $resolved->blocks ),
 		] );
+	}
+
+	/**
+	 * Reads the optional `?template=` override off the request.
+	 *
+	 * Returns `null` when the parameter is absent or non-scalar so the caller
+	 * can fall back to the model attribute. A present-but-blank value returns
+	 * `''`, which is a deliberate "no template" instruction rather than a
+	 * fallback — that's how the editor previews a content item whose template
+	 * selection has been cleared but not yet saved.
+	 *
+	 * @since 1.1.0
+	 */
+	protected function readRequestedSlug( Request $request ): ?string
+	{
+		if ( ! $request->has( 'template' ) ) {
+			return null;
+		}
+
+		$value = $request->query( 'template' );
+
+		// A blank `?template=` reaches us as null because Laravel's default
+		// `ConvertEmptyStringsToNull` middleware rewrites the query bag. The
+		// parameter being present at all is the signal that matters, so a
+		// null here means "explicitly no template", not "not supplied".
+		if ( null === $value ) {
+			return '';
+		}
+
+		if ( ! is_string( $value ) ) {
+			return null;
+		}
+
+		return trim( $value );
 	}
 
 	/**

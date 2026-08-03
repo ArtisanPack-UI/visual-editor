@@ -867,6 +867,11 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         apiBase: props.apiBase,
         resource: props.resource,
         id: props.id,
+        // Passing the live `template` state (not the persisted value) keys
+        // the hook's cache on the current selection and rides along on the
+        // request, so switching templates in the document panel re-resolves
+        // the preview immediately instead of waiting on the debounced save.
+        template,
         enabled: viewMode === 'with-template',
     });
 
@@ -894,6 +899,53 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         appliedTemplateState.status === 'loading'
             ? __('Loading applied template…', TEXT_DOMAIN)
             : null;
+
+    // Composed mode with nothing to compose. Without a banner the canvas
+    // renders bare content while the toggle still reads "With template",
+    // which looks like the toggle silently did nothing. Note this is the
+    // review-fix treatment only — the designed fallback (compose against a
+    // minimal default template + toast) is #624.
+    const composedNotice: { tone: 'warning' | 'error'; message: string } | null =
+        useMemo(() => {
+            if (viewMode !== 'with-template') {
+                return null;
+            }
+
+            if (appliedTemplateState.status === 'missing') {
+                return {
+                    tone: 'warning',
+                    message:
+                        appliedTemplateState.missing.reason === 'unknown-slug'
+                            ? sprintf(
+                                /* translators: %s: template slug. */
+                                __(
+                                    'The template “%s” could not be found, so no template chrome is shown.',
+                                    TEXT_DOMAIN
+                                ),
+                                appliedTemplateState.missing.slug ?? ''
+                            )
+                            : __(
+                                'This content has no template selected, so no template chrome is shown.',
+                                TEXT_DOMAIN
+                            ),
+                };
+            }
+
+            if (appliedTemplateState.status === 'error') {
+                return {
+                    tone: 'error',
+                    message:
+                        appliedTemplateState.error.message !== ''
+                            ? appliedTemplateState.error.message
+                            : __(
+                                'The applied template could not be loaded.',
+                                TEXT_DOMAIN
+                            ),
+                };
+            }
+
+            return null;
+        }, [appliedTemplateState, viewMode]);
 
     const handleUndo = useCallback((): void => {
         const current = historyRef.current;
@@ -1356,6 +1408,16 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 className="ap-visual-editor__canvas-stack"
                 data-composed={composedChromePreview !== null}
             >
+                {composedNotice !== null ? (
+                    <div className="ap-visual-editor__composed-notice">
+                        <Alert
+                            color={composedNotice.tone}
+                            role="status"
+                        >
+                            {composedNotice.message}
+                        </Alert>
+                    </div>
+                ) : null}
                 {composedChromePreview !== null ? (
                     <ChromePreviewPanel
                         label={__('Header', TEXT_DOMAIN)}

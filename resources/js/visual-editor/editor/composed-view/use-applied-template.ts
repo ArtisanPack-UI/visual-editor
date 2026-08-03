@@ -1,14 +1,21 @@
 /**
  * React hook that fetches the applied template for the composed view once
- * the toggle is first flipped on. Caches the result per `(resource, id)`
- * pair for the lifetime of the editor mount so subsequent flips are
- * instant.
+ * the toggle is first flipped on. Caches the result per
+ * `(resource, id, template)` triple for the lifetime of the editor mount so
+ * subsequent flips are instant.
+ *
+ * `template` is part of the key on purpose: picking a different template in
+ * the document panel has to invalidate the cached preview, otherwise the
+ * composed view keeps showing the previous template until the editor
+ * remounts. The slug also rides along on the request so the response
+ * reflects the selection rather than whatever the debounced save has
+ * managed to persist so far.
  *
  * States:
  *   - `idle`     — hook has not been triggered yet (viewMode never left `content`).
  *   - `loading`  — fetch in flight.
  *   - `ok`       — template resolved; `.template` populated.
- *   - `missing`  — server returned the discriminated 404 payload.
+ *   - `missing`  — server returned the discriminated `missing` payload.
  *   - `error`    — network / auth / unexpected failure.
  *
  * @since 1.1.0
@@ -39,23 +46,33 @@ export interface UseAppliedTemplateOptions extends AppliedTemplateConfig {
     enabled: boolean;
 }
 
+/**
+ * Cache entries are keyed per hook instance (a `useRef`), so this only ever
+ * holds the templates one editor mount has looked at.
+ */
+
 export function useAppliedTemplate(
     options: UseAppliedTemplateOptions
 ): AppliedTemplateState {
-    const { apiBase, resource, id, enabled } = options;
+    const { apiBase, resource, id, template, enabled } = options;
     const [state, setState] = useState<AppliedTemplateState>({ status: 'idle' });
     const cacheRef = useRef<{
         key: string;
         state: AppliedTemplateState;
     } | null>(null);
 
-    const cacheKey = `${apiBase}::${resource}::${id}`;
+    const cacheKey = `${apiBase}::${resource}::${id}::${template ?? ''}`;
 
     const run = useCallback(async (): Promise<void> => {
         setState({ status: 'loading' });
 
         try {
-            const result = await fetchAppliedTemplate({ apiBase, resource, id });
+            const result = await fetchAppliedTemplate({
+                apiBase,
+                resource,
+                id,
+                template,
+            });
 
             const next: AppliedTemplateState =
                 result.status === 'ok'
@@ -80,7 +97,7 @@ export function useAppliedTemplate(
             cacheRef.current = { key: cacheKey, state: next };
             setState(next);
         }
-    }, [apiBase, cacheKey, id, resource]);
+    }, [apiBase, cacheKey, id, resource, template]);
 
     useEffect(() => {
         if (!enabled) {

@@ -195,3 +195,83 @@ it( 'skips template-parts that cannot be resolved rather than failing', function
 		->assertOk()
 		->assertJsonPath( 'template_parts', [] );
 } );
+
+it( 'resolves the ?template= override instead of the slug stored on the model', function () {
+	actingAsAppliedTemplateUser();
+	registerSingleTemplate( 'full-width', [], 'Full Width' );
+
+	// The model still points at the *previous* template — the editor sends
+	// the newly-selected slug before the debounced save has persisted it.
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'Switching templates',
+		'template' => 'single-post',
+		'content'  => [],
+	] );
+
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template?template=full-width" )
+		->assertOk()
+		->assertJsonPath( 'status', 'ok' )
+		->assertJsonPath( 'slug', 'full-width' )
+		->assertJsonPath( 'name', 'Full Width' );
+} );
+
+it( 'reports unknown-slug for an override that does not resolve', function () {
+	actingAsAppliedTemplateUser();
+	registerSingleTemplate( 'single-post' );
+
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'Bad override',
+		'template' => 'single-post',
+		'content'  => [],
+	] );
+
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template?template=nope" )
+		->assertOk()
+		->assertJsonPath( 'status', 'missing' )
+		->assertJsonPath( 'reason', 'unknown-slug' )
+		->assertJsonPath( 'slug', 'nope' );
+} );
+
+it( 'treats a blank ?template= override as a deliberate no-template selection', function () {
+	actingAsAppliedTemplateUser();
+	registerSingleTemplate( 'single-post' );
+
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'Cleared override',
+		'template' => 'single-post',
+		'content'  => [],
+	] );
+
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template?template=" )
+		->assertOk()
+		->assertJsonPath( 'status', 'missing' )
+		->assertJsonPath( 'reason', 'empty' );
+} );
+
+it( 'falls back to the model template when no override is supplied', function () {
+	actingAsAppliedTemplateUser();
+	registerSingleTemplate( 'single-post', [], 'Single Post' );
+
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'No override',
+		'template' => 'single-post',
+		'content'  => [],
+	] );
+
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template" )
+		->assertOk()
+		->assertJsonPath( 'slug', 'single-post' );
+} );
+
+it( 'still authorizes the override path against the view gate', function () {
+	registerSingleTemplate( 'full-width', [], 'Full Width' );
+
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'Anon override',
+		'template' => 'single-post',
+		'content'  => [],
+	] );
+
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template?template=full-width" )
+		->assertUnauthorized();
+} );
