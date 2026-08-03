@@ -31,6 +31,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplatePart;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplatePartResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\TemplateResolver;
+use ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -100,11 +101,12 @@ class ResourceAppliedTemplateController extends Controller
 			] );
 		}
 
-		$parts = $this->collectReferencedParts( $resolved->blocks );
+		$blocks = $this->editorBlocksFor( $resolved );
+		$parts  = $this->collectReferencedParts( $blocks );
 
 		foreach ( $parts as $slug => $part ) {
 			if ( is_array( $part ) && is_array( $part['blocks'] ?? null ) ) {
-				$parts[ $slug ]['blocks'] = $this->rewriteCoreToFork( $part['blocks'] );
+				$parts[ $slug ]['blocks'] = ThemeBlockMarkup::rewriteCoreToFork( $part['blocks'] );
 			}
 		}
 
@@ -113,63 +115,33 @@ class ResourceAppliedTemplateController extends Controller
 			'slug'           => $resolved->slug,
 			'name'           => $resolved->title,
 			'source'         => $resolved->source,
-			'blocks'         => $this->rewriteCoreToFork( $resolved->blocks ),
+			'blocks'         => ThemeBlockMarkup::rewriteCoreToFork( $blocks ),
 			'template_parts' => $parts,
 		] );
 	}
 
 	/**
-	 * Rewrite every `core/x` block name to its `artisanpack/x` fork.
+	 * Editor-shape blocks for a resolved template.
 	 *
-	 * The I7 cutover (#415) replaced `registerCoreBlocks()` with
-	 * `registerArtisanPackBlocks()`, so the editor only knows the
-	 * `artisanpack/*` namespace. Theme templates on disk are authored in
-	 * core markup (`wp:group`, `wp:heading`, `wp:template-part`), which
-	 * means the resolved blocks would mount as unregistered types and the
-	 * composed view would render nothing where the chrome belongs — the
-	 * same class of failure as #674, one layer up.
+	 * `ResolvedTemplate::$blocks` is populated for DB-backed templates but
+	 * empty for every theme-file source — those carry their content as raw
+	 * block markup in `$rawContent`. Reading `$blocks` alone therefore
+	 * returns nothing for exactly the case the composed view exists to
+	 * show: a template that ships with the theme. #675 hit the same wall in
+	 * the site editor and fixed it inside the template adapter; the parse
+	 * now lives in {@see ThemeBlockMarkup} so both paths share it.
 	 *
-	 * The mapping mirrors {@see \ArtisanPackUI\VisualEditor\Support\BlockMarkupHydrator::aliasFor()}.
-	 * It is deliberately unconditional rather than gated on a registry
-	 * lookup: {@see BlockTypeRegistry} only knows server-rendered PHP
-	 * blocks, while most forks are JS-only, so gating would silently skip
-	 * nearly every block. A core name with no fork ends up unregistered
-	 * under either namespace, so the blanket rewrite costs nothing there.
-	 *
-	 * Rewriting `core/template-part` in particular hands part resolution
-	 * to the fork's own edit component (#674/#675), which fetches the
-	 * referenced part through the core-data shim.
-	 *
-	 * @since 1.1.0
-	 *
-	 * @param  array<int, array<string, mixed>>  $blocks
+	 * @since 1.6.0
 	 *
 	 * @return array<int, array<string, mixed>>
 	 */
-	protected function rewriteCoreToFork( array $blocks ): array
+	protected function editorBlocksFor( ResolvedTemplate $resolved ): array
 	{
-		$out = [];
-
-		foreach ( $blocks as $block ) {
-			if ( ! is_array( $block ) ) {
-				$out[] = $block;
-				continue;
-			}
-
-			$name = $block['name'] ?? null;
-
-			if ( is_string( $name ) && str_starts_with( $name, 'core/' ) ) {
-				$block['name'] = 'artisanpack/' . substr( $name, strlen( 'core/' ) );
-			}
-
-			if ( is_array( $block['innerBlocks'] ?? null ) && [] !== $block['innerBlocks'] ) {
-				$block['innerBlocks'] = $this->rewriteCoreToFork( $block['innerBlocks'] );
-			}
-
-			$out[] = $block;
+		if ( [] !== $resolved->blocks ) {
+			return $resolved->blocks;
 		}
 
-		return $out;
+		return ThemeBlockMarkup::parseToEditorBlocks( (string) $resolved->rawContent );
 	}
 
 	/**

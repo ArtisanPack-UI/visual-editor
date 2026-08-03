@@ -27,6 +27,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEd
 
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplate;
+use ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup;
 
 class TemplateAdapter
 {
@@ -169,15 +170,9 @@ class TemplateAdapter
 	 */
 	protected static function parseRawContentToEditorBlocks( string $raw ): array
 	{
-		$parserFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\BlockMarkupParser';
-
-		if ( ! class_exists( $parserFqcn ) ) {
-			return [];
-		}
-
-		$parsed = $parserFqcn::parse( $raw );
-
-		return self::convertParseBlocksTree( $parsed );
+		// Shared with the composed view's applied-template endpoint (#655),
+		// which hit the same empty-`blocks` theme-file case.
+		return ThemeBlockMarkup::parseToEditorBlocks( $raw );
 	}
 
 	/**
@@ -258,28 +253,6 @@ class TemplateAdapter
 	 */
 	protected static function convertParseBlocksTree( array $tree ): array
 	{
-		$out = [];
-
-		foreach ( $tree as $block ) {
-			if ( ! is_array( $block ) ) {
-				continue;
-			}
-
-			$name = $block['blockName'] ?? null;
-
-			if ( ! is_string( $name ) || '' === $name ) {
-				continue;
-			}
-
-			$inner = is_array( $block['innerBlocks'] ?? null ) ? $block['innerBlocks'] : [];
-
-			$out[] = [
-				'name'        => $name,
-				'attributes'  => is_array( $block['attrs'] ?? null ) ? $block['attrs'] : [],
-				'innerBlocks' => self::convertParseBlocksTree( $inner ),
-			];
-		}
-
-		return $out;
+		return ThemeBlockMarkup::convertParseBlocksTree( $tree );
 	}
 }

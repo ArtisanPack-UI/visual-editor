@@ -338,3 +338,74 @@ it( 'still authorizes the override path against the view gate', function () {
 	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template?template=full-width" )
 		->assertUnauthorized();
 } );
+
+it( 'parses raw block markup when the resolved template ships no parsed blocks', function () {
+	actingAsAppliedTemplateUser();
+
+	// Theme-file templates carry markup in `raw_content` and leave
+	// `blocks` empty — the shape every on-disk template resolves to. The
+	// endpoint has to parse it or the composed view renders no chrome at
+	// all for exactly the templates it exists to show.
+	addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+		return array_merge( [
+			'raw-only' => [
+				'slug'        => 'raw-only',
+				'theme'       => 'test-theme',
+				'title'       => 'Raw Only',
+				'source'      => 'theme',
+				'raw_content' => '<!-- wp:template-part {"slug":"header","theme":"test-theme"} /-->'
+					. '<!-- wp:group {"tagName":"main"} --><!-- wp:post-content /--><!-- /wp:group -->',
+			],
+		], $existing );
+	} );
+
+	( new VisualEditorServiceProvider( app() ) )->registerSiteEditorResolvers();
+
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'Raw template',
+		'template' => 'raw-only',
+		'content'  => [],
+	] );
+
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template" )
+		->assertOk()
+		->assertJsonPath( 'status', 'ok' )
+		->assertJsonPath( 'blocks.0.name', 'artisanpack/template-part' )
+		->assertJsonPath( 'blocks.1.name', 'artisanpack/group' )
+		->assertJsonPath( 'blocks.1.innerBlocks.0.name', 'artisanpack/post-content' );
+} )->skip(
+	fn () => ! class_exists( \ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup::PARSER_FQCN ),
+	'requires cms-framework 2.5+ (PHP 8.3+)'
+);
+
+it( 'prefers already-parsed blocks over the raw markup', function () {
+	actingAsAppliedTemplateUser();
+
+	addFilter( 'ap.visual-editor.templates', function ( array $existing ): array {
+		return array_merge( [
+			'both' => [
+				'slug'        => 'both',
+				'theme'       => 'test-theme',
+				'title'       => 'Both',
+				'source'      => 'db',
+				'raw_content' => '<!-- wp:paragraph /-->',
+				'blocks'      => [
+					[ 'name' => 'core/heading', 'attributes' => [], 'innerBlocks' => [] ],
+				],
+			],
+		], $existing );
+	} );
+
+	( new VisualEditorServiceProvider( app() ) )->registerSiteEditorResolvers();
+
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'Both',
+		'template' => 'both',
+		'content'  => [],
+	] );
+
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template" )
+		->assertOk()
+		->assertJsonPath( 'blocks.0.name', 'artisanpack/heading' )
+		->assertJsonCount( 1, 'blocks' );
+} );
