@@ -12,6 +12,17 @@ export {
     type AppliedTemplatePart,
     type AppliedTemplateResult,
 } from './api';
+export {
+    createDefaultTemplateBlocks,
+    defaultTemplateName,
+} from './default-template';
+export {
+    composedFallbackNotice,
+    selectComposedTemplate,
+    type ComposedFallbackNotice,
+    type ComposedFallbackReason,
+    type ComposedTemplateSelection,
+} from './fallback';
 export { hydrateAppliedTemplate, hydrateBlocks } from './hydrate';
 export {
     splitTemplateAroundContentSlot,
@@ -23,3 +34,7 @@ export {
     type AppliedTemplateState,
     type UseAppliedTemplateOptions,
 } from './use-applied-template';
+export {
+    useComposedFallbackToast,
+    type UseComposedFallbackToastOptions,
+} from './use-fallback-toast';

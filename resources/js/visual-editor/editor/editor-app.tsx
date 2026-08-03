@@ -94,9 +94,12 @@ import { KeyboardShortcutsModal } from './keyboard-shortcuts-modal';
 import { useSaveNotifications } from './save-notifications';
 import { TopBar, type ViewMode } from './top-bar';
 import {
+    composedFallbackNotice,
     hydrateBlocks,
+    selectComposedTemplate,
     splitTemplateAroundContentSlot,
     useAppliedTemplate,
+    useComposedFallbackToast,
 } from './composed-view';
 import { usePersistence } from './use-persistence';
 
@@ -872,22 +875,36 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         enabled: viewMode === 'with-template',
     });
 
+    // #624 — announce a fallback once per toggle-on event. Lives beside the
+    // selection below rather than inside it because the selection is a
+    // `useMemo` and firing a toast from one would be a render side effect.
+    useComposedFallbackToast({ viewMode, state: appliedTemplateState });
+
     const composedChrome: {
         header: readonly BlockInstance[];
         footer: readonly BlockInstance[];
         templateName: string;
+        /** `null` on the fallback — nothing for the ribbon to link to. */
+        templateSlug: string | null;
+        isFallback: boolean;
         slotFound: boolean;
     } | null = useMemo(() => {
-        if (
-            viewMode !== 'with-template' ||
-            appliedTemplateState.status !== 'ok'
-        ) {
+        if (viewMode !== 'with-template') {
+            return null;
+        }
+
+        // #624 — a missing / unknown / failed template routes to the
+        // built-in default tree instead of returning null, so the canvas
+        // always has a shape once the toggle is on.
+        const selected = selectComposedTemplate(appliedTemplateState);
+
+        if (selected === null) {
             return null;
         }
 
         const split = splitTemplateAroundContentSlot(
-            appliedTemplateState.template.blocks,
-            appliedTemplateState.template.name
+            selected.blocks,
+            selected.name
         );
 
         // Hydrate each side separately. The split clones a wrapper onto
@@ -898,6 +915,8 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             header: hydrateBlocks(split.header),
             footer: hydrateBlocks(split.footer),
             templateName: split.templateName,
+            templateSlug: selected.slug,
+            isFallback: selected.fallbackReason !== null,
             slotFound: split.slotFound,
         };
     }, [appliedTemplateState, viewMode]);
@@ -908,11 +927,10 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
             ? __('Loading applied template…', TEXT_DOMAIN)
             : null;
 
-    // Composed mode with nothing to compose. Without a banner the canvas
-    // renders bare content while the toggle still reads "With template",
-    // which looks like the toggle silently did nothing. Note this is the
-    // review-fix treatment only — the designed fallback (compose against a
-    // minimal default template + toast) is #624.
+    // Standing explanation of what the composed canvas is showing. The
+    // #624 toast announces a fallback the moment it happens; this notice
+    // is what an author still sees a minute later, once the toast has
+    // auto-dismissed and the canvas is all that's left.
     const composedNotice: {
         tone: 'info' | 'warning' | 'error';
         message: string;
@@ -922,37 +940,13 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                 return null;
             }
 
-            if (appliedTemplateState.status === 'missing') {
-                return {
-                    tone: 'warning',
-                    message:
-                        appliedTemplateState.missing.reason === 'unknown-slug'
-                            ? sprintf(
-                                /* translators: %s: template slug. */
-                                __(
-                                    'The template “%s” could not be found, so no template chrome is shown.',
-                                    TEXT_DOMAIN
-                                ),
-                                appliedTemplateState.missing.slug ?? ''
-                            )
-                            : __(
-                                'This content has no template selected, so no template chrome is shown.',
-                                TEXT_DOMAIN
-                            ),
-                };
-            }
+            // #624 — composing against the built-in default template. Say
+            // so plainly: the canvas otherwise looks like a real (and very
+            // plain) template resolved successfully.
+            const fallback = composedFallbackNotice(appliedTemplateState);
 
-            if (appliedTemplateState.status === 'error') {
-                return {
-                    tone: 'error',
-                    message:
-                        appliedTemplateState.error.message !== ''
-                            ? appliedTemplateState.error.message
-                            : __(
-                                'The applied template could not be loaded.',
-                                TEXT_DOMAIN
-                            ),
-                };
+            if (fallback !== null) {
+                return fallback;
             }
 
             // Resolved, but the template never says where content goes, so
