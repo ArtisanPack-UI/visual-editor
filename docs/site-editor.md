@@ -156,9 +156,10 @@ into editing that entity.
 ### Deep links by slug
 
 Path routes address entities by database id. Callers outside the SPA
-usually do not have one — the post editor's composed view, for instance,
-knows only the slug of the template it composed against. For those, the
-site editor accepts a query-string deep link on the mount URL:
+usually do not have one — the post editor's
+[composed view](post-editor/Composed-View.md), for instance, knows only
+the slug of the template it composed against. For those, the site editor
+accepts a query-string deep link on the mount URL:
 
 ```text
 /visual-editor/site?entity=template&slug=single
@@ -192,8 +193,8 @@ Behaviour worth relying on:
 Build links with `buildTemplateDeepLink()` from
 `site-editor/deep-link.ts` rather than assembling the query string by
 hand, so both sides of the contract move together. The first consumer is
-the post editor's composed-view ribbon, whose **Edit template ↗** button
-opens one of these links in a new tab.
+the post editor's [composed-view ribbon](post-editor/Composed-View.md#5-the-ribbon-and-the-edit-template-deep-link),
+whose **Edit template ↗** button opens one of these links in a new tab.
 
 `buildTemplateDeepLink()` defaults to the package's own mount path
 (`/visual-editor/site`) and takes the route base as an optional second
@@ -268,6 +269,7 @@ chain — user records win on the same slug. See [Templates §4](site-editor/Tem
 
 - [Templates](site-editor/Templates.md) · [Global styles](site-editor/Global-Styles.md) · [Navigation](site-editor/Navigation.md) · [Patterns](site-editor/Patterns.md)
 - [Access Gate](site-editor/Access-Gate.md) — site-editor access gate contract
+- [Composed view](post-editor/Composed-View.md) — the post-editor surface that deep-links here
 - [Content model](content-model.md) — `HasBlockContent` and authorization
 - [Renderers](renderers.md) — render saved entities on the public site
 - [Photo Grid](photo-grid.md) — container-level Photo Grid setting (group / columns / grid). theme.json defaults live under `settings.artisanpack.photoGrid` and ride the same global-styles plumbing.

@@ -50,6 +50,7 @@ The block editor for a single resource — a post, page, or any custom Eloquent 
 - [[Post Editor]] — Surface tour and what each region does
 - [[post-editor/Getting Started]] — Mount your first editor in five minutes
 - [[post-editor/Blade Component]] — `<x-visual-editor />` reference
+- [[post-editor/Composed View]] — Editing content inside its resolved template
 - [[post-editor/Livewire Integration]] — Embedding inside Livewire components
 - [[post-editor/Inertia Integration]] — Embedding inside Inertia (React or Vue)
 - [[post-editor/Theming]] — Restyling editor chrome through DaisyUI tokens
