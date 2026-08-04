@@ -41,6 +41,7 @@ import { useMemo } from 'react';
 
 import { canvasStyles } from './canvas-styles';
 import { ChromeBlocks } from './composed-view/ChromeBlocks';
+import { ComposedViewRibbon } from './composed-view/composed-view-ribbon';
 import { PostTitle } from './post-title';
 import { ROOT_CANVAS_LAYOUT } from '../editor-settings';
 import { TEXT_DOMAIN } from '../vendor/i18n';
@@ -53,6 +54,13 @@ import { useThemeGlobalStylesCss } from '../site-editor/use-theme-global-styles-
 export interface CanvasChrome {
     header: readonly BlockInstance[];
     footer: readonly BlockInstance[];
+    /** Resolved template name, shown in the #623 ribbon. */
+    templateName: string;
+    /**
+     * Resolved template slug, or `null` on the built-in fallback
+     * template. `null` hides the ribbon's **Edit template ↗** CTA.
+     */
+    templateSlug: string | null;
 }
 
 /** Block context value stamped onto the canvas for cms-framework entities. */
@@ -134,11 +142,21 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
     // previews mount isolated block-editor stores of their own, so the
     // content provider's `value` is untouched and the canvas never
     // remounts across a composed-view toggle.
+    //
+    // The #623 ribbon leads the composed stack. It is the only editing
+    // affordance for template chrome in v1 — individual template parts
+    // get no per-part badge — and it renders in here rather than in the
+    // editor shell so it sticks to the top of the *preview* and scrolls
+    // with it. Bare-content mode (`chrome === null`) never mounts it.
     const blockList =
         chrome === null || chrome === undefined ? (
             <BlockList layout={ROOT_CANVAS_LAYOUT} />
         ) : (
             <>
+                <ComposedViewRibbon
+                    templateName={chrome.templateName}
+                    templateSlug={chrome.templateSlug}
+                />
                 <ChromeBlocks
                     blocks={chrome.header}
                     region="header"

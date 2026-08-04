@@ -45,7 +45,7 @@ describe('canvasStyles', () => {
         expect(framingIndex).toBeGreaterThan(defaultsIndex);
     });
 
-    it('places COMPOSED_CHROME_STYLES last so it can undo the framing inside chrome regions', () => {
+    it('places COMPOSED_CHROME_STYLES after the framing so it can undo it inside chrome regions', () => {
         const framingIndex = canvasStyles.findIndex(
             (entry) => entry.css === POST_EDITOR_FRAMING_STYLES
         );
@@ -56,10 +56,15 @@ describe('canvasStyles', () => {
         // The framing entry exists to frame post *content* — 48px padding
         // and a 720px column. Composed-view chrome (#655) renders inside
         // the same canvas but is a site header/footer, so it has to win
-        // against that framing; hence it lands after. Anything added later
-        // would silently outrank the chrome reset.
+        // against that framing; hence it lands after.
+        //
+        // Only the #623 ribbon sheet follows it: the ribbon is editor
+        // chrome that happens to render in the canvas and shares no
+        // selectors with the chrome regions, so it cannot outrank the
+        // reset. Any *other* future entry appended past the chrome reset
+        // would, so this pins the tail to exactly one trailing sheet.
         expect(chromeIndex).toBeGreaterThan(framingIndex);
-        expect(chromeIndex).toBe(canvasStyles.length - 1);
+        expect(chromeIndex).toBe(canvasStyles.length - 2);
     });
 
     it('keeps the alignment overrides between the canvas defaults and the post-editor framing', () => {

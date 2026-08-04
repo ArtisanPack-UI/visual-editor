@@ -153,6 +153,56 @@ entity work:
 These are shareable — bookmark or send to a colleague to jump straight
 into editing that entity.
 
+### Deep links by slug
+
+Path routes address entities by database id. Callers outside the SPA
+usually do not have one — the post editor's composed view, for instance,
+knows only the slug of the template it composed against. For those, the
+site editor accepts a query-string deep link on the mount URL:
+
+```text
+/visual-editor/site?entity=template&slug=single
+```
+
+On mount the SPA parses the query string, resolves the slug through the
+templates list endpoint, and navigates to that template's editor view.
+The `pushState` that follows rewrites the address bar to the canonical
+path route (`/visual-editor/site/templates/12`), so the query-string form
+is an entry point rather than a URL the user is left holding.
+
+| Parameter | Required | Notes |
+|-----------|----------|-------|
+| `entity` | yes | Only `template` is supported today. Unknown values are ignored. |
+| `slug` | yes | Entity slug. Blank or whitespace-only values are ignored. |
+| `entity_id` | no | Pre-resolved id. When supplied the slug lookup is skipped. Reserved for entity kinds that have no slug. |
+
+Behaviour worth relying on:
+
+- **Additive.** Mounting with no query string behaves exactly as it did
+  before — no lookup is issued and the SPA lands on its default section.
+- **Unknown entity is a no-op**, not an error. A link written against a
+  future package version lands on the default section rather than
+  throwing.
+- **Unresolvable slug lands on the Templates index** with a toast reading
+  `The template "{slug}" was not found.` A failed lookup does the same.
+- **The access gate is unchanged.** `SiteEditorAccessGate` runs
+  server-side, before the SPA mounts, so a denied request still renders
+  the deny-by-default page and never reaches this parsing.
+
+Build links with `buildTemplateDeepLink()` from
+`site-editor/deep-link.ts` rather than assembling the query string by
+hand, so both sides of the contract move together. The first consumer is
+the post editor's composed-view ribbon, whose **Edit template ↗** button
+opens one of these links in a new tab.
+
+`buildTemplateDeepLink()` defaults to the package's own mount path
+(`/visual-editor/site`) and takes the route base as an optional second
+argument. The composed-view ribbon currently relies on that default: the
+post editor has no way to discover a `data-route-base` the host may have
+overridden on the site-editor mount element. A host that mounts the site
+editor at a non-default path will get a ribbon CTA pointing at the
+default path until that value is threaded through to the post editor.
+
 ---
 
 ## 6. Preview
