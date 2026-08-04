@@ -247,4 +247,78 @@ describe('EditorCanvas', () => {
             expect(frame.style.width).toBe('');
         });
     });
+
+    describe('composed-view ribbon (#623)', () => {
+        it('is absent in bare-content mode', () => {
+            render(
+                <EditorCanvas
+                    showTitle
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    chrome={null}
+                />
+            );
+
+            expect(
+                screen.queryByTestId('ap-composed-view-ribbon')
+            ).not.toBeInTheDocument();
+        });
+
+        it('mounts inside the canvas iframe when chrome is supplied', () => {
+            render(
+                <EditorCanvas
+                    showTitle
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    chrome={{
+                        header: [],
+                        footer: [],
+                        templateName: 'Single Post',
+                        templateSlug: 'single',
+                    }}
+                />
+            );
+
+            const ribbon = screen.getByTestId('ap-composed-view-ribbon');
+
+            // Inside the `BlockCanvas` stub, not beside it — the ribbon
+            // has to scroll with the composed preview rather than sit in
+            // the editor chrome above the frame.
+            expect(
+                screen.getByTestId('ap-stub-block-canvas')
+            ).toContainElement(ribbon);
+            expect(
+                screen.getByTestId('ap-composed-view-ribbon-cta')
+            ).toHaveAttribute(
+                'href',
+                '/visual-editor/site?entity=template&slug=single'
+            );
+        });
+
+        it('drops the CTA when composing against the fallback template', () => {
+            render(
+                <EditorCanvas
+                    showTitle
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    chrome={{
+                        header: [],
+                        footer: [],
+                        templateName: 'Default template',
+                        templateSlug: null,
+                    }}
+                />
+            );
+
+            expect(
+                screen.getByTestId('ap-composed-view-ribbon')
+            ).toBeInTheDocument();
+            expect(
+                screen.queryByTestId('ap-composed-view-ribbon-cta')
+            ).not.toBeInTheDocument();
+        });
+    });
 });

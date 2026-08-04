@@ -37,6 +37,7 @@ import {
 } from '../editor-settings';
 
 import canvasThemeTokens from './canvas-theme-tokens.css?inline';
+import composedRibbonStyles from './composed-view/composed-view-ribbon.css?inline';
 import flexLayoutStyles from '../../../css/flex-layout.css?inline';
 import photoGridStyles from '../blocks/_shared/photo-grid/photo-grid.css?inline';
 
@@ -221,6 +222,12 @@ const baseCanvasStyles: CanvasStyle[] = [
     // it exists to undo that framing inside the read-only header/footer
     // regions, which are chrome, not post content.
     { css: COMPOSED_CHROME_STYLES },
+    // Composed-view ribbon (#623). Lives under `composed-view/`, which
+    // the `blocks/*/*.css` glob above does not reach, so it is handed
+    // to the iframe explicitly. Last in the list because it is editor
+    // chrome rendered inside the canvas — nothing downstream should
+    // restyle it.
+    { css: composedRibbonStyles },
 ];
 
 /**

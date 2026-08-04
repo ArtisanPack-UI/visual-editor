@@ -16,6 +16,7 @@
  */
 
 import { Suspense, lazy, useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { ToastProvider } from '@artisanpack-ui/react/feedback';
 import { __, sprintf } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN, bootI18n } from '../vendor/i18n';
@@ -43,6 +44,7 @@ import {
     TemplatePartCreateDialog,
     TemplatePartsBrowser,
 } from './template-parts-section';
+import { useSiteEditorDeepLink } from './use-deep-link';
 import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
 import { registerBackgroundControls } from '../background-controls';
@@ -229,7 +231,21 @@ function sectionKind(section: SiteEditorSectionId): EntityKind | null {
     return null;
 }
 
+/**
+ * SPA root. The `ToastProvider` wrapper mirrors the post editor
+ * (`editor-app.tsx`): the shell's own hooks — #625's deep-link resolver
+ * for one — announce through `useToast`, which needs a provider ancestor
+ * mounted outside the component that consumes it.
+ */
 export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
+    return (
+        <ToastProvider>
+            <SiteEditorAppShell {...props} />
+        </ToastProvider>
+    );
+}
+
+function SiteEditorAppShell(props: SiteEditorAppProps): JSX.Element {
     ensureEditorBoot();
 
     const { routeBase, apiBase, exitUrl, exitLabel, theme = 'default' } = props;
@@ -240,6 +256,13 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
     );
 
     const routing = useSiteEditorRouting({ routeBase });
+
+    // #625 — `?entity=template&slug=…` on the mount URL lands the user on
+    // that template's editor view instead of the default section. No-ops
+    // when the query string carries no deep link, so plain mounts are
+    // unaffected.
+    useSiteEditorDeepLink({ apiConfig, navigate: routing.navigate });
+
     const [navigatorOpen, setNavigatorOpen] = usePersistedToggle(
         NAVIGATOR_STORAGE_KEY,
         true

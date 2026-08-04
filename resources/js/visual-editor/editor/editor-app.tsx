@@ -1474,6 +1474,8 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                             : {
                                 header: composedChrome.header,
                                 footer: composedChrome.footer,
+                                templateName: composedChrome.templateName,
+                                templateSlug: composedChrome.templateSlug,
                             }
                     }
                 />

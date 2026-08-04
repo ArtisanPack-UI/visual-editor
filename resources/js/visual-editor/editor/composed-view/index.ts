@@ -30,6 +30,10 @@ export {
 } from './split';
 export { ChromeBlocks, type ChromeBlocksProps } from './ChromeBlocks';
 export {
+    ComposedViewRibbon,
+    type ComposedViewRibbonProps,
+} from './composed-view-ribbon';
+export {
     useAppliedTemplate,
     type AppliedTemplateState,
     type UseAppliedTemplateOptions,
