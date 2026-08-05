@@ -1,5 +1,6 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
 
 	// Whitelist `layout.justifyContent` against WP's known enum so an
 	// authored block can't inject arbitrary class tokens through the
@@ -10,11 +11,11 @@
 	$allowedJustify = [ 'left', 'center', 'right', 'space-between', 'space-around', 'space-evenly', 'stretch' ];
 	$justify        = in_array( $rawJustify, $allowedJustify, true ) ? $rawJustify : 'left';
 
-	$baseClasses = [
-		'wp-block-buttons',
-		'is-layout-flex',
-		'is-content-justification-' . $justify,
-	];
+	$baseClasses = array_merge(
+		[ 'wp-block-buttons' ],
+		LayoutSupport::pair( 'buttons', 'is-layout-flex' ),
+		[ 'is-content-justification-' . $justify ]
+	);
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	{!! $innerBlocksHtml !!}

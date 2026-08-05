@@ -163,6 +163,35 @@ describe( 'Keystone #50 — layout-size custom properties + alignment rules', fu
 			->toContain( '.wp-block-post-content.is-layout-constrained > .alignfull' );
 	} );
 
+	it( 'caps unaligned children of a constrained group at content-size (#700)', function (): void {
+		// A constrained group has to constrain its children — that is
+		// what the layout type means upstream. Keyed on the per-block
+		// compound so host markup that hand-writes the shared
+		// `is-layout-constrained` modifier is not retroactively
+		// constrained.
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [
+				'layout' => [ 'contentSize' => '720px', 'wideSize' => '1200px' ],
+			],
+		] );
+
+		expect( $css )
+			->toContain( '.wp-block-group.wp-block-group-is-layout-constrained > :where(:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright))' )
+			->toContain( '.wp-block-group.wp-block-group-is-layout-constrained > .alignwide' )
+			->toContain( '.wp-block-group.wp-block-group-is-layout-constrained > .alignfull' );
+	} );
+
+	it( 'omits the constrained-group child cap when no contentSize is configured (#700)', function (): void {
+		$css = ( new ThemeJsonTokensCompiler() )->compile( [
+			'settings' => [ 'layout' => [ 'wideSize' => '1200px' ] ],
+		] );
+
+		expect( $css )
+			->not->toContain( '.wp-block-group.wp-block-group-is-layout-constrained > :where(' )
+			// alignfull stays unconditional, matching the other rule sets.
+			->toContain( '.wp-block-group.wp-block-group-is-layout-constrained > .alignfull' );
+	} );
+
 	it( 'composes root presets with layout rules separated by a blank line', function (): void {
 		$css = ( new ThemeJsonTokensCompiler() )->compile( [
 			'settings' => [

@@ -2,9 +2,16 @@
 	use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\FlexSupport;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\PhotoGridSupport;
 
-	$baseClasses = [ 'wp-block-columns' ];
+	// #700 — columns is a flex layout upstream and its wrapper carries
+	// both the shared modifier and the per-block compound. Neither was
+	// emitted here, so layout rules keyed on either never applied.
+	$baseClasses = array_merge(
+		[ 'wp-block-columns' ],
+		LayoutSupport::pair( 'columns', 'is-layout-flex' )
+	);
 
 	if ( ! empty( $attributes['isStackedOnMobile'] ) || ! isset( $attributes['isStackedOnMobile'] ) ) {
 		$baseClasses[] = 'is-stacked-on-mobile';

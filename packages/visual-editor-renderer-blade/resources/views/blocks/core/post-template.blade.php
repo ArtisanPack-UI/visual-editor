@@ -1,5 +1,6 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
 
 	$layout = isset( $attributes['layout'] ) ? (string) $attributes['layout'] : 'list';
 	if ( ! in_array( $layout, [ 'list', 'grid', 'masonry' ], true ) ) {
@@ -17,12 +18,15 @@
 	// browsers that ship native CSS Grid masonry. Non-supporting
 	// browsers see the columned grid baseline until the JS bootstrap
 	// hydrates and packs the items.
-	$classes = [ 'wp-block-post-template' ];
-	if ( $isGrid || $isMasonry ) {
-		$classes[] = 'is-layout-grid';
-	} else {
-		$classes[] = 'is-layout-flow';
-	}
+	//
+	// #700 — each shared modifier ships with its per-block compound; the
+	// block-library alignment rules key on
+	// `wp-block-post-template-is-layout-flow`. Masonry is an ArtisanPack
+	// extension with no upstream compound, so it stays unpaired.
+	$classes = array_merge(
+		[ 'wp-block-post-template' ],
+		LayoutSupport::pair( 'post-template', $usesColumns ? 'is-layout-grid' : 'is-layout-flow' )
+	);
 	if ( $isMasonry ) {
 		$classes[] = 'is-layout-masonry';
 	}

@@ -55,7 +55,20 @@ it( 'renders post-content with the resolved HTML body', function () {
 
 	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
 
-	expect( $this->normalizeHtml( $rendered ) )->toContain( '<div class="entry-content wp-block-post-content"><p>Body</p></div>' );
+	expect( $this->normalizeHtml( $rendered ) )->toContain( '<div class="entry-content wp-block-post-content is-layout-flow wp-block-post-content-is-layout-flow"><p>Body</p></div>' );
+} );
+
+it( 'renders post-content with the layout class pair from its layout attribute (#700)', function () {
+	$tree = [
+		blockNode( 'core/post-content', [
+			'_resolvedContent' => '<p>Body</p>',
+			'layout'           => [ 'type' => 'constrained' ],
+		] ),
+	];
+
+	$rendered = $this->stripGlobalStyles( renderTree( $tree ) );
+
+	expect( $this->normalizeHtml( $rendered ) )->toContain( '<div class="entry-content wp-block-post-content is-layout-constrained wp-block-post-content-is-layout-constrained"><p>Body</p></div>' );
 } );
 
 it( 'renders post-excerpt with a more-text link', function () {
