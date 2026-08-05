@@ -62,6 +62,11 @@ export interface AppliedTemplateConfig {
      * value.
      */
     template?: string;
+    /**
+     * Optional abort signal so a caller can cancel an in-flight request when
+     * the selection changes or the component unmounts.
+     */
+    signal?: AbortSignal;
 }
 
 function appliedTemplateUrl(config: AppliedTemplateConfig): string {
@@ -95,6 +100,7 @@ export async function fetchAppliedTemplate(
             Accept: 'application/json',
             'X-Requested-With': 'XMLHttpRequest',
         },
+        signal: config.signal,
     });
 
     const text = await response.text();

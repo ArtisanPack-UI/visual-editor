@@ -378,6 +378,125 @@ it( 'parses raw block markup when the resolved template ships no parsed blocks',
 	'requires cms-framework 2.5+ (PHP 8.3+)'
 );
 
+it( 'resolves template-part refs saved in the artisanpack fork namespace', function () {
+	actingAsAppliedTemplateUser();
+	registerHeaderPart();
+
+	// Templates saved from the site editor store the fork-named ref, since
+	// the editor has emitted `artisanpack/*` since the I7 cutover. Matching
+	// only `core/template-part` returned an empty part map for exactly the
+	// templates users had customized.
+	registerSingleTemplate( 'single-post', [
+		[
+			'name'        => 'artisanpack/template-part',
+			'attributes'  => [ 'slug' => 'header', 'theme' => 'test-theme' ],
+			'innerBlocks' => [],
+		],
+	] );
+
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'Fork-named ref',
+		'template' => 'single-post',
+		'content'  => [],
+	] );
+
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template" )
+		->assertOk()
+		->assertJsonPath( 'template_parts.header.slug', 'header' )
+		->assertJsonPath( 'template_parts.header.blocks.0.name', 'artisanpack/site-title' );
+} );
+
+it( 'parses raw block markup for template-parts that ship no parsed blocks', function () {
+	actingAsAppliedTemplateUser();
+
+	// On-disk theme parts carry markup in `raw_content` with an empty
+	// `blocks` — the same shape templates resolve to. Reading `blocks`
+	// directly served an empty part and hid its nested refs.
+	addFilter( 'ap.visual-editor.template-parts', function ( array $existing ): array {
+		return array_merge( [
+			'header' => [
+				'slug'        => 'header',
+				'theme'       => 'test-theme',
+				'title'       => 'Header',
+				'area'        => 'header',
+				'source'      => 'theme',
+				'raw_content' => '<!-- wp:site-title /-->',
+			],
+		], $existing );
+	} );
+
+	registerSingleTemplate( 'single-post', [
+		[
+			'name'        => 'core/template-part',
+			'attributes'  => [ 'slug' => 'header', 'theme' => 'test-theme' ],
+			'innerBlocks' => [],
+		],
+	] );
+
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'Raw part',
+		'template' => 'single-post',
+		'content'  => [],
+	] );
+
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template" )
+		->assertOk()
+		->assertJsonPath( 'template_parts.header.slug', 'header' )
+		->assertJsonPath( 'template_parts.header.blocks.0.name', 'artisanpack/site-title' );
+} )->skip(
+	fn () => ! class_exists( \ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup::PARSER_FQCN ),
+	'requires cms-framework 2.5+ (PHP 8.3+)'
+);
+
+it( 'discovers nested part refs inside a raw-only template-part', function () {
+	actingAsAppliedTemplateUser();
+
+	addFilter( 'ap.visual-editor.template-parts', function ( array $existing ): array {
+		return array_merge( [
+			'header' => [
+				'slug'        => 'header',
+				'theme'       => 'test-theme',
+				'title'       => 'Header',
+				'area'        => 'header',
+				'source'      => 'theme',
+				'raw_content' => '<!-- wp:template-part {"slug":"nav","theme":"test-theme"} /-->',
+			],
+			'nav'    => [
+				'slug'   => 'nav',
+				'theme'  => 'test-theme',
+				'title'  => 'Nav',
+				'area'   => 'header',
+				'source' => 'theme',
+				'blocks' => [
+					[ 'name' => 'core/navigation', 'attributes' => [], 'innerBlocks' => [] ],
+				],
+			],
+		], $existing );
+	} );
+
+	registerSingleTemplate( 'single-post', [
+		[
+			'name'        => 'core/template-part',
+			'attributes'  => [ 'slug' => 'header', 'theme' => 'test-theme' ],
+			'innerBlocks' => [],
+		],
+	] );
+
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'Nested raw part',
+		'template' => 'single-post',
+		'content'  => [],
+	] );
+
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template" )
+		->assertOk()
+		->assertJsonPath( 'template_parts.nav.slug', 'nav' )
+		->assertJsonPath( 'template_parts.nav.blocks.0.name', 'artisanpack/navigation' );
+} )->skip(
+	fn () => ! class_exists( \ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup::PARSER_FQCN ),
+	'requires cms-framework 2.5+ (PHP 8.3+)'
+);
+
 it( 'prefers already-parsed blocks over the raw markup', function () {
 	actingAsAppliedTemplateUser();
 

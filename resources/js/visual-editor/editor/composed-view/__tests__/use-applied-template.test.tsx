@@ -260,6 +260,110 @@ describe('useAppliedTemplate', () => {
         expect(String(fetchMock.mock.calls[0][0])).not.toContain('template=');
     });
 
+    it('ignores a stale response that resolves after a newer request', async () => {
+        const deferreds: Array<(body: unknown) => void> = [];
+        const fetchMock = vi.fn(
+            () =>
+                new Promise((resolve) => {
+                    deferreds.push((body: unknown) =>
+                        resolve({
+                            ok: true,
+                            status: 200,
+                            text: async () => JSON.stringify(body),
+                        })
+                    );
+                })
+        );
+
+        globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+        const { result, rerender } = renderHook(
+            ({ template }: { template: string }) =>
+                useAppliedTemplate({ ...CONFIG, template, enabled: true }),
+            { initialProps: { template: 'single-post' } }
+        );
+
+        await waitFor(() => {
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+        });
+
+        act(() => rerender({ template: 'full-width' }));
+
+        await waitFor(() => {
+            expect(fetchMock).toHaveBeenCalledTimes(2);
+        });
+
+        // Resolve the *second* (current) request first, then let the stale
+        // first request land — it must not clobber the newer result.
+        await act(async () => {
+            deferreds[1]({
+                status: 'ok',
+                slug: 'full-width',
+                name: 'Full Width',
+                source: 'theme',
+                blocks: [],
+                template_parts: {},
+            });
+        });
+
+        await act(async () => {
+            deferreds[0]({
+                status: 'ok',
+                slug: 'single-post',
+                name: 'Single Post',
+                source: 'theme',
+                blocks: [],
+                template_parts: {},
+            });
+        });
+
+        expect(
+            result.current.status === 'ok' && result.current.template.slug
+        ).toBe('full-width');
+    });
+
+    it('does not cache a fetch error, so the next toggle-on retries', async () => {
+        const fetchMock = vi.fn();
+
+        fetchMock.mockImplementationOnce(async () => {
+            throw new Error('network down');
+        });
+        fetchMock.mockImplementationOnce(async () => ({
+            ok: true,
+            status: 200,
+            text: async () =>
+                JSON.stringify({
+                    status: 'ok',
+                    slug: 's',
+                    name: 'S',
+                    source: 'theme',
+                    blocks: [],
+                    template_parts: {},
+                }),
+        }));
+
+        globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+        const { result, rerender } = renderHook(
+            ({ enabled }: { enabled: boolean }) =>
+                useAppliedTemplate({ ...CONFIG, enabled }),
+            { initialProps: { enabled: true } }
+        );
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('error');
+        });
+
+        act(() => rerender({ enabled: false }));
+        act(() => rerender({ enabled: true }));
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('ok');
+        });
+
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     it('surfaces a malformed ok payload as an error rather than a bogus ok', async () => {
         mockFetch([{ status: 200, body: { status: 'ok' } }]);
 

@@ -145,6 +145,27 @@ class ResourceAppliedTemplateController extends Controller
 	}
 
 	/**
+	 * Editor-shape blocks for a resolved template part, parsing raw theme
+	 * markup when the resolver supplied no parsed tree.
+	 *
+	 * Mirrors {@see self::editorBlocksFor()} for parts: on-disk theme parts
+	 * carry their content in `$rawContent` with an empty `$blocks`, so
+	 * reading `$blocks` alone served an empty part and hid its nested refs.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @return array<int, array<string, mixed>>
+	 */
+	protected function editorBlocksForPart( ResolvedTemplatePart $part ): array
+	{
+		if ( [] !== $part->blocks ) {
+			return $part->blocks;
+		}
+
+		return ThemeBlockMarkup::parseToEditorBlocks( (string) $part->rawContent );
+	}
+
+	/**
 	 * Reads the optional `?template=` override off the request.
 	 *
 	 * Returns `null` when the parameter is absent or non-scalar so the caller
@@ -229,16 +250,18 @@ class ResourceAppliedTemplateController extends Controller
 				continue;
 			}
 
+			$partBlocks = $this->editorBlocksForPart( $part );
+
 			$out[ $slug ] = [
 				'slug'   => $part->slug,
 				'area'   => $part->area,
 				'title'  => $part->title,
 				'source' => $part->source,
-				'blocks' => $part->blocks,
+				'blocks' => $partBlocks,
 			];
 
 			// Recurse into nested part refs.
-			foreach ( $this->extractPartSlugs( $part->blocks ) as $nested ) {
+			foreach ( $this->extractPartSlugs( $partBlocks ) as $nested ) {
 				if ( ! isset( $visited[ $nested ] ) ) {
 					$queue[] = $nested;
 				}
@@ -250,7 +273,11 @@ class ResourceAppliedTemplateController extends Controller
 
 	/**
 	 * Depth-first walk collecting `attributes.slug` values from every
-	 * `core/template-part` block in a tree. Ignores refs without a slug
+	 * template-part block in a tree. Both namespaces count: theme files ship
+	 * `core/template-part`, while templates saved from the site editor store
+	 * the fork-named `artisanpack/template-part` — matching only the former
+	 * returned an empty part map for exactly the templates users customized.
+	 * Ignores refs without a slug
 	 * (WP allows an `id`-based ref, but this repo's templates are
 	 * slug-addressed — an id-only ref is a shape the site editor never
 	 * emits).
@@ -270,7 +297,7 @@ class ResourceAppliedTemplateController extends Controller
 				continue;
 			}
 
-			if ( ( $block['name'] ?? null ) === 'core/template-part' ) {
+			if ( in_array( $block['name'] ?? null, [ 'core/template-part', 'artisanpack/template-part' ], true ) ) {
 				$slug = $block['attributes']['slug'] ?? null;
 
 				if ( is_string( $slug ) && '' !== trim( $slug ) ) {

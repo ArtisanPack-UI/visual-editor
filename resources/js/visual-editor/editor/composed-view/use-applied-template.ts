@@ -60,10 +60,22 @@ export function useAppliedTemplate(
         key: string;
         state: AppliedTemplateState;
     } | null>(null);
+    const abortRef = useRef<AbortController | null>(null);
 
     const cacheKey = `${apiBase}::${resource}::${id}::${template ?? ''}`;
 
     const run = useCallback(async (): Promise<void> => {
+        abortRef.current?.abort();
+
+        const controller = new AbortController();
+
+        abortRef.current = controller;
+
+        // Captured before the await so a response that arrives after the
+        // selection moved on commits under the key it was requested for —
+        // and the staleness check below drops it entirely.
+        const key = cacheKey;
+
         setState({ status: 'loading' });
 
         try {
@@ -72,16 +84,25 @@ export function useAppliedTemplate(
                 resource,
                 id,
                 template,
+                signal: controller.signal,
             });
+
+            if (controller.signal.aborted) {
+                return;
+            }
 
             const next: AppliedTemplateState =
                 result.status === 'ok'
                     ? { status: 'ok', template: result }
                     : { status: 'missing', missing: result };
 
-            cacheRef.current = { key: cacheKey, state: next };
+            cacheRef.current = { key, state: next };
             setState(next);
         } catch (error: unknown) {
+            if (controller.signal.aborted) {
+                return;
+            }
+
             const normalized =
                 error instanceof ApiError
                     ? error
@@ -89,15 +110,16 @@ export function useAppliedTemplate(
                         ? error
                         : new Error('Failed to load applied template.');
 
-            const next: AppliedTemplateState = {
-                status: 'error',
-                error: normalized,
-            };
-
-            cacheRef.current = { key: cacheKey, state: next };
-            setState(next);
+            // Deliberately not cached: a transient failure must not lock the
+            // author out of the composed view for the rest of the mount. The
+            // next toggle-on misses the cache and refetches.
+            setState({ status: 'error', error: normalized });
         }
     }, [apiBase, cacheKey, id, resource, template]);
+
+    useEffect(() => (): void => {
+        abortRef.current?.abort();
+    }, []);
 
     useEffect(() => {
         if (!enabled) {
