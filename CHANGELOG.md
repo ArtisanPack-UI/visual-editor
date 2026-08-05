@@ -6,6 +6,32 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Fixed
+
+- **Per-block layout classes in the Blade renderer** (#700) — layout-supporting
+  partials emitted only the shared `is-layout-{type}` modifier, so the shipped
+  block-library rules that key on the per-block compound
+  (`.wp-block-group.wp-block-group-is-layout-constrained`,
+  `.wp-block-post-template-is-layout-flow > li > .aligncenter`, …) never
+  matched. `group`, `row`, `stack`, `columns`, `buttons`, `post-content`, and
+  `post-template` now emit both classes through the new
+  `Support\LayoutSupport` helper. `post-content` additionally honours its
+  stored `layout.type` for the first time — without that class the
+  content-size containment rules `ThemeJsonTokensCompiler` emits for
+  `.wp-block-post-content.is-layout-constrained` could never apply — and
+  `columns` gained the `is-layout-flex` pair it was missing entirely.
+- **Constrained groups now constrain their children** (#700) —
+  `ThemeJsonTokensCompiler` emitted content-size containment only for
+  `.wp-block-post-content`, so a `<article class="wp-block-group
+  is-layout-constrained">` let its title, meta, and featured image run
+  edge-to-edge while its post body behaved. It now also emits the
+  `> :where(:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright))`
+  cap plus the `alignwide` / `alignfull` overrides for constrained groups,
+  mirroring the per-instance rules WordPress generates. Keyed on the
+  per-block `wp-block-group-is-layout-constrained` compound, so host markup
+  that hand-writes the shared `is-layout-constrained` modifier and styles
+  those children itself is not retroactively constrained.
+
 ## [1.5.5] - 2026-08-02
 
 ### Added

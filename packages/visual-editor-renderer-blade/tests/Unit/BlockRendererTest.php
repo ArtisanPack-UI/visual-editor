@@ -200,7 +200,7 @@ it( 'renders nested inner blocks for a group', function () {
 
 	$html = $this->normalizeHtml( makeRenderer()->render( $tree ) );
 
-	expect( $html )->toContain( '<div class="wp-block-group is-layout-flow">' )
+	expect( $html )->toContain( '<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow">' )
 		->toContain( '<p class="wp-block-paragraph">Inner</p>' );
 } );
 
