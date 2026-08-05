@@ -322,6 +322,69 @@ describe('useAppliedTemplate', () => {
         ).toBe('full-width');
     });
 
+    it('does not let an in-flight response overwrite a state settled from cache', async () => {
+        // The cache-hit path settles a key without going through `run()`,
+        // so `aborted` alone does not cover it: template A is still in
+        // flight when the selection moves to an already-cached B.
+        const deferreds: Array<(body: unknown) => void> = [];
+        const fetchMock = vi.fn(
+            () =>
+                new Promise((resolve) => {
+                    deferreds.push((body: unknown) =>
+                        resolve({
+                            ok: true,
+                            status: 200,
+                            text: async () => JSON.stringify(body),
+                        })
+                    );
+                })
+        );
+
+        globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+        const okBody = (slug: string): unknown => ({
+            status: 'ok',
+            slug,
+            name: slug,
+            source: 'theme',
+            blocks: [],
+            template_parts: {},
+        });
+
+        const { result, rerender } = renderHook(
+            ({ template }: { template: string }) =>
+                useAppliedTemplate({ ...CONFIG, template, enabled: true }),
+            { initialProps: { template: 'full-width' } }
+        );
+
+        // Warm the cache for `full-width`.
+        await waitFor(() => {
+            expect(fetchMock).toHaveBeenCalledTimes(1);
+        });
+        await act(async () => {
+            deferreds[0](okBody('full-width'));
+        });
+
+        // Move to `single-post` and leave its request hanging.
+        act(() => rerender({ template: 'single-post' }));
+        await waitFor(() => {
+            expect(fetchMock).toHaveBeenCalledTimes(2);
+        });
+
+        // Back to `full-width` — served from cache, no new request.
+        act(() => rerender({ template: 'full-width' }));
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+
+        // The hanging `single-post` response must not land on top.
+        await act(async () => {
+            deferreds[1](okBody('single-post'));
+        });
+
+        expect(
+            result.current.status === 'ok' && result.current.template.slug
+        ).toBe('full-width');
+    });
+
     it('does not cache a fetch error, so the next toggle-on retries', async () => {
         const fetchMock = vi.fn();
 

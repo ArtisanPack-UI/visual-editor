@@ -56,8 +56,8 @@ export interface UseSiteEditorDeepLinkOptions {
 
 /**
  * Slug whose not-found toast has already been announced. Module-level so
- * StrictMode's second invocation of the same mount is deduped — see
- * `landOnIndex`.
+ * StrictMode's second invocation of the same mount is deduped, and cleared
+ * on the next macrotask so it only spans that window — see `landOnIndex`.
  */
 let announcedFor: string | null = null;
 
@@ -131,6 +131,17 @@ export function useSiteEditorDeepLink(
             }
 
             announcedFor = request.slug;
+
+            // Released on the next macrotask, once the double-invocation
+            // window has passed. Holding it for the page's lifetime would
+            // silently swallow the toast on a later remount, leaving the
+            // author on the templates index with no explanation — and would
+            // leak between tests in a file.
+            setTimeout(() => {
+                if (announcedFor === request.slug) {
+                    announcedFor = null;
+                }
+            }, 0);
 
             toastRef.current.warning(
                 sprintf(

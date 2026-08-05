@@ -184,6 +184,32 @@ describe('useSiteEditorDeepLink', () => {
         ).toHaveLength(1);
     });
 
+    it('announces again for the same slug on a later, separate landing', async () => {
+        // The dedupe only covers the double-invoke window. Holding it for
+        // the page's lifetime would drop the toast on a later remount and
+        // leave the author on the index with no explanation.
+        listEntities.mockResolvedValue([]);
+
+        const first = renderHarness('?entity=template&slug=again');
+
+        expect(
+            await screen.findByText('The template “again” was not found.')
+        ).toBeInTheDocument();
+
+        first.unmount();
+
+        // Let the latch's macrotask reset run.
+        await act(async () => {
+            await new Promise((resolve) => setTimeout(resolve, 0));
+        });
+
+        renderHarness('?entity=template&slug=again');
+
+        expect(
+            await screen.findByText('The template “again” was not found.')
+        ).toBeInTheDocument();
+    });
+
     it('abandons the landing when the user navigates while the lookup is in flight', async () => {
         let resolveLookup: (rows: unknown) => void = () => undefined;
 

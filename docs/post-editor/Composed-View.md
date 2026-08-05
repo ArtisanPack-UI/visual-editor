@@ -42,8 +42,9 @@ template*).
 - The first flip to **With template** issues
   `GET /visual-editor/api/{resource}/{id}/applied-template`, passing the
   template currently selected in the document panel rather than the one
-  last saved. The switch is disabled while that request is in flight
-  (title: *Loading applied template…*).
+  last saved. The switch stays enabled while that request is in flight,
+  so flipping back to **Content only** always works — a request that
+  never settles can never strand the author in composed view.
 - Results are cached per `(resource, id, template)` for the lifetime of
   the editor mount, so later flips are instant. Picking a different
   template in the document panel invalidates that cache and re-resolves.

@@ -144,9 +144,13 @@ export interface TopBarProps {
     onViewModeChange?: (next: ViewMode) => void;
     /**
      * When set, disables the view-mode toggle and uses this string as
-     * the disabled-state tooltip / accessible-description. Used while
-     * the applied-template endpoint is still loading and while the
-     * fallback path is being evaluated.
+     * the disabled-state tooltip / accessible-description.
+     *
+     * The editor no longer passes a reason while the applied-template
+     * request is in flight: flipping back to **Content only** has to stay
+     * available, or a request that never settles strands the author in
+     * composed view. The prop remains for hosts with their own reason to
+     * lock the control.
      */
     viewModeDisabledReason?: string | null;
 }

@@ -64,6 +64,14 @@ export function useAppliedTemplate(
 
     const cacheKey = `${apiBase}::${resource}::${id}::${template ?? ''}`;
 
+    // The key the hook currently wants a result for. `aborted` alone can't
+    // carry this: the cache-hit path below settles a key without going
+    // through `run()`, so an earlier fetch could still be in flight and
+    // unaborted when it does.
+    const latestKeyRef = useRef<string>(cacheKey);
+
+    latestKeyRef.current = cacheKey;
+
     const run = useCallback(async (): Promise<void> => {
         abortRef.current?.abort();
 
@@ -73,7 +81,7 @@ export function useAppliedTemplate(
 
         // Captured before the await so a response that arrives after the
         // selection moved on commits under the key it was requested for —
-        // and the staleness check below drops it entirely.
+        // and the staleness checks below drop it entirely.
         const key = cacheKey;
 
         setState({ status: 'loading' });
@@ -87,7 +95,7 @@ export function useAppliedTemplate(
                 signal: controller.signal,
             });
 
-            if (controller.signal.aborted) {
+            if (controller.signal.aborted || latestKeyRef.current !== key) {
                 return;
             }
 
@@ -99,7 +107,7 @@ export function useAppliedTemplate(
             cacheRef.current = { key, state: next };
             setState(next);
         } catch (error: unknown) {
-            if (controller.signal.aborted) {
+            if (controller.signal.aborted || latestKeyRef.current !== key) {
                 return;
             }
 
@@ -127,6 +135,10 @@ export function useAppliedTemplate(
         }
 
         if (cacheRef.current !== null && cacheRef.current.key === cacheKey) {
+            // Abort whatever `run()` last started: this key is settling from
+            // cache, so an older in-flight response has nothing to add and
+            // would otherwise land on top of the state set here.
+            abortRef.current?.abort();
             setState(cacheRef.current.state);
 
             return;
