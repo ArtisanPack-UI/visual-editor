@@ -80,16 +80,32 @@ export default function TemplatePartEdit({ attributes }: Props): ReactElement {
             : 'div';
 
     if (slug === '' || theme === '') {
-        // Empty wrapper with no InnerBlocks — deliberately doesn't call
-        // `useEntityBlockEditor`, which would fall through to the ambient
-        // entity id and mount the wrong tree.
-        const blockProps = useBlockProps();
-        return createElement(tagName, blockProps);
+        return <TemplatePartPlaceholder tagName={tagName} />;
     }
 
     return (
         <TemplatePartBody slug={slug} theme={theme} tagName={tagName} />
     );
+}
+
+/**
+ * Empty wrapper with no InnerBlocks, for a ref missing `slug` or `theme`.
+ * Deliberately skips `useEntityBlockEditor`, which would fall through to
+ * the ambient entity id and mount the wrong tree.
+ *
+ * A child component rather than an inline branch: calling `useBlockProps()`
+ * in the branch made the parent's hook count depend on its attributes, so a
+ * mounted block whose `slug` was filled in crashed React's hook ordering.
+ * Same shape as {@see TemplatePartCycleStop}.
+ */
+function TemplatePartPlaceholder({
+    tagName,
+}: {
+    tagName: string;
+}): ReactElement {
+    const blockProps = useBlockProps();
+
+    return createElement(tagName, blockProps);
 }
 
 interface BodyProps {

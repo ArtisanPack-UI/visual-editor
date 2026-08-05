@@ -77,6 +77,20 @@ describe('buildTemplateDeepLink', () => {
         );
     });
 
+    it.each([
+        ['an absolute URL', 'https://evil.example/site'],
+        ['a protocol-relative host', '//evil.example/site'],
+        ['a javascript: scheme', 'javascript:alert(1)'],
+        ['a bare relative path', 'admin/site'],
+    ])('falls back to the package route base for %s', (_label, routeBase) => {
+        // The builders feed an `<a href>`. Not reachable today — every
+        // route base is server-supplied — but a route builder emitting an
+        // off-origin link never should be.
+        expect(buildTemplateDeepLink('single', routeBase)).toBe(
+            '/visual-editor/site?entity=template&slug=single'
+        );
+    });
+
     it('round-trips through parseDeepLink', () => {
         const url = buildTemplateDeepLink('single/post&more');
         const search = url.slice(url.indexOf('?'));

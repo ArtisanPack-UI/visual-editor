@@ -365,6 +365,30 @@ describe('composed-view toggle preserves editor state (#618)', () => {
     });
 });
 
+describe('view-mode toggle availability', () => {
+    it('stays enabled while the applied-template request is in flight', async () => {
+        // A request that never settles used to leave the author stuck in
+        // composed view. Flipping back to `content` is always safe — the
+        // chrome is null while loading either way.
+        fetchAppliedTemplate.mockImplementation(() => new Promise(() => undefined));
+
+        const user = userEvent.setup();
+        await renderEditor();
+
+        await user.click(viewModeToggle());
+
+        await waitFor(() => {
+            expect(fetchAppliedTemplate).toHaveBeenCalled();
+        });
+
+        expect(viewModeToggle()).not.toBeDisabled();
+
+        // And the way back actually works.
+        await user.click(viewModeToggle());
+        expect(lastCanvasChrome()).toBeNull();
+    });
+});
+
 describe('applied-template request: template override', () => {
     it('omits the override for resources with no template control', async () => {
         const user = userEvent.setup();

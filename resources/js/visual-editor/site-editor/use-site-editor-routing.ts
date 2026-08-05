@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { normalizeRouteBase } from './deep-link';
 import {
     DEFAULT_SECTION_ID,
     findSectionBySlug,
@@ -116,7 +117,9 @@ export function buildSiteEditorPath(
     section: SiteEditorSectionId,
     entityId: string | null = null
 ): string {
-    const normalizedBase = routeBase.replace(/\/+$/, '');
+    // Shared with `buildTemplateDeepLink`: an absolute or `javascript:`
+    // base would leave the SPA's own origin from inside an `<a href>`.
+    const normalizedBase = normalizeRouteBase(routeBase);
     const tail =
         entityId === null
             ? section

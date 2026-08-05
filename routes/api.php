@@ -61,8 +61,10 @@ Route::put( '{resource}/{id}/content', [ ResourceContentController::class, 'upda
 // #619 — resolve the *applied* template for a content item. Feeds the
 // post-editor's composed-view mode, which wraps the raw block list in the
 // same template blocks + template-parts that render on the frontend.
-// Returns 404 with a discriminated body when the model's `template`
-// attribute is empty or the referenced slug does not resolve.
+// Returns 200 with a discriminated `{ status: 'missing' }` body when the
+// model's template attribute is empty or the referenced slug does not
+// resolve — the client branches on that payload, and a 200 keeps the
+// browser devtools quiet for what is a routine response.
 Route::get( '{resource}/{id}/applied-template', [ ResourceAppliedTemplateController::class, 'show' ] )
 	->where( 'resource', '[A-Za-z0-9_-]+' )
 	->name( 'visual-editor.api.resources.applied-template.show' );

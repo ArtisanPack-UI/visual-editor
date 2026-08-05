@@ -171,7 +171,7 @@ describe('ChromeBlocks inertness (#655)', () => {
         expect(chrome.querySelector('[contenteditable="true"]')).toBeNull();
     });
 
-    it('labels the region for assistive tech without announcing it as content', () => {
+    it('labels the region for assistive tech with a role that permits a label', () => {
         render(
             <ChromeBlocks
                 blocks={[block('artisanpack/site-title')]}
@@ -182,7 +182,9 @@ describe('ChromeBlocks inertness (#655)', () => {
 
         const chrome = screen.getByLabelText(HEADER_LABEL);
 
-        expect(chrome).toHaveAttribute('role', 'presentation');
+        // `role="presentation"` with an `aria-label` is prohibited ARIA —
+        // the label is dropped, so the region announced as nothing at all.
+        expect(chrome).toHaveAttribute('role', 'group');
         expect(chrome).toHaveAttribute('data-chrome-region', 'footer');
         expect(chrome).toHaveClass('ap-visual-editor__chrome');
     });

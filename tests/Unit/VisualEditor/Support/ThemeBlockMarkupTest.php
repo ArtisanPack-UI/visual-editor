@@ -60,6 +60,19 @@ describe( 'convertParseBlocksTree', function (): void {
 			->and( $out[0]['name'] )->toBe( 'core/paragraph' );
 	} );
 
+	it( 'drops entries whose blockName is not a non-empty string', function (): void {
+		// A parser that ever hands back a non-string name must not reach
+		// the editor as a block with a numeric or array `name`.
+		$out = ThemeBlockMarkup::convertParseBlocksTree( [
+			[ 'blockName' => 42, 'attrs' => [], 'innerBlocks' => [] ],
+			[ 'blockName' => [ 'x' ], 'attrs' => [], 'innerBlocks' => [] ],
+			[ 'blockName' => 'core/paragraph', 'attrs' => [], 'innerBlocks' => [] ],
+		] );
+
+		expect( $out )->toHaveCount( 1 )
+			->and( $out[0]['name'] )->toBe( 'core/paragraph' );
+	} );
+
 	it( 'defaults missing or non-array attrs to an empty array', function (): void {
 		$out = ThemeBlockMarkup::convertParseBlocksTree( [
 			[ 'blockName' => 'core/separator' ],
@@ -148,3 +161,26 @@ it( 'returns an empty tree for blank raw markup without needing the parser', fun
 	expect( ThemeBlockMarkup::parseToEditorBlocks( '' ) )->toBe( [] )
 		->and( ThemeBlockMarkup::parseToEditorBlocks( "  \n\t " ) )->toBe( [] );
 } );
+
+describe( 'parseToEditorBlocks on malformed markup', function (): void {
+	// A hand-edited theme file is the normal way this arrives. Whatever the
+	// parser makes of it, the boundary has to hand back a well-shaped array
+	// rather than throwing through every template read.
+	it( 'returns an array for an unclosed block comment', function (): void {
+		expect( ThemeBlockMarkup::parseToEditorBlocks( '<!-- wp:group {"a":1}' ) )
+			->toBeArray();
+	} );
+
+	it( 'returns an array for invalid attribute JSON', function (): void {
+		expect( ThemeBlockMarkup::parseToEditorBlocks( '<!-- wp:group {bad json} /-->' ) )
+			->toBeArray();
+	} );
+
+	it( 'returns an array for a nameless block delimiter', function (): void {
+		expect( ThemeBlockMarkup::parseToEditorBlocks( '<!-- wp: /-->' ) )
+			->toBeArray();
+	} );
+} )->skip(
+	fn () => ! class_exists( ThemeBlockMarkup::PARSER_FQCN ),
+	'requires cms-framework 2.5+ (PHP 8.3+)'
+);

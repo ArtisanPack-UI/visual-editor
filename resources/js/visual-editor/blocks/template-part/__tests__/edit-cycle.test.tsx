@@ -147,6 +147,29 @@ describe('template-part cycle protection', () => {
         expect(sharedCalls).toHaveLength(2);
     });
 
+    it('survives a mounted block whose slug is filled in later', () => {
+        // The empty branch used to call `useBlockProps()` inline, so the
+        // component's hook count depended on its attributes — React throws
+        // on the re-render where a placeholder ref gains a slug.
+        mockParts({ 't//header': [] });
+
+        const { rerender } = render(
+            <TemplatePartEdit attributes={{ slug: '', theme: 't' }} />,
+        );
+
+        expect(() =>
+            rerender(
+                <TemplatePartEdit attributes={{ slug: 'header', theme: 't' }} />,
+            ),
+        ).not.toThrow();
+
+        expect(useEntityBlockEditor).toHaveBeenCalledWith(
+            'postType',
+            'wp_template_part',
+            { id: 't//header' },
+        );
+    });
+
     it('resolves a nested chain that has no cycle', () => {
         mockParts({
             't//a': [partRef('b')],

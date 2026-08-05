@@ -55,6 +55,13 @@ export interface UseSiteEditorDeepLinkOptions {
 }
 
 /**
+ * Slug whose not-found toast has already been announced. Module-level so
+ * StrictMode's second invocation of the same mount is deduped — see
+ * `landOnIndex`.
+ */
+let announcedFor: string | null = null;
+
+/**
  * Resolve the mount-time deep link, if there is one. Fires at most once
  * per mount.
  *
@@ -114,6 +121,17 @@ export function useSiteEditorDeepLink(
             // and the mount-once hook never re-resolves — address bar and
             // UI would disagree with no way back into sync.
             navigateRef.current('templates', null, { replace: true });
+
+            // StrictMode double-invokes the effect, and the duplicate
+            // navigation is absorbed by the routing dedupe — the toast is
+            // not, so it announces the same failure twice. The routing
+            // dedupe has no equivalent here, hence the module-level latch.
+            if (announcedFor === request.slug) {
+                return;
+            }
+
+            announcedFor = request.slug;
+
             toastRef.current.warning(
                 sprintf(
                     /* translators: %s: requested template slug. */
@@ -133,8 +151,11 @@ export function useSiteEditorDeepLink(
 
         async function resolve(): Promise<void> {
             // A caller that already knows the id skips the lookup — the
-            // reserved `entity_id` path (see `deep-link.ts`).
-            if (request.entityId !== null) {
+            // reserved `entity_id` path (see `deep-link.ts`). Only for an
+            // id-shaped value: a hand-typed `entity_id=oops` would
+            // otherwise skip verification and land the author on an
+            // entity-editor fetch failure instead of the not-found toast.
+            if (request.entityId !== null && /^\d+$/.test(request.entityId)) {
                 landOnEntity(request.entityId);
 
                 return;

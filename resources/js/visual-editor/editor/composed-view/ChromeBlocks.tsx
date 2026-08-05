@@ -78,7 +78,11 @@ function ChromeBlocksPreview(props: ChromeBlocksProps): ReactElement {
             className: 'ap-visual-editor__chrome',
             'data-chrome-region': region,
             'aria-label': label,
-            role: 'presentation',
+            // `group`, not `presentation`: ARIA prohibits `aria-label` on a
+            // presentational role, and the label ("Template header
+            // (read-only)") is exactly what a screen-reader user needs to
+            // tell inert template chrome from the content they are editing.
+            role: 'group',
         },
     } as Parameters<typeof useBlockPreview>[0]);
 

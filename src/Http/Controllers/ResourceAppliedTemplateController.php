@@ -19,7 +19,7 @@
  *
  * @author     Jacob Martella <me@jacobmartella.com>
  *
- * @since      1.1.0
+ * @since      1.6.0
  */
 
 declare( strict_types=1 );
@@ -77,7 +77,7 @@ class ResourceAppliedTemplateController extends Controller
 	 * either way, and an unresolvable override falls through to the normal
 	 * `unknown-slug` response.
 	 *
-	 * @since 1.1.0
+	 * @since 1.6.0
 	 */
 	public function show( Request $request, string $resource, int|string $id ): JsonResponse
 	{
@@ -104,9 +104,9 @@ class ResourceAppliedTemplateController extends Controller
 		$blocks = $this->editorBlocksFor( $resolved );
 		$parts  = $this->collectReferencedParts( $blocks );
 
-		foreach ( $parts as $slug => $part ) {
+		foreach ( $parts as $partSlug => $part ) {
 			if ( is_array( $part ) && is_array( $part['blocks'] ?? null ) ) {
-				$parts[ $slug ]['blocks'] = ThemeBlockMarkup::rewriteCoreToFork( $part['blocks'] );
+				$parts[ $partSlug ]['blocks'] = ThemeBlockMarkup::rewriteCoreToFork( $part['blocks'] );
 			}
 		}
 
@@ -174,7 +174,7 @@ class ResourceAppliedTemplateController extends Controller
 	 * fallback — that's how the editor previews a content item whose template
 	 * selection has been cleared but not yet saved.
 	 *
-	 * @since 1.1.0
+	 * @since 1.6.0
 	 */
 	protected function readRequestedSlug( Request $request ): ?string
 	{
@@ -203,7 +203,7 @@ class ResourceAppliedTemplateController extends Controller
 	 * Reads the content model's `template` attribute, treating missing /
 	 * non-scalar / whitespace-only values as empty.
 	 *
-	 * @since 1.1.0
+	 * @since 1.6.0
 	 */
 	protected function readTemplateSlug( Model $model ): string
 	{
@@ -223,7 +223,7 @@ class ResourceAppliedTemplateController extends Controller
 	 * client renders the empty part shell in that case, matching the
 	 * site-editor's read-only behavior.
 	 *
-	 * @since 1.1.0
+	 * @since 1.6.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $blocks
 	 *
@@ -282,7 +282,7 @@ class ResourceAppliedTemplateController extends Controller
 	 * slug-addressed — an id-only ref is a shape the site editor never
 	 * emits).
 	 *
-	 * @since 1.1.0
+	 * @since 1.6.0
 	 *
 	 * @param  array<int, array<string, mixed>>  $blocks
 	 *

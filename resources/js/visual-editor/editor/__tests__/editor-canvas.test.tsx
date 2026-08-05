@@ -297,6 +297,34 @@ describe('EditorCanvas', () => {
             );
         });
 
+        it('points the CTA at a host-supplied site-editor mount', () => {
+            // The ribbon has always accepted this prop; nothing passed it,
+            // so a host that mounts the site editor elsewhere got a CTA
+            // pointing at a path that does not exist for them.
+            render(
+                <EditorCanvas
+                    showTitle
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    siteEditorRouteBase="/admin/site-editor"
+                    chrome={{
+                        header: [],
+                        footer: [],
+                        templateName: 'Single Post',
+                        templateSlug: 'single',
+                    }}
+                />
+            );
+
+            expect(
+                screen.getByTestId('ap-composed-view-ribbon-cta')
+            ).toHaveAttribute(
+                'href',
+                '/admin/site-editor?entity=template&slug=single'
+            );
+        });
+
         it('drops the CTA when composing against the fallback template', () => {
             render(
                 <EditorCanvas

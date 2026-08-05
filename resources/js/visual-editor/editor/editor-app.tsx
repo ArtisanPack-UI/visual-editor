@@ -343,6 +343,12 @@ export interface EditorAppProps {
      */
     breakpoints?: BreakpointRegistrySnapshot | null;
     /**
+     * Path the site editor SPA is mounted at, for the composed view's
+     * **Edit template ↗** link (#623). Omit to use the package default
+     * mount path; hosts that mount the site editor elsewhere pass theirs.
+     */
+    siteEditorRouteBase?: string;
+    /**
      * Role list surfaced to the Block Visibility "User Role" rule
      * panel (#492). Each entry is `{ slug, label }`; slug is the
      * value persisted into `artisanpackVisibility.userRole.roles`,
@@ -376,19 +382,21 @@ export function EditorApp(props: EditorAppProps): JSX.Element {
     // `core/post-featured-image`, and any other bound blocks) inside
     // this same context, so they resolve against the *current* content
     // item — not against the template's own sample data.
-    setBindingsApiConfig({ apiBase: props.apiBase });
-    setBindingsResourceContext(props.resource ?? null, props.id ?? null);
-
-    // #622 — clear the bindings context on editor unmount so a
-    // subsequent editor mount for a different resource doesn't
-    // inherit stale sentinel state between renders. Setting during
-    // render (above) keeps the context in lockstep with props while
-    // the editor is alive.
+    // Both the set and the teardown live in the effect. Writing a module
+    // global during render is unsafe under concurrent rendering, and
+    // pairing a render-phase write with an effect cleanup left the context
+    // at `(null, null)` after StrictMode's synthetic remount — the panel
+    // then resolved against nothing.
     useEffect(() => {
+        setBindingsApiConfig({ apiBase: props.apiBase });
+        setBindingsResourceContext(props.resource ?? null, props.id ?? null);
+
+        // #622 — clear on unmount so a subsequent editor mount for a
+        // different resource doesn't inherit stale sentinel state.
         return (): void => {
             setBindingsResourceContext(null, null);
         };
-    }, []);
+    }, [props.apiBase, props.resource, props.id]);
 
     return (
         <ToastProvider>
@@ -929,11 +937,11 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         };
     }, [appliedTemplateState, viewMode]);
 
-    const viewModeDisabledReason =
-        viewMode === 'with-template' &&
-        appliedTemplateState.status === 'loading'
-            ? __('Loading applied template…', TEXT_DOMAIN)
-            : null;
+    // Deliberately never disabled. Disabling on `loading` meant a request
+    // that never settled left the author stuck in composed view with no way
+    // back — and flipping back to `content` is always safe, since
+    // `composedChrome` is null while loading anyway.
+    const viewModeDisabledReason: string | null = null;
 
     // Standing explanation of what the composed canvas is showing. The
     // #624 toast announces a fallback the moment it happens; this notice
@@ -1476,6 +1484,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
                     blockContext={blockContextValue}
                     apiBase={props.apiBase}
                     previewWidthPx={canvasPreviewWidthPx}
+                    siteEditorRouteBase={props.siteEditorRouteBase}
                     chrome={
                         composedChrome === null
                             ? null

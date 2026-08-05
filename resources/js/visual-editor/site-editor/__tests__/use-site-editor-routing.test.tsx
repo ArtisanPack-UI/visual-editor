@@ -118,6 +118,16 @@ describe('buildSiteEditorPath', () => {
         ).toBe('/visual-editor/site/templates/hero%20%2F%20banner');
     });
 
+    it.each([
+        ['an absolute URL', 'https://evil.example/site'],
+        ['a protocol-relative host', '//evil.example/site'],
+        ['a javascript: scheme', 'javascript:alert(1)'],
+    ])('falls back to the package route base for %s', (_label, routeBase) => {
+        expect(buildSiteEditorPath(routeBase, 'templates')).toBe(
+            '/visual-editor/site/templates'
+        );
+    });
+
     it('round-trips the entity id through parse + build', () => {
         const original = 'hero / banner';
         const built = buildSiteEditorPath(ROUTE_BASE, 'patterns', original);

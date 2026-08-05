@@ -141,6 +141,49 @@ describe('useSiteEditorDeepLink', () => {
         expect(listEntities).not.toHaveBeenCalled();
     });
 
+    it('falls through to the slug lookup when entity_id is not id-shaped', async () => {
+        // Skipping verification on a hand-typed id lands the author on an
+        // entity-editor fetch failure instead of the not-found toast.
+        listEntities.mockResolvedValue([{ id: 12, slug: 'single' }]);
+
+        const { navigate } = renderHarness(
+            '?entity=template&slug=single&entity_id=oops'
+        );
+
+        await waitFor(() => {
+            expect(navigate).toHaveBeenCalledWith('templates', '12', {
+                replace: true,
+            });
+        });
+
+        expect(listEntities).toHaveBeenCalled();
+    });
+
+    it('announces the not-found toast once per slug, not once per resolution', async () => {
+        // StrictMode double-invokes the effect; the duplicate navigation is
+        // absorbed by the routing dedupe but the toast was not, so the same
+        // failure was announced twice. Two resolutions of one slug is the
+        // shape that reproduces it.
+        listEntities.mockResolvedValue([]);
+
+        const navigate = vi.fn();
+
+        render(
+            <ToastProvider>
+                <Harness search="?entity=template&slug=twice" navigate={navigate} />
+                <Harness search="?entity=template&slug=twice" navigate={navigate} />
+            </ToastProvider>
+        );
+
+        await waitFor(() => {
+            expect(navigate).toHaveBeenCalledTimes(2);
+        });
+
+        expect(
+            await screen.findAllByText('The template “twice” was not found.')
+        ).toHaveLength(1);
+    });
+
     it('abandons the landing when the user navigates while the lookup is in flight', async () => {
         let resolveLookup: (rows: unknown) => void = () => undefined;
 

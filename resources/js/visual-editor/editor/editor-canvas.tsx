@@ -107,6 +107,12 @@ export interface EditorCanvasProps {
      * earlier out-of-iframe panel couldn't.
      */
     chrome?: CanvasChrome | null;
+    /**
+     * Path the site editor SPA is mounted at, forwarded to the composed
+     * view's ribbon so its **Edit template ↗** CTA points at the host's
+     * actual mount rather than the package default (#623).
+     */
+    siteEditorRouteBase?: string;
 }
 
 /**
@@ -122,6 +128,7 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
         apiBase,
         previewWidthPx,
         chrome,
+        siteEditorRouteBase,
     } = props;
 
     // Keystone #47: pull the compiled theme CSS once per `apiBase` and
@@ -156,6 +163,7 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
                 <ComposedViewRibbon
                     templateName={chrome.templateName}
                     templateSlug={chrome.templateSlug}
+                    siteEditorRouteBase={siteEditorRouteBase}
                 />
                 <ChromeBlocks
                     blocks={chrome.header}

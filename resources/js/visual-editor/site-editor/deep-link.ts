@@ -15,8 +15,9 @@
  *   /visual-editor/site?entity=template&slug=single
  *
  * `entity_id` is accepted alongside `slug` for future entity types that
- * have no slug of their own; nothing reads it yet, but parsing it here
- * means the contract does not have to change shape when something does.
+ * have no slug of their own. It is not inert: when present and shaped like
+ * an id, the resolver skips the slug lookup entirely and lands on it
+ * directly (see `use-deep-link.ts`).
  *
  * Everything in this module is pure so the parse can be unit-tested
  * without a router, a DOM, or a network.
@@ -92,8 +93,24 @@ export function buildTemplateDeepLink(
     slug: string,
     routeBase: string = SITE_EDITOR_ROUTE_BASE
 ): string {
-    const normalizedBase = routeBase.replace(/\/+$/, '');
     const query = new URLSearchParams({ entity: 'template', slug });
 
-    return `${normalizedBase}?${query.toString()}`;
+    return `${normalizeRouteBase(routeBase)}?${query.toString()}`;
+}
+
+/**
+ * Trim trailing slashes and refuse anything that isn't a same-origin
+ * absolute path. Every `routeBase` source today is server-controlled, but
+ * the builders feed an `<a href>` — an absolute URL or a `javascript:`
+ * scheme reaching one would be an off-site link rather than a route.
+ * Protocol-relative `//host` is rejected for the same reason.
+ */
+export function normalizeRouteBase(routeBase: string): string {
+    const normalized = routeBase.replace(/\/+$/, '');
+
+    if (!normalized.startsWith('/') || normalized.startsWith('//')) {
+        return SITE_EDITOR_ROUTE_BASE;
+    }
+
+    return normalized;
 }

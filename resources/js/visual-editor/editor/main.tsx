@@ -143,6 +143,13 @@ export interface MountConfig {
      * the ship defaults.
      */
     breakpoints?: BreakpointRegistrySnapshot | null;
+    /**
+     * Path the site editor SPA is mounted at, for the composed view's
+     * **Edit template ↗** link (#623). Hosts stamp this via
+     * `data-site-editor-route-base` — the same value the site editor's own
+     * mount reads as `data-route-base`. Omit to use the package default.
+     */
+    siteEditorRouteBase?: string;
 }
 
 export interface MountedEditor {
@@ -202,6 +209,7 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
     const initialTemplate = element.dataset.template?.trim();
     const initialCreatedAt = element.dataset.createdAt?.trim();
     const initialUpdatedAt = element.dataset.updatedAt?.trim();
+    const siteEditorRouteBase = element.dataset.siteEditorRouteBase?.trim();
 
     const initialCategories = parseIdListDataset(
         element.dataset.categories,
@@ -298,6 +306,7 @@ function readMountConfig(element: HTMLElement): MountConfig | null {
         ...(initialCreatedAt ? { initialCreatedAt } : {}),
         ...(initialUpdatedAt ? { initialUpdatedAt } : {}),
         ...(breakpoints !== null ? { breakpoints } : {}),
+        ...(siteEditorRouteBase ? { siteEditorRouteBase } : {}),
         previewUrl: previewUrl ?? null,
     };
 }

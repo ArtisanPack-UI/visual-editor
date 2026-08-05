@@ -62,7 +62,12 @@ class ThemeBlockMarkup
 			return [];
 		}
 
-		return self::convertParseBlocksTree( $parserFqcn::parse( $raw ) );
+		// The parser lives in another package; trusting its return type
+		// would turn a future signature change there into a 500 on every
+		// template read here.
+		$parsed = $parserFqcn::parse( $raw );
+
+		return is_array( $parsed ) ? self::convertParseBlocksTree( $parsed ) : [];
 	}
 
 	/**
