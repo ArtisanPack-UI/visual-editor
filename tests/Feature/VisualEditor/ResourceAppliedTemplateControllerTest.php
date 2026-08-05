@@ -378,6 +378,69 @@ it( 'parses raw block markup when the resolved template ships no parsed blocks',
 	'requires cms-framework 2.5+ (PHP 8.3+)'
 );
 
+it( 'returns 403 when the view gate denies the actor', function () {
+	actingAsAppliedTemplateUser();
+	Gate::define( 'view', fn () => false );
+	registerSingleTemplate( 'single-post' );
+
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'Forbidden',
+		'template' => 'single-post',
+		'content'  => [],
+	] );
+
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template" )
+		->assertForbidden();
+} );
+
+it( 'returns 404 for an unregistered resource slug', function () {
+	actingAsAppliedTemplateUser();
+
+	test()->getJson( '/visual-editor/api/orders/1/applied-template' )
+		->assertNotFound();
+} );
+
+it( 'returns 404 when the record does not exist', function () {
+	actingAsAppliedTemplateUser();
+
+	test()->getJson( '/visual-editor/api/pages/999999/applied-template' )
+		->assertNotFound();
+} );
+
+it( 'ignores a non-scalar ?template= and falls back to the model attribute', function () {
+	actingAsAppliedTemplateUser();
+	registerSingleTemplate( 'single-post', [], 'Single Post' );
+
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'Array param',
+		'template' => 'single-post',
+		'content'  => [],
+	] );
+
+	// An array-shaped param must not reach `trim()` — falling back to the
+	// stored slug is the graceful answer, not a 500.
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template?template[]=full-width" )
+		->assertOk()
+		->assertJsonPath( 'status', 'ok' )
+		->assertJsonPath( 'slug', 'single-post' );
+} );
+
+it( 'treats a whitespace-only ?template= override as a cleared selection', function () {
+	actingAsAppliedTemplateUser();
+	registerSingleTemplate( 'single-post' );
+
+	$page = TestAppliedTemplateModel::create( [
+		'title'    => 'Whitespace override',
+		'template' => 'single-post',
+		'content'  => [],
+	] );
+
+	test()->getJson( "/visual-editor/api/pages/{$page->id}/applied-template?template=%20%20" )
+		->assertOk()
+		->assertJsonPath( 'status', 'missing' )
+		->assertJsonPath( 'reason', 'empty' );
+} );
+
 it( 'resolves template-part refs saved in the artisanpack fork namespace', function () {
 	actingAsAppliedTemplateUser();
 	registerHeaderPart();

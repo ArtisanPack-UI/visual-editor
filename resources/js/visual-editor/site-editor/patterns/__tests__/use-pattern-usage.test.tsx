@@ -9,7 +9,7 @@
  * dangerous possible wrong answer for a destructive action.
  */
 
-import { renderHook } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { usePatternUsage } from '../use-pattern-usage';
@@ -110,6 +110,38 @@ describe('usePatternUsage', () => {
         const usage = await result.current.run(7);
 
         expect(usage.total).toBe(0);
+    });
+
+    it('reports an error rather than a lower count when a detail fetch fails', async () => {
+        // A transient 500 on one row used to contribute 0 references, which
+        // can present an in-use pattern as unused in the delete dialog.
+        LIST_MOCK.mockImplementation((_config, kind: string) =>
+            Promise.resolve(
+                kind === 'template'
+                    ? [
+                        // No blocks in the summary, so the hook falls
+                        // through to the per-row detail fetch.
+                        { id: 'page', slug: 'page', content: { raw: '' } },
+                    ]
+                    : []
+            )
+        );
+        FETCH_MOCK.mockRejectedValue(new Error('detail fetch failed'));
+
+        const { result } = renderHook(() =>
+            usePatternUsage({ apiConfig: API_CONFIG })
+        );
+
+        let usage = { total: -1 } as Awaited<
+            ReturnType<typeof result.current.run>
+        >;
+
+        await act(async () => {
+            usage = await result.current.run(7);
+        });
+
+        expect(usage.total).toBe(0);
+        expect(result.current.error).toBe('detail fetch failed');
     });
 
     it('walks nested innerBlocks to find a reference', async () => {

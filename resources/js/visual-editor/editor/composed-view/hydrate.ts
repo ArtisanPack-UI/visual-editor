@@ -68,11 +68,19 @@ export function hydrateBlocks(
     const out: BlockInstance[] = [];
 
     for (const block of blocks) {
+        // A malformed payload element (null, or a block whose `name` or
+        // `innerBlocks` the server omitted) used to throw here — inside a
+        // `useMemo` with no error boundary above it, which white-screened
+        // the whole editor instead of taking the designed fallback path.
+        if (typeof block?.name !== 'string') {
+            continue;
+        }
+
         const attrs = normalizeAttributes(block.attributes);
-        const innerBlocks =
-            block.innerBlocks.length > 0
-                ? hydrateBlocks(block.innerBlocks)
-                : [];
+        const inner = Array.isArray(block.innerBlocks)
+            ? block.innerBlocks
+            : [];
+        const innerBlocks = inner.length > 0 ? hydrateBlocks(inner) : [];
 
         try {
             out.push(createBlock(block.name, attrs, innerBlocks));

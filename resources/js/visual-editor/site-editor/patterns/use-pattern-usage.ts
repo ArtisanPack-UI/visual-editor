@@ -247,8 +247,19 @@ export function usePatternUsage(
                                 );
 
                                 blocks = blocksFromRecord(detail);
-                            } catch {
-                                continue;
+                            } catch (caught: unknown) {
+                                // Swallowing this contributed 0 for the
+                                // row, which is the silent under-count the
+                                // fallback above exists to prevent — and an
+                                // under-count can report an in-use pattern
+                                // as unused and greenlight deleting it.
+                                // Surface it as the dialog's error state
+                                // instead of a confident wrong number.
+                                throw caught instanceof Error
+                                    ? caught
+                                    : new Error(
+                                        'Failed to load entity content for usage count.'
+                                    );
                             }
                         }
 

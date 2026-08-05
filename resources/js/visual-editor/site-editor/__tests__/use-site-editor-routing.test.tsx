@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
     buildSiteEditorPath,
@@ -185,6 +185,48 @@ describe('useSiteEditorRouting', () => {
         });
 
         expect(result.current.section).toBe('patterns');
+    });
+
+    it('navigate({replace}) rewrites the current entry instead of pushing', () => {
+        const pushState = vi.spyOn(window.history, 'pushState');
+        const replaceState = vi.spyOn(window.history, 'replaceState');
+
+        const { result } = renderHook(() =>
+            useSiteEditorRouting({ routeBase: ROUTE_BASE })
+        );
+
+        act(() => {
+            result.current.navigate('navigation', null, { replace: true });
+        });
+
+        expect(replaceState).toHaveBeenCalled();
+        expect(pushState).not.toHaveBeenCalled();
+        expect(window.location.pathname).toBe(`${ROUTE_BASE}/navigation`);
+
+        pushState.mockRestore();
+        replaceState.mockRestore();
+    });
+
+    it('navigate({replace}) still runs when the pathname already matches, so a stranded query string is stripped', () => {
+        // The deep-link landing frequently targets the pathname the user is
+        // already on. The dedupe early-return would leave `?entity=…&slug=…`
+        // sitting in the address bar forever.
+        window.history.replaceState(
+            {},
+            '',
+            `${ROUTE_BASE}/templates?entity=template&slug=single`
+        );
+
+        const { result } = renderHook(() =>
+            useSiteEditorRouting({ routeBase: ROUTE_BASE })
+        );
+
+        act(() => {
+            result.current.navigate('templates', null, { replace: true });
+        });
+
+        expect(window.location.search).toBe('');
+        expect(window.location.pathname).toBe(`${ROUTE_BASE}/templates`);
     });
 
     it('does not push duplicate entries when re-navigating to the active section', () => {

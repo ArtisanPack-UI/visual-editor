@@ -375,4 +375,79 @@ describe('useAppliedTemplate', () => {
             expect(result.current.status).toBe('error');
         });
     });
+
+    it('rejects a payload whose blocks contain malformed elements', async () => {
+        // Element shapes matter, not just `Array.isArray`: a nameless or
+        // null block reaches the hydrate/split walk and throws inside a
+        // useMemo, white-screening the editor instead of falling back.
+        mockFetch([
+            {
+                status: 200,
+                body: {
+                    status: 'ok',
+                    slug: 's',
+                    name: 'S',
+                    source: 'theme',
+                    blocks: [{ attributes: {} }],
+                    template_parts: {},
+                },
+            },
+        ]);
+
+        const { result } = renderHook(() =>
+            useAppliedTemplate({ ...CONFIG, enabled: true })
+        );
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('error');
+        });
+    });
+
+    it('rejects a payload with a null block element', async () => {
+        mockFetch([
+            {
+                status: 200,
+                body: {
+                    status: 'ok',
+                    slug: 's',
+                    name: 'S',
+                    source: 'theme',
+                    blocks: [null],
+                    template_parts: {},
+                },
+            },
+        ]);
+
+        const { result } = renderHook(() =>
+            useAppliedTemplate({ ...CONFIG, enabled: true })
+        );
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('error');
+        });
+    });
+
+    it('accepts blocks that omit attributes and innerBlocks', async () => {
+        mockFetch([
+            {
+                status: 200,
+                body: {
+                    status: 'ok',
+                    slug: 's',
+                    name: 'S',
+                    source: 'theme',
+                    blocks: [{ name: 'artisanpack/group' }],
+                    template_parts: {},
+                },
+            },
+        ]);
+
+        const { result } = renderHook(() =>
+            useAppliedTemplate({ ...CONFIG, enabled: true })
+        );
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('ok');
+        });
+    });
 });

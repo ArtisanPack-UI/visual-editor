@@ -13,9 +13,10 @@
  * endpoint the composed view reads (#623) returns a slug and no id. Rather
  * than teach the router a second addressing mode — and have every entity
  * view guess which one it was handed — the slug is resolved to an id here,
- * once, and the router keeps its single id-shaped contract. The pushState
- * the navigate performs also drops the query string, so the resolved
- * canonical URL is what the user ends up with in their address bar.
+ * once, and the router keeps its single id-shaped contract. The landing
+ * navigate replaces the current history entry, so the resolved canonical
+ * URL is what the user ends up with in their address bar — without a dead
+ * query-string entry sitting behind the Back button.
  *
  * ## Failure is a landing, not a crash
  *
@@ -36,11 +37,16 @@ import { TEXT_DOMAIN } from '../vendor/i18n';
 import { listEntities, type SiteEditorApiConfig } from './api-client';
 import { parseDeepLink } from './deep-link';
 import type { SiteEditorSectionId } from './sections';
+import type { SiteEditorNavigateOptions } from './use-site-editor-routing';
 
 export interface UseSiteEditorDeepLinkOptions {
     apiConfig: SiteEditorApiConfig;
     /** The routing instance's `navigate` — same signature, same push semantics. */
-    navigate: (section: SiteEditorSectionId, entityId?: string | null) => void;
+    navigate: (
+        section: SiteEditorSectionId,
+        entityId?: string | null,
+        options?: SiteEditorNavigateOptions
+    ) => void;
     /**
      * Query string to parse. Defaults to `window.location.search`; tests
      * (and any SSR host) pass their own rather than mutating `location`.
@@ -88,12 +94,26 @@ export function useSiteEditorDeepLink(
         const request = parsed;
         let cancelled = false;
 
+        // The lookup is only cancelled on unmount, so a user who browses
+        // within the SPA while it is in flight would otherwise get yanked
+        // to the deep-link target by the late resolution.
+        const initialPathname =
+            typeof window === 'undefined' ? '' : window.location.pathname;
+        const userHasNavigated = (): boolean =>
+            typeof window !== 'undefined' &&
+            window.location.pathname !== initialPathname;
+
         function landOnIndex(): void {
-            if (cancelled) {
+            if (cancelled || userHasNavigated()) {
                 return;
             }
 
-            navigateRef.current('templates', null);
+            // `replace`, not push: this landing rewrites the entry the user
+            // arrived on. Pushing would leave Back pointing at the
+            // query-string URL, which `handlePopState` reads pathname-only
+            // and the mount-once hook never re-resolves — address bar and
+            // UI would disagree with no way back into sync.
+            navigateRef.current('templates', null, { replace: true });
             toastRef.current.warning(
                 sprintf(
                     /* translators: %s: requested template slug. */
@@ -104,11 +124,11 @@ export function useSiteEditorDeepLink(
         }
 
         function landOnEntity(entityId: string): void {
-            if (cancelled) {
+            if (cancelled || userHasNavigated()) {
                 return;
             }
 
-            navigateRef.current('templates', entityId);
+            navigateRef.current('templates', entityId, { replace: true });
         }
 
         async function resolve(): Promise<void> {

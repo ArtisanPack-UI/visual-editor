@@ -170,7 +170,7 @@ function isAppliedTemplatePayload(body: unknown): body is AppliedTemplate {
         return false;
     }
 
-    if (!Array.isArray(record.blocks)) {
+    if (!isBlockList(record.blocks)) {
         return false;
     }
 
@@ -183,4 +183,53 @@ function isAppliedTemplatePayload(body: unknown): body is AppliedTemplate {
         parts !== null &&
         (!Array.isArray(parts) || parts.length === 0)
     );
+}
+
+/**
+ * Validate a block list down to each element's shape. Checking only
+ * `Array.isArray` let `null` entries and blocks missing `name` through to
+ * the hydration/split walk, where dereferencing them threw inside a
+ * `useMemo` and white-screened the editor. Rejecting here means the failure
+ * surfaces as an `ApiError` and lands in the hook's designed error path.
+ */
+function isBlockList(value: unknown): boolean {
+    if (!Array.isArray(value)) {
+        return false;
+    }
+
+    return value.every((entry) => isBlockShape(entry));
+}
+
+function isBlockShape(entry: unknown): boolean {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+        return false;
+    }
+
+    const block = entry as Record<string, unknown>;
+
+    if (typeof block.name !== 'string') {
+        return false;
+    }
+
+    // `attributes` and `innerBlocks` are optional — PHP omits or empties
+    // them routinely. They just have to be the right kind when present.
+    // An empty PHP array serializes to `[]`, so that counts as an object.
+    if (block.attributes !== undefined && block.attributes !== null) {
+        if (typeof block.attributes !== 'object') {
+            return false;
+        }
+
+        if (
+            Array.isArray(block.attributes) &&
+            block.attributes.length > 0
+        ) {
+            return false;
+        }
+    }
+
+    if (block.innerBlocks !== undefined && block.innerBlocks !== null) {
+        return isBlockList(block.innerBlocks);
+    }
+
+    return true;
 }

@@ -871,7 +871,15 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
         // the hook's cache on the current selection and rides along on the
         // request, so switching templates in the document panel re-resolves
         // the preview immediately instead of waiting on the debounced save.
-        template,
+        //
+        // Only pages surface the template control (see the document panel's
+        // `onTemplateChange` gate), so only pages have a selection worth
+        // overriding with. Elsewhere `template` stays `''` — the explicit
+        // "selection cleared" sentinel — which made the endpoint answer
+        // `missing/empty` for every post and custom resource, so their
+        // persisted template could never resolve. `undefined` sends no
+        // param and lets the server read the stored value.
+        template: documentType === 'page' ? template : undefined,
         enabled: viewMode === 'with-template',
     });
 

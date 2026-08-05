@@ -222,12 +222,14 @@ const APPLIED_TEMPLATE = {
  * renders a "Loading content…" branch until then, with no provider and no
  * canvas to assert against.
  */
-async function renderEditor(): Promise<RenderResult> {
+async function renderEditor(
+    overrides: { resource?: string; id?: string } = {}
+): Promise<RenderResult> {
     const result = render(
         <EditorApp
             apiBase="/visual-editor/api"
-            resource="posts"
-            id="7"
+            resource={overrides.resource ?? 'posts'}
+            id={overrides.id ?? '7'}
             initialTitle="Hello"
             initialTemplate="single"
         />
@@ -360,6 +362,42 @@ describe('composed-view toggle preserves editor state (#618)', () => {
         expect(
             screen.getByTestId('ap-visual-editor-top-bar-save-status')
         ).toHaveAttribute('data-save-status', 'idle');
+    });
+});
+
+describe('applied-template request: template override', () => {
+    it('omits the override for resources with no template control', async () => {
+        const user = userEvent.setup();
+        await renderEditor({ resource: 'posts' });
+
+        await user.click(viewModeToggle());
+        await waitFor(() => {
+            expect(fetchAppliedTemplate).toHaveBeenCalled();
+        });
+
+        // Only pages surface the template picker, so `template` state stays
+        // `''` elsewhere — and `''` is the "selection cleared" sentinel the
+        // endpoint answers with `missing/empty`. Sending it made the
+        // persisted template unreachable for every non-page resource.
+        expect(fetchAppliedTemplate.mock.calls[0][0]).toMatchObject({
+            resource: 'posts',
+            template: undefined,
+        });
+    });
+
+    it('still sends the live selection for pages', async () => {
+        const user = userEvent.setup();
+        await renderEditor({ resource: 'pages' });
+
+        await user.click(viewModeToggle());
+        await waitFor(() => {
+            expect(fetchAppliedTemplate).toHaveBeenCalled();
+        });
+
+        expect(fetchAppliedTemplate.mock.calls[0][0]).toMatchObject({
+            resource: 'pages',
+            template: 'single',
+        });
     });
 });
 

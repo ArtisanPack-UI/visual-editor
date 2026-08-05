@@ -5,7 +5,7 @@
  * rather than re-testing `api-client.ts`.
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import { ToastProvider } from '@artisanpack-ui/react/feedback';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -44,6 +44,9 @@ function renderHarness(search: string) {
 describe('useSiteEditorDeepLink', () => {
     beforeEach(() => {
         listEntities.mockReset();
+        // The landing compares against the pathname captured at mount, and
+        // one test pushes a new one — reset so ordering can't leak.
+        window.history.replaceState({}, '', '/visual-editor/site');
     });
 
     it('navigates to the resolved template on mount', async () => {
@@ -52,7 +55,9 @@ describe('useSiteEditorDeepLink', () => {
         const { navigate } = renderHarness('?entity=template&slug=single');
 
         await waitFor(() => {
-            expect(navigate).toHaveBeenCalledWith('templates', '12');
+            expect(navigate).toHaveBeenCalledWith('templates', '12', {
+                replace: true,
+            });
         });
 
         expect(listEntities).toHaveBeenCalledWith(apiConfig, 'template', {
@@ -71,7 +76,9 @@ describe('useSiteEditorDeepLink', () => {
         const { navigate } = renderHarness('?entity=template&slug=single');
 
         await waitFor(() => {
-            expect(navigate).toHaveBeenCalledWith('templates', '7');
+            expect(navigate).toHaveBeenCalledWith('templates', '7', {
+                replace: true,
+            });
         });
     });
 
@@ -81,7 +88,9 @@ describe('useSiteEditorDeepLink', () => {
         const { navigate } = renderHarness('?entity=template&slug=nope');
 
         await waitFor(() => {
-            expect(navigate).toHaveBeenCalledWith('templates', null);
+            expect(navigate).toHaveBeenCalledWith('templates', null, {
+                replace: true,
+            });
         });
 
         expect(
@@ -95,7 +104,9 @@ describe('useSiteEditorDeepLink', () => {
         const { navigate } = renderHarness('?entity=template&slug=single');
 
         await waitFor(() => {
-            expect(navigate).toHaveBeenCalledWith('templates', null);
+            expect(navigate).toHaveBeenCalledWith('templates', null, {
+                replace: true,
+            });
         });
 
         expect(
@@ -109,7 +120,9 @@ describe('useSiteEditorDeepLink', () => {
         );
 
         await waitFor(() => {
-            expect(navigate).toHaveBeenCalledWith('templates', '42');
+            expect(navigate).toHaveBeenCalledWith('templates', '42', {
+                replace: true,
+            });
         });
 
         expect(listEntities).not.toHaveBeenCalled();
@@ -126,6 +139,34 @@ describe('useSiteEditorDeepLink', () => {
         expect(await screen.findByTestId('ap-deep-link-harness')).toBeInTheDocument();
         expect(navigate).not.toHaveBeenCalled();
         expect(listEntities).not.toHaveBeenCalled();
+    });
+
+    it('abandons the landing when the user navigates while the lookup is in flight', async () => {
+        let resolveLookup: (rows: unknown) => void = () => undefined;
+
+        listEntities.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolveLookup = resolve;
+                })
+        );
+
+        const { navigate } = renderHarness('?entity=template&slug=single');
+
+        await waitFor(() => {
+            expect(listEntities).toHaveBeenCalled();
+        });
+
+        // The author moved on inside the SPA before the slug resolved.
+        // Yanking them to the deep-link target now is a navigation they
+        // never asked for.
+        window.history.pushState({}, '', '/visual-editor/site/patterns');
+
+        await act(async () => {
+            resolveLookup([{ id: 12, slug: 'single' }]);
+        });
+
+        expect(navigate).not.toHaveBeenCalled();
     });
 
     it('resolves at most once per mount even as the component re-renders', async () => {

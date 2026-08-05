@@ -156,6 +156,29 @@ describe('hydrateBlocks', () => {
         expect(hydrateBlocks([])).toEqual([]);
         expect(createBlock).not.toHaveBeenCalled();
     });
+
+    it('treats an absent innerBlocks as empty rather than throwing', () => {
+        // PHP omitting `innerBlocks` is a natural serialization, and the
+        // throw would land inside a useMemo with no boundary above it.
+        const hydrated = hydrateBlocks([
+            { name: 'artisanpack/group', attributes: {} } as unknown as
+                BlockInstance,
+        ]);
+
+        expect(hydrated).toHaveLength(1);
+        expect(hydrated[0].innerBlocks).toEqual([]);
+    });
+
+    it('skips malformed elements instead of dereferencing them', () => {
+        const hydrated = hydrateBlocks([
+            null as unknown as BlockInstance,
+            { attributes: {} } as unknown as BlockInstance,
+            raw('artisanpack/paragraph'),
+        ]);
+
+        expect(hydrated).toHaveLength(1);
+        expect(hydrated[0].name).toBe('artisanpack/paragraph');
+    });
 });
 
 describe('hydrateAppliedTemplate', () => {
