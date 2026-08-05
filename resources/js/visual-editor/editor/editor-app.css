@@ -219,7 +219,7 @@
 }
 
 /* Composed mode with no resolvable template — explains why the canvas is
-   showing bare content while the toggle reads "With template". */
+   showing bare content while the view-mode switch is on. */
 .ap-visual-editor__composed-notice {
     margin: 12px 24px 0;
     flex: 0 0 auto;

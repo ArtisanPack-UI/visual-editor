@@ -33,18 +33,21 @@ real thing.
 
 ## 2. Toggling it
 
-The topbar carries a switch beside the save status, labelled **Content
-only** / **With template** (`role="switch"`, accessible name *View with
-template*).
+The topbar carries a switch beside the save status, labelled **View with
+template** (`role="switch"`). The label is constant and `aria-checked`
+carries the on/off state, so the accessible name matches the visible text
+— a label that swapped with the state would fail WCAG 2.5.3 (Label in
+Name) and leave speech-input users unable to activate it by reading it.
 
-- Every editor mount starts in **Content only**. The view mode is
-  ephemeral — it is not persisted per user or per document.
-- The first flip to **With template** issues
+- Every editor mount starts with the switch **off**, showing content
+  only. The view mode is ephemeral — it is not persisted per user or per
+  document.
+- The first flip **on** issues
   `GET /visual-editor/api/{resource}/{id}/applied-template`, passing the
   template currently selected in the document panel rather than the one
   last saved. The switch stays enabled while that request is in flight,
-  so flipping back to **Content only** always works — a request that
-  never settles can never strand the author in composed view.
+  so switching back off always works — a request that never settles can
+  never strand the author in composed view.
 - Results are cached per `(resource, id, template)` for the lifetime of
   the editor mount, so later flips are instant. Picking a different
   template in the document panel invalidates that cache and re-resolves.

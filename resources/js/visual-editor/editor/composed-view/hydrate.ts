@@ -47,9 +47,18 @@ function hydrateParts(
     const out: Record<string, AppliedTemplatePart> = {};
 
     for (const [slug, part] of Object.entries(parts)) {
+        // `hydrateAppliedTemplate` is exported from the package index, so
+        // it can be handed a payload that never passed through this
+        // module's response validation.
+        if (part === null || typeof part !== 'object') {
+            continue;
+        }
+
         out[slug] = {
             ...part,
-            blocks: hydrateBlocks(part.blocks),
+            blocks: Array.isArray(part.blocks)
+                ? hydrateBlocks(part.blocks)
+                : [],
         };
     }
 

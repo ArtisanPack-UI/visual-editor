@@ -98,6 +98,15 @@ function splitBlocks(blocks: readonly BlockInstance[]): SplitResult {
     let found = false;
 
     for (const block of blocks) {
+        // The split runs *before* hydration (see `editor-app.tsx`), so
+        // `hydrateBlocks`' own guard never covers this walk. A `null`
+        // element or a block the server serialized without a `name` would
+        // throw here — inside a `useMemo` with no error boundary above it,
+        // white-screening the editor instead of taking the fallback path.
+        if (typeof block?.name !== 'string') {
+            continue;
+        }
+
         if (found) {
             after.push(block);
             continue;
@@ -108,7 +117,12 @@ function splitBlocks(blocks: readonly BlockInstance[]): SplitResult {
             continue;
         }
 
-        const inner = block.innerBlocks;
+        // Anything that isn't an array counts as absent. `null` in
+        // particular reaches this line as a valid payload — the response
+        // validator treats a null `innerBlocks` the same as an omitted one.
+        const inner = Array.isArray(block.innerBlocks)
+            ? block.innerBlocks
+            : undefined;
 
         if (inner !== undefined && inner.length > 0) {
             const innerSplit = splitBlocks(inner);

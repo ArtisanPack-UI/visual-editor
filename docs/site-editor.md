@@ -155,8 +155,10 @@ into editing that entity.
 
 ### Deep links by slug
 
-Path routes address entities by database id. Callers outside the SPA
-usually do not have one — the post editor's
+The trailing path segment is an opaque entity identifier — the router
+hands it to the entity fetch unchanged — but every link the site editor
+produces for itself addresses the entity by database id. Callers outside
+the SPA usually do not have one: the post editor's
 [composed view](post-editor/Composed-View.md), for instance, knows only
 the slug of the template it composed against. For those, the site editor
 accepts a query-string deep link on the mount URL:
@@ -167,9 +169,12 @@ accepts a query-string deep link on the mount URL:
 
 On mount the SPA parses the query string, resolves the slug through the
 templates list endpoint, and navigates to that template's editor view.
-The `pushState` that follows rewrites the address bar to the canonical
-path route (`/visual-editor/site/templates/12`), so the query-string form
-is an entry point rather than a URL the user is left holding.
+That landing *replaces* the current history entry with the canonical path
+route (`/visual-editor/site/templates/12`), so the query-string form is an
+entry point rather than a URL the user is left holding — and Back does not
+return to it. (A pushed entry would: the popstate handler re-reads the
+pathname only, so going back to the query-string URL would show the index
+while the address bar still claimed the deep link.)
 
 | Parameter | Required | Notes |
 |-----------|----------|-------|

@@ -154,6 +154,42 @@ describe('splitTemplateAroundContentSlot', () => {
         ]);
     });
 
+    it('skips malformed elements instead of throwing', () => {
+        // The split runs before hydration, so `hydrateBlocks`' guard never
+        // covers this walk — a throw here lands in a useMemo with no error
+        // boundary above it and white-screens the editor.
+        const result = splitTemplateAroundContentSlot(
+            [
+                null as unknown as BlockInstance,
+                { attributes: {} } as unknown as BlockInstance,
+                block('artisanpack/site-title'),
+                block('artisanpack/post-content'),
+                block('artisanpack/paragraph'),
+            ],
+            'T'
+        );
+
+        expect(names(result.header)).toEqual(['artisanpack/site-title']);
+        expect(names(result.footer)).toEqual(['artisanpack/paragraph']);
+        expect(result.slotFound).toBe(true);
+    });
+
+    it('treats a null innerBlocks as absent rather than dereferencing it', () => {
+        // `null` innerBlocks passes the response validator (it reads the
+        // same as an omitted key), so the split has to tolerate it.
+        const group = {
+            ...block('artisanpack/group'),
+            innerBlocks: null,
+        } as unknown as BlockInstance;
+
+        expect(() =>
+            splitTemplateAroundContentSlot(
+                [group, block('artisanpack/post-content')],
+                'T'
+            )
+        ).not.toThrow();
+    });
+
     it('leaves template-part refs unexpanded for the block to resolve', () => {
         const result = splitTemplateAroundContentSlot(
             [

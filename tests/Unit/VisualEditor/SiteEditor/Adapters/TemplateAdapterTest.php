@@ -5,16 +5,9 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\TemplateAdapter;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplate;
 
-// The adapter's raw→blocks server-side parse (#674) depends on
-// `BlockMarkupParser`, added in cms-framework 2.5. That version
-// requires PHP 8.3+, so on PHP 8.2 CI the composer resolver picks an
-// older cms-framework and the parser is absent. The adapter's
-// `class_exists` guard keeps runtime safe; tests that assert the
-// parsed output need this skip guard.
-function templatePartParserAvailable(): bool
-{
-	return class_exists( 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\BlockMarkupParser' );
-}
+// `templatePartParserAvailable()` lives in `tests/Pest.php`. It is shared
+// with `TemplatePartAdapterTest.php`, and declaring it here meant running
+// that file on its own died on an undefined function.
 
 function makeResolvedTemplate( array $overrides = [] ): ResolvedTemplate
 {

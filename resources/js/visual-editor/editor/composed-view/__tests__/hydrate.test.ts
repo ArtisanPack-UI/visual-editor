@@ -202,8 +202,37 @@ describe('hydrateAppliedTemplate', () => {
 
         expect(hydrated.blocks[0].clientId).toBeTruthy();
         expect(hydrated.template_parts.header.blocks[0].clientId).toBeTruthy();
+
         // Envelope metadata rides through untouched.
         expect(hydrated.slug).toBe('single-post');
         expect(hydrated.template_parts.header.area).toBe('header');
+    });
+
+    it('tolerates malformed parts, since it is exported package API', () => {
+        // The response validator rejects these before they reach the
+        // editor, but this function is exported from the package index and
+        // can be handed a payload that never went through it.
+        const hydrated = hydrateAppliedTemplate({
+            status: 'ok',
+            slug: 'single-post',
+            name: 'Single Post',
+            source: 'theme',
+            blocks: [],
+            template_parts: {
+                broken: null,
+                blockless: { slug: 'blockless', area: 'header' },
+                ok: {
+                    slug: 'ok',
+                    area: 'footer',
+                    title: 'OK',
+                    source: 'theme',
+                    blocks: [raw('artisanpack/site-title')],
+                },
+            },
+        } as unknown as Parameters<typeof hydrateAppliedTemplate>[0]);
+
+        expect(hydrated.template_parts.broken).toBeUndefined();
+        expect(hydrated.template_parts.blockless.blocks).toEqual([]);
+        expect(hydrated.template_parts.ok.blocks[0].clientId).toBeTruthy();
     });
 });

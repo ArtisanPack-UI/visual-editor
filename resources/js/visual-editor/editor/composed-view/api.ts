@@ -178,11 +178,31 @@ function isAppliedTemplatePayload(body: unknown): body is AppliedTemplate {
     // `[]`, so an empty array is valid here — anything else non-object is not.
     const parts = record.template_parts;
 
-    return (
-        typeof parts === 'object' &&
-        parts !== null &&
-        (!Array.isArray(parts) || parts.length === 0)
-    );
+    if (typeof parts !== 'object' || parts === null) {
+        return false;
+    }
+
+    if (Array.isArray(parts)) {
+        return parts.length === 0;
+    }
+
+    // Each entry's blocks get walked by `hydrateParts` just like the
+    // top-level list, so they need the same guarantee — a null part or one
+    // whose `blocks` is missing throws there rather than here.
+    return Object.values(parts).every((part) => isTemplatePartShape(part));
+}
+
+function isTemplatePartShape(part: unknown): boolean {
+    if (part === null || typeof part !== 'object' || Array.isArray(part)) {
+        return false;
+    }
+
+    const record = part as Record<string, unknown>;
+
+    // An absent `blocks` is not tolerated the way a block's own
+    // `innerBlocks` is: a part with no block list is nothing to render, and
+    // `hydrateParts` dereferences it unconditionally.
+    return isBlockList(record.blocks);
 }
 
 /**

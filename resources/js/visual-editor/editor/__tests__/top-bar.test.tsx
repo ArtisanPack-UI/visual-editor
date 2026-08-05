@@ -510,6 +510,36 @@ describe('TopBar', () => {
             expect(toggle).not.toBeDisabled();
         });
 
+        it.each([
+            ['content' as const, 'false'],
+            ['with-template' as const, 'true'],
+        ])(
+            'keeps the accessible name equal to the visible text in %s mode',
+            (viewMode, ariaChecked) => {
+                // WCAG 2.5.3 (Label in Name): a label that swapped with the
+                // state left the accessible name out of step with the
+                // visible text, so speech-input users could not activate
+                // the control by reading it. State rides on `aria-checked`.
+                render(
+                    <TopBar
+                        {...defaultProps({
+                            viewMode,
+                            onViewModeChange: vi.fn(),
+                        })}
+                    />
+                );
+
+                const toggle = screen.getByTestId(
+                    'ap-visual-editor-top-bar-view-mode-toggle'
+                );
+
+                expect(toggle).not.toHaveAttribute('aria-label');
+                expect(toggle).toHaveTextContent('View with template');
+                expect(toggle).toHaveAccessibleName('View with template');
+                expect(toggle).toHaveAttribute('aria-checked', ariaChecked);
+            }
+        );
+
         it('renders as pressed in the with-template state', () => {
             render(
                 <TopBar

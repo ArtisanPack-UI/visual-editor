@@ -116,6 +116,7 @@ All endpoints use the `/visual-editor/api/` prefix and run through the middlewar
 
 ### Content
 - `GET/PUT /{resource}/{id}/content` — Block content CRUD for any registered resource
+- `GET /{resource}/{id}/applied-template` — Resolved template chrome for the post editor's composed view
 - `POST /blocks/preview` — Dynamic block editor preview rendering
 - `GET /blocks` — Enabled-block manifest (allow/deny lists applied)
 - `POST /query/resolve` — `core/query` block resolution

@@ -147,10 +147,9 @@ export interface TopBarProps {
      * the disabled-state tooltip / accessible-description.
      *
      * The editor no longer passes a reason while the applied-template
-     * request is in flight: flipping back to **Content only** has to stay
-     * available, or a request that never settles strands the author in
-     * composed view. The prop remains for hosts with their own reason to
-     * lock the control.
+     * request is in flight: switching back off has to stay available, or a
+     * request that never settles strands the author in composed view. The
+     * prop remains for hosts with their own reason to lock the control.
      */
     viewModeDisabledReason?: string | null;
 }
@@ -571,16 +570,25 @@ export function TopBar(props: TopBarProps): JSX.Element {
                         className="ap-visual-editor-top-bar__view-mode-toggle"
                         role="switch"
                         aria-checked={isComposedView}
-                        aria-label={__('View with template', TEXT_DOMAIN)}
                         title={viewModeDisabledReason ?? undefined}
                         disabled={viewModeDisabled}
                         data-view-mode={viewMode}
                         data-testid="ap-visual-editor-top-bar-view-mode-toggle"
                         onClick={handleViewModeClick}
                     >
-                        {isComposedView
-                            ? __('With template', TEXT_DOMAIN)
-                            : __('Content only', TEXT_DOMAIN)}
+                        {/*
+                          * The label is deliberately constant, and there is
+                          * no `aria-label` overriding it. A label that
+                          * swapped with the state put the accessible name
+                          * ("View with template") out of step with the
+                          * visible text ("Content only") — a WCAG 2.5.3
+                          * Label-in-Name failure that stops speech-input
+                          * users activating the control by reading it.
+                          * `aria-checked` carries on/off, which is what a
+                          * switch's state is *for*; the checked styling
+                          * below shows it visually.
+                          */}
+                        {__('View with template', TEXT_DOMAIN)}
                     </button>
                 ) : null}
                 {previewUrl ? (

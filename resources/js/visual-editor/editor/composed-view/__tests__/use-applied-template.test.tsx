@@ -490,6 +490,71 @@ describe('useAppliedTemplate', () => {
         });
     });
 
+    it.each([
+        ['a null part', { header: null }],
+        ['a part with no blocks', { header: { slug: 'header' } }],
+        [
+            'a part whose blocks contain a malformed element',
+            { header: { slug: 'header', blocks: [{ attributes: {} }] } },
+        ],
+    ])('rejects a payload with %s', async (_label, template_parts) => {
+        // `hydrateParts` walks these exactly like the top-level list, so
+        // they need the same guarantee before they get there.
+        mockFetch([
+            {
+                status: 200,
+                body: {
+                    status: 'ok',
+                    slug: 's',
+                    name: 'S',
+                    source: 'theme',
+                    blocks: [],
+                    template_parts,
+                },
+            },
+        ]);
+
+        const { result } = renderHook(() =>
+            useAppliedTemplate({ ...CONFIG, enabled: true })
+        );
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('error');
+        });
+    });
+
+    it('accepts a well-formed template_parts map', async () => {
+        mockFetch([
+            {
+                status: 200,
+                body: {
+                    status: 'ok',
+                    slug: 's',
+                    name: 'S',
+                    source: 'theme',
+                    blocks: [],
+                    template_parts: {
+                        header: {
+                            slug: 'header',
+                            area: 'header',
+                            title: 'Header',
+                            source: 'theme',
+                            blocks: [{ name: 'artisanpack/site-title' }],
+                        },
+                    },
+                },
+            },
+        ]);
+
+        const { result } = renderHook(() =>
+            useAppliedTemplate({ ...CONFIG, enabled: true })
+        );
+
+        await waitFor(() => {
+            expect(result.current.status).toBe('ok');
+        });
+    });
+
     it('accepts blocks that omit attributes and innerBlocks', async () => {
         mockFetch([
             {

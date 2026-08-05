@@ -56,7 +56,7 @@ on boot and injected into the iframe via the React renderer's
 Block selection, drag-and-drop, undo/redo, and keyboard shortcuts come
 from `@wordpress/block-editor` unchanged.
 
-The topbar's **Content only** / **With template** switch composes the
+The topbar's **View with template** switch composes the
 resolved template's header and footer around the canvas as a read-only
 preview, so authors can judge their content in context without leaving
 the editor. Template chrome is edited in the site editor, reached from

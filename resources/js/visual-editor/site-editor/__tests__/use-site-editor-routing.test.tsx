@@ -128,6 +128,17 @@ describe('buildSiteEditorPath', () => {
         );
     });
 
+    it('normalizes the base the same way parseSiteEditorPath does', () => {
+        // The two must agree, or navigation writes URLs the parser reads
+        // back as the default section.
+        const built = buildSiteEditorPath('visual-editor/site', 'patterns', '7');
+
+        expect(parseSiteEditorPath(built, 'visual-editor/site')).toEqual({
+            section: 'patterns',
+            entityId: '7',
+        });
+    });
+
     it('round-trips the entity id through parse + build', () => {
         const original = 'hero / banner';
         const built = buildSiteEditorPath(ROUTE_BASE, 'patterns', original);
@@ -143,6 +154,10 @@ describe('useSiteEditorRouting', () => {
     });
 
     afterEach(() => {
+        // Restores the history spies even when an assertion throws before
+        // the test's own cleanup — a leaked spy on `replaceState` would
+        // otherwise accumulate `setPath()` calls across the rest of the file.
+        vi.restoreAllMocks();
         setPath('/');
     });
 
@@ -212,9 +227,6 @@ describe('useSiteEditorRouting', () => {
         expect(replaceState).toHaveBeenCalled();
         expect(pushState).not.toHaveBeenCalled();
         expect(window.location.pathname).toBe(`${ROUTE_BASE}/navigation`);
-
-        pushState.mockRestore();
-        replaceState.mockRestore();
     });
 
     it('navigate({replace}) still runs when the pathname already matches, so a stranded query string is stripped', () => {

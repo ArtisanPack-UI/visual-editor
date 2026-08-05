@@ -68,9 +68,13 @@ export function useAppliedTemplate(
     // carry this: the cache-hit path below settles a key without going
     // through `run()`, so an earlier fetch could still be in flight and
     // unaborted when it does.
+    //
+    // Written in the effect, never in the render body: React can render a
+    // new `cacheKey` and discard that render without committing it, which
+    // would leave this pointing at a key that never took effect — and the
+    // in-flight request for the committed key would then be dropped as
+    // stale, stranding the hook in `loading` with no chrome and no error.
     const latestKeyRef = useRef<string>(cacheKey);
-
-    latestKeyRef.current = cacheKey;
 
     const run = useCallback(async (): Promise<void> => {
         abortRef.current?.abort();
@@ -130,6 +134,8 @@ export function useAppliedTemplate(
     }, []);
 
     useEffect(() => {
+        latestKeyRef.current = cacheKey;
+
         if (!enabled) {
             return;
         }

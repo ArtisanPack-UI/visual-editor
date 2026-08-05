@@ -63,7 +63,11 @@ export function parseSiteEditorPath(
     pathname: string,
     routeBase: string
 ): SiteEditorLocation {
-    const normalizedBase = routeBase.replace(/\/+$/, '');
+    // The same normalization `buildSiteEditorPath` applies. Without it the
+    // two disagree for a non-canonical base: navigation would write URLs
+    // under the canonical path while the parser, still matching the raw
+    // base, read every one of them as the default section.
+    const normalizedBase = normalizeRouteBase(routeBase);
 
     if (
         pathname !== normalizedBase &&
