@@ -479,4 +479,152 @@ describe('TopBar', () => {
             expect(onViewportChange).toHaveBeenLastCalledWith('sm', 390);
         });
     });
+
+    describe('composed-view toggle (#620)', () => {
+        it('does not render the toggle when viewMode is undefined', () => {
+            render(<TopBar {...defaultProps()} />);
+
+            expect(
+                screen.queryByTestId(
+                    'ap-visual-editor-top-bar-view-mode-toggle'
+                )
+            ).not.toBeInTheDocument();
+        });
+
+        it('renders as an aria switch in the content state', () => {
+            render(
+                <TopBar
+                    {...defaultProps({
+                        viewMode: 'content',
+                        onViewModeChange: vi.fn(),
+                    })}
+                />
+            );
+
+            const toggle = screen.getByTestId(
+                'ap-visual-editor-top-bar-view-mode-toggle'
+            );
+
+            expect(toggle).toHaveAttribute('role', 'switch');
+            expect(toggle).toHaveAttribute('aria-checked', 'false');
+            expect(toggle).not.toBeDisabled();
+        });
+
+        it.each([
+            ['content' as const, 'false'],
+            ['with-template' as const, 'true'],
+        ])(
+            'keeps the accessible name equal to the visible text in %s mode',
+            (viewMode, ariaChecked) => {
+                // WCAG 2.5.3 (Label in Name): a label that swapped with the
+                // state left the accessible name out of step with the
+                // visible text, so speech-input users could not activate
+                // the control by reading it. State rides on `aria-checked`.
+                render(
+                    <TopBar
+                        {...defaultProps({
+                            viewMode,
+                            onViewModeChange: vi.fn(),
+                        })}
+                    />
+                );
+
+                const toggle = screen.getByTestId(
+                    'ap-visual-editor-top-bar-view-mode-toggle'
+                );
+
+                expect(toggle).not.toHaveAttribute('aria-label');
+                expect(toggle).toHaveTextContent('View with template');
+                expect(toggle).toHaveAccessibleName('View with template');
+                expect(toggle).toHaveAttribute('aria-checked', ariaChecked);
+            }
+        );
+
+        it('renders as pressed in the with-template state', () => {
+            render(
+                <TopBar
+                    {...defaultProps({
+                        viewMode: 'with-template',
+                        onViewModeChange: vi.fn(),
+                    })}
+                />
+            );
+
+            const toggle = screen.getByTestId(
+                'ap-visual-editor-top-bar-view-mode-toggle'
+            );
+
+            expect(toggle).toHaveAttribute('aria-checked', 'true');
+        });
+
+        it('flips to with-template when clicked from content', async () => {
+            const user = userEvent.setup();
+            const onViewModeChange = vi.fn();
+
+            render(
+                <TopBar
+                    {...defaultProps({
+                        viewMode: 'content',
+                        onViewModeChange,
+                    })}
+                />
+            );
+
+            await user.click(
+                screen.getByTestId(
+                    'ap-visual-editor-top-bar-view-mode-toggle'
+                )
+            );
+
+            expect(onViewModeChange).toHaveBeenCalledWith('with-template');
+        });
+
+        it('flips back to content when clicked from with-template', async () => {
+            const user = userEvent.setup();
+            const onViewModeChange = vi.fn();
+
+            render(
+                <TopBar
+                    {...defaultProps({
+                        viewMode: 'with-template',
+                        onViewModeChange,
+                    })}
+                />
+            );
+
+            await user.click(
+                screen.getByTestId(
+                    'ap-visual-editor-top-bar-view-mode-toggle'
+                )
+            );
+
+            expect(onViewModeChange).toHaveBeenCalledWith('content');
+        });
+
+        it('is disabled with a tooltip when viewModeDisabledReason is set', async () => {
+            const user = userEvent.setup();
+            const onViewModeChange = vi.fn();
+
+            render(
+                <TopBar
+                    {...defaultProps({
+                        viewMode: 'content',
+                        onViewModeChange,
+                        viewModeDisabledReason: 'Loading template…',
+                    })}
+                />
+            );
+
+            const toggle = screen.getByTestId(
+                'ap-visual-editor-top-bar-view-mode-toggle'
+            );
+
+            expect(toggle).toBeDisabled();
+            expect(toggle).toHaveAttribute('title', 'Loading template…');
+
+            await user.click(toggle);
+
+            expect(onViewModeChange).not.toHaveBeenCalled();
+        });
+    });
 });

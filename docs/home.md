@@ -50,6 +50,7 @@ The block editor for a single resource — a post, page, or any custom Eloquent 
 - [[Post Editor]] — Surface tour and what each region does
 - [[post-editor/Getting Started]] — Mount your first editor in five minutes
 - [[post-editor/Blade Component]] — `<x-visual-editor />` reference
+- [[post-editor/Composed View]] — Editing content inside its resolved template
 - [[post-editor/Livewire Integration]] — Embedding inside Livewire components
 - [[post-editor/Inertia Integration]] — Embedding inside Inertia (React or Vue)
 - [[post-editor/Theming]] — Restyling editor chrome through DaisyUI tokens
@@ -115,6 +116,7 @@ All endpoints use the `/visual-editor/api/` prefix and run through the middlewar
 
 ### Content
 - `GET/PUT /{resource}/{id}/content` — Block content CRUD for any registered resource
+- `GET /{resource}/{id}/applied-template` — Resolved template chrome for the post editor's composed view
 - `POST /blocks/preview` — Dynamic block editor preview rendering
 - `GET /blocks` — Enabled-block manifest (allow/deny lists applied)
 - `POST /query/resolve` — `core/query` block resolution

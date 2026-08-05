@@ -3,8 +3,9 @@
  *
  * The C5 backend does not yet expose a usage-count column, so D5 derives
  * it on demand: when the user opens the delete confirmation dialog, we
- * walk the templates + parts list and count occurrences of `core/block`
- * blocks whose `ref` attribute points at the target pattern. Cheap for
+ * walk the templates + parts list and count pattern-reference blocks
+ * (see {@link PATTERN_REF_NAMES}) whose `ref` attribute points at the
+ * target pattern. Cheap for
  * the V1 catalog sizes (a few dozen entities, a few thousand blocks);
  * if scaling becomes a problem the C5 endpoint can return a precomputed
  * count and this hook can return it directly instead.
@@ -50,6 +51,20 @@ const EMPTY_USAGE: UsageBreakdown = {
     total: 0,
     perKind: { template: 0, 'template-part': 0 },
 };
+
+/**
+ * Block names that count as a pattern reference.
+ *
+ * `TemplateAdapter` forks every `core/x` name to `artisanpack/x` on read,
+ * so template and part payloads carry `artisanpack/block`. The raw core
+ * name stays accepted for a host that supplies an already-core payload —
+ * or an older cached response — so a usage count never silently reads
+ * zero because of which side of the rewrite the data came from.
+ */
+const PATTERN_REF_NAMES: ReadonlySet<string> = new Set([
+    'artisanpack/block',
+    'core/block',
+]);
 
 interface BlockTreeNode {
     name?: unknown;
@@ -109,7 +124,9 @@ function countReferences(
 
             const node = raw as BlockTreeNode;
 
-            if (readName(node) === 'core/block') {
+            const name = readName(node);
+
+            if (name !== null && PATTERN_REF_NAMES.has(name)) {
                 const ref = readRefAttr(node);
 
                 if (ref !== null && String(ref) === targetString) {
@@ -230,8 +247,19 @@ export function usePatternUsage(
                                 );
 
                                 blocks = blocksFromRecord(detail);
-                            } catch {
-                                continue;
+                            } catch (caught: unknown) {
+                                // Swallowing this contributed 0 for the
+                                // row, which is the silent under-count the
+                                // fallback above exists to prevent — and an
+                                // under-count can report an in-use pattern
+                                // as unused and greenlight deleting it.
+                                // Surface it as the dialog's error state
+                                // instead of a confident wrong number.
+                                throw caught instanceof Error
+                                    ? caught
+                                    : new Error(
+                                        'Failed to load entity content for usage count.'
+                                    );
                             }
                         }
 

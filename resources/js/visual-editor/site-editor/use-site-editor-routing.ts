@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { normalizeRouteBase } from './deep-link';
 import {
     DEFAULT_SECTION_ID,
     findSectionBySlug,
@@ -26,13 +27,27 @@ export interface SiteEditorLocation {
     entityId: string | null;
 }
 
+export interface SiteEditorNavigateOptions {
+    /**
+     * Replace the current history entry instead of pushing a new one. Use
+     * for landings the user did not ask for — a deep-link resolution is a
+     * *rewrite* of the entry they arrived on, and pushing would leave Back
+     * pointing at a query-string URL the popstate handler cannot re-read.
+     */
+    replace?: boolean;
+}
+
 export interface SiteEditorRouting extends SiteEditorLocation {
     /**
      * Navigate to a different section (and optionally a specific entity)
      * without a full page reload. Pushes a new history entry; falls back
      * to direct state update when running outside a browser (SSR).
      */
-    navigate: (section: SiteEditorSectionId, entityId?: string | null) => void;
+    navigate: (
+        section: SiteEditorSectionId,
+        entityId?: string | null,
+        options?: SiteEditorNavigateOptions
+    ) => void;
 }
 
 interface UseSiteEditorRoutingOptions {
@@ -48,7 +63,11 @@ export function parseSiteEditorPath(
     pathname: string,
     routeBase: string
 ): SiteEditorLocation {
-    const normalizedBase = routeBase.replace(/\/+$/, '');
+    // The same normalization `buildSiteEditorPath` applies. Without it the
+    // two disagree for a non-canonical base: navigation would write URLs
+    // under the canonical path while the parser, still matching the raw
+    // base, read every one of them as the default section.
+    const normalizedBase = normalizeRouteBase(routeBase);
 
     if (
         pathname !== normalizedBase &&
@@ -102,7 +121,9 @@ export function buildSiteEditorPath(
     section: SiteEditorSectionId,
     entityId: string | null = null
 ): string {
-    const normalizedBase = routeBase.replace(/\/+$/, '');
+    // Shared with `buildTemplateDeepLink`: an absolute or `javascript:`
+    // base would leave the SPA's own origin from inside an `<a href>`.
+    const normalizedBase = normalizeRouteBase(routeBase);
     const tail =
         entityId === null
             ? section
@@ -141,7 +162,11 @@ export function useSiteEditorRouting(
     }, [routeBase]);
 
     const navigate = useCallback(
-        (section: SiteEditorSectionId, entityId: string | null = null): void => {
+        (
+            section: SiteEditorSectionId,
+            entityId: string | null = null,
+            options: SiteEditorNavigateOptions = {}
+        ): void => {
             const next: SiteEditorLocation = { section, entityId };
 
             setLocation((prev) => {
@@ -159,12 +184,16 @@ export function useSiteEditorRouting(
             const target = buildSiteEditorPath(routeBase, section, entityId);
 
             // Avoid pushing duplicate entries when the user clicks the
-            // already-active item.
-            if (window.location.pathname === target) {
+            // already-active item. A `replace` still runs: the pathname may
+            // already match while a query string (a deep link) is stranded
+            // in the address bar, and rewriting is exactly what clears it.
+            if (window.location.pathname === target && options.replace !== true) {
                 return;
             }
 
-            window.history.pushState({ section, entityId }, '', target);
+            const method = options.replace === true ? 'replaceState' : 'pushState';
+
+            window.history[method]({ section, entityId }, '', target);
         },
         [routeBase]
     );

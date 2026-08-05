@@ -244,6 +244,46 @@ export const POST_EDITOR_FRAMING_STYLES = `
 `;
 
 /**
+ * Composed-view chrome styles (#655), injected into the canvas iframe.
+ *
+ * The chrome previews render as siblings of the block list *inside* the
+ * canvas, so they inherit {@link POST_EDITOR_FRAMING_STYLES} — 48px of
+ * editor padding and a 720px content clamp. Those exist to frame post
+ * *content*; applying them to a site header or footer would cap
+ * full-bleed chrome at the content measure and misrepresent the layout
+ * the author is trying to check. Reset them inside the chrome regions and
+ * let the theme's own layout rules decide.
+ *
+ * The boundary rules give a quiet visual seam between read-only chrome and
+ * the editable canvas. `useDisabled()` already makes the chrome inert; this
+ * is only about making the edge legible — the labelled ribbon is #623.
+ */
+export const COMPOSED_CHROME_STYLES = `
+.ap-visual-editor__chrome .block-editor-block-list__layout.is-root-container {
+    padding: 0;
+}
+
+.ap-visual-editor__chrome .block-editor-block-list__layout.is-root-container > .wp-block:not(.alignwide):not(.alignfull) {
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.ap-visual-editor__chrome {
+    position: relative;
+    user-select: none;
+}
+
+.ap-visual-editor__chrome[data-chrome-region='header'] {
+    border-bottom: 1px dashed color-mix(in oklab, currentColor 20%, transparent);
+}
+
+.ap-visual-editor__chrome[data-chrome-region='footer'] {
+    border-top: 1px dashed color-mix(in oklab, currentColor 20%, transparent);
+}
+`;
+
+/**
  * Layout descriptor passed to the root `<BlockList layout={...}>` so
  * Gutenberg's `BlockLayoutContext` resolves to a `constrained` layout
  * with explicit `contentSize` / `wideSize`. Without it the root

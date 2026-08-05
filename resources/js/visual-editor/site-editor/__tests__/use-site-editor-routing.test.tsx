@@ -1,5 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
     buildSiteEditorPath,
@@ -118,6 +118,27 @@ describe('buildSiteEditorPath', () => {
         ).toBe('/visual-editor/site/templates/hero%20%2F%20banner');
     });
 
+    it.each([
+        ['an absolute URL', 'https://evil.example/site'],
+        ['a protocol-relative host', '//evil.example/site'],
+        ['a javascript: scheme', 'javascript:alert(1)'],
+    ])('falls back to the package route base for %s', (_label, routeBase) => {
+        expect(buildSiteEditorPath(routeBase, 'templates')).toBe(
+            '/visual-editor/site/templates'
+        );
+    });
+
+    it('normalizes the base the same way parseSiteEditorPath does', () => {
+        // The two must agree, or navigation writes URLs the parser reads
+        // back as the default section.
+        const built = buildSiteEditorPath('visual-editor/site', 'patterns', '7');
+
+        expect(parseSiteEditorPath(built, 'visual-editor/site')).toEqual({
+            section: 'patterns',
+            entityId: '7',
+        });
+    });
+
     it('round-trips the entity id through parse + build', () => {
         const original = 'hero / banner';
         const built = buildSiteEditorPath(ROUTE_BASE, 'patterns', original);
@@ -133,6 +154,10 @@ describe('useSiteEditorRouting', () => {
     });
 
     afterEach(() => {
+        // Restores the history spies even when an assertion throws before
+        // the test's own cleanup — a leaked spy on `replaceState` would
+        // otherwise accumulate `setPath()` calls across the rest of the file.
+        vi.restoreAllMocks();
         setPath('/');
     });
 
@@ -185,6 +210,45 @@ describe('useSiteEditorRouting', () => {
         });
 
         expect(result.current.section).toBe('patterns');
+    });
+
+    it('navigate({replace}) rewrites the current entry instead of pushing', () => {
+        const pushState = vi.spyOn(window.history, 'pushState');
+        const replaceState = vi.spyOn(window.history, 'replaceState');
+
+        const { result } = renderHook(() =>
+            useSiteEditorRouting({ routeBase: ROUTE_BASE })
+        );
+
+        act(() => {
+            result.current.navigate('navigation', null, { replace: true });
+        });
+
+        expect(replaceState).toHaveBeenCalled();
+        expect(pushState).not.toHaveBeenCalled();
+        expect(window.location.pathname).toBe(`${ROUTE_BASE}/navigation`);
+    });
+
+    it('navigate({replace}) still runs when the pathname already matches, so a stranded query string is stripped', () => {
+        // The deep-link landing frequently targets the pathname the user is
+        // already on. The dedupe early-return would leave `?entity=…&slug=…`
+        // sitting in the address bar forever.
+        window.history.replaceState(
+            {},
+            '',
+            `${ROUTE_BASE}/templates?entity=template&slug=single`
+        );
+
+        const { result } = renderHook(() =>
+            useSiteEditorRouting({ routeBase: ROUTE_BASE })
+        );
+
+        act(() => {
+            result.current.navigate('templates', null, { replace: true });
+        });
+
+        expect(window.location.search).toBe('');
+        expect(window.location.pathname).toBe(`${ROUTE_BASE}/templates`);
     });
 
     it('does not push duplicate entries when re-navigating to the active section', () => {

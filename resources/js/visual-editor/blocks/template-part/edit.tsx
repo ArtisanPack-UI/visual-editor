@@ -40,10 +40,26 @@
  */
 
 import type { ReactElement } from 'react';
-import { createElement } from 'react';
+import { createContext, createElement, useContext, useMemo } from 'react';
 import { useBlockProps, useInnerBlocksProps } from '@wordpress/block-editor';
 
 import { useEntityBlockEditor } from '../../vendor/core-data-shim';
+
+/**
+ * Composite ids (`theme//slug`) of the template parts currently being
+ * rendered up the tree.
+ *
+ * A part whose markup references itself — directly, or through another
+ * part that references it back — would otherwise mount this component
+ * inside itself forever and take the tab down with a stack overflow.
+ * Parts are theme/DB content, so nothing upstream guarantees they're
+ * acyclic: the server-side collector keeps a visited list for its own
+ * walk but still hands the client whatever refs the markup contains.
+ *
+ * Rendering stops at the repeat rather than erroring — the cycle has
+ * nothing new to show, and the enclosing part already rendered.
+ */
+const RenderingParts = createContext<ReadonlySet<string>>(new Set());
 
 interface Attributes {
     readonly slug?: string;
@@ -64,16 +80,32 @@ export default function TemplatePartEdit({ attributes }: Props): ReactElement {
             : 'div';
 
     if (slug === '' || theme === '') {
-        // Empty wrapper with no InnerBlocks — deliberately doesn't call
-        // `useEntityBlockEditor`, which would fall through to the ambient
-        // entity id and mount the wrong tree.
-        const blockProps = useBlockProps();
-        return createElement(tagName, blockProps);
+        return <TemplatePartPlaceholder tagName={tagName} />;
     }
 
     return (
         <TemplatePartBody slug={slug} theme={theme} tagName={tagName} />
     );
+}
+
+/**
+ * Empty wrapper with no InnerBlocks, for a ref missing `slug` or `theme`.
+ * Deliberately skips `useEntityBlockEditor`, which would fall through to
+ * the ambient entity id and mount the wrong tree.
+ *
+ * A child component rather than an inline branch: calling `useBlockProps()`
+ * in the branch made the parent's hook count depend on its attributes, so a
+ * mounted block whose `slug` was filled in crashed React's hook ordering.
+ * Same shape as {@see TemplatePartCycleStop}.
+ */
+function TemplatePartPlaceholder({
+    tagName,
+}: {
+    tagName: string;
+}): ReactElement {
+    const blockProps = useBlockProps();
+
+    return createElement(tagName, blockProps);
 }
 
 interface BodyProps {
@@ -84,7 +116,50 @@ interface BodyProps {
 
 function TemplatePartBody({ slug, theme, tagName }: BodyProps): ReactElement {
     const compositeId = `${theme}//${slug}`;
+    const ancestors = useContext(RenderingParts);
+    const isCycle = ancestors.has(compositeId);
 
+    const descendants = useMemo(() => {
+        const next = new Set(ancestors);
+        next.add(compositeId);
+
+        return next;
+    }, [ancestors, compositeId]);
+
+    if (isCycle) {
+        return <TemplatePartCycleStop tagName={tagName} />;
+    }
+
+    return (
+        <RenderingParts.Provider value={descendants}>
+            <TemplatePartResolved
+                compositeId={compositeId}
+                tagName={tagName}
+            />
+        </RenderingParts.Provider>
+    );
+}
+
+/**
+ * Terminal render for a self- or mutually-referencing part. Deliberately
+ * skips `useEntityBlockEditor` — fetching the part again is pointless and
+ * mounting its blocks is what recurses.
+ */
+function TemplatePartCycleStop({ tagName }: { tagName: string }): ReactElement {
+    const blockProps = useBlockProps();
+
+    return createElement(tagName, blockProps);
+}
+
+interface ResolvedProps {
+    readonly compositeId: string;
+    readonly tagName: string;
+}
+
+function TemplatePartResolved({
+    compositeId,
+    tagName,
+}: ResolvedProps): ReactElement {
     const [blocks, onInput, onChange] = useEntityBlockEditor(
         'postType',
         'wp_template_part',

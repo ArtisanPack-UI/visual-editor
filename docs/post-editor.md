@@ -56,6 +56,13 @@ on boot and injected into the iframe via the React renderer's
 Block selection, drag-and-drop, undo/redo, and keyboard shortcuts come
 from `@wordpress/block-editor` unchanged.
 
+The topbar's **View with template** switch composes the
+resolved template's header and footer around the canvas as a read-only
+preview, so authors can judge their content in context without leaving
+the editor. Template chrome is edited in the site editor, reached from
+the composed canvas's **Edit template ↗** deep link. See
+[Composed view](post-editor/Composed-View.md).
+
 ---
 
 ## 3. Inspector sidebar
@@ -194,6 +201,7 @@ or Inertia. Embedding recipes:
 ## See also
 
 - [Blade component reference](post-editor/Blade-Component.md)
+- [Composed view](post-editor/Composed-View.md) — edit content inside its resolved template
 - [Custom blocks](blocks/Custom-Blocks.md)
 - [Renderers](renderers.md) — get saved content back onto the public site
 - [Theming](post-editor/Theming.md) — restyle editor chrome
