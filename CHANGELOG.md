@@ -8,6 +8,19 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **Blade renderer front-end assets no longer 404 on a fresh install** (#699) —
+  every stylesheet `<x-ve-blocks-styles />` links under
+  `/vendor/visual-editor-renderer-blade/` returned Laravel's 404 page until the
+  consumer discovered and ran
+  `vendor:publish --tag=visual-editor-renderer-blade-assets`, leaving the front
+  end with no block-gap between paragraphs, no content-size containment on
+  constrained groups, and `core/columns` collapsed to a vertical stack.
+  `visual-editor-renderer-blade` now registers a route that serves the bundled
+  block-library and `frontend/*` assets straight from the package, so the
+  styles resolve with no install step and package upgrades take effect
+  immediately. Publishing still works and still wins — the web server serves
+  the static file before the route is reached — but it is now an optional
+  performance choice rather than a silent requirement.
 - **Per-block layout classes in the Blade renderer** (#700) — layout-supporting
   partials emitted only the shared `is-layout-{type}` modifier, so the shipped
   block-library rules that key on the per-block compound
