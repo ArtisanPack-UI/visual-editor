@@ -13,7 +13,13 @@
  */
 
 import { defineComponent, h } from 'vue';
-import { attrInt, attrString, classList, postTemplateItemSpanClasses } from '../../support/attributes';
+import {
+    attrInt,
+    attrString,
+    classList,
+    layoutPair,
+    postTemplateItemSpanClasses,
+} from '../../support/attributes';
 import { blockRendererProps } from '../shared';
 
 /**
@@ -93,9 +99,14 @@ export const PostTemplateBlock = defineComponent({
                     // stylesheet adds `grid-template-rows: masonry` on
                     // top via `@supports` for browsers that ship native
                     // CSS Grid masonry. The JS bootstrap packs the rest.
-                    (isGrid || isMasonry) ? 'is-layout-grid' : '',
+                    //
+                    // #702 — each shared modifier ships with its per-block
+                    // compound; the block-library alignment rules key on
+                    // `wp-block-post-template-is-layout-flow`. Masonry is
+                    // an ArtisanPack extension with no upstream compound,
+                    // so it stays unpaired.
+                    ...layoutPair('post-template', usesColumns ? 'is-layout-grid' : 'is-layout-flow'),
                     isMasonry ? 'is-layout-masonry' : '',
-                    !usesColumns ? 'is-layout-flow' : '',
                     usesColumns ? `columns-${columns}` : '',
                     className,
                 ]),

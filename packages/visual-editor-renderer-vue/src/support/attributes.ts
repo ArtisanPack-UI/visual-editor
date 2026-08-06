@@ -95,6 +95,67 @@ export function classList(classes: Array<string | false | null | undefined>): st
         .join(' ');
 }
 
+/**
+ * Layout types the renderers know how to serialize. Anything else stored
+ * on the block falls back to the caller's default so an unknown value
+ * can't mint an arbitrary class token.
+ */
+const SUPPORTED_LAYOUT_TYPES = ['constrained', 'flex', 'flow', 'grid'] as const;
+
+/**
+ * Resolve the shared layout class for a block from its saved
+ * `layout.type` attribute. Mirrors `LayoutSupport::layoutClass()` in the
+ * Blade renderer (#700 / #702).
+ */
+export function layoutClass(attributes: Record<string, unknown>, fallback = 'flow'): string {
+    const supported = SUPPORTED_LAYOUT_TYPES as ReadonlyArray<string>;
+    const type = attrString(attrRecord(attributes.layout).type).trim();
+
+    if (supported.includes(type)) {
+        return `is-layout-${type}`;
+    }
+
+    return `is-layout-${supported.includes(fallback) ? fallback : 'flow'}`;
+}
+
+/**
+ * Pair each shared layout class with its per-block compound so the
+ * block-library CSS that targets `wp-block-{slug}-is-layout-{type}`
+ * matches. Order mirrors upstream: shared class first, compound
+ * immediately after.
+ *
+ * The slug is passed in by each renderer rather than derived from the
+ * block name because several blocks render as a different wrapper than
+ * their name suggests — `artisanpack/row` and `artisanpack/stack` both
+ * render `wp-block-group` markup and therefore need
+ * `wp-block-group-is-layout-flex`, not `wp-block-row-…`.
+ */
+export function layoutPair(blockSlug: string, ...layoutClasses: string[]): string[] {
+    const classes: string[] = [];
+
+    for (const cls of layoutClasses) {
+        if (cls === '') {
+            continue;
+        }
+
+        classes.push(cls, `wp-block-${blockSlug}-${cls}`);
+    }
+
+    return classes;
+}
+
+/**
+ * Shorthand for the common case: resolve the layout class from the
+ * block's attributes and return it paired with its compound.
+ */
+export function layoutWrapperForBlock(
+    attributes: Record<string, unknown>,
+    blockSlug: string,
+    fallback = 'flow'
+): string[] {
+    return layoutPair(blockSlug, layoutClass(attributes, fallback));
+}
+
 export function formatPercent(value: number): string {
     const fixed = value.toFixed(6);
     const trimmed = fixed.replace(/0+$/, '').replace(/\.$/, '');

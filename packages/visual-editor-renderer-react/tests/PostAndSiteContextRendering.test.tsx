@@ -47,7 +47,8 @@ describe('Core post-context blocks', () => {
         const tree = [makeBlock('core/post-content', { _resolvedContent: '<p>Body</p>' })];
 
         expect(renderTree(tree)).toBe(
-            '<div class="entry-content wp-block-post-content"><p>Body</p></div>'
+            '<div class="entry-content wp-block-post-content is-layout-flow wp-block-post-content-is-layout-flow">' +
+                '<p>Body</p></div>'
         );
     });
 
