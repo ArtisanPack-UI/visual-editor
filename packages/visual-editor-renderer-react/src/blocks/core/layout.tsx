@@ -11,6 +11,8 @@ import {
     attrString,
     classList,
     formatPercent,
+    layoutClass,
+    layoutPair,
 } from '../../support/attributes';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeUrl } from '../../support/urlSanitizer';
@@ -26,32 +28,46 @@ export function GroupBlock({ attributes, children }: BlockRendererProps): JSX.El
         ? (tagName as GroupTag)
         : 'div';
 
-    const layout = attrRecord(attributes.layout);
-    const layoutType = attrString(layout.type);
-    const layoutClass =
-        layoutType === 'constrained'
-            ? 'is-layout-constrained'
-            : layoutType === 'flex'
-            ? 'is-layout-flex'
-            : 'is-layout-flow';
-
     const className = attrString(attributes.className);
     const flexClasses = flexClassNames(attributes.artisanpackFlex);
-    const classes = classList(['wp-block-group', layoutClass, ...flexClasses, className]);
+    // #702 — the block-library CSS targets the per-block compound
+    // (`wp-block-group-is-layout-constrained`), so emit it alongside the
+    // shared modifier. `layoutClass()` also covers the `grid` type the
+    // old inline ternary silently rendered as flow.
+    const classes = classList([
+        'wp-block-group',
+        ...layoutPair('group', layoutClass(attributes)),
+        ...flexClasses,
+        className,
+    ]);
 
     return <Tag className={classes}>{children}</Tag>;
 }
 
 export function RowBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
-    const classes = classList(['wp-block-group', 'is-layout-flex', 'is-horizontal', className]);
+    // Renders `wp-block-group` markup, so the per-block layout compound
+    // is keyed on `group` rather than `row` (#702).
+    const classes = classList([
+        'wp-block-group',
+        ...layoutPair('group', 'is-layout-flex'),
+        'is-horizontal',
+        className,
+    ]);
 
     return <div className={classes}>{children}</div>;
 }
 
 export function StackBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
-    const classes = classList(['wp-block-group', 'is-layout-flex', 'is-vertical', className]);
+    // Renders `wp-block-group` markup, so the per-block layout compound
+    // is keyed on `group` rather than `stack` (#702).
+    const classes = classList([
+        'wp-block-group',
+        ...layoutPair('group', 'is-layout-flex'),
+        'is-vertical',
+        className,
+    ]);
 
     return <div className={classes}>{children}</div>;
 }
@@ -63,8 +79,12 @@ export function ColumnsBlock({ attributes, children }: BlockRendererProps): JSX.
     const verticalAlignment = attrString(attributes.verticalAlignment);
 
     const flexClasses = flexClassNames(attributes.artisanpackFlex);
+    // #702 — columns is a flex layout upstream and its wrapper carries
+    // both the shared modifier and the per-block compound. Neither was
+    // emitted here, so layout rules keyed on either never applied.
     const classes = classList([
         'wp-block-columns',
+        ...layoutPair('columns', 'is-layout-flex'),
         isStacked ? 'is-stacked-on-mobile' : null,
         verticalAlignment !== '' ? `are-vertically-aligned-${verticalAlignment}` : null,
         ...flexClasses,
@@ -119,7 +139,7 @@ export function ButtonsBlock({ attributes, children }: BlockRendererProps): JSX.
 
     const classes = classList([
         'wp-block-buttons',
-        'is-layout-flex',
+        ...layoutPair('buttons', 'is-layout-flex'),
         justify !== '' ? `is-content-justification-${justify}` : 'is-content-justification-left',
         className,
     ]);

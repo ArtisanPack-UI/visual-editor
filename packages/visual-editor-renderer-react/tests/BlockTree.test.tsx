@@ -332,20 +332,26 @@ describe('Core layout blocks', () => {
 
         const html = renderTree(tree);
 
-        expect(html).toContain('<div class="wp-block-group is-layout-flow">');
+        expect(html).toContain(
+            '<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow">'
+        );
         expect(html).toContain('<p class="wp-block-paragraph">Inner</p>');
     });
 
     it('renders a row with is-horizontal class', () => {
         const tree = [makeBlock('core/row', {}, [makeBlock('core/paragraph', { content: 'Row' }, [], 'r1')])];
 
-        expect(renderTree(tree)).toContain('<div class="wp-block-group is-layout-flex is-horizontal">');
+        expect(renderTree(tree)).toContain(
+            '<div class="wp-block-group is-layout-flex wp-block-group-is-layout-flex is-horizontal">'
+        );
     });
 
     it('renders a stack with is-vertical class', () => {
         const tree = [makeBlock('core/stack', {}, [makeBlock('core/paragraph', { content: 'Stacked' }, [], 's1')])];
 
-        expect(renderTree(tree)).toContain('<div class="wp-block-group is-layout-flex is-vertical">');
+        expect(renderTree(tree)).toContain(
+            '<div class="wp-block-group is-layout-flex wp-block-group-is-layout-flex is-vertical">'
+        );
     });
 
     it('renders columns with column widths', () => {
