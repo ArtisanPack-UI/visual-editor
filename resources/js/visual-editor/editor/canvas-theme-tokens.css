@@ -55,11 +55,24 @@
 
 /*
  * The iframe `<body>` carries the `editor-styles-wrapper` class. Pin its
- * surface to the canvas background token so the authoring surface stays
- * white regardless of the host admin theme — the parent-document rule
- * that used to do this (`.ap-visual-editor__canvas.editor-styles-wrapper`
- * in `editor-app.css`) no longer matches now that the styled surface
- * lives inside the iframe.
+ * surface to the canvas color tokens so the authoring surface is immune
+ * to the host admin theme — the parent-document rule that used to do
+ * this (`.ap-visual-editor__canvas.editor-styles-wrapper` in
+ * `editor-app.css`) no longer matches now that the styled surface lives
+ * inside the iframe.
+ *
+ * `--ap-editor-canvas-bg` / `--ap-editor-canvas-fg` are supplied from
+ * the resolved theme.json's `styles.color` by `canvas-color-tokens.ts`,
+ * appended to the canvas stylesheet list as a `:root` rule (#695). The
+ * hex fallbacks below stay in force when the theme declares no canvas
+ * colors, and a host rule on `body` / `.editor-styles-wrapper` still
+ * out-specifies that `:root` declaration.
+ *
+ * Note the compound `body.editor-styles-wrapper` selector (0,1,1) is
+ * deliberate — it has to beat the host admin theme. That means a theme
+ * sheet's bare `.editor-styles-wrapper` rule (0,1,0) cannot override it
+ * regardless of source order, which is exactly why the colors have to
+ * arrive through the variables rather than through the theme sheet.
  */
 body.editor-styles-wrapper {
     background-color: var(--ap-editor-canvas-bg, #ffffff);

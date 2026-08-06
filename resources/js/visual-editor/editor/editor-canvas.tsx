@@ -39,6 +39,7 @@ import { __ } from '@wordpress/i18n';
 import type { BlockInstance } from '@wordpress/blocks';
 import { useMemo } from 'react';
 
+import { canvasColorTokenStyle } from './canvas-color-tokens';
 import { canvasStyles } from './canvas-styles';
 import { ChromeBlocks } from './composed-view/ChromeBlocks';
 import { ComposedViewRibbon } from './composed-view/composed-view-ribbon';
@@ -46,6 +47,7 @@ import { PostTitle } from './post-title';
 import { ROOT_CANVAS_LAYOUT } from '../editor-settings';
 import { TEXT_DOMAIN } from '../vendor/i18n';
 import { useThemeGlobalStylesCss } from '../site-editor/use-theme-global-styles-css';
+import { useThemeGlobalStylesSettings } from '../site-editor/use-theme-global-styles-settings';
 
 /**
  * Applied-template chrome to render around the block list (#655). Already
@@ -137,13 +139,36 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
     // module-level so multiple consumers (site editor + post editor)
     // share one fetch when mounted in the same SPA session.
     const themeCss = useThemeGlobalStylesCss(apiBase);
-    const styles = useMemo(
-        () =>
-            themeCss === undefined || themeCss === ''
-                ? canvasStyles
-                : [...canvasStyles, { css: themeCss }],
-        [themeCss]
+
+    // #695 — the canvas surface is painted through package-owned custom
+    // properties (`--ap-editor-canvas-bg` / `-fg` in
+    // `canvas-theme-tokens.css`, `-heading-fg` in
+    // `DEFAULT_CANVAS_STYLES`) that nothing supplied, so a dark
+    // theme.json still rendered a light canvas. Derive them from the
+    // resolved theme and inject them as a `:root` rule. It lands
+    // *before* the compiled theme CSS so a theme's own `editor.css` can
+    // still override the variables directly, and stays at `:root` so a
+    // host rule on `body` / `.editor-styles-wrapper` keeps
+    // out-specifying it.
+    const themeBase = useThemeGlobalStylesSettings(apiBase);
+    const colorTokens = useMemo(
+        () => canvasColorTokenStyle(themeBase?.styles),
+        [themeBase]
     );
+
+    const styles = useMemo(() => {
+        if (colorTokens === null && (themeCss === undefined || themeCss === '')) {
+            return canvasStyles;
+        }
+
+        return [
+            ...canvasStyles,
+            ...(colorTokens === null ? [] : [colorTokens]),
+            ...(themeCss === undefined || themeCss === ''
+                ? []
+                : [{ css: themeCss }]),
+        ];
+    }, [themeCss, colorTokens]);
 
     // Chrome sits as siblings of the block list inside the iframe. The
     // previews mount isolated block-editor stores of their own, so the

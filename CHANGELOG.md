@@ -8,6 +8,24 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **Post-editor canvas now honours the theme's `theme.json` colors** (#695) —
+  the canvas body is painted through two package-owned custom properties
+  (`--ap-editor-canvas-bg` / `--ap-editor-canvas-fg`) that nothing ever
+  assigned, so both fell back to their light-mode defaults. Because the rule
+  that reads them is an element+class compound (`body.editor-styles-wrapper`,
+  specificity 0,1,1) it out-specifies a theme's bare `.editor-styles-wrapper`
+  rule regardless of source order, so no theme sheet could correct it: a dark
+  theme rendered a white canvas with dark body text. The canvas now derives
+  both properties from the resolved theme.json's `styles.color` and injects
+  them as a `:root` rule. The same defect applied one level down —
+  `DEFAULT_CANVAS_STYLES` hardcoded `#111827` for `h1`..`h6` at the same
+  specificity, which on a dark ground rendered headings near-invisible — so
+  the heading baseline now chains through a matching
+  `--ap-editor-canvas-heading-fg`, sourced from `styles.elements.heading` (or
+  `h1`..`h6` when every declared level agrees) and falling back to the canvas
+  foreground. Themes declaring no colors keep the previous light defaults, and
+  a host rule on `body` / `.editor-styles-wrapper` still overrides the theme.
+  The site-editor canvas is unaffected.
 - **Blade renderer front-end assets no longer 404 on a fresh install** (#699) —
   every stylesheet `<x-ve-blocks-styles />` links under
   `/vendor/visual-editor-renderer-blade/` returned Laravel's 404 page until the
