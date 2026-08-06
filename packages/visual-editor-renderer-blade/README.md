@@ -58,15 +58,22 @@ It emits:
    `var(--wp--preset--color--primary)` resolve against the active theme's
    palette.
 
-Publish the bundled CSS into your `public/` directory first:
+No install step is required. The package registers a route that serves the
+bundled CSS and `frontend/*` assets from
+`/vendor/visual-editor-renderer-blade/` — the prefix `<x-ve-blocks-styles />`
+points to by default — so package upgrades take effect immediately.
+
+If you would rather your web server serve the files statically, publish them
+into `public/`:
 
 ```sh
 php artisan vendor:publish --tag=visual-editor-renderer-blade-assets
 ```
 
-That drops `style.css` and `theme.css` at
-`public/vendor/visual-editor-renderer-blade/`, which `<x-ve-blocks-styles />`
-points to by default.
+That drops `style.css`, `theme.css`, and the `frontend/` assets at
+`public/vendor/visual-editor-renderer-blade/`. Those static files win over the
+package route at the same URLs, so re-run the command with `--force` after
+every package upgrade to pick up refreshed CSS.
 
 ### Props
 
