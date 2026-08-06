@@ -35,6 +35,9 @@
  *
  *   - a theme declaring no colors leaves every variable unset and keeps
  *     the existing `#ffffff` / `#1f2937` / `#111827` defaults;
+ *   - a theme declaring a background but no text color gets a legible
+ *     foreground synthesized for it, because emitting half the pair
+ *     would reintroduce the very failure this module removes;
  *   - a theme that styles headings without a color leaves the heading
  *     variable unset, so headings inherit the canvas foreground rather
  *     than the light default;
@@ -46,6 +49,11 @@
  */
 
 import type { CanvasStyle } from './canvas-styles';
+import {
+    a11yGetContrastColor,
+    getContrastRatio,
+    WCAG_AA_NORMAL_TEXT_RATIO,
+} from './wcag-contrast';
 
 /**
  * Shape a theme.json color value has to match to be interpolated into
@@ -69,6 +77,38 @@ import type { CanvasStyle } from './canvas-styles';
  * Note `*` is absent, so `/*` can never form.
  */
 const ALLOWED_VALUE = /^[#\w(),.%/\s-]+$/;
+
+/**
+ * WordPress preset shorthand, e.g. `var:preset|color|base`.
+ *
+ * theme.json may reference a preset in either of two ways: the CSS form
+ * (`var(--wp--preset--color--base)`) or this pipe-delimited shorthand,
+ * which the WordPress handbook actually *recommends* over the CSS form.
+ * `/global-styles/base` hands back the theme manifest verbatim, so
+ * whichever form the theme author wrote is what arrives here.
+ *
+ * The shorthand is not CSS and would be rejected by {@link ALLOWED_VALUE},
+ * silently costing a theme its canvas colors — so it is rewritten to the
+ * CSS form first. The mapping is the same one WordPress applies:
+ * `var:<kind>|<feature>|<slug>` → `var(--wp--<kind>--<feature>--<slug>)`,
+ * covering `custom` (`var:custom|…`) as well as `preset`.
+ */
+const PRESET_REFERENCE = /^var:([\w-]+)\|([\w-]+)\|([\w-]+)$/;
+
+/**
+ * Rewrite WordPress's `var:preset|…` shorthand into the CSS custom
+ * property it denotes. Values that aren't shorthand pass through
+ * unchanged.
+ */
+function normalizePresetReference(value: string): string {
+    const match = PRESET_REFERENCE.exec(value);
+
+    if (match === null) {
+        return value;
+    }
+
+    return `var(--wp--${match[1]}--${match[2]}--${match[3]})`;
+}
 
 /**
  * Whether every `(` in a value is closed, so an interpolated value
@@ -104,7 +144,7 @@ function readColorValue(color: Record<string, unknown>, key: string): string | n
         return null;
     }
 
-    const value = raw.trim();
+    const value = normalizePresetReference(raw.trim());
 
     if (value === '' || !ALLOWED_VALUE.test(value) || !hasBalancedParens(value)) {
         return null;
@@ -113,8 +153,52 @@ function readColorValue(color: Record<string, unknown>, key: string): string | n
     return value;
 }
 
+/**
+ * The `var()` fallback `canvas-theme-tokens.css` paints body text with
+ * when `--ap-editor-canvas-fg` is unset. Mirrored here so this module
+ * can tell whether leaving the variable unset would actually be legible
+ * against a theme-supplied background — keep the two in step.
+ */
+const DEFAULT_CANVAS_FG = '#1f2937';
+
 /** Heading element keys a theme.json may carry a color on. */
 const HEADING_KEYS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const;
+
+/**
+ * Pick a legible foreground for a theme that declares a canvas
+ * background but no text color.
+ *
+ * Emitting the background alone would leave body text on the light
+ * `#1f2937` default and headings on `#111827` — invisible against a
+ * dark ground, which is the exact failure this whole change exists to
+ * remove. So when the theme leaves the other half of the pair open,
+ * fill it: black or white, whichever WCAG says reads better.
+ *
+ * Deliberately narrow:
+ *
+ *   - returns `null` when the default is already legible, so the
+ *     variable stays unset and nothing is emitted needlessly;
+ *   - returns `null` for a background this can't measure (a `var()`
+ *     preset reference resolves only in the browser), rather than
+ *     guessing — a theme using presets has a resolved palette and in
+ *     practice declares `text` alongside `background`;
+ *   - never runs when the theme declared a text color. An explicit
+ *     low-contrast pairing is the theme's decision to make, and the
+ *     canvas should render what the front end renders.
+ */
+function deriveForegroundFor(background: string | null): string | null {
+    if (background === null) {
+        return null;
+    }
+
+    const ratio = getContrastRatio(DEFAULT_CANVAS_FG, background);
+
+    if (ratio === null || ratio >= WCAG_AA_NORMAL_TEXT_RATIO) {
+        return null;
+    }
+
+    return a11yGetContrastColor(background);
+}
 
 /**
  * Read `elements.<key>.color.text` out of a theme.json `styles` node.
@@ -206,7 +290,10 @@ export function buildCanvasColorTokenCss(
             : {};
 
     const background = readColorValue(color, 'background');
-    const text = readColorValue(color, 'text');
+    // A background with no text color would otherwise leave body text on
+    // the light default and headings darker still — unreadable on a dark
+    // ground. Fill the missing half rather than emit half a pair.
+    const text = readColorValue(color, 'text') ?? deriveForegroundFor(background);
     const heading = readHeadingColor(themeStyles);
 
     if (background === null && text === null && heading === null) {

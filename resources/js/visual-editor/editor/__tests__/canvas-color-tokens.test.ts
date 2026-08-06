@@ -62,12 +62,33 @@ describe('buildCanvasColorTokenCss', () => {
         expect(buildCanvasColorTokenCss({ color: ['#000'] })).toBeNull();
     });
 
-    it('emits only the half the theme declares', () => {
-        const bgOnly = buildCanvasColorTokenCss({
-            color: { background: '#111827' },
+    it('accepts WordPress preset shorthand as well as the CSS form', () => {
+        // theme.json may carry either; the handbook recommends the
+        // shorthand, and `/global-styles/base` returns the manifest
+        // verbatim, so both shapes reach this module.
+        const css = buildCanvasColorTokenCss({
+            color: {
+                background: 'var:preset|color|base',
+                text: 'var:custom|contrast|primary',
+            },
         });
 
-        expect(bgOnly).toContain('--ap-editor-canvas-bg: #111827;');
+        expect(css).toContain(
+            '--ap-editor-canvas-bg: var(--wp--preset--color--base);'
+        );
+        expect(css).toContain(
+            '--ap-editor-canvas-fg: var(--wp--custom--contrast--primary);'
+        );
+    });
+
+    it('emits only the half the theme declares', () => {
+        // A light background keeps the default foreground legible, so
+        // nothing is synthesized and the variable stays unset.
+        const bgOnly = buildCanvasColorTokenCss({
+            color: { background: '#fafafa' },
+        });
+
+        expect(bgOnly).toContain('--ap-editor-canvas-bg: #fafafa;');
         expect(bgOnly).not.toContain('--ap-editor-canvas-fg');
 
         const fgOnly = buildCanvasColorTokenCss({
@@ -76,6 +97,59 @@ describe('buildCanvasColorTokenCss', () => {
 
         expect(fgOnly).toContain('--ap-editor-canvas-fg: #ffffff;');
         expect(fgOnly).not.toContain('--ap-editor-canvas-bg');
+    });
+
+    /*
+     * A dark background with no paired text color would leave body text
+     * on the `#1f2937` default and headings on `#111827` — the exact
+     * invisible-on-dark failure this change exists to remove. The pair
+     * gets completed rather than half-emitted.
+     */
+    describe('unpaired background', () => {
+        it('synthesizes a legible foreground for a dark background', () => {
+            const css = buildCanvasColorTokenCss({
+                color: { background: '#111827' },
+            });
+
+            expect(css).toContain('--ap-editor-canvas-bg: #111827;');
+            expect(css).toContain('--ap-editor-canvas-fg: #ffffff;');
+        });
+
+        it('leaves headings to inherit the synthesized foreground', () => {
+            // No heading token means the baseline chains
+            // `heading-fg` → `fg`, so headings follow the same legible
+            // color rather than the light `#111827` default.
+            const css = buildCanvasColorTokenCss({
+                color: { background: '#111827' },
+            });
+
+            expect(css).not.toContain('--ap-editor-canvas-heading-fg');
+        });
+
+        it('never overrides a text color the theme declared', () => {
+            // An explicit low-contrast pairing is the theme's decision;
+            // the canvas should render what the front end renders.
+            const css = buildCanvasColorTokenCss({
+                color: { background: '#111827', text: '#1f2937' },
+            });
+
+            expect(css).toContain('--ap-editor-canvas-fg: #1f2937;');
+            expect(css).not.toContain('#ffffff');
+        });
+
+        it('does not guess for a background it cannot measure', () => {
+            // A `var()` reference resolves only in the browser. Themes
+            // using presets have a resolved palette and declare `text`
+            // alongside `background` in practice.
+            const css = buildCanvasColorTokenCss({
+                color: { background: 'var(--wp--preset--color--base)' },
+            });
+
+            expect(css).toContain(
+                '--ap-editor-canvas-bg: var(--wp--preset--color--base);'
+            );
+            expect(css).not.toContain('--ap-editor-canvas-fg');
+        });
     });
 
     it('admits the CSS color shapes a theme.json legitimately uses', () => {

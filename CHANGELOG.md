@@ -25,7 +25,11 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `h1`..`h6` when every declared level agrees) and falling back to the canvas
   foreground. Themes declaring no colors keep the previous light defaults, and
   a host rule on `body` / `.editor-styles-wrapper` still overrides the theme.
-  The site-editor canvas is unaffected.
+  A theme that declares a background without a paired text color gets a legible
+  foreground derived for it via the package's WCAG helpers rather than half a
+  pair, and WordPress's `var:preset|color|slug` shorthand is accepted alongside
+  the `var(--wp--preset--color--slug)` CSS form. The site-editor canvas is
+  unaffected.
 - **Blade renderer front-end assets no longer 404 on a fresh install** (#699) —
   every stylesheet `<x-ve-blocks-styles />` links under
   `/vendor/visual-editor-renderer-blade/` returned Laravel's 404 page until the
