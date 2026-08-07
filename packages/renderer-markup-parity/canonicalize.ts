@@ -33,19 +33,6 @@ const VOID_ELEMENTS = new Set([
 ]);
 
 /**
- * Strips the renderer-injected `<style data-ve-*>` blocks.
- *
- * This check covers block markup only. The layout baseline / global-styles
- * CSS is a known, documented divergence between Blade (which emits it from
- * `ThemeJsonTokensCompiler::compileLayoutRules()`, gated on theme.json
- * layout sizes) and the JS renderers (which ship `LAYOUT_BASELINE_CSS`), so
- * comparing it here would only encode that difference twice.
- */
-export function stripRendererStyleTags(html: string): string {
-    return html.replace(/<style\s+data-ve-[^>]*>[\s\S]*?<\/style>/g, '');
-}
-
-/**
  * Class-token regexes declared as known renderer divergences.
  */
 let dropClassPatterns: RegExp[] = [];
@@ -66,7 +53,7 @@ export function canonicalizeHtml(
 
     const root = document.createElement('div');
 
-    root.innerHTML = stripRendererStyleTags(html);
+    root.innerHTML = html;
 
     const lines: string[] = [];
 

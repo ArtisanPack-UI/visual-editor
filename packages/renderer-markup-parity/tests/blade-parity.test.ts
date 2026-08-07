@@ -66,9 +66,26 @@ function readGolden(name: string): string {
         .replace(/\n+$/, '');
 }
 
+/**
+ * Strips the renderer-injected `<style data-ve-*>` blocks.
+ *
+ * This check covers block markup only. The layout baseline / global-styles
+ * CSS is a known, documented divergence between Blade (which emits it from
+ * `ThemeJsonTokensCompiler::compileLayoutRules()`, gated on theme.json
+ * layout sizes) and the JS renderers (which ship `LAYOUT_BASELINE_CSS`), so
+ * comparing it here would only encode that difference twice.
+ *
+ * Mirrors `stripRendererStyleTags()` in the Pest suite.
+ */
+function stripRendererStyleTags(html: string): string {
+    return html.replace(/<style\s+data-ve-[^>]*>[\s\S]*?<\/style>/g, '');
+}
+
 function renderReact(tree: Block[]): string {
     return canonicalizeHtml(
-        renderToStaticMarkup(createElement(ReactBlockTree, { tree })),
+        stripRendererStyleTags(
+            renderToStaticMarkup(createElement(ReactBlockTree, { tree }))
+        ),
         DROP_CLASS_PATTERNS
     );
 }
@@ -78,7 +95,10 @@ async function renderVue(tree: Block[]): Promise<string> {
         render: () => vueH(VueBlockTree, { tree }),
     });
 
-    return canonicalizeHtml(await vueRenderToString(app), DROP_CLASS_PATTERNS);
+    return canonicalizeHtml(
+        stripRendererStyleTags(await vueRenderToString(app)),
+        DROP_CLASS_PATTERNS
+    );
 }
 
 describe('Blade/React/Vue markup parity', () => {
