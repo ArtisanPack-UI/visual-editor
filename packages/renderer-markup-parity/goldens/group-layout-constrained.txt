@@ -1,0 +1,5 @@
+<div class="wp-block-group is-layout-constrained wp-block-group-is-layout-constrained">
+  <p class="wp-block-paragraph">
+    "Constrained"
+  </p>
+</div>
