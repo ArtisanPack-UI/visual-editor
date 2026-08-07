@@ -88,7 +88,7 @@ class DynamicLoopBlock extends DynamicBlock implements WantsInnerBlocks
 			return '<div class="ve-dynamic-loop-empty" role="note">No records to display.</div>';
 		}
 
-		$rendererClass = '\\ArtisanPackUI\\VisualEditorRendererBlade\\BlockRenderer';
+		$rendererClass = 'ArtisanPackUI\\VisualEditorRendererBlade\\BlockRenderer';
 
 		if ( ! class_exists( $rendererClass ) ) {
 			return '';

@@ -309,7 +309,7 @@ class VisibilityEvaluator
 	 */
 	protected function resolveRoles( object $user ): array
 	{
-		$manager = '\\ArtisanPackUI\\CMSFramework\\Modules\\Users\\Managers\\RoleManager';
+		$manager = 'ArtisanPackUI\\CMSFramework\\Modules\\Users\\Managers\\RoleManager';
 
 		if ( class_exists( $manager ) ) {
 			try {

@@ -72,8 +72,8 @@ class MenuLocationsController extends Controller
 			return response()->json( [ 'data' => [] ] );
 		}
 
-		$themeManagerClass    = '\\ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
-		$assignmentClass      = '\\ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\MenuLocationAssignment';
+		$themeManagerClass    = 'ArtisanPackUI\\CMSFramework\\Modules\\Themes\\Managers\\ThemeManager';
+		$assignmentClass      = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Models\\MenuLocationAssignment';
 		$themeManager         = app( $themeManagerClass );
 		$activeTheme          = $themeManager->getActiveTheme();
 		$activeSlug           = is_array( $activeTheme ) && ! empty( $activeTheme['slug'] ) ? (string) $activeTheme['slug'] : null;
