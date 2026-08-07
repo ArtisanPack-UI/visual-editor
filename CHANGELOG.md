@@ -6,6 +6,26 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **Blade-vs-JS markup parity check** (#704) — nothing guarded against the three
+  renderers drifting on markup: `scripts/verify-renderer-parity.mjs` compares
+  block *names* only, and `parity.test.ts` compares React against Vue with Blade
+  left out of both. That is why the Blade-only #700 fix could land green while
+  making Blade disagree with the JS renderers, undetected until #702. A shared
+  fixture set (`packages/renderer-markup-parity/fixtures.json`) is now rendered
+  through all three renderers: the Pest suite writes canonicalized golden files
+  from `<x-ve-blocks>`, and the vitest suite asserts the React and Vue SSR output
+  matches them, so drift in any renderer fails CI at the point it is introduced.
+  Fixtures cover every layout-supporting wrapper — `group` (flow / constrained /
+  flex / grid), `row`, `stack`, `columns`, `buttons`, `post-content` with and
+  without a stored layout, and `post-template` (list / grid / masonry).
+  Canonicalization is narrow and documented: whitespace, attribute order and CSS
+  declaration separators are normalized; element names, class tokens and
+  attribute values are not. Known divergences are declared explicitly in the
+  fixture manifest with a tracking issue rather than papered over with loose
+  matching.
+
 ### Fixed
 
 - **`core/html` blocks now render their saved markup** (#690) — the block

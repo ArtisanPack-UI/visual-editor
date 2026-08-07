@@ -1,0 +1,6 @@
+<p class="wp-block-paragraph">
+  "Hello "
+  <strong>
+    "world"
+  </strong>
+</p>

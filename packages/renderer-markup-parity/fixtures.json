@@ -1,0 +1,289 @@
+{
+    "$comment": "Shared, language-neutral block trees for the Blade-vs-JS markup parity check (#704). Consumed by both packages/visual-editor-renderer-blade/tests/Feature/RendererMarkupParityTest.php (PHP) and packages/renderer-markup-parity/tests/blade-parity.test.ts (JS). Adding a fixture here automatically exercises it against all three renderers. See README.md for the golden-file workflow.",
+    "knownDivergences": [
+        {
+            "id": "blade-responsive-column-width-scope",
+            "issue": "#712",
+            "reason": "Tracked in #712, introduced by #487. core/column's Blade partial mints a hashed `ve-w-<hash>` scope class and pushes matching `flex-basis`/`flex-grow` `!important` rules into the per-request responsive accumulator, so an explicit column width survives WP core's mobile stacking rule. The React and Vue renderers emit the inline `flex-basis` only and have no equivalent. Dropping the token keeps the rest of the column markup under comparison rather than dropping the width fixture entirely.",
+            "dropClassTokensMatching": "^ve-w-[0-9a-f]{4,}$"
+        }
+    ],
+    "fixtures": [
+        {
+            "name": "paragraph",
+            "tree": [
+                {
+                    "clientId": "p1",
+                    "name": "core/paragraph",
+                    "attributes": { "content": "Hello <strong>world</strong>" },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "group-layout-flow",
+            "tree": [
+                {
+                    "clientId": "g-flow",
+                    "name": "core/group",
+                    "attributes": { "layout": { "type": "flow" } },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-flow-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Flow" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-unset",
+            "tree": [
+                {
+                    "clientId": "g-unset",
+                    "name": "core/group",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-unset-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Default" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-constrained",
+            "tree": [
+                {
+                    "clientId": "g-constrained",
+                    "name": "core/group",
+                    "attributes": { "layout": { "type": "constrained" } },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-constrained-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Constrained" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-flex",
+            "tree": [
+                {
+                    "clientId": "g-flex",
+                    "name": "core/group",
+                    "attributes": { "layout": { "type": "flex" } },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-flex-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Flex" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-grid",
+            "tree": [
+                {
+                    "clientId": "g-grid",
+                    "name": "core/group",
+                    "attributes": { "layout": { "type": "grid" } },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-grid-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Grid" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "row",
+            "tree": [
+                {
+                    "clientId": "r1",
+                    "name": "core/row",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "r1-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Row" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "stack",
+            "tree": [
+                {
+                    "clientId": "s1",
+                    "name": "core/stack",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "s1-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Stacked" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "columns",
+            "tree": [
+                {
+                    "clientId": "cols-1",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "col-1",
+                            "name": "core/column",
+                            "attributes": { "width": 60 },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "col-1-p",
+                                    "name": "core/paragraph",
+                                    "attributes": { "content": "Left" },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "col-2",
+                            "name": "core/column",
+                            "attributes": {},
+                            "innerBlocks": [
+                                {
+                                    "clientId": "col-2-p",
+                                    "name": "core/paragraph",
+                                    "attributes": { "content": "Right" },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "buttons",
+            "tree": [
+                {
+                    "clientId": "btns-1",
+                    "name": "core/buttons",
+                    "attributes": { "layout": { "justifyContent": "center" } },
+                    "innerBlocks": [
+                        {
+                            "clientId": "b1",
+                            "name": "core/button",
+                            "attributes": {
+                                "text": "Go",
+                                "url": "https://example.com",
+                                "linkTarget": "_blank"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "post-content-no-layout",
+            "tree": [
+                {
+                    "clientId": "pc-1",
+                    "name": "core/post-content",
+                    "attributes": { "_resolvedContent": "<p>Body</p>" },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "post-content-constrained",
+            "tree": [
+                {
+                    "clientId": "pc-2",
+                    "name": "core/post-content",
+                    "attributes": {
+                        "_resolvedContent": "<p>Body</p>",
+                        "layout": { "type": "constrained" }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "post-template-list",
+            "tree": [
+                {
+                    "clientId": "pt-list",
+                    "name": "core/post-template",
+                    "attributes": { "layout": "list", "columns": 3 },
+                    "innerBlocks": [
+                        {
+                            "clientId": "pt-list-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Item" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "post-template-grid",
+            "tree": [
+                {
+                    "clientId": "pt-grid",
+                    "name": "core/post-template",
+                    "attributes": { "layout": "grid", "columns": 3 },
+                    "innerBlocks": [
+                        {
+                            "clientId": "pt-grid-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Item" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "post-template-masonry",
+            "tree": [
+                {
+                    "clientId": "pt-masonry",
+                    "name": "core/post-template",
+                    "attributes": { "layout": "masonry", "columns": 3 },
+                    "innerBlocks": [
+                        {
+                            "clientId": "pt-masonry-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Item" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}
