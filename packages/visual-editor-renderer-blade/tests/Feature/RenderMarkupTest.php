@@ -53,6 +53,46 @@ it( 'renders core-namespaced theme markup', function () {
 	expect( $html )->toContain( 'HELLO' );
 } )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
+it( 'renders the saved markup of a core/html block verbatim', function () {
+	// #690 — `core/html` keeps everything in its saved HTML and declares
+	// no wrapper supports, so the manifest's `raw` source has to recover
+	// `content` and the partial has to emit it untouched.
+	$html = app( BlockRenderer::class )->renderMarkup(
+		'<!-- wp:html --><div class="x">Raw HTML</div><!-- /wp:html -->'
+	);
+
+	expect( $html )->toContain( '<div class="x">Raw HTML</div>' );
+	expect( $html )->not->toContain( 'data-ve-unknown-block' );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
+
+it( 'renders an artisanpack/html block the same way as its core alias', function () {
+	$html = app( BlockRenderer::class )->renderMarkup(
+		'<!-- wp:artisanpack/html --><p><em>Markup</em> kept as written.</p><!-- /wp:artisanpack/html -->'
+	);
+
+	expect( $html )->toContain( '<p><em>Markup</em> kept as written.</p>' );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
+
+it( 'renders a core/html block from an editor-shape tree', function () {
+	$html = app( BlockRenderer::class )->render( [
+		[
+			'name'        => 'core/html',
+			'attributes'  => [ 'content' => '<span data-x="1">Inline</span>' ],
+			'innerBlocks' => [],
+		],
+	] );
+
+	expect( $html )->toContain( '<span data-x="1">Inline</span>' );
+} );
+
+it( 'renders nothing for a core/html block with no saved content', function () {
+	$html = app( BlockRenderer::class )->render( [
+		[ 'name' => 'core/html', 'attributes' => [], 'innerBlocks' => [] ],
+	] );
+
+	expect( trim( $html ) )->toBe( '' );
+} );
+
 it( 'returns an empty string for blank markup', function () {
 	expect( app( BlockRenderer::class )->renderMarkup( '' ) )->toBe( '' );
 	expect( app( BlockRenderer::class )->renderMarkup( "  \n " ) )->toBe( '' );

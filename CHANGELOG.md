@@ -8,6 +8,21 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Fixed
 
+- **`core/html` blocks now render their saved markup** (#690) — the block
+  shipped neither a `block.json` manifest nor a Blade partial, so a
+  `<!-- wp:html -->` block in a theme template or `post_content` fell through
+  to the unknown-block fallback and emitted an empty
+  `data-ve-unknown-block` wrapper with its content dropped. An
+  `artisanpack/html` manifest now declares `content` with `source: "raw"` —
+  activating the matcher `BlockAttributeSourceResolver` already implemented
+  but no bundled manifest used — and the paired `core/html` /
+  `artisanpack/html` partials emit the recovered markup verbatim, with no
+  wrapper element, matching Gutenberg's `<RawHTML>` save. The markup is
+  deliberately not run through `kses()`: the partial sits inside the trust
+  boundary documented on `BlockMarkupHydrator`, and sanitizing here would
+  mangle the `<script>` / `<iframe>` / `<svg>` payloads the block exists to
+  carry. Registration is server-side only — the editor bundle does not yet
+  register a client-side HTML block.
 - **Post-editor canvas now honours the theme's `theme.json` colors** (#695) —
   the canvas body is painted through two package-owned custom properties
   (`--ap-editor-canvas-bg` / `--ap-editor-canvas-fg`) that nothing ever

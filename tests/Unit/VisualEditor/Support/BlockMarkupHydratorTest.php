@@ -178,13 +178,37 @@ it( 'passes unregistered blocks through with their delimiter attributes intact',
 } )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
 
 it( 'keeps the saved HTML of a block whose content lives only in innerHTML', function () {
-	// `core/html` is the canonical case: no sourced attributes, all of
-	// its content in the saved markup. Dropping innerHTML would lose it
-	// outright.
+	// `core/html` is the canonical case: nothing in the delimiter, all
+	// of its content in the saved markup. Dropping innerHTML would lose
+	// it outright for any caller that reserializes the tree — the
+	// renderer reads the `raw`-sourced `content` attribute instead (see
+	// the next test).
 	$block = $this->hydrator->hydrate( '<!-- wp:html --><div class="x">Raw HTML</div><!-- /wp:html -->' )[0];
 
 	expect( $block['innerHTML'] )->toContain( 'Raw HTML' );
 } )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
+
+it( 'recovers core/html content through the raw source', function () {
+	// #690 — `artisanpack/html` is the only bundled manifest that uses
+	// `source: "raw"`, and the core-namespaced alias has to reach it.
+	$block = $this->hydrator->hydrate( '<!-- wp:html --><div class="x">Raw HTML</div><!-- /wp:html -->' )[0];
+
+	expect( $block['name'] )->toBe( 'core/html' );
+	expect( $block['attributes']['content'] )->toContain( '<div class="x">Raw HTML</div>' );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
+
+it( 'lets a delimiter-persisted content attribute win over the raw recovery', function () {
+	$tree = $this->hydrator->hydrateTree( [
+		[
+			'blockName'   => 'artisanpack/html',
+			'attrs'       => [ 'content' => '<p>from the delimiter</p>' ],
+			'innerBlocks' => [],
+			'innerHTML'   => '<p>stale saved markup</p>',
+		],
+	] );
+
+	expect( $tree[0]['attributes']['content'] )->toBe( '<p>from the delimiter</p>' );
+} );
 
 it( 'omits innerHTML for a self-closing block that saved none', function () {
 	$block = $this->hydrator->hydrate( '<!-- wp:artisanpack/spacer {"height":"40px"} /-->' )[0];

@@ -122,6 +122,13 @@ audit ship with a partial, plus the nested sub-blocks (`core/column`,
 - Media: image, gallery, video, audio, file, embed
 - Design: cover, media-text, table, separator, spacer, details, search
 - Layout: columns, column, group, row, stack, buttons, button
+- Widgets: html
+
+`core/html` emits its saved markup verbatim — no wrapper element and no
+sanitization, matching Gutenberg's `<RawHTML>` save. Like every other
+partial's `{!! !!}` output it assumes the block markup is already trusted;
+see the trust-boundary note on `BlockMarkupHydrator` if you render markup
+from an untrusted source.
 
 `core/latest-posts` is intentionally not shipped as a static partial because
 it requires a server query — register it as a `DynamicBlock` in the main
