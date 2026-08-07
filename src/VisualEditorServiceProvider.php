@@ -878,6 +878,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$referenceBlocks = [
 			'callout',
 			'icon',
+			// #691 — `marquee` declares a sourced attribute
+			// (`marqueeContent`, `source: html`), so it has to be in the
+			// server-side registry for BlockMarkupHydrator to recover the
+			// text out of saved markup. Without it the Blade partial
+			// renders an empty marquee. See the guard test in
+			// tests/Unit/VisualEditor/SourcedBlocksAreRegisteredTest.php.
+			'marquee',
 		];
 
 		foreach ( $referenceBlocks as $block ) {

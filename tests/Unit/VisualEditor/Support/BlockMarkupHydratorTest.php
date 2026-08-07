@@ -274,6 +274,17 @@ it( 'truncates a pathologically deep tree instead of exhausting the stack', func
 	expect( $depth )->toBeLessThan( BlockMarkupHydrator::MAX_DEPTH );
 } );
 
+it( 'recovers marquee content from saved markup', function () {
+	$markup = '<!-- wp:artisanpack/marquee -->'
+		. '<div class="wp-block-marquee"><p>Scrolling text</p></div>'
+		. '<!-- /wp:artisanpack/marquee -->';
+
+	$block = $this->hydrator->hydrate( $markup )[0];
+
+	expect( $block['name'] )->toBe( 'artisanpack/marquee' )
+		->and( $block['attributes']['marqueeContent'] )->toBe( 'Scrolling text' );
+} )->skip( fn () => ! BlockMarkupHydrator::canParseMarkup(), 'requires cms-framework 2.5+ (PHP 8.3+) for BlockMarkupParser' );
+
 it( 'recovers nothing when the block type declares no sourced attributes', function () {
 	app( BlockTypeRegistry::class )->register( 'acme/plain', [
 		'attributes' => [ 'label' => [ 'type' => 'string' ] ],
