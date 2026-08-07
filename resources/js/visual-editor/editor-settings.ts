@@ -130,7 +130,16 @@ export const DEFAULT_CANVAS_STYLES = `
     font-weight: 700;
     line-height: 1.2;
     margin: 1.4em 0 0.6em;
-    color: #111827;
+    /*
+     * #695 — this baseline (0,1,1) out-specifies a theme's bare
+     * \`h1\`..\`h6\` rules, so a hardcoded hex here pins headings to a
+     * light-mode color no dark theme can shift: on a dark canvas they
+     * render near-invisible against the ground. Chain through the
+     * canvas tokens instead — the theme's heading color when it
+     * declares one, otherwise the canvas foreground, otherwise the
+     * original light default. See \`editor/canvas-color-tokens.ts\`.
+     */
+    color: var(--ap-editor-canvas-heading-fg, var(--ap-editor-canvas-fg, #111827));
 }
 
 .editor-styles-wrapper h1 { font-size: 2.5rem; }

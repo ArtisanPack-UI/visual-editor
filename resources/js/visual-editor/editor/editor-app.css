@@ -107,9 +107,10 @@
  * The canvas *surface* background is now painted inside the iframe via
  * `canvas-theme-tokens.css` — the parent-document rule that used to do
  * it (`.ap-visual-editor__canvas.editor-styles-wrapper`) can't reach
- * the iframe document. Hosts still override `--ap-editor-canvas-bg` /
- * `--ap-editor-canvas-fg`; once the theme.json reader lands it'll
- * supply these from `settings.color.background`.
+ * the iframe document. Those tokens (`--ap-editor-canvas-bg` /
+ * `--ap-editor-canvas-fg`) are supplied from the resolved theme.json's
+ * `styles.color` by `canvas-color-tokens.ts` (#695); hosts still
+ * override them with a rule on `body` / `.editor-styles-wrapper`.
  */
 .ap-visual-editor__canvas-frame {
     flex: 1 1 auto;
