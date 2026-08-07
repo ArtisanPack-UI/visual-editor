@@ -576,7 +576,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 */
 	protected function registerQueryResolverBinding(): void
 	{
-		$cmsRuntime = '\\ArtisanPackUI\\CMSFramework\\Modules\\Blog\\Services\\QueryRuntime';
+		$cmsRuntime = 'ArtisanPackUI\\CMSFramework\\Modules\\Blog\\Services\\QueryRuntime';
 
 		if ( ! class_exists( $cmsRuntime ) ) {
 			return;
