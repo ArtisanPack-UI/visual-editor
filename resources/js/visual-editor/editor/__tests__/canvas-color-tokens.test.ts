@@ -150,6 +150,60 @@ describe('buildCanvasColorTokenCss', () => {
             );
             expect(css).not.toContain('--ap-editor-canvas-fg');
         });
+
+        /*
+         * The contrast helpers are hex-only, but every one of these
+         * syntaxes passes `ALLOWED_VALUE` and gets emitted. Without
+         * normalisation the derivation silently no-ops and the canvas
+         * keeps its `#1f2937` default on a near-black ground — #695
+         * all over again, just reached via a different value syntax.
+         */
+        it.each([
+            ['rgb()', 'rgb(17 24 39)'],
+            ['legacy rgb()', 'rgb(17, 24, 39)'],
+            ['opaque rgba()', 'rgba(17, 24, 39, 1)'],
+            ['hsl()', 'hsl(220 39% 11%)'],
+            ['a named color', 'black'],
+            ['opaque 8-digit hex', '#111827ff'],
+        ])('derives a foreground for a dark background in %s', (_label, value) => {
+            const css = buildCanvasColorTokenCss({ color: { background: value } });
+
+            expect(css).toContain(`--ap-editor-canvas-bg: ${value};`);
+            expect(css).toContain('--ap-editor-canvas-fg: #ffffff;');
+        });
+
+        it('leaves a light non-hex background on the legible default', () => {
+            // Derivation is not blanket normalisation — it only fires
+            // when the default would actually be unreadable.
+            const css = buildCanvasColorTokenCss({
+                color: { background: 'rgb(250 250 250)' },
+            });
+
+            expect(css).toContain('--ap-editor-canvas-bg: rgb(250 250 250);');
+            expect(css).not.toContain('--ap-editor-canvas-fg');
+        });
+
+        it('emits the background verbatim rather than the normalised hex', () => {
+            // Normalisation exists to measure contrast; the theme's own
+            // syntax is what reaches the stylesheet.
+            const css = buildCanvasColorTokenCss({
+                color: { background: 'hsl(220 39% 11%)' },
+            });
+
+            expect(css).toContain('--ap-editor-canvas-bg: hsl(220 39% 11%);');
+            expect(css).not.toContain('#111827;');
+        });
+
+        it('does not guess for a translucent background', () => {
+            // What a translucent color renders as depends on whatever is
+            // painted behind it, so there is nothing to measure.
+            const css = buildCanvasColorTokenCss({
+                color: { background: 'rgba(17, 24, 39, 0.5)' },
+            });
+
+            expect(css).toContain('--ap-editor-canvas-bg: rgba(17, 24, 39, 0.5);');
+            expect(css).not.toContain('--ap-editor-canvas-fg');
+        });
     });
 
     it('admits the CSS color shapes a theme.json legitimately uses', () => {

@@ -28,8 +28,15 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   A theme that declares a background without a paired text color gets a legible
   foreground derived for it via the package's WCAG helpers rather than half a
   pair, and WordPress's `var:preset|color|slug` shorthand is accepted alongside
-  the `var(--wp--preset--color--slug)` CSS form. The site-editor canvas is
-  unaffected.
+  the `var(--wp--preset--color--slug)` CSS form. That derivation covers every
+  opaque CSS color syntax a `theme.json` may carry — `rgb()`, `hsl()`, named
+  colors, and alpha-bearing hex — not just the plain hex the WCAG helpers parse
+  natively, so an unpaired dark background written as `rgb(17 24 39)` or `black`
+  is no longer emitted with an unreadable foreground left on the default. Values
+  with no fixed opaque color (`var()` references, translucent colors) are left
+  alone rather than guessed at, and the theme's own syntax is what reaches the
+  stylesheet — normalisation is used only to measure contrast. The site-editor
+  canvas is unaffected.
 - **Blade renderer front-end assets no longer 404 on a fresh install** (#699) —
   every stylesheet `<x-ve-blocks-styles />` links under
   `/vendor/visual-editor-renderer-blade/` returned Laravel's 404 page until the

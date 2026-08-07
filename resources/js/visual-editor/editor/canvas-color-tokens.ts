@@ -49,6 +49,7 @@
  */
 
 import type { CanvasStyle } from './canvas-styles';
+import { toMeasurableHex } from './css-color-parse';
 import {
     a11yGetContrastColor,
     getContrastRatio,
@@ -178,26 +179,40 @@ const HEADING_KEYS = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'] as const;
  *
  *   - returns `null` when the default is already legible, so the
  *     variable stays unset and nothing is emitted needlessly;
- *   - returns `null` for a background this can't measure (a `var()`
- *     preset reference resolves only in the browser), rather than
- *     guessing — a theme using presets has a resolved palette and in
- *     practice declares `text` alongside `background`;
+ *   - returns `null` for a background with no fixed opaque color — a
+ *     `var()` preset reference resolves only in the browser, and a
+ *     translucent color depends on whatever is painted behind it —
+ *     rather than guessing. A theme using presets has a resolved
+ *     palette and in practice declares `text` alongside `background`;
  *   - never runs when the theme declared a text color. An explicit
  *     low-contrast pairing is the theme's decision to make, and the
  *     canvas should render what the front end renders.
+ *
+ * The background is normalised through {@link toMeasurableHex} first.
+ * The WCAG helpers are hex-only (they mirror the PHP package one-for-one),
+ * but {@link ALLOWED_VALUE} admits every CSS color syntax — so measuring
+ * the raw value would silently skip derivation for `rgb(17 24 39)`,
+ * `hsl(220 39% 11%)`, `black`, and `#111827ff` alike, reinstating the
+ * unreadable-canvas bug for any theme that didn't happen to write hex.
  */
 function deriveForegroundFor(background: string | null): string | null {
     if (background === null) {
         return null;
     }
 
-    const ratio = getContrastRatio(DEFAULT_CANVAS_FG, background);
+    const measurable = toMeasurableHex(background);
+
+    if (measurable === null) {
+        return null;
+    }
+
+    const ratio = getContrastRatio(DEFAULT_CANVAS_FG, measurable);
 
     if (ratio === null || ratio >= WCAG_AA_NORMAL_TEXT_RATIO) {
         return null;
     }
 
-    return a11yGetContrastColor(background);
+    return a11yGetContrastColor(measurable);
 }
 
 /**
