@@ -17,11 +17,19 @@
  * cascade order so emitter rules declare `--wp--preset--*` tokens
  * and the hand-authored sheet consumes / overrides them.
  *
+ * The emitter's `:root` selectors are rewritten to the canvas scope
+ * selector before injection ({@see scopeGlobalStylesCss}) — inline
+ * mounting makes `:root` the host document's `<html>`, so the theme's
+ * root spacing would otherwise push the whole editor shell in (#679).
+ *
  * Renders nothing when no `apiBase` is wired, when the fetch is
  * still in flight, or when the response was empty — the canvas
  * stays on `DEFAULT_CANVAS_STYLES` as the floor.
  */
 
+import { useMemo } from 'react';
+
+import { scopeGlobalStylesCss } from './scope-global-styles-css';
 import { useThemeGlobalStylesCss } from './use-theme-global-styles-css';
 
 export interface CanvasThemeStylesProps {
@@ -35,10 +43,14 @@ export interface CanvasThemeStylesProps {
 
 export function CanvasThemeStyles(props: CanvasThemeStylesProps): JSX.Element | null {
     const css = useThemeGlobalStylesCss(props.apiBase);
+    const scopedCss = useMemo(
+        () => (css === undefined ? undefined : scopeGlobalStylesCss(css)),
+        [css]
+    );
 
-    if (css === undefined || css === '') {
+    if (scopedCss === undefined || scopedCss === '') {
         return null;
     }
 
-    return <style data-testid="ap-canvas-theme-styles">{css}</style>;
+    return <style data-testid="ap-canvas-theme-styles">{scopedCss}</style>;
 }
