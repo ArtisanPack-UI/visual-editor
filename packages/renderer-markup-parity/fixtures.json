@@ -1,0 +1,479 @@
+{
+    "$comment": "Shared, language-neutral block trees for the Blade-vs-JS markup parity check (#704). Consumed by both packages/visual-editor-renderer-blade/tests/Feature/RendererMarkupParityTest.php (PHP) and packages/renderer-markup-parity/tests/blade-parity.test.ts (JS). Adding a fixture here automatically exercises it against all three renderers. See README.md for the golden-file workflow.",
+    "knownDivergences": [
+        {
+            "id": "blade-responsive-column-width-scope",
+            "issue": "#712",
+            "reason": "Tracked in #712, introduced by #487. core/column's Blade partial mints a hashed `ve-w-<hash>` scope class and pushes matching `flex-basis`/`flex-grow` `!important` rules into the per-request responsive accumulator, so an explicit column width survives WP core's mobile stacking rule. The React and Vue renderers emit the inline `flex-basis` only and have no equivalent. Dropping the token keeps the rest of the column markup under comparison rather than dropping the width fixture entirely.",
+            "dropClassTokensMatching": "^ve-w-[0-9a-f]{4,}$"
+        },
+        {
+            "id": "blade-only-photo-grid-wrapper",
+            "issue": "#714",
+            "reason": "Tracked in #714, introduced by #594. The Photo Grid block support exists in the Blade renderer only: PhotoGridSupport::wrapperForBlock() splices `has-photo-grid` plus a hashed `photo-grid-<12-char-sha1>` scope class into the wrappers emitted by core/group, core/columns and artisanpack/grid, and pushes the matching custom-property declarations into the per-request accumulator. No photo-grid symbol exists in either JS renderer. Dropping the tokens keeps the rest of those wrappers under comparison rather than leaving the whole feature unfixtured.",
+            "dropClassTokensMatching": "^(has-photo-grid|photo-grid-[0-9a-f]{4,})$"
+        }
+    ],
+    "fixtures": [
+        {
+            "name": "paragraph",
+            "tree": [
+                {
+                    "clientId": "p1",
+                    "name": "core/paragraph",
+                    "attributes": { "content": "Hello <strong>world</strong>" },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "group-layout-flow",
+            "tree": [
+                {
+                    "clientId": "g-flow",
+                    "name": "core/group",
+                    "attributes": { "layout": { "type": "flow" } },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-flow-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Flow" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-unset",
+            "tree": [
+                {
+                    "clientId": "g-unset",
+                    "name": "core/group",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-unset-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Default" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "#711 — a group with the Flex Layout panel enabled at the base breakpoint and no stored `layout`. All three renderers must flip the layout class to `is-layout-flex` so the `is-layout-flow > * + * { margin-block-start: gap }` baseline rule stops pushing flex children apart.",
+            "name": "group-flex-panel",
+            "tree": [
+                {
+                    "clientId": "g-flex-panel",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackFlex": {
+                            "container": { "enabled": { "base": true } }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-flex-panel-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Flex panel" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "#711 — the same panel active only from `md` up. `md:ap-flex` means 'flex starts at md', so the base-breakpoint layout class must stay `is-layout-flow` in every renderer.",
+            "name": "group-flex-panel-breakpoint-only",
+            "tree": [
+                {
+                    "clientId": "g-flex-md",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackFlex": {
+                            "container": { "enabled": { "md": true } }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-flex-md-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Flex at md" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "#711 — an explicit `layout.type` wins over the flex panel, matching group.blade.php's `'' === $layoutType` guard.",
+            "name": "group-flex-panel-explicit-layout",
+            "tree": [
+                {
+                    "clientId": "g-flex-explicit",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": { "type": "constrained" },
+                        "artisanpackFlex": {
+                            "container": { "enabled": { "base": true } }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-flex-explicit-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Constrained plus flex" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "#714 — Photo Grid is a Blade-only wrapper. Its class tokens are dropped by the `blade-only-photo-grid-wrapper` divergence; the rest of the group markup stays compared.",
+            "name": "group-photo-grid",
+            "tree": [
+                {
+                    "clientId": "g-photo-grid",
+                    "name": "core/group",
+                    "attributes": {
+                        "photoGrid": {
+                            "enabled": true,
+                            "aspectRatio": "16/9",
+                            "objectFit": "cover",
+                            "objectPosition": "50% 50%"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-photo-grid-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Photo grid" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-constrained",
+            "tree": [
+                {
+                    "clientId": "g-constrained",
+                    "name": "core/group",
+                    "attributes": { "layout": { "type": "constrained" } },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-constrained-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Constrained" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-flex",
+            "tree": [
+                {
+                    "clientId": "g-flex",
+                    "name": "core/group",
+                    "attributes": { "layout": { "type": "flex" } },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-flex-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Flex" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-grid",
+            "tree": [
+                {
+                    "clientId": "g-grid",
+                    "name": "core/group",
+                    "attributes": { "layout": { "type": "grid" } },
+                    "innerBlocks": [
+                        {
+                            "clientId": "g-grid-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Grid" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "row",
+            "tree": [
+                {
+                    "clientId": "r1",
+                    "name": "core/row",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "r1-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Row" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "stack",
+            "tree": [
+                {
+                    "clientId": "s1",
+                    "name": "core/stack",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "s1-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Stacked" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "columns",
+            "tree": [
+                {
+                    "clientId": "cols-1",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "col-1",
+                            "name": "core/column",
+                            "attributes": { "width": 60 },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "col-1-p",
+                                    "name": "core/paragraph",
+                                    "attributes": { "content": "Left" },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "col-2",
+                            "name": "core/column",
+                            "attributes": {},
+                            "innerBlocks": [
+                                {
+                                    "clientId": "col-2-p",
+                                    "name": "core/paragraph",
+                                    "attributes": { "content": "Right" },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "buttons",
+            "tree": [
+                {
+                    "clientId": "btns-1",
+                    "name": "core/buttons",
+                    "attributes": { "layout": { "justifyContent": "center" } },
+                    "innerBlocks": [
+                        {
+                            "clientId": "b1",
+                            "name": "core/button",
+                            "attributes": {
+                                "text": "Go",
+                                "url": "https://example.com",
+                                "linkTarget": "_blank"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "post-content-no-layout",
+            "tree": [
+                {
+                    "clientId": "pc-1",
+                    "name": "core/post-content",
+                    "attributes": { "_resolvedContent": "<p>Body</p>" },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "post-content-constrained",
+            "tree": [
+                {
+                    "clientId": "pc-2",
+                    "name": "core/post-content",
+                    "attributes": {
+                        "_resolvedContent": "<p>Body</p>",
+                        "layout": { "type": "constrained" }
+                    },
+                    "innerBlocks": []
+                }
+            ]
+        },
+        {
+            "name": "post-template-list",
+            "tree": [
+                {
+                    "clientId": "pt-list",
+                    "name": "core/post-template",
+                    "attributes": { "layout": "list", "columns": 3 },
+                    "innerBlocks": [
+                        {
+                            "clientId": "pt-list-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Item" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "post-template-grid",
+            "tree": [
+                {
+                    "clientId": "pt-grid",
+                    "name": "core/post-template",
+                    "attributes": { "layout": "grid", "columns": 3 },
+                    "innerBlocks": [
+                        {
+                            "clientId": "pt-grid-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Item" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "post-template-masonry",
+            "tree": [
+                {
+                    "clientId": "pt-masonry",
+                    "name": "core/post-template",
+                    "attributes": { "layout": "masonry", "columns": 3 },
+                    "innerBlocks": [
+                        {
+                            "clientId": "pt-masonry-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Item" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "Out-of-range `columns` must clamp to the [1, 12] bounds the stylesheet has `columns-N` rules for. Blade emitted `columns-20` unclamped until 1.6.0.",
+            "name": "post-template-columns-out-of-range",
+            "tree": [
+                {
+                    "clientId": "pt-cols-high",
+                    "name": "core/post-template",
+                    "attributes": { "layout": "grid", "columns": 20 },
+                    "innerBlocks": [
+                        {
+                            "clientId": "pt-cols-high-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Item" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "Same, at the bottom of the range.",
+            "name": "post-template-columns-zero",
+            "tree": [
+                {
+                    "clientId": "pt-cols-zero",
+                    "name": "core/post-template",
+                    "attributes": { "layout": "grid", "columns": 0 },
+                    "innerBlocks": [
+                        {
+                            "clientId": "pt-cols-zero-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Item" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "Gutenberg's generic block-supports layout system stores the type on a sibling `layoutType` attribute. QueryInliner::postTemplateLayoutIsGrid() accepts it, so every renderer must lay the wrapper out as a grid too.",
+            "name": "post-template-layout-type-grid",
+            "tree": [
+                {
+                    "clientId": "pt-layout-type",
+                    "name": "core/post-template",
+                    "attributes": { "layoutType": "grid", "columns": 3 },
+                    "innerBlocks": [
+                        {
+                            "clientId": "pt-layout-type-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Item" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "An upstream `core/post-template` mirror saves the object form. Third of the three shapes QueryInliner::postTemplateLayoutIsGrid() accepts.",
+            "name": "post-template-layout-object-grid",
+            "tree": [
+                {
+                    "clientId": "pt-layout-object",
+                    "name": "core/post-template",
+                    "attributes": { "layout": { "type": "grid" }, "columns": 3 },
+                    "innerBlocks": [
+                        {
+                            "clientId": "pt-layout-object-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Item" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "R2 — proves the two canonicalizers agree on non-ASCII whitespace. JavaScript's `\\s` matches U+00A0 while PCRE's does not, so an unmirrored collapse step would make this fixture's golden unmatchable from the JS side.",
+            "name": "paragraph-nbsp",
+            "tree": [
+                {
+                    "clientId": "p-nbsp",
+                    "name": "core/paragraph",
+                    "attributes": { "content": "Hello&nbsp;world &nbsp; spaced" },
+                    "innerBlocks": []
+                }
+            ]
+        }
+    ]
+}

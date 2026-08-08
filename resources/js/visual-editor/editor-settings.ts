@@ -130,7 +130,16 @@ export const DEFAULT_CANVAS_STYLES = `
     font-weight: 700;
     line-height: 1.2;
     margin: 1.4em 0 0.6em;
-    color: #111827;
+    /*
+     * #695 — this baseline (0,1,1) out-specifies a theme's bare
+     * \`h1\`..\`h6\` rules, so a hardcoded hex here pins headings to a
+     * light-mode color no dark theme can shift: on a dark canvas they
+     * render near-invisible against the ground. Chain through the
+     * canvas tokens instead — the theme's heading color when it
+     * declares one, otherwise the canvas foreground, otherwise the
+     * original light default. See \`editor/canvas-color-tokens.ts\`.
+     */
+    color: var(--ap-editor-canvas-heading-fg, var(--ap-editor-canvas-fg, #111827));
 }
 
 .editor-styles-wrapper h1 { font-size: 2.5rem; }
@@ -240,6 +249,46 @@ export const POST_EDITOR_FRAMING_STYLES = `
     max-width: 720px;
     margin-left: auto;
     margin-right: auto;
+}
+`;
+
+/**
+ * Composed-view chrome styles (#655), injected into the canvas iframe.
+ *
+ * The chrome previews render as siblings of the block list *inside* the
+ * canvas, so they inherit {@link POST_EDITOR_FRAMING_STYLES} — 48px of
+ * editor padding and a 720px content clamp. Those exist to frame post
+ * *content*; applying them to a site header or footer would cap
+ * full-bleed chrome at the content measure and misrepresent the layout
+ * the author is trying to check. Reset them inside the chrome regions and
+ * let the theme's own layout rules decide.
+ *
+ * The boundary rules give a quiet visual seam between read-only chrome and
+ * the editable canvas. `useDisabled()` already makes the chrome inert; this
+ * is only about making the edge legible — the labelled ribbon is #623.
+ */
+export const COMPOSED_CHROME_STYLES = `
+.ap-visual-editor__chrome .block-editor-block-list__layout.is-root-container {
+    padding: 0;
+}
+
+.ap-visual-editor__chrome .block-editor-block-list__layout.is-root-container > .wp-block:not(.alignwide):not(.alignfull) {
+    max-width: none;
+    margin-left: 0;
+    margin-right: 0;
+}
+
+.ap-visual-editor__chrome {
+    position: relative;
+    user-select: none;
+}
+
+.ap-visual-editor__chrome[data-chrome-region='header'] {
+    border-bottom: 1px dashed color-mix(in oklab, currentColor 20%, transparent);
+}
+
+.ap-visual-editor__chrome[data-chrome-region='footer'] {
+    border-top: 1px dashed color-mix(in oklab, currentColor 20%, transparent);
 }
 `;
 

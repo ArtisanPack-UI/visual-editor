@@ -16,6 +16,7 @@
  */
 
 import { Suspense, lazy, useCallback, useEffect, useId, useMemo, useState } from 'react';
+import { ToastProvider } from '@artisanpack-ui/react/feedback';
 import { __, sprintf } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN, bootI18n } from '../vendor/i18n';
@@ -43,6 +44,7 @@ import {
     TemplatePartCreateDialog,
     TemplatePartsBrowser,
 } from './template-parts-section';
+import { useSiteEditorDeepLink } from './use-deep-link';
 import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
 import { registerBackgroundControls } from '../background-controls';
@@ -140,7 +142,17 @@ const D5_SECTIONS: ReadonlySet<SiteEditorSectionId> = new Set<SiteEditorSectionI
 ]);
 
 export interface SiteEditorAppProps {
-    /** Pathname prefix the SPA owns (e.g. `/visual-editor/site`). */
+    /**
+     * Pathname prefix the SPA owns (e.g. `/visual-editor/site`).
+     *
+     * Must be a same-origin absolute path beginning with a single `/`.
+     * Anything else — a relative path, an absolute URL, a
+     * protocol-relative `//host` — is rejected and replaced with the
+     * package's own default mount path, with a `console.warn` naming the
+     * value. The substitution keeps `<a href>` builders from emitting
+     * off-site links, but the host will not serve the resulting URLs, so
+     * treat the warning as a misconfiguration to fix rather than a notice.
+     */
     routeBase: string;
     /** Base URL for the site-editor REST surface (e.g. `/visual-editor/api`). */
     apiBase: string;
@@ -229,7 +241,21 @@ function sectionKind(section: SiteEditorSectionId): EntityKind | null {
     return null;
 }
 
+/**
+ * SPA root. The `ToastProvider` wrapper mirrors the post editor
+ * (`editor-app.tsx`): the shell's own hooks — #625's deep-link resolver
+ * for one — announce through `useToast`, which needs a provider ancestor
+ * mounted outside the component that consumes it.
+ */
 export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
+    return (
+        <ToastProvider>
+            <SiteEditorAppShell {...props} />
+        </ToastProvider>
+    );
+}
+
+function SiteEditorAppShell(props: SiteEditorAppProps): JSX.Element {
     ensureEditorBoot();
 
     const { routeBase, apiBase, exitUrl, exitLabel, theme = 'default' } = props;
@@ -240,6 +266,13 @@ export function SiteEditorApp(props: SiteEditorAppProps): JSX.Element {
     );
 
     const routing = useSiteEditorRouting({ routeBase });
+
+    // #625 — `?entity=template&slug=…` on the mount URL lands the user on
+    // that template's editor view instead of the default section. No-ops
+    // when the query string carries no deep link, so plain mounts are
+    // unaffected.
+    useSiteEditorDeepLink({ apiConfig, navigate: routing.navigate });
+
     const [navigatorOpen, setNavigatorOpen] = usePersistedToggle(
         NAVIGATOR_STORAGE_KEY,
         true

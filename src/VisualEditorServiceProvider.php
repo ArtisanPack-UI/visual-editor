@@ -576,7 +576,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 	 */
 	protected function registerQueryResolverBinding(): void
 	{
-		$cmsRuntime = '\\ArtisanPackUI\\CMSFramework\\Modules\\Blog\\Services\\QueryRuntime';
+		$cmsRuntime = 'ArtisanPackUI\\CMSFramework\\Modules\\Blog\\Services\\QueryRuntime';
 
 		if ( ! class_exists( $cmsRuntime ) ) {
 			return;
@@ -823,6 +823,11 @@ class VisualEditorServiceProvider extends ServiceProvider
 			'details',
 			// Widgets (I4)
 			'search',
+			// #690 — server-side only for now: the manifest exists so the
+			// hydrator can recover `content` via its `raw` source and the
+			// Blade partial can emit it. There is no `html/index.ts`, so
+			// the editor bundle does not register a client-side block.
+			'html',
 			// Entity (I5)
 			'template-part',
 			'post-title',
@@ -873,6 +878,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$referenceBlocks = [
 			'callout',
 			'icon',
+			// #691 — `marquee` declares a sourced attribute
+			// (`marqueeContent`, `source: html`), so it has to be in the
+			// server-side registry for BlockMarkupHydrator to recover the
+			// text out of saved markup. Without it the Blade partial
+			// renders an empty marquee. See the guard test in
+			// tests/Unit/VisualEditor/SourcedBlocksAreRegisteredTest.php.
+			'marquee',
 		];
 
 		foreach ( $referenceBlocks as $block ) {

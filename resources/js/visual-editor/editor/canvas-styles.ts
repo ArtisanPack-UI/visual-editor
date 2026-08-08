@@ -31,11 +31,13 @@ import { applyFilters } from '@wordpress/hooks';
 
 import {
     ALIGNMENT_OVERRIDE_STYLES,
+    COMPOSED_CHROME_STYLES,
     DEFAULT_CANVAS_STYLES,
     POST_EDITOR_FRAMING_STYLES,
 } from '../editor-settings';
 
 import canvasThemeTokens from './canvas-theme-tokens.css?inline';
+import composedRibbonStyles from './composed-view/composed-view-ribbon.css?inline';
 import flexLayoutStyles from '../../../css/flex-layout.css?inline';
 import photoGridStyles from '../blocks/_shared/photo-grid/photo-grid.css?inline';
 
@@ -216,6 +218,16 @@ const baseCanvasStyles: CanvasStyle[] = [
     // entry so templates + template parts span full-bleed like the
     // front-end (#47).
     { css: POST_EDITOR_FRAMING_STYLES },
+    // Composed-view chrome (#655). Must follow the framing entry above —
+    // it exists to undo that framing inside the read-only header/footer
+    // regions, which are chrome, not post content.
+    { css: COMPOSED_CHROME_STYLES },
+    // Composed-view ribbon (#623). Lives under `composed-view/`, which
+    // the `blocks/*/*.css` glob above does not reach, so it is handed
+    // to the iframe explicitly. Last in the list because it is editor
+    // chrome rendered inside the canvas — nothing downstream should
+    // restyle it.
+    { css: composedRibbonStyles },
 ];
 
 /**

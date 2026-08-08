@@ -13,7 +13,7 @@
  */
 
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { ReactNode } from 'react';
 
 const blockCanvasProps = vi.fn();
@@ -42,6 +42,26 @@ vi.mock('@wordpress/block-editor', () => ({
     ObserveTyping: ({ children }: { children: ReactNode }): JSX.Element => (
         <div data-testid="ap-stub-observe-typing">{children}</div>
     ),
+}));
+
+/*
+ * #695 — the canvas derives `--ap-editor-canvas-bg` / `-fg` from the
+ * resolved theme.json. Stub the global-styles settings hook so the
+ * tests can drive the payload without hitting the network; it defaults
+ * to the empty payload the real hook returns for an undefined `apiBase`.
+ */
+let mockThemeGlobalStyles: {
+    settings: Record<string, unknown>;
+    styles: Record<string, unknown>;
+} = { settings: {}, styles: {} };
+
+vi.mock('../../site-editor/use-theme-global-styles-settings', () => ({
+    useThemeGlobalStylesSettings: (): typeof mockThemeGlobalStyles =>
+        mockThemeGlobalStyles,
+}));
+
+vi.mock('../../site-editor/use-theme-global-styles-css', () => ({
+    useThemeGlobalStylesCss: (): string | undefined => undefined,
 }));
 
 vi.mock('../post-title', () => ({
@@ -245,6 +265,183 @@ describe('EditorCanvas', () => {
             const frame = screen.getByTestId('ap-visual-editor-canvas-frame');
             expect(frame).toHaveAttribute('data-preview-width', 'base');
             expect(frame.style.width).toBe('');
+        });
+    });
+
+    describe('composed-view ribbon (#623)', () => {
+        it('is absent in bare-content mode', () => {
+            render(
+                <EditorCanvas
+                    showTitle
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    chrome={null}
+                />
+            );
+
+            expect(
+                screen.queryByTestId('ap-composed-view-ribbon')
+            ).not.toBeInTheDocument();
+        });
+
+        it('mounts inside the canvas iframe when chrome is supplied', () => {
+            render(
+                <EditorCanvas
+                    showTitle
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    chrome={{
+                        header: [],
+                        footer: [],
+                        templateName: 'Single Post',
+                        templateSlug: 'single',
+                    }}
+                />
+            );
+
+            const ribbon = screen.getByTestId('ap-composed-view-ribbon');
+
+            // Inside the `BlockCanvas` stub, not beside it — the ribbon
+            // has to scroll with the composed preview rather than sit in
+            // the editor chrome above the frame.
+            expect(
+                screen.getByTestId('ap-stub-block-canvas')
+            ).toContainElement(ribbon);
+            expect(
+                screen.getByTestId('ap-composed-view-ribbon-cta')
+            ).toHaveAttribute(
+                'href',
+                '/visual-editor/site?entity=template&slug=single'
+            );
+        });
+
+        it('points the CTA at a host-supplied site-editor mount', () => {
+            // The ribbon has always accepted this prop; nothing passed it,
+            // so a host that mounts the site editor elsewhere got a CTA
+            // pointing at a path that does not exist for them.
+            render(
+                <EditorCanvas
+                    showTitle
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    siteEditorRouteBase="/admin/site-editor"
+                    chrome={{
+                        header: [],
+                        footer: [],
+                        templateName: 'Single Post',
+                        templateSlug: 'single',
+                    }}
+                />
+            );
+
+            expect(
+                screen.getByTestId('ap-composed-view-ribbon-cta')
+            ).toHaveAttribute(
+                'href',
+                '/admin/site-editor?entity=template&slug=single'
+            );
+        });
+
+        it('drops the CTA when composing against the fallback template', () => {
+            render(
+                <EditorCanvas
+                    showTitle
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    chrome={{
+                        header: [],
+                        footer: [],
+                        templateName: 'Default template',
+                        templateSlug: null,
+                    }}
+                />
+            );
+
+            expect(
+                screen.getByTestId('ap-composed-view-ribbon')
+            ).toBeInTheDocument();
+            expect(
+                screen.queryByTestId('ap-composed-view-ribbon-cta')
+            ).not.toBeInTheDocument();
+        });
+    });
+
+    /*
+     * #695 — the iframe body is painted through `--ap-editor-canvas-bg`
+     * / `--ap-editor-canvas-fg`. Nothing supplied them, so a dark
+     * theme.json rendered a white canvas with invisible white headings.
+     * These cover the wiring: the tokens ride along in the styles array
+     * for a themed canvas, and stay absent otherwise.
+     */
+    describe('#695 canvas color tokens', () => {
+        afterEach(() => {
+            mockThemeGlobalStyles = { settings: {}, styles: {} };
+        });
+
+        function lastStyles(): { css: string }[] {
+            return blockCanvasProps.mock.calls.at(-1)?.[0].styles as {
+                css: string;
+            }[];
+        }
+
+        function renderCanvas(): void {
+            blockCanvasProps.mockClear();
+
+            render(
+                <EditorCanvas
+                    showTitle={false}
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    apiBase="/visual-editor/api"
+                />
+            );
+        }
+
+        it('appends the theme.json canvas colors as a :root entry', () => {
+            mockThemeGlobalStyles = {
+                settings: {},
+                styles: { color: { background: '#111827', text: '#FFFFFF' } },
+            };
+
+            renderCanvas();
+
+            const styles = lastStyles();
+            const tokens = styles.at(-1);
+
+            // Appended after the base bundle so it wins over the
+            // package baseline, and scoped to `:root` so a host rule on
+            // `body` / `.editor-styles-wrapper` still out-specifies it.
+            expect(styles.length).toBe(canvasStyles.length + 1);
+            expect(tokens?.css).toContain(':root {');
+            expect(tokens?.css).toContain('--ap-editor-canvas-bg: #111827;');
+            expect(tokens?.css).toContain('--ap-editor-canvas-fg: #FFFFFF;');
+        });
+
+        it('leaves the styles bundle untouched when the theme declares no colors', () => {
+            mockThemeGlobalStyles = { settings: {}, styles: {} };
+
+            renderCanvas();
+
+            // Identity, not just equality — nothing appended, so the
+            // `var()` fallbacks in `canvas-theme-tokens.css` still paint
+            // the canvas white with dark text.
+            expect(lastStyles()).toBe(canvasStyles);
+        });
+
+        it('emits no token entry for a theme whose colors are unusable', () => {
+            mockThemeGlobalStyles = {
+                settings: {},
+                styles: { color: { background: '', text: null } },
+            };
+
+            renderCanvas();
+
+            expect(lastStyles()).toBe(canvasStyles);
         });
     });
 });

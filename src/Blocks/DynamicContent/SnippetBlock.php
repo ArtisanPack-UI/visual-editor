@@ -91,7 +91,7 @@ class SnippetBlock extends DynamicBlock
 	 */
 	protected function renderTree( array $blocks, string $ownerSlug ): string
 	{
-		$rendererClass = '\\ArtisanPackUI\\VisualEditorRendererBlade\\BlockRenderer';
+		$rendererClass = 'ArtisanPackUI\\VisualEditorRendererBlade\\BlockRenderer';
 
 		if ( ! class_exists( $rendererClass ) ) {
 			return '';

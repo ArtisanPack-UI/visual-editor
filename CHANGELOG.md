@@ -4,7 +4,234 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.6.0] - 2026-08-07
+
+### Added
+
+- **Composed view: edit your content inside the template it will render in**
+  (#618) — the post-editor canvas showed content on a bare ground, so the only
+  way to see a heading under the real site header, or to judge the spacing where
+  the content ends and the footer begins, was to open Preview in another tab and
+  lose the editing context. A **View with template** switch in the top bar now
+  renders the resolved template's chrome above and below the block canvas,
+  inside the same iframe, so it picks up the theme's compiled CSS with no
+  server-side render round-trip. The chrome is a genuine read-only preview: each
+  region mounts through Gutenberg's block-preview provider in its own isolated
+  block-editor store, so it is non-selectable and non-editable rather than
+  merely `lock`ed — and the content editor's own block tree is never swapped, so
+  selection, undo history and unsaved changes all survive a toggle, which the
+  earlier composed-tree approach could not manage without freezing the editor.
+  The template is cut at its `post-content` slot into header and footer chrome,
+  cloning any layout wrapper the slot is nested inside onto both sides so the
+  surrounding layout still reads correctly; `post-title`, `post-author`,
+  `post-date` and `post-featured-image` blocks in the chrome bind against the
+  post being edited rather than the template's sample data. A sticky in-canvas
+  ribbon names the resolved template and carries an **Edit template ↗** CTA
+  that deep-links the site editor by slug (`?entity=template&slug=…`, resolved
+  to an entity id on mount and rewritten to the canonical URL) in a new tab —
+  new tab on purpose, since navigating a post editor holding unsaved content
+  away to edit chrome would be a data-loss trap. Backing it is a new
+  `GET {resource}/{id}/applied-template` endpoint
+  (`ResourceAppliedTemplateController`), gated on the same `view` authorization
+  as the content endpoints, resolving the template and its referenced template
+  parts. Its `?template=` parameter overrides the slug persisted on the model so
+  a preview taken right after a template change does not race the debounced
+  save, and a blank value is meaningful — it says the selection was *cleared*.
+  A miss returns 200 with a discriminated `{status: "missing", reason}` body
+  rather than a 404, so the routine "no template chosen" case does not litter
+  devtools; the client turns it into a built-in default template (post title,
+  featured image, content slot) plus a toast *and* a standing notice, so the
+  reason is still on screen a minute later when the toast has auto-dismissed.
+  Documented in `docs/post-editor/Composed-View.md`.
+- **Blade-vs-JS markup parity check** (#704) — nothing guarded against the three
+  renderers drifting on markup: `scripts/verify-renderer-parity.mjs` compares
+  block *names* only, and `parity.test.ts` compares React against Vue with Blade
+  left out of both. That is why the Blade-only #700 fix could land green while
+  making Blade disagree with the JS renderers, undetected until #702. A shared
+  fixture set (`packages/renderer-markup-parity/fixtures.json`) is now rendered
+  through all three renderers: the Pest suite writes canonicalized golden files
+  from `<x-ve-blocks>`, and the vitest suite asserts the React and Vue SSR output
+  matches them, so drift in any renderer fails CI at the point it is introduced.
+  Fixtures cover every layout-supporting wrapper — `group` (flow / constrained /
+  flex / grid, plus the Flex Layout panel and Photo Grid cases), `row`, `stack`,
+  `columns`, `buttons`, `post-content` with and without a stored layout, and
+  `post-template` across all three saved layout shapes and its `columns`
+  bounds. Canonicalization is narrow and documented: whitespace, attribute order
+  and CSS declaration separators are normalized; element names, class tokens and
+  attribute values are not. Known divergences are declared explicitly in the
+  fixture manifest with a tracking issue rather than papered over with loose
+  matching. The two canonicalizers are held to the same definition of
+  whitespace — JavaScript's `\s` matches U+00A0 while PCRE's does not, so a
+  fixture containing `&nbsp;` would otherwise have produced a golden the JS side
+  could never match — and a `dropClassTokensMatching` pattern that fails to
+  compile now throws rather than being silently read as "no match", which would
+  have written the token into the golden while the JS side dropped it.
+
+### Fixed
+
+- **`core/html` blocks now render their saved markup** (#690) — the block
+  shipped neither a `block.json` manifest nor a Blade partial, so a
+  `<!-- wp:html -->` block in a theme template or `post_content` fell through
+  to the unknown-block fallback and emitted an empty
+  `data-ve-unknown-block` wrapper with its content dropped. An
+  `artisanpack/html` manifest now declares `content` with `source: "raw"` —
+  activating the matcher `BlockAttributeSourceResolver` already implemented
+  but no bundled manifest used — and the paired `core/html` /
+  `artisanpack/html` partials emit the recovered markup verbatim, with no
+  wrapper element, matching Gutenberg's `<RawHTML>` save. The markup is
+  deliberately not run through `kses()`: the partial sits inside the trust
+  boundary documented on `BlockMarkupHydrator`, and sanitizing here would
+  mangle the `<script>` / `<iframe>` / `<svg>` payloads the block exists to
+  carry. Registration is server-side only — the editor bundle does not yet
+  register a client-side HTML block. **Advisory for hosts:** unlike WordPress
+  there is no `unfiltered_html`-style per-user capability gate, so a site that
+  grants low-trust authors the block editor should sanitize `core/html` content
+  on save.
+- **Site-editor global styles no longer leak onto the admin chrome** (#679) —
+  the theme global-styles emitter declares theme.json root spacing and the
+  `--wp--preset--*` tokens on `:root`, which is right for the front end and for
+  a canvas rendered inside a `<BlockCanvas>` iframe. The site editor mounts
+  **inline** (#418), so `:root` resolved to the host document's `<html>` and the
+  theme's root padding pushed the entire editor shell — top bar, navigator,
+  inspector and canvas — in by that amount, showing up as a visible border
+  around the whole editor on any host that paints `<body>`.
+  `scope-global-styles-css.ts` now rewrites `:root` to `.editor-styles-wrapper`
+  before the CSS is injected, including inside `@media` and `@supports` blocks
+  and skipping comments, strings and `url()` contents. The rewrite is a strict
+  narrowing at identical specificity (both selectors weigh 0,1,0), so the tokens
+  land on the canvas surface instead of the document root, every block inside
+  still inherits them, and theme root spacing applies where a theme author
+  expects it. Fixed here rather than in cms-framework's `GlobalStylesEmitter`,
+  whose `:root` output is correct for every other consumer.
+- **`artisanpack/marquee` renders its saved content again** (#691) — it was the
+  only one of the 105 bundled `block.json` manifests declaring a `source`
+  definition while being absent from both registration lists in
+  `VisualEditorServiceProvider` (`$forkedBlocks` and `$referenceBlocks`).
+  `BlockMarkupHydrator::recoverAttributes()` looks the block up in
+  `BlockTypeRegistry`, found nothing, and returned `[]`, so `marqueeContent` was
+  never recovered from saved markup and `marquee.blade.php` rendered an empty
+  marquee.
+- **Container bindings resolve without a leading backslash** (#692) — Laravel's
+  container does not normalise FQCN keys, so `'\Foo\Bar'` and `Foo\Bar::class`
+  are two distinct entries. `EntitySearchController::searchCmsFrameworkEntities()`
+  built the template and template-part resolver class strings *with* a leading
+  backslash, so `app( $resolverClass )` missed any host- or test-registered
+  binding and silently constructed a fresh resolver instead — a host that
+  rebound `TemplateResolver::class` was ignored with no error. `class_exists()`
+  behaves identically either way, which is exactly why the guard above it hid
+  the problem. The backslash is dropped there and everywhere else in the package
+  that built a container key the same way.
+- **Post-editor canvas now honours the theme's `theme.json` colors** (#695) —
+  the canvas body is painted through two package-owned custom properties
+  (`--ap-editor-canvas-bg` / `--ap-editor-canvas-fg`) that nothing ever
+  assigned, so both fell back to their light-mode defaults. Because the rule
+  that reads them is an element+class compound (`body.editor-styles-wrapper`,
+  specificity 0,1,1) it out-specifies a theme's bare `.editor-styles-wrapper`
+  rule regardless of source order, so no theme sheet could correct it: a dark
+  theme rendered a white canvas with dark body text. The canvas now derives
+  both properties from the resolved theme.json's `styles.color` and injects
+  them as a `:root` rule. The same defect applied one level down —
+  `DEFAULT_CANVAS_STYLES` hardcoded `#111827` for `h1`..`h6` at the same
+  specificity, which on a dark ground rendered headings near-invisible — so
+  the heading baseline now chains through a matching
+  `--ap-editor-canvas-heading-fg`, sourced from `styles.elements.heading` (or
+  `h1`..`h6` when every declared level agrees) and falling back to the canvas
+  foreground. Themes declaring no colors keep the previous light defaults, and
+  a host rule on `body` / `.editor-styles-wrapper` still overrides the theme.
+  A theme that declares a background without a paired text color gets a legible
+  foreground derived for it via the package's WCAG helpers rather than half a
+  pair, and WordPress's `var:preset|color|slug` shorthand is accepted alongside
+  the `var(--wp--preset--color--slug)` CSS form. That derivation covers every
+  opaque CSS color syntax a `theme.json` may carry — `rgb()`, `hsl()`, named
+  colors, and alpha-bearing hex — not just the plain hex the WCAG helpers parse
+  natively, so an unpaired dark background written as `rgb(17 24 39)` or `black`
+  is no longer emitted with an unreadable foreground left on the default. Values
+  with no fixed opaque color (`var()` references, translucent colors) are left
+  alone rather than guessed at, and the theme's own syntax is what reaches the
+  stylesheet — normalisation is used only to measure contrast. The site-editor
+  canvas is unaffected.
+- **Blade renderer front-end assets no longer 404 on a fresh install** (#699) —
+  every stylesheet `<x-ve-blocks-styles />` links under
+  `/vendor/visual-editor-renderer-blade/` returned Laravel's 404 page until the
+  consumer discovered and ran
+  `vendor:publish --tag=visual-editor-renderer-blade-assets`, leaving the front
+  end with no block-gap between paragraphs, no content-size containment on
+  constrained groups, and `core/columns` collapsed to a vertical stack.
+  `visual-editor-renderer-blade` now registers a route that serves the bundled
+  block-library and `frontend/*` assets straight from the package, so the
+  styles resolve with no install step and package upgrades take effect
+  immediately. Publishing still works and still wins — the web server serves
+  the static file before the route is reached — but it is now an optional
+  performance choice rather than a silent requirement.
+- **Per-block layout classes in the Blade renderer** (#700) — layout-supporting
+  partials emitted only the shared `is-layout-{type}` modifier, so the shipped
+  block-library rules that key on the per-block compound
+  (`.wp-block-group.wp-block-group-is-layout-constrained`,
+  `.wp-block-post-template-is-layout-flow > li > .aligncenter`, …) never
+  matched. `group`, `row`, `stack`, `columns`, `buttons`, `post-content`, and
+  `post-template` now emit both classes through the new
+  `Support\LayoutSupport` helper. `post-content` additionally honours its
+  stored `layout.type` for the first time — without that class the
+  content-size containment rules `ThemeJsonTokensCompiler` emits for
+  `.wp-block-post-content.is-layout-constrained` could never apply — and
+  `columns` gained the `is-layout-flex` pair it was missing entirely.
+- **Constrained groups now constrain their children** (#700) —
+  `ThemeJsonTokensCompiler` emitted content-size containment only for
+  `.wp-block-post-content`, so a `<article class="wp-block-group
+  is-layout-constrained">` let its title, meta, and featured image run
+  edge-to-edge while its post body behaved. It now also emits the
+  `> :where(:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright))`
+  cap plus the `alignwide` / `alignfull` overrides for constrained groups,
+  mirroring the per-instance rules WordPress generates. Keyed on the
+  per-block `wp-block-group-is-layout-constrained` compound, so host markup
+  that hand-writes the shared `is-layout-constrained` modifier and styles
+  those children itself is not retroactively constrained.
+- **React and Vue `core/group` honour the Flex Layout panel** (#711) — the
+  Blade partial flips a group's layout class to `is-layout-flex` when the #595
+  Flex Layout panel emits the unprefixed `ap-flex` class and no explicit
+  `layout` is stored, so the flow baseline's
+  `is-layout-flow > * + * { margin-block-start: gap }` rule stops pushing flex
+  children apart along the cross axis. Both JS renderers called
+  `layoutClass()` unconditionally and emitted
+  `is-layout-flow wp-block-group-is-layout-flow` for the same tree — exactly
+  the bug #595 fixed for Blade, still live on React and Vue hosts. They now
+  mirror the Blade rule byte for byte: only the base-breakpoint `ap-flex`
+  triggers it (a `md:ap-flex` means "flex from md up" and must not flip the
+  base class), and only when the stored layout type is empty. Three parity
+  fixtures pin all three cases.
+- **`core/post-template` agrees across renderers on layout and column bounds**
+  (#704) — `QueryInliner::postTemplateLayoutIsGrid()` accepts three saved
+  shapes when it stamps `_resolvedGridSpan` onto each item: a plain `layout`
+  string, an upstream mirror's object-form `layout.type`, and Gutenberg's
+  sibling `layoutType`. The renderers did not agree with it or with each
+  other — Blade read only the plain string, React and Vue read the string and
+  `layoutType` — so a tree the inliner treated as a grid could render its
+  wrapper as flow, leaving the stamped span classes with no grid to lay out.
+  All three renderers now accept all three shapes. Blade additionally clamps
+  `columns` to the `[1, 12]` range the stylesheet actually ships `columns-N`
+  rules for, and falls back to the default for an unparseable value, matching
+  the JS renderers; previously it could emit `columns-0` or `columns-99`.
+- **Composed view announces a repeated template failure** (#618) — the
+  fallback toast's latch only cleared when leaving composed mode, so broken
+  template A → working B → broken A again produced no second toast. A
+  successful resolution now clears it. The applied-template cache also holds a
+  `Map` rather than a single slot, so it keeps the "cached per
+  `(resource, id, template)` triple for the lifetime of the editor mount"
+  contract its documentation states — flipping A → B → A previously refetched
+  A once B had resolved.
+- **Site-editor routing no longer rewrites navigation silently** (#618) — a
+  host `routeBase` that fails the same-origin-absolute-path test is replaced
+  with the package's own mount path. That substitution is right for the ribbon
+  CTA's `<a href>`, where an absolute or `javascript:` URL would be an off-site
+  link, but as silent behaviour for the SPA's own routing it made every
+  in-editor navigation push URLs the host does not serve, with a 404 on
+  reload and nothing in the console to explain it. It now warns once, naming
+  the rejected value, and the fallback is documented on the `routeBase` prop.
+  Separately, the deep-link "user has already navigated" guard compared the
+  pathname only, so navigating away and back inside the SPA while a slug
+  lookup was in flight defeated it and the late resolution teleported the
+  author; it now compares the query string too, which every in-SPA navigation
+  clears and none restores.
 
 ## [1.5.5] - 2026-08-02
 

@@ -565,10 +565,13 @@ class ThemeJsonTokensCompiler
 	 *
 	 * The rules target the constrained group's own classes (not a
 	 * parent-relative selector), so they apply whether the group sits
-	 * at the page root or inside another container. The default case
-	 * (constrained group without an alignment override) is left alone
-	 * so themes that style children-of-constrained directly aren't
-	 * double-constrained.
+	 * at the page root or inside another container.
+	 *
+	 * Child containment for constrained groups (#700) is keyed on the
+	 * per-block `wp-block-group-is-layout-constrained` compound rather
+	 * than the shared modifier, so it reaches wrappers this renderer
+	 * emits without double-constraining host markup that hand-writes
+	 * `is-layout-constrained` and styles those children itself.
 	 *
 	 * @since 1.0.0
 	 *
@@ -637,6 +640,40 @@ class ThemeJsonTokensCompiler
 		}
 
 		$rules[] = ".wp-block-post-content.is-layout-constrained > .alignfull {\n"
+			. "\tmax-width: none;\n"
+			. '}';
+
+		// Rule set C — children of a constrained GROUP (#700). This is
+		// what "constrained" means upstream: WordPress emits a
+		// per-instance `.wp-container-…-is-layout-constrained > :where(…)`
+		// rule that caps every unaligned child at `contentSize`. Without
+		// it a `<article class="wp-block-group is-layout-constrained">`
+		// lets its title / meta / featured image run edge-to-edge even
+		// though the group declares a constrained layout.
+		//
+		// Keyed on the per-block compound rather than the shared
+		// `is-layout-constrained` modifier, which is what keeps the
+		// "double-constrained" hazard in rule set A's note from biting:
+		// only wrappers this renderer emits carry the compound, so
+		// host-authored markup that hand-writes the shared modifier
+		// keeps its existing full-bleed-unless-aligned behavior.
+		if ( $hasContentSize ) {
+			$rules[] = ".wp-block-group.wp-block-group-is-layout-constrained > :where(:not(.alignwide):not(.alignfull):not(.alignleft):not(.alignright)) {\n"
+				. "\tmax-width: var(--wp--style--global--content-size);\n"
+				. "\tmargin-left: auto;\n"
+				. "\tmargin-right: auto;\n"
+				. '}';
+		}
+
+		if ( $hasWideSize ) {
+			$rules[] = ".wp-block-group.wp-block-group-is-layout-constrained > .alignwide {\n"
+				. "\tmax-width: var(--wp--style--global--wide-size);\n"
+				. "\tmargin-left: auto;\n"
+				. "\tmargin-right: auto;\n"
+				. '}';
+		}
+
+		$rules[] = ".wp-block-group.wp-block-group-is-layout-constrained > .alignfull {\n"
 			. "\tmax-width: none;\n"
 			. '}';
 

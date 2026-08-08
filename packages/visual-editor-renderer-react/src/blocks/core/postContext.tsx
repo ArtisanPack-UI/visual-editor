@@ -11,7 +11,13 @@
  * front-end render structure agree even before a resolver is wired up.
  */
 
-import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
+import {
+    attrBoolean,
+    attrInt,
+    attrString,
+    classList,
+    layoutWrapperForBlock,
+} from '../../support/attributes';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -76,9 +82,15 @@ export function PostContentBlock({ attributes }: BlockRendererProps): JSX.Elemen
     const className = attrString(attributes.className);
     const content = attrString(attributes._resolvedContent);
 
+    // #702 — the block stores a `layout` attribute like every other
+    // layout-supporting block, but the wrapper never surfaced it. Without
+    // `is-layout-constrained` here the content-size containment rules the
+    // theme-token compiler emits for `.wp-block-post-content` can never
+    // match.
     const classes = classList([
         'entry-content',
         'wp-block-post-content',
+        ...layoutWrapperForBlock(attributes, 'post-content'),
         align !== '' ? `has-text-align-${align}` : null,
         className,
     ]);

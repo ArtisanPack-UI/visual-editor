@@ -13,7 +13,14 @@
  */
 
 import { defineComponent, h } from 'vue';
-import { attrInt, attrString, classList, postTemplateItemSpanClasses } from '../../support/attributes';
+import {
+    attrInt,
+    attrRecord,
+    attrString,
+    classList,
+    layoutPair,
+    postTemplateItemSpanClasses,
+} from '../../support/attributes';
 import { blockRendererProps } from '../shared';
 
 /**
@@ -33,6 +40,23 @@ function clampColumns(value: unknown, fallback: number): number {
         return 12;
     }
     return parsed;
+}
+
+/**
+ * Read the post-template's saved layout name from either shape it can
+ * take: the ArtisanPack post-template's plain `layout` string, or an
+ * upstream `core/post-template` mirror's object-form `layout.type`.
+ *
+ * Gutenberg's third shape — the sibling `layoutType` attribute — is
+ * handled by the caller, matching `post-template.blade.php` and
+ * `QueryInliner::postTemplateLayoutIsGrid()`.
+ */
+function resolveLayoutName(value: unknown): string {
+    if (typeof value === 'string') {
+        return value;
+    }
+
+    return attrString(attrRecord(value).type);
 }
 
 function isDevelopment(): boolean {
@@ -77,7 +101,7 @@ export const PostTemplateBlock = defineComponent({
     setup(props, { slots }) {
         return () => {
             const className = attrString(props.attributes.className);
-            const layout = attrString(props.attributes.layout);
+            const layout = resolveLayoutName(props.attributes.layout);
             const layoutType = attrString(props.attributes.layoutType);
             const isGrid = layout === 'grid' || layoutType === 'grid';
             const isMasonry = layout === 'masonry';
@@ -93,9 +117,14 @@ export const PostTemplateBlock = defineComponent({
                     // stylesheet adds `grid-template-rows: masonry` on
                     // top via `@supports` for browsers that ship native
                     // CSS Grid masonry. The JS bootstrap packs the rest.
-                    (isGrid || isMasonry) ? 'is-layout-grid' : '',
+                    //
+                    // #702 — each shared modifier ships with its per-block
+                    // compound; the block-library alignment rules key on
+                    // `wp-block-post-template-is-layout-flow`. Masonry is
+                    // an ArtisanPack extension with no upstream compound,
+                    // so it stays unpaired.
+                    ...layoutPair('post-template', usesColumns ? 'is-layout-grid' : 'is-layout-flow'),
                     isMasonry ? 'is-layout-masonry' : '',
-                    !usesColumns ? 'is-layout-flow' : '',
                     usesColumns ? `columns-${columns}` : '',
                     className,
                 ]),

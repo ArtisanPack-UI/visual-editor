@@ -89,9 +89,12 @@ class EntitySearchController extends Controller
 	 */
 	protected function searchCmsFrameworkEntities( string $type, string $needle ): array
 	{
+		// No leading backslash: the container does not normalise FQCN
+		// keys, so `'\Foo\Bar'` would miss a binding registered under
+		// `Foo\Bar::class` and silently build a fresh resolver instead.
 		$resolverClass = 'template' === $type
-			? '\\ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplateResolver'
-			: '\\ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplatePartResolver';
+			? 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplateResolver'
+			: 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Resolution\\TemplatePartResolver';
 
 		if ( ! class_exists( $resolverClass ) ) {
 			return [];

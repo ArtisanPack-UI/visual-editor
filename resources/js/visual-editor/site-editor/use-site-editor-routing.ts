@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { normalizeRouteBase } from './deep-link';
 import {
     DEFAULT_SECTION_ID,
     findSectionBySlug,
@@ -26,18 +27,71 @@ export interface SiteEditorLocation {
     entityId: string | null;
 }
 
+export interface SiteEditorNavigateOptions {
+    /**
+     * Replace the current history entry instead of pushing a new one. Use
+     * for landings the user did not ask for — a deep-link resolution is a
+     * *rewrite* of the entry they arrived on, and pushing would leave Back
+     * pointing at a query-string URL the popstate handler cannot re-read.
+     */
+    replace?: boolean;
+}
+
 export interface SiteEditorRouting extends SiteEditorLocation {
     /**
      * Navigate to a different section (and optionally a specific entity)
      * without a full page reload. Pushes a new history entry; falls back
      * to direct state update when running outside a browser (SSR).
      */
-    navigate: (section: SiteEditorSectionId, entityId?: string | null) => void;
+    navigate: (
+        section: SiteEditorSectionId,
+        entityId?: string | null,
+        options?: SiteEditorNavigateOptions
+    ) => void;
 }
 
 interface UseSiteEditorRoutingOptions {
     /** Path prefix the SPA owns (e.g. `/visual-editor/site`). */
     routeBase: string;
+}
+
+/**
+ * `routeBase` values already reported as rejected, so the warning below
+ * fires once per distinct bad value rather than on every parse and every
+ * navigation.
+ */
+const warnedRouteBases = new Set<string>();
+
+/**
+ * `normalizeRouteBase` substitutes the package's own mount path for any
+ * base that isn't a same-origin absolute path. That substitution is right
+ * for `buildTemplateDeepLink`, where the result goes straight into an
+ * `<a href>` and an absolute or `javascript:` URL would be an off-site
+ * link. It is a poor *silent* default for the SPA's own routing: a host
+ * that mounts the site editor at a relative path gets every in-SPA
+ * navigation rewritten to `/visual-editor/site/…`, URLs it does not
+ * serve, and a reload 404s with nothing in the console to explain it.
+ *
+ * The substitution still happens — an unusable base is not better than a
+ * wrong one — but it says so.
+ */
+function resolveSpaRouteBase(routeBase: string): string {
+    const normalized = normalizeRouteBase(routeBase);
+
+    if (
+        normalized !== routeBase.replace(/\/+$/, '') &&
+        !warnedRouteBases.has(routeBase)
+    ) {
+        warnedRouteBases.add(routeBase);
+
+        console.warn(
+            `[visual-editor] Ignoring site-editor routeBase ${JSON.stringify(routeBase)}: ` +
+                'it must be a same-origin absolute path beginning with a single "/". ' +
+                `Falling back to ${JSON.stringify(normalized)}, which this host may not serve.`
+        );
+    }
+
+    return normalized;
 }
 
 /**
@@ -48,7 +102,11 @@ export function parseSiteEditorPath(
     pathname: string,
     routeBase: string
 ): SiteEditorLocation {
-    const normalizedBase = routeBase.replace(/\/+$/, '');
+    // The same normalization `buildSiteEditorPath` applies. Without it the
+    // two disagree for a non-canonical base: navigation would write URLs
+    // under the canonical path while the parser, still matching the raw
+    // base, read every one of them as the default section.
+    const normalizedBase = resolveSpaRouteBase(routeBase);
 
     if (
         pathname !== normalizedBase &&
@@ -102,7 +160,9 @@ export function buildSiteEditorPath(
     section: SiteEditorSectionId,
     entityId: string | null = null
 ): string {
-    const normalizedBase = routeBase.replace(/\/+$/, '');
+    // Shared with `buildTemplateDeepLink`: an absolute or `javascript:`
+    // base would leave the SPA's own origin from inside an `<a href>`.
+    const normalizedBase = resolveSpaRouteBase(routeBase);
     const tail =
         entityId === null
             ? section
@@ -141,7 +201,11 @@ export function useSiteEditorRouting(
     }, [routeBase]);
 
     const navigate = useCallback(
-        (section: SiteEditorSectionId, entityId: string | null = null): void => {
+        (
+            section: SiteEditorSectionId,
+            entityId: string | null = null,
+            options: SiteEditorNavigateOptions = {}
+        ): void => {
             const next: SiteEditorLocation = { section, entityId };
 
             setLocation((prev) => {
@@ -159,12 +223,16 @@ export function useSiteEditorRouting(
             const target = buildSiteEditorPath(routeBase, section, entityId);
 
             // Avoid pushing duplicate entries when the user clicks the
-            // already-active item.
-            if (window.location.pathname === target) {
+            // already-active item. A `replace` still runs: the pathname may
+            // already match while a query string (a deep link) is stranded
+            // in the address bar, and rewriting is exactly what clears it.
+            if (window.location.pathname === target && options.replace !== true) {
                 return;
             }
 
-            window.history.pushState({ section, entityId }, '', target);
+            const method = options.replace === true ? 'replaceState' : 'pushState';
+
+            window.history[method]({ section, entityId }, '', target);
         },
         [routeBase]
     );

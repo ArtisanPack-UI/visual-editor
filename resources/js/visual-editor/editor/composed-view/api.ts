@@ -1,0 +1,255 @@
+/**
+ * REST client for the composed-view's applied-template endpoint (#619).
+ *
+ * The endpoint returns a discriminated union: on hit, the resolved
+ * template + its referenced template-parts; on miss, a 200 with a
+ * `{ status: 'missing', reason }` body so the client can trigger the
+ * fallback flow without a second round-trip.
+ *
+ * @since 1.1.0
+ */
+
+import type { BlockInstance } from '@wordpress/blocks';
+
+import { ApiError } from '../api-client';
+
+export interface AppliedTemplatePart {
+    slug: string;
+    area: string;
+    title: string;
+    source: 'db' | 'theme';
+    blocks: readonly BlockInstance[];
+}
+
+export interface AppliedTemplate {
+    status: 'ok';
+    slug: string;
+    name: string;
+    source: 'db' | 'theme';
+    blocks: readonly BlockInstance[];
+    /** Referenced template-parts keyed by slug. */
+    template_parts: Readonly<Record<string, AppliedTemplatePart>>;
+}
+
+export type AppliedTemplateMissingReason = 'empty' | 'unknown-slug';
+
+export interface AppliedTemplateMissing {
+    status: 'missing';
+    reason: AppliedTemplateMissingReason;
+    /** Present when reason === 'unknown-slug'. */
+    slug?: string;
+}
+
+export type AppliedTemplateResult = AppliedTemplate | AppliedTemplateMissing;
+
+export interface AppliedTemplateConfig {
+    apiBase: string;
+    resource: string;
+    id: string;
+    /**
+     * Template slug to resolve, overriding the slug persisted on the model.
+     *
+     * The editor passes whatever the document panel currently has selected,
+     * which may not have been saved yet. Without the override the endpoint
+     * reads the model's stored `template` and a preview taken right after a
+     * template change would race the debounced save and resolve the *old*
+     * template.
+     *
+     * An empty string is meaningful and is sent as a blank `?template=`: it
+     * says the selection has been *cleared*, which the endpoint answers with
+     * `{ status: 'missing', reason: 'empty' }`. Leave the field `undefined`
+     * to send no parameter at all and let the server read the persisted
+     * value.
+     */
+    template?: string;
+    /**
+     * Optional abort signal so a caller can cancel an in-flight request when
+     * the selection changes or the component unmounts.
+     */
+    signal?: AbortSignal;
+}
+
+function appliedTemplateUrl(config: AppliedTemplateConfig): string {
+    const base = config.apiBase.replace(/\/$/, '');
+    const url = `${base}/${encodeURIComponent(
+        config.resource
+    )}/${encodeURIComponent(config.id)}/applied-template`;
+
+    if (config.template === undefined) {
+        return url;
+    }
+
+    return `${url}?template=${encodeURIComponent(config.template.trim())}`;
+}
+
+/**
+ * Fetch the applied template for a resource+id. The endpoint always
+ * responds 200 with a discriminated `{status: 'ok' | 'missing', ...}`
+ * body — a 200 (vs 404) keeps the browser devtools clean since the
+ * missing state is a normal, routine response for any content that
+ * hasn't chosen a template. Throws only on real network / auth /
+ * unexpected errors.
+ */
+export async function fetchAppliedTemplate(
+    config: AppliedTemplateConfig
+): Promise<AppliedTemplateResult> {
+    const response = await fetch(appliedTemplateUrl(config), {
+        method: 'GET',
+        credentials: 'same-origin',
+        headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        signal: config.signal,
+    });
+
+    const text = await response.text();
+    let body: unknown = null;
+
+    if (text !== '') {
+        try {
+            body = JSON.parse(text);
+        } catch {
+            body = text;
+        }
+    }
+
+    if (!response.ok) {
+        throw new ApiError(
+            `Applied-template request failed with status ${response.status}`,
+            response.status,
+            body
+        );
+    }
+
+    if (isMissingPayload(body)) {
+        return body;
+    }
+
+    // A 2xx that isn't a recognized `missing` payload must still match the
+    // `ok` shape before we hand it on. Casting blindly let an empty or
+    // truncated body (a proxy's HTML error page, a 204, a misrouted
+    // response) reach `splitTemplateAroundContentSlot`, which then threw on
+    // `template.blocks` far from the actual cause.
+    if (!isAppliedTemplatePayload(body)) {
+        throw new ApiError(
+            'Applied-template response did not match the expected shape.',
+            response.status,
+            body
+        );
+    }
+
+    return body;
+}
+
+function isMissingPayload(body: unknown): body is AppliedTemplateMissing {
+    if (body === null || typeof body !== 'object') {
+        return false;
+    }
+
+    const record = body as Record<string, unknown>;
+
+    return (
+        record.status === 'missing' &&
+        (record.reason === 'empty' || record.reason === 'unknown-slug')
+    );
+}
+
+function isAppliedTemplatePayload(body: unknown): body is AppliedTemplate {
+    if (body === null || typeof body !== 'object' || Array.isArray(body)) {
+        return false;
+    }
+
+    const record = body as Record<string, unknown>;
+
+    if (record.status !== 'ok') {
+        return false;
+    }
+
+    if (typeof record.slug !== 'string' || typeof record.name !== 'string') {
+        return false;
+    }
+
+    if (!isBlockList(record.blocks)) {
+        return false;
+    }
+
+    // `template_parts` is a slug-keyed map. PHP serializes an empty map as
+    // `[]`, so an empty array is valid here — anything else non-object is not.
+    const parts = record.template_parts;
+
+    if (typeof parts !== 'object' || parts === null) {
+        return false;
+    }
+
+    if (Array.isArray(parts)) {
+        return parts.length === 0;
+    }
+
+    // Each entry's blocks get walked by `hydrateParts` just like the
+    // top-level list, so they need the same guarantee — a null part or one
+    // whose `blocks` is missing throws there rather than here.
+    return Object.values(parts).every((part) => isTemplatePartShape(part));
+}
+
+function isTemplatePartShape(part: unknown): boolean {
+    if (part === null || typeof part !== 'object' || Array.isArray(part)) {
+        return false;
+    }
+
+    const record = part as Record<string, unknown>;
+
+    // An absent `blocks` is not tolerated the way a block's own
+    // `innerBlocks` is: a part with no block list is nothing to render, and
+    // `hydrateParts` dereferences it unconditionally.
+    return isBlockList(record.blocks);
+}
+
+/**
+ * Validate a block list down to each element's shape. Checking only
+ * `Array.isArray` let `null` entries and blocks missing `name` through to
+ * the hydration/split walk, where dereferencing them threw inside a
+ * `useMemo` and white-screened the editor. Rejecting here means the failure
+ * surfaces as an `ApiError` and lands in the hook's designed error path.
+ */
+function isBlockList(value: unknown): boolean {
+    if (!Array.isArray(value)) {
+        return false;
+    }
+
+    return value.every((entry) => isBlockShape(entry));
+}
+
+function isBlockShape(entry: unknown): boolean {
+    if (entry === null || typeof entry !== 'object' || Array.isArray(entry)) {
+        return false;
+    }
+
+    const block = entry as Record<string, unknown>;
+
+    if (typeof block.name !== 'string') {
+        return false;
+    }
+
+    // `attributes` and `innerBlocks` are optional — PHP omits or empties
+    // them routinely. They just have to be the right kind when present.
+    // An empty PHP array serializes to `[]`, so that counts as an object.
+    if (block.attributes !== undefined && block.attributes !== null) {
+        if (typeof block.attributes !== 'object') {
+            return false;
+        }
+
+        if (
+            Array.isArray(block.attributes) &&
+            block.attributes.length > 0
+        ) {
+            return false;
+        }
+    }
+
+    if (block.innerBlocks !== undefined && block.innerBlocks !== null) {
+        return isBlockList(block.innerBlocks);
+    }
+
+    return true;
+}

@@ -1,0 +1,3 @@
+<p class="wp-block-paragraph">
+  "Hello world   spaced"
+</p>

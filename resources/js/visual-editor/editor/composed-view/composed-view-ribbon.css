@@ -1,0 +1,61 @@
+/**
+ * Composed-view ribbon — #623.
+ *
+ * Injected into the canvas iframe via `canvas-styles.ts` (`?inline`),
+ * NOT imported for side effects by the component: the iframe document
+ * sees none of the parent document's Vite-injected stylesheets.
+ *
+ * Colours resolve from the ArtisanPack UI tokens re-established on the
+ * iframe root by `canvas-theme-tokens.css`, with hex fallbacks so the
+ * ribbon still reads correctly when the editor is mounted outside a
+ * DaisyUI host.
+ */
+
+.ap-visual-editor__composed-ribbon {
+	position: sticky;
+	top: 0;
+	z-index: 20;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 0.75rem;
+	padding: 0.5rem 1rem;
+	background-color: var( --color-base-200, #f3f4f6 );
+	border-bottom: 1px solid var( --color-base-300, #e5e7eb );
+	color: var( --color-base-content, #1f2937 );
+	font-size: 0.8125rem;
+	line-height: 1.4;
+
+	/* The ribbon is editor chrome that happens to live in the canvas —
+	   selecting its text on the way to selecting a block is never what
+	   the author meant. */
+	user-select: none;
+}
+
+.ap-visual-editor__composed-ribbon-label {
+	font-weight: 500;
+}
+
+.ap-visual-editor__composed-ribbon-cta {
+	flex-shrink: 0;
+	padding: 0.25rem 0.625rem;
+	border: 1px solid var( --color-base-300, #e5e7eb );
+	border-radius: 0.25rem;
+	background-color: var( --color-base-100, #ffffff );
+	color: var( --color-primary, #2563eb );
+	font-weight: 600;
+	text-decoration: none;
+	white-space: nowrap;
+}
+
+.ap-visual-editor__composed-ribbon-cta:hover,
+.ap-visual-editor__composed-ribbon-cta:focus-visible {
+	text-decoration: underline;
+}
+
+.ap-visual-editor__composed-ribbon-cta:focus-visible {
+	outline: var( --wp-admin-border-width-focus, 2px ) solid
+		var( --color-primary, #2563eb );
+	outline-offset: 1px;
+}

@@ -5,16 +5,9 @@ declare( strict_types=1 );
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\TemplateAdapter;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplate;
 
-// The adapter's raw→blocks server-side parse (#674) depends on
-// `BlockMarkupParser`, added in cms-framework 2.5. That version
-// requires PHP 8.3+, so on PHP 8.2 CI the composer resolver picks an
-// older cms-framework and the parser is absent. The adapter's
-// `class_exists` guard keeps runtime safe; tests that assert the
-// parsed output need this skip guard.
-function templatePartParserAvailable(): bool
-{
-	return class_exists( 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\BlockMarkupParser' );
-}
+// `templatePartParserAvailable()` lives in `tests/Pest.php`. It is shared
+// with `TemplatePartAdapterTest.php`, and declaring it here meant running
+// that file on its own died on an undefined function.
 
 function makeResolvedTemplate( array $overrides = [] ): ResolvedTemplate
 {
@@ -99,11 +92,11 @@ describe( 'single-record envelope', function (): void {
 		$out = ( new TemplateAdapter() )->toArray( $template );
 
 		expect( $out['content']['blocks'] )->toHaveCount( 1 )
-			->and( $out['content']['blocks'][0]['name'] )->toBe( 'core/group' )
+			->and( $out['content']['blocks'][0]['name'] )->toBe( 'artisanpack/group' )
 			->and( $out['content']['blocks'][0]['attributes'] )->toBe( [ 'tagName' => 'header' ] )
 			->and( $out['content']['blocks'][0]['innerBlocks'] )->toHaveCount( 2 )
-			->and( $out['content']['blocks'][0]['innerBlocks'][0]['name'] )->toBe( 'core/site-title' )
-			->and( $out['content']['blocks'][0]['innerBlocks'][1]['name'] )->toBe( 'core/navigation' )
+			->and( $out['content']['blocks'][0]['innerBlocks'][0]['name'] )->toBe( 'artisanpack/site-title' )
+			->and( $out['content']['blocks'][0]['innerBlocks'][1]['name'] )->toBe( 'artisanpack/navigation' )
 			->and( $out['content']['blocks'][0]['innerBlocks'][1]['attributes'] )->toBe( [ 'ref' => 42 ] );
 	} )->skip( fn () => ! templatePartParserAvailable(), 'requires cms-framework 2.5+ (PHP 8.3+)' );
 
@@ -170,8 +163,11 @@ describe( 'single-record envelope', function (): void {
 		// Defensive check for the raw-rewrite regex — a hypothetical
 		// `wp:template-parts-listing` block (or any name that shares
 		// the `template-part` prefix but has more chars after) must
-		// not be munged. The delimiter regex anchors on `[\s\/}]` at
-		// the end of the name segment.
+		// not be munged into `wp:artisanpack/template-part`. The
+		// delimiter regex anchors on `[\s\/}]` at the end of the name
+		// segment. The parsed tree still takes the blanket
+		// `core/` → `artisanpack/` namespace swap, which is the whole
+		// name and not a prefix mangle.
 		$template = makeResolvedTemplate( [
 			'rawContent' => '<!-- wp:template-parts-listing {"foo":1} /-->',
 			'blocks'     => [
@@ -182,7 +178,7 @@ describe( 'single-record envelope', function (): void {
 		$out = ( new TemplateAdapter() )->toArray( $template );
 
 		expect( $out['content']['raw'] )->toBe( '<!-- wp:template-parts-listing {"foo":1} /-->' )
-			->and( $out['content']['blocks'][0]['name'] )->toBe( 'core/template-parts-listing' );
+			->and( $out['content']['blocks'][0]['name'] )->toBe( 'artisanpack/template-parts-listing' );
 	} );
 
 	it( 'prefers the pre-parsed `blocks` array over re-parsing `raw` when both are populated', function (): void {
@@ -196,7 +192,7 @@ describe( 'single-record envelope', function (): void {
 		$out = ( new TemplateAdapter() )->toArray( $template );
 
 		expect( $out['content']['blocks'] )->toBe( [
-			[ 'name' => 'core/heading', 'attributes' => [ 'content' => 'FromBlocks' ], 'innerBlocks' => [] ],
+			[ 'name' => 'artisanpack/heading', 'attributes' => [ 'content' => 'FromBlocks' ], 'innerBlocks' => [] ],
 		] );
 	} );
 

@@ -1,23 +1,18 @@
 @php
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\BlockSupports;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\FlexSupport;
+	use ArtisanPackUI\VisualEditorRendererBlade\Support\LayoutSupport;
 	use ArtisanPackUI\VisualEditorRendererBlade\Support\PhotoGridSupport;
 
 	$tag = isset( $attributes['tagName'] ) && in_array( $attributes['tagName'], [ 'div', 'section', 'article', 'aside', 'header', 'footer', 'main', 'nav' ], true )
 		? $attributes['tagName']
 		: 'div';
 
-	$layoutType = isset( $attributes['layout']['type'] ) ? (string) $attributes['layout']['type'] : '';
+	$layoutType = isset( $attributes['layout']['type'] ) && is_string( $attributes['layout']['type'] )
+		? trim( $attributes['layout']['type'] )
+		: '';
 
-	if ( 'constrained' === $layoutType ) {
-		$layoutClass = 'is-layout-constrained';
-	} elseif ( 'flex' === $layoutType ) {
-		$layoutClass = 'is-layout-flex';
-	} elseif ( 'grid' === $layoutType ) {
-		$layoutClass = 'is-layout-grid';
-	} else {
-		$layoutClass = 'is-layout-flow';
-	}
+	$layoutClass = LayoutSupport::layoutClass( $attributes );
 
 	$flexClasses = FlexSupport::wrapperForBlock( $attributes );
 
@@ -39,7 +34,15 @@
 
 	$photoGridClasses = PhotoGridSupport::wrapperForBlock( $attributes );
 
-	$wrapperBaseClasses = array_merge( [ 'wp-block-group', $layoutClass ], $flexClasses, $photoGridClasses );
+	// #700 — the block-library CSS targets the per-block compound
+	// (`wp-block-group-is-layout-constrained`), so emit it alongside the
+	// shared modifier.
+	$wrapperBaseClasses = array_merge(
+		[ 'wp-block-group' ],
+		LayoutSupport::pair( 'group', $layoutClass ),
+		$flexClasses,
+		$photoGridClasses
+	);
 @endphp
 <{{ $tag }}{!! BlockSupports::wrapperAttrs( $attributes, $wrapperBaseClasses ) !!}>
 	{!! $innerBlocksHtml !!}

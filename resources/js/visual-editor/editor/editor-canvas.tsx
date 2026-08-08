@@ -35,12 +35,35 @@ import {
     BlockList,
     ObserveTyping,
 } from '@wordpress/block-editor';
+import { __ } from '@wordpress/i18n';
+import type { BlockInstance } from '@wordpress/blocks';
 import { useMemo } from 'react';
 
+import { canvasColorTokenStyle } from './canvas-color-tokens';
 import { canvasStyles } from './canvas-styles';
+import { ChromeBlocks } from './composed-view/ChromeBlocks';
+import { ComposedViewRibbon } from './composed-view/composed-view-ribbon';
 import { PostTitle } from './post-title';
 import { ROOT_CANVAS_LAYOUT } from '../editor-settings';
+import { TEXT_DOMAIN } from '../vendor/i18n';
 import { useThemeGlobalStylesCss } from '../site-editor/use-theme-global-styles-css';
+import { useThemeGlobalStylesSettings } from '../site-editor/use-theme-global-styles-settings';
+
+/**
+ * Applied-template chrome to render around the block list (#655). Already
+ * hydrated and split by the caller; `null` in bare-content mode.
+ */
+export interface CanvasChrome {
+    header: readonly BlockInstance[];
+    footer: readonly BlockInstance[];
+    /** Resolved template name, shown in the #623 ribbon. */
+    templateName: string;
+    /**
+     * Resolved template slug, or `null` on the built-in fallback
+     * template. `null` hides the ribbon's **Edit template ↗** CTA.
+     */
+    templateSlug: string | null;
+}
 
 /** Block context value stamped onto the canvas for cms-framework entities. */
 export interface CanvasBlockContext {
@@ -78,6 +101,20 @@ export interface EditorCanvasProps {
      * available editor area) — the `base` viewport state.
      */
     previewWidthPx?: number | null;
+    /**
+     * Composed-view chrome (#655). When non-null the resolved template's
+     * header and footer render as inert block previews inside the canvas
+     * iframe, above and below the live block list. Rendering them *inside*
+     * the iframe is what lets them pick up the theme's compiled CSS — the
+     * earlier out-of-iframe panel couldn't.
+     */
+    chrome?: CanvasChrome | null;
+    /**
+     * Path the site editor SPA is mounted at, forwarded to the composed
+     * view's ribbon so its **Edit template ↗** CTA points at the host's
+     * actual mount rather than the package default (#623).
+     */
+    siteEditorRouteBase?: string;
 }
 
 /**
@@ -92,6 +129,8 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
         blockContext,
         apiBase,
         previewWidthPx,
+        chrome,
+        siteEditorRouteBase,
     } = props;
 
     // Keystone #47: pull the compiled theme CSS once per `apiBase` and
@@ -100,15 +139,70 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
     // module-level so multiple consumers (site editor + post editor)
     // share one fetch when mounted in the same SPA session.
     const themeCss = useThemeGlobalStylesCss(apiBase);
-    const styles = useMemo(
-        () =>
-            themeCss === undefined || themeCss === ''
-                ? canvasStyles
-                : [...canvasStyles, { css: themeCss }],
-        [themeCss]
+
+    // #695 — the canvas surface is painted through package-owned custom
+    // properties (`--ap-editor-canvas-bg` / `-fg` in
+    // `canvas-theme-tokens.css`, `-heading-fg` in
+    // `DEFAULT_CANVAS_STYLES`) that nothing supplied, so a dark
+    // theme.json still rendered a light canvas. Derive them from the
+    // resolved theme and inject them as a `:root` rule. It lands
+    // *before* the compiled theme CSS so a theme's own `editor.css` can
+    // still override the variables directly, and stays at `:root` so a
+    // host rule on `body` / `.editor-styles-wrapper` keeps
+    // out-specifying it.
+    const themeBase = useThemeGlobalStylesSettings(apiBase);
+    const colorTokens = useMemo(
+        () => canvasColorTokenStyle(themeBase?.styles),
+        [themeBase]
     );
 
-    const blockList = <BlockList layout={ROOT_CANVAS_LAYOUT} />;
+    const styles = useMemo(() => {
+        if (colorTokens === null && (themeCss === undefined || themeCss === '')) {
+            return canvasStyles;
+        }
+
+        return [
+            ...canvasStyles,
+            ...(colorTokens === null ? [] : [colorTokens]),
+            ...(themeCss === undefined || themeCss === ''
+                ? []
+                : [{ css: themeCss }]),
+        ];
+    }, [themeCss, colorTokens]);
+
+    // Chrome sits as siblings of the block list inside the iframe. The
+    // previews mount isolated block-editor stores of their own, so the
+    // content provider's `value` is untouched and the canvas never
+    // remounts across a composed-view toggle.
+    //
+    // The #623 ribbon leads the composed stack. It is the only editing
+    // affordance for template chrome in v1 — individual template parts
+    // get no per-part badge — and it renders in here rather than in the
+    // editor shell so it sticks to the top of the *preview* and scrolls
+    // with it. Bare-content mode (`chrome === null`) never mounts it.
+    const blockList =
+        chrome === null || chrome === undefined ? (
+            <BlockList layout={ROOT_CANVAS_LAYOUT} />
+        ) : (
+            <>
+                <ComposedViewRibbon
+                    templateName={chrome.templateName}
+                    templateSlug={chrome.templateSlug}
+                    siteEditorRouteBase={siteEditorRouteBase}
+                />
+                <ChromeBlocks
+                    blocks={chrome.header}
+                    region="header"
+                    label={__('Template header (read-only)', TEXT_DOMAIN)}
+                />
+                <BlockList layout={ROOT_CANVAS_LAYOUT} />
+                <ChromeBlocks
+                    blocks={chrome.footer}
+                    region="footer"
+                    label={__('Template footer (read-only)', TEXT_DOMAIN)}
+                />
+            </>
+        );
 
     // #617 — an inline `width` (rather than `max-width`) means the
     // frame renders at exactly the requested preview size; wide

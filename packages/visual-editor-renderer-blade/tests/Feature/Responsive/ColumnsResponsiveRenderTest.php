@@ -30,7 +30,7 @@ it( 'consolidates spacing overrides into a single <style data-ve-responsive> blo
 	expect( substr_count( $rendered, '<style data-ve-responsive>' ) )->toBe( 1 );
 	expect( $rendered )->toContain( '@media (min-width:768px)' );
 	expect( $rendered )->toContain( '{padding:2rem!important}' );
-	expect( $rendered )->toMatch( '/class="wp-block-columns is-stacked-on-mobile ve-r-[a-f0-9]+"/' );
+	expect( $rendered )->toMatch( '/class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile ve-r-[a-f0-9]+"/' );
 
 	// Style block lives BEFORE the column wrapper, not inside it.
 	$styleEnd      = strpos( $rendered, '</style>' );
@@ -60,7 +60,7 @@ it( 'consolidates columnCount overrides through the same accumulator', function 
 
 	expect( $rendered )->toContain( '<style data-ve-responsive>' );
 	expect( $rendered )->toContain( 'grid-template-columns:repeat(4,minmax(0,1fr))!important' );
-	expect( $rendered )->toMatch( '/class="wp-block-columns is-stacked-on-mobile ve-cols-[a-f0-9]+"/' );
+	expect( $rendered )->toMatch( '/class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile ve-cols-[a-f0-9]+"/' );
 } );
 
 it( 'merges spacing + columnCount + multiple blocks into one style block', function () {

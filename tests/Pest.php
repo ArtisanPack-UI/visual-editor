@@ -54,6 +54,24 @@ expect()->extend('toBeOne', function () {
 |
 */
 
+/**
+ * Whether cms-framework's `BlockMarkupParser` is installed.
+ *
+ * The adapters' raw→blocks server-side parse (#674) depends on it, and it
+ * arrived in cms-framework 2.5 — which requires PHP 8.3+, so on PHP 8.2 CI
+ * the composer resolver picks an older cms-framework and the parser is
+ * absent. Production code guards with `class_exists`; tests asserting the
+ * parsed output skip on this.
+ *
+ * Declared here rather than in an adapter test file because both
+ * `TemplateAdapterTest` and `TemplatePartAdapterTest` use it, and a
+ * cross-file declaration broke running the latter on its own.
+ */
+function templatePartParserAvailable(): bool
+{
+    return class_exists( 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\BlockMarkupParser' );
+}
+
 function something()
 {
     // ..

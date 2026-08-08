@@ -107,9 +107,10 @@
  * The canvas *surface* background is now painted inside the iframe via
  * `canvas-theme-tokens.css` — the parent-document rule that used to do
  * it (`.ap-visual-editor__canvas.editor-styles-wrapper`) can't reach
- * the iframe document. Hosts still override `--ap-editor-canvas-bg` /
- * `--ap-editor-canvas-fg`; once the theme.json reader lands it'll
- * supply these from `settings.color.background`.
+ * the iframe document. Those tokens (`--ap-editor-canvas-bg` /
+ * `--ap-editor-canvas-fg`) are supplied from the resolved theme.json's
+ * `styles.color` by `canvas-color-tokens.ts` (#695); hosts still
+ * override them with a rule on `body` / `.editor-styles-wrapper`.
  */
 .ap-visual-editor__canvas-frame {
     flex: 1 1 auto;
@@ -216,4 +217,20 @@
     font-size: 14px;
     line-height: 1.5;
     color: var(--color-base-content, #374151);
+}
+
+/* Composed mode with no resolvable template — explains why the canvas is
+   showing bare content while the view-mode switch is on. */
+.ap-visual-editor__composed-notice {
+    margin: 12px 24px 0;
+    flex: 0 0 auto;
+}
+
+/* Stack the chrome preview panels above/below the block canvas
+   without disturbing the parent flex row (inserter | canvas | inspector). */
+.ap-visual-editor__canvas-stack {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
 }

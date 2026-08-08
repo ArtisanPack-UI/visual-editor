@@ -215,6 +215,32 @@ const FIXTURES: Array<{ name: string; tree: Block[] }> = [
         ],
     },
     {
+        // #702 — the constrained / grid layout branches and the
+        // post-content layout attribute all mint per-block compound
+        // classes, so they get their own parity fixture.
+        name: 'group layout variants + post-content layout',
+        tree: [
+            makeBlock(
+                'core/group',
+                { layout: { type: 'constrained' } },
+                [makeBlock('core/paragraph', { content: 'Constrained' }, [], 'cp')],
+                'gc'
+            ),
+            makeBlock(
+                'core/group',
+                { layout: { type: 'grid' } },
+                [makeBlock('core/paragraph', { content: 'Grid' }, [], 'gp')],
+                'gg'
+            ),
+            makeBlock(
+                'core/post-content',
+                { _resolvedContent: '<p>Body</p>', layout: { type: 'constrained' } },
+                [],
+                'pc'
+            ),
+        ],
+    },
+    {
         name: 'row / stack containers',
         tree: [
             makeBlock(

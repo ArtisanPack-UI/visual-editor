@@ -27,6 +27,7 @@ namespace ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEd
 
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\ResolvedTemplate;
+use ArtisanPackUI\VisualEditor\Support\ThemeBlockMarkup;
 
 class TemplateAdapter
 {
@@ -75,19 +76,11 @@ class TemplateAdapter
 			$blocks = self::parseRawContentToEditorBlocks( $template->rawContent );
 		}
 
-		// Rewrite `core/template-part` → `artisanpack/template-part` in
-		// both the parsed tree and the raw string. The I7 cutover (#415)
-		// replaced `registerCoreBlocks()` with an artisanpack-only
-		// registration, so `core/template-part` blocks reach the editor
-		// unregistered and get silently dropped — the visible half of
-		// the #674 failure. The `artisanpack/template-part` fork IS
-		// registered and, paired with its updated edit component, mounts
-		// a real `<InnerBlocks>` surface fed by the shim's
-		// `useEntityBlockEditor` composite-id resolver. Themes on disk
-		// still write `<!-- wp:template-part /-->` (WP core convention),
-		// so we translate here rather than requiring theme authors to
-		// switch namespaces.
-		$blocks     = self::rewriteTemplatePartToFork( $blocks );
+		// The raw string only needs the `core/template-part` →
+		// `artisanpack/template-part` swap: `content.raw` exists for
+		// reserialization, and rewriting every core name there would
+		// write fork namespaces back into theme files on save. The
+		// parsed tree gets the blanket rewrite further down.
 		$rawContent = self::rewriteRawTemplatePartToFork( $template->rawContent );
 
 		// Stamp `ref` on any nested `core/navigation` block whose
@@ -101,6 +94,22 @@ class TemplateAdapter
 			$blocks,
 			$template->theme,
 		);
+
+		// Rewrite *every* `core/x` name to its `artisanpack/x` fork. The
+		// I7 cutover (#415) replaced `registerCoreBlocks()` with an
+		// artisanpack-only registration, so any core-named block reaching
+		// the editor is unregistered and renders nothing — #674 caught
+		// that for `core/template-part`, but the same hole swallowed
+		// `core/site-title`, `core/post-title` and every other core name a
+		// theme file or filter contributor supplies. Themes on disk write
+		// core markup (the WP convention), so the translation belongs here
+		// rather than in every theme and consuming app.
+		//
+		// Runs *after* NavigationBlockRefResolver on purpose: that resolver
+		// matches `core/navigation` by name, so rewriting first would hide
+		// every nav block from it and regress the Keystone #48 `ref`
+		// stamping.
+		$resolvedBlocks = ThemeBlockMarkup::rewriteCoreToFork( $resolvedBlocks );
 
 		return [
 			'id'             => $template->wpId > 0 ? $template->wpId : $template->slug,
@@ -169,56 +178,9 @@ class TemplateAdapter
 	 */
 	protected static function parseRawContentToEditorBlocks( string $raw ): array
 	{
-		$parserFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\BlockMarkupParser';
-
-		if ( ! class_exists( $parserFqcn ) ) {
-			return [];
-		}
-
-		$parsed = $parserFqcn::parse( $raw );
-
-		return self::convertParseBlocksTree( $parsed );
-	}
-
-	/**
-	 * Rewrite `core/template-part` block names to their registered
-	 * `artisanpack/template-part` fork throughout an editor-shape
-	 * tree. See {@see toArray()} for the I7 cutover rationale.
-	 * Recurses into `innerBlocks` even though real template-part
-	 * refs are self-closing, so a theme author's non-standard
-	 * nesting doesn't leave a stray unregistered node behind.
-	 *
-	 * @since 1.5.1
-	 *
-	 * @param  array<int, array<string, mixed>>  $tree
-	 *
-	 * @return array<int, array<string, mixed>>
-	 */
-	protected static function rewriteTemplatePartToFork( array $tree ): array
-	{
-		$out = [];
-
-		foreach ( $tree as $block ) {
-			if ( ! is_array( $block ) ) {
-				$out[] = $block;
-				continue;
-			}
-
-			$name  = $block['name'] ?? null;
-			$inner = is_array( $block['innerBlocks'] ?? null ) ? $block['innerBlocks'] : [];
-
-			if ( 'core/template-part' === $name ) {
-				$block['name'] = 'artisanpack/template-part';
-			}
-
-			if ( [] !== $inner ) {
-				$block['innerBlocks'] = self::rewriteTemplatePartToFork( $inner );
-			}
-
-			$out[] = $block;
-		}
-
-		return $out;
+		// Shared with the composed view's applied-template endpoint (#655),
+		// which hit the same empty-`blocks` theme-file case.
+		return ThemeBlockMarkup::parseToEditorBlocks( $raw );
 	}
 
 	/**
@@ -258,28 +220,6 @@ class TemplateAdapter
 	 */
 	protected static function convertParseBlocksTree( array $tree ): array
 	{
-		$out = [];
-
-		foreach ( $tree as $block ) {
-			if ( ! is_array( $block ) ) {
-				continue;
-			}
-
-			$name = $block['blockName'] ?? null;
-
-			if ( ! is_string( $name ) || '' === $name ) {
-				continue;
-			}
-
-			$inner = is_array( $block['innerBlocks'] ?? null ) ? $block['innerBlocks'] : [];
-
-			$out[] = [
-				'name'        => $name,
-				'attributes'  => is_array( $block['attrs'] ?? null ) ? $block['attrs'] : [],
-				'innerBlocks' => self::convertParseBlocksTree( $inner ),
-			];
-		}
-
-		return $out;
+		return ThemeBlockMarkup::convertParseBlocksTree( $tree );
 	}
 }

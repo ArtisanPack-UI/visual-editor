@@ -8,10 +8,14 @@
  *
  *   1. `<link>`s to the bundled `@wordpress/block-library` `style.css`
  *      + `theme.css` — the same CSS the editor uses, copied into this
- *      package's `resources/assets/block-library/` directory. The
- *      `vendor:publish --tag=visual-editor-renderer-blade-assets`
- *      command copies those files into `public/vendor/visual-editor-
- *      renderer-blade/`, where this component points by default.
+ *      package's `resources/assets/block-library/` directory. The package
+ *      registers a route that serves those files from
+ *      `/vendor/visual-editor-renderer-blade/`, where this component
+ *      points by default, so no install step is required. Hosts that
+ *      prefer static delivery can still run
+ *      `vendor:publish --tag=visual-editor-renderer-blade-assets` to copy
+ *      the files into `public/`; the web server then serves them and the
+ *      route is never reached.
  *   2. A `<style>` block with `--wp--preset--*` CSS custom properties
  *      compiled from a `theme.json` payload, so a block referencing e.g.
  *      `var(--wp--preset--color--primary)` resolves on the public site
@@ -46,10 +50,10 @@ use Illuminate\View\Component;
 class BlocksStylesComponent extends Component
 {
 	/**
-	 * URL the bundled block-library CSS is served from. The
-	 * `vendor:publish --tag=visual-editor-renderer-blade-assets` step
-	 * copies the files to `public/vendor/visual-editor-renderer-blade/`,
-	 * which the asset() helper resolves to this URL.
+	 * URL the bundled block-library CSS is served from. The package's
+	 * asset route answers this prefix out of the box; publishing to
+	 * `public/vendor/visual-editor-renderer-blade/` shadows it with a
+	 * static file at the same URL.
 	 */
 	public const DEFAULT_ASSET_BASE = '/vendor/visual-editor-renderer-blade';
 

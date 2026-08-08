@@ -210,6 +210,12 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 	{
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor-renderer-blade' );
 
+		// #699 — serves the bundled block-library + `frontend/*` assets from
+		// the package so `<x-ve-blocks-styles />` resolves with no publish
+		// step. A consumer that has published the assets never reaches this
+		// route: the web server hands back the static `public/` file first.
+		$this->loadRoutesFrom( __DIR__ . '/../routes/assets.php' );
+
 		Blade::component( BlocksComponent::class, 've-blocks' );
 		Blade::component( BlocksStylesComponent::class, 've-blocks-styles' );
 		Blade::component( TemplateComponent::class, 've-template' );
@@ -219,11 +225,18 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 				__DIR__ . '/../resources/views' => resource_path( 'views/vendor/visual-editor-renderer-blade' ),
 			], 'visual-editor-blade-views' );
 
-			// Asset publish path: copies the bundled `@wordpress/block-library`
-			// CSS to the consumer's `public/vendor/visual-editor-renderer-blade/`,
-			// which `<x-ve-blocks-styles />` links to by default. Also ships the
+			// Optional asset publish path: copies the bundled
+			// `@wordpress/block-library` CSS to the consumer's
+			// `public/vendor/visual-editor-renderer-blade/`, which
+			// `<x-ve-blocks-styles />` links to by default. Also ships the
 			// accordion + tabs front-end stylesheets and interactivity script
 			// under `public/vendor/visual-editor-renderer-blade/frontend/`.
+			//
+			// Publishing is no longer required — the route registered above
+			// serves the same files straight out of the package (#699). It
+			// stays available for hosts that prefer the web server to serve
+			// the assets statically; those hosts must re-run the command with
+			// `--force` after every package upgrade to pick up refreshed CSS.
 			$this->publishes( [
 				__DIR__ . '/../resources/assets/block-library' => public_path( 'vendor/visual-editor-renderer-blade' ),
 				__DIR__ . '/../resources/assets/frontend'      => public_path( 'vendor/visual-editor-renderer-blade/frontend' ),

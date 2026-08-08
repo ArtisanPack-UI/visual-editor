@@ -73,6 +73,49 @@ it( 'inherits the parent envelope shape (title, content, source, has_theme_file)
 		->and( $out['has_theme_file'] )->toBeTrue();
 } );
 
+it( 'rewrites every core block name in a part to its artisanpack fork', function (): void {
+	// The composed view's template-part chrome rendered blank because
+	// this endpoint — the one the `artisanpack/template-part` fork block
+	// resolves through since #675 — served theme-authored `core/*` names
+	// straight through. The I7 cutover (#415) left those unregistered, so
+	// the part resolved but mounted nothing. #674 fixed the same hole for
+	// `core/template-part` only; this covers the whole namespace.
+	$part = makeResolvedTemplatePart( [
+		'rawContent' => '',
+		'blocks'     => [
+			[
+				'name'        => 'core/group',
+				'attributes'  => [],
+				'innerBlocks' => [
+					[ 'name' => 'core/site-title', 'attributes' => [], 'innerBlocks' => [] ],
+					[ 'name' => 'core/paragraph', 'attributes' => [], 'innerBlocks' => [] ],
+				],
+			],
+		],
+	] );
+
+	$out = ( new TemplatePartAdapter() )->toArray( $part );
+
+	expect( $out['content']['blocks'][0]['name'] )->toBe( 'artisanpack/group' )
+		->and( $out['content']['blocks'][0]['innerBlocks'][0]['name'] )->toBe( 'artisanpack/site-title' )
+		->and( $out['content']['blocks'][0]['innerBlocks'][1]['name'] )->toBe( 'artisanpack/paragraph' );
+} );
+
+it( 'parses a raw-only theme part and forks the names it finds', function (): void {
+	// Theme parts on disk arrive with `rawContent` populated and `blocks`
+	// empty. Both legs — the parse and the rewrite — have to run or the
+	// part is empty chrome again.
+	$part = makeResolvedTemplatePart( [
+		'rawContent' => '<!-- wp:site-title /-->',
+		'blocks'     => [],
+	] );
+
+	$out = ( new TemplatePartAdapter() )->toArray( $part );
+
+	expect( $out['content']['blocks'] )->toHaveCount( 1 )
+		->and( $out['content']['blocks'][0]['name'] )->toBe( 'artisanpack/site-title' );
+} )->skip( fn () => ! templatePartParserAvailable(), 'requires cms-framework 2.5+ (PHP 8.3+)' );
+
 it( 'rejects a plain ResolvedTemplate to keep the area field invariant', function (): void {
 	$bareTemplate = new ResolvedTemplate(
 		slug         : 'index',

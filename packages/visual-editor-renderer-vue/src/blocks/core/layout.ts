@@ -12,6 +12,8 @@ import {
     attrString,
     classList,
     formatPercent,
+    layoutClass,
+    layoutPair,
 } from '../../support/attributes';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeUrl } from '../../support/urlSanitizer';
@@ -31,18 +33,37 @@ export const GroupBlock = defineComponent({
                 ? (tagName as GroupTag)
                 : 'div';
 
-            const layout = attrRecord(props.attributes.layout);
-            const layoutType = attrString(layout.type);
-            const layoutClass =
-                layoutType === 'constrained'
-                    ? 'is-layout-constrained'
-                    : layoutType === 'flex'
-                    ? 'is-layout-flex'
-                    : 'is-layout-flow';
-
             const className = attrString(props.attributes.className);
             const flexClasses = flexClassNames(props.attributes.artisanpackFlex);
-            const classes = classList(['wp-block-group', layoutClass, ...flexClasses, className]);
+
+            // #595 / #711 — when our Flex Layout panel is active at the
+            // base breakpoint, switch the layout class to `is-layout-flex`
+            // so the baseline
+            // `is-layout-flow > * + * { margin-block-start: gap }` rule
+            // does not push children apart along the cross axis.
+            //
+            // Match only the unprefixed `ap-flex` (the base-breakpoint
+            // emit). Breakpoint-prefixed variants like `md:ap-flex` mean
+            // "flex starts at md+"; flipping the wrapper to
+            // `is-layout-flex` for them would apply flex below the
+            // breakpoint too. Mirrors `group.blade.php`.
+            const storedLayoutType = attrString(attrRecord(props.attributes.layout).type).trim();
+            let groupLayoutClass = layoutClass(props.attributes);
+
+            if (storedLayoutType === '' && flexClasses.includes('ap-flex')) {
+                groupLayoutClass = 'is-layout-flex';
+            }
+
+            // #702 — the block-library CSS targets the per-block compound
+            // (`wp-block-group-is-layout-constrained`), so emit it alongside
+            // the shared modifier. `layoutClass()` also covers the `grid`
+            // type the old inline ternary silently rendered as flow.
+            const classes = classList([
+                'wp-block-group',
+                ...layoutPair('group', groupLayoutClass),
+                ...flexClasses,
+                className,
+            ]);
 
             return h(tag, { class: classes }, slots.default ? slots.default() : []);
         };
@@ -55,7 +76,14 @@ export const RowBlock = defineComponent({
     setup(props, { slots }) {
         return () => {
             const className = attrString(props.attributes.className);
-            const classes = classList(['wp-block-group', 'is-layout-flex', 'is-horizontal', className]);
+            // Renders `wp-block-group` markup, so the per-block layout
+            // compound is keyed on `group` rather than `row` (#702).
+            const classes = classList([
+                'wp-block-group',
+                ...layoutPair('group', 'is-layout-flex'),
+                'is-horizontal',
+                className,
+            ]);
 
             return h('div', { class: classes }, slots.default ? slots.default() : []);
         };
@@ -68,7 +96,14 @@ export const StackBlock = defineComponent({
     setup(props, { slots }) {
         return () => {
             const className = attrString(props.attributes.className);
-            const classes = classList(['wp-block-group', 'is-layout-flex', 'is-vertical', className]);
+            // Renders `wp-block-group` markup, so the per-block layout
+            // compound is keyed on `group` rather than `stack` (#702).
+            const classes = classList([
+                'wp-block-group',
+                ...layoutPair('group', 'is-layout-flex'),
+                'is-vertical',
+                className,
+            ]);
 
             return h('div', { class: classes }, slots.default ? slots.default() : []);
         };
@@ -88,8 +123,13 @@ export const ColumnsBlock = defineComponent({
             const verticalAlignment = attrString(props.attributes.verticalAlignment);
 
             const flexClasses = flexClassNames(props.attributes.artisanpackFlex);
+            // #702 — columns is a flex layout upstream and its wrapper
+            // carries both the shared modifier and the per-block compound.
+            // Neither was emitted here, so layout rules keyed on either
+            // never applied.
             const classes = classList([
                 'wp-block-columns',
+                ...layoutPair('columns', 'is-layout-flex'),
                 isStacked ? 'is-stacked-on-mobile' : null,
                 verticalAlignment !== '' ? `are-vertically-aligned-${verticalAlignment}` : null,
                 ...flexClasses,
@@ -161,7 +201,7 @@ export const ButtonsBlock = defineComponent({
 
             const classes = classList([
                 'wp-block-buttons',
-                'is-layout-flex',
+                ...layoutPair('buttons', 'is-layout-flex'),
                 justify !== '' ? `is-content-justification-${justify}` : 'is-content-justification-left',
                 className,
             ]);

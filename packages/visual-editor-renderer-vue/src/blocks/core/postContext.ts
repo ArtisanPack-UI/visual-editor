@@ -9,7 +9,13 @@
 
 import { defineComponent, h } from 'vue';
 import type { VNode } from 'vue';
-import { attrBoolean, attrInt, attrString, classList } from '../../support/attributes';
+import {
+    attrBoolean,
+    attrInt,
+    attrString,
+    classList,
+    layoutWrapperForBlock,
+} from '../../support/attributes';
 import { safeUrl } from '../../support/urlSanitizer';
 import { blockRendererProps } from '../shared';
 
@@ -80,9 +86,15 @@ export const PostContentBlock = defineComponent({
             const className = attrString(props.attributes.className);
             const content = attrString(props.attributes._resolvedContent);
 
+            // #702 — the block stores a `layout` attribute like every other
+            // layout-supporting block, but the wrapper never surfaced it.
+            // Without `is-layout-constrained` here the content-size
+            // containment rules the theme-token compiler emits for
+            // `.wp-block-post-content` can never match.
             const classes = classList([
                 'entry-content',
                 'wp-block-post-content',
+                ...layoutWrapperForBlock(props.attributes, 'post-content'),
                 align !== '' ? `has-text-align-${align}` : null,
                 className,
             ]);

@@ -1,7 +1,7 @@
 {
   "name": "artisanpack-ui/visual-editor",
   "description": "A Gutenberg-powered visual editor for Laravel — post editor, site editor, and Blade/React/Vue block renderers.",
-  "version": "1.5.5",
+  "version": "1.6.0",
   "type": "library",
   "license": "GPL-3.0-or-later",
   "autoload": {
@@ -76,7 +76,8 @@
     "repositories": "The path repository to ../cms-framework is a development-only convenience for the symlinked workflow used in the dev-app (see ../artisanpack-ui-dev/composer.json). On a fresh clone without the sibling cms-framework checkout, composer install will fail to resolve cms-framework — that's expected for now; the package's release pipeline pulls cms-framework from Packagist via the ^2.0 constraint. CI removes this entry before installing. Tracked for a permanent fix (e.g. an env-gated repository) in #434."
   },
   "scripts": {
-    "test": "./vendor/bin/pest"
+    "test": "./vendor/bin/pest",
+    "test:update-markup-goldens": "UPDATE_MARKUP_GOLDENS=1 ./vendor/bin/pest --no-coverage packages/visual-editor-renderer-blade/tests/Feature/RendererMarkupParityTest.php"
   },
   "config": {
     "allow-plugins": {
