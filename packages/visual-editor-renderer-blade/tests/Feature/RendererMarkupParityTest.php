@@ -156,3 +156,20 @@ it( 'has a golden for every fixture and no orphaned goldens', function () {
 
 	expect( $actual )->toBe( $expected );
 } );
+
+/**
+ * A `dropClassTokensMatching` source that compiles under `new RegExp()` but
+ * not under PCRE is the worst kind of drift: `preg_match()` reports a failed
+ * compile as `false`, which reads exactly like "no match", so the golden is
+ * written *with* the token while the JS side drops it. Fail loudly here
+ * instead, on both sides.
+ */
+it( 'compiles every declared divergence pattern', function () {
+	$patterns = markupParityDropClassPatterns();
+
+	expect( $patterns )->not->toBeEmpty();
+
+	foreach ( $patterns as $pattern ) {
+		expect( CanonicalMarkup::compileDropClassPattern( $pattern ) )->toBeString();
+	}
+} );

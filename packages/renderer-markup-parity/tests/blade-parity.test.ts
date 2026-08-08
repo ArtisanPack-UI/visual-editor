@@ -101,6 +101,22 @@ async function renderVue(tree: Block[]): Promise<string> {
     );
 }
 
+describe('declared divergences', () => {
+    // Mirror of the Pest `compiles every declared divergence pattern` test.
+    // A source that compiles here but not under PCRE would silently keep the
+    // token in the golden while the JS side dropped it, since preg_match()
+    // reports a failed compile as `false` — indistinguishable from "no
+    // match". Both sides assert compilation so the mismatch surfaces at the
+    // point it is introduced.
+    it('declares at least one pattern and compiles all of them', () => {
+        expect(DROP_CLASS_PATTERNS.length).toBeGreaterThan(0);
+
+        for (const source of DROP_CLASS_PATTERNS) {
+            expect(() => new RegExp(source)).not.toThrow();
+        }
+    });
+});
+
 describe('Blade/React/Vue markup parity', () => {
     it.each(FIXTURES)('React matches the Blade golden for $name', ({ name, tree }) => {
         expect(renderReact(tree)).toBe(readGolden(name));

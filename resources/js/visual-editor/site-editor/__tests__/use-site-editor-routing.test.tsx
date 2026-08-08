@@ -93,6 +93,51 @@ describe('parseSiteEditorPath', () => {
             entityId: null,
         });
     });
+
+    describe('with a rejected routeBase', () => {
+        let warn: ReturnType<typeof vi.spyOn>;
+
+        beforeEach(() => {
+            warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+        });
+
+        afterEach(() => {
+            warn.mockRestore();
+        });
+
+        // `normalizeRouteBase` substitutes the package's own mount path for
+        // anything that isn't a same-origin absolute path. Pinned here
+        // because the substitution is invisible in the parse result: the
+        // host's own URLs stop resolving and every parse quietly returns the
+        // default section. The warning is the only signal an integrator gets.
+        it.each([
+            ['a relative path', 'visual-editor/site'],
+            ['an absolute URL', 'https://example.com/site'],
+            ['a protocol-relative host', '//example.com/site'],
+        ])('substitutes the package default for %s and warns once', (_label, base) => {
+            expect(parseSiteEditorPath(`${base}/patterns`, base)).toEqual({
+                section: 'templates',
+                entityId: null,
+            });
+
+            // The substituted base is what actually parses.
+            expect(parseSiteEditorPath('/visual-editor/site/patterns', base)).toEqual({
+                section: 'patterns',
+                entityId: null,
+            });
+
+            expect(warn).toHaveBeenCalledTimes(1);
+            expect(String(warn.mock.calls[0]?.[0])).toContain(base);
+        });
+
+        it('does not warn for a base that only needs its trailing slash trimmed', () => {
+            expect(
+                parseSiteEditorPath(`${ROUTE_BASE}/patterns`, `${ROUTE_BASE}/`)
+            ).toEqual({ section: 'patterns', entityId: null });
+
+            expect(warn).not.toHaveBeenCalled();
+        });
+    });
 });
 
 describe('buildSiteEditorPath', () => {

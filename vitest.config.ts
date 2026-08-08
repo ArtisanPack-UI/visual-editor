@@ -23,5 +23,13 @@ export default defineConfig({
             'resources/js/visual-editor/**/*.{test,spec}.{ts,tsx}',
             'packages/**/tests/**/*.{test,spec}.{ts,tsx}',
         ],
+        // The `packages/**` glob otherwise sweeps up
+        // `packages/visual-editor-renderer-blade/vendor/artisanpack-ui/
+        // visual-editor/packages/…`, a physical Composer copy of this same
+        // repo. Those stale duplicates either fail on code that no longer
+        // exists or keep asserting removed behaviour, so they are excluded
+        // outright. `node_modules` is restated because setting `exclude`
+        // replaces Vitest's default list rather than extending it.
+        exclude: ['**/node_modules/**', '**/vendor/**'],
     },
 });

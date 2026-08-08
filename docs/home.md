@@ -177,4 +177,4 @@ For issues, feature requests, and contributions:
 
 ---
 
-*This documentation covers visual-editor v1.5.5*
+*This documentation covers visual-editor v1.6.0*

@@ -56,6 +56,45 @@ interface UseSiteEditorRoutingOptions {
 }
 
 /**
+ * `routeBase` values already reported as rejected, so the warning below
+ * fires once per distinct bad value rather than on every parse and every
+ * navigation.
+ */
+const warnedRouteBases = new Set<string>();
+
+/**
+ * `normalizeRouteBase` substitutes the package's own mount path for any
+ * base that isn't a same-origin absolute path. That substitution is right
+ * for `buildTemplateDeepLink`, where the result goes straight into an
+ * `<a href>` and an absolute or `javascript:` URL would be an off-site
+ * link. It is a poor *silent* default for the SPA's own routing: a host
+ * that mounts the site editor at a relative path gets every in-SPA
+ * navigation rewritten to `/visual-editor/site/…`, URLs it does not
+ * serve, and a reload 404s with nothing in the console to explain it.
+ *
+ * The substitution still happens — an unusable base is not better than a
+ * wrong one — but it says so.
+ */
+function resolveSpaRouteBase(routeBase: string): string {
+    const normalized = normalizeRouteBase(routeBase);
+
+    if (
+        normalized !== routeBase.replace(/\/+$/, '') &&
+        !warnedRouteBases.has(routeBase)
+    ) {
+        warnedRouteBases.add(routeBase);
+
+        console.warn(
+            `[visual-editor] Ignoring site-editor routeBase ${JSON.stringify(routeBase)}: ` +
+                'it must be a same-origin absolute path beginning with a single "/". ' +
+                `Falling back to ${JSON.stringify(normalized)}, which this host may not serve.`
+        );
+    }
+
+    return normalized;
+}
+
+/**
  * Pure URL parser. Exported for tests so they can assert the mapping
  * without running the hook.
  */
@@ -67,7 +106,7 @@ export function parseSiteEditorPath(
     // two disagree for a non-canonical base: navigation would write URLs
     // under the canonical path while the parser, still matching the raw
     // base, read every one of them as the default section.
-    const normalizedBase = normalizeRouteBase(routeBase);
+    const normalizedBase = resolveSpaRouteBase(routeBase);
 
     if (
         pathname !== normalizedBase &&
@@ -123,7 +162,7 @@ export function buildSiteEditorPath(
 ): string {
     // Shared with `buildTemplateDeepLink`: an absolute or `javascript:`
     // base would leave the SPA's own origin from inside an `<a href>`.
-    const normalizedBase = normalizeRouteBase(routeBase);
+    const normalizedBase = resolveSpaRouteBase(routeBase);
     const tail =
         entityId === null
             ? section

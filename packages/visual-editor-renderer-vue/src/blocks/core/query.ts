@@ -15,6 +15,7 @@
 import { defineComponent, h } from 'vue';
 import {
     attrInt,
+    attrRecord,
     attrString,
     classList,
     layoutPair,
@@ -39,6 +40,23 @@ function clampColumns(value: unknown, fallback: number): number {
         return 12;
     }
     return parsed;
+}
+
+/**
+ * Read the post-template's saved layout name from either shape it can
+ * take: the ArtisanPack post-template's plain `layout` string, or an
+ * upstream `core/post-template` mirror's object-form `layout.type`.
+ *
+ * Gutenberg's third shape — the sibling `layoutType` attribute — is
+ * handled by the caller, matching `post-template.blade.php` and
+ * `QueryInliner::postTemplateLayoutIsGrid()`.
+ */
+function resolveLayoutName(value: unknown): string {
+    if (typeof value === 'string') {
+        return value;
+    }
+
+    return attrString(attrRecord(value).type);
 }
 
 function isDevelopment(): boolean {
@@ -83,7 +101,7 @@ export const PostTemplateBlock = defineComponent({
     setup(props, { slots }) {
         return () => {
             const className = attrString(props.attributes.className);
-            const layout = attrString(props.attributes.layout);
+            const layout = resolveLayoutName(props.attributes.layout);
             const layoutType = attrString(props.attributes.layoutType);
             const isGrid = layout === 'grid' || layoutType === 'grid';
             const isMasonry = layout === 'masonry';

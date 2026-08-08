@@ -191,6 +191,12 @@ Behaviour worth relying on:
   throwing.
 - **Unresolvable slug lands on the Templates index** with a toast reading
   `The template "{slug}" was not found.` A failed lookup does the same.
+- **Your own navigation wins.** If you browse elsewhere in the SPA while
+  the slug lookup is still in flight, the landing is abandoned rather
+  than yanking you to the deep-link target when it resolves. Navigating
+  away and back counts as navigating: the check is the deep-link query
+  still being present, which every in-SPA navigation clears and none
+  restores.
 - **The access gate is unchanged.** `SiteEditorAccessGate` runs
   server-side, before the SPA mounts, so a denied request still renders
   the deny-by-default page and never reaches this parsing.

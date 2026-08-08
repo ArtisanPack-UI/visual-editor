@@ -114,6 +114,61 @@ it( 'refuses to traverse outside the bundled assets directory', function ( strin
 ] );
 
 /**
+ * Every traversal payload above ends in a non-allow-listed extension, so the
+ * extension check 404s the request before `realpath()` containment is ever
+ * consulted — the `str_starts_with( $file, $root . … )` guard in
+ * routes/assets.php had no coverage on the path where it is the only
+ * remaining defense.
+ *
+ * These cases close that gap: an allow-listed `.css` request for a file that
+ * exists and resolves *outside* the bundle. The symlink case is the decisive
+ * one — `realpath()` follows it, `is_file()` passes, and no dot segment
+ * appears in the URL for the HTTP layer to normalize away, so the containment
+ * check is provably the only thing left standing between the request and a
+ * file outside the package's asset directory.
+ */
+describe( 'realpath containment', function () {
+	beforeEach( function () {
+		$packageRoot = dirname( __DIR__, 2 );
+
+		$this->outsideFile = $packageRoot . '/resources/ve-outside-fixture.css';
+		$this->plantedLink = $packageRoot . '/resources/assets/block-library/ve-outside-fixture.css';
+
+		file_put_contents( $this->outsideFile, '.ve-outside-fixture{color:red}' );
+
+		if ( is_link( $this->plantedLink ) || file_exists( $this->plantedLink ) ) {
+			unlink( $this->plantedLink );
+		}
+
+		symlink( $this->outsideFile, $this->plantedLink );
+	} );
+
+	afterEach( function () {
+		if ( is_link( $this->plantedLink ) || file_exists( $this->plantedLink ) ) {
+			unlink( $this->plantedLink );
+		}
+
+		if ( file_exists( $this->outsideFile ) ) {
+			unlink( $this->outsideFile );
+		}
+	} );
+
+	it( '404s a .css symlink that resolves outside the bundled assets directory', function () {
+		// Guards the guard: if this is false the request never reaches the
+		// containment check and the test proves nothing.
+		expect( is_file( $this->plantedLink ) )->toBeTrue();
+
+		$this->get( '/vendor/visual-editor-renderer-blade/ve-outside-fixture.css' )
+			->assertNotFound();
+	} );
+
+	it( '404s a .css dot-segment path that resolves above the assets directory', function () {
+		$this->get( '/vendor/visual-editor-renderer-blade/frontend/../../ve-outside-fixture.css' )
+			->assertNotFound();
+	} );
+} );
+
+/**
  * A null byte reaching `realpath()` raises a ValueError — a 500 rather than
  * a 404. The route's `where()` pattern rejects the request before then.
  * CR / LF / TAB never get this far: Symfony's `Request` rejects those URIs

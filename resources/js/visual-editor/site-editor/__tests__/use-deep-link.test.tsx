@@ -238,6 +238,43 @@ describe('useSiteEditorDeepLink', () => {
         expect(navigate).not.toHaveBeenCalled();
     });
 
+    it('abandons the landing when the user navigates away and back in flight', async () => {
+        // The pathname round-trips: away to `patterns`, then back to the
+        // index the deep link was mounted on. A pathname-only guard reads
+        // that as "nothing has happened yet" and teleports the author on
+        // the late resolution. The deep-link query is the durable signal —
+        // every in-SPA navigation clears it and none puts it back.
+        window.history.replaceState(
+            {},
+            '',
+            '/visual-editor/site?entity=template&slug=single'
+        );
+
+        let resolveLookup: (rows: unknown) => void = () => undefined;
+
+        listEntities.mockImplementation(
+            () =>
+                new Promise((resolve) => {
+                    resolveLookup = resolve;
+                })
+        );
+
+        const { navigate } = renderHarness('?entity=template&slug=single');
+
+        await waitFor(() => {
+            expect(listEntities).toHaveBeenCalled();
+        });
+
+        window.history.pushState({}, '', '/visual-editor/site/patterns');
+        window.history.pushState({}, '', '/visual-editor/site');
+
+        await act(async () => {
+            resolveLookup([{ id: 12, slug: 'single' }]);
+        });
+
+        expect(navigate).not.toHaveBeenCalled();
+    });
+
     it('resolves at most once per mount even as the component re-renders', async () => {
         listEntities.mockResolvedValue([{ id: 12, slug: 'single' }]);
 

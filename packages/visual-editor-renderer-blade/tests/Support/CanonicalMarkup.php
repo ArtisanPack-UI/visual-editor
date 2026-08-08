@@ -288,12 +288,43 @@ final class CanonicalMarkup
 	private static function isDeclaredDivergentClass( string $token ): bool
 	{
 		foreach ( self::$dropClassPatterns as $pattern ) {
-			if ( 1 === preg_match( '#' . $pattern . '#', $token ) ) {
+			if ( 1 === preg_match( self::compileDropClassPattern( $pattern ), $token ) ) {
 				return true;
 			}
 		}
 
 		return false;
+	}
+
+	/**
+	 * Wraps a `dropClassTokensMatching` source in its PCRE delimiter and
+	 * asserts that the result compiles.
+	 *
+	 * Both steps matter. A pattern containing `#` would otherwise end the
+	 * delimiter early and fail to compile, and `preg_match()` signals that
+	 * with a warning plus a `false` return that reads exactly like "no
+	 * match" — the golden would then be written *with* the token while the
+	 * JS side (where `new RegExp(source)` compiles it fine) drops it, a
+	 * permanent and baffling parity failure. Throwing here turns that into
+	 * an immediate, legible error instead.
+	 *
+	 * @since 1.6.0
+	 *
+	 * @param  string  $pattern  Delimiter-less regex source from fixtures.json.
+	 *
+	 * @return string Delimited pattern safe to hand to `preg_match()`.
+	 */
+	public static function compileDropClassPattern( string $pattern ): string
+	{
+		$delimited = '#' . str_replace( '#', '\\#', $pattern ) . '#';
+
+		if ( false === @preg_match( $delimited, '' ) ) {
+			throw new \InvalidArgumentException(
+				'Invalid dropClassTokensMatching pattern in fixtures.json: ' . $pattern
+			);
+		}
+
+		return $delimited;
 	}
 
 	/**
@@ -307,7 +338,20 @@ final class CanonicalMarkup
 	 */
 	private static function collapseWhitespace( string $value ): string
 	{
-		return (string) preg_replace( '/\s+/u', ' ', $value );
+		// The character class is spelled out rather than using `\s` because
+		// the two canonicalizers must agree on what counts as whitespace.
+		// JavaScript's `\s` matches Unicode spaces (U+00A0, U+2028, U+FEFF,
+		// …); PCRE's `\s` under `/u` without `(*UCP)` matches ASCII only.
+		// Both sides now name the ASCII set explicitly so a fixture carrying
+		// `&nbsp;` canonicalizes identically instead of producing a golden
+		// the JS side can never match. Mirrors `collapseWhitespace()` in
+		// packages/renderer-markup-parity/canonicalize.ts.
+		//
+		// `\x0B` is spelled numerically on purpose: PCRE's `\v` is the
+		// *vertical whitespace* class (which under `/u` also matches NEL,
+		// U+2028 and U+2029), whereas JavaScript's `\v` is the single
+		// vertical-tab character the JS twin means.
+		return (string) preg_replace( '/[ \t\r\n\f\x0B]+/u', ' ', $value );
 	}
 
 	/**

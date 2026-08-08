@@ -142,7 +142,17 @@ const D5_SECTIONS: ReadonlySet<SiteEditorSectionId> = new Set<SiteEditorSectionI
 ]);
 
 export interface SiteEditorAppProps {
-    /** Pathname prefix the SPA owns (e.g. `/visual-editor/site`). */
+    /**
+     * Pathname prefix the SPA owns (e.g. `/visual-editor/site`).
+     *
+     * Must be a same-origin absolute path beginning with a single `/`.
+     * Anything else — a relative path, an absolute URL, a
+     * protocol-relative `//host` — is rejected and replaced with the
+     * package's own default mount path, with a `console.warn` naming the
+     * value. The substitution keeps `<a href>` builders from emitting
+     * off-site links, but the host will not serve the resulting URLs, so
+     * treat the warning as a misconfiguration to fix rather than a notice.
+     */
     routeBase: string;
     /** Base URL for the site-editor REST surface (e.g. `/visual-editor/api`). */
     apiBase: string;

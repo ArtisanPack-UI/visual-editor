@@ -385,6 +385,67 @@ describe('useAppliedTemplate', () => {
         ).toBe('full-width');
     });
 
+    it('serves a previously resolved template from cache on the return trip', async () => {
+        // The test above only proves A → B → A hits the cache while B is
+        // still in flight. Once B *resolves*, a single-slot cache is
+        // overwritten and the return trip to A refetches — contradicting
+        // the documented "cached per (resource, id, template) triple for
+        // the lifetime of the editor mount" contract.
+        const okBody = (slug: string): unknown => ({
+            status: 'ok',
+            slug,
+            name: slug,
+            source: 'theme',
+            blocks: [],
+            template_parts: {},
+        });
+
+        const fetchMock = vi.fn(async (url: string) => ({
+            ok: true,
+            status: 200,
+            text: async () =>
+                JSON.stringify(
+                    okBody(url.includes('single-post') ? 'single-post' : 'full-width')
+                ),
+        }));
+
+        globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+        const { result, rerender } = renderHook(
+            ({ template }: { template: string }) =>
+                useAppliedTemplate({ ...CONFIG, template, enabled: true }),
+            { initialProps: { template: 'full-width' } }
+        );
+
+        await waitFor(() => {
+            expect(
+                result.current.status === 'ok' && result.current.template.slug
+            ).toBe('full-width');
+        });
+
+        act(() => rerender({ template: 'single-post' }));
+
+        await waitFor(() => {
+            expect(
+                result.current.status === 'ok' && result.current.template.slug
+            ).toBe('single-post');
+        });
+
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+
+        // Back to the first template, which fully resolved earlier. No
+        // third request.
+        act(() => rerender({ template: 'full-width' }));
+
+        await waitFor(() => {
+            expect(
+                result.current.status === 'ok' && result.current.template.slug
+            ).toBe('full-width');
+        });
+
+        expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+
     it('does not cache a fetch error, so the next toggle-on retries', async () => {
         const fetchMock = vi.fn();
 

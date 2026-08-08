@@ -100,15 +100,24 @@ narrow and explicit, rather than loosening the match. Currently:
   and Vue emit the inline `flex-basis` only. Dropping the token keeps the
   rest of the column markup — including the inline style — under
   comparison instead of dropping the width fixture entirely.
+- **`has-photo-grid` / `photo-grid-<hash>` (#714, introduced by #594).**
+  The Photo Grid block support is implemented in the Blade renderer only:
+  `PhotoGridSupport::wrapperForBlock()` splices both tokens into the
+  wrappers emitted by `core/group`, `core/columns` and
+  `artisanpack/grid`, and pushes the matching custom-property
+  declarations into the per-request accumulator. Neither JS renderer has
+  a counterpart. Dropping the tokens keeps the rest of those wrappers
+  under comparison (fixture: `group-photo-grid`).
 
-### Not covered by a fixture
+### Resolved
 
 - **`group` with the #595 Flex Layout panel active at the base
-  breakpoint.** `group.blade.php` flips its layout class to
+  breakpoint (#711).** `group.blade.php` flips its layout class to
   `is-layout-flex` when `artisanpackFlex` emits the unprefixed `ap-flex`
-  class; React's `GroupBlock` and its Vue twin have no equivalent, so the
-  same tree renders `is-layout-flow` there. This is a genuine
-  pre-existing divergence rather than an intentional one, so it is
-  deliberately *not* normalized away here — it needs a fix in one of the
-  renderers, tracked in #711. Add a fixture for it once the renderers
-  agree.
+  class. React's `GroupBlock` and its Vue twin called `layoutClass()`
+  unconditionally and rendered `is-layout-flow` for the same tree, so
+  flex children caught the flow baseline's `margin-block-start`. Both JS
+  renderers now mirror the Blade override, and three fixtures pin it:
+  `group-flex-panel` (base breakpoint flips),
+  `group-flex-panel-breakpoint-only` (`md:ap-flex` does not), and
+  `group-flex-panel-explicit-layout` (a stored `layout.type` wins).

@@ -189,8 +189,19 @@ function canonicalAttributeValue(name: string, value: string): string {
     return value;
 }
 
+/**
+ * Collapses every run of whitespace down to a single space.
+ *
+ * The character class is spelled out rather than using `\s` because the
+ * two canonicalizers must agree on what counts as whitespace. JavaScript's
+ * `\s` matches Unicode spaces (U+00A0, U+2028, U+FEFF, …); PCRE's `\s`
+ * under `/u` without `(*UCP)` matches ASCII only. Left as `\s`, a fixture
+ * carrying `&nbsp;` would produce a golden the JS side could never match —
+ * a phantom "renderer drift" failure. Mirrors
+ * `CanonicalMarkup::collapseWhitespace()`.
+ */
 function collapseWhitespace(value: string): string {
-    return value.replace(/\s+/g, ' ');
+    return value.replace(/[ \t\r\n\f\v]+/g, ' ');
 }
 
 function escape(value: string): string {

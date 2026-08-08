@@ -35,13 +35,32 @@ export const GroupBlock = defineComponent({
 
             const className = attrString(props.attributes.className);
             const flexClasses = flexClassNames(props.attributes.artisanpackFlex);
+
+            // #595 / #711 — when our Flex Layout panel is active at the
+            // base breakpoint, switch the layout class to `is-layout-flex`
+            // so the baseline
+            // `is-layout-flow > * + * { margin-block-start: gap }` rule
+            // does not push children apart along the cross axis.
+            //
+            // Match only the unprefixed `ap-flex` (the base-breakpoint
+            // emit). Breakpoint-prefixed variants like `md:ap-flex` mean
+            // "flex starts at md+"; flipping the wrapper to
+            // `is-layout-flex` for them would apply flex below the
+            // breakpoint too. Mirrors `group.blade.php`.
+            const storedLayoutType = attrString(attrRecord(props.attributes.layout).type).trim();
+            let groupLayoutClass = layoutClass(props.attributes);
+
+            if (storedLayoutType === '' && flexClasses.includes('ap-flex')) {
+                groupLayoutClass = 'is-layout-flex';
+            }
+
             // #702 — the block-library CSS targets the per-block compound
             // (`wp-block-group-is-layout-constrained`), so emit it alongside
             // the shared modifier. `layoutClass()` also covers the `grid`
             // type the old inline ternary silently rendered as flow.
             const classes = classList([
                 'wp-block-group',
-                ...layoutPair('group', layoutClass(props.attributes)),
+                ...layoutPair('group', groupLayoutClass),
                 ...flexClasses,
                 className,
             ]);

@@ -13,6 +13,10 @@
  * still announces the new failure. A plain boolean would swallow it: the
  * author would change the template and see nothing happen at all.
  *
+ * It is also cleared by a successful resolution, so returning to a template
+ * that failed earlier announces again — otherwise broken A → working B →
+ * broken A would stay silent the second time around.
+ *
  * Mirrors `useSaveNotifications`: a hook, so it can be exercised through a
  * tiny harness rather than a full editor mount.
  *
@@ -48,6 +52,16 @@ export function useComposedFallbackToast(
         const notice = composedFallbackNotice(state);
 
         if (notice === null) {
+            // A template that resolved cleanly clears the latch, so
+            // broken A → working B → broken A announces twice rather than
+            // once. `idle` and `loading` deliberately leave it in place:
+            // those are the states a re-fetch of the *same* template
+            // passes through, and clearing there would re-announce a
+            // failure the author is already looking at.
+            if (state.status === 'ok') {
+                notifiedRef.current = null;
+            }
+
             return;
         }
 

@@ -124,6 +124,12 @@ Each is announced twice, deliberately: once as a toast when the toggle is
 flipped on, and once as a standing notice above the canvas that is still
 there a minute later when the toast has auto-dismissed.
 
+The toast fires again whenever the *reason* changes, and again after any
+template that resolved cleanly — so picking a second broken template, or
+coming back to an earlier broken one by way of a working one, is
+announced rather than swallowed. Re-resolving the same failure stays
+quiet.
+
 The default template is a client-side constant, not a database record.
 It is not editable, does not appear in the site editor's template list,
 and has no slug — which is why the ribbon's **Edit template ↗** CTA is

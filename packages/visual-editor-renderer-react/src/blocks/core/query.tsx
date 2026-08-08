@@ -16,6 +16,7 @@
 import type { JSX, ReactNode } from 'react';
 import {
     attrInt,
+    attrRecord,
     attrString,
     classList,
     layoutPair,
@@ -46,6 +47,23 @@ function clampColumns(value: unknown, fallback: number): number {
         return 12;
     }
     return parsed;
+}
+
+/**
+ * Read the post-template's saved layout name from either shape it can
+ * take: the ArtisanPack post-template's plain `layout` string, or an
+ * upstream `core/post-template` mirror's object-form `layout.type`.
+ *
+ * Gutenberg's third shape — the sibling `layoutType` attribute — is
+ * handled by the caller, matching `post-template.blade.php` and
+ * `QueryInliner::postTemplateLayoutIsGrid()`.
+ */
+function resolveLayoutName(value: unknown): string {
+    if (typeof value === 'string') {
+        return value;
+    }
+
+    return attrString(attrRecord(value).type);
 }
 
 function isDevelopment(): boolean {
@@ -82,7 +100,7 @@ export function QueryBlock({ attributes, children }: BlockRendererProps): JSX.El
 
 export function PostTemplateBlock({ attributes, children }: BlockRendererProps): JSX.Element {
     const className = attrString(attributes.className);
-    const layout = attrString(attributes.layout);
+    const layout = resolveLayoutName(attributes.layout);
     const layoutType = attrString(attributes.layoutType);
     const isGrid = layout === 'grid' || layoutType === 'grid';
     const isMasonry = layout === 'masonry';

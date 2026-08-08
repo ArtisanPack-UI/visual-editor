@@ -104,11 +104,22 @@ export function useSiteEditorDeepLink(
         // The lookup is only cancelled on unmount, so a user who browses
         // within the SPA while it is in flight would otherwise get yanked
         // to the deep-link target by the late resolution.
+        //
+        // The search string is compared alongside the pathname because the
+        // pathname alone can round-trip: navigating away and back in-SPA
+        // while the slug lookup is in flight restores it, and a late
+        // resolution would then teleport the user after all. The deep-link
+        // query still being present is the real "nothing has happened yet"
+        // signal — both `landOnEntity` and `landOnIndex` clear it via a
+        // `replace`, and so does any other in-SPA navigation.
         const initialPathname =
             typeof window === 'undefined' ? '' : window.location.pathname;
+        const initialSearch =
+            typeof window === 'undefined' ? '' : window.location.search;
         const userHasNavigated = (): boolean =>
             typeof window !== 'undefined' &&
-            window.location.pathname !== initialPathname;
+            (window.location.pathname !== initialPathname ||
+                window.location.search !== initialSearch);
 
         function landOnIndex(): void {
             if (cancelled || userHasNavigated()) {

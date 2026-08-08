@@ -185,6 +185,45 @@ describe('useComposedFallbackToast', () => {
         });
     });
 
+    it('announces the same failure again after a successful resolution', async () => {
+        const { rerenderHarness } = renderHarness({
+            viewMode: 'with-template',
+            state: unknownSlug,
+        });
+
+        await waitFor(() => {
+            expect(screen.getByText(unavailableCopy)).toBeInTheDocument();
+        });
+
+        // Author switches to a template that works, then switches back to
+        // the broken one — still without leaving composed mode. The latch
+        // has to clear on the success, or the return trip is silent and the
+        // author sees the fallback with no explanation.
+        rerenderHarness({ viewMode: 'with-template', state: { status: 'loading' } });
+        rerenderHarness({
+            viewMode: 'with-template',
+            state: {
+                status: 'ok',
+                template: {
+                    status: 'ok',
+                    slug: 'single-post',
+                    name: 'Single Post',
+                    source: 'db',
+                    blocks: [],
+                    template_parts: {},
+                },
+            },
+        });
+        rerenderHarness({ viewMode: 'with-template', state: { status: 'loading' } });
+        rerenderHarness({ viewMode: 'with-template', state: unknownSlug });
+
+        await waitFor(() => {
+            expect(
+                screen.getAllByText(unavailableCopy).length
+            ).toBeGreaterThan(1);
+        });
+    });
+
     it('stays silent when a real template resolves', async () => {
         const { rerenderHarness } = renderHarness({
             viewMode: 'content',
