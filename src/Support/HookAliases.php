@@ -40,6 +40,14 @@ class HookAliases
 	 * visual-editor before the icons package publishes its own alias
 	 * registration.
 	 *
+	 * `comments.form.action` is declared for the same defensive reason. Its
+	 * canonical alias belongs to `artisanpack-ui/cms-framework` (2.8.0+,
+	 * cms-framework#245), which owns the `ap.cmsFramework.*` namespace even
+	 * though the `post-comments-form` block here is the only fire site. That
+	 * package is not a dependency of this one, so a host rendering this block
+	 * without it would otherwise have no alias registered at all and every
+	 * pre-2.8 subscriber on the un-prefixed name would silently stop firing.
+	 *
 	 * @var array<string, string>
 	 */
 	private const RENAMES = [
@@ -58,6 +66,7 @@ class HookAliases
 		'ap.visual-editor.loginout.login-form'          => 'ap.visualEditor.loginout.loginForm',
 		'visual_editor.pre_publish_checks'              => 'ap.visualEditor.prePublishChecks',
 		'ap.icons.register-icon-sets'                   => 'ap.icons.registerIconSets',
+		'comments.form.action'                         => 'ap.cmsFramework.comments.form.action',
 	];
 
 	/**

@@ -4,6 +4,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditorRendererBlade\Tests;
 
+use ArtisanPackUI\Hooks\Providers\HooksServiceProvider;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
 use ArtisanPackUI\VisualEditorRendererBlade\VisualEditorRendererBladeServiceProvider;
 use Orchestra\Testbench\TestCase as BaseTestCase;
@@ -18,6 +19,16 @@ abstract class TestCase extends BaseTestCase
 	protected function getPackageProviders( $app ): array
 	{
 		return [
+			// Registered first, and ahead of the visual-editor provider,
+			// because it binds `HookDeprecations` as a singleton. Without
+			// it every `app( HookDeprecations::class )` resolves a fresh
+			// instance, so the aliases `VisualEditorServiceProvider::boot()`
+			// registers land on a throwaway object and no legacy hook name
+			// resolves — silently, since the un-aliased name still fires.
+			// The root suite's TestCase has always registered it; this one
+			// had not, which is why block partials that fire a renamed hook
+			// went uncovered here (cms-framework#245).
+			HooksServiceProvider::class,
 			VisualEditorServiceProvider::class,
 			VisualEditorRendererBladeServiceProvider::class,
 		];

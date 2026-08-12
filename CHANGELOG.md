@@ -4,6 +4,51 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/);
 this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Changed
+
+- **The `post-comments-form` block fires `ap.cmsFramework.comments.form.action`**
+  (cms-framework#245) — this block is the only fire site in the ecosystem for
+  the comment form's action filter, but it emitted the un-prefixed legacy name
+  `comments.form.action`. The CMS Framework's 2.5.0 hook-rename wave listed that
+  filter as moved under `ap.cmsFramework.*` and its CHANGELOG said so, but the
+  alias never shipped there, so the documented new name resolved to nothing and
+  hosts had to stay on the old one. cms-framework 2.8.0 lands the missing alias
+  and this release moves the fire site onto the canonical name to match. The
+  filter keeps a cms-framework namespace rather than gaining a visual-editor one
+  because comments are that package's domain and its `POST /api/v1/comments`
+  endpoint is this filter's default value — the same emitter-is-not-owner split
+  as `ap.rbac.roleRegistered`. **No action is required:** `comments.form.action`
+  is registered as a deprecation alias here as well as in cms-framework, so a
+  subscriber on either name still fires, in either direction. The alias is
+  declared on this side deliberately — cms-framework is not a dependency of this
+  package, so a host rendering this block without it would otherwise have no
+  alias registered at all. Hosts should migrate to
+  `ap.cmsFramework.comments.form.action`; the old name logs a deprecation notice
+  the first time it resolves per request.
+- **Hosts that published this package's block views must re-publish to pick the
+  new hook name up** — `resources/views/vendor/visual-editor-renderer-blade/`
+  shadows the package's own partials, so a published copy of
+  `blocks/artisanpack/post-comments-form.blade.php` keeps firing the old name
+  until it is refreshed with
+  `php artisan vendor:publish --tag=visual-editor-blade-views --force`.
+  Behavior is unchanged either way thanks to the alias; this only affects which
+  name is emitted and therefore whether a deprecation notice is logged.
+
+### Fixed
+
+- **The renderer-blade suite registers `HooksServiceProvider`, so hook aliases
+  actually resolve under test** — its `TestCase` listed only the visual-editor
+  and renderer providers. `HookDeprecations` is bound as a singleton by the
+  hooks provider, so without it every `app( HookDeprecations::class )` call
+  resolved a *fresh* instance: the aliases registered in
+  `VisualEditorServiceProvider::boot()` were written to an object nothing else
+  ever read, and no legacy hook name resolved. The failure was silent rather
+  than loud — the canonical name still fired normally, so only a test
+  specifically asserting an *old* name would catch it. The root suite's
+  `TestCase` has always registered the provider; the two are now consistent.
+
 ## [1.6.0] - 2026-08-07
 
 ### Added
