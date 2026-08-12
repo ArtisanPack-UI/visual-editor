@@ -31,6 +31,8 @@ afterEach( function (): void {
 	removeAllFilters( 'ap.visualEditor.renderedBlock' );
 	removeAllFilters( 'ap.visual-editor.loginout.envelope' );
 	removeAllFilters( 'ap.visualEditor.loginout.envelope' );
+	removeAllFilters( 'comments.form.action' );
+	removeAllFilters( 'ap.cmsFramework.comments.form.action' );
 } );
 
 it( 'routes old-name resources subscribers when the new name is applied', function (): void {
@@ -155,4 +157,32 @@ it( 'routes new-name loginout envelope subscribers when the old name is applied'
 	$result = applyFilters( 'ap.visual-editor.loginout.envelope', [] );
 
 	expect( $result )->toHaveKey( 'touched' );
+} );
+
+/*
+ * `comments.form.action` — cms-framework owns the `ap.cmsFramework.*`
+ * namespace (cms-framework#245) but the `post-comments-form` block here is
+ * the only fire site, and cms-framework is not a dependency of this package.
+ * These assert the defensive alias declared in RENAMES so the un-prefixed
+ * name keeps resolving in a visual-editor-only install.
+ */
+
+it( 'routes old-name comments form action subscribers when the new name is applied', function (): void {
+	HookAliases::registerAll();
+
+	addFilter( 'comments.form.action', static fn (): string => '/comments' );
+
+	$result = applyFilters( 'ap.cmsFramework.comments.form.action', '/api/v1/comments' );
+
+	expect( $result )->toBe( '/comments' );
+} );
+
+it( 'routes new-name comments form action subscribers when the old name is applied', function (): void {
+	HookAliases::registerAll();
+
+	addFilter( 'ap.cmsFramework.comments.form.action', static fn (): string => '/comments' );
+
+	$result = applyFilters( 'comments.form.action', '/api/v1/comments' );
+
+	expect( $result )->toBe( '/comments' );
 } );
