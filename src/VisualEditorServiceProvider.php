@@ -24,6 +24,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Gates\DenyByDefaultGate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
+use ArtisanPackUI\VisualEditor\Fonts\Providers\GoogleFontsProvider;
 use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
@@ -667,6 +668,47 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
+	 * Register the first-party Font Library providers on the
+	 * `ap.visualEditor.registerFontSources` filter.
+	 *
+	 * Each provider is gated on its `fonts.providers.*.enabled` config flag so
+	 * a host can drop a source in one line; the callback runs at
+	 * registry-resolve time (behind {@see applyFontSourcesFilter()}), by which
+	 * point configuration is merged and the credential is readable. Gated on
+	 * `addFilter` so visual-editor stays bootable when `artisanpack-ui/hooks`
+	 * isn't on the classpath.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function registerBuiltInFontProviders(): void
+	{
+		if ( ! function_exists( 'addFilter' ) ) {
+			return;
+		}
+
+		addFilter(
+			'ap.visualEditor.registerFontSources',
+			static function ( FontSourceRegistry $registry ): FontSourceRegistry {
+				$google = config( 'artisanpack.visual-editor.fonts.providers.google', [] );
+
+				if ( true === ( $google['enabled'] ?? false ) ) {
+					$registry->register( new GoogleFontsProvider(
+						(string) ( $google['metadata_url'] ?? 'https://fonts.google.com/metadata/fonts' ),
+						(string) ( $google['css_url'] ?? 'https://fonts.googleapis.com/css2' ),
+						(string) ( $google['user_agent'] ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' ),
+						(int) ( $google['per_page'] ?? 24 ),
+						(int) ( $google['cache_ttl'] ?? 86400 ),
+						(int) ( $google['timeout'] ?? 10 ),
+						(string) ( $google['subset'] ?? 'latin' ),
+					) );
+				}
+
+				return $registry;
+			}
+		);
+	}
+
+	/**
 	 * Perform post-registration booting of services.
 	 *
 	 * @since 1.0.0
@@ -710,6 +752,12 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//     packages can register a `FontProvider` from their own
 		//     `boot()` regardless of provider order (#629).
 		$this->applyFontSourcesFilter();
+
+		// 1d. Seed the first-party Font Library providers onto the same
+		//     `ap.visualEditor.registerFontSources` filter so they layer
+		//     into the registry before third-party sources and honor the
+		//     per-provider `enabled` flag in config (#630).
+		$this->registerBuiltInFontProviders();
 
 		// 2. Load package views, routes, and migrations.
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor' );

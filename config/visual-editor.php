@@ -616,4 +616,41 @@ return [
 		'user_search_columns'  => null,
 	],
 
+	/*
+	|--------------------------------------------------------------------------
+	| Font Library (#627)
+	|--------------------------------------------------------------------------
+	|
+	| Configures the Font Library's remote providers. Each provider carries an
+	| `enabled` flag so a host can drop a source without touching code — a
+	| disabled provider is never registered on the `FontSourceRegistry`, so it
+	| never appears in the Font Library modal.
+	|
+	| The Google Fonts provider needs no API key. It browses the keyless
+	| metadata endpoint fonts.google.com itself uses (`metadata_url`) and
+	| resolves each installable face through the keyless CSS2 endpoint
+	| (`css_url`), downloading the `.woff2` from the public gstatic CDN
+	| server-side so installed fonts stay self-hosted. `metadata_url` is
+	| undocumented, so it is exposed here in case a host needs to repoint it at
+	| a mirror. The catalog is cached for `cache_ttl` seconds. `user_agent` is
+	| sent with CSS2 requests so Google serves WOFF2 rather than TTF, and
+	| `subset` selects which `@font-face` subset is self-hosted.
+	|
+	*/
+
+	'fonts' => [
+		'providers' => [
+			'google' => [
+				'enabled'      => true,
+				'metadata_url' => 'https://fonts.google.com/metadata/fonts',
+				'css_url'      => 'https://fonts.googleapis.com/css2',
+				'user_agent'   => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+				'subset'       => 'latin',
+				'per_page'     => 24,
+				'cache_ttl'    => 86400,
+				'timeout'      => 10,
+			],
+		],
+	],
+
 ];
