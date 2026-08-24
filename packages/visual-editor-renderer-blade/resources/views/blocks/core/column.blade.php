@@ -78,7 +78,10 @@
 		);
 	};
 
-	if ( ! empty( $attributes['width'] ) ) {
+	// Only emit the inline `flex-basis` when the stored width passes the
+	// shared CSS-value whitelist, so a hostile value is dropped here the
+	// same way it is dropped from the responsive `<style>` rules below.
+	if ( ! empty( $attributes['width'] ) && null !== BlockSupports::safeCssValue( (string) $attributes['width'] ) ) {
 		$styles = ( '' !== $styles ? $styles . '; ' : '' ) . 'flex-basis: ' . $normalizeBasis( $attributes['width'] )['basis'];
 	}
 
@@ -144,6 +147,14 @@
 
 		foreach ( $responsiveWidths as $bp => $value ) {
 			if ( null === $value || '' === $value ) {
+				continue;
+			}
+
+			// Reject a hostile stored width before it is spliced into the
+			// raw `<style>` rule. The scope hash above is taken over the
+			// full width map, so skipping the value here never changes the
+			// `ve-w-<hash>` token (mirrors the React/Vue columnWidth guard).
+			if ( null === BlockSupports::safeCssValue( (string) $value ) ) {
 				continue;
 			}
 

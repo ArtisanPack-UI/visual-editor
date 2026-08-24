@@ -647,3 +647,51 @@ describe( 'compile() — CSS position (#640)', function (): void {
 		expect( $result['positionRules'] )->toContain( 'position:sticky !important' );
 	} );
 } );
+
+describe( 'BlockSupports::safeCssValue (#720 shared CSS-value whitelist)', function (): void {
+	it( 'returns lengths, percentages, keywords and calc() unchanged', function ( string $value ): void {
+		expect( BlockSupports::safeCssValue( $value ) )->toBe( $value );
+	} )->with( [
+		'pixel length'      => [ '100px' ],
+		'rem length'        => [ '1.5rem' ],
+		'percentage'        => [ '50%' ],
+		'negative order'    => [ '-5' ],
+		'bare keyword'      => [ 'auto' ],
+		'hyphenated keyword' => [ 'fit-content' ],
+		'calc with var'     => [ 'calc(50% - var(--wp--style--block-gap, 0.5em) * 0.5)' ],
+		'calc division'     => [ 'calc(100% / 3)' ],
+	] );
+
+	it( 'rejects empty or whitespace-only values', function ( string $value ): void {
+		expect( BlockSupports::safeCssValue( $value ) )->toBeNull();
+	} )->with( [
+		'empty'      => [ '' ],
+		'whitespace' => [ "  \t " ],
+	] );
+
+	it( 'rejects any value carrying a CSS-structural breakout character', function ( string $value ): void {
+		expect( BlockSupports::safeCssValue( $value ) )->toBeNull();
+	} )->with( [
+		'rule close'      => [ '10px}body{display:none' ],
+		'declaration end' => [ 'red;color:blue' ],
+		'style breakout'  => [ '100px</style><script>alert(1)</script>' ],
+		'colon injection' => [ 'x:expression(alert(1))' ],
+		'at rule'         => [ '1px}@import url(evil)' ],
+		'quote'           => [ '"1px' ],
+		'backslash'       => [ '\\31 px' ],
+	] );
+
+	it( 'rejects CSS comment and protocol-relative digraphs built from allowed chars', function ( string $value ): void {
+		expect( BlockSupports::safeCssValue( $value ) )->toBeNull();
+	} )->with( [
+		'comment open'       => [ '50%/*' ],
+		'comment close'      => [ '50%*/' ],
+		'protocol-relative'  => [ 'url(//evil.example/x.png)' ],
+	] );
+
+	it( 'rejects an embedded Unicode whitespace value so it matches the JS twins', function (): void {
+		// PCRE `\s` (no `/u`) would keep a non-breaking space that JS `\s`
+		// rejects; the explicit ASCII whitespace class drops it on both sides.
+		expect( BlockSupports::safeCssValue( "200px\u{00A0}" ) )->toBeNull();
+	} );
+} );
