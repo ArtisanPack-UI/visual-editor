@@ -78,7 +78,16 @@ export function columnWidthScope( attributes: Record<string, unknown> ): ColumnW
 			continue;
 		}
 
-		const declaration = `flex-basis:${ basisExpr( normalizeBasis( value ) ) }!important;flex-grow:0!important`;
+		// Reject anything that isn't a plain number, percentage, or CSS
+		// length before it reaches the emitted stylesheet. A stored value
+		// such as `10px}body{display:none` would otherwise close the rule
+		// and inject attacker-chosen CSS into `<style data-ve-column-width>`.
+		const normalized = normalizeBasis( value );
+		if ( normalized === null ) {
+			continue;
+		}
+
+		const declaration = `flex-basis:${ basisExpr( normalized ) }!important;flex-grow:0!important`;
 
 		if ( key === BASE_KEY ) {
 			rules.push( `${ selector }{${ declaration }}` );
@@ -256,12 +265,24 @@ function isNonEmptyWidth( value: unknown ): boolean {
 	return value !== 0 && value !== '0' && value !== '';
 }
 
+// A single CSS length: an optional-sign number with a known absolute or
+// relative unit. Percentages are handled separately (they carry a numeric
+// `percent` for the block-gap calc); this list is the units a column width
+// realistically stores. Anything else is rejected so it can never reach the
+// emitted stylesheet.
+const CSS_LENGTH = /^-?(?:\d+\.?\d*|\.\d+)(?:px|em|rem|ex|ch|cap|ic|lh|rlh|vw|vh|vi|vb|vmin|vmax|svw|svh|lvw|lvh|dvw|dvh|cm|mm|q|in|pt|pc|fr)$/i;
+
 /**
  * Normalize a width value into a `flex-basis` expression plus its numeric
  * percent (or `null` for absolute units). Mirrors `$normalizeBasis` in the
- * Blade partial.
+ * Blade partial, with one addition: a non-numeric, non-percentage string is
+ * accepted only when it is a bare CSS length, and otherwise returns `null`
+ * (rejected) so the caller skips the rule. This keeps hostile values out of
+ * the `<style>` block the Blade partial emits raw. The scope hash is taken
+ * over the full width map upstream, so rejecting a value here does not change
+ * the `ve-w-<hash>` token.
  */
-function normalizeBasis( value: unknown ): NormalizedBasis {
+function normalizeBasis( value: unknown ): NormalizedBasis | null {
 	if ( isNumeric( value ) ) {
 		const percent = typeof value === 'number' ? value : Number( String( value ).trim() );
 
@@ -275,7 +296,11 @@ function normalizeBasis( value: unknown ): NormalizedBasis {
 		return { basis: str, percent: Number( match[ 1 ] ) };
 	}
 
-	return { basis: str, percent: null };
+	if ( CSS_LENGTH.test( str.trim() ) ) {
+		return { basis: str, percent: null };
+	}
+
+	return null;
 }
 
 /**

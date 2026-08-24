@@ -8,7 +8,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { columnWidthScope, stampColumnWidthScopes } from '../src/support/columnWidth';
-import { setBreakpoints } from '../src/visibility';
+import { getBreakpoints, setBreakpoints } from '../src/visibility';
 import type { Block } from '../src/types';
 
 function column(attributes: Record<string, unknown>): Block {
@@ -65,6 +65,29 @@ describe('columnWidthScope', () => {
         // scope class must not be attached.
         expect(columnWidthScope({ responsive: { width: { xx: '40%' } } })).toBeNull();
     });
+
+    it('accepts a bare CSS length as a flex-basis value', () => {
+        expect(columnWidthScope({ width: '20rem' })?.css).toContain('flex-basis:20rem!important');
+        expect(columnWidthScope({ width: '300px' })?.css).toContain('flex-basis:300px!important');
+    });
+
+    it('rejects a hostile width value so it never reaches the stylesheet', () => {
+        // A value that could close the rule and inject CSS must be dropped;
+        // with no surviving rule the scope class is not attached either.
+        expect(columnWidthScope({ width: '10px}body{display:none' })).toBeNull();
+        expect(columnWidthScope({ width: 'red;color:blue' })).toBeNull();
+
+        // A valid base survives while a hostile per-breakpoint override is
+        // skipped — only the safe base rule is emitted.
+        const mixed = columnWidthScope({
+            width: 60,
+            responsive: { width: { md: '50%}html{opacity:0' } },
+        });
+        expect(mixed).not.toBeNull();
+        expect(mixed?.css).toContain('flex-basis:calc(60% -');
+        expect(mixed?.css).not.toContain('opacity');
+        expect(mixed?.css).not.toContain('@media');
+    });
 });
 
 describe('stampColumnWidthScopes', () => {
@@ -114,19 +137,16 @@ describe('stampColumnWidthScopes', () => {
     });
 
     it('honours host-configured breakpoints', () => {
+        // Capture whatever config is currently installed so this test does
+        // not clobber a host/setup-configured breakpoint list for later tests.
+        const prior = getBreakpoints();
         setBreakpoints([{ key: 'md', minWidthPx: 900 }]);
 
         try {
             const scope = columnWidthScope({ responsive: { width: { md: '40%' } } });
             expect(scope?.css).toContain('@media (min-width:900px){');
         } finally {
-            setBreakpoints([
-                { key: 'sm', minWidthPx: 640 },
-                { key: 'md', minWidthPx: 768 },
-                { key: 'lg', minWidthPx: 1024 },
-                { key: 'xl', minWidthPx: 1280 },
-                { key: '2xl', minWidthPx: 1536 },
-            ]);
+            setBreakpoints(prior);
         }
     });
 });
