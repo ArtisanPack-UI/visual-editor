@@ -48,6 +48,7 @@ function themeFilePart( string $raw, array $blocks = [] ): ResolvedEntity
 		status: 'publish',
 		hasThemeFile: true,
 		isCustom: false,
+		isBlade: false,
 		area: 'header',
 		model: null,
 	);

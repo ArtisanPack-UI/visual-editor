@@ -122,6 +122,7 @@ it( 'inlines template-part references instead of emitting an empty wrapper', fun
 				status: 'publish',
 				hasThemeFile: true,
 				isCustom: false,
+				isBlade: false,
 				area: 'header',
 				model: null,
 			);
