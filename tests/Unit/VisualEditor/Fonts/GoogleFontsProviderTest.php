@@ -107,6 +107,16 @@ it( 'browses the catalog and reports the second page as the last', function () {
 		->and( $second['has_more'] )->toBeFalse();
 } );
 
+it( 'clamps a non-positive page size so it never serves empty pages', function () {
+	fakeGoogleFonts();
+	$provider = new GoogleFontsProvider( perPage: 0 );
+
+	$result = $provider->searchCatalog( '' );
+
+	expect( $result['families'] )->not->toBeEmpty()
+		->and( $result['families'] )->toHaveCount( 1 );
+} );
+
 it( 'filters the catalog by a case-insensitive query', function () {
 	fakeGoogleFonts();
 
@@ -184,6 +194,27 @@ it( 'caches the catalog so browsing hits the metadata endpoint once', function (
 it( 'throws when the metadata endpoint responds with an error', function () {
 	Http::fake( [
 		'fonts.google.com/metadata/*' => Http::response( 'nope', 500 ),
+	] );
+
+	expect( fn () => $this->provider->searchCatalog( '' ) )
+		->toThrow( FontProviderException::class );
+} );
+
+it( 'throws rather than caching an empty font list', function () {
+	Http::fake( [
+		'fonts.google.com/metadata/*' => Http::response( [ 'familyMetadataList' => [] ], 200 ),
+	] );
+
+	expect( fn () => $this->provider->searchCatalog( '' ) )
+		->toThrow( FontProviderException::class );
+} );
+
+it( 'throws when no metadata entry yields a usable family', function () {
+	Http::fake( [
+		'fonts.google.com/metadata/*' => Http::response(
+			[ 'familyMetadataList' => [ [ 'category' => 'Sans Serif' ], [ 'family' => '' ] ] ],
+			200
+		),
 	] );
 
 	expect( fn () => $this->provider->searchCatalog( '' ) )

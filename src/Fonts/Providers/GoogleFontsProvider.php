@@ -74,7 +74,11 @@ class GoogleFontsProvider implements FontProvider
 		protected int $cacheTtl = 86400,
 		protected int $timeout = 10,
 		protected string $subset = 'latin',
-	) {}
+	) {
+		// A non-positive page size would let searchCatalog() slice an empty
+		// window while reporting has_more, paging forever over no results.
+		$this->perPage = max( 1, $this->perPage );
+	}
 
 	/**
 	 * @since 1.7.0
@@ -277,7 +281,7 @@ class GoogleFontsProvider implements FontProvider
 		$payload = $this->decodeMetadata( $response->body() );
 		$list    = $payload['familyMetadataList'] ?? null;
 
-		if ( ! is_array( $list ) ) {
+		if ( ! is_array( $list ) || [] === $list ) {
 			throw new FontProviderException(
 				'The Google Fonts metadata response did not contain a font list.'
 			);
@@ -292,6 +296,15 @@ class GoogleFontsProvider implements FontProvider
 
 			$slug             = Str::slug( $item['family'] );
 			$catalog[ $slug ] = $this->normalizeFamily( $slug, $item );
+		}
+
+		// Never return (and therefore never cache) an empty catalog: an empty
+		// array is a non-null cache hit, so a one-off bad response would
+		// otherwise blank the Font Library for the full cache_ttl.
+		if ( [] === $catalog ) {
+			throw new FontProviderException(
+				'The Google Fonts metadata response contained no usable fonts.'
+			);
 		}
 
 		return $catalog;
