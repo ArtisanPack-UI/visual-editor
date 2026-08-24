@@ -48,7 +48,7 @@ class FontFactory extends Factory
 	 */
 	public function variable(): static
 	{
-		return $this->state( fn ( array $attributes ): array => [
+		return $this->state( fn (): array => [
 			'is_variable' => true,
 		] );
 	}

@@ -44,14 +44,16 @@ class FontFaceFactory extends Factory
 	}
 
 	/**
-	 * Attach variable-font axis metadata to the face.
+	 * Attach variable-font axis metadata to the face and pair it with a
+	 * variable parent font so the pair stays internally consistent.
 	 *
 	 * @since 1.7.0
 	 */
 	public function variable(): static
 	{
-		return $this->state( fn ( array $attributes ): array => [
-			'axes' => [
+		return $this->state( fn (): array => [
+			'font_id' => Font::factory()->variable(),
+			'axes'    => [
 				'wght' => [ 'min' => 100, 'max' => 900, 'default' => 400 ],
 			],
 		] );

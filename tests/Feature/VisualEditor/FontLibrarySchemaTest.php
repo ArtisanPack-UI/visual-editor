@@ -30,7 +30,8 @@ it( 'casts font face axes to an array', function () {
 	expect( $face->axes )->toBeArray()
 		->and( $face->axes )->toHaveKey( 'wght' )
 		->and( $face->weight )->toBeInt()
-		->and( $face->file_size )->toBeInt();
+		->and( $face->file_size )->toBeInt()
+		->and( $face->font->is_variable )->toBeTrue();
 } );
 
 it( 'enforces the unique provider/slug constraint on fonts', function () {
