@@ -362,7 +362,36 @@ class BlockRenderer
 			$out .= $this->renderBlock( $block );
 		}
 
-		return $out;
+		return $this->applyRenderedContentFilter( $out );
+	}
+
+	/**
+	 * Run the fully assembled document through the
+	 * `ap.visualEditor.renderedContent` filter.
+	 *
+	 * This is the one seam every document-level render funnels through
+	 * ({@see \ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksComponent},
+	 * {@see \ArtisanPackUI\VisualEditorRendererBlade\View\Components\TemplateComponent},
+	 * and {@see self::renderMarkup}), so whole-content passes — most
+	 * notably the inline-icon hydrator (#717) that resolves
+	 * `span.ap-inline-icon` reference spans into SVG — run exactly once
+	 * over the complete markup, after every block has emitted its HTML.
+	 * `render()` is never called for sub-fragments (inner blocks go
+	 * through {@see self::renderInner}), so the filter can't double-fire.
+	 *
+	 * No-ops cleanly when `artisanpack-ui/hooks` isn't installed.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function applyRenderedContentFilter( string $html ): string
+	{
+		if ( ! function_exists( 'applyFilters' ) ) {
+			return $html;
+		}
+
+		$filtered = applyFilters( 'ap.visualEditor.renderedContent', $html );
+
+		return is_string( $filtered ) ? $filtered : $html;
 	}
 
 	/**

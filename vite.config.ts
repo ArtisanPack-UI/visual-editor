@@ -38,6 +38,11 @@ const sharedWordpressSingletons = [
     '@wordpress/element',
     '@wordpress/hooks',
     '@wordpress/i18n',
+    // #717 — the inline-icon format registers via `@wordpress/rich-text`
+    // and `@wordpress/format-library` registers the core formats against
+    // the same rich-text store; pin rich-text to one instance so both
+    // share a single format registry.
+    '@wordpress/rich-text',
 ];
 const wordpressSingletonAliases = Object.fromEntries(
     sharedWordpressSingletons.map((name) => [
