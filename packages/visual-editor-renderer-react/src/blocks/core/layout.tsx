@@ -15,6 +15,7 @@ import {
     layoutPair,
 } from '../../support/attributes';
 import { flexClassNames } from '../../support/flex-serializer';
+import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
 import type { BlockRendererProps } from '../../types';
 
@@ -143,7 +144,10 @@ export function ColumnBlock({ attributes, children }: BlockRendererProps): JSX.E
             basis = Number.isFinite(numeric) && String(numeric) === width.trim() ? formatPercent(numeric) : width;
         }
 
-        if (basis !== '') {
+        // Only emit the inline `flex-basis` when the resolved value passes
+        // the shared CSS-value whitelist, so a hostile stored width is
+        // dropped here exactly as the Blade partial drops it (#720).
+        if (basis !== '' && safeCssValue(basis) !== null) {
             style = { flexBasis: basis };
         }
     }

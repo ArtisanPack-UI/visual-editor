@@ -326,6 +326,32 @@
             ]
         },
         {
+            "name": "columns-hostile-width",
+            "$comment": "#720 — a column whose only width is a hostile value that would close the rule and inject CSS. All three renderers must drop it: the `ve-w-<hash>` scope class is never attached, so the wrapper markup is identical across renderers (the style block itself is excluded from this markup-only check).",
+            "tree": [
+                {
+                    "clientId": "hcols-1",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "hcol-1",
+                            "name": "core/column",
+                            "attributes": { "width": "10px}body{display:none" },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "hcol-1-p",
+                                    "name": "core/paragraph",
+                                    "attributes": { "content": "Hostile" },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
             "name": "buttons",
             "tree": [
                 {

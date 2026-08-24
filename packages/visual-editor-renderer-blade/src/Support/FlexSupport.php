@@ -350,8 +350,24 @@ class FlexSupport
 
 			$body = '';
 			foreach ( $grouped[ $bp ] as $rule ) {
+				// The arbitrary value is spliced straight into the
+				// `<style>` body, so drop any value that fails the shared
+				// CSS-value whitelist rather than emit a rule that could
+				// close the declaration/tag and inject attacker CSS.
+				$value = BlockSupports::safeCssValue( (string) $rule[ 'value' ] );
+				if ( null === $value ) {
+					continue;
+				}
+
 				$selector = '.' . $this->escapeSelector( $rule[ 'className' ] );
-				$body    .= sprintf( "%s { %s: %s; } ", $selector, $rule[ 'property' ], $rule[ 'value' ] );
+				$body    .= sprintf( "%s { %s: %s; } ", $selector, $rule[ 'property' ], $value );
+			}
+
+			// Every rule in the bucket may have been dropped by the
+			// whitelist; skip the breakpoint so we never emit an empty
+			// base body or a hollow `@media` block.
+			if ( '' === $body ) {
+				continue;
 			}
 
 			if ( BreakpointRegistry::BASE_KEY === $bp ) {

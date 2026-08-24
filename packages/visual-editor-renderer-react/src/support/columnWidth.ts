@@ -19,6 +19,7 @@
  */
 
 import { formatPercent } from './attributes';
+import { safeCssValue } from './cssValue';
 import { getBreakpoints } from '../visibility';
 import type { Block } from '../types';
 import { xxh3_64_hex } from './xxh3';
@@ -265,22 +266,16 @@ function isNonEmptyWidth( value: unknown ): boolean {
 	return value !== 0 && value !== '0' && value !== '';
 }
 
-// A single CSS length: an optional-sign number with a known absolute or
-// relative unit. Percentages are handled separately (they carry a numeric
-// `percent` for the block-gap calc); this list is the units a column width
-// realistically stores. Anything else is rejected so it can never reach the
-// emitted stylesheet.
-const CSS_LENGTH = /^-?(?:\d+\.?\d*|\.\d+)(?:px|em|rem|ex|ch|cap|ic|lh|rlh|vw|vh|vi|vb|vmin|vmax|svw|svh|lvw|lvh|dvw|dvh|cm|mm|q|in|pt|pc|fr)$/i;
-
 /**
  * Normalize a width value into a `flex-basis` expression plus its numeric
  * percent (or `null` for absolute units). Mirrors `$normalizeBasis` in the
  * Blade partial, with one addition: a non-numeric, non-percentage string is
- * accepted only when it is a bare CSS length, and otherwise returns `null`
- * (rejected) so the caller skips the rule. This keeps hostile values out of
- * the `<style>` block the Blade partial emits raw. The scope hash is taken
- * over the full width map upstream, so rejecting a value here does not change
- * the `ve-w-<hash>` token.
+ * accepted only when it passes the shared CSS-value whitelist
+ * ({@link safeCssValue}), and otherwise returns `null` (rejected) so the
+ * caller skips the rule. This keeps hostile values out of the `<style>`
+ * block the Blade partial emits raw. The scope hash is taken over the full
+ * width map upstream, so rejecting a value here does not change the
+ * `ve-w-<hash>` token.
  */
 function normalizeBasis( value: unknown ): NormalizedBasis | null {
 	if ( isNumeric( value ) ) {
@@ -296,7 +291,7 @@ function normalizeBasis( value: unknown ): NormalizedBasis | null {
 		return { basis: str, percent: Number( match[ 1 ] ) };
 	}
 
-	if ( CSS_LENGTH.test( str.trim() ) ) {
+	if ( safeCssValue( str ) !== null ) {
 		return { basis: str, percent: null };
 	}
 
