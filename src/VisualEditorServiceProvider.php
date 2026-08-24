@@ -24,6 +24,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Gates\DenyByDefaultGate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
+use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
@@ -156,6 +157,17 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( DynamicBlockRegistry::class, function () {
 			return new DynamicBlockRegistry();
+		} );
+
+		// #629 — Font Library source registry. Bound as a singleton so
+		// provider registrations persist for the process. Built-in
+		// providers are seeded and the
+		// `ap.visualEditor.registerFontSources` filter is layered in
+		// `boot()` via `applyFontSourcesFilter()`, so late-boot
+		// `addFilter` calls from any provider are visible regardless of
+		// provider order.
+		$this->app->singleton( FontSourceRegistry::class, function () {
+			return new FontSourceRegistry();
 		} );
 
 		// #688 — the server-side bridge from WP block markup to a
@@ -626,6 +638,35 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
+	 * Layer the `ap.visualEditor.registerFontSources` filter over the
+	 * {@see FontSourceRegistry} singleton.
+	 *
+	 * Registered in `boot()` via {@see \Illuminate\Container\Container::extend()}
+	 * so the filter chain is complete by the time the registry is first
+	 * resolved — a package can register its own
+	 * {@see \ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider} from its
+	 * own `boot()` regardless of provider order. The filter receives the
+	 * registry instance and must return it; a non-registry return is ignored
+	 * so a misbehaving hook cannot break font sources.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function applyFontSourcesFilter(): void
+	{
+		if ( ! function_exists( 'applyFilters' ) ) {
+			return;
+		}
+
+		$this->app->extend(
+			FontSourceRegistry::class,
+			static function ( FontSourceRegistry $registry ): FontSourceRegistry {
+				$filtered = applyFilters( 'ap.visualEditor.registerFontSources', $registry );
+				return $filtered instanceof FontSourceRegistry ? $filtered : $registry;
+			},
+		);
+	}
+
+	/**
 	 * Perform post-registration booting of services.
 	 *
 	 * @since 1.0.0
@@ -663,6 +704,12 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//     scoped closure (an intra-boot resolve captured an empty
 		//     filter chain).
 		$this->applyVisibilityRulesFilter();
+
+		// 1c. Layer the `ap.visualEditor.registerFontSources` filter
+		//     over the Font Library source registry via `extend()`, so
+		//     packages can register a `FontProvider` from their own
+		//     `boot()` regardless of provider order (#629).
+		$this->applyFontSourcesFilter();
 
 		// 2. Load package views, routes, and migrations.
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor' );

@@ -70,6 +70,26 @@ Entity shape contracts are documented in `config/visual-editor.php` and [[Config
 
 ---
 
+### `ap.visualEditor.registerFontSources`
+
+Register Font Library sources at runtime. The filter receives the `FontSourceRegistry` instance and must return it after registering any `FontProvider` implementations.
+
+**Signature:** `FontSourceRegistry $registry -> FontSourceRegistry`
+
+```php
+use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
+
+addFilter('ap.visualEditor.registerFontSources', function (FontSourceRegistry $registry): FontSourceRegistry {
+    $registry->register(new FontshareProvider());
+
+    return $registry;
+});
+```
+
+The filter is layered over the registry with `extend()`, so it fires the first time the registry resolves — after every provider has booted, regardless of provider order. A non-registry return value is ignored. See [[Font Providers]] for the full contract.
+
+---
+
 ### `ap.visualEditor.loginout.envelope`
 
 Rewrite the resolved envelope emitted by the `artisanpack/loginout` block before render. Useful for swapping in `URL::signedRoute()`, per-tenant routes, or SSO redirects.
