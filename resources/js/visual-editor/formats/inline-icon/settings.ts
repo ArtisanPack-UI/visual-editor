@@ -141,6 +141,10 @@ export function normalizeInlineIconSvg( svg: string ): string {
         return trimmed;
     }
 
+    // Matches a `style="…"` or `style='…'` attribute, capturing the
+    // declarations under group 2 (double) or 3 (single).
+    const styleAttr = /\sstyle\s*=\s*(?:"([^"]*)"|'([^']*)')/i;
+
     return trimmed.replace(
         /<svg\b([^>]*?)(\/?)>/i,
         ( _match, rawAttrs: string, selfClose: string ): string => {
@@ -148,11 +152,19 @@ export function normalizeInlineIconSvg( svg: string ): string {
                 .replace( /\s(?:width|height)\s*=\s*"[^"]*"/gi, '' )
                 .replace( /\s(?:width|height)\s*=\s*'[^']*'/gi, '' );
 
-            const withStyle = /\sstyle\s*=\s*"/i.test( withoutDimensions )
+            const withStyle = styleAttr.test( withoutDimensions )
                 ? withoutDimensions.replace(
-                    /(\sstyle\s*=\s*")([^"]*)"/i,
-                    ( _m, prefix: string, existing: string ) =>
-                        `${ prefix }${ INLINE_ICON_SVG_STYLE };${ existing }"`,
+                    styleAttr,
+                    ( _m, dq: string | undefined, sq: string | undefined ): string => {
+                        const existing = ( dq ?? sq ?? '' ).trim().replace( /;+$/, '' );
+                        // Enforced declarations go LAST so the icon's own
+                        // `1em` sizing / `currentColor` win over any source
+                        // width/height/fill in the existing style.
+                        const merged = '' === existing
+                            ? INLINE_ICON_SVG_STYLE
+                            : `${ existing };${ INLINE_ICON_SVG_STYLE }`;
+                        return ` style="${ merged }"`;
+                    },
                 )
                 : `${ withoutDimensions } style="${ INLINE_ICON_SVG_STYLE }"`;
 

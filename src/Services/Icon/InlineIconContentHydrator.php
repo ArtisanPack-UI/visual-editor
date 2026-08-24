@@ -157,13 +157,33 @@ final class InlineIconContentHydrator
 				);
 				$attributes = is_string( $attributes ) ? $attributes : $match[1];
 
-				if ( 1 === preg_match( '/\sstyle\s*=\s*"/i', $attributes ) ) {
-					$attributes = preg_replace(
-						'/(\sstyle\s*=\s*")([^"]*)"/i',
-						'$1' . self::SVG_STYLE . ';$2"',
+				// Matches a `style="…"` or `style='…'` attribute, capturing
+				// the declarations under group 1 (double) or 2 (single).
+				$styleAttr = '/\sstyle\s*=\s*(?:"([^"]*)"|\'([^\']*)\')/i';
+
+				if ( 1 === preg_match( $styleAttr, $attributes ) ) {
+					$merged = preg_replace_callback(
+						$styleAttr,
+						function ( array $style ): string {
+							// One alternation branch matched: PHP leaves the
+							// other capture as '' (not null), so pick the
+							// non-empty one rather than null-coalescing.
+							$raw      = '' !== ( $style[1] ?? '' ) ? $style[1] : ( $style[2] ?? '' );
+							$existing = rtrim( trim( $raw ), ';' );
+
+							// Enforced declarations go LAST so the icon's own
+							// 1em sizing / currentColor win over any source
+							// width/height/fill in the existing style.
+							$declarations = '' === $existing
+								? self::SVG_STYLE
+								: $existing . ';' . self::SVG_STYLE;
+
+							return ' style="' . $declarations . '"';
+						},
 						$attributes,
 						1
 					);
+					$attributes = is_string( $merged ) ? $merged : $attributes;
 				} else {
 					$attributes .= ' style="' . self::SVG_STYLE . '"';
 				}

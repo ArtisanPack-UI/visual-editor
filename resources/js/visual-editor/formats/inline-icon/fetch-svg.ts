@@ -65,6 +65,14 @@ export async function fetchIconSvg(
         return '';
     }
 
-    const body = ( await response.json() ) as { svg?: string };
-    return 'string' === typeof body.svg ? body.svg : '';
+    // `response.json()` rejects on an empty or non-JSON body; the caller
+    // awaits this without a try/catch, so swallow it and fall back to the
+    // documented empty-string result (the server hydrator fills the icon
+    // in at render time regardless).
+    try {
+        const body = ( await response.json() ) as { svg?: string };
+        return 'string' === typeof body.svg ? body.svg : '';
+    } catch {
+        return '';
+    }
 }

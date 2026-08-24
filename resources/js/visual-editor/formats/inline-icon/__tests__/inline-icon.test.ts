@@ -103,6 +103,19 @@ describe( 'inline-icon pure builders', () => {
         expect( out ).toContain( 'viewBox="0 0 512 512"' );
     } );
 
+    it( 'appends the enforced style after an existing style so 1em wins', () => {
+        const out = normalizeInlineIconSvg( '<svg style="width:512px;color:red"><path d="M0 0"/></svg>' );
+        expect( out ).toContain( 'style="width:512px;color:red;display:inline-block;width:1em;height:1em;fill:currentColor;vertical-align:-0.125em"' );
+        // No duplicate style attribute.
+        expect( out.match( /style=/g ) ).toHaveLength( 1 );
+    } );
+
+    it( 'merges a single-quoted style attribute without duplicating it', () => {
+        const out = normalizeInlineIconSvg( "<svg style='color:red'><path d=\"M0 0\"/></svg>" );
+        expect( out ).toContain( 'style="color:red;display:inline-block;width:1em;height:1em;fill:currentColor;vertical-align:-0.125em"' );
+        expect( out.match( /style=/g ) ).toHaveLength( 1 );
+    } );
+
     it( 'normalizes a self-closing svg root without corrupting the tag', () => {
         const out = normalizeInlineIconSvg( '<svg viewBox="0 0 1 1"/>' );
         expect( out ).toBe( '<svg viewBox="0 0 1 1" style="display:inline-block;width:1em;height:1em;fill:currentColor;vertical-align:-0.125em"/>' );

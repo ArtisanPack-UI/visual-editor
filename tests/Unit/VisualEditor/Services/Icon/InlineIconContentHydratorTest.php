@@ -94,13 +94,26 @@ it( 'hydrates multiple reference spans in one pass', function () {
 		->and( substr_count( $result, 'style="' . INLINE_ICON_SVG_STYLE . '"' ) )->toBe( 2 );
 } );
 
-it( 'merges the inline style into a resolved svg that already has a style attribute', function () {
-	file_put_contents( test()->base . '/fab/styled.svg', '<svg id="styled" style="color:red"><path d="M0 0"/></svg>' );
+it( 'appends the enforced style after an existing style so 1em sizing wins', function () {
+	// A source width in the existing style must not override the enforced
+	// 1em, so the enforced declarations go LAST.
+	file_put_contents( test()->base . '/fab/styled.svg', '<svg id="styled" style="width:512px;color:red"><path d="M0 0"/></svg>' );
 
 	$html = '<span class="ap-inline-icon" data-icon-set="fab" data-icon-name="styled"></span>';
 
 	expect( test()->hydrator->hydrate( $html ) )
-		->toContain( 'style="' . INLINE_ICON_SVG_STYLE . ';color:red"' );
+		->toContain( 'style="width:512px;color:red;' . INLINE_ICON_SVG_STYLE . '"' );
+} );
+
+it( 'merges a single-quoted style attribute without creating a duplicate', function () {
+	file_put_contents( test()->base . '/fab/singlequote.svg', "<svg id=\"sq\" style='color:red'><path d=\"M0 0\"/></svg>" );
+
+	$html   = '<span class="ap-inline-icon" data-icon-set="fab" data-icon-name="singlequote"></span>';
+	$result = test()->hydrator->hydrate( $html );
+
+	expect( $result )
+		->toContain( 'style="color:red;' . INLINE_ICON_SVG_STYLE . '"' )
+		->and( substr_count( $result, 'style=' ) )->toBe( 1 );
 } );
 
 it( 'normalizes a self-closing resolved svg without corrupting the tag', function () {
