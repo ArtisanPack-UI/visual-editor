@@ -162,12 +162,14 @@ it( 'has a golden for every fixture and no orphaned goldens', function () {
  * not under PCRE is the worst kind of drift: `preg_match()` reports a failed
  * compile as `false`, which reads exactly like "no match", so the golden is
  * written *with* the token while the JS side drops it. Fail loudly here
- * instead, on both sides.
+ * instead, on both sides. The manifest may legitimately be empty once every
+ * renderer has converged (as it is after #714), so this asserts "every
+ * declared pattern compiles", not that any are declared.
  */
 it( 'compiles every declared divergence pattern', function () {
 	$patterns = markupParityDropClassPatterns();
 
-	expect( $patterns )->not->toBeEmpty();
+	expect( $patterns )->toBeArray();
 
 	foreach ( $patterns as $pattern ) {
 		expect( CanonicalMarkup::compileDropClassPattern( $pattern ) )->toBeString();

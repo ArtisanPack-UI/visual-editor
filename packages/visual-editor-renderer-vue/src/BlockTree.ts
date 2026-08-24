@@ -29,6 +29,7 @@ import {
     type ArbitraryRule,
 } from './support/flex-serializer';
 import { stampColumnWidthScopes } from './support/columnWidth';
+import { stampPhotoGridScopes } from './support/photoGrid';
 import {
     DEFAULT_MAX_PATTERN_DEPTH,
     inlinePatterns,
@@ -204,6 +205,16 @@ export const BlockTree = defineComponent({
             stampColumnWidthScopes(visibility.value.tree)
         );
 
+        // Photo Grid wrapper (#714 · #594) — stamp the `has-photo-grid` +
+        // hashed `photo-grid-<hash>` scope class onto every group / columns
+        // / grid block with the Photo Grid panel enabled and emit the
+        // matching custom-property rule, so image-bearing descendants get
+        // the same aspect-ratio / object-fit / object-position sizing the
+        // Blade renderer applies.
+        const photoGrid = computed(() =>
+            stampPhotoGridScopes(columnWidth.value.tree)
+        );
+
         return () => {
             const endpoint = props.dynamicBlockEndpoint ?? DEFAULT_ENDPOINT;
             const children: VNode[] = [];
@@ -242,7 +253,17 @@ export const BlockTree = defineComponent({
                 );
             }
 
-            columnWidth.value.tree
+            if (photoGrid.value.css !== '') {
+                children.push(
+                    h(
+                        'style',
+                        { 'data-ve-photo-grid': '' },
+                        photoGrid.value.css
+                    )
+                );
+            }
+
+            photoGrid.value.tree
                 .map((block, index) => renderBlock(block, index, endpoint, props.fetchOptions))
                 .filter((vnode): vnode is VNode => vnode !== null)
                 .forEach((vnode) => children.push(vnode));

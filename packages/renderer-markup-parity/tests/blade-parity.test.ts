@@ -107,9 +107,11 @@ describe('declared divergences', () => {
     // token in the golden while the JS side dropped it, since preg_match()
     // reports a failed compile as `false` — indistinguishable from "no
     // match". Both sides assert compilation so the mismatch surfaces at the
-    // point it is introduced.
-    it('declares at least one pattern and compiles all of them', () => {
-        expect(DROP_CLASS_PATTERNS.length).toBeGreaterThan(0);
+    // point it is introduced. The manifest may legitimately be empty once
+    // every renderer has converged (as it is after #714), so this asserts
+    // "all declared patterns compile", not that any are declared.
+    it('compiles every declared divergence pattern', () => {
+        expect(Array.isArray(DROP_CLASS_PATTERNS)).toBe(true);
 
         for (const source of DROP_CLASS_PATTERNS) {
             expect(() => new RegExp(source)).not.toThrow();

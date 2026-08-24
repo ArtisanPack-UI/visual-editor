@@ -85,12 +85,18 @@ export const GridBlock = defineComponent({
             const className = attrString(props.attributes.className);
             const layoutMode = attrString(props.attributes.layoutMode);
             const isMasonry = 'masonry' === layoutMode;
+            // Photo Grid wrapper scope stamped by `stampPhotoGridScopes()`
+            // (#714), emitted after the layout class and before the author
+            // `className`, the same position the grid Blade partial merges
+            // it.
+            const photoGridScope = attrString(props.attributes._vePhotoGridScope);
 
             const classes = classList([
                 'ap-grid',
                 `ap-grid-has-${baseColumns}-base-columns`,
                 ...responsiveSpanClasses(responsiveColumns, 'columns', 'ap-grid-has'),
                 isMasonry ? 'ap-grid-layout-masonry' : 'ap-grid-layout-fixed',
+                photoGridScope !== '' ? photoGridScope : null,
                 className,
             ]);
 

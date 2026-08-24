@@ -1,13 +1,6 @@
 {
     "$comment": "Shared, language-neutral block trees for the Blade-vs-JS markup parity check (#704). Consumed by both packages/visual-editor-renderer-blade/tests/Feature/RendererMarkupParityTest.php (PHP) and packages/renderer-markup-parity/tests/blade-parity.test.ts (JS). Adding a fixture here automatically exercises it against all three renderers. See README.md for the golden-file workflow.",
-    "knownDivergences": [
-        {
-            "id": "blade-only-photo-grid-wrapper",
-            "issue": "#714",
-            "reason": "Tracked in #714, introduced by #594. The Photo Grid block support exists in the Blade renderer only: PhotoGridSupport::wrapperForBlock() splices `has-photo-grid` plus a hashed `photo-grid-<12-char-sha1>` scope class into the wrappers emitted by core/group, core/columns and artisanpack/grid, and pushes the matching custom-property declarations into the per-request accumulator. No photo-grid symbol exists in either JS renderer. Dropping the tokens keeps the rest of those wrappers under comparison rather than leaving the whole feature unfixtured.",
-            "dropClassTokensMatching": "^(has-photo-grid|photo-grid-[0-9a-f]{4,})$"
-        }
-    ],
+    "knownDivergences": [],
     "fixtures": [
         {
             "name": "paragraph",
@@ -127,7 +120,7 @@
             ]
         },
         {
-            "$comment": "#714 — Photo Grid is a Blade-only wrapper. Its class tokens are dropped by the `blade-only-photo-grid-wrapper` divergence; the rest of the group markup stays compared.",
+            "$comment": "#714 — Photo Grid now emits the same `has-photo-grid` + hashed `photo-grid-<sha1>` wrapper through all three renderers (the Blade-only divergence was removed once the React/Vue ports landed). The scope hash is pinned by the golden, so a drift in either renderer's sha1/declaration surfaces here.",
             "name": "group-photo-grid",
             "tree": [
                 {
@@ -146,6 +139,65 @@
                             "clientId": "g-photo-grid-p",
                             "name": "core/paragraph",
                             "attributes": { "content": "Photo grid" },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "#714 — the same Photo Grid wrapper on a `core/columns` block. `objectFit: contain` and no `aspectRatio` exercise a different declaration string (and therefore a different scope hash) than the group fixture.",
+            "name": "columns-photo-grid",
+            "tree": [
+                {
+                    "clientId": "cols-photo-grid",
+                    "name": "core/columns",
+                    "attributes": {
+                        "photoGrid": {
+                            "enabled": true,
+                            "objectFit": "contain",
+                            "objectPosition": "top left"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "cols-photo-grid-col",
+                            "name": "core/column",
+                            "attributes": {},
+                            "innerBlocks": [
+                                {
+                                    "clientId": "cols-photo-grid-p",
+                                    "name": "core/paragraph",
+                                    "attributes": { "content": "Photo grid column" },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "$comment": "#714 — the Photo Grid wrapper on an `artisanpack/grid` block, proving the third panel-bearing block agrees across renderers.",
+            "name": "grid-photo-grid",
+            "tree": [
+                {
+                    "clientId": "grid-photo-grid",
+                    "name": "artisanpack/grid",
+                    "attributes": {
+                        "numColumns": 3,
+                        "photoGrid": {
+                            "enabled": true,
+                            "aspectRatio": "4/3",
+                            "objectFit": "cover",
+                            "objectPosition": "50% 50%"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "grid-photo-grid-p",
+                            "name": "core/paragraph",
+                            "attributes": { "content": "Photo grid grid" },
                             "innerBlocks": []
                         }
                     ]

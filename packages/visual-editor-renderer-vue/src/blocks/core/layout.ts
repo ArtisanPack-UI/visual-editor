@@ -59,10 +59,17 @@ export const GroupBlock = defineComponent({
             // (`wp-block-group-is-layout-constrained`), so emit it alongside
             // the shared modifier. `layoutClass()` also covers the `grid`
             // type the old inline ternary silently rendered as flow.
+            // Photo Grid wrapper scope stamped by `stampPhotoGridScopes()`
+            // (#714). Emitted after the flex classes and before the author
+            // `className`, the same position the Blade partial merges it
+            // into `$wrapperBaseClasses`.
+            const photoGridScope = attrString(props.attributes._vePhotoGridScope);
+
             const classes = classList([
                 'wp-block-group',
                 ...layoutPair('group', groupLayoutClass),
                 ...flexClasses,
+                photoGridScope !== '' ? photoGridScope : null,
                 className,
             ]);
 
@@ -124,6 +131,10 @@ export const ColumnsBlock = defineComponent({
             const verticalAlignment = attrString(props.attributes.verticalAlignment);
 
             const flexClasses = flexClassNames(props.attributes.artisanpackFlex);
+            // Photo Grid wrapper scope stamped by `stampPhotoGridScopes()`
+            // (#714), emitted in the same position the columns Blade partial
+            // merges it.
+            const photoGridScope = attrString(props.attributes._vePhotoGridScope);
             // #702 — columns is a flex layout upstream and its wrapper
             // carries both the shared modifier and the per-block compound.
             // Neither was emitted here, so layout rules keyed on either
@@ -134,6 +145,7 @@ export const ColumnsBlock = defineComponent({
                 isStacked ? 'is-stacked-on-mobile' : null,
                 verticalAlignment !== '' ? `are-vertically-aligned-${verticalAlignment}` : null,
                 ...flexClasses,
+                photoGridScope !== '' ? photoGridScope : null,
                 className,
             ]);
 
