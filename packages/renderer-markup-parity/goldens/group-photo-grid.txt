@@ -1,4 +1,4 @@
-<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow">
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow has-photo-grid photo-grid-6873a2dd85dc">
   <p class="wp-block-paragraph">
     "Photo grid"
   </p>
