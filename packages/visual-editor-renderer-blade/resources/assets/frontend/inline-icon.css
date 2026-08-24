@@ -1,0 +1,27 @@
+/*
+ * Inline-icon layout baseline (#717).
+ *
+ * Frontend copy of the editor's
+ * `resources/js/visual-editor/formats/inline-icon/inline-icon.css` so an
+ * icon inserted via the inline-icon RichText format sits on the text
+ * baseline and inherits colour + font-size on the public site exactly as
+ * it does in the editor canvas. Matched by `<x-ve-blocks-styles />`.
+ */
+
+.ap-inline-icon {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	vertical-align: -0.125em;
+	line-height: 1;
+}
+
+.ap-inline-icon svg {
+	/* `inline-block` overrides CSS resets that set `svg { display: block }`
+	   (e.g. Tailwind Preflight), which would push the icon onto its own line. */
+	display: inline-block;
+	width: 1em;
+	height: 1em;
+	vertical-align: -0.125em;
+	fill: currentColor;
+}

@@ -103,6 +103,16 @@ class BlockRenderer
 	protected int $innerDepth = 0;
 
 	/**
+	 * Re-entrancy counter for {@see render()}. Some block partials
+	 * (tabs, accordion, navigation-overlay) resolve this renderer and
+	 * call `render()` again on an inner sub-tree mid-render, so the
+	 * whole-content `ap.visualEditor.renderedContent` filter must only
+	 * fire once the outermost call unwinds — otherwise it would run per
+	 * nested fragment as well as over the full document.
+	 */
+	protected int $renderDepth = 0;
+
+	/**
 	 * Request-scoped {@see VisibilityContext}, cached for the length of
 	 * a single {@see render()} call so a large tree only pays the
 	 * user-agent parse + role lookup once. Rebuilt on every top-level
@@ -321,48 +331,89 @@ class BlockRenderer
 	 */
 	public function render( array $tree ): string
 	{
-		$this->renderIndex       = 0;
-		$this->innerDepth        = 0;
-		$this->visibilityContext = null;
+		// Track re-entrancy so the whole-content filter fires only once,
+		// when the outermost call unwinds. `try`/`finally` keeps the
+		// counter balanced even if a block render throws.
+		$this->renderDepth++;
 
-		if ( null !== $this->visibility && $this->visibility->enabled() ) {
-			$this->visibilityContext = $this->visibility->contextFromRequest();
-		}
+		try {
+			$this->renderIndex       = 0;
+			$this->innerDepth        = 0;
+			$this->visibilityContext = null;
 
-		// #650 — normalize the tree to Gutenberg's canonical shape
-		// (`attributes` bag, bindings under `attributes.bindings`) so
-		// every downstream pipeline stage reads one shape. Without this
-		// pass, each stage has to re-implement the attributes-vs-attrs
-		// sniff and one that forgets (see the SnippetCycleGuard bug
-		// caught in code review) silently misses editor-persisted
-		// trees.
-		$tree = BlockShape::normalizeTree( $tree );
-
-		// #650 — resolve bindings (Dynamic Content, custom fields,
-		// post_core, relation) once before the walker runs. The
-		// resolver only mutates blocks with a `bindings` sidecar; trees
-		// without bindings round-trip byte-identically.
-		$tree = $this->resolveBindings( $tree );
-
-		// #650 — inline token pass. Walks every block's string /
-		// rich-text attribute looking for `{{token}}` occurrences and
-		// runs them through cms-framework's DynamicContentResolver so
-		// authored inline tokens (typed via `{{` autocomplete or the
-		// Token Inserter) resolve at render time. Silent no-op when
-		// cms-framework is not on the classpath.
-		$tree = $this->resolveInlineTokens( $tree );
-
-		$out = '';
-
-		foreach ( $tree as $block ) {
-			if ( ! is_array( $block ) ) {
-				continue;
+			if ( null !== $this->visibility && $this->visibility->enabled() ) {
+				$this->visibilityContext = $this->visibility->contextFromRequest();
 			}
 
-			$out .= $this->renderBlock( $block );
+			// #650 — normalize the tree to Gutenberg's canonical shape
+			// (`attributes` bag, bindings under `attributes.bindings`) so
+			// every downstream pipeline stage reads one shape. Without this
+			// pass, each stage has to re-implement the attributes-vs-attrs
+			// sniff and one that forgets (see the SnippetCycleGuard bug
+			// caught in code review) silently misses editor-persisted
+			// trees.
+			$tree = BlockShape::normalizeTree( $tree );
+
+			// #650 — resolve bindings (Dynamic Content, custom fields,
+			// post_core, relation) once before the walker runs. The
+			// resolver only mutates blocks with a `bindings` sidecar; trees
+			// without bindings round-trip byte-identically.
+			$tree = $this->resolveBindings( $tree );
+
+			// #650 — inline token pass. Walks every block's string /
+			// rich-text attribute looking for `{{token}}` occurrences and
+			// runs them through cms-framework's DynamicContentResolver so
+			// authored inline tokens (typed via `{{` autocomplete or the
+			// Token Inserter) resolve at render time. Silent no-op when
+			// cms-framework is not on the classpath.
+			$tree = $this->resolveInlineTokens( $tree );
+
+			$out = '';
+
+			foreach ( $tree as $block ) {
+				if ( ! is_array( $block ) ) {
+					continue;
+				}
+
+				$out .= $this->renderBlock( $block );
+			}
+		} finally {
+			$this->renderDepth--;
 		}
 
-		return $out;
+		return 0 === $this->renderDepth
+			? $this->applyRenderedContentFilter( $out )
+			: $out;
+	}
+
+	/**
+	 * Run the fully assembled document through the
+	 * `ap.visualEditor.renderedContent` filter.
+	 *
+	 * This is the one seam every document-level render funnels through
+	 * ({@see \ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksComponent},
+	 * {@see \ArtisanPackUI\VisualEditorRendererBlade\View\Components\TemplateComponent},
+	 * and {@see self::renderMarkup}), so whole-content passes — most
+	 * notably the inline-icon hydrator (#717) that resolves
+	 * `span.ap-inline-icon` reference spans into SVG — run over the
+	 * complete markup, after every block has emitted its HTML. Because a
+	 * few partials (tabs, accordion, navigation-overlay) re-enter
+	 * {@see self::render} on inner sub-trees, the caller gates this on
+	 * `renderDepth === 0` so it runs exactly once per document.
+	 *
+	 * No-ops cleanly when `artisanpack-ui/hooks` isn't installed.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function applyRenderedContentFilter( string $html ): string
+	{
+		if ( ! function_exists( 'applyFilters' ) ) {
+			return $html;
+		}
+
+		$filtered = applyFilters( 'ap.visualEditor.renderedContent', $html );
+
+		return is_string( $filtered ) ? $filtered : $html;
 	}
 
 	/**

@@ -49,6 +49,7 @@ import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
 import { registerBackgroundControls } from '../background-controls';
 import { registerArtisanPackBlocks } from '../blocks';
+import { registerInlineIconFormat } from '../formats/inline-icon/register';
 import { registerBoxShadows } from '../box-shadows/register';
 import { registerGradientBorders } from '../gradient-borders/register';
 import { registerPositioning } from '../positioning/register';
@@ -221,6 +222,11 @@ function ensureEditorBoot(): void {
     registerGradientBorders();
     registerBoxShadows();
     registerPositioning();
+
+    // #717 — inline-icon RichText format, mirroring the post editor so
+    // icons can be inserted inline inside any rich-text field edited in
+    // the site editor too.
+    registerInlineIconFormat();
 
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.

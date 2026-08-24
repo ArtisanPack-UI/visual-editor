@@ -14,6 +14,7 @@ use ArtisanPackUI\VisualEditor\Services\Icon\FontAwesomeFreeIconSets;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconCatalog;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconSetUploader;
 use ArtisanPackUI\VisualEditor\Services\Icon\IconSvgResolver;
+use ArtisanPackUI\VisualEditor\Services\Icon\InlineIconContentHydrator;
 use ArtisanPackUI\VisualEditor\Services\Icon\SvgSanitizer;
 use ArtisanPackUI\VisualEditor\Services\Icon\UploadedIconSetRegistry;
 use ArtisanPackUI\VisualEditor\MediaBridge\GutenbergAttachmentAdapter;
@@ -230,6 +231,14 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 				return $paths;
 			} );
+		} );
+
+		// Inline icons (#717): the render-time hydrator that turns
+		// `artisanpack/inline-icon` reference spans into real SVG draws
+		// from the same shared resolver as the block and endpoints, so
+		// inline and block icons stay in lockstep on set coverage.
+		$this->app->singleton( InlineIconContentHydrator::class, function ( $app ): InlineIconContentHydrator {
+			return new InlineIconContentHydrator( $app->make( IconSvgResolver::class ) );
 		} );
 
 		// Icon Block Phase 4 (#555): the picker's search + sets endpoints
@@ -691,6 +700,15 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//      sync hasn't run yet, so app boot stays robust.
 		$this->registerFontAwesomeFreeIconSets();
 
+		// 4.1b. Inline icons (#717) — hydrate `artisanpack/inline-icon`
+		//       reference spans over the fully rendered content. Static
+		//       blocks emit their stored rich-text verbatim with no
+		//       per-block callback, so a whole-content pass is the only
+		//       seam that can resolve set-icon references into SVG. Gated
+		//       on `addFilter` so visual-editor stays bootable when hooks
+		//       isn't on the classpath.
+		$this->registerInlineIconHydrator();
+
 		// 4.1a. #639 — seed the built-in `page` pattern category with a
 		//       single `Blank` starter so the page-pattern-inserter modal
 		//       has at least one entry to render before host apps register
@@ -926,6 +944,42 @@ class VisualEditorServiceProvider extends ServiceProvider
 			'ap.icons.registerIconSets',
 			static function ( IconSetRegistration $registry ) use ( $baseDir ): IconSetRegistration {
 				return FontAwesomeFreeIconSets::register( $registry, $baseDir );
+			}
+		);
+	}
+
+	/**
+	 * Wire the inline-icon hydrator onto the rendered-content filter.
+	 *
+	 * The Blade renderer emits `ap.visualEditor.renderedContent` over the
+	 * fully assembled document (see {@see \ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer}
+	 * and {@see \ArtisanPackUI\VisualEditorRendererBlade\View\Components\BlocksComponent}).
+	 * The callback resolves the hydrator out of the container lazily, at
+	 * request time, so it picks up any icon sets registered after this
+	 * provider boots.
+	 *
+	 * Gated on `addFilter` to keep visual-editor bootable when
+	 * `artisanpack-ui/hooks` isn't on the classpath.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function registerInlineIconHydrator(): void
+	{
+		if ( ! function_exists( 'addFilter' ) ) {
+			return;
+		}
+
+		addFilter(
+			'ap.visualEditor.renderedContent',
+			function ( mixed $html ): mixed {
+				// Pass a non-string value straight through so a misbehaving
+				// upstream filter can never cause this callback to blank the
+				// rendered document.
+				if ( ! is_string( $html ) ) {
+					return $html;
+				}
+
+				return $this->app->make( InlineIconContentHydrator::class )->hydrate( $html );
 			}
 		);
 	}

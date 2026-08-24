@@ -63,6 +63,7 @@ import {
 import { registerBindingsAttribute } from '../bindings/register-attribute';
 import { registerBindingsPanel } from '../bindings/with-bindings-panel';
 import { registerDynamicContent } from '../dynamic-content';
+import { registerInlineIconFormat } from '../formats/inline-icon/register';
 import { StateInspectorSync } from '../states/StateInspectorSync';
 import { StateWriteInterceptor } from '../states/state-write-interceptor';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
@@ -258,6 +259,12 @@ function registerOnce(): void {
     registerGradientBorders();
     registerBoxShadows();
     registerPositioning();
+    // #717 — register the inline-icon RichText format so authors can drop
+    // an icon at the caret inside any editable rich-text field (headings,
+    // paragraphs, buttons, list items, captions). Runs before blocks so
+    // the format's toolbar button is available the first time any
+    // RichText renders.
+    registerInlineIconFormat();
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();

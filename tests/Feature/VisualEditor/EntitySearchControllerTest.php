@@ -43,6 +43,7 @@ function entitySearchStubEntities( array $rows ): array
 		status: 'publish',
 		hasThemeFile: true,
 		isCustom: false,
+		isBlade: false,
 		area: $row['area'] ?? null,
 		model: null,
 	), $rows );

@@ -201,7 +201,7 @@ const RECENT_ROW_STYLE: CSSProperties = {
     marginBottom: '12px',
 };
 
-export default function IconPicker( props: IconPickerProps ): ReactElement {
+export function IconPickerPanel( props: IconPickerProps ): ReactElement {
     const { onSelect, onClose } = props;
     const apiBase = props.apiBase ?? '/visual-editor/api';
     const fetcher = props.fetcher ?? defaultFetcher;
@@ -352,12 +352,7 @@ export default function IconPicker( props: IconPickerProps ): ReactElement {
     );
 
     return (
-        <Modal
-            title={ __( 'Choose an icon', 'artisanpack-visual-editor' ) }
-            onRequestClose={ onClose }
-            className="wp-block-artisanpack-icon__picker"
-            size="medium"
-        >
+        <>
             <TextControl
                 label={ __( 'Search', 'artisanpack-visual-editor' ) }
                 value={ query }
@@ -506,6 +501,26 @@ export default function IconPicker( props: IconPickerProps ): ReactElement {
                     </Button>
                 </div>
             ) }
+        </>
+    );
+}
+
+/**
+ * Modal-wrapped picker used by the standalone Icon block. The inner
+ * {@link IconPickerPanel} is exported separately so other surfaces — the
+ * inline-icon RichText format (#717) — can embed the same search UI
+ * inside their own chrome (e.g. a tabbed chooser) without nesting one
+ * modal inside another.
+ */
+export default function IconPicker( props: IconPickerProps ): ReactElement {
+    return (
+        <Modal
+            title={ __( 'Choose an icon', 'artisanpack-visual-editor' ) }
+            onRequestClose={ props.onClose }
+            className="wp-block-artisanpack-icon__picker"
+            size="medium"
+        >
+            <IconPickerPanel { ...props } />
         </Modal>
     );
 }
