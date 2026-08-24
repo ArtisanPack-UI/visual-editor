@@ -116,11 +116,17 @@ export function ColumnBlock({ attributes, children }: BlockRendererProps): JSX.E
     const verticalAlignment = attrString(attributes.verticalAlignment);
     const flexClasses = flexClassNames(attributes.artisanpackFlex);
 
+    // Column responsive-width scope stamped by `stampColumnWidthScopes()`
+    // (#712). Appended last so the token lands in the same position the
+    // Blade partial emits it (after every base / block-support class).
+    const widthScope = attrString(attributes._veColumnWidthScope);
+
     const classes = classList([
         'wp-block-column',
         verticalAlignment !== '' ? `is-vertically-aligned-${verticalAlignment}` : null,
         ...flexClasses,
         className,
+        widthScope !== '' ? widthScope : null,
     ]);
 
     const width = attributes.width;

@@ -1,12 +1,12 @@
 <div class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile">
-  <div class="wp-block-column ve-w-971ccacfaf" style="flex-basis: 60%">
+  <div class="wp-block-column ve-w-b3f909ad19" style="flex-basis: 50%">
     <p class="wp-block-paragraph">
-      "Left"
+      "A"
     </p>
   </div>
-  <div class="wp-block-column">
+  <div class="wp-block-column ve-w-345d016776" style="flex-basis: 50%">
     <p class="wp-block-paragraph">
-      "Right"
+      "B"
     </p>
   </div>
 </div>

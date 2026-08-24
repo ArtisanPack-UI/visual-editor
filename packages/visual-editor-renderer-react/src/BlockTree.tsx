@@ -28,6 +28,7 @@ import {
     serializeFlex,
     type ArbitraryRule,
 } from './support/flex-serializer';
+import { stampColumnWidthScopes } from './support/columnWidth';
 import {
     DEFAULT_MAX_PATTERN_DEPTH,
     inlinePatterns,
@@ -169,6 +170,15 @@ export function BlockTree({
         return stampVisibilityScopes(filterVisibleBlocks(blocks));
     }, [blocks]);
 
+    // Column responsive width (#712 · #487) — stamp the `ve-w-<hash>`
+    // scope class onto every `core/column` with an explicit or
+    // per-breakpoint width and emit the matching `flex-basis`/`flex-grow`
+    // `!important` rules, so a column beats WP core's mobile stacking rule
+    // the same way it does through the Blade renderer.
+    const { tree: renderTree, css: columnWidthCss } = useMemo(() => {
+        return stampColumnWidthScopes(visibleBlocks);
+    }, [visibleBlocks]);
+
     return (
         <>
             <GlobalStyles css={globalStylesCss} />
@@ -178,7 +188,13 @@ export function BlockTree({
             {visibilityCss !== '' && (
                 <style data-ve-visibility>{visibilityCss}</style>
             )}
-            {visibleBlocks.map((block, index) =>
+            {columnWidthCss !== '' && (
+                // Explicit empty-string value so React's SSR serialization
+                // (`data-ve-column-width=""`) matches Vue's, keeping the
+                // React/Vue raw-HTML parity check byte-identical.
+                <style data-ve-column-width="">{columnWidthCss}</style>
+            )}
+            {renderTree.map((block, index) =>
                 renderBlock(block, index, dynamicBlockEndpoint, fetchOptions)
             )}
         </>

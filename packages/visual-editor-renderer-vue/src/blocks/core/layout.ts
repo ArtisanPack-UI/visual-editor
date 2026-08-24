@@ -150,11 +150,18 @@ export const ColumnBlock = defineComponent({
             const verticalAlignment = attrString(props.attributes.verticalAlignment);
             const flexClasses = flexClassNames(props.attributes.artisanpackFlex);
 
+            // Column responsive-width scope stamped by
+            // `stampColumnWidthScopes()` (#712). Appended last so the
+            // token lands in the same position the Blade partial emits it
+            // (after every base / block-support class).
+            const widthScope = attrString(props.attributes._veColumnWidthScope);
+
             const classes = classList([
                 'wp-block-column',
                 verticalAlignment !== '' ? `is-vertically-aligned-${verticalAlignment}` : null,
                 ...flexClasses,
                 className,
+                widthScope !== '' ? widthScope : null,
             ]);
 
             const width = props.attributes.width;

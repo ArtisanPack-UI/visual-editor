@@ -2,12 +2,6 @@
     "$comment": "Shared, language-neutral block trees for the Blade-vs-JS markup parity check (#704). Consumed by both packages/visual-editor-renderer-blade/tests/Feature/RendererMarkupParityTest.php (PHP) and packages/renderer-markup-parity/tests/blade-parity.test.ts (JS). Adding a fixture here automatically exercises it against all three renderers. See README.md for the golden-file workflow.",
     "knownDivergences": [
         {
-            "id": "blade-responsive-column-width-scope",
-            "issue": "#712",
-            "reason": "Tracked in #712, introduced by #487. core/column's Blade partial mints a hashed `ve-w-<hash>` scope class and pushes matching `flex-basis`/`flex-grow` `!important` rules into the per-request responsive accumulator, so an explicit column width survives WP core's mobile stacking rule. The React and Vue renderers emit the inline `flex-basis` only and have no equivalent. Dropping the token keeps the rest of the column markup under comparison rather than dropping the width fixture entirely.",
-            "dropClassTokensMatching": "^ve-w-[0-9a-f]{4,}$"
-        },
-        {
             "id": "blade-only-photo-grid-wrapper",
             "issue": "#714",
             "reason": "Tracked in #714, introduced by #594. The Photo Grid block support exists in the Blade renderer only: PhotoGridSupport::wrapperForBlock() splices `has-photo-grid` plus a hashed `photo-grid-<12-char-sha1>` scope class into the wrappers emitted by core/group, core/columns and artisanpack/grid, and pushes the matching custom-property declarations into the per-request accumulator. No photo-grid symbol exists in either JS renderer. Dropping the tokens keeps the rest of those wrappers under comparison rather than leaving the whole feature unfixtured.",
@@ -278,6 +272,51 @@
                                     "clientId": "col-2-p",
                                     "name": "core/paragraph",
                                     "attributes": { "content": "Right" },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "columns-responsive-width",
+            "$comment": "#712 — a column with the legacy scalar `width` promoted to the `base` slot plus a `responsive.width` per-breakpoint override. Exercises the merged-map hash and the `ve-w-<hash>` scope token now shared by all three renderers.",
+            "tree": [
+                {
+                    "clientId": "rcols-1",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "rcol-1",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "50%",
+                                "responsive": { "width": { "md": "33.33%" } }
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "rcol-1-p",
+                                    "name": "core/paragraph",
+                                    "attributes": { "content": "A" },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "rcol-2",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "50%",
+                                "responsive": { "width": { "md": "66.67%" } }
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "rcol-2-p",
+                                    "name": "core/paragraph",
+                                    "attributes": { "content": "B" },
                                     "innerBlocks": []
                                 }
                             ]

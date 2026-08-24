@@ -28,6 +28,7 @@ import {
     serializeFlex,
     type ArbitraryRule,
 } from './support/flex-serializer';
+import { stampColumnWidthScopes } from './support/columnWidth';
 import {
     DEFAULT_MAX_PATTERN_DEPTH,
     inlinePatterns,
@@ -194,6 +195,15 @@ export const BlockTree = defineComponent({
             stampVisibilityScopes(filterVisibleBlocks(blocks.value))
         );
 
+        // Column responsive width (#712 · #487) — stamp the `ve-w-<hash>`
+        // scope class onto every `core/column` with an explicit or
+        // per-breakpoint width and emit the matching `flex-basis`/
+        // `flex-grow` `!important` rules, so a column beats WP core's
+        // mobile stacking rule the same way it does through Blade.
+        const columnWidth = computed(() =>
+            stampColumnWidthScopes(visibility.value.tree)
+        );
+
         return () => {
             const endpoint = props.dynamicBlockEndpoint ?? DEFAULT_ENDPOINT;
             const children: VNode[] = [];
@@ -222,7 +232,17 @@ export const BlockTree = defineComponent({
                 );
             }
 
-            visibility.value.tree
+            if (columnWidth.value.css !== '') {
+                children.push(
+                    h(
+                        'style',
+                        { 'data-ve-column-width': '' },
+                        columnWidth.value.css
+                    )
+                );
+            }
+
+            columnWidth.value.tree
                 .map((block, index) => renderBlock(block, index, endpoint, props.fetchOptions))
                 .filter((vnode): vnode is VNode => vnode !== null)
                 .forEach((vnode) => children.push(vnode));
