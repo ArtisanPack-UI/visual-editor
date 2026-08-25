@@ -27,6 +27,10 @@ use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
 use ArtisanPackUI\VisualEditor\Fonts\Providers\BunnyFontsProvider;
 use ArtisanPackUI\VisualEditor\Fonts\Providers\GoogleFontsProvider;
 use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
+use ArtisanPackUI\VisualEditor\Fonts\Services\FontFileWriter;
+use ArtisanPackUI\VisualEditor\Fonts\Services\FontInstaller;
+use ArtisanPackUI\VisualEditor\Fonts\Services\FontsCssGenerator;
+use ArtisanPackUI\VisualEditor\Fonts\Support\FontStylesheetEnqueuer;
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
@@ -170,6 +174,31 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// provider order.
 		$this->app->singleton( FontSourceRegistry::class, function () {
 			return new FontSourceRegistry();
+		} );
+
+		// #632 — Font Library install/uninstall pipeline. The writer and
+		// generator read the `fonts.disk`/`path`/`css_path` config lazily
+		// (constructed with null args) so a test can fake the disk after
+		// the container resolves them. All three are stateless, so binding
+		// them as singletons is safe.
+		$this->app->singleton( FontFileWriter::class, function () {
+			return new FontFileWriter();
+		} );
+
+		$this->app->singleton( FontsCssGenerator::class, function () {
+			return new FontsCssGenerator();
+		} );
+
+		$this->app->singleton( FontInstaller::class, function ( $app ) {
+			return new FontInstaller(
+				$app->make( FontSourceRegistry::class ),
+				$app->make( FontFileWriter::class ),
+				$app->make( FontsCssGenerator::class ),
+			);
+		} );
+
+		$this->app->singleton( FontStylesheetEnqueuer::class, function ( $app ) {
+			return new FontStylesheetEnqueuer( $app->make( FontsCssGenerator::class ) );
 		} );
 
 		// #688 — the server-side bridge from WP block markup to a
@@ -724,6 +753,31 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
+	 * Hook the generated `fonts.css` bundle onto cms-framework's front-end
+	 * theme stylesheet list.
+	 *
+	 * The filter fires per public request with the active theme's stylesheet
+	 * entries; {@see FontStylesheetEnqueuer::appendTo()} appends the bundle
+	 * when it has been generated and leaves the list untouched otherwise. No-op
+	 * when the hooks package isn't installed.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function registerFontStylesheetEnqueue(): void
+	{
+		if ( ! function_exists( 'addFilter' ) ) {
+			return;
+		}
+
+		addFilter(
+			'ap.themes.frontendStyles',
+			function ( $entries ) {
+				return $this->app->make( FontStylesheetEnqueuer::class )->appendTo( $entries );
+			}
+		);
+	}
+
+	/**
 	 * Perform post-registration booting of services.
 	 *
 	 * @since 1.0.0
@@ -773,6 +827,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//     into the registry before third-party sources and honor the
 		//     per-provider `enabled` flag in config (#630).
 		$this->registerBuiltInFontProviders();
+
+		// 1e. Enqueue the generated `fonts.css` bundle on the public site
+		//     via cms-framework's `ap.themes.frontendStyles` filter so
+		//     installed fonts self-host and render on the front-end (#632).
+		//     The editor canvas iframe pulls the same `@font-face` rules
+		//     through the `/global-styles/css` endpoint instead.
+		$this->registerFontStylesheetEnqueue();
 
 		// 2. Load package views, routes, and migrations.
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor' );

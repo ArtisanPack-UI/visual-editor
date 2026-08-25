@@ -36,6 +36,8 @@ return new class extends Migration
 			$table->unsignedBigInteger( 'file_size' )->default( 0 );
 			$table->json( 'axes' )->nullable();
 			$table->timestamps();
+
+			$table->unique( [ 'font_id', 'weight', 'style' ] );
 		} );
 	}
 
