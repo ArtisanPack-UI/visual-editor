@@ -25,6 +25,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
 use ArtisanPackUI\VisualEditor\Fonts\Providers\BunnyFontsProvider;
+use ArtisanPackUI\VisualEditor\Fonts\Providers\CustomUploadProvider;
 use ArtisanPackUI\VisualEditor\Fonts\Providers\GoogleFontsProvider;
 use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
 use ArtisanPackUI\VisualEditor\Fonts\Services\FontFileWriter;
@@ -745,6 +746,12 @@ class VisualEditorServiceProvider extends ServiceProvider
 						(int) ( $bunny['timeout'] ?? 10 ),
 						(string) ( $bunny['subset'] ?? 'latin' ),
 					) );
+				}
+
+				$custom = config( 'artisanpack.visual-editor.fonts.providers.custom', [] );
+
+				if ( true === ( $custom['enabled'] ?? false ) ) {
+					$registry->register( new CustomUploadProvider() );
 				}
 
 				return $registry;
