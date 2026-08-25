@@ -12,9 +12,10 @@
  * and lands, JSON-encoded, in `ve_font_faces.axes`.
  *
  * Three container formats are understood: a bare SFNT (`.ttf`/`.otf`), a WOFF
- * wrapper (each table zlib-compressed), and — only when the `brotli` extension
- * is loaded — a WOFF2 wrapper. `fvar` and `name` are never WOFF2-transformed, so
- * once the Brotli table stream is inflated they read as ordinary tables. Every
+ * wrapper (each table zlib-compressed), and — only when an output-bounded Brotli
+ * decoder is available (the incremental `brotli_uncompress_add()` API) — a WOFF2
+ * wrapper. `fvar` and `name` are never WOFF2-transformed, so once the Brotli
+ * table stream is inflated they read as ordinary tables. Every
  * failure mode — an unknown signature, a truncated table, a WOFF2 upload with no
  * Brotli support, or a plain static font with no `fvar` — resolves to the same
  * non-variable fallback rather than an exception, so a malformed or static
@@ -116,7 +117,7 @@ class VariableFontMetadataParser
 		$signature = substr( $contents, 0, 4 );
 
 		if ( 'wOF2' === $signature ) {
-			return function_exists( 'brotli_uncompress' );
+			return $this->hasBoundedBrotliDecoder();
 		}
 
 		return 'wOFF' === $signature || in_array( $signature, self::SFNT_SIGNATURES, true );
@@ -274,7 +275,7 @@ class VariableFontMetadataParser
 	 */
 	protected function woff2Tables( string $woff2 ): array
 	{
-		if ( ! function_exists( 'brotli_uncompress' ) ) {
+		if ( ! $this->hasBoundedBrotliDecoder() ) {
 			return [];
 		}
 
@@ -288,9 +289,9 @@ class VariableFontMetadataParser
 
 		[ $entries, $dataOffset ] = $directory;
 
-		$stream = @brotli_uncompress( substr( $woff2, $dataOffset, $totalCompression ) );
+		$stream = $this->brotliDecompressBounded( substr( $woff2, $dataOffset, $totalCompression ) );
 
-		if ( ! is_string( $stream ) || '' === $stream || strlen( $stream ) > self::MAX_DECOMPRESSED_BYTES ) {
+		if ( null === $stream || '' === $stream ) {
 			return [];
 		}
 
@@ -312,6 +313,70 @@ class VariableFontMetadataParser
 		}
 
 		return $tables;
+	}
+
+	/**
+	 * Whether an output-bounded Brotli decoder is available.
+	 *
+	 * WOFF2's table stream is a single Brotli blob; the one-shot
+	 * `brotli_uncompress()` would inflate it whole into memory before any size
+	 * could be checked, so a decompression bomb is only safe to attempt through
+	 * the incremental `brotli_uncompress_add()` API, which lets the inflate abort
+	 * the moment it exceeds {@see MAX_DECOMPRESSED_BYTES}. When only the one-shot
+	 * function exists, WOFF2 axis parsing is skipped (a clean non-variable
+	 * fallback) rather than risking an unbounded allocation.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function hasBoundedBrotliDecoder(): bool
+	{
+		return function_exists( 'brotli_uncompress_init' ) && function_exists( 'brotli_uncompress_add' );
+	}
+
+	/**
+	 * Incrementally Brotli-decompress a blob, aborting as soon as the output
+	 * exceeds {@see MAX_DECOMPRESSED_BYTES} so a hostile WOFF2 cannot inflate the
+	 * table stream into an unbounded allocation. Returns null on any decode error,
+	 * on overflow, or when no bounded decoder is available.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  string  $data  The compressed Brotli stream.
+	 */
+	protected function brotliDecompressBounded( string $data ): ?string
+	{
+		if ( ! $this->hasBoundedBrotliDecoder() ) {
+			return null;
+		}
+
+		$context = brotli_uncompress_init();
+
+		if ( false === $context ) {
+			return null;
+		}
+
+		$finish    = defined( 'BROTLI_FINISH' ) ? BROTLI_FINISH : 2;
+		$process   = defined( 'BROTLI_PROCESS' ) ? BROTLI_PROCESS : 0;
+		$chunkSize = 65536;
+		$length    = strlen( $data );
+		$output    = '';
+
+		for ( $offset = 0; $offset < $length; $offset += $chunkSize ) {
+			$isLast = ( $offset + $chunkSize ) >= $length;
+			$piece  = @brotli_uncompress_add( $context, substr( $data, $offset, $chunkSize ), $isLast ? $finish : $process );
+
+			if ( ! is_string( $piece ) ) {
+				return null;
+			}
+
+			$output .= $piece;
+
+			if ( strlen( $output ) > self::MAX_DECOMPRESSED_BYTES ) {
+				return null;
+			}
+		}
+
+		return $output;
 	}
 
 	/**
@@ -455,9 +520,17 @@ class VariableFontMetadataParser
 
 		for ( $i = 0; $i < $axisCount; $i++ ) {
 			$record = $axesOffset + ( $i * $axisSize );
-			$tag    = rtrim( substr( $fvar, $record, 4 ), " \0" );
 
-			if ( '' === $tag || 4 !== strlen( substr( $fvar, $record, 4 ) ) ) {
+			// Require the full 20-byte VariationAxisRecord before reading any
+			// field: a record truncated mid-way would otherwise read zeros for its
+			// missing bytes and yield a bogus axis instead of being rejected.
+			if ( strlen( $fvar ) < $record + 20 ) {
+				break;
+			}
+
+			$tag = rtrim( substr( $fvar, $record, 4 ), " \0" );
+
+			if ( '' === $tag ) {
 				break;
 			}
 

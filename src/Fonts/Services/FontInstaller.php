@@ -362,6 +362,7 @@ class FontInstaller
 	protected function writeAndPersistUploads( string $providerKey, string $family, string $slug, array $prepared ): Font
 	{
 		$rollbackPaths = [];
+		$restoreFiles  = [];
 		$writtenFaces  = [];
 		$isVariable    = false;
 
@@ -369,6 +370,18 @@ class FontInstaller
 			foreach ( $prepared as $face ) {
 				$path  = $this->fileWriter->pathFor( $providerKey, $slug, $face['weight'], $face['style'], $face['format'] );
 				$isNew = ! $this->fileWriter->exists( $path );
+
+				// An upload can replace an existing face with different bytes, so
+				// snapshot the current file before overwriting it. On rollback the
+				// snapshot is restored — unlike the catalog install, whose
+				// re-fetched faces are byte-identical and safe to leave in place.
+				if ( ! $isNew ) {
+					$original = $this->fileWriter->get( $path );
+
+					if ( is_string( $original ) ) {
+						$restoreFiles[ $path ] = $original;
+					}
+				}
 
 				$this->fileWriter->write( $providerKey, $slug, $face['weight'], $face['style'], $face['format'], $face['contents'] );
 
@@ -421,6 +434,7 @@ class FontInstaller
 			} );
 		} catch ( Throwable $e ) {
 			$this->fileWriter->delete( $rollbackPaths );
+			$this->restoreOverwrittenFiles( $providerKey, $slug, $prepared, $restoreFiles );
 
 			if ( $e instanceof FontInstallationException
 				|| $e instanceof FontFileWriteException ) {
@@ -432,6 +446,41 @@ class FontInstaller
 				0,
 				$e
 			);
+		}
+	}
+
+	/**
+	 * Restore the pre-overwrite bytes of any existing face files this call
+	 * replaced, so a failed re-upload leaves each existing face exactly as it
+	 * was. Best-effort: a restore failure is logged rather than thrown, since the
+	 * install is already failing and the committed rows still point at the path.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  array<int, array{weight: int, style: string, format: string, contents: string, is_variable: bool, axes: array<string, mixed>|null}>  $prepared
+	 * @param  array<string, string>  $restoreFiles  Original bytes keyed by storage path.
+	 */
+	protected function restoreOverwrittenFiles( string $providerKey, string $slug, array $prepared, array $restoreFiles ): void
+	{
+		if ( [] === $restoreFiles ) {
+			return;
+		}
+
+		foreach ( $prepared as $face ) {
+			$path = $this->fileWriter->pathFor( $providerKey, $slug, $face['weight'], $face['style'], $face['format'] );
+
+			if ( ! isset( $restoreFiles[ $path ] ) ) {
+				continue;
+			}
+
+			try {
+				$this->fileWriter->write( $providerKey, $slug, $face['weight'], $face['style'], $face['format'], $restoreFiles[ $path ] );
+			} catch ( Throwable $e ) {
+				Log::error(
+					'Failed to restore an overwritten font face after a failed custom upload.',
+					[ 'path' => $path, 'exception' => $e ]
+				);
+			}
 		}
 	}
 

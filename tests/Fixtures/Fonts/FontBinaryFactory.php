@@ -99,6 +99,30 @@ class FontBinaryFactory
 	}
 
 	/**
+	 * Build a variable SFNT whose `fvar` header claims one axis but whose axis
+	 * record is truncated (10 of the required 20 bytes), so the parser must
+	 * reject the record and fall back to non-variable.
+	 *
+	 * @since 1.7.0
+	 */
+	public static function truncatedFvarTtf(): string
+	{
+		$header = pack( 'n', 1 )   // majorVersion
+			. pack( 'n', 0 )       // minorVersion
+			. pack( 'n', 16 )      // axesArrayOffset
+			. pack( 'n', 2 )       // countSizePairs
+			. pack( 'n', 1 )       // axisCount (claims one axis…)
+			. pack( 'n', 20 )      // axisSize
+			. pack( 'n', 0 )       // instanceCount
+			. pack( 'n', 0 );      // instanceSize
+
+		// …but only 10 bytes of the 20-byte record follow.
+		$truncatedRecord = 'wght' . str_repeat( "\x00", 6 );
+
+		return self::sfnt( "\x00\x01\x00\x00", [ 'fvar' => $header . $truncatedRecord ] );
+	}
+
+	/**
 	 * The `fvar` + `name` table pair for a variable font over the given axes.
 	 *
 	 * @since 1.7.0

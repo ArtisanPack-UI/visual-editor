@@ -91,11 +91,17 @@ it( 'falls back to the axis tag as the name when the name table is absent', func
 		->and( $result['axes']['wght']['name'] )->toBe( 'wght' );
 } );
 
-it( 'reports WOFF2 container support according to the brotli extension', function (): void {
-	$woff2Signature = 'wOF2' . str_repeat( "\x00", 40 );
+it( 'rejects a truncated fvar axis record and falls back to non-variable', function (): void {
+	$result = $this->parser->parse( FontBinaryFactory::truncatedFvarTtf() );
 
-	expect( $this->parser->isSupportedContainer( $woff2Signature ) )
-		->toBe( function_exists( 'brotli_uncompress' ) );
+	expect( $result )->toBe( [ 'is_variable' => false, 'axes' => [] ] );
+} );
+
+it( 'reports WOFF2 container support according to a bounded brotli decoder', function (): void {
+	$woff2Signature = 'wOF2' . str_repeat( "\x00", 40 );
+	$boundedDecoder = function_exists( 'brotli_uncompress_init' ) && function_exists( 'brotli_uncompress_add' );
+
+	expect( $this->parser->isSupportedContainer( $woff2Signature ) )->toBe( $boundedDecoder );
 } );
 
 it( 'always supports SFNT and WOFF containers', function (): void {

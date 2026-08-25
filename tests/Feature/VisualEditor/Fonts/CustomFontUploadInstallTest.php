@@ -137,3 +137,42 @@ it( 'rolls back written files and rows when a later face write fails', function 
 
 	Storage::disk( 'public' )->assertMissing( 'visual-editor/fonts/custom/rollback/400-normal.ttf' );
 } );
+
+it( 'restores an overwritten existing face when a re-upload fails midway', function (): void {
+	$original = FontBinaryFactory::variableTtf();
+	$path     = 'visual-editor/fonts/custom/restore/400-normal.ttf';
+
+	// First install: an existing 400 face on disk.
+	app( FontInstaller::class )->installUpload( 'Restore', [
+		[ 'contents' => $original, 'weight' => 400, 'style' => 'normal' ],
+	] );
+
+	expect( Storage::disk( 'public' )->get( $path ) )->toBe( $original );
+
+	// Re-upload overwrites the existing 400 face with different bytes, then a new
+	// 700 face write fails — the existing 400 file must be restored to its
+	// original bytes, not left overwritten.
+	app()->instance( FontFileWriter::class, new class extends FontFileWriter {
+		public function write( string $provider, string $slug, int $weight, string $style, string $format, string $contents ): string
+		{
+			if ( 700 === $weight ) {
+				throw new FontFileWriteException( 'Simulated write failure.' );
+			}
+
+			return parent::write( $provider, $slug, $weight, $style, $format, $contents );
+		}
+	} );
+
+	// Rebuild the installer so it picks up the throwing writer bound above rather
+	// than the real one captured when the first install resolved it.
+	app()->forgetInstance( FontInstaller::class );
+
+	expect( fn () => app( FontInstaller::class )->installUpload( 'Restore', [
+		[ 'contents' => FontBinaryFactory::staticTtf(), 'weight' => 400, 'style' => 'normal' ],
+		[ 'contents' => FontBinaryFactory::variableTtf(), 'weight' => 700, 'style' => 'normal' ],
+	] ) )->toThrow( FontFileWriteException::class );
+
+	expect( Storage::disk( 'public' )->get( $path ) )->toBe( $original )
+		->and( Font::query()->count() )->toBe( 1 )
+		->and( FontFace::query()->count() )->toBe( 1 );
+} );
