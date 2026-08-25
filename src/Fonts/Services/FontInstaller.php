@@ -33,6 +33,8 @@ use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontInstallationException;
 use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontProviderException;
 use ArtisanPackUI\VisualEditor\Fonts\Models\Font;
 use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -64,6 +66,13 @@ class FontInstaller
 	 */
 	public function install( string $providerKey, string $slug, array $faces ): Font
 	{
+		// Canonicalize the identifiers the registry resolves loosely: `get()`
+		// trims the key, but this method persists it and derives the storage
+		// path from it, so `install(' google ')` and `install('google')` must
+		// not diverge into two rows over the same files.
+		$providerKey = trim( $providerKey );
+		$slug        = trim( $slug );
+
 		$provider = $this->registry->get( $providerKey );
 
 		if ( null === $provider ) {
@@ -98,6 +107,33 @@ class FontInstaller
 			);
 		}
 
+		// Serialize concurrent installs of the same family. Without this, two
+		// installs can both see a face's file as new; if one commits and the
+		// other later rolls back, the loser would delete the file the winner's
+		// committed FontFace now references.
+		$font = Cache::lock( $this->installLockKey( $providerKey, $slug ), 30 )->block(
+			15,
+			fn (): Font => $this->writeAndPersist( $provider, $providerKey, $slug, $family, $requested )
+		);
+
+		$this->regenerate();
+
+		return $font->load( 'faces' );
+	}
+
+	/**
+	 * Fetch and self-host the requested faces, then record the font and its
+	 * faces in a transaction. On any failure only the files newly written by
+	 * this call are removed and the rows roll back.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  \ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider  $provider
+	 * @param  array<string, mixed>                                      $family
+	 * @param  array<int, array{0: int, 1: string}>                      $requested
+	 */
+	protected function writeAndPersist( $provider, string $providerKey, string $slug, array $family, array $requested ): Font
+	{
 		$rollbackPaths = [];
 		$writtenFaces  = [];
 
@@ -125,7 +161,7 @@ class FontInstaller
 				];
 			}
 
-			$font = DB::transaction( function () use ( $providerKey, $slug, $family, $writtenFaces ): Font {
+			return DB::transaction( function () use ( $providerKey, $slug, $family, $writtenFaces ): Font {
 				$font = Font::query()->firstOrNew( [
 					'provider' => $providerKey,
 					'slug'     => $slug,
@@ -171,10 +207,6 @@ class FontInstaller
 				$e
 			);
 		}
-
-		$this->regenerate();
-
-		return $font->load( 'faces' );
 	}
 
 	/**
@@ -185,14 +217,17 @@ class FontInstaller
 	 */
 	public function uninstall( Font $font ): void
 	{
-		$paths = $font->faces()->pluck( 'path' )->all();
+		$filesByDisk = $this->faceFilesByDisk( $font->faces );
 
 		DB::transaction( static function () use ( $font ): void {
 			$font->delete();
 		} );
 
-		$this->fileWriter->delete( $paths );
+		// Regenerate before removing files so the bundle already reflects the
+		// removal even if file cleanup fails; a failed delete then leaves only
+		// an orphaned file (logged), never a stylesheet referencing it.
 		$this->regenerate();
+		$this->deleteFiles( $filesByDisk );
 	}
 
 	/**
@@ -208,8 +243,8 @@ class FontInstaller
 	 */
 	public function bulkUninstall( iterable $fonts ): int
 	{
-		$ids   = [];
-		$paths = [];
+		$ids         = [];
+		$filesByDisk = [];
 
 		foreach ( $fonts as $font ) {
 			$model = $font instanceof Font ? $font : Font::query()->with( 'faces' )->find( $font );
@@ -218,8 +253,11 @@ class FontInstaller
 				continue;
 			}
 
-			$ids     = array_merge( $ids, [ $model->id ] );
-			$paths   = array_merge( $paths, $model->faces->pluck( 'path' )->all() );
+			$ids[] = $model->id;
+
+			foreach ( $model->faces as $face ) {
+				$filesByDisk[ (string) $face->disk ][] = (string) $face->path;
+			}
 		}
 
 		$ids = array_values( array_unique( $ids ) );
@@ -232,8 +270,8 @@ class FontInstaller
 			Font::query()->whereIn( 'id', $ids )->delete();
 		} );
 
-		$this->fileWriter->delete( $paths );
 		$this->regenerate();
+		$this->deleteFiles( $filesByDisk );
 
 		return count( $ids );
 	}
@@ -258,6 +296,61 @@ class FontInstaller
 				'Failed to regenerate the Font Library fonts.css bundle after a font change.',
 				[ 'exception' => $e ]
 			);
+		}
+	}
+
+	/**
+	 * The cache-lock key that serializes installs of one provider family.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function installLockKey( string $providerKey, string $slug ): string
+	{
+		return 'visual-editor.fonts.install.' . $providerKey . '.' . $slug;
+	}
+
+	/**
+	 * Group a font's face files by the disk each was persisted to, so cleanup
+	 * targets the disk recorded at install time rather than the currently
+	 * configured one.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  Collection<int, \ArtisanPackUI\VisualEditor\Fonts\Models\FontFace>  $faces
+	 *
+	 * @return array<string, array<int, string>>
+	 */
+	protected function faceFilesByDisk( Collection $faces ): array
+	{
+		$grouped = [];
+
+		foreach ( $faces as $face ) {
+			$grouped[ (string) $face->disk ][] = (string) $face->path;
+		}
+
+		return $grouped;
+	}
+
+	/**
+	 * Delete grouped face files, each from its own disk. A storage failure is
+	 * logged rather than thrown: the rows and bundle are already consistent, so
+	 * an undeletable file is a leak to reconcile, not a failed uninstall.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  array<string, array<int, string>>  $filesByDisk
+	 */
+	protected function deleteFiles( array $filesByDisk ): void
+	{
+		foreach ( $filesByDisk as $disk => $paths ) {
+			try {
+				$this->fileWriter->delete( $paths, $disk );
+			} catch ( Throwable $e ) {
+				Log::error(
+					'Failed to delete Font Library face files during uninstall.',
+					[ 'disk' => $disk, 'exception' => $e ]
+				);
+			}
 		}
 	}
 

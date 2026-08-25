@@ -125,6 +125,15 @@ it( 'overwrites the previous bundle on a second generate', function (): void {
 		->and( $css )->toContain( 'font-family: "Roboto"' );
 } );
 
+it( 'degrades to an empty bundle when the disk is unavailable', function (): void {
+	$generator = new FontsCssGenerator( 'this-disk-does-not-exist', 'visual-editor/fonts/fonts.css' );
+
+	expect( $generator->read() )->toBe( '' )
+		->and( $generator->exists() )->toBeFalse()
+		->and( $generator->url() )->toBeNull()
+		->and( $generator->version() )->toBeNull();
+} );
+
 it( 'exposes no url or version before the bundle is generated', function (): void {
 	$generator = app( FontsCssGenerator::class );
 

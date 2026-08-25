@@ -130,14 +130,19 @@ class FontFileWriter
 	}
 
 	/**
-	 * Delete face files by path. Missing paths are ignored so a rollback or
-	 * uninstall never fails on a file another step already removed.
+	 * Delete face files by path from a specific disk. Missing paths are ignored
+	 * so a rollback or uninstall never fails on a file another step already
+	 * removed. When no disk is given the configured face disk is used — correct
+	 * for install rollback, which only ever wrote to the current disk; uninstall
+	 * passes each face's persisted disk so a later config change cannot leave
+	 * files on the original disk or delete same-named files from the new one.
 	 *
 	 * @since 1.7.0
 	 *
 	 * @param  array<int, string>  $paths  The paths to delete.
+	 * @param  string|null         $disk   The disk to delete from, or null for the configured disk.
 	 */
-	public function delete( array $paths ): void
+	public function delete( array $paths, ?string $disk = null ): void
 	{
 		$paths = array_values( array_filter(
 			$paths,
@@ -148,7 +153,7 @@ class FontFileWriter
 			return;
 		}
 
-		Storage::disk( $this->diskName() )->delete( $paths );
+		Storage::disk( $disk ?? $this->diskName() )->delete( $paths );
 	}
 
 	/**

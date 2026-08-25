@@ -118,6 +118,18 @@ it( 'de-duplicates requested faces', function (): void {
 	expect( $font->faces )->toHaveCount( 1 );
 } );
 
+it( 'treats a whitespace-padded provider key as the same font', function (): void {
+	app( FontSourceRegistry::class )->register( fakeInstallerFontProvider( [ 'key' => 'fake' ] ) );
+
+	$installer = app( FontInstaller::class );
+	$installer->install( ' fake ', 'inter', [ [ 'weight' => 400, 'style' => 'normal' ] ] );
+	$font = $installer->install( 'fake', 'inter', [ [ 'weight' => 700, 'style' => 'normal' ] ] );
+
+	expect( Font::query()->count() )->toBe( 1 )
+		->and( $font->provider )->toBe( 'fake' )
+		->and( $font->faces()->count() )->toBe( 2 );
+} );
+
 it( 'throws for an unregistered provider', function (): void {
 	expect( fn () => app( FontInstaller::class )->install( 'nope', 'inter', [ [ 'weight' => 400 ] ] ) )
 		->toThrow( FontInstallationException::class );
@@ -220,6 +232,27 @@ it( 'uninstalls a font: removes rows, files, and rebuilds the bundle', function 
 		->and( FontFace::query()->count() )->toBe( 0 );
 
 	Storage::disk( 'public' )->assertMissing( $path );
+} );
+
+it( 'deletes face files from the disk recorded at install, not the current config disk', function (): void {
+	Storage::fake( 'other' );
+	app( FontSourceRegistry::class )->register( fakeInstallerFontProvider( [ 'key' => 'fake' ] ) );
+
+	$installer = app( FontInstaller::class );
+	$font      = $installer->install( 'fake', 'inter', [ [ 'weight' => 400, 'style' => 'normal' ] ] );
+	$path      = $font->faces->first()->path;
+
+	expect( $font->faces->first()->disk )->toBe( 'public' );
+
+	// A same-named file on a different disk must survive; only the face's own
+	// recorded disk is touched even after the configured disk is repointed.
+	Storage::disk( 'other' )->put( $path, 'decoy' );
+	config( [ 'artisanpack.visual-editor.fonts.disk' => 'other' ] );
+
+	$installer->uninstall( $font );
+
+	Storage::disk( 'public' )->assertMissing( $path );
+	Storage::disk( 'other' )->assertExists( $path );
 } );
 
 it( 'bulk uninstalls multiple fonts by model or id and rebuilds once', function (): void {

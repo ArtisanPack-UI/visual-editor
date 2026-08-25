@@ -146,23 +146,35 @@ class FontsCssGenerator
 	 */
 	public function read(): string
 	{
-		$disk = Storage::disk( $this->diskName() );
+		try {
+			$disk = Storage::disk( $this->diskName() );
 
-		if ( ! $disk->exists( $this->path() ) ) {
+			if ( ! $disk->exists( $this->path() ) ) {
+				return '';
+			}
+
+			return (string) $disk->get( $this->path() );
+		} catch ( Throwable ) {
+			// A temporarily unavailable disk must not break the editor CSS
+			// endpoint or the public stylesheet filter — treat it as no bundle.
 			return '';
 		}
-
-		return (string) $disk->get( $this->path() );
 	}
 
 	/**
-	 * Whether the generated bundle exists on disk.
+	 * Whether the generated bundle exists on disk. A storage failure is treated
+	 * as "no bundle" so the enqueue path degrades to skipping the stylesheet
+	 * rather than propagating the exception.
 	 *
 	 * @since 1.7.0
 	 */
 	public function exists(): bool
 	{
-		return Storage::disk( $this->diskName() )->exists( $this->path() );
+		try {
+			return Storage::disk( $this->diskName() )->exists( $this->path() );
+		} catch ( Throwable ) {
+			return false;
+		}
 	}
 
 	/**
