@@ -33,6 +33,7 @@ use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
 use ArtisanPackUI\VisualEditor\Fonts\Services\FontFileWriter;
 use ArtisanPackUI\VisualEditor\Fonts\Services\FontInstaller;
 use ArtisanPackUI\VisualEditor\Fonts\Services\FontsCssGenerator;
+use ArtisanPackUI\VisualEditor\Fonts\Services\ThemeFontBundleResolver;
 use ArtisanPackUI\VisualEditor\Fonts\Support\FontStylesheetEnqueuer;
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
@@ -96,8 +97,10 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Throwable;
 
 class VisualEditorServiceProvider extends ServiceProvider
 {
@@ -202,6 +205,15 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( FontStylesheetEnqueuer::class, function ( $app ) {
 			return new FontStylesheetEnqueuer( $app->make( FontsCssGenerator::class ) );
+		} );
+
+		// #637 — applies a theme's declared font bundle on activation. Stateless
+		// aside from the installer + registry it drives, so a singleton is safe.
+		$this->app->singleton( ThemeFontBundleResolver::class, function ( $app ) {
+			return new ThemeFontBundleResolver(
+				$app->make( FontInstaller::class ),
+				$app->make( FontSourceRegistry::class ),
+			);
 		} );
 
 		// #688 — the server-side bridge from WP block markup to a
@@ -787,6 +799,47 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
+	 * Resolve a theme's declared font bundle when cms-framework activates it.
+	 *
+	 * Listens on the `ap.cmsFramework.theme.activated` action, which fires with
+	 * the theme slug and its decoded `theme.json` manifest. The manifest's
+	 * top-level `fonts` block is handed to {@see ThemeFontBundleResolver}, which
+	 * links already-installed families into `ve_theme_font_bundles` and — only
+	 * when `fonts.bundles.auto_install` is enabled — fetches missing families
+	 * from their provider. Gated on `addAction` so visual-editor stays bootable
+	 * without `artisanpack-ui/hooks`, and wrapped so a resolver failure never
+	 * aborts the host's theme activation.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function registerThemeFontBundleResolver(): void
+	{
+		if ( ! function_exists( 'addAction' ) ) {
+			return;
+		}
+
+		addAction(
+			'ap.cmsFramework.theme.activated',
+			function ( string $slug, mixed $theme = [] ): void {
+				if ( ! is_array( $theme ) ) {
+					return;
+				}
+
+				$autoInstall = (bool) config( 'artisanpack.visual-editor.fonts.bundles.auto_install', false );
+
+				try {
+					$this->app->make( ThemeFontBundleResolver::class )->resolve( $slug, $theme, $autoInstall );
+				} catch ( Throwable $e ) {
+					Log::error( 'Failed to resolve theme font bundles on activation.', [
+						'theme'     => $slug,
+						'exception' => $e,
+					] );
+				}
+			}
+		);
+	}
+
+	/**
 	 * Perform post-registration booting of services.
 	 *
 	 * @since 1.0.0
@@ -843,6 +896,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//     The editor canvas iframe pulls the same `@font-face` rules
 		//     through the `/global-styles/css` endpoint instead.
 		$this->registerFontStylesheetEnqueue();
+
+		// 1f. Apply a theme's declared font bundle when cms-framework
+		//     activates it, listening on `ap.cmsFramework.theme.activated`
+		//     (#637). Present families are linked and the theme's bundle rows
+		//     recorded; missing families are only fetched when the
+		//     `fonts.bundles.auto_install` toggle opts into the network call.
+		$this->registerThemeFontBundleResolver();
 
 		// 2. Load package views, routes, and migrations.
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor' );
