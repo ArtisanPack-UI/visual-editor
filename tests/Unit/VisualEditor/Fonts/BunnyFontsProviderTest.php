@@ -240,6 +240,26 @@ it( 'throws when a requested face is not in the family', function () {
 		->toThrow( FontProviderException::class );
 } );
 
+it( 'rejects an unsupported style instead of falling back to normal', function () {
+	fakeBunnyFonts();
+
+	expect( fn () => $this->provider->fetchFace( 'abeezee', '400', 'oblique' ) )
+		->toThrow( FontProviderException::class );
+
+	// The face must be refused before any CSS/file request is made, so an
+	// unsupported style can never resolve to the normal face.
+	Http::assertNotSent( fn ( $request ) => str_contains( $request->url(), '/css' ) );
+} );
+
+it( 'rejects a non-numeric weight token instead of coercing it', function () {
+	fakeBunnyFonts();
+
+	expect( fn () => $this->provider->fetchFace( 'abeezee', '400junk', 'normal' ) )
+		->toThrow( FontProviderException::class );
+
+	Http::assertNotSent( fn ( $request ) => str_contains( $request->url(), '/css' ) );
+} );
+
 it( 'throws when the css endpoint yields no woff2 url', function () {
 	Http::fake( [
 		'fonts.bunny.net/list*' => Http::response( bunnyListFixture(), 200 ),
