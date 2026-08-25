@@ -663,6 +663,20 @@ return [
 			'queued' => false,
 		],
 
+		/*
+		| Theme font bundles. A theme declares the fonts it depends on in a
+		| top-level `fonts` block of its `theme.json`; on activation the
+		| `ThemeFontBundleResolver` links already-installed families and records
+		| the theme's bundle rows. When a declared family is missing from the
+		| library, installing it fetches files from a remote provider — so that
+		| only happens automatically when `auto_install` is enabled. Left off,
+		| missing families are skipped on activation and installed later from the
+		| Font Library UI once the admin confirms the network fetch.
+		*/
+		'bundles' => [
+			'auto_install' => env( 'VE_FONTS_BUNDLE_AUTO_INSTALL', false ),
+		],
+
 		'providers' => [
 			'google' => [
 				'enabled'      => true,
