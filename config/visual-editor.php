@@ -648,6 +648,17 @@ return [
 		'path'     => 'visual-editor/fonts',
 		'css_path' => 'visual-editor/fonts/fonts.css',
 
+		/*
+		| The capability that gates every mutating Font Library action (install,
+		| upload, uninstall, bulk uninstall). It is checked by `FontPolicy`
+		| against the authenticated user's `hasCapability()` method, so a host
+		| can grant font management on its own — independently of whoever the
+		| bound `SiteEditorAccessGate` lets into the rest of the site editor. A
+		| user without it may still browse installed fonts and the provider
+		| catalog: the read endpoints stay open and flag the session read-only.
+		*/
+		'capability' => 'manage_fonts',
+
 		'regenerate' => [
 			'queued' => false,
 		],

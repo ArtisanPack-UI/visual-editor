@@ -28,6 +28,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\DynamicContentRes
 use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\DynamicContentSourcesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\SnippetController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Fonts\FontLibraryController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsManagementController;
@@ -315,6 +316,36 @@ Route::patch( 'admin/icon-sets/{prefix}', [ IconSetsManagementController::class,
 Route::delete( 'admin/icon-sets/{prefix}', [ IconSetsManagementController::class, 'destroy' ] )
 	->where( 'prefix', '[a-z0-9][a-z0-9_-]{1,31}' )
 	->name( 'visual-editor.api.admin.icon-sets.destroy' );
+
+// #634 — Font Library REST surface. Reads (installed list, provider list,
+// provider catalog) stay open to any authenticated user and carry a
+// `read_only` flag; the mutating actions (install, upload, bulk/single
+// uninstall) run through `FontPolicy`'s `manage_fonts` capability inside the
+// controller, returning a shaped JSON 403 when it is missing. Static segments
+// are declared before the `{font}` wildcard so `fonts/sources`, `fonts/upload`,
+// and `fonts/bulk-uninstall` are not swallowed by it.
+Route::get( 'fonts', [ FontLibraryController::class, 'index' ] )
+	->name( 'visual-editor.api.fonts.index' );
+
+Route::get( 'fonts/sources', [ FontLibraryController::class, 'sources' ] )
+	->name( 'visual-editor.api.fonts.sources.index' );
+
+Route::get( 'fonts/sources/{provider}/catalog', [ FontLibraryController::class, 'catalog' ] )
+	->where( 'provider', '[a-z][a-z0-9_-]*' )
+	->name( 'visual-editor.api.fonts.sources.catalog' );
+
+Route::post( 'fonts', [ FontLibraryController::class, 'store' ] )
+	->name( 'visual-editor.api.fonts.store' );
+
+Route::post( 'fonts/upload', [ FontLibraryController::class, 'upload' ] )
+	->name( 'visual-editor.api.fonts.upload' );
+
+Route::post( 'fonts/bulk-uninstall', [ FontLibraryController::class, 'bulkUninstall' ] )
+	->name( 'visual-editor.api.fonts.bulk-uninstall' );
+
+Route::delete( 'fonts/{font}', [ FontLibraryController::class, 'destroy' ] )
+	->whereNumber( 'font' )
+	->name( 'visual-editor.api.fonts.destroy' );
 
 // G3 cms-framework Post + Page entity adapters — see plan 12 §4.4.
 // Both controllers resolve their model through `ResourceResolver`, so
