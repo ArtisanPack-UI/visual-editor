@@ -24,6 +24,8 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Gates\DenyByDefaultGate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
+use ArtisanPackUI\VisualEditor\Fonts\Models\Font;
+use ArtisanPackUI\VisualEditor\Fonts\Policies\FontPolicy;
 use ArtisanPackUI\VisualEditor\Fonts\Providers\BunnyFontsProvider;
 use ArtisanPackUI\VisualEditor\Fonts\Providers\CustomUploadProvider;
 use ArtisanPackUI\VisualEditor\Fonts\Providers\GoogleFontsProvider;
@@ -852,6 +854,12 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerAiLivewireComponents();
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
+
+		// #634 — gate the Font Library's mutating actions behind the
+		// `manage_fonts` capability, grantable independently of the site
+		// editor. The policy degrades to a plain denial on host user models
+		// without an RBAC `hasCapability()` method.
+		Gate::policy( Font::class, FontPolicy::class );
 
 		// 3. Register all artisanpack/* blocks from their block.json manifests.
 		$this->registerForkedBlocks();
