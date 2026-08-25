@@ -25,6 +25,7 @@ import { type ReactElement } from 'react';
 import { TEXT_DOMAIN } from '../../../vendor/i18n';
 import type { ValidationErrors } from '../../api-client';
 import type { UseGlobalStylesEditorResult } from '../use-global-styles-editor';
+import { FontFamilyPicker } from './font-family-picker';
 import { StyleControlRow } from './panel-controls';
 import type { StylePresets } from './use-preset-data';
 
@@ -179,11 +180,22 @@ export function renderStyleField(
         );
     }
 
-    if (descriptor.kind === 'font-family' || descriptor.kind === 'font-size') {
-        const presetList =
-            descriptor.kind === 'font-family'
-                ? presets.fontFamilies
-                : presets.fontSizes;
+    if (descriptor.kind === 'font-family') {
+        return (
+            <StyleControlRow key={descriptor.testId} {...rowProps}>
+                <FontFamilyPicker
+                    label={descriptor.label}
+                    value={value}
+                    presetOptions={presets.fontFamilies}
+                    onChange={(next) => editor.setValue(path, next)}
+                    testId={descriptor.testId}
+                />
+            </StyleControlRow>
+        );
+    }
+
+    if (descriptor.kind === 'font-size') {
+        const presetList = presets.fontSizes;
         const options = [
             ...presetList.map((preset) => ({
                 value: preset.value,
@@ -193,7 +205,6 @@ export function renderStyleField(
         ];
         const matches = presetList.some((preset) => preset.value === value);
         const selectValue = matches ? value : CUSTOM_SENTINEL;
-        const isFamily = descriptor.kind === 'font-family';
         const selectTestId = `ap-site-editor-style-field-select-${descriptor.testId}`;
 
         return (
@@ -219,30 +230,17 @@ export function renderStyleField(
                     }}
                 />
                 {selectValue === CUSTOM_SENTINEL ? (
-                    isFamily ? (
-                        <TextControl
-                            label={__('Custom value', TEXT_DOMAIN)}
-                            hideLabelFromVision={true}
-                            value={value}
-                            placeholder="system-ui, sans-serif"
-                            data-testid={`ap-site-editor-style-field-custom-${descriptor.testId}`}
-                            __nextHasNoMarginBottom={true}
-                            __next40pxDefaultSize={true}
-                            onChange={(next) => editor.setValue(path, next)}
-                        />
-                    ) : (
-                        <UnitControl
-                            label={__('Custom value', TEXT_DOMAIN)}
-                            hideLabelFromVision={true}
-                            value={value}
-                            units={SIZE_UNITS}
-                            data-testid={`ap-site-editor-style-field-custom-${descriptor.testId}`}
-                            __nextHasNoMarginBottom={true}
-                            onChange={(next) =>
-                                editor.setValue(path, next ?? '')
-                            }
-                        />
-                    )
+                    <UnitControl
+                        label={__('Custom value', TEXT_DOMAIN)}
+                        hideLabelFromVision={true}
+                        value={value}
+                        units={SIZE_UNITS}
+                        data-testid={`ap-site-editor-style-field-custom-${descriptor.testId}`}
+                        __nextHasNoMarginBottom={true}
+                        onChange={(next) =>
+                            editor.setValue(path, next ?? '')
+                        }
+                    />
                 ) : null}
             </StyleControlRow>
         );
