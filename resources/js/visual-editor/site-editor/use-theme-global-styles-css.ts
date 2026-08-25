@@ -94,9 +94,19 @@ export function useThemeGlobalStylesCss(
             // lifecycle — even if every consumer unmounts before the
             // fetch resolves, the next mount still gets the cached
             // value without re-hitting the network.
+            //
+            // Guard on the entry identity: a font mutation invalidates the
+            // cache (via `cache.delete` below) while this request may still
+            // be in flight. Only promote a result when this pending entry is
+            // still the current cache entry, so an obsolete request can't
+            // repopulate the cache with pre-mutation CSS and make the refetch
+            // effect short-circuit on stale data.
+            const pendingEntry = entry;
             promise.then(
                 (value) => {
-                    cache.set(apiBase, { status: 'resolved', value });
+                    if (cache.get(apiBase) === pendingEntry) {
+                        cache.set(apiBase, { status: 'resolved', value });
+                    }
                 },
                 () => {
                     // Treat network failure as an empty stylesheet so
@@ -104,7 +114,9 @@ export function useThemeGlobalStylesCss(
                     // and the next remount doesn't re-hit a known-bad
                     // endpoint. {@link fetchGlobalStylesCss} swallows
                     // most errors already; this is belt-and-suspenders.
-                    cache.set(apiBase, { status: 'resolved', value: '' });
+                    if (cache.get(apiBase) === pendingEntry) {
+                        cache.set(apiBase, { status: 'resolved', value: '' });
+                    }
                 }
             );
         }
