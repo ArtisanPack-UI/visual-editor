@@ -228,6 +228,26 @@ it( 'throws when a requested face is not in the family', function () {
 		->toThrow( FontProviderException::class );
 } );
 
+it( 'rejects an unsupported style instead of falling back to normal', function () {
+	fakeGoogleFonts();
+
+	expect( fn () => $this->provider->fetchFace( 'roboto', '400', 'oblique' ) )
+		->toThrow( FontProviderException::class );
+
+	// The face must be refused before any CSS/file request is made, so an
+	// unsupported style can never resolve to the normal face.
+	Http::assertNotSent( fn ( $request ) => str_contains( $request->url(), 'css2' ) );
+} );
+
+it( 'rejects a non-numeric weight token instead of coercing it', function () {
+	fakeGoogleFonts();
+
+	expect( fn () => $this->provider->fetchFace( 'roboto', '400junk', 'normal' ) )
+		->toThrow( FontProviderException::class );
+
+	Http::assertNotSent( fn ( $request ) => str_contains( $request->url(), 'css2' ) );
+} );
+
 it( 'throws when the CSS2 endpoint yields no woff2 url', function () {
 	Http::fake( [
 		'fonts.google.com/metadata/*' => Http::response( googleMetadataFixture(), 200 ),
