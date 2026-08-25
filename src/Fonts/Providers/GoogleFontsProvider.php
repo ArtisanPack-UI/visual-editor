@@ -194,8 +194,30 @@ class GoogleFontsProvider implements FontProvider
 			) );
 		}
 
-		$isItalic = 'italic' === strtolower( $style );
-		$variant  = ( (int) $weight ) . ( $isItalic ? 'i' : '' );
+		$style  = strtolower( trim( $style ) );
+		$weight = trim( $weight );
+
+		// Reject an unsupported style up front: without this an `oblique` (or
+		// any non-`italic` token) would fall through to the normal face rather
+		// than being refused.
+		if ( ! in_array( $style, [ 'normal', 'italic' ], true ) ) {
+			throw new FontProviderException( sprintf(
+				'Google Fonts does not support the "%s" style.',
+				$style
+			) );
+		}
+
+		// Validate the weight token rather than casting it: `(int) '400junk'`
+		// would silently resolve to the 400 face.
+		if ( ! ctype_digit( $weight ) ) {
+			throw new FontProviderException( sprintf(
+				'Google Fonts weight "%s" is not a numeric weight.',
+				$weight
+			) );
+		}
+
+		$isItalic = 'italic' === $style;
+		$variant  = $weight . ( $isItalic ? 'i' : '' );
 
 		if ( ! in_array( $variant, $family['variants'], true ) ) {
 			throw new FontProviderException( sprintf(
