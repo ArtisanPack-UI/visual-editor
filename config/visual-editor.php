@@ -636,9 +636,22 @@ return [
 	| sent with CSS2 requests so Google serves WOFF2 rather than TTF, and
 	| `subset` selects which `@font-face` subset is self-hosted.
 	|
+	| `disk` and `path` are where fetched `.woff2` face files are self-hosted;
+	| `css_path` is the single generated `fonts.css` bundle rebuilt on every
+	| install/uninstall. `regenerate.queued` is reserved for a future async
+	| rebuild mode — v1 always regenerates synchronously.
+	|
 	*/
 
 	'fonts' => [
+		'disk'     => env( 'VE_FONTS_DISK', 'public' ),
+		'path'     => 'visual-editor/fonts',
+		'css_path' => 'visual-editor/fonts/fonts.css',
+
+		'regenerate' => [
+			'queued' => false,
+		],
+
 		'providers' => [
 			'google' => [
 				'enabled'      => true,

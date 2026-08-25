@@ -35,6 +35,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\SiteEditor;
 
+use ArtisanPackUI\VisualEditor\Fonts\Services\FontsCssGenerator;
 use ArtisanPackUI\VisualEditor\Http\Requests\SiteEditor\UpdateGlobalStylesRequest;
 use ArtisanPackUI\VisualEditor\Http\Resources\Adapters\CmsFramework\SiteEditor\GlobalStylesAdapter;
 use ArtisanPackUI\VisualEditor\SiteEditor\Resolution\GlobalStylesResolver;
@@ -207,6 +208,16 @@ class GlobalStylesController extends Controller
 
 		$readerFqcn = 'ArtisanPackUI\\CMSFramework\\Modules\\SiteEditor\\Support\\ThemeStylesheetReader';
 		$parts      = [ rtrim( $emitted ) ];
+
+		// #632 — enqueue the Font Library's generated bundle into the canvas
+		// iframe. Placed after the emitter's `--wp--preset--*` root block but
+		// before the theme stylesheets so `style.css` can consume the
+		// `--wp--preset--font-family--*` custom properties the bundle declares.
+		$fontsCss = app( FontsCssGenerator::class )->read();
+
+		if ( '' !== $fontsCss ) {
+			$parts[] = $fontsCss;
+		}
 
 		if ( class_exists( $readerFqcn ) && app()->bound( $readerFqcn ) ) {
 			$reader  = app( $readerFqcn );

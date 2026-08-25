@@ -9,7 +9,14 @@ use Illuminate\Database\QueryException;
 
 it( 'creates a font with faces and exposes the relationship', function () {
 	$font = Font::factory()
-		->has( FontFace::factory()->count( 3 ), 'faces' )
+		->has(
+			FontFace::factory()->count( 3 )->sequence(
+				[ 'weight' => 300, 'style' => 'normal' ],
+				[ 'weight' => 400, 'style' => 'normal' ],
+				[ 'weight' => 700, 'style' => 'normal' ],
+			),
+			'faces'
+		)
 		->create();
 
 	expect( $font->faces )->toHaveCount( 3 )
@@ -50,7 +57,13 @@ it( 'allows the same slug across different providers', function () {
 
 it( 'cascade deletes faces when the font is deleted', function () {
 	$font = Font::factory()
-		->has( FontFace::factory()->count( 2 ), 'faces' )
+		->has(
+			FontFace::factory()->count( 2 )->sequence(
+				[ 'weight' => 400, 'style' => 'normal' ],
+				[ 'weight' => 700, 'style' => 'normal' ],
+			),
+			'faces'
+		)
 		->create();
 
 	$font->delete();
