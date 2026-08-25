@@ -41,6 +41,7 @@ import {
     type UploadFace,
 } from './api-client';
 import FontPreview from './font-preview';
+import { notifyFontsChanged } from './installed-fonts-store';
 import {
     emptyCatalog,
     fontLibraryReducer,
@@ -696,6 +697,9 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
             installFont(provider, family.slug, faces)
                 .then((font) => {
                     dispatch({ type: 'INSTALL_SUCCESS', font });
+                    // Refresh every mounted font-family picker and re-reference
+                    // the canvas `fonts.css` now that a face is installed.
+                    notifyFontsChanged();
                 })
                 .catch((error: FontLibraryApiError) => {
                     dispatch({ type: 'INSTALL_ERROR', message: error.message });
@@ -725,6 +729,7 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
             uninstallFont(font.id)
                 .then(() => {
                     dispatch({ type: 'FONTS_REMOVED', ids: [font.id] });
+                    notifyFontsChanged();
                 })
                 .catch(handleRemovalError);
         },
@@ -742,6 +747,7 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
         bulkUninstall(ids)
             .then(() => {
                 dispatch({ type: 'FONTS_REMOVED', ids });
+                notifyFontsChanged();
             })
             .catch(handleRemovalError);
     }, [state.selectedForRemoval, handleRemovalError]);
@@ -755,6 +761,7 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
             .then((font) => {
                 dispatch({ type: 'INSTALL_SUCCESS', font });
                 dispatch({ type: 'SET_ACTIVE_TAB', tab: INSTALLED_TAB });
+                notifyFontsChanged();
             })
             .catch((error: FontLibraryApiError) => {
                 setUploadError(error.message);
