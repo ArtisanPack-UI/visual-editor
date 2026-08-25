@@ -92,6 +92,28 @@ class FontFileWriter
 	}
 
 	/**
+	 * Read a face file's current bytes from the disk, or null when it does not
+	 * exist or cannot be read. Used to snapshot a face before an overwrite so a
+	 * failed re-install can restore the original file.
+	 *
+	 * @since 1.7.0
+	 */
+	public function get( string $path ): ?string
+	{
+		try {
+			if ( ! $this->exists( $path ) ) {
+				return null;
+			}
+
+			$contents = Storage::disk( $this->diskName() )->get( $path );
+
+			return is_string( $contents ) ? $contents : null;
+		} catch ( Throwable ) {
+			return null;
+		}
+	}
+
+	/**
 	 * Write a single face's bytes and return its stored path.
 	 *
 	 * @since 1.7.0

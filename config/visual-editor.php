@@ -673,6 +673,27 @@ return [
 				'cache_ttl'  => 86400,
 				'timeout'    => 10,
 			],
+
+			/*
+			| The custom-upload source lets a site admin bring their own font
+			| files. It has no catalog to browse — fonts arrive through the
+			| upload endpoint, are self-hosted on `fonts.disk` like fetched
+			| faces, and have their variable-axis metadata read from the files
+			| themselves. Disable `enabled` to remove the "Custom Upload" source
+			| from the Font Library entirely.
+			*/
+			'custom' => [
+				'enabled' => true,
+			],
+		],
+
+		/*
+		| Custom font upload constraints. `max_kilobytes` caps each uploaded
+		| face file; `extensions` is the accepted web-font container set.
+		*/
+		'upload' => [
+			'max_kilobytes' => 5120,
+			'extensions'    => [ 'woff2', 'woff', 'ttf', 'otf' ],
 		],
 	],
 

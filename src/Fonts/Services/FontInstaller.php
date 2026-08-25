@@ -32,19 +32,35 @@ use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontFileWriteException;
 use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontInstallationException;
 use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontProviderException;
 use ArtisanPackUI\VisualEditor\Fonts\Models\Font;
+use ArtisanPackUI\VisualEditor\Fonts\Providers\CustomUploadProvider;
 use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
+use ArtisanPackUI\VisualEditor\Fonts\Support\VariableFontMetadataParser;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Throwable;
 
 class FontInstaller
 {
+	/**
+	 * Font-container magic-byte signatures accepted for a custom upload: the
+	 * single-font SFNT flavors, WOFF, and WOFF2 — the containers the upload
+	 * request permits. Guarded before self-hosting so a file that merely carries
+	 * a font extension cannot be written as one. Font collections (`ttcf`) are
+	 * intentionally excluded: they are not an allowed upload extension and would
+	 * not map to a single-face `@font-face` file.
+	 *
+	 * @var array<int, string>
+	 */
+	protected const FONT_SIGNATURES = [ "\x00\x01\x00\x00", 'OTTO', 'true', 'typ1', 'wOFF', 'wOF2' ];
+
 	public function __construct(
 		protected FontSourceRegistry $registry,
 		protected FontFileWriter $fileWriter,
 		protected FontsCssGenerator $cssGenerator,
+		protected VariableFontMetadataParser $metadataParser = new VariableFontMetadataParser(),
 	) {
 	}
 
@@ -114,6 +130,76 @@ class FontInstaller
 		$font = Cache::lock( $this->installLockKey( $providerKey, $slug ), 30 )->block(
 			15,
 			fn (): Font => $this->writeAndPersist( $provider, $providerKey, $slug, $family, $requested )
+		);
+
+		$this->regenerate();
+
+		return $font->load( 'faces' );
+	}
+
+	/**
+	 * Install a custom-uploaded font family, self-hosting each uploaded face and
+	 * recording any variable-axis metadata read from the files themselves.
+	 *
+	 * Uploads do not go through the catalog {@see install()} path — there is no
+	 * remote origin to fetch a face from. Each face's bytes are already in hand,
+	 * so axes come from {@see VariableFontMetadataParser} run over the file rather
+	 * than from a provider's `getFamily()`. A face whose file carries an `fvar`
+	 * table marks the whole family variable and stores its axis ranges on the
+	 * {@see \ArtisanPackUI\VisualEditor\Fonts\Models\FontFace}; a static (or
+	 * unparseable) file installs cleanly with no axes.
+	 *
+	 * Re-uploading a family merges faces exactly as {@see install()} does, and a
+	 * family already marked variable is never downgraded by a later static
+	 * upload.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  string  $family  The display family name; its slug is the storage key.
+	 * @param  array<int, array{contents: string, weight?: int|string, style?: string}>  $faces
+	 *         The uploaded faces, each carrying the raw file `contents` and an
+	 *         optional `weight` and `style`. The stored format is derived from the
+	 *         file's own signature.
+	 *
+	 * @return Font The installed (or merged) font, with its faces loaded.
+	 */
+	public function installUpload( string $family, array $faces ): Font
+	{
+		$family = trim( $family );
+
+		if ( '' === $family ) {
+			throw new FontInstallationException( 'A custom font upload requires a family name.' );
+		}
+
+		$providerKey = CustomUploadProvider::KEY;
+		$provider    = $this->registry->get( $providerKey );
+
+		if ( null === $provider ) {
+			throw new FontInstallationException(
+				'Custom font uploads are not enabled.'
+			);
+		}
+
+		$slug = Str::slug( $family );
+
+		if ( '' === $slug ) {
+			throw new FontInstallationException( sprintf(
+				'The family name "%s" does not produce a usable font slug.',
+				$family
+			) );
+		}
+
+		$prepared = $this->prepareUploadedFaces( $faces );
+
+		if ( [] === $prepared ) {
+			throw new FontInstallationException(
+				'At least one valid font file must be uploaded to install a custom font.'
+			);
+		}
+
+		$font = Cache::lock( $this->installLockKey( $providerKey, $slug ), 30 )->block(
+			15,
+			fn (): Font => $this->writeAndPersistUploads( $providerKey, $family, $slug, $prepared )
 		);
 
 		$this->regenerate();
@@ -207,6 +293,225 @@ class FontInstaller
 				$e
 			);
 		}
+	}
+
+	/**
+	 * Normalize the uploaded-face payload: validate each file's font signature,
+	 * parse its variable-axis metadata, resolve its weight/style/format, and
+	 * de-duplicate by weight+style (last upload wins).
+	 *
+	 * A file whose bytes are not a recognized font container is dropped rather
+	 * than aborting the whole upload.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  array<int, array{contents?: string, weight?: int|string, style?: string}>  $faces
+	 *
+	 * @return array<int, array{weight: int, style: string, format: string, contents: string, is_variable: bool, axes: array<string, mixed>|null}>
+	 */
+	protected function prepareUploadedFaces( array $faces ): array
+	{
+		$prepared = [];
+
+		foreach ( $faces as $face ) {
+			if ( ! is_array( $face ) ) {
+				continue;
+			}
+
+			$contents = $face['contents'] ?? null;
+
+			if ( ! is_string( $contents ) || '' === $contents || ! $this->isFontSignature( $contents ) ) {
+				continue;
+			}
+
+			$weight = $face['weight'] ?? 400;
+
+			if ( ! is_numeric( $weight ) ) {
+				$weight = 400;
+			}
+
+			$weight = (int) $weight;
+			$style  = strtolower( trim( (string) ( $face['style'] ?? 'normal' ) ) );
+			$style  = 'italic' === $style ? 'italic' : 'normal';
+			$format = $this->uploadFormat( $contents );
+
+			$metadata = $this->metadataParser->parse( $contents );
+
+			$prepared[ $weight . ':' . $style ] = [
+				'weight'      => $weight,
+				'style'       => $style,
+				'format'      => $format,
+				'contents'    => $contents,
+				'is_variable' => (bool) $metadata['is_variable'],
+				'axes'        => $metadata['is_variable'] ? $metadata['axes'] : null,
+			];
+		}
+
+		return array_values( $prepared );
+	}
+
+	/**
+	 * Self-host the prepared upload faces, then record the font and its faces in a
+	 * transaction. On any failure only the files newly written by this call are
+	 * removed and the rows roll back, mirroring {@see writeAndPersist()}.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  array<int, array{weight: int, style: string, format: string, contents: string, is_variable: bool, axes: array<string, mixed>|null}>  $prepared
+	 */
+	protected function writeAndPersistUploads( string $providerKey, string $family, string $slug, array $prepared ): Font
+	{
+		$rollbackPaths = [];
+		$restoreFiles  = [];
+		$writtenFaces  = [];
+		$isVariable    = false;
+
+		try {
+			foreach ( $prepared as $face ) {
+				$path  = $this->fileWriter->pathFor( $providerKey, $slug, $face['weight'], $face['style'], $face['format'] );
+				$isNew = ! $this->fileWriter->exists( $path );
+
+				// An upload can replace an existing face with different bytes, so
+				// snapshot the current file before overwriting it. On rollback the
+				// snapshot is restored — unlike the catalog install, whose
+				// re-fetched faces are byte-identical and safe to leave in place.
+				if ( ! $isNew ) {
+					$original = $this->fileWriter->get( $path );
+
+					if ( is_string( $original ) ) {
+						$restoreFiles[ $path ] = $original;
+					}
+				}
+
+				$this->fileWriter->write( $providerKey, $slug, $face['weight'], $face['style'], $face['format'], $face['contents'] );
+
+				if ( $isNew ) {
+					$rollbackPaths[] = $path;
+				}
+
+				$isVariable = $isVariable || $face['is_variable'];
+
+				$writtenFaces[] = [
+					'weight'    => $face['weight'],
+					'style'     => $face['style'],
+					'format'    => $face['format'],
+					'path'      => $path,
+					'file_size' => strlen( $face['contents'] ),
+					'axes'      => $face['axes'],
+				];
+			}
+
+			return DB::transaction( function () use ( $providerKey, $family, $slug, $writtenFaces, $isVariable ): Font {
+				$font = Font::query()->firstOrNew( [
+					'provider' => $providerKey,
+					'slug'     => $slug,
+				] );
+
+				$font->family = $family;
+				// Never downgrade a family a previous upload already established as
+				// variable; a new variable face upgrades a static one.
+				$font->is_variable  = (bool) $font->is_variable || $isVariable;
+				$font->installed_at = $font->installed_at ?? now();
+				$font->save();
+
+				foreach ( $writtenFaces as $face ) {
+					$font->faces()->updateOrCreate(
+						[
+							'weight' => $face['weight'],
+							'style'  => $face['style'],
+						],
+						[
+							'format'    => $face['format'],
+							'disk'      => $this->fileWriter->diskName(),
+							'path'      => $face['path'],
+							'file_size' => $face['file_size'],
+							'axes'      => $face['axes'],
+						]
+					);
+				}
+
+				return $font;
+			} );
+		} catch ( Throwable $e ) {
+			$this->fileWriter->delete( $rollbackPaths );
+			$this->restoreOverwrittenFiles( $providerKey, $slug, $prepared, $restoreFiles );
+
+			if ( $e instanceof FontInstallationException
+				|| $e instanceof FontFileWriteException ) {
+				throw $e;
+			}
+
+			throw new FontInstallationException(
+				sprintf( 'Failed to install the uploaded font "%s": %s', $family, $e->getMessage() ),
+				0,
+				$e
+			);
+		}
+	}
+
+	/**
+	 * Restore the pre-overwrite bytes of any existing face files this call
+	 * replaced, so a failed re-upload leaves each existing face exactly as it
+	 * was. Best-effort: a restore failure is logged rather than thrown, since the
+	 * install is already failing and the committed rows still point at the path.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  array<int, array{weight: int, style: string, format: string, contents: string, is_variable: bool, axes: array<string, mixed>|null}>  $prepared
+	 * @param  array<string, string>  $restoreFiles  Original bytes keyed by storage path.
+	 */
+	protected function restoreOverwrittenFiles( string $providerKey, string $slug, array $prepared, array $restoreFiles ): void
+	{
+		if ( [] === $restoreFiles ) {
+			return;
+		}
+
+		foreach ( $prepared as $face ) {
+			$path = $this->fileWriter->pathFor( $providerKey, $slug, $face['weight'], $face['style'], $face['format'] );
+
+			if ( ! isset( $restoreFiles[ $path ] ) ) {
+				continue;
+			}
+
+			try {
+				$this->fileWriter->write( $providerKey, $slug, $face['weight'], $face['style'], $face['format'], $restoreFiles[ $path ] );
+			} catch ( Throwable $e ) {
+				Log::error(
+					'Failed to restore an overwritten font face after a failed custom upload.',
+					[ 'path' => $path, 'exception' => $e ]
+				);
+			}
+		}
+	}
+
+	/**
+	 * Whether a file's leading bytes are a recognized font-container signature.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function isFontSignature( string $contents ): bool
+	{
+		return in_array( substr( $contents, 0, 4 ), self::FONT_SIGNATURES, true );
+	}
+
+	/**
+	 * Derive the stored file format for an uploaded face from its own signature
+	 * rather than the client-supplied extension, so the on-disk file's format
+	 * (and thus its `@font-face` `format()` token) always matches its real bytes
+	 * even when the upload was misnamed.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  string  $contents  The raw font-file bytes.
+	 */
+	protected function uploadFormat( string $contents ): string
+	{
+		return match ( substr( $contents, 0, 4 ) ) {
+			'wOF2'  => 'woff2',
+			'wOFF'  => 'woff',
+			'OTTO'  => 'otf',
+			default => 'ttf',
+		};
 	}
 
 	/**
