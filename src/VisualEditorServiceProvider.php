@@ -24,6 +24,7 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Gates\DenyByDefaultGate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
+use ArtisanPackUI\VisualEditor\Fonts\Providers\BunnyFontsProvider;
 use ArtisanPackUI\VisualEditor\Fonts\Providers\GoogleFontsProvider;
 use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
@@ -700,6 +701,20 @@ class VisualEditorServiceProvider extends ServiceProvider
 						(int) ( $google['cache_ttl'] ?? 86400 ),
 						(int) ( $google['timeout'] ?? 10 ),
 						(string) ( $google['subset'] ?? 'latin' ),
+					) );
+				}
+
+				$bunny = config( 'artisanpack.visual-editor.fonts.providers.bunny', [] );
+
+				if ( true === ( $bunny['enabled'] ?? false ) ) {
+					$registry->register( new BunnyFontsProvider(
+						(string) ( $bunny['list_url'] ?? 'https://fonts.bunny.net/list' ),
+						(string) ( $bunny['css_url'] ?? 'https://fonts.bunny.net/css' ),
+						(string) ( $bunny['user_agent'] ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' ),
+						(int) ( $bunny['per_page'] ?? 24 ),
+						(int) ( $bunny['cache_ttl'] ?? 86400 ),
+						(int) ( $bunny['timeout'] ?? 10 ),
+						(string) ( $bunny['subset'] ?? 'latin' ),
 					) );
 				}
 

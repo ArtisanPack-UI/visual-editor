@@ -650,6 +650,16 @@ return [
 				'cache_ttl'    => 86400,
 				'timeout'      => 10,
 			],
+			'bunny' => [
+				'enabled'    => true,
+				'list_url'   => 'https://fonts.bunny.net/list',
+				'css_url'    => 'https://fonts.bunny.net/css',
+				'user_agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+				'subset'     => 'latin',
+				'per_page'   => 24,
+				'cache_ttl'  => 86400,
+				'timeout'    => 10,
+			],
 		],
 	],
 
