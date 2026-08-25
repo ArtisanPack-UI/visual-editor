@@ -22,7 +22,7 @@
 
 import { Button, Modal, Notice, SearchControl, Spinner } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from 'react';
 
 import { TEXT_DOMAIN } from '../vendor/i18n';
 import {
@@ -75,7 +75,7 @@ const STYLES = {
         borderBottom: '1px solid #ddd',
         marginBottom: 12,
     },
-    tab: (active: boolean): React.CSSProperties => ({
+    tab: (active: boolean): CSSProperties => ({
         padding: '8px 14px',
         border: 'none',
         borderBottom: active ? '2px solid #007cba' : '2px solid transparent',
@@ -135,6 +135,12 @@ const STYLES = {
     },
 };
 
+/**
+ * Human-readable label for a provider variant token — the weight, plus an
+ * "italic" suffix for italic faces.
+ *
+ * @since 1.7.0
+ */
 function variantLabel(token: string): string {
     const { weight, style } = parseVariant(token);
 
@@ -151,6 +157,7 @@ function variantLabel(token: string): string {
 function InstalledTab({
     state,
     sampleText,
+    removalError,
     onToggle,
     onSelectAll,
     onClearSelection,
@@ -159,6 +166,7 @@ function InstalledTab({
 }: {
     state: FontLibraryState;
     sampleText: string;
+    removalError: string | null;
     onToggle: (id: number) => void;
     onSelectAll: () => void;
     onClearSelection: () => void;
@@ -191,6 +199,11 @@ function InstalledTab({
 
     return (
         <>
+            {removalError && (
+                <Notice status="error" isDismissible={false}>
+                    {removalError}
+                </Notice>
+            )}
             {!readOnly && (
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                     <Button
@@ -545,7 +558,10 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
     const [sampleText, setSampleText] = useState<string>(__(DEFAULT_SAMPLE, TEXT_DOMAIN));
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
+    const [removalError, setRemovalError] = useState<string | null>(null);
     const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // Monotonic counter tagging each catalog request so stale responses lose.
+    const catalogReqId = useRef(0);
 
     // Load the installed list and provider list when the modal opens.
     useEffect(() => {
@@ -588,22 +604,37 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
         };
     }, [isOpen]);
 
-    const loadCatalog = useCallback((provider: string, query: string, page: number) => {
-        dispatch({ type: 'CATALOG_REQUEST', provider, query, page });
-        fetchCatalog(provider, query, page)
-            .then((result) => {
-                dispatch({
-                    type: 'CATALOG_SUCCESS',
-                    provider,
-                    page: result.page,
-                    families: result.families,
-                    hasMore: result.has_more,
+    // Issue the fetch for an already-dispatched CATALOG_REQUEST, tagging the
+    // response with the request id so the reducer can drop it if a newer
+    // request has since superseded it.
+    const runCatalog = useCallback(
+        (provider: string, query: string, page: number, requestId: number) => {
+            fetchCatalog(provider, query, page)
+                .then((result) => {
+                    dispatch({
+                        type: 'CATALOG_SUCCESS',
+                        provider,
+                        page: result.page,
+                        families: result.families,
+                        hasMore: result.has_more,
+                        requestId,
+                    });
+                })
+                .catch((error: FontLibraryApiError) => {
+                    dispatch({ type: 'CATALOG_FAILURE', provider, message: error.message, requestId });
                 });
-            })
-            .catch((error: FontLibraryApiError) => {
-                dispatch({ type: 'CATALOG_FAILURE', provider, message: error.message });
-            });
-    }, []);
+        },
+        []
+    );
+
+    const loadCatalog = useCallback(
+        (provider: string, query: string, page: number) => {
+            const requestId = (catalogReqId.current += 1);
+            dispatch({ type: 'CATALOG_REQUEST', provider, query, page, requestId });
+            runCatalog(provider, query, page, requestId);
+        },
+        [runCatalog]
+    );
 
     const isUploadTab = state.activeTab === CUSTOM_UPLOAD_PROVIDER;
 
@@ -631,18 +662,21 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
 
     const handleSearch = useCallback(
         (provider: string, query: string) => {
-            // Reflect the field immediately, debounce the fetch.
-            dispatch({ type: 'CATALOG_REQUEST', provider, query, page: 1 });
+            // Reflect the field immediately (and clear the list under a
+            // spinner), then debounce the fetch — reusing the same request id
+            // so a superseded keystroke's response is ignored.
+            const requestId = (catalogReqId.current += 1);
+            dispatch({ type: 'CATALOG_REQUEST', provider, query, page: 1, requestId });
 
             if (searchTimer.current) {
                 clearTimeout(searchTimer.current);
             }
 
             searchTimer.current = setTimeout(() => {
-                loadCatalog(provider, query, 1);
+                runCatalog(provider, query, 1, requestId);
             }, SEARCH_DEBOUNCE_MS);
         },
-        [loadCatalog]
+        [runCatalog]
     );
 
     useEffect(
@@ -674,15 +708,28 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
         []
     );
 
-    const handleUninstall = useCallback((font: InstalledFont) => {
-        uninstallFont(font.id)
-            .then(() => {
-                dispatch({ type: 'FONTS_REMOVED', ids: [font.id] });
-            })
-            .catch((error: FontLibraryApiError) => {
-                dispatch({ type: 'INSTALLED_ERROR', message: error.message });
-            });
+    // Surface a removal failure without tearing down the installed list: a
+    // failed uninstall keeps the rows visible with an inline error, and a
+    // `forbidden` flips the whole modal read-only like the other mutations.
+    const handleRemovalError = useCallback((error: FontLibraryApiError) => {
+        setRemovalError(error.message);
+
+        if (error.code === 'forbidden') {
+            dispatch({ type: 'SET_READ_ONLY', readOnly: true });
+        }
     }, []);
+
+    const handleUninstall = useCallback(
+        (font: InstalledFont) => {
+            setRemovalError(null);
+            uninstallFont(font.id)
+                .then(() => {
+                    dispatch({ type: 'FONTS_REMOVED', ids: [font.id] });
+                })
+                .catch(handleRemovalError);
+        },
+        [handleRemovalError]
+    );
 
     const handleBulkUninstall = useCallback(() => {
         const ids = state.selectedForRemoval;
@@ -691,14 +738,13 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
             return;
         }
 
+        setRemovalError(null);
         bulkUninstall(ids)
             .then(() => {
                 dispatch({ type: 'FONTS_REMOVED', ids });
             })
-            .catch((error: FontLibraryApiError) => {
-                dispatch({ type: 'INSTALLED_ERROR', message: error.message });
-            });
-    }, [state.selectedForRemoval]);
+            .catch(handleRemovalError);
+    }, [state.selectedForRemoval, handleRemovalError]);
 
     const handleUpload = useCallback((family: string, files: File[]) => {
         const faces: UploadFace[] = files.map((file) => ({ file }));
@@ -801,6 +847,7 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
                     <InstalledTab
                         state={state}
                         sampleText={sampleText}
+                        removalError={removalError}
                         onToggle={(id) => dispatch({ type: 'TOGGLE_SELECT', id })}
                         onSelectAll={() =>
                             dispatch({

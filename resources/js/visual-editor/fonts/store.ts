@@ -32,6 +32,12 @@ export interface CatalogState {
     readonly hasMore: boolean;
     readonly status: LoadStatus;
     readonly error: string | null;
+    /**
+     * The id of the most recently issued request for this provider. A
+     * success/failure carrying an older id lost a race (fast paging or
+     * typing) and is ignored so a delayed response can't clobber newer state.
+     */
+    readonly requestId: number;
 }
 
 /** Install-flow progress for the currently installing family. */
@@ -63,6 +69,7 @@ export const emptyCatalog: CatalogState = {
     hasMore: false,
     status: 'idle',
     error: null,
+    requestId: 0,
 };
 
 export const initialState: FontLibraryState = {
@@ -89,15 +96,16 @@ export type FontLibraryAction =
     | { type: 'SOURCES_LOADING' }
     | { type: 'SOURCES_LOADED'; sources: readonly FontSource[]; readOnly: boolean }
     | { type: 'SOURCES_ERROR'; message: string }
-    | { type: 'CATALOG_REQUEST'; provider: string; query: string; page: number }
+    | { type: 'CATALOG_REQUEST'; provider: string; query: string; page: number; requestId: number }
     | {
           type: 'CATALOG_SUCCESS';
           provider: string;
           page: number;
           families: readonly CatalogFamily[];
           hasMore: boolean;
+          requestId: number;
       }
-    | { type: 'CATALOG_FAILURE'; provider: string; message: string }
+    | { type: 'CATALOG_FAILURE'; provider: string; message: string; requestId: number }
     | { type: 'TOGGLE_SELECT'; id: number }
     | { type: 'SELECT_ALL'; ids: readonly number[] }
     | { type: 'CLEAR_SELECTION' }
@@ -108,6 +116,12 @@ export type FontLibraryAction =
     | { type: 'FONTS_REMOVED'; ids: readonly number[] }
     | { type: 'SET_READ_ONLY'; readOnly: boolean };
 
+/**
+ * The catalog state for a provider, or the empty default when it has not been
+ * requested yet.
+ *
+ * @since 1.7.0
+ */
 function catalogFor(state: FontLibraryState, provider: string): CatalogState {
     return state.catalogs[provider] ?? emptyCatalog;
 }
@@ -135,6 +149,13 @@ function mergeFamilies(
     return [...existing, ...appended];
 }
 
+/**
+ * The Font Library modal's reducer. Pure and I/O-free: the modal dispatches
+ * lifecycle actions around each `api-client` call and this folds them into the
+ * next state.
+ *
+ * @since 1.7.0
+ */
 export function fontLibraryReducer(
     state: FontLibraryState,
     action: FontLibraryAction
@@ -188,6 +209,7 @@ export function fontLibraryReducer(
                         page: action.page,
                         status: 'loading',
                         error: null,
+                        requestId: action.requestId,
                         // Clear the list for a fresh browse/search so stale
                         // results don't linger under the spinner.
                         families: action.page <= 1 ? [] : previous.families,
@@ -198,6 +220,12 @@ export function fontLibraryReducer(
 
         case 'CATALOG_SUCCESS': {
             const previous = catalogFor(state, action.provider);
+
+            // A response from a superseded request (the user paged or typed
+            // again before it landed) must not overwrite the current results.
+            if (action.requestId !== previous.requestId) {
+                return state;
+            }
 
             return {
                 ...state,
@@ -217,6 +245,10 @@ export function fontLibraryReducer(
 
         case 'CATALOG_FAILURE': {
             const previous = catalogFor(state, action.provider);
+
+            if (action.requestId !== previous.requestId) {
+                return state;
+            }
 
             return {
                 ...state,

@@ -65,25 +65,18 @@ describe('catalogPreviewUrl', () => {
         };
     }
 
-    it('prefers a provider-supplied preview_url', () => {
-        expect(catalogPreviewUrl('google', fam({ preview_url: 'https://x.test/f.css' }))).toBe(
-            'https://x.test/f.css'
+    it('returns a provider-supplied same-origin preview_url', () => {
+        expect(catalogPreviewUrl('google', fam({ preview_url: '/visual-editor/api/fonts/x.css' }))).toBe(
+            '/visual-editor/api/fonts/x.css'
         );
     });
 
-    it('builds the Google css2 URL with + for spaces', () => {
-        expect(catalogPreviewUrl('google', fam())).toBe(
-            'https://fonts.googleapis.com/css2?family=Open+Sans&display=swap'
-        );
+    it('never synthesizes a Google/Bunny CDN URL for a known provider', () => {
+        expect(catalogPreviewUrl('google', fam())).toBeUndefined();
+        expect(catalogPreviewUrl('bunny', fam())).toBeUndefined();
     });
 
-    it('builds the Bunny URL from the slug', () => {
-        expect(catalogPreviewUrl('bunny', fam())).toBe(
-            'https://fonts.bunny.net/css?family=open-sans'
-        );
-    });
-
-    it('returns undefined for an unknown provider', () => {
+    it('returns undefined when no preview_url is supplied', () => {
         expect(catalogPreviewUrl('custom', fam())).toBeUndefined();
     });
 });

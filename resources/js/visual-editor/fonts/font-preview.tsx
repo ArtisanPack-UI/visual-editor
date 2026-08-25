@@ -12,7 +12,7 @@
  * @since 1.7.0
  */
 
-import { useEffect, useId } from 'react';
+import { useEffect, useId, type CSSProperties } from 'react';
 
 import { __ } from '@wordpress/i18n';
 
@@ -50,20 +50,34 @@ const FORMAT_BY_EXTENSION: Record<string, string> = {
 /**
  * Escape a value for use inside a double-quoted CSS string. Backslash must be
  * escaped first (so it can't consume the escape we add for a quote), then the
- * quote, then newlines — which would otherwise terminate the string. Without
- * this a crafted family name (custom uploads are user-controlled) could break
- * out of the injected `@font-face` block and inject arbitrary CSS.
+ * quote, then any newline character — CR, LF, and form feed (U+000C), all of
+ * which CSS preprocessing normalizes to a newline that terminates the string
+ * and emits a bad-string token. Without this a crafted family name (custom
+ * uploads are user-controlled) could break out of the injected `@font-face`
+ * block and inject arbitrary CSS.
  *
  * @since 1.7.0
  */
 function cssString(value: string): string {
-    return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\r\n]+/g, ' ');
+    return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/[\r\n\f]+/g, ' ');
 }
 
+/**
+ * Build a `font-family` value for the given family name, escaped and quoted
+ * with a `sans-serif` fallback.
+ *
+ * @since 1.7.0
+ */
 function cssFontFamily(family: string): string {
     return `"${cssString(family)}", sans-serif`;
 }
 
+/**
+ * Build a single `@font-face` rule for an installed face, or `null` when the
+ * face has no resolvable URL. Every interpolated value is escaped or clamped.
+ *
+ * @since 1.7.0
+ */
 function faceRule(family: string, face: FontFace): string | null {
     if (!face.url) {
         return null;
@@ -137,7 +151,7 @@ export default function FontPreview({
         };
     }, [family, previewUrl]);
 
-    const previewStyle: React.CSSProperties = {
+    const previewStyle: CSSProperties = {
         fontFamily: cssFontFamily(family),
         fontSize,
         lineHeight: 1.3,

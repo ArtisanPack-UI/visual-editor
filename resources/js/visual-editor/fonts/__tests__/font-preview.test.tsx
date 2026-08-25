@@ -87,6 +87,17 @@ describe('FontPreview', () => {
         expect(style?.textContent).not.toContain('Evil\\"; }');
     });
 
+    it('neutralizes a form-feed in the family name', () => {
+        // U+000C would otherwise be normalized to a newline and terminate the
+        // CSS string, letting the rest escape the @font-face block.
+        render(<FontPreview family={'A\f} body{display:none}'} faces={[face]} sampleText="Hi" />);
+
+        const style = document.head.querySelector('style[data-font-preview]');
+        // The form feed is collapsed to a space, so the payload stays inside
+        // the quoted family value and cannot start a new rule.
+        expect(style?.textContent).toContain('A } body{display:none}');
+    });
+
     it('constrains the weight and style to safe tokens', () => {
         render(
             <FontPreview

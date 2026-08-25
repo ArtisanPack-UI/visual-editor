@@ -8,6 +8,7 @@
  * @since 1.7.0
  */
 
+import type { ComponentProps, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 
@@ -16,15 +17,15 @@ vi.mock('@wordpress/components', () => ({
         children,
         isDestructive: _isDestructive,
         ...props
-    }: React.ComponentProps<'button'> & { isDestructive?: boolean }) => (
+    }: ComponentProps<'button'> & { isDestructive?: boolean }) => (
         <button {...props}>{children}</button>
     ),
-    Modal: ({ children, title }: { children: React.ReactNode; title: string }) => (
+    Modal: ({ children, title }: { children: ReactNode; title: string }) => (
         <div role="dialog" aria-label={title}>
             {children}
         </div>
     ),
-    Notice: ({ children, status }: { children: React.ReactNode; status?: string }) => (
+    Notice: ({ children, status }: { children: ReactNode; status?: string }) => (
         <div role="status" data-status={status}>
             {children}
         </div>
@@ -217,6 +218,19 @@ describe('FontLibraryModal', () => {
         fireEvent.click(screen.getByRole('button', { name: /Uninstall selected/i }));
 
         await waitFor(() => expect(api.bulkUninstall).toHaveBeenCalledWith([1]));
+    });
+
+    it('keeps the installed list visible when a removal fails', async () => {
+        api.uninstallFont.mockRejectedValueOnce(new MockApiError('server exploded', 500));
+
+        render(<FontLibraryModal isOpen onClose={() => {}} />);
+        await screen.findByText('Inter');
+
+        fireEvent.click(screen.getByRole('button', { name: 'Uninstall' }));
+
+        expect(await screen.findByText('server exploded')).toBeInTheDocument();
+        // The list must not be torn down behind an error state.
+        expect(screen.getByText('Inter')).toBeInTheDocument();
     });
 
     it('renders the upload form on the Custom Upload tab and uploads', async () => {

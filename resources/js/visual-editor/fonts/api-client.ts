@@ -130,6 +130,12 @@ const READ_HEADERS: Readonly<Record<string, string>> = {
     'X-Requested-With': 'XMLHttpRequest',
 };
 
+/**
+ * Read the CSRF token from the page's `csrf-token` meta tag, or `null` when
+ * it is absent (e.g. in a non-browser test environment).
+ *
+ * @since 1.7.0
+ */
 function readCsrfToken(): string | null {
     if (typeof document === 'undefined') {
         return null;
@@ -140,6 +146,12 @@ function readCsrfToken(): string | null {
     return meta?.content?.trim() || null;
 }
 
+/**
+ * Build the header set for a JSON mutating request, including the CSRF token
+ * when one is present.
+ *
+ * @since 1.7.0
+ */
 function jsonHeaders(): Record<string, string> {
     const headers: Record<string, string> = {
         Accept: 'application/json',
@@ -156,6 +168,12 @@ function jsonHeaders(): Record<string, string> {
     return headers;
 }
 
+/**
+ * Build the header set for a multipart upload. The `Content-Type` is left
+ * unset so the browser can add the multipart boundary itself.
+ *
+ * @since 1.7.0
+ */
 function multipartHeaders(): Record<string, string> {
     // No Content-Type: the browser sets the multipart boundary itself.
     const headers: Record<string, string> = {
@@ -172,6 +190,12 @@ function multipartHeaders(): Record<string, string> {
     return headers;
 }
 
+/**
+ * Parse a response body as JSON, falling back to the raw text for a non-JSON
+ * body and to `null` for an empty one.
+ *
+ * @since 1.7.0
+ */
 async function parseBody(response: Response): Promise<unknown> {
     const text = await response.text();
 
@@ -186,6 +210,12 @@ async function parseBody(response: Response): Promise<unknown> {
     }
 }
 
+/**
+ * Read a string-valued field from a parsed JSON body, or `null` when it is
+ * missing or not a string. Used to pull `message` / `error` off error shapes.
+ *
+ * @since 1.7.0
+ */
 function stringField(body: unknown, field: string): string | null {
     if (
         body !== null &&
@@ -199,6 +229,12 @@ function stringField(body: unknown, field: string): string | null {
     return null;
 }
 
+/**
+ * Return the parsed body for a 2xx response, or throw a {@link FontLibraryApiError}
+ * carrying the server's `message` and `error` code for any other status.
+ *
+ * @since 1.7.0
+ */
 async function requireOk(response: Response, fallback: string): Promise<unknown> {
     const body = await parseBody(response);
 
@@ -212,6 +248,12 @@ async function requireOk(response: Response, fallback: string): Promise<unknown>
     return body;
 }
 
+/**
+ * Coerce any thrown value into a {@link FontLibraryApiError}, preserving an
+ * existing one and wrapping a network/other failure with a fallback message.
+ *
+ * @since 1.7.0
+ */
 function normalizeError(error: unknown, fallback: string): FontLibraryApiError {
     if (error instanceof FontLibraryApiError) {
         return error;
@@ -223,35 +265,22 @@ function normalizeError(error: unknown, fallback: string): FontLibraryApiError {
 }
 
 /**
- * Derive a session-only preview stylesheet URL for a catalog family the user
+ * Resolve a session-only preview stylesheet URL for a catalog family the user
  * hasn't installed yet, so the modal can render the font in its real face
  * while browsing.
  *
- * A provider-supplied `preview_url` wins; otherwise the known remote providers
- * are mapped to their public CSS endpoints (Google's `css2`, Bunny's `css`).
- * This is loaded only in the editor for the modal session — installing a font
- * still self-hosts every file, so a site's visitors never hit these CDNs.
- * Providers we don't recognize (and custom uploads) return `undefined`, and
- * the preview simply falls back to a system font.
+ * Only a provider-supplied `preview_url` is honored, and it is expected to be
+ * a first-party (same-origin) URL served by the package. This client never
+ * synthesizes a Google/Bunny CDN URL: contacting those hosts from the editor
+ * would bypass the REST surface and the feature's self-hosting/GDPR guarantee
+ * (see the issue note and the first-party preview endpoint follow-up, #735).
+ * Until a provider exposes such a URL, catalog previews fall back to a system
+ * font — installed fonts always preview from their self-hosted `@font-face`.
  *
  * @since 1.7.0
  */
-export function catalogPreviewUrl(provider: string, family: CatalogFamily): string | undefined {
-    if (family.preview_url) {
-        return family.preview_url;
-    }
-
-    switch (provider) {
-        case 'google':
-            return `https://fonts.googleapis.com/css2?family=${encodeURIComponent(family.family).replace(
-                /%20/g,
-                '+'
-            )}&display=swap`;
-        case 'bunny':
-            return `https://fonts.bunny.net/css?family=${encodeURIComponent(family.slug)}`;
-        default:
-            return undefined;
-    }
+export function catalogPreviewUrl(_provider: string, family: CatalogFamily): string | undefined {
+    return family.preview_url;
 }
 
 /**

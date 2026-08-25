@@ -85,6 +85,7 @@ describe('fontLibraryReducer', () => {
     it('clears the family list on a fresh (page 1) catalog request', () => {
         const seeded = fontLibraryReducer(manageableState(), {
             type: 'CATALOG_SUCCESS',
+            requestId: 0,
             provider: 'google',
             page: 1,
             families: [family('inter')],
@@ -93,6 +94,7 @@ describe('fontLibraryReducer', () => {
 
         const next = fontLibraryReducer(seeded, {
             type: 'CATALOG_REQUEST',
+            requestId: 0,
             provider: 'google',
             query: 'ro',
             page: 1,
@@ -106,6 +108,7 @@ describe('fontLibraryReducer', () => {
     it('keeps existing families while loading a later page', () => {
         const seeded = fontLibraryReducer(manageableState(), {
             type: 'CATALOG_SUCCESS',
+            requestId: 0,
             provider: 'google',
             page: 1,
             families: [family('inter')],
@@ -114,6 +117,7 @@ describe('fontLibraryReducer', () => {
 
         const next = fontLibraryReducer(seeded, {
             type: 'CATALOG_REQUEST',
+            requestId: 0,
             provider: 'google',
             query: '',
             page: 2,
@@ -126,6 +130,7 @@ describe('fontLibraryReducer', () => {
     it('appends a later page while de-duplicating repeated slugs', () => {
         const page1 = fontLibraryReducer(manageableState(), {
             type: 'CATALOG_SUCCESS',
+            requestId: 0,
             provider: 'google',
             page: 1,
             families: [family('inter'), family('roboto')],
@@ -134,6 +139,7 @@ describe('fontLibraryReducer', () => {
 
         const page2 = fontLibraryReducer(page1, {
             type: 'CATALOG_SUCCESS',
+            requestId: 0,
             provider: 'google',
             page: 2,
             families: [family('roboto'), family('lato')],
@@ -148,9 +154,53 @@ describe('fontLibraryReducer', () => {
         expect(page2.catalogs.google.hasMore).toBe(false);
     });
 
+    it('ignores a catalog response from a superseded request', () => {
+        // Two requests race; the newer one (id 2) is issued last, so the
+        // older response (id 1) that lands afterward must be dropped.
+        let state = fontLibraryReducer(manageableState(), {
+            type: 'CATALOG_REQUEST',
+            provider: 'google',
+            query: 'a',
+            page: 1,
+            requestId: 1,
+        });
+        state = fontLibraryReducer(state, {
+            type: 'CATALOG_REQUEST',
+            provider: 'google',
+            query: 'ab',
+            page: 1,
+            requestId: 2,
+        });
+
+        // Stale response for id 1 arrives — must be ignored.
+        const stale = fontLibraryReducer(state, {
+            type: 'CATALOG_SUCCESS',
+            provider: 'google',
+            page: 1,
+            families: [family('stale')],
+            hasMore: false,
+            requestId: 1,
+        });
+        expect(stale.catalogs.google.families).toEqual([]);
+        expect(stale.catalogs.google.status).toBe('loading');
+
+        // The current response for id 2 is applied.
+        const fresh = fontLibraryReducer(stale, {
+            type: 'CATALOG_SUCCESS',
+            provider: 'google',
+            page: 1,
+            families: [family('fresh')],
+            hasMore: false,
+            requestId: 2,
+        });
+        expect(fresh.catalogs.google.families.map((f) => f.slug)).toEqual(['fresh']);
+        expect(fresh.catalogs.google.status).toBe('ready');
+    });
+
     it('records a catalog failure without dropping prior families', () => {
         const page1 = fontLibraryReducer(manageableState(), {
             type: 'CATALOG_SUCCESS',
+            requestId: 0,
             provider: 'google',
             page: 1,
             families: [family('inter')],
@@ -159,6 +209,7 @@ describe('fontLibraryReducer', () => {
 
         const next = fontLibraryReducer(page1, {
             type: 'CATALOG_FAILURE',
+            requestId: 0,
             provider: 'google',
             message: 'gateway down',
         });
