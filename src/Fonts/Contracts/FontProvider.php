@@ -77,8 +77,10 @@ interface FontProvider
 	 *
 	 * @return array{families: array<int, array<string, mixed>>, page: int, has_more: bool}
 	 *         A page of family summaries. Each family entry carries at least a
-	 *         `slug` and `family` (display name); providers may add `category`,
-	 *         `variants`, and a `preview_url`.
+	 *         `slug` and `family` (display name); providers may add `category`
+	 *         and `variants`. The catalog controller decorates each family with
+	 *         a same-origin `preview_url` for self-hostable providers, so
+	 *         providers need not build one.
 	 */
 	public function searchCatalog( string $query, int $page = 1 ): array;
 

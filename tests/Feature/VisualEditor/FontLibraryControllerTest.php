@@ -221,12 +221,79 @@ describe( 'GET /visual-editor/api/fonts/sources/{provider}/catalog', function ()
 			->assertJsonPath( 'data.has_more', false );
 	} );
 
+	it( 'decorates each family with a same-origin preview_url', function (): void {
+		actingAsFontBrowser();
+		registerFakeFontProvider();
+
+		$this->getJson( '/visual-editor/api/fonts/sources/fake/catalog?q=rob' )
+			->assertOk()
+			->assertJsonPath(
+				'data.families.0.preview_url',
+				'/visual-editor/api/fonts/sources/fake/preview/roboto'
+			);
+	} );
+
 	it( 'returns 404 for an unregistered provider', function (): void {
 		actingAsFontBrowser();
 
 		$this->getJson( '/visual-editor/api/fonts/sources/nope/catalog' )
 			->assertNotFound()
 			->assertJsonPath( 'error', 'unknown_provider' );
+	} );
+} );
+
+describe( 'GET /visual-editor/api/fonts/sources/{provider}/preview/{slug}', function (): void {
+	it( 'serves a same-origin @font-face stylesheet for a representative face', function (): void {
+		actingAsFontBrowser();
+		registerFakeFontProvider();
+
+		$response = $this->get( '/visual-editor/api/fonts/sources/fake/preview/roboto' )
+			->assertOk();
+
+		expect( $response->headers->get( 'content-type' ) )->toContain( 'text/css' );
+
+		$css = $response->getContent();
+
+		expect( $css )->toContain( '@font-face' );
+		expect( $css )->toContain( 'font-family: "Roboto"' );
+		expect( $css )->toContain(
+			'src: url("/visual-editor/api/fonts/sources/fake/preview/roboto/400/normal") format("woff2")'
+		);
+	} );
+
+	it( 'returns 404 for an unknown family slug', function (): void {
+		actingAsFontBrowser();
+		registerFakeFontProvider();
+
+		$this->get( '/visual-editor/api/fonts/sources/fake/preview/nosuchfont' )
+			->assertNotFound();
+	} );
+
+	it( 'returns 404 for an unregistered provider', function (): void {
+		actingAsFontBrowser();
+
+		$this->get( '/visual-editor/api/fonts/sources/nope/preview/roboto' )
+			->assertNotFound();
+	} );
+} );
+
+describe( 'GET /visual-editor/api/fonts/sources/{provider}/preview/{slug}/{weight}/{style}', function (): void {
+	it( 'streams the face bytes as woff2', function (): void {
+		actingAsFontBrowser();
+		registerFakeFontProvider();
+
+		$response = $this->get( '/visual-editor/api/fonts/sources/fake/preview/roboto/400/normal' )
+			->assertOk();
+
+		expect( $response->headers->get( 'content-type' ) )->toBe( 'font/woff2' );
+		expect( $response->getContent() )->toStartWith( 'wOF2' );
+	} );
+
+	it( 'returns 404 for an unregistered provider', function (): void {
+		actingAsFontBrowser();
+
+		$this->get( '/visual-editor/api/fonts/sources/nope/preview/roboto/400/normal' )
+			->assertNotFound();
 	} );
 } );
 

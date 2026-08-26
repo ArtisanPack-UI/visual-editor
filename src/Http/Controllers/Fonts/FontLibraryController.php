@@ -26,6 +26,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\Fonts;
 
+use ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider;
 use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontFileWriteException;
 use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontInstallationException;
 use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontProviderException;
@@ -39,6 +40,7 @@ use ArtisanPackUI\VisualEditor\Http\Requests\Fonts\UploadFontRequest;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
@@ -130,7 +132,184 @@ class FontLibraryController extends Controller
 			], Response::HTTP_BAD_GATEWAY );
 		}
 
+		$result = $this->withPreviewUrls( $provider, $source, $result );
+
 		return new JsonResponse( [ 'data' => $result ] );
+	}
+
+	/**
+	 * Decorate each catalog family with a same-origin `preview_url` pointing at
+	 * {@see previewStylesheet()}, so the modal can render the sample in its real
+	 * typeface. Only self-hostable providers get one — a preview needs
+	 * {@see FontProvider::fetchFace()}, which non-self-hostable sources cannot
+	 * serve. Providers therefore never build the URL themselves; the API
+	 * response owns it, and any future provider inherits previews for free.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  array<string, mixed>  $result  The provider's `searchCatalog()` result.
+	 *
+	 * @return array<string, mixed> The result with `preview_url` on each family.
+	 */
+	protected function withPreviewUrls( string $provider, FontProvider $source, array $result ): array
+	{
+		if ( ! $source->isSelfHostable() || ! isset( $result['families'] ) || ! is_array( $result['families'] ) ) {
+			return $result;
+		}
+
+		$result['families'] = array_map(
+			function ( array $family ) use ( $provider ): array {
+				if ( isset( $family['slug'] ) ) {
+					$family['preview_url'] = route(
+						'visual-editor.api.fonts.sources.preview',
+						[ 'provider' => $provider, 'slug' => $family['slug'] ],
+						false
+					);
+				}
+
+				return $family;
+			},
+			$result['families']
+		);
+
+		return $result;
+	}
+
+	/**
+	 * Serve a same-origin `@font-face` stylesheet for one catalog family,
+	 * rendered in a single representative face (prefer 400/normal). The
+	 * `src` points back at {@see previewFace()} so the browser fetches the font
+	 * bytes from this app, never the provider CDN.
+	 *
+	 * @since 1.7.0
+	 */
+	public function previewStylesheet( string $provider, string $slug ): Response
+	{
+		$source = $this->registry->get( $provider );
+
+		if ( null === $source || ! $source->isSelfHostable() ) {
+			return response( '', Response::HTTP_NOT_FOUND );
+		}
+
+		try {
+			$family = $source->getFamily( $slug );
+		} catch ( FontProviderException ) {
+			$family = null;
+		}
+
+		$face = null === $family ? null : $this->representativeFace( $family );
+
+		if ( null === $face ) {
+			return response( '', Response::HTTP_NOT_FOUND );
+		}
+
+		[ $weight, $style ] = $face;
+
+		$faceUrl = route(
+			'visual-editor.api.fonts.sources.preview-face',
+			[ 'provider' => $provider, 'slug' => $slug, 'weight' => $weight, 'style' => $style ],
+			false
+		);
+
+		$css = sprintf(
+			'@font-face { font-family: "%s"; font-weight: %d; font-style: %s; font-display: swap; src: url("%s") format("woff2"); }',
+			$this->cssString( (string) ( $family['family'] ?? $slug ) ),
+			$weight,
+			$style,
+			$this->cssString( $faceUrl )
+		);
+
+		return response( $css, Response::HTTP_OK, [
+			'Content-Type'  => 'text/css; charset=UTF-8',
+			'Cache-Control' => 'public, max-age=86400',
+		] );
+	}
+
+	/**
+	 * Stream one catalog face's WOFF2 bytes through the app, caching the
+	 * download so browsing a page of the catalog doesn't re-hit the provider
+	 * CDN on every scroll.
+	 *
+	 * @since 1.7.0
+	 */
+	public function previewFace( string $provider, string $slug, string $weight, string $style ): Response
+	{
+		$source = $this->registry->get( $provider );
+
+		if ( null === $source || ! $source->isSelfHostable() ) {
+			return response( '', Response::HTTP_NOT_FOUND );
+		}
+
+		try {
+			// Cache the base64 form, never the raw bytes: a DB or other text
+			// cache store rejects binary WOFF2 as an invalid string, so the
+			// download is stored ASCII-safe and decoded on the way out.
+			$encoded = Cache::remember(
+				sprintf( 've.font-preview.%s.%s.%s.%s', $provider, $slug, $weight, $style ),
+				now()->addDay(),
+				fn (): string => base64_encode( $source->fetchFace( $slug, $weight, $style ) )
+			);
+		} catch ( FontProviderException ) {
+			return response( '', Response::HTTP_NOT_FOUND );
+		}
+
+		$bytes = base64_decode( $encoded, true );
+
+		if ( false === $bytes ) {
+			return response( '', Response::HTTP_NOT_FOUND );
+		}
+
+		return response( $bytes, Response::HTTP_OK, [
+			'Content-Type'  => 'font/woff2',
+			'Cache-Control' => 'public, max-age=86400',
+		] );
+	}
+
+	/**
+	 * Pick the face to preview a family with: 400/normal when the family has
+	 * it, otherwise the first face the provider reports. Returns `[weight,
+	 * style]`, or `null` when the family exposes no usable face.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  array<string, mixed>  $family  A {@see FontProvider::getFamily()} result.
+	 *
+	 * @return array{0: int, 1: string}|null
+	 */
+	protected function representativeFace( array $family ): ?array
+	{
+		$faces = isset( $family['faces'] ) && is_array( $family['faces'] ) ? $family['faces'] : [];
+
+		if ( [] === $faces ) {
+			return null;
+		}
+
+		foreach ( $faces as $face ) {
+			if ( 400 === (int) ( $face['weight'] ?? 0 ) && 'normal' === ( $face['style'] ?? 'normal' ) ) {
+				return [ 400, 'normal' ];
+			}
+		}
+
+		$first = $faces[0];
+		$style = 'italic' === ( $first['style'] ?? 'normal' ) ? 'italic' : 'normal';
+
+		return [ (int) ( $first['weight'] ?? 400 ), $style ];
+	}
+
+	/**
+	 * Escape a value for a double-quoted CSS string, matching the front-end's
+	 * `font-preview` escaping: backslash first, then the quote, then any
+	 * newline that would terminate the string and inject a bad-string token.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function cssString( string $value ): string
+	{
+		return str_replace(
+			[ '\\', '"', "\r", "\n", "\f" ],
+			[ '\\\\', '\\"', ' ', ' ', ' ' ],
+			$value
+		);
 	}
 
 	/**
