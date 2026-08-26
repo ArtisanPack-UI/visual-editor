@@ -273,6 +273,73 @@ describe('FontLibraryModal', () => {
         expect(screen.queryByRole('button', { name: /Uninstall selected/i })).toBeNull();
     });
 
+    it('associates each tab with its panel via ARIA', async () => {
+        render(<FontLibraryModal isOpen onClose={() => {}} />);
+
+        const installedTab = await screen.findByRole('tab', { name: 'Installed' });
+        const panel = screen.getByRole('tabpanel');
+
+        expect(installedTab).toHaveAttribute('aria-selected', 'true');
+        expect(installedTab).toHaveAttribute('aria-controls', panel.id);
+        expect(panel).toHaveAttribute('aria-labelledby', installedTab.id);
+    });
+
+    it('gives only the active tab a tabindex of 0 (roving tabindex)', async () => {
+        render(<FontLibraryModal isOpen onClose={() => {}} />);
+
+        const installedTab = await screen.findByRole('tab', { name: 'Installed' });
+        const googleTab = await screen.findByRole('tab', { name: 'Google Fonts' });
+
+        expect(installedTab).toHaveAttribute('tabindex', '0');
+        expect(googleTab).toHaveAttribute('tabindex', '-1');
+    });
+
+    it('moves between tabs with the arrow keys and activates on focus', async () => {
+        render(<FontLibraryModal isOpen onClose={() => {}} />);
+
+        const installedTab = await screen.findByRole('tab', { name: 'Installed' });
+        const googleTab = await screen.findByRole('tab', { name: 'Google Fonts' });
+
+        installedTab.focus();
+        fireEvent.keyDown(installedTab, { key: 'ArrowRight' });
+
+        expect(googleTab).toHaveAttribute('aria-selected', 'true');
+        expect(googleTab).toHaveFocus();
+        // Activating a provider tab kicks off its catalog browse.
+        expect(await screen.findByText('Roboto')).toBeInTheDocument();
+    });
+
+    it('jumps to the first and last tabs with Home and End', async () => {
+        render(<FontLibraryModal isOpen onClose={() => {}} />);
+
+        const installedTab = await screen.findByRole('tab', { name: 'Installed' });
+        const uploadTab = await screen.findByRole('tab', { name: 'Custom Upload' });
+
+        installedTab.focus();
+        fireEvent.keyDown(installedTab, { key: 'End' });
+
+        expect(uploadTab).toHaveAttribute('aria-selected', 'true');
+        expect(uploadTab).toHaveFocus();
+
+        fireEvent.keyDown(uploadTab, { key: 'Home' });
+
+        expect(installedTab).toHaveAttribute('aria-selected', 'true');
+        expect(installedTab).toHaveFocus();
+    });
+
+    it('wraps from the last tab to the first with the arrow keys', async () => {
+        render(<FontLibraryModal isOpen onClose={() => {}} />);
+
+        const installedTab = await screen.findByRole('tab', { name: 'Installed' });
+        const uploadTab = await screen.findByRole('tab', { name: 'Custom Upload' });
+
+        uploadTab.focus();
+        fireEvent.keyDown(uploadTab, { key: 'ArrowRight' });
+
+        expect(installedTab).toHaveAttribute('aria-selected', 'true');
+        expect(installedTab).toHaveFocus();
+    });
+
     it('flips to read-only when an install is forbidden', async () => {
         api.installFont.mockRejectedValueOnce(new MockApiError('nope', 403, 'forbidden'));
 

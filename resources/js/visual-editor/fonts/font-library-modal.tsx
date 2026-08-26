@@ -22,7 +22,16 @@
 
 import { Button, Modal, Notice, SearchControl, Spinner } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useReducer,
+    useRef,
+    useState,
+    type CSSProperties,
+    type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 
 import { TEXT_DOMAIN } from '../vendor/i18n';
 import {
@@ -67,6 +76,26 @@ const SEARCH_DEBOUNCE_MS = 300;
  * the upload form rather than a (permanently empty) catalog browse.
  */
 const CUSTOM_UPLOAD_PROVIDER = 'custom';
+
+/**
+ * The DOM id of a tab control for a given tab key, linked from its panel's
+ * `aria-labelledby`.
+ *
+ * @since 1.7.0
+ */
+function tabId(tab: string): string {
+    return `font-library-tab-${tab}`;
+}
+
+/**
+ * The DOM id of the panel a tab controls, linked from the tab's
+ * `aria-controls`.
+ *
+ * @since 1.7.0
+ */
+function panelId(tab: string): string {
+    return `font-library-panel-${tab}`;
+}
 
 const STYLES = {
     tabs: {
@@ -639,6 +668,58 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
 
     const isUploadTab = state.activeTab === CUSTOM_UPLOAD_PROVIDER;
 
+    // The tablist in render order: the synthetic Installed tab, then every
+    // registered source (providers plus the synthetic custom-upload source).
+    const tabItems = useMemo(
+        () => [
+            { key: INSTALLED_TAB, label: __('Installed', TEXT_DOMAIN) },
+            ...state.sources.map((source) => ({ key: source.key, label: source.label })),
+        ],
+        [state.sources]
+    );
+
+    // Live references to the tab buttons so arrow-key navigation can move focus
+    // to the newly selected tab (roving tabindex per the WAI-ARIA tabs pattern).
+    const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+    const activateTab = useCallback((tab: string) => {
+        dispatch({ type: 'SET_ACTIVE_TAB', tab });
+        tabRefs.current[tab]?.focus();
+    }, []);
+
+    // Automatic-activation arrow-key handling: Left/Up select the previous tab,
+    // Right/Down the next (both wrap), and Home/End jump to the ends. This
+    // mirrors the block renderer's tabs interactivity for a consistent pattern.
+    const handleTabKeyDown = useCallback(
+        (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
+            const count = tabItems.length;
+            let nextIndex: number | null = null;
+
+            switch (event.key) {
+                case 'ArrowRight':
+                case 'ArrowDown':
+                    nextIndex = (index + 1) % count;
+                    break;
+                case 'ArrowLeft':
+                case 'ArrowUp':
+                    nextIndex = (index - 1 + count) % count;
+                    break;
+                case 'Home':
+                    nextIndex = 0;
+                    break;
+                case 'End':
+                    nextIndex = count - 1;
+                    break;
+                default:
+                    return;
+            }
+
+            event.preventDefault();
+            activateTab(tabItems[nextIndex].key);
+        },
+        [tabItems, activateTab]
+    );
+
     // A browsable provider tab: a registered source that isn't the synthetic
     // custom-upload source (which has no catalog — it renders the upload form).
     const isProviderTab = useMemo(
@@ -817,27 +898,29 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
             )}
 
             <div style={STYLES.tabs} role="tablist" aria-label={__('Font sources', TEXT_DOMAIN)}>
-                <button
-                    type="button"
-                    role="tab"
-                    aria-selected={state.activeTab === INSTALLED_TAB}
-                    style={STYLES.tab(state.activeTab === INSTALLED_TAB)}
-                    onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', tab: INSTALLED_TAB })}
-                >
-                    {__('Installed', TEXT_DOMAIN)}
-                </button>
-                {state.sources.map((source) => (
-                    <button
-                        key={source.key}
-                        type="button"
-                        role="tab"
-                        aria-selected={state.activeTab === source.key}
-                        style={STYLES.tab(state.activeTab === source.key)}
-                        onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', tab: source.key })}
-                    >
-                        {source.label}
-                    </button>
-                ))}
+                {tabItems.map((item, index) => {
+                    const active = state.activeTab === item.key;
+
+                    return (
+                        <button
+                            key={item.key}
+                            ref={(node) => {
+                                tabRefs.current[item.key] = node;
+                            }}
+                            type="button"
+                            role="tab"
+                            id={tabId(item.key)}
+                            aria-selected={active}
+                            aria-controls={panelId(item.key)}
+                            tabIndex={active ? 0 : -1}
+                            style={STYLES.tab(active)}
+                            onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', tab: item.key })}
+                            onKeyDown={(event) => handleTabKeyDown(event, index)}
+                        >
+                            {item.label}
+                        </button>
+                    );
+                })}
             </div>
 
             <div style={{ marginBottom: 12 }}>
@@ -849,7 +932,13 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
                 />
             </div>
 
-            <div style={STYLES.body}>
+            <div
+                style={STYLES.body}
+                role="tabpanel"
+                id={panelId(state.activeTab)}
+                aria-labelledby={tabId(state.activeTab)}
+                tabIndex={0}
+            >
                 {state.activeTab === INSTALLED_TAB && (
                     <InstalledTab
                         state={state}
