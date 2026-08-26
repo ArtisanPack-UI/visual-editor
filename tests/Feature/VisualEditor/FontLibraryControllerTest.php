@@ -28,6 +28,7 @@ use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Fixtures\Fonts\FontBinaryFactory;
 use Tests\Support\FontCapabilityUser;
+use Tests\Support\FontPermissionUser;
 use Tests\TestUser;
 
 beforeEach( function (): void {
@@ -105,6 +106,20 @@ function actingAsFontManager(): FontCapabilityUser
 	return $user;
 }
 
+function actingAsRbacFontManager(): FontPermissionUser
+{
+	$user                     = new FontPermissionUser();
+	$user->name               = 'RBAC Font Manager';
+	$user->email              = 'rbac-fonts+' . uniqid() . '@example.com';
+	$user->password           = bcrypt( 'secret' );
+	$user->grantedPermissions = [ 'manage_fonts' ];
+	$user->save();
+
+	test()->actingAs( $user );
+
+	return $user;
+}
+
 function actingAsFontBrowser(): TestUser
 {
 	$user = TestUser::create( [
@@ -165,6 +180,15 @@ describe( 'GET /visual-editor/api/fonts', function (): void {
 
 	it( 'flags the session writable for a user with the capability', function (): void {
 		actingAsFontManager();
+
+		$this->getJson( '/visual-editor/api/fonts' )
+			->assertOk()
+			->assertJsonPath( 'can_manage', true )
+			->assertJsonPath( 'read_only', false );
+	} );
+
+	it( 'flags the session writable for a cms-framework rbac user granted the permission', function (): void {
+		actingAsRbacFontManager();
 
 		$this->getJson( '/visual-editor/api/fonts' )
 			->assertOk()
