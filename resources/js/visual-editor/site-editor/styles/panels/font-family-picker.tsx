@@ -22,11 +22,12 @@
  * @since 1.7.0
  */
 
-import { SelectControl, TextControl } from '@wordpress/components';
+import { Button, SelectControl, TextControl } from '@wordpress/components';
 import { __ } from '@wordpress/i18n';
 import { useMemo } from 'react';
 
 import { TEXT_DOMAIN } from '../../../vendor/i18n';
+import { openFontLibrary } from '../../../fonts/font-library-ui-store';
 import {
     type FontFamilyOption,
     useInstalledFontOptions,
@@ -137,6 +138,23 @@ export function FontFamilyPicker(props: FontFamilyPickerProps): JSX.Element {
                     onChange={(next) => onChange(next)}
                 />
             ) : null}
+            {/*
+              #739: entry point to the Font Library modal. The picker is the
+              natural home — it's where a missing family is noticed — and the
+              single modal instance mounted at the site-editor root opens off
+              the shared `font-library-ui-store`, so every picker (global
+              styles + per-block / per-element) shares one control without
+              threading a callback through each panel. Browsing is ungated, so
+              the button is shown even to read-only users; the modal itself
+              disables its mutating controls.
+            */}
+            <Button
+                variant="link"
+                data-testid={`ap-site-editor-font-library-open-${testId}`}
+                onClick={openFontLibrary}
+            >
+                {__('Manage fonts…', TEXT_DOMAIN)}
+            </Button>
         </>
     );
 }

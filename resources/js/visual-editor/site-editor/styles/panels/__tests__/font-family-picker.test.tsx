@@ -12,6 +12,10 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+    getFontLibraryOpenSnapshot,
+    resetFontLibraryUiStore,
+} from '../../../../fonts/font-library-ui-store';
 import type { FontFamilyOption } from '../../../../fonts/installed-fonts-store';
 import {
     resetInstalledFontsStore,
@@ -25,6 +29,7 @@ const PRESET_OPTIONS: readonly FontFamilyOption[] = [
 
 beforeEach(() => {
     resetInstalledFontsStore();
+    resetFontLibraryUiStore();
 });
 
 afterEach(() => {
@@ -172,5 +177,29 @@ describe('FontFamilyPicker', () => {
         });
 
         expect(onChange).toHaveBeenCalledWith('');
+    });
+
+    it('renders a "Manage fonts…" trigger that opens the Font Library', () => {
+        // Seed the store so the mount effect's one-time load no-ops rather than
+        // firing an unmocked fetch that resolves after the test.
+        setInstalledFonts([]);
+
+        render(
+            <FontFamilyPicker
+                label="Font family"
+                value=""
+                presetOptions={PRESET_OPTIONS}
+                onChange={vi.fn()}
+                testId="font-family"
+            />
+        );
+
+        expect(getFontLibraryOpenSnapshot()).toBe(false);
+
+        fireEvent.click(
+            screen.getByTestId('ap-site-editor-font-library-open-font-family')
+        );
+
+        expect(getFontLibraryOpenSnapshot()).toBe(true);
     });
 });
