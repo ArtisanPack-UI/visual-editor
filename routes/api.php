@@ -334,6 +334,23 @@ Route::get( 'fonts/sources/{provider}/catalog', [ FontLibraryController::class, 
 	->where( 'provider', '[a-z][a-z0-9_-]*' )
 	->name( 'visual-editor.api.fonts.sources.catalog' );
 
+// #741 — Same-origin catalog preview. The stylesheet route emits an
+// `@font-face` for one representative face; the face route streams that
+// face's bytes through the app (reusing the provider's install-time
+// `fetchFace()`), so the modal never points a `<link>` at the provider CDN
+// and the preview stays CSP-clean.
+Route::get( 'fonts/sources/{provider}/preview/{slug}', [ FontLibraryController::class, 'previewStylesheet' ] )
+	->where( 'provider', '[a-z][a-z0-9_-]*' )
+	->where( 'slug', '[a-z0-9][a-z0-9-]*' )
+	->name( 'visual-editor.api.fonts.sources.preview' );
+
+Route::get( 'fonts/sources/{provider}/preview/{slug}/{weight}/{style}', [ FontLibraryController::class, 'previewFace' ] )
+	->where( 'provider', '[a-z][a-z0-9_-]*' )
+	->where( 'slug', '[a-z0-9][a-z0-9-]*' )
+	->where( 'weight', '[1-9][0-9]{2}' )
+	->where( 'style', 'normal|italic' )
+	->name( 'visual-editor.api.fonts.sources.preview-face' );
+
 Route::post( 'fonts', [ FontLibraryController::class, 'store' ] )
 	->name( 'visual-editor.api.fonts.store' );
 
