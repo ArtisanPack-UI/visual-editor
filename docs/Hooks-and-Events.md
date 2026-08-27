@@ -86,7 +86,7 @@ addFilter('ap.visualEditor.registerFontSources', function (FontSourceRegistry $r
 });
 ```
 
-The filter is layered over the registry with `extend()`, so it fires the first time the registry resolves — after every provider has booted, regardless of provider order. A non-registry return value is ignored. See [[Font Providers]] for the full contract.
+The filter is layered over the registry with `extend()`, so it fires the first time the registry resolves — after every provider has booted, regardless of provider order. A non-registry return value is ignored. See [[Font Providers]] for the full contract and a worked example, and [[Fonts]] for the user-facing Font Library.
 
 ---
 

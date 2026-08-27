@@ -4,7 +4,7 @@ Status: **v1.7.0** — Issue [#629](https://github.com/ArtisanPack-UI/visual-edi
 
 A **font provider** is a source the Font Library can browse and install fonts from — Google Fonts, Bunny Fonts, custom uploads, or any third-party catalog. Providers implement the [`FontProvider`](../src/Fonts/Contracts/FontProvider.php) contract and are collected in the [`FontSourceRegistry`](../src/Fonts/Registries/FontSourceRegistry.php). A package registers its own source through the `ap.visualEditor.registerFontSources` filter with no core changes.
 
-> This page documents the extensibility layer only (the contract, the registry, and the filter). Installation, storage, `fonts.css` generation, and the Font Library modal are covered in [[Fonts]] once those pieces land.
+> This page documents the extensibility layer only (the contract, the registry, and the filter). Installation, storage, `fonts.css` generation, self-hosting/GDPR behavior, and the Font Library modal are covered in [[Fonts]].
 
 ---
 
@@ -93,3 +93,100 @@ The filter is layered over the registry with `extend()`, so it fires the first t
 A non-`FontSourceRegistry` return value is ignored, so a misbehaving hook cannot break font sources.
 
 > **Hook naming.** The canonical hook name is camelCase (`ap.visualEditor.registerFontSources`), matching the ecosystem convention adopted in [v1.5.0 (#664)](Hooks-and-Events.md). See [[Hooks and Events]] for the full hook reference.
+
+---
+
+## Worked example: a self-hosted catalog provider
+
+A complete provider for a hosted catalog. It browses and resolves families over
+the provider's API and returns raw WOFF2 bytes from `fetchFace()` so the
+installer can self-host every face.
+
+```php
+<?php
+
+declare( strict_types=1 );
+
+namespace App\Fonts;
+
+use ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider;
+use Illuminate\Support\Facades\Http;
+
+class FontshareProvider implements FontProvider
+{
+    public function key(): string
+    {
+        return 'fontshare';
+    }
+
+    public function label(): string
+    {
+        return __( 'Fontshare' );
+    }
+
+    public function isSelfHostable(): bool
+    {
+        return true;
+    }
+
+    public function searchCatalog( string $query, int $page = 1 ): array
+    {
+        $response = Http::get( 'https://api.fontshare.example/catalog', [
+            'q'    => $query,
+            'page' => $page,
+        ] )->json();
+
+        return [
+            'families' => array_map( static fn ( array $family ): array => [
+                'slug'     => $family['id'],
+                'family'   => $family['name'],
+                'category' => $family['category'],
+            ], $response['results'] ),
+            'page'     => $page,
+            'has_more' => $response['has_next'] ?? false,
+        ];
+    }
+
+    public function getFamily( string $slug ): ?array
+    {
+        $family = Http::get( "https://api.fontshare.example/families/{$slug}" )->json();
+
+        if ( null === $family ) {
+            return null;
+        }
+
+        return [
+            'slug'        => $slug,
+            'family'      => $family['name'],
+            'is_variable' => $family['variable'] ?? false,
+            'faces'       => array_map( static fn ( array $face ): array => [
+                'weight' => (string) $face['weight'],
+                'style'  => $face['italic'] ? 'italic' : 'normal',
+            ], $family['faces'] ),
+        ];
+    }
+
+    public function fetchFace( string $slug, string $weight, string $style ): string
+    {
+        return Http::get( "https://cdn.fontshare.example/{$slug}/{$weight}-{$style}.woff2" )->body();
+    }
+}
+```
+
+Register it from a service provider's `boot()` exactly as shown above:
+
+```php
+use App\Fonts\FontshareProvider;
+use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
+
+addFilter( 'ap.visualEditor.registerFontSources', function ( FontSourceRegistry $registry ): FontSourceRegistry {
+    $registry->register( new FontshareProvider() );
+
+    return $registry;
+} );
+```
+
+Because the provider reports `isSelfHostable() === true`, the installer calls
+`fetchFace()` for each selected face, verifies the returned bytes, and writes
+them to the configured disk — so visitors are served the fonts from your own
+domain. See [[Fonts]] for the self-hosting and GDPR behavior end to end.
