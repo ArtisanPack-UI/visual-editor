@@ -6,9 +6,10 @@
  * `__experimentalLinkControl` in its inline popover, which has no seam
  * for adding a "pick a Dynamic Content field" step. Per the issue's
  * approach (a), this unregisters the built-in link format and re-registers
- * `core/link` with the same tag / attribute mapping — so existing `<a>`
- * content round-trips and the serialized output is unchanged — but with
- * an {@link DynamicLinkEdit} that swaps in {@link ArtisanPackLinkControl}.
+ * `core/link` — preserving the original settings (attribute mapping,
+ * `__unstablePasteRule` URL-paste-to-link behavior, title, tagName) and
+ * swapping only the `edit` component for {@link DynamicLinkEdit}, which
+ * uses {@link ArtisanPackLinkControl}.
  *
  * Registering under the same `core/link` name (rather than a new format
  * type) keeps every `allowedFormats: ['core/link']` list, the mod+k
@@ -38,26 +39,43 @@ let installed = false;
  * @since 1.7.0
  */
 export function registerDynamicLinkFormat(): void {
-    if ( installed ) {
+    if (installed) {
         return;
     }
     installed = true;
 
     // `getFormatType` (singular) isn't a public `@wordpress/rich-text`
     // export, so query the format store directly.
-    const selectors = select( richTextStore as never ) as unknown as {
-        getFormatType( name: string ): unknown;
+    const selectors = select(richTextStore as never) as unknown as {
+        getFormatType(name: string): Record<string, unknown> | undefined;
     };
 
-    if ( selectors.getFormatType( LINK_FORMAT_NAME ) ) {
-        unregisterFormatType( LINK_FORMAT_NAME );
+    const existing = selectors.getFormatType(LINK_FORMAT_NAME);
+
+    if (existing) {
+        unregisterFormatType(LINK_FORMAT_NAME);
     }
 
-    registerFormatType( LINK_FORMAT_NAME, {
-        title: __( 'Link', TEXT_DOMAIN ),
-        tagName: 'a',
-        className: null,
-        attributes: { ...LINK_ATTRIBUTES },
+    // Preserve the built-in format's settings and override only `edit`.
+    // This keeps the attribute mapping and, importantly, the
+    // `__unstablePasteRule` that turns a pasted URL into a link — dropping
+    // it would make pasting a URL over selected text insert plain text.
+    // Falls back to a hand-rolled settings object only if the core format
+    // wasn't registered (defensive: the editor bootstrap imports
+    // `@wordpress/format-library` first, so `existing` is normally set).
+    const base: Record<string, unknown> = existing
+        ? { ...existing }
+        : {
+              title: __('Link', TEXT_DOMAIN),
+              tagName: 'a',
+              className: null,
+              attributes: { ...LINK_ATTRIBUTES },
+          };
+    delete base.name;
+    delete base.edit;
+
+    registerFormatType(LINK_FORMAT_NAME, {
+        ...base,
         edit: DynamicLinkEdit,
-    } as unknown as Parameters< typeof registerFormatType >[ 1 ] );
+    } as unknown as Parameters<typeof registerFormatType>[1]);
 }
