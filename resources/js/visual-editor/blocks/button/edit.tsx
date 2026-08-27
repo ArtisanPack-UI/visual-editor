@@ -18,8 +18,6 @@ import {
     RichText,
     useBlockProps,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    __experimentalLinkControl as LinkControl,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     __experimentalUseBorderProps as useBorderProps,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     __experimentalUseColorProps as useColorProps,
@@ -40,6 +38,8 @@ import {
 import { useRef, useState } from '@wordpress/element';
 import { __ } from '@wordpress/i18n';
 import { link as linkIcon, linkOff as linkOffIcon } from '@wordpress/icons';
+
+import { ArtisanPackLinkControl } from '../../dynamic-content/link-control';
 
 import { getUpdatedLinkAttributes } from './get-updated-link-attributes';
 
@@ -177,8 +177,7 @@ export default function ButtonEdit({
                             focusOnMount={'firstElement' as unknown as boolean}
                             shift
                         >
-                            {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-                            <LinkControl
+                            <ArtisanPackLinkControl
                                 value={{
                                     url: url ?? '',
                                     opensInNewTab: openInNewTab,
