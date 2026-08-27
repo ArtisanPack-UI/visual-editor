@@ -22,7 +22,16 @@
 
 import { Button, Modal, Notice, SearchControl, Spinner } from '@wordpress/components';
 import { __, sprintf } from '@wordpress/i18n';
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState, type CSSProperties } from 'react';
+import {
+    useCallback,
+    useEffect,
+    useMemo,
+    useReducer,
+    useRef,
+    useState,
+    type CSSProperties,
+    type KeyboardEvent as ReactKeyboardEvent,
+} from 'react';
 
 import { TEXT_DOMAIN } from '../vendor/i18n';
 import {
@@ -67,6 +76,26 @@ const SEARCH_DEBOUNCE_MS = 300;
  * the upload form rather than a (permanently empty) catalog browse.
  */
 const CUSTOM_UPLOAD_PROVIDER = 'custom';
+
+/**
+ * The DOM id of a tab control for a given tab key, linked from its panel's
+ * `aria-labelledby`.
+ *
+ * @since 1.7.0
+ */
+function tabId(tab: string): string {
+    return `font-library-tab-${tab}`;
+}
+
+/**
+ * The DOM id of the panel a tab controls, linked from the tab's
+ * `aria-controls`.
+ *
+ * @since 1.7.0
+ */
+function panelId(tab: string): string {
+    return `font-library-panel-${tab}`;
+}
 
 const STYLES = {
     tabs: {
@@ -639,6 +668,57 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
 
     const isUploadTab = state.activeTab === CUSTOM_UPLOAD_PROVIDER;
 
+    // The tablist in render order: the synthetic Installed tab, then every
+    // registered source (providers plus the synthetic custom-upload source).
+    const tabItems = useMemo(
+        () => [
+            { key: INSTALLED_TAB, label: __('Installed', TEXT_DOMAIN) },
+            ...state.sources.map((source) => ({ key: source.key, label: source.label })),
+        ],
+        [state.sources]
+    );
+
+    // Live references to the tab buttons so arrow-key navigation can move focus
+    // to the newly selected tab (roving tabindex per the WAI-ARIA tabs pattern).
+    const tabRefs = useRef<Record<string, HTMLButtonElement | null>>({});
+
+    const activateTab = useCallback((tab: string) => {
+        dispatch({ type: 'SET_ACTIVE_TAB', tab });
+        tabRefs.current[tab]?.focus();
+    }, []);
+
+    // Automatic-activation arrow-key handling: Left selects the previous tab,
+    // Right the next (both wrap), and Home/End jump to the ends. The tablist is
+    // horizontal, so per the WAI-ARIA tabs pattern the vertical arrows are left
+    // unhandled — they stay available for native scrolling.
+    const handleTabKeyDown = useCallback(
+        (event: ReactKeyboardEvent<HTMLButtonElement>, index: number) => {
+            const count = tabItems.length;
+            let nextIndex: number | null = null;
+
+            switch (event.key) {
+                case 'ArrowRight':
+                    nextIndex = (index + 1) % count;
+                    break;
+                case 'ArrowLeft':
+                    nextIndex = (index - 1 + count) % count;
+                    break;
+                case 'Home':
+                    nextIndex = 0;
+                    break;
+                case 'End':
+                    nextIndex = count - 1;
+                    break;
+                default:
+                    return;
+            }
+
+            event.preventDefault();
+            activateTab(tabItems[nextIndex].key);
+        },
+        [tabItems, activateTab]
+    );
+
     // A browsable provider tab: a registered source that isn't the synthetic
     // custom-upload source (which has no catalog — it renders the upload form).
     const isProviderTab = useMemo(
@@ -782,6 +862,62 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
     const activeCatalog = state.catalogs[state.activeTab];
     const activeSource = state.sources.find((source) => source.key === state.activeTab);
 
+    // The body of whichever tab is active. Rendered only inside the active
+    // tabpanel; the other panels stay mounted but empty (see the tabpanel map)
+    // so provider catalogs are not built until their tab is opened.
+    const activePanelContent = (
+        <>
+            {state.activeTab === INSTALLED_TAB && (
+                <InstalledTab
+                    state={state}
+                    sampleText={sampleText}
+                    removalError={removalError}
+                    onToggle={(id) => dispatch({ type: 'TOGGLE_SELECT', id })}
+                    onSelectAll={() =>
+                        dispatch({
+                            type: 'SELECT_ALL',
+                            ids: state.installed.map((font) => font.id),
+                        })
+                    }
+                    onClearSelection={() => dispatch({ type: 'CLEAR_SELECTION' })}
+                    onUninstall={handleUninstall}
+                    onBulkUninstall={handleBulkUninstall}
+                />
+            )}
+
+            {isProviderTab && activeSource && (
+                <CatalogTab
+                    provider={activeSource.key}
+                    label={activeSource.label}
+                    selfHostable={activeSource.is_self_hostable}
+                    catalog={activeCatalog ?? emptyCatalog}
+                    state={state}
+                    sampleText={sampleText}
+                    onSearch={(query) => handleSearch(activeSource.key, query)}
+                    onLoadMore={() =>
+                        loadCatalog(
+                            activeSource.key,
+                            activeCatalog?.query ?? '',
+                            (activeCatalog?.page ?? 1) + 1
+                        )
+                    }
+                    onInstall={(family, variants) =>
+                        handleInstall(activeSource.key, family, variants)
+                    }
+                />
+            )}
+
+            {isUploadTab && (
+                <UploadTab
+                    readOnly={state.readOnly}
+                    uploading={uploading}
+                    error={uploadError}
+                    onUpload={handleUpload}
+                />
+            )}
+        </>
+    );
+
     return (
         <Modal
             title={__('Font Library', TEXT_DOMAIN)}
@@ -817,27 +953,29 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
             )}
 
             <div style={STYLES.tabs} role="tablist" aria-label={__('Font sources', TEXT_DOMAIN)}>
-                <button
-                    type="button"
-                    role="tab"
-                    aria-selected={state.activeTab === INSTALLED_TAB}
-                    style={STYLES.tab(state.activeTab === INSTALLED_TAB)}
-                    onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', tab: INSTALLED_TAB })}
-                >
-                    {__('Installed', TEXT_DOMAIN)}
-                </button>
-                {state.sources.map((source) => (
-                    <button
-                        key={source.key}
-                        type="button"
-                        role="tab"
-                        aria-selected={state.activeTab === source.key}
-                        style={STYLES.tab(state.activeTab === source.key)}
-                        onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', tab: source.key })}
-                    >
-                        {source.label}
-                    </button>
-                ))}
+                {tabItems.map((item, index) => {
+                    const active = state.activeTab === item.key;
+
+                    return (
+                        <button
+                            key={item.key}
+                            ref={(node) => {
+                                tabRefs.current[item.key] = node;
+                            }}
+                            type="button"
+                            role="tab"
+                            id={tabId(item.key)}
+                            aria-selected={active}
+                            aria-controls={panelId(item.key)}
+                            tabIndex={active ? 0 : -1}
+                            style={STYLES.tab(active)}
+                            onClick={() => dispatch({ type: 'SET_ACTIVE_TAB', tab: item.key })}
+                            onKeyDown={(event) => handleTabKeyDown(event, index)}
+                        >
+                            {item.label}
+                        </button>
+                    );
+                })}
             </div>
 
             <div style={{ marginBottom: 12 }}>
@@ -849,56 +987,29 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
                 />
             </div>
 
-            <div style={STYLES.body}>
-                {state.activeTab === INSTALLED_TAB && (
-                    <InstalledTab
-                        state={state}
-                        sampleText={sampleText}
-                        removalError={removalError}
-                        onToggle={(id) => dispatch({ type: 'TOGGLE_SELECT', id })}
-                        onSelectAll={() =>
-                            dispatch({
-                                type: 'SELECT_ALL',
-                                ids: state.installed.map((font) => font.id),
-                            })
-                        }
-                        onClearSelection={() => dispatch({ type: 'CLEAR_SELECTION' })}
-                        onUninstall={handleUninstall}
-                        onBulkUninstall={handleBulkUninstall}
-                    />
-                )}
+            {/* One tabpanel per tab so every tab's `aria-controls` resolves to
+                a mounted element. Only the active panel is shown; the rest are
+                hidden and empty so provider catalogs stay lazily rendered.
+                `display: none` (not just `hidden`) is required because
+                `STYLES.body`'s `display: flex` would otherwise override the
+                `hidden` attribute. */}
+            {tabItems.map((item) => {
+                const active = state.activeTab === item.key;
 
-                {isProviderTab && activeSource && (
-                    <CatalogTab
-                        provider={activeSource.key}
-                        label={activeSource.label}
-                        selfHostable={activeSource.is_self_hostable}
-                        catalog={activeCatalog ?? emptyCatalog}
-                        state={state}
-                        sampleText={sampleText}
-                        onSearch={(query) => handleSearch(activeSource.key, query)}
-                        onLoadMore={() =>
-                            loadCatalog(
-                                activeSource.key,
-                                activeCatalog?.query ?? '',
-                                (activeCatalog?.page ?? 1) + 1
-                            )
-                        }
-                        onInstall={(family, variants) =>
-                            handleInstall(activeSource.key, family, variants)
-                        }
-                    />
-                )}
-
-                {isUploadTab && (
-                    <UploadTab
-                        readOnly={state.readOnly}
-                        uploading={uploading}
-                        error={uploadError}
-                        onUpload={handleUpload}
-                    />
-                )}
-            </div>
+                return (
+                    <div
+                        key={item.key}
+                        role="tabpanel"
+                        id={panelId(item.key)}
+                        aria-labelledby={tabId(item.key)}
+                        tabIndex={0}
+                        hidden={!active}
+                        style={active ? STYLES.body : { display: 'none' }}
+                    >
+                        {active && activePanelContent}
+                    </div>
+                );
+            })}
 
             <div style={STYLES.actions}>
                 <Button variant="tertiary" onClick={onClose}>
