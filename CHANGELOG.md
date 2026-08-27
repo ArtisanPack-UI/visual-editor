@@ -6,6 +6,31 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **Font Library** (#627) — a site-editor front door to font management,
+  reachable from the **"Manage fonts…"** entry point on every Typography
+  control. The modal browses **Google Fonts** and **Bunny Fonts** through
+  keyless catalog endpoints, previews families same-origin, and installs the
+  weights and styles you choose. Admins can also upload their own `.woff2`,
+  `.woff`, `.ttf`, and `.otf` faces on the Custom Upload tab. Every installed
+  family becomes a font-family preset available in each picker, resolved
+  through a generated `fonts.css` on both the canvas and the public site.
+  Installs are **self-hosted by design**: face files are fetched server-side
+  once and served from your own domain, so visitors' browsers never connect to a
+  provider CDN — removing the third-party font requests that are a common GDPR
+  concern (self-hosting alone does not by itself make a site GDPR-compliant).
+  Third parties can add their own catalog by
+  implementing the `FontProvider` contract and registering it through the
+  `ap.visualEditor.registerFontSources` filter (#629); the REST surface (#634),
+  modal (#635), font-family picker (#636), and same-origin previews (#741)
+  round out the feature. New documentation: [Fonts](docs/fonts.md) (user guide,
+  including the self-hosting/GDPR notes), [Font Providers](docs/font-providers.md)
+  (developer guide with a worked example), plus the
+  `ap.visualEditor.registerFontSources` reference in
+  [Hooks and Events](docs/Hooks-and-Events.md) and a Font Library entry point
+  in [Site Editor](docs/site-editor.md).
+
 ### Changed
 
 - **The `post-comments-form` block fires `ap.cmsFramework.comments.form.action`**

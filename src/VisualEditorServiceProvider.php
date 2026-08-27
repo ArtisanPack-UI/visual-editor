@@ -24,6 +24,17 @@ use ArtisanPackUI\VisualEditor\SiteEditor\Gates\DenyByDefaultGate;
 use ArtisanPackUI\VisualEditor\SiteEditor\Gates\SiteEditorAccessGate;
 use ArtisanPackUI\VisualEditor\Models\VisualEditorPost;
 use ArtisanPackUI\VisualEditor\Policies\VisualEditorPostPolicy;
+use ArtisanPackUI\VisualEditor\Fonts\Models\Font;
+use ArtisanPackUI\VisualEditor\Fonts\Policies\FontPolicy;
+use ArtisanPackUI\VisualEditor\Fonts\Providers\BunnyFontsProvider;
+use ArtisanPackUI\VisualEditor\Fonts\Providers\CustomUploadProvider;
+use ArtisanPackUI\VisualEditor\Fonts\Providers\GoogleFontsProvider;
+use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
+use ArtisanPackUI\VisualEditor\Fonts\Services\FontFileWriter;
+use ArtisanPackUI\VisualEditor\Fonts\Services\FontInstaller;
+use ArtisanPackUI\VisualEditor\Fonts\Services\FontsCssGenerator;
+use ArtisanPackUI\VisualEditor\Fonts\Services\ThemeFontBundleResolver;
+use ArtisanPackUI\VisualEditor\Fonts\Support\FontStylesheetEnqueuer;
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
@@ -86,8 +97,10 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Contracts\Config\Repository as ConfigRepository;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\ServiceProvider;
+use Throwable;
 
 class VisualEditorServiceProvider extends ServiceProvider
 {
@@ -156,6 +169,51 @@ class VisualEditorServiceProvider extends ServiceProvider
 
 		$this->app->singleton( DynamicBlockRegistry::class, function () {
 			return new DynamicBlockRegistry();
+		} );
+
+		// #629 — Font Library source registry. Bound as a singleton so
+		// provider registrations persist for the process. Built-in
+		// providers are seeded and the
+		// `ap.visualEditor.registerFontSources` filter is layered in
+		// `boot()` via `applyFontSourcesFilter()`, so late-boot
+		// `addFilter` calls from any provider are visible regardless of
+		// provider order.
+		$this->app->singleton( FontSourceRegistry::class, function () {
+			return new FontSourceRegistry();
+		} );
+
+		// #632 — Font Library install/uninstall pipeline. The writer and
+		// generator read the `fonts.disk`/`path`/`css_path` config lazily
+		// (constructed with null args) so a test can fake the disk after
+		// the container resolves them. All three are stateless, so binding
+		// them as singletons is safe.
+		$this->app->singleton( FontFileWriter::class, function () {
+			return new FontFileWriter();
+		} );
+
+		$this->app->singleton( FontsCssGenerator::class, function () {
+			return new FontsCssGenerator();
+		} );
+
+		$this->app->singleton( FontInstaller::class, function ( $app ) {
+			return new FontInstaller(
+				$app->make( FontSourceRegistry::class ),
+				$app->make( FontFileWriter::class ),
+				$app->make( FontsCssGenerator::class ),
+			);
+		} );
+
+		$this->app->singleton( FontStylesheetEnqueuer::class, function ( $app ) {
+			return new FontStylesheetEnqueuer( $app->make( FontsCssGenerator::class ) );
+		} );
+
+		// #637 — applies a theme's declared font bundle on activation. Stateless
+		// aside from the installer + registry it drives, so a singleton is safe.
+		$this->app->singleton( ThemeFontBundleResolver::class, function ( $app ) {
+			return new ThemeFontBundleResolver(
+				$app->make( FontInstaller::class ),
+				$app->make( FontSourceRegistry::class ),
+			);
 		} );
 
 		// #688 — the server-side bridge from WP block markup to a
@@ -626,6 +684,164 @@ class VisualEditorServiceProvider extends ServiceProvider
 	}
 
 	/**
+	 * Layer the `ap.visualEditor.registerFontSources` filter over the
+	 * {@see FontSourceRegistry} singleton.
+	 *
+	 * Registered in `boot()` via {@see \Illuminate\Container\Container::extend()}
+	 * so the filter chain is complete by the time the registry is first
+	 * resolved — a package can register its own
+	 * {@see \ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider} from its
+	 * own `boot()` regardless of provider order. The filter receives the
+	 * registry instance and must return it; a non-registry return is ignored
+	 * so a misbehaving hook cannot break font sources.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function applyFontSourcesFilter(): void
+	{
+		if ( ! function_exists( 'applyFilters' ) ) {
+			return;
+		}
+
+		$this->app->extend(
+			FontSourceRegistry::class,
+			static function ( FontSourceRegistry $registry ): FontSourceRegistry {
+				$filtered = applyFilters( 'ap.visualEditor.registerFontSources', $registry );
+				return $filtered instanceof FontSourceRegistry ? $filtered : $registry;
+			},
+		);
+	}
+
+	/**
+	 * Register the first-party Font Library providers on the
+	 * `ap.visualEditor.registerFontSources` filter.
+	 *
+	 * Each provider is gated on its `fonts.providers.*.enabled` config flag so
+	 * a host can drop a source in one line; the callback runs at
+	 * registry-resolve time (behind {@see applyFontSourcesFilter()}), by which
+	 * point configuration is merged and the credential is readable. Gated on
+	 * `addFilter` so visual-editor stays bootable when `artisanpack-ui/hooks`
+	 * isn't on the classpath.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function registerBuiltInFontProviders(): void
+	{
+		if ( ! function_exists( 'addFilter' ) ) {
+			return;
+		}
+
+		addFilter(
+			'ap.visualEditor.registerFontSources',
+			static function ( FontSourceRegistry $registry ): FontSourceRegistry {
+				$google = config( 'artisanpack.visual-editor.fonts.providers.google', [] );
+
+				if ( true === ( $google['enabled'] ?? false ) ) {
+					$registry->register( new GoogleFontsProvider(
+						(string) ( $google['metadata_url'] ?? 'https://fonts.google.com/metadata/fonts' ),
+						(string) ( $google['css_url'] ?? 'https://fonts.googleapis.com/css2' ),
+						(string) ( $google['user_agent'] ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' ),
+						(int) ( $google['per_page'] ?? 24 ),
+						(int) ( $google['cache_ttl'] ?? 86400 ),
+						(int) ( $google['timeout'] ?? 10 ),
+						(string) ( $google['subset'] ?? 'latin' ),
+						(int) ( $google['max_bytes'] ?? 15_728_640 ),
+					) );
+				}
+
+				$bunny = config( 'artisanpack.visual-editor.fonts.providers.bunny', [] );
+
+				if ( true === ( $bunny['enabled'] ?? false ) ) {
+					$registry->register( new BunnyFontsProvider(
+						(string) ( $bunny['list_url'] ?? 'https://fonts.bunny.net/list' ),
+						(string) ( $bunny['css_url'] ?? 'https://fonts.bunny.net/css' ),
+						(string) ( $bunny['user_agent'] ?? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36' ),
+						(int) ( $bunny['per_page'] ?? 24 ),
+						(int) ( $bunny['cache_ttl'] ?? 86400 ),
+						(int) ( $bunny['timeout'] ?? 10 ),
+						(string) ( $bunny['subset'] ?? 'latin' ),
+						(int) ( $bunny['max_bytes'] ?? 15_728_640 ),
+					) );
+				}
+
+				$custom = config( 'artisanpack.visual-editor.fonts.providers.custom', [] );
+
+				if ( true === ( $custom['enabled'] ?? false ) ) {
+					$registry->register( new CustomUploadProvider() );
+				}
+
+				return $registry;
+			}
+		);
+	}
+
+	/**
+	 * Hook the generated `fonts.css` bundle onto cms-framework's front-end
+	 * theme stylesheet list.
+	 *
+	 * The filter fires per public request with the active theme's stylesheet
+	 * entries; {@see FontStylesheetEnqueuer::appendTo()} appends the bundle
+	 * when it has been generated and leaves the list untouched otherwise. No-op
+	 * when the hooks package isn't installed.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function registerFontStylesheetEnqueue(): void
+	{
+		if ( ! function_exists( 'addFilter' ) ) {
+			return;
+		}
+
+		addFilter(
+			'ap.themes.frontendStyles',
+			function ( $entries ) {
+				return $this->app->make( FontStylesheetEnqueuer::class )->appendTo( $entries );
+			}
+		);
+	}
+
+	/**
+	 * Resolve a theme's declared font bundle when cms-framework activates it.
+	 *
+	 * Listens on the `ap.cmsFramework.theme.activated` action, which fires with
+	 * the theme slug and its decoded `theme.json` manifest. The manifest's
+	 * top-level `fonts` block is handed to {@see ThemeFontBundleResolver}, which
+	 * links already-installed families into `ve_theme_font_bundles` and — only
+	 * when `fonts.bundles.auto_install` is enabled — fetches missing families
+	 * from their provider. Gated on `addAction` so visual-editor stays bootable
+	 * without `artisanpack-ui/hooks`, and wrapped so a resolver failure never
+	 * aborts the host's theme activation.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function registerThemeFontBundleResolver(): void
+	{
+		if ( ! function_exists( 'addAction' ) ) {
+			return;
+		}
+
+		addAction(
+			'ap.cmsFramework.theme.activated',
+			function ( string $slug, mixed $theme = [] ): void {
+				if ( ! is_array( $theme ) ) {
+					return;
+				}
+
+				$autoInstall = (bool) config( 'artisanpack.visual-editor.fonts.bundles.auto_install', false );
+
+				try {
+					$this->app->make( ThemeFontBundleResolver::class )->resolve( $slug, $theme, $autoInstall );
+				} catch ( Throwable $e ) {
+					Log::error( 'Failed to resolve theme font bundles on activation.', [
+						'theme'     => $slug,
+						'exception' => $e,
+					] );
+				}
+			}
+		);
+	}
+
+	/**
 	 * Perform post-registration booting of services.
 	 *
 	 * @since 1.0.0
@@ -664,6 +880,32 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//     filter chain).
 		$this->applyVisibilityRulesFilter();
 
+		// 1c. Layer the `ap.visualEditor.registerFontSources` filter
+		//     over the Font Library source registry via `extend()`, so
+		//     packages can register a `FontProvider` from their own
+		//     `boot()` regardless of provider order (#629).
+		$this->applyFontSourcesFilter();
+
+		// 1d. Seed the first-party Font Library providers onto the same
+		//     `ap.visualEditor.registerFontSources` filter so they layer
+		//     into the registry before third-party sources and honor the
+		//     per-provider `enabled` flag in config (#630).
+		$this->registerBuiltInFontProviders();
+
+		// 1e. Enqueue the generated `fonts.css` bundle on the public site
+		//     via cms-framework's `ap.themes.frontendStyles` filter so
+		//     installed fonts self-host and render on the front-end (#632).
+		//     The editor canvas iframe pulls the same `@font-face` rules
+		//     through the `/global-styles/css` endpoint instead.
+		$this->registerFontStylesheetEnqueue();
+
+		// 1f. Apply a theme's declared font bundle when cms-framework
+		//     activates it, listening on `ap.cmsFramework.theme.activated`
+		//     (#637). Present families are linked and the theme's bundle rows
+		//     recorded; missing families are only fetched when the
+		//     `fonts.bundles.auto_install` toggle opts into the network call.
+		$this->registerThemeFontBundleResolver();
+
 		// 2. Load package views, routes, and migrations.
 		$this->loadViewsFrom( __DIR__ . '/../resources/views', 'visual-editor' );
 		$this->loadRoutesFrom( __DIR__ . '/../routes/web.php' );
@@ -674,6 +916,12 @@ class VisualEditorServiceProvider extends ServiceProvider
 		$this->registerAiLivewireComponents();
 
 		Gate::policy( VisualEditorPost::class, VisualEditorPostPolicy::class );
+
+		// #634 — gate the Font Library's mutating actions behind the
+		// `manage_fonts` capability, grantable independently of the site
+		// editor. The policy degrades to a plain denial on host user models
+		// without an RBAC `hasCapability()` method.
+		Gate::policy( Font::class, FontPolicy::class );
 
 		// 3. Register all artisanpack/* blocks from their block.json manifests.
 		$this->registerForkedBlocks();

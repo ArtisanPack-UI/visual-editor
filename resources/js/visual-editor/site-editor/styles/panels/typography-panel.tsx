@@ -22,6 +22,7 @@ import { useMemo } from 'react';
 import { TEXT_DOMAIN } from '../../../vendor/i18n';
 import type { ValidationErrors } from '../../api-client';
 import type { UseGlobalStylesEditorResult } from '../use-global-styles-editor';
+import { FontFamilyPicker } from './font-family-picker';
 import { StyleControlRow, StylePanelSection } from './panel-controls';
 import { useStylePresets } from './use-preset-data';
 
@@ -68,22 +69,6 @@ export function TypographyPanel(props: TypographyPanelProps): JSX.Element {
     );
 
     const fontFamilyValue = stringOrEmpty(editor.readValue(FONT_FAMILY_PATH));
-    const fontFamilyOptions = useMemo(
-        () => [
-            ...presets.fontFamilies.map((preset) => ({
-                value: preset.value,
-                label: preset.label,
-            })),
-            { value: CUSTOM_SENTINEL, label: __('Custom…', TEXT_DOMAIN) },
-        ],
-        [presets.fontFamilies]
-    );
-    const fontFamilyMatches = presets.fontFamilies.some(
-        (preset) => preset.value === fontFamilyValue
-    );
-    const fontFamilySelectValue = fontFamilyMatches
-        ? fontFamilyValue
-        : CUSTOM_SENTINEL;
 
     const fontSizeValue = stringOrEmpty(editor.readValue(FONT_SIZE_PATH));
     const fontSizeOptions = useMemo(
@@ -125,40 +110,15 @@ export function TypographyPanel(props: TypographyPanelProps): JSX.Element {
                 )}
                 error={errorFor(validationErrors, FONT_FAMILY_PATH)}
             >
-                <SelectControl
+                <FontFamilyPicker
                     label={__('Font family', TEXT_DOMAIN)}
-                    value={fontFamilySelectValue}
-                    options={fontFamilyOptions}
-                    data-testid="ap-site-editor-style-field-select-font-family"
-                    __nextHasNoMarginBottom={true}
-                    __next40pxDefaultSize={true}
-                    onChange={(next) => {
-                        if (next === CUSTOM_SENTINEL) {
-                            // Clear the value so `fontFamilyMatches` flips
-                            // to false and the Custom input renders —
-                            // otherwise re-writing the current preset value
-                            // would snap the select straight back.
-                            editor.setValue(FONT_FAMILY_PATH, '');
-                            return;
-                        }
-
-                        editor.setValue(FONT_FAMILY_PATH, next);
-                    }}
+                    value={fontFamilyValue}
+                    presetOptions={presets.fontFamilies}
+                    onChange={(next) =>
+                        editor.setValue(FONT_FAMILY_PATH, next)
+                    }
+                    testId="font-family"
                 />
-                {fontFamilySelectValue === CUSTOM_SENTINEL ? (
-                    <TextControl
-                        label={__('Custom font family', TEXT_DOMAIN)}
-                        hideLabelFromVision={true}
-                        value={fontFamilyValue}
-                        placeholder="system-ui, sans-serif"
-                        data-testid="ap-site-editor-style-field-custom-font-family"
-                        __nextHasNoMarginBottom={true}
-                        __next40pxDefaultSize={true}
-                        onChange={(next) =>
-                            editor.setValue(FONT_FAMILY_PATH, next)
-                        }
-                    />
-                ) : null}
             </StyleControlRow>
 
             <StyleControlRow
