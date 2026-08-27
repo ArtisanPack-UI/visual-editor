@@ -172,6 +172,20 @@ it( 'fetches the latin woff2 bytes and requests the right face', function () {
 	Http::assertSent( fn ( $request ) => $request->url() === 'https://fonts.gstatic.com/s/roboto/v51/roboto-700-latin.woff2' );
 } );
 
+it( 'aborts a download whose body exceeds the configured size cap', function () {
+	Http::fake( [
+		'fonts.google.com/metadata/*' => Http::response( googleMetadataFixture(), 200 ),
+		'fonts.googleapis.com/css2*'  => Http::response( googleCss2Fixture(), 200 ),
+		// A signature-valid but oversized body — a compromised/MITM'd CDN body.
+		'fonts.gstatic.com/*'         => Http::response( 'wOF2' . str_repeat( 'x', 200_000 ), 200 ),
+	] );
+
+	$provider = new GoogleFontsProvider( maxBytes: 65_536 );
+
+	expect( fn () => $provider->fetchFace( 'roboto', '700', 'normal' ) )
+		->toThrow( FontProviderException::class, 'exceeded the maximum allowed size' );
+} );
+
 it( 'sends a browser user-agent so Google serves woff2', function () {
 	fakeGoogleFonts();
 

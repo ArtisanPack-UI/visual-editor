@@ -231,6 +231,19 @@ class FontInstaller
 				$isNew = ! $this->fileWriter->exists( $path );
 
 				$bytes = $provider->fetchFace( $slug, (string) $weight, $style );
+
+				// A registered provider is untrusted once a third party supplies
+				// one, so gate the fetched bytes with the same font magic-byte
+				// check the upload path applies before self-hosting the file.
+				if ( ! $this->isFontSignature( $bytes ) ) {
+					throw new FontInstallationException( sprintf(
+						'The face fetched for "%s" (%d %s) is not a recognized font file.',
+						$slug,
+						$weight,
+						$style
+					) );
+				}
+
 				$this->fileWriter->write( $providerKey, $slug, $weight, $style, 'woff2', $bytes );
 
 				if ( $isNew ) {
@@ -524,9 +537,16 @@ class FontInstaller
 	{
 		$filesByDisk = $this->faceFilesByDisk( $font->faces );
 
-		DB::transaction( static function () use ( $font ): void {
-			$font->delete();
-		} );
+		// Serialize against a concurrent install of the same family so an
+		// uninstall cannot delete face files mid-write (same lock install holds).
+		Cache::lock( $this->installLockKey( (string) $font->provider, (string) $font->slug ), 30 )->block(
+			15,
+			static function () use ( $font ): void {
+				DB::transaction( static function () use ( $font ): void {
+					$font->delete();
+				} );
+			}
+		);
 
 		// Regenerate before removing files so the bundle already reflects the
 		// removal even if file cleanup fails; a failed delete then leaves only

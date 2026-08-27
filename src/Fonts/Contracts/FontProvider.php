@@ -103,7 +103,11 @@ interface FontProvider
 	 * Fetch the raw font-file bytes for a single face.
 	 *
 	 * The installer writes the returned bytes to the configured disk. Only
-	 * called for providers where {@see isSelfHostable()} is `true`.
+	 * called for providers where {@see isSelfHostable()} is `true`, and only for
+	 * a `$slug` that {@see getFamily()} resolves — a self-hostable provider with
+	 * no browsable catalog (one whose {@see getFamily()} always returns `null`,
+	 * such as the custom-upload source) is therefore never reached here through
+	 * the install or preview flow and may throw for any slug.
 	 *
 	 * @since 1.7.0
 	 *

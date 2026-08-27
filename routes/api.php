@@ -330,8 +330,12 @@ Route::get( 'fonts', [ FontLibraryController::class, 'index' ] )
 Route::get( 'fonts/sources', [ FontLibraryController::class, 'sources' ] )
 	->name( 'visual-editor.api.fonts.sources.index' );
 
+// Catalog and preview reads reach out to the provider CDN on a cache miss, so
+// they are throttled to keep any authenticated user from turning the app into a
+// request amplifier; the mutating actions below carry a tighter limit.
 Route::get( 'fonts/sources/{provider}/catalog', [ FontLibraryController::class, 'catalog' ] )
 	->where( 'provider', '[a-z][a-z0-9_-]*' )
+	->middleware( 'throttle:120,1' )
 	->name( 'visual-editor.api.fonts.sources.catalog' );
 
 // #741 — Same-origin catalog preview. The stylesheet route emits an
@@ -342,26 +346,32 @@ Route::get( 'fonts/sources/{provider}/catalog', [ FontLibraryController::class, 
 Route::get( 'fonts/sources/{provider}/preview/{slug}', [ FontLibraryController::class, 'previewStylesheet' ] )
 	->where( 'provider', '[a-z][a-z0-9_-]*' )
 	->where( 'slug', '[a-z0-9][a-z0-9-]*' )
+	->middleware( 'throttle:120,1' )
 	->name( 'visual-editor.api.fonts.sources.preview' );
 
 Route::get( 'fonts/sources/{provider}/preview/{slug}/{weight}/{style}', [ FontLibraryController::class, 'previewFace' ] )
 	->where( 'provider', '[a-z][a-z0-9_-]*' )
 	->where( 'slug', '[a-z0-9][a-z0-9-]*' )
-	->where( 'weight', '[1-9][0-9]{2}' )
+	->where( 'weight', '[1-9][0-9]{0,3}' )
 	->where( 'style', 'normal|italic' )
+	->middleware( 'throttle:120,1' )
 	->name( 'visual-editor.api.fonts.sources.preview-face' );
 
 Route::post( 'fonts', [ FontLibraryController::class, 'store' ] )
+	->middleware( 'throttle:30,1' )
 	->name( 'visual-editor.api.fonts.store' );
 
 Route::post( 'fonts/upload', [ FontLibraryController::class, 'upload' ] )
+	->middleware( 'throttle:30,1' )
 	->name( 'visual-editor.api.fonts.upload' );
 
 Route::post( 'fonts/bulk-uninstall', [ FontLibraryController::class, 'bulkUninstall' ] )
+	->middleware( 'throttle:30,1' )
 	->name( 'visual-editor.api.fonts.bulk-uninstall' );
 
 Route::delete( 'fonts/{font}', [ FontLibraryController::class, 'destroy' ] )
 	->whereNumber( 'font' )
+	->middleware( 'throttle:30,1' )
 	->name( 'visual-editor.api.fonts.destroy' );
 
 // G3 cms-framework Post + Page entity adapters — see plan 12 §4.4.

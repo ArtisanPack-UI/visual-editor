@@ -344,6 +344,22 @@ describe( 'POST /visual-editor/api/fonts', function (): void {
 			->assertJsonValidationErrors( [ 'faces' ] );
 	} );
 
+	it( 'rejects an unauthorized install before validating the payload', function (): void {
+		actingAsFontBrowser();
+		registerFakeFontProvider();
+
+		// An invalid payload from a user without the capability must return the
+		// shaped 403 (authorization runs before validation), not a 422.
+		$this->postJson( '/visual-editor/api/fonts', [
+			'provider' => 'fake',
+			'slug'     => 'roboto',
+			'faces'    => [],
+		] )
+			->assertForbidden()
+			->assertJsonPath( 'error', 'forbidden' )
+			->assertJsonPath( 'read_only', true );
+	} );
+
 	it( 'returns 404 for an unregistered provider', function (): void {
 		actingAsFontManager();
 
@@ -393,6 +409,23 @@ describe( 'POST /visual-editor/api/fonts/upload', function (): void {
 		expect( Font::query()->count() )->toBe( 0 );
 
 		@unlink( $path );
+	} );
+
+	it( 'rejects an unauthorized upload before validating the multipart body', function (): void {
+		actingAsFontBrowser();
+
+		// A user without the capability sending an empty (invalid) body must get
+		// the shaped 403 before the file rules run, so a hostile large multipart
+		// upload is never materialised and validated for an unauthorized caller.
+		$this->postJson( '/visual-editor/api/fonts/upload', [
+			'family' => '',
+			'faces'  => [],
+		] )
+			->assertForbidden()
+			->assertJsonPath( 'error', 'forbidden' )
+			->assertJsonPath( 'read_only', true );
+
+		expect( Font::query()->count() )->toBe( 0 );
 	} );
 } );
 

@@ -30,6 +30,11 @@ const PRESET_OPTIONS: readonly FontFamilyOption[] = [
 beforeEach(() => {
     resetInstalledFontsStore();
     resetFontLibraryUiStore();
+    // Mark the installed-fonts store loaded (empty) so the picker's mount-time
+    // one-time load no-ops instead of firing an unmocked fetch that resolves
+    // after the test and triggers an act(...) warning. Tests needing installed
+    // fonts call setInstalledFonts() with data, overriding this.
+    setInstalledFonts([]);
 });
 
 afterEach(() => {
@@ -180,10 +185,6 @@ describe('FontFamilyPicker', () => {
     });
 
     it('renders a "Manage fonts…" trigger that opens the Font Library', () => {
-        // Seed the store so the mount effect's one-time load no-ops rather than
-        // firing an unmocked fetch that resolves after the test.
-        setInstalledFonts([]);
-
         render(
             <FontFamilyPicker
                 label="Font family"

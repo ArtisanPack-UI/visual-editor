@@ -78,6 +78,10 @@ function fakeInstallerFontProvider( array $options = [] ): FontProvider
 				throw new FontProviderException( 'Simulated fetch failure.' );
 			}
 
+			if ( true === ( $this->options['badBytes'] ?? false ) ) {
+				return '<html>not a font</html>';
+			}
+
 			return 'wOF2' . $weight . $style;
 		}
 	};
@@ -168,6 +172,21 @@ it( 'rolls back files and rows when a face fetch fails midway', function (): voi
 		->and( FontFace::query()->count() )->toBe( 0 );
 
 	// The 400 face was written before the 700 fetch failed; rollback removes it.
+	Storage::disk( 'public' )->assertMissing( 'visual-editor/fonts/fake/inter/400-normal.woff2' );
+} );
+
+it( 'rejects catalog bytes that are not a recognized font file', function (): void {
+	// A registered provider is untrusted once a third party supplies one; bytes
+	// without a font magic-byte header must be refused before self-hosting them.
+	app( FontSourceRegistry::class )->register( fakeInstallerFontProvider( [ 'key' => 'fake', 'badBytes' => true ] ) );
+
+	expect( fn () => app( FontInstaller::class )->install( 'fake', 'inter', [
+		[ 'weight' => 400, 'style' => 'normal' ],
+	] ) )->toThrow( FontInstallationException::class );
+
+	expect( Font::query()->count() )->toBe( 0 )
+		->and( FontFace::query()->count() )->toBe( 0 );
+
 	Storage::disk( 'public' )->assertMissing( 'visual-editor/fonts/fake/inter/400-normal.woff2' );
 } );
 

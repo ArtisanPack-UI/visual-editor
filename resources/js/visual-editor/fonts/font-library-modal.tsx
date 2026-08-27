@@ -592,6 +592,9 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
     const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
     // Monotonic counter tagging each catalog request so stale responses lose.
     const catalogReqId = useRef(0);
+    // Aborts the in-flight catalog request when a newer one supersedes it or the
+    // modal closes, so rapid typing/paging leaves no dangling network requests.
+    const catalogAbort = useRef<AbortController | null>(null);
 
     // Load the installed list and provider list when the modal opens.
     useEffect(() => {
@@ -600,9 +603,10 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
         }
 
         let cancelled = false;
+        const controller = new AbortController();
 
         dispatch({ type: 'INSTALLED_LOADING' });
-        fetchInstalledFonts()
+        fetchInstalledFonts(controller.signal)
             .then((result) => {
                 if (cancelled) return;
                 dispatch({
@@ -612,11 +616,13 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
                 });
             })
             .catch((error: FontLibraryApiError) => {
-                if (!cancelled) dispatch({ type: 'INSTALLED_ERROR', message: error.message });
+                if (!cancelled && error.code !== 'aborted') {
+                    dispatch({ type: 'INSTALLED_ERROR', message: error.message });
+                }
             });
 
         dispatch({ type: 'SOURCES_LOADING' });
-        fetchSources()
+        fetchSources(controller.signal)
             .then((result) => {
                 if (cancelled) return;
                 dispatch({
@@ -626,20 +632,31 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
                 });
             })
             .catch((error: FontLibraryApiError) => {
-                if (!cancelled) dispatch({ type: 'SOURCES_ERROR', message: error.message });
+                if (!cancelled && error.code !== 'aborted') {
+                    dispatch({ type: 'SOURCES_ERROR', message: error.message });
+                }
             });
 
         return () => {
             cancelled = true;
+            controller.abort();
         };
     }, [isOpen]);
+
+    // Abort any in-flight catalog request when the modal unmounts.
+    useEffect(() => () => catalogAbort.current?.abort(), []);
 
     // Issue the fetch for an already-dispatched CATALOG_REQUEST, tagging the
     // response with the request id so the reducer can drop it if a newer
     // request has since superseded it.
     const runCatalog = useCallback(
         (provider: string, query: string, page: number, requestId: number) => {
-            fetchCatalog(provider, query, page)
+            // Cancel the previous catalog request before issuing the next one.
+            catalogAbort.current?.abort();
+            const controller = new AbortController();
+            catalogAbort.current = controller;
+
+            fetchCatalog(provider, query, page, controller.signal)
                 .then((result) => {
                     dispatch({
                         type: 'CATALOG_SUCCESS',
@@ -651,6 +668,11 @@ export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalPr
                     });
                 })
                 .catch((error: FontLibraryApiError) => {
+                    // A superseded/aborted request is not a failure to surface.
+                    if (error.code === 'aborted') {
+                        return;
+                    }
+
                     dispatch({ type: 'CATALOG_FAILURE', provider, message: error.message, requestId });
                 });
         },

@@ -169,7 +169,7 @@ describe('FontLibraryModal', () => {
         fireEvent.click(await screen.findByRole('tab', { name: 'Google Fonts' }));
 
         expect(await screen.findByText('Roboto')).toBeInTheDocument();
-        expect(api.fetchCatalog).toHaveBeenCalledWith('google', '', 1);
+        expect(api.fetchCatalog).toHaveBeenCalledWith('google', '', 1, expect.any(AbortSignal));
     });
 
     it('shows the GDPR self-hosting notice on a provider tab', async () => {
@@ -190,7 +190,7 @@ describe('FontLibraryModal', () => {
         });
 
         await waitFor(() =>
-            expect(api.fetchCatalog).toHaveBeenCalledWith('google', 'robo', 1)
+            expect(api.fetchCatalog).toHaveBeenCalledWith('google', 'robo', 1, expect.any(AbortSignal))
         );
     });
 

@@ -269,12 +269,34 @@ class FontsCssGenerator
 	protected function faceUrl( FontFace $face ): string
 	{
 		try {
-			return Storage::disk( $face->disk )->url( $face->path );
+			$url = Storage::disk( $face->disk )->url( $face->path );
 		} catch ( Throwable ) {
 			// A disk with no configured URL still yields a usable root-relative
 			// path so the bundle references a stable location.
-			return '/' . ltrim( $face->path, '/' );
+			$url = '/' . ltrim( $face->path, '/' );
 		}
+
+		return $this->escapeUrl( $url );
+	}
+
+	/**
+	 * Escape a URL for the `url("…")` string context so it cannot break out of
+	 * the quoted token and inject trailing CSS.
+	 *
+	 * The `path` is `Str::slug`-derived and the disk base URL is trusted config,
+	 * so nothing hostile reaches here today; escaping makes that guarantee local
+	 * to the generator rather than dependent on those upstream invariants, the
+	 * same way {@see quoteFamily()} does for the family name it sits beside.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function escapeUrl( string $url ): string
+	{
+		// Drop control characters (newlines terminate the string token) and the
+		// `"`, `)`, and `\` that stay meaningful inside `url("…")`.
+		$url = preg_replace( '/[\x00-\x1F\x7F-\x9F"\\\\)]/u', '', $url ) ?? '';
+
+		return $url;
 	}
 
 	/**
@@ -306,6 +328,10 @@ class FontsCssGenerator
 	 */
 	protected function quoteFamily( string $family ): string
 	{
+		// Scrub invalid UTF-8 first: the `/u` pattern below returns null on a
+		// malformed byte sequence, which would otherwise blank the whole family
+		// name and leave the face unreferenceable.
+		$family = mb_scrub( $family, 'UTF-8' );
 		$family = preg_replace( '/[\x00-\x1F\x7F-\x9F<>]/u', '', $family ) ?? '';
 		$family = str_replace( [ '\\', '"' ], [ '\\\\', '\\"' ], $family );
 
@@ -319,7 +345,11 @@ class FontsCssGenerator
 	 */
 	protected function cssFormat( string $format ): string
 	{
-		return 'ttf' === strtolower( $format ) ? 'truetype' : strtolower( $format );
+		return match ( strtolower( $format ) ) {
+			'ttf'   => 'truetype',
+			'otf'   => 'opentype',
+			default => strtolower( $format ),
+		};
 	}
 
 	/**
@@ -330,17 +360,5 @@ class FontsCssGenerator
 	protected function presetSlug( string $slug ): string
 	{
 		return Str::slug( $slug );
-	}
-
-	/**
-	 * Render a numeric axis bound without a trailing `.0`.
-	 *
-	 * @since 1.7.0
-	 */
-	protected function trimNumber( mixed $value ): string
-	{
-		$float = (float) $value;
-
-		return rtrim( rtrim( sprintf( '%.3f', $float ), '0' ), '.' );
 	}
 }

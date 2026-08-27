@@ -206,7 +206,10 @@ export function fontLibraryReducer(
                     [action.provider]: {
                         ...previous,
                         query: action.query,
-                        page: action.page,
+                        // `page` is committed only on CATALOG_SUCCESS, so it
+                        // always reflects the last page actually loaded. A failed
+                        // "load more" therefore doesn't advance the counter and
+                        // make the retry skip the page it never got.
                         status: 'loading',
                         error: null,
                         requestId: action.requestId,

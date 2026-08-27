@@ -38,6 +38,7 @@ namespace ArtisanPackUI\VisualEditor\Fonts\Services;
 use ArtisanPackUI\VisualEditor\Fonts\Models\Font;
 use ArtisanPackUI\VisualEditor\Fonts\Models\ThemeFontBundle;
 use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Throwable;
@@ -152,16 +153,18 @@ class ThemeFontBundleResolver
 			return $result;
 		}
 
-		// Re-sync from the manifest: drop this theme's existing bundle rows so a
-		// removed declaration does not linger. The cascade runs font → bundle,
-		// so this never deletes a library Font other themes still reference.
-		ThemeFontBundle::query()->where( 'theme_slug', $themeSlug )->delete();
+		// First resolve every declaration to a library Font — linking an existing
+		// one or installing a missing one — without touching bundle rows, so the
+		// slow network installs run outside the bundle-rewrite transaction below.
+		//
+		// @var array<int, array{font: Font, faces: array<int, array<string, mixed>>}> $pending
+		$pending = [];
 
 		foreach ( $declarations as $declaration ) {
 			$font = $this->findLibraryFont( $declaration );
 
 			if ( null !== $font ) {
-				$this->persistBundle( $themeSlug, $font, $declaration['faces'] );
+				$pending[]          = [ 'font' => $font, 'faces' => $declaration['faces'] ];
 				$result['linked'][] = $declaration;
 				continue;
 			}
@@ -189,9 +192,22 @@ class ThemeFontBundleResolver
 				continue;
 			}
 
-			$this->persistBundle( $themeSlug, $font, $declaration['faces'] );
+			$pending[]             = [ 'font' => $font, 'faces' => $declaration['faces'] ];
 			$result['installed'][] = $declaration;
 		}
+
+		// Re-sync the bundle atomically: drop this theme's existing rows and
+		// rebuild them in a single transaction so a mid-rewrite failure can never
+		// leave a partial or empty bundle committed. The cascade runs
+		// font → bundle, so the delete never removes a library Font other themes
+		// still reference.
+		DB::transaction( function () use ( $themeSlug, $pending ): void {
+			ThemeFontBundle::query()->where( 'theme_slug', $themeSlug )->delete();
+
+			foreach ( $pending as $entry ) {
+				$this->persistBundle( $themeSlug, $entry['font'], $entry['faces'] );
+			}
+		} );
 
 		return $result;
 	}
@@ -315,11 +331,17 @@ class ThemeFontBundleResolver
 				continue;
 			}
 
+			// Clamp to the CSS weight range the install path enforces (1–1000).
+			// A malformed or adversarial manifest weight (e.g. 100000, or a
+			// negative) would otherwise flow into the `unsignedSmallInteger`
+			// weight column and fail the insert on strict drivers.
+			$weight = max( 1, min( 1000, (int) $face['weight'] ) );
+
 			$style = strtolower( trim( (string) ( $face['style'] ?? 'normal' ) ) );
 			$style = 'italic' === $style ? 'italic' : 'normal';
 
-			$normalized[ ( (int) $face['weight'] ) . ':' . $style ] = [
-				'weight' => (int) $face['weight'],
+			$normalized[ $weight . ':' . $style ] = [
+				'weight' => $weight,
 				'style'  => $style,
 			];
 		}

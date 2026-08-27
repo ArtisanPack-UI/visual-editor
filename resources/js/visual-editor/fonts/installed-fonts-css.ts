@@ -88,15 +88,42 @@ function escapeUrl(url: string): string {
 }
 
 /**
- * Normalize a stored file format into a CSS `format()` token, matching
- * `FontsCssGenerator::cssFormat()`.
+ * Web-font container extensions mapped to their CSS `format()` token, matching
+ * `FontsCssGenerator::cssFormat()` and the `font-preview` renderer. A stored
+ * format outside this set yields no token so an unexpected value can never be
+ * interpolated into the injected `<style>`.
  *
  * @since 1.7.0
  */
-function cssFormat(format: string): string {
-    const lower = format.toLowerCase();
+const FORMAT_BY_EXTENSION: Record<string, string> = {
+    woff2: 'woff2',
+    woff: 'woff',
+    ttf: 'truetype',
+    otf: 'opentype',
+};
 
-    return lower === 'ttf' ? 'truetype' : lower;
+/**
+ * Normalize a stored file format into a whitelisted CSS `format()` token, or
+ * `null` when it is not a recognized web-font container.
+ *
+ * @since 1.7.0
+ */
+function cssFormat(format: string): string | null {
+    return FORMAT_BY_EXTENSION[format.toLowerCase()] ?? null;
+}
+
+/**
+ * Constrain a face weight to the CSS weight range (1–1000), matching the
+ * install path, rather than interpolating whatever the JSON carried.
+ *
+ * @since 1.7.0
+ */
+function cssWeight(weight: number): number {
+    if (!Number.isFinite(weight)) {
+        return 400;
+    }
+
+    return Math.min(1000, Math.max(1, Math.trunc(weight)));
 }
 
 /**
@@ -120,16 +147,17 @@ export function buildInstalledFontFacesCss(
             }
 
             const safeUrl = escapeUrl(face.url);
+            const format = face.format !== null ? cssFormat(face.format) : null;
             const src =
-                face.format !== null
-                    ? `src: url("${safeUrl}") format("${cssFormat(face.format)}");`
+                format !== null
+                    ? `src: url("${safeUrl}") format("${format}");`
                     : `src: url("${safeUrl}");`;
 
             faceRules.push(
                 `@font-face {\n` +
                     `\tfont-family: ${quoteFamily(font.family)};\n` +
                     `\tfont-style: ${face.style === 'italic' ? 'italic' : 'normal'};\n` +
-                    `\tfont-weight: ${face.weight};\n` +
+                    `\tfont-weight: ${cssWeight(face.weight)};\n` +
                     `\tfont-display: swap;\n` +
                     `\t${src}\n` +
                     `}`

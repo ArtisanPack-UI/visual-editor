@@ -687,6 +687,7 @@ return [
 				'per_page'     => 24,
 				'cache_ttl'    => 86400,
 				'timeout'      => 10,
+				'max_bytes'    => 15_728_640,
 			],
 			'bunny' => [
 				'enabled'    => true,
@@ -697,6 +698,7 @@ return [
 				'per_page'   => 24,
 				'cache_ttl'  => 86400,
 				'timeout'    => 10,
+				'max_bytes'  => 15_728_640,
 			],
 
 			/*

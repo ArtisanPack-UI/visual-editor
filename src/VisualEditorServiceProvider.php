@@ -745,6 +745,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 						(int) ( $google['cache_ttl'] ?? 86400 ),
 						(int) ( $google['timeout'] ?? 10 ),
 						(string) ( $google['subset'] ?? 'latin' ),
+						(int) ( $google['max_bytes'] ?? 15_728_640 ),
 					) );
 				}
 
@@ -759,6 +760,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 						(int) ( $bunny['cache_ttl'] ?? 86400 ),
 						(int) ( $bunny['timeout'] ?? 10 ),
 						(string) ( $bunny['subset'] ?? 'latin' ),
+						(int) ( $bunny['max_bytes'] ?? 15_728_640 ),
 					) );
 				}
 

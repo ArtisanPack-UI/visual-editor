@@ -48,6 +48,15 @@ const FORMAT_BY_EXTENSION: Record<string, string> = {
 };
 
 /**
+ * Stable empty-faces default so the `@font-face` effect's dependency array does
+ * not see a fresh array identity on every render (which would re-run it each
+ * time for catalog rows and the header preview that pass no faces).
+ *
+ * @since 1.7.0
+ */
+const EMPTY_FACES: readonly FontFace[] = [];
+
+/**
  * Escape a value for use inside a double-quoted CSS string. Backslash must be
  * escaped first (so it can't consume the escape we add for a quote), then the
  * quote, then any newline character — CR, LF, and form feed (U+000C), all of
@@ -105,7 +114,7 @@ function faceRule(family: string, face: FontFace): string | null {
 
 export default function FontPreview({
     family,
-    faces = [],
+    faces = EMPTY_FACES,
     previewUrl,
     sampleText,
     onSampleTextChange,

@@ -259,6 +259,12 @@ function normalizeError(error: unknown, fallback: string): FontLibraryApiError {
         return error;
     }
 
+    // A request cancelled via AbortController is not a failure — tag it so
+    // callers can silently ignore it rather than surfacing an error state.
+    if (error instanceof DOMException && error.name === 'AbortError') {
+        return new FontLibraryApiError(error.message || 'Request aborted.', 0, 'aborted');
+    }
+
     const message = error instanceof Error && error.message ? error.message : fallback;
 
     return new FontLibraryApiError(message, 0, null);
@@ -304,12 +310,13 @@ export function parseVariant(variant: string): InstallFace {
  *
  * @since 1.7.0
  */
-export async function fetchInstalledFonts(): Promise<InstalledFontsResult> {
+export async function fetchInstalledFonts(signal?: AbortSignal): Promise<InstalledFontsResult> {
     try {
         const response = await fetch(FONTS_API_BASE, {
             method: 'GET',
             credentials: 'same-origin',
             headers: READ_HEADERS,
+            signal,
         });
 
         const body = (await requireOk(response, 'Failed to load installed fonts.')) as
@@ -331,12 +338,13 @@ export async function fetchInstalledFonts(): Promise<InstalledFontsResult> {
  *
  * @since 1.7.0
  */
-export async function fetchSources(): Promise<SourcesResult> {
+export async function fetchSources(signal?: AbortSignal): Promise<SourcesResult> {
     try {
         const response = await fetch(`${FONTS_API_BASE}/sources`, {
             method: 'GET',
             credentials: 'same-origin',
             headers: READ_HEADERS,
+            signal,
         });
 
         const body = (await requireOk(response, 'Failed to load font providers.')) as
@@ -361,7 +369,8 @@ export async function fetchSources(): Promise<SourcesResult> {
 export async function fetchCatalog(
     provider: string,
     query: string,
-    page: number
+    page: number,
+    signal?: AbortSignal
 ): Promise<CatalogPage> {
     try {
         const params = new URLSearchParams();
@@ -383,6 +392,7 @@ export async function fetchCatalog(
             method: 'GET',
             credentials: 'same-origin',
             headers: READ_HEADERS,
+            signal,
         });
 
         const body = (await requireOk(response, 'Failed to load the font catalog.')) as

@@ -10,6 +10,10 @@
  * `.otf`), each capped at the configured size; the installer additionally
  * verifies each file's font signature before self-hosting it.
  *
+ * Authorisation (the `manage_fonts` capability) is enforced in `authorize()`
+ * via {@see AuthorizesFontManagement}, so an unauthorised caller is rejected
+ * before the multipart body is materialised and validated.
+ *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
  *
@@ -27,6 +31,8 @@ use Illuminate\Validation\Rule;
 
 class UploadFontRequest extends FormRequest
 {
+	use AuthorizesFontManagement;
+
 	/**
 	 * Default per-file size ceiling in kilobytes, used when
 	 * `fonts.upload.max_kilobytes` is unset. A single WOFF2 face is tens of KB;
@@ -42,14 +48,6 @@ class UploadFontRequest extends FormRequest
 	 * @var array<int, string>
 	 */
 	public const DEFAULT_EXTENSIONS = [ 'woff2', 'woff', 'ttf', 'otf' ];
-
-	public function authorize(): bool
-	{
-		// Authorisation happens in the controller via the SiteEditorAccessGate so
-		// the unauthorised path returns the gate's own response rather than a flat
-		// 403, matching the other Font Library endpoints.
-		return true;
-	}
 
 	/**
 	 * @since 1.7.0

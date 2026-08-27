@@ -219,6 +219,36 @@ describe('fontLibraryReducer', () => {
         expect(next.catalogs.google.families).toHaveLength(1);
     });
 
+    it('does not advance the page counter when a load-more request fails', () => {
+        const page1 = fontLibraryReducer(manageableState(), {
+            type: 'CATALOG_SUCCESS',
+            requestId: 0,
+            provider: 'google',
+            page: 1,
+            families: [family('inter')],
+            hasMore: true,
+        });
+
+        // A "load more" request for page 2 is issued, then fails.
+        const requested = fontLibraryReducer(page1, {
+            type: 'CATALOG_REQUEST',
+            requestId: 1,
+            provider: 'google',
+            query: '',
+            page: 2,
+        });
+        const failed = fontLibraryReducer(requested, {
+            type: 'CATALOG_FAILURE',
+            requestId: 1,
+            provider: 'google',
+            message: 'gateway down',
+        });
+
+        // page stays at the last successfully-loaded page so the retry (page + 1)
+        // requests page 2 again rather than skipping it.
+        expect(failed.catalogs.google.page).toBe(1);
+    });
+
     it('toggles a font in and out of the removal selection', () => {
         const state = manageableState({ installed: [installed(1), installed(2)] });
 

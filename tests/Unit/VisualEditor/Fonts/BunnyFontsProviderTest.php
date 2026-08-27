@@ -184,6 +184,20 @@ it( 'denotes italic faces with a trailing i on the weight', function () {
 	Http::assertSent( fn ( $request ) => str_contains( $request->url(), 'family=abeezee%3A400i' ) );
 } );
 
+it( 'aborts a download whose body exceeds the configured size cap', function () {
+	Http::fake( [
+		'fonts.bunny.net/list*'     => Http::response( bunnyListFixture(), 200 ),
+		'fonts.bunny.net/css*'      => Http::response( bunnyCssFixture(), 200 ),
+		// A signature-valid but oversized body — a compromised/MITM'd CDN body.
+		'fonts.bunny.net/*/files/*' => Http::response( 'wOF2' . str_repeat( 'x', 200_000 ), 200 ),
+	] );
+
+	$provider = new BunnyFontsProvider( maxBytes: 65_536 );
+
+	expect( fn () => $provider->fetchFace( 'abeezee', '400', 'normal' ) )
+		->toThrow( FontProviderException::class, 'exceeded the maximum allowed size' );
+} );
+
 it( 'sends a browser user-agent when resolving face css', function () {
 	fakeBunnyFonts();
 

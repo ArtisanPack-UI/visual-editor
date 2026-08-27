@@ -117,6 +117,30 @@ it( 'parses and normalizes the theme.json fonts block', function (): void {
 	expect( $declarations[1]['faces'] )->toEqual( [ [ 'weight' => 400, 'style' => 'normal' ] ] );
 } );
 
+it( 'clamps out-of-range face weights to the 1–1000 CSS range', function (): void {
+	// A malformed or adversarial manifest weight would otherwise flow into the
+	// unsignedSmallInteger weight column and fail the insert on strict drivers.
+	$declarations = app( ThemeFontBundleResolver::class )->parse( [
+		'fonts' => [
+			[
+				'provider' => 'google',
+				'family'   => 'Open Sans',
+				'faces'    => [
+					[ 'weight' => 100000, 'style' => 'normal' ],
+					[ 'weight' => -5, 'style' => 'italic' ],
+					[ 'weight' => 400, 'style' => 'normal' ],
+				],
+			],
+		],
+	] );
+
+	expect( $declarations[0]['faces'] )->toEqual( [
+		[ 'weight' => 1000, 'style' => 'normal' ],
+		[ 'weight' => 1, 'style' => 'italic' ],
+		[ 'weight' => 400, 'style' => 'normal' ],
+	] );
+} );
+
 it( 'returns no declarations when the manifest has no fonts block', function (): void {
 	expect( app( ThemeFontBundleResolver::class )->parse( [] ) )->toBe( [] );
 	expect( app( ThemeFontBundleResolver::class )->parse( [ 'fonts' => 'nope' ] ) )->toBe( [] );

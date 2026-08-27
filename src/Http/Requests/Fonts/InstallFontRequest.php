@@ -28,13 +28,7 @@ use Illuminate\Validation\Rule;
 
 class InstallFontRequest extends FormRequest
 {
-	public function authorize(): bool
-	{
-		// Authorisation happens in the controller via FontPolicy so the
-		// unauthorised path returns a shaped JSON 403 with the read-only signal,
-		// matching the other Font Library endpoints.
-		return true;
-	}
+	use AuthorizesFontManagement;
 
 	/**
 	 * @since 1.7.0

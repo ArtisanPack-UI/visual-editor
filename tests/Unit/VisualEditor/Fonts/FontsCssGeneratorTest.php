@@ -46,6 +46,17 @@ it( 'emits truetype format for a ttf face', function (): void {
 	expect( app( FontsCssGenerator::class )->build() )->toContain( 'format("truetype")' );
 } );
 
+it( 'emits opentype format for an otf face', function (): void {
+	$font = Font::factory()->create( [ 'family' => 'Custom', 'slug' => 'custom' ] );
+	FontFace::factory()->for( $font )->create( [ 'format' => 'otf' ] );
+
+	// `otf` is not a valid CSS format() token; it must map to `opentype` so the
+	// uploaded face actually loads.
+	expect( app( FontsCssGenerator::class )->build() )
+		->toContain( 'format("opentype")' )
+		->not->toContain( 'format("otf")' );
+} );
+
 it( 'emits each self-hosted variable face at its own weight, not the axis range', function (): void {
 	$font = Font::factory()->variable()->create( [ 'family' => 'Roboto Flex', 'slug' => 'roboto-flex' ] );
 

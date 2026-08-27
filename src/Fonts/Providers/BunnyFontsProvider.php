@@ -39,6 +39,7 @@ namespace ArtisanPackUI\VisualEditor\Fonts\Providers;
 
 use ArtisanPackUI\VisualEditor\Fonts\Contracts\FontProvider;
 use ArtisanPackUI\VisualEditor\Fonts\Exceptions\FontProviderException;
+use Illuminate\Http\Client\Response;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Str;
@@ -70,6 +71,7 @@ class BunnyFontsProvider implements FontProvider
 	 * @param  int     $cacheTtl   Seconds to cache the fetched catalog.
 	 * @param  int     $timeout    HTTP request timeout in seconds.
 	 * @param  string  $subset     The `@font-face` subset to self-host (e.g. `latin`).
+	 * @param  int     $maxBytes   Ceiling on any single fetched response body, in bytes.
 	 */
 	public function __construct(
 		protected string $listUrl = 'https://fonts.bunny.net/list',
@@ -79,10 +81,14 @@ class BunnyFontsProvider implements FontProvider
 		protected int $cacheTtl = 86400,
 		protected int $timeout = 10,
 		protected string $subset = 'latin',
+		protected int $maxBytes = 15_728_640,
 	) {
 		// A non-positive page size would let searchCatalog() slice an empty
 		// window while reporting has_more, paging forever over no results.
 		$this->perPage = max( 1, $this->perPage );
+
+		// A non-positive ceiling would reject every response; keep a sane floor.
+		$this->maxBytes = max( 1, $this->maxBytes );
 	}
 
 	/**
@@ -289,7 +295,9 @@ class BunnyFontsProvider implements FontProvider
 	protected function fetchCatalog(): array
 	{
 		try {
-			$response = Http::timeout( $this->timeout )->get( $this->listUrl );
+			$response = Http::timeout( $this->timeout )
+				->withOptions( [ 'allow_redirects' => false, 'stream' => true ] )
+				->get( $this->listUrl );
 		} catch ( Throwable $e ) {
 			throw new FontProviderException(
 				'Failed to reach the Bunny Fonts list endpoint.',
@@ -305,7 +313,10 @@ class BunnyFontsProvider implements FontProvider
 			) );
 		}
 
-		$list = json_decode( trim( $response->body() ), true );
+		$list = json_decode(
+			trim( $this->readBounded( $response, 'the Bunny Fonts list endpoint' ) ),
+			true
+		);
 
 		if ( ! is_array( $list ) || [] === $list ) {
 			throw new FontProviderException(
@@ -453,6 +464,7 @@ class BunnyFontsProvider implements FontProvider
 		try {
 			$response = Http::timeout( $this->timeout )
 				->withHeaders( [ 'User-Agent' => $this->userAgent ] )
+				->withOptions( [ 'allow_redirects' => false, 'stream' => true ] )
 				->get( $url );
 		} catch ( Throwable $e ) {
 			throw new FontProviderException(
@@ -470,7 +482,7 @@ class BunnyFontsProvider implements FontProvider
 			) );
 		}
 
-		return $response->body();
+		return $this->readBounded( $response, sprintf( 'the Bunny Fonts face CSS for "%s"', $slug ) );
 	}
 
 	/**
@@ -580,7 +592,7 @@ class BunnyFontsProvider implements FontProvider
 	{
 		try {
 			$response = Http::timeout( $this->timeout )
-				->withOptions( [ 'allow_redirects' => false ] )
+				->withOptions( [ 'allow_redirects' => false, 'stream' => true ] )
 				->get( $fileUrl );
 		} catch ( Throwable $e ) {
 			throw new FontProviderException(
@@ -598,13 +610,41 @@ class BunnyFontsProvider implements FontProvider
 			) );
 		}
 
-		$body = $response->body();
+		$body = $this->readBounded( $response, sprintf( 'the Bunny Fonts face at "%s"', $fileUrl ) );
 
 		if ( ! str_starts_with( $body, 'wOF2' ) ) {
 			throw new FontProviderException( sprintf(
 				'The file downloaded from "%s" is not a WOFF2 font.',
 				$fileUrl
 			) );
+		}
+
+		return $body;
+	}
+
+	/**
+	 * Read a response body in bounded chunks, aborting once it exceeds the
+	 * configured ceiling so a compromised or MITM'd upstream returning a
+	 * multi-gigabyte body cannot exhaust the worker. Paired with `stream => true`
+	 * on the request so the transport does not buffer the whole body first.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function readBounded( Response $response, string $context ): string
+	{
+		$stream = $response->toPsrResponse()->getBody();
+		$body   = '';
+
+		while ( ! $stream->eof() ) {
+			$body .= $stream->read( 65536 );
+
+			if ( strlen( $body ) > $this->maxBytes ) {
+				throw new FontProviderException( sprintf(
+					'The response from %s exceeded the maximum allowed size of %d bytes.',
+					$context,
+					$this->maxBytes
+				) );
+			}
 		}
 
 		return $body;

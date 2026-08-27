@@ -68,6 +68,39 @@ describe('buildInstalledFontFacesCss', () => {
         expect(css).toContain('format("truetype")');
     });
 
+    it('normalizes an otf format to opentype', () => {
+        const css = buildInstalledFontFacesCss([
+            makeFont({ faces: [makeFace({ format: 'otf' })] }),
+        ]);
+
+        expect(css).toContain('format("opentype")');
+        expect(css).not.toContain('format("otf")');
+    });
+
+    it('omits the format() token for an unrecognized non-null format', () => {
+        const css = buildInstalledFontFacesCss([
+            makeFont({ faces: [makeFace({ format: 'eot' })] }),
+        ]);
+
+        expect(css).not.toContain('format(');
+    });
+
+    it('clamps a face weight to the 1–1000 range', () => {
+        const css = buildInstalledFontFacesCss([
+            makeFont({
+                faces: [
+                    makeFace({ weight: 100000 }),
+                    makeFace({ weight: -5, style: 'italic' }),
+                ],
+            }),
+        ]);
+
+        expect(css).toContain('font-weight: 1000');
+        expect(css).toContain('font-weight: 1');
+        expect(css).not.toContain('font-weight: 100000');
+        expect(css).not.toContain('font-weight: -5');
+    });
+
     it('skips a face with no resolvable url but still emits the preset', () => {
         const css = buildInstalledFontFacesCss([
             makeFont({ faces: [makeFace({ url: null })] }),
