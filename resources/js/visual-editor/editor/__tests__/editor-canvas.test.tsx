@@ -55,13 +55,15 @@ let mockThemeGlobalStyles: {
     styles: Record<string, unknown>;
 } = { settings: {}, styles: {} };
 
+let mockThemeGlobalStylesCss: string | undefined;
+
 vi.mock('../../site-editor/use-theme-global-styles-settings', () => ({
     useThemeGlobalStylesSettings: (): typeof mockThemeGlobalStyles =>
         mockThemeGlobalStyles,
 }));
 
 vi.mock('../../site-editor/use-theme-global-styles-css', () => ({
-    useThemeGlobalStylesCss: (): string | undefined => undefined,
+    useThemeGlobalStylesCss: (): string | undefined => mockThemeGlobalStylesCss,
 }));
 
 vi.mock('../post-title', () => ({
@@ -438,6 +440,66 @@ describe('EditorCanvas', () => {
                 settings: {},
                 styles: { color: { background: '', text: null } },
             };
+
+            renderCanvas();
+
+            expect(lastStyles()).toBe(canvasStyles);
+        });
+    });
+
+    /*
+     * #700 — the emitter compiles a theme's applied top-level styles
+     * (including the site-editor-customized font-family) onto `:root`,
+     * which in this iframe only inherits down and loses to the canvas's
+     * own direct `.editor-styles-wrapper` defaults. The canvas rewrites
+     * `:root` → `.editor-styles-wrapper` before injection so the applied
+     * styles win on source order — matching the site editor.
+     */
+    describe('#700 applied-style scoping', () => {
+        afterEach(() => {
+            mockThemeGlobalStyles = { settings: {}, styles: {} };
+            mockThemeGlobalStylesCss = '';
+        });
+
+        function lastStyles(): { css: string }[] {
+            return blockCanvasProps.mock.calls.at(-1)?.[0].styles as {
+                css: string;
+            }[];
+        }
+
+        function renderCanvas(): void {
+            blockCanvasProps.mockClear();
+
+            render(
+                <EditorCanvas
+                    showTitle={false}
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    apiBase="/visual-editor/api"
+                />
+            );
+        }
+
+        it('rewrites the compiled theme CSS :root to the canvas scope', () => {
+            mockThemeGlobalStylesCss =
+                ':root {\n\tfont-family: var(--wp--preset--font-family--aboreto);\n}';
+
+            renderCanvas();
+
+            const themeEntry = lastStyles().at(-1);
+
+            // The applied font-family now sits on `.editor-styles-wrapper`
+            // — the same element as the package default — appended last, so
+            // it wins. The unscoped `:root` selector must be gone.
+            expect(themeEntry?.css).toContain(
+                '.editor-styles-wrapper {\n\tfont-family: var(--wp--preset--font-family--aboreto);\n}'
+            );
+            expect(themeEntry?.css).not.toContain(':root {');
+        });
+
+        it('leaves the styles bundle untouched when no theme CSS is present', () => {
+            mockThemeGlobalStylesCss = '';
 
             renderCanvas();
 
