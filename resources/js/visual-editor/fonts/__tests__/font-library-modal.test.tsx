@@ -284,6 +284,40 @@ describe('FontLibraryModal', () => {
         expect(panel).toHaveAttribute('aria-labelledby', installedTab.id);
     });
 
+    it('keeps a labelled tabpanel mounted for every tab', async () => {
+        render(<FontLibraryModal isOpen onClose={() => {}} />);
+        // Wait for the sources to load so every provider tab is rendered.
+        await screen.findByRole('tab', { name: 'Google Fonts' });
+
+        const tabs = screen.getAllByRole('tab');
+        expect(tabs).toHaveLength(3);
+
+        for (const tab of tabs) {
+            const controlledId = tab.getAttribute('aria-controls');
+            expect(controlledId).toBeTruthy();
+
+            const panel = document.getElementById(controlledId as string);
+            expect(panel).not.toBeNull();
+            expect(panel).toHaveAttribute('role', 'tabpanel');
+            expect(panel).toHaveAttribute('aria-labelledby', tab.id);
+        }
+    });
+
+    it('leaves vertical arrow keys for scrolling on the horizontal tablist', async () => {
+        render(<FontLibraryModal isOpen onClose={() => {}} />);
+
+        const installedTab = await screen.findByRole('tab', { name: 'Installed' });
+        const googleTab = await screen.findByRole('tab', { name: 'Google Fonts' });
+
+        installedTab.focus();
+        fireEvent.keyDown(installedTab, { key: 'ArrowDown' });
+        fireEvent.keyDown(installedTab, { key: 'ArrowUp' });
+
+        // Neither vertical arrow changes the selection.
+        expect(installedTab).toHaveAttribute('aria-selected', 'true');
+        expect(googleTab).toHaveAttribute('aria-selected', 'false');
+    });
+
     it('gives only the active tab a tabindex of 0 (roving tabindex)', async () => {
         render(<FontLibraryModal isOpen onClose={() => {}} />);
 
