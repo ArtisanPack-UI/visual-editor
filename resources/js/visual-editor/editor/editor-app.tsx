@@ -63,6 +63,7 @@ import {
 import { registerBindingsAttribute } from '../bindings/register-attribute';
 import { registerBindingsPanel } from '../bindings/with-bindings-panel';
 import { registerDynamicContent } from '../dynamic-content';
+import { registerDynamicLinkFormat } from '../formats/dynamic-link/register';
 import { registerInlineIconFormat } from '../formats/inline-icon/register';
 import { StateInspectorSync } from '../states/StateInspectorSync';
 import { StateWriteInterceptor } from '../states/state-write-interceptor';
@@ -265,6 +266,12 @@ function registerOnce(): void {
     // the format's toolbar button is available the first time any
     // RichText renders.
     registerInlineIconFormat();
+    // #662 — swap the built-in `core/link` edit for a Dynamic-Content-aware
+    // one so the inline RichText link popover (paragraphs, headings, list
+    // items) gets a "Dynamic Content" tab. Runs after `@wordpress/format-
+    // library`'s side-effect import (top of file) has registered core/link,
+    // so the unregister-then-reregister swap finds it.
+    registerDynamicLinkFormat();
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();

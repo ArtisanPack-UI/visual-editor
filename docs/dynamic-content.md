@@ -62,7 +62,21 @@ The `artisanpack/dynamic-content-chip` RichText format decorates every `{{token}
 
 ### Link picker → Dynamic Content tab
 
-`<ArtisanPackLinkControl>` (`resources/js/visual-editor/dynamic-content/link-control.tsx`) wraps `__experimentalLinkControl` with a second tab listing DC URL/email/phone/address fields. Selection prefixes the token with the appropriate scheme (`mailto:`, `tel:`). Consumers that currently import `__experimentalLinkControl` (Button block, Navigation link-picker) can swap to `ArtisanPackLinkControl` to gain the tab.
+`<ArtisanPackLinkControl>` (`resources/js/visual-editor/dynamic-content/link-control.tsx`) wraps `__experimentalLinkControl` with a second **Dynamic Content** tab listing DC URL / email / phone / address fields. Picking a field writes a scheme-appropriate raw-token href:
+
+- email → `mailto:{{source.field}}`
+- phone → `tel:{{source.field}}`
+- URL / address / text → bare `{{source.field}}`
+
+The whole href flows through cms-framework's `DynamicContentResolver` at render, so the token is rewritten to its resolved value. The field list and the href helpers (`buildDynamicContentHref`, `schemeForFieldType`, `DynamicContentLinkPicker`) live in `dynamic-content/dynamic-link-picker.tsx` — free of any `@wordpress/block-editor` import so surfaces that must not pull the block-editor bundle can reuse them.
+
+The tab is wired into three seams:
+
+- **Inline RichText link popover** — the built-in `core/link` format edit is swapped for a Dynamic-Content-aware fork (`formats/dynamic-link/`, registered by `registerDynamicLinkFormat()` in the editor bootstrap). Select text in a paragraph / heading / list item, click the toolbar **Link** button (or press <kbd>⌘</kbd>/<kbd>Ctrl</kbd>+<kbd>K</kbd>), and switch to the **Dynamic Content** tab. The fork re-registers under the `core/link` name with the same tag / attribute mapping, so existing `<a>` content round-trips and the serialized output is unchanged.
+- **Button block** — the inline link popover uses `<ArtisanPackLinkControl>` directly (`blocks/button/edit.tsx`). This complements the Button block's sidebar Dynamic Content binding panel; the inline flow is now consistent with prose links.
+- **Navigation link picker** — the Custom URL branch exposes a collapsible **Use Dynamic Content** field list (`site-editor/navigation/link-picker.tsx`) that writes the token href into the menu item's `url`.
+
+This replaces the earlier manual workaround (typing `mailto:{{business_info.email}}` / `tel:{{business_info.phone}}` directly into the URL field), which still works but is no longer necessary.
 
 ### Image block → Dynamic Content binding
 

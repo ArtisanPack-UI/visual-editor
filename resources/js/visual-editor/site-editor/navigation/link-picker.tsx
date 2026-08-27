@@ -21,6 +21,7 @@ import { __ } from '@wordpress/i18n';
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
+import { DynamicContentLinkPicker } from '../../dynamic-content/dynamic-link-picker';
 
 import type { SiteEditorApiConfig } from '../api-client';
 import { searchEntities, type SearchResult } from './api-client';
@@ -69,6 +70,7 @@ export function LinkPicker(props: LinkPickerProps): JSX.Element {
     const typeOptions = useMemo(() => getTypeOptions(), []);
     const activeType = typeOptions.find((option) => option.value === item.type);
 
+    const [dynamicOpen, setDynamicOpen] = useState(false);
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<readonly SearchResult[]>([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -277,6 +279,25 @@ export function LinkPicker(props: LinkPickerProps): JSX.Element {
                         placeholder="https://example.com"
                         data-testid="ap-nav-link-picker-url"
                     />
+
+                    <details
+                        className="ap-nav-inspector__dynamic-content"
+                        open={dynamicOpen}
+                        onToggle={(event) =>
+                            setDynamicOpen(
+                                (event.target as HTMLDetailsElement).open
+                            )
+                        }
+                    >
+                        <summary>
+                            {__('Use Dynamic Content', TEXT_DOMAIN)}
+                        </summary>
+                        {dynamicOpen ? (
+                            <DynamicContentLinkPicker
+                                onSelect={(href) => onChange({ url: href })}
+                            />
+                        ) : null}
+                    </details>
                 </div>
             )}
         </div>
