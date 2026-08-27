@@ -81,15 +81,18 @@ The **Custom Upload** tab lets you bring your own font files — useful for
 licensed or bespoke typefaces that aren't in any catalog.
 
 1. Enter the **family name** as it should appear in the editor.
-2. Add one or more **face files** and, optionally, set each face's weight
-   (1–1000) and style (normal / italic).
+2. Add one or more **face files**. Each uploaded face is registered at weight
+   400, normal style; a variable font keeps its full axis range, read from the
+   file itself.
 3. Upload.
 
 **Accepted formats:** `.woff2`, `.woff`, `.ttf`, `.otf`.
-**Size limit:** each face file is capped at **5 MB** (5120 KB) by default.
+**Size limit:** each face file is capped at **5 MB** (5120 KB) by default, and
+all faces in one upload together at **25 MB** (25600 KB).
 
-Both limits are configurable (`fonts.upload.extensions` and
-`fonts.upload.max_kilobytes`). Uploaded files are validated by their actual
+These limits are configurable (`fonts.upload.extensions`,
+`fonts.upload.max_kilobytes`, and `fonts.upload.max_total_kilobytes`). Uploaded
+files are validated by their actual
 file signature — not just the extension — before they are stored, and any
 variable-axis metadata is read directly from the file. Like fetched fonts,
 uploads are self-hosted on your configured disk.
@@ -152,7 +155,8 @@ The Font Library is built so that using a hosted catalog like Google Fonts does
 **not** expose your visitors to that provider. This matters for GDPR: linking a
 visitor's browser directly to a font CDN transmits their IP address to the
 provider, which German and other EU courts have treated as a violation without
-consent.
+consent. Self-hosting removes that particular third-party request — it is one
+piece of GDPR compliance, not the whole of it.
 
 - **Self-hosting is the default and only mode.** Installing a font downloads its
   face files **once, server-side**, to your configured disk. Your pages then
@@ -162,8 +166,8 @@ consent.
 - **The modal says so.** Every remote-provider tab carries a persistent notice:
 
   > Fonts installed from *[provider]* are downloaded once to this site and
-  > served locally — your visitors never hit the provider's CDN, keeping the
-  > site GDPR-compliant.
+  > served locally, so your visitors' browsers never connect to the provider's
+  > CDN.
 
 - **Non-self-hostable providers are refused.** A provider advertises whether its
   faces can be fetched and stored locally via `FontProvider::isSelfHostable()`.

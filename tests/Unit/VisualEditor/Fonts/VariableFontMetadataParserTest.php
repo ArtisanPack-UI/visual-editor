@@ -6,7 +6,7 @@ use ArtisanPackUI\VisualEditor\Fonts\Support\VariableFontMetadataParser;
 use Tests\Fixtures\Fonts\FontBinaryFactory;
 
 /**
- * Absolute path to a committed binary font fixture.
+ * The bytes of a committed binary font fixture.
  */
 function fontFixture( string $name ): string
 {

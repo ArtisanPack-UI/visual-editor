@@ -227,9 +227,6 @@ class FontInstaller
 			foreach ( $requested as $face ) {
 				[ $weight, $style ] = $face;
 
-				$path  = $this->fileWriter->pathFor( $providerKey, $slug, $weight, $style, 'woff2' );
-				$isNew = ! $this->fileWriter->exists( $path );
-
 				$bytes = $provider->fetchFace( $slug, (string) $weight, $style );
 
 				// A registered provider is untrusted once a third party supplies
@@ -244,7 +241,16 @@ class FontInstaller
 					) );
 				}
 
-				$this->fileWriter->write( $providerKey, $slug, $weight, $style, 'woff2', $bytes );
+				// Derive the container format from the bytes rather than assuming
+				// WOFF2, so a provider that returns TTF/WOFF is stored with a path,
+				// file, and `format()` token that match the real file. The built-in
+				// Google and Bunny providers always return WOFF2.
+				$format = $this->uploadFormat( $bytes );
+
+				$path  = $this->fileWriter->pathFor( $providerKey, $slug, $weight, $style, $format );
+				$isNew = ! $this->fileWriter->exists( $path );
+
+				$this->fileWriter->write( $providerKey, $slug, $weight, $style, $format, $bytes );
 
 				if ( $isNew ) {
 					$rollbackPaths[] = $path;
@@ -253,7 +259,7 @@ class FontInstaller
 				$writtenFaces[] = [
 					'weight'    => $weight,
 					'style'     => $style,
-					'format'    => 'woff2',
+					'format'    => $format,
 					'path'      => $path,
 					'file_size' => strlen( $bytes ),
 					'axes'      => ( $family['is_variable'] ?? false ) ? ( $family['axes'] ?? null ) : null,
@@ -570,6 +576,7 @@ class FontInstaller
 	{
 		$ids         = [];
 		$filesByDisk = [];
+		$lockKeys    = [];
 
 		foreach ( $fonts as $font ) {
 			$model = $font instanceof Font ? $font : Font::query()->with( 'faces' )->find( $font );
@@ -578,7 +585,8 @@ class FontInstaller
 				continue;
 			}
 
-			$ids[] = $model->id;
+			$ids[]      = $model->id;
+			$lockKeys[] = $this->installLockKey( (string) $model->provider, (string) $model->slug );
 
 			foreach ( $model->faces as $face ) {
 				$filesByDisk[ (string) $face->disk ][] = (string) $face->path;
@@ -591,12 +599,35 @@ class FontInstaller
 			return 0;
 		}
 
-		DB::transaction( static function () use ( $ids ): void {
-			Font::query()->whereIn( 'id', $ids )->delete();
-		} );
+		// Serialize against a concurrent install of any of these families, the
+		// same way uninstall() does, so an install can't commit rows whose files
+		// this call then deletes. Locks are acquired in a stable (sorted) order
+		// so two concurrent bulk operations can't deadlock, and released in a
+		// finally once the rows are gone, the bundle is rebuilt, and the files
+		// are removed.
+		$lockKeys = array_values( array_unique( $lockKeys ) );
+		sort( $lockKeys );
 
-		$this->regenerate();
-		$this->deleteFiles( $filesByDisk );
+		$locks = [];
+
+		try {
+			foreach ( $lockKeys as $key ) {
+				$lock = Cache::lock( $key, 30 );
+				$lock->block( 15 );
+				$locks[] = $lock;
+			}
+
+			DB::transaction( static function () use ( $ids ): void {
+				Font::query()->whereIn( 'id', $ids )->delete();
+			} );
+
+			$this->regenerate();
+			$this->deleteFiles( $filesByDisk );
+		} finally {
+			foreach ( $locks as $lock ) {
+				$lock->release();
+			}
+		}
 
 		return count( $ids );
 	}

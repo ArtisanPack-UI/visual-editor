@@ -191,6 +191,10 @@ export function fontLibraryReducer(
                 sourcesStatus: 'ready',
                 sourcesError: null,
                 readOnly: action.readOnly,
+                // A read-only session can't act on a removal selection; clear it
+                // if this response (which may resolve after INSTALLED_LOADED)
+                // reports read-only, matching INSTALLED_LOADED and SET_READ_ONLY.
+                selectedForRemoval: action.readOnly ? [] : state.selectedForRemoval,
             };
 
         case 'SOURCES_ERROR':
@@ -206,15 +210,18 @@ export function fontLibraryReducer(
                     [action.provider]: {
                         ...previous,
                         query: action.query,
-                        // `page` is committed only on CATALOG_SUCCESS, so it
-                        // always reflects the last page actually loaded. A failed
-                        // "load more" therefore doesn't advance the counter and
-                        // make the retry skip the page it never got.
+                        // On a fresh browse/search (page 1) reset the paging state
+                        // to the initial values alongside clearing the list, so a
+                        // failed fresh request can't leave a stale `hasMore` that
+                        // keeps "Load more" showing and advances the new query past
+                        // page 1. A later page (load more) preserves the paging
+                        // state; `page` is only ever committed on CATALOG_SUCCESS,
+                        // so a failed load-more never advances the counter either.
+                        page: action.page <= 1 ? emptyCatalog.page : previous.page,
+                        hasMore: action.page <= 1 ? emptyCatalog.hasMore : previous.hasMore,
                         status: 'loading',
                         error: null,
                         requestId: action.requestId,
-                        // Clear the list for a fresh browse/search so stale
-                        // results don't linger under the spinner.
                         families: action.page <= 1 ? [] : previous.families,
                     },
                 },

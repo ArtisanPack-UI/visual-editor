@@ -82,6 +82,10 @@ function fakeInstallerFontProvider( array $options = [] ): FontProvider
 				return '<html>not a font</html>';
 			}
 
+			if ( true === ( $this->options['ttfBytes'] ?? false ) ) {
+				return "\x00\x01\x00\x00" . $weight . $style;
+			}
+
 			return 'wOF2' . $weight . $style;
 		}
 	};
@@ -173,6 +177,22 @@ it( 'rolls back files and rows when a face fetch fails midway', function (): voi
 
 	// The 400 face was written before the 700 fetch failed; rollback removes it.
 	Storage::disk( 'public' )->assertMissing( 'visual-editor/fonts/fake/inter/400-normal.woff2' );
+} );
+
+it( 'derives the stored format from the fetched bytes, not a hardcoded woff2', function (): void {
+	// A third-party provider may return TTF/WOFF rather than WOFF2; the stored
+	// path, file, and format() token must match the real bytes.
+	app( FontSourceRegistry::class )->register( fakeInstallerFontProvider( [ 'key' => 'fake', 'ttfBytes' => true ] ) );
+
+	$font = app( FontInstaller::class )->install( 'fake', 'inter', [
+		[ 'weight' => 400, 'style' => 'normal' ],
+	] );
+
+	expect( $font->faces->first()->format )->toBe( 'ttf' );
+	Storage::disk( 'public' )->assertExists( 'visual-editor/fonts/fake/inter/400-normal.ttf' );
+	Storage::disk( 'public' )->assertMissing( 'visual-editor/fonts/fake/inter/400-normal.woff2' );
+
+	expect( app( FontsCssGenerator::class )->read() )->toContain( 'format("truetype")' );
 } );
 
 it( 'rejects catalog bytes that are not a recognized font file', function (): void {

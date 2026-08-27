@@ -68,7 +68,6 @@ export interface FontLibraryModalProps {
     readonly onClose: () => void;
 }
 
-const DEFAULT_SAMPLE = 'The quick brown fox jumps over the lazy dog';
 const SEARCH_DEBOUNCE_MS = 300;
 
 /**
@@ -421,7 +420,7 @@ function CatalogTab({
                     ? sprintf(
                           /* translators: %s: provider label (e.g. Google Fonts). */
                           __(
-                              'Fonts installed from %s are downloaded once to this site and served locally — your visitors never hit the provider’s CDN, keeping the site GDPR-compliant.',
+                              'Fonts installed from %s are downloaded once to this site and served locally, so your visitors’ browsers never connect to the provider’s CDN.',
                               TEXT_DOMAIN
                           ),
                           label
@@ -585,7 +584,10 @@ function UploadTab({
 
 export default function FontLibraryModal({ isOpen, onClose }: FontLibraryModalProps) {
     const [state, dispatch] = useReducer(fontLibraryReducer, initialState);
-    const [sampleText, setSampleText] = useState<string>(__(DEFAULT_SAMPLE, TEXT_DOMAIN));
+    const [sampleText, setSampleText] = useState<string>(
+        // Literal string so the WordPress i18n extractor picks it up for the POT.
+        __('The quick brown fox jumps over the lazy dog', TEXT_DOMAIN)
+    );
     const [uploading, setUploading] = useState(false);
     const [uploadError, setUploadError] = useState<string | null>(null);
     const [removalError, setRemovalError] = useState<string | null>(null);

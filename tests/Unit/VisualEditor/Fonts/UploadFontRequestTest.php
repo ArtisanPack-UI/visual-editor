@@ -13,9 +13,12 @@ use Illuminate\Support\Facades\Validator;
  */
 function validateUpload( array $payload ): Illuminate\Contracts\Validation\Validator
 {
-	$request = new UploadFontRequest();
+	$request   = new UploadFontRequest();
+	$validator = Validator::make( $payload, $request->rules(), $request->messages() );
 
-	return Validator::make( $payload, $request->rules(), $request->messages() );
+	$request->withValidator( $validator );
+
+	return $validator;
 }
 
 it( 'passes with a family and a valid font file', function (): void {
@@ -74,6 +77,37 @@ it( 'rejects a file larger than the configured maximum', function (): void {
 
 	expect( $validator->passes() )->toBeFalse()
 		->and( $validator->errors()->has( 'faces.0.file' ) )->toBeTrue();
+} );
+
+it( 'rejects uploads whose combined size exceeds the aggregate maximum', function (): void {
+	config()->set( 'artisanpack.visual-editor.fonts.upload.max_total_kilobytes', 100 );
+
+	// Each file is under the per-file cap, but together they exceed the
+	// aggregate ceiling.
+	$validator = validateUpload( [
+		'family' => 'My Font',
+		'faces'  => [
+			[ 'file' => UploadedFile::fake()->create( 'a.woff2', 60 ) ],
+			[ 'file' => UploadedFile::fake()->create( 'b.woff2', 60 ) ],
+		],
+	] );
+
+	expect( $validator->passes() )->toBeFalse()
+		->and( $validator->errors()->has( 'faces' ) )->toBeTrue();
+} );
+
+it( 'allows uploads within the aggregate maximum', function (): void {
+	config()->set( 'artisanpack.visual-editor.fonts.upload.max_total_kilobytes', 100 );
+
+	$validator = validateUpload( [
+		'family' => 'My Font',
+		'faces'  => [
+			[ 'file' => UploadedFile::fake()->create( 'a.woff2', 30 ) ],
+			[ 'file' => UploadedFile::fake()->create( 'b.woff2', 30 ) ],
+		],
+	] );
+
+	expect( $validator->passes() )->toBeTrue();
 } );
 
 it( 'rejects an unknown style', function (): void {

@@ -17,8 +17,10 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   family becomes a font-family preset available in each picker, resolved
   through a generated `fonts.css` on both the canvas and the public site.
   Installs are **self-hosted by design**: face files are fetched server-side
-  once and served from your own domain, so visitors never hit a provider CDN —
-  keeping the site GDPR-compliant. Third parties can add their own catalog by
+  once and served from your own domain, so visitors' browsers never connect to a
+  provider CDN — removing the third-party font requests that are a common GDPR
+  concern (self-hosting alone does not by itself make a site GDPR-compliant).
+  Third parties can add their own catalog by
   implementing the `FontProvider` contract and registering it through the
   `ap.visualEditor.registerFontSources` filter (#629); the REST surface (#634),
   modal (#635), font-family picker (#636), and same-origin previews (#741)

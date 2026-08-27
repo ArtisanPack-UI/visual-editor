@@ -72,6 +72,44 @@ describe('fontLibraryReducer', () => {
         expect(next.selectedForRemoval).toEqual([]);
     });
 
+    it('clears a pending selection when the sources load reports read-only', () => {
+        const state = manageableState({ selectedForRemoval: [1, 2] });
+
+        const next = fontLibraryReducer(state, {
+            type: 'SOURCES_LOADED',
+            sources: [],
+            readOnly: true,
+        });
+
+        expect(next.readOnly).toBe(true);
+        expect(next.selectedForRemoval).toEqual([]);
+    });
+
+    it('resets paging state on a fresh (page 1) catalog request', () => {
+        const seeded = fontLibraryReducer(manageableState(), {
+            type: 'CATALOG_SUCCESS',
+            requestId: 0,
+            provider: 'google',
+            page: 3,
+            families: [family('inter')],
+            hasMore: true,
+        });
+
+        // A fresh browse/search must drop the prior `hasMore`, so a failed fresh
+        // request can't keep "Load more" showing and skip page 1 of the new query.
+        const fresh = fontLibraryReducer(seeded, {
+            type: 'CATALOG_REQUEST',
+            requestId: 1,
+            provider: 'google',
+            query: 'ro',
+            page: 1,
+        });
+
+        expect(fresh.catalogs.google.page).toBe(1);
+        expect(fresh.catalogs.google.hasMore).toBe(false);
+        expect(fresh.catalogs.google.families).toEqual([]);
+    });
+
     it('records an installed-list error', () => {
         const next = fontLibraryReducer(initialState, {
             type: 'INSTALLED_ERROR',

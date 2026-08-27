@@ -27,7 +27,10 @@ declare( strict_types=1 );
 namespace ArtisanPackUI\VisualEditor\Http\Requests\Fonts;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Arr;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class UploadFontRequest extends FormRequest
 {
@@ -40,6 +43,15 @@ class UploadFontRequest extends FormRequest
 	 * the host's temp directory.
 	 */
 	public const DEFAULT_MAX_KILOBYTES = 5_120;
+
+	/**
+	 * Default aggregate size ceiling across all uploaded faces, in kilobytes,
+	 * used when `fonts.upload.max_total_kilobytes` is unset. The per-file cap
+	 * alone permits 50 × 5 MB ≈ 250 MB in one request, which the controller then
+	 * reads into memory; a 25 MB aggregate leaves room for a large family while
+	 * keeping the request from exhausting a PHP worker.
+	 */
+	public const DEFAULT_MAX_TOTAL_KILOBYTES = 25_600;
 
 	/**
 	 * Default accepted face-file extensions, used when
@@ -73,6 +85,41 @@ class UploadFontRequest extends FormRequest
 			'faces.*.weight' => [ 'sometimes', 'integer', 'min:1', 'max:1000' ],
 			'faces.*.style'  => [ 'sometimes', 'string', Rule::in( [ 'normal', 'italic' ] ) ],
 		];
+	}
+
+	/**
+	 * Enforce an aggregate size ceiling across every uploaded face, on top of
+	 * the per-file `max:` rule, so a request can't smuggle 50 near-maximum files
+	 * (~250 MB) past validation for the controller to read into memory.
+	 *
+	 * @since 1.7.0
+	 */
+	public function withValidator( Validator $validator ): void
+	{
+		$validator->after( function ( Validator $validator ): void {
+			$maxTotalKilobytes = (int) config(
+				'artisanpack.visual-editor.fonts.upload.max_total_kilobytes',
+				self::DEFAULT_MAX_TOTAL_KILOBYTES
+			);
+
+			$totalBytes = 0;
+
+			// Read the uploaded files out of the data under validation so the
+			// same check runs whether the request came through the HTTP kernel
+			// (files in the request's file bag) or a direct Validator::make().
+			foreach ( Arr::flatten( $validator->getData() ) as $value ) {
+				if ( $value instanceof UploadedFile ) {
+					$totalBytes += (int) $value->getSize();
+				}
+			}
+
+			if ( $totalBytes > $maxTotalKilobytes * 1024 ) {
+				$validator->errors()->add( 'faces', __(
+					'The uploaded font files together may not exceed :max kilobytes.',
+					[ 'max' => $maxTotalKilobytes ]
+				) );
+			}
+		} );
 	}
 
 	/**

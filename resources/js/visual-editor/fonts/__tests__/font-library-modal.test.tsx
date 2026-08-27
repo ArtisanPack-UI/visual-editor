@@ -238,8 +238,11 @@ describe('FontLibraryModal', () => {
 
         fireEvent.click(await screen.findByRole('tab', { name: 'Custom Upload' }));
 
-        // The custom-upload tab shows the form, never a catalog browse.
-        expect(api.fetchCatalog).not.toHaveBeenCalledWith('custom', expect.anything(), expect.anything());
+        // The custom-upload tab shows the form, never a catalog browse. Assert
+        // on the provider argument only: fetchCatalog is called with four
+        // arguments (…, signal), so a full-arg matcher would pass vacuously.
+        const browsedCustom = api.fetchCatalog.mock.calls.some((args) => args[0] === 'custom');
+        expect(browsedCustom).toBe(false);
 
         fireEvent.change(screen.getByPlaceholderText('e.g. My Brand Sans'), {
             target: { value: 'Brand' },

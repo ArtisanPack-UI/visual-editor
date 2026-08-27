@@ -716,11 +716,14 @@ return [
 
 		/*
 		| Custom font upload constraints. `max_kilobytes` caps each uploaded
-		| face file; `extensions` is the accepted web-font container set.
+		| face file and `max_total_kilobytes` caps the combined size of all
+		| faces in one request (so it can't be read into memory unbounded);
+		| `extensions` is the accepted web-font container set.
 		*/
 		'upload' => [
-			'max_kilobytes' => 5120,
-			'extensions'    => [ 'woff2', 'woff', 'ttf', 'otf' ],
+			'max_kilobytes'       => 5120,
+			'max_total_kilobytes' => 25600,
+			'extensions'          => [ 'woff2', 'woff', 'ttf', 'otf' ],
 		],
 	],
 
