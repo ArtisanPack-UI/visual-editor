@@ -56,7 +56,7 @@
         "anchor": true,
         "align": ["wide", "full"],
         "ariaLabel": true,
-        "className": true,
+        "className": false,
         "html": false,
         "reusable": false,
         "color": {

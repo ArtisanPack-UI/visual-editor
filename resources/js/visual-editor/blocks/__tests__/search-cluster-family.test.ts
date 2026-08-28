@@ -11,9 +11,12 @@
  *   - single-post-types-search-results (child of post-types-search-results)
  *
  * All six live under the `artisanpack` namespace + category and the
- * `artisanpack-visual-editor` textdomain. Every block is a dynamic
- * block (save returns null) so the renderers can read live request
- * state at render time.
+ * `artisanpack-visual-editor` textdomain. They are dynamic
+ * (server-rendered) blocks. The leaf blocks (search-field,
+ * search-filters-buttons, search-filters-taxonomy) return null; the
+ * three container blocks that host inner blocks (search-filters,
+ * post-types-search-results, single-post-types-search-results) reproduce
+ * their wrapper `<div>` so the persisted inner tree round-trips (#747).
  */
 
 import { describe, expect, it, vi } from 'vitest';
@@ -21,8 +24,12 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@wordpress/block-editor', () => ({
     InnerBlocks: Object.assign(() => null, { Content: () => null }),
     RichText: Object.assign(() => null, { Content: () => null }),
-    useBlockProps: Object.assign(() => ({}), { save: () => ({}) }),
-    useInnerBlocksProps: Object.assign(() => ({}), { save: () => ({}) }),
+    useBlockProps: Object.assign(() => ({}), {
+        save: (props: { className?: string }) => ({ ...props }),
+    }),
+    useInnerBlocksProps: Object.assign(() => ({}), {
+        save: (blockProps: Record<string, unknown>) => ({ ...blockProps }),
+    }),
     InspectorControls: () => null,
 }));
 
@@ -119,18 +126,35 @@ describe('search cluster block.json', () => {
 });
 
 describe('search cluster save contract', () => {
-    it.each(FAMILY)('$slug.save returns null (dynamic block)', ({ slug }) => {
-        const save = (
-            {
-                'search-field': searchFieldSave,
-                'search-filters': searchFiltersSave,
-                'search-filters-buttons': searchFiltersButtonsSave,
-                'search-filters-taxonomy': searchFiltersTaxonomySave,
-                'post-types-search-results': postTypesSearchResultsSave,
-                'single-post-types-search-results':
-                    singlePostTypesSearchResultsSave,
-            } as Record<string, () => null>
-        )[slug];
-        expect(save()).toBeNull();
+    it.each([
+        ['search-field', searchFieldSave],
+        ['search-filters-buttons', searchFiltersButtonsSave],
+        ['search-filters-taxonomy', searchFiltersTaxonomySave],
+    ] as const)('%s save returns null (leaf dynamic block)', (_slug, save) => {
+        expect((save as () => null)()).toBeNull();
     });
+
+    it.each([
+        ['search-filters', searchFiltersSave, 'ap-search-filters'],
+        [
+            'post-types-search-results',
+            postTypesSearchResultsSave,
+            'ap-post-types-search-results',
+        ],
+        [
+            'single-post-types-search-results',
+            singlePostTypesSearchResultsSave,
+            'ap-single-post-types-search-results',
+        ],
+    ] as const)(
+        '%s save reproduces its wrapper div carrying the block className (#747)',
+        (_slug, save, className) => {
+            const element = (
+                save as () => { type: unknown; props: { className?: string } }
+            )();
+            expect(element).not.toBeNull();
+            expect(element.type).toBe('div');
+            expect(element.props.className).toBe(className);
+        }
+    );
 });

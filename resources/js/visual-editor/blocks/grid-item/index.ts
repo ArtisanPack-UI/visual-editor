@@ -9,12 +9,13 @@
 import metadata from './block.json';
 import edit from './edit';
 import save from './save';
+import deprecated from './deprecated';
 import icon from './inserter-icon';
 
 import '../grid/grid.css';
 import '../../../../css/flex-layout.css';
 
-export { edit, save, metadata, icon };
+export { edit, save, metadata, icon, deprecated };
 
 export default {
     name: metadata.name,
@@ -22,4 +23,5 @@ export default {
     edit,
     save,
     icon,
+    deprecated,
 };
