@@ -22,6 +22,19 @@
     height: 100%;
 }
 
+/*
+ * #748 — materialize the block's `spacing.blockGap` support as a real
+ * `gap` between grid items; without it the grid rendered flush.
+ * `--wp--style--block-gap` is set on the wrapper by the renderer for an
+ * author value, or inherited from theme.json's `styles.spacing.blockGap`;
+ * the fallback matches this block's `__experimentalDefault` (1.5rem). The
+ * per-side object form emits inline `row-gap`/`column-gap`, which override
+ * this shorthand.
+ */
+.ap-grid {
+    gap: var(--wp--style--block-gap, 1.5rem);
+}
+
 .ap-grid-item {
     display: flex;
     flex-grow: 1;

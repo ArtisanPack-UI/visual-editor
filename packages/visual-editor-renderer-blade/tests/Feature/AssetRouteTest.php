@@ -19,6 +19,26 @@ it( 'serves the bundled block-library stylesheet', function () {
 	expect( $response->streamedContent() )->toContain( '.wp-block-columns' );
 } );
 
+it( 'emits a blockGap-driven gap rule for columns so they never render flush (#748)', function () {
+	$response = $this->get( '/vendor/visual-editor-renderer-blade/style.css' );
+
+	$response->assertOk();
+
+	expect( $response->streamedContent() )
+		->toContain( '.wp-block-columns' )
+		->toContain( 'gap: var(--wp--style--block-gap, 2em)' );
+} );
+
+it( 'emits a blockGap-driven gap rule for the grid so items never render flush (#748)', function () {
+	$response = $this->get( '/vendor/visual-editor-renderer-blade/frontend/grid.css' );
+
+	$response->assertOk();
+
+	expect( $response->streamedContent() )
+		->toContain( '.ap-grid' )
+		->toContain( 'gap: var(--wp--style--block-gap, 1.5rem)' );
+} );
+
 it( 'serves the bundled theme stylesheet', function () {
 	$response = $this->get( '/vendor/visual-editor-renderer-blade/theme.css' );
 

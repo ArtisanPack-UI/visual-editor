@@ -45,7 +45,17 @@
 }
 
 .ap-site-editor__entity-canvas-surface {
-    flex: 1;
+    /*
+     * `flex-basis: auto` + `flex-shrink: 0` (not the bare `flex: 1`, which
+     * is `flex-basis: 0`) so the surface sizes to its CONTENT height inside
+     * the `overflow: auto` scroll body — `flex-basis: 0` clamped it to the
+     * viewport, so the theme's dark background (painted on this element via
+     * `CanvasThemeStyles`) stopped at the first screenful and every block
+     * scrolled past it showed the white `.ap-site-editor__canvas` behind.
+     * `flex-grow: 1` still stretches the surface to fill the viewport when a
+     * short template would otherwise leave a dead pale strip below it.
+     */
+    flex: 1 0 auto;
     min-height: 100%;
     /*
      * No padding / hardcoded background here (#674 follow-up). Templates
