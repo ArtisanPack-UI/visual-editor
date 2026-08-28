@@ -453,6 +453,14 @@
   * All Columns Alignment
   */
 }
+/* #748 — materialize `spacing.blockGap` as a real gap between columns so
+   they never render flush. `--wp--style--block-gap` is set per-container
+   by the renderer (author value) or inherited from theme.json; the
+   fallback matches the block's `__experimentalDefault` (2em). Mirrors
+   resources/js/visual-editor/blocks/columns/columns.css. */
+.wp-block-columns {
+  gap: var(--wp--style--block-gap, 2em);
+}
 .wp-block-columns.are-vertically-aligned-top {
   align-items: flex-start;
 }
