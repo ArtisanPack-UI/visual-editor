@@ -45,7 +45,7 @@ There are a ton of different ways to contribute to ArtisanPack UI Visual Editor 
 Before contributing, make sure you have:
 
 - Git installed on your machine
-- PHP 8.1 or higher
+- PHP 8.3 or higher
 - Composer
 - A GitLab, GitHub, or other Git hosting account
 

@@ -8,7 +8,7 @@ For a working post in five minutes, see [[Quick Start]].
 
 ## 1. Requirements
 
-- PHP **8.2** or higher
+- PHP **8.3** or higher
 - Laravel **12.0** or higher
 - Node 18+ and a Vite-based asset pipeline
 - `tailwindcss` **^4.0.0** loaded at the page level

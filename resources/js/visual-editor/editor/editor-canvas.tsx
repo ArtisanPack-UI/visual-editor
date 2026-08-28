@@ -41,11 +41,12 @@ import { useMemo } from 'react';
 
 import { canvasColorTokenStyle } from './canvas-color-tokens';
 import { canvasStyles } from './canvas-styles';
-import { ChromeBlocks } from './composed-view/ChromeBlocks';
+import { ChromeBlocks } from './composed-view/chrome-blocks';
 import { ComposedViewRibbon } from './composed-view/composed-view-ribbon';
 import { PostTitle } from './post-title';
 import { ROOT_CANVAS_LAYOUT } from '../editor-settings';
 import { TEXT_DOMAIN } from '../vendor/i18n';
+import { scopeGlobalStylesCss } from '../site-editor/scope-global-styles-css';
 import { useThemeGlobalStylesCss } from '../site-editor/use-theme-global-styles-css';
 import { useThemeGlobalStylesSettings } from '../site-editor/use-theme-global-styles-settings';
 
@@ -151,24 +152,58 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
     // host rule on `body` / `.editor-styles-wrapper` keeps
     // out-specifying it.
     const themeBase = useThemeGlobalStylesSettings(apiBase);
+    // Derive the canvas color tokens from the *merged* styles (theme
+    // defaults + the user's site-editor palette override), not the theme
+    // defaults alone — otherwise a palette customized in the Styles panel
+    // is served only in the `/css` payload, which the deliberately
+    // higher-specificity `body.editor-styles-wrapper` painting rule
+    // out-weighs, and the canvas keeps the theme-default colors (#M1).
     const colorTokens = useMemo(
-        () => canvasColorTokenStyle(themeBase?.styles),
+        () => canvasColorTokenStyle(themeBase?.mergedStyles ?? themeBase?.styles),
         [themeBase]
     );
 
+    // #700 — the emitter compiles a theme's *applied* top-level styles
+    // (`styles.typography.fontFamily` and friends, merged with the user's
+    // site-editor customizations) onto `:root`. In this iframe canvas
+    // `:root` is the iframe's own `<html>`, so those declarations only
+    // *inherit* down to `.editor-styles-wrapper` — where the package's
+    // own direct `DEFAULT_CANVAS_STYLES` declarations (font-family etc.)
+    // out-specify the inherited value and the theme font never shows.
+    //
+    // Rewrite `:root` → `.editor-styles-wrapper` before injection, exactly
+    // as the site editor's inline canvas does ({@see scopeGlobalStylesCss}),
+    // so the applied styles land on the same element as the package
+    // baseline and win on source order (the theme sheet is appended last).
+    // This also brings the two editing surfaces to visual parity. The
+    // `--wp--preset--*` tokens the same block declares move to the canvas
+    // surface too and are still inherited by every block; the #695 color
+    // tokens keep their `:root`/body specificity edge, so canvas colors
+    // are unaffected.
+    const scopedThemeCss = useMemo(
+        () =>
+            themeCss === undefined || themeCss === ''
+                ? themeCss
+                : scopeGlobalStylesCss(themeCss),
+        [themeCss]
+    );
+
     const styles = useMemo(() => {
-        if (colorTokens === null && (themeCss === undefined || themeCss === '')) {
+        if (
+            colorTokens === null &&
+            (scopedThemeCss === undefined || scopedThemeCss === '')
+        ) {
             return canvasStyles;
         }
 
         return [
             ...canvasStyles,
             ...(colorTokens === null ? [] : [colorTokens]),
-            ...(themeCss === undefined || themeCss === ''
+            ...(scopedThemeCss === undefined || scopedThemeCss === ''
                 ? []
-                : [{ css: themeCss }]),
+                : [{ css: scopedThemeCss }]),
         ];
-    }, [themeCss, colorTokens]);
+    }, [scopedThemeCss, colorTokens]);
 
     // Chrome sits as siblings of the block list inside the iframe. The
     // previews mount isolated block-editor stores of their own, so the

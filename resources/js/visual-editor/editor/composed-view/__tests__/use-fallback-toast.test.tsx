@@ -9,6 +9,7 @@ import type { AppliedTemplateState } from '../use-applied-template';
 interface HarnessProps {
     viewMode: 'content' | 'with-template';
     state: AppliedTemplateState;
+    template?: string;
 }
 
 function Harness(props: HarnessProps): JSX.Element {
@@ -159,6 +160,45 @@ describe('useComposedFallbackToast', () => {
                     'The template “archive-wide” is unavailable — previewing on the default template.'
                 )
             ).toBeInTheDocument();
+        });
+    });
+
+    it('announces the same error copy again for a different template', async () => {
+        // Template A errors, then — without leaving composed mode — the
+        // author picks template B, which errors too. The `error`-tone copy
+        // is template-independent, so keying the latch on the message alone
+        // would silence B's failure. The requested slug is part of the key.
+        const { rerenderHarness } = renderHarness({
+            viewMode: 'with-template',
+            state: networkError,
+            template: 'landing-a',
+        });
+
+        await waitFor(() => {
+            expect(
+                screen.getByText(
+                    'The template could not be loaded — previewing on the default template.'
+                )
+            ).toBeInTheDocument();
+        });
+
+        rerenderHarness({
+            viewMode: 'with-template',
+            state: { status: 'loading' },
+            template: 'landing-b',
+        });
+        rerenderHarness({
+            viewMode: 'with-template',
+            state: networkError,
+            template: 'landing-b',
+        });
+
+        await waitFor(() => {
+            expect(
+                screen.getAllByText(
+                    'The template could not be loaded — previewing on the default template.'
+                ).length
+            ).toBeGreaterThan(1);
         });
     });
 

@@ -21,6 +21,11 @@ import { __, sprintf } from '@wordpress/i18n';
 
 import { TEXT_DOMAIN, bootI18n } from '../vendor/i18n';
 
+import {
+    closeFontLibrary,
+    useFontLibraryOpen,
+} from '../fonts/font-library-ui-store';
+
 import type { EntityKind, SiteEditorApiConfig } from './api-client';
 import { BlockEditorBoundary } from './block-editor-boundary';
 import { CanvasFrame } from './canvas-frame';
@@ -49,6 +54,7 @@ import { usePersistedToggle } from './use-persisted-toggle';
 import { useSiteEditorRouting } from './use-site-editor-routing';
 import { registerBackgroundControls } from '../background-controls';
 import { registerArtisanPackBlocks } from '../blocks';
+import { registerInlineIconFormat } from '../formats/inline-icon/register';
 import { registerBoxShadows } from '../box-shadows/register';
 import { registerGradientBorders } from '../gradient-borders/register';
 import { registerPositioning } from '../positioning/register';
@@ -87,6 +93,12 @@ const NavigationSectionView = lazy(
     () => import('./navigation/navigation-section')
 );
 const PatternsSectionView = lazy(() => import('./patterns/patterns-section'));
+
+// #739: the Font Library modal is only reachable from a picker's "Manage
+// fonts…" button, so its chunk (modal + font preview + REST client) is split
+// out and fetched on first open rather than padding the boot bundle — the same
+// weight tradeoff the lazy sections above make.
+const FontLibraryModal = lazy(() => import('../fonts/font-library-modal'));
 
 const NAVIGATOR_STORAGE_KEY = 'ap-site-editor:navigator-open';
 const INSERTER_STORAGE_KEY = 'ap-site-editor:inserter-open';
@@ -222,6 +234,11 @@ function ensureEditorBoot(): void {
     registerBoxShadows();
     registerPositioning();
 
+    // #717 — inline-icon RichText format, mirroring the post editor so
+    // icons can be inserted inline inside any rich-text field edited in
+    // the site editor too.
+    registerInlineIconFormat();
+
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();
@@ -296,6 +313,12 @@ function SiteEditorAppShell(props: SiteEditorAppProps): JSX.Element {
         [routing.section]
     );
     const mainHeadingId = useId();
+
+    // #739: the Font Library modal is mounted once here at the shell root and
+    // opened from any font-family picker via the shared `font-library-ui-store`.
+    // Every picker across the global-styles and per-block typography panels
+    // therefore drives a single modal instance rather than mounting its own.
+    const fontLibraryOpen = useFontLibraryOpen();
 
     const activeEntityId = routing.entityId;
     const isD2Section = D2_SECTIONS.has(activeSection.id);
@@ -873,6 +896,19 @@ function SiteEditorAppShell(props: SiteEditorAppProps): JSX.Element {
                     onClose={handleCloseDialog}
                     onCreated={(entity) => handleDialogCreated(entity.id)}
                 />
+            ) : null}
+            {/* #739: single Font Library modal for the whole shell. Mounted
+              only while open (via the shared store) so its lazy chunk isn't
+              fetched until the first "Manage fonts…" click; Suspense fallback
+              is null — the brief first-open delay is preferable to padding the
+              boot bundle. */}
+            {fontLibraryOpen ? (
+                <Suspense fallback={null}>
+                    <FontLibraryModal
+                        isOpen={true}
+                        onClose={closeFontLibrary}
+                    />
+                </Suspense>
             ) : null}
             {/* H7 (#432). Stable portal target for lazy section overlays
               (CreateMenuDialog, CreatePatternDialog, etc.). Always

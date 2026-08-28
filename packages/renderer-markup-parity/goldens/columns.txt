@@ -1,5 +1,5 @@
 <div class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile">
-  <div class="wp-block-column" style="flex-basis: 60%">
+  <div class="wp-block-column ve-w-971ccacfaf" style="flex-basis: 60%">
     <p class="wp-block-paragraph">
       "Left"
     </p>
@@ -10,3 +10,5 @@
     </p>
   </div>
 </div>
+@@ renderer-instance-css @@
+.ve-w-971ccacfaf.ve-w-971ccacfaf.ve-w-971ccacfaf{flex-basis:calc(60% - var(--wp--style--block-gap, 0.5em) * 0.4)!important;flex-grow:0!important}

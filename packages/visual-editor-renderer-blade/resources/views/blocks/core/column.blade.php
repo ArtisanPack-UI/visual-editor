@@ -78,7 +78,20 @@
 		);
 	};
 
-	if ( ! empty( $attributes['width'] ) ) {
+	// A width is only ever a scalar CSS length (string) or number. Reject
+	// booleans and non-scalars — and PHP-`empty()` values (0 / '0' / '') —
+	// so a malformed width never reaches `flex-basis`. Mirrors the React /
+	// Vue `isNonEmptyWidth` + the scalar guard in `normalizeBasis`, so a
+	// `width` of `true` / `[]` / `{}` emits nothing on either side.
+	$widthIsUsable = static function ( $value ): bool {
+		return ( is_string( $value ) || is_int( $value ) || is_float( $value ) ) && ! empty( $value );
+	};
+
+	// Only emit the inline `flex-basis` when the stored width is usable and
+	// passes the shared CSS-value whitelist, so a hostile value is dropped
+	// here the same way it is dropped from the responsive `<style>` rules
+	// below.
+	if ( $widthIsUsable( $attributes['width'] ?? null ) && null !== BlockSupports::safeCssValue( (string) $attributes['width'] ) ) {
 		$styles = ( '' !== $styles ? $styles . '; ' : '' ) . 'flex-basis: ' . $normalizeBasis( $attributes['width'] )['basis'];
 	}
 
@@ -124,7 +137,7 @@
 	// the editor hasn't already written a base override through the
 	// HOC. The HOC writes responsive overrides ONLY at non-base
 	// breakpoints, so this branch picks up the "All sizes" value.
-	if ( ! empty( $attributes['width'] ) && ! isset( $responsiveWidths['base'] ) ) {
+	if ( $widthIsUsable( $attributes['width'] ?? null ) && ! isset( $responsiveWidths['base'] ) ) {
 		$responsiveWidths = [ 'base' => $attributes['width'] ] + $responsiveWidths;
 	}
 
@@ -144,6 +157,22 @@
 
 		foreach ( $responsiveWidths as $bp => $value ) {
 			if ( null === $value || '' === $value ) {
+				continue;
+			}
+
+			// A per-breakpoint width is only ever a scalar CSS length or
+			// number; skip booleans / non-scalars so `flex-basis:1`-style
+			// garbage never reaches the `<style>` block. Mirrors the JS
+			// `normalizeBasis` scalar guard.
+			if ( ! is_string( $value ) && ! is_int( $value ) && ! is_float( $value ) ) {
+				continue;
+			}
+
+			// Reject a hostile stored width before it is spliced into the
+			// raw `<style>` rule. The scope hash above is taken over the
+			// full width map, so skipping the value here never changes the
+			// `ve-w-<hash>` token (mirrors the React/Vue columnWidth guard).
+			if ( null === BlockSupports::safeCssValue( (string) $value ) ) {
 				continue;
 			}
 

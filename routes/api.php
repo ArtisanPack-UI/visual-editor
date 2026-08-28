@@ -28,6 +28,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\DynamicContentRes
 use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\DynamicContentSourcesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\SnippetController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\EntitySearchController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\Fonts\FontLibraryController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSearchController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\Icon\IconSetsManagementController;
@@ -315,6 +316,66 @@ Route::patch( 'admin/icon-sets/{prefix}', [ IconSetsManagementController::class,
 Route::delete( 'admin/icon-sets/{prefix}', [ IconSetsManagementController::class, 'destroy' ] )
 	->where( 'prefix', '[a-z0-9][a-z0-9_-]{1,31}' )
 	->name( 'visual-editor.api.admin.icon-sets.destroy' );
+
+// #634 — Font Library REST surface. Reads (installed list, provider list,
+// provider catalog) stay open to any authenticated user and carry a
+// `read_only` flag; the mutating actions (install, upload, bulk/single
+// uninstall) run through `FontPolicy`'s `manage_fonts` capability inside the
+// controller, returning a shaped JSON 403 when it is missing. Static segments
+// are declared before the `{font}` wildcard so `fonts/sources`, `fonts/upload`,
+// and `fonts/bulk-uninstall` are not swallowed by it.
+Route::get( 'fonts', [ FontLibraryController::class, 'index' ] )
+	->name( 'visual-editor.api.fonts.index' );
+
+Route::get( 'fonts/sources', [ FontLibraryController::class, 'sources' ] )
+	->name( 'visual-editor.api.fonts.sources.index' );
+
+// Catalog and preview reads reach out to the provider CDN on a cache miss, so
+// they are throttled to keep any authenticated user from turning the app into a
+// request amplifier; the mutating actions below carry a tighter limit.
+Route::get( 'fonts/sources/{provider}/catalog', [ FontLibraryController::class, 'catalog' ] )
+	->where( 'provider', '[a-z][a-z0-9_-]*' )
+	->middleware( 'throttle:120,1' )
+	->name( 'visual-editor.api.fonts.sources.catalog' );
+
+// #741 — Same-origin catalog preview. The stylesheet route emits an
+// `@font-face` for one representative face; the face route streams that
+// face's bytes through the app (reusing the provider's install-time
+// `fetchFace()`), so the modal never points a `<link>` at the provider CDN
+// and the preview stays CSP-clean.
+Route::get( 'fonts/sources/{provider}/preview/{slug}', [ FontLibraryController::class, 'previewStylesheet' ] )
+	->where( 'provider', '[a-z][a-z0-9_-]*' )
+	->where( 'slug', '[a-z0-9][a-z0-9-]*' )
+	->middleware( 'throttle:120,1' )
+	->name( 'visual-editor.api.fonts.sources.preview' );
+
+// The preview-face route streams font bytes from the provider CDN on a cache
+// miss, so it carries a tighter throttle than the other catalog reads to blunt
+// its use as a request amplifier.
+Route::get( 'fonts/sources/{provider}/preview/{slug}/{weight}/{style}', [ FontLibraryController::class, 'previewFace' ] )
+	->where( 'provider', '[a-z][a-z0-9_-]*' )
+	->where( 'slug', '[a-z0-9][a-z0-9-]*' )
+	->where( 'weight', '[1-9][0-9]{0,3}' )
+	->where( 'style', 'normal|italic' )
+	->middleware( 'throttle:60,1' )
+	->name( 'visual-editor.api.fonts.sources.preview-face' );
+
+Route::post( 'fonts', [ FontLibraryController::class, 'store' ] )
+	->middleware( 'throttle:30,1' )
+	->name( 'visual-editor.api.fonts.store' );
+
+Route::post( 'fonts/upload', [ FontLibraryController::class, 'upload' ] )
+	->middleware( 'throttle:30,1' )
+	->name( 'visual-editor.api.fonts.upload' );
+
+Route::post( 'fonts/bulk-uninstall', [ FontLibraryController::class, 'bulkUninstall' ] )
+	->middleware( 'throttle:30,1' )
+	->name( 'visual-editor.api.fonts.bulk-uninstall' );
+
+Route::delete( 'fonts/{font}', [ FontLibraryController::class, 'destroy' ] )
+	->whereNumber( 'font' )
+	->middleware( 'throttle:30,1' )
+	->name( 'visual-editor.api.fonts.destroy' );
 
 // G3 cms-framework Post + Page entity adapters — see plan 12 §4.4.
 // Both controllers resolve their model through `ResourceResolver`, so

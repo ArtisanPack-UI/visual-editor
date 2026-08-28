@@ -108,6 +108,15 @@ export function buildTemplateDeepLink(
 export function normalizeRouteBase(routeBase: string): string {
     const normalized = routeBase.replace(/\/+$/, '');
 
+    // A root mount ("/") normalizes to "" — a valid same-origin base whose
+    // in-SPA hrefs are plain root-relative paths. Guard it before the
+    // absolute-path check below, which would otherwise reject the empty
+    // string and fall back to the default route base. Only an exact "/" maps
+    // to root; "" or "//" still fall back.
+    if (normalized === '') {
+        return routeBase === '/' ? '' : SITE_EDITOR_ROUTE_BASE;
+    }
+
     if (!normalized.startsWith('/') || normalized.startsWith('//')) {
         return SITE_EDITOR_ROUTE_BASE;
     }

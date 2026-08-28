@@ -10,6 +10,8 @@
  * @since 1.2.0
  */
 
+import { safeCssValue } from './cssValue'
+
 const BASE_KEY = 'base' as const
 
 const TAILWIND_DEFAULTS: ReadonlyArray<{ key: string; minWidthPx: number }> = [
@@ -344,7 +346,23 @@ export function buildArbitraryStyles( rules: readonly ArbitraryRule[] ): string 
 
 		let body = ''
 		for ( const rule of bucket ) {
-			body += `.${ escapeSelector( rule.className ) } { ${ rule.property }: ${ rule.value }; } `
+			// The arbitrary value is spliced straight into the `<style>`
+			// body, so drop any value that fails the shared CSS-value
+			// whitelist rather than emit a rule that could close the
+			// declaration/tag and inject attacker CSS.
+			const value = safeCssValue( rule.value )
+			if ( null === value ) {
+				continue
+			}
+
+			body += `.${ escapeSelector( rule.className ) } { ${ rule.property }: ${ value }; } `
+		}
+
+		// Every rule in the bucket may have been dropped; skip the
+		// breakpoint so we never emit an empty base body or a hollow
+		// `@media` block.
+		if ( '' === body ) {
+			continue
 		}
 
 		if ( BASE_KEY === bp ) {

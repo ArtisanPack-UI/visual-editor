@@ -228,3 +228,59 @@ it( 'multiple columns with the same width payload only emit one rule set', funct
 	// rule set in the consolidated style block.
 	expect( substr_count( $rendered, 'flex-basis:calc(50%' ) )->toBe( 1 );
 } );
+
+/**
+ * #720 — a hostile stored width must be dropped before it is spliced into
+ * the raw `<style data-ve-responsive>` block. With no surviving rule the
+ * `ve-w-<hash>` scope class is not attached to the wrapper either.
+ */
+it( 'drops a hostile column width so it never reaches the stylesheet', function () {
+	$tree = [
+		[
+			'clientId'    => 'col-1',
+			'name'        => 'artisanpack/column',
+			'attributes'  => [
+				'width' => '10px}body{display:none',
+			],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	// The only width is hostile, so no rule survives: no responsive style
+	// block, no `ve-w-<hash>` scope class, and the raw payload appears
+	// nowhere — not even in the (escaped) inline style attribute.
+	expect( $rendered )->not->toContain( '10px}body' );
+	expect( $rendered )->not->toContain( 've-w-' );
+	expect( $rendered )->not->toContain( '<style data-ve-responsive>' );
+} );
+
+it( 'keeps a safe base width while dropping a hostile per-breakpoint override', function () {
+	$tree = [
+		[
+			'clientId'    => 'col-1',
+			'name'        => 'artisanpack/column',
+			'attributes'  => [
+				'width'      => 50,
+				'responsive' => [
+					'width' => [ 'md' => '25%}html{opacity:0' ],
+				],
+			],
+			'innerBlocks' => [],
+		],
+	];
+
+	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
+
+	// Isolate the responsive style block so the assertions target the
+	// column-width emission, not the global stylesheet.
+	preg_match( '#<style data-ve-responsive>(.*?)</style>#s', $rendered, $matches );
+	$responsive = $matches[1] ?? '';
+
+	// The safe base rule survives; the hostile md override is skipped, so
+	// no `@media` block and no injected declaration are emitted.
+	expect( $responsive )->toContain( 'flex-basis:calc(50% - var(--wp--style--block-gap, 0.5em) * 0.5)!important' );
+	expect( $responsive )->not->toContain( '@media' );
+	expect( $responsive )->not->toContain( 'html{opacity:0' );
+} );

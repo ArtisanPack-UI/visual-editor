@@ -18,6 +18,7 @@
 
 import { useCallback, useRef, useState } from 'react';
 import { parse } from '@wordpress/blocks';
+import { __ } from '@wordpress/i18n';
 
 import {
     listEntities,
@@ -26,6 +27,7 @@ import {
     type EntityRecord,
     type SiteEditorApiConfig,
 } from '../api-client';
+import { TEXT_DOMAIN } from '../../vendor/i18n';
 
 export interface PatternUsageOptions {
     apiConfig: SiteEditorApiConfig;
@@ -46,6 +48,13 @@ export interface UsePatternUsageResult {
 }
 
 const TARGET_KINDS: ReadonlyArray<EntityKind> = ['template', 'template-part'];
+
+/**
+ * Page size for the entity list walk. A full page means there may be more
+ * records than a single fetch can see, so the count fails loud rather than
+ * under-counting (see the usage loop).
+ */
+const PATTERN_USAGE_PAGE_SIZE = 100;
 
 const EMPTY_USAGE: UsageBreakdown = {
     total: 0,
@@ -222,11 +231,23 @@ export function usePatternUsage(
                 for (const kind of TARGET_KINDS) {
                     // H7 (#432). H6's list endpoints return a flat
                     // array — no pagination wrapper, so a single fetch
-                    // sees every record. If H6 grows pagination later
-                    // this loop reverts to walking pages.
+                    // sees every record. If the response fills the page
+                    // there may be more records the count would miss, and
+                    // an under-count can greenlight deleting an in-use
+                    // pattern — so fail loud rather than under-count. If
+                    // H6 grows pagination later, walk pages here instead.
                     const list = await listEntities(apiConfig, kind, {
-                        perPage: 100,
+                        perPage: PATTERN_USAGE_PAGE_SIZE,
                     });
+
+                    if (list.length >= PATTERN_USAGE_PAGE_SIZE) {
+                        throw new Error(
+                            __(
+                                'Too many templates to count pattern usage reliably.',
+                                TEXT_DOMAIN
+                            )
+                        );
+                    }
 
                     for (const summary of list) {
                         let blocks = blocksFromRecord(summary);
@@ -258,7 +279,10 @@ export function usePatternUsage(
                                 throw caught instanceof Error
                                     ? caught
                                     : new Error(
-                                        'Failed to load entity content for usage count.'
+                                        __(
+                                            'Failed to load entity content for usage count.',
+                                            TEXT_DOMAIN
+                                        )
                                     );
                             }
                         }
@@ -293,7 +317,7 @@ export function usePatternUsage(
                 const message =
                     caught instanceof Error
                         ? caught.message
-                        : 'Failed to count pattern usage.';
+                        : __('Failed to count pattern usage.', TEXT_DOMAIN);
 
                 setError(message);
 

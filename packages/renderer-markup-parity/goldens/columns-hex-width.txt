@@ -1,0 +1,9 @@
+<div class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile">
+  <div class="wp-block-column ve-w-845d99af8b" style="flex-basis: 0x1A">
+    <p class="wp-block-paragraph">
+      "A"
+    </p>
+  </div>
+</div>
+@@ renderer-instance-css @@
+.ve-w-845d99af8b.ve-w-845d99af8b.ve-w-845d99af8b{flex-basis:0x1A!important;flex-grow:0!important}

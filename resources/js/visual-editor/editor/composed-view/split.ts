@@ -4,7 +4,7 @@
  * (footer).
  *
  * The composed view renders those two lists as inert block previews above
- * and below the live block canvas (see `ChromeBlocks.tsx`), so the split
+ * and below the live block canvas (see `chrome-blocks.tsx`), so the split
  * point is wherever the template's `post-content` slot sits.
  *
  * The slot is rarely a top-level sibling. The conventional template shape

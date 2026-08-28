@@ -110,6 +110,14 @@ for every page on the site.
 
 See [Global styles](site-editor/Global-Styles.md).
 
+The Typography controls here (and in every per-block/per-element style panel)
+carry a **"Manage fonts…"** entry point that opens the **Font Library** — the
+modal for browsing Google Fonts and Bunny Fonts, uploading custom faces, and
+installing self-hosted fonts. Installed families then appear in every
+font-family picker.
+
+See [Fonts](fonts.md).
+
 ### Navigation
 
 Menus and menu items. Each menu can be assigned to one or more theme-declared
@@ -241,6 +249,7 @@ overridden per-section by binding your own preview resolver in
 | Global styles | `GET /global-styles/lookup`, `GET /global-styles/base`, `GET /global-styles/css`, `GET/PUT /global-styles/{id}` |
 | Navigation | `GET/POST /menus`, `GET/PUT/DELETE /menus/{id}`, `GET/POST/PUT/DELETE /menu-items`, `GET /menu-locations` |
 | Entity search | `GET /search` — backs the link-control picker across all entity types |
+| Fonts | `GET /fonts`, `GET /fonts/sources`, `GET /fonts/sources/{provider}/catalog`, `GET /fonts/sources/{provider}/preview/{slug}`, `GET /fonts/sources/{provider}/preview/{slug}/{weight}/{style}`, `POST /fonts`, `POST /fonts/upload`, `POST /fonts/bulk-uninstall`, `DELETE /fonts/{font}` — the Font Library (reads open + `read_only`; writes gated by `manage_fonts`) |
 
 All under the `/visual-editor/api/` prefix, all behind the API middleware
 stack.
@@ -282,5 +291,6 @@ chain — user records win on the same slug. See [Templates §4](site-editor/Tem
 - [Access Gate](site-editor/Access-Gate.md) — site-editor access gate contract
 - [Composed view](post-editor/Composed-View.md) — the post-editor surface that deep-links here
 - [Content model](content-model.md) — `HasBlockContent` and authorization
+- [Fonts](fonts.md) — the Font Library launched from the Typography controls
 - [Renderers](renderers.md) — render saved entities on the public site
 - [Photo Grid](photo-grid.md) — container-level Photo Grid setting (group / columns / grid). theme.json defaults live under `settings.artisanpack.photoGrid` and ride the same global-styles plumbing.

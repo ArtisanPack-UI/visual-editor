@@ -32,6 +32,7 @@ import {
 
 import { TEXT_DOMAIN } from '../../vendor/i18n';
 
+import { InstalledFontFacesStyle } from './installed-font-faces-style';
 import type { GlobalStylesDraft } from './use-global-styles-editor';
 
 import './style-book-canvas.css';
@@ -211,6 +212,7 @@ export function StyleBookCanvas(props: StyleBookCanvasProps): JSX.Element {
             className="ap-site-editor__style-book"
             data-testid="ap-site-editor-style-book"
         >
+            <InstalledFontFacesStyle />
             <div
                 className="ap-site-editor__style-book-variations"
                 role="radiogroup"

@@ -137,6 +137,19 @@ describe('parseSiteEditorPath', () => {
 
             expect(warn).not.toHaveBeenCalled();
         });
+
+        it('supports a root mount by treating "/" as an empty base without warning', () => {
+            expect(parseSiteEditorPath('/patterns', '/')).toEqual({
+                section: 'patterns',
+                entityId: null,
+            });
+            expect(parseSiteEditorPath('/templates/7', '/')).toEqual({
+                section: 'templates',
+                entityId: '7',
+            });
+
+            expect(warn).not.toHaveBeenCalled();
+        });
     });
 });
 

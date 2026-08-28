@@ -81,12 +81,17 @@ export function GridBlock({ attributes, children }: BlockRendererProps): JSX.Ele
     const className = attrString(attributes.className);
     const layoutMode = attrString(attributes.layoutMode);
     const isMasonry = 'masonry' === layoutMode;
+    // Photo Grid wrapper scope stamped by `stampPhotoGridScopes()` (#714),
+    // emitted after the layout class and before the author `className`, the
+    // same position the grid Blade partial merges it.
+    const photoGridScope = attrString(attributes._vePhotoGridScope);
 
     const classes = classList([
         'ap-grid',
         `ap-grid-has-${baseColumns}-base-columns`,
         ...responsiveSpanClasses(responsiveColumns, 'columns', 'ap-grid-has'),
         isMasonry ? 'ap-grid-layout-masonry' : 'ap-grid-layout-fixed',
+        photoGridScope !== '' ? photoGridScope : null,
         className,
     ]);
 

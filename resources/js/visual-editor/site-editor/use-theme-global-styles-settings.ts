@@ -31,9 +31,21 @@ import { fetchGlobalStylesBase, type GlobalStylesBase } from './styles/global-st
 export interface GlobalStylesBasePayload {
     settings: Record<string, unknown>;
     styles: Record<string, unknown>;
+    /**
+     * Theme defaults deep-merged with the active theme's DB style override
+     * (the resolver's file → DB view). Falls back to `styles` when the
+     * server predates the field. The canvas color tokens derive from this so
+     * a site-editor palette customization reaches the post-editor canvas
+     * (#M1).
+     */
+    mergedStyles: Record<string, unknown>;
 }
 
-const EMPTY: GlobalStylesBasePayload = { settings: {}, styles: {} };
+const EMPTY: GlobalStylesBasePayload = {
+    settings: {},
+    styles: {},
+    mergedStyles: {},
+};
 
 /**
  * Wraps {@link fetchGlobalStylesBase}'s throw-on-failure contract in
@@ -46,6 +58,10 @@ function safeFetch(apiBase: string): Promise<GlobalStylesBasePayload> {
         .then((base: GlobalStylesBase) => ({
             settings: base.settings ?? {},
             styles: base.styles ?? {},
+            // Prefer the merged (file → DB) styles so user palette
+            // customizations reach the canvas; fall back to the theme
+            // defaults on an older server that predates the field.
+            mergedStyles: base.mergedStyles ?? base.styles ?? {},
         }))
         .catch(() => EMPTY);
 }

@@ -1,0 +1,9 @@
+<div class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile has-photo-grid photo-grid-2fc1bd5ccfa6">
+  <div class="wp-block-column">
+    <p class="wp-block-paragraph">
+      "Photo grid column"
+    </p>
+  </div>
+</div>
+@@ renderer-instance-css @@
+.photo-grid-2fc1bd5ccfa6{--ap-photo-grid-fit:contain;--ap-photo-grid-position:top left;}

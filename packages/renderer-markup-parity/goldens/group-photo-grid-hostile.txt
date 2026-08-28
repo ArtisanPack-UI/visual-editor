@@ -1,0 +1,7 @@
+<div class="wp-block-group is-layout-flow wp-block-group-is-layout-flow has-photo-grid photo-grid-e22ca5d786c2">
+  <p class="wp-block-paragraph">
+    "Hostile grid"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.photo-grid-e22ca5d786c2{--ap-photo-grid-fit:cover;--ap-photo-grid-position:50% 50%;}

@@ -66,6 +66,8 @@ The surface for editing site-wide chrome — templates, template parts, global s
 - [[site-editor/Global Styles]] — `theme.json`-backed global styles, schema pinning, and CSS emission
 - [[site-editor/Navigation]] — Menus, items, and theme-declared menu locations
 - [[site-editor/Patterns]] — Synced and unsynced block patterns
+- [[Fonts]] — The Font Library: browse, upload, and self-host fonts (v1.7)
+- [[Font Providers]] — Implement `FontProvider` and register a custom font catalog (v1.7)
 
 ### Blocks
 
@@ -177,4 +179,4 @@ For issues, feature requests, and contributions:
 
 ---
 
-*This documentation covers visual-editor v1.6.0*
+*This documentation covers visual-editor v1.7.0*

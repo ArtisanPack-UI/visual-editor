@@ -1363,6 +1363,33 @@ class BlockSupports
 	}
 
 	/**
+	 * The one grammar for "what characters may appear in a user-authored
+	 * CSS value written into a `<style>` block". Everything a length,
+	 * percentage, `calc()` expression or CSS custom property needs —
+	 * letters, digits, whitespace, and `_ + - * / . , ( ) % #` — and
+	 * nothing else. The CSS-structural characters that could close a
+	 * declaration, rule, or the `<style>` element itself
+	 * (`; { } < > : " ' \ @`) are deliberately absent, so a stored value
+	 * can neither inject a sibling declaration/rule nor break out of the
+	 * tag.
+	 *
+	 * Shared by {@see self::sanitizeCssValue()} (strips offending chars)
+	 * and {@see self::safeCssValue()} (rejects the whole value). Mirrored
+	 * by the `safeCssValue` helper in the React and Vue renderers so all
+	 * three drop the same hostile values (kept honest by the
+	 * `renderer-markup-parity` suite).
+	 *
+	 * The whitespace set is spelled out as the ASCII characters
+	 * (` \t\n\r\f`) rather than `\s` on purpose: PCRE `\s` (this pattern
+	 * carries no `/u`) and ECMAScript `\s` disagree on Unicode whitespace
+	 * (e.g. U+00A0), which would let JS keep a value Blade drops. The
+	 * literal class keeps all three renderers byte-identical. `/u` is also
+	 * deliberately absent so an invalid-UTF-8 value fails the match as a
+	 * disallowed byte instead of erroring `preg_match` into a false pass.
+	 */
+	private const CSS_VALUE_DISALLOWED = '/[^a-zA-Z0-9_+\-*\/.,()%#\t\n\r\f ]/';
+
+	/**
 	 * Whitelists characters legal in a CSS value expression — letters,
 	 * digits, units, calc() operators (`+`, `-`, `*`, `/`), CSS var
 	 * punctuation, whitespace. Drops everything else so a stored block
@@ -1379,7 +1406,50 @@ class BlockSupports
 	 */
 	protected static function sanitizeCssValue( string $value ): string
 	{
-		return (string) preg_replace( '/[^a-zA-Z0-9_+\-*\/.,()%#\s]/', '', $value );
+		return (string) preg_replace( self::CSS_VALUE_DISALLOWED, '', $value );
+	}
+
+	/**
+	 * Validate a single user-authored CSS value against the shared
+	 * whitelist ({@see self::CSS_VALUE_DISALLOWED}) and return it
+	 * unchanged when it is safe, or `null` when it is empty or carries a
+	 * disallowed character.
+	 *
+	 * Unlike {@see self::sanitizeCssValue()}, which strips offending
+	 * characters and keeps a (possibly mangled) value, this rejects the
+	 * whole value so the caller can drop the rule entirely. It backs the
+	 * paths that splice a value straight into a `<style>` block without a
+	 * downstream escape — the column-width responsive rules and the flex
+	 * arbitrary-value emitter — where a mangled fragment is never wanted.
+	 *
+	 * The slash and asterisk are whitelisted characters (they are legal
+	 * `calc()` operators), so the CSS comment-open, comment-close and
+	 * double-slash digraphs are rejected explicitly: an unterminated
+	 * comment-open would swallow every following rule in the shared
+	 * `<style>` block, and a double slash is the protocol-relative prefix
+	 * a `url()` would need. No length, percentage or `calc()` value
+	 * contains those sequences, so dropping them costs nothing. This
+	 * helper is therefore safe only for non-URL properties; do not reuse
+	 * it for a value that lands on a fetching property (`background`,
+	 * `cursor`, `mask`, …).
+	 *
+	 * @since 1.7.0
+	 */
+	public static function safeCssValue( string $value ): ?string
+	{
+		if ( '' === trim( $value ) ) {
+			return null;
+		}
+
+		if ( 1 === preg_match( self::CSS_VALUE_DISALLOWED, $value ) ) {
+			return null;
+		}
+
+		if ( str_contains( $value, '/*' ) || str_contains( $value, '*/' ) || str_contains( $value, '//' ) ) {
+			return null;
+		}
+
+		return $value;
 	}
 
 	/**

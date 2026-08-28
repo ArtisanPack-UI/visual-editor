@@ -63,6 +63,8 @@ import {
 import { registerBindingsAttribute } from '../bindings/register-attribute';
 import { registerBindingsPanel } from '../bindings/with-bindings-panel';
 import { registerDynamicContent } from '../dynamic-content';
+import { registerDynamicLinkFormat } from '../formats/dynamic-link/register';
+import { registerInlineIconFormat } from '../formats/inline-icon/register';
 import { StateInspectorSync } from '../states/StateInspectorSync';
 import { StateWriteInterceptor } from '../states/state-write-interceptor';
 import { ConvertToPatternControl } from './convert-to-pattern-control';
@@ -258,6 +260,18 @@ function registerOnce(): void {
     registerGradientBorders();
     registerBoxShadows();
     registerPositioning();
+    // #717 — register the inline-icon RichText format so authors can drop
+    // an icon at the caret inside any editable rich-text field (headings,
+    // paragraphs, buttons, list items, captions). Runs before blocks so
+    // the format's toolbar button is available the first time any
+    // RichText renders.
+    registerInlineIconFormat();
+    // #662 — swap the built-in `core/link` edit for a Dynamic-Content-aware
+    // one so the inline RichText link popover (paragraphs, headings, list
+    // items) gets a "Dynamic Content" tab. Runs after `@wordpress/format-
+    // library`'s side-effect import (top of file) has registered core/link,
+    // so the unregister-then-reregister swap finds it.
+    registerDynamicLinkFormat();
     // I7 (#415): register all artisanpack/* blocks and set the default
     // block to artisanpack/paragraph. Core blocks are no longer loaded.
     registerArtisanPackBlocks();
@@ -866,7 +880,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     // The block canvas stays exactly as it is: raw content, one
     // BlockEditorProvider, one tree, the existing persistence loop. The
     // template's chrome renders as inert block previews *inside* the same
-    // iframe (see `ChromeBlocks.tsx`), each mounting its own isolated
+    // iframe (see `chrome-blocks.tsx`), each mounting its own isolated
     // block-editor store. Nothing here touches the content provider's
     // `value`, so selection, undo history, and unsaved-changes survive a
     // toggle by construction — which is what the earlier composed-tree
@@ -894,7 +908,11 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     // #624 — announce a fallback once per toggle-on event. Lives beside the
     // selection below rather than inside it because the selection is a
     // `useMemo` and firing a toast from one would be a render side effect.
-    useComposedFallbackToast({ viewMode, state: appliedTemplateState });
+    useComposedFallbackToast({
+        viewMode,
+        state: appliedTemplateState,
+        template: documentType === 'page' ? template : undefined,
+    });
 
     const composedChrome: {
         header: readonly BlockInstance[];

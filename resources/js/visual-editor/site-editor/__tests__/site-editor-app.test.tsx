@@ -20,6 +20,14 @@ vi.mock('../../background-controls', () => ({
     registerBackgroundControls: (): void => undefined,
 }));
 
+// #717: the inline-icon format register pulls `@wordpress/block-editor`
+// (via its `edit` component) into the graph, same jsdom-resolution issue
+// as the block/background-controls barrels above. The shell test only
+// checks that `ensureEditorBoot()` runs the registrars.
+vi.mock('../../formats/inline-icon/register', () => ({
+    registerInlineIconFormat: (): void => undefined,
+}));
+
 // #436: the shell now imports `BlockEditorBoundary` directly to wrap
 // the D2 canvas + inspector in one `BlockEditorProvider`. The real
 // boundary pulls `@wordpress/block-editor` (and its `block-compare` →

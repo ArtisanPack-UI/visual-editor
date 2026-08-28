@@ -12,11 +12,29 @@
  * editor shell — top bar, navigator, inspector — in by the theme's root
  * padding.
  *
- * Rewriting `:root` to `.editor-styles-wrapper` is a strict narrowing:
- * the tokens land on the canvas surface element instead of the
- * document root, every block in the canvas still inherits them, and
- * theme root spacing applies where a theme author expects it.
- * Specificity is unchanged — both selectors weigh (0, 1, 0).
+ * Rewriting a bare `:root` to `.editor-styles-wrapper` narrows the tokens
+ * onto the canvas surface element instead of the document root: every
+ * block in the canvas still inherits them, and theme root spacing applies
+ * where a theme author expects it. Specificity is unchanged — both
+ * selectors weigh (0, 1, 0).
+ *
+ * A *compound* `:root` selector — `:root.dark`, `:root[data-theme="dark"]`,
+ * … — is rewritten to `:where(html<suffix>) .editor-styles-wrapper`
+ * instead. Themes toggle their dark-mode class/attribute on `<html>`, and
+ * the site editor mounts inline under that same `<html>`, so scoping the
+ * rule to a `html<suffix>` ancestor keeps dark-mode overrides applying
+ * inside the canvas; the zero-specificity `:where()` leaves the weight at
+ * (0, 1, 0) so it behaves like the bare-`:root` rewrite. (Rewriting it to
+ * `.editor-styles-wrapper<suffix>` — the pre-#M3 behavior — silently
+ * stopped matching, because the class never lands on the wrapper itself.)
+ *
+ * Scope is deliberately limited to `:root`. A theme's hand-authored
+ * `themes/{slug}/style.css` can also carry bare `html { … }` / `body { … }`
+ * / element rules; those are **not** rewritten here and, in the inline site
+ * editor, style the editor shell unscoped (the same bug class #679 fixed
+ * for `:root`). Full selector-list scoping is intentionally out of scope
+ * for this pass to avoid a fragile in-house CSS parser in a rendering path;
+ * it is tracked as a follow-up.
  *
  * The rewrite deliberately skips `:root` occurrences inside comments,
  * quoted strings, and unquoted `url()` values, so a `content` string or
@@ -87,16 +105,20 @@ export function scopeGlobalStylesCss(css: string): string {
         // inside the image payload would corrupt the asset. Quoted
         // URLs fall through to the string skipper above, which tracks
         // escapes and so handles a `)` inside the URL correctly.
+        //
+        // The `url(` must be a function start, not the tail of a longer
+        // ident (`blur(`, a `--my-url(` custom name): a preceding ident
+        // character disqualifies it.
         if (
             (char === 'u' || char === 'U') &&
-            URL_FUNCTION.test(css.slice(index, index + 4))
+            URL_FUNCTION.test(css.slice(index, index + 4)) &&
+            !(index > 0 && IDENT_CHAR.test(css[index - 1]))
         ) {
             out += css.slice(index, index + 4);
             index += 4;
 
             if (!startsQuotedValue(css, index)) {
-                const end = css.indexOf(')', index);
-                const stop = -1 === end ? css.length : end + 1;
+                const stop = findUnquotedUrlEnd(css, index);
                 out += css.slice(index, stop);
                 index = stop;
             }
@@ -104,15 +126,34 @@ export function scopeGlobalStylesCss(css: string): string {
             continue;
         }
 
-        if (char === ':' && css.startsWith(ROOT_SELECTOR, index)) {
+        if (char === ':' && matchesRootSelector(css, index)) {
             const next = css[index + ROOT_SELECTOR.length];
 
-            if (next === undefined || !IDENT_CHAR.test(next)) {
-                out += CANVAS_SCOPE_SELECTOR;
-                index += ROOT_SELECTOR.length;
+            // `:rootXXX` is a different identifier — leave it untouched.
+            if (next !== undefined && IDENT_CHAR.test(next)) {
+                out += char;
+                index += 1;
 
                 continue;
             }
+
+            // A compound `:root` selector (`:root.dark`, `:root[…]`, a
+            // pseudo) keeps its suffix on an `html` ancestor so themes that
+            // toggle the class/attribute on `<html>` still reach the canvas.
+            if (next === '.' || next === '#' || next === '[' || next === ':') {
+                const suffixEnd = readCompoundSuffix(css, index + ROOT_SELECTOR.length);
+                const suffix = css.slice(index + ROOT_SELECTOR.length, suffixEnd);
+                out += `:where(html${suffix}) ${CANVAS_SCOPE_SELECTOR}`;
+                index = suffixEnd;
+
+                continue;
+            }
+
+            // Bare `:root`.
+            out += CANVAS_SCOPE_SELECTOR;
+            index += ROOT_SELECTOR.length;
+
+            continue;
         }
 
         out += char;
@@ -120,6 +161,130 @@ export function scopeGlobalStylesCss(css: string): string {
     }
 
     return out;
+}
+
+/**
+ * Case-insensitive `:root` match at `index` (CSS pseudo-class names are
+ * case-insensitive, so a theme emitting `:ROOT` scopes the same way).
+ *
+ * @param css   CSS being scanned.
+ * @param index Index of the `:` believed to open the selector.
+ *
+ * @return True when `:root` begins at `index`.
+ */
+function matchesRootSelector(css: string, index: number): boolean {
+    return (
+        css.slice(index, index + ROOT_SELECTOR.length).toLowerCase() === ROOT_SELECTOR
+    );
+}
+
+/**
+ * Returns the index just past the closing `)` of an unquoted `url()`
+ * value, honouring `\)` escapes so an escaped paren inside the URL doesn't
+ * end the skip early. Falls back to the end of the input for an
+ * unterminated value.
+ *
+ * @param css   CSS being scanned.
+ * @param index Index just past the `url(`.
+ *
+ * @return Index one past the closing `)`.
+ */
+function findUnquotedUrlEnd(css: string, index: number): number {
+    let cursor = index;
+
+    while (cursor < css.length) {
+        const char = css[cursor];
+
+        if (char === '\\') {
+            cursor += 2;
+
+            continue;
+        }
+
+        if (char === ')') {
+            return cursor + 1;
+        }
+
+        cursor += 1;
+    }
+
+    return css.length;
+}
+
+/**
+ * Reads the compound-selector suffix that immediately follows `:root`
+ * (class, id, attribute, and pseudo fragments) and returns the index one
+ * past it. Attribute selectors and functional pseudos are traversed with
+ * their quotes/parens balanced so a `]`, `)`, or combinator inside them
+ * doesn't end the suffix early. Stops at the first combinator or selector
+ * terminator (whitespace, `,`, `{`, `>`, `+`, `~`).
+ *
+ * @param css   CSS being scanned.
+ * @param start Index just past the `:root`.
+ *
+ * @return Index one past the compound suffix.
+ */
+function readCompoundSuffix(css: string, start: number): number {
+    let cursor = start;
+
+    while (cursor < css.length) {
+        const char = css[cursor];
+
+        if (char === '.' || char === '#' || char === ':' || IDENT_CHAR.test(char)) {
+            cursor += 1;
+
+            continue;
+        }
+
+        if (char === '[') {
+            cursor += 1;
+
+            while (cursor < css.length && css[cursor] !== ']') {
+                if (css[cursor] === '"' || css[cursor] === "'") {
+                    cursor = findStringEnd(css, cursor);
+
+                    continue;
+                }
+
+                cursor += 1;
+            }
+
+            if (cursor < css.length) {
+                cursor += 1;
+            }
+
+            continue;
+        }
+
+        if (char === '(') {
+            let depth = 1;
+            cursor += 1;
+
+            while (cursor < css.length && depth > 0) {
+                const inner = css[cursor];
+
+                if (inner === '"' || inner === "'") {
+                    cursor = findStringEnd(css, cursor);
+
+                    continue;
+                }
+
+                if (inner === '(') {
+                    depth += 1;
+                } else if (inner === ')') {
+                    depth -= 1;
+                }
+
+                cursor += 1;
+            }
+
+            continue;
+        }
+
+        break;
+    }
+
+    return cursor;
 }
 
 /**

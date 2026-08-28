@@ -1,0 +1,7 @@
+<div class="ap-grid ap-grid-has-3-base-columns ap-grid-layout-fixed has-photo-grid photo-grid-ed2664086ea5">
+  <p class="wp-block-paragraph">
+    "Photo grid grid"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.photo-grid-ed2664086ea5{--ap-photo-grid-fit:cover;--ap-photo-grid-position:50% 50%;--ap-photo-grid-aspect:4/3;}

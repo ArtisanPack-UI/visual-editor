@@ -67,27 +67,127 @@ function readGolden(name: string): string {
 }
 
 /**
- * Strips the renderer-injected `<style data-ve-*>` blocks.
- *
- * This check covers block markup only. The layout baseline / global-styles
- * CSS is a known, documented divergence between Blade (which emits it from
- * `ThemeJsonTokensCompiler::compileLayoutRules()`, gated on theme.json
- * layout sizes) and the JS renderers (which ship `LAYOUT_BASELINE_CSS`), so
- * comparing it here would only encode that difference twice.
- *
- * Mirrors `stripRendererStyleTags()` in the Pest suite.
+ * Delimiter separating the canonical markup from the canonical
+ * per-instance CSS section in the golden. Mirrors
+ * `markupParityCssDelimiter()` in the Pest suite.
  */
-function stripRendererStyleTags(html: string): string {
-    return html.replace(/<style\s+data-ve-[^>]*>[\s\S]*?<\/style>/g, '');
+const CSS_SECTION_DELIMITER = '@@ renderer-instance-css @@';
+
+/**
+ * Renderer `<style data-ve-*>` attributes carrying the baseline /
+ * global-styles / theme layer. That layer is a known, documented
+ * divergence — Blade compiles it from theme.json
+ * (`ThemeJsonTokensCompiler::compileLayoutRules()`), the JS renderers ship
+ * a static `LAYOUT_BASELINE_CSS` — so it is dropped rather than compared,
+ * to avoid encoding the same difference twice. Mirrors
+ * `markupParityGlobalStyleAttrs()` in the Pest suite.
+ */
+const GLOBAL_STYLE_ATTRS = [
+    'data-ve-global-styles',
+    'data-ve-layout-baseline',
+    'data-ve-theme',
+    'data-ve-theme-tokens',
+    'data-ve-block-library',
+    'data-ve-block-library-theme',
+];
+
+function collapseWhitespace(value: string): string {
+    return value.replace(/[ \t\r\n\f\v]+/g, ' ');
+}
+
+/**
+ * Splits the renderer-injected style tags off the markup and returns the
+ * markup (every `<style>/<link>/<script data-ve-*>` tag removed) plus the
+ * captured per-instance CSS bodies. Blade folds column-width, photo-grid,
+ * visibility, and flex-arbitrary rules into one `<style data-ve-responsive>`
+ * block; the React/Vue renderers split them across several tags. Capturing
+ * the bodies (minus the global/baseline layer) lets the rule *bodies* be
+ * compared regardless of which tag each renderer delivers them in. Mirrors
+ * `markupParityExtractCss()` in the Pest suite.
+ */
+function extractRendererCss(html: string): { markup: string; css: string } {
+    const captured: string[] = [];
+
+    let markup = html.replace(
+        /<style\s+(data-ve-[a-z-]+)(?:="[^"]*")?\s*>([\s\S]*?)<\/style>/g,
+        (_full, attr: string, body: string) => {
+            if (!GLOBAL_STYLE_ATTRS.includes(attr)) {
+                captured.push(body);
+            }
+
+            return '';
+        }
+    );
+
+    markup = markup
+        .replace(/<link\b[^>]*\sdata-ve-[a-z-]+[^>]*>/g, '')
+        .replace(/<script\b[^>]*\sdata-ve-[a-z-]+[^>]*>[\s\S]*?<\/script>/g, '');
+
+    return { markup, css: captured.join('') };
+}
+
+/**
+ * Splits a CSS string into top-level rules, tracking brace depth so an
+ * `@media (...) { ... }` block stays a single rule. Mirrors
+ * `markupParitySplitCssRules()` in the Pest suite.
+ */
+function splitCssRules(css: string): string[] {
+    const rules: string[] = [];
+    let depth = 0;
+    let start = 0;
+
+    for (let i = 0; i < css.length; i++) {
+        const ch = css[i];
+
+        if (ch === '{') {
+            depth++;
+        } else if (ch === '}') {
+            depth--;
+
+            if (depth === 0) {
+                rules.push(css.slice(start, i + 1));
+                start = i + 1;
+            }
+        }
+    }
+
+    const tail = css.slice(start);
+
+    if (tail.trim() !== '') {
+        rules.push(tail);
+    }
+
+    return rules;
+}
+
+/**
+ * Canonicalizes the captured per-instance CSS: split into top-level rules,
+ * collapse insignificant whitespace, drop empties, and sort so delivery
+ * differences (Blade folds every rule into one `<style data-ve-responsive>`
+ * in push order; the JS renderers split them across tags in tree order)
+ * never register as divergence — only a differing rule body does. Mirrors
+ * `markupParityCanonicalCss()` in the Pest suite.
+ */
+function canonicalRendererCss(css: string): string {
+    return splitCssRules(css)
+        .map((rule) => collapseWhitespace(rule).trim())
+        .filter((rule) => rule !== '')
+        .sort()
+        .join('\n');
+}
+
+function canonicalOutput(html: string): string {
+    const { markup, css } = extractRendererCss(html);
+    const canonicalMarkup = canonicalizeHtml(markup, DROP_CLASS_PATTERNS);
+    const canonicalCss = canonicalRendererCss(css);
+
+    return canonicalCss === ''
+        ? canonicalMarkup
+        : `${canonicalMarkup}\n${CSS_SECTION_DELIMITER}\n${canonicalCss}`;
 }
 
 function renderReact(tree: Block[]): string {
-    return canonicalizeHtml(
-        stripRendererStyleTags(
-            renderToStaticMarkup(createElement(ReactBlockTree, { tree }))
-        ),
-        DROP_CLASS_PATTERNS
-    );
+    return canonicalOutput(renderToStaticMarkup(createElement(ReactBlockTree, { tree })));
 }
 
 async function renderVue(tree: Block[]): Promise<string> {
@@ -95,10 +195,7 @@ async function renderVue(tree: Block[]): Promise<string> {
         render: () => vueH(VueBlockTree, { tree }),
     });
 
-    return canonicalizeHtml(
-        stripRendererStyleTags(await vueRenderToString(app)),
-        DROP_CLASS_PATTERNS
-    );
+    return canonicalOutput(await vueRenderToString(app));
 }
 
 describe('declared divergences', () => {
@@ -107,9 +204,11 @@ describe('declared divergences', () => {
     // token in the golden while the JS side dropped it, since preg_match()
     // reports a failed compile as `false` — indistinguishable from "no
     // match". Both sides assert compilation so the mismatch surfaces at the
-    // point it is introduced.
-    it('declares at least one pattern and compiles all of them', () => {
-        expect(DROP_CLASS_PATTERNS.length).toBeGreaterThan(0);
+    // point it is introduced. The manifest may legitimately be empty once
+    // every renderer has converged (as it is after #714), so this asserts
+    // "all declared patterns compile", not that any are declared.
+    it('compiles every declared divergence pattern', () => {
+        expect(Array.isArray(DROP_CLASS_PATTERNS)).toBe(true);
 
         for (const source of DROP_CLASS_PATTERNS) {
             expect(() => new RegExp(source)).not.toThrow();

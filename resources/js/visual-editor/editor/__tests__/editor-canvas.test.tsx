@@ -53,7 +53,10 @@ vi.mock('@wordpress/block-editor', () => ({
 let mockThemeGlobalStyles: {
     settings: Record<string, unknown>;
     styles: Record<string, unknown>;
+    mergedStyles?: Record<string, unknown>;
 } = { settings: {}, styles: {} };
+
+let mockThemeGlobalStylesCss: string | undefined;
 
 vi.mock('../../site-editor/use-theme-global-styles-settings', () => ({
     useThemeGlobalStylesSettings: (): typeof mockThemeGlobalStyles =>
@@ -61,7 +64,7 @@ vi.mock('../../site-editor/use-theme-global-styles-settings', () => ({
 }));
 
 vi.mock('../../site-editor/use-theme-global-styles-css', () => ({
-    useThemeGlobalStylesCss: (): string | undefined => undefined,
+    useThemeGlobalStylesCss: (): string | undefined => mockThemeGlobalStylesCss,
 }));
 
 vi.mock('../post-title', () => ({
@@ -422,6 +425,24 @@ describe('EditorCanvas', () => {
             expect(tokens?.css).toContain('--ap-editor-canvas-fg: #FFFFFF;');
         });
 
+        it('derives the canvas colors from the merged styles so a site-editor palette override wins (#M1)', () => {
+            mockThemeGlobalStyles = {
+                settings: {},
+                // Theme default is light…
+                styles: { color: { background: '#FFFFFF', text: '#111827' } },
+                // …but the user's site-editor palette override is dark.
+                mergedStyles: { color: { background: '#0B1220', text: '#F8FAFC' } },
+            };
+
+            renderCanvas();
+
+            const tokens = lastStyles().at(-1);
+
+            expect(tokens?.css).toContain('--ap-editor-canvas-bg: #0B1220;');
+            expect(tokens?.css).toContain('--ap-editor-canvas-fg: #F8FAFC;');
+            expect(tokens?.css).not.toContain('#FFFFFF');
+        });
+
         it('leaves the styles bundle untouched when the theme declares no colors', () => {
             mockThemeGlobalStyles = { settings: {}, styles: {} };
 
@@ -438,6 +459,66 @@ describe('EditorCanvas', () => {
                 settings: {},
                 styles: { color: { background: '', text: null } },
             };
+
+            renderCanvas();
+
+            expect(lastStyles()).toBe(canvasStyles);
+        });
+    });
+
+    /*
+     * #700 — the emitter compiles a theme's applied top-level styles
+     * (including the site-editor-customized font-family) onto `:root`,
+     * which in this iframe only inherits down and loses to the canvas's
+     * own direct `.editor-styles-wrapper` defaults. The canvas rewrites
+     * `:root` → `.editor-styles-wrapper` before injection so the applied
+     * styles win on source order — matching the site editor.
+     */
+    describe('#700 applied-style scoping', () => {
+        afterEach(() => {
+            mockThemeGlobalStyles = { settings: {}, styles: {} };
+            mockThemeGlobalStylesCss = '';
+        });
+
+        function lastStyles(): { css: string }[] {
+            return blockCanvasProps.mock.calls.at(-1)?.[0].styles as {
+                css: string;
+            }[];
+        }
+
+        function renderCanvas(): void {
+            blockCanvasProps.mockClear();
+
+            render(
+                <EditorCanvas
+                    showTitle={false}
+                    title=""
+                    onTitleChange={() => undefined}
+                    blockContext={null}
+                    apiBase="/visual-editor/api"
+                />
+            );
+        }
+
+        it('rewrites the compiled theme CSS :root to the canvas scope', () => {
+            mockThemeGlobalStylesCss =
+                ':root {\n\tfont-family: var(--wp--preset--font-family--aboreto);\n}';
+
+            renderCanvas();
+
+            const themeEntry = lastStyles().at(-1);
+
+            // The applied font-family now sits on `.editor-styles-wrapper`
+            // — the same element as the package default — appended last, so
+            // it wins. The unscoped `:root` selector must be gone.
+            expect(themeEntry?.css).toContain(
+                '.editor-styles-wrapper {\n\tfont-family: var(--wp--preset--font-family--aboreto);\n}'
+            );
+            expect(themeEntry?.css).not.toContain(':root {');
+        });
+
+        it('leaves the styles bundle untouched when no theme CSS is present', () => {
+            mockThemeGlobalStylesCss = '';
 
             renderCanvas();
 

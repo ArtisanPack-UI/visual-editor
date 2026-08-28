@@ -446,6 +446,59 @@ describe('useAppliedTemplate', () => {
         expect(fetchMock).toHaveBeenCalledTimes(2);
     });
 
+    it('does not surface the previous template while the composed view is off after a template change', async () => {
+        // A resolves ok. The composed toggle is flipped off, then the author
+        // picks template B. On the very next read the hook must not still
+        // report A's `ok` chrome (which would flash for a frame when the
+        // toggle flips back on) — a key mismatch reads as `loading`.
+        const okBody = (slug: string): unknown => ({
+            status: 'ok',
+            slug,
+            name: slug,
+            source: 'theme',
+            blocks: [],
+            template_parts: {},
+        });
+
+        const fetchMock = vi.fn(async (url: string) => ({
+            ok: true,
+            status: 200,
+            text: async () =>
+                JSON.stringify(
+                    okBody(url.includes('landing-b') ? 'landing-b' : 'landing-a')
+                ),
+        }));
+
+        globalThis.fetch = fetchMock as unknown as typeof fetch;
+
+        const { result, rerender } = renderHook(
+            ({ template, enabled }: { template: string; enabled: boolean }) =>
+                useAppliedTemplate({ ...CONFIG, template, enabled }),
+            { initialProps: { template: 'landing-a', enabled: true } }
+        );
+
+        await waitFor(() => {
+            expect(
+                result.current.status === 'ok' && result.current.template.slug
+            ).toBe('landing-a');
+        });
+
+        // Toggle off, change the selection to B. The key no longer matches
+        // A's committed state, so the read must be `loading`, never A's `ok`.
+        act(() => rerender({ template: 'landing-b', enabled: false }));
+
+        expect(result.current.status).toBe('loading');
+
+        // Toggle back on: B resolves cleanly.
+        act(() => rerender({ template: 'landing-b', enabled: true }));
+
+        await waitFor(() => {
+            expect(
+                result.current.status === 'ok' && result.current.template.slug
+            ).toBe('landing-b');
+        });
+    });
+
     it('does not cache a fetch error, so the next toggle-on retries', async () => {
         const fetchMock = vi.fn();
 

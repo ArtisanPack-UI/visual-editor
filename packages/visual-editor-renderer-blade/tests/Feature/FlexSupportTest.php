@@ -52,3 +52,43 @@ it( 'returns empty result for null input', function () {
 	expect( $result[ 'classes' ] )->toEqual( [] )
 		->and( $result[ 'arbitraryRules' ] )->toEqual( [] );
 } );
+
+/**
+ * #720 — the arbitrary value is spliced straight into a `<style>` block, so
+ * `buildArbitraryStyles` must drop any value that fails the shared CSS-value
+ * whitelist rather than emit a rule that could inject attacker CSS.
+ */
+it( 'emits safe arbitrary values verbatim', function () {
+	$support = app( FlexSupport::class );
+
+	$css = $support->buildArbitraryStyles( [
+		[ 'className' => 'ap-basis-[200px]', 'property' => 'flex-basis', 'value' => '200px', 'breakpoint' => 'base' ],
+		[ 'className' => 'ap-gap-x-[1rem]', 'property' => 'column-gap', 'value' => '1rem', 'breakpoint' => 'base' ],
+	] );
+
+	expect( $css )->toContain( 'flex-basis: 200px;' )
+		->and( $css )->toContain( 'column-gap: 1rem;' );
+} );
+
+it( 'drops a hostile arbitrary value so it never reaches the stylesheet', function () {
+	$support = app( FlexSupport::class );
+
+	$css = $support->buildArbitraryStyles( [
+		[ 'className' => 'ap-basis-[x]', 'property' => 'flex-basis', 'value' => '200px}body{display:none', 'breakpoint' => 'base' ],
+	] );
+
+	expect( $css )->toBe( '' );
+} );
+
+it( 'skips a breakpoint whose only rule is hostile, emitting no @media block', function () {
+	$support = app( FlexSupport::class );
+
+	$css = $support->buildArbitraryStyles( [
+		[ 'className' => 'ap-basis-[200px]', 'property' => 'flex-basis', 'value' => '200px', 'breakpoint' => 'base' ],
+		[ 'className' => 'md:ap-basis-[x]', 'property' => 'flex-basis', 'value' => '50%}html{opacity:0', 'breakpoint' => 'md' ],
+	] );
+
+	expect( $css )->toContain( 'flex-basis: 200px;' )
+		->and( $css )->not->toContain( '@media' )
+		->and( $css )->not->toContain( 'opacity' );
+} );

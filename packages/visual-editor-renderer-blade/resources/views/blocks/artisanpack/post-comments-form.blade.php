@@ -7,13 +7,17 @@
 	// which is great for SPAs but not for a plain HTML form submit —
 	// the browser navigates to the JSON. Host apps that want a
 	// classic form-post UX should override this via the
-	// `comments.form.action` filter (artisanpack-ui/hooks) and point
-	// it at a controller that creates the comment and redirects back.
+	// `ap.cmsFramework.comments.form.action` filter (artisanpack-ui/hooks)
+	// and point it at a controller that creates the comment and redirects
+	// back. The filter carries the cms-framework namespace rather than a
+	// visual-editor one because comments are that package's domain and its
+	// endpoint is this default's value; the pre-2.8 name
+	// `comments.form.action` is aliased on both sides and still resolves.
 	$defaultAction = isset( $attributes['_resolvedFormAction'] ) && is_string( $attributes['_resolvedFormAction'] )
 		? $attributes['_resolvedFormAction']
 		: '/api/v1/comments';
 	if ( function_exists( 'applyFilters' ) ) {
-		$defaultAction = ( string ) applyFilters( 'comments.form.action', $defaultAction );
+		$defaultAction = ( string ) applyFilters( 'ap.cmsFramework.comments.form.action', $defaultAction );
 	}
 	$formAction = UrlSanitizer::safe( $defaultAction );
 @endphp
@@ -22,10 +26,10 @@
 
 	Renders a minimal, semantically-correct comment form. The default
 	`action` posts to cms-framework's `/api/v1/comments` endpoint; the
-	`comments.form.action` filter lets host apps redirect submissions
-	to their own controller so they can validate, persist, and redirect
-	back to the post with a flash message — the standard browser-form
-	UX the API endpoint can't provide on its own.
+	`ap.cmsFramework.comments.form.action` filter lets host apps redirect
+	submissions to their own controller so they can validate, persist, and
+	redirect back to the post with a flash message — the standard
+	browser-form UX the API endpoint can't provide on its own.
 --}}
 <div{!! BlockSupports::wrapperAttrs( $attributes, [ 'wp-block-post-comments-form', 'comment-respond' ] ) !!}>
 	<h3 class="comment-reply-title">{{ __( 'Leave a Comment' ) }}</h3>
