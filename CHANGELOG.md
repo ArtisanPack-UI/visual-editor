@@ -6,6 +6,43 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.7.1] - 2026-08-28
+
+### Fixed
+
+- **Inner-block container wrappers now round-trip through `save()`** (#747) —
+  dynamic container blocks shipped `save() => null` while hosting inner blocks
+  inside a `useBlockProps` wrapper, so Gutenberg serialized a wrapper the null
+  save could not reproduce and flagged persisted markup as "unexpected or
+  invalid content" — breaking the single-post template and many patterns. Each
+  block (`previous-post`, `next-post`, `related-posts`, `single-content`,
+  `accordion`/`accordions`/`accordion-body`/`accordion-title`, `tabs`/
+  `tab-section`, `search-filters`, and the post-type search-results blocks) now
+  mirrors its edit wrapper in `save()`. `related-posts` disables the `className`
+  support, and `grid`/`grid-item` emit their layout classes with a v1
+  deprecation so pre-existing content auto-migrates.
+- **Columns and Grid blocks now emit their `blockGap` gap CSS** (#748) — both
+  blocks declare `spacing.blockGap` support, but the value was never
+  materialized as an actual `gap`, so they rendered flush regardless of the
+  author's gap value or `theme.json`'s `styles.spacing.blockGap`. A
+  `gap: var(--wp--style--block-gap, <default>)` rule now applies to
+  `.wp-block-columns` and `.ap-grid` in both the editor and Blade frontend
+  stylesheets. Markup and Blade/React/Vue renderer parity are unaffected.
+- **Icon block no longer downgrades to a paragraph inside a group** (#749) —
+  `artisanpack/icon` is a dynamic block but its `save` serialized a real
+  `<div><span>` wrapper into post content, so any drift surfaced as "unexpected
+  or invalid content" and "Attempt Block Recovery" downgraded the icon to a
+  paragraph. `save` now returns `null` following the package's dynamic-block
+  convention, and a new deprecation re-validates and migrates icons saved by
+  earlier builds.
+- **Dark theme canvas background restored in both editors** (#754) — a theme
+  with a dark `styles.color.background` left the editing canvas white while
+  block-level backgrounds still rendered. In the post/page editor the canvas
+  color tokens are now emitted on `.editor-styles-wrapper` (co-located with the
+  scoped presets they reference) instead of `:root`; in the site editor the
+  entity-canvas surface uses `flex: 1 0 auto` so its dark background grows to
+  full content height instead of clamping to the viewport.
+
 ## [1.7.0] - 2026-08-27
 
 ### Added
