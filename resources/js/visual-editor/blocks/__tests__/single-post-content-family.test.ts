@@ -5,7 +5,9 @@
  * single-post content family:
  *
  *   - single-content       (dynamic — save returns null)
- *   - related-posts        (dynamic — save returns null)
+ *   - related-posts        (dynamic — hosts inner blocks inside a
+ *                           wrapper div, so save reproduces that
+ *                           `ap-related-posts` wrapper, #747)
  *   - author-social-icons  (dynamic — save returns null)
  *   - social-share-content (dynamic — save returns null)
  *
@@ -18,7 +20,12 @@ import { describe, expect, it, vi } from 'vitest';
 vi.mock('@wordpress/block-editor', () => ({
     InnerBlocks: Object.assign(() => null, { Content: () => null }),
     RichText: Object.assign(() => null, { Content: () => null }),
-    useBlockProps: Object.assign(() => ({}), { save: () => ({}) }),
+    useBlockProps: Object.assign(() => ({}), {
+        save: (props: { className?: string }) => ({ ...props }),
+    }),
+    useInnerBlocksProps: Object.assign(() => ({}), {
+        save: (blockProps: Record<string, unknown>) => ({ ...blockProps }),
+    }),
 }));
 
 import singleContentMeta from '../single-content/block.json';
@@ -113,11 +120,22 @@ describe('single-post content cluster block.json', () => {
 
 describe('single-post content cluster save contract', () => {
     it.each([
-        ['single-content', singleContentSave],
-        ['related-posts', relatedPostsSave],
         ['author-social-icons', authorSocialIconsSave],
         ['social-share-content', socialShareContentSave],
     ] as const)('%s save returns null (dynamic block)', (_slug, save) => {
         expect((save as () => null)()).toBeNull();
     });
+
+    it.each([
+        ['single-content', singleContentSave, 'ap-single-content'],
+        ['related-posts', relatedPostsSave, 'ap-related-posts'],
+    ] as const)(
+        '%s save reproduces its wrapper div carrying the block className (#747)',
+        (_slug, save, className) => {
+            const element = (save as () => { type: unknown; props: { className?: string } })();
+            expect(element).not.toBeNull();
+            expect(element.type).toBe('div');
+            expect(element.props.className).toBe(className);
+        }
+    );
 });
