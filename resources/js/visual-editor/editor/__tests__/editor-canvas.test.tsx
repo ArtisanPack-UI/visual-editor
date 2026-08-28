@@ -416,11 +416,14 @@ describe('EditorCanvas', () => {
             const styles = lastStyles();
             const tokens = styles.at(-1);
 
-            // Appended after the base bundle so it wins over the
-            // package baseline, and scoped to `:root` so a host rule on
-            // `body` / `.editor-styles-wrapper` still out-specifies it.
+            // Appended after the base bundle so it wins over the package
+            // baseline, and emitted on `.editor-styles-wrapper` so its
+            // `var(--wp--preset--…)` references resolve against the presets
+            // the compiled theme sheet scopes onto the same element (#700);
+            // the compound `body.editor-styles-wrapper` paint rule still
+            // out-specifies it for host overrides.
             expect(styles.length).toBe(canvasStyles.length + 1);
-            expect(tokens?.css).toContain(':root {');
+            expect(tokens?.css).toContain('.editor-styles-wrapper {');
             expect(tokens?.css).toContain('--ap-editor-canvas-bg: #111827;');
             expect(tokens?.css).toContain('--ap-editor-canvas-fg: #FFFFFF;');
         });

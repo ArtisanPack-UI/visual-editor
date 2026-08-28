@@ -23,8 +23,10 @@
  * with headings pinned to near-black against it.
  *
  * This module closes both gaps by deriving three variables from the
- * resolved theme.json `styles` node and emitting them as one `:root`
- * rule appended to the canvas stylesheet list:
+ * resolved theme.json `styles` node and emitting them as one
+ * `.editor-styles-wrapper` rule appended to the canvas stylesheet list
+ * (co-located with the scoped theme presets they reference — see the
+ * note on the emitted selector below):
  *
  *   - `--ap-editor-canvas-bg`         ← `styles.color.background`
  *   - `--ap-editor-canvas-fg`         ← `styles.color.text`
@@ -41,8 +43,9 @@
  *   - a theme that styles headings without a color leaves the heading
  *     variable unset, so headings inherit the canvas foreground rather
  *     than the light default;
- *   - a host rule on `body` / `.editor-styles-wrapper` still out-specifies
- *     this `:root` declaration and keeps its override.
+ *   - the compound `body.editor-styles-wrapper` painting rule still
+ *     out-specifies this bare `.editor-styles-wrapper` declaration, so a
+ *     host override keeps winning.
  *
  * @package @artisanpack-ui/visual-editor
  * @since   1.6.0
@@ -329,7 +332,19 @@ export function buildCanvasColorTokenCss(
         declarations.push(`    --ap-editor-canvas-heading-fg: ${heading};`);
     }
 
-    return `:root {\n${declarations.join('\n')}\n}\n`;
+    // Emit on `.editor-styles-wrapper`, NOT `:root`. The values commonly
+    // reference theme presets (`var(--wp--preset--color--base)`), and the
+    // compiled theme sheet is injected through `scopeGlobalStylesCss` in
+    // `editor-canvas.tsx` — which rewrites the emitter's `:root` presets
+    // onto `.editor-styles-wrapper` (#700). A custom property only resolves
+    // a `var()` against definitions on its *own* element, so a `:root`
+    // `--ap-editor-canvas-bg: var(--wp--preset--color--base)` can't reach a
+    // preset that now lives on the descendant wrapper — it collapses to the
+    // `#ffffff` paint fallback and whites out the canvas. Co-locating the
+    // tokens with the scoped presets keeps the reference resolvable. The
+    // painting rule (`body.editor-styles-wrapper`, 0,1,1) still out-specifies
+    // this bare `.editor-styles-wrapper` definition for any host override.
+    return `.editor-styles-wrapper {\n${declarations.join('\n')}\n}\n`;
 }
 
 /**

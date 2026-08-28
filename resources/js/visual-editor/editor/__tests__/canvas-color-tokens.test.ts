@@ -23,15 +23,17 @@ describe('buildCanvasColorTokenCss', () => {
             color: { background: '#111827', text: '#FFFFFF' },
         });
 
-        expect(css).toContain(':root {');
+        expect(css).toContain('.editor-styles-wrapper {');
+        expect(css).not.toContain(':root {');
         expect(css).toContain('--ap-editor-canvas-bg: #111827;');
         expect(css).toContain('--ap-editor-canvas-fg: #FFFFFF;');
     });
 
     it('passes `var()` preset references through verbatim', () => {
         // theme.json commonly stores preset references rather than
-        // literals; the emitter defines those presets on `:root` inside
-        // the same document, so they resolve as-is.
+        // literals; the compiled theme sheet defines those presets on
+        // `.editor-styles-wrapper` (scoped from `:root` by #700), so the
+        // tokens must live on the same element to resolve them.
         const css = buildCanvasColorTokenCss({
             color: {
                 background: 'var(--wp--preset--color--base)',
