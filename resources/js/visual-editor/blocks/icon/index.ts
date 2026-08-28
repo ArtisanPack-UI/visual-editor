@@ -7,16 +7,18 @@
 import metadata from './block.json';
 import edit from './edit';
 import save from './save';
+import deprecated from './deprecated';
 import icon from './inserter-icon';
 
 import './icon.css';
 
-export { edit, save, metadata, icon };
+export { edit, save, deprecated, metadata, icon };
 
 export default {
     name: metadata.name,
     metadata,
     edit,
     save,
+    deprecated,
     icon,
 };
