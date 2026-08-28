@@ -30,6 +30,16 @@ describe('normalizeLinkUrl', () => {
         );
         expect(normalizeLinkUrl('tel:{{business_info.phone}}')).toBe('tel:{{business_info.phone}}');
     });
+
+    it('drops dangerous schemes the server also rejects', () => {
+        expect(normalizeLinkUrl('javascript:alert(1)')).toBe('');
+        expect(normalizeLinkUrl('  JavaScript:alert(1)')).toBe('');
+        expect(normalizeLinkUrl('java\tscript:alert(1)')).toBe('');
+        expect(normalizeLinkUrl('data:text/html,<script>')).toBe('');
+        expect(normalizeLinkUrl('vbscript:msgbox(1)')).toBe('');
+        // A dangerous scheme wrapped around a token is still dropped.
+        expect(normalizeLinkUrl('javascript:{{business_info.website}}')).toBe('');
+    });
 });
 
 describe('buildLinkFormat', () => {

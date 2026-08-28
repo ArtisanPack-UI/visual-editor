@@ -33,6 +33,12 @@ export interface LinkFormatInput {
 const USABLE_HREF_REGEXP = /^(?:[a-z][a-z0-9+.-]*:|#|\?|\.|\/)/i;
 const EMAIL_REGEXP = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Schemes the server's `DynamicContentSource::SAFE_URL_SCHEMES` allowlist
+// and Blade `UrlSanitizer` reject. Matched after stripping the ASCII
+// whitespace / control characters a browser ignores when resolving the
+// scheme, so `java\tscript:` can't slip through.
+const DISALLOWED_SCHEME_REGEXP = /^(?:javascript|data|vbscript):/i;
+
 /**
  * Normalize a link URL the way the stock link format does via
  * `@wordpress/url`'s `prependHTTPS` — a bare host like `example.com`
@@ -52,6 +58,13 @@ const EMAIL_REGEXP = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export function normalizeLinkUrl(url: string | undefined): string {
     const trimmed = (url ?? '').trim();
     if (!trimmed) return trimmed;
+    // Drop dangerous schemes outright, matching the server. Checked before
+    // the Dynamic Content passthrough so `javascript:{{token}}` can't slip
+    // by, and against a control-char-stripped copy so obfuscated schemes
+    // don't evade the test.
+    if (DISALLOWED_SCHEME_REGEXP.test(trimmed.replace(/[\u0000-\u0020]+/g, ''))) {
+        return '';
+    }
     // Leave Dynamic Content tokens (bare or scheme-prefixed) alone.
     if (trimmed.includes('{{')) return trimmed;
     // Never rewrite an explicit http:// (matches prependHTTPS).

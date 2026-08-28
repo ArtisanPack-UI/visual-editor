@@ -179,4 +179,4 @@ For issues, feature requests, and contributions:
 
 ---
 
-*This documentation covers visual-editor v1.6.0*
+*This documentation covers visual-editor v1.7.0*

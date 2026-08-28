@@ -79,6 +79,18 @@ describe('catalogPreviewUrl', () => {
     it('returns undefined when no preview_url is supplied', () => {
         expect(catalogPreviewUrl('custom', fam())).toBeUndefined();
     });
+
+    it('drops a cross-origin or protocol-relative preview_url from a third-party provider', () => {
+        expect(
+            catalogPreviewUrl('thirdparty', fam({ preview_url: 'https://fonts.example.com/x.css' }))
+        ).toBeUndefined();
+        expect(
+            catalogPreviewUrl('thirdparty', fam({ preview_url: '//fonts.example.com/x.css' }))
+        ).toBeUndefined();
+        expect(
+            catalogPreviewUrl('thirdparty', fam({ preview_url: 'http://evil.test/x.css' }))
+        ).toBeUndefined();
+    });
 });
 
 describe('fetchInstalledFonts', () => {

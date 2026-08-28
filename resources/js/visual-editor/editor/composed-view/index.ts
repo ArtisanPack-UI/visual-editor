@@ -28,7 +28,7 @@ export {
     splitTemplateAroundContentSlot,
     type SplitTemplateResult,
 } from './split';
-export { ChromeBlocks, type ChromeBlocksProps } from './ChromeBlocks';
+export { ChromeBlocks, type ChromeBlocksProps } from './chrome-blocks';
 export {
     ComposedViewRibbon,
     type ComposedViewRibbonProps,

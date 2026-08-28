@@ -103,6 +103,14 @@ class GlobalStylesController extends Controller
 	 * integrated; matches the standalone-install fallback elsewhere in
 	 * the H6 surface.
 	 *
+	 * Alongside the pristine `styles`, the response carries a
+	 * `mergedStyles` field: the same theme.json `styles` deep-merged with
+	 * the active theme's DB global-styles override (the file → DB merged
+	 * view the `/css` endpoint's emitter applies). The canvas reads user
+	 * color-token overrides from `mergedStyles` while the palette swatches
+	 * keep coming from the pristine `styles`/`settings`. `mergedStyles`
+	 * deep-equals `styles` when no DB override exists for the active theme.
+	 *
 	 * @since 1.0.0
 	 */
 	public function base(): JsonResponse
@@ -111,25 +119,113 @@ class GlobalStylesController extends Controller
 
 		if ( null === $theme ) {
 			return response()->json( [
-				'id'         => self::SINGLETON_ID,
-				'theme'      => '',
-				'settings'   => new \stdClass(),
-				'styles'     => new \stdClass(),
-				'variations' => [],
+				'id'           => self::SINGLETON_ID,
+				'theme'        => '',
+				'settings'     => new \stdClass(),
+				'styles'       => new \stdClass(),
+				'mergedStyles' => new \stdClass(),
+				'variations'   => [],
 			] );
 		}
 
-		$settings   = is_array( $theme['settings'] ?? null ) ? $theme['settings'] : [];
-		$styles     = is_array( $theme['styles'] ?? null ) ? $theme['styles'] : [];
-		$variations = is_array( $theme['styles']['variations'] ?? null ) ? array_values( $theme['styles']['variations'] ) : [];
+		$slug         = (string) ( $theme['slug'] ?? '' );
+		$settings     = is_array( $theme['settings'] ?? null ) ? $theme['settings'] : [];
+		$styles       = is_array( $theme['styles'] ?? null ) ? $theme['styles'] : [];
+		$variations   = is_array( $theme['styles']['variations'] ?? null ) ? array_values( $theme['styles']['variations'] ) : [];
+		$mergedStyles = $this->deepMergeStyles( $styles, $this->dbOverrideStyles( $slug ) );
 
 		return response()->json( [
-			'id'         => self::SINGLETON_ID,
-			'theme'      => (string) ( $theme['slug'] ?? '' ),
-			'settings'   => $settings,
-			'styles'     => $styles,
-			'variations' => $variations,
+			'id'           => self::SINGLETON_ID,
+			'theme'        => $slug,
+			'settings'     => $settings,
+			'styles'       => $styles,
+			'mergedStyles' => $mergedStyles,
+			'variations'   => $variations,
 		] );
+	}
+
+	/**
+	 * The active theme's DB global-styles override `styles`, or an empty
+	 * array when no row backs the theme (or cms-framework isn't installed).
+	 * This is the same DB delta the `/css` emitter merges over theme.json;
+	 * {@see base()} applies it structurally to build `mergedStyles`.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function dbOverrideStyles( string $themeSlug ): array
+	{
+		$model = self::CMS_GLOBAL_STYLES_FQCN;
+
+		if ( '' === $themeSlug || ! class_exists( $model ) ) {
+			return [];
+		}
+
+		$record = $model::query()->where( 'theme', $themeSlug )->first();
+
+		if ( null === $record ) {
+			return [];
+		}
+
+		$styles = $record->styles;
+
+		// The `styles` column is array-cast on the cms-framework model, but
+		// tolerate a raw JSON string in case an older cast shape surfaces one.
+		if ( is_string( $styles ) ) {
+			$decoded = json_decode( $styles, true );
+			$styles  = is_array( $decoded ) ? $decoded : [];
+		}
+
+		return is_array( $styles ) ? $styles : [];
+	}
+
+	/**
+	 * Deep-merge a DB override styles array over the pristine theme.json
+	 * styles: associative sub-objects recurse so an override touching one
+	 * leaf (e.g. `styles.color.background`) leaves its siblings intact, while
+	 * a scalar or list value replaces the base wholesale. An empty override
+	 * returns the base unchanged, so `mergedStyles` deep-equals `styles` when
+	 * no customization exists.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<string, mixed>  $base      Theme.json styles.
+	 * @param  array<string, mixed>  $override  DB override styles.
+	 *
+	 * @return array<string, mixed>
+	 */
+	protected function deepMergeStyles( array $base, array $override ): array
+	{
+		foreach ( $override as $key => $value ) {
+			if ( is_array( $value )
+				&& isset( $base[ $key ] )
+				&& is_array( $base[ $key ] )
+				&& $this->isAssocArray( $value )
+				&& $this->isAssocArray( $base[ $key ] ) ) {
+				$base[ $key ] = $this->deepMergeStyles( $base[ $key ], $value );
+
+				continue;
+			}
+
+			$base[ $key ] = $value;
+		}
+
+		return $base;
+	}
+
+	/**
+	 * Whether an array is a non-empty associative (string-keyed) map rather
+	 * than a positional list, so the merge recurses objects but replaces
+	 * lists (a palette array, a font-family stack) wholesale.
+	 *
+	 * @since 1.0.0
+	 *
+	 * @param  array<int|string, mixed>  $array
+	 */
+	protected function isAssocArray( array $array ): bool
+	{
+		return [] !== $array && ! array_is_list( $array );
 	}
 
 	/**

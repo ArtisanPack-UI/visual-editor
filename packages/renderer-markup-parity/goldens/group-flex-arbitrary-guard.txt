@@ -1,0 +1,7 @@
+<div class="wp-block-group is-layout-flex wp-block-group-is-layout-flex ap-flex ap-gap-y-[9px}body{display:none] ap-gap-x-[13px]">
+  <p class="wp-block-paragraph">
+    "Flex gap"
+  </p>
+</div>
+@@ renderer-instance-css @@
+.ap-gap-x-\[13px\] { column-gap: 13px; }

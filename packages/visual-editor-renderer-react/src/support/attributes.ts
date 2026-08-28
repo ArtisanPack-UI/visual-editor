@@ -96,6 +96,19 @@ export function classList(classes: Array<string | false | null | undefined>): st
 }
 
 /**
+ * Trim the exact character set PHP's `trim()` strips — space, tab, LF, CR,
+ * NUL and vertical tab — rather than `String.prototype.trim()`, whose set
+ * differs at both ends: it also strips form feed and every Unicode space
+ * (U+00A0, U+FEFF, …) yet leaves NUL in place. Matching PHP's set exactly
+ * is what keeps class tokens and scope hashes aligned with the Blade
+ * renderer for an attribute value carrying exotic leading/trailing
+ * whitespace (#704 parity).
+ */
+export function phpTrim(value: string): string {
+    return value.replace(/^[ \t\n\r\0\x0B]+/, '').replace(/[ \t\n\r\0\x0B]+$/, '');
+}
+
+/**
  * Layout types the renderers know how to serialize. Anything else stored
  * on the block falls back to the caller's default so an unknown value
  * can't mint an arbitrary class token.
@@ -109,7 +122,13 @@ const SUPPORTED_LAYOUT_TYPES = ['constrained', 'flex', 'flow', 'grid'] as const;
  */
 export function layoutClass(attributes: Record<string, unknown>, fallback = 'flow'): string {
     const supported = SUPPORTED_LAYOUT_TYPES as ReadonlyArray<string>;
-    const type = attrString(attrRecord(attributes.layout).type).trim();
+    // Mirror `LayoutSupport::layoutClass()`: a non-string `layout.type` is
+    // treated as `''` (not coerced), and a string is trimmed with PHP's
+    // whitespace set — not `String.trim()`, which strips U+00A0/`\f` that
+    // PHP keeps and would turn `"flex "` into `flex` where Blade falls
+    // back to the default.
+    const rawType = attrRecord(attributes.layout).type;
+    const type = typeof rawType === 'string' ? phpTrim(rawType) : '';
 
     if (supported.includes(type)) {
         return `is-layout-${type}`;

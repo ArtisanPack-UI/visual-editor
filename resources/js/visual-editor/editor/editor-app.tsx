@@ -880,7 +880,7 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     // The block canvas stays exactly as it is: raw content, one
     // BlockEditorProvider, one tree, the existing persistence loop. The
     // template's chrome renders as inert block previews *inside* the same
-    // iframe (see `ChromeBlocks.tsx`), each mounting its own isolated
+    // iframe (see `chrome-blocks.tsx`), each mounting its own isolated
     // block-editor store. Nothing here touches the content provider's
     // `value`, so selection, undo history, and unsaved-changes survive a
     // toggle by construction — which is what the earlier composed-tree
@@ -908,7 +908,11 @@ function EditorAppShell(props: EditorAppProps): JSX.Element {
     // #624 — announce a fallback once per toggle-on event. Lives beside the
     // selection below rather than inside it because the selection is a
     // `useMemo` and firing a toast from one would be a render side effect.
-    useComposedFallbackToast({ viewMode, state: appliedTemplateState });
+    useComposedFallbackToast({
+        viewMode,
+        state: appliedTemplateState,
+        template: documentType === 'page' ? template : undefined,
+    });
 
     const composedChrome: {
         header: readonly BlockInstance[];

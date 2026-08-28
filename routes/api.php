@@ -349,12 +349,15 @@ Route::get( 'fonts/sources/{provider}/preview/{slug}', [ FontLibraryController::
 	->middleware( 'throttle:120,1' )
 	->name( 'visual-editor.api.fonts.sources.preview' );
 
+// The preview-face route streams font bytes from the provider CDN on a cache
+// miss, so it carries a tighter throttle than the other catalog reads to blunt
+// its use as a request amplifier.
 Route::get( 'fonts/sources/{provider}/preview/{slug}/{weight}/{style}', [ FontLibraryController::class, 'previewFace' ] )
 	->where( 'provider', '[a-z][a-z0-9_-]*' )
 	->where( 'slug', '[a-z0-9][a-z0-9-]*' )
 	->where( 'weight', '[1-9][0-9]{0,3}' )
 	->where( 'style', 'normal|italic' )
-	->middleware( 'throttle:120,1' )
+	->middleware( 'throttle:60,1' )
 	->name( 'visual-editor.api.fonts.sources.preview-face' );
 
 Route::post( 'fonts', [ FontLibraryController::class, 'store' ] )

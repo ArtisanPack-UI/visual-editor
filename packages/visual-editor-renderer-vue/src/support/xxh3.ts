@@ -8,10 +8,11 @@
  * a column renders an identical width through either renderer and the token
  * comes back under the #704 markup-parity check.
  *
- * Only inputs up to 240 bytes are supported — the short-key-map JSON this
- * hashes (`{"base":…,"sm":…,…}`, at most six short CSS lengths) never comes
- * close. `xxh3_64_hex()` throws for longer input rather than returning a
- * silently-wrong digest; callers guard against that domain.
+ * Inputs of any length are supported: the short-key-map JSON this hashes
+ * (`{"base":…,"sm":…,…}`) normally stays well under 240 bytes, but a column
+ * carrying several long `calc(…)` breakpoint overrides can exceed it, so the
+ * >240-byte accumulator/scramble long-hash path is ported too and matches
+ * PHP for every input.
  *
  * The mirror lives at the matching path in the Vue renderer; the shared
  * vitest suite pins both against reference digests.
@@ -22,11 +23,34 @@
 
 const MASK64 = ( 1n << 64n ) - 1n;
 
+const PRIME32_1 = 0x9e3779b1n;
 const PRIME64_1 = 0x9e3779b185ebca87n;
 const PRIME64_2 = 0xc2b2ae3d27d4eb4fn;
 const PRIME64_3 = 0x165667b19e3779f9n;
 const PRIME_MX1 = 0x165667919e3779f9n;
 const PRIME_MX2 = 0x9fb21c651e98df25n;
+
+// Long-input (>240 byte) accumulator geometry, all derived from the 192-byte
+// default secret: eight 64-bit lanes, 64-byte stripes, one secret byte
+// consumed per 8 input bytes.
+const XXH_STRIPE_LEN = 64;
+const XXH_ACC_NB = 8;
+const XXH_SECRET_CONSUME_RATE = 8;
+const XXH_SECRET_SIZE = 192;
+const XXH_SECRET_LASTACC_START = 7;
+const XXH_SECRET_MERGEACCS_START = 11;
+
+// Initial accumulator lanes (XXH3_INIT_ACC).
+const XXH3_INIT_ACC: readonly bigint[] = [
+	0xc2b2ae3dn,
+	0x9e3779b185ebca87n,
+	0xc2b2ae3d27d4eb4fn,
+	0x165667b19e3779f9n,
+	0x85ebca77c2b2ae63n,
+	0x85ebca77n,
+	0x27d4eb2f165667c5n,
+	0x9e3779b1n,
+];
 
 // The 192-byte default secret (`kSecret`) shared by every XXH3 variant.
 const SECRET = Uint8Array.from( [
@@ -214,14 +238,72 @@ function len129to240( buf: Uint8Array, len: number, seed: bigint ): bigint {
 	return xxh3Avalanche( add( acc, accEnd ) );
 }
 
+function accumulate512( acc: bigint[], buf: Uint8Array, inOff: number, secretOff: number ): void {
+	for ( let i = 0; i < XXH_ACC_NB; i++ ) {
+		const dataVal = readLE64( buf, inOff + 8 * i );
+		const dataKey = dataVal ^ readLE64( SECRET, secretOff + 8 * i );
+		const lo = dataKey & 0xffffffffn;
+		const hi = dataKey >> 32n;
+		acc[ i ^ 1 ] = add( acc[ i ^ 1 ], dataVal );
+		acc[ i ] = add( acc[ i ], mul( lo, hi ) );
+	}
+}
+
+function scrambleAcc( acc: bigint[], secretOff: number ): void {
+	for ( let i = 0; i < XXH_ACC_NB; i++ ) {
+		let a = xorshift( acc[ i ], 47n );
+		a ^= readLE64( SECRET, secretOff + 8 * i );
+		acc[ i ] = mul( a, PRIME32_1 );
+	}
+}
+
+function mergeAccs( acc: bigint[], secretOff: number, start: bigint ): bigint {
+	let result = start;
+	for ( let i = 0; i < 4; i++ ) {
+		result = add(
+			result,
+			mul128Fold64(
+				acc[ 2 * i ] ^ readLE64( SECRET, secretOff + 16 * i ),
+				acc[ 2 * i + 1 ] ^ readLE64( SECRET, secretOff + 16 * i + 8 )
+			)
+		);
+	}
+	return xxh3Avalanche( result );
+}
+
+function hashLong( buf: Uint8Array, len: number ): bigint {
+	const acc = XXH3_INIT_ACC.slice();
+	const nbStripesPerBlock = ( XXH_SECRET_SIZE - XXH_STRIPE_LEN ) / XXH_SECRET_CONSUME_RATE;
+	const blockLen = XXH_STRIPE_LEN * nbStripesPerBlock;
+	const nbBlocks = Math.floor( ( len - 1 ) / blockLen );
+
+	for ( let n = 0; n < nbBlocks; n++ ) {
+		const blockOff = n * blockLen;
+		for ( let s = 0; s < nbStripesPerBlock; s++ ) {
+			accumulate512( acc, buf, blockOff + s * XXH_STRIPE_LEN, s * XXH_SECRET_CONSUME_RATE );
+		}
+		scrambleAcc( acc, XXH_SECRET_SIZE - XXH_STRIPE_LEN );
+	}
+
+	const nbStripes = Math.floor( ( ( len - 1 ) - blockLen * nbBlocks ) / XXH_STRIPE_LEN );
+	const lastBlockOff = nbBlocks * blockLen;
+	for ( let s = 0; s < nbStripes; s++ ) {
+		accumulate512( acc, buf, lastBlockOff + s * XXH_STRIPE_LEN, s * XXH_SECRET_CONSUME_RATE );
+	}
+
+	accumulate512( acc, buf, len - XXH_STRIPE_LEN, XXH_SECRET_SIZE - XXH_STRIPE_LEN - XXH_SECRET_LASTACC_START );
+
+	return mergeAccs( acc, XXH_SECRET_MERGEACCS_START, mul( BigInt( len ), PRIME64_1 ) );
+}
+
 /**
  * Compute the XXH3-64 digest (seed 0, default secret) of a UTF-8 string,
  * formatted as 16 lowercase hex characters — the exact shape PHP's
  * `hash( 'xxh3', $string )` returns.
  *
- * @throws {RangeError} When the UTF-8 encoding exceeds 240 bytes; the
- *   long-input accumulator path is intentionally not ported because the
- *   width-map keys this hashes are always far shorter.
+ * Every input length is supported: inputs over 240 bytes take the
+ * accumulator/scramble long-hash path, which matches PHP for arbitrarily
+ * long width maps.
  */
 export function xxh3_64_hex( input: string ): string {
 	const buf = new TextEncoder().encode( input );
@@ -236,7 +318,7 @@ export function xxh3_64_hex( input: string ): string {
 	} else if ( len <= 240 ) {
 		hash = len129to240( buf, len, seed );
 	} else {
-		throw new RangeError( `xxh3_64_hex: input of ${ len } bytes exceeds the supported 240-byte limit` );
+		hash = hashLong( buf, len );
 	}
 
 	return hash.toString( 16 ).padStart( 16, '0' );

@@ -48,6 +48,13 @@ use Throwable;
 
 class FontLibraryController extends Controller
 {
+	/**
+	 * Ceiling, in bytes, on a preview face body that may be written to the shared
+	 * cache store. A genuine preview WOFF2 is tens of KB; anything past 2 MB is
+	 * anomalous and is served without being cached so it cannot bloat the store.
+	 */
+	protected const PREVIEW_CACHE_MAX_BYTES = 2 * 1024 * 1024;
+
 	public function __construct(
 		protected FontInstaller $installer,
 		protected FontSourceRegistry $registry,
@@ -221,7 +228,7 @@ class FontLibraryController extends Controller
 
 		return response( $css, Response::HTTP_OK, [
 			'Content-Type'  => 'text/css; charset=UTF-8',
-			'Cache-Control' => 'public, max-age=86400',
+			'Cache-Control' => 'private, max-age=86400',
 		] );
 	}
 
@@ -240,17 +247,28 @@ class FontLibraryController extends Controller
 			return response( '', Response::HTTP_NOT_FOUND );
 		}
 
-		try {
+		$cacheKey = sprintf( 've.font-preview.%s.%s.%s.%s', $provider, $slug, $weight, $style );
+		$encoded  = Cache::get( $cacheKey );
+
+		if ( ! is_string( $encoded ) ) {
+			try {
+				$bytes = $source->fetchFace( $slug, $weight, $style );
+			} catch ( FontProviderException ) {
+				return response( '', Response::HTTP_NOT_FOUND );
+			}
+
 			// Cache the base64 form, never the raw bytes: a DB or other text
 			// cache store rejects binary WOFF2 as an invalid string, so the
 			// download is stored ASCII-safe and decoded on the way out.
-			$encoded = Cache::remember(
-				sprintf( 've.font-preview.%s.%s.%s.%s', $provider, $slug, $weight, $style ),
-				now()->addDay(),
-				fn (): string => base64_encode( $source->fetchFace( $slug, $weight, $style ) )
-			);
-		} catch ( FontProviderException ) {
-			return response( '', Response::HTTP_NOT_FOUND );
+			$encoded = base64_encode( $bytes );
+
+			// A real preview WOFF2 is tens of KB; refuse to cache anything past a
+			// small ceiling so a hostile or misbehaving provider cannot bloat the
+			// shared cache store with an oversized body. The face is still served,
+			// just re-fetched next time rather than persisted.
+			if ( strlen( $bytes ) <= self::PREVIEW_CACHE_MAX_BYTES ) {
+				Cache::put( $cacheKey, $encoded, now()->addDay() );
+			}
 		}
 
 		$bytes = base64_decode( $encoded, true );
@@ -261,7 +279,7 @@ class FontLibraryController extends Controller
 
 		return response( $bytes, Response::HTTP_OK, [
 			'Content-Type'  => 'font/woff2',
-			'Cache-Control' => 'public, max-age=86400',
+			'Cache-Control' => 'private, max-age=86400',
 		] );
 	}
 
@@ -386,8 +404,8 @@ class FontLibraryController extends Controller
 		}
 
 		$validated = $request->validate( [
-			'ids'   => [ 'required', 'array', 'min:1' ],
-			'ids.*' => [ 'integer' ],
+			'ids'   => [ 'required', 'array', 'min:1', 'max:100' ],
+			'ids.*' => [ 'integer', 'distinct' ],
 		] );
 
 		$removed = $this->installer->bulkUninstall( $validated['ids'] );

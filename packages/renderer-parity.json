@@ -1,6 +1,10 @@
 {
-    "$comment": "Canonical list of block names every renderer (blade/react/vue) MUST register. Sourced from packages/visual-editor-renderer-{blade,react,vue}. Updated whenever the V2 fork lands a new artisanpack/* block. CI runs scripts/verify-renderer-parity.mjs to fail the build on drift.",
+    "$comment": "Canonical list of block names every renderer (blade/react/vue) MUST register. Sourced from packages/visual-editor-renderer-{blade,react,vue}. Updated whenever the V2 fork lands a new artisanpack/* block. `bladeDynamic` names blocks the blade renderer serves through the dynamic pipeline instead of a static partial (checked in react/vue only). `bladeOnly` names blocks the blade renderer ships as a partial while react/vue fall back to server (DynamicBlock) rendering (checked in blade only). CI runs scripts/verify-renderer-parity.mjs to fail the build on drift.",
     "bladeDynamic": [],
+    "bladeOnly": [
+        "core/html",
+        "artisanpack/html"
+    ],
     "blocks": [
         "core/paragraph",
         "core/heading",
@@ -153,6 +157,8 @@
         "artisanpack/search-filters-taxonomy",
         "artisanpack/post-types-search-results",
         "artisanpack/single-post-types-search-results",
-        "artisanpack/skills-slider"
+        "artisanpack/skills-slider",
+        "core/html",
+        "artisanpack/html"
     ]
 }

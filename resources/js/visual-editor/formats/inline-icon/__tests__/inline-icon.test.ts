@@ -70,6 +70,21 @@ describe( 'inline-icon pure builders', () => {
         expect( parseInlineIconStyle( style ) ).toEqual( { sizeEm: 2, color: 'rebeccapurple' } );
     } );
 
+    it( 'accepts colour-shaped custom values (hex, rgb(), var())', () => {
+        expect( buildInlineIconStyle( { color: 'rgb(1, 2, 3)' } ) ).toBe( 'color:rgb(1, 2, 3)' );
+        expect( buildInlineIconStyle( { color: 'var(--wp--preset--color--primary)' } ) ).toBe(
+            'color:var(--wp--preset--color--primary)'
+        );
+    } );
+
+    it( 'drops a colour value that smuggles extra declarations', () => {
+        // A free-text ColorPalette value must not persist extra CSS.
+        expect( buildInlineIconStyle( { color: 'red;position:fixed;inset:0' } ) ).toBeUndefined();
+        expect(
+            buildInlineIconStyle( { sizeEm: 1, color: 'red;position:fixed' } )
+        ).toBe( 'font-size:1em' );
+    } );
+
     it( 'marks a set icon decorative by default', () => {
         const object = buildSetIconObject( { set: 'fab', name: 'github' }, '<svg/>' );
         expect( object.type ).toBe( FORMAT_NAME );

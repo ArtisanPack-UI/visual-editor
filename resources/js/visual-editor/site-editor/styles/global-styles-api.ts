@@ -29,7 +29,17 @@ export interface GlobalStylesRecord {
 export type GlobalStylesBase = Pick<
     GlobalStylesRecord,
     'version' | 'settings' | 'styles'
->;
+> & {
+    /**
+     * The theme.json `styles` deep-merged with the active theme's DB
+     * global-styles override (the resolver's file → DB view). Equals
+     * `styles` when no override exists. The canvas derives its color
+     * tokens from this so a palette customized in the site-editor Styles
+     * panel is reflected on the post-editor canvas (#M1). Optional so an
+     * older server that predates the field degrades to `styles`.
+     */
+    mergedStyles?: Record<string, unknown>;
+};
 
 export interface GlobalStylesUpdatePayload {
     version: number;

@@ -8,10 +8,13 @@
  * toggles back on has lost the earlier toast and deserves the reason a
  * second time.
  *
- * The latch holds the *message*, not a boolean, so that picking a second
- * broken template from the document panel without leaving composed mode
- * still announces the new failure. A plain boolean would swallow it: the
- * author would change the template and see nothing happen at all.
+ * The latch holds the requested slug plus the *message*, not a boolean, so
+ * that picking a second broken template from the document panel without
+ * leaving composed mode still announces the new failure — even when the two
+ * templates fail with the byte-identical, template-independent copy an
+ * `error` or `missing`/`empty` state produces. A plain boolean, or a
+ * message-only key, would swallow the second one: the author would change
+ * the template and see nothing happen at all.
  *
  * It is also cleared by a successful resolution, so returning to a template
  * that failed earlier announces again — otherwise broken A → working B →
@@ -33,12 +36,20 @@ export interface UseComposedFallbackToastOptions {
     /** The editor's ephemeral composed-view mode. */
     viewMode: 'content' | 'with-template';
     state: AppliedTemplateState;
+    /**
+     * The requested template slug (`undefined` when none is overridden). It
+     * rides along in the latch key so switching to a *different* template
+     * that fails with a template-independent message (a network `error`, or
+     * `missing`/`empty`) still announces — those copies are identical across
+     * templates, so keying on the message alone would swallow the second one.
+     */
+    template?: string;
 }
 
 export function useComposedFallbackToast(
     options: UseComposedFallbackToastOptions
 ): void {
-    const { viewMode, state } = options;
+    const { viewMode, state, template } = options;
     const toast = useToast();
     const notifiedRef = useRef<string | null>(null);
 
@@ -66,9 +77,11 @@ export function useComposedFallbackToast(
         }
 
         // A re-fetch of the same broken template produces the same copy and
-        // must stay silent; a *different* failure produces different copy
-        // and gets announced.
-        const key = `${notice.tone}:${notice.message}`;
+        // must stay silent; a *different* failure — including the *same* copy
+        // for a *different* template — gets announced. The requested slug is
+        // part of the key so template-independent `error`/`missing` messages
+        // don't collide across templates.
+        const key = `${template ?? ''}:${notice.tone}:${notice.message}`;
 
         if (notifiedRef.current === key) {
             return;
@@ -83,5 +96,5 @@ export function useComposedFallbackToast(
         }
 
         toast.warning(notice.message);
-    }, [state, toast, viewMode]);
+    }, [state, toast, viewMode, template]);
 }

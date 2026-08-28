@@ -89,6 +89,46 @@ describe('scopeGlobalStylesCss', () => {
         expect(scopeGlobalStylesCss(css)).toBe(css);
     });
 
+    it('scopes a compound `:root.dark` to an html ancestor so dark tokens still reach the canvas', () => {
+        const css = ':root.dark { --wp--preset--color--bg: #0f172a; }';
+
+        expect(scopeGlobalStylesCss(css)).toBe(
+            `:where(html.dark) ${CANVAS_SCOPE_SELECTOR} { --wp--preset--color--bg: #0f172a; }`
+        );
+    });
+
+    it('scopes a compound `:root[data-theme="dark"]` including a quoted attribute selector', () => {
+        const css = ':root[data-theme="dark"] { color: white; }';
+
+        expect(scopeGlobalStylesCss(css)).toBe(
+            `:where(html[data-theme="dark"]) ${CANVAS_SCOPE_SELECTOR} { color: white; }`
+        );
+    });
+
+    it('matches `:root` case-insensitively', () => {
+        const css = ':ROOT { padding: 1rem; }';
+
+        expect(scopeGlobalStylesCss(css)).toBe(`${CANVAS_SCOPE_SELECTOR} { padding: 1rem; }`);
+    });
+
+    it('does not treat a `url(` inside a longer ident as a url() value', () => {
+        // `blur(` must not start the url() skipper, so a following `:root`
+        // is still rewritten.
+        const css = '.a { filter: blur(2px); }\n:root { padding: 1rem; }';
+
+        expect(scopeGlobalStylesCss(css)).toBe(
+            `.a { filter: blur(2px); }\n${CANVAS_SCOPE_SELECTOR} { padding: 1rem; }`
+        );
+    });
+
+    it('honours an escaped paren inside an unquoted url()', () => {
+        const css = '.a { background: url(/img/a\\).png); }\n:root { padding: 1rem; }';
+
+        expect(scopeGlobalStylesCss(css)).toBe(
+            `.a { background: url(/img/a\\).png); }\n${CANVAS_SCOPE_SELECTOR} { padding: 1rem; }`
+        );
+    });
+
     it('returns empty CSS untouched', () => {
         expect(scopeGlobalStylesCss('')).toBe('');
     });

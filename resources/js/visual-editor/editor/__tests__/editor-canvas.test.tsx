@@ -53,6 +53,7 @@ vi.mock('@wordpress/block-editor', () => ({
 let mockThemeGlobalStyles: {
     settings: Record<string, unknown>;
     styles: Record<string, unknown>;
+    mergedStyles?: Record<string, unknown>;
 } = { settings: {}, styles: {} };
 
 let mockThemeGlobalStylesCss: string | undefined;
@@ -422,6 +423,24 @@ describe('EditorCanvas', () => {
             expect(tokens?.css).toContain(':root {');
             expect(tokens?.css).toContain('--ap-editor-canvas-bg: #111827;');
             expect(tokens?.css).toContain('--ap-editor-canvas-fg: #FFFFFF;');
+        });
+
+        it('derives the canvas colors from the merged styles so a site-editor palette override wins (#M1)', () => {
+            mockThemeGlobalStyles = {
+                settings: {},
+                // Theme default is light…
+                styles: { color: { background: '#FFFFFF', text: '#111827' } },
+                // …but the user's site-editor palette override is dark.
+                mergedStyles: { color: { background: '#0B1220', text: '#F8FAFC' } },
+            };
+
+            renderCanvas();
+
+            const tokens = lastStyles().at(-1);
+
+            expect(tokens?.css).toContain('--ap-editor-canvas-bg: #0B1220;');
+            expect(tokens?.css).toContain('--ap-editor-canvas-fg: #F8FAFC;');
+            expect(tokens?.css).not.toContain('#FFFFFF');
         });
 
         it('leaves the styles bundle untouched when the theme declares no colors', () => {

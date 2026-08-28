@@ -37,8 +37,12 @@
 
 	if ( is_int( $rawColumns ) || is_float( $rawColumns ) ) {
 		$columns = (int) $rawColumns;
-	} elseif ( is_string( $rawColumns ) && 1 === preg_match( '/^\s*[+-]?\d+/', $rawColumns ) ) {
-		$columns = (int) $rawColumns;
+	} elseif ( is_string( $rawColumns ) && 1 === preg_match( '/^\s*([+-]?\d+)/', $rawColumns, $columnsMatch ) ) {
+		// Cast only the leading integer run, not the whole string: PHP's
+		// `(int) "5e3"` is 5000 (it reads the scientific-notation float),
+		// whereas the JS renderers' `parseInt` stops at the `e` and yields
+		// 5. Capturing the leading digits keeps both renderers at 5.
+		$columns = (int) $columnsMatch[1];
 	} else {
 		$columns = 3;
 	}

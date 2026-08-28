@@ -38,7 +38,12 @@ const DISALLOWED_CSS_VALUE_CHAR = /[^A-Za-z0-9_+\-*/.,()%#\t\n\r\f ]/;
  * Callers drop the rule on `null` rather than emit a mangled one.
  */
 export function safeCssValue( value: string ): string | null {
-	if ( value.trim() === '' || DISALLOWED_CSS_VALUE_CHAR.test( value ) ) {
+	// PHP-trim-equivalent empty check: PHP `trim()` (which the Blade twin
+	// `BlockSupports::safeCssValue()` uses) strips only " \t\n\r\0\x0B" —
+	// NOT the form feed `\f` that JS `String.trim()` also strips. Using
+	// `.trim()` here would reject a lone `\f` that PHP keeps (and `\f` is an
+	// allowed CSS-value char below), so match PHP's whitespace set exactly.
+	if ( /^[ \t\n\r\0\x0B]*$/.test( value ) || DISALLOWED_CSS_VALUE_CHAR.test( value ) ) {
 		return null;
 	}
 

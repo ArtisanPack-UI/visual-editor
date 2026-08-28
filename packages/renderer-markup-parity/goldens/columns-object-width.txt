@@ -1,0 +1,9 @@
+<div class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile">
+  <div class="wp-block-column ve-w-491c024b53">
+    <p class="wp-block-paragraph">
+      "A"
+    </p>
+  </div>
+</div>
+@@ renderer-instance-css @@
+@media (min-width:768px){.ve-w-491c024b53.ve-w-491c024b53.ve-w-491c024b53{flex-basis:calc(50% - var(--wp--style--block-gap, 0.5em) * 0.5)!important;flex-grow:0!important}}

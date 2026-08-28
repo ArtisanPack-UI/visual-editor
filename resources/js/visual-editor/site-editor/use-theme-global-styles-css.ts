@@ -35,6 +35,18 @@ type CachedCss =
 
 const cache = new Map<string, CachedCss>();
 
+// Invalidate the cache on any font mutation at *module* scope, not inside the
+// hook's effect. The Font Library button lives on the site-editor Styles
+// panel, which mounts no canvas consumer of this hook — so an install there
+// would never reach an in-effect subscription, and returning to a canvas
+// would hand the pre-install CSS back synchronously from the lazy `useState`
+// initializer, leaving the new `@font-face` missing until a full reload. A
+// module-scope subscription clears the entry regardless of what is mounted;
+// mounted consumers additionally bump a per-hook token (below) to re-fetch.
+subscribeFontsChanged(() => {
+    cache.clear();
+});
+
 /**
  * Test-only cache reset. Production code lets the cache live for the
  * duration of the SPA — there's no scenario where the active theme
@@ -150,15 +162,12 @@ export function useThemeGlobalStylesCss(
     }, [apiBase, refetchToken]);
 
     // Re-reference the canvas stylesheet after a font install/uninstall. The
-    // mutation drops the module cache entry for this `apiBase` and bumps the
-    // refetch token so the effect above re-runs against a fresh fetch, pulling
-    // in the regenerated `fonts.css`.
+    // module-scope subscription above has already cleared the cache; this
+    // per-hook subscription only bumps the refetch token so a *mounted*
+    // consumer's effect re-runs against the now-empty cache and re-fetches
+    // the regenerated `fonts.css`.
     useEffect(() => {
         return subscribeFontsChanged(() => {
-            if (apiBase !== undefined && apiBase !== '') {
-                cache.delete(apiBase);
-            }
-
             setRefetchToken((token) => token + 1);
         });
     }, [apiBase]);

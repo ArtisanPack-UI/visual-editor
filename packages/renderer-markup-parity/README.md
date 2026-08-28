@@ -72,42 +72,73 @@ Normalized (insignificant across renderers):
 Not normalized: element names, class tokens, attribute names, attribute
 values.
 
-## Scope: markup, not CSS
+## Scope: markup and per-instance CSS
 
-The check compares block markup only. Renderer-injected
-`<style data-ve-*>` blocks are stripped from both sides, because the
-layout baseline CSS is a *known intentional* divergence: the JS
-renderers' `LAYOUT_BASELINE_CSS` carries three constrained-group
-containment rules that the Blade baseline does not, since Blade emits
-them from `ThemeJsonTokensCompiler::compileLayoutRules()` gated on the
-`theme.json` layout sizes (see the header comment in
-`layoutBaselineCss.ts`). Comparing the CSS here would only encode that
-difference a second time.
+The check compares block markup **and** the renderer's per-instance CSS
+(column widths, Photo Grid metrics, arbitrary Flex values). The delivery
+differs by renderer — Blade folds every per-instance rule into one
+`<style data-ve-responsive>` block (plus `data-ve-flex-arbitrary`), while
+React and Vue split them across `data-ve-column-width`,
+`data-ve-photo-grid`, `data-ve-visibility` and `data-ve-flex-arbitrary`
+tags — so the harness extracts the rule bodies from whichever tag carries
+them, splits them into top-level rules (brace-depth aware, so an
+`@media (…) { … }` block stays one rule), collapses insignificant
+whitespace, sorts, and appends the result under a
+`@@ renderer-instance-css @@` delimiter. Sorting means the two suites
+compare rule *bodies*, not which tag or what order each renderer delivers
+them in — only a differing declaration surfaces as a failure.
+`extractRendererCss` / `canonicalRendererCss` (JS) and their
+`markupParity*` twins (Pest) must stay in lockstep, exactly like the
+markup canonicalizer.
+
+The **baseline / global-styles / theme** layer is the one thing still
+stripped rather than compared (`data-ve-layout-baseline`,
+`data-ve-global-styles`, `data-ve-theme`, `data-ve-theme-tokens`,
+`data-ve-block-library*`). It is a *known, intentional, one-way*
+divergence — see **Known divergences** below.
 
 ## Known divergences
 
-### Encoded in `fixtures.json`
+### Class tokens encoded in `fixtures.json`
 
 `knownDivergences` declares class tokens that one renderer emits and the
 others do not, with the reason and the tracking issue. Matching tokens
 are dropped from every class attribute on both sides before comparison —
-narrow and explicit, rather than loosening the match. Currently:
+narrow and explicit, rather than loosening the match.
 
-- **`ve-w-<hash>` (#712, introduced by #487).** `core/column`'s Blade partial mints a hashed
-  scope class and pushes matching `flex-basis` / `flex-grow`
-  `!important` rules into the per-request responsive accumulator, so an
-  explicit column width survives WP core's mobile stacking rule. React
-  and Vue emit the inline `flex-basis` only. Dropping the token keeps the
-  rest of the column markup — including the inline style — under
-  comparison instead of dropping the width fixture entirely.
-- **`has-photo-grid` / `photo-grid-<hash>` (#714, introduced by #594).**
-  The Photo Grid block support is implemented in the Blade renderer only:
-  `PhotoGridSupport::wrapperForBlock()` splices both tokens into the
-  wrappers emitted by `core/group`, `core/columns` and
-  `artisanpack/grid`, and pushes the matching custom-property
-  declarations into the per-request accumulator. Neither JS renderer has
-  a counterpart. Dropping the tokens keeps the rest of those wrappers
-  under comparison (fixture: `group-photo-grid`).
+**The list is currently empty**: every former class-token divergence has
+converged. The `ve-w-<hash>` column-width scope (#712/#487) and the
+`has-photo-grid` / `photo-grid-<hash>` scope (#714/#594) are now emitted
+identically by all three renderers, and their CSS bodies are compared
+directly (see **Scope** above) rather than dropped.
+
+### One-way CSS divergences (stripped, not compared)
+
+These live in the baseline / global-styles / theme layer the harness
+strips, so they never reach comparison. They are recorded here because
+that layer is deliberately excluded, not accidentally:
+
+- **Constrained-group containment + auto margins.** The JS renderers'
+  `LAYOUT_BASELINE_CSS` (`layoutBaselineCss.ts`) carries three
+  `.wp-block-group-is-layout-constrained` containment rules the Blade
+  baseline does not: Blade emits its containment from
+  `ThemeJsonTokensCompiler::compileLayoutRules()`, gated on `theme.json`
+  declaring `contentSize` / `wideSize`. The JS `max-width` rules fall out
+  of `var()` semantics when those custom properties are undefined, but
+  the **auto margins are not gated the same way** — with no content size
+  configured they still centre a self-sized child, one place the JS
+  baseline goes further than Blade's gated output. See the header comment
+  in `layoutBaselineCss.ts`.
+
+### Blade-only blocks (no JS `<style>`/markup twin)
+
+- **`core/html` and `artisanpack/html`.** Shipped as Blade partials; the
+  React/Vue renderers have no static counterpart and fall back to
+  server (`DynamicBlock`) rendering at runtime. They are declared under
+  `bladeOnly` in `packages/renderer-parity.json`, which excludes them
+  from the React/Vue registration check. They have no markup-parity
+  fixture because the two sides render fundamentally different markup by
+  design.
 
 ### Resolved
 

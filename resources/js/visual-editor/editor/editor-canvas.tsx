@@ -41,7 +41,7 @@ import { useMemo } from 'react';
 
 import { canvasColorTokenStyle } from './canvas-color-tokens';
 import { canvasStyles } from './canvas-styles';
-import { ChromeBlocks } from './composed-view/ChromeBlocks';
+import { ChromeBlocks } from './composed-view/chrome-blocks';
 import { ComposedViewRibbon } from './composed-view/composed-view-ribbon';
 import { PostTitle } from './post-title';
 import { ROOT_CANVAS_LAYOUT } from '../editor-settings';
@@ -152,8 +152,14 @@ export function EditorCanvas(props: EditorCanvasProps): JSX.Element {
     // host rule on `body` / `.editor-styles-wrapper` keeps
     // out-specifying it.
     const themeBase = useThemeGlobalStylesSettings(apiBase);
+    // Derive the canvas color tokens from the *merged* styles (theme
+    // defaults + the user's site-editor palette override), not the theme
+    // defaults alone — otherwise a palette customized in the Styles panel
+    // is served only in the `/css` payload, which the deliberately
+    // higher-specificity `body.editor-styles-wrapper` painting rule
+    // out-weighs, and the canvas keeps the theme-default colors (#M1).
     const colorTokens = useMemo(
-        () => canvasColorTokenStyle(themeBase?.styles),
+        () => canvasColorTokenStyle(themeBase?.mergedStyles ?? themeBase?.styles),
         [themeBase]
     );
 

@@ -10,3 +10,8 @@
     </p>
   </div>
 </div>
+@@ renderer-instance-css @@
+.ve-w-345d016776.ve-w-345d016776.ve-w-345d016776{flex-basis:calc(50% - var(--wp--style--block-gap, 0.5em) * 0.5)!important;flex-grow:0!important}
+.ve-w-b3f909ad19.ve-w-b3f909ad19.ve-w-b3f909ad19{flex-basis:calc(50% - var(--wp--style--block-gap, 0.5em) * 0.5)!important;flex-grow:0!important}
+@media (min-width:768px){.ve-w-345d016776.ve-w-345d016776.ve-w-345d016776{flex-basis:calc(66.67% - var(--wp--style--block-gap, 0.5em) * 0.3333)!important;flex-grow:0!important}}
+@media (min-width:768px){.ve-w-b3f909ad19.ve-w-b3f909ad19.ve-w-b3f909ad19{flex-basis:calc(33.33% - var(--wp--style--block-gap, 0.5em) * 0.6667)!important;flex-grow:0!important}}

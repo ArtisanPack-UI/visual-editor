@@ -591,6 +591,415 @@
                     "innerBlocks": []
                 }
             ]
+        },
+        {
+            "name": "columns-boolean-widths",
+            "$comment": "M12 — boolean per-breakpoint widths. `false` and `true` are non-scalar and rejected on both sides (`(string) false === ''`; the scalar guard skips `true`), so only each column's base 50% rule survives — no `flex-basis:false`/`flex-basis:true` leak.",
+            "tree": [
+                {
+                    "clientId": "columns-boolean-widths-w",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "cbw-a",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "50%",
+                                "responsive": {
+                                    "width": {
+                                        "md": false
+                                    }
+                                }
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "cbw-a-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "cbw-b",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "50%",
+                                "responsive": {
+                                    "width": {
+                                        "md": true
+                                    }
+                                }
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "cbw-b-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "B"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "columns-object-width",
+            "$comment": "L18 — an object `width` is not a scalar, so it is never promoted into the hashed base slot; the scope is hashed over the responsive override alone, identically on both sides.",
+            "tree": [
+                {
+                    "clientId": "columns-object-width-w",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "cow",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": {},
+                                "responsive": {
+                                    "width": {
+                                        "md": "50%"
+                                    }
+                                }
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "cow-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-layout-type-nbsp",
+            "$comment": "M13 — `layout.type` with a trailing U+00A0. PHP `trim()` (and `phpTrim`) keep the nbsp, so the type is unknown and both renderers fall back to `is-layout-flow`; `String.trim()` would have wrongly stripped it to `flex`.",
+            "tree": [
+                {
+                    "clientId": "gltn",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": "flex "
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gltn-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Flow"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-flex-override-numeric-type",
+            "$comment": "M14 — a numeric `layout.type` with the base Flex panel enabled. A non-string type is treated as '' (not coerced to '5'), so the #595 override fires and both renderers emit `is-layout-flex`.",
+            "tree": [
+                {
+                    "clientId": "gfont",
+                    "name": "core/group",
+                    "attributes": {
+                        "layout": {
+                            "type": 5
+                        },
+                        "artisanpackFlex": {
+                            "container": {
+                                "enabled": {
+                                    "base": true
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gfont-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Flex"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "post-template-columns-scientific",
+            "$comment": "L19 — a scientific-notation columns string. Blade casts only the leading integer run (`5`), matching the JS renderers' `parseInt`, so both clamp to 5 rather than PHP's whole-string `(int) '5e3' === 5000`.",
+            "tree": [
+                {
+                    "clientId": "ptcs",
+                    "name": "core/post-template",
+                    "attributes": {
+                        "layout": "grid",
+                        "columns": "5e3"
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "ptcs-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Item"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "buttons-hostile-justify",
+            "$comment": "L20 — a `justifyContent` outside WP's enum. Both renderers whitelist it and fall back to `left`, so no arbitrary `is-content-justification-*` token is injected.",
+            "tree": [
+                {
+                    "clientId": "bhj",
+                    "name": "core/buttons",
+                    "attributes": {
+                        "layout": {
+                            "justifyContent": "left;position:fixed"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "bhj-b",
+                            "name": "core/button",
+                            "attributes": {
+                                "text": "Go",
+                                "url": "https://example.com"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "columns-decimal-and-zero-width",
+            "$comment": "L21 — inline `flex-basis` parity: `'60.0'` normalizes to `60%` (not raw) on both sides, and `'0'` is PHP-`empty()` so it emits no inline style and no scope.",
+            "tree": [
+                {
+                    "clientId": "columns-decimal-and-zero-width-w",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "cdz-a",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "60.0"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "cdz-a-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        },
+                        {
+                            "clientId": "cdz-b",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "0"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "cdz-b-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "B"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "columns-hex-width",
+            "$comment": "L16 — a JS-only numeric literal (`0x1A`). `isNumeric` rejects it like PHP `is_numeric`, so it is treated as an opaque CSS string on both sides rather than read as the number 26.",
+            "tree": [
+                {
+                    "clientId": "columns-hex-width-w",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "chw",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "0x1A"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "chw-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "column-long-responsive-width",
+            "$comment": "H1 — a width map whose JSON exceeds 240 bytes (five long `calc()` breakpoint overrides), exercising the >240-byte XXH3 long-hash path. The `ve-w-<hash>` token now matches Blade byte-for-byte.",
+            "tree": [
+                {
+                    "clientId": "column-long-responsive-width-w",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "clrw",
+                            "name": "core/column",
+                            "attributes": {
+                                "responsive": {
+                                    "width": {
+                                        "base": "calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)",
+                                        "sm": "calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)",
+                                        "md": "calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)",
+                                        "lg": "calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)",
+                                        "xl": "calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)"
+                                    }
+                                }
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "clrw-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-photo-grid-hostile",
+            "$comment": "L22 — hostile Photo Grid metadata: an invalid `aspectRatio` (`16/0`) and an `objectPosition` carrying a CSS-injection payload. Both renderers normalise/whitelist them identically, so the emitted custom-property rule is byte-identical.",
+            "tree": [
+                {
+                    "clientId": "gpgh",
+                    "name": "core/group",
+                    "attributes": {
+                        "photoGrid": {
+                            "enabled": true,
+                            "aspectRatio": "16/0",
+                            "objectFit": "cover",
+                            "objectPosition": "50% 50%}body{display:none"
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gpgh-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Hostile grid"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "columns-digraph-width",
+            "$comment": "L22 — a width carrying a `/*` comment digraph. The shared CSS-value whitelist drops it on both sides, so no width rule or class is emitted.",
+            "tree": [
+                {
+                    "clientId": "columns-digraph-width-w",
+                    "name": "core/columns",
+                    "attributes": {},
+                    "innerBlocks": [
+                        {
+                            "clientId": "cdw",
+                            "name": "core/column",
+                            "attributes": {
+                                "width": "50%/*x*/"
+                            },
+                            "innerBlocks": [
+                                {
+                                    "clientId": "cdw-p",
+                                    "name": "core/paragraph",
+                                    "attributes": {
+                                        "content": "A"
+                                    },
+                                    "innerBlocks": []
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "group-flex-arbitrary-guard",
+            "$comment": "L22 — arbitrary Flex values emitted into `<style data-ve-flex-arbitrary>`. A valid `13px` column gap emits its escaped `ap-gap-x-[13px]` rule identically on both sides; a hostile row gap is dropped by the shared CSS-value whitelist.",
+            "tree": [
+                {
+                    "clientId": "gfag",
+                    "name": "core/group",
+                    "attributes": {
+                        "artisanpackFlex": {
+                            "container": {
+                                "enabled": {
+                                    "base": true
+                                },
+                                "gap": {
+                                    "column": {
+                                        "base": "13px"
+                                    },
+                                    "row": {
+                                        "base": "9px}body{display:none"
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "innerBlocks": [
+                        {
+                            "clientId": "gfag-p",
+                            "name": "core/paragraph",
+                            "attributes": {
+                                "content": "Flex gap"
+                            },
+                            "innerBlocks": []
+                        }
+                    ]
+                }
+            ]
         }
     ]
 }

@@ -146,10 +146,58 @@ describe( 'GET /visual-editor/api/global-styles/base', function (): void {
 			stubThemeManagerHelpersForGlobalStylesTest( $mock );
 		} );
 
-		$this->getJson( '/visual-editor/api/global-styles/base' )
+		$response = $this->getJson( '/visual-editor/api/global-styles/base' )
 			->assertOk()
 			->assertJsonPath( 'id', '__base__' )
 			->assertJsonPath( 'theme', '' );
+
+		// mergedStyles is emptied as an object (`{}`), the same as styles.
+		expect( $response->getContent() )->toContain( '"mergedStyles":{}' );
+	} );
+
+	it( 'surfaces the DB override in mergedStyles while styles stays the theme default', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name'     => 'Digital Shopfront',
+				'slug'     => 'digital-shopfront',
+				'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#000' ] ] ] ],
+				'styles'   => [ 'color' => [ 'background' => '#ffffff', 'text' => '#111827' ] ],
+			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
+		} );
+
+		// The user has customized the background through the Styles section.
+		GlobalStyles::create( [
+			'theme'    => 'digital-shopfront',
+			'title'    => 'Custom',
+			'settings' => [ 'color' => [ 'palette' => [] ] ],
+			'styles'   => [ 'color' => [ 'background' => '#0a0a0a' ] ],
+		] );
+
+		$this->getJson( '/visual-editor/api/global-styles/base' )
+			->assertOk()
+			// The pristine styles field keeps the theme default.
+			->assertJsonPath( 'styles.color.background', '#ffffff' )
+			// mergedStyles reflects the DB override…
+			->assertJsonPath( 'mergedStyles.color.background', '#0a0a0a' )
+			// …while a sibling the override did not touch is preserved.
+			->assertJsonPath( 'mergedStyles.color.text', '#111827' );
+	} );
+
+	it( 'returns mergedStyles deep-equal to styles when no DB override exists', function (): void {
+		$this->mock( ThemeManager::class, function ( $mock ): void {
+			$mock->shouldReceive( 'getActiveTheme' )->andReturn( [
+				'name'     => 'Digital Shopfront',
+				'slug'     => 'digital-shopfront',
+				'settings' => [ 'color' => [ 'palette' => [ [ 'slug' => 'primary', 'color' => '#000' ] ] ] ],
+				'styles'   => [ 'color' => [ 'background' => '#ffffff' ], 'typography' => [ 'fontSize' => '14px' ] ],
+			] );
+			stubThemeManagerHelpersForGlobalStylesTest( $mock );
+		} );
+
+		$response = $this->getJson( '/visual-editor/api/global-styles/base' )->assertOk();
+
+		expect( $response->json( 'mergedStyles' ) )->toEqual( $response->json( 'styles' ) );
 	} );
 } );
 

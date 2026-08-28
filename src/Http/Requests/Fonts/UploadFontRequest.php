@@ -10,8 +10,8 @@
  * `.otf`), each capped at the configured size; the installer additionally
  * verifies each file's font signature before self-hosting it.
  *
- * Authorisation (the `manage_fonts` capability) is enforced in `authorize()`
- * via {@see AuthorizesFontManagement}, so an unauthorised caller is rejected
+ * Authorization (the `manage_fonts` capability) is enforced in `authorize()`
+ * via {@see AuthorizesFontManagement}, so an unauthorized caller is rejected
  * before the multipart body is materialised and validated.
  *
  * @package    ArtisanPack_UI
@@ -130,11 +130,11 @@ class UploadFontRequest extends FormRequest
 	public function messages(): array
 	{
 		return [
-			'faces.required'        => __( 'At least one font file must be uploaded.' ),
-			'faces.*.file.required' => __( 'Each face must include a font file.' ),
+			'faces.required'          => __( 'At least one font file must be uploaded.' ),
+			'faces.*.file.required'   => __( 'Each face must include a font file.' ),
 			'faces.*.file.extensions' => __( 'Font files must be a .woff2, .woff, .ttf, or .otf file.' ),
-			'faces.*.file.max'      => __( 'Each font file may not be larger than :max kilobytes.' ),
-			'faces.*.style.in'      => __( 'Font style must be either normal or italic.' ),
+			'faces.*.file.max'        => __( 'Each font file may not be larger than :max kilobytes.' ),
+			'faces.*.style.in'        => __( 'Font style must be either normal or italic.' ),
 		];
 	}
 

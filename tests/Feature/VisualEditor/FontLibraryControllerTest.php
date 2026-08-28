@@ -24,6 +24,7 @@ use ArtisanPackUI\VisualEditor\Fonts\Models\Font;
 use ArtisanPackUI\VisualEditor\Fonts\Models\FontFace;
 use ArtisanPackUI\VisualEditor\Fonts\Registries\FontSourceRegistry;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\Response;
 use Tests\Fixtures\Fonts\FontBinaryFactory;
@@ -294,6 +295,58 @@ describe( 'GET /visual-editor/api/fonts/sources/{provider}/preview/{slug}/{weigh
 
 		$this->get( '/visual-editor/api/fonts/sources/nope/preview/roboto/400/normal' )
 			->assertNotFound();
+	} );
+
+	it( 'caches a normal-sized preview face body', function (): void {
+		actingAsFontBrowser();
+		registerFakeFontProvider();
+
+		$this->get( '/visual-editor/api/fonts/sources/fake/preview/roboto/400/normal' )->assertOk();
+
+		expect( Cache::has( 've.font-preview.fake.roboto.400.normal' ) )->toBeTrue();
+	} );
+
+	it( 'refuses to cache a preview face body over the ceiling', function (): void {
+		actingAsFontBrowser();
+
+		// A provider whose face body exceeds the 2 MB cache ceiling: the response
+		// is still served, but nothing is written to the shared cache store.
+		app( FontSourceRegistry::class )->register( new class implements FontProvider
+		{
+			public function key(): string
+			{
+				return 'big';
+			}
+
+			public function label(): string
+			{
+				return 'Big Fonts';
+			}
+
+			public function isSelfHostable(): bool
+			{
+				return true;
+			}
+
+			public function searchCatalog( string $query, int $page = 1 ): array
+			{
+				return [ 'families' => [], 'page' => $page, 'has_more' => false ];
+			}
+
+			public function getFamily( string $slug ): ?array
+			{
+				return null;
+			}
+
+			public function fetchFace( string $slug, string $weight, string $style ): string
+			{
+				return 'wOF2' . str_repeat( "\x00", 2 * 1024 * 1024 );
+			}
+		} );
+
+		$this->get( '/visual-editor/api/fonts/sources/big/preview/huge/400/normal' )->assertOk();
+
+		expect( Cache::has( 've.font-preview.big.huge.400.normal' ) )->toBeFalse();
 	} );
 } );
 

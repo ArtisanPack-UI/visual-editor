@@ -101,26 +101,148 @@ function markupParityFixtures(): array
 }
 
 /**
- * Strips the renderer-injected `<style data-ve-*>` blocks.
- *
- * This check covers block markup only. The layout baseline / global-styles
- * CSS is a known, documented divergence between Blade (which emits it from
- * `ThemeJsonTokensCompiler::compileLayoutRules()`, gated on theme.json
- * layout sizes) and the JS renderers (which ship `LAYOUT_BASELINE_CSS`), so
- * comparing it here would only encode that difference twice.
+ * Delimiter separating the canonical markup from the canonical
+ * per-instance CSS section in the golden. Mirrors `CSS_SECTION_DELIMITER`
+ * in blade-parity.test.ts.
  */
-function stripRendererStyleTags( string $html ): string
+function markupParityCssDelimiter(): string
 {
-	return (string) preg_replace( '#<style\s+data-ve-[^>]*>.*?</style>#s', '', $html );
+	return '@@ renderer-instance-css @@';
+}
+
+/**
+ * Renderer `<style data-ve-*>` attributes carrying the baseline /
+ * global-styles / theme layer. That layer is a known, documented
+ * divergence — Blade compiles it from theme.json
+ * (`ThemeJsonTokensCompiler::compileLayoutRules()`), the JS renderers ship
+ * a static `LAYOUT_BASELINE_CSS` — so it is dropped rather than compared,
+ * to avoid encoding the same difference twice. Mirrors `GLOBAL_STYLE_ATTRS`
+ * in blade-parity.test.ts.
+ *
+ * @return array<int, string>
+ */
+function markupParityGlobalStyleAttrs(): array
+{
+	return [
+		'data-ve-global-styles',
+		'data-ve-layout-baseline',
+		'data-ve-theme',
+		'data-ve-theme-tokens',
+		'data-ve-block-library',
+		'data-ve-block-library-theme',
+	];
+}
+
+/**
+ * Splits the renderer-injected style tags off the markup and returns the
+ * markup (every `<style>/<link>/<script data-ve-*>` tag removed) plus the
+ * captured per-instance CSS bodies. Blade folds column-width, photo-grid,
+ * visibility, and flex-arbitrary rules into one `<style data-ve-responsive>`
+ * block; the React/Vue renderers split them across several tags. Capturing
+ * the bodies (minus the global/baseline layer) lets the rule *bodies* be
+ * compared regardless of which tag each renderer delivers them in. Mirrors
+ * `extractRendererCss()` in blade-parity.test.ts.
+ *
+ * @return array{markup: string, css: string}
+ */
+function markupParityExtractCss( string $html ): array
+{
+	$global   = markupParityGlobalStyleAttrs();
+	$captured = [];
+
+	$markup = (string) preg_replace_callback(
+		'#<style\s+(data-ve-[a-z-]+)(?:="[^"]*")?\s*>(.*?)</style>#s',
+		function ( array $matches ) use ( &$captured, $global ): string {
+			if ( ! in_array( $matches[1], $global, true ) ) {
+				$captured[] = $matches[2];
+			}
+
+			return '';
+		},
+		$html
+	);
+
+	$markup = (string) preg_replace( '#<link\b[^>]*\sdata-ve-[a-z-]+[^>]*>#', '', $markup );
+	$markup = (string) preg_replace( '#<script\b[^>]*\sdata-ve-[a-z-]+[^>]*>.*?</script>#s', '', $markup );
+
+	return [ 'markup' => $markup, 'css' => implode( '', $captured ) ];
+}
+
+/**
+ * Splits a CSS string into top-level rules, tracking brace depth so an
+ * `@media (...) { ... }` block stays a single rule. Mirrors
+ * `splitCssRules()` in blade-parity.test.ts.
+ *
+ * @return array<int, string>
+ */
+function markupParitySplitCssRules( string $css ): array
+{
+	$rules = [];
+	$depth = 0;
+	$start = 0;
+	$len   = strlen( $css );
+
+	for ( $i = 0; $i < $len; $i++ ) {
+		$ch = $css[ $i ];
+
+		if ( '{' === $ch ) {
+			$depth++;
+		} elseif ( '}' === $ch ) {
+			$depth--;
+
+			if ( 0 === $depth ) {
+				$rules[] = substr( $css, $start, $i - $start + 1 );
+				$start   = $i + 1;
+			}
+		}
+	}
+
+	$tail = substr( $css, $start );
+
+	if ( '' !== trim( $tail ) ) {
+		$rules[] = $tail;
+	}
+
+	return $rules;
+}
+
+/**
+ * Canonicalizes the captured per-instance CSS: split into top-level rules,
+ * collapse insignificant whitespace, drop empties, and sort so delivery
+ * differences (Blade folds every rule into one `<style data-ve-responsive>`
+ * in push order; the JS renderers split them across tags in tree order)
+ * never register as divergence — only a differing rule body does. Mirrors
+ * `canonicalRendererCss()` in blade-parity.test.ts.
+ */
+function markupParityCanonicalCss( string $css ): string
+{
+	$rules = array_map(
+		static fn ( string $rule ): string => trim( (string) preg_replace( '/[ \t\r\n\f\x0B]+/', ' ', $rule ) ),
+		markupParitySplitCssRules( $css )
+	);
+
+	$rules = array_values( array_filter( $rules, static fn ( string $rule ): bool => '' !== $rule ) );
+
+	sort( $rules, SORT_STRING );
+
+	return implode( "\n", $rules );
 }
 
 it( 'matches the golden markup shared with the React and Vue renderers', function ( string $name, array $tree ) {
 	$rendered = Blade::render( '<x-ve-blocks :tree="$tree" />', [ 'tree' => $tree ] );
 
-	$canonical = CanonicalMarkup::fromHtml(
-		stripRendererStyleTags( $rendered ),
+	$extracted = markupParityExtractCss( $rendered );
+
+	$canonicalMarkup = CanonicalMarkup::fromHtml(
+		$extracted['markup'],
 		markupParityDropClassPatterns()
 	);
+
+	$canonicalCss = markupParityCanonicalCss( $extracted['css'] );
+
+	$canonical = '' === $canonicalCss
+		? $canonicalMarkup
+		: $canonicalMarkup . "\n" . markupParityCssDelimiter() . "\n" . $canonicalCss;
 
 	$goldenPath = markupParityPath( 'goldens/' . $name . '.txt' );
 

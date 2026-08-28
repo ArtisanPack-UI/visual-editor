@@ -29,6 +29,11 @@ const expected = new Set(manifest.blocks);
 // must still appear in React/Vue, but skip the blade partial check.
 const bladeDynamic = new Set(manifest.bladeDynamic ?? []);
 const expectedForBlade = new Set([...expected].filter((b) => !bladeDynamic.has(b)));
+// Blocks the blade renderer ships as a static partial while React/Vue fall
+// back to the server (DynamicBlock) at render time. They must appear in
+// blade, but skip the React/Vue registration check.
+const bladeOnly = new Set(manifest.bladeOnly ?? []);
+const expectedForJs = new Set([...expected].filter((b) => !bladeOnly.has(b)));
 
 function extractRegistered(jsSource) {
     // Match `'ns/name': SomeRenderer,` entries inside the CORE_BLOCKS
@@ -84,7 +89,7 @@ function diff(label, expected, found) {
 const reports = [
     diff(
         'react',
-        expected,
+        expectedForJs,
         checkJsRenderer(
             'react',
             'packages/visual-editor-renderer-react/src/blocks/registerCoreBlocks.ts'
@@ -92,7 +97,7 @@ const reports = [
     ),
     diff(
         'vue',
-        expected,
+        expectedForJs,
         checkJsRenderer(
             'vue',
             'packages/visual-editor-renderer-vue/src/blocks/registerCoreBlocks.ts'
@@ -104,7 +109,7 @@ const reports = [
 let failed = false;
 for (const report of reports) {
     if (report.missing.length === 0 && report.extra.length === 0) {
-        const total = report.label === 'blade' ? expectedForBlade.size : expected.size;
+        const total = report.label === 'blade' ? expectedForBlade.size : expectedForJs.size;
         console.log(`  ok   ${report.label}: all ${total} blocks registered`);
         continue;
     }

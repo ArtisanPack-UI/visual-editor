@@ -94,6 +94,32 @@ describe('usePatternUsage', () => {
         expect(usage.perKind['template-part']).toBe(1);
     });
 
+    it('fails loud instead of under-counting when the list fills a page', async () => {
+        // A full page means there may be more records a single fetch can't
+        // see; under-counting could greenlight deleting an in-use pattern.
+        LIST_MOCK.mockImplementation((_config, kind: string) =>
+            Promise.resolve(
+                kind === 'template'
+                    ? Array.from({ length: 100 }, () =>
+                        templateWith([patternRef('artisanpack/block', 7)])
+                    )
+                    : []
+            )
+        );
+
+        const { result } = renderHook(() =>
+            usePatternUsage({ apiConfig: API_CONFIG })
+        );
+
+        let usage;
+        await act(async () => {
+            usage = await result.current.run(7);
+        });
+
+        expect(usage?.total).toBe(0);
+        expect(result.current.error).not.toBeNull();
+    });
+
     it('ignores references to a different pattern id', async () => {
         LIST_MOCK.mockImplementation((_config, kind: string) =>
             Promise.resolve(

@@ -5,3 +5,5 @@
     </p>
   </div>
 </div>
+@@ renderer-instance-css @@
+.photo-grid-2fc1bd5ccfa6{--ap-photo-grid-fit:contain;--ap-photo-grid-position:top left;}

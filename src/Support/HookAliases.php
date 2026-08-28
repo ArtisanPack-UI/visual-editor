@@ -66,7 +66,7 @@ class HookAliases
 		'ap.visual-editor.loginout.login-form'          => 'ap.visualEditor.loginout.loginForm',
 		'visual_editor.pre_publish_checks'              => 'ap.visualEditor.prePublishChecks',
 		'ap.icons.register-icon-sets'                   => 'ap.icons.registerIconSets',
-		'comments.form.action'                         => 'ap.cmsFramework.comments.form.action',
+		'comments.form.action'                          => 'ap.cmsFramework.comments.form.action',
 	];
 
 	/**

@@ -6,6 +6,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.7.0] - 2026-08-27
+
 ### Added
 
 - **Font Library** (#627) — a site-editor front door to font management,
@@ -30,8 +32,31 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   `ap.visualEditor.registerFontSources` reference in
   [Hooks and Events](docs/Hooks-and-Events.md) and a Font Library entry point
   in [Site Editor](docs/site-editor.md).
+- **Inline icons in content** (#717/#718) — a new inline-icon RichText format
+  lets you drop an icon inline with text in any rich-text field, with an
+  optional per-icon color. The React and Vue renderers gained a matching
+  `InlineIconContentHydrator` so the icon renders identically on the public
+  site.
+- **Dynamic Content tab in the inline link popover** (#662/#746) — the link
+  toolbar's popover now carries a Dynamic Content tab, so a link target can be
+  bound to a dynamic source (post, term, author, or site field) instead of a
+  hard-coded URL, resolved server-side at render time.
+- **Photo Grid wrapper ported to the React and Vue renderers** (#714) — the
+  photo-grid wrapper markup and its scoped grid CSS now emit identically from
+  all three renderers, so a gallery laid out as a photo grid renders the same
+  on the canvas and the public site regardless of renderer.
+- **Column responsive-width scope ported to the React and Vue renderers**
+  (#712) — per-breakpoint column widths now mint the same `ve-w-<hash>` scope
+  class and CSS across Blade, React, and Vue (the `hash( 'xxh3', … )` token is
+  ported byte-for-byte, including long width maps).
 
 ### Changed
+
+- **PHP 8.3 is now the minimum supported version** (was 8.2) — `composer.json`
+  requires `php: ^8.3`, the CI matrix runs 8.3 and 8.4, and `CONTRIBUTING.md`
+  is updated to match. This follows cms-framework 2.x, which already requires
+  PHP 8.3+. **Hosts still on PHP 8.2 must upgrade to install or update this
+  release.**
 
 - **The `post-comments-form` block fires `ap.cmsFramework.comments.form.action`**
   (cms-framework#245) — this block is the only fire site in the ecosystem for
@@ -73,6 +98,20 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
   than loud — the canonical name still fired normally, so only a test
   specifically asserting an *old* name would catch it. The root suite's
   `TestCase` has always registered the provider; the two are now consistent.
+- **The post-editor canvas applies the theme's global font-family**
+  (`aa73c5cc`) — the canvas painted body text in the default sans stack while
+  the real front end used the theme's configured font, so type in the editor
+  did not match the published page. The canvas now derives its base
+  font-family from the resolved global styles.
+
+### Security
+
+- **A shared CSS-value whitelist now gates every renderer `<style>` emission**
+  (#720/#721) — the Blade, React, and Vue renderers run all interpolated CSS
+  values (column widths, photo-grid metrics, inline styles) through one shared
+  grammar that drops anything outside a safe character/token set, closing
+  `url()`, `expression()`, and comment-digraph injection vectors uniformly
+  across renderers. The grammar is byte-identical across the three packages.
 
 ## [1.6.0] - 2026-08-07
 

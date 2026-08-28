@@ -3,3 +3,5 @@
     "Photo grid grid"
   </p>
 </div>
+@@ renderer-instance-css @@
+.photo-grid-ed2664086ea5{--ap-photo-grid-fit:cover;--ap-photo-grid-position:50% 50%;--ap-photo-grid-aspect:4/3;}

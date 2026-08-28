@@ -286,7 +286,19 @@ function normalizeError(error: unknown, fallback: string): FontLibraryApiError {
  * @since 1.7.0
  */
 export function catalogPreviewUrl(_provider: string, family: CatalogFamily): string | undefined {
-    return family.preview_url;
+    const url = family.preview_url;
+
+    // Honor only a same-origin, root-relative path. A third-party provider
+    // registered through `ap.visualEditor.registerFontSources` could
+    // otherwise return an absolute CDN URL that the modal would load as a
+    // stylesheet — exactly the cross-origin font request the self-hosting /
+    // GDPR guarantee forbids. Protocol-relative (`//host`) and absolute URLs
+    // are dropped so the preview falls back to a system font.
+    if (typeof url !== 'string' || !url.startsWith('/') || url.startsWith('//')) {
+        return undefined;
+    }
+
+    return url;
 }
 
 /**

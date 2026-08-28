@@ -46,11 +46,18 @@ import {
     useThemeGlobalStylesCss,
 } from '../use-theme-global-styles-css';
 
+// Importing the hook module registered its module-scope invalidation
+// subscriber (the one that clears the cache on any font change, regardless of
+// what is mounted). Snapshot it so `beforeEach` can drop per-test hook
+// listeners without also dropping the module-scope one.
+const MODULE_LISTENERS = new Set(fontsChangedListeners);
+
 describe('useThemeGlobalStylesCss', () => {
     beforeEach(() => {
         FETCH_GLOBAL_STYLES_CSS.mockReset();
         resetThemeGlobalStylesCssCache();
         fontsChangedListeners.clear();
+        MODULE_LISTENERS.forEach((listener) => fontsChangedListeners.add(listener));
     });
 
     it('settles to "" synchronously when no apiBase is given', () => {
@@ -149,6 +156,32 @@ describe('useThemeGlobalStylesCss', () => {
             useThemeGlobalStylesCss('/visual-editor/api')
         );
         expect(remount.result.current).toBe('/*FRESH*/');
+        expect(FETCH_GLOBAL_STYLES_CSS).toHaveBeenCalledTimes(2);
+    });
+
+    it('clears the cache on a font mutation with no consumer mounted (away-flow)', async () => {
+        FETCH_GLOBAL_STYLES_CSS.mockResolvedValueOnce('/*before*/').mockResolvedValueOnce(
+            '/*after*/'
+        );
+
+        // Visit a canvas (e.g. Templates): the CSS resolves and caches.
+        const first = renderHook(() => useThemeGlobalStylesCss('/visual-editor/api'));
+        await act(async () => {});
+        expect(first.result.current).toBe('/*before*/');
+        first.unmount();
+
+        // Navigate to the Styles panel — which mounts no canvas consumer of
+        // this hook — and install a font. The module-scope subscription must
+        // still clear the cache with nothing mounted.
+        act(() => {
+            emitFontsChanged();
+        });
+
+        // Back to a canvas: the now-empty cache forces a fresh fetch of the
+        // regenerated stylesheet rather than serving the pre-install CSS.
+        const second = renderHook(() => useThemeGlobalStylesCss('/visual-editor/api'));
+        await act(async () => {});
+        expect(second.result.current).toBe('/*after*/');
         expect(FETCH_GLOBAL_STYLES_CSS).toHaveBeenCalledTimes(2);
     });
 

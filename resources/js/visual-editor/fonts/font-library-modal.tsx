@@ -558,8 +558,8 @@ function UploadTab({
             </label>
             {files.length > 0 && (
                 <ul style={UPLOAD_STYLES.fileList}>
-                    {files.map((file) => (
-                        <li key={file.name}>{file.name}</li>
+                    {files.map((file, index) => (
+                        <li key={index}>{file.name}</li>
                     ))}
                 </ul>
             )}

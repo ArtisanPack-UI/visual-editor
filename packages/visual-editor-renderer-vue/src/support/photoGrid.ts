@@ -20,6 +20,7 @@
  * @since 1.7.0
  */
 
+import { phpTrim } from './attributes';
 import type { Block } from '../types';
 import { sha1Hex } from './sha1';
 
@@ -183,18 +184,6 @@ function withAttributes(
 	}
 
 	return { ...block, attributes: attrs, innerBlocks } as Block;
-}
-
-/**
- * Trim the exact character set PHP's `trim()` strips — space, tab, LF, CR,
- * NUL and vertical tab — rather than `String.prototype.trim()`, whose set
- * differs at both ends: it also strips form feed and every Unicode space
- * (U+00A0, …) yet leaves NUL in place. Matching PHP's set exactly is what
- * keeps the scope hash aligned with Blade for an attribute value carrying
- * exotic leading/trailing whitespace (#704 parity).
- */
-function phpTrim( value: string ): string {
-	return value.replace( /^[ \t\n\r\0\x0B]+/, '' ).replace( /[ \t\n\r\0\x0B]+$/, '' );
 }
 
 /**

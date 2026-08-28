@@ -14,6 +14,7 @@ use ArtisanPackUI\VisualEditor\Fonts\Services\FontsCssGenerator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Tests\Fixtures\Fonts\FontBinaryFactory;
 
 /**
  * A self-hostable fake provider whose behavior is driven by an options array so
@@ -74,8 +75,16 @@ function fakeInstallerFontProvider( array $options = [] ): FontProvider
 		{
 			$this->fetched[] = $weight . ':' . $style;
 
+			if ( isset( $this->options['sleepMicros'] ) ) {
+				usleep( (int) $this->options['sleepMicros'] );
+			}
+
 			if ( ( $this->options['failOnWeight'] ?? null ) === $weight ) {
 				throw new FontProviderException( 'Simulated fetch failure.' );
+			}
+
+			if ( isset( $this->options['faceBytes'] ) ) {
+				return (string) $this->options['faceBytes'];
 			}
 
 			if ( true === ( $this->options['badBytes'] ?? false ) ) {
@@ -318,4 +327,128 @@ it( 'skips unknown ids during bulk uninstall', function (): void {
 
 	expect( $removed )->toBe( 1 )
 		->and( Font::query()->count() )->toBe( 0 );
+} );
+
+it( 'aborts a catalog install that exceeds the wall-clock fetch budget', function (): void {
+	// A tiny budget plus a per-face fetch delay guarantees the second face's
+	// pre-fetch budget check trips, so the install stops cleanly before PHP's
+	// hard timeout rather than being killed mid-write.
+	config( [ 'artisanpack.visual-editor.fonts.install_max_seconds' => 0.001 ] );
+
+	app( FontSourceRegistry::class )->register( fakeInstallerFontProvider( [ 'key' => 'fake', 'sleepMicros' => 5000 ] ) );
+
+	expect( fn () => app( FontInstaller::class )->install( 'fake', 'inter', [
+		[ 'weight' => 400, 'style' => 'normal' ],
+		[ 'weight' => 700, 'style' => 'normal' ],
+	] ) )->toThrow( FontInstallationException::class );
+
+	// Nothing committed, and the first face's file was rolled back.
+	expect( Font::query()->count() )->toBe( 0 )
+		->and( FontFace::query()->count() )->toBe( 0 );
+
+	Storage::disk( 'public' )->assertMissing( 'visual-editor/fonts/fake/inter/400-normal.woff2' );
+} );
+
+it( 'skips rollback file deletion when the family is already committed', function (): void {
+	// Simulate a concurrent winner on another server (past a non-shared lock
+	// store) by pre-committing the family. A later install that fails midway must
+	// NOT delete the face file the committed rows may reference.
+	Font::query()->create( [
+		'provider'     => 'fake',
+		'family'       => 'Inter',
+		'slug'         => 'inter',
+		'is_variable'  => false,
+		'installed_at' => now(),
+	] );
+
+	app( FontSourceRegistry::class )->register( fakeInstallerFontProvider( [ 'key' => 'fake', 'failOnWeight' => '700' ] ) );
+
+	expect( fn () => app( FontInstaller::class )->install( 'fake', 'inter', [
+		[ 'weight' => 400, 'style' => 'normal' ],
+		[ 'weight' => 700, 'style' => 'normal' ],
+	] ) )->toThrow( FontProviderException::class );
+
+	// The committed family survives and the newly written 400 file is left in
+	// place rather than deleted out from under the concurrent winner.
+	expect( Font::query()->where( 'slug', 'inter' )->exists() )->toBeTrue();
+	Storage::disk( 'public' )->assertExists( 'visual-editor/fonts/fake/inter/400-normal.woff2' );
+} );
+
+it( 'recovers variable axes from the downloaded file when the catalog reports none', function (): void {
+	// Bunny reports a variable family with an empty axes list; the installer must
+	// parse the downloaded file itself and persist the recovered axes.
+	app( FontSourceRegistry::class )->register( fakeInstallerFontProvider( [
+		'key'         => 'fake',
+		'is_variable' => true,
+		'axes'        => [],
+		'faceBytes'   => FontBinaryFactory::variableTtf(),
+	] ) );
+
+	$font = app( FontInstaller::class )->install( 'fake', 'inter', [ [ 'weight' => 400, 'style' => 'normal' ] ] );
+
+	expect( $font->is_variable )->toBeTrue()
+		->and( $font->faces->first()->axes )->toHaveKey( 'wght' )
+		->and( $font->faces->first()->axes )->toHaveKey( 'opsz' );
+} );
+
+it( 'deletes the previous face file when a re-install changes its container format', function (): void {
+	// A provider whose face signature can change between installs: first WOFF2,
+	// then a bare SFNT (TTF). updateOrCreate keys on weight+style, so the row's
+	// path is rewritten and the old .woff2 file must be cleaned up.
+	$provider = new class implements FontProvider {
+		public string $signature = 'wOF2';
+
+		public function key(): string
+		{
+			return 'fake';
+		}
+
+		public function label(): string
+		{
+			return 'Fake Fonts';
+		}
+
+		public function isSelfHostable(): bool
+		{
+			return true;
+		}
+
+		public function searchCatalog( string $query, int $page = 1 ): array
+		{
+			return [ 'families' => [], 'page' => $page, 'has_more' => false ];
+		}
+
+		public function getFamily( string $slug ): ?array
+		{
+			return [
+				'slug'        => $slug,
+				'family'      => 'Inter',
+				'is_variable' => false,
+				'license'     => null,
+				'faces'       => [ [ 'weight' => 400, 'style' => 'normal' ] ],
+				'axes'        => [],
+			];
+		}
+
+		public function fetchFace( string $slug, string $weight, string $style ): string
+		{
+			return $this->signature . str_repeat( "\x00", 8 );
+		}
+	};
+
+	app( FontSourceRegistry::class )->register( $provider );
+
+	$installer = app( FontInstaller::class );
+	$installer->install( 'fake', 'inter', [ [ 'weight' => 400, 'style' => 'normal' ] ] );
+
+	Storage::disk( 'public' )->assertExists( 'visual-editor/fonts/fake/inter/400-normal.woff2' );
+
+	$provider->signature = "\x00\x01\x00\x00";
+	$font                = $installer->install( 'fake', 'inter', [ [ 'weight' => 400, 'style' => 'normal' ] ] );
+
+	expect( $font->faces )->toHaveCount( 1 )
+		->and( $font->faces->first()->format )->toBe( 'ttf' );
+
+	Storage::disk( 'public' )->assertExists( 'visual-editor/fonts/fake/inter/400-normal.ttf' );
+	Storage::disk( 'public' )->assertMissing( 'visual-editor/fonts/fake/inter/400-normal.woff2' );
 } );

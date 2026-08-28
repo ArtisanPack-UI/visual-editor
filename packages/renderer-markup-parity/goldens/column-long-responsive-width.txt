@@ -1,0 +1,13 @@
+<div class="wp-block-columns is-layout-flex wp-block-columns-is-layout-flex is-stacked-on-mobile">
+  <div class="wp-block-column ve-w-4a70d7eaf7">
+    <p class="wp-block-paragraph">
+      "A"
+    </p>
+  </div>
+</div>
+@@ renderer-instance-css @@
+.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7{flex-basis:calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)!important;flex-grow:0!important}
+@media (min-width:1024px){.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7{flex-basis:calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)!important;flex-grow:0!important}}
+@media (min-width:1280px){.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7{flex-basis:calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)!important;flex-grow:0!important}}
+@media (min-width:640px){.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7{flex-basis:calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)!important;flex-grow:0!important}}
+@media (min-width:768px){.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7.ve-w-4a70d7eaf7{flex-basis:calc(100% - var(--wp--style--block-gap, 0.5em) * 0.5)!important;flex-grow:0!important}}

@@ -11,10 +11,11 @@ import {
     attrRecord,
     attrString,
     classList,
-    formatPercent,
     layoutClass,
     layoutPair,
+    phpTrim,
 } from '../../support/attributes';
+import { isNonEmptyWidth, normalizeBasis } from '../../support/columnWidth';
 import { flexClassNames } from '../../support/flex-serializer';
 import { safeCssValue } from '../../support/cssValue';
 import { safeUrl } from '../../support/urlSanitizer';
@@ -48,7 +49,12 @@ export const GroupBlock = defineComponent({
             // "flex starts at md+"; flipping the wrapper to
             // `is-layout-flex` for them would apply flex below the
             // breakpoint too. Mirrors `group.blade.php`.
-            const storedLayoutType = attrString(attrRecord(props.attributes.layout).type).trim();
+            // Mirror `group.blade.php`: read the raw `layout.type`, treat a
+            // non-string as `''` (not coerced via `String()`, which would
+            // turn a numeric `5` into `'5'` and skip the override where
+            // Blade fires it), and trim with PHP's whitespace set.
+            const rawLayoutType = attrRecord(props.attributes.layout).type;
+            const storedLayoutType = typeof rawLayoutType === 'string' ? phpTrim(rawLayoutType) : '';
             let groupLayoutClass = layoutClass(props.attributes);
 
             if (storedLayoutType === '' && flexClasses.includes('ap-flex')) {
@@ -180,26 +186,16 @@ export const ColumnBlock = defineComponent({
             const width = props.attributes.width;
             let style: Record<string, string> | undefined;
 
-            if (width !== undefined && width !== null && width !== '') {
-                let basis = '';
+            // Mirror the Blade partial's inline `flex-basis`: gate on PHP
+            // `empty()` semantics (`isNonEmptyWidth` drops
+            // `0`/`'0'`/`''`/booleans/non-scalars) and normalize through the
+            // shared `normalizeBasis` so `'60.0'` renders as `60%` (not raw)
+            // and only whitelist-safe values are emitted (#720).
+            if (isNonEmptyWidth(width)) {
+                const normalized = normalizeBasis(width);
 
-                if (typeof width === 'number') {
-                    basis = formatPercent(width);
-                } else if (typeof width === 'string' && width.trim() !== '') {
-                    const numeric = Number.parseFloat(width);
-
-                    basis =
-                        Number.isFinite(numeric) && String(numeric) === width.trim()
-                            ? formatPercent(numeric)
-                            : width;
-                }
-
-                // Only emit the inline `flex-basis` when the resolved value
-                // passes the shared CSS-value whitelist, so a hostile stored
-                // width is dropped here exactly as the Blade partial drops
-                // it (#720).
-                if (basis !== '' && safeCssValue(basis) !== null) {
-                    style = { 'flex-basis': basis };
+                if (normalized !== null && safeCssValue(normalized.basis) !== null) {
+                    style = { 'flex-basis': normalized.basis };
                 }
             }
 
@@ -214,19 +210,36 @@ export const ColumnBlock = defineComponent({
     },
 });
 
+const ALLOWED_JUSTIFY_CONTENT = [
+    'left',
+    'center',
+    'right',
+    'space-between',
+    'space-around',
+    'space-evenly',
+    'stretch',
+] as const;
+
 export const ButtonsBlock = defineComponent({
     name: 'ButtonsBlock',
     props: blockRendererProps,
     setup(props, { slots }) {
         return () => {
             const layout = attrRecord(props.attributes.layout);
-            const justify = attrString(layout.justifyContent);
+            // Whitelist `layout.justifyContent` against WP's enum so an
+            // authored block can't inject an arbitrary class token; anything
+            // else falls back to `left`, WP's own default. Mirrors
+            // `buttons.blade.php`.
+            const rawJustify = attrString(layout.justifyContent);
+            const justify = (ALLOWED_JUSTIFY_CONTENT as ReadonlyArray<string>).includes(rawJustify)
+                ? rawJustify
+                : 'left';
             const className = attrString(props.attributes.className);
 
             const classes = classList([
                 'wp-block-buttons',
                 ...layoutPair('buttons', 'is-layout-flex'),
-                justify !== '' ? `is-content-justification-${justify}` : 'is-content-justification-left',
+                `is-content-justification-${justify}`,
                 className,
             ]);
 

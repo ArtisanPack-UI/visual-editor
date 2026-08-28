@@ -59,6 +59,16 @@ class GoogleFontsProvider implements FontProvider
 	protected const ALLOWED_FILE_HOST_SUFFIXES = [ 'gstatic.com' ];
 
 	/**
+	 * Per-instance memo of the normalized catalog. The registry keeps providers
+	 * as effective singletons, so caching the multi-MB unserialized catalog on
+	 * the instance avoids re-reading and re-unserializing it from the cache store
+	 * on every catalog/family/face call within a request.
+	 *
+	 * @var array<string, array<string, mixed>>|null
+	 */
+	protected ?array $catalog = null;
+
+	/**
 	 * @param  string  $metadataUrl  The keyless family-metadata endpoint.
 	 * @param  string  $cssUrl       The keyless CSS2 endpoint face files resolve through.
 	 * @param  string  $userAgent    Sent with CSS2 requests so Google serves WOFF2.
@@ -194,9 +204,9 @@ class GoogleFontsProvider implements FontProvider
 		$family = $this->catalog()[ trim( $slug ) ] ?? null;
 
 		if ( null === $family ) {
-			throw new FontProviderException( sprintf(
-				'Google Fonts has no family for slug "%s".',
-				$slug
+			throw new FontProviderException( __(
+				'Google Fonts has no family for slug ":slug".',
+				[ 'slug' => $slug ]
 			) );
 		}
 
@@ -207,18 +217,18 @@ class GoogleFontsProvider implements FontProvider
 		// any non-`italic` token) would fall through to the normal face rather
 		// than being refused.
 		if ( ! in_array( $style, [ 'normal', 'italic' ], true ) ) {
-			throw new FontProviderException( sprintf(
-				'Google Fonts does not support the "%s" style.',
-				$style
+			throw new FontProviderException( __(
+				'Google Fonts does not support the ":style" style.',
+				[ 'style' => $style ]
 			) );
 		}
 
 		// Validate the weight token rather than casting it: `(int) '400junk'`
 		// would silently resolve to the 400 face.
 		if ( ! ctype_digit( $weight ) ) {
-			throw new FontProviderException( sprintf(
-				'Google Fonts weight "%s" is not a numeric weight.',
-				$weight
+			throw new FontProviderException( __(
+				'Google Fonts weight ":weight" is not a numeric weight.',
+				[ 'weight' => $weight ]
 			) );
 		}
 
@@ -226,11 +236,9 @@ class GoogleFontsProvider implements FontProvider
 		$variant  = $weight . ( $isItalic ? 'i' : '' );
 
 		if ( ! in_array( $variant, $family['variants'], true ) ) {
-			throw new FontProviderException( sprintf(
-				'Google Fonts family "%s" has no %s %s face.',
-				$family['family'],
-				$weight,
-				$style
+			throw new FontProviderException( __(
+				'Google Fonts family ":family" has no :weight :style face.',
+				[ 'family' => $family['family'], 'weight' => $weight, 'style' => $style ]
 			) );
 		}
 
@@ -238,11 +246,9 @@ class GoogleFontsProvider implements FontProvider
 		$fileUrl = $this->resolveFaceUrl( $css );
 
 		if ( null === $fileUrl ) {
-			throw new FontProviderException( sprintf(
-				'Google Fonts returned no WOFF2 URL for "%s" %s %s.',
-				$family['family'],
-				$weight,
-				$style
+			throw new FontProviderException( __(
+				'Google Fonts returned no WOFF2 URL for ":family" :weight :style.',
+				[ 'family' => $family['family'], 'weight' => $weight, 'style' => $style ]
 			) );
 		}
 
@@ -264,7 +270,7 @@ class GoogleFontsProvider implements FontProvider
 	 */
 	protected function catalog(): array
 	{
-		return Cache::remember( $this->catalogCacheKey(), $this->cacheTtl, function (): array {
+		return $this->catalog ??= Cache::remember( $this->catalogCacheKey(), $this->cacheTtl, function (): array {
 			return $this->fetchCatalog();
 		} );
 	}
@@ -485,17 +491,16 @@ class GoogleFontsProvider implements FontProvider
 				->get( $url );
 		} catch ( Throwable $e ) {
 			throw new FontProviderException(
-				sprintf( 'Failed to resolve the Google Fonts face CSS for "%s".', $family ),
+				__( 'Failed to resolve the Google Fonts face CSS for ":family".', [ 'family' => $family ] ),
 				0,
 				$e
 			);
 		}
 
 		if ( ! $response->successful() ) {
-			throw new FontProviderException( sprintf(
-				'Google Fonts returned HTTP %d resolving the face CSS for "%s".',
-				$response->status(),
-				$family
+			throw new FontProviderException( __(
+				'Google Fonts returned HTTP :status resolving the face CSS for ":family".',
+				[ 'status' => $response->status(), 'family' => $family ]
 			) );
 		}
 
@@ -613,26 +618,25 @@ class GoogleFontsProvider implements FontProvider
 				->get( $fileUrl );
 		} catch ( Throwable $e ) {
 			throw new FontProviderException(
-				sprintf( 'Failed to download the Google Fonts face at "%s".', $fileUrl ),
+				__( 'Failed to download the Google Fonts face at ":url".', [ 'url' => $fileUrl ] ),
 				0,
 				$e
 			);
 		}
 
 		if ( ! $response->successful() ) {
-			throw new FontProviderException( sprintf(
-				'Google Fonts returned HTTP %d downloading the face at "%s".',
-				$response->status(),
-				$fileUrl
+			throw new FontProviderException( __(
+				'Google Fonts returned HTTP :status downloading the face at ":url".',
+				[ 'status' => $response->status(), 'url' => $fileUrl ]
 			) );
 		}
 
 		$body = $this->readBounded( $response, sprintf( 'the Google Fonts face at "%s"', $fileUrl ) );
 
 		if ( ! str_starts_with( $body, 'wOF2' ) ) {
-			throw new FontProviderException( sprintf(
-				'The file downloaded from "%s" is not a WOFF2 font.',
-				$fileUrl
+			throw new FontProviderException( __(
+				'The file downloaded from ":url" is not a WOFF2 font.',
+				[ 'url' => $fileUrl ]
 			) );
 		}
 

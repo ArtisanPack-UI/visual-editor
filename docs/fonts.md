@@ -197,6 +197,13 @@ explains why. The read-only state the UI shows is only a mirror — the server
 enforces the same gate and returns a `403` for mutating requests, so the
 capability is the real boundary.
 
+Note that reaching the Font Library API at all is gated entirely by
+`artisanpack.visual-editor.api.middleware` (default `['api', 'auth']`, applied in
+`VisualEditorServiceProvider`): a host that overrides that stack without keeping
+`auth` exposes the open catalog and preview routes as an unauthenticated
+server-side fetch amplifier, so leave `auth` in place unless another layer
+authenticates the same requests.
+
 ---
 
 ## Configuration
@@ -209,11 +216,13 @@ All Font Library settings live under the `fonts` key of `config/visual-editor.ph
 | `fonts.path` | `visual-editor/fonts` | Directory on the disk for face files. |
 | `fonts.css_path` | `visual-editor/fonts/fonts.css` | The single generated stylesheet, rebuilt on every install/uninstall. |
 | `fonts.capability` | `manage_fonts` | Capability required for mutating actions. |
+| `fonts.install_max_seconds` | `0` | Wall-clock budget for a catalog install's per-face fetch loop; `0` derives it from PHP's `max_execution_time`. |
 | `fonts.bundles.auto_install` | `false` (env `VE_FONTS_BUNDLE_AUTO_INSTALL`) | Fetch a theme bundle's missing families on activation. |
 | `fonts.providers.google.enabled` | `true` | Show the Google Fonts source. |
 | `fonts.providers.bunny.enabled` | `true` | Show the Bunny Fonts source. |
 | `fonts.providers.custom.enabled` | `true` | Show the Custom Upload source. |
 | `fonts.upload.max_kilobytes` | `5120` | Per-face upload size cap, in KB. |
+| `fonts.upload.max_total_kilobytes` | `25600` | Combined size cap across all faces in one upload, in KB. |
 | `fonts.upload.extensions` | `woff2, woff, ttf, otf` | Accepted upload container formats. |
 
 Neither built-in remote provider needs an API key — both browse keyless
@@ -221,6 +230,18 @@ endpoints. Each provider block also carries connection settings (`subset`,
 `per_page`, `cache_ttl`, `timeout`, and the catalog/CSS URLs) so a host can
 repoint a provider at a mirror or tune its caching; see the annotated block in
 `config/visual-editor.php` for the full reference.
+
+### Concurrency and the lock store
+
+Installs, uninstalls, and the `fonts.css` rebuild serialize through
+`Cache::lock()`. Those locks only coordinate **across servers** when the
+application's cache store is a shared, atomic-lock-capable backend — Redis,
+Memcached, DynamoDB, or a shared database. Under a per-server store (`array`,
+`file`) each lock is local to one process, so a multi-server deployment must set
+`cache.default` to a shared store for the Font Library's concurrency guarantees
+to hold. As a backstop the installer re-checks whether a family is already
+committed before deleting any face files on rollback, so even a race the lock did
+not cover will not delete a concurrent winner's files.
 
 ---
 

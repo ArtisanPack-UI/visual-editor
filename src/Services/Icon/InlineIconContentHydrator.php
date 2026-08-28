@@ -60,7 +60,7 @@ final class InlineIconContentHydrator
 	 * Inline style forced onto every resolved `<svg>` so an inline icon
 	 * stays inline (`display:inline-block` overrides CSS resets such as
 	 * Tailwind's `svg { display: block }`), sizes to `1em`, inherits the
-	 * surrounding text colour, and seats on the baseline — all with no
+	 * surrounding text color, and seats on the baseline — all with no
 	 * dependency on the frontend stylesheet. Kept in sync with the
 	 * editor's `normalizeInlineIconSvg()`.
 	 */

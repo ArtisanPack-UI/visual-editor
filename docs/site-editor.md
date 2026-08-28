@@ -249,7 +249,7 @@ overridden per-section by binding your own preview resolver in
 | Global styles | `GET /global-styles/lookup`, `GET /global-styles/base`, `GET /global-styles/css`, `GET/PUT /global-styles/{id}` |
 | Navigation | `GET/POST /menus`, `GET/PUT/DELETE /menus/{id}`, `GET/POST/PUT/DELETE /menu-items`, `GET /menu-locations` |
 | Entity search | `GET /search` — backs the link-control picker across all entity types |
-| Fonts | `GET /fonts`, `GET /fonts/sources`, `GET /fonts/sources/{provider}/catalog`, `GET /fonts/sources/{provider}/preview/{slug}`, `POST /fonts`, `POST /fonts/upload`, `POST /fonts/bulk-uninstall`, `DELETE /fonts/{font}` — the Font Library (reads open + `read_only`; writes gated by `manage_fonts`) |
+| Fonts | `GET /fonts`, `GET /fonts/sources`, `GET /fonts/sources/{provider}/catalog`, `GET /fonts/sources/{provider}/preview/{slug}`, `GET /fonts/sources/{provider}/preview/{slug}/{weight}/{style}`, `POST /fonts`, `POST /fonts/upload`, `POST /fonts/bulk-uninstall`, `DELETE /fonts/{font}` — the Font Library (reads open + `read_only`; writes gated by `manage_fonts`) |
 
 All under the `/visual-editor/api/` prefix, all behind the API middleware
 stack.

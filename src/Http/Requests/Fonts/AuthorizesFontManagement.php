@@ -1,11 +1,11 @@
 <?php
 
 /**
- * Shared font-management authorisation for the Font Library form requests.
+ * Shared font-management authorization for the Font Library form requests.
  *
  * Resolves the `manage_fonts` capability through {@see FontPolicy} in the
  * request's `authorize()` step — which runs *before* validation — so an
- * unauthorised caller is rejected before a large multipart upload is
+ * unauthorized caller is rejected before a large multipart upload is
  * materialised and size-validated, and the response keeps the same shaped JSON
  * 403 (with the `read_only` signal) the controller emits for the other Font
  * Library endpoints.
@@ -31,7 +31,7 @@ use Symfony\Component\HttpFoundation\Response;
 trait AuthorizesFontManagement
 {
 	/**
-	 * Authorise the request against the `manage_fonts` capability.
+	 * Authorize the request against the `manage_fonts` capability.
 	 *
 	 * @since 1.7.0
 	 */
@@ -41,7 +41,7 @@ trait AuthorizesFontManagement
 	}
 
 	/**
-	 * Reject an unauthorised request with the Font Library's shaped 403.
+	 * Reject an unauthorized request with the Font Library's shaped 403.
 	 *
 	 * @since 1.7.0
 	 */

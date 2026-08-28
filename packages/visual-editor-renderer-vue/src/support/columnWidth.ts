@@ -258,8 +258,16 @@ function mergeResponsiveWidths( attributes: Record<string, unknown> ): Record<st
  * `''` is treated as "no width" the same way the Blade partial's
  * `! empty( $attributes['width'] )` guard is.
  */
-function isNonEmptyWidth( value: unknown ): boolean {
+export function isNonEmptyWidth( value: unknown ): boolean {
 	if ( value === undefined || value === null || value === false ) {
+		return false;
+	}
+
+	// A width is only ever a scalar (a number or a CSS-length string). An
+	// object/array width would `(string)`-cast to `Array` in the Blade
+	// partial (which additionally guards with `is_scalar`), so reject
+	// non-scalars here too rather than promoting them into the hashed map.
+	if ( typeof value !== 'number' && typeof value !== 'string' && typeof value !== 'boolean' ) {
 		return false;
 	}
 
@@ -277,7 +285,15 @@ function isNonEmptyWidth( value: unknown ): boolean {
  * width map upstream, so rejecting a value here does not change the
  * `ve-w-<hash>` token.
  */
-function normalizeBasis( value: unknown ): NormalizedBasis | null {
+export function normalizeBasis( value: unknown ): NormalizedBasis | null {
+	// Only a scalar width can produce a `flex-basis`. A boolean or object
+	// value is rejected outright so it never reaches the emitted `<style>`
+	// block — mirrors the Blade partial, which `continue`s on any
+	// non-scalar / boolean width before the `(string)` cast.
+	if ( typeof value !== 'number' && typeof value !== 'string' ) {
+		return null;
+	}
+
 	if ( isNumeric( value ) ) {
 		const percent = typeof value === 'number' ? value : Number( String( value ).trim() );
 
@@ -321,8 +337,12 @@ function basisExpr( normalized: NormalizedBasis ): string {
 
 /**
  * PHP `is_numeric()` for the values this module sees (numbers and numeric
- * strings). Trailing-whitespace numerics diverge from PHP but never reach a
- * width attribute.
+ * strings). The string branch is anchored to PHP's decimal / scientific
+ * grammar so JS-only literals PHP rejects — hex (`0x1A`), `Infinity`,
+ * `NaN` — are rejected here too (they would otherwise be read as numbers
+ * and hashed / emitted differently from Blade). PHP 8 tolerates leading and
+ * trailing whitespace around a numeric string, so the value is trimmed
+ * first.
  */
 function isNumeric( value: unknown ): value is number | string {
 	if ( typeof value === 'number' ) {
@@ -332,7 +352,11 @@ function isNumeric( value: unknown ): value is number | string {
 	if ( typeof value === 'string' ) {
 		const trimmed = value.trim();
 
-		return trimmed !== '' && ! Number.isNaN( Number( trimmed ) );
+		if ( ! /^[+-]?(\d+(\.\d+)?|\.\d+)([eE][+-]?\d+)?$/.test( trimmed ) ) {
+			return false;
+		}
+
+		return Number.isFinite( Number( trimmed ) );
 	}
 
 	return false;

@@ -111,13 +111,36 @@ class FontsCssGenerator
 				) );
 			}
 
-			// Rename over the live path. On the local driver this is an atomic
-			// rename(2), so a reader never observes a half-written bundle.
-			if ( false === $disk->move( $tempPath, $path ) ) {
-				throw new FontFileWriteException( sprintf(
-					'Failed to move the staged fonts.css bundle into place at "%s".',
-					$path
-				) );
+			// Rename over the live path. On the local POSIX driver this is an
+			// atomic rename(2), so a reader never observes a half-written bundle.
+			$moved = false;
+
+			try {
+				$moved = $disk->move( $tempPath, $path );
+			} catch ( Throwable ) {
+				// Some drivers throw rather than return false when the rename
+				// cannot overwrite; fall through to the delete-then-move retry.
+				$moved = false;
+			}
+
+			if ( false === $moved ) {
+				// Windows' rename fails when the destination already exists, so
+				// delete the previous bundle and retry. Caveat: on a non-local
+				// driver (e.g. S3) move() is a non-atomic copy+delete and
+				// `Storage::url()` may be cross-origin, so this delete-then-move
+				// widens the window where no bundle exists. That is acceptable
+				// here because the bundle is regenerated wholesale on every
+				// mutation and is never read mid-write.
+				if ( $disk->exists( $path ) ) {
+					$disk->delete( $path );
+				}
+
+				if ( false === $disk->move( $tempPath, $path ) ) {
+					throw new FontFileWriteException( sprintf(
+						'Failed to move the staged fonts.css bundle into place at "%s".',
+						$path
+					) );
+				}
 			}
 		} catch ( Throwable $e ) {
 			if ( $disk->exists( $tempPath ) ) {

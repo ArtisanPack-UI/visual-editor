@@ -111,8 +111,8 @@ class CustomUploadProvider implements FontProvider
 	 */
 	public function fetchFace( string $slug, string $weight, string $style ): string
 	{
-		throw new FontProviderException(
+		throw new FontProviderException( __(
 			'Custom fonts are ingested from uploaded files, not fetched from a remote source.'
-		);
+		) );
 	}
 }

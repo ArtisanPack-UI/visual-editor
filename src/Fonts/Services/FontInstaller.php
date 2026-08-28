@@ -14,7 +14,13 @@
  * this call newly created is deleted and the DB rows roll back, so a partial
  * install never leaves stray files or half-registered fonts behind. Re-fetched
  * faces that already existed on disk are left in place on rollback — their
- * committed rows still reference them.
+ * committed rows still reference them — and the rollback re-checks the committed
+ * family first, so a concurrent install on another server (past a non-shared
+ * lock store) never has its files deleted out from under it.
+ *
+ * Variable-axis metadata is read from each downloaded file during install, so a
+ * provider whose catalog reports a variable family without axis ranges (Bunny)
+ * still persists the recovered axes.
  *
  * @package    ArtisanPack_UI
  * @subpackage VisualEditor
@@ -92,35 +98,34 @@ class FontInstaller
 		$provider = $this->registry->get( $providerKey );
 
 		if ( null === $provider ) {
-			throw new FontInstallationException( sprintf(
-				'No font source is registered under the key "%s".',
-				$providerKey
+			throw new FontInstallationException( __(
+				'No font source is registered under the key ":key".',
+				[ 'key' => $providerKey ]
 			) );
 		}
 
 		if ( ! $provider->isSelfHostable() ) {
-			throw new FontInstallationException( sprintf(
-				'The "%s" font source is not self-hostable and cannot be installed.',
-				$provider->label()
+			throw new FontInstallationException( __(
+				'The ":source" font source is not self-hostable and cannot be installed.',
+				[ 'source' => $provider->label() ]
 			) );
 		}
 
 		$family = $provider->getFamily( $slug );
 
 		if ( null === $family ) {
-			throw new FontInstallationException( sprintf(
-				'The "%s" font source has no family for the slug "%s".',
-				$provider->label(),
-				$slug
+			throw new FontInstallationException( __(
+				'The ":source" font source has no family for the slug ":slug".',
+				[ 'source' => $provider->label(), 'slug' => $slug ]
 			) );
 		}
 
 		$requested = $this->normalizeRequestedFaces( $faces );
 
 		if ( [] === $requested ) {
-			throw new FontInstallationException(
+			throw new FontInstallationException( __(
 				'At least one face must be selected to install a font.'
-			);
+			) );
 		}
 
 		// Serialize concurrent installs of the same family. Without this, two
@@ -168,33 +173,33 @@ class FontInstaller
 		$family = trim( $family );
 
 		if ( '' === $family ) {
-			throw new FontInstallationException( 'A custom font upload requires a family name.' );
+			throw new FontInstallationException( __( 'A custom font upload requires a family name.' ) );
 		}
 
 		$providerKey = CustomUploadProvider::KEY;
 		$provider    = $this->registry->get( $providerKey );
 
 		if ( null === $provider ) {
-			throw new FontInstallationException(
+			throw new FontInstallationException( __(
 				'Custom font uploads are not enabled.'
-			);
+			) );
 		}
 
 		$slug = Str::slug( $family );
 
 		if ( '' === $slug ) {
-			throw new FontInstallationException( sprintf(
-				'The family name "%s" does not produce a usable font slug.',
-				$family
+			throw new FontInstallationException( __(
+				'The family name ":family" does not produce a usable font slug.',
+				[ 'family' => $family ]
 			) );
 		}
 
 		$prepared = $this->prepareUploadedFaces( $faces );
 
 		if ( [] === $prepared ) {
-			throw new FontInstallationException(
+			throw new FontInstallationException( __(
 				'At least one valid font file must be uploaded to install a custom font.'
-			);
+			) );
 		}
 
 		$font = Cache::lock( $this->installLockKey( $providerKey, $slug ), 30 )->block(
@@ -222,10 +227,26 @@ class FontInstaller
 	{
 		$rollbackPaths = [];
 		$writtenFaces  = [];
+		$isVariable    = (bool) ( $family['is_variable'] ?? false );
+
+		$start  = microtime( true );
+		$budget = $this->fetchTimeBudget();
 
 		try {
-			foreach ( $requested as $face ) {
+			foreach ( $requested as $index => $face ) {
 				[ $weight, $style ] = $face;
+
+				// Enforce a wall-clock budget across the sequential per-face
+				// fetches (each up to two 10s HTTP round-trips) so a large
+				// selection aborts cleanly here rather than being killed
+				// mid-write by PHP's hard max_execution_time. The first face is
+				// always attempted.
+				if ( $index > 0 && ( microtime( true ) - $start ) >= $budget ) {
+					throw new FontInstallationException( __(
+						'Installing ":slug" is taking too long and was stopped before the request could time out. Install fewer weights and styles at a time.',
+						[ 'slug' => $slug ]
+					) );
+				}
 
 				$bytes = $provider->fetchFace( $slug, (string) $weight, $style );
 
@@ -233,11 +254,9 @@ class FontInstaller
 				// one, so gate the fetched bytes with the same font magic-byte
 				// check the upload path applies before self-hosting the file.
 				if ( ! $this->isFontSignature( $bytes ) ) {
-					throw new FontInstallationException( sprintf(
-						'The face fetched for "%s" (%d %s) is not a recognized font file.',
-						$slug,
-						$weight,
-						$style
+					throw new FontInstallationException( __(
+						'The face fetched for ":slug" (:weight :style) is not a recognized font file.',
+						[ 'slug' => $slug, 'weight' => $weight, 'style' => $style ]
 					) );
 				}
 
@@ -256,49 +275,59 @@ class FontInstaller
 					$rollbackPaths[] = $path;
 				}
 
+				// Recover variable-axis metadata from the downloaded file itself.
+				// A provider whose catalog already reports axes (Google) keeps
+				// those; one that reports a variable family with no axes (Bunny)
+				// has them read out of the bytes here. A static face parses to
+				// nothing — a harmless no-op.
+				$parsed     = $this->metadataParser->parse( $bytes );
+				$familyAxes = ( $family['is_variable'] ?? false ) ? ( $family['axes'] ?? null ) : null;
+				$axes       = ( is_array( $familyAxes ) && [] !== $familyAxes )
+					? $familyAxes
+					: ( $parsed['is_variable'] ? $parsed['axes'] : $familyAxes );
+
+				$isVariable = $isVariable || $parsed['is_variable'];
+
 				$writtenFaces[] = [
 					'weight'    => $weight,
 					'style'     => $style,
 					'format'    => $format,
 					'path'      => $path,
 					'file_size' => strlen( $bytes ),
-					'axes'      => ( $family['is_variable'] ?? false ) ? ( $family['axes'] ?? null ) : null,
+					'axes'      => $axes,
 				];
 			}
 
-			return DB::transaction( function () use ( $providerKey, $slug, $family, $writtenFaces ): Font {
+			$orphans = [];
+
+			$font = DB::transaction( function () use ( $providerKey, $slug, $family, $writtenFaces, $isVariable, &$orphans ): Font {
 				$font = Font::query()->firstOrNew( [
 					'provider' => $providerKey,
 					'slug'     => $slug,
 				] );
 
 				$font->family       = (string) $family['family'];
-				$font->is_variable  = (bool) ( $family['is_variable'] ?? false );
+				$font->is_variable  = $isVariable;
 				$font->license      = $family['license'] ?? null;
 				$font->source_url   = $family['source_url'] ?? $font->source_url;
 				$font->installed_at = $font->installed_at ?? now();
 				$font->save();
 
 				foreach ( $writtenFaces as $face ) {
-					$font->faces()->updateOrCreate(
-						[
-							'weight' => $face['weight'],
-							'style'  => $face['style'],
-						],
-						[
-							'format'    => $face['format'],
-							'disk'      => $this->fileWriter->diskName(),
-							'path'      => $face['path'],
-							'file_size' => $face['file_size'],
-							'axes'      => $face['axes'],
-						]
-					);
+					$this->persistFace( $font, $face, $orphans );
 				}
 
 				return $font;
 			} );
+
+			// A re-install whose face changed container format (e.g. .woff2 →
+			// .ttf) wrote a new path and left the previous file orphaned; remove
+			// it now that the rows have committed.
+			$this->deleteFiles( $orphans );
+
+			return $font;
 		} catch ( Throwable $e ) {
-			$this->fileWriter->delete( $rollbackPaths );
+			$this->rollbackWrittenFiles( $providerKey, $slug, $rollbackPaths );
 
 			if ( $e instanceof FontInstallationException
 				|| $e instanceof FontProviderException
@@ -307,7 +336,7 @@ class FontInstaller
 			}
 
 			throw new FontInstallationException(
-				sprintf( 'Failed to install "%s": %s', $family['family'], $e->getMessage() ),
+				__( 'Failed to install ":family": :error', [ 'family' => $family['family'], 'error' => $e->getMessage() ] ),
 				0,
 				$e
 			);
@@ -420,7 +449,9 @@ class FontInstaller
 				];
 			}
 
-			return DB::transaction( function () use ( $providerKey, $family, $slug, $writtenFaces, $isVariable ): Font {
+			$orphans = [];
+
+			$font = DB::transaction( function () use ( $providerKey, $family, $slug, $writtenFaces, $isVariable, &$orphans ): Font {
 				$font = Font::query()->firstOrNew( [
 					'provider' => $providerKey,
 					'slug'     => $slug,
@@ -434,25 +465,19 @@ class FontInstaller
 				$font->save();
 
 				foreach ( $writtenFaces as $face ) {
-					$font->faces()->updateOrCreate(
-						[
-							'weight' => $face['weight'],
-							'style'  => $face['style'],
-						],
-						[
-							'format'    => $face['format'],
-							'disk'      => $this->fileWriter->diskName(),
-							'path'      => $face['path'],
-							'file_size' => $face['file_size'],
-							'axes'      => $face['axes'],
-						]
-					);
+					$this->persistFace( $font, $face, $orphans );
 				}
 
 				return $font;
 			} );
+
+			// A re-upload whose face changed container format wrote a new path and
+			// left the previous file orphaned; remove it after the rows commit.
+			$this->deleteFiles( $orphans );
+
+			return $font;
 		} catch ( Throwable $e ) {
-			$this->fileWriter->delete( $rollbackPaths );
+			$this->rollbackWrittenFiles( $providerKey, $slug, $rollbackPaths );
 			$this->restoreOverwrittenFiles( $providerKey, $slug, $prepared, $restoreFiles );
 
 			if ( $e instanceof FontInstallationException
@@ -461,7 +486,7 @@ class FontInstaller
 			}
 
 			throw new FontInstallationException(
-				sprintf( 'Failed to install the uploaded font "%s": %s', $family, $e->getMessage() ),
+				__( 'Failed to install the uploaded font ":family": :error', [ 'family' => $family, 'error' => $e->getMessage() ] ),
 				0,
 				$e
 			);
@@ -541,13 +566,19 @@ class FontInstaller
 	 */
 	public function uninstall( Font $font ): void
 	{
-		$filesByDisk = $this->faceFilesByDisk( $font->faces );
+		$filesByDisk = [];
 
 		// Serialize against a concurrent install of the same family so an
 		// uninstall cannot delete face files mid-write (same lock install holds).
+		// The face relation is snapshotted inside the lock so a concurrent install
+		// cannot add a face between the snapshot and the delete, which would leave
+		// that face's file behind unreferenced.
 		Cache::lock( $this->installLockKey( (string) $font->provider, (string) $font->slug ), 30 )->block(
 			15,
-			static function () use ( $font ): void {
+			function () use ( $font, &$filesByDisk ): void {
+				$font->load( 'faces' );
+				$filesByDisk = $this->faceFilesByDisk( $font->faces );
+
 				DB::transaction( static function () use ( $font ): void {
 					$font->delete();
 				} );
@@ -646,7 +677,16 @@ class FontInstaller
 	protected function regenerate(): void
 	{
 		try {
-			$this->cssGenerator->generate();
+			// Serialize the whole-library rebuild under a shared lock so two
+			// concurrent installs/uninstalls cannot interleave their generate()
+			// calls and race the atomic move into place. Requires a shared cache
+			// lock store across servers (see the install lock note); a
+			// LockTimeoutException here is logged like any other rebuild failure —
+			// the previous bundle stays in place and the next mutation rebuilds it.
+			Cache::lock( 'visual-editor.fonts.regenerate', 30 )->block(
+				15,
+				fn (): string => $this->cssGenerator->generate()
+			);
 		} catch ( Throwable $e ) {
 			Log::error(
 				'Failed to regenerate the Font Library fonts.css bundle after a font change.',
@@ -658,11 +698,119 @@ class FontInstaller
 	/**
 	 * The cache-lock key that serializes installs of one provider family.
 	 *
+	 * The install/uninstall/regenerate locks only serialize across servers when
+	 * the application's cache store is a shared, atomic-lock-capable backend
+	 * (Redis, Memcached, DynamoDB, or a shared database). Under a per-server store
+	 * (`array`, `file`) the lock is local to one process, so a multi-server deploy
+	 * must point `cache.default` at a shared store for the Font Library's
+	 * concurrency guarantees to hold. The rollback path additionally re-checks the
+	 * committed family before deleting files (see {@see rollbackWrittenFiles()}) so
+	 * a race the lock did not cover cannot delete a concurrent winner's files.
+	 *
 	 * @since 1.7.0
 	 */
 	protected function installLockKey( string $providerKey, string $slug ): string
 	{
 		return 'visual-editor.fonts.install.' . $providerKey . '.' . $slug;
+	}
+
+	/**
+	 * The wall-clock budget, in seconds, for the sequential per-face fetch loop.
+	 *
+	 * A host may pin it with `fonts.install_max_seconds`; left at 0 it derives
+	 * from PHP's `max_execution_time` (leaving headroom below the hard limit for
+	 * the DB transaction and CSS rebuild that follow), falling back to a
+	 * conservative default when that is unlimited (CLI/queue workers).
+	 *
+	 * @since 1.7.0
+	 */
+	protected function fetchTimeBudget(): float
+	{
+		$configured = (float) config( 'artisanpack.visual-editor.fonts.install_max_seconds', 0 );
+
+		if ( $configured > 0 ) {
+			return $configured;
+		}
+
+		$maxExecution = (int) ini_get( 'max_execution_time' );
+		$ceiling      = $maxExecution > 0 ? (float) $maxExecution : 60.0;
+
+		return max( 10.0, $ceiling * 0.8 );
+	}
+
+	/**
+	 * Persist one written face onto its font, recording any prior face file left
+	 * orphaned by a container-format change so the caller can delete it after the
+	 * transaction commits.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  array{weight: int, style: string, format: string, path: string, file_size: int, axes: array<string, mixed>|null}  $face
+	 * @param  array<string, array<int, string>>  $orphans  Prior paths keyed by disk, appended to by reference.
+	 */
+	protected function persistFace( Font $font, array $face, array &$orphans ): void
+	{
+		$existing = $font->faces()
+			->where( 'weight', $face['weight'] )
+			->where( 'style', $face['style'] )
+			->first();
+
+		// updateOrCreate keys on weight+style, so a re-install whose format
+		// changed rewrites the row's `path` in place and strands the old file.
+		if ( null !== $existing && (string) $existing->path !== $face['path'] ) {
+			$orphans[ (string) $existing->disk ][] = (string) $existing->path;
+		}
+
+		$font->faces()->updateOrCreate(
+			[
+				'weight' => $face['weight'],
+				'style'  => $face['style'],
+			],
+			[
+				'format'    => $face['format'],
+				'disk'      => $this->fileWriter->diskName(),
+				'path'      => $face['path'],
+				'file_size' => $face['file_size'],
+				'axes'      => $face['axes'],
+			]
+		);
+	}
+
+	/**
+	 * Delete the files a failed install newly wrote — unless a concurrent install
+	 * on another server has already committed this family, whose FontFace rows now
+	 * reference those same paths. Skipping the delete leaks at most an unreferenced
+	 * file (reconcilable later), which is strictly safer than deleting a file the
+	 * committed winner depends on.
+	 *
+	 * @since 1.7.0
+	 *
+	 * @param  array<int, string>  $rollbackPaths  Paths this call newly created.
+	 */
+	protected function rollbackWrittenFiles( string $providerKey, string $slug, array $rollbackPaths ): void
+	{
+		if ( [] === $rollbackPaths ) {
+			return;
+		}
+
+		if ( $this->familyIsCommitted( $providerKey, $slug ) ) {
+			return;
+		}
+
+		$this->fileWriter->delete( $rollbackPaths );
+	}
+
+	/**
+	 * Whether a font row for this provider family is already committed.
+	 *
+	 * @since 1.7.0
+	 */
+	protected function familyIsCommitted( string $providerKey, string $slug ): bool
+	{
+		return Font::query()
+			->where( 'provider', $providerKey )
+			->where( 'slug', $slug )
+			->exists();
 	}
 
 	/**

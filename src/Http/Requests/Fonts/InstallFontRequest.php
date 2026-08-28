@@ -40,7 +40,7 @@ class InstallFontRequest extends FormRequest
 		return [
 			'provider'       => [ 'required', 'string', 'max:64', 'regex:/^[a-z][a-z0-9_-]*$/' ],
 			'slug'           => [ 'required', 'string', 'max:191' ],
-			'faces'          => [ 'required', 'array', 'min:1', 'max:50' ],
+			'faces'          => [ 'required', 'array', 'min:1', 'max:18' ],
 			'faces.*.weight' => [ 'required', 'integer', 'min:1', 'max:1000' ],
 			'faces.*.style'  => [ 'sometimes', 'string', Rule::in( [ 'normal', 'italic' ] ) ],
 		];
@@ -54,14 +54,14 @@ class InstallFontRequest extends FormRequest
 	public function messages(): array
 	{
 		return [
-			'provider.required'     => __( 'A font provider is required to install a font.' ),
-			'provider.regex'        => __( 'The font provider key is not valid.' ),
-			'slug.required'         => __( 'A font family is required to install a font.' ),
-			'faces.required'        => __( 'At least one weight or style must be selected to install a font.' ),
-			'faces.min'             => __( 'At least one weight or style must be selected to install a font.' ),
+			'provider.required'       => __( 'A font provider is required to install a font.' ),
+			'provider.regex'          => __( 'The font provider key is not valid.' ),
+			'slug.required'           => __( 'A font family is required to install a font.' ),
+			'faces.required'          => __( 'At least one weight or style must be selected to install a font.' ),
+			'faces.min'               => __( 'At least one weight or style must be selected to install a font.' ),
 			'faces.*.weight.required' => __( 'Each selected face must include a font weight.' ),
 			'faces.*.weight.integer'  => __( 'Font weight must be a number between 1 and 1000.' ),
-			'faces.*.style.in'      => __( 'Font style must be either normal or italic.' ),
+			'faces.*.style.in'        => __( 'Font style must be either normal or italic.' ),
 		];
 	}
 }

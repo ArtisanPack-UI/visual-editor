@@ -63,7 +63,7 @@ vi.mock('@wordpress/block-editor', () => ({
 }));
 
 import { ROOT_CANVAS_LAYOUT } from '../../../editor-settings';
-import { ChromeBlocks } from '../ChromeBlocks';
+import { ChromeBlocks } from '../chrome-blocks';
 
 function block(
     name: string,

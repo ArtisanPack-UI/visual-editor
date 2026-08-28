@@ -650,9 +650,12 @@ return [
 
 		/*
 		| The capability that gates every mutating Font Library action (install,
-		| upload, uninstall, bulk uninstall). It is checked by `FontPolicy`
-		| against the authenticated user's `hasCapability()` method, so a host
-		| can grant font management on its own — independently of whoever the
+		| upload, uninstall, bulk uninstall). It is checked by `FontPolicy`,
+		| which probes the authenticated user's `hasCapability()`,
+		| `hasPermissionTo()`, and `hasPermission()` methods in turn (each guarded
+		| by `method_exists()`), so a host can grant font management on its own —
+		| whether its users expose WordPress-style capabilities or rbac
+		| permissions — independently of whoever the
 		| bound `SiteEditorAccessGate` lets into the rest of the site editor. A
 		| user without it may still browse installed fonts and the provider
 		| catalog: the read endpoints stay open and flag the session read-only.
@@ -662,6 +665,17 @@ return [
 		'regenerate' => [
 			'queued' => false,
 		],
+
+		/*
+		| Wall-clock budget, in seconds, for a synchronous catalog install's
+		| sequential per-face fetch loop. The installer aborts cleanly with a
+		| `FontInstallationException` once the elapsed fetch time crosses this budget,
+		| so a large selection fails with a clear message rather than being killed
+		| mid-write by PHP's hard `max_execution_time`. Left at 0 the budget is
+		| derived from `max_execution_time` (80% of it, or 60s when that is
+		| unlimited); set a positive number of seconds to pin it.
+		*/
+		'install_max_seconds' => 0,
 
 		/*
 		| Theme font bundles. A theme declares the fonts it depends on in a
@@ -721,8 +735,8 @@ return [
 		| `extensions` is the accepted web-font container set.
 		*/
 		'upload' => [
-			'max_kilobytes'       => 5120,
-			'max_total_kilobytes' => 25600,
+			'max_kilobytes'       => 5_120,
+			'max_total_kilobytes' => 25_600,
 			'extensions'          => [ 'woff2', 'woff', 'ttf', 'otf' ],
 		],
 	],

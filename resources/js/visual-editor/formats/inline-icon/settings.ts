@@ -69,6 +69,18 @@ export interface InlineIconObject {
 }
 
 /**
+ * Colour-shaped value whitelist for the per-icon `color` override. Mirrors
+ * the shape of `canvas-color-tokens.ts`'s `ALLOWED_VALUE` (hex, `rgb()` /
+ * `hsl()`, `var(--…)`, named colours) but excludes `/`, `;`, and `:` so a
+ * free-text ColorPalette custom value can't smuggle extra declarations into
+ * the serialized `style` — e.g. `red;position:fixed;inset:0`, which is
+ * attribute-escaped (no markup breakout) but would otherwise persist the
+ * extra rules. The server's `InlineIconContentHydrator` re-sanitizes `style`
+ * at render as a second line of defence.
+ */
+const COLOR_VALUE_PATTERN = /^[#\w(),.%\s-]+$/;
+
+/**
  * Build the inline `style` string from the size / colour overrides.
  * Returns undefined when nothing is overridden so the icon inherits.
  */
@@ -80,7 +92,7 @@ export function buildInlineIconStyle( options: InlineIconOptions ): string | und
     }
 
     const color = options.color?.trim();
-    if ( color ) {
+    if ( color && COLOR_VALUE_PATTERN.test( color ) ) {
         declarations.push( `color:${ color }` );
     }
 
