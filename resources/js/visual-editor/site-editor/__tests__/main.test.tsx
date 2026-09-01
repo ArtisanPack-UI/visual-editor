@@ -9,6 +9,16 @@ vi.mock('../site-editor-app', () => ({
     ),
 }));
 
+// `main.tsx` statically wires the runtime block-registration seam (#766),
+// which imports the real `@wordpress/*` editor libraries (`@wordpress/blocks`
+// trips Node's strict JSON import). Stub the two seam modules so importing
+// `../main` stays off that graph.
+vi.mock('../../editor/editor-libs', () => ({ editorLibs: {} }));
+vi.mock('../../editor/external-block-registration', () => ({
+    registerExternalBlockType: () => undefined,
+    registerExternalBlocks: () => undefined,
+}));
+
 import { bootSiteEditor, mountSiteEditor } from '../main';
 
 describe('bootSiteEditor', () => {

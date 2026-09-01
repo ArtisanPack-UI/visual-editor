@@ -6,6 +6,29 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **Runtime block registration for third parties** (#766) — a downstream
+  package (a host app, a module, or a WordPress-style plugin/theme) can now
+  contribute a block that appears in the editor inserter, exposes editable
+  attributes, and renders on the public page **without rebuilding this
+  package's editor bundle**. Two paths:
+  - **Server-driven (PHP only).** `VisualEditor::registerServerBlock($name,
+    $metadata, $render)` registers a block type's metadata and its server
+    render callback in one call. The editor fetches the server-registered
+    types at boot (each server-rendered type is flagged `apServerRender` by
+    the blocks endpoint) and synthesizes a generic edit component — a
+    `ServerSideRender` canvas preview plus inspector controls inferred from
+    the block.json `attributes` schema (with a per-attribute `apControl`
+    override). No client build required.
+  - **Client escape hatch.** `window.ApVisualEditor.registerBlockType(name,
+    settings)` / `registerBlocks(modules)` register a block with a bespoke
+    client `edit`. Calls made before the editor boots are queued and flushed
+    on boot; later calls register immediately. Host `edit`/`save` components
+    build against the editor's own singletons, exposed on
+    `window.ApVisualEditor.libs`. The same surface is mirrored on
+    `window.ApSiteEditor` for the site editor.
+
 ## [1.7.1] - 2026-08-28
 
 ### Fixed

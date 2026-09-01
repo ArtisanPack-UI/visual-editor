@@ -525,6 +525,15 @@ import {
     registerArtisanpackMediaBridge as registerArtisanpackMediaBridgeImpl,
     registerMediaBridge as registerMediaBridgeImpl,
 } from '../media-bridge';
+// Runtime third-party block registration (#766). Importing these here — in the
+// bundle entry that assigns `window.ApVisualEditor` — guarantees the pre-boot
+// queue and the exposed singletons exist the moment a host can reach the
+// global, i.e. before either editor app calls `registerArtisanPackBlocks()`.
+import { editorLibs, type EditorLibs } from './editor-libs';
+import {
+    registerExternalBlocks as registerExternalBlocksImpl,
+    registerExternalBlockType as registerExternalBlockTypeImpl,
+} from './external-block-registration';
 
 declare global {
     interface Window {
@@ -533,6 +542,9 @@ declare global {
             boot: typeof bootVisualEditor;
             registerArtisanpackMediaBridge: typeof registerArtisanpackMediaBridgeImpl;
             registerMediaBridge: typeof registerMediaBridgeImpl;
+            registerBlockType: typeof registerExternalBlockTypeImpl;
+            registerBlocks: typeof registerExternalBlocksImpl;
+            libs: EditorLibs;
         };
     }
 }
@@ -543,6 +555,9 @@ if (typeof window !== 'undefined') {
         boot: bootVisualEditor,
         registerArtisanpackMediaBridge: registerArtisanpackMediaBridgeImpl,
         registerMediaBridge: registerMediaBridgeImpl,
+        registerBlockType: registerExternalBlockTypeImpl,
+        registerBlocks: registerExternalBlocksImpl,
+        libs: editorLibs,
     };
 }
 

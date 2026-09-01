@@ -18,6 +18,16 @@ vi.mock('../editor-app', () => ({
     EditorApp: (): null => null,
 }));
 
+// `../vue` imports `./main`, which statically wires the runtime
+// block-registration seam (#766) and its real `@wordpress/*` imports
+// (`@wordpress/blocks` trips Node's strict JSON import). Stub the two seam
+// modules so this wrapper test stays off that graph.
+vi.mock('../editor-libs', () => ({ editorLibs: {} }));
+vi.mock('../external-block-registration', () => ({
+    registerExternalBlockType: () => undefined,
+    registerExternalBlocks: () => undefined,
+}));
+
 import { VisualEditor } from '../vue';
 
 function dispatchChange(detail: VeEditorChangeDetail): void {
