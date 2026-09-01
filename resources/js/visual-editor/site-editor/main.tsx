@@ -21,6 +21,14 @@ import {
     registerMediaBridge as registerMediaBridgeImpl,
 } from '../media-bridge';
 import { registerHookAliases } from '../support/hook-aliases';
+// Runtime third-party block registration (#766) — mirror the post editor's
+// `window.ApVisualEditor` surface so a block registered against the site
+// editor gets the same queue + singletons.
+import { editorLibs, type EditorLibs } from '../editor/editor-libs';
+import {
+    registerExternalBlocks as registerExternalBlocksImpl,
+    registerExternalBlockType as registerExternalBlockTypeImpl,
+} from '../editor/external-block-registration';
 
 // Re-export the aliased locals so hosts loading this bundle as an ESM
 // module can wire `MediaModal` + `uploadMedia` without also importing
@@ -304,6 +312,9 @@ declare global {
             boot: typeof bootSiteEditor;
             registerArtisanpackMediaBridge: typeof registerArtisanpackMediaBridgeImpl;
             registerMediaBridge: typeof registerMediaBridgeImpl;
+            registerBlockType: typeof registerExternalBlockTypeImpl;
+            registerBlocks: typeof registerExternalBlocksImpl;
+            libs: EditorLibs;
         };
     }
 }
@@ -314,6 +325,9 @@ if (typeof window !== 'undefined') {
         boot: bootSiteEditor,
         registerArtisanpackMediaBridge: registerArtisanpackMediaBridgeImpl,
         registerMediaBridge: registerMediaBridgeImpl,
+        registerBlockType: registerExternalBlockTypeImpl,
+        registerBlocks: registerExternalBlocksImpl,
+        libs: editorLibs,
     };
 }
 

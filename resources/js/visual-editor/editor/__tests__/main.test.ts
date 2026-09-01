@@ -1,4 +1,16 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// `main.tsx` statically wires the runtime block-registration seam (#766) onto
+// `window.ApVisualEditor`, which pulls in the real `@wordpress/*` editor
+// libraries — and `@wordpress/blocks` trips Node's strict JSON import on its
+// internal `i18n-block.json`. This suite only exercises the pure dataset
+// helpers, so stub the two seam modules to keep that heavy graph out of the
+// import (mirrors why `custom-blocks.test.tsx` mocks `@wordpress/blocks`).
+vi.mock('../editor-libs', () => ({ editorLibs: {} }));
+vi.mock('../external-block-registration', () => ({
+    registerExternalBlockType: () => undefined,
+    registerExternalBlocks: () => undefined,
+}));
 
 import {
     normalizeAuthorId,

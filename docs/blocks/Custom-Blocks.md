@@ -381,7 +381,105 @@ rendered HTML from the preview endpoint.
 
 ---
 
-## 6. Authoring checklist
+## 6. Registering blocks from another package (no rebuild)
+
+Sections 1–5 describe **in-package** authoring: the block lives under this
+package's `resources/js/visual-editor/blocks/` and is picked up by the editor
+build's `import.meta.glob`. A downstream package — a host app, a module, or a
+WordPress-style plugin/theme — cannot add to that glob without rebuilding this
+package's editor bundle. The runtime seam (#766) lets it register a block from
+outside, two ways.
+
+### 6.1 Server-driven (PHP only) — the common case
+
+For a dynamic block whose editing needs are covered by attribute controls and
+a server preview, register everything from PHP with `registerServerBlock()`:
+
+```php
+use ArtisanPackUI\VisualEditor\Facades\VisualEditor;
+
+VisualEditor::registerServerBlock(
+    'acme/manage-booking',
+    [
+        'title'      => 'Manage Booking',
+        'category'   => 'widgets',
+        'icon'       => 'calendar',
+        'attributes' => [
+            'heading'      => [ 'type' => 'string', 'default' => 'Your booking' ],
+            'showCalendar' => [ 'type' => 'boolean', 'default' => true ],
+            'columns'      => [
+                'type'      => 'number',
+                'default'   => 2,
+                // Optional per-attribute control override. Without it the
+                // control is inferred from `type` (+ `enum`): string → text,
+                // boolean → toggle, number → number, enum → select.
+                'apControl' => [ 'control' => 'range', 'min' => 1, 'max' => 4 ],
+            ],
+        ],
+    ],
+    fn (array $attrs): string => view('blocks.manage-booking', $attrs)->render(),
+);
+```
+
+That single call registers the block-type metadata **and** the server render
+callback. At boot the editor fetches the server-registered types, and for each
+one flagged `apServerRender` (any type that also has a server renderer) with no
+built-in client module, it synthesizes an edit component: a `ServerSideRender`
+canvas preview plus an inspector panel of controls inferred from `attributes`.
+No client build, no bundle rebuild.
+
+> **Escape your attribute output.** The render callback's returned HTML is
+> injected as-is into both the editor preview and the public page. Attribute
+> values are author-controlled input, so escape every one you emit (`e()` in a
+> Blade view, `htmlspecialchars()` otherwise) — an unescaped attribute is a
+> stored-XSS hole that an editor user could trigger. This is the same contract
+> every dynamic block has always had; it just now applies to blocks a
+> downstream package registers.
+
+Control inference (override any of it with `apControl`):
+
+| attribute `type`     | control        |
+| -------------------- | -------------- |
+| `string` (no `enum`) | text field     |
+| `string` with `enum` | select         |
+| `boolean`            | toggle         |
+| `number` / `integer` | number (range when `min`+`max` are given) |
+
+`apControl` accepts `{ control, label, help, min, max, step, options }`, and
+`apControl: false` hides an attribute from the inspector. Content-sourced
+attributes (those with a `source`) are always skipped — they are edited in the
+canvas, not the inspector.
+
+### 6.2 Client escape hatch — bespoke editor UI
+
+When a block needs a custom `edit` (a bespoke canvas, richer inspector logic),
+register it from the host page against the global the bundle installs:
+
+```js
+const { element, components, blockEditor } = window.ApVisualEditor.libs;
+
+window.ApVisualEditor.registerBlockType('acme/rating', {
+    title: 'Rating',
+    category: 'widgets',
+    attributes: { stars: { type: 'number', default: 5 } },
+    edit: (props) => element.createElement(/* … */),
+    // omit `save` for a dynamic block; return the markup for a static one
+});
+```
+
+- **Order-independent.** Calls made before the editor boots are queued and
+  flushed once the built-in blocks register; calls made afterwards register
+  immediately. Re-registering a name is a no-op.
+- **Build against `window.ApVisualEditor.libs`**, not your own copies —
+  `element`, `components`, `blockEditor`, `blocks`, `data`, `hooks`, `i18n`,
+  and `ServerSideRender`. Two copies of `@wordpress/element` or
+  `@wordpress/data` would each hold their own hook dispatcher / store registry
+  and your controls would render detached from the editor.
+- `registerBlocks(modules)` takes an array in this package's
+  `{ metadata, edit, save? }` module shape for registering several at once.
+- The site editor mirrors the same surface on `window.ApSiteEditor`.
+
+## 7. Authoring checklist
 
 For every new static block:
 
