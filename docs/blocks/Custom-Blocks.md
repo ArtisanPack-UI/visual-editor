@@ -428,6 +428,14 @@ built-in client module, it synthesizes an edit component: a `ServerSideRender`
 canvas preview plus an inspector panel of controls inferred from `attributes`.
 No client build, no bundle rebuild.
 
+> **Escape your attribute output.** The render callback's returned HTML is
+> injected as-is into both the editor preview and the public page. Attribute
+> values are author-controlled input, so escape every one you emit (`e()` in a
+> Blade view, `htmlspecialchars()` otherwise) — an unescaped attribute is a
+> stored-XSS hole that an editor user could trigger. This is the same contract
+> every dynamic block has always had; it just now applies to blocks a
+> downstream package registers.
+
 Control inference (override any of it with `apControl`):
 
 | attribute `type`     | control        |

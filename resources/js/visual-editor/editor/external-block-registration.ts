@@ -15,7 +15,7 @@
  * Re-registering a name is a no-op, mirroring {@see registerCustomBlocks}.
  */
 
-import { registerBlockType, type BlockConfiguration } from '@wordpress/blocks';
+import { getBlockType, registerBlockType, type BlockConfiguration } from '@wordpress/blocks';
 
 import { registerCustomBlocks, type CustomBlockModule } from './custom-blocks';
 
@@ -38,7 +38,11 @@ function registerOne(name: string, settings: BlockConfiguration): void {
         return;
     }
 
-    if (registered.has(name)) {
+    // Consult `@wordpress/blocks` itself, not just the local set, so a name
+    // already registered through another path — the server-block pass or a
+    // built-in block — is a clean skip rather than a caught throw (#766).
+    if (registered.has(name) || undefined !== getBlockType(name)) {
+        registered.add(name);
         return;
     }
 

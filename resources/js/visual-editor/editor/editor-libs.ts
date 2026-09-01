@@ -36,8 +36,13 @@ export interface EditorLibs {
 }
 
 /**
- * The singletons a host block builds against. Frozen so a host cannot mutate
- * another host's view of the runtime.
+ * The singletons a host block builds against.
+ *
+ * Frozen so a host cannot reassign the top-level references (swap out
+ * `libs.blocks` wholesale); the referenced module namespaces are themselves
+ * live ES exports, so a host can still reach shared runtime state through them
+ * (register a category, dispatch a store, add a hook) — that is inherent to
+ * sharing one editor runtime and is not something the freeze prevents.
  */
 export const editorLibs: EditorLibs = Object.freeze({
     element,

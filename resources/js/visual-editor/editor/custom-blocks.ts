@@ -14,7 +14,7 @@
 
 /// <reference types="vite/client" />
 
-import { getCategories, registerBlockType, setCategories } from '@wordpress/blocks';
+import { getBlockType, getCategories, registerBlockType, setCategories } from '@wordpress/blocks';
 import type { BlockConfiguration } from '@wordpress/blocks';
 
 import { registerForkClassNameAlias } from '../blocks/_shared/fork-class-name-alias';
@@ -146,7 +146,12 @@ export function registerCustomBlocks(
             continue;
         }
 
-        if (registered.has(name)) {
+        // Consult `@wordpress/blocks` itself, not just the local set, so a
+        // block already registered through a different path — the client
+        // escape hatch's `registerBlockType`, or a prior batch — is a clean
+        // skip rather than a caught "already registered" throw (#766).
+        if (registered.has(name) || undefined !== getBlockType(name)) {
+            registered.add(name);
             names.push(name);
             continue;
         }

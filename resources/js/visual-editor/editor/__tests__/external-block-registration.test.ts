@@ -6,16 +6,28 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { registerBlockType, registerCustomBlocks } = vi.hoisted(() => ({
-    registerBlockType: vi.fn(),
-    registerCustomBlocks: vi.fn(
-        (modules: ReadonlyArray<{ metadata: { name: string } }>) =>
-            modules.map((module) => module.metadata.name)
-    ),
-}));
+// `registerBlockType` records names into a shared registry that `getBlockType`
+// reads back, so the mock models the real `@wordpress/blocks` dedupe source of
+// truth the module now consults across paths.
+const { registerBlockType, getBlockType, registerCustomBlocks, registry } = vi.hoisted(() => {
+    const registry = new Set<string>();
+
+    return {
+        registry,
+        registerBlockType: vi.fn((name: string) => {
+            registry.add(name);
+        }),
+        getBlockType: vi.fn((name: string) => (registry.has(name) ? { name } : undefined)),
+        registerCustomBlocks: vi.fn(
+            (modules: ReadonlyArray<{ metadata: { name: string } }>) =>
+                modules.map((module) => module.metadata.name)
+        ),
+    };
+});
 
 vi.mock('@wordpress/blocks', () => ({
     registerBlockType,
+    getBlockType,
 }));
 
 vi.mock('../custom-blocks', () => ({
@@ -31,7 +43,9 @@ import {
 
 beforeEach(() => {
     registerBlockType.mockClear();
+    getBlockType.mockClear();
     registerCustomBlocks.mockClear();
+    registry.clear();
     __resetExternalBlockRegistration();
 });
 
@@ -85,6 +99,17 @@ describe('dedupe + guards', () => {
         registerExternalBlockType('acme/dupe', settings);
 
         expect(registerBlockType).toHaveBeenCalledTimes(1);
+    });
+
+    it('skips a name already registered through another path', () => {
+        // A block the server-block pass (or a built-in) already registered
+        // shows up in `@wordpress/blocks`; the escape hatch must skip it
+        // cleanly rather than re-register and throw.
+        registry.add('acme/shared');
+        markExternalBlocksReady();
+        registerExternalBlockType('acme/shared', settings);
+
+        expect(registerBlockType).not.toHaveBeenCalled();
     });
 
     it('skips a call with no block name', () => {
