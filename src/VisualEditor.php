@@ -199,6 +199,48 @@ class VisualEditor
 	}
 
 	/**
+	 * Registers a server-rendered block in a single call — both its editor
+	 * metadata and its PHP render callback.
+	 *
+	 * This is the one-call path for a downstream package (a host app, a
+	 * module, or a WordPress-style plugin/theme) that wants a block to appear
+	 * in the editor inserter, expose editable attributes, and render on the
+	 * public page — **without** shipping a compiled client `edit` component or
+	 * rebuilding this package's editor bundle. The editor discovers the block
+	 * at boot through the block-types endpoint (which flags it
+	 * `apServerRender`) and synthesizes a generic edit component
+	 * (server-side-render preview + attribute-driven inspector controls) from
+	 * the metadata's `attributes` schema (#766).
+	 *
+	 * The `$metadata` array is block.json-shaped — `title`, `category`,
+	 * `icon`, `description`, `attributes`, `supports`, etc. Any `name` inside
+	 * it is ignored; the `$name` argument is authoritative. The `$render`
+	 * callback receives the validated attributes and returns the block's HTML
+	 * (a string, {@see \Stringable}, or a view). Optional `$callbacks` mirror
+	 * the closure-form entries of {@see registerDynamicBlock()}
+	 * (`searchableText`, `validateAttrs`, `authorize`).
+	 *
+	 * For a bespoke editor experience the client escape hatch
+	 * (`window.ApVisualEditor.registerBlockType`) remains available; this
+	 * method is the zero-client-build default.
+	 *
+	 * @since 1.8.0
+	 *
+	 * @param  array<string, mixed>     $metadata
+	 * @param  array<string, callable>  $callbacks
+	 */
+	public function registerServerBlock( string $name, array $metadata, callable $render, array $callbacks = [] ): DynamicBlock
+	{
+		// The block name is authoritative; never let a stray `name` inside the
+		// metadata array shadow it or reach the registry as a conflicting key.
+		unset( $metadata['name'] );
+
+		$this->registerBlockType( $name, $metadata );
+
+		return $this->registerDynamicBlock( $name, [ 'render' => $render ] + $callbacks );
+	}
+
+	/**
 	 * Returns the block type registry instance.
 	 *
 	 * @since 1.0.0
