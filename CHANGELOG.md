@@ -6,6 +6,8 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+## [1.8.0] - 2026-09-01
+
 ### Added
 
 - **Runtime block registration for third parties** (#766) — a downstream
