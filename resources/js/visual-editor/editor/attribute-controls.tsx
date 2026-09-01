@@ -87,6 +87,14 @@ export type AttributeControlDescriptor =
           label: string;
           help?: string;
           options: ReadonlyArray<{ label: string; value: string }>;
+          /**
+           * Map a selected option's string `value` back to the attribute's
+           * original typed value. `SelectControl` only speaks strings, but a
+           * numeric or boolean `enum` member must round-trip to preview/render
+           * as its declared type — so an enum-derived control carries a decoder
+           * and an author-supplied (already-string) options list omits it.
+           */
+          decode?: (value: string) => unknown;
       };
 
 /**
@@ -109,23 +117,44 @@ export function humanizeAttributeName(name: string): string {
         .join(' ');
 }
 
-function toOptions(
-    values: unknown
-): ReadonlyArray<{ label: string; value: string }> | null {
+interface EnumOptions {
+    readonly options: ReadonlyArray<{ label: string; value: string }>;
+    /** Maps a stringified option value back to the original enum member. */
+    readonly decode: (value: string) => unknown;
+}
+
+/**
+ * Turn a block.json `enum` array into select options plus a decoder that
+ * recovers each member's original type (so a numeric/boolean enum stores a
+ * number/boolean, not the `SelectControl`'s string).
+ */
+function optionsFromEnum(values: unknown): EnumOptions | null {
     if (!Array.isArray(values) || values.length === 0) {
         return null;
     }
 
     const options: Array<{ label: string; value: string }> = [];
+    const byString = new Map<string, unknown>();
 
     for (const value of values) {
         if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
             const stringValue = String(value);
             options.push({ label: humanizeAttributeName(stringValue), value: stringValue });
+
+            if (!byString.has(stringValue)) {
+                byString.set(stringValue, value);
+            }
         }
     }
 
-    return options.length > 0 ? options : null;
+    if (options.length === 0) {
+        return null;
+    }
+
+    return {
+        options,
+        decode: (value: string) => (byString.has(value) ? byString.get(value) : value),
+    };
 }
 
 function numberBound(value: unknown): number | undefined {
@@ -170,18 +199,23 @@ export function resolveAttributeControl(
             }
             return { kind: 'number', name, label, help, min, max, step };
         case 'select': {
-            const options = hint.options && hint.options.length > 0 ? hint.options : toOptions(schema.enum);
-            if (options && options.length > 0) {
-                return { kind: 'select', name, label, help, options };
+            // An author-supplied options list is already string-valued and is
+            // stored verbatim, so it needs no decoder; a bare `enum` does.
+            if (hint.options && hint.options.length > 0) {
+                return { kind: 'select', name, label, help, options: hint.options };
+            }
+            const fromEnum = optionsFromEnum(schema.enum);
+            if (fromEnum) {
+                return { kind: 'select', name, label, help, options: fromEnum.options, decode: fromEnum.decode };
             }
             return { kind: 'text', name, label, help };
         }
     }
 
     // Inference from the JSON type + enum.
-    const enumOptions = toOptions(schema.enum);
-    if (enumOptions) {
-        return { kind: 'select', name, label, help, options: enumOptions };
+    const fromEnum = optionsFromEnum(schema.enum);
+    if (fromEnum) {
+        return { kind: 'select', name, label, help, options: fromEnum.options, decode: fromEnum.decode };
     }
 
     switch (schema.type) {
@@ -317,7 +351,9 @@ export function AttributeControl({
                     help={descriptor.help}
                     value={typeof value === 'string' ? value : value === undefined ? '' : String(value)}
                     options={descriptor.options as Array<{ label: string; value: string }>}
-                    onChange={(next: string) => onChange(next)}
+                    onChange={(next: string) =>
+                        onChange(descriptor.decode ? descriptor.decode(next) : next)
+                    }
                 />
             );
         case 'text':

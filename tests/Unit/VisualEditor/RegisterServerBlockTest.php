@@ -65,6 +65,24 @@ it( 'wires optional callbacks through to the dynamic block', function () {
 	expect( $block->searchableText( [ 'q' => 'findable' ] ) )->toBe( 'findable' );
 } );
 
+it( 'registers neither the type nor the renderer when a callback is invalid', function () {
+	try {
+		VisualEditor::registerServerBlock(
+			'tests/bad-callback',
+			[ 'title' => 'X' ],
+			fn ( array $attrs ): string => 'x',
+			[ 'searchableText' => 'not a callable' ],
+		);
+
+		$this->fail( 'Expected an InvalidArgumentException for the non-callable callback.' );
+	} catch ( InvalidArgumentException $e ) {
+		// The block type must not be left registered without its renderer —
+		// that would reach the editor unflagged and un-synthesizable.
+		expect( app( BlockTypeRegistry::class )->get( 'tests/bad-callback' ) )->toBeNull()
+			->and( app( DynamicBlockRegistry::class )->has( 'tests/bad-callback' ) )->toBeFalse();
+	}
+} );
+
 it( 'throws when the block name is invalid', function () {
 	VisualEditor::registerServerBlock( 'not-namespaced', [ 'title' => 'X' ], fn ( array $attrs ): string => 'x' );
 } )->throws( InvalidArgumentException::class );

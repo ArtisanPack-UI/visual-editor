@@ -87,6 +87,54 @@ describe('resolveAttributeControl inference', () => {
     });
 });
 
+describe('enum value type preservation', () => {
+    it('decodes a numeric enum selection back to a number', () => {
+        const control = resolveAttributeControl('columns', { type: 'number', enum: [1, 2, 3] });
+
+        expect(control?.kind).toBe('select');
+        if (control?.kind === 'select') {
+            expect(control.options).toEqual([
+                { label: '1', value: '1' },
+                { label: '2', value: '2' },
+                { label: '3', value: '3' },
+            ]);
+            expect(control.decode?.('2')).toBe(2);
+            expect(typeof control.decode?.('2')).toBe('number');
+        }
+    });
+
+    it('decodes a boolean enum selection back to a boolean', () => {
+        const control = resolveAttributeControl('inline', { type: 'boolean', enum: [true, false] });
+
+        expect(control?.kind).toBe('select');
+        if (control?.kind === 'select') {
+            expect(control.decode?.('true')).toBe(true);
+            expect(control.decode?.('false')).toBe(false);
+        }
+    });
+
+    it('leaves a string enum member a string and an unknown value untouched', () => {
+        const control = resolveAttributeControl('align', { type: 'string', enum: ['left', 'right'] });
+
+        if (control?.kind === 'select') {
+            expect(control.decode?.('left')).toBe('left');
+            expect(control.decode?.('unlisted')).toBe('unlisted');
+        }
+    });
+
+    it('does not attach a decoder to author-supplied string options', () => {
+        const control = resolveAttributeControl('size', {
+            type: 'string',
+            apControl: { control: 'select', options: [{ label: 'Small', value: 'sm' }] },
+        });
+
+        expect(control?.kind).toBe('select');
+        if (control?.kind === 'select') {
+            expect(control.decode).toBeUndefined();
+        }
+    });
+});
+
 describe('resolveAttributeControl overrides + exclusions', () => {
     it('honours an explicit apControl.control over the inferred type', () => {
         const control = resolveAttributeControl('body', {

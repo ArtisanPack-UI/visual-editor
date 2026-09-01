@@ -235,9 +235,17 @@ class VisualEditor
 		// metadata array shadow it or reach the registry as a conflicting key.
 		unset( $metadata['name'] );
 
-		$this->registerBlockType( $name, $metadata );
+		// Build — and thereby validate — the dynamic block BEFORE mutating the
+		// type registry. A non-callable callback throws here, so it can never
+		// leave a block type registered without its server renderer, which
+		// would reach the editor unflagged (no `apServerRender`) and so with no
+		// synthesizable edit component.
+		$block = $this->buildClosureDynamicBlock( $name, [ 'render' => $render ] + $callbacks );
 
-		return $this->registerDynamicBlock( $name, [ 'render' => $render ] + $callbacks );
+		$this->registerBlockType( $name, $metadata );
+		$this->dynamicRegistry->register( $block );
+
+		return $block;
 	}
 
 	/**
