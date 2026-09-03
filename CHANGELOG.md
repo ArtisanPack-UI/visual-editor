@@ -6,6 +6,18 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [Unreleased]
 
+### Added
+
+- **Dedicated HowTo block with HowTo JSON-LD** (#759) — a new
+  `artisanpack/howto` block persists an ordered list of steps (name,
+  text, optional image + alt) plus a block-level name and description,
+  and the Blade renderer emits a `HowTo` JSON-LD script at request time.
+  Emission is toggle-controlled so pages that already surface HowTo
+  schema elsewhere (a page-level schema block, a head manager) can turn
+  it off to avoid double-emission. React and Vue renderers ship the
+  same DOM and skip the JSON-LD script so downstream head managers stay
+  in charge of schema in those environments.
+
 ## [1.8.0] - 2026-09-01
 
 ### Added
