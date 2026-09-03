@@ -51,6 +51,7 @@ use ArtisanPackUI\VisualEditor\Resources\PostResolver;
 use ArtisanPackUI\VisualEditor\Resources\CommentInliner;
 use ArtisanPackUI\VisualEditor\Resources\CommentResolver;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
+use ArtisanPackUI\VisualEditor\Resources\TocResolver;
 use ArtisanPackUI\VisualEditor\Resources\ResourceResolver;
 use ArtisanPackUI\VisualEditor\Ai\Agents\ContentBlockSuggestionAgent;
 use ArtisanPackUI\VisualEditor\Ai\Agents\HeadingHierarchyAgent;
@@ -386,6 +387,13 @@ class VisualEditorServiceProvider extends ServiceProvider
 				$app,
 				$app->make( PostResolver::class ),
 			);
+		} );
+
+		// #760 — `TocResolver` stamps heading anchors and derives
+		// `artisanpack/toc` items across the block tree. Stateless, so
+		// safe to share as a singleton.
+		$this->app->singleton( TocResolver::class, function () {
+			return new TocResolver();
 		} );
 
 		// #519 — `CommentResolver` stamps `_resolved*` keys on
