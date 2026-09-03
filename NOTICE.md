@@ -42,6 +42,7 @@ The bundled `.svg` source assets live under
 | social-share-content | [`share-nodes`](https://fontawesome.com/icons/share-nodes) |
 | tab-section | [`window-maximize`](https://fontawesome.com/icons/window-maximize) |
 | tabs | [`window-restore`](https://fontawesome.com/icons/window-restore) |
+| toc | [`list-ol`](https://fontawesome.com/icons/list-ol) |
 
 [fa-free]: https://fontawesome.com/license/free
 [cc-by-4]: https://creativecommons.org/licenses/by/4.0/

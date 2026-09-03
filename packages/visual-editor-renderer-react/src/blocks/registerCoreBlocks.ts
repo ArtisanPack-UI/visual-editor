@@ -27,6 +27,7 @@ import { GridBlock, GridItemBlock } from './artisanpack/grid';
 import { HowtoBlock } from './artisanpack/howto';
 import { MarqueeBlock } from './artisanpack/marquee';
 import { TabSectionBlock, TabsBlock } from './artisanpack/tabs';
+import { TocBlock } from './artisanpack/toc';
 import { LoginoutBlock } from './artisanpack/loginout';
 import {
     NextPostBlock,
@@ -246,6 +247,7 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'artisanpack/callout': CalloutBlock,
     'artisanpack/faq': FaqBlock,
     'artisanpack/howto': HowtoBlock,
+    'artisanpack/toc': TocBlock,
     // Accordion + tabs families (#497). Interactive blocks with
     // parent/child inner-block relationships preserved across renderers.
     'artisanpack/accordions': AccordionsBlock,

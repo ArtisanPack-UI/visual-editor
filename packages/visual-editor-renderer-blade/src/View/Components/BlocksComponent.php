@@ -29,6 +29,7 @@ use ArtisanPackUI\VisualEditor\Resources\PatternInliner;
 use ArtisanPackUI\VisualEditor\Resources\PostResolver;
 use ArtisanPackUI\VisualEditor\Resources\QueryInliner;
 use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
+use ArtisanPackUI\VisualEditor\Resources\TocResolver;
 use ArtisanPackUI\VisualEditor\Services\GlobalStylesEmissionTracker;
 use ArtisanPackUI\VisualEditor\SiteEditor\NavigationBlockRefResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\BlockRenderer;
@@ -65,6 +66,7 @@ class BlocksComponent extends Component
 		protected QueryInliner $queryInliner,
 		protected CommentInliner $commentInliner,
 		protected PostResolver $postResolver,
+		protected TocResolver $tocResolver,
 		protected BreadcrumbsResolver $breadcrumbsResolver,
 		protected NavigationBlockRefResolver $navigationResolver,
 		protected GlobalStylesEmissionResolver $globalStyles,
@@ -85,6 +87,7 @@ class BlocksComponent extends Component
 		bool $resolveNavigation = true,
 		protected ?BoxShadowCssAccumulator $boxShadowAccumulator = null,
 		protected ?PositionCssAccumulator $positionAccumulator = null,
+		bool $resolveToc = true,
 	) {
 		if ( null === $this->boxShadowAccumulator ) {
 			$this->boxShadowAccumulator = app( BoxShadowCssAccumulator::class );
@@ -150,6 +153,18 @@ class BlocksComponent extends Component
 		// filter; see `BreadcrumbsResolver::buildTrail()`.
 		$resolved = $resolveBreadcrumbs
 			? $this->breadcrumbsResolver->stampTree( $resolved, is_object( $post ) ? $post : null )
+			: $resolved;
+
+		// TOC resolution (#760) stamps auto-generated anchors on every
+		// `core/heading` / `artisanpack/heading` block that lacks one,
+		// then stamps `_resolvedItems` on every `artisanpack/toc` block
+		// with the ordered list of headings that fall within its
+		// configured `minLevel` / `maxLevel` range. Runs after
+		// post/query/pattern/template-part resolution so headings that
+		// were injected by a resolver (a post-content expansion inside
+		// a template part, for example) also participate in the TOC.
+		$resolved = $resolveToc
+			? $this->tocResolver->resolveTree( $resolved )
 			: $resolved;
 
 		// Navigation resolution mirrors the editor's read path

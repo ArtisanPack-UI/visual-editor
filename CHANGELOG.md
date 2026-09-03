@@ -8,6 +8,19 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **Table-of-contents block with heading anchor generation** (#760) — a
+  new `artisanpack/toc` block auto-derives a nested list of anchor
+  links from the page's headings. A new `TocResolver` pre-render pass
+  walks the block tree, stamps a stable, unique slug into the `anchor`
+  attribute of every `core/heading` / `artisanpack/heading` that lacks
+  one (existing author-set anchors are preserved and duplicate slugs
+  receive a `-1`, `-2`, … suffix), and stamps `_resolvedItems` onto
+  every TOC block filtered by its `minLevel` / `maxLevel` range.
+  Renders as a `<nav>` landmark with a nested `<ul>` (or `<ol>` when
+  the ordered toggle is on) inside; smooth in-page scrolling activates
+  automatically via `html:has(.ap-toc) { scroll-behavior: smooth }`.
+  React and Vue renderers ship the same DOM when the resolved payload
+  reaches them.
 - **Dedicated HowTo block with HowTo JSON-LD** (#759) — a new
   `artisanpack/howto` block persists an ordered list of steps (name,
   text, optional image + alt) plus a block-level name and description,
