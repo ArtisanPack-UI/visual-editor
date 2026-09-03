@@ -22,6 +22,7 @@ import { BreadcrumbsBlock } from './artisanpack/breadcrumbs';
 import { CalloutBlock } from './artisanpack/callout';
 import { CommentsNumberBlock } from './artisanpack/commentsNumber';
 import { CopyrightBlock } from './artisanpack/copyright';
+import { FaqBlock } from './artisanpack/faq';
 import { GridBlock, GridItemBlock } from './artisanpack/grid';
 import { MarqueeBlock } from './artisanpack/marquee';
 import { TabSectionBlock, TabsBlock } from './artisanpack/tabs';
@@ -242,6 +243,7 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/navigation-submenu': NavigationSubmenuBlock,
     'artisanpack/breadcrumbs': BreadcrumbsBlock,
     'artisanpack/callout': CalloutBlock,
+    'artisanpack/faq': FaqBlock,
     // Accordion + tabs families (#497). Interactive blocks with
     // parent/child inner-block relationships preserved across renderers.
     'artisanpack/accordions': AccordionsBlock,
