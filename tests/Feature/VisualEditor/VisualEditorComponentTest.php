@@ -31,6 +31,45 @@ it( 'renders the data attributes the React bootstrap needs', function () {
 		->and( $html )->toContain( 'data-api-base="/visual-editor/api"' );
 } );
 
+it( 'stamps the configured taxonomies for the post-terms block (#771)', function () {
+	config()->set( 'artisanpack.visual-editor.taxonomies', [
+		'category' => 'Category',
+		'genre'    => 'Genre',
+	] );
+
+	$model = TestBlockContentModel::create( [
+		'title'   => 'Terms',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	$html = Blade::render(
+		'<x-visual-editor :model="$model" />',
+		[ 'model' => $model ]
+	);
+
+	expect( $html )->toContain( 'data-taxonomies=' )
+		->and( $html )->toContain( 'category' )
+		->and( $html )->toContain( 'Genre' );
+} );
+
+it( 'falls back to the default taxonomies when none are configured (#771)', function () {
+	config()->set( 'artisanpack.visual-editor.taxonomies', [] );
+
+	$model = TestBlockContentModel::create( [
+		'title'   => 'Terms',
+		'status'  => 'published',
+		'content' => [],
+	] );
+
+	$html = Blade::render(
+		'<x-visual-editor :model="$model" />',
+		[ 'model' => $model ]
+	);
+
+	expect( $html )->toContain( 'post_tag' );
+} );
+
 it( 'infers the resource slug from the page fixture', function () {
 	$page = TestBlockContentPageModel::create( [
 		'title' => 'A page',

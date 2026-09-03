@@ -39,6 +39,36 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Taxonomies
+	|--------------------------------------------------------------------------
+	|
+	| The taxonomies the editor surfaces when authors configure a
+	| `post-terms` block: one inserter variation per entry (so
+	| "Categories", "Tags", and any custom taxonomy each get their own
+	| tile) plus the taxonomy picker in the block's Settings sidebar.
+	|
+	| Keys are the taxonomy slug stamped onto the block's `term`
+	| attribute — matching the slugs `PostResolver::resolvePostTerms()`
+	| reads from the post's relations. Each value is either a display
+	| label string, or an array with `label` (and optional `plural`)
+	| for richer inserter keywords:
+	|
+	|     'genre' => 'Genre',
+	|     'topic' => [ 'label' => 'Topic', 'plural' => 'Topics' ],
+	|
+	| The `category` and `post_tag` defaults mirror WordPress core's
+	| built-in public taxonomies; hosts append their custom taxonomies
+	| here so they show up in the editor automatically.
+	|
+	*/
+
+	'taxonomies' => [
+		'category' => 'Category',
+		'post_tag' => 'Tag',
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Site meta
 	|--------------------------------------------------------------------------
 	|

@@ -71,6 +71,7 @@ final class FakeAgentPrompter implements AgentPrompter
 		string $instructions,
 		string|array $message,
 		array $outputSchema,
+		array $tools = [],
 	): array {
 		$this->calls[] = [
 			'credentials'   => $credentials,
@@ -78,6 +79,7 @@ final class FakeAgentPrompter implements AgentPrompter
 			'instructions'  => $instructions,
 			'message'       => $message,
 			'output_schema' => $outputSchema,
+			'tools'         => $tools,
 		];
 
 		if ( [] === $this->queue ) {
