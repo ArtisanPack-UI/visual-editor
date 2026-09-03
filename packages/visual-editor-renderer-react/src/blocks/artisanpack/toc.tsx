@@ -123,8 +123,19 @@ export function TocBlock({ attributes }: BlockRendererProps): JSX.Element {
     const flat = normalizeItems(attributes._resolvedItems);
     const tree = buildTree(flat);
 
+    // A block-level ariaLabel (from the block editor's `supports.ariaLabel`
+    // panel) wins over the heading-derived label; falls back to the
+    // English default when neither is set. The label is rendered as
+    // plain text — strip any RichText markup the heading may carry.
+    const customLabel = attrString(attributes.ariaLabel).trim();
+    const ariaLabel = customLabel !== ''
+        ? customLabel
+        : heading.trim() !== ''
+            ? heading.replace(/<[^>]*>/g, '')
+            : 'Table of contents';
+
     return (
-        <nav className={classes} aria-label={heading.trim() !== '' ? heading.replace(/<[^>]*>/g, '') : 'Table of contents'}>
+        <nav className={classes} aria-label={ariaLabel}>
             {heading !== '' && (
                 <HeadingTag
                     className="ap-toc__heading"

@@ -85,9 +85,9 @@ class BlocksComponent extends Component
 		bool $resolvePost = true,
 		bool $resolveBreadcrumbs = true,
 		bool $resolveNavigation = true,
-		bool $resolveToc = true,
 		protected ?BoxShadowCssAccumulator $boxShadowAccumulator = null,
 		protected ?PositionCssAccumulator $positionAccumulator = null,
+		bool $resolveToc = true,
 	) {
 		if ( null === $this->boxShadowAccumulator ) {
 			$this->boxShadowAccumulator = app( BoxShadowCssAccumulator::class );

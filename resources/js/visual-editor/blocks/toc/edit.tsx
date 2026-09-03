@@ -214,7 +214,19 @@ export default function TocEdit({ attributes, setAttributes }: TocEditProps): Re
                     />
                 </PanelBody>
             </InspectorControls>
-            <nav {...blockProps} aria-label={__('Table of contents', TEXT_DOMAIN)}>
+            <nav
+                {...blockProps}
+                aria-label={
+                    // `useBlockProps` already surfaces a `supports.ariaLabel`
+                    // value from the block editor if the author set one;
+                    // only fall back to the default when neither the
+                    // support value nor a heading label are present.
+                    (blockProps as { 'aria-label'?: string })['aria-label'] ??
+                    (heading.trim() !== ''
+                        ? heading.replace(/<[^>]*>/g, '')
+                        : __('Table of contents', TEXT_DOMAIN))
+                }
+            >
                 <RichText
                     tagName={headingTag}
                     className="ap-toc__heading"

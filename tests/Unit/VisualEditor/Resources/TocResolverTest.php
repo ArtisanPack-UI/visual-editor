@@ -379,6 +379,44 @@ it( 'leaves post-content _resolvedContent untouched when it has no headings', fu
 		->and( $resolved[0]['attributes']['_resolvedItems'] )->toBe( [] );
 } );
 
+it( 'folds diacritics when slugging headings so accented uppercase text matches the editor', function () {
+	// Editor parity: the JS `remove-accents` package + toLowerCase()
+	// turns "Café" into "cafe"; TocResolver must match so a document
+	// with the same heading anchors the same on both sides.
+	$resolver = new TocResolver();
+
+	$tree = [
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Café Menü' ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Über Uns' ] ),
+	];
+
+	$resolved = $resolver->resolveTree( $tree );
+
+	expect( $resolved[0]['attributes']['anchor'] )->toBe( 'cafe-menu' )
+		->and( $resolved[1]['attributes']['anchor'] )->toBe( 'uber-uns' );
+} );
+
+it( 'preserves upstream-resolved _resolvedItems on TOC blocks without overwriting them', function () {
+	// A host app may layer its own extractor in front of TocResolver
+	// (e.g. stamping items from a search index) — the resolver must
+	// respect a pre-populated list instead of clobbering it with its
+	// own derivation.
+	$resolver = new TocResolver();
+
+	$upstream = [
+		[ 'level' => 2, 'text' => 'Upstream heading', 'anchor' => 'upstream' ],
+	];
+
+	$tree = [
+		tocBlock( 'artisanpack/toc', [ '_resolvedItems' => $upstream ] ),
+		tocBlock( 'core/heading', [ 'level' => 2, 'content' => 'Different heading' ] ),
+	];
+
+	$resolved = $resolver->resolveTree( $tree );
+
+	expect( $resolved[0]['attributes']['_resolvedItems'] )->toBe( $upstream );
+} );
+
 it( 'ignores non-array top-level entries without dropping the good ones', function () {
 	$resolver = new TocResolver();
 

@@ -93,7 +93,9 @@ function buildTree(flat: TocItem[]): TocItem[] {
     return root;
 }
 
-function renderList(nodes: TocItem[], listTag: 'ol' | 'ul'): unknown {
+type VNode = ReturnType<typeof h>;
+
+function renderList(nodes: TocItem[], listTag: 'ol' | 'ul'): VNode {
     return h(
         listTag,
         { class: 'ap-toc__list' },
@@ -130,7 +132,7 @@ export const TocBlock = defineComponent({
             const tree = buildTree(flat);
             const listTag: 'ol' | 'ul' = ordered ? 'ol' : 'ul';
 
-            const children: unknown[] = [];
+            const children: VNode[] = [];
 
             if (heading !== '') {
                 children.push(
@@ -153,13 +155,21 @@ export const TocBlock = defineComponent({
                 children.push(renderList(tree, listTag));
             }
 
+            // A block-level ariaLabel (from `supports.ariaLabel`) wins
+            // over the heading-derived label; fall back to the English
+            // default when neither is set.
+            const customLabel = attrString(props.attributes.ariaLabel).trim();
+            const ariaLabel = customLabel !== ''
+                ? customLabel
+                : heading.trim() !== ''
+                    ? heading.replace(/<[^>]*>/g, '')
+                    : 'Table of contents';
+
             return h(
                 'nav',
                 {
                     class: classes,
-                    'aria-label': heading.trim() !== ''
-                        ? heading.replace(/<[^>]*>/g, '')
-                        : 'Table of contents',
+                    'aria-label': ariaLabel,
                 },
                 children,
             );

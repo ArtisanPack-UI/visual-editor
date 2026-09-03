@@ -325,33 +325,40 @@ class TocResolver
 		if ( in_array( $name, self::TOC_BLOCKS, true ) ) {
 			$attributes = isset( $block['attributes'] ) && is_array( $block['attributes'] ) ? $block['attributes'] : [];
 
-			$rawMin   = $attributes['minLevel'] ?? 2;
-			$rawMax   = $attributes['maxLevel'] ?? 6;
-			$minLevel = is_numeric( $rawMin ) ? (int) round( (float) $rawMin ) : 2;
-			$maxLevel = is_numeric( $rawMax ) ? (int) round( (float) $rawMax ) : 6;
+			// Host apps can layer their own heading extractor in front of
+			// this resolver — a headless site, for example, might stamp
+			// `_resolvedItems` from a stored search index. Respect any
+			// pre-populated list rather than clobbering it with our own
+			// derivation so upstream work is never silently discarded.
+			if ( ! array_key_exists( '_resolvedItems', $attributes ) ) {
+				$rawMin   = $attributes['minLevel'] ?? 2;
+				$rawMax   = $attributes['maxLevel'] ?? 6;
+				$minLevel = is_numeric( $rawMin ) ? (int) round( (float) $rawMin ) : 2;
+				$maxLevel = is_numeric( $rawMax ) ? (int) round( (float) $rawMax ) : 6;
 
-			$minLevel = max( 1, min( 6, $minLevel ) );
-			$maxLevel = max( 1, min( 6, $maxLevel ) );
+				$minLevel = max( 1, min( 6, $minLevel ) );
+				$maxLevel = max( 1, min( 6, $maxLevel ) );
 
-			if ( $minLevel > $maxLevel ) {
-				// Swap so a mis-ordered config still produces sensible
-				// output instead of an empty list.
-				[ $minLevel, $maxLevel ] = [ $maxLevel, $minLevel ];
-			}
-
-			$filtered = [];
-
-			foreach ( $headings as $heading ) {
-				$level = (int) ( $heading['level'] ?? 0 );
-
-				if ( $level < $minLevel || $level > $maxLevel ) {
-					continue;
+				if ( $minLevel > $maxLevel ) {
+					// Swap so a mis-ordered config still produces sensible
+					// output instead of an empty list.
+					[ $minLevel, $maxLevel ] = [ $maxLevel, $minLevel ];
 				}
 
-				$filtered[] = $heading;
-			}
+				$filtered = [];
 
-			$block['attributes'] = array_merge( $attributes, [ '_resolvedItems' => $filtered ] );
+				foreach ( $headings as $heading ) {
+					$level = (int) ( $heading['level'] ?? 0 );
+
+					if ( $level < $minLevel || $level > $maxLevel ) {
+						continue;
+					}
+
+					$filtered[] = $heading;
+				}
+
+				$block['attributes'] = array_merge( $attributes, [ '_resolvedItems' => $filtered ] );
+			}
 		}
 
 		if ( isset( $block['innerBlocks'] ) && is_array( $block['innerBlocks'] ) ) {
@@ -362,11 +369,12 @@ class TocResolver
 	}
 
 	/**
-	 * Slug a heading string into an HTML-id-safe anchor. Mirrors the
-	 * editor's `blocks/heading/autogenerate-anchors.ts` behavior closely
-	 * enough for parity: HTML is stripped, entities decoded, non
-	 * letter/number runs collapse into a single `-`, and the result is
-	 * lowercased and trimmed of leading/trailing hyphens.
+	 * Slug a heading string into an HTML-id-safe anchor. Matches the
+	 * editor's `blocks/heading/autogenerate-anchors.ts` normalization
+	 * order (the `remove-accents` npm package → unicode-aware
+	 * non-letter/non-number collapse → lowercase) so a heading like
+	 * "Café" produces the same `cafe` anchor client-side and
+	 * server-side.
 	 *
 	 * @since 1.9.0
 	 */
@@ -378,17 +386,60 @@ class TocResolver
 			return '';
 		}
 
+		$text = $this->removeAccents( $text );
+
 		// Collapse runs of non-letter/non-number characters into a single
-		// hyphen. The `u` flag makes the character classes unicode-aware,
-		// so accented letters (Café → café) survive; that keeps the slug
-		// a valid HTML5 id and stable across renders.
+		// hyphen. The `u` flag makes the character classes unicode-aware
+		// so any non-Latin scripts the accent-removal pass didn't fold
+		// (Cyrillic, CJK, etc.) still survive as valid HTML5 id chars.
 		$hyphenated = preg_replace( '/[^\p{L}\p{N}]+/u', '-', $text );
 
 		if ( null === $hyphenated ) {
 			return '';
 		}
 
-		return trim( strtolower( $hyphenated ), '-' );
+		// `mb_strtolower` is Unicode-safe (`strtolower` only handles
+		// ASCII, so an unfolded Cyrillic capital "Ф" would leak through
+		// as an uppercase char and mismatch what the editor emits).
+		$lower = function_exists( 'mb_strtolower' )
+			? mb_strtolower( $hyphenated, 'UTF-8' )
+			: strtolower( $hyphenated );
+
+		return trim( $lower, '-' );
+	}
+
+	/**
+	 * Strip diacritics from a UTF-8 string to match the editor's
+	 * `remove-accents` npm package. Prefers PHP's Normalizer + combining
+	 * marks strip (correct across every Unicode block), and falls back
+	 * to iconv's `//TRANSLIT` for environments without the `intl`
+	 * extension.
+	 *
+	 * @since 1.9.0
+	 */
+	protected function removeAccents( string $text ): string
+	{
+		if ( class_exists( \Normalizer::class ) ) {
+			$decomposed = \Normalizer::normalize( $text, \Normalizer::FORM_D );
+
+			if ( is_string( $decomposed ) ) {
+				$stripped = preg_replace( '/\p{Mn}+/u', '', $decomposed );
+
+				if ( is_string( $stripped ) ) {
+					return $stripped;
+				}
+			}
+		}
+
+		if ( function_exists( 'iconv' ) ) {
+			$translit = @iconv( 'UTF-8', 'ASCII//TRANSLIT//IGNORE', $text );
+
+			if ( false !== $translit ) {
+				return $translit;
+			}
+		}
+
+		return $text;
 	}
 
 	/**
