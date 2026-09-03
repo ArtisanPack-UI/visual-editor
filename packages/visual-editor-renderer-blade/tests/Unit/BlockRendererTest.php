@@ -938,6 +938,200 @@ it( 'omits accordion-title aria wiring when the parent panel id is empty', funct
 		->and( $html )->not->toContain( 'id="-control"' );
 } );
 
+it( 'emits FAQPage JSON-LD from accordion panels when the accordions faqSchema toggle is on (#757)', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'What is ArtisanPack?' ], [], 'h-1' ),
+				], 'title-1' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'A Laravel package suite.' ], [], 'p-1' ),
+				], 'body-1' ),
+			], 'panel-1' ),
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-2' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Is it free?' ], [], 'h-2' ),
+				], 'title-2' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'Yes, MIT licensed.' ], [], 'p-2' ),
+				], 'body-2' ),
+			], 'panel-2' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<script type="application/ld+json">' );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	expect( $matches[1] ?? '' )->not->toBe( '' );
+
+	$decoded = json_decode( $matches[1], true );
+
+	expect( $decoded )->toBeArray()
+		->and( $decoded['@context'] )->toBe( 'https://schema.org' )
+		->and( $decoded['@type'] )->toBe( 'FAQPage' )
+		->and( $decoded['mainEntity'] )->toHaveCount( 2 )
+		->and( $decoded['mainEntity'][0]['@type'] )->toBe( 'Question' )
+		->and( $decoded['mainEntity'][0]['name'] )->toBe( 'What is ArtisanPack?' )
+		->and( $decoded['mainEntity'][0]['acceptedAnswer']['@type'] )->toBe( 'Answer' )
+		->and( $decoded['mainEntity'][0]['acceptedAnswer']['text'] )->toBe( 'A Laravel package suite.' )
+		->and( $decoded['mainEntity'][1]['name'] )->toBe( 'Is it free?' )
+		->and( $decoded['mainEntity'][1]['acceptedAnswer']['text'] )->toBe( 'Yes, MIT licensed.' );
+} );
+
+it( 'strips renderer wrapper tags and class attributes from the FAQPage answer text', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Q' ], [], 'h-1' ),
+				], 'title-1' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'Line one.' ], [], 'p-1' ),
+					makeBlock( 'core/paragraph', [ 'content' => 'Line two.' ], [], 'p-2' ),
+				], 'body-1' ),
+			], 'panel-1' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+	$text    = $decoded['mainEntity'][0]['acceptedAnswer']['text'] ?? '';
+
+	expect( $text )->not->toContain( '<p' )
+		->and( $text )->not->toContain( 'wp-block-paragraph' )
+		->and( $text )->toBe( 'Line one. Line two.' );
+} );
+
+it( 'omits FAQPage JSON-LD when the accordions faqSchema toggle is off (default)', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [], [
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Q' ], [], 'h-1' ),
+				], 'title-1' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'A' ], [], 'p-1' ),
+				], 'body-1' ),
+			], 'panel-1' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->not->toContain( 'application/ld+json' )
+		->and( $html )->not->toContain( 'FAQPage' );
+} );
+
+it( 'skips FAQPage entries for panels missing a title or a body', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
+			// Full pair — should appear.
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Real question' ], [], 'h-1' ),
+				], 'title-1' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'Real answer.' ], [], 'p-1' ),
+				], 'body-1' ),
+			], 'panel-1' ),
+			// Title only — no answer, must be skipped.
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-2' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Orphan question' ], [], 'h-2' ),
+				], 'title-2' ),
+			], 'panel-2' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded['mainEntity'] )->toHaveCount( 1 )
+		->and( $decoded['mainEntity'][0]['name'] )->toBe( 'Real question' );
+} );
+
+it( 'ignores non-accordion inner blocks when building FAQPage entries', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
+			// Stray non-panel child — must be skipped without breaking emission.
+			makeBlock( 'core/paragraph', [ 'content' => 'Stray text.' ], [], 'stray-1' ),
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Panel question' ], [], 'h-1' ),
+				], 'title-1' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'Panel answer.' ], [], 'p-1' ),
+				], 'body-1' ),
+			], 'panel-1' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded['mainEntity'] )->toHaveCount( 1 )
+		->and( $decoded['mainEntity'][0]['name'] )->toBe( 'Panel question' );
+} );
+
+it( 'omits the FAQPage script when faqSchema is on but no accordion panels are present', function () {
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'class="ap-accordions"' )
+		->and( $html )->not->toContain( 'application/ld+json' )
+		->and( $html )->not->toContain( 'FAQPage' );
+} );
+
+it( 'hex-encodes tag characters via JSON_HEX_TAG so entity-encoded </script> in content cannot break out of the inline script', function () {
+	// Entity-encoded input round-trips: core/paragraph & core/heading
+	// emit the raw `&lt;/script&gt;` markup, strip_tags leaves the
+	// entities alone, and html_entity_decode restores the literal
+	// `</script>` before it reaches json_encode — where JSON_HEX_TAG
+	// is the actual line of defense (turning `<` / `>` into
+	// `<` / `>`). Using a literal `</script>` in the source
+	// content would be stripped by strip_tags and never exercise the
+	// JSON encoder — a weaker test.
+	$tree = [
+		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
+			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
+				makeBlock( 'artisanpack/accordion-title', [], [
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Malicious &lt;/script&gt;' ], [], 'h-1' ),
+				], 'title-1' ),
+				makeBlock( 'artisanpack/accordion-body', [], [
+					makeBlock( 'core/paragraph', [ 'content' => 'Payload &lt;/script&gt;&lt;script&gt;alert(1)&lt;/script&gt;' ], [], 'p-1' ),
+				], 'body-1' ),
+			], 'panel-1' ),
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	// Exactly one JSON-LD script opens and closes; the payload contains
+	// the hex-encoded escapes (proving JSON_HEX_TAG fired) and never
+	// the raw `</script>` or `<script>alert(1)` sequences that would
+	// otherwise close the JSON-LD element early and inject markup.
+	preg_match_all( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	expect( $matches[0] )->toHaveCount( 1 )
+		->and( $matches[1][0] )->not->toContain( '</script>' )
+		->and( $matches[1][0] )->not->toContain( '<script>alert(1)' )
+		->and( $matches[1][0] )->toContain( '\u003C\/script\u003E' )
+		->and( $matches[1][0] )->toContain( '\u003Cscript\u003E' )
+		->and( $html )->not->toContain( '<script>alert(1)' );
+} );
+
+
 it( 'renders an artisanpack/tabs tree with triggers derived from tab-section children', function () {
 	$tree = [
 		makeBlock( 'artisanpack/tabs', [
