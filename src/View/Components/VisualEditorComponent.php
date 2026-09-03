@@ -20,6 +20,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\View\Components;
 
+use ArtisanPackUI\VisualEditor\Resources\TaxonomyRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Model;
@@ -92,6 +93,17 @@ class VisualEditorComponent extends Component
 	public array $contentTypes;
 
 	/**
+	 * Registered taxonomies (#771) — one inserter variation + the
+	 * Settings-sidebar taxonomy picker per entry for the
+	 * `artisanpack/post-terms` block. Resolved from
+	 * `config('artisanpack.visual-editor.taxonomies')` via
+	 * {@see TaxonomyRegistry::fromConfig()}.
+	 *
+	 * @var array<int, array{slug: string, label: string, plural: string}>
+	 */
+	public array $taxonomies;
+
+	/**
 	 * Serialised breakpoint registry (#617) — the merged config +
 	 * theme.json + defaults snapshot the React shell hydrates the
 	 * viewport switcher against.
@@ -140,6 +152,7 @@ class VisualEditorComponent extends Component
 		$this->initialCreatedAt     = $this->resolveTimestamp( $model, 'created_at' );
 		$this->initialUpdatedAt     = $this->resolveTimestamp( $model, 'updated_at' );
 		$this->contentTypes         = $this->resolveContentTypes();
+		$this->taxonomies           = TaxonomyRegistry::fromConfig();
 		$this->breakpoints          = app( BreakpointRegistry::class )->toArray();
 
 		$this->applyEditorConfigFilter();
@@ -235,6 +248,7 @@ class VisualEditorComponent extends Component
 			'initialCreatedAt'     => $nullableString,
 			'initialUpdatedAt'     => $nullableString,
 			'contentTypes'         => $array,
+			'taxonomies'           => $array,
 			'breakpoints'          => $array,
 		];
 	}
