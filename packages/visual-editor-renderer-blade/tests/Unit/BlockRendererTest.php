@@ -1131,6 +1131,260 @@ it( 'hex-encodes tag characters via JSON_HEX_TAG so entity-encoded </script> in 
 		->and( $html )->not->toContain( '<script>alert(1)' );
 } );
 
+it( 'renders an artisanpack/faq block with question/answer pairs (#758)', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'headingLevel' => 3,
+			'emitSchema'   => true,
+			'items'        => [
+				[ 'question' => 'What is ArtisanPack?', 'answer' => 'A Laravel package suite.' ],
+				[ 'question' => 'Is it free?', 'answer' => 'Yes, MIT licensed.' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'class="ap-faq"' )
+		->and( $html )->toContain( '<h3 class="ap-faq__question">What is ArtisanPack?</h3>' )
+		->and( $html )->toContain( '<div class="ap-faq__answer">A Laravel package suite.</div>' )
+		->and( $html )->toContain( '<h3 class="ap-faq__question">Is it free?</h3>' )
+		->and( $html )->toContain( '<div class="ap-faq__answer">Yes, MIT licensed.</div>' );
+} );
+
+it( 'renders artisanpack/faq questions with the configured heading level', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'headingLevel' => 2,
+			'items'        => [
+				[ 'question' => 'Q', 'answer' => 'A' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<h2 class="ap-faq__question">Q</h2>' );
+} );
+
+it( 'clamps invalid artisanpack/faq heading levels to the 2-6 range', function () {
+	$tooHigh = [
+		makeBlock( 'artisanpack/faq', [
+			'headingLevel' => 99,
+			'items'        => [ [ 'question' => 'Q', 'answer' => 'A' ] ],
+		] ),
+	];
+	$tooLow = [
+		makeBlock( 'artisanpack/faq', [
+			'headingLevel' => 0,
+			'items'        => [ [ 'question' => 'Q', 'answer' => 'A' ] ],
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tooHigh ) )->toContain( '<h6 class="ap-faq__question">Q</h6>' );
+	expect( makeRenderer()->render( $tooLow ) )->toContain( '<h2 class="ap-faq__question">Q</h2>' );
+} );
+
+it( 'emits FAQPage JSON-LD for artisanpack/faq when emitSchema is on', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => true,
+			'items'      => [
+				[ 'question' => 'What is ArtisanPack?', 'answer' => 'A Laravel package suite.' ],
+				[ 'question' => 'Is it free?', 'answer' => 'Yes, MIT licensed.' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<script type="application/ld+json">' );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded )->toBeArray()
+		->and( $decoded['@context'] )->toBe( 'https://schema.org' )
+		->and( $decoded['@type'] )->toBe( 'FAQPage' )
+		->and( $decoded['mainEntity'] )->toHaveCount( 2 )
+		->and( $decoded['mainEntity'][0]['@type'] )->toBe( 'Question' )
+		->and( $decoded['mainEntity'][0]['name'] )->toBe( 'What is ArtisanPack?' )
+		->and( $decoded['mainEntity'][0]['acceptedAnswer']['@type'] )->toBe( 'Answer' )
+		->and( $decoded['mainEntity'][0]['acceptedAnswer']['text'] )->toBe( 'A Laravel package suite.' )
+		->and( $decoded['mainEntity'][1]['name'] )->toBe( 'Is it free?' )
+		->and( $decoded['mainEntity'][1]['acceptedAnswer']['text'] )->toBe( 'Yes, MIT licensed.' );
+} );
+
+it( 'defaults artisanpack/faq to emitting FAQPage JSON-LD when emitSchema is absent', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'items' => [
+				[ 'question' => 'Q', 'answer' => 'A' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'application/ld+json' )
+		->and( $html )->toContain( 'FAQPage' );
+} );
+
+it( 'omits FAQPage JSON-LD for artisanpack/faq when emitSchema is off', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => false,
+			'items'      => [
+				[ 'question' => 'Q', 'answer' => 'A' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<h3 class="ap-faq__question">Q</h3>' )
+		->and( $html )->not->toContain( 'application/ld+json' )
+		->and( $html )->not->toContain( 'FAQPage' );
+} );
+
+it( 'strips answer HTML wrappers from the artisanpack/faq schema text', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => true,
+			'items'      => [
+				[
+					'question' => 'Question with <strong>emphasis</strong>',
+					'answer'   => '<p class="wp-block-paragraph">Line one.</p><p>Line two.</p>',
+				],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded['mainEntity'][0]['name'] )->toBe( 'Question with emphasis' )
+		->and( $decoded['mainEntity'][0]['acceptedAnswer']['text'] )->toBe( 'Line one. Line two.' );
+} );
+
+it( 'rounds fractional artisanpack/faq heading levels to match the React/Vue renderers', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'headingLevel' => 2.5,
+			'items'        => [ [ 'question' => 'Q', 'answer' => 'A' ] ],
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tree ) )->toContain( '<h3 class="ap-faq__question">Q</h3>' );
+} );
+
+it( 'accepts numeric-string artisanpack/faq heading levels', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'headingLevel' => '4',
+			'items'        => [ [ 'question' => 'Q', 'answer' => 'A' ] ],
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tree ) )->toContain( '<h4 class="ap-faq__question">Q</h4>' );
+} );
+
+it( 'skips artisanpack/faq schema entries whose question or answer are empty', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => true,
+			'items'      => [
+				[ 'question' => 'Real question', 'answer' => 'Real answer.' ],
+				[ 'question' => 'Orphan question', 'answer' => '' ],
+				[ 'question' => '', 'answer' => 'Orphan answer.' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	$decoded = json_decode( $matches[1] ?? '', true );
+
+	expect( $decoded['mainEntity'] )->toHaveCount( 1 )
+		->and( $decoded['mainEntity'][0]['name'] )->toBe( 'Real question' );
+} );
+
+it( 'skips fully-empty artisanpack/faq items from the rendered markup', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => false,
+			'items'      => [
+				[ 'question' => 'Kept', 'answer' => 'A' ],
+				[ 'question' => '', 'answer' => '' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<h3 class="ap-faq__question">Kept</h3>' );
+	expect( substr_count( $html, 'class="ap-faq__item"' ) )->toBe( 1 );
+} );
+
+it( 'omits FAQPage JSON-LD for artisanpack/faq when emitSchema is on but every item is empty', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => true,
+			'items'      => [
+				[ 'question' => '', 'answer' => '' ],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( 'class="ap-faq"' )
+		->and( $html )->not->toContain( 'application/ld+json' )
+		->and( $html )->not->toContain( 'FAQPage' );
+} );
+
+it( 'hex-encodes tag characters in the artisanpack/faq JSON-LD payload so entity-encoded </script> cannot break out', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => true,
+			'items'      => [
+				[
+					'question' => 'Malicious &lt;/script&gt;',
+					'answer'   => 'Payload &lt;/script&gt;&lt;script&gt;alert(1)&lt;/script&gt;',
+				],
+			],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	preg_match_all( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
+	expect( $matches[0] )->toHaveCount( 1 )
+		->and( $matches[1][0] )->not->toContain( '</script>' )
+		->and( $matches[1][0] )->not->toContain( '<script>alert(1)' )
+		->and( $matches[1][0] )->toContain( '\u003C\/script\u003E' )
+		->and( $matches[1][0] )->toContain( '\u003Cscript\u003E' )
+		->and( $html )->not->toContain( '<script>alert(1)' );
+} );
+
+it( 'ignores non-array artisanpack/faq item entries without emitting a container', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'emitSchema' => false,
+			'items'      => [ 'not-an-array', null, [ 'question' => 'Kept', 'answer' => 'A' ] ],
+		] ),
+	];
+
+	$html = makeRenderer()->render( $tree );
+
+	expect( $html )->toContain( '<h3 class="ap-faq__question">Kept</h3>' )
+		->and( substr_count( $html, 'class="ap-faq__item"' ) )->toBe( 1 );
+} );
+
+
 
 it( 'renders an artisanpack/tabs tree with triggers derived from tab-section children', function () {
 	$tree = [
