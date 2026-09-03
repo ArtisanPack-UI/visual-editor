@@ -66,3 +66,25 @@ describe( 'post-terms variations', () => {
         }
     } );
 } );
+
+describe( 'post-terms variations — custom-only registry (regression)', () => {
+    it( 'marks the first taxonomy as default when no category is registered', async () => {
+        vi.resetModules();
+        vi.doMock( '../../../editor/taxonomy-registry', () => ( {
+            getTaxonomies: () => [
+                { slug: 'venue', label: 'Venue', plural: 'Venues' },
+                { slug: 'sport', label: 'Sport', plural: 'Sports' },
+            ],
+        } ) );
+
+        const { default: customVariations } = await import( '../variations' );
+        const customList = customVariations as unknown as Variation[];
+
+        const defaults = customList.filter( ( v ) => v.isDefault === true );
+
+        expect( defaults ).toHaveLength( 1 );
+        expect( defaults[ 0 ]?.name ).toBe( 'term-venue' );
+
+        vi.doUnmock( '../../../editor/taxonomy-registry' );
+    } );
+} );

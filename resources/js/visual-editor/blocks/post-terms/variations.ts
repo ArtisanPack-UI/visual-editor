@@ -18,9 +18,31 @@
 
 import type { BlockConfiguration } from '@wordpress/blocks';
 
-import { getTaxonomies } from '../../editor/taxonomy-registry';
+import { getTaxonomies, type TaxonomyDescriptor } from '../../editor/taxonomy-registry';
 
-const variations: NonNullable<BlockConfiguration['variations']> = getTaxonomies().map(
+// A host may register a custom-only taxonomy set that omits `category`
+// (e.g. a bookings site that only surfaces `venue` and `sport`). Without
+// a fallback the resulting variation list has no `isDefault` entry, and
+// a bare Post Terms insertion keeps `term: undefined` — the very bug
+// #771 exists to close. Anchor the default to `category` when present,
+// otherwise fall back to the first resolved taxonomy so the bare
+// insertion always binds to something.
+function resolveDefaultSlug( taxonomies: ReadonlyArray<TaxonomyDescriptor> ): string | null {
+    if ( taxonomies.length === 0 ) {
+        return null;
+    }
+
+    if ( taxonomies.some( ( taxonomy ) => taxonomy.slug === 'category' ) ) {
+        return 'category';
+    }
+
+    return taxonomies[ 0 ]!.slug;
+}
+
+const taxonomies = getTaxonomies();
+const defaultSlug = resolveDefaultSlug( taxonomies );
+
+const variations: NonNullable<BlockConfiguration['variations']> = taxonomies.map(
     (taxonomy) => ({
         name: `term-${taxonomy.slug}`,
         title: taxonomy.label,
@@ -31,7 +53,7 @@ const variations: NonNullable<BlockConfiguration['variations']> = getTaxonomies(
         },
         isActive: ['term'],
         keywords: [taxonomy.slug, taxonomy.label, taxonomy.plural],
-        ...(taxonomy.slug === 'category' ? { isDefault: true } : {}),
+        ...(taxonomy.slug === defaultSlug ? { isDefault: true } : {}),
     })
 );
 

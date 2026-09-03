@@ -45,6 +45,20 @@ it( 'derives a title-cased label from the slug when none is given', function () 
 	] );
 } );
 
+it( 'deduplicates entries whose keys collapse to the same normalised slug', function () {
+	config()->set( 'artisanpack.visual-editor.taxonomies', [
+		'Genre'   => 'Genre',
+		' genre ' => 'Padded',
+		'genre'   => 'Duplicate',
+		'topic'   => 'Topic',
+	] );
+
+	expect( TaxonomyRegistry::fromConfig() )->toBe( [
+		[ 'slug' => 'genre', 'label' => 'Genre', 'plural' => 'Genres' ],
+		[ 'slug' => 'topic', 'label' => 'Topic', 'plural' => 'Topics' ],
+	] );
+} );
+
 it( 'drops entries whose slug is outside the safe identifier set', function () {
 	config()->set( 'artisanpack.visual-editor.taxonomies', [
 		'bad slug' => 'Bad',

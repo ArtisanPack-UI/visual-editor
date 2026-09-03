@@ -71,6 +71,7 @@ class TaxonomyRegistry
 	protected static function normalise( array $map ): array
 	{
 		$taxonomies = [];
+		$seen       = [];
 
 		foreach ( $map as $slug => $definition ) {
 			if ( ! is_string( $slug ) ) {
@@ -82,6 +83,16 @@ class TaxonomyRegistry
 			if ( '' === $slug || 1 !== preg_match( self::SAFE_SLUG_PATTERN, $slug ) ) {
 				continue;
 			}
+
+			// Config keys that collapse to the same normalised slug
+			// (`Genre`, ` genre `, `genre`) would otherwise emit
+			// duplicate variations + picker rows; keep the first
+			// valid descriptor and skip the rest.
+			if ( isset( $seen[ $slug ] ) ) {
+				continue;
+			}
+
+			$seen[ $slug ] = true;
 
 			$label  = self::resolveLabel( $slug, $definition );
 			$plural = self::resolvePlural( $label, $definition );
