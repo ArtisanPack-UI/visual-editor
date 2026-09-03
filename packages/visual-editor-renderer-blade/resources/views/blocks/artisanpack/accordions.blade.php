@@ -64,7 +64,7 @@
 		}
 
 		if ( ! empty( $faqPairs ) ) {
-			$faqJsonLd = json_encode(
+			$encoded = json_encode(
 				[
 					'@context'   => 'https://schema.org',
 					'@type'      => 'FAQPage',
@@ -72,6 +72,11 @@
 				],
 				JSON_UNESCAPED_UNICODE | JSON_HEX_TAG
 			);
+			// json_encode returns false on invalid UTF-8; the whitespace
+			// fallback above preserves those bytes, so guard here to
+			// avoid emitting an empty `<script type="application/ld+json">`
+			// tag when encoding fails.
+			$faqJsonLd = false === $encoded ? '' : $encoded;
 		}
 	}
 @endphp

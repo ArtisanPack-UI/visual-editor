@@ -1094,15 +1094,23 @@ it( 'omits the FAQPage script when faqSchema is on but no accordion panels are p
 		->and( $html )->not->toContain( 'FAQPage' );
 } );
 
-it( 'escapes </script> sequences in FAQPage JSON-LD to keep the inline script well-formed', function () {
+it( 'hex-encodes tag characters via JSON_HEX_TAG so entity-encoded </script> in content cannot break out of the inline script', function () {
+	// Entity-encoded input round-trips: core/paragraph & core/heading
+	// emit the raw `&lt;/script&gt;` markup, strip_tags leaves the
+	// entities alone, and html_entity_decode restores the literal
+	// `</script>` before it reaches json_encode — where JSON_HEX_TAG
+	// is the actual line of defense (turning `<` / `>` into
+	// `<` / `>`). Using a literal `</script>` in the source
+	// content would be stripped by strip_tags and never exercise the
+	// JSON encoder — a weaker test.
 	$tree = [
 		makeBlock( 'artisanpack/accordions', [ 'faqSchema' => true ], [
 			makeBlock( 'artisanpack/accordion', [ 'panelId' => 'faq-1' ], [
 				makeBlock( 'artisanpack/accordion-title', [], [
-					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Malicious </script>' ], [], 'h-1' ),
+					makeBlock( 'core/heading', [ 'level' => 3, 'content' => 'Malicious &lt;/script&gt;' ], [], 'h-1' ),
 				], 'title-1' ),
 				makeBlock( 'artisanpack/accordion-body', [], [
-					makeBlock( 'core/paragraph', [ 'content' => 'Payload </script><script>alert(1)' ], [], 'p-1' ),
+					makeBlock( 'core/paragraph', [ 'content' => 'Payload &lt;/script&gt;&lt;script&gt;alert(1)&lt;/script&gt;' ], [], 'p-1' ),
 				], 'body-1' ),
 			], 'panel-1' ),
 		] ),
@@ -1110,14 +1118,17 @@ it( 'escapes </script> sequences in FAQPage JSON-LD to keep the inline script we
 
 	$html = makeRenderer()->render( $tree );
 
-	// Exactly one JSON-LD script opens and closes, and the raw </script>
-	// sequence never appears inside the payload — combined defense: the
-	// core/paragraph renderer html-escapes user text into the innerHtml
-	// (so `<` / `>` don't land in the JSON verbatim) and JSON_HEX_TAG
-	// would hex-encode them if they did.
+	// Exactly one JSON-LD script opens and closes; the payload contains
+	// the hex-encoded escapes (proving JSON_HEX_TAG fired) and never
+	// the raw `</script>` or `<script>alert(1)` sequences that would
+	// otherwise close the JSON-LD element early and inject markup.
 	preg_match_all( '#<script type="application/ld\+json">(.*?)</script>#s', $html, $matches );
 	expect( $matches[0] )->toHaveCount( 1 )
-		->and( $matches[1][0] )->not->toContain( '</script>' );
+		->and( $matches[1][0] )->not->toContain( '</script>' )
+		->and( $matches[1][0] )->not->toContain( '<script>alert(1)' )
+		->and( $matches[1][0] )->toContain( '\u003C\/script\u003E' )
+		->and( $matches[1][0] )->toContain( '\u003Cscript\u003E' )
+		->and( $html )->not->toContain( '<script>alert(1)' );
 } );
 
 
