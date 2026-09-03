@@ -1,0 +1,59 @@
+/**
+ * HowTo block styles (#759).
+ *
+ * Loaded in the editor via `blocks/howto/index.ts`. Host apps ship a
+ * matching frontend stylesheet if they want the same visual treatment on
+ * the public site — the block's semantic markup (ordered list of steps
+ * with a heading + text + optional image per step) renders without any
+ * of these rules applied.
+ */
+
+.ap-howto {
+    display: flex;
+    flex-direction: column;
+    gap: var(--wp--style--block-gap, 1.5rem);
+}
+
+.ap-howto__name {
+    margin: 0;
+    font-weight: 700;
+}
+
+.ap-howto__description {
+    margin: 0;
+}
+
+.ap-howto__steps {
+    counter-reset: ap-howto-step;
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--wp--style--block-gap, 1rem);
+}
+
+.ap-howto__step {
+    counter-increment: ap-howto-step;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.ap-howto__step-name {
+    margin: 0;
+    font-weight: 600;
+}
+
+.ap-howto__step-name::before {
+    content: counter(ap-howto-step) ". ";
+}
+
+.ap-howto__step-text {
+    margin: 0;
+}
+
+.ap-howto__step-image {
+    max-width: 100%;
+    height: auto;
+}
