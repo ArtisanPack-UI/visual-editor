@@ -84,7 +84,11 @@ export default function FaqEdit({
     }
 
     function addItem(): void {
-        setAttributes({ items: [...list, { question: '', answer: '' }] });
+        // Append to the persisted `items`, not `list` — when the block
+        // is fresh, `list` includes a synthetic starter that has not been
+        // saved, so `[...list, blank]` would land two items after the
+        // first click.
+        setAttributes({ items: [...items, { question: '', answer: '' }] });
     }
 
     function removeItem(index: number): void {

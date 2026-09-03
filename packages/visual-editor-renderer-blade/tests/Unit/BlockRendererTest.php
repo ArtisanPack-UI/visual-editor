@@ -1266,7 +1266,29 @@ it( 'strips answer HTML wrappers from the artisanpack/faq schema text', function
 	$decoded = json_decode( $matches[1] ?? '', true );
 
 	expect( $decoded['mainEntity'][0]['name'] )->toBe( 'Question with emphasis' )
-		->and( $decoded['mainEntity'][0]['acceptedAnswer']['text'] )->toBe( 'Line one.Line two.' );
+		->and( $decoded['mainEntity'][0]['acceptedAnswer']['text'] )->toBe( 'Line one. Line two.' );
+} );
+
+it( 'rounds fractional artisanpack/faq heading levels to match the React/Vue renderers', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'headingLevel' => 2.5,
+			'items'        => [ [ 'question' => 'Q', 'answer' => 'A' ] ],
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tree ) )->toContain( '<h3 class="ap-faq__question">Q</h3>' );
+} );
+
+it( 'accepts numeric-string artisanpack/faq heading levels', function () {
+	$tree = [
+		makeBlock( 'artisanpack/faq', [
+			'headingLevel' => '4',
+			'items'        => [ [ 'question' => 'Q', 'answer' => 'A' ] ],
+		] ),
+	];
+
+	expect( makeRenderer()->render( $tree ) )->toContain( '<h4 class="ap-faq__question">Q</h4>' );
 } );
 
 it( 'skips artisanpack/faq schema entries whose question or answer are empty', function () {

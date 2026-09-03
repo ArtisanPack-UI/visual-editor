@@ -7,8 +7,11 @@
 		$rawItems = [];
 	}
 
+	// Round then clamp to match the React/Vue renderers so a fractional
+	// or string attribute (e.g. 2.5 or "4") lands on the same tag across
+	// every renderer.
 	$rawLevel = $attributes['headingLevel'] ?? 3;
-	$level    = is_numeric( $rawLevel ) ? (int) $rawLevel : 3;
+	$level    = is_numeric( $rawLevel ) ? (int) round( (float) $rawLevel ) : 3;
 
 	if ( $level < 2 ) {
 		$level = 2;
@@ -46,9 +49,17 @@
 
 		// Schema payload must be plain text so Google Search Console does
 		// not flag the `wp-block-*` wrapper classes and inline tags as
-		// noise (mirrors the accordions FAQ toggle handling).
-		$plainQuestion = trim( html_entity_decode( strip_tags( $question ), ENT_QUOTES | ENT_HTML5, 'UTF-8' ) );
-		$plainAnswerRaw = html_entity_decode( strip_tags( $answer ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		// noise (mirrors the accordions FAQ toggle handling). Insert a
+		// space at every closing tag before stripping so adjacent block
+		// elements (`<p>A.</p><p>B.</p>`) do not collapse into `A.B.`,
+		// then let the whitespace collapse below normalize runs of
+		// separator characters back to a single space.
+		$questionWithBreaks = preg_replace( '/<\/[a-z][^>]*>/i', '$0 ', $question );
+		$answerWithBreaks   = preg_replace( '/<\/[a-z][^>]*>/i', '$0 ', $answer );
+		$plainQuestionRaw = html_entity_decode( strip_tags( null === $questionWithBreaks ? $question : $questionWithBreaks ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
+		$collapsedQuestion = preg_replace( '/\s+/u', ' ', $plainQuestionRaw );
+		$plainQuestion    = trim( null === $collapsedQuestion ? $plainQuestionRaw : $collapsedQuestion );
+		$plainAnswerRaw = html_entity_decode( strip_tags( null === $answerWithBreaks ? $answer : $answerWithBreaks ), ENT_QUOTES | ENT_HTML5, 'UTF-8' );
 		// preg_replace returns null on invalid UTF-8; fall back to the
 		// pre-collapse string so trim() never receives null.
 		$collapsedAnswer = preg_replace( '/\s+/u', ' ', $plainAnswerRaw );
