@@ -93,9 +93,9 @@ class ReviewsBlock extends DynamicBlock
 			'limit'      => max( 1, min( self::MAX_LIMIT, $limit ) ),
 			'columns'    => max( 1, min( self::MAX_COLUMNS, $columns ) ),
 			'layout'     => 'list' === ( $attrs['layout'] ?? 'grid' ) ? 'list' : 'grid',
-			'showStars'  => (bool) ( $attrs['showStars'] ?? true ),
-			'showSource' => (bool) ( $attrs['showSource'] ?? true ),
-			'showDate'   => (bool) ( $attrs['showDate'] ?? true ),
+			'showStars'  => $this->normalizeBool( $attrs['showStars'] ?? null, true ),
+			'showSource' => $this->normalizeBool( $attrs['showSource'] ?? null, true ),
+			'showDate'   => $this->normalizeBool( $attrs['showDate'] ?? null, true ),
 		];
 
 		foreach ( [ 'className', 'anchor', 'align', 'textAlign', 'backgroundColor', 'textColor', 'gradient', 'borderColor', 'fontSize', 'fontFamily' ] as $key ) {
@@ -259,6 +259,46 @@ class ReviewsBlock extends DynamicBlock
 		$scheme = strtolower( (string) parse_url( $trimmed, PHP_URL_SCHEME ) );
 
 		return in_array( $scheme, [ 'http', 'https', 'mailto' ], true ) ? $trimmed : '';
+	}
+
+	/**
+	 * Coerce a mixed attribute into a strict boolean, honoring the
+	 * documented default when the value is missing or ambiguous.
+	 *
+	 * `(bool)` casts the string `"false"` to `true` because it is a
+	 * non-empty string — a persisted attribute round-tripped through
+	 * JSON or a URL query can arrive as the literal string `"false"`,
+	 * which would silently flip a "hide stars" toggle into "show stars"
+	 * (CodeRabbit PR #781). This helper treats `"true"`/`"false"`,
+	 * `"1"`/`"0"`, `"yes"`/`"no"`, and `"on"`/`"off"` explicitly, and
+	 * falls back to `$default` for anything else — so a malformed
+	 * value produces the documented behavior, not the inverse of it.
+	 *
+	 * @since 1.9.0
+	 */
+	protected function normalizeBool( mixed $value, bool $default ): bool
+	{
+		if ( is_bool( $value ) ) {
+			return $value;
+		}
+
+		if ( is_int( $value ) ) {
+			return 0 !== $value;
+		}
+
+		if ( is_string( $value ) ) {
+			$normalized = strtolower( trim( $value ) );
+
+			if ( in_array( $normalized, [ 'true', '1', 'yes', 'on' ], true ) ) {
+				return true;
+			}
+
+			if ( in_array( $normalized, [ 'false', '0', 'no', 'off', '' ], true ) ) {
+				return false;
+			}
+		}
+
+		return $default;
 	}
 
 	/**

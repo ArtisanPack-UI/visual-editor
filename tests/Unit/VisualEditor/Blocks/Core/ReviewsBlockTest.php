@@ -55,6 +55,55 @@ it( 'trims the source filter and coerces non-strings to empty', function (): voi
 		->and( test()->block->validateAttrs( [] )['source'] )->toBe( '' );
 } );
 
+it( 'normalizes string-valued boolean toggles instead of naive-casting (CodeRabbit PR #781)', function (): void {
+	// `(bool) "false"` is `true` in PHP because `"false"` is a non-empty
+	// string. A saved attribute that round-tripped through JSON / a URL
+	// can arrive as the literal string, and would silently flip a
+	// hide-stars toggle into show-stars.
+	$normalized = test()->block->validateAttrs( [
+		'showStars'  => 'false',
+		'showSource' => 'FALSE',
+		'showDate'   => 'no',
+	] );
+
+	expect( $normalized['showStars'] )->toBeFalse()
+		->and( $normalized['showSource'] )->toBeFalse()
+		->and( $normalized['showDate'] )->toBeFalse();
+
+	$normalized = test()->block->validateAttrs( [
+		'showStars'  => 'true',
+		'showSource' => 'YES',
+		'showDate'   => '1',
+	] );
+
+	expect( $normalized['showStars'] )->toBeTrue()
+		->and( $normalized['showSource'] )->toBeTrue()
+		->and( $normalized['showDate'] )->toBeTrue();
+} );
+
+it( 'falls back to the documented default (true) for unrecognized toggle values', function (): void {
+	$normalized = test()->block->validateAttrs( [
+		'showStars'  => 'maybe',
+		'showSource' => new stdClass(),
+		'showDate'   => [ 1, 2 ],
+	] );
+
+	expect( $normalized['showStars'] )->toBeTrue()
+		->and( $normalized['showSource'] )->toBeTrue()
+		->and( $normalized['showDate'] )->toBeTrue();
+} );
+
+it( 'suppresses stars end-to-end when a string-valued "false" is saved on showStars', function (): void {
+	addFilter( ReviewsBlock::FILTER_COLLECT_REVIEWS, static fn () => [
+		[ 'reviewer' => 'A', 'quote' => 'Q', 'rating' => 5, 'source' => 'Google' ],
+	] );
+
+	$html = test()->block->render( test()->block->validateAttrs( [ 'showStars' => 'false' ] ) );
+
+	expect( $html )->not->toContain( 'wp-block-artisanpack-reviews__rating' )
+		->and( $html )->not->toContain( 'Rated 5 out of 5' );
+} );
+
 /* ---- Empty state ---- */
 
 it( 'renders the empty-state prompt when no contributor supplies reviews', function (): void {
