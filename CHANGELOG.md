@@ -8,6 +8,16 @@ this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### Added
 
+- **Location-page starter pattern** (#764) — a new `page/location`
+  seed pattern ships alongside `page/blank` in the page-pattern
+  inserter. It composes the business-info blocks (`business-address`
+  with map, `business-hours`, `business-phone`, `business-email`)
+  side-by-side with a `reviews` block underneath, giving multi-location
+  sites a ready-made starting layout for location landing pages.
+  Scoped to the `page` post type so it only surfaces where a landing
+  page is being authored; contributor-registered patterns of the same
+  slug still win. The pattern is pure block markup with no shortcodes
+  or PHP, so it round-trips SSR-safely through every renderer.
 - **Table-of-contents block with heading anchor generation** (#760) — a
   new `artisanpack/toc` block auto-derives a nested list of anchor
   links from the page's headings. A new `TocResolver` pre-render pass

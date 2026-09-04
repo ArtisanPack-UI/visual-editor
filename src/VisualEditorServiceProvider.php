@@ -1309,9 +1309,100 @@ class VisualEditorServiceProvider extends ServiceProvider
 					];
 				}
 
+				// #764 — seed a location-landing starter that composes
+				// the business-info blocks (address+map, hours, phone,
+				// email) alongside a reviews block. Scoped to the `page`
+				// post type since it's a landing-page layout, not a
+				// per-post pattern. Same contributor-wins rule as above.
+				if ( ! array_key_exists( 'page/location', $patterns ) ) {
+					$patterns['page/location'] = [
+						'slug'        => 'page/location',
+						'title'       => __( 'Location page' ),
+						'source'      => 'theme',
+						'synced'      => false,
+						'categories'  => [ 'page' ],
+						'blocks'      => [],
+						'raw_content' => self::locationPagePatternRawContent(),
+						'post_types'  => [ 'page' ],
+					];
+				}
+
 				return $patterns;
 			},
 		);
+	}
+
+	/**
+	 * Raw block markup for the #764 `page/location` starter pattern.
+	 *
+	 * Composes only server-rendered ArtisanPack blocks + core layout
+	 * primitives — no PHP, no shortcodes — so the pattern is SSR-safe
+	 * everywhere the visual-editor renderers run (Blade, React, Vue).
+	 * Every embedded block relies on its own registered render callback
+	 * to fetch the runtime values (address, hours, phone, email,
+	 * reviews); the pattern itself carries only static copy.
+	 *
+	 * @since 1.9.0
+	 */
+	protected static function locationPagePatternRawContent(): string
+	{
+		// Escape the translated copy before it lands in HTML text
+		// positions. Pattern raw content is trusted markup, but the
+		// translations flowing into these headings come from a catalog
+		// this package doesn't own once shipped; a translator who slips
+		// a tag into a string shouldn't be able to alter the pattern's
+		// block structure or inject markup that survives `parse()`.
+		$flags = ENT_QUOTES | ENT_SUBSTITUTE | ENT_HTML5;
+
+		$visitHeading   = htmlspecialchars( __( 'Visit us' ), $flags, 'UTF-8' );
+		$hoursHeading   = htmlspecialchars( __( 'Hours' ), $flags, 'UTF-8' );
+		$contactHeading = htmlspecialchars( __( 'Contact' ), $flags, 'UTF-8' );
+		$reviewsHeading = htmlspecialchars( __( 'What our customers are saying' ), $flags, 'UTF-8' );
+
+		// Every layout primitive here uses the `artisanpack/*` fork, not
+		// the upstream `core/*` slug. The editor bundle registers only
+		// the fork namespace (`resources/js/visual-editor/blocks/index.ts`
+		// replaced `registerCoreBlocks()`); a `core/group` in the raw
+		// content silently drops during `parse()` on the client, which
+		// is why a pattern that referenced `core/*` blocks would show
+		// in the inserter but do nothing on click.
+		//
+		// The wrapper classes must include BOTH the auto
+		// `wp-block-artisanpack-<name>` class the fork's `save()` emits
+		// AND the legacy `wp-block-<name>` alias. Gutenberg validates
+		// the class attr as an order-independent set: markup carrying
+		// only the alias raises "Block validation failed" and flags the
+		// block "unexpected or invalid content".
+		//
+		// Zero whitespace anywhere between block delimiters and their
+		// wrapper markup. Whitespace between inner-block markers (or
+		// between a block's opening delimiter and its wrapper element)
+		// gets parsed as a freeform block, and this editor never
+		// registers `core/freeform`, so those parse to `null` and blow
+		// up `serializeRawBlock` with "Cannot destructure property
+		// blockName". Concatenate rather than break lines.
+		$container1 = '<!-- wp:artisanpack/group {"tagName":"section","layout":{"type":"constrained"}} --><section class="wp-block-artisanpack-group wp-block-group">'
+			. '<!-- wp:artisanpack/heading {"level":2} --><h2 class="wp-block-artisanpack-heading wp-block-heading">' . $visitHeading . '</h2><!-- /wp:artisanpack/heading -->'
+			. '<!-- wp:artisanpack/columns --><div class="wp-block-artisanpack-columns wp-block-columns">'
+			. '<!-- wp:artisanpack/column --><div class="wp-block-artisanpack-column wp-block-column">'
+			. '<!-- wp:artisanpack/business-address /-->'
+			. '</div><!-- /wp:artisanpack/column -->'
+			. '<!-- wp:artisanpack/column --><div class="wp-block-artisanpack-column wp-block-column">'
+			. '<!-- wp:artisanpack/heading {"level":3} --><h3 class="wp-block-artisanpack-heading wp-block-heading">' . $hoursHeading . '</h3><!-- /wp:artisanpack/heading -->'
+			. '<!-- wp:artisanpack/business-hours /-->'
+			. '<!-- wp:artisanpack/heading {"level":3} --><h3 class="wp-block-artisanpack-heading wp-block-heading">' . $contactHeading . '</h3><!-- /wp:artisanpack/heading -->'
+			. '<!-- wp:artisanpack/business-phone /-->'
+			. '<!-- wp:artisanpack/business-email /-->'
+			. '</div><!-- /wp:artisanpack/column -->'
+			. '</div><!-- /wp:artisanpack/columns -->'
+			. '</section><!-- /wp:artisanpack/group -->';
+
+		$container2 = '<!-- wp:artisanpack/group {"tagName":"section","layout":{"type":"constrained"}} --><section class="wp-block-artisanpack-group wp-block-group">'
+			. '<!-- wp:artisanpack/heading {"level":2} --><h2 class="wp-block-artisanpack-heading wp-block-heading">' . $reviewsHeading . '</h2><!-- /wp:artisanpack/heading -->'
+			. '<!-- wp:artisanpack/reviews /-->'
+			. '</section><!-- /wp:artisanpack/group -->';
+
+		return $container1 . "\n\n" . $container2;
 	}
 
 	/**

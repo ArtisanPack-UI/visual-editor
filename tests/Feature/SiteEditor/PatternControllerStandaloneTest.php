@@ -27,17 +27,33 @@ beforeEach( function (): void {
 	$this->actingAs( $user );
 } );
 
-it( 'returns only the built-in `page/blank` seed pattern when no contributors are registered', function (): void {
+it( 'returns the built-in seed patterns when no contributors are registered', function (): void {
 	( new VisualEditorServiceProvider( app() ) )->registerSiteEditorResolvers();
 
 	// #639 — the visual-editor ships a `page/blank` starter regardless
 	// of whether cms-framework is integrated, so the modal has an entry
 	// to render even on standalone installs.
-	$this->getJson( '/visual-editor/api/patterns' )
+	// #764 — a `page/location` starter is seeded alongside it, composing
+	// the business-info blocks + reviews as a landing-page starting point.
+	$response = $this->getJson( '/visual-editor/api/patterns' )
 		->assertOk()
-		->assertJsonCount( 1 )
-		->assertJsonPath( '0.slug', 'page/blank' )
-		->assertJsonPath( '0.categories.0', 'page' );
+		->assertJsonCount( 2 );
+
+	$slugs = array_column( $response->json(), 'slug' );
+
+	expect( $slugs )->toContain( 'page/blank' )
+		->and( $slugs )->toContain( 'page/location' );
+
+	$location = collect( $response->json() )->firstWhere( 'slug', 'page/location' );
+
+	expect( $location['source'] )->toBe( 'theme' )
+		->and( $location['categories'] )->toContain( 'page' )
+		->and( $location['post_types'] )->toBe( [ 'page' ] )
+		->and( $location['content']['raw'] )->toContain( 'wp:artisanpack/business-address' )
+		->and( $location['content']['raw'] )->toContain( 'wp:artisanpack/business-hours' )
+		->and( $location['content']['raw'] )->toContain( 'wp:artisanpack/business-phone' )
+		->and( $location['content']['raw'] )->toContain( 'wp:artisanpack/business-email' )
+		->and( $location['content']['raw'] )->toContain( 'wp:artisanpack/reviews' );
 } );
 
 it( 'returns 404 on POST patterns when cms-framework is not integrated', function (): void {
