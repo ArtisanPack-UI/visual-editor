@@ -17,7 +17,7 @@ use ArtisanPackUI\Ai\Contracts\AgentPrompter;
 use ArtisanPackUI\Ai\Contracts\CredentialResolver;
 use ArtisanPackUI\Ai\Credentials\ChainedCredentialResolver;
 use ArtisanPackUI\Ai\Credentials\Credentials;
-use Tests\Support\FakeAgentPrompter;
+use ArtisanPackUI\Ai\Testing\FakeAgentPrompter;
 
 /**
  * Registers a fake prompter, stub credentials, and enables the five
