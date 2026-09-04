@@ -42,20 +42,21 @@ function rebuildSiteEditorResolversForPatternTest(): void
 }
 
 describe( 'GET /visual-editor/api/patterns', function (): void {
-	it( 'returns only the built-in `page/blank` seed pattern when no cms-framework patterns exist', function (): void {
+	it( 'returns the built-in seed patterns when no cms-framework patterns exist', function (): void {
 		rebuildSiteEditorResolversForPatternTest();
 
 		// #639 — visual-editor ships a `page/blank` starter so the
 		// page-pattern-inserter modal has an entry to render out of the
-		// box. Without cms-framework patterns, the index is exactly
-		// that seed.
-		$this->getJson( '/visual-editor/api/patterns' )
+		// box. #764 seeds a `page/location` starter alongside it. Without
+		// cms-framework patterns, the index is exactly those seeds.
+		$response = $this->getJson( '/visual-editor/api/patterns' )
 			->assertOk()
-			->assertJsonCount( 1 )
-			->assertJsonPath( '0.slug', 'page/blank' )
-			->assertJsonPath( '0.source', 'theme' )
-			->assertJsonPath( '0.categories.0', 'page' )
-			->assertJsonPath( '0.post_types', null );
+			->assertJsonCount( 2 );
+
+		$slugs = array_column( $response->json(), 'slug' );
+
+		expect( $slugs )->toContain( 'page/blank' )
+			->and( $slugs )->toContain( 'page/location' );
 	} );
 
 	it( 'lists user-source patterns merged from cms-framework alongside the seed', function (): void {
@@ -74,12 +75,13 @@ describe( 'GET /visual-editor/api/patterns', function (): void {
 
 		$response = $this->getJson( '/visual-editor/api/patterns' )
 			->assertOk()
-			->assertJsonCount( 2 );
+			->assertJsonCount( 3 );
 
 		$slugs = array_column( $response->json(), 'slug' );
 
 		expect( $slugs )->toContain( 'user/cta' )
-			->and( $slugs )->toContain( 'page/blank' );
+			->and( $slugs )->toContain( 'page/blank' )
+			->and( $slugs )->toContain( 'page/location' );
 	} );
 
 	it( 'filters by source via ?source query parameter', function (): void {
@@ -101,11 +103,16 @@ describe( 'GET /visual-editor/api/patterns', function (): void {
 			->assertJsonCount( 1 )
 			->assertJsonPath( '0.slug', 'user/cta' );
 
-		// Only the built-in `page/blank` seed lives under `theme`.
-		$this->getJson( '/visual-editor/api/patterns?source=theme' )
+		// The built-in `page/blank` and `page/location` seeds live under
+		// `theme`.
+		$themeResponse = $this->getJson( '/visual-editor/api/patterns?source=theme' )
 			->assertOk()
-			->assertJsonCount( 1 )
-			->assertJsonPath( '0.slug', 'page/blank' );
+			->assertJsonCount( 2 );
+
+		$themeSlugs = array_column( $themeResponse->json(), 'slug' );
+
+		expect( $themeSlugs )->toContain( 'page/blank' )
+			->and( $themeSlugs )->toContain( 'page/location' );
 	} );
 
 	// #639 — the modal fetches patterns scoped to the current post
@@ -143,18 +150,21 @@ describe( 'GET /visual-editor/api/patterns', function (): void {
 
 		rebuildSiteEditorResolversForPatternTest();
 
-		// `page` context: seed (unscoped) + landing-hero, but not recipe-intro.
+		// `page` context: seed (unscoped) + landing-hero + `page/location`
+		// (scoped to page), but not recipe-intro.
 		$page = $this->getJson( '/visual-editor/api/patterns?post_type=page' )
 			->assertOk()
-			->assertJsonCount( 2 );
+			->assertJsonCount( 3 );
 
 		$pageSlugs = array_column( $page->json(), 'slug' );
 
 		expect( $pageSlugs )->toContain( 'landing-hero' )
 			->and( $pageSlugs )->toContain( 'page/blank' )
+			->and( $pageSlugs )->toContain( 'page/location' )
 			->and( $pageSlugs )->not->toContain( 'recipe-intro' );
 
-		// `post` context: seed (unscoped) + recipe-intro, but not landing-hero.
+		// `post` context: seed (unscoped) + recipe-intro, but neither
+		// landing-hero nor `page/location` (both page-scoped).
 		$post = $this->getJson( '/visual-editor/api/patterns?post_type=post' )
 			->assertOk()
 			->assertJsonCount( 2 );
@@ -163,9 +173,10 @@ describe( 'GET /visual-editor/api/patterns', function (): void {
 
 		expect( $postSlugs )->toContain( 'recipe-intro' )
 			->and( $postSlugs )->toContain( 'page/blank' )
-			->and( $postSlugs )->not->toContain( 'landing-hero' );
+			->and( $postSlugs )->not->toContain( 'landing-hero' )
+			->and( $postSlugs )->not->toContain( 'page/location' );
 
-		// `custom` context with no scoped patterns: seed only.
+		// `custom` context with no scoped patterns: unscoped seed only.
 		$this->getJson( '/visual-editor/api/patterns?post_type=custom' )
 			->assertOk()
 			->assertJsonCount( 1 )
@@ -202,16 +213,17 @@ describe( 'GET /visual-editor/api/patterns', function (): void {
 			->assertJsonCount( 1 )
 			->assertJsonPath( '0.slug', 'user/synced-pattern' );
 
-		// `?synced=0` matches both the DB unsynced pattern and the
-		// unsynced built-in seed.
+		// `?synced=0` matches the DB unsynced pattern and both unsynced
+		// built-in seeds (`page/blank` and `page/location`).
 		$unsynced = $this->getJson( '/visual-editor/api/patterns?synced=0' )
 			->assertOk()
-			->assertJsonCount( 2 );
+			->assertJsonCount( 3 );
 
 		$unsyncedSlugs = array_column( $unsynced->json(), 'slug' );
 
 		expect( $unsyncedSlugs )->toContain( 'user/unsynced-pattern' )
-			->and( $unsyncedSlugs )->toContain( 'page/blank' );
+			->and( $unsyncedSlugs )->toContain( 'page/blank' )
+			->and( $unsyncedSlugs )->toContain( 'page/location' );
 	} );
 } );
 
