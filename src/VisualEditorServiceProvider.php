@@ -6,6 +6,7 @@ use ArtisanPackUI\CMSFramework\Modules\Blog\Managers\BlogManager;
 use ArtisanPackUI\VisualEditor\Blocks\Core\ArchivesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\CategoriesBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\LatestPostsBlock;
+use ArtisanPackUI\VisualEditor\Blocks\Core\ReviewsBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Core\TagCloudBlock;
 use ArtisanPackUI\VisualEditor\Blocks\Forms\FormBlock;
 use ArtisanPackUI\Icons\Registries\IconSetRegistration;
@@ -1004,6 +1005,16 @@ class VisualEditorServiceProvider extends ServiceProvider
 		//     simply does not appear in the inserter in that case.
 		$this->registerFormBlock();
 
+		// 4c. Reviews — register the `artisanpack/reviews` block. The
+		//     block collects payloads at render time via the
+		//     `ap.visualEditor.reviews.collectReviews` filter so host
+		//     apps, other packages, and any cms-framework plugins /
+		//     themes active at runtime can all contribute reviews. No
+		//     external dependency to gate on; the block is always
+		//     available in the inserter and renders its empty state
+		//     when no contributor supplies data (Keystone #763).
+		$this->registerReviewsBlock();
+
 		// 5. Tag the config file for the scaffold command.
 		if ( $this->app->runningInConsole() ) {
 			$this->publishes( [
@@ -1354,6 +1365,32 @@ class VisualEditorServiceProvider extends ServiceProvider
 		}
 
 		$editor->registerDynamicBlock( FormBlock::class );
+	}
+
+	/**
+	 * Registers the `artisanpack/reviews` dynamic block.
+	 *
+	 * Loads the bundled `block.json` so the inserter surfaces the
+	 * block, then registers {@see ReviewsBlock} as the server-side
+	 * renderer. The block collects payloads through the
+	 * `ap.visualEditor.reviews.collectReviews` filter at render time,
+	 * so host apps, other packages, and cms-framework plugins/themes
+	 * that activate at runtime can all contribute reviews without a
+	 * boot-order dependency (Keystone #763).
+	 *
+	 * @since 1.9.0
+	 */
+	protected function registerReviewsBlock(): void
+	{
+		$editor = $this->app->make( VisualEditor::class );
+
+		$blockJsonPath = __DIR__ . '/../resources/js/visual-editor/blocks/reviews/block.json';
+
+		if ( file_exists( $blockJsonPath ) ) {
+			$editor->registerBlock( $blockJsonPath );
+		}
+
+		$editor->registerDynamicBlock( ReviewsBlock::class );
 	}
 
 	/**
