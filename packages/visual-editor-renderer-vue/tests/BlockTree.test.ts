@@ -727,6 +727,32 @@ describe('Core design blocks', () => {
         expect(html).not.toContain('href="tel:');
     });
 
+    it('surfaces attributes.ariaLabel on the artisanpack/business-phone wrapper', () => {
+        const tree = [
+            makeBlock('artisanpack/business-phone', {
+                ariaLabel: 'Call our support line',
+                _resolvedBusinessInfo: { phone: '+1 (555) 123-4567' },
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('aria-label="Call our support line"');
+    });
+
+    it('percent-encodes mailto local + domain so specials cannot inject headers', () => {
+        const tree = [
+            makeBlock('artisanpack/business-email', {
+                _resolvedBusinessInfo: { email: 'a?b&c#d%e@ex.test' },
+            }),
+        ];
+
+        const html = renderTree(tree);
+
+        expect(html).toContain('href="mailto:a%3Fb%26c%23d%25e@ex.test"');
+        expect(html).not.toContain('mailto:a?b&c#d%e@');
+    });
+
     it('renders the artisanpack/business-email block as a mailto: link for a valid address', () => {
         const tree = [
             makeBlock('artisanpack/business-email', {

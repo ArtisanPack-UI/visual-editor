@@ -270,8 +270,10 @@ class BusinessInfoResolver
 	 *  3. Block's `mapProvider` = `google` AND a Google Maps API key is
 	 *     configured → Google Maps `/maps/embed/v1/place` URL.
 	 *  4. Otherwise → OpenStreetMap `/export/embed.html` URL with a
-	 *     bounding box centred on the address's lat/lng (falling back to
-	 *     the world if no coordinates were supplied).
+	 *     bounding box centred on the address's lat/lng. If no
+	 *     coordinates were supplied for the OSM branch, returns null —
+	 *     OSM's `/search` page is HTML meant for humans and doesn't
+	 *     render inside an iframe.
 	 *
 	 * Returns null when no URL can be composed — the renderer then skips
 	 * the map iframe entirely.
@@ -329,18 +331,13 @@ class BusinessInfoResolver
 
 		// OSM fallback — the keyless `/export/embed.html` endpoint. It
 		// needs a bounding box, so we synthesise one around the lat/lng
-		// when supplied and drop back to a whole-world view otherwise.
+		// when supplied. Without coordinates, OSM has no valid iframe
+		// route (its `/search` page is HTML meant for humans, and
+		// browsers won't render it as a map inside an iframe) — return
+		// null so the renderers skip the iframe entirely rather than
+		// stamping a broken embed URL.
 		if ( null === $latitude || null === $longitude ) {
-			$query = $this->buildAddressQuery( $envelope, null, null );
-
-			if ( '' === $query ) {
-				return null;
-			}
-
-			// No coordinates — hand OSM a search-style URL. The embed
-			// endpoint requires a bbox, but the standard `/search`
-			// route supports iframe embedding and centres on the query.
-			return sprintf( 'https://www.openstreetmap.org/search?query=%s', rawurlencode( $query ) );
+			return null;
 		}
 
 		// Bounding-box delta — narrower at higher zoom. A crude but stable
@@ -454,7 +451,14 @@ class BusinessInfoResolver
 
 			$date = $entry['date'] ?? null;
 
-			if ( ! is_string( $date ) || 1 !== preg_match( '/^\d{4}-\d{2}-\d{2}$/', $date ) ) {
+			if ( ! is_string( $date ) || 1 !== preg_match( '/^(\d{4})-(\d{2})-(\d{2})$/', $date, $matches ) ) {
+				continue;
+			}
+
+			// The regex proves the shape; `checkdate()` proves the calendar
+			// (rejects Feb 31, month 13, day 0, etc.) so a host filter with
+			// a typo can't crash the downstream `strtotime()` / sprintf.
+			if ( ! checkdate( (int) $matches[2], (int) $matches[3], (int) $matches[1] ) ) {
 				continue;
 			}
 

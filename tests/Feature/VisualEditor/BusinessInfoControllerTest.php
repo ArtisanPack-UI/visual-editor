@@ -207,6 +207,36 @@ it( 'whitelists the response envelope to the documented public keys', function (
 	expect( array_key_exists( 'mapEmbedUrl', $body ) )->toBeTrue();
 } );
 
+it( 'treats a garbage showMap value the same as omitting the parameter (default: map on)', function () {
+	if ( ! function_exists( 'addFilter' ) ) {
+		expect( true )->toBeTrue();
+
+		return;
+	}
+
+	addFilter( 'ap.visualEditor.businessInfo', function ( array $envelope ): array {
+		return array_merge( $envelope, [
+			'address'   => array_merge( $envelope['address'], [
+				'street' => '123 Main St',
+				'city'   => 'Springfield',
+			] ),
+			'latitude'  => 39.7817,
+			'longitude' => -89.6501,
+		] );
+	} );
+
+	$baseline = $this->getJson( '/visual-editor/api/business-info' )
+		->assertOk()
+		->json( 'mapEmbedUrl' );
+
+	$garbage = $this->getJson( '/visual-editor/api/business-info?showMap=garbage' )
+		->assertOk()
+		->json( 'mapEmbedUrl' );
+
+	expect( $garbage )->toBe( $baseline );
+	expect( $garbage )->toContain( 'openstreetmap.org' );
+} );
+
 it( 'rejects unauthenticated requests when the api middleware requires auth', function () {
 	auth()->logout();
 

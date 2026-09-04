@@ -36,6 +36,19 @@ interface BusinessEmailEditProps {
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Percent-encode the local + domain independently so special characters
+// in a well-formed address can't inject mailto headers (subject/cc/bcc)
+// or be misinterpreted by the mail client.
+function safeMailtoHref(email: string): string {
+    const at = email.lastIndexOf('@');
+    if (at < 0) {
+        return `mailto:${encodeURIComponent(email)}`;
+    }
+    const local = email.slice(0, at);
+    const domain = email.slice(at + 1);
+    return `mailto:${encodeURIComponent(local)}@${encodeURIComponent(domain)}`;
+}
+
 export default function BusinessEmailEdit({
     attributes,
     setAttributes,
@@ -60,7 +73,7 @@ export default function BusinessEmailEdit({
             ? label
             : __('hello@example.com', TEXT_DOMAIN);
 
-    const href = isValidEmail ? `mailto:${email}` : '#email-pseudo-link';
+    const href = isValidEmail ? safeMailtoHref(email) : '#email-pseudo-link';
 
     return (
         <>

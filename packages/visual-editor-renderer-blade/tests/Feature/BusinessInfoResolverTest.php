@@ -466,6 +466,62 @@ it( 'normalizes special-hours on a pre-stamped envelope so malformed dates are d
 	expect( $after[0]['label'] )->toBe( 'Upcoming' );
 } );
 
+it( 'drops special-hours entries with calendar-invalid dates (e.g. Feb 31)', function () {
+	$resolver = $this->app->make( BusinessInfoResolver::class );
+
+	$preStamped = [
+		'specialHours' => [
+			[ 'date' => '2026-02-31', 'closed' => true, 'label' => 'Impossible' ],
+			[ 'date' => '2026-13-01', 'closed' => true, 'label' => 'BadMonth' ],
+			[ 'date' => date( 'Y-m-d', strtotime( '+2 days' ) ), 'closed' => true, 'label' => 'Real' ],
+		],
+	];
+
+	$stamped = $resolver->stampTree(
+		[ businessBlockNode( 'artisanpack/business-hours', [ '_resolvedBusinessInfo' => $preStamped ] ) ],
+		null
+	);
+
+	$after = $stamped[0]['attributes']['_resolvedBusinessInfo']['specialHours'];
+
+	expect( $after )->toBeArray();
+	expect( $after )->toHaveCount( 1 );
+	expect( $after[0]['label'] )->toBe( 'Real' );
+} );
+
+it( 'renders no map iframe on the OSM branch when only an address (no coordinates) is available', function () {
+	if ( ! function_exists( 'addFilter' ) ) {
+		expect( true )->toBeTrue();
+
+		return;
+	}
+
+	addFilter( 'ap.visualEditor.businessInfo', fn ( array $env ): array => array_merge( $env, [
+		'address' => [
+			'street' => '123 Main St',
+			'city'   => 'Springfield',
+		],
+		// No latitude/longitude — OSM has no valid iframe target.
+	] ), 10 );
+
+	$resolver = $this->app->make( BusinessInfoResolver::class );
+
+	$stamped = $resolver->stampTree( [
+		businessBlockNode( 'artisanpack/business-address', [ 'showMap' => true, 'mapProvider' => 'osm' ] ),
+	], null );
+
+	expect( $stamped[0]['attributes']['_resolvedBusinessInfo']['mapEmbedUrl'] )->toBeNull();
+
+	$rendered = $this->stripGlobalStyles( renderBusinessTree( [
+		businessBlockNode( 'artisanpack/business-address', [ 'showMap' => true, 'mapProvider' => 'osm' ] ),
+	] ) );
+
+	expect( $rendered )
+		->toContain( '123 Main St' )
+		->not->toContain( '<iframe' )
+		->not->toContain( 'openstreetmap.org/search' );
+} );
+
 it( 'memoizes the filter for the duration of a single stampTree call', function () {
 	if ( ! function_exists( 'addFilter' ) ) {
 		expect( true )->toBeTrue();

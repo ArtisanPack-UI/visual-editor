@@ -7,13 +7,14 @@ import { describe, it, expect } from 'vitest';
 import { safeIframeUrl } from '../safe-url';
 
 describe('safeIframeUrl', () => {
-    it('passes http and https URLs through unchanged', () => {
+    it('passes https URLs through unchanged', () => {
         expect(safeIframeUrl('https://www.openstreetmap.org/x')).toBe(
             'https://www.openstreetmap.org/x'
         );
-        expect(safeIframeUrl('http://example.test/map')).toBe(
-            'http://example.test/map'
-        );
+    });
+
+    it('drops http URLs to an empty string (mixed-content risk)', () => {
+        expect(safeIframeUrl('http://example.test/map')).toBe('');
     });
 
     it('drops javascript: URLs to an empty string', () => {

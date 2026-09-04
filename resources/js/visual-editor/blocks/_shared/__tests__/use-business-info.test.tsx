@@ -99,6 +99,59 @@ describe('useBusinessInfo', () => {
         }
     });
 
+    it('does not evict a newer cached promise when an older one rejects', async () => {
+        // Two calls to the same URL. The first rejects; between its
+        // fetch starting and its rejection settling, a second call
+        // replaces the cache entry with a fresh in-flight promise
+        // (simulated here by clearing the cache and firing a second
+        // hook whose fetcher resolves). The first's rejection cleanup
+        // must NOT evict the second's cached entry.
+        let rejectFirst: ((reason: Error) => void) | null = null;
+        const firstFetcher = vi.fn().mockImplementation(
+            () =>
+                new Promise<Response>((_resolve, reject) => {
+                    rejectFirst = reject;
+                })
+        );
+
+        const first = renderHook(() => useBusinessInfo({ fetcher: firstFetcher }));
+
+        // Give the effect a tick.
+        await waitFor(() => expect(firstFetcher).toHaveBeenCalledTimes(1));
+
+        // Simulate a caller between the first fetch and its rejection
+        // that installs a newer entry for the same URL.
+        __resetBusinessInfoCache();
+
+        const secondFetcher = vi.fn().mockResolvedValue(
+            jsonResponse({ phone: '+1 second' })
+        );
+        const second = renderHook(() =>
+            useBusinessInfo({ fetcher: secondFetcher })
+        );
+
+        await waitFor(() => expect(secondFetcher).toHaveBeenCalledTimes(1));
+
+        // NOW settle the first as a failure — this used to unconditionally
+        // wipe the cache entry the second call installed.
+        rejectFirst!(new Error('boom'));
+
+        await waitFor(() => {
+            expect(second.result.current.loading).toBe(false);
+        });
+
+        // The second call's promise must have resolved with its own
+        // envelope — proving its cache entry survived the older
+        // promise's rejection cleanup.
+        expect(second.result.current.envelope).toEqual({ phone: '+1 second' });
+        expect(second.result.current.error).toBeNull();
+
+        // First hook records the error but never leaks the second's data.
+        await waitFor(() => {
+            expect(first.result.current.error).not.toBeNull();
+        });
+    });
+
     it('shares the in-flight promise between concurrent callers with the same URL', async () => {
         const fetcher = vi.fn().mockResolvedValue(jsonResponse({ phone: '+1' }));
 

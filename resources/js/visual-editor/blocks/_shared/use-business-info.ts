@@ -183,6 +183,12 @@ export function useBusinessInfo( options: UseBusinessInfoOptions = {} ): UseBusi
             cache.set( url, promise );
         }
 
+        // Capture the promise we installed / found so the failure
+        // cleanup below can only evict its own entry — a second call
+        // that installed a NEW cached entry between this promise's
+        // rejection and the cleanup must not have its entry evicted.
+        const thisPromise = promise;
+
         setLoading( true );
         setError( null );
 
@@ -195,12 +201,19 @@ export function useBusinessInfo( options: UseBusinessInfoOptions = {} ): UseBusi
                 setLoading( false );
             } )
             .catch( ( err: unknown ) => {
+                // Drop the cached failure so a follow-up mount can
+                // retry rather than being stuck on the same error
+                // forever — but only if the cache still points at
+                // OUR promise. Otherwise a later caller has already
+                // replaced the entry with a fresh in-flight fetch
+                // and we would evict their pending work.
+                if ( cache.get( url ) === thisPromise ) {
+                    cache.delete( url );
+                }
+
                 if ( cancelled ) {
                     return;
                 }
-                // Drop the cached failure so a follow-up mount can retry
-                // rather than being stuck on the same error forever.
-                cache.delete( url );
                 setError( err instanceof Error ? err : new Error( String( err ) ) );
                 setLoading( false );
             } );

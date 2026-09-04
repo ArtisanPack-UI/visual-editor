@@ -13,12 +13,16 @@
  * package) because `resources/js/visual-editor/blocks/**` must not
  * depend on `packages/visual-editor-renderer-*`.
  *
- * Allow-list is `http:` and `https:` only — map embed URLs from both
- * OpenStreetMap and Google Maps are always https. A relative URL is
- * NOT allowed here — a map iframe from a relative host URL is not a
- * valid use case, and denying them keeps the check strict.
+ * Allow-list is `https:` only — map embed URLs from both OpenStreetMap
+ * and Google Maps are always https, and allowing `http:` would produce
+ * mixed-content warnings (or an outright block) when the editor page is
+ * served over TLS. A relative URL is NOT allowed here — a map iframe
+ * from a relative host URL is not a valid use case, and denying them
+ * keeps the check strict.
  */
-const ALLOWED_SCHEMES: ReadonlyArray<string> = ['http:', 'https:'];
+// https-only: an http iframe on an https editor triggers mixed-content
+// blocking in every modern browser, and map providers all serve https.
+const ALLOWED_SCHEMES: ReadonlyArray<string> = ['https:'];
 
 export function safeIframeUrl(url: unknown): string {
     if (typeof url !== 'string') {

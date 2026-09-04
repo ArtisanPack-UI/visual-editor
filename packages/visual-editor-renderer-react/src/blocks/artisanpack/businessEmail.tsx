@@ -18,6 +18,20 @@ import type { BlockRendererProps } from '../../types';
 // emit a link vs. an empty wrapper.
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+// Percent-encode the local + domain independently so special characters
+// in a well-formed address (`?`, `&`, `#`, `%`) can't be reinterpreted
+// as mailto header separators (subject/cc/bcc injection) or be
+// percent-decoded by the mail client.
+function safeMailtoHref(email: string): string {
+    const at = email.lastIndexOf('@');
+    if (at < 0) {
+        return `mailto:${encodeURIComponent(email)}`;
+    }
+    const local = email.slice(0, at);
+    const domain = email.slice(at + 1);
+    return `mailto:${encodeURIComponent(local)}@${encodeURIComponent(domain)}`;
+}
+
 export function BusinessEmailBlock({ attributes }: BlockRendererProps): ReactElement {
     const info = attrRecord(attributes._resolvedBusinessInfo);
     const email = attrString(info.email).trim();
@@ -37,7 +51,7 @@ export function BusinessEmailBlock({ attributes }: BlockRendererProps): ReactEle
 
     return (
         <div className={wrapperClasses}>
-            <a className="ap-business-email__link" href={`mailto:${email}`}>
+            <a className="ap-business-email__link" href={safeMailtoHref(email)}>
                 {showIcon && (
                     <span className="ap-business-email__icon" aria-hidden="true">
                         {'✉'}

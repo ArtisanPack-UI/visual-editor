@@ -116,7 +116,21 @@ class BusinessInfoController extends Controller
 		}
 
 		if ( $request->has( 'showMap' ) ) {
-			$attributes['showMap'] = filter_var( $request->query( 'showMap' ), FILTER_VALIDATE_BOOLEAN );
+			// Only assign when validation actually succeeds — passing
+			// `null` for a garbage value ("garbage", "maybe") would
+			// force the resolver to see a strict `null` and skip its
+			// default of `true`, so a caller with a typo would silently
+			// suppress the map. Falling through leaves `showMap`
+			// unset here so `composeMapEmbedUrl` applies its default.
+			$parsed = filter_var(
+				$request->query( 'showMap' ),
+				FILTER_VALIDATE_BOOLEAN,
+				FILTER_NULL_ON_FAILURE
+			);
+
+			if ( null !== $parsed ) {
+				$attributes['showMap'] = $parsed;
+			}
 		}
 
 		if ( $request->has( 'zoom' ) ) {

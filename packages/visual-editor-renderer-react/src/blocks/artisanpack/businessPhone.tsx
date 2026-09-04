@@ -22,17 +22,18 @@ export function BusinessPhoneBlock({ attributes }: BlockRendererProps): ReactEle
 
     const className = attrString(attributes.className);
     const wrapperClasses = classList(['ap-business-phone', className]);
+    const ariaLabel = attrString(attributes.ariaLabel, 'Business phone');
 
     const showIcon = attrBoolean(attributes.showIcon, false);
     const explicitLabel = attrString(attributes.label);
     const label = explicitLabel !== '' ? explicitLabel : phone;
 
     if (phone === '') {
-        return <div className={wrapperClasses} />;
+        return <div className={wrapperClasses} aria-label={ariaLabel} />;
     }
 
     return (
-        <div className={wrapperClasses}>
+        <div className={wrapperClasses} aria-label={ariaLabel}>
             <a className="ap-business-phone__link" href={`tel:${telTarget(phone)}`}>
                 {showIcon && (
                     <span className="ap-business-phone__icon" aria-hidden="true">

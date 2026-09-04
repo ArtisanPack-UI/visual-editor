@@ -12,6 +12,19 @@
 	// standard cases; anything else drops the block to an empty wrapper.
 	$isValidEmail = '' !== $email && false !== filter_var( $email, FILTER_VALIDATE_EMAIL );
 
+	// Encode the local + domain independently so special characters in
+	// a well-formed address (`?`, `&`, `#`, `%`) can't be reinterpreted
+	// as mailto header separators (subject/cc/bcc injection).
+	$mailtoHref = '';
+	if ( $isValidEmail ) {
+		$at = strrpos( $email, '@' );
+		if ( false === $at ) {
+			$mailtoHref = 'mailto:' . rawurlencode( $email );
+		} else {
+			$mailtoHref = 'mailto:' . rawurlencode( substr( $email, 0, $at ) ) . '@' . rawurlencode( substr( $email, $at + 1 ) );
+		}
+	}
+
 	$label = isset( $attributes['label'] ) && is_string( $attributes['label'] ) && '' !== $attributes['label']
 		? $attributes['label']
 		: $email;
@@ -22,7 +35,7 @@
 @endphp
 <div{!! BlockSupports::wrapperAttrs( $attributes, $baseClasses ) !!}>
 	@if ( $isValidEmail )
-		<a class="ap-business-email__link" href="mailto:{{ $email }}">
+		<a class="ap-business-email__link" href="{{ $mailtoHref }}">
 			@if ( $showIcon )
 				<span class="ap-business-email__icon" aria-hidden="true">&#9993;</span>
 			@endif

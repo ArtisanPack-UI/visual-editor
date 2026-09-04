@@ -24,13 +24,14 @@ export const BusinessPhoneBlock = defineComponent({
 
             const className = attrString(attributes.className);
             const wrapperClasses = classList(['ap-business-phone', className]);
+            const ariaLabel = attrString(attributes.ariaLabel, 'Business phone');
 
             const showIcon = attrBoolean(attributes.showIcon, false);
             const explicitLabel = attrString(attributes.label);
             const label = explicitLabel !== '' ? explicitLabel : phone;
 
             if (phone === '') {
-                return h('div', { class: wrapperClasses });
+                return h('div', { class: wrapperClasses, 'aria-label': ariaLabel });
             }
 
             const linkChildren: VNode[] = [];
@@ -47,7 +48,7 @@ export const BusinessPhoneBlock = defineComponent({
                 h('span', { class: 'ap-business-phone__label' }, label)
             );
 
-            return h('div', { class: wrapperClasses }, [
+            return h('div', { class: wrapperClasses, 'aria-label': ariaLabel }, [
                 h(
                     'a',
                     {
