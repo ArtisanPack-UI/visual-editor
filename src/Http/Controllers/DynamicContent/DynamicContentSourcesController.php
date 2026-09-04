@@ -21,6 +21,7 @@ declare( strict_types=1 );
 
 namespace ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent;
 
+use ArtisanPackUI\VisualEditor\Registries\DynamicContentSourceRegistry;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Routing\Controller;
 use Throwable;
@@ -46,10 +47,28 @@ class DynamicContentSourcesController extends Controller
 	 */
 	public function index(): JsonResponse
 	{
+		$sources  = [];
+		$seenSlug = [];
+
+		// #762 — host-registered sources (in-process code registrations)
+		// are listed first and shadow any cms-framework type with the
+		// same slug so a host app can intentionally override a DB type
+		// (marked `origin: 'host'` in the response).
+		if ( app()->bound( DynamicContentSourceRegistry::class ) ) {
+			$hostRegistry = app( DynamicContentSourceRegistry::class );
+
+			if ( $hostRegistry instanceof DynamicContentSourceRegistry ) {
+				foreach ( $hostRegistry->all() as $slug => $hostSource ) {
+					$sources[]         = $hostSource->toArray();
+					$seenSlug[ $slug ] = true;
+				}
+			}
+		}
+
 		$registryClass = 'ArtisanPackUI\\CMSFramework\\Modules\\DynamicContent\\Managers\\DynamicContentTypeRegistry';
 
 		if ( ! class_exists( $registryClass ) && ! app()->bound( $registryClass ) ) {
-			return response()->json( [ 'sources' => [] ] );
+			return response()->json( [ 'sources' => $sources ] );
 		}
 
 		try {
@@ -59,17 +78,19 @@ class DynamicContentSourcesController extends Controller
 		} catch ( Throwable $e ) {
 			report( $e );
 
-			return response()->json( [ 'sources' => [] ] );
+			return response()->json( [ 'sources' => $sources ] );
 		}
 
 		if ( ! is_array( $types ) ) {
-			return response()->json( [ 'sources' => [] ] );
+			return response()->json( [ 'sources' => $sources ] );
 		}
-
-		$sources = [];
 
 		foreach ( $types as $slug => $definition ) {
 			if ( ! is_string( $slug ) || ! is_array( $definition ) ) {
+				continue;
+			}
+
+			if ( isset( $seenSlug[ $slug ] ) ) {
 				continue;
 			}
 

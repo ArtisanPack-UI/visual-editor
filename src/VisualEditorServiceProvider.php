@@ -38,6 +38,7 @@ use ArtisanPackUI\VisualEditor\Fonts\Support\FontStylesheetEnqueuer;
 use ArtisanPackUI\VisualEditor\Registries\BlockBindingSourceRegistry;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditor\Registries\DynamicContentSourceRegistry;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingResolver;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\CustomFieldSource;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\DynamicContentSource;
@@ -334,10 +335,21 @@ class VisualEditorServiceProvider extends ServiceProvider
 			);
 		} );
 
+		// #762 — Host-registerable Dynamic Content sources: a shared
+		// registry that host apps, other packages, and cms-framework
+		// plugins/themes push token sources into during their own boot()
+		// pass. The DynamicContent binding source and the sources-listing
+		// controller consult this registry first, then fall back to
+		// cms-framework's own DB-authored types.
+		$this->app->singleton( DynamicContentSourceRegistry::class, function () {
+			return new DynamicContentSourceRegistry();
+		} );
+
 		$this->app->singleton( VisualEditor::class, function ( $app ) {
 			return new VisualEditor(
 				$app->make( BlockTypeRegistry::class ),
 				$app->make( DynamicBlockRegistry::class ),
+				$app->make( DynamicContentSourceRegistry::class ),
 			);
 		} );
 

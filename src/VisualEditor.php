@@ -22,18 +22,47 @@ namespace ArtisanPackUI\VisualEditor;
 use ArtisanPackUI\VisualEditor\Blocks\ClosureDynamicBlock;
 use ArtisanPackUI\VisualEditor\Blocks\DynamicBlock;
 use ArtisanPackUI\VisualEditor\Blocks\ProvidesBlockMetadata;
+use ArtisanPackUI\VisualEditor\DynamicContent\HostDynamicContentSource;
 use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
+use ArtisanPackUI\VisualEditor\Registries\DynamicContentSourceRegistry;
 use Closure;
 use InvalidArgumentException;
 use JsonException;
 
 class VisualEditor
 {
+	/**
+	 * The host Dynamic Content source registry.
+	 *
+	 * Nullable in the constructor to preserve backward compatibility with
+	 * the pre-1.9 two-argument signature that a host app / test may still
+	 * be using to construct `new VisualEditor(...)` directly. When the
+	 * caller omits it we lazy-instantiate a fresh registry on first use.
+	 *
+	 * @since 1.9.0
+	 */
+	protected ?DynamicContentSourceRegistry $dynamicContentSourceRegistry;
+
 	public function __construct(
 		protected BlockTypeRegistry $registry,
 		protected DynamicBlockRegistry $dynamicRegistry,
+		?DynamicContentSourceRegistry $dynamicContentSourceRegistry = null,
 	) {
+		$this->dynamicContentSourceRegistry = $dynamicContentSourceRegistry;
+	}
+
+	/**
+	 * Resolve the Dynamic Content source registry, materializing a
+	 * fresh one on first use when the constructor was called without
+	 * one (the pre-1.9 two-argument shape).
+	 *
+	 * @since 1.9.0
+	 */
+	protected function dynamicContentSourceRegistry(): DynamicContentSourceRegistry
+	{
+		return $this->dynamicContentSourceRegistry
+			??= new DynamicContentSourceRegistry();
 	}
 
 	/**
@@ -249,6 +278,42 @@ class VisualEditor
 	}
 
 	/**
+	 * Register a host Dynamic Content token source.
+	 *
+	 * Lets a host app, another package, or a cms-framework plugin/theme
+	 * declare its own token source (e.g. `business.name`, `business.phone`)
+	 * resolved at render time by the supplied `resolver` callable. Host
+	 * sources merge with cms-framework's DB-authored types in the editor's
+	 * inserter and the render-time binding resolver — a slug collision
+	 * resolves to the host registration, so an app can intentionally
+	 * shadow a cms-framework type.
+	 *
+	 * Definition shape:
+	 * - `slug`         string   Lowercase snake_case source slug. Required.
+	 * - `label`        string   Human-readable label (defaults to `slug`).
+	 * - `cardinality`  string   `singleton` (one bag of fields) or `collection`
+	 *                           (list of rows). Required.
+	 * - `fields`       array    List of `{slug, label, type, description?}`.
+	 * - `resolver`     callable Returns the source's data:
+	 *                             - singleton → `array<string, mixed>` (or null)
+	 *                             - collection → `list<array<string, mixed>>`
+	 * - `description`  string   Optional prose for the inserter panel.
+	 * - `icon`         string   Optional icon slug for the inserter panel.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  array<string, mixed>  $definition
+	 */
+	public function registerDynamicContentSource( array $definition ): HostDynamicContentSource
+	{
+		$source = HostDynamicContentSource::fromArray( $definition );
+
+		$this->dynamicContentSourceRegistry()->register( $source );
+
+		return $source;
+	}
+
+	/**
 	 * Returns the block type registry instance.
 	 *
 	 * @since 1.0.0
@@ -266,6 +331,16 @@ class VisualEditor
 	public function getDynamicBlockRegistry(): DynamicBlockRegistry
 	{
 		return $this->dynamicRegistry;
+	}
+
+	/**
+	 * Returns the host Dynamic Content source registry instance.
+	 *
+	 * @since 1.9.0
+	 */
+	public function getDynamicContentSourceRegistry(): DynamicContentSourceRegistry
+	{
+		return $this->dynamicContentSourceRegistry();
 	}
 
 	/**
