@@ -45,15 +45,15 @@ class PresetRegistry
 	protected const SAFE_SLUG_PATTERN = '/^[a-z0-9_-]+$/';
 
 	/**
-	 * Loosely-hex CSS color pattern. Matches `#rgb`, `#rgba`,
-	 * `#rrggbb`, and `#rrggbbaa`. Non-hex CSS colors (`rgb(...)`,
-	 * `oklch(...)`, named colors) are allowed through as-is — the
-	 * value goes straight into the editor's inline style attribute,
-	 * so the browser is the final arbiter of validity — but any
-	 * string containing whitespace or angle brackets is rejected to
-	 * keep obviously-broken values out of the mount attribute.
+	 * Reject-list of characters that must never appear inside a color
+	 * value. `<>` prevents HTML-attribute breakout, `"'` prevents
+	 * JSON-attribute escape, and backtick blocks template-string
+	 * exploits when the value reaches JS. Internal whitespace is
+	 * intentionally allowed so `rgb(0, 0, 0)`, `oklch(0.5 0.1 200)`,
+	 * `hsl(210deg 100% 50%)` and their kin round-trip verbatim to the
+	 * browser, which is the final arbiter of CSS validity.
 	 */
-	protected const REJECT_COLOR_PATTERN = '/[\s<>"\'`]/';
+	protected const REJECT_COLOR_PATTERN = '/[<>"\'`]/';
 
 	/**
 	 * Preset mode values accepted on the per-list `mode` key.

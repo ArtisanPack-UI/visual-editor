@@ -204,9 +204,34 @@ describe('mergePresetList', () => {
         expect(merged).toEqual([{ slug: 'only', name: 'Only', color: '#000' }]);
     });
 
-    it('keeps the defaults when replace mode ships an empty entry list', () => {
+    it('overrides a canonicalised theme slug in place (#773 CR)', () => {
+        // Simulates the merge boundary in `useThemedEditorSettings`
+        // after `extractThemePalette` canonicalises theme slugs to
+        // lowercase. A host `primary` should replace the theme's
+        // `primary` (formerly `Primary`) in situ.
+        const themeAfterCanonicalise: ReadonlyArray<PaletteEntry> = [
+            { slug: 'primary', name: 'Theme Primary', color: '#3b82f6' },
+            { slug: 'foreground', name: 'Theme Foreground', color: '#000' },
+        ];
+
+        const merged = mergePresetList(themeAfterCanonicalise, {
+            mode: 'append',
+            entries: [{ slug: 'primary', name: 'Host Primary', color: '#ff0000' }],
+        });
+
+        expect(merged).toEqual([
+            { slug: 'primary', name: 'Host Primary', color: '#ff0000' },
+            { slug: 'foreground', name: 'Theme Foreground', color: '#000' },
+        ]);
+    });
+
+    it('clears the defaults when replace mode ships an empty entry list', () => {
+        // Explicit "no presets for this list" — mirrors the "host wins
+        // outright" contract in `config/visual-editor.php`. An empty
+        // list under `append` is still a no-op (see the empty-host-list
+        // test above) so hosts can only clear via `mode: replace`.
         const merged = mergePresetList(defaults, { mode: 'replace', entries: [] });
 
-        expect(merged).toBe(defaults);
+        expect(merged).toEqual([]);
     });
 });

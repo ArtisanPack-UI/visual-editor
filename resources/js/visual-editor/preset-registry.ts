@@ -9,9 +9,11 @@
  * defaults reach both `editorSettings.colors` / `.fontSizes` (legacy
  * top-level keys) and every relevant slot inside
  * `__experimentalFeatures` (color.palette.theme, typography.fontSizes,
- * typography.fontFamilies, spacing.spacingSizes). The theme.json layer
- * (`useThemedEditorSettings`) still wins when a theme is installed —
- * this seam is aimed at hosts that don't ship one.
+ * typography.fontFamilies, spacing.spacingSizes). When a theme ships
+ * preset arrays via `theme.json`, `useThemedEditorSettings` layers
+ * host presets on top of the theme layer through the same
+ * {@link mergePresetList} helper — host entries override same-slug
+ * entries from either theme.json or the package defaults.
  *
  * The list is resolved at module-import time. Subsequent calls return
  * the cached snapshot — {@see refreshHostPresets} clears it for tests.
@@ -239,10 +241,12 @@ export function getHostPresets(): HostPresets {
  * Merge one host preset list into the package defaults per its mode:
  *   - `append`: package defaults first, host entries appended. A host
  *     slug that collides with a default slug replaces that default in
- *     place (typical CSS-cascade behaviour).
- *   - `replace`: host entries only. Empty host entries under `replace`
- *     still yield the package defaults so a mis-configured empty
- *     replacement can't blank the picker.
+ *     place (typical CSS-cascade behaviour). An empty host list is a
+ *     no-op and returns the defaults reference unchanged.
+ *   - `replace`: host entries only, always — an empty entries array
+ *     under `replace` is an explicit "clear this list" instruction and
+ *     wipes the defaults. Matches the "host wins outright" contract
+ *     documented in `config/visual-editor.php`.
  *
  * @since 1.9.0
  */
@@ -250,12 +254,12 @@ export function mergePresetList<T extends { slug: string }>(
     defaults: ReadonlyArray<T>,
     hostList: HostPresetList<T>,
 ): ReadonlyArray<T> {
-    if (hostList.entries.length === 0) {
-        return defaults;
-    }
-
     if (hostList.mode === 'replace') {
         return hostList.entries;
+    }
+
+    if (hostList.entries.length === 0) {
+        return defaults;
     }
 
     // Append with slug-collision override: a host entry whose slug
