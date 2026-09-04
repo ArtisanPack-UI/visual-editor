@@ -1,0 +1,91 @@
+{
+    "$schema": "https://schemas.wp.org/trunk/block.json",
+    "apiVersion": 3,
+    "name": "artisanpack/reviews",
+    "title": "Reviews",
+    "category": "widgets",
+    "description": "Display customer reviews sourced from a connected integration. Payloads are supplied by the host; the block emits no review or aggregate-rating structured data.",
+    "keywords": [
+        "reviews",
+        "testimonials",
+        "ratings",
+        "stars"
+    ],
+    "textdomain": "artisanpack-visual-editor",
+    "attributes": {
+        "source": {
+            "type": "string",
+            "default": ""
+        },
+        "limit": {
+            "type": "number",
+            "default": 3
+        },
+        "columns": {
+            "type": "number",
+            "default": 3
+        },
+        "layout": {
+            "type": "string",
+            "default": "grid",
+            "enum": [
+                "grid",
+                "list"
+            ]
+        },
+        "showStars": {
+            "type": "boolean",
+            "default": true
+        },
+        "showSource": {
+            "type": "boolean",
+            "default": true
+        },
+        "showDate": {
+            "type": "boolean",
+            "default": true
+        }
+    },
+    "supports": {
+        "position": true,
+        "artisanpackAnimations": true,
+        "className": true,
+        "html": false,
+        "reusable": true,
+        "anchor": true,
+        "align": true,
+        "typography": {
+            "fontSize": true,
+            "lineHeight": true,
+            "fontFamily": true,
+            "fontStyle": true,
+            "fontWeight": true,
+            "letterSpacing": true,
+            "textTransform": true,
+            "textDecoration": true
+        },
+        "color": {
+            "background": true,
+            "text": true,
+            "link": true,
+            "gradients": true
+        },
+        "border": {
+            "color": true,
+            "radius": true,
+            "style": true,
+            "width": true,
+            "gradient": true
+        },
+        "spacing": {
+            "margin": true,
+            "padding": true,
+            "blockGap": true
+        },
+        "interactivity": {
+            "clientNavigation": true
+        }
+    },
+    "editorStyle": "wp-block-artisanpack-reviews-editor",
+    "style": "wp-block-artisanpack-reviews"
+}
