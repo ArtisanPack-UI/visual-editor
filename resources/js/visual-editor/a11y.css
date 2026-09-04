@@ -8,7 +8,26 @@
  *   visually-hiding content while keeping it discoverable to assistive
  *   tech. Some packages also expose this class via component CSS; this
  *   file guarantees it is always available when either editor mounts.
+ * - The button base rules give every `<button>` a pointer cursor when
+ *   enabled, a `not-allowed` cursor when disabled, and a visible
+ *   `:focus-visible` outline (WCAG 2.2 SC 2.4.7). They are wrapped in
+ *   `:where()` so their specificity is zero — any component-scoped
+ *   rule that already styles a button (class hooks, `.btn`, etc.) wins
+ *   without needing `!important`.
  */
+
+:where(button:not(:disabled)) {
+  cursor: pointer;
+}
+
+:where(button:disabled) {
+  cursor: not-allowed;
+}
+
+:where(button:focus-visible) {
+  outline: 2px solid var(--color-primary, #2563eb);
+  outline-offset: 2px;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *,
