@@ -22,6 +22,7 @@ use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PageContro
 use ArtisanPackUI\VisualEditor\Http\Controllers\Adapters\CmsFramework\PostController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\AttachmentController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BindingResolveController;
+use ArtisanPackUI\VisualEditor\Http\Controllers\BusinessInfoController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BindingSourcesController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\BlockPreviewController;
 use ArtisanPackUI\VisualEditor\Http\Controllers\DynamicContent\DynamicContentResolveController;
@@ -434,6 +435,16 @@ Route::get( 'attachments/{id}', [ AttachmentController::class, 'show' ] )
 Route::get( 'site/{id}', [ SiteController::class, 'show' ] )
 	->where( 'id', '[A-Za-z0-9_-]+' )
 	->name( 'visual-editor.api.site.show' );
+
+// #761 — singleton business-info envelope consumed by the editor's
+// `artisanpack/business-*` block previews. Resolves through the same
+// `ap.visualEditor.businessInfo` filter + envelope composition logic the
+// front-end BusinessInfoResolver uses, so the canvas preview (including
+// the address block's map iframe) matches the rendered front end
+// verbatim. Static path — the envelope is a singleton per host, not
+// entity-keyed.
+Route::get( 'business-info', [ BusinessInfoController::class, 'show' ] )
+	->name( 'visual-editor.api.business-info.show' );
 
 // #610-#614 — AI trigger surface. Each POST runs one agent and returns
 // its shaped output; enforcement of feature toggles + credentials lives
