@@ -15,18 +15,13 @@ namespace ArtisanPackUI\VisualEditor\Livewire\Ai;
 
 use ArtisanPackUI\Ai\Agents\AltTextGenerationAgent;
 use ArtisanPackUI\Ai\Agents\ContentRewriteAgent;
-use ArtisanPackUI\Ai\Contracts\FeatureRegistry;
-use ArtisanPackUI\Ai\Exceptions\FeatureDisabledException;
-use ArtisanPackUI\Ai\Exceptions\FeatureError;
-use ArtisanPackUI\Ai\Exceptions\MissingCredentialsException;
+use ArtisanPackUI\Ai\Concerns\HandlesAiFeatureResponses;
 use ArtisanPackUI\VisualEditor\Ai\Agents\ContentBlockSuggestionAgent;
 use ArtisanPackUI\VisualEditor\Ai\Agents\HeadingHierarchyAgent;
 use ArtisanPackUI\VisualEditor\Ai\Agents\LayoutSuggestionAgent;
 use ArtisanPackUI\VisualEditor\VisualEditorServiceProvider;
-use Illuminate\Support\Facades\Log;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Throwable;
 
 /**
  * Thin Livewire wrapper that runs any of the five AI features the visual
@@ -49,6 +44,8 @@ use Throwable;
  */
 class AiTools extends Component
 {
+	use HandlesAiFeatureResponses;
+
 	/**
 	 * Suggest the next block given the current block list + caret offset.
 	 *
@@ -163,14 +160,7 @@ class AiTools extends Component
 	 */
 	public function enabledFeatures(): array
 	{
-		/** @var FeatureRegistry $registry */
-		$registry = app( FeatureRegistry::class );
-
-		$state = [];
-		foreach ( VisualEditorServiceProvider::AI_FEATURE_KEYS as $key ) {
-			$state[ $key ] = null !== $registry->get( $key ) && $registry->isToggleOn( $key );
-		}
-		return $state;
+		return $this->aiFeatureStateMap( VisualEditorServiceProvider::AI_FEATURE_KEYS );
 	}
 
 	/**
@@ -188,9 +178,26 @@ class AiTools extends Component
 	}
 
 	/**
+	 * Tag the shared handler's log line with this surface.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @return string
+	 */
+	protected function aiFeatureLogMessage(): string
+	{
+		return 'visual-editor AI trigger failed';
+	}
+
+	/**
 	 * Shared run-and-emit path. Kept private so callers can only reach
 	 * agents through the five public entry points, each of which
 	 * pre-shapes its input.
+	 *
+	 * The exception ladder is delegated to
+	 * {@see HandlesAiFeatureResponses::handleAiFeature()}; this method
+	 * folds the outcome into a browser event whose name is driven by
+	 * {@see \ArtisanPackUI\Ai\Support\AiFeatureOutcome::$statusSlug}.
 	 *
 	 * @since 1.3.0
 	 *
@@ -201,48 +208,22 @@ class AiTools extends Component
 	 */
 	private function run( string $featureKey, callable $callback ): void
 	{
-		try {
-			$output = $callback();
+		$outcome = $this->handleAiFeature( $featureKey, $callback );
 
+		if ( $outcome->succeeded ) {
 			$this->dispatch(
-				sprintf( 'ap-ve-ai:%s:success', $featureKey ),
-				feature: $featureKey,
-				output: $output,
+				sprintf( 'ap-ve-ai:%s:success', $outcome->feature ),
+				feature: $outcome->feature,
+				output: $outcome->output,
 			);
-		} catch ( FeatureDisabledException $e ) {
-			$this->dispatch(
-				sprintf( 'ap-ve-ai:%s:disabled', $featureKey ),
-				feature: $featureKey,
-				message: $e->getMessage(),
-			);
-		} catch ( MissingCredentialsException $e ) {
-			$this->dispatch(
-				sprintf( 'ap-ve-ai:%s:missing-credentials', $featureKey ),
-				feature: $featureKey,
-				message: $e->getMessage(),
-			);
-		} catch ( FeatureError $e ) {
-			// FeatureError is a user-fixable validation problem (bad
-			// input, empty required field, etc.). Emit under a distinct
-			// event name so front-end listeners can route it to a
-			// form-level warning instead of a generic error toast
-			// (review #7). Mirrors the HTTP surface's 422 status.
-			$this->dispatch(
-				sprintf( 'ap-ve-ai:%s:invalid-input', $featureKey ),
-				feature: $featureKey,
-				message: $e->getMessage(),
-			);
-		} catch ( Throwable $e ) {
-			Log::error( 'visual-editor AI trigger failed', [
-				'feature' => $featureKey,
-				'error'   => $e->getMessage(),
-			] );
 
-			$this->dispatch(
-				sprintf( 'ap-ve-ai:%s:error', $featureKey ),
-				feature: $featureKey,
-				message: 'Unexpected error running AI feature.',
-			);
+			return;
 		}
+
+		$this->dispatch(
+			sprintf( 'ap-ve-ai:%s:%s', $outcome->feature, $outcome->statusSlug ),
+			feature: $outcome->feature,
+			message: $outcome->message,
+		);
 	}
 }
