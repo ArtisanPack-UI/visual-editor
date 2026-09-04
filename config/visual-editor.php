@@ -69,6 +69,61 @@ return [
 
 	/*
 	|--------------------------------------------------------------------------
+	| Editor presets
+	|--------------------------------------------------------------------------
+	|
+	| Host-provided extensions to the editor's default palette, font sizes,
+	| font families, and spacing sizes (#773). Gives applications that don't
+	| ship a `theme.json` and don't sit on top of cms-framework a supported
+	| seam for adding brand entries to the inspector's Color, Typography, and
+	| Dimensions panels without patching `editor-settings.ts` in a fork.
+	|
+	| Each list accepts either a bare array of entries (implicit `append`
+	| mode) or an explicit wrapper:
+	|
+	|     'palette' => [
+	|         ['slug' => 'brand-navy', 'name' => 'Brand Navy', 'color' => '#0a2540'],
+	|     ],
+	|
+	|     // Or, to wipe the package defaults and ship only host entries:
+	|     'palette' => [
+	|         'mode'    => 'replace',
+	|         'entries' => [
+	|             ['slug' => 'brand-navy', 'name' => 'Brand Navy', 'color' => '#0a2540'],
+	|         ],
+	|     ],
+	|
+	| Entry shapes:
+	|   - palette:       ['slug', 'name', 'color']       — hex or any CSS color
+	|   - font_sizes:    ['slug', 'name', 'size']        — any CSS length ('14px', '1rem', ...)
+	|   - font_families: ['slug', 'name', 'fontFamily']  — CSS `font-family` stack
+	|   - spacing_sizes: ['slug', 'name', 'size']        — any CSS length
+	|
+	| Order of precedence, lowest to highest:
+	|   1. Package defaults baked into the JS bundle.
+	|   2. Active theme's `theme.json` presets (when a theme ships them),
+	|      applied through `useThemedEditorSettings`.
+	|   3. This config — layered on top of whichever base exists. Under
+	|      `append` mode, host slugs that collide with a theme/default
+	|      slug replace that entry in place; under `replace` mode, the
+	|      host list wins outright for that preset kind.
+	|
+	| Slugs must match `/^[a-z0-9_-]+$/`. Entries whose slug is invalid or
+	| whose value is empty are silently dropped so a typo can't break the
+	| picker. Within a list, host slugs that collide with a package-default
+	| slug replace that default (typical CSS-cascade behaviour).
+	|
+	*/
+
+	'presets' => [
+		'palette'       => [],
+		'font_sizes'    => [],
+		'font_families' => [],
+		'spacing_sizes' => [],
+	],
+
+	/*
+	|--------------------------------------------------------------------------
 	| Site meta
 	|--------------------------------------------------------------------------
 	|

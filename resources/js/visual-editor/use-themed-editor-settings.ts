@@ -18,6 +18,7 @@
 import { useMemo } from 'react';
 
 import { editorSettings } from './editor-settings';
+import { getHostPresets, mergePresetList } from './preset-registry';
 import { useThemeGlobalStylesCss } from './site-editor/use-theme-global-styles-css';
 import { useThemeGlobalStylesSettings } from './site-editor/use-theme-global-styles-settings';
 
@@ -310,12 +311,39 @@ export function useThemedEditorSettings(
 
     return useMemo(() => {
         const themeSettings = themeBase?.settings ?? {};
-        const themePalette = extractThemePalette(themeSettings);
-        const themeFontSizes = extractThemeFontSizes(themeSettings);
-        const themeFontFamilies = extractThemeFontFamilies(themeSettings);
-        const themeSpacingSizes = extractThemeSpacingSizes(themeSettings);
+        const rawThemePalette = extractThemePalette(themeSettings);
+        const rawThemeFontSizes = extractThemeFontSizes(themeSettings);
+        const rawThemeFontFamilies = extractThemeFontFamilies(themeSettings);
+        const rawThemeSpacingSizes = extractThemeSpacingSizes(themeSettings);
         const themeGradients = extractThemeGradients(themeSettings);
         const themePhotoGrid = extractThemePhotoGrid(themeSettings);
+
+        // #773 — layer host-registered presets on top of whichever base
+        // layer exists (theme.json when a theme ships presets, package
+        // defaults otherwise) so brand entries always reach the picker
+        // regardless of what's underneath. `replace` mode still wins,
+        // matching the documented per-list contract in PresetRegistry.
+        const hostPresets = getHostPresets();
+        const paletteBase = rawThemePalette ?? null;
+        const fontSizesBase = rawThemeFontSizes ?? null;
+        const fontFamiliesBase = rawThemeFontFamilies ?? null;
+        const spacingSizesBase = rawThemeSpacingSizes ?? null;
+        const themePalette =
+            paletteBase !== null && hostPresets.palette.entries.length > 0
+                ? mergePresetList(paletteBase, hostPresets.palette)
+                : paletteBase;
+        const themeFontSizes =
+            fontSizesBase !== null && hostPresets.fontSizes.entries.length > 0
+                ? mergePresetList(fontSizesBase, hostPresets.fontSizes)
+                : fontSizesBase;
+        const themeFontFamilies =
+            fontFamiliesBase !== null && hostPresets.fontFamilies.entries.length > 0
+                ? mergePresetList(fontFamiliesBase, hostPresets.fontFamilies)
+                : fontFamiliesBase;
+        const themeSpacingSizes =
+            spacingSizesBase !== null && hostPresets.spacingSizes.entries.length > 0
+                ? mergePresetList(spacingSizesBase, hostPresets.spacingSizes)
+                : spacingSizesBase;
 
         // #490 — propagate the theme's color-customization booleans so
         // Gutenberg's `useSettings('color.customGradient')` / `'color.custom'`

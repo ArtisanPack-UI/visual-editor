@@ -29,4 +29,9 @@
 	     defaults) so the viewport switcher's registry hydrates with
 	     host-configured `label` / `previewWidthPx` overrides. --}}
 	data-breakpoints="{{ json_encode( $breakpoints ) }}"
+	{{-- #773 — host-provided palette / font-size / font-family /
+	     spacing-size presets. Merged into `editorSettings` by
+	     `preset-registry.ts` at editor boot; theme.json still wins
+	     when a theme ships its own preset arrays. --}}
+	data-presets="{{ json_encode( $presets, JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 ></div>

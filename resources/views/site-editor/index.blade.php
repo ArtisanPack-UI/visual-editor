@@ -39,6 +39,12 @@
 		     live in the site editor, so the post-terms block needs the
 		     taxonomy list here too. --}}
 		data-taxonomies="{{ json_encode( \ArtisanPackUI\VisualEditor\Resources\TaxonomyRegistry::fromConfig(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
+		{{-- #773 — host-provided palette / font-size / font-family /
+		     spacing-size presets. The site editor also boots the block
+		     inspector and needs the same seam so brand entries reach the
+		     Color / Typography / Dimensions panels when editing
+		     templates. --}}
+		data-presets="{{ json_encode( \ArtisanPackUI\VisualEditor\Resources\PresetRegistry::fromConfig(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 	></div>
 </body>
 </html>
