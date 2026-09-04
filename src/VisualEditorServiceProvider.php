@@ -1382,15 +1382,15 @@ class VisualEditorServiceProvider extends ServiceProvider
 		// up `serializeRawBlock` with "Cannot destructure property
 		// blockName". Concatenate rather than break lines.
 		$container1 = '<!-- wp:artisanpack/group {"tagName":"section","layout":{"type":"constrained"}} --><section class="wp-block-artisanpack-group wp-block-group">'
-			. '<!-- wp:artisanpack/heading {"level":2} --><h2 class="wp-block-heading">' . $visitHeading . '</h2><!-- /wp:artisanpack/heading -->'
+			. '<!-- wp:artisanpack/heading {"level":2} --><h2 class="wp-block-artisanpack-heading wp-block-heading">' . $visitHeading . '</h2><!-- /wp:artisanpack/heading -->'
 			. '<!-- wp:artisanpack/columns --><div class="wp-block-artisanpack-columns wp-block-columns">'
 			. '<!-- wp:artisanpack/column --><div class="wp-block-artisanpack-column wp-block-column">'
 			. '<!-- wp:artisanpack/business-address /-->'
 			. '</div><!-- /wp:artisanpack/column -->'
 			. '<!-- wp:artisanpack/column --><div class="wp-block-artisanpack-column wp-block-column">'
-			. '<!-- wp:artisanpack/heading {"level":3} --><h3 class="wp-block-heading">' . $hoursHeading . '</h3><!-- /wp:artisanpack/heading -->'
+			. '<!-- wp:artisanpack/heading {"level":3} --><h3 class="wp-block-artisanpack-heading wp-block-heading">' . $hoursHeading . '</h3><!-- /wp:artisanpack/heading -->'
 			. '<!-- wp:artisanpack/business-hours /-->'
-			. '<!-- wp:artisanpack/heading {"level":3} --><h3 class="wp-block-heading">' . $contactHeading . '</h3><!-- /wp:artisanpack/heading -->'
+			. '<!-- wp:artisanpack/heading {"level":3} --><h3 class="wp-block-artisanpack-heading wp-block-heading">' . $contactHeading . '</h3><!-- /wp:artisanpack/heading -->'
 			. '<!-- wp:artisanpack/business-phone /-->'
 			. '<!-- wp:artisanpack/business-email /-->'
 			. '</div><!-- /wp:artisanpack/column -->'
@@ -1398,7 +1398,7 @@ class VisualEditorServiceProvider extends ServiceProvider
 			. '</section><!-- /wp:artisanpack/group -->';
 
 		$container2 = '<!-- wp:artisanpack/group {"tagName":"section","layout":{"type":"constrained"}} --><section class="wp-block-artisanpack-group wp-block-group">'
-			. '<!-- wp:artisanpack/heading {"level":2} --><h2 class="wp-block-heading">' . $reviewsHeading . '</h2><!-- /wp:artisanpack/heading -->'
+			. '<!-- wp:artisanpack/heading {"level":2} --><h2 class="wp-block-artisanpack-heading wp-block-heading">' . $reviewsHeading . '</h2><!-- /wp:artisanpack/heading -->'
 			. '<!-- wp:artisanpack/reviews /-->'
 			. '</section><!-- /wp:artisanpack/group -->';
 
