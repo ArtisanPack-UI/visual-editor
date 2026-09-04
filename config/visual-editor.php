@@ -105,8 +105,11 @@ return [
 	|      applied through `useThemedEditorSettings`.
 	|   3. This config — layered on top of whichever base exists. Under
 	|      `append` mode, host slugs that collide with a theme/default
-	|      slug replace that entry in place; under `replace` mode, the
-	|      host list wins outright for that preset kind.
+	|      slug replace that entry in place, and an empty list is a
+	|      no-op; under `replace` mode, the host list wins outright for
+	|      that preset kind — including an empty `entries` array, which
+	|      is an explicit "no presets for this list" instruction that
+	|      wipes both the theme and the defaults.
 	|
 	| Slugs must match `/^[a-z0-9_-]+$/`. Entries whose slug is invalid or
 	| whose value is empty are silently dropped so a typo can't break the

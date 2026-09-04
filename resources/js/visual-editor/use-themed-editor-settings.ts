@@ -66,6 +66,22 @@ export interface UseThemedEditorSettingsOptions {
 }
 
 /**
+ * Canonicalise a theme preset slug so it compares equal to the
+ * host-preset registry's slug (which is `trim().toLowerCase()`d in
+ * `preset-registry.ts`). Themes occasionally ship title-cased slugs
+ * (`Primary`, `Foreground`) — without canonicalisation, `mergePresetList`
+ * treats them as distinct from the host's `primary` and the documented
+ * host-override behaviour silently breaks (CR #773).
+ */
+function canonicaliseSlug(value: unknown): string | null {
+    if (typeof value !== 'string') {
+        return null;
+    }
+    const slug = value.trim().toLowerCase();
+    return slug === '' ? null : slug;
+}
+
+/**
  * Pull `settings.color.palette` out of the `/global-styles/base`
  * payload as a normalized `{ slug, name, color }` list. Returns
  * `null` (not an empty array) when the theme didn't define one so
@@ -89,10 +105,10 @@ export function extractThemePalette(
             continue;
         }
 
-        const slug = (entry as { slug?: unknown }).slug;
+        const slug = canonicaliseSlug((entry as { slug?: unknown }).slug);
         const color = (entry as { color?: unknown }).color;
 
-        if (typeof slug !== 'string' || slug === '' || typeof color !== 'string') {
+        if (slug === null || typeof color !== 'string') {
             continue;
         }
 
@@ -130,10 +146,10 @@ export function extractThemeFontSizes(
             continue;
         }
 
-        const slug = (entry as { slug?: unknown }).slug;
+        const slug = canonicaliseSlug((entry as { slug?: unknown }).slug);
         const size = (entry as { size?: unknown }).size;
 
-        if (typeof slug !== 'string' || slug === '' || typeof size !== 'string') {
+        if (slug === null || typeof size !== 'string') {
             continue;
         }
 
@@ -171,10 +187,10 @@ export function extractThemeFontFamilies(
             continue;
         }
 
-        const slug = (entry as { slug?: unknown }).slug;
+        const slug = canonicaliseSlug((entry as { slug?: unknown }).slug);
         const fontFamily = (entry as { fontFamily?: unknown }).fontFamily;
 
-        if (typeof slug !== 'string' || slug === '' || typeof fontFamily !== 'string') {
+        if (slug === null || typeof fontFamily !== 'string') {
             continue;
         }
 
@@ -212,10 +228,10 @@ export function extractThemeSpacingSizes(
             continue;
         }
 
-        const slug = (entry as { slug?: unknown }).slug;
+        const slug = canonicaliseSlug((entry as { slug?: unknown }).slug);
         const size = (entry as { size?: unknown }).size;
 
-        if (typeof slug !== 'string' || slug === '' || typeof size !== 'string') {
+        if (slug === null || typeof size !== 'string') {
             continue;
         }
 

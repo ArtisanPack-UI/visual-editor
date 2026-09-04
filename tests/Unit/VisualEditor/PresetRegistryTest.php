@@ -84,19 +84,31 @@ it( 'drops palette entries with an invalid slug', function () {
 	] );
 } );
 
-it( 'drops palette entries with a suspicious color value', function () {
+it( 'drops palette entries whose color contains an HTML-attribute-breakout character', function () {
 	config()->set( 'artisanpack.visual-editor.presets.palette', [
 		[ 'slug' => 'x', 'color' => 'red<script>' ],
-		[ 'slug' => 'y', 'color' => 'oklch(0.5 0.1 200)' ],
+		[ 'slug' => 'y', 'color' => 'red"and-quote' ],
+		[ 'slug' => 'z', 'color' => "back`tick" ],
 	] );
 
 	$presets = PresetRegistry::fromConfig();
 
-	expect( $presets['palette']['entries'] )->toBe( [
-		// The `oklch(...)` entry survives because there is a space
-		// inside `oklch(...)`; whitespace also trips the guard so this
-		// entry is dropped alongside the `<script>` one. Only the
-		// entries that pass the guard land in the result.
+	expect( $presets['palette']['entries'] )->toBe( [] );
+} );
+
+it( 'preserves internal whitespace so multi-argument CSS color functions survive', function () {
+	config()->set( 'artisanpack.visual-editor.presets.palette', [
+		[ 'slug' => 'a', 'color' => 'rgb(0, 0, 0)' ],
+		[ 'slug' => 'b', 'color' => 'oklch(0.5 0.1 200)' ],
+		[ 'slug' => 'c', 'color' => 'hsl(210deg 100% 50%)' ],
+	] );
+
+	$presets = PresetRegistry::fromConfig();
+
+	expect( array_column( $presets['palette']['entries'], 'color' ) )->toBe( [
+		'rgb(0, 0, 0)',
+		'oklch(0.5 0.1 200)',
+		'hsl(210deg 100% 50%)',
 	] );
 } );
 
@@ -202,10 +214,12 @@ it( 'returns empty append lists when a preset key is not an array', function () 
 	expect( $presets['palette'] )->toBe( [ 'mode' => 'append', 'entries' => [] ] );
 } );
 
-it( 'treats a replace wrapper with an empty entries list as a valid replace payload', function () {
-	// The PHP layer preserves the mode as-is so the JS merge helper can
-	// implement the "empty-replace keeps defaults" fallback — a change to
-	// this contract would silently break the JS side.
+it( 'preserves a replace wrapper with an empty entries list as an explicit clear', function () {
+	// The PHP layer emits the mode verbatim so the JS merge helper can
+	// treat this shape as an explicit "no presets for this list"
+	// instruction (per the "host wins outright" contract in
+	// `config/visual-editor.php`). A regression here silently reverts
+	// the seam to defaults-preserving.
 	config()->set( 'artisanpack.visual-editor.presets.palette', [
 		'mode'    => 'replace',
 		'entries' => [],

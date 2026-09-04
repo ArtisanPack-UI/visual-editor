@@ -43,7 +43,9 @@
 		     spacing-size presets. The site editor also boots the block
 		     inspector and needs the same seam so brand entries reach the
 		     Color / Typography / Dimensions panels when editing
-		     templates. --}}
+		     templates. Layered on top of theme.json by
+		     `useThemedEditorSettings`; host entries override same-slug
+		     entries from either theme.json or the package defaults. --}}
 		data-presets="{{ json_encode( \ArtisanPackUI\VisualEditor\Resources\PresetRegistry::fromConfig(), JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 	></div>
 </body>

@@ -31,7 +31,10 @@
 	data-breakpoints="{{ json_encode( $breakpoints ) }}"
 	{{-- #773 — host-provided palette / font-size / font-family /
 	     spacing-size presets. Merged into `editorSettings` by
-	     `preset-registry.ts` at editor boot; theme.json still wins
-	     when a theme ships its own preset arrays. --}}
+	     `preset-registry.ts` at editor boot and layered on top of the
+	     theme.json layer by `useThemedEditorSettings`, so host
+	     entries override same-slug entries from either theme.json or
+	     the package defaults. See `config/visual-editor.php` for the
+	     full precedence order. --}}
 	data-presets="{{ json_encode( $presets, JSON_HEX_QUOT | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS ) }}"
 ></div>
