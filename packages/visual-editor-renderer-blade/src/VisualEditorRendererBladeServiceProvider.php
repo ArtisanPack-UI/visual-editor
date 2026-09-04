@@ -24,6 +24,7 @@ use ArtisanPackUI\VisualEditor\Resources\TemplatePartInliner;
 use ArtisanPackUI\VisualEditor\Responsive\BreakpointRegistry;
 use ArtisanPackUI\VisualEditor\Responsive\ResponsiveValueResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BreadcrumbsResolver;
+use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\BusinessInfoResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\LoginoutResolver;
 use ArtisanPackUI\VisualEditorRendererBlade\Resolvers\SiteMetaResolver;
 use ArtisanPackUI\VisualEditor\Animations\AnimationCssEmitter;
@@ -73,6 +74,13 @@ class VisualEditorRendererBladeServiceProvider extends ServiceProvider
 		// stale request context to every subsequent render. #565.
 		$this->app->scoped( BreadcrumbsResolver::class, function () {
 			return new BreadcrumbsResolver();
+		} );
+
+		// Scoped — the business-info resolver memoizes the filter result
+		// per stampTree() call, but a long-lived worker (Octane / queue)
+		// must not pin one request's cache across requests. #761.
+		$this->app->scoped( BusinessInfoResolver::class, function () {
+			return new BusinessInfoResolver();
 		} );
 
 		// Scoped (not singleton) so the BlockRenderer captures the

@@ -258,6 +258,13 @@ return [
 		'artisanpack/post-types-search-results',
 		'artisanpack/single-post-types-search-results',
 		'artisanpack/skills-slider',
+		// Business-info cluster (#761): four generic dynamic display
+		// blocks that read from a host-supplied `businessInfo` contract
+		// via the `ap.visualEditor.businessInfo` filter.
+		'artisanpack/business-hours',
+		'artisanpack/business-address',
+		'artisanpack/business-phone',
+		'artisanpack/business-email',
 	],
 
 	'disabled_blocks' => [
@@ -392,6 +399,36 @@ return [
 	'breadcrumbs' => [
 		'home_url'   => null,
 		'home_label' => null,
+	],
+
+	/*
+	|--------------------------------------------------------------------------
+	| Business-info blocks (#761)
+	|--------------------------------------------------------------------------
+	|
+	| Configures the `artisanpack/business-*` block cluster's server-side
+	| resolver. The blocks are generic; the host supplies the actual
+	| contact data through the `ap.visualEditor.businessInfo` filter.
+	|
+	| `google_maps_api_key` opts the address block's map embed into the
+	| Google Maps `/maps/embed/v1/place` endpoint when the block's
+	| `mapProvider` attribute is set to `google`. Leave null to fall back
+	| to the keyless OpenStreetMap embed regardless of the block's
+	| `mapProvider` selection.
+	|
+	| ⚠️  This key ships to the browser inside the composed
+	| `/maps/embed/v1/place?key=…` URL, so it MUST be an HTTP-referrer-
+	| restricted "Maps Embed API" key (Google Cloud Console → Credentials
+	| → API key → Application restrictions → HTTP referrers, then API
+	| restrictions → only "Maps Embed API"). Never paste a
+	| server-unrestricted key here — a public key with no referrer /
+	| API restrictions can be lifted straight out of the rendered page
+	| and abused against your billing account.
+	|
+	*/
+
+	'business' => [
+		'google_maps_api_key' => null,
 	],
 
 	/*

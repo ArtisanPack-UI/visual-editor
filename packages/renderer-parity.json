@@ -159,6 +159,10 @@
         "artisanpack/post-types-search-results",
         "artisanpack/single-post-types-search-results",
         "artisanpack/skills-slider",
+        "artisanpack/business-hours",
+        "artisanpack/business-address",
+        "artisanpack/business-phone",
+        "artisanpack/business-email",
         "core/html",
         "artisanpack/html"
     ]

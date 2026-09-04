@@ -19,6 +19,10 @@ import {
     AccordionsBlock,
 } from './artisanpack/accordion';
 import { BreadcrumbsBlock } from './artisanpack/breadcrumbs';
+import { BusinessAddressBlock } from './artisanpack/businessAddress';
+import { BusinessEmailBlock } from './artisanpack/businessEmail';
+import { BusinessHoursBlock } from './artisanpack/businessHours';
+import { BusinessPhoneBlock } from './artisanpack/businessPhone';
 import { CalloutBlock } from './artisanpack/callout';
 import { CommentsNumberBlock } from './artisanpack/commentsNumber';
 import { CopyrightBlock } from './artisanpack/copyright';
@@ -244,6 +248,15 @@ const CORE_BLOCKS: Record<string, BlockRenderer> = {
     'core/navigation-link': NavigationLinkBlock,
     'core/navigation-submenu': NavigationSubmenuBlock,
     'artisanpack/breadcrumbs': BreadcrumbsBlock,
+    // Business-info cluster (#761) — display blocks that read from a
+    // host-supplied envelope via the `ap.visualEditor.businessInfo`
+    // filter, stamped onto `_resolvedBusinessInfo` by BusinessInfoResolver
+    // on the Blade renderer (consumers on the React / Vue side are
+    // responsible for stamping the equivalent envelope themselves).
+    'artisanpack/business-hours': BusinessHoursBlock,
+    'artisanpack/business-address': BusinessAddressBlock,
+    'artisanpack/business-phone': BusinessPhoneBlock,
+    'artisanpack/business-email': BusinessEmailBlock,
     'artisanpack/callout': CalloutBlock,
     'artisanpack/faq': FaqBlock,
     'artisanpack/howto': HowtoBlock,

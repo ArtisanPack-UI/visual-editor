@@ -112,6 +112,10 @@ it( 'returns the frozen V1 block allow-list under the default config', function 
 		'artisanpack/post-types-search-results',
 		'artisanpack/single-post-types-search-results',
 		'artisanpack/skills-slider',
+		'artisanpack/business-hours',
+		'artisanpack/business-address',
+		'artisanpack/business-phone',
+		'artisanpack/business-email',
 	] );
 } );
 
