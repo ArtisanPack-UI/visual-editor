@@ -32,11 +32,37 @@ use JsonException;
 
 class VisualEditor
 {
+	/**
+	 * The host Dynamic Content source registry.
+	 *
+	 * Nullable in the constructor to preserve backward compatibility with
+	 * the pre-1.9 two-argument signature that a host app / test may still
+	 * be using to construct `new VisualEditor(...)` directly. When the
+	 * caller omits it we lazy-instantiate a fresh registry on first use.
+	 *
+	 * @since 1.9.0
+	 */
+	protected ?DynamicContentSourceRegistry $dynamicContentSourceRegistry;
+
 	public function __construct(
 		protected BlockTypeRegistry $registry,
 		protected DynamicBlockRegistry $dynamicRegistry,
-		protected DynamicContentSourceRegistry $dynamicContentSourceRegistry,
+		?DynamicContentSourceRegistry $dynamicContentSourceRegistry = null,
 	) {
+		$this->dynamicContentSourceRegistry = $dynamicContentSourceRegistry;
+	}
+
+	/**
+	 * Resolve the Dynamic Content source registry, materializing a
+	 * fresh one on first use when the constructor was called without
+	 * one (the pre-1.9 two-argument shape).
+	 *
+	 * @since 1.9.0
+	 */
+	protected function dynamicContentSourceRegistry(): DynamicContentSourceRegistry
+	{
+		return $this->dynamicContentSourceRegistry
+			??= new DynamicContentSourceRegistry();
 	}
 
 	/**
@@ -282,7 +308,7 @@ class VisualEditor
 	{
 		$source = HostDynamicContentSource::fromArray( $definition );
 
-		$this->dynamicContentSourceRegistry->register( $source );
+		$this->dynamicContentSourceRegistry()->register( $source );
 
 		return $source;
 	}
@@ -314,7 +340,7 @@ class VisualEditor
 	 */
 	public function getDynamicContentSourceRegistry(): DynamicContentSourceRegistry
 	{
-		return $this->dynamicContentSourceRegistry;
+		return $this->dynamicContentSourceRegistry();
 	}
 
 	/**

@@ -270,6 +270,7 @@ class HostDynamicContentSource
 		}
 
 		$normalized = [];
+		$seenSlugs  = [];
 
 		foreach ( $fields as $field ) {
 			if ( ! is_array( $field ) ) {
@@ -282,7 +283,16 @@ class HostDynamicContentSource
 				continue;
 			}
 
-			$slug  = trim( $slug );
+			$slug = trim( $slug );
+
+			// First-wins on a duplicate slug: two entries with the same
+			// slug would produce ambiguous rows downstream (duplicate
+			// `slug.field` keys in availableFields(), conflicting labels
+			// / types in toArray()) so we drop later occurrences.
+			if ( isset( $seenSlugs[ $slug ] ) ) {
+				continue;
+			}
+
 			$label = isset( $field['label'] ) && is_string( $field['label'] ) && '' !== trim( $field['label'] )
 				? trim( $field['label'] )
 				: $slug;
@@ -300,7 +310,8 @@ class HostDynamicContentSource
 				$entry['description'] = trim( $field['description'] );
 			}
 
-			$normalized[] = $entry;
+			$normalized[]       = $entry;
+			$seenSlugs[ $slug ] = true;
 		}
 
 		return $normalized;

@@ -16,9 +16,12 @@ declare( strict_types=1 );
 
 use ArtisanPackUI\VisualEditor\DynamicContent\HostDynamicContentSource;
 use ArtisanPackUI\VisualEditor\Facades\VisualEditor;
+use ArtisanPackUI\VisualEditor\Registries\BlockTypeRegistry;
+use ArtisanPackUI\VisualEditor\Registries\DynamicBlockRegistry;
 use ArtisanPackUI\VisualEditor\Registries\DynamicContentSourceRegistry;
 use ArtisanPackUI\VisualEditor\Services\Bindings\BindingContext;
 use ArtisanPackUI\VisualEditor\Services\Bindings\Sources\DynamicContentSource;
+use ArtisanPackUI\VisualEditor\VisualEditor as VisualEditorClass;
 use Tests\Support\FakeDynamicContentAccessor;
 use Tests\Support\FakeDynamicContentTypeRegistry;
 use Tests\TestUser;
@@ -75,6 +78,50 @@ it( 'rejects an unknown cardinality', function () {
 		'cardinality' => 'sometimes',
 		'resolver'    => fn () => [],
 	] ) )->toThrow( InvalidArgumentException::class );
+} );
+
+it( 'drops duplicate field slugs on a first-wins basis', function () {
+	$source = VisualEditor::registerDynamicContentSource( [
+		'slug'        => 'business',
+		'cardinality' => 'singleton',
+		'fields'      => [
+			[ 'slug' => 'name',  'label' => 'First Name',     'type' => 'text' ],
+			[ 'slug' => 'name',  'label' => 'Duplicate Name', 'type' => 'text' ],
+			[ 'slug' => ' name ', 'label' => 'Padded Name',   'type' => 'text' ],
+			[ 'slug' => 'phone', 'label' => 'Phone',          'type' => 'phone' ],
+		],
+		'resolver'    => fn () => [],
+	] );
+
+	expect( $source->fields )->toHaveCount( 2 );
+
+	$slugs = array_column( $source->fields, 'slug' );
+	expect( $slugs )->toBe( [ 'name', 'phone' ] );
+
+	// The first occurrence's label wins.
+	$nameField = collect( $source->fields )->firstWhere( 'slug', 'name' );
+	expect( $nameField['label'] )->toBe( 'First Name' );
+} );
+
+it( 'supports the pre-1.9 two-argument constructor signature', function () {
+	// A host that constructs the class directly (rather than resolving
+	// it from the container) must still work without passing a
+	// DynamicContentSourceRegistry.
+	$editor = new VisualEditorClass(
+		app( BlockTypeRegistry::class ),
+		app( DynamicBlockRegistry::class ),
+	);
+
+	$source = $editor->registerDynamicContentSource( [
+		'slug'        => 'business',
+		'cardinality' => 'singleton',
+		'fields'      => [ [ 'slug' => 'name', 'label' => 'Name', 'type' => 'text' ] ],
+		'resolver'    => fn () => [ 'name' => 'Acme' ],
+	] );
+
+	expect( $source )->toBeInstanceOf( HostDynamicContentSource::class );
+	expect( $editor->getDynamicContentSourceRegistry() )->toBeInstanceOf( DynamicContentSourceRegistry::class );
+	expect( $editor->getDynamicContentSourceRegistry()->has( 'business' ) )->toBeTrue();
 } );
 
 it( 'rejects a non-callable resolver', function () {
