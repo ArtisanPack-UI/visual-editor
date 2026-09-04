@@ -146,6 +146,7 @@ class BlockSupports
 		self::applySpacing( $attributes, $style );
 		self::applyBorder( $attributes, $classes, $style );
 		self::applyTypography( $attributes, $classes, $style );
+		self::applyDimensions( $attributes, $style );
 		self::applyClassName( $attributes, $classes );
 
 		$id = self::resolveAnchor( $attributes );
@@ -2000,6 +2001,53 @@ class BlockSupports
 			}
 
 			$value = self::stringAttr( $typography[ $attrKey ] ?? null );
+
+			if ( '' === $value ) {
+				continue;
+			}
+
+			$style[] = $cssProperty . ': ' . self::expandPresetReference( $value );
+		}
+	}
+
+	/**
+	 * Dimensions support (#776) — read `style.dimensions.*` values and
+	 * emit the matching inline declarations on the wrapper.
+	 *
+	 * Covers the standard WP core dimensions block-support keys that map
+	 * cleanly to a single inline CSS property:
+	 * - `minHeight`   → `min-height`
+	 * - `aspectRatio` → `aspect-ratio`
+	 *
+	 * A block only opts into a given key via its `block.json`
+	 * (`supports.dimensions.minHeight: true` etc.). The compiler runs
+	 * unconditionally against every block's attribute tree, but if the
+	 * editor never wrote the key the payload isn't present and this
+	 * method emits nothing. `dimensions.transform` is intentionally NOT
+	 * handled here — it flows through the states pipeline (see
+	 * {@see statePathConfig}) where each stateful transform value gets a
+	 * scoped rule instead of a base declaration.
+	 *
+	 * @since 1.9.0
+	 *
+	 * @param  array<string, mixed>  $attributes
+	 * @param  array<int, string>   &$style
+	 */
+	protected static function applyDimensions( array $attributes, array &$style ): void
+	{
+		$dimensions = $attributes['style']['dimensions'] ?? null;
+
+		if ( ! is_array( $dimensions ) ) {
+			return;
+		}
+
+		$mappings = [
+			'minHeight'   => 'min-height',
+			'aspectRatio' => 'aspect-ratio',
+		];
+
+		foreach ( $mappings as $attrKey => $cssProperty ) {
+			$value = self::stringAttr( $dimensions[ $attrKey ] ?? null );
 
 			if ( '' === $value ) {
 				continue;

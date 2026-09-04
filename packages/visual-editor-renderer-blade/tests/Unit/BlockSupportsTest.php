@@ -345,6 +345,54 @@ describe( 'BlockSupports::compile (typography)', function (): void {
 	} );
 } );
 
+describe( 'BlockSupports::compile (dimensions)', function (): void {
+	it( 'maps style.dimensions.minHeight to a min-height declaration', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'dimensions' => [ 'minHeight' => '100vh' ] ],
+		] );
+
+		expect( $result['style'] )->toContain( 'min-height: 100vh;' );
+	} );
+
+	it( 'maps style.dimensions.aspectRatio to an aspect-ratio declaration', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'dimensions' => [ 'aspectRatio' => '16/9' ] ],
+		] );
+
+		expect( $result['style'] )->toContain( 'aspect-ratio: 16/9;' );
+	} );
+
+	it( 'expands preset references in dimensions values', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'dimensions' => [ 'minHeight' => 'var:preset|spacing|80' ] ],
+		] );
+
+		expect( $result['style'] )->toContain( 'min-height: var(--wp--preset--spacing--80);' );
+	} );
+
+	it( 'emits nothing when dimensions is absent or empty', function (): void {
+		expect( BlockSupports::compile( [] )['style'] )->toBe( '' );
+		expect( BlockSupports::compile( [ 'style' => [ 'dimensions' => [] ] ] )['style'] )->toBe( '' );
+		expect( BlockSupports::compile( [ 'style' => [ 'dimensions' => [ 'minHeight' => '' ] ] ] )['style'] )->toBe( '' );
+	} );
+
+	it( 'ignores non-array dimensions payloads', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'dimensions' => 'oops' ],
+		] );
+
+		expect( $result['style'] )->toBe( '' );
+	} );
+
+	it( 'does not double-emit transform (handled by the states pipeline)', function (): void {
+		$result = BlockSupports::compile( [
+			'style' => [ 'dimensions' => [ 'transform' => 'rotate(3deg)' ] ],
+		] );
+
+		expect( $result['style'] )->not->toContain( 'transform:' );
+	} );
+} );
+
 describe( 'BlockSupports::compile (className + anchor)', function (): void {
 	it( 'appends user-supplied className tokens', function (): void {
 		$result = BlockSupports::compile( [ 'className' => 'site-footer  brand-section' ] );
